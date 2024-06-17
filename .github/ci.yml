@@ -1,0 +1,48 @@
+name: Tests
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - directory: "package/example"
+    env:
+      WORKING_DIRECTORY: ./
+    concurrency:
+      group: tests-${{ matrix.directory }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install clang-format
+        run: sudo apt-get install -y clang-format
+
+      - name: Run clang-format-ios
+        run: yarn clang-format-ios --dry-run --Werror
+
+      - name: Run clang-format-android
+        run: yarn clang-format-android --dry-run --Werror
+
+      - name: Run clang-format-common
+        run: yarn clang-format-common --dry-run --Werror
+
+      - uses: actions/setup-node@v3
+        with:
+          cache: 'yarn'
+
+      - name: Install Package
+        run: cd package; yarn install --frozen-lockfile
+
+      - name: Lint Package
+        run: cd package; yarn lint;
+
+      - name: TypeScript Package
+        run: cd package; yarn tsc;

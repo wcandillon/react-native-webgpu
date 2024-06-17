@@ -1,0 +1,124 @@
+{
+  "name": "react-native-webgpu",
+  "version": "0.1.0",
+  "description": "React Native WebGPU",
+  "main": "lib/commonjs/index",
+  "module": "lib/module/index",
+  "types": "lib/typescript/src/index.d.ts",
+  "react-native": "src/index",
+  "source": "src/index",
+  "files": [
+    "src",
+    "lib",
+    "android",
+    "ios",
+    "cpp",
+    "*.podspec",
+    "!ios/build",
+    "!android/build",
+    "!android/gradle",
+    "!android/gradlew",
+    "!android/gradlew.bat",
+    "!android/local.properties",
+    "!**/__tests__",
+    "!**/__fixtures__",
+    "!**/__mocks__",
+    "!**/.*"
+  ],
+  "scripts": {
+    "example": "yarn workspace react-native-webgpu-example",
+    "test": "jest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"**/*.{js,ts,tsx}\"",
+    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
+    "prepare": "bob build",
+    "build-dawn": "ts-node scripts/build-dawn.ts",
+    "clean-dawn": "rimraf ./libs && rimraf ../externals/dawn/out",
+    "clang-format": "yarn clang-format-ios && yarn clang-format-android && yarn clang-format-common",
+    "clang-format-ios": "find ios/ -iname \"*.h\" -o -iname \"*.mm\" -o -iname \"*.cpp\" | xargs clang-format -i",
+    "clang-format-android": "find android/cpp/ -iname \"*.h\" -o -iname \"*.m\" -o -iname \"*.cpp\" | xargs clang-format -i",
+    "clang-format-common": "find cpp/rnwgpu -iname \"*.h\" -o -iname \"*.m\" -o -iname \"*.cpp\" | xargs clang-format -i",
+    "cpplint": "cpplint --linelength=230 --filter=-legal/copyright,-whitespace/indent,-whitespace/comments,-whitespace/ending_newline,-build/include_order,-runtime/references,-readability/todo,-whitespace/blank_line,-whitespace/todo,-runtime/int,-build/c++11,-whitespace/parens --exclude=example --exclude=android/.cxx --exclude=cpp/webgpu --exclude=cpp/dawn --exclude=ios --exclude=android/build --exclude=node_modules --recursive .",
+    "copy-artifacts": "ts-node scripts/copy-artifacts.ts"
+  },
+  "keywords": [
+    "react-native",
+    "ios",
+    "android"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wcandillon/react-native-wgpu.git"
+  },
+  "author": "William Candillon <wcandillon@gmail.com> (https://github.com/wcandillon)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wcandillon/react-native-wgpu/issues"
+  },
+  "homepage": "https://github.com/wcandillon/react-native-wgpu#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.5",
+    "@types/react": "^18.2.44",
+    "clang-format": "^1.8.0",
+    "del-cli": "^5.1.0",
+    "eslint": "^8.51.0",
+    "eslint-config-react-native-wcandillon": "^3.10.2",
+    "jest": "^29.7.0",
+    "prettier": "^3.0.3",
+    "react": "18.2.0",
+    "react-native": "0.74.2",
+    "react-native-builder-bob": "^0.23.2",
+    "rimraf": "^5.0.7",
+    "ts-node": "^10.9.2",
+    "turbo": "^1.10.7",
+    "typescript": "^5.2.2"
+  },
+  "resolutions": {
+    "@types/react": "^18.2.44"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  },
+  "workspaces": [
+    "example"
+  ],
+  "packageManager": "yarn@3.6.1",
+  "jest": {
+    "preset": "react-native",
+    "modulePathIgnorePatterns": [
+      "<rootDir>/example/node_modules",
+      "<rootDir>/lib/"
+    ]
+  },
+  "eslintConfig": {
+    "root": true,
+    "extends": "react-native-wcandillon"
+  },
+  "eslintIgnore": [
+    "node_modules/",
+    "lib/"
+  ],
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      "commonjs",
+      "module",
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  },
+  "codegenConfig": {
+    "name": "RNWgpuViewSpec",
+    "type": "components",
+    "jsSrcsDir": "src"
+  }
+}
