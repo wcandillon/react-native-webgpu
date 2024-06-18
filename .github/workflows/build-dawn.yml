@@ -9,7 +9,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
         with:
-          submodules: recursive
+          submodules: true
 
       - name: Setup Android NDK
         id: setup-ndk
