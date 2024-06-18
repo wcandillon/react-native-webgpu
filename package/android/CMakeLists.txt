@@ -4,7 +4,9 @@ project(RNWGPU)
 set (CMAKE_VERBOSE_MAKEFILE ON)
 set (CMAKE_CXX_STANDARD 14)
 
-add_library(react-native-webgpu            SHARED
+set (PACKAGE_NAME "react-native-webgpu")
+
+add_library(${PACKAGE_NAME}            SHARED
             ../cpp/rnwgpu/RNWebGPUManager.cpp
             cpp/cpp-adapter.cpp
 )
@@ -13,3 +15,11 @@ add_library(react-native-webgpu            SHARED
 include_directories(
   ../cpp
 )
+
+# Link
+target_link_libraries(
+        ${PACKAGE_NAME}
+        -ljnigraphics
+        -llog
+        -landroid
+    )

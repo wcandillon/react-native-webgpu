@@ -18,11 +18,11 @@ public class WebGPUModule extends ReactContextBaseJavaModule {
 
     @Override
     public String getName() {
-        return "WebGPU";
+        return "WebGPUModule";
     }
 
     @ReactMethod(isBlockingSynchronousMethod = true)
-    public void initialize() {
+    public void install() {
         initializeNative();
     }
 
