@@ -32,9 +32,11 @@ jobs:
       - name: Run clang-format-common
         run: yarn clang-format-common --dry-run --Werror
 
+
       - uses: actions/setup-node@v3
         with:
           cache: 'yarn'
+          cache-dependency-path: package/yarn.lock
 
       - name: Install Package
         run: cd package; yarn install --frozen-lockfile
