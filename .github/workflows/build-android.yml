@@ -39,6 +39,7 @@ jobs:
         with:
           workflow: "build-dawn.yml"
           repo: wcandillon/react-native-dawn
+          github_token: ${{secrets.WGPU_GITHUB_TOKEN}}
           path: artifacts
           branch: main
           name: dawn-libs
