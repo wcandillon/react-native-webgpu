@@ -20,6 +20,14 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
 
+      - uses: actions/setup-node@v3
+        with:
+          cache: 'yarn'
+          cache-dependency-path: package/yarn.lock
+
+      - name: Install Package
+        run: cd package; yarn install --frozen-lockfile
+    
       - name: Install clang-format
         run: sudo apt-get install -y clang-format
 
@@ -34,14 +42,6 @@ jobs:
       - name: Run clang-format-common
         working-directory: package
         run: yarn clang-format-common --dry-run --Werror
-
-      - uses: actions/setup-node@v3
-        with:
-          cache: 'yarn'
-          cache-dependency-path: package/yarn.lock
-
-      - name: Install Package
-        run: cd package; yarn install --frozen-lockfile
 
       - name: Lint Package
         run: cd package; yarn lint;
