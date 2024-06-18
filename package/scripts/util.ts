@@ -42,7 +42,7 @@ export const mapKeys = <T extends object>(obj: T) =>
 export const checkFileExists = (
   filePath: string,
   message: string,
-  error: string
+  error: string,
 ) => {
   const exists = existsSync(filePath);
   if (!exists) {

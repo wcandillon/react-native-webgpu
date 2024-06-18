@@ -1,8 +1,9 @@
-import codegenNativeComponent from 'react-native/Libraries/Utilities/codegenNativeComponent';
-import type { ViewProps } from 'react-native';
+import codegenNativeComponent from "react-native/Libraries/Utilities/codegenNativeComponent";
+import type { ViewProps } from "react-native";
 
 interface NativeProps extends ViewProps {
   color?: string;
 }
 
-export default codegenNativeComponent<NativeProps>('WebGPUView');
+// eslint-disable-next-line import/no-default-export
+export default codegenNativeComponent<NativeProps>("WebGPUView");
