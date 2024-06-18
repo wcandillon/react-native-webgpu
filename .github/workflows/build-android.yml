@@ -34,11 +34,13 @@ jobs:
       - name: Set ANDROID_NDK
         run: echo "ANDROID_NDK=$ANDROID_HOME/ndk-bundle" >> $GITHUB_ENV
 
-      - name: Download Artifact
-        uses: actions/download-artifact@v2
+      - name: Download Dawn Binary Artifacts
+        uses: dawidd6/action-download-artifact@v2
         with:
-          name: dawn-libs
-          path: ./downloaded-artifacts
+          workflow: "build-dawn.yml"
+          path: artifacts
+          branch: main
+
 
       - name: List Downloaded Files
         run: ls -R downloaded-artifacts
