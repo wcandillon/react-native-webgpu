@@ -14,6 +14,7 @@ Make sure you have all the tools required for building the skia libraries (Andro
 
 ### Building 
 
+* `cd package && yarn`
 * `yarn build-dawn`
 
 ### Upgrading

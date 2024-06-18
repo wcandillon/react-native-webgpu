@@ -3,6 +3,8 @@ on: workflow_dispatch
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      WORKING_DIRECTORY: ./package
     steps:
       - name: checkout
         uses: actions/checkout@v2
@@ -21,12 +23,14 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: 'yarn'
+          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/yarn.lock
 
       - name: Install Package
-        run: cd package; yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile
+        working-directory: ${{ env.WORKING_DIRECTORY }}
 
       - name: Build Dawn
-        working-directory: package
+        working-directory: ${{ env.WORKING_DIRECTORY }}
         env:
           ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: yarn build-dawn
