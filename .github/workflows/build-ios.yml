@@ -39,14 +39,9 @@ jobs:
           path: artifacts
           branch: main
 
-      - name: Install Package
-        working-directory: package
-        run: yarn install --frozen-lockfile
-
       - name: Copy Artifacts to libs folder
         working-directory: package
         run: yarn copy-artifacts
-
 
       - name: Restore Pods from cache
         uses: actions/cache@v3
