@@ -41,7 +41,7 @@ jobs:
           repo: wcandillon/react-native-dawn
           path: artifacts
           branch: main
-
+          name: dawn-libs
 
       - name: List Downloaded Files
         run: ls -R downloaded-artifacts
