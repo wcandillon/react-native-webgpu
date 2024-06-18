@@ -1,4 +1,4 @@
-# React Native WGPU
+# React Native WebGPU
 
 React Native implementation of WebGPU using [Dawn](https://dawn.googlesource.com/dawn).
 
@@ -18,6 +18,6 @@ Make sure you have all the tools required for building the skia libraries (Andro
 
 ### Upgrading
 
-1. `git submodule update --recursive --remote`
+1. `git submodule update --remote`
 2. `npm run clean-dawn`
 3. `npm run build-dawn`
