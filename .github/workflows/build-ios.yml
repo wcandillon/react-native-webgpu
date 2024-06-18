@@ -35,9 +35,10 @@ jobs:
         uses: dawidd6/action-download-artifact@v2
         with:
           workflow: "build-dawn.yml"
+          repo: wcandillon/react-native-dawn
           path: artifacts
           branch: main
-
+  
       - name: Download Artifact
         uses: actions/download-artifact@v2
         with:
