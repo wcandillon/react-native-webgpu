@@ -25,23 +25,15 @@ jobs:
           cache: 'yarn'
           cache-dependency-path: package/yarn.lock
 
-      - name: Install Package
-        run: cd package; yarn install --frozen-lockfile
-    
       - name: Install clang-format
         run: sudo apt-get install -y clang-format
 
-      - name: Run clang-format-ios
-        working-directory: package
-        run: yarn clang-format-ios --dry-run --Werror
+      - name: Install Package
+        run: cd package; yarn install --frozen-lockfile
 
-      - name: Run clang-format-android
+      - name: Run clang-format
         working-directory: package
-        run: yarn clang-format-android --dry-run --Werror
-
-      - name: Run clang-format-common
-        working-directory: package
-        run: yarn clang-format-common --dry-run --Werror
+        run: yarn clang-format --dry-run --Werror
 
       - name: Lint Package
         run: cd package; yarn lint;
