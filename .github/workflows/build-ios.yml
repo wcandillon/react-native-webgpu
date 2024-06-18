@@ -26,6 +26,10 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: 'yarn'
+          cache-dependency-path: package/yarn.lock
+
+      - name: Install Package
+        run: cd package; yarn install --frozen-lockfile
 
       - name: Download Dawn Binary Artifacts
         uses: dawidd6/action-download-artifact@v2

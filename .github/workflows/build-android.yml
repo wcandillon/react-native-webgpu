@@ -42,9 +42,13 @@ jobs:
           path: artifacts
           branch: main
 
+      - uses: actions/setup-node@v3
+        with:
+          cache: 'yarn'
+          cache-dependency-path: package/yarn.lock
+  
       - name: Install Package
-        working-directory: package
-        run: yarn install --frozen-lockfile
+        run: cd package; yarn install --frozen-lockfile
 
       - name: Copy Artifacts to libs folder
         working-directory: package

@@ -32,7 +32,6 @@ jobs:
       - name: Run clang-format-common
         run: yarn clang-format-common --dry-run --Werror
 
-
       - uses: actions/setup-node@v3
         with:
           cache: 'yarn'
