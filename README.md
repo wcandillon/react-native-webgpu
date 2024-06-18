@@ -7,17 +7,17 @@ React Native implementation of WebGPU using [Dawn](https://dawn.googlesource.com
 Make sure to check out the sub modules:
 
 ```
-git submodule update --init --recursive
+git submodule update --init
 ```
 
 Make sure you have all the tools required for building the skia libraries (Android Studio, XCode, Ninja, CMake, Android NDK / build tools).
 
 ### Building 
 
-* `npm run build-dawn`
+* `yarn build-dawn`
 
 ### Upgrading
 
 1. `git submodule update --remote`
-2. `npm run clean-dawn`
-3. `npm run build-dawn`
+2. `yarn clean-dawn`
+3. `yarn build-dawn`
