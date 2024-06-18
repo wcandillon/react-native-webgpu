@@ -20,14 +20,6 @@ jobs:
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
 
-      - name: Setup Nodejs and npm
-        uses: actions/setup-node@v3
-        with:
-          cache: yarn
-
-      - name: Install root node dependencies
-        run: yarn
-
       - name: Build Dawn
         working-directory: ${{ env.WORKING_DIRECTORY }}/
         env:
