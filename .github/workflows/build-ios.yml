@@ -31,13 +31,14 @@ jobs:
       - name: Install Package
         run: cd package; yarn install --frozen-lockfile
 
-      - name: Download Dawn Binary Artifacts
-        uses: dawidd6/action-download-artifact@v2
+      - name: Download Artifact
+        uses: actions/download-artifact@v2
         with:
-          workflow: "build-dawn.yml"
-          repo: wcandillon/react-native-webgpu
-          path: artifacts
-          branch: main
+          name: dawn-libs
+          path: ./downloaded-artifacts
+
+      - name: List Downloaded Files
+        run: ls -R downloaded-artifacts
 
       - name: Copy Artifacts to libs folder
         working-directory: package
