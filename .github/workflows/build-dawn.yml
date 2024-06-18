@@ -3,8 +3,6 @@ on: workflow_dispatch
 jobs:
   build:
     runs-on: macos-latest
-    env:
-      WORKING_DIRECTORY: ./package
     steps:
       - name: checkout
         uses: actions/checkout@v2
@@ -20,8 +18,15 @@ jobs:
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
 
+      - uses: actions/setup-node@v3
+        with:
+          cache: 'yarn'
+
+      - name: Install Package
+        run: cd package; yarn install --frozen-lockfile
+
       - name: Build Dawn
-        working-directory: ${{ env.WORKING_DIRECTORY }}/
+        working-directory: package
         env:
           ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: yarn build-dawn
@@ -32,6 +37,6 @@ jobs:
         with:
           name: dawn-libs
           path: |
-            ${{ env.WORKING_DIRECTORY }}/libs
-            ${{ env.WORKING_DIRECTORY }}/cpp/dawn
-            ${{ env.WORKING_DIRECTORY }}/cpp/webgpu
+            package/libs
+            package/cpp/dawn
+            package/cpp/webgpu
