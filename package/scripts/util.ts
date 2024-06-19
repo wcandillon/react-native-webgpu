@@ -39,21 +39,16 @@ export const runAsync = (command: string, label: string): Promise<void> => {
 export const mapKeys = <T extends object>(obj: T) =>
   Object.keys(obj) as (keyof T)[];
 
-export const checkFileExists = (
-  filePath: string,
-  message: string,
-  error: string,
-) => {
+export const checkFileExists = (filePath: string) => {
   const exists = existsSync(filePath);
   if (!exists) {
     console.log("");
     console.log("Failed:");
-    console.log(message + " not found. (" + filePath + ")");
-    console.log(error);
+    console.log(filePath + " not found. (" + filePath + ")");
     console.log("");
     exit(1);
   } else {
-    console.log("☑ " + message);
+    console.log("☑ " + filePath);
   }
 };
 
