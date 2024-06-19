@@ -1,35 +1,46 @@
-name: iOS build
+name: Build iOS
+
 on:
-  pull_request:
-    paths:
-      - 'package/ios/**'
-      - 'package/cpp/**'
-      - 'package/example/package.json'
-      - '.github/workflows/**'
   push:
     branches:
       - main
+    paths:
+      - ".github/workflows/build-ios.yml"
+      - "package/cpp/**"
+      - "package/ios/**"
+      - "package/*.podspec"
+      - "package/example/ios/**"
+  pull_request:
+    paths:
+      - ".github/workflows/build-ios.yml"
+      - "package/cpp/**"
+      - "package/ios/**"
+      - "package/*.podspec"
+      - "package/example/ios/**"
 
 jobs:
   build:
-    runs-on: macos-13
-    strategy:
-      matrix:
-        working-directory: [package/example]
-    concurrency:
-      group: ios-example-${{ matrix.working-directory }}-${{ github.ref }}
-      cancel-in-progress: true
+    name: Build iOS Example App
+    runs-on: macOS-latest
+    defaults:
+      run:
+        working-directory: package/example/ios
     steps:
-      - name: checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v3
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+      - name: Restore node_modules from cache
+        uses: actions/cache@v4
+        id: yarn-cache
         with:
-          cache: 'yarn'
-          cache-dependency-path: package/yarn.lock
-
-      - name: Install Package
-        run: cd package; yarn install --immutable
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - name: Install node_modules for example/
+        run: yarn install --immutable --cwd ..
 
       - name: Download Dawn Binary Artifacts
         uses: dawidd6/action-download-artifact@v2
@@ -42,59 +53,38 @@ jobs:
           name: dawn-libs
 
       - name: Copy Artifacts to libs folder
-        working-directory: package
         run: yarn copy-artifacts
 
-      - name: Restore Pods from cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ${{ matrix.working-directory }}/ios/Pods
-            ~/Library/Caches/CocoaPods
-            ~/.cocoapods
-          key: ${{ runner.os }}-pods-${{ matrix.working-directory }}-${{ hashFiles(format('{0}/ios/Podfile.lock', matrix.working-directory)) }}
+      - name: Restore buildcache
+        uses: mikehardy/buildcache-action@v2
+        continue-on-error: true
 
+      - name: Setup Ruby (bundle)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6.10
+          bundler-cache: true
+          working-directory: package/example/ios
+
+      - name: Restore Pods cache
+        uses: actions/cache@v4
+        with:
+          path: package/example/ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
       - name: Install Pods
-        working-directory: ${{ matrix.working-directory }}/ios
-        run: pod install
-
-      - name: Check if Podfile.lock has changed
-        working-directory: ${{ matrix.working-directory }}/ios
-        run: |
-          # Use git diff to get differences, excluding lines for 'COCOAPODS:' and filtering out 'React-RCTAppDelegate:'
-          # Right now we also exclude changes to React-RCTAppDelegate because of
-          # https://github.com/facebook/react-native/issues/39971
-          if git diff --ignore-all-space -I 'COCOAPODS:' -I "React-RCTAppDelegate" HEAD -- example/ios/Podfile.lock | grep -q .; then
-              echo "Podfile.lock has local changes, please update it."
-              # Display diff, but exclude 'React-RCTAppDelegate:' changes for clarity
-              git diff --ignore-all-space -I 'COCOAPODS:' -I "React-RCTAppDelegate" HEAD -- example/ios/Podfile.lock | grep -q .;
-              exit 1
-          else
-              echo "Podfile.lock is up to date."
-          fi
-
-      - name: Restore build artifacts from cache
-        uses: actions/cache@v3
-        with:
-          path: ~/Library/Developer/Xcode/DerivedData
-          key: ${{ runner.os }}-ios-derived-data-${{ hashFiles(format('{0}/ios/Podfile.lock', matrix.working-directory)) }}
-  
-      - name: Build app
-        working-directory: ${{ matrix.working-directory }}
-        run: CI=true yarn ios --simulator 'iPhone 14 Pro'
-
-      # - name: Run e2e tests
-      #   working-directory: package
-      #   run: yarn e2e
-
-      # - name: Start package manager
-      #   working-directory: example
-      #   run: E2E=true yarn start &
-
-      # - name: Take screenshot
-      #   run: xcrun simctl io booted screenshot screenshot.png
-        
-      # - uses: actions/upload-artifact@v2
-      #   with:
-      #     path: screenshot.png
-      #     name: Download-screenshots
+        run: bundle exec pod install
+      - name: Install xcpretty
+        run: gem install xcpretty
+      - name: Build App
+        run: "set -o pipefail && xcodebuild \
+          CC=clang CPLUSPLUS=clang++ LD=clang LDPLUSPLUS=clang++ \
+          -derivedDataPath build -UseModernBuildSystem=YES \
+          -workspace RNFFabric.xcworkspace \
+          -scheme RNFFabric \
+          -sdk iphonesimulator \
+          -configuration Debug \
+          -destination 'platform=iOS Simulator,name=iPhone 11 Pro' \
+          build \
+          CODE_SIGNING_ALLOWED=NO | xcpretty"
