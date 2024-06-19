@@ -1,0 +1,35 @@
+{
+  "name": "react-native-webgpu-example",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "start": "react-native start",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache",
+    "build:android": "cd android && ./gradlew assembleDebug --no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a",
+    "build:ios": "cd ios && xcodebuild -workspace WgpuExample.xcworkspace -scheme WgpuExample -configuration Debug -sdk iphonesimulator CC=clang CPLUSPLUS=clang++ LD=clang LDPLUSPLUS=clang++ GCC_OPTIMIZATION_LEVEL=0 GCC_PRECOMPILE_PREFIX_HEADER=YES ASSETCATALOG_COMPILER_OPTIMIZATION=time DEBUG_INFORMATION_FORMAT=dwarf COMPILER_INDEX_STORE_ENABLE=NO"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-native": "0.74.2",
+    "react-native-webgpu": "link:../package/"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.24.7",
+    "@babel/core": "^7.24.7",
+    "@babel/runtime": "^7.24.7",
+    "@react-native/babel-preset": "0.74.84",
+    "@react-native/metro-config": "0.74.84",
+    "@react-native/typescript-config": "0.74.84",
+    "@types/react": "^18.3.3",
+    "babel-plugin-module-resolver": "^5.0.0",
+    "eslint": "8",
+    "eslint-config-react-native-wcandillon": "^3.10.2",
+    "glob-to-regexp": "^0.4.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

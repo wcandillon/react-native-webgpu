@@ -4,7 +4,7 @@ on:
     paths:
       - 'package/ios/**'
       - 'package/cpp/**'
-      - 'package/example/package.json'
+      - 'example/package.json'
       - '.github/workflows/**'
   push:
     branches:
@@ -15,7 +15,7 @@ jobs:
     runs-on: macos-13
     strategy:
       matrix:
-        working-directory: [package/example]
+        working-directory: [example]
     concurrency:
       group: ios-example-${{ matrix.working-directory }}-${{ github.ref }}
       cancel-in-progress: true
@@ -26,10 +26,9 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: 'yarn'
-          cache-dependency-path: package/yarn.lock
 
       - name: Install Package
-        run: cd package; yarn install --immutable
+        run: cd package; yarn install --frozen-lockfile
 
       - name: Download Dawn Binary Artifacts
         uses: dawidd6/action-download-artifact@v2

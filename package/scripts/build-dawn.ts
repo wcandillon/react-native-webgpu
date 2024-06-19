@@ -62,7 +62,7 @@ const ios = {
 
   console.log("Building fat binary for iphone simulator");
   $(
-    "lipo -create package/libs/ios/x86_64_iphonesimulator/libwebgpu_dawn.a package/libs/ios/arm64_iphonesimulator/libwebgpu_dawn.a -output package/libs/ios/libwebgpu_dawn.a",
+    "lipo -create package/libs/ios/x86_64_iphonesimulator/libwebgpu_dawn.a package/libs/ios/arm64_iphonesimulator/libwebgpu_dawn.a -output package/libs/ios/libwebgpu_dawn.a"
   );
 
   console.log("Building libwebgpu_dawn.xcframework");
@@ -71,7 +71,7 @@ const ios = {
     "xcodebuild -create-xcframework " +
       "-library ./package/libs/ios/libwebgpu_dawn.a " +
       "-library ./package/libs/ios/arm64_iphoneos/libwebgpu_dawn.a " +
-      " -output ./package/libs/ios/libwebgpu_dawn.xcframework ",
+      " -output ./package/libs/ios/libwebgpu_dawn.xcframework "
   );
   // Build Android
   for (const platform of android.platforms) {
