@@ -6,14 +6,29 @@ set (CMAKE_CXX_STANDARD 14)
 
 set (PACKAGE_NAME "react-native-webgpu")
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_definitions(-DDEBUG=1)
+endif()
+
+if(RNF_ENABLE_LOGS)
+    add_definitions(-DRNF_ENABLE_LOGS=1)
+else()
+    add_definitions(-DRNF_ENABLE_LOGS=0)
+endif()
+
 add_library(${PACKAGE_NAME}            SHARED
             ../cpp/rnwgpu/RNWebGPUManager.cpp
             cpp/cpp-adapter.cpp
+            cpp/RNFAndroidLogger.cpp
 )
 
 # Specifies a path to native header files.
 include_directories(
   ../cpp
+  ../cpp/rnwgpu
+  ../cpp/jsi
+  ../cpp/dawn
+  ../cpp/webgpu
 )
 
 # Link

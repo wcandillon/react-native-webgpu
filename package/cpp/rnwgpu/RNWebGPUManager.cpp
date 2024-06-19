@@ -1,5 +1,7 @@
 #include "RNWebGPUManager.h"
 
+#include <memory>
+
 namespace rnwgpu {
 RNWebGPUManager::RNWebGPUManager(
     jsi::Runtime *jsRuntime,
@@ -9,8 +11,10 @@ RNWebGPUManager::RNWebGPUManager(
   // Register main runtime
   // BaseRuntimeAwareCache::setMainJsRuntime(_jsRuntime);
 
-  // Install bindings
-  // installBindings();
+  // auto skiaApi = std::make_shared<JsiSkApi>(*_jsRuntime, _platformContext);
+  // _jsRuntime->global().setProperty(
+  //     *_jsRuntime, "SkiaApi",
+  //     jsi::Object::createFromHostObject(*_jsRuntime, std::move(skiaApi)));
 }
 
 RNWebGPUManager::~RNWebGPUManager() {
