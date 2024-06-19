@@ -17,6 +17,8 @@ jobs:
 
       - name: Setup
         uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clang Format
         run: yarn clang-format
@@ -38,6 +40,8 @@ jobs:
 
       - name: Setup
         uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       # - name: Run unit tests
       #   run: yarn test --maxWorkers=2 --coverage
@@ -53,6 +57,8 @@ jobs:
 
       - name: Setup
         uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build package
         run: yarn prepare
@@ -70,6 +76,8 @@ jobs:
 
       - name: Setup
         uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache turborepo for Android
         uses: actions/cache@v3
@@ -129,6 +137,8 @@ jobs:
 
       - name: Setup
         uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download Dawn Binary Artifacts
         uses: dawidd6/action-download-artifact@v2

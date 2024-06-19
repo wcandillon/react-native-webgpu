@@ -31,7 +31,7 @@ runs:
       with:
         workflow: "build-dawn.yml"
         repo: wcandillon/react-native-webgpu
-        github_token: ${{secrets.GITHUB_TOKEN}}
+        github_token: ${{ secrets.github_token }}
         path: artifacts
         branch: main
         name: dawn-libs
