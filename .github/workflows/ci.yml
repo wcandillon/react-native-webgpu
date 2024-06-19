@@ -23,6 +23,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: 'yarn'
+          cache-dependency-path: package/yarn.lock
 
       - name: Install clang-format
         run: sudo apt-get install -y clang-format
