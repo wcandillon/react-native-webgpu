@@ -1,4 +1,4 @@
-name: iOS build
+name: iOS
 on:
   pull_request:
     paths:
