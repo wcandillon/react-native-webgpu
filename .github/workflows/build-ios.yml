@@ -22,10 +22,15 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - uses: actions/setup-node@v3
         with:
           cache: 'yarn'
+
+      - name: Install root node dependencies
+        run: yarn
 
       - name: Install Package
         run: cd package; yarn install --frozen-lockfile
