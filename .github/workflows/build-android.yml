@@ -75,6 +75,9 @@ jobs:
           path: ${{ matrix.working-directory }}/android/app/build
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.working-directory }}-${{ hashFiles('**/react-native/package.json') }}
 
+      - name: Create symlink for node_modules
+        run: ln -s ${{ github.workspace }}/package/node_modules ${{ github.workspace }}/package/example/node_modules
+
       - name: Build Android app
         working-directory: ${{ matrix.working-directory }}/android
         run: ./gradlew assembleDebug
