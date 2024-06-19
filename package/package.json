@@ -28,7 +28,7 @@
   "scripts": {
     "example": "yarn workspace react-native-webgpu-example",
     "test": "jest",
-    "typecheck": "tsc --noEmit",
+    "tsc": "tsc --noEmit",
     "lint": "eslint \"**/*.{ts,tsx}\"",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
     "prepare": "bob build",
