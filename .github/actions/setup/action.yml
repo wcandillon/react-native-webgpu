@@ -1,0 +1,48 @@
+name: Setup
+description: Setup Node.js and install dependencies
+
+inputs:
+  github_token:
+    description: 'GitHub Token'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version-file: package/.nvmrc
+
+    - name: Cache dependencies
+      id: yarn-cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          **/node_modules
+          .yarn/install-state.gz
+        key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}-${{ hashFiles('**/package.json', '!node_modules/**') }}
+        restore-keys: |
+          ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
+          ${{ runner.os }}-yarn-
+
+    - name: Install dependencies
+      if: steps.yarn-cache.outputs.cache-hit != 'true'
+      run: yarn install --immutable
+      working-directory: package
+      shell: bash
+
+    - name: Download Dawn Binary Artifacts
+      uses: dawidd6/action-download-artifact@v2
+      with:
+        workflow: "build-dawn.yml"
+        repo: wcandillon/react-native-webgpu
+        github_token: ${{ inputs.github_token }}
+        path: artifacts
+        branch: main
+        name: dawn-libs
+
+    - name: Copy Artifacts to libs folder
+      working-directory: package
+      shell: bash
+      run: yarn copy-artifacts

@@ -18,8 +18,8 @@ namespace react = facebook::react;
 
 class RNWebGPUManager {
 public:
-    RNWebGPUManager(jsi::Runtime *jsRuntime,
-                std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker);
+  RNWebGPUManager(jsi::Runtime *jsRuntime,
+                  std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker);
   ~RNWebGPUManager();
 
 private:

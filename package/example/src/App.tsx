@@ -1,8 +1,12 @@
-import * as React from 'react';
+import * as React from "react";
+import { StyleSheet, View } from "react-native";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
+import { WebGPUView, WebGPUModule } from "react-native-webgpu";
 
-import { StyleSheet, View } from 'react-native';
-import { WebGPUView } from 'react-native-webgpu';
+WebGPUModule.install();
 
+// eslint-disable-next-line import/no-default-export
 export default function App() {
   return (
     <View style={styles.container}>
@@ -14,8 +18,8 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   box: {
     width: 60,

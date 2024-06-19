@@ -1,46 +1,204 @@
-name: Tests
+name: CI
 on:
   push:
     branches:
       - main
   pull_request:
+
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - directory: "package/example"
-    env:
-      WORKING_DIRECTORY: ./
-    concurrency:
-      group: tests-${{ matrix.directory }}-${{ github.ref }}
-      cancel-in-progress: true
+    defaults:
+      run:
+        working-directory: package
     steps:
-      - name: checkout
-        uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      - name: Install clang-format
-        run: sudo apt-get install -y clang-format
-
-      - name: Run clang-format-ios
-        run: yarn clang-format-ios --dry-run --Werror
-
-      - name: Run clang-format-android
-        run: yarn clang-format-android --dry-run --Werror
-
-      - name: Run clang-format-common
-        run: yarn clang-format-common --dry-run --Werror
-
-      - uses: actions/setup-node@v3
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          cache: 'yarn'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Package
-        run: cd package; yarn install --frozen-lockfile
+      - name: Clang Format
+        run: yarn clang-format
 
-      - name: Lint Package
-        run: cd package; yarn lint;
+      - name: Lint files
+        run: yarn lint
 
-      - name: TypeScript Package
-        run: cd package; yarn tsc;
+      - name: Typecheck files
+        run: yarn tsc
+
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: package
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      # - name: Run unit tests
+      #   run: yarn test --maxWorkers=2 --coverage
+
+  build-library:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: package
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build package
+        run: yarn prepare
+
+  build-android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: package
+    env:
+      TURBO_CACHE_DIR: .turbo/android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache turborepo for Android
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.TURBO_CACHE_DIR }}
+          key: ${{ runner.os }}-turborepo-android-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-turborepo-android-
+
+      - name: Check turborepo cache for Android
+        run: |
+          TURBO_CACHE_STATUS=$(node -p "($(yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}" --dry=json)).tasks.find(t => t.task === 'build:android').cache.status")
+
+          if [[ $TURBO_CACHE_STATUS == "HIT" ]]; then
+            echo "turbo_cache_hit=1" >> $GITHUB_ENV
+          fi
+
+      - name: Install JDK
+        if: env.turbo_cache_hit != 1
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install NDK
+        if: env.turbo_cache_hit != 1
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r21d
+  
+      - name: Set ANDROID_NDK
+        run: echo "ANDROID_NDK=$ANDROID_HOME/ndk-bundle" >> $GITHUB_ENV
+
+      - name: Finalize Android SDK
+        if: env.turbo_cache_hit != 1
+        run: |
+          /bin/bash -c "yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null"
+
+      - name: Cache Gradle
+        if: env.turbo_cache_hit != 1
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/wrapper
+            ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('example/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build example for Android
+        env:
+          JAVA_OPTS: "-XX:MaxHeapSize=6g"
+        run: |
+          yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}"
+
+  build-ios:
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: package
+    env:
+      TURBO_CACHE_DIR: .turbo/ios
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download Dawn Binary Artifacts
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: "build-dawn.yml"
+          repo: wcandillon/react-native-webgpu
+          github_token: ${{secrets.GITHUB_TOKEN}}
+          path: artifacts
+          branch: main
+          name: dawn-libs
+
+      - name: Copy Artifacts to libs folder
+        working-directory: package
+        run: yarn copy-artifacts
+
+      - name: Cache turborepo for iOS
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.TURBO_CACHE_DIR }}
+          key: ${{ runner.os }}-turborepo-ios-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-turborepo-ios-
+
+      - name: Check turborepo cache for iOS
+        run: |
+          TURBO_CACHE_STATUS=$(node -p "($(yarn turbo run build:ios --cache-dir="${{ env.TURBO_CACHE_DIR }}" --dry=json)).tasks.find(t => t.task === 'build:ios').cache.status")
+
+          if [[ $TURBO_CACHE_STATUS == "HIT" ]]; then
+            echo "turbo_cache_hit=1" >> $GITHUB_ENV
+          fi
+
+      - name: Cache cocoapods
+        if: env.turbo_cache_hit != 1
+        id: cocoapods-cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            **/ios/Pods
+          key: ${{ runner.os }}-cocoapods-${{ hashFiles('example/ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cocoapods-
+
+      - name: Install cocoapods
+        if: env.turbo_cache_hit != 1 && steps.cocoapods-cache.outputs.cache-hit != 'true'
+        run: |
+          cd example/ios
+          pod install
+        env:
+          NO_FLIPPER: 1
+
+      - name: Build example for iOS
+        run: |
+          yarn turbo run build:ios --cache-dir="${{ env.TURBO_CACHE_DIR }}"
