@@ -102,6 +102,16 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Install NDK
+        if: env.turbo_cache_hit != 1
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r21d
+  
+      - name: Set ANDROID_NDK
+        run: echo "ANDROID_NDK=$ANDROID_HOME/ndk-bundle" >> $GITHUB_ENV
+
       - name: Finalize Android SDK
         if: env.turbo_cache_hit != 1
         run: |
