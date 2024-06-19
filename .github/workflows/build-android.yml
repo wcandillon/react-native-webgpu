@@ -35,13 +35,14 @@ jobs:
         run: echo "ANDROID_NDK=$ANDROID_HOME/ndk-bundle" >> $GITHUB_ENV
 
       - name: Download Dawn Binary Artifacts
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v2
         with:
-          repository: wcandillon/react-native-webgpu
-          github-token: ${{secrets.GITHUB_TOKEN}}
+          workflow: "build-dawn.yml"
+          repo: wcandillon/react-native-webgpu
+          github_token: ${{secrets.GITHUB_TOKEN}}
           path: artifacts
+          branch: main
           name: dawn-libs
-          run-id: 9571243808
 
       - name: List Downloaded Files
         run: ls -R downloaded-artifacts
