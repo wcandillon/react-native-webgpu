@@ -17,17 +17,20 @@
     "react-native-webgpu": "link:../package/"
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.24.7",
     "@babel/core": "^7.24.7",
+    "@babel/preset-env": "^7.24.7",
     "@babel/runtime": "^7.24.7",
     "@react-native/babel-preset": "0.74.84",
     "@react-native/metro-config": "0.74.84",
     "@react-native/typescript-config": "0.74.84",
     "@types/react": "^18.3.3",
     "babel-plugin-module-resolver": "^5.0.0",
+    "babel-plugin-transform-inline-environment-variables": "^0.4.4",
     "eslint": "8",
     "eslint-config-react-native-wcandillon": "^3.10.2",
-    "glob-to-regexp": "^0.4.1"
+    "glob-to-regexp": "^0.4.1",
+    "madge": "^7.0.0",
+    "metro-react-native-babel-preset": "^0.77.0"
   },
   "engines": {
     "node": ">=18"

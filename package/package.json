@@ -58,8 +58,6 @@
     "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
-    "@babel/core": "^7.24.7",
-    "@babel/runtime": "^7.24.7",
     "@types/jest": "^29.5.5",
     "@types/react": "^18.2.44",
     "clang-format": "^1.8.0",
