@@ -50,7 +50,7 @@ jobs:
           cache-dependency-path: package/yarn.lock
   
       - name: Install Package
-        run: cd package; yarn install --frozen-lockfile
+        run: cd package; yarn install --immutable
 
       - name: Copy Artifacts to libs folder
         working-directory: package

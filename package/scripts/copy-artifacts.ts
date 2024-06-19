@@ -1,8 +1,8 @@
 import { $, checkFileExists } from "./util";
 
-$("cp -R ../libs .");
-$("cp -R ../dawn cpp");
-$("cp -R ../webgpu cpp");
+$("cp -R ../artifacts/libs .");
+$("cp -R ../artifacts/dawn cpp");
+$("cp -R ../artifacts/webgpu cpp");
 checkFileExists("libs/android/x86/libwebgpu_dawn.a");
 checkFileExists("libs/android/x86_64/libwebgpu_dawn.a");
 checkFileExists("libs/android/armeabi-v7a/libwebgpu_dawn.a");
