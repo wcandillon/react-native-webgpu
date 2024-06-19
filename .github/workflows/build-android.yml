@@ -55,6 +55,9 @@ jobs:
       - name: Install Package
         run: cd package; yarn install --frozen-lockfile
 
+      - name: Install Example
+        run: cd ${{ matrix.working-directory }}; yarn install --frozen-lockfile
+
       - name: Copy Artifacts to libs folder
         working-directory: package
         run: yarn copy-artifacts
