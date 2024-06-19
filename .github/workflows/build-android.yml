@@ -44,9 +44,6 @@ jobs:
           branch: main
           name: dawn-libs
 
-      - name: List Downloaded Files
-        run: ls -R downloaded-artifacts
-
       - uses: actions/setup-node@v3
         with:
           cache: 'yarn'
