@@ -81,7 +81,7 @@ jobs:
   
       - name: Build app
         working-directory: ${{ matrix.working-directory }}
-        run: CI=true yarn ios --simulator 'iPhone 14 Pro'
+        run: CI=true yarn ios --simulator 'iPhone 14 Pro' --terminal xterm
 
       # - name: Run e2e tests
       #   working-directory: package
