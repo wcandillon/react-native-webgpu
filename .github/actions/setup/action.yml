@@ -11,6 +11,7 @@ runs:
   steps:
     - name: Setup Node.js
       uses: actions/setup-node@v3
+      working-directory: package
       with:
         node-version-file: .nvmrc
 
@@ -29,6 +30,7 @@ runs:
     - name: Install dependencies
       if: steps.yarn-cache.outputs.cache-hit != 'true'
       run: yarn install --immutable
+      working-directory: package
       shell: bash
 
     - name: Download Dawn Binary Artifacts
@@ -42,5 +44,6 @@ runs:
         name: dawn-libs
 
     - name: Copy Artifacts to libs folder
-      shell: sh
+      working-directory: package
+      shell: bash
       run: yarn copy-artifacts
