@@ -1,14 +1,10 @@
 const path = require("path");
 
 const { getDefaultConfig, mergeConfig } = require("@react-native/metro-config");
-const escape = require("escape-string-regexp");
 const exclusionList = require("metro-config/src/defaults/exclusionList");
-
-const pak = require("./package.json");
-
-const modules = Object.keys({ ...pak.peerDependencies });
-
 const glob = require("glob-to-regexp");
+
+const defaultConfig = getDefaultConfig(__dirname);
 
 function getBlacklist() {
   const nodeModuleDirs = [
@@ -17,22 +13,20 @@ function getBlacklist() {
   return exclusionList(nodeModuleDirs);
 }
 
-/**
- * Metro configuration
- * https://facebook.github.io/metro/docs/configuration
- *
- * @type {import('metro-config').MetroConfig}
- */
 const config = {
-  watchFolders: [path.resolve("."), path.resolve("../package")],
-
+  // workaround for an issue with symlinks encountered starting with
+  // metro@0.55 / React Native 0.61
+  // (not needed with React Native 0.60 / metro@0.54)
   resolver: {
+    extraNodeModules: new Proxy(
+      {},
+      { get: (_, name) => path.resolve(".", "node_modules", name) }
+    ),
     blacklistRE: getBlacklist(),
-    extraNodeModules: modules.reduce((acc, name) => {
-      acc[name] = path.join(__dirname, "node_modules", name);
-      return acc;
-    }, {}),
   },
+
+  // quick workaround for another issue with symlinks
+  watchFolders: [path.resolve("."), path.resolve("../package")],
 
   transformer: {
     getTransformOptions: async () => ({
@@ -44,4 +38,4 @@ const config = {
   },
 };
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+module.exports = mergeConfig(defaultConfig, config);
