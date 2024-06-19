@@ -38,7 +38,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v2
         with:
           workflow: "build-dawn.yml"
-          repo: wcandillon/react-native-dawn
+          repo: wcandillon/react-native-webgpu
           github_token: ${{secrets.GITHUB_TOKEN}}
           path: artifacts
           branch: main
