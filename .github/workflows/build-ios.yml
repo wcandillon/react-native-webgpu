@@ -28,9 +28,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: 'yarn'
-
-      - name: Install root node dependencies
-        run: yarn
+          cache-dependency-path: package/yarn.lock
 
       - name: Install Package
         run: cd package; yarn install --frozen-lockfile
