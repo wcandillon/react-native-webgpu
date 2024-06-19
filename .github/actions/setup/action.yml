@@ -37,4 +37,5 @@ runs:
         name: dawn-libs
 
     - name: Copy Artifacts to libs folder
+      shell: sh
       run: yarn copy-artifacts
