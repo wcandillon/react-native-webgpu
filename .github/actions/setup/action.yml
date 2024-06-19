@@ -1,6 +1,11 @@
 name: Setup
 description: Setup Node.js and install dependencies
 
+inputs:
+  github_token:
+    description: 'GitHub Token'
+    required: true
+
 runs:
   using: composite
   steps:
@@ -31,7 +36,7 @@ runs:
       with:
         workflow: "build-dawn.yml"
         repo: wcandillon/react-native-webgpu
-        github_token: ${{ secrets.github_token }}
+        github_token: ${{ inputs.github_token }}
         path: artifacts
         branch: main
         name: dawn-libs
