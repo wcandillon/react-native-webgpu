@@ -79,6 +79,10 @@ jobs:
       - name: Create symlink for node_modules
         run: ln -s ${{ github.workspace }}/package/node_modules ${{ github.workspace }}/package/example/node_modules
 
+      - name: Generate debug keystore
+        run: |
+          keytool -genkey -v -keystore ${{ matrix.working-directory }}/android/app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+
       - name: Build Android app
         working-directory: ${{ matrix.working-directory }}/android
         run: ./gradlew assembleDebug
