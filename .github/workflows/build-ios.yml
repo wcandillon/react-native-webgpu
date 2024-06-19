@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-12
+    runs-on: macos-13
     strategy:
       matrix:
         working-directory: [package/example]
@@ -40,9 +40,6 @@ jobs:
           path: artifacts
           branch: main
           name: dawn-libs
-
-      - name: List downloaded artifacts
-        run: ls -al artifacts
 
       - name: Copy Artifacts to libs folder
         working-directory: package
