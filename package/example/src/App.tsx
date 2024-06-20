@@ -4,8 +4,7 @@ import { StyleSheet, View } from "react-native";
 // @ts-expect-error
 import { WebGPUView, WebGPUModule } from "react-native-webgpu";
 
-WebGPUModule.install();
-
+console.log({ WebGPUModule });
 // eslint-disable-next-line import/no-default-export
 export default function App() {
   console.log({ navigator: global.navigator.gpu });
