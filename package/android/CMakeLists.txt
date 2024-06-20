@@ -16,10 +16,11 @@ else()
     add_definitions(-DRNF_ENABLE_LOGS=0)
 endif()
 
-add_library(${PACKAGE_NAME}            SHARED
-            ../cpp/rnwgpu/RNWebGPUManager.cpp
-            cpp/cpp-adapter.cpp
-            cpp/RNFAndroidLogger.cpp
+add_library(${PACKAGE_NAME} SHARED
+    ../cpp/rnwgpu/RNWebGPUManager.cpp
+    cpp/cpp-adapter.cpp
+    cpp/RNFAndroidLogger.cpp
+    cpp/rnwgpu/api/JsiNavigator.cpp
 )
 
 # Specifies a path to native header files.

@@ -8,6 +8,7 @@ WebGPUModule.install();
 
 // eslint-disable-next-line import/no-default-export
 export default function App() {
+  console.log({ navigator: global.navigator.gpu });
   return (
     <View style={styles.container}>
       <WebGPUView color="#32a852" style={styles.box} />
