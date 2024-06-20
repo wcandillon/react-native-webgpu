@@ -6,10 +6,12 @@
 #include <jsi/jsi.h>
 #include <utility>
 #include <vector>
+#include <string>
+#include <memory>
 
 namespace margelo {
 
-using namespace facebook;
+namespace jsi = facebook::jsi;
 
 class Promise {
 public:

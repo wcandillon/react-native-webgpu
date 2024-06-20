@@ -8,10 +8,12 @@
 #include "RNFLogger.h"
 #include <memory>
 #include <mutex>
+#include <utility>
+#include <string>
 
 namespace margelo {
 
-using namespace facebook;
+namespace jsi = facebook::jsi;
 
 template <typename T> class PointerHolder : public HybridObject {
 protected:

@@ -13,10 +13,13 @@
 #include <mutex>
 #include <type_traits>
 #include <unordered_map>
+#include <vector>
+#include <utility>
+#include <string>
 
 namespace margelo {
 
-using namespace facebook;
+namespace jsi = facebook::jsi;
 
 class HybridObject : public jsi::HostObject, public std::enable_shared_from_this<HybridObject> {
 public:

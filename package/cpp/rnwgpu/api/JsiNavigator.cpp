@@ -2,8 +2,8 @@
 
 namespace rnwgpu {
 
-  void Navigator::loadHybridMethods() {
-    registerHybridGetter("gpu", &Navigator::getGPU, this);
-  }
+void Navigator::loadHybridMethods() {
+  registerHybridGetter("gpu", &Navigator::getGPU, this);
+}
 
 } // namespace rnwgpu

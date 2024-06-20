@@ -10,7 +10,7 @@
 
 namespace margelo {
 
-void Logger::log(const std::string& tag, const std::string& message) {
+void Logger::log(const std::string &tag, const std::string &message) {
 #if RNF_ENABLE_LOGS
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-security"

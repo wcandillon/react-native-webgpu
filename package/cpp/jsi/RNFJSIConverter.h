@@ -15,6 +15,9 @@
 #include <memory>
 #include <type_traits>
 #include <unordered_map>
+#include <vector>
+#include <utility>
+#include <string>
 
 #if __has_include(<cxxabi.h>)
 #include <cxxabi.h>
@@ -22,7 +25,7 @@
 
 namespace margelo {
 
-using namespace facebook;
+namespace jsi = facebook::jsi;
 
 // Unknown type (error)
 template <typename ArgType, typename Enable = void> struct JSIConverter {

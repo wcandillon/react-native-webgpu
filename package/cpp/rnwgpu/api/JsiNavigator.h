@@ -4,17 +4,15 @@
 
 namespace rnwgpu {
 
-  namespace m = margelo;
+namespace m = margelo;
 
-  class Navigator: public m::HybridObject {
-    public:
-      explicit Navigator(): HybridObject("Navigator") {}
+class Navigator : public m::HybridObject {
+public:
+  Navigator() : HybridObject("Navigator") {}
 
-    public:
-      double getGPU() {
-        return 1.0;
-      }
+public:
+  double getGPU() { return 1.0; }
 
-      void loadHybridMethods() override;
-  };
+  void loadHybridMethods() override;
+};
 } // namespace rnwgpu

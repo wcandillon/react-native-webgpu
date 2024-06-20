@@ -7,10 +7,11 @@
 #include "RNFWorkletRuntimeRegistry.h"
 #include <jsi/jsi.h>
 #include <memory>
+#include <utility>
 
 namespace margelo {
 
-using namespace facebook;
+namespace jsi = facebook::jsi;
 
 class JSIHelper {
 public:

@@ -9,7 +9,7 @@
 
 namespace margelo {
 
-using namespace facebook;
+namespace jsi = facebook::jsi;
 
 Promise::Promise(jsi::Runtime& runtime, jsi::Function&& resolver, jsi::Function&& rejecter)
     : runtime(runtime), _resolver(std::move(resolver)), _rejecter(std::move(rejecter)) {}

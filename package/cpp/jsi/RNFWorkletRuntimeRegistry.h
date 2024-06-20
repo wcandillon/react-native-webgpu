@@ -8,7 +8,7 @@
 #include <mutex>
 #include <set>
 
-using namespace facebook;
+namespace jsi = facebook::jsi;
 
 namespace margelo {
 

@@ -6,6 +6,10 @@
 #include "RNFJSIConverter.h"
 #include "RNFLogger.h"
 
+#include <vector>
+#include <utility>
+#include <string>
+
 namespace margelo {
 
 #if DEBUG && RNF_ENABLE_LOGS

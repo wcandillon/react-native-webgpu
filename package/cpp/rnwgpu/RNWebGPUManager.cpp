@@ -1,7 +1,9 @@
 #include "RNWebGPUManager.h"
 
 #include "JsiNavigator.h"
+
 #include <memory>
+#include <utility>
 
 namespace rnwgpu {
 RNWebGPUManager::RNWebGPUManager(
