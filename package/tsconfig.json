@@ -3,6 +3,7 @@
   "compilerOptions": {
     "paths": {
       "react-native-webgpu": ["../src/index"],
-    }
+    },
+    "types": ["@webgpu/types"]
   }
 }

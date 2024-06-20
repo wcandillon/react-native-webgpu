@@ -3329,6 +3329,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@webgpu/types@npm:^0.1.42":
+  version: 0.1.42
+  resolution: "@webgpu/types@npm:0.1.42"
+  checksum: 634a1e52db30cf9d4aae3b9a589388a374d4870fd8e5995367b2a03ec3b5d36e1c449351d87a49242e48274a7e322109449109b9b0a19cf905bdd95da4a0ab41
+  languageName: node
+  linkType: hard
+
 "abbrev@npm:^2.0.0":
   version: 2.0.0
   resolution: "abbrev@npm:2.0.0"
@@ -9059,6 +9066,7 @@ __metadata:
     "@types/jest": ^29.5.5
     "@types/react": ^18.2.44
     "@typescript-eslint/eslint-plugin": ^7.13.1
+    "@webgpu/types": ^0.1.42
     clang-format: ^1.8.0
     del-cli: ^5.1.0
     eslint: 8

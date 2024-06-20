@@ -1,17 +1,19 @@
 #pragma once
 
 #include <RNFHybridObject.h>
+#include <string>
 
 namespace rnwgpu {
 
 namespace m = margelo;
 
-class Navigator : public m::HybridObject {
+class GPU : public m::HybridObject {
 public:
-  Navigator() : HybridObject("Navigator") {}
+  GPU() : HybridObject("GPU") {}
 
 public:
   double getGPU() { return 1.0; }
+  std::string getBrand() { return _name; }
 
   void loadHybridMethods() override;
 };

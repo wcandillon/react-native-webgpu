@@ -67,7 +67,6 @@ public:
 
 private:
   static constexpr auto TAG = "HybridObject";
-  const char* _name = TAG;
   int _instanceId = 1;
   bool _didLoadMethods = false;
   std::mutex _mutex;
@@ -77,6 +76,9 @@ private:
   std::unordered_map<jsi::Runtime*, std::unordered_map<std::string, std::shared_ptr<jsi::Function>>> _functionCache;
   // Store a pointer to the runtime. Needed for checking if the runtime is still active, see WorkletRuntimeRegistry.
   jsi::Runtime* _creationRuntime = nullptr;
+
+protected:
+  const char* _name = TAG;
 
 private:
   inline void ensureInitialized(facebook::jsi::Runtime& runtime);

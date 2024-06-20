@@ -1,6 +1,6 @@
 #include "RNWebGPUManager.h"
 
-#include "JsiNavigator.h"
+#include "GPU.h"
 
 #include <memory>
 #include <utility>
@@ -11,11 +11,11 @@ RNWebGPUManager::RNWebGPUManager(
     std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker)
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker) {
 
-  auto navigator = std::make_shared<Navigator>();
+  auto gpu = std::make_shared<GPU>();
 
   _jsRuntime->global().setProperty(
-      *_jsRuntime, "navigator",
-      jsi::Object::createFromHostObject(*_jsRuntime, std::move(navigator)));
+      *_jsRuntime, "gpu",
+      jsi::Object::createFromHostObject(*_jsRuntime, std::move(gpu)));
 }
 
 RNWebGPUManager::~RNWebGPUManager() {

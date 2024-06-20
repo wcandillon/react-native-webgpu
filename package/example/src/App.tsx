@@ -2,12 +2,13 @@ import * as React from "react";
 import { StyleSheet, View } from "react-native";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
-import { WebGPUView, WebGPUModule } from "react-native-webgpu";
+import { WebGPUView, gpu } from "react-native-webgpu";
 
-console.log({ WebGPUModule });
+console.log({ gpu });
+// console.log({ gpu: gpu.gpu });
+
 // eslint-disable-next-line import/no-default-export
 export default function App() {
-  console.log({ navigator: global.navigator.gpu });
   return (
     <View style={styles.container}>
       <WebGPUView color="#32a852" style={styles.box} />
