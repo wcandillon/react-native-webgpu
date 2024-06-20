@@ -1,7 +1,6 @@
 //
 // Created by Marc Rousavy on 21.02.24.
 //
-
 #include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
 #include "RNFLogger.h"

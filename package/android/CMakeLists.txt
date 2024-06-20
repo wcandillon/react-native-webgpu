@@ -6,6 +6,8 @@ set (CMAKE_CXX_STANDARD 17)
 
 set (PACKAGE_NAME "react-native-webgpu")
 
+#link_directories(../libs/android/${ANDROID_ABI}/)
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DDEBUG=1)
 endif()
@@ -16,28 +18,46 @@ else()
     add_definitions(-DRNF_ENABLE_LOGS=0)
 endif()
 
+find_package(ReactAndroid REQUIRED CONFIG)
+
 add_library(${PACKAGE_NAME} SHARED
     ./cpp/cpp-adapter.cpp
     ./cpp/RNFAndroidLogger.cpp
     ../cpp/rnwgpu/RNWebGPUManager.cpp
     ../cpp/rnwgpu/api/GPU.cpp
+    ../cpp/jsi/RNFPromise.cpp
+    ../cpp/jsi/RNFHybridObject.cpp
+    ../cpp/jsi/RNFRuntimeCache.cpp
+    ../cpp/jsi/RNFWorkletRuntimeRegistry.cpp
 )
 
-# Specifies a path to native header files.
-include_directories(
-  ../cpp
-  ../cpp/rnwgpu
-  ../cpp/rnwgpu/api
-  ../cpp/jsi
-  ../cpp/dawn
-  ../cpp/webgpu
+target_include_directories(
+        ${PACKAGE_NAME}
+        PRIVATE
+
+        "${NODE_MODULES_DIR}/react-native/ReactCommon/callinvoker"
+        "${NODE_MODULES_DIR}/react-native/ReactCommon/jsi"
+        "${NODE_MODULES_DIR}/react-native/ReactCommon"
+        "${NODE_MODULES_DIR}/react-native/ReactCommon/react/nativemodule/core"
+        "${NODE_MODULES_DIR}/react-native/ReactCommon/runtimeexecutor"
+        "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/jni"
+        "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/java/com/facebook/react/turbomodule/core/jni"
+
+        ../cpp
+        ../cpp/rnwgpu
+        ../cpp/rnwgpu/api
+        ../cpp/jsi
+        ../cpp/dawn
+        ../cpp/webgpu
+
+#        ${libfbjni_include_DIRS}
 )
 
 # Link
 target_link_libraries(
         ${PACKAGE_NAME}
-        ${LOG_LIB} 
-        -llog
-        -ljnigraphics
-        -landroid
+        log
+        jnigraphics
+        android
+        ReactAndroid::jsi
     )

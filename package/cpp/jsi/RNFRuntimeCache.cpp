@@ -1,8 +1,6 @@
 //
 // Created by Marc Rousavy on 22.02.24.
 //
-#pragma once
-
 #include <jsi/jsi.h>
 
 #include <memory>
