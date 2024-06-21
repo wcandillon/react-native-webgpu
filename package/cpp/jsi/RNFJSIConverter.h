@@ -15,9 +15,6 @@
 #include <memory>
 #include <type_traits>
 #include <unordered_map>
-#include <vector>
-#include <utility>
-#include <string>
 
 #if __has_include(<cxxabi.h>)
 #include <cxxabi.h>
@@ -25,7 +22,7 @@
 
 namespace margelo {
 
-namespace jsi = facebook::jsi;
+using namespace facebook;
 
 // Unknown type (error)
 template <typename ArgType, typename Enable = void> struct JSIConverter {
@@ -144,6 +141,51 @@ template <typename TEnum> struct JSIConverter<TEnum, std::enable_if_t<std::is_en
     return jsi::String::createFromUtf8(runtime, outUnion);
   }
 };
+
+// std::future<T> <> Promise<T>
+template <typename TResult> struct JSIConverter<std::future<TResult>> {
+  static std::future<TResult> fromJSI(jsi::Runtime&, const jsi::Value&) {
+    throw std::runtime_error("Promise cannot be converted to a native type - it needs to be awaited first!");
+  }
+  static jsi::Value toJSI(jsi::Runtime& runtime, std::future<TResult>&& arg) {
+    auto sharedFuture = std::make_shared<std::future<TResult>>(std::move(arg));
+    return Promise::createPromise(runtime, [sharedFuture = std::move(sharedFuture)](jsi::Runtime& runtime,
+                                                                                           std::shared_ptr<Promise> promise) {
+      try {
+        // wait until the future completes.
+        sharedFuture->wait();
+
+        if constexpr (std::is_same_v<TResult, void>) {
+          // it's returning void, just return undefined to JS
+          sharedFuture->get();
+          promise->resolve(jsi::Value::undefined());
+        } else {
+          // it's returning a custom type, convert it to a jsi::Value
+          TResult result = sharedFuture->get();
+          jsi::Value jsResult = JSIConverter<TResult>::toJSI(runtime, result);
+          promise->resolve(std::move(jsResult));
+        }
+      } catch (const std::exception& exception) {
+        // the async function threw an error, reject the promise
+        std::string what = exception.what();
+        promise->reject(what);
+      } catch (...) {
+        // the async function threw a non-std error, try getting it
+#if __has_include(<cxxabi.h>)
+        std::string name = __cxxabiv1::__cxa_current_exception_type()->name();
+#else
+        std::string name = "<unknown>";
+#endif
+        promise->reject("Unknown non-std exception: " + name);
+      }
+
+      // This lambda owns the promise shared pointer, and we need to call its
+      // destructor correctly here - ensuring it's properly handled.
+      promise = nullptr;
+    });
+  }
+};
+
 
 // [](Args...) -> T {} <> (Args...) => T
 template <typename ReturnType, typename... Args> struct JSIConverter<std::function<ReturnType(Args...)>> {
