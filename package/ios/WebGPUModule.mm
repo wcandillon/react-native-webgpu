@@ -61,7 +61,7 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   if (!jsInvoker) {
     jsInvoker = cxxBridge.jsCallInvoker;
   }
-  // TODO: make shared pointer
+  // TODO: remove allocation here
   _webgpuManager = new rnwgpu::RNWebGPUManager(runtime, jsInvoker);
   return @true;
 }

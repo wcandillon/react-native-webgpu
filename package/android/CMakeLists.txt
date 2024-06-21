@@ -19,6 +19,7 @@ else()
 endif()
 
 find_package(ReactAndroid REQUIRED CONFIG)
+find_package(fbjni REQUIRED CONFIG)
 
 add_library(${PACKAGE_NAME} SHARED
     ./cpp/cpp-adapter.cpp
@@ -41,6 +42,7 @@ target_include_directories(
         "${NODE_MODULES_DIR}/react-native/ReactCommon/react/nativemodule/core"
         "${NODE_MODULES_DIR}/react-native/ReactCommon/runtimeexecutor"
         "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/jni"
+        #"${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/jni/react/turbomodule"
         "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/java/com/facebook/react/turbomodule/core/jni"
 
         ../cpp
@@ -50,14 +52,16 @@ target_include_directories(
         ../cpp/dawn
         ../cpp/webgpu
 
-#        ${libfbjni_include_DIRS}
+        ${libfbjni_include_DIRS}
 )
 
 # Link
 target_link_libraries(
         ${PACKAGE_NAME}
+        ${FBJNI_LIBRARY}
         log
         jnigraphics
         android
+        fbjni::fbjni
         ReactAndroid::jsi
     )
