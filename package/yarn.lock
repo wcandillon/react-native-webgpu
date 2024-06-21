@@ -2833,7 +2833,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/jest@npm:^29.5.5":
+"@types/jest@npm:^29.5.12":
   version: 29.5.12
   resolution: "@types/jest@npm:29.5.12"
   dependencies:
@@ -2888,6 +2888,15 @@ __metadata:
   dependencies:
     undici-types: ~5.26.4
   checksum: 97fce6e862fd1853ae3e0c4ed5c87181d18af1646c367a22befc17697bc68a98401dc037219630a90d2e27032bf1a2306cf876ce709c553c3f42585584fe2c7a
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^20.14.7":
+  version: 20.14.7
+  resolution: "@types/node@npm:20.14.7"
+  dependencies:
+    undici-types: ~5.26.4
+  checksum: 967d100f3853fefa347847ece95226a73cba970ff896efa12cce68ecdd48a9b39b10c8eefd9f11016799a29bdfe19d144ea094f8db3d5987cebe8f06226fccc9
   languageName: node
   linkType: hard
 
@@ -9063,7 +9072,8 @@ __metadata:
   resolution: "react-native-webgpu@workspace:."
   dependencies:
     "@react-native/eslint-config": ^0.74.84
-    "@types/jest": ^29.5.5
+    "@types/jest": ^29.5.12
+    "@types/node": ^20.14.7
     "@types/react": ^18.2.44
     "@typescript-eslint/eslint-plugin": ^7.13.1
     "@webgpu/types": ^0.1.42

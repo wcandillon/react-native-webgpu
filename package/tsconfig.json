@@ -4,6 +4,6 @@
     "paths": {
       "react-native-webgpu": ["../src/index"],
     },
-    "types": ["@webgpu/types"]
+    "types": ["@webgpu/types", "@types/node"]
   }
 }
