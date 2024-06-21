@@ -4,7 +4,8 @@ import { StyleSheet, View } from "react-native";
 // @ts-expect-error
 import { WebGPUView, gpu } from "react-native-webgpu";
 
-console.log({ gpu });
+const adapter = (gpu as GPU).requestAdapter();
+console.log({ adapter });
 // console.log({ gpu: gpu.gpu });
 
 // eslint-disable-next-line import/no-default-export

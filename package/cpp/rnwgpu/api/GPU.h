@@ -1,7 +1,11 @@
 #pragma once
 
-#include <RNFHybridObject.h>
 #include <string>
+#include <future>
+
+#include <RNFHybridObject.h>
+
+#include "GPUAdapter.h"
 
 namespace rnwgpu {
 
@@ -12,7 +16,8 @@ public:
   GPU() : HybridObject("GPU") {}
 
 public:
-  double getGPU() { return 1.0; }
+  std::shared_ptr<GPUAdapter> requestAdapter();
+
   std::string getBrand() { return _name; }
 
   void loadHybridMethods() override;
