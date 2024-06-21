@@ -16,7 +16,7 @@ public:
   GPU() : HybridObject("GPU") {}
 
 public:
-  std::shared_ptr<GPUAdapter> requestAdapter();
+  std::future<std::shared_ptr<GPUAdapter>> requestAdapter();
 
   std::string getBrand() { return _name; }
 

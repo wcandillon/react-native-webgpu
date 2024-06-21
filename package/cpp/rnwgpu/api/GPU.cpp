@@ -7,9 +7,9 @@ void GPU::loadHybridMethods() {
   registerHybridMethod("requestAdapter", &GPU::requestAdapter, this);
 }
 
-std::shared_ptr<GPUAdapter> GPU::requestAdapter() {
+std::future<std::shared_ptr<GPUAdapter>> GPU::requestAdapter() {
   // Create a shared_ptr to GPUAdapter
-  return std::make_shared<GPUAdapter>();
+  return std::async(std::launch::async, [=]() { return std::make_shared<GPUAdapter>(); });
 }
 
 } // namespace rnwgpu
