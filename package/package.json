@@ -79,6 +79,7 @@
     "react-native": "0.74.2",
     "react-native-builder-bob": "^0.23.2",
     "rimraf": "^5.0.7",
+    "ts-morph": "^22.0.0",
     "ts-node": "^10.9.2",
     "turbo": "^1.10.7",
     "typescript": "^5.2.2"
