@@ -14,6 +14,8 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  void loadHybridMethods() override;
+  void loadHybridMethods() override {
+    registerHybridGetter("__brand", &GPUAdapter::getBrand, this);
+  }
 };
 } // namespace rnwgpu
