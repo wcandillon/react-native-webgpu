@@ -18,6 +18,8 @@ else()
     add_definitions(-DRNF_ENABLE_LOGS=0)
 endif()
 
+set (WEBGPU_LIBS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../libs/android/${ANDROID_ABI}")
+
 find_package(ReactAndroid REQUIRED CONFIG)
 find_package(fbjni REQUIRED CONFIG)
 
@@ -32,6 +34,18 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/jsi/RNFRuntimeCache.cpp
     ../cpp/jsi/RNFWorkletRuntimeRegistry.cpp
 )
+
+add_library(webgpu STATIC IMPORTED)
+set_property(TARGET webgpu PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.a")
+
+add_library(dawn_native STATIC IMPORTED)
+set_property(TARGET dawn_native PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_native.a")
+
+add_library(dawn_proc STATIC IMPORTED)
+set_property(TARGET dawn_proc PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_proc.a")
+
+add_library(dawn_common STATIC IMPORTED)
+set_property(TARGET dawn_common PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_common.a")
 
 target_include_directories(
         ${PACKAGE_NAME}
@@ -49,7 +63,6 @@ target_include_directories(
         ../cpp/rnwgpu
         ../cpp/rnwgpu/api
         ../cpp/jsi
-        ../cpp/dawn
         ../cpp/webgpu
 
         ${libfbjni_include_DIRS}
@@ -64,4 +77,8 @@ target_link_libraries(
         android
         fbjni::fbjni
         ReactAndroid::jsi
+        dawn_common
+        dawn_proc
+        dawn_native
+        webgpu
     )
