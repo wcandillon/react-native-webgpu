@@ -1,10 +1,10 @@
 import * as React from "react";
 import { StyleSheet, View } from "react-native";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
 import { WebGPUView, gpu } from "react-native-webgpu";
 
-(gpu as GPU)
+navigator = { ...navigator, gpu };
+
+navigator.gpu
   .requestAdapter({ powerPreference: "high-performance" })
   .then((a) => {
     console.log({ a });
