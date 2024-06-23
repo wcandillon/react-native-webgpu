@@ -1,7 +1,9 @@
 /* eslint-disable camelcase */
 /* eslint-disable max-len */
+import { chdir } from "process";
+
 import type { Platform, SDK } from "./util";
-import { $, build, copyLib, mapKeys } from "./util";
+import { $, build, checkBuildArtifacts, copyLib, libs, mapKeys } from "./util";
 
 const PATH = `PATH=${__dirname}/../../../externals/depot_tools/:$PATH`;
 
@@ -59,22 +61,16 @@ const ios = {
     }
   }
 
-  console.log("Building fat binary for iphone simulator");
-  const libs = [
-    "libwebgpu_dawn",
-    "libdawn_native",
-    "libdawn_proc",
-    "libdawn_common",
-  ];
   libs.forEach((lib) => {
+    console.log(`Building fat binary for iphone simulator: ${lib}`);
     $(
       `lipo -create package/libs/ios/x86_64_iphonesimulator/${lib}.a package/libs/ios/arm64_iphonesimulator/${lib}.a -output package/libs/ios/${lib}.a`,
     );
   });
 
   libs.forEach((lib) => {
-    console.log("Building libwebgpu_dawn.xcframework");
-    $("rm -rf ./package/libs/ios/libwebgpu_dawn.xcframework");
+    console.log(`Building ${lib}`);
+    $(`rm -rf ./package/libs/ios/${lib}.xcframework`);
     $(
       "xcodebuild -create-xcframework " +
         `-library ./package/libs/ios/${lib}.a ` +
@@ -99,4 +95,6 @@ const ios = {
     "cp externals/dawn/include/webgpu/webgpu_enum_class_bitmasks.h package/cpp/webgpu/",
   );
   $("cp externals/dawn/include/webgpu/webgpu.h package/cpp/webgpu/");
+  chdir("package");
+  checkBuildArtifacts();
 })();

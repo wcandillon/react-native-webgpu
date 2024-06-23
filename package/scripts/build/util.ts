@@ -2,8 +2,23 @@ import { spawn, execSync } from "child_process";
 import { existsSync } from "fs";
 import { exit } from "process";
 
+export const libs = [
+  "libwebgpu_dawn",
+  "libdawn_native",
+  "libdawn_proc",
+  "libdawn_common",
+] as const;
+
+export const platforms = [
+  "arm64",
+  "x86_64",
+  "x86",
+  "armeabi-v7a",
+  "arm64-v8a",
+] as const;
+
 export type OS = "ios" | "android";
-export type Platform = "arm64" | "x86_64" | "x86" | "armeabi-v7a" | "arm64-v8a";
+export type Platform = (typeof platforms)[number];
 export type SDK = "iphoneos" | "iphonesimulator";
 
 export const runAsync = (command: string, label: string): Promise<void> => {
@@ -90,4 +105,19 @@ export const copyLib = (os: OS, platform: Platform, sdk?: SDK) => {
     console.log(`Copying ${libPath} to ${dstPath}`);
     $(`cp ${libPath} ${dstPath}`);
   });
+};
+
+export const checkBuildArtifacts = () => {
+  console.log("Check build artifacts...");
+  platforms
+    .filter((arch) => arch !== "arm64")
+    .forEach((platform) => {
+      libs.forEach((lib) => {
+        checkFileExists(`libs/android/${platform}/${lib}.a`);
+      });
+    });
+  libs.forEach((lib) => {
+    checkFileExists(`libs/ios/${lib}.xcframework`);
+  });
+  checkFileExists("cpp/dawn/webgpu_cpp.h");
 };
