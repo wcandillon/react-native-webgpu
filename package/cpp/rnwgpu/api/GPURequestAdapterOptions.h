@@ -1,7 +1,7 @@
 #pragma once
 
-#include <memory>
 #include "webgpu_cpp.h"
+#include <memory>
 
 namespace jsi = facebook::jsi;
 

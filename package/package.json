@@ -40,7 +40,7 @@
     "clang-format-common": "find cpp/rnwgpu -iname \"*.h\" -o -iname \"*.m\" -o -iname \"*.cpp\" | xargs clang-format -i",
     "cpplint": "cpplint --linelength=230 --filter=-legal/copyright,-whitespace/indent,-whitespace/comments,-whitespace/ending_newline,-build/include_order,-runtime/references,-readability/todo,-whitespace/blank_line,-whitespace/todo,-runtime/int,-build/c++11,-whitespace/parens --exclude=example --exclude=android/.cxx --exclude=cpp/webgpu --exclude=cpp/dawn --exclude=ios --exclude=android/build --exclude=node_modules --recursive .",
     "copy-artifacts": "ts-node scripts/build/copy-artifacts.ts",
-    "codegen": "ts-node scripts/codegen/bindings.ts && yarn clang-format"
+    "codegen": "ts-node scripts/codegen/codegen.ts && yarn clang-format"
   },
   "keywords": [
     "react-native",

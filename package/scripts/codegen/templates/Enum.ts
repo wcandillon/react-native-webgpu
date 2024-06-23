@@ -1,9 +1,19 @@
 import _ from "lodash";
-import { Node, type VariableDeclaration } from "ts-morph";
+import type { PropertySignature, VariableDeclaration } from "ts-morph";
+import { Node } from "ts-morph";
+
+const enumAliases: Record<string, string> = {
+  ColorWrite: "ColorWriteMask",
+};
+
+const getPropName = (prop: PropertySignature) => {
+  const name = _.upperFirst(_.camelCase(prop.getName()));
+  return name;
+};
 
 export const getEnum = (decl: VariableDeclaration) => {
   const name = decl.getName();
-  const wname = name.substring(3);
+  const wname = enumAliases[name.substring(3)] || name.substring(3);
   const properties = decl.getDescendants().filter(Node.isPropertySignature);
   return `#pragma once
 
@@ -20,16 +30,22 @@ public:
   ${name}() : HybridObject("${name}") {}
 
 public:
-  ${properties.map((property) => {
-    return `wgpu::${wname} ${_.camelCase(property.getName())}() {
-      return wgpu::${wname}::${property.getName()};
+  ${properties
+    .map((property) => {
+      const prop = getPropName(property);
+      return `wgpu::${wname} ${prop}() {
+      return wgpu::${wname}::${prop};
     }`;
-  })}
+    })
+    .join(";\n    ")}
 
   void loadHybridMethods() override {
-    ${properties.map((property) => {
-      return `registerHybridGetter("${property.getName()}", &${name}::${_.camelCase(property.getName())}, this)`;
-    })}
+    ${properties
+      .map((property) => {
+        const prop = getPropName(property);
+        return `registerHybridGetter("${property.getName()}", &${name}::${prop}, this);`;
+      })
+      .join("\n    ")}
   }
 };
 } // namespace rnwgpu`;

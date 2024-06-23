@@ -1,7 +1,10 @@
 import * as path from "path";
+import { writeFileSync } from "fs";
 
 import type { VariableDeclaration } from "ts-morph";
 import { Node, Project } from "ts-morph";
+
+import { $ } from "../build/util";
 
 import { getEnum } from "./templates/Enum";
 
@@ -56,7 +59,13 @@ sourceFile
       !hasProptotype(decl),
   )
   .forEach((varDecl) => {
-    console.log(getEnum(varDecl));
+    const file = path.resolve(
+      __dirname,
+      `../../cpp/rnwgpu/api/${varDecl.getName()}.h`,
+    );
+    $(`touch ${file}`);
+    writeFileSync(file, getEnum(varDecl), "utf8");
+    console.log(`Generated ${file}`);
   });
 
 // Errors
@@ -83,21 +92,3 @@ sourceFile
       console.log(`Object name: ${interfaceDeclaration.getName()}`);
     }
   });
-
-// // Inspecting the AST
-// sourceFile.forEachChild((node) => {
-//   console.log(`Node kind: ${node.getKindName()}`);
-//   if (node.getKindName() === "InterfaceDeclaration") {
-//     console.log(`Node text: ${node.getText()}`);
-//   }
-//   //  / console.log(`Node text: ${node.getText()}`);
-// });
-
-// // Alternatively, you can navigate through the nodes
-// const classes = sourceFile.getClasses();
-// classes.forEach((cls) => {
-//   console.log(`Class name: ${cls.getName()}`);
-//   cls.getMethods().forEach((method) => {
-//     console.log(`Method name: ${method.getName()}`);
-//   });
-// });
