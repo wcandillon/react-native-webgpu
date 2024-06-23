@@ -9,7 +9,7 @@ namespace m = margelo;
 
 class GPUAdapter : public m::HybridObject {
 public:
-  GPUAdapter(): HybridObject("GPUAdapter") {}
+  GPUAdapter() : HybridObject("GPUAdapter") {}
 
 public:
   std::string getBrand() { return _name; }

@@ -9,10 +9,13 @@
 #include "RNFJSIHelper.h"
 #include "RNFPromise.h"
 #include "RNFWorkletRuntimeRegistry.h"
-#include <array>
-#include <future>
 #include <jsi/jsi.h>
 #include <memory>
+#include <array>
+#include <future>
+#include <vector>
+#include <string>
+#include <utility>
 #include <type_traits>
 #include <unordered_map>
 
@@ -22,7 +25,7 @@
 
 namespace margelo {
 
-using namespace facebook;
+namespace jsi = facebook::jsi;
 
 // Unknown type (error)
 template <typename ArgType, typename Enable = void> struct JSIConverter {
