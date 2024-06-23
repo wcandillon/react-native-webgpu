@@ -43,7 +43,6 @@ target_include_directories(
         "${NODE_MODULES_DIR}/react-native/ReactCommon/react/nativemodule/core"
         "${NODE_MODULES_DIR}/react-native/ReactCommon/runtimeexecutor"
         "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/jni"
-        #"${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/jni/react/turbomodule"
         "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/java/com/facebook/react/turbomodule/core/jni"
 
         ../cpp
