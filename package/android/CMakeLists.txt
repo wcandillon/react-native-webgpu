@@ -49,7 +49,6 @@ target_include_directories(
         ../cpp/rnwgpu
         ../cpp/rnwgpu/api
         ../cpp/jsi
-        ../cpp/dawn
         ../cpp/webgpu
 
         ${libfbjni_include_DIRS}

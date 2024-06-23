@@ -85,4 +85,9 @@ const ios = {
 
   console.log("Copy headers");
   $("cp -R externals/dawn/out/android_arm64-v8a/gen/include/* package/cpp");
+  $("cp externals/dawn/include/webgpu/webgpu_cpp.h package/cpp/webgpu/");
+  $(
+    "cp externals/dawn/include/webgpu/webgpu_enum_class_bitmasks.h package/cpp/webgpu/",
+  );
+  $("cp externals/dawn/include/webgpu/webgpu.h package/cpp/webgpu/");
 })();
