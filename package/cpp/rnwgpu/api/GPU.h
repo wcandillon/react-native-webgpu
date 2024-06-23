@@ -16,11 +16,7 @@ namespace m = margelo;
 
 class GPU : public m::HybridObject {
 public:
-  GPU(): HybridObject("GPU") {
-    wgpu::InstanceDescriptor instanceDesc;
-    instanceDesc.features.timedWaitAnyEnable = true;
-    instanceDesc.features.timedWaitAnyMaxCount = 64;
-    _instance = wgpu::CreateInstance(&instanceDesc);
+  GPU(std::shared_ptr<wgpu::Instance> instance): HybridObject("GPU"), _instance(instance) {
   }
 
 public:
@@ -40,6 +36,6 @@ public:
   }
 
   private:
-    wgpu::Instance _instance;
+    std::shared_ptr<wgpu::Instance> _instance;
   };
 } // namespace rnwgpu

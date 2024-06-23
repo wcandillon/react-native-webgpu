@@ -11,7 +11,10 @@ RNWebGPUManager::RNWebGPUManager(
     std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker)
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker) {
 
-  auto gpu = std::make_shared<GPU>();
+  wgpu::InstanceDescriptor instanceDesc;
+  instanceDesc.features.timedWaitAnyEnable = true;
+  instanceDesc.features.timedWaitAnyMaxCount = 64;
+  auto gpu = std::make_shared<GPU>(std::make_shared<wgpu::Instance>(wgpu::CreateInstance(&instanceDesc)));
 
   _jsRuntime->global().setProperty(
       *_jsRuntime, "gpu",
