@@ -1,7 +1,9 @@
 import * as path from "path";
 
 import type { VariableDeclaration } from "ts-morph";
-import { Project, SyntaxKind } from "ts-morph";
+import { Node, Project } from "ts-morph";
+
+import { getEnum } from "./templates/Enum";
 
 // Define the path to the WebGPU type declaration file
 const tsConfigFilePath = path.resolve(__dirname, "../../tsconfig.json");
@@ -19,7 +21,7 @@ const hasConstructor = (node: VariableDeclaration) => {
   let found = false;
 
   node.getDescendants().forEach((child) => {
-    if (child.getKind() === SyntaxKind.ConstructSignature) {
+    if (Node.isConstructorDeclaration(child)) {
       found = true;
       return false; // Exit early
     }
@@ -28,6 +30,21 @@ const hasConstructor = (node: VariableDeclaration) => {
 
   return found;
 };
+
+const hasProptotype = (node: VariableDeclaration) => {
+  let found = false;
+
+  node.getDescendants().forEach((child) => {
+    if (Node.isPropertySignature(child) && child.getName() === "prototype") {
+      found = true;
+      return false; // Exit early
+    }
+    return;
+  });
+
+  return found;
+};
+
 // Enums
 sourceFile
   .getVariableDeclarations()
@@ -35,11 +52,13 @@ sourceFile
     (decl) =>
       decl.getName().startsWith("GPU") &&
       !decl.getName().endsWith("Error") &&
-      !hasConstructor(decl),
+      !hasConstructor(decl) &&
+      !hasProptotype(decl),
   )
-  .forEach((variableDeclaration) => {
-    console.log(`Enum name: ${variableDeclaration.getName()}`);
+  .forEach((varDecl) => {
+    console.log(getEnum(varDecl));
   });
+
 // Errors
 sourceFile
   .getVariableDeclarations()
@@ -50,6 +69,7 @@ sourceFile
   .forEach((variableDeclaration) => {
     console.log(`Error name: ${variableDeclaration.getName()}`);
   });
+
 // Objects
 sourceFile
   .getInterfaces()
