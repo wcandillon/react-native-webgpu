@@ -6,6 +6,8 @@ export type OS = "ios" | "android";
 export type Platform = "arm64" | "x86_64" | "x86" | "armeabi-v7a" | "arm64-v8a";
 export type SDK = "iphoneos" | "iphonesimulator";
 
+//const libs = ["libwebgpu_dawn", "libdawn_native", "libdawn_proc"];
+
 export const runAsync = (command: string, label: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     const [cmd, ...args] = command.split(" ");
@@ -78,9 +80,16 @@ export const build = async (label: string, args: Record<string, string>) => {
 export const copyLib = (os: OS, platform: Platform, sdk?: SDK) => {
   const suffix = `${platform}${sdk ? `_${sdk}` : ""}`;
   const out = `${os}_${suffix}`;
-  const libPath = `externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.a`;
   const dstPath = `package/libs/${os}/${suffix}/`;
-  console.log(`Copying ${libPath} to ${dstPath}`);
   $(`mkdir -p ${dstPath}`);
-  $(`cp ${libPath} ${dstPath}`);
+  [
+    `externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.a`,
+    `externals/dawn/out/${out}/src/dawn/native/libdawn_native.a`,
+    `externals/dawn/out/${out}/src/dawn/libdawn_proc.a`,
+    `externals/dawn/out/${out}/src/dawn/common/libdawn_common.a`,
+  ].forEach((lib) => {
+    const libPath = lib;
+    console.log(`Copying ${libPath} to ${dstPath}`);
+    $(`cp ${libPath} ${dstPath}`);
+  });
 };

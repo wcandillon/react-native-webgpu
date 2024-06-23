@@ -7,6 +7,10 @@ const PATH = `PATH=${__dirname}/../../externals/depot_tools/:$PATH`;
 
 const commonArgs = {
   CMAKE_BUILD_TYPE: "Release",
+  // DAWN_BUILD_ANDROID_SAMPLES: "OFF",
+  // DAWN_BUILD_SAMPLES: "OFF",
+  // TINT_BUILD_TESTS: "OFF",
+  // TINT_BUILD_CMD_TOOLS: "OFF"
 };
 
 const android = {

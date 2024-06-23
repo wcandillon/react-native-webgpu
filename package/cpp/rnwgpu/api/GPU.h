@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "webgpu/webgpu_cpp.h"
 #include <RNFHybridObject.h>
 
 #include "GPUAdapter.h"
@@ -15,7 +16,7 @@ namespace m = margelo;
 
 class GPU : public m::HybridObject {
 public:
-  GPU() : HybridObject("GPU") {}
+  GPU();
 
 public:
   std::future<std::shared_ptr<GPUAdapter>>
@@ -24,5 +25,8 @@ public:
   std::string getBrand() { return _name; }
 
   void loadHybridMethods() override;
+
+private:
+  wgpu::Instance _instance;
 };
 } // namespace rnwgpu
