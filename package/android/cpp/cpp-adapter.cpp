@@ -1,11 +1,12 @@
-#include <android/log.h>
+#include "RNFLogger.h"
+#include "RNWebGPUManager.h"
+#include <fbjni/fbjni.h>
 #include <jni.h>
 
 #define LOG_TAG "WebGPUModule"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_webgpu_WebGPUModule_initializeNative(JNIEnv *env, jobject /* this */) {
-  // Install bindings here
-  LOGI("Native module initialized");
+extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
+    JNIEnv *env, jobject /* this */, jlong jsRuntime, jobject jsInvokerHolder) {
+  auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
+  auto manager = new rnwgpu::RNWebGPUManager(runtime, nullptr);
 }

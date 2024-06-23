@@ -1,16 +1,21 @@
 #include "RNWebGPUManager.h"
 
+#include "GPU.h"
+
+#include <memory>
+#include <utility>
+
 namespace rnwgpu {
 RNWebGPUManager::RNWebGPUManager(
     jsi::Runtime *jsRuntime,
     std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker)
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker) {
 
-  // Register main runtime
-  // BaseRuntimeAwareCache::setMainJsRuntime(_jsRuntime);
+  auto gpu = std::make_shared<GPU>();
 
-  // Install bindings
-  // installBindings();
+  _jsRuntime->global().setProperty(
+      *_jsRuntime, "gpu",
+      jsi::Object::createFromHostObject(*_jsRuntime, std::move(gpu)));
 }
 
 RNWebGPUManager::~RNWebGPUManager() {

@@ -96,8 +96,16 @@ android {
     }
   }
 
+  packagingOptions {
+    exclude "lib/arm64-v8a/libjsi.so"
+    exclude "lib/x86_64/libjsi.so"
+    exclude "lib/x86/libjsi.so"
+    exclude "lib/armeabi-v7a/libjsi.so"
+  }
+
   buildFeatures {
     buildConfig true
+    prefab true
   }
 
   buildTypes {
