@@ -1,12 +1,11 @@
 import * as path from "path";
-import { writeFileSync } from "fs";
 
 import type { VariableDeclaration } from "ts-morph";
 import { Node, Project } from "ts-morph";
 
-import { $ } from "../build/util";
-
 import { getEnum } from "./templates/Enum";
+import { writeFile } from "./util";
+import { getHybridObject } from "./templates/HybridObject";
 
 // Define the path to the WebGPU type declaration file
 const tsConfigFilePath = path.resolve(__dirname, "../../tsconfig.json");
@@ -59,13 +58,7 @@ sourceFile
       !hasProptotype(decl),
   )
   .forEach((varDecl) => {
-    const file = path.resolve(
-      __dirname,
-      `../../cpp/rnwgpu/api/${varDecl.getName()}.h`,
-    );
-    $(`touch ${file}`);
-    writeFileSync(file, getEnum(varDecl), "utf8");
-    console.log(`Generated ${file}`);
+    writeFile(varDecl.getName(), getEnum(varDecl));
   });
 
 // Errors
@@ -86,9 +79,11 @@ sourceFile
     (decl) =>
       decl.getName().startsWith("GPU") && !decl.getName().endsWith("Mixin"),
   )
-  .forEach((interfaceDeclaration) => {
-    const hasMethods = interfaceDeclaration.getMethods().length > 0;
+  .forEach((decl) => {
+    const hasMethods = decl.getMethods().length > 0;
     if (hasMethods) {
-      console.log(`Object name: ${interfaceDeclaration.getName()}`);
+      writeFile(decl.getName(), getHybridObject(decl));
     }
   });
+
+// Descriptors

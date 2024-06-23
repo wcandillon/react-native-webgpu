@@ -8,7 +8,6 @@
 #include "GPUShaderStage.h"
 #include "GPUTextureUsage.h"
 
-
 #include <memory>
 #include <utility>
 
