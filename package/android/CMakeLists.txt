@@ -27,8 +27,6 @@ add_library(${PACKAGE_NAME} SHARED
     ./cpp/cpp-adapter.cpp
     ./cpp/RNFAndroidLogger.cpp
     ../cpp/rnwgpu/RNWebGPUManager.cpp
-    ../cpp/rnwgpu/api/GPU.cpp
-    ../cpp/rnwgpu/api/GPUAdapter.cpp
     ../cpp/jsi/RNFPromise.cpp
     ../cpp/jsi/RNFHybridObject.cpp
     ../cpp/jsi/RNFRuntimeCache.cpp
