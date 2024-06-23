@@ -9,8 +9,9 @@ navigator = { ...navigator, gpu };
   if (!adapter) {
     throw new Error("WebGPU not supported");
   }
-  const device = await adapter.requestDevice();
-  console.log(device);
+  //const device = await adapter.requestDevice();
+  console.log(GPUBufferUsage.COPY_DST);
+  //console.log(device);
 })();
 
 // eslint-disable-next-line import/no-default-export

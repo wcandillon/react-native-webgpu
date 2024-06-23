@@ -13,16 +13,16 @@ public:
   GPUTextureUsage() : HybridObject("GPUTextureUsage") {}
 
 public:
-  wgpu::TextureUsage CopySrc() { return wgpu::TextureUsage::CopySrc; };
-  wgpu::TextureUsage CopyDst() { return wgpu::TextureUsage::CopyDst; };
-  wgpu::TextureUsage TextureBinding() {
-    return wgpu::TextureUsage::TextureBinding;
+  double CopySrc() { return static_cast<double>(wgpu::TextureUsage::CopySrc); };
+  double CopyDst() { return static_cast<double>(wgpu::TextureUsage::CopyDst); };
+  double TextureBinding() {
+    return static_cast<double>(wgpu::TextureUsage::TextureBinding);
   };
-  wgpu::TextureUsage StorageBinding() {
-    return wgpu::TextureUsage::StorageBinding;
+  double StorageBinding() {
+    return static_cast<double>(wgpu::TextureUsage::StorageBinding);
   };
-  wgpu::TextureUsage RenderAttachment() {
-    return wgpu::TextureUsage::RenderAttachment;
+  double RenderAttachment() {
+    return static_cast<double>(wgpu::TextureUsage::RenderAttachment);
   }
 
   void loadHybridMethods() override {

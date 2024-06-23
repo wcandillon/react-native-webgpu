@@ -13,16 +13,22 @@ public:
   GPUBufferUsage() : HybridObject("GPUBufferUsage") {}
 
 public:
-  wgpu::BufferUsage MapRead() { return wgpu::BufferUsage::MapRead; };
-  wgpu::BufferUsage MapWrite() { return wgpu::BufferUsage::MapWrite; };
-  wgpu::BufferUsage CopySrc() { return wgpu::BufferUsage::CopySrc; };
-  wgpu::BufferUsage CopyDst() { return wgpu::BufferUsage::CopyDst; };
-  wgpu::BufferUsage Index() { return wgpu::BufferUsage::Index; };
-  wgpu::BufferUsage Vertex() { return wgpu::BufferUsage::Vertex; };
-  wgpu::BufferUsage Uniform() { return wgpu::BufferUsage::Uniform; };
-  wgpu::BufferUsage Storage() { return wgpu::BufferUsage::Storage; };
-  wgpu::BufferUsage Indirect() { return wgpu::BufferUsage::Indirect; };
-  wgpu::BufferUsage QueryResolve() { return wgpu::BufferUsage::QueryResolve; }
+  double MapRead() { return static_cast<double>(wgpu::BufferUsage::MapRead); };
+  double MapWrite() {
+    return static_cast<double>(wgpu::BufferUsage::MapWrite);
+  };
+  double CopySrc() { return static_cast<double>(wgpu::BufferUsage::CopySrc); };
+  double CopyDst() { return static_cast<double>(wgpu::BufferUsage::CopyDst); };
+  double Index() { return static_cast<double>(wgpu::BufferUsage::Index); };
+  double Vertex() { return static_cast<double>(wgpu::BufferUsage::Vertex); };
+  double Uniform() { return static_cast<double>(wgpu::BufferUsage::Uniform); };
+  double Storage() { return static_cast<double>(wgpu::BufferUsage::Storage); };
+  double Indirect() {
+    return static_cast<double>(wgpu::BufferUsage::Indirect);
+  };
+  double QueryResolve() {
+    return static_cast<double>(wgpu::BufferUsage::QueryResolve);
+  }
 
   void loadHybridMethods() override {
     registerHybridGetter("MAP_READ", &GPUBufferUsage::MapRead, this);

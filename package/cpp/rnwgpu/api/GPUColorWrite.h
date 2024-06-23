@@ -13,11 +13,11 @@ public:
   GPUColorWrite() : HybridObject("GPUColorWrite") {}
 
 public:
-  wgpu::ColorWriteMask Red() { return wgpu::ColorWriteMask::Red; };
-  wgpu::ColorWriteMask Green() { return wgpu::ColorWriteMask::Green; };
-  wgpu::ColorWriteMask Blue() { return wgpu::ColorWriteMask::Blue; };
-  wgpu::ColorWriteMask Alpha() { return wgpu::ColorWriteMask::Alpha; };
-  wgpu::ColorWriteMask All() { return wgpu::ColorWriteMask::All; }
+  double Red() { return static_cast<double>(wgpu::ColorWriteMask::Red); };
+  double Green() { return static_cast<double>(wgpu::ColorWriteMask::Green); };
+  double Blue() { return static_cast<double>(wgpu::ColorWriteMask::Blue); };
+  double Alpha() { return static_cast<double>(wgpu::ColorWriteMask::Alpha); };
+  double All() { return static_cast<double>(wgpu::ColorWriteMask::All); }
 
   void loadHybridMethods() override {
     registerHybridGetter("RED", &GPUColorWrite::Red, this);

@@ -33,8 +33,8 @@ public:
   ${properties
     .map((property) => {
       const prop = getPropName(property);
-      return `wgpu::${wname} ${prop}() {
-      return wgpu::${wname}::${prop};
+      return `double ${prop}() {
+      return static_cast<double>(wgpu::${wname}::${prop});
     }`;
     })
     .join(";\n    ")}
