@@ -69,7 +69,7 @@ sourceFile
       decl.getName().startsWith("GPU") && decl.getName().endsWith("Error"),
   )
   .forEach((variableDeclaration) => {
-    console.log(`Error name: ${variableDeclaration.getName()}`);
+    console.log(`Error class not generated: ${variableDeclaration.getName()}`);
   });
 
 // Objects

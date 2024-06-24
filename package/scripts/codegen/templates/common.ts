@@ -1,0 +1,34 @@
+import type { MethodSignature, Type } from "ts-morph";
+
+interface JsiMethod {
+  async: boolean;
+  name: string;
+  dependencies: string[];
+  args: string[];
+  returns: string;
+}
+
+export const getJSIMethod = (method: MethodSignature): JsiMethod => {
+  const async = method.getReturnType().getSymbol()?.getName() === "Promise";
+  const name = method.getName();
+  const returns = getType(method.getReturnType()!);
+  const dependencies: string[] = returns.startsWith("GPU") ? [returns] : [];
+  const args: string[] = [];
+  return {
+    async,
+    name,
+    dependencies,
+    args,
+    returns,
+  };
+};
+
+const getType = (type: Type): string => {
+  if (type.isUnion()) {
+    return getType(type.getUnionTypes().filter((t) => !t.isNull())[0]);
+  }
+  if (type.getTypeArguments()[0]) {
+    return getType(type.getTypeArguments()[0]);
+  }
+  return type.getText();
+};
