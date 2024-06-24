@@ -1,8 +1,9 @@
 #pragma once
+#include <string>
 
 #include <RNFHybridObject.h>
 
-#include "webgpu_cpp.h"
+#include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
@@ -13,10 +14,8 @@ public:
   GPUShaderStage() : HybridObject("GPUShaderStage") {}
 
 public:
-  double Vertex() { return static_cast<double>(wgpu::ShaderStage::Vertex); };
-  double Fragment() {
-    return static_cast<double>(wgpu::ShaderStage::Fragment);
-  };
+  double Vertex() { return static_cast<double>(wgpu::ShaderStage::Vertex); }
+  double Fragment() { return static_cast<double>(wgpu::ShaderStage::Fragment); }
   double Compute() { return static_cast<double>(wgpu::ShaderStage::Compute); }
 
   void loadHybridMethods() override {

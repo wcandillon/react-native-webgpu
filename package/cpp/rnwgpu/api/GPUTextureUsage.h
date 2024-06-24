@@ -1,8 +1,9 @@
 #pragma once
+#include <string>
 
 #include <RNFHybridObject.h>
 
-#include "webgpu_cpp.h"
+#include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
@@ -13,14 +14,14 @@ public:
   GPUTextureUsage() : HybridObject("GPUTextureUsage") {}
 
 public:
-  double CopySrc() { return static_cast<double>(wgpu::TextureUsage::CopySrc); };
-  double CopyDst() { return static_cast<double>(wgpu::TextureUsage::CopyDst); };
+  double CopySrc() { return static_cast<double>(wgpu::TextureUsage::CopySrc); }
+  double CopyDst() { return static_cast<double>(wgpu::TextureUsage::CopyDst); }
   double TextureBinding() {
     return static_cast<double>(wgpu::TextureUsage::TextureBinding);
-  };
+  }
   double StorageBinding() {
     return static_cast<double>(wgpu::TextureUsage::StorageBinding);
-  };
+  }
   double RenderAttachment() {
     return static_cast<double>(wgpu::TextureUsage::RenderAttachment);
   }

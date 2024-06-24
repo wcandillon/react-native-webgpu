@@ -1,8 +1,11 @@
 #pragma once
 
+#include <memory>
+#include <string>
+
 #include <RNFHybridObject.h>
 
-#include "webgpu_cpp.h"
+#include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
@@ -10,7 +13,7 @@ namespace m = margelo;
 
 class GPUShaderModule : public m::HybridObject {
 public:
-  GPUShaderModule(std::shared_ptr<wgpu::ShaderModule> instance)
+  explicit GPUShaderModule(std::shared_ptr<wgpu::ShaderModule> instance)
       : HybridObject("GPUShaderModule"), _instance(instance) {}
 
 public:

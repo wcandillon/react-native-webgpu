@@ -1,8 +1,11 @@
 #pragma once
 
+#include <memory>
+#include <string>
+
 #include <RNFHybridObject.h>
 
-#include "webgpu_cpp.h"
+#include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
@@ -10,7 +13,7 @@ namespace m = margelo;
 
 class GPUPipelineBase : public m::HybridObject {
 public:
-  GPUPipelineBase(std::shared_ptr<wgpu::PipelineBase> instance)
+  explicit GPUPipelineBase(std::shared_ptr<wgpu::PipelineBase> instance)
       : HybridObject("GPUPipelineBase"), _instance(instance) {}
 
 public:

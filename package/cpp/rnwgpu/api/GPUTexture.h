@@ -1,8 +1,11 @@
 #pragma once
 
+#include <memory>
+#include <string>
+
 #include <RNFHybridObject.h>
 
-#include "webgpu_cpp.h"
+#include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
@@ -10,7 +13,7 @@ namespace m = margelo;
 
 class GPUTexture : public m::HybridObject {
 public:
-  GPUTexture(std::shared_ptr<wgpu::Texture> instance)
+  explicit GPUTexture(std::shared_ptr<wgpu::Texture> instance)
       : HybridObject("GPUTexture"), _instance(instance) {}
 
 public:

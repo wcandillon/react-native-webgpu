@@ -1,8 +1,11 @@
 #pragma once
 
+#include <memory>
+#include <string>
+
 #include <RNFHybridObject.h>
 
-#include "webgpu_cpp.h"
+#include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
@@ -10,7 +13,8 @@ namespace m = margelo;
 
 class GPURenderPassEncoder : public m::HybridObject {
 public:
-  GPURenderPassEncoder(std::shared_ptr<wgpu::RenderPassEncoder> instance)
+  explicit GPURenderPassEncoder(
+      std::shared_ptr<wgpu::RenderPassEncoder> instance)
       : HybridObject("GPURenderPassEncoder"), _instance(instance) {}
 
 public:

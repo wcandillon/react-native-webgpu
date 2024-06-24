@@ -16,10 +16,11 @@ export const getEnum = (decl: VariableDeclaration) => {
   const wname = enumAliases[name.substring(3)] || name.substring(3);
   const properties = decl.getDescendants().filter(Node.isPropertySignature);
   return `#pragma once
+#include <string>
 
 #include <RNFHybridObject.h>
 
-#include "webgpu_cpp.h"
+#include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
@@ -37,7 +38,7 @@ public:
       return static_cast<double>(wgpu::${wname}::${prop});
     }`;
     })
-    .join(";\n    ")}
+    .join("\n    ")}
 
   void loadHybridMethods() override {
     ${properties

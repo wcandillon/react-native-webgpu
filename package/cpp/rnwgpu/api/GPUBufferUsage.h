@@ -1,8 +1,9 @@
 #pragma once
+#include <string>
 
 #include <RNFHybridObject.h>
 
-#include "webgpu_cpp.h"
+#include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
@@ -13,19 +14,15 @@ public:
   GPUBufferUsage() : HybridObject("GPUBufferUsage") {}
 
 public:
-  double MapRead() { return static_cast<double>(wgpu::BufferUsage::MapRead); };
-  double MapWrite() {
-    return static_cast<double>(wgpu::BufferUsage::MapWrite);
-  };
-  double CopySrc() { return static_cast<double>(wgpu::BufferUsage::CopySrc); };
-  double CopyDst() { return static_cast<double>(wgpu::BufferUsage::CopyDst); };
-  double Index() { return static_cast<double>(wgpu::BufferUsage::Index); };
-  double Vertex() { return static_cast<double>(wgpu::BufferUsage::Vertex); };
-  double Uniform() { return static_cast<double>(wgpu::BufferUsage::Uniform); };
-  double Storage() { return static_cast<double>(wgpu::BufferUsage::Storage); };
-  double Indirect() {
-    return static_cast<double>(wgpu::BufferUsage::Indirect);
-  };
+  double MapRead() { return static_cast<double>(wgpu::BufferUsage::MapRead); }
+  double MapWrite() { return static_cast<double>(wgpu::BufferUsage::MapWrite); }
+  double CopySrc() { return static_cast<double>(wgpu::BufferUsage::CopySrc); }
+  double CopyDst() { return static_cast<double>(wgpu::BufferUsage::CopyDst); }
+  double Index() { return static_cast<double>(wgpu::BufferUsage::Index); }
+  double Vertex() { return static_cast<double>(wgpu::BufferUsage::Vertex); }
+  double Uniform() { return static_cast<double>(wgpu::BufferUsage::Uniform); }
+  double Storage() { return static_cast<double>(wgpu::BufferUsage::Storage); }
+  double Indirect() { return static_cast<double>(wgpu::BufferUsage::Indirect); }
   double QueryResolve() {
     return static_cast<double>(wgpu::BufferUsage::QueryResolve);
   }
