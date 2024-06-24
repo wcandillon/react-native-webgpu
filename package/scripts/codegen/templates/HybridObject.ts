@@ -42,7 +42,22 @@ public:
     .map((method) => {
       return `std::future<std::shared_ptr<${method.returns}>> ${method.name}() {
           return std::async(std::launch::async,
-                      [=]() { return std::make_shared<GPUAdapter>(); });
+                      [=]() {
+       wgpu::Adapter adapter = nullptr;
+          _instance->${method.apiName}(
+              nullptr,
+              [](WGPURequestAdapterStatus, WGPUAdapter cAdapter,
+                 const char *message, void *userdata) {
+                if (message != nullptr) {
+                  fprintf(stderr, "%s", message);
+                  return;
+                }
+                *static_cast<wgpu::Adapter *>(userdata) =
+                    wgpu::Adapter::Acquire(cAdapter);
+              },
+              &adapter);
+          return std::make_shared<${method.returns}>(adapter);
+        });
     }`;
     })}
 

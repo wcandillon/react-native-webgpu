@@ -1,8 +1,10 @@
+import _ from "lodash";
 import type { MethodSignature, Type } from "ts-morph";
 
 interface JsiMethod {
   async: boolean;
   name: string;
+  apiName: string;
   dependencies: string[];
   args: string[];
   returns: string;
@@ -11,11 +13,13 @@ interface JsiMethod {
 export const getJSIMethod = (method: MethodSignature): JsiMethod => {
   const async = method.getReturnType().getSymbol()?.getName() === "Promise";
   const name = method.getName();
+  const apiName = _.upperFirst(name);
   const returns = getType(method.getReturnType()!);
   const dependencies: string[] = returns.startsWith("GPU") ? [returns] : [];
   const args: string[] = [];
   return {
     async,
+    apiName,
     name,
     dependencies,
     args,
