@@ -1,0 +1,26 @@
+#pragma once
+
+#include <RNFHybridObject.h>
+
+#include "webgpu_cpp.h"
+
+namespace rnwgpu {
+
+namespace m = margelo;
+
+class GPUCanvasContext : public m::HybridObject {
+public:
+  GPUCanvasContext(std::shared_ptr<wgpu::CanvasContext> instance)
+      : HybridObject("GPUCanvasContext"), _instance(instance) {}
+
+public:
+  std::string getBrand() { return _name; }
+
+  void loadHybridMethods() override {
+    registerHybridGetter("__brand", &GPUCanvasContext::getBrand, this);
+  }
+
+private:
+  std::shared_ptr<wgpu::CanvasContext> _instance;
+};
+} // namespace rnwgpu
