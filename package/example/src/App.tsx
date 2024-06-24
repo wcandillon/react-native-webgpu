@@ -1,15 +1,18 @@
 import * as React from "react";
 import { StyleSheet, View } from "react-native";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
 import { WebGPUView, gpu } from "react-native-webgpu";
 
-(gpu as GPU)
-  .requestAdapter({ powerPreference: "high-performance" })
-  .then((a) => {
-    console.log({ a });
-  });
-// console.log({ gpu: gpu.gpu });
+navigator = { ...navigator, gpu };
+
+(async () => {
+  const adapter = await navigator.gpu.requestAdapter();
+  if (!adapter) {
+    throw new Error("WebGPU not supported");
+  }
+  //const device = await adapter.requestDevice();
+  console.log(GPUBufferUsage.COPY_DST);
+  //console.log(device);
+})();
 
 // eslint-disable-next-line import/no-default-export
 export default function App() {
