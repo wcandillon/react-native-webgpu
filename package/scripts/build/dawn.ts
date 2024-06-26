@@ -10,8 +10,12 @@ const PATH = `PATH=${__dirname}/../../../externals/depot_tools/:$PATH`;
 const commonArgs = {
   CMAKE_BUILD_TYPE: "Release",
   DAWN_BUILD_SAMPLES: "OFF",
+  DAWN_USE_GLFW: "OFF",
+  DAWN_BUILD_PROTOBUF: "OFF",
+  //DAWN_FETCH_DEPENDENCIES: "ON",
   TINT_BUILD_TESTS: "OFF",
   TINT_BUILD_CMD_TOOLS: "OFF",
+  BUILD_SHARED_LIBS: "OFF",
 };
 
 const android = {
@@ -33,8 +37,6 @@ const ios = {
   args: {
     CMAKE_SYSTEM_NAME: "iOS",
     CMAKE_OSX_DEPLOYMENT_TARGET: "13.0",
-    DAWN_USE_GLFW: "OFF",
-    BUILD_SAMPLES: "OFF",
     ...commonArgs,
   },
 };
@@ -52,11 +54,15 @@ const ios = {
   for (const platform of mapKeys(ios.matrix)) {
     console.log(`Build iOS: ${platform}`);
     for (const sdk of ios.matrix[platform]) {
-      await build(`ios_${platform}_${sdk}`, {
-        CMAKE_OSX_ARCHITECTURES: platform,
-        CMAKE_OSX_SYSROOT: `$(xcrun --sdk ${sdk} --show-sdk-path)`,
-        ...ios.args,
-      });
+      await build(
+        `ios_${platform}_${sdk}`,
+        {
+          CMAKE_OSX_ARCHITECTURES: platform,
+          CMAKE_OSX_SYSROOT: `$(xcrun --sdk ${sdk} --show-sdk-path)`,
+          ...ios.args,
+        },
+        `🍏 ${platform} - ${sdk}`,
+      );
       copyLib("ios", platform, sdk);
     }
   }
@@ -81,10 +87,14 @@ const ios = {
   // Build Android
   for (const platform of android.platforms) {
     console.log(`Build Android: ${platform}`);
-    await build(`android_${platform}`, {
-      ANDROID_ABI: platform,
-      ...android.args,
-    });
+    await build(
+      `android_${platform}`,
+      {
+        ANDROID_ABI: platform,
+        ...android.args,
+      },
+      `🤖 ${platform}`,
+    );
     copyLib("android", platform);
   }
 

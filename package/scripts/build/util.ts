@@ -30,7 +30,7 @@ export const runAsync = (command: string, label: string): Promise<void> => {
     });
 
     childProcess.stdout.on("data", (data) => {
-      process.stdout.write(`[${label}]${data}`);
+      process.stdout.write(`${label} ${data}`);
     });
 
     childProcess.stderr.on("data", (data) => {
@@ -63,7 +63,7 @@ export const checkFileExists = (filePath: string) => {
     console.log("");
     exit(1);
   } else {
-    console.log("☑ " + filePath);
+    console.log("✅ " + filePath);
   }
 };
 
@@ -81,12 +81,16 @@ const serializeCMakeArgs = (args: Record<string, string>) => {
     .join(" ");
 };
 
-export const build = async (label: string, args: Record<string, string>) => {
-  $(`mkdir -p externals/dawn/out/${label}`);
-  process.chdir(`externals/dawn/out/${label}`);
+export const build = async (
+  dst: string,
+  args: Record<string, string>,
+  debugLabel: string,
+) => {
+  $(`mkdir -p externals/dawn/out/${dst}`);
+  process.chdir(`externals/dawn/out/${dst}`);
   const cmd = `cmake ../.. -GNinja ${serializeCMakeArgs(args)}`;
-  await runAsync(cmd, label);
-  await runAsync("ninja", label);
+  await runAsync(cmd, debugLabel);
+  await runAsync("ninja", debugLabel);
   process.chdir("../../../..");
 };
 
