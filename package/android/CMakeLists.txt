@@ -4,6 +4,8 @@ project(RNWGPU)
 set (CMAKE_VERBOSE_MAKEFILE ON)
 set (CMAKE_CXX_STANDARD 17)
 
+include(${CMAKE_CURRENT_LIST_DIR}/BundleLibraries.cmake)
+
 set (PACKAGE_NAME "react-native-webgpu")
 
 #link_directories(../libs/android/${ANDROID_ABI}/)
@@ -33,17 +35,10 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/jsi/RNFWorkletRuntimeRegistry.cpp
 )
 
-add_library(webgpu STATIC IMPORTED)
-set_property(TARGET webgpu PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.a")
+add_library(native_dawn ${CMAKE_CURRENT_SOURCE_DIR}/../cpp/dawn/webgpu.h)
 
-add_library(dawn_native STATIC IMPORTED)
-set_property(TARGET dawn_native PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_native.a")
+target_link_libraries(native_dawn webgpu_dawn)
 
-add_library(dawn_proc STATIC IMPORTED)
-set_property(TARGET dawn_proc PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_proc.a")
-
-add_library(dawn_common STATIC IMPORTED)
-set_property(TARGET dawn_common PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_common.a")
 
 target_include_directories(
         ${PACKAGE_NAME}
@@ -66,6 +61,8 @@ target_include_directories(
         ${libfbjni_include_DIRS}
 )
 
+bundle_libraries(${PACKAGE_NAME} native_dawn)
+
 # Link
 target_link_libraries(
         ${PACKAGE_NAME}
@@ -75,8 +72,4 @@ target_link_libraries(
         android
         fbjni::fbjni
         ReactAndroid::jsi
-        dawn_common
-        dawn_proc
-        dawn_native
-        webgpu
     )
