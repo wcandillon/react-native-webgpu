@@ -9,10 +9,7 @@ set(DAWN_BUILD_SAMPLES OFF)
 set(TINT_BUILD_TESTS OFF)
 set(TINT_BUILD_CMD_TOOLS OFF)
 
-set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-
 add_subdirectory(../../../externals/dawn/ dawn)
-
 
 add_library(native_dawn)
 

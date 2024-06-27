@@ -12,6 +12,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DDEBUG=1)
 endif()
 
+set(RNF_ENABLE_LOGS, 1)
 if(RNF_ENABLE_LOGS)
     add_definitions(-DRNF_ENABLE_LOGS=1)
 else()
@@ -78,7 +79,7 @@ target_link_libraries(
         android
         fbjni::fbjni
         ReactAndroid::jsi
-        -lwebgpu_c_bundled
+        webgpu_c_bundled
 )
 
 
