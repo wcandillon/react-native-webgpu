@@ -11,23 +11,13 @@
 #include <memory>
 #include <utility>
 
-#include "dawn/dawn_proc.h"
-
-namespace dawn {
-    namespace native {
-        // Forward declaration of the function
-        const DawnProcTable& GetProcsAutogen();
-    }
-}
+#include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 RNWebGPUManager::RNWebGPUManager(
     jsi::Runtime *jsRuntime,
     std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker)
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker) {
-
-  auto table = dawn::native::GetProcsAutogen();
-  dawnProcSetProcs(&table);
 
   wgpu::InstanceDescriptor instanceDesc;
   instanceDesc.features.timedWaitAnyEnable = true;

@@ -33,17 +33,20 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/jsi/RNFWorkletRuntimeRegistry.cpp
 )
 
-add_library(webgpu STATIC IMPORTED)
-set_property(TARGET webgpu PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.a")
+# add_library(webgpu STATIC IMPORTED)
+# set_property(TARGET webgpu PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.a")
 
-add_library(dawn_native STATIC IMPORTED)
-set_property(TARGET dawn_native PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_native.a")
+# add_library(dawn_native STATIC IMPORTED)
+# set_property(TARGET dawn_native PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_native.a")
 
 #add_library(dawn_proc STATIC IMPORTED)
 #set_property(TARGET dawn_proc PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_proc.a")
 
-add_library(dawn_common STATIC IMPORTED)
-set_property(TARGET dawn_common PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_common.a")
+# add_library(dawn_common STATIC IMPORTED)
+# set_property(TARGET dawn_common PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_common.a")
+
+add_library(webgpu_c_bundled SHARED IMPORTED)
+set_property(TARGET webgpu_c_bundled PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_c_bundled.so")
 
 target_include_directories(
         ${PACKAGE_NAME}
@@ -75,8 +78,10 @@ target_link_libraries(
         android
         fbjni::fbjni
         ReactAndroid::jsi
-        dawn_common
+        -lwebgpu_c_bundled
+)
+
+
+#        dawn_common
 #        dawn_proc
-        dawn_native
-        webgpu
-    )
+#        dawn_native

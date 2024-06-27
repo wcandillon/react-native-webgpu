@@ -20,10 +20,10 @@ target_link_libraries(native_dawn webgpu_dawn)
 
 bundle_libraries(webgpu_c_bundled native_dawn)
 
-find_library(log-lib log)
-
-target_link_libraries(webgpu_c_bundled ${log-lib} android)
-
+if(ANDROID)
+  find_library(log-lib log)
+  target_link_libraries(webgpu_c_bundled ${log-lib} android)
+endif()
 # add_custom_command(DEPENDS webgpu_dawn POST_BUILD
 #                    OUTPUT ${CMAKE_SOURCE_DIR}/gen/include/dawn/webgpu.h
 #                    COMMAND rm -r "${CMAKE_SOURCE_DIR}/gen" || echo

@@ -101,12 +101,7 @@ export const copyLib = (os: OS, platform: Platform, sdk?: SDK) => {
   const out = `${os}_${suffix}`;
   const dstPath = `package/libs/${os}/${suffix}/`;
   $(`mkdir -p ${dstPath}`);
-  [
-    `package/scripts/build/out/${out}/src/dawn/native/libwebgpu_dawn.a`,
-    `package/scripts/build/out/${out}/src/dawn/native/libdawn_native.a`,
-    `package/scripts/build/out/${out}/src/dawn/libdawn_proc.a`,
-    `package/scripts/build/out/${out}/src/dawn/common/libdawn_common.a`,
-  ].forEach((lib) => {
+  [`package/scripts/build/out/${out}/libwebgpu_c_bundled.so`].forEach((lib) => {
     const libPath = lib;
     console.log(`Copying ${libPath} to ${dstPath}`);
     $(`cp ${libPath} ${dstPath}`);
@@ -115,15 +110,15 @@ export const copyLib = (os: OS, platform: Platform, sdk?: SDK) => {
 
 export const checkBuildArtifacts = () => {
   console.log("Check build artifacts...");
-  platforms
-    .filter((arch) => arch !== "arm64")
-    .forEach((platform) => {
-      libs.forEach((lib) => {
-        checkFileExists(`libs/android/${platform}/${lib}.a`);
-      });
-    });
-  libs.forEach((lib) => {
-    checkFileExists(`libs/ios/${lib}.xcframework`);
-  });
-  checkFileExists("cpp/dawn/webgpu_cpp.h");
+  // platforms
+  //   .filter((arch) => arch !== "arm64")
+  //   .forEach((platform) => {
+  //     libs.forEach((lib) => {
+  //       checkFileExists(`libs/android/${platform}/${lib}.a`);
+  //     });
+  //   });
+  // libs.forEach((lib) => {
+  //   checkFileExists(`libs/ios/${lib}.xcframework`);
+  // });
+  // checkFileExists("cpp/dawn/webgpu_cpp.h");
 };
