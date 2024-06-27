@@ -22,6 +22,7 @@ export type Platform = (typeof platforms)[number];
 export type SDK = "iphoneos" | "iphonesimulator";
 
 export const runAsync = (command: string, label: string): Promise<void> => {
+  console.log(`${command} (${label} in ${process.cwd()})`);
   return new Promise((resolve, reject) => {
     const [cmd, ...args] = command.split(" ");
 
@@ -34,7 +35,7 @@ export const runAsync = (command: string, label: string): Promise<void> => {
     });
 
     childProcess.stderr.on("data", (data) => {
-      process.stderr.write(`[${label} ERROR]: ${data}`);
+      console.error(`[${label} ERROR]: ${data}`);
     });
 
     childProcess.on("close", (code) => {
@@ -86,12 +87,13 @@ export const build = async (
   args: Record<string, string>,
   debugLabel: string,
 ) => {
-  $(`mkdir -p externals/dawn/out/${dst}`);
-  process.chdir(`externals/dawn/out/${dst}`);
+  $(`mkdir -p package/scripts/build/out/${dst}`);
+  process.chdir(`package/scripts/build/out/${dst}`);
   const cmd = `cmake ../.. -GNinja ${serializeCMakeArgs(args)}`;
+
   await runAsync(cmd, debugLabel);
   await runAsync("ninja", debugLabel);
-  process.chdir("../../../..");
+  process.chdir("../../../../..");
 };
 
 export const copyLib = (os: OS, platform: Platform, sdk?: SDK) => {
@@ -100,10 +102,10 @@ export const copyLib = (os: OS, platform: Platform, sdk?: SDK) => {
   const dstPath = `package/libs/${os}/${suffix}/`;
   $(`mkdir -p ${dstPath}`);
   [
-    `externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.a`,
-    `externals/dawn/out/${out}/src/dawn/native/libdawn_native.a`,
-    `externals/dawn/out/${out}/src/dawn/libdawn_proc.a`,
-    `externals/dawn/out/${out}/src/dawn/common/libdawn_common.a`,
+    `package/scripts/build/out/${out}/src/dawn/native/libwebgpu_dawn.a`,
+    `package/scripts/build/out/${out}/src/dawn/native/libdawn_native.a`,
+    `package/scripts/build/out/${out}/src/dawn/libdawn_proc.a`,
+    `package/scripts/build/out/${out}/src/dawn/common/libdawn_common.a`,
   ].forEach((lib) => {
     const libPath = lib;
     console.log(`Copying ${libPath} to ${dstPath}`);

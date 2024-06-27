@@ -39,8 +39,8 @@ set_property(TARGET webgpu PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwe
 add_library(dawn_native STATIC IMPORTED)
 set_property(TARGET dawn_native PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_native.a")
 
-add_library(dawn_proc STATIC IMPORTED)
-set_property(TARGET dawn_proc PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_proc.a")
+#add_library(dawn_proc STATIC IMPORTED)
+#set_property(TARGET dawn_proc PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_proc.a")
 
 add_library(dawn_common STATIC IMPORTED)
 set_property(TARGET dawn_common PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_common.a")
@@ -76,7 +76,7 @@ target_link_libraries(
         fbjni::fbjni
         ReactAndroid::jsi
         dawn_common
-        dawn_proc
+#        dawn_proc
         dawn_native
         webgpu
     )
