@@ -15,11 +15,15 @@ add_library(native_dawn main.cpp)
 
 target_link_libraries(native_dawn webgpu_dawn)
 
-bundle_libraries(webgpu_c_bundled native_dawn)
+bundle_libraries(
+  webgpu_c_bundled
+  LIBRARY_TYPE STATIC
+  TARGETS native_dawn
+)
 
 if(ANDROID)
   find_library(log-lib log)
-  target_link_libraries(webgpu_c_bundled ${log-lib} android)
+  target_link_libraries(webgpu_c_bundled ${log-lib})
 elseif(IOS)
   target_link_libraries(webgpu_c_bundled "-framework CoreFoundation" "-framework IOSurface" "-framework Metal" "-framework QuartzCore" "-framework Foundation")
 endif()

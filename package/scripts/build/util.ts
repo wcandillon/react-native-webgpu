@@ -95,7 +95,7 @@ export const copyLib = (os: OS, platform: Platform, sdk?: SDK) => {
   const dstPath = `package/libs/${os}/${suffix}/`;
   $(`mkdir -p ${dstPath}`);
   [
-    `package/scripts/build/out/${out}/libwebgpu_c_bundled.${os === "ios" ? "dylib" : "so"}`,
+    `package/scripts/build/out/${out}/libwebgpu_c_bundled.${os === "ios" ? "a" : "a"}`,
   ].forEach((lib) => {
     const libPath = lib;
     console.log(`Copying ${libPath} to ${dstPath}`);

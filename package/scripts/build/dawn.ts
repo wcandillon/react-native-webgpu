@@ -83,7 +83,7 @@ const ios = {
   const lib = "libwebgpu_c_bundled";
   console.log(`Building fat binary for iphone simulator: ${lib}`);
   $(
-    `lipo -create package/libs/ios/x86_64_iphonesimulator/${lib}.dylib package/libs/ios/arm64_iphonesimulator/${lib}.dylib -output package/libs/ios/${lib}.dylib`,
+    `lipo -create package/libs/ios/x86_64_iphonesimulator/${lib}.a package/libs/ios/arm64_iphonesimulator/${lib}.a -output package/libs/ios/${lib}.a`,
   );
 
   // libs.forEach((lib) => {
@@ -91,8 +91,8 @@ const ios = {
   $(`rm -rf ./package/libs/ios/${lib}.xcframework`);
   $(
     "xcodebuild -create-xcframework " +
-      `-library ./package/libs/ios/${lib}.dylib ` +
-      `-library ./package/libs/ios/arm64_iphoneos/${lib}.dylib ` +
+      `-library ./package/libs/ios/${lib}.a ` +
+      `-library ./package/libs/ios/arm64_iphoneos/${lib}.a ` +
       ` -output ./package/libs/ios/${lib}.xcframework `,
   );
   // });
