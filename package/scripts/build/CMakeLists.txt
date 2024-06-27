@@ -11,17 +11,18 @@ set(TINT_BUILD_CMD_TOOLS OFF)
 
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
-add_subdirectory(../../../../../external/dawn/ dawn)
+add_subdirectory(../../../externals/dawn/ dawn)
 
 
-add_library(native_dawn main.cpp)
+add_library(native_dawn)
 
 target_link_libraries(native_dawn webgpu_dawn)
 
 bundle_libraries(webgpu_c_bundled native_dawn)
 
+find_library(log-lib log)
 
-# target_link_libraries(webgpu_c_bundled ${log-lib} android)
+target_link_libraries(webgpu_c_bundled ${log-lib} android)
 
 # add_custom_command(DEPENDS webgpu_dawn POST_BUILD
 #                    OUTPUT ${CMAKE_SOURCE_DIR}/gen/include/dawn/webgpu.h
