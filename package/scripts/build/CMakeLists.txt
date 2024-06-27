@@ -11,7 +11,7 @@ set(TINT_BUILD_CMD_TOOLS OFF)
 
 add_subdirectory(../../../externals/dawn/ dawn)
 
-add_library(native_dawn)
+add_library(native_dawn main.cpp)
 
 target_link_libraries(native_dawn webgpu_dawn)
 
@@ -20,10 +20,6 @@ bundle_libraries(webgpu_c_bundled native_dawn)
 if(ANDROID)
   find_library(log-lib log)
   target_link_libraries(webgpu_c_bundled ${log-lib} android)
+elseif(IOS)
+  target_link_libraries(webgpu_c_bundled "-framework CoreFoundation" "-framework IOSurface" "-framework Metal" "-framework QuartzCore" "-framework Foundation")
 endif()
-# add_custom_command(DEPENDS webgpu_dawn POST_BUILD
-#                    OUTPUT ${CMAKE_SOURCE_DIR}/gen/include/dawn/webgpu.h
-#                    COMMAND rm -r "${CMAKE_SOURCE_DIR}/gen" || echo
-#                    COMMAND ${CMAKE_COMMAND} -E copy
-#                            ${CMAKE_CURRENT_BINARY_DIR}/dawn/gen/include/dawn/webgpu.h
-#                            ${CMAKE_SOURCE_DIR}/gen/include/dawn/webgpu.h)

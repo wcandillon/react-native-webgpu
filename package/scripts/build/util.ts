@@ -2,13 +2,6 @@ import { spawn, execSync } from "child_process";
 import { existsSync } from "fs";
 import { exit } from "process";
 
-export const libs = [
-  "libwebgpu_dawn",
-  "libdawn_native",
-  "libdawn_proc",
-  "libdawn_common",
-] as const;
-
 export const platforms = [
   "arm64",
   "x86_64",
@@ -101,7 +94,9 @@ export const copyLib = (os: OS, platform: Platform, sdk?: SDK) => {
   const out = `${os}_${suffix}`;
   const dstPath = `package/libs/${os}/${suffix}/`;
   $(`mkdir -p ${dstPath}`);
-  [`package/scripts/build/out/${out}/libwebgpu_c_bundled.so`].forEach((lib) => {
+  [
+    `package/scripts/build/out/${out}/libwebgpu_c_bundled.${os === "ios" ? "dylib" : "so"}`,
+  ].forEach((lib) => {
     const libPath = lib;
     console.log(`Copying ${libPath} to ${dstPath}`);
     $(`cp ${libPath} ${dstPath}`);
