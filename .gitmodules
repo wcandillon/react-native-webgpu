@@ -1,7 +1,7 @@
 [submodule "externals/dawn"]
 	path = externals/dawn
 	url = https://dawn.googlesource.com/dawn
-        branch = chromium/6539
+        branch = chromium/6562
 [submodule "externals/depot_tools"]
 	path = externals/depot_tools
 	url = https://chromium.googlesource.com/chromium/tools/depot_tools.git

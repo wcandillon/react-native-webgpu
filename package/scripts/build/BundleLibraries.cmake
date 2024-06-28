@@ -61,6 +61,8 @@ function(bundle_libraries output_target)
     get_target_property(type ${dependency} TYPE)
     if(${type} STREQUAL "STATIC_LIBRARY")
       list(APPEND all_objects $<TARGET_OBJECTS:${dependency}>)
+    elseif(${type} STREQUAL "OBJECT_LIBRARY")
+      list(APPEND all_objects $<TARGET_OBJECTS:${dependency}>)
     endif()
   endforeach()
 

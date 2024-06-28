@@ -13,18 +13,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// Marking the function for export
-__attribute__((visibility("default"))) WGPUInstance wgpuCreateInstance(const WGPUInstanceDescriptor * descriptor);
-__attribute__((visibility("default"))) void wgpuInstanceRelease(WGPUInstance instance);
-
-#ifdef __cplusplus
-}
-#endif
-
 namespace rnwgpu {
 RNWebGPUManager::RNWebGPUManager(
     jsi::Runtime *jsRuntime,

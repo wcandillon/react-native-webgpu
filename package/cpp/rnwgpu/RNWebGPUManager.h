@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include "webgpu/webgpu.h"
 
 namespace facebook {
 namespace jsi {

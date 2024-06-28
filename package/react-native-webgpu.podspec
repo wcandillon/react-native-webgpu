@@ -22,13 +22,11 @@ Pod::Spec.new do |s|
   s.pod_target_xcconfig = {
     "HEADER_SEARCH_PATHS" => "$(PODS_TARGET_SRCROOT)/cpp"
   }
-  s.ios.vendored_frameworks = [
-    'libs/ios/libwebgpu_dawn.xcframework', 
-    'libs/ios/libdawn_common.xcframework', 
-    'libs/ios/libdawn_native.xcframework',
-    'libs/ios/libdawn_proc.xcframework'
-  ]
-  s.vendored_frameworks = "$(PODS_TARGET_SRCROOT)/libs/ios/libwebgpu_dawn.xcframework"
+  # s.ios.vendored_frameworks = [
+  #   'libs/ios/libwebgpu_c_bundled.xcframework',
+  # ]
+  s.vendored_frameworks = "$(PODS_TARGET_SRCROOT)/libs/ios/libwebgpu_c_bundled.xcframework"
+  s.static_framework = false  # Specify that this is a dynamic framework
 
   # Use install_modules_dependencies helper to install the dependencies if React Native version >=0.71.0.
   # See https://github.com/facebook/react-native/blob/febf6b7f33fdb4904669f99d795eba4c0f95d7bf/scripts/cocoapods/new_architecture.rb#L79.
