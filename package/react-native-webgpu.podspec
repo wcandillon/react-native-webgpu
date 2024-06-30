@@ -15,15 +15,16 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/wcandillon/react-native-webgpu.git", :tag => "#{s.version}" }
 
   s.source_files = [
-    "ios/**/*.{h,c,cc,cpp,m,mm,swift}",  
+    "ios/**/*.{h,c,cc,cpp,m,mm,swift}",
     "cpp/**/*.{h,cpp}"
   ]
 
   s.pod_target_xcconfig = {
-    "HEADER_SEARCH_PATHS" => "$(PODS_TARGET_SRCROOT)/cpp"
+    "HEADER_SEARCH_PATHS" => "$(PODS_TARGET_SRCROOT)/cpp",
+    "OTHER_LDFLAGS" => "-framework libwebgpu_dawn"
   }
 
-  s.vendored_frameworks = "$(PODS_TARGET_SRCROOT)/libs/ios/libwebgpu_c_bundled.xcframework"
+  s.vendored_frameworks = "$(PODS_TARGET_SRCROOT)/libs/ios/libwebgpu_dawn.xcframework"
   s.static_framework = false  # Specify that this is a dynamic framework
 
   # Use install_modules_dependencies helper to install the dependencies if React Native version >=0.71.0.
@@ -39,7 +40,8 @@ Pod::Spec.new do |s|
       s.pod_target_xcconfig    = {
           "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\"",
           "OTHER_CPLUSPLUSFLAGS" => "-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1",
-          "CLANG_CXX_LANGUAGE_STANDARD" => "c++17"
+          "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
+          "OTHER_LDFLAGS" => "-framework libwebgpu_dawn"
       }
       s.dependency "React-RCTFabric"
       s.dependency "React-Codegen"
