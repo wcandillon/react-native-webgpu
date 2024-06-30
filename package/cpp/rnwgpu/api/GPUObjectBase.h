@@ -10,7 +10,6 @@ class GPUObjectBase {
 public:
   wgpu::ObjectBase *getInstance() { return &_instance; }
 
-private:
   wgpu::ObjectBase _instance;
 };
 } // namespace rnwgpu
@@ -25,8 +24,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUObjectBase>> {
     auto result = std::make_unique<rnwgpu::GPUObjectBase>();
     if (value.hasProperty(runtime, "label")) {
       auto label = value.getProperty(runtime, "label");
-      if (label.isNumber()) {
-        result->_instance.label = label.getNumber();
+
+      else if (label.isUndefined()) {
+        throw std::runtime_error("Property GPUObjectBase::label is required");
       }
     }
     return result;

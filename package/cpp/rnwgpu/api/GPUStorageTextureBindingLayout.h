@@ -10,7 +10,6 @@ class GPUStorageTextureBindingLayout {
 public:
   wgpu::StorageTextureBindingLayout *getInstance() { return &_instance; }
 
-private:
   wgpu::StorageTextureBindingLayout _instance;
 };
 } // namespace rnwgpu
@@ -26,28 +25,17 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
     auto result = std::make_unique<rnwgpu::GPUStorageTextureBindingLayout>();
     if (value.hasProperty(runtime, "access")) {
       auto access = value.getProperty(runtime, "access");
-      if (access.isNumber()) {
-        result->_instance.access = access.getNumber();
-      } else if (access.isNull() || access.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUStorageTextureBindingLayout::access is required");
-      }
     }
     if (value.hasProperty(runtime, "format")) {
       auto format = value.getProperty(runtime, "format");
-      if (format.isNumber()) {
-        result->_instance.format = format.getNumber();
+
+      else if (format.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUStorageTextureBindingLayout::format is required");
       }
     }
     if (value.hasProperty(runtime, "viewDimension")) {
       auto viewDimension = value.getProperty(runtime, "viewDimension");
-      if (viewDimension.isNumber()) {
-        result->_instance.viewDimension = viewDimension.getNumber();
-      } else if (viewDimension.isNull() || viewDimension.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUStorageTextureBindingLayout::viewDimension is "
-            "required");
-      }
     }
     return result;
   }

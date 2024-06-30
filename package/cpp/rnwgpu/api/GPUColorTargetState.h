@@ -10,7 +10,6 @@ class GPUColorTargetState {
 public:
   wgpu::ColorTargetState *getInstance() { return &_instance; }
 
-private:
   wgpu::ColorTargetState _instance;
 };
 } // namespace rnwgpu
@@ -25,27 +24,17 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
     auto result = std::make_unique<rnwgpu::GPUColorTargetState>();
     if (value.hasProperty(runtime, "format")) {
       auto format = value.getProperty(runtime, "format");
-      if (format.isNumber()) {
-        result->_instance.format = format.getNumber();
+
+      else if (format.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUColorTargetState::format is required");
       }
     }
     if (value.hasProperty(runtime, "blend")) {
       auto blend = value.getProperty(runtime, "blend");
-      if (blend.isNumber()) {
-        result->_instance.blend = blend.getNumber();
-      } else if (blend.isNull() || blend.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUColorTargetState::blend is required");
-      }
     }
     if (value.hasProperty(runtime, "writeMask")) {
       auto writeMask = value.getProperty(runtime, "writeMask");
-      if (writeMask.isNumber()) {
-        result->_instance.writeMask = writeMask.getNumber();
-      } else if (writeMask.isNull() || writeMask.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUColorTargetState::writeMask is required");
-      }
     }
     return result;
   }

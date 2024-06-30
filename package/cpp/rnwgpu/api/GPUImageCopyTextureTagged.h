@@ -10,7 +10,6 @@ class GPUImageCopyTextureTagged {
 public:
   wgpu::ImageCopyTextureTagged *getInstance() { return &_instance; }
 
-private:
   wgpu::ImageCopyTextureTagged _instance;
 };
 } // namespace rnwgpu
@@ -26,23 +25,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
     auto result = std::make_unique<rnwgpu::GPUImageCopyTextureTagged>();
     if (value.hasProperty(runtime, "colorSpace")) {
       auto colorSpace = value.getProperty(runtime, "colorSpace");
-      if (colorSpace.isNumber()) {
-        result->_instance.colorSpace = colorSpace.getNumber();
-      } else if (colorSpace.isNull() || colorSpace.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUImageCopyTextureTagged::colorSpace is required");
-      }
     }
     if (value.hasProperty(runtime, "premultipliedAlpha")) {
       auto premultipliedAlpha =
           value.getProperty(runtime, "premultipliedAlpha");
-      if (premultipliedAlpha.isNumber()) {
-        result->_instance.premultipliedAlpha = premultipliedAlpha.getNumber();
-      } else if (premultipliedAlpha.isNull() ||
-                 premultipliedAlpha.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUImageCopyTextureTagged::premultipliedAlpha is "
-            "required");
+      if (value.hasProperty(runtime, "premultipliedAlpha")) {
+        result->_instance.premultipliedAlpha = premultipliedAlpha.getBool();
       }
     }
     return result;

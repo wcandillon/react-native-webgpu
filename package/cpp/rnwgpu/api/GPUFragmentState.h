@@ -10,7 +10,6 @@ class GPUFragmentState {
 public:
   wgpu::FragmentState *getInstance() { return &_instance; }
 
-private:
   wgpu::FragmentState _instance;
 };
 } // namespace rnwgpu
@@ -25,8 +24,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
     auto result = std::make_unique<rnwgpu::GPUFragmentState>();
     if (value.hasProperty(runtime, "targets")) {
       auto targets = value.getProperty(runtime, "targets");
-      if (targets.isNumber()) {
-        result->_instance.targets = targets.getNumber();
+
+      else if (targets.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUFragmentState::targets is required");
       }
     }
     return result;

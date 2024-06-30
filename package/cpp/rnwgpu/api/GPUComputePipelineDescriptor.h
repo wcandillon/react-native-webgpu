@@ -10,7 +10,6 @@ class GPUComputePipelineDescriptor {
 public:
   wgpu::ComputePipelineDescriptor *getInstance() { return &_instance; }
 
-private:
   wgpu::ComputePipelineDescriptor _instance;
 };
 } // namespace rnwgpu
@@ -26,8 +25,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUComputePipelineDescriptor>();
     if (value.hasProperty(runtime, "compute")) {
       auto compute = value.getProperty(runtime, "compute");
-      if (compute.isNumber()) {
-        result->_instance.compute = compute.getNumber();
+
+      else if (compute.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUComputePipelineDescriptor::compute is required");
       }
     }
     return result;

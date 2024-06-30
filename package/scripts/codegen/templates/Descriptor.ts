@@ -1,14 +1,27 @@
 import { InterfaceDeclaration, PropertySignature } from "ts-morph";
 
+const getBoolean = (name: string) => {
+  return `if (value.hasProperty(runtime, "${name}")) {
+    result->_instance.${name} = ${name}.getBool();
+}`;
+};
+
+const getNumber = (name: string) => {
+  return `if (value.hasProperty(runtime, "${name}")) {
+    result->_instance.${name} = ${name}.getNumber();
+}`;
+};
+
 const propFromJSI = (className: string, prop: PropertySignature) => {
   const name = prop.getName();
   const isOptional = prop.getType().getText().includes("undefined");
+  const possibleTypes = prop.getType().getUnionTypes().map(t => t.getText()).filter((t) => t != "undefined");
+  console.log(possibleTypes);
   return `if (value.hasProperty(runtime, "${name}")) {
   auto ${name} = value.getProperty(runtime, "${name}");
-  if (${name}.isNumber()) {
-    result->_instance.${name} = ${name}.getNumber();
-  }
-  ${!isOptional ? `else if (${name}.isNull() || ${name}.isUndefined()) {
+  ${possibleTypes.includes("true") || possibleTypes.includes("false") ? getBoolean(name) : ""}
+  ${possibleTypes.includes("number") ? getNumber(name) : ""}
+  ${!isOptional ? `else if (${name}.isUndefined()) {
     throw std::runtime_error("Property ${className}::${name} is required");  
   }` : ""}
 }`;
@@ -31,7 +44,6 @@ class ${name} {
       return &_instance;
     }
 
-  private:
     ${wgpuName} _instance;
 };
 } // namespace rnwgpu
@@ -43,10 +55,9 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
   static std::shared_ptr<rnwgpu::${name}>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::${name}>();
     ${decl.getProperties().map((prop) => {
-      console.log(prop.getName());
       return propFromJSI(name, prop);
     }).join("\n")}
     return result;

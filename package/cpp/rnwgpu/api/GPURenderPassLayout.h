@@ -10,7 +10,6 @@ class GPURenderPassLayout {
 public:
   wgpu::RenderPassLayout *getInstance() { return &_instance; }
 
-private:
   wgpu::RenderPassLayout _instance;
 };
 } // namespace rnwgpu
@@ -25,29 +24,18 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassLayout>> {
     auto result = std::make_unique<rnwgpu::GPURenderPassLayout>();
     if (value.hasProperty(runtime, "colorFormats")) {
       auto colorFormats = value.getProperty(runtime, "colorFormats");
-      if (colorFormats.isNumber()) {
-        result->_instance.colorFormats = colorFormats.getNumber();
+
+      else if (colorFormats.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPURenderPassLayout::colorFormats is required");
       }
     }
     if (value.hasProperty(runtime, "depthStencilFormat")) {
       auto depthStencilFormat =
           value.getProperty(runtime, "depthStencilFormat");
-      if (depthStencilFormat.isNumber()) {
-        result->_instance.depthStencilFormat = depthStencilFormat.getNumber();
-      } else if (depthStencilFormat.isNull() ||
-                 depthStencilFormat.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPURenderPassLayout::depthStencilFormat is required");
-      }
     }
     if (value.hasProperty(runtime, "sampleCount")) {
       auto sampleCount = value.getProperty(runtime, "sampleCount");
-      if (sampleCount.isNumber()) {
-        result->_instance.sampleCount = sampleCount.getNumber();
-      } else if (sampleCount.isNull() || sampleCount.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPURenderPassLayout::sampleCount is required");
-      }
     }
     return result;
   }

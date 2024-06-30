@@ -10,7 +10,6 @@ class GPUSamplerBindingLayout {
 public:
   wgpu::SamplerBindingLayout *getInstance() { return &_instance; }
 
-private:
   wgpu::SamplerBindingLayout _instance;
 };
 } // namespace rnwgpu
@@ -26,12 +25,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
     auto result = std::make_unique<rnwgpu::GPUSamplerBindingLayout>();
     if (value.hasProperty(runtime, "type")) {
       auto type = value.getProperty(runtime, "type");
-      if (type.isNumber()) {
-        result->_instance.type = type.getNumber();
-      } else if (type.isNull() || type.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUSamplerBindingLayout::type is required");
-      }
     }
     return result;
   }

@@ -10,7 +10,6 @@ class GPUVertexState {
 public:
   wgpu::VertexState *getInstance() { return &_instance; }
 
-private:
   wgpu::VertexState _instance;
 };
 } // namespace rnwgpu
@@ -25,12 +24,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexState>> {
     auto result = std::make_unique<rnwgpu::GPUVertexState>();
     if (value.hasProperty(runtime, "buffers")) {
       auto buffers = value.getProperty(runtime, "buffers");
-      if (buffers.isNumber()) {
-        result->_instance.buffers = buffers.getNumber();
-      } else if (buffers.isNull() || buffers.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUVertexState::buffers is required");
-      }
     }
     return result;
   }

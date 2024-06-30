@@ -10,7 +10,6 @@ class GPUPipelineDescriptorBase {
 public:
   wgpu::PipelineDescriptorBase *getInstance() { return &_instance; }
 
-private:
   wgpu::PipelineDescriptorBase _instance;
 };
 } // namespace rnwgpu
@@ -26,8 +25,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineDescriptorBase>> {
     auto result = std::make_unique<rnwgpu::GPUPipelineDescriptorBase>();
     if (value.hasProperty(runtime, "layout")) {
       auto layout = value.getProperty(runtime, "layout");
-      if (layout.isNumber()) {
-        result->_instance.layout = layout.getNumber();
+
+      else if (layout.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUPipelineDescriptorBase::layout is required");
       }
     }
     return result;

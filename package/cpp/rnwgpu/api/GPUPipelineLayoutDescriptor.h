@@ -10,7 +10,6 @@ class GPUPipelineLayoutDescriptor {
 public:
   wgpu::PipelineLayoutDescriptor *getInstance() { return &_instance; }
 
-private:
   wgpu::PipelineLayoutDescriptor _instance;
 };
 } // namespace rnwgpu
@@ -26,8 +25,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUPipelineLayoutDescriptor>();
     if (value.hasProperty(runtime, "bindGroupLayouts")) {
       auto bindGroupLayouts = value.getProperty(runtime, "bindGroupLayouts");
-      if (bindGroupLayouts.isNumber()) {
-        result->_instance.bindGroupLayouts = bindGroupLayouts.getNumber();
+
+      else if (bindGroupLayouts.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUPipelineLayoutDescriptor::bindGroupLayouts is "
+            "required");
       }
     }
     return result;

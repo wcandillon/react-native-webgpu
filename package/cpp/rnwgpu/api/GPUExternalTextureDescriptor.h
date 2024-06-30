@@ -10,7 +10,6 @@ class GPUExternalTextureDescriptor {
 public:
   wgpu::ExternalTextureDescriptor *getInstance() { return &_instance; }
 
-private:
   wgpu::ExternalTextureDescriptor _instance;
 };
 } // namespace rnwgpu
@@ -26,18 +25,14 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUExternalTextureDescriptor>();
     if (value.hasProperty(runtime, "source")) {
       auto source = value.getProperty(runtime, "source");
-      if (source.isNumber()) {
-        result->_instance.source = source.getNumber();
+
+      else if (source.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUExternalTextureDescriptor::source is required");
       }
     }
     if (value.hasProperty(runtime, "colorSpace")) {
       auto colorSpace = value.getProperty(runtime, "colorSpace");
-      if (colorSpace.isNumber()) {
-        result->_instance.colorSpace = colorSpace.getNumber();
-      } else if (colorSpace.isNull() || colorSpace.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUExternalTextureDescriptor::colorSpace is required");
-      }
     }
     return result;
   }

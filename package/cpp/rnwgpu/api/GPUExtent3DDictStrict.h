@@ -10,7 +10,6 @@ class GPUExtent3DDictStrict {
 public:
   wgpu::Extent3DDictStrict *getInstance() { return &_instance; }
 
-private:
   wgpu::Extent3DDictStrict _instance;
 };
 } // namespace rnwgpu
@@ -26,12 +25,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDictStrict>> {
     auto result = std::make_unique<rnwgpu::GPUExtent3DDictStrict>();
     if (value.hasProperty(runtime, "depth")) {
       auto depth = value.getProperty(runtime, "depth");
-      if (depth.isNumber()) {
-        result->_instance.depth = depth.getNumber();
-      } else if (depth.isNull() || depth.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUExtent3DDictStrict::depth is required");
-      }
     }
     return result;
   }

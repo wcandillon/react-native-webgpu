@@ -10,7 +10,6 @@ class GPUVertexAttribute {
 public:
   wgpu::VertexAttribute *getInstance() { return &_instance; }
 
-private:
   wgpu::VertexAttribute _instance;
 };
 } // namespace rnwgpu
@@ -25,20 +24,26 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
     auto result = std::make_unique<rnwgpu::GPUVertexAttribute>();
     if (value.hasProperty(runtime, "format")) {
       auto format = value.getProperty(runtime, "format");
-      if (format.isNumber()) {
-        result->_instance.format = format.getNumber();
+
+      else if (format.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUVertexAttribute::format is required");
       }
     }
     if (value.hasProperty(runtime, "offset")) {
       auto offset = value.getProperty(runtime, "offset");
-      if (offset.isNumber()) {
-        result->_instance.offset = offset.getNumber();
+
+      else if (offset.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUVertexAttribute::offset is required");
       }
     }
     if (value.hasProperty(runtime, "shaderLocation")) {
       auto shaderLocation = value.getProperty(runtime, "shaderLocation");
-      if (shaderLocation.isNumber()) {
-        result->_instance.shaderLocation = shaderLocation.getNumber();
+
+      else if (shaderLocation.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUVertexAttribute::shaderLocation is required");
       }
     }
     return result;

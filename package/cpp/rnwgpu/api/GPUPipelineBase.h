@@ -10,7 +10,6 @@ class GPUPipelineBase {
 public:
   wgpu::PipelineBase *getInstance() { return &_instance; }
 
-private:
   wgpu::PipelineBase _instance;
 };
 } // namespace rnwgpu

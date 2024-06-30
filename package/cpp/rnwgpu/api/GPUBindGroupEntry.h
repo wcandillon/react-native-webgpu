@@ -10,7 +10,6 @@ class GPUBindGroupEntry {
 public:
   wgpu::BindGroupEntry *getInstance() { return &_instance; }
 
-private:
   wgpu::BindGroupEntry _instance;
 };
 } // namespace rnwgpu
@@ -25,14 +24,18 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
     auto result = std::make_unique<rnwgpu::GPUBindGroupEntry>();
     if (value.hasProperty(runtime, "binding")) {
       auto binding = value.getProperty(runtime, "binding");
-      if (binding.isNumber()) {
-        result->_instance.binding = binding.getNumber();
+
+      else if (binding.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUBindGroupEntry::binding is required");
       }
     }
     if (value.hasProperty(runtime, "resource")) {
       auto resource = value.getProperty(runtime, "resource");
-      if (resource.isNumber()) {
-        result->_instance.resource = resource.getNumber();
+
+      else if (resource.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUBindGroupEntry::resource is required");
       }
     }
     return result;

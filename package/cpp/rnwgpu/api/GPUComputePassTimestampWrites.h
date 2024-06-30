@@ -10,7 +10,6 @@ class GPUComputePassTimestampWrites {
 public:
   wgpu::ComputePassTimestampWrites *getInstance() { return &_instance; }
 
-private:
   wgpu::ComputePassTimestampWrites _instance;
 };
 } // namespace rnwgpu
@@ -26,34 +25,19 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
     auto result = std::make_unique<rnwgpu::GPUComputePassTimestampWrites>();
     if (value.hasProperty(runtime, "querySet")) {
       auto querySet = value.getProperty(runtime, "querySet");
-      if (querySet.isNumber()) {
-        result->_instance.querySet = querySet.getNumber();
+
+      else if (querySet.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUComputePassTimestampWrites::querySet is required");
       }
     }
     if (value.hasProperty(runtime, "beginningOfPassWriteIndex")) {
       auto beginningOfPassWriteIndex =
           value.getProperty(runtime, "beginningOfPassWriteIndex");
-      if (beginningOfPassWriteIndex.isNumber()) {
-        result->_instance.beginningOfPassWriteIndex =
-            beginningOfPassWriteIndex.getNumber();
-      } else if (beginningOfPassWriteIndex.isNull() ||
-                 beginningOfPassWriteIndex.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUComputePassTimestampWrites::beginningOfPassWriteIndex "
-            "is required");
-      }
     }
     if (value.hasProperty(runtime, "endOfPassWriteIndex")) {
       auto endOfPassWriteIndex =
           value.getProperty(runtime, "endOfPassWriteIndex");
-      if (endOfPassWriteIndex.isNumber()) {
-        result->_instance.endOfPassWriteIndex = endOfPassWriteIndex.getNumber();
-      } else if (endOfPassWriteIndex.isNull() ||
-                 endOfPassWriteIndex.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUComputePassTimestampWrites::endOfPassWriteIndex is "
-            "required");
-      }
     }
     return result;
   }

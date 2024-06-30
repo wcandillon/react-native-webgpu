@@ -10,7 +10,6 @@ class GPUExternalTextureBindingLayout {
 public:
   wgpu::ExternalTextureBindingLayout *getInstance() { return &_instance; }
 
-private:
   wgpu::ExternalTextureBindingLayout _instance;
 };
 } // namespace rnwgpu

@@ -10,7 +10,6 @@ class GPURenderPipelineDescriptor {
 public:
   wgpu::RenderPipelineDescriptor *getInstance() { return &_instance; }
 
-private:
   wgpu::RenderPipelineDescriptor _instance;
 };
 } // namespace rnwgpu
@@ -26,45 +25,23 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPURenderPipelineDescriptor>();
     if (value.hasProperty(runtime, "vertex")) {
       auto vertex = value.getProperty(runtime, "vertex");
-      if (vertex.isNumber()) {
-        result->_instance.vertex = vertex.getNumber();
+
+      else if (vertex.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPURenderPipelineDescriptor::vertex is required");
       }
     }
     if (value.hasProperty(runtime, "primitive")) {
       auto primitive = value.getProperty(runtime, "primitive");
-      if (primitive.isNumber()) {
-        result->_instance.primitive = primitive.getNumber();
-      } else if (primitive.isNull() || primitive.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPURenderPipelineDescriptor::primitive is required");
-      }
     }
     if (value.hasProperty(runtime, "depthStencil")) {
       auto depthStencil = value.getProperty(runtime, "depthStencil");
-      if (depthStencil.isNumber()) {
-        result->_instance.depthStencil = depthStencil.getNumber();
-      } else if (depthStencil.isNull() || depthStencil.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPURenderPipelineDescriptor::depthStencil is required");
-      }
     }
     if (value.hasProperty(runtime, "multisample")) {
       auto multisample = value.getProperty(runtime, "multisample");
-      if (multisample.isNumber()) {
-        result->_instance.multisample = multisample.getNumber();
-      } else if (multisample.isNull() || multisample.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPURenderPipelineDescriptor::multisample is required");
-      }
     }
     if (value.hasProperty(runtime, "fragment")) {
       auto fragment = value.getProperty(runtime, "fragment");
-      if (fragment.isNumber()) {
-        result->_instance.fragment = fragment.getNumber();
-      } else if (fragment.isNull() || fragment.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPURenderPipelineDescriptor::fragment is required");
-      }
     }
     return result;
   }

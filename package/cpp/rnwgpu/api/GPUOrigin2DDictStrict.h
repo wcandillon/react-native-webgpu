@@ -10,7 +10,6 @@ class GPUOrigin2DDictStrict {
 public:
   wgpu::Origin2DDictStrict *getInstance() { return &_instance; }
 
-private:
   wgpu::Origin2DDictStrict _instance;
 };
 } // namespace rnwgpu
@@ -26,12 +25,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin2DDictStrict>> {
     auto result = std::make_unique<rnwgpu::GPUOrigin2DDictStrict>();
     if (value.hasProperty(runtime, "z")) {
       auto z = value.getProperty(runtime, "z");
-      if (z.isNumber()) {
-        result->_instance.z = z.getNumber();
-      } else if (z.isNull() || z.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUOrigin2DDictStrict::z is required");
-      }
     }
     return result;
   }

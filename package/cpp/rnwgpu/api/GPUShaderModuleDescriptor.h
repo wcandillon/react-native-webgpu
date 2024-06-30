@@ -10,7 +10,6 @@ class GPUShaderModuleDescriptor {
 public:
   wgpu::ShaderModuleDescriptor *getInstance() { return &_instance; }
 
-private:
   wgpu::ShaderModuleDescriptor _instance;
 };
 } // namespace rnwgpu
@@ -26,24 +25,22 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUShaderModuleDescriptor>();
     if (value.hasProperty(runtime, "code")) {
       auto code = value.getProperty(runtime, "code");
-      if (code.isNumber()) {
-        result->_instance.code = code.getNumber();
+
+      else if (code.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUShaderModuleDescriptor::code is required");
       }
     }
     if (value.hasProperty(runtime, "sourceMap")) {
       auto sourceMap = value.getProperty(runtime, "sourceMap");
-      if (sourceMap.isNumber()) {
-        result->_instance.sourceMap = sourceMap.getNumber();
+
+      else if (sourceMap.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUShaderModuleDescriptor::sourceMap is required");
       }
     }
     if (value.hasProperty(runtime, "compilationHints")) {
       auto compilationHints = value.getProperty(runtime, "compilationHints");
-      if (compilationHints.isNumber()) {
-        result->_instance.compilationHints = compilationHints.getNumber();
-      } else if (compilationHints.isNull() || compilationHints.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUShaderModuleDescriptor::compilationHints is required");
-      }
     }
     return result;
   }

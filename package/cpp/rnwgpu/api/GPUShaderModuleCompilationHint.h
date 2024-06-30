@@ -10,7 +10,6 @@ class GPUShaderModuleCompilationHint {
 public:
   wgpu::ShaderModuleCompilationHint *getInstance() { return &_instance; }
 
-private:
   wgpu::ShaderModuleCompilationHint _instance;
 };
 } // namespace rnwgpu
@@ -26,18 +25,14 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
     auto result = std::make_unique<rnwgpu::GPUShaderModuleCompilationHint>();
     if (value.hasProperty(runtime, "entryPoint")) {
       auto entryPoint = value.getProperty(runtime, "entryPoint");
-      if (entryPoint.isNumber()) {
-        result->_instance.entryPoint = entryPoint.getNumber();
+
+      else if (entryPoint.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUShaderModuleCompilationHint::entryPoint is required");
       }
     }
     if (value.hasProperty(runtime, "layout")) {
       auto layout = value.getProperty(runtime, "layout");
-      if (layout.isNumber()) {
-        result->_instance.layout = layout.getNumber();
-      } else if (layout.isNull() || layout.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUShaderModuleCompilationHint::layout is required");
-      }
     }
     return result;
   }

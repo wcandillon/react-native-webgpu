@@ -10,7 +10,6 @@ class GPUQuerySetDescriptor {
 public:
   wgpu::QuerySetDescriptor *getInstance() { return &_instance; }
 
-private:
   wgpu::QuerySetDescriptor _instance;
 };
 } // namespace rnwgpu
@@ -26,14 +25,18 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUQuerySetDescriptor>();
     if (value.hasProperty(runtime, "type")) {
       auto type = value.getProperty(runtime, "type");
-      if (type.isNumber()) {
-        result->_instance.type = type.getNumber();
+
+      else if (type.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUQuerySetDescriptor::type is required");
       }
     }
     if (value.hasProperty(runtime, "count")) {
       auto count = value.getProperty(runtime, "count");
-      if (count.isNumber()) {
-        result->_instance.count = count.getNumber();
+
+      else if (count.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUQuerySetDescriptor::count is required");
       }
     }
     return result;

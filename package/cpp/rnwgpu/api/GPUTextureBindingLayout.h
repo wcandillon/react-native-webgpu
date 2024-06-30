@@ -10,7 +10,6 @@ class GPUTextureBindingLayout {
 public:
   wgpu::TextureBindingLayout *getInstance() { return &_instance; }
 
-private:
   wgpu::TextureBindingLayout _instance;
 };
 } // namespace rnwgpu
@@ -26,29 +25,14 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureBindingLayout>> {
     auto result = std::make_unique<rnwgpu::GPUTextureBindingLayout>();
     if (value.hasProperty(runtime, "sampleType")) {
       auto sampleType = value.getProperty(runtime, "sampleType");
-      if (sampleType.isNumber()) {
-        result->_instance.sampleType = sampleType.getNumber();
-      } else if (sampleType.isNull() || sampleType.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUTextureBindingLayout::sampleType is required");
-      }
     }
     if (value.hasProperty(runtime, "viewDimension")) {
       auto viewDimension = value.getProperty(runtime, "viewDimension");
-      if (viewDimension.isNumber()) {
-        result->_instance.viewDimension = viewDimension.getNumber();
-      } else if (viewDimension.isNull() || viewDimension.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUTextureBindingLayout::viewDimension is required");
-      }
     }
     if (value.hasProperty(runtime, "multisampled")) {
       auto multisampled = value.getProperty(runtime, "multisampled");
-      if (multisampled.isNumber()) {
-        result->_instance.multisampled = multisampled.getNumber();
-      } else if (multisampled.isNull() || multisampled.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUTextureBindingLayout::multisampled is required");
+      if (value.hasProperty(runtime, "multisampled")) {
+        result->_instance.multisampled = multisampled.getBool();
       }
     }
     return result;

@@ -10,7 +10,6 @@ class GPUBindGroupDescriptor {
 public:
   wgpu::BindGroupDescriptor *getInstance() { return &_instance; }
 
-private:
   wgpu::BindGroupDescriptor _instance;
 };
 } // namespace rnwgpu
@@ -26,14 +25,18 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUBindGroupDescriptor>();
     if (value.hasProperty(runtime, "layout")) {
       auto layout = value.getProperty(runtime, "layout");
-      if (layout.isNumber()) {
-        result->_instance.layout = layout.getNumber();
+
+      else if (layout.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUBindGroupDescriptor::layout is required");
       }
     }
     if (value.hasProperty(runtime, "entries")) {
       auto entries = value.getProperty(runtime, "entries");
-      if (entries.isNumber()) {
-        result->_instance.entries = entries.getNumber();
+
+      else if (entries.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUBindGroupDescriptor::entries is required");
       }
     }
     return result;

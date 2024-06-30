@@ -10,7 +10,6 @@ class GPUVertexBufferLayout {
 public:
   wgpu::VertexBufferLayout *getInstance() { return &_instance; }
 
-private:
   wgpu::VertexBufferLayout _instance;
 };
 } // namespace rnwgpu
@@ -26,23 +25,21 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
     auto result = std::make_unique<rnwgpu::GPUVertexBufferLayout>();
     if (value.hasProperty(runtime, "arrayStride")) {
       auto arrayStride = value.getProperty(runtime, "arrayStride");
-      if (arrayStride.isNumber()) {
-        result->_instance.arrayStride = arrayStride.getNumber();
+
+      else if (arrayStride.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUVertexBufferLayout::arrayStride is required");
       }
     }
     if (value.hasProperty(runtime, "stepMode")) {
       auto stepMode = value.getProperty(runtime, "stepMode");
-      if (stepMode.isNumber()) {
-        result->_instance.stepMode = stepMode.getNumber();
-      } else if (stepMode.isNull() || stepMode.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUVertexBufferLayout::stepMode is required");
-      }
     }
     if (value.hasProperty(runtime, "attributes")) {
       auto attributes = value.getProperty(runtime, "attributes");
-      if (attributes.isNumber()) {
-        result->_instance.attributes = attributes.getNumber();
+
+      else if (attributes.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUVertexBufferLayout::attributes is required");
       }
     }
     return result;

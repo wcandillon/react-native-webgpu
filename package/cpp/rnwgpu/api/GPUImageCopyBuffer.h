@@ -10,7 +10,6 @@ class GPUImageCopyBuffer {
 public:
   wgpu::ImageCopyBuffer *getInstance() { return &_instance; }
 
-private:
   wgpu::ImageCopyBuffer _instance;
 };
 } // namespace rnwgpu
@@ -25,8 +24,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyBuffer>> {
     auto result = std::make_unique<rnwgpu::GPUImageCopyBuffer>();
     if (value.hasProperty(runtime, "buffer")) {
       auto buffer = value.getProperty(runtime, "buffer");
-      if (buffer.isNumber()) {
-        result->_instance.buffer = buffer.getNumber();
+
+      else if (buffer.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUImageCopyBuffer::buffer is required");
       }
     }
     return result;

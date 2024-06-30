@@ -10,7 +10,6 @@ class GPUBufferBinding {
 public:
   wgpu::BufferBinding *getInstance() { return &_instance; }
 
-private:
   wgpu::BufferBinding _instance;
 };
 } // namespace rnwgpu
@@ -25,26 +24,17 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
     auto result = std::make_unique<rnwgpu::GPUBufferBinding>();
     if (value.hasProperty(runtime, "buffer")) {
       auto buffer = value.getProperty(runtime, "buffer");
-      if (buffer.isNumber()) {
-        result->_instance.buffer = buffer.getNumber();
+
+      else if (buffer.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUBufferBinding::buffer is required");
       }
     }
     if (value.hasProperty(runtime, "offset")) {
       auto offset = value.getProperty(runtime, "offset");
-      if (offset.isNumber()) {
-        result->_instance.offset = offset.getNumber();
-      } else if (offset.isNull() || offset.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUBufferBinding::offset is required");
-      }
     }
     if (value.hasProperty(runtime, "size")) {
       auto size = value.getProperty(runtime, "size");
-      if (size.isNumber()) {
-        result->_instance.size = size.getNumber();
-      } else if (size.isNull() || size.isUndefined()) {
-        throw std::runtime_error("Property GPUBufferBinding::size is required");
-      }
     }
     return result;
   }

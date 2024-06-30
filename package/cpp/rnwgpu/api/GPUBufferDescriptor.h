@@ -10,7 +10,6 @@ class GPUBufferDescriptor {
 public:
   wgpu::BufferDescriptor *getInstance() { return &_instance; }
 
-private:
   wgpu::BufferDescriptor _instance;
 };
 } // namespace rnwgpu
@@ -25,23 +24,24 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUBufferDescriptor>();
     if (value.hasProperty(runtime, "size")) {
       auto size = value.getProperty(runtime, "size");
-      if (size.isNumber()) {
-        result->_instance.size = size.getNumber();
+
+      else if (size.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUBufferDescriptor::size is required");
       }
     }
     if (value.hasProperty(runtime, "usage")) {
       auto usage = value.getProperty(runtime, "usage");
-      if (usage.isNumber()) {
-        result->_instance.usage = usage.getNumber();
+
+      else if (usage.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUBufferDescriptor::usage is required");
       }
     }
     if (value.hasProperty(runtime, "mappedAtCreation")) {
       auto mappedAtCreation = value.getProperty(runtime, "mappedAtCreation");
-      if (mappedAtCreation.isNumber()) {
-        result->_instance.mappedAtCreation = mappedAtCreation.getNumber();
-      } else if (mappedAtCreation.isNull() || mappedAtCreation.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUBufferDescriptor::mappedAtCreation is required");
+      if (value.hasProperty(runtime, "mappedAtCreation")) {
+        result->_instance.mappedAtCreation = mappedAtCreation.getBool();
       }
     }
     return result;

@@ -10,7 +10,6 @@ class GPUComputePassDescriptor {
 public:
   wgpu::ComputePassDescriptor *getInstance() { return &_instance; }
 
-private:
   wgpu::ComputePassDescriptor _instance;
 };
 } // namespace rnwgpu
@@ -26,12 +25,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUComputePassDescriptor>();
     if (value.hasProperty(runtime, "timestampWrites")) {
       auto timestampWrites = value.getProperty(runtime, "timestampWrites");
-      if (timestampWrites.isNumber()) {
-        result->_instance.timestampWrites = timestampWrites.getNumber();
-      } else if (timestampWrites.isNull() || timestampWrites.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUComputePassDescriptor::timestampWrites is required");
-      }
     }
     return result;
   }

@@ -10,7 +10,6 @@ class GPUUncapturedErrorEventInit {
 public:
   wgpu::UncapturedErrorEventInit *getInstance() { return &_instance; }
 
-private:
   wgpu::UncapturedErrorEventInit _instance;
 };
 } // namespace rnwgpu
@@ -26,8 +25,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
     auto result = std::make_unique<rnwgpu::GPUUncapturedErrorEventInit>();
     if (value.hasProperty(runtime, "error")) {
       auto error = value.getProperty(runtime, "error");
-      if (error.isNumber()) {
-        result->_instance.error = error.getNumber();
+
+      else if (error.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUUncapturedErrorEventInit::error is required");
       }
     }
     return result;

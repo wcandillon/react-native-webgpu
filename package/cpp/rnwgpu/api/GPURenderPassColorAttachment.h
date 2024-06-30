@@ -10,7 +10,6 @@ class GPURenderPassColorAttachment {
 public:
   wgpu::RenderPassColorAttachment *getInstance() { return &_instance; }
 
-private:
   wgpu::RenderPassColorAttachment _instance;
 };
 } // namespace rnwgpu
@@ -26,47 +25,35 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
     auto result = std::make_unique<rnwgpu::GPURenderPassColorAttachment>();
     if (value.hasProperty(runtime, "view")) {
       auto view = value.getProperty(runtime, "view");
-      if (view.isNumber()) {
-        result->_instance.view = view.getNumber();
+
+      else if (view.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPURenderPassColorAttachment::view is required");
       }
     }
     if (value.hasProperty(runtime, "depthSlice")) {
       auto depthSlice = value.getProperty(runtime, "depthSlice");
-      if (depthSlice.isNumber()) {
-        result->_instance.depthSlice = depthSlice.getNumber();
-      } else if (depthSlice.isNull() || depthSlice.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPURenderPassColorAttachment::depthSlice is required");
-      }
     }
     if (value.hasProperty(runtime, "resolveTarget")) {
       auto resolveTarget = value.getProperty(runtime, "resolveTarget");
-      if (resolveTarget.isNumber()) {
-        result->_instance.resolveTarget = resolveTarget.getNumber();
-      } else if (resolveTarget.isNull() || resolveTarget.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPURenderPassColorAttachment::resolveTarget is required");
-      }
     }
     if (value.hasProperty(runtime, "clearValue")) {
       auto clearValue = value.getProperty(runtime, "clearValue");
-      if (clearValue.isNumber()) {
-        result->_instance.clearValue = clearValue.getNumber();
-      } else if (clearValue.isNull() || clearValue.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPURenderPassColorAttachment::clearValue is required");
-      }
     }
     if (value.hasProperty(runtime, "loadOp")) {
       auto loadOp = value.getProperty(runtime, "loadOp");
-      if (loadOp.isNumber()) {
-        result->_instance.loadOp = loadOp.getNumber();
+
+      else if (loadOp.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPURenderPassColorAttachment::loadOp is required");
       }
     }
     if (value.hasProperty(runtime, "storeOp")) {
       auto storeOp = value.getProperty(runtime, "storeOp");
-      if (storeOp.isNumber()) {
-        result->_instance.storeOp = storeOp.getNumber();
+
+      else if (storeOp.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPURenderPassColorAttachment::storeOp is required");
       }
     }
     return result;

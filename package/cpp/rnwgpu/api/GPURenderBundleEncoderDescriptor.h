@@ -10,7 +10,6 @@ class GPURenderBundleEncoderDescriptor {
 public:
   wgpu::RenderBundleEncoderDescriptor *getInstance() { return &_instance; }
 
-private:
   wgpu::RenderBundleEncoderDescriptor _instance;
 };
 } // namespace rnwgpu
@@ -26,22 +25,14 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPURenderBundleEncoderDescriptor>();
     if (value.hasProperty(runtime, "depthReadOnly")) {
       auto depthReadOnly = value.getProperty(runtime, "depthReadOnly");
-      if (depthReadOnly.isNumber()) {
-        result->_instance.depthReadOnly = depthReadOnly.getNumber();
-      } else if (depthReadOnly.isNull() || depthReadOnly.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPURenderBundleEncoderDescriptor::depthReadOnly is "
-            "required");
+      if (value.hasProperty(runtime, "depthReadOnly")) {
+        result->_instance.depthReadOnly = depthReadOnly.getBool();
       }
     }
     if (value.hasProperty(runtime, "stencilReadOnly")) {
       auto stencilReadOnly = value.getProperty(runtime, "stencilReadOnly");
-      if (stencilReadOnly.isNumber()) {
-        result->_instance.stencilReadOnly = stencilReadOnly.getNumber();
-      } else if (stencilReadOnly.isNull() || stencilReadOnly.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPURenderBundleEncoderDescriptor::stencilReadOnly is "
-            "required");
+      if (value.hasProperty(runtime, "stencilReadOnly")) {
+        result->_instance.stencilReadOnly = stencilReadOnly.getBool();
       }
     }
     return result;

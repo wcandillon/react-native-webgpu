@@ -10,7 +10,6 @@ class GPUBlendState {
 public:
   wgpu::BlendState *getInstance() { return &_instance; }
 
-private:
   wgpu::BlendState _instance;
 };
 } // namespace rnwgpu
@@ -25,14 +24,16 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
     auto result = std::make_unique<rnwgpu::GPUBlendState>();
     if (value.hasProperty(runtime, "color")) {
       auto color = value.getProperty(runtime, "color");
-      if (color.isNumber()) {
-        result->_instance.color = color.getNumber();
+
+      else if (color.isUndefined()) {
+        throw std::runtime_error("Property GPUBlendState::color is required");
       }
     }
     if (value.hasProperty(runtime, "alpha")) {
       auto alpha = value.getProperty(runtime, "alpha");
-      if (alpha.isNumber()) {
-        result->_instance.alpha = alpha.getNumber();
+
+      else if (alpha.isUndefined()) {
+        throw std::runtime_error("Property GPUBlendState::alpha is required");
       }
     }
     return result;

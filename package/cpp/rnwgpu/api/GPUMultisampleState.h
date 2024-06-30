@@ -10,7 +10,6 @@ class GPUMultisampleState {
 public:
   wgpu::MultisampleState *getInstance() { return &_instance; }
 
-private:
   wgpu::MultisampleState _instance;
 };
 } // namespace rnwgpu
@@ -25,32 +24,16 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
     auto result = std::make_unique<rnwgpu::GPUMultisampleState>();
     if (value.hasProperty(runtime, "count")) {
       auto count = value.getProperty(runtime, "count");
-      if (count.isNumber()) {
-        result->_instance.count = count.getNumber();
-      } else if (count.isNull() || count.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUMultisampleState::count is required");
-      }
     }
     if (value.hasProperty(runtime, "mask")) {
       auto mask = value.getProperty(runtime, "mask");
-      if (mask.isNumber()) {
-        result->_instance.mask = mask.getNumber();
-      } else if (mask.isNull() || mask.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUMultisampleState::mask is required");
-      }
     }
     if (value.hasProperty(runtime, "alphaToCoverageEnabled")) {
       auto alphaToCoverageEnabled =
           value.getProperty(runtime, "alphaToCoverageEnabled");
-      if (alphaToCoverageEnabled.isNumber()) {
+      if (value.hasProperty(runtime, "alphaToCoverageEnabled")) {
         result->_instance.alphaToCoverageEnabled =
-            alphaToCoverageEnabled.getNumber();
-      } else if (alphaToCoverageEnabled.isNull() ||
-                 alphaToCoverageEnabled.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUMultisampleState::alphaToCoverageEnabled is required");
+            alphaToCoverageEnabled.getBool();
       }
     }
     return result;

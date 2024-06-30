@@ -10,7 +10,6 @@ class GPUPipelineErrorInit {
 public:
   wgpu::PipelineErrorInit *getInstance() { return &_instance; }
 
-private:
   wgpu::PipelineErrorInit _instance;
 };
 } // namespace rnwgpu
@@ -25,8 +24,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineErrorInit>> {
     auto result = std::make_unique<rnwgpu::GPUPipelineErrorInit>();
     if (value.hasProperty(runtime, "reason")) {
       auto reason = value.getProperty(runtime, "reason");
-      if (reason.isNumber()) {
-        result->_instance.reason = reason.getNumber();
+
+      else if (reason.isUndefined()) {
+        throw std::runtime_error(
+            "Property GPUPipelineErrorInit::reason is required");
       }
     }
     return result;
