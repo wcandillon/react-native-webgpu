@@ -77,13 +77,26 @@ sourceFile
   .getInterfaces()
   .filter(
     (decl) =>
-      decl.getName().startsWith("GPU") && !decl.getName().endsWith("Mixin"),
+      decl.getName().startsWith("GPU") &&
+      !decl.getName().endsWith("Mixin") &&
+      !decl.getName().endsWith("Error") &&
+      decl.getProperty("__brand") !== undefined,
   )
   .forEach((decl) => {
-    const hasMethods = decl.getMethods().length > 0;
-    if (hasMethods) {
-      writeFile(decl.getName(), getHybridObject(decl));
-    }
+    writeFile(decl.getName(), getHybridObject(decl));
   });
 
 // Descriptors
+sourceFile
+  .getInterfaces()
+  .filter(
+    (decl) =>
+      decl.getName().startsWith("GPU") &&
+      !decl.getName().endsWith("Mixin") &&
+      !decl.getName().endsWith("Error") &&
+      decl.getProperty("__brand") === undefined &&
+      decl.getName().endsWith("Descriptor"),
+  )
+  .forEach((decl) => {
+    console.log(`Descriptor ${decl.getName()} not generated`);
+  });

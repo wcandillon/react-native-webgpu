@@ -16,7 +16,13 @@ export const getJSIMethod = (method: MethodSignature): JsiMethod => {
   const apiName = _.upperFirst(name);
   const returns = getType(method.getReturnType()!);
   const dependencies: string[] = returns.startsWith("GPU") ? [returns] : [];
-  const args: string[] = [];
+  const args: string[] = method.getParameters().map((p) => {
+    const type = getType(p.getType());
+    if (type.startsWith("GPU")) {
+      dependencies.push(type);
+    }
+    return `std::shared_ptr<${type}> ${p.getName()}`;
+  });
   return {
     async,
     apiName,
@@ -29,7 +35,9 @@ export const getJSIMethod = (method: MethodSignature): JsiMethod => {
 
 const getType = (type: Type): string => {
   if (type.isUnion()) {
-    return getType(type.getUnionTypes().filter((t) => !t.isNull())[0]);
+    return getType(
+      type.getUnionTypes().filter((t) => !t.isNull() && !t.isUndefined())[0],
+    );
   }
   if (type.getTypeArguments()[0]) {
     return getType(type.getTypeArguments()[0]);

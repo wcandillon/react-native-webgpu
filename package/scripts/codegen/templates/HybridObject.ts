@@ -10,8 +10,8 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
   const name = decl.getName();
   const methods = decl
     .getMethods()
-    .filter((method) => method.getName() === "requestAdapter")
-    .map((m) => getJSIMethod(m));
+    .map((m) => getJSIMethod(m))
+    .filter((m) => m.name === "requestAdapter");
   const dependencies = methods.flatMap((method) => method.dependencies);
   const instanceName = `wgpu::${instanceAliases[name] || name.substring(3)}`;
   return `#pragma once
@@ -40,34 +40,18 @@ public:
   ${methods
     .filter((method) => method.async)
     .map((method) => {
-      return `std::future<std::shared_ptr<${method.returns}>> ${method.name}() {
-          return std::async(std::launch::async,
-                      [=]() {
-       wgpu::Adapter adapter = nullptr;
-          _instance->${method.apiName}(
-              nullptr,
-              [](WGPURequestAdapterStatus, WGPUAdapter cAdapter,
-                 const char *message, void *userdata) {
-                if (message != nullptr) {
-                  fprintf(stderr, "%s", message);
-                  return;
-                }
-                *static_cast<wgpu::Adapter *>(userdata) =
-                    wgpu::Adapter::Acquire(cAdapter);
-              },
-              &adapter);
-          return std::make_shared<${method.returns}>(adapter);
-        });
-    }`;
-    })}
+      return `std::future<std::shared_ptr<${method.returns}>> ${method.name}(${method.args.join(", ")});`;
+    })
+    .join("\n")}
 
   ${methods
     .filter((method) => !method.async)
     .map((method) => {
-      return `std::shared_ptr<${method.returns}> ${method.name}() {
+      return `std::shared_ptr<${method.returns}> ${method.name}(${method.args.join(", ")}) {
       return _instance->${method.name}();
     }`;
-    })}
+    })
+    .join("\n")}
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &${name}::getBrand, this);
