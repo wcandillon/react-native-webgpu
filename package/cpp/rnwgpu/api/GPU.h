@@ -20,6 +20,15 @@ public:
       : HybridObject("GPU"), _instance(instance) {}
 
 public:
+
+  std::future<std::shared_ptr<GPUAdapter>>
+  requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
+    wgpu::RequestAdapterOptions defaultOptions;
+    // Create a shared_ptr to GPUAdapter
+    return std::async(std::launch::async,
+                      [=]() { return std::make_shared<GPUAdapter>(); });
+  }
+
   std::string getBrand() { return _name; }
 
   std::future<std::shared_ptr<GPUAdapter>> requestAdapter() {
@@ -35,4 +44,5 @@ public:
 private:
   std::shared_ptr<wgpu::Instance> _instance;
 };
+
 } // namespace rnwgpu
