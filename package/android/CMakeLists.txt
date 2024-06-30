@@ -33,18 +33,6 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/jsi/RNFWorkletRuntimeRegistry.cpp
 )
 
-add_library(webgpu STATIC IMPORTED)
-set_property(TARGET webgpu PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.a")
-
-add_library(dawn_native STATIC IMPORTED)
-set_property(TARGET dawn_native PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_native.a")
-
-add_library(dawn_proc STATIC IMPORTED)
-set_property(TARGET dawn_proc PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_proc.a")
-
-add_library(dawn_common STATIC IMPORTED)
-set_property(TARGET dawn_common PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_common.a")
-
 target_include_directories(
         ${PACKAGE_NAME}
         PRIVATE
@@ -66,6 +54,9 @@ target_include_directories(
         ${libfbjni_include_DIRS}
 )
 
+add_library(webgpu_dawn SHARED IMPORTED)
+set_property(TARGET webgpu_dawn PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.so")
+
 # Link
 target_link_libraries(
         ${PACKAGE_NAME}
@@ -75,8 +66,5 @@ target_link_libraries(
         android
         fbjni::fbjni
         ReactAndroid::jsi
-        dawn_common
-        dawn_proc
-        dawn_native
-        webgpu
+        webgpu_dawn
     )
