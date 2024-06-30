@@ -1,30 +1,35 @@
 #pragma once
 
-#include <future>
-#include <memory>
-#include <string>
-
-#include <RNFHybridObject.h>
-
 #include "webgpu/webgpu_cpp.h"
+#include <memory>
+
+namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
-
-namespace m = margelo;
-
-class GPUPipelineBase : public m::HybridObject {
+class GPUPipelineBase {
 public:
-  explicit GPUPipelineBase(std::shared_ptr<wgpu::PipelineBase> instance)
-      : HybridObject("GPUPipelineBase"), _instance(instance) {}
-
-public:
-  std::string getBrand() { return _name; }
-
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUPipelineBase::getBrand, this);
-  }
+  wgpu::PipelineBase *getInstance() { return &_instance; }
 
 private:
-  std::shared_ptr<wgpu::PipelineBase> _instance;
+  wgpu::PipelineBase _instance;
 };
 } // namespace rnwgpu
+
+namespace margelo {
+
+// Object <> Object
+template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineBase>> {
+  static std::shared_ptr<rnwgpu::GPUPipelineBase>
+  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
+    auto object = arg.getObject(runtime);
+    auto result = std::make_unique<rnwgpu::GPUPipelineBase>();
+
+    return result;
+  }
+  static jsi::Value toJSI(jsi::Runtime &runtime,
+                          std::shared_ptr<rnwgpu::GPUPipelineBase> arg) {
+    // No conversions here
+    return jsi::Value::null();
+  }
+};
+} // namespace margelo

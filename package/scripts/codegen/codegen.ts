@@ -6,6 +6,7 @@ import { Node, Project } from "ts-morph";
 import { getEnum } from "./templates/Enum";
 import { writeFile } from "./util";
 import { getHybridObject } from "./templates/HybridObject";
+import { getDescriptor } from "./templates/Descriptor";
 
 // Define the path to the WebGPU type declaration file
 const tsConfigFilePath = path.resolve(__dirname, "../../tsconfig.json");
@@ -94,9 +95,8 @@ sourceFile
       decl.getName().startsWith("GPU") &&
       !decl.getName().endsWith("Mixin") &&
       !decl.getName().endsWith("Error") &&
-      decl.getProperty("__brand") === undefined &&
-      decl.getName().endsWith("Descriptor"),
+      decl.getProperty("__brand") === undefined,
   )
   .forEach((decl) => {
-    console.log(`Descriptor ${decl.getName()} not generated`);
+    writeFile(decl.getName(), getDescriptor(decl));
   });
