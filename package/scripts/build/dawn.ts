@@ -15,6 +15,8 @@ const commonArgs = {
   DAWN_USE_GLFW: "OFF",
   DAWN_FETCH_DEPENDENCIES: "ON",
   DAWN_BUILD_MONOLITHIC_LIBRARY: "ON",
+  DAWN_ENABLE_OPENGLES: "OFF",
+  DAWN_ENABLE_DESKTOP_GL: "OFF",
 };
 
 const PLATFORM_MAP: Record<string, string> = {
@@ -22,8 +24,6 @@ const PLATFORM_MAP: Record<string, string> = {
   arm64_iphonesimulator: "SIMULATORARM64",
   x86_64_iphonesimulator: "SIMULATOR64",
 };
-
-// DAWN_ENABLE_DESKTOP_GL DAWN_ENABLE_OPENGLES
 
 const android = {
   platforms: ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"] as Platform[],
@@ -49,13 +49,9 @@ const ios = {
   process.chdir("..");
   process.chdir("externals/dawn");
   $("git reset --hard HEAD");
-  // $("git submodule update --recursive --force");
-  // $("git submodule foreach --recursive git reset --hard");
-  // $("git submodule foreach --recursive git clean -fdx");
   $(
-    "git fetch https://dawn.googlesource.com/dawn refs/changes/96/195996/25 && git checkout FETCH_HEAD",
+    "git fetch https://dawn.googlesource.com/dawn refs/changes/96/195996/27 && git checkout FETCH_HEAD",
   );
-  $("git apply ../../package/scripts/build/patch.patch");
   process.chdir("../..");
 
   // Build iOS
