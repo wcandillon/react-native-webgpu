@@ -2,16 +2,19 @@
 /* eslint-disable max-len */
 import { chdir } from "process";
 
-import type { Platform, SDK } from "./util";
+import type { Platform } from "./util";
 import { $, build, checkBuildArtifacts, copyLib, libs, mapKeys } from "./util";
-
-const PATH = `PATH=${__dirname}/../../../externals/depot_tools/:$PATH`;
 
 const commonArgs = {
   CMAKE_BUILD_TYPE: "Release",
-  DAWN_BUILD_SAMPLES: "OFF",
+  BUILD_SAMPLES: "OFF",
   TINT_BUILD_TESTS: "OFF",
   TINT_BUILD_CMD_TOOLS: "OFF",
+  TINT_BUILD_IR_BINARY: "OFF",
+  DAWN_BUILD_SAMPLES: "OFF",
+  DAWN_USE_GLFW: "OFF",
+  DAWN_FETCH_DEPENDENCIES: "ON",
+  DAWN_BUILD_MONOLITHIC_LIBRARY: "ON",
 };
 
 const android = {
@@ -23,40 +26,44 @@ const android = {
   },
 };
 
-type BuildMatrix = Record<Platform, SDK[]>;
-
 const ios = {
   matrix: {
     arm64: ["iphoneos", "iphonesimulator"],
     x86_64: ["iphonesimulator"],
-  } as BuildMatrix,
+  },
   args: {
     CMAKE_SYSTEM_NAME: "iOS",
     CMAKE_OSX_DEPLOYMENT_TARGET: "13.0",
-    DAWN_USE_GLFW: "OFF",
-    BUILD_SAMPLES: "OFF",
     ...commonArgs,
   },
 };
 
 (async () => {
-  // Fetch dependencies
-  console.log("gclient sync");
-  process.chdir("../externals/dawn");
-  $("cp scripts/standalone.gclient .gclient");
-  $(`${PATH} gclient sync`);
+  process.chdir("..");
+  process.chdir("externals/dawn");
+  $("git reset --hard HEAD");
+  // $("git submodule update --recursive --force");
+  // $("git submodule foreach --recursive git reset --hard");
+  // $("git submodule foreach --recursive git clean -fdx");
+  $(
+    "git fetch https://dawn.googlesource.com/dawn refs/changes/96/195996/25 && git checkout FETCH_HEAD",
+  );
+  $("git apply ../../package/scripts/build/patch.patch");
   process.chdir("../..");
-  console.log("gclient sync done");
 
   // Build iOS
   for (const platform of mapKeys(ios.matrix)) {
     console.log(`Build iOS: ${platform}`);
     for (const sdk of ios.matrix[platform]) {
-      await build(`ios_${platform}_${sdk}`, {
-        CMAKE_OSX_ARCHITECTURES: platform,
-        CMAKE_OSX_SYSROOT: `$(xcrun --sdk ${sdk} --show-sdk-path)`,
-        ...ios.args,
-      });
+      await build(
+        `ios_${platform}_${sdk}`,
+        {
+          CMAKE_OSX_ARCHITECTURES: platform,
+          CMAKE_OSX_SYSROOT: `$(xcrun --sdk ${sdk} --show-sdk-path)`,
+          ...ios.args,
+        },
+        `🍏 ${platform} ${sdk}`,
+      );
       copyLib("ios", platform, sdk);
     }
   }
@@ -64,7 +71,7 @@ const ios = {
   libs.forEach((lib) => {
     console.log(`Building fat binary for iphone simulator: ${lib}`);
     $(
-      `lipo -create package/libs/ios/x86_64_iphonesimulator/${lib}.a package/libs/ios/arm64_iphonesimulator/${lib}.a -output package/libs/ios/${lib}.a`,
+      `lipo -create package/libs/ios/x86_64_iphonesimulator/${lib}.dylib package/libs/ios/arm64_iphonesimulator/${lib}.dylib -output package/libs/ios/${lib}.dylib`,
     );
   });
 
@@ -73,18 +80,22 @@ const ios = {
     $(`rm -rf ./package/libs/ios/${lib}.xcframework`);
     $(
       "xcodebuild -create-xcframework " +
-        `-library ./package/libs/ios/${lib}.a ` +
-        `-library ./package/libs/ios/arm64_iphoneos/${lib}.a ` +
+        `-library ./package/libs/ios/${lib}.dylib ` +
+        `-library ./package/libs/ios/arm64_iphoneos/${lib}.dylib ` +
         ` -output ./package/libs/ios/${lib}.xcframework `,
     );
   });
   // Build Android
   for (const platform of android.platforms) {
     console.log(`Build Android: ${platform}`);
-    await build(`android_${platform}`, {
-      ANDROID_ABI: platform,
-      ...android.args,
-    });
+    await build(
+      `android_${platform}`,
+      {
+        ANDROID_ABI: platform,
+        ...android.args,
+      },
+      `🤖 ${platform}`,
+    );
     copyLib("android", platform);
   }
 
