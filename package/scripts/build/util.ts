@@ -57,7 +57,7 @@ export const checkFileExists = (filePath: string) => {
     console.log("");
     exit(1);
   } else {
-    console.log("☑ " + filePath);
+    console.log("✅ " + filePath);
   }
 };
 

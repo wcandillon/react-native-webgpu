@@ -17,6 +17,14 @@ const commonArgs = {
   DAWN_BUILD_MONOLITHIC_LIBRARY: "ON",
 };
 
+const PLATFORM_MAP: Record<string, string> = {
+  arm64_iphoneos: "OS64",
+  arm64_iphonesimulator: "SIMULATORARM64",
+  x86_64_iphonesimulator: "SIMULATOR64",
+};
+
+// DAWN_ENABLE_DESKTOP_GL DAWN_ENABLE_OPENGLES
+
 const android = {
   platforms: ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"] as Platform[],
   args: {
@@ -32,8 +40,7 @@ const ios = {
     x86_64: ["iphonesimulator"],
   },
   args: {
-    CMAKE_SYSTEM_NAME: "iOS",
-    CMAKE_OSX_DEPLOYMENT_TARGET: "13.0",
+    CMAKE_TOOLCHAIN_FILE: `${__dirname}/ios.toolchain.cmake`,
     ...commonArgs,
   },
 };
@@ -58,8 +65,7 @@ const ios = {
       await build(
         `ios_${platform}_${sdk}`,
         {
-          CMAKE_OSX_ARCHITECTURES: platform,
-          CMAKE_OSX_SYSROOT: `$(xcrun --sdk ${sdk} --show-sdk-path)`,
+          PLATFORM: PLATFORM_MAP[`${platform}_${sdk}`],
           ...ios.args,
         },
         `🍏 ${platform} ${sdk}`,
