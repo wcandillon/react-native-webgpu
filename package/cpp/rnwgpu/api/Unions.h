@@ -294,13 +294,13 @@ template <> struct JSIConverter<wgpu::FeatureName> {
       return wgpu::FeatureName::Depth32FloatStencil8;
     }
     if (str == "texture-compression-bc") {
-      return wgpu::FeatureName::TextureCompressionBc;
+      return wgpu::FeatureName::TextureCompressionBC;
     }
     if (str == "texture-compression-etc2") {
-      return wgpu::FeatureName::TextureCompressionEtc2;
+      return wgpu::FeatureName::TextureCompressionETC2;
     }
     if (str == "texture-compression-astc") {
-      return wgpu::FeatureName::TextureCompressionAstc;
+      return wgpu::FeatureName::TextureCompressionASTC;
     }
     if (str == "timestamp-query") {
       return wgpu::FeatureName::TimestampQuery;
@@ -312,10 +312,10 @@ template <> struct JSIConverter<wgpu::FeatureName> {
       return wgpu::FeatureName::ShaderF16;
     }
     if (str == "rg11b10ufloat-renderable") {
-      return wgpu::FeatureName::Rg11B10UfloatRenderable;
+      return wgpu::FeatureName::RG11B10UfloatRenderable;
     }
     if (str == "bgra8unorm-storage") {
-      return wgpu::FeatureName::Bgra8UnormStorage;
+      return wgpu::FeatureName::BGRA8UnormStorage;
     }
     if (str == "float32-filterable") {
       return wgpu::FeatureName::Float32Filterable;
@@ -350,10 +350,10 @@ template <> struct JSIConverter<wgpu::FrontFace> {
   static wgpu::FrontFace fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
     auto str = arg.asString(runtime).utf8(runtime);
     if (str == "ccw") {
-      return wgpu::FrontFace::Ccw;
+      return wgpu::FrontFace::CCW;
     }
     if (str == "cw") {
-      return wgpu::FrontFace::Cw;
+      return wgpu::FrontFace::CW;
     }
   }
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::FrontFace arg) {
@@ -619,13 +619,13 @@ template <> struct JSIConverter<wgpu::TextureDimension> {
                                         const jsi::Value &arg) {
     auto str = arg.asString(runtime).utf8(runtime);
     if (str == "1d") {
-      return wgpu::TextureDimension::1D;
+      return wgpu::TextureDimension::e1D;
     }
     if (str == "2d") {
-      return wgpu::TextureDimension::2D;
+      return wgpu::TextureDimension::e2D;
     }
     if (str == "3d") {
-      return wgpu::TextureDimension::3D;
+      return wgpu::TextureDimension::e3D;
     }
   }
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::TextureDimension arg) {
@@ -664,16 +664,16 @@ template <> struct JSIConverter<wgpu::TextureFormat> {
       return wgpu::TextureFormat::R16Float;
     }
     if (str == "rg8unorm") {
-      return wgpu::TextureFormat::Rg8Unorm;
+      return wgpu::TextureFormat::RG8Unorm;
     }
     if (str == "rg8snorm") {
-      return wgpu::TextureFormat::Rg8Snorm;
+      return wgpu::TextureFormat::RG8Snorm;
     }
     if (str == "rg8uint") {
-      return wgpu::TextureFormat::Rg8Uint;
+      return wgpu::TextureFormat::RG8Uint;
     }
     if (str == "rg8sint") {
-      return wgpu::TextureFormat::Rg8Sint;
+      return wgpu::TextureFormat::RG8Sint;
     }
     if (str == "r32uint") {
       return wgpu::TextureFormat::R32Uint;
@@ -685,73 +685,73 @@ template <> struct JSIConverter<wgpu::TextureFormat> {
       return wgpu::TextureFormat::R32Float;
     }
     if (str == "rg16uint") {
-      return wgpu::TextureFormat::Rg16Uint;
+      return wgpu::TextureFormat::RG16Uint;
     }
     if (str == "rg16sint") {
-      return wgpu::TextureFormat::Rg16Sint;
+      return wgpu::TextureFormat::RG16Sint;
     }
     if (str == "rg16float") {
-      return wgpu::TextureFormat::Rg16Float;
+      return wgpu::TextureFormat::RG16Float;
     }
     if (str == "rgba8unorm") {
-      return wgpu::TextureFormat::Rgba8Unorm;
+      return wgpu::TextureFormat::RGBA8Unorm;
     }
     if (str == "rgba8unorm-srgb") {
-      return wgpu::TextureFormat::Rgba8UnormSrgb;
+      return wgpu::TextureFormat::RGBA8UnormSrgb;
     }
     if (str == "rgba8snorm") {
-      return wgpu::TextureFormat::Rgba8Snorm;
+      return wgpu::TextureFormat::RGBA8Snorm;
     }
     if (str == "rgba8uint") {
-      return wgpu::TextureFormat::Rgba8Uint;
+      return wgpu::TextureFormat::RGBA8Uint;
     }
     if (str == "rgba8sint") {
-      return wgpu::TextureFormat::Rgba8Sint;
+      return wgpu::TextureFormat::RGBA8Sint;
     }
     if (str == "bgra8unorm") {
-      return wgpu::TextureFormat::Bgra8Unorm;
+      return wgpu::TextureFormat::BGRA8Unorm;
     }
     if (str == "bgra8unorm-srgb") {
-      return wgpu::TextureFormat::Bgra8UnormSrgb;
+      return wgpu::TextureFormat::BGRA8UnormSrgb;
     }
     if (str == "rgb9e5ufloat") {
-      return wgpu::TextureFormat::Rgb9E5Ufloat;
+      return wgpu::TextureFormat::RGB9E5Ufloat;
     }
     if (str == "rgb10a2uint") {
-      return wgpu::TextureFormat::Rgb10A2Uint;
+      return wgpu::TextureFormat::RGB10A2Uint;
     }
     if (str == "rgb10a2unorm") {
-      return wgpu::TextureFormat::Rgb10A2Unorm;
+      return wgpu::TextureFormat::RGB10A2Unorm;
     }
     if (str == "rg11b10ufloat") {
-      return wgpu::TextureFormat::Rg11B10Ufloat;
+      return wgpu::TextureFormat::RG11B10Ufloat;
     }
     if (str == "rg32uint") {
-      return wgpu::TextureFormat::Rg32Uint;
+      return wgpu::TextureFormat::RG32Uint;
     }
     if (str == "rg32sint") {
-      return wgpu::TextureFormat::Rg32Sint;
+      return wgpu::TextureFormat::RG32Sint;
     }
     if (str == "rg32float") {
-      return wgpu::TextureFormat::Rg32Float;
+      return wgpu::TextureFormat::RG32Float;
     }
     if (str == "rgba16uint") {
-      return wgpu::TextureFormat::Rgba16Uint;
+      return wgpu::TextureFormat::RGBA16Uint;
     }
     if (str == "rgba16sint") {
-      return wgpu::TextureFormat::Rgba16Sint;
+      return wgpu::TextureFormat::RGBA16Sint;
     }
     if (str == "rgba16float") {
-      return wgpu::TextureFormat::Rgba16Float;
+      return wgpu::TextureFormat::RGBA16Float;
     }
     if (str == "rgba32uint") {
-      return wgpu::TextureFormat::Rgba32Uint;
+      return wgpu::TextureFormat::RGBA32Uint;
     }
     if (str == "rgba32sint") {
-      return wgpu::TextureFormat::Rgba32Sint;
+      return wgpu::TextureFormat::RGBA32Sint;
     }
     if (str == "rgba32float") {
-      return wgpu::TextureFormat::Rgba32Float;
+      return wgpu::TextureFormat::RGBA32Float;
     }
     if (str == "stencil8") {
       return wgpu::TextureFormat::Stencil8;
@@ -769,160 +769,160 @@ template <> struct JSIConverter<wgpu::TextureFormat> {
       return wgpu::TextureFormat::Depth32Float;
     }
     if (str == "bc1-rgba-unorm") {
-      return wgpu::TextureFormat::Bc1RgbaUnorm;
+      return wgpu::TextureFormat::BC1RGBAUnorm;
     }
     if (str == "bc1-rgba-unorm-srgb") {
-      return wgpu::TextureFormat::Bc1RgbaUnormSrgb;
+      return wgpu::TextureFormat::BC1RGBAUnormSrgb;
     }
     if (str == "bc2-rgba-unorm") {
-      return wgpu::TextureFormat::Bc2RgbaUnorm;
+      return wgpu::TextureFormat::BC2RGBAUnorm;
     }
     if (str == "bc2-rgba-unorm-srgb") {
-      return wgpu::TextureFormat::Bc2RgbaUnormSrgb;
+      return wgpu::TextureFormat::BC2RGBAUnormSrgb;
     }
     if (str == "bc3-rgba-unorm") {
-      return wgpu::TextureFormat::Bc3RgbaUnorm;
+      return wgpu::TextureFormat::BC3RGBAUnorm;
     }
     if (str == "bc3-rgba-unorm-srgb") {
-      return wgpu::TextureFormat::Bc3RgbaUnormSrgb;
+      return wgpu::TextureFormat::BC3RGBAUnormSrgb;
     }
     if (str == "bc4-r-unorm") {
-      return wgpu::TextureFormat::Bc4RUnorm;
+      return wgpu::TextureFormat::BC4RUnorm;
     }
     if (str == "bc4-r-snorm") {
-      return wgpu::TextureFormat::Bc4RSnorm;
+      return wgpu::TextureFormat::BC4RSnorm;
     }
     if (str == "bc5-rg-unorm") {
-      return wgpu::TextureFormat::Bc5RgUnorm;
+      return wgpu::TextureFormat::BC5RGUnorm;
     }
     if (str == "bc5-rg-snorm") {
-      return wgpu::TextureFormat::Bc5RgSnorm;
+      return wgpu::TextureFormat::BC5RGSnorm;
     }
     if (str == "bc6h-rgb-ufloat") {
-      return wgpu::TextureFormat::Bc6HRgbUfloat;
+      return wgpu::TextureFormat::BC6HRGBUfloat;
     }
     if (str == "bc6h-rgb-float") {
-      return wgpu::TextureFormat::Bc6HRgbFloat;
+      return wgpu::TextureFormat::BC6HRGBFloat;
     }
     if (str == "bc7-rgba-unorm") {
-      return wgpu::TextureFormat::Bc7RgbaUnorm;
+      return wgpu::TextureFormat::BC7RGBAUnorm;
     }
     if (str == "bc7-rgba-unorm-srgb") {
-      return wgpu::TextureFormat::Bc7RgbaUnormSrgb;
+      return wgpu::TextureFormat::BC7RGBAUnormSrgb;
     }
     if (str == "etc2-rgb8unorm") {
-      return wgpu::TextureFormat::Etc2Rgb8Unorm;
+      return wgpu::TextureFormat::ETC2RGB8Unorm;
     }
     if (str == "etc2-rgb8unorm-srgb") {
-      return wgpu::TextureFormat::Etc2Rgb8UnormSrgb;
+      return wgpu::TextureFormat::ETC2RGB8UnormSrgb;
     }
     if (str == "etc2-rgb8a1unorm") {
-      return wgpu::TextureFormat::Etc2Rgb8A1Unorm;
+      return wgpu::TextureFormat::ETC2RGB8A1Unorm;
     }
     if (str == "etc2-rgb8a1unorm-srgb") {
-      return wgpu::TextureFormat::Etc2Rgb8A1UnormSrgb;
+      return wgpu::TextureFormat::ETC2RGB8A1UnormSrgb;
     }
     if (str == "etc2-rgba8unorm") {
-      return wgpu::TextureFormat::Etc2Rgba8Unorm;
+      return wgpu::TextureFormat::ETC2RGBA8Unorm;
     }
     if (str == "etc2-rgba8unorm-srgb") {
-      return wgpu::TextureFormat::Etc2Rgba8UnormSrgb;
+      return wgpu::TextureFormat::ETC2RGBA8UnormSrgb;
     }
     if (str == "eac-r11unorm") {
-      return wgpu::TextureFormat::EacR11Unorm;
+      return wgpu::TextureFormat::EACR11Unorm;
     }
     if (str == "eac-r11snorm") {
-      return wgpu::TextureFormat::EacR11Snorm;
+      return wgpu::TextureFormat::EACR11Snorm;
     }
     if (str == "eac-rg11unorm") {
-      return wgpu::TextureFormat::EacRg11Unorm;
+      return wgpu::TextureFormat::EACRG11Unorm;
     }
     if (str == "eac-rg11snorm") {
-      return wgpu::TextureFormat::EacRg11Snorm;
+      return wgpu::TextureFormat::EACRG11Snorm;
     }
     if (str == "astc-4x4-unorm") {
-      return wgpu::TextureFormat::Astc4X4Unorm;
+      return wgpu::TextureFormat::ASTC4x4Unorm;
     }
     if (str == "astc-4x4-unorm-srgb") {
-      return wgpu::TextureFormat::Astc4X4UnormSrgb;
+      return wgpu::TextureFormat::ASTC4x4UnormSrgb;
     }
     if (str == "astc-5x4-unorm") {
-      return wgpu::TextureFormat::Astc5X4Unorm;
+      return wgpu::TextureFormat::ASTC5x4Unorm;
     }
     if (str == "astc-5x4-unorm-srgb") {
-      return wgpu::TextureFormat::Astc5X4UnormSrgb;
+      return wgpu::TextureFormat::ASTC5x4UnormSrgb;
     }
     if (str == "astc-5x5-unorm") {
-      return wgpu::TextureFormat::Astc5X5Unorm;
+      return wgpu::TextureFormat::ASTC5x5Unorm;
     }
     if (str == "astc-5x5-unorm-srgb") {
-      return wgpu::TextureFormat::Astc5X5UnormSrgb;
+      return wgpu::TextureFormat::ASTC5x5UnormSrgb;
     }
     if (str == "astc-6x5-unorm") {
-      return wgpu::TextureFormat::Astc6X5Unorm;
+      return wgpu::TextureFormat::ASTC6x5Unorm;
     }
     if (str == "astc-6x5-unorm-srgb") {
-      return wgpu::TextureFormat::Astc6X5UnormSrgb;
+      return wgpu::TextureFormat::ASTC6x5UnormSrgb;
     }
     if (str == "astc-6x6-unorm") {
-      return wgpu::TextureFormat::Astc6X6Unorm;
+      return wgpu::TextureFormat::ASTC6x6Unorm;
     }
     if (str == "astc-6x6-unorm-srgb") {
-      return wgpu::TextureFormat::Astc6X6UnormSrgb;
+      return wgpu::TextureFormat::ASTC6x6UnormSrgb;
     }
     if (str == "astc-8x5-unorm") {
-      return wgpu::TextureFormat::Astc8X5Unorm;
+      return wgpu::TextureFormat::ASTC8x5Unorm;
     }
     if (str == "astc-8x5-unorm-srgb") {
-      return wgpu::TextureFormat::Astc8X5UnormSrgb;
+      return wgpu::TextureFormat::ASTC8x5UnormSrgb;
     }
     if (str == "astc-8x6-unorm") {
-      return wgpu::TextureFormat::Astc8X6Unorm;
+      return wgpu::TextureFormat::ASTC8x6Unorm;
     }
     if (str == "astc-8x6-unorm-srgb") {
-      return wgpu::TextureFormat::Astc8X6UnormSrgb;
+      return wgpu::TextureFormat::ASTC8x6UnormSrgb;
     }
     if (str == "astc-8x8-unorm") {
-      return wgpu::TextureFormat::Astc8X8Unorm;
+      return wgpu::TextureFormat::ASTC8x8Unorm;
     }
     if (str == "astc-8x8-unorm-srgb") {
-      return wgpu::TextureFormat::Astc8X8UnormSrgb;
+      return wgpu::TextureFormat::ASTC8x8UnormSrgb;
     }
     if (str == "astc-10x5-unorm") {
-      return wgpu::TextureFormat::Astc10X5Unorm;
+      return wgpu::TextureFormat::ASTC10x5Unorm;
     }
     if (str == "astc-10x5-unorm-srgb") {
-      return wgpu::TextureFormat::Astc10X5UnormSrgb;
+      return wgpu::TextureFormat::ASTC10x5UnormSrgb;
     }
     if (str == "astc-10x6-unorm") {
-      return wgpu::TextureFormat::Astc10X6Unorm;
+      return wgpu::TextureFormat::ASTC10x6Unorm;
     }
     if (str == "astc-10x6-unorm-srgb") {
-      return wgpu::TextureFormat::Astc10X6UnormSrgb;
+      return wgpu::TextureFormat::ASTC10x6UnormSrgb;
     }
     if (str == "astc-10x8-unorm") {
-      return wgpu::TextureFormat::Astc10X8Unorm;
+      return wgpu::TextureFormat::ASTC10x8Unorm;
     }
     if (str == "astc-10x8-unorm-srgb") {
-      return wgpu::TextureFormat::Astc10X8UnormSrgb;
+      return wgpu::TextureFormat::ASTC10x8UnormSrgb;
     }
     if (str == "astc-10x10-unorm") {
-      return wgpu::TextureFormat::Astc10X10Unorm;
+      return wgpu::TextureFormat::ASTC10x10Unorm;
     }
     if (str == "astc-10x10-unorm-srgb") {
-      return wgpu::TextureFormat::Astc10X10UnormSrgb;
+      return wgpu::TextureFormat::ASTC10x10UnormSrgb;
     }
     if (str == "astc-12x10-unorm") {
-      return wgpu::TextureFormat::Astc12X10Unorm;
+      return wgpu::TextureFormat::ASTC12x10Unorm;
     }
     if (str == "astc-12x10-unorm-srgb") {
-      return wgpu::TextureFormat::Astc12X10UnormSrgb;
+      return wgpu::TextureFormat::ASTC12x10UnormSrgb;
     }
     if (str == "astc-12x12-unorm") {
-      return wgpu::TextureFormat::Astc12X12Unorm;
+      return wgpu::TextureFormat::ASTC12x12Unorm;
     }
     if (str == "astc-12x12-unorm-srgb") {
-      return wgpu::TextureFormat::Astc12X12UnormSrgb;
+      return wgpu::TextureFormat::ASTC12x12UnormSrgb;
     }
   }
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::TextureFormat arg) {
@@ -964,16 +964,16 @@ template <> struct JSIConverter<wgpu::TextureViewDimension> {
                                             const jsi::Value &arg) {
     auto str = arg.asString(runtime).utf8(runtime);
     if (str == "1d") {
-      return wgpu::TextureViewDimension::1D;
+      return wgpu::TextureViewDimension::e1D;
     }
     if (str == "2d") {
-      return wgpu::TextureViewDimension::2D;
+      return wgpu::TextureViewDimension::e2D;
     }
     if (str == "3d") {
-      return wgpu::TextureViewDimension::3D;
+      return wgpu::TextureViewDimension::e3D;
     }
     if (str == "2d-array") {
-      return wgpu::TextureViewDimension::2DArray;
+      return wgpu::TextureViewDimension::e2DArray;
     }
     if (str == "cube") {
       return wgpu::TextureViewDimension::Cube;
@@ -998,91 +998,91 @@ template <> struct JSIConverter<wgpu::VertexFormat> {
       return wgpu::VertexFormat::Uint32;
     }
     if (str == "uint8x2") {
-      return wgpu::VertexFormat::Uint8X2;
+      return wgpu::VertexFormat::Uint8x2;
     }
     if (str == "uint8x4") {
-      return wgpu::VertexFormat::Uint8X4;
+      return wgpu::VertexFormat::Uint8x4;
     }
     if (str == "sint8x2") {
-      return wgpu::VertexFormat::Sint8X2;
+      return wgpu::VertexFormat::Sint8x2;
     }
     if (str == "sint8x4") {
-      return wgpu::VertexFormat::Sint8X4;
+      return wgpu::VertexFormat::Sint8x4;
     }
     if (str == "unorm8x2") {
-      return wgpu::VertexFormat::Unorm8X2;
+      return wgpu::VertexFormat::Unorm8x2;
     }
     if (str == "unorm8x4") {
-      return wgpu::VertexFormat::Unorm8X4;
+      return wgpu::VertexFormat::Unorm8x4;
     }
     if (str == "snorm8x2") {
-      return wgpu::VertexFormat::Snorm8X2;
+      return wgpu::VertexFormat::Snorm8x2;
     }
     if (str == "snorm8x4") {
-      return wgpu::VertexFormat::Snorm8X4;
+      return wgpu::VertexFormat::Snorm8x4;
     }
     if (str == "uint16x2") {
-      return wgpu::VertexFormat::Uint16X2;
+      return wgpu::VertexFormat::Uint16x2;
     }
     if (str == "uint16x4") {
-      return wgpu::VertexFormat::Uint16X4;
+      return wgpu::VertexFormat::Uint16x4;
     }
     if (str == "sint16x2") {
-      return wgpu::VertexFormat::Sint16X2;
+      return wgpu::VertexFormat::Sint16x2;
     }
     if (str == "sint16x4") {
-      return wgpu::VertexFormat::Sint16X4;
+      return wgpu::VertexFormat::Sint16x4;
     }
     if (str == "unorm16x2") {
-      return wgpu::VertexFormat::Unorm16X2;
+      return wgpu::VertexFormat::Unorm16x2;
     }
     if (str == "unorm16x4") {
-      return wgpu::VertexFormat::Unorm16X4;
+      return wgpu::VertexFormat::Unorm16x4;
     }
     if (str == "snorm16x2") {
-      return wgpu::VertexFormat::Snorm16X2;
+      return wgpu::VertexFormat::Snorm16x2;
     }
     if (str == "snorm16x4") {
-      return wgpu::VertexFormat::Snorm16X4;
+      return wgpu::VertexFormat::Snorm16x4;
     }
     if (str == "float16x2") {
-      return wgpu::VertexFormat::Float16X2;
+      return wgpu::VertexFormat::Float16x2;
     }
     if (str == "float16x4") {
-      return wgpu::VertexFormat::Float16X4;
+      return wgpu::VertexFormat::Float16x4;
     }
     if (str == "float32") {
       return wgpu::VertexFormat::Float32;
     }
     if (str == "float32x2") {
-      return wgpu::VertexFormat::Float32X2;
+      return wgpu::VertexFormat::Float32x2;
     }
     if (str == "float32x3") {
-      return wgpu::VertexFormat::Float32X3;
+      return wgpu::VertexFormat::Float32x3;
     }
     if (str == "float32x4") {
-      return wgpu::VertexFormat::Float32X4;
+      return wgpu::VertexFormat::Float32x4;
     }
     if (str == "uint32x2") {
-      return wgpu::VertexFormat::Uint32X2;
+      return wgpu::VertexFormat::Uint32x2;
     }
     if (str == "uint32x3") {
-      return wgpu::VertexFormat::Uint32X3;
+      return wgpu::VertexFormat::Uint32x3;
     }
     if (str == "uint32x4") {
-      return wgpu::VertexFormat::Uint32X4;
+      return wgpu::VertexFormat::Uint32x4;
     }
     if (str == "sint32") {
       return wgpu::VertexFormat::Sint32;
     }
     if (str == "sint32x2") {
-      return wgpu::VertexFormat::Sint32X2;
+      return wgpu::VertexFormat::Sint32x2;
     }
     if (str == "sint32x3") {
-      return wgpu::VertexFormat::Sint32X3;
+      return wgpu::VertexFormat::Sint32x3;
     }
     if (str == "sint32x4") {
-      return wgpu::VertexFormat::Sint32X4;
+      return wgpu::VertexFormat::Sint32x4;
     }
     if (str == "unorm10-10-10-2") {
       return wgpu::VertexFormat::Unorm1010102;
