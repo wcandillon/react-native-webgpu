@@ -20,7 +20,7 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
   static std::shared_ptr<rnwgpu::GPUBufferBinding>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUBufferBinding>();
     if (value.hasProperty(runtime, "buffer")) {
       auto buffer = value.getProperty(runtime, "buffer");
@@ -32,9 +32,17 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
     }
     if (value.hasProperty(runtime, "offset")) {
       auto offset = value.getProperty(runtime, "offset");
+
+      if (value.hasProperty(runtime, "offset")) {
+        result->_instance.offset = offset.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "size")) {
       auto size = value.getProperty(runtime, "size");
+
+      if (value.hasProperty(runtime, "size")) {
+        result->_instance.size = size.getNumber();
+      }
     }
     return result;
   }

@@ -7,6 +7,8 @@ import { getEnum } from "./templates/Enum";
 import { writeFile } from "./util";
 import { getHybridObject } from "./templates/HybridObject";
 import { getDescriptor } from "./templates/Descriptor";
+import type { Union } from "./templates/Unions";
+import { Unions } from "./templates/Unions";
 
 // Define the path to the WebGPU type declaration file
 const tsConfigFilePath = path.resolve(__dirname, "../../tsconfig.json");
@@ -47,6 +49,27 @@ const hasProptotype = (node: VariableDeclaration) => {
 
   return found;
 };
+
+const unions: Union[] = [];
+
+// Unions
+sourceFile
+  .getTypeAliases()
+  .filter((typeAlias) => {
+    const type = typeAlias.getType();
+    return type.isUnion() && type.getUnionTypes()[0].isStringLiteral();
+  })
+  .forEach((typeAlias) => {
+    unions.push({
+      name: typeAlias.getName(),
+      values: typeAlias
+        .getType()
+        .getUnionTypes()
+        .map((u) => u.getText().replace(/"/g, "")),
+    });
+  });
+
+writeFile("Unions", Unions(unions));
 
 // Enums
 sourceFile

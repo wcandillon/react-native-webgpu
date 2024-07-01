@@ -20,7 +20,7 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineErrorInit>> {
   static std::shared_ptr<rnwgpu::GPUPipelineErrorInit>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUPipelineErrorInit>();
     if (value.hasProperty(runtime, "reason")) {
       auto reason = value.getProperty(runtime, "reason");

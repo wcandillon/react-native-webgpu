@@ -20,13 +20,21 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
   static std::shared_ptr<rnwgpu::GPUMultisampleState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUMultisampleState>();
     if (value.hasProperty(runtime, "count")) {
       auto count = value.getProperty(runtime, "count");
+
+      if (value.hasProperty(runtime, "count")) {
+        result->_instance.count = count.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "mask")) {
       auto mask = value.getProperty(runtime, "mask");
+
+      if (value.hasProperty(runtime, "mask")) {
+        result->_instance.mask = mask.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "alphaToCoverageEnabled")) {
       auto alphaToCoverageEnabled =

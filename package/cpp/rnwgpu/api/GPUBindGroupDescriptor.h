@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUBindGroupDescriptor>();
     if (value.hasProperty(runtime, "layout")) {
       auto layout = value.getProperty(runtime, "layout");

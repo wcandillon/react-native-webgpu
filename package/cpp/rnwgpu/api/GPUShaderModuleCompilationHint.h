@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
   static std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUShaderModuleCompilationHint>();
     if (value.hasProperty(runtime, "entryPoint")) {
       auto entryPoint = value.getProperty(runtime, "entryPoint");

@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
   static std::shared_ptr<rnwgpu::GPUVertexBufferLayout>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUVertexBufferLayout>();
     if (value.hasProperty(runtime, "arrayStride")) {
       auto arrayStride = value.getProperty(runtime, "arrayStride");

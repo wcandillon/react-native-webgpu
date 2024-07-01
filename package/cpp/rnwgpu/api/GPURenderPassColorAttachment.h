@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
   static std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPURenderPassColorAttachment>();
     if (value.hasProperty(runtime, "view")) {
       auto view = value.getProperty(runtime, "view");
@@ -33,6 +33,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
     }
     if (value.hasProperty(runtime, "depthSlice")) {
       auto depthSlice = value.getProperty(runtime, "depthSlice");
+
+      if (value.hasProperty(runtime, "depthSlice")) {
+        result->_instance.depthSlice = depthSlice.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "resolveTarget")) {
       auto resolveTarget = value.getProperty(runtime, "resolveTarget");

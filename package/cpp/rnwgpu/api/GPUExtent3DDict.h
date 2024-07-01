@@ -20,7 +20,7 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDict>> {
   static std::shared_ptr<rnwgpu::GPUExtent3DDict>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUExtent3DDict>();
     if (value.hasProperty(runtime, "width")) {
       auto width = value.getProperty(runtime, "width");
@@ -31,10 +31,18 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDict>> {
     }
     if (value.hasProperty(runtime, "height")) {
       auto height = value.getProperty(runtime, "height");
+
+      if (value.hasProperty(runtime, "height")) {
+        result->_instance.height = height.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "depthOrArrayLayers")) {
       auto depthOrArrayLayers =
           value.getProperty(runtime, "depthOrArrayLayers");
+
+      if (value.hasProperty(runtime, "depthOrArrayLayers")) {
+        result->_instance.depthOrArrayLayers = depthOrArrayLayers.getNumber();
+      }
     }
     return result;
   }

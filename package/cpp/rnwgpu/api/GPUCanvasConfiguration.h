@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
   static std::shared_ptr<rnwgpu::GPUCanvasConfiguration>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUCanvasConfiguration>();
     if (value.hasProperty(runtime, "device")) {
       auto device = value.getProperty(runtime, "device");
@@ -41,6 +41,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
     }
     if (value.hasProperty(runtime, "usage")) {
       auto usage = value.getProperty(runtime, "usage");
+
+      if (value.hasProperty(runtime, "usage")) {
+        result->_instance.usage = usage.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "viewFormats")) {
       auto viewFormats = value.getProperty(runtime, "viewFormats");

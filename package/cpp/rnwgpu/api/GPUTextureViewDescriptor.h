@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUTextureViewDescriptor>();
     if (value.hasProperty(runtime, "format")) {
       auto format = value.getProperty(runtime, "format");
@@ -34,15 +34,31 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
     }
     if (value.hasProperty(runtime, "baseMipLevel")) {
       auto baseMipLevel = value.getProperty(runtime, "baseMipLevel");
+
+      if (value.hasProperty(runtime, "baseMipLevel")) {
+        result->_instance.baseMipLevel = baseMipLevel.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "mipLevelCount")) {
       auto mipLevelCount = value.getProperty(runtime, "mipLevelCount");
+
+      if (value.hasProperty(runtime, "mipLevelCount")) {
+        result->_instance.mipLevelCount = mipLevelCount.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "baseArrayLayer")) {
       auto baseArrayLayer = value.getProperty(runtime, "baseArrayLayer");
+
+      if (value.hasProperty(runtime, "baseArrayLayer")) {
+        result->_instance.baseArrayLayer = baseArrayLayer.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "arrayLayerCount")) {
       auto arrayLayerCount = value.getProperty(runtime, "arrayLayerCount");
+
+      if (value.hasProperty(runtime, "arrayLayerCount")) {
+        result->_instance.arrayLayerCount = arrayLayerCount.getNumber();
+      }
     }
     return result;
   }

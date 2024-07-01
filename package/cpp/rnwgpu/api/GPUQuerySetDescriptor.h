@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUQuerySetDescriptor>();
     if (value.hasProperty(runtime, "type")) {
       auto type = value.getProperty(runtime, "type");

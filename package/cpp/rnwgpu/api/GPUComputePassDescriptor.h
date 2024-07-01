@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUComputePassDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUComputePassDescriptor>();
     if (value.hasProperty(runtime, "timestampWrites")) {
       auto timestampWrites = value.getProperty(runtime, "timestampWrites");

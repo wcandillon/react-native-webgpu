@@ -12,15 +12,30 @@ const getNumber = (name: string) => {
 }`;
 };
 
+const getString = (name: string) => {
+  return `if (value.hasProperty(runtime, "${name}")) {
+    auto str = value.asString(runtime).utf8(runtime);
+    result->_instance.${name} = str.c_str();
+}`;
+};
+
+const getEnum = (values: string[]) => {
+  console.log(values);
+  return ``;
+};
+
 const propFromJSI = (className: string, prop: PropertySignature) => {
   const name = prop.getName();
   const isOptional = prop.getType().getText().includes("undefined");
   const possibleTypes = prop.getType().getUnionTypes().map(t => t.getText()).filter((t) => t != "undefined");
-  console.log(possibleTypes);
+  const enumValues = possibleTypes.filter((t) => t.startsWith('"'));
+  //console.log(possibleTypes);
   return `if (value.hasProperty(runtime, "${name}")) {
   auto ${name} = value.getProperty(runtime, "${name}");
   ${possibleTypes.includes("true") || possibleTypes.includes("false") ? getBoolean(name) : ""}
   ${possibleTypes.includes("number") ? getNumber(name) : ""}
+  ${possibleTypes.includes("string") ? getString(name) : ""}
+  ${enumValues.length > 0 ? getEnum(enumValues.map(v => v.substring(1, v.length-1))) : ""}
   ${!isOptional ? `else if (${name}.isUndefined()) {
     throw std::runtime_error("Property ${className}::${name} is required");  
   }` : ""}

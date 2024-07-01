@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
   static std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUUncapturedErrorEventInit>();
     if (value.hasProperty(runtime, "error")) {
       auto error = value.getProperty(runtime, "error");

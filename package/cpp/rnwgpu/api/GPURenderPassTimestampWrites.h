@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassTimestampWrites>> {
   static std::shared_ptr<rnwgpu::GPURenderPassTimestampWrites>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPURenderPassTimestampWrites>();
     if (value.hasProperty(runtime, "querySet")) {
       auto querySet = value.getProperty(runtime, "querySet");
@@ -34,10 +34,19 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassTimestampWrites>> {
     if (value.hasProperty(runtime, "beginningOfPassWriteIndex")) {
       auto beginningOfPassWriteIndex =
           value.getProperty(runtime, "beginningOfPassWriteIndex");
+
+      if (value.hasProperty(runtime, "beginningOfPassWriteIndex")) {
+        result->_instance.beginningOfPassWriteIndex =
+            beginningOfPassWriteIndex.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "endOfPassWriteIndex")) {
       auto endOfPassWriteIndex =
           value.getProperty(runtime, "endOfPassWriteIndex");
+
+      if (value.hasProperty(runtime, "endOfPassWriteIndex")) {
+        result->_instance.endOfPassWriteIndex = endOfPassWriteIndex.getNumber();
+      }
     }
     return result;
   }

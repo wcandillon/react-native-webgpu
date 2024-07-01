@@ -20,7 +20,7 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
   static std::shared_ptr<rnwgpu::GPUColorTargetState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUColorTargetState>();
     if (value.hasProperty(runtime, "format")) {
       auto format = value.getProperty(runtime, "format");
@@ -35,6 +35,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
     }
     if (value.hasProperty(runtime, "writeMask")) {
       auto writeMask = value.getProperty(runtime, "writeMask");
+
+      if (value.hasProperty(runtime, "writeMask")) {
+        result->_instance.writeMask = writeMask.getNumber();
+      }
     }
     return result;
   }

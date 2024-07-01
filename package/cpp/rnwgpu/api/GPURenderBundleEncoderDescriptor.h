@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
   static std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPURenderBundleEncoderDescriptor>();
     if (value.hasProperty(runtime, "depthReadOnly")) {
       auto depthReadOnly = value.getProperty(runtime, "depthReadOnly");

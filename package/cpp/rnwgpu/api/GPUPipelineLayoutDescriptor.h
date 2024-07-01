@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUPipelineLayoutDescriptor>();
     if (value.hasProperty(runtime, "bindGroupLayouts")) {
       auto bindGroupLayouts = value.getProperty(runtime, "bindGroupLayouts");

@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
   static std::shared_ptr<rnwgpu::GPURenderPassDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPURenderPassDescriptor>();
     if (value.hasProperty(runtime, "colorAttachments")) {
       auto colorAttachments = value.getProperty(runtime, "colorAttachments");
@@ -43,6 +43,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
     }
     if (value.hasProperty(runtime, "maxDrawCount")) {
       auto maxDrawCount = value.getProperty(runtime, "maxDrawCount");
+
+      if (value.hasProperty(runtime, "maxDrawCount")) {
+        result->_instance.maxDrawCount = maxDrawCount.getNumber();
+      }
     }
     return result;
   }

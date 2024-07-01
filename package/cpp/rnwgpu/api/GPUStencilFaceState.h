@@ -20,7 +20,7 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
   static std::shared_ptr<rnwgpu::GPUStencilFaceState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUStencilFaceState>();
     if (value.hasProperty(runtime, "compare")) {
       auto compare = value.getProperty(runtime, "compare");

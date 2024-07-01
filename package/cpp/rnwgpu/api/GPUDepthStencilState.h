@@ -20,7 +20,7 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
   static std::shared_ptr<rnwgpu::GPUDepthStencilState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUDepthStencilState>();
     if (value.hasProperty(runtime, "format")) {
       auto format = value.getProperty(runtime, "format");
@@ -47,19 +47,39 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
     }
     if (value.hasProperty(runtime, "stencilReadMask")) {
       auto stencilReadMask = value.getProperty(runtime, "stencilReadMask");
+
+      if (value.hasProperty(runtime, "stencilReadMask")) {
+        result->_instance.stencilReadMask = stencilReadMask.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "stencilWriteMask")) {
       auto stencilWriteMask = value.getProperty(runtime, "stencilWriteMask");
+
+      if (value.hasProperty(runtime, "stencilWriteMask")) {
+        result->_instance.stencilWriteMask = stencilWriteMask.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "depthBias")) {
       auto depthBias = value.getProperty(runtime, "depthBias");
+
+      if (value.hasProperty(runtime, "depthBias")) {
+        result->_instance.depthBias = depthBias.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "depthBiasSlopeScale")) {
       auto depthBiasSlopeScale =
           value.getProperty(runtime, "depthBiasSlopeScale");
+
+      if (value.hasProperty(runtime, "depthBiasSlopeScale")) {
+        result->_instance.depthBiasSlopeScale = depthBiasSlopeScale.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "depthBiasClamp")) {
       auto depthBiasClamp = value.getProperty(runtime, "depthBiasClamp");
+
+      if (value.hasProperty(runtime, "depthBiasClamp")) {
+        result->_instance.depthBiasClamp = depthBiasClamp.getNumber();
+      }
     }
     return result;
   }

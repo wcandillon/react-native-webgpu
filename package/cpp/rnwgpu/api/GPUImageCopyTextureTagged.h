@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
   static std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUImageCopyTextureTagged>();
     if (value.hasProperty(runtime, "colorSpace")) {
       auto colorSpace = value.getProperty(runtime, "colorSpace");

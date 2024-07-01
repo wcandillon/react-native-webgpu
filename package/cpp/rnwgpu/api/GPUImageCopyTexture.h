@@ -20,7 +20,7 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
   static std::shared_ptr<rnwgpu::GPUImageCopyTexture>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUImageCopyTexture>();
     if (value.hasProperty(runtime, "texture")) {
       auto texture = value.getProperty(runtime, "texture");
@@ -32,6 +32,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
     }
     if (value.hasProperty(runtime, "mipLevel")) {
       auto mipLevel = value.getProperty(runtime, "mipLevel");
+
+      if (value.hasProperty(runtime, "mipLevel")) {
+        result->_instance.mipLevel = mipLevel.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "origin")) {
       auto origin = value.getProperty(runtime, "origin");

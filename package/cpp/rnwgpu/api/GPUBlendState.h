@@ -20,7 +20,7 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
   static std::shared_ptr<rnwgpu::GPUBlendState> fromJSI(jsi::Runtime &runtime,
                                                         const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUBlendState>();
     if (value.hasProperty(runtime, "color")) {
       auto color = value.getProperty(runtime, "color");

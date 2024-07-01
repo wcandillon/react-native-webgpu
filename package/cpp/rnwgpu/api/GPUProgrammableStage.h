@@ -20,7 +20,7 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
   static std::shared_ptr<rnwgpu::GPUProgrammableStage>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUProgrammableStage>();
     if (value.hasProperty(runtime, "module")) {
       auto module = value.getProperty(runtime, "module");
@@ -32,6 +32,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
     }
     if (value.hasProperty(runtime, "entryPoint")) {
       auto entryPoint = value.getProperty(runtime, "entryPoint");
+
+      if (value.hasProperty(runtime, "entryPoint")) {
+        auto str = value.asString(runtime).utf8(runtime);
+        result->_instance.entryPoint = str.c_str();
+      }
     }
     if (value.hasProperty(runtime, "constants")) {
       auto constants = value.getProperty(runtime, "constants");

@@ -20,7 +20,7 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUBufferDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUBufferDescriptor>();
     if (value.hasProperty(runtime, "size")) {
       auto size = value.getProperty(runtime, "size");

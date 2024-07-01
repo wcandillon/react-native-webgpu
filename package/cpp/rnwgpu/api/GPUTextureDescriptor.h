@@ -20,7 +20,7 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUTextureDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUTextureDescriptor>();
     if (value.hasProperty(runtime, "size")) {
       auto size = value.getProperty(runtime, "size");
@@ -32,9 +32,17 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
     }
     if (value.hasProperty(runtime, "mipLevelCount")) {
       auto mipLevelCount = value.getProperty(runtime, "mipLevelCount");
+
+      if (value.hasProperty(runtime, "mipLevelCount")) {
+        result->_instance.mipLevelCount = mipLevelCount.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "sampleCount")) {
       auto sampleCount = value.getProperty(runtime, "sampleCount");
+
+      if (value.hasProperty(runtime, "sampleCount")) {
+        result->_instance.sampleCount = sampleCount.getNumber();
+      }
     }
     if (value.hasProperty(runtime, "dimension")) {
       auto dimension = value.getProperty(runtime, "dimension");

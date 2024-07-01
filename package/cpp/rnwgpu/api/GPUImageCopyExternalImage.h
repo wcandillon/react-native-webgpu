@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
   static std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUImageCopyExternalImage>();
     if (value.hasProperty(runtime, "source")) {
       auto source = value.getProperty(runtime, "source");

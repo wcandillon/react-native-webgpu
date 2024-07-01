@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
   static std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUStorageTextureBindingLayout>();
     if (value.hasProperty(runtime, "access")) {
       auto access = value.getProperty(runtime, "access");

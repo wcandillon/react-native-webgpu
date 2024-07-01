@@ -21,7 +21,7 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
   static std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUSamplerBindingLayout>();
     if (value.hasProperty(runtime, "type")) {
       auto type = value.getProperty(runtime, "type");

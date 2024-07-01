@@ -20,7 +20,7 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyBuffer>> {
   static std::shared_ptr<rnwgpu::GPUImageCopyBuffer>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUImageCopyBuffer>();
     if (value.hasProperty(runtime, "buffer")) {
       auto buffer = value.getProperty(runtime, "buffer");

@@ -20,7 +20,7 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUDeviceDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto object = arg.getObject(runtime);
+    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUDeviceDescriptor>();
     if (value.hasProperty(runtime, "requiredFeatures")) {
       auto requiredFeatures = value.getProperty(runtime, "requiredFeatures");
