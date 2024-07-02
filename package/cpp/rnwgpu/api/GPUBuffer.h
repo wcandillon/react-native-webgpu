@@ -24,13 +24,16 @@ public:
   std::string getBrand() { return _name; }
 
   std::shared_ptr<MutableJSIBuffer> getMappedRange(double offset,
-                                              double size) {
-    __android_log_print(ANDROID_LOG_DEBUG, "GPUBuffer", "offset: %f", offset);
-    __android_log_print(ANDROID_LOG_DEBUG, "GPUBuffer", "size: %f", size);
-    auto result =
-        _instance->GetMappedRange(0);
-    __android_log_print(ANDROID_LOG_DEBUG, "GPUBuffer", "result address: %p", result);
-    return std::make_shared<MutableJSIBuffer>(result, size);
+                                                   double size) {
+    auto offsetParam = static_cast<size_t>(offset);
+    auto sizeParam = static_cast<size_t>(size);
+    auto usage = _instance->GetUsage();
+    void *data = (usage & wgpu::BufferUsage::MapWrite)
+                     ? _instance->GetMappedRange(offsetParam )
+                     : const_cast<void *>(
+                         _instance->GetConstMappedRange(offsetParam));
+
+    return std::make_shared<MutableJSIBuffer>(data, size);
   }
 
   void unmap() { _instance->Unmap(); }
