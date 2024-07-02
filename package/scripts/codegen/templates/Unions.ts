@@ -14,7 +14,14 @@ export const Unions = (unions: Union[]) => {
 
 namespace margelo {
 
-${unions.map((union) => Union(union)).join("\n")}
+${unions
+  .filter(
+    (union) =>
+      union.name !== "GPUCanvasAlphaMode" &&
+      union.name !== "GPUPipelineErrorReason",
+  )
+  .map((union) => Union(union))
+  .join("\n")}
 
 } // namespace margelo
 `;
@@ -26,6 +33,7 @@ const enumName = (input: string) => {
     "2d": "e2D",
     "3d": "e3D",
     "2d-array": "e2DArray",
+    "unorm10-10-10-2": "Unorm10_10_10_2",
   };
   if (map[input] !== undefined) {
     return map[input];
@@ -61,7 +69,7 @@ const enumName = (input: string) => {
 const Union = (union: Union) => {
   const { name } = union;
   const wgpuName = `wgpu::${name.substring(3)}`;
-  return `// Object <> Object
+  return `
 template <>
 struct JSIConverter<${wgpuName}> {
   static ${wgpuName}
@@ -75,6 +83,7 @@ struct JSIConverter<${wgpuName}> {
       })
       .join("\n")}
   }
+
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         ${wgpuName} arg) {

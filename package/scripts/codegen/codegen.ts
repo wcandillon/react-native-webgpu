@@ -121,5 +121,5 @@ sourceFile
       decl.getProperty("__brand") === undefined,
   )
   .forEach((decl) => {
-    writeFile(decl.getName(), getDescriptor(decl));
+    writeFile(decl.getName(), getDescriptor(decl, unions));
   });

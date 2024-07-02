@@ -6,7 +6,6 @@
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::AddressMode> {
   static wgpu::AddressMode fromJSI(jsi::Runtime &runtime,
                                    const jsi::Value &arg) {
@@ -21,13 +20,13 @@ template <> struct JSIConverter<wgpu::AddressMode> {
       return wgpu::AddressMode::MirrorRepeat;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::AddressMode arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::BlendFactor> {
   static wgpu::BlendFactor fromJSI(jsi::Runtime &runtime,
                                    const jsi::Value &arg) {
@@ -72,13 +71,13 @@ template <> struct JSIConverter<wgpu::BlendFactor> {
       return wgpu::BlendFactor::OneMinusConstant;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::BlendFactor arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::BlendOperation> {
   static wgpu::BlendOperation fromJSI(jsi::Runtime &runtime,
                                       const jsi::Value &arg) {
@@ -99,13 +98,13 @@ template <> struct JSIConverter<wgpu::BlendOperation> {
       return wgpu::BlendOperation::Max;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::BlendOperation arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::BufferBindingType> {
   static wgpu::BufferBindingType fromJSI(jsi::Runtime &runtime,
                                          const jsi::Value &arg) {
@@ -120,13 +119,13 @@ template <> struct JSIConverter<wgpu::BufferBindingType> {
       return wgpu::BufferBindingType::ReadOnlyStorage;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::BufferBindingType arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::BufferMapState> {
   static wgpu::BufferMapState fromJSI(jsi::Runtime &runtime,
                                       const jsi::Value &arg) {
@@ -141,31 +140,13 @@ template <> struct JSIConverter<wgpu::BufferMapState> {
       return wgpu::BufferMapState::Mapped;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::BufferMapState arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
-template <> struct JSIConverter<wgpu::CanvasAlphaMode> {
-  static wgpu::CanvasAlphaMode fromJSI(jsi::Runtime &runtime,
-                                       const jsi::Value &arg) {
-    auto str = arg.asString(runtime).utf8(runtime);
-    if (str == "opaque") {
-      return wgpu::CanvasAlphaMode::Opaque;
-    }
-    if (str == "premultiplied") {
-      return wgpu::CanvasAlphaMode::Premultiplied;
-    }
-  }
-  static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::CanvasAlphaMode arg) {
-    // No conversions here
-    return jsi::Value::null();
-  }
-};
-
-// Object <> Object
 template <> struct JSIConverter<wgpu::CompareFunction> {
   static wgpu::CompareFunction fromJSI(jsi::Runtime &runtime,
                                        const jsi::Value &arg) {
@@ -195,13 +176,13 @@ template <> struct JSIConverter<wgpu::CompareFunction> {
       return wgpu::CompareFunction::Always;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::CompareFunction arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::CompilationMessageType> {
   static wgpu::CompilationMessageType fromJSI(jsi::Runtime &runtime,
                                               const jsi::Value &arg) {
@@ -216,6 +197,7 @@ template <> struct JSIConverter<wgpu::CompilationMessageType> {
       return wgpu::CompilationMessageType::Info;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           wgpu::CompilationMessageType arg) {
     // No conversions here
@@ -223,7 +205,6 @@ template <> struct JSIConverter<wgpu::CompilationMessageType> {
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::CullMode> {
   static wgpu::CullMode fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
     auto str = arg.asString(runtime).utf8(runtime);
@@ -237,13 +218,13 @@ template <> struct JSIConverter<wgpu::CullMode> {
       return wgpu::CullMode::Back;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::CullMode arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::DeviceLostReason> {
   static wgpu::DeviceLostReason fromJSI(jsi::Runtime &runtime,
                                         const jsi::Value &arg) {
@@ -255,13 +236,13 @@ template <> struct JSIConverter<wgpu::DeviceLostReason> {
       return wgpu::DeviceLostReason::Destroyed;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::DeviceLostReason arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::ErrorFilter> {
   static wgpu::ErrorFilter fromJSI(jsi::Runtime &runtime,
                                    const jsi::Value &arg) {
@@ -276,13 +257,13 @@ template <> struct JSIConverter<wgpu::ErrorFilter> {
       return wgpu::ErrorFilter::Internal;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::ErrorFilter arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::FeatureName> {
   static wgpu::FeatureName fromJSI(jsi::Runtime &runtime,
                                    const jsi::Value &arg) {
@@ -321,13 +302,13 @@ template <> struct JSIConverter<wgpu::FeatureName> {
       return wgpu::FeatureName::Float32Filterable;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::FeatureName arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::FilterMode> {
   static wgpu::FilterMode fromJSI(jsi::Runtime &runtime,
                                   const jsi::Value &arg) {
@@ -339,13 +320,13 @@ template <> struct JSIConverter<wgpu::FilterMode> {
       return wgpu::FilterMode::Linear;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::FilterMode arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::FrontFace> {
   static wgpu::FrontFace fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
     auto str = arg.asString(runtime).utf8(runtime);
@@ -356,13 +337,13 @@ template <> struct JSIConverter<wgpu::FrontFace> {
       return wgpu::FrontFace::CW;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::FrontFace arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::IndexFormat> {
   static wgpu::IndexFormat fromJSI(jsi::Runtime &runtime,
                                    const jsi::Value &arg) {
@@ -374,13 +355,13 @@ template <> struct JSIConverter<wgpu::IndexFormat> {
       return wgpu::IndexFormat::Uint32;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::IndexFormat arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::LoadOp> {
   static wgpu::LoadOp fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
     auto str = arg.asString(runtime).utf8(runtime);
@@ -391,13 +372,13 @@ template <> struct JSIConverter<wgpu::LoadOp> {
       return wgpu::LoadOp::Clear;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::LoadOp arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::MipmapFilterMode> {
   static wgpu::MipmapFilterMode fromJSI(jsi::Runtime &runtime,
                                         const jsi::Value &arg) {
@@ -409,32 +390,13 @@ template <> struct JSIConverter<wgpu::MipmapFilterMode> {
       return wgpu::MipmapFilterMode::Linear;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::MipmapFilterMode arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
-template <> struct JSIConverter<wgpu::PipelineErrorReason> {
-  static wgpu::PipelineErrorReason fromJSI(jsi::Runtime &runtime,
-                                           const jsi::Value &arg) {
-    auto str = arg.asString(runtime).utf8(runtime);
-    if (str == "validation") {
-      return wgpu::PipelineErrorReason::Validation;
-    }
-    if (str == "internal") {
-      return wgpu::PipelineErrorReason::Internal;
-    }
-  }
-  static jsi::Value toJSI(jsi::Runtime &runtime,
-                          wgpu::PipelineErrorReason arg) {
-    // No conversions here
-    return jsi::Value::null();
-  }
-};
-
-// Object <> Object
 template <> struct JSIConverter<wgpu::PowerPreference> {
   static wgpu::PowerPreference fromJSI(jsi::Runtime &runtime,
                                        const jsi::Value &arg) {
@@ -446,13 +408,13 @@ template <> struct JSIConverter<wgpu::PowerPreference> {
       return wgpu::PowerPreference::HighPerformance;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::PowerPreference arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::PrimitiveTopology> {
   static wgpu::PrimitiveTopology fromJSI(jsi::Runtime &runtime,
                                          const jsi::Value &arg) {
@@ -473,13 +435,13 @@ template <> struct JSIConverter<wgpu::PrimitiveTopology> {
       return wgpu::PrimitiveTopology::TriangleStrip;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::PrimitiveTopology arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::QueryType> {
   static wgpu::QueryType fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
     auto str = arg.asString(runtime).utf8(runtime);
@@ -490,13 +452,13 @@ template <> struct JSIConverter<wgpu::QueryType> {
       return wgpu::QueryType::Timestamp;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::QueryType arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::SamplerBindingType> {
   static wgpu::SamplerBindingType fromJSI(jsi::Runtime &runtime,
                                           const jsi::Value &arg) {
@@ -511,13 +473,13 @@ template <> struct JSIConverter<wgpu::SamplerBindingType> {
       return wgpu::SamplerBindingType::Comparison;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::SamplerBindingType arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::StencilOperation> {
   static wgpu::StencilOperation fromJSI(jsi::Runtime &runtime,
                                         const jsi::Value &arg) {
@@ -547,13 +509,13 @@ template <> struct JSIConverter<wgpu::StencilOperation> {
       return wgpu::StencilOperation::DecrementWrap;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::StencilOperation arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::StorageTextureAccess> {
   static wgpu::StorageTextureAccess fromJSI(jsi::Runtime &runtime,
                                             const jsi::Value &arg) {
@@ -568,6 +530,7 @@ template <> struct JSIConverter<wgpu::StorageTextureAccess> {
       return wgpu::StorageTextureAccess::ReadWrite;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           wgpu::StorageTextureAccess arg) {
     // No conversions here
@@ -575,7 +538,6 @@ template <> struct JSIConverter<wgpu::StorageTextureAccess> {
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::StoreOp> {
   static wgpu::StoreOp fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
     auto str = arg.asString(runtime).utf8(runtime);
@@ -586,13 +548,13 @@ template <> struct JSIConverter<wgpu::StoreOp> {
       return wgpu::StoreOp::Discard;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::StoreOp arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::TextureAspect> {
   static wgpu::TextureAspect fromJSI(jsi::Runtime &runtime,
                                      const jsi::Value &arg) {
@@ -607,13 +569,13 @@ template <> struct JSIConverter<wgpu::TextureAspect> {
       return wgpu::TextureAspect::DepthOnly;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::TextureAspect arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::TextureDimension> {
   static wgpu::TextureDimension fromJSI(jsi::Runtime &runtime,
                                         const jsi::Value &arg) {
@@ -628,13 +590,13 @@ template <> struct JSIConverter<wgpu::TextureDimension> {
       return wgpu::TextureDimension::e3D;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::TextureDimension arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::TextureFormat> {
   static wgpu::TextureFormat fromJSI(jsi::Runtime &runtime,
                                      const jsi::Value &arg) {
@@ -925,13 +887,13 @@ template <> struct JSIConverter<wgpu::TextureFormat> {
       return wgpu::TextureFormat::ASTC12x12UnormSrgb;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::TextureFormat arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::TextureSampleType> {
   static wgpu::TextureSampleType fromJSI(jsi::Runtime &runtime,
                                          const jsi::Value &arg) {
@@ -952,13 +914,13 @@ template <> struct JSIConverter<wgpu::TextureSampleType> {
       return wgpu::TextureSampleType::Uint;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::TextureSampleType arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::TextureViewDimension> {
   static wgpu::TextureViewDimension fromJSI(jsi::Runtime &runtime,
                                             const jsi::Value &arg) {
@@ -982,6 +944,7 @@ template <> struct JSIConverter<wgpu::TextureViewDimension> {
       return wgpu::TextureViewDimension::CubeArray;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           wgpu::TextureViewDimension arg) {
     // No conversions here
@@ -989,7 +952,6 @@ template <> struct JSIConverter<wgpu::TextureViewDimension> {
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::VertexFormat> {
   static wgpu::VertexFormat fromJSI(jsi::Runtime &runtime,
                                     const jsi::Value &arg) {
@@ -1085,16 +1047,16 @@ template <> struct JSIConverter<wgpu::VertexFormat> {
       return wgpu::VertexFormat::Sint32x4;
     }
     if (str == "unorm10-10-10-2") {
-      return wgpu::VertexFormat::Unorm1010102;
+      return wgpu::VertexFormat::Unorm10_10_10_2;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::VertexFormat arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-// Object <> Object
 template <> struct JSIConverter<wgpu::VertexStepMode> {
   static wgpu::VertexStepMode fromJSI(jsi::Runtime &runtime,
                                       const jsi::Value &arg) {
@@ -1106,6 +1068,7 @@ template <> struct JSIConverter<wgpu::VertexStepMode> {
       return wgpu::VertexStepMode::Instance;
     }
   }
+
   static jsi::Value toJSI(jsi::Runtime &runtime, wgpu::VertexStepMode arg) {
     // No conversions here
     return jsi::Value::null();

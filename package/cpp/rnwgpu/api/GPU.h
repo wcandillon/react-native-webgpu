@@ -23,6 +23,7 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  /* TODO: Implement nullable here */
   std::future<std::shared_ptr<GPUAdapter>>
   requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options);
 
