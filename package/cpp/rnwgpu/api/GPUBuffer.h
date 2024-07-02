@@ -3,6 +3,7 @@
 #include <future>
 #include <memory>
 #include <string>
+#include <android/log.h>
 
 #include <RNFHybridObject.h>
 
@@ -24,8 +25,11 @@ public:
 
   std::shared_ptr<MutableJSIBuffer> getMappedRange(double offset,
                                               double size) {
+    __android_log_print(ANDROID_LOG_DEBUG, "GPUBuffer", "offset: %f", offset);
+    __android_log_print(ANDROID_LOG_DEBUG, "GPUBuffer", "size: %f", size);
     auto result =
-        _instance->GetMappedRange(offset, size);
+        _instance->GetMappedRange(0);
+    __android_log_print(ANDROID_LOG_DEBUG, "GPUBuffer", "result address: %p", result);
     return std::make_shared<MutableJSIBuffer>(result, size);
   }
 
