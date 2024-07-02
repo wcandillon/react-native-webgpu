@@ -6,6 +6,9 @@ import { Node, Project } from "ts-morph";
 import { getEnum } from "./templates/Enum";
 import { writeFile } from "./util";
 import { getHybridObject } from "./templates/HybridObject";
+import { getDescriptor } from "./templates/Descriptor";
+import type { Union } from "./templates/Unions";
+import { Unions } from "./templates/Unions";
 
 // Define the path to the WebGPU type declaration file
 const tsConfigFilePath = path.resolve(__dirname, "../../tsconfig.json");
@@ -47,6 +50,27 @@ const hasProptotype = (node: VariableDeclaration) => {
   return found;
 };
 
+const unions: Union[] = [];
+
+// Unions
+sourceFile
+  .getTypeAliases()
+  .filter((typeAlias) => {
+    const type = typeAlias.getType();
+    return type.isUnion() && type.getUnionTypes()[0].isStringLiteral();
+  })
+  .forEach((typeAlias) => {
+    unions.push({
+      name: typeAlias.getName(),
+      values: typeAlias
+        .getType()
+        .getUnionTypes()
+        .map((u) => u.getText().replace(/"/g, "")),
+    });
+  });
+
+writeFile("Unions", Unions(unions));
+
 // Enums
 sourceFile
   .getVariableDeclarations()
@@ -69,7 +93,7 @@ sourceFile
       decl.getName().startsWith("GPU") && decl.getName().endsWith("Error"),
   )
   .forEach((variableDeclaration) => {
-    console.log(`Error name: ${variableDeclaration.getName()}`);
+    console.log(`Error class not generated: ${variableDeclaration.getName()}`);
   });
 
 // Objects
@@ -77,13 +101,25 @@ sourceFile
   .getInterfaces()
   .filter(
     (decl) =>
-      decl.getName().startsWith("GPU") && !decl.getName().endsWith("Mixin"),
+      decl.getName().startsWith("GPU") &&
+      !decl.getName().endsWith("Mixin") &&
+      !decl.getName().endsWith("Error") &&
+      decl.getProperty("__brand") !== undefined,
   )
   .forEach((decl) => {
-    const hasMethods = decl.getMethods().length > 0;
-    if (hasMethods) {
-      writeFile(decl.getName(), getHybridObject(decl));
-    }
+    writeFile(decl.getName(), getHybridObject(decl));
   });
 
 // Descriptors
+sourceFile
+  .getInterfaces()
+  .filter(
+    (decl) =>
+      decl.getName().startsWith("GPU") &&
+      !decl.getName().endsWith("Mixin") &&
+      !decl.getName().endsWith("Error") &&
+      decl.getProperty("__brand") === undefined,
+  )
+  .forEach((decl) => {
+    writeFile(decl.getName(), getDescriptor(decl, unions));
+  });

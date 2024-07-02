@@ -4,8 +4,9 @@
 #include <memory>
 #include <string>
 
-#include "webgpu/webgpu_cpp.h"
 #include <RNFHybridObject.h>
+
+#include "webgpu/webgpu_cpp.h"
 
 #include "GPUAdapter.h"
 #include "GPURequestAdapterOptions.h"
@@ -20,15 +21,10 @@ public:
       : HybridObject("GPU"), _instance(instance) {}
 
 public:
-  std::future<std::shared_ptr<GPUAdapter>>
-  requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
-    wgpu::RequestAdapterOptions defaultOptions;
-    // Create a shared_ptr to GPUAdapter
-    return std::async(std::launch::async,
-                      [=]() { return std::make_shared<GPUAdapter>(); });
-  }
-
   std::string getBrand() { return _name; }
+
+  std::future<std::shared_ptr<GPUAdapter>>
+  requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options);
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPU::getBrand, this);
