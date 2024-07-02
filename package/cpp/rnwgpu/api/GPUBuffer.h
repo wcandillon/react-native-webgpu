@@ -8,6 +8,8 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "MutableBuffer.h"
+
 namespace rnwgpu {
 
 namespace m = margelo;
@@ -20,10 +22,13 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  void getMappedRange(double offset,
-                      double size) {
-    _instance->GetMappedRange(offset, size);
+  std::shared_ptr<MutableJSIBuffer> getMappedRange(double offset,
+                                              double size) {
+    auto result =
+        _instance->GetMappedRange(offset, size);
+    return std::make_shared<MutableJSIBuffer>(result, size);
   }
+
   void unmap() { _instance->Unmap(); }
 
   void loadHybridMethods() override {

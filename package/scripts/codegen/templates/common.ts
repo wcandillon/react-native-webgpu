@@ -45,6 +45,8 @@ const getType = (type: Type): string => {
     return getType(
       type.getUnionTypes().filter((t) => !t.isNull() && !t.isUndefined())[0],
     );
+  } else if (type.isNumber()) {
+    return "double";
   }
   if (type.getTypeArguments()[0]) {
     return getType(type.getTypeArguments()[0]);

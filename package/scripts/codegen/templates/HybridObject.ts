@@ -57,10 +57,10 @@ public:
   ${methods
     .filter((method) => !method.async)
     .map((method) => {
-      const isUndefined = method.returns;
+      const isUndefined = method.returns === "undefined";
       return `${isUndefined ? "void" : `std::shared_ptr<${method.returns}>`} ${method.name}(${method.args.join(", ")}) {
       ${isUndefined ? "" : "auto result = "}_instance->${_.upperFirst(method.name)}(${method.argNames.map((n) => `${n}->getInstance()`).join(", ")});
-      ${isUndefined ? "" : "return std::make_shared<${method.returns}>(std::make_shared<${method.wgpuReturns}>(result));"}
+      ${isUndefined ? "" : `return std::make_shared<${method.returns}>(std::make_shared<${method.wgpuReturns}>(result));`}
     }`;
     })
     .join("\n")}
