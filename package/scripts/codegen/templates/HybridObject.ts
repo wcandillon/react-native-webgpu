@@ -1,4 +1,6 @@
+/* eslint-disable max-len */
 import type { InterfaceDeclaration } from "ts-morph";
+import _ from "lodash";
 
 import { getJSIMethod } from "./common";
 
@@ -6,12 +8,14 @@ const instanceAliases: Record<string, string> = {
   GPU: "Instance",
 };
 
+const whiteList = ["requestAdapter", "requestDevice", "createBuffer"];
+
 export const getHybridObject = (decl: InterfaceDeclaration) => {
   const name = decl.getName();
   const methods = decl
     .getMethods()
     .map((m) => getJSIMethod(m))
-    .filter((m) => m.name === "requestAdapter" || m.name === "requestDevice");
+    .filter((m) => whiteList.includes(m.name));
   const dependencies = methods.flatMap((method) => method.dependencies);
   const instanceName = `wgpu::${instanceAliases[name] || name.substring(3)}`;
   return `#pragma once
@@ -48,7 +52,8 @@ public:
     .filter((method) => !method.async)
     .map((method) => {
       return `std::shared_ptr<${method.returns}> ${method.name}(${method.args.join(", ")}) {
-      return _instance->${method.name}();
+      auto result = _instance->${_.upperFirst(method.name)}(${method.argNames.map((n) => `${n}->getInstance()`).join(", ")});
+      return std::make_shared<${method.returns}>(std::make_shared<${methods.wgpuReturns}>(result));
     }`;
     })
     .join("\n")}

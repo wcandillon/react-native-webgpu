@@ -7,7 +7,9 @@ interface JsiMethod {
   apiName: string;
   dependencies: string[];
   args: string[];
+  argNames: string[];
   returns: string;
+  wgpuReturns: string;
 }
 
 export const getJSIMethod = (method: MethodSignature): JsiMethod => {
@@ -23,13 +25,18 @@ export const getJSIMethod = (method: MethodSignature): JsiMethod => {
     }
     return `std::shared_ptr<${type}> ${p.getName()}`;
   });
+  const argNames: string[] = method
+    .getParameters()
+    .map((p) => `${p.getName()}`);
   return {
     async,
     apiName,
     name,
     dependencies,
     args,
+    argNames,
     returns,
+    wgpuReturns: "wgpu::Buffer",
   };
 };
 
