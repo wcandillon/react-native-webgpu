@@ -8,7 +8,7 @@ const instanceAliases: Record<string, string> = {
   GPU: "Instance",
 };
 
-const whiteList = ["requestAdapter", "requestDevice", "createBuffer"];
+const whiteList = ["requestAdapter", "requestDevice", "createBuffer", "unmap"];
 
 export const getHybridObject = (decl: InterfaceDeclaration) => {
   const name = decl.getName();
@@ -51,9 +51,10 @@ public:
   ${methods
     .filter((method) => !method.async)
     .map((method) => {
-      return `std::shared_ptr<${method.returns}> ${method.name}(${method.args.join(", ")}) {
-      auto result = _instance->${_.upperFirst(method.name)}(${method.argNames.map((n) => `${n}->getInstance()`).join(", ")});
-      return std::make_shared<${method.returns}>(std::make_shared<${methods.wgpuReturns}>(result));
+      const isUndefined = method.returns;
+      return `${isUndefined ? "void" : `std::shared_ptr<${method.returns}>`} ${method.name}(${method.args.join(", ")}) {
+      ${isUndefined ? "" : "auto result = "}_instance->${_.upperFirst(method.name)}(${method.argNames.map((n) => `${n}->getInstance()`).join(", ")});
+      ${isUndefined ? "" : "return std::make_shared<${method.returns}>(std::make_shared<${method.wgpuReturns}>(result));"}
     }`;
     })
     .join("\n")}

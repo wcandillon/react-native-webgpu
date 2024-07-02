@@ -16,8 +16,8 @@ const demo = async () => {
     mappedAtCreation: true,
   });
   console.log(verticesBuffer);
-  // new Float32Array(verticesBuffer.getMappedRange()).set(cubeVertexArray);
-  // verticesBuffer.unmap();
+  new Float32Array(verticesBuffer.getMappedRange()).set(cubeVertexArray);
+  verticesBuffer.unmap();
 };
 
 export const Buffers = () => {

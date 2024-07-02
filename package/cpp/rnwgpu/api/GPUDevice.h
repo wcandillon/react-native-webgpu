@@ -23,10 +23,8 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<GPUBuffer>
-  createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
-    auto result = _instance->CreateBuffer(descriptor->getInstance());
-    return std::make_shared<GPUBuffer>(std::make_shared<wgpu::Buffer>(result));
+  void createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
+    _instance->CreateBuffer(descriptor->getInstance());
   }
 
   void loadHybridMethods() override {

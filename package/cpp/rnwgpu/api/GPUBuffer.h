@@ -20,8 +20,11 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  void unmap() { _instance->Unmap(); }
+
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUBuffer::getBrand, this);
+    registerHybridMethod("unmap", &GPUBuffer::unmap, this);
   }
 
 private:

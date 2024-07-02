@@ -36,7 +36,7 @@ export const getJSIMethod = (method: MethodSignature): JsiMethod => {
     args,
     argNames,
     returns,
-    wgpuReturns: "wgpu::Buffer",
+    wgpuReturns: `wgpu::${returns.substring(3)}`,
   };
 };
 
