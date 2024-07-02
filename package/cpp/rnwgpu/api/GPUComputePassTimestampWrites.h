@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
   static std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>
@@ -27,7 +26,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
       if (value.hasProperty(runtime, "querySet")) {
         auto querySet = value.getProperty(runtime, "querySet");
 
-        else if (querySet.isUndefined()) {
+        if (querySet.isUndefined()) {
           throw std::runtime_error(
               "Property GPUComputePassTimestampWrites::querySet is required");
         }

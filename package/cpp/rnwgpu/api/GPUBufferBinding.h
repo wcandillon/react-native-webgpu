@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
   static std::shared_ptr<rnwgpu::GPUBufferBinding>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
@@ -26,7 +25,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
       if (value.hasProperty(runtime, "buffer")) {
         auto buffer = value.getProperty(runtime, "buffer");
 
-        else if (buffer.isUndefined()) {
+        if (buffer.isUndefined()) {
           throw std::runtime_error(
               "Property GPUBufferBinding::buffer is required");
         }

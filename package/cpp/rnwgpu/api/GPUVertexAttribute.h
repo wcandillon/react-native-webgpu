@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
   static std::shared_ptr<rnwgpu::GPUVertexAttribute>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
@@ -26,7 +25,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
 
-        else if (format.isUndefined()) {
+        if (format.isUndefined()) {
           throw std::runtime_error(
               "Property GPUVertexAttribute::format is required");
         }
@@ -34,7 +33,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
       if (value.hasProperty(runtime, "offset")) {
         auto offset = value.getProperty(runtime, "offset");
 
-        else if (offset.isUndefined()) {
+        if (offset.isUndefined()) {
           throw std::runtime_error(
               "Property GPUVertexAttribute::offset is required");
         }
@@ -42,7 +41,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
       if (value.hasProperty(runtime, "shaderLocation")) {
         auto shaderLocation = value.getProperty(runtime, "shaderLocation");
 
-        else if (shaderLocation.isUndefined()) {
+        if (shaderLocation.isUndefined()) {
           throw std::runtime_error(
               "Property GPUVertexAttribute::shaderLocation is required");
         }

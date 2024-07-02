@@ -33,7 +33,7 @@ const propFromJSI = (className: string, prop: PropertySignature, _unions: Union[
   ${possibleTypes.includes("true") || possibleTypes.includes("false") ? getBoolean(name) : ""}
   ${possibleTypes.includes("number") ? getNumber(name) : ""}
   ${possibleTypes.includes("string") ? getString(name) : ""}
-  ${!isOptional ? `else if (${name}.isUndefined()) {
+  ${!isOptional ? `if (${name}.isUndefined()) {
     throw std::runtime_error("Property ${className}::${name} is required");  
   }` : ""}
 }`;
@@ -62,7 +62,6 @@ class ${name} {
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
   static std::shared_ptr<rnwgpu::${name}>

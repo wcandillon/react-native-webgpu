@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
   static std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>
@@ -27,7 +26,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
       if (value.hasProperty(runtime, "entryPoint")) {
         auto entryPoint = value.getProperty(runtime, "entryPoint");
 
-        else if (entryPoint.isUndefined()) {
+        if (entryPoint.isUndefined()) {
           throw std::runtime_error(
               "Property GPUShaderModuleCompilationHint::entryPoint is "
               "required");

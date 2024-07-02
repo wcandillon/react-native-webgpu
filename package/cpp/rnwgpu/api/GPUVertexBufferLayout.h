@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
   static std::shared_ptr<rnwgpu::GPUVertexBufferLayout>
@@ -27,7 +26,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
       if (value.hasProperty(runtime, "arrayStride")) {
         auto arrayStride = value.getProperty(runtime, "arrayStride");
 
-        else if (arrayStride.isUndefined()) {
+        if (arrayStride.isUndefined()) {
           throw std::runtime_error(
               "Property GPUVertexBufferLayout::arrayStride is required");
         }
@@ -38,7 +37,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
       if (value.hasProperty(runtime, "attributes")) {
         auto attributes = value.getProperty(runtime, "attributes");
 
-        else if (attributes.isUndefined()) {
+        if (attributes.isUndefined()) {
           throw std::runtime_error(
               "Property GPUVertexBufferLayout::attributes is required");
         }

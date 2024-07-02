@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>
@@ -27,7 +26,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
       if (value.hasProperty(runtime, "type")) {
         auto type = value.getProperty(runtime, "type");
 
-        else if (type.isUndefined()) {
+        if (type.isUndefined()) {
           throw std::runtime_error(
               "Property GPUQuerySetDescriptor::type is required");
         }
@@ -35,7 +34,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
       if (value.hasProperty(runtime, "count")) {
         auto count = value.getProperty(runtime, "count");
 
-        else if (count.isUndefined()) {
+        if (count.isUndefined()) {
           throw std::runtime_error(
               "Property GPUQuerySetDescriptor::count is required");
         }

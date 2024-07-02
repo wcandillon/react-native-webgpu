@@ -1,8 +1,8 @@
 #pragma once
 
+#include <future>
 #include <memory>
 #include <string>
-#include <future>
 
 #include <RNFHybridObject.h>
 
@@ -17,14 +17,14 @@ namespace m = margelo;
 
 class GPUAdapter : public m::HybridObject {
 public:
-  explicit GPUAdapter(std::shared_ptr<wgpu::Adapter> instance) : HybridObject("GPUAdapter"), _instance(instance) {}
+  explicit GPUAdapter(std::shared_ptr<wgpu::Adapter> instance)
+      : HybridObject("GPUAdapter"), _instance(instance) {}
 
 public:
   std::string getBrand() { return _name; }
 
-  std::future<std::shared_ptr<GPUDevice>> requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor);
-
-  
+  std::future<std::shared_ptr<GPUDevice>>
+  requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor);
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUAdapter::getBrand, this);

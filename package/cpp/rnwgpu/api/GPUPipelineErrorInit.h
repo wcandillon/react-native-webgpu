@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineErrorInit>> {
   static std::shared_ptr<rnwgpu::GPUPipelineErrorInit>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
@@ -26,7 +25,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineErrorInit>> {
       if (value.hasProperty(runtime, "reason")) {
         auto reason = value.getProperty(runtime, "reason");
 
-        else if (reason.isUndefined()) {
+        if (reason.isUndefined()) {
           throw std::runtime_error(
               "Property GPUPipelineErrorInit::reason is required");
         }

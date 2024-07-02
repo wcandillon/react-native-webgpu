@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDict>> {
   static std::shared_ptr<rnwgpu::GPUExtent3DDict>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
@@ -26,7 +25,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDict>> {
       if (value.hasProperty(runtime, "width")) {
         auto width = value.getProperty(runtime, "width");
 
-        else if (width.isUndefined()) {
+        if (width.isUndefined()) {
           throw std::runtime_error(
               "Property GPUExtent3DDict::width is required");
         }

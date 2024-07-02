@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
   static std::shared_ptr<rnwgpu::GPUBlendState> fromJSI(jsi::Runtime &runtime,
                                                         const jsi::Value &arg) {
@@ -26,14 +25,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
       if (value.hasProperty(runtime, "color")) {
         auto color = value.getProperty(runtime, "color");
 
-        else if (color.isUndefined()) {
+        if (color.isUndefined()) {
           throw std::runtime_error("Property GPUBlendState::color is required");
         }
       }
       if (value.hasProperty(runtime, "alpha")) {
         auto alpha = value.getProperty(runtime, "alpha");
 
-        else if (alpha.isUndefined()) {
+        if (alpha.isUndefined()) {
           throw std::runtime_error("Property GPUBlendState::alpha is required");
         }
       }

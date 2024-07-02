@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
   static std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>
@@ -27,7 +26,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
       if (value.hasProperty(runtime, "vertex")) {
         auto vertex = value.getProperty(runtime, "vertex");
 
-        else if (vertex.isUndefined()) {
+        if (vertex.isUndefined()) {
           throw std::runtime_error(
               "Property GPURenderPipelineDescriptor::vertex is required");
         }

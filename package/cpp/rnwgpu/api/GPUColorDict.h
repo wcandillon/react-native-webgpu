@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
   static std::shared_ptr<rnwgpu::GPUColorDict> fromJSI(jsi::Runtime &runtime,
                                                        const jsi::Value &arg) {
@@ -26,28 +25,28 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
       if (value.hasProperty(runtime, "r")) {
         auto r = value.getProperty(runtime, "r");
 
-        else if (r.isUndefined()) {
+        if (r.isUndefined()) {
           throw std::runtime_error("Property GPUColorDict::r is required");
         }
       }
       if (value.hasProperty(runtime, "g")) {
         auto g = value.getProperty(runtime, "g");
 
-        else if (g.isUndefined()) {
+        if (g.isUndefined()) {
           throw std::runtime_error("Property GPUColorDict::g is required");
         }
       }
       if (value.hasProperty(runtime, "b")) {
         auto b = value.getProperty(runtime, "b");
 
-        else if (b.isUndefined()) {
+        if (b.isUndefined()) {
           throw std::runtime_error("Property GPUColorDict::b is required");
         }
       }
       if (value.hasProperty(runtime, "a")) {
         auto a = value.getProperty(runtime, "a");
 
-        else if (a.isUndefined()) {
+        if (a.isUndefined()) {
           throw std::runtime_error("Property GPUColorDict::a is required");
         }
       }

@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
   static std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>
@@ -27,7 +26,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
       if (value.hasProperty(runtime, "view")) {
         auto view = value.getProperty(runtime, "view");
 
-        else if (view.isUndefined()) {
+        if (view.isUndefined()) {
           throw std::runtime_error(
               "Property GPURenderPassColorAttachment::view is required");
         }
@@ -48,7 +47,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
       if (value.hasProperty(runtime, "loadOp")) {
         auto loadOp = value.getProperty(runtime, "loadOp");
 
-        else if (loadOp.isUndefined()) {
+        if (loadOp.isUndefined()) {
           throw std::runtime_error(
               "Property GPURenderPassColorAttachment::loadOp is required");
         }
@@ -56,7 +55,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
       if (value.hasProperty(runtime, "storeOp")) {
         auto storeOp = value.getProperty(runtime, "storeOp");
 
-        else if (storeOp.isUndefined()) {
+        if (storeOp.isUndefined()) {
           throw std::runtime_error(
               "Property GPURenderPassColorAttachment::storeOp is required");
         }

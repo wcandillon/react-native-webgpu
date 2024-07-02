@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
   static std::shared_ptr<rnwgpu::GPUFragmentState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
@@ -26,7 +25,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
       if (value.hasProperty(runtime, "targets")) {
         auto targets = value.getProperty(runtime, "targets");
 
-        else if (targets.isUndefined()) {
+        if (targets.isUndefined()) {
           throw std::runtime_error(
               "Property GPUFragmentState::targets is required");
         }

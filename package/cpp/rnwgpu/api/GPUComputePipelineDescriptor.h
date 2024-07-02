@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>
@@ -27,7 +26,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
       if (value.hasProperty(runtime, "compute")) {
         auto compute = value.getProperty(runtime, "compute");
 
-        else if (compute.isUndefined()) {
+        if (compute.isUndefined()) {
           throw std::runtime_error(
               "Property GPUComputePipelineDescriptor::compute is required");
         }

@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
   static std::shared_ptr<rnwgpu::GPUDepthStencilState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
@@ -26,7 +25,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
 
-        else if (format.isUndefined()) {
+        if (format.isUndefined()) {
           throw std::runtime_error(
               "Property GPUDepthStencilState::format is required");
         }

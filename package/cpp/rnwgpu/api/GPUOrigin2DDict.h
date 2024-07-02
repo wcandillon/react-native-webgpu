@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin2DDict>> {
   static std::shared_ptr<rnwgpu::GPUOrigin2DDict>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {

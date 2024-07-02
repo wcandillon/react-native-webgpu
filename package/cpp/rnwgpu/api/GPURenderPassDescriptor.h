@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
   static std::shared_ptr<rnwgpu::GPURenderPassDescriptor>
@@ -27,7 +26,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
       if (value.hasProperty(runtime, "colorAttachments")) {
         auto colorAttachments = value.getProperty(runtime, "colorAttachments");
 
-        else if (colorAttachments.isUndefined()) {
+        if (colorAttachments.isUndefined()) {
           throw std::runtime_error(
               "Property GPURenderPassDescriptor::colorAttachments is required");
         }

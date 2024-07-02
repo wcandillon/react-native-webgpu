@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
   static std::shared_ptr<rnwgpu::GPUMultisampleState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {

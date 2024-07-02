@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
   static std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>

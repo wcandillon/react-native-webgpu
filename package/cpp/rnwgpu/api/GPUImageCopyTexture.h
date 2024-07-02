@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
   static std::shared_ptr<rnwgpu::GPUImageCopyTexture>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
@@ -26,7 +25,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
       if (value.hasProperty(runtime, "texture")) {
         auto texture = value.getProperty(runtime, "texture");
 
-        else if (texture.isUndefined()) {
+        if (texture.isUndefined()) {
           throw std::runtime_error(
               "Property GPUImageCopyTexture::texture is required");
         }

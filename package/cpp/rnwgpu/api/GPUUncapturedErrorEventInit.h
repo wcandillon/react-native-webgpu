@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
   static std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>
@@ -27,7 +26,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
       if (value.hasProperty(runtime, "error")) {
         auto error = value.getProperty(runtime, "error");
 
-        else if (error.isUndefined()) {
+        if (error.isUndefined()) {
           throw std::runtime_error(
               "Property GPUUncapturedErrorEventInit::error is required");
         }

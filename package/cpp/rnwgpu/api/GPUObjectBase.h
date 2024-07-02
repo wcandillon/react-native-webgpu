@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUObjectBase>> {
   static std::shared_ptr<rnwgpu::GPUObjectBase> fromJSI(jsi::Runtime &runtime,
                                                         const jsi::Value &arg) {
@@ -26,7 +25,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUObjectBase>> {
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
 
-        else if (label.isUndefined()) {
+        if (label.isUndefined()) {
           throw std::runtime_error("Property GPUObjectBase::label is required");
         }
       }

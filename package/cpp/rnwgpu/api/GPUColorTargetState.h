@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
   static std::shared_ptr<rnwgpu::GPUColorTargetState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
@@ -26,7 +25,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
 
-        else if (format.isUndefined()) {
+        if (format.isUndefined()) {
           throw std::runtime_error(
               "Property GPUColorTargetState::format is required");
         }

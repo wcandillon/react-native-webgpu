@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineDescriptorBase>> {
   static std::shared_ptr<rnwgpu::GPUPipelineDescriptorBase>
@@ -27,7 +26,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineDescriptorBase>> {
       if (value.hasProperty(runtime, "layout")) {
         auto layout = value.getProperty(runtime, "layout");
 
-        else if (layout.isUndefined()) {
+        if (layout.isUndefined()) {
           throw std::runtime_error(
               "Property GPUPipelineDescriptorBase::layout is required");
         }

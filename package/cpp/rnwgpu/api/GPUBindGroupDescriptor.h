@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>
@@ -27,7 +26,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
       if (value.hasProperty(runtime, "layout")) {
         auto layout = value.getProperty(runtime, "layout");
 
-        else if (layout.isUndefined()) {
+        if (layout.isUndefined()) {
           throw std::runtime_error(
               "Property GPUBindGroupDescriptor::layout is required");
         }
@@ -35,7 +34,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
       if (value.hasProperty(runtime, "entries")) {
         auto entries = value.getProperty(runtime, "entries");
 
-        else if (entries.isUndefined()) {
+        if (entries.isUndefined()) {
           throw std::runtime_error(
               "Property GPUBindGroupDescriptor::entries is required");
         }

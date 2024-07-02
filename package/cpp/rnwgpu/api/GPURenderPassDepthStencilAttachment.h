@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<
     std::shared_ptr<rnwgpu::GPURenderPassDepthStencilAttachment>> {
@@ -29,7 +28,7 @@ struct JSIConverter<
       if (value.hasProperty(runtime, "view")) {
         auto view = value.getProperty(runtime, "view");
 
-        else if (view.isUndefined()) {
+        if (view.isUndefined()) {
           throw std::runtime_error(
               "Property GPURenderPassDepthStencilAttachment::view is required");
         }

@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
   static std::shared_ptr<rnwgpu::GPUCanvasConfiguration>
@@ -27,7 +26,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
       if (value.hasProperty(runtime, "device")) {
         auto device = value.getProperty(runtime, "device");
 
-        else if (device.isUndefined()) {
+        if (device.isUndefined()) {
           throw std::runtime_error(
               "Property GPUCanvasConfiguration::device is required");
         }
@@ -35,7 +34,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
 
-        else if (format.isUndefined()) {
+        if (format.isUndefined()) {
           throw std::runtime_error(
               "Property GPUCanvasConfiguration::format is required");
         }

@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUBufferDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
@@ -26,7 +25,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
       if (value.hasProperty(runtime, "size")) {
         auto size = value.getProperty(runtime, "size");
 
-        else if (size.isUndefined()) {
+        if (size.isUndefined()) {
           throw std::runtime_error(
               "Property GPUBufferDescriptor::size is required");
         }
@@ -34,7 +33,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
       if (value.hasProperty(runtime, "usage")) {
         auto usage = value.getProperty(runtime, "usage");
 
-        else if (usage.isUndefined()) {
+        if (usage.isUndefined()) {
           throw std::runtime_error(
               "Property GPUBufferDescriptor::usage is required");
         }

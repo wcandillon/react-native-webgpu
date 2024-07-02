@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexState>> {
   static std::shared_ptr<rnwgpu::GPUVertexState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {

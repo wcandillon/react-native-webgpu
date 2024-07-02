@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassLayout>> {
   static std::shared_ptr<rnwgpu::GPURenderPassLayout>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
@@ -26,7 +25,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassLayout>> {
       if (value.hasProperty(runtime, "colorFormats")) {
         auto colorFormats = value.getProperty(runtime, "colorFormats");
 
-        else if (colorFormats.isUndefined()) {
+        if (colorFormats.isUndefined()) {
           throw std::runtime_error(
               "Property GPURenderPassLayout::colorFormats is required");
         }

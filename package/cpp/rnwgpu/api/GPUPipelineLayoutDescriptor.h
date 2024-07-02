@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>
@@ -27,7 +26,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
       if (value.hasProperty(runtime, "bindGroupLayouts")) {
         auto bindGroupLayouts = value.getProperty(runtime, "bindGroupLayouts");
 
-        else if (bindGroupLayouts.isUndefined()) {
+        if (bindGroupLayouts.isUndefined()) {
           throw std::runtime_error(
               "Property GPUPipelineLayoutDescriptor::bindGroupLayouts is "
               "required");

@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>
@@ -27,7 +26,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
       if (value.hasProperty(runtime, "code")) {
         auto code = value.getProperty(runtime, "code");
 
-        else if (code.isUndefined()) {
+        if (code.isUndefined()) {
           throw std::runtime_error(
               "Property GPUShaderModuleDescriptor::code is required");
         }
@@ -35,7 +34,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
       if (value.hasProperty(runtime, "sourceMap")) {
         auto sourceMap = value.getProperty(runtime, "sourceMap");
 
-        else if (sourceMap.isUndefined()) {
+        if (sourceMap.isUndefined()) {
           throw std::runtime_error(
               "Property GPUShaderModuleDescriptor::sourceMap is required");
         }

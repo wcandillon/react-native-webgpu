@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
   static std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>
@@ -27,7 +26,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
       if (value.hasProperty(runtime, "source")) {
         auto source = value.getProperty(runtime, "source");
 
-        else if (source.isUndefined()) {
+        if (source.isUndefined()) {
           throw std::runtime_error(
               "Property GPUImageCopyExternalImage::source is required");
         }

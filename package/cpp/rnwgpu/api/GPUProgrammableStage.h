@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
   static std::shared_ptr<rnwgpu::GPUProgrammableStage>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
@@ -26,7 +25,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
       if (value.hasProperty(runtime, "module")) {
         auto module = value.getProperty(runtime, "module");
 
-        else if (module.isUndefined()) {
+        if (module.isUndefined()) {
           throw std::runtime_error(
               "Property GPUProgrammableStage::module is required");
         }

@@ -16,7 +16,6 @@ public:
 
 namespace margelo {
 
-// Object <> Object
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
   static std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>
@@ -30,7 +29,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
 
-        else if (format.isUndefined()) {
+        if (format.isUndefined()) {
           throw std::runtime_error(
               "Property GPUStorageTextureBindingLayout::format is required");
         }
