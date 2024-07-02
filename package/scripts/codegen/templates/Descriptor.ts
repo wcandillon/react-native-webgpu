@@ -1,5 +1,6 @@
-import { InterfaceDeclaration, PropertySignature } from "ts-morph";
-import { Union } from "./Unions";
+import type { InterfaceDeclaration, PropertySignature } from "ts-morph";
+
+import type { Union } from "./Unions";
 
 const getBoolean = (name: string) => {
   return `if (value.hasProperty(runtime, "${name}")) {
@@ -20,11 +21,19 @@ const getString = (name: string) => {
 }`;
 };
 
-const propFromJSI = (className: string, prop: PropertySignature, _unions: Union[]) => {
+const propFromJSI = (
+  className: string,
+  prop: PropertySignature,
+  _unions: Union[],
+) => {
   const name = prop.getName();
   const isOptional = prop.getType().getText().includes("undefined");
-  const possibleTypes = prop.getType().getUnionTypes().map(t => t.getText()).filter((t) => t != "undefined");
- // const enumValues = possibleTypes.filter((t) => t.startsWith('"'));
+  const possibleTypes = prop
+    .getType()
+    .getUnionTypes()
+    .map((t) => t.getText())
+    .filter((t) => t !== "undefined");
+  // const enumValues = possibleTypes.filter((t) => t.startsWith('"'));
   //console.log(possibleTypes);
   //   ${enumValues.length > 0 ? getEnum(enumValues.map(v => v.substring(1, v.length-1))) : ""}
 
@@ -33,9 +42,13 @@ const propFromJSI = (className: string, prop: PropertySignature, _unions: Union[
   ${possibleTypes.includes("true") || possibleTypes.includes("false") ? getBoolean(name) : ""}
   ${possibleTypes.includes("number") ? getNumber(name) : ""}
   ${possibleTypes.includes("string") ? getString(name) : ""}
-  ${!isOptional ? `if (${name}.isUndefined()) {
+  ${
+    !isOptional
+      ? `if (${name}.isUndefined()) {
     throw std::runtime_error("Property ${className}::${name} is required");  
-  }` : ""}
+  }`
+      : ""
+  }
 }`;
 };
 
@@ -69,9 +82,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
     auto result = std::make_unique<rnwgpu::${name}>();
     if (&arg != nullptr && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      ${decl.getProperties().map((prop) => {
-        return propFromJSI(name, prop, unions);
-      }).join("\n")}
+      ${decl
+        .getProperties()
+        .map((prop) => {
+          return propFromJSI(name, prop, unions);
+        })
+        .join("\n")}
     }
     return result;
   }
