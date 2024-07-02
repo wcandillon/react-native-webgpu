@@ -1,37 +1,28 @@
 import * as React from "react";
-import { StyleSheet, View } from "react-native";
-import { WebGPUView, gpu } from "react-native-webgpu";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { Routes } from "./Route";
+import { Home } from "./Home";
+import { Buffers } from './Buffers';
+import { Tests } from "./Tests";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-navigator = { ...navigator, gpu };
 
-(async () => {
-  const adapter = await navigator.gpu.requestAdapter();
-  if (!adapter) {
-    throw new Error("WebGPU not supported");
-  }
-  const device = await adapter.requestDevice();
-  console.log(GPUBufferUsage.COPY_DST);
-  console.log({ device });
-})();
+const Stack = createNativeStackNavigator<Routes>();
 
-// eslint-disable-next-line import/no-default-export
-export default function App() {
+function App() {
   return (
-    <View style={styles.container}>
-      <WebGPUView color="#32a852" style={styles.box} />
-    </View>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen name="Home" component={Home} />
+          <Stack.Screen name="Buffers" component={Buffers} />
+          <Stack.Screen name="Tests" component={Tests} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  box: {
-    width: 60,
-    height: 60,
-    marginVertical: 20,
-  },
-});
+// eslint-disable-next-line import/no-default-export
+export default App;
