@@ -20,10 +20,12 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexState>> {
   static std::shared_ptr<rnwgpu::GPUVertexState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUVertexState>();
-    if (value.hasProperty(runtime, "buffers")) {
-      auto buffers = value.getProperty(runtime, "buffers");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "buffers")) {
+        auto buffers = value.getProperty(runtime, "buffers");
+      }
     }
     return result;
   }

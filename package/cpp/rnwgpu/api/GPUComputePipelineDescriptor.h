@@ -21,14 +21,16 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUComputePipelineDescriptor>();
-    if (value.hasProperty(runtime, "compute")) {
-      auto compute = value.getProperty(runtime, "compute");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "compute")) {
+        auto compute = value.getProperty(runtime, "compute");
 
-      else if (compute.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUComputePipelineDescriptor::compute is required");
+        else if (compute.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUComputePipelineDescriptor::compute is required");
+        }
       }
     }
     return result;

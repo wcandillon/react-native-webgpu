@@ -20,26 +20,28 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
   static std::shared_ptr<rnwgpu::GPUProgrammableStage>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUProgrammableStage>();
-    if (value.hasProperty(runtime, "module")) {
-      auto module = value.getProperty(runtime, "module");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "module")) {
+        auto module = value.getProperty(runtime, "module");
 
-      else if (module.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUProgrammableStage::module is required");
+        else if (module.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUProgrammableStage::module is required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "entryPoint")) {
-      auto entryPoint = value.getProperty(runtime, "entryPoint");
-
       if (value.hasProperty(runtime, "entryPoint")) {
-        auto str = value.asString(runtime).utf8(runtime);
-        result->_instance.entryPoint = str.c_str();
+        auto entryPoint = value.getProperty(runtime, "entryPoint");
+
+        if (value.hasProperty(runtime, "entryPoint")) {
+          auto str = value.asString(runtime).utf8(runtime);
+          result->_instance.entryPoint = str.c_str();
+        }
       }
-    }
-    if (value.hasProperty(runtime, "constants")) {
-      auto constants = value.getProperty(runtime, "constants");
+      if (value.hasProperty(runtime, "constants")) {
+        auto constants = value.getProperty(runtime, "constants");
+      }
     }
     return result;
   }

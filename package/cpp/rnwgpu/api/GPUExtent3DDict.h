@@ -20,28 +20,31 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDict>> {
   static std::shared_ptr<rnwgpu::GPUExtent3DDict>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUExtent3DDict>();
-    if (value.hasProperty(runtime, "width")) {
-      auto width = value.getProperty(runtime, "width");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "width")) {
+        auto width = value.getProperty(runtime, "width");
 
-      else if (width.isUndefined()) {
-        throw std::runtime_error("Property GPUExtent3DDict::width is required");
+        else if (width.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUExtent3DDict::width is required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "height")) {
-      auto height = value.getProperty(runtime, "height");
-
       if (value.hasProperty(runtime, "height")) {
-        result->_instance.height = height.getNumber();
-      }
-    }
-    if (value.hasProperty(runtime, "depthOrArrayLayers")) {
-      auto depthOrArrayLayers =
-          value.getProperty(runtime, "depthOrArrayLayers");
+        auto height = value.getProperty(runtime, "height");
 
+        if (value.hasProperty(runtime, "height")) {
+          result->_instance.height = height.getNumber();
+        }
+      }
       if (value.hasProperty(runtime, "depthOrArrayLayers")) {
-        result->_instance.depthOrArrayLayers = depthOrArrayLayers.getNumber();
+        auto depthOrArrayLayers =
+            value.getProperty(runtime, "depthOrArrayLayers");
+
+        if (value.hasProperty(runtime, "depthOrArrayLayers")) {
+          result->_instance.depthOrArrayLayers = depthOrArrayLayers.getNumber();
+        }
       }
     }
     return result;

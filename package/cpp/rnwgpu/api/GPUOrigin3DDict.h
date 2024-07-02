@@ -20,27 +20,29 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin3DDict>> {
   static std::shared_ptr<rnwgpu::GPUOrigin3DDict>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUOrigin3DDict>();
-    if (value.hasProperty(runtime, "x")) {
-      auto x = value.getProperty(runtime, "x");
-
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "x")) {
-        result->_instance.x = x.getNumber();
-      }
-    }
-    if (value.hasProperty(runtime, "y")) {
-      auto y = value.getProperty(runtime, "y");
+        auto x = value.getProperty(runtime, "x");
 
+        if (value.hasProperty(runtime, "x")) {
+          result->_instance.x = x.getNumber();
+        }
+      }
       if (value.hasProperty(runtime, "y")) {
-        result->_instance.y = y.getNumber();
-      }
-    }
-    if (value.hasProperty(runtime, "z")) {
-      auto z = value.getProperty(runtime, "z");
+        auto y = value.getProperty(runtime, "y");
 
+        if (value.hasProperty(runtime, "y")) {
+          result->_instance.y = y.getNumber();
+        }
+      }
       if (value.hasProperty(runtime, "z")) {
-        result->_instance.z = z.getNumber();
+        auto z = value.getProperty(runtime, "z");
+
+        if (value.hasProperty(runtime, "z")) {
+          result->_instance.z = z.getNumber();
+        }
       }
     }
     return result;

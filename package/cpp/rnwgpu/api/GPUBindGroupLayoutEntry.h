@@ -21,38 +21,40 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry>> {
   static std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUBindGroupLayoutEntry>();
-    if (value.hasProperty(runtime, "binding")) {
-      auto binding = value.getProperty(runtime, "binding");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "binding")) {
+        auto binding = value.getProperty(runtime, "binding");
 
-      else if (binding.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUBindGroupLayoutEntry::binding is required");
+        else if (binding.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUBindGroupLayoutEntry::binding is required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "visibility")) {
-      auto visibility = value.getProperty(runtime, "visibility");
+      if (value.hasProperty(runtime, "visibility")) {
+        auto visibility = value.getProperty(runtime, "visibility");
 
-      else if (visibility.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUBindGroupLayoutEntry::visibility is required");
+        else if (visibility.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUBindGroupLayoutEntry::visibility is required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "buffer")) {
-      auto buffer = value.getProperty(runtime, "buffer");
-    }
-    if (value.hasProperty(runtime, "sampler")) {
-      auto sampler = value.getProperty(runtime, "sampler");
-    }
-    if (value.hasProperty(runtime, "texture")) {
-      auto texture = value.getProperty(runtime, "texture");
-    }
-    if (value.hasProperty(runtime, "storageTexture")) {
-      auto storageTexture = value.getProperty(runtime, "storageTexture");
-    }
-    if (value.hasProperty(runtime, "externalTexture")) {
-      auto externalTexture = value.getProperty(runtime, "externalTexture");
+      if (value.hasProperty(runtime, "buffer")) {
+        auto buffer = value.getProperty(runtime, "buffer");
+      }
+      if (value.hasProperty(runtime, "sampler")) {
+        auto sampler = value.getProperty(runtime, "sampler");
+      }
+      if (value.hasProperty(runtime, "texture")) {
+        auto texture = value.getProperty(runtime, "texture");
+      }
+      if (value.hasProperty(runtime, "storageTexture")) {
+        auto storageTexture = value.getProperty(runtime, "storageTexture");
+      }
+      if (value.hasProperty(runtime, "externalTexture")) {
+        auto externalTexture = value.getProperty(runtime, "externalTexture");
+      }
     }
     return result;
   }

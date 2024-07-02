@@ -20,19 +20,21 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
   static std::shared_ptr<rnwgpu::GPUStencilFaceState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUStencilFaceState>();
-    if (value.hasProperty(runtime, "compare")) {
-      auto compare = value.getProperty(runtime, "compare");
-    }
-    if (value.hasProperty(runtime, "failOp")) {
-      auto failOp = value.getProperty(runtime, "failOp");
-    }
-    if (value.hasProperty(runtime, "depthFailOp")) {
-      auto depthFailOp = value.getProperty(runtime, "depthFailOp");
-    }
-    if (value.hasProperty(runtime, "passOp")) {
-      auto passOp = value.getProperty(runtime, "passOp");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "compare")) {
+        auto compare = value.getProperty(runtime, "compare");
+      }
+      if (value.hasProperty(runtime, "failOp")) {
+        auto failOp = value.getProperty(runtime, "failOp");
+      }
+      if (value.hasProperty(runtime, "depthFailOp")) {
+        auto depthFailOp = value.getProperty(runtime, "depthFailOp");
+      }
+      if (value.hasProperty(runtime, "passOp")) {
+        auto passOp = value.getProperty(runtime, "passOp");
+      }
     }
     return result;
   }

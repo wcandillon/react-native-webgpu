@@ -20,28 +20,30 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUBufferDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUBufferDescriptor>();
-    if (value.hasProperty(runtime, "size")) {
-      auto size = value.getProperty(runtime, "size");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "size")) {
+        auto size = value.getProperty(runtime, "size");
 
-      else if (size.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUBufferDescriptor::size is required");
+        else if (size.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUBufferDescriptor::size is required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "usage")) {
-      auto usage = value.getProperty(runtime, "usage");
+      if (value.hasProperty(runtime, "usage")) {
+        auto usage = value.getProperty(runtime, "usage");
 
-      else if (usage.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUBufferDescriptor::usage is required");
+        else if (usage.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUBufferDescriptor::usage is required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "mappedAtCreation")) {
-      auto mappedAtCreation = value.getProperty(runtime, "mappedAtCreation");
       if (value.hasProperty(runtime, "mappedAtCreation")) {
-        result->_instance.mappedAtCreation = mappedAtCreation.getBool();
+        auto mappedAtCreation = value.getProperty(runtime, "mappedAtCreation");
+        if (value.hasProperty(runtime, "mappedAtCreation")) {
+          result->_instance.mappedAtCreation = mappedAtCreation.getBool();
+        }
       }
     }
     return result;

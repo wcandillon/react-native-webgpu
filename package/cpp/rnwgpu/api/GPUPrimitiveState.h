@@ -20,24 +20,26 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPrimitiveState>> {
   static std::shared_ptr<rnwgpu::GPUPrimitiveState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUPrimitiveState>();
-    if (value.hasProperty(runtime, "topology")) {
-      auto topology = value.getProperty(runtime, "topology");
-    }
-    if (value.hasProperty(runtime, "stripIndexFormat")) {
-      auto stripIndexFormat = value.getProperty(runtime, "stripIndexFormat");
-    }
-    if (value.hasProperty(runtime, "frontFace")) {
-      auto frontFace = value.getProperty(runtime, "frontFace");
-    }
-    if (value.hasProperty(runtime, "cullMode")) {
-      auto cullMode = value.getProperty(runtime, "cullMode");
-    }
-    if (value.hasProperty(runtime, "unclippedDepth")) {
-      auto unclippedDepth = value.getProperty(runtime, "unclippedDepth");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "topology")) {
+        auto topology = value.getProperty(runtime, "topology");
+      }
+      if (value.hasProperty(runtime, "stripIndexFormat")) {
+        auto stripIndexFormat = value.getProperty(runtime, "stripIndexFormat");
+      }
+      if (value.hasProperty(runtime, "frontFace")) {
+        auto frontFace = value.getProperty(runtime, "frontFace");
+      }
+      if (value.hasProperty(runtime, "cullMode")) {
+        auto cullMode = value.getProperty(runtime, "cullMode");
+      }
       if (value.hasProperty(runtime, "unclippedDepth")) {
-        result->_instance.unclippedDepth = unclippedDepth.getBool();
+        auto unclippedDepth = value.getProperty(runtime, "unclippedDepth");
+        if (value.hasProperty(runtime, "unclippedDepth")) {
+          result->_instance.unclippedDepth = unclippedDepth.getBool();
+        }
       }
     }
     return result;

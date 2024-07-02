@@ -21,18 +21,20 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUExternalTextureDescriptor>();
-    if (value.hasProperty(runtime, "source")) {
-      auto source = value.getProperty(runtime, "source");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "source")) {
+        auto source = value.getProperty(runtime, "source");
 
-      else if (source.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUExternalTextureDescriptor::source is required");
+        else if (source.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUExternalTextureDescriptor::source is required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "colorSpace")) {
-      auto colorSpace = value.getProperty(runtime, "colorSpace");
+      if (value.hasProperty(runtime, "colorSpace")) {
+        auto colorSpace = value.getProperty(runtime, "colorSpace");
+      }
     }
     return result;
   }

@@ -21,22 +21,24 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUBindGroupDescriptor>();
-    if (value.hasProperty(runtime, "layout")) {
-      auto layout = value.getProperty(runtime, "layout");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "layout")) {
+        auto layout = value.getProperty(runtime, "layout");
 
-      else if (layout.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUBindGroupDescriptor::layout is required");
+        else if (layout.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUBindGroupDescriptor::layout is required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "entries")) {
-      auto entries = value.getProperty(runtime, "entries");
+      if (value.hasProperty(runtime, "entries")) {
+        auto entries = value.getProperty(runtime, "entries");
 
-      else if (entries.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUBindGroupDescriptor::entries is required");
+        else if (entries.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUBindGroupDescriptor::entries is required");
+        }
       }
     }
     return result;

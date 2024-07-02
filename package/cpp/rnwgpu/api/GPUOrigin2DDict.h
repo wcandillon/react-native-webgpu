@@ -20,20 +20,22 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin2DDict>> {
   static std::shared_ptr<rnwgpu::GPUOrigin2DDict>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUOrigin2DDict>();
-    if (value.hasProperty(runtime, "x")) {
-      auto x = value.getProperty(runtime, "x");
-
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "x")) {
-        result->_instance.x = x.getNumber();
-      }
-    }
-    if (value.hasProperty(runtime, "y")) {
-      auto y = value.getProperty(runtime, "y");
+        auto x = value.getProperty(runtime, "x");
 
+        if (value.hasProperty(runtime, "x")) {
+          result->_instance.x = x.getNumber();
+        }
+      }
       if (value.hasProperty(runtime, "y")) {
-        result->_instance.y = y.getNumber();
+        auto y = value.getProperty(runtime, "y");
+
+        if (value.hasProperty(runtime, "y")) {
+          result->_instance.y = y.getNumber();
+        }
       }
     }
     return result;

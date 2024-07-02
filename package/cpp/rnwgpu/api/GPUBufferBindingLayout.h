@@ -21,22 +21,24 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBindingLayout>> {
   static std::shared_ptr<rnwgpu::GPUBufferBindingLayout>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUBufferBindingLayout>();
-    if (value.hasProperty(runtime, "type")) {
-      auto type = value.getProperty(runtime, "type");
-    }
-    if (value.hasProperty(runtime, "hasDynamicOffset")) {
-      auto hasDynamicOffset = value.getProperty(runtime, "hasDynamicOffset");
-      if (value.hasProperty(runtime, "hasDynamicOffset")) {
-        result->_instance.hasDynamicOffset = hasDynamicOffset.getBool();
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "type")) {
+        auto type = value.getProperty(runtime, "type");
       }
-    }
-    if (value.hasProperty(runtime, "minBindingSize")) {
-      auto minBindingSize = value.getProperty(runtime, "minBindingSize");
-
+      if (value.hasProperty(runtime, "hasDynamicOffset")) {
+        auto hasDynamicOffset = value.getProperty(runtime, "hasDynamicOffset");
+        if (value.hasProperty(runtime, "hasDynamicOffset")) {
+          result->_instance.hasDynamicOffset = hasDynamicOffset.getBool();
+        }
+      }
       if (value.hasProperty(runtime, "minBindingSize")) {
-        result->_instance.minBindingSize = minBindingSize.getNumber();
+        auto minBindingSize = value.getProperty(runtime, "minBindingSize");
+
+        if (value.hasProperty(runtime, "minBindingSize")) {
+          result->_instance.minBindingSize = minBindingSize.getNumber();
+        }
       }
     }
     return result;

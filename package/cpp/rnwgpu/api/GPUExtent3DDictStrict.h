@@ -21,10 +21,12 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDictStrict>> {
   static std::shared_ptr<rnwgpu::GPUExtent3DDictStrict>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUExtent3DDictStrict>();
-    if (value.hasProperty(runtime, "depth")) {
-      auto depth = value.getProperty(runtime, "depth");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "depth")) {
+        auto depth = value.getProperty(runtime, "depth");
+      }
     }
     return result;
   }

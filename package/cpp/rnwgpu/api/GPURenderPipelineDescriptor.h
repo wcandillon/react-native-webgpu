@@ -21,27 +21,29 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
   static std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPURenderPipelineDescriptor>();
-    if (value.hasProperty(runtime, "vertex")) {
-      auto vertex = value.getProperty(runtime, "vertex");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "vertex")) {
+        auto vertex = value.getProperty(runtime, "vertex");
 
-      else if (vertex.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPURenderPipelineDescriptor::vertex is required");
+        else if (vertex.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPURenderPipelineDescriptor::vertex is required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "primitive")) {
-      auto primitive = value.getProperty(runtime, "primitive");
-    }
-    if (value.hasProperty(runtime, "depthStencil")) {
-      auto depthStencil = value.getProperty(runtime, "depthStencil");
-    }
-    if (value.hasProperty(runtime, "multisample")) {
-      auto multisample = value.getProperty(runtime, "multisample");
-    }
-    if (value.hasProperty(runtime, "fragment")) {
-      auto fragment = value.getProperty(runtime, "fragment");
+      if (value.hasProperty(runtime, "primitive")) {
+        auto primitive = value.getProperty(runtime, "primitive");
+      }
+      if (value.hasProperty(runtime, "depthStencil")) {
+        auto depthStencil = value.getProperty(runtime, "depthStencil");
+      }
+      if (value.hasProperty(runtime, "multisample")) {
+        auto multisample = value.getProperty(runtime, "multisample");
+      }
+      if (value.hasProperty(runtime, "fragment")) {
+        auto fragment = value.getProperty(runtime, "fragment");
+      }
     }
     return result;
   }

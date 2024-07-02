@@ -22,53 +22,56 @@ struct JSIConverter<
     std::shared_ptr<rnwgpu::GPURenderPassDepthStencilAttachment>> {
   static std::shared_ptr<rnwgpu::GPURenderPassDepthStencilAttachment>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result =
         std::make_unique<rnwgpu::GPURenderPassDepthStencilAttachment>();
-    if (value.hasProperty(runtime, "view")) {
-      auto view = value.getProperty(runtime, "view");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "view")) {
+        auto view = value.getProperty(runtime, "view");
 
-      else if (view.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPURenderPassDepthStencilAttachment::view is required");
+        else if (view.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPURenderPassDepthStencilAttachment::view is required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "depthClearValue")) {
-      auto depthClearValue = value.getProperty(runtime, "depthClearValue");
-
       if (value.hasProperty(runtime, "depthClearValue")) {
-        result->_instance.depthClearValue = depthClearValue.getNumber();
-      }
-    }
-    if (value.hasProperty(runtime, "depthLoadOp")) {
-      auto depthLoadOp = value.getProperty(runtime, "depthLoadOp");
-    }
-    if (value.hasProperty(runtime, "depthStoreOp")) {
-      auto depthStoreOp = value.getProperty(runtime, "depthStoreOp");
-    }
-    if (value.hasProperty(runtime, "depthReadOnly")) {
-      auto depthReadOnly = value.getProperty(runtime, "depthReadOnly");
-      if (value.hasProperty(runtime, "depthReadOnly")) {
-        result->_instance.depthReadOnly = depthReadOnly.getBool();
-      }
-    }
-    if (value.hasProperty(runtime, "stencilClearValue")) {
-      auto stencilClearValue = value.getProperty(runtime, "stencilClearValue");
+        auto depthClearValue = value.getProperty(runtime, "depthClearValue");
 
-      if (value.hasProperty(runtime, "stencilClearValue")) {
-        result->_instance.stencilClearValue = stencilClearValue.getNumber();
+        if (value.hasProperty(runtime, "depthClearValue")) {
+          result->_instance.depthClearValue = depthClearValue.getNumber();
+        }
       }
-    }
-    if (value.hasProperty(runtime, "stencilLoadOp")) {
-      auto stencilLoadOp = value.getProperty(runtime, "stencilLoadOp");
-    }
-    if (value.hasProperty(runtime, "stencilStoreOp")) {
-      auto stencilStoreOp = value.getProperty(runtime, "stencilStoreOp");
-    }
-    if (value.hasProperty(runtime, "stencilReadOnly")) {
-      auto stencilReadOnly = value.getProperty(runtime, "stencilReadOnly");
+      if (value.hasProperty(runtime, "depthLoadOp")) {
+        auto depthLoadOp = value.getProperty(runtime, "depthLoadOp");
+      }
+      if (value.hasProperty(runtime, "depthStoreOp")) {
+        auto depthStoreOp = value.getProperty(runtime, "depthStoreOp");
+      }
+      if (value.hasProperty(runtime, "depthReadOnly")) {
+        auto depthReadOnly = value.getProperty(runtime, "depthReadOnly");
+        if (value.hasProperty(runtime, "depthReadOnly")) {
+          result->_instance.depthReadOnly = depthReadOnly.getBool();
+        }
+      }
+      if (value.hasProperty(runtime, "stencilClearValue")) {
+        auto stencilClearValue =
+            value.getProperty(runtime, "stencilClearValue");
+
+        if (value.hasProperty(runtime, "stencilClearValue")) {
+          result->_instance.stencilClearValue = stencilClearValue.getNumber();
+        }
+      }
+      if (value.hasProperty(runtime, "stencilLoadOp")) {
+        auto stencilLoadOp = value.getProperty(runtime, "stencilLoadOp");
+      }
+      if (value.hasProperty(runtime, "stencilStoreOp")) {
+        auto stencilStoreOp = value.getProperty(runtime, "stencilStoreOp");
+      }
       if (value.hasProperty(runtime, "stencilReadOnly")) {
-        result->_instance.stencilReadOnly = stencilReadOnly.getBool();
+        auto stencilReadOnly = value.getProperty(runtime, "stencilReadOnly");
+        if (value.hasProperty(runtime, "stencilReadOnly")) {
+          result->_instance.stencilReadOnly = stencilReadOnly.getBool();
+        }
       }
     }
     return result;

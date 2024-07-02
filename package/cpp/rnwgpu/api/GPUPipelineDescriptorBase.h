@@ -21,14 +21,16 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineDescriptorBase>> {
   static std::shared_ptr<rnwgpu::GPUPipelineDescriptorBase>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUPipelineDescriptorBase>();
-    if (value.hasProperty(runtime, "layout")) {
-      auto layout = value.getProperty(runtime, "layout");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "layout")) {
+        auto layout = value.getProperty(runtime, "layout");
 
-      else if (layout.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUPipelineDescriptorBase::layout is required");
+        else if (layout.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUPipelineDescriptorBase::layout is required");
+        }
       }
     }
     return result;

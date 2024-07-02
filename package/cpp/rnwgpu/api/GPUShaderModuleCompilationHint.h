@@ -21,18 +21,21 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
   static std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUShaderModuleCompilationHint>();
-    if (value.hasProperty(runtime, "entryPoint")) {
-      auto entryPoint = value.getProperty(runtime, "entryPoint");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "entryPoint")) {
+        auto entryPoint = value.getProperty(runtime, "entryPoint");
 
-      else if (entryPoint.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUShaderModuleCompilationHint::entryPoint is required");
+        else if (entryPoint.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUShaderModuleCompilationHint::entryPoint is "
+              "required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "layout")) {
-      auto layout = value.getProperty(runtime, "layout");
+      if (value.hasProperty(runtime, "layout")) {
+        auto layout = value.getProperty(runtime, "layout");
+      }
     }
     return result;
   }

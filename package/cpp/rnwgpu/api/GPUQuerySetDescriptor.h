@@ -21,22 +21,24 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUQuerySetDescriptor>();
-    if (value.hasProperty(runtime, "type")) {
-      auto type = value.getProperty(runtime, "type");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "type")) {
+        auto type = value.getProperty(runtime, "type");
 
-      else if (type.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUQuerySetDescriptor::type is required");
+        else if (type.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUQuerySetDescriptor::type is required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "count")) {
-      auto count = value.getProperty(runtime, "count");
+      if (value.hasProperty(runtime, "count")) {
+        auto count = value.getProperty(runtime, "count");
 
-      else if (count.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUQuerySetDescriptor::count is required");
+        else if (count.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUQuerySetDescriptor::count is required");
+        }
       }
     }
     return result;

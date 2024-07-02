@@ -20,30 +20,32 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
   static std::shared_ptr<rnwgpu::GPUVertexAttribute>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUVertexAttribute>();
-    if (value.hasProperty(runtime, "format")) {
-      auto format = value.getProperty(runtime, "format");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "format")) {
+        auto format = value.getProperty(runtime, "format");
 
-      else if (format.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUVertexAttribute::format is required");
+        else if (format.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUVertexAttribute::format is required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "offset")) {
-      auto offset = value.getProperty(runtime, "offset");
+      if (value.hasProperty(runtime, "offset")) {
+        auto offset = value.getProperty(runtime, "offset");
 
-      else if (offset.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUVertexAttribute::offset is required");
+        else if (offset.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUVertexAttribute::offset is required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "shaderLocation")) {
-      auto shaderLocation = value.getProperty(runtime, "shaderLocation");
+      if (value.hasProperty(runtime, "shaderLocation")) {
+        auto shaderLocation = value.getProperty(runtime, "shaderLocation");
 
-      else if (shaderLocation.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUVertexAttribute::shaderLocation is required");
+        else if (shaderLocation.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUVertexAttribute::shaderLocation is required");
+        }
       }
     }
     return result;

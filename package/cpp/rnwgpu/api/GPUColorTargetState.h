@@ -20,24 +20,26 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
   static std::shared_ptr<rnwgpu::GPUColorTargetState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUColorTargetState>();
-    if (value.hasProperty(runtime, "format")) {
-      auto format = value.getProperty(runtime, "format");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "format")) {
+        auto format = value.getProperty(runtime, "format");
 
-      else if (format.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUColorTargetState::format is required");
+        else if (format.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUColorTargetState::format is required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "blend")) {
-      auto blend = value.getProperty(runtime, "blend");
-    }
-    if (value.hasProperty(runtime, "writeMask")) {
-      auto writeMask = value.getProperty(runtime, "writeMask");
-
+      if (value.hasProperty(runtime, "blend")) {
+        auto blend = value.getProperty(runtime, "blend");
+      }
       if (value.hasProperty(runtime, "writeMask")) {
-        result->_instance.writeMask = writeMask.getNumber();
+        auto writeMask = value.getProperty(runtime, "writeMask");
+
+        if (value.hasProperty(runtime, "writeMask")) {
+          result->_instance.writeMask = writeMask.getNumber();
+        }
       }
     }
     return result;

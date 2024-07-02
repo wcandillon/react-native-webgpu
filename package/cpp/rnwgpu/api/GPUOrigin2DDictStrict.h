@@ -21,10 +21,12 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin2DDictStrict>> {
   static std::shared_ptr<rnwgpu::GPUOrigin2DDictStrict>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUOrigin2DDictStrict>();
-    if (value.hasProperty(runtime, "z")) {
-      auto z = value.getProperty(runtime, "z");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "z")) {
+        auto z = value.getProperty(runtime, "z");
+      }
     }
     return result;
   }

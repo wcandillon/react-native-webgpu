@@ -21,23 +21,25 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
   static std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUImageCopyExternalImage>();
-    if (value.hasProperty(runtime, "source")) {
-      auto source = value.getProperty(runtime, "source");
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "source")) {
+        auto source = value.getProperty(runtime, "source");
 
-      else if (source.isUndefined()) {
-        throw std::runtime_error(
-            "Property GPUImageCopyExternalImage::source is required");
+        else if (source.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUImageCopyExternalImage::source is required");
+        }
       }
-    }
-    if (value.hasProperty(runtime, "origin")) {
-      auto origin = value.getProperty(runtime, "origin");
-    }
-    if (value.hasProperty(runtime, "flipY")) {
-      auto flipY = value.getProperty(runtime, "flipY");
+      if (value.hasProperty(runtime, "origin")) {
+        auto origin = value.getProperty(runtime, "origin");
+      }
       if (value.hasProperty(runtime, "flipY")) {
-        result->_instance.flipY = flipY.getBool();
+        auto flipY = value.getProperty(runtime, "flipY");
+        if (value.hasProperty(runtime, "flipY")) {
+          result->_instance.flipY = flipY.getBool();
+        }
       }
     }
     return result;

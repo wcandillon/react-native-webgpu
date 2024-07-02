@@ -66,12 +66,14 @@ namespace margelo {
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
   static std::shared_ptr<rnwgpu::${name}>
-  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
+  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {  
     auto result = std::make_unique<rnwgpu::${name}>();
-    ${decl.getProperties().map((prop) => {
-      return propFromJSI(name, prop, unions);
-    }).join("\n")}
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+      ${decl.getProperties().map((prop) => {
+        return propFromJSI(name, prop, unions);
+      }).join("\n")}
+    }
     return result;
   }
   static jsi::Value

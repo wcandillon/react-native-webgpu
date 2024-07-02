@@ -21,14 +21,16 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUObjectDescriptorBase>> {
   static std::shared_ptr<rnwgpu::GPUObjectDescriptorBase>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto value = arg.getObject(runtime);
     auto result = std::make_unique<rnwgpu::GPUObjectDescriptorBase>();
-    if (value.hasProperty(runtime, "label")) {
-      auto label = value.getProperty(runtime, "label");
-
+    if (&arg != nullptr && arg.isObject()) {
+      auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "label")) {
-        auto str = value.asString(runtime).utf8(runtime);
-        result->_instance.label = str.c_str();
+        auto label = value.getProperty(runtime, "label");
+
+        if (value.hasProperty(runtime, "label")) {
+          auto str = value.asString(runtime).utf8(runtime);
+          result->_instance.label = str.c_str();
+        }
       }
     }
     return result;
