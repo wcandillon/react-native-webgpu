@@ -11,7 +11,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
   const methods = decl
     .getMethods()
     .map((m) => getJSIMethod(m))
-    .filter((m) => m.name === "requestAdapter");
+    .filter((m) => m.name === "requestAdapter" || m.name === "requestDevice");
   const dependencies = methods.flatMap((method) => method.dependencies);
   const instanceName = `wgpu::${instanceAliases[name] || name.substring(3)}`;
   return `#pragma once
