@@ -1,4 +1,7 @@
+#pragma once
 #include <jsi/jsi.h>
+
+#include <memory>
 
 namespace rnwgpu {
 
