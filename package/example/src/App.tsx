@@ -5,7 +5,7 @@ import { WebGPUView, gpu } from "react-native-webgpu";
 navigator = { ...navigator, gpu };
 
 (async () => {
-  const adapter = await navigator.gpu.requestAdapter({});
+  const adapter = await navigator.gpu.requestAdapter();
   if (!adapter) {
     throw new Error("WebGPU not supported");
   }
