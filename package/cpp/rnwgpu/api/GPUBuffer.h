@@ -20,10 +20,15 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  void getMappedRange(double offset,
+                      double size) {
+    _instance->GetMappedRange(offset, size);
+  }
   void unmap() { _instance->Unmap(); }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUBuffer::getBrand, this);
+    registerHybridMethod("getMappedRange", &GPUBuffer::getMappedRange, this);
     registerHybridMethod("unmap", &GPUBuffer::unmap, this);
   }
 

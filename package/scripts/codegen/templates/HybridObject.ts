@@ -8,7 +8,13 @@ const instanceAliases: Record<string, string> = {
   GPU: "Instance",
 };
 
-const whiteList = ["requestAdapter", "requestDevice", "createBuffer", "unmap"];
+const whiteList = [
+  "requestAdapter",
+  "requestDevice",
+  "createBuffer",
+  "unmap",
+  "getMappedRange",
+];
 
 export const getHybridObject = (decl: InterfaceDeclaration) => {
   const name = decl.getName();
