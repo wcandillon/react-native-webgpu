@@ -3,13 +3,13 @@
 #include <future>
 #include <memory>
 #include <string>
-#include <android/log.h>
-
-#include <RNFHybridObject.h>
-
-#include "webgpu/webgpu_cpp.h"
 
 #include "MutableBuffer.h"
+
+#include <RNFHybridObject.h>
+#include "Logger.h"
+
+#include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
@@ -23,17 +23,17 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<MutableJSIBuffer> getMappedRange(double offset,
-                                                   double size) {
-    auto offsetParam = static_cast<size_t>(offset);
-    auto sizeParam = static_cast<size_t>(size);
+  std::shared_ptr<MutableJSIBuffer> getMappedRange(std::optional<size_t> offset,
+                                                   std::optional<size_t> size) {
+    auto offsetParam = offset.value_or(0);
+    auto sizeParam = size.value_or(static_cast<size_t>(_instance->GetSize()));
+    Logger::logToConsole("getMappedRange: offset: %d, size: %d", offsetParam, sizeParam);
     auto usage = _instance->GetUsage();
     void *data = (usage & wgpu::BufferUsage::MapWrite)
-                     ? _instance->GetMappedRange(offsetParam )
+                     ? _instance->GetMappedRange(0)
                      : const_cast<void *>(
-                         _instance->GetConstMappedRange(offsetParam));
-
-    return std::make_shared<MutableJSIBuffer>(data, size);
+                         _instance->GetConstMappedRange(0));
+    return std::make_shared<MutableJSIBuffer>(data, sizeParam);
   }
 
   void unmap() { _instance->Unmap(); }

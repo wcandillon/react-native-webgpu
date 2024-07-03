@@ -15,9 +15,9 @@ const demo = async () => {
     usage: GPUBufferUsage.VERTEX,
     mappedAtCreation: true,
   });
-  new Float32Array(
-    verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
-  ).set(cubeVertexArray);
+  new Float32Array(verticesBuffer.getMappedRange(undefined, undefined)).set(
+    cubeVertexArray,
+  );
   verticesBuffer.unmap();
   console.log("DONE!");
 };

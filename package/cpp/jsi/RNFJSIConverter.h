@@ -82,15 +82,6 @@ template <> struct JSIConverter<int64_t> {
   }
 };
 
-// uint64_t <> BigInt
-template <> struct JSIConverter<uint64_t> {
-  static double fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
-    return arg.asBigInt(runtime).asUint64(runtime);
-  }
-  static jsi::Value toJSI(jsi::Runtime& runtime, uint64_t arg) {
-    return jsi::BigInt::fromUint64(runtime, arg);
-  }
-};
 
 // bool <> boolean
 template <> struct JSIConverter<bool> {
@@ -116,7 +107,7 @@ template <> struct JSIConverter<std::string> {
 template <typename TInner> struct JSIConverter<std::optional<TInner>> {
   static std::optional<TInner> fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
     if (arg.isUndefined() || arg.isNull()) {
-      return std::nullopt;
+      return {};
     } else {
       return JSIConverter<TInner>::fromJSI(runtime, std::move(arg));
     }
