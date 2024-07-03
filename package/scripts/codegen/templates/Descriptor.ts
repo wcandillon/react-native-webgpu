@@ -80,7 +80,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
   static std::shared_ptr<rnwgpu::${name}>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {  
     auto result = std::make_unique<rnwgpu::${name}>();
-    if (&arg != nullptr && arg.isObject()) {
+    if (arg.isObject()) {
       auto value = arg.getObject(runtime);
       ${decl
         .getProperties()

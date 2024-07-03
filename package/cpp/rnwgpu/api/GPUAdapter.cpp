@@ -6,7 +6,7 @@
 namespace rnwgpu {
 
 std::future<std::shared_ptr<GPUDevice>>
-GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
+GPUAdapter::requestDevice(std::optional<std::shared_ptr<GPUDeviceDescriptor>> descriptor) {
   return std::async(std::launch::async, [this, descriptor]() {
     wgpu::DeviceDescriptor wgpuDescriptor = {};
     if (descriptor) {

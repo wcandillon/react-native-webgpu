@@ -9,16 +9,16 @@ const demo = async () => {
   if (!adapter) {
     throw new Error("No adapter");
   }
-  const device = await adapter.requestDevice();
-  const verticesBuffer = device.createBuffer({
-    size: cubeVertexArray.byteLength,
-    usage: GPUBufferUsage.VERTEX,
-    mappedAtCreation: true,
-  });
-  new Float32Array(
-    verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
-  ).set(cubeVertexArray);
-  verticesBuffer.unmap();
+  // const device = await adapter.requestDevice();
+  // const verticesBuffer = device.createBuffer({
+  //   size: cubeVertexArray.byteLength,
+  //   usage: GPUBufferUsage.VERTEX,
+  //   mappedAtCreation: true,
+  // });
+  // new Float32Array(
+  //   verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
+  // ).set(cubeVertexArray);
+  // verticesBuffer.unmap();
   console.log("DONE!");
 };
 

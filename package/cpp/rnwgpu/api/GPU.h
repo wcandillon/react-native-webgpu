@@ -24,7 +24,7 @@ public:
   std::string getBrand() { return _name; }
 
   std::future<std::shared_ptr<GPUAdapter>>
-  requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options);
+  requestAdapter(std::optional<std::shared_ptr<GPURequestAdapterOptions>> options);
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPU::getBrand, this);

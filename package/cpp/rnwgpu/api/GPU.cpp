@@ -4,7 +4,7 @@
 namespace rnwgpu {
 
 std::future<std::shared_ptr<GPUAdapter>>
-GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
+GPU::requestAdapter(std::optional<std::shared_ptr<GPURequestAdapterOptions>> options) {
   return std::async(std::launch::async, [this, options]() {
     wgpu::RequestAdapterOptions wgpuOptions = {};
     // if (options) {
