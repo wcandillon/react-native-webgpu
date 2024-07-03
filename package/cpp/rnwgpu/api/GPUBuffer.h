@@ -23,17 +23,19 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<MutableJSIBuffer> getMappedRange(std::optional<size_t> offset,
-                                                   std::optional<size_t> size) {
+  std::shared_ptr<MutableJSIBuffer> getMappedRange(std::optional<double> offset,
+                                                   std::optional<double> size) {
     auto offsetParam = offset.value_or(0);
-    auto sizeParam = size.value_or(static_cast<size_t>(_instance->GetSize()));
+    auto sizeParam = size.value_or(static_cast<double>(_instance->GetSize()));
+    auto o = static_cast<size_t>(offsetParam);
+    auto s = static_cast<size_t>(sizeParam);
     Logger::logToConsole("getMappedRange: offset: %d, size: %d", offsetParam, sizeParam);
     auto usage = _instance->GetUsage();
     void *data = (usage & wgpu::BufferUsage::MapWrite)
-                     ? _instance->GetMappedRange(0)
+                     ? _instance->GetMappedRange(o, s)
                      : const_cast<void *>(
-                         _instance->GetConstMappedRange(0));
-    return std::make_shared<MutableJSIBuffer>(data, sizeParam);
+                         _instance->GetConstMappedRange(o, s));
+    return std::make_shared<MutableJSIBuffer>(data, s);
   }
 
   void unmap() { _instance->Unmap(); }
