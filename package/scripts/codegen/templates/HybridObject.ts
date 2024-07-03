@@ -13,7 +13,7 @@ const whiteList = [
   "requestDevice",
   "createBuffer",
   "unmap",
-  "getMappedRange",
+  //"getMappedRange",
 ];
 
 export const getHybridObject = (decl: InterfaceDeclaration) => {

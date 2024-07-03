@@ -18,9 +18,9 @@ namespace margelo {
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageDataLayout>> {
   static std::shared_ptr<rnwgpu::GPUImageDataLayout>
-  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
+  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
     auto result = std::make_unique<rnwgpu::GPUImageDataLayout>();
-    if (&arg != nullptr && arg.isObject()) {
+    if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "offset")) {
         auto offset = value.getProperty(runtime, "offset");

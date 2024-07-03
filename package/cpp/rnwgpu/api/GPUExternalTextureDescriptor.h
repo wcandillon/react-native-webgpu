@@ -19,9 +19,9 @@ namespace margelo {
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>
-  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
+  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
     auto result = std::make_unique<rnwgpu::GPUExternalTextureDescriptor>();
-    if (&arg != nullptr && arg.isObject()) {
+    if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "source")) {
         auto source = value.getProperty(runtime, "source");

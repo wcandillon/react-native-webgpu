@@ -18,9 +18,9 @@ namespace margelo {
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDict>> {
   static std::shared_ptr<rnwgpu::GPUExtent3DDict>
-  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
+  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
     auto result = std::make_unique<rnwgpu::GPUExtent3DDict>();
-    if (&arg != nullptr && arg.isObject()) {
+    if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "width")) {
         auto width = value.getProperty(runtime, "width");

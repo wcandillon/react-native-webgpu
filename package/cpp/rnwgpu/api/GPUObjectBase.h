@@ -17,10 +17,10 @@ public:
 namespace margelo {
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUObjectBase>> {
-  static std::shared_ptr<rnwgpu::GPUObjectBase> fromJSI(jsi::Runtime &runtime,
-                                                        const jsi::Value &arg) {
+  static std::shared_ptr<rnwgpu::GPUObjectBase>
+  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
     auto result = std::make_unique<rnwgpu::GPUObjectBase>();
-    if (&arg != nullptr && arg.isObject()) {
+    if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");

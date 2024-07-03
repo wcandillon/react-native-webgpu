@@ -20,17 +20,18 @@ struct MutableJSIBuffer : jsi::MutableBuffer {
 
 } // namespace rnwgpu
 
-
 namespace margelo {
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::MutableJSIBuffer>> {
   static std::shared_ptr<rnwgpu::MutableJSIBuffer>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
     if (!arg.getObject(runtime).isArrayBuffer(runtime)) {
-      throw std::runtime_error("Buffer::fromJSI: argument is not an ArrayBuffer");
+      throw std::runtime_error(
+          "Buffer::fromJSI: argument is not an ArrayBuffer");
     }
     auto data = arg.getObject(runtime).getArrayBuffer(runtime);
-    auto result = std::make_unique<rnwgpu::MutableJSIBuffer>(data.data(runtime), data.size(runtime));
+    auto result = std::make_unique<rnwgpu::MutableJSIBuffer>(
+        data.data(runtime), data.size(runtime));
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

@@ -5,11 +5,12 @@ import { gpu } from "react-native-webgpu";
 import { cubeVertexArray } from "./components/cube";
 
 const demo = async () => {
-  const adapter = await gpu.requestAdapter();
+  const adapter = await gpu.requestAdapter(undefined);
   if (!adapter) {
     throw new Error("No adapter");
   }
-  // const device = await adapter.requestDevice();
+  //const device = await adapter.requestDevice();
+  console.log({ adapter });
   // const verticesBuffer = device.createBuffer({
   //   size: cubeVertexArray.byteLength,
   //   usage: GPUBufferUsage.VERTEX,
