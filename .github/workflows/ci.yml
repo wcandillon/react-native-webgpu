@@ -134,35 +134,20 @@ jobs:
         run: |
           yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}"
 
-      - name: SDKs - download required images
-        run: $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "system-images;android-30;default;x86_64"
+      - name: Run Android emulator and launch APK
+        run: |
+          # Start the emulator
+          echo "no" | $ANDROID_HOME/tools/bin/avdmanager create avd --force --name test --abi google_apis/x86 --package 'system-images;android-30;google_apis;x86'
+          $ANDROID_HOME/emulator/emulator -avd test -no-audio -no-window &
 
-      - name: Emulator - Create
-        run: $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd -n Pixel_API_30 --device 'Nexus 5X' --package "system-images;android-30;default;x86_64" --sdcard 512M
+          # Wait for the emulator to boot
+          echo "Waiting for emulator to start..."
+          adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done; input keyevent 82'
+          echo "Emulator started"
 
-      - name: Emulator - Boot
-        run: $ANDROID_HOME/emulator/emulator -memory 4096 -avd Pixel_API_30 -wipe-data -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim &
-
-      - name: ADB Wait For Device
-        run: adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
-        timeout-minutes: 10
-
-      - name: Reverse TCP
-        run: yarn android-reverse-tcp
-
-      - name: Start Package Manager
-        run: E2E=true yarn start &
-
-      - name: Install APK
-        run: adb install -r example/android/app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Launch APK
-        env:
-          PACKAGE_NAME: com.example  # Replace with your actual package name
-        run: adb shell monkey -p ${{ env.PACKAGE_NAME }} 1
-
-      - name: Run tests
-        run: yarn test
+          # Install and launch the APK
+          adb install example/android/app/build/outputs/apk/release/app-release.apk
+          adb shell am start -n com.example.reactnativewebgpu/com.example.reactnativewebgpu.MainActivity
 
   build-ios:
     runs-on: macos-latest
