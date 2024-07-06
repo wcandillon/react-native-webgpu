@@ -21,7 +21,7 @@ export const Tests = () => {
                   return (${tree.code})(this.ctx);
                 })`,
               ).call({
-                ctx: JSON.parse(tree.ctx),
+                ctx: tree.ctx,
               }),
             ),
           );
