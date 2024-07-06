@@ -23,7 +23,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
   static std::shared_ptr<rnwgpu::GPURequestAdapterOptions>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
     auto result = std::make_unique<rnwgpu::GPURequestAdapterOptions>();
-    rnwgpu::Logger::logToConsole("GPURequestAdapterOptions::fromJSI(outofBounds = %d)", outOfBounds);
+    rnwgpu::Logger::logToConsole(
+        "GPURequestAdapterOptions::fromJSI(outofBounds = %d)", outOfBounds);
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "powerPreference")) {

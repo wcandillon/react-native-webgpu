@@ -79,4 +79,4 @@ private:
     return console;
   }
 };
-} // namespace RNSkia
+} // namespace rnwgpu
