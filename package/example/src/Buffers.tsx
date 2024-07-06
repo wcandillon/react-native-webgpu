@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { View } from "react-native";
 import { gpu } from "react-native-webgpu";
 
-import { cubeVertexArray } from "./components/cube";
+//import { cubeVertexArray } from "./components/cube";
 
 const demo = async () => {
   const adapter = await gpu.requestAdapter(undefined);
