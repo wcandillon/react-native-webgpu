@@ -95,12 +95,12 @@ jobs:
             echo "turbo_cache_hit=1" >> $GITHUB_ENV
           fi
 
-      - name: Install JDK 8
+      - name: Install JDK
         if: env.turbo_cache_hit != 1
         uses: actions/setup-java@v3
         with:
-          distribution: 'adopt'
-          java-version: '8'
+          distribution: 'zulu'
+          java-version: '17'
 
       - name: Install NDK
         if: env.turbo_cache_hit != 1
@@ -134,27 +134,6 @@ jobs:
         run: |
           yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}"
 
-      - name: Run Android emulator and launch APK
-        run: |
-          # Accept licenses
-          yes | sdkmanager --licenses
-  
-          # Install system image
-          sdkmanager "system-images;android-30;google_apis;x86"
-  
-          # Create AVD
-          echo "no" | avdmanager create avd --force --name test --abi google_apis/x86 --package 'system-images;android-30;google_apis;x86'
-  
-          # Start emulator
-          $ANDROID_HOME/emulator/emulator -avd test -no-audio -no-window &
-  
-          # Wait for emulator to start
-          adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done; input keyevent 82'
-          echo "Emulator started"
-  
-          # Install and launch the APK
-          adb install example/android/app/build/outputs/apk/release/app-release.apk
-          adb shell am start -n com.example.reactnativewebgpu/com.example.reactnativewebgpu.MainActivity
   build-ios:
     runs-on: macos-latest
     defaults:
