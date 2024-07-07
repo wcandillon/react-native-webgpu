@@ -1,10 +1,26 @@
 import _ from "lodash";
 import type { MethodSignature, PropertySignature, Type } from "ts-morph";
 
+import dawn from "../../../libs/dawn.json";
+
 export const getJSIProp = (method: PropertySignature) => {
   const name = method.getName();
   const { type, dependencies } = getType(method.getType());
   return { name, type, dependencies };
+};
+
+const aliases: Record<string, string> = {
+  GPU: "instance",
+  GPUCanvasContext: "surface",
+};
+
+const getModelName = (name: string) => {
+  if (aliases[name]) {
+    return aliases[name];
+  }
+  return _.lowerCase(
+    _.startCase(_.camelCase(name.startsWith("GPU") ? name.substring(3) : name)),
+  );
 };
 
 interface JsiMethod {
@@ -18,7 +34,18 @@ interface JsiMethod {
   wgpuReturns: string;
 }
 
-export const getJSIMethod = (method: MethodSignature): JsiMethod => {
+export const getJSIMethod = (
+  className: string,
+  method: MethodSignature,
+): JsiMethod => {
+  const methodModelName = getModelName(method.getName());
+  const classMethodName = getModelName(className);
+  const native = dawn[classMethodName as keyof typeof dawn]; //[methodModelName]
+  if (!native) {
+    throw new Error(
+      `No native method found for ${className}.${method.getName()}: ${classMethodName}.${methodModelName}`,
+    );
+  }
   const async = method.getReturnType().getSymbol()?.getName() === "Promise";
   const name = method.getName();
   const apiName = _.upperFirst(name);

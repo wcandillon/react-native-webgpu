@@ -29,7 +29,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
   const name = decl.getName();
   const methods = decl
     .getMethods()
-    .map((m) => getJSIMethod(m))
+    .map((m) => getJSIMethod(name, m))
     .filter((m) => methodWhiteList.includes(m.name));
   const properties = decl
     .getProperties()
