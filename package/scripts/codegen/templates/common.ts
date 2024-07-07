@@ -30,7 +30,12 @@ interface JsiMethod {
   name: string;
   apiName: string;
   dependencies: string[];
-  args: { name: string; type: string; optional: boolean }[];
+  args: {
+    name: string;
+    type: string;
+    optional: boolean;
+    defaultValue: string | undefined;
+  }[];
   argNames: string[];
   returns: string;
   wgpuReturns: string;
@@ -62,13 +67,26 @@ export const getJSIMethod = (
   const name = method.getName();
   const apiName = _.upperFirst(name);
   const { type: returns, dependencies } = getType(method.getReturnType()!);
-  const args: { name: string; type: string; optional: boolean }[] = method
-    .getParameters()
-    .map((p) => {
-      const { type, dependencies: deps } = getType(p.getType());
-      dependencies.push(...deps);
-      return { type, name: p.getName(), optional: p.isOptional() };
-    });
+  const args: {
+    name: string;
+    type: string;
+    optional: boolean;
+    defaultValue: undefined | string;
+  }[] = method.getParameters().map((p) => {
+    const { type, dependencies: deps } = getType(p.getType());
+    dependencies.push(...deps);
+    const modelArg = modelMethod?.args.find(
+      ({ name: argName }: { name: string }) =>
+        argName === getModelName(p.getName()),
+    );
+    const defaultValue = modelArg?.default;
+    return {
+      type,
+      name: p.getName(),
+      optional: p.isOptional(),
+      defaultValue,
+    };
+  });
   const argNames: string[] = method
     .getParameters()
     .map((p) => `${p.getName()}`);

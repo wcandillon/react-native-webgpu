@@ -24,8 +24,9 @@ public:
 
   std::shared_ptr<MutableJSIBuffer> getMappedRange(std::optional<double> offset,
                                                    std::optional<double> size) {
-    auto result =
-        _instance->GetMappedRange(offset->getInstance(), size->getInstance());
+    auto aOffset = offset.value_or(0);
+    auto aSize = size.value_or(WGPU_WHOLE_MAP_SIZE);
+    auto result = _instance->GetMappedRange(aOffset, aSize);
     return std::make_shared<MutableJSIBuffer>(
         std::make_shared<MutableJSIBuffer>(result));
   }

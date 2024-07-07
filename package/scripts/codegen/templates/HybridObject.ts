@@ -80,8 +80,16 @@ public:
     .map((method) => {
       const isUndefined = method.returns === "undefined";
       const returnType = isUndefined ? "void" : wrapType(method.returns);
-      return `${returnType} ${method.name}(${method.args.map((a) => `${wrapType(a.type, a.optional)} ${a.name}`).join(", ")}) {
-      ${isUndefined ? "" : "auto result = "}_instance->${_.upperFirst(method.name)}(${method.argNames.map((n) => `${n}->getInstance()`).join(", ")});
+      const args = method.args
+        .map((a) => `${wrapType(a.type, a.optional)} ${a.name}`)
+        .join(", ");
+      return `${returnType} ${method.name}(${args}) {
+      ${method.args
+        .map((arg) => {
+          return `auto a${_.upperFirst(arg.name)} = ${arg.optional ? `${arg.name}.value_or(${arg.defaultValue})` : ""};`;
+        })
+        .join("\n")}
+      ${isUndefined ? "" : "auto result = "}_instance->${_.upperFirst(method.name)}(${method.argNames.map((n) => `a${_.upperFirst(n)}`).join(", ")});
       ${isUndefined ? "" : `return std::make_shared<${method.returns}>(std::make_shared<${method.wgpuReturns}>(result));`}
     }`;
     })
