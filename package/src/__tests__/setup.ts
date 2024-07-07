@@ -20,6 +20,7 @@ beforeAll(async () => {
 export interface EvalContext {
   gpu: GPU;
   adapter: GPUAdapter;
+  cubeVertexArray: Float32Array;
   [key: string]: any;
 }
 
@@ -33,7 +34,6 @@ interface TestingClient {
 }
 
 class RemoteTestingClient implements TestingClient {
-
   readonly OS = global.testOS;
   readonly arch = global.testArch;
 

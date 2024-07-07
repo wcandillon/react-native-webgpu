@@ -5,6 +5,7 @@ import { Text, View } from "react-native";
 import {gpu} from "react-native-webgpu";
 
 import { useClient } from "./useClient";
+import { cubeVertexArray } from "./components/cube";
 
 export const CI = process.env.CI === "true";
 
@@ -42,7 +43,8 @@ export const Tests = () => {
               ...tree.ctx,
               gpu,
               adapter,
-              device
+              device,
+              cubeVertexArray
             },
           });
           if (result instanceof Promise) {
