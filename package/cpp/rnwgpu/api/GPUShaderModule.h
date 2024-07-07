@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "MutableBuffer.h"
 #include <RNFHybridObject.h>
 
 #include "webgpu/webgpu_cpp.h"

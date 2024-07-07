@@ -2,7 +2,7 @@
 import type { InterfaceDeclaration } from "ts-morph";
 import _ from "lodash";
 
-import { getJSIMethod, getJSIProp } from "./common";
+import { getJSIMethod, getJSIProp, wrapType } from "./common";
 
 const instanceAliases: Record<string, string> = {
   GPU: "Instance",
@@ -13,16 +13,13 @@ const methodWhiteList = [
   "requestDevice",
   "createBuffer",
   "unmap",
-  //"getMappedRange",
+  "getMappedRange",
 ];
 
 const propWhiteList: string[] = [
   //"info"
 ];
 
-const wrapType = (type: string) => {
-  return type.startsWith("GPU") ? `std::shared_ptr<${type}>` : type;
-};
 /*
     registerHybridGetter("features", &GPUAdapter::getFeatures, this);
     registerHybridGetter("limits", &GPUAdapter::getLimits, this);
@@ -53,6 +50,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
 #include <future>
 
 #include <RNFHybridObject.h>
+#include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
 

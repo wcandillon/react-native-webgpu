@@ -41,7 +41,9 @@ export const getJSIMethod = (method: MethodSignature): JsiMethod => {
     args,
     argNames,
     returns,
-    wgpuReturns: `wgpu::${returns.substring(3)}`,
+    wgpuReturns: returns.startsWith("GPU")
+      ? `wgpu::${returns.substring(3)}`
+      : returns,
   };
 };
 
@@ -63,10 +65,18 @@ const getType = (
   } else if (type.getTypeArguments()[0]) {
     return getType(type.getTypeArguments()[0], dependencies);
   } else {
-    const textType = type.getText();
+    let textType = type.getText();
     if (textType.startsWith("GPU")) {
       dependencies.push(textType);
+    } else if (textType === "ArrayBuffer") {
+      textType = "MutableJSIBuffer";
     }
     return { type: textType, dependencies };
   }
+};
+
+export const wrapType = (type: string) => {
+  return type.startsWith("GPU") || type === "MutableJSIBuffer"
+    ? `std::shared_ptr<${type}>`
+    : type;
 };
