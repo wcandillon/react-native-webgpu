@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect } from "react";
 import { Text, View } from "react-native";
+import {gpu} from "react-native-webgpu";
 
 import { useClient } from "./useClient";
 
@@ -14,17 +15,32 @@ export const Tests = () => {
       client.onmessage = (e) => {
         const tree: any = JSON.parse(e.data);
         if (tree.code) {
-          client.send(
-            JSON.stringify(
-              eval(
-                `(function Main() {
-                  return (${tree.code})(this.ctx);
-                })`,
-              ).call({
-                ctx: tree.ctx,
-              }),
-            ),
-          );
+          console.log(tree.code)
+          const result = eval(
+            `(function Main() {
+              return (${tree.code})(this.ctx);
+            })`,
+          ).call({
+            ctx: {
+              ...tree.ctx,
+              gpu
+            },
+          });
+          if (result instanceof Promise) {
+            result.then((r) => {
+              client.send(
+                JSON.stringify(
+                  r,
+                ),
+              );
+            })
+          } else {
+            client.send(
+              JSON.stringify(
+                result,
+              ),
+            );
+          }
         }
       };
       return () => {

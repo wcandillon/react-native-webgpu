@@ -17,7 +17,10 @@ beforeAll(async () => {
   client = new RemoteTestingClient();
 });
 
-export type EvalContext = Record<string, any>;
+export interface EvalContext {
+  gpu: GPU;
+  [key: string]: any;
+}
 
 interface TestingClient {
   eval<Ctx extends EvalContext = EvalContext, R = any>(
@@ -29,9 +32,7 @@ interface TestingClient {
 }
 
 class RemoteTestingClient implements TestingClient {
-  readonly width = 256;
-  readonly height = 256;
-  readonly fontSize = 32;
+
   readonly OS = global.testOS;
   readonly arch = global.testArch;
 
@@ -61,7 +62,7 @@ class RemoteTestingClient implements TestingClient {
   }
 
   private prepareContext<Ctx extends EvalContext>(context?: Ctx): EvalContext {
-    const ctx: EvalContext = {};
+    const ctx: any = {};
     if (context) {
       for (const [key, value] of Object.entries(context)) {
         ctx[key] = value;
