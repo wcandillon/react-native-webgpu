@@ -25,7 +25,7 @@ public:
   std::shared_ptr<MutableJSIBuffer> getMappedRange(double offset, double size) {
     auto result =
         _instance->GetMappedRange();
-    return std::make_shared<MutableJSIBuffer>(result);
+    return std::make_shared<MutableJSIBuffer>(result, _instance->GetSize());
   }
 
   void unmap() { _instance->Unmap(); }
