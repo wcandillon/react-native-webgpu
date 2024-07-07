@@ -79,7 +79,8 @@ public:
     .filter((method) => !method.async)
     .map((method) => {
       const isUndefined = method.returns === "undefined";
-      return `${isUndefined ? "void" : wrapType(method.returns)} ${method.name}(${method.args.map((a) => `${wrapType(a.type)} ${a.name}`).join(", ")}) {
+      const returnType = isUndefined ? "void" : wrapType(method.returns);
+      return `${returnType} ${method.name}(${method.args.map((a) => `${wrapType(a.type, a.optional)} ${a.name}`).join(", ")}) {
       ${isUndefined ? "" : "auto result = "}_instance->${_.upperFirst(method.name)}(${method.argNames.map((n) => `${n}->getInstance()`).join(", ")});
       ${isUndefined ? "" : `return std::make_shared<${method.returns}>(std::make_shared<${method.wgpuReturns}>(result));`}
     }`;

@@ -22,7 +22,8 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<MutableJSIBuffer> getMappedRange(double offset, double size) {
+  std::shared_ptr<MutableJSIBuffer> getMappedRange(std::optional<double> offset,
+                                                   std::optional<double> size) {
     auto result =
         _instance->GetMappedRange(offset->getInstance(), size->getInstance());
     return std::make_shared<MutableJSIBuffer>(
