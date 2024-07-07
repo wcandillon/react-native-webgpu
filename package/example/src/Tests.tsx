@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect } from "react";
 import { Text, View } from "react-native";
-import {gpu} from "react-native-webgpu";
+import { gpu } from "react-native-webgpu";
 
 import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
@@ -14,20 +14,20 @@ const useWebGPU = () => {
   const [device, setDevice] = React.useState<GPUDevice | null>(null);
   useEffect(() => {
     (async () => {
-      const adapter = await gpu.requestAdapter();
-      if (!adapter) {
+      const a = await gpu.requestAdapter();
+      if (!a) {
         throw new Error("No adapter");
       }
-      const device = await adapter.requestDevice();
-      setAdapter(adapter);
-      setDevice(device);
+      const d = await a.requestDevice();
+      setAdapter(a);
+      setDevice(d);
     })();
   }, []);
-  return {adapter, device};
+  return { adapter, device };
 };
 
 export const Tests = () => {
-  const {adapter, device} = useWebGPU();
+  const { adapter, device } = useWebGPU();
   const [client, hostname] = useClient();
   useEffect(() => {
     if (client !== null && adapter !== null && device !== null) {
@@ -44,23 +44,15 @@ export const Tests = () => {
               gpu,
               adapter,
               device,
-              cubeVertexArray
+              cubeVertexArray,
             },
           });
           if (result instanceof Promise) {
             result.then((r) => {
-              client.send(
-                JSON.stringify(
-                  r,
-                ),
-              );
-            })
+              client.send(JSON.stringify(r));
+            });
           } else {
-            client.send(
-              JSON.stringify(
-                result,
-              ),
-            );
+            client.send(JSON.stringify(result));
           }
         }
       };
@@ -69,7 +61,7 @@ export const Tests = () => {
       };
     }
     return;
-  }, [client]);
+  }, [adapter, client, device]);
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
       <Text style={{ color: "black" }}>
