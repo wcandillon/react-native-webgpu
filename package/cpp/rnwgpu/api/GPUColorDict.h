@@ -17,10 +17,10 @@ public:
 namespace margelo {
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
-  static std::shared_ptr<rnwgpu::GPUColorDict> fromJSI(jsi::Runtime &runtime,
-                                                       const jsi::Value &arg) {
+  static std::shared_ptr<rnwgpu::GPUColorDict>
+  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
     auto result = std::make_unique<rnwgpu::GPUColorDict>();
-    if (&arg != nullptr && arg.isObject()) {
+    if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "r")) {
         auto r = value.getProperty(runtime, "r");

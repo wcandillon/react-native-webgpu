@@ -18,9 +18,9 @@ namespace margelo {
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUTextureDescriptor>
-  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
+  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
     auto result = std::make_unique<rnwgpu::GPUTextureDescriptor>();
-    if (&arg != nullptr && arg.isObject()) {
+    if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "size")) {
         auto size = value.getProperty(runtime, "size");

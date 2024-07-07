@@ -5,7 +5,7 @@
 #pragma once
 
 #include "RNFJSIConverter.h"
-#include "RNFLogger.h"
+#include "Logger.h"
 #include "RNFWorkletRuntimeRegistry.h"
 #include <functional>
 #include <jsi/jsi.h>
@@ -86,14 +86,14 @@ private:
 private:
   template <typename Derived, typename ReturnType, typename... Args, size_t... Is>
   static inline jsi::Value callMethod(Derived* obj, ReturnType (Derived::*method)(Args...), jsi::Runtime& runtime, const jsi::Value* args,
-                                      std::index_sequence<Is...>) {
+                                      std::index_sequence<Is...>, size_t count) {
     if constexpr (std::is_same_v<ReturnType, void>) {
       // It's a void method.
       (obj->*method)(JSIConverter<std::decay_t<Args>>::fromJSI(runtime, args[Is])...);
       return jsi::Value::undefined();
     } else {
       // It's returning some C++ type, we need to convert that to a JSI value now.
-      ReturnType result = (obj->*method)(JSIConverter<std::decay_t<Args>>::fromJSI(runtime, args[Is])...);
+      ReturnType result = (obj->*method)(JSIConverter<std::decay_t<Args>>::fromJSI(runtime, args[Is], Is >= count)...);
       return JSIConverter<std::decay_t<ReturnType>>::toJSI(runtime, std::move(result));
     }
   }
@@ -109,7 +109,7 @@ private:
       } else {
         // Call the actual method with JSI values as arguments and return a JSI value again.
         // Internally, this method converts the JSI values to C++ values.
-        return callMethod(derivedInstance, method, runtime, args, std::index_sequence_for<Args...>{});
+        return callMethod(derivedInstance, method, runtime, args, std::index_sequence_for<Args...>{}, count);
       }
     };
   }

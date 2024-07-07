@@ -5,8 +5,12 @@
 #include <string>
 
 #include <RNFHybridObject.h>
+// #include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
+
+#include "GPUBuffer.h"
+#include "GPUBufferDescriptor.h"
 
 namespace rnwgpu {
 
@@ -20,8 +24,15 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  std::shared_ptr<GPUBuffer>
+  createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
+    auto result = _instance->CreateBuffer(descriptor->getInstance());
+    return std::make_shared<GPUBuffer>(std::make_shared<wgpu::Buffer>(result));
+  }
+
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUDevice::getBrand, this);
+    registerHybridMethod("createBuffer", &GPUDevice::createBuffer, this);
   }
 
 private:

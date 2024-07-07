@@ -19,9 +19,9 @@ namespace margelo {
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
   static std::shared_ptr<rnwgpu::GPUCanvasConfiguration>
-  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
+  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
     auto result = std::make_unique<rnwgpu::GPUCanvasConfiguration>();
-    if (&arg != nullptr && arg.isObject()) {
+    if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "device")) {
         auto device = value.getProperty(runtime, "device");

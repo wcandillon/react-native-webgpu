@@ -29,7 +29,7 @@ namespace jsi = facebook::jsi;
 
 // Unknown type (error)
 template <typename ArgType, typename Enable = void> struct JSIConverter {
-  static ArgType fromJSI(jsi::Runtime&, const jsi::Value&) {
+  static ArgType fromJSI(jsi::Runtime&, const jsi::Value&, bool outOfBounds) {
     static_assert(always_false<ArgType>::value, "This type is not supported by the JSIConverter!");
     return ArgType();
   }
@@ -44,7 +44,7 @@ private:
 
 // int <> number
 template <> struct JSIConverter<int> {
-  static int fromJSI(jsi::Runtime&, const jsi::Value& arg) {
+  static int fromJSI(jsi::Runtime&, const jsi::Value& arg, bool outOfBounds) {
     return static_cast<int>(arg.asNumber());
   }
   static jsi::Value toJSI(jsi::Runtime&, int arg) {
@@ -54,7 +54,7 @@ template <> struct JSIConverter<int> {
 
 // double <> number
 template <> struct JSIConverter<double> {
-  static double fromJSI(jsi::Runtime&, const jsi::Value& arg) {
+  static double fromJSI(jsi::Runtime&, const jsi::Value& arg, bool outOfBounds) {
     return arg.asNumber();
   }
   static jsi::Value toJSI(jsi::Runtime&, double arg) {
@@ -64,7 +64,7 @@ template <> struct JSIConverter<double> {
 
 // float <> number
 template <> struct JSIConverter<float> {
-  static float fromJSI(jsi::Runtime&, const jsi::Value& arg) {
+  static float fromJSI(jsi::Runtime&, const jsi::Value& arg, bool outOfBounds) {
     return static_cast<float>(arg.asNumber());
   }
   static jsi::Value toJSI(jsi::Runtime&, float arg) {
@@ -72,19 +72,9 @@ template <> struct JSIConverter<float> {
   }
 };
 
-// int64_t <> BigInt
-template <> struct JSIConverter<int64_t> {
-  static double fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
-    return arg.asBigInt(runtime).asInt64(runtime);
-  }
-  static jsi::Value toJSI(jsi::Runtime& runtime, int64_t arg) {
-    return jsi::BigInt::fromInt64(runtime, arg);
-  }
-};
-
 // uint64_t <> BigInt
 template <> struct JSIConverter<uint64_t> {
-  static double fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  static double fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBounds) {
     return arg.asBigInt(runtime).asUint64(runtime);
   }
   static jsi::Value toJSI(jsi::Runtime& runtime, uint64_t arg) {
@@ -92,9 +82,20 @@ template <> struct JSIConverter<uint64_t> {
   }
 };
 
+// int64_t <> BigInt
+template <> struct JSIConverter<int64_t> {
+  static double fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBounds) {
+    return arg.asBigInt(runtime).asInt64(runtime);
+  }
+  static jsi::Value toJSI(jsi::Runtime& runtime, int64_t arg) {
+    return jsi::BigInt::fromInt64(runtime, arg);
+  }
+};
+
+
 // bool <> boolean
 template <> struct JSIConverter<bool> {
-  static bool fromJSI(jsi::Runtime&, const jsi::Value& arg) {
+  static bool fromJSI(jsi::Runtime&, const jsi::Value& arg, bool outOfBounds) {
     return arg.asBool();
   }
   static jsi::Value toJSI(jsi::Runtime&, bool arg) {
@@ -104,7 +105,7 @@ template <> struct JSIConverter<bool> {
 
 // std::string <> string
 template <> struct JSIConverter<std::string> {
-  static std::string fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  static std::string fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBounds) {
     return arg.asString(runtime).utf8(runtime);
   }
   static jsi::Value toJSI(jsi::Runtime& runtime, const std::string& arg) {
@@ -114,11 +115,11 @@ template <> struct JSIConverter<std::string> {
 
 // std::optional<T> <> T | undefined
 template <typename TInner> struct JSIConverter<std::optional<TInner>> {
-  static std::optional<TInner> fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
-    if (arg.isUndefined() || arg.isNull()) {
-      return std::nullopt;
+  static std::optional<TInner> fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBounds) {
+    if (outOfBounds || arg.isUndefined()) {
+      return {};
     } else {
-      return JSIConverter<TInner>::fromJSI(runtime, std::move(arg));
+      return JSIConverter<TInner>::fromJSI(runtime, std::move(arg), outOfBounds);
     }
   }
   static jsi::Value toJSI(jsi::Runtime& runtime, const std::optional<TInner>& arg) {
@@ -132,7 +133,7 @@ template <typename TInner> struct JSIConverter<std::optional<TInner>> {
 
 // Enum <> Union
 template <typename TEnum> struct JSIConverter<TEnum, std::enable_if_t<std::is_enum<TEnum>::value>> {
-  static TEnum fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  static TEnum fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBounds) {
     std::string string = arg.asString(runtime).utf8(runtime);
     TEnum outEnum;
     EnumMapper::convertJSUnionToEnum(string, &outEnum);
@@ -147,7 +148,7 @@ template <typename TEnum> struct JSIConverter<TEnum, std::enable_if_t<std::is_en
 
 // std::future<T> <> Promise<T>
 template <typename TResult> struct JSIConverter<std::future<TResult>> {
-  static std::future<TResult> fromJSI(jsi::Runtime&, const jsi::Value&) {
+  static std::future<TResult> fromJSI(jsi::Runtime&, const jsi::Value&, bool outOfBounds) {
     throw std::runtime_error("Promise cannot be converted to a native type - it needs to be awaited first!");
   }
   static jsi::Value toJSI(jsi::Runtime& runtime, std::future<TResult>&& arg) {
@@ -192,32 +193,32 @@ template <typename TResult> struct JSIConverter<std::future<TResult>> {
 
 // [](Args...) -> T {} <> (Args...) => T
 template <typename ReturnType, typename... Args> struct JSIConverter<std::function<ReturnType(Args...)>> {
-  static std::function<ReturnType(Args...)> fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  static std::function<ReturnType(Args...)> fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBounds) {
     jsi::Function function = arg.asObject(runtime).asFunction(runtime);
 
     std::shared_ptr<jsi::Function> sharedFunction = JSIHelper::createSharedJsiFunction(runtime, std::move(function));
-    return [&runtime, sharedFunction](Args... args) -> ReturnType {
+    return [&runtime, sharedFunction, outOfBounds](Args... args) -> ReturnType {
       jsi::Value result = sharedFunction->call(runtime, JSIConverter<std::decay_t<Args>>::toJSI(runtime, args)...);
       if constexpr (std::is_same_v<ReturnType, void>) {
         // it is a void function (returns undefined)
         return;
       } else {
         // it returns a custom type, parse it from the JSI value.
-        return JSIConverter<ReturnType>::fromJSI(runtime, std::move(result));
+        return JSIConverter<ReturnType>::fromJSI(runtime, std::move(result), outOfBounds);
       }
     };
   }
 
   template <size_t... Is>
   static jsi::Value callHybridFunction(const std::function<ReturnType(Args...)>& function, jsi::Runtime& runtime, const jsi::Value* args,
-                                       std::index_sequence<Is...>) {
+                                       std::index_sequence<Is...>, size_t count) {
     if constexpr (std::is_same_v<ReturnType, void>) {
       // it is a void function (will return undefined in JS)
-      function(JSIConverter<std::decay_t<Args>>::fromJSI(runtime, args[Is])...);
+      function(JSIConverter<std::decay_t<Args>>::fromJSI(runtime, args[Is], Is >= count)...);
       return jsi::Value::undefined();
     } else {
       // it is a custom type, parse it to a JS value
-      ReturnType result = function(JSIConverter<std::decay_t<Args>>::fromJSI(runtime, args[Is])...);
+      ReturnType result = function(JSIConverter<std::decay_t<Args>>::fromJSI(runtime, args[Is], Is >= count)...);
       return JSIConverter<ReturnType>::toJSI(runtime, result);
     }
   }
@@ -229,7 +230,7 @@ template <typename ReturnType, typename... Args> struct JSIConverter<std::functi
         throw jsi::JSError(runtime, "Function expected " + std::to_string(sizeof...(Args)) + " arguments, but received " +
                                         std::to_string(count) + "!");
       }
-      return callHybridFunction(function, runtime, args, std::index_sequence_for<Args...>{});
+      return callHybridFunction(function, runtime, args, std::index_sequence_for<Args...>{}, count);
     };
     return jsi::Function::createFromHostFunction(runtime, jsi::PropNameID::forUtf8(runtime, "hostFunction"), sizeof...(Args), jsFunction);
   }
@@ -237,7 +238,7 @@ template <typename ReturnType, typename... Args> struct JSIConverter<std::functi
 
 // std::vector<T> <> T[]
 template <typename ElementType> struct JSIConverter<std::vector<ElementType>> {
-  static std::vector<ElementType> fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  static std::vector<ElementType> fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBounds) {
     jsi::Array array = arg.asObject(runtime).asArray(runtime);
     size_t length = array.size(runtime);
 
@@ -245,7 +246,7 @@ template <typename ElementType> struct JSIConverter<std::vector<ElementType>> {
     vector.reserve(length);
     for (size_t i = 0; i < length; ++i) {
       jsi::Value elementValue = array.getValueAtIndex(runtime, i);
-      vector.emplace_back(JSIConverter<ElementType>::fromJSI(runtime, elementValue));
+      vector.emplace_back(JSIConverter<ElementType>::fromJSI(runtime, elementValue, outOfBounds));
     }
     return vector;
   }
@@ -261,7 +262,7 @@ template <typename ElementType> struct JSIConverter<std::vector<ElementType>> {
 
 // std::unordered_map<std::string, T> <> Record<string, T>
 template <typename ValueType> struct JSIConverter<std::unordered_map<std::string, ValueType>> {
-  static std::unordered_map<std::string, ValueType> fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  static std::unordered_map<std::string, ValueType> fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBounds) {
     jsi::Object object = arg.asObject(runtime);
     jsi::Array propertyNames = object.getPropertyNames(runtime);
     size_t length = propertyNames.size(runtime);
@@ -271,7 +272,7 @@ template <typename ValueType> struct JSIConverter<std::unordered_map<std::string
     for (size_t i = 0; i < length; ++i) {
       std::string key = propertyNames.getValueAtIndex(runtime, i).asString(runtime).utf8(runtime);
       jsi::Value value = object.getProperty(runtime, key.c_str());
-      map.emplace(key, JSIConverter<ValueType>::fromJSI(runtime, value));
+      map.emplace(key, JSIConverter<ValueType>::fromJSI(runtime, value, outOfBounds));
     }
     return map;
   }
@@ -313,7 +314,7 @@ template <typename T> struct JSIConverter<T, std::enable_if_t<is_shared_ptr_to_h
   }
 #endif
 
-  static T fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  static T fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBounds) {
 #if DEBUG
     if (arg.isUndefined()) {
       [[unlikely]];
@@ -373,7 +374,7 @@ template <typename T> struct JSIConverter<T, std::enable_if_t<is_shared_ptr_to_n
   }
 #endif
 
-  static T fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  static T fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBounds) {
 #if DEBUG
     if (arg.isUndefined()) {
       [[unlikely]];

@@ -3,7 +3,7 @@
 //
 #include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include "RNFLogger.h"
+#include "Logger.h"
 
 #include <vector>
 #include <utility>
@@ -28,7 +28,7 @@ static int getId(const char* name) {
 HybridObject::HybridObject(const char* name) : _name(name) {
 #if DEBUG && RNF_ENABLE_LOGS
   _instanceId = getId(name);
-  Logger::log(TAG, "(MEMORY) Creating %s (#%i)... ✅", _name, _instanceId);
+  Logger::logToConsole(TAG, "(MEMORY) Creating %s (#%i)... ✅", _name, _instanceId);
 #endif
 }
 

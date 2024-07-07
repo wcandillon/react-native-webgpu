@@ -19,9 +19,9 @@ namespace margelo {
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
   static std::shared_ptr<rnwgpu::GPUVertexBufferLayout>
-  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
+  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
     auto result = std::make_unique<rnwgpu::GPUVertexBufferLayout>();
-    if (&arg != nullptr && arg.isObject()) {
+    if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "arrayStride")) {
         auto arrayStride = value.getProperty(runtime, "arrayStride");
