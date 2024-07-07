@@ -1,7 +1,12 @@
 #pragma once
 
-#include "webgpu/webgpu_cpp.h"
 #include <memory>
+
+#include "webgpu/webgpu_cpp.h"
+
+#include <RNFHybridObject.h>
+
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 
