@@ -35,6 +35,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
           throw std::runtime_error(
               "Property GPURenderPipelineDescriptor::vertex is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPURenderPipelineDescriptor::vertex is not defined");
       }
       if (value.hasProperty(runtime, "primitive")) {
         auto primitive = value.getProperty(runtime, "primitive");
@@ -49,6 +52,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
         auto fragment = value.getProperty(runtime, "fragment");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPURenderPipelineDescriptor");
+    //}
     return result;
   }
   static jsi::Value

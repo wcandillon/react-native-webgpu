@@ -35,17 +35,21 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
           throw std::runtime_error(
               "Property GPUImageCopyExternalImage::source is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUImageCopyExternalImage::source is not defined");
       }
       if (value.hasProperty(runtime, "origin")) {
         auto origin = value.getProperty(runtime, "origin");
       }
       if (value.hasProperty(runtime, "flipY")) {
         auto flipY = value.getProperty(runtime, "flipY");
-        if (value.hasProperty(runtime, "flipY")) {
-          result->_instance.flipY = flipY.getBool();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUImageCopyExternalImage");
+    //}
     return result;
   }
   static jsi::Value

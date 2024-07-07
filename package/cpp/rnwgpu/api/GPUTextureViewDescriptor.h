@@ -39,33 +39,21 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
       }
       if (value.hasProperty(runtime, "baseMipLevel")) {
         auto baseMipLevel = value.getProperty(runtime, "baseMipLevel");
-
-        if (value.hasProperty(runtime, "baseMipLevel")) {
-          result->_instance.baseMipLevel = baseMipLevel.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "mipLevelCount")) {
         auto mipLevelCount = value.getProperty(runtime, "mipLevelCount");
-
-        if (value.hasProperty(runtime, "mipLevelCount")) {
-          result->_instance.mipLevelCount = mipLevelCount.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "baseArrayLayer")) {
         auto baseArrayLayer = value.getProperty(runtime, "baseArrayLayer");
-
-        if (value.hasProperty(runtime, "baseArrayLayer")) {
-          result->_instance.baseArrayLayer = baseArrayLayer.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "arrayLayerCount")) {
         auto arrayLayerCount = value.getProperty(runtime, "arrayLayerCount");
-
-        if (value.hasProperty(runtime, "arrayLayerCount")) {
-          result->_instance.arrayLayerCount = arrayLayerCount.getNumber();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUTextureViewDescriptor");
+    //}
     return result;
   }
   static jsi::Value

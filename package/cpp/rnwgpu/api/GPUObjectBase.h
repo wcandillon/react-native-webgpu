@@ -30,11 +30,21 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUObjectBase>> {
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
 
+        if (label.isString()) {
+          auto str = value.asString(runtime).utf8(runtime);
+          result->_instance.label = str.c_str();
+        }
         if (label.isUndefined()) {
           throw std::runtime_error("Property GPUObjectBase::label is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUObjectBase::label is not defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUObjectBase");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

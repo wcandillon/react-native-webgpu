@@ -3,19 +3,19 @@ import type { InterfaceDeclaration, PropertySignature } from "ts-morph";
 import type { Union } from "./Unions";
 
 const getBoolean = (name: string) => {
-  return `if (value.hasProperty(runtime, "${name}")) {
+  return `if (${name}.isBool()) {
     result->_instance.${name} = ${name}.getBool();
 }`;
 };
 
 const getNumber = (name: string) => {
-  return `if (value.hasProperty(runtime, "${name}")) {
+  return `if (${name}.isNumber()) {
     result->_instance.${name} = ${name}.getNumber();
 }`;
 };
 
 const getString = (name: string) => {
-  return `if (value.hasProperty(runtime, "${name}")) {
+  return `if (${name}.isString()) {
     auto str = value.asString(runtime).utf8(runtime);
     result->_instance.${name} = str.c_str();
 }`;
@@ -27,21 +27,15 @@ const propFromJSI = (
   _unions: Union[],
 ) => {
   const name = prop.getName();
-  const isOptional = prop.getType().getText().includes("undefined");
-  const possibleTypes = prop
+  const isOptional = prop
     .getType()
     .getUnionTypes()
-    .map((t) => t.getText())
-    .filter((t) => t !== "undefined");
-  // const enumValues = possibleTypes.filter((t) => t.startsWith('"'));
-  //console.log(possibleTypes);
-  //   ${enumValues.length > 0 ? getEnum(enumValues.map(v => v.substring(1, v.length-1))) : ""}
-
+    .some((t) => t.isUndefined());
   return `if (value.hasProperty(runtime, "${name}")) {
   auto ${name} = value.getProperty(runtime, "${name}");
-  ${possibleTypes.includes("true") || possibleTypes.includes("false") ? getBoolean(name) : ""}
-  ${possibleTypes.includes("number") ? getNumber(name) : ""}
-  ${possibleTypes.includes("string") ? getString(name) : ""}
+  ${prop.getType().isBoolean() ? getBoolean(name) : ""}
+  ${prop.getType().isNumber() ? getNumber(name) : ""}
+  ${prop.getType().isString() ? getString(name) : ""}
   ${
     !isOptional
       ? `if (${name}.isUndefined()) {
@@ -49,7 +43,13 @@ const propFromJSI = (
   }`
       : ""
   }
-}`;
+} ${
+    !isOptional
+      ? `else {
+  throw std::runtime_error("Property ${className}::${name} is not defined");
+}`
+      : ""
+  }`;
 };
 
 export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
@@ -94,6 +94,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
         })
         .join("\n")}
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for ${name}");
+    //}
     return result;
   }
   static jsi::Value

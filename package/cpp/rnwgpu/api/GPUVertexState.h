@@ -31,6 +31,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexState>> {
         auto buffers = value.getProperty(runtime, "buffers");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUVertexState");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

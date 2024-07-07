@@ -30,17 +30,15 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "depthReadOnly")) {
         auto depthReadOnly = value.getProperty(runtime, "depthReadOnly");
-        if (value.hasProperty(runtime, "depthReadOnly")) {
-          result->_instance.depthReadOnly = depthReadOnly.getBool();
-        }
       }
       if (value.hasProperty(runtime, "stencilReadOnly")) {
         auto stencilReadOnly = value.getProperty(runtime, "stencilReadOnly");
-        if (value.hasProperty(runtime, "stencilReadOnly")) {
-          result->_instance.stencilReadOnly = stencilReadOnly.getBool();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPURenderBundleEncoderDescriptor");
+    //}
     return result;
   }
   static jsi::Value

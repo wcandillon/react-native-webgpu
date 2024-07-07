@@ -34,13 +34,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
           throw std::runtime_error(
               "Property GPUDepthStencilState::format is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUDepthStencilState::format is not defined");
       }
       if (value.hasProperty(runtime, "depthWriteEnabled")) {
         auto depthWriteEnabled =
             value.getProperty(runtime, "depthWriteEnabled");
-        if (value.hasProperty(runtime, "depthWriteEnabled")) {
-          result->_instance.depthWriteEnabled = depthWriteEnabled.getBool();
-        }
       }
       if (value.hasProperty(runtime, "depthCompare")) {
         auto depthCompare = value.getProperty(runtime, "depthCompare");
@@ -53,42 +53,24 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
       }
       if (value.hasProperty(runtime, "stencilReadMask")) {
         auto stencilReadMask = value.getProperty(runtime, "stencilReadMask");
-
-        if (value.hasProperty(runtime, "stencilReadMask")) {
-          result->_instance.stencilReadMask = stencilReadMask.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "stencilWriteMask")) {
         auto stencilWriteMask = value.getProperty(runtime, "stencilWriteMask");
-
-        if (value.hasProperty(runtime, "stencilWriteMask")) {
-          result->_instance.stencilWriteMask = stencilWriteMask.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "depthBias")) {
         auto depthBias = value.getProperty(runtime, "depthBias");
-
-        if (value.hasProperty(runtime, "depthBias")) {
-          result->_instance.depthBias = depthBias.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "depthBiasSlopeScale")) {
         auto depthBiasSlopeScale =
             value.getProperty(runtime, "depthBiasSlopeScale");
-
-        if (value.hasProperty(runtime, "depthBiasSlopeScale")) {
-          result->_instance.depthBiasSlopeScale =
-              depthBiasSlopeScale.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "depthBiasClamp")) {
         auto depthBiasClamp = value.getProperty(runtime, "depthBiasClamp");
-
-        if (value.hasProperty(runtime, "depthBiasClamp")) {
-          result->_instance.depthBiasClamp = depthBiasClamp.getNumber();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUDepthStencilState");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

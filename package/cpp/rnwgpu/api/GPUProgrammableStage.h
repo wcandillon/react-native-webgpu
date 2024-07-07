@@ -34,19 +34,20 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
           throw std::runtime_error(
               "Property GPUProgrammableStage::module is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUProgrammableStage::module is not defined");
       }
       if (value.hasProperty(runtime, "entryPoint")) {
         auto entryPoint = value.getProperty(runtime, "entryPoint");
-
-        if (value.hasProperty(runtime, "entryPoint")) {
-          auto str = value.asString(runtime).utf8(runtime);
-          result->_instance.entryPoint = str.c_str();
-        }
       }
       if (value.hasProperty(runtime, "constants")) {
         auto constants = value.getProperty(runtime, "constants");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUProgrammableStage");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

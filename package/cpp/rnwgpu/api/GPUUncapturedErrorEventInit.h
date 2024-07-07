@@ -35,8 +35,15 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
           throw std::runtime_error(
               "Property GPUUncapturedErrorEventInit::error is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUUncapturedErrorEventInit::error is not defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUUncapturedErrorEventInit");
+    //}
     return result;
   }
   static jsi::Value

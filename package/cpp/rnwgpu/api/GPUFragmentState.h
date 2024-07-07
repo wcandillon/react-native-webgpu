@@ -34,8 +34,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
           throw std::runtime_error(
               "Property GPUFragmentState::targets is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUFragmentState::targets is not defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUFragmentState");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

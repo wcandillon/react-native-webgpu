@@ -34,8 +34,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyBuffer>> {
           throw std::runtime_error(
               "Property GPUImageCopyBuffer::buffer is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUImageCopyBuffer::buffer is not defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUImageCopyBuffer");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

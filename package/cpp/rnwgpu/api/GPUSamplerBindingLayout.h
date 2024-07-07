@@ -32,6 +32,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
         auto type = value.getProperty(runtime, "type");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUSamplerBindingLayout");
+    //}
     return result;
   }
   static jsi::Value

@@ -34,22 +34,20 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
           throw std::runtime_error(
               "Property GPUBufferBinding::buffer is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUBufferBinding::buffer is not defined");
       }
       if (value.hasProperty(runtime, "offset")) {
         auto offset = value.getProperty(runtime, "offset");
-
-        if (value.hasProperty(runtime, "offset")) {
-          result->_instance.offset = offset.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "size")) {
         auto size = value.getProperty(runtime, "size");
-
-        if (value.hasProperty(runtime, "size")) {
-          result->_instance.size = size.getNumber();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUBufferBinding");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

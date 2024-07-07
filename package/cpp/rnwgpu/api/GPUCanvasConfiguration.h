@@ -35,6 +35,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
           throw std::runtime_error(
               "Property GPUCanvasConfiguration::device is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUCanvasConfiguration::device is not defined");
       }
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
@@ -43,13 +46,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
           throw std::runtime_error(
               "Property GPUCanvasConfiguration::format is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUCanvasConfiguration::format is not defined");
       }
       if (value.hasProperty(runtime, "usage")) {
         auto usage = value.getProperty(runtime, "usage");
-
-        if (value.hasProperty(runtime, "usage")) {
-          result->_instance.usage = usage.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "viewFormats")) {
         auto viewFormats = value.getProperty(runtime, "viewFormats");
@@ -61,6 +63,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
         auto alphaMode = value.getProperty(runtime, "alphaMode");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUCanvasConfiguration");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

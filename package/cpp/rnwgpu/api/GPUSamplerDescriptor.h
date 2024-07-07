@@ -47,29 +47,20 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
       }
       if (value.hasProperty(runtime, "lodMinClamp")) {
         auto lodMinClamp = value.getProperty(runtime, "lodMinClamp");
-
-        if (value.hasProperty(runtime, "lodMinClamp")) {
-          result->_instance.lodMinClamp = lodMinClamp.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "lodMaxClamp")) {
         auto lodMaxClamp = value.getProperty(runtime, "lodMaxClamp");
-
-        if (value.hasProperty(runtime, "lodMaxClamp")) {
-          result->_instance.lodMaxClamp = lodMaxClamp.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "compare")) {
         auto compare = value.getProperty(runtime, "compare");
       }
       if (value.hasProperty(runtime, "maxAnisotropy")) {
         auto maxAnisotropy = value.getProperty(runtime, "maxAnisotropy");
-
-        if (value.hasProperty(runtime, "maxAnisotropy")) {
-          result->_instance.maxAnisotropy = maxAnisotropy.getNumber();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUSamplerDescriptor");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

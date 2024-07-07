@@ -38,11 +38,18 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
           throw std::runtime_error(
               "Property GPUStorageTextureBindingLayout::format is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUStorageTextureBindingLayout::format is not defined");
       }
       if (value.hasProperty(runtime, "viewDimension")) {
         auto viewDimension = value.getProperty(runtime, "viewDimension");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUStorageTextureBindingLayout");
+    //}
     return result;
   }
   static jsi::Value

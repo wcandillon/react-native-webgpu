@@ -35,6 +35,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
           throw std::runtime_error(
               "Property GPUBindGroupDescriptor::layout is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUBindGroupDescriptor::layout is not defined");
       }
       if (value.hasProperty(runtime, "entries")) {
         auto entries = value.getProperty(runtime, "entries");
@@ -43,8 +46,15 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
           throw std::runtime_error(
               "Property GPUBindGroupDescriptor::entries is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUBindGroupDescriptor::entries is not defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUBindGroupDescriptor");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

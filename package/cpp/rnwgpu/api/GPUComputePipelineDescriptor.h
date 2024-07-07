@@ -35,8 +35,15 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
           throw std::runtime_error(
               "Property GPUComputePipelineDescriptor::compute is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUComputePipelineDescriptor::compute is not defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUComputePipelineDescriptor");
+    //}
     return result;
   }
   static jsi::Value

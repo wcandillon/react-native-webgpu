@@ -33,18 +33,15 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBindingLayout>> {
       }
       if (value.hasProperty(runtime, "hasDynamicOffset")) {
         auto hasDynamicOffset = value.getProperty(runtime, "hasDynamicOffset");
-        if (value.hasProperty(runtime, "hasDynamicOffset")) {
-          result->_instance.hasDynamicOffset = hasDynamicOffset.getBool();
-        }
       }
       if (value.hasProperty(runtime, "minBindingSize")) {
         auto minBindingSize = value.getProperty(runtime, "minBindingSize");
-
-        if (value.hasProperty(runtime, "minBindingSize")) {
-          result->_instance.minBindingSize = minBindingSize.getNumber();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUBufferBindingLayout");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

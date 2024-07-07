@@ -30,13 +30,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUObjectDescriptorBase>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
-
-        if (value.hasProperty(runtime, "label")) {
-          auto str = value.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUObjectDescriptorBase");
+    //}
     return result;
   }
   static jsi::Value

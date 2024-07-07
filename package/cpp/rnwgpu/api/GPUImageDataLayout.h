@@ -29,26 +29,17 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageDataLayout>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "offset")) {
         auto offset = value.getProperty(runtime, "offset");
-
-        if (value.hasProperty(runtime, "offset")) {
-          result->_instance.offset = offset.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "bytesPerRow")) {
         auto bytesPerRow = value.getProperty(runtime, "bytesPerRow");
-
-        if (value.hasProperty(runtime, "bytesPerRow")) {
-          result->_instance.bytesPerRow = bytesPerRow.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "rowsPerImage")) {
         auto rowsPerImage = value.getProperty(runtime, "rowsPerImage");
-
-        if (value.hasProperty(runtime, "rowsPerImage")) {
-          result->_instance.rowsPerImage = rowsPerImage.getNumber();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUImageDataLayout");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

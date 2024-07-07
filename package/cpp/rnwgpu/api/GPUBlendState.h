@@ -33,6 +33,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
         if (color.isUndefined()) {
           throw std::runtime_error("Property GPUBlendState::color is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUBlendState::color is not defined");
       }
       if (value.hasProperty(runtime, "alpha")) {
         auto alpha = value.getProperty(runtime, "alpha");
@@ -40,8 +43,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
         if (alpha.isUndefined()) {
           throw std::runtime_error("Property GPUBlendState::alpha is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUBlendState::alpha is not defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUBlendState");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

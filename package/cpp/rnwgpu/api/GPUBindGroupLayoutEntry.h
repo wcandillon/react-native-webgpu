@@ -31,18 +31,32 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry>> {
       if (value.hasProperty(runtime, "binding")) {
         auto binding = value.getProperty(runtime, "binding");
 
+        if (binding.isNumber()) {
+          result->_instance.binding = binding.getNumber();
+        }
+
         if (binding.isUndefined()) {
           throw std::runtime_error(
               "Property GPUBindGroupLayoutEntry::binding is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUBindGroupLayoutEntry::binding is not defined");
       }
       if (value.hasProperty(runtime, "visibility")) {
         auto visibility = value.getProperty(runtime, "visibility");
+
+        if (visibility.isNumber()) {
+          result->_instance.visibility = visibility.getNumber();
+        }
 
         if (visibility.isUndefined()) {
           throw std::runtime_error(
               "Property GPUBindGroupLayoutEntry::visibility is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUBindGroupLayoutEntry::visibility is not defined");
       }
       if (value.hasProperty(runtime, "buffer")) {
         auto buffer = value.getProperty(runtime, "buffer");
@@ -60,6 +74,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry>> {
         auto externalTexture = value.getProperty(runtime, "externalTexture");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUBindGroupLayoutEntry");
+    //}
     return result;
   }
   static jsi::Value

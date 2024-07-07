@@ -31,10 +31,17 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
       if (value.hasProperty(runtime, "arrayStride")) {
         auto arrayStride = value.getProperty(runtime, "arrayStride");
 
+        if (arrayStride.isNumber()) {
+          result->_instance.arrayStride = arrayStride.getNumber();
+        }
+
         if (arrayStride.isUndefined()) {
           throw std::runtime_error(
               "Property GPUVertexBufferLayout::arrayStride is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUVertexBufferLayout::arrayStride is not defined");
       }
       if (value.hasProperty(runtime, "stepMode")) {
         auto stepMode = value.getProperty(runtime, "stepMode");
@@ -46,8 +53,14 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
           throw std::runtime_error(
               "Property GPUVertexBufferLayout::attributes is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUVertexBufferLayout::attributes is not defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUVertexBufferLayout");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

@@ -37,6 +37,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
         auto defaultQueue = value.getProperty(runtime, "defaultQueue");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUDeviceDescriptor");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

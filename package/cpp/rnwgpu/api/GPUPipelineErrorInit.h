@@ -34,8 +34,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineErrorInit>> {
           throw std::runtime_error(
               "Property GPUPipelineErrorInit::reason is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUPipelineErrorInit::reason is not defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUPipelineErrorInit");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
