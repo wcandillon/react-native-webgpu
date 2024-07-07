@@ -108,6 +108,7 @@ const ios = {
     "cp externals/dawn/include/webgpu/webgpu_enum_class_bitmasks.h package/cpp/webgpu/",
   );
   $("cp externals/dawn/include/webgpu/webgpu.h package/cpp/webgpu/");
+  $("cp externals/dawn/src/dawn/dawn.json package/libs");
   chdir("package");
   checkBuildArtifacts();
 })();

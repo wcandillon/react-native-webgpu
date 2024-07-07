@@ -24,10 +24,10 @@ public:
 
   std::shared_ptr<MutableJSIBuffer> getMappedRange(double offset, double size) {
     auto result =
-        _instance->GetMappedRange();
-    return std::make_shared<MutableJSIBuffer>(result, _instance->GetSize());
+        _instance->GetMappedRange(offset->getInstance(), size->getInstance());
+    return std::make_shared<MutableJSIBuffer>(
+        std::make_shared<MutableJSIBuffer>(result));
   }
-
   void unmap() { _instance->Unmap(); }
 
   void loadHybridMethods() override {

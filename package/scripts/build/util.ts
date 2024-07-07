@@ -115,4 +115,5 @@ export const checkBuildArtifacts = () => {
     checkFileExists(`libs/ios/${lib}.xcframework`);
   });
   checkFileExists("cpp/dawn/webgpu_cpp.h");
+  checkFileExists("libs/dawn.json");
 };
