@@ -60,9 +60,6 @@ export const getJSIMethod = (
       return result;
     },
   );
-  if (modelMethod) {
-    //console.log({ modelMethod });
-  }
   const async = method.getReturnType().getSymbol()?.getName() === "Promise";
   const name = method.getName();
   const apiName = _.upperFirst(name);

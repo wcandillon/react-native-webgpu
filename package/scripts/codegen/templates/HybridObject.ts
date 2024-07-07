@@ -20,11 +20,6 @@ const propWhiteList: string[] = [
   //"info"
 ];
 
-/*
-    registerHybridGetter("features", &GPUAdapter::getFeatures, this);
-    registerHybridGetter("limits", &GPUAdapter::getLimits, this);
-    registerHybridGetter("info", &GPUAdapter::getInfo, this);
-    */
 export const getHybridObject = (decl: InterfaceDeclaration) => {
   const name = decl.getName();
   const methods = decl
@@ -83,14 +78,22 @@ public:
       const args = method.args
         .map((a) => `${wrapType(a.type, a.optional)} ${a.name}`)
         .join(", ");
+      let returnValue = isUndefined
+        ? ""
+        : `return std::make_shared<${method.returns}>(std::make_shared<${method.wgpuReturns}>(result));`;
+      if (method.returns === "MutableJSIBuffer") {
+        returnValue =
+          "return std::make_shared<MutableJSIBuffer>(result, _instance->GetSize());";
+      }
+      console.log(method.returns);
       return `${returnType} ${method.name}(${args}) {
       ${method.args
         .map((arg) => {
-          return `auto a${_.upperFirst(arg.name)} = ${arg.optional ? `${arg.name}.value_or(${arg.defaultValue})` : ""};`;
+          return `auto a${_.upperFirst(arg.name)} = ${arg.optional ? `${arg.name}.value_or(${arg.defaultValue})` : `${arg.name}->getInstance()`};`;
         })
         .join("\n")}
       ${isUndefined ? "" : "auto result = "}_instance->${_.upperFirst(method.name)}(${method.argNames.map((n) => `a${_.upperFirst(n)}`).join(", ")});
-      ${isUndefined ? "" : `return std::make_shared<${method.returns}>(std::make_shared<${method.wgpuReturns}>(result));`}
+      ${returnValue}
     }`;
     })
     .join("\n")}
