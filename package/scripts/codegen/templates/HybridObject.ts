@@ -50,7 +50,8 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
 #include <future>
 
 #include <RNFHybridObject.h>
-// #include "MutableBuffer.h"
+
+#include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
 

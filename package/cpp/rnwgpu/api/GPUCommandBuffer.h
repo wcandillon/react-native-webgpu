@@ -5,7 +5,8 @@
 #include <string>
 
 #include <RNFHybridObject.h>
-// #include "MutableBuffer.h"
+
+#include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
 

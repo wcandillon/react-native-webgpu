@@ -57,8 +57,13 @@ export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
   const wgpuName = `wgpu::${name.substring(3)}`;
   return `#pragma once
 
-#include "webgpu/webgpu_cpp.h"
 #include <memory>
+
+#include "webgpu/webgpu_cpp.h"
+
+#include <RNFHybridObject.h>
+
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 
