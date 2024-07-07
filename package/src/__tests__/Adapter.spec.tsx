@@ -43,4 +43,10 @@ describe("Adapter", () => {
     });
     expect(result).toBe(true);
   });
+  // it("requestAdapter (6)", async () => {
+  //   const result = await client.eval(({ gpu }) => {
+  //     return gpu.requestAdapter().then((adapter) => adapter?.limits);
+  //   });
+  //   expect(result).toBe(true);
+  // });
 });

@@ -2,13 +2,13 @@
 import type { InterfaceDeclaration } from "ts-morph";
 import _ from "lodash";
 
-import { getJSIMethod } from "./common";
+import { getJSIMethod, getJSIProp } from "./common";
 
 const instanceAliases: Record<string, string> = {
   GPU: "Instance",
 };
 
-const whiteList = [
+const methodWhiteList = [
   "requestAdapter",
   "requestDevice",
   "createBuffer",
@@ -16,13 +16,35 @@ const whiteList = [
   //"getMappedRange",
 ];
 
+const propWhiteList: string[] = [
+  //"info"
+];
+
+const wrapType = (type: string) => {
+  return type.startsWith("GPU") ? `std::shared_ptr<${type}>` : type;
+};
+/*
+    registerHybridGetter("features", &GPUAdapter::getFeatures, this);
+    registerHybridGetter("limits", &GPUAdapter::getLimits, this);
+    registerHybridGetter("info", &GPUAdapter::getInfo, this);
+    */
 export const getHybridObject = (decl: InterfaceDeclaration) => {
   const name = decl.getName();
   const methods = decl
     .getMethods()
     .map((m) => getJSIMethod(m))
-    .filter((m) => whiteList.includes(m.name));
-  const dependencies = methods.flatMap((method) => method.dependencies);
+    .filter((m) => methodWhiteList.includes(m.name));
+  const properties = decl
+    .getProperties()
+    .filter(
+      (m) =>
+        !m.getName().startsWith("__") && propWhiteList.includes(m.getName()),
+    )
+    .map((p) => getJSIProp(p));
+  const dependencies = [
+    ...methods.flatMap((method) => method.dependencies),
+    ...properties.flatMap((prop) => prop.dependencies),
+  ];
   const instanceName = `wgpu::${instanceAliases[name] || name.substring(3)}`;
   return `#pragma once
 
@@ -50,7 +72,7 @@ public:
   ${methods
     .filter((method) => method.async)
     .map((method) => {
-      return `std::future<std::shared_ptr<${method.returns}>> ${method.name}(${method.args.join(", ")});`;
+      return `std::future<${wrapType(method.returns)}> ${method.name}(${method.args.map((a) => `${wrapType(a.type)} ${a.name}`).join(", ")});`;
     })
     .join("\n")}
 
@@ -58,12 +80,14 @@ public:
     .filter((method) => !method.async)
     .map((method) => {
       const isUndefined = method.returns === "undefined";
-      return `${isUndefined ? "void" : `std::shared_ptr<${method.returns}>`} ${method.name}(${method.args.join(", ")}) {
+      return `${isUndefined ? "void" : wrapType(method.returns)} ${method.name}(${method.args.map((a) => `${wrapType(a.type)} ${a.name}`).join(", ")}) {
       ${isUndefined ? "" : "auto result = "}_instance->${_.upperFirst(method.name)}(${method.argNames.map((n) => `${n}->getInstance()`).join(", ")});
       ${isUndefined ? "" : `return std::make_shared<${method.returns}>(std::make_shared<${method.wgpuReturns}>(result));`}
     }`;
     })
     .join("\n")}
+
+  ${properties.map((prop) => `std::shared_ptr<${prop.type}> get${_.upperFirst(prop.name)}() {}`).join("\n")}
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &${name}::getBrand, this);
@@ -73,6 +97,7 @@ public:
           `registerHybridMethod("${method.name}", &${name}::${method.name}, this);`,
       )
       .join("\n")}
+    ${properties.map((prop) => `registerHybridGetter("${prop.name}", &${name}::get${_.upperFirst(prop.name)}, this);`).join("\n")}
   }
 
 private:
