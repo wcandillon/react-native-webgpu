@@ -19,6 +19,7 @@ beforeAll(async () => {
 
 export interface EvalContext {
   gpu: GPU;
+  adapter: GPUAdapter;
   [key: string]: any;
 }
 

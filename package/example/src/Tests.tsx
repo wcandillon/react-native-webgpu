@@ -8,14 +8,31 @@ import { useClient } from "./useClient";
 
 export const CI = process.env.CI === "true";
 
+const useWebGPU = () => {
+  const [adapter, setAdapter] = React.useState<GPUAdapter | null>(null);
+  const [device, setDevice] = React.useState<GPUDevice | null>(null);
+  useEffect(() => {
+    (async () => {
+      const adapter = await gpu.requestAdapter();
+      if (!adapter) {
+        throw new Error("No adapter");
+      }
+      const device = await adapter.requestDevice();
+      setAdapter(adapter);
+      setDevice(device);
+    })();
+  }, []);
+  return {adapter, device};
+};
+
 export const Tests = () => {
+  const {adapter, device} = useWebGPU();
   const [client, hostname] = useClient();
   useEffect(() => {
-    if (client !== null) {
+    if (client !== null && adapter !== null && device !== null) {
       client.onmessage = (e) => {
         const tree: any = JSON.parse(e.data);
         if (tree.code) {
-          console.log(tree.code)
           const result = eval(
             `(function Main() {
               return (${tree.code})(this.ctx);
@@ -23,7 +40,9 @@ export const Tests = () => {
           ).call({
             ctx: {
               ...tree.ctx,
-              gpu
+              gpu,
+              adapter,
+              device
             },
           });
           if (result instanceof Promise) {
