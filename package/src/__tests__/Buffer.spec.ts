@@ -16,7 +16,7 @@ describe("Buffer", () => {
       });
       return [buffer1.label, buffer2.label];
     });
-    expect(result).toEqual(["label", "verticesBuffer"]);
+    expect(result).toEqual(["", "verticesBuffer"]);
   });
   // it("upload data", async () => {
   //   const result = await client.eval(({ device, cubeVertexArray }) => {
