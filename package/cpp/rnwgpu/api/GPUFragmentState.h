@@ -38,9 +38,32 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
         throw std::runtime_error(
             "Property GPUFragmentState::targets is not defined");
       }
+      if (value.hasProperty(runtime, "module")) {
+        auto module = value.getProperty(runtime, "module");
+
+        if (module.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUFragmentState::module is required");
+        }
+      } else {
+        throw std::runtime_error(
+            "Property GPUFragmentState::module is not defined");
+      }
+      if (value.hasProperty(runtime, "entryPoint")) {
+        auto entryPoint = value.getProperty(runtime, "entryPoint");
+      }
+      if (value.hasProperty(runtime, "constants")) {
+        auto constants = value.getProperty(runtime, "constants");
+      }
     }
     rnwgpu::Logger::logToConsole("GPUFragmentState::targets = %f",
                                  result->_instance.targets);
+    rnwgpu::Logger::logToConsole("GPUFragmentState::module = %f",
+                                 result->_instance.module);
+    rnwgpu::Logger::logToConsole("GPUFragmentState::entryPoint = %f",
+                                 result->_instance.entryPoint);
+    rnwgpu::Logger::logToConsole("GPUFragmentState::constants = %f",
+                                 result->_instance.constants);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

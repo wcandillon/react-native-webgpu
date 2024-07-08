@@ -61,6 +61,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
       if (value.hasProperty(runtime, "mappedAtCreation")) {
         auto mappedAtCreation = value.getProperty(runtime, "mappedAtCreation");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+      }
     }
     rnwgpu::Logger::logToConsole("GPUBufferDescriptor::size = %f",
                                  result->_instance.size);
@@ -68,6 +71,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
                                  result->_instance.usage);
     rnwgpu::Logger::logToConsole("GPUBufferDescriptor::mappedAtCreation = %f",
                                  result->_instance.mappedAtCreation);
+    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

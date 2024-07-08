@@ -36,6 +36,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
       if (value.hasProperty(runtime, "defaultQueue")) {
         auto defaultQueue = value.getProperty(runtime, "defaultQueue");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+      }
     }
     rnwgpu::Logger::logToConsole("GPUDeviceDescriptor::requiredFeatures = %f",
                                  result->_instance.requiredFeatures);
@@ -43,6 +46,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
                                  result->_instance.requiredLimits);
     rnwgpu::Logger::logToConsole("GPUDeviceDescriptor::defaultQueue = %f",
                                  result->_instance.defaultQueue);
+    rnwgpu::Logger::logToConsole("GPUDeviceDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

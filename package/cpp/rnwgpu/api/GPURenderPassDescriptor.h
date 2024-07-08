@@ -54,6 +54,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
       if (value.hasProperty(runtime, "maxDrawCount")) {
         auto maxDrawCount = value.getProperty(runtime, "maxDrawCount");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+      }
     }
     rnwgpu::Logger::logToConsole(
         "GPURenderPassDescriptor::colorAttachments = %f",
@@ -69,6 +72,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
         result->_instance.timestampWrites);
     rnwgpu::Logger::logToConsole("GPURenderPassDescriptor::maxDrawCount = %f",
                                  result->_instance.maxDrawCount);
+    rnwgpu::Logger::logToConsole("GPURenderPassDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value

@@ -35,12 +35,40 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
         auto premultipliedAlpha =
             value.getProperty(runtime, "premultipliedAlpha");
       }
+      if (value.hasProperty(runtime, "texture")) {
+        auto texture = value.getProperty(runtime, "texture");
+
+        if (texture.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUImageCopyTextureTagged::texture is required");
+        }
+      } else {
+        throw std::runtime_error(
+            "Property GPUImageCopyTextureTagged::texture is not defined");
+      }
+      if (value.hasProperty(runtime, "mipLevel")) {
+        auto mipLevel = value.getProperty(runtime, "mipLevel");
+      }
+      if (value.hasProperty(runtime, "origin")) {
+        auto origin = value.getProperty(runtime, "origin");
+      }
+      if (value.hasProperty(runtime, "aspect")) {
+        auto aspect = value.getProperty(runtime, "aspect");
+      }
     }
     rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::colorSpace = %f",
                                  result->_instance.colorSpace);
     rnwgpu::Logger::logToConsole(
         "GPUImageCopyTextureTagged::premultipliedAlpha = %f",
         result->_instance.premultipliedAlpha);
+    rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::texture = %f",
+                                 result->_instance.texture);
+    rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::mipLevel = %f",
+                                 result->_instance.mipLevel);
+    rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::origin = %f",
+                                 result->_instance.origin);
+    rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::aspect = %f",
+                                 result->_instance.aspect);
     return result;
   }
   static jsi::Value

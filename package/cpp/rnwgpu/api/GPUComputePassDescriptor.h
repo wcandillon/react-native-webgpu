@@ -31,10 +31,15 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
       if (value.hasProperty(runtime, "timestampWrites")) {
         auto timestampWrites = value.getProperty(runtime, "timestampWrites");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+      }
     }
     rnwgpu::Logger::logToConsole(
         "GPUComputePassDescriptor::timestampWrites = %f",
         result->_instance.timestampWrites);
+    rnwgpu::Logger::logToConsole("GPUComputePassDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value

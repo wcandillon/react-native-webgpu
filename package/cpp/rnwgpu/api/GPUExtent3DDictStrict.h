@@ -39,9 +39,39 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDictStrict>> {
         throw std::runtime_error(
             "Property GPUExtent3DDictStrict::depth is not defined");
       }
+      if (value.hasProperty(runtime, "width")) {
+        auto width = value.getProperty(runtime, "width");
+
+        if (width.isNumber()) {
+          result->_instance.width =
+              static_cast<wgpu::IntegerCoordinate>(width.getNumber());
+        }
+
+        if (width.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUExtent3DDictStrict::width is required");
+        }
+      } else {
+        throw std::runtime_error(
+            "Property GPUExtent3DDictStrict::width is not defined");
+      }
+      if (value.hasProperty(runtime, "height")) {
+        auto height = value.getProperty(runtime, "height");
+      }
+      if (value.hasProperty(runtime, "depthOrArrayLayers")) {
+        auto depthOrArrayLayers =
+            value.getProperty(runtime, "depthOrArrayLayers");
+      }
     }
     rnwgpu::Logger::logToConsole("GPUExtent3DDictStrict::depth = %f",
                                  result->_instance.depth);
+    rnwgpu::Logger::logToConsole("GPUExtent3DDictStrict::width = %f",
+                                 result->_instance.width);
+    rnwgpu::Logger::logToConsole("GPUExtent3DDictStrict::height = %f",
+                                 result->_instance.height);
+    rnwgpu::Logger::logToConsole(
+        "GPUExtent3DDictStrict::depthOrArrayLayers = %f",
+        result->_instance.depthOrArrayLayers);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

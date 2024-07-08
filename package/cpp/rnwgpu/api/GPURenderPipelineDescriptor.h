@@ -51,6 +51,20 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
       if (value.hasProperty(runtime, "fragment")) {
         auto fragment = value.getProperty(runtime, "fragment");
       }
+      if (value.hasProperty(runtime, "layout")) {
+        auto layout = value.getProperty(runtime, "layout");
+
+        if (layout.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPURenderPipelineDescriptor::layout is required");
+        }
+      } else {
+        throw std::runtime_error(
+            "Property GPURenderPipelineDescriptor::layout is not defined");
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+      }
     }
     rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::vertex = %f",
                                  result->_instance.vertex);
@@ -64,6 +78,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
         result->_instance.multisample);
     rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::fragment = %f",
                                  result->_instance.fragment);
+    rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::layout = %f",
+                                 result->_instance.layout);
+    rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value

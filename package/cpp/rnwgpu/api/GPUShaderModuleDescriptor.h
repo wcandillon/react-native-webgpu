@@ -57,6 +57,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
       if (value.hasProperty(runtime, "compilationHints")) {
         auto compilationHints = value.getProperty(runtime, "compilationHints");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+      }
     }
     rnwgpu::Logger::logToConsole("GPUShaderModuleDescriptor::code = %f",
                                  result->_instance.code);
@@ -65,6 +68,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
     rnwgpu::Logger::logToConsole(
         "GPUShaderModuleDescriptor::compilationHints = %f",
         result->_instance.compilationHints);
+    rnwgpu::Logger::logToConsole("GPUShaderModuleDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value

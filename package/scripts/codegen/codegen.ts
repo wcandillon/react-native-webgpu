@@ -116,6 +116,7 @@ sourceFile
       decl.getName().startsWith("GPU") &&
       !decl.getName().endsWith("Mixin") &&
       !decl.getName().endsWith("Error") &&
+      !decl.getName().endsWith("Base") &&
       decl.getProperty("__brand") !== undefined,
   )
   .forEach((decl) => {
@@ -133,6 +134,7 @@ sourceFile
       decl.getName().startsWith("GPU") &&
       !decl.getName().endsWith("Mixin") &&
       !decl.getName().endsWith("Error") &&
+      !decl.getName().endsWith("Base") &&
       decl.getProperty("__brand") === undefined,
   )
   .forEach((decl) => {

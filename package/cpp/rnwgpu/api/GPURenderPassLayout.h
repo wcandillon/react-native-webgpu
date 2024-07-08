@@ -45,6 +45,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassLayout>> {
       if (value.hasProperty(runtime, "sampleCount")) {
         auto sampleCount = value.getProperty(runtime, "sampleCount");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+      }
     }
     rnwgpu::Logger::logToConsole("GPURenderPassLayout::colorFormats = %f",
                                  result->_instance.colorFormats);
@@ -52,6 +55,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassLayout>> {
                                  result->_instance.depthStencilFormat);
     rnwgpu::Logger::logToConsole("GPURenderPassLayout::sampleCount = %f",
                                  result->_instance.sampleCount);
+    rnwgpu::Logger::logToConsole("GPURenderPassLayout::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

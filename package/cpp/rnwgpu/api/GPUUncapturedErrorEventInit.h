@@ -39,9 +39,24 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
         throw std::runtime_error(
             "Property GPUUncapturedErrorEventInit::error is not defined");
       }
+      if (value.hasProperty(runtime, "bubbles")) {
+        auto bubbles = value.getProperty(runtime, "bubbles");
+      }
+      if (value.hasProperty(runtime, "cancelable")) {
+        auto cancelable = value.getProperty(runtime, "cancelable");
+      }
+      if (value.hasProperty(runtime, "composed")) {
+        auto composed = value.getProperty(runtime, "composed");
+      }
     }
     rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::error = %f",
                                  result->_instance.error);
+    rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::bubbles = %f",
+                                 result->_instance.bubbles);
+    rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::cancelable = %f",
+                                 result->_instance.cancelable);
+    rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::composed = %f",
+                                 result->_instance.composed);
     return result;
   }
   static jsi::Value

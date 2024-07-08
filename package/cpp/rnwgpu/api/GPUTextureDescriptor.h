@@ -77,6 +77,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
       if (value.hasProperty(runtime, "viewFormats")) {
         auto viewFormats = value.getProperty(runtime, "viewFormats");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+      }
     }
     rnwgpu::Logger::logToConsole("GPUTextureDescriptor::size = %f",
                                  result->_instance.size);
@@ -92,6 +95,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
                                  result->_instance.usage);
     rnwgpu::Logger::logToConsole("GPUTextureDescriptor::viewFormats = %f",
                                  result->_instance.viewFormats);
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

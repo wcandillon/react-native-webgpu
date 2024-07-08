@@ -57,6 +57,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
       if (value.hasProperty(runtime, "maxAnisotropy")) {
         auto maxAnisotropy = value.getProperty(runtime, "maxAnisotropy");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+      }
     }
     rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::addressModeU = %f",
                                  result->_instance.addressModeU);
@@ -78,6 +81,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
                                  result->_instance.compare);
     rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::maxAnisotropy = %f",
                                  result->_instance.maxAnisotropy);
+    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

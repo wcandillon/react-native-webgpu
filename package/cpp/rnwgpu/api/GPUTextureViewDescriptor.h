@@ -49,6 +49,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
       if (value.hasProperty(runtime, "arrayLayerCount")) {
         auto arrayLayerCount = value.getProperty(runtime, "arrayLayerCount");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+      }
     }
     rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::format = %f",
                                  result->_instance.format);
@@ -66,6 +69,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
     rnwgpu::Logger::logToConsole(
         "GPUTextureViewDescriptor::arrayLayerCount = %f",
         result->_instance.arrayLayerCount);
+    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value

@@ -39,9 +39,27 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
         throw std::runtime_error(
             "Property GPUComputePipelineDescriptor::compute is not defined");
       }
+      if (value.hasProperty(runtime, "layout")) {
+        auto layout = value.getProperty(runtime, "layout");
+
+        if (layout.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUComputePipelineDescriptor::layout is required");
+        }
+      } else {
+        throw std::runtime_error(
+            "Property GPUComputePipelineDescriptor::layout is not defined");
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+      }
     }
     rnwgpu::Logger::logToConsole("GPUComputePipelineDescriptor::compute = %f",
                                  result->_instance.compute);
+    rnwgpu::Logger::logToConsole("GPUComputePipelineDescriptor::layout = %f",
+                                 result->_instance.layout);
+    rnwgpu::Logger::logToConsole("GPUComputePipelineDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value

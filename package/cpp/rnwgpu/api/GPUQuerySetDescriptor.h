@@ -55,11 +55,16 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
         throw std::runtime_error(
             "Property GPUQuerySetDescriptor::count is not defined");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+      }
     }
     rnwgpu::Logger::logToConsole("GPUQuerySetDescriptor::type = %f",
                                  result->_instance.type);
     rnwgpu::Logger::logToConsole("GPUQuerySetDescriptor::count = %f",
                                  result->_instance.count);
+    rnwgpu::Logger::logToConsole("GPUQuerySetDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

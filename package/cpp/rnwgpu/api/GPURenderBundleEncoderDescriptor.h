@@ -34,6 +34,29 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
       if (value.hasProperty(runtime, "stencilReadOnly")) {
         auto stencilReadOnly = value.getProperty(runtime, "stencilReadOnly");
       }
+      if (value.hasProperty(runtime, "colorFormats")) {
+        auto colorFormats = value.getProperty(runtime, "colorFormats");
+
+        if (colorFormats.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPURenderBundleEncoderDescriptor::colorFormats is "
+              "required");
+        }
+      } else {
+        throw std::runtime_error(
+            "Property GPURenderBundleEncoderDescriptor::colorFormats is not "
+            "defined");
+      }
+      if (value.hasProperty(runtime, "depthStencilFormat")) {
+        auto depthStencilFormat =
+            value.getProperty(runtime, "depthStencilFormat");
+      }
+      if (value.hasProperty(runtime, "sampleCount")) {
+        auto sampleCount = value.getProperty(runtime, "sampleCount");
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+      }
     }
     rnwgpu::Logger::logToConsole(
         "GPURenderBundleEncoderDescriptor::depthReadOnly = %f",
@@ -41,6 +64,17 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
     rnwgpu::Logger::logToConsole(
         "GPURenderBundleEncoderDescriptor::stencilReadOnly = %f",
         result->_instance.stencilReadOnly);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderBundleEncoderDescriptor::colorFormats = %f",
+        result->_instance.colorFormats);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderBundleEncoderDescriptor::depthStencilFormat = %f",
+        result->_instance.depthStencilFormat);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderBundleEncoderDescriptor::sampleCount = %f",
+        result->_instance.sampleCount);
+    rnwgpu::Logger::logToConsole("GPURenderBundleEncoderDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value

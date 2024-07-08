@@ -41,10 +41,15 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
             "Property GPUPipelineLayoutDescriptor::bindGroupLayouts is not "
             "defined");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+      }
     }
     rnwgpu::Logger::logToConsole(
         "GPUPipelineLayoutDescriptor::bindGroupLayouts = %f",
         result->_instance.bindGroupLayouts);
+    rnwgpu::Logger::logToConsole("GPUPipelineLayoutDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value

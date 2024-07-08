@@ -42,12 +42,17 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
       if (value.hasProperty(runtime, "colorSpace")) {
         auto colorSpace = value.getProperty(runtime, "colorSpace");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+      }
     }
     rnwgpu::Logger::logToConsole("GPUExternalTextureDescriptor::source = %f",
                                  result->_instance.source);
     rnwgpu::Logger::logToConsole(
         "GPUExternalTextureDescriptor::colorSpace = %f",
         result->_instance.colorSpace);
+    rnwgpu::Logger::logToConsole("GPUExternalTextureDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value
