@@ -49,16 +49,16 @@ describe("WebGPUConstants", () => {
       COMPUTE: 4,
     });
   });
-  // it("GPUTextureUsage", async () => {
-  //   const result = await client.eval(({ GPUTextureUsage }) => {
-  //     return GPUTextureUsage;
-  //   });
-  //   expect(result).toEqual({
-  //     COPY_SRC: 1,
-  //     COPY_DST: 2,
-  //     SAMPLED: 4,
-  //     STORAGE: 8,
-  //     OUTPUT_ATTACHMENT: 16,
-  //   });
-  // });
+  it("GPUTextureUsage", async () => {
+    const result = await client.eval(({ GPUTextureUsage }) => {
+      return GPUTextureUsage;
+    });
+    expect(result).toEqual({
+      COPY_SRC: 1,
+      COPY_DST: 2,
+      TEXTURE_BINDING: 4,
+      STORAGE_BINDING: 8,
+      RENDER_ATTACHMENT: 16,
+    });
+  });
 });
