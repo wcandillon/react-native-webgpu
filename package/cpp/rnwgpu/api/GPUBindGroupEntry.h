@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -55,9 +55,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
             "Property GPUBindGroupEntry::resource is not defined");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUBindGroupEntry");
-    //}
+    rnwgpu::Logger::logToConsole("GPUBindGroupEntry::binding = %f",
+                                 result->_instance.binding);
+    rnwgpu::Logger::logToConsole("GPUBindGroupEntry::resource = %f",
+                                 result->_instance.resource);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

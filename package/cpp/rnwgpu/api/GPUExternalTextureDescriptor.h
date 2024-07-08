@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -43,10 +43,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
         auto colorSpace = value.getProperty(runtime, "colorSpace");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUExternalTextureDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole("GPUExternalTextureDescriptor::source = %f",
+                                 result->_instance.source);
+    rnwgpu::Logger::logToConsole(
+        "GPUExternalTextureDescriptor::colorSpace = %f",
+        result->_instance.colorSpace);
     return result;
   }
   static jsi::Value

@@ -20,13 +20,13 @@ beforeAll(async () => {
 export interface EvalContext {
   gpu: GPU;
   adapter: GPUAdapter;
+  device: GPUDevice;
   GPUBufferUsage: typeof GPUBufferUsage;
   GPUColorWrite: typeof GPUColorWrite;
   GPUMapMode: typeof GPUMapMode;
   GPUShaderStage: typeof GPUShaderStage;
   GPUTextureUsage: typeof GPUTextureUsage;
   cubeVertexArray: Float32Array;
-  [key: string]: any;
 }
 
 interface TestingClient {

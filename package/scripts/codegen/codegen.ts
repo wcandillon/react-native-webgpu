@@ -53,6 +53,9 @@ const hasProptotype = (node: VariableDeclaration) => {
 const unions: Union[] = [];
 
 // Unions
+console.log("===");
+console.log("Unions");
+console.log("===");
 sourceFile
   .getTypeAliases()
   .filter((typeAlias) => {
@@ -72,6 +75,9 @@ sourceFile
 writeFile("Unions", Unions(unions));
 
 // Enums
+console.log("===");
+console.log("Enums");
+console.log("===");
 sourceFile
   .getVariableDeclarations()
   .filter(
@@ -86,6 +92,9 @@ sourceFile
   });
 
 // Errors
+console.log("===");
+console.log("Errors");
+console.log("===");
 sourceFile
   .getVariableDeclarations()
   .filter(
@@ -97,6 +106,9 @@ sourceFile
   });
 
 // Objects
+console.log("===");
+console.log("Objects");
+console.log("===");
 sourceFile
   .getInterfaces()
   .filter(
@@ -111,6 +123,9 @@ sourceFile
   });
 
 // Descriptors
+console.log("===");
+console.log("Descriptors");
+console.log("===");
 sourceFile
   .getInterfaces()
   .filter(

@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -71,10 +71,21 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
             "Property GPURenderPassColorAttachment::storeOp is not defined");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPURenderPassColorAttachment");
-    //}
+    rnwgpu::Logger::logToConsole("GPURenderPassColorAttachment::view = %f",
+                                 result->_instance.view);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassColorAttachment::depthSlice = %f",
+        result->_instance.depthSlice);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassColorAttachment::resolveTarget = %f",
+        result->_instance.resolveTarget);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassColorAttachment::clearValue = %f",
+        result->_instance.clearValue);
+    rnwgpu::Logger::logToConsole("GPURenderPassColorAttachment::loadOp = %f",
+                                 result->_instance.loadOp);
+    rnwgpu::Logger::logToConsole("GPURenderPassColorAttachment::storeOp = %f",
+                                 result->_instance.storeOp);
     return result;
   }
   static jsi::Value

@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -32,10 +32,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
         auto type = value.getProperty(runtime, "type");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUSamplerBindingLayout");
-    //}
+    rnwgpu::Logger::logToConsole("GPUSamplerBindingLayout::type = %f",
+                                 result->_instance.type);
     return result;
   }
   static jsi::Value

@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -37,9 +37,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin3DDict>> {
         auto z = value.getProperty(runtime, "z");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUOrigin3DDict");
-    //}
+    rnwgpu::Logger::logToConsole("GPUOrigin3DDict::x = %f",
+                                 result->_instance.x);
+    rnwgpu::Logger::logToConsole("GPUOrigin3DDict::y = %f",
+                                 result->_instance.y);
+    rnwgpu::Logger::logToConsole("GPUOrigin3DDict::z = %f",
+                                 result->_instance.z);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

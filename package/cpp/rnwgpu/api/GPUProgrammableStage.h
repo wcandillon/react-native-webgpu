@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -45,9 +45,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
         auto constants = value.getProperty(runtime, "constants");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUProgrammableStage");
-    //}
+    rnwgpu::Logger::logToConsole("GPUProgrammableStage::module = %f",
+                                 result->_instance.module);
+    rnwgpu::Logger::logToConsole("GPUProgrammableStage::entryPoint = %f",
+                                 result->_instance.entryPoint);
+    rnwgpu::Logger::logToConsole("GPUProgrammableStage::constants = %f",
+                                 result->_instance.constants);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

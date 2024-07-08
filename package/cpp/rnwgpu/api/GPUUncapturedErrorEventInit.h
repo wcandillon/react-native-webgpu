@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -40,10 +40,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
             "Property GPUUncapturedErrorEventInit::error is not defined");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUUncapturedErrorEventInit");
-    //}
+    rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::error = %f",
+                                 result->_instance.error);
     return result;
   }
   static jsi::Value

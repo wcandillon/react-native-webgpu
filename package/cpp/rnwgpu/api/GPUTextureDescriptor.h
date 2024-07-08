@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -78,9 +78,20 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
         auto viewFormats = value.getProperty(runtime, "viewFormats");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUTextureDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::size = %f",
+                                 result->_instance.size);
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::mipLevelCount = %f",
+                                 result->_instance.mipLevelCount);
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::sampleCount = %f",
+                                 result->_instance.sampleCount);
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::dimension = %f",
+                                 result->_instance.dimension);
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::format = %f",
+                                 result->_instance.format);
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::usage = %f",
+                                 result->_instance.usage);
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::viewFormats = %f",
+                                 result->_instance.viewFormats);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

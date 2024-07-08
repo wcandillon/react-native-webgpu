@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -52,10 +52,18 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
         auto fragment = value.getProperty(runtime, "fragment");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPURenderPipelineDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::vertex = %f",
+                                 result->_instance.vertex);
+    rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::primitive = %f",
+                                 result->_instance.primitive);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPipelineDescriptor::depthStencil = %f",
+        result->_instance.depthStencil);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPipelineDescriptor::multisample = %f",
+        result->_instance.multisample);
+    rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::fragment = %f",
+                                 result->_instance.fragment);
     return result;
   }
   static jsi::Value

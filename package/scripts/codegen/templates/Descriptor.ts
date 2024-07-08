@@ -32,6 +32,14 @@ const getString = (name: string) => {
 
 const enumsToSkip = ["GPUSize64"];
 
+const logProp = (
+  className: string,
+  prop: PropertySignature,
+  _unions: Union[],
+) => {
+  return `rnwgpu::Logger::logToConsole("${className}::${prop.getName()} = %f", result->_instance.${prop.getName()});`;
+};
+
 const propFromJSI = (
   className: string,
   prop: PropertySignature,
@@ -76,7 +84,7 @@ export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
 #include "webgpu/webgpu_cpp.h"
 
 #include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
@@ -108,9 +116,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
         })
         .join("\n")}
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for ${name}");
-    //}
+    ${decl
+      .getProperties()
+      .map((prop) => {
+        return logProp(name, prop, unions);
+      })
+      .join("\n")}
     return result;
   }
   static jsi::Value

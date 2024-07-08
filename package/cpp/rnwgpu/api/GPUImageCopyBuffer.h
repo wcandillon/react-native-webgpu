@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -39,9 +39,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyBuffer>> {
             "Property GPUImageCopyBuffer::buffer is not defined");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUImageCopyBuffer");
-    //}
+    rnwgpu::Logger::logToConsole("GPUImageCopyBuffer::buffer = %f",
+                                 result->_instance.buffer);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

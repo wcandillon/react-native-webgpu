@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -40,10 +40,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
             "Property GPUComputePipelineDescriptor::compute is not defined");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUComputePipelineDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole("GPUComputePipelineDescriptor::compute = %f",
+                                 result->_instance.compute);
     return result;
   }
   static jsi::Value

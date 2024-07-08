@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -36,10 +36,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
             value.getProperty(runtime, "premultipliedAlpha");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUImageCopyTextureTagged");
-    //}
+    rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::colorSpace = %f",
+                                 result->_instance.colorSpace);
+    rnwgpu::Logger::logToConsole(
+        "GPUImageCopyTextureTagged::premultipliedAlpha = %f",
+        result->_instance.premultipliedAlpha);
     return result;
   }
   static jsi::Value

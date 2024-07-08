@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -39,9 +39,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
             "Property GPUFragmentState::targets is not defined");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUFragmentState");
-    //}
+    rnwgpu::Logger::logToConsole("GPUFragmentState::targets = %f",
+                                 result->_instance.targets);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

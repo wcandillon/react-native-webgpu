@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -48,10 +48,14 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
             value.getProperty(runtime, "endOfPassWriteIndex");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUComputePassTimestampWrites");
-    //}
+    rnwgpu::Logger::logToConsole("GPUComputePassTimestampWrites::querySet = %f",
+                                 result->_instance.querySet);
+    rnwgpu::Logger::logToConsole(
+        "GPUComputePassTimestampWrites::beginningOfPassWriteIndex = %f",
+        result->_instance.beginningOfPassWriteIndex);
+    rnwgpu::Logger::logToConsole(
+        "GPUComputePassTimestampWrites::endOfPassWriteIndex = %f",
+        result->_instance.endOfPassWriteIndex);
     return result;
   }
   static jsi::Value

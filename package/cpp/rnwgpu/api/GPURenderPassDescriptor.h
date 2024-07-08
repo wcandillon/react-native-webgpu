@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -55,10 +55,20 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
         auto maxDrawCount = value.getProperty(runtime, "maxDrawCount");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPURenderPassDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassDescriptor::colorAttachments = %f",
+        result->_instance.colorAttachments);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassDescriptor::depthStencilAttachment = %f",
+        result->_instance.depthStencilAttachment);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassDescriptor::occlusionQuerySet = %f",
+        result->_instance.occlusionQuerySet);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassDescriptor::timestampWrites = %f",
+        result->_instance.timestampWrites);
+    rnwgpu::Logger::logToConsole("GPURenderPassDescriptor::maxDrawCount = %f",
+                                 result->_instance.maxDrawCount);
     return result;
   }
   static jsi::Value

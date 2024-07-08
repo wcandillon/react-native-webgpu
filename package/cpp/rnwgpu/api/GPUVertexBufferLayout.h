@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -58,9 +58,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
             "Property GPUVertexBufferLayout::attributes is not defined");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUVertexBufferLayout");
-    //}
+    rnwgpu::Logger::logToConsole("GPUVertexBufferLayout::arrayStride = %f",
+                                 result->_instance.arrayStride);
+    rnwgpu::Logger::logToConsole("GPUVertexBufferLayout::stepMode = %f",
+                                 result->_instance.stepMode);
+    rnwgpu::Logger::logToConsole("GPUVertexBufferLayout::attributes = %f",
+                                 result->_instance.attributes);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

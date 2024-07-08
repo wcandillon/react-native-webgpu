@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -37,9 +37,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendComponent>> {
         auto dstFactor = value.getProperty(runtime, "dstFactor");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUBlendComponent");
-    //}
+    rnwgpu::Logger::logToConsole("GPUBlendComponent::operation = %f",
+                                 result->_instance.operation);
+    rnwgpu::Logger::logToConsole("GPUBlendComponent::srcFactor = %f",
+                                 result->_instance.srcFactor);
+    rnwgpu::Logger::logToConsole("GPUBlendComponent::dstFactor = %f",
+                                 result->_instance.dstFactor);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

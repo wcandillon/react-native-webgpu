@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -42,10 +42,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
             "defined");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUPipelineLayoutDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole(
+        "GPUPipelineLayoutDescriptor::bindGroupLayouts = %f",
+        result->_instance.bindGroupLayouts);
     return result;
   }
   static jsi::Value

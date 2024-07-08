@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -80,9 +80,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
         throw std::runtime_error("Property GPUColorDict::a is not defined");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUColorDict");
-    //}
+    rnwgpu::Logger::logToConsole("GPUColorDict::r = %f", result->_instance.r);
+    rnwgpu::Logger::logToConsole("GPUColorDict::g = %f", result->_instance.g);
+    rnwgpu::Logger::logToConsole("GPUColorDict::b = %f", result->_instance.b);
+    rnwgpu::Logger::logToConsole("GPUColorDict::a = %f", result->_instance.a);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

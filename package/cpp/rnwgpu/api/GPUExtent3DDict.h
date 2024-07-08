@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -51,9 +51,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDict>> {
             value.getProperty(runtime, "depthOrArrayLayers");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUExtent3DDict");
-    //}
+    rnwgpu::Logger::logToConsole("GPUExtent3DDict::width = %f",
+                                 result->_instance.width);
+    rnwgpu::Logger::logToConsole("GPUExtent3DDict::height = %f",
+                                 result->_instance.height);
+    rnwgpu::Logger::logToConsole("GPUExtent3DDict::depthOrArrayLayers = %f",
+                                 result->_instance.depthOrArrayLayers);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

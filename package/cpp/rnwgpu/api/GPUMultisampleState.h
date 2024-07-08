@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -38,9 +38,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
             value.getProperty(runtime, "alphaToCoverageEnabled");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUMultisampleState");
-    //}
+    rnwgpu::Logger::logToConsole("GPUMultisampleState::count = %f",
+                                 result->_instance.count);
+    rnwgpu::Logger::logToConsole("GPUMultisampleState::mask = %f",
+                                 result->_instance.mask);
+    rnwgpu::Logger::logToConsole(
+        "GPUMultisampleState::alphaToCoverageEnabled = %f",
+        result->_instance.alphaToCoverageEnabled);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

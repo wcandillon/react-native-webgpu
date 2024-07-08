@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -36,10 +36,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
             value.getProperty(runtime, "forceFallbackAdapter");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPURequestAdapterOptions");
-    //}
+    rnwgpu::Logger::logToConsole(
+        "GPURequestAdapterOptions::powerPreference = %f",
+        result->_instance.powerPreference);
+    rnwgpu::Logger::logToConsole(
+        "GPURequestAdapterOptions::forceFallbackAdapter = %f",
+        result->_instance.forceFallbackAdapter);
     return result;
   }
   static jsi::Value

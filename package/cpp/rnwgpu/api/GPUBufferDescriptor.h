@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -62,9 +62,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
         auto mappedAtCreation = value.getProperty(runtime, "mappedAtCreation");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUBufferDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::size = %f",
+                                 result->_instance.size);
+    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::usage = %f",
+                                 result->_instance.usage);
+    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::mappedAtCreation = %f",
+                                 result->_instance.mappedAtCreation);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

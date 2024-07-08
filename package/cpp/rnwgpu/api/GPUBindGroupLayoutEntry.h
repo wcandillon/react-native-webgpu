@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -76,10 +76,21 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry>> {
         auto externalTexture = value.getProperty(runtime, "externalTexture");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUBindGroupLayoutEntry");
-    //}
+    rnwgpu::Logger::logToConsole("GPUBindGroupLayoutEntry::binding = %f",
+                                 result->_instance.binding);
+    rnwgpu::Logger::logToConsole("GPUBindGroupLayoutEntry::visibility = %f",
+                                 result->_instance.visibility);
+    rnwgpu::Logger::logToConsole("GPUBindGroupLayoutEntry::buffer = %f",
+                                 result->_instance.buffer);
+    rnwgpu::Logger::logToConsole("GPUBindGroupLayoutEntry::sampler = %f",
+                                 result->_instance.sampler);
+    rnwgpu::Logger::logToConsole("GPUBindGroupLayoutEntry::texture = %f",
+                                 result->_instance.texture);
+    rnwgpu::Logger::logToConsole("GPUBindGroupLayoutEntry::storageTexture = %f",
+                                 result->_instance.storageTexture);
+    rnwgpu::Logger::logToConsole(
+        "GPUBindGroupLayoutEntry::externalTexture = %f",
+        result->_instance.externalTexture);
     return result;
   }
   static jsi::Value

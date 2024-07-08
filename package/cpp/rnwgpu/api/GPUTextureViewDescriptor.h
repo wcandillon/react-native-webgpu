@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -50,10 +50,22 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
         auto arrayLayerCount = value.getProperty(runtime, "arrayLayerCount");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUTextureViewDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::format = %f",
+                                 result->_instance.format);
+    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::dimension = %f",
+                                 result->_instance.dimension);
+    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::aspect = %f",
+                                 result->_instance.aspect);
+    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::baseMipLevel = %f",
+                                 result->_instance.baseMipLevel);
+    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::mipLevelCount = %f",
+                                 result->_instance.mipLevelCount);
+    rnwgpu::Logger::logToConsole(
+        "GPUTextureViewDescriptor::baseArrayLayer = %f",
+        result->_instance.baseArrayLayer);
+    rnwgpu::Logger::logToConsole(
+        "GPUTextureViewDescriptor::arrayLayerCount = %f",
+        result->_instance.arrayLayerCount);
     return result;
   }
   static jsi::Value

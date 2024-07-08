@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -48,9 +48,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
         auto aspect = value.getProperty(runtime, "aspect");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUImageCopyTexture");
-    //}
+    rnwgpu::Logger::logToConsole("GPUImageCopyTexture::texture = %f",
+                                 result->_instance.texture);
+    rnwgpu::Logger::logToConsole("GPUImageCopyTexture::mipLevel = %f",
+                                 result->_instance.mipLevel);
+    rnwgpu::Logger::logToConsole("GPUImageCopyTexture::origin = %f",
+                                 result->_instance.origin);
+    rnwgpu::Logger::logToConsole("GPUImageCopyTexture::aspect = %f",
+                                 result->_instance.aspect);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

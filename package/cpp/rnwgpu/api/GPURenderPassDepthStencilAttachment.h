@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -68,10 +68,33 @@ struct JSIConverter<
         auto stencilReadOnly = value.getProperty(runtime, "stencilReadOnly");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPURenderPassDepthStencilAttachment");
-    //}
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassDepthStencilAttachment::view = %f",
+        result->_instance.view);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassDepthStencilAttachment::depthClearValue = %f",
+        result->_instance.depthClearValue);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassDepthStencilAttachment::depthLoadOp = %f",
+        result->_instance.depthLoadOp);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassDepthStencilAttachment::depthStoreOp = %f",
+        result->_instance.depthStoreOp);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassDepthStencilAttachment::depthReadOnly = %f",
+        result->_instance.depthReadOnly);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassDepthStencilAttachment::stencilClearValue = %f",
+        result->_instance.stencilClearValue);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassDepthStencilAttachment::stencilLoadOp = %f",
+        result->_instance.stencilLoadOp);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassDepthStencilAttachment::stencilStoreOp = %f",
+        result->_instance.stencilStoreOp);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderPassDepthStencilAttachment::stencilReadOnly = %f",
+        result->_instance.stencilReadOnly);
     return result;
   }
   static jsi::Value

@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -35,10 +35,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
         auto stencilReadOnly = value.getProperty(runtime, "stencilReadOnly");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPURenderBundleEncoderDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole(
+        "GPURenderBundleEncoderDescriptor::depthReadOnly = %f",
+        result->_instance.depthReadOnly);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderBundleEncoderDescriptor::stencilReadOnly = %f",
+        result->_instance.stencilReadOnly);
     return result;
   }
   static jsi::Value

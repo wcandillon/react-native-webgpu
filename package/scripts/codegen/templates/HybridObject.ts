@@ -85,7 +85,6 @@ public:
         returnValue =
           "return std::make_shared<MutableJSIBuffer>(result, _instance->GetSize());";
       }
-      console.log(method.returns);
       return `${returnType} ${method.name}(${args}) {
       ${method.args
         .map((arg) => {

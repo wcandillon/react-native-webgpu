@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -46,9 +46,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassLayout>> {
         auto sampleCount = value.getProperty(runtime, "sampleCount");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPURenderPassLayout");
-    //}
+    rnwgpu::Logger::logToConsole("GPURenderPassLayout::colorFormats = %f",
+                                 result->_instance.colorFormats);
+    rnwgpu::Logger::logToConsole("GPURenderPassLayout::depthStencilFormat = %f",
+                                 result->_instance.depthStencilFormat);
+    rnwgpu::Logger::logToConsole("GPURenderPassLayout::sampleCount = %f",
+                                 result->_instance.sampleCount);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

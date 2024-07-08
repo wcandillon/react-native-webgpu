@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -63,10 +63,18 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
         auto alphaMode = value.getProperty(runtime, "alphaMode");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUCanvasConfiguration");
-    //}
+    rnwgpu::Logger::logToConsole("GPUCanvasConfiguration::device = %f",
+                                 result->_instance.device);
+    rnwgpu::Logger::logToConsole("GPUCanvasConfiguration::format = %f",
+                                 result->_instance.format);
+    rnwgpu::Logger::logToConsole("GPUCanvasConfiguration::usage = %f",
+                                 result->_instance.usage);
+    rnwgpu::Logger::logToConsole("GPUCanvasConfiguration::viewFormats = %f",
+                                 result->_instance.viewFormats);
+    rnwgpu::Logger::logToConsole("GPUCanvasConfiguration::colorSpace = %f",
+                                 result->_instance.colorSpace);
+    rnwgpu::Logger::logToConsole("GPUCanvasConfiguration::alphaMode = %f",
+                                 result->_instance.alphaMode);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

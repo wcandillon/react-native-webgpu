@@ -4,9 +4,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
@@ -37,9 +37,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
         auto defaultQueue = value.getProperty(runtime, "defaultQueue");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUDeviceDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole("GPUDeviceDescriptor::requiredFeatures = %f",
+                                 result->_instance.requiredFeatures);
+    rnwgpu::Logger::logToConsole("GPUDeviceDescriptor::requiredLimits = %f",
+                                 result->_instance.requiredLimits);
+    rnwgpu::Logger::logToConsole("GPUDeviceDescriptor::defaultQueue = %f",
+                                 result->_instance.defaultQueue);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
