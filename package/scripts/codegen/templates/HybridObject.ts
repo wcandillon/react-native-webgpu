@@ -49,7 +49,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
   const labelCtrArg = hasLabel ? ", std::string label" : "";
   const labelCtrInit = hasLabel ? ", _label(label)" : "";
   const getLabel = hasLabel
-    ? 'std::string label = aDescriptor->label ? aDescriptor->label : "";'
+    ? 'std::string label = aDescriptor->label ? std::string(aDescriptor->label) : "";'
     : "";
   return `#pragma once
 
@@ -93,8 +93,7 @@ public:
         .join(", ");
       let returnValue = isUndefined
         ? ""
-        : `${getLabel}
-        return std::make_shared<${method.returns}>(std::make_shared<${method.wgpuReturns}>(result)${hasLabel ? ", label" : ""});`;
+        : `return std::make_shared<${method.returns}>(std::make_shared<${method.wgpuReturns}>(result)${hasLabel ? ", label" : ""});`;
       if (method.returns === "MutableJSIBuffer") {
         returnValue =
           "return std::make_shared<MutableJSIBuffer>(result, _instance->GetSize());";
@@ -105,6 +104,7 @@ public:
           return `auto a${_.upperFirst(arg.name)} = ${arg.optional ? `${arg.name}.value_or(${arg.defaultValue})` : `${arg.name}->getInstance()`};`;
         })
         .join("\n")}
+      ${getLabel}
       ${isUndefined ? "" : "auto result = "}_instance->${_.upperFirst(method.name)}(${method.argNames.map((n) => `a${_.upperFirst(n)}`).join(", ")});
       ${returnValue}
     }`;
