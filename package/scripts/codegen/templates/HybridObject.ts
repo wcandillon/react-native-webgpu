@@ -23,7 +23,7 @@ const methodWhiteList = [
 
 const propWhiteList: string[] = [
   //"info"
-  "label",
+  //"label",
 ];
 
 export const getHybridObject = (decl: InterfaceDeclaration) => {
@@ -40,11 +40,17 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
         !m.getName().startsWith("__") && propWhiteList.includes(m.getName()),
     )
     .map((p) => getJSIProp(p));
+  const hasLabel = decl.getProperty("label") !== undefined;
   const dependencies = [
     ...methods.flatMap((method) => method.dependencies),
     ...properties.flatMap((prop) => prop.dependencies),
   ];
   const instanceName = `wgpu::${instanceAliases[name] || name.substring(3)}`;
+  const labelCtrArg = hasLabel ? ", std::string label" : "";
+  const labelCtrInit = hasLabel ? ", _label(label)" : "";
+  const getLabel = hasLabel
+    ? 'std::string label = aDescriptor->label ? aDescriptor->label : "";'
+    : "";
   return `#pragma once
 
 #include <memory>
@@ -65,7 +71,7 @@ namespace m = margelo;
 
 class ${name} : public m::HybridObject {
 public:
-  explicit ${name}(std::shared_ptr<${instanceName}> instance) : HybridObject("${name}"), _instance(instance) {}
+  explicit ${name}(std::shared_ptr<${instanceName}> instance${labelCtrArg}) : HybridObject("${name}"), _instance(instance)${labelCtrInit} {}
 
 public:
   std::string getBrand() { return _name; }
@@ -87,7 +93,8 @@ public:
         .join(", ");
       let returnValue = isUndefined
         ? ""
-        : `return std::make_shared<${method.returns}>(std::make_shared<${method.wgpuReturns}>(result));`;
+        : `${getLabel}
+        return std::make_shared<${method.returns}>(std::make_shared<${method.wgpuReturns}>(result)${hasLabel ? ", label" : ""});`;
       if (method.returns === "MutableJSIBuffer") {
         returnValue =
           "return std::make_shared<MutableJSIBuffer>(result, _instance->GetSize());";
@@ -106,6 +113,8 @@ public:
 
   ${properties.map((prop) => `std::shared_ptr<${prop.type}> get${_.upperFirst(prop.name)}() {}`).join("\n")}
 
+  ${hasLabel ? "std::string getLabel() { return _label; }" : ""}
+
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &${name}::getBrand, this);
     ${methods
@@ -115,10 +124,12 @@ public:
       )
       .join("\n")}
     ${properties.map((prop) => `registerHybridGetter("${prop.name}", &${name}::get${_.upperFirst(prop.name)}, this);`).join("\n")}
+    ${hasLabel ? `registerHybridGetter("label", &${name}::getLabel, this);` : ""}
   }
 
 private:
   std::shared_ptr<${instanceName}> _instance;
+  ${hasLabel ? "std::string _label;" : ""}
 };
 } // namespace rnwgpu`;
 };

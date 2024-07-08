@@ -16,13 +16,14 @@ namespace m = margelo;
 
 class GPUShaderModule : public m::HybridObject {
 public:
-  explicit GPUShaderModule(std::shared_ptr<wgpu::ShaderModule> instance)
-      : HybridObject("GPUShaderModule"), _instance(instance) {}
+  explicit GPUShaderModule(std::shared_ptr<wgpu::ShaderModule> instance,
+                           std::string label)
+      : HybridObject("GPUShaderModule"), _instance(instance), _label(label) {}
 
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<std::string> getLabel() {}
+  std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUShaderModule::getBrand, this);
@@ -32,5 +33,6 @@ public:
 
 private:
   std::shared_ptr<wgpu::ShaderModule> _instance;
+  std::string _label;
 };
 } // namespace rnwgpu

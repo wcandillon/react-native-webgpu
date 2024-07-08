@@ -16,13 +16,14 @@ namespace m = margelo;
 
 class GPUTextureView : public m::HybridObject {
 public:
-  explicit GPUTextureView(std::shared_ptr<wgpu::TextureView> instance)
-      : HybridObject("GPUTextureView"), _instance(instance) {}
+  explicit GPUTextureView(std::shared_ptr<wgpu::TextureView> instance,
+                          std::string label)
+      : HybridObject("GPUTextureView"), _instance(instance), _label(label) {}
 
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<std::string> getLabel() {}
+  std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUTextureView::getBrand, this);
@@ -32,5 +33,6 @@ public:
 
 private:
   std::shared_ptr<wgpu::TextureView> _instance;
+  std::string _label;
 };
 } // namespace rnwgpu

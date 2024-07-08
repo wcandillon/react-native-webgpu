@@ -16,13 +16,14 @@ namespace m = margelo;
 
 class GPUQuerySet : public m::HybridObject {
 public:
-  explicit GPUQuerySet(std::shared_ptr<wgpu::QuerySet> instance)
-      : HybridObject("GPUQuerySet"), _instance(instance) {}
+  explicit GPUQuerySet(std::shared_ptr<wgpu::QuerySet> instance,
+                       std::string label)
+      : HybridObject("GPUQuerySet"), _instance(instance), _label(label) {}
 
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<std::string> getLabel() {}
+  std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUQuerySet::getBrand, this);
@@ -32,5 +33,6 @@ public:
 
 private:
   std::shared_ptr<wgpu::QuerySet> _instance;
+  std::string _label;
 };
 } // namespace rnwgpu

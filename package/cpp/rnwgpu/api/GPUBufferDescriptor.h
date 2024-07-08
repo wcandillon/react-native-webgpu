@@ -57,7 +57,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = (new std::string(str))->c_str();
+          result->_instance.label = str.c_str();
         }
       }
     }

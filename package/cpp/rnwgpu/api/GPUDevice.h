@@ -19,8 +19,8 @@ namespace m = margelo;
 
 class GPUDevice : public m::HybridObject {
 public:
-  explicit GPUDevice(std::shared_ptr<wgpu::Device> instance)
-      : HybridObject("GPUDevice"), _instance(instance) {}
+  explicit GPUDevice(std::shared_ptr<wgpu::Device> instance, std::string label)
+      : HybridObject("GPUDevice"), _instance(instance), _label(label) {}
 
 public:
   std::string getBrand() { return _name; }
@@ -29,16 +29,22 @@ public:
   createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
     auto aDescriptor = descriptor->getInstance();
     auto result = _instance->CreateBuffer(aDescriptor);
-    std::string lLabel = aDescriptor->label ? aDescriptor->label : "";
-    return std::make_shared<GPUBuffer>(std::make_shared<wgpu::Buffer>(result), lLabel);
+    std::string label = aDescriptor->label ? aDescriptor->label : "";
+    return std::make_shared<GPUBuffer>(std::make_shared<wgpu::Buffer>(result),
+                                       label);
   }
+
+  std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUDevice::getBrand, this);
     registerHybridMethod("createBuffer", &GPUDevice::createBuffer, this);
+
+    registerHybridGetter("label", &GPUDevice::getLabel, this);
   }
 
 private:
   std::shared_ptr<wgpu::Device> _instance;
+  std::string _label;
 };
 } // namespace rnwgpu

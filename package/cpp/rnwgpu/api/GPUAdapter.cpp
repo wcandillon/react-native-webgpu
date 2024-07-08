@@ -31,9 +31,9 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
     if (!device) {
       throw std::runtime_error("Failed to request device");
     }
-
+    std::string label = wgpuDescriptor.label ? wgpuDescriptor.label : "";
     return std::make_shared<GPUDevice>(
-        std::make_shared<wgpu::Device>(std::move(device)));
+        std::make_shared<wgpu::Device>(std::move(device)), label);
   });
 }
 

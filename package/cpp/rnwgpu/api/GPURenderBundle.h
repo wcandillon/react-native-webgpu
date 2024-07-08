@@ -16,13 +16,14 @@ namespace m = margelo;
 
 class GPURenderBundle : public m::HybridObject {
 public:
-  explicit GPURenderBundle(std::shared_ptr<wgpu::RenderBundle> instance)
-      : HybridObject("GPURenderBundle"), _instance(instance) {}
+  explicit GPURenderBundle(std::shared_ptr<wgpu::RenderBundle> instance,
+                           std::string label)
+      : HybridObject("GPURenderBundle"), _instance(instance), _label(label) {}
 
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<std::string> getLabel() {}
+  std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPURenderBundle::getBrand, this);
@@ -32,5 +33,6 @@ public:
 
 private:
   std::shared_ptr<wgpu::RenderBundle> _instance;
+  std::string _label;
 };
 } // namespace rnwgpu

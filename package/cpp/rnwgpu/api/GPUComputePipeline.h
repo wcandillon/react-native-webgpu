@@ -16,13 +16,15 @@ namespace m = margelo;
 
 class GPUComputePipeline : public m::HybridObject {
 public:
-  explicit GPUComputePipeline(std::shared_ptr<wgpu::ComputePipeline> instance)
-      : HybridObject("GPUComputePipeline"), _instance(instance) {}
+  explicit GPUComputePipeline(std::shared_ptr<wgpu::ComputePipeline> instance,
+                              std::string label)
+      : HybridObject("GPUComputePipeline"), _instance(instance), _label(label) {
+  }
 
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<std::string> getLabel() {}
+  std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUComputePipeline::getBrand, this);
@@ -32,5 +34,6 @@ public:
 
 private:
   std::shared_ptr<wgpu::ComputePipeline> _instance;
+  std::string _label;
 };
 } // namespace rnwgpu
