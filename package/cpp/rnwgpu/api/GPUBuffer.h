@@ -37,7 +37,6 @@ public:
     registerHybridGetter("__brand", &GPUBuffer::getBrand, this);
     registerHybridMethod("getMappedRange", &GPUBuffer::getMappedRange, this);
     registerHybridMethod("unmap", &GPUBuffer::unmap, this);
-
     registerHybridGetter("label", &GPUBuffer::getLabel, this);
   }
 

@@ -106,6 +106,8 @@ export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use std::shared_ptr<${wgpuName}> instead
 class ${name} {
   public:
     ${wgpuName}* getInstance() {
