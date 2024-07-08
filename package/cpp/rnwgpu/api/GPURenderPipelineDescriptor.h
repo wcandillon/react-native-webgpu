@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use
+// std::shared_ptr<wgpu::RenderPipelineDescriptor> instead
 class GPURenderPipelineDescriptor {
 public:
   wgpu::RenderPipelineDescriptor *getInstance() { return &_instance; }

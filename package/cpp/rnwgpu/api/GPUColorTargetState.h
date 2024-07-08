@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use std::shared_ptr<wgpu::ColorTargetState>
+// instead
 class GPUColorTargetState {
 public:
   wgpu::ColorTargetState *getInstance() { return &_instance; }

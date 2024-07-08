@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use std::shared_ptr<wgpu::CanvasConfiguration>
+// instead
 class GPUCanvasConfiguration {
 public:
   wgpu::CanvasConfiguration *getInstance() { return &_instance; }

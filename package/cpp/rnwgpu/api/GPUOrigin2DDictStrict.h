@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use std::shared_ptr<wgpu::Origin2DDictStrict>
+// instead
 class GPUOrigin2DDictStrict {
 public:
   wgpu::Origin2DDictStrict *getInstance() { return &_instance; }

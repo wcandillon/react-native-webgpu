@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use
+// std::shared_ptr<wgpu::BindGroupLayoutDescriptor> instead
 class GPUBindGroupLayoutDescriptor {
 public:
   wgpu::BindGroupLayoutDescriptor *getInstance() { return &_instance; }

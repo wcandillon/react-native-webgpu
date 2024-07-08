@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use std::shared_ptr<wgpu::QuerySetDescriptor>
+// instead
 class GPUQuerySetDescriptor {
 public:
   wgpu::QuerySetDescriptor *getInstance() { return &_instance; }

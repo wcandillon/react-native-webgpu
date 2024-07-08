@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use std::shared_ptr<wgpu::PipelineErrorInit>
+// instead
 class GPUPipelineErrorInit {
 public:
   wgpu::PipelineErrorInit *getInstance() { return &_instance; }

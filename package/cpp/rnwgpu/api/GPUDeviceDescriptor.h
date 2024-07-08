@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use std::shared_ptr<wgpu::DeviceDescriptor>
+// instead
 class GPUDeviceDescriptor {
 public:
   wgpu::DeviceDescriptor *getInstance() { return &_instance; }

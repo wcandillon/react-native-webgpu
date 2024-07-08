@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use
+// std::shared_ptr<wgpu::RenderPassColorAttachment> instead
 class GPURenderPassColorAttachment {
 public:
   wgpu::RenderPassColorAttachment *getInstance() { return &_instance; }

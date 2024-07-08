@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use std::shared_ptr<wgpu::RenderPassLayout>
+// instead
 class GPURenderPassLayout {
 public:
   wgpu::RenderPassLayout *getInstance() { return &_instance; }

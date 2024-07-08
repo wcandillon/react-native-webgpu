@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use
+// std::shared_ptr<wgpu::UncapturedErrorEventInit> instead
 class GPUUncapturedErrorEventInit {
 public:
   wgpu::UncapturedErrorEventInit *getInstance() { return &_instance; }

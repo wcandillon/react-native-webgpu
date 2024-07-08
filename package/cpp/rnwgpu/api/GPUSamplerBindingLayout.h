@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use std::shared_ptr<wgpu::SamplerBindingLayout>
+// instead
 class GPUSamplerBindingLayout {
 public:
   wgpu::SamplerBindingLayout *getInstance() { return &_instance; }

@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use
+// std::shared_ptr<wgpu::StorageTextureBindingLayout> instead
 class GPUStorageTextureBindingLayout {
 public:
   wgpu::StorageTextureBindingLayout *getInstance() { return &_instance; }

@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use
+// std::shared_ptr<wgpu::PipelineLayoutDescriptor> instead
 class GPUPipelineLayoutDescriptor {
 public:
   wgpu::PipelineLayoutDescriptor *getInstance() { return &_instance; }

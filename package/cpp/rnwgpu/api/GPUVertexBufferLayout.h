@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use std::shared_ptr<wgpu::VertexBufferLayout>
+// instead
 class GPUVertexBufferLayout {
 public:
   wgpu::VertexBufferLayout *getInstance() { return &_instance; }

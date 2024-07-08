@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use std::shared_ptr<wgpu::VertexAttribute>
+// instead
 class GPUVertexAttribute {
 public:
   wgpu::VertexAttribute *getInstance() { return &_instance; }

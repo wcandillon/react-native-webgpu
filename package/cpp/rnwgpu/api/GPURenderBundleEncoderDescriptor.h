@@ -11,6 +11,9 @@
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
+// TODO: Delete this class and use
+// std::shared_ptr<wgpu::RenderBundleEncoderDescriptor> instead
 class GPURenderBundleEncoderDescriptor {
 public:
   wgpu::RenderBundleEncoderDescriptor *getInstance() { return &_instance; }
