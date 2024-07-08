@@ -31,7 +31,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDict>> {
         auto width = value.getProperty(runtime, "width");
 
         if (width.isNumber()) {
-          result->_instance.width = width.getNumber();
+          result->_instance.width =
+              static_cast<wgpu::IntegerCoordinate>(width.getNumber());
         }
 
         if (width.isUndefined()) {

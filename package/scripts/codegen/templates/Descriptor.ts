@@ -1,6 +1,15 @@
+/* eslint-disable max-len */
 import type { InterfaceDeclaration, PropertySignature } from "ts-morph";
 
 import type { Union } from "./Unions";
+
+const enumMap: Record<string, string> = {
+  GPUBufferUsageFlags: "BufferUsage",
+};
+
+const getEnumName = (name: string) => {
+  return `wgpu::${enumMap[name] || name.substring(3)}`;
+};
 
 const getBoolean = (name: string) => {
   return `if (${name}.isBool()) {
@@ -8,9 +17,9 @@ const getBoolean = (name: string) => {
 }`;
 };
 
-const getNumber = (name: string) => {
+const getNumber = (name: string, enumName: string | undefined) => {
   return `if (${name}.isNumber()) {
-    result->_instance.${name} = ${name}.getNumber();
+    result->_instance.${name} = ${enumName ? `static_cast<${getEnumName(enumName)}>(${name}.getNumber())` : `${name}.getNumber()`};
 }`;
 };
 
@@ -20,6 +29,8 @@ const getString = (name: string) => {
     result->_instance.${name} = str.c_str();
 }`;
 };
+
+const enumsToSkip = ["GPUSize64"];
 
 const propFromJSI = (
   className: string,
@@ -31,10 +42,13 @@ const propFromJSI = (
     .getType()
     .getUnionTypes()
     .some((t) => t.isUndefined());
+  const enumLabel = prop.getTypeNode()?.getText();
+  const isEnum =
+    !!enumLabel?.startsWith("GPU") && !enumsToSkip.includes(enumLabel);
   return `if (value.hasProperty(runtime, "${name}")) {
   auto ${name} = value.getProperty(runtime, "${name}");
   ${prop.getType().isBoolean() ? getBoolean(name) : ""}
-  ${prop.getType().isNumber() ? getNumber(name) : ""}
+  ${prop.getType().isNumber() ? getNumber(name, isEnum ? prop.getTypeNode()?.getText() : undefined) : ""}
   ${prop.getType().isString() ? getString(name) : ""}
   ${
     !isOptional

@@ -46,7 +46,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
         auto usage = value.getProperty(runtime, "usage");
 
         if (usage.isNumber()) {
-          result->_instance.usage = usage.getNumber();
+          result->_instance.usage =
+              static_cast<wgpu::BufferUsage>(usage.getNumber());
         }
 
         if (usage.isUndefined()) {

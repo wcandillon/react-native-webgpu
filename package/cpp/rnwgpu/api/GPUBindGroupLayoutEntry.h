@@ -32,7 +32,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry>> {
         auto binding = value.getProperty(runtime, "binding");
 
         if (binding.isNumber()) {
-          result->_instance.binding = binding.getNumber();
+          result->_instance.binding =
+              static_cast<wgpu::Index32>(binding.getNumber());
         }
 
         if (binding.isUndefined()) {
@@ -47,7 +48,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry>> {
         auto visibility = value.getProperty(runtime, "visibility");
 
         if (visibility.isNumber()) {
-          result->_instance.visibility = visibility.getNumber();
+          result->_instance.visibility =
+              static_cast<wgpu::ShaderStageFlags>(visibility.getNumber());
         }
 
         if (visibility.isUndefined()) {

@@ -31,7 +31,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
         auto binding = value.getProperty(runtime, "binding");
 
         if (binding.isNumber()) {
-          result->_instance.binding = binding.getNumber();
+          result->_instance.binding =
+              static_cast<wgpu::Index32>(binding.getNumber());
         }
 
         if (binding.isUndefined()) {

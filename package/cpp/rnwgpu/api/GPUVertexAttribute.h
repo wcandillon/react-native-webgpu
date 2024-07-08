@@ -57,7 +57,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
         auto shaderLocation = value.getProperty(runtime, "shaderLocation");
 
         if (shaderLocation.isNumber()) {
-          result->_instance.shaderLocation = shaderLocation.getNumber();
+          result->_instance.shaderLocation =
+              static_cast<wgpu::Index32>(shaderLocation.getNumber());
         }
 
         if (shaderLocation.isUndefined()) {
