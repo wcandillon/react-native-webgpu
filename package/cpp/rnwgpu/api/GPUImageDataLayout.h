@@ -10,21 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUImageDataLayout {
-public:
-  wgpu::ImageDataLayout *getInstance() { return &_instance; }
-
-  wgpu::ImageDataLayout _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageDataLayout>> {
-  static std::shared_ptr<rnwgpu::GPUImageDataLayout>
+template <> struct JSIConverter<std::shared_ptr<wgpu::ImageDataLayout>> {
+  static std::shared_ptr<wgpu::ImageDataLayout>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUImageDataLayout>();
+    auto result = std::make_unique<wgpu::ImageDataLayout>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "offset")) {
@@ -60,7 +51,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageDataLayout>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUImageDataLayout> arg) {
+                          std::shared_ptr<wgpu::ImageDataLayout> arg) {
     // No conversions here
     return jsi::Value::null();
   }

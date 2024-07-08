@@ -10,21 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUDepthStencilState {
-public:
-  wgpu::DepthStencilState *getInstance() { return &_instance; }
-
-  wgpu::DepthStencilState _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
-  static std::shared_ptr<rnwgpu::GPUDepthStencilState>
+template <> struct JSIConverter<std::shared_ptr<wgpu::DepthStencilState>> {
+  static std::shared_ptr<wgpu::DepthStencilState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUDepthStencilState>();
+    auto result = std::make_unique<wgpu::DepthStencilState>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "format")) {
@@ -116,7 +107,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUDepthStencilState> arg) {
+                          std::shared_ptr<wgpu::DepthStencilState> arg) {
     // No conversions here
     return jsi::Value::null();
   }

@@ -10,22 +10,13 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPURenderBundleEncoderDescriptor {
-public:
-  wgpu::RenderBundleEncoderDescriptor *getInstance() { return &_instance; }
-
-  wgpu::RenderBundleEncoderDescriptor _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
 template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
-  static std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>
+struct JSIConverter<std::shared_ptr<wgpu::RenderBundleEncoderDescriptor>> {
+  static std::shared_ptr<wgpu::RenderBundleEncoderDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPURenderBundleEncoderDescriptor>();
+    auto result = std::make_unique<wgpu::RenderBundleEncoderDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "depthReadOnly")) {
@@ -89,7 +80,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
   }
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor> arg) {
+        std::shared_ptr<wgpu::RenderBundleEncoderDescriptor> arg) {
     // No conversions here
     return jsi::Value::null();
   }

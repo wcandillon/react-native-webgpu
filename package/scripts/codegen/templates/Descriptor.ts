@@ -14,20 +14,20 @@ const getEnumName = (name: string) => {
 
 const getBoolean = (name: string) => {
   return `if (${name}.isBool()) {
-    result->_instance.${name} = ${name}.getBool();
+    result->${name} = ${name}.getBool();
 }`;
 };
 
 const getNumber = (name: string, enumName: string | undefined) => {
   return `if (${name}.isNumber()) {
-    result->_instance.${name} = ${enumName ? `static_cast<${getEnumName(enumName)}>(${name}.getNumber())` : `${name}.getNumber()`};
+    result->${name} = ${enumName ? `static_cast<${getEnumName(enumName)}>(${name}.getNumber())` : `${name}.getNumber()`};
 }`;
 };
 
 const getString = (name: string) => {
   return `if (${name}.isString()) {
     auto str = ${name}.asString(runtime).utf8(runtime);
-    result->_instance.${name} = str.c_str();
+    result->${name} = str.c_str();
 }`;
 };
 
@@ -90,7 +90,7 @@ const propFromJSI = (
 export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
   mergeParentInterfaces(decl);
   const name = decl.getName();
-  const wgpuName = `wgpu::${name.substring(3)}`;
+  const wgpuName = `wgpu::${decl.getName().substring(3)}`;
 
   //decl.getType(
   return `#pragma once
@@ -105,26 +105,13 @@ export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-
-// TODO: Delete this class and use std::shared_ptr<${wgpuName}> instead
-class ${name} {
-  public:
-    ${wgpuName}* getInstance() {
-      return &_instance;
-    }
-
-    ${wgpuName} _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
 template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
-  static std::shared_ptr<rnwgpu::${name}>
+struct JSIConverter<std::shared_ptr<${wgpuName}>> {
+  static std::shared_ptr<${wgpuName}>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::${name}>();
+    auto result = std::make_unique<${wgpuName}>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       ${decl
@@ -144,7 +131,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
   }
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<rnwgpu::${name}> arg) {
+        std::shared_ptr<${wgpuName}> arg) {
     // No conversions here
     return jsi::Value::null();
   }

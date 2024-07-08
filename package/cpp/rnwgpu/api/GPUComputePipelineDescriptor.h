@@ -10,22 +10,13 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUComputePipelineDescriptor {
-public:
-  wgpu::ComputePipelineDescriptor *getInstance() { return &_instance; }
-
-  wgpu::ComputePipelineDescriptor _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
 template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
-  static std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>
+struct JSIConverter<std::shared_ptr<wgpu::ComputePipelineDescriptor>> {
+  static std::shared_ptr<wgpu::ComputePipelineDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUComputePipelineDescriptor>();
+    auto result = std::make_unique<wgpu::ComputePipelineDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "compute")) {
@@ -69,7 +60,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
   }
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor> arg) {
+        std::shared_ptr<wgpu::ComputePipelineDescriptor> arg) {
     // No conversions here
     return jsi::Value::null();
   }

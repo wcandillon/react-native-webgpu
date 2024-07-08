@@ -10,22 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPURenderPassDescriptor {
-public:
-  wgpu::RenderPassDescriptor *getInstance() { return &_instance; }
-
-  wgpu::RenderPassDescriptor _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
-  static std::shared_ptr<rnwgpu::GPURenderPassDescriptor>
+template <> struct JSIConverter<std::shared_ptr<wgpu::RenderPassDescriptor>> {
+  static std::shared_ptr<wgpu::RenderPassDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPURenderPassDescriptor>();
+    auto result = std::make_unique<wgpu::RenderPassDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "colorAttachments")) {
@@ -85,9 +75,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
                                  result->_instance.label);
     return result;
   }
-  static jsi::Value
-  toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<rnwgpu::GPURenderPassDescriptor> arg) {
+  static jsi::Value toJSI(jsi::Runtime &runtime,
+                          std::shared_ptr<wgpu::RenderPassDescriptor> arg) {
     // No conversions here
     return jsi::Value::null();
   }

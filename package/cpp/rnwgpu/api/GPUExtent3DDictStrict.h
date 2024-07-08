@@ -10,22 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUExtent3DDictStrict {
-public:
-  wgpu::Extent3DDictStrict *getInstance() { return &_instance; }
-
-  wgpu::Extent3DDictStrict _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDictStrict>> {
-  static std::shared_ptr<rnwgpu::GPUExtent3DDictStrict>
+template <> struct JSIConverter<std::shared_ptr<wgpu::Extent3DDictStrict>> {
+  static std::shared_ptr<wgpu::Extent3DDictStrict>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUExtent3DDictStrict>();
+    auto result = std::make_unique<wgpu::Extent3DDictStrict>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "depth")) {
@@ -81,7 +71,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDictStrict>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUExtent3DDictStrict> arg) {
+                          std::shared_ptr<wgpu::Extent3DDictStrict> arg) {
     // No conversions here
     return jsi::Value::null();
   }

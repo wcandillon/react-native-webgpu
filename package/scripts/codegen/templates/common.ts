@@ -174,7 +174,7 @@ const getType = (
 export const wrapType = (type: string, optional = false) => {
   const result =
     type.startsWith("GPU") || type === "MutableJSIBuffer"
-      ? `std::shared_ptr<${type}>`
+      ? `std::shared_ptr<${type.startsWith("GPU") ? `wgpu::${type.substring(3)}` : type}>`
       : type;
   return optional ? `std::optional<${result}>` : result;
 };

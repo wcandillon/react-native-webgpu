@@ -10,22 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUVertexBufferLayout {
-public:
-  wgpu::VertexBufferLayout *getInstance() { return &_instance; }
-
-  wgpu::VertexBufferLayout _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
-  static std::shared_ptr<rnwgpu::GPUVertexBufferLayout>
+template <> struct JSIConverter<std::shared_ptr<wgpu::VertexBufferLayout>> {
+  static std::shared_ptr<wgpu::VertexBufferLayout>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUVertexBufferLayout>();
+    auto result = std::make_unique<wgpu::VertexBufferLayout>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "arrayStride")) {
@@ -63,7 +53,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUVertexBufferLayout> arg) {
+                          std::shared_ptr<wgpu::VertexBufferLayout> arg) {
     // No conversions here
     return jsi::Value::null();
   }

@@ -10,21 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUVertexState {
-public:
-  wgpu::VertexState *getInstance() { return &_instance; }
-
-  wgpu::VertexState _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexState>> {
-  static std::shared_ptr<rnwgpu::GPUVertexState>
+template <> struct JSIConverter<std::shared_ptr<wgpu::VertexState>> {
+  static std::shared_ptr<wgpu::VertexState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUVertexState>();
+    auto result = std::make_unique<wgpu::VertexState>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "buffers")) {
@@ -64,7 +55,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexState>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUVertexState> arg) {
+                          std::shared_ptr<wgpu::VertexState> arg) {
     // No conversions here
     return jsi::Value::null();
   }

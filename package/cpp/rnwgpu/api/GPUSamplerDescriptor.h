@@ -10,21 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUSamplerDescriptor {
-public:
-  wgpu::SamplerDescriptor *getInstance() { return &_instance; }
-
-  wgpu::SamplerDescriptor _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
-  static std::shared_ptr<rnwgpu::GPUSamplerDescriptor>
+template <> struct JSIConverter<std::shared_ptr<wgpu::SamplerDescriptor>> {
+  static std::shared_ptr<wgpu::SamplerDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUSamplerDescriptor>();
+    auto result = std::make_unique<wgpu::SamplerDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "addressModeU")) {
@@ -103,7 +94,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUSamplerDescriptor> arg) {
+                          std::shared_ptr<wgpu::SamplerDescriptor> arg) {
     // No conversions here
     return jsi::Value::null();
   }

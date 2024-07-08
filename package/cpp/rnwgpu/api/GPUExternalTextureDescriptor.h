@@ -10,22 +10,13 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUExternalTextureDescriptor {
-public:
-  wgpu::ExternalTextureDescriptor *getInstance() { return &_instance; }
-
-  wgpu::ExternalTextureDescriptor _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
 template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
-  static std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>
+struct JSIConverter<std::shared_ptr<wgpu::ExternalTextureDescriptor>> {
+  static std::shared_ptr<wgpu::ExternalTextureDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUExternalTextureDescriptor>();
+    auto result = std::make_unique<wgpu::ExternalTextureDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "source")) {
@@ -62,7 +53,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
   }
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor> arg) {
+        std::shared_ptr<wgpu::ExternalTextureDescriptor> arg) {
     // No conversions here
     return jsi::Value::null();
   }

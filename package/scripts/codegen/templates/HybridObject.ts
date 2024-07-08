@@ -101,7 +101,7 @@ public:
       return `${returnType} ${method.name}(${args}) {
       ${method.args
         .map((arg) => {
-          return `auto a${_.upperFirst(arg.name)} = ${arg.optional ? `${arg.name}.value_or(${arg.defaultValue})` : `${arg.name}->getInstance()`};`;
+          return `auto a${_.upperFirst(arg.name)} = ${arg.optional ? `${arg.name}.value_or(${arg.defaultValue})` : `${arg.name}`};`;
         })
         .join("\n")}
       ${getLabel}

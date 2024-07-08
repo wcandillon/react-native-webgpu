@@ -10,21 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUBindGroupEntry {
-public:
-  wgpu::BindGroupEntry *getInstance() { return &_instance; }
-
-  wgpu::BindGroupEntry _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
-  static std::shared_ptr<rnwgpu::GPUBindGroupEntry>
+template <> struct JSIConverter<std::shared_ptr<wgpu::BindGroupEntry>> {
+  static std::shared_ptr<wgpu::BindGroupEntry>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUBindGroupEntry>();
+    auto result = std::make_unique<wgpu::BindGroupEntry>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "binding")) {
@@ -57,7 +48,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUBindGroupEntry> arg) {
+                          std::shared_ptr<wgpu::BindGroupEntry> arg) {
     // No conversions here
     return jsi::Value::null();
   }

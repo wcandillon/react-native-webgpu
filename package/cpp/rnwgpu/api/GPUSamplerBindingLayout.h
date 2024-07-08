@@ -10,22 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUSamplerBindingLayout {
-public:
-  wgpu::SamplerBindingLayout *getInstance() { return &_instance; }
-
-  wgpu::SamplerBindingLayout _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
-  static std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>
+template <> struct JSIConverter<std::shared_ptr<wgpu::SamplerBindingLayout>> {
+  static std::shared_ptr<wgpu::SamplerBindingLayout>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUSamplerBindingLayout>();
+    auto result = std::make_unique<wgpu::SamplerBindingLayout>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "type")) {
@@ -36,9 +26,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
                                  result->_instance.type);
     return result;
   }
-  static jsi::Value
-  toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<rnwgpu::GPUSamplerBindingLayout> arg) {
+  static jsi::Value toJSI(jsi::Runtime &runtime,
+                          std::shared_ptr<wgpu::SamplerBindingLayout> arg) {
     // No conversions here
     return jsi::Value::null();
   }

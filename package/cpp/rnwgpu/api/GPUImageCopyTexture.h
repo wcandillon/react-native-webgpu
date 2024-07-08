@@ -10,21 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUImageCopyTexture {
-public:
-  wgpu::ImageCopyTexture *getInstance() { return &_instance; }
-
-  wgpu::ImageCopyTexture _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
-  static std::shared_ptr<rnwgpu::GPUImageCopyTexture>
+template <> struct JSIConverter<std::shared_ptr<wgpu::ImageCopyTexture>> {
+  static std::shared_ptr<wgpu::ImageCopyTexture>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUImageCopyTexture>();
+    auto result = std::make_unique<wgpu::ImageCopyTexture>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "texture")) {
@@ -64,7 +55,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUImageCopyTexture> arg) {
+                          std::shared_ptr<wgpu::ImageCopyTexture> arg) {
     // No conversions here
     return jsi::Value::null();
   }

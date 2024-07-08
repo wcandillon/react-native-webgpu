@@ -10,21 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUColorDict {
-public:
-  wgpu::ColorDict *getInstance() { return &_instance; }
-
-  wgpu::ColorDict _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
-  static std::shared_ptr<rnwgpu::GPUColorDict>
+template <> struct JSIConverter<std::shared_ptr<wgpu::ColorDict>> {
+  static std::shared_ptr<wgpu::ColorDict>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUColorDict>();
+    auto result = std::make_unique<wgpu::ColorDict>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "r")) {
@@ -71,7 +62,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUColorDict> arg) {
+                          std::shared_ptr<wgpu::ColorDict> arg) {
     // No conversions here
     return jsi::Value::null();
   }

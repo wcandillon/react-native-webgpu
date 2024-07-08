@@ -10,21 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUProgrammableStage {
-public:
-  wgpu::ProgrammableStage *getInstance() { return &_instance; }
-
-  wgpu::ProgrammableStage _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
-  static std::shared_ptr<rnwgpu::GPUProgrammableStage>
+template <> struct JSIConverter<std::shared_ptr<wgpu::ProgrammableStage>> {
+  static std::shared_ptr<wgpu::ProgrammableStage>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUProgrammableStage>();
+    auto result = std::make_unique<wgpu::ProgrammableStage>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "module")) {
@@ -59,7 +50,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUProgrammableStage> arg) {
+                          std::shared_ptr<wgpu::ProgrammableStage> arg) {
     // No conversions here
     return jsi::Value::null();
   }

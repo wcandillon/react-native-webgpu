@@ -10,22 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUCanvasConfiguration {
-public:
-  wgpu::CanvasConfiguration *getInstance() { return &_instance; }
-
-  wgpu::CanvasConfiguration _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
-  static std::shared_ptr<rnwgpu::GPUCanvasConfiguration>
+template <> struct JSIConverter<std::shared_ptr<wgpu::CanvasConfiguration>> {
+  static std::shared_ptr<wgpu::CanvasConfiguration>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUCanvasConfiguration>();
+    auto result = std::make_unique<wgpu::CanvasConfiguration>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "device")) {
@@ -83,7 +73,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUCanvasConfiguration> arg) {
+                          std::shared_ptr<wgpu::CanvasConfiguration> arg) {
     // No conversions here
     return jsi::Value::null();
   }

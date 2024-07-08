@@ -10,21 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUBufferDescriptor {
-public:
-  wgpu::BufferDescriptor *getInstance() { return &_instance; }
-
-  wgpu::BufferDescriptor _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
-  static std::shared_ptr<rnwgpu::GPUBufferDescriptor>
+template <> struct JSIConverter<std::shared_ptr<wgpu::BufferDescriptor>> {
+  static std::shared_ptr<wgpu::BufferDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUBufferDescriptor>();
+    auto result = std::make_unique<wgpu::BufferDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "size")) {
@@ -57,7 +48,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str.c_str();
         }
       }
     }
@@ -72,7 +63,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUBufferDescriptor> arg) {
+                          std::shared_ptr<wgpu::BufferDescriptor> arg) {
     // No conversions here
     return jsi::Value::null();
   }

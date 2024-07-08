@@ -10,21 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUMultisampleState {
-public:
-  wgpu::MultisampleState *getInstance() { return &_instance; }
-
-  wgpu::MultisampleState _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
-  static std::shared_ptr<rnwgpu::GPUMultisampleState>
+template <> struct JSIConverter<std::shared_ptr<wgpu::MultisampleState>> {
+  static std::shared_ptr<wgpu::MultisampleState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUMultisampleState>();
+    auto result = std::make_unique<wgpu::MultisampleState>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "count")) {
@@ -58,7 +49,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUMultisampleState> arg) {
+                          std::shared_ptr<wgpu::MultisampleState> arg) {
     // No conversions here
     return jsi::Value::null();
   }

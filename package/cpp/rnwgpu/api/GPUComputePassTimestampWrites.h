@@ -10,22 +10,13 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUComputePassTimestampWrites {
-public:
-  wgpu::ComputePassTimestampWrites *getInstance() { return &_instance; }
-
-  wgpu::ComputePassTimestampWrites _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
 template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
-  static std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>
+struct JSIConverter<std::shared_ptr<wgpu::ComputePassTimestampWrites>> {
+  static std::shared_ptr<wgpu::ComputePassTimestampWrites>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUComputePassTimestampWrites>();
+    auto result = std::make_unique<wgpu::ComputePassTimestampWrites>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "querySet")) {
@@ -70,7 +61,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
   }
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites> arg) {
+        std::shared_ptr<wgpu::ComputePassTimestampWrites> arg) {
     // No conversions here
     return jsi::Value::null();
   }

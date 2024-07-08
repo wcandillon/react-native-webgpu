@@ -10,21 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUPipelineErrorInit {
-public:
-  wgpu::PipelineErrorInit *getInstance() { return &_instance; }
-
-  wgpu::PipelineErrorInit _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineErrorInit>> {
-  static std::shared_ptr<rnwgpu::GPUPipelineErrorInit>
+template <> struct JSIConverter<std::shared_ptr<wgpu::PipelineErrorInit>> {
+  static std::shared_ptr<wgpu::PipelineErrorInit>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUPipelineErrorInit>();
+    auto result = std::make_unique<wgpu::PipelineErrorInit>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "reason")) {
@@ -44,7 +35,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineErrorInit>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUPipelineErrorInit> arg) {
+                          std::shared_ptr<wgpu::PipelineErrorInit> arg) {
     // No conversions here
     return jsi::Value::null();
   }

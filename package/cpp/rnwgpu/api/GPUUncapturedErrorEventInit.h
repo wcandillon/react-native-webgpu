@@ -10,22 +10,13 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUUncapturedErrorEventInit {
-public:
-  wgpu::UncapturedErrorEventInit *getInstance() { return &_instance; }
-
-  wgpu::UncapturedErrorEventInit _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
 template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
-  static std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>
+struct JSIConverter<std::shared_ptr<wgpu::UncapturedErrorEventInit>> {
+  static std::shared_ptr<wgpu::UncapturedErrorEventInit>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUUncapturedErrorEventInit>();
+    auto result = std::make_unique<wgpu::UncapturedErrorEventInit>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "error")) {
@@ -59,9 +50,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
                                  result->_instance.composed);
     return result;
   }
-  static jsi::Value
-  toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit> arg) {
+  static jsi::Value toJSI(jsi::Runtime &runtime,
+                          std::shared_ptr<wgpu::UncapturedErrorEventInit> arg) {
     // No conversions here
     return jsi::Value::null();
   }

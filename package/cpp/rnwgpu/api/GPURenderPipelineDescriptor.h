@@ -10,22 +10,13 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPURenderPipelineDescriptor {
-public:
-  wgpu::RenderPipelineDescriptor *getInstance() { return &_instance; }
-
-  wgpu::RenderPipelineDescriptor _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
 template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
-  static std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>
+struct JSIConverter<std::shared_ptr<wgpu::RenderPipelineDescriptor>> {
+  static std::shared_ptr<wgpu::RenderPipelineDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPURenderPipelineDescriptor>();
+    auto result = std::make_unique<wgpu::RenderPipelineDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "vertex")) {
@@ -89,9 +80,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
                                  result->_instance.label);
     return result;
   }
-  static jsi::Value
-  toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor> arg) {
+  static jsi::Value toJSI(jsi::Runtime &runtime,
+                          std::shared_ptr<wgpu::RenderPipelineDescriptor> arg) {
     // No conversions here
     return jsi::Value::null();
   }

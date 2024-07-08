@@ -10,21 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUOrigin3DDict {
-public:
-  wgpu::Origin3DDict *getInstance() { return &_instance; }
-
-  wgpu::Origin3DDict _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin3DDict>> {
-  static std::shared_ptr<rnwgpu::GPUOrigin3DDict>
+template <> struct JSIConverter<std::shared_ptr<wgpu::Origin3DDict>> {
+  static std::shared_ptr<wgpu::Origin3DDict>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUOrigin3DDict>();
+    auto result = std::make_unique<wgpu::Origin3DDict>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "x")) {
@@ -61,7 +52,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin3DDict>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUOrigin3DDict> arg) {
+                          std::shared_ptr<wgpu::Origin3DDict> arg) {
     // No conversions here
     return jsi::Value::null();
   }

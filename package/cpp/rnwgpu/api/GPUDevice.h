@@ -25,12 +25,12 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<GPUBuffer>
-  createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
-    auto aDescriptor = descriptor->_instance;
+  std::shared_ptr<wgpu::Buffer>
+  createBuffer(std::shared_ptr<wgpu::BufferDescriptor> descriptor) {
+    auto aDescriptor = descriptor;
     std::string label =
-        aDescriptor.label ? std::string(aDescriptor.label) : "";
-    auto result = _instance->CreateBuffer(descriptor->getInstance());
+        aDescriptor->label ? std::string(aDescriptor->label) : "";
+    auto result = _instance->CreateBuffer(aDescriptor);
     return std::make_shared<GPUBuffer>(std::make_shared<wgpu::Buffer>(result),
                                        label);
   }

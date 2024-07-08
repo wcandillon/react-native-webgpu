@@ -10,22 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUBindGroupLayoutEntry {
-public:
-  wgpu::BindGroupLayoutEntry *getInstance() { return &_instance; }
-
-  wgpu::BindGroupLayoutEntry _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry>> {
-  static std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry>
+template <> struct JSIConverter<std::shared_ptr<wgpu::BindGroupLayoutEntry>> {
+  static std::shared_ptr<wgpu::BindGroupLayoutEntry>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUBindGroupLayoutEntry>();
+    auto result = std::make_unique<wgpu::BindGroupLayoutEntry>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "binding")) {
@@ -83,9 +73,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry>> {
         result->_instance.externalTexture);
     return result;
   }
-  static jsi::Value
-  toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry> arg) {
+  static jsi::Value toJSI(jsi::Runtime &runtime,
+                          std::shared_ptr<wgpu::BindGroupLayoutEntry> arg) {
     // No conversions here
     return jsi::Value::null();
   }

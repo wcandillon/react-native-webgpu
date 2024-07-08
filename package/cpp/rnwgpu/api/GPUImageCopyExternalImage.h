@@ -10,22 +10,12 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUImageCopyExternalImage {
-public:
-  wgpu::ImageCopyExternalImage *getInstance() { return &_instance; }
-
-  wgpu::ImageCopyExternalImage _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
-template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
-  static std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>
+template <> struct JSIConverter<std::shared_ptr<wgpu::ImageCopyExternalImage>> {
+  static std::shared_ptr<wgpu::ImageCopyExternalImage>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUImageCopyExternalImage>();
+    auto result = std::make_unique<wgpu::ImageCopyExternalImage>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "source")) {
@@ -54,9 +44,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
                                  result->_instance.flipY);
     return result;
   }
-  static jsi::Value
-  toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<rnwgpu::GPUImageCopyExternalImage> arg) {
+  static jsi::Value toJSI(jsi::Runtime &runtime,
+                          std::shared_ptr<wgpu::ImageCopyExternalImage> arg) {
     // No conversions here
     return jsi::Value::null();
   }

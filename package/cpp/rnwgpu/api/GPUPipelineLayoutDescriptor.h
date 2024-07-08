@@ -10,22 +10,13 @@
 
 namespace jsi = facebook::jsi;
 
-namespace rnwgpu {
-class GPUPipelineLayoutDescriptor {
-public:
-  wgpu::PipelineLayoutDescriptor *getInstance() { return &_instance; }
-
-  wgpu::PipelineLayoutDescriptor _instance;
-};
-} // namespace rnwgpu
-
 namespace margelo {
 
 template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
-  static std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>
+struct JSIConverter<std::shared_ptr<wgpu::PipelineLayoutDescriptor>> {
+  static std::shared_ptr<wgpu::PipelineLayoutDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUPipelineLayoutDescriptor>();
+    auto result = std::make_unique<wgpu::PipelineLayoutDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "bindGroupLayouts")) {
@@ -57,9 +48,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
                                  result->_instance.label);
     return result;
   }
-  static jsi::Value
-  toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor> arg) {
+  static jsi::Value toJSI(jsi::Runtime &runtime,
+                          std::shared_ptr<wgpu::PipelineLayoutDescriptor> arg) {
     // No conversions here
     return jsi::Value::null();
   }
