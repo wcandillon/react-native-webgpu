@@ -2,7 +2,12 @@
 import type { InterfaceDeclaration } from "ts-morph";
 import _ from "lodash";
 
-import { getJSIMethod, getJSIProp, wrapType } from "./common";
+import {
+  getJSIMethod,
+  getJSIProp,
+  mergeParentInterfaces,
+  wrapType,
+} from "./common";
 
 const instanceAliases: Record<string, string> = {
   GPU: "Instance",
@@ -22,6 +27,7 @@ const propWhiteList: string[] = [
 ];
 
 export const getHybridObject = (decl: InterfaceDeclaration) => {
+  mergeParentInterfaces(decl);
   const name = decl.getName();
   const methods = decl
     .getMethods()

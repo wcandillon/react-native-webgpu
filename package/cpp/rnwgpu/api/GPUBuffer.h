@@ -31,10 +31,13 @@ public:
   }
   void unmap() { _instance->Unmap(); }
 
+  std::shared_ptr<std::string> getLabel() {}
+
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUBuffer::getBrand, this);
     registerHybridMethod("getMappedRange", &GPUBuffer::getMappedRange, this);
     registerHybridMethod("unmap", &GPUBuffer::unmap, this);
+    registerHybridGetter("label", &GPUBuffer::getLabel, this);
   }
 
 private:

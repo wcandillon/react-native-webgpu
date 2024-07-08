@@ -22,8 +22,12 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  std::shared_ptr<std::string> getLabel() {}
+
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPURenderBundle::getBrand, this);
+
+    registerHybridGetter("label", &GPURenderBundle::getLabel, this);
   }
 
 private:

@@ -23,8 +23,12 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  std::shared_ptr<std::string> getLabel() {}
+
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPURenderPassEncoder::getBrand, this);
+
+    registerHybridGetter("label", &GPURenderPassEncoder::getLabel, this);
   }
 
 private:

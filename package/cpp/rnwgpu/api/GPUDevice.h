@@ -32,9 +32,12 @@ public:
     return std::make_shared<GPUBuffer>(std::make_shared<wgpu::Buffer>(result));
   }
 
+  std::shared_ptr<std::string> getLabel() {}
+
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUDevice::getBrand, this);
     registerHybridMethod("createBuffer", &GPUDevice::createBuffer, this);
+    registerHybridGetter("label", &GPUDevice::getLabel, this);
   }
 
 private:
