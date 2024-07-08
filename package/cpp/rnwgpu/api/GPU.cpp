@@ -4,12 +4,11 @@
 namespace rnwgpu {
 
 std::future<std::shared_ptr<GPUAdapter>>
-GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
-  return std::async(std::launch::async, [this, options]() {
-    auto aOptions = options->getInstance();
+GPU::requestAdapter(std::shared_ptr<wgpu::RequestAdapterOptions> aOptions) {
+  return std::async(std::launch::async, [this, aOptions]() {
     wgpu::Adapter adapter = nullptr;
     _instance->RequestAdapter(
-        aOptions,
+        aOptions.get(),
         [](WGPURequestAdapterStatus, WGPUAdapter cAdapter, const char *message,
            void *userdata) {
           if (message != nullptr) {

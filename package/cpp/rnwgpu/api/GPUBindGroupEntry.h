@@ -42,9 +42,9 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::BindGroupEntry>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUBindGroupEntry::binding = %f",
-                                 result->_instance.binding);
+                                 result->binding);
     rnwgpu::Logger::logToConsole("GPUBindGroupEntry::resource = %f",
-                                 result->_instance.resource);
+                                 result->resource);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

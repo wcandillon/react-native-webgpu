@@ -35,14 +35,14 @@ struct JSIConverter<std::shared_ptr<wgpu::BindGroupLayoutDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str.c_str();
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPUBindGroupLayoutDescriptor::entries = %f",
-                                 result->_instance.entries);
+                                 result->entries);
     rnwgpu::Logger::logToConsole("GPUBindGroupLayoutDescriptor::label = %f",
-                                 result->_instance.label);
+                                 result->label);
     return result;
   }
   static jsi::Value

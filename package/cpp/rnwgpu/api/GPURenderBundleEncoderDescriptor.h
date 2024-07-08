@@ -46,7 +46,7 @@ struct JSIConverter<std::shared_ptr<wgpu::RenderBundleEncoderDescriptor>> {
         auto sampleCount = value.getProperty(runtime, "sampleCount");
 
         if (sampleCount.isNumber()) {
-          result->_instance.sampleCount =
+          result->sampleCount =
               static_cast<wgpu::Size32>(sampleCount.getNumber());
         }
       }
@@ -55,27 +55,27 @@ struct JSIConverter<std::shared_ptr<wgpu::RenderBundleEncoderDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str.c_str();
         }
       }
     }
     rnwgpu::Logger::logToConsole(
         "GPURenderBundleEncoderDescriptor::depthReadOnly = %f",
-        result->_instance.depthReadOnly);
+        result->depthReadOnly);
     rnwgpu::Logger::logToConsole(
         "GPURenderBundleEncoderDescriptor::stencilReadOnly = %f",
-        result->_instance.stencilReadOnly);
+        result->stencilReadOnly);
     rnwgpu::Logger::logToConsole(
         "GPURenderBundleEncoderDescriptor::colorFormats = %f",
-        result->_instance.colorFormats);
+        result->colorFormats);
     rnwgpu::Logger::logToConsole(
         "GPURenderBundleEncoderDescriptor::depthStencilFormat = %f",
-        result->_instance.depthStencilFormat);
+        result->depthStencilFormat);
     rnwgpu::Logger::logToConsole(
         "GPURenderBundleEncoderDescriptor::sampleCount = %f",
-        result->_instance.sampleCount);
+        result->sampleCount);
     rnwgpu::Logger::logToConsole("GPURenderBundleEncoderDescriptor::label = %f",
-                                 result->_instance.label);
+                                 result->label);
     return result;
   }
   static jsi::Value

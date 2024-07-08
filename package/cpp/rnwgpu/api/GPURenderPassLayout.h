@@ -37,7 +37,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::RenderPassLayout>> {
         auto sampleCount = value.getProperty(runtime, "sampleCount");
 
         if (sampleCount.isNumber()) {
-          result->_instance.sampleCount =
+          result->sampleCount =
               static_cast<wgpu::Size32>(sampleCount.getNumber());
         }
       }
@@ -46,18 +46,18 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::RenderPassLayout>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str.c_str();
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPURenderPassLayout::colorFormats = %f",
-                                 result->_instance.colorFormats);
+                                 result->colorFormats);
     rnwgpu::Logger::logToConsole("GPURenderPassLayout::depthStencilFormat = %f",
-                                 result->_instance.depthStencilFormat);
+                                 result->depthStencilFormat);
     rnwgpu::Logger::logToConsole("GPURenderPassLayout::sampleCount = %f",
-                                 result->_instance.sampleCount);
+                                 result->sampleCount);
     rnwgpu::Logger::logToConsole("GPURenderPassLayout::label = %f",
-                                 result->_instance.label);
+                                 result->label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

@@ -45,7 +45,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::RenderPassDescriptor>> {
         auto maxDrawCount = value.getProperty(runtime, "maxDrawCount");
 
         if (maxDrawCount.isNumber()) {
-          result->_instance.maxDrawCount = maxDrawCount.getNumber();
+          result->maxDrawCount = maxDrawCount.getNumber();
         }
       }
       if (value.hasProperty(runtime, "label")) {
@@ -53,26 +53,26 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::RenderPassDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str.c_str();
         }
       }
     }
     rnwgpu::Logger::logToConsole(
         "GPURenderPassDescriptor::colorAttachments = %f",
-        result->_instance.colorAttachments);
+        result->colorAttachments);
     rnwgpu::Logger::logToConsole(
         "GPURenderPassDescriptor::depthStencilAttachment = %f",
-        result->_instance.depthStencilAttachment);
+        result->depthStencilAttachment);
     rnwgpu::Logger::logToConsole(
         "GPURenderPassDescriptor::occlusionQuerySet = %f",
-        result->_instance.occlusionQuerySet);
+        result->occlusionQuerySet);
     rnwgpu::Logger::logToConsole(
         "GPURenderPassDescriptor::timestampWrites = %f",
-        result->_instance.timestampWrites);
+        result->timestampWrites);
     rnwgpu::Logger::logToConsole("GPURenderPassDescriptor::maxDrawCount = %f",
-                                 result->_instance.maxDrawCount);
+                                 result->maxDrawCount);
     rnwgpu::Logger::logToConsole("GPURenderPassDescriptor::label = %f",
-                                 result->_instance.label);
+                                 result->label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

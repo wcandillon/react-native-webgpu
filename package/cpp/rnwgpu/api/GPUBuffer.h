@@ -29,8 +29,8 @@ public:
     auto result = _instance->GetMappedRange(aOffset, aSize);
     return std::make_shared<MutableJSIBuffer>(result, _instance->GetSize());
   }
-  void unmap() {
 
+  void unmap() {
     _instance->Unmap();
   }
 

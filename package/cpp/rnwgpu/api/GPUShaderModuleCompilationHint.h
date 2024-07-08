@@ -37,10 +37,9 @@ struct JSIConverter<std::shared_ptr<wgpu::ShaderModuleCompilationHint>> {
       }
     }
     rnwgpu::Logger::logToConsole(
-        "GPUShaderModuleCompilationHint::entryPoint = %f",
-        result->_instance.entryPoint);
+        "GPUShaderModuleCompilationHint::entryPoint = %f", result->entryPoint);
     rnwgpu::Logger::logToConsole("GPUShaderModuleCompilationHint::layout = %f",
-                                 result->_instance.layout);
+                                 result->layout);
     return result;
   }
   static jsi::Value

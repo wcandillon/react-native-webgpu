@@ -57,20 +57,20 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::BindGroupLayoutEntry>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUBindGroupLayoutEntry::binding = %f",
-                                 result->_instance.binding);
+                                 result->binding);
     rnwgpu::Logger::logToConsole("GPUBindGroupLayoutEntry::visibility = %f",
-                                 result->_instance.visibility);
+                                 result->visibility);
     rnwgpu::Logger::logToConsole("GPUBindGroupLayoutEntry::buffer = %f",
-                                 result->_instance.buffer);
+                                 result->buffer);
     rnwgpu::Logger::logToConsole("GPUBindGroupLayoutEntry::sampler = %f",
-                                 result->_instance.sampler);
+                                 result->sampler);
     rnwgpu::Logger::logToConsole("GPUBindGroupLayoutEntry::texture = %f",
-                                 result->_instance.texture);
+                                 result->texture);
     rnwgpu::Logger::logToConsole("GPUBindGroupLayoutEntry::storageTexture = %f",
-                                 result->_instance.storageTexture);
+                                 result->storageTexture);
     rnwgpu::Logger::logToConsole(
         "GPUBindGroupLayoutEntry::externalTexture = %f",
-        result->_instance.externalTexture);
+        result->externalTexture);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

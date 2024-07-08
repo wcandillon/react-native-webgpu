@@ -22,14 +22,14 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::ImageDataLayout>> {
         auto offset = value.getProperty(runtime, "offset");
 
         if (offset.isNumber()) {
-          result->_instance.offset = offset.getNumber();
+          result->offset = offset.getNumber();
         }
       }
       if (value.hasProperty(runtime, "bytesPerRow")) {
         auto bytesPerRow = value.getProperty(runtime, "bytesPerRow");
 
         if (bytesPerRow.isNumber()) {
-          result->_instance.bytesPerRow =
+          result->bytesPerRow =
               static_cast<wgpu::Size32>(bytesPerRow.getNumber());
         }
       }
@@ -37,17 +37,17 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::ImageDataLayout>> {
         auto rowsPerImage = value.getProperty(runtime, "rowsPerImage");
 
         if (rowsPerImage.isNumber()) {
-          result->_instance.rowsPerImage =
+          result->rowsPerImage =
               static_cast<wgpu::Size32>(rowsPerImage.getNumber());
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPUImageDataLayout::offset = %f",
-                                 result->_instance.offset);
+                                 result->offset);
     rnwgpu::Logger::logToConsole("GPUImageDataLayout::bytesPerRow = %f",
-                                 result->_instance.bytesPerRow);
+                                 result->bytesPerRow);
     rnwgpu::Logger::logToConsole("GPUImageDataLayout::rowsPerImage = %f",
-                                 result->_instance.rowsPerImage);
+                                 result->rowsPerImage);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

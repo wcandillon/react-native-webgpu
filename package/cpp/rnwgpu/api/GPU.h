@@ -25,7 +25,7 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::future<std::shared_ptr<wgpu::Adapter>>
+  std::future<std::shared_ptr<GPUAdapter>>
   requestAdapter(std::shared_ptr<wgpu::RequestAdapterOptions> options);
 
   void loadHybridMethods() override {

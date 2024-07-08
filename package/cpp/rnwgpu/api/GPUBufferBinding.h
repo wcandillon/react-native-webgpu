@@ -33,23 +33,22 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::BufferBinding>> {
         auto offset = value.getProperty(runtime, "offset");
 
         if (offset.isNumber()) {
-          result->_instance.offset = offset.getNumber();
+          result->offset = offset.getNumber();
         }
       }
       if (value.hasProperty(runtime, "size")) {
         auto size = value.getProperty(runtime, "size");
 
         if (size.isNumber()) {
-          result->_instance.size = size.getNumber();
+          result->size = size.getNumber();
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPUBufferBinding::buffer = %f",
-                                 result->_instance.buffer);
+                                 result->buffer);
     rnwgpu::Logger::logToConsole("GPUBufferBinding::offset = %f",
-                                 result->_instance.offset);
-    rnwgpu::Logger::logToConsole("GPUBufferBinding::size = %f",
-                                 result->_instance.size);
+                                 result->offset);
+    rnwgpu::Logger::logToConsole("GPUBufferBinding::size = %f", result->size);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

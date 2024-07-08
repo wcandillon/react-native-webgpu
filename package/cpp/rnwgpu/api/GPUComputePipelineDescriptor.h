@@ -46,16 +46,16 @@ struct JSIConverter<std::shared_ptr<wgpu::ComputePipelineDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str.c_str();
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPUComputePipelineDescriptor::compute = %f",
-                                 result->_instance.compute);
+                                 result->compute);
     rnwgpu::Logger::logToConsole("GPUComputePipelineDescriptor::layout = %f",
-                                 result->_instance.layout);
+                                 result->layout);
     rnwgpu::Logger::logToConsole("GPUComputePipelineDescriptor::label = %f",
-                                 result->_instance.label);
+                                 result->label);
     return result;
   }
   static jsi::Value

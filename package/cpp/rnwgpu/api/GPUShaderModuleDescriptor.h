@@ -48,19 +48,19 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::ShaderModuleDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str.c_str();
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPUShaderModuleDescriptor::code = %f",
-                                 result->_instance.code);
+                                 result->code);
     rnwgpu::Logger::logToConsole("GPUShaderModuleDescriptor::sourceMap = %f",
-                                 result->_instance.sourceMap);
+                                 result->sourceMap);
     rnwgpu::Logger::logToConsole(
         "GPUShaderModuleDescriptor::compilationHints = %f",
-        result->_instance.compilationHints);
+        result->compilationHints);
     rnwgpu::Logger::logToConsole("GPUShaderModuleDescriptor::label = %f",
-                                 result->_instance.label);
+                                 result->label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

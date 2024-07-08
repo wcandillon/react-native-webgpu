@@ -6,6 +6,7 @@ import {
   getJSIMethod,
   getJSIProp,
   mergeParentInterfaces,
+  wrapReturnType,
   wrapType,
 } from "./common";
 
@@ -79,7 +80,7 @@ public:
   ${methods
     .filter((method) => method.async)
     .map((method) => {
-      return `std::future<${wrapType(method.returns)}> ${method.name}(${method.args.map((a) => `${wrapType(a.type)} ${a.name}`).join(", ")});`;
+      return `std::future<${wrapReturnType(method.returns)}> ${method.name}(${method.args.map((a) => `${wrapType(a.type)} ${a.name}`).join(", ")});`;
     })
     .join("\n")}
 
@@ -87,7 +88,7 @@ public:
     .filter((method) => !method.async)
     .map((method) => {
       const isUndefined = method.returns === "undefined";
-      const returnType = isUndefined ? "void" : wrapType(method.returns);
+      const returnType = isUndefined ? "void" : wrapReturnType(method.returns);
       const args = method.args
         .map((a) => `${wrapType(a.type, a.optional)} ${a.name}`)
         .join(", ");
@@ -101,7 +102,7 @@ public:
       return `${returnType} ${method.name}(${args}) {
       ${method.args
         .map((arg) => {
-          return `auto a${_.upperFirst(arg.name)} = ${arg.optional ? `${arg.name}.value_or(${arg.defaultValue})` : `${arg.name}`};`;
+          return `auto a${_.upperFirst(arg.name)} = ${arg.optional ? `${arg.name}.value_or(${arg.defaultValue})` : `${arg.name}.get()`};`;
         })
         .join("\n")}
       ${getLabel}

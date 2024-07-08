@@ -45,16 +45,16 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::BindGroupDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str.c_str();
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPUBindGroupDescriptor::layout = %f",
-                                 result->_instance.layout);
+                                 result->layout);
     rnwgpu::Logger::logToConsole("GPUBindGroupDescriptor::entries = %f",
-                                 result->_instance.entries);
+                                 result->entries);
     rnwgpu::Logger::logToConsole("GPUBindGroupDescriptor::label = %f",
-                                 result->_instance.label);
+                                 result->label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

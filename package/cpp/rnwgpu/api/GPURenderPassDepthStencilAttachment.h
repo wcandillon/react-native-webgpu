@@ -35,7 +35,7 @@ struct JSIConverter<std::shared_ptr<wgpu::RenderPassDepthStencilAttachment>> {
         auto depthClearValue = value.getProperty(runtime, "depthClearValue");
 
         if (depthClearValue.isNumber()) {
-          result->_instance.depthClearValue = depthClearValue.getNumber();
+          result->depthClearValue = depthClearValue.getNumber();
         }
       }
       if (value.hasProperty(runtime, "depthLoadOp")) {
@@ -52,7 +52,7 @@ struct JSIConverter<std::shared_ptr<wgpu::RenderPassDepthStencilAttachment>> {
             value.getProperty(runtime, "stencilClearValue");
 
         if (stencilClearValue.isNumber()) {
-          result->_instance.stencilClearValue =
+          result->stencilClearValue =
               static_cast<wgpu::StencilValue>(stencilClearValue.getNumber());
         }
       }
@@ -67,32 +67,31 @@ struct JSIConverter<std::shared_ptr<wgpu::RenderPassDepthStencilAttachment>> {
       }
     }
     rnwgpu::Logger::logToConsole(
-        "GPURenderPassDepthStencilAttachment::view = %f",
-        result->_instance.view);
+        "GPURenderPassDepthStencilAttachment::view = %f", result->view);
     rnwgpu::Logger::logToConsole(
         "GPURenderPassDepthStencilAttachment::depthClearValue = %f",
-        result->_instance.depthClearValue);
+        result->depthClearValue);
     rnwgpu::Logger::logToConsole(
         "GPURenderPassDepthStencilAttachment::depthLoadOp = %f",
-        result->_instance.depthLoadOp);
+        result->depthLoadOp);
     rnwgpu::Logger::logToConsole(
         "GPURenderPassDepthStencilAttachment::depthStoreOp = %f",
-        result->_instance.depthStoreOp);
+        result->depthStoreOp);
     rnwgpu::Logger::logToConsole(
         "GPURenderPassDepthStencilAttachment::depthReadOnly = %f",
-        result->_instance.depthReadOnly);
+        result->depthReadOnly);
     rnwgpu::Logger::logToConsole(
         "GPURenderPassDepthStencilAttachment::stencilClearValue = %f",
-        result->_instance.stencilClearValue);
+        result->stencilClearValue);
     rnwgpu::Logger::logToConsole(
         "GPURenderPassDepthStencilAttachment::stencilLoadOp = %f",
-        result->_instance.stencilLoadOp);
+        result->stencilLoadOp);
     rnwgpu::Logger::logToConsole(
         "GPURenderPassDepthStencilAttachment::stencilStoreOp = %f",
-        result->_instance.stencilStoreOp);
+        result->stencilStoreOp);
     rnwgpu::Logger::logToConsole(
         "GPURenderPassDepthStencilAttachment::stencilReadOnly = %f",
-        result->_instance.stencilReadOnly);
+        result->stencilReadOnly);
     return result;
   }
   static jsi::Value

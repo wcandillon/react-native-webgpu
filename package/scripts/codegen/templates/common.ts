@@ -178,3 +178,11 @@ export const wrapType = (type: string, optional = false) => {
       : type;
   return optional ? `std::optional<${result}>` : result;
 };
+
+export const wrapReturnType = (type: string, optional = false) => {
+  const result =
+    type.startsWith("GPU") || type === "MutableJSIBuffer"
+      ? `std::shared_ptr<${type}>`
+      : type;
+  return optional ? `std::optional<${result}>` : result;
+};

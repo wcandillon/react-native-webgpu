@@ -34,7 +34,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::ProgrammableStage>> {
 
         if (entryPoint.isString()) {
           auto str = entryPoint.asString(runtime).utf8(runtime);
-          result->_instance.entryPoint = str.c_str();
+          result->entryPoint = str.c_str();
         }
       }
       if (value.hasProperty(runtime, "constants")) {
@@ -42,11 +42,11 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::ProgrammableStage>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUProgrammableStage::module = %f",
-                                 result->_instance.module);
+                                 result->module);
     rnwgpu::Logger::logToConsole("GPUProgrammableStage::entryPoint = %f",
-                                 result->_instance.entryPoint);
+                                 result->entryPoint);
     rnwgpu::Logger::logToConsole("GPUProgrammableStage::constants = %f",
-                                 result->_instance.constants);
+                                 result->constants);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

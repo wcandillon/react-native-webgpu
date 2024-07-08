@@ -25,7 +25,7 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::future<std::shared_ptr<wgpu::Device>>
+  std::future<std::shared_ptr<GPUDevice>>
   requestDevice(std::shared_ptr<wgpu::DeviceDescriptor> descriptor);
 
   void loadHybridMethods() override {

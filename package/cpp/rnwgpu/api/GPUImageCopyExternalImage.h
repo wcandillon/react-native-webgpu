@@ -37,11 +37,11 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::ImageCopyExternalImage>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUImageCopyExternalImage::source = %f",
-                                 result->_instance.source);
+                                 result->source);
     rnwgpu::Logger::logToConsole("GPUImageCopyExternalImage::origin = %f",
-                                 result->_instance.origin);
+                                 result->origin);
     rnwgpu::Logger::logToConsole("GPUImageCopyExternalImage::flipY = %f",
-                                 result->_instance.flipY);
+                                 result->flipY);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

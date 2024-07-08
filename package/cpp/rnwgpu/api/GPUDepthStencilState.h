@@ -46,7 +46,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::DepthStencilState>> {
         auto stencilReadMask = value.getProperty(runtime, "stencilReadMask");
 
         if (stencilReadMask.isNumber()) {
-          result->_instance.stencilReadMask =
+          result->stencilReadMask =
               static_cast<wgpu::StencilValue>(stencilReadMask.getNumber());
         }
       }
@@ -54,7 +54,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::DepthStencilState>> {
         auto stencilWriteMask = value.getProperty(runtime, "stencilWriteMask");
 
         if (stencilWriteMask.isNumber()) {
-          result->_instance.stencilWriteMask =
+          result->stencilWriteMask =
               static_cast<wgpu::StencilValue>(stencilWriteMask.getNumber());
         }
       }
@@ -62,7 +62,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::DepthStencilState>> {
         auto depthBias = value.getProperty(runtime, "depthBias");
 
         if (depthBias.isNumber()) {
-          result->_instance.depthBias =
+          result->depthBias =
               static_cast<wgpu::DepthBias>(depthBias.getNumber());
         }
       }
@@ -71,39 +71,38 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::DepthStencilState>> {
             value.getProperty(runtime, "depthBiasSlopeScale");
 
         if (depthBiasSlopeScale.isNumber()) {
-          result->_instance.depthBiasSlopeScale =
-              depthBiasSlopeScale.getNumber();
+          result->depthBiasSlopeScale = depthBiasSlopeScale.getNumber();
         }
       }
       if (value.hasProperty(runtime, "depthBiasClamp")) {
         auto depthBiasClamp = value.getProperty(runtime, "depthBiasClamp");
 
         if (depthBiasClamp.isNumber()) {
-          result->_instance.depthBiasClamp = depthBiasClamp.getNumber();
+          result->depthBiasClamp = depthBiasClamp.getNumber();
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPUDepthStencilState::format = %f",
-                                 result->_instance.format);
+                                 result->format);
     rnwgpu::Logger::logToConsole("GPUDepthStencilState::depthWriteEnabled = %f",
-                                 result->_instance.depthWriteEnabled);
+                                 result->depthWriteEnabled);
     rnwgpu::Logger::logToConsole("GPUDepthStencilState::depthCompare = %f",
-                                 result->_instance.depthCompare);
+                                 result->depthCompare);
     rnwgpu::Logger::logToConsole("GPUDepthStencilState::stencilFront = %f",
-                                 result->_instance.stencilFront);
+                                 result->stencilFront);
     rnwgpu::Logger::logToConsole("GPUDepthStencilState::stencilBack = %f",
-                                 result->_instance.stencilBack);
+                                 result->stencilBack);
     rnwgpu::Logger::logToConsole("GPUDepthStencilState::stencilReadMask = %f",
-                                 result->_instance.stencilReadMask);
+                                 result->stencilReadMask);
     rnwgpu::Logger::logToConsole("GPUDepthStencilState::stencilWriteMask = %f",
-                                 result->_instance.stencilWriteMask);
+                                 result->stencilWriteMask);
     rnwgpu::Logger::logToConsole("GPUDepthStencilState::depthBias = %f",
-                                 result->_instance.depthBias);
+                                 result->depthBias);
     rnwgpu::Logger::logToConsole(
         "GPUDepthStencilState::depthBiasSlopeScale = %f",
-        result->_instance.depthBiasSlopeScale);
+        result->depthBiasSlopeScale);
     rnwgpu::Logger::logToConsole("GPUDepthStencilState::depthBiasClamp = %f",
-                                 result->_instance.depthBiasClamp);
+                                 result->depthBiasClamp);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

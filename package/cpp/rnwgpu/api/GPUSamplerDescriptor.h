@@ -40,14 +40,14 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::SamplerDescriptor>> {
         auto lodMinClamp = value.getProperty(runtime, "lodMinClamp");
 
         if (lodMinClamp.isNumber()) {
-          result->_instance.lodMinClamp = lodMinClamp.getNumber();
+          result->lodMinClamp = lodMinClamp.getNumber();
         }
       }
       if (value.hasProperty(runtime, "lodMaxClamp")) {
         auto lodMaxClamp = value.getProperty(runtime, "lodMaxClamp");
 
         if (lodMaxClamp.isNumber()) {
-          result->_instance.lodMaxClamp = lodMaxClamp.getNumber();
+          result->lodMaxClamp = lodMaxClamp.getNumber();
         }
       }
       if (value.hasProperty(runtime, "compare")) {
@@ -57,7 +57,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::SamplerDescriptor>> {
         auto maxAnisotropy = value.getProperty(runtime, "maxAnisotropy");
 
         if (maxAnisotropy.isNumber()) {
-          result->_instance.maxAnisotropy = maxAnisotropy.getNumber();
+          result->maxAnisotropy = maxAnisotropy.getNumber();
         }
       }
       if (value.hasProperty(runtime, "label")) {
@@ -65,32 +65,32 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::SamplerDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str.c_str();
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::addressModeU = %f",
-                                 result->_instance.addressModeU);
+                                 result->addressModeU);
     rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::addressModeV = %f",
-                                 result->_instance.addressModeV);
+                                 result->addressModeV);
     rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::addressModeW = %f",
-                                 result->_instance.addressModeW);
+                                 result->addressModeW);
     rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::magFilter = %f",
-                                 result->_instance.magFilter);
+                                 result->magFilter);
     rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::minFilter = %f",
-                                 result->_instance.minFilter);
+                                 result->minFilter);
     rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::mipmapFilter = %f",
-                                 result->_instance.mipmapFilter);
+                                 result->mipmapFilter);
     rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::lodMinClamp = %f",
-                                 result->_instance.lodMinClamp);
+                                 result->lodMinClamp);
     rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::lodMaxClamp = %f",
-                                 result->_instance.lodMaxClamp);
+                                 result->lodMaxClamp);
     rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::compare = %f",
-                                 result->_instance.compare);
+                                 result->compare);
     rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::maxAnisotropy = %f",
-                                 result->_instance.maxAnisotropy);
+                                 result->maxAnisotropy);
     rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::label = %f",
-                                 result->_instance.label);
+                                 result->label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

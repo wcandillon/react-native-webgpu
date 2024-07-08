@@ -53,11 +53,11 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::VertexAttribute>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUVertexAttribute::format = %f",
-                                 result->_instance.format);
+                                 result->format);
     rnwgpu::Logger::logToConsole("GPUVertexAttribute::offset = %f",
-                                 result->_instance.offset);
+                                 result->offset);
     rnwgpu::Logger::logToConsole("GPUVertexAttribute::shaderLocation = %f",
-                                 result->_instance.shaderLocation);
+                                 result->shaderLocation);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

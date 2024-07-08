@@ -37,7 +37,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::VertexState>> {
 
         if (entryPoint.isString()) {
           auto str = entryPoint.asString(runtime).utf8(runtime);
-          result->_instance.entryPoint = str.c_str();
+          result->entryPoint = str.c_str();
         }
       }
       if (value.hasProperty(runtime, "constants")) {
@@ -45,13 +45,12 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::VertexState>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUVertexState::buffers = %f",
-                                 result->_instance.buffers);
-    rnwgpu::Logger::logToConsole("GPUVertexState::module = %f",
-                                 result->_instance.module);
+                                 result->buffers);
+    rnwgpu::Logger::logToConsole("GPUVertexState::module = %f", result->module);
     rnwgpu::Logger::logToConsole("GPUVertexState::entryPoint = %f",
-                                 result->_instance.entryPoint);
+                                 result->entryPoint);
     rnwgpu::Logger::logToConsole("GPUVertexState::constants = %f",
-                                 result->_instance.constants);
+                                 result->constants);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

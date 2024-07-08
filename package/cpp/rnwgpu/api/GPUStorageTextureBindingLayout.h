@@ -38,12 +38,12 @@ struct JSIConverter<std::shared_ptr<wgpu::StorageTextureBindingLayout>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUStorageTextureBindingLayout::access = %f",
-                                 result->_instance.access);
+                                 result->access);
     rnwgpu::Logger::logToConsole("GPUStorageTextureBindingLayout::format = %f",
-                                 result->_instance.format);
+                                 result->format);
     rnwgpu::Logger::logToConsole(
         "GPUStorageTextureBindingLayout::viewDimension = %f",
-        result->_instance.viewDimension);
+        result->viewDimension);
     return result;
   }
   static jsi::Value

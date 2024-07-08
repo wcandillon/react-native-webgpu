@@ -22,33 +22,27 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::Origin3DDict>> {
         auto x = value.getProperty(runtime, "x");
 
         if (x.isNumber()) {
-          result->_instance.x =
-              static_cast<wgpu::IntegerCoordinate>(x.getNumber());
+          result->x = static_cast<wgpu::IntegerCoordinate>(x.getNumber());
         }
       }
       if (value.hasProperty(runtime, "y")) {
         auto y = value.getProperty(runtime, "y");
 
         if (y.isNumber()) {
-          result->_instance.y =
-              static_cast<wgpu::IntegerCoordinate>(y.getNumber());
+          result->y = static_cast<wgpu::IntegerCoordinate>(y.getNumber());
         }
       }
       if (value.hasProperty(runtime, "z")) {
         auto z = value.getProperty(runtime, "z");
 
         if (z.isNumber()) {
-          result->_instance.z =
-              static_cast<wgpu::IntegerCoordinate>(z.getNumber());
+          result->z = static_cast<wgpu::IntegerCoordinate>(z.getNumber());
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUOrigin3DDict::x = %f",
-                                 result->_instance.x);
-    rnwgpu::Logger::logToConsole("GPUOrigin3DDict::y = %f",
-                                 result->_instance.y);
-    rnwgpu::Logger::logToConsole("GPUOrigin3DDict::z = %f",
-                                 result->_instance.z);
+    rnwgpu::Logger::logToConsole("GPUOrigin3DDict::x = %f", result->x);
+    rnwgpu::Logger::logToConsole("GPUOrigin3DDict::y = %f", result->y);
+    rnwgpu::Logger::logToConsole("GPUOrigin3DDict::z = %f", result->z);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

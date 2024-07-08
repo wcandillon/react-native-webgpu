@@ -25,9 +25,9 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<wgpu::Buffer>
+  std::shared_ptr<GPUBuffer>
   createBuffer(std::shared_ptr<wgpu::BufferDescriptor> descriptor) {
-    auto aDescriptor = descriptor;
+    auto aDescriptor = descriptor.get();
     std::string label =
         aDescriptor->label ? std::string(aDescriptor->label) : "";
     auto result = _instance->CreateBuffer(aDescriptor);

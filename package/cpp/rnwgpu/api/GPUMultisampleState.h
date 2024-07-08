@@ -22,16 +22,14 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::MultisampleState>> {
         auto count = value.getProperty(runtime, "count");
 
         if (count.isNumber()) {
-          result->_instance.count =
-              static_cast<wgpu::Size32>(count.getNumber());
+          result->count = static_cast<wgpu::Size32>(count.getNumber());
         }
       }
       if (value.hasProperty(runtime, "mask")) {
         auto mask = value.getProperty(runtime, "mask");
 
         if (mask.isNumber()) {
-          result->_instance.mask =
-              static_cast<wgpu::SampleMask>(mask.getNumber());
+          result->mask = static_cast<wgpu::SampleMask>(mask.getNumber());
         }
       }
       if (value.hasProperty(runtime, "alphaToCoverageEnabled")) {
@@ -40,12 +38,12 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::MultisampleState>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUMultisampleState::count = %f",
-                                 result->_instance.count);
+                                 result->count);
     rnwgpu::Logger::logToConsole("GPUMultisampleState::mask = %f",
-                                 result->_instance.mask);
+                                 result->mask);
     rnwgpu::Logger::logToConsole(
         "GPUMultisampleState::alphaToCoverageEnabled = %f",
-        result->_instance.alphaToCoverageEnabled);
+        result->alphaToCoverageEnabled);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

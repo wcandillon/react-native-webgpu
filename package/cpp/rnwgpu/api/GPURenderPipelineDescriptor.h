@@ -58,26 +58,24 @@ struct JSIConverter<std::shared_ptr<wgpu::RenderPipelineDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str.c_str();
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::vertex = %f",
-                                 result->_instance.vertex);
+                                 result->vertex);
     rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::primitive = %f",
-                                 result->_instance.primitive);
+                                 result->primitive);
     rnwgpu::Logger::logToConsole(
-        "GPURenderPipelineDescriptor::depthStencil = %f",
-        result->_instance.depthStencil);
+        "GPURenderPipelineDescriptor::depthStencil = %f", result->depthStencil);
     rnwgpu::Logger::logToConsole(
-        "GPURenderPipelineDescriptor::multisample = %f",
-        result->_instance.multisample);
+        "GPURenderPipelineDescriptor::multisample = %f", result->multisample);
     rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::fragment = %f",
-                                 result->_instance.fragment);
+                                 result->fragment);
     rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::layout = %f",
-                                 result->_instance.layout);
+                                 result->layout);
     rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::label = %f",
-                                 result->_instance.label);
+                                 result->label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

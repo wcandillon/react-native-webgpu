@@ -28,10 +28,10 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::RequestAdapterOptions>> {
     }
     rnwgpu::Logger::logToConsole(
         "GPURequestAdapterOptions::powerPreference = %f",
-        result->_instance.powerPreference);
+        result->powerPreference);
     rnwgpu::Logger::logToConsole(
         "GPURequestAdapterOptions::forceFallbackAdapter = %f",
-        result->_instance.forceFallbackAdapter);
+        result->forceFallbackAdapter);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

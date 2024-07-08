@@ -29,11 +29,11 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::TextureBindingLayout>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUTextureBindingLayout::sampleType = %f",
-                                 result->_instance.sampleType);
+                                 result->sampleType);
     rnwgpu::Logger::logToConsole("GPUTextureBindingLayout::viewDimension = %f",
-                                 result->_instance.viewDimension);
+                                 result->viewDimension);
     rnwgpu::Logger::logToConsole("GPUTextureBindingLayout::multisampled = %f",
-                                 result->_instance.multisampled);
+                                 result->multisampled);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

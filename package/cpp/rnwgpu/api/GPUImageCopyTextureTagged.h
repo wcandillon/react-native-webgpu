@@ -40,7 +40,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::ImageCopyTextureTagged>> {
         auto mipLevel = value.getProperty(runtime, "mipLevel");
 
         if (mipLevel.isNumber()) {
-          result->_instance.mipLevel =
+          result->mipLevel =
               static_cast<wgpu::IntegerCoordinate>(mipLevel.getNumber());
         }
       }
@@ -52,18 +52,18 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::ImageCopyTextureTagged>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::colorSpace = %f",
-                                 result->_instance.colorSpace);
+                                 result->colorSpace);
     rnwgpu::Logger::logToConsole(
         "GPUImageCopyTextureTagged::premultipliedAlpha = %f",
-        result->_instance.premultipliedAlpha);
+        result->premultipliedAlpha);
     rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::texture = %f",
-                                 result->_instance.texture);
+                                 result->texture);
     rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::mipLevel = %f",
-                                 result->_instance.mipLevel);
+                                 result->mipLevel);
     rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::origin = %f",
-                                 result->_instance.origin);
+                                 result->origin);
     rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::aspect = %f",
-                                 result->_instance.aspect);
+                                 result->aspect);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

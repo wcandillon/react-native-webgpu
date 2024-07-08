@@ -53,13 +53,13 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::BufferDescriptor>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUBufferDescriptor::size = %f",
-                                 result->_instance.size);
+                                 result->size);
     rnwgpu::Logger::logToConsole("GPUBufferDescriptor::usage = %f",
-                                 result->_instance.usage);
+                                 result->usage);
     rnwgpu::Logger::logToConsole("GPUBufferDescriptor::mappedAtCreation = %f",
-                                 result->_instance.mappedAtCreation);
+                                 result->mappedAtCreation);
     rnwgpu::Logger::logToConsole("GPUBufferDescriptor::label = %f",
-                                 result->_instance.label);
+                                 result->label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

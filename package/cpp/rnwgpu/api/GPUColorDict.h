@@ -55,10 +55,10 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::ColorDict>> {
         throw std::runtime_error("Property GPUColorDict::a is not defined");
       }
     }
-    rnwgpu::Logger::logToConsole("GPUColorDict::r = %f", result->_instance.r);
-    rnwgpu::Logger::logToConsole("GPUColorDict::g = %f", result->_instance.g);
-    rnwgpu::Logger::logToConsole("GPUColorDict::b = %f", result->_instance.b);
-    rnwgpu::Logger::logToConsole("GPUColorDict::a = %f", result->_instance.a);
+    rnwgpu::Logger::logToConsole("GPUColorDict::r = %f", result->r);
+    rnwgpu::Logger::logToConsole("GPUColorDict::g = %f", result->g);
+    rnwgpu::Logger::logToConsole("GPUColorDict::b = %f", result->b);
+    rnwgpu::Logger::logToConsole("GPUColorDict::a = %f", result->a);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

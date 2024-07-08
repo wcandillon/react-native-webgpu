@@ -37,15 +37,15 @@ struct JSIConverter<std::shared_ptr<wgpu::PipelineLayoutDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str.c_str();
         }
       }
     }
     rnwgpu::Logger::logToConsole(
         "GPUPipelineLayoutDescriptor::bindGroupLayouts = %f",
-        result->_instance.bindGroupLayouts);
+        result->bindGroupLayouts);
     rnwgpu::Logger::logToConsole("GPUPipelineLayoutDescriptor::label = %f",
-                                 result->_instance.label);
+                                 result->label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

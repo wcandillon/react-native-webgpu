@@ -26,15 +26,15 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::ComputePassDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str.c_str();
         }
       }
     }
     rnwgpu::Logger::logToConsole(
         "GPUComputePassDescriptor::timestampWrites = %f",
-        result->_instance.timestampWrites);
+        result->timestampWrites);
     rnwgpu::Logger::logToConsole("GPUComputePassDescriptor::label = %f",
-                                 result->_instance.label);
+                                 result->label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

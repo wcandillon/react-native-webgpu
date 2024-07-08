@@ -22,23 +22,19 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::Origin2DDict>> {
         auto x = value.getProperty(runtime, "x");
 
         if (x.isNumber()) {
-          result->_instance.x =
-              static_cast<wgpu::IntegerCoordinate>(x.getNumber());
+          result->x = static_cast<wgpu::IntegerCoordinate>(x.getNumber());
         }
       }
       if (value.hasProperty(runtime, "y")) {
         auto y = value.getProperty(runtime, "y");
 
         if (y.isNumber()) {
-          result->_instance.y =
-              static_cast<wgpu::IntegerCoordinate>(y.getNumber());
+          result->y = static_cast<wgpu::IntegerCoordinate>(y.getNumber());
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUOrigin2DDict::x = %f",
-                                 result->_instance.x);
-    rnwgpu::Logger::logToConsole("GPUOrigin2DDict::y = %f",
-                                 result->_instance.y);
+    rnwgpu::Logger::logToConsole("GPUOrigin2DDict::x = %f", result->x);
+    rnwgpu::Logger::logToConsole("GPUOrigin2DDict::y = %f", result->y);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

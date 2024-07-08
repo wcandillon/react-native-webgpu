@@ -29,11 +29,11 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::BlendComponent>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUBlendComponent::operation = %f",
-                                 result->_instance.operation);
+                                 result->operation);
     rnwgpu::Logger::logToConsole("GPUBlendComponent::srcFactor = %f",
-                                 result->_instance.srcFactor);
+                                 result->srcFactor);
     rnwgpu::Logger::logToConsole("GPUBlendComponent::dstFactor = %f",
-                                 result->_instance.dstFactor);
+                                 result->dstFactor);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

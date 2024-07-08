@@ -31,7 +31,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::TextureViewDescriptor>> {
         auto baseMipLevel = value.getProperty(runtime, "baseMipLevel");
 
         if (baseMipLevel.isNumber()) {
-          result->_instance.baseMipLevel =
+          result->baseMipLevel =
               static_cast<wgpu::IntegerCoordinate>(baseMipLevel.getNumber());
         }
       }
@@ -39,7 +39,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::TextureViewDescriptor>> {
         auto mipLevelCount = value.getProperty(runtime, "mipLevelCount");
 
         if (mipLevelCount.isNumber()) {
-          result->_instance.mipLevelCount =
+          result->mipLevelCount =
               static_cast<wgpu::IntegerCoordinate>(mipLevelCount.getNumber());
         }
       }
@@ -47,7 +47,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::TextureViewDescriptor>> {
         auto baseArrayLayer = value.getProperty(runtime, "baseArrayLayer");
 
         if (baseArrayLayer.isNumber()) {
-          result->_instance.baseArrayLayer =
+          result->baseArrayLayer =
               static_cast<wgpu::IntegerCoordinate>(baseArrayLayer.getNumber());
         }
       }
@@ -55,7 +55,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::TextureViewDescriptor>> {
         auto arrayLayerCount = value.getProperty(runtime, "arrayLayerCount");
 
         if (arrayLayerCount.isNumber()) {
-          result->_instance.arrayLayerCount =
+          result->arrayLayerCount =
               static_cast<wgpu::IntegerCoordinate>(arrayLayerCount.getNumber());
         }
       }
@@ -64,28 +64,28 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::TextureViewDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str.c_str();
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::format = %f",
-                                 result->_instance.format);
+                                 result->format);
     rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::dimension = %f",
-                                 result->_instance.dimension);
+                                 result->dimension);
     rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::aspect = %f",
-                                 result->_instance.aspect);
+                                 result->aspect);
     rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::baseMipLevel = %f",
-                                 result->_instance.baseMipLevel);
+                                 result->baseMipLevel);
     rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::mipLevelCount = %f",
-                                 result->_instance.mipLevelCount);
+                                 result->mipLevelCount);
     rnwgpu::Logger::logToConsole(
         "GPUTextureViewDescriptor::baseArrayLayer = %f",
-        result->_instance.baseArrayLayer);
+        result->baseArrayLayer);
     rnwgpu::Logger::logToConsole(
         "GPUTextureViewDescriptor::arrayLayerCount = %f",
-        result->_instance.arrayLayerCount);
+        result->arrayLayerCount);
     rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::label = %f",
-                                 result->_instance.label);
+                                 result->label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

@@ -45,11 +45,11 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::VertexBufferLayout>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUVertexBufferLayout::arrayStride = %f",
-                                 result->_instance.arrayStride);
+                                 result->arrayStride);
     rnwgpu::Logger::logToConsole("GPUVertexBufferLayout::stepMode = %f",
-                                 result->_instance.stepMode);
+                                 result->stepMode);
     rnwgpu::Logger::logToConsole("GPUVertexBufferLayout::attributes = %f",
-                                 result->_instance.attributes);
+                                 result->attributes);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

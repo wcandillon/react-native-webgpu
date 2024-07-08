@@ -44,7 +44,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::Extent3DDictStrict>> {
         auto height = value.getProperty(runtime, "height");
 
         if (height.isNumber()) {
-          result->_instance.height =
+          result->height =
               static_cast<wgpu::IntegerCoordinate>(height.getNumber());
         }
       }
@@ -53,21 +53,20 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::Extent3DDictStrict>> {
             value.getProperty(runtime, "depthOrArrayLayers");
 
         if (depthOrArrayLayers.isNumber()) {
-          result->_instance.depthOrArrayLayers =
-              static_cast<wgpu::IntegerCoordinate>(
-                  depthOrArrayLayers.getNumber());
+          result->depthOrArrayLayers = static_cast<wgpu::IntegerCoordinate>(
+              depthOrArrayLayers.getNumber());
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPUExtent3DDictStrict::depth = %f",
-                                 result->_instance.depth);
+                                 result->depth);
     rnwgpu::Logger::logToConsole("GPUExtent3DDictStrict::width = %f",
-                                 result->_instance.width);
+                                 result->width);
     rnwgpu::Logger::logToConsole("GPUExtent3DDictStrict::height = %f",
-                                 result->_instance.height);
+                                 result->height);
     rnwgpu::Logger::logToConsole(
         "GPUExtent3DDictStrict::depthOrArrayLayers = %f",
-        result->_instance.depthOrArrayLayers);
+        result->depthOrArrayLayers);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

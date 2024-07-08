@@ -33,25 +33,20 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::Origin2DDictStrict>> {
         auto x = value.getProperty(runtime, "x");
 
         if (x.isNumber()) {
-          result->_instance.x =
-              static_cast<wgpu::IntegerCoordinate>(x.getNumber());
+          result->x = static_cast<wgpu::IntegerCoordinate>(x.getNumber());
         }
       }
       if (value.hasProperty(runtime, "y")) {
         auto y = value.getProperty(runtime, "y");
 
         if (y.isNumber()) {
-          result->_instance.y =
-              static_cast<wgpu::IntegerCoordinate>(y.getNumber());
+          result->y = static_cast<wgpu::IntegerCoordinate>(y.getNumber());
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUOrigin2DDictStrict::z = %f",
-                                 result->_instance.z);
-    rnwgpu::Logger::logToConsole("GPUOrigin2DDictStrict::x = %f",
-                                 result->_instance.x);
-    rnwgpu::Logger::logToConsole("GPUOrigin2DDictStrict::y = %f",
-                                 result->_instance.y);
+    rnwgpu::Logger::logToConsole("GPUOrigin2DDictStrict::z = %f", result->z);
+    rnwgpu::Logger::logToConsole("GPUOrigin2DDictStrict::x = %f", result->x);
+    rnwgpu::Logger::logToConsole("GPUOrigin2DDictStrict::y = %f", result->y);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

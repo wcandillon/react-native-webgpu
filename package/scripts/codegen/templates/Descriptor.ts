@@ -38,7 +38,7 @@ const logProp = (
   prop: PropertySignature,
   _unions: Union[],
 ) => {
-  return `rnwgpu::Logger::logToConsole("${className}::${prop.getName()} = %f", result->_instance.${prop.getName()});`;
+  return `rnwgpu::Logger::logToConsole("${className}::${prop.getName()} = %f", result->${prop.getName()});`;
 };
 
 const propFromJSI = (

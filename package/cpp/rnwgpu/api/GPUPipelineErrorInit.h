@@ -31,7 +31,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::PipelineErrorInit>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUPipelineErrorInit::reason = %f",
-                                 result->_instance.reason);
+                                 result->reason);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

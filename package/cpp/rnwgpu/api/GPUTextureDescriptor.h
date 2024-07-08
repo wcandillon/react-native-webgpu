@@ -33,7 +33,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::TextureDescriptor>> {
         auto mipLevelCount = value.getProperty(runtime, "mipLevelCount");
 
         if (mipLevelCount.isNumber()) {
-          result->_instance.mipLevelCount =
+          result->mipLevelCount =
               static_cast<wgpu::IntegerCoordinate>(mipLevelCount.getNumber());
         }
       }
@@ -41,7 +41,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::TextureDescriptor>> {
         auto sampleCount = value.getProperty(runtime, "sampleCount");
 
         if (sampleCount.isNumber()) {
-          result->_instance.sampleCount =
+          result->sampleCount =
               static_cast<wgpu::Size32>(sampleCount.getNumber());
         }
       }
@@ -78,26 +78,26 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::TextureDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str.c_str();
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPUTextureDescriptor::size = %f",
-                                 result->_instance.size);
+                                 result->size);
     rnwgpu::Logger::logToConsole("GPUTextureDescriptor::mipLevelCount = %f",
-                                 result->_instance.mipLevelCount);
+                                 result->mipLevelCount);
     rnwgpu::Logger::logToConsole("GPUTextureDescriptor::sampleCount = %f",
-                                 result->_instance.sampleCount);
+                                 result->sampleCount);
     rnwgpu::Logger::logToConsole("GPUTextureDescriptor::dimension = %f",
-                                 result->_instance.dimension);
+                                 result->dimension);
     rnwgpu::Logger::logToConsole("GPUTextureDescriptor::format = %f",
-                                 result->_instance.format);
+                                 result->format);
     rnwgpu::Logger::logToConsole("GPUTextureDescriptor::usage = %f",
-                                 result->_instance.usage);
+                                 result->usage);
     rnwgpu::Logger::logToConsole("GPUTextureDescriptor::viewFormats = %f",
-                                 result->_instance.viewFormats);
+                                 result->viewFormats);
     rnwgpu::Logger::logToConsole("GPUTextureDescriptor::label = %f",
-                                 result->_instance.label);
+                                 result->label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

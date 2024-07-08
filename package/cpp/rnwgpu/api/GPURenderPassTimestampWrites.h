@@ -35,7 +35,7 @@ struct JSIConverter<std::shared_ptr<wgpu::RenderPassTimestampWrites>> {
             value.getProperty(runtime, "beginningOfPassWriteIndex");
 
         if (beginningOfPassWriteIndex.isNumber()) {
-          result->_instance.beginningOfPassWriteIndex =
+          result->beginningOfPassWriteIndex =
               static_cast<wgpu::Size32>(beginningOfPassWriteIndex.getNumber());
         }
       }
@@ -44,19 +44,19 @@ struct JSIConverter<std::shared_ptr<wgpu::RenderPassTimestampWrites>> {
             value.getProperty(runtime, "endOfPassWriteIndex");
 
         if (endOfPassWriteIndex.isNumber()) {
-          result->_instance.endOfPassWriteIndex =
+          result->endOfPassWriteIndex =
               static_cast<wgpu::Size32>(endOfPassWriteIndex.getNumber());
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPURenderPassTimestampWrites::querySet = %f",
-                                 result->_instance.querySet);
+                                 result->querySet);
     rnwgpu::Logger::logToConsole(
         "GPURenderPassTimestampWrites::beginningOfPassWriteIndex = %f",
-        result->_instance.beginningOfPassWriteIndex);
+        result->beginningOfPassWriteIndex);
     rnwgpu::Logger::logToConsole(
         "GPURenderPassTimestampWrites::endOfPassWriteIndex = %f",
-        result->_instance.endOfPassWriteIndex);
+        result->endOfPassWriteIndex);
     return result;
   }
   static jsi::Value

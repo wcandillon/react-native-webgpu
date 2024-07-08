@@ -41,13 +41,13 @@ struct JSIConverter<std::shared_ptr<wgpu::UncapturedErrorEventInit>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::error = %f",
-                                 result->_instance.error);
+                                 result->error);
     rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::bubbles = %f",
-                                 result->_instance.bubbles);
+                                 result->bubbles);
     rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::cancelable = %f",
-                                 result->_instance.cancelable);
+                                 result->cancelable);
     rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::composed = %f",
-                                 result->_instance.composed);
+                                 result->composed);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

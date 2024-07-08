@@ -34,7 +34,7 @@ struct JSIConverter<std::shared_ptr<wgpu::RenderPassColorAttachment>> {
         auto depthSlice = value.getProperty(runtime, "depthSlice");
 
         if (depthSlice.isNumber()) {
-          result->_instance.depthSlice =
+          result->depthSlice =
               static_cast<wgpu::IntegerCoordinate>(depthSlice.getNumber());
         }
       }
@@ -68,20 +68,18 @@ struct JSIConverter<std::shared_ptr<wgpu::RenderPassColorAttachment>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPURenderPassColorAttachment::view = %f",
-                                 result->_instance.view);
+                                 result->view);
     rnwgpu::Logger::logToConsole(
-        "GPURenderPassColorAttachment::depthSlice = %f",
-        result->_instance.depthSlice);
+        "GPURenderPassColorAttachment::depthSlice = %f", result->depthSlice);
     rnwgpu::Logger::logToConsole(
         "GPURenderPassColorAttachment::resolveTarget = %f",
-        result->_instance.resolveTarget);
+        result->resolveTarget);
     rnwgpu::Logger::logToConsole(
-        "GPURenderPassColorAttachment::clearValue = %f",
-        result->_instance.clearValue);
+        "GPURenderPassColorAttachment::clearValue = %f", result->clearValue);
     rnwgpu::Logger::logToConsole("GPURenderPassColorAttachment::loadOp = %f",
-                                 result->_instance.loadOp);
+                                 result->loadOp);
     rnwgpu::Logger::logToConsole("GPURenderPassColorAttachment::storeOp = %f",
-                                 result->_instance.storeOp);
+                                 result->storeOp);
     return result;
   }
   static jsi::Value

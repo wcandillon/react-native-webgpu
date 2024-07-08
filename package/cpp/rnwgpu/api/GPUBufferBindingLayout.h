@@ -28,17 +28,17 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::BufferBindingLayout>> {
         auto minBindingSize = value.getProperty(runtime, "minBindingSize");
 
         if (minBindingSize.isNumber()) {
-          result->_instance.minBindingSize = minBindingSize.getNumber();
+          result->minBindingSize = minBindingSize.getNumber();
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPUBufferBindingLayout::type = %f",
-                                 result->_instance.type);
+                                 result->type);
     rnwgpu::Logger::logToConsole(
         "GPUBufferBindingLayout::hasDynamicOffset = %f",
-        result->_instance.hasDynamicOffset);
+        result->hasDynamicOffset);
     rnwgpu::Logger::logToConsole("GPUBufferBindingLayout::minBindingSize = %f",
-                                 result->_instance.minBindingSize);
+                                 result->minBindingSize);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

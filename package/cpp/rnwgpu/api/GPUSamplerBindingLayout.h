@@ -23,7 +23,7 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::SamplerBindingLayout>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUSamplerBindingLayout::type = %f",
-                                 result->_instance.type);
+                                 result->type);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

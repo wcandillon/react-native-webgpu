@@ -33,14 +33,14 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::ImageCopyBuffer>> {
         auto offset = value.getProperty(runtime, "offset");
 
         if (offset.isNumber()) {
-          result->_instance.offset = offset.getNumber();
+          result->offset = offset.getNumber();
         }
       }
       if (value.hasProperty(runtime, "bytesPerRow")) {
         auto bytesPerRow = value.getProperty(runtime, "bytesPerRow");
 
         if (bytesPerRow.isNumber()) {
-          result->_instance.bytesPerRow =
+          result->bytesPerRow =
               static_cast<wgpu::Size32>(bytesPerRow.getNumber());
         }
       }
@@ -48,19 +48,19 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::ImageCopyBuffer>> {
         auto rowsPerImage = value.getProperty(runtime, "rowsPerImage");
 
         if (rowsPerImage.isNumber()) {
-          result->_instance.rowsPerImage =
+          result->rowsPerImage =
               static_cast<wgpu::Size32>(rowsPerImage.getNumber());
         }
       }
     }
     rnwgpu::Logger::logToConsole("GPUImageCopyBuffer::buffer = %f",
-                                 result->_instance.buffer);
+                                 result->buffer);
     rnwgpu::Logger::logToConsole("GPUImageCopyBuffer::offset = %f",
-                                 result->_instance.offset);
+                                 result->offset);
     rnwgpu::Logger::logToConsole("GPUImageCopyBuffer::bytesPerRow = %f",
-                                 result->_instance.bytesPerRow);
+                                 result->bytesPerRow);
     rnwgpu::Logger::logToConsole("GPUImageCopyBuffer::rowsPerImage = %f",
-                                 result->_instance.rowsPerImage);
+                                 result->rowsPerImage);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

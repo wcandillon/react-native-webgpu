@@ -35,15 +35,15 @@ template <> struct JSIConverter<std::shared_ptr<wgpu::PrimitiveState>> {
       }
     }
     rnwgpu::Logger::logToConsole("GPUPrimitiveState::topology = %f",
-                                 result->_instance.topology);
+                                 result->topology);
     rnwgpu::Logger::logToConsole("GPUPrimitiveState::stripIndexFormat = %f",
-                                 result->_instance.stripIndexFormat);
+                                 result->stripIndexFormat);
     rnwgpu::Logger::logToConsole("GPUPrimitiveState::frontFace = %f",
-                                 result->_instance.frontFace);
+                                 result->frontFace);
     rnwgpu::Logger::logToConsole("GPUPrimitiveState::cullMode = %f",
-                                 result->_instance.cullMode);
+                                 result->cullMode);
     rnwgpu::Logger::logToConsole("GPUPrimitiveState::unclippedDepth = %f",
-                                 result->_instance.unclippedDepth);
+                                 result->unclippedDepth);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
