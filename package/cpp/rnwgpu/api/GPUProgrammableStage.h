@@ -40,6 +40,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
       }
       if (value.hasProperty(runtime, "entryPoint")) {
         auto entryPoint = value.getProperty(runtime, "entryPoint");
+
+        if (entryPoint.isString()) {
+          auto str = entryPoint.asString(runtime).utf8(runtime);
+          result->_instance.entryPoint = str.c_str();
+        }
       }
       if (value.hasProperty(runtime, "constants")) {
         auto constants = value.getProperty(runtime, "constants");

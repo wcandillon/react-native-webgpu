@@ -29,12 +29,27 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin3DDict>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "x")) {
         auto x = value.getProperty(runtime, "x");
+
+        if (x.isNumber()) {
+          result->_instance.x =
+              static_cast<wgpu::IntegerCoordinate>(x.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "y")) {
         auto y = value.getProperty(runtime, "y");
+
+        if (y.isNumber()) {
+          result->_instance.y =
+              static_cast<wgpu::IntegerCoordinate>(y.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "z")) {
         auto z = value.getProperty(runtime, "z");
+
+        if (z.isNumber()) {
+          result->_instance.z =
+              static_cast<wgpu::IntegerCoordinate>(z.getNumber());
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUOrigin3DDict::x = %f",

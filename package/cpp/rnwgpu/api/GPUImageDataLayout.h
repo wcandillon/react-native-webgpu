@@ -29,12 +29,26 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageDataLayout>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "offset")) {
         auto offset = value.getProperty(runtime, "offset");
+
+        if (offset.isNumber()) {
+          result->_instance.offset = offset.getNumber();
+        }
       }
       if (value.hasProperty(runtime, "bytesPerRow")) {
         auto bytesPerRow = value.getProperty(runtime, "bytesPerRow");
+
+        if (bytesPerRow.isNumber()) {
+          result->_instance.bytesPerRow =
+              static_cast<wgpu::Size32>(bytesPerRow.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "rowsPerImage")) {
         auto rowsPerImage = value.getProperty(runtime, "rowsPerImage");
+
+        if (rowsPerImage.isNumber()) {
+          result->_instance.rowsPerImage =
+              static_cast<wgpu::Size32>(rowsPerImage.getNumber());
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUImageDataLayout::offset = %f",

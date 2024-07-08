@@ -36,6 +36,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBindingLayout>> {
       }
       if (value.hasProperty(runtime, "minBindingSize")) {
         auto minBindingSize = value.getProperty(runtime, "minBindingSize");
+
+        if (minBindingSize.isNumber()) {
+          result->_instance.minBindingSize = minBindingSize.getNumber();
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUBufferBindingLayout::type = %f",

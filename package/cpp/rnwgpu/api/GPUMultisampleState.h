@@ -29,9 +29,19 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "count")) {
         auto count = value.getProperty(runtime, "count");
+
+        if (count.isNumber()) {
+          result->_instance.count =
+              static_cast<wgpu::Size32>(count.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "mask")) {
         auto mask = value.getProperty(runtime, "mask");
+
+        if (mask.isNumber()) {
+          result->_instance.mask =
+              static_cast<wgpu::SampleMask>(mask.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "alphaToCoverageEnabled")) {
         auto alphaToCoverageEnabled =

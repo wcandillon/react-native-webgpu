@@ -31,10 +31,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
       if (value.hasProperty(runtime, "arrayStride")) {
         auto arrayStride = value.getProperty(runtime, "arrayStride");
 
-        if (arrayStride.isNumber()) {
-          result->_instance.arrayStride = arrayStride.getNumber();
-        }
-
         if (arrayStride.isUndefined()) {
           throw std::runtime_error(
               "Property GPUVertexBufferLayout::arrayStride is required");

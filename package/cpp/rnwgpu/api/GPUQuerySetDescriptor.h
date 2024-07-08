@@ -42,11 +42,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
       if (value.hasProperty(runtime, "count")) {
         auto count = value.getProperty(runtime, "count");
 
-        if (count.isNumber()) {
-          result->_instance.count =
-              static_cast<wgpu::Size32>(count.getNumber());
-        }
-
         if (count.isUndefined()) {
           throw std::runtime_error(
               "Property GPUQuerySetDescriptor::count is required");
@@ -57,6 +52,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->_instance.label = str.c_str();
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUQuerySetDescriptor::type = %f",

@@ -43,6 +43,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
       }
       if (value.hasProperty(runtime, "writeMask")) {
         auto writeMask = value.getProperty(runtime, "writeMask");
+
+        if (writeMask.isNumber()) {
+          result->_instance.writeMask =
+              static_cast<wgpu::ColorWriteFlags>(writeMask.getNumber());
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUColorTargetState::format = %f",

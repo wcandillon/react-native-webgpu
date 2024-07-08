@@ -29,9 +29,19 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin2DDict>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "x")) {
         auto x = value.getProperty(runtime, "x");
+
+        if (x.isNumber()) {
+          result->_instance.x =
+              static_cast<wgpu::IntegerCoordinate>(x.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "y")) {
         auto y = value.getProperty(runtime, "y");
+
+        if (y.isNumber()) {
+          result->_instance.y =
+              static_cast<wgpu::IntegerCoordinate>(y.getNumber());
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUOrigin2DDict::x = %f",

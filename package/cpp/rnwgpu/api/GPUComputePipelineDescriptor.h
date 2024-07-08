@@ -52,6 +52,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->_instance.label = str.c_str();
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUComputePipelineDescriptor::compute = %f",

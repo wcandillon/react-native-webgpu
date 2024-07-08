@@ -40,9 +40,17 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
       }
       if (value.hasProperty(runtime, "offset")) {
         auto offset = value.getProperty(runtime, "offset");
+
+        if (offset.isNumber()) {
+          result->_instance.offset = offset.getNumber();
+        }
       }
       if (value.hasProperty(runtime, "size")) {
         auto size = value.getProperty(runtime, "size");
+
+        if (size.isNumber()) {
+          result->_instance.size = size.getNumber();
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUBufferBinding::buffer = %f",

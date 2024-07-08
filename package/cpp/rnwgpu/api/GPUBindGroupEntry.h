@@ -30,11 +30,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
       if (value.hasProperty(runtime, "binding")) {
         auto binding = value.getProperty(runtime, "binding");
 
-        if (binding.isNumber()) {
-          result->_instance.binding =
-              static_cast<wgpu::Index32>(binding.getNumber());
-        }
-
         if (binding.isUndefined()) {
           throw std::runtime_error(
               "Property GPUBindGroupEntry::binding is required");

@@ -53,9 +53,19 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
       }
       if (value.hasProperty(runtime, "sampleCount")) {
         auto sampleCount = value.getProperty(runtime, "sampleCount");
+
+        if (sampleCount.isNumber()) {
+          result->_instance.sampleCount =
+              static_cast<wgpu::Size32>(sampleCount.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->_instance.label = str.c_str();
+        }
       }
     }
     rnwgpu::Logger::logToConsole(

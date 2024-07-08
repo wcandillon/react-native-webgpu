@@ -42,11 +42,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDictStrict>> {
       if (value.hasProperty(runtime, "width")) {
         auto width = value.getProperty(runtime, "width");
 
-        if (width.isNumber()) {
-          result->_instance.width =
-              static_cast<wgpu::IntegerCoordinate>(width.getNumber());
-        }
-
         if (width.isUndefined()) {
           throw std::runtime_error(
               "Property GPUExtent3DDictStrict::width is required");
@@ -57,10 +52,21 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDictStrict>> {
       }
       if (value.hasProperty(runtime, "height")) {
         auto height = value.getProperty(runtime, "height");
+
+        if (height.isNumber()) {
+          result->_instance.height =
+              static_cast<wgpu::IntegerCoordinate>(height.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "depthOrArrayLayers")) {
         auto depthOrArrayLayers =
             value.getProperty(runtime, "depthOrArrayLayers");
+
+        if (depthOrArrayLayers.isNumber()) {
+          result->_instance.depthOrArrayLayers =
+              static_cast<wgpu::IntegerCoordinate>(
+                  depthOrArrayLayers.getNumber());
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUExtent3DDictStrict::depth = %f",

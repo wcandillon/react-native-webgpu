@@ -30,10 +30,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
       if (value.hasProperty(runtime, "size")) {
         auto size = value.getProperty(runtime, "size");
 
-        if (size.isNumber()) {
-          result->_instance.size = size.getNumber();
-        }
-
         if (size.isUndefined()) {
           throw std::runtime_error(
               "Property GPUBufferDescriptor::size is required");
@@ -44,11 +40,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
       }
       if (value.hasProperty(runtime, "usage")) {
         auto usage = value.getProperty(runtime, "usage");
-
-        if (usage.isNumber()) {
-          result->_instance.usage =
-              static_cast<wgpu::BufferUsage>(usage.getNumber());
-        }
 
         if (usage.isUndefined()) {
           throw std::runtime_error(
@@ -63,15 +54,20 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->_instance.label = str.c_str();
+        }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::size = %f",
+    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::size = %zu",
                                  result->_instance.size);
-    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::usage = %f",
+    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::usage = %u",
                                  result->_instance.usage);
-    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::mappedAtCreation = %f",
+    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::mappedAtCreation = %d",
                                  result->_instance.mappedAtCreation);
-    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::label = %f",
+    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::label = %s",
                                  result->_instance.label);
     return result;
   }

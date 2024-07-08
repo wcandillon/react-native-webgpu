@@ -18,6 +18,7 @@ const methodWhiteList = [
 
 const propWhiteList: string[] = [
   //"info"
+  "label",
 ];
 
 export const getHybridObject = (decl: InterfaceDeclaration) => {

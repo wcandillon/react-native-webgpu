@@ -25,7 +25,7 @@ const getNumber = (name: string, enumName: string | undefined) => {
 
 const getString = (name: string) => {
   return `if (${name}.isString()) {
-    auto str = value.asString(runtime).utf8(runtime);
+    auto str = ${name}.asString(runtime).utf8(runtime);
     result->_instance.${name} = str.c_str();
 }`;
 };
@@ -50,14 +50,26 @@ const propFromJSI = (
     .getType()
     .getUnionTypes()
     .some((t) => t.isUndefined());
+  const isBoolean = prop
+    .getType()
+    .getUnionTypes()
+    .some((t) => t.isBoolean());
+  const isNumber = prop
+    .getType()
+    .getUnionTypes()
+    .some((t) => t.isNumber());
+  const isString = prop
+    .getType()
+    .getUnionTypes()
+    .some((t) => t.isString());
   const enumLabel = prop.getTypeNode()?.getText();
   const isEnum =
     !!enumLabel?.startsWith("GPU") && !enumsToSkip.includes(enumLabel);
   return `if (value.hasProperty(runtime, "${name}")) {
   auto ${name} = value.getProperty(runtime, "${name}");
-  ${prop.getType().isBoolean() ? getBoolean(name) : ""}
-  ${prop.getType().isNumber() ? getNumber(name, isEnum ? prop.getTypeNode()?.getText() : undefined) : ""}
-  ${prop.getType().isString() ? getString(name) : ""}
+  ${isBoolean ? getBoolean(name) : ""}
+  ${isNumber ? getNumber(name, isEnum ? prop.getTypeNode()?.getText() : undefined) : ""}
+  ${isString ? getString(name) : ""}
   ${
     !isOptional
       ? `if (${name}.isUndefined()) {

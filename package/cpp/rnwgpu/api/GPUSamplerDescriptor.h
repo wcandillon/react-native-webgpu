@@ -47,18 +47,35 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
       }
       if (value.hasProperty(runtime, "lodMinClamp")) {
         auto lodMinClamp = value.getProperty(runtime, "lodMinClamp");
+
+        if (lodMinClamp.isNumber()) {
+          result->_instance.lodMinClamp = lodMinClamp.getNumber();
+        }
       }
       if (value.hasProperty(runtime, "lodMaxClamp")) {
         auto lodMaxClamp = value.getProperty(runtime, "lodMaxClamp");
+
+        if (lodMaxClamp.isNumber()) {
+          result->_instance.lodMaxClamp = lodMaxClamp.getNumber();
+        }
       }
       if (value.hasProperty(runtime, "compare")) {
         auto compare = value.getProperty(runtime, "compare");
       }
       if (value.hasProperty(runtime, "maxAnisotropy")) {
         auto maxAnisotropy = value.getProperty(runtime, "maxAnisotropy");
+
+        if (maxAnisotropy.isNumber()) {
+          result->_instance.maxAnisotropy = maxAnisotropy.getNumber();
+        }
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->_instance.label = str.c_str();
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::addressModeU = %f",

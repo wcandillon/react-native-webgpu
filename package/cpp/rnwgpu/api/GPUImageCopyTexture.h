@@ -40,6 +40,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
       }
       if (value.hasProperty(runtime, "mipLevel")) {
         auto mipLevel = value.getProperty(runtime, "mipLevel");
+
+        if (mipLevel.isNumber()) {
+          result->_instance.mipLevel =
+              static_cast<wgpu::IntegerCoordinate>(mipLevel.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "origin")) {
         auto origin = value.getProperty(runtime, "origin");

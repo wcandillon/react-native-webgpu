@@ -39,18 +39,43 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
       }
       if (value.hasProperty(runtime, "baseMipLevel")) {
         auto baseMipLevel = value.getProperty(runtime, "baseMipLevel");
+
+        if (baseMipLevel.isNumber()) {
+          result->_instance.baseMipLevel =
+              static_cast<wgpu::IntegerCoordinate>(baseMipLevel.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "mipLevelCount")) {
         auto mipLevelCount = value.getProperty(runtime, "mipLevelCount");
+
+        if (mipLevelCount.isNumber()) {
+          result->_instance.mipLevelCount =
+              static_cast<wgpu::IntegerCoordinate>(mipLevelCount.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "baseArrayLayer")) {
         auto baseArrayLayer = value.getProperty(runtime, "baseArrayLayer");
+
+        if (baseArrayLayer.isNumber()) {
+          result->_instance.baseArrayLayer =
+              static_cast<wgpu::IntegerCoordinate>(baseArrayLayer.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "arrayLayerCount")) {
         auto arrayLayerCount = value.getProperty(runtime, "arrayLayerCount");
+
+        if (arrayLayerCount.isNumber()) {
+          result->_instance.arrayLayerCount =
+              static_cast<wgpu::IntegerCoordinate>(arrayLayerCount.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->_instance.label = str.c_str();
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::format = %f",

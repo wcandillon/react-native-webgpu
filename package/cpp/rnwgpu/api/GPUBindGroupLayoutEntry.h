@@ -31,11 +31,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry>> {
       if (value.hasProperty(runtime, "binding")) {
         auto binding = value.getProperty(runtime, "binding");
 
-        if (binding.isNumber()) {
-          result->_instance.binding =
-              static_cast<wgpu::Index32>(binding.getNumber());
-        }
-
         if (binding.isUndefined()) {
           throw std::runtime_error(
               "Property GPUBindGroupLayoutEntry::binding is required");
@@ -46,11 +41,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry>> {
       }
       if (value.hasProperty(runtime, "visibility")) {
         auto visibility = value.getProperty(runtime, "visibility");
-
-        if (visibility.isNumber()) {
-          result->_instance.visibility =
-              static_cast<wgpu::ShaderStageFlags>(visibility.getNumber());
-        }
 
         if (visibility.isUndefined()) {
           throw std::runtime_error(

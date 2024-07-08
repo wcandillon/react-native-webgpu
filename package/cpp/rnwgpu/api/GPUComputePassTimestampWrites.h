@@ -42,10 +42,20 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
       if (value.hasProperty(runtime, "beginningOfPassWriteIndex")) {
         auto beginningOfPassWriteIndex =
             value.getProperty(runtime, "beginningOfPassWriteIndex");
+
+        if (beginningOfPassWriteIndex.isNumber()) {
+          result->_instance.beginningOfPassWriteIndex =
+              static_cast<wgpu::Size32>(beginningOfPassWriteIndex.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "endOfPassWriteIndex")) {
         auto endOfPassWriteIndex =
             value.getProperty(runtime, "endOfPassWriteIndex");
+
+        if (endOfPassWriteIndex.isNumber()) {
+          result->_instance.endOfPassWriteIndex =
+              static_cast<wgpu::Size32>(endOfPassWriteIndex.getNumber());
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUComputePassTimestampWrites::querySet = %f",

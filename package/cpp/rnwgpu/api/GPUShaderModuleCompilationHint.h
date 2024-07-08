@@ -31,10 +31,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
       if (value.hasProperty(runtime, "entryPoint")) {
         auto entryPoint = value.getProperty(runtime, "entryPoint");
 
-        if (entryPoint.isString()) {
-          auto str = value.asString(runtime).utf8(runtime);
-          result->_instance.entryPoint = str.c_str();
-        }
         if (entryPoint.isUndefined()) {
           throw std::runtime_error(
               "Property GPUShaderModuleCompilationHint::entryPoint is "

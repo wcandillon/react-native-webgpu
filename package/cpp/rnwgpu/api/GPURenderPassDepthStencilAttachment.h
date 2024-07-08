@@ -44,6 +44,10 @@ struct JSIConverter<
       }
       if (value.hasProperty(runtime, "depthClearValue")) {
         auto depthClearValue = value.getProperty(runtime, "depthClearValue");
+
+        if (depthClearValue.isNumber()) {
+          result->_instance.depthClearValue = depthClearValue.getNumber();
+        }
       }
       if (value.hasProperty(runtime, "depthLoadOp")) {
         auto depthLoadOp = value.getProperty(runtime, "depthLoadOp");
@@ -57,6 +61,11 @@ struct JSIConverter<
       if (value.hasProperty(runtime, "stencilClearValue")) {
         auto stencilClearValue =
             value.getProperty(runtime, "stencilClearValue");
+
+        if (stencilClearValue.isNumber()) {
+          result->_instance.stencilClearValue =
+              static_cast<wgpu::StencilValue>(stencilClearValue.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "stencilLoadOp")) {
         auto stencilLoadOp = value.getProperty(runtime, "stencilLoadOp");
