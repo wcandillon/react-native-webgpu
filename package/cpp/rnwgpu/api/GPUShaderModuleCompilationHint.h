@@ -31,16 +31,28 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
       if (value.hasProperty(runtime, "entryPoint")) {
         auto entryPoint = value.getProperty(runtime, "entryPoint");
 
+        if (entryPoint.isString()) {
+          auto str = value.asString(runtime).utf8(runtime);
+          result->_instance.entryPoint = str.c_str();
+        }
         if (entryPoint.isUndefined()) {
           throw std::runtime_error(
               "Property GPUShaderModuleCompilationHint::entryPoint is "
               "required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUShaderModuleCompilationHint::entryPoint is not "
+            "defined");
       }
       if (value.hasProperty(runtime, "layout")) {
         auto layout = value.getProperty(runtime, "layout");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUShaderModuleCompilationHint");
+    //}
     return result;
   }
   static jsi::Value

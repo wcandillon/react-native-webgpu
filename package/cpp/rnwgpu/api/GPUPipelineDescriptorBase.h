@@ -35,8 +35,15 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineDescriptorBase>> {
           throw std::runtime_error(
               "Property GPUPipelineDescriptorBase::layout is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUPipelineDescriptorBase::layout is not defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUPipelineDescriptorBase");
+    //}
     return result;
   }
   static jsi::Value

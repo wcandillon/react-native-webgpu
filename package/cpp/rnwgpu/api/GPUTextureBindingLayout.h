@@ -36,11 +36,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureBindingLayout>> {
       }
       if (value.hasProperty(runtime, "multisampled")) {
         auto multisampled = value.getProperty(runtime, "multisampled");
-        if (value.hasProperty(runtime, "multisampled")) {
-          result->_instance.multisampled = multisampled.getBool();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUTextureBindingLayout");
+    //}
     return result;
   }
   static jsi::Value

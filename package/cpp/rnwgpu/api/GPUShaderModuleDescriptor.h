@@ -31,10 +31,17 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
       if (value.hasProperty(runtime, "code")) {
         auto code = value.getProperty(runtime, "code");
 
+        if (code.isString()) {
+          auto str = value.asString(runtime).utf8(runtime);
+          result->_instance.code = str.c_str();
+        }
         if (code.isUndefined()) {
           throw std::runtime_error(
               "Property GPUShaderModuleDescriptor::code is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUShaderModuleDescriptor::code is not defined");
       }
       if (value.hasProperty(runtime, "sourceMap")) {
         auto sourceMap = value.getProperty(runtime, "sourceMap");
@@ -43,11 +50,18 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
           throw std::runtime_error(
               "Property GPUShaderModuleDescriptor::sourceMap is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUShaderModuleDescriptor::sourceMap is not defined");
       }
       if (value.hasProperty(runtime, "compilationHints")) {
         auto compilationHints = value.getProperty(runtime, "compilationHints");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUShaderModuleDescriptor");
+    //}
     return result;
   }
   static jsi::Value

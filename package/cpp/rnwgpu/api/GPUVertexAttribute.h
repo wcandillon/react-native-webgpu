@@ -34,24 +34,45 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
           throw std::runtime_error(
               "Property GPUVertexAttribute::format is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUVertexAttribute::format is not defined");
       }
       if (value.hasProperty(runtime, "offset")) {
         auto offset = value.getProperty(runtime, "offset");
+
+        if (offset.isNumber()) {
+          result->_instance.offset = offset.getNumber();
+        }
 
         if (offset.isUndefined()) {
           throw std::runtime_error(
               "Property GPUVertexAttribute::offset is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUVertexAttribute::offset is not defined");
       }
       if (value.hasProperty(runtime, "shaderLocation")) {
         auto shaderLocation = value.getProperty(runtime, "shaderLocation");
+
+        if (shaderLocation.isNumber()) {
+          result->_instance.shaderLocation =
+              static_cast<wgpu::Index32>(shaderLocation.getNumber());
+        }
 
         if (shaderLocation.isUndefined()) {
           throw std::runtime_error(
               "Property GPUVertexAttribute::shaderLocation is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUVertexAttribute::shaderLocation is not defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUVertexAttribute");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

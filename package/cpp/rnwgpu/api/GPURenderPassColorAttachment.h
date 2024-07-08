@@ -35,13 +35,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
           throw std::runtime_error(
               "Property GPURenderPassColorAttachment::view is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPURenderPassColorAttachment::view is not defined");
       }
       if (value.hasProperty(runtime, "depthSlice")) {
         auto depthSlice = value.getProperty(runtime, "depthSlice");
-
-        if (value.hasProperty(runtime, "depthSlice")) {
-          result->_instance.depthSlice = depthSlice.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "resolveTarget")) {
         auto resolveTarget = value.getProperty(runtime, "resolveTarget");
@@ -56,6 +55,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
           throw std::runtime_error(
               "Property GPURenderPassColorAttachment::loadOp is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPURenderPassColorAttachment::loadOp is not defined");
       }
       if (value.hasProperty(runtime, "storeOp")) {
         auto storeOp = value.getProperty(runtime, "storeOp");
@@ -64,8 +66,15 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
           throw std::runtime_error(
               "Property GPURenderPassColorAttachment::storeOp is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPURenderPassColorAttachment::storeOp is not defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPURenderPassColorAttachment");
+    //}
     return result;
   }
   static jsi::Value

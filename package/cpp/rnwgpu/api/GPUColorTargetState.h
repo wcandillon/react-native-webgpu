@@ -34,18 +34,20 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
           throw std::runtime_error(
               "Property GPUColorTargetState::format is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUColorTargetState::format is not defined");
       }
       if (value.hasProperty(runtime, "blend")) {
         auto blend = value.getProperty(runtime, "blend");
       }
       if (value.hasProperty(runtime, "writeMask")) {
         auto writeMask = value.getProperty(runtime, "writeMask");
-
-        if (value.hasProperty(runtime, "writeMask")) {
-          result->_instance.writeMask = writeMask.getNumber();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUColorTargetState");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

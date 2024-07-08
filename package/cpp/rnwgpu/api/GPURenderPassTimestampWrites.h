@@ -35,26 +35,23 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassTimestampWrites>> {
           throw std::runtime_error(
               "Property GPURenderPassTimestampWrites::querySet is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPURenderPassTimestampWrites::querySet is not defined");
       }
       if (value.hasProperty(runtime, "beginningOfPassWriteIndex")) {
         auto beginningOfPassWriteIndex =
             value.getProperty(runtime, "beginningOfPassWriteIndex");
-
-        if (value.hasProperty(runtime, "beginningOfPassWriteIndex")) {
-          result->_instance.beginningOfPassWriteIndex =
-              beginningOfPassWriteIndex.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "endOfPassWriteIndex")) {
         auto endOfPassWriteIndex =
             value.getProperty(runtime, "endOfPassWriteIndex");
-
-        if (value.hasProperty(runtime, "endOfPassWriteIndex")) {
-          result->_instance.endOfPassWriteIndex =
-              endOfPassWriteIndex.getNumber();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPURenderPassTimestampWrites");
+    //}
     return result;
   }
   static jsi::Value

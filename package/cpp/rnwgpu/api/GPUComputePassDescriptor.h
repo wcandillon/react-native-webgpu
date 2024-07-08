@@ -32,6 +32,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
         auto timestampWrites = value.getProperty(runtime, "timestampWrites");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUComputePassDescriptor");
+    //}
     return result;
   }
   static jsi::Value

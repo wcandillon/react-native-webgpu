@@ -30,10 +30,18 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
       if (value.hasProperty(runtime, "binding")) {
         auto binding = value.getProperty(runtime, "binding");
 
+        if (binding.isNumber()) {
+          result->_instance.binding =
+              static_cast<wgpu::Index32>(binding.getNumber());
+        }
+
         if (binding.isUndefined()) {
           throw std::runtime_error(
               "Property GPUBindGroupEntry::binding is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUBindGroupEntry::binding is not defined");
       }
       if (value.hasProperty(runtime, "resource")) {
         auto resource = value.getProperty(runtime, "resource");
@@ -42,8 +50,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
           throw std::runtime_error(
               "Property GPUBindGroupEntry::resource is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUBindGroupEntry::resource is not defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUBindGroupEntry");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

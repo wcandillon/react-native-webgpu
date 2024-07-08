@@ -35,6 +35,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
           throw std::runtime_error(
               "Property GPURenderPassDescriptor::colorAttachments is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPURenderPassDescriptor::colorAttachments is not "
+            "defined");
       }
       if (value.hasProperty(runtime, "depthStencilAttachment")) {
         auto depthStencilAttachment =
@@ -49,12 +53,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
       }
       if (value.hasProperty(runtime, "maxDrawCount")) {
         auto maxDrawCount = value.getProperty(runtime, "maxDrawCount");
-
-        if (value.hasProperty(runtime, "maxDrawCount")) {
-          result->_instance.maxDrawCount = maxDrawCount.getNumber();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPURenderPassDescriptor");
+    //}
     return result;
   }
   static jsi::Value

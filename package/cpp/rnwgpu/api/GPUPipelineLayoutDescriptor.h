@@ -36,8 +36,16 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
               "Property GPUPipelineLayoutDescriptor::bindGroupLayouts is "
               "required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUPipelineLayoutDescriptor::bindGroupLayouts is not "
+            "defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUPipelineLayoutDescriptor");
+    //}
     return result;
   }
   static jsi::Value

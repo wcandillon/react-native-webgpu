@@ -41,11 +41,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPrimitiveState>> {
       }
       if (value.hasProperty(runtime, "unclippedDepth")) {
         auto unclippedDepth = value.getProperty(runtime, "unclippedDepth");
-        if (value.hasProperty(runtime, "unclippedDepth")) {
-          result->_instance.unclippedDepth = unclippedDepth.getBool();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUPrimitiveState");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

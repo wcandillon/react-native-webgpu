@@ -1,25 +1,36 @@
+/* eslint-disable max-len */
 import type { InterfaceDeclaration, PropertySignature } from "ts-morph";
 
 import type { Union } from "./Unions";
 
+const enumMap: Record<string, string> = {
+  GPUBufferUsageFlags: "BufferUsage",
+};
+
+const getEnumName = (name: string) => {
+  return `wgpu::${enumMap[name] || name.substring(3)}`;
+};
+
 const getBoolean = (name: string) => {
-  return `if (value.hasProperty(runtime, "${name}")) {
+  return `if (${name}.isBool()) {
     result->_instance.${name} = ${name}.getBool();
 }`;
 };
 
-const getNumber = (name: string) => {
-  return `if (value.hasProperty(runtime, "${name}")) {
-    result->_instance.${name} = ${name}.getNumber();
+const getNumber = (name: string, enumName: string | undefined) => {
+  return `if (${name}.isNumber()) {
+    result->_instance.${name} = ${enumName ? `static_cast<${getEnumName(enumName)}>(${name}.getNumber())` : `${name}.getNumber()`};
 }`;
 };
 
 const getString = (name: string) => {
-  return `if (value.hasProperty(runtime, "${name}")) {
+  return `if (${name}.isString()) {
     auto str = value.asString(runtime).utf8(runtime);
     result->_instance.${name} = str.c_str();
 }`;
 };
+
+const enumsToSkip = ["GPUSize64"];
 
 const propFromJSI = (
   className: string,
@@ -27,21 +38,18 @@ const propFromJSI = (
   _unions: Union[],
 ) => {
   const name = prop.getName();
-  const isOptional = prop.getType().getText().includes("undefined");
-  const possibleTypes = prop
+  const isOptional = prop
     .getType()
     .getUnionTypes()
-    .map((t) => t.getText())
-    .filter((t) => t !== "undefined");
-  // const enumValues = possibleTypes.filter((t) => t.startsWith('"'));
-  //console.log(possibleTypes);
-  //   ${enumValues.length > 0 ? getEnum(enumValues.map(v => v.substring(1, v.length-1))) : ""}
-
+    .some((t) => t.isUndefined());
+  const enumLabel = prop.getTypeNode()?.getText();
+  const isEnum =
+    !!enumLabel?.startsWith("GPU") && !enumsToSkip.includes(enumLabel);
   return `if (value.hasProperty(runtime, "${name}")) {
   auto ${name} = value.getProperty(runtime, "${name}");
-  ${possibleTypes.includes("true") || possibleTypes.includes("false") ? getBoolean(name) : ""}
-  ${possibleTypes.includes("number") ? getNumber(name) : ""}
-  ${possibleTypes.includes("string") ? getString(name) : ""}
+  ${prop.getType().isBoolean() ? getBoolean(name) : ""}
+  ${prop.getType().isNumber() ? getNumber(name, isEnum ? prop.getTypeNode()?.getText() : undefined) : ""}
+  ${prop.getType().isString() ? getString(name) : ""}
   ${
     !isOptional
       ? `if (${name}.isUndefined()) {
@@ -49,7 +57,13 @@ const propFromJSI = (
   }`
       : ""
   }
-}`;
+} ${
+    !isOptional
+      ? `else {
+  throw std::runtime_error("Property ${className}::${name} is not defined");
+}`
+      : ""
+  }`;
 };
 
 export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
@@ -94,6 +108,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
         })
         .join("\n")}
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for ${name}");
+    //}
     return result;
   }
   static jsi::Value

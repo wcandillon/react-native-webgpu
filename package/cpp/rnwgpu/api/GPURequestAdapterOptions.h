@@ -34,12 +34,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
       if (value.hasProperty(runtime, "forceFallbackAdapter")) {
         auto forceFallbackAdapter =
             value.getProperty(runtime, "forceFallbackAdapter");
-        if (value.hasProperty(runtime, "forceFallbackAdapter")) {
-          result->_instance.forceFallbackAdapter =
-              forceFallbackAdapter.getBool();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPURequestAdapterOptions");
+    //}
     return result;
   }
   static jsi::Value

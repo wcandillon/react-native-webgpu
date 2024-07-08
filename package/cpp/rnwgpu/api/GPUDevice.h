@@ -27,7 +27,8 @@ public:
 
   std::shared_ptr<GPUBuffer>
   createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
-    auto result = _instance->CreateBuffer(descriptor->getInstance());
+    auto aDescriptor = descriptor->getInstance();
+    auto result = _instance->CreateBuffer(aDescriptor);
     return std::make_shared<GPUBuffer>(std::make_shared<wgpu::Buffer>(result));
   }
 

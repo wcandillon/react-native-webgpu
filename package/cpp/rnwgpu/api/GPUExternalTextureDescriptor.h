@@ -35,11 +35,18 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
           throw std::runtime_error(
               "Property GPUExternalTextureDescriptor::source is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUExternalTextureDescriptor::source is not defined");
       }
       if (value.hasProperty(runtime, "colorSpace")) {
         auto colorSpace = value.getProperty(runtime, "colorSpace");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUExternalTextureDescriptor");
+    //}
     return result;
   }
   static jsi::Value

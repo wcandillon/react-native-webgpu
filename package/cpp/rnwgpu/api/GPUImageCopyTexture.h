@@ -34,13 +34,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
           throw std::runtime_error(
               "Property GPUImageCopyTexture::texture is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUImageCopyTexture::texture is not defined");
       }
       if (value.hasProperty(runtime, "mipLevel")) {
         auto mipLevel = value.getProperty(runtime, "mipLevel");
-
-        if (value.hasProperty(runtime, "mipLevel")) {
-          result->_instance.mipLevel = mipLevel.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "origin")) {
         auto origin = value.getProperty(runtime, "origin");
@@ -49,6 +48,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
         auto aspect = value.getProperty(runtime, "aspect");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUImageCopyTexture");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

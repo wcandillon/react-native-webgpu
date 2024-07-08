@@ -29,19 +29,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin2DDict>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "x")) {
         auto x = value.getProperty(runtime, "x");
-
-        if (value.hasProperty(runtime, "x")) {
-          result->_instance.x = x.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "y")) {
         auto y = value.getProperty(runtime, "y");
-
-        if (value.hasProperty(runtime, "y")) {
-          result->_instance.y = y.getNumber();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUOrigin2DDict");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

@@ -35,8 +35,15 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutDescriptor>> {
           throw std::runtime_error(
               "Property GPUBindGroupLayoutDescriptor::entries is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUBindGroupLayoutDescriptor::entries is not defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPUBindGroupLayoutDescriptor");
+    //}
     return result;
   }
   static jsi::Value

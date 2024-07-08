@@ -44,6 +44,11 @@ export const Tests = () => {
               gpu,
               adapter,
               device,
+              GPUBufferUsage,
+              GPUColorWrite,
+              GPUMapMode,
+              GPUShaderStage,
+              GPUTextureUsage,
               cubeVertexArray,
             },
           });

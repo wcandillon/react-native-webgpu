@@ -34,6 +34,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassLayout>> {
           throw std::runtime_error(
               "Property GPURenderPassLayout::colorFormats is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPURenderPassLayout::colorFormats is not defined");
       }
       if (value.hasProperty(runtime, "depthStencilFormat")) {
         auto depthStencilFormat =
@@ -41,12 +44,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassLayout>> {
       }
       if (value.hasProperty(runtime, "sampleCount")) {
         auto sampleCount = value.getProperty(runtime, "sampleCount");
-
-        if (value.hasProperty(runtime, "sampleCount")) {
-          result->_instance.sampleCount = sampleCount.getNumber();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPURenderPassLayout");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

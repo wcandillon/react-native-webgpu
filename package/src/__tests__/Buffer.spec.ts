@@ -8,12 +8,9 @@ describe("Buffer", () => {
         usage: GPUBufferUsage.VERTEX,
         mappedAtCreation: true,
       });
-      return !!verticesBuffer;
-
-      // new Float32Array(
-      //   verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
-      // ).set(cubeVertexArray);
+      // new Float32Array(verticesBuffer.getMappedRange()).set(cubeVertexArray);
       // verticesBuffer.unmap();
+      return !!verticesBuffer;
     });
     expect(result).toBe(true);
   });

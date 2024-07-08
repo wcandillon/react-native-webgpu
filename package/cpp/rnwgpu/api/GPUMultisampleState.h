@@ -29,27 +29,18 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "count")) {
         auto count = value.getProperty(runtime, "count");
-
-        if (value.hasProperty(runtime, "count")) {
-          result->_instance.count = count.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "mask")) {
         auto mask = value.getProperty(runtime, "mask");
-
-        if (value.hasProperty(runtime, "mask")) {
-          result->_instance.mask = mask.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "alphaToCoverageEnabled")) {
         auto alphaToCoverageEnabled =
             value.getProperty(runtime, "alphaToCoverageEnabled");
-        if (value.hasProperty(runtime, "alphaToCoverageEnabled")) {
-          result->_instance.alphaToCoverageEnabled =
-              alphaToCoverageEnabled.getBool();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUMultisampleState");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

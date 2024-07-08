@@ -37,6 +37,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendComponent>> {
         auto dstFactor = value.getProperty(runtime, "dstFactor");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUBlendComponent");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

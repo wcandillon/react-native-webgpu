@@ -28,6 +28,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineBase>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUPipelineBase");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

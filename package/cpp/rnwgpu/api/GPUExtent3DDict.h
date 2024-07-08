@@ -30,27 +30,30 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDict>> {
       if (value.hasProperty(runtime, "width")) {
         auto width = value.getProperty(runtime, "width");
 
+        if (width.isNumber()) {
+          result->_instance.width =
+              static_cast<wgpu::IntegerCoordinate>(width.getNumber());
+        }
+
         if (width.isUndefined()) {
           throw std::runtime_error(
               "Property GPUExtent3DDict::width is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUExtent3DDict::width is not defined");
       }
       if (value.hasProperty(runtime, "height")) {
         auto height = value.getProperty(runtime, "height");
-
-        if (value.hasProperty(runtime, "height")) {
-          result->_instance.height = height.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "depthOrArrayLayers")) {
         auto depthOrArrayLayers =
             value.getProperty(runtime, "depthOrArrayLayers");
-
-        if (value.hasProperty(runtime, "depthOrArrayLayers")) {
-          result->_instance.depthOrArrayLayers = depthOrArrayLayers.getNumber();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUExtent3DDict");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

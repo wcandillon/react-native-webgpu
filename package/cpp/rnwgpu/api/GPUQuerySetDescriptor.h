@@ -35,16 +35,30 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
           throw std::runtime_error(
               "Property GPUQuerySetDescriptor::type is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUQuerySetDescriptor::type is not defined");
       }
       if (value.hasProperty(runtime, "count")) {
         auto count = value.getProperty(runtime, "count");
+
+        if (count.isNumber()) {
+          result->_instance.count =
+              static_cast<wgpu::Size32>(count.getNumber());
+        }
 
         if (count.isUndefined()) {
           throw std::runtime_error(
               "Property GPUQuerySetDescriptor::count is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPUQuerySetDescriptor::count is not defined");
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for GPUQuerySetDescriptor");
+    //}
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

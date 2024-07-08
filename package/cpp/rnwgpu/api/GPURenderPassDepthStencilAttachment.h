@@ -37,13 +37,13 @@ struct JSIConverter<
           throw std::runtime_error(
               "Property GPURenderPassDepthStencilAttachment::view is required");
         }
+      } else {
+        throw std::runtime_error(
+            "Property GPURenderPassDepthStencilAttachment::view is not "
+            "defined");
       }
       if (value.hasProperty(runtime, "depthClearValue")) {
         auto depthClearValue = value.getProperty(runtime, "depthClearValue");
-
-        if (value.hasProperty(runtime, "depthClearValue")) {
-          result->_instance.depthClearValue = depthClearValue.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "depthLoadOp")) {
         auto depthLoadOp = value.getProperty(runtime, "depthLoadOp");
@@ -53,17 +53,10 @@ struct JSIConverter<
       }
       if (value.hasProperty(runtime, "depthReadOnly")) {
         auto depthReadOnly = value.getProperty(runtime, "depthReadOnly");
-        if (value.hasProperty(runtime, "depthReadOnly")) {
-          result->_instance.depthReadOnly = depthReadOnly.getBool();
-        }
       }
       if (value.hasProperty(runtime, "stencilClearValue")) {
         auto stencilClearValue =
             value.getProperty(runtime, "stencilClearValue");
-
-        if (value.hasProperty(runtime, "stencilClearValue")) {
-          result->_instance.stencilClearValue = stencilClearValue.getNumber();
-        }
       }
       if (value.hasProperty(runtime, "stencilLoadOp")) {
         auto stencilLoadOp = value.getProperty(runtime, "stencilLoadOp");
@@ -73,11 +66,12 @@ struct JSIConverter<
       }
       if (value.hasProperty(runtime, "stencilReadOnly")) {
         auto stencilReadOnly = value.getProperty(runtime, "stencilReadOnly");
-        if (value.hasProperty(runtime, "stencilReadOnly")) {
-          result->_instance.stencilReadOnly = stencilReadOnly.getBool();
-        }
       }
     }
+    // else if () {
+    // throw std::runtime_error("Expected an object for
+    // GPURenderPassDepthStencilAttachment");
+    //}
     return result;
   }
   static jsi::Value
