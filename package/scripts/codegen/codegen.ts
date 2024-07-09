@@ -120,7 +120,7 @@ sourceFile
       decl.getProperty("__brand") !== undefined,
   )
   .forEach((decl) => {
-    writeFile(decl.getName(), getHybridObject(decl));
+    writeFile(decl.getName(), getHybridObject(decl), false);
   });
 
 // Descriptors

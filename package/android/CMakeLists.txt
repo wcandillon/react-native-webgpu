@@ -51,6 +51,7 @@ target_include_directories(
         ../cpp
         ../cpp/rnwgpu
         ../cpp/rnwgpu/api
+        ../cpp/rnwgpu/api/descriptors
         ../cpp/jsi
         ../cpp/webgpu
 

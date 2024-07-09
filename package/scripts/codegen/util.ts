@@ -11,8 +11,15 @@ const $ = (command: string) => {
   }
 };
 
-export const writeFile = (name: string, content: string) => {
-  const file = path.resolve(__dirname, `../../cpp/rnwgpu/api/${name}.h`);
+export const writeFile = (
+  name: string,
+  content: string,
+  descriptors = true,
+) => {
+  const file = path.resolve(
+    __dirname,
+    `../../cpp/rnwgpu/api/${descriptors ? "descriptors" : ""}/${name}.h`,
+  );
   $(`touch ${file}`);
   writeFileSync(file, content, "utf8");
   console.log(
