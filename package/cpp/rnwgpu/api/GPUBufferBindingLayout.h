@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUBufferBindingLayout {
 public:
   wgpu::BufferBindingLayout *getInstance() { return &_instance; }
@@ -36,12 +38,19 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBindingLayout>> {
       }
       if (value.hasProperty(runtime, "minBindingSize")) {
         auto minBindingSize = value.getProperty(runtime, "minBindingSize");
+
+        if (minBindingSize.isNumber()) {
+          result->_instance.minBindingSize = minBindingSize.getNumber();
+        }
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUBufferBindingLayout");
-    //}
+    rnwgpu::Logger::logToConsole("GPUBufferBindingLayout::type = %f",
+                                 result->_instance.type);
+    rnwgpu::Logger::logToConsole(
+        "GPUBufferBindingLayout::hasDynamicOffset = %f",
+        result->_instance.hasDynamicOffset);
+    rnwgpu::Logger::logToConsole("GPUBufferBindingLayout::minBindingSize = %f",
+                                 result->_instance.minBindingSize);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

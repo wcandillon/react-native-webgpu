@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUImageCopyExternalImage {
 public:
   wgpu::ImageCopyExternalImage *getInstance() { return &_instance; }
@@ -46,10 +48,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
         auto flipY = value.getProperty(runtime, "flipY");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUImageCopyExternalImage");
-    //}
+    rnwgpu::Logger::logToConsole("GPUImageCopyExternalImage::source = %f",
+                                 result->_instance.source);
+    rnwgpu::Logger::logToConsole("GPUImageCopyExternalImage::origin = %f",
+                                 result->_instance.origin);
+    rnwgpu::Logger::logToConsole("GPUImageCopyExternalImage::flipY = %f",
+                                 result->_instance.flipY);
     return result;
   }
   static jsi::Value

@@ -16,8 +16,8 @@ namespace m = margelo;
 
 class GPUBuffer : public m::HybridObject {
 public:
-  explicit GPUBuffer(std::shared_ptr<wgpu::Buffer> instance)
-      : HybridObject("GPUBuffer"), _instance(instance) {}
+  explicit GPUBuffer(std::shared_ptr<wgpu::Buffer> instance, std::string label)
+      : HybridObject("GPUBuffer"), _instance(instance), _label(label) {}
 
 public:
   std::string getBrand() { return _name; }
@@ -29,15 +29,22 @@ public:
     auto result = _instance->GetMappedRange(aOffset, aSize);
     return std::make_shared<MutableJSIBuffer>(result, _instance->GetSize());
   }
-  void unmap() { _instance->Unmap(); }
+  void unmap() {
+    _instance->Unmap();
+  }
+
+  std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUBuffer::getBrand, this);
     registerHybridMethod("getMappedRange", &GPUBuffer::getMappedRange, this);
     registerHybridMethod("unmap", &GPUBuffer::unmap, this);
+
+    registerHybridGetter("label", &GPUBuffer::getLabel, this);
   }
 
 private:
   std::shared_ptr<wgpu::Buffer> _instance;
+  std::string _label;
 };
 } // namespace rnwgpu

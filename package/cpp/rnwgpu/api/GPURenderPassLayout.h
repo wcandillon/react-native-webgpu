@@ -1,21 +1,25 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPURenderPassLayout {
 public:
   wgpu::RenderPassLayout *getInstance() { return &_instance; }
 
   wgpu::RenderPassLayout _instance;
+
+  std::string label;
 };
 } // namespace rnwgpu
 
@@ -44,11 +48,30 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassLayout>> {
       }
       if (value.hasProperty(runtime, "sampleCount")) {
         auto sampleCount = value.getProperty(runtime, "sampleCount");
+
+        if (sampleCount.isNumber()) {
+          result->_instance.sampleCount =
+              static_cast<wgpu::Size32>(sampleCount.getNumber());
+        }
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->label = str;
+          result->_instance.label = result->label.c_str();
+        }
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPURenderPassLayout");
-    //}
+    rnwgpu::Logger::logToConsole("GPURenderPassLayout::colorFormats = %f",
+                                 result->_instance.colorFormats);
+    rnwgpu::Logger::logToConsole("GPURenderPassLayout::depthStencilFormat = %f",
+                                 result->_instance.depthStencilFormat);
+    rnwgpu::Logger::logToConsole("GPURenderPassLayout::sampleCount = %f",
+                                 result->_instance.sampleCount);
+    rnwgpu::Logger::logToConsole("GPURenderPassLayout::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

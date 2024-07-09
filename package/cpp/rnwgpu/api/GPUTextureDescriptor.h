@@ -1,21 +1,25 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUTextureDescriptor {
 public:
   wgpu::TextureDescriptor *getInstance() { return &_instance; }
 
   wgpu::TextureDescriptor _instance;
+
+  std::string label;
 };
 } // namespace rnwgpu
 
@@ -40,9 +44,19 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
       }
       if (value.hasProperty(runtime, "mipLevelCount")) {
         auto mipLevelCount = value.getProperty(runtime, "mipLevelCount");
+
+        if (mipLevelCount.isNumber()) {
+          result->_instance.mipLevelCount =
+              static_cast<wgpu::IntegerCoordinate>(mipLevelCount.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "sampleCount")) {
         auto sampleCount = value.getProperty(runtime, "sampleCount");
+
+        if (sampleCount.isNumber()) {
+          result->_instance.sampleCount =
+              static_cast<wgpu::Size32>(sampleCount.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "dimension")) {
         auto dimension = value.getProperty(runtime, "dimension");
@@ -61,11 +75,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
       if (value.hasProperty(runtime, "usage")) {
         auto usage = value.getProperty(runtime, "usage");
 
-        if (usage.isNumber()) {
-          result->_instance.usage =
-              static_cast<wgpu::TextureUsageFlags>(usage.getNumber());
-        }
-
         if (usage.isUndefined()) {
           throw std::runtime_error(
               "Property GPUTextureDescriptor::usage is required");
@@ -77,10 +86,32 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
       if (value.hasProperty(runtime, "viewFormats")) {
         auto viewFormats = value.getProperty(runtime, "viewFormats");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->label = str;
+          result->_instance.label = result->label.c_str();
+        }
+      }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUTextureDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::size = %f",
+                                 result->_instance.size);
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::mipLevelCount = %f",
+                                 result->_instance.mipLevelCount);
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::sampleCount = %f",
+                                 result->_instance.sampleCount);
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::dimension = %f",
+                                 result->_instance.dimension);
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::format = %f",
+                                 result->_instance.format);
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::usage = %f",
+                                 result->_instance.usage);
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::viewFormats = %f",
+                                 result->_instance.viewFormats);
+    rnwgpu::Logger::logToConsole("GPUTextureDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

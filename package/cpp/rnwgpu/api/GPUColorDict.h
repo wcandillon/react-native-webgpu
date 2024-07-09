@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUColorDict {
 public:
   wgpu::ColorDict *getInstance() { return &_instance; }
@@ -30,10 +32,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
       if (value.hasProperty(runtime, "r")) {
         auto r = value.getProperty(runtime, "r");
 
-        if (r.isNumber()) {
-          result->_instance.r = r.getNumber();
-        }
-
         if (r.isUndefined()) {
           throw std::runtime_error("Property GPUColorDict::r is required");
         }
@@ -42,10 +40,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
       }
       if (value.hasProperty(runtime, "g")) {
         auto g = value.getProperty(runtime, "g");
-
-        if (g.isNumber()) {
-          result->_instance.g = g.getNumber();
-        }
 
         if (g.isUndefined()) {
           throw std::runtime_error("Property GPUColorDict::g is required");
@@ -56,10 +50,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
       if (value.hasProperty(runtime, "b")) {
         auto b = value.getProperty(runtime, "b");
 
-        if (b.isNumber()) {
-          result->_instance.b = b.getNumber();
-        }
-
         if (b.isUndefined()) {
           throw std::runtime_error("Property GPUColorDict::b is required");
         }
@@ -69,10 +59,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
       if (value.hasProperty(runtime, "a")) {
         auto a = value.getProperty(runtime, "a");
 
-        if (a.isNumber()) {
-          result->_instance.a = a.getNumber();
-        }
-
         if (a.isUndefined()) {
           throw std::runtime_error("Property GPUColorDict::a is required");
         }
@@ -80,9 +66,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
         throw std::runtime_error("Property GPUColorDict::a is not defined");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUColorDict");
-    //}
+    rnwgpu::Logger::logToConsole("GPUColorDict::r = %f", result->_instance.r);
+    rnwgpu::Logger::logToConsole("GPUColorDict::g = %f", result->_instance.g);
+    rnwgpu::Logger::logToConsole("GPUColorDict::b = %f", result->_instance.b);
+    rnwgpu::Logger::logToConsole("GPUColorDict::a = %f", result->_instance.a);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

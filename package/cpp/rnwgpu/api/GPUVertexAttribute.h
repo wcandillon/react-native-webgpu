@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUVertexAttribute {
 public:
   wgpu::VertexAttribute *getInstance() { return &_instance; }
@@ -41,10 +43,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
       if (value.hasProperty(runtime, "offset")) {
         auto offset = value.getProperty(runtime, "offset");
 
-        if (offset.isNumber()) {
-          result->_instance.offset = offset.getNumber();
-        }
-
         if (offset.isUndefined()) {
           throw std::runtime_error(
               "Property GPUVertexAttribute::offset is required");
@@ -56,11 +54,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
       if (value.hasProperty(runtime, "shaderLocation")) {
         auto shaderLocation = value.getProperty(runtime, "shaderLocation");
 
-        if (shaderLocation.isNumber()) {
-          result->_instance.shaderLocation =
-              static_cast<wgpu::Index32>(shaderLocation.getNumber());
-        }
-
         if (shaderLocation.isUndefined()) {
           throw std::runtime_error(
               "Property GPUVertexAttribute::shaderLocation is required");
@@ -70,9 +63,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
             "Property GPUVertexAttribute::shaderLocation is not defined");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUVertexAttribute");
-    //}
+    rnwgpu::Logger::logToConsole("GPUVertexAttribute::format = %f",
+                                 result->_instance.format);
+    rnwgpu::Logger::logToConsole("GPUVertexAttribute::offset = %f",
+                                 result->_instance.offset);
+    rnwgpu::Logger::logToConsole("GPUVertexAttribute::shaderLocation = %f",
+                                 result->_instance.shaderLocation);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

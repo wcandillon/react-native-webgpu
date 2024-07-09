@@ -17,17 +17,23 @@ namespace m = margelo;
 class GPUComputePassEncoder : public m::HybridObject {
 public:
   explicit GPUComputePassEncoder(
-      std::shared_ptr<wgpu::ComputePassEncoder> instance)
-      : HybridObject("GPUComputePassEncoder"), _instance(instance) {}
+      std::shared_ptr<wgpu::ComputePassEncoder> instance, std::string label)
+      : HybridObject("GPUComputePassEncoder"), _instance(instance),
+        _label(label) {}
 
 public:
   std::string getBrand() { return _name; }
 
+  std::string getLabel() { return _label; }
+
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUComputePassEncoder::getBrand, this);
+
+    registerHybridGetter("label", &GPUComputePassEncoder::getLabel, this);
   }
 
 private:
   std::shared_ptr<wgpu::ComputePassEncoder> _instance;
+  std::string _label;
 };
 } // namespace rnwgpu

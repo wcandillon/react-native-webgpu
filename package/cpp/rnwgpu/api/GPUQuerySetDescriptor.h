@@ -1,21 +1,25 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUQuerySetDescriptor {
 public:
   wgpu::QuerySetDescriptor *getInstance() { return &_instance; }
 
   wgpu::QuerySetDescriptor _instance;
+
+  std::string label;
 };
 } // namespace rnwgpu
 
@@ -42,11 +46,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
       if (value.hasProperty(runtime, "count")) {
         auto count = value.getProperty(runtime, "count");
 
-        if (count.isNumber()) {
-          result->_instance.count =
-              static_cast<wgpu::Size32>(count.getNumber());
-        }
-
         if (count.isUndefined()) {
           throw std::runtime_error(
               "Property GPUQuerySetDescriptor::count is required");
@@ -55,10 +54,22 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
         throw std::runtime_error(
             "Property GPUQuerySetDescriptor::count is not defined");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->label = str;
+          result->_instance.label = result->label.c_str();
+        }
+      }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUQuerySetDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole("GPUQuerySetDescriptor::type = %f",
+                                 result->_instance.type);
+    rnwgpu::Logger::logToConsole("GPUQuerySetDescriptor::count = %f",
+                                 result->_instance.count);
+    rnwgpu::Logger::logToConsole("GPUQuerySetDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

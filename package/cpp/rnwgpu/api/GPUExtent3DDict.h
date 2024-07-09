@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUExtent3DDict {
 public:
   wgpu::Extent3DDict *getInstance() { return &_instance; }
@@ -30,11 +32,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDict>> {
       if (value.hasProperty(runtime, "width")) {
         auto width = value.getProperty(runtime, "width");
 
-        if (width.isNumber()) {
-          result->_instance.width =
-              static_cast<wgpu::IntegerCoordinate>(width.getNumber());
-        }
-
         if (width.isUndefined()) {
           throw std::runtime_error(
               "Property GPUExtent3DDict::width is required");
@@ -45,15 +42,29 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDict>> {
       }
       if (value.hasProperty(runtime, "height")) {
         auto height = value.getProperty(runtime, "height");
+
+        if (height.isNumber()) {
+          result->_instance.height =
+              static_cast<wgpu::IntegerCoordinate>(height.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "depthOrArrayLayers")) {
         auto depthOrArrayLayers =
             value.getProperty(runtime, "depthOrArrayLayers");
+
+        if (depthOrArrayLayers.isNumber()) {
+          result->_instance.depthOrArrayLayers =
+              static_cast<wgpu::IntegerCoordinate>(
+                  depthOrArrayLayers.getNumber());
+        }
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUExtent3DDict");
-    //}
+    rnwgpu::Logger::logToConsole("GPUExtent3DDict::width = %f",
+                                 result->_instance.width);
+    rnwgpu::Logger::logToConsole("GPUExtent3DDict::height = %f",
+                                 result->_instance.height);
+    rnwgpu::Logger::logToConsole("GPUExtent3DDict::depthOrArrayLayers = %f",
+                                 result->_instance.depthOrArrayLayers);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

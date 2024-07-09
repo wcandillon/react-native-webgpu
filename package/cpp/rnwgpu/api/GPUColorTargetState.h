@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUColorTargetState {
 public:
   wgpu::ColorTargetState *getInstance() { return &_instance; }
@@ -43,11 +45,19 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
       }
       if (value.hasProperty(runtime, "writeMask")) {
         auto writeMask = value.getProperty(runtime, "writeMask");
+
+        if (writeMask.isNumber()) {
+          result->_instance.writeMask =
+              static_cast<wgpu::ColorWriteFlags>(writeMask.getNumber());
+        }
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUColorTargetState");
-    //}
+    rnwgpu::Logger::logToConsole("GPUColorTargetState::format = %f",
+                                 result->_instance.format);
+    rnwgpu::Logger::logToConsole("GPUColorTargetState::blend = %f",
+                                 result->_instance.blend);
+    rnwgpu::Logger::logToConsole("GPUColorTargetState::writeMask = %f",
+                                 result->_instance.writeMask);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

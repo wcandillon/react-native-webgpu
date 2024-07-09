@@ -1,21 +1,25 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUShaderModuleDescriptor {
 public:
   wgpu::ShaderModuleDescriptor *getInstance() { return &_instance; }
 
   wgpu::ShaderModuleDescriptor _instance;
+
+  std::string label;
 };
 } // namespace rnwgpu
 
@@ -31,10 +35,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
       if (value.hasProperty(runtime, "code")) {
         auto code = value.getProperty(runtime, "code");
 
-        if (code.isString()) {
-          auto str = value.asString(runtime).utf8(runtime);
-          result->_instance.code = str.c_str();
-        }
         if (code.isUndefined()) {
           throw std::runtime_error(
               "Property GPUShaderModuleDescriptor::code is required");
@@ -57,11 +57,25 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
       if (value.hasProperty(runtime, "compilationHints")) {
         auto compilationHints = value.getProperty(runtime, "compilationHints");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->label = str;
+          result->_instance.label = result->label.c_str();
+        }
+      }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUShaderModuleDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole("GPUShaderModuleDescriptor::code = %f",
+                                 result->_instance.code);
+    rnwgpu::Logger::logToConsole("GPUShaderModuleDescriptor::sourceMap = %f",
+                                 result->_instance.sourceMap);
+    rnwgpu::Logger::logToConsole(
+        "GPUShaderModuleDescriptor::compilationHints = %f",
+        result->_instance.compilationHints);
+    rnwgpu::Logger::logToConsole("GPUShaderModuleDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value

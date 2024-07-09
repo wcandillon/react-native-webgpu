@@ -1,21 +1,25 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUComputePipelineDescriptor {
 public:
   wgpu::ComputePipelineDescriptor *getInstance() { return &_instance; }
 
   wgpu::ComputePipelineDescriptor _instance;
+
+  std::string label;
 };
 } // namespace rnwgpu
 
@@ -39,11 +43,33 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
         throw std::runtime_error(
             "Property GPUComputePipelineDescriptor::compute is not defined");
       }
+      if (value.hasProperty(runtime, "layout")) {
+        auto layout = value.getProperty(runtime, "layout");
+
+        if (layout.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUComputePipelineDescriptor::layout is required");
+        }
+      } else {
+        throw std::runtime_error(
+            "Property GPUComputePipelineDescriptor::layout is not defined");
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->label = str;
+          result->_instance.label = result->label.c_str();
+        }
+      }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUComputePipelineDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole("GPUComputePipelineDescriptor::compute = %f",
+                                 result->_instance.compute);
+    rnwgpu::Logger::logToConsole("GPUComputePipelineDescriptor::layout = %f",
+                                 result->_instance.layout);
+    rnwgpu::Logger::logToConsole("GPUComputePipelineDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value

@@ -1,21 +1,25 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUSamplerDescriptor {
 public:
   wgpu::SamplerDescriptor *getInstance() { return &_instance; }
 
   wgpu::SamplerDescriptor _instance;
+
+  std::string label;
 };
 } // namespace rnwgpu
 
@@ -47,20 +51,60 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
       }
       if (value.hasProperty(runtime, "lodMinClamp")) {
         auto lodMinClamp = value.getProperty(runtime, "lodMinClamp");
+
+        if (lodMinClamp.isNumber()) {
+          result->_instance.lodMinClamp = lodMinClamp.getNumber();
+        }
       }
       if (value.hasProperty(runtime, "lodMaxClamp")) {
         auto lodMaxClamp = value.getProperty(runtime, "lodMaxClamp");
+
+        if (lodMaxClamp.isNumber()) {
+          result->_instance.lodMaxClamp = lodMaxClamp.getNumber();
+        }
       }
       if (value.hasProperty(runtime, "compare")) {
         auto compare = value.getProperty(runtime, "compare");
       }
       if (value.hasProperty(runtime, "maxAnisotropy")) {
         auto maxAnisotropy = value.getProperty(runtime, "maxAnisotropy");
+
+        if (maxAnisotropy.isNumber()) {
+          result->_instance.maxAnisotropy = maxAnisotropy.getNumber();
+        }
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->label = str;
+          result->_instance.label = result->label.c_str();
+        }
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUSamplerDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::addressModeU = %f",
+                                 result->_instance.addressModeU);
+    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::addressModeV = %f",
+                                 result->_instance.addressModeV);
+    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::addressModeW = %f",
+                                 result->_instance.addressModeW);
+    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::magFilter = %f",
+                                 result->_instance.magFilter);
+    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::minFilter = %f",
+                                 result->_instance.minFilter);
+    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::mipmapFilter = %f",
+                                 result->_instance.mipmapFilter);
+    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::lodMinClamp = %f",
+                                 result->_instance.lodMinClamp);
+    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::lodMaxClamp = %f",
+                                 result->_instance.lodMaxClamp);
+    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::compare = %f",
+                                 result->_instance.compare);
+    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::maxAnisotropy = %f",
+                                 result->_instance.maxAnisotropy);
+    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

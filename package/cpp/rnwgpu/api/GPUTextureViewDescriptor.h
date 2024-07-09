@@ -1,21 +1,25 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUTextureViewDescriptor {
 public:
   wgpu::TextureViewDescriptor *getInstance() { return &_instance; }
 
   wgpu::TextureViewDescriptor _instance;
+
+  std::string label;
 };
 } // namespace rnwgpu
 
@@ -39,21 +43,64 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
       }
       if (value.hasProperty(runtime, "baseMipLevel")) {
         auto baseMipLevel = value.getProperty(runtime, "baseMipLevel");
+
+        if (baseMipLevel.isNumber()) {
+          result->_instance.baseMipLevel =
+              static_cast<wgpu::IntegerCoordinate>(baseMipLevel.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "mipLevelCount")) {
         auto mipLevelCount = value.getProperty(runtime, "mipLevelCount");
+
+        if (mipLevelCount.isNumber()) {
+          result->_instance.mipLevelCount =
+              static_cast<wgpu::IntegerCoordinate>(mipLevelCount.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "baseArrayLayer")) {
         auto baseArrayLayer = value.getProperty(runtime, "baseArrayLayer");
+
+        if (baseArrayLayer.isNumber()) {
+          result->_instance.baseArrayLayer =
+              static_cast<wgpu::IntegerCoordinate>(baseArrayLayer.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "arrayLayerCount")) {
         auto arrayLayerCount = value.getProperty(runtime, "arrayLayerCount");
+
+        if (arrayLayerCount.isNumber()) {
+          result->_instance.arrayLayerCount =
+              static_cast<wgpu::IntegerCoordinate>(arrayLayerCount.getNumber());
+        }
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->label = str;
+          result->_instance.label = result->label.c_str();
+        }
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUTextureViewDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::format = %f",
+                                 result->_instance.format);
+    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::dimension = %f",
+                                 result->_instance.dimension);
+    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::aspect = %f",
+                                 result->_instance.aspect);
+    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::baseMipLevel = %f",
+                                 result->_instance.baseMipLevel);
+    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::mipLevelCount = %f",
+                                 result->_instance.mipLevelCount);
+    rnwgpu::Logger::logToConsole(
+        "GPUTextureViewDescriptor::baseArrayLayer = %f",
+        result->_instance.baseArrayLayer);
+    rnwgpu::Logger::logToConsole(
+        "GPUTextureViewDescriptor::arrayLayerCount = %f",
+        result->_instance.arrayLayerCount);
+    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value

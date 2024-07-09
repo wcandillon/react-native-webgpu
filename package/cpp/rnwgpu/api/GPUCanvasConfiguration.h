@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUCanvasConfiguration {
 public:
   wgpu::CanvasConfiguration *getInstance() { return &_instance; }
@@ -52,6 +54,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
       }
       if (value.hasProperty(runtime, "usage")) {
         auto usage = value.getProperty(runtime, "usage");
+
+        if (usage.isNumber()) {
+          result->_instance.usage =
+              static_cast<wgpu::TextureUsageFlags>(usage.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "viewFormats")) {
         auto viewFormats = value.getProperty(runtime, "viewFormats");
@@ -63,10 +70,18 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
         auto alphaMode = value.getProperty(runtime, "alphaMode");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUCanvasConfiguration");
-    //}
+    rnwgpu::Logger::logToConsole("GPUCanvasConfiguration::device = %f",
+                                 result->_instance.device);
+    rnwgpu::Logger::logToConsole("GPUCanvasConfiguration::format = %f",
+                                 result->_instance.format);
+    rnwgpu::Logger::logToConsole("GPUCanvasConfiguration::usage = %f",
+                                 result->_instance.usage);
+    rnwgpu::Logger::logToConsole("GPUCanvasConfiguration::viewFormats = %f",
+                                 result->_instance.viewFormats);
+    rnwgpu::Logger::logToConsole("GPUCanvasConfiguration::colorSpace = %f",
+                                 result->_instance.colorSpace);
+    rnwgpu::Logger::logToConsole("GPUCanvasConfiguration::alphaMode = %f",
+                                 result->_instance.alphaMode);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

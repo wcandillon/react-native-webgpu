@@ -1,21 +1,25 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPURenderBundleEncoderDescriptor {
 public:
   wgpu::RenderBundleEncoderDescriptor *getInstance() { return &_instance; }
 
   wgpu::RenderBundleEncoderDescriptor _instance;
+
+  std::string label;
 };
 } // namespace rnwgpu
 
@@ -34,11 +38,58 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
       if (value.hasProperty(runtime, "stencilReadOnly")) {
         auto stencilReadOnly = value.getProperty(runtime, "stencilReadOnly");
       }
+      if (value.hasProperty(runtime, "colorFormats")) {
+        auto colorFormats = value.getProperty(runtime, "colorFormats");
+
+        if (colorFormats.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPURenderBundleEncoderDescriptor::colorFormats is "
+              "required");
+        }
+      } else {
+        throw std::runtime_error(
+            "Property GPURenderBundleEncoderDescriptor::colorFormats is not "
+            "defined");
+      }
+      if (value.hasProperty(runtime, "depthStencilFormat")) {
+        auto depthStencilFormat =
+            value.getProperty(runtime, "depthStencilFormat");
+      }
+      if (value.hasProperty(runtime, "sampleCount")) {
+        auto sampleCount = value.getProperty(runtime, "sampleCount");
+
+        if (sampleCount.isNumber()) {
+          result->_instance.sampleCount =
+              static_cast<wgpu::Size32>(sampleCount.getNumber());
+        }
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->label = str;
+          result->_instance.label = result->label.c_str();
+        }
+      }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPURenderBundleEncoderDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole(
+        "GPURenderBundleEncoderDescriptor::depthReadOnly = %f",
+        result->_instance.depthReadOnly);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderBundleEncoderDescriptor::stencilReadOnly = %f",
+        result->_instance.stencilReadOnly);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderBundleEncoderDescriptor::colorFormats = %f",
+        result->_instance.colorFormats);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderBundleEncoderDescriptor::depthStencilFormat = %f",
+        result->_instance.depthStencilFormat);
+    rnwgpu::Logger::logToConsole(
+        "GPURenderBundleEncoderDescriptor::sampleCount = %f",
+        result->_instance.sampleCount);
+    rnwgpu::Logger::logToConsole("GPURenderBundleEncoderDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value

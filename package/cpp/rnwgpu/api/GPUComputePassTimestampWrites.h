@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUComputePassTimestampWrites {
 public:
   wgpu::ComputePassTimestampWrites *getInstance() { return &_instance; }
@@ -42,16 +44,30 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
       if (value.hasProperty(runtime, "beginningOfPassWriteIndex")) {
         auto beginningOfPassWriteIndex =
             value.getProperty(runtime, "beginningOfPassWriteIndex");
+
+        if (beginningOfPassWriteIndex.isNumber()) {
+          result->_instance.beginningOfPassWriteIndex =
+              static_cast<wgpu::Size32>(beginningOfPassWriteIndex.getNumber());
+        }
       }
       if (value.hasProperty(runtime, "endOfPassWriteIndex")) {
         auto endOfPassWriteIndex =
             value.getProperty(runtime, "endOfPassWriteIndex");
+
+        if (endOfPassWriteIndex.isNumber()) {
+          result->_instance.endOfPassWriteIndex =
+              static_cast<wgpu::Size32>(endOfPassWriteIndex.getNumber());
+        }
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUComputePassTimestampWrites");
-    //}
+    rnwgpu::Logger::logToConsole("GPUComputePassTimestampWrites::querySet = %f",
+                                 result->_instance.querySet);
+    rnwgpu::Logger::logToConsole(
+        "GPUComputePassTimestampWrites::beginningOfPassWriteIndex = %f",
+        result->_instance.beginningOfPassWriteIndex);
+    rnwgpu::Logger::logToConsole(
+        "GPUComputePassTimestampWrites::endOfPassWriteIndex = %f",
+        result->_instance.endOfPassWriteIndex);
     return result;
   }
   static jsi::Value

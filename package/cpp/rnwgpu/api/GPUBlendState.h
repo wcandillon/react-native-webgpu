@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUBlendState {
 public:
   wgpu::BlendState *getInstance() { return &_instance; }
@@ -48,9 +50,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
             "Property GPUBlendState::alpha is not defined");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUBlendState");
-    //}
+    rnwgpu::Logger::logToConsole("GPUBlendState::color = %f",
+                                 result->_instance.color);
+    rnwgpu::Logger::logToConsole("GPUBlendState::alpha = %f",
+                                 result->_instance.alpha);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

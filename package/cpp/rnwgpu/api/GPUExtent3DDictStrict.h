@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUExtent3DDictStrict {
 public:
   wgpu::Extent3DDictStrict *getInstance() { return &_instance; }
@@ -39,10 +41,45 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDictStrict>> {
         throw std::runtime_error(
             "Property GPUExtent3DDictStrict::depth is not defined");
       }
+      if (value.hasProperty(runtime, "width")) {
+        auto width = value.getProperty(runtime, "width");
+
+        if (width.isUndefined()) {
+          throw std::runtime_error(
+              "Property GPUExtent3DDictStrict::width is required");
+        }
+      } else {
+        throw std::runtime_error(
+            "Property GPUExtent3DDictStrict::width is not defined");
+      }
+      if (value.hasProperty(runtime, "height")) {
+        auto height = value.getProperty(runtime, "height");
+
+        if (height.isNumber()) {
+          result->_instance.height =
+              static_cast<wgpu::IntegerCoordinate>(height.getNumber());
+        }
+      }
+      if (value.hasProperty(runtime, "depthOrArrayLayers")) {
+        auto depthOrArrayLayers =
+            value.getProperty(runtime, "depthOrArrayLayers");
+
+        if (depthOrArrayLayers.isNumber()) {
+          result->_instance.depthOrArrayLayers =
+              static_cast<wgpu::IntegerCoordinate>(
+                  depthOrArrayLayers.getNumber());
+        }
+      }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUExtent3DDictStrict");
-    //}
+    rnwgpu::Logger::logToConsole("GPUExtent3DDictStrict::depth = %f",
+                                 result->_instance.depth);
+    rnwgpu::Logger::logToConsole("GPUExtent3DDictStrict::width = %f",
+                                 result->_instance.width);
+    rnwgpu::Logger::logToConsole("GPUExtent3DDictStrict::height = %f",
+                                 result->_instance.height);
+    rnwgpu::Logger::logToConsole(
+        "GPUExtent3DDictStrict::depthOrArrayLayers = %f",
+        result->_instance.depthOrArrayLayers);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

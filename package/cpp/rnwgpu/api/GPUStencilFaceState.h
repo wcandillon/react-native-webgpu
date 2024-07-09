@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUStencilFaceState {
 public:
   wgpu::StencilFaceState *getInstance() { return &_instance; }
@@ -40,9 +42,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
         auto passOp = value.getProperty(runtime, "passOp");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUStencilFaceState");
-    //}
+    rnwgpu::Logger::logToConsole("GPUStencilFaceState::compare = %f",
+                                 result->_instance.compare);
+    rnwgpu::Logger::logToConsole("GPUStencilFaceState::failOp = %f",
+                                 result->_instance.failOp);
+    rnwgpu::Logger::logToConsole("GPUStencilFaceState::depthFailOp = %f",
+                                 result->_instance.depthFailOp);
+    rnwgpu::Logger::logToConsole("GPUStencilFaceState::passOp = %f",
+                                 result->_instance.passOp);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

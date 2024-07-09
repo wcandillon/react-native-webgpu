@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUStorageTextureBindingLayout {
 public:
   wgpu::StorageTextureBindingLayout *getInstance() { return &_instance; }
@@ -46,10 +48,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
         auto viewDimension = value.getProperty(runtime, "viewDimension");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUStorageTextureBindingLayout");
-    //}
+    rnwgpu::Logger::logToConsole("GPUStorageTextureBindingLayout::access = %f",
+                                 result->_instance.access);
+    rnwgpu::Logger::logToConsole("GPUStorageTextureBindingLayout::format = %f",
+                                 result->_instance.format);
+    rnwgpu::Logger::logToConsole(
+        "GPUStorageTextureBindingLayout::viewDimension = %f",
+        result->_instance.viewDimension);
     return result;
   }
   static jsi::Value

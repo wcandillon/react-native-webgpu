@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUUncapturedErrorEventInit {
 public:
   wgpu::UncapturedErrorEventInit *getInstance() { return &_instance; }
@@ -39,11 +41,24 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
         throw std::runtime_error(
             "Property GPUUncapturedErrorEventInit::error is not defined");
       }
+      if (value.hasProperty(runtime, "bubbles")) {
+        auto bubbles = value.getProperty(runtime, "bubbles");
+      }
+      if (value.hasProperty(runtime, "cancelable")) {
+        auto cancelable = value.getProperty(runtime, "cancelable");
+      }
+      if (value.hasProperty(runtime, "composed")) {
+        auto composed = value.getProperty(runtime, "composed");
+      }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUUncapturedErrorEventInit");
-    //}
+    rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::error = %f",
+                                 result->_instance.error);
+    rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::bubbles = %f",
+                                 result->_instance.bubbles);
+    rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::cancelable = %f",
+                                 result->_instance.cancelable);
+    rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::composed = %f",
+                                 result->_instance.composed);
     return result;
   }
   static jsi::Value

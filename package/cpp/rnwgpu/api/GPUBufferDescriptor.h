@@ -1,21 +1,25 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUBufferDescriptor {
 public:
   wgpu::BufferDescriptor *getInstance() { return &_instance; }
 
   wgpu::BufferDescriptor _instance;
+
+  std::string label;
 };
 } // namespace rnwgpu
 
@@ -30,10 +34,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
       if (value.hasProperty(runtime, "size")) {
         auto size = value.getProperty(runtime, "size");
 
-        if (size.isNumber()) {
-          result->_instance.size = size.getNumber();
-        }
-
         if (size.isUndefined()) {
           throw std::runtime_error(
               "Property GPUBufferDescriptor::size is required");
@@ -44,11 +44,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
       }
       if (value.hasProperty(runtime, "usage")) {
         auto usage = value.getProperty(runtime, "usage");
-
-        if (usage.isNumber()) {
-          result->_instance.usage =
-              static_cast<wgpu::BufferUsage>(usage.getNumber());
-        }
 
         if (usage.isUndefined()) {
           throw std::runtime_error(
@@ -61,10 +56,24 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
       if (value.hasProperty(runtime, "mappedAtCreation")) {
         auto mappedAtCreation = value.getProperty(runtime, "mappedAtCreation");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->label = str;
+          result->_instance.label = result->label.c_str();
+        }
+      }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUBufferDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::size = %f",
+                                 result->_instance.size);
+    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::usage = %f",
+                                 result->_instance.usage);
+    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::mappedAtCreation = %f",
+                                 result->_instance.mappedAtCreation);
+    rnwgpu::Logger::logToConsole("GPUBufferDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

@@ -8,15 +8,10 @@ namespace rnwgpu {
 std::future<std::shared_ptr<GPUDevice>>
 GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
   return std::async(std::launch::async, [this, descriptor]() {
-    wgpu::DeviceDescriptor wgpuDescriptor = {};
-    if (descriptor) {
-      // TODO: Convert GPUDeviceDescriptor to wgpu::DeviceDescriptor
-      // This will depend on the structure of GPUDeviceDescriptor
-    }
-
     wgpu::Device device = nullptr;
+    auto aDescriptor = descriptor->getInstance();
     _instance->RequestDevice(
-        &wgpuDescriptor,
+        aDescriptor,
         [](WGPURequestDeviceStatus status, WGPUDevice cDevice,
            const char *message, void *userdata) {
           if (message != nullptr) {
@@ -31,9 +26,8 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
     if (!device) {
       throw std::runtime_error("Failed to request device");
     }
-
     return std::make_shared<GPUDevice>(
-        std::make_shared<wgpu::Device>(std::move(device)));
+        std::make_shared<wgpu::Device>(std::move(device)), descriptor->label);
   });
 }
 

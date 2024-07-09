@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUOrigin2DDictStrict {
 public:
   wgpu::Origin2DDictStrict *getInstance() { return &_instance; }
@@ -39,10 +41,29 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin2DDictStrict>> {
         throw std::runtime_error(
             "Property GPUOrigin2DDictStrict::z is not defined");
       }
+      if (value.hasProperty(runtime, "x")) {
+        auto x = value.getProperty(runtime, "x");
+
+        if (x.isNumber()) {
+          result->_instance.x =
+              static_cast<wgpu::IntegerCoordinate>(x.getNumber());
+        }
+      }
+      if (value.hasProperty(runtime, "y")) {
+        auto y = value.getProperty(runtime, "y");
+
+        if (y.isNumber()) {
+          result->_instance.y =
+              static_cast<wgpu::IntegerCoordinate>(y.getNumber());
+        }
+      }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUOrigin2DDictStrict");
-    //}
+    rnwgpu::Logger::logToConsole("GPUOrigin2DDictStrict::z = %f",
+                                 result->_instance.z);
+    rnwgpu::Logger::logToConsole("GPUOrigin2DDictStrict::x = %f",
+                                 result->_instance.x);
+    rnwgpu::Logger::logToConsole("GPUOrigin2DDictStrict::y = %f",
+                                 result->_instance.y);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

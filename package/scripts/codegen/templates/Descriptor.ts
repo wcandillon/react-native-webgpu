@@ -2,6 +2,7 @@
 import type { InterfaceDeclaration, PropertySignature } from "ts-morph";
 
 import type { Union } from "./Unions";
+import { mergeParentInterfaces } from "./common";
 
 const enumMap: Record<string, string> = {
   GPUBufferUsageFlags: "BufferUsage",
@@ -25,12 +26,21 @@ const getNumber = (name: string, enumName: string | undefined) => {
 
 const getString = (name: string) => {
   return `if (${name}.isString()) {
-    auto str = value.asString(runtime).utf8(runtime);
-    result->_instance.${name} = str.c_str();
+    auto str = ${name}.asString(runtime).utf8(runtime);
+    result->${name} = str;
+    result->_instance.${name} = result->${name}.c_str();
 }`;
 };
 
 const enumsToSkip = ["GPUSize64"];
+
+const logProp = (
+  className: string,
+  prop: PropertySignature,
+  _unions: Union[],
+) => {
+  return `rnwgpu::Logger::logToConsole("${className}::${prop.getName()} = %f", result->_instance.${prop.getName()});`;
+};
 
 const propFromJSI = (
   className: string,
@@ -42,14 +52,26 @@ const propFromJSI = (
     .getType()
     .getUnionTypes()
     .some((t) => t.isUndefined());
+  const isBoolean = prop
+    .getType()
+    .getUnionTypes()
+    .some((t) => t.isBoolean());
+  const isNumber = prop
+    .getType()
+    .getUnionTypes()
+    .some((t) => t.isNumber());
+  const isString = prop
+    .getType()
+    .getUnionTypes()
+    .some((t) => t.isString());
   const enumLabel = prop.getTypeNode()?.getText();
   const isEnum =
     !!enumLabel?.startsWith("GPU") && !enumsToSkip.includes(enumLabel);
   return `if (value.hasProperty(runtime, "${name}")) {
   auto ${name} = value.getProperty(runtime, "${name}");
-  ${prop.getType().isBoolean() ? getBoolean(name) : ""}
-  ${prop.getType().isNumber() ? getNumber(name, isEnum ? prop.getTypeNode()?.getText() : undefined) : ""}
-  ${prop.getType().isString() ? getString(name) : ""}
+  ${isBoolean ? getBoolean(name) : ""}
+  ${isNumber ? getNumber(name, isEnum ? prop.getTypeNode()?.getText() : undefined) : ""}
+  ${isString ? getString(name) : ""}
   ${
     !isOptional
       ? `if (${name}.isUndefined()) {
@@ -67,21 +89,36 @@ const propFromJSI = (
 };
 
 export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
+  mergeParentInterfaces(decl);
   const name = decl.getName();
   const wgpuName = `wgpu::${name.substring(3)}`;
+  const propsToHold = decl
+    .getProperties()
+    .filter((prop) => {
+      return prop
+        .getType()
+        .getUnionTypes()
+        .some((t) => t.isString());
+    })
+    .map((prop) => {
+      return `std::string ${prop.getName()};`;
+    });
+  //decl.getType(
   return `#pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
 #include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class ${name} {
   public:
     ${wgpuName}* getInstance() {
@@ -89,6 +126,8 @@ class ${name} {
     }
 
     ${wgpuName} _instance;
+  
+    ${propsToHold.join("\n")}
 };
 } // namespace rnwgpu
 
@@ -108,9 +147,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
         })
         .join("\n")}
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for ${name}");
-    //}
+    ${decl
+      .getProperties()
+      .map((prop) => {
+        return logProp(name, prop, unions);
+      })
+      .join("\n")}
     return result;
   }
   static jsi::Value

@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUExternalTextureBindingLayout {
 public:
   wgpu::ExternalTextureBindingLayout *getInstance() { return &_instance; }
@@ -29,10 +31,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureBindingLayout>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUExternalTextureBindingLayout");
-    //}
+
     return result;
   }
   static jsi::Value

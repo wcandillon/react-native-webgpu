@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUVertexBufferLayout {
 public:
   wgpu::VertexBufferLayout *getInstance() { return &_instance; }
@@ -30,10 +32,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "arrayStride")) {
         auto arrayStride = value.getProperty(runtime, "arrayStride");
-
-        if (arrayStride.isNumber()) {
-          result->_instance.arrayStride = arrayStride.getNumber();
-        }
 
         if (arrayStride.isUndefined()) {
           throw std::runtime_error(
@@ -58,9 +56,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
             "Property GPUVertexBufferLayout::attributes is not defined");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for GPUVertexBufferLayout");
-    //}
+    rnwgpu::Logger::logToConsole("GPUVertexBufferLayout::arrayStride = %f",
+                                 result->_instance.arrayStride);
+    rnwgpu::Logger::logToConsole("GPUVertexBufferLayout::stepMode = %f",
+                                 result->_instance.stepMode);
+    rnwgpu::Logger::logToConsole("GPUVertexBufferLayout::attributes = %f",
+                                 result->_instance.attributes);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

@@ -1,16 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUTextureBindingLayout {
 public:
   wgpu::TextureBindingLayout *getInstance() { return &_instance; }
@@ -38,10 +40,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureBindingLayout>> {
         auto multisampled = value.getProperty(runtime, "multisampled");
       }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUTextureBindingLayout");
-    //}
+    rnwgpu::Logger::logToConsole("GPUTextureBindingLayout::sampleType = %f",
+                                 result->_instance.sampleType);
+    rnwgpu::Logger::logToConsole("GPUTextureBindingLayout::viewDimension = %f",
+                                 result->_instance.viewDimension);
+    rnwgpu::Logger::logToConsole("GPUTextureBindingLayout::multisampled = %f",
+                                 result->_instance.multisampled);
     return result;
   }
   static jsi::Value

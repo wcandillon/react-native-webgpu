@@ -1,21 +1,25 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include <RNFHybridObject.h>
-
+#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
+
 class GPUBindGroupDescriptor {
 public:
   wgpu::BindGroupDescriptor *getInstance() { return &_instance; }
 
   wgpu::BindGroupDescriptor _instance;
+
+  std::string label;
 };
 } // namespace rnwgpu
 
@@ -50,11 +54,22 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
         throw std::runtime_error(
             "Property GPUBindGroupDescriptor::entries is not defined");
       }
+      if (value.hasProperty(runtime, "label")) {
+        auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->label = str;
+          result->_instance.label = result->label.c_str();
+        }
+      }
     }
-    // else if () {
-    // throw std::runtime_error("Expected an object for
-    // GPUBindGroupDescriptor");
-    //}
+    rnwgpu::Logger::logToConsole("GPUBindGroupDescriptor::layout = %f",
+                                 result->_instance.layout);
+    rnwgpu::Logger::logToConsole("GPUBindGroupDescriptor::entries = %f",
+                                 result->_instance.entries);
+    rnwgpu::Logger::logToConsole("GPUBindGroupDescriptor::label = %f",
+                                 result->_instance.label);
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
