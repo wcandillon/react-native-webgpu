@@ -49,4 +49,10 @@ describe("Adapter", () => {
   //   });
   //   expect(result).toBe(true);
   // });
+  it("getPreferredCanvasFormat", async () => {
+    const result = await client.eval(({ gpu }) => {
+      return gpu.getPreferredCanvasFormat();
+    });
+    expect(result).toBe(client.OS === "android" ? "rgba8unorm" : "bgra8Unorm");
+  });
 });

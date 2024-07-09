@@ -5,7 +5,7 @@ import { Node, Project } from "ts-morph";
 
 import { getEnum } from "./templates/Enum";
 import { writeFile } from "./util";
-import { getHybridObject } from "./templates/HybridObject";
+//import { getHybridObject } from "./templates/HybridObject";
 import { getDescriptor } from "./templates/Descriptor";
 import type { Union } from "./templates/Unions";
 import { Unions } from "./templates/Unions";
@@ -119,8 +119,8 @@ sourceFile
       !decl.getName().endsWith("Base") &&
       decl.getProperty("__brand") !== undefined,
   )
-  .forEach((decl) => {
-    writeFile(decl.getName(), getHybridObject(decl), false);
+  .forEach((_decl) => {
+    //writeFile(decl.getName(), getHybridObject(decl), false);
   });
 
 // Descriptors

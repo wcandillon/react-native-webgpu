@@ -29,4 +29,12 @@ GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
   });
 }
 
+wgpu::TextureFormat GPU::getPreferredCanvasFormat() {
+#if defined(__ANDROID__)
+  return wgpu::TextureFormat::RGBA8Unorm;
+#else
+  return wgpu::TextureFormat::BGRA8Unorm;
+#endif  // defined(__ANDROID__)
+}
+
 } // namespace rnwgpu

@@ -14,6 +14,9 @@ const instanceAliases: Record<string, string> = {
 };
 
 const methodWhiteList = [
+  // GPU
+  "getPreferredCanvasFormat",
+  //
   "requestAdapter",
   "requestDevice",
   "createBuffer",
@@ -54,6 +57,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
 #include <string>
 #include <future>
 
+#include "Unions.h"
 #include <RNFHybridObject.h>
 
 #include "MutableBuffer.h"
