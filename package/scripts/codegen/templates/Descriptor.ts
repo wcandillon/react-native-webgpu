@@ -107,6 +107,7 @@ export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
   return `#pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
