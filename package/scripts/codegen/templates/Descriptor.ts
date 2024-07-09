@@ -27,7 +27,8 @@ const getNumber = (name: string, enumName: string | undefined) => {
 const getString = (name: string) => {
   return `if (${name}.isString()) {
     auto str = ${name}.asString(runtime).utf8(runtime);
-    result->_instance.${name} = str.c_str();
+    result->${name} = str;
+    result->_instance.${name} = result->${name}.c_str();
 }`;
 };
 
@@ -91,7 +92,17 @@ export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
   mergeParentInterfaces(decl);
   const name = decl.getName();
   const wgpuName = `wgpu::${name.substring(3)}`;
-
+  const propsToHold = decl
+    .getProperties()
+    .filter((prop) => {
+      return prop
+        .getType()
+        .getUnionTypes()
+        .some((t) => t.isString());
+    })
+    .map((prop) => {
+      return `std::string ${prop.getName()};`;
+    });
   //decl.getType(
   return `#pragma once
 
@@ -114,6 +125,8 @@ class ${name} {
     }
 
     ${wgpuName} _instance;
+  
+    ${propsToHold.join("\n")}
 };
 } // namespace rnwgpu
 

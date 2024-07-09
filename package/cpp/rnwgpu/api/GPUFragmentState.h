@@ -17,6 +17,8 @@ public:
   wgpu::FragmentState *getInstance() { return &_instance; }
 
   wgpu::FragmentState _instance;
+
+  std::string entryPoint;
 };
 } // namespace rnwgpu
 
@@ -55,7 +57,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
 
         if (entryPoint.isString()) {
           auto str = entryPoint.asString(runtime).utf8(runtime);
-          result->_instance.entryPoint = str.c_str();
+          result->entryPoint = str;
+          result->_instance.entryPoint = result->entryPoint.c_str();
         }
       }
       if (value.hasProperty(runtime, "constants")) {

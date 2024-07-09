@@ -17,6 +17,8 @@ public:
   wgpu::RenderPipelineDescriptor *getInstance() { return &_instance; }
 
   wgpu::RenderPipelineDescriptor _instance;
+
+  std::string label;
 };
 } // namespace rnwgpu
 
@@ -68,7 +70,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str;
+          result->_instance.label = result->label.c_str();
         }
       }
     }

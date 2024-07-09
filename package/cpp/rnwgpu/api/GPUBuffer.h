@@ -26,15 +26,10 @@ public:
                                                    std::optional<double> size) {
     auto aOffset = offset.value_or(0);
     auto aSize = size.value_or(WGPU_WHOLE_MAP_SIZE);
-    std::string label =
-        aDescriptor->label ? std::string(aDescriptor->label) : "";
     auto result = _instance->GetMappedRange(aOffset, aSize);
     return std::make_shared<MutableJSIBuffer>(result, _instance->GetSize());
   }
   void unmap() {
-
-    std::string label =
-        aDescriptor->label ? std::string(aDescriptor->label) : "";
     _instance->Unmap();
   }
 

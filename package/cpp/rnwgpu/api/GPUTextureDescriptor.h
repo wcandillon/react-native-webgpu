@@ -17,6 +17,8 @@ public:
   wgpu::TextureDescriptor *getInstance() { return &_instance; }
 
   wgpu::TextureDescriptor _instance;
+
+  std::string label;
 };
 } // namespace rnwgpu
 
@@ -88,7 +90,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str;
+          result->_instance.label = result->label.c_str();
         }
       }
     }

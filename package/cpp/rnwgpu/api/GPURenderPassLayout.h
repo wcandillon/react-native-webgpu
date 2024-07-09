@@ -17,6 +17,8 @@ public:
   wgpu::RenderPassLayout *getInstance() { return &_instance; }
 
   wgpu::RenderPassLayout _instance;
+
+  std::string label;
 };
 } // namespace rnwgpu
 
@@ -56,7 +58,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassLayout>> {
 
         if (label.isString()) {
           auto str = label.asString(runtime).utf8(runtime);
-          result->_instance.label = str.c_str();
+          result->label = str;
+          result->_instance.label = result->label.c_str();
         }
       }
     }
