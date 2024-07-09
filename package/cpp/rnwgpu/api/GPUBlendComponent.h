@@ -12,7 +12,6 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// TODO: Delete this class and use std::shared_ptr<wgpu::BlendComponent> instead
 class GPUBlendComponent {
 public:
   wgpu::BlendComponent *getInstance() { return &_instance; }

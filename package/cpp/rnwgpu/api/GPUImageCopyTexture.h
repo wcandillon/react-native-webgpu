@@ -12,8 +12,6 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// TODO: Delete this class and use std::shared_ptr<wgpu::ImageCopyTexture>
-// instead
 class GPUImageCopyTexture {
 public:
   wgpu::ImageCopyTexture *getInstance() { return &_instance; }

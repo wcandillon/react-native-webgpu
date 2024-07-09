@@ -12,8 +12,6 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// TODO: Delete this class and use std::shared_ptr<wgpu::ImageDataLayout>
-// instead
 class GPUImageDataLayout {
 public:
   wgpu::ImageDataLayout *getInstance() { return &_instance; }

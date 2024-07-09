@@ -12,8 +12,6 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// TODO: Delete this class and use std::shared_ptr<wgpu::ProgrammableStage>
-// instead
 class GPUProgrammableStage {
 public:
   wgpu::ProgrammableStage *getInstance() { return &_instance; }

@@ -12,7 +12,6 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// TODO: Delete this class and use std::shared_ptr<wgpu::FragmentState> instead
 class GPUFragmentState {
 public:
   wgpu::FragmentState *getInstance() { return &_instance; }

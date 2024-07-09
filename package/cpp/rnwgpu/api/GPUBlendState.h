@@ -12,7 +12,6 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// TODO: Delete this class and use std::shared_ptr<wgpu::BlendState> instead
 class GPUBlendState {
 public:
   wgpu::BlendState *getInstance() { return &_instance; }

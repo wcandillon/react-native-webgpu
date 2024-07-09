@@ -12,8 +12,6 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// TODO: Delete this class and use std::shared_ptr<wgpu::SamplerDescriptor>
-// instead
 class GPUSamplerDescriptor {
 public:
   wgpu::SamplerDescriptor *getInstance() { return &_instance; }

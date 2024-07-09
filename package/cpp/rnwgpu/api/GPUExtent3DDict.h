@@ -12,7 +12,6 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// TODO: Delete this class and use std::shared_ptr<wgpu::Extent3DDict> instead
 class GPUExtent3DDict {
 public:
   wgpu::Extent3DDict *getInstance() { return &_instance; }

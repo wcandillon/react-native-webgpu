@@ -12,8 +12,6 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// TODO: Delete this class and use std::shared_ptr<wgpu::RenderPassDescriptor>
-// instead
 class GPURenderPassDescriptor {
 public:
   wgpu::RenderPassDescriptor *getInstance() { return &_instance; }

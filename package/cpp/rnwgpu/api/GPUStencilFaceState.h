@@ -12,8 +12,6 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// TODO: Delete this class and use std::shared_ptr<wgpu::StencilFaceState>
-// instead
 class GPUStencilFaceState {
 public:
   wgpu::StencilFaceState *getInstance() { return &_instance; }

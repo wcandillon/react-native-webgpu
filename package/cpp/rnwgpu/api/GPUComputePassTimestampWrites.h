@@ -12,8 +12,6 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// TODO: Delete this class and use
-// std::shared_ptr<wgpu::ComputePassTimestampWrites> instead
 class GPUComputePassTimestampWrites {
 public:
   wgpu::ComputePassTimestampWrites *getInstance() { return &_instance; }

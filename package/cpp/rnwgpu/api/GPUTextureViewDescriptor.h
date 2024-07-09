@@ -12,8 +12,6 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// TODO: Delete this class and use std::shared_ptr<wgpu::TextureViewDescriptor>
-// instead
 class GPUTextureViewDescriptor {
 public:
   wgpu::TextureViewDescriptor *getInstance() { return &_instance; }

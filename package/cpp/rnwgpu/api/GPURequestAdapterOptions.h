@@ -12,8 +12,6 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// TODO: Delete this class and use std::shared_ptr<wgpu::RequestAdapterOptions>
-// instead
 class GPURequestAdapterOptions {
 public:
   wgpu::RequestAdapterOptions *getInstance() { return &_instance; }

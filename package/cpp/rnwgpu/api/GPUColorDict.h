@@ -12,7 +12,6 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// TODO: Delete this class and use std::shared_ptr<wgpu::ColorDict> instead
 class GPUColorDict {
 public:
   wgpu::ColorDict *getInstance() { return &_instance; }
