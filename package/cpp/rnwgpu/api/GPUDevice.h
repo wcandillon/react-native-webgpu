@@ -26,18 +26,14 @@ public:
   std::string getBrand() { return _name; }
 
   std::shared_ptr<GPUBuffer>
-  createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
-    auto aDescriptor = descriptor->getInstance();
-    auto result = _instance->CreateBuffer(aDescriptor);
-    return std::make_shared<GPUBuffer>(std::make_shared<wgpu::Buffer>(result),
-                                       descriptor->label);
-  }
+  createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor);
 
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUDevice::getBrand, this);
     registerHybridMethod("createBuffer", &GPUDevice::createBuffer, this);
+
     registerHybridGetter("label", &GPUDevice::getLabel, this);
   }
 

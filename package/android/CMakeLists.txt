@@ -27,6 +27,8 @@ add_library(${PACKAGE_NAME} SHARED
     ./cpp/cpp-adapter.cpp
     ../cpp/rnwgpu/api/GPU.cpp
     ../cpp/rnwgpu/api/GPUAdapter.cpp
+    ../cpp/rnwgpu/api/GPUDevice.cpp
+    ../cpp/rnwgpu/api/GPUBuffer.cpp
     ../cpp/rnwgpu/RNWebGPUManager.cpp
     ../cpp/jsi/RNFPromise.cpp
     ../cpp/jsi/RNFHybridObject.cpp
