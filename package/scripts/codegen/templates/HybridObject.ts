@@ -68,7 +68,7 @@ namespace m = margelo;
 
 class ${name} : public m::HybridObject {
 public:
-  explicit ${name}(std::shared_ptr<${instanceName}> instance${labelCtrArg}) : HybridObject("${name}"), _instance(instance)${labelCtrInit} {}
+  explicit ${name}(${instanceName} instance${labelCtrArg}) : HybridObject("${name}"), _instance(instance)${labelCtrInit} {}
 
 public:
   std::string getBrand() { return _name; }
@@ -109,7 +109,7 @@ public:
   }
 
 private:
-  std::shared_ptr<${instanceName}> _instance;
+  ${instanceName} _instance;
   ${hasLabel ? "std::string _label;" : ""}
 };
 } // namespace rnwgpu`;

@@ -16,7 +16,7 @@ namespace m = margelo;
 
 class GPUCanvasContext : public m::HybridObject {
 public:
-  explicit GPUCanvasContext(std::shared_ptr<wgpu::CanvasContext> instance)
+  explicit GPUCanvasContext(wgpu::CanvasContext instance)
       : HybridObject("GPUCanvasContext"), _instance(instance) {}
 
 public:
@@ -27,6 +27,6 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::CanvasContext> _instance;
+  wgpu::CanvasContext _instance;
 };
 } // namespace rnwgpu

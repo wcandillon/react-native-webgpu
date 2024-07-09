@@ -16,7 +16,7 @@ namespace m = margelo;
 
 class GPUBuffer : public m::HybridObject {
 public:
-  explicit GPUBuffer(std::shared_ptr<wgpu::Buffer> instance, std::string label)
+  explicit GPUBuffer(wgpu::Buffer instance, std::string label)
       : HybridObject("GPUBuffer"), _instance(instance), _label(label) {}
 
 public:
@@ -37,7 +37,7 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::Buffer> _instance;
+  wgpu::Buffer _instance;
   std::string _label;
 };
 } // namespace rnwgpu

@@ -16,7 +16,7 @@ namespace m = margelo;
 
 class GPUDeviceLostInfo : public m::HybridObject {
 public:
-  explicit GPUDeviceLostInfo(std::shared_ptr<wgpu::DeviceLostInfo> instance)
+  explicit GPUDeviceLostInfo(wgpu::DeviceLostInfo instance)
       : HybridObject("GPUDeviceLostInfo"), _instance(instance) {}
 
 public:
@@ -27,6 +27,6 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::DeviceLostInfo> _instance;
+  wgpu::DeviceLostInfo _instance;
 };
 } // namespace rnwgpu

@@ -16,8 +16,7 @@ namespace m = margelo;
 
 class GPUUncapturedErrorEvent : public m::HybridObject {
 public:
-  explicit GPUUncapturedErrorEvent(
-      std::shared_ptr<wgpu::UncapturedErrorEvent> instance)
+  explicit GPUUncapturedErrorEvent(wgpu::UncapturedErrorEvent instance)
       : HybridObject("GPUUncapturedErrorEvent"), _instance(instance) {}
 
 public:
@@ -28,6 +27,6 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::UncapturedErrorEvent> _instance;
+  wgpu::UncapturedErrorEvent _instance;
 };
 } // namespace rnwgpu

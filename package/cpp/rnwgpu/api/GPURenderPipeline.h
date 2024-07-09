@@ -16,8 +16,7 @@ namespace m = margelo;
 
 class GPURenderPipeline : public m::HybridObject {
 public:
-  explicit GPURenderPipeline(std::shared_ptr<wgpu::RenderPipeline> instance,
-                             std::string label)
+  explicit GPURenderPipeline(wgpu::RenderPipeline instance, std::string label)
       : HybridObject("GPURenderPipeline"), _instance(instance), _label(label) {}
 
 public:
@@ -32,7 +31,7 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::RenderPipeline> _instance;
+  wgpu::RenderPipeline _instance;
   std::string _label;
 };
 } // namespace rnwgpu

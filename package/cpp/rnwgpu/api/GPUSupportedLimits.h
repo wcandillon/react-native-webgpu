@@ -16,7 +16,7 @@ namespace m = margelo;
 
 class GPUSupportedLimits : public m::HybridObject {
 public:
-  explicit GPUSupportedLimits(std::shared_ptr<wgpu::SupportedLimits> instance)
+  explicit GPUSupportedLimits(wgpu::SupportedLimits instance)
       : HybridObject("GPUSupportedLimits"), _instance(instance) {}
 
 public:
@@ -27,6 +27,6 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::SupportedLimits> _instance;
+  wgpu::SupportedLimits _instance;
 };
 } // namespace rnwgpu

@@ -16,8 +16,7 @@ namespace m = margelo;
 
 class GPURenderBundle : public m::HybridObject {
 public:
-  explicit GPURenderBundle(std::shared_ptr<wgpu::RenderBundle> instance,
-                           std::string label)
+  explicit GPURenderBundle(wgpu::RenderBundle instance, std::string label)
       : HybridObject("GPURenderBundle"), _instance(instance), _label(label) {}
 
 public:
@@ -32,7 +31,7 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::RenderBundle> _instance;
+  wgpu::RenderBundle _instance;
   std::string _label;
 };
 } // namespace rnwgpu

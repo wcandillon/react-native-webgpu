@@ -16,8 +16,7 @@ namespace m = margelo;
 
 class GPUExternalTexture : public m::HybridObject {
 public:
-  explicit GPUExternalTexture(std::shared_ptr<wgpu::ExternalTexture> instance,
-                              std::string label)
+  explicit GPUExternalTexture(wgpu::ExternalTexture instance, std::string label)
       : HybridObject("GPUExternalTexture"), _instance(instance), _label(label) {
   }
 
@@ -33,7 +32,7 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::ExternalTexture> _instance;
+  wgpu::ExternalTexture _instance;
   std::string _label;
 };
 } // namespace rnwgpu

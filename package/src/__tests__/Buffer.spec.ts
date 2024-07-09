@@ -29,7 +29,7 @@ describe("Buffer", () => {
   //     new Float32Array(
   //       verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
   //     ).set(cubeVertexArray);
-  //     // verticesBuffer.unmap();
+  //     verticesBuffer.unmap();
   //     return !!verticesBuffer;
   //   });
   //   expect(result).toBe(true);

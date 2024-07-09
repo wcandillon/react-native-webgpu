@@ -19,7 +19,7 @@ namespace m = margelo;
 
 class GPUAdapter : public m::HybridObject {
 public:
-  explicit GPUAdapter(std::shared_ptr<wgpu::Adapter> instance)
+  explicit GPUAdapter(wgpu::Adapter instance)
       : HybridObject("GPUAdapter"), _instance(instance) {}
 
 public:
@@ -34,6 +34,6 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::Adapter> _instance;
+  wgpu::Adapter _instance;
 };
 } // namespace rnwgpu

@@ -16,8 +16,7 @@ namespace m = margelo;
 
 class GPUCommandEncoder : public m::HybridObject {
 public:
-  explicit GPUCommandEncoder(std::shared_ptr<wgpu::CommandEncoder> instance,
-                             std::string label)
+  explicit GPUCommandEncoder(wgpu::CommandEncoder instance, std::string label)
       : HybridObject("GPUCommandEncoder"), _instance(instance), _label(label) {}
 
 public:
@@ -32,7 +31,7 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::CommandEncoder> _instance;
+  wgpu::CommandEncoder _instance;
   std::string _label;
 };
 } // namespace rnwgpu

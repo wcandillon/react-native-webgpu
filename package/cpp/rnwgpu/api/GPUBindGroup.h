@@ -16,8 +16,7 @@ namespace m = margelo;
 
 class GPUBindGroup : public m::HybridObject {
 public:
-  explicit GPUBindGroup(std::shared_ptr<wgpu::BindGroup> instance,
-                        std::string label)
+  explicit GPUBindGroup(wgpu::BindGroup instance, std::string label)
       : HybridObject("GPUBindGroup"), _instance(instance), _label(label) {}
 
 public:
@@ -32,7 +31,7 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::BindGroup> _instance;
+  wgpu::BindGroup _instance;
   std::string _label;
 };
 } // namespace rnwgpu

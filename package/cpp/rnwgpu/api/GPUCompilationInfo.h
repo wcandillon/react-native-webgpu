@@ -16,7 +16,7 @@ namespace m = margelo;
 
 class GPUCompilationInfo : public m::HybridObject {
 public:
-  explicit GPUCompilationInfo(std::shared_ptr<wgpu::CompilationInfo> instance)
+  explicit GPUCompilationInfo(wgpu::CompilationInfo instance)
       : HybridObject("GPUCompilationInfo"), _instance(instance) {}
 
 public:
@@ -27,6 +27,6 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::CompilationInfo> _instance;
+  wgpu::CompilationInfo _instance;
 };
 } // namespace rnwgpu
