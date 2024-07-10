@@ -2,12 +2,9 @@
 import type { InterfaceDeclaration } from "ts-morph";
 import _ from "lodash";
 
-import {
-  getJSIMethod,
-  getJSIProp,
-  mergeParentInterfaces,
-  wrapType,
-} from "./common";
+import { resolveMethod } from "../model/model";
+
+import { getJSIProp, mergeParentInterfaces, wrapType } from "./common";
 
 const instanceAliases: Record<string, string> = {
   GPU: "Instance",
@@ -34,8 +31,8 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
   const name = decl.getName();
   const methods = decl
     .getMethods()
-    .map((m) => getJSIMethod(name, m))
-    .filter((m) => methodWhiteList.includes(m.name));
+    .filter((m) => methodWhiteList.includes(m.getName()))
+    .map((m) => resolveMethod(m));
   const properties = decl
     .getProperties()
     .filter(
@@ -77,20 +74,13 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  ${methods
-    .filter((method) => method.async)
-    .map((method) => {
-      return `std::future<${wrapType(method.returns)}> ${method.name}(${method.args.map((a) => `${wrapType(a.type)} ${a.name}`).join(", ")});`;
-    })
-    .join("\n")}
 
   ${methods
-    .filter((method) => !method.async)
     .map((method) => {
       const isUndefined = method.returns === "undefined";
       const returnType = isUndefined ? "void" : wrapType(method.returns);
       const args = method.args
-        .map((a) => `${wrapType(a.type, a.optional)} ${a.name}`)
+        .map((arg) => `${arg.type} ${arg.name}`)
         .join(", ");
       return `${returnType} ${method.name}(${args});`;
     })

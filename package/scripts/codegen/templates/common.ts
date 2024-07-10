@@ -1,13 +1,6 @@
 import _ from "lodash";
-import type {
-  MethodSignature,
-  PropertySignature,
-  Type,
-  InterfaceDeclaration,
-} from "ts-morph";
+import type { PropertySignature, Type, InterfaceDeclaration } from "ts-morph";
 import { SyntaxKind } from "ts-morph";
-
-import { getModelMethod } from "./model";
 
 export const mergeParentInterfaces = (interfaceDecl: InterfaceDeclaration) => {
   if (interfaceDecl.getKind() !== SyntaxKind.InterfaceDeclaration) {
@@ -49,69 +42,6 @@ export const getJSIProp = (method: PropertySignature) => {
   const name = method.getName();
   const { type, dependencies } = getType(method.getType());
   return { name, type, dependencies };
-};
-
-interface JsiMethod {
-  async: boolean;
-  name: string;
-  apiName: string;
-  dependencies: string[];
-  args: {
-    name: string;
-    type: string;
-    optional: boolean;
-    defaultValue: string | undefined;
-  }[];
-  argNames: string[];
-  returns: string;
-  wgpuReturns: string;
-}
-
-export const getJSIMethod = (
-  className: string,
-  method: MethodSignature,
-): JsiMethod => {
-  const async = method.getReturnType().getSymbol()?.getName() === "Promise";
-  const name = method.getName();
-  const apiName = _.upperFirst(name);
-  const { dependencies } = getType(method.getReturnType()!);
-  const model = getModelMethod(className, method);
-  const { returns } = model;
-  const args: {
-    name: string;
-    type: string;
-    optional: boolean;
-    defaultValue: undefined | string;
-  }[] = method.getParameters().map((p) => {
-    const { type, dependencies: deps } = getType(p.getType());
-    dependencies.push(...deps);
-    const modelArg = model.args.find(
-      ({ name: argName }: { name: string }) =>
-        argName === getModelName(p.getName()),
-    );
-    const defaultValue = modelArg?.default;
-    return {
-      type,
-      name: p.getName(),
-      optional: p.isOptional(),
-      defaultValue,
-    };
-  });
-  const argNames: string[] = method
-    .getParameters()
-    .map((p) => `${p.getName()}`);
-  return {
-    async,
-    apiName,
-    name,
-    dependencies,
-    args,
-    argNames,
-    returns,
-    wgpuReturns: returns.startsWith("GPU")
-      ? `wgpu::${returns.substring(3)}`
-      : returns,
-  };
 };
 
 const getType = (

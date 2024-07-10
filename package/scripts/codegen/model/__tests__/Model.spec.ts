@@ -1,5 +1,4 @@
 import * as path from "path";
-import exp from "constants";
 
 import type { SourceFile } from "ts-morph";
 import { Project } from "ts-morph";

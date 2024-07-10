@@ -11,6 +11,7 @@ const hasPropery = <O, T extends string>(
 };
 
 interface NativeMethod {
+  dependencies: string[];
   name: string;
   args: {
     name: string;
@@ -26,6 +27,7 @@ const resolved: Record<string, { methods: NativeMethod[] }> = {
         name: "getPreferredCanvasFormat",
         returns: "wgpu::TextureFormat",
         args: [],
+        dependencies: [],
       },
       {
         name: "requestAdapter",
@@ -36,6 +38,7 @@ const resolved: Record<string, { methods: NativeMethod[] }> = {
           },
         ],
         returns: "std::future<std::shared_ptr<GPUAdapter>>",
+        dependencies: ["GPURequestAdapterOptions", "GPUAdapter"]
       },
     ],
   },
@@ -50,6 +53,7 @@ const resolved: Record<string, { methods: NativeMethod[] }> = {
           },
         ],
         returns: "std::future<std::shared_ptr<GPUDevice>>",
+        dependencies: ["GPUDeviceDescriptor", "GPUDevice"]
       },
     ],
   }
@@ -60,14 +64,18 @@ const aliases: Record<string, string> = {
   GPUCanvasContext: "surface",
 };
 
-const toNativeName = (name: string, sharedPtr = false) => {
+const toNativeName = (name: string, dependencies?: string[]) => {
   const base = `wgpu::${_.upperFirst(_.camelCase(name))}`;
-  return sharedPtr
-    ? `std::shared_ptr<GPU${_.upperFirst(_.camelCase(name))}>`
+  const depName = `GPU${_.upperFirst(_.camelCase(name))}`;
+  if (dependencies) {
+    dependencies.push(depName);
+  }
+  return dependencies
+    ? `std::shared_ptr<${depName}>`
     : base;
 };
 
-const resolveRequiredType = (name: keyof typeof dawn) => {
+const resolveRequiredType = (name: keyof typeof dawn, dependencies: string[]) => {
   const type = dawn[name];
   if (!hasPropery(type, "category")) {
     return "void";
@@ -81,11 +89,11 @@ const resolveRequiredType = (name: keyof typeof dawn) => {
   if (type.category === "enum") {
     return toNativeName(name);
   }
-  return toNativeName(name, true);
+  return toNativeName(name, dependencies);
 };
 
-const resolveType = (name: keyof typeof dawn, optional = false) => {
-  const type = resolveRequiredType(name);
+const resolveType = (name: keyof typeof dawn, dependencies: string[], optional = false) => {
+  const type = resolveRequiredType(name, dependencies);
   if (optional) {
     return `std::optional<${type}>`;
   }
@@ -136,13 +144,18 @@ export const resolveMethod = (methodSignature: MethodSignature) => {
       `No model method found for ${className}: ${methodModelName}`,
     );
   }
+  const dependencies: string[] = [];
+  const returns = resolveType(modelMethod.returns as keyof typeof dawn, dependencies)
+  const args = (hasPropery(modelMethod, "args") ? modelMethod.args : []).map(
+    ({ name, type }) => ({
+      name,
+      type: resolveType(type as keyof typeof dawn, dependencies, methodSignature.getParameter(name)?.isOptional()),
+    }),
+  )
   return {
-    args: (hasPropery(modelMethod, "args") ? modelMethod.args : []).map(
-      ({ name, type }) => ({
-        name,
-        type: resolveType(type as keyof typeof dawn, methodSignature.getParameter(name)?.isOptional()),
-      }),
-    ),
-    returns: resolveType(modelMethod.returns as keyof typeof dawn),
+    dependencies,
+    name: methodName,
+    args,
+    returns,
   };
 };
