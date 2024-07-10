@@ -57,7 +57,11 @@ export const Tests = () => {
               client.send(JSON.stringify(r));
             });
           } else {
-            client.send(JSON.stringify(result));
+            client.send(
+              JSON.stringify(result, (_, v) =>
+                typeof v === "bigint" ? v.toString() : v,
+              ),
+            );
           }
         }
       };
