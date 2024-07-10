@@ -3,8 +3,8 @@
 namespace rnwgpu {
 
 std::shared_ptr<MutableJSIBuffer>
-GPUBuffer::getMappedRange(std::optional<double> offset,
-                          std::optional<double> size) {
+GPUBuffer::getMappedRange(std::optional<size_t> offset,
+                          std::optional<size_t> size) {
   auto aOffset = offset.value_or(0);
   auto aSize = size.value_or(WGPU_WHOLE_MAP_SIZE);
   auto result = _instance.GetMappedRange(aOffset, aSize);

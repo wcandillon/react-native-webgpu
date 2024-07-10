@@ -23,8 +23,8 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<MutableJSIBuffer> getMappedRange(std::optional<double> offset,
-                                                   std::optional<double> size);
+  std::shared_ptr<MutableJSIBuffer> getMappedRange(std::optional<size_t> offset,
+                                                   std::optional<size_t> size);
   void unmap();
 
   std::string getLabel() { return _label; }
