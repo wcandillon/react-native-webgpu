@@ -34,7 +34,7 @@ wgpu::TextureFormat GPU::getPreferredCanvasFormat() {
   return wgpu::TextureFormat::RGBA8Unorm;
 #else
   return wgpu::TextureFormat::BGRA8Unorm;
-#endif  // defined(__ANDROID__)
+#endif // defined(__ANDROID__)
 }
 
 } // namespace rnwgpu

@@ -7,9 +7,10 @@
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "MutableBuffer.h"
+
 #include "webgpu/webgpu_cpp.h"
 
-#include "MutableBuffer.h"
 #include "GPUAdapter.h"
 #include "GPURequestAdapterOptions.h"
 
