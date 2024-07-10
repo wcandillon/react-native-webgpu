@@ -49,14 +49,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wcandillon/react-native-wgpu.git"
+    "url": "git+https://github.com/wcandillon/react-native-webgpu.git"
   },
   "author": "William Candillon <wcandillon@gmail.com> (https://github.com/wcandillon)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/wcandillon/react-native-wgpu/issues"
+    "url": "https://github.com/wcandillon/react-native-webgpu/issues"
   },
-  "homepage": "https://github.com/wcandillon/react-native-wgpu#readme",
+  "homepage": "https://github.com/wcandillon/react-native-webgpu#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },

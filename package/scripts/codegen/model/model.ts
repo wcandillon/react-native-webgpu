@@ -1,62 +1,17 @@
 import _ from "lodash";
-import type { InterfaceDeclaration, MethodSignature } from "ts-morph";
+import type {
+  InterfaceDeclaration,
+  MethodSignature,
+  PropertySignature,
+} from "ts-morph";
 
-import { dawn } from "./dawn";
+import { dawn, resolved } from "./dawn";
 
 const hasPropery = <O, T extends string>(
   object: unknown,
   property: T,
 ): object is O & Record<T, unknown> => {
   return typeof object === "object" && object !== null && property in object;
-};
-
-interface NativeMethod {
-  dependencies: string[];
-  name: string;
-  args: {
-    name: string;
-    type: string;
-  }[];
-  returns: string;
-}
-
-const resolved: Record<string, { methods: NativeMethod[] }> = {
-  GPU: {
-    methods: [
-      {
-        name: "getPreferredCanvasFormat",
-        returns: "wgpu::TextureFormat",
-        args: [],
-        dependencies: [],
-      },
-      {
-        name: "requestAdapter",
-        args: [
-          {
-            name: "options",
-            type: "std::shared_ptr<GPURequestAdapterOptions>",
-          },
-        ],
-        returns: "std::future<std::shared_ptr<GPUAdapter>>",
-        dependencies: ["GPURequestAdapterOptions", "GPUAdapter"],
-      },
-    ],
-  },
-  GPUAdapter: {
-    methods: [
-      {
-        name: "requestDevice",
-        args: [
-          {
-            name: "options",
-            type: "std::shared_ptr<GPUDeviceDescriptor>",
-          },
-        ],
-        returns: "std::future<std::shared_ptr<GPUDevice>>",
-        dependencies: ["GPUDeviceDescriptor", "GPUDevice"],
-      },
-    ],
-  },
 };
 
 const aliases: Record<string, string> = {
@@ -172,4 +127,34 @@ export const resolveMethod = (methodSignature: MethodSignature) => {
     args,
     returns,
   };
+};
+
+export const resolveProperty = (propertySignature: PropertySignature) => {
+  const className = (
+    propertySignature.getParent() as InterfaceDeclaration
+  ).getName();
+  const propertyName = propertySignature.getName();
+  // If we have it resolved already, return it
+  if (resolved[className]) {
+    const property = resolved[className].properties.find(
+      ({ name }: { name: string }) => {
+        const result = name === propertyName;
+        return result;
+      },
+    );
+    if (property) {
+      return property;
+    }
+  }
+  const propertyModelName = getModelName(propertyName);
+  //const classMethodName = getModelName(className);
+
+  //const native = dawn[classMethodName as keyof typeof dawn];
+  throw new Error(
+    `No native method found for ${className}: ${propertyModelName}`,
+  );
+};
+
+export const resolveExtra = (className: string) => {
+  return resolved[className]?.extra ?? "";
 };

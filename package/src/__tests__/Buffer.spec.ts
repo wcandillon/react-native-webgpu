@@ -18,6 +18,17 @@ describe("Buffer", () => {
     });
     expect(result).toEqual(["", "verticesBuffer"]);
   });
+  it("metadata", async () => {
+    const result = await client.eval(({ device, cubeVertexArray }) => {
+      const buffer = device.createBuffer({
+        size: cubeVertexArray.byteLength,
+        usage: GPUBufferUsage.VERTEX,
+        mappedAtCreation: true,
+      });
+      return [buffer.label, buffer.size, buffer.usage, buffer.mapState];
+    });
+    expect(result).toEqual(["", 1440, 32, "mapped"]);
+  });
   // it("upload data", async () => {
   //   const result = await client.eval(({ device, cubeVertexArray }) => {
   //     const verticesBuffer = device.createBuffer({
