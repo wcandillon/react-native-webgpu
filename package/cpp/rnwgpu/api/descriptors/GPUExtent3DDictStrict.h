@@ -44,6 +44,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDictStrict>> {
       if (value.hasProperty(runtime, "width")) {
         auto width = value.getProperty(runtime, "width");
 
+        if (width.isNumber()) {
+          result->_instance.width =
+              static_cast<wgpu::IntegerCoordinate>(width.getNumber());
+        }
+
         if (width.isUndefined()) {
           throw std::runtime_error(
               "Property GPUExtent3DDictStrict::width is required");

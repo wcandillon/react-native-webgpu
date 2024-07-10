@@ -46,6 +46,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
       if (value.hasProperty(runtime, "count")) {
         auto count = value.getProperty(runtime, "count");
 
+        if (count.isNumber()) {
+          result->_instance.count =
+              static_cast<wgpu::Size32>(count.getNumber());
+        }
+
         if (count.isUndefined()) {
           throw std::runtime_error(
               "Property GPUQuerySetDescriptor::count is required");

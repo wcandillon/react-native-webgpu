@@ -35,6 +35,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBindingLayout>> {
       }
       if (value.hasProperty(runtime, "hasDynamicOffset")) {
         auto hasDynamicOffset = value.getProperty(runtime, "hasDynamicOffset");
+        if (hasDynamicOffset.isBool()) {
+          result->_instance.hasDynamicOffset = hasDynamicOffset.getBool();
+        }
       }
       if (value.hasProperty(runtime, "minBindingSize")) {
         auto minBindingSize = value.getProperty(runtime, "minBindingSize");

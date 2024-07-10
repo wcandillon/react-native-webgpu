@@ -43,6 +43,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
       if (value.hasProperty(runtime, "offset")) {
         auto offset = value.getProperty(runtime, "offset");
 
+        if (offset.isNumber()) {
+          result->_instance.offset = offset.getNumber();
+        }
+
         if (offset.isUndefined()) {
           throw std::runtime_error(
               "Property GPUVertexAttribute::offset is required");
@@ -53,6 +57,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
       }
       if (value.hasProperty(runtime, "shaderLocation")) {
         auto shaderLocation = value.getProperty(runtime, "shaderLocation");
+
+        if (shaderLocation.isNumber()) {
+          result->_instance.shaderLocation =
+              static_cast<wgpu::Index32>(shaderLocation.getNumber());
+        }
 
         if (shaderLocation.isUndefined()) {
           throw std::runtime_error(

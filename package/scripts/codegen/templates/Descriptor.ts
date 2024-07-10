@@ -52,18 +52,27 @@ const propFromJSI = (
     .getType()
     .getUnionTypes()
     .some((t) => t.isUndefined());
-  const isBoolean = prop
-    .getType()
-    .getUnionTypes()
-    .some((t) => t.isBoolean());
-  const isNumber = prop
-    .getType()
-    .getUnionTypes()
-    .some((t) => t.isNumber());
-  const isString = prop
-    .getType()
-    .getUnionTypes()
-    .some((t) => t.isString());
+  const isBoolean =
+    prop.getType().isBoolean() ||
+    prop
+      .getType()
+      .getUnionTypes()
+      .some(
+        (t) =>
+          t.isBoolean() || t.getText() === "false" || t.getText() === "true",
+      );
+  const isNumber =
+    prop.getType().isNumber() ||
+    prop
+      .getType()
+      .getUnionTypes()
+      .some((t) => t.isNumber());
+  const isString =
+    prop.getType().isString() ||
+    prop
+      .getType()
+      .getUnionTypes()
+      .some((t) => t.isString());
   const enumLabel = prop.getTypeNode()?.getText();
   const isEnum =
     !!enumLabel?.startsWith("GPU") && !enumsToSkip.includes(enumLabel);
@@ -72,6 +81,15 @@ const propFromJSI = (
   ${isBoolean ? getBoolean(name) : ""}
   ${isNumber ? getNumber(name, isEnum ? prop.getTypeNode()?.getText() : undefined) : ""}
   ${isString ? getString(name) : ""}
+  ${
+    // !isBoolean && !isNumber && !isString && !isOptional
+    //   ? (() => {
+    //       console.log(prop.getText());
+    //       return "";
+    //     })()
+    //   : ""
+    ""
+  }
   ${
     !isOptional
       ? `if (${name}.isUndefined()) {

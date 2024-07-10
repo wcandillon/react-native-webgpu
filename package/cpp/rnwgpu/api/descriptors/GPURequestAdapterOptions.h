@@ -36,6 +36,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
       if (value.hasProperty(runtime, "forceFallbackAdapter")) {
         auto forceFallbackAdapter =
             value.getProperty(runtime, "forceFallbackAdapter");
+        if (forceFallbackAdapter.isBool()) {
+          result->_instance.forceFallbackAdapter =
+              forceFallbackAdapter.getBool();
+        }
       }
     }
     rnwgpu::Logger::logToConsole(

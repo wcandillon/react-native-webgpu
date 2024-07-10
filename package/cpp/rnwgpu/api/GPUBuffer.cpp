@@ -32,7 +32,9 @@ void GPUBuffer::unmap() { _instance.Unmap(); }
 
 size_t GPUBuffer::getSize() { return _instance.GetSize(); }
 
-double GPUBuffer::getUsage() { return static_cast<double>(_instance.GetUsage()); }
+double GPUBuffer::getUsage() {
+  return static_cast<double>(_instance.GetUsage());
+}
 
 wgpu::BufferMapState GPUBuffer::getMapState() {
   return _instance.GetMapState();

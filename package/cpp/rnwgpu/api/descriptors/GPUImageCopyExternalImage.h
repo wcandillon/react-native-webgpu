@@ -46,6 +46,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
       }
       if (value.hasProperty(runtime, "flipY")) {
         auto flipY = value.getProperty(runtime, "flipY");
+        if (flipY.isBool()) {
+          result->_instance.flipY = flipY.getBool();
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUImageCopyExternalImage::source = %f",

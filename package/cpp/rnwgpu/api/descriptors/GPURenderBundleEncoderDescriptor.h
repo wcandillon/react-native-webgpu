@@ -34,9 +34,15 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "depthReadOnly")) {
         auto depthReadOnly = value.getProperty(runtime, "depthReadOnly");
+        if (depthReadOnly.isBool()) {
+          result->_instance.depthReadOnly = depthReadOnly.getBool();
+        }
       }
       if (value.hasProperty(runtime, "stencilReadOnly")) {
         auto stencilReadOnly = value.getProperty(runtime, "stencilReadOnly");
+        if (stencilReadOnly.isBool()) {
+          result->_instance.stencilReadOnly = stencilReadOnly.getBool();
+        }
       }
       if (value.hasProperty(runtime, "colorFormats")) {
         auto colorFormats = value.getProperty(runtime, "colorFormats");
