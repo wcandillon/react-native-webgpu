@@ -29,7 +29,7 @@ describe("Buffer", () => {
     });
     expect(result).toEqual(["", 1440, 32, "mapped"]);
   });
-  it("upload data", async () => {
+  it("upload data (1)", async () => {
     const result = await client.eval(({ device, cubeVertexArray }) => {
       const verticesBuffer = device.createBuffer({
         size: cubeVertexArray.byteLength,
@@ -43,6 +43,21 @@ describe("Buffer", () => {
     });
     expect(result).toBe(true);
   });
-  // new Float32Array(verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength)).set(cubeVertexArray);
-  //
+
+  it("upload data (2)", async () => {
+    const result = await client.eval(({ device, cubeVertexArray }) => {
+      const verticesBuffer = device.createBuffer({
+        size: cubeVertexArray.byteLength,
+        usage: GPUBufferUsage.VERTEX,
+        mappedAtCreation: true,
+        label: "verticesBuffer",
+      });
+      new Float32Array(
+        verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
+      ).set(cubeVertexArray);
+      verticesBuffer.unmap();
+      return !!verticesBuffer;
+    });
+    expect(result).toBe(true);
+  });
 });
