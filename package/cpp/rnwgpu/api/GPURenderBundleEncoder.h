@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "Unions.h"
 #include <RNFHybridObject.h>
 
 #include "MutableBuffer.h"
@@ -16,8 +17,8 @@ namespace m = margelo;
 
 class GPURenderBundleEncoder : public m::HybridObject {
 public:
-  explicit GPURenderBundleEncoder(
-      std::shared_ptr<wgpu::RenderBundleEncoder> instance, std::string label)
+  explicit GPURenderBundleEncoder(wgpu::RenderBundleEncoder instance,
+                                  std::string label)
       : HybridObject("GPURenderBundleEncoder"), _instance(instance),
         _label(label) {}
 
@@ -33,7 +34,7 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::RenderBundleEncoder> _instance;
+  wgpu::RenderBundleEncoder _instance;
   std::string _label;
 };
 } // namespace rnwgpu

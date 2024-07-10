@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "Unions.h"
 #include <RNFHybridObject.h>
 
 #include "MutableBuffer.h"
@@ -16,8 +17,7 @@ namespace m = margelo;
 
 class GPUBindGroupLayout : public m::HybridObject {
 public:
-  explicit GPUBindGroupLayout(std::shared_ptr<wgpu::BindGroupLayout> instance,
-                              std::string label)
+  explicit GPUBindGroupLayout(wgpu::BindGroupLayout instance, std::string label)
       : HybridObject("GPUBindGroupLayout"), _instance(instance), _label(label) {
   }
 
@@ -33,7 +33,7 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::BindGroupLayout> _instance;
+  wgpu::BindGroupLayout _instance;
   std::string _label;
 };
 } // namespace rnwgpu

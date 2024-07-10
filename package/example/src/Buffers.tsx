@@ -5,6 +5,7 @@ import { gpu } from "react-native-webgpu";
 import { cubeVertexArray } from "./components/cube";
 
 const demo = async () => {
+  console.log(gpu.getPreferredCanvasFormat());
   const adapter = await gpu.requestAdapter(undefined);
   if (!adapter) {
     throw new Error("No adapter");

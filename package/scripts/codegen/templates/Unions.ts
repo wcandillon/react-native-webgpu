@@ -8,11 +8,14 @@ export interface Union {
 export const Unions = (unions: Union[]) => {
   return `#pragma once
 
+#include <string>
+
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "RNFEnumMapper.h"
 
 namespace margelo {
+namespace EnumMapper {
 
 ${unions
   .filter(
@@ -22,7 +25,7 @@ ${unions
   )
   .map((union) => Union(union))
   .join("\n")}
-
+} // namespace EnumMapper
 } // namespace margelo
 `;
 };
@@ -70,26 +73,31 @@ const Union = (union: Union) => {
   const { name } = union;
   const wgpuName = `wgpu::${name.substring(3)}`;
   return `
-template <>
-struct JSIConverter<${wgpuName}> {
-  static ${wgpuName}
-  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg) {
-    auto str = arg.asString(runtime).utf8(runtime);
+static void convertJSUnionToEnum(const std::string& inUnion, ${wgpuName}* outEnum) { 
     ${union.values
-      .map((val) => {
-        return `if (str == "${val}") {
-      return ${wgpuName}::${enumName(val)};
+      .map((val, index) => {
+        return `${index > 0 ? "else" : ""} if (inUnion == "${val}") {
+      *outEnum = ${wgpuName}::${enumName(val)};
     }`;
       })
       .join("\n")}
+    else {
+      throw invalidUnion(inUnion);
+    }
   }
 
-  static jsi::Value
-  toJSI(jsi::Runtime &runtime,
-        ${wgpuName} arg) {
-    // No conversions here
-    return jsi::Value::null();
+  static void convertEnumToJSUnion(${wgpuName} inEnum, std::string* outUnion) {
+    switch (inEnum) {
+      ${union.values
+        .map((val) => {
+          return `case ${wgpuName}::${enumName(val)}:
+          *outUnion = "${val}";
+          break;`;
+        })
+        .join("\n")}
+      default:
+        throw invalidEnum(inEnum);
+    }
   }
-};
 `;
 };

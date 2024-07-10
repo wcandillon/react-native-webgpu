@@ -10,7 +10,7 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
   return std::async(std::launch::async, [this, descriptor]() {
     wgpu::Device device = nullptr;
     auto aDescriptor = descriptor->getInstance();
-    _instance->RequestDevice(
+    _instance.RequestDevice(
         aDescriptor,
         [](WGPURequestDeviceStatus status, WGPUDevice cDevice,
            const char *message, void *userdata) {
@@ -26,8 +26,7 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
     if (!device) {
       throw std::runtime_error("Failed to request device");
     }
-    return std::make_shared<GPUDevice>(
-        std::make_shared<wgpu::Device>(std::move(device)), descriptor->label);
+    return std::make_shared<GPUDevice>(std::move(device), descriptor->label);
   });
 }
 

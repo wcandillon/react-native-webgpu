@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "Unions.h"
 #include <RNFHybridObject.h>
 
 #include "MutableBuffer.h"
@@ -16,8 +17,7 @@ namespace m = margelo;
 
 class GPUCompilationMessage : public m::HybridObject {
 public:
-  explicit GPUCompilationMessage(
-      std::shared_ptr<wgpu::CompilationMessage> instance)
+  explicit GPUCompilationMessage(wgpu::CompilationMessage instance)
       : HybridObject("GPUCompilationMessage"), _instance(instance) {}
 
 public:
@@ -28,6 +28,6 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::CompilationMessage> _instance;
+  wgpu::CompilationMessage _instance;
 };
 } // namespace rnwgpu

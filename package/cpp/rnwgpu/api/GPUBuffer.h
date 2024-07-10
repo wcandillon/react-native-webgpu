@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "Unions.h"
 #include <RNFHybridObject.h>
 
 #include "MutableBuffer.h"
@@ -16,22 +17,15 @@ namespace m = margelo;
 
 class GPUBuffer : public m::HybridObject {
 public:
-  explicit GPUBuffer(std::shared_ptr<wgpu::Buffer> instance, std::string label)
+  explicit GPUBuffer(wgpu::Buffer instance, std::string label)
       : HybridObject("GPUBuffer"), _instance(instance), _label(label) {}
 
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<MutableJSIBuffer> getMappedRange(std::optional<double> offset,
-                                                   std::optional<double> size) {
-    auto aOffset = offset.value_or(0);
-    auto aSize = size.value_or(WGPU_WHOLE_MAP_SIZE);
-    auto result = _instance->GetMappedRange(aOffset, aSize);
-    return std::make_shared<MutableJSIBuffer>(result, _instance->GetSize());
-  }
-  void unmap() {
-    _instance->Unmap();
-  }
+  std::shared_ptr<MutableJSIBuffer> getMappedRange(std::optional<size_t> offset,
+                                                   std::optional<size_t> size);
+  void unmap();
 
   std::string getLabel() { return _label; }
 
@@ -44,7 +38,7 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::Buffer> _instance;
+  wgpu::Buffer _instance;
   std::string _label;
 };
 } // namespace rnwgpu

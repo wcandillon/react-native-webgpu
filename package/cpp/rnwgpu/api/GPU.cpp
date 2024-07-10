@@ -8,7 +8,7 @@ GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
   return std::async(std::launch::async, [this, options]() {
     auto aOptions = options->getInstance();
     wgpu::Adapter adapter = nullptr;
-    _instance->RequestAdapter(
+    _instance.RequestAdapter(
         aOptions,
         [](WGPURequestAdapterStatus, WGPUAdapter cAdapter, const char *message,
            void *userdata) {
@@ -25,9 +25,16 @@ GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
       throw std::runtime_error("Failed to request adapter");
     }
 
-    return std::make_shared<GPUAdapter>(
-        std::make_shared<wgpu::Adapter>(std::move(adapter)));
+    return std::make_shared<GPUAdapter>(std::move(adapter));
   });
+}
+
+wgpu::TextureFormat GPU::getPreferredCanvasFormat() {
+#if defined(__ANDROID__)
+  return wgpu::TextureFormat::RGBA8Unorm;
+#else
+  return wgpu::TextureFormat::BGRA8Unorm;
+#endif // defined(__ANDROID__)
 }
 
 } // namespace rnwgpu

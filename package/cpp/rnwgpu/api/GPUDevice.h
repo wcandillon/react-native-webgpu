@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "Unions.h"
 #include <RNFHybridObject.h>
 
 #include "MutableBuffer.h"
@@ -19,30 +20,26 @@ namespace m = margelo;
 
 class GPUDevice : public m::HybridObject {
 public:
-  explicit GPUDevice(std::shared_ptr<wgpu::Device> instance, std::string label)
+  explicit GPUDevice(wgpu::Device instance, std::string label)
       : HybridObject("GPUDevice"), _instance(instance), _label(label) {}
 
 public:
   std::string getBrand() { return _name; }
 
   std::shared_ptr<GPUBuffer>
-  createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
-    auto aDescriptor = descriptor->getInstance();
-    auto result = _instance->CreateBuffer(aDescriptor);
-    return std::make_shared<GPUBuffer>(std::make_shared<wgpu::Buffer>(result),
-                                       descriptor->label);
-  }
+  createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor);
 
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUDevice::getBrand, this);
     registerHybridMethod("createBuffer", &GPUDevice::createBuffer, this);
+
     registerHybridGetter("label", &GPUDevice::getLabel, this);
   }
 
 private:
-  std::shared_ptr<wgpu::Device> _instance;
+  wgpu::Device _instance;
   std::string _label;
 };
 } // namespace rnwgpu

@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "Unions.h"
 #include <RNFHybridObject.h>
 
 #include "MutableBuffer.h"
@@ -16,8 +17,7 @@ namespace m = margelo;
 
 class GPUPipelineLayout : public m::HybridObject {
 public:
-  explicit GPUPipelineLayout(std::shared_ptr<wgpu::PipelineLayout> instance,
-                             std::string label)
+  explicit GPUPipelineLayout(wgpu::PipelineLayout instance, std::string label)
       : HybridObject("GPUPipelineLayout"), _instance(instance), _label(label) {}
 
 public:
@@ -32,7 +32,7 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::PipelineLayout> _instance;
+  wgpu::PipelineLayout _instance;
   std::string _label;
 };
 } // namespace rnwgpu

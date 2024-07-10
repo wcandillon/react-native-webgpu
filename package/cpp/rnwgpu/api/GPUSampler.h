@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "Unions.h"
 #include <RNFHybridObject.h>
 
 #include "MutableBuffer.h"
@@ -16,8 +17,7 @@ namespace m = margelo;
 
 class GPUSampler : public m::HybridObject {
 public:
-  explicit GPUSampler(std::shared_ptr<wgpu::Sampler> instance,
-                      std::string label)
+  explicit GPUSampler(wgpu::Sampler instance, std::string label)
       : HybridObject("GPUSampler"), _instance(instance), _label(label) {}
 
 public:
@@ -32,7 +32,7 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::Sampler> _instance;
+  wgpu::Sampler _instance;
   std::string _label;
 };
 } // namespace rnwgpu

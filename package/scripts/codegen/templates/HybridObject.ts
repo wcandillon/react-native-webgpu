@@ -2,18 +2,18 @@
 import type { InterfaceDeclaration } from "ts-morph";
 import _ from "lodash";
 
-import {
-  getJSIMethod,
-  getJSIProp,
-  mergeParentInterfaces,
-  wrapType,
-} from "./common";
+import { resolveMethod } from "../model/model";
+
+import { getJSIProp, mergeParentInterfaces, wrapType } from "./common";
 
 const instanceAliases: Record<string, string> = {
   GPU: "Instance",
 };
 
 const methodWhiteList = [
+  // GPU
+  "getPreferredCanvasFormat",
+  //
   "requestAdapter",
   "requestDevice",
   "createBuffer",
@@ -31,8 +31,8 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
   const name = decl.getName();
   const methods = decl
     .getMethods()
-    .map((m) => getJSIMethod(name, m))
-    .filter((m) => methodWhiteList.includes(m.name));
+    .filter((m) => methodWhiteList.includes(m.getName()))
+    .map((m) => resolveMethod(m));
   const properties = decl
     .getProperties()
     .filter(
@@ -48,15 +48,13 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
   const instanceName = `wgpu::${instanceAliases[name] || name.substring(3)}`;
   const labelCtrArg = hasLabel ? ", std::string label" : "";
   const labelCtrInit = hasLabel ? ", _label(label)" : "";
-  const getLabel = hasLabel
-    ? 'std::string label = aDescriptor->label ? std::string(aDescriptor->label) : "";'
-    : "";
   return `#pragma once
 
 #include <memory>
 #include <string>
 #include <future>
 
+#include "Unions.h"
 #include <RNFHybridObject.h>
 
 #include "MutableBuffer.h"
@@ -71,43 +69,20 @@ namespace m = margelo;
 
 class ${name} : public m::HybridObject {
 public:
-  explicit ${name}(std::shared_ptr<${instanceName}> instance${labelCtrArg}) : HybridObject("${name}"), _instance(instance)${labelCtrInit} {}
+  explicit ${name}(${instanceName} instance${labelCtrArg}) : HybridObject("${name}"), _instance(instance)${labelCtrInit} {}
 
 public:
   std::string getBrand() { return _name; }
 
-  ${methods
-    .filter((method) => method.async)
-    .map((method) => {
-      return `std::future<${wrapType(method.returns)}> ${method.name}(${method.args.map((a) => `${wrapType(a.type)} ${a.name}`).join(", ")});`;
-    })
-    .join("\n")}
 
   ${methods
-    .filter((method) => !method.async)
     .map((method) => {
       const isUndefined = method.returns === "undefined";
       const returnType = isUndefined ? "void" : wrapType(method.returns);
       const args = method.args
-        .map((a) => `${wrapType(a.type, a.optional)} ${a.name}`)
+        .map((arg) => `${arg.type} ${arg.name}`)
         .join(", ");
-      let returnValue = isUndefined
-        ? ""
-        : `return std::make_shared<${method.returns}>(std::make_shared<${method.wgpuReturns}>(result)${hasLabel ? ", label" : ""});`;
-      if (method.returns === "MutableJSIBuffer") {
-        returnValue =
-          "return std::make_shared<MutableJSIBuffer>(result, _instance->GetSize());";
-      }
-      return `${returnType} ${method.name}(${args}) {
-      ${method.args
-        .map((arg) => {
-          return `auto a${_.upperFirst(arg.name)} = ${arg.optional ? `${arg.name}.value_or(${arg.defaultValue})` : `${arg.name}->getInstance()`};`;
-        })
-        .join("\n")}
-      ${getLabel}
-      ${isUndefined ? "" : "auto result = "}_instance->${_.upperFirst(method.name)}(${method.argNames.map((n) => `a${_.upperFirst(n)}`).join(", ")});
-      ${returnValue}
-    }`;
+      return `${returnType} ${method.name}(${args});`;
     })
     .join("\n")}
 
@@ -128,7 +103,7 @@ public:
   }
 
 private:
-  std::shared_ptr<${instanceName}> _instance;
+  ${instanceName} _instance;
   ${hasLabel ? "std::string _label;" : ""}
 };
 } // namespace rnwgpu`;

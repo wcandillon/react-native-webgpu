@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "Unions.h"
 #include <RNFHybridObject.h>
 
 #include "MutableBuffer.h"
@@ -19,7 +20,7 @@ namespace m = margelo;
 
 class GPU : public m::HybridObject {
 public:
-  explicit GPU(std::shared_ptr<wgpu::Instance> instance)
+  explicit GPU(wgpu::Instance instance)
       : HybridObject("GPU"), _instance(instance) {}
 
 public:
@@ -27,13 +28,16 @@ public:
 
   std::future<std::shared_ptr<GPUAdapter>>
   requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options);
+  wgpu::TextureFormat getPreferredCanvasFormat();
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPU::getBrand, this);
     registerHybridMethod("requestAdapter", &GPU::requestAdapter, this);
+    registerHybridMethod("getPreferredCanvasFormat",
+                         &GPU::getPreferredCanvasFormat, this);
   }
 
 private:
-  std::shared_ptr<wgpu::Instance> _instance;
+  wgpu::Instance _instance;
 };
 } // namespace rnwgpu
