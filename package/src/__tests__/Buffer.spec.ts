@@ -29,20 +29,20 @@ describe("Buffer", () => {
     });
     expect(result).toEqual(["", 1440, 32, "mapped"]);
   });
-  // it("upload data", async () => {
-  //   const result = await client.eval(({ device, cubeVertexArray }) => {
-  //     const verticesBuffer = device.createBuffer({
-  //       size: cubeVertexArray.byteLength,
-  //       usage: GPUBufferUsage.VERTEX,
-  //       mappedAtCreation: true,
-  //       label: "verticesBuffer",
-  //     });
-  //     new Float32Array(
-  //       verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
-  //     ).set(cubeVertexArray);
-  //     verticesBuffer.unmap();
-  //     return !!verticesBuffer;
-  //   });
-  //   expect(result).toBe(true);
-  // });
+  it("upload data", async () => {
+    const result = await client.eval(({ device, cubeVertexArray }) => {
+      const verticesBuffer = device.createBuffer({
+        size: cubeVertexArray.byteLength,
+        usage: GPUBufferUsage.VERTEX,
+        mappedAtCreation: true,
+        label: "verticesBuffer",
+      });
+      new Float32Array(verticesBuffer.getMappedRange()).set(cubeVertexArray);
+      verticesBuffer.unmap();
+      return !!verticesBuffer;
+    });
+    expect(result).toBe(true);
+  });
+  // new Float32Array(verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength)).set(cubeVertexArray);
+  //
 });
