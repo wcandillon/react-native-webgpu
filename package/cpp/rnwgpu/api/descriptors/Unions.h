@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "webgpu/webgpu_cpp.h"
 
 #include "RNFEnumMapper.h"
@@ -15,8 +17,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::AddressMode::Repeat;
   } else if (inUnion == "mirror-repeat") {
     *outEnum = wgpu::AddressMode::MirrorRepeat;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::AddressMode inEnum,
@@ -64,8 +67,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::BlendFactor::Constant;
   } else if (inUnion == "one-minus-constant") {
     *outEnum = wgpu::BlendFactor::OneMinusConstant;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::BlendFactor inEnum,
@@ -127,8 +131,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::BlendOperation::Min;
   } else if (inUnion == "max") {
     *outEnum = wgpu::BlendOperation::Max;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::BlendOperation inEnum,
@@ -162,8 +167,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::BufferBindingType::Storage;
   } else if (inUnion == "read-only-storage") {
     *outEnum = wgpu::BufferBindingType::ReadOnlyStorage;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::BufferBindingType inEnum,
@@ -191,8 +197,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::BufferMapState::Pending;
   } else if (inUnion == "mapped") {
     *outEnum = wgpu::BufferMapState::Mapped;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::BufferMapState inEnum,
@@ -230,8 +237,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::CompareFunction::GreaterEqual;
   } else if (inUnion == "always") {
     *outEnum = wgpu::CompareFunction::Always;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::CompareFunction inEnum,
@@ -274,8 +282,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::CompilationMessageType::Warning;
   } else if (inUnion == "info") {
     *outEnum = wgpu::CompilationMessageType::Info;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::CompilationMessageType inEnum,
@@ -303,8 +312,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::CullMode::Front;
   } else if (inUnion == "back") {
     *outEnum = wgpu::CullMode::Back;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::CullMode inEnum, std::string *outUnion) {
@@ -329,8 +339,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::DeviceLostReason::Unknown;
   } else if (inUnion == "destroyed") {
     *outEnum = wgpu::DeviceLostReason::Destroyed;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::DeviceLostReason inEnum,
@@ -355,8 +366,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::ErrorFilter::OutOfMemory;
   } else if (inUnion == "internal") {
     *outEnum = wgpu::ErrorFilter::Internal;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::ErrorFilter inEnum,
@@ -400,8 +412,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::FeatureName::BGRA8UnormStorage;
   } else if (inUnion == "float32-filterable") {
     *outEnum = wgpu::FeatureName::Float32Filterable;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
@@ -451,8 +464,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::FilterMode::Nearest;
   } else if (inUnion == "linear") {
     *outEnum = wgpu::FilterMode::Linear;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::FilterMode inEnum,
@@ -475,8 +489,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::FrontFace::CCW;
   } else if (inUnion == "cw") {
     *outEnum = wgpu::FrontFace::CW;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::FrontFace inEnum,
@@ -499,8 +514,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::IndexFormat::Uint16;
   } else if (inUnion == "uint32") {
     *outEnum = wgpu::IndexFormat::Uint32;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::IndexFormat inEnum,
@@ -523,8 +539,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::LoadOp::Load;
   } else if (inUnion == "clear") {
     *outEnum = wgpu::LoadOp::Clear;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::LoadOp inEnum, std::string *outUnion) {
@@ -546,8 +563,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::MipmapFilterMode::Nearest;
   } else if (inUnion == "linear") {
     *outEnum = wgpu::MipmapFilterMode::Linear;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::MipmapFilterMode inEnum,
@@ -570,8 +588,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::PowerPreference::LowPower;
   } else if (inUnion == "high-performance") {
     *outEnum = wgpu::PowerPreference::HighPerformance;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::PowerPreference inEnum,
@@ -600,8 +619,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::PrimitiveTopology::TriangleList;
   } else if (inUnion == "triangle-strip") {
     *outEnum = wgpu::PrimitiveTopology::TriangleStrip;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::PrimitiveTopology inEnum,
@@ -633,8 +653,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::QueryType::Occlusion;
   } else if (inUnion == "timestamp") {
     *outEnum = wgpu::QueryType::Timestamp;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::QueryType inEnum,
@@ -659,8 +680,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::SamplerBindingType::NonFiltering;
   } else if (inUnion == "comparison") {
     *outEnum = wgpu::SamplerBindingType::Comparison;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::SamplerBindingType inEnum,
@@ -698,8 +720,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::StencilOperation::IncrementWrap;
   } else if (inUnion == "decrement-wrap") {
     *outEnum = wgpu::StencilOperation::DecrementWrap;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::StencilOperation inEnum,
@@ -742,8 +765,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::StorageTextureAccess::ReadOnly;
   } else if (inUnion == "read-write") {
     *outEnum = wgpu::StorageTextureAccess::ReadWrite;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::StorageTextureAccess inEnum,
@@ -769,8 +793,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::StoreOp::Store;
   } else if (inUnion == "discard") {
     *outEnum = wgpu::StoreOp::Discard;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::StoreOp inEnum, std::string *outUnion) {
@@ -794,8 +819,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::TextureAspect::StencilOnly;
   } else if (inUnion == "depth-only") {
     *outEnum = wgpu::TextureAspect::DepthOnly;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::TextureAspect inEnum,
@@ -823,8 +849,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::TextureDimension::e2D;
   } else if (inUnion == "3d") {
     *outEnum = wgpu::TextureDimension::e3D;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::TextureDimension inEnum,
@@ -1036,8 +1063,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::TextureFormat::ASTC12x12Unorm;
   } else if (inUnion == "astc-12x12-unorm-srgb") {
     *outEnum = wgpu::TextureFormat::ASTC12x12UnormSrgb;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::TextureFormat inEnum,
@@ -1345,8 +1373,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::TextureSampleType::Sint;
   } else if (inUnion == "uint") {
     *outEnum = wgpu::TextureSampleType::Uint;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::TextureSampleType inEnum,
@@ -1386,8 +1415,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::TextureViewDimension::Cube;
   } else if (inUnion == "cube-array") {
     *outEnum = wgpu::TextureViewDimension::CubeArray;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::TextureViewDimension inEnum,
@@ -1480,8 +1510,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::VertexFormat::Sint32x4;
   } else if (inUnion == "unorm10-10-10-2") {
     *outEnum = wgpu::VertexFormat::Unorm10_10_10_2;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::VertexFormat inEnum,
@@ -1591,8 +1622,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::VertexStepMode::Vertex;
   } else if (inUnion == "instance") {
     *outEnum = wgpu::VertexStepMode::Instance;
-  } else
+  } else {
     throw invalidUnion(inUnion);
+  }
 }
 
 static void convertEnumToJSUnion(wgpu::VertexStepMode inEnum,

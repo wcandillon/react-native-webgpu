@@ -8,6 +8,8 @@ export interface Union {
 export const Unions = (unions: Union[]) => {
   return `#pragma once
 
+#include <string>
+
 #include "webgpu/webgpu_cpp.h"
 
 #include "RNFEnumMapper.h"
@@ -79,8 +81,9 @@ static void convertJSUnionToEnum(const std::string& inUnion, ${wgpuName}* outEnu
     }`;
       })
       .join("\n")}
-    else
-    throw invalidUnion(inUnion);
+    else {
+      throw invalidUnion(inUnion);
+    }
   }
 
   static void convertEnumToJSUnion(${wgpuName} inEnum, std::string* outUnion) {

@@ -1,7 +1,7 @@
 import _ from "lodash";
+import type { InterfaceDeclaration, MethodSignature } from "ts-morph";
 
 import { dawn } from "./dawn";
-import { InterfaceDeclaration, MethodSignature } from "ts-morph";
 
 const hasPropery = <O, T extends string>(
   object: unknown,
@@ -38,7 +38,7 @@ const resolved: Record<string, { methods: NativeMethod[] }> = {
           },
         ],
         returns: "std::future<std::shared_ptr<GPUAdapter>>",
-        dependencies: ["GPURequestAdapterOptions", "GPUAdapter"]
+        dependencies: ["GPURequestAdapterOptions", "GPUAdapter"],
       },
     ],
   },
@@ -53,10 +53,10 @@ const resolved: Record<string, { methods: NativeMethod[] }> = {
           },
         ],
         returns: "std::future<std::shared_ptr<GPUDevice>>",
-        dependencies: ["GPUDeviceDescriptor", "GPUDevice"]
+        dependencies: ["GPUDeviceDescriptor", "GPUDevice"],
       },
     ],
-  }
+  },
 };
 
 const aliases: Record<string, string> = {
@@ -70,12 +70,13 @@ const toNativeName = (name: string, dependencies?: string[]) => {
   if (dependencies) {
     dependencies.push(depName);
   }
-  return dependencies
-    ? `std::shared_ptr<${depName}>`
-    : base;
+  return dependencies ? `std::shared_ptr<${depName}>` : base;
 };
 
-const resolveRequiredType = (name: keyof typeof dawn, dependencies: string[]) => {
+const resolveRequiredType = (
+  name: keyof typeof dawn,
+  dependencies: string[],
+) => {
   const type = dawn[name];
   if (!hasPropery(type, "category")) {
     return "void";
@@ -92,7 +93,11 @@ const resolveRequiredType = (name: keyof typeof dawn, dependencies: string[]) =>
   return toNativeName(name, dependencies);
 };
 
-const resolveType = (name: keyof typeof dawn, dependencies: string[], optional = false) => {
+const resolveType = (
+  name: keyof typeof dawn,
+  dependencies: string[],
+  optional = false,
+) => {
   const type = resolveRequiredType(name, dependencies);
   if (optional) {
     return `std::optional<${type}>`;
@@ -110,7 +115,9 @@ const getModelName = (name: string) => {
 };
 
 export const resolveMethod = (methodSignature: MethodSignature) => {
-  const className = (methodSignature.getParent() as InterfaceDeclaration).getName();
+  const className = (
+    methodSignature.getParent() as InterfaceDeclaration
+  ).getName();
   const methodName = methodSignature.getName();
   // If we have it resolved already, return it
   if (resolved[className]) {
@@ -145,13 +152,20 @@ export const resolveMethod = (methodSignature: MethodSignature) => {
     );
   }
   const dependencies: string[] = [];
-  const returns = resolveType(modelMethod.returns as keyof typeof dawn, dependencies)
+  const returns = resolveType(
+    modelMethod.returns as keyof typeof dawn,
+    dependencies,
+  );
   const args = (hasPropery(modelMethod, "args") ? modelMethod.args : []).map(
     ({ name, type }) => ({
       name,
-      type: resolveType(type as keyof typeof dawn, dependencies, methodSignature.getParameter(name)?.isOptional()),
+      type: resolveType(
+        type as keyof typeof dawn,
+        dependencies,
+        methodSignature.getParameter(name)?.isOptional(),
+      ),
     }),
-  )
+  );
   return {
     dependencies,
     name: methodName,
