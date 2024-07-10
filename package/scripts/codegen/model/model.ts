@@ -11,13 +11,23 @@ interface NativeMethod {
   returns: string;
 }
 
-const extensions: Record<string, { methods: NativeMethod[] }> = {
+const resolved: Record<string, { methods: NativeMethod[] }> = {
   GPU: {
     methods: [
       {
-        name: "get preferred format",
-        returns: "texture format",
-        args: [{ name: "adapter", type: "adapter" }],
+        name: "getPreferredFormat",
+        returns: "wgpu::TextureFormat",
+        args: [],
+      },
+      {
+        name: "requestAdapter",
+        args: [
+          {
+            name: "options",
+            type: "std::shared_ptr<GPURequestAdapterOptions> ",
+          },
+        ],
+        returns: "std::future<std::shared_ptr<GPUAdapter>>",
       },
     ],
   },
@@ -55,6 +65,18 @@ const getModelName = (name: string) => {
 };
 
 export const resolveMethod = (className: string, methodName: string) => {
+  // If we have it resolved already, return it
+  if (resolved[className]) {
+    const method = resolved[className].methods.find(
+      ({ name }: { name: string }) => {
+        const result = name === methodName;
+        return result;
+      },
+    );
+    if (method) {
+      return method;
+    }
+  }
   const methodModelName = getModelName(methodName);
   const classMethodName = getModelName(className);
   const native = dawn[classMethodName as keyof typeof dawn];
@@ -64,18 +86,11 @@ export const resolveMethod = (className: string, methodName: string) => {
     );
   }
 
-  let modelMethod = native.methods.find(({ name }: { name: string }) => {
+  const modelMethod = native.methods.find(({ name }: { name: string }) => {
     const result = name === methodModelName;
     return result;
   });
-  if (!modelMethod) {
-    modelMethod = extensions[classMethodName].methods.find(
-      ({ name }: { name: string }) => {
-        const result = name === methodModelName;
-        return result;
-      },
-    );
-  }
+
   if (!modelMethod) {
     throw new Error(
       `No model method found for ${className}: ${methodModelName}`,
