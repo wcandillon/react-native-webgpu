@@ -1,4 +1,5 @@
 import * as path from "path";
+import exp from "constants";
 
 import type { SourceFile } from "ts-morph";
 import { Project } from "ts-morph";
@@ -33,17 +34,29 @@ const getMethodSignature = (className: string, methodName: string) => {
 };
 
 describe("Model", () => {
-  it("Instance", () => {
-    const method = resolveMethod(getMethodSignature("GPU", "requestAdapter"));
+  it("GPU", () => {
+    let method = resolveMethod(getMethodSignature("GPU", "requestAdapter"));
     expect(method).toBeTruthy();
-  });
-  it("Returns enum type", () => {
-    const method = resolveMethod(
+    expect(method.returns).toBe("std::future<std::shared_ptr<GPUAdapter>>");
+    expect(method.args.length).toBe(1);
+    expect(method.args[0].type).toEqual(
+      "std::shared_ptr<GPURequestAdapterOptions>",
+    );
+    method = resolveMethod(
       getMethodSignature("GPU", "getPreferredCanvasFormat"),
     );
     expect(method.returns).toBe("wgpu::TextureFormat");
   });
-  it("Device", () => {
+  it("GPUAdapter", () => {
+    const method = resolveMethod(
+      getMethodSignature("GPUAdapter", "requestDevice"),
+    );
+    expect(method).toBeTruthy();
+    expect(method.returns).toBe("std::future<std::shared_ptr<GPUDevice>>");
+    expect(method.args.length).toBe(1);
+    expect(method.args[0].type).toEqual("std::shared_ptr<GPUDeviceDescriptor>");
+  });
+  it("GPUDevice", () => {
     const method = resolveMethod(
       getMethodSignature("GPUDevice", "createBuffer"),
     );
@@ -51,7 +64,7 @@ describe("Model", () => {
     expect(method.args.length).toBe(1);
     expect(method.args[0].type).toEqual("std::shared_ptr<GPUBufferDescriptor>");
   });
-  it("Buffer", () => {
+  it("GPUBuffer", () => {
     let method = resolveMethod(getMethodSignature("GPUBuffer", "unmap"));
     expect(method.returns).toBe("void");
     expect(method.args.length).toBe(0);

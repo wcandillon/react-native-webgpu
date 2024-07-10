@@ -32,13 +32,27 @@ const resolved: Record<string, { methods: NativeMethod[] }> = {
         args: [
           {
             name: "options",
-            type: "std::shared_ptr<GPURequestAdapterOptions> ",
+            type: "std::shared_ptr<GPURequestAdapterOptions>",
           },
         ],
         returns: "std::future<std::shared_ptr<GPUAdapter>>",
       },
     ],
   },
+  GPUAdapter: {
+    methods: [
+      {
+        name: "requestDevice",
+        args: [
+          {
+            name: "options",
+            type: "std::shared_ptr<GPUDeviceDescriptor>",
+          },
+        ],
+        returns: "std::future<std::shared_ptr<GPUDevice>>",
+      },
+    ],
+  }
 };
 
 const aliases: Record<string, string> = {
