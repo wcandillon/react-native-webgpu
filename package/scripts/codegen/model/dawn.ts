@@ -84,7 +84,7 @@ export const resolved: Record<
         args: [
           {
             name: "mode",
-            type: "size_t",
+            type: "uint64_t",
           },
           {
             name: "offset",
@@ -103,7 +103,7 @@ export const resolved: Record<
       inline bool Intersects(uint64_t s, uint64_t e) const { return s < end && e > start; }
       std::shared_ptr<MutableJSIBuffer> buffer;
   };
-  std::vector<Mapping> mappings_;`,
+  std::vector<Mapping> mappings;`,
   },
 };
 

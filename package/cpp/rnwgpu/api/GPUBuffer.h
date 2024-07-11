@@ -57,6 +57,6 @@ private:
     }
     std::shared_ptr<MutableJSIBuffer> buffer;
   };
-  std::vector<Mapping> mappings_;
+  std::vector<Mapping> mappings;
 };
 } // namespace rnwgpu

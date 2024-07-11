@@ -72,11 +72,9 @@ describe("Buffer", () => {
         verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
       ).set(cubeVertexArray);
       verticesBuffer.unmap();
-      return new Promise((resolve) => {
-        verticesBuffer.mapAsync(GPUMapMode.READ).then(() => {
-          const r = new Float32Array(verticesBuffer.getMappedRange());
-          resolve(r);
-        });
+      return verticesBuffer.mapAsync(GPUMapMode.READ).then(() => {
+        const r = new Float32Array(verticesBuffer.getMappedRange());
+        return r;
       });
     });
     expect(result).toBe([0, 0, 0]);
