@@ -26,7 +26,8 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
     if (!device) {
       throw std::runtime_error("Failed to request device");
     }
-    return std::make_shared<GPUDevice>(_gpu, std::move(device), descriptor->label);
+    return std::make_shared<GPUDevice>(_gpu, std::move(device),
+                                       descriptor->label);
   });
 }
 

@@ -31,44 +31,38 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
 
 std::future<void> GPUBuffer::mapAsync(size_t mode, std::optional<size_t> o,
                                       std::optional<size_t> size) {
-  auto md = static_cast<wgpu::MapMode>(mode);
-  uint64_t offset = o.value_or(0);
-  uint64_t s = size.has_value() ? size.value() : (_instance.GetSize() - offset);
-  uint64_t start = offset;
-  uint64_t end = offset + s;
+  return std::async(std::launch::async, [=] {
+    auto md = static_cast<wgpu::MapMode>(mode);
+    uint64_t offset = o.value_or(0);
+    uint64_t s =
+        size.has_value() ? size.value() : (_instance.GetSize() - offset);
+    uint64_t start = offset;
+    uint64_t end = offset + s;
 
-  std::promise<void> promise;
-  std::future<void> future = promise.get_future();
-
-  // for (auto& mapping : mappings) {
-  //   if (mapping.Intersects(start, end)) {
-  //     promise.set_exception(std::make_exception_ptr(std::runtime_error("Buffer
-  //     is already mapped"))); return future;
-  //   }
-  // }
-
-  _instance.MapAsync(
-      md, offset, s,
-      [](WGPUBufferMapAsyncStatus status, void *userdata) {
-        auto pPromise = static_cast<std::promise<void> *>(userdata);
-        switch (status) {
-        case WGPUBufferMapAsyncStatus_Success:
-          pPromise->set_value();
-          break;
-        case WGPUBufferMapAsyncStatus_ValidationError:
-          pPromise->set_exception(std::make_exception_ptr(std::runtime_error(
-              "WGPUBufferMapAsyncStatus_ValidationError")));
-          break;
-        default:
-          pPromise->set_exception(std::make_exception_ptr(std::runtime_error(
-              "WGPUBufferMapAsyncStatus: " + std::to_string(status))));
-          break;
-          delete pPromise;
-        }
-      },
-      new std::promise<void>(std::move(promise)));
-  _gpu.ProcessEvents();
-  return future;
+    // for (auto& mapping : mappings) {
+    //   if (mapping.Intersects(start, end)) {
+    //     promise.set_exception(std::make_exception_ptr(std::runtime_error("Buffer
+    //     is already mapped"))); return future;
+    //   }
+    // }
+    wgpu::BufferMapCallbackInfo callback;
+    callback.mode = wgpu::CallbackMode::WaitAnyOnly;
+    callback.callback = [](WGPUBufferMapAsyncStatus status, void *userdata) {
+      switch (status) {
+      case WGPUBufferMapAsyncStatus_Success:
+        break;
+      case WGPUBufferMapAsyncStatus_ValidationError:
+        throw std::runtime_error("WGPUBufferMapAsyncStatus_ValidationError");
+        break;
+      default:
+        throw std::runtime_error("WGPUBufferMapAsyncStatus: " +
+                                 std::to_string(status));
+        break;
+      }
+    };
+    wgpu::Future future = _instance.MapAsync(md, offset, s, callback);
+    _gpu.WaitAny(future, UINT64_MAX);
+  });
 }
 
 void GPUBuffer::unmap() { _instance.Unmap(); }
