@@ -18,6 +18,7 @@
 #include <utility>
 #include <type_traits>
 #include <unordered_map>
+#include <limits>
 
 #if __has_include(<cxxabi.h>)
 #include <cxxabi.h>

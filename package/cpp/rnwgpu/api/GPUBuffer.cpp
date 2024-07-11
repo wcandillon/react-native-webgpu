@@ -1,5 +1,7 @@
 #include "GPUBuffer.h"
 
+#include <utility>
+
 namespace rnwgpu {
 
 std::shared_ptr<MutableJSIBuffer>

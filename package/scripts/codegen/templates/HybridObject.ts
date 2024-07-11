@@ -60,6 +60,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
 #include <memory>
 #include <string>
 #include <future>
+#include <vector>
 
 #include "Unions.h"
 #include <RNFHybridObject.h>
