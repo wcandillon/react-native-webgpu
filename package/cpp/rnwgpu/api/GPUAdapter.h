@@ -21,8 +21,8 @@ namespace m = margelo;
 
 class GPUAdapter : public m::HybridObject {
 public:
-  explicit GPUAdapter(wgpu::Adapter instance)
-      : HybridObject("GPUAdapter"), _instance(instance) {}
+  explicit GPUAdapter(wgpu::Instance gpu, wgpu::Adapter instance)
+      : HybridObject("GPUAdapter"), _gpu(gpu), _instance(instance) {}
 
 public:
   std::string getBrand() { return _name; }
@@ -36,6 +36,7 @@ public:
   }
 
 private:
+  wgpu::Instance _gpu;
   wgpu::Adapter _instance;
 };
 } // namespace rnwgpu

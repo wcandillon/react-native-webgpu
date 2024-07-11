@@ -25,7 +25,7 @@ GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
       throw std::runtime_error("Failed to request adapter");
     }
 
-    return std::make_shared<GPUAdapter>(std::move(adapter));
+    return std::make_shared<GPUAdapter>(_instance, std::move(adapter));
   });
 }
 

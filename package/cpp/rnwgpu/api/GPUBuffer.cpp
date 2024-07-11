@@ -55,6 +55,10 @@ std::future<void> GPUBuffer::mapAsync(size_t mode, std::optional<size_t> o,
         case WGPUBufferMapAsyncStatus_Success:
           pPromise->set_value();
           break;
+        case WGPUBufferMapAsyncStatus_ValidationError:
+          pPromise->set_exception(std::make_exception_ptr(std::runtime_error(
+              "WGPUBufferMapAsyncStatus_ValidationError")));
+          break;
         default:
           pPromise->set_exception(std::make_exception_ptr(std::runtime_error(
               "WGPUBufferMapAsyncStatus: " + std::to_string(status))));
@@ -63,7 +67,7 @@ std::future<void> GPUBuffer::mapAsync(size_t mode, std::optional<size_t> o,
         }
       },
       new std::promise<void>(std::move(promise)));
-
+  _gpu.ProcessEvents();
   return future;
 }
 

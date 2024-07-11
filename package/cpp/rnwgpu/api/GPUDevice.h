@@ -21,8 +21,8 @@ namespace m = margelo;
 
 class GPUDevice : public m::HybridObject {
 public:
-  explicit GPUDevice(wgpu::Device instance, std::string label)
-      : HybridObject("GPUDevice"), _instance(instance), _label(label) {}
+  explicit GPUDevice(wgpu::Instance gpu, wgpu::Device instance, std::string label)
+      : HybridObject("GPUDevice"), _instance(instance), _gpu(gpu), _label(label) {}
 
 public:
   std::string getBrand() { return _name; }
@@ -40,6 +40,7 @@ public:
   }
 
 private:
+  wgpu::Instance _gpu;
   wgpu::Device _instance;
   std::string _label;
 };

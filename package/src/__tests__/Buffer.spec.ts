@@ -60,6 +60,7 @@ describe("Buffer", () => {
     });
     expect(result).toBe(true);
   });
+  // This should throw similar errors than chrome
   // it("upload data & read data (2)", async () => {
   //   const result = await client.eval(({ device, cubeVertexArray }) => {
   //     const verticesBuffer = device.createBuffer({
