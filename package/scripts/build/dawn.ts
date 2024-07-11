@@ -48,10 +48,7 @@ const ios = {
 (async () => {
   process.chdir("..");
   process.chdir("externals/dawn");
-  $("git reset --hard HEAD");
-  $(
-    "git fetch https://dawn.googlesource.com/dawn refs/changes/96/195996/27 && git checkout FETCH_HEAD",
-  );
+  // patch something here if needed
   process.chdir("../..");
 
   // Build iOS
