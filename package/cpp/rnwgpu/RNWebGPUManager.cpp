@@ -20,8 +20,9 @@ RNWebGPUManager::RNWebGPUManager(
   wgpu::InstanceDescriptor instanceDesc;
   instanceDesc.features.timedWaitAnyEnable = true;
   instanceDesc.features.timedWaitAnyMaxCount = 64;
+  auto instance = wgpu::CreateInstance(&instanceDesc);
   auto gpu =
-      std::make_shared<GPU>(std::move(wgpu::CreateInstance(&instanceDesc)));
+      std::make_shared<GPU>(std::move(instance));
 
   auto bufferUsage = std::make_shared<GPUBufferUsage>();
   _jsRuntime->global().setProperty(

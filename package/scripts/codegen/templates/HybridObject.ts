@@ -2,9 +2,9 @@
 import type { InterfaceDeclaration } from "ts-morph";
 import _ from "lodash";
 
-import { resolveMethod } from "../model/model";
+import { resolveExtra, resolveMethod, resolveProperty } from "../model/model";
 
-import { getJSIProp, mergeParentInterfaces, wrapType } from "./common";
+import { mergeParentInterfaces } from "./common";
 
 const instanceAliases: Record<string, string> = {
   GPU: "Instance",
@@ -19,12 +19,17 @@ const methodWhiteList = [
   "createBuffer",
   "unmap",
   "getMappedRange",
+  "mapAsync",
 ];
 
-const propWhiteList: string[] = [
-  //"info"
-  //"label",
-];
+const propWhiteList: Record<string, string[]> = {
+  GPUBuffer: ["size", "usage", "mapState"],
+};
+
+// const propWhiteList: string[] = [
+//   //"info"
+//   //"label",
+// ];
 
 export const getHybridObject = (decl: InterfaceDeclaration) => {
   mergeParentInterfaces(decl);
@@ -37,9 +42,11 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     .getProperties()
     .filter(
       (m) =>
-        !m.getName().startsWith("__") && propWhiteList.includes(m.getName()),
+        !m.getName().startsWith("__") &&
+        propWhiteList[decl.getName()] &&
+        propWhiteList[decl.getName()].includes(m.getName()),
     )
-    .map((p) => getJSIProp(p));
+    .map((p) => resolveProperty(p));
   const hasLabel = decl.getProperty("label") !== undefined;
   const dependencies = [
     ...methods.flatMap((method) => method.dependencies),
@@ -53,6 +60,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
 #include <memory>
 #include <string>
 #include <future>
+#include <vector>
 
 #include "Unions.h"
 #include <RNFHybridObject.h>
@@ -77,16 +85,14 @@ public:
 
   ${methods
     .map((method) => {
-      const isUndefined = method.returns === "undefined";
-      const returnType = isUndefined ? "void" : wrapType(method.returns);
       const args = method.args
         .map((arg) => `${arg.type} ${arg.name}`)
         .join(", ");
-      return `${returnType} ${method.name}(${args});`;
+      return `${method.returns} ${method.name}(${args});`;
     })
     .join("\n")}
 
-  ${properties.map((prop) => `std::shared_ptr<${prop.type}> get${_.upperFirst(prop.name)}() {}`).join("\n")}
+  ${properties.map((prop) => `${prop.returns} get${_.upperFirst(prop.name)}();`).join("\n")}
 
   ${hasLabel ? "std::string getLabel() { return _label; }" : ""}
 
@@ -105,6 +111,7 @@ public:
 private:
   ${instanceName} _instance;
   ${hasLabel ? "std::string _label;" : ""}
+  ${resolveExtra(name)}
 };
 } // namespace rnwgpu`;
 };

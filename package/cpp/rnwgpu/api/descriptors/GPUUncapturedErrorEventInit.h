@@ -43,12 +43,21 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
       }
       if (value.hasProperty(runtime, "bubbles")) {
         auto bubbles = value.getProperty(runtime, "bubbles");
+        if (bubbles.isBool()) {
+          result->_instance.bubbles = bubbles.getBool();
+        }
       }
       if (value.hasProperty(runtime, "cancelable")) {
         auto cancelable = value.getProperty(runtime, "cancelable");
+        if (cancelable.isBool()) {
+          result->_instance.cancelable = cancelable.getBool();
+        }
       }
       if (value.hasProperty(runtime, "composed")) {
         auto composed = value.getProperty(runtime, "composed");
+        if (composed.isBool()) {
+          result->_instance.composed = composed.getBool();
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::error = %f",

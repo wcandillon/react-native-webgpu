@@ -1,5 +1,5 @@
 /* eslint-disable no-eval */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import React, { useEffect } from "react";
 import { Text, View } from "react-native";
 import { gpu } from "react-native-webgpu";
@@ -32,7 +32,7 @@ export const Tests = () => {
   useEffect(() => {
     if (client !== null && adapter !== null && device !== null) {
       client.onmessage = (e) => {
-        const tree: any = JSON.parse(e.data);
+        const tree = JSON.parse(e.data);
         if (tree.code) {
           const result = eval(
             `(function Main() {
@@ -57,7 +57,11 @@ export const Tests = () => {
               client.send(JSON.stringify(r));
             });
           } else {
-            client.send(JSON.stringify(result));
+            client.send(
+              JSON.stringify(result, (_, v) =>
+                typeof v === "bigint" ? v.toString() : v,
+              ),
+            );
           }
         }
       };

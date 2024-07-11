@@ -34,6 +34,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
       if (value.hasProperty(runtime, "size")) {
         auto size = value.getProperty(runtime, "size");
 
+        if (size.isNumber()) {
+          result->_instance.size = size.getNumber();
+        }
+
         if (size.isUndefined()) {
           throw std::runtime_error(
               "Property GPUBufferDescriptor::size is required");
@@ -45,6 +49,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
       if (value.hasProperty(runtime, "usage")) {
         auto usage = value.getProperty(runtime, "usage");
 
+        if (usage.isNumber()) {
+          result->_instance.usage =
+              static_cast<wgpu::BufferUsage>(usage.getNumber());
+        }
+
         if (usage.isUndefined()) {
           throw std::runtime_error(
               "Property GPUBufferDescriptor::usage is required");
@@ -55,6 +64,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
       }
       if (value.hasProperty(runtime, "mappedAtCreation")) {
         auto mappedAtCreation = value.getProperty(runtime, "mappedAtCreation");
+        if (mappedAtCreation.isBool()) {
+          result->_instance.mappedAtCreation = mappedAtCreation.getBool();
+        }
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");

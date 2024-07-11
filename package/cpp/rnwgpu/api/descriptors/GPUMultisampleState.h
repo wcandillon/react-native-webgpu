@@ -48,6 +48,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
       if (value.hasProperty(runtime, "alphaToCoverageEnabled")) {
         auto alphaToCoverageEnabled =
             value.getProperty(runtime, "alphaToCoverageEnabled");
+        if (alphaToCoverageEnabled.isBool()) {
+          result->_instance.alphaToCoverageEnabled =
+              alphaToCoverageEnabled.getBool();
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUMultisampleState::count = %f",

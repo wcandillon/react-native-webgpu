@@ -5,7 +5,6 @@ import { gpu } from "react-native-webgpu";
 import { cubeVertexArray } from "./components/cube";
 
 const demo = async () => {
-  console.log(gpu.getPreferredCanvasFormat());
   const adapter = await gpu.requestAdapter(undefined);
   if (!adapter) {
     throw new Error("No adapter");
@@ -17,16 +16,25 @@ const demo = async () => {
     mappedAtCreation: true,
     label: "verticesBuffer",
   });
-  // new Float32Array(
-  //   verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
-  // ).set(cubeVertexArray);
-  // verticesBuffer.unmap();
-  console.log(verticesBuffer.label);
-  console.log("DONE!" + !!verticesBuffer);
+  new Float32Array(
+    verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
+  ).set(cubeVertexArray);
+  verticesBuffer.unmap();
+  console.log("before read mapping");
+  await verticesBuffer.mapAsync(GPUMapMode.READ);
+  console.log("after read mapping");
+  console.log(new Float32Array(verticesBuffer.getMappedRange()));
+  verticesBuffer.unmap();
+};
+
+const loop = () => {
+  console.log("tick");
+  requestAnimationFrame(loop);
 };
 
 export const Buffers = () => {
   useEffect(() => {
+    loop();
     demo();
   }, []);
   return <View />;

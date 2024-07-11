@@ -59,6 +59,9 @@ struct JSIConverter<
       }
       if (value.hasProperty(runtime, "depthReadOnly")) {
         auto depthReadOnly = value.getProperty(runtime, "depthReadOnly");
+        if (depthReadOnly.isBool()) {
+          result->_instance.depthReadOnly = depthReadOnly.getBool();
+        }
       }
       if (value.hasProperty(runtime, "stencilClearValue")) {
         auto stencilClearValue =
@@ -77,6 +80,9 @@ struct JSIConverter<
       }
       if (value.hasProperty(runtime, "stencilReadOnly")) {
         auto stencilReadOnly = value.getProperty(runtime, "stencilReadOnly");
+        if (stencilReadOnly.isBool()) {
+          result->_instance.stencilReadOnly = stencilReadOnly.getBool();
+        }
       }
     }
     rnwgpu::Logger::logToConsole(

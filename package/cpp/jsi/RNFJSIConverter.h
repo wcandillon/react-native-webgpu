@@ -18,6 +18,7 @@
 #include <utility>
 #include <type_traits>
 #include <unordered_map>
+#include <limits>
 
 #if __has_include(<cxxabi.h>)
 #include <cxxabi.h>
@@ -75,20 +76,55 @@ template <> struct JSIConverter<float> {
 // uint64_t <> BigInt
 template <> struct JSIConverter<uint64_t> {
   static double fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
-    return arg.asBigInt(runtime).asUint64(runtime);
+    // if (arg.isBigInt()) {
+    //   return arg.asBigInt(runtime).asUint64(runtime);
+    // } else if (arg.isNumber()) {
+      double value = arg.asNumber();
+      if (value < 0 || value > std::numeric_limits<uint64_t>::max()) {
+        throw jsi::JSError(runtime, "Number out of range for uint64_t");
+      }
+      return static_cast<uint64_t>(value);
+   // }
+   // throw jsi::JSError(runtime, "Expected BigInt or Number for uint64_t conversion");
+
+    //return arg.asBigInt(runtime).asUint64(runtime);
   }
+  // static jsi::Value toJSI(jsi::Runtime& runtime, uint64_t arg) {
+  //   return jsi::BigInt::fromUint64(runtime, arg);
+  // }
   static jsi::Value toJSI(jsi::Runtime& runtime, uint64_t arg) {
-    return jsi::BigInt::fromUint64(runtime, arg);
+    if (arg <= static_cast<uint64_t>(std::numeric_limits<double>::max())) {
+      return jsi::Value(static_cast<double>(arg));
+    } else {
+      throw jsi::JSError(runtime, "Number too large to be represented as a double");
+    }
   }
 };
 
 // int64_t <> BigInt
 template <> struct JSIConverter<int64_t> {
   static double fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
-    return arg.asBigInt(runtime).asInt64(runtime);
+    // if (arg.isBigInt()) {
+    //   return arg.asBigInt(runtime).asInt64(runtime);
+    // } else if (arg.isNumber()) {
+      double value = arg.asNumber();
+      if (value < std::numeric_limits<int64_t>::lowest() || value > std::numeric_limits<int64_t>::max()) {
+        throw jsi::JSError(runtime, "Number out of range for int64_t");
+      }
+      return static_cast<int64_t>(value);
+  //  }
+    //throw jsi::JSError(runtime, "Expected BigInt or Number for int64_t conversion");
   }
+  // static jsi::Value toJSI(jsi::Runtime& runtime, int64_t arg) {
+  //   return jsi::BigInt::fromInt64(runtime, arg);
+  // }
   static jsi::Value toJSI(jsi::Runtime& runtime, int64_t arg) {
-    return jsi::BigInt::fromInt64(runtime, arg);
+    if (arg >= static_cast<int64_t>(std::numeric_limits<double>::lowest()) &&
+        arg <= static_cast<int64_t>(std::numeric_limits<double>::max())) {
+      return jsi::Value(static_cast<double>(arg));
+    } else {
+      throw jsi::JSError(runtime, "Number too large to be represented as a double");
+    }
   }
 };
 

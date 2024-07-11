@@ -38,6 +38,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureBindingLayout>> {
       }
       if (value.hasProperty(runtime, "multisampled")) {
         auto multisampled = value.getProperty(runtime, "multisampled");
+        if (multisampled.isBool()) {
+          result->_instance.multisampled = multisampled.getBool();
+        }
       }
     }
     rnwgpu::Logger::logToConsole("GPUTextureBindingLayout::sampleType = %f",

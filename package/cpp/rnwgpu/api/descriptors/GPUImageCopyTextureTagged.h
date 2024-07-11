@@ -36,6 +36,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
       if (value.hasProperty(runtime, "premultipliedAlpha")) {
         auto premultipliedAlpha =
             value.getProperty(runtime, "premultipliedAlpha");
+        if (premultipliedAlpha.isBool()) {
+          result->_instance.premultipliedAlpha = premultipliedAlpha.getBool();
+        }
       }
       if (value.hasProperty(runtime, "texture")) {
         auto texture = value.getProperty(runtime, "texture");

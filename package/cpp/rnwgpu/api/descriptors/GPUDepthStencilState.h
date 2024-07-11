@@ -43,6 +43,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
       if (value.hasProperty(runtime, "depthWriteEnabled")) {
         auto depthWriteEnabled =
             value.getProperty(runtime, "depthWriteEnabled");
+        if (depthWriteEnabled.isBool()) {
+          result->_instance.depthWriteEnabled = depthWriteEnabled.getBool();
+        }
       }
       if (value.hasProperty(runtime, "depthCompare")) {
         auto depthCompare = value.getProperty(runtime, "depthCompare");

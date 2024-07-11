@@ -75,6 +75,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
       if (value.hasProperty(runtime, "usage")) {
         auto usage = value.getProperty(runtime, "usage");
 
+        if (usage.isNumber()) {
+          result->_instance.usage =
+              static_cast<wgpu::TextureUsageFlags>(usage.getNumber());
+        }
+
         if (usage.isUndefined()) {
           throw std::runtime_error(
               "Property GPUTextureDescriptor::usage is required");

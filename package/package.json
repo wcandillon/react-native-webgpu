@@ -14,6 +14,7 @@
     "ios",
     "cpp",
     "*.podspec",
+    "!scripts",
     "!ios/build",
     "!android/build",
     "!android/gradle",
@@ -27,7 +28,7 @@
   ],
   "scripts": {
     "example": "yarn workspace react-native-webgpu-example",
-    "test": "jest",
+    "test": "jest -i",
     "tsc": "tsc --noEmit",
     "lint": "eslint \"**/*.{ts,tsx}\"",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
@@ -49,14 +50,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wcandillon/react-native-wgpu.git"
+    "url": "git+https://github.com/wcandillon/react-native-webgpu.git"
   },
   "author": "William Candillon <wcandillon@gmail.com> (https://github.com/wcandillon)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/wcandillon/react-native-wgpu/issues"
+    "url": "https://github.com/wcandillon/react-native-webgpu/issues"
   },
-  "homepage": "https://github.com/wcandillon/react-native-wgpu#readme",
+  "homepage": "https://github.com/wcandillon/react-native-webgpu#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
