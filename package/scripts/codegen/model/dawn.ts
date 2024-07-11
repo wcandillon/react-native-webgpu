@@ -76,7 +76,27 @@ export const resolved: Record<
         dependencies: [],
       },
     ],
-    methods: [],
+    methods: [
+      {
+        name: "mapAsync",
+        returns: "std::future<void>",
+        dependencies: [],
+        args: [
+          {
+            name: "mode",
+            type: "size_t",
+          },
+          {
+            name: "offset",
+            type: "std::optional<size_t>",
+          },
+          {
+            name: "size",
+            type: "std::optional<size_t>",
+          },
+        ],
+      },
+    ],
     extra: `struct Mapping {
       uint64_t start;
       uint64_t end;

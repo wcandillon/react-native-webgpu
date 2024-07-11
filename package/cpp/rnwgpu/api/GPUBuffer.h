@@ -23,6 +23,8 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  std::future<void> mapAsync(size_t mode, std::optional<size_t> offset,
+                             std::optional<size_t> size);
   std::shared_ptr<MutableJSIBuffer> getMappedRange(std::optional<size_t> offset,
                                                    std::optional<size_t> size);
   void unmap();
@@ -35,6 +37,7 @@ public:
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUBuffer::getBrand, this);
+    registerHybridMethod("mapAsync", &GPUBuffer::mapAsync, this);
     registerHybridMethod("getMappedRange", &GPUBuffer::getMappedRange, this);
     registerHybridMethod("unmap", &GPUBuffer::unmap, this);
     registerHybridGetter("size", &GPUBuffer::getSize, this);

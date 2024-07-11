@@ -27,6 +27,32 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
   return buffer;
 }
 
+std::future<void> GPUBuffer::mapAsync(size_t mode, std::optional<size_t> offset,
+                                      std::optional<size_t> size) {
+  std::promise<void> promise;
+  std::future<void> result = promise.get_future();
+
+  wgpu::BufferMapCallbackInfo callbackInfo = {
+    nullptr, wgpu::CallbackMode::AllowSpontaneous,
+    [](WGPUBufferMapAsyncStatus status, void *userdata) {
+      auto pPromise = static_cast<std::promise<void> *>(userdata);
+      if (status == WGPUBufferMapAsyncStatus_Success) {
+        pPromise->set_value();
+      } else {
+        pPromise->set_exception(std::make_exception_ptr(
+            std::runtime_error("Buffer mapping failed")));
+      }
+      delete pPromise;
+    },
+    new std::promise<void>(std::move(promise))
+  };
+  wgpu::Future future = _instance.MapAsync(static_cast<wgpu::MapMode>(mode), offset.value_or(0), size.value_or(_instance.GetSize()), callbackInfo);
+  wgpu::FutureWaitInfo waitInfo = {future};
+
+  //_instance.WaitAny(1, &waitInfo, UINT64_MAX);
+  return result;
+}
+
 void GPUBuffer::unmap() { _instance.Unmap(); }
 
 size_t GPUBuffer::getSize() { return _instance.GetSize(); }

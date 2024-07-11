@@ -19,6 +19,7 @@ const methodWhiteList = [
   "createBuffer",
   "unmap",
   "getMappedRange",
+  "mapAsync",
 ];
 
 const propWhiteList: Record<string, string[]> = {

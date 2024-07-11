@@ -60,4 +60,25 @@ describe("Buffer", () => {
     });
     expect(result).toBe(true);
   });
+  it("upload data & read data (2)", async () => {
+    const result = await client.eval(({ device, cubeVertexArray }) => {
+      const verticesBuffer = device.createBuffer({
+        size: cubeVertexArray.byteLength,
+        usage: GPUBufferUsage.VERTEX,
+        mappedAtCreation: true,
+        label: "verticesBuffer",
+      });
+      new Float32Array(
+        verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
+      ).set(cubeVertexArray);
+      verticesBuffer.unmap();
+      return new Promise((resolve) => {
+        verticesBuffer.mapAsync(GPUMapMode.READ).then(() => {
+          const r = new Float32Array(verticesBuffer.getMappedRange());
+          resolve(r);
+        });
+      });
+    });
+    expect(result).toBe([0, 0, 0]);
+  });
 });
