@@ -25,7 +25,7 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
     throw std::runtime_error("Failed to map buffer");
   }
   auto buffer = std::make_shared<MutableJSIBuffer>(ptr, s);
-  //mappings.emplace_back(Mapping{start, end, buffer});
+  // mappings.emplace_back(Mapping{start, end, buffer});
   return buffer;
 }
 
@@ -42,23 +42,27 @@ std::future<void> GPUBuffer::mapAsync(size_t mode, std::optional<size_t> o,
 
   // for (auto& mapping : mappings) {
   //   if (mapping.Intersects(start, end)) {
-  //     promise.set_exception(std::make_exception_ptr(std::runtime_error("Buffer is already mapped")));
-  //     return future;
+  //     promise.set_exception(std::make_exception_ptr(std::runtime_error("Buffer
+  //     is already mapped"))); return future;
   //   }
   // }
 
-  _instance.MapAsync(md, offset, s,  [](WGPUBufferMapAsyncStatus status, void* userdata) {
-    auto pPromise = static_cast<std::promise<void> *>(userdata);
-     switch (status) {
-      case WGPUBufferMapAsyncStatus_Success:
+  _instance.MapAsync(
+      md, offset, s,
+      [](WGPUBufferMapAsyncStatus status, void *userdata) {
+        auto pPromise = static_cast<std::promise<void> *>(userdata);
+        switch (status) {
+        case WGPUBufferMapAsyncStatus_Success:
           pPromise->set_value();
           break;
-      default:
-          pPromise->set_exception(std::make_exception_ptr(std::runtime_error("WGPUBufferMapAsyncStatus: " + std::to_string(status))));
+        default:
+          pPromise->set_exception(std::make_exception_ptr(std::runtime_error(
+              "WGPUBufferMapAsyncStatus: " + std::to_string(status))));
           break;
-    delete pPromise;
-  }
-  }, new std::promise<void>(std::move(promise)));
+          delete pPromise;
+        }
+      },
+      new std::promise<void>(std::move(promise)));
 
   return future;
 }

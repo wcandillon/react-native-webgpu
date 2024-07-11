@@ -3,6 +3,7 @@
 #include <future>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "Unions.h"
 #include <RNFHybridObject.h>

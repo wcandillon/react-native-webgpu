@@ -24,7 +24,7 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::future<void> mapAsync(size_t mode, std::optional<size_t> offset,
+  std::future<void> mapAsync(uint64_t mode, std::optional<size_t> offset,
                              std::optional<size_t> size);
   std::shared_ptr<MutableJSIBuffer> getMappedRange(std::optional<size_t> offset,
                                                    std::optional<size_t> size);
