@@ -3,6 +3,7 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include <future>
+#include <utility>
 
 namespace rnwgpu {
 

@@ -22,7 +22,7 @@ namespace m = margelo;
 
 class GPU : public m::HybridObject {
 public:
-  explicit GPU()
+  GPU()
       : HybridObject("GPU")  {
           wgpu::InstanceDescriptor instanceDesc;
           instanceDesc.features.timedWaitAnyEnable = true;
