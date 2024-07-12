@@ -22,13 +22,13 @@ Pod::Spec.new do |s|
   s.pod_target_xcconfig = {
     "HEADER_SEARCH_PATHS" => "$(PODS_TARGET_SRCROOT)/cpp"
   }
-  s.ios.vendored_frameworks = [
-    'libs/ios/libwebgpu_dawn.xcframework', 
-    'libs/ios/libdawn_common.xcframework', 
-    'libs/ios/libdawn_native.xcframework',
-    'libs/ios/libdawn_proc.xcframework'
-  ]
-  s.vendored_frameworks = "$(PODS_TARGET_SRCROOT)/libs/ios/libwebgpu_dawn.xcframework"
+  pods_root = ENV['PWD']
+  relative_path_to_libs = Pathname.new("#{__dir__}/bin").relative_path_from(Pathname.new(pods_root)).to_s
+  s.user_target_xcconfig = {
+    "OTHER_LDFLAGS[sdk=iphonesimulator*]" => '$(inherited) -l"webgpu_dawn"',
+    "OTHER_LDFLAGS[sdk=iphoneos*]" => '$(inherited) -l"webgpu_dawn_iphoneos"',
+    "LIBRARY_SEARCH_PATHS" => "$(PODS_TARGET_SRCROOT)/libs/ios"
+  }
 
   # Use install_modules_dependencies helper to install the dependencies if React Native version >=0.71.0.
   # See https://github.com/facebook/react-native/blob/febf6b7f33fdb4904669f99d795eba4c0f95d7bf/scripts/cocoapods/new_architecture.rb#L79.

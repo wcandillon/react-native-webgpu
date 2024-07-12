@@ -3,7 +3,6 @@
 #import <React/RCTLog.h>
 #import <ReactCommon/RCTTurboModule.h>
 
-#include "RNFLogger.h"
 #include "RNWebGPUManager.h"
 
 namespace jsi = facebook::jsi;

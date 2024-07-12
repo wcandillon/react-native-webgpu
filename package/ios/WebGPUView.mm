@@ -46,7 +46,7 @@ using namespace facebook::react;
   if (oldViewProps.color != newViewProps.color) {
     NSString *colorToConvert =
         [[NSString alloc] initWithUTF8String:newViewProps.color.c_str()];
-    [_view setBackgroundColor:[Utils hexStringToColor:colorToConvert]];
+    [_view setBackgroundColor:[UIColor cyan]];
   }
 
   [super updateProps:props oldProps:oldProps];

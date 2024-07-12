@@ -29,7 +29,7 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
   return buffer;
 }
 
-std::future<void> GPUBuffer::mapAsync(size_t mode, std::optional<size_t> o,
+std::future<void> GPUBuffer::mapAsync(uint64_t mode, std::optional<size_t> o,
                                       std::optional<size_t> size) {
   return _async->runAsync([=] {
     auto md = static_cast<wgpu::MapMode>(mode);
