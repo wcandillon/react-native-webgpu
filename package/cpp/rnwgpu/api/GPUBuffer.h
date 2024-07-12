@@ -12,15 +12,17 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "AsyncRunner.h"
+
 namespace rnwgpu {
 
 namespace m = margelo;
 
 class GPUBuffer : public m::HybridObject {
 public:
-  explicit GPUBuffer(wgpu::Instance gpu, wgpu::Buffer instance,
+  explicit GPUBuffer(wgpu::Buffer instance, std::shared_ptr<AsyncRunner> async,
                      std::string label)
-      : HybridObject("GPUBuffer"), _instance(instance), _gpu(gpu),
+      : HybridObject("GPUBuffer"), _instance(instance), _async(async),
         _label(label) {}
 
 public:
@@ -50,7 +52,7 @@ public:
   }
 
 private:
-  wgpu::Instance _gpu;
+  std::shared_ptr<AsyncRunner> _async;
   wgpu::Buffer _instance;
   std::string _label;
   struct Mapping {

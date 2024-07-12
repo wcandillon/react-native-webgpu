@@ -31,7 +31,7 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
 
 std::future<void> GPUBuffer::mapAsync(size_t mode, std::optional<size_t> o,
                                       std::optional<size_t> size) {
-  return std::async(std::launch::async, [=] {
+  return _async->runAsync([=] {
     auto md = static_cast<wgpu::MapMode>(mode);
     uint64_t offset = o.value_or(0);
     uint64_t s =
@@ -60,8 +60,7 @@ std::future<void> GPUBuffer::mapAsync(size_t mode, std::optional<size_t> o,
         break;
       }
     };
-    wgpu::Future future = _instance.MapAsync(md, offset, s, callback);
-    _gpu.WaitAny(future, UINT64_MAX);
+    return _instance.MapAsync(md, offset, s, callback);
   });
 }
 

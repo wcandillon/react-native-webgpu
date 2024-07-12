@@ -12,6 +12,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "AsyncRunner.h"
 #include "GPUDevice.h"
 #include "GPUDeviceDescriptor.h"
 
@@ -21,8 +22,8 @@ namespace m = margelo;
 
 class GPUAdapter : public m::HybridObject {
 public:
-  explicit GPUAdapter(wgpu::Instance gpu, wgpu::Adapter instance)
-      : HybridObject("GPUAdapter"), _gpu(gpu), _instance(instance) {}
+  explicit GPUAdapter(wgpu::Adapter instance, std::shared_ptr<AsyncRunner> async)
+      : HybridObject("GPUAdapter"), _instance(instance), _async(async) {}
 
 public:
   std::string getBrand() { return _name; }
@@ -36,7 +37,7 @@ public:
   }
 
 private:
-  wgpu::Instance _gpu;
   wgpu::Adapter _instance;
+  std::shared_ptr<AsyncRunner> _async;
 };
 } // namespace rnwgpu

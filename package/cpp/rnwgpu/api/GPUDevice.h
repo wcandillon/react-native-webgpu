@@ -12,6 +12,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "AsyncRunner.h"
 #include "GPUBuffer.h"
 #include "GPUBufferDescriptor.h"
 
@@ -21,9 +22,10 @@ namespace m = margelo;
 
 class GPUDevice : public m::HybridObject {
 public:
-  explicit GPUDevice(wgpu::Instance gpu, wgpu::Device instance,
+  explicit GPUDevice(wgpu::Device instance,
+  std::shared_ptr<AsyncRunner> async,
                      std::string label)
-      : HybridObject("GPUDevice"), _instance(instance), _gpu(gpu),
+      : HybridObject("GPUDevice"), _instance(instance), _async(async),
         _label(label) {}
 
 public:
@@ -42,7 +44,7 @@ public:
   }
 
 private:
-  wgpu::Instance _gpu;
+  std::shared_ptr<AsyncRunner> _async;
   wgpu::Device _instance;
   std::string _label;
 };
