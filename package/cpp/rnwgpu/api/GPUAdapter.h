@@ -8,11 +8,11 @@
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "AsyncRunner.h"
 #include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "AsyncRunner.h"
 #include "GPUDevice.h"
 #include "GPUDeviceDescriptor.h"
 
@@ -21,9 +21,9 @@ namespace rnwgpu {
 namespace m = margelo;
 
 class GPUAdapter : public m::HybridObject {
-friend class GPU;
 public:
-  explicit GPUAdapter(wgpu::Adapter instance, std::shared_ptr<AsyncRunner> async)
+  explicit GPUAdapter(wgpu::Adapter instance,
+                      std::shared_ptr<AsyncRunner> async)
       : HybridObject("GPUAdapter"), _instance(instance), _async(async) {}
 
 public:
@@ -40,5 +40,6 @@ public:
 private:
   wgpu::Adapter _instance;
   std::shared_ptr<AsyncRunner> _async;
+  friend class GPU;
 };
 } // namespace rnwgpu

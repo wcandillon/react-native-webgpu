@@ -57,6 +57,7 @@ export const resolved: Record<
         dependencies: ["GPUDeviceDescriptor", "GPUDevice"],
       },
     ],
+    extra: "friend class GPU;",
   },
   GPUBuffer: {
     properties: [

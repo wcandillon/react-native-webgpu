@@ -10,22 +10,21 @@ GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
     wgpu::Adapter adapter = nullptr;
     auto result = std::make_shared<GPUAdapter>(adapter, _async);
     wgpu::RequestAdapterCallbackInfo callback;
-    callback.callback = [](WGPURequestAdapterStatus, WGPUAdapter cAdapter, const char *message,
-           void *userdata) {
-          if (message != nullptr) {
-            fprintf(stderr, "%s", message);
-            return;
-          }
-          *static_cast<wgpu::Adapter *>(userdata) =
-              wgpu::Adapter::Acquire(cAdapter);
-        };
+    callback.callback = [](WGPURequestAdapterStatus, WGPUAdapter cAdapter,
+                           const char *message, void *userdata) {
+      if (message != nullptr) {
+        fprintf(stderr, "%s", message);
+        return;
+      }
+      *static_cast<wgpu::Adapter *>(userdata) =
+          wgpu::Adapter::Acquire(cAdapter);
+    };
     callback.mode = wgpu::CallbackMode::AllowProcessEvents;
     callback.userdata = &(result->_instance);
     _instance.RequestAdapter(aOptions, callback);
     return result;
   });
 }
-
 
 wgpu::TextureFormat GPU::getPreferredCanvasFormat() {
 #if defined(__ANDROID__)

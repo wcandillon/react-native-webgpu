@@ -53,8 +53,20 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     ...properties.flatMap((prop) => prop.dependencies),
   ];
   const instanceName = `wgpu::${instanceAliases[name] || name.substring(3)}`;
-  const labelCtrArg = hasLabel ? ", std::string label" : "";
-  const labelCtrInit = hasLabel ? ", _label(label)" : "";
+  const needsAsync =
+    decl
+      .getMethods()
+      .filter((m) => m.getReturnType().getSymbol()?.getName() === "Promise")
+      .length > 0;
+  const ctorParams: { name: string; type: string }[] = [
+    { name: "instance", type: instanceName },
+  ];
+  if (needsAsync) {
+    ctorParams.push({ name: "async", type: "std::shared_ptr<AsyncRunner>" });
+  }
+  if (hasLabel) {
+    ctorParams.push({ name: "label", type: "std::string" });
+  }
   return `#pragma once
 
 #include <memory>
@@ -65,6 +77,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "AsyncRunner.h"
 #include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
@@ -77,7 +90,7 @@ namespace m = margelo;
 
 class ${name} : public m::HybridObject {
 public:
-  explicit ${name}(${instanceName} instance${labelCtrArg}) : HybridObject("${name}"), _instance(instance)${labelCtrInit} {}
+  explicit ${name}(${ctorParams.map((param) => `${param.type} ${param.name}`).join(", ")}) : HybridObject("${name}"), ${ctorParams.map((param) => `_${param.name}(${param.name})`).join(", ")} {}
 
 public:
   std::string getBrand() { return _name; }
@@ -109,8 +122,7 @@ public:
   }
 
 private:
-  ${instanceName} _instance;
-  ${hasLabel ? "std::string _label;" : ""}
+  ${ctorParams.map((param) => `${param.type} _${param.name};`).join("\n")}
   ${resolveExtra(name)}
 };
 } // namespace rnwgpu`;

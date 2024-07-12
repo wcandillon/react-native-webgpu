@@ -8,11 +8,10 @@
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "AsyncRunner.h"
 #include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
-
-#include "AsyncRunner.h"
 
 namespace rnwgpu {
 
@@ -52,8 +51,8 @@ public:
   }
 
 private:
-  std::shared_ptr<AsyncRunner> _async;
   wgpu::Buffer _instance;
+  std::shared_ptr<AsyncRunner> _async;
   std::string _label;
   struct Mapping {
     uint64_t start;
