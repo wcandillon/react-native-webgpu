@@ -18,9 +18,23 @@ interface NativeProperty {
 
 export const resolved: Record<
   string,
-  { methods: NativeMethod[]; properties: NativeProperty[]; extra?: string }
+  {
+    methods: NativeMethod[];
+    properties: NativeProperty[];
+    extra?: string;
+    ctor?: string;
+  }
 > = {
   GPU: {
+    ctor: `GPU()
+      : HybridObject("GPU")  {
+          wgpu::InstanceDescriptor instanceDesc;
+          instanceDesc.features.timedWaitAnyEnable = true;
+          instanceDesc.features.timedWaitAnyMaxCount = 64;
+          _instance = wgpu::CreateInstance(&instanceDesc);
+          auto instance = &_instance;
+          _async = std::make_shared<AsyncRunner>(instance);
+      }`,
     properties: [],
     methods: [
       {
@@ -57,6 +71,7 @@ export const resolved: Record<
         dependencies: ["GPUDeviceDescriptor", "GPUDevice"],
       },
     ],
+    extra: "friend class GPU;",
   },
   GPUBuffer: {
     properties: [

@@ -3,10 +3,12 @@
 #include <future>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "AsyncRunner.h"
 #include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
@@ -20,8 +22,14 @@ namespace m = margelo;
 
 class GPU : public m::HybridObject {
 public:
-  explicit GPU(wgpu::Instance instance)
-      : HybridObject("GPU"), _instance(instance) {}
+  GPU() : HybridObject("GPU") {
+    wgpu::InstanceDescriptor instanceDesc;
+    instanceDesc.features.timedWaitAnyEnable = true;
+    instanceDesc.features.timedWaitAnyMaxCount = 64;
+    _instance = wgpu::CreateInstance(&instanceDesc);
+    auto instance = &_instance;
+    _async = std::make_shared<AsyncRunner>(instance);
+  }
 
 public:
   std::string getBrand() { return _name; }
@@ -39,5 +47,6 @@ public:
 
 private:
   wgpu::Instance _instance;
+  std::shared_ptr<AsyncRunner> _async;
 };
 } // namespace rnwgpu

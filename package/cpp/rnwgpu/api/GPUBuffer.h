@@ -8,6 +8,7 @@
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "AsyncRunner.h"
 #include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
@@ -18,13 +19,15 @@ namespace m = margelo;
 
 class GPUBuffer : public m::HybridObject {
 public:
-  explicit GPUBuffer(wgpu::Buffer instance, std::string label)
-      : HybridObject("GPUBuffer"), _instance(instance), _label(label) {}
+  explicit GPUBuffer(wgpu::Buffer instance, std::shared_ptr<AsyncRunner> async,
+                     std::string label)
+      : HybridObject("GPUBuffer"), _instance(instance), _async(async),
+        _label(label) {}
 
 public:
   std::string getBrand() { return _name; }
 
-  std::future<void> mapAsync(size_t mode, std::optional<size_t> offset,
+  std::future<void> mapAsync(uint64_t mode, std::optional<size_t> offset,
                              std::optional<size_t> size);
   std::shared_ptr<MutableJSIBuffer> getMappedRange(std::optional<size_t> offset,
                                                    std::optional<size_t> size);
@@ -49,6 +52,7 @@ public:
 
 private:
   wgpu::Buffer _instance;
+  std::shared_ptr<AsyncRunner> _async;
   std::string _label;
   struct Mapping {
     uint64_t start;

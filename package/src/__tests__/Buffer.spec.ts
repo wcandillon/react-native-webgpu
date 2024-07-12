@@ -60,6 +60,25 @@ describe("Buffer", () => {
     });
     expect(result).toBe(true);
   });
+  // it("upload data (3)", async () => {
+  //   const result = await client.eval(({ device, cubeVertexArray }) => {
+  //     const verticesBuffer = device.createBuffer({
+  //       size: cubeVertexArray.byteLength,
+  //       usage: GPUBufferUsage.VERTEX,
+  //       mappedAtCreation: false,
+  //       label: "verticesBuffer",
+  //     });
+  //     return verticesBuffer.mapAsync(GPUMapMode.WRITE).then(() => {
+  //       new Float32Array(
+  //         verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
+  //       ).set(cubeVertexArray);
+  //       verticesBuffer.unmap();
+  //       return !!verticesBuffer;
+  //     });
+  //   });
+  //   expect(result).toBe(true);
+  // });
+  // This should throw similar errors than chrome
   // it("upload data & read data (2)", async () => {
   //   const result = await client.eval(({ device, cubeVertexArray }) => {
   //     const verticesBuffer = device.createBuffer({

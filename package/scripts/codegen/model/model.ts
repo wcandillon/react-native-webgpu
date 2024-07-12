@@ -158,3 +158,7 @@ export const resolveProperty = (propertySignature: PropertySignature) => {
 export const resolveExtra = (className: string) => {
   return resolved[className]?.extra ?? "";
 };
+
+export const resolveCtor = (className: string): string | undefined => {
+  return resolved[className]?.ctor;
+};
