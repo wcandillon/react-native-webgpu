@@ -10,7 +10,7 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
   return std::async(std::launch::async, [this, descriptor]() {
     wgpu::Device device = nullptr;
     auto aDescriptor = descriptor->getInstance();
-    _instance->RequestDevice(
+    _instance.RequestDevice(
         aDescriptor,
         [](WGPURequestDeviceStatus status, WGPUDevice cDevice,
            const char *message, void *userdata) {

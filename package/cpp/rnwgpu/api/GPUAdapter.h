@@ -21,8 +21,9 @@ namespace rnwgpu {
 namespace m = margelo;
 
 class GPUAdapter : public m::HybridObject {
+friend class GPU;
 public:
-  explicit GPUAdapter(std::shared_ptr<wgpu::Adapter> instance, std::shared_ptr<AsyncRunner> async)
+  explicit GPUAdapter(wgpu::Adapter instance, std::shared_ptr<AsyncRunner> async)
       : HybridObject("GPUAdapter"), _instance(instance), _async(async) {}
 
 public:
@@ -37,7 +38,7 @@ public:
   }
 
 private:
-  std::shared_ptr<wgpu::Adapter> _instance;
+  wgpu::Adapter _instance;
   std::shared_ptr<AsyncRunner> _async;
 };
 } // namespace rnwgpu

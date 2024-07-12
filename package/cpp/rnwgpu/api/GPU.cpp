@@ -7,7 +7,8 @@ std::future<std::shared_ptr<GPUAdapter>>
 GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
   return _async->runAsync([=] {
     auto aOptions = options->getInstance();
-    std::shared_ptr<wgpu::Adapter> adapter = std::make_shared<wgpu::Adapter>(nullptr);
+    wgpu::Adapter adapter = nullptr;
+    auto result = std::make_shared<GPUAdapter>(adapter, _async);
     wgpu::RequestAdapterCallbackInfo callback;
     callback.callback = [](WGPURequestAdapterStatus, WGPUAdapter cAdapter, const char *message,
            void *userdata) {
@@ -19,10 +20,9 @@ GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
               wgpu::Adapter::Acquire(cAdapter);
         };
     callback.mode = wgpu::CallbackMode::AllowProcessEvents;
-    callback.userdata = adapter.get();
+    callback.userdata = &(result->_instance);
     _instance.RequestAdapter(aOptions, callback);
-
-    return std::make_shared<GPUAdapter>(std::move(adapter), _async);
+    return result;
   });
 }
 
