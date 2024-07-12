@@ -5,26 +5,53 @@ namespace rnwgpu {
 
 std::future<std::shared_ptr<GPUAdapter>>
 GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
-  return _async->runAsync([=] {
+  return std::async(std::launch::async, [this, options]() {
     auto aOptions = options->getInstance();
     wgpu::Adapter adapter = nullptr;
-    auto result = std::make_shared<GPUAdapter>(adapter, _async);
-    wgpu::RequestAdapterCallbackInfo callback;
-    callback.callback = [](WGPURequestAdapterStatus, WGPUAdapter cAdapter,
-                           const char *message, void *userdata) {
-      if (message != nullptr) {
-        fprintf(stderr, "%s", message);
-        return;
-      }
-      *static_cast<wgpu::Adapter *>(userdata) =
-          wgpu::Adapter::Acquire(cAdapter);
-    };
-    callback.mode = wgpu::CallbackMode::AllowProcessEvents;
-    callback.userdata = &(result->_instance);
-    _instance.RequestAdapter(aOptions, callback);
-    return result;
+    _instance.RequestAdapter(
+        aOptions,
+        [](WGPURequestAdapterStatus, WGPUAdapter cAdapter, const char *message,
+           void *userdata) {
+          if (message != nullptr) {
+            fprintf(stderr, "%s", message);
+            return;
+          }
+          *static_cast<wgpu::Adapter *>(userdata) =
+              wgpu::Adapter::Acquire(cAdapter);
+        },
+        &adapter);
+    // TODO: implement returning null jsi value
+    if (!adapter) {
+      throw std::runtime_error("Failed to request adapter");
+    }
+
+    return std::make_shared<GPUAdapter>(std::move(adapter), _async);
   });
 }
+
+// Async impl keeping here as a reference
+// std::future<std::shared_ptr<GPUAdapter>>
+// GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
+//  return _async->runAsync([=] {
+//    auto aOptions = options->getInstance();
+//    wgpu::Adapter adapter = nullptr;
+//    auto result = std::make_shared<GPUAdapter>(adapter, _async);
+//    wgpu::RequestAdapterCallbackInfo callback;
+//    callback.callback = [](WGPURequestAdapterStatus, WGPUAdapter cAdapter,
+//                           const char *message, void *userdata) {
+//      if (message != nullptr) {
+//        fprintf(stderr, "%s", message);
+//        return;
+//      }
+//      *static_cast<wgpu::Adapter *>(userdata) =
+//          wgpu::Adapter::Acquire(cAdapter);
+//    };
+//    callback.mode = wgpu::CallbackMode::AllowProcessEvents;
+//    callback.userdata = &(result->_instance);
+//    _instance.RequestAdapter(aOptions, callback);
+//    return result;
+//  });
+//}
 
 wgpu::TextureFormat GPU::getPreferredCanvasFormat() {
 #if defined(__ANDROID__)
