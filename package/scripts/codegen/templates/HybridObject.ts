@@ -2,7 +2,12 @@
 import type { InterfaceDeclaration } from "ts-morph";
 import _ from "lodash";
 
-import { resolveExtra, resolveMethod, resolveProperty } from "../model/model";
+import {
+  resolveCtor,
+  resolveExtra,
+  resolveMethod,
+  resolveProperty,
+} from "../model/model";
 
 import { mergeParentInterfaces } from "./common";
 
@@ -53,6 +58,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     ...properties.flatMap((prop) => prop.dependencies),
   ];
   const instanceName = `wgpu::${instanceAliases[name] || name.substring(3)}`;
+  const ctor = resolveCtor(name);
   const needsAsync =
     decl
       .getMethods()
@@ -90,7 +96,11 @@ namespace m = margelo;
 
 class ${name} : public m::HybridObject {
 public:
-  explicit ${name}(${ctorParams.map((param) => `${param.type} ${param.name}`).join(", ")}) : HybridObject("${name}"), ${ctorParams.map((param) => `_${param.name}(${param.name})`).join(", ")} {}
+  ${
+    ctor
+      ? ctor
+      : `  explicit ${name}(${ctorParams.map((param) => `${param.type} ${param.name}`).join(", ")}) : HybridObject("${name}"), ${ctorParams.map((param) => `_${param.name}(${param.name})`).join(", ")} {}`
+  }
 
 public:
   std::string getBrand() { return _name; }

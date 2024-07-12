@@ -9,7 +9,7 @@ namespace rnwgpu {
 
 class AsyncRunner {
 public:
-  explicit AsyncRunner(wgpu::Instance* instance) : instance(instance) {}
+  explicit AsyncRunner(wgpu::Instance *instance) : instance(instance) {}
 
   template <typename Func>
   auto runAsync(Func &&func) -> std::future<std::invoke_result_t<Func>> {
@@ -28,7 +28,7 @@ public:
   }
 
 private:
-  wgpu::Instance* instance;
+  wgpu::Instance *instance;
 };
 
 } // namespace rnwgpu

@@ -22,15 +22,14 @@ namespace m = margelo;
 
 class GPU : public m::HybridObject {
 public:
-  GPU()
-      : HybridObject("GPU")  {
-          wgpu::InstanceDescriptor instanceDesc;
-          instanceDesc.features.timedWaitAnyEnable = true;
-          instanceDesc.features.timedWaitAnyMaxCount = 64;
-          _instance = wgpu::CreateInstance(&instanceDesc);
-          auto instance = &_instance;
-          _async = std::make_shared<AsyncRunner>(instance);
-      }
+  GPU() : HybridObject("GPU") {
+    wgpu::InstanceDescriptor instanceDesc;
+    instanceDesc.features.timedWaitAnyEnable = true;
+    instanceDesc.features.timedWaitAnyMaxCount = 64;
+    _instance = wgpu::CreateInstance(&instanceDesc);
+    auto instance = &_instance;
+    _async = std::make_shared<AsyncRunner>(instance);
+  }
 
 public:
   std::string getBrand() { return _name; }
