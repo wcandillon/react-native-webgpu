@@ -46,7 +46,7 @@ std::future<void> GPUBuffer::mapAsync(size_t mode, std::optional<size_t> o,
     //   }
     // }
     wgpu::BufferMapCallbackInfo callback;
-    callback.mode = wgpu::CallbackMode::WaitAnyOnly;
+    callback.mode = wgpu::CallbackMode::AllowProcessEvents;
     callback.callback = [](WGPUBufferMapAsyncStatus status, void *userdata) {
       switch (status) {
       case WGPUBufferMapAsyncStatus_Success:
@@ -60,7 +60,7 @@ std::future<void> GPUBuffer::mapAsync(size_t mode, std::optional<size_t> o,
         break;
       }
     };
-    return _instance.MapAsync(md, offset, s, callback);
+    _instance.MapAsync(md, offset, s, callback);
   });
 }
 

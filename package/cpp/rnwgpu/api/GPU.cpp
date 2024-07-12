@@ -5,12 +5,11 @@ namespace rnwgpu {
 
 std::future<std::shared_ptr<GPUAdapter>>
 GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
-  return std::async(std::launch::async, [this, options]() {
+  return _async->runAsync([=] {
     auto aOptions = options->getInstance();
-    wgpu::Adapter adapter = nullptr;
-    _instance.RequestAdapter(
-        aOptions,
-        [](WGPURequestAdapterStatus, WGPUAdapter cAdapter, const char *message,
+    std::shared_ptr<wgpu::Adapter> adapter = std::make_shared<wgpu::Adapter>(nullptr);
+    wgpu::RequestAdapterCallbackInfo callback;
+    callback.callback = [](WGPURequestAdapterStatus, WGPUAdapter cAdapter, const char *message,
            void *userdata) {
           if (message != nullptr) {
             fprintf(stderr, "%s", message);
@@ -18,16 +17,15 @@ GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
           }
           *static_cast<wgpu::Adapter *>(userdata) =
               wgpu::Adapter::Acquire(cAdapter);
-        },
-        &adapter);
-    // TODO: implement returning null jsi value
-    if (!adapter) {
-      throw std::runtime_error("Failed to request adapter");
-    }
+        };
+    callback.mode = wgpu::CallbackMode::AllowProcessEvents;
+    callback.userdata = adapter.get();
+    _instance.RequestAdapter(aOptions, callback);
 
     return std::make_shared<GPUAdapter>(std::move(adapter), _async);
   });
 }
+
 
 wgpu::TextureFormat GPU::getPreferredCanvasFormat() {
 #if defined(__ANDROID__)
