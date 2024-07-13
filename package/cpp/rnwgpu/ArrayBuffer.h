@@ -16,14 +16,10 @@ struct ArrayBuffer : jsi::MutableBuffer {
   ~ArrayBuffer() override {}
 
   // Implement the size() method
-  virtual size_t size() const override {
-    return _size;
-  }
+  virtual size_t size() const override { return _size; }
 
   // Implement the data() method
-  uint8_t* data() override {
-    return static_cast<uint8_t*>(_data);
-  }
+  uint8_t *data() override { return static_cast<uint8_t *>(_data); }
 
   void *_data;
   size_t _size;

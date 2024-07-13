@@ -54,7 +54,9 @@ const resolveType = (
   optional = false,
 ) => {
   const type = resolveRequiredType(name, dependencies);
-  if (optional) {
+  // Descriptors don't need an std::optional wrapper
+  const notADescriptor = type.endsWith("Descriptor");
+  if (optional && notADescriptor) {
     return `std::optional<${type}>`;
   }
   return type;
