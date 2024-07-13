@@ -1,5 +1,4 @@
 #import "RCTBridge.h"
-#import "Utils.h"
 #import <React/RCTUIManager.h>
 #import <React/RCTViewManager.h>
 
@@ -15,7 +14,7 @@ RCT_EXPORT_MODULE(WebGPUView)
 }
 
 RCT_CUSTOM_VIEW_PROPERTY(color, NSString, UIView) {
-  [view setBackgroundColor:[Utils hexStringToColor:json]];
+  [view setBackgroundColor:[UIColor cyanColor]];
 }
 
 @end
