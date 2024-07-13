@@ -73,6 +73,38 @@ export const resolved: Record<
     ],
     extra: "friend class GPU;",
   },
+  GPUQueue: {
+    properties: [],
+    methods: [
+      {
+        name: "writeBuffer",
+        dependencies: ["GPUBuffer"],
+        returns: "void",
+        args: [
+          {
+            name: "buffer",
+            type: "std::shared_ptr<GPUBuffer>",
+          },
+          {
+            name: "bufferOffset",
+            type: "uint64_t",
+          },
+          {
+            name: "data",
+            type: "std::shared_ptr<MutableJSIBuffer>",
+          },
+          {
+            name: "dataOffset",
+            type: "std::optional<uint64_t>",
+          },
+          {
+            name: "size",
+            type: "std::optional<size_t>",
+          },
+        ],
+      },
+    ],
+  },
   GPUBuffer: {
     properties: [
       {

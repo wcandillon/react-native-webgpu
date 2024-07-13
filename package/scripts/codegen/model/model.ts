@@ -163,7 +163,7 @@ export const resolveMethod = (methodSignature: MethodSignature) => {
   );
   const args = (hasPropery(modelMethod, "args") ? modelMethod.args : []).map(
     ({ name, type }) => ({
-      name,
+      name: _.camelCase(name),
       type: resolveType(
         type as keyof typeof dawn,
         dependencies,
@@ -171,6 +171,14 @@ export const resolveMethod = (methodSignature: MethodSignature) => {
       ),
     }),
   );
+  if (methodName === "writeBuffer") {
+    console.log({
+      dependencies,
+      name: methodName,
+      args,
+      returns,
+    });
+  }
   return {
     dependencies,
     name: methodName,

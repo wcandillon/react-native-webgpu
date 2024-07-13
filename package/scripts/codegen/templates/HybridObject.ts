@@ -18,6 +18,8 @@ const instanceAliases: Record<string, string> = {
 const methodWhiteList = [
   // GPU
   "getPreferredCanvasFormat",
+  // Queue
+  "writeBuffer",
   //
   "requestAdapter",
   "requestDevice",

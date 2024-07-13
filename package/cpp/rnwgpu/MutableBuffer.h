@@ -9,6 +9,7 @@ namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
 
+// TODO: rename to ArrayBuffer
 struct MutableJSIBuffer : jsi::MutableBuffer {
   MutableJSIBuffer(void *data, size_t size) : _data(data), _size(size) {}
 
@@ -32,7 +33,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::MutableJSIBuffer>> {
           "Buffer::fromJSI: argument is not an ArrayBuffer");
     }
     auto data = arg.getObject(runtime).getArrayBuffer(runtime);
-    auto result = std::make_unique<rnwgpu::MutableJSIBuffer>(
+    auto result = std::make_shared<rnwgpu::MutableJSIBuffer>(
         data.data(runtime), data.size(runtime));
     return result;
   }
