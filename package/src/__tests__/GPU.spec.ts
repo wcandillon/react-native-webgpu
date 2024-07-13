@@ -53,6 +53,6 @@ describe("Adapter", () => {
     const result = await client.eval(({ gpu }) => {
       return gpu.getPreferredCanvasFormat();
     });
-    expect(result).toBe(client.OS === "android" ? "rgba8unorm" : "bgra8Unorm");
+    expect(result).toBe(client.OS === "android" ? "rgba8unorm" : "bgra8unorm");
   });
 });

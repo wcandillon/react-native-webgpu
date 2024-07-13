@@ -19,7 +19,7 @@ Pod::Spec.new do |s|
     "cpp/**/*.{h,cpp}"
   ]
 
-  s.vendored_libraries = 'libs/ios/arm64_iphoneos/libwebgpu_dawn.dylib'
+  s.vendored_libraries = 'libs/ios/libwebgpu_dawn.dylib'
   s.libraries = 'webgpu_dawn'
 
   s.pod_target_xcconfig = {
