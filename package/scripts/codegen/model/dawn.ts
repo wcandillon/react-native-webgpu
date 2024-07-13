@@ -91,7 +91,7 @@ export const resolved: Record<
           },
           {
             name: "data",
-            type: "std::shared_ptr<MutableJSIBuffer>",
+            type: "std::shared_ptr<ArrayBuffer>",
           },
           {
             name: "dataOffset",
@@ -148,9 +148,11 @@ export const resolved: Record<
       uint64_t start;
       uint64_t end;
       inline bool Intersects(uint64_t s, uint64_t e) const { return s < end && e > start; }
-      std::shared_ptr<MutableJSIBuffer> buffer;
+      std::shared_ptr<ArrayBuffer> buffer;
   };
-  std::vector<Mapping> mappings;`,
+  std::vector<Mapping> mappings;
+  friend class GPUQueue;
+  `,
   },
 };
 

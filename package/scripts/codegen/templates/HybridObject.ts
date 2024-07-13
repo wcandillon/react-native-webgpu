@@ -87,7 +87,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
 #include <RNFHybridObject.h>
 
 #include "AsyncRunner.h"
-#include "MutableBuffer.h"
+#include "ArrayBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
 

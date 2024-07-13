@@ -4,7 +4,7 @@
 
 namespace rnwgpu {
 
-std::shared_ptr<MutableJSIBuffer>
+std::shared_ptr<ArrayBuffer>
 GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
   size_t offset = o.value_or(0);
   auto bufferSize = _instance.GetSize();
@@ -24,7 +24,7 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
   if (!ptr) {
     throw std::runtime_error("Failed to map buffer");
   }
-  auto buffer = std::make_shared<MutableJSIBuffer>(ptr, s);
+  auto buffer = std::make_shared<ArrayBuffer>(ptr, s);
   // mappings.emplace_back(Mapping{start, end, buffer});
   return buffer;
 }

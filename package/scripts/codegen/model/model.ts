@@ -38,7 +38,7 @@ const resolveRequiredType = (
   }
   if (type.category === "native") {
     if (name === "void *") {
-      return "std::shared_ptr<MutableJSIBuffer>";
+      return "std::shared_ptr<ArrayBuffer>";
     }
     return name;
   }

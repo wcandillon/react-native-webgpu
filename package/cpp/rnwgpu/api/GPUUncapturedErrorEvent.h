@@ -8,8 +8,8 @@
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
-#include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
 

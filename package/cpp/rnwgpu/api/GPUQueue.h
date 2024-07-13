@@ -8,8 +8,8 @@
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
-#include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -30,7 +30,7 @@ public:
   std::string getBrand() { return _name; }
 
   void writeBuffer(std::shared_ptr<GPUBuffer> buffer, uint64_t bufferOffset,
-                   std::shared_ptr<MutableJSIBuffer> data,
+                   std::shared_ptr<ArrayBuffer> data,
                    std::optional<uint64_t> dataOffset,
                    std::optional<size_t> size);
 
