@@ -73,6 +73,7 @@ template <> struct JSIConverter<float> {
   }
 };
 
+#if defined(__APPLE__)
 template <> struct JSIConverter<size_t> {
   static size_t fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
     double value = arg.asNumber();
@@ -83,6 +84,7 @@ template <> struct JSIConverter<size_t> {
       return jsi::Value(static_cast<double>(arg));
   }
 };
+#endif
 
 // uint64_t <> BigInt
 template <> struct JSIConverter<uint64_t> {
