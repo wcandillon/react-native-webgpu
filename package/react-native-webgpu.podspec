@@ -19,18 +19,12 @@ Pod::Spec.new do |s|
     "cpp/**/*.{h,cpp}"
   ]
 
-  pods_root = ENV['PWD']
-  relative_path_to_libs = Pathname.new("#{__dir__}/libs/ios").relative_path_from(Pathname.new(pods_root)).to_s
-  puts "Relative path to libs: #{relative_path_to_libs}"
+  s.vendored_libraries = 'libs/ios/arm64_iphoneos/libwebgpu_dawn.dylib'
+  s.libraries = 'webgpu_dawn'
 
   s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',
-  }
-  
-  s.user_target_xcconfig = {
-    "LIBRARY_SEARCH_PATHS" => "\"#{relative_path_to_libs}\"",
-    "OTHER_LDFLAGS[sdk=iphonesimulator*]" => '$(inherited) -l"webgpu_dawn_simulator"',
-    "OTHER_LDFLAGS[sdk=iphoneos*]" => '$(inherited) -l"webgpu_dawn_iphoneos"',
+    'LIBRARY_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/libs/ios/arm64_iphoneos'
   }
 
   # Use install_modules_dependencies helper to install the dependencies if React Native version >=0.71.0.
