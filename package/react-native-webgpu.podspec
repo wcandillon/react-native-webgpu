@@ -20,11 +20,9 @@ Pod::Spec.new do |s|
   ]
 
   s.vendored_libraries = 'libs/ios/libwebgpu_dawn.dylib'
-  s.libraries = 'webgpu_dawn'
 
   s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',
-    'LIBRARY_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/libs/ios/arm64_iphoneos'
   }
 
   # Use install_modules_dependencies helper to install the dependencies if React Native version >=0.71.0.
