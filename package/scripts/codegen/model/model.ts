@@ -69,6 +69,56 @@ const getModelName = (name: string) => {
   );
 };
 
+const resolveMethodPriv = (
+  className: string,
+  methodName: string,
+  args: { name: string; type: string }[],
+) => {
+  // If we have it resolved already, return it
+  if (resolved[className]) {
+    const method = resolved[className].methods.find(
+      ({ name }: { name: string }) => {
+        const result = name === methodName;
+        return result;
+      },
+    );
+    if (method) {
+      return method;
+    }
+  }
+  const methodModelName = getModelName(methodName);
+  const classMethodName = getModelName(className);
+
+  const native = dawn[classMethodName as keyof typeof dawn];
+  if (!hasPropery(native, "methods")) {
+    throw new Error(
+      `No native method found for ${className}: ${methodModelName}`,
+    );
+  }
+
+  const modelMethod = native.methods.find(({ name }: { name: string }) => {
+    const result = name === methodModelName;
+    return result;
+  });
+
+  if (!modelMethod) {
+    throw new Error(
+      `No model method found for ${className}: ${methodModelName}`,
+    );
+  }
+  const dependencies: string[] = [];
+  const returns = resolveType(
+    modelMethod.returns as keyof typeof dawn,
+    dependencies,
+  );
+
+  return {
+    dependencies,
+    name: methodName,
+    args,
+    returns,
+  };
+};
 export const resolveMethod = (methodSignature: MethodSignature) => {
   const className = (
     methodSignature.getParent() as InterfaceDeclaration
@@ -146,13 +196,13 @@ export const resolveProperty = (propertySignature: PropertySignature) => {
       return property;
     }
   }
-  const propertyModelName = getModelName(propertyName);
-  //const classMethodName = getModelName(className);
-
-  //const native = dawn[classMethodName as keyof typeof dawn];
-  throw new Error(
-    `No native method found for ${className}: ${propertyModelName}`,
+  const prop = resolveMethodPriv(
+    className,
+    `get${_.upperFirst(propertyName)}`,
+    [],
   );
+  prop.name = propertyName;
+  return prop;
 };
 
 export const resolveExtra = (className: string) => {

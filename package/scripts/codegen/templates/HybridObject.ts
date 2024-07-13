@@ -29,6 +29,7 @@ const methodWhiteList = [
 
 const propWhiteList: Record<string, string[]> = {
   GPUBuffer: ["size", "usage", "mapState"],
+  GPUDevice: ["queue"],
 };
 
 // const propWhiteList: string[] = [
