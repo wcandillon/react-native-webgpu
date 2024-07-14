@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "Convertors.h"
 #include "Unions.h"
 #include <RNFHybridObject.h>
 

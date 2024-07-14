@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "Convertors.h"
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
@@ -14,6 +15,8 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "GPUBuffer.h"
+#include "GPUCommandBuffer.h"
+#include "GPUCommandBufferDescriptor.h"
 
 namespace rnwgpu {
 
@@ -31,6 +34,8 @@ public:
                           uint64_t sourceOffset,
                           std::shared_ptr<GPUBuffer> destination,
                           uint64_t destinationOffset, uint64_t size);
+  std::shared_ptr<GPUCommandBuffer>
+  finish(std::shared_ptr<GPUCommandBufferDescriptor> descriptor);
 
   std::string getLabel() { return _label; }
 
@@ -38,6 +43,7 @@ public:
     registerHybridGetter("__brand", &GPUCommandEncoder::getBrand, this);
     registerHybridMethod("copyBufferToBuffer",
                          &GPUCommandEncoder::copyBufferToBuffer, this);
+    registerHybridMethod("finish", &GPUCommandEncoder::finish, this);
 
     registerHybridGetter("label", &GPUCommandEncoder::getLabel, this);
   }

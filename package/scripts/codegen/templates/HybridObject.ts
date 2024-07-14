@@ -34,6 +34,7 @@ const methodWhiteList = [
   "mapAsync",
   // CommandEncoder,
   "copyBufferToBuffer",
+  "finish",
 ];
 
 const propWhiteList: Record<string, string[]> = {
@@ -91,6 +92,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
 #include <vector>
 
 #include "Unions.h"
+#include "Convertors.h"
 #include <RNFHybridObject.h>
 
 #include "AsyncRunner.h"

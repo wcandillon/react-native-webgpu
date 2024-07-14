@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "Convertors.h"
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
@@ -12,6 +13,9 @@
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
+
+#include "GPURenderBundle.h"
+#include "GPURenderBundleDescriptor.h"
 
 namespace rnwgpu {
 
@@ -27,10 +31,14 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  std::shared_ptr<GPURenderBundle>
+  finish(std::shared_ptr<GPURenderBundleDescriptor> descriptor);
+
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPURenderBundleEncoder::getBrand, this);
+    registerHybridMethod("finish", &GPURenderBundleEncoder::finish, this);
 
     registerHybridGetter("label", &GPURenderBundleEncoder::getLabel, this);
   }
