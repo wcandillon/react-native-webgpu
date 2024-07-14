@@ -51,6 +51,9 @@ std::future<void> GPUBuffer::mapAsync(uint64_t mode, std::optional<size_t> o,
       switch (status) {
       case WGPUBufferMapAsyncStatus_Success:
         break;
+      case WGPUBufferMapAsyncStatus_InstanceDropped:
+        throw std::runtime_error("WGPUBufferMapAsyncStatus_InstanceDropped");
+        break;
       case WGPUBufferMapAsyncStatus_ValidationError:
         throw std::runtime_error("WGPUBufferMapAsyncStatus_ValidationError");
         break;
