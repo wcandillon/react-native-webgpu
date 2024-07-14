@@ -60,6 +60,23 @@ describe("Buffer", () => {
     });
     expect(result).toBe(true);
   });
+  it("writes into a buffer", async () => {
+    const result = await client.eval(({ device }) => {
+      const bufferSize = 4 * 4; // 4 32-bit floats
+      const sourceBuffer = device.createBuffer({
+        size: bufferSize,
+        usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+      });
+
+      // Create data to upload
+      const data = new Float32Array([1.0, 2.0, 3.0, 4.0]);
+
+      // Write data to the source buffer
+      device.queue.writeBuffer(sourceBuffer, 0, data);
+      return true;
+    });
+    expect(result).toBe(true);
+  });
   // it("upload data (3)", async () => {
   //   const result = await client.eval(({ device, cubeVertexArray }) => {
   //     const verticesBuffer = device.createBuffer({

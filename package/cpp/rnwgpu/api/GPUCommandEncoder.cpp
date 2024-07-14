@@ -11,7 +11,8 @@ void GPUCommandEncoder::copyBufferToBuffer(
                                destinationOffset, size);
 }
 
-std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(std::shared_ptr<GPUCommandBufferDescriptor> descriptor) {
+std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(
+    std::shared_ptr<GPUCommandBufferDescriptor> descriptor) {
   auto commandBuffer = _instance.Finish(&descriptor->_instance);
   return std::make_shared<GPUCommandBuffer>(commandBuffer, _label);
 }

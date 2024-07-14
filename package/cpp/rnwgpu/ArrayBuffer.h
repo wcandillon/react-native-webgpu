@@ -33,17 +33,24 @@ namespace margelo {
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::ArrayBuffer>> {
   static std::shared_ptr<rnwgpu::ArrayBuffer>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBound) {
-    if (!arg.getObject(runtime).isArrayBuffer(runtime)) {
-      throw std::runtime_error(
-          "Buffer::fromJSI: argument is not an ArrayBuffer");
+    if (arg.isObject()) {
+      auto obj = arg.getObject(runtime);
+      if (obj.hasProperty(runtime, "buffer")) {
+        auto bufferProp = obj.getProperty(runtime, "buffer");
+        if (bufferProp.isObject() &&
+            bufferProp.getObject(runtime).isArrayBuffer(runtime)) {
+          auto arrayBuffer =
+              bufferProp.getObject(runtime).getArrayBuffer(runtime);
+          auto length = arrayBuffer.length(runtime);
+          auto size = arrayBuffer.size(runtime);
+          auto bytesPerElement = size / length;
+          return std::make_shared<rnwgpu::ArrayBuffer>(
+              arrayBuffer.data(runtime), size, bytesPerElement);
+        }
+      }
     }
-    auto data = arg.getObject(runtime).getArrayBuffer(runtime);
-    auto length = data.length(runtime);
-    auto size = data.size(runtime);
-    auto bytesPerElement = size / length;
-    auto result =
-        std::make_shared<rnwgpu::ArrayBuffer>(data.data(runtime), size);
-    return result;
+    throw std::runtime_error("ArrayBuffer::fromJSI: argument is not an object "
+                             "with an ArrayBuffer 'buffer' property");
   }
 
   static jsi::Value toJSI(jsi::Runtime &runtime,
