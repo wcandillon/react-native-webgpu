@@ -11,11 +11,16 @@ class AsyncRunner {
 public:
   explicit AsyncRunner(wgpu::Instance *instance) : instance(instance) {}
 
-  auto runAsync(std::function<wgpu::Future()> func) -> std::future<void> {
-    return std::async(std::launch::async, [this, func = std::move(func)]() {
-      auto future = func();
-      instance->WaitAny(future, UINT64_MAX);
-    });
+  template <typename F> auto runAsync(F &&func) {
+    return std::async(
+        std::launch::async, [this, func = std::forward<F>(func)]() {
+          if constexpr (std::is_invocable_v<F, wgpu::Instance *>) {
+            return func(instance);
+          } else {
+            auto future = func();
+            instance->WaitAny(future, UINT64_MAX);
+          }
+        });
   }
 
 private:
