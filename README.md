@@ -22,3 +22,7 @@ Make sure you have all the tools required for building the skia libraries (Andro
 1. `git submodule update --remote`
 2. `yarn clean-dawn`
 3. `yarn build-dawn`
+
+### Codegen
+
+* `cd package && yarn codegen`

@@ -18,7 +18,7 @@ std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
     std::shared_ptr<GPUCommandEncoderDescriptor> descriptor) {
   auto aDescriptor = descriptor->getInstance();
   auto result = _instance.CreateCommandEncoder(aDescriptor);
-  return std::make_shared<GPUCommandEncoder>(result, _async, descriptor->label);
+  return std::make_shared<GPUCommandEncoder>(result, descriptor->label);
 }
 
 } // namespace rnwgpu

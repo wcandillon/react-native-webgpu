@@ -29,7 +29,8 @@ public:
 
   std::future<void> mapAsync(uint64_t mode, std::optional<size_t> offset,
                              std::optional<size_t> size);
-  std::shared_ptr<ArrayBuffer> getMappedRange(size_t offset, size_t size);
+  std::shared_ptr<ArrayBuffer> getMappedRange(std::optional<size_t> offset,
+                                              std::optional<size_t> size);
   void unmap();
 
   size_t getSize();
