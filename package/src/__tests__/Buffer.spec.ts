@@ -60,7 +60,7 @@ describe("Buffer", () => {
     });
     expect(result).toBe(true);
   });
-  it("writes into a buffer", async () => {
+  it("writes into a buffer (1)", async () => {
     const result = await client.eval(({ device }) => {
       const bufferSize = 4 * 4; // 4 32-bit floats
       const sourceBuffer = device.createBuffer({
@@ -77,42 +77,69 @@ describe("Buffer", () => {
     });
     expect(result).toBe(true);
   });
-  // it("upload data (3)", async () => {
-  //   const result = await client.eval(({ device, cubeVertexArray }) => {
-  //     const verticesBuffer = device.createBuffer({
-  //       size: cubeVertexArray.byteLength,
-  //       usage: GPUBufferUsage.VERTEX,
-  //       mappedAtCreation: false,
-  //       label: "verticesBuffer",
-  //     });
-  //     return verticesBuffer.mapAsync(GPUMapMode.WRITE).then(() => {
-  //       new Float32Array(
-  //         verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
-  //       ).set(cubeVertexArray);
-  //       verticesBuffer.unmap();
-  //       return !!verticesBuffer;
-  //     });
-  //   });
-  //   expect(result).toBe(true);
-  // });
-  // This should throw similar errors than chrome
-  // it("upload data & read data (2)", async () => {
-  //   const result = await client.eval(({ device, cubeVertexArray }) => {
-  //     const verticesBuffer = device.createBuffer({
-  //       size: cubeVertexArray.byteLength,
-  //       usage: GPUBufferUsage.VERTEX,
-  //       mappedAtCreation: true,
-  //       label: "verticesBuffer",
-  //     });
-  //     new Float32Array(
-  //       verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
-  //     ).set(cubeVertexArray);
-  //     verticesBuffer.unmap();
-  //     return verticesBuffer.mapAsync(GPUMapMode.READ).then(() => {
-  //       const r = new Float32Array(verticesBuffer.getMappedRange());
-  //       return r;
-  //     });
-  //   });
-  //   expect(result).toBe([0, 0, 0]);
-  // });
+  it("writes into a buffer (2)", async () => {
+    const result = await client.eval(({ device }) => {
+      const bufferSize = 4 * 4; // 4 32-bit floats
+      const sourceBuffer = device.createBuffer({
+        size: bufferSize,
+        usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+      });
+
+      // Create a buffer for reading
+      const readBuffer = device.createBuffer({
+        size: bufferSize,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+      });
+
+      // Create data to upload
+      const data = new Float32Array([1.0, 2.0, 3.0, 4.0]);
+
+      // Write data to the source buffer
+      device.queue.writeBuffer(sourceBuffer, 0, data);
+
+      // Copy data from source buffer to read buffer
+      const encoder = device.createCommandEncoder();
+      encoder.copyBufferToBuffer(sourceBuffer, 0, readBuffer, 0, bufferSize);
+      device.queue.submit([encoder.finish()]);
+      // Map the read buffer for reading
+      return readBuffer.mapAsync(GPUMapMode.READ).then(() => {
+        const readData = new Float32Array(readBuffer.getMappedRange());
+        const res = Array.from(readData);
+        readBuffer.unmap();
+        return res;
+      });
+
+      // // Create a buffer for writing
+      // const writeBuffer = device.createBuffer({
+      //   size: bufferSize,
+      //   usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.MAP_WRITE,
+      // });
+
+      // // Map the write buffer for writing
+      // await writeBuffer.mapAsync(GPUMapMode.WRITE);
+      // const writeData = new Float32Array(writeBuffer.getMappedRange());
+      // writeData.set([5.0, 6.0, 7.0, 8.0]);
+      // console.log("Data written to buffer:", writeData);
+      // writeBuffer.unmap();
+
+      // // Copy data from write buffer to source buffer
+      // const encoder2 = device.createCommandEncoder();
+      // encoder2.copyBufferToBuffer(writeBuffer, 0, sourceBuffer, 0, bufferSize);
+      // device.queue.submit([encoder2.finish()]);
+
+      // // Copy data from source buffer to read buffer
+      // const encoder3 = device.createCommandEncoder();
+      // encoder3.copyBufferToBuffer(sourceBuffer, 0, readBuffer, 0, bufferSize);
+      // device.queue.submit([encoder3.finish()]);
+
+      // // Map the read buffer for final reading
+      // await readBuffer.mapAsync(GPUMapMode.READ);
+      // const finalReadData = new Float32Array(readBuffer.getMappedRange());
+      // console.log("Final data read from buffer:", finalReadData);
+      // readBuffer.unmap();
+
+      // console.log("WebGPU operations completed successfully.");
+    });
+    expect(result).toEqual([1, 2, 3, 4]);
+  });
 });
