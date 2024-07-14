@@ -63,7 +63,7 @@ std::future<void> GPUBuffer::mapAsync(uint64_t mode, std::optional<size_t> o,
         break;
       }
     };
-    _instance.MapAsync(md, offset, s, callback);
+    return _instance.MapAsync(md, offset, s, callback);
   });
 }
 
