@@ -12,7 +12,7 @@ GPUDevice::createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
 std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
   auto result = _instance.GetQueue();
   return std::make_shared<GPUQueue>(result, _async, _label);
-};
+}
 
 std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
     std::shared_ptr<GPUCommandEncoderDescriptor> descriptor) {

@@ -1,5 +1,7 @@
 #include "GPUQueue.h"
 
+#include <limits>
+
 namespace rnwgpu {
 
 void GPUQueue::submit(
