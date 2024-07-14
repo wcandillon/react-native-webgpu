@@ -33,7 +33,9 @@ public:
     registerHybridGetter("label", &GPURenderPipeline::getLabel, this);
   }
 
-  // private:
+  inline const wgpu::RenderPipeline get() { return _instance; }
+
+private:
   wgpu::RenderPipeline _instance;
   std::string _label;
 };

@@ -51,7 +51,9 @@ public:
     registerHybridGetter("label", &GPUDevice::getLabel, this);
   }
 
-  // private:
+  inline const wgpu::Device get() { return _instance; }
+
+private:
   wgpu::Device _instance;
   std::shared_ptr<AsyncRunner> _async;
   std::string _label;

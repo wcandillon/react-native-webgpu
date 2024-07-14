@@ -42,7 +42,9 @@ public:
     registerHybridGetter("label", &GPUCommandEncoder::getLabel, this);
   }
 
-  // private:
+  inline const wgpu::CommandEncoder get() { return _instance; }
+
+private:
   wgpu::CommandEncoder _instance;
   std::string _label;
 };

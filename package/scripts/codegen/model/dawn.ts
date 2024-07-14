@@ -71,7 +71,6 @@ export const resolved: Record<
         dependencies: ["GPUDeviceDescriptor", "GPUDevice"],
       },
     ],
-    extra: "friend class GPU;",
   },
   GPUQueue: {
     properties: [],
@@ -162,8 +161,6 @@ export const resolved: Record<
       std::shared_ptr<ArrayBuffer> buffer;
   };
   std::vector<Mapping> mappings;
-  friend class GPUQueue;
-  friend class GPUCommandEncoder;
   `,
   },
 };

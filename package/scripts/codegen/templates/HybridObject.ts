@@ -140,8 +140,12 @@ public:
     ${properties.map((prop) => `registerHybridGetter("${prop.name}", &${name}::get${_.upperFirst(prop.name)}, this);`).join("\n")}
     ${hasLabel ? `registerHybridGetter("label", &${name}::getLabel, this);` : ""}
   }
+  
+  inline const ${instanceName} get() {
+    return _instance;
+  }
 
-// private:
+ private:
   ${ctorParams.map((param) => `${param.type} _${param.name};`).join("\n")}
   ${resolveExtra(name)}
 };

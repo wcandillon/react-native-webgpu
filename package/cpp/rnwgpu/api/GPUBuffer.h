@@ -50,7 +50,9 @@ public:
     registerHybridGetter("label", &GPUBuffer::getLabel, this);
   }
 
-  // private:
+  inline const wgpu::Buffer get() { return _instance; }
+
+private:
   wgpu::Buffer _instance;
   std::shared_ptr<AsyncRunner> _async;
   std::string _label;
@@ -63,7 +65,5 @@ public:
     std::shared_ptr<ArrayBuffer> buffer;
   };
   std::vector<Mapping> mappings;
-  friend class GPUQueue;
-  friend class GPUCommandEncoder;
 };
 } // namespace rnwgpu

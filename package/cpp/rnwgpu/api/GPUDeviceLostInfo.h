@@ -29,7 +29,9 @@ public:
     registerHybridGetter("__brand", &GPUDeviceLostInfo::getBrand, this);
   }
 
-  // private:
+  inline const wgpu::DeviceLostInfo get() { return _instance; }
+
+private:
   wgpu::DeviceLostInfo _instance;
 };
 } // namespace rnwgpu

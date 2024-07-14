@@ -33,7 +33,9 @@ public:
     registerHybridGetter("label", &GPUBindGroup::getLabel, this);
   }
 
-  // private:
+  inline const wgpu::BindGroup get() { return _instance; }
+
+private:
   wgpu::BindGroup _instance;
   std::string _label;
 };

@@ -29,7 +29,9 @@ public:
     registerHybridGetter("__brand", &GPUUncapturedErrorEvent::getBrand, this);
   }
 
-  // private:
+  inline const wgpu::UncapturedErrorEvent get() { return _instance; }
+
+private:
   wgpu::UncapturedErrorEvent _instance;
 };
 } // namespace rnwgpu

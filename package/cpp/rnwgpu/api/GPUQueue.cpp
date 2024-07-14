@@ -6,7 +6,7 @@ void GPUQueue::submit(
     std::vector<std::shared_ptr<GPUCommandBuffer>> commandBuffers) {
   std::vector<wgpu::CommandBuffer> bufs(commandBuffers.size());
   for (size_t i = 0; i < commandBuffers.size(); i++) {
-    bufs[i] = commandBuffers[i]->_instance;
+    bufs[i] = commandBuffers[i]->get();
   }
   _instance.Submit(bufs.size(), bufs.data());
 }
@@ -16,7 +16,7 @@ void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,
                            std::shared_ptr<ArrayBuffer> src,
                            std::optional<uint64_t> dataOffsetElements,
                            std::optional<size_t> sizeElements) {
-  auto buf = buffer->_instance;
+  auto buf = buffer->get();
   // Note that in the JS semantics of WebGPU, writeBuffer works in number of
   // elements of the typed arrays.
   if (dataOffsetElements > uint64_t(src->_size / src->_bytesPerElement)) {

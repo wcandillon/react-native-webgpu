@@ -35,7 +35,9 @@ public:
     registerHybridGetter("label", &GPURenderBundleEncoder::getLabel, this);
   }
 
-  // private:
+  inline const wgpu::RenderBundleEncoder get() { return _instance; }
+
+private:
   wgpu::RenderBundleEncoder _instance;
   std::string _label;
 };

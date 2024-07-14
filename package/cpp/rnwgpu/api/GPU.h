@@ -45,7 +45,9 @@ public:
                          &GPU::getPreferredCanvasFormat, this);
   }
 
-  // private:
+  inline const wgpu::Instance get() { return _instance; }
+
+private:
   wgpu::Instance _instance;
   std::shared_ptr<AsyncRunner> _async;
 };

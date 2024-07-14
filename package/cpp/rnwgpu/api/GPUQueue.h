@@ -46,7 +46,9 @@ public:
     registerHybridGetter("label", &GPUQueue::getLabel, this);
   }
 
-  // private:
+  inline const wgpu::Queue get() { return _instance; }
+
+private:
   wgpu::Queue _instance;
   std::shared_ptr<AsyncRunner> _async;
   std::string _label;

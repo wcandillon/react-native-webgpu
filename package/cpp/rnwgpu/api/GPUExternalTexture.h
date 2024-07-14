@@ -34,7 +34,9 @@ public:
     registerHybridGetter("label", &GPUExternalTexture::getLabel, this);
   }
 
-  // private:
+  inline const wgpu::ExternalTexture get() { return _instance; }
+
+private:
   wgpu::ExternalTexture _instance;
   std::string _label;
 };

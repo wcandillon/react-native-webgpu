@@ -35,7 +35,9 @@ public:
     registerHybridGetter("label", &GPUComputePassEncoder::getLabel, this);
   }
 
-  // private:
+  inline const wgpu::ComputePassEncoder get() { return _instance; }
+
+private:
   wgpu::ComputePassEncoder _instance;
   std::string _label;
 };

@@ -33,7 +33,9 @@ public:
     registerHybridGetter("label", &GPUQuerySet::getLabel, this);
   }
 
-  // private:
+  inline const wgpu::QuerySet get() { return _instance; }
+
+private:
   wgpu::QuerySet _instance;
   std::string _label;
 };

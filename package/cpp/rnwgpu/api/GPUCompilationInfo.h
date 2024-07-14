@@ -29,7 +29,9 @@ public:
     registerHybridGetter("__brand", &GPUCompilationInfo::getBrand, this);
   }
 
-  // private:
+  inline const wgpu::CompilationInfo get() { return _instance; }
+
+private:
   wgpu::CompilationInfo _instance;
 };
 } // namespace rnwgpu
