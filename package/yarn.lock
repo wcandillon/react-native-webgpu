@@ -9469,7 +9469,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer@npm:^22.13.0":
+"puppeteer@npm:22":
   version: 22.13.0
   resolution: "puppeteer@npm:22.13.0"
   dependencies:
@@ -9716,7 +9716,7 @@ __metadata:
     jest: ^29.7.0
     lodash: ^4.17.21
     prettier: ^3.0.3
-    puppeteer: ^22.13.0
+    puppeteer: 22
     react: 18.2.0
     react-native: 0.74.2
     react-native-builder-bob: ^0.23.2

@@ -22,6 +22,10 @@ beforeAll(async () => {
   await client.init();
 });
 
+afterAll(async () => {
+  await client.dispose();
+});
+
 export interface EvalContext {
   gpu: GPU;
   adapter: GPUAdapter;
@@ -96,36 +100,52 @@ class ReferenceTestingClient implements TestingClient {
 
   async eval<Ctx extends EvalContext = EvalContext, R = any>(
     fn: (ctx: Ctx) => R,
-    ctx?: Ctx,
+    _ctx?: Ctx,
   ): Promise<R> {
     if (!this.page) {
       throw new Error("RemoteSurface not initialized");
     }
     const source = `(async function Main(){
-      const { device, adapter, gpu } = window;
-      return (${fn.toString()})({ device, adapter, gpu });
+      const { device, adapter, gpu, cubeVertexArray } = window;
+      return (${fn.toString()})({
+        device, adapter, gpu, 
+        GPUBufferUsage,
+        GPUColorWrite,
+        GPUMapMode,
+        GPUShaderStage,
+        GPUTextureUsage,
+        cubeVertexArray
+      });
     })();`;
-    console.log({ source });
     const data = await this.page.evaluate(source);
-    console.log({ data });
-    return JSON.parse(data as string);
+    return data as R;
   }
 
   async init() {
     const browser = await puppeteer.launch({
-      headless: false,
-      args: [
-        "--enable-unsafe-webgpu",
-        "--headless",
-        "--hide-scrollbars",
-        "--mute-audio",
-      ],
+      headless: DEBUG,
+      args: ["--enable-unsafe-webgpu"],
     });
+    // const browser = await puppeteer.launch({
+    //   headless: false,
+    //   args: [
+    //     "--enable-unsafe-webgpu",
+    //     "--headless",
+    //     "--hide-scrollbars",
+    //     "--mute-audio",
+    //   ],
+    // });
     const page = await browser.newPage();
     page.on("console", (msg) => console.log(msg.text()));
     page.on("pageerror", (error) => {
       console.error(error.message);
     });
+    await page
+      .goto("chrome://gpu", {
+        waitUntil: "networkidle0",
+        timeout: 20 * 60 * 1000,
+      })
+      .catch((e) => console.log(e));
     await page.evaluate(
       `
 (async () => {
@@ -140,6 +160,50 @@ class ReferenceTestingClient implements TestingClient {
     throw new Error("No adapter");
   }
   window.device = await adapter.requestDevice();
+  window.cubeVertexArray = new Float32Array([
+  // float4 position, float4 color, float2 uv,
+  1, -1, 1, 1,   1, 0, 1, 1,  0, 1,
+  -1, -1, 1, 1,  0, 0, 1, 1,  1, 1,
+  -1, -1, -1, 1, 0, 0, 0, 1,  1, 0,
+  1, -1, -1, 1,  1, 0, 0, 1,  0, 0,
+  1, -1, 1, 1,   1, 0, 1, 1,  0, 1,
+  -1, -1, -1, 1, 0, 0, 0, 1,  1, 0,
+
+  1, 1, 1, 1,    1, 1, 1, 1,  0, 1,
+  1, -1, 1, 1,   1, 0, 1, 1,  1, 1,
+  1, -1, -1, 1,  1, 0, 0, 1,  1, 0,
+  1, 1, -1, 1,   1, 1, 0, 1,  0, 0,
+  1, 1, 1, 1,    1, 1, 1, 1,  0, 1,
+  1, -1, -1, 1,  1, 0, 0, 1,  1, 0,
+
+  -1, 1, 1, 1,   0, 1, 1, 1,  0, 1,
+  1, 1, 1, 1,    1, 1, 1, 1,  1, 1,
+  1, 1, -1, 1,   1, 1, 0, 1,  1, 0,
+  -1, 1, -1, 1,  0, 1, 0, 1,  0, 0,
+  -1, 1, 1, 1,   0, 1, 1, 1,  0, 1,
+  1, 1, -1, 1,   1, 1, 0, 1,  1, 0,
+
+  -1, -1, 1, 1,  0, 0, 1, 1,  0, 1,
+  -1, 1, 1, 1,   0, 1, 1, 1,  1, 1,
+  -1, 1, -1, 1,  0, 1, 0, 1,  1, 0,
+  -1, -1, -1, 1, 0, 0, 0, 1,  0, 0,
+  -1, -1, 1, 1,  0, 0, 1, 1,  0, 1,
+  -1, 1, -1, 1,  0, 1, 0, 1,  1, 0,
+
+  1, 1, 1, 1,    1, 1, 1, 1,  0, 1,
+  -1, 1, 1, 1,   0, 1, 1, 1,  1, 1,
+  -1, -1, 1, 1,  0, 0, 1, 1,  1, 0,
+  -1, -1, 1, 1,  0, 0, 1, 1,  1, 0,
+  1, -1, 1, 1,   1, 0, 1, 1,  0, 0,
+  1, 1, 1, 1,    1, 1, 1, 1,  0, 1,
+
+  1, -1, -1, 1,  1, 0, 0, 1,  0, 1,
+  -1, -1, -1, 1, 0, 0, 0, 1,  1, 1,
+  -1, 1, -1, 1,  0, 1, 0, 1,  1, 0,
+  1, 1, -1, 1,   1, 1, 0, 1,  0, 0,
+  1, -1, -1, 1,  1, 0, 0, 1,  0, 1,
+  -1, 1, -1, 1,  0, 1, 0, 1,  1, 0,
+]);
 })();
       `,
     );
