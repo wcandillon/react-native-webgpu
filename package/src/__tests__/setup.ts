@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-var */
 import type { Server, WebSocket } from "ws";
+import type { Browser, Page } from "puppeteer";
+import puppeteer from "puppeteer";
+
+import { DEBUG, REFERENCE } from "./config";
 
 jest.setTimeout(180 * 1000);
 
@@ -14,7 +18,8 @@ declare global {
 export let client: TestingClient;
 
 beforeAll(async () => {
-  client = new RemoteTestingClient();
+  client = REFERENCE ? new ReferenceTestingClient() : new RemoteTestingClient();
+  await client.init();
 });
 
 export interface EvalContext {
@@ -36,6 +41,8 @@ interface TestingClient {
   ): Promise<R>;
   OS: TestOS;
   arch: "paper" | "fabric";
+  init(): Promise<void>;
+  dispose(): Promise<void>;
 }
 
 class RemoteTestingClient implements TestingClient {
@@ -75,5 +82,73 @@ class RemoteTestingClient implements TestingClient {
       }
     }
     return ctx;
+  }
+  async init() {}
+  async dispose() {}
+}
+
+class ReferenceTestingClient implements TestingClient {
+  readonly OS = "web";
+  readonly arch = "paper";
+
+  private browser: Browser | null = null;
+  private page: Page | null = null;
+
+  async eval<Ctx extends EvalContext = EvalContext, R = any>(
+    fn: (ctx: Ctx) => R,
+    ctx?: Ctx,
+  ): Promise<R> {
+    if (!this.page) {
+      throw new Error("RemoteSurface not initialized");
+    }
+    const source = `(async function Main(){
+      const { device, adapter, gpu } = window;
+      return (${fn.toString()})({ device, adapter, gpu });
+    })();`;
+    console.log({ source });
+    const data = await this.page.evaluate(source);
+    console.log({ data });
+    return JSON.parse(data as string);
+  }
+
+  async init() {
+    const browser = await puppeteer.launch({
+      headless: false,
+      args: [
+        "--enable-unsafe-webgpu",
+        "--headless",
+        "--hide-scrollbars",
+        "--mute-audio",
+      ],
+    });
+    const page = await browser.newPage();
+    page.on("console", (msg) => console.log(msg.text()));
+    page.on("pageerror", (error) => {
+      console.error(error.message);
+    });
+    await page.evaluate(
+      `
+(async () => {
+  window.gpu = navigator.gpu;
+  if (!gpu) {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl');
+    throw new Error("WebGPU is not available. WebGL: " + !!(gl && gl instanceof WebGLRenderingContext));
+  }
+  window.adapter = await gpu.requestAdapter();
+  if (!adapter) {
+    throw new Error("No adapter");
+  }
+  window.device = await adapter.requestDevice();
+})();
+      `,
+    );
+    this.browser = browser;
+    this.page = page;
+  }
+  async dispose() {
+    if (this.browser && !DEBUG) {
+      this.browser.close();
+    }
   }
 }
