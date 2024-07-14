@@ -33,7 +33,7 @@ public:
     registerHybridGetter("label", &GPUSampler::getLabel, this);
   }
 
-private:
+  // private:
   wgpu::Sampler _instance;
   std::string _label;
 };

@@ -37,7 +37,7 @@ public:
     registerHybridMethod("requestDevice", &GPUAdapter::requestDevice, this);
   }
 
-private:
+  // private:
   wgpu::Adapter _instance;
   std::shared_ptr<AsyncRunner> _async;
   friend class GPU;

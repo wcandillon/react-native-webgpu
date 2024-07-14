@@ -2,6 +2,15 @@
 
 namespace rnwgpu {
 
+void GPUQueue::submit(
+    std::vector<std::shared_ptr<GPUCommandBuffer>> commandBuffers) {
+  std::vector<wgpu::CommandBuffer> bufs(commandBuffers.size());
+  for (size_t i = 0; i < commandBuffers.size(); i++) {
+    bufs[i] = commandBuffers[i]->_instance;
+  }
+  _instance.Submit(bufs.size(), bufs.data());
+}
+
 void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,
                            uint64_t bufferOffset,
                            std::shared_ptr<ArrayBuffer> src,

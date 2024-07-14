@@ -33,7 +33,7 @@ public:
     registerHybridGetter("label", &GPUTextureView::getLabel, this);
   }
 
-private:
+  // private:
   wgpu::TextureView _instance;
   std::string _label;
 };

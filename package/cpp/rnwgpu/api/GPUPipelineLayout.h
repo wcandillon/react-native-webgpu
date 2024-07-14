@@ -33,7 +33,7 @@ public:
     registerHybridGetter("label", &GPUPipelineLayout::getLabel, this);
   }
 
-private:
+  // private:
   wgpu::PipelineLayout _instance;
   std::string _label;
 };

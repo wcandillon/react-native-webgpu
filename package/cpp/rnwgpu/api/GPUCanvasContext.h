@@ -29,7 +29,7 @@ public:
     registerHybridGetter("__brand", &GPUCanvasContext::getBrand, this);
   }
 
-private:
+  // private:
   wgpu::CanvasContext _instance;
 };
 } // namespace rnwgpu

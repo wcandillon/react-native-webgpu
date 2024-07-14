@@ -13,6 +13,8 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "GPUBuffer.h"
+
 namespace rnwgpu {
 
 namespace m = margelo;
@@ -25,15 +27,22 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  void copyBufferToBuffer(std::shared_ptr<GPUBuffer> source,
+                          uint64_t sourceOffset,
+                          std::shared_ptr<GPUBuffer> destination,
+                          uint64_t destinationOffset, uint64_t size);
+
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUCommandEncoder::getBrand, this);
+    registerHybridMethod("copyBufferToBuffer",
+                         &GPUCommandEncoder::copyBufferToBuffer, this);
 
     registerHybridGetter("label", &GPUCommandEncoder::getLabel, this);
   }
 
-private:
+  // private:
   wgpu::CommandEncoder _instance;
   std::string _label;
 };

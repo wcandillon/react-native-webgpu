@@ -33,7 +33,7 @@ public:
     registerHybridGetter("label", &GPUCommandBuffer::getLabel, this);
   }
 
-private:
+  // private:
   wgpu::CommandBuffer _instance;
   std::string _label;
 };

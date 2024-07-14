@@ -103,6 +103,17 @@ export const resolved: Record<
           },
         ],
       },
+      {
+        name: "submit",
+        dependencies: ["GPUCommandBuffer"],
+        args: [
+          {
+            name: "commandBuffers",
+            type: "std::vector<std::shared_ptr<GPUCommandBuffer>>",
+          },
+        ],
+        returns: "void",
+      },
     ],
   },
   GPUBuffer: {
@@ -152,6 +163,7 @@ export const resolved: Record<
   };
   std::vector<Mapping> mappings;
   friend class GPUQueue;
+  friend class GPUCommandEncoder;
   `,
   },
 };

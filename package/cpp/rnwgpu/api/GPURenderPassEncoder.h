@@ -35,7 +35,7 @@ public:
     registerHybridGetter("label", &GPURenderPassEncoder::getLabel, this);
   }
 
-private:
+  // private:
   wgpu::RenderPassEncoder _instance;
   std::string _label;
 };

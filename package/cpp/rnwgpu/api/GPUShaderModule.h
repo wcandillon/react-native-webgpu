@@ -36,7 +36,7 @@ public:
     registerHybridGetter("label", &GPUShaderModule::getLabel, this);
   }
 
-private:
+  // private:
   wgpu::ShaderModule _instance;
   std::shared_ptr<AsyncRunner> _async;
   std::string _label;

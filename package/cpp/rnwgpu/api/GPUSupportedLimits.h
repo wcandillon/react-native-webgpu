@@ -29,7 +29,7 @@ public:
     registerHybridGetter("__brand", &GPUSupportedLimits::getBrand, this);
   }
 
-private:
+  // private:
   wgpu::SupportedLimits _instance;
 };
 } // namespace rnwgpu

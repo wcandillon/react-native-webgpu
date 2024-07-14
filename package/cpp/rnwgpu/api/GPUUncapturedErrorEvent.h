@@ -29,7 +29,7 @@ public:
     registerHybridGetter("__brand", &GPUUncapturedErrorEvent::getBrand, this);
   }
 
-private:
+  // private:
   wgpu::UncapturedErrorEvent _instance;
 };
 } // namespace rnwgpu

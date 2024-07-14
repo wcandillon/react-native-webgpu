@@ -21,6 +21,7 @@ const methodWhiteList = [
 
   // Queue
   "writeBuffer",
+  "submit",
   //
   "requestAdapter",
   "requestDevice",
@@ -31,6 +32,8 @@ const methodWhiteList = [
   "unmap",
   "getMappedRange",
   "mapAsync",
+  // CommandEncoder,
+  "copyBufferToBuffer",
 ];
 
 const propWhiteList: Record<string, string[]> = {
@@ -138,7 +141,7 @@ public:
     ${hasLabel ? `registerHybridGetter("label", &${name}::getLabel, this);` : ""}
   }
 
-private:
+// private:
   ${ctorParams.map((param) => `${param.type} _${param.name};`).join("\n")}
   ${resolveExtra(name)}
 };
