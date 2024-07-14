@@ -123,18 +123,9 @@ class ReferenceTestingClient implements TestingClient {
 
   async init() {
     const browser = await puppeteer.launch({
-      headless: DEBUG,
+      headless: !DEBUG,
       args: ["--enable-unsafe-webgpu"],
     });
-    // const browser = await puppeteer.launch({
-    //   headless: false,
-    //   args: [
-    //     "--enable-unsafe-webgpu",
-    //     "--headless",
-    //     "--hide-scrollbars",
-    //     "--mute-audio",
-    //   ],
-    // });
     const page = await browser.newPage();
     page.on("console", (msg) => console.log(msg.text()));
     page.on("pageerror", (error) => {
@@ -146,6 +137,7 @@ class ReferenceTestingClient implements TestingClient {
         timeout: 20 * 60 * 1000,
       })
       .catch((e) => console.log(e));
+    await page.waitForNetworkIdle();
     await page.evaluate(
       `
 (async () => {
