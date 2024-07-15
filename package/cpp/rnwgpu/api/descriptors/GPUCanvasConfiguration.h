@@ -74,7 +74,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
 
         if (usage.isNumber()) {
           result->_instance.usage =
-              static_cast<wgpu::TextureUsageFlags>(usage.getNumber());
+              static_cast<wgpu::TextureUsage>(usage.getNumber());
         }
       }
       if (value.hasProperty(runtime, "viewFormats")) {

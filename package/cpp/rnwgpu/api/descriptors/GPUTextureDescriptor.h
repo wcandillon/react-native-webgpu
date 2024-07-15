@@ -38,9 +38,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
         auto size = value.getProperty(runtime, "size");
 
         if (size.isObject()) {
-          auto val = m::JSIConverter<
-              std::shared_ptr<rnwgpu::GPUExtent3D>>::fromJSI(runtime,
-                                                                   size, false);
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3D>>::fromJSI(
+                  runtime, size, false);
           result->_instance.size = val->_instance;
         }
 

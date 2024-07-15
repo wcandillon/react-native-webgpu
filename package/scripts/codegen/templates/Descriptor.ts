@@ -6,6 +6,7 @@ import { mergeParentInterfaces } from "./common";
 
 const enumMap: Record<string, string> = {
   GPUBufferUsageFlags: "BufferUsage",
+  GPUTextureUsageFlags: "TextureUsage",
 };
 
 const enumMap2: Record<string, string> = {
@@ -70,11 +71,16 @@ export const descriptorToSkip = [
   "GPUOrigin3DDict",
 ];
 
+const aliasMap: Record<string, string> = {
+  GPUExtent3DStrict: "GPUExtent3D",
+};
+
 const getDescriptorObject = (
   name: string,
-  alias: string,
+  _alias: string,
   dependencies: string[],
 ) => {
+  const alias = aliasMap[_alias] ?? _alias;
   if (!descriptorToSkip.includes(alias)) {
     dependencies.push(alias);
   }
