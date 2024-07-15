@@ -40,9 +40,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexState>> {
       if (value.hasProperty(runtime, "module")) {
         auto module = value.getProperty(runtime, "module");
 
-        if (module.isObject()) {
+        if (module.isObject() &&
+            module.getObject(runtime).isHostObject(runtime)) {
           result->_instance.module =
-              value.asHostObject<rnwgpu::GPUShaderModule>(runtime)->get();
+              module.getObject(runtime)
+                  .asHostObject<rnwgpu::GPUShaderModule>(runtime)
+                  ->get();
         }
 
         if (module.isUndefined()) {

@@ -68,8 +68,8 @@ const getDescriptorObject = (
 ) => {
   dependencies.push(alias);
   if (objectInstance[alias]) {
-    return `if (${name}.isObject()) {
-    result->_instance.${name} = value.asHostObject<rnwgpu::${alias}>(runtime)->get();
+    return `if (${name}.isObject() && ${name}.getObject(runtime).isHostObject(runtime)) {
+      result->_instance.${name} = ${name}.getObject(runtime).asHostObject<rnwgpu::${alias}>(runtime)->get();
   }`;
   }
   return `if (${name}.isObject()) {
