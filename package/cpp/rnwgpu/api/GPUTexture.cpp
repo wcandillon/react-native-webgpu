@@ -4,35 +4,25 @@ namespace rnwgpu {
 
 void GPUTexture::destroy() { _instance.Destroy(); }
 
-double GPUTexture::getWidth() {
-  return _instance.GetWidth();
-}
+uint32_t GPUTexture::getWidth() { return _instance.GetWidth(); }
 
-double GPUTexture::getHeight() {
-  return _instance.GetHeight();
-}
+uint32_t GPUTexture::getHeight() { return _instance.GetHeight(); }
 
-double GPUTexture::getDepthOrArrayLayers() {
+uint32_t GPUTexture::getDepthOrArrayLayers() {
   return _instance.GetDepthOrArrayLayers();
 }
 
-double GPUTexture::getMipLevelCount() {
-  return _instance.GetMipLevelCount();
-}
+uint32_t GPUTexture::getMipLevelCount() { return _instance.GetMipLevelCount(); }
 
-double GPUTexture::getSampleCount() {
-  return _instance.GetSampleCount();
-}
+uint32_t GPUTexture::getSampleCount() { return _instance.GetSampleCount(); }
 
 wgpu::TextureDimension GPUTexture::getDimension() {
   return _instance.GetDimension();
 }
 
-wgpu::TextureFormat GPUTexture::getFormat() {
-  return _instance.GetFormat();
-}
+wgpu::TextureFormat GPUTexture::getFormat() { return _instance.GetFormat(); }
 
-double GPUTexture::getUsage() {
+uint32_t GPUTexture::getUsage() {
   return static_cast<double>(_instance.GetUsage());
 }
 

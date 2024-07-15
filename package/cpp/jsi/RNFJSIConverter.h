@@ -86,6 +86,17 @@ template <> struct JSIConverter<size_t> {
 };
 #endif
 
+// uint32_t <> double
+template <> struct JSIConverter<uint32_t> {
+  static double fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
+      double value = arg.asNumber();
+      return static_cast<uint32_t>(value);
+  }
+  static jsi::Value toJSI(jsi::Runtime& runtime, uint32_t arg) {
+      return jsi::Value(static_cast<double>(arg));
+  }
+};
+
 // uint64_t <> BigInt
 template <> struct JSIConverter<uint64_t> {
   static double fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
