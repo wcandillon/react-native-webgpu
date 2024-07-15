@@ -5,11 +5,12 @@
 #include <string>
 #include <vector>
 
+#include "Convertors.h"
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
-#include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -37,9 +38,10 @@ public:
     registerHybridMethod("requestDevice", &GPUAdapter::requestDevice, this);
   }
 
+  inline const wgpu::Adapter get() { return _instance; }
+
 private:
   wgpu::Adapter _instance;
   std::shared_ptr<AsyncRunner> _async;
-  friend class GPU;
 };
 } // namespace rnwgpu

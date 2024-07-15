@@ -71,7 +71,49 @@ export const resolved: Record<
         dependencies: ["GPUDeviceDescriptor", "GPUDevice"],
       },
     ],
-    extra: "friend class GPU;",
+  },
+  GPUQueue: {
+    properties: [],
+    methods: [
+      {
+        name: "writeBuffer",
+        dependencies: ["GPUBuffer"],
+        returns: "void",
+        args: [
+          {
+            name: "buffer",
+            type: "std::shared_ptr<GPUBuffer>",
+          },
+          {
+            name: "bufferOffset",
+            type: "uint64_t",
+          },
+          {
+            name: "data",
+            type: "std::shared_ptr<ArrayBuffer>",
+          },
+          {
+            name: "dataOffset",
+            type: "std::optional<uint64_t>",
+          },
+          {
+            name: "size",
+            type: "std::optional<size_t>",
+          },
+        ],
+      },
+      {
+        name: "submit",
+        dependencies: ["GPUCommandBuffer"],
+        args: [
+          {
+            name: "commandBuffers",
+            type: "std::vector<std::shared_ptr<GPUCommandBuffer>>",
+          },
+        ],
+        returns: "void",
+      },
+    ],
   },
   GPUBuffer: {
     properties: [
@@ -116,9 +158,10 @@ export const resolved: Record<
       uint64_t start;
       uint64_t end;
       inline bool Intersects(uint64_t s, uint64_t e) const { return s < end && e > start; }
-      std::shared_ptr<MutableJSIBuffer> buffer;
+      std::shared_ptr<ArrayBuffer> buffer;
   };
-  std::vector<Mapping> mappings;`,
+  std::vector<Mapping> mappings;
+  `,
   },
 };
 

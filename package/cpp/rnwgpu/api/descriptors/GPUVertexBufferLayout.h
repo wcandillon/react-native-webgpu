@@ -60,12 +60,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
             "Property GPUVertexBufferLayout::attributes is not defined");
       }
     }
-    rnwgpu::Logger::logToConsole("GPUVertexBufferLayout::arrayStride = %f",
-                                 result->_instance.arrayStride);
-    rnwgpu::Logger::logToConsole("GPUVertexBufferLayout::stepMode = %f",
-                                 result->_instance.stepMode);
-    rnwgpu::Logger::logToConsole("GPUVertexBufferLayout::attributes = %f",
-                                 result->_instance.attributes);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

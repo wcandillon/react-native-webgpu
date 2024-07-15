@@ -79,23 +79,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole(
-        "GPURenderBundleEncoderDescriptor::depthReadOnly = %f",
-        result->_instance.depthReadOnly);
-    rnwgpu::Logger::logToConsole(
-        "GPURenderBundleEncoderDescriptor::stencilReadOnly = %f",
-        result->_instance.stencilReadOnly);
-    rnwgpu::Logger::logToConsole(
-        "GPURenderBundleEncoderDescriptor::colorFormats = %f",
-        result->_instance.colorFormats);
-    rnwgpu::Logger::logToConsole(
-        "GPURenderBundleEncoderDescriptor::depthStencilFormat = %f",
-        result->_instance.depthStencilFormat);
-    rnwgpu::Logger::logToConsole(
-        "GPURenderBundleEncoderDescriptor::sampleCount = %f",
-        result->_instance.sampleCount);
-    rnwgpu::Logger::logToConsole("GPURenderBundleEncoderDescriptor::label = %f",
-                                 result->_instance.label);
+
     return result;
   }
   static jsi::Value

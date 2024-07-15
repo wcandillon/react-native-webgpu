@@ -2,6 +2,8 @@
 import type { Server, WebSocket } from "ws";
 import { WebSocketServer } from "ws";
 
+import { REFERENCE } from "./config";
+
 declare global {
   var testServer: Server;
   var testClient: WebSocket;
@@ -19,6 +21,10 @@ const isArch = (arc: string): arc is "paper" | "fabric" => {
 
 const globalSetup = () => {
   return new Promise<void>((resolve) => {
+    if (REFERENCE) {
+      resolve();
+      return;
+    }
     const port = 4242;
     global.testServer = new WebSocketServer({ port });
     console.log(

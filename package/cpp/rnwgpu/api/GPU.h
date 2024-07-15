@@ -5,11 +5,12 @@
 #include <string>
 #include <vector>
 
+#include "Convertors.h"
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
-#include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -44,6 +45,8 @@ public:
     registerHybridMethod("getPreferredCanvasFormat",
                          &GPU::getPreferredCanvasFormat, this);
   }
+
+  inline const wgpu::Instance get() { return _instance; }
 
 private:
   wgpu::Instance _instance;

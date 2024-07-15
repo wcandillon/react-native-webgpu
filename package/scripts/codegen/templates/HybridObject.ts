@@ -18,17 +18,28 @@ const instanceAliases: Record<string, string> = {
 const methodWhiteList = [
   // GPU
   "getPreferredCanvasFormat",
+
+  // Queue
+  "writeBuffer",
+  "submit",
   //
   "requestAdapter",
   "requestDevice",
+  // Device
   "createBuffer",
+  "createCommandEncoder",
+  // Buffer
   "unmap",
   "getMappedRange",
   "mapAsync",
+  // CommandEncoder,
+  "copyBufferToBuffer",
+  "finish",
 ];
 
 const propWhiteList: Record<string, string[]> = {
   GPUBuffer: ["size", "usage", "mapState"],
+  GPUDevice: ["queue"],
 };
 
 // const propWhiteList: string[] = [
@@ -81,10 +92,11 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
 #include <vector>
 
 #include "Unions.h"
+#include "Convertors.h"
 #include <RNFHybridObject.h>
 
 #include "AsyncRunner.h"
-#include "MutableBuffer.h"
+#include "ArrayBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -130,8 +142,12 @@ public:
     ${properties.map((prop) => `registerHybridGetter("${prop.name}", &${name}::get${_.upperFirst(prop.name)}, this);`).join("\n")}
     ${hasLabel ? `registerHybridGetter("label", &${name}::getLabel, this);` : ""}
   }
+  
+  inline const ${instanceName} get() {
+    return _instance;
+  }
 
-private:
+ private:
   ${ctorParams.map((param) => `${param.type} _${param.name};`).join("\n")}
   ${resolveExtra(name)}
 };

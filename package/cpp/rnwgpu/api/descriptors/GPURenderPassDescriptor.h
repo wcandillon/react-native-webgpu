@@ -72,22 +72,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole(
-        "GPURenderPassDescriptor::colorAttachments = %f",
-        result->_instance.colorAttachments);
-    rnwgpu::Logger::logToConsole(
-        "GPURenderPassDescriptor::depthStencilAttachment = %f",
-        result->_instance.depthStencilAttachment);
-    rnwgpu::Logger::logToConsole(
-        "GPURenderPassDescriptor::occlusionQuerySet = %f",
-        result->_instance.occlusionQuerySet);
-    rnwgpu::Logger::logToConsole(
-        "GPURenderPassDescriptor::timestampWrites = %f",
-        result->_instance.timestampWrites);
-    rnwgpu::Logger::logToConsole("GPURenderPassDescriptor::maxDrawCount = %f",
-                                 result->_instance.maxDrawCount);
-    rnwgpu::Logger::logToConsole("GPURenderPassDescriptor::label = %f",
-                                 result->_instance.label);
+
     return result;
   }
   static jsi::Value

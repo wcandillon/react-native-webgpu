@@ -5,11 +5,12 @@
 #include <string>
 #include <vector>
 
+#include "Convertors.h"
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
-#include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -33,6 +34,8 @@ public:
 
     registerHybridGetter("label", &GPUBindGroupLayout::getLabel, this);
   }
+
+  inline const wgpu::BindGroupLayout get() { return _instance; }
 
 private:
   wgpu::BindGroupLayout _instance;

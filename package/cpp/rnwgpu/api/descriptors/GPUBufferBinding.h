@@ -55,12 +55,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUBufferBinding::buffer = %f",
-                                 result->_instance.buffer);
-    rnwgpu::Logger::logToConsole("GPUBufferBinding::offset = %f",
-                                 result->_instance.offset);
-    rnwgpu::Logger::logToConsole("GPUBufferBinding::size = %f",
-                                 result->_instance.size);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

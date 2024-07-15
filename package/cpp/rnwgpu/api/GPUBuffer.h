@@ -5,11 +5,12 @@
 #include <string>
 #include <vector>
 
+#include "Convertors.h"
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
-#include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -29,8 +30,8 @@ public:
 
   std::future<void> mapAsync(uint64_t mode, std::optional<size_t> offset,
                              std::optional<size_t> size);
-  std::shared_ptr<MutableJSIBuffer> getMappedRange(std::optional<size_t> offset,
-                                                   std::optional<size_t> size);
+  std::shared_ptr<ArrayBuffer> getMappedRange(std::optional<size_t> offset,
+                                              std::optional<size_t> size);
   void unmap();
 
   size_t getSize();
@@ -50,6 +51,8 @@ public:
     registerHybridGetter("label", &GPUBuffer::getLabel, this);
   }
 
+  inline const wgpu::Buffer get() { return _instance; }
+
 private:
   wgpu::Buffer _instance;
   std::shared_ptr<AsyncRunner> _async;
@@ -60,7 +63,7 @@ private:
     inline bool Intersects(uint64_t s, uint64_t e) const {
       return s < end && e > start;
     }
-    std::shared_ptr<MutableJSIBuffer> buffer;
+    std::shared_ptr<ArrayBuffer> buffer;
   };
   std::vector<Mapping> mappings;
 };

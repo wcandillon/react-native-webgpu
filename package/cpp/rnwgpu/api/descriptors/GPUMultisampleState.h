@@ -54,13 +54,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUMultisampleState::count = %f",
-                                 result->_instance.count);
-    rnwgpu::Logger::logToConsole("GPUMultisampleState::mask = %f",
-                                 result->_instance.mask);
-    rnwgpu::Logger::logToConsole(
-        "GPUMultisampleState::alphaToCoverageEnabled = %f",
-        result->_instance.alphaToCoverageEnabled);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

@@ -53,10 +53,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutDescriptor>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUBindGroupLayoutDescriptor::entries = %f",
-                                 result->_instance.entries);
-    rnwgpu::Logger::logToConsole("GPUBindGroupLayoutDescriptor::label = %f",
-                                 result->_instance.label);
+
     return result;
   }
   static jsi::Value

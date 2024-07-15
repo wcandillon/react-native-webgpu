@@ -5,11 +5,12 @@
 #include <string>
 #include <vector>
 
+#include "Convertors.h"
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
-#include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -34,6 +35,8 @@ public:
 
     registerHybridGetter("label", &GPUComputePassEncoder::getLabel, this);
   }
+
+  inline const wgpu::ComputePassEncoder get() { return _instance; }
 
 private:
   wgpu::ComputePassEncoder _instance;

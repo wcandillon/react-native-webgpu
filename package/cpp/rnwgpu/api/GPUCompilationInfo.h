@@ -5,11 +5,12 @@
 #include <string>
 #include <vector>
 
+#include "Convertors.h"
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
-#include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -28,6 +29,8 @@ public:
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUCompilationInfo::getBrand, this);
   }
+
+  inline const wgpu::CompilationInfo get() { return _instance; }
 
 private:
   wgpu::CompilationInfo _instance;

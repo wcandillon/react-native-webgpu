@@ -13,11 +13,11 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-class GPUComputePassDescriptor {
+class GPUCommandBufferDescriptor {
 public:
-  wgpu::ComputePassDescriptor *getInstance() { return &_instance; }
+  wgpu::CommandBufferDescriptor *getInstance() { return &_instance; }
 
-  wgpu::ComputePassDescriptor _instance;
+  wgpu::CommandBufferDescriptor _instance;
 
   std::string label;
 };
@@ -26,15 +26,12 @@ public:
 namespace margelo {
 
 template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
-  static std::shared_ptr<rnwgpu::GPUComputePassDescriptor>
+struct JSIConverter<std::shared_ptr<rnwgpu::GPUCommandBufferDescriptor>> {
+  static std::shared_ptr<rnwgpu::GPUCommandBufferDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUComputePassDescriptor>();
+    auto result = std::make_unique<rnwgpu::GPUCommandBufferDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "timestampWrites")) {
-        auto timestampWrites = value.getProperty(runtime, "timestampWrites");
-      }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
 
@@ -50,7 +47,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
   }
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<rnwgpu::GPUComputePassDescriptor> arg) {
+        std::shared_ptr<rnwgpu::GPUCommandBufferDescriptor> arg) {
     // No conversions here
     return jsi::Value::null();
   }

@@ -48,13 +48,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
         auto viewDimension = value.getProperty(runtime, "viewDimension");
       }
     }
-    rnwgpu::Logger::logToConsole("GPUStorageTextureBindingLayout::access = %f",
-                                 result->_instance.access);
-    rnwgpu::Logger::logToConsole("GPUStorageTextureBindingLayout::format = %f",
-                                 result->_instance.format);
-    rnwgpu::Logger::logToConsole(
-        "GPUStorageTextureBindingLayout::viewDimension = %f",
-        result->_instance.viewDimension);
+
     return result;
   }
   static jsi::Value

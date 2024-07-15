@@ -53,12 +53,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageDataLayout>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUImageDataLayout::offset = %f",
-                                 result->_instance.offset);
-    rnwgpu::Logger::logToConsole("GPUImageDataLayout::bytesPerRow = %f",
-                                 result->_instance.bytesPerRow);
-    rnwgpu::Logger::logToConsole("GPUImageDataLayout::rowsPerImage = %f",
-                                 result->_instance.rowsPerImage);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

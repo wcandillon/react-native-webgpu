@@ -72,12 +72,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
             "Property GPUVertexAttribute::shaderLocation is not defined");
       }
     }
-    rnwgpu::Logger::logToConsole("GPUVertexAttribute::format = %f",
-                                 result->_instance.format);
-    rnwgpu::Logger::logToConsole("GPUVertexAttribute::offset = %f",
-                                 result->_instance.offset);
-    rnwgpu::Logger::logToConsole("GPUVertexAttribute::shaderLocation = %f",
-                                 result->_instance.shaderLocation);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

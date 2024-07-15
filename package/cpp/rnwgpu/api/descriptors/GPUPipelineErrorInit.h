@@ -41,8 +41,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineErrorInit>> {
             "Property GPUPipelineErrorInit::reason is not defined");
       }
     }
-    rnwgpu::Logger::logToConsole("GPUPipelineErrorInit::reason = %f",
-                                 result->_instance.reason);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

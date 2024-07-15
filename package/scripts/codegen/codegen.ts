@@ -72,7 +72,7 @@ sourceFile
     });
   });
 
-writeFile("Unions", Unions(unions));
+writeFile("union", "Unions", Unions(unions));
 
 // Enums
 console.log("===");
@@ -88,7 +88,7 @@ sourceFile
       !hasProptotype(decl),
   )
   .forEach((varDecl) => {
-    writeFile(varDecl.getName(), getEnum(varDecl));
+    writeFile("enum", varDecl.getName(), getEnum(varDecl));
   });
 
 // Errors
@@ -120,10 +120,26 @@ sourceFile
       decl.getProperty("__brand") !== undefined,
   )
   .forEach((decl) => {
-    writeFile(decl.getName(), getHybridObject(decl), false);
+    writeFile("object", decl.getName(), getHybridObject(decl));
   });
 
 // Descriptors
+// the following two descriptors map to:
+// type GPUCommandBufferDescriptor =
+//   GPUObjectDescriptorBase;
+// type GPUCommandEncoderDescriptor =
+//   GPUObjectDescriptorBase;
+const GPUCommandBufferDescriptor = sourceFile.addInterface({
+  name: "GPUCommandBufferDescriptor",
+  isExported: true,
+});
+const GPUCommandEncoderDescriptor = sourceFile.addInterface({
+  name: "GPUCommandEncoderDescriptor",
+  isExported: true,
+});
+GPUCommandEncoderDescriptor.addExtends("GPUObjectDescriptorBase");
+GPUCommandBufferDescriptor.addExtends("GPUObjectDescriptorBase");
+
 console.log("===");
 console.log("Descriptors");
 console.log("===");
@@ -138,5 +154,5 @@ sourceFile
       decl.getProperty("__brand") === undefined,
   )
   .forEach((decl) => {
-    writeFile(decl.getName(), getDescriptor(decl, unions));
+    writeFile("descriptor", decl.getName(), getDescriptor(decl, unions));
   });

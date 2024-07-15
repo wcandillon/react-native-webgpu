@@ -69,7 +69,7 @@ describe("Model", () => {
     expect(method.args.length).toBe(0);
 
     method = resolveMethod(getMethodSignature("GPUBuffer", "getMappedRange"));
-    expect(method.returns).toBe("std::shared_ptr<MutableJSIBuffer>");
+    expect(method.returns).toBe("std::shared_ptr<ArrayBuffer>");
     expect(method.args.length).toBe(2);
     expect(method.args[0].type).toEqual("std::optional<size_t>");
     expect(method.args[1].type).toEqual("std::optional<size_t>");

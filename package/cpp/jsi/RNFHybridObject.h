@@ -89,7 +89,7 @@ private:
                                       std::index_sequence<Is...>, size_t count) {
     if constexpr (std::is_same_v<ReturnType, void>) {
       // It's a void method.
-      (obj->*method)(JSIConverter<std::decay_t<Args>>::fromJSI(runtime, args[Is])...);
+      (obj->*method)(JSIConverter<std::decay_t<Args>>::fromJSI(runtime, args[Is], Is >= count)...);
       return jsi::Value::undefined();
     } else {
       // It's returning some C++ type, we need to convert that to a JSI value now.

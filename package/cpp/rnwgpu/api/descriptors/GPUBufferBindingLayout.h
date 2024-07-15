@@ -47,13 +47,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBindingLayout>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUBufferBindingLayout::type = %f",
-                                 result->_instance.type);
-    rnwgpu::Logger::logToConsole(
-        "GPUBufferBindingLayout::hasDynamicOffset = %f",
-        result->_instance.hasDynamicOffset);
-    rnwgpu::Logger::logToConsole("GPUBufferBindingLayout::minBindingSize = %f",
-                                 result->_instance.minBindingSize);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

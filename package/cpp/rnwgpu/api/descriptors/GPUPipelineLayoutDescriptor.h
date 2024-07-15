@@ -55,11 +55,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole(
-        "GPUPipelineLayoutDescriptor::bindGroupLayouts = %f",
-        result->_instance.bindGroupLayouts);
-    rnwgpu::Logger::logToConsole("GPUPipelineLayoutDescriptor::label = %f",
-                                 result->_instance.label);
+
     return result;
   }
   static jsi::Value

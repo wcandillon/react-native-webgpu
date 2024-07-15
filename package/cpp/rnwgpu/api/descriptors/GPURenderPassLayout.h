@@ -64,14 +64,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassLayout>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPURenderPassLayout::colorFormats = %f",
-                                 result->_instance.colorFormats);
-    rnwgpu::Logger::logToConsole("GPURenderPassLayout::depthStencilFormat = %f",
-                                 result->_instance.depthStencilFormat);
-    rnwgpu::Logger::logToConsole("GPURenderPassLayout::sampleCount = %f",
-                                 result->_instance.sampleCount);
-    rnwgpu::Logger::logToConsole("GPURenderPassLayout::label = %f",
-                                 result->_instance.label);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

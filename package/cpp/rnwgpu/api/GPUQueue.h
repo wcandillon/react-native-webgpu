@@ -5,13 +5,17 @@
 #include <string>
 #include <vector>
 
+#include "Convertors.h"
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
-#include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
+
+#include "GPUBuffer.h"
+#include "GPUCommandBuffer.h"
 
 namespace rnwgpu {
 
@@ -27,13 +31,23 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  void submit(std::vector<std::shared_ptr<GPUCommandBuffer>> commandBuffers);
+  void writeBuffer(std::shared_ptr<GPUBuffer> buffer, uint64_t bufferOffset,
+                   std::shared_ptr<ArrayBuffer> data,
+                   std::optional<uint64_t> dataOffset,
+                   std::optional<size_t> size);
+
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUQueue::getBrand, this);
+    registerHybridMethod("submit", &GPUQueue::submit, this);
+    registerHybridMethod("writeBuffer", &GPUQueue::writeBuffer, this);
 
     registerHybridGetter("label", &GPUQueue::getLabel, this);
   }
+
+  inline const wgpu::Queue get() { return _instance; }
 
 private:
   wgpu::Queue _instance;

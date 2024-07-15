@@ -4,29 +4,32 @@
 
 namespace rnwgpu {
 
-std::shared_ptr<MutableJSIBuffer>
+std::shared_ptr<ArrayBuffer>
 GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
-  size_t offset = o.value_or(0);
-  auto bufferSize = _instance.GetSize();
-  uint64_t s = size.has_value() ? size.value() : (bufferSize - offset);
+  auto offset = o.value_or(0);
+  uint64_t s = size.has_value() ? size.value() : (_instance.GetSize() - offset);
+
   uint64_t start = offset;
   uint64_t end = offset + s;
-  // for (auto &mapping : mappings) {
-  //   if (mapping.Intersects(start, end)) {
-  //     throw std::runtime_error("Buffer is already mapped");
-  //   }
+  // for (auto& mapping : mappings_) {
+  //     if (mapping.Intersects(start, end)) {
+  //         Errors::OperationError(env).ThrowAsJavaScriptException();
+  //         return {};
+  //     }
   // }
-  auto usage = _instance.GetUsage();
+
   auto *ptr =
-      (usage & wgpu::BufferUsage::MapWrite)
+      (_instance.GetUsage() & wgpu::BufferUsage::MapWrite)
           ? _instance.GetMappedRange(offset, s)
           : const_cast<void *>(_instance.GetConstMappedRange(offset, s));
   if (!ptr) {
-    throw std::runtime_error("Failed to map buffer");
+    throw std::runtime_error("Failed to get getMappedRange");
   }
-  auto buffer = std::make_shared<MutableJSIBuffer>(ptr, s);
-  // mappings.emplace_back(Mapping{start, end, buffer});
-  return buffer;
+  auto array_buffer = std::make_shared<ArrayBuffer>(ptr, s);
+  // TODO(crbug.com/dawn/1135): Ownership here is the wrong way around.
+  // mappings_.emplace_back(Mapping{start, end,
+  // Napi::Persistent(array_buffer)});
+  return array_buffer;
 }
 
 std::future<void> GPUBuffer::mapAsync(uint64_t mode, std::optional<size_t> o,
@@ -46,10 +49,13 @@ std::future<void> GPUBuffer::mapAsync(uint64_t mode, std::optional<size_t> o,
     //   }
     // }
     wgpu::BufferMapCallbackInfo callback;
-    callback.mode = wgpu::CallbackMode::AllowProcessEvents;
+    callback.mode = wgpu::CallbackMode::WaitAnyOnly;
     callback.callback = [](WGPUBufferMapAsyncStatus status, void *userdata) {
       switch (status) {
       case WGPUBufferMapAsyncStatus_Success:
+        break;
+      case WGPUBufferMapAsyncStatus_InstanceDropped:
+        throw std::runtime_error("WGPUBufferMapAsyncStatus_InstanceDropped");
         break;
       case WGPUBufferMapAsyncStatus_ValidationError:
         throw std::runtime_error("WGPUBufferMapAsyncStatus_ValidationError");
@@ -60,7 +66,7 @@ std::future<void> GPUBuffer::mapAsync(uint64_t mode, std::optional<size_t> o,
         break;
       }
     };
-    _instance.MapAsync(md, offset, s, callback);
+    return _instance.MapAsync(md, offset, s, callback);
   });
 }
 

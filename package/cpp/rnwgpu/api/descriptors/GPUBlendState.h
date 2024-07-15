@@ -50,10 +50,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
             "Property GPUBlendState::alpha is not defined");
       }
     }
-    rnwgpu::Logger::logToConsole("GPUBlendState::color = %f",
-                                 result->_instance.color);
-    rnwgpu::Logger::logToConsole("GPUBlendState::alpha = %f",
-                                 result->_instance.alpha);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

@@ -83,28 +83,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::addressModeU = %f",
-                                 result->_instance.addressModeU);
-    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::addressModeV = %f",
-                                 result->_instance.addressModeV);
-    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::addressModeW = %f",
-                                 result->_instance.addressModeW);
-    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::magFilter = %f",
-                                 result->_instance.magFilter);
-    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::minFilter = %f",
-                                 result->_instance.minFilter);
-    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::mipmapFilter = %f",
-                                 result->_instance.mipmapFilter);
-    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::lodMinClamp = %f",
-                                 result->_instance.lodMinClamp);
-    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::lodMaxClamp = %f",
-                                 result->_instance.lodMaxClamp);
-    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::compare = %f",
-                                 result->_instance.compare);
-    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::maxAnisotropy = %f",
-                                 result->_instance.maxAnisotropy);
-    rnwgpu::Logger::logToConsole("GPUSamplerDescriptor::label = %f",
-                                 result->_instance.label);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

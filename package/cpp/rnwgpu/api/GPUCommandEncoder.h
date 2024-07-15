@@ -5,13 +5,18 @@
 #include <string>
 #include <vector>
 
+#include "Convertors.h"
 #include "Unions.h"
 #include <RNFHybridObject.h>
 
+#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
-#include "MutableBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
+
+#include "GPUBuffer.h"
+#include "GPUCommandBuffer.h"
+#include "GPUCommandBufferDescriptor.h"
 
 namespace rnwgpu {
 
@@ -25,13 +30,25 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  void copyBufferToBuffer(std::shared_ptr<GPUBuffer> source,
+                          uint64_t sourceOffset,
+                          std::shared_ptr<GPUBuffer> destination,
+                          uint64_t destinationOffset, uint64_t size);
+  std::shared_ptr<GPUCommandBuffer>
+  finish(std::shared_ptr<GPUCommandBufferDescriptor> descriptor);
+
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUCommandEncoder::getBrand, this);
+    registerHybridMethod("copyBufferToBuffer",
+                         &GPUCommandEncoder::copyBufferToBuffer, this);
+    registerHybridMethod("finish", &GPUCommandEncoder::finish, this);
 
     registerHybridGetter("label", &GPUCommandEncoder::getLabel, this);
   }
+
+  inline const wgpu::CommandEncoder get() { return _instance; }
 
 private:
   wgpu::CommandEncoder _instance;

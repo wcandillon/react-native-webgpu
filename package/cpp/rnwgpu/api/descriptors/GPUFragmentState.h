@@ -66,14 +66,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
         auto constants = value.getProperty(runtime, "constants");
       }
     }
-    rnwgpu::Logger::logToConsole("GPUFragmentState::targets = %f",
-                                 result->_instance.targets);
-    rnwgpu::Logger::logToConsole("GPUFragmentState::module = %f",
-                                 result->_instance.module);
-    rnwgpu::Logger::logToConsole("GPUFragmentState::entryPoint = %f",
-                                 result->_instance.entryPoint);
-    rnwgpu::Logger::logToConsole("GPUFragmentState::constants = %f",
-                                 result->_instance.constants);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

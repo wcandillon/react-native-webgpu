@@ -73,15 +73,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUShaderModuleDescriptor::code = %f",
-                                 result->_instance.code);
-    rnwgpu::Logger::logToConsole("GPUShaderModuleDescriptor::sourceMap = %f",
-                                 result->_instance.sourceMap);
-    rnwgpu::Logger::logToConsole(
-        "GPUShaderModuleDescriptor::compilationHints = %f",
-        result->_instance.compilationHints);
-    rnwgpu::Logger::logToConsole("GPUShaderModuleDescriptor::label = %f",
-                                 result->_instance.label);
+
     return result;
   }
   static jsi::Value

@@ -64,14 +64,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyBuffer>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUImageCopyBuffer::buffer = %f",
-                                 result->_instance.buffer);
-    rnwgpu::Logger::logToConsole("GPUImageCopyBuffer::offset = %f",
-                                 result->_instance.offset);
-    rnwgpu::Logger::logToConsole("GPUImageCopyBuffer::bytesPerRow = %f",
-                                 result->_instance.bytesPerRow);
-    rnwgpu::Logger::logToConsole("GPUImageCopyBuffer::rowsPerImage = %f",
-                                 result->_instance.rowsPerImage);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

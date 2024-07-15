@@ -51,12 +51,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUImageCopyExternalImage::source = %f",
-                                 result->_instance.source);
-    rnwgpu::Logger::logToConsole("GPUImageCopyExternalImage::origin = %f",
-                                 result->_instance.origin);
-    rnwgpu::Logger::logToConsole("GPUImageCopyExternalImage::flipY = %f",
-                                 result->_instance.flipY);
+
     return result;
   }
   static jsi::Value
