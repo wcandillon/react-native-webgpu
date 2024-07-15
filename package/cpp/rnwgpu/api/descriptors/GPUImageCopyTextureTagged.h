@@ -74,7 +74,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
 
         if (mipLevel.isNumber()) {
           result->_instance.mipLevel =
-              static_cast<wgpu::IntegerCoordinate>(mipLevel.getNumber());
+              static_cast<uint32_t>(mipLevel.getNumber());
         }
       }
       if (value.hasProperty(runtime, "origin")) {

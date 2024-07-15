@@ -57,7 +57,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
 
         if (mipLevelCount.isNumber()) {
           result->_instance.mipLevelCount =
-              static_cast<wgpu::IntegerCoordinate>(mipLevelCount.getNumber());
+              static_cast<uint32_t>(mipLevelCount.getNumber());
         }
       }
       if (value.hasProperty(runtime, "sampleCount")) {

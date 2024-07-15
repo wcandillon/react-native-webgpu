@@ -68,7 +68,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
 
         if (baseMipLevel.isNumber()) {
           result->_instance.baseMipLevel =
-              static_cast<wgpu::IntegerCoordinate>(baseMipLevel.getNumber());
+              static_cast<uint32_t>(baseMipLevel.getNumber());
         }
       }
       if (value.hasProperty(runtime, "mipLevelCount")) {
@@ -76,7 +76,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
 
         if (mipLevelCount.isNumber()) {
           result->_instance.mipLevelCount =
-              static_cast<wgpu::IntegerCoordinate>(mipLevelCount.getNumber());
+              static_cast<uint32_t>(mipLevelCount.getNumber());
         }
       }
       if (value.hasProperty(runtime, "baseArrayLayer")) {
@@ -84,7 +84,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
 
         if (baseArrayLayer.isNumber()) {
           result->_instance.baseArrayLayer =
-              static_cast<wgpu::IntegerCoordinate>(baseArrayLayer.getNumber());
+              static_cast<uint32_t>(baseArrayLayer.getNumber());
         }
       }
       if (value.hasProperty(runtime, "arrayLayerCount")) {
@@ -92,7 +92,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
 
         if (arrayLayerCount.isNumber()) {
           result->_instance.arrayLayerCount =
-              static_cast<wgpu::IntegerCoordinate>(arrayLayerCount.getNumber());
+              static_cast<uint32_t>(arrayLayerCount.getNumber());
         }
       }
       if (value.hasProperty(runtime, "label")) {

@@ -23,6 +23,8 @@
 #include "GPURenderPipelineDescriptor.h"
 #include "GPUShaderModule.h"
 #include "GPUShaderModuleDescriptor.h"
+#include "GPUTexture.h"
+#include "GPUTextureDescriptor.h"
 
 namespace rnwgpu {
 
@@ -38,8 +40,11 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  void destroy();
   std::shared_ptr<GPUBuffer>
   createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor);
+  std::shared_ptr<GPUTexture>
+  createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor);
   std::shared_ptr<GPUShaderModule>
   createShaderModule(std::shared_ptr<GPUShaderModuleDescriptor> descriptor);
   std::shared_ptr<GPURenderPipeline>
@@ -53,7 +58,9 @@ public:
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUDevice::getBrand, this);
+    registerHybridMethod("destroy", &GPUDevice::destroy, this);
     registerHybridMethod("createBuffer", &GPUDevice::createBuffer, this);
+    registerHybridMethod("createTexture", &GPUDevice::createTexture, this);
     registerHybridMethod("createShaderModule", &GPUDevice::createShaderModule,
                          this);
     registerHybridMethod("createRenderPipeline",

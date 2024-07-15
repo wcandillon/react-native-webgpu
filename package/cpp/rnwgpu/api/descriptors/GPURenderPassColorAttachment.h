@@ -57,7 +57,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
 
         if (depthSlice.isNumber()) {
           result->_instance.depthSlice =
-              static_cast<wgpu::IntegerCoordinate>(depthSlice.getNumber());
+              static_cast<uint32_t>(depthSlice.getNumber());
         }
       }
       if (value.hasProperty(runtime, "resolveTarget")) {

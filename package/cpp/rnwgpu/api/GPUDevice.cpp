@@ -21,6 +21,8 @@ std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
   return std::make_shared<GPUCommandEncoder>(result, descriptor->label);
 }
 
+void GPUDevice::destroy() { _instance.Destroy(); }
+
 std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
     std::shared_ptr<GPUShaderModuleDescriptor> descriptor) {
   wgpu::ShaderModuleWGSLDescriptor wgsl_desc{};
