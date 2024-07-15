@@ -18,6 +18,8 @@ public:
   wgpu::ShaderModuleCompilationHint *getInstance() { return &_instance; }
 
   wgpu::ShaderModuleCompilationHint _instance;
+
+  std::string entryPoint;
 };
 } // namespace rnwgpu
 
@@ -36,7 +38,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
         if (entryPoint.isString()) {
           auto str = entryPoint.asString(runtime).utf8(runtime);
           result->entryPoint = str;
-          result->_instance.entryPoint = result->entryPoint.c_str();
         }
 
         if (entryPoint.isUndefined()) {

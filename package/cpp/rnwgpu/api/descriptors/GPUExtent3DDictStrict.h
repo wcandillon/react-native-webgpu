@@ -32,14 +32,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDictStrict>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "depth")) {
         auto depth = value.getProperty(runtime, "depth");
-
-        if (depth.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUExtent3DDictStrict::depth is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUExtent3DDictStrict::depth is not defined");
       }
       if (value.hasProperty(runtime, "width")) {
         auto width = value.getProperty(runtime, "width");

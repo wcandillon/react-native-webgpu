@@ -24,11 +24,11 @@ const getNumber = (name: string, enumName: string | undefined) => {
 }`;
 };
 
-const getString = (name: string) => {
+const getString = (name: string, setOnInstance = true) => {
   return `if (${name}.isString()) {
     auto str = ${name}.asString(runtime).utf8(runtime);
     result->${name} = str;
-    result->_instance.${name} = result->${name}.c_str();
+    ${setOnInstance ? `result->_instance.${name} = result->${name}.c_str();` : ""}
 }`;
 };
 
@@ -48,10 +48,11 @@ const propFromJSI = (
   _unions: Union[],
 ) => {
   const name = prop.getName();
-  const isOptional = prop
-    .getType()
-    .getUnionTypes()
-    .some((t) => t.isUndefined());
+  const isOptional =
+    prop
+      .getType()
+      .getUnionTypes()
+      .some((t) => t.isUndefined()) || prop.hasQuestionToken();
   const isBoolean =
     prop.getType().isBoolean() ||
     prop
@@ -80,7 +81,7 @@ const propFromJSI = (
   auto ${name} = value.getProperty(runtime, "${name}");
   ${isBoolean ? getBoolean(name) : ""}
   ${isNumber ? getNumber(name, isEnum ? prop.getTypeNode()?.getText() : undefined) : ""}
-  ${isString ? getString(name) : ""}
+  ${isString ? getString(name, name === "label") : ""}
   ${
     // !isBoolean && !isNumber && !isString && !isOptional
     //   ? (() => {
@@ -113,10 +114,12 @@ export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
   const propsToHold = decl
     .getProperties()
     .filter((prop) => {
-      return prop
-        .getType()
-        .getUnionTypes()
-        .some((t) => t.isString());
+      return (
+        prop
+          .getType()
+          .getUnionTypes()
+          .some((t) => t.isString()) || prop.getType().isString()
+      );
     })
     .map((prop) => {
       return `std::string ${prop.getName()};`;

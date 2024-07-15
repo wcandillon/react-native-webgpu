@@ -32,14 +32,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin2DDictStrict>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "z")) {
         auto z = value.getProperty(runtime, "z");
-
-        if (z.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUOrigin2DDictStrict::z is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUOrigin2DDictStrict::z is not defined");
       }
       if (value.hasProperty(runtime, "x")) {
         auto x = value.getProperty(runtime, "x");
