@@ -41,6 +41,14 @@ const getString = (name: string, setOnInstance = true) => {
 }`;
 };
 
+const getDescriptorObject = (name: string, alias: string) => {
+  return `if (${name}.isObject()) {
+    auto object = ${name}.getObject(runtime);
+    auto val = m:fromJSI<rnwgpu::${alias}>(runtime, object, ${name});
+    result->_instance.${name} = val;
+  }`;
+};
+
 const getAutoLayout = () => {
   return `if (layout.isString()) {
     auto str = layout.asString(runtime).utf8(runtime);
@@ -97,11 +105,20 @@ const propFromJSI = (
     prop.getName() === "layout";
   const isEnum = !!alias?.startsWith("GPU") && !enumsToSkip.includes(alias);
   const labels = types.map((t) => t.getText());
+  const isDescriptor = alias && alias.startsWith("GPU");
   // const isDescriptor =
   //   !isNumber && !!prop.getType().getTypeNode()?.getName().startsWith("GPU");
-  if (!isString && !isBoolean && !isNumber && !isUnion && !isAutoLayout) {
+  if (
+    !isString &&
+    !isBoolean &&
+    !isNumber &&
+    !isUnion &&
+    !isAutoLayout &&
+    !isDescriptor
+  ) {
+    const symbols = labels; //.filter((l) => !l.includes("import("));
     console.log({
-      [prop.getName()]: labels,
+      [prop.getName()]: symbols,
     });
   }
   return `if (value.hasProperty(runtime, "${name}")) {
@@ -111,6 +128,7 @@ const propFromJSI = (
   ${isUnion ? getUnion(name, alias) : ""}
   ${isString ? getString(name, name === "label") : ""}
   ${isAutoLayout ? getAutoLayout() : ""}
+  ${isDescriptor ? getDescriptorObject(name, alias) : ""}
   ${
     // !isBoolean && !isNumber && !isString && !isOptional
     //   ? (() => {
