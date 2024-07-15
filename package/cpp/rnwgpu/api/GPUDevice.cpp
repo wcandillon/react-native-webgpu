@@ -23,6 +23,13 @@ std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
 
 void GPUDevice::destroy() { _instance.Destroy(); }
 
+
+std::shared_ptr<GPUTexture>
+GPUDevice::createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor) {
+  auto texture = _instance.CreateTexture(descriptor->getInstance());
+  return std::make_shared<GPUTexture>(texture, descriptor->label);
+}
+
 std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
     std::shared_ptr<GPUShaderModuleDescriptor> descriptor) {
   wgpu::ShaderModuleWGSLDescriptor wgsl_desc{};

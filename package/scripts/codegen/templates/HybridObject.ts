@@ -32,6 +32,7 @@ const methodWhiteList = [
   "createShaderModule",
   "createRenderPipeline",
   "destroy",
+  "createTexture",
   // Buffer
   "unmap",
   "getMappedRange",
