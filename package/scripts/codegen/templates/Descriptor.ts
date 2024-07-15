@@ -102,15 +102,6 @@ const propFromJSI = (
   if (!isString && !isBoolean && !isNumber && !isUnion && !isAutoLayout) {
     console.log({
       [prop.getName()]: labels,
-      isString: types.some((t) => t.isString()),
-      isStringLitteral: types.some((t) => t.isStringLiteral()),
-    });
-  }
-  if (prop.getName() === "layout") {
-    console.log({
-      [prop.getName()]: labels,
-      isString: types.some((t) => t.isString()),
-      isStringLitteral: types.some((t) => t.isStringLiteral()),
     });
   }
   return `if (value.hasProperty(runtime, "${name}")) {
