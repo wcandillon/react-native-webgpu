@@ -29,6 +29,7 @@ const methodWhiteList = [
   "createBuffer",
   "createCommandEncoder",
   "createShaderModule",
+  "createRenderPipeline",
   // Buffer
   "unmap",
   "getMappedRange",
