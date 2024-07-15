@@ -5,7 +5,7 @@ namespace rnwgpu {
 std::shared_ptr<GPURenderBundle>
 GPURenderBundleEncoder::finish(std::shared_ptr<GPURenderBundleDescriptor> descriptor) {
   auto bundle = _instance.Finish(descriptor->getInstance());
-  return std::make_shared<GPURenderBundle>(bundle);
+  return std::make_shared<GPURenderBundle>(bundle, descriptor->label);
 }
 
 void GPURenderBundleEncoder::setPipeline(std::shared_ptr<GPURenderPipeline> pipeline) {
