@@ -38,8 +38,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
 
         if (error.isObject()) {
           auto val =
-              m::JSIConverter<rnwgpu::GPUError>::fromJSI(runtime, error, false);
-          result->_instance.error = val._instance;
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUError>>::fromJSI(
+                  runtime, error, false);
+          result->_instance.error = val->_instance;
         }
 
         if (error.isUndefined()) {

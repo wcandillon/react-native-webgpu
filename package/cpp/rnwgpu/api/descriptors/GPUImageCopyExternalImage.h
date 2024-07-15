@@ -38,10 +38,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
         auto source = value.getProperty(runtime, "source");
 
         if (source.isObject()) {
-          auto val =
-              m::JSIConverter<rnwgpu::GPUImageCopyExternalImageSource>::fromJSI(
-                  runtime, source, false);
-          result->_instance.source = val._instance;
+          auto val = m::JSIConverter<std::shared_ptr<
+              rnwgpu::GPUImageCopyExternalImageSource>>::fromJSI(runtime,
+                                                                 source, false);
+          result->_instance.source = val->_instance;
         }
 
         if (source.isUndefined()) {
@@ -56,9 +56,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
         auto origin = value.getProperty(runtime, "origin");
 
         if (origin.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUOrigin2DStrict>::fromJSI(
-              runtime, origin, false);
-          result->_instance.origin = val._instance;
+          auto val = m::JSIConverter<
+              std::shared_ptr<rnwgpu::GPUOrigin2DStrict>>::fromJSI(runtime,
+                                                                   origin,
+                                                                   false);
+          result->_instance.origin = val->_instance;
         }
       }
       if (value.hasProperty(runtime, "flipY")) {

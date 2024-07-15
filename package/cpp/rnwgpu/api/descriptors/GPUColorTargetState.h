@@ -54,9 +54,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
         auto blend = value.getProperty(runtime, "blend");
 
         if (blend.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUBlendState>::fromJSI(
-              runtime, blend, false);
-          result->_instance.blend = val._instance;
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>>::fromJSI(
+                  runtime, blend, false);
+          result->_instance.blend = val->_instance;
         }
       }
       if (value.hasProperty(runtime, "writeMask")) {

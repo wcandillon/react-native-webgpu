@@ -73,8 +73,8 @@ const getDescriptorObject = (
   }`;
   }
   return `if (${name}.isObject()) {
-    auto val = m::JSIConverter<rnwgpu::${alias}>::fromJSI(runtime, ${name}, false);
-    result->_instance.${name} =  val${isDescriptorPtr[alias] ? ".getInstance()" : "._instance"};
+    auto val = m::JSIConverter<std::shared_ptr<rnwgpu::${alias}>>::fromJSI(runtime, ${name}, false);
+    result->_instance.${name} =  val->${isDescriptorPtr[alias] ? "getInstance()" : "_instance"};
   }`;
 };
 

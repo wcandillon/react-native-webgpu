@@ -44,9 +44,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
         auto defaultQueue = value.getProperty(runtime, "defaultQueue");
 
         if (defaultQueue.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUQueueDescriptor>::fromJSI(
-              runtime, defaultQueue, false);
-          result->_instance.defaultQueue = val._instance;
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUQueueDescriptor>>::
+                  fromJSI(runtime, defaultQueue, false);
+          result->_instance.defaultQueue = val->_instance;
         }
       }
       if (value.hasProperty(runtime, "label")) {

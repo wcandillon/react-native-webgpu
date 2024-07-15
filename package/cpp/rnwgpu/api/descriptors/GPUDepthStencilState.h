@@ -71,18 +71,20 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
         auto stencilFront = value.getProperty(runtime, "stencilFront");
 
         if (stencilFront.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUStencilFaceState>::fromJSI(
-              runtime, stencilFront, false);
-          result->_instance.stencilFront = val._instance;
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>>::
+                  fromJSI(runtime, stencilFront, false);
+          result->_instance.stencilFront = val->_instance;
         }
       }
       if (value.hasProperty(runtime, "stencilBack")) {
         auto stencilBack = value.getProperty(runtime, "stencilBack");
 
         if (stencilBack.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUStencilFaceState>::fromJSI(
-              runtime, stencilBack, false);
-          result->_instance.stencilBack = val._instance;
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>>::
+                  fromJSI(runtime, stencilBack, false);
+          result->_instance.stencilBack = val->_instance;
         }
       }
       if (value.hasProperty(runtime, "stencilReadMask")) {

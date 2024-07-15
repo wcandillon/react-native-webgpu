@@ -39,9 +39,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
         auto layout = value.getProperty(runtime, "layout");
 
         if (layout.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUBindGroupLayout>::fromJSI(
-              runtime, layout, false);
-          result->_instance.layout = val._instance;
+          auto val = m::JSIConverter<
+              std::shared_ptr<rnwgpu::GPUBindGroupLayout>>::fromJSI(runtime,
+                                                                    layout,
+                                                                    false);
+          result->_instance.layout = val->_instance;
         }
 
         if (layout.isUndefined()) {

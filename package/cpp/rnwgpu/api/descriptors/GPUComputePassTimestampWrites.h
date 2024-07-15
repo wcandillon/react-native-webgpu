@@ -37,9 +37,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
         auto querySet = value.getProperty(runtime, "querySet");
 
         if (querySet.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUQuerySet>::fromJSI(
-              runtime, querySet, false);
-          result->_instance.querySet = val._instance;
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySet>>::fromJSI(
+                  runtime, querySet, false);
+          result->_instance.querySet = val->_instance;
         }
 
         if (querySet.isUndefined()) {

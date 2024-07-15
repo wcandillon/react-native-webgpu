@@ -39,9 +39,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
         auto compute = value.getProperty(runtime, "compute");
 
         if (compute.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUProgrammableStage>::fromJSI(
-              runtime, compute, false);
-          result->_instance.compute = val._instance;
+          auto val = m::JSIConverter<
+              std::shared_ptr<rnwgpu::GPUProgrammableStage>>::fromJSI(runtime,
+                                                                      compute,
+                                                                      false);
+          result->_instance.compute = val->_instance;
         }
 
         if (compute.isUndefined()) {

@@ -43,9 +43,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
         auto vertex = value.getProperty(runtime, "vertex");
 
         if (vertex.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUVertexState>::fromJSI(
-              runtime, vertex, false);
-          result->_instance.vertex = val._instance;
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUVertexState>>::fromJSI(
+                  runtime, vertex, false);
+          result->_instance.vertex = val->_instance;
         }
 
         if (vertex.isUndefined()) {
@@ -60,36 +61,42 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
         auto primitive = value.getProperty(runtime, "primitive");
 
         if (primitive.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUPrimitiveState>::fromJSI(
-              runtime, primitive, false);
-          result->_instance.primitive = val._instance;
+          auto val = m::JSIConverter<
+              std::shared_ptr<rnwgpu::GPUPrimitiveState>>::fromJSI(runtime,
+                                                                   primitive,
+                                                                   false);
+          result->_instance.primitive = val->_instance;
         }
       }
       if (value.hasProperty(runtime, "depthStencil")) {
         auto depthStencil = value.getProperty(runtime, "depthStencil");
 
         if (depthStencil.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUDepthStencilState>::fromJSI(
-              runtime, depthStencil, false);
-          result->_instance.depthStencil = val.getInstance();
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>>::
+                  fromJSI(runtime, depthStencil, false);
+          result->_instance.depthStencil = val->getInstance();
         }
       }
       if (value.hasProperty(runtime, "multisample")) {
         auto multisample = value.getProperty(runtime, "multisample");
 
         if (multisample.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUMultisampleState>::fromJSI(
-              runtime, multisample, false);
-          result->_instance.multisample = val._instance;
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>>::
+                  fromJSI(runtime, multisample, false);
+          result->_instance.multisample = val->_instance;
         }
       }
       if (value.hasProperty(runtime, "fragment")) {
         auto fragment = value.getProperty(runtime, "fragment");
 
         if (fragment.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUFragmentState>::fromJSI(
-              runtime, fragment, false);
-          result->_instance.fragment = val.getInstance();
+          auto val = m::JSIConverter<
+              std::shared_ptr<rnwgpu::GPUFragmentState>>::fromJSI(runtime,
+                                                                  fragment,
+                                                                  false);
+          result->_instance.fragment = val->getInstance();
         }
       }
       if (value.hasProperty(runtime, "layout")) {

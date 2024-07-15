@@ -36,9 +36,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
         auto color = value.getProperty(runtime, "color");
 
         if (color.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUBlendComponent>::fromJSI(
-              runtime, color, false);
-          result->_instance.color = val._instance;
+          auto val = m::JSIConverter<
+              std::shared_ptr<rnwgpu::GPUBlendComponent>>::fromJSI(runtime,
+                                                                   color,
+                                                                   false);
+          result->_instance.color = val->_instance;
         }
 
         if (color.isUndefined()) {
@@ -52,9 +54,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
         auto alpha = value.getProperty(runtime, "alpha");
 
         if (alpha.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUBlendComponent>::fromJSI(
-              runtime, alpha, false);
-          result->_instance.alpha = val._instance;
+          auto val = m::JSIConverter<
+              std::shared_ptr<rnwgpu::GPUBlendComponent>>::fromJSI(runtime,
+                                                                   alpha,
+                                                                   false);
+          result->_instance.alpha = val->_instance;
         }
 
         if (alpha.isUndefined()) {

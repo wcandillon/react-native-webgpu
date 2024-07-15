@@ -37,9 +37,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
         auto texture = value.getProperty(runtime, "texture");
 
         if (texture.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUTexture>::fromJSI(
-              runtime, texture, false);
-          result->_instance.texture = val._instance;
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUTexture>>::fromJSI(
+                  runtime, texture, false);
+          result->_instance.texture = val->_instance;
         }
 
         if (texture.isUndefined()) {
@@ -62,9 +63,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
         auto origin = value.getProperty(runtime, "origin");
 
         if (origin.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUOrigin3D>::fromJSI(
-              runtime, origin, false);
-          result->_instance.origin = val._instance;
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin3D>>::fromJSI(
+                  runtime, origin, false);
+          result->_instance.origin = val->_instance;
         }
       }
       if (value.hasProperty(runtime, "aspect")) {

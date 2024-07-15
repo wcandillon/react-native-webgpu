@@ -37,9 +37,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
         auto device = value.getProperty(runtime, "device");
 
         if (device.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUDevice>::fromJSI(runtime,
-                                                                 device, false);
-          result->_instance.device = val._instance;
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUDevice>>::fromJSI(
+                  runtime, device, false);
+          result->_instance.device = val->_instance;
         }
 
         if (device.isUndefined()) {

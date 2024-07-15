@@ -36,9 +36,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyBuffer>> {
         auto buffer = value.getProperty(runtime, "buffer");
 
         if (buffer.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUBuffer>::fromJSI(runtime,
-                                                                 buffer, false);
-          result->_instance.buffer = val._instance;
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUBuffer>>::fromJSI(
+                  runtime, buffer, false);
+          result->_instance.buffer = val->_instance;
         }
 
         if (buffer.isUndefined()) {

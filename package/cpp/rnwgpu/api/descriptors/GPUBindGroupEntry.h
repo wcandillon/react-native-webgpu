@@ -52,9 +52,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
         auto resource = value.getProperty(runtime, "resource");
 
         if (resource.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUBindingResource>::fromJSI(
-              runtime, resource, false);
-          result->_instance.resource = val._instance;
+          auto val = m::JSIConverter<
+              std::shared_ptr<rnwgpu::GPUBindingResource>>::fromJSI(runtime,
+                                                                    resource,
+                                                                    false);
+          result->_instance.resource = val->_instance;
         }
 
         if (resource.isUndefined()) {
