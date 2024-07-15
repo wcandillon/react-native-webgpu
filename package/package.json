@@ -29,7 +29,7 @@
   "scripts": {
     "example": "yarn workspace react-native-webgpu-example",
     "test": "jest -i",
-    "test:reference": "REFERENCE=true yarn test",
+    "test:ref": "REFERENCE=true yarn test",
     "tsc": "tsc --noEmit",
     "lint": "eslint \"**/*.{ts,tsx}\"",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
