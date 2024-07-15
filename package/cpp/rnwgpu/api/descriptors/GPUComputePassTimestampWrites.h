@@ -9,6 +9,8 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUQuerySet.h"
+
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
@@ -34,6 +36,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
       if (value.hasProperty(runtime, "querySet")) {
         auto querySet = value.getProperty(runtime, "querySet");
 
+        if (querySet.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUQuerySet>::fromJSI(
+              runtime, querySet, false);
+          result->_instance.querySet = val._instance;
+        }
+
         if (querySet.isUndefined()) {
           throw std::runtime_error(
               "Property GPUComputePassTimestampWrites::querySet is required");
@@ -48,7 +56,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
 
         if (beginningOfPassWriteIndex.isNumber()) {
           result->_instance.beginningOfPassWriteIndex =
-              static_cast<wgpu::Size32>(beginningOfPassWriteIndex.getNumber());
+              static_cast<uint32_t>(beginningOfPassWriteIndex.getNumber());
         }
       }
       if (value.hasProperty(runtime, "endOfPassWriteIndex")) {
@@ -57,7 +65,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
 
         if (endOfPassWriteIndex.isNumber()) {
           result->_instance.endOfPassWriteIndex =
-              static_cast<wgpu::Size32>(endOfPassWriteIndex.getNumber());
+              static_cast<uint32_t>(endOfPassWriteIndex.getNumber());
         }
       }
     }

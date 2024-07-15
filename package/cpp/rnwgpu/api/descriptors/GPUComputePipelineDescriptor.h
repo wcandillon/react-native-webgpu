@@ -9,6 +9,8 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUProgrammableStage.h"
+
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
@@ -35,6 +37,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "compute")) {
         auto compute = value.getProperty(runtime, "compute");
+
+        if (compute.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUProgrammableStage>::fromJSI(
+              runtime, compute, false);
+          result->_instance.compute = val._instance;
+        }
 
         if (compute.isUndefined()) {
           throw std::runtime_error(

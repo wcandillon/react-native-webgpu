@@ -9,6 +9,9 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUOrigin3D.h"
+#include "GPUTexture.h"
+
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
@@ -33,6 +36,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
       if (value.hasProperty(runtime, "texture")) {
         auto texture = value.getProperty(runtime, "texture");
 
+        if (texture.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUTexture>::fromJSI(
+              runtime, texture, false);
+          result->_instance.texture = val._instance;
+        }
+
         if (texture.isUndefined()) {
           throw std::runtime_error(
               "Property GPUImageCopyTexture::texture is required");
@@ -51,6 +60,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
       }
       if (value.hasProperty(runtime, "origin")) {
         auto origin = value.getProperty(runtime, "origin");
+
+        if (origin.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUOrigin3D>::fromJSI(
+              runtime, origin, false);
+          result->_instance.origin = val._instance;
+        }
       }
       if (value.hasProperty(runtime, "aspect")) {
         auto aspect = value.getProperty(runtime, "aspect");

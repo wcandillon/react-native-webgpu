@@ -9,6 +9,8 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUExtent3DStrict.h"
+
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
@@ -35,6 +37,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
       if (value.hasProperty(runtime, "size")) {
         auto size = value.getProperty(runtime, "size");
 
+        if (size.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUExtent3DStrict>::fromJSI(
+              runtime, size, false);
+          result->_instance.size = val._instance;
+        }
+
         if (size.isUndefined()) {
           throw std::runtime_error(
               "Property GPUTextureDescriptor::size is required");
@@ -56,7 +64,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
 
         if (sampleCount.isNumber()) {
           result->_instance.sampleCount =
-              static_cast<wgpu::Size32>(sampleCount.getNumber());
+              static_cast<uint32_t>(sampleCount.getNumber());
         }
       }
       if (value.hasProperty(runtime, "dimension")) {

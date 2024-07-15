@@ -74,7 +74,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
 
         if (sampleCount.isNumber()) {
           result->_instance.sampleCount =
-              static_cast<wgpu::Size32>(sampleCount.getNumber());
+              static_cast<uint32_t>(sampleCount.getNumber());
         }
       }
       if (value.hasProperty(runtime, "label")) {

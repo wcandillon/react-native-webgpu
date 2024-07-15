@@ -9,6 +9,8 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUShaderModule.h"
+
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
@@ -34,6 +36,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "module")) {
         auto module = value.getProperty(runtime, "module");
+
+        if (module.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUShaderModule>::fromJSI(
+              runtime, module, false);
+          result->_instance.module = val._instance;
+        }
 
         if (module.isUndefined()) {
           throw std::runtime_error(

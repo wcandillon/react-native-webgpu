@@ -9,6 +9,8 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUTextureView.h"
+
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
@@ -35,6 +37,12 @@ struct JSIConverter<
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "view")) {
         auto view = value.getProperty(runtime, "view");
+
+        if (view.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUTextureView>::fromJSI(
+              runtime, view, false);
+          result->_instance.view = val._instance;
+        }
 
         if (view.isUndefined()) {
           throw std::runtime_error(
@@ -84,7 +92,7 @@ struct JSIConverter<
 
         if (stencilClearValue.isNumber()) {
           result->_instance.stencilClearValue =
-              static_cast<wgpu::StencilValue>(stencilClearValue.getNumber());
+              static_cast<uint32_t>(stencilClearValue.getNumber());
         }
       }
       if (value.hasProperty(runtime, "stencilLoadOp")) {

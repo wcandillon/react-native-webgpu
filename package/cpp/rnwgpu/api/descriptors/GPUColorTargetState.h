@@ -9,6 +9,8 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUBlendState.h"
+
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
@@ -50,6 +52,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
       }
       if (value.hasProperty(runtime, "blend")) {
         auto blend = value.getProperty(runtime, "blend");
+
+        if (blend.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUBlendState>::fromJSI(
+              runtime, blend, false);
+          result->_instance.blend = val._instance;
+        }
       }
       if (value.hasProperty(runtime, "writeMask")) {
         auto writeMask = value.getProperty(runtime, "writeMask");

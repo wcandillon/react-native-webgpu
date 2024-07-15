@@ -9,6 +9,10 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUQuerySet.h"
+#include "GPURenderPassDepthStencilAttachment.h"
+#include "GPURenderPassTimestampWrites.h"
+
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
@@ -48,13 +52,33 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
       if (value.hasProperty(runtime, "depthStencilAttachment")) {
         auto depthStencilAttachment =
             value.getProperty(runtime, "depthStencilAttachment");
+
+        if (depthStencilAttachment.isObject()) {
+          auto val =
+              m::JSIConverter<rnwgpu::GPURenderPassDepthStencilAttachment>::
+                  fromJSI(runtime, depthStencilAttachment, false);
+          result->_instance.depthStencilAttachment = val._instance;
+        }
       }
       if (value.hasProperty(runtime, "occlusionQuerySet")) {
         auto occlusionQuerySet =
             value.getProperty(runtime, "occlusionQuerySet");
+
+        if (occlusionQuerySet.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUQuerySet>::fromJSI(
+              runtime, occlusionQuerySet, false);
+          result->_instance.occlusionQuerySet = val._instance;
+        }
       }
       if (value.hasProperty(runtime, "timestampWrites")) {
         auto timestampWrites = value.getProperty(runtime, "timestampWrites");
+
+        if (timestampWrites.isObject()) {
+          auto val =
+              m::JSIConverter<rnwgpu::GPURenderPassTimestampWrites>::fromJSI(
+                  runtime, timestampWrites, false);
+          result->_instance.timestampWrites = val._instance;
+        }
       }
       if (value.hasProperty(runtime, "maxDrawCount")) {
         auto maxDrawCount = value.getProperty(runtime, "maxDrawCount");

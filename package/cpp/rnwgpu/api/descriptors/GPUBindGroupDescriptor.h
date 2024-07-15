@@ -9,6 +9,8 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUBindGroupLayout.h"
+
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
@@ -35,6 +37,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "layout")) {
         auto layout = value.getProperty(runtime, "layout");
+
+        if (layout.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUBindGroupLayout>::fromJSI(
+              runtime, layout, false);
+          result->_instance.layout = val._instance;
+        }
 
         if (layout.isUndefined()) {
           throw std::runtime_error(

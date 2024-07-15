@@ -55,8 +55,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
         auto count = value.getProperty(runtime, "count");
 
         if (count.isNumber()) {
-          result->_instance.count =
-              static_cast<wgpu::Size32>(count.getNumber());
+          result->_instance.count = static_cast<uint32_t>(count.getNumber());
         }
 
         if (count.isUndefined()) {

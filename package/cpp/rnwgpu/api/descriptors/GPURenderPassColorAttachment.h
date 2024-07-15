@@ -9,6 +9,9 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUColor.h"
+#include "GPUTextureView.h"
+
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
@@ -34,6 +37,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
       if (value.hasProperty(runtime, "view")) {
         auto view = value.getProperty(runtime, "view");
 
+        if (view.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUTextureView>::fromJSI(
+              runtime, view, false);
+          result->_instance.view = val._instance;
+        }
+
         if (view.isUndefined()) {
           throw std::runtime_error(
               "Property GPURenderPassColorAttachment::view is required");
@@ -52,9 +61,21 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
       }
       if (value.hasProperty(runtime, "resolveTarget")) {
         auto resolveTarget = value.getProperty(runtime, "resolveTarget");
+
+        if (resolveTarget.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUTextureView>::fromJSI(
+              runtime, resolveTarget, false);
+          result->_instance.resolveTarget = val._instance;
+        }
       }
       if (value.hasProperty(runtime, "clearValue")) {
         auto clearValue = value.getProperty(runtime, "clearValue");
+
+        if (clearValue.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUColor>::fromJSI(
+              runtime, clearValue, false);
+          result->_instance.clearValue = val._instance;
+        }
       }
       if (value.hasProperty(runtime, "loadOp")) {
         auto loadOp = value.getProperty(runtime, "loadOp");

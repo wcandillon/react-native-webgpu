@@ -9,6 +9,8 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUStencilFaceState.h"
+
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
@@ -67,16 +69,28 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
       }
       if (value.hasProperty(runtime, "stencilFront")) {
         auto stencilFront = value.getProperty(runtime, "stencilFront");
+
+        if (stencilFront.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUStencilFaceState>::fromJSI(
+              runtime, stencilFront, false);
+          result->_instance.stencilFront = val._instance;
+        }
       }
       if (value.hasProperty(runtime, "stencilBack")) {
         auto stencilBack = value.getProperty(runtime, "stencilBack");
+
+        if (stencilBack.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUStencilFaceState>::fromJSI(
+              runtime, stencilBack, false);
+          result->_instance.stencilBack = val._instance;
+        }
       }
       if (value.hasProperty(runtime, "stencilReadMask")) {
         auto stencilReadMask = value.getProperty(runtime, "stencilReadMask");
 
         if (stencilReadMask.isNumber()) {
           result->_instance.stencilReadMask =
-              static_cast<wgpu::StencilValue>(stencilReadMask.getNumber());
+              static_cast<uint32_t>(stencilReadMask.getNumber());
         }
       }
       if (value.hasProperty(runtime, "stencilWriteMask")) {
@@ -84,7 +98,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
 
         if (stencilWriteMask.isNumber()) {
           result->_instance.stencilWriteMask =
-              static_cast<wgpu::StencilValue>(stencilWriteMask.getNumber());
+              static_cast<uint32_t>(stencilWriteMask.getNumber());
         }
       }
       if (value.hasProperty(runtime, "depthBias")) {
@@ -92,7 +106,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
 
         if (depthBias.isNumber()) {
           result->_instance.depthBias =
-              static_cast<wgpu::DepthBias>(depthBias.getNumber());
+              static_cast<int32_t>(depthBias.getNumber());
         }
       }
       if (value.hasProperty(runtime, "depthBiasSlopeScale")) {

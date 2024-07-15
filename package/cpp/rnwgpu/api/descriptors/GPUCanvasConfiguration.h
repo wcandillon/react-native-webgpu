@@ -9,6 +9,8 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUDevice.h"
+
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
@@ -33,6 +35,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "device")) {
         auto device = value.getProperty(runtime, "device");
+
+        if (device.isObject()) {
+          auto val = m::JSIConverter<rnwgpu::GPUDevice>::fromJSI(runtime,
+                                                                 device, false);
+          result->_instance.device = val._instance;
+        }
 
         if (device.isUndefined()) {
           throw std::runtime_error(

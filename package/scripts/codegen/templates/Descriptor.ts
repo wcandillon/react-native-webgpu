@@ -8,8 +8,15 @@ const enumMap: Record<string, string> = {
   GPUBufferUsageFlags: "BufferUsage",
 };
 
+const enumMap2: Record<string, string> = {
+  GPUStencilValue: "uint32_t",
+  GPUDepthBias: "int32_t",
+  GPUSampleMask: "uint32_t",
+  GPUSize32: "uint32_t",
+};
+
 const getEnumName = (name: string) => {
-  return `wgpu::${enumMap[name] || name.substring(3)}`;
+  return enumMap2[name] ?? `wgpu::${enumMap[name] || name.substring(3)}`;
 };
 
 const getBoolean = (name: string) => {
@@ -41,11 +48,15 @@ const getString = (name: string, setOnInstance = true) => {
 }`;
 };
 
-const getDescriptorObject = (name: string, alias: string) => {
+const getDescriptorObject = (
+  name: string,
+  alias: string,
+  dependencies: string[],
+) => {
+  dependencies.push(alias);
   return `if (${name}.isObject()) {
-    auto object = ${name}.getObject(runtime);
-    auto val = m:fromJSI<rnwgpu::${alias}>(runtime, object, ${name});
-    result->_instance.${name} = val;
+    auto val = m::JSIConverter<rnwgpu::${alias}>::fromJSI(runtime, ${name}, false);
+    result->_instance.${name} = val._instance;
   }`;
 };
 
@@ -82,6 +93,7 @@ const propFromJSI = (
   className: string,
   prop: PropertySignature,
   _unions: Union[],
+  dependencies: string[],
 ) => {
   const name = prop.getName();
   const types = prop.getType().isUnion()
@@ -105,7 +117,8 @@ const propFromJSI = (
     prop.getName() === "layout";
   const isEnum = !!alias?.startsWith("GPU") && !enumsToSkip.includes(alias);
   const labels = types.map((t) => t.getText());
-  const isDescriptor = alias && alias.startsWith("GPU");
+  const isDescriptor =
+    alias && alias.startsWith("GPU") && !isNumber && !isUnion;
   // const isDescriptor =
   //   !isNumber && !!prop.getType().getTypeNode()?.getName().startsWith("GPU");
   if (
@@ -128,7 +141,7 @@ const propFromJSI = (
   ${isUnion ? getUnion(name, alias) : ""}
   ${isString ? getString(name, name === "label") : ""}
   ${isAutoLayout ? getAutoLayout() : ""}
-  ${isDescriptor ? getDescriptorObject(name, alias) : ""}
+  ${isDescriptor ? getDescriptorObject(name, alias, dependencies) : ""}
   ${
     // !isBoolean && !isNumber && !isString && !isOptional
     //   ? (() => {
@@ -156,6 +169,7 @@ const propFromJSI = (
 
 export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
   mergeParentInterfaces(decl);
+  const dependencies: string[] = [];
   const name = decl.getName();
   const wgpuName = `wgpu::${name.substring(3)}`;
   const propsToHold = decl
@@ -171,6 +185,9 @@ export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
     .map((prop) => {
       return `std::string ${prop.getName()};`;
     });
+  const properties = decl.getProperties().map((prop) => {
+    return propFromJSI(name, prop, unions, dependencies);
+  });
   //decl.getType(
   return `#pragma once
 
@@ -182,6 +199,8 @@ export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
 #include <RNFHybridObject.h>
 #include "Logger.h"
 #include "RNFJSIConverter.h"
+
+${dependencies.map((d) => `#include "${d}.h"`).join("\n")}
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
@@ -209,12 +228,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
     auto result = std::make_unique<rnwgpu::${name}>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      ${decl
-        .getProperties()
-        .map((prop) => {
-          return propFromJSI(name, prop, unions);
-        })
-        .join("\n")}
+      ${properties.join("\n")}
     }
     ${
       /* decl
