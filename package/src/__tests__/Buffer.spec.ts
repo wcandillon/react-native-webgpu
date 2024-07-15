@@ -1,5 +1,3 @@
-import exp from "constants";
-
 import { client } from "./setup";
 
 describe("Buffer", () => {
@@ -195,38 +193,78 @@ describe("Buffer", () => {
         readBuffer.unmap();
         return res;
       });
-
-      // // Create a buffer for writing
-      // const writeBuffer = device.createBuffer({
-      //   size: bufferSize,
-      //   usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.MAP_WRITE,
-      // });
-
-      // // Map the write buffer for writing
-      // await writeBuffer.mapAsync(GPUMapMode.WRITE);
-      // const writeData = new Float32Array(writeBuffer.getMappedRange());
-      // writeData.set([5.0, 6.0, 7.0, 8.0]);
-      // console.log("Data written to buffer:", writeData);
-      // writeBuffer.unmap();
-
-      // // Copy data from write buffer to source buffer
-      // const encoder2 = device.createCommandEncoder();
-      // encoder2.copyBufferToBuffer(writeBuffer, 0, sourceBuffer, 0, bufferSize);
-      // device.queue.submit([encoder2.finish()]);
-
-      // // Copy data from source buffer to read buffer
-      // const encoder3 = device.createCommandEncoder();
-      // encoder3.copyBufferToBuffer(sourceBuffer, 0, readBuffer, 0, bufferSize);
-      // device.queue.submit([encoder3.finish()]);
-
-      // // Map the read buffer for final reading
-      // await readBuffer.mapAsync(GPUMapMode.READ);
-      // const finalReadData = new Float32Array(readBuffer.getMappedRange());
-      // console.log("Final data read from buffer:", finalReadData);
-      // readBuffer.unmap();
-
-      // console.log("WebGPU operations completed successfully.");
     });
     expect(result).toEqual([1, 2, 3, 4]);
+  });
+  it("writes into a buffer (3)", async () => {
+    const result = await client.eval(({ device }) => {
+      const bufferSize = 4 * 4; // 4 32-bit floats
+      const sourceBuffer = device.createBuffer({
+        size: bufferSize,
+        usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+      });
+
+      // Create a buffer for reading
+      const readBuffer = device.createBuffer({
+        size: bufferSize,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+      });
+
+      // Create data to upload
+      const data = new Float32Array([1.0, 2.0, 3.0, 4.0]);
+
+      // Write data to the source buffer
+      device.queue.writeBuffer(sourceBuffer, 0, data);
+
+      // Copy data from source buffer to read buffer
+      const encoder = device.createCommandEncoder();
+      encoder.copyBufferToBuffer(sourceBuffer, 0, readBuffer, 0, bufferSize);
+      device.queue.submit([encoder.finish()]);
+      // Map the read buffer for reading
+      return readBuffer.mapAsync(GPUMapMode.READ).then(() => {
+        //const readData = new Float32Array(readBuffer.getMappedRange());
+        readBuffer.unmap();
+        // // Create a buffer for writing
+        const writeBuffer = device.createBuffer({
+          size: bufferSize,
+          usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.MAP_WRITE,
+        });
+        // Map the write buffer for writing
+        return writeBuffer.mapAsync(GPUMapMode.WRITE).then(() => {
+          const writeData = new Float32Array(writeBuffer.getMappedRange());
+          writeData.set([5.0, 6.0, 7.0, 8.0]);
+          console.log("Data written to buffer:", writeData);
+          writeBuffer.unmap();
+          // // Copy data from write buffer to source buffer
+          const encoder2 = device.createCommandEncoder();
+          encoder2.copyBufferToBuffer(
+            writeBuffer,
+            0,
+            sourceBuffer,
+            0,
+            bufferSize,
+          );
+          device.queue.submit([encoder2.finish()]);
+          // // Copy data from source buffer to read buffer
+          const encoder3 = device.createCommandEncoder();
+          encoder3.copyBufferToBuffer(
+            sourceBuffer,
+            0,
+            readBuffer,
+            0,
+            bufferSize,
+          );
+          device.queue.submit([encoder3.finish()]);
+          // Map the read buffer for final reading
+          return readBuffer.mapAsync(GPUMapMode.READ).then(() => {
+            const finalReadData = new Float32Array(readBuffer.getMappedRange());
+            const res = Array.from(finalReadData);
+            readBuffer.unmap();
+            return res;
+          });
+        });
+      });
+    });
+    expect(result).toEqual([5, 6, 7, 8]);
   });
 });
