@@ -20,6 +20,10 @@ const getEnumName = (name: string) => {
 };
 
 const getBoolean = (name: string) => {
+  // TODO: unclippedDepth
+  if (name === "unclippedDepth") {
+    return "";
+  }
   return `if (${name}.isBool()) {
     result->_instance.${name} = ${name}.getBool();
 }`;
@@ -48,15 +52,29 @@ const getString = (name: string, setOnInstance = true) => {
 }`;
 };
 
+const objectInstance: Record<string, true> = {
+  GPUShaderModule: true,
+};
+
+const isDescriptorPtr: Record<string, true> = {
+  GPUFragmentState: true,
+  GPUDepthStencilState: true,
+};
+
 const getDescriptorObject = (
   name: string,
   alias: string,
   dependencies: string[],
 ) => {
   dependencies.push(alias);
+  if (objectInstance[alias]) {
+    return `if (${name}.isObject()) {
+    result->_instance.${name} = value.asHostObject<rnwgpu::${alias}>(runtime)->get();
+  }`;
+  }
   return `if (${name}.isObject()) {
     auto val = m::JSIConverter<rnwgpu::${alias}>::fromJSI(runtime, ${name}, false);
-    result->_instance.${name} = val._instance;
+    result->_instance.${name} =  val${isDescriptorPtr[alias] ? ".getInstance()" : "._instance"};
   }`;
 };
 
@@ -130,6 +148,7 @@ const propFromJSI = (
     !isDescriptor
   ) {
     const symbols = labels; //.filter((l) => !l.includes("import("));
+    console.log("unhandled prop:");
     console.log({
       [prop.getName()]: symbols,
     });

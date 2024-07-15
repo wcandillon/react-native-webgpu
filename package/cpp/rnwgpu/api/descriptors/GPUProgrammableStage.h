@@ -38,9 +38,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
         auto module = value.getProperty(runtime, "module");
 
         if (module.isObject()) {
-          auto val = m::JSIConverter<rnwgpu::GPUShaderModule>::fromJSI(
-              runtime, module, false);
-          result->_instance.module = val._instance;
+          result->_instance.module =
+              value.asHostObject<rnwgpu::GPUShaderModule>(runtime)->get();
         }
 
         if (module.isUndefined()) {

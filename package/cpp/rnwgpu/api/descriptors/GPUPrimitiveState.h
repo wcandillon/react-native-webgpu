@@ -72,9 +72,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPrimitiveState>> {
       }
       if (value.hasProperty(runtime, "unclippedDepth")) {
         auto unclippedDepth = value.getProperty(runtime, "unclippedDepth");
-        if (unclippedDepth.isBool()) {
-          result->_instance.unclippedDepth = unclippedDepth.getBool();
-        }
       }
     }
 

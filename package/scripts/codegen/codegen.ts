@@ -140,6 +140,23 @@ const GPUCommandEncoderDescriptor = sourceFile.addInterface({
 GPUCommandEncoderDescriptor.addExtends("GPUObjectDescriptorBase");
 GPUCommandBufferDescriptor.addExtends("GPUObjectDescriptorBase");
 
+/*
+type GPUQueueDescriptor =
+  GPUObjectDescriptorBase;
+type GPURenderBundleDescriptor =
+  GPUObjectDescriptorBase;
+  */
+const GPUQueueDescriptor = sourceFile.addInterface({
+  name: "GPUQueueDescriptor",
+  isExported: true,
+});
+const GPURenderBundleDescriptor = sourceFile.addInterface({
+  name: "GPURenderBundleDescriptor",
+  isExported: true,
+});
+GPUQueueDescriptor.addExtends("GPUObjectDescriptorBase");
+GPURenderBundleDescriptor.addExtends("GPUObjectDescriptorBase");
+
 console.log("===");
 console.log("Descriptors");
 console.log("===");

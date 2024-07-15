@@ -71,7 +71,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
         if (depthStencil.isObject()) {
           auto val = m::JSIConverter<rnwgpu::GPUDepthStencilState>::fromJSI(
               runtime, depthStencil, false);
-          result->_instance.depthStencil = val._instance;
+          result->_instance.depthStencil = val.getInstance();
         }
       }
       if (value.hasProperty(runtime, "multisample")) {
@@ -89,7 +89,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
         if (fragment.isObject()) {
           auto val = m::JSIConverter<rnwgpu::GPUFragmentState>::fromJSI(
               runtime, fragment, false);
-          result->_instance.fragment = val._instance;
+          result->_instance.fragment = val.getInstance();
         }
       }
       if (value.hasProperty(runtime, "layout")) {
