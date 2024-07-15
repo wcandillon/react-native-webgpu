@@ -45,6 +45,16 @@ const methodWhiteList = [
 const propWhiteList: Record<string, string[]> = {
   GPUBuffer: ["size", "usage", "mapState"],
   GPUDevice: ["queue"],
+  GPUTexture: [
+    "width",
+    "height",
+    "depthOrArrayLayers",
+    "mipLevelCount",
+    "sampleCount",
+    "dimension",
+    "format",
+    "usage",
+  ],
 };
 
 // const propWhiteList: string[] = [
