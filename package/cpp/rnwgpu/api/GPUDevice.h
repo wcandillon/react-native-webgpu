@@ -19,6 +19,8 @@
 #include "GPUCommandEncoder.h"
 #include "GPUCommandEncoderDescriptor.h"
 #include "GPUQueue.h"
+#include "GPUShaderModule.h"
+#include "GPUShaderModuleDescriptor.h"
 
 namespace rnwgpu {
 
@@ -36,6 +38,8 @@ public:
 
   std::shared_ptr<GPUBuffer>
   createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor);
+  std::shared_ptr<GPUShaderModule>
+  createShaderModule(std::shared_ptr<GPUShaderModuleDescriptor> descriptor);
   std::shared_ptr<GPUCommandEncoder>
   createCommandEncoder(std::shared_ptr<GPUCommandEncoderDescriptor> descriptor);
 
@@ -46,6 +50,8 @@ public:
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUDevice::getBrand, this);
     registerHybridMethod("createBuffer", &GPUDevice::createBuffer, this);
+    registerHybridMethod("createShaderModule", &GPUDevice::createShaderModule,
+                         this);
     registerHybridMethod("createCommandEncoder",
                          &GPUDevice::createCommandEncoder, this);
     registerHybridGetter("queue", &GPUDevice::getQueue, this);

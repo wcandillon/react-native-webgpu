@@ -20,6 +20,7 @@ public:
   wgpu::ShaderModuleDescriptor _instance;
 
   std::string label;
+  std::string code;
 };
 } // namespace rnwgpu
 
@@ -38,7 +39,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
         if (code.isString()) {
           auto str = code.asString(runtime).utf8(runtime);
           result->code = str;
-          result->_instance.code = result->code.c_str();
+          //result->_instance.code = result->code.c_str();
         }
 
         if (code.isUndefined()) {
@@ -49,17 +50,17 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
         throw std::runtime_error(
             "Property GPUShaderModuleDescriptor::code is not defined");
       }
-      if (value.hasProperty(runtime, "sourceMap")) {
-        auto sourceMap = value.getProperty(runtime, "sourceMap");
+      // if (value.hasProperty(runtime, "sourceMap")) {
+      //   auto sourceMap = value.getProperty(runtime, "sourceMap");
 
-        if (sourceMap.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUShaderModuleDescriptor::sourceMap is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUShaderModuleDescriptor::sourceMap is not defined");
-      }
+      //   // if (sourceMap.isUndefined()) {
+      //   //   throw std::runtime_error(
+      //   //       "Property GPUShaderModuleDescriptor::sourceMap is required");
+      //   // }
+      // } else {
+      //   throw std::runtime_error(
+      //       "Property GPUShaderModuleDescriptor::sourceMap is not defined");
+      // }
       if (value.hasProperty(runtime, "compilationHints")) {
         auto compilationHints = value.getProperty(runtime, "compilationHints");
       }

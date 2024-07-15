@@ -28,6 +28,7 @@ const methodWhiteList = [
   // Device
   "createBuffer",
   "createCommandEncoder",
+  "createShaderModule",
   // Buffer
   "unmap",
   "getMappedRange",
