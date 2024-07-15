@@ -34,12 +34,33 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
+
+        if (format.isString()) {
+          auto str = format.asString(runtime).utf8(runtime);
+          wgpu::TextureFormat enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.format = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "dimension")) {
         auto dimension = value.getProperty(runtime, "dimension");
+
+        if (dimension.isString()) {
+          auto str = dimension.asString(runtime).utf8(runtime);
+          wgpu::TextureViewDimension enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.dimension = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "aspect")) {
         auto aspect = value.getProperty(runtime, "aspect");
+
+        if (aspect.isString()) {
+          auto str = aspect.asString(runtime).utf8(runtime);
+          wgpu::TextureAspect enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.aspect = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "baseMipLevel")) {
         auto baseMipLevel = value.getProperty(runtime, "baseMipLevel");
@@ -75,12 +96,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
       }
     }
 

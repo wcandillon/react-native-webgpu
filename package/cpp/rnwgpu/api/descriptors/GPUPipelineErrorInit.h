@@ -32,6 +32,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineErrorInit>> {
       if (value.hasProperty(runtime, "reason")) {
         auto reason = value.getProperty(runtime, "reason");
 
+        if (reason.isString()) {
+          auto str = reason.asString(runtime).utf8(runtime);
+          wgpu::PipelineErrorReason enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.reason = enumValue;
+        }
+
         if (reason.isUndefined()) {
           throw std::runtime_error(
               "Property GPUPipelineErrorInit::reason is required");

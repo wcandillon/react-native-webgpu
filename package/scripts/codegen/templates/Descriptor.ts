@@ -24,6 +24,15 @@ const getNumber = (name: string, enumName: string | undefined) => {
 }`;
 };
 
+const getUnion = (name: string, enumName: string) => {
+  return `if (${name}.isString()) {
+    auto str = ${name}.asString(runtime).utf8(runtime);
+    ${getEnumName(enumName)} enumValue;
+    convertJSUnionToEnum(str, &enumValue);
+    result->_instance.${name} = enumValue;
+}`;
+};
+
 const getString = (name: string, setOnInstance = true) => {
   return `if (${name}.isString()) {
     auto str = ${name}.asString(runtime).utf8(runtime);
@@ -48,39 +57,36 @@ const propFromJSI = (
   _unions: Union[],
 ) => {
   const name = prop.getName();
+  const types = prop.getType().isUnion()
+    ? prop.getType().getUnionTypes()
+    : [prop.getType()];
+  const alias = prop.getTypeNode()?.getText();
   const isOptional =
-    prop
-      .getType()
-      .getUnionTypes()
-      .some((t) => t.isUndefined()) || prop.hasQuestionToken();
-  const isBoolean =
-    prop.getType().isBoolean() ||
-    prop
-      .getType()
-      .getUnionTypes()
-      .some(
-        (t) =>
-          t.isBoolean() || t.getText() === "false" || t.getText() === "true",
-      );
-  const isNumber =
-    prop.getType().isNumber() ||
-    prop
-      .getType()
-      .getUnionTypes()
-      .some((t) => t.isNumber());
-  const isString =
-    prop.getType().isString() ||
-    prop
-      .getType()
-      .getUnionTypes()
-      .some((t) => t.isString());
-  const enumLabel = prop.getTypeNode()?.getText();
-  const isEnum =
-    !!enumLabel?.startsWith("GPU") && !enumsToSkip.includes(enumLabel);
+    types.some((t) => t.isUndefined()) || prop.hasQuestionToken();
+  const isBoolean = types.some(
+    (t) => t.isBoolean() || t.getText() === "false" || t.getText() === "true",
+  );
+  const isNumber = types.some((t) => t.isNumber());
+  const isString = !alias && types.some((t) => t.isString());
+  const isUnion = alias && types.some((t) => t.isStringLiteral());
+  const isEnum = !!alias?.startsWith("GPU") && !enumsToSkip.includes(alias);
+  const labels = types.map((t) => t.getText());
+  // const isDescriptor =
+  //   !isNumber && !!prop.getType().getTypeNode()?.getName().startsWith("GPU");
+  if (!isString && !isBoolean && !isNumber && !isUnion) {
+    console.log({
+      [prop.getName()]: labels,
+      symbols: prop.getType().getAliasSymbol()?.getName(),
+      alias,
+      isString: types.some((t) => t.isString()),
+      isStringLitteral: types.some((t) => t.isStringLiteral()),
+    });
+  }
   return `if (value.hasProperty(runtime, "${name}")) {
   auto ${name} = value.getProperty(runtime, "${name}");
   ${isBoolean ? getBoolean(name) : ""}
-  ${isNumber ? getNumber(name, isEnum ? prop.getTypeNode()?.getText() : undefined) : ""}
+  ${isNumber ? getNumber(name, isEnum ? alias : undefined) : ""}
+  ${isUnion ? getUnion(name, alias) : ""}
   ${isString ? getString(name, name === "label") : ""}
   ${
     // !isBoolean && !isNumber && !isString && !isOptional

@@ -32,6 +32,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
 
+        if (format.isString()) {
+          auto str = format.asString(runtime).utf8(runtime);
+          wgpu::TextureFormat enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.format = enumValue;
+        }
+
         if (format.isUndefined()) {
           throw std::runtime_error(
               "Property GPUDepthStencilState::format is required");
@@ -49,6 +56,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
       }
       if (value.hasProperty(runtime, "depthCompare")) {
         auto depthCompare = value.getProperty(runtime, "depthCompare");
+
+        if (depthCompare.isString()) {
+          auto str = depthCompare.asString(runtime).utf8(runtime);
+          wgpu::CompareFunction enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.depthCompare = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "stencilFront")) {
         auto stencilFront = value.getProperty(runtime, "stencilFront");

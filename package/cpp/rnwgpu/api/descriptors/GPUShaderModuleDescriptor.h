@@ -36,11 +36,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
       if (value.hasProperty(runtime, "code")) {
         auto code = value.getProperty(runtime, "code");
 
-        if (code.isString()) {
-          auto str = code.asString(runtime).utf8(runtime);
-          result->code = str;
-        }
-
         if (code.isUndefined()) {
           throw std::runtime_error(
               "Property GPUShaderModuleDescriptor::code is required");
@@ -57,12 +52,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
       }
     }
 

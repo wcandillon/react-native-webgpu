@@ -46,6 +46,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
       if (value.hasProperty(runtime, "layout")) {
         auto layout = value.getProperty(runtime, "layout");
 
+        if (layout.isString()) {
+          auto str = layout.asString(runtime).utf8(runtime);
+          wgpu::PUPipelineLayout | GPUAutoLayoutMode enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.layout = enumValue;
+        }
+
         if (layout.isUndefined()) {
           throw std::runtime_error(
               "Property GPUComputePipelineDescriptor::layout is required");
@@ -56,12 +63,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
       }
     }
 

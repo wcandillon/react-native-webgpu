@@ -32,6 +32,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
 
+        if (format.isString()) {
+          auto str = format.asString(runtime).utf8(runtime);
+          wgpu::VertexFormat enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.format = enumValue;
+        }
+
         if (format.isUndefined()) {
           throw std::runtime_error(
               "Property GPUVertexAttribute::format is required");

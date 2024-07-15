@@ -44,6 +44,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
 
+        if (format.isString()) {
+          auto str = format.asString(runtime).utf8(runtime);
+          wgpu::TextureFormat enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.format = enumValue;
+        }
+
         if (format.isUndefined()) {
           throw std::runtime_error(
               "Property GPUCanvasConfiguration::format is required");
@@ -65,9 +72,23 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
       }
       if (value.hasProperty(runtime, "colorSpace")) {
         auto colorSpace = value.getProperty(runtime, "colorSpace");
+
+        if (colorSpace.isString()) {
+          auto str = colorSpace.asString(runtime).utf8(runtime);
+          wgpu::definedColorSpace enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.colorSpace = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "alphaMode")) {
         auto alphaMode = value.getProperty(runtime, "alphaMode");
+
+        if (alphaMode.isString()) {
+          auto str = alphaMode.asString(runtime).utf8(runtime);
+          wgpu::CanvasAlphaMode enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.alphaMode = enumValue;
+        }
       }
     }
 

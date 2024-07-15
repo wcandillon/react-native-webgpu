@@ -32,6 +32,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "colorSpace")) {
         auto colorSpace = value.getProperty(runtime, "colorSpace");
+
+        if (colorSpace.isString()) {
+          auto str = colorSpace.asString(runtime).utf8(runtime);
+          wgpu::definedColorSpace enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.colorSpace = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "premultipliedAlpha")) {
         auto premultipliedAlpha =
@@ -64,6 +71,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
       }
       if (value.hasProperty(runtime, "aspect")) {
         auto aspect = value.getProperty(runtime, "aspect");
+
+        if (aspect.isString()) {
+          auto str = aspect.asString(runtime).utf8(runtime);
+          wgpu::TextureAspect enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.aspect = enumValue;
+        }
       }
     }
 

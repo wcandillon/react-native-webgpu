@@ -31,15 +31,43 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPrimitiveState>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "topology")) {
         auto topology = value.getProperty(runtime, "topology");
+
+        if (topology.isString()) {
+          auto str = topology.asString(runtime).utf8(runtime);
+          wgpu::PrimitiveTopology enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.topology = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "stripIndexFormat")) {
         auto stripIndexFormat = value.getProperty(runtime, "stripIndexFormat");
+
+        if (stripIndexFormat.isString()) {
+          auto str = stripIndexFormat.asString(runtime).utf8(runtime);
+          wgpu::IndexFormat enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.stripIndexFormat = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "frontFace")) {
         auto frontFace = value.getProperty(runtime, "frontFace");
+
+        if (frontFace.isString()) {
+          auto str = frontFace.asString(runtime).utf8(runtime);
+          wgpu::FrontFace enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.frontFace = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "cullMode")) {
         auto cullMode = value.getProperty(runtime, "cullMode");
+
+        if (cullMode.isString()) {
+          auto str = cullMode.asString(runtime).utf8(runtime);
+          wgpu::CullMode enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.cullMode = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "unclippedDepth")) {
         auto unclippedDepth = value.getProperty(runtime, "unclippedDepth");

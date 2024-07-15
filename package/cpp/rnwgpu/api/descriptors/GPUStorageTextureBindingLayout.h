@@ -32,9 +32,23 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "access")) {
         auto access = value.getProperty(runtime, "access");
+
+        if (access.isString()) {
+          auto str = access.asString(runtime).utf8(runtime);
+          wgpu::StorageTextureAccess enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.access = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
+
+        if (format.isString()) {
+          auto str = format.asString(runtime).utf8(runtime);
+          wgpu::TextureFormat enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.format = enumValue;
+        }
 
         if (format.isUndefined()) {
           throw std::runtime_error(
@@ -46,6 +60,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
       }
       if (value.hasProperty(runtime, "viewDimension")) {
         auto viewDimension = value.getProperty(runtime, "viewDimension");
+
+        if (viewDimension.isString()) {
+          auto str = viewDimension.asString(runtime).utf8(runtime);
+          wgpu::TextureViewDimension enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.viewDimension = enumValue;
+        }
       }
     }
 

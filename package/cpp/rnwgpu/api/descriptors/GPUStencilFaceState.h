@@ -31,15 +31,43 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "compare")) {
         auto compare = value.getProperty(runtime, "compare");
+
+        if (compare.isString()) {
+          auto str = compare.asString(runtime).utf8(runtime);
+          wgpu::CompareFunction enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.compare = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "failOp")) {
         auto failOp = value.getProperty(runtime, "failOp");
+
+        if (failOp.isString()) {
+          auto str = failOp.asString(runtime).utf8(runtime);
+          wgpu::StencilOperation enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.failOp = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "depthFailOp")) {
         auto depthFailOp = value.getProperty(runtime, "depthFailOp");
+
+        if (depthFailOp.isString()) {
+          auto str = depthFailOp.asString(runtime).utf8(runtime);
+          wgpu::StencilOperation enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.depthFailOp = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "passOp")) {
         auto passOp = value.getProperty(runtime, "passOp");
+
+        if (passOp.isString()) {
+          auto str = passOp.asString(runtime).utf8(runtime);
+          wgpu::StencilOperation enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.passOp = enumValue;
+        }
       }
     }
 

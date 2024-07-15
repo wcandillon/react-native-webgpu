@@ -45,15 +45,16 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
       }
       if (value.hasProperty(runtime, "colorSpace")) {
         auto colorSpace = value.getProperty(runtime, "colorSpace");
+
+        if (colorSpace.isString()) {
+          auto str = colorSpace.asString(runtime).utf8(runtime);
+          wgpu::definedColorSpace enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.colorSpace = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
       }
     }
 

@@ -53,6 +53,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
       }
       if (value.hasProperty(runtime, "aspect")) {
         auto aspect = value.getProperty(runtime, "aspect");
+
+        if (aspect.isString()) {
+          auto str = aspect.asString(runtime).utf8(runtime);
+          wgpu::TextureAspect enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.aspect = enumValue;
+        }
       }
     }
 

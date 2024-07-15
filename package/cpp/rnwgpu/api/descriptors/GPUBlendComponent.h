@@ -31,12 +31,33 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendComponent>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "operation")) {
         auto operation = value.getProperty(runtime, "operation");
+
+        if (operation.isString()) {
+          auto str = operation.asString(runtime).utf8(runtime);
+          wgpu::BlendOperation enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.operation = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "srcFactor")) {
         auto srcFactor = value.getProperty(runtime, "srcFactor");
+
+        if (srcFactor.isString()) {
+          auto str = srcFactor.asString(runtime).utf8(runtime);
+          wgpu::BlendFactor enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.srcFactor = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "dstFactor")) {
         auto dstFactor = value.getProperty(runtime, "dstFactor");
+
+        if (dstFactor.isString()) {
+          auto str = dstFactor.asString(runtime).utf8(runtime);
+          wgpu::BlendFactor enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.dstFactor = enumValue;
+        }
       }
     }
 

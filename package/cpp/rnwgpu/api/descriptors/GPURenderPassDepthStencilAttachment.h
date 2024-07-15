@@ -53,9 +53,23 @@ struct JSIConverter<
       }
       if (value.hasProperty(runtime, "depthLoadOp")) {
         auto depthLoadOp = value.getProperty(runtime, "depthLoadOp");
+
+        if (depthLoadOp.isString()) {
+          auto str = depthLoadOp.asString(runtime).utf8(runtime);
+          wgpu::LoadOp enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.depthLoadOp = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "depthStoreOp")) {
         auto depthStoreOp = value.getProperty(runtime, "depthStoreOp");
+
+        if (depthStoreOp.isString()) {
+          auto str = depthStoreOp.asString(runtime).utf8(runtime);
+          wgpu::StoreOp enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.depthStoreOp = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "depthReadOnly")) {
         auto depthReadOnly = value.getProperty(runtime, "depthReadOnly");
@@ -74,9 +88,23 @@ struct JSIConverter<
       }
       if (value.hasProperty(runtime, "stencilLoadOp")) {
         auto stencilLoadOp = value.getProperty(runtime, "stencilLoadOp");
+
+        if (stencilLoadOp.isString()) {
+          auto str = stencilLoadOp.asString(runtime).utf8(runtime);
+          wgpu::LoadOp enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.stencilLoadOp = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "stencilStoreOp")) {
         auto stencilStoreOp = value.getProperty(runtime, "stencilStoreOp");
+
+        if (stencilStoreOp.isString()) {
+          auto str = stencilStoreOp.asString(runtime).utf8(runtime);
+          wgpu::StoreOp enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.stencilStoreOp = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "stencilReadOnly")) {
         auto stencilReadOnly = value.getProperty(runtime, "stencilReadOnly");

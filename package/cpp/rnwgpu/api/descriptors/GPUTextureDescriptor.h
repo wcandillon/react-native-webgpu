@@ -60,9 +60,23 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
       }
       if (value.hasProperty(runtime, "dimension")) {
         auto dimension = value.getProperty(runtime, "dimension");
+
+        if (dimension.isString()) {
+          auto str = dimension.asString(runtime).utf8(runtime);
+          wgpu::TextureDimension enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.dimension = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
+
+        if (format.isString()) {
+          auto str = format.asString(runtime).utf8(runtime);
+          wgpu::TextureFormat enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.format = enumValue;
+        }
 
         if (format.isUndefined()) {
           throw std::runtime_error(
@@ -93,12 +107,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
       }
     }
 

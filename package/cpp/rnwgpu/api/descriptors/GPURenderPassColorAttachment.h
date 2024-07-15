@@ -58,6 +58,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
       if (value.hasProperty(runtime, "loadOp")) {
         auto loadOp = value.getProperty(runtime, "loadOp");
 
+        if (loadOp.isString()) {
+          auto str = loadOp.asString(runtime).utf8(runtime);
+          wgpu::LoadOp enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.loadOp = enumValue;
+        }
+
         if (loadOp.isUndefined()) {
           throw std::runtime_error(
               "Property GPURenderPassColorAttachment::loadOp is required");
@@ -68,6 +75,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
       }
       if (value.hasProperty(runtime, "storeOp")) {
         auto storeOp = value.getProperty(runtime, "storeOp");
+
+        if (storeOp.isString()) {
+          auto str = storeOp.asString(runtime).utf8(runtime);
+          wgpu::StoreOp enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.storeOp = enumValue;
+        }
 
         if (storeOp.isUndefined()) {
           throw std::runtime_error(

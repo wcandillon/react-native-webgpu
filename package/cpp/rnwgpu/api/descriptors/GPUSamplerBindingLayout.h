@@ -32,6 +32,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "type")) {
         auto type = value.getProperty(runtime, "type");
+
+        if (type.isString()) {
+          auto str = type.asString(runtime).utf8(runtime);
+          wgpu::SamplerBindingType enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.type = enumValue;
+        }
       }
     }
 

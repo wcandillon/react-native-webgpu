@@ -33,21 +33,63 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "addressModeU")) {
         auto addressModeU = value.getProperty(runtime, "addressModeU");
+
+        if (addressModeU.isString()) {
+          auto str = addressModeU.asString(runtime).utf8(runtime);
+          wgpu::AddressMode enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.addressModeU = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "addressModeV")) {
         auto addressModeV = value.getProperty(runtime, "addressModeV");
+
+        if (addressModeV.isString()) {
+          auto str = addressModeV.asString(runtime).utf8(runtime);
+          wgpu::AddressMode enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.addressModeV = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "addressModeW")) {
         auto addressModeW = value.getProperty(runtime, "addressModeW");
+
+        if (addressModeW.isString()) {
+          auto str = addressModeW.asString(runtime).utf8(runtime);
+          wgpu::AddressMode enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.addressModeW = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "magFilter")) {
         auto magFilter = value.getProperty(runtime, "magFilter");
+
+        if (magFilter.isString()) {
+          auto str = magFilter.asString(runtime).utf8(runtime);
+          wgpu::FilterMode enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.magFilter = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "minFilter")) {
         auto minFilter = value.getProperty(runtime, "minFilter");
+
+        if (minFilter.isString()) {
+          auto str = minFilter.asString(runtime).utf8(runtime);
+          wgpu::FilterMode enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.minFilter = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "mipmapFilter")) {
         auto mipmapFilter = value.getProperty(runtime, "mipmapFilter");
+
+        if (mipmapFilter.isString()) {
+          auto str = mipmapFilter.asString(runtime).utf8(runtime);
+          wgpu::MipmapFilterMode enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.mipmapFilter = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "lodMinClamp")) {
         auto lodMinClamp = value.getProperty(runtime, "lodMinClamp");
@@ -65,6 +107,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
       }
       if (value.hasProperty(runtime, "compare")) {
         auto compare = value.getProperty(runtime, "compare");
+
+        if (compare.isString()) {
+          auto str = compare.asString(runtime).utf8(runtime);
+          wgpu::CompareFunction enumValue;
+          convertJSUnionToEnum(str, &enumValue);
+          result->_instance.compare = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "maxAnisotropy")) {
         auto maxAnisotropy = value.getProperty(runtime, "maxAnisotropy");
@@ -75,12 +124,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
       }
     }
 
