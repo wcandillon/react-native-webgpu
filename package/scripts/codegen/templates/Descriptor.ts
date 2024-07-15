@@ -62,12 +62,22 @@ const isDescriptorPtr: Record<string, true> = {
   GPUDepthStencilState: true,
 };
 
+export const descriptorToSkip = [
+  "GPUOrigin2DDictStrict",
+  "GPUExtent3DDictStrict",
+  "GPUExtent3DDict",
+  "GPUOrigin2DDict",
+  "GPUOrigin3DDict",
+];
+
 const getDescriptorObject = (
   name: string,
   alias: string,
   dependencies: string[],
 ) => {
-  dependencies.push(alias);
+  if (!descriptorToSkip.includes(alias)) {
+    dependencies.push(alias);
+  }
   if (objectInstance[alias]) {
     return `if (${name}.isObject() && ${name}.getObject(runtime).isHostObject(runtime)) {
       result->_instance.${name} = ${name}.getObject(runtime).asHostObject<rnwgpu::${alias}>(runtime)->get();
