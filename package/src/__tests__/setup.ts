@@ -114,7 +114,7 @@ class ReferenceTestingClient implements TestingClient {
       throw new Error("RemoteSurface not initialized");
     }
     const source = `(async function Main(){
-      const { device, adapter, gpu, cubeVertexArray } = window;
+      const { device, adapter, gpu, cubeVertexArray, triangleVertWGSL, redFragWGSL } = window;
       return (${fn.toString()})({
         device, adapter, gpu, 
         GPUBufferUsage,
