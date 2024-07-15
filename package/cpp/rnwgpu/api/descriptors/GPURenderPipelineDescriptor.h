@@ -76,22 +76,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::vertex = %f",
-                                 result->_instance.vertex);
-    rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::primitive = %f",
-                                 result->_instance.primitive);
-    rnwgpu::Logger::logToConsole(
-        "GPURenderPipelineDescriptor::depthStencil = %f",
-        result->_instance.depthStencil);
-    rnwgpu::Logger::logToConsole(
-        "GPURenderPipelineDescriptor::multisample = %f",
-        result->_instance.multisample);
-    rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::fragment = %f",
-                                 result->_instance.fragment);
-    rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::layout = %f",
-                                 result->_instance.layout);
-    rnwgpu::Logger::logToConsole("GPURenderPipelineDescriptor::label = %f",
-                                 result->_instance.label);
+
     return result;
   }
   static jsi::Value

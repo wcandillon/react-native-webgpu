@@ -83,24 +83,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::format = %f",
-                                 result->_instance.format);
-    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::dimension = %f",
-                                 result->_instance.dimension);
-    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::aspect = %f",
-                                 result->_instance.aspect);
-    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::baseMipLevel = %f",
-                                 result->_instance.baseMipLevel);
-    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::mipLevelCount = %f",
-                                 result->_instance.mipLevelCount);
-    rnwgpu::Logger::logToConsole(
-        "GPUTextureViewDescriptor::baseArrayLayer = %f",
-        result->_instance.baseArrayLayer);
-    rnwgpu::Logger::logToConsole(
-        "GPUTextureViewDescriptor::arrayLayerCount = %f",
-        result->_instance.arrayLayerCount);
-    rnwgpu::Logger::logToConsole("GPUTextureViewDescriptor::label = %f",
-                                 result->_instance.label);
+
     return result;
   }
   static jsi::Value

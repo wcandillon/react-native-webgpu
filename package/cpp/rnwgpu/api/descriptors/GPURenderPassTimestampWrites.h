@@ -60,14 +60,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassTimestampWrites>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPURenderPassTimestampWrites::querySet = %f",
-                                 result->_instance.querySet);
-    rnwgpu::Logger::logToConsole(
-        "GPURenderPassTimestampWrites::beginningOfPassWriteIndex = %f",
-        result->_instance.beginningOfPassWriteIndex);
-    rnwgpu::Logger::logToConsole(
-        "GPURenderPassTimestampWrites::endOfPassWriteIndex = %f",
-        result->_instance.endOfPassWriteIndex);
+
     return result;
   }
   static jsi::Value

@@ -58,12 +58,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin2DDictStrict>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUOrigin2DDictStrict::z = %f",
-                                 result->_instance.z);
-    rnwgpu::Logger::logToConsole("GPUOrigin2DDictStrict::x = %f",
-                                 result->_instance.x);
-    rnwgpu::Logger::logToConsole("GPUOrigin2DDictStrict::y = %f",
-                                 result->_instance.y);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

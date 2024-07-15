@@ -53,11 +53,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
         auto layout = value.getProperty(runtime, "layout");
       }
     }
-    rnwgpu::Logger::logToConsole(
-        "GPUShaderModuleCompilationHint::entryPoint = %f",
-        result->_instance.entryPoint);
-    rnwgpu::Logger::logToConsole("GPUShaderModuleCompilationHint::layout = %f",
-                                 result->_instance.layout);
+
     return result;
   }
   static jsi::Value

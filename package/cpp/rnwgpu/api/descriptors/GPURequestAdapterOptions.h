@@ -42,12 +42,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole(
-        "GPURequestAdapterOptions::powerPreference = %f",
-        result->_instance.powerPreference);
-    rnwgpu::Logger::logToConsole(
-        "GPURequestAdapterOptions::forceFallbackAdapter = %f",
-        result->_instance.forceFallbackAdapter);
+
     return result;
   }
   static jsi::Value

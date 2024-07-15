@@ -60,14 +60,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::error = %f",
-                                 result->_instance.error);
-    rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::bubbles = %f",
-                                 result->_instance.bubbles);
-    rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::cancelable = %f",
-                                 result->_instance.cancelable);
-    rnwgpu::Logger::logToConsole("GPUUncapturedErrorEventInit::composed = %f",
-                                 result->_instance.composed);
+
     return result;
   }
   static jsi::Value

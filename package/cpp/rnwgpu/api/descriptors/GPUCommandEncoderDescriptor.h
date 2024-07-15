@@ -42,8 +42,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCommandEncoderDescriptor>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUCommandEncoderDescriptor::label = %f",
-                                 result->_instance.label);
+
     return result;
   }
   static jsi::Value

@@ -34,13 +34,13 @@ const getString = (name: string) => {
 
 const enumsToSkip = ["GPUSize64"];
 
-const logProp = (
-  className: string,
-  prop: PropertySignature,
-  _unions: Union[],
-) => {
-  return `rnwgpu::Logger::logToConsole("${className}::${prop.getName()} = %f", result->_instance.${prop.getName()});`;
-};
+// const logProp = (
+//   className: string,
+//   prop: PropertySignature,
+//   _unions: Union[],
+// ) => {
+//   return `rnwgpu::Logger::logToConsole("${className}::${prop.getName()} = %f", result->_instance.${prop.getName()});`;
+// };
 
 const propFromJSI = (
   className: string,
@@ -165,12 +165,14 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
         })
         .join("\n")}
     }
-    ${decl
+    ${
+      /* decl
       .getProperties()
       .map((prop) => {
         return logProp(name, prop, unions);
       })
-      .join("\n")}
+      .join("\n") */ ""
+    }
     return result;
   }
   static jsi::Value

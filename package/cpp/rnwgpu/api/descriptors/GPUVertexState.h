@@ -58,14 +58,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexState>> {
         auto constants = value.getProperty(runtime, "constants");
       }
     }
-    rnwgpu::Logger::logToConsole("GPUVertexState::buffers = %f",
-                                 result->_instance.buffers);
-    rnwgpu::Logger::logToConsole("GPUVertexState::module = %f",
-                                 result->_instance.module);
-    rnwgpu::Logger::logToConsole("GPUVertexState::entryPoint = %f",
-                                 result->_instance.entryPoint);
-    rnwgpu::Logger::logToConsole("GPUVertexState::constants = %f",
-                                 result->_instance.constants);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

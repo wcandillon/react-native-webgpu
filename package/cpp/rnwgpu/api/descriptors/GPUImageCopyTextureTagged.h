@@ -66,19 +66,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
         auto aspect = value.getProperty(runtime, "aspect");
       }
     }
-    rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::colorSpace = %f",
-                                 result->_instance.colorSpace);
-    rnwgpu::Logger::logToConsole(
-        "GPUImageCopyTextureTagged::premultipliedAlpha = %f",
-        result->_instance.premultipliedAlpha);
-    rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::texture = %f",
-                                 result->_instance.texture);
-    rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::mipLevel = %f",
-                                 result->_instance.mipLevel);
-    rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::origin = %f",
-                                 result->_instance.origin);
-    rnwgpu::Logger::logToConsole("GPUImageCopyTextureTagged::aspect = %f",
-                                 result->_instance.aspect);
+
     return result;
   }
   static jsi::Value

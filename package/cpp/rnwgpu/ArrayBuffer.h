@@ -55,9 +55,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::ArrayBuffer>> {
 
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::ArrayBuffer> arg) {
-    auto val = jsi::ArrayBuffer(runtime, arg);
-    auto d = val.data(runtime);
-    return val;
+    return jsi::ArrayBuffer(runtime, arg);
   }
 };
 

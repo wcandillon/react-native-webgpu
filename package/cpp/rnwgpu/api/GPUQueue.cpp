@@ -29,27 +29,25 @@ void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,
   // Size defaults to dataSize - dataOffset. Instead of computing in elements,
   // we directly use it in bytes, and convert the provided value, if any, in
   // bytes.
-  uint64_t size64 = uint64_t(src->_size);
+  size_t size = src->_size;
   if (sizeElements.has_value()) {
     if (sizeElements.value() >
         std::numeric_limits<uint64_t>::max() / src->_bytesPerElement) {
       throw std::runtime_error("size overflows.");
       return;
     }
-    size64 = sizeElements.value() * src->_bytesPerElement;
+    size = sizeElements.value() * src->_bytesPerElement;
   }
 
-  if (size64 > uint64_t(src->_size)) {
+  if (size > src->_size) {
     throw std::runtime_error("size is larger than data's size.");
   }
 
-  if (size64 % 4 != 0) {
+  if (size % 4 != 0) {
     throw std::runtime_error("size is not a multiple of 4 bytes.");
   }
 
-  assert(size64 <= std::numeric_limits<size_t>::max());
-  _instance.WriteBuffer(buf, bufferOffset, src->_data,
-                        static_cast<size_t>(size64));
+  _instance.WriteBuffer(buf, bufferOffset, src->_data, size);
 }
 
 } // namespace rnwgpu

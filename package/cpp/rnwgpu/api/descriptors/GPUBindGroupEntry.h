@@ -57,10 +57,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
             "Property GPUBindGroupEntry::resource is not defined");
       }
     }
-    rnwgpu::Logger::logToConsole("GPUBindGroupEntry::binding = %f",
-                                 result->_instance.binding);
-    rnwgpu::Logger::logToConsole("GPUBindGroupEntry::resource = %f",
-                                 result->_instance.resource);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

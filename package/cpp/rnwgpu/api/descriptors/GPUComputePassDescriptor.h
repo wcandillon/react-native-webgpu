@@ -45,11 +45,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole(
-        "GPUComputePassDescriptor::timestampWrites = %f",
-        result->_instance.timestampWrites);
-    rnwgpu::Logger::logToConsole("GPUComputePassDescriptor::label = %f",
-                                 result->_instance.label);
+
     return result;
   }
   static jsi::Value

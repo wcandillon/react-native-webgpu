@@ -76,15 +76,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3DDictStrict>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUExtent3DDictStrict::depth = %f",
-                                 result->_instance.depth);
-    rnwgpu::Logger::logToConsole("GPUExtent3DDictStrict::width = %f",
-                                 result->_instance.width);
-    rnwgpu::Logger::logToConsole("GPUExtent3DDictStrict::height = %f",
-                                 result->_instance.height);
-    rnwgpu::Logger::logToConsole(
-        "GPUExtent3DDictStrict::depthOrArrayLayers = %f",
-        result->_instance.depthOrArrayLayers);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

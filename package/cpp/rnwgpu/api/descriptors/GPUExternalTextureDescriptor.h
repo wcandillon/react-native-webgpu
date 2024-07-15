@@ -56,13 +56,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUExternalTextureDescriptor::source = %f",
-                                 result->_instance.source);
-    rnwgpu::Logger::logToConsole(
-        "GPUExternalTextureDescriptor::colorSpace = %f",
-        result->_instance.colorSpace);
-    rnwgpu::Logger::logToConsole("GPUExternalTextureDescriptor::label = %f",
-                                 result->_instance.label);
+
     return result;
   }
   static jsi::Value

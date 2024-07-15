@@ -42,14 +42,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
         auto passOp = value.getProperty(runtime, "passOp");
       }
     }
-    rnwgpu::Logger::logToConsole("GPUStencilFaceState::compare = %f",
-                                 result->_instance.compare);
-    rnwgpu::Logger::logToConsole("GPUStencilFaceState::failOp = %f",
-                                 result->_instance.failOp);
-    rnwgpu::Logger::logToConsole("GPUStencilFaceState::depthFailOp = %f",
-                                 result->_instance.depthFailOp);
-    rnwgpu::Logger::logToConsole("GPUStencilFaceState::passOp = %f",
-                                 result->_instance.passOp);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

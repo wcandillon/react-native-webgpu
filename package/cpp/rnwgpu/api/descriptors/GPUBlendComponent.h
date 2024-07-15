@@ -39,12 +39,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendComponent>> {
         auto dstFactor = value.getProperty(runtime, "dstFactor");
       }
     }
-    rnwgpu::Logger::logToConsole("GPUBlendComponent::operation = %f",
-                                 result->_instance.operation);
-    rnwgpu::Logger::logToConsole("GPUBlendComponent::srcFactor = %f",
-                                 result->_instance.srcFactor);
-    rnwgpu::Logger::logToConsole("GPUBlendComponent::dstFactor = %f",
-                                 result->_instance.dstFactor);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

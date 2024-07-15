@@ -52,12 +52,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUColorTargetState::format = %f",
-                                 result->_instance.format);
-    rnwgpu::Logger::logToConsole("GPUColorTargetState::blend = %f",
-                                 result->_instance.blend);
-    rnwgpu::Logger::logToConsole("GPUColorTargetState::writeMask = %f",
-                                 result->_instance.writeMask);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

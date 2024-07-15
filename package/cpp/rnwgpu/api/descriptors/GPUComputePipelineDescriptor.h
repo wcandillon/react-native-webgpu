@@ -64,12 +64,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUComputePipelineDescriptor::compute = %f",
-                                 result->_instance.compute);
-    rnwgpu::Logger::logToConsole("GPUComputePipelineDescriptor::layout = %f",
-                                 result->_instance.layout);
-    rnwgpu::Logger::logToConsole("GPUComputePipelineDescriptor::label = %f",
-                                 result->_instance.label);
+
     return result;
   }
   static jsi::Value

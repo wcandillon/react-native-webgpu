@@ -54,12 +54,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin3DDict>> {
         }
       }
     }
-    rnwgpu::Logger::logToConsole("GPUOrigin3DDict::x = %f",
-                                 result->_instance.x);
-    rnwgpu::Logger::logToConsole("GPUOrigin3DDict::y = %f",
-                                 result->_instance.y);
-    rnwgpu::Logger::logToConsole("GPUOrigin3DDict::z = %f",
-                                 result->_instance.z);
+
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
