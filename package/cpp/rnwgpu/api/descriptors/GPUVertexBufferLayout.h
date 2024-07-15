@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -51,7 +52,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
         if (stepMode.isString()) {
           auto str = stepMode.asString(runtime).utf8(runtime);
           wgpu::VertexStepMode enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.stepMode = enumValue;
         }
       }

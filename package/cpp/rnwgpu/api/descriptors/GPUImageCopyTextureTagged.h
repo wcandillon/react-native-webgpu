@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -36,7 +37,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
         if (colorSpace.isString()) {
           auto str = colorSpace.asString(runtime).utf8(runtime);
           wgpu::definedColorSpace enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.colorSpace = enumValue;
         }
       }
@@ -75,7 +76,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
         if (aspect.isString()) {
           auto str = aspect.asString(runtime).utf8(runtime);
           wgpu::TextureAspect enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.aspect = enumValue;
         }
       }

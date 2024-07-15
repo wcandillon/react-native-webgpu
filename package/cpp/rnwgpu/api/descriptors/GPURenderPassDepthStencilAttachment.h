@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -57,7 +58,7 @@ struct JSIConverter<
         if (depthLoadOp.isString()) {
           auto str = depthLoadOp.asString(runtime).utf8(runtime);
           wgpu::LoadOp enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.depthLoadOp = enumValue;
         }
       }
@@ -67,7 +68,7 @@ struct JSIConverter<
         if (depthStoreOp.isString()) {
           auto str = depthStoreOp.asString(runtime).utf8(runtime);
           wgpu::StoreOp enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.depthStoreOp = enumValue;
         }
       }
@@ -92,7 +93,7 @@ struct JSIConverter<
         if (stencilLoadOp.isString()) {
           auto str = stencilLoadOp.asString(runtime).utf8(runtime);
           wgpu::LoadOp enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.stencilLoadOp = enumValue;
         }
       }
@@ -102,7 +103,7 @@ struct JSIConverter<
         if (stencilStoreOp.isString()) {
           auto str = stencilStoreOp.asString(runtime).utf8(runtime);
           wgpu::StoreOp enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.stencilStoreOp = enumValue;
         }
       }

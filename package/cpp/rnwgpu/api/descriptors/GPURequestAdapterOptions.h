@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -36,7 +37,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
         if (powerPreference.isString()) {
           auto str = powerPreference.asString(runtime).utf8(runtime);
           wgpu::PowerPreference enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.powerPreference = enumValue;
         }
       }

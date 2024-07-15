@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -61,7 +62,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
         if (loadOp.isString()) {
           auto str = loadOp.asString(runtime).utf8(runtime);
           wgpu::LoadOp enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.loadOp = enumValue;
         }
 
@@ -79,7 +80,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
         if (storeOp.isString()) {
           auto str = storeOp.asString(runtime).utf8(runtime);
           wgpu::StoreOp enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.storeOp = enumValue;
         }
 

@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -35,7 +36,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendComponent>> {
         if (operation.isString()) {
           auto str = operation.asString(runtime).utf8(runtime);
           wgpu::BlendOperation enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.operation = enumValue;
         }
       }
@@ -45,7 +46,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendComponent>> {
         if (srcFactor.isString()) {
           auto str = srcFactor.asString(runtime).utf8(runtime);
           wgpu::BlendFactor enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.srcFactor = enumValue;
         }
       }
@@ -55,7 +56,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendComponent>> {
         if (dstFactor.isString()) {
           auto str = dstFactor.asString(runtime).utf8(runtime);
           wgpu::BlendFactor enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.dstFactor = enumValue;
         }
       }

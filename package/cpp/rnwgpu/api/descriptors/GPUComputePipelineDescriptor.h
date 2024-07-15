@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -48,9 +49,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
 
         if (layout.isString()) {
           auto str = layout.asString(runtime).utf8(runtime);
-          wgpu::PUPipelineLayout | GPUAutoLayoutMode enumValue;
-          convertJSUnionToEnum(str, &enumValue);
-          result->_instance.layout = enumValue;
+          if (str == "auto") {
+            result->_instance.layout = nullptr;
+          }
         }
 
         if (layout.isUndefined()) {
@@ -63,6 +64,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->label = str;
+          result->_instance.label = result->label.c_str();
+        }
       }
     }
 

@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -38,7 +39,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
         if (type.isString()) {
           auto str = type.asString(runtime).utf8(runtime);
           wgpu::QueryType enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.type = enumValue;
         }
 
@@ -68,6 +69,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->label = str;
+          result->_instance.label = result->label.c_str();
+        }
       }
     }
 

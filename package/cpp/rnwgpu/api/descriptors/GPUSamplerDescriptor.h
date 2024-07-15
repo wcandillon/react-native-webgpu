@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -37,7 +38,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
         if (addressModeU.isString()) {
           auto str = addressModeU.asString(runtime).utf8(runtime);
           wgpu::AddressMode enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.addressModeU = enumValue;
         }
       }
@@ -47,7 +48,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
         if (addressModeV.isString()) {
           auto str = addressModeV.asString(runtime).utf8(runtime);
           wgpu::AddressMode enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.addressModeV = enumValue;
         }
       }
@@ -57,7 +58,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
         if (addressModeW.isString()) {
           auto str = addressModeW.asString(runtime).utf8(runtime);
           wgpu::AddressMode enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.addressModeW = enumValue;
         }
       }
@@ -67,7 +68,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
         if (magFilter.isString()) {
           auto str = magFilter.asString(runtime).utf8(runtime);
           wgpu::FilterMode enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.magFilter = enumValue;
         }
       }
@@ -77,7 +78,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
         if (minFilter.isString()) {
           auto str = minFilter.asString(runtime).utf8(runtime);
           wgpu::FilterMode enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.minFilter = enumValue;
         }
       }
@@ -87,7 +88,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
         if (mipmapFilter.isString()) {
           auto str = mipmapFilter.asString(runtime).utf8(runtime);
           wgpu::MipmapFilterMode enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.mipmapFilter = enumValue;
         }
       }
@@ -111,7 +112,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
         if (compare.isString()) {
           auto str = compare.asString(runtime).utf8(runtime);
           wgpu::CompareFunction enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.compare = enumValue;
         }
       }
@@ -124,6 +125,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
+
+        if (label.isString()) {
+          auto str = label.asString(runtime).utf8(runtime);
+          result->label = str;
+          result->_instance.label = result->label.c_str();
+        }
       }
     }
 

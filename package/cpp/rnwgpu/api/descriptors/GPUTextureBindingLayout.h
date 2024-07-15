@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -36,7 +37,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureBindingLayout>> {
         if (sampleType.isString()) {
           auto str = sampleType.asString(runtime).utf8(runtime);
           wgpu::TextureSampleType enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.sampleType = enumValue;
         }
       }
@@ -46,7 +47,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureBindingLayout>> {
         if (viewDimension.isString()) {
           auto str = viewDimension.asString(runtime).utf8(runtime);
           wgpu::TextureViewDimension enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.viewDimension = enumValue;
         }
       }

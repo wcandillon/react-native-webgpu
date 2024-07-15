@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -55,6 +56,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
       }
       if (value.hasProperty(runtime, "entryPoint")) {
         auto entryPoint = value.getProperty(runtime, "entryPoint");
+
+        if (entryPoint.isString()) {
+          auto str = entryPoint.asString(runtime).utf8(runtime);
+          result->entryPoint = str;
+        }
       }
       if (value.hasProperty(runtime, "constants")) {
         auto constants = value.getProperty(runtime, "constants");

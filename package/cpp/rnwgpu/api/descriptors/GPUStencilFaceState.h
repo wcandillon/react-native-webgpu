@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -35,7 +36,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
         if (compare.isString()) {
           auto str = compare.asString(runtime).utf8(runtime);
           wgpu::CompareFunction enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.compare = enumValue;
         }
       }
@@ -45,7 +46,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
         if (failOp.isString()) {
           auto str = failOp.asString(runtime).utf8(runtime);
           wgpu::StencilOperation enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.failOp = enumValue;
         }
       }
@@ -55,7 +56,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
         if (depthFailOp.isString()) {
           auto str = depthFailOp.asString(runtime).utf8(runtime);
           wgpu::StencilOperation enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.depthFailOp = enumValue;
         }
       }
@@ -65,7 +66,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
         if (passOp.isString()) {
           auto str = passOp.asString(runtime).utf8(runtime);
           wgpu::StencilOperation enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.passOp = enumValue;
         }
       }

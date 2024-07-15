@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -36,7 +37,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
         if (type.isString()) {
           auto str = type.asString(runtime).utf8(runtime);
           wgpu::SamplerBindingType enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.type = enumValue;
         }
       }

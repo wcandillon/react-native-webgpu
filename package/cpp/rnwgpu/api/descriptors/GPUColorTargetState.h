@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -35,7 +36,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
         if (format.isString()) {
           auto str = format.asString(runtime).utf8(runtime);
           wgpu::TextureFormat enumValue;
-          convertJSUnionToEnum(str, &enumValue);
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
           result->_instance.format = enumValue;
         }
 

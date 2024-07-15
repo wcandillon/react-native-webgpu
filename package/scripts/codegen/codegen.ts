@@ -143,6 +143,7 @@ GPUCommandBufferDescriptor.addExtends("GPUObjectDescriptorBase");
 console.log("===");
 console.log("Descriptors");
 console.log("===");
+const toSkip = ["GPUOrigin2DDictStrict", "GPUExtent3DDictStrict"];
 sourceFile
   .getInterfaces()
   .filter(
@@ -151,6 +152,7 @@ sourceFile
       !decl.getName().endsWith("Mixin") &&
       !decl.getName().endsWith("Error") &&
       !decl.getName().endsWith("Base") &&
+      !toSkip.includes(decl.getName()) &&
       decl.getProperty("__brand") === undefined,
   )
   .forEach((decl) => {

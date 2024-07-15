@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -35,6 +36,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
       if (value.hasProperty(runtime, "entryPoint")) {
         auto entryPoint = value.getProperty(runtime, "entryPoint");
 
+        if (entryPoint.isString()) {
+          auto str = entryPoint.asString(runtime).utf8(runtime);
+          result->entryPoint = str;
+        }
+
         if (entryPoint.isUndefined()) {
           throw std::runtime_error(
               "Property GPUShaderModuleCompilationHint::entryPoint is "
@@ -50,9 +56,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
 
         if (layout.isString()) {
           auto str = layout.asString(runtime).utf8(runtime);
-          wgpu::PUPipelineLayout | GPUAutoLayoutMode enumValue;
-          convertJSUnionToEnum(str, &enumValue);
-          result->_instance.layout = enumValue;
+          if (str == "auto") {
+            result->_instance.layout = nullptr;
+          }
         }
       }
     }
