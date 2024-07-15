@@ -42,7 +42,7 @@ struct JSIConverter<
           auto val =
               m::JSIConverter<std::shared_ptr<rnwgpu::GPUTextureView>>::fromJSI(
                   runtime, view, false);
-          result->_instance.view = val->_instance;
+          result->_instance.view = val->get();
         }
 
         if (view.isUndefined()) {

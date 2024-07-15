@@ -53,4 +53,17 @@ std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(
   return std::make_shared<GPURenderPipeline>(renderPipeline, descriptor->label);
 }
 
+std::shared_ptr<GPUBindGroup>
+GPUDevice::createBindGroup(std::shared_ptr<GPUBindGroupDescriptor> descriptor) {
+  auto bindGroup = _instance.CreateBindGroup(descriptor->getInstance());
+  return std::make_shared<GPUBindGroup>(bindGroup, descriptor->label);
+}
+
+
+std::shared_ptr<GPUSampler>
+GPUDevice::createSampler(std::shared_ptr<GPUSamplerDescriptor> descriptor) {
+  auto sampler = _instance.CreateSampler(descriptor->getInstance());
+  return std::make_shared<GPUSampler>(sampler, descriptor->label);
+}
+
 } // namespace rnwgpu

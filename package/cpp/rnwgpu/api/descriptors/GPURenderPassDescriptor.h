@@ -57,7 +57,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
           auto val = m::JSIConverter<
               std::shared_ptr<rnwgpu::GPURenderPassDepthStencilAttachment>>::
               fromJSI(runtime, depthStencilAttachment, false);
-          result->_instance.depthStencilAttachment = val->_instance;
+          result->_instance.depthStencilAttachment = val->getInstance();
         }
       }
       if (value.hasProperty(runtime, "occlusionQuerySet")) {
@@ -68,27 +68,27 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
           auto val =
               m::JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySet>>::fromJSI(
                   runtime, occlusionQuerySet, false);
-          result->_instance.occlusionQuerySet = val->_instance;
+          result->_instance.occlusionQuerySet = val->get();
         }
       }
-      if (value.hasProperty(runtime, "timestampWrites")) {
-        auto timestampWrites = value.getProperty(runtime, "timestampWrites");
-
-        if (timestampWrites.isObject()) {
-          auto val = m::JSIConverter<std::shared_ptr<
-              rnwgpu::GPURenderPassTimestampWrites>>::fromJSI(runtime,
-                                                              timestampWrites,
-                                                              false);
-          result->_instance.timestampWrites = val->_instance;
-        }
-      }
-      if (value.hasProperty(runtime, "maxDrawCount")) {
-        auto maxDrawCount = value.getProperty(runtime, "maxDrawCount");
-
-        if (maxDrawCount.isNumber()) {
-          result->_instance.maxDrawCount = maxDrawCount.getNumber();
-        }
-      }
+//      if (value.hasProperty(runtime, "timestampWrites")) {
+//        auto timestampWrites = value.getProperty(runtime, "timestampWrites");
+//
+//        if (timestampWrites.isObject()) {
+//          auto val = m::JSIConverter<std::shared_ptr<
+//              rnwgpu::GPURenderPassTimestampWrites>>::fromJSI(runtime,
+//                                                              timestampWrites,
+//                                                              false);
+//          result->_instance.timestampWrites = val->_instance;
+//        }
+//      }
+//      if (value.hasProperty(runtime, "maxDrawCount")) {
+//        auto maxDrawCount = value.getProperty(runtime, "maxDrawCount");
+//
+//        if (maxDrawCount.isNumber()) {
+//          result->_instance.maxDrawCount = maxDrawCount.getNumber();
+//        }
+//      }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");
 
