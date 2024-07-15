@@ -4,6 +4,12 @@ import type { Server, WebSocket } from "ws";
 import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer";
 
+import { cubeVertexArray } from "../../example/src/components/cube";
+import {
+  redFragWGSL,
+  triangleVertWGSL,
+} from "../../example/src/components/triangle";
+
 import { DEBUG, REFERENCE } from "./config";
 
 jest.setTimeout(180 * 1000);
@@ -36,6 +42,8 @@ export interface EvalContext {
   GPUShaderStage: typeof GPUShaderStage;
   GPUTextureUsage: typeof GPUTextureUsage;
   cubeVertexArray: Float32Array;
+  triangleVertWGSL: string;
+  redFragWGSL: string;
 }
 
 interface TestingClient {
@@ -114,7 +122,9 @@ class ReferenceTestingClient implements TestingClient {
         GPUMapMode,
         GPUShaderStage,
         GPUTextureUsage,
-        cubeVertexArray
+        cubeVertexArray,
+        triangleVertWGSL,
+        redFragWGSL
       });
     })();`;
     const data = await this.page.evaluate(source);
@@ -152,50 +162,10 @@ class ReferenceTestingClient implements TestingClient {
     throw new Error("No adapter");
   }
   window.device = await adapter.requestDevice();
-  window.cubeVertexArray = new Float32Array([
-  // float4 position, float4 color, float2 uv,
-  1, -1, 1, 1,   1, 0, 1, 1,  0, 1,
-  -1, -1, 1, 1,  0, 0, 1, 1,  1, 1,
-  -1, -1, -1, 1, 0, 0, 0, 1,  1, 0,
-  1, -1, -1, 1,  1, 0, 0, 1,  0, 0,
-  1, -1, 1, 1,   1, 0, 1, 1,  0, 1,
-  -1, -1, -1, 1, 0, 0, 0, 1,  1, 0,
+  window.cubeVertexArray = new Float32Array(${JSON.stringify(Array.from(cubeVertexArray))});
+  window.triangleVertWGSL = \`${triangleVertWGSL}\`;
+  window.redFragWGSL = \`${redFragWGSL}\`;
 
-  1, 1, 1, 1,    1, 1, 1, 1,  0, 1,
-  1, -1, 1, 1,   1, 0, 1, 1,  1, 1,
-  1, -1, -1, 1,  1, 0, 0, 1,  1, 0,
-  1, 1, -1, 1,   1, 1, 0, 1,  0, 0,
-  1, 1, 1, 1,    1, 1, 1, 1,  0, 1,
-  1, -1, -1, 1,  1, 0, 0, 1,  1, 0,
-
-  -1, 1, 1, 1,   0, 1, 1, 1,  0, 1,
-  1, 1, 1, 1,    1, 1, 1, 1,  1, 1,
-  1, 1, -1, 1,   1, 1, 0, 1,  1, 0,
-  -1, 1, -1, 1,  0, 1, 0, 1,  0, 0,
-  -1, 1, 1, 1,   0, 1, 1, 1,  0, 1,
-  1, 1, -1, 1,   1, 1, 0, 1,  1, 0,
-
-  -1, -1, 1, 1,  0, 0, 1, 1,  0, 1,
-  -1, 1, 1, 1,   0, 1, 1, 1,  1, 1,
-  -1, 1, -1, 1,  0, 1, 0, 1,  1, 0,
-  -1, -1, -1, 1, 0, 0, 0, 1,  0, 0,
-  -1, -1, 1, 1,  0, 0, 1, 1,  0, 1,
-  -1, 1, -1, 1,  0, 1, 0, 1,  1, 0,
-
-  1, 1, 1, 1,    1, 1, 1, 1,  0, 1,
-  -1, 1, 1, 1,   0, 1, 1, 1,  1, 1,
-  -1, -1, 1, 1,  0, 0, 1, 1,  1, 0,
-  -1, -1, 1, 1,  0, 0, 1, 1,  1, 0,
-  1, -1, 1, 1,   1, 0, 1, 1,  0, 0,
-  1, 1, 1, 1,    1, 1, 1, 1,  0, 1,
-
-  1, -1, -1, 1,  1, 0, 0, 1,  0, 1,
-  -1, -1, -1, 1, 0, 0, 0, 1,  1, 1,
-  -1, 1, -1, 1,  0, 1, 0, 1,  1, 0,
-  1, 1, -1, 1,   1, 1, 0, 1,  0, 0,
-  1, -1, -1, 1,  1, 0, 0, 1,  0, 1,
-  -1, 1, -1, 1,  0, 1, 0, 1,  1, 0,
-]);
 })();
       `,
     );

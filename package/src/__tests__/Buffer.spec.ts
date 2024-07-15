@@ -233,7 +233,6 @@ describe("Buffer", () => {
         return writeBuffer.mapAsync(GPUMapMode.WRITE).then(() => {
           const writeData = new Float32Array(writeBuffer.getMappedRange());
           writeData.set([5.0, 6.0, 7.0, 8.0]);
-          console.log("Data written to buffer:", writeData);
           writeBuffer.unmap();
           // // Copy data from write buffer to source buffer
           const encoder2 = device.createCommandEncoder();
