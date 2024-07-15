@@ -19,6 +19,8 @@
 #include "GPUCommandEncoder.h"
 #include "GPUCommandEncoderDescriptor.h"
 #include "GPUQueue.h"
+#include "GPURenderPipeline.h"
+#include "GPURenderPipelineDescriptor.h"
 #include "GPUShaderModule.h"
 #include "GPUShaderModuleDescriptor.h"
 
@@ -40,6 +42,8 @@ public:
   createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor);
   std::shared_ptr<GPUShaderModule>
   createShaderModule(std::shared_ptr<GPUShaderModuleDescriptor> descriptor);
+  std::shared_ptr<GPURenderPipeline>
+  createRenderPipeline(std::shared_ptr<GPURenderPipelineDescriptor> descriptor);
   std::shared_ptr<GPUCommandEncoder>
   createCommandEncoder(std::shared_ptr<GPUCommandEncoderDescriptor> descriptor);
 
@@ -52,6 +56,8 @@ public:
     registerHybridMethod("createBuffer", &GPUDevice::createBuffer, this);
     registerHybridMethod("createShaderModule", &GPUDevice::createShaderModule,
                          this);
+    registerHybridMethod("createRenderPipeline",
+                         &GPUDevice::createRenderPipeline, this);
     registerHybridMethod("createCommandEncoder",
                          &GPUDevice::createCommandEncoder, this);
     registerHybridGetter("queue", &GPUDevice::getQueue, this);

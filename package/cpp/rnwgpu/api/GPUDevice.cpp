@@ -29,17 +29,20 @@ std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
   sm_desc.label = descriptor->_instance.label;
   sm_desc.nextInChain = &wgsl_desc;
   if (descriptor->code.find('\0') != std::string::npos) {
-    // return interop::GPUShaderModule::Create<GPUShaderModule>(
-    //     env, sm_desc,
-    //     device_.CreateErrorShaderModule(&sm_desc,
-    //                                     "The WGSL shader contains an illegal
-    //                                     character '\\0'"),
-    //     async_);
-    throw std::runtime_error(
-        "The WGSL shader contains an illegal character '\\0'");
+    return std::make_shared<GPUShaderModule>(
+        _instance.CreateErrorShaderModule(
+            &sm_desc, "The WGSL shader contains an illegal character '\\0'"),
+        _async, descriptor->label);
   }
   auto module = _instance.CreateShaderModule(&sm_desc);
   return std::make_shared<GPUShaderModule>(module, _async, descriptor->label);
+}
+
+std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(
+    std::shared_ptr<GPURenderPipelineDescriptor> descriptor) {
+  auto renderPipeline =
+      _instance.CreateRenderPipeline(descriptor->getInstance());
+  return std::make_shared<GPURenderPipeline>(renderPipeline, descriptor->label);
 }
 
 } // namespace rnwgpu
