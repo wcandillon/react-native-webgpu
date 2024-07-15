@@ -14,6 +14,8 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "GPUBindGroup.h"
+#include "GPUBindGroupDescriptor.h"
 #include "GPUBuffer.h"
 #include "GPUBufferDescriptor.h"
 #include "GPUCommandEncoder.h"
@@ -21,6 +23,8 @@
 #include "GPUQueue.h"
 #include "GPURenderPipeline.h"
 #include "GPURenderPipelineDescriptor.h"
+#include "GPUSampler.h"
+#include "GPUSamplerDescriptor.h"
 #include "GPUShaderModule.h"
 #include "GPUShaderModuleDescriptor.h"
 #include "GPUTexture.h"
@@ -45,6 +49,10 @@ public:
   createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor);
   std::shared_ptr<GPUTexture>
   createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor);
+  std::shared_ptr<GPUSampler>
+  createSampler(std::shared_ptr<GPUSamplerDescriptor> descriptor);
+  std::shared_ptr<GPUBindGroup>
+  createBindGroup(std::shared_ptr<GPUBindGroupDescriptor> descriptor);
   std::shared_ptr<GPUShaderModule>
   createShaderModule(std::shared_ptr<GPUShaderModuleDescriptor> descriptor);
   std::shared_ptr<GPURenderPipeline>
@@ -61,6 +69,8 @@ public:
     registerHybridMethod("destroy", &GPUDevice::destroy, this);
     registerHybridMethod("createBuffer", &GPUDevice::createBuffer, this);
     registerHybridMethod("createTexture", &GPUDevice::createTexture, this);
+    registerHybridMethod("createSampler", &GPUDevice::createSampler, this);
+    registerHybridMethod("createBindGroup", &GPUDevice::createBindGroup, this);
     registerHybridMethod("createShaderModule", &GPUDevice::createShaderModule,
                          this);
     registerHybridMethod("createRenderPipeline",

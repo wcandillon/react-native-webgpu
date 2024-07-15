@@ -33,6 +33,7 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/rnwgpu/api/GPUCommandEncoder.cpp
     ../cpp/rnwgpu/api/GPUQuerySet.cpp
     ../cpp/rnwgpu/api/GPUTexture.cpp
+    ../cpp/rnwgpu/api/GPURenderBundleEncoder.cpp
     ../cpp/rnwgpu/RNWebGPUManager.cpp
     ../cpp/jsi/RNFPromise.cpp
     ../cpp/jsi/RNFHybridObject.cpp

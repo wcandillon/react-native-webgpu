@@ -14,6 +14,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "GPUTextureView.h"
+#include "GPUTextureViewDescriptor.h"
+
 namespace rnwgpu {
 
 namespace m = margelo;
@@ -26,6 +29,8 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  std::shared_ptr<GPUTextureView>
+  createView(std::shared_ptr<GPUTextureViewDescriptor> descriptor);
   void destroy();
 
   uint32_t getWidth();
@@ -41,6 +46,7 @@ public:
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUTexture::getBrand, this);
+    registerHybridMethod("createView", &GPUTexture::createView, this);
     registerHybridMethod("destroy", &GPUTexture::destroy, this);
     registerHybridGetter("width", &GPUTexture::getWidth, this);
     registerHybridGetter("height", &GPUTexture::getHeight, this);

@@ -14,6 +14,8 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "GPURenderPipeline.h"
+
 namespace rnwgpu {
 
 namespace m = margelo;
@@ -28,10 +30,19 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  void end();
+  void setPipeline(std::shared_ptr<GPURenderPipeline> pipeline);
+  void draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex,
+            uint32_t firstInstance);
+
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPURenderPassEncoder::getBrand, this);
+    registerHybridMethod("end", &GPURenderPassEncoder::end, this);
+    registerHybridMethod("setPipeline", &GPURenderPassEncoder::setPipeline,
+                         this);
+    registerHybridMethod("draw", &GPURenderPassEncoder::draw, this);
 
     registerHybridGetter("label", &GPURenderPassEncoder::getLabel, this);
   }

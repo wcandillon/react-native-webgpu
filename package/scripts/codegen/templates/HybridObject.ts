@@ -33,6 +33,9 @@ const methodWhiteList = [
   "createRenderPipeline",
   "destroy",
   "createTexture",
+  "createSampler",
+  "createView",
+  "createBindGroup",
   // Buffer
   "unmap",
   "getMappedRange",
@@ -40,6 +43,10 @@ const methodWhiteList = [
   // CommandEncoder,
   "copyBufferToBuffer",
   "finish",
+  "beginRenderPass",
+  "setPipeline",
+  "draw",
+  "end",
 ];
 
 const propWhiteList: Record<string, string[]> = {

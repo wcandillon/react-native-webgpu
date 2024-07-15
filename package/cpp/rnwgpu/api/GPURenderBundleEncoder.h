@@ -16,6 +16,7 @@
 
 #include "GPURenderBundle.h"
 #include "GPURenderBundleDescriptor.h"
+#include "GPURenderPipeline.h"
 
 namespace rnwgpu {
 
@@ -33,12 +34,18 @@ public:
 
   std::shared_ptr<GPURenderBundle>
   finish(std::shared_ptr<GPURenderBundleDescriptor> descriptor);
+  void setPipeline(std::shared_ptr<GPURenderPipeline> pipeline);
+  void draw(uint32_t vertexCount, std::optional<uint32_t> instanceCount, std::optional<uint32_t> firstVertex,
+          std::optional<uint32_t> firstInstance);
 
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPURenderBundleEncoder::getBrand, this);
     registerHybridMethod("finish", &GPURenderBundleEncoder::finish, this);
+    registerHybridMethod("setPipeline", &GPURenderBundleEncoder::setPipeline,
+                         this);
+    registerHybridMethod("draw", &GPURenderBundleEncoder::draw, this);
 
     registerHybridGetter("label", &GPURenderBundleEncoder::getLabel, this);
   }

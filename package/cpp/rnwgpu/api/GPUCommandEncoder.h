@@ -17,6 +17,8 @@
 #include "GPUBuffer.h"
 #include "GPUCommandBuffer.h"
 #include "GPUCommandBufferDescriptor.h"
+#include "GPURenderPassDescriptor.h"
+#include "GPURenderPassEncoder.h"
 
 namespace rnwgpu {
 
@@ -30,6 +32,8 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  std::shared_ptr<GPURenderPassEncoder>
+  beginRenderPass(std::shared_ptr<GPURenderPassDescriptor> descriptor);
   void copyBufferToBuffer(std::shared_ptr<GPUBuffer> source,
                           uint64_t sourceOffset,
                           std::shared_ptr<GPUBuffer> destination,
@@ -41,6 +45,8 @@ public:
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUCommandEncoder::getBrand, this);
+    registerHybridMethod("beginRenderPass", &GPUCommandEncoder::beginRenderPass,
+                         this);
     registerHybridMethod("copyBufferToBuffer",
                          &GPUCommandEncoder::copyBufferToBuffer, this);
     registerHybridMethod("finish", &GPUCommandEncoder::finish, this);
