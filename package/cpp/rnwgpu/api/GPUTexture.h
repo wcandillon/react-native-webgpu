@@ -30,14 +30,14 @@ public:
 
   void destroy();
 
-  uint32_t getWidth();
-  uint32_t getHeight();
-  uint32_t getDepthOrArrayLayers();
-  uint32_t getMipLevelCount();
-  uint32_t getSampleCount();
+  double getWidth();
+  double getHeight();
+  double getDepthOrArrayLayers();
+  double getMipLevelCount();
+  double getSampleCount();
   wgpu::TextureDimension getDimension();
   wgpu::TextureFormat getFormat();
-  wgpu::TextureUsage getUsage();
+  double getUsage();
 
   std::string getLabel() { return _label; }
 
