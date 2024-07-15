@@ -45,6 +45,9 @@ const resolveRequiredType = (
   if (type.category === "enum") {
     return toNativeName(name);
   }
+  if (type.category === "bitmask") {
+    return "uint32_t";
+  }
   return toNativeName(name, dependencies);
 };
 

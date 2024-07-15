@@ -14,8 +14,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "GPUTextureUsage.h"
-
 namespace rnwgpu {
 
 namespace m = margelo;
