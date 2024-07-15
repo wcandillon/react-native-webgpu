@@ -35,6 +35,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::ArrayBuffer>> {
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBound) {
     if (arg.isObject()) {
       auto obj = arg.getObject(runtime);
+      if (obj.isArrayBuffer(runtime)) {
+        auto arrayBuffer = obj.getArrayBuffer(runtime);
+        auto length = arrayBuffer.length(runtime);
+        auto size = arrayBuffer.size(runtime);
+        auto bytesPerElement = size / length;
+        return std::make_shared<rnwgpu::ArrayBuffer>(
+            arrayBuffer.data(runtime), size, bytesPerElement);
+      }
       if (obj.hasProperty(runtime, "buffer")) {
         auto bufferProp = obj.getProperty(runtime, "buffer");
         if (bufferProp.isObject() &&

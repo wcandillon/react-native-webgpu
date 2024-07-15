@@ -113,31 +113,31 @@ describe("Buffer", () => {
     });
     expect(result).toEqual([1, 2, 3, 4]);
   });
-  // it("read/write buffer (1)", async () => {
-  //   const result = await client.eval(({ device }) => {
-  //     const data = new Uint32Array([1.0, 2.0, 3.0, 4.0]);
-  //     // Create a GPU buffer and store data
-  //     const gpuBuffer = device.createBuffer({
-  //       size: data.byteLength,
-  //       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-  //       mappedAtCreation: false,
-  //     });
+  it("read/write buffer (2)", async () => {
+    const result = await client.eval(({ device }) => {
+      const data = new Uint32Array([1.0, 2.0, 3.0, 4.0]);
+      // Create a GPU buffer and store data
+      const gpuBuffer = device.createBuffer({
+        size: data.byteLength,
+        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+        mappedAtCreation: false,
+      });
 
-  //     // Copy data to the GPU buffer
-  //     device.queue.writeBuffer(gpuBuffer, 0, data.buffer, 0, data.byteLength);
+      // Copy data to the GPU buffer
+      device.queue.writeBuffer(gpuBuffer, 0, data.buffer, 0, data.byteLength);
 
-  //     return gpuBuffer
-  //       .mapAsync(GPUMapMode.READ, 0, data.byteLength)
-  //       .then(() => {
-  //         const arrayBuffer = gpuBuffer.getMappedRange(0, data.byteLength);
-  //         const readData = new Float32Array(arrayBuffer);
-  //         const r = Array.from(readData);
-  //         gpuBuffer.unmap();
-  //         return r;
-  //       });
-  //   });
-  //   expect(result).toEqual([1, 2, 3, 4]);
-  // });
+      return gpuBuffer
+        .mapAsync(GPUMapMode.READ, 0, data.byteLength)
+        .then(() => {
+          const arrayBuffer = gpuBuffer.getMappedRange(0, data.byteLength);
+          const readData = new Uint32Array(arrayBuffer);
+          const r = Array.from(readData);
+          gpuBuffer.unmap();
+          return r;
+        });
+    });
+    expect(result).toEqual([1, 2, 3, 4]);
+  });
   it("writes into a buffer (2)", async () => {
     const result = await client.eval(({ device }) => {
       const bufferSize = 4 * 4; // 4 32-bit floats
