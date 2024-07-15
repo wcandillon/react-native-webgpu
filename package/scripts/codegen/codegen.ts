@@ -160,7 +160,13 @@ GPURenderBundleDescriptor.addExtends("GPUObjectDescriptorBase");
 console.log("===");
 console.log("Descriptors");
 console.log("===");
-const toSkip = ["GPUOrigin2DDictStrict", "GPUExtent3DDictStrict"];
+const toSkip = [
+  "GPUOrigin2DDictStrict",
+  "GPUExtent3DDictStrict",
+  "GPUExtent3DDict",
+  "GPUOrigin2DDict",
+  "GPUOrigin3DDict",
+];
 sourceFile
   .getInterfaces()
   .filter(
