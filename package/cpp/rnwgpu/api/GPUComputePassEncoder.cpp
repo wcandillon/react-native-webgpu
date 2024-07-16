@@ -21,4 +21,11 @@ void GPUComputePassEncoder::setBindGroup(
   }
 }
 
+void GPUComputePassEncoder::dispatchWorkgroups(
+    uint32_t workgroupCountX, std::optional<uint32_t> workgroupCountY,
+    std::optional<uint32_t> workgroupCountZ) {
+  _instance.DispatchWorkgroups(workgroupCountX, workgroupCountY.value_or(1),
+                               workgroupCountZ.value_or(1));
+}
+
 } // namespace rnwgpu
