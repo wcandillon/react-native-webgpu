@@ -1,7 +1,7 @@
 import { client } from "./setup";
 
 describe("Triangle", () => {
-  it("creates a shader module", async () => {
+  it("creates a shader module (1)", async () => {
     const result = await client.eval(({ device, triangleVertWGSL }) => {
       const mod = device.createShaderModule({
         code: triangleVertWGSL,
@@ -10,6 +10,16 @@ describe("Triangle", () => {
       return mod.label;
     });
     expect(result).toBe("triangleVertWGSL");
+  });
+  it("creates a shader module (2)", async () => {
+    const result = await client.eval(({ device, redFragWGSL }) => {
+      const mod = device.createShaderModule({
+        code: redFragWGSL,
+        label: "redFragWGSL",
+      });
+      return mod.label;
+    });
+    expect(result).toBe("redFragWGSL");
   });
   it("create the pipeline", async () => {
     const result = await client.eval(

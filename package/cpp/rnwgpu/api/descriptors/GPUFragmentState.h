@@ -9,6 +9,7 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUColorTargetState.h"
 #include "GPUShaderModule.h"
 
 namespace jsi = facebook::jsi;
@@ -23,6 +24,7 @@ public:
   wgpu::FragmentState _instance;
 
   std::string entryPoint;
+  std::vector<wgpu::ColorTargetState> targets;
 };
 } // namespace rnwgpu
 
@@ -37,7 +39,22 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
       if (value.hasProperty(runtime, "targets")) {
         auto targets = value.getProperty(runtime, "targets");
 
-        if (targets.isUndefined()) {
+        if (targets.isObject() && targets.asObject(runtime).isArray(runtime)) {
+          auto targetArray = targets.asObject(runtime).asArray(runtime);
+          size_t targetCount = targetArray.size(runtime);
+          result->targets.reserve(targetCount);
+
+          for (size_t i = 0; i < targetCount; i++) {
+            auto entry = targetArray.getValueAtIndex(runtime, i);
+            auto colorTargetState = JSIConverter<
+                std::shared_ptr<rnwgpu::GPUColorTargetState>>::fromJSI(runtime,
+                                                                    entry,
+                                                                    false);
+            result->targets.push_back(colorTargetState->_instance);
+          }
+          result->_instance.targetCount = static_cast<uint32_t>(targetCount);
+          result->_instance.targets = result->targets.data();
+        } else if (targets.isUndefined()) {
           throw std::runtime_error(
               "Property GPUFragmentState::targets is required");
         }
@@ -76,7 +93,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
         auto constants = value.getProperty(runtime, "constants");
       }
     }
-
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,

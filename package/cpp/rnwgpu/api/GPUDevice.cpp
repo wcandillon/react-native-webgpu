@@ -48,8 +48,7 @@ std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
 
 std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(
     std::shared_ptr<GPURenderPipelineDescriptor> descriptor) {
-  auto renderPipeline =
-      _instance.CreateRenderPipeline(descriptor->getInstance());
+  auto renderPipeline = _instance.CreateRenderPipeline(descriptor->getInstance());
   return std::make_shared<GPURenderPipeline>(renderPipeline, descriptor->label);
 }
 

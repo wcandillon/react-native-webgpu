@@ -57,7 +57,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
           auto val =
               m::JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>>::fromJSI(
                   runtime, blend, false);
-          result->_instance.blend = val->_instance;
+          result->_instance.blend = val->getInstance();
         }
       }
       if (value.hasProperty(runtime, "writeMask")) {
@@ -65,7 +65,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
 
         if (writeMask.isNumber()) {
           result->_instance.writeMask =
-              static_cast<wgpu::ColorWriteFlags>(writeMask.getNumber());
+              static_cast<wgpu::ColorWriteMask>(writeMask.getNumber());
         }
       }
     }
