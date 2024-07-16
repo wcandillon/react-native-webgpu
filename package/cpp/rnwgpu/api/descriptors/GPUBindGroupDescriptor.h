@@ -9,6 +9,7 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUBindGroupEntry.h"
 #include "GPUBindGroupLayout.h"
 
 namespace jsi = facebook::jsi;
@@ -23,6 +24,7 @@ public:
   wgpu::BindGroupDescriptor _instance;
 
   std::string label;
+  std::vector<wgpu::BindGroupEntry> entries;
 };
 } // namespace rnwgpu
 
@@ -57,7 +59,22 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
       if (value.hasProperty(runtime, "entries")) {
         auto entries = value.getProperty(runtime, "entries");
 
-        if (entries.isUndefined()) {
+        if (entries.isObject() && entries.asObject(runtime).isArray(runtime)) {
+          auto entriesArray = entries.asObject(runtime).asArray(runtime);
+          size_t entriesCount = entriesArray.size(runtime);
+          result->entries.reserve(entriesCount);
+
+          for (size_t i = 0; i < entriesCount; i++) {
+            auto entry = entriesArray.getValueAtIndex(runtime, i);
+            auto bindGroupEntry = JSIConverter<
+                std::shared_ptr<rnwgpu::GPUBindGroupEntry>>::fromJSI(runtime,
+                                                                     entry,
+                                                                     false);
+            result->entries.push_back(bindGroupEntry->_instance);
+          }
+          result->_instance.entryCount = static_cast<uint32_t>(entriesCount);
+          result->_instance.entries = result->entries.data();
+        } else if (entries.isUndefined()) {
           throw std::runtime_error(
               "Property GPUBindGroupDescriptor::entries is required");
         }

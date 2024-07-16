@@ -15,6 +15,7 @@ const enumMap2: Record<string, string> = {
   GPUSampleMask: "uint32_t",
   GPUSize32: "uint32_t",
   GPUIntegerCoordinate: "uint32_t",
+  GPUIndex32: "uint32_t",
 };
 
 const getEnumName = (name: string) => {

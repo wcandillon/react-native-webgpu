@@ -168,6 +168,7 @@ const toSkip = [
   "GPUOrigin3DDict",
   // TODO: we could remove this one potentially
   "GPUImageCopyBuffer",
+  "GPUBindGroupDescriptor",
 ];
 sourceFile
   .getInterfaces()
