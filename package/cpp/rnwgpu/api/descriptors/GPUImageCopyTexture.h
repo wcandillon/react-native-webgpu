@@ -9,8 +9,8 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
-#include "GPUTexture.h"
 #include "GPUOrigin3D.h"
+#include "GPUTexture.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
