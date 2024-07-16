@@ -166,6 +166,8 @@ const toSkip = [
   "GPUExtent3DDict",
   "GPUOrigin2DDict",
   "GPUOrigin3DDict",
+  // TODO: we could remove this one potentially
+  "GPUImageCopyBuffer",
 ];
 sourceFile
   .getInterfaces()
