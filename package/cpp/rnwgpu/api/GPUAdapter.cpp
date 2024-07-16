@@ -48,7 +48,8 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
           default:
             errorType = "Unknown";
           }
-          Logger::errorToJavascriptConsole(*creationRuntime, message);
+          std::string fullMessage = std::string(errorType) + ": " + message;
+          Logger::errorToJavascriptConsole(*creationRuntime, fullMessage.c_str());
         }};
     aDescriptor->uncapturedErrorCallbackInfo = errorInfo;
     _instance.RequestDevice(
