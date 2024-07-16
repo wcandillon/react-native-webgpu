@@ -33,4 +33,11 @@ void GPUCommandEncoder::copyTextureToBuffer(
   _instance.CopyTextureToBuffer(src, dst, size);
 }
 
+std::shared_ptr<GPUComputePassEncoder> GPUCommandEncoder::beginComputePass(
+    std::shared_ptr<GPUComputePassDescriptor> descriptor) {
+  auto computePass = _instance.BeginComputePass(&descriptor->_instance);
+  return std::make_shared<GPUComputePassEncoder>(computePass,
+                                                 descriptor->label);
+}
+
 } // namespace rnwgpu

@@ -18,9 +18,9 @@ namespace rnwgpu {
 
 class GPUProgrammableStage {
 public:
-  wgpu::ProgrammableStage *getInstance() { return &_instance; }
+  wgpu::ProgrammableStageDescriptor *getInstance() { return &_instance; }
 
-  wgpu::ProgrammableStage _instance;
+  wgpu::ProgrammableStageDescriptor _instance;
 
   std::string entryPoint;
 };

@@ -20,6 +20,8 @@
 #include "GPUBufferDescriptor.h"
 #include "GPUCommandEncoder.h"
 #include "GPUCommandEncoderDescriptor.h"
+#include "GPUComputePipeline.h"
+#include "GPUComputePipelineDescriptor.h"
 #include "GPUQueue.h"
 #include "GPURenderPipeline.h"
 #include "GPURenderPipelineDescriptor.h"
@@ -55,6 +57,8 @@ public:
   createBindGroup(std::shared_ptr<GPUBindGroupDescriptor> descriptor);
   std::shared_ptr<GPUShaderModule>
   createShaderModule(std::shared_ptr<GPUShaderModuleDescriptor> descriptor);
+  std::shared_ptr<GPUComputePipeline> createComputePipeline(
+      std::shared_ptr<GPUComputePipelineDescriptor> descriptor);
   std::shared_ptr<GPURenderPipeline>
   createRenderPipeline(std::shared_ptr<GPURenderPipelineDescriptor> descriptor);
   std::shared_ptr<GPUCommandEncoder>
@@ -73,6 +77,8 @@ public:
     registerHybridMethod("createBindGroup", &GPUDevice::createBindGroup, this);
     registerHybridMethod("createShaderModule", &GPUDevice::createShaderModule,
                          this);
+    registerHybridMethod("createComputePipeline",
+                         &GPUDevice::createComputePipeline, this);
     registerHybridMethod("createRenderPipeline",
                          &GPUDevice::createRenderPipeline, this);
     registerHybridMethod("createCommandEncoder",

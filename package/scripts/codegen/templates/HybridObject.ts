@@ -50,6 +50,9 @@ const methodWhiteList = [
   "getBindGroupLayout",
   "setBindGroup",
   "copyTextureToBuffer",
+  "createComputePipeline",
+  "beginComputePass",
+  "dispatchWorkgroups",
 ];
 
 const propWhiteList: Record<string, string[]> = {

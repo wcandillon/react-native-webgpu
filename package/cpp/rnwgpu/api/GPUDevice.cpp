@@ -65,4 +65,12 @@ GPUDevice::createSampler(std::shared_ptr<GPUSamplerDescriptor> descriptor) {
   return std::make_shared<GPUSampler>(sampler, descriptor->label);
 }
 
+std::shared_ptr<GPUComputePipeline> GPUDevice::createComputePipeline(
+    std::shared_ptr<GPUComputePipelineDescriptor> descriptor) {
+  auto computePipeline =
+      _instance.CreateComputePipeline(descriptor->getInstance());
+  return std::make_shared<GPUComputePipeline>(computePipeline,
+                                              descriptor->label);
+}
+
 } // namespace rnwgpu

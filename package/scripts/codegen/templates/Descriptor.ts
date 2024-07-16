@@ -59,6 +59,7 @@ const isDescriptorPtr: Record<string, true> = {
   GPUBindGroupLayout: true,
   GPURenderPassDepthStencilAttachment: true,
   GPURenderPassTimestampWrites: true,
+  GPUComputePassTimestampWrites: true,
 };
 
 export const descriptorToSkip = [
@@ -203,6 +204,10 @@ const propFromJSI = (
   }`;
 };
 
+const wgpuNameMapping: Record<string, string> = {
+  GPUProgrammableStage: "wgpu::ProgrammableStageDescriptor",
+};
+
 export const getDescriptor = (
   decl: InterfaceDeclaration,
   unions: Union[],
@@ -211,7 +216,9 @@ export const getDescriptor = (
   mergeParentInterfaces(decl);
   const dependencies: string[] = [];
   const name = decl.getName();
-  const wgpuName = `wgpu::${name.substring(3)}`;
+  const wgpuName = wgpuNameMapping[name]
+    ? wgpuNameMapping[name]
+    : `wgpu::${name.substring(3)}`;
   const propsToHold = decl
     .getProperties()
     .filter((prop) => {
@@ -231,7 +238,7 @@ export const getDescriptor = (
     .map((prop) => {
       return propFromJSI(name, prop, unions, hybridObjects, dependencies);
     });
-  //decl.getType(
+  // TODO: remove getInstance()
   return `#pragma once
 
 #include <memory>
