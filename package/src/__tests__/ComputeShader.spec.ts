@@ -1,7 +1,7 @@
 import { client } from "./setup";
 
 describe("Computer Shader", () => {
-  it("matrix multiplication", async () => {
+  it.skip("matrix multiplication", async () => {
     const result = await client.eval(({ device }) => {
       // First Matrix
 

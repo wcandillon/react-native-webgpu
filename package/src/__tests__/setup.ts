@@ -37,7 +37,7 @@ afterAll(async () => {
   await client.dispose();
 });
 
-export interface EvalContext {
+interface GPUContext {
   gpu: GPU;
   adapter: GPUAdapter;
   device: GPUDevice;
@@ -51,11 +51,10 @@ export interface EvalContext {
   redFragWGSL: string;
 }
 
+type Ctx = Record<string, unknown>;
+
 interface TestingClient {
-  eval<Ctx extends EvalContext = EvalContext, R = any>(
-    fn: (ctx: Ctx) => R,
-    ctx?: Ctx,
-  ): Promise<R>;
+  eval<C = Ctx, R = any>(fn: (ctx: GPUContext & C) => R, ctx?: C): Promise<R>;
   OS: TestOS;
   arch: "paper" | "fabric";
   init(): Promise<void>;
@@ -66,10 +65,7 @@ class RemoteTestingClient implements TestingClient {
   readonly OS = global.testOS;
   readonly arch = global.testArch;
 
-  eval<Ctx extends EvalContext, R>(
-    fn: (ctx: Ctx) => any,
-    context?: Ctx,
-  ): Promise<R> {
+  eval<C = Ctx, R>(fn: (ctx: GPUContext & C) => R, context?: C): Promise<R> {
     const ctx = this.prepareContext(context);
     const body = { code: fn.toString(), ctx };
     return this.handleResponse<R>(JSON.stringify(body));
@@ -91,7 +87,7 @@ class RemoteTestingClient implements TestingClient {
     return global.testClient!;
   }
 
-  private prepareContext<Ctx extends EvalContext>(context?: Ctx): EvalContext {
+  private prepareContext<C extends Ctx>(context?: C): C {
     const ctx: any = {};
     if (context) {
       for (const [key, value] of Object.entries(context)) {
@@ -111,9 +107,9 @@ class ReferenceTestingClient implements TestingClient {
   private browser: Browser | null = null;
   private page: Page | null = null;
 
-  async eval<Ctx extends EvalContext = EvalContext, R = any>(
-    fn: (ctx: Ctx) => R,
-    _ctx?: Ctx,
+  async eval<C = Ctx, R = any>(
+    fn: (ctx: GPUContext & C) => R,
+    ctx?: C,
   ): Promise<R> {
     if (!this.page) {
       throw new Error("RemoteSurface not initialized");
@@ -129,7 +125,8 @@ class ReferenceTestingClient implements TestingClient {
         GPUTextureUsage,
         cubeVertexArray,
         triangleVertWGSL,
-        redFragWGSL
+        redFragWGSL,
+        ...${JSON.stringify(ctx || {})}
       });
     })();`;
     const data = await this.page.evaluate(source);

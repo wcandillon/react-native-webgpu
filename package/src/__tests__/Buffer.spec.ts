@@ -281,6 +281,24 @@ describe("Buffer", () => {
     const png = encodeImage(new Uint8Array(data), 256, 256);
     checkImage(png, "snapshots/buffer.png");
   });
+  it("Builds the reference result (2)", async () => {
+    const data = new Uint8Array(256 * 256 * 4);
+    data.fill(255);
+    let i = 0;
+    for (let x = 0; x < 256 * 4; x++) {
+      for (let y = 0; y < 256 * 4; y++) {
+        data[i++] = (x * y) % 255;
+      }
+    }
+    const result = await client.eval(
+      ({ pixels }) => {
+        return Array.from(pixels);
+      },
+      { pixels: Array.from(data) },
+    );
+    const png = encodeImage(new Uint8Array(result), 256, 256);
+    checkImage(png, "snapshots/buffer.png");
+  });
   it("writes an image into a buffer and reads it back", async () => {
     const imageData = await client.eval(({ device }) => {
       const data = new Uint8Array(256 * 256 * 4);
