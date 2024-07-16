@@ -27,6 +27,7 @@ public:
   wgpu::RenderPipelineDescriptor _instance;
 
   std::string label;
+  std::shared_ptr<rnwgpu::GPUFragmentState> fragmentState;
 };
 } // namespace rnwgpu
 
@@ -96,6 +97,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
               std::shared_ptr<rnwgpu::GPUFragmentState>>::fromJSI(runtime,
                                                                   fragment,
                                                                   false);
+          result->fragmentState = val;
           result->_instance.fragment = val->getInstance();
         }
       }
@@ -106,9 +108,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
           auto str = layout.asString(runtime).utf8(runtime);
           if (str == "auto") {
             result->_instance.layout = nullptr;
+          } else {
+            throw std::runtime_error(
+                "Property GPURenderPipelineDescriptor::layout is invalid");
           }
         }
-
         if (layout.isUndefined()) {
           throw std::runtime_error(
               "Property GPURenderPipelineDescriptor::layout is required");

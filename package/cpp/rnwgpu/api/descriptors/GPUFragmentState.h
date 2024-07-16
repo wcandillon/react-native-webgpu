@@ -48,8 +48,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
             auto entry = targetArray.getValueAtIndex(runtime, i);
             auto colorTargetState = JSIConverter<
                 std::shared_ptr<rnwgpu::GPUColorTargetState>>::fromJSI(runtime,
-                                                                    entry,
-                                                                    false);
+                                                                       entry,
+                                                                       false);
             result->targets.push_back(colorTargetState->_instance);
           }
           result->_instance.targetCount = static_cast<uint32_t>(targetCount);
