@@ -32,30 +32,24 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin3D>> {
               "Expected an array of size >1 for GPUTExtent3D");
         }
         if (size > 0) {
-          result->_instance.x =
-              array.getValueAtIndex(runtime, 0).asNumber();
+          result->_instance.x = array.getValueAtIndex(runtime, 0).asNumber();
         }
         if (size > 1) {
-          result->_instance.y =
-              array.getValueAtIndex(runtime, 1).asNumber();
+          result->_instance.y = array.getValueAtIndex(runtime, 1).asNumber();
         }
         if (size > 2) {
-          result->_instance.z =
-              array.getValueAtIndex(runtime, 2).asNumber();
+          result->_instance.z = array.getValueAtIndex(runtime, 2).asNumber();
         }
       } else {
         auto object = arg.getObject(runtime);
         if (object.hasProperty(runtime, "x")) {
-          result->_instance.x =
-              object.getProperty(runtime, "x").asNumber();
+          result->_instance.x = object.getProperty(runtime, "x").asNumber();
         }
         if (object.hasProperty(runtime, "y")) {
-          result->_instance.y =
-              object.getProperty(runtime, "y").asNumber();
+          result->_instance.y = object.getProperty(runtime, "y").asNumber();
         }
         if (object.hasProperty(runtime, "z")) {
-          result->_instance.z =
-              object.getProperty(runtime, "z").asNumber();
+          result->_instance.z = object.getProperty(runtime, "z").asNumber();
         }
       }
     } else {

@@ -23,10 +23,10 @@ std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
   return std::make_shared<GPURenderPassEncoder>(renderPass, descriptor->label);
 }
 
-
-void GPUCommandEncoder::copyTextureToBuffer(std::shared_ptr<GPUImageCopyTexture> source,
-                           std::shared_ptr<GPUImageCopyBuffer> destination,
-                           std::shared_ptr<GPUExtent3D> copySize) {
+void GPUCommandEncoder::copyTextureToBuffer(
+    std::shared_ptr<GPUImageCopyTexture> source,
+    std::shared_ptr<GPUImageCopyBuffer> destination,
+    std::shared_ptr<GPUExtent3D> copySize) {
   auto src = source->getInstance();
   auto dst = destination->getInstance();
   auto size = copySize->getInstance();
