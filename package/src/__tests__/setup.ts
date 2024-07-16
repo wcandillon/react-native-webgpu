@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-var */
 import fs from "fs";
+import path from "path";
 
 import type { Server, WebSocket } from "ws";
 import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer";
 import { PNG } from "pngjs";
+import pixelmatch from "pixelmatch";
 
 import { cubeVertexArray } from "../../example/src/components/cube";
 import {
@@ -182,12 +184,7 @@ class ReferenceTestingClient implements TestingClient {
   }
 }
 
-export const saveImage = (
-  data: Uint8Array,
-  width: number,
-  height: number,
-  dstPath: string,
-) => {
+export const saveImage = (data: Uint8Array, width: number, height: number) => {
   // Create a new PNG
   const png = new PNG({
     width: width,
@@ -208,6 +205,73 @@ export const saveImage = (
 
   // Save the PNG to a file
   // Encode the PNG and save to file
-  const buffer = PNG.sync.write(png);
-  fs.writeFileSync(dstPath, buffer);
+  //const buffer = PNG.sync.write(png);
+  // fs.writeFileSync(dstPath, buffer);
+  return png;
+};
+
+interface CheckImageOptions {
+  maxPixelDiff?: number;
+  threshold?: number;
+  overwrite?: boolean;
+  mute?: boolean;
+  shouldFail?: boolean;
+}
+
+// On Github Action, the image decoding is slightly different
+// all tests that show the oslo.jpg have small differences but look ok
+const defaultCheckImageOptions = {
+  maxPixelDiff: 200,
+  threshold: 0.1,
+  overwrite: false,
+  mute: false,
+  shouldFail: false,
+};
+
+export const checkImage = (
+  toTest: PNG,
+  relPath: string,
+  opts?: CheckImageOptions,
+) => {
+  const options = { ...defaultCheckImageOptions, ...opts };
+  const { overwrite, threshold, mute, maxPixelDiff, shouldFail } = options;
+  const p = path.resolve(__dirname, relPath);
+  if (fs.existsSync(p) && !overwrite) {
+    const ref = fs.readFileSync(p);
+    const baseline = PNG.sync.read(ref);
+    const diffImage = new PNG({
+      width: baseline.width,
+      height: baseline.height,
+    });
+    if (baseline.width !== toTest.width || baseline.height !== toTest.height) {
+      throw new Error(
+        `Image sizes don't match: ${baseline.width}x${baseline.height} vs ${toTest.width}x${toTest.height}`,
+      );
+    }
+    const diffPixelsCount = pixelmatch(
+      baseline.data,
+      toTest.data,
+      diffImage.data,
+      baseline.width,
+      baseline.height,
+      { threshold },
+    );
+    if (!mute) {
+      if (diffPixelsCount > maxPixelDiff && !shouldFail) {
+        console.log(`${p} didn't match`);
+        fs.writeFileSync(`${p}.test.png`, PNG.sync.write(toTest));
+        fs.writeFileSync(`${p}-diff-test.png`, PNG.sync.write(diffImage));
+      }
+      if (shouldFail) {
+        expect(diffPixelsCount).not.toBeLessThanOrEqual(maxPixelDiff);
+      } else {
+        expect(diffPixelsCount).toBeLessThanOrEqual(maxPixelDiff);
+      }
+    }
+    return diffPixelsCount;
+  } else {
+    const buffer = PNG.sync.write(toTest);
+    fs.writeFileSync(p, buffer);
+  }
+  return 0;
 };

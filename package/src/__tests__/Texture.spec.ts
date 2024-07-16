@@ -1,4 +1,4 @@
-import { client, saveImage } from "./setup";
+import { checkImage, client, saveImage } from "./setup";
 
 describe("Texture", () => {
   it("Check usage", async () => {
@@ -156,6 +156,7 @@ describe("Texture", () => {
       );
     }
 
-    saveImage(imageData, 800, 600, "src/__tests__/snapshots/texture.png");
+    const image = saveImage(imageData, 800, 600);
+    checkImage(image, "snapshots/texture.png");
   });
 });
