@@ -33,7 +33,6 @@ public:
 
   void end();
   void setBindGroup(uint32_t groupIndex, std::shared_ptr<GPUBindGroup> group,
-                    size_t dynamicOffsetCount,
                     std::optional<std::vector<uint32_t>> dynamicOffsets);
   void setPipeline(std::shared_ptr<GPURenderPipeline> pipeline);
   void draw(uint32_t vertexCount, std::optional<uint32_t> instanceCount,

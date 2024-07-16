@@ -34,7 +34,6 @@ public:
   void setPipeline(std::shared_ptr<GPUComputePipeline> pipeline);
   void end();
   void setBindGroup(uint32_t groupIndex, std::shared_ptr<GPUBindGroup> group,
-                    size_t dynamicOffsetCount,
                     std::optional<std::vector<uint32_t>> dynamicOffsets);
 
   std::string getLabel() { return _label; }

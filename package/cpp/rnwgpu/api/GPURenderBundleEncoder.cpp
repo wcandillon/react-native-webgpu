@@ -23,13 +23,12 @@ void GPURenderBundleEncoder::draw(uint32_t vertexCount,
 
 void GPURenderBundleEncoder::setBindGroup(
     uint32_t groupIndex, std::shared_ptr<GPUBindGroup> group,
-    size_t dynamicOffsetCount,
     std::optional<std::vector<uint32_t>> dynamicOffsets) {
-
-  if (dynamicOffsetCount == 0) {
+  auto dynOffsets = dynamicOffsets.value_or(std::vector<uint32_t>());
+  if (dynOffsets.size() == 0) {
     _instance.SetBindGroup(groupIndex, group->get(), 0, nullptr);
   } else {
-    _instance.SetBindGroup(groupIndex, group->get(), dynamicOffsetCount,
+    _instance.SetBindGroup(groupIndex, group->get(), dynOffsets.size(),
                            dynamicOffsets->data());
   }
 }
