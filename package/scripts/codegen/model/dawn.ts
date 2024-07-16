@@ -16,6 +16,22 @@ interface NativeProperty {
   returns: string;
 }
 
+const GPUBindingCommandsMixin = [
+  {
+    name: "setBindGroup",
+    dependencies: ["GPUBindGroup"],
+    returns: "void",
+    args: [
+      { name: "groupIndex", type: "uint32_t" },
+      { name: "group", type: "std::shared_ptr<GPUBindGroup>" },
+      {
+        name: "dynamicOffsets",
+        type: "std::optional<std::vector<uint32_t>>",
+      },
+    ],
+  },
+];
+
 export const resolved: Record<
   string,
   {
@@ -114,6 +130,18 @@ export const resolved: Record<
         returns: "void",
       },
     ],
+  },
+  GPUComputePassEncoder: {
+    properties: [],
+    methods: [...GPUBindingCommandsMixin],
+  },
+  GPURenderPassEncoder: {
+    properties: [],
+    methods: [...GPUBindingCommandsMixin],
+  },
+  GPURenderBundleEncoder: {
+    properties: [],
+    methods: [...GPUBindingCommandsMixin],
   },
   GPUBuffer: {
     properties: [
