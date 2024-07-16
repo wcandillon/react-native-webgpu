@@ -17,4 +17,17 @@ void GPURenderPassEncoder::draw(uint32_t vertexCount,
                  firstVertex.value_or(0), firstInstance.value_or(0));
 }
 
+void GPURenderPassEncoder::setBindGroup(
+    uint32_t groupIndex, std::shared_ptr<GPUBindGroup> group,
+    size_t dynamicOffsetCount,
+    std::optional<std::vector<uint32_t>> dynamicOffsets) {
+
+  if (dynamicOffsetCount == 0) {
+    _instance.SetBindGroup(groupIndex, group->get(), 0, nullptr);
+  } else {
+    _instance.SetBindGroup(groupIndex, group->get(), dynamicOffsetCount,
+                           dynamicOffsets->data());
+  }
+}
+
 } // namespace rnwgpu

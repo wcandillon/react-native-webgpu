@@ -14,6 +14,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "GPUBindGroup.h"
 #include "GPURenderBundle.h"
 #include "GPURenderBundleDescriptor.h"
 #include "GPURenderPipeline.h"
@@ -34,6 +35,9 @@ public:
 
   std::shared_ptr<GPURenderBundle>
   finish(std::shared_ptr<GPURenderBundleDescriptor> descriptor);
+  void setBindGroup(uint32_t groupIndex, std::shared_ptr<GPUBindGroup> group,
+                    size_t dynamicOffsetCount,
+                    std::optional<std::vector<uint32_t>> dynamicOffsets);
   void setPipeline(std::shared_ptr<GPURenderPipeline> pipeline);
   void draw(uint32_t vertexCount, std::optional<uint32_t> instanceCount,
             std::optional<uint32_t> firstVertex,
@@ -44,6 +48,8 @@ public:
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPURenderBundleEncoder::getBrand, this);
     registerHybridMethod("finish", &GPURenderBundleEncoder::finish, this);
+    registerHybridMethod("setBindGroup", &GPURenderBundleEncoder::setBindGroup,
+                         this);
     registerHybridMethod("setPipeline", &GPURenderBundleEncoder::setPipeline,
                          this);
     registerHybridMethod("draw", &GPURenderBundleEncoder::draw, this);

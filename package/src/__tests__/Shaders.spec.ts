@@ -168,34 +168,28 @@ describe("Triangle", () => {
         passEncoder.end();
 
         device.queue.submit([commandEncoder.finish()]);
-        return true;
         // // Function to display the texture on the screen
-        // function frame() {
-        //   const commandEncoder = device.createCommandEncoder();
-        //   const textureView = context.getCurrentTexture().createView();
+        const cmdEncoder = device.createCommandEncoder();
 
-        //   const renderPassDescriptor: GPURenderPassDescriptor = {
-        //     colorAttachments: [
-        //       {
-        //         view: textureView,
-        //         clearValue: [0.5, 0.5, 0.5, 1],
-        //         loadOp: "clear",
-        //         storeOp: "store",
-        //       },
-        //     ],
-        //   };
+        const renderPD: GPURenderPassDescriptor = {
+          colorAttachments: [
+            {
+              view: textureView,
+              clearValue: [0.5, 0.5, 0.5, 1],
+              loadOp: "clear",
+              storeOp: "store",
+            },
+          ],
+        };
 
-        //   const passEncoder =
-        //     commandEncoder.beginRenderPass(renderPassDescriptor);
-        //   passEncoder.setPipeline(displayPipeline);
-        //   passEncoder.setBindGroup(0, bindGroup);
-        //   passEncoder.draw(6);
-        //   passEncoder.end();
+        const encoder = cmdEncoder.beginRenderPass(renderPD);
+        encoder.setPipeline(displayPipeline);
+        encoder.setBindGroup(0, bindGroup);
+        encoder.draw(6);
+        encoder.end();
 
-        //   device.queue.submit([commandEncoder.finish()]);
-        //   requestAnimationFrame(frame);
-        // }
-
+        device.queue.submit([cmdEncoder.finish()]);
+        return true;
         // requestAnimationFrame(frame);
         // return pipeline.label;
       },

@@ -48,6 +48,7 @@ const methodWhiteList = [
   "draw",
   "end",
   "getBindGroupLayout",
+  "setBindGroup",
 ];
 
 const propWhiteList: Record<string, string[]> = {
