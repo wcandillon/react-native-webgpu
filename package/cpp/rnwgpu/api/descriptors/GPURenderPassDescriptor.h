@@ -9,7 +9,12 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUQuerySet.h"
+#include "GPURenderPassDepthStencilAttachment.h"
+#include "GPURenderPassTimestampWrites.h"
+
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -47,19 +52,35 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
       if (value.hasProperty(runtime, "depthStencilAttachment")) {
         auto depthStencilAttachment =
             value.getProperty(runtime, "depthStencilAttachment");
+
+        if (depthStencilAttachment.isObject()) {
+          auto val = m::JSIConverter<
+              std::shared_ptr<rnwgpu::GPURenderPassDepthStencilAttachment>>::
+              fromJSI(runtime, depthStencilAttachment, false);
+          result->_instance.depthStencilAttachment = val->getInstance();
+        }
       }
       if (value.hasProperty(runtime, "occlusionQuerySet")) {
         auto occlusionQuerySet =
             value.getProperty(runtime, "occlusionQuerySet");
+
+        if (occlusionQuerySet.isObject() &&
+            occlusionQuerySet.getObject(runtime).isHostObject(runtime)) {
+          result->_instance.occlusionQuerySet =
+              occlusionQuerySet.getObject(runtime)
+                  .asHostObject<rnwgpu::GPUQuerySet>(runtime)
+                  ->get();
+        }
       }
       if (value.hasProperty(runtime, "timestampWrites")) {
         auto timestampWrites = value.getProperty(runtime, "timestampWrites");
-      }
-      if (value.hasProperty(runtime, "maxDrawCount")) {
-        auto maxDrawCount = value.getProperty(runtime, "maxDrawCount");
 
-        if (maxDrawCount.isNumber()) {
-          result->_instance.maxDrawCount = maxDrawCount.getNumber();
+        if (timestampWrites.isObject()) {
+          auto val = m::JSIConverter<std::shared_ptr<
+              rnwgpu::GPURenderPassTimestampWrites>>::fromJSI(runtime,
+                                                              timestampWrites,
+                                                              false);
+          result->_instance.timestampWrites = val->getInstance();
         }
       }
       if (value.hasProperty(runtime, "label")) {

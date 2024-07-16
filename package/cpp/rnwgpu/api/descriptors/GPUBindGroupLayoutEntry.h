@@ -9,7 +9,14 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUBufferBindingLayout.h"
+#include "GPUExternalTextureBindingLayout.h"
+#include "GPUSamplerBindingLayout.h"
+#include "GPUStorageTextureBindingLayout.h"
+#include "GPUTextureBindingLayout.h"
+
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -64,18 +71,55 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry>> {
       }
       if (value.hasProperty(runtime, "buffer")) {
         auto buffer = value.getProperty(runtime, "buffer");
+
+        if (buffer.isObject()) {
+          auto val = m::JSIConverter<
+              std::shared_ptr<rnwgpu::GPUBufferBindingLayout>>::fromJSI(runtime,
+                                                                        buffer,
+                                                                        false);
+          result->_instance.buffer = val->_instance;
+        }
       }
       if (value.hasProperty(runtime, "sampler")) {
         auto sampler = value.getProperty(runtime, "sampler");
+
+        if (sampler.isObject()) {
+          auto val = m::JSIConverter<std::shared_ptr<
+              rnwgpu::GPUSamplerBindingLayout>>::fromJSI(runtime, sampler,
+                                                         false);
+          result->_instance.sampler = val->_instance;
+        }
       }
       if (value.hasProperty(runtime, "texture")) {
         auto texture = value.getProperty(runtime, "texture");
+
+        if (texture.isObject()) {
+          auto val = m::JSIConverter<std::shared_ptr<
+              rnwgpu::GPUTextureBindingLayout>>::fromJSI(runtime, texture,
+                                                         false);
+          result->_instance.texture = val->_instance;
+        }
       }
       if (value.hasProperty(runtime, "storageTexture")) {
         auto storageTexture = value.getProperty(runtime, "storageTexture");
+
+        if (storageTexture.isObject()) {
+          auto val = m::JSIConverter<std::shared_ptr<
+              rnwgpu::GPUStorageTextureBindingLayout>>::fromJSI(runtime,
+                                                                storageTexture,
+                                                                false);
+          result->_instance.storageTexture = val->_instance;
+        }
       }
       if (value.hasProperty(runtime, "externalTexture")) {
         auto externalTexture = value.getProperty(runtime, "externalTexture");
+
+        if (externalTexture.isObject()) {
+          auto val = m::JSIConverter<
+              std::shared_ptr<rnwgpu::GPUExternalTextureBindingLayout>>::
+              fromJSI(runtime, externalTexture, false);
+          result->_instance.externalTexture = val->_instance;
+        }
       }
     }
 

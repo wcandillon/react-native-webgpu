@@ -9,7 +9,11 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUColor.h"
+#include "GPUTextureView.h"
+
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -33,6 +37,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
       if (value.hasProperty(runtime, "view")) {
         auto view = value.getProperty(runtime, "view");
 
+        if (view.isObject() && view.getObject(runtime).isHostObject(runtime)) {
+          result->_instance.view =
+              view.getObject(runtime)
+                  .asHostObject<rnwgpu::GPUTextureView>(runtime)
+                  ->get();
+        }
+
         if (view.isUndefined()) {
           throw std::runtime_error(
               "Property GPURenderPassColorAttachment::view is required");
@@ -46,17 +57,39 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
 
         if (depthSlice.isNumber()) {
           result->_instance.depthSlice =
-              static_cast<wgpu::IntegerCoordinate>(depthSlice.getNumber());
+              static_cast<uint32_t>(depthSlice.getNumber());
         }
       }
       if (value.hasProperty(runtime, "resolveTarget")) {
         auto resolveTarget = value.getProperty(runtime, "resolveTarget");
+
+        if (resolveTarget.isObject() &&
+            resolveTarget.getObject(runtime).isHostObject(runtime)) {
+          result->_instance.resolveTarget =
+              resolveTarget.getObject(runtime)
+                  .asHostObject<rnwgpu::GPUTextureView>(runtime)
+                  ->get();
+        }
       }
       if (value.hasProperty(runtime, "clearValue")) {
         auto clearValue = value.getProperty(runtime, "clearValue");
+
+        if (clearValue.isObject()) {
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUColor>>::fromJSI(
+                  runtime, clearValue, false);
+          result->_instance.clearValue = val->_instance;
+        }
       }
       if (value.hasProperty(runtime, "loadOp")) {
         auto loadOp = value.getProperty(runtime, "loadOp");
+
+        if (loadOp.isString()) {
+          auto str = loadOp.asString(runtime).utf8(runtime);
+          wgpu::LoadOp enumValue;
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
+          result->_instance.loadOp = enumValue;
+        }
 
         if (loadOp.isUndefined()) {
           throw std::runtime_error(
@@ -68,6 +101,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
       }
       if (value.hasProperty(runtime, "storeOp")) {
         auto storeOp = value.getProperty(runtime, "storeOp");
+
+        if (storeOp.isString()) {
+          auto str = storeOp.asString(runtime).utf8(runtime);
+          wgpu::StoreOp enumValue;
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
+          result->_instance.storeOp = enumValue;
+        }
 
         if (storeOp.isUndefined()) {
           throw std::runtime_error(

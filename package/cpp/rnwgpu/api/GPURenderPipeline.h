@@ -14,6 +14,8 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "GPUBindGroupLayout.h"
+
 namespace rnwgpu {
 
 namespace m = margelo;
@@ -26,10 +28,14 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  std::shared_ptr<GPUBindGroupLayout> getBindGroupLayout(uint32_t groupIndex);
+
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPURenderPipeline::getBrand, this);
+    registerHybridMethod("getBindGroupLayout",
+                         &GPURenderPipeline::getBindGroupLayout, this);
 
     registerHybridGetter("label", &GPURenderPipeline::getLabel, this);
   }

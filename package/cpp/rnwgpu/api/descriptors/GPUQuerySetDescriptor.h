@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -35,6 +36,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
       if (value.hasProperty(runtime, "type")) {
         auto type = value.getProperty(runtime, "type");
 
+        if (type.isString()) {
+          auto str = type.asString(runtime).utf8(runtime);
+          wgpu::QueryType enumValue;
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
+          result->_instance.type = enumValue;
+        }
+
         if (type.isUndefined()) {
           throw std::runtime_error(
               "Property GPUQuerySetDescriptor::type is required");
@@ -47,8 +55,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
         auto count = value.getProperty(runtime, "count");
 
         if (count.isNumber()) {
-          result->_instance.count =
-              static_cast<wgpu::Size32>(count.getNumber());
+          result->_instance.count = static_cast<uint32_t>(count.getNumber());
         }
 
         if (count.isUndefined()) {

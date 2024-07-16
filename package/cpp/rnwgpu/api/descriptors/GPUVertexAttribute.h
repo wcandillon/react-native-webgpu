@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -31,6 +32,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
+
+        if (format.isString()) {
+          auto str = format.asString(runtime).utf8(runtime);
+          wgpu::VertexFormat enumValue;
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
+          result->_instance.format = enumValue;
+        }
 
         if (format.isUndefined()) {
           throw std::runtime_error(

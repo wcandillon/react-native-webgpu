@@ -9,15 +9,18 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUShaderModule.h"
+
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
 class GPUProgrammableStage {
 public:
-  wgpu::ProgrammableStage *getInstance() { return &_instance; }
+  wgpu::ProgrammableStageDescriptor *getInstance() { return &_instance; }
 
-  wgpu::ProgrammableStage _instance;
+  wgpu::ProgrammableStageDescriptor _instance;
 
   std::string entryPoint;
 };
@@ -34,6 +37,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
       if (value.hasProperty(runtime, "module")) {
         auto module = value.getProperty(runtime, "module");
 
+        if (module.isObject() &&
+            module.getObject(runtime).isHostObject(runtime)) {
+          result->_instance.module =
+              module.getObject(runtime)
+                  .asHostObject<rnwgpu::GPUShaderModule>(runtime)
+                  ->get();
+        }
+
         if (module.isUndefined()) {
           throw std::runtime_error(
               "Property GPUProgrammableStage::module is required");
@@ -48,7 +59,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
         if (entryPoint.isString()) {
           auto str = entryPoint.asString(runtime).utf8(runtime);
           result->entryPoint = str;
-          result->_instance.entryPoint = result->entryPoint.c_str();
         }
       }
       if (value.hasProperty(runtime, "constants")) {

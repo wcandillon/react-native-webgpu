@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -34,19 +35,40 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
+
+        if (format.isString()) {
+          auto str = format.asString(runtime).utf8(runtime);
+          wgpu::TextureFormat enumValue;
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
+          result->_instance.format = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "dimension")) {
         auto dimension = value.getProperty(runtime, "dimension");
+
+        if (dimension.isString()) {
+          auto str = dimension.asString(runtime).utf8(runtime);
+          wgpu::TextureViewDimension enumValue;
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
+          result->_instance.dimension = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "aspect")) {
         auto aspect = value.getProperty(runtime, "aspect");
+
+        if (aspect.isString()) {
+          auto str = aspect.asString(runtime).utf8(runtime);
+          wgpu::TextureAspect enumValue;
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
+          result->_instance.aspect = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "baseMipLevel")) {
         auto baseMipLevel = value.getProperty(runtime, "baseMipLevel");
 
         if (baseMipLevel.isNumber()) {
           result->_instance.baseMipLevel =
-              static_cast<wgpu::IntegerCoordinate>(baseMipLevel.getNumber());
+              static_cast<uint32_t>(baseMipLevel.getNumber());
         }
       }
       if (value.hasProperty(runtime, "mipLevelCount")) {
@@ -54,7 +76,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
 
         if (mipLevelCount.isNumber()) {
           result->_instance.mipLevelCount =
-              static_cast<wgpu::IntegerCoordinate>(mipLevelCount.getNumber());
+              static_cast<uint32_t>(mipLevelCount.getNumber());
         }
       }
       if (value.hasProperty(runtime, "baseArrayLayer")) {
@@ -62,7 +84,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
 
         if (baseArrayLayer.isNumber()) {
           result->_instance.baseArrayLayer =
-              static_cast<wgpu::IntegerCoordinate>(baseArrayLayer.getNumber());
+              static_cast<uint32_t>(baseArrayLayer.getNumber());
         }
       }
       if (value.hasProperty(runtime, "arrayLayerCount")) {
@@ -70,7 +92,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
 
         if (arrayLayerCount.isNumber()) {
           result->_instance.arrayLayerCount =
-              static_cast<wgpu::IntegerCoordinate>(arrayLayerCount.getNumber());
+              static_cast<uint32_t>(arrayLayerCount.getNumber());
         }
       }
       if (value.hasProperty(runtime, "label")) {

@@ -32,6 +32,8 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
   return array_buffer;
 }
 
+void GPUBuffer::destroy() { _instance.Destroy(); }
+
 std::future<void> GPUBuffer::mapAsync(uint64_t mode, std::optional<size_t> o,
                                       std::optional<size_t> size) {
   return _async->runAsync([=] {

@@ -9,7 +9,11 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUOrigin3D.h"
+#include "GPUTexture.h"
+
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -32,6 +36,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "colorSpace")) {
         auto colorSpace = value.getProperty(runtime, "colorSpace");
+
+        if (colorSpace.isString()) {
+          auto str = colorSpace.asString(runtime).utf8(runtime);
+          wgpu::definedColorSpace enumValue;
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
+          result->_instance.colorSpace = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "premultipliedAlpha")) {
         auto premultipliedAlpha =
@@ -42,6 +53,14 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
       }
       if (value.hasProperty(runtime, "texture")) {
         auto texture = value.getProperty(runtime, "texture");
+
+        if (texture.isObject() &&
+            texture.getObject(runtime).isHostObject(runtime)) {
+          result->_instance.texture =
+              texture.getObject(runtime)
+                  .asHostObject<rnwgpu::GPUTexture>(runtime)
+                  ->get();
+        }
 
         if (texture.isUndefined()) {
           throw std::runtime_error(
@@ -56,14 +75,28 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
 
         if (mipLevel.isNumber()) {
           result->_instance.mipLevel =
-              static_cast<wgpu::IntegerCoordinate>(mipLevel.getNumber());
+              static_cast<uint32_t>(mipLevel.getNumber());
         }
       }
       if (value.hasProperty(runtime, "origin")) {
         auto origin = value.getProperty(runtime, "origin");
+
+        if (origin.isObject()) {
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin3D>>::fromJSI(
+                  runtime, origin, false);
+          result->_instance.origin = val->_instance;
+        }
       }
       if (value.hasProperty(runtime, "aspect")) {
         auto aspect = value.getProperty(runtime, "aspect");
+
+        if (aspect.isString()) {
+          auto str = aspect.asString(runtime).utf8(runtime);
+          wgpu::TextureAspect enumValue;
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
+          result->_instance.aspect = enumValue;
+        }
       }
     }
 

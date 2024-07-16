@@ -18,7 +18,8 @@ const instanceAliases: Record<string, string> = {
 const methodWhiteList = [
   // GPU
   "getPreferredCanvasFormat",
-
+  // Texture
+  "createTexture",
   // Queue
   "writeBuffer",
   "submit",
@@ -28,6 +29,13 @@ const methodWhiteList = [
   // Device
   "createBuffer",
   "createCommandEncoder",
+  "createShaderModule",
+  "createRenderPipeline",
+  "destroy",
+  "createTexture",
+  "createSampler",
+  "createView",
+  "createBindGroup",
   // Buffer
   "unmap",
   "getMappedRange",
@@ -35,11 +43,31 @@ const methodWhiteList = [
   // CommandEncoder,
   "copyBufferToBuffer",
   "finish",
+  "beginRenderPass",
+  "setPipeline",
+  "draw",
+  "end",
+  "getBindGroupLayout",
+  "setBindGroup",
+  "copyTextureToBuffer",
+  "createComputePipeline",
+  "beginComputePass",
+  "dispatchWorkgroups",
 ];
 
 const propWhiteList: Record<string, string[]> = {
   GPUBuffer: ["size", "usage", "mapState"],
   GPUDevice: ["queue"],
+  GPUTexture: [
+    "width",
+    "height",
+    "depthOrArrayLayers",
+    "mipLevelCount",
+    "sampleCount",
+    "dimension",
+    "format",
+    "usage",
+  ],
 };
 
 // const propWhiteList: string[] = [

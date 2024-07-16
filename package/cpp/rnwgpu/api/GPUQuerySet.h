@@ -26,10 +26,13 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  void destroy();
+
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUQuerySet::getBrand, this);
+    registerHybridMethod("destroy", &GPUQuerySet::destroy, this);
 
     registerHybridGetter("label", &GPUQuerySet::getLabel, this);
   }

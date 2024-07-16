@@ -9,7 +9,10 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUBuffer.h"
+
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -31,6 +34,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "buffer")) {
         auto buffer = value.getProperty(runtime, "buffer");
+
+        if (buffer.isObject() &&
+            buffer.getObject(runtime).isHostObject(runtime)) {
+          result->_instance.buffer =
+              buffer.getObject(runtime)
+                  .asHostObject<rnwgpu::GPUBuffer>(runtime)
+                  ->get();
+        }
 
         if (buffer.isUndefined()) {
           throw std::runtime_error(

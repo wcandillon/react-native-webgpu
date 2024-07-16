@@ -9,7 +9,10 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUStencilFaceState.h"
+
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -32,6 +35,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
 
+        if (format.isString()) {
+          auto str = format.asString(runtime).utf8(runtime);
+          wgpu::TextureFormat enumValue;
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
+          result->_instance.format = enumValue;
+        }
+
         if (format.isUndefined()) {
           throw std::runtime_error(
               "Property GPUDepthStencilState::format is required");
@@ -49,19 +59,40 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
       }
       if (value.hasProperty(runtime, "depthCompare")) {
         auto depthCompare = value.getProperty(runtime, "depthCompare");
+
+        if (depthCompare.isString()) {
+          auto str = depthCompare.asString(runtime).utf8(runtime);
+          wgpu::CompareFunction enumValue;
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
+          result->_instance.depthCompare = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "stencilFront")) {
         auto stencilFront = value.getProperty(runtime, "stencilFront");
+
+        if (stencilFront.isObject()) {
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>>::
+                  fromJSI(runtime, stencilFront, false);
+          result->_instance.stencilFront = val->_instance;
+        }
       }
       if (value.hasProperty(runtime, "stencilBack")) {
         auto stencilBack = value.getProperty(runtime, "stencilBack");
+
+        if (stencilBack.isObject()) {
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>>::
+                  fromJSI(runtime, stencilBack, false);
+          result->_instance.stencilBack = val->_instance;
+        }
       }
       if (value.hasProperty(runtime, "stencilReadMask")) {
         auto stencilReadMask = value.getProperty(runtime, "stencilReadMask");
 
         if (stencilReadMask.isNumber()) {
           result->_instance.stencilReadMask =
-              static_cast<wgpu::StencilValue>(stencilReadMask.getNumber());
+              static_cast<uint32_t>(stencilReadMask.getNumber());
         }
       }
       if (value.hasProperty(runtime, "stencilWriteMask")) {
@@ -69,7 +100,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
 
         if (stencilWriteMask.isNumber()) {
           result->_instance.stencilWriteMask =
-              static_cast<wgpu::StencilValue>(stencilWriteMask.getNumber());
+              static_cast<uint32_t>(stencilWriteMask.getNumber());
         }
       }
       if (value.hasProperty(runtime, "depthBias")) {
@@ -77,7 +108,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
 
         if (depthBias.isNumber()) {
           result->_instance.depthBias =
-              static_cast<wgpu::DepthBias>(depthBias.getNumber());
+              static_cast<int32_t>(depthBias.getNumber());
         }
       }
       if (value.hasProperty(runtime, "depthBiasSlopeScale")) {

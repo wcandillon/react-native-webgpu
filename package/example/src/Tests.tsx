@@ -6,6 +6,7 @@ import { gpu } from "react-native-webgpu";
 
 import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
+import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
 
 export const CI = process.env.CI === "true";
 
@@ -50,6 +51,8 @@ export const Tests = () => {
               GPUShaderStage,
               GPUTextureUsage,
               cubeVertexArray,
+              triangleVertWGSL,
+              redFragWGSL,
             },
           });
           if (result instanceof Promise) {

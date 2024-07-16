@@ -33,6 +33,7 @@ public:
   std::shared_ptr<ArrayBuffer> getMappedRange(std::optional<size_t> offset,
                                               std::optional<size_t> size);
   void unmap();
+  void destroy();
 
   size_t getSize();
   double getUsage();
@@ -45,6 +46,7 @@ public:
     registerHybridMethod("mapAsync", &GPUBuffer::mapAsync, this);
     registerHybridMethod("getMappedRange", &GPUBuffer::getMappedRange, this);
     registerHybridMethod("unmap", &GPUBuffer::unmap, this);
+    registerHybridMethod("destroy", &GPUBuffer::destroy, this);
     registerHybridGetter("size", &GPUBuffer::getSize, this);
     registerHybridGetter("usage", &GPUBuffer::getUsage, this);
     registerHybridGetter("mapState", &GPUBuffer::getMapState, this);

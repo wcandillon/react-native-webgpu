@@ -1,4 +1,4 @@
-import { client } from "./setup";
+import { checkImage, client, encodeImage } from "./setup";
 
 describe("Buffer", () => {
   it("Label", async () => {
@@ -233,7 +233,6 @@ describe("Buffer", () => {
         return writeBuffer.mapAsync(GPUMapMode.WRITE).then(() => {
           const writeData = new Float32Array(writeBuffer.getMappedRange());
           writeData.set([5.0, 6.0, 7.0, 8.0]);
-          console.log("Data written to buffer:", writeData);
           writeBuffer.unmap();
           // // Copy data from write buffer to source buffer
           const encoder2 = device.createCommandEncoder();
@@ -266,5 +265,70 @@ describe("Buffer", () => {
       });
     });
     expect(result).toEqual([5, 6, 7, 8]);
+  });
+  it("Builds the reference result", async () => {
+    const data = await client.eval(() => {
+      const pixels = new Uint8Array(256 * 256 * 4);
+      pixels.fill(255);
+      let i = 0;
+      for (let x = 0; x < 256 * 4; x++) {
+        for (let y = 0; y < 256 * 4; y++) {
+          pixels[i++] = (x * y) % 255;
+        }
+      }
+      return Array.from(pixels);
+    });
+    const png = encodeImage(new Uint8Array(data), 256, 256);
+    checkImage(png, "snapshots/buffer.png");
+  });
+  it("Builds the reference result (2)", async () => {
+    const data = new Uint8Array(256 * 256 * 4);
+    data.fill(255);
+    let i = 0;
+    for (let x = 0; x < 256 * 4; x++) {
+      for (let y = 0; y < 256 * 4; y++) {
+        data[i++] = (x * y) % 255;
+      }
+    }
+    const result = await client.eval(
+      ({ pixels }) => {
+        return Array.from(pixels);
+      },
+      { pixels: Array.from(data) },
+    );
+    const png = encodeImage(new Uint8Array(result), 256, 256);
+    checkImage(png, "snapshots/buffer.png");
+  });
+  it("writes an image into a buffer and reads it back", async () => {
+    const imageData = await client.eval(({ device }) => {
+      const data = new Uint8Array(256 * 256 * 4);
+      data.fill(255);
+      let i = 0;
+      for (let x = 0; x < 256 * 4; x++) {
+        for (let y = 0; y < 256 * 4; y++) {
+          data[i++] = (x * y) % 255;
+        }
+      }
+      const gpuBuffer = device.createBuffer({
+        size: 256 * 256 * 4,
+        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+        mappedAtCreation: false,
+      });
+
+      // Copy data to the GPU buffer
+      device.queue.writeBuffer(gpuBuffer, 0, data.buffer, 0, data.byteLength);
+
+      return gpuBuffer
+        .mapAsync(GPUMapMode.READ, 0, data.byteLength)
+        .then(() => {
+          const arrayBuffer = gpuBuffer.getMappedRange(0, data.byteLength);
+          const readData = new Uint8Array(arrayBuffer);
+          const r = Array.from(readData);
+          gpuBuffer.unmap();
+          return r;
+        });
+    });
+    const png = encodeImage(new Uint8Array(imageData), 256, 256);
+    checkImage(png, "snapshots/buffer.png");
   });
 });

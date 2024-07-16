@@ -9,7 +9,10 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUComputePassTimestampWrites.h"
+
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -34,6 +37,14 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "timestampWrites")) {
         auto timestampWrites = value.getProperty(runtime, "timestampWrites");
+
+        if (timestampWrites.isObject()) {
+          auto val = m::JSIConverter<std::shared_ptr<
+              rnwgpu::GPUComputePassTimestampWrites>>::fromJSI(runtime,
+                                                               timestampWrites,
+                                                               false);
+          result->_instance.timestampWrites = val->getInstance();
+        }
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");

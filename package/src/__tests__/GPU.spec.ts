@@ -1,9 +1,17 @@
 import { client } from "./setup";
 
 describe("Adapter", () => {
-  it("executes a simple  function", async () => {
+  it("executes a simple function", async () => {
     const result = await client.eval(() => 1 + 1);
     expect(result).toBe(2);
+  });
+  it("executes a simple function from context", async () => {
+    const result = await client.eval(({ a, b, c }) => a + b + c, {
+      a: 1,
+      b: 2,
+      c: 3,
+    });
+    expect(result).toBe(6);
   });
   it("execute a simple async function (1)", async () => {
     const result = await client.eval(

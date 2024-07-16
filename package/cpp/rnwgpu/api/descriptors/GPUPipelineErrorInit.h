@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -31,6 +32,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineErrorInit>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "reason")) {
         auto reason = value.getProperty(runtime, "reason");
+
+        if (reason.isString()) {
+          auto str = reason.asString(runtime).utf8(runtime);
+          wgpu::PipelineErrorReason enumValue;
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
+          result->_instance.reason = enumValue;
+        }
 
         if (reason.isUndefined()) {
           throw std::runtime_error(

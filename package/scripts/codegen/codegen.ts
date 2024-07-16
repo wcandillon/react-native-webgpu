@@ -109,7 +109,7 @@ sourceFile
 console.log("===");
 console.log("Objects");
 console.log("===");
-sourceFile
+const hybridObject = sourceFile
   .getInterfaces()
   .filter(
     (decl) =>
@@ -118,10 +118,10 @@ sourceFile
       !decl.getName().endsWith("Error") &&
       !decl.getName().endsWith("Base") &&
       decl.getProperty("__brand") !== undefined,
-  )
-  .forEach((decl) => {
-    writeFile("object", decl.getName(), getHybridObject(decl));
-  });
+  );
+hybridObject.forEach((decl) => {
+  writeFile("object", decl.getName(), getHybridObject(decl));
+});
 
 // Descriptors
 // the following two descriptors map to:
@@ -140,9 +140,35 @@ const GPUCommandEncoderDescriptor = sourceFile.addInterface({
 GPUCommandEncoderDescriptor.addExtends("GPUObjectDescriptorBase");
 GPUCommandBufferDescriptor.addExtends("GPUObjectDescriptorBase");
 
+/*
+type GPUQueueDescriptor =
+  GPUObjectDescriptorBase;
+type GPURenderBundleDescriptor =
+  GPUObjectDescriptorBase;
+  */
+const GPUQueueDescriptor = sourceFile.addInterface({
+  name: "GPUQueueDescriptor",
+  isExported: true,
+});
+const GPURenderBundleDescriptor = sourceFile.addInterface({
+  name: "GPURenderBundleDescriptor",
+  isExported: true,
+});
+GPUQueueDescriptor.addExtends("GPUObjectDescriptorBase");
+GPURenderBundleDescriptor.addExtends("GPUObjectDescriptorBase");
+
 console.log("===");
 console.log("Descriptors");
 console.log("===");
+const toSkip = [
+  "GPUOrigin2DDictStrict",
+  "GPUExtent3DDictStrict",
+  "GPUExtent3DDict",
+  "GPUOrigin2DDict",
+  "GPUOrigin3DDict",
+  // TODO: we could remove this one potentially
+  "GPUImageCopyBuffer",
+];
 sourceFile
   .getInterfaces()
   .filter(
@@ -151,8 +177,17 @@ sourceFile
       !decl.getName().endsWith("Mixin") &&
       !decl.getName().endsWith("Error") &&
       !decl.getName().endsWith("Base") &&
+      !toSkip.includes(decl.getName()) &&
       decl.getProperty("__brand") === undefined,
   )
   .forEach((decl) => {
-    writeFile("descriptor", decl.getName(), getDescriptor(decl, unions));
+    writeFile(
+      "descriptor",
+      decl.getName(),
+      getDescriptor(
+        decl,
+        unions,
+        hybridObject.map((d) => d.getName()),
+      ),
+    );
   });

@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -41,7 +42,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageDataLayout>> {
 
         if (bytesPerRow.isNumber()) {
           result->_instance.bytesPerRow =
-              static_cast<wgpu::Size32>(bytesPerRow.getNumber());
+              static_cast<uint32_t>(bytesPerRow.getNumber());
         }
       }
       if (value.hasProperty(runtime, "rowsPerImage")) {
@@ -49,7 +50,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageDataLayout>> {
 
         if (rowsPerImage.isNumber()) {
           result->_instance.rowsPerImage =
-              static_cast<wgpu::Size32>(rowsPerImage.getNumber());
+              static_cast<uint32_t>(rowsPerImage.getNumber());
         }
       }
     }

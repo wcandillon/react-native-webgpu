@@ -9,7 +9,10 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUExtent3D.h"
+
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -34,6 +37,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
       if (value.hasProperty(runtime, "size")) {
         auto size = value.getProperty(runtime, "size");
 
+        if (size.isObject()) {
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3D>>::fromJSI(
+                  runtime, size, false);
+          result->_instance.size = val->_instance;
+        }
+
         if (size.isUndefined()) {
           throw std::runtime_error(
               "Property GPUTextureDescriptor::size is required");
@@ -47,7 +57,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
 
         if (mipLevelCount.isNumber()) {
           result->_instance.mipLevelCount =
-              static_cast<wgpu::IntegerCoordinate>(mipLevelCount.getNumber());
+              static_cast<uint32_t>(mipLevelCount.getNumber());
         }
       }
       if (value.hasProperty(runtime, "sampleCount")) {
@@ -55,14 +65,28 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
 
         if (sampleCount.isNumber()) {
           result->_instance.sampleCount =
-              static_cast<wgpu::Size32>(sampleCount.getNumber());
+              static_cast<uint32_t>(sampleCount.getNumber());
         }
       }
       if (value.hasProperty(runtime, "dimension")) {
         auto dimension = value.getProperty(runtime, "dimension");
+
+        if (dimension.isString()) {
+          auto str = dimension.asString(runtime).utf8(runtime);
+          wgpu::TextureDimension enumValue;
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
+          result->_instance.dimension = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "format")) {
         auto format = value.getProperty(runtime, "format");
+
+        if (format.isString()) {
+          auto str = format.asString(runtime).utf8(runtime);
+          wgpu::TextureFormat enumValue;
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
+          result->_instance.format = enumValue;
+        }
 
         if (format.isUndefined()) {
           throw std::runtime_error(
@@ -77,7 +101,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
 
         if (usage.isNumber()) {
           result->_instance.usage =
-              static_cast<wgpu::TextureUsageFlags>(usage.getNumber());
+              static_cast<wgpu::TextureUsage>(usage.getNumber());
         }
 
         if (usage.isUndefined()) {

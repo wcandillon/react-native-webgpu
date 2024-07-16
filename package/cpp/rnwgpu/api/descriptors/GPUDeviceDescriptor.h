@@ -9,7 +9,10 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUQueueDescriptor.h"
+
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -39,6 +42,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
       }
       if (value.hasProperty(runtime, "defaultQueue")) {
         auto defaultQueue = value.getProperty(runtime, "defaultQueue");
+
+        if (defaultQueue.isObject()) {
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUQueueDescriptor>>::
+                  fromJSI(runtime, defaultQueue, false);
+          result->_instance.defaultQueue = val->_instance;
+        }
       }
       if (value.hasProperty(runtime, "label")) {
         auto label = value.getProperty(runtime, "label");

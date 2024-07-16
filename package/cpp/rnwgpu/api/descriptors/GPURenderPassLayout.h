@@ -10,6 +10,7 @@
 #include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -45,13 +46,20 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassLayout>> {
       if (value.hasProperty(runtime, "depthStencilFormat")) {
         auto depthStencilFormat =
             value.getProperty(runtime, "depthStencilFormat");
+
+        if (depthStencilFormat.isString()) {
+          auto str = depthStencilFormat.asString(runtime).utf8(runtime);
+          wgpu::TextureFormat enumValue;
+          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
+          result->_instance.depthStencilFormat = enumValue;
+        }
       }
       if (value.hasProperty(runtime, "sampleCount")) {
         auto sampleCount = value.getProperty(runtime, "sampleCount");
 
         if (sampleCount.isNumber()) {
           result->_instance.sampleCount =
-              static_cast<wgpu::Size32>(sampleCount.getNumber());
+              static_cast<uint32_t>(sampleCount.getNumber());
         }
       }
       if (value.hasProperty(runtime, "label")) {

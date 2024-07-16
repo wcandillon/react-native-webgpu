@@ -9,7 +9,10 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUBindingResource.h"
+
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -47,6 +50,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
       }
       if (value.hasProperty(runtime, "resource")) {
         auto resource = value.getProperty(runtime, "resource");
+
+        if (resource.isObject()) {
+          auto val = m::JSIConverter<
+              std::shared_ptr<rnwgpu::GPUBindingResource>>::fromJSI(runtime,
+                                                                    resource,
+                                                                    false);
+          result->_instance.resource = val->_instance;
+        }
 
         if (resource.isUndefined()) {
           throw std::runtime_error(

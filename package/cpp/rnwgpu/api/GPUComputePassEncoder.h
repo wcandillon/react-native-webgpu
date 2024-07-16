@@ -14,6 +14,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "GPUBindGroup.h"
+#include "GPUComputePipeline.h"
+
 namespace rnwgpu {
 
 namespace m = margelo;
@@ -28,10 +31,25 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  void setPipeline(std::shared_ptr<GPUComputePipeline> pipeline);
+  void dispatchWorkgroups(uint32_t workgroupCountX,
+                          std::optional<uint32_t> workgroupCountY,
+                          std::optional<uint32_t> workgroupCountZ);
+  void end();
+  void setBindGroup(uint32_t groupIndex, std::shared_ptr<GPUBindGroup> group,
+                    std::optional<std::vector<uint32_t>> dynamicOffsets);
+
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUComputePassEncoder::getBrand, this);
+    registerHybridMethod("setPipeline", &GPUComputePassEncoder::setPipeline,
+                         this);
+    registerHybridMethod("dispatchWorkgroups",
+                         &GPUComputePassEncoder::dispatchWorkgroups, this);
+    registerHybridMethod("end", &GPUComputePassEncoder::end, this);
+    registerHybridMethod("setBindGroup", &GPUComputePassEncoder::setBindGroup,
+                         this);
 
     registerHybridGetter("label", &GPUComputePassEncoder::getLabel, this);
   }

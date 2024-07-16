@@ -9,7 +9,10 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUBuffer.h"
+
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -32,6 +35,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyBuffer>> {
       if (value.hasProperty(runtime, "buffer")) {
         auto buffer = value.getProperty(runtime, "buffer");
 
+        if (buffer.isObject() &&
+            buffer.getObject(runtime).isHostObject(runtime)) {
+          result->_instance.buffer =
+              buffer.getObject(runtime)
+                  .asHostObject<rnwgpu::GPUBuffer>(runtime)
+                  ->get();
+        }
+
         if (buffer.isUndefined()) {
           throw std::runtime_error(
               "Property GPUImageCopyBuffer::buffer is required");
@@ -44,23 +55,23 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyBuffer>> {
         auto offset = value.getProperty(runtime, "offset");
 
         if (offset.isNumber()) {
-          result->_instance.offset = offset.getNumber();
+          result->_instance.layout.offset = offset.getNumber();
         }
       }
       if (value.hasProperty(runtime, "bytesPerRow")) {
         auto bytesPerRow = value.getProperty(runtime, "bytesPerRow");
 
         if (bytesPerRow.isNumber()) {
-          result->_instance.bytesPerRow =
-              static_cast<wgpu::Size32>(bytesPerRow.getNumber());
+          result->_instance.layout.bytesPerRow =
+              static_cast<uint32_t>(bytesPerRow.getNumber());
         }
       }
       if (value.hasProperty(runtime, "rowsPerImage")) {
         auto rowsPerImage = value.getProperty(runtime, "rowsPerImage");
 
         if (rowsPerImage.isNumber()) {
-          result->_instance.rowsPerImage =
-              static_cast<wgpu::Size32>(rowsPerImage.getNumber());
+          result->_instance.layout.rowsPerImage =
+              static_cast<uint32_t>(rowsPerImage.getNumber());
         }
       }
     }

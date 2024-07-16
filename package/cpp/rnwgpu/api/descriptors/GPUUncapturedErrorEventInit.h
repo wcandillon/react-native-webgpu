@@ -9,7 +9,10 @@
 #include "RNFJSIConverter.h"
 #include <RNFHybridObject.h>
 
+#include "GPUError.h"
+
 namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -32,6 +35,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "error")) {
         auto error = value.getProperty(runtime, "error");
+
+        if (error.isObject()) {
+          auto val =
+              m::JSIConverter<std::shared_ptr<rnwgpu::GPUError>>::fromJSI(
+                  runtime, error, false);
+          result->_instance.error = val->_instance;
+        }
 
         if (error.isUndefined()) {
           throw std::runtime_error(
