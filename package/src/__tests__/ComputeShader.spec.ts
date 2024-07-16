@@ -1,11 +1,32 @@
+/* eslint-disable prefer-destructuring */
 import { client } from "./setup";
+
+const multiplyMatrices = (m1: number[], m2: number[]) => {
+  const rows1 = m1[0],
+    cols1 = m1[1];
+  const cols2 = m2[1];
+  const result: number[] = new Array(2 + rows1 * cols2);
+  result[0] = rows1;
+  result[1] = cols2;
+
+  for (let i = 0; i < rows1; i++) {
+    for (let j = 0; j < cols2; j++) {
+      let sum = 0;
+      for (let k = 0; k < cols1; k++) {
+        sum += m1[2 + i * cols1 + k] * m2[2 + k * cols2 + j];
+      }
+      result[2 + i * cols2 + j] = sum;
+    }
+  }
+  return result;
+};
 
 describe("Computer Shader", () => {
   it("matrix multiplication", async () => {
     // First Matrix
-    const rows = 512;
-    const columns = 512;
-    const m1 = new Array(rows * columns + 2);
+    const rows = 16;
+    const columns = 16;
+    const m1: number[] = new Array(rows * columns + 2);
     m1[0] = rows;
     m1[1] = columns;
     for (let i = 2; i < m1.length; i++) {
@@ -13,7 +34,7 @@ describe("Computer Shader", () => {
     }
 
     // Second Matrix
-    const m2 = new Array(rows * columns + 2);
+    const m2: number[] = new Array(rows * columns + 2);
     m2[0] = rows;
     m2[1] = columns;
     for (let i = 2; i < m2.length; i++) {
@@ -168,6 +189,10 @@ describe("Computer Shader", () => {
         columns1: columns,
       },
     );
-    expect(result.length).toBe(512 * 512 + 2);
+    expect(result.length).toBe(16 * 16 + 2);
+    const referenceResult = multiplyMatrices(m1, m2);
+    for (let i = 0; i < result.length; i++) {
+      expect(result[i]).toBeCloseTo(referenceResult[i], 5); // Using 5 decimal places for floating-point comparison
+    }
   });
 });
