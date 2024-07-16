@@ -37,11 +37,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
       if (value.hasProperty(runtime, "view")) {
         auto view = value.getProperty(runtime, "view");
 
-        if (view.isObject()) {
-          auto val =
-              m::JSIConverter<std::shared_ptr<rnwgpu::GPUTextureView>>::fromJSI(
-                  runtime, view, false);
-          result->_instance.view = val->_instance;
+        if (view.isObject() && view.getObject(runtime).isHostObject(runtime)) {
+          result->_instance.view =
+              view.getObject(runtime)
+                  .asHostObject<rnwgpu::GPUTextureView>(runtime)
+                  ->get();
         }
 
         if (view.isUndefined()) {
@@ -63,11 +63,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
       if (value.hasProperty(runtime, "resolveTarget")) {
         auto resolveTarget = value.getProperty(runtime, "resolveTarget");
 
-        if (resolveTarget.isObject()) {
-          auto val =
-              m::JSIConverter<std::shared_ptr<rnwgpu::GPUTextureView>>::fromJSI(
-                  runtime, resolveTarget, false);
-          result->_instance.resolveTarget = val->_instance;
+        if (resolveTarget.isObject() &&
+            resolveTarget.getObject(runtime).isHostObject(runtime)) {
+          result->_instance.resolveTarget =
+              resolveTarget.getObject(runtime)
+                  .asHostObject<rnwgpu::GPUTextureView>(runtime)
+                  ->get();
         }
       }
       if (value.hasProperty(runtime, "clearValue")) {

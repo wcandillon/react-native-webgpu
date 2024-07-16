@@ -70,9 +70,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPrimitiveState>> {
           result->_instance.cullMode = enumValue;
         }
       }
-      if (value.hasProperty(runtime, "unclippedDepth")) {
-        auto unclippedDepth = value.getProperty(runtime, "unclippedDepth");
-      }
     }
 
     return result;

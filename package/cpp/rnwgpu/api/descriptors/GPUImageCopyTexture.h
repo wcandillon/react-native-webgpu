@@ -36,11 +36,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
       if (value.hasProperty(runtime, "texture")) {
         auto texture = value.getProperty(runtime, "texture");
 
-        if (texture.isObject()) {
-          auto val =
-              m::JSIConverter<std::shared_ptr<rnwgpu::GPUTexture>>::fromJSI(
-                  runtime, texture, false);
-          result->_instance.texture = val->_instance;
+        if (texture.isObject() &&
+            texture.getObject(runtime).isHostObject(runtime)) {
+          result->_instance.texture =
+              texture.getObject(runtime)
+                  .asHostObject<rnwgpu::GPUTexture>(runtime)
+                  ->get();
         }
 
         if (texture.isUndefined()) {

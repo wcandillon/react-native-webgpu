@@ -57,18 +57,19 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
           auto val = m::JSIConverter<
               std::shared_ptr<rnwgpu::GPURenderPassDepthStencilAttachment>>::
               fromJSI(runtime, depthStencilAttachment, false);
-          result->_instance.depthStencilAttachment = val->_instance;
+          result->_instance.depthStencilAttachment = val->getInstance();
         }
       }
       if (value.hasProperty(runtime, "occlusionQuerySet")) {
         auto occlusionQuerySet =
             value.getProperty(runtime, "occlusionQuerySet");
 
-        if (occlusionQuerySet.isObject()) {
-          auto val =
-              m::JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySet>>::fromJSI(
-                  runtime, occlusionQuerySet, false);
-          result->_instance.occlusionQuerySet = val->_instance;
+        if (occlusionQuerySet.isObject() &&
+            occlusionQuerySet.getObject(runtime).isHostObject(runtime)) {
+          result->_instance.occlusionQuerySet =
+              occlusionQuerySet.getObject(runtime)
+                  .asHostObject<rnwgpu::GPUQuerySet>(runtime)
+                  ->get();
         }
       }
       if (value.hasProperty(runtime, "timestampWrites")) {
@@ -79,14 +80,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
               rnwgpu::GPURenderPassTimestampWrites>>::fromJSI(runtime,
                                                               timestampWrites,
                                                               false);
-          result->_instance.timestampWrites = val->_instance;
-        }
-      }
-      if (value.hasProperty(runtime, "maxDrawCount")) {
-        auto maxDrawCount = value.getProperty(runtime, "maxDrawCount");
-
-        if (maxDrawCount.isNumber()) {
-          result->_instance.maxDrawCount = maxDrawCount.getNumber();
+          result->_instance.timestampWrites = val->getInstance();
         }
       }
       if (value.hasProperty(runtime, "label")) {

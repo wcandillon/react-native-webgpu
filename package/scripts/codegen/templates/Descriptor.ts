@@ -21,11 +21,10 @@ const getEnumName = (name: string) => {
   return enumMap2[name] ?? `wgpu::${enumMap[name] || name.substring(3)}`;
 };
 
+// TODO: HANDLE THESE
+const propsToSkip = ["unclippedDepth", "maxDrawCount"];
+
 const getBoolean = (name: string) => {
-  // TODO: unclippedDepth
-  if (name === "unclippedDepth") {
-    return "";
-  }
   return `if (${name}.isBool()) {
     result->_instance.${name} = ${name}.getBool();
 }`;
@@ -54,14 +53,12 @@ const getString = (name: string, setOnInstance = true) => {
 }`;
 };
 
-const objectInstance: Record<string, true> = {
-  GPUShaderModule: true,
-};
-
 const isDescriptorPtr: Record<string, true> = {
   GPUFragmentState: true,
   GPUDepthStencilState: true,
   GPUBindGroupLayout: true,
+  GPURenderPassDepthStencilAttachment: true,
+  GPURenderPassTimestampWrites: true,
 };
 
 export const descriptorToSkip = [
@@ -79,13 +76,14 @@ const aliasMap: Record<string, string> = {
 const getDescriptorObject = (
   name: string,
   _alias: string,
+  hybridObjects: string[],
   dependencies: string[],
 ) => {
   const alias = aliasMap[_alias] ?? _alias;
   if (!descriptorToSkip.includes(alias)) {
     dependencies.push(alias);
   }
-  if (objectInstance[alias]) {
+  if (hybridObjects.includes(alias)) {
     return `if (${name}.isObject() && ${name}.getObject(runtime).isHostObject(runtime)) {
       result->_instance.${name} = ${name}.getObject(runtime).asHostObject<rnwgpu::${alias}>(runtime)->get();
   }`;
@@ -129,6 +127,7 @@ const propFromJSI = (
   className: string,
   prop: PropertySignature,
   _unions: Union[],
+  hybridObjects: string[],
   dependencies: string[],
 ) => {
   const name = prop.getName();
@@ -178,7 +177,7 @@ const propFromJSI = (
   ${isUnion ? getUnion(name, alias) : ""}
   ${isString ? getString(name, name === "label") : ""}
   ${isAutoLayout ? getAutoLayout() : ""}
-  ${isDescriptor ? getDescriptorObject(name, alias, dependencies) : ""}
+  ${isDescriptor ? getDescriptorObject(name, alias, hybridObjects, dependencies) : ""}
   ${
     // !isBoolean && !isNumber && !isString && !isOptional
     //   ? (() => {
@@ -204,7 +203,11 @@ const propFromJSI = (
   }`;
 };
 
-export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
+export const getDescriptor = (
+  decl: InterfaceDeclaration,
+  unions: Union[],
+  hybridObjects: string[],
+) => {
   mergeParentInterfaces(decl);
   const dependencies: string[] = [];
   const name = decl.getName();
@@ -222,9 +225,12 @@ export const getDescriptor = (decl: InterfaceDeclaration, unions: Union[]) => {
     .map((prop) => {
       return `std::string ${prop.getName()};`;
     });
-  const properties = decl.getProperties().map((prop) => {
-    return propFromJSI(name, prop, unions, dependencies);
-  });
+  const properties = decl
+    .getProperties()
+    .filter((prop) => !propsToSkip.includes(prop.getName()))
+    .map((prop) => {
+      return propFromJSI(name, prop, unions, hybridObjects, dependencies);
+    });
   //decl.getType(
   return `#pragma once
 

@@ -109,7 +109,7 @@ sourceFile
 console.log("===");
 console.log("Objects");
 console.log("===");
-sourceFile
+const hybridObject = sourceFile
   .getInterfaces()
   .filter(
     (decl) =>
@@ -118,10 +118,10 @@ sourceFile
       !decl.getName().endsWith("Error") &&
       !decl.getName().endsWith("Base") &&
       decl.getProperty("__brand") !== undefined,
-  )
-  .forEach((decl) => {
-    writeFile("object", decl.getName(), getHybridObject(decl));
-  });
+  );
+hybridObject.forEach((decl) => {
+  writeFile("object", decl.getName(), getHybridObject(decl));
+});
 
 // Descriptors
 // the following two descriptors map to:
@@ -179,5 +179,13 @@ sourceFile
       decl.getProperty("__brand") === undefined,
   )
   .forEach((decl) => {
-    writeFile("descriptor", decl.getName(), getDescriptor(decl, unions));
+    writeFile(
+      "descriptor",
+      decl.getName(),
+      getDescriptor(
+        decl,
+        unions,
+        hybridObject.map((d) => d.getName()),
+      ),
+    );
   });

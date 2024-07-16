@@ -38,11 +38,11 @@ struct JSIConverter<
       if (value.hasProperty(runtime, "view")) {
         auto view = value.getProperty(runtime, "view");
 
-        if (view.isObject()) {
-          auto val =
-              m::JSIConverter<std::shared_ptr<rnwgpu::GPUTextureView>>::fromJSI(
-                  runtime, view, false);
-          result->_instance.view = val->_instance;
+        if (view.isObject() && view.getObject(runtime).isHostObject(runtime)) {
+          result->_instance.view =
+              view.getObject(runtime)
+                  .asHostObject<rnwgpu::GPUTextureView>(runtime)
+                  ->get();
         }
 
         if (view.isUndefined()) {

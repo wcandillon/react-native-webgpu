@@ -35,11 +35,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
       if (value.hasProperty(runtime, "buffer")) {
         auto buffer = value.getProperty(runtime, "buffer");
 
-        if (buffer.isObject()) {
-          auto val =
-              m::JSIConverter<std::shared_ptr<rnwgpu::GPUBuffer>>::fromJSI(
-                  runtime, buffer, false);
-          result->_instance.buffer = val->_instance;
+        if (buffer.isObject() &&
+            buffer.getObject(runtime).isHostObject(runtime)) {
+          result->_instance.buffer =
+              buffer.getObject(runtime)
+                  .asHostObject<rnwgpu::GPUBuffer>(runtime)
+                  ->get();
         }
 
         if (buffer.isUndefined()) {
