@@ -61,6 +61,7 @@ const objectInstance: Record<string, true> = {
 const isDescriptorPtr: Record<string, true> = {
   GPUFragmentState: true,
   GPUDepthStencilState: true,
+  GPUBindGroupLayout: true,
 };
 
 export const descriptorToSkip = [
@@ -151,7 +152,7 @@ const propFromJSI = (
     types.some((t) => t.isStringLiteral()) &&
     prop.getName() === "layout";
   const isEnum = !!alias?.startsWith("GPU") && !enumsToSkip.includes(alias);
-  const labels = types.map((t) => t.getText());
+  //const labels = types.map((t) => t.getText());
   const isDescriptor =
     alias && alias.startsWith("GPU") && !isNumber && !isUnion;
   // const isDescriptor =
@@ -164,11 +165,11 @@ const propFromJSI = (
     !isAutoLayout &&
     !isDescriptor
   ) {
-    const symbols = labels; //.filter((l) => !l.includes("import("));
-    console.log("unhandled prop:");
-    console.log({
-      [prop.getName()]: symbols,
-    });
+    //    const symbols = labels; //.filter((l) => !l.includes("import("));
+    // console.log("unhandled prop:");
+    // console.log({
+    //   [prop.getName()]: symbols,
+    // });
   }
   return `if (value.hasProperty(runtime, "${name}")) {
   auto ${name} = value.getProperty(runtime, "${name}");

@@ -43,7 +43,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
               std::shared_ptr<rnwgpu::GPUBindGroupLayout>>::fromJSI(runtime,
                                                                     layout,
                                                                     false);
-          result->_instance.layout = val->get();
+          result->_instance.layout = val->_instance;
         }
 
         if (layout.isUndefined()) {

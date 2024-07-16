@@ -47,6 +47,7 @@ const methodWhiteList = [
   "setPipeline",
   "draw",
   "end",
+  "getBindGroupLayout",
 ];
 
 const propWhiteList: Record<string, string[]> = {

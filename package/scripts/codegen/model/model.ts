@@ -166,13 +166,26 @@ export const resolveMethod = (methodSignature: MethodSignature) => {
     modelMethod.returns as keyof typeof dawn,
     dependencies,
   );
+  // if (methodName === "draw") {
+  //   (hasPropery(modelMethod, "args") ? modelMethod.args : []).forEach(
+  //     ({ name, type }) => {
+  //       console.log({
+  //         name,
+  //         type,
+  //         optional: methodSignature
+  //           .getParameter(_.camelCase(name))
+  //           ?.isOptional(),
+  //       });
+  //     },
+  //   );
+  // }
   const args = (hasPropery(modelMethod, "args") ? modelMethod.args : []).map(
     ({ name, type }) => ({
       name: _.camelCase(name),
       type: resolveType(
         type as keyof typeof dawn,
         dependencies,
-        methodSignature.getParameter(name)?.isOptional(),
+        methodSignature.getParameter(_.camelCase(name))?.isOptional(),
       ),
     }),
   );

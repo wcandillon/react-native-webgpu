@@ -59,7 +59,6 @@ GPUDevice::createBindGroup(std::shared_ptr<GPUBindGroupDescriptor> descriptor) {
   return std::make_shared<GPUBindGroup>(bindGroup, descriptor->label);
 }
 
-
 std::shared_ptr<GPUSampler>
 GPUDevice::createSampler(std::shared_ptr<GPUSamplerDescriptor> descriptor) {
   auto sampler = _instance.CreateSampler(descriptor->getInstance());

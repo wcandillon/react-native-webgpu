@@ -17,8 +17,8 @@ std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(
   return std::make_shared<GPUCommandBuffer>(commandBuffer, _label);
 }
 
-std::shared_ptr<GPURenderPassEncoder>
-GPUCommandEncoder::beginRenderPass(std::shared_ptr<GPURenderPassDescriptor> descriptor) {
+std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
+    std::shared_ptr<GPURenderPassDescriptor> descriptor) {
   auto renderPass = _instance.BeginRenderPass(&descriptor->_instance);
   return std::make_shared<GPURenderPassEncoder>(renderPass, descriptor->label);
 }

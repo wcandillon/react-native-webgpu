@@ -35,8 +35,9 @@ public:
   std::shared_ptr<GPURenderBundle>
   finish(std::shared_ptr<GPURenderBundleDescriptor> descriptor);
   void setPipeline(std::shared_ptr<GPURenderPipeline> pipeline);
-  void draw(uint32_t vertexCount, std::optional<uint32_t> instanceCount, std::optional<uint32_t> firstVertex,
-          std::optional<uint32_t> firstInstance);
+  void draw(uint32_t vertexCount, std::optional<uint32_t> instanceCount,
+            std::optional<uint32_t> firstVertex,
+            std::optional<uint32_t> firstInstance);
 
   std::string getLabel() { return _label; }
 

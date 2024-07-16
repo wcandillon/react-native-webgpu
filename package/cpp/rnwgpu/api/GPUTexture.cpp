@@ -4,10 +4,10 @@ namespace rnwgpu {
 
 void GPUTexture::destroy() { _instance.Destroy(); }
 
-
 std::shared_ptr<GPUTextureView>
 GPUTexture::createView(std::shared_ptr<GPUTextureViewDescriptor> descriptor) {
-  return std::make_shared<GPUTextureView>(_instance.CreateView(descriptor->getInstance()), descriptor->label);
+  return std::make_shared<GPUTextureView>(
+      _instance.CreateView(descriptor->getInstance()), descriptor->label);
 }
 
 uint32_t GPUTexture::getWidth() { return _instance.GetWidth(); }
