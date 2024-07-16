@@ -11,7 +11,8 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
     wgpu::Device device = nullptr;
     auto aDescriptor = descriptor->getInstance();
     wgpu::DeviceLostCallbackInfo info = {
-      .callback = [](WGPUDevice const * device, WGPUDeviceLostReason reason, char const * message, void * userdata) {
+        .callback = [](WGPUDevice const *device, WGPUDeviceLostReason reason,
+                       char const *message, void *userdata) {
           const char *lostReason = "";
           switch (reason) {
           case WGPUDeviceLostReason_Destroyed:
@@ -24,11 +25,10 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
             lostReason = "Unknown";
           }
           Logger::logToConsole("GPU Device Lost (%s): %s", lostReason, message);
-      }
-    };
+        }};
     aDescriptor->deviceLostCallbackInfo = info;
     wgpu::UncapturedErrorCallbackInfo errorInfo = {
-      .callback = [](WGPUErrorType type, const char *message, void *) {
+        .callback = [](WGPUErrorType type, const char *message, void *) {
           const char *errorType = "";
           switch (type) {
           case WGPUErrorType_Validation:
@@ -47,8 +47,7 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
             errorType = "Unknown";
           }
           Logger::logToConsole("GPU Error (%s): %s", errorType, message);
-        }
-    };
+        }};
     aDescriptor->uncapturedErrorCallbackInfo = errorInfo;
     _instance.RequestDevice(
         aDescriptor,
