@@ -28,7 +28,9 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
         }};
     aDescriptor->deviceLostCallbackInfo = info;
     wgpu::UncapturedErrorCallbackInfo errorInfo = {
-        .callback = [](WGPUErrorType type, const char *message, void *) {
+        .userdata = static_cast<void *>(_creationRuntime),
+        .callback = [](WGPUErrorType type, const char *message, void * userdata) {
+          auto creationRuntime = static_cast<jsi::Runtime *>(userdata);
           const char *errorType = "";
           switch (type) {
           case WGPUErrorType_Validation:
@@ -46,7 +48,7 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
           default:
             errorType = "Unknown";
           }
-          Logger::logToConsole("GPU Error (%s): %s", errorType, message);
+          Logger::errorToJavascriptConsole(*creationRuntime, message);
         }};
     aDescriptor->uncapturedErrorCallbackInfo = errorInfo;
     _instance.RequestDevice(
@@ -66,7 +68,8 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
       throw std::runtime_error("Failed to request device");
     }
     device.SetLoggingCallback(
-        [](WGPULoggingType type, const char *message, void *) {
+        [](WGPULoggingType type, const char *message, void * userdata) {
+          auto creationRuntime = static_cast<jsi::Runtime *>(userdata);
           const char *logLevel = "";
           switch (type) {
           case WGPULoggingType_Verbose:
@@ -84,9 +87,15 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
           default:
             logLevel = "Unknown";
           }
-          Logger::logToConsole("GPU Log (%s): %s", logLevel, message);
+          if (logLevel == "Warning") {
+            Logger::warnToJavascriptConsole(*creationRuntime, message);
+          } else if (logLevel == "Error") {
+            Logger::errorToJavascriptConsole(*creationRuntime, message);
+          } else {
+            Logger::logToConsole("%s: %s", logLevel, message);
+          }
         },
-        nullptr);
+        _creationRuntime);
     return std::make_shared<GPUDevice>(std::move(device), _async,
                                        descriptor->label);
   });

@@ -69,7 +69,7 @@ public:
     warn.call(runtime, jsi::String::createFromUtf8(runtime, message));
   }
 
-  static void errToJavascriptConsole(jsi::Runtime &runtime,
+  static void errorToJavascriptConsole(jsi::Runtime &runtime,
                                       const std::string &message) {
     auto console = Logger::getJavascriptConsole(runtime).asObject(runtime);
     auto warn = console.getPropertyAsFunction(runtime, "error");
