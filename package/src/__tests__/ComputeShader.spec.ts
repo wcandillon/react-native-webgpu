@@ -190,6 +190,7 @@ describe("Computer Shader", () => {
       },
     );
     expect(result.length).toBe(16 * 16 + 2);
+    expect(result.some((x) => x !== 0)).toBe(true);
     const referenceResult = multiplyMatrices(m1, m2);
     for (let i = 0; i < result.length; i++) {
       expect(result[i]).toBeCloseTo(referenceResult[i], 5); // Using 5 decimal places for floating-point comparison
