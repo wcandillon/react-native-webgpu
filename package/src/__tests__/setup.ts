@@ -1,8 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-var */
+import fs from "fs";
+
 import type { Server, WebSocket } from "ws";
 import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer";
+import { PNG } from "pngjs";
 
 import { cubeVertexArray } from "../../example/src/components/cube";
 import {
@@ -178,3 +181,33 @@ class ReferenceTestingClient implements TestingClient {
     }
   }
 }
+
+export const saveImage = (
+  data: Uint8Array,
+  width: number,
+  height: number,
+  dstPath: string,
+) => {
+  // Create a new PNG
+  const png = new PNG({
+    width: width,
+    height: height,
+    filterType: -1,
+  });
+
+  // Copy the image data to the PNG
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (width * y + x) << 2;
+      png.data[idx] = data[idx];
+      png.data[idx + 1] = data[idx + 1];
+      png.data[idx + 2] = data[idx + 2];
+      png.data[idx + 3] = data[idx + 3];
+    }
+  }
+
+  // Save the PNG to a file
+  // Encode the PNG and save to file
+  const buffer = PNG.sync.write(png);
+  fs.writeFileSync(dstPath, buffer);
+};

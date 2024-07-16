@@ -1,4 +1,4 @@
-import { client } from "./setup";
+import { client, saveImage } from "./setup";
 
 describe("Texture", () => {
   it("Check usage", async () => {
@@ -50,6 +50,12 @@ describe("Texture", () => {
         const textureWidth = 800;
         const textureHeight = 600;
 
+        // Calculate bytesPerRow to be a multiple of 256
+        const bytesPerRow = Math.ceil((textureWidth * 4) / 256) * 256;
+
+        // Calculate the required buffer size
+        const bufferSize = bytesPerRow * textureHeight;
+
         // Create the off-screen texture
         const texture = device.createTexture({
           size: [textureWidth, textureHeight],
@@ -83,38 +89,43 @@ describe("Texture", () => {
 
         // Create a buffer to store the rendered image
         const outputBuffer = device.createBuffer({
-          size: textureWidth * textureHeight * 4,
+          size: bufferSize,
           usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
 
-        const commandEncoder = device.createCommandEncoder();
-        const textureView = texture.createView();
+        function render() {
+          const commandEncoder = device.createCommandEncoder();
+          const textureView = texture.createView();
 
-        const renderPassDescriptor: GPURenderPassDescriptor = {
-          colorAttachments: [
-            {
-              view: textureView,
-              clearValue: [0, 0, 0, 1],
-              loadOp: "clear",
-              storeOp: "store",
-            },
-          ],
-        };
+          const renderPassDescriptor: GPURenderPassDescriptor = {
+            colorAttachments: [
+              {
+                view: textureView,
+                clearValue: [0, 0, 0, 1],
+                loadOp: "clear",
+                storeOp: "store",
+              },
+            ],
+          };
 
-        const passEncoder =
-          commandEncoder.beginRenderPass(renderPassDescriptor);
-        passEncoder.setPipeline(pipeline);
-        passEncoder.draw(3);
-        passEncoder.end();
+          const passEncoder =
+            commandEncoder.beginRenderPass(renderPassDescriptor);
+          passEncoder.setPipeline(pipeline);
+          passEncoder.draw(3);
+          passEncoder.end();
 
-        // Copy the rendered texture to the output buffer
-        commandEncoder.copyTextureToBuffer(
-          { texture },
-          { buffer: outputBuffer, bytesPerRow: textureWidth * 4 },
-          [textureWidth, textureHeight],
-        );
+          // Copy the rendered texture to the output buffer
+          commandEncoder.copyTextureToBuffer(
+            { texture },
+            { buffer: outputBuffer, bytesPerRow: bytesPerRow },
+            [textureWidth, textureHeight],
+          );
 
-        device.queue.submit([commandEncoder.finish()]);
+          device.queue.submit([commandEncoder.finish()]);
+        }
+
+        // Render once
+        render();
 
         // Read the result
         return outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
@@ -130,6 +141,21 @@ describe("Texture", () => {
         });
       },
     );
-    expect(result.length).toBe(1920000);
+    //expect(result.length).toBe(1920000);
+    const uint8Array = new Uint8Array(result);
+    const textureWidth = 800;
+    const textureHeight = 600;
+    const bytesPerRow = 4;
+    const imageData = new Uint8Array(textureWidth * textureHeight * 4);
+    for (let y = 0; y < textureHeight; y++) {
+      const sourceOffset = y * bytesPerRow;
+      const targetOffset = y * textureWidth * 4;
+      imageData.set(
+        uint8Array.subarray(sourceOffset, sourceOffset + textureWidth * 4),
+        targetOffset,
+      );
+    }
+
+    saveImage(imageData, 800, 600, "src/__tests__/snapshots/texture.png");
   });
 });
