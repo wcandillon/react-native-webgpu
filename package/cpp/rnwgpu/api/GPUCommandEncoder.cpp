@@ -27,7 +27,10 @@ std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
 void GPUCommandEncoder::copyTextureToBuffer(std::shared_ptr<GPUImageCopyTexture> source,
                            std::shared_ptr<GPUImageCopyBuffer> destination,
                            std::shared_ptr<GPUExtent3D> copySize) {
-  _instance.CopyTextureToBuffer(source->getInstance(), destination->getInstance(), copySize->getInstance());
+  auto src = source->getInstance();
+  auto dst = destination->getInstance();
+  auto size = copySize->getInstance();
+  _instance.CopyTextureToBuffer(src, dst, size);
 }
 
 } // namespace rnwgpu
