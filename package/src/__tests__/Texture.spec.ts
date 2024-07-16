@@ -234,7 +234,8 @@ describe("Texture", () => {
         });
       },
     );
-    //expect(result.length).toBe(1920000);
+    expect(result.length).toBe(1996800);
+    expect(result.some((b) => b !== 0)).toBe(true);
     const uint8Array = new Uint8Array(result);
     const textureWidth = 800;
     const textureHeight = 600;
