@@ -55,14 +55,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyBuffer>> {
         auto offset = value.getProperty(runtime, "offset");
 
         if (offset.isNumber()) {
-          result->_instance.offset = offset.getNumber();
+          result->_instance.layout.offset = offset.getNumber();
         }
       }
       if (value.hasProperty(runtime, "bytesPerRow")) {
         auto bytesPerRow = value.getProperty(runtime, "bytesPerRow");
 
         if (bytesPerRow.isNumber()) {
-          result->_instance.bytesPerRow =
+          result->_instance.layout.bytesPerRow =
               static_cast<uint32_t>(bytesPerRow.getNumber());
         }
       }
@@ -70,7 +70,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyBuffer>> {
         auto rowsPerImage = value.getProperty(runtime, "rowsPerImage");
 
         if (rowsPerImage.isNumber()) {
-          result->_instance.rowsPerImage =
+          result->_instance.layout.rowsPerImage =
               static_cast<uint32_t>(rowsPerImage.getNumber());
         }
       }

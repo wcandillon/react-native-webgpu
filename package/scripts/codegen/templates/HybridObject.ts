@@ -49,6 +49,7 @@ const methodWhiteList = [
   "end",
   "getBindGroupLayout",
   "setBindGroup",
+  "copyTextureToBuffer",
 ];
 
 const propWhiteList: Record<string, string[]> = {

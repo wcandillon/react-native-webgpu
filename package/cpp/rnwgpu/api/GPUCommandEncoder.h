@@ -17,6 +17,9 @@
 #include "GPUBuffer.h"
 #include "GPUCommandBuffer.h"
 #include "GPUCommandBufferDescriptor.h"
+#include "GPUExtent3D.h"
+#include "GPUImageCopyBuffer.h"
+#include "GPUImageCopyTexture.h"
 #include "GPURenderPassDescriptor.h"
 #include "GPURenderPassEncoder.h"
 
@@ -38,6 +41,9 @@ public:
                           uint64_t sourceOffset,
                           std::shared_ptr<GPUBuffer> destination,
                           uint64_t destinationOffset, uint64_t size);
+  void copyTextureToBuffer(std::shared_ptr<GPUImageCopyTexture> source,
+                           std::shared_ptr<GPUImageCopyBuffer> destination,
+                           std::shared_ptr<GPUExtent3D> copySize);
   std::shared_ptr<GPUCommandBuffer>
   finish(std::shared_ptr<GPUCommandBufferDescriptor> descriptor);
 
@@ -49,6 +55,8 @@ public:
                          this);
     registerHybridMethod("copyBufferToBuffer",
                          &GPUCommandEncoder::copyBufferToBuffer, this);
+    registerHybridMethod("copyTextureToBuffer",
+                         &GPUCommandEncoder::copyTextureToBuffer, this);
     registerHybridMethod("finish", &GPUCommandEncoder::finish, this);
 
     registerHybridGetter("label", &GPUCommandEncoder::getLabel, this);
