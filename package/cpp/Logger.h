@@ -11,7 +11,7 @@
 #include <android/log.h>
 #endif
 
-#ifdef TARGET_OS_IPHONE
+#ifdef __APPLE__
 #include <syslog.h>
 #endif
 
@@ -27,10 +27,10 @@ public:
    */
   static void logToConsole(std::string message) {
 #if defined(ANDROID) || defined(__ANDROID__)
-    __android_log_write(ANDROID_LOG_INFO, "RNSkia", message.c_str());
+    __android_log_write(ANDROID_LOG_INFO, "WebGPU", message.c_str());
 #endif
 
-#ifdef TARGET_OS_IPHONE
+#ifdef __APPLE__
     syslog(LOG_ERR, "%s\n", message.c_str());
 #endif
   }
@@ -47,10 +47,10 @@ public:
     static char buffer[512];
     vsnprintf(buffer, sizeof(buffer), fmt, args);
 #if defined(ANDROID) || defined(__ANDROID__)
-    __android_log_write(ANDROID_LOG_INFO, "RNSkia", buffer);
+    __android_log_write(ANDROID_LOG_INFO, "WebGPU", buffer);
 #endif
-#ifdef TARGET_OS_IPHONE
-    syslog(LOG_ERR, "RNSKIA: %s\n", buffer);
+#ifdef __APPLE__
+    syslog(LOG_ERR, "WebGPU: %s\n", buffer);
 #endif
     va_end(args);
   }

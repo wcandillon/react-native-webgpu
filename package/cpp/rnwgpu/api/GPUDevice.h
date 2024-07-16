@@ -41,7 +41,74 @@ public:
   explicit GPUDevice(wgpu::Device instance, std::shared_ptr<AsyncRunner> async,
                      std::string label)
       : HybridObject("GPUDevice"), _instance(instance), _async(async),
-        _label(label) {}
+        _label(label) {
+    // TODO: SetDeviceLostCallback is deprecated. Pass the callback in the device descriptor instead.
+    // TODO: SetUncapturedErrorCallback is deprecated. Pass the callback in the device descriptor instead.
+    // Set up logging callback
+    _instance.SetUncapturedErrorCallback(
+        [](WGPUErrorType type, const char *message, void *) {
+          const char *errorType = "";
+          switch (type) {
+          case WGPUErrorType_Validation:
+            errorType = "Validation";
+            break;
+          case WGPUErrorType_OutOfMemory:
+            errorType = "Out of Memory";
+            break;
+          case WGPUErrorType_Internal:
+            errorType = "Internal";
+            break;
+          case WGPUErrorType_Unknown:
+            errorType = "Unknown";
+            break;
+          default:
+            errorType = "Unknown";
+          }
+          Logger::logToConsole("GPU Error (%s): %s", errorType, message);
+        },
+        nullptr);
+
+    // Set up logging callback
+    _instance.SetLoggingCallback(
+        [](WGPULoggingType type, const char *message, void *) {
+          const char *logLevel = "";
+          switch (type) {
+          case WGPULoggingType_Verbose:
+            logLevel = "Verbose";
+            break;
+          case WGPULoggingType_Info:
+            logLevel = "Info";
+            break;
+          case WGPULoggingType_Warning:
+            logLevel = "Warning";
+            break;
+          case WGPULoggingType_Error:
+            logLevel = "Error";
+            break;
+          default:
+            logLevel = "Unknown";
+          }
+          Logger::logToConsole("GPU Log (%s): %s", logLevel, message);
+        },
+        nullptr);
+    // Set up device lost callback
+    _instance.SetDeviceLostCallback(
+        [](WGPUDeviceLostReason reason, const char *message, void *) {
+          const char *lostReason = "";
+          switch (reason) {
+          case WGPUDeviceLostReason_Destroyed:
+            lostReason = "Destroyed";
+            break;
+          case WGPUDeviceLostReason_Unknown:
+            lostReason = "Unknown";
+            break;
+          default:
+            lostReason = "Unknown";
+          }
+          Logger::logToConsole("GPU Device Lost (%s): %s", lostReason, message);
+        },
+        nullptr);
+  }
 
 public:
   std::string getBrand() { return _name; }
