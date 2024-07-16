@@ -29,7 +29,8 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
     aDescriptor->deviceLostCallbackInfo = info;
     wgpu::UncapturedErrorCallbackInfo errorInfo = {
         .userdata = static_cast<void *>(_creationRuntime),
-        .callback = [](WGPUErrorType type, const char *message, void * userdata) {
+        .callback = [](WGPUErrorType type, const char *message,
+                       void *userdata) {
           auto creationRuntime = static_cast<jsi::Runtime *>(userdata);
           const char *errorType = "";
           switch (type) {
@@ -49,7 +50,8 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
             errorType = "Unknown";
           }
           std::string fullMessage = std::string(errorType) + ": " + message;
-          Logger::errorToJavascriptConsole(*creationRuntime, fullMessage.c_str());
+          Logger::errorToJavascriptConsole(*creationRuntime,
+                                           fullMessage.c_str());
         }};
     aDescriptor->uncapturedErrorCallbackInfo = errorInfo;
     _instance.RequestDevice(
@@ -69,7 +71,7 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
       throw std::runtime_error("Failed to request device");
     }
     device.SetLoggingCallback(
-        [](WGPULoggingType type, const char *message, void * userdata) {
+        [](WGPULoggingType type, const char *message, void *userdata) {
           auto creationRuntime = static_cast<jsi::Runtime *>(userdata);
           const char *logLevel = "";
           switch (type) {

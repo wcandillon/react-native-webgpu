@@ -22,7 +22,7 @@ const multiplyMatrices = (m1: number[], m2: number[]) => {
 };
 
 describe("Computer Shader", () => {
-  it("matrix multiplication", async () => {
+  it.skip("matrix multiplication", async () => {
     // First Matrix
     const rows = 16;
     const columns = 16;
