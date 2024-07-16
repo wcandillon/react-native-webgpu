@@ -43,4 +43,93 @@ describe("Texture", () => {
       20,
     ]);
   });
+  it("Create texture and reads it", async () => {
+    const result = await client.eval(
+      ({ device, triangleVertWGSL, redFragWGSL }) => {
+        // Define the size of the off-screen texture
+        const textureWidth = 800;
+        const textureHeight = 600;
+
+        // Create the off-screen texture
+        const texture = device.createTexture({
+          size: [textureWidth, textureHeight],
+          format: "rgba8unorm",
+          usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+        });
+
+        const pipeline = device.createRenderPipeline({
+          layout: "auto",
+          vertex: {
+            module: device.createShaderModule({
+              code: triangleVertWGSL,
+            }),
+            entryPoint: "main",
+          },
+          fragment: {
+            module: device.createShaderModule({
+              code: redFragWGSL,
+            }),
+            entryPoint: "main",
+            targets: [
+              {
+                format: "rgba8unorm",
+              },
+            ],
+          },
+          primitive: {
+            topology: "triangle-list",
+          },
+        });
+
+        // Create a buffer to store the rendered image
+        const outputBuffer = device.createBuffer({
+          size: textureWidth * textureHeight * 4,
+          usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+        });
+
+        const commandEncoder = device.createCommandEncoder();
+        const textureView = texture.createView();
+
+        const renderPassDescriptor: GPURenderPassDescriptor = {
+          colorAttachments: [
+            {
+              view: textureView,
+              clearValue: [0, 0, 0, 1],
+              loadOp: "clear",
+              storeOp: "store",
+            },
+          ],
+        };
+
+        const passEncoder =
+          commandEncoder.beginRenderPass(renderPassDescriptor);
+        passEncoder.setPipeline(pipeline);
+        passEncoder.draw(3);
+        passEncoder.end();
+
+        // Copy the rendered texture to the output buffer
+        commandEncoder.copyTextureToBuffer(
+          { texture },
+          { buffer: outputBuffer, bytesPerRow: textureWidth * 4 },
+          [textureWidth, textureHeight],
+        );
+
+        device.queue.submit([commandEncoder.finish()]);
+
+        // Read the result
+        return outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
+          const arrayBuffer = outputBuffer.getMappedRange();
+          const uint8Array = new Uint8Array(arrayBuffer);
+
+          // At this point, uint8Array contains the pixel data of the rendered image
+          // You can process it further, save it, or send it somewhere else
+
+          const r = Array.from(uint8Array);
+          outputBuffer.unmap();
+          return r;
+        });
+      },
+    );
+    expect(result.length).toBe(1920000);
+  });
 });
