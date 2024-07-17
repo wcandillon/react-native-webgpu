@@ -224,7 +224,7 @@ ${
   !noConv.includes(name) && !customConv[name]
     ? `
 bool conv(wgpu::${nativeMapName[name] ?? name.substring(3)} &out,
-          const ${name} &in) {
+          ${name} &in) {
   ${props
     .filter((p) => p.type.startsWith("std::vector"))
     .map((p) => `out.${singular(p.name)}Count = in.${p.name}.size();`)
@@ -274,7 +274,7 @@ const singular = (word: string) => {
 };
 
 const customConv: Record<string, string> = {
-  GPUBindGroupEntry: `bool conv(wgpu::BindGroupEntry &out, const GPUBindGroupEntry &in) {
+  GPUBindGroupEntry: `bool conv(wgpu::BindGroupEntry &out, GPUBindGroupEntry &in) {
   // out = {};
   if (!conv(out.binding, in.binding)) {
     return false;
@@ -303,7 +303,7 @@ const customConv: Record<string, string> = {
   }
   return false;
 }`,
-  GPUImageCopyBuffer: `bool conv(wgpu::ImageCopyBuffer &out, const GPUImageCopyBuffer &in) {
+  GPUImageCopyBuffer: `bool conv(wgpu::ImageCopyBuffer &out, GPUImageCopyBuffer &in) {
   return conv(out.buffer, in.buffer) && conv(out.layout.offset, in.offset) &&
          conv(out.layout.bytesPerRow, in.bytesPerRow) &&
          conv(out.layout.rowsPerImage, in.rowsPerImage);
@@ -312,7 +312,7 @@ const customConv: Record<string, string> = {
   // TODO: implement
   return false;
 }`,
-  GPUPrimitiveState: `bool conv(wgpu::PrimitiveState &out, const GPUPrimitiveState &in) {
+  GPUPrimitiveState: `bool conv(wgpu::PrimitiveState &out, GPUPrimitiveState &in) {
  if (in.unclippedDepth) {
      // TODO: fix memory leak here
      wgpu::PrimitiveDepthClipControl* depthClip = new wgpu::PrimitiveDepthClipControl();
@@ -323,7 +323,7 @@ const customConv: Record<string, string> = {
          conv(out.stripIndexFormat, in.stripIndexFormat) &&
          conv(out.frontFace, in.frontFace) && conv(out.cullMode, in.cullMode);
 }`,
-  GPURenderPassDescriptor: `bool conv(wgpu::RenderPassDescriptor &out, const GPURenderPassDescriptor &in) {
+  GPURenderPassDescriptor: `bool conv(wgpu::RenderPassDescriptor &out, GPURenderPassDescriptor &in) {
   out.colorAttachmentCount = in.colorAttachments.size();
   wgpu::RenderPassDescriptor desc{};
   wgpu::RenderPassDescriptorMaxDrawCount maxDrawCountDesc{};

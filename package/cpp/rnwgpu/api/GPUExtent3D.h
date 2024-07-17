@@ -9,14 +9,14 @@
 namespace rnwgpu {
 
 struct GPUExtent3D {
-  uint32_t width;
-  uint32_t height = 1;
-  uint32_t depthOrArrayLayers = 1;
+  double width;
+  double height = 1;
+  double depthOrArrayLayers = 1;
 };
 
 bool conv(wgpu::Extent3D &out, const GPUExtent3D &in) {
-  return conv(out.width, in.width) && conv(out.width, in.width) &&
-         conv(out.width, in.width);
+  return conv(out.width, in.width) && conv(out.height, in.height) &&
+         conv(out.depthOrArrayLayers, in.depthOrArrayLayers);
 }
 
 } // namespace rnwgpu

@@ -20,8 +20,7 @@ struct GPUCommandBufferDescriptor {
   std::optional<std::string> label; // string
 };
 
-bool conv(wgpu::CommandBufferDescriptor &out,
-          const GPUCommandBufferDescriptor &in) {
+bool conv(wgpu::CommandBufferDescriptor &out, GPUCommandBufferDescriptor &in) {
 
   return conv(out.label, in.label);
 }

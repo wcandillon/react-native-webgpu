@@ -24,7 +24,7 @@ struct GPUUncapturedErrorEventInit {
 };
 
 bool conv(wgpu::UncapturedErrorEventInit &out,
-          const GPUUncapturedErrorEventInit &in) {
+          GPUUncapturedErrorEventInit &in) {
 
   return conv(out.error, in.error) && conv(out.bubbles, in.bubbles) &&
          conv(out.cancelable, in.cancelable) && conv(out.composed, in.composed);

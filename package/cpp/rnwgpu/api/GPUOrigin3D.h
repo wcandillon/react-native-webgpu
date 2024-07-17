@@ -9,9 +9,9 @@
 namespace rnwgpu {
 
 struct GPUOrigin3D {
-  uint32_t x = 0;
-  uint32_t y = 0;
-  uint32_t z = 0;
+  double x = 0;
+  double y = 0;
+  double z = 0;
 };
 
 bool conv(wgpu::Origin3D &out, const GPUOrigin3D &in) {

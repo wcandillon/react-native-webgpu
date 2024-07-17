@@ -21,7 +21,7 @@ struct GPUBufferBindingLayout {
   std::optional<double> minBindingSize;        // GPUSize64
 };
 
-bool conv(wgpu::BufferBindingLayout &out, const GPUBufferBindingLayout &in) {
+bool conv(wgpu::BufferBindingLayout &out, GPUBufferBindingLayout &in) {
 
   return conv(out.type, in.type) &&
          conv(out.hasDynamicOffset, in.hasDynamicOffset) &&

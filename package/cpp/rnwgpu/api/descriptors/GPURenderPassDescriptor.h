@@ -35,7 +35,7 @@ struct GPURenderPassDescriptor {
   std::optional<std::string> label;   // string
 };
 
-bool conv(wgpu::RenderPassDescriptor &out, const GPURenderPassDescriptor &in) {
+bool conv(wgpu::RenderPassDescriptor &out, GPURenderPassDescriptor &in) {
   out.colorAttachmentCount = in.colorAttachments.size();
   wgpu::RenderPassDescriptor desc{};
   wgpu::RenderPassDescriptorMaxDrawCount maxDrawCountDesc{};

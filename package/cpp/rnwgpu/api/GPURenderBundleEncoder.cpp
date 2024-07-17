@@ -9,7 +9,7 @@ std::shared_ptr<GPURenderBundle> GPURenderBundleEncoder::finish(
   wgpu::RenderBundleDescriptor desc;
   conv(desc, descriptor);
   auto bundle = _instance.Finish(&desc);
-  return std::make_shared<GPURenderBundle>(desc,
+  return std::make_shared<GPURenderBundle>(bundle,
                                            descriptor->label.value_or(""));
 }
 

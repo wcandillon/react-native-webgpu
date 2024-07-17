@@ -23,7 +23,7 @@ struct GPUComputePassTimestampWrites {
 };
 
 bool conv(wgpu::ComputePassTimestampWrites &out,
-          const GPUComputePassTimestampWrites &in) {
+          GPUComputePassTimestampWrites &in) {
 
   return conv(out.querySet, in.querySet) &&
          conv(out.beginningOfPassWriteIndex, in.beginningOfPassWriteIndex) &&

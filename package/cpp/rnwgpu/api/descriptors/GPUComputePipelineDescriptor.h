@@ -26,7 +26,7 @@ struct GPUComputePipelineDescriptor {
 };
 
 bool conv(wgpu::ComputePipelineDescriptor &out,
-          const GPUComputePipelineDescriptor &in) {
+          GPUComputePipelineDescriptor &in) {
 
   return conv(out.compute, in.compute) && conv(out.layout, in.layout) &&
          conv(out.label, in.label);

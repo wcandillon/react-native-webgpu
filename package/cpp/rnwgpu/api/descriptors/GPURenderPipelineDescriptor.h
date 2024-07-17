@@ -37,7 +37,7 @@ struct GPURenderPipelineDescriptor {
 };
 
 bool conv(wgpu::RenderPipelineDescriptor &out,
-          const GPURenderPipelineDescriptor &in) {
+          GPURenderPipelineDescriptor &in) {
 
   return conv(out.vertex, in.vertex) && conv(out.primitive, in.primitive) &&
          conv(out.depthStencil, in.depthStencil) &&

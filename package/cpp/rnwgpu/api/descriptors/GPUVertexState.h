@@ -31,7 +31,7 @@ struct GPUVertexState {
       constants; // Record< string, GPUPipelineConstantValue >
 };
 
-bool conv(wgpu::VertexState &out, const GPUVertexState &in) {
+bool conv(wgpu::VertexState &out, GPUVertexState &in) {
 
   return conv(out.buffers, in.buffers) && conv(out.module, in.module) &&
          conv(out.entryPoint, in.entryPoint) &&

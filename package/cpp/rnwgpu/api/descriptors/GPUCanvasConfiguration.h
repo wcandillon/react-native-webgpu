@@ -27,7 +27,7 @@ struct GPUCanvasConfiguration {
   std::optional<wgpu::CanvasAlphaMode> alphaMode;    // GPUCanvasAlphaMode
 };
 
-bool conv(wgpu::CanvasConfiguration &out, const GPUCanvasConfiguration &in) {
+bool conv(wgpu::CanvasConfiguration &out, GPUCanvasConfiguration &in) {
 
   out.format = in.format;
   return conv(out.device, in.device) && conv(out.usage, in.usage) &&

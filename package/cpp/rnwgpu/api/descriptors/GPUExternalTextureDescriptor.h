@@ -27,7 +27,7 @@ struct GPUExternalTextureDescriptor {
 };
 
 bool conv(wgpu::ExternalTextureDescriptor &out,
-          const GPUExternalTextureDescriptor &in) {
+          GPUExternalTextureDescriptor &in) {
 
   return conv(out.source, in.source) && conv(out.colorSpace, in.colorSpace) &&
          conv(out.label, in.label);

@@ -35,7 +35,7 @@ struct GPUBindGroupLayoutEntry {
       externalTexture; // GPUExternalTextureBindingLayout
 };
 
-bool conv(wgpu::BindGroupLayoutEntry &out, const GPUBindGroupLayoutEntry &in) {
+bool conv(wgpu::BindGroupLayoutEntry &out, GPUBindGroupLayoutEntry &in) {
 
   return conv(out.binding, in.binding) && conv(out.visibility, in.visibility) &&
          conv(out.buffer, in.buffer) && conv(out.sampler, in.sampler) &&

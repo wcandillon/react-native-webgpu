@@ -29,7 +29,7 @@ struct GPURenderPassDepthStencilAttachment {
 };
 
 bool conv(wgpu::RenderPassDepthStencilAttachment &out,
-          const GPURenderPassDepthStencilAttachment &in) {
+          GPURenderPassDepthStencilAttachment &in) {
 
   return conv(out.view, in.view) &&
          conv(out.depthClearValue, in.depthClearValue) &&

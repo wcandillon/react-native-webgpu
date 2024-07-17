@@ -29,7 +29,7 @@ struct GPUDeviceDescriptor {
   std::optional<std::string> label; // string
 };
 
-bool conv(wgpu::DeviceDescriptor &out, const GPUDeviceDescriptor &in) {
+bool conv(wgpu::DeviceDescriptor &out, GPUDeviceDescriptor &in) {
 
   return conv(out.requiredFeatures, in.requiredFeatures) &&
          conv(out.requiredLimits, in.requiredLimits) &&

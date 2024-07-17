@@ -30,7 +30,7 @@ struct GPUTextureDescriptor {
   std::optional<std::string> label; // string
 };
 
-bool conv(wgpu::TextureDescriptor &out, const GPUTextureDescriptor &in) {
+bool conv(wgpu::TextureDescriptor &out, GPUTextureDescriptor &in) {
 
   out.format = in.format;
   return conv(out.size, in.size) && conv(out.mipLevelCount, in.mipLevelCount) &&

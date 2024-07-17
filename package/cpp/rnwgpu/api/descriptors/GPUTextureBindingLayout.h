@@ -22,7 +22,7 @@ struct GPUTextureBindingLayout {
   std::optional<bool> multisampled; // boolean
 };
 
-bool conv(wgpu::TextureBindingLayout &out, const GPUTextureBindingLayout &in) {
+bool conv(wgpu::TextureBindingLayout &out, GPUTextureBindingLayout &in) {
 
   return conv(out.sampleType, in.sampleType) &&
          conv(out.viewDimension, in.viewDimension) &&

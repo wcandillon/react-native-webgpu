@@ -23,7 +23,7 @@ struct GPURenderPassTimestampWrites {
 };
 
 bool conv(wgpu::RenderPassTimestampWrites &out,
-          const GPURenderPassTimestampWrites &in) {
+          GPURenderPassTimestampWrites &in) {
 
   return conv(out.querySet, in.querySet) &&
          conv(out.beginningOfPassWriteIndex, in.beginningOfPassWriteIndex) &&

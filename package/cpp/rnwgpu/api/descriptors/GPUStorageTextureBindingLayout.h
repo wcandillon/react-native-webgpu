@@ -23,7 +23,7 @@ struct GPUStorageTextureBindingLayout {
 };
 
 bool conv(wgpu::StorageTextureBindingLayout &out,
-          const GPUStorageTextureBindingLayout &in) {
+          GPUStorageTextureBindingLayout &in) {
 
   out.format = in.format;
   return conv(out.access, in.access) &&

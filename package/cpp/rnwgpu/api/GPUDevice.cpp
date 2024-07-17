@@ -7,11 +7,12 @@ GPUDevice::createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
   wgpu::BufferDescriptor desc;
   conv(desc, descriptor);
   auto result = _instance.CreateBuffer(&desc);
-  return std::make_shared<GPUBuffer>(result, _async, descriptor->label);
+  return std::make_shared<GPUBuffer>(result, _async, descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
   auto result = _instance.GetQueue();
+  // TODO: is label correct here?
   return std::make_shared<GPUQueue>(result, _async, _label);
 }
 
@@ -20,7 +21,7 @@ std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
   wgpu::CommandEncoderDescriptor desc;
   conv(desc, descriptor);
   auto result = _instance.CreateCommandEncoder(&desc);
-  return std::make_shared<GPUCommandEncoder>(result, descriptor->label);
+  return std::make_shared<GPUCommandEncoder>(result, descriptor->label.value_or(""));
 }
 
 void GPUDevice::destroy() { _instance.Destroy(); }
@@ -30,7 +31,7 @@ GPUDevice::createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor) {
   wgpu::TextureDescriptor desc;
   conv(desc, descriptor);
   auto texture = _instance.CreateTexture(&desc);
-  return std::make_shared<GPUTexture>(texture, descriptor->label);
+  return std::make_shared<GPUTexture>(texture, descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
@@ -44,10 +45,10 @@ std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
     return std::make_shared<GPUShaderModule>(
         _instance.CreateErrorShaderModule(
             &sm_desc, "The WGSL shader contains an illegal character '\\0'"),
-        _async, descriptor->label);
+        _async, descriptor->label.value_or(""));
   }
   auto module = _instance.CreateShaderModule(&sm_desc);
-  return std::make_shared<GPUShaderModule>(module, _async, descriptor->label);
+  return std::make_shared<GPUShaderModule>(module, _async, descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(

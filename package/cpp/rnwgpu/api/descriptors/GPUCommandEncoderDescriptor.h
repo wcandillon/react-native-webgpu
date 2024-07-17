@@ -21,7 +21,7 @@ struct GPUCommandEncoderDescriptor {
 };
 
 bool conv(wgpu::CommandEncoderDescriptor &out,
-          const GPUCommandEncoderDescriptor &in) {
+          GPUCommandEncoderDescriptor &in) {
 
   return conv(out.label, in.label);
 }

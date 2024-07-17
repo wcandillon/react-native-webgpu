@@ -19,7 +19,7 @@ struct GPUSamplerBindingLayout {
   std::optional<wgpu::SamplerBindingType> type; // GPUSamplerBindingType
 };
 
-bool conv(wgpu::SamplerBindingLayout &out, const GPUSamplerBindingLayout &in) {
+bool conv(wgpu::SamplerBindingLayout &out, GPUSamplerBindingLayout &in) {
 
   return conv(out.type, in.type);
 }

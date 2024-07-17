@@ -23,7 +23,7 @@ struct GPUBufferDescriptor {
   std::optional<std::string> label;     // string
 };
 
-bool conv(wgpu::BufferDescriptor &out, const GPUBufferDescriptor &in) {
+bool conv(wgpu::BufferDescriptor &out, GPUBufferDescriptor &in) {
 
   return conv(out.size, in.size) && conv(out.usage, in.usage) &&
          conv(out.mappedAtCreation, in.mappedAtCreation) &&

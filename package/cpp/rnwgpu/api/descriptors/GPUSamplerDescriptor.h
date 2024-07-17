@@ -30,7 +30,7 @@ struct GPUSamplerDescriptor {
   std::optional<std::string> label;                   // string
 };
 
-bool conv(wgpu::SamplerDescriptor &out, const GPUSamplerDescriptor &in) {
+bool conv(wgpu::SamplerDescriptor &out, GPUSamplerDescriptor &in) {
 
   return conv(out.addressModeU, in.addressModeU) &&
          conv(out.addressModeV, in.addressModeV) &&

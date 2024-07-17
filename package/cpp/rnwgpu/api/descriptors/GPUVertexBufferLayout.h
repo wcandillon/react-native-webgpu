@@ -24,7 +24,7 @@ struct GPUVertexBufferLayout {
       attributes; // Iterable<GPUVertexAttribute>
 };
 
-bool conv(wgpu::VertexBufferLayout &out, const GPUVertexBufferLayout &in) {
+bool conv(wgpu::VertexBufferLayout &out, GPUVertexBufferLayout &in) {
   out.attributeCount = in.attributes.size();
 
   return conv(out.arrayStride, in.arrayStride) &&

@@ -28,7 +28,7 @@ struct GPURenderBundleEncoderDescriptor {
 };
 
 bool conv(wgpu::RenderBundleEncoderDescriptor &out,
-          const GPURenderBundleEncoderDescriptor &in) {
+          GPURenderBundleEncoderDescriptor &in) {
   out.colorFormatCount = in.colorFormats.size();
 
   return conv(out.depthReadOnly, in.depthReadOnly) &&

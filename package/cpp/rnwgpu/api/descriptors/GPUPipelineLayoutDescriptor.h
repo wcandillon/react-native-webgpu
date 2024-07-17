@@ -25,7 +25,7 @@ struct GPUPipelineLayoutDescriptor {
 };
 
 bool conv(wgpu::PipelineLayoutDescriptor &out,
-          const GPUPipelineLayoutDescriptor &in) {
+          GPUPipelineLayoutDescriptor &in) {
   out.bindGroupLayoutCount = in.bindGroupLayouts.size();
 
   return conv(out.bindGroupLayouts, in.bindGroupLayouts) &&

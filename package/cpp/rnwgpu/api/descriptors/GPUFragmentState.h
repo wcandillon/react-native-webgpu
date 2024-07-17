@@ -31,7 +31,7 @@ struct GPUFragmentState {
       constants; // Record< string, GPUPipelineConstantValue >
 };
 
-bool conv(wgpu::FragmentState &out, const GPUFragmentState &in) {
+bool conv(wgpu::FragmentState &out, GPUFragmentState &in) {
   out.targetCount = in.targets.size();
 
   return conv(out.targets, in.targets) && conv(out.module, in.module) &&

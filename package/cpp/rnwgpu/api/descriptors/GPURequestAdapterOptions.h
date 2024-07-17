@@ -20,8 +20,7 @@ struct GPURequestAdapterOptions {
   std::optional<bool> forceFallbackAdapter;             // boolean
 };
 
-bool conv(wgpu::RequestAdapterOptions &out,
-          const GPURequestAdapterOptions &in) {
+bool conv(wgpu::RequestAdapterOptions &out, GPURequestAdapterOptions &in) {
 
   return conv(out.powerPreference, in.powerPreference) &&
          conv(out.forceFallbackAdapter, in.forceFallbackAdapter);

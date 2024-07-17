@@ -32,7 +32,7 @@ struct GPURenderPassColorAttachment {
 };
 
 bool conv(wgpu::RenderPassColorAttachment &out,
-          const GPURenderPassColorAttachment &in) {
+          GPURenderPassColorAttachment &in) {
 
   out.loadOp = in.loadOp;
   out.storeOp = in.storeOp;

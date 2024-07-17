@@ -20,7 +20,7 @@ struct GPUVertexAttribute {
   double shaderLocation;     // GPUIndex32
 };
 
-bool conv(wgpu::VertexAttribute &out, const GPUVertexAttribute &in) {
+bool conv(wgpu::VertexAttribute &out, GPUVertexAttribute &in) {
 
   out.format = in.format;
   return conv(out.offset, in.offset) &&

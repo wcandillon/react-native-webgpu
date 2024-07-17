@@ -31,7 +31,7 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
         }};
     aDescriptor.deviceLostCallbackInfo = info;
     wgpu::UncapturedErrorCallbackInfo errorInfo = {
-        .userdata = static_cast<void *>(_creationRuntime),
+        .userdata = static_cast<void *>(_creationRuntime)
         .callback = [](WGPUErrorType type, const char *message,
                        void *userdata) {
           auto creationRuntime = static_cast<jsi::Runtime *>(userdata);
@@ -98,7 +98,7 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
         },
         _creationRuntime);
     return std::make_shared<GPUDevice>(std::move(device), _async,
-                                       descriptor->label);
+                                       descriptor->label.value_or(""));
   });
 }
 

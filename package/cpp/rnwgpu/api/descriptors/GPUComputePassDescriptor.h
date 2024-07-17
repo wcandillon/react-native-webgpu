@@ -23,8 +23,7 @@ struct GPUComputePassDescriptor {
   std::optional<std::string> label; // string
 };
 
-bool conv(wgpu::ComputePassDescriptor &out,
-          const GPUComputePassDescriptor &in) {
+bool conv(wgpu::ComputePassDescriptor &out, GPUComputePassDescriptor &in) {
 
   return conv(out.timestampWrites, in.timestampWrites) &&
          conv(out.label, in.label);
