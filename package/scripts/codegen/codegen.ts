@@ -6,9 +6,9 @@ import { Node, Project } from "ts-morph";
 import { getEnum } from "./templates/Enum";
 import { writeFile } from "./util";
 import { getHybridObject } from "./templates/HybridObject";
-import { getDescriptor } from "./templates/Descriptor";
 import type { Union } from "./templates/Unions";
 import { Unions } from "./templates/Unions";
+import { getDescriptor } from "./Descriptors";
 
 // Define the path to the WebGPU type declaration file
 const tsConfigFilePath = path.resolve(__dirname, "../../tsconfig.json");
@@ -166,9 +166,6 @@ const toSkip = [
   "GPUExtent3DDict",
   "GPUOrigin2DDict",
   "GPUOrigin3DDict",
-  // TODO: we could remove this one potentially
-  "GPUImageCopyBuffer",
-  "GPUBindGroupDescriptor",
 ];
 sourceFile
   .getInterfaces()
