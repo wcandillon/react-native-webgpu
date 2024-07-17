@@ -120,12 +120,10 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
 #include <vector>
 
 #include "Unions.h"
-#include "Convertors.h"
 #include "RNFHybridObject.h"
 
 #include "AsyncRunner.h"
 #include "ArrayBuffer.h"
-#include "Convertors.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -181,10 +179,10 @@ public:
   ${resolveExtra(name)}
 };
 
-bool conv(wgpu::${name.substring(3)} &out, const std::shared_ptr<${name}> &in) {
-  out = in->get();
-  return true;
-}
+// bool conv(wgpu::${name.substring(3)} &out, const std::shared_ptr<${name}> &in) {
+//   out = in->get();
+//   return true;
+// }
 
 } // namespace rnwgpu`;
 };

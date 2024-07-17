@@ -190,9 +190,18 @@ struct ${name} {
     .join("\n  ")}
 };
 
+${
+  !customConv.includes(name)
+    ? `
 bool conv(wgpu::${name.substring(3)} &out,
           const ${name} &in) {
+  ${props
+    .filter((p) => p.type.startsWith("std::vector"))
+    .map((p) => `out.${singular(p.name)}Count = in.${p.name}.size();`)
+    .join("\n")}
   return ${props.map((p) => `conv(out.${p.name}, in.${p.name})`).join(" &&")};
+`
+    : ""
 }
 
 } // namespace rnwgpu
@@ -219,5 +228,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
     throw std::runtime_error("Invalid ${name}::toJSI()");
   }
 };
+
 } // namespace margelo`;
 };
+
+const singular = (word: string) => {
+  return word === "entries" ? "entry" : word;
+};
+
+const customConv = ["GPUBindGroupEntry"];
