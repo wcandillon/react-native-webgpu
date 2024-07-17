@@ -32,6 +32,23 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureBindingLayout>> {
     auto result = std::make_unique<rnwgpu::GPUTextureBindingLayout>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "sampleType")) {
+        auto prop = value.getProperty(runtime, "sampleType");
+        result->sampleType =
+            JSIConverter::fromJSI<std::optional<wgpu::TextureSampleType>>(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "viewDimension")) {
+        auto prop = value.getProperty(runtime, "viewDimension");
+        result->viewDimension =
+            JSIConverter::fromJSI<std::optional<wgpu::TextureViewDimension>>(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "multisampled")) {
+        auto prop = value.getProperty(runtime, "multisampled");
+        result->multisampled =
+            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+      }
     }
 
     return result;
@@ -39,8 +56,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureBindingLayout>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUTextureBindingLayout> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUTextureBindingLayout::toJSI()");
   }
 };
 } // namespace margelo

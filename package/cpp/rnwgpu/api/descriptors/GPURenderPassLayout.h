@@ -34,14 +34,35 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassLayout>> {
     auto result = std::make_unique<rnwgpu::GPURenderPassLayout>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "colorFormats")) {
+        auto prop = value.getProperty(runtime, "colorFormats");
+        result->colorFormats = JSIConverter::fromJSI<
+            std::vector<std::variant<wgpu::TextureFormat, std::nullptr_t>>>(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "depthStencilFormat")) {
+        auto prop = value.getProperty(runtime, "depthStencilFormat");
+        result->depthStencilFormat =
+            JSIConverter::fromJSI<std::optional<wgpu::TextureFormat>>(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "sampleCount")) {
+        auto prop = value.getProperty(runtime, "sampleCount");
+        result->sampleCount =
+            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+            runtime, prop, false);
+      }
     }
 
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPURenderPassLayout> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPURenderPassLayout::toJSI()");
   }
 };
 } // namespace margelo

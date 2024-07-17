@@ -1,24 +1,7 @@
 import type { InterfaceDeclaration, Type, PropertySignature } from "ts-morph";
 import { SyntaxKind } from "ts-morph";
 
-// import { dawn, mapKeys, hasPropery } from './model/dawn';
 import { debugType, mergeParentInterfaces } from "./templates/common";
-
-// export const generateDescriptors = () => {
-//   return mapKeys(dawn)
-//     .map((key) => {
-//       const value = dawn[key];
-//       if (
-//         hasPropery(value, "category") &&
-//         value.category === "structure" &&
-//         !hasPropery(value, "tags")
-//       ) {
-//         return key;
-//       }
-//       return;
-//     })
-//     .filter((t) => t !== undefined);
-// };
 
 const layout = {
   type: "std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>",
@@ -55,20 +38,6 @@ const resolved: Record<
   GPURenderBundleEncoderDescriptor: {
     colorFormats,
   },
-  // GPUBlendComponent: {
-  //   operation: {
-  //     type: "wgpu::BlendOperation",
-  //     dependencies: [],
-  //   },
-  //   srcFactor: {
-  //     type: "wgpu::GPUBlendFactor",
-  //     dependencies: [],
-  //   },
-  //   dstFactor: {
-  //     type: "wgpu::GPUBlendFactor",
-  //     dependencies: [],
-  //   },
-  //},
 };
 
 interface ResolveTypeState {
@@ -153,6 +122,19 @@ const resolveType = (type: Type, state: ResolveTypeState): string => {
   throw new Error(`Unhandled ${className}::${propName}`);
 };
 
+interface Prop {
+  name: string;
+  type: string;
+  debug: string;
+}
+
+const jsiProp = ({ name, type }: Prop) => {
+  return `if (value.hasProperty(runtime, "${name}")) {
+  auto prop = value.getProperty(runtime, "${name}");
+  result->${name} = JSIConverter::fromJSI<${type}>(runtime, prop, false);
+}`;
+};
+
 export const getDescriptor = (decl: InterfaceDeclaration) => {
   mergeParentInterfaces(decl);
   const name = decl.getName();
@@ -212,6 +194,8 @@ struct ${name} {
  
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
   static std::shared_ptr<rnwgpu::${name}>
@@ -219,7 +203,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
     auto result = std::make_unique<rnwgpu::${name}>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-
+      ${props.map((prop) => jsiProp(prop)).join("\n")}
     }
 
     return result;
@@ -227,8 +211,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::${name}> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid ${name}::toJSI()");
   }
 };
 } // namespace margelo`;

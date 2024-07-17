@@ -32,14 +32,27 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUQuerySetDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "type")) {
+        auto prop = value.getProperty(runtime, "type");
+        result->type =
+            JSIConverter::fromJSI<wgpu::QueryType>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "count")) {
+        auto prop = value.getProperty(runtime, "count");
+        result->count = JSIConverter::fromJSI<double>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+            runtime, prop, false);
+      }
     }
 
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUQuerySetDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUQuerySetDescriptor::toJSI()");
   }
 };
 } // namespace margelo

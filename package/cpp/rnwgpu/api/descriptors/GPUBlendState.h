@@ -29,14 +29,25 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
     auto result = std::make_unique<rnwgpu::GPUBlendState>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "color")) {
+        auto prop = value.getProperty(runtime, "color");
+        result->color =
+            JSIConverter::fromJSI<std::shared_ptr<GPUBlendComponent>>(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "alpha")) {
+        auto prop = value.getProperty(runtime, "alpha");
+        result->alpha =
+            JSIConverter::fromJSI<std::shared_ptr<GPUBlendComponent>>(
+                runtime, prop, false);
+      }
     }
 
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUBlendState> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUBlendState::toJSI()");
   }
 };
 } // namespace margelo

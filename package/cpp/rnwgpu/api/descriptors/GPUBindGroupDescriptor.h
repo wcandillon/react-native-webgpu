@@ -36,14 +36,30 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUBindGroupDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "layout")) {
+        auto prop = value.getProperty(runtime, "layout");
+        result->layout =
+            JSIConverter::fromJSI<std::shared_ptr<GPUBindGroupLayout>>(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "entries")) {
+        auto prop = value.getProperty(runtime, "entries");
+        result->entries = JSIConverter::fromJSI<
+            std::vector<std::shared_ptr<GPUBindGroupEntry>>>(runtime, prop,
+                                                             false);
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+            runtime, prop, false);
+      }
     }
 
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUBindGroupDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUBindGroupDescriptor::toJSI()");
   }
 };
 } // namespace margelo

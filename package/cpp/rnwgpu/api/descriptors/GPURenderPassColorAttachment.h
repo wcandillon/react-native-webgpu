@@ -41,6 +41,38 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
     auto result = std::make_unique<rnwgpu::GPURenderPassColorAttachment>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "view")) {
+        auto prop = value.getProperty(runtime, "view");
+        result->view = JSIConverter::fromJSI<std::shared_ptr<GPUTextureView>>(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "depthSlice")) {
+        auto prop = value.getProperty(runtime, "depthSlice");
+        result->depthSlice =
+            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "resolveTarget")) {
+        auto prop = value.getProperty(runtime, "resolveTarget");
+        result->resolveTarget = JSIConverter::fromJSI<
+            std::optional<std::shared_ptr<GPUTextureView>>>(runtime, prop,
+                                                            false);
+      }
+      if (value.hasProperty(runtime, "clearValue")) {
+        auto prop = value.getProperty(runtime, "clearValue");
+        result->clearValue = JSIConverter::fromJSI<std::optional<
+            std::variant<std::vector<double>, std::shared_ptr<GPUColorDict>>>>(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "loadOp")) {
+        auto prop = value.getProperty(runtime, "loadOp");
+        result->loadOp =
+            JSIConverter::fromJSI<wgpu::LoadOp>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "storeOp")) {
+        auto prop = value.getProperty(runtime, "storeOp");
+        result->storeOp =
+            JSIConverter::fromJSI<wgpu::StoreOp>(runtime, prop, false);
+      }
     }
 
     return result;
@@ -48,8 +80,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPURenderPassColorAttachment> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPURenderPassColorAttachment::toJSI()");
   }
 };
 } // namespace margelo

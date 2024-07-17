@@ -40,14 +40,36 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
     auto result = std::make_unique<rnwgpu::GPUFragmentState>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "targets")) {
+        auto prop = value.getProperty(runtime, "targets");
+        result->targets = JSIConverter::fromJSI<std::vector<std::variant<
+            std::nullptr_t, std::shared_ptr<GPUColorTargetState>>>>(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "module")) {
+        auto prop = value.getProperty(runtime, "module");
+        result->module =
+            JSIConverter::fromJSI<std::shared_ptr<GPUShaderModule>>(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "entryPoint")) {
+        auto prop = value.getProperty(runtime, "entryPoint");
+        result->entryPoint = JSIConverter::fromJSI<std::optional<std::string>>(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "constants")) {
+        auto prop = value.getProperty(runtime, "constants");
+        result->constants =
+            JSIConverter::fromJSI<std::optional<std::map<std::string, double>>>(
+                runtime, prop, false);
+      }
     }
 
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUFragmentState> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUFragmentState::toJSI()");
   }
 };
 } // namespace margelo

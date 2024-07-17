@@ -33,8 +33,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureBindingLayout>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUExternalTextureBindingLayout> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error(
+        "Invalid GPUExternalTextureBindingLayout::toJSI()");
   }
 };
 } // namespace margelo

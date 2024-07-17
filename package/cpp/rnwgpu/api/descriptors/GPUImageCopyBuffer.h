@@ -32,14 +32,33 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyBuffer>> {
     auto result = std::make_unique<rnwgpu::GPUImageCopyBuffer>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "buffer")) {
+        auto prop = value.getProperty(runtime, "buffer");
+        result->buffer = JSIConverter::fromJSI<std::shared_ptr<GPUBuffer>>(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "offset")) {
+        auto prop = value.getProperty(runtime, "offset");
+        result->offset =
+            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "bytesPerRow")) {
+        auto prop = value.getProperty(runtime, "bytesPerRow");
+        result->bytesPerRow =
+            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "rowsPerImage")) {
+        auto prop = value.getProperty(runtime, "rowsPerImage");
+        result->rowsPerImage =
+            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+      }
     }
 
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUImageCopyBuffer> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUImageCopyBuffer::toJSI()");
   }
 };
 } // namespace margelo

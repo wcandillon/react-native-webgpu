@@ -34,6 +34,17 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUPipelineLayoutDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "bindGroupLayouts")) {
+        auto prop = value.getProperty(runtime, "bindGroupLayouts");
+        result->bindGroupLayouts = JSIConverter::fromJSI<
+            std::vector<std::shared_ptr<GPUBindGroupLayout>>>(runtime, prop,
+                                                              false);
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+            runtime, prop, false);
+      }
     }
 
     return result;
@@ -41,8 +52,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUPipelineLayoutDescriptor::toJSI()");
   }
 };
 } // namespace margelo

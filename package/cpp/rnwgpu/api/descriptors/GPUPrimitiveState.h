@@ -32,14 +32,41 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPrimitiveState>> {
     auto result = std::make_unique<rnwgpu::GPUPrimitiveState>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "topology")) {
+        auto prop = value.getProperty(runtime, "topology");
+        result->topology =
+            JSIConverter::fromJSI<std::optional<wgpu::PrimitiveTopology>>(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "stripIndexFormat")) {
+        auto prop = value.getProperty(runtime, "stripIndexFormat");
+        result->stripIndexFormat =
+            JSIConverter::fromJSI<std::optional<wgpu::IndexFormat>>(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "frontFace")) {
+        auto prop = value.getProperty(runtime, "frontFace");
+        result->frontFace =
+            JSIConverter::fromJSI<std::optional<wgpu::FrontFace>>(runtime, prop,
+                                                                  false);
+      }
+      if (value.hasProperty(runtime, "cullMode")) {
+        auto prop = value.getProperty(runtime, "cullMode");
+        result->cullMode = JSIConverter::fromJSI<std::optional<wgpu::CullMode>>(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "unclippedDepth")) {
+        auto prop = value.getProperty(runtime, "unclippedDepth");
+        result->unclippedDepth =
+            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+      }
     }
 
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUPrimitiveState> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUPrimitiveState::toJSI()");
   }
 };
 } // namespace margelo

@@ -32,6 +32,21 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
     auto result = std::make_unique<rnwgpu::GPUComputePassTimestampWrites>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "querySet")) {
+        auto prop = value.getProperty(runtime, "querySet");
+        result->querySet = JSIConverter::fromJSI<std::shared_ptr<GPUQuerySet>>(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "beginningOfPassWriteIndex")) {
+        auto prop = value.getProperty(runtime, "beginningOfPassWriteIndex");
+        result->beginningOfPassWriteIndex =
+            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "endOfPassWriteIndex")) {
+        auto prop = value.getProperty(runtime, "endOfPassWriteIndex");
+        result->endOfPassWriteIndex =
+            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+      }
     }
 
     return result;
@@ -39,8 +54,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUComputePassTimestampWrites::toJSI()");
   }
 };
 } // namespace margelo

@@ -30,6 +30,17 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
     auto result = std::make_unique<rnwgpu::GPURequestAdapterOptions>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "powerPreference")) {
+        auto prop = value.getProperty(runtime, "powerPreference");
+        result->powerPreference =
+            JSIConverter::fromJSI<std::optional<wgpu::PowerPreference>>(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "forceFallbackAdapter")) {
+        auto prop = value.getProperty(runtime, "forceFallbackAdapter");
+        result->forceFallbackAdapter =
+            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+      }
     }
 
     return result;
@@ -37,8 +48,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPURequestAdapterOptions> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPURequestAdapterOptions::toJSI()");
   }
 };
 } // namespace margelo

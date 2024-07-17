@@ -40,6 +40,39 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
     auto result = std::make_unique<rnwgpu::GPUImageCopyTextureTagged>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "colorSpace")) {
+        auto prop = value.getProperty(runtime, "colorSpace");
+        result->colorSpace =
+            JSIConverter::fromJSI<std::optional<wgpu::definedColorSpace>>(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "premultipliedAlpha")) {
+        auto prop = value.getProperty(runtime, "premultipliedAlpha");
+        result->premultipliedAlpha =
+            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "texture")) {
+        auto prop = value.getProperty(runtime, "texture");
+        result->texture = JSIConverter::fromJSI<std::shared_ptr<GPUTexture>>(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "mipLevel")) {
+        auto prop = value.getProperty(runtime, "mipLevel");
+        result->mipLevel =
+            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "origin")) {
+        auto prop = value.getProperty(runtime, "origin");
+        result->origin = JSIConverter::fromJSI<std::optional<std::variant<
+            std::vector<double>, std::shared_ptr<GPUOrigin3DDict>>>>(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "aspect")) {
+        auto prop = value.getProperty(runtime, "aspect");
+        result->aspect =
+            JSIConverter::fromJSI<std::optional<wgpu::TextureAspect>>(
+                runtime, prop, false);
+      }
     }
 
     return result;
@@ -47,8 +80,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUImageCopyTextureTagged::toJSI()");
   }
 };
 } // namespace margelo

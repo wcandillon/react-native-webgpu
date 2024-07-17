@@ -27,14 +27,18 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineErrorInit>> {
     auto result = std::make_unique<rnwgpu::GPUPipelineErrorInit>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "reason")) {
+        auto prop = value.getProperty(runtime, "reason");
+        result->reason = JSIConverter::fromJSI<wgpu::PipelineErrorReason>(
+            runtime, prop, false);
+      }
     }
 
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUPipelineErrorInit> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUPipelineErrorInit::toJSI()");
   }
 };
 } // namespace margelo

@@ -31,14 +31,29 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBindingLayout>> {
     auto result = std::make_unique<rnwgpu::GPUBufferBindingLayout>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "type")) {
+        auto prop = value.getProperty(runtime, "type");
+        result->type =
+            JSIConverter::fromJSI<std::optional<wgpu::BufferBindingType>>(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "hasDynamicOffset")) {
+        auto prop = value.getProperty(runtime, "hasDynamicOffset");
+        result->hasDynamicOffset =
+            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "minBindingSize")) {
+        auto prop = value.getProperty(runtime, "minBindingSize");
+        result->minBindingSize =
+            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+      }
     }
 
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUBufferBindingLayout> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUBufferBindingLayout::toJSI()");
   }
 };
 } // namespace margelo

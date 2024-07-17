@@ -33,6 +33,17 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUComputePassDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "timestampWrites")) {
+        auto prop = value.getProperty(runtime, "timestampWrites");
+        result->timestampWrites = JSIConverter::fromJSI<
+            std::optional<std::shared_ptr<GPUComputePassTimestampWrites>>>(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+            runtime, prop, false);
+      }
     }
 
     return result;
@@ -40,8 +51,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUComputePassDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUComputePassDescriptor::toJSI()");
   }
 };
 } // namespace margelo

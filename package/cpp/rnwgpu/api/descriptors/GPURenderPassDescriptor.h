@@ -45,6 +45,41 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPURenderPassDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "colorAttachments")) {
+        auto prop = value.getProperty(runtime, "colorAttachments");
+        result
+            ->colorAttachments = JSIConverter::fromJSI<std::vector<std::variant<
+            std::nullptr_t, std::shared_ptr<GPURenderPassColorAttachment>>>>(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "depthStencilAttachment")) {
+        auto prop = value.getProperty(runtime, "depthStencilAttachment");
+        result->depthStencilAttachment = JSIConverter::fromJSI<std::optional<
+            std::shared_ptr<GPURenderPassDepthStencilAttachment>>>(runtime,
+                                                                   prop, false);
+      }
+      if (value.hasProperty(runtime, "occlusionQuerySet")) {
+        auto prop = value.getProperty(runtime, "occlusionQuerySet");
+        result->occlusionQuerySet =
+            JSIConverter::fromJSI<std::optional<std::shared_ptr<GPUQuerySet>>>(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "timestampWrites")) {
+        auto prop = value.getProperty(runtime, "timestampWrites");
+        result->timestampWrites = JSIConverter::fromJSI<
+            std::optional<std::shared_ptr<GPURenderPassTimestampWrites>>>(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "maxDrawCount")) {
+        auto prop = value.getProperty(runtime, "maxDrawCount");
+        result->maxDrawCount =
+            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+            runtime, prop, false);
+      }
     }
 
     return result;
@@ -52,8 +87,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPURenderPassDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPURenderPassDescriptor::toJSI()");
   }
 };
 } // namespace margelo

@@ -29,14 +29,27 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
     auto result = std::make_unique<rnwgpu::GPUVertexAttribute>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "format")) {
+        auto prop = value.getProperty(runtime, "format");
+        result->format =
+            JSIConverter::fromJSI<wgpu::VertexFormat>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "offset")) {
+        auto prop = value.getProperty(runtime, "offset");
+        result->offset = JSIConverter::fromJSI<double>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "shaderLocation")) {
+        auto prop = value.getProperty(runtime, "shaderLocation");
+        result->shaderLocation =
+            JSIConverter::fromJSI<double>(runtime, prop, false);
+      }
     }
 
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUVertexAttribute> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUVertexAttribute::toJSI()");
   }
 };
 } // namespace margelo

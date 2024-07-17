@@ -33,6 +33,17 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
     auto result = std::make_unique<rnwgpu::GPUShaderModuleCompilationHint>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "entryPoint")) {
+        auto prop = value.getProperty(runtime, "entryPoint");
+        result->entryPoint =
+            JSIConverter::fromJSI<std::string>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "layout")) {
+        auto prop = value.getProperty(runtime, "layout");
+        result->layout = JSIConverter::fromJSI<std::optional<
+            std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>>>(
+            runtime, prop, false);
+      }
     }
 
     return result;
@@ -40,8 +51,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUShaderModuleCompilationHint::toJSI()");
   }
 };
 } // namespace margelo

@@ -31,14 +31,37 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
     auto result = std::make_unique<rnwgpu::GPUStencilFaceState>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "compare")) {
+        auto prop = value.getProperty(runtime, "compare");
+        result->compare =
+            JSIConverter::fromJSI<std::optional<wgpu::CompareFunction>>(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "failOp")) {
+        auto prop = value.getProperty(runtime, "failOp");
+        result->failOp =
+            JSIConverter::fromJSI<std::optional<wgpu::StencilOperation>>(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "depthFailOp")) {
+        auto prop = value.getProperty(runtime, "depthFailOp");
+        result->depthFailOp =
+            JSIConverter::fromJSI<std::optional<wgpu::StencilOperation>>(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "passOp")) {
+        auto prop = value.getProperty(runtime, "passOp");
+        result->passOp =
+            JSIConverter::fromJSI<std::optional<wgpu::StencilOperation>>(
+                runtime, prop, false);
+      }
     }
 
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUStencilFaceState> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUStencilFaceState::toJSI()");
   }
 };
 } // namespace margelo

@@ -30,14 +30,29 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
     auto result = std::make_unique<rnwgpu::GPUColorDict>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "r")) {
+        auto prop = value.getProperty(runtime, "r");
+        result->r = JSIConverter::fromJSI<double>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "g")) {
+        auto prop = value.getProperty(runtime, "g");
+        result->g = JSIConverter::fromJSI<double>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "b")) {
+        auto prop = value.getProperty(runtime, "b");
+        result->b = JSIConverter::fromJSI<double>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "a")) {
+        auto prop = value.getProperty(runtime, "a");
+        result->a = JSIConverter::fromJSI<double>(runtime, prop, false);
+      }
     }
 
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUColorDict> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUColorDict::toJSI()");
   }
 };
 } // namespace margelo

@@ -33,6 +33,26 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
     auto result = std::make_unique<rnwgpu::GPUUncapturedErrorEventInit>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "error")) {
+        auto prop = value.getProperty(runtime, "error");
+        result->error = JSIConverter::fromJSI<std::shared_ptr<GPUError>>(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "bubbles")) {
+        auto prop = value.getProperty(runtime, "bubbles");
+        result->bubbles =
+            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "cancelable")) {
+        auto prop = value.getProperty(runtime, "cancelable");
+        result->cancelable =
+            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "composed")) {
+        auto prop = value.getProperty(runtime, "composed");
+        result->composed =
+            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+      }
     }
 
     return result;
@@ -40,8 +60,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUUncapturedErrorEventInit::toJSI()");
   }
 };
 } // namespace margelo

@@ -31,14 +31,29 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
     auto result = std::make_unique<rnwgpu::GPUColorTargetState>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "format")) {
+        auto prop = value.getProperty(runtime, "format");
+        result->format =
+            JSIConverter::fromJSI<wgpu::TextureFormat>(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "blend")) {
+        auto prop = value.getProperty(runtime, "blend");
+        result->blend = JSIConverter::fromJSI<
+            std::optional<std::shared_ptr<GPUBlendState>>>(runtime, prop,
+                                                           false);
+      }
+      if (value.hasProperty(runtime, "writeMask")) {
+        auto prop = value.getProperty(runtime, "writeMask");
+        result->writeMask =
+            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+      }
     }
 
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUColorTargetState> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUColorTargetState::toJSI()");
   }
 };
 } // namespace margelo

@@ -29,6 +29,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
     auto result = std::make_unique<rnwgpu::GPUSamplerBindingLayout>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "type")) {
+        auto prop = value.getProperty(runtime, "type");
+        result->type =
+            JSIConverter::fromJSI<std::optional<wgpu::SamplerBindingType>>(
+                runtime, prop, false);
+      }
     }
 
     return result;
@@ -36,8 +42,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUSamplerBindingLayout> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUSamplerBindingLayout::toJSI()");
   }
 };
 } // namespace margelo
