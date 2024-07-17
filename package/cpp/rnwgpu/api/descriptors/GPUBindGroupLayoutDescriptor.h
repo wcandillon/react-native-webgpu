@@ -1,13 +1,17 @@
 #pragma once
 
-#include "webgpu_cpp.h"
-#include <optional>
+#include <vector>
 #include <string>
+#include <optional>
+
+#include "webgpu/webgpu_cpp.h"
+
+#include "GPUBindGroupLayoutEntry.h"
 
 namespace rnwgpu {
 
 struct GPUBindGroupLayoutDescriptor {
-  unknown entries;                  /* Iterable<GPUBindGroupLayoutEntry> */
+  std::vector<std::shared_ptr<GPUBindGroupLayoutEntry>> entries; /* Iterable<GPUBindGroupLayoutEntry> */
   std::optional<std::string> label; /* string */
 };
 

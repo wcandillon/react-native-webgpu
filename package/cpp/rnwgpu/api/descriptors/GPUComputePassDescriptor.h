@@ -1,14 +1,17 @@
 #pragma once
 
-#include "webgpu_cpp.h"
 #include <optional>
 #include <string>
+
+#include "webgpu/webgpu_cpp.h"
+
+#include "GPUComputePassTimestampWrites.h"
 
 namespace rnwgpu {
 
 struct GPUComputePassDescriptor {
-  std::optional<unknown> timestampWrites; /* GPUComputePassTimestampWrites */
-  std::optional<std::string> label;       /* string */
+  std::optional<std::shared_ptr<GPUComputePassTimestampWrites>> timestampWrites; /* GPUComputePassTimestampWrites */
+  std::optional<std::string> label; /* string */
 };
 
 } // namespace rnwgpu

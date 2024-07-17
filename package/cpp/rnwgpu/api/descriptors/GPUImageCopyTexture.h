@@ -1,15 +1,21 @@
 #pragma once
 
-#include "webgpu_cpp.h"
 #include <optional>
+#include <vector>
+#include <variant>
+
+#include "webgpu/webgpu_cpp.h"
+
+#include "GPUTexture.h"
+#include "GPUOrigin3DDict.h"
 
 namespace rnwgpu {
 
 struct GPUImageCopyTexture {
-  unknown texture;                           /* GPUTexture */
-  std::optional<double> mipLevel;            /* GPUIntegerCoordinate */
-  std::optional<unknown> origin;             /* GPUOrigin3D */
-  std::optional<wgpu::TextureAspect> aspect; /* GPUTextureAspect */
+  std::shared_ptr<GPUTexture> texture; /* GPUTexture */
+  std::optional<double> mipLevel; /* GPUIntegerCoordinate */
+  std::optional<std::variant<std::vector<double>, std::shared_ptr<GPUOrigin3DDict>>> origin; /* GPUOrigin3D */
+  std::optional<wgpu::> aspect; /* GPUTextureAspect */
 };
 
 } // namespace rnwgpu

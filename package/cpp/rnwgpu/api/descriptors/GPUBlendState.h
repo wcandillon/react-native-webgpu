@@ -1,12 +1,16 @@
 #pragma once
 
-#include "webgpu_cpp.h"
+
+
+#include "webgpu/webgpu_cpp.h"
+
+#include "GPUBlendComponent.h"
 
 namespace rnwgpu {
 
 struct GPUBlendState {
-  unknown color; /* GPUBlendComponent */
-  unknown alpha; /* GPUBlendComponent */
+  std::shared_ptr<GPUBlendComponent> color; /* GPUBlendComponent */
+  std::shared_ptr<GPUBlendComponent> alpha; /* GPUBlendComponent */
 };
 
 } // namespace rnwgpu

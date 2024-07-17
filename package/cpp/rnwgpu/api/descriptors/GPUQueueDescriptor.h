@@ -1,8 +1,9 @@
 #pragma once
 
-#include "webgpu_cpp.h"
 #include <optional>
 #include <string>
+
+#include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 

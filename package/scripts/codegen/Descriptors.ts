@@ -1,5 +1,7 @@
-import { InterfaceDeclaration, PropertySignature, Type } from "ts-morph";
-// import { dawn, mapKeys, hasPropery } from "./model/dawn";
+import type { InterfaceDeclaration, Type, PropertySignature } from "ts-morph";
+import { SyntaxKind } from "ts-morph";
+
+// import { dawn, mapKeys, hasPropery } from './model/dawn';
 import { mergeParentInterfaces } from "./templates/common";
 
 // export const generateDescriptors = () => {
@@ -18,6 +20,24 @@ import { mergeParentInterfaces } from "./templates/common";
 //     .filter((t) => t !== undefined);
 // };
 
+const resolved: Record<
+  string,
+  Record<string, { type: string; dependencies: string[] }>
+> = {
+  GPUComputePipelineDescriptor: {
+    layout: {
+      type: "std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>",
+      dependencies: ["GPUPipelineLayout"],
+    },
+  },
+  // GPUDeviceDescriptor: {
+  //   requiredLimits: {
+  //     type: "std::map<std::string, uint64_t>",
+  //     dependencies: ["map"],
+  //   },
+  // },
+};
+
 interface ResolveTypeState {
   dependencies: Set<string>;
   prop: PropertySignature;
@@ -25,9 +45,17 @@ interface ResolveTypeState {
 
 const resolveType = (type: Type, state: ResolveTypeState): string => {
   const { dependencies, prop } = state;
-  //const symbol = type.getSymbol();
-  //const alias = type.getAliasSymbol();
-  if (type.isString()) {
+  const propName = prop.getName();
+  const className =
+    prop.getFirstAncestorByKind(SyntaxKind.InterfaceDeclaration)?.getName() ??
+    "";
+  const symbol = type.getSymbol();
+  if (resolved[className] && resolved[className][propName]) {
+    resolved[className][propName].dependencies.forEach((d) =>
+      dependencies.add(d),
+    );
+    return resolved[className][propName].type;
+  } else if (type.isString()) {
     dependencies.add("string");
     return "std::string";
   } else if (type.isBoolean() || type.isBooleanLiteral()) {
@@ -35,14 +63,16 @@ const resolveType = (type: Type, state: ResolveTypeState): string => {
   } else if (type.isNumber()) {
     return "double";
   } else if (type.isUnion()) {
-    const unionTypes = type.getUnionTypes().filter(t => !t.isUndefined());
+    const unionTypes = type.getUnionTypes().filter((t) => !t.isUndefined());
     if (unionTypes.length === 1) {
       return resolveType(unionTypes[0], state);
-    } else if (unionTypes.every(t => t.isStringLiteral())) {
-      const name = prop.getTypeNode()?.getText() ?? "";
+    } else if (unionTypes.every((t) => t.isStringLiteral())) {
+      const name = type.getAliasSymbol()?.getName() ?? "x";
       return `wgpu::${name.substring(3)}`;
     } else {
-      const unionNames = Array.from(new Set(unionTypes.map(t => resolveType(t, state))));
+      const unionNames = Array.from(
+        new Set(unionTypes.map((t) => resolveType(t, state))),
+      );
       if (unionNames.length === 1) {
         return unionNames[0];
       } else {
@@ -50,42 +80,68 @@ const resolveType = (type: Type, state: ResolveTypeState): string => {
         return `std::variant<${unionNames.join(", ")}>`;
       }
     }
+  } else if (type.isNull()) {
+    return "std::nullptr_t";
+  } else if (type.isInterface()) {
+    const name = type.getSymbol()?.getName() ?? "";
+    dependencies.add(name);
+    return `std::shared_ptr<${name}>`;
+  } else if (type?.getText().startsWith("Record<")) {
+    const args = type.getTypeArguments().map((arg) => resolveType(arg, state));
+    dependencies.add("map");
+    return `std::map<${args[0]}, ${args[1]}>`;
+  } else if (symbol && symbol.getName() === "Iterable") {
+    const args = type.getTypeArguments().map((arg) => resolveType(arg, state));
+    dependencies.add("vector");
+    return `std::vector<${args.length === 1 ? args[0] : `std::variant<${args.join(", ")}>`}>`;
   }
+  throw new Error(
+    `Unhandled ${className}::${propName}: ` + prop.getTypeNode()?.getText() ??
+      "",
+  );
+};
 
-  return "unknown";
-  //throw new Error("Unhandled type: " + type.getText());
-}
-
-export const getDescriptor = (
-  decl: InterfaceDeclaration,
-  _hybridObjects: string[],
-) => {
+export const getDescriptor = (decl: InterfaceDeclaration) => {
   mergeParentInterfaces(decl);
   const name = decl.getName();
   const dependencies = new Set<string>();
   // we filter sourceMap?: any; for now
-  const props = decl.getProperties().filter(p => !p.getType().isAny()).map((prop) => {
-    const mandatoryType = resolveType(prop.getType(), { prop, dependencies });
-    const type = prop.hasQuestionToken()? `std::optional<${mandatoryType}>` : mandatoryType;
-    if (prop.hasQuestionToken()) {
-      dependencies.add("optional");
-    }
-    const debug = prop.getTypeNode()?.getText() ?? "";
-    return {
-      name: prop.getName(),
-      type,
-      debug
-    };
-  });
+  const props = decl
+    .getProperties()
+    .filter((p) => !p.getType().isAny())
+    .map((prop) => {
+      const mandatoryType = resolveType(prop.getType(), { prop, dependencies });
+      const type = prop.hasQuestionToken()
+        ? `std::optional<${mandatoryType}>`
+        : mandatoryType;
+      if (prop.hasQuestionToken()) {
+        dependencies.add("optional");
+      }
+      const debug = prop.getTypeNode()?.getText() ?? "";
+      return {
+        name: prop.getName(),
+        type,
+        debug,
+      };
+    });
   return `#pragma once
 
+${Array.from(dependencies)
+  .filter((dep) => dep[0] === dep[0].toLowerCase())
+  .map((dep) => `#include <${dep}>`)
+  .join("\n")}
+
 #include "webgpu/webgpu_cpp.h"
-${Array.from(dependencies).map(dep => `#include ${dep[0].toLowerCase() === dep[0] ? `<${dep}>` : `"${dep}.h"`}`).join("\n")}
+
+${Array.from(dependencies)
+  .filter((dep) => dep[0] !== dep[0].toLowerCase())
+  .map((dep) => `#include "${dep}.h"`)
+  .join("\n")}
 
 namespace rnwgpu {
 
 struct ${name} {
-  ${props.map(p => `${p.type} ${p.name}; /* ${p.debug} */`).join("\n  ")}
+  ${props.map((p) => `${p.type} ${p.name}; /* ${p.debug} */`).join("\n  ")}
 };
 
 } // namespace rnwgpu`;

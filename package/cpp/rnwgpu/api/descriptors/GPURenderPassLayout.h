@@ -1,13 +1,16 @@
 #pragma once
 
-#include "webgpu_cpp.h"
 #include <optional>
 #include <string>
+#include <variant>
+
+#include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
 struct GPURenderPassLayout {
-  unknown colorFormats; /* Iterable<GPUTextureFormat | null> */
+  std::vector<std::variant<std::nullptr_t, unknown>>
+      colorFormats; /* Iterable<GPUTextureFormat | null> */
   std::optional<wgpu::TextureFormat> depthStencilFormat; /* GPUTextureFormat */
   std::optional<double> sampleCount;                     /* GPUSize32 */
   std::optional<std::string> label;                      /* string */

@@ -1,18 +1,25 @@
 #pragma once
 
-#include "webgpu_cpp.h"
 #include <optional>
+
+#include "webgpu/webgpu_cpp.h"
+
+#include "GPUBufferBindingLayout.h"
+#include "GPUSamplerBindingLayout.h"
+#include "GPUTextureBindingLayout.h"
+#include "GPUStorageTextureBindingLayout.h"
+#include "GPUExternalTextureBindingLayout.h"
 
 namespace rnwgpu {
 
 struct GPUBindGroupLayoutEntry {
-  double binding;                         /* GPUIndex32 */
-  double visibility;                      /* GPUShaderStageFlags */
-  std::optional<unknown> buffer;          /* GPUBufferBindingLayout */
-  std::optional<unknown> sampler;         /* GPUSamplerBindingLayout */
-  std::optional<unknown> texture;         /* GPUTextureBindingLayout */
-  std::optional<unknown> storageTexture;  /* GPUStorageTextureBindingLayout */
-  std::optional<unknown> externalTexture; /* GPUExternalTextureBindingLayout */
+  double binding; /* GPUIndex32 */
+  double visibility; /* GPUShaderStageFlags */
+  std::optional<std::shared_ptr<GPUBufferBindingLayout>> buffer; /* GPUBufferBindingLayout */
+  std::optional<std::shared_ptr<GPUSamplerBindingLayout>> sampler; /* GPUSamplerBindingLayout */
+  std::optional<std::shared_ptr<GPUTextureBindingLayout>> texture; /* GPUTextureBindingLayout */
+  std::optional<std::shared_ptr<GPUStorageTextureBindingLayout>> storageTexture; /* GPUStorageTextureBindingLayout */
+  std::optional<std::shared_ptr<GPUExternalTextureBindingLayout>> externalTexture; /* GPUExternalTextureBindingLayout */
 };
 
 } // namespace rnwgpu

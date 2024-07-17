@@ -185,7 +185,7 @@ sourceFile
       getDescriptor(
         decl,
         //   unions,
-        hybridObject.map((d) => d.getName()),
+        // hybridObject.map((d) => d.getName()),
       ),
     );
   });

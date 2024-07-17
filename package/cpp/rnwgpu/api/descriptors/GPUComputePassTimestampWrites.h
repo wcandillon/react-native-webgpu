@@ -1,14 +1,17 @@
 #pragma once
 
-#include "webgpu_cpp.h"
 #include <optional>
+
+#include "webgpu/webgpu_cpp.h"
+
+#include "GPUQuerySet.h"
 
 namespace rnwgpu {
 
 struct GPUComputePassTimestampWrites {
-  unknown querySet;                                /* GPUQuerySet */
+  std::shared_ptr<GPUQuerySet> querySet; /* GPUQuerySet */
   std::optional<double> beginningOfPassWriteIndex; /* GPUSize32 */
-  std::optional<double> endOfPassWriteIndex;       /* GPUSize32 */
+  std::optional<double> endOfPassWriteIndex; /* GPUSize32 */
 };
 
 } // namespace rnwgpu

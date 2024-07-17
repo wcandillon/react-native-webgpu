@@ -1,12 +1,15 @@
 #pragma once
 
-#include "webgpu_cpp.h"
 #include <optional>
+
+#include "webgpu/webgpu_cpp.h"
+
+#include "GPUTextureView.h"
 
 namespace rnwgpu {
 
 struct GPURenderPassDepthStencilAttachment {
-  unknown view;                                /* GPUTextureView */
+  std::shared_ptr<GPUTextureView> view;        /* GPUTextureView */
   std::optional<double> depthClearValue;       /* number */
   std::optional<wgpu::LoadOp> depthLoadOp;     /* GPULoadOp */
   std::optional<wgpu::StoreOp> depthStoreOp;   /* GPUStoreOp */

@@ -14,9 +14,15 @@ public:
   GPUShaderStage() : HybridObject("GPUShaderStage") {}
 
 public:
-  double Vertex() { return static_cast<double>(wgpu::ShaderStage::Vertex); }
-  double Fragment() { return static_cast<double>(wgpu::ShaderStage::Fragment); }
-  double Compute() { return static_cast<double>(wgpu::ShaderStage::Compute); }
+  double Vertex() {
+      return static_cast<double>(wgpu::ShaderStage::Vertex);
+    }
+    double Fragment() {
+      return static_cast<double>(wgpu::ShaderStage::Fragment);
+    }
+    double Compute() {
+      return static_cast<double>(wgpu::ShaderStage::Compute);
+    }
 
   void loadHybridMethods() override {
     registerHybridGetter("VERTEX", &GPUShaderStage::Vertex, this);

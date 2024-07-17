@@ -1,15 +1,18 @@
 #pragma once
 
-#include "webgpu_cpp.h"
 #include <optional>
+
+#include "webgpu/webgpu_cpp.h"
+
+#include "GPUError.h"
 
 namespace rnwgpu {
 
 struct GPUUncapturedErrorEventInit {
-  unknown error;                  /* GPUError */
-  std::optional<bool> bubbles;    /* boolean */
-  std::optional<bool> cancelable; /* boolean */
-  std::optional<bool> composed;   /* boolean */
+  std::shared_ptr<GPUError> error; /* GPUError */
+  std::optional<bool> bubbles;     /* boolean */
+  std::optional<bool> cancelable;  /* boolean */
+  std::optional<bool> composed;    /* boolean */
 };
 
 } // namespace rnwgpu
