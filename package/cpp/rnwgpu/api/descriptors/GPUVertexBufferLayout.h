@@ -10,10 +10,10 @@
 namespace rnwgpu {
 
 struct GPUVertexBufferLayout {
-  double arrayStride;             /* GPUSize64 */
-  std::optional<wgpu::> stepMode; /* GPUVertexStepMode */
+  double arrayStride;                           // GPUSize64
+  std::optional<wgpu::VertexStepMode> stepMode; // GPUVertexStepMode
   std::vector<std::shared_ptr<GPUVertexAttribute>>
-      attributes; /* Iterable<GPUVertexAttribute> */
+      attributes; // Iterable<GPUVertexAttribute>
 };
 
 } // namespace rnwgpu

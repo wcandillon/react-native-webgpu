@@ -12,11 +12,11 @@
 namespace rnwgpu {
 
 struct GPUBindGroupEntry {
-  double binding; /* GPUIndex32 */
+  double binding; // GPUIndex32
   std::variant<std::shared_ptr<GPUSampler>, std::shared_ptr<GPUTextureView>,
                std::shared_ptr<GPUBufferBinding>,
                std::shared_ptr<GPUExternalTexture>>
-      resource; /* GPUBindingResource */
+      resource; // GPUBindingResource
 };
 
 } // namespace rnwgpu

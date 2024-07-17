@@ -12,10 +12,10 @@
 namespace rnwgpu {
 
 struct GPUBindGroupDescriptor {
-  std::shared_ptr<GPUBindGroupLayout> layout; /* GPUBindGroupLayout */
+  std::shared_ptr<GPUBindGroupLayout> layout; // GPUBindGroupLayout
   std::vector<std::shared_ptr<GPUBindGroupEntry>>
-      entries;                      /* Iterable<GPUBindGroupEntry> */
-  std::optional<std::string> label; /* string */
+      entries;                      // Iterable<GPUBindGroupEntry>
+  std::optional<std::string> label; // string
 };
 
 } // namespace rnwgpu

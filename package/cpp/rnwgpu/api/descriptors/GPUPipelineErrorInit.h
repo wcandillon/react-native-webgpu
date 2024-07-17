@@ -5,7 +5,7 @@
 namespace rnwgpu {
 
 struct GPUPipelineErrorInit {
-  wgpu::PipelineErrorReason reason; /* GPUPipelineErrorReason */
+  wgpu::PipelineErrorReason reason; // GPUPipelineErrorReason
 };
 
 } // namespace rnwgpu

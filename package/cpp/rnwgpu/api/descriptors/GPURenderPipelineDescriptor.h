@@ -15,18 +15,17 @@
 namespace rnwgpu {
 
 struct GPURenderPipelineDescriptor {
-  std::shared_ptr<GPUVertexState> vertex; /* GPUVertexState */
+  std::shared_ptr<GPUVertexState> vertex; // GPUVertexState
   std::optional<std::shared_ptr<GPUPrimitiveState>>
-      primitive; /* GPUPrimitiveState */
+      primitive; // GPUPrimitiveState
   std::optional<std::shared_ptr<GPUDepthStencilState>>
-      depthStencil; /* GPUDepthStencilState */
+      depthStencil; // GPUDepthStencilState
   std::optional<std::shared_ptr<GPUMultisampleState>>
-      multisample; /* GPUMultisampleState */
-  std::optional<std::shared_ptr<GPUFragmentState>>
-      fragment; /* GPUFragmentState */
-  std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>> layout; /* |
-        GPUPipelineLayout | GPUAutoLayoutMode */
-  std::optional<std::string> label; /* string */
+      multisample; // GPUMultisampleState
+  std::optional<std::shared_ptr<GPUFragmentState>> fragment; // GPUFragmentState
+  std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>
+      layout;                       // | GPUPipelineLayout | GPUAutoLayoutMode
+  std::optional<std::string> label; // string
 };
 
 } // namespace rnwgpu

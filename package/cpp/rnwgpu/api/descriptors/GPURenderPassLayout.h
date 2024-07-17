@@ -9,10 +9,10 @@ namespace rnwgpu {
 
 struct GPURenderPassLayout {
   std::vector<std::variant<wgpu::TextureFormat, std::nullptr_t>>
-      colorFormats; /* Iterable<GPUTextureFormat | null> */
-  std::optional<wgpu::> depthStencilFormat; /* GPUTextureFormat */
-  std::optional<double> sampleCount;        /* GPUSize32 */
-  std::optional<std::string> label;         /* string */
+      colorFormats; // Iterable<GPUTextureFormat | null>
+  std::optional<wgpu::TextureFormat> depthStencilFormat; // GPUTextureFormat
+  std::optional<double> sampleCount;                     // GPUSize32
+  std::optional<std::string> label;                      // string
 };
 
 } // namespace rnwgpu

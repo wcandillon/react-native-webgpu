@@ -10,10 +10,10 @@
 namespace rnwgpu {
 
 struct GPUShaderModuleDescriptor {
-  std::string code; /* string */
+  std::string code; // string
   std::optional<std::vector<std::shared_ptr<GPUShaderModuleCompilationHint>>>
-      compilationHints;             /* Array<GPUShaderModuleCompilationHint> */
-  std::optional<std::string> label; /* string */
+      compilationHints;             // Array<GPUShaderModuleCompilationHint>
+  std::optional<std::string> label; // string
 };
 
 } // namespace rnwgpu

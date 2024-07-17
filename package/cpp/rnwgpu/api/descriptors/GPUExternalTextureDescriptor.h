@@ -13,10 +13,9 @@ namespace rnwgpu {
 
 struct GPUExternalTextureDescriptor {
   std::variant<std::shared_ptr<HTMLVideoElement>, std::shared_ptr<VideoFrame>>
-      source;                       /* | HTMLVideoElement
-| VideoFrame */
-  std::optional<wgpu::> colorSpace; /* PredefinedColorSpace */
-  std::optional<std::string> label; /* string */
+      source; // | HTMLVideoElement | VideoFrame
+  std::optional<wgpu::definedColorSpace> colorSpace; // PredefinedColorSpace
+  std::optional<std::string> label;                  // string
 };
 
 } // namespace rnwgpu

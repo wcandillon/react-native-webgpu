@@ -7,7 +7,7 @@
 namespace rnwgpu {
 
 struct GPUSamplerBindingLayout {
-  std::optional<wgpu::> type; /* GPUSamplerBindingType */
+  std::optional<wgpu::SamplerBindingType> type; // GPUSamplerBindingType
 };
 
 } // namespace rnwgpu

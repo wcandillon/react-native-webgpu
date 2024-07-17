@@ -55,6 +55,20 @@ const resolved: Record<
   GPURenderBundleEncoderDescriptor: {
     colorFormats,
   },
+  // GPUBlendComponent: {
+  //   operation: {
+  //     type: "wgpu::BlendOperation",
+  //     dependencies: [],
+  //   },
+  //   srcFactor: {
+  //     type: "wgpu::GPUBlendFactor",
+  //     dependencies: [],
+  //   },
+  //   dstFactor: {
+  //     type: "wgpu::GPUBlendFactor",
+  //     dependencies: [],
+  //   },
+  //},
 };
 
 interface ResolveTypeState {
@@ -88,7 +102,17 @@ const resolveType = (type: Type, state: ResolveTypeState): string => {
     if (unionTypes.length === 1) {
       return resolveType(unionTypes[0], state);
     } else if (unionTypes.every((t) => t.isStringLiteral())) {
-      const name = type.getAliasSymbol()?.getName() ?? "x";
+      let name = type.getAliasSymbol()?.getName();
+      if (!name) {
+        name = prop.getTypeNode()?.getText();
+        if (!name) {
+          console.log(name);
+          console.log(debugType(type));
+          throw new Error(
+            `${className}.${propName} not handled with string literal union`,
+          );
+        }
+      }
       return `wgpu::${name.substring(3)}`;
     } else {
       const unionNames = Array.from(
@@ -168,7 +192,12 @@ ${Array.from(dependencies)
 namespace rnwgpu {
 
 struct ${name} {
-  ${props.map((p) => `${p.type} ${p.name}; /* ${p.debug} */`).join("\n  ")}
+  ${props
+    .map((p) => {
+      const debug = p.debug.replace(/\s+/g, " ").trim();
+      return `${p.type} ${p.name}; // ${debug}`;
+    })
+    .join("\n  ")}
 };
 
 } // namespace rnwgpu`;

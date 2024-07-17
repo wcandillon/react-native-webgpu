@@ -12,12 +12,12 @@
 namespace rnwgpu {
 
 struct GPUImageCopyTexture {
-  std::shared_ptr<GPUTexture> texture; /* GPUTexture */
-  std::optional<double> mipLevel;      /* GPUIntegerCoordinate */
+  std::shared_ptr<GPUTexture> texture; // GPUTexture
+  std::optional<double> mipLevel;      // GPUIntegerCoordinate
   std::optional<
       std::variant<std::vector<double>, std::shared_ptr<GPUOrigin3DDict>>>
-      origin;                   /* GPUOrigin3D */
-  std::optional<wgpu::> aspect; /* GPUTextureAspect */
+      origin;                                // GPUOrigin3D
+  std::optional<wgpu::TextureAspect> aspect; // GPUTextureAspect
 };
 
 } // namespace rnwgpu

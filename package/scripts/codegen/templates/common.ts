@@ -64,6 +64,7 @@ interface DebugType {
   isInterface?: boolean;
   isTuple?: boolean;
   isArray?: boolean;
+  isStringLiteral?: boolean;
 }
 
 export const debugType = (type: Type): DebugType => {
@@ -79,6 +80,7 @@ export const debugType = (type: Type): DebugType => {
     intersectionTypes: type.isIntersection()
       ? type.getIntersectionTypes().map((t) => debugType(t))
       : undefined,
+    isStringLiteral: type.isStringLiteral(),
     // isAnonymous: type.isAnonymous(),
     // isAny: type.isAny(),
     // isUnknown: type.isUnknown(),

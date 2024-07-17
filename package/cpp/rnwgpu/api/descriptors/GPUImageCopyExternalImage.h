@@ -23,11 +23,11 @@ struct GPUImageCopyExternalImage {
                std::shared_ptr<HTMLVideoElement>, std::shared_ptr<VideoFrame>,
                std::shared_ptr<HTMLCanvasElement>,
                std::shared_ptr<OffscreenCanvas>>
-      source; /* GPUImageCopyExternalImageSource */
+      source; // GPUImageCopyExternalImageSource
   std::optional<
       std::variant<std::vector<double>, std::shared_ptr<GPUOrigin2DDictStrict>>>
-      origin;                /* GPUOrigin2DStrict */
-  std::optional<bool> flipY; /* boolean */
+      origin;                // GPUOrigin2DStrict
+  std::optional<bool> flipY; // boolean
 };
 
 } // namespace rnwgpu

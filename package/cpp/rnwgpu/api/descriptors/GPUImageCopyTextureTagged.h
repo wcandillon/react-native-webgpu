@@ -12,14 +12,14 @@
 namespace rnwgpu {
 
 struct GPUImageCopyTextureTagged {
-  std::optional<wgpu::> colorSpace;       /* PredefinedColorSpace */
-  std::optional<bool> premultipliedAlpha; /* boolean */
-  std::shared_ptr<GPUTexture> texture;    /* GPUTexture */
-  std::optional<double> mipLevel;         /* GPUIntegerCoordinate */
+  std::optional<wgpu::definedColorSpace> colorSpace; // PredefinedColorSpace
+  std::optional<bool> premultipliedAlpha;            // boolean
+  std::shared_ptr<GPUTexture> texture;               // GPUTexture
+  std::optional<double> mipLevel;                    // GPUIntegerCoordinate
   std::optional<
       std::variant<std::vector<double>, std::shared_ptr<GPUOrigin3DDict>>>
-      origin;                   /* GPUOrigin3D */
-  std::optional<wgpu::> aspect; /* GPUTextureAspect */
+      origin;                                // GPUOrigin3D
+  std::optional<wgpu::TextureAspect> aspect; // GPUTextureAspect
 };
 
 } // namespace rnwgpu

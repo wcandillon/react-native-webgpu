@@ -9,9 +9,9 @@
 namespace rnwgpu {
 
 struct GPUComputePassTimestampWrites {
-  std::shared_ptr<GPUQuerySet> querySet;           /* GPUQuerySet */
-  std::optional<double> beginningOfPassWriteIndex; /* GPUSize32 */
-  std::optional<double> endOfPassWriteIndex;       /* GPUSize32 */
+  std::shared_ptr<GPUQuerySet> querySet;           // GPUQuerySet
+  std::optional<double> beginningOfPassWriteIndex; // GPUSize32
+  std::optional<double> endOfPassWriteIndex;       // GPUSize32
 };
 
 } // namespace rnwgpu
