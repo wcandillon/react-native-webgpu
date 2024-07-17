@@ -2,7 +2,7 @@ import type { InterfaceDeclaration, Type, PropertySignature } from "ts-morph";
 import { SyntaxKind } from "ts-morph";
 
 // import { dawn, mapKeys, hasPropery } from './model/dawn';
-import { mergeParentInterfaces } from "./templates/common";
+import { debugType, mergeParentInterfaces } from "./templates/common";
 
 // export const generateDescriptors = () => {
 //   return mapKeys(dawn)
@@ -20,22 +20,41 @@ import { mergeParentInterfaces } from "./templates/common";
 //     .filter((t) => t !== undefined);
 // };
 
+const layout = {
+  type: "std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>",
+  dependencies: ["GPUPipelineLayout"],
+};
+
+const colorFormats = {
+  type: "std::vector<std::variant<wgpu::TextureFormat, std::nullptr_t>>",
+  dependencies: [],
+};
+
 const resolved: Record<
   string,
   Record<string, { type: string; dependencies: string[] }>
 > = {
   GPUComputePipelineDescriptor: {
-    layout: {
-      type: "std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>",
-      dependencies: ["GPUPipelineLayout"],
+    layout,
+  },
+  GPURenderPipelineDescriptor: {
+    layout,
+  },
+  GPUShaderModuleCompilationHint: {
+    layout,
+  },
+  GPUDeviceDescriptor: {
+    defaultQueue: {
+      type: "std::shared_ptr<GPUQueueDescriptor>",
+      dependencies: ["GPUQueueDescriptor"],
     },
   },
-  // GPUDeviceDescriptor: {
-  //   requiredLimits: {
-  //     type: "std::map<std::string, uint64_t>",
-  //     dependencies: ["map"],
-  //   },
-  // },
+  GPURenderPassLayout: {
+    colorFormats,
+  },
+  GPURenderBundleEncoderDescriptor: {
+    colorFormats,
+  },
 };
 
 interface ResolveTypeState {
@@ -62,6 +81,8 @@ const resolveType = (type: Type, state: ResolveTypeState): string => {
     return "bool";
   } else if (type.isNumber()) {
     return "double";
+  } else if (type.isArray()) {
+    return `std::vector<${resolveType(type.getArrayElementType()!, state)}>`;
   } else if (type.isUnion()) {
     const unionTypes = type.getUnionTypes().filter((t) => !t.isUndefined());
     if (unionTypes.length === 1) {
@@ -84,10 +105,17 @@ const resolveType = (type: Type, state: ResolveTypeState): string => {
     return "std::nullptr_t";
   } else if (type.isInterface()) {
     const name = type.getSymbol()?.getName() ?? "";
+    if (name === "GPUObjectDescriptorBase") {
+      throw new Error(
+        `${className}.${propName} not handled with GPUObjectDescriptorBase`,
+      );
+    }
     dependencies.add(name);
     return `std::shared_ptr<${name}>`;
   } else if (type?.getText().startsWith("Record<")) {
-    const args = type.getTypeArguments().map((arg) => resolveType(arg, state));
+    const args = type
+      .getAliasTypeArguments()
+      .map((arg) => resolveType(arg, state));
     dependencies.add("map");
     return `std::map<${args[0]}, ${args[1]}>`;
   } else if (symbol && symbol.getName() === "Iterable") {
@@ -95,10 +123,9 @@ const resolveType = (type: Type, state: ResolveTypeState): string => {
     dependencies.add("vector");
     return `std::vector<${args.length === 1 ? args[0] : `std::variant<${args.join(", ")}>`}>`;
   }
-  throw new Error(
-    `Unhandled ${className}::${propName}: ` + prop.getTypeNode()?.getText() ??
-      "",
-  );
+  //return "unknown";
+  console.log(JSON.stringify(debugType(type), null, 2));
+  throw new Error(`Unhandled ${className}::${propName}`);
 };
 
 export const getDescriptor = (decl: InterfaceDeclaration) => {

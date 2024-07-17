@@ -4,8 +4,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-
-
 namespace rnwgpu {
 
 struct GPUBlendComponent {

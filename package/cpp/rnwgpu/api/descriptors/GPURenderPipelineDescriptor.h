@@ -2,7 +2,6 @@
 
 #include <optional>
 #include <string>
-#include <variant>
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -25,9 +24,9 @@ struct GPURenderPipelineDescriptor {
       multisample; /* GPUMultisampleState */
   std::optional<std::shared_ptr<GPUFragmentState>>
       fragment; /* GPUFragmentState */
-  std::variant<std::shared_ptr<GPUPipelineLayout>, unknown> layout; /* |
+  std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>> layout; /* |
         GPUPipelineLayout | GPUAutoLayoutMode */
-  std::optional<std::string> label;                                 /* string */
+  std::optional<std::string> label; /* string */
 };
 
 } // namespace rnwgpu

@@ -1,5 +1,5 @@
 import _ from "lodash";
-import type { InterfaceDeclaration } from "ts-morph";
+import type { InterfaceDeclaration, Type } from "ts-morph";
 import { SyntaxKind } from "ts-morph";
 
 export const mergeParentInterfaces = (interfaceDecl: InterfaceDeclaration) => {
@@ -36,4 +36,65 @@ export const mergeParentInterfaces = (interfaceDecl: InterfaceDeclaration) => {
   }
 
   return interfaceDecl;
+};
+
+interface DebugType {
+  text: string;
+  aliasSymbol?: string;
+  aliasTypeArguments?: DebugType[];
+  symbol?: string;
+  typeArguments?: DebugType[];
+  unionTypes?: DebugType[];
+  intersectionTypes?: DebugType[];
+  isAnonymous?: boolean;
+  isAny?: boolean;
+  isUnknown?: boolean;
+  isNever?: boolean;
+  isVoid?: boolean;
+  isLiteral?: boolean;
+  isBoolean?: boolean;
+  isNull?: boolean;
+  isUndefined?: boolean;
+  isNumber?: boolean;
+  isString?: boolean;
+  isUnion?: boolean;
+  isEnum?: boolean;
+  isObject?: boolean;
+  isClass?: boolean;
+  isInterface?: boolean;
+  isTuple?: boolean;
+  isArray?: boolean;
+}
+
+export const debugType = (type: Type): DebugType => {
+  return {
+    text: type.getText(),
+    aliasSymbol: type.getAliasSymbol()?.getName(),
+    aliasTypeArguments: type.getAliasTypeArguments().map((t) => debugType(t)),
+    symbol: type.getSymbol()?.getName(),
+    typeArguments: type.getTypeArguments().map((t) => debugType(t)),
+    unionTypes: type.isUnion()
+      ? type.getUnionTypes().map((t) => debugType(t))
+      : undefined,
+    intersectionTypes: type.isIntersection()
+      ? type.getIntersectionTypes().map((t) => debugType(t))
+      : undefined,
+    // isAnonymous: type.isAnonymous(),
+    // isAny: type.isAny(),
+    // isUnknown: type.isUnknown(),
+    // isNever: type.isNever(),
+    // isVoid: type.isVoid(),
+    // isNull: type.isNull(),
+    // isUndefined: type.isUndefined(),
+    // isBoolean: type.isBoolean(),
+    // isString: type.isString(),
+    // isNumber: type.isNumber(),
+    // isLiteral: type.isLiteral(),
+    // isEnum: type.isEnum(),
+    // isObject: type.isObject(),
+    // isClass: type.isClass(),
+    // isInterface: type.isInterface(),
+    // isTuple: type.isTuple(),
+    // isArray: type.isArray(),
+  };
 };

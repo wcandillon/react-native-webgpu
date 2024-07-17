@@ -14,12 +14,8 @@ public:
   GPUMapMode() : HybridObject("GPUMapMode") {}
 
 public:
-  double Read() {
-      return static_cast<double>(wgpu::MapMode::Read);
-    }
-    double Write() {
-      return static_cast<double>(wgpu::MapMode::Write);
-    }
+  double Read() { return static_cast<double>(wgpu::MapMode::Read); }
+  double Write() { return static_cast<double>(wgpu::MapMode::Write); }
 
   void loadHybridMethods() override {
     registerHybridGetter("READ", &GPUMapMode::Read, this);

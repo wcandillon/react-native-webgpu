@@ -1,22 +1,24 @@
 #pragma once
 
 #include <optional>
-#include <vector>
 #include <variant>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "GPUTexture.h"
 #include "GPUOrigin3DDict.h"
+#include "GPUTexture.h"
 
 namespace rnwgpu {
 
 struct GPUImageCopyTextureTagged {
-  std::optional<wgpu::> colorSpace; /* PredefinedColorSpace */
+  std::optional<wgpu::> colorSpace;       /* PredefinedColorSpace */
   std::optional<bool> premultipliedAlpha; /* boolean */
-  std::shared_ptr<GPUTexture> texture; /* GPUTexture */
-  std::optional<double> mipLevel; /* GPUIntegerCoordinate */
-  std::optional<std::variant<std::vector<double>, std::shared_ptr<GPUOrigin3DDict>>> origin; /* GPUOrigin3D */
+  std::shared_ptr<GPUTexture> texture;    /* GPUTexture */
+  std::optional<double> mipLevel;         /* GPUIntegerCoordinate */
+  std::optional<
+      std::variant<std::vector<double>, std::shared_ptr<GPUOrigin3DDict>>>
+      origin;                   /* GPUOrigin3D */
   std::optional<wgpu::> aspect; /* GPUTextureAspect */
 };
 

@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 #include <variant>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 

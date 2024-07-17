@@ -2,7 +2,6 @@
 
 #include <optional>
 #include <string>
-#include <variant>
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -11,11 +10,11 @@ namespace rnwgpu {
 struct GPURenderBundleEncoderDescriptor {
   std::optional<bool> depthReadOnly;   /* boolean */
   std::optional<bool> stencilReadOnly; /* boolean */
-  std::vector<std::variant<std::nullptr_t, unknown>>
+  std::vector<std::variant<wgpu::TextureFormat, std::nullptr_t>>
       colorFormats; /* Iterable<GPUTextureFormat | null> */
-  std::optional<wgpu::TextureFormat> depthStencilFormat; /* GPUTextureFormat */
-  std::optional<double> sampleCount;                     /* GPUSize32 */
-  std::optional<std::string> label;                      /* string */
+  std::optional<wgpu::> depthStencilFormat; /* GPUTextureFormat */
+  std::optional<double> sampleCount;        /* GPUSize32 */
+  std::optional<std::string> label;         /* string */
 };
 
 } // namespace rnwgpu

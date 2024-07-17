@@ -1,8 +1,8 @@
 #pragma once
 
-#include <variant>
 #include <optional>
 #include <string>
+#include <variant>
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -12,8 +12,9 @@
 namespace rnwgpu {
 
 struct GPUExternalTextureDescriptor {
-  std::variant<std::shared_ptr<HTMLVideoElement>, std::shared_ptr<VideoFrame>> source; /* | HTMLVideoElement
-    | VideoFrame */
+  std::variant<std::shared_ptr<HTMLVideoElement>, std::shared_ptr<VideoFrame>>
+      source;                       /* | HTMLVideoElement
+| VideoFrame */
   std::optional<wgpu::> colorSpace; /* PredefinedColorSpace */
   std::optional<std::string> label; /* string */
 };

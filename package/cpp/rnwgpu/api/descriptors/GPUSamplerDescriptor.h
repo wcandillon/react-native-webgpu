@@ -8,17 +8,17 @@
 namespace rnwgpu {
 
 struct GPUSamplerDescriptor {
-  std::optional<wgpu::AddressMode> addressModeU;      /* GPUAddressMode */
-  std::optional<wgpu::AddressMode> addressModeV;      /* GPUAddressMode */
-  std::optional<wgpu::AddressMode> addressModeW;      /* GPUAddressMode */
-  std::optional<wgpu::FilterMode> magFilter;          /* GPUFilterMode */
-  std::optional<wgpu::FilterMode> minFilter;          /* GPUFilterMode */
-  std::optional<wgpu::MipmapFilterMode> mipmapFilter; /* GPUMipmapFilterMode */
-  std::optional<double> lodMinClamp;                  /* number */
-  std::optional<double> lodMaxClamp;                  /* number */
-  std::optional<wgpu::CompareFunction> compare;       /* GPUCompareFunction */
-  std::optional<double> maxAnisotropy;                /* number */
-  std::optional<std::string> label;                   /* string */
+  std::optional<wgpu::> addressModeU;  /* GPUAddressMode */
+  std::optional<wgpu::> addressModeV;  /* GPUAddressMode */
+  std::optional<wgpu::> addressModeW;  /* GPUAddressMode */
+  std::optional<wgpu::> magFilter;     /* GPUFilterMode */
+  std::optional<wgpu::> minFilter;     /* GPUFilterMode */
+  std::optional<wgpu::> mipmapFilter;  /* GPUMipmapFilterMode */
+  std::optional<double> lodMinClamp;   /* number */
+  std::optional<double> lodMaxClamp;   /* number */
+  std::optional<wgpu::> compare;       /* GPUCompareFunction */
+  std::optional<double> maxAnisotropy; /* number */
+  std::optional<std::string> label;    /* string */
 };
 
 } // namespace rnwgpu

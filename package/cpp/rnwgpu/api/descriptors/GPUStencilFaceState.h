@@ -7,10 +7,10 @@
 namespace rnwgpu {
 
 struct GPUStencilFaceState {
-  std::optional<wgpu::CompareFunction> compare;      /* GPUCompareFunction */
-  std::optional<wgpu::StencilOperation> failOp;      /* GPUStencilOperation */
-  std::optional<wgpu::StencilOperation> depthFailOp; /* GPUStencilOperation */
-  std::optional<wgpu::StencilOperation> passOp;      /* GPUStencilOperation */
+  std::optional<wgpu::> compare;     /* GPUCompareFunction */
+  std::optional<wgpu::> failOp;      /* GPUStencilOperation */
+  std::optional<wgpu::> depthFailOp; /* GPUStencilOperation */
+  std::optional<wgpu::> passOp;      /* GPUStencilOperation */
 };
 
 } // namespace rnwgpu

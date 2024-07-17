@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
-#include <string>
 #include <optional>
+#include <string>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -11,7 +11,8 @@
 namespace rnwgpu {
 
 struct GPUPipelineLayoutDescriptor {
-  std::vector<std::shared_ptr<GPUBindGroupLayout>> bindGroupLayouts; /* Iterable<GPUBindGroupLayout> */
+  std::vector<std::shared_ptr<GPUBindGroupLayout>>
+      bindGroupLayouts;             /* Iterable<GPUBindGroupLayout> */
   std::optional<std::string> label; /* string */
 };
 
