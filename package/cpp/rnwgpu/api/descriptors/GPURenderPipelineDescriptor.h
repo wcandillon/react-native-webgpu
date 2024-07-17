@@ -37,13 +37,13 @@ struct GPURenderPipelineDescriptor {
 };
 
 static bool conv(wgpu::RenderPipelineDescriptor &out,
-                 GPURenderPipelineDescriptor &in) {
+                 std::shared_ptr<GPURenderPipelineDescriptor> &in) {
 
-  return conv(out.vertex, in.vertex) && conv(out.primitive, in.primitive) &&
-         conv(out.depthStencil, in.depthStencil) &&
-         conv(out.multisample, in.multisample) &&
-         conv(out.fragment, in.fragment) && conv(out.layout, in.layout) &&
-         conv(out.label, in.label);
+  return conv(out.vertex, in->vertex) && conv(out.primitive, in->primitive) &&
+         conv(out.depthStencil, in->depthStencil) &&
+         conv(out.multisample, in->multisample) &&
+         conv(out.fragment, in->fragment) && conv(out.layout, in->layout) &&
+         conv(out.label, in->label);
 }
 
 } // namespace rnwgpu

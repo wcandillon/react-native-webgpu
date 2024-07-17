@@ -29,11 +29,12 @@ struct GPUDeviceDescriptor {
   std::optional<std::string> label; // string
 };
 
-static bool conv(wgpu::DeviceDescriptor &out, GPUDeviceDescriptor &in) {
+static bool conv(wgpu::DeviceDescriptor &out,
+                 std::shared_ptr<GPUDeviceDescriptor> &in) {
 
-  return conv(out.requiredFeatures, in.requiredFeatures) &&
-         conv(out.requiredLimits, in.requiredLimits) &&
-         conv(out.defaultQueue, in.defaultQueue) && conv(out.label, in.label);
+  return conv(out.requiredFeatures, in->requiredFeatures) &&
+         conv(out.requiredLimits, in->requiredLimits) &&
+         conv(out.defaultQueue, in->defaultQueue) && conv(out.label, in->label);
 }
 
 } // namespace rnwgpu

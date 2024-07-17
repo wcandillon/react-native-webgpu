@@ -21,10 +21,12 @@ struct GPUImageDataLayout {
   std::optional<double> rowsPerImage; // GPUSize32
 };
 
-static bool conv(wgpu::ImageDataLayout &out, GPUImageDataLayout &in) {
+static bool conv(wgpu::ImageDataLayout &out,
+                 std::shared_ptr<GPUImageDataLayout> &in) {
 
-  return conv(out.offset, in.offset) && conv(out.bytesPerRow, in.bytesPerRow) &&
-         conv(out.rowsPerImage, in.rowsPerImage);
+  return conv(out.offset, in->offset) &&
+         conv(out.bytesPerRow, in->bytesPerRow) &&
+         conv(out.rowsPerImage, in->rowsPerImage);
 }
 
 } // namespace rnwgpu

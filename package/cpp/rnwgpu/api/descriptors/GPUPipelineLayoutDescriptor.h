@@ -25,11 +25,11 @@ struct GPUPipelineLayoutDescriptor {
 };
 
 static bool conv(wgpu::PipelineLayoutDescriptor &out,
-                 GPUPipelineLayoutDescriptor &in) {
-  out.bindGroupLayoutCount = in.bindGroupLayouts.size();
+                 std::shared_ptr<GPUPipelineLayoutDescriptor> &in) {
+  out.bindGroupLayoutCount = in->bindGroupLayouts.size();
 
-  return conv(out.bindGroupLayouts, in.bindGroupLayouts) &&
-         conv(out.label, in.label);
+  return conv(out.bindGroupLayouts, in->bindGroupLayouts) &&
+         conv(out.label, in->label);
 }
 
 } // namespace rnwgpu

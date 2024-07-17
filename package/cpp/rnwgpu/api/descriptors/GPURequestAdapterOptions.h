@@ -21,10 +21,10 @@ struct GPURequestAdapterOptions {
 };
 
 static bool conv(wgpu::RequestAdapterOptions &out,
-                 GPURequestAdapterOptions &in) {
+                 std::shared_ptr<GPURequestAdapterOptions> &in) {
 
-  return conv(out.powerPreference, in.powerPreference) &&
-         conv(out.forceFallbackAdapter, in.forceFallbackAdapter);
+  return conv(out.powerPreference, in->powerPreference) &&
+         conv(out.forceFallbackAdapter, in->forceFallbackAdapter);
 }
 
 } // namespace rnwgpu

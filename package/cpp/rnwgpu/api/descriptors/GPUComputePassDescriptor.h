@@ -24,10 +24,10 @@ struct GPUComputePassDescriptor {
 };
 
 static bool conv(wgpu::ComputePassDescriptor &out,
-                 GPUComputePassDescriptor &in) {
+                 std::shared_ptr<GPUComputePassDescriptor> &in) {
 
-  return conv(out.timestampWrites, in.timestampWrites) &&
-         conv(out.label, in.label);
+  return conv(out.timestampWrites, in->timestampWrites) &&
+         conv(out.label, in->label);
 }
 
 } // namespace rnwgpu

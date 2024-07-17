@@ -29,17 +29,17 @@ struct GPURenderPassDepthStencilAttachment {
 };
 
 static bool conv(wgpu::RenderPassDepthStencilAttachment &out,
-                 GPURenderPassDepthStencilAttachment &in) {
+                 std::shared_ptr<GPURenderPassDepthStencilAttachment> &in) {
 
-  return conv(out.view, in.view) &&
-         conv(out.depthClearValue, in.depthClearValue) &&
-         conv(out.depthLoadOp, in.depthLoadOp) &&
-         conv(out.depthStoreOp, in.depthStoreOp) &&
-         conv(out.depthReadOnly, in.depthReadOnly) &&
-         conv(out.stencilClearValue, in.stencilClearValue) &&
-         conv(out.stencilLoadOp, in.stencilLoadOp) &&
-         conv(out.stencilStoreOp, in.stencilStoreOp) &&
-         conv(out.stencilReadOnly, in.stencilReadOnly);
+  return conv(out.view, in->view) &&
+         conv(out.depthClearValue, in->depthClearValue) &&
+         conv(out.depthLoadOp, in->depthLoadOp) &&
+         conv(out.depthStoreOp, in->depthStoreOp) &&
+         conv(out.depthReadOnly, in->depthReadOnly) &&
+         conv(out.stencilClearValue, in->stencilClearValue) &&
+         conv(out.stencilLoadOp, in->stencilLoadOp) &&
+         conv(out.stencilStoreOp, in->stencilStoreOp) &&
+         conv(out.stencilReadOnly, in->stencilReadOnly);
 }
 
 } // namespace rnwgpu

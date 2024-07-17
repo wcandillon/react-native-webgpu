@@ -26,7 +26,7 @@ struct GPUProgrammableStage {
 };
 
 static bool conv(wgpu::ProgrammableStageDescriptor &out,
-                 const GPUProgrammableStage &in) {
+                 std::shared_ptr<GPUProgrammableStage> &in) {
   // TODO: implement
   return false;
 }

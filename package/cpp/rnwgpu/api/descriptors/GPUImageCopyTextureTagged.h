@@ -31,12 +31,12 @@ struct GPUImageCopyTextureTagged {
 };
 
 static bool conv(wgpu::ImageCopyTextureTagged &out,
-                 GPUImageCopyTextureTagged &in) {
+                 std::shared_ptr<GPUImageCopyTextureTagged> &in) {
 
-  return conv(out.colorSpace, in.colorSpace) &&
-         conv(out.premultipliedAlpha, in.premultipliedAlpha) &&
-         conv(out.texture, in.texture) && conv(out.mipLevel, in.mipLevel) &&
-         conv(out.origin, in.origin) && conv(out.aspect, in.aspect);
+  return conv(out.colorSpace, in->colorSpace) &&
+         conv(out.premultipliedAlpha, in->premultipliedAlpha) &&
+         conv(out.texture, in->texture) && conv(out.mipLevel, in->mipLevel) &&
+         conv(out.origin, in->origin) && conv(out.aspect, in->aspect);
 }
 
 } // namespace rnwgpu

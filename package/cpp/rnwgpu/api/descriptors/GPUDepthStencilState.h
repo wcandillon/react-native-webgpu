@@ -31,18 +31,19 @@ struct GPUDepthStencilState {
   std::optional<double> depthBiasClamp;      // number
 };
 
-static bool conv(wgpu::DepthStencilState &out, GPUDepthStencilState &in) {
+static bool conv(wgpu::DepthStencilState &out,
+                 std::shared_ptr<GPUDepthStencilState> &in) {
 
-  out.format = in.format;
-  return conv(out.depthWriteEnabled, in.depthWriteEnabled) &&
-         conv(out.depthCompare, in.depthCompare) &&
-         conv(out.stencilFront, in.stencilFront) &&
-         conv(out.stencilBack, in.stencilBack) &&
-         conv(out.stencilReadMask, in.stencilReadMask) &&
-         conv(out.stencilWriteMask, in.stencilWriteMask) &&
-         conv(out.depthBias, in.depthBias) &&
-         conv(out.depthBiasSlopeScale, in.depthBiasSlopeScale) &&
-         conv(out.depthBiasClamp, in.depthBiasClamp);
+  out.format = in->format;
+  return conv(out.depthWriteEnabled, in->depthWriteEnabled) &&
+         conv(out.depthCompare, in->depthCompare) &&
+         conv(out.stencilFront, in->stencilFront) &&
+         conv(out.stencilBack, in->stencilBack) &&
+         conv(out.stencilReadMask, in->stencilReadMask) &&
+         conv(out.stencilWriteMask, in->stencilWriteMask) &&
+         conv(out.depthBias, in->depthBias) &&
+         conv(out.depthBiasSlopeScale, in->depthBiasSlopeScale) &&
+         conv(out.depthBiasClamp, in->depthBiasClamp);
 }
 
 } // namespace rnwgpu

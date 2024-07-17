@@ -22,10 +22,11 @@ struct GPUStencilFaceState {
   std::optional<wgpu::StencilOperation> passOp;      // GPUStencilOperation
 };
 
-static bool conv(wgpu::StencilFaceState &out, GPUStencilFaceState &in) {
+static bool conv(wgpu::StencilFaceState &out,
+                 std::shared_ptr<GPUStencilFaceState> &in) {
 
-  return conv(out.compare, in.compare) && conv(out.failOp, in.failOp) &&
-         conv(out.depthFailOp, in.depthFailOp) && conv(out.passOp, in.passOp);
+  return conv(out.compare, in->compare) && conv(out.failOp, in->failOp) &&
+         conv(out.depthFailOp, in->depthFailOp) && conv(out.passOp, in->passOp);
 }
 
 } // namespace rnwgpu

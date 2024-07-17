@@ -20,11 +20,12 @@ struct GPUVertexAttribute {
   double shaderLocation;     // GPUIndex32
 };
 
-static bool conv(wgpu::VertexAttribute &out, GPUVertexAttribute &in) {
+static bool conv(wgpu::VertexAttribute &out,
+                 std::shared_ptr<GPUVertexAttribute> &in) {
 
-  out.format = in.format;
-  return conv(out.offset, in.offset) &&
-         conv(out.shaderLocation, in.shaderLocation);
+  out.format = in->format;
+  return conv(out.offset, in->offset) &&
+         conv(out.shaderLocation, in->shaderLocation);
 }
 
 } // namespace rnwgpu

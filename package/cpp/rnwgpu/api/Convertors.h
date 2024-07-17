@@ -10,51 +10,45 @@
 
 namespace rnwgpu {
 
-static bool conv(const char *&out, const std::string &in) {
+static bool conv(const char *out, const std::string &in) {
   out = in.c_str();
   return true;
 }
 
-static bool conv(double &out, double in) {
-  out = in;
-  return true;
-}
-
-template <typename T>
-static typename std::enable_if<std::is_arithmetic<T>::value, bool>::type
-conv(T &out, double in) {
+template <typename T, typename U>
+static typename std::enable_if<
+    std::is_arithmetic<T>::value && std::is_arithmetic<U>::value, bool>::type
+conv(T &out, const U in) {
   out = static_cast<T>(in);
   return true;
 }
 
-template <typename T>
-static typename std::enable_if<std::is_assignable<T &, std::nullptr_t>::value,
-                               bool>::type
-conv(T &out, std::nullptr_t in) {
-  out = nullptr;
-  return true;
+template <typename EnumT>
+static typename std::enable_if<std::is_enum<EnumT>::value, bool>::type
+conv(EnumT &out, const double in) {
+    out = static_cast<EnumT>(static_cast<int>(in));
+    return true;
 }
 
-template <typename InnerT, typename OuterT>
-static bool conv(InnerT *&out, const std::vector<OuterT> &in) {
-  //  std::vector<InnerT> result;
-  //  result.reserve(in.size());
-  //  for (const auto &item : in) {
-  //    InnerT converted{};
-  //    if (!conv(converted, item)) {
-  //      return false;
-  //    }
-  //    result.push_back(converted);
-  //  }
-  //  out = result.data();
-  return true;
-}
-
-template <typename InnerT, typename OuterT>
-static bool conv(InnerT &out, const std::optional<OuterT> &in) {
+template <typename OuterT, typename InnerT>
+static bool conv(OuterT &out, const std::optional<InnerT> &in) {
   if (in.has_value()) {
-    return conv<InnerT, OuterT>(out, in.value());
+    return conv<OuterT, InnerT>(out, in.value());
   }
+  return true;
+}
+
+template <typename OuterT, typename InnerT>
+static bool conv(OuterT *out, std::size_t &size,
+                 const std::vector<InnerT> &in) {
+  size = in.size();
+  std::vector<OuterT> outVector;
+  for (std::size_t i = 0; i < size; i++) {
+    if (!conv<OuterT, InnerT>(out[i], in[i])) {
+      return false;
+    }
+  }
+  out = outVector.data();
   return true;
 }
 
@@ -64,34 +58,10 @@ template <typename T>
 struct has_get<T, std::void_t<decltype(std::declval<T>().get())>>
     : std::true_type {};
 
-template <typename InnerT, typename OuterT>
-static bool conv(InnerT &out, const std::shared_ptr<OuterT> &in) {
-  if constexpr (has_get<OuterT>::value) {
-    return conv<InnerT, InnerT>(out, in->get());
-  } else {
-    return false;
-    //return conv<InnerT, OuterT>(out, *in.get());
-  }
-}
-
-template <typename InnerT, typename... OuterTs>
-static bool conv(InnerT &out, const std::variant<OuterTs...> &in) {
-  //    return std::visit([&out](const auto& value) -> bool {
-  //        return conv<InnerT, decltype(value)>(out, value);
-  //    }, in);
-  return true;
-}
-
-template <typename T> static bool conv(T &in, T &out) {
-  in = out;
-  return true;
-}
-
-template <typename OutT>
-static typename std::enable_if<std::is_enum<OutT>::value, bool>::type
-conv(OutT &out, const double &in) {
-  out = static_cast<OutT>(in);
-  return true;
+template <typename OuterT, typename InnerT>
+static auto conv(OuterT &out, const std::shared_ptr<InnerT> &in)
+    -> std::enable_if_t<has_get<InnerT>::value, bool> {
+  return conv<OuterT, decltype(in->get())>(out, in->get());
 }
 
 } // namespace rnwgpu

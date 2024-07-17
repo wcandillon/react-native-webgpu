@@ -32,13 +32,13 @@ struct GPURenderPassColorAttachment {
 };
 
 static bool conv(wgpu::RenderPassColorAttachment &out,
-                 GPURenderPassColorAttachment &in) {
+                 std::shared_ptr<GPURenderPassColorAttachment> &in) {
 
-  out.loadOp = in.loadOp;
-  out.storeOp = in.storeOp;
-  return conv(out.view, in.view) && conv(out.depthSlice, in.depthSlice) &&
-         conv(out.resolveTarget, in.resolveTarget) &&
-         conv(out.clearValue, in.clearValue);
+  out.loadOp = in->loadOp;
+  out.storeOp = in->storeOp;
+  return conv(out.view, in->view) && conv(out.depthSlice, in->depthSlice) &&
+         conv(out.resolveTarget, in->resolveTarget) &&
+         conv(out.clearValue, in->clearValue);
 }
 
 } // namespace rnwgpu

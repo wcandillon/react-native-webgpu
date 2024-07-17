@@ -31,11 +31,11 @@ struct GPUVertexState {
       constants; // Record< string, GPUPipelineConstantValue >
 };
 
-static bool conv(wgpu::VertexState &out, GPUVertexState &in) {
+static bool conv(wgpu::VertexState &out, std::shared_ptr<GPUVertexState> &in) {
 
-  return conv(out.buffers, in.buffers) && conv(out.module, in.module) &&
-         conv(out.entryPoint, in.entryPoint) &&
-         conv(out.constants, in.constants);
+  return conv(out.buffers, in->buffers) && conv(out.module, in->module) &&
+         conv(out.entryPoint, in->entryPoint) &&
+         conv(out.constants, in->constants);
 }
 
 } // namespace rnwgpu

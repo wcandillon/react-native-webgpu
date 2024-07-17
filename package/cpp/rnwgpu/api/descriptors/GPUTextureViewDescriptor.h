@@ -29,15 +29,15 @@ struct GPUTextureViewDescriptor {
 };
 
 static bool conv(wgpu::TextureViewDescriptor &out,
-                 GPUTextureViewDescriptor &in) {
+                 std::shared_ptr<GPUTextureViewDescriptor> &in) {
 
-  return conv(out.format, in.format) && conv(out.dimension, in.dimension) &&
-         conv(out.aspect, in.aspect) &&
-         conv(out.baseMipLevel, in.baseMipLevel) &&
-         conv(out.mipLevelCount, in.mipLevelCount) &&
-         conv(out.baseArrayLayer, in.baseArrayLayer) &&
-         conv(out.arrayLayerCount, in.arrayLayerCount) &&
-         conv(out.label, in.label);
+  return conv(out.format, in->format) && conv(out.dimension, in->dimension) &&
+         conv(out.aspect, in->aspect) &&
+         conv(out.baseMipLevel, in->baseMipLevel) &&
+         conv(out.mipLevelCount, in->mipLevelCount) &&
+         conv(out.baseArrayLayer, in->baseArrayLayer) &&
+         conv(out.arrayLayerCount, in->arrayLayerCount) &&
+         conv(out.label, in->label);
 }
 
 } // namespace rnwgpu

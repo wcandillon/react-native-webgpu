@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import type { InterfaceDeclaration, Type, PropertySignature } from "ts-morph";
 import { SyntaxKind } from "ts-morph";
 
@@ -224,18 +225,14 @@ ${
   !noConv.includes(name) && !customConv[name]
     ? `
 static bool conv(wgpu::${nativeMapName[name] ?? name.substring(3)} &out,
-          ${name} &in) {
-  ${props
-    .filter((p) => p.type.startsWith("std::vector"))
-    .map((p) => `out.${singular(p.name)}Count = in.${p.name}.size();`)
-    .join("\n")}
+          std::shared_ptr<${name}> &in) {
   ${props
     .filter((t) => t.type.startsWith("wgpu::"))
-    .map((t) => `out.${t.name} = in.${t.name};`)
+    .map((t) => `out.${t.name} = in->${t.name};`)
     .join("\n")}
   return ${props
     .filter((t) => !t.type.startsWith("wgpu::"))
-    .map((p) => `conv(out.${p.name}, in.${p.name})`)
+    .map((p) => `conv(out.${p.name}, in->${p.name})`)
     .join(" &&")};
 }`
     : ""
@@ -269,25 +266,21 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
 } // namespace margelo`;
 };
 
-const singular = (word: string) => {
-  return word === "entries" ? "entry" : word.substring(0, word.length - 1);
-};
-
 const customConv: Record<string, string> = {
-  GPUBindGroupEntry: `static bool conv(wgpu::BindGroupEntry &out, GPUBindGroupEntry &in) {
+  GPUBindGroupEntry: `static bool conv(wgpu::BindGroupEntry &out, std::shared_ptr<GPUBindGroupEntry> &in) {
   // out = {};
-  if (!conv(out.binding, in.binding)) {
+  if (!conv(out.binding, in->binding)) {
     return false;
   }
 
-  if (auto *res = std::get_if<std::shared_ptr<GPUSampler>>(&in.resource)) {
+  if (auto *res = std::get_if<std::shared_ptr<GPUSampler>>(&in->resource)) {
     return conv(out.sampler, *res);
   }
-  if (auto *res = std::get_if<std::shared_ptr<GPUTextureView>>(&in.resource)) {
+  if (auto *res = std::get_if<std::shared_ptr<GPUTextureView>>(&in->resource)) {
     return conv(out.textureView, *res);
   }
   if (auto *res =
-          std::get_if<std::shared_ptr<GPUBufferBinding>>(&in.resource)) {
+          std::get_if<std::shared_ptr<GPUBufferBinding>>(&in->resource)) {
     auto buffer = (*res)->buffer->get();
     out.size = wgpu::kWholeSize;
     if (!buffer || !conv(out.offset, (*res)->offset) ||
@@ -298,45 +291,35 @@ const customConv: Record<string, string> = {
     return true;
   }
   if (auto *res =
-          std::get_if<std::shared_ptr<GPUExternalTexture>>(&in.resource)) {
+          std::get_if<std::shared_ptr<GPUExternalTexture>>(&in->resource)) {
     throw std::runtime_error("GPUExternalTexture not supported");
   }
   return false;
 }`,
-  GPUImageCopyBuffer: `static bool conv(wgpu::ImageCopyBuffer &out, GPUImageCopyBuffer &in) {
-  return conv(out.buffer, in.buffer) && conv(out.layout.offset, in.offset) &&
-         conv(out.layout.bytesPerRow, in.bytesPerRow) &&
-         conv(out.layout.rowsPerImage, in.rowsPerImage);
+  GPUImageCopyBuffer: `static bool conv(wgpu::ImageCopyBuffer &out, std::shared_ptr<GPUImageCopyBuffer> &in) {
+  return conv(out.buffer, in->buffer) && conv(out.layout.offset, in->offset) &&
+         conv(out.layout.bytesPerRow, in->bytesPerRow) &&
+         conv(out.layout.rowsPerImage, in->rowsPerImage);
 }`,
-  GPUProgrammableStage: `static bool conv(wgpu::ProgrammableStageDescriptor &out, const GPUProgrammableStage &in) {
+  GPUProgrammableStage: `static bool conv(wgpu::ProgrammableStageDescriptor &out,  std::shared_ptr<GPUProgrammableStage> &in) {
   // TODO: implement
   return false;
 }`,
-  GPUPrimitiveState: `static bool conv(wgpu::PrimitiveState &out, GPUPrimitiveState &in) {
- if (in.unclippedDepth) {
+  GPUPrimitiveState: `static bool conv(wgpu::PrimitiveState &out, std::shared_ptr<GPUPrimitiveState> &in) {
+ if (in->unclippedDepth) {
      // TODO: fix memory leak here
      wgpu::PrimitiveDepthClipControl* depthClip = new wgpu::PrimitiveDepthClipControl();
      depthClip->unclippedDepth = true;
      out.nextInChain = depthClip;
   }
-  return conv(out.topology, in.topology) &&
-         conv(out.stripIndexFormat, in.stripIndexFormat) &&
-         conv(out.frontFace, in.frontFace) && conv(out.cullMode, in.cullMode);
-}`,
-  GPURenderPassDescriptor: `static bool conv(wgpu::RenderPassDescriptor &out, GPURenderPassDescriptor &in) {
-  out.colorAttachmentCount = in.colorAttachments.size();
-  wgpu::RenderPassDescriptor desc{};
-  wgpu::RenderPassDescriptorMaxDrawCount maxDrawCountDesc{};
-  desc.nextInChain = &maxDrawCountDesc;
-  return conv(out.colorAttachments, in.colorAttachments) &&
-         conv(out.depthStencilAttachment, in.depthStencilAttachment) &&
-         conv(out.occlusionQuerySet, in.occlusionQuerySet) &&
-         conv(out.timestampWrites, in.timestampWrites) &&
-         conv(maxDrawCountDesc.maxDrawCount, in.maxDrawCount) && conv(out.label, in.label);
+  return conv(out.topology, in->topology) &&
+         conv(out.stripIndexFormat, in->stripIndexFormat) &&
+         conv(out.frontFace, in->frontFace) && conv(out.cullMode, in->cullMode);
 }`,
 };
 const noConv = [
   "GPUBufferBinding",
   "GPUShaderModuleCompilationHint",
   "GPUShaderModuleDescriptor",
+  "GPURenderPassDescriptor",
 ];

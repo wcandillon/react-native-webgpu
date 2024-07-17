@@ -31,12 +31,13 @@ struct GPUFragmentState {
       constants; // Record< string, GPUPipelineConstantValue >
 };
 
-static bool conv(wgpu::FragmentState &out, GPUFragmentState &in) {
-  out.targetCount = in.targets.size();
+static bool conv(wgpu::FragmentState &out,
+                 std::shared_ptr<GPUFragmentState> &in) {
+  out.targetCount = in->targets.size();
 
-  return conv(out.targets, in.targets) && conv(out.module, in.module) &&
-         conv(out.entryPoint, in.entryPoint) &&
-         conv(out.constants, in.constants);
+  return conv(out.targets, in->targets) && conv(out.module, in->module) &&
+         conv(out.entryPoint, in->entryPoint) &&
+         conv(out.constants, in->constants);
 }
 
 } // namespace rnwgpu

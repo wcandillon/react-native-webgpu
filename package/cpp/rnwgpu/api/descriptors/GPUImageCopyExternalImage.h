@@ -39,10 +39,10 @@ struct GPUImageCopyExternalImage {
 };
 
 static bool conv(wgpu::ImageCopyExternalImage &out,
-                 GPUImageCopyExternalImage &in) {
+                 std::shared_ptr<GPUImageCopyExternalImage> &in) {
 
-  return conv(out.source, in.source) && conv(out.origin, in.origin) &&
-         conv(out.flipY, in.flipY);
+  return conv(out.source, in->source) && conv(out.origin, in->origin) &&
+         conv(out.flipY, in->flipY);
 }
 
 } // namespace rnwgpu

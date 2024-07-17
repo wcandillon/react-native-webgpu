@@ -14,9 +14,9 @@ struct GPUExtent3D {
   double depthOrArrayLayers = 1;
 };
 
-static bool conv(wgpu::Extent3D &out, GPUExtent3D &in) {
-  return conv(out.width, in.width) && conv(out.height, in.height) &&
-         conv(out.depthOrArrayLayers, in.depthOrArrayLayers);
+static bool conv(wgpu::Extent3D &out, std::shared_ptr<GPUExtent3D> &in) {
+  return conv(out.width, in->width) && conv(out.height, in->height) &&
+         conv(out.depthOrArrayLayers, in->depthOrArrayLayers);
 }
 
 } // namespace rnwgpu

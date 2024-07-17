@@ -35,19 +35,6 @@ struct GPURenderPassDescriptor {
   std::optional<std::string> label;   // string
 };
 
-static bool conv(wgpu::RenderPassDescriptor &out, GPURenderPassDescriptor &in) {
-  out.colorAttachmentCount = in.colorAttachments.size();
-  wgpu::RenderPassDescriptor desc{};
-  wgpu::RenderPassDescriptorMaxDrawCount maxDrawCountDesc{};
-  desc.nextInChain = &maxDrawCountDesc;
-  return conv(out.colorAttachments, in.colorAttachments) &&
-         conv(out.depthStencilAttachment, in.depthStencilAttachment) &&
-         conv(out.occlusionQuerySet, in.occlusionQuerySet) &&
-         conv(out.timestampWrites, in.timestampWrites) &&
-         conv(maxDrawCountDesc.maxDrawCount, in.maxDrawCount) &&
-         conv(out.label, in.label);
-}
-
 } // namespace rnwgpu
 
 namespace margelo {

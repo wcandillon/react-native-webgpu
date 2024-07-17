@@ -17,7 +17,7 @@ namespace rnwgpu {
 struct GPUExternalTextureBindingLayout {};
 
 static bool conv(wgpu::ExternalTextureBindingLayout &out,
-                 GPUExternalTextureBindingLayout &in) {
+                 std::shared_ptr<GPUExternalTextureBindingLayout> &in) {
 
   return;
 }

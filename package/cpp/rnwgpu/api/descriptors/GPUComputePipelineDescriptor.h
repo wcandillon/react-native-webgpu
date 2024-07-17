@@ -26,10 +26,10 @@ struct GPUComputePipelineDescriptor {
 };
 
 static bool conv(wgpu::ComputePipelineDescriptor &out,
-                 GPUComputePipelineDescriptor &in) {
+                 std::shared_ptr<GPUComputePipelineDescriptor> &in) {
 
-  return conv(out.compute, in.compute) && conv(out.layout, in.layout) &&
-         conv(out.label, in.label);
+  return conv(out.compute, in->compute) && conv(out.layout, in->layout) &&
+         conv(out.label, in->label);
 }
 
 } // namespace rnwgpu

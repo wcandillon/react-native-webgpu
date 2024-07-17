@@ -27,13 +27,14 @@ struct GPUCanvasConfiguration {
   std::optional<wgpu::CanvasAlphaMode> alphaMode;    // GPUCanvasAlphaMode
 };
 
-static bool conv(wgpu::CanvasConfiguration &out, GPUCanvasConfiguration &in) {
+static bool conv(wgpu::CanvasConfiguration &out,
+                 std::shared_ptr<GPUCanvasConfiguration> &in) {
 
-  out.format = in.format;
-  return conv(out.device, in.device) && conv(out.usage, in.usage) &&
-         conv(out.viewFormats, in.viewFormats) &&
-         conv(out.colorSpace, in.colorSpace) &&
-         conv(out.alphaMode, in.alphaMode);
+  out.format = in->format;
+  return conv(out.device, in->device) && conv(out.usage, in->usage) &&
+         conv(out.viewFormats, in->viewFormats) &&
+         conv(out.colorSpace, in->colorSpace) &&
+         conv(out.alphaMode, in->alphaMode);
 }
 
 } // namespace rnwgpu

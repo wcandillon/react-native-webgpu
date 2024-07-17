@@ -20,9 +20,10 @@ struct GPUQueueDescriptor {
   std::optional<std::string> label; // string
 };
 
-static bool conv(wgpu::QueueDescriptor &out, GPUQueueDescriptor &in) {
+static bool conv(wgpu::QueueDescriptor &out,
+                 std::shared_ptr<GPUQueueDescriptor> &in) {
 
-  return conv(out.label, in.label);
+  return conv(out.label, in->label);
 }
 
 } // namespace rnwgpu

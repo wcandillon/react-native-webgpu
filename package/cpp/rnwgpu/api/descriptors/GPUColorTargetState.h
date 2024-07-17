@@ -22,10 +22,11 @@ struct GPUColorTargetState {
   std::optional<double> writeMask;                     // GPUColorWriteFlags
 };
 
-static bool conv(wgpu::ColorTargetState &out, GPUColorTargetState &in) {
+static bool conv(wgpu::ColorTargetState &out,
+                 std::shared_ptr<GPUColorTargetState> &in) {
 
-  out.format = in.format;
-  return conv(out.blend, in.blend) && conv(out.writeMask, in.writeMask);
+  out.format = in->format;
+  return conv(out.blend, in->blend) && conv(out.writeMask, in->writeMask);
 }
 
 } // namespace rnwgpu

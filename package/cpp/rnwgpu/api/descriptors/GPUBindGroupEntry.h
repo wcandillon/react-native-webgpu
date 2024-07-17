@@ -27,20 +27,21 @@ struct GPUBindGroupEntry {
       resource; // GPUBindingResource
 };
 
-static bool conv(wgpu::BindGroupEntry &out, GPUBindGroupEntry &in) {
+static bool conv(wgpu::BindGroupEntry &out,
+                 std::shared_ptr<GPUBindGroupEntry> &in) {
   // out = {};
-  if (!conv(out.binding, in.binding)) {
+  if (!conv(out.binding, in->binding)) {
     return false;
   }
 
-  if (auto *res = std::get_if<std::shared_ptr<GPUSampler>>(&in.resource)) {
+  if (auto *res = std::get_if<std::shared_ptr<GPUSampler>>(&in->resource)) {
     return conv(out.sampler, *res);
   }
-  if (auto *res = std::get_if<std::shared_ptr<GPUTextureView>>(&in.resource)) {
+  if (auto *res = std::get_if<std::shared_ptr<GPUTextureView>>(&in->resource)) {
     return conv(out.textureView, *res);
   }
   if (auto *res =
-          std::get_if<std::shared_ptr<GPUBufferBinding>>(&in.resource)) {
+          std::get_if<std::shared_ptr<GPUBufferBinding>>(&in->resource)) {
     auto buffer = (*res)->buffer->get();
     out.size = wgpu::kWholeSize;
     if (!buffer || !conv(out.offset, (*res)->offset) ||
@@ -51,7 +52,7 @@ static bool conv(wgpu::BindGroupEntry &out, GPUBindGroupEntry &in) {
     return true;
   }
   if (auto *res =
-          std::get_if<std::shared_ptr<GPUExternalTexture>>(&in.resource)) {
+          std::get_if<std::shared_ptr<GPUExternalTexture>>(&in->resource)) {
     throw std::runtime_error("GPUExternalTexture not supported");
   }
   return false;

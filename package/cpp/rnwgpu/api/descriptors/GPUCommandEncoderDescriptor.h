@@ -21,9 +21,9 @@ struct GPUCommandEncoderDescriptor {
 };
 
 static bool conv(wgpu::CommandEncoderDescriptor &out,
-                 GPUCommandEncoderDescriptor &in) {
+                 std::shared_ptr<GPUCommandEncoderDescriptor> &in) {
 
-  return conv(out.label, in.label);
+  return conv(out.label, in->label);
 }
 
 } // namespace rnwgpu

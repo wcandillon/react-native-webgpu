@@ -22,10 +22,11 @@ struct GPUQuerySetDescriptor {
   std::optional<std::string> label; // string
 };
 
-static bool conv(wgpu::QuerySetDescriptor &out, GPUQuerySetDescriptor &in) {
+static bool conv(wgpu::QuerySetDescriptor &out,
+                 std::shared_ptr<GPUQuerySetDescriptor> &in) {
 
-  out.type = in.type;
-  return conv(out.count, in.count) && conv(out.label, in.label);
+  out.type = in->type;
+  return conv(out.count, in->count) && conv(out.label, in->label);
 }
 
 } // namespace rnwgpu

@@ -25,12 +25,13 @@ struct GPURenderPassLayout {
   std::optional<std::string> label;                      // string
 };
 
-static bool conv(wgpu::RenderPassLayout &out, GPURenderPassLayout &in) {
-  out.colorFormatCount = in.colorFormats.size();
+static bool conv(wgpu::RenderPassLayout &out,
+                 std::shared_ptr<GPURenderPassLayout> &in) {
+  out.colorFormatCount = in->colorFormats.size();
 
-  return conv(out.colorFormats, in.colorFormats) &&
-         conv(out.depthStencilFormat, in.depthStencilFormat) &&
-         conv(out.sampleCount, in.sampleCount) && conv(out.label, in.label);
+  return conv(out.colorFormats, in->colorFormats) &&
+         conv(out.depthStencilFormat, in->depthStencilFormat) &&
+         conv(out.sampleCount, in->sampleCount) && conv(out.label, in->label);
 }
 
 } // namespace rnwgpu

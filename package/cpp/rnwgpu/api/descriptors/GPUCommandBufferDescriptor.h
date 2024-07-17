@@ -21,9 +21,9 @@ struct GPUCommandBufferDescriptor {
 };
 
 static bool conv(wgpu::CommandBufferDescriptor &out,
-                 GPUCommandBufferDescriptor &in) {
+                 std::shared_ptr<GPUCommandBufferDescriptor> &in) {
 
-  return conv(out.label, in.label);
+  return conv(out.label, in->label);
 }
 
 } // namespace rnwgpu

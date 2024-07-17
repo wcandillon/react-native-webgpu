@@ -26,11 +26,11 @@ struct GPUBindGroupDescriptor {
   std::optional<std::string> label; // string
 };
 
-static bool conv(wgpu::BindGroupDescriptor &out, GPUBindGroupDescriptor &in) {
-  out.entryCount = in.entries.size();
-
-  return conv(out.layout, in.layout) && conv(out.entries, in.entries) &&
-         conv(out.label, in.label);
+static bool conv(wgpu::BindGroupDescriptor &out,
+                 std::shared_ptr<GPUBindGroupDescriptor> &in) {
+  return conv(out.layout, in->layout) &&
+         conv(out.entries, out.entryCount, in->entries) &&
+         conv(out.label, in->label);
 }
 
 } // namespace rnwgpu

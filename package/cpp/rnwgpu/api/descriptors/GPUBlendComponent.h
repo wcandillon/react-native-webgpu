@@ -21,10 +21,12 @@ struct GPUBlendComponent {
   std::optional<wgpu::BlendFactor> dstFactor;    // GPUBlendFactor
 };
 
-static bool conv(wgpu::BlendComponent &out, GPUBlendComponent &in) {
+static bool conv(wgpu::BlendComponent &out,
+                 std::shared_ptr<GPUBlendComponent> &in) {
 
-  return conv(out.operation, in.operation) &&
-         conv(out.srcFactor, in.srcFactor) && conv(out.dstFactor, in.dstFactor);
+  return conv(out.operation, in->operation) &&
+         conv(out.srcFactor, in->srcFactor) &&
+         conv(out.dstFactor, in->dstFactor);
 }
 
 } // namespace rnwgpu

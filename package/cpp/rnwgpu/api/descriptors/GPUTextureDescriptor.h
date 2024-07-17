@@ -30,13 +30,15 @@ struct GPUTextureDescriptor {
   std::optional<std::string> label; // string
 };
 
-static bool conv(wgpu::TextureDescriptor &out, GPUTextureDescriptor &in) {
+static bool conv(wgpu::TextureDescriptor &out,
+                 std::shared_ptr<GPUTextureDescriptor> &in) {
 
-  out.format = in.format;
-  return conv(out.size, in.size) && conv(out.mipLevelCount, in.mipLevelCount) &&
-         conv(out.sampleCount, in.sampleCount) &&
-         conv(out.dimension, in.dimension) && conv(out.usage, in.usage) &&
-         conv(out.viewFormats, in.viewFormats) && conv(out.label, in.label);
+  out.format = in->format;
+  return conv(out.size, in->size) &&
+         conv(out.mipLevelCount, in->mipLevelCount) &&
+         conv(out.sampleCount, in->sampleCount) &&
+         conv(out.dimension, in->dimension) && conv(out.usage, in->usage) &&
+         conv(out.viewFormats, in->viewFormats) && conv(out.label, in->label);
 }
 
 } // namespace rnwgpu

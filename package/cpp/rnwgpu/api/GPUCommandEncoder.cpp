@@ -22,8 +22,18 @@ std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(
 
 std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
     std::shared_ptr<GPURenderPassDescriptor> descriptor) {
-  wgpu::RenderPassDescriptor desc;
-  conv(desc, descriptor);
+  wgpu::RenderPassDescriptor desc{};
+  wgpu::RenderPassDescriptorMaxDrawCount maxDrawCountDesc{};
+  desc.nextInChain = &maxDrawCountDesc;
+  if (!conv(desc.colorAttachments, desc.colorAttachmentCount,
+            descriptor->colorAttachments) ||
+      !conv(desc.depthStencilAttachment, descriptor->depthStencilAttachment) ||
+      !conv(desc.label, descriptor->label) ||
+      !conv(desc.occlusionQuerySet, descriptor->occlusionQuerySet) ||
+      !conv(desc.timestampWrites, descriptor->timestampWrites) ||
+      !conv(maxDrawCountDesc.maxDrawCount, descriptor->maxDrawCount)) {
+    throw std::runtime_error("Failed to convert descriptor");
+  }
   auto renderPass = _instance.BeginRenderPass(&desc);
   return std::make_shared<GPURenderPassEncoder>(renderPass,
                                                 descriptor->label.value_or(""));

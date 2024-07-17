@@ -35,13 +35,14 @@ struct GPUBindGroupLayoutEntry {
       externalTexture; // GPUExternalTextureBindingLayout
 };
 
-static bool conv(wgpu::BindGroupLayoutEntry &out, GPUBindGroupLayoutEntry &in) {
+static bool conv(wgpu::BindGroupLayoutEntry &out,
+                 std::shared_ptr<GPUBindGroupLayoutEntry> &in) {
 
-  return conv(out.binding, in.binding) && conv(out.visibility, in.visibility) &&
-         conv(out.buffer, in.buffer) && conv(out.sampler, in.sampler) &&
-         conv(out.texture, in.texture) &&
-         conv(out.storageTexture, in.storageTexture) &&
-         conv(out.externalTexture, in.externalTexture);
+  return conv(out.binding, in->binding) &&
+         conv(out.visibility, in->visibility) && conv(out.buffer, in->buffer) &&
+         conv(out.sampler, in->sampler) && conv(out.texture, in->texture) &&
+         conv(out.storageTexture, in->storageTexture) &&
+         conv(out.externalTexture, in->externalTexture);
 }
 
 } // namespace rnwgpu

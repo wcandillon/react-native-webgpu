@@ -28,14 +28,14 @@ struct GPURenderBundleEncoderDescriptor {
 };
 
 static bool conv(wgpu::RenderBundleEncoderDescriptor &out,
-                 GPURenderBundleEncoderDescriptor &in) {
-  out.colorFormatCount = in.colorFormats.size();
+                 std::shared_ptr<GPURenderBundleEncoderDescriptor> &in) {
+  out.colorFormatCount = in->colorFormats.size();
 
-  return conv(out.depthReadOnly, in.depthReadOnly) &&
-         conv(out.stencilReadOnly, in.stencilReadOnly) &&
-         conv(out.colorFormats, in.colorFormats) &&
-         conv(out.depthStencilFormat, in.depthStencilFormat) &&
-         conv(out.sampleCount, in.sampleCount) && conv(out.label, in.label);
+  return conv(out.depthReadOnly, in->depthReadOnly) &&
+         conv(out.stencilReadOnly, in->stencilReadOnly) &&
+         conv(out.colorFormats, in->colorFormats) &&
+         conv(out.depthStencilFormat, in->depthStencilFormat) &&
+         conv(out.sampleCount, in->sampleCount) && conv(out.label, in->label);
 }
 
 } // namespace rnwgpu

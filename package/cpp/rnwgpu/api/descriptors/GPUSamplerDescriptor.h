@@ -30,18 +30,20 @@ struct GPUSamplerDescriptor {
   std::optional<std::string> label;                   // string
 };
 
-static bool conv(wgpu::SamplerDescriptor &out, GPUSamplerDescriptor &in) {
+static bool conv(wgpu::SamplerDescriptor &out,
+                 std::shared_ptr<GPUSamplerDescriptor> &in) {
 
-  return conv(out.addressModeU, in.addressModeU) &&
-         conv(out.addressModeV, in.addressModeV) &&
-         conv(out.addressModeW, in.addressModeW) &&
-         conv(out.magFilter, in.magFilter) &&
-         conv(out.minFilter, in.minFilter) &&
-         conv(out.mipmapFilter, in.mipmapFilter) &&
-         conv(out.lodMinClamp, in.lodMinClamp) &&
-         conv(out.lodMaxClamp, in.lodMaxClamp) &&
-         conv(out.compare, in.compare) &&
-         conv(out.maxAnisotropy, in.maxAnisotropy) && conv(out.label, in.label);
+  return conv(out.addressModeU, in->addressModeU) &&
+         conv(out.addressModeV, in->addressModeV) &&
+         conv(out.addressModeW, in->addressModeW) &&
+         conv(out.magFilter, in->magFilter) &&
+         conv(out.minFilter, in->minFilter) &&
+         conv(out.mipmapFilter, in->mipmapFilter) &&
+         conv(out.lodMinClamp, in->lodMinClamp) &&
+         conv(out.lodMaxClamp, in->lodMaxClamp) &&
+         conv(out.compare, in->compare) &&
+         conv(out.maxAnisotropy, in->maxAnisotropy) &&
+         conv(out.label, in->label);
 }
 
 } // namespace rnwgpu
