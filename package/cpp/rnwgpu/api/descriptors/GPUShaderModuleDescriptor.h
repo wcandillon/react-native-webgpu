@@ -39,17 +39,18 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "code")) {
         auto prop = value.getProperty(runtime, "code");
-        result->code = JSIConverter::fromJSI<std::string>(runtime, prop, false);
+        result->code = JSIConverter<std::string>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "compilationHints")) {
         auto prop = value.getProperty(runtime, "compilationHints");
-        result->compilationHints = JSIConverter::fromJSI<std::optional<
-            std::vector<std::shared_ptr<GPUShaderModuleCompilationHint>>>>(
-            runtime, prop, false);
+        result->compilationHints = JSIConverter<std::optional<std::vector<
+            std::shared_ptr<GPUShaderModuleCompilationHint>>>>::fromJSI(runtime,
+                                                                        prop,
+                                                                        false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
             runtime, prop, false);
       }
     }

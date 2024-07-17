@@ -39,6 +39,8 @@ struct GPURenderPipelineDescriptor {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
   static std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>
@@ -48,42 +50,44 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "vertex")) {
         auto prop = value.getProperty(runtime, "vertex");
-        result->vertex = JSIConverter::fromJSI<std::shared_ptr<GPUVertexState>>(
+        result->vertex = JSIConverter<std::shared_ptr<GPUVertexState>>::fromJSI(
             runtime, prop, false);
       }
       if (value.hasProperty(runtime, "primitive")) {
         auto prop = value.getProperty(runtime, "primitive");
-        result->primitive = JSIConverter::fromJSI<
-            std::optional<std::shared_ptr<GPUPrimitiveState>>>(runtime, prop,
-                                                               false);
+        result->primitive = JSIConverter<
+            std::optional<std::shared_ptr<GPUPrimitiveState>>>::fromJSI(runtime,
+                                                                        prop,
+                                                                        false);
       }
       if (value.hasProperty(runtime, "depthStencil")) {
         auto prop = value.getProperty(runtime, "depthStencil");
-        result->depthStencil = JSIConverter::fromJSI<
-            std::optional<std::shared_ptr<GPUDepthStencilState>>>(runtime, prop,
-                                                                  false);
+        result->depthStencil =
+            JSIConverter<std::optional<std::shared_ptr<GPUDepthStencilState>>>::
+                fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "multisample")) {
         auto prop = value.getProperty(runtime, "multisample");
-        result->multisample = JSIConverter::fromJSI<
-            std::optional<std::shared_ptr<GPUMultisampleState>>>(runtime, prop,
-                                                                 false);
+        result->multisample =
+            JSIConverter<std::optional<std::shared_ptr<GPUMultisampleState>>>::
+                fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "fragment")) {
         auto prop = value.getProperty(runtime, "fragment");
-        result->fragment = JSIConverter::fromJSI<
-            std::optional<std::shared_ptr<GPUFragmentState>>>(runtime, prop,
-                                                              false);
+        result->fragment = JSIConverter<
+            std::optional<std::shared_ptr<GPUFragmentState>>>::fromJSI(runtime,
+                                                                       prop,
+                                                                       false);
       }
       if (value.hasProperty(runtime, "layout")) {
         auto prop = value.getProperty(runtime, "layout");
-        result->layout = JSIConverter::fromJSI<
-            std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>>(
-            runtime, prop, false);
+        result->layout = JSIConverter<
+            std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>>::
+            fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
             runtime, prop, false);
       }
     }

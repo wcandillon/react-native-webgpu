@@ -25,6 +25,8 @@ struct GPUStorageTextureBindingLayout {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
   static std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>
@@ -35,18 +37,18 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
       if (value.hasProperty(runtime, "access")) {
         auto prop = value.getProperty(runtime, "access");
         result->access =
-            JSIConverter::fromJSI<std::optional<wgpu::StorageTextureAccess>>(
+            JSIConverter<std::optional<wgpu::StorageTextureAccess>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "format")) {
         auto prop = value.getProperty(runtime, "format");
         result->format =
-            JSIConverter::fromJSI<wgpu::TextureFormat>(runtime, prop, false);
+            JSIConverter<wgpu::TextureFormat>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "viewDimension")) {
         auto prop = value.getProperty(runtime, "viewDimension");
         result->viewDimension =
-            JSIConverter::fromJSI<std::optional<wgpu::TextureViewDimension>>(
+            JSIConverter<std::optional<wgpu::TextureViewDimension>>::fromJSI(
                 runtime, prop, false);
       }
     }

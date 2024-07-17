@@ -33,6 +33,8 @@ struct GPUSamplerDescriptor {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUSamplerDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -42,63 +44,63 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
       if (value.hasProperty(runtime, "addressModeU")) {
         auto prop = value.getProperty(runtime, "addressModeU");
         result->addressModeU =
-            JSIConverter::fromJSI<std::optional<wgpu::AddressMode>>(
+            JSIConverter<std::optional<wgpu::AddressMode>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "addressModeV")) {
         auto prop = value.getProperty(runtime, "addressModeV");
         result->addressModeV =
-            JSIConverter::fromJSI<std::optional<wgpu::AddressMode>>(
+            JSIConverter<std::optional<wgpu::AddressMode>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "addressModeW")) {
         auto prop = value.getProperty(runtime, "addressModeW");
         result->addressModeW =
-            JSIConverter::fromJSI<std::optional<wgpu::AddressMode>>(
+            JSIConverter<std::optional<wgpu::AddressMode>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "magFilter")) {
         auto prop = value.getProperty(runtime, "magFilter");
         result->magFilter =
-            JSIConverter::fromJSI<std::optional<wgpu::FilterMode>>(runtime,
+            JSIConverter<std::optional<wgpu::FilterMode>>::fromJSI(runtime,
                                                                    prop, false);
       }
       if (value.hasProperty(runtime, "minFilter")) {
         auto prop = value.getProperty(runtime, "minFilter");
         result->minFilter =
-            JSIConverter::fromJSI<std::optional<wgpu::FilterMode>>(runtime,
+            JSIConverter<std::optional<wgpu::FilterMode>>::fromJSI(runtime,
                                                                    prop, false);
       }
       if (value.hasProperty(runtime, "mipmapFilter")) {
         auto prop = value.getProperty(runtime, "mipmapFilter");
         result->mipmapFilter =
-            JSIConverter::fromJSI<std::optional<wgpu::MipmapFilterMode>>(
+            JSIConverter<std::optional<wgpu::MipmapFilterMode>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "lodMinClamp")) {
         auto prop = value.getProperty(runtime, "lodMinClamp");
         result->lodMinClamp =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "lodMaxClamp")) {
         auto prop = value.getProperty(runtime, "lodMaxClamp");
         result->lodMaxClamp =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "compare")) {
         auto prop = value.getProperty(runtime, "compare");
         result->compare =
-            JSIConverter::fromJSI<std::optional<wgpu::CompareFunction>>(
+            JSIConverter<std::optional<wgpu::CompareFunction>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "maxAnisotropy")) {
         auto prop = value.getProperty(runtime, "maxAnisotropy");
         result->maxAnisotropy =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
             runtime, prop, false);
       }
     }

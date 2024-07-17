@@ -21,6 +21,8 @@ struct GPUPipelineErrorInit {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineErrorInit>> {
   static std::shared_ptr<rnwgpu::GPUPipelineErrorInit>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -29,7 +31,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineErrorInit>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "reason")) {
         auto prop = value.getProperty(runtime, "reason");
-        result->reason = JSIConverter::fromJSI<wgpu::PipelineErrorReason>(
+        result->reason = JSIConverter<wgpu::PipelineErrorReason>::fromJSI(
             runtime, prop, false);
       }
     }

@@ -25,6 +25,8 @@ struct GPURenderPassTimestampWrites {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassTimestampWrites>> {
   static std::shared_ptr<rnwgpu::GPURenderPassTimestampWrites>
@@ -34,18 +36,18 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassTimestampWrites>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "querySet")) {
         auto prop = value.getProperty(runtime, "querySet");
-        result->querySet = JSIConverter::fromJSI<std::shared_ptr<GPUQuerySet>>(
+        result->querySet = JSIConverter<std::shared_ptr<GPUQuerySet>>::fromJSI(
             runtime, prop, false);
       }
       if (value.hasProperty(runtime, "beginningOfPassWriteIndex")) {
         auto prop = value.getProperty(runtime, "beginningOfPassWriteIndex");
         result->beginningOfPassWriteIndex =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "endOfPassWriteIndex")) {
         auto prop = value.getProperty(runtime, "endOfPassWriteIndex");
         result->endOfPassWriteIndex =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 

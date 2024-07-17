@@ -24,6 +24,8 @@ struct GPUColorDict {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
   static std::shared_ptr<rnwgpu::GPUColorDict>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -32,19 +34,19 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "r")) {
         auto prop = value.getProperty(runtime, "r");
-        result->r = JSIConverter::fromJSI<double>(runtime, prop, false);
+        result->r = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "g")) {
         auto prop = value.getProperty(runtime, "g");
-        result->g = JSIConverter::fromJSI<double>(runtime, prop, false);
+        result->g = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "b")) {
         auto prop = value.getProperty(runtime, "b");
-        result->b = JSIConverter::fromJSI<double>(runtime, prop, false);
+        result->b = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "a")) {
         auto prop = value.getProperty(runtime, "a");
-        result->a = JSIConverter::fromJSI<double>(runtime, prop, false);
+        result->a = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
     }
 

@@ -23,6 +23,8 @@ struct GPURequestAdapterOptions {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
   static std::shared_ptr<rnwgpu::GPURequestAdapterOptions>
@@ -33,13 +35,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
       if (value.hasProperty(runtime, "powerPreference")) {
         auto prop = value.getProperty(runtime, "powerPreference");
         result->powerPreference =
-            JSIConverter::fromJSI<std::optional<wgpu::PowerPreference>>(
+            JSIConverter<std::optional<wgpu::PowerPreference>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "forceFallbackAdapter")) {
         auto prop = value.getProperty(runtime, "forceFallbackAdapter");
         result->forceFallbackAdapter =
-            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
     }
 

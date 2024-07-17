@@ -34,6 +34,8 @@ struct GPUDepthStencilState {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
   static std::shared_ptr<rnwgpu::GPUDepthStencilState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -43,55 +45,55 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
       if (value.hasProperty(runtime, "format")) {
         auto prop = value.getProperty(runtime, "format");
         result->format =
-            JSIConverter::fromJSI<wgpu::TextureFormat>(runtime, prop, false);
+            JSIConverter<wgpu::TextureFormat>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthWriteEnabled")) {
         auto prop = value.getProperty(runtime, "depthWriteEnabled");
         result->depthWriteEnabled =
-            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthCompare")) {
         auto prop = value.getProperty(runtime, "depthCompare");
         result->depthCompare =
-            JSIConverter::fromJSI<std::optional<wgpu::CompareFunction>>(
+            JSIConverter<std::optional<wgpu::CompareFunction>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stencilFront")) {
         auto prop = value.getProperty(runtime, "stencilFront");
-        result->stencilFront = JSIConverter::fromJSI<
-            std::optional<std::shared_ptr<GPUStencilFaceState>>>(runtime, prop,
-                                                                 false);
+        result->stencilFront =
+            JSIConverter<std::optional<std::shared_ptr<GPUStencilFaceState>>>::
+                fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stencilBack")) {
         auto prop = value.getProperty(runtime, "stencilBack");
-        result->stencilBack = JSIConverter::fromJSI<
-            std::optional<std::shared_ptr<GPUStencilFaceState>>>(runtime, prop,
-                                                                 false);
+        result->stencilBack =
+            JSIConverter<std::optional<std::shared_ptr<GPUStencilFaceState>>>::
+                fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stencilReadMask")) {
         auto prop = value.getProperty(runtime, "stencilReadMask");
         result->stencilReadMask =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stencilWriteMask")) {
         auto prop = value.getProperty(runtime, "stencilWriteMask");
         result->stencilWriteMask =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthBias")) {
         auto prop = value.getProperty(runtime, "depthBias");
         result->depthBias =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthBiasSlopeScale")) {
         auto prop = value.getProperty(runtime, "depthBiasSlopeScale");
         result->depthBiasSlopeScale =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthBiasClamp")) {
         auto prop = value.getProperty(runtime, "depthBiasClamp");
         result->depthBiasClamp =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 

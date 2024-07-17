@@ -26,6 +26,8 @@ struct GPUImageCopyBuffer {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyBuffer>> {
   static std::shared_ptr<rnwgpu::GPUImageCopyBuffer>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -34,23 +36,23 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyBuffer>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "buffer")) {
         auto prop = value.getProperty(runtime, "buffer");
-        result->buffer = JSIConverter::fromJSI<std::shared_ptr<GPUBuffer>>(
+        result->buffer = JSIConverter<std::shared_ptr<GPUBuffer>>::fromJSI(
             runtime, prop, false);
       }
       if (value.hasProperty(runtime, "offset")) {
         auto prop = value.getProperty(runtime, "offset");
         result->offset =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "bytesPerRow")) {
         auto prop = value.getProperty(runtime, "bytesPerRow");
         result->bytesPerRow =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "rowsPerImage")) {
         auto prop = value.getProperty(runtime, "rowsPerImage");
         result->rowsPerImage =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 

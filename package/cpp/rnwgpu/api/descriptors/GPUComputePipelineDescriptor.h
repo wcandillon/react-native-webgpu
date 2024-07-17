@@ -28,6 +28,8 @@ struct GPUComputePipelineDescriptor {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>
@@ -38,18 +40,18 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
       if (value.hasProperty(runtime, "compute")) {
         auto prop = value.getProperty(runtime, "compute");
         result->compute =
-            JSIConverter::fromJSI<std::shared_ptr<GPUProgrammableStage>>(
+            JSIConverter<std::shared_ptr<GPUProgrammableStage>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "layout")) {
         auto prop = value.getProperty(runtime, "layout");
-        result->layout = JSIConverter::fromJSI<
-            std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>>(
-            runtime, prop, false);
+        result->layout = JSIConverter<
+            std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>>::
+            fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
             runtime, prop, false);
       }
     }

@@ -25,6 +25,8 @@ struct GPUStencilFaceState {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
   static std::shared_ptr<rnwgpu::GPUStencilFaceState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -34,25 +36,25 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
       if (value.hasProperty(runtime, "compare")) {
         auto prop = value.getProperty(runtime, "compare");
         result->compare =
-            JSIConverter::fromJSI<std::optional<wgpu::CompareFunction>>(
+            JSIConverter<std::optional<wgpu::CompareFunction>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "failOp")) {
         auto prop = value.getProperty(runtime, "failOp");
         result->failOp =
-            JSIConverter::fromJSI<std::optional<wgpu::StencilOperation>>(
+            JSIConverter<std::optional<wgpu::StencilOperation>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthFailOp")) {
         auto prop = value.getProperty(runtime, "depthFailOp");
         result->depthFailOp =
-            JSIConverter::fromJSI<std::optional<wgpu::StencilOperation>>(
+            JSIConverter<std::optional<wgpu::StencilOperation>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "passOp")) {
         auto prop = value.getProperty(runtime, "passOp");
         result->passOp =
-            JSIConverter::fromJSI<std::optional<wgpu::StencilOperation>>(
+            JSIConverter<std::optional<wgpu::StencilOperation>>::fromJSI(
                 runtime, prop, false);
       }
     }

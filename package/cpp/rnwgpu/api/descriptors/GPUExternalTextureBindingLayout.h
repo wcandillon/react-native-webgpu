@@ -19,6 +19,8 @@ struct GPUExternalTextureBindingLayout {};
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureBindingLayout>> {
   static std::shared_ptr<rnwgpu::GPUExternalTextureBindingLayout>

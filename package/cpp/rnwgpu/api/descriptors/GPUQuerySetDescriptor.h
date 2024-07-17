@@ -25,6 +25,8 @@ struct GPUQuerySetDescriptor {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>
@@ -35,15 +37,15 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
       if (value.hasProperty(runtime, "type")) {
         auto prop = value.getProperty(runtime, "type");
         result->type =
-            JSIConverter::fromJSI<wgpu::QueryType>(runtime, prop, false);
+            JSIConverter<wgpu::QueryType>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "count")) {
         auto prop = value.getProperty(runtime, "count");
-        result->count = JSIConverter::fromJSI<double>(runtime, prop, false);
+        result->count = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
             runtime, prop, false);
       }
     }

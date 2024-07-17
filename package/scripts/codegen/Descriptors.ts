@@ -131,7 +131,7 @@ interface Prop {
 const jsiProp = ({ name, type }: Prop) => {
   return `if (value.hasProperty(runtime, "${name}")) {
   auto prop = value.getProperty(runtime, "${name}");
-  result->${name} = JSIConverter::fromJSI<${type}>(runtime, prop, false);
+  result->${name} = JSIConverter<${type}>::fromJSI(runtime, prop, false);
 }`;
 };
 

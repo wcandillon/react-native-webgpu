@@ -26,6 +26,8 @@ struct GPUShaderModuleCompilationHint {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
   static std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>
@@ -36,13 +38,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
       if (value.hasProperty(runtime, "entryPoint")) {
         auto prop = value.getProperty(runtime, "entryPoint");
         result->entryPoint =
-            JSIConverter::fromJSI<std::string>(runtime, prop, false);
+            JSIConverter<std::string>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "layout")) {
         auto prop = value.getProperty(runtime, "layout");
-        result->layout = JSIConverter::fromJSI<std::optional<
-            std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>>>(
-            runtime, prop, false);
+        result->layout = JSIConverter<std::optional<
+            std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>>>::
+            fromJSI(runtime, prop, false);
       }
     }
 

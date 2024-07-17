@@ -22,6 +22,8 @@ struct GPUSamplerBindingLayout {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
   static std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>
@@ -32,7 +34,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
       if (value.hasProperty(runtime, "type")) {
         auto prop = value.getProperty(runtime, "type");
         result->type =
-            JSIConverter::fromJSI<std::optional<wgpu::SamplerBindingType>>(
+            JSIConverter<std::optional<wgpu::SamplerBindingType>>::fromJSI(
                 runtime, prop, false);
       }
     }

@@ -24,6 +24,8 @@ struct GPUImageDataLayout {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageDataLayout>> {
   static std::shared_ptr<rnwgpu::GPUImageDataLayout>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -33,17 +35,17 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageDataLayout>> {
       if (value.hasProperty(runtime, "offset")) {
         auto prop = value.getProperty(runtime, "offset");
         result->offset =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "bytesPerRow")) {
         auto prop = value.getProperty(runtime, "bytesPerRow");
         result->bytesPerRow =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "rowsPerImage")) {
         auto prop = value.getProperty(runtime, "rowsPerImage");
         result->rowsPerImage =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 

@@ -31,6 +31,8 @@ struct GPUTextureViewDescriptor {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>
@@ -41,44 +43,44 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
       if (value.hasProperty(runtime, "format")) {
         auto prop = value.getProperty(runtime, "format");
         result->format =
-            JSIConverter::fromJSI<std::optional<wgpu::TextureFormat>>(
+            JSIConverter<std::optional<wgpu::TextureFormat>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "dimension")) {
         auto prop = value.getProperty(runtime, "dimension");
         result->dimension =
-            JSIConverter::fromJSI<std::optional<wgpu::TextureViewDimension>>(
+            JSIConverter<std::optional<wgpu::TextureViewDimension>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "aspect")) {
         auto prop = value.getProperty(runtime, "aspect");
         result->aspect =
-            JSIConverter::fromJSI<std::optional<wgpu::TextureAspect>>(
+            JSIConverter<std::optional<wgpu::TextureAspect>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "baseMipLevel")) {
         auto prop = value.getProperty(runtime, "baseMipLevel");
         result->baseMipLevel =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "mipLevelCount")) {
         auto prop = value.getProperty(runtime, "mipLevelCount");
         result->mipLevelCount =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "baseArrayLayer")) {
         auto prop = value.getProperty(runtime, "baseArrayLayer");
         result->baseArrayLayer =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "arrayLayerCount")) {
         auto prop = value.getProperty(runtime, "arrayLayerCount");
         result->arrayLayerCount =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
             runtime, prop, false);
       }
     }

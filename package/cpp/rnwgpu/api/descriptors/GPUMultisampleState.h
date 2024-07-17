@@ -24,6 +24,8 @@ struct GPUMultisampleState {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
   static std::shared_ptr<rnwgpu::GPUMultisampleState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -33,17 +35,17 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
       if (value.hasProperty(runtime, "count")) {
         auto prop = value.getProperty(runtime, "count");
         result->count =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "mask")) {
         auto prop = value.getProperty(runtime, "mask");
         result->mask =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "alphaToCoverageEnabled")) {
         auto prop = value.getProperty(runtime, "alphaToCoverageEnabled");
         result->alphaToCoverageEnabled =
-            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
     }
 

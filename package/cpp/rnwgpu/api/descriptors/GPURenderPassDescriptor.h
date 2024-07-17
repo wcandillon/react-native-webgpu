@@ -38,6 +38,8 @@ struct GPURenderPassDescriptor {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
   static std::shared_ptr<rnwgpu::GPURenderPassDescriptor>
@@ -47,37 +49,38 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "colorAttachments")) {
         auto prop = value.getProperty(runtime, "colorAttachments");
-        result
-            ->colorAttachments = JSIConverter::fromJSI<std::vector<std::variant<
-            std::nullptr_t, std::shared_ptr<GPURenderPassColorAttachment>>>>(
-            runtime, prop, false);
+        result->colorAttachments = JSIConverter<std::vector<std::variant<
+            std::nullptr_t, std::shared_ptr<GPURenderPassColorAttachment>>>>::
+            fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthStencilAttachment")) {
         auto prop = value.getProperty(runtime, "depthStencilAttachment");
-        result->depthStencilAttachment = JSIConverter::fromJSI<std::optional<
-            std::shared_ptr<GPURenderPassDepthStencilAttachment>>>(runtime,
-                                                                   prop, false);
+        result->depthStencilAttachment =
+            JSIConverter<std::optional<std::shared_ptr<
+                GPURenderPassDepthStencilAttachment>>>::fromJSI(runtime, prop,
+                                                                false);
       }
       if (value.hasProperty(runtime, "occlusionQuerySet")) {
         auto prop = value.getProperty(runtime, "occlusionQuerySet");
         result->occlusionQuerySet =
-            JSIConverter::fromJSI<std::optional<std::shared_ptr<GPUQuerySet>>>(
+            JSIConverter<std::optional<std::shared_ptr<GPUQuerySet>>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "timestampWrites")) {
         auto prop = value.getProperty(runtime, "timestampWrites");
-        result->timestampWrites = JSIConverter::fromJSI<
-            std::optional<std::shared_ptr<GPURenderPassTimestampWrites>>>(
-            runtime, prop, false);
+        result->timestampWrites = JSIConverter<std::optional<
+            std::shared_ptr<GPURenderPassTimestampWrites>>>::fromJSI(runtime,
+                                                                     prop,
+                                                                     false);
       }
       if (value.hasProperty(runtime, "maxDrawCount")) {
         auto prop = value.getProperty(runtime, "maxDrawCount");
         result->maxDrawCount =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
             runtime, prop, false);
       }
     }

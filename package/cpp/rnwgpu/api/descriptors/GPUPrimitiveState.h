@@ -26,6 +26,8 @@ struct GPUPrimitiveState {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPrimitiveState>> {
   static std::shared_ptr<rnwgpu::GPUPrimitiveState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -35,30 +37,30 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPrimitiveState>> {
       if (value.hasProperty(runtime, "topology")) {
         auto prop = value.getProperty(runtime, "topology");
         result->topology =
-            JSIConverter::fromJSI<std::optional<wgpu::PrimitiveTopology>>(
+            JSIConverter<std::optional<wgpu::PrimitiveTopology>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stripIndexFormat")) {
         auto prop = value.getProperty(runtime, "stripIndexFormat");
         result->stripIndexFormat =
-            JSIConverter::fromJSI<std::optional<wgpu::IndexFormat>>(
+            JSIConverter<std::optional<wgpu::IndexFormat>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "frontFace")) {
         auto prop = value.getProperty(runtime, "frontFace");
         result->frontFace =
-            JSIConverter::fromJSI<std::optional<wgpu::FrontFace>>(runtime, prop,
+            JSIConverter<std::optional<wgpu::FrontFace>>::fromJSI(runtime, prop,
                                                                   false);
       }
       if (value.hasProperty(runtime, "cullMode")) {
         auto prop = value.getProperty(runtime, "cullMode");
-        result->cullMode = JSIConverter::fromJSI<std::optional<wgpu::CullMode>>(
+        result->cullMode = JSIConverter<std::optional<wgpu::CullMode>>::fromJSI(
             runtime, prop, false);
       }
       if (value.hasProperty(runtime, "unclippedDepth")) {
         auto prop = value.getProperty(runtime, "unclippedDepth");
         result->unclippedDepth =
-            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
     }
 

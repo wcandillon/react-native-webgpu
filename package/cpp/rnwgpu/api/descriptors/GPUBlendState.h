@@ -23,6 +23,8 @@ struct GPUBlendState {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
   static std::shared_ptr<rnwgpu::GPUBlendState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -32,13 +34,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
       if (value.hasProperty(runtime, "color")) {
         auto prop = value.getProperty(runtime, "color");
         result->color =
-            JSIConverter::fromJSI<std::shared_ptr<GPUBlendComponent>>(
+            JSIConverter<std::shared_ptr<GPUBlendComponent>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "alpha")) {
         auto prop = value.getProperty(runtime, "alpha");
         result->alpha =
-            JSIConverter::fromJSI<std::shared_ptr<GPUBlendComponent>>(
+            JSIConverter<std::shared_ptr<GPUBlendComponent>>::fromJSI(
                 runtime, prop, false);
       }
     }

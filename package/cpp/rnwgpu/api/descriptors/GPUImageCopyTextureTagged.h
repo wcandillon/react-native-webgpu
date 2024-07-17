@@ -33,6 +33,8 @@ struct GPUImageCopyTextureTagged {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
   static std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>
@@ -43,34 +45,34 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
       if (value.hasProperty(runtime, "colorSpace")) {
         auto prop = value.getProperty(runtime, "colorSpace");
         result->colorSpace =
-            JSIConverter::fromJSI<std::optional<wgpu::definedColorSpace>>(
+            JSIConverter<std::optional<wgpu::definedColorSpace>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "premultipliedAlpha")) {
         auto prop = value.getProperty(runtime, "premultipliedAlpha");
         result->premultipliedAlpha =
-            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "texture")) {
         auto prop = value.getProperty(runtime, "texture");
-        result->texture = JSIConverter::fromJSI<std::shared_ptr<GPUTexture>>(
+        result->texture = JSIConverter<std::shared_ptr<GPUTexture>>::fromJSI(
             runtime, prop, false);
       }
       if (value.hasProperty(runtime, "mipLevel")) {
         auto prop = value.getProperty(runtime, "mipLevel");
         result->mipLevel =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "origin")) {
         auto prop = value.getProperty(runtime, "origin");
-        result->origin = JSIConverter::fromJSI<std::optional<std::variant<
-            std::vector<double>, std::shared_ptr<GPUOrigin3DDict>>>>(
-            runtime, prop, false);
+        result->origin = JSIConverter<std::optional<std::variant<
+            std::vector<double>, std::shared_ptr<GPUOrigin3DDict>>>>::
+            fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "aspect")) {
         auto prop = value.getProperty(runtime, "aspect");
         result->aspect =
-            JSIConverter::fromJSI<std::optional<wgpu::TextureAspect>>(
+            JSIConverter<std::optional<wgpu::TextureAspect>>::fromJSI(
                 runtime, prop, false);
       }
     }

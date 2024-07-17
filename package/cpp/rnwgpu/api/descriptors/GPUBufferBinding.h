@@ -25,6 +25,8 @@ struct GPUBufferBinding {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
   static std::shared_ptr<rnwgpu::GPUBufferBinding>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -33,18 +35,18 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "buffer")) {
         auto prop = value.getProperty(runtime, "buffer");
-        result->buffer = JSIConverter::fromJSI<std::shared_ptr<GPUBuffer>>(
+        result->buffer = JSIConverter<std::shared_ptr<GPUBuffer>>::fromJSI(
             runtime, prop, false);
       }
       if (value.hasProperty(runtime, "offset")) {
         auto prop = value.getProperty(runtime, "offset");
         result->offset =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "size")) {
         auto prop = value.getProperty(runtime, "size");
         result->size =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 

@@ -30,6 +30,8 @@ struct GPURenderBundleEncoderDescriptor {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
   static std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>
@@ -40,33 +42,33 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
       if (value.hasProperty(runtime, "depthReadOnly")) {
         auto prop = value.getProperty(runtime, "depthReadOnly");
         result->depthReadOnly =
-            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stencilReadOnly")) {
         auto prop = value.getProperty(runtime, "stencilReadOnly");
         result->stencilReadOnly =
-            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "colorFormats")) {
         auto prop = value.getProperty(runtime, "colorFormats");
-        result->colorFormats = JSIConverter::fromJSI<
-            std::vector<std::variant<wgpu::TextureFormat, std::nullptr_t>>>(
-            runtime, prop, false);
+        result->colorFormats = JSIConverter<
+            std::vector<std::variant<wgpu::TextureFormat, std::nullptr_t>>>::
+            fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthStencilFormat")) {
         auto prop = value.getProperty(runtime, "depthStencilFormat");
         result->depthStencilFormat =
-            JSIConverter::fromJSI<std::optional<wgpu::TextureFormat>>(
+            JSIConverter<std::optional<wgpu::TextureFormat>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "sampleCount")) {
         auto prop = value.getProperty(runtime, "sampleCount");
         result->sampleCount =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
             runtime, prop, false);
       }
     }

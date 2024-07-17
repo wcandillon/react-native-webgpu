@@ -24,6 +24,8 @@ struct GPUBlendComponent {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendComponent>> {
   static std::shared_ptr<rnwgpu::GPUBlendComponent>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -33,19 +35,19 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendComponent>> {
       if (value.hasProperty(runtime, "operation")) {
         auto prop = value.getProperty(runtime, "operation");
         result->operation =
-            JSIConverter::fromJSI<std::optional<wgpu::BlendOperation>>(
+            JSIConverter<std::optional<wgpu::BlendOperation>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "srcFactor")) {
         auto prop = value.getProperty(runtime, "srcFactor");
         result->srcFactor =
-            JSIConverter::fromJSI<std::optional<wgpu::BlendFactor>>(
+            JSIConverter<std::optional<wgpu::BlendFactor>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "dstFactor")) {
         auto prop = value.getProperty(runtime, "dstFactor");
         result->dstFactor =
-            JSIConverter::fromJSI<std::optional<wgpu::BlendFactor>>(
+            JSIConverter<std::optional<wgpu::BlendFactor>>::fromJSI(
                 runtime, prop, false);
       }
     }

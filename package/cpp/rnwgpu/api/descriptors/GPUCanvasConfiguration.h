@@ -30,6 +30,8 @@ struct GPUCanvasConfiguration {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
   static std::shared_ptr<rnwgpu::GPUCanvasConfiguration>
@@ -39,35 +41,36 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "device")) {
         auto prop = value.getProperty(runtime, "device");
-        result->device = JSIConverter::fromJSI<std::shared_ptr<GPUDevice>>(
+        result->device = JSIConverter<std::shared_ptr<GPUDevice>>::fromJSI(
             runtime, prop, false);
       }
       if (value.hasProperty(runtime, "format")) {
         auto prop = value.getProperty(runtime, "format");
         result->format =
-            JSIConverter::fromJSI<wgpu::TextureFormat>(runtime, prop, false);
+            JSIConverter<wgpu::TextureFormat>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "usage")) {
         auto prop = value.getProperty(runtime, "usage");
         result->usage =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "viewFormats")) {
         auto prop = value.getProperty(runtime, "viewFormats");
-        result->viewFormats = JSIConverter::fromJSI<
-            std::optional<std::vector<wgpu::TextureFormat>>>(runtime, prop,
-                                                             false);
+        result->viewFormats = JSIConverter<
+            std::optional<std::vector<wgpu::TextureFormat>>>::fromJSI(runtime,
+                                                                      prop,
+                                                                      false);
       }
       if (value.hasProperty(runtime, "colorSpace")) {
         auto prop = value.getProperty(runtime, "colorSpace");
         result->colorSpace =
-            JSIConverter::fromJSI<std::optional<wgpu::definedColorSpace>>(
+            JSIConverter<std::optional<wgpu::definedColorSpace>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "alphaMode")) {
         auto prop = value.getProperty(runtime, "alphaMode");
         result->alphaMode =
-            JSIConverter::fromJSI<std::optional<wgpu::CanvasAlphaMode>>(
+            JSIConverter<std::optional<wgpu::CanvasAlphaMode>>::fromJSI(
                 runtime, prop, false);
       }
     }

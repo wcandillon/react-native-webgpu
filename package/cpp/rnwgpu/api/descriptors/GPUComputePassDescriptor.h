@@ -26,6 +26,8 @@ struct GPUComputePassDescriptor {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUComputePassDescriptor>
@@ -35,13 +37,14 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "timestampWrites")) {
         auto prop = value.getProperty(runtime, "timestampWrites");
-        result->timestampWrites = JSIConverter::fromJSI<
-            std::optional<std::shared_ptr<GPUComputePassTimestampWrites>>>(
-            runtime, prop, false);
+        result->timestampWrites = JSIConverter<std::optional<
+            std::shared_ptr<GPUComputePassTimestampWrites>>>::fromJSI(runtime,
+                                                                      prop,
+                                                                      false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
             runtime, prop, false);
       }
     }

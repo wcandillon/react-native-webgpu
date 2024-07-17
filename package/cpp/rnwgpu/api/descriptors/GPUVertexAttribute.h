@@ -23,6 +23,8 @@ struct GPUVertexAttribute {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
   static std::shared_ptr<rnwgpu::GPUVertexAttribute>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -32,16 +34,16 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
       if (value.hasProperty(runtime, "format")) {
         auto prop = value.getProperty(runtime, "format");
         result->format =
-            JSIConverter::fromJSI<wgpu::VertexFormat>(runtime, prop, false);
+            JSIConverter<wgpu::VertexFormat>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "offset")) {
         auto prop = value.getProperty(runtime, "offset");
-        result->offset = JSIConverter::fromJSI<double>(runtime, prop, false);
+        result->offset = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "shaderLocation")) {
         auto prop = value.getProperty(runtime, "shaderLocation");
         result->shaderLocation =
-            JSIConverter::fromJSI<double>(runtime, prop, false);
+            JSIConverter<double>::fromJSI(runtime, prop, false);
       }
     }
 

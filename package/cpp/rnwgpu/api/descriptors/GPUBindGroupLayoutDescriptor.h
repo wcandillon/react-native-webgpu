@@ -27,6 +27,8 @@ struct GPUBindGroupLayoutDescriptor {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUBindGroupLayoutDescriptor>
@@ -36,13 +38,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "entries")) {
         auto prop = value.getProperty(runtime, "entries");
-        result->entries = JSIConverter::fromJSI<
-            std::vector<std::shared_ptr<GPUBindGroupLayoutEntry>>>(runtime,
-                                                                   prop, false);
+        result->entries = JSIConverter<std::vector<
+            std::shared_ptr<GPUBindGroupLayoutEntry>>>::fromJSI(runtime, prop,
+                                                                false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
             runtime, prop, false);
       }
     }

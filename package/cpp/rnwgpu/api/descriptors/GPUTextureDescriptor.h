@@ -35,6 +35,8 @@ struct GPUTextureDescriptor {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUTextureDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -43,44 +45,46 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "size")) {
         auto prop = value.getProperty(runtime, "size");
-        result->size = JSIConverter::fromJSI<std::variant<
-            std::vector<double>, std::shared_ptr<GPUExtent3DDictStrict>>>(
-            runtime, prop, false);
+        result->size =
+            JSIConverter<std::variant<std::vector<double>,
+                                      std::shared_ptr<GPUExtent3DDictStrict>>>::
+                fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "mipLevelCount")) {
         auto prop = value.getProperty(runtime, "mipLevelCount");
         result->mipLevelCount =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "sampleCount")) {
         auto prop = value.getProperty(runtime, "sampleCount");
         result->sampleCount =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "dimension")) {
         auto prop = value.getProperty(runtime, "dimension");
         result->dimension =
-            JSIConverter::fromJSI<std::optional<wgpu::TextureDimension>>(
+            JSIConverter<std::optional<wgpu::TextureDimension>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "format")) {
         auto prop = value.getProperty(runtime, "format");
         result->format =
-            JSIConverter::fromJSI<wgpu::TextureFormat>(runtime, prop, false);
+            JSIConverter<wgpu::TextureFormat>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "usage")) {
         auto prop = value.getProperty(runtime, "usage");
-        result->usage = JSIConverter::fromJSI<double>(runtime, prop, false);
+        result->usage = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "viewFormats")) {
         auto prop = value.getProperty(runtime, "viewFormats");
-        result->viewFormats = JSIConverter::fromJSI<
-            std::optional<std::vector<wgpu::TextureFormat>>>(runtime, prop,
-                                                             false);
+        result->viewFormats = JSIConverter<
+            std::optional<std::vector<wgpu::TextureFormat>>>::fromJSI(runtime,
+                                                                      prop,
+                                                                      false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
             runtime, prop, false);
       }
     }

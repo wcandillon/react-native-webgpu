@@ -25,6 +25,8 @@ struct GPUColorTargetState {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
   static std::shared_ptr<rnwgpu::GPUColorTargetState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -34,18 +36,19 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
       if (value.hasProperty(runtime, "format")) {
         auto prop = value.getProperty(runtime, "format");
         result->format =
-            JSIConverter::fromJSI<wgpu::TextureFormat>(runtime, prop, false);
+            JSIConverter<wgpu::TextureFormat>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "blend")) {
         auto prop = value.getProperty(runtime, "blend");
-        result->blend = JSIConverter::fromJSI<
-            std::optional<std::shared_ptr<GPUBlendState>>>(runtime, prop,
-                                                           false);
+        result->blend = JSIConverter<
+            std::optional<std::shared_ptr<GPUBlendState>>>::fromJSI(runtime,
+                                                                    prop,
+                                                                    false);
       }
       if (value.hasProperty(runtime, "writeMask")) {
         auto prop = value.getProperty(runtime, "writeMask");
         result->writeMask =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 

@@ -30,6 +30,8 @@ struct GPUBindGroupEntry {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
   static std::shared_ptr<rnwgpu::GPUBindGroupEntry>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
@@ -38,14 +40,15 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "binding")) {
         auto prop = value.getProperty(runtime, "binding");
-        result->binding = JSIConverter::fromJSI<double>(runtime, prop, false);
+        result->binding = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "resource")) {
         auto prop = value.getProperty(runtime, "resource");
-        result->resource = JSIConverter::fromJSI<std::variant<
+        result->resource = JSIConverter<std::variant<
             std::shared_ptr<GPUSampler>, std::shared_ptr<GPUTextureView>,
             std::shared_ptr<GPUBufferBinding>,
-            std::shared_ptr<GPUExternalTexture>>>(runtime, prop, false);
+            std::shared_ptr<GPUExternalTexture>>>::fromJSI(runtime, prop,
+                                                           false);
       }
     }
 

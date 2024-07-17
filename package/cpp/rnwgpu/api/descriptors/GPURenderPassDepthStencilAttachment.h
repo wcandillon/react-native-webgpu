@@ -31,6 +31,8 @@ struct GPURenderPassDepthStencilAttachment {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<
     std::shared_ptr<rnwgpu::GPURenderPassDepthStencilAttachment>> {
@@ -42,52 +44,52 @@ struct JSIConverter<
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "view")) {
         auto prop = value.getProperty(runtime, "view");
-        result->view = JSIConverter::fromJSI<std::shared_ptr<GPUTextureView>>(
+        result->view = JSIConverter<std::shared_ptr<GPUTextureView>>::fromJSI(
             runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthClearValue")) {
         auto prop = value.getProperty(runtime, "depthClearValue");
         result->depthClearValue =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthLoadOp")) {
         auto prop = value.getProperty(runtime, "depthLoadOp");
         result->depthLoadOp =
-            JSIConverter::fromJSI<std::optional<wgpu::LoadOp>>(runtime, prop,
+            JSIConverter<std::optional<wgpu::LoadOp>>::fromJSI(runtime, prop,
                                                                false);
       }
       if (value.hasProperty(runtime, "depthStoreOp")) {
         auto prop = value.getProperty(runtime, "depthStoreOp");
         result->depthStoreOp =
-            JSIConverter::fromJSI<std::optional<wgpu::StoreOp>>(runtime, prop,
+            JSIConverter<std::optional<wgpu::StoreOp>>::fromJSI(runtime, prop,
                                                                 false);
       }
       if (value.hasProperty(runtime, "depthReadOnly")) {
         auto prop = value.getProperty(runtime, "depthReadOnly");
         result->depthReadOnly =
-            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stencilClearValue")) {
         auto prop = value.getProperty(runtime, "stencilClearValue");
         result->stencilClearValue =
-            JSIConverter::fromJSI<std::optional<double>>(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stencilLoadOp")) {
         auto prop = value.getProperty(runtime, "stencilLoadOp");
         result->stencilLoadOp =
-            JSIConverter::fromJSI<std::optional<wgpu::LoadOp>>(runtime, prop,
+            JSIConverter<std::optional<wgpu::LoadOp>>::fromJSI(runtime, prop,
                                                                false);
       }
       if (value.hasProperty(runtime, "stencilStoreOp")) {
         auto prop = value.getProperty(runtime, "stencilStoreOp");
         result->stencilStoreOp =
-            JSIConverter::fromJSI<std::optional<wgpu::StoreOp>>(runtime, prop,
+            JSIConverter<std::optional<wgpu::StoreOp>>::fromJSI(runtime, prop,
                                                                 false);
       }
       if (value.hasProperty(runtime, "stencilReadOnly")) {
         auto prop = value.getProperty(runtime, "stencilReadOnly");
         result->stencilReadOnly =
-            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
     }
 

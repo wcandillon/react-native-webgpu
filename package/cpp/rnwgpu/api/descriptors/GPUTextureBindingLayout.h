@@ -25,6 +25,8 @@ struct GPUTextureBindingLayout {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureBindingLayout>> {
   static std::shared_ptr<rnwgpu::GPUTextureBindingLayout>
@@ -35,19 +37,19 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureBindingLayout>> {
       if (value.hasProperty(runtime, "sampleType")) {
         auto prop = value.getProperty(runtime, "sampleType");
         result->sampleType =
-            JSIConverter::fromJSI<std::optional<wgpu::TextureSampleType>>(
+            JSIConverter<std::optional<wgpu::TextureSampleType>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "viewDimension")) {
         auto prop = value.getProperty(runtime, "viewDimension");
         result->viewDimension =
-            JSIConverter::fromJSI<std::optional<wgpu::TextureViewDimension>>(
+            JSIConverter<std::optional<wgpu::TextureViewDimension>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "multisampled")) {
         auto prop = value.getProperty(runtime, "multisampled");
         result->multisampled =
-            JSIConverter::fromJSI<std::optional<bool>>(runtime, prop, false);
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
     }
 

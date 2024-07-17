@@ -29,6 +29,8 @@ struct GPUExternalTextureDescriptor {
 
 namespace margelo {
 
+using namespace rnwgpu;
+
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>
@@ -38,19 +40,20 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "source")) {
         auto prop = value.getProperty(runtime, "source");
-        result->source = JSIConverter::fromJSI<std::variant<
-            std::shared_ptr<HTMLVideoElement>, std::shared_ptr<VideoFrame>>>(
-            runtime, prop, false);
+        result->source = JSIConverter<
+            std::variant<std::shared_ptr<HTMLVideoElement>,
+                         std::shared_ptr<VideoFrame>>>::fromJSI(runtime, prop,
+                                                                false);
       }
       if (value.hasProperty(runtime, "colorSpace")) {
         auto prop = value.getProperty(runtime, "colorSpace");
         result->colorSpace =
-            JSIConverter::fromJSI<std::optional<wgpu::definedColorSpace>>(
+            JSIConverter<std::optional<wgpu::definedColorSpace>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter::fromJSI<std::optional<std::string>>(
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
             runtime, prop, false);
       }
     }
