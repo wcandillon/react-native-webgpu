@@ -22,13 +22,17 @@ bool conv(const char *&out, const std::string &in) {
   return true;
 }
 
-template <typename T> bool conv(T &out, double in) {
-  *out = static_cast<T>(in);
+template <typename T>
+typename std::enable_if<std::is_arithmetic<T>::value, bool>::type
+conv(T &out, double in) {
+  out = static_cast<T>(in);
   return true;
 }
 
-template <typename T> bool conv(T &out, std::nullptr_t in) {
-  *out = nullptr;
+template <typename T>
+typename std::enable_if<std::is_assignable<T&, std::nullptr_t>::value, bool>::type
+conv(T &out, std::nullptr_t in) {
+  out = nullptr;
   return true;
 }
 
@@ -47,19 +51,6 @@ bool conv(InnerT *&out, const std::vector<OuterT> &in) {
   return true;
 }
 
-template <typename InnerT, typename... OuterTs>
-bool conv(InnerT *&out, const std::variant<OuterTs...> &in) {
-  return std::visit(
-      [&out](const auto &value) {
-        InnerT converted;
-        if (!conv(converted, value)) {
-          return false;
-        }
-        out = new InnerT(std::move(converted));
-        return true;
-      },
-      in);
-}
 
 template <typename InnerT, typename OuterT>
 bool conv(InnerT &out, const std::optional<OuterT> &in) {
@@ -71,8 +62,21 @@ bool conv(InnerT &out, const std::optional<OuterT> &in) {
 
 template <typename InnerT, typename OuterT>
 bool conv(InnerT &out, const std::shared_ptr<OuterT> &in) {
-  out = in->get();
-  return true;
+  return conv(out, in->get());
+}
+
+template <typename InnerT, typename... OuterTs>
+bool conv(InnerT &out, const std::variant<OuterTs...> &in) {
+  return std::visit([&out](const auto& value) {
+    return conv(out, value);
+  }, in);
+}
+
+template <typename OutT>
+typename std::enable_if<std::is_enum<OutT>::value, bool>::type
+conv(OutT &out, const double &in) {
+    out = static_cast<OutT>(in);
+    return true;
 }
 
 } // namespace rnwgpu

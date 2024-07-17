@@ -7,9 +7,10 @@ std::future<std::shared_ptr<GPUAdapter>>
 GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
   return std::async(std::launch::async, [this, options]() {
     wgpu::RequestAdapterOptions aOptions;
-    conv(aOptions, *options);
+    conv(aOptions, options);
+    wgpu::Adapter adapter = nullptr;
     _instance.RequestAdapter(
-        aOptions,
+        &aOptions,
         [](WGPURequestAdapterStatus, WGPUAdapter cAdapter, const char *message,
            void *userdata) {
           if (message != nullptr) {
