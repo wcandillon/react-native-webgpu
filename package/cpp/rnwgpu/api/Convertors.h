@@ -69,7 +69,8 @@ static bool conv(InnerT &out, const std::shared_ptr<OuterT> &in) {
   if constexpr (has_get<OuterT>::value) {
     return conv<InnerT, InnerT>(out, in->get());
   } else {
-    return conv<InnerT, OuterT>(out, *in.get());
+    return false;
+    //return conv<InnerT, OuterT>(out, *in.get());
   }
 }
 
@@ -85,11 +86,6 @@ template <typename T> static bool conv(T &in, T &out) {
   in = out;
   return true;
 }
-
-// template <typename T> bool conv(T &in, T *out) {
-//   //in = *out;
-//   return true;
-// }
 
 template <typename OutT>
 static typename std::enable_if<std::is_enum<OutT>::value, bool>::type
