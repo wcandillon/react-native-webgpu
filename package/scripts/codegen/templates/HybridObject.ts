@@ -121,10 +121,11 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
 
 #include "Unions.h"
 #include "Convertors.h"
-#include <RNFHybridObject.h>
+#include "RNFHybridObject.h"
 
 #include "AsyncRunner.h"
 #include "ArrayBuffer.h"
+#include "Convertors.h"
 
 #include "webgpu/webgpu_cpp.h"
 
