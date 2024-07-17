@@ -35,6 +35,7 @@ struct GPURenderPassDescriptor {
 };
 
 bool conv(wgpu::RenderPassDescriptor &out, const GPURenderPassDescriptor &in) {
+  out.colorAttachmentsCount = in.colorAttachments.size();
   return conv(out.colorAttachments, in.colorAttachments) &&
          conv(out.depthStencilAttachment, in.depthStencilAttachment) &&
          conv(out.occlusionQuerySet, in.occlusionQuerySet) &&
@@ -101,4 +102,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
     throw std::runtime_error("Invalid GPURenderPassDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

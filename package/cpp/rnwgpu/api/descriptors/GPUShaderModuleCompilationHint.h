@@ -24,6 +24,7 @@ struct GPUShaderModuleCompilationHint {
 
 bool conv(wgpu::ShaderModuleCompilationHint &out,
           const GPUShaderModuleCompilationHint &in) {
+
   return conv(out.entryPoint, in.entryPoint) && conv(out.layout, in.layout);
 }
 
@@ -61,4 +62,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
     throw std::runtime_error("Invalid GPUShaderModuleCompilationHint::toJSI()");
   }
 };
+
 } // namespace margelo

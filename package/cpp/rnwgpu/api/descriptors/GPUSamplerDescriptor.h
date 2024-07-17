@@ -30,6 +30,7 @@ struct GPUSamplerDescriptor {
 };
 
 bool conv(wgpu::SamplerDescriptor &out, const GPUSamplerDescriptor &in) {
+
   return conv(out.addressModeU, in.addressModeU) &&
          conv(out.addressModeV, in.addressModeV) &&
          conv(out.addressModeW, in.addressModeW) &&
@@ -125,4 +126,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
     throw std::runtime_error("Invalid GPUSamplerDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

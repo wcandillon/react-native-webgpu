@@ -26,6 +26,7 @@ struct GPUShaderModuleDescriptor {
 
 bool conv(wgpu::ShaderModuleDescriptor &out,
           const GPUShaderModuleDescriptor &in) {
+
   return conv(out.code, in.code) &&
          conv(out.compilationHints, in.compilationHints) &&
          conv(out.label, in.label);
@@ -70,4 +71,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
     throw std::runtime_error("Invalid GPUShaderModuleDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

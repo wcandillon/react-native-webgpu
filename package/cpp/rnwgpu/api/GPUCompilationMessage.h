@@ -5,13 +5,11 @@
 #include <string>
 #include <vector>
 
-#include "Convertors.h"
 #include "RNFHybridObject.h"
 #include "Unions.h"
 
 #include "ArrayBuffer.h"
 #include "AsyncRunner.h"
-#include "Convertors.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -37,10 +35,10 @@ private:
   wgpu::CompilationMessage _instance;
 };
 
-bool conv(wgpu::CompilationMessage &out,
-          const std::shared_ptr<GPUCompilationMessage> &in) {
-  out = in->get();
-  return true;
-}
+// bool conv(wgpu::CompilationMessage &out, const
+// std::shared_ptr<GPUCompilationMessage> &in) {
+//   out = in->get();
+//   return true;
+// }
 
 } // namespace rnwgpu

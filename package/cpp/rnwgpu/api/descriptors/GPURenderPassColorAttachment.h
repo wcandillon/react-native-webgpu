@@ -32,6 +32,7 @@ struct GPURenderPassColorAttachment {
 
 bool conv(wgpu::RenderPassColorAttachment &out,
           const GPURenderPassColorAttachment &in) {
+
   return conv(out.view, in.view) && conv(out.depthSlice, in.depthSlice) &&
          conv(out.resolveTarget, in.resolveTarget) &&
          conv(out.clearValue, in.clearValue) && conv(out.loadOp, in.loadOp) &&
@@ -94,4 +95,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
     throw std::runtime_error("Invalid GPURenderPassColorAttachment::toJSI()");
   }
 };
+
 } // namespace margelo

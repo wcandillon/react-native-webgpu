@@ -21,6 +21,7 @@ struct GPUImageDataLayout {
 };
 
 bool conv(wgpu::ImageDataLayout &out, const GPUImageDataLayout &in) {
+
   return conv(out.offset, in.offset) && conv(out.bytesPerRow, in.bytesPerRow) &&
          conv(out.rowsPerImage, in.rowsPerImage);
 }
@@ -61,4 +62,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageDataLayout>> {
     throw std::runtime_error("Invalid GPUImageDataLayout::toJSI()");
   }
 };
+
 } // namespace margelo

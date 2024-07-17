@@ -26,10 +26,6 @@ struct GPUBindGroupEntry {
       resource; // GPUBindingResource
 };
 
-bool conv(wgpu::BindGroupEntry &out, const GPUBindGroupEntry &in) {
-  return conv(out.binding, in.binding) && conv(out.resource, in.resource);
-}
-
 } // namespace rnwgpu
 
 namespace margelo {
@@ -63,4 +59,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
     throw std::runtime_error("Invalid GPUBindGroupEntry::toJSI()");
   }
 };
+
 } // namespace margelo

@@ -22,6 +22,7 @@ struct GPUQuerySetDescriptor {
 };
 
 bool conv(wgpu::QuerySetDescriptor &out, const GPUQuerySetDescriptor &in) {
+
   return conv(out.type, in.type) && conv(out.count, in.count) &&
          conv(out.label, in.label);
 }
@@ -62,4 +63,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
     throw std::runtime_error("Invalid GPUQuerySetDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

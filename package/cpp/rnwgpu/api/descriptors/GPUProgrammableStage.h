@@ -25,6 +25,7 @@ struct GPUProgrammableStage {
 };
 
 bool conv(wgpu::ProgrammableStage &out, const GPUProgrammableStage &in) {
+
   return conv(out.module, in.module) && conv(out.entryPoint, in.entryPoint) &&
          conv(out.constants, in.constants);
 }
@@ -67,4 +68,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
     throw std::runtime_error("Invalid GPUProgrammableStage::toJSI()");
   }
 };
+
 } // namespace margelo

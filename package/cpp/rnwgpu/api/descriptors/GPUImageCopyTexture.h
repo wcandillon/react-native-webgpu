@@ -28,6 +28,7 @@ struct GPUImageCopyTexture {
 };
 
 bool conv(wgpu::ImageCopyTexture &out, const GPUImageCopyTexture &in) {
+
   return conv(out.texture, in.texture) && conv(out.mipLevel, in.mipLevel) &&
          conv(out.origin, in.origin) && conv(out.aspect, in.aspect);
 }
@@ -75,4 +76,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
     throw std::runtime_error("Invalid GPUImageCopyTexture::toJSI()");
   }
 };
+
 } // namespace margelo

@@ -21,6 +21,7 @@ struct GPUColorDict {
 };
 
 bool conv(wgpu::ColorDict &out, const GPUColorDict &in) {
+
   return conv(out.r, in.r) && conv(out.g, in.g) && conv(out.b, in.b) &&
          conv(out.a, in.a);
 }
@@ -62,4 +63,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
     throw std::runtime_error("Invalid GPUColorDict::toJSI()");
   }
 };
+
 } // namespace margelo

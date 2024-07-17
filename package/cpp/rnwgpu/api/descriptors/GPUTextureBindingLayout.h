@@ -22,6 +22,7 @@ struct GPUTextureBindingLayout {
 };
 
 bool conv(wgpu::TextureBindingLayout &out, const GPUTextureBindingLayout &in) {
+
   return conv(out.sampleType, in.sampleType) &&
          conv(out.viewDimension, in.viewDimension) &&
          conv(out.multisampled, in.multisampled);
@@ -67,4 +68,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureBindingLayout>> {
     throw std::runtime_error("Invalid GPUTextureBindingLayout::toJSI()");
   }
 };
+
 } // namespace margelo

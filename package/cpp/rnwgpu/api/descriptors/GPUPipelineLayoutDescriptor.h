@@ -25,6 +25,7 @@ struct GPUPipelineLayoutDescriptor {
 
 bool conv(wgpu::PipelineLayoutDescriptor &out,
           const GPUPipelineLayoutDescriptor &in) {
+  out.bindGroupLayoutsCount = in.bindGroupLayouts.size();
   return conv(out.bindGroupLayouts, in.bindGroupLayouts) &&
          conv(out.label, in.label);
 }
@@ -64,4 +65,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
     throw std::runtime_error("Invalid GPUPipelineLayoutDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

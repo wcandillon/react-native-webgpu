@@ -29,6 +29,7 @@ struct GPUTextureViewDescriptor {
 
 bool conv(wgpu::TextureViewDescriptor &out,
           const GPUTextureViewDescriptor &in) {
+
   return conv(out.format, in.format) && conv(out.dimension, in.dimension) &&
          conv(out.aspect, in.aspect) &&
          conv(out.baseMipLevel, in.baseMipLevel) &&
@@ -104,4 +105,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
     throw std::runtime_error("Invalid GPUTextureViewDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

@@ -20,6 +20,7 @@ struct GPUVertexAttribute {
 };
 
 bool conv(wgpu::VertexAttribute &out, const GPUVertexAttribute &in) {
+
   return conv(out.format, in.format) && conv(out.offset, in.offset) &&
          conv(out.shaderLocation, in.shaderLocation);
 }
@@ -59,4 +60,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
     throw std::runtime_error("Invalid GPUVertexAttribute::toJSI()");
   }
 };
+
 } // namespace margelo

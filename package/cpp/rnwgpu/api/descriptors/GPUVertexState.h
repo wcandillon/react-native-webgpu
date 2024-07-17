@@ -31,6 +31,7 @@ struct GPUVertexState {
 };
 
 bool conv(wgpu::VertexState &out, const GPUVertexState &in) {
+
   return conv(out.buffers, in.buffers) && conv(out.module, in.module) &&
          conv(out.entryPoint, in.entryPoint) &&
          conv(out.constants, in.constants);
@@ -80,4 +81,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexState>> {
     throw std::runtime_error("Invalid GPUVertexState::toJSI()");
   }
 };
+
 } // namespace margelo

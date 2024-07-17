@@ -24,6 +24,7 @@ struct GPUComputePassDescriptor {
 
 bool conv(wgpu::ComputePassDescriptor &out,
           const GPUComputePassDescriptor &in) {
+
   return conv(out.timestampWrites, in.timestampWrites) &&
          conv(out.label, in.label);
 }
@@ -63,4 +64,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
     throw std::runtime_error("Invalid GPUComputePassDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

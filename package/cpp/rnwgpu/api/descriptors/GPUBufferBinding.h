@@ -22,6 +22,7 @@ struct GPUBufferBinding {
 };
 
 bool conv(wgpu::BufferBinding &out, const GPUBufferBinding &in) {
+
   return conv(out.buffer, in.buffer) && conv(out.offset, in.offset) &&
          conv(out.size, in.size);
 }
@@ -62,4 +63,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
     throw std::runtime_error("Invalid GPUBufferBinding::toJSI()");
   }
 };
+
 } // namespace margelo

@@ -23,6 +23,7 @@ struct GPUComputePassTimestampWrites {
 
 bool conv(wgpu::ComputePassTimestampWrites &out,
           const GPUComputePassTimestampWrites &in) {
+
   return conv(out.querySet, in.querySet) &&
          conv(out.beginningOfPassWriteIndex, in.beginningOfPassWriteIndex) &&
          conv(out.endOfPassWriteIndex, in.endOfPassWriteIndex);
@@ -66,4 +67,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
     throw std::runtime_error("Invalid GPUComputePassTimestampWrites::toJSI()");
   }
 };
+
 } // namespace margelo

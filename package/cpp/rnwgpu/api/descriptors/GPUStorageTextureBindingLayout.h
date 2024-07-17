@@ -23,6 +23,7 @@ struct GPUStorageTextureBindingLayout {
 
 bool conv(wgpu::StorageTextureBindingLayout &out,
           const GPUStorageTextureBindingLayout &in) {
+
   return conv(out.access, in.access) && conv(out.format, in.format) &&
          conv(out.viewDimension, in.viewDimension);
 }
@@ -67,4 +68,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
     throw std::runtime_error("Invalid GPUStorageTextureBindingLayout::toJSI()");
   }
 };
+
 } // namespace margelo

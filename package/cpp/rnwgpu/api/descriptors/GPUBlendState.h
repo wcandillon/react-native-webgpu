@@ -20,6 +20,7 @@ struct GPUBlendState {
 };
 
 bool conv(wgpu::BlendState &out, const GPUBlendState &in) {
+
   return conv(out.color, in.color) && conv(out.alpha, in.alpha);
 }
 
@@ -56,4 +57,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
     throw std::runtime_error("Invalid GPUBlendState::toJSI()");
   }
 };
+
 } // namespace margelo

@@ -25,6 +25,7 @@ struct GPUBindGroupLayoutDescriptor {
 
 bool conv(wgpu::BindGroupLayoutDescriptor &out,
           const GPUBindGroupLayoutDescriptor &in) {
+  out.entryCount = in.entries.size();
   return conv(out.entries, in.entries) && conv(out.label, in.label);
 }
 
@@ -62,4 +63,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutDescriptor>> {
     throw std::runtime_error("Invalid GPUBindGroupLayoutDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

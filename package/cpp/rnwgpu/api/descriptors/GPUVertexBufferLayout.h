@@ -24,6 +24,7 @@ struct GPUVertexBufferLayout {
 };
 
 bool conv(wgpu::VertexBufferLayout &out, const GPUVertexBufferLayout &in) {
+  out.attributesCount = in.attributes.size();
   return conv(out.arrayStride, in.arrayStride) &&
          conv(out.stepMode, in.stepMode) && conv(out.attributes, in.attributes);
 }
@@ -68,4 +69,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
     throw std::runtime_error("Invalid GPUVertexBufferLayout::toJSI()");
   }
 };
+
 } // namespace margelo

@@ -17,6 +17,7 @@ struct GPUExternalTextureBindingLayout {};
 
 bool conv(wgpu::ExternalTextureBindingLayout &out,
           const GPUExternalTextureBindingLayout &in) {
+
   return;
 }
 
@@ -44,4 +45,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureBindingLayout>> {
         "Invalid GPUExternalTextureBindingLayout::toJSI()");
   }
 };
+
 } // namespace margelo

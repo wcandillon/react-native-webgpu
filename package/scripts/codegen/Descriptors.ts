@@ -200,7 +200,7 @@ bool conv(wgpu::${name.substring(3)} &out,
     .map((p) => `out.${singular(p.name)}Count = in.${p.name}.size();`)
     .join("\n")}
   return ${props.map((p) => `conv(out.${p.name}, in.${p.name})`).join(" &&")};
-`
+}`
     : ""
 }
 

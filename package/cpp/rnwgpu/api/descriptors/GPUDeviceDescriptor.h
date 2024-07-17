@@ -29,6 +29,7 @@ struct GPUDeviceDescriptor {
 };
 
 bool conv(wgpu::DeviceDescriptor &out, const GPUDeviceDescriptor &in) {
+
   return conv(out.requiredFeatures, in.requiredFeatures) &&
          conv(out.requiredLimits, in.requiredLimits) &&
          conv(out.defaultQueue, in.defaultQueue) && conv(out.label, in.label);
@@ -79,4 +80,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
     throw std::runtime_error("Invalid GPUDeviceDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

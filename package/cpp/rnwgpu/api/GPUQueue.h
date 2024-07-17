@@ -5,13 +5,11 @@
 #include <string>
 #include <vector>
 
-#include "Convertors.h"
 #include "RNFHybridObject.h"
 #include "Unions.h"
 
 #include "ArrayBuffer.h"
 #include "AsyncRunner.h"
-#include "Convertors.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -56,9 +54,9 @@ private:
   std::string _label;
 };
 
-bool conv(wgpu::Queue &out, const std::shared_ptr<GPUQueue> &in) {
-  out = in->get();
-  return true;
-}
+// bool conv(wgpu::Queue &out, const std::shared_ptr<GPUQueue> &in) {
+//   out = in->get();
+//   return true;
+// }
 
 } // namespace rnwgpu

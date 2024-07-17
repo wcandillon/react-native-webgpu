@@ -25,6 +25,7 @@ struct GPURenderPassLayout {
 };
 
 bool conv(wgpu::RenderPassLayout &out, const GPURenderPassLayout &in) {
+  out.colorFormatsCount = in.colorFormats.size();
   return conv(out.colorFormats, in.colorFormats) &&
          conv(out.depthStencilFormat, in.depthStencilFormat) &&
          conv(out.sampleCount, in.sampleCount) && conv(out.label, in.label);
@@ -73,4 +74,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassLayout>> {
     throw std::runtime_error("Invalid GPURenderPassLayout::toJSI()");
   }
 };
+
 } // namespace margelo

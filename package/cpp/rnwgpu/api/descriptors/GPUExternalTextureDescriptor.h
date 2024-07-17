@@ -27,6 +27,7 @@ struct GPUExternalTextureDescriptor {
 
 bool conv(wgpu::ExternalTextureDescriptor &out,
           const GPUExternalTextureDescriptor &in) {
+
   return conv(out.source, in.source) && conv(out.colorSpace, in.colorSpace) &&
          conv(out.label, in.label);
 }
@@ -72,4 +73,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
     throw std::runtime_error("Invalid GPUExternalTextureDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

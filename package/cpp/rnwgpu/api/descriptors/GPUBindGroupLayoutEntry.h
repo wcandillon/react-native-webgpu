@@ -35,6 +35,7 @@ struct GPUBindGroupLayoutEntry {
 };
 
 bool conv(wgpu::BindGroupLayoutEntry &out, const GPUBindGroupLayoutEntry &in) {
+
   return conv(out.binding, in.binding) && conv(out.visibility, in.visibility) &&
          conv(out.buffer, in.buffer) && conv(out.sampler, in.sampler) &&
          conv(out.texture, in.texture) &&
@@ -106,4 +107,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry>> {
     throw std::runtime_error("Invalid GPUBindGroupLayoutEntry::toJSI()");
   }
 };
+
 } // namespace margelo

@@ -39,6 +39,7 @@ struct GPUImageCopyExternalImage {
 
 bool conv(wgpu::ImageCopyExternalImage &out,
           const GPUImageCopyExternalImage &in) {
+
   return conv(out.source, in.source) && conv(out.origin, in.origin) &&
          conv(out.flipY, in.flipY);
 }
@@ -86,4 +87,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
     throw std::runtime_error("Invalid GPUImageCopyExternalImage::toJSI()");
   }
 };
+
 } // namespace margelo

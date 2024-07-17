@@ -26,6 +26,7 @@ struct GPUComputePipelineDescriptor {
 
 bool conv(wgpu::ComputePipelineDescriptor &out,
           const GPUComputePipelineDescriptor &in) {
+
   return conv(out.compute, in.compute) && conv(out.layout, in.layout) &&
          conv(out.label, in.label);
 }
@@ -70,4 +71,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
     throw std::runtime_error("Invalid GPUComputePipelineDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

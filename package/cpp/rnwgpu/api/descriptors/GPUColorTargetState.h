@@ -22,6 +22,7 @@ struct GPUColorTargetState {
 };
 
 bool conv(wgpu::ColorTargetState &out, const GPUColorTargetState &in) {
+
   return conv(out.format, in.format) && conv(out.blend, in.blend) &&
          conv(out.writeMask, in.writeMask);
 }
@@ -64,4 +65,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
     throw std::runtime_error("Invalid GPUColorTargetState::toJSI()");
   }
 };
+
 } // namespace margelo

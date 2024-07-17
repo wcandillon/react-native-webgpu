@@ -37,6 +37,7 @@ struct GPURenderPipelineDescriptor {
 
 bool conv(wgpu::RenderPipelineDescriptor &out,
           const GPURenderPipelineDescriptor &in) {
+
   return conv(out.vertex, in.vertex) && conv(out.primitive, in.primitive) &&
          conv(out.depthStencil, in.depthStencil) &&
          conv(out.multisample, in.multisample) &&
@@ -109,4 +110,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
     throw std::runtime_error("Invalid GPURenderPipelineDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

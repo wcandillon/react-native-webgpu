@@ -19,6 +19,7 @@ struct GPUSamplerBindingLayout {
 };
 
 bool conv(wgpu::SamplerBindingLayout &out, const GPUSamplerBindingLayout &in) {
+
   return conv(out.type, in.type);
 }
 
@@ -51,4 +52,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
     throw std::runtime_error("Invalid GPUSamplerBindingLayout::toJSI()");
   }
 };
+
 } // namespace margelo

@@ -24,6 +24,7 @@ struct GPUUncapturedErrorEventInit {
 
 bool conv(wgpu::UncapturedErrorEventInit &out,
           const GPUUncapturedErrorEventInit &in) {
+
   return conv(out.error, in.error) && conv(out.bubbles, in.bubbles) &&
          conv(out.cancelable, in.cancelable) && conv(out.composed, in.composed);
 }
@@ -71,4 +72,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
     throw std::runtime_error("Invalid GPUUncapturedErrorEventInit::toJSI()");
   }
 };
+
 } // namespace margelo

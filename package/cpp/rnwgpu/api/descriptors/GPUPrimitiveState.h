@@ -23,6 +23,7 @@ struct GPUPrimitiveState {
 };
 
 bool conv(wgpu::PrimitiveState &out, const GPUPrimitiveState &in) {
+
   return conv(out.topology, in.topology) &&
          conv(out.stripIndexFormat, in.stripIndexFormat) &&
          conv(out.frontFace, in.frontFace) && conv(out.cullMode, in.cullMode) &&
@@ -78,4 +79,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPrimitiveState>> {
     throw std::runtime_error("Invalid GPUPrimitiveState::toJSI()");
   }
 };
+
 } // namespace margelo

@@ -28,6 +28,7 @@ struct GPURenderBundleEncoderDescriptor {
 
 bool conv(wgpu::RenderBundleEncoderDescriptor &out,
           const GPURenderBundleEncoderDescriptor &in) {
+  out.colorFormatsCount = in.colorFormats.size();
   return conv(out.depthReadOnly, in.depthReadOnly) &&
          conv(out.stencilReadOnly, in.stencilReadOnly) &&
          conv(out.colorFormats, in.colorFormats) &&
@@ -91,4 +92,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
         "Invalid GPURenderBundleEncoderDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

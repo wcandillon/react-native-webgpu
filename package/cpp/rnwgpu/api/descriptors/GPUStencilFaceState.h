@@ -22,6 +22,7 @@ struct GPUStencilFaceState {
 };
 
 bool conv(wgpu::StencilFaceState &out, const GPUStencilFaceState &in) {
+
   return conv(out.compare, in.compare) && conv(out.failOp, in.failOp) &&
          conv(out.depthFailOp, in.depthFailOp) && conv(out.passOp, in.passOp);
 }
@@ -71,4 +72,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
     throw std::runtime_error("Invalid GPUStencilFaceState::toJSI()");
   }
 };
+
 } // namespace margelo

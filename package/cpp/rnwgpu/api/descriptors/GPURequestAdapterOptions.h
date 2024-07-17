@@ -21,6 +21,7 @@ struct GPURequestAdapterOptions {
 
 bool conv(wgpu::RequestAdapterOptions &out,
           const GPURequestAdapterOptions &in) {
+
   return conv(out.powerPreference, in.powerPreference) &&
          conv(out.forceFallbackAdapter, in.forceFallbackAdapter);
 }
@@ -59,4 +60,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
     throw std::runtime_error("Invalid GPURequestAdapterOptions::toJSI()");
   }
 };
+
 } // namespace margelo

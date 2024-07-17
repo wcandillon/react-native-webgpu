@@ -31,6 +31,7 @@ struct GPUDepthStencilState {
 };
 
 bool conv(wgpu::DepthStencilState &out, const GPUDepthStencilState &in) {
+
   return conv(out.format, in.format) &&
          conv(out.depthWriteEnabled, in.depthWriteEnabled) &&
          conv(out.depthCompare, in.depthCompare) &&
@@ -117,4 +118,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
     throw std::runtime_error("Invalid GPUDepthStencilState::toJSI()");
   }
 };
+
 } // namespace margelo

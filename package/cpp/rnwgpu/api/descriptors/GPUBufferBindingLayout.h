@@ -21,6 +21,7 @@ struct GPUBufferBindingLayout {
 };
 
 bool conv(wgpu::BufferBindingLayout &out, const GPUBufferBindingLayout &in) {
+
   return conv(out.type, in.type) &&
          conv(out.hasDynamicOffset, in.hasDynamicOffset) &&
          conv(out.minBindingSize, in.minBindingSize);
@@ -64,4 +65,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBindingLayout>> {
     throw std::runtime_error("Invalid GPUBufferBindingLayout::toJSI()");
   }
 };
+
 } // namespace margelo

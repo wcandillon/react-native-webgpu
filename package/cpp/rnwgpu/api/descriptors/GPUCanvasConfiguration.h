@@ -27,6 +27,7 @@ struct GPUCanvasConfiguration {
 };
 
 bool conv(wgpu::CanvasConfiguration &out, const GPUCanvasConfiguration &in) {
+
   return conv(out.device, in.device) && conv(out.format, in.format) &&
          conv(out.usage, in.usage) && conv(out.viewFormats, in.viewFormats) &&
          conv(out.colorSpace, in.colorSpace) &&
@@ -89,4 +90,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
     throw std::runtime_error("Invalid GPUCanvasConfiguration::toJSI()");
   }
 };
+
 } // namespace margelo

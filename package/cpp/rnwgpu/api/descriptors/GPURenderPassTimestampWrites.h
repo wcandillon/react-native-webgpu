@@ -23,6 +23,7 @@ struct GPURenderPassTimestampWrites {
 
 bool conv(wgpu::RenderPassTimestampWrites &out,
           const GPURenderPassTimestampWrites &in) {
+
   return conv(out.querySet, in.querySet) &&
          conv(out.beginningOfPassWriteIndex, in.beginningOfPassWriteIndex) &&
          conv(out.endOfPassWriteIndex, in.endOfPassWriteIndex);
@@ -66,4 +67,5 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassTimestampWrites>> {
     throw std::runtime_error("Invalid GPURenderPassTimestampWrites::toJSI()");
   }
 };
+
 } // namespace margelo

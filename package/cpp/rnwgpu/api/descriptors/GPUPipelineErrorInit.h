@@ -18,6 +18,7 @@ struct GPUPipelineErrorInit {
 };
 
 bool conv(wgpu::PipelineErrorInit &out, const GPUPipelineErrorInit &in) {
+
   return conv(out.reason, in.reason);
 }
 
@@ -47,4 +48,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineErrorInit>> {
     throw std::runtime_error("Invalid GPUPipelineErrorInit::toJSI()");
   }
 };
+
 } // namespace margelo

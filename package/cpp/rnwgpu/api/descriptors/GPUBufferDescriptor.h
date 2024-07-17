@@ -23,6 +23,7 @@ struct GPUBufferDescriptor {
 };
 
 bool conv(wgpu::BufferDescriptor &out, const GPUBufferDescriptor &in) {
+
   return conv(out.size, in.size) && conv(out.usage, in.usage) &&
          conv(out.mappedAtCreation, in.mappedAtCreation) &&
          conv(out.label, in.label);
@@ -67,4 +68,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
     throw std::runtime_error("Invalid GPUBufferDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

@@ -21,6 +21,7 @@ struct GPUBlendComponent {
 };
 
 bool conv(wgpu::BlendComponent &out, const GPUBlendComponent &in) {
+
   return conv(out.operation, in.operation) &&
          conv(out.srcFactor, in.srcFactor) && conv(out.dstFactor, in.dstFactor);
 }
@@ -64,4 +65,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendComponent>> {
     throw std::runtime_error("Invalid GPUBlendComponent::toJSI()");
   }
 };
+
 } // namespace margelo
