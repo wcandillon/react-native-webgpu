@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <variant>
 
 #include "webgpu/webgpu_cpp.h"

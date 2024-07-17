@@ -22,12 +22,12 @@ import { debugType, mergeParentInterfaces } from "./templates/common";
 
 const layout = {
   type: "std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>",
-  dependencies: ["GPUPipelineLayout"],
+  dependencies: ["GPUPipelineLayout", "memory"],
 };
 
 const colorFormats = {
   type: "std::vector<std::variant<wgpu::TextureFormat, std::nullptr_t>>",
-  dependencies: [],
+  dependencies: ["memory", "vector"],
 };
 
 const resolved: Record<
@@ -46,7 +46,7 @@ const resolved: Record<
   GPUDeviceDescriptor: {
     defaultQueue: {
       type: "std::shared_ptr<GPUQueueDescriptor>",
-      dependencies: ["GPUQueueDescriptor"],
+      dependencies: ["GPUQueueDescriptor", "memory"],
     },
   },
   GPURenderPassLayout: {
@@ -96,6 +96,7 @@ const resolveType = (type: Type, state: ResolveTypeState): string => {
   } else if (type.isNumber()) {
     return "double";
   } else if (type.isArray()) {
+    dependencies.add("vector");
     return `std::vector<${resolveType(type.getArrayElementType()!, state)}>`;
   } else if (type.isUnion()) {
     const unionTypes = type.getUnionTypes().filter((t) => !t.isUndefined());
@@ -135,6 +136,7 @@ const resolveType = (type: Type, state: ResolveTypeState): string => {
       );
     }
     dependencies.add(name);
+    dependencies.add("memory");
     return `std::shared_ptr<${name}>`;
   } else if (type?.getText().startsWith("Record<")) {
     const args = type

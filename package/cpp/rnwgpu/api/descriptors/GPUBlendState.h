@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "webgpu/webgpu_cpp.h"
 
 #include "GPUBlendComponent.h"
