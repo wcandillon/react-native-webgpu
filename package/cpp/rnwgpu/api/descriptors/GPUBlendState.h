@@ -20,7 +20,7 @@ struct GPUBlendState {
   std::shared_ptr<GPUBlendComponent> alpha; // GPUBlendComponent
 };
 
-bool conv(wgpu::BlendState &out, GPUBlendState &in) {
+static bool conv(wgpu::BlendState &out, GPUBlendState &in) {
 
   return conv(out.color, in.color) && conv(out.alpha, in.alpha);
 }

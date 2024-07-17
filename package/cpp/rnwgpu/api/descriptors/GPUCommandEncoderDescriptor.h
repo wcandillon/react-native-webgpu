@@ -20,8 +20,8 @@ struct GPUCommandEncoderDescriptor {
   std::optional<std::string> label; // string
 };
 
-bool conv(wgpu::CommandEncoderDescriptor &out,
-          GPUCommandEncoderDescriptor &in) {
+static bool conv(wgpu::CommandEncoderDescriptor &out,
+                 GPUCommandEncoderDescriptor &in) {
 
   return conv(out.label, in.label);
 }

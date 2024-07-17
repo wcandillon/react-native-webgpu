@@ -28,8 +28,8 @@ struct GPURenderPassDepthStencilAttachment {
   std::optional<bool> stencilReadOnly;         // boolean
 };
 
-bool conv(wgpu::RenderPassDepthStencilAttachment &out,
-          GPURenderPassDepthStencilAttachment &in) {
+static bool conv(wgpu::RenderPassDepthStencilAttachment &out,
+                 GPURenderPassDepthStencilAttachment &in) {
 
   return conv(out.view, in.view) &&
          conv(out.depthClearValue, in.depthClearValue) &&

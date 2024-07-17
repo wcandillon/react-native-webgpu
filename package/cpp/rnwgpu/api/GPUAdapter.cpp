@@ -30,32 +30,31 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
           Logger::logToConsole("GPU Device Lost (%s): %s", lostReason, message);
         }};
     aDescriptor.deviceLostCallbackInfo = info;
-    wgpu::UncapturedErrorCallbackInfo errorInfo = {
-        .userdata = static_cast<void *>(_creationRuntime)
-        .callback = [](WGPUErrorType type, const char *message,
-                       void *userdata) {
-          auto creationRuntime = static_cast<jsi::Runtime *>(userdata);
-          const char *errorType = "";
-          switch (type) {
-          case WGPUErrorType_Validation:
-            errorType = "Validation";
-            break;
-          case WGPUErrorType_OutOfMemory:
-            errorType = "Out of Memory";
-            break;
-          case WGPUErrorType_Internal:
-            errorType = "Internal";
-            break;
-          case WGPUErrorType_Unknown:
-            errorType = "Unknown";
-            break;
-          default:
-            errorType = "Unknown";
-          }
-          std::string fullMessage = std::string(errorType) + ": " + message;
-          Logger::errorToJavascriptConsole(*creationRuntime,
-                                           fullMessage.c_str());
-        }};
+    wgpu::UncapturedErrorCallbackInfo errorInfo;
+    errorInfo.userdata = static_cast<void *>(_creationRuntime);
+    errorInfo.callback = [](WGPUErrorType type, const char *message,
+                            void *userdata) {
+      auto creationRuntime = static_cast<jsi::Runtime *>(userdata);
+      const char *errorType = "";
+      switch (type) {
+      case WGPUErrorType_Validation:
+        errorType = "Validation";
+        break;
+      case WGPUErrorType_OutOfMemory:
+        errorType = "Out of Memory";
+        break;
+      case WGPUErrorType_Internal:
+        errorType = "Internal";
+        break;
+      case WGPUErrorType_Unknown:
+        errorType = "Unknown";
+        break;
+      default:
+        errorType = "Unknown";
+      }
+      std::string fullMessage = std::string(errorType) + ": " + message;
+      Logger::errorToJavascriptConsole(*creationRuntime, fullMessage.c_str());
+    };
     aDescriptor.uncapturedErrorCallbackInfo = errorInfo;
     _instance.RequestDevice(
         &aDescriptor,

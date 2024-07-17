@@ -23,7 +23,7 @@ struct GPUImageCopyBuffer {
   std::optional<double> rowsPerImage; // GPUSize32
 };
 
-bool conv(wgpu::ImageCopyBuffer &out, GPUImageCopyBuffer &in) {
+static bool conv(wgpu::ImageCopyBuffer &out, GPUImageCopyBuffer &in) {
   return conv(out.buffer, in.buffer) && conv(out.layout.offset, in.offset) &&
          conv(out.layout.bytesPerRow, in.bytesPerRow) &&
          conv(out.layout.rowsPerImage, in.rowsPerImage);

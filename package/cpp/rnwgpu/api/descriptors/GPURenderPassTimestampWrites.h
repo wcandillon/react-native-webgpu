@@ -22,8 +22,8 @@ struct GPURenderPassTimestampWrites {
   std::optional<double> endOfPassWriteIndex;       // GPUSize32
 };
 
-bool conv(wgpu::RenderPassTimestampWrites &out,
-          GPURenderPassTimestampWrites &in) {
+static bool conv(wgpu::RenderPassTimestampWrites &out,
+                 GPURenderPassTimestampWrites &in) {
 
   return conv(out.querySet, in.querySet) &&
          conv(out.beginningOfPassWriteIndex, in.beginningOfPassWriteIndex) &&

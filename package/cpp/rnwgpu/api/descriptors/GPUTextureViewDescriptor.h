@@ -28,7 +28,8 @@ struct GPUTextureViewDescriptor {
   std::optional<std::string> label;          // string
 };
 
-bool conv(wgpu::TextureViewDescriptor &out, GPUTextureViewDescriptor &in) {
+static bool conv(wgpu::TextureViewDescriptor &out,
+                 GPUTextureViewDescriptor &in) {
 
   return conv(out.format, in.format) && conv(out.dimension, in.dimension) &&
          conv(out.aspect, in.aspect) &&

@@ -14,7 +14,7 @@ struct GPUExtent3D {
   double depthOrArrayLayers = 1;
 };
 
-bool conv(wgpu::Extent3D &out, const GPUExtent3D &in) {
+static bool conv(wgpu::Extent3D &out, GPUExtent3D &in) {
   return conv(out.width, in.width) && conv(out.height, in.height) &&
          conv(out.depthOrArrayLayers, in.depthOrArrayLayers);
 }

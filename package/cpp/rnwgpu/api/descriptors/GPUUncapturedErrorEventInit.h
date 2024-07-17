@@ -23,8 +23,8 @@ struct GPUUncapturedErrorEventInit {
   std::optional<bool> composed;    // boolean
 };
 
-bool conv(wgpu::UncapturedErrorEventInit &out,
-          GPUUncapturedErrorEventInit &in) {
+static bool conv(wgpu::UncapturedErrorEventInit &out,
+                 GPUUncapturedErrorEventInit &in) {
 
   return conv(out.error, in.error) && conv(out.bubbles, in.bubbles) &&
          conv(out.cancelable, in.cancelable) && conv(out.composed, in.composed);

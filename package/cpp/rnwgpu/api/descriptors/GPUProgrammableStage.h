@@ -25,8 +25,8 @@ struct GPUProgrammableStage {
       constants; // Record< string, GPUPipelineConstantValue >
 };
 
-bool conv(wgpu::ProgrammableStageDescriptor &out,
-          const GPUProgrammableStage &in) {
+static bool conv(wgpu::ProgrammableStageDescriptor &out,
+                 const GPUProgrammableStage &in) {
   // TODO: implement
   return false;
 }

@@ -14,7 +14,7 @@ struct GPUOrigin3D {
   double z = 0;
 };
 
-bool conv(wgpu::Origin3D &out, const GPUOrigin3D &in) {
+static bool conv(wgpu::Origin3D &out, GPUOrigin3D &in) {
   return conv(out.x, in.x) && conv(out.y, in.y) && conv(out.z, in.z);
 }
 

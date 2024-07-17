@@ -21,7 +21,7 @@ struct GPUMultisampleState {
   std::optional<bool> alphaToCoverageEnabled; // boolean
 };
 
-bool conv(wgpu::MultisampleState &out, GPUMultisampleState &in) {
+static bool conv(wgpu::MultisampleState &out, GPUMultisampleState &in) {
 
   return conv(out.count, in.count) && conv(out.mask, in.mask) &&
          conv(out.alphaToCoverageEnabled, in.alphaToCoverageEnabled);

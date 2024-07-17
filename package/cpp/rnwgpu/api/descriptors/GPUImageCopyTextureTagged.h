@@ -30,7 +30,8 @@ struct GPUImageCopyTextureTagged {
   std::optional<wgpu::TextureAspect> aspect; // GPUTextureAspect
 };
 
-bool conv(wgpu::ImageCopyTextureTagged &out, GPUImageCopyTextureTagged &in) {
+static bool conv(wgpu::ImageCopyTextureTagged &out,
+                 GPUImageCopyTextureTagged &in) {
 
   return conv(out.colorSpace, in.colorSpace) &&
          conv(out.premultipliedAlpha, in.premultipliedAlpha) &&

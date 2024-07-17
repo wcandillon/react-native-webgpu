@@ -27,7 +27,7 @@ struct GPUBindGroupEntry {
       resource; // GPUBindingResource
 };
 
-bool conv(wgpu::BindGroupEntry &out, GPUBindGroupEntry &in) {
+static bool conv(wgpu::BindGroupEntry &out, GPUBindGroupEntry &in) {
   // out = {};
   if (!conv(out.binding, in.binding)) {
     return false;

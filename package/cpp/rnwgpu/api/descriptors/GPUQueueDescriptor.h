@@ -20,7 +20,7 @@ struct GPUQueueDescriptor {
   std::optional<std::string> label; // string
 };
 
-bool conv(wgpu::QueueDescriptor &out, GPUQueueDescriptor &in) {
+static bool conv(wgpu::QueueDescriptor &out, GPUQueueDescriptor &in) {
 
   return conv(out.label, in.label);
 }

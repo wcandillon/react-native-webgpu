@@ -36,8 +36,8 @@ struct GPURenderPipelineDescriptor {
   std::optional<std::string> label; // string
 };
 
-bool conv(wgpu::RenderPipelineDescriptor &out,
-          GPURenderPipelineDescriptor &in) {
+static bool conv(wgpu::RenderPipelineDescriptor &out,
+                 GPURenderPipelineDescriptor &in) {
 
   return conv(out.vertex, in.vertex) && conv(out.primitive, in.primitive) &&
          conv(out.depthStencil, in.depthStencil) &&

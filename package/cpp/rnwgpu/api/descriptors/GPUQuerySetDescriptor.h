@@ -22,7 +22,7 @@ struct GPUQuerySetDescriptor {
   std::optional<std::string> label; // string
 };
 
-bool conv(wgpu::QuerySetDescriptor &out, GPUQuerySetDescriptor &in) {
+static bool conv(wgpu::QuerySetDescriptor &out, GPUQuerySetDescriptor &in) {
 
   out.type = in.type;
   return conv(out.count, in.count) && conv(out.label, in.label);

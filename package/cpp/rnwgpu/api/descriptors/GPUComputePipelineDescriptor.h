@@ -25,8 +25,8 @@ struct GPUComputePipelineDescriptor {
   std::optional<std::string> label; // string
 };
 
-bool conv(wgpu::ComputePipelineDescriptor &out,
-          GPUComputePipelineDescriptor &in) {
+static bool conv(wgpu::ComputePipelineDescriptor &out,
+                 GPUComputePipelineDescriptor &in) {
 
   return conv(out.compute, in.compute) && conv(out.layout, in.layout) &&
          conv(out.label, in.label);

@@ -26,8 +26,8 @@ struct GPUExternalTextureDescriptor {
   std::optional<std::string> label;                  // string
 };
 
-bool conv(wgpu::ExternalTextureDescriptor &out,
-          GPUExternalTextureDescriptor &in) {
+static bool conv(wgpu::ExternalTextureDescriptor &out,
+                 GPUExternalTextureDescriptor &in) {
 
   return conv(out.source, in.source) && conv(out.colorSpace, in.colorSpace) &&
          conv(out.label, in.label);

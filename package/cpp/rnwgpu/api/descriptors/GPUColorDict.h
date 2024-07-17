@@ -21,7 +21,7 @@ struct GPUColorDict {
   double a; // number
 };
 
-bool conv(wgpu::Color &out, GPUColorDict &in) {
+static bool conv(wgpu::Color &out, GPUColorDict &in) {
 
   return conv(out.r, in.r) && conv(out.g, in.g) && conv(out.b, in.b) &&
          conv(out.a, in.a);

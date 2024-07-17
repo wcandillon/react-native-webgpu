@@ -25,7 +25,7 @@ struct GPURenderPassLayout {
   std::optional<std::string> label;                      // string
 };
 
-bool conv(wgpu::RenderPassLayout &out, GPURenderPassLayout &in) {
+static bool conv(wgpu::RenderPassLayout &out, GPURenderPassLayout &in) {
   out.colorFormatCount = in.colorFormats.size();
 
   return conv(out.colorFormats, in.colorFormats) &&

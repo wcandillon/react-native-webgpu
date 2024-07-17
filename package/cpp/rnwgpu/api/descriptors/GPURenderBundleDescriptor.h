@@ -20,7 +20,8 @@ struct GPURenderBundleDescriptor {
   std::optional<std::string> label; // string
 };
 
-bool conv(wgpu::RenderBundleDescriptor &out, GPURenderBundleDescriptor &in) {
+static bool conv(wgpu::RenderBundleDescriptor &out,
+                 GPURenderBundleDescriptor &in) {
 
   return conv(out.label, in.label);
 }

@@ -23,7 +23,7 @@ struct GPUPrimitiveState {
   std::optional<bool> unclippedDepth;                // boolean
 };
 
-bool conv(wgpu::PrimitiveState &out, GPUPrimitiveState &in) {
+static bool conv(wgpu::PrimitiveState &out, GPUPrimitiveState &in) {
   if (in.unclippedDepth) {
     // TODO: fix memory leak here
     wgpu::PrimitiveDepthClipControl *depthClip =

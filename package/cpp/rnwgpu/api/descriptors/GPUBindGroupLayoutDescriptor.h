@@ -24,8 +24,8 @@ struct GPUBindGroupLayoutDescriptor {
   std::optional<std::string> label; // string
 };
 
-bool conv(wgpu::BindGroupLayoutDescriptor &out,
-          GPUBindGroupLayoutDescriptor &in) {
+static bool conv(wgpu::BindGroupLayoutDescriptor &out,
+                 GPUBindGroupLayoutDescriptor &in) {
   out.entryCount = in.entries.size();
 
   return conv(out.entries, in.entries) && conv(out.label, in.label);

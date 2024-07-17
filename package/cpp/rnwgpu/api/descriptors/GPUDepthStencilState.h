@@ -31,7 +31,7 @@ struct GPUDepthStencilState {
   std::optional<double> depthBiasClamp;      // number
 };
 
-bool conv(wgpu::DepthStencilState &out, GPUDepthStencilState &in) {
+static bool conv(wgpu::DepthStencilState &out, GPUDepthStencilState &in) {
 
   out.format = in.format;
   return conv(out.depthWriteEnabled, in.depthWriteEnabled) &&

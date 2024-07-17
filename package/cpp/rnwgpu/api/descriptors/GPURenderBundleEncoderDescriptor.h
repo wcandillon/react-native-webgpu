@@ -27,8 +27,8 @@ struct GPURenderBundleEncoderDescriptor {
   std::optional<std::string> label;                      // string
 };
 
-bool conv(wgpu::RenderBundleEncoderDescriptor &out,
-          GPURenderBundleEncoderDescriptor &in) {
+static bool conv(wgpu::RenderBundleEncoderDescriptor &out,
+                 GPURenderBundleEncoderDescriptor &in) {
   out.colorFormatCount = in.colorFormats.size();
 
   return conv(out.depthReadOnly, in.depthReadOnly) &&
