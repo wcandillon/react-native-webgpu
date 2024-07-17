@@ -1,6 +1,5 @@
-import { InterfaceDeclaration, Type } from "ts-morph";
+import { InterfaceDeclaration, PropertySignature, Type } from "ts-morph";
 // import { dawn, mapKeys, hasPropery } from "./model/dawn";
-import { Union } from "./templates/Unions";
 import { mergeParentInterfaces } from "./templates/common";
 
 // export const generateDescriptors = () => {
@@ -19,7 +18,15 @@ import { mergeParentInterfaces } from "./templates/common";
 //     .filter((t) => t !== undefined);
 // };
 
-const resolveType = (type: Type, dependencies: Set<string>): string => {
+interface ResolveTypeState {
+  dependencies: Set<string>;
+  prop: PropertySignature;
+}
+
+const resolveType = (type: Type, state: ResolveTypeState): string => {
+  const { dependencies, prop } = state;
+  //const symbol = type.getSymbol();
+  //const alias = type.getAliasSymbol();
   if (type.isString()) {
     dependencies.add("string");
     return "std::string";
@@ -30,9 +37,12 @@ const resolveType = (type: Type, dependencies: Set<string>): string => {
   } else if (type.isUnion()) {
     const unionTypes = type.getUnionTypes().filter(t => !t.isUndefined());
     if (unionTypes.length === 1) {
-      return resolveType(unionTypes[0], dependencies);
+      return resolveType(unionTypes[0], state);
+    } else if (unionTypes.every(t => t.isStringLiteral())) {
+      const name = prop.getTypeNode()?.getText() ?? "";
+      return `wgpu::${name.substring(3)}`;
     } else {
-      const unionNames = Array.from(new Set(unionTypes.map(t => resolveType(t, dependencies))));
+      const unionNames = Array.from(new Set(unionTypes.map(t => resolveType(t, state))));
       if (unionNames.length === 1) {
         return unionNames[0];
       } else {
@@ -41,13 +51,13 @@ const resolveType = (type: Type, dependencies: Set<string>): string => {
       }
     }
   }
+
   return "unknown";
   //throw new Error("Unhandled type: " + type.getText());
 }
 
 export const getDescriptor = (
   decl: InterfaceDeclaration,
-  _unions: Union[],
   _hybridObjects: string[],
 ) => {
   mergeParentInterfaces(decl);
@@ -55,7 +65,7 @@ export const getDescriptor = (
   const dependencies = new Set<string>();
   // we filter sourceMap?: any; for now
   const props = decl.getProperties().filter(p => !p.getType().isAny()).map((prop) => {
-    const mandatoryType = resolveType(prop.getType(), dependencies);
+    const mandatoryType = resolveType(prop.getType(), { prop, dependencies });
     const type = prop.hasQuestionToken()? `std::optional<${mandatoryType}>` : mandatoryType;
     if (prop.hasQuestionToken()) {
       dependencies.add("optional");
@@ -69,12 +79,13 @@ export const getDescriptor = (
   });
   return `#pragma once
 
+#include "webgpu/webgpu_cpp.h"
 ${Array.from(dependencies).map(dep => `#include ${dep[0].toLowerCase() === dep[0] ? `<${dep}>` : `"${dep}.h"`}`).join("\n")}
 
 namespace rnwgpu {
 
 struct ${name} {
-  ${props.map(p => `${p.type} ${p.name}; // ${p.debug.replace(/\n/g, ' ')}`).join("\n  ")}
+  ${props.map(p => `${p.type} ${p.name}; /* ${p.debug} */`).join("\n  ")}
 };
 
 } // namespace rnwgpu`;

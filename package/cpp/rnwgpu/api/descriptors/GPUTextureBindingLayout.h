@@ -1,13 +1,15 @@
 #pragma once
 
+#include "webgpu_cpp.h"
 #include <optional>
 
 namespace rnwgpu {
 
 struct GPUTextureBindingLayout {
-  std::optional<unknown> sampleType;    // GPUTextureSampleType
-  std::optional<unknown> viewDimension; // GPUTextureViewDimension
-  std::optional<bool> multisampled;     // boolean
+  std::optional<wgpu::TextureSampleType> sampleType; /* GPUTextureSampleType */
+  std::optional<wgpu::TextureViewDimension>
+      viewDimension;                /* GPUTextureViewDimension */
+  std::optional<bool> multisampled; /* boolean */
 };
 
 } // namespace rnwgpu

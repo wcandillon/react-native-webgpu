@@ -1,9 +1,11 @@
 #pragma once
 
+#include "webgpu_cpp.h"
+
 namespace rnwgpu {
 
 struct GPUPipelineErrorInit {
-  unknown reason; // GPUPipelineErrorReason
+  wgpu::PipelineErrorReason reason; /* GPUPipelineErrorReason */
 };
 
 } // namespace rnwgpu

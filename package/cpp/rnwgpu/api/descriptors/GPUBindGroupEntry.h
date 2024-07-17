@@ -1,10 +1,12 @@
 #pragma once
 
+#include "webgpu_cpp.h"
+
 namespace rnwgpu {
 
 struct GPUBindGroupEntry {
-  double binding;   // GPUIndex32
-  unknown resource; // GPUBindingResource
+  double binding;   /* GPUIndex32 */
+  unknown resource; /* GPUBindingResource */
 };
 
 } // namespace rnwgpu

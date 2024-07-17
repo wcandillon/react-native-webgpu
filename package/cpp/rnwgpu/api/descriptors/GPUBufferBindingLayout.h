@@ -1,13 +1,14 @@
 #pragma once
 
+#include "webgpu/webgpu_cpp.h"
 #include <optional>
 
 namespace rnwgpu {
 
 struct GPUBufferBindingLayout {
-  std::optional<unknown> type;          // GPUBufferBindingType
-  std::optional<bool> hasDynamicOffset; // boolean
-  std::optional<double> minBindingSize; // GPUSize64
+  std::optional<wgpu::BufferBindingType> type; /* GPUBufferBindingType */
+  std::optional<bool> hasDynamicOffset;        /* boolean */
+  std::optional<double> minBindingSize;        /* GPUSize64 */
 };
 
 } // namespace rnwgpu

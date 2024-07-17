@@ -1,14 +1,15 @@
 #pragma once
 
+#include "webgpu_cpp.h"
 #include <optional>
 
 namespace rnwgpu {
 
 struct GPUStencilFaceState {
-  std::optional<unknown> compare;     // GPUCompareFunction
-  std::optional<unknown> failOp;      // GPUStencilOperation
-  std::optional<unknown> depthFailOp; // GPUStencilOperation
-  std::optional<unknown> passOp;      // GPUStencilOperation
+  std::optional<wgpu::CompareFunction> compare;      /* GPUCompareFunction */
+  std::optional<wgpu::StencilOperation> failOp;      /* GPUStencilOperation */
+  std::optional<wgpu::StencilOperation> depthFailOp; /* GPUStencilOperation */
+  std::optional<wgpu::StencilOperation> passOp;      /* GPUStencilOperation */
 };
 
 } // namespace rnwgpu

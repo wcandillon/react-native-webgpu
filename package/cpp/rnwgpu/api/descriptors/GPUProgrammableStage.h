@@ -1,15 +1,18 @@
 #pragma once
 
+#include "webgpu_cpp.h"
 #include <optional>
 #include <string>
 
 namespace rnwgpu {
 
 struct GPUProgrammableStage {
-  unknown module;                        // GPUShaderModule
-  std::optional<std::string> entryPoint; // string
-  std::optional<unknown>
-      constants; // Record<     string,     GPUPipelineConstantValue   >
+  unknown module;                        /* GPUShaderModule */
+  std::optional<std::string> entryPoint; /* string */
+  std::optional<unknown> constants;      /* Record<
+         string,
+         GPUPipelineConstantValue
+       > */
 };
 
 } // namespace rnwgpu

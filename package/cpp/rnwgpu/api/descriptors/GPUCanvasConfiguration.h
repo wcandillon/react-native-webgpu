@@ -1,16 +1,17 @@
 #pragma once
 
+#include "webgpu_cpp.h"
 #include <optional>
 
 namespace rnwgpu {
 
 struct GPUCanvasConfiguration {
-  unknown device;                     // GPUDevice
-  unknown format;                     // GPUTextureFormat
-  std::optional<double> usage;        // GPUTextureUsageFlags
-  std::optional<unknown> viewFormats; // Iterable<GPUTextureFormat>
-  std::optional<unknown> colorSpace;  // PredefinedColorSpace
-  std::optional<unknown> alphaMode;   // GPUCanvasAlphaMode
+  unknown device;                     /* GPUDevice */
+  wgpu::TextureFormat format;         /* GPUTextureFormat */
+  std::optional<double> usage;        /* GPUTextureUsageFlags */
+  std::optional<unknown> viewFormats; /* Iterable<GPUTextureFormat> */
+  std::optional<wgpu::definedColorSpace> colorSpace; /* PredefinedColorSpace */
+  std::optional<wgpu::CanvasAlphaMode> alphaMode;    /* GPUCanvasAlphaMode */
 };
 
 } // namespace rnwgpu

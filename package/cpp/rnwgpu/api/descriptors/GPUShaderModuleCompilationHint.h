@@ -1,13 +1,15 @@
 #pragma once
 
+#include "webgpu_cpp.h"
 #include <optional>
 #include <string>
 
 namespace rnwgpu {
 
 struct GPUShaderModuleCompilationHint {
-  std::string entryPoint;        // string
-  std::optional<unknown> layout; // | GPUPipelineLayout     | GPUAutoLayoutMode
+  std::string entryPoint;        /* string */
+  std::optional<unknown> layout; /* | GPUPipelineLayout
+    | GPUAutoLayoutMode */
 };
 
 } // namespace rnwgpu
