@@ -12,11 +12,6 @@ namespace rnwgpu {
 
 class GPUBindGroupEntry;
 
-bool conv(bool &out, const bool &in) {
-  out = in;
-  return true;
-}
-
 bool conv(const char *&out, const std::string &in) {
   out = in.c_str();
   return true;
@@ -55,7 +50,7 @@ bool conv(InnerT *&out, const std::vector<OuterT> &in) {
 template <typename InnerT, typename OuterT>
 bool conv(InnerT &out, const std::optional<OuterT> &in) {
   if (in.has_value()) {
-    return conv(out, in.value());
+    return conv<InnerT, OuterT>(out, in.value());
   }
   return true;
 }
@@ -72,6 +67,12 @@ bool conv(InnerT &out, const std::shared_ptr<OuterT> &in) {
 template <typename InnerT, typename... OuterTs>
 bool conv(InnerT &out, const std::variant<OuterTs...> &in) {
   return std::visit([&out](const auto &value) { return conv(out, value); }, in);
+}
+
+template <typename T>
+bool conv(T &in, T &out) {
+    in = out;
+    return true;
 }
 
 template <typename OutT>
