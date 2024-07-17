@@ -55,12 +55,18 @@ bool conv(InnerT &out, const std::optional<OuterT> &in) {
   return true;
 }
 
+template <typename T, typename = void> struct has_get : std::false_type {};
+
+template <typename T>
+struct has_get<T, std::void_t<decltype(std::declval<T>().get())>>
+    : std::true_type {};
+
 template <typename InnerT, typename OuterT>
 bool conv(InnerT &out, const std::shared_ptr<OuterT> &in) {
-  if constexpr (std::is_member_function_pointer_v<decltype(&OuterT::get)>) {
+  if constexpr (has_get<OuterT>::value) {
     return conv(out, in->get());
   } else {
-    return conv(out, in.get());
+    return conv<InnerT, OuterT>(out, *in.get());
   }
 }
 
@@ -69,11 +75,15 @@ bool conv(InnerT &out, const std::variant<OuterTs...> &in) {
   return std::visit([&out](const auto &value) { return conv(out, value); }, in);
 }
 
-template <typename T>
-bool conv(T &in, T &out) {
-    in = out;
-    return true;
+template <typename T> bool conv(T &in, T &out) {
+  in = out;
+  return true;
 }
+
+// template <typename T> bool conv(T &in, T *out) {
+//   //in = *out;
+//   return true;
+// }
 
 template <typename OutT>
 typename std::enable_if<std::is_enum<OutT>::value, bool>::type

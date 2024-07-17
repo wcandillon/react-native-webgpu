@@ -133,6 +133,40 @@ const toSkip = [
   "GPUOrigin2DDict",
   "GPUOrigin3DDict",
 ];
+
+// Descriptors
+// the following two descriptors map to:
+// type GPUCommandBufferDescriptor =
+//   GPUObjectDescriptorBase;
+// type GPUCommandEncoderDescriptor =
+//   GPUObjectDescriptorBase;
+const GPUCommandBufferDescriptor = sourceFile.addInterface({
+  name: "GPUCommandBufferDescriptor",
+  isExported: true,
+});
+const GPUCommandEncoderDescriptor = sourceFile.addInterface({
+  name: "GPUCommandEncoderDescriptor",
+  isExported: true,
+});
+GPUCommandEncoderDescriptor.addExtends("GPUObjectDescriptorBase");
+GPUCommandBufferDescriptor.addExtends("GPUObjectDescriptorBase");
+
+/*
+type GPUQueueDescriptor =
+  GPUObjectDescriptorBase;
+type GPURenderBundleDescriptor =
+  GPUObjectDescriptorBase;
+  */
+const GPUQueueDescriptor = sourceFile.addInterface({
+  name: "GPUQueueDescriptor",
+  isExported: true,
+});
+const GPURenderBundleDescriptor = sourceFile.addInterface({
+  name: "GPURenderBundleDescriptor",
+  isExported: true,
+});
+GPUQueueDescriptor.addExtends("GPUObjectDescriptorBase");
+GPURenderBundleDescriptor.addExtends("GPUObjectDescriptorBase");
 sourceFile
   .getInterfaces()
   .filter(

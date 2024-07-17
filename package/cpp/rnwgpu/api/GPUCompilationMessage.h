@@ -5,8 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "RNFHybridObject.h"
 #include "Unions.h"
+
+#include "RNFHybridObject.h"
 
 #include "ArrayBuffer.h"
 #include "AsyncRunner.h"

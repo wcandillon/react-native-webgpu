@@ -120,6 +120,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
 #include <vector>
 
 #include "Unions.h"
+
 #include "RNFHybridObject.h"
 
 #include "AsyncRunner.h"

@@ -104,7 +104,7 @@ template <> struct JSIConverter<uint64_t> {
     //   return arg.asBigInt(runtime).asUint64(runtime);
     // } else if (arg.isNumber()) {
       double value = arg.asNumber();
-      if (value < 0 || value > std::numeric_limits<uint64_t>::max()) {
+      if (value < 0 || value > static_cast<double>(std::numeric_limits<uint64_t>::max())) {
         throw jsi::JSError(runtime, "Number out of range for uint64_t");
       }
       return static_cast<uint64_t>(value);
@@ -132,7 +132,8 @@ template <> struct JSIConverter<int64_t> {
     //   return arg.asBigInt(runtime).asInt64(runtime);
     // } else if (arg.isNumber()) {
       double value = arg.asNumber();
-      if (value < std::numeric_limits<int64_t>::lowest() || value > std::numeric_limits<int64_t>::max()) {
+      if (value < static_cast<double>(std::numeric_limits<int64_t>::lowest()) || 
+          value > static_cast<double>(std::numeric_limits<int64_t>::max())) {
         throw jsi::JSError(runtime, "Number out of range for int64_t");
       }
       return static_cast<int64_t>(value);

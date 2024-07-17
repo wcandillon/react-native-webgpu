@@ -78,27 +78,22 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
           auto creationRuntime = static_cast<jsi::Runtime *>(userdata);
           const char *logLevel = "";
           switch (type) {
-          case WGPULoggingType_Verbose:
-            logLevel = "Verbose";
-            break;
-          case WGPULoggingType_Info:
-            logLevel = "Info";
-            break;
           case WGPULoggingType_Warning:
             logLevel = "Warning";
+            Logger::warnToJavascriptConsole(*creationRuntime, message);
             break;
           case WGPULoggingType_Error:
             logLevel = "Error";
-            break;
-          default:
-            logLevel = "Unknown";
-          }
-          if (logLevel == "Warning") {
-            Logger::warnToJavascriptConsole(*creationRuntime, message);
-          } else if (logLevel == "Error") {
             Logger::errorToJavascriptConsole(*creationRuntime, message);
-          } else {
+            break;
+          case WGPULoggingType_Verbose:
+            logLevel = "Verbose";
+          case WGPULoggingType_Info:
+            logLevel = "Info";
+          default: {
+            logLevel = "Unknown";
             Logger::logToConsole("%s: %s", logLevel, message);
+          }
           }
         },
         _creationRuntime);
