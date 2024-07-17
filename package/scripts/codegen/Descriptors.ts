@@ -22,12 +22,12 @@ import { debugType, mergeParentInterfaces } from "./templates/common";
 
 const layout = {
   type: "std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>",
-  dependencies: ["GPUPipelineLayout", "memory"],
+  dependencies: ["GPUPipelineLayout"],
 };
 
 const colorFormats = {
   type: "std::vector<std::variant<wgpu::TextureFormat, std::nullptr_t>>",
-  dependencies: ["memory", "vector"],
+  dependencies: ["vector"],
 };
 
 const resolved: Record<
@@ -46,7 +46,7 @@ const resolved: Record<
   GPUDeviceDescriptor: {
     defaultQueue: {
       type: "std::shared_ptr<GPUQueueDescriptor>",
-      dependencies: ["GPUQueueDescriptor", "memory"],
+      dependencies: ["GPUQueueDescriptor"],
     },
   },
   GPURenderPassLayout: {
@@ -136,7 +136,6 @@ const resolveType = (type: Type, state: ResolveTypeState): string => {
       );
     }
     dependencies.add(name);
-    dependencies.add("memory");
     return `std::shared_ptr<${name}>`;
   } else if (type?.getText().startsWith("Record<")) {
     const args = type
@@ -179,6 +178,7 @@ export const getDescriptor = (decl: InterfaceDeclaration) => {
     });
   return `#pragma once
 
+#include <memory>
 ${Array.from(dependencies)
   .filter((dep) => dep[0] === dep[0].toLowerCase())
   .map((dep) => `#include <${dep}>`)
@@ -186,10 +186,16 @@ ${Array.from(dependencies)
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "Logger.h"
+#include "RNFJSIConverter.h"
+#include "RNFHybridObject.h"
 ${Array.from(dependencies)
   .filter((dep) => dep[0] !== dep[0].toLowerCase())
   .map((dep) => `#include "${dep}.h"`)
   .join("\n")}
+
+namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -202,5 +208,28 @@ struct ${name} {
     .join("\n  ")}
 };
 
-} // namespace rnwgpu`;
+} // namespace rnwgpu
+ 
+namespace margelo {
+
+template <>
+struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
+  static std::shared_ptr<rnwgpu::${name}>
+  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
+    auto result = std::make_unique<rnwgpu::${name}>();
+    if (!outOfBounds && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+
+    }
+
+    return result;
+  }
+  static jsi::Value
+  toJSI(jsi::Runtime &runtime,
+        std::shared_ptr<rnwgpu::${name}> arg) {
+    // No conversions here
+    return jsi::Value::null();
+  }
+};
+} // namespace margelo`;
 };

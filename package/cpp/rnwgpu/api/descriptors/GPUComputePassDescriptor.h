@@ -7,6 +7,12 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "GPUComputePassTimestampWrites.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
+
+namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -17,3 +23,25 @@ struct GPUComputePassDescriptor {
 };
 
 } // namespace rnwgpu
+
+namespace margelo {
+
+template <>
+struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
+  static std::shared_ptr<rnwgpu::GPUComputePassDescriptor>
+  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
+    auto result = std::make_unique<rnwgpu::GPUComputePassDescriptor>();
+    if (!outOfBounds && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+    }
+
+    return result;
+  }
+  static jsi::Value
+  toJSI(jsi::Runtime &runtime,
+        std::shared_ptr<rnwgpu::GPUComputePassDescriptor> arg) {
+    // No conversions here
+    return jsi::Value::null();
+  }
+};
+} // namespace margelo

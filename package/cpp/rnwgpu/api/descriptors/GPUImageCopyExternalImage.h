@@ -13,8 +13,14 @@
 #include "HTMLVideoElement.h"
 #include "ImageBitmap.h"
 #include "ImageData.h"
+#include "Logger.h"
 #include "OffscreenCanvas.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 #include "VideoFrame.h"
+
+namespace jsi = facebook::jsi;
+namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -32,3 +38,25 @@ struct GPUImageCopyExternalImage {
 };
 
 } // namespace rnwgpu
+
+namespace margelo {
+
+template <>
+struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
+  static std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>
+  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
+    auto result = std::make_unique<rnwgpu::GPUImageCopyExternalImage>();
+    if (!outOfBounds && arg.isObject()) {
+      auto value = arg.getObject(runtime);
+    }
+
+    return result;
+  }
+  static jsi::Value
+  toJSI(jsi::Runtime &runtime,
+        std::shared_ptr<rnwgpu::GPUImageCopyExternalImage> arg) {
+    // No conversions here
+    return jsi::Value::null();
+  }
+};
+} // namespace margelo
