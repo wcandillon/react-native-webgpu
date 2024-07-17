@@ -22,7 +22,8 @@ struct GPUVertexAttribute {
 
 bool conv(wgpu::VertexAttribute &out, const GPUVertexAttribute &in) {
 
-  return conv(out.format, in.format) && conv(out.offset, in.offset) &&
+  out.format = in.format;
+  return conv(out.offset, in.offset) &&
          conv(out.shaderLocation, in.shaderLocation);
 }
 

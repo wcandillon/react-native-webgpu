@@ -24,8 +24,8 @@ struct GPUQuerySetDescriptor {
 
 bool conv(wgpu::QuerySetDescriptor &out, const GPUQuerySetDescriptor &in) {
 
-  return conv(out.type, in.type) && conv(out.count, in.count) &&
-         conv(out.label, in.label);
+  out.type = in.type;
+  return conv(out.count, in.count) && conv(out.label, in.label);
 }
 
 } // namespace rnwgpu

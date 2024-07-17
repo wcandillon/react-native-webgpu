@@ -31,7 +31,7 @@ struct GPURenderPipelineDescriptor {
   std::optional<std::shared_ptr<GPUMultisampleState>>
       multisample; // GPUMultisampleState
   std::optional<std::shared_ptr<GPUFragmentState>> fragment; // GPUFragmentState
-  std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>
+  std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>
       layout;                       // | GPUPipelineLayout | GPUAutoLayoutMode
   std::optional<std::string> label; // string
 };
@@ -93,7 +93,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
       if (value.hasProperty(runtime, "layout")) {
         auto prop = value.getProperty(runtime, "layout");
         result->layout = JSIConverter<
-            std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>>::
+            std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>>::
             fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {

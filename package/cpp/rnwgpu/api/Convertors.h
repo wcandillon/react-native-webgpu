@@ -27,6 +27,11 @@ template <typename T> bool conv(T &out, double in) {
   return true;
 }
 
+template <typename T> bool conv(T &out, std::nullptr_t in) {
+  *out = nullptr;
+  return true;
+}
+
 template <typename InnerT, typename OuterT>
 bool conv(InnerT *&out, const std::vector<OuterT> &in) {
   std::vector<InnerT> result;

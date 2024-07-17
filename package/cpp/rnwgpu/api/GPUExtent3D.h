@@ -14,6 +14,10 @@ struct GPUExtent3D {
   uint32_t depthOrArrayLayers = 1;
 };
 
+bool conv(wgpu::Extent3D &out, const GPUExtent3D &in) {
+  return conv(out.width, in.width) && conv(out.width, in.width) && conv(out.width, in.width);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

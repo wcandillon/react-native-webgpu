@@ -33,8 +33,8 @@ struct GPUDepthStencilState {
 
 bool conv(wgpu::DepthStencilState &out, const GPUDepthStencilState &in) {
 
-  return conv(out.format, in.format) &&
-         conv(out.depthWriteEnabled, in.depthWriteEnabled) &&
+  out.format = in.format;
+  return conv(out.depthWriteEnabled, in.depthWriteEnabled) &&
          conv(out.depthCompare, in.depthCompare) &&
          conv(out.stencilFront, in.stencilFront) &&
          conv(out.stencilBack, in.stencilBack) &&

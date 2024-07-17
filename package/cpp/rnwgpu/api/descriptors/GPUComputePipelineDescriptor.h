@@ -20,7 +20,7 @@ namespace rnwgpu {
 
 struct GPUComputePipelineDescriptor {
   std::shared_ptr<GPUProgrammableStage> compute; // GPUProgrammableStage
-  std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>
+  std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>
       layout;                       // | GPUPipelineLayout | GPUAutoLayoutMode
   std::optional<std::string> label; // string
 };
@@ -54,7 +54,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
       if (value.hasProperty(runtime, "layout")) {
         auto prop = value.getProperty(runtime, "layout");
         result->layout = JSIConverter<
-            std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>>::
+            std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>>::
             fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {

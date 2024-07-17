@@ -24,11 +24,16 @@ struct GPUPrimitiveState {
 };
 
 bool conv(wgpu::PrimitiveState &out, const GPUPrimitiveState &in) {
-
+  if (in.unclippedDepth) {
+    // TODO: fix memory leak here
+    wgpu::PrimitiveDepthClipControl *depthClip =
+        new wgpu::PrimitiveDepthClipControl();
+    depthClip->unclippedDepth = true;
+    out.nextInChain = depthClip;
+  }
   return conv(out.topology, in.topology) &&
          conv(out.stripIndexFormat, in.stripIndexFormat) &&
-         conv(out.frontFace, in.frontFace) && conv(out.cullMode, in.cullMode) &&
-         conv(out.unclippedDepth, in.unclippedDepth);
+         conv(out.frontFace, in.frontFace) && conv(out.cullMode, in.cullMode);
 }
 
 } // namespace rnwgpu

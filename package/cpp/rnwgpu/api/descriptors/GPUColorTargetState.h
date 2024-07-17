@@ -24,8 +24,8 @@ struct GPUColorTargetState {
 
 bool conv(wgpu::ColorTargetState &out, const GPUColorTargetState &in) {
 
-  return conv(out.format, in.format) && conv(out.blend, in.blend) &&
-         conv(out.writeMask, in.writeMask);
+  out.format = in.format;
+  return conv(out.blend, in.blend) && conv(out.writeMask, in.writeMask);
 }
 
 } // namespace rnwgpu

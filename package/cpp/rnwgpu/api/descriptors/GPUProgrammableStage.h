@@ -25,10 +25,10 @@ struct GPUProgrammableStage {
       constants; // Record< string, GPUPipelineConstantValue >
 };
 
-bool conv(wgpu::ProgrammableStage &out, const GPUProgrammableStage &in) {
-
-  return conv(out.module, in.module) && conv(out.entryPoint, in.entryPoint) &&
-         conv(out.constants, in.constants);
+bool conv(wgpu::ProgrammableStageDescriptor &out,
+          const GPUProgrammableStage &in) {
+  // TODO: implement
+  return false;
 }
 
 } // namespace rnwgpu

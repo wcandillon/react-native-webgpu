@@ -4,7 +4,7 @@ import { SyntaxKind } from "ts-morph";
 import { debugType, mergeParentInterfaces } from "./templates/common";
 
 const layout = {
-  type: "std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>",
+  type: "std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>",
   dependencies: ["GPUPipelineLayout"],
 };
 
@@ -18,10 +18,18 @@ const origin = {
   dependencies: ["GPUOrigin3D"],
 };
 
+const size = {
+  type: "GPUExtent3D",
+  dependencies: ["GPUExtent3D"],
+};
+
 const resolved: Record<
   string,
   Record<string, { type: string; dependencies: string[] }>
 > = {
+  GPUTextureDescriptor: {
+    size,
+  },
   GPUImageCopyTexture: {
     origin,
   },
@@ -55,6 +63,7 @@ interface ResolveTypeState {
 
 const nativeMapName: Record<string, string> = {
   GPUColorDict: "Color",
+  GPUProgrammableStage: "ProgrammableStageDescriptor",
 };
 
 const resolveType = (type: Type, state: ResolveTypeState): string => {
@@ -207,13 +216,20 @@ ${customConv[name] ?? ""}
 ${
   !noConv.includes(name) && !customConv[name]
     ? `
-bool conv(wgpu::${name.substring(3)} &out,
+bool conv(wgpu::${nativeMapName[name] ?? name.substring(3)} &out,
           const ${name} &in) {
   ${props
     .filter((p) => p.type.startsWith("std::vector"))
     .map((p) => `out.${singular(p.name)}Count = in.${p.name}.size();`)
     .join("\n")}
-  return ${props.map((p) => `conv(out.${p.name}, in.${p.name})`).join(" &&")};
+  ${props
+    .filter((t) => t.type.startsWith("wgpu::"))
+    .map((t) => `out.${t.name} = in.${t.name};`)
+    .join("\n")}
+  return ${props
+    .filter((t) => !t.type.startsWith("wgpu::"))
+    .map((p) => `conv(out.${p.name}, in.${p.name})`)
+    .join(" &&")};
 }`
     : ""
 }
@@ -247,7 +263,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
 };
 
 const singular = (word: string) => {
-  return word === "entries" ? "entry" : word;
+  return word === "entries" ? "entry" : word.substring(0, word.length - 1);
 };
 
 const customConv: Record<string, string> = {
@@ -285,5 +301,35 @@ const customConv: Record<string, string> = {
          conv(out.layout.bytesPerRow, in.bytesPerRow) &&
          conv(out.layout.rowsPerImage, in.rowsPerImage);
 }`,
+  GPUProgrammableStage: `bool conv(wgpu::ProgrammableStageDescriptor &out, const GPUProgrammableStage &in) {
+  // TODO: implement
+  return false;
+}`,
+  GPUPrimitiveState: `bool conv(wgpu::PrimitiveState &out, const GPUPrimitiveState &in) {
+ if (in.unclippedDepth) {
+     // TODO: fix memory leak here
+     wgpu::PrimitiveDepthClipControl* depthClip = new wgpu::PrimitiveDepthClipControl();
+     depthClip->unclippedDepth = true;
+     out.nextInChain = depthClip;
+  }
+  return conv(out.topology, in.topology) &&
+         conv(out.stripIndexFormat, in.stripIndexFormat) &&
+         conv(out.frontFace, in.frontFace) && conv(out.cullMode, in.cullMode);
+}`,
+  GPURenderPassDescriptor: `bool conv(wgpu::RenderPassDescriptor &out, const GPURenderPassDescriptor &in) {
+  out.colorAttachmentCount = in.colorAttachments.size();
+  wgpu::RenderPassDescriptor desc{};
+  wgpu::RenderPassDescriptorMaxDrawCount maxDrawCountDesc{};
+  desc.nextInChain = &maxDrawCountDesc;
+  return conv(out.colorAttachments, in.colorAttachments) &&
+         conv(out.depthStencilAttachment, in.depthStencilAttachment) &&
+         conv(out.occlusionQuerySet, in.occlusionQuerySet) &&
+         conv(out.timestampWrites, in.timestampWrites) &&
+         conv(maxDrawCountDesc.maxDrawCount, in.maxDrawCount) && conv(out.label, in.label);
+}`,
 };
-const noConv = ["GPUBufferBinding"];
+const noConv = [
+  "GPUBufferBinding",
+  "GPUShaderModuleCompilationHint",
+  "GPUShaderModuleDescriptor",
+];

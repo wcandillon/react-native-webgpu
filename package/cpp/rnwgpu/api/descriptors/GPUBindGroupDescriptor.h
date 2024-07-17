@@ -28,6 +28,7 @@ struct GPUBindGroupDescriptor {
 
 bool conv(wgpu::BindGroupDescriptor &out, const GPUBindGroupDescriptor &in) {
   out.entryCount = in.entries.size();
+
   return conv(out.layout, in.layout) && conv(out.entries, in.entries) &&
          conv(out.label, in.label);
 }

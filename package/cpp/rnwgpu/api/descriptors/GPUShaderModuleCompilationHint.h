@@ -19,15 +19,10 @@ namespace rnwgpu {
 
 struct GPUShaderModuleCompilationHint {
   std::string entryPoint; // string
-  std::optional<std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>>
+  std::optional<
+      std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>>
       layout; // | GPUPipelineLayout | GPUAutoLayoutMode
 };
-
-bool conv(wgpu::ShaderModuleCompilationHint &out,
-          const GPUShaderModuleCompilationHint &in) {
-
-  return conv(out.entryPoint, in.entryPoint) && conv(out.layout, in.layout);
-}
 
 } // namespace rnwgpu
 
@@ -50,7 +45,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
       if (value.hasProperty(runtime, "layout")) {
         auto prop = value.getProperty(runtime, "layout");
         result->layout = JSIConverter<std::optional<
-            std::variant<std::null_ptr, std::shared_ptr<GPUPipelineLayout>>>>::
+            std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>>>::
             fromJSI(runtime, prop, false);
       }
     }

@@ -29,8 +29,9 @@ struct GPUCanvasConfiguration {
 
 bool conv(wgpu::CanvasConfiguration &out, const GPUCanvasConfiguration &in) {
 
-  return conv(out.device, in.device) && conv(out.format, in.format) &&
-         conv(out.usage, in.usage) && conv(out.viewFormats, in.viewFormats) &&
+  out.format = in.format;
+  return conv(out.device, in.device) && conv(out.usage, in.usage) &&
+         conv(out.viewFormats, in.viewFormats) &&
          conv(out.colorSpace, in.colorSpace) &&
          conv(out.alphaMode, in.alphaMode);
 }

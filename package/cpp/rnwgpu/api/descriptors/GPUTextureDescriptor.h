@@ -3,13 +3,12 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <variant>
 #include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
 #include "Convertors.h"
-#include "GPUExtent3DDictStrict.h"
+#include "GPUExtent3D.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
@@ -20,8 +19,7 @@ namespace m = margelo;
 namespace rnwgpu {
 
 struct GPUTextureDescriptor {
-  std::variant<std::vector<double>, std::shared_ptr<GPUExtent3DDictStrict>>
-      size;                                        // GPUExtent3DStrict
+  GPUExtent3D size;                                // GPUExtent3DStrict
   std::optional<double> mipLevelCount;             // GPUIntegerCoordinate
   std::optional<double> sampleCount;               // GPUSize32
   std::optional<wgpu::TextureDimension> dimension; // GPUTextureDimension
@@ -34,11 +32,11 @@ struct GPUTextureDescriptor {
 
 bool conv(wgpu::TextureDescriptor &out, const GPUTextureDescriptor &in) {
 
+  out.format = in.format;
   return conv(out.size, in.size) && conv(out.mipLevelCount, in.mipLevelCount) &&
          conv(out.sampleCount, in.sampleCount) &&
-         conv(out.dimension, in.dimension) && conv(out.format, in.format) &&
-         conv(out.usage, in.usage) && conv(out.viewFormats, in.viewFormats) &&
-         conv(out.label, in.label);
+         conv(out.dimension, in.dimension) && conv(out.usage, in.usage) &&
+         conv(out.viewFormats, in.viewFormats) && conv(out.label, in.label);
 }
 
 } // namespace rnwgpu
@@ -55,10 +53,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "size")) {
         auto prop = value.getProperty(runtime, "size");
-        result->size =
-            JSIConverter<std::variant<std::vector<double>,
-                                      std::shared_ptr<GPUExtent3DDictStrict>>>::
-                fromJSI(runtime, prop, false);
+        result->size = JSIConverter<GPUExtent3D>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "mipLevelCount")) {
         auto prop = value.getProperty(runtime, "mipLevelCount");

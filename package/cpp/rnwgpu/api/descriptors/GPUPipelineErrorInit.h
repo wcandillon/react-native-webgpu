@@ -20,7 +20,8 @@ struct GPUPipelineErrorInit {
 
 bool conv(wgpu::PipelineErrorInit &out, const GPUPipelineErrorInit &in) {
 
-  return conv(out.reason, in.reason);
+  out.reason = in.reason;
+  return;
 }
 
 } // namespace rnwgpu
