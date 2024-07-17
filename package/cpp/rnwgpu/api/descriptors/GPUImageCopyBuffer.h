@@ -24,10 +24,9 @@ struct GPUImageCopyBuffer {
 };
 
 bool conv(wgpu::ImageCopyBuffer &out, const GPUImageCopyBuffer &in) {
-
-  return conv(out.buffer, in.buffer) && conv(out.offset, in.offset) &&
-         conv(out.bytesPerRow, in.bytesPerRow) &&
-         conv(out.rowsPerImage, in.rowsPerImage);
+  return conv(out.buffer, in.buffer) && conv(out.layout.offset, in.offset) &&
+         conv(out.layout.bytesPerRow, in.bytesPerRow) &&
+         conv(out.layout.rowsPerImage, in.rowsPerImage);
 }
 
 } // namespace rnwgpu

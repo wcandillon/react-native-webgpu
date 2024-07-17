@@ -2,13 +2,11 @@
 
 #include <memory>
 #include <optional>
-#include <variant>
-#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
 #include "Convertors.h"
-#include "GPUOrigin3DDict.h"
+#include "GPUOrigin3D.h"
 #include "GPUTexture.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -20,11 +18,9 @@ namespace m = margelo;
 namespace rnwgpu {
 
 struct GPUImageCopyTexture {
-  std::shared_ptr<GPUTexture> texture; // GPUTexture
-  std::optional<double> mipLevel;      // GPUIntegerCoordinate
-  std::optional<
-      std::variant<std::vector<double>, std::shared_ptr<GPUOrigin3DDict>>>
-      origin;                                // GPUOrigin3D
+  std::shared_ptr<GPUTexture> texture;       // GPUTexture
+  std::optional<double> mipLevel;            // GPUIntegerCoordinate
+  std::optional<GPUOrigin3D> origin;         // GPUOrigin3D
   std::optional<wgpu::TextureAspect> aspect; // GPUTextureAspect
 };
 
@@ -58,9 +54,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
       }
       if (value.hasProperty(runtime, "origin")) {
         auto prop = value.getProperty(runtime, "origin");
-        result->origin = JSIConverter<std::optional<std::variant<
-            std::vector<double>, std::shared_ptr<GPUOrigin3DDict>>>>::
-            fromJSI(runtime, prop, false);
+        result->origin = JSIConverter<std::optional<GPUOrigin3D>>::fromJSI(
+            runtime, prop, false);
       }
       if (value.hasProperty(runtime, "aspect")) {
         auto prop = value.getProperty(runtime, "aspect");

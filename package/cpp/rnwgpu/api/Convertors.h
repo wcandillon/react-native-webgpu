@@ -22,13 +22,8 @@ bool conv(const char *&out, const std::string &in) {
   return true;
 }
 
-bool conv(uint64_t &out, const double &in) {
-  out = static_cast<uint64_t>(in);
-  return true;
-}
-
-bool conv(uint32_t &out, const double &in) {
-  out = static_cast<uint32_t>(in);
+template <typename T> bool conv(T &out, double in) {
+  *out = static_cast<T>(in);
   return true;
 }
 

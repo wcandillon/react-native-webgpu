@@ -13,10 +13,18 @@ const colorFormats = {
   dependencies: ["vector"],
 };
 
+const origin = {
+  type: "GPUOrigin3D",
+  dependencies: ["GPUOrigin3D"],
+};
+
 const resolved: Record<
   string,
   Record<string, { type: string; dependencies: string[] }>
 > = {
+  GPUImageCopyTexture: {
+    origin,
+  },
   GPUComputePipelineDescriptor: {
     layout,
   },
@@ -44,6 +52,10 @@ interface ResolveTypeState {
   dependencies: Set<string>;
   prop: PropertySignature;
 }
+
+const nativeMapName: Record<string, string> = {
+  GPUColorDict: "Color",
+};
 
 const resolveType = (type: Type, state: ResolveTypeState): string => {
   const { dependencies, prop } = state;
@@ -83,7 +95,7 @@ const resolveType = (type: Type, state: ResolveTypeState): string => {
           );
         }
       }
-      return `wgpu::${name.substring(3)}`;
+      return `wgpu::${nativeMapName[name] ?? name.substring(3)}`;
     } else {
       const unionNames = Array.from(
         new Set(unionTypes.map((t) => resolveType(t, state))),
@@ -191,8 +203,9 @@ struct ${name} {
     .join("\n  ")}
 };
 
+${customConv[name] ?? ""}
 ${
-  !noConv.includes(name)
+  !noConv.includes(name) && !customConv[name]
     ? `
 bool conv(wgpu::${name.substring(3)} &out,
           const ${name} &in) {
@@ -237,5 +250,40 @@ const singular = (word: string) => {
   return word === "entries" ? "entry" : word;
 };
 
-const customConv: string[] = []; //"GPUBindGroupEntry"
+const customConv: Record<string, string> = {
+  GPUBindGroupEntry: `bool conv(wgpu::BindGroupEntry &out, const GPUBindGroupEntry &in) {
+  // out = {};
+  if (!conv(out.binding, in.binding)) {
+    return false;
+  }
+
+  if (auto *res = std::get_if<std::shared_ptr<GPUSampler>>(&in.resource)) {
+    return conv(out.sampler, *res);
+  }
+  if (auto *res = std::get_if<std::shared_ptr<GPUTextureView>>(&in.resource)) {
+    return conv(out.textureView, *res);
+  }
+  if (auto *res =
+          std::get_if<std::shared_ptr<GPUBufferBinding>>(&in.resource)) {
+    auto buffer = (*res)->buffer->get();
+    out.size = wgpu::kWholeSize;
+    if (!buffer || !conv(out.offset, (*res)->offset) ||
+        !conv(out.size, (*res)->size)) {
+      return false;
+    }
+    out.buffer = buffer;
+    return true;
+  }
+  if (auto *res =
+          std::get_if<std::shared_ptr<GPUExternalTexture>>(&in.resource)) {
+    throw std::runtime_error("GPUExternalTexture not supported");
+  }
+  return false;
+}`,
+  GPUImageCopyBuffer: `bool conv(wgpu::ImageCopyBuffer &out, const GPUImageCopyBuffer &in) {
+  return conv(out.buffer, in.buffer) && conv(out.layout.offset, in.offset) &&
+         conv(out.layout.bytesPerRow, in.bytesPerRow) &&
+         conv(out.layout.rowsPerImage, in.rowsPerImage);
+}`,
+};
 const noConv = ["GPUBufferBinding"];

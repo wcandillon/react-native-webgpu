@@ -8,11 +8,10 @@
 
 namespace rnwgpu {
 
-class GPUExtent3D {
-public:
-  wgpu::Extent3D *getInstance() { return &_instance; }
-
-  wgpu::Extent3D _instance;
+struct GPUExtent3D {
+  uint32_t width;
+  uint32_t height = 1;
+  uint32_t depthOrArrayLayers = 1;
 };
 
 } // namespace rnwgpu
@@ -32,31 +31,27 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3D>> {
               "Expected an array of size >1 for GPUTExtent3D");
         }
         if (size > 0) {
-          result->_instance.width =
-              array.getValueAtIndex(runtime, 0).asNumber();
+          result->width = array.getValueAtIndex(runtime, 0).asNumber();
         }
         if (size > 1) {
-          result->_instance.height =
-              array.getValueAtIndex(runtime, 1).asNumber();
+          result->height = array.getValueAtIndex(runtime, 1).asNumber();
         }
         if (size > 2) {
-          result->_instance.depthOrArrayLayers =
+          result->depthOrArrayLayers =
               array.getValueAtIndex(runtime, 2).asNumber();
         }
       } else {
         auto object = arg.getObject(runtime);
         if (object.hasProperty(runtime, "width")) {
-          result->_instance.width =
-              object.getProperty(runtime, "width").asNumber();
+          result->width = object.getProperty(runtime, "width").asNumber();
         } else {
           throw std::runtime_error("Property GPUTExtent3D::width is required");
         }
         if (object.hasProperty(runtime, "height")) {
-          result->_instance.height =
-              object.getProperty(runtime, "height").asNumber();
+          result->height = object.getProperty(runtime, "height").asNumber();
         }
         if (object.hasProperty(runtime, "depthOrArrayLayers")) {
-          result->_instance.depthOrArrayLayers =
+          result->depthOrArrayLayers =
               object.getProperty(runtime, "depthOrArrayLayers").asNumber();
         }
       }
