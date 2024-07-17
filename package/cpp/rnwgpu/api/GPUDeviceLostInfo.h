@@ -36,4 +36,11 @@ public:
 private:
   wgpu::DeviceLostInfo _instance;
 };
+
+bool conv(wgpu::DeviceLostInfo &out,
+          const std::shared_ptr<GPUDeviceLostInfo> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

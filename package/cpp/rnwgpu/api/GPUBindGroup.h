@@ -41,4 +41,10 @@ private:
   wgpu::BindGroup _instance;
   std::string _label;
 };
+
+bool conv(wgpu::BindGroup &out, const std::shared_ptr<GPUBindGroup> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

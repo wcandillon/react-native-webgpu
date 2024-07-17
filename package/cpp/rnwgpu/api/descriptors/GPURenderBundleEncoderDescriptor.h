@@ -26,6 +26,15 @@ struct GPURenderBundleEncoderDescriptor {
   std::optional<std::string> label;                      // string
 };
 
+bool conv(wgpu::RenderBundleEncoderDescriptor &out,
+          const GPURenderBundleEncoderDescriptor &in) {
+  return conv(out.depthReadOnly, in.depthReadOnly) &&
+         conv(out.stencilReadOnly, in.stencilReadOnly) &&
+         conv(out.colorFormats, in.colorFormats) &&
+         conv(out.depthStencilFormat, in.depthStencilFormat) &&
+         conv(out.sampleCount, in.sampleCount) && conv(out.label, in.label);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

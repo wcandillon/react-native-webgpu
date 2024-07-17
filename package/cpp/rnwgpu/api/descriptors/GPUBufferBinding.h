@@ -21,6 +21,11 @@ struct GPUBufferBinding {
   std::optional<double> size;        // GPUSize64
 };
 
+bool conv(wgpu::BufferBinding &out, const GPUBufferBinding &in) {
+  return conv(out.buffer, in.buffer) && conv(out.offset, in.offset) &&
+         conv(out.size, in.size);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

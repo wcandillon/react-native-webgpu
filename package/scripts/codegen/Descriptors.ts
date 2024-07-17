@@ -190,6 +190,11 @@ struct ${name} {
     .join("\n  ")}
 };
 
+bool conv(wgpu::${name.substring(3)} &out,
+          const ${name} &in) {
+  return ${props.map((p) => `conv(out.${p.name}, in.${p.name})`).join(" &&")};
+}
+
 } // namespace rnwgpu
  
 namespace margelo {

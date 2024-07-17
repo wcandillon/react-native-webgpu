@@ -41,4 +41,11 @@ private:
   wgpu::PipelineLayout _instance;
   std::string _label;
 };
+
+bool conv(wgpu::PipelineLayout &out,
+          const std::shared_ptr<GPUPipelineLayout> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

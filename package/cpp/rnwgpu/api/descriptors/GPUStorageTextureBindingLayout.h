@@ -21,6 +21,12 @@ struct GPUStorageTextureBindingLayout {
       viewDimension; // GPUTextureViewDimension
 };
 
+bool conv(wgpu::StorageTextureBindingLayout &out,
+          const GPUStorageTextureBindingLayout &in) {
+  return conv(out.access, in.access) && conv(out.format, in.format) &&
+         conv(out.viewDimension, in.viewDimension);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

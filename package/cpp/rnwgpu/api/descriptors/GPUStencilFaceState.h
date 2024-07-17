@@ -21,6 +21,11 @@ struct GPUStencilFaceState {
   std::optional<wgpu::StencilOperation> passOp;      // GPUStencilOperation
 };
 
+bool conv(wgpu::StencilFaceState &out, const GPUStencilFaceState &in) {
+  return conv(out.compare, in.compare) && conv(out.failOp, in.failOp) &&
+         conv(out.depthFailOp, in.depthFailOp) && conv(out.passOp, in.passOp);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

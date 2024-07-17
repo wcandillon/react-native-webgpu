@@ -47,4 +47,11 @@ private:
   wgpu::RenderPipeline _instance;
   std::string _label;
 };
+
+bool conv(wgpu::RenderPipeline &out,
+          const std::shared_ptr<GPURenderPipeline> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

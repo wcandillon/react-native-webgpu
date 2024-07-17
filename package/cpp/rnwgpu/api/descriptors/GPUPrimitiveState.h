@@ -22,6 +22,13 @@ struct GPUPrimitiveState {
   std::optional<bool> unclippedDepth;                // boolean
 };
 
+bool conv(wgpu::PrimitiveState &out, const GPUPrimitiveState &in) {
+  return conv(out.topology, in.topology) &&
+         conv(out.stripIndexFormat, in.stripIndexFormat) &&
+         conv(out.frontFace, in.frontFace) && conv(out.cullMode, in.cullMode) &&
+         conv(out.unclippedDepth, in.unclippedDepth);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

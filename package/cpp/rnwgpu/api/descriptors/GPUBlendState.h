@@ -19,6 +19,10 @@ struct GPUBlendState {
   std::shared_ptr<GPUBlendComponent> alpha; // GPUBlendComponent
 };
 
+bool conv(wgpu::BlendState &out, const GPUBlendState &in) {
+  return conv(out.color, in.color) && conv(out.alpha, in.alpha);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

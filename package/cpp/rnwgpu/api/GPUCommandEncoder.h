@@ -75,4 +75,11 @@ private:
   wgpu::CommandEncoder _instance;
   std::string _label;
 };
+
+bool conv(wgpu::CommandEncoder &out,
+          const std::shared_ptr<GPUCommandEncoder> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

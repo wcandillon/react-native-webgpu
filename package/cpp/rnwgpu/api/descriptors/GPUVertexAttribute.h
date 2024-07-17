@@ -19,6 +19,11 @@ struct GPUVertexAttribute {
   double shaderLocation;     // GPUIndex32
 };
 
+bool conv(wgpu::VertexAttribute &out, const GPUVertexAttribute &in) {
+  return conv(out.format, in.format) && conv(out.offset, in.offset) &&
+         conv(out.shaderLocation, in.shaderLocation);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

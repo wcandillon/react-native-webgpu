@@ -60,4 +60,11 @@ private:
   wgpu::RenderPassEncoder _instance;
   std::string _label;
 };
+
+bool conv(wgpu::RenderPassEncoder &out,
+          const std::shared_ptr<GPURenderPassEncoder> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

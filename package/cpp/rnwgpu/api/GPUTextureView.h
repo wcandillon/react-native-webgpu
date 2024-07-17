@@ -41,4 +41,10 @@ private:
   wgpu::TextureView _instance;
   std::string _label;
 };
+
+bool conv(wgpu::TextureView &out, const std::shared_ptr<GPUTextureView> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

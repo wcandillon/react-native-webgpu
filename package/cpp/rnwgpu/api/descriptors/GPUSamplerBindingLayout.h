@@ -18,6 +18,10 @@ struct GPUSamplerBindingLayout {
   std::optional<wgpu::SamplerBindingType> type; // GPUSamplerBindingType
 };
 
+bool conv(wgpu::SamplerBindingLayout &out, const GPUSamplerBindingLayout &in) {
+  return conv(out.type, in.type);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

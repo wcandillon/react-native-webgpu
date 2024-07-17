@@ -22,6 +22,12 @@ struct GPUBufferDescriptor {
   std::optional<std::string> label;     // string
 };
 
+bool conv(wgpu::BufferDescriptor &out, const GPUBufferDescriptor &in) {
+  return conv(out.size, in.size) && conv(out.usage, in.usage) &&
+         conv(out.mappedAtCreation, in.mappedAtCreation) &&
+         conv(out.label, in.label);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

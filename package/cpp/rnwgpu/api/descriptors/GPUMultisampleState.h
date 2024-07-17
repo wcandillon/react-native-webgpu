@@ -20,6 +20,11 @@ struct GPUMultisampleState {
   std::optional<bool> alphaToCoverageEnabled; // boolean
 };
 
+bool conv(wgpu::MultisampleState &out, const GPUMultisampleState &in) {
+  return conv(out.count, in.count) && conv(out.mask, in.mask) &&
+         conv(out.alphaToCoverageEnabled, in.alphaToCoverageEnabled);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

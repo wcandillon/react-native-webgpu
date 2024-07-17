@@ -21,6 +21,11 @@ struct GPUColorTargetState {
   std::optional<double> writeMask;                     // GPUColorWriteFlags
 };
 
+bool conv(wgpu::ColorTargetState &out, const GPUColorTargetState &in) {
+  return conv(out.format, in.format) && conv(out.blend, in.blend) &&
+         conv(out.writeMask, in.writeMask);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

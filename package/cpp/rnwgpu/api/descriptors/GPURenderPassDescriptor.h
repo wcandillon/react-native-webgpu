@@ -34,6 +34,14 @@ struct GPURenderPassDescriptor {
   std::optional<std::string> label;   // string
 };
 
+bool conv(wgpu::RenderPassDescriptor &out, const GPURenderPassDescriptor &in) {
+  return conv(out.colorAttachments, in.colorAttachments) &&
+         conv(out.depthStencilAttachment, in.depthStencilAttachment) &&
+         conv(out.occlusionQuerySet, in.occlusionQuerySet) &&
+         conv(out.timestampWrites, in.timestampWrites) &&
+         conv(out.maxDrawCount, in.maxDrawCount) && conv(out.label, in.label);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

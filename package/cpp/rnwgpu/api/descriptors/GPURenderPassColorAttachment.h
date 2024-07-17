@@ -30,6 +30,14 @@ struct GPURenderPassColorAttachment {
   wgpu::StoreOp storeOp; // GPUStoreOp
 };
 
+bool conv(wgpu::RenderPassColorAttachment &out,
+          const GPURenderPassColorAttachment &in) {
+  return conv(out.view, in.view) && conv(out.depthSlice, in.depthSlice) &&
+         conv(out.resolveTarget, in.resolveTarget) &&
+         conv(out.clearValue, in.clearValue) && conv(out.loadOp, in.loadOp) &&
+         conv(out.storeOp, in.storeOp);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

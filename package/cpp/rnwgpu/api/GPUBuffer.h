@@ -70,4 +70,10 @@ private:
   };
   std::vector<Mapping> mappings;
 };
+
+bool conv(wgpu::Buffer &out, const std::shared_ptr<GPUBuffer> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

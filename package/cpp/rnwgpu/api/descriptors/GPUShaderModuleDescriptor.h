@@ -24,6 +24,13 @@ struct GPUShaderModuleDescriptor {
   std::optional<std::string> label; // string
 };
 
+bool conv(wgpu::ShaderModuleDescriptor &out,
+          const GPUShaderModuleDescriptor &in) {
+  return conv(out.code, in.code) &&
+         conv(out.compilationHints, in.compilationHints) &&
+         conv(out.label, in.label);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

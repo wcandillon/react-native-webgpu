@@ -21,6 +21,11 @@ struct GPUQuerySetDescriptor {
   std::optional<std::string> label; // string
 };
 
+bool conv(wgpu::QuerySetDescriptor &out, const GPUQuerySetDescriptor &in) {
+  return conv(out.type, in.type) && conv(out.count, in.count) &&
+         conv(out.label, in.label);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

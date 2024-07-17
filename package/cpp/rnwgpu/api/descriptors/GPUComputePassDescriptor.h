@@ -22,6 +22,12 @@ struct GPUComputePassDescriptor {
   std::optional<std::string> label; // string
 };
 
+bool conv(wgpu::ComputePassDescriptor &out,
+          const GPUComputePassDescriptor &in) {
+  return conv(out.timestampWrites, in.timestampWrites) &&
+         conv(out.label, in.label);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

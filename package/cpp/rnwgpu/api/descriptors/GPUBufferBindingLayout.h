@@ -20,6 +20,12 @@ struct GPUBufferBindingLayout {
   std::optional<double> minBindingSize;        // GPUSize64
 };
 
+bool conv(wgpu::BufferBindingLayout &out, const GPUBufferBindingLayout &in) {
+  return conv(out.type, in.type) &&
+         conv(out.hasDynamicOffset, in.hasDynamicOffset) &&
+         conv(out.minBindingSize, in.minBindingSize);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

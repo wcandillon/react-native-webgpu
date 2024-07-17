@@ -23,6 +23,11 @@ struct GPUVertexBufferLayout {
       attributes; // Iterable<GPUVertexAttribute>
 };
 
+bool conv(wgpu::VertexBufferLayout &out, const GPUVertexBufferLayout &in) {
+  return conv(out.arrayStride, in.arrayStride) &&
+         conv(out.stepMode, in.stepMode) && conv(out.attributes, in.attributes);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

@@ -15,6 +15,11 @@ namespace rnwgpu {
 
 struct GPUExternalTextureBindingLayout {};
 
+bool conv(wgpu::ExternalTextureBindingLayout &out,
+          const GPUExternalTextureBindingLayout &in) {
+  return;
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

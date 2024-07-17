@@ -42,4 +42,11 @@ private:
   wgpu::BindGroupLayout _instance;
   std::string _label;
 };
+
+bool conv(wgpu::BindGroupLayout &out,
+          const std::shared_ptr<GPUBindGroupLayout> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

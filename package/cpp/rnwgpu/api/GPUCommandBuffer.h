@@ -41,4 +41,11 @@ private:
   wgpu::CommandBuffer _instance;
   std::string _label;
 };
+
+bool conv(wgpu::CommandBuffer &out,
+          const std::shared_ptr<GPUCommandBuffer> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

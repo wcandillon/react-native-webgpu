@@ -25,6 +25,12 @@ struct GPUExternalTextureDescriptor {
   std::optional<std::string> label;                  // string
 };
 
+bool conv(wgpu::ExternalTextureDescriptor &out,
+          const GPUExternalTextureDescriptor &in) {
+  return conv(out.source, in.source) && conv(out.colorSpace, in.colorSpace) &&
+         conv(out.label, in.label);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

@@ -22,6 +22,12 @@ struct GPUImageCopyBuffer {
   std::optional<double> rowsPerImage; // GPUSize32
 };
 
+bool conv(wgpu::ImageCopyBuffer &out, const GPUImageCopyBuffer &in) {
+  return conv(out.buffer, in.buffer) && conv(out.offset, in.offset) &&
+         conv(out.bytesPerRow, in.bytesPerRow) &&
+         conv(out.rowsPerImage, in.rowsPerImage);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

@@ -36,4 +36,11 @@ public:
 private:
   wgpu::SupportedLimits _instance;
 };
+
+bool conv(wgpu::SupportedLimits &out,
+          const std::shared_ptr<GPUSupportedLimits> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

@@ -63,4 +63,11 @@ private:
   wgpu::RenderBundleEncoder _instance;
   std::string _label;
 };
+
+bool conv(wgpu::RenderBundleEncoder &out,
+          const std::shared_ptr<GPURenderBundleEncoder> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

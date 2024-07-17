@@ -30,6 +30,12 @@ struct GPUFragmentState {
       constants; // Record< string, GPUPipelineConstantValue >
 };
 
+bool conv(wgpu::FragmentState &out, const GPUFragmentState &in) {
+  return conv(out.targets, in.targets) && conv(out.module, in.module) &&
+         conv(out.entryPoint, in.entryPoint) &&
+         conv(out.constants, in.constants);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

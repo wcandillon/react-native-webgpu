@@ -27,6 +27,11 @@ struct GPUImageCopyTexture {
   std::optional<wgpu::TextureAspect> aspect; // GPUTextureAspect
 };
 
+bool conv(wgpu::ImageCopyTexture &out, const GPUImageCopyTexture &in) {
+  return conv(out.texture, in.texture) && conv(out.mipLevel, in.mipLevel) &&
+         conv(out.origin, in.origin) && conv(out.aspect, in.aspect);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

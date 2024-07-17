@@ -45,4 +45,10 @@ private:
   std::shared_ptr<AsyncRunner> _async;
   std::string _label;
 };
+
+bool conv(wgpu::ShaderModule &out, const std::shared_ptr<GPUShaderModule> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

@@ -36,4 +36,11 @@ public:
 private:
   wgpu::CompilationMessage _instance;
 };
+
+bool conv(wgpu::CompilationMessage &out,
+          const std::shared_ptr<GPUCompilationMessage> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

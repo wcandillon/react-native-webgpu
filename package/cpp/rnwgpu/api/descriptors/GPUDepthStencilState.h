@@ -30,6 +30,19 @@ struct GPUDepthStencilState {
   std::optional<double> depthBiasClamp;      // number
 };
 
+bool conv(wgpu::DepthStencilState &out, const GPUDepthStencilState &in) {
+  return conv(out.format, in.format) &&
+         conv(out.depthWriteEnabled, in.depthWriteEnabled) &&
+         conv(out.depthCompare, in.depthCompare) &&
+         conv(out.stencilFront, in.stencilFront) &&
+         conv(out.stencilBack, in.stencilBack) &&
+         conv(out.stencilReadMask, in.stencilReadMask) &&
+         conv(out.stencilWriteMask, in.stencilWriteMask) &&
+         conv(out.depthBias, in.depthBias) &&
+         conv(out.depthBiasSlopeScale, in.depthBiasSlopeScale) &&
+         conv(out.depthBiasClamp, in.depthBiasClamp);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

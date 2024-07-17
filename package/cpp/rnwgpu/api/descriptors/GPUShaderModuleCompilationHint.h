@@ -22,6 +22,11 @@ struct GPUShaderModuleCompilationHint {
       layout; // | GPUPipelineLayout | GPUAutoLayoutMode
 };
 
+bool conv(wgpu::ShaderModuleCompilationHint &out,
+          const GPUShaderModuleCompilationHint &in) {
+  return conv(out.entryPoint, in.entryPoint) && conv(out.layout, in.layout);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

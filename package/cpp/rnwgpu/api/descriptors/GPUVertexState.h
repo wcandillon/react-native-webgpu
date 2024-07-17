@@ -30,6 +30,12 @@ struct GPUVertexState {
       constants; // Record< string, GPUPipelineConstantValue >
 };
 
+bool conv(wgpu::VertexState &out, const GPUVertexState &in) {
+  return conv(out.buffers, in.buffers) && conv(out.module, in.module) &&
+         conv(out.entryPoint, in.entryPoint) &&
+         conv(out.constants, in.constants);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

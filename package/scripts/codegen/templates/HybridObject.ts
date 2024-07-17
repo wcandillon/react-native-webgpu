@@ -180,5 +180,11 @@ public:
   ${ctorParams.map((param) => `${param.type} _${param.name};`).join("\n")}
   ${resolveExtra(name)}
 };
+
+bool conv(wgpu::${name.substring(3)} &out, const std::shared_ptr<${name}> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu`;
 };

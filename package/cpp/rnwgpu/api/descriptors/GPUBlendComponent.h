@@ -20,6 +20,11 @@ struct GPUBlendComponent {
   std::optional<wgpu::BlendFactor> dstFactor;    // GPUBlendFactor
 };
 
+bool conv(wgpu::BlendComponent &out, const GPUBlendComponent &in) {
+  return conv(out.operation, in.operation) &&
+         conv(out.srcFactor, in.srcFactor) && conv(out.dstFactor, in.dstFactor);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

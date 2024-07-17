@@ -23,6 +23,12 @@ struct GPUPipelineLayoutDescriptor {
   std::optional<std::string> label; // string
 };
 
+bool conv(wgpu::PipelineLayoutDescriptor &out,
+          const GPUPipelineLayoutDescriptor &in) {
+  return conv(out.bindGroupLayouts, in.bindGroupLayouts) &&
+         conv(out.label, in.label);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

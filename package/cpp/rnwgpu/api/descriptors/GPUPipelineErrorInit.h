@@ -17,6 +17,10 @@ struct GPUPipelineErrorInit {
   wgpu::PipelineErrorReason reason; // GPUPipelineErrorReason
 };
 
+bool conv(wgpu::PipelineErrorInit &out, const GPUPipelineErrorInit &in) {
+  return conv(out.reason, in.reason);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

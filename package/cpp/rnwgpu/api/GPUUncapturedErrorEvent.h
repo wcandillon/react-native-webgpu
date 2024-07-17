@@ -36,4 +36,11 @@ public:
 private:
   wgpu::UncapturedErrorEvent _instance;
 };
+
+bool conv(wgpu::UncapturedErrorEvent &out,
+          const std::shared_ptr<GPUUncapturedErrorEvent> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

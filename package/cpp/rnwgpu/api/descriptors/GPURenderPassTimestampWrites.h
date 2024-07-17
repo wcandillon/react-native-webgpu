@@ -21,6 +21,13 @@ struct GPURenderPassTimestampWrites {
   std::optional<double> endOfPassWriteIndex;       // GPUSize32
 };
 
+bool conv(wgpu::RenderPassTimestampWrites &out,
+          const GPURenderPassTimestampWrites &in) {
+  return conv(out.querySet, in.querySet) &&
+         conv(out.beginningOfPassWriteIndex, in.beginningOfPassWriteIndex) &&
+         conv(out.endOfPassWriteIndex, in.endOfPassWriteIndex);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

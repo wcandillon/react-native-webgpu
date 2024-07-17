@@ -25,6 +25,11 @@ struct GPUBindGroupDescriptor {
   std::optional<std::string> label; // string
 };
 
+bool conv(wgpu::BindGroupDescriptor &out, const GPUBindGroupDescriptor &in) {
+  return conv(out.layout, in.layout) && conv(out.entries, in.entries) &&
+         conv(out.label, in.label);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

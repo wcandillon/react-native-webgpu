@@ -26,6 +26,10 @@ struct GPUBindGroupEntry {
       resource; // GPUBindingResource
 };
 
+bool conv(wgpu::BindGroupEntry &out, const GPUBindGroupEntry &in) {
+  return conv(out.binding, in.binding) && conv(out.resource, in.resource);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {

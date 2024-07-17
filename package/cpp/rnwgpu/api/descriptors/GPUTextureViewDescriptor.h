@@ -27,6 +27,17 @@ struct GPUTextureViewDescriptor {
   std::optional<std::string> label;          // string
 };
 
+bool conv(wgpu::TextureViewDescriptor &out,
+          const GPUTextureViewDescriptor &in) {
+  return conv(out.format, in.format) && conv(out.dimension, in.dimension) &&
+         conv(out.aspect, in.aspect) &&
+         conv(out.baseMipLevel, in.baseMipLevel) &&
+         conv(out.mipLevelCount, in.mipLevelCount) &&
+         conv(out.baseArrayLayer, in.baseArrayLayer) &&
+         conv(out.arrayLayerCount, in.arrayLayerCount) &&
+         conv(out.label, in.label);
+}
+
 } // namespace rnwgpu
 
 namespace margelo {
