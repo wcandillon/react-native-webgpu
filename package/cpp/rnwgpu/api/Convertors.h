@@ -69,4 +69,10 @@ bool conv(InnerT &out, const std::optional<OuterT> &in) {
   return true;
 }
 
+template <typename InnerT, typename OuterT>
+bool conv(InnerT &out, const std::shared_ptr<OuterT> &in) {
+  out = in->get();
+  return true;
+}
+
 } // namespace rnwgpu

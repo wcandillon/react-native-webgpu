@@ -192,7 +192,7 @@ struct ${name} {
 };
 
 ${
-  !customConv.includes(name)
+  !noConv.includes(name)
     ? `
 bool conv(wgpu::${name.substring(3)} &out,
           const ${name} &in) {
@@ -238,3 +238,4 @@ const singular = (word: string) => {
 };
 
 const customConv: string[] = []; //"GPUBindGroupEntry"
+const noConv = ["GPUBufferBinding"];
