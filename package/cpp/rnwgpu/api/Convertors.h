@@ -3,13 +3,14 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "GPURequestAdapterOptions.h"
-
 namespace rnwgpu {
+
+class GPUBindGroupEntry;
 
 bool conv(bool &out, const bool &in) {
   out = in;
@@ -44,6 +45,20 @@ bool conv(InnerT *&out, const std::vector<OuterT> &in) {
   }
   out = result.data();
   return true;
+}
+
+template <typename InnerT, typename... OuterTs>
+bool conv(InnerT *&out, const std::variant<OuterTs...> &in) {
+  return std::visit(
+      [&out](const auto &value) {
+        InnerT converted;
+        if (!conv(converted, value)) {
+          return false;
+        }
+        out = new InnerT(std::move(converted));
+        return true;
+      },
+      in);
 }
 
 template <typename InnerT, typename OuterT>

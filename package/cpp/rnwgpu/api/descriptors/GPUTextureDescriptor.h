@@ -8,6 +8,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "Convertors.h"
 #include "GPUExtent3DDictStrict.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"

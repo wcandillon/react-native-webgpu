@@ -7,6 +7,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "Convertors.h"
 #include "GPUOrigin2DDictStrict.h"
 #include "HTMLCanvasElement.h"
 #include "HTMLImageElement.h"

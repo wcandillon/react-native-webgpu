@@ -43,9 +43,4 @@ private:
   std::string _label;
 };
 
-// bool conv(wgpu::QuerySet &out, const std::shared_ptr<GPUQuerySet> &in) {
-//   out = in->get();
-//   return true;
-// }
-
 } // namespace rnwgpu

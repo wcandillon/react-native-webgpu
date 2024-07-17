@@ -35,10 +35,4 @@ private:
   wgpu::AdapterInfo _instance;
 };
 
-// bool conv(wgpu::AdapterInfo &out, const std::shared_ptr<GPUAdapterInfo> &in)
-// {
-//   out = in->get();
-//   return true;
-// }
-
 } // namespace rnwgpu

@@ -6,6 +6,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "Convertors.h"
 #include "GPUPipelineLayout.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"

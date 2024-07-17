@@ -47,10 +47,4 @@ private:
   std::string _label;
 };
 
-// bool conv(wgpu::ComputePipeline &out, const
-// std::shared_ptr<GPUComputePipeline> &in) {
-//   out = in->get();
-//   return true;
-// }
-
 } // namespace rnwgpu

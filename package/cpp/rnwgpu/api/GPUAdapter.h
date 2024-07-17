@@ -44,9 +44,4 @@ private:
   std::shared_ptr<AsyncRunner> _async;
 };
 
-// bool conv(wgpu::Adapter &out, const std::shared_ptr<GPUAdapter> &in) {
-//   out = in->get();
-//   return true;
-// }
-
 } // namespace rnwgpu

@@ -35,10 +35,4 @@ private:
   wgpu::CanvasContext _instance;
 };
 
-// bool conv(wgpu::CanvasContext &out, const std::shared_ptr<GPUCanvasContext>
-// &in) {
-//   out = in->get();
-//   return true;
-// }
-
 } // namespace rnwgpu

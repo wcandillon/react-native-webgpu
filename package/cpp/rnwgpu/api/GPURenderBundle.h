@@ -40,10 +40,4 @@ private:
   std::string _label;
 };
 
-// bool conv(wgpu::RenderBundle &out, const std::shared_ptr<GPURenderBundle>
-// &in) {
-//   out = in->get();
-//   return true;
-// }
-
 } // namespace rnwgpu

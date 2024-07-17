@@ -60,10 +60,4 @@ private:
   std::string _label;
 };
 
-// bool conv(wgpu::ComputePassEncoder &out, const
-// std::shared_ptr<GPUComputePassEncoder> &in) {
-//   out = in->get();
-//   return true;
-// }
-
 } // namespace rnwgpu

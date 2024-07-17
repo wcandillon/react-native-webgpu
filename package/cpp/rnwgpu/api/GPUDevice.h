@@ -94,9 +94,4 @@ private:
   std::string _label;
 };
 
-// bool conv(wgpu::Device &out, const std::shared_ptr<GPUDevice> &in) {
-//   out = in->get();
-//   return true;
-// }
-
 } // namespace rnwgpu

@@ -54,9 +54,4 @@ private:
   std::string _label;
 };
 
-// bool conv(wgpu::Queue &out, const std::shared_ptr<GPUQueue> &in) {
-//   out = in->get();
-//   return true;
-// }
-
 } // namespace rnwgpu

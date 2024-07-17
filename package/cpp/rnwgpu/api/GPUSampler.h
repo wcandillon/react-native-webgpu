@@ -40,9 +40,4 @@ private:
   std::string _label;
 };
 
-// bool conv(wgpu::Sampler &out, const std::shared_ptr<GPUSampler> &in) {
-//   out = in->get();
-//   return true;
-// }
-
 } // namespace rnwgpu

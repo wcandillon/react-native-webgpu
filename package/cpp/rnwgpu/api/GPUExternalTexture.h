@@ -41,10 +41,4 @@ private:
   std::string _label;
 };
 
-// bool conv(wgpu::ExternalTexture &out, const
-// std::shared_ptr<GPUExternalTexture> &in) {
-//   out = in->get();
-//   return true;
-// }
-
 } // namespace rnwgpu

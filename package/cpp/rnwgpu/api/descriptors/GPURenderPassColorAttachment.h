@@ -7,6 +7,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "Convertors.h"
 #include "GPUColorDict.h"
 #include "GPUTextureView.h"
 #include "Logger.h"

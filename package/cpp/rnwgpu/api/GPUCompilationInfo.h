@@ -35,10 +35,4 @@ private:
   wgpu::CompilationInfo _instance;
 };
 
-// bool conv(wgpu::CompilationInfo &out, const
-// std::shared_ptr<GPUCompilationInfo> &in) {
-//   out = in->get();
-//   return true;
-// }
-
 } // namespace rnwgpu

@@ -4,6 +4,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "Convertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"

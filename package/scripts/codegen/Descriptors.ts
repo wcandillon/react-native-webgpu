@@ -171,6 +171,7 @@ ${Array.from(dependencies)
 #include "Logger.h"
 #include "RNFJSIConverter.h"
 #include "RNFHybridObject.h"
+#include "Convertors.h"
 ${Array.from(dependencies)
   .filter((dep) => dep[0] !== dep[0].toLowerCase())
   .map((dep) => `#include "${dep}.h"`)
@@ -236,4 +237,4 @@ const singular = (word: string) => {
   return word === "entries" ? "entry" : word;
 };
 
-const customConv = ["GPUBindGroupEntry"];
+const customConv: string[] = []; //"GPUBindGroupEntry"
