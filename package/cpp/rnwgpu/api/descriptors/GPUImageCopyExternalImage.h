@@ -58,26 +58,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
     auto result = std::make_unique<rnwgpu::GPUImageCopyExternalImage>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "source")) {
-        auto prop = value.getProperty(runtime, "source");
-        result->source = JSIConverter<std::variant<
-            std::shared_ptr<ImageBitmap>, std::shared_ptr<ImageData>,
-            std::shared_ptr<HTMLImageElement>,
-            std::shared_ptr<HTMLVideoElement>, std::shared_ptr<VideoFrame>,
-            std::shared_ptr<HTMLCanvasElement>,
-            std::shared_ptr<OffscreenCanvas>>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "origin")) {
-        auto prop = value.getProperty(runtime, "origin");
-        result->origin = JSIConverter<std::optional<std::variant<
-            std::vector<double>, std::shared_ptr<GPUOrigin2DDictStrict>>>>::
-            fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "flipY")) {
-        auto prop = value.getProperty(runtime, "flipY");
-        result->flipY =
-            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-      }
+      // source std::variant<std::shared_ptr<ImageBitmap>,
+      // std::shared_ptr<ImageData>, std::shared_ptr<HTMLImageElement>,
+      // std::shared_ptr<HTMLVideoElement>, std::shared_ptr<VideoFrame>,
+      // std::shared_ptr<HTMLCanvasElement>, std::shared_ptr<OffscreenCanvas>>
+      // origin std::optional<std::variant<std::vector<double>,
+      // std::shared_ptr<GPUOrigin2DDictStrict>>> flipY std::optional<bool>
     }
 
     return result;

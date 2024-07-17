@@ -48,34 +48,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPrimitiveState>> {
     auto result = std::make_unique<rnwgpu::GPUPrimitiveState>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "topology")) {
-        auto prop = value.getProperty(runtime, "topology");
-        result->topology =
-            JSIConverter<std::optional<wgpu::PrimitiveTopology>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "stripIndexFormat")) {
-        auto prop = value.getProperty(runtime, "stripIndexFormat");
-        result->stripIndexFormat =
-            JSIConverter<std::optional<wgpu::IndexFormat>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "frontFace")) {
-        auto prop = value.getProperty(runtime, "frontFace");
-        result->frontFace =
-            JSIConverter<std::optional<wgpu::FrontFace>>::fromJSI(runtime, prop,
-                                                                  false);
-      }
-      if (value.hasProperty(runtime, "cullMode")) {
-        auto prop = value.getProperty(runtime, "cullMode");
-        result->cullMode = JSIConverter<std::optional<wgpu::CullMode>>::fromJSI(
-            runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "unclippedDepth")) {
-        auto prop = value.getProperty(runtime, "unclippedDepth");
-        result->unclippedDepth =
-            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-      }
+      // topology std::optional<wgpu::PrimitiveTopology>
+      // stripIndexFormat std::optional<wgpu::IndexFormat>
+      // frontFace std::optional<wgpu::FrontFace>
+      // cullMode std::optional<wgpu::CullMode>
+      // unclippedDepth std::optional<bool>
     }
 
     return result;

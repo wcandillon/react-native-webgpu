@@ -56,68 +56,17 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUSamplerDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "addressModeU")) {
-        auto prop = value.getProperty(runtime, "addressModeU");
-        result->addressModeU =
-            JSIConverter<std::optional<wgpu::AddressMode>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "addressModeV")) {
-        auto prop = value.getProperty(runtime, "addressModeV");
-        result->addressModeV =
-            JSIConverter<std::optional<wgpu::AddressMode>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "addressModeW")) {
-        auto prop = value.getProperty(runtime, "addressModeW");
-        result->addressModeW =
-            JSIConverter<std::optional<wgpu::AddressMode>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "magFilter")) {
-        auto prop = value.getProperty(runtime, "magFilter");
-        result->magFilter =
-            JSIConverter<std::optional<wgpu::FilterMode>>::fromJSI(runtime,
-                                                                   prop, false);
-      }
-      if (value.hasProperty(runtime, "minFilter")) {
-        auto prop = value.getProperty(runtime, "minFilter");
-        result->minFilter =
-            JSIConverter<std::optional<wgpu::FilterMode>>::fromJSI(runtime,
-                                                                   prop, false);
-      }
-      if (value.hasProperty(runtime, "mipmapFilter")) {
-        auto prop = value.getProperty(runtime, "mipmapFilter");
-        result->mipmapFilter =
-            JSIConverter<std::optional<wgpu::MipmapFilterMode>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "lodMinClamp")) {
-        auto prop = value.getProperty(runtime, "lodMinClamp");
-        result->lodMinClamp =
-            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "lodMaxClamp")) {
-        auto prop = value.getProperty(runtime, "lodMaxClamp");
-        result->lodMaxClamp =
-            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "compare")) {
-        auto prop = value.getProperty(runtime, "compare");
-        result->compare =
-            JSIConverter<std::optional<wgpu::CompareFunction>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "maxAnisotropy")) {
-        auto prop = value.getProperty(runtime, "maxAnisotropy");
-        result->maxAnisotropy =
-            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "label")) {
-        auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
-            runtime, prop, false);
-      }
+      // addressModeU std::optional<wgpu::AddressMode>
+      // addressModeV std::optional<wgpu::AddressMode>
+      // addressModeW std::optional<wgpu::AddressMode>
+      // magFilter std::optional<wgpu::FilterMode>
+      // minFilter std::optional<wgpu::FilterMode>
+      // mipmapFilter std::optional<wgpu::MipmapFilterMode>
+      // lodMinClamp std::optional<double>
+      // lodMaxClamp std::optional<double>
+      // compare std::optional<wgpu::CompareFunction>
+      // maxAnisotropy std::optional<double>
+      // label std::optional<std::string>
     }
 
     return result;

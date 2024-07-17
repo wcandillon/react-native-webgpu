@@ -51,47 +51,14 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUTextureDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "size")) {
-        auto prop = value.getProperty(runtime, "size");
-        result->size = JSIConverter<GPUExtent3D>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "mipLevelCount")) {
-        auto prop = value.getProperty(runtime, "mipLevelCount");
-        result->mipLevelCount =
-            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "sampleCount")) {
-        auto prop = value.getProperty(runtime, "sampleCount");
-        result->sampleCount =
-            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "dimension")) {
-        auto prop = value.getProperty(runtime, "dimension");
-        result->dimension =
-            JSIConverter<std::optional<wgpu::TextureDimension>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "format")) {
-        auto prop = value.getProperty(runtime, "format");
-        result->format =
-            JSIConverter<wgpu::TextureFormat>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "usage")) {
-        auto prop = value.getProperty(runtime, "usage");
-        result->usage = JSIConverter<double>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "viewFormats")) {
-        auto prop = value.getProperty(runtime, "viewFormats");
-        result->viewFormats = JSIConverter<
-            std::optional<std::vector<wgpu::TextureFormat>>>::fromJSI(runtime,
-                                                                      prop,
-                                                                      false);
-      }
-      if (value.hasProperty(runtime, "label")) {
-        auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
-            runtime, prop, false);
-      }
+      // size GPUExtent3D
+      // mipLevelCount std::optional<double>
+      // sampleCount std::optional<double>
+      // dimension std::optional<wgpu::TextureDimension>
+      // format wgpu::TextureFormat
+      // usage double
+      // viewFormats std::optional<std::vector<wgpu::TextureFormat>>
+      // label std::optional<std::string>
     }
 
     return result;

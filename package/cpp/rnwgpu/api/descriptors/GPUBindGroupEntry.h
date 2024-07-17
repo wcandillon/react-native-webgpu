@@ -69,18 +69,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
     auto result = std::make_unique<rnwgpu::GPUBindGroupEntry>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "binding")) {
-        auto prop = value.getProperty(runtime, "binding");
-        result->binding = JSIConverter<double>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "resource")) {
-        auto prop = value.getProperty(runtime, "resource");
-        result->resource = JSIConverter<std::variant<
-            std::shared_ptr<GPUSampler>, std::shared_ptr<GPUTextureView>,
-            std::shared_ptr<GPUBufferBinding>,
-            std::shared_ptr<GPUExternalTexture>>>::fromJSI(runtime, prop,
-                                                           false);
-      }
+      // binding double
+      // resource std::variant<std::shared_ptr<GPUSampler>,
+      // std::shared_ptr<GPUTextureView>, std::shared_ptr<GPUBufferBinding>,
+      // std::shared_ptr<GPUExternalTexture>>
     }
 
     return result;

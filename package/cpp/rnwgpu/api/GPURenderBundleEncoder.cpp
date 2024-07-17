@@ -1,11 +1,16 @@
 #include "GPURenderBundleEncoder.h"
 
+#include "Convertors.h"
+
 namespace rnwgpu {
 
 std::shared_ptr<GPURenderBundle> GPURenderBundleEncoder::finish(
     std::shared_ptr<GPURenderBundleDescriptor> descriptor) {
-  auto bundle = _instance.Finish(descriptor->getInstance());
-  return std::make_shared<GPURenderBundle>(bundle, descriptor->label);
+  wgpu::RenderBundleDescriptor desc;
+  conv(desc, descriptor);
+  auto bundle = _instance.Finish(&desc);
+  return std::make_shared<GPURenderBundle>(desc,
+                                           descriptor->label.value_or(""));
 }
 
 void GPURenderBundleEncoder::setPipeline(

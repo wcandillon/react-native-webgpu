@@ -57,47 +57,15 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutEntry>> {
     auto result = std::make_unique<rnwgpu::GPUBindGroupLayoutEntry>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "binding")) {
-        auto prop = value.getProperty(runtime, "binding");
-        result->binding = JSIConverter<double>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "visibility")) {
-        auto prop = value.getProperty(runtime, "visibility");
-        result->visibility =
-            JSIConverter<double>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "buffer")) {
-        auto prop = value.getProperty(runtime, "buffer");
-        result->buffer = JSIConverter<std::optional<
-            std::shared_ptr<GPUBufferBindingLayout>>>::fromJSI(runtime, prop,
-                                                               false);
-      }
-      if (value.hasProperty(runtime, "sampler")) {
-        auto prop = value.getProperty(runtime, "sampler");
-        result->sampler = JSIConverter<std::optional<
-            std::shared_ptr<GPUSamplerBindingLayout>>>::fromJSI(runtime, prop,
-                                                                false);
-      }
-      if (value.hasProperty(runtime, "texture")) {
-        auto prop = value.getProperty(runtime, "texture");
-        result->texture = JSIConverter<std::optional<
-            std::shared_ptr<GPUTextureBindingLayout>>>::fromJSI(runtime, prop,
-                                                                false);
-      }
-      if (value.hasProperty(runtime, "storageTexture")) {
-        auto prop = value.getProperty(runtime, "storageTexture");
-        result->storageTexture = JSIConverter<std::optional<
-            std::shared_ptr<GPUStorageTextureBindingLayout>>>::fromJSI(runtime,
-                                                                       prop,
-                                                                       false);
-      }
-      if (value.hasProperty(runtime, "externalTexture")) {
-        auto prop = value.getProperty(runtime, "externalTexture");
-        result->externalTexture = JSIConverter<std::optional<
-            std::shared_ptr<GPUExternalTextureBindingLayout>>>::fromJSI(runtime,
-                                                                        prop,
-                                                                        false);
-      }
+      // binding double
+      // visibility double
+      // buffer std::optional<std::shared_ptr<GPUBufferBindingLayout>>
+      // sampler std::optional<std::shared_ptr<GPUSamplerBindingLayout>>
+      // texture std::optional<std::shared_ptr<GPUTextureBindingLayout>>
+      // storageTexture
+      // std::optional<std::shared_ptr<GPUStorageTextureBindingLayout>>
+      // externalTexture
+      // std::optional<std::shared_ptr<GPUExternalTextureBindingLayout>>
     }
 
     return result;

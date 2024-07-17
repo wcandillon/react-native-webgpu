@@ -45,18 +45,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUPipelineLayoutDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "bindGroupLayouts")) {
-        auto prop = value.getProperty(runtime, "bindGroupLayouts");
-        result->bindGroupLayouts = JSIConverter<
-            std::vector<std::shared_ptr<GPUBindGroupLayout>>>::fromJSI(runtime,
-                                                                       prop,
-                                                                       false);
-      }
-      if (value.hasProperty(runtime, "label")) {
-        auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
-            runtime, prop, false);
-      }
+      // bindGroupLayouts std::vector<std::shared_ptr<GPUBindGroupLayout>>
+      // label std::optional<std::string>
     }
 
     return result;

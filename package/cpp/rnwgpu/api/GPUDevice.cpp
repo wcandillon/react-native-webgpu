@@ -4,8 +4,9 @@ namespace rnwgpu {
 
 std::shared_ptr<GPUBuffer>
 GPUDevice::createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
-  auto aDescriptor = descriptor->getInstance();
-  auto result = _instance.CreateBuffer(aDescriptor);
+  wgpu::BufferDescriptor desc;
+  conv(desc, descriptor);
+  auto result = _instance.CreateBuffer(&desc);
   return std::make_shared<GPUBuffer>(result, _async, descriptor->label);
 }
 
@@ -16,8 +17,9 @@ std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
 
 std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
     std::shared_ptr<GPUCommandEncoderDescriptor> descriptor) {
-  auto aDescriptor = descriptor->getInstance();
-  auto result = _instance.CreateCommandEncoder(aDescriptor);
+  wgpu::CommandEncoderDescriptor desc;
+  conv(desc, descriptor);
+  auto result = _instance.CreateCommandEncoder(&desc);
   return std::make_shared<GPUCommandEncoder>(result, descriptor->label);
 }
 
@@ -25,7 +27,9 @@ void GPUDevice::destroy() { _instance.Destroy(); }
 
 std::shared_ptr<GPUTexture>
 GPUDevice::createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor) {
-  auto texture = _instance.CreateTexture(descriptor->getInstance());
+  wgpu::TextureDescriptor desc;
+  conv(desc, descriptor);
+  auto texture = _instance.CreateTexture(&desc);
   return std::make_shared<GPUTexture>(texture, descriptor->label);
 }
 
@@ -34,7 +38,7 @@ std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
   wgpu::ShaderModuleWGSLDescriptor wgsl_desc{};
   wgpu::ShaderModuleDescriptor sm_desc{};
   wgsl_desc.code = descriptor->code.c_str();
-  sm_desc.label = descriptor->_instance.label;
+  sm_desc.label = descriptor->label.value_or("").c_str();
   sm_desc.nextInChain = &wgsl_desc;
   if (descriptor->code.find('\0') != std::string::npos) {
     return std::make_shared<GPUShaderModule>(
@@ -48,29 +52,36 @@ std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
 
 std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(
     std::shared_ptr<GPURenderPipelineDescriptor> descriptor) {
-  auto renderPipeline =
-      _instance.CreateRenderPipeline(descriptor->getInstance());
-  return std::make_shared<GPURenderPipeline>(renderPipeline, descriptor->label);
+  wgpu::RenderPipelineDescriptor desc;
+  conv(desc, descriptor);
+  auto renderPipeline = _instance.CreateRenderPipeline(&desc);
+  return std::make_shared<GPURenderPipeline>(renderPipeline,
+                                             descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPUBindGroup>
 GPUDevice::createBindGroup(std::shared_ptr<GPUBindGroupDescriptor> descriptor) {
-  auto bindGroup = _instance.CreateBindGroup(descriptor->getInstance());
-  return std::make_shared<GPUBindGroup>(bindGroup, descriptor->label);
+  wgpu::BindGroupDescriptor desc;
+  conv(desc, descriptor);
+  auto bindGroup = _instance.CreateBindGroup(&desc);
+  return std::make_shared<GPUBindGroup>(bindGroup,
+                                        descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPUSampler>
 GPUDevice::createSampler(std::shared_ptr<GPUSamplerDescriptor> descriptor) {
-  auto sampler = _instance.CreateSampler(descriptor->getInstance());
-  return std::make_shared<GPUSampler>(sampler, descriptor->label);
+  wgpu::SamplerDescriptor desc;
+  auto sampler = _instance.CreateSampler(&desc);
+  return std::make_shared<GPUSampler>(sampler, descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPUComputePipeline> GPUDevice::createComputePipeline(
     std::shared_ptr<GPUComputePipelineDescriptor> descriptor) {
-  auto computePipeline =
-      _instance.CreateComputePipeline(descriptor->getInstance());
+  wgpu::ComputePipelineDescriptor desc;
+  conv(desc, descriptor);
+  auto computePipeline = _instance.CreateComputePipeline(&desc);
   return std::make_shared<GPUComputePipeline>(computePipeline,
-                                              descriptor->label);
+                                              descriptor->label.value_or(""));
 }
 
 } // namespace rnwgpu

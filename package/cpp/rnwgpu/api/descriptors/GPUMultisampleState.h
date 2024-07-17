@@ -39,21 +39,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
     auto result = std::make_unique<rnwgpu::GPUMultisampleState>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "count")) {
-        auto prop = value.getProperty(runtime, "count");
-        result->count =
-            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "mask")) {
-        auto prop = value.getProperty(runtime, "mask");
-        result->mask =
-            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "alphaToCoverageEnabled")) {
-        auto prop = value.getProperty(runtime, "alphaToCoverageEnabled");
-        result->alphaToCoverageEnabled =
-            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-      }
+      // count std::optional<double>
+      // mask std::optional<double>
+      // alphaToCoverageEnabled std::optional<bool>
     }
 
     return result;

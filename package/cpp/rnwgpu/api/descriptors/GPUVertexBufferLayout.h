@@ -44,24 +44,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
     auto result = std::make_unique<rnwgpu::GPUVertexBufferLayout>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "arrayStride")) {
-        auto prop = value.getProperty(runtime, "arrayStride");
-        result->arrayStride =
-            JSIConverter<double>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "stepMode")) {
-        auto prop = value.getProperty(runtime, "stepMode");
-        result->stepMode =
-            JSIConverter<std::optional<wgpu::VertexStepMode>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "attributes")) {
-        auto prop = value.getProperty(runtime, "attributes");
-        result->attributes = JSIConverter<
-            std::vector<std::shared_ptr<GPUVertexAttribute>>>::fromJSI(runtime,
-                                                                       prop,
-                                                                       false);
-      }
+      // arrayStride double
+      // stepMode std::optional<wgpu::VertexStepMode>
+      // attributes std::vector<std::shared_ptr<GPUVertexAttribute>>
     }
 
     return result;

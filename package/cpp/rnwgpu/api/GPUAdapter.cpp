@@ -3,13 +3,16 @@
 #include "GPUAdapter.h"
 #include <utility>
 
+#include "Convertors.h"
+
 namespace rnwgpu {
 
 std::future<std::shared_ptr<GPUDevice>>
 GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
   return std::async(std::launch::async, [this, descriptor]() {
     wgpu::Device device = nullptr;
-    auto aDescriptor = descriptor->getInstance();
+    wgpu::DeviceDescriptor aDescriptor;
+    conv(aDescriptor, descriptor);
     wgpu::DeviceLostCallbackInfo info = {
         .callback = [](WGPUDevice const *device, WGPUDeviceLostReason reason,
                        char const *message, void *userdata) {
@@ -26,7 +29,7 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
           }
           Logger::logToConsole("GPU Device Lost (%s): %s", lostReason, message);
         }};
-    aDescriptor->deviceLostCallbackInfo = info;
+    aDescriptor.deviceLostCallbackInfo = info;
     wgpu::UncapturedErrorCallbackInfo errorInfo = {
         .userdata = static_cast<void *>(_creationRuntime),
         .callback = [](WGPUErrorType type, const char *message,
@@ -53,9 +56,9 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
           Logger::errorToJavascriptConsole(*creationRuntime,
                                            fullMessage.c_str());
         }};
-    aDescriptor->uncapturedErrorCallbackInfo = errorInfo;
+    aDescriptor.uncapturedErrorCallbackInfo = errorInfo;
     _instance.RequestDevice(
-        aDescriptor,
+        &aDescriptor,
         [](WGPURequestDeviceStatus status, WGPUDevice cDevice,
            const char *message, void *userdata) {
           if (message != nullptr) {

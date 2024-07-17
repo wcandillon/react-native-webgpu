@@ -40,30 +40,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
     auto result = std::make_unique<rnwgpu::GPUStencilFaceState>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "compare")) {
-        auto prop = value.getProperty(runtime, "compare");
-        result->compare =
-            JSIConverter<std::optional<wgpu::CompareFunction>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "failOp")) {
-        auto prop = value.getProperty(runtime, "failOp");
-        result->failOp =
-            JSIConverter<std::optional<wgpu::StencilOperation>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "depthFailOp")) {
-        auto prop = value.getProperty(runtime, "depthFailOp");
-        result->depthFailOp =
-            JSIConverter<std::optional<wgpu::StencilOperation>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "passOp")) {
-        auto prop = value.getProperty(runtime, "passOp");
-        result->passOp =
-            JSIConverter<std::optional<wgpu::StencilOperation>>::fromJSI(
-                runtime, prop, false);
-      }
+      // compare std::optional<wgpu::CompareFunction>
+      // failOp std::optional<wgpu::StencilOperation>
+      // depthFailOp std::optional<wgpu::StencilOperation>
+      // passOp std::optional<wgpu::StencilOperation>
     }
 
     return result;

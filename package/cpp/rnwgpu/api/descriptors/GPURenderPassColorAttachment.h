@@ -54,39 +54,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
     auto result = std::make_unique<rnwgpu::GPURenderPassColorAttachment>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "view")) {
-        auto prop = value.getProperty(runtime, "view");
-        result->view = JSIConverter<std::shared_ptr<GPUTextureView>>::fromJSI(
-            runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "depthSlice")) {
-        auto prop = value.getProperty(runtime, "depthSlice");
-        result->depthSlice =
-            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "resolveTarget")) {
-        auto prop = value.getProperty(runtime, "resolveTarget");
-        result->resolveTarget = JSIConverter<
-            std::optional<std::shared_ptr<GPUTextureView>>>::fromJSI(runtime,
-                                                                     prop,
-                                                                     false);
-      }
-      if (value.hasProperty(runtime, "clearValue")) {
-        auto prop = value.getProperty(runtime, "clearValue");
-        result->clearValue = JSIConverter<std::optional<
-            std::variant<std::vector<double>, std::shared_ptr<GPUColorDict>>>>::
-            fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "loadOp")) {
-        auto prop = value.getProperty(runtime, "loadOp");
-        result->loadOp =
-            JSIConverter<wgpu::LoadOp>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "storeOp")) {
-        auto prop = value.getProperty(runtime, "storeOp");
-        result->storeOp =
-            JSIConverter<wgpu::StoreOp>::fromJSI(runtime, prop, false);
-      }
+      // view std::shared_ptr<GPUTextureView>
+      // depthSlice std::optional<double>
+      // resolveTarget std::optional<std::shared_ptr<GPUTextureView>>
+      // clearValue std::optional<std::variant<std::vector<double>,
+      // std::shared_ptr<GPUColorDict>>> loadOp wgpu::LoadOp storeOp
+      // wgpu::StoreOp
     }
 
     return result;

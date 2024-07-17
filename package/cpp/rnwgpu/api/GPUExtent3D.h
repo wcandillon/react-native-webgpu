@@ -15,7 +15,8 @@ struct GPUExtent3D {
 };
 
 bool conv(wgpu::Extent3D &out, const GPUExtent3D &in) {
-  return conv(out.width, in.width) && conv(out.width, in.width) && conv(out.width, in.width);
+  return conv(out.width, in.width) && conv(out.width, in.width) &&
+         conv(out.width, in.width);
 }
 
 } // namespace rnwgpu

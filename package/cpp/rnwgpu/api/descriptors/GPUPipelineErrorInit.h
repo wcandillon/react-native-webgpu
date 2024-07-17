@@ -36,11 +36,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineErrorInit>> {
     auto result = std::make_unique<rnwgpu::GPUPipelineErrorInit>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "reason")) {
-        auto prop = value.getProperty(runtime, "reason");
-        result->reason = JSIConverter<wgpu::PipelineErrorReason>::fromJSI(
-            runtime, prop, false);
-      }
+      // reason wgpu::PipelineErrorReason
     }
 
     return result;

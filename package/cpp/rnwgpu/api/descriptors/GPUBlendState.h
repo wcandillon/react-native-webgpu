@@ -37,18 +37,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
     auto result = std::make_unique<rnwgpu::GPUBlendState>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "color")) {
-        auto prop = value.getProperty(runtime, "color");
-        result->color =
-            JSIConverter<std::shared_ptr<GPUBlendComponent>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "alpha")) {
-        auto prop = value.getProperty(runtime, "alpha");
-        result->alpha =
-            JSIConverter<std::shared_ptr<GPUBlendComponent>>::fromJSI(
-                runtime, prop, false);
-      }
+      // color std::shared_ptr<GPUBlendComponent>
+      // alpha std::shared_ptr<GPUBlendComponent>
     }
 
     return result;

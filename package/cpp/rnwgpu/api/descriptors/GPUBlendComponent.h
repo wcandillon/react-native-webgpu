@@ -39,24 +39,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendComponent>> {
     auto result = std::make_unique<rnwgpu::GPUBlendComponent>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "operation")) {
-        auto prop = value.getProperty(runtime, "operation");
-        result->operation =
-            JSIConverter<std::optional<wgpu::BlendOperation>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "srcFactor")) {
-        auto prop = value.getProperty(runtime, "srcFactor");
-        result->srcFactor =
-            JSIConverter<std::optional<wgpu::BlendFactor>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "dstFactor")) {
-        auto prop = value.getProperty(runtime, "dstFactor");
-        result->dstFactor =
-            JSIConverter<std::optional<wgpu::BlendFactor>>::fromJSI(
-                runtime, prop, false);
-      }
+      // operation std::optional<wgpu::BlendOperation>
+      // srcFactor std::optional<wgpu::BlendFactor>
+      // dstFactor std::optional<wgpu::BlendFactor>
     }
 
     return result;

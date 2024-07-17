@@ -43,23 +43,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
     auto result = std::make_unique<rnwgpu::GPUStorageTextureBindingLayout>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "access")) {
-        auto prop = value.getProperty(runtime, "access");
-        result->access =
-            JSIConverter<std::optional<wgpu::StorageTextureAccess>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "format")) {
-        auto prop = value.getProperty(runtime, "format");
-        result->format =
-            JSIConverter<wgpu::TextureFormat>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "viewDimension")) {
-        auto prop = value.getProperty(runtime, "viewDimension");
-        result->viewDimension =
-            JSIConverter<std::optional<wgpu::TextureViewDimension>>::fromJSI(
-                runtime, prop, false);
-      }
+      // access std::optional<wgpu::StorageTextureAccess>
+      // format wgpu::TextureFormat
+      // viewDimension std::optional<wgpu::TextureViewDimension>
     }
 
     return result;

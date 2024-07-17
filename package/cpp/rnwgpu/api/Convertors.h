@@ -30,7 +30,8 @@ conv(T &out, double in) {
 }
 
 template <typename T>
-typename std::enable_if<std::is_assignable<T&, std::nullptr_t>::value, bool>::type
+typename std::enable_if<std::is_assignable<T &, std::nullptr_t>::value,
+                        bool>::type
 conv(T &out, std::nullptr_t in) {
   out = nullptr;
   return true;
@@ -51,7 +52,6 @@ bool conv(InnerT *&out, const std::vector<OuterT> &in) {
   return true;
 }
 
-
 template <typename InnerT, typename OuterT>
 bool conv(InnerT &out, const std::optional<OuterT> &in) {
   if (in.has_value()) {
@@ -62,21 +62,23 @@ bool conv(InnerT &out, const std::optional<OuterT> &in) {
 
 template <typename InnerT, typename OuterT>
 bool conv(InnerT &out, const std::shared_ptr<OuterT> &in) {
-  return conv(out, in->get());
+  if constexpr (std::is_member_function_pointer_v<decltype(&OuterT::get)>) {
+    return conv(out, in->get());
+  } else {
+    return conv(out, in.get());
+  }
 }
 
 template <typename InnerT, typename... OuterTs>
 bool conv(InnerT &out, const std::variant<OuterTs...> &in) {
-  return std::visit([&out](const auto& value) {
-    return conv(out, value);
-  }, in);
+  return std::visit([&out](const auto &value) { return conv(out, value); }, in);
 }
 
 template <typename OutT>
 typename std::enable_if<std::is_enum<OutT>::value, bool>::type
 conv(OutT &out, const double &in) {
-    out = static_cast<OutT>(in);
-    return true;
+  out = static_cast<OutT>(in);
+  return true;
 }
 
 } // namespace rnwgpu

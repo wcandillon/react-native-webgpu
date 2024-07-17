@@ -40,17 +40,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
     auto result = std::make_unique<rnwgpu::GPURequestAdapterOptions>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "powerPreference")) {
-        auto prop = value.getProperty(runtime, "powerPreference");
-        result->powerPreference =
-            JSIConverter<std::optional<wgpu::PowerPreference>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "forceFallbackAdapter")) {
-        auto prop = value.getProperty(runtime, "forceFallbackAdapter");
-        result->forceFallbackAdapter =
-            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-      }
+      // powerPreference std::optional<wgpu::PowerPreference>
+      // forceFallbackAdapter std::optional<bool>
     }
 
     return result;

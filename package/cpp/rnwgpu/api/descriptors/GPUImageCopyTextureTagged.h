@@ -52,39 +52,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
     auto result = std::make_unique<rnwgpu::GPUImageCopyTextureTagged>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "colorSpace")) {
-        auto prop = value.getProperty(runtime, "colorSpace");
-        result->colorSpace =
-            JSIConverter<std::optional<wgpu::definedColorSpace>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "premultipliedAlpha")) {
-        auto prop = value.getProperty(runtime, "premultipliedAlpha");
-        result->premultipliedAlpha =
-            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "texture")) {
-        auto prop = value.getProperty(runtime, "texture");
-        result->texture = JSIConverter<std::shared_ptr<GPUTexture>>::fromJSI(
-            runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "mipLevel")) {
-        auto prop = value.getProperty(runtime, "mipLevel");
-        result->mipLevel =
-            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "origin")) {
-        auto prop = value.getProperty(runtime, "origin");
-        result->origin = JSIConverter<std::optional<std::variant<
-            std::vector<double>, std::shared_ptr<GPUOrigin3DDict>>>>::
-            fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "aspect")) {
-        auto prop = value.getProperty(runtime, "aspect");
-        result->aspect =
-            JSIConverter<std::optional<wgpu::TextureAspect>>::fromJSI(
-                runtime, prop, false);
-      }
+      // colorSpace std::optional<wgpu::definedColorSpace>
+      // premultipliedAlpha std::optional<bool>
+      // texture std::shared_ptr<GPUTexture>
+      // mipLevel std::optional<double>
+      // origin std::optional<std::variant<std::vector<double>,
+      // std::shared_ptr<GPUOrigin3DDict>>> aspect
+      // std::optional<wgpu::TextureAspect>
     }
 
     return result;

@@ -49,40 +49,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
     auto result = std::make_unique<rnwgpu::GPUCanvasConfiguration>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "device")) {
-        auto prop = value.getProperty(runtime, "device");
-        result->device = JSIConverter<std::shared_ptr<GPUDevice>>::fromJSI(
-            runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "format")) {
-        auto prop = value.getProperty(runtime, "format");
-        result->format =
-            JSIConverter<wgpu::TextureFormat>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "usage")) {
-        auto prop = value.getProperty(runtime, "usage");
-        result->usage =
-            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "viewFormats")) {
-        auto prop = value.getProperty(runtime, "viewFormats");
-        result->viewFormats = JSIConverter<
-            std::optional<std::vector<wgpu::TextureFormat>>>::fromJSI(runtime,
-                                                                      prop,
-                                                                      false);
-      }
-      if (value.hasProperty(runtime, "colorSpace")) {
-        auto prop = value.getProperty(runtime, "colorSpace");
-        result->colorSpace =
-            JSIConverter<std::optional<wgpu::definedColorSpace>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "alphaMode")) {
-        auto prop = value.getProperty(runtime, "alphaMode");
-        result->alphaMode =
-            JSIConverter<std::optional<wgpu::CanvasAlphaMode>>::fromJSI(
-                runtime, prop, false);
-      }
+      // device std::shared_ptr<GPUDevice>
+      // format wgpu::TextureFormat
+      // usage std::optional<double>
+      // viewFormats std::optional<std::vector<wgpu::TextureFormat>>
+      // colorSpace std::optional<wgpu::definedColorSpace>
+      // alphaMode std::optional<wgpu::CanvasAlphaMode>
     }
 
     return result;

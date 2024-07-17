@@ -39,20 +39,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
     auto result = std::make_unique<rnwgpu::GPUVertexAttribute>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "format")) {
-        auto prop = value.getProperty(runtime, "format");
-        result->format =
-            JSIConverter<wgpu::VertexFormat>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "offset")) {
-        auto prop = value.getProperty(runtime, "offset");
-        result->offset = JSIConverter<double>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "shaderLocation")) {
-        auto prop = value.getProperty(runtime, "shaderLocation");
-        result->shaderLocation =
-            JSIConverter<double>::fromJSI(runtime, prop, false);
-      }
+      // format wgpu::VertexFormat
+      // offset double
+      // shaderLocation double
     }
 
     return result;

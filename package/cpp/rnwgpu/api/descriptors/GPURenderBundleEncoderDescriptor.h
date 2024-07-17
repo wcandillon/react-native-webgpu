@@ -51,38 +51,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPURenderBundleEncoderDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "depthReadOnly")) {
-        auto prop = value.getProperty(runtime, "depthReadOnly");
-        result->depthReadOnly =
-            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "stencilReadOnly")) {
-        auto prop = value.getProperty(runtime, "stencilReadOnly");
-        result->stencilReadOnly =
-            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "colorFormats")) {
-        auto prop = value.getProperty(runtime, "colorFormats");
-        result->colorFormats = JSIConverter<
-            std::vector<std::variant<wgpu::TextureFormat, std::nullptr_t>>>::
-            fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "depthStencilFormat")) {
-        auto prop = value.getProperty(runtime, "depthStencilFormat");
-        result->depthStencilFormat =
-            JSIConverter<std::optional<wgpu::TextureFormat>>::fromJSI(
-                runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "sampleCount")) {
-        auto prop = value.getProperty(runtime, "sampleCount");
-        result->sampleCount =
-            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "label")) {
-        auto prop = value.getProperty(runtime, "label");
-        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
-            runtime, prop, false);
-      }
+      // depthReadOnly std::optional<bool>
+      // stencilReadOnly std::optional<bool>
+      // colorFormats std::vector<std::variant<wgpu::TextureFormat,
+      // std::nullptr_t>> depthStencilFormat std::optional<wgpu::TextureFormat>
+      // sampleCount std::optional<double>
+      // label std::optional<std::string>
     }
 
     return result;

@@ -39,21 +39,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageDataLayout>> {
     auto result = std::make_unique<rnwgpu::GPUImageDataLayout>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "offset")) {
-        auto prop = value.getProperty(runtime, "offset");
-        result->offset =
-            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "bytesPerRow")) {
-        auto prop = value.getProperty(runtime, "bytesPerRow");
-        result->bytesPerRow =
-            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "rowsPerImage")) {
-        auto prop = value.getProperty(runtime, "rowsPerImage");
-        result->rowsPerImage =
-            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
-      }
+      // offset std::optional<double>
+      // bytesPerRow std::optional<double>
+      // rowsPerImage std::optional<double>
     }
 
     return result;

@@ -43,26 +43,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
     auto result = std::make_unique<rnwgpu::GPUUncapturedErrorEventInit>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "error")) {
-        auto prop = value.getProperty(runtime, "error");
-        result->error = JSIConverter<std::shared_ptr<GPUError>>::fromJSI(
-            runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "bubbles")) {
-        auto prop = value.getProperty(runtime, "bubbles");
-        result->bubbles =
-            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "cancelable")) {
-        auto prop = value.getProperty(runtime, "cancelable");
-        result->cancelable =
-            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "composed")) {
-        auto prop = value.getProperty(runtime, "composed");
-        result->composed =
-            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-      }
+      // error std::shared_ptr<GPUError>
+      // bubbles std::optional<bool>
+      // cancelable std::optional<bool>
+      // composed std::optional<bool>
     }
 
     return result;
