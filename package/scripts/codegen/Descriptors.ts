@@ -267,7 +267,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
 };
 
 const customConv: Record<string, string> = {
-  GPUBindGroupEntry: `static bool conv(wgpu::BindGroupEntry &out, std::shared_ptr<GPUBindGroupEntry> &in) {
+  GPUBindGroupEntry: `static bool conv(wgpu::BindGroupEntry &out, const std::shared_ptr<GPUBindGroupEntry> &in) {
   // out = {};
   if (!conv(out.binding, in->binding)) {
     return false;
@@ -296,16 +296,16 @@ const customConv: Record<string, string> = {
   }
   return false;
 }`,
-  GPUImageCopyBuffer: `static bool conv(wgpu::ImageCopyBuffer &out, std::shared_ptr<GPUImageCopyBuffer> &in) {
+  GPUImageCopyBuffer: `static bool conv(wgpu::ImageCopyBuffer &out, const std::shared_ptr<GPUImageCopyBuffer> &in) {
   return conv(out.buffer, in->buffer) && conv(out.layout.offset, in->offset) &&
          conv(out.layout.bytesPerRow, in->bytesPerRow) &&
          conv(out.layout.rowsPerImage, in->rowsPerImage);
 }`,
-  GPUProgrammableStage: `static bool conv(wgpu::ProgrammableStageDescriptor &out,  std::shared_ptr<GPUProgrammableStage> &in) {
+  GPUProgrammableStage: `static bool conv(wgpu::ProgrammableStageDescriptor &out, const std::shared_ptr<GPUProgrammableStage> &in) {
   // TODO: implement
   return false;
 }`,
-  GPUPrimitiveState: `static bool conv(wgpu::PrimitiveState &out, std::shared_ptr<GPUPrimitiveState> &in) {
+  GPUPrimitiveState: `static bool conv(wgpu::PrimitiveState &out, const std::shared_ptr<GPUPrimitiveState> &in) {
  if (in->unclippedDepth) {
      // TODO: fix memory leak here
      wgpu::PrimitiveDepthClipControl* depthClip = new wgpu::PrimitiveDepthClipControl();
