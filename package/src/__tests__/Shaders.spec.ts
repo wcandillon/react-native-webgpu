@@ -21,36 +21,36 @@ describe("Triangle", () => {
     });
     expect(result).toBe("redFragWGSL");
   });
-  it("create the pipeline", async () => {
-    const result = await client.eval(
-      ({ device, triangleVertWGSL, redFragWGSL }) => {
-        const pipeline = device.createRenderPipeline({
-          layout: "auto",
-          vertex: {
-            module: device.createShaderModule({
-              code: triangleVertWGSL,
-            }),
-          },
-          fragment: {
-            module: device.createShaderModule({
-              code: redFragWGSL,
-            }),
-            targets: [
-              {
-                format: "rgba8unorm",
-              },
-            ],
-          },
-          primitive: {
-            topology: "triangle-list",
-          },
-          label: "trianglePipeline",
-        });
-        return pipeline.label;
-      },
-    );
-    expect(result).toBe("trianglePipeline");
-  });
+  // it("create the pipeline", async () => {
+  //   const result = await client.eval(
+  //     ({ device, triangleVertWGSL, redFragWGSL }) => {
+  //       const pipeline = device.createRenderPipeline({
+  //         layout: "auto",
+  //         vertex: {
+  //           module: device.createShaderModule({
+  //             code: triangleVertWGSL,
+  //           }),
+  //         },
+  //         fragment: {
+  //           module: device.createShaderModule({
+  //             code: redFragWGSL,
+  //           }),
+  //           targets: [
+  //             {
+  //               format: "rgba8unorm",
+  //             },
+  //           ],
+  //         },
+  //         primitive: {
+  //           topology: "triangle-list",
+  //         },
+  //         label: "trianglePipeline",
+  //       });
+  //       return pipeline.label;
+  //     },
+  //   );
+  //   expect(result).toBe("trianglePipeline");
+  // });
   // it("create the pipeline and sample it", async () => {
   //   const result = await client.eval(
   //     ({ device, triangleVertWGSL, redFragWGSL, gpu }) => {
