@@ -20,8 +20,8 @@ std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
 std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
     std::shared_ptr<GPUCommandEncoderDescriptor> descriptor) {
   wgpu::CommandEncoderDescriptor desc;
-  Convertor conv;
-  conv(desc, descriptor);
+  // Convertor conv;
+  // conv(desc, descriptor);
   auto result = _instance.CreateCommandEncoder(&desc);
   return std::make_shared<GPUCommandEncoder>(result,
                                              descriptor->label.value_or(""));
