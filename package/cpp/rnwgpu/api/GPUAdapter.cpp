@@ -9,7 +9,8 @@ namespace rnwgpu {
 
 std::future<std::shared_ptr<GPUDevice>>
 GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
-  return std::async(std::launch::async, [this, descriptor = std::move(descriptor)]() {
+  return std::async(std::launch::async, [this,
+                                         descriptor = std::move(descriptor)]() {
     wgpu::Device device = nullptr;
     wgpu::DeviceDescriptor aDescriptor;
     conv(aDescriptor, descriptor);

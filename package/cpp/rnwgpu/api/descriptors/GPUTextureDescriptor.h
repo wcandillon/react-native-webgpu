@@ -19,7 +19,7 @@ namespace m = margelo;
 namespace rnwgpu {
 
 struct GPUTextureDescriptor {
-  std::shared_ptr<GPUExtent3D> size;                                // GPUExtent3DStrict
+  std::shared_ptr<GPUExtent3D> size;               // GPUExtent3DStrict
   std::optional<double> mipLevelCount;             // GPUIntegerCoordinate
   std::optional<double> sampleCount;               // GPUSize32
   std::optional<wgpu::TextureDimension> dimension; // GPUTextureDimension
