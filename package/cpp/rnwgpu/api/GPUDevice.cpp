@@ -1,12 +1,19 @@
 #include "GPUDevice.h"
 
+#include "Convertors.h"
+
 namespace rnwgpu {
 
 std::shared_ptr<GPUBuffer>
 GPUDevice::createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
-  auto aDescriptor = descriptor->getInstance();
-  auto result = _instance.CreateBuffer(aDescriptor);
-  return std::make_shared<GPUBuffer>(result, _async, descriptor->label);
+  wgpu::BufferDescriptor desc;
+  Convertor conv;
+  if (!conv(desc, descriptor)) {
+    throw std::runtime_error("GPUDevice::createBuffer(): Error with GPUBufferDescriptor");
+  }
+  auto result = _instance.CreateBuffer(&desc);
+  return std::make_shared<GPUBuffer>(result, _async,
+                                     descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
@@ -15,18 +22,32 @@ std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
 }
 
 std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
-    std::shared_ptr<GPUCommandEncoderDescriptor> descriptor) {
-  auto aDescriptor = descriptor->getInstance();
-  auto result = _instance.CreateCommandEncoder(aDescriptor);
-  return std::make_shared<GPUCommandEncoder>(result, descriptor->label);
+    std::optional<std::shared_ptr<GPUCommandEncoderDescriptor>> descriptor) {
+  wgpu::CommandEncoderDescriptor desc;
+  std::string label = "";
+  if (descriptor.has_value()) {
+    label = descriptor.value()->label.value_or("");
+    Convertor conv;
+    if (!conv(desc, descriptor.value())) {
+      throw std::runtime_error("Error with GPUCommandEncoderDescriptor");
+    }
+  }
+  auto result = _instance.CreateCommandEncoder(&desc);
+  return std::make_shared<GPUCommandEncoder>(result, label);
 }
 
 void GPUDevice::destroy() { _instance.Destroy(); }
 
 std::shared_ptr<GPUTexture>
 GPUDevice::createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor) {
-  auto texture = _instance.CreateTexture(descriptor->getInstance());
-  return std::make_shared<GPUTexture>(texture, descriptor->label);
+  wgpu::TextureDescriptor desc;
+  // TODO: implement
+  Convertor conv;
+  if (!conv(desc, descriptor)) {
+    throw std::runtime_error("Error with GPUTextureDescriptor");
+  }
+  auto texture = _instance.CreateTexture(&desc);
+  return std::make_shared<GPUTexture>(texture, descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
@@ -34,43 +55,63 @@ std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
   wgpu::ShaderModuleWGSLDescriptor wgsl_desc{};
   wgpu::ShaderModuleDescriptor sm_desc{};
   wgsl_desc.code = descriptor->code.c_str();
-  sm_desc.label = descriptor->_instance.label;
+  sm_desc.label = descriptor->label.value_or("").c_str();
   sm_desc.nextInChain = &wgsl_desc;
   if (descriptor->code.find('\0') != std::string::npos) {
     return std::make_shared<GPUShaderModule>(
         _instance.CreateErrorShaderModule(
             &sm_desc, "The WGSL shader contains an illegal character '\\0'"),
-        _async, descriptor->label);
+        _async, descriptor->label.value_or(""));
   }
   auto module = _instance.CreateShaderModule(&sm_desc);
-  return std::make_shared<GPUShaderModule>(module, _async, descriptor->label);
+  return std::make_shared<GPUShaderModule>(module, _async,
+                                           descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(
     std::shared_ptr<GPURenderPipelineDescriptor> descriptor) {
-  auto renderPipeline =
-      _instance.CreateRenderPipeline(descriptor->getInstance());
-  return std::make_shared<GPURenderPipeline>(renderPipeline, descriptor->label);
+  wgpu::RenderPipelineDescriptor desc{};
+  Convertor conv;
+   if (!conv(desc, descriptor)) {
+     throw std::runtime_error("Error with GPURenderPipelineDescriptor");
+   }
+  auto renderPipeline = _instance.CreateRenderPipeline(&desc);
+  return std::make_shared<GPURenderPipeline>(renderPipeline,
+                                             descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPUBindGroup>
 GPUDevice::createBindGroup(std::shared_ptr<GPUBindGroupDescriptor> descriptor) {
-  auto bindGroup = _instance.CreateBindGroup(descriptor->getInstance());
-  return std::make_shared<GPUBindGroup>(bindGroup, descriptor->label);
+  Convertor conv;
+  wgpu::BindGroupDescriptor desc{};
+  if (!conv(desc.label, descriptor->label) || !conv(desc.layout, descriptor->layout) ||
+        !conv(desc.entries, desc.entryCount, descriptor->entries)) {
+    throw std::runtime_error("GPUBindGroup::createBindGroup(): Error with GPUBindGroupDescriptor");
+  }
+  auto bindGroup = _instance.CreateBindGroup(&desc);
+  return std::make_shared<GPUBindGroup>(bindGroup,
+                                        descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPUSampler>
 GPUDevice::createSampler(std::shared_ptr<GPUSamplerDescriptor> descriptor) {
-  auto sampler = _instance.CreateSampler(descriptor->getInstance());
-  return std::make_shared<GPUSampler>(sampler, descriptor->label);
+  wgpu::SamplerDescriptor desc;
+  // TODO: make std::shared_ptr<GPUSamplerDescriptor> option/implement
+  auto sampler = _instance.CreateSampler(&desc);
+  return std::make_shared<GPUSampler>(sampler, descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPUComputePipeline> GPUDevice::createComputePipeline(
     std::shared_ptr<GPUComputePipelineDescriptor> descriptor) {
-  auto computePipeline =
-      _instance.CreateComputePipeline(descriptor->getInstance());
+  wgpu::ComputePipelineDescriptor desc;
+  Convertor conv;
+  if (!conv(desc, descriptor)) {
+    throw std::runtime_error("GPUDevice::createComputePipeline(): Error with "
+                             "GPUComputePipelineDescriptor");
+  }
+  auto computePipeline = _instance.CreateComputePipeline(&desc);
   return std::make_shared<GPUComputePipeline>(computePipeline,
-                                              descriptor->label);
+                                              descriptor->label.value_or(""));
 }
 
 } // namespace rnwgpu

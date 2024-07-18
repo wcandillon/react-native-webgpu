@@ -1,28 +1,30 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPURequestAdapterOptions {
-public:
-  wgpu::RequestAdapterOptions *getInstance() { return &_instance; }
-
-  wgpu::RequestAdapterOptions _instance;
+struct GPURequestAdapterOptions {
+  std::optional<wgpu::PowerPreference> powerPreference; // GPUPowerPreference
+  std::optional<bool> forceFallbackAdapter;             // boolean
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
@@ -32,22 +34,15 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "powerPreference")) {
-        auto powerPreference = value.getProperty(runtime, "powerPreference");
-
-        if (powerPreference.isString()) {
-          auto str = powerPreference.asString(runtime).utf8(runtime);
-          wgpu::PowerPreference enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.powerPreference = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "powerPreference");
+        result->powerPreference =
+            JSIConverter<std::optional<wgpu::PowerPreference>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "forceFallbackAdapter")) {
-        auto forceFallbackAdapter =
-            value.getProperty(runtime, "forceFallbackAdapter");
-        if (forceFallbackAdapter.isBool()) {
-          result->_instance.forceFallbackAdapter =
-              forceFallbackAdapter.getBool();
-        }
+        auto prop = value.getProperty(runtime, "forceFallbackAdapter");
+        result->forceFallbackAdapter =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
     }
 
@@ -56,8 +51,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPURequestAdapterOptions> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPURequestAdapterOptions::toJSI()");
   }
 };
+
 } // namespace margelo

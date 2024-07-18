@@ -1,30 +1,32 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
-#include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
+#include "DescriptorConvertors.h"
 #include "GPUBlendState.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUColorTargetState {
-public:
-  wgpu::ColorTargetState *getInstance() { return &_instance; }
-
-  wgpu::ColorTargetState _instance;
+struct GPUColorTargetState {
+  wgpu::TextureFormat format;                          // GPUTextureFormat
+  std::optional<std::shared_ptr<GPUBlendState>> blend; // GPUBlendState
+  std::optional<double> writeMask;                     // GPUColorWriteFlags
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
   static std::shared_ptr<rnwgpu::GPUColorTargetState>
@@ -33,40 +35,21 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "format")) {
-        auto format = value.getProperty(runtime, "format");
-
-        if (format.isString()) {
-          auto str = format.asString(runtime).utf8(runtime);
-          wgpu::TextureFormat enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.format = enumValue;
-        }
-
-        if (format.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUColorTargetState::format is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUColorTargetState::format is not defined");
+        auto prop = value.getProperty(runtime, "format");
+        result->format =
+            JSIConverter<wgpu::TextureFormat>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "blend")) {
-        auto blend = value.getProperty(runtime, "blend");
-
-        if (blend.isObject()) {
-          auto val =
-              m::JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>>::fromJSI(
-                  runtime, blend, false);
-          result->_instance.blend = val->_instance;
-        }
+        auto prop = value.getProperty(runtime, "blend");
+        result->blend = JSIConverter<
+            std::optional<std::shared_ptr<GPUBlendState>>>::fromJSI(runtime,
+                                                                    prop,
+                                                                    false);
       }
       if (value.hasProperty(runtime, "writeMask")) {
-        auto writeMask = value.getProperty(runtime, "writeMask");
-
-        if (writeMask.isNumber()) {
-          result->_instance.writeMask =
-              static_cast<wgpu::ColorWriteFlags>(writeMask.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "writeMask");
+        result->writeMask =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 
@@ -74,8 +57,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUColorTargetState> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUColorTargetState::toJSI()");
   }
 };
+
 } // namespace margelo

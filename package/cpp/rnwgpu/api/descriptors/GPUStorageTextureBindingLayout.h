@@ -1,28 +1,32 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUStorageTextureBindingLayout {
-public:
-  wgpu::StorageTextureBindingLayout *getInstance() { return &_instance; }
-
-  wgpu::StorageTextureBindingLayout _instance;
+struct GPUStorageTextureBindingLayout {
+  std::optional<wgpu::StorageTextureAccess> access; // GPUStorageTextureAccess
+  wgpu::TextureFormat format;                       // GPUTextureFormat
+  std::optional<wgpu::TextureViewDimension>
+      viewDimension; // GPUTextureViewDimension
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
@@ -32,42 +36,21 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "access")) {
-        auto access = value.getProperty(runtime, "access");
-
-        if (access.isString()) {
-          auto str = access.asString(runtime).utf8(runtime);
-          wgpu::StorageTextureAccess enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.access = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "access");
+        result->access =
+            JSIConverter<std::optional<wgpu::StorageTextureAccess>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "format")) {
-        auto format = value.getProperty(runtime, "format");
-
-        if (format.isString()) {
-          auto str = format.asString(runtime).utf8(runtime);
-          wgpu::TextureFormat enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.format = enumValue;
-        }
-
-        if (format.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUStorageTextureBindingLayout::format is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUStorageTextureBindingLayout::format is not defined");
+        auto prop = value.getProperty(runtime, "format");
+        result->format =
+            JSIConverter<wgpu::TextureFormat>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "viewDimension")) {
-        auto viewDimension = value.getProperty(runtime, "viewDimension");
-
-        if (viewDimension.isString()) {
-          auto str = viewDimension.asString(runtime).utf8(runtime);
-          wgpu::TextureViewDimension enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.viewDimension = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "viewDimension");
+        result->viewDimension =
+            JSIConverter<std::optional<wgpu::TextureViewDimension>>::fromJSI(
+                runtime, prop, false);
       }
     }
 
@@ -76,8 +59,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUStorageTextureBindingLayout::toJSI()");
   }
 };
+
 } // namespace margelo

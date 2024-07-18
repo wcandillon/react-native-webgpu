@@ -1,32 +1,40 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
-#include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
+#include "DescriptorConvertors.h"
 #include "GPUExtent3D.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUTextureDescriptor {
-public:
-  wgpu::TextureDescriptor *getInstance() { return &_instance; }
-
-  wgpu::TextureDescriptor _instance;
-
-  std::string label;
+struct GPUTextureDescriptor {
+  std::shared_ptr<GPUExtent3D> size;               // GPUExtent3DStrict
+  std::optional<double> mipLevelCount;             // GPUIntegerCoordinate
+  std::optional<double> sampleCount;               // GPUSize32
+  std::optional<wgpu::TextureDimension> dimension; // GPUTextureDimension
+  wgpu::TextureFormat format;                      // GPUTextureFormat
+  double usage;                                    // GPUTextureUsageFlags
+  std::optional<std::vector<wgpu::TextureFormat>>
+      viewFormats;                  // Iterable<GPUTextureFormat>
+  std::optional<std::string> label; // string
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUTextureDescriptor>
@@ -35,94 +43,46 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "size")) {
-        auto size = value.getProperty(runtime, "size");
-
-        if (size.isObject()) {
-          auto val =
-              m::JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3D>>::fromJSI(
-                  runtime, size, false);
-          result->_instance.size = val->_instance;
-        }
-
-        if (size.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUTextureDescriptor::size is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUTextureDescriptor::size is not defined");
+        auto prop = value.getProperty(runtime, "size");
+        result->size = JSIConverter<std::shared_ptr<GPUExtent3D>>::fromJSI(
+            runtime, prop, false);
       }
       if (value.hasProperty(runtime, "mipLevelCount")) {
-        auto mipLevelCount = value.getProperty(runtime, "mipLevelCount");
-
-        if (mipLevelCount.isNumber()) {
-          result->_instance.mipLevelCount =
-              static_cast<uint32_t>(mipLevelCount.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "mipLevelCount");
+        result->mipLevelCount =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "sampleCount")) {
-        auto sampleCount = value.getProperty(runtime, "sampleCount");
-
-        if (sampleCount.isNumber()) {
-          result->_instance.sampleCount =
-              static_cast<uint32_t>(sampleCount.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "sampleCount");
+        result->sampleCount =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "dimension")) {
-        auto dimension = value.getProperty(runtime, "dimension");
-
-        if (dimension.isString()) {
-          auto str = dimension.asString(runtime).utf8(runtime);
-          wgpu::TextureDimension enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.dimension = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "dimension");
+        result->dimension =
+            JSIConverter<std::optional<wgpu::TextureDimension>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "format")) {
-        auto format = value.getProperty(runtime, "format");
-
-        if (format.isString()) {
-          auto str = format.asString(runtime).utf8(runtime);
-          wgpu::TextureFormat enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.format = enumValue;
-        }
-
-        if (format.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUTextureDescriptor::format is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUTextureDescriptor::format is not defined");
+        auto prop = value.getProperty(runtime, "format");
+        result->format =
+            JSIConverter<wgpu::TextureFormat>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "usage")) {
-        auto usage = value.getProperty(runtime, "usage");
-
-        if (usage.isNumber()) {
-          result->_instance.usage =
-              static_cast<wgpu::TextureUsage>(usage.getNumber());
-        }
-
-        if (usage.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUTextureDescriptor::usage is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUTextureDescriptor::usage is not defined");
+        auto prop = value.getProperty(runtime, "usage");
+        result->usage = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "viewFormats")) {
-        auto viewFormats = value.getProperty(runtime, "viewFormats");
+        auto prop = value.getProperty(runtime, "viewFormats");
+        result->viewFormats = JSIConverter<
+            std::optional<std::vector<wgpu::TextureFormat>>>::fromJSI(runtime,
+                                                                      prop,
+                                                                      false);
       }
       if (value.hasProperty(runtime, "label")) {
-        auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 
@@ -130,8 +90,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUTextureDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUTextureDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

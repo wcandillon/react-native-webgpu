@@ -1,30 +1,34 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
+#include "GPUPipelineLayout.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUShaderModuleCompilationHint {
-public:
-  wgpu::ShaderModuleCompilationHint *getInstance() { return &_instance; }
-
-  wgpu::ShaderModuleCompilationHint _instance;
-
-  std::string entryPoint;
+struct GPUShaderModuleCompilationHint {
+  std::string entryPoint; // string
+  std::optional<
+      std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>>
+      layout; // | GPUPipelineLayout | GPUAutoLayoutMode
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
@@ -34,32 +38,15 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "entryPoint")) {
-        auto entryPoint = value.getProperty(runtime, "entryPoint");
-
-        if (entryPoint.isString()) {
-          auto str = entryPoint.asString(runtime).utf8(runtime);
-          result->entryPoint = str;
-        }
-
-        if (entryPoint.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUShaderModuleCompilationHint::entryPoint is "
-              "required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUShaderModuleCompilationHint::entryPoint is not "
-            "defined");
+        auto prop = value.getProperty(runtime, "entryPoint");
+        result->entryPoint =
+            JSIConverter<std::string>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "layout")) {
-        auto layout = value.getProperty(runtime, "layout");
-
-        if (layout.isString()) {
-          auto str = layout.asString(runtime).utf8(runtime);
-          if (str == "auto") {
-            result->_instance.layout = nullptr;
-          }
-        }
+        auto prop = value.getProperty(runtime, "layout");
+        result->layout = JSIConverter<std::optional<
+            std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>>>::
+            fromJSI(runtime, prop, false);
       }
     }
 
@@ -68,8 +55,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUShaderModuleCompilationHint::toJSI()");
   }
 };
+
 } // namespace margelo

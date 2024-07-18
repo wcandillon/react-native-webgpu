@@ -1,30 +1,32 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUQuerySetDescriptor {
-public:
-  wgpu::QuerySetDescriptor *getInstance() { return &_instance; }
-
-  wgpu::QuerySetDescriptor _instance;
-
-  std::string label;
+struct GPUQuerySetDescriptor {
+  wgpu::QueryType type;             // GPUQueryType
+  double count;                     // GPUSize32
+  std::optional<std::string> label; // string
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
@@ -34,46 +36,18 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "type")) {
-        auto type = value.getProperty(runtime, "type");
-
-        if (type.isString()) {
-          auto str = type.asString(runtime).utf8(runtime);
-          wgpu::QueryType enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.type = enumValue;
-        }
-
-        if (type.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUQuerySetDescriptor::type is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUQuerySetDescriptor::type is not defined");
+        auto prop = value.getProperty(runtime, "type");
+        result->type =
+            JSIConverter<wgpu::QueryType>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "count")) {
-        auto count = value.getProperty(runtime, "count");
-
-        if (count.isNumber()) {
-          result->_instance.count = static_cast<uint32_t>(count.getNumber());
-        }
-
-        if (count.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUQuerySetDescriptor::count is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUQuerySetDescriptor::count is not defined");
+        auto prop = value.getProperty(runtime, "count");
+        result->count = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
-        auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 
@@ -81,8 +55,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUQuerySetDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUQuerySetDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

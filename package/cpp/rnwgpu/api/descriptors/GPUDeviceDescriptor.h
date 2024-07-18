@@ -1,32 +1,39 @@
 #pragma once
 
+#include <map>
 #include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
-#include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
+#include "DescriptorConvertors.h"
 #include "GPUQueueDescriptor.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUDeviceDescriptor {
-public:
-  wgpu::DeviceDescriptor *getInstance() { return &_instance; }
-
-  wgpu::DeviceDescriptor _instance;
-
-  std::string label;
+struct GPUDeviceDescriptor {
+  std::optional<std::vector<wgpu::FeatureName>>
+      requiredFeatures; // Iterable<GPUFeatureName>
+  std::optional<std::map<std::string, double>>
+      requiredLimits; // Record< string, GPUSize64 >
+  std::optional<std::shared_ptr<GPUQueueDescriptor>>
+      defaultQueue;                 // GPUQueueDescriptor
+  std::optional<std::string> label; // string
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUDeviceDescriptor>
@@ -35,29 +42,28 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "requiredFeatures")) {
-        auto requiredFeatures = value.getProperty(runtime, "requiredFeatures");
+        auto prop = value.getProperty(runtime, "requiredFeatures");
+        result->requiredFeatures = JSIConverter<
+            std::optional<std::vector<wgpu::FeatureName>>>::fromJSI(runtime,
+                                                                    prop,
+                                                                    false);
       }
       if (value.hasProperty(runtime, "requiredLimits")) {
-        auto requiredLimits = value.getProperty(runtime, "requiredLimits");
+        auto prop = value.getProperty(runtime, "requiredLimits");
+        result->requiredLimits =
+            JSIConverter<std::optional<std::map<std::string, double>>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "defaultQueue")) {
-        auto defaultQueue = value.getProperty(runtime, "defaultQueue");
-
-        if (defaultQueue.isObject()) {
-          auto val =
-              m::JSIConverter<std::shared_ptr<rnwgpu::GPUQueueDescriptor>>::
-                  fromJSI(runtime, defaultQueue, false);
-          result->_instance.defaultQueue = val->_instance;
-        }
+        auto prop = value.getProperty(runtime, "defaultQueue");
+        result->defaultQueue =
+            JSIConverter<std::optional<std::shared_ptr<GPUQueueDescriptor>>>::
+                fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
-        auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 
@@ -65,8 +71,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUDeviceDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUDeviceDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

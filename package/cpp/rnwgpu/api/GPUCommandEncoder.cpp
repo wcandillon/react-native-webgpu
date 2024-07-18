@@ -1,5 +1,7 @@
 #include "GPUCommandEncoder.h"
 
+#include "Convertors.h"
+
 namespace rnwgpu {
 
 void GPUCommandEncoder::copyBufferToBuffer(
@@ -11,32 +13,68 @@ void GPUCommandEncoder::copyBufferToBuffer(
 }
 
 std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(
-    std::shared_ptr<GPUCommandBufferDescriptor> descriptor) {
-  auto commandBuffer = _instance.Finish(&descriptor->_instance);
-  return std::make_shared<GPUCommandBuffer>(commandBuffer, _label);
+    std::optional<std::shared_ptr<GPUCommandBufferDescriptor>> descriptor) {
+  wgpu::CommandBufferDescriptor desc;
+  std::string label = "";
+  if (descriptor.has_value()) {
+    label = descriptor.value()->label.value_or("");
+    Convertor conv;
+    if (!conv(desc, descriptor.value())) {
+      throw std::runtime_error(
+          "GPUCommandEncoder::finish(): error with GPUCommandBufferDescriptor");
+    }
+  }
+  auto commandBuffer = _instance.Finish(&desc);
+  return std::make_shared<GPUCommandBuffer>(commandBuffer, label);
 }
 
 std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
     std::shared_ptr<GPURenderPassDescriptor> descriptor) {
-  auto renderPass = _instance.BeginRenderPass(&descriptor->_instance);
-  return std::make_shared<GPURenderPassEncoder>(renderPass, descriptor->label);
+  Convertor conv;
+
+  wgpu::RenderPassDescriptor desc{};
+  wgpu::RenderPassDescriptorMaxDrawCount maxDrawCountDesc{};
+  desc.nextInChain = &maxDrawCountDesc;
+
+  // TODO: reenable
+  //    if (!conv(desc.colorAttachments, desc.colorAttachmentCount,
+  //    descriptor.colorAttachments) ||
+  //        !conv(desc.depthStencilAttachment,
+  //        descriptor.depthStencilAttachment) || !conv(desc.label,
+  //        descriptor.label) || !conv(desc.occlusionQuerySet,
+  //        descriptor.occlusionQuerySet) || !conv(desc.timestampWrites,
+  //        descriptor.timestampWrites) || !conv(maxDrawCountDesc.maxDrawCount,
+  //        descriptor.maxDrawCount)) { return {};
+  //    }
+  auto renderPass = _instance.BeginRenderPass(&desc);
+  return std::make_shared<GPURenderPassEncoder>(renderPass,
+                                                descriptor->label.value_or(""));
 }
 
 void GPUCommandEncoder::copyTextureToBuffer(
     std::shared_ptr<GPUImageCopyTexture> source,
     std::shared_ptr<GPUImageCopyBuffer> destination,
     std::shared_ptr<GPUExtent3D> copySize) {
-  auto src = source->getInstance();
-  auto dst = destination->getInstance();
-  auto size = copySize->getInstance();
-  _instance.CopyTextureToBuffer(src, dst, size);
+  Convertor conv;
+  wgpu::ImageCopyTexture src{};
+  wgpu::ImageCopyBuffer dst{};
+  wgpu::Extent3D size{};
+  if (!conv(src, source) ||      //
+      !conv(dst, destination) || //
+      !conv(size, copySize)) {
+    return;
+  }
+  _instance.CopyTextureToBuffer(&src, &dst, &size);
 }
 
 std::shared_ptr<GPUComputePassEncoder> GPUCommandEncoder::beginComputePass(
     std::shared_ptr<GPUComputePassDescriptor> descriptor) {
-  auto computePass = _instance.BeginComputePass(&descriptor->_instance);
-  return std::make_shared<GPUComputePassEncoder>(computePass,
-                                                 descriptor->label);
+  wgpu::ComputePassDescriptor desc;
+  Convertor conv;
+  conv(desc, descriptor);
+  auto computePass = _instance.BeginComputePass(&desc);
+  return std::make_shared<GPUComputePassEncoder>(
+      computePass, descriptor->label.value_or(""));
 }
 
 } // namespace rnwgpu

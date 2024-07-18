@@ -1,28 +1,32 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUStencilFaceState {
-public:
-  wgpu::StencilFaceState *getInstance() { return &_instance; }
-
-  wgpu::StencilFaceState _instance;
+struct GPUStencilFaceState {
+  std::optional<wgpu::CompareFunction> compare;      // GPUCompareFunction
+  std::optional<wgpu::StencilOperation> failOp;      // GPUStencilOperation
+  std::optional<wgpu::StencilOperation> depthFailOp; // GPUStencilOperation
+  std::optional<wgpu::StencilOperation> passOp;      // GPUStencilOperation
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
   static std::shared_ptr<rnwgpu::GPUStencilFaceState>
@@ -31,44 +35,28 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "compare")) {
-        auto compare = value.getProperty(runtime, "compare");
-
-        if (compare.isString()) {
-          auto str = compare.asString(runtime).utf8(runtime);
-          wgpu::CompareFunction enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.compare = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "compare");
+        result->compare =
+            JSIConverter<std::optional<wgpu::CompareFunction>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "failOp")) {
-        auto failOp = value.getProperty(runtime, "failOp");
-
-        if (failOp.isString()) {
-          auto str = failOp.asString(runtime).utf8(runtime);
-          wgpu::StencilOperation enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.failOp = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "failOp");
+        result->failOp =
+            JSIConverter<std::optional<wgpu::StencilOperation>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthFailOp")) {
-        auto depthFailOp = value.getProperty(runtime, "depthFailOp");
-
-        if (depthFailOp.isString()) {
-          auto str = depthFailOp.asString(runtime).utf8(runtime);
-          wgpu::StencilOperation enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.depthFailOp = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "depthFailOp");
+        result->depthFailOp =
+            JSIConverter<std::optional<wgpu::StencilOperation>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "passOp")) {
-        auto passOp = value.getProperty(runtime, "passOp");
-
-        if (passOp.isString()) {
-          auto str = passOp.asString(runtime).utf8(runtime);
-          wgpu::StencilOperation enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.passOp = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "passOp");
+        result->passOp =
+            JSIConverter<std::optional<wgpu::StencilOperation>>::fromJSI(
+                runtime, prop, false);
       }
     }
 
@@ -76,8 +64,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUStencilFaceState> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUStencilFaceState::toJSI()");
   }
 };
+
 } // namespace margelo

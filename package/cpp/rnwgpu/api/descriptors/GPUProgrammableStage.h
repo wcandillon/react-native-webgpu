@@ -1,32 +1,35 @@
 #pragma once
 
+#include <map>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
-#include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
+#include "DescriptorConvertors.h"
 #include "GPUShaderModule.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUProgrammableStage {
-public:
-  wgpu::ProgrammableStageDescriptor *getInstance() { return &_instance; }
-
-  wgpu::ProgrammableStageDescriptor _instance;
-
-  std::string entryPoint;
+struct GPUProgrammableStage {
+  std::shared_ptr<GPUShaderModule> module; // GPUShaderModule
+  std::optional<std::string> entryPoint;   // string
+  std::optional<std::map<std::string, double>>
+      constants; // Record< string, GPUPipelineConstantValue >
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
   static std::shared_ptr<rnwgpu::GPUProgrammableStage>
@@ -35,34 +38,21 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "module")) {
-        auto module = value.getProperty(runtime, "module");
-
-        if (module.isObject() &&
-            module.getObject(runtime).isHostObject(runtime)) {
-          result->_instance.module =
-              module.getObject(runtime)
-                  .asHostObject<rnwgpu::GPUShaderModule>(runtime)
-                  ->get();
-        }
-
-        if (module.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUProgrammableStage::module is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUProgrammableStage::module is not defined");
+        auto prop = value.getProperty(runtime, "module");
+        result->module =
+            JSIConverter<std::shared_ptr<GPUShaderModule>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "entryPoint")) {
-        auto entryPoint = value.getProperty(runtime, "entryPoint");
-
-        if (entryPoint.isString()) {
-          auto str = entryPoint.asString(runtime).utf8(runtime);
-          result->entryPoint = str;
-        }
+        auto prop = value.getProperty(runtime, "entryPoint");
+        result->entryPoint = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
       if (value.hasProperty(runtime, "constants")) {
-        auto constants = value.getProperty(runtime, "constants");
+        auto prop = value.getProperty(runtime, "constants");
+        result->constants =
+            JSIConverter<std::optional<std::map<std::string, double>>>::fromJSI(
+                runtime, prop, false);
       }
     }
 
@@ -70,8 +60,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUProgrammableStage> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUProgrammableStage::toJSI()");
   }
 };
+
 } // namespace margelo

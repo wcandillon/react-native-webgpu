@@ -1,28 +1,31 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUBlendComponent {
-public:
-  wgpu::BlendComponent *getInstance() { return &_instance; }
-
-  wgpu::BlendComponent _instance;
+struct GPUBlendComponent {
+  std::optional<wgpu::BlendOperation> operation; // GPUBlendOperation
+  std::optional<wgpu::BlendFactor> srcFactor;    // GPUBlendFactor
+  std::optional<wgpu::BlendFactor> dstFactor;    // GPUBlendFactor
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendComponent>> {
   static std::shared_ptr<rnwgpu::GPUBlendComponent>
@@ -31,34 +34,22 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendComponent>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "operation")) {
-        auto operation = value.getProperty(runtime, "operation");
-
-        if (operation.isString()) {
-          auto str = operation.asString(runtime).utf8(runtime);
-          wgpu::BlendOperation enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.operation = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "operation");
+        result->operation =
+            JSIConverter<std::optional<wgpu::BlendOperation>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "srcFactor")) {
-        auto srcFactor = value.getProperty(runtime, "srcFactor");
-
-        if (srcFactor.isString()) {
-          auto str = srcFactor.asString(runtime).utf8(runtime);
-          wgpu::BlendFactor enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.srcFactor = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "srcFactor");
+        result->srcFactor =
+            JSIConverter<std::optional<wgpu::BlendFactor>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "dstFactor")) {
-        auto dstFactor = value.getProperty(runtime, "dstFactor");
-
-        if (dstFactor.isString()) {
-          auto str = dstFactor.asString(runtime).utf8(runtime);
-          wgpu::BlendFactor enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.dstFactor = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "dstFactor");
+        result->dstFactor =
+            JSIConverter<std::optional<wgpu::BlendFactor>>::fromJSI(
+                runtime, prop, false);
       }
     }
 
@@ -66,8 +57,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendComponent>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUBlendComponent> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUBlendComponent::toJSI()");
   }
 };
+
 } // namespace margelo

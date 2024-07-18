@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "Convertors.h"
 #include "Unions.h"
-#include <RNFHybridObject.h>
+
+#include "RNFHybridObject.h"
 
 #include "ArrayBuffer.h"
 #include "AsyncRunner.h"
@@ -69,4 +69,5 @@ private:
   };
   std::vector<Mapping> mappings;
 };
+
 } // namespace rnwgpu

@@ -4,9 +4,19 @@
 
 namespace rnwgpu {
 
+// TODO: rename to conv and move to Convertors
+template <typename I> auto conv2(const std::vector<std::shared_ptr<I>> &input) {
+  std::vector<decltype(std::declval<I>().get())> result;
+  result.reserve(input.size());
+  for (const auto &ptr : input) {
+    result.push_back(ptr->get());
+  }
+  return result;
+}
+
 void GPUQueue::submit(
     std::vector<std::shared_ptr<GPUCommandBuffer>> commandBuffers) {
-  auto bufs = conv(commandBuffers);
+  auto bufs = conv2(commandBuffers);
   _instance.Submit(bufs.size(), bufs.data());
 }
 

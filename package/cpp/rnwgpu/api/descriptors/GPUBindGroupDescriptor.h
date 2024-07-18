@@ -1,32 +1,36 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
-#include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
+#include "DescriptorConvertors.h"
+#include "GPUBindGroupEntry.h"
 #include "GPUBindGroupLayout.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUBindGroupDescriptor {
-public:
-  wgpu::BindGroupDescriptor *getInstance() { return &_instance; }
-
-  wgpu::BindGroupDescriptor _instance;
-
-  std::string label;
+struct GPUBindGroupDescriptor {
+  std::shared_ptr<GPUBindGroupLayout> layout; // GPUBindGroupLayout
+  std::vector<std::shared_ptr<GPUBindGroupEntry>>
+      entries;                      // Iterable<GPUBindGroupEntry>
+  std::optional<std::string> label; // string
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
@@ -36,43 +40,22 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "layout")) {
-        auto layout = value.getProperty(runtime, "layout");
-
-        if (layout.isObject() &&
-            layout.getObject(runtime).isHostObject(runtime)) {
-          result->_instance.layout =
-              layout.getObject(runtime)
-                  .asHostObject<rnwgpu::GPUBindGroupLayout>(runtime)
-                  ->get();
-        }
-
-        if (layout.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUBindGroupDescriptor::layout is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUBindGroupDescriptor::layout is not defined");
+        auto prop = value.getProperty(runtime, "layout");
+        result->layout =
+            JSIConverter<std::shared_ptr<GPUBindGroupLayout>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "entries")) {
-        auto entries = value.getProperty(runtime, "entries");
-
-        if (entries.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUBindGroupDescriptor::entries is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUBindGroupDescriptor::entries is not defined");
+        auto prop = value.getProperty(runtime, "entries");
+        result->entries = JSIConverter<
+            std::vector<std::shared_ptr<GPUBindGroupEntry>>>::fromJSI(runtime,
+                                                                      prop,
+                                                                      false);
       }
       if (value.hasProperty(runtime, "label")) {
-        auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 
@@ -80,8 +63,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUBindGroupDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUBindGroupDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

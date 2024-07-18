@@ -1,30 +1,33 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUBufferDescriptor {
-public:
-  wgpu::BufferDescriptor *getInstance() { return &_instance; }
-
-  wgpu::BufferDescriptor _instance;
-
-  std::string label;
+struct GPUBufferDescriptor {
+  double size;                          // GPUSize64
+  double usage;                         // GPUBufferUsageFlags
+  std::optional<bool> mappedAtCreation; // boolean
+  std::optional<std::string> label;     // string
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUBufferDescriptor>
@@ -33,50 +36,22 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "size")) {
-        auto size = value.getProperty(runtime, "size");
-
-        if (size.isNumber()) {
-          result->_instance.size = size.getNumber();
-        }
-
-        if (size.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUBufferDescriptor::size is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUBufferDescriptor::size is not defined");
+        auto prop = value.getProperty(runtime, "size");
+        result->size = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "usage")) {
-        auto usage = value.getProperty(runtime, "usage");
-
-        if (usage.isNumber()) {
-          result->_instance.usage =
-              static_cast<wgpu::BufferUsage>(usage.getNumber());
-        }
-
-        if (usage.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUBufferDescriptor::usage is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUBufferDescriptor::usage is not defined");
+        auto prop = value.getProperty(runtime, "usage");
+        result->usage = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "mappedAtCreation")) {
-        auto mappedAtCreation = value.getProperty(runtime, "mappedAtCreation");
-        if (mappedAtCreation.isBool()) {
-          result->_instance.mappedAtCreation = mappedAtCreation.getBool();
-        }
+        auto prop = value.getProperty(runtime, "mappedAtCreation");
+        result->mappedAtCreation =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
-        auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 
@@ -84,8 +59,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUBufferDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUBufferDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

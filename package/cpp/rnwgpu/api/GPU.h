@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "Convertors.h"
 #include "Unions.h"
-#include <RNFHybridObject.h>
+
+#include "RNFHybridObject.h"
 
 #include "ArrayBuffer.h"
 #include "AsyncRunner.h"
@@ -52,4 +52,5 @@ private:
   wgpu::Instance _instance;
   std::shared_ptr<AsyncRunner> _async;
 };
+
 } // namespace rnwgpu

@@ -1,28 +1,31 @@
 #pragma once
 
 #include <memory>
-#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUColorDict {
-public:
-  wgpu::ColorDict *getInstance() { return &_instance; }
-
-  wgpu::ColorDict _instance;
+struct GPUColorDict {
+  double r; // number
+  double g; // number
+  double b; // number
+  double a; // number
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
   static std::shared_ptr<rnwgpu::GPUColorDict>
@@ -31,56 +34,20 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "r")) {
-        auto r = value.getProperty(runtime, "r");
-
-        if (r.isNumber()) {
-          result->_instance.r = r.getNumber();
-        }
-
-        if (r.isUndefined()) {
-          throw std::runtime_error("Property GPUColorDict::r is required");
-        }
-      } else {
-        throw std::runtime_error("Property GPUColorDict::r is not defined");
+        auto prop = value.getProperty(runtime, "r");
+        result->r = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "g")) {
-        auto g = value.getProperty(runtime, "g");
-
-        if (g.isNumber()) {
-          result->_instance.g = g.getNumber();
-        }
-
-        if (g.isUndefined()) {
-          throw std::runtime_error("Property GPUColorDict::g is required");
-        }
-      } else {
-        throw std::runtime_error("Property GPUColorDict::g is not defined");
+        auto prop = value.getProperty(runtime, "g");
+        result->g = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "b")) {
-        auto b = value.getProperty(runtime, "b");
-
-        if (b.isNumber()) {
-          result->_instance.b = b.getNumber();
-        }
-
-        if (b.isUndefined()) {
-          throw std::runtime_error("Property GPUColorDict::b is required");
-        }
-      } else {
-        throw std::runtime_error("Property GPUColorDict::b is not defined");
+        auto prop = value.getProperty(runtime, "b");
+        result->b = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "a")) {
-        auto a = value.getProperty(runtime, "a");
-
-        if (a.isNumber()) {
-          result->_instance.a = a.getNumber();
-        }
-
-        if (a.isUndefined()) {
-          throw std::runtime_error("Property GPUColorDict::a is required");
-        }
-      } else {
-        throw std::runtime_error("Property GPUColorDict::a is not defined");
+        auto prop = value.getProperty(runtime, "a");
+        result->a = JSIConverter<double>::fromJSI(runtime, prop, false);
       }
     }
 
@@ -88,8 +55,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorDict>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUColorDict> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUColorDict::toJSI()");
   }
 };
+
 } // namespace margelo

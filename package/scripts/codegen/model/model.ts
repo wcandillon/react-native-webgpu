@@ -5,14 +5,7 @@ import type {
   PropertySignature,
 } from "ts-morph";
 
-import { dawn, resolved } from "./dawn";
-
-const hasPropery = <O, T extends string>(
-  object: unknown,
-  property: T,
-): object is O & Record<T, unknown> => {
-  return typeof object === "object" && object !== null && property in object;
-};
+import { dawn, hasPropery, resolved } from "./dawn";
 
 const aliases: Record<string, string> = {
   GPU: "instance",

@@ -1,28 +1,26 @@
 #pragma once
 
 #include <memory>
-#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUExternalTextureBindingLayout {
-public:
-  wgpu::ExternalTextureBindingLayout *getInstance() { return &_instance; }
+struct GPUExternalTextureBindingLayout {};
 
-  wgpu::ExternalTextureBindingLayout _instance;
-};
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureBindingLayout>> {
@@ -38,8 +36,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureBindingLayout>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUExternalTextureBindingLayout> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error(
+        "Invalid GPUExternalTextureBindingLayout::toJSI()");
   }
 };
+
 } // namespace margelo

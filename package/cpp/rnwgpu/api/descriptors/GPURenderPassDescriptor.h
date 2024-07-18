@@ -1,34 +1,45 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
+#include <variant>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
-#include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
+#include "DescriptorConvertors.h"
 #include "GPUQuerySet.h"
+#include "GPURenderPassColorAttachment.h"
 #include "GPURenderPassDepthStencilAttachment.h"
 #include "GPURenderPassTimestampWrites.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPURenderPassDescriptor {
-public:
-  wgpu::RenderPassDescriptor *getInstance() { return &_instance; }
-
-  wgpu::RenderPassDescriptor _instance;
-
-  std::string label;
+struct GPURenderPassDescriptor {
+  std::vector<std::variant<std::nullptr_t,
+                           std::shared_ptr<GPURenderPassColorAttachment>>>
+      colorAttachments; // Iterable<GPURenderPassColorAttachment | null>
+  std::optional<std::shared_ptr<GPURenderPassDepthStencilAttachment>>
+      depthStencilAttachment; // GPURenderPassDepthStencilAttachment
+  std::optional<std::shared_ptr<GPUQuerySet>> occlusionQuerySet; // GPUQuerySet
+  std::optional<std::shared_ptr<GPURenderPassTimestampWrites>>
+      timestampWrites;                // GPURenderPassTimestampWrites
+  std::optional<double> maxDrawCount; // GPUSize64
+  std::optional<std::string> label;   // string
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
@@ -38,59 +49,40 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "colorAttachments")) {
-        auto colorAttachments = value.getProperty(runtime, "colorAttachments");
-
-        if (colorAttachments.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPURenderPassDescriptor::colorAttachments is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPURenderPassDescriptor::colorAttachments is not "
-            "defined");
+        auto prop = value.getProperty(runtime, "colorAttachments");
+        result->colorAttachments = JSIConverter<std::vector<std::variant<
+            std::nullptr_t, std::shared_ptr<GPURenderPassColorAttachment>>>>::
+            fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthStencilAttachment")) {
-        auto depthStencilAttachment =
-            value.getProperty(runtime, "depthStencilAttachment");
-
-        if (depthStencilAttachment.isObject()) {
-          auto val = m::JSIConverter<
-              std::shared_ptr<rnwgpu::GPURenderPassDepthStencilAttachment>>::
-              fromJSI(runtime, depthStencilAttachment, false);
-          result->_instance.depthStencilAttachment = val->getInstance();
-        }
+        auto prop = value.getProperty(runtime, "depthStencilAttachment");
+        result->depthStencilAttachment =
+            JSIConverter<std::optional<std::shared_ptr<
+                GPURenderPassDepthStencilAttachment>>>::fromJSI(runtime, prop,
+                                                                false);
       }
       if (value.hasProperty(runtime, "occlusionQuerySet")) {
-        auto occlusionQuerySet =
-            value.getProperty(runtime, "occlusionQuerySet");
-
-        if (occlusionQuerySet.isObject() &&
-            occlusionQuerySet.getObject(runtime).isHostObject(runtime)) {
-          result->_instance.occlusionQuerySet =
-              occlusionQuerySet.getObject(runtime)
-                  .asHostObject<rnwgpu::GPUQuerySet>(runtime)
-                  ->get();
-        }
+        auto prop = value.getProperty(runtime, "occlusionQuerySet");
+        result->occlusionQuerySet =
+            JSIConverter<std::optional<std::shared_ptr<GPUQuerySet>>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "timestampWrites")) {
-        auto timestampWrites = value.getProperty(runtime, "timestampWrites");
-
-        if (timestampWrites.isObject()) {
-          auto val = m::JSIConverter<std::shared_ptr<
-              rnwgpu::GPURenderPassTimestampWrites>>::fromJSI(runtime,
-                                                              timestampWrites,
-                                                              false);
-          result->_instance.timestampWrites = val->getInstance();
-        }
+        auto prop = value.getProperty(runtime, "timestampWrites");
+        result->timestampWrites = JSIConverter<std::optional<
+            std::shared_ptr<GPURenderPassTimestampWrites>>>::fromJSI(runtime,
+                                                                     prop,
+                                                                     false);
+      }
+      if (value.hasProperty(runtime, "maxDrawCount")) {
+        auto prop = value.getProperty(runtime, "maxDrawCount");
+        result->maxDrawCount =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
-        auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 
@@ -99,8 +91,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPURenderPassDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPURenderPassDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

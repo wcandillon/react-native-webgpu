@@ -8,11 +8,10 @@
 
 namespace rnwgpu {
 
-class GPUOrigin3D {
-public:
-  wgpu::Origin3D *getInstance() { return &_instance; }
-
-  wgpu::Origin3D _instance;
+struct GPUOrigin3D {
+  double x = 0;
+  double y = 0;
+  double z = 0;
 };
 
 } // namespace rnwgpu
@@ -32,24 +31,24 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin3D>> {
               "Expected an array of size >1 for GPUTExtent3D");
         }
         if (size > 0) {
-          result->_instance.x = array.getValueAtIndex(runtime, 0).asNumber();
+          result->x = array.getValueAtIndex(runtime, 0).asNumber();
         }
         if (size > 1) {
-          result->_instance.y = array.getValueAtIndex(runtime, 1).asNumber();
+          result->y = array.getValueAtIndex(runtime, 1).asNumber();
         }
         if (size > 2) {
-          result->_instance.z = array.getValueAtIndex(runtime, 2).asNumber();
+          result->z = array.getValueAtIndex(runtime, 2).asNumber();
         }
       } else {
         auto object = arg.getObject(runtime);
         if (object.hasProperty(runtime, "x")) {
-          result->_instance.x = object.getProperty(runtime, "x").asNumber();
+          result->x = object.getProperty(runtime, "x").asNumber();
         }
         if (object.hasProperty(runtime, "y")) {
-          result->_instance.y = object.getProperty(runtime, "y").asNumber();
+          result->y = object.getProperty(runtime, "y").asNumber();
         }
         if (object.hasProperty(runtime, "z")) {
-          result->_instance.z = object.getProperty(runtime, "z").asNumber();
+          result->z = object.getProperty(runtime, "z").asNumber();
         }
       }
     } else {
@@ -63,4 +62,5 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin3D>> {
     return jsi::Value::null();
   }
 };
+
 } // namespace margelo

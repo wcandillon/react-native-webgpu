@@ -1,30 +1,32 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
-#include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
+#include "DescriptorConvertors.h"
 #include "GPUBuffer.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUBufferBinding {
-public:
-  wgpu::BufferBinding *getInstance() { return &_instance; }
-
-  wgpu::BufferBinding _instance;
+struct GPUBufferBinding {
+  std::shared_ptr<GPUBuffer> buffer; // GPUBuffer
+  std::optional<double> offset;      // GPUSize64
+  std::optional<double> size;        // GPUSize64
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
   static std::shared_ptr<rnwgpu::GPUBufferBinding>
@@ -33,37 +35,19 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "buffer")) {
-        auto buffer = value.getProperty(runtime, "buffer");
-
-        if (buffer.isObject() &&
-            buffer.getObject(runtime).isHostObject(runtime)) {
-          result->_instance.buffer =
-              buffer.getObject(runtime)
-                  .asHostObject<rnwgpu::GPUBuffer>(runtime)
-                  ->get();
-        }
-
-        if (buffer.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUBufferBinding::buffer is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUBufferBinding::buffer is not defined");
+        auto prop = value.getProperty(runtime, "buffer");
+        result->buffer = JSIConverter<std::shared_ptr<GPUBuffer>>::fromJSI(
+            runtime, prop, false);
       }
       if (value.hasProperty(runtime, "offset")) {
-        auto offset = value.getProperty(runtime, "offset");
-
-        if (offset.isNumber()) {
-          result->_instance.offset = offset.getNumber();
-        }
+        auto prop = value.getProperty(runtime, "offset");
+        result->offset =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "size")) {
-        auto size = value.getProperty(runtime, "size");
-
-        if (size.isNumber()) {
-          result->_instance.size = size.getNumber();
-        }
+        auto prop = value.getProperty(runtime, "size");
+        result->size =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 
@@ -71,8 +55,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUBufferBinding> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUBufferBinding::toJSI()");
   }
 };
+
 } // namespace margelo

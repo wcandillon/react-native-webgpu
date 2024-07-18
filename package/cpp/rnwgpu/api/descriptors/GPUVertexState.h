@@ -1,32 +1,40 @@
 #pragma once
 
+#include <map>
 #include <memory>
+#include <optional>
 #include <string>
+#include <variant>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
-#include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
+#include "DescriptorConvertors.h"
 #include "GPUShaderModule.h"
+#include "GPUVertexBufferLayout.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUVertexState {
-public:
-  wgpu::VertexState *getInstance() { return &_instance; }
-
-  wgpu::VertexState _instance;
-
-  std::string entryPoint;
+struct GPUVertexState {
+  std::optional<std::vector<std::shared_ptr<GPUVertexBufferLayout>>>
+      buffers; // Iterable<GPUVertexBufferLayout | null>
+  std::shared_ptr<GPUShaderModule> module; // GPUShaderModule
+  std::optional<std::string> entryPoint;   // string
+  std::optional<std::map<std::string, double>>
+      constants; // Record< string, GPUPipelineConstantValue >
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexState>> {
   static std::shared_ptr<rnwgpu::GPUVertexState>
@@ -35,37 +43,27 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexState>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "buffers")) {
-        auto buffers = value.getProperty(runtime, "buffers");
+        auto prop = value.getProperty(runtime, "buffers");
+        result->buffers = JSIConverter<std::optional<std::vector<
+            std::shared_ptr<GPUVertexBufferLayout>>>>::fromJSI(runtime, prop,
+                                                               false);
       }
       if (value.hasProperty(runtime, "module")) {
-        auto module = value.getProperty(runtime, "module");
-
-        if (module.isObject() &&
-            module.getObject(runtime).isHostObject(runtime)) {
-          result->_instance.module =
-              module.getObject(runtime)
-                  .asHostObject<rnwgpu::GPUShaderModule>(runtime)
-                  ->get();
-        }
-
-        if (module.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUVertexState::module is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUVertexState::module is not defined");
+        auto prop = value.getProperty(runtime, "module");
+        result->module =
+            JSIConverter<std::shared_ptr<GPUShaderModule>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "entryPoint")) {
-        auto entryPoint = value.getProperty(runtime, "entryPoint");
-
-        if (entryPoint.isString()) {
-          auto str = entryPoint.asString(runtime).utf8(runtime);
-          result->entryPoint = str;
-        }
+        auto prop = value.getProperty(runtime, "entryPoint");
+        result->entryPoint = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
       if (value.hasProperty(runtime, "constants")) {
-        auto constants = value.getProperty(runtime, "constants");
+        auto prop = value.getProperty(runtime, "constants");
+        result->constants =
+            JSIConverter<std::optional<std::map<std::string, double>>>::fromJSI(
+                runtime, prop, false);
       }
     }
 
@@ -73,8 +71,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexState>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUVertexState> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUVertexState::toJSI()");
   }
 };
+
 } // namespace margelo
