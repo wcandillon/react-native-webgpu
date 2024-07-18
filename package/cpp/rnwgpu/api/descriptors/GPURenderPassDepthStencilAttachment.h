@@ -6,6 +6,7 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "Convertors.h"
+#include "DescriptorConvertors.h"
 #include "GPUTextureView.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"

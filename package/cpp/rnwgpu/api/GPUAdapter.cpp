@@ -5,6 +5,8 @@
 
 #include "Convertors.h"
 
+#include "Logger.h"
+
 namespace rnwgpu {
 
 std::future<std::shared_ptr<GPUDevice>>
@@ -90,10 +92,9 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
             logLevel = "Verbose";
           case WGPULoggingType_Info:
             logLevel = "Info";
-          default: {
+          default:
             logLevel = "Unknown";
             Logger::logToConsole("%s: %s", logLevel, message);
-          }
           }
         },
         _creationRuntime);

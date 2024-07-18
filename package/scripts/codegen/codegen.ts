@@ -134,6 +134,8 @@ const toSkip = [
   "GPUOrigin3DDict",
   "GPUImageCopyExternalImage",
   "GPURenderPassLayout",
+  "GPUExternalTextureDescriptor",
+  "GPUBindGroupEntry",
 ];
 
 // Descriptors

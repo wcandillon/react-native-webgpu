@@ -7,6 +7,7 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "Convertors.h"
+#include "DescriptorConvertors.h"
 #include "GPUDepthStencilState.h"
 #include "GPUFragmentState.h"
 #include "GPUMultisampleState.h"
@@ -89,17 +90,16 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
       if (value.hasProperty(runtime, "fragment")) {
         auto prop = value.getProperty(runtime, "fragment");
         if (!prop.isUndefined()) {
-          result->fragment = JSIConverter<std::optional<std::shared_ptr<GPUFragmentState>>>::
+          result->fragment =
+              JSIConverter<std::optional<std::shared_ptr<GPUFragmentState>>>::
                   fromJSI(runtime, prop, false);
         }
       }
       if (value.hasProperty(runtime, "layout")) {
         auto prop = value.getProperty(runtime, "layout");
-          if (prop.isNull()) {
-              result->layout = nullptr;
-          } else if (!prop.isUndefined()) {
-            result->layout = JSIConverter<std::shared_ptr<GPUPipelineLayout>>::fromJSI(runtime, prop, false);
-          }
+        result->layout = JSIConverter<
+            std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>>::
+            fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");

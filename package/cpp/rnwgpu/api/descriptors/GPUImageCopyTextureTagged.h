@@ -2,13 +2,12 @@
 
 #include <memory>
 #include <optional>
-#include <variant>
-#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
 #include "Convertors.h"
-#include "GPUOrigin3DDict.h"
+#include "DescriptorConvertors.h"
+#include "GPUOrigin3D.h"
 #include "GPUTexture.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -20,14 +19,12 @@ namespace m = margelo;
 namespace rnwgpu {
 
 struct GPUImageCopyTextureTagged {
-  std::optional<wgpu::definedColorSpace> colorSpace; // PredefinedColorSpace
-  std::optional<bool> premultipliedAlpha;            // boolean
-  std::shared_ptr<GPUTexture> texture;               // GPUTexture
-  std::optional<double> mipLevel;                    // GPUIntegerCoordinate
-  std::optional<
-      std::variant<std::vector<double>, std::shared_ptr<GPUOrigin3DDict>>>
-      origin;                                // GPUOrigin3D
-  std::optional<wgpu::TextureAspect> aspect; // GPUTextureAspect
+  std::optional<wgpu::definedColorSpace> colorSpace;  // PredefinedColorSpace
+  std::optional<bool> premultipliedAlpha;             // boolean
+  std::shared_ptr<GPUTexture> texture;                // GPUTexture
+  std::optional<double> mipLevel;                     // GPUIntegerCoordinate
+  std::optional<std::shared_ptr<GPUOrigin3D>> origin; // GPUOrigin3D
+  std::optional<wgpu::TextureAspect> aspect;          // GPUTextureAspect
 };
 
 static bool conv(wgpu::ImageCopyTextureTagged &out,
@@ -80,9 +77,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
       if (value.hasProperty(runtime, "origin")) {
         auto prop = value.getProperty(runtime, "origin");
         if (!prop.isUndefined()) {
-          result->origin = JSIConverter<std::optional<std::variant<
-              std::vector<double>, std::shared_ptr<GPUOrigin3DDict>>>>::
-              fromJSI(runtime, prop, false);
+          result->origin = JSIConverter<
+              std::optional<std::shared_ptr<GPUOrigin3D>>>::fromJSI(runtime,
+                                                                    prop,
+                                                                    false);
         }
       }
       if (value.hasProperty(runtime, "aspect")) {

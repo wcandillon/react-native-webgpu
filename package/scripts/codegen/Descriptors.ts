@@ -201,6 +201,7 @@ ${Array.from(dependencies)
 
 #include "Logger.h"
 #include "RNFJSIConverter.h"
+#include "DescriptorConvertors.h"
 #include "RNFHybridObject.h"
 #include "Convertors.h"
 ${Array.from(dependencies)

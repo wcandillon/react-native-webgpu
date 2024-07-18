@@ -6,6 +6,7 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "Convertors.h"
+#include "DescriptorConvertors.h"
 #include "GPUBufferBinding.h"
 #include "GPUExternalTexture.h"
 #include "GPUSampler.h"
@@ -21,10 +22,10 @@ namespace rnwgpu {
 
 struct GPUBindGroupEntry {
   double binding; // GPUIndex32
-  std::variant<std::shared_ptr<GPUSampler>, std::shared_ptr<GPUTextureView>,
-               std::shared_ptr<GPUBufferBinding>,
-               std::shared_ptr<GPUExternalTexture>>
-      resource; // GPUBindingResource
+  // std::variant<std::shared_ptr<GPUSampler>, std::shared_ptr<GPUTextureView>,
+  //              std::shared_ptr<GPUBufferBinding>,
+  //              std::shared_ptr<GPUExternalTexture>>
+  //     resource; // GPUBindingResource
 };
 
 static bool conv(wgpu::BindGroupEntry &out,
@@ -33,29 +34,29 @@ static bool conv(wgpu::BindGroupEntry &out,
   if (!conv(out.binding, in->binding)) {
     return false;
   }
-
-  if (auto *res = std::get_if<std::shared_ptr<GPUSampler>>(&in->resource)) {
-    return conv(out.sampler, *res);
-  }
-  if (auto *res = std::get_if<std::shared_ptr<GPUTextureView>>(&in->resource)) {
-    return conv(out.textureView, *res);
-  }
-  if (auto *res =
-          std::get_if<std::shared_ptr<GPUBufferBinding>>(&in->resource)) {
-    auto buffer = (*res)->buffer->get();
-    out.size = wgpu::kWholeSize;
-    if (!buffer || !conv(out.offset, (*res)->offset) ||
-        !conv(out.size, (*res)->size)) {
-      return false;
-    }
-    out.buffer = buffer;
-    return true;
-  }
-  if (auto *res =
-          std::get_if<std::shared_ptr<GPUExternalTexture>>(&in->resource)) {
-    throw std::runtime_error("GPUExternalTexture not supported");
-  }
   return false;
+  // if (auto *res = std::get_if<std::shared_ptr<GPUSampler>>(&in->resource)) {
+  //   return conv(out.sampler, *res);
+  // }
+  // if (auto *res = std::get_if<std::shared_ptr<GPUTextureView>>(&in->resource)) {
+  //   return conv(out.textureView, *res);
+  // }
+  // if (auto *res =
+  //         std::get_if<std::shared_ptr<GPUBufferBinding>>(&in->resource)) {
+  //   auto buffer = (*res)->buffer->get();
+  //   out.size = wgpu::kWholeSize;
+  //   if (!buffer || !conv(out.offset, (*res)->offset) ||
+  //       !conv(out.size, (*res)->size)) {
+  //     return false;
+  //   }
+  //   out.buffer = buffer;
+  //   return true;
+  // }
+  // if (auto *res =
+  //         std::get_if<std::shared_ptr<GPUExternalTexture>>(&in->resource)) {
+  //   throw std::runtime_error("GPUExternalTexture not supported");
+  // }
+  // return false;
 }
 
 } // namespace rnwgpu
@@ -76,11 +77,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
       }
       if (value.hasProperty(runtime, "resource")) {
         auto prop = value.getProperty(runtime, "resource");
-        result->resource = JSIConverter<std::variant<
-            std::shared_ptr<GPUSampler>, std::shared_ptr<GPUTextureView>,
-            std::shared_ptr<GPUBufferBinding>,
-            std::shared_ptr<GPUExternalTexture>>>::fromJSI(runtime, prop,
-                                                           false);
+        // result->resource = JSIConverter<std::variant<
+        //     std::shared_ptr<GPUSampler>, std::shared_ptr<GPUTextureView>,
+        //     std::shared_ptr<GPUBufferBinding>,
+        //     std::shared_ptr<GPUExternalTexture>>>::fromJSI(runtime, prop,
+        //                                                    false);
       }
     }
 

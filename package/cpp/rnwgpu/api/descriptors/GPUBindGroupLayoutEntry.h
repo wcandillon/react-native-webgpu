@@ -6,6 +6,7 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "Convertors.h"
+#include "DescriptorConvertors.h"
 #include "GPUBufferBindingLayout.h"
 #include "GPUExternalTextureBindingLayout.h"
 #include "GPUSamplerBindingLayout.h"

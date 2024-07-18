@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <limits>
 #include <variant>
+#include <map>
 
 #include <jsi/jsi.h>
 
@@ -308,6 +309,33 @@ template <typename ReturnType, typename... Args> struct JSIConverter<std::functi
     return jsi::Function::createFromHostFunction(runtime, jsi::PropNameID::forUtf8(runtime, "hostFunction"), sizeof...(Args), jsFunction);
   }
 };
+
+// std::map<std::string, T> <> Record<string, T>
+template <typename ValueType> struct JSIConverter<std::map<std::string, ValueType>> {
+  static std::map<std::string, ValueType> fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
+    jsi::Object object = arg.asObject(runtime);
+    jsi::Array propertyNames = object.getPropertyNames(runtime);
+    size_t length = propertyNames.size(runtime);
+
+    std::map<std::string, ValueType> map;
+    for (size_t i = 0; i < length; ++i) {
+      std::string key = propertyNames.getValueAtIndex(runtime, i).asString(runtime).utf8(runtime);
+      jsi::Value value = object.getProperty(runtime, key.c_str());
+      map.emplace(key, JSIConverter<ValueType>::fromJSI(runtime, value, outOfBound));
+    }
+    return map;
+  }
+  static jsi::Value toJSI(jsi::Runtime& runtime, const std::map<std::string, ValueType>& map) {
+    jsi::Object object(runtime);
+    for (const auto& pair : map) {
+      jsi::Value value = JSIConverter<ValueType>::toJSI(runtime, pair.second);
+      jsi::String key = jsi::String::createFromUtf8(runtime, pair.first);
+      object.setProperty(runtime, key, std::move(value));
+    }
+    return object;
+  }
+};
+
 
 // std::vector<T> <> T[]
 template <typename ElementType> struct JSIConverter<std::vector<ElementType>> {
