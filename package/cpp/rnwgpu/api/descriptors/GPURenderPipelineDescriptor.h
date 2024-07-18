@@ -84,8 +84,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
         auto prop = value.getProperty(runtime, "layout");
         if (prop.isNull() || prop.isString()) {
           result->layout = nullptr;
-        }
-        {
+        } else {
           result->layout =
               JSIConverter<std::shared_ptr<GPUPipelineLayout>>::fromJSI(
                   runtime, prop, false);

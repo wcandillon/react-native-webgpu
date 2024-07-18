@@ -55,6 +55,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
                                                                        prop,
                                                                        false);
       }
+    } else if (!outOfBounds && arg.isNull()) {
+      result->stepMode = wgpu::VertexStepMode::VertexBufferNotUsed;
     }
 
     return result;

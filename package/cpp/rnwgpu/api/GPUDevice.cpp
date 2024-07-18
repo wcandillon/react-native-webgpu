@@ -70,11 +70,11 @@ std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
 
 std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(
     std::shared_ptr<GPURenderPipelineDescriptor> descriptor) {
-  wgpu::RenderPipelineDescriptor desc;
+  wgpu::RenderPipelineDescriptor desc{};
   Convertor conv;
-  if (!conv(desc, descriptor)) {
-    throw std::runtime_error("Error with GPURenderPipelineDescriptor");
-  }
+   if (!conv(desc, descriptor)) {
+     throw std::runtime_error("Error with GPURenderPipelineDescriptor");
+   }
   auto renderPipeline = _instance.CreateRenderPipeline(&desc);
   return std::make_shared<GPURenderPipeline>(renderPipeline,
                                              descriptor->label.value_or(""));

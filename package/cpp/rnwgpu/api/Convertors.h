@@ -534,6 +534,10 @@ public:
   [[nodiscard]] bool Convert(wgpu::VertexBufferLayout &out,
                              const GPUVertexBufferLayout &in) {
     out = {};
+    // TODO: Check if this is correct (see GPUVertexBufferLayout)
+    if (in.stepMode == wgpu::VertexStepMode::VertexBufferNotUsed) {
+      return Convert(out.stepMode, in.stepMode);
+    }
     return Convert(out.attributes, out.attributeCount, in.attributes) &&
            Convert(out.arrayStride, in.arrayStride) &&
            Convert(out.stepMode, in.stepMode);
@@ -563,40 +567,19 @@ public:
     out.entryPoint = in.entryPoint
                          ? ConvertStringReplacingNull(in.entryPoint.value())
                          : nullptr;
-
-    wgpu::VertexBufferLayout *outBuffers = nullptr;
-    if (in.buffers.has_value()) {
-      if (!Convert(outBuffers, out.bufferCount, in.buffers.value())) {
+    // TODO: implement !Convert(out.constants, out.constantCount, in.constants)
+    wgpu::VertexBufferLayout* outBuffers = nullptr;
+    if (!Convert(out.module, in.module)) {
         return false;
-      }
     }
-    // TODO: add overload for std::map
-    // if (in.constants.has_value()) {
-    //   if (!Convert(out.constants, out.constantCount, in.constants.value())) {
-    //     return false;
-    //   }
-    // }
-    // TODO: implement
-    throw std::runtime_error("TODO: implement !Convert(out.module, in.module)");
-    // if (!Convert(out.module, in.module)) {
-    //   return false;
-    // }
 
-    // Patch up the unused vertex buffer layouts to use
-    // wgpu::VertexStepMode::VertexBufferNotUsed. The converter for optional
-    // value will have put the default value of wgpu::VertexBufferLayout that
-    // has wgpu::VertexStepMode::Vertex.
-    //    if (in.buffers.has_value()) {
-    //      auto buffers = in.buffers.value();
-    //      out.buffers = outBuffers;
-    //      for (size_t i = 0; i < buffers.size(); i++) {
-    //        if (std::holds_alternative<nullptr_t>(buffers[i])) {
-    //          outBuffers[i] = wgpu::VertexBufferLayout{
-    //              .stepMode = wgpu::VertexStepMode::VertexBufferNotUsed,
-    //          };
-    //        }
-    //      }
-    //    }
+    if (in.buffers.has_value()) {
+       if(!Convert(outBuffers, out.bufferCount, in.buffers.value())) {
+        return false;
+       }
+    }
+
+
     return true;
   }
 
