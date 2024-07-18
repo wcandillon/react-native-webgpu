@@ -117,10 +117,35 @@ public:
     return true;
   }
 
+  template <typename OUT, typename IN>
+  [[nodiscard]] bool Convert(OUT &out, const std::shared_ptr<IN> &in) {
+    if constexpr (std::is_member_function_pointer_v<decltype(&IN::get)>) {
+      return Convert(out, in->get());
+    } else {
+      return Convert(out, in.get());
+    }
+  }
+
+  template <typename OUT, typename IN>
+  [[nodiscard]] bool Convert(OUT &out,
+                             const std::variant<std::nullptr_t, IN> &in) {
+    if (std::holds_alternative<std::nullptr_t>(in)) {
+      out = nullptr;
+      return true;
+    }
+    return Convert(out, std::get<IN>(in));
+  }
+
   [[nodiscard]] bool conv(wgpu::Origin3D &out,
-                          std::shared_ptr<GPUOrigin3D> &in) {
+                          const std::shared_ptr<GPUOrigin3D> &in) {
     return Convert(out.x, in->x) && Convert(out.y, in->y) &&
            Convert(out.z, in->z);
+  }
+
+  [[nodiscard]] bool Convert(wgpu::Extent3D &out,
+                             const std::shared_ptr<GPUExtent3D> &in) {
+    return Convert(out.width, in->width) && Convert(out.height, in->height) &&
+           Convert(out.depthOrArrayLayers, in->depthOrArrayLayers);
   }
 
   [[nodiscard]] bool Convert(wgpu::BindGroupLayoutEntry &out,
@@ -239,7 +264,8 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::FragmentState &out,
                              const GPUFragmentState &in) {
-    return Convert(out.targets, in.targets) && Convert(out.module, in.module) &&
+    return Convert(out.targets, out.targetCount, in.targets) &&
+           Convert(out.module, in.module) &&
            Convert(out.entryPoint, in.entryPoint) &&
            Convert(out.constants, in.constants);
   }
@@ -276,7 +302,8 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::PipelineLayoutDescriptor &out,
                              const GPUPipelineLayoutDescriptor &in) {
-    return Convert(out.bindGroupLayouts, in.bindGroupLayouts) &&
+    return Convert(out.bindGroupLayouts, out.bindGroupLayoutCount,
+                   in.bindGroupLayouts) &&
            Convert(out.label, in.label);
   }
 
@@ -323,7 +350,7 @@ public:
                              const GPURenderBundleEncoderDescriptor &in) {
     return Convert(out.depthReadOnly, in.depthReadOnly) &&
            Convert(out.stencilReadOnly, in.stencilReadOnly) &&
-           Convert(out.colorFormats, in.colorFormats) &&
+           Convert(out.colorFormats, out.colorFormatCount, in.colorFormats) &&
            Convert(out.depthStencilFormat, in.depthStencilFormat) &&
            Convert(out.sampleCount, in.sampleCount) &&
            Convert(out.label, in.label);
@@ -452,6 +479,22 @@ public:
            Convert(out.stepMode, in.stepMode);
   }
 
+  bool Convert(wgpu::ConstantEntry &out, const std::string &in_name,
+               const std::map<std::string, double> &in_value) {
+    // Replace nulls in the key with another character that's disallowed in WGSL
+    // identifiers. This is so that using "c\0" doesn't match a constant named
+    // "c".
+    out.key = ConvertStringReplacingNull(in_name);
+    out.value = in_value.at(in_name);
+    return true;
+  }
+
+  [[nodiscard]] bool Convert(wgpu::ShaderModule &out,
+                             const GPUShaderModule &in) {
+
+    return true;
+  }
+
   [[nodiscard]] bool Convert(wgpu::VertexState &out, const GPUVertexState &in) {
     out = {};
     // Replace nulls in the entryPoint name with another character that's
@@ -462,11 +505,21 @@ public:
                          : nullptr;
 
     wgpu::VertexBufferLayout *outBuffers = nullptr;
-    if (!Convert(out.module, in.module) ||                   //
-        !Convert(outBuffers, out.bufferCount, in.buffers) || //
-        !Convert(out.constants, out.constantCount, in.constants)) {
-      return false;
+    if (in.buffers.has_value()) {
+      if (!Convert(outBuffers, out.bufferCount, in.buffers.value())) {
+        return false;
+      }
     }
+    // TODO: add overload for std::map
+    // if (in.constants.has_value()) {
+    //   if (!Convert(out.constants, out.constantCount, in.constants.value())) {
+    //     return false;
+    //   }
+    // }
+    throw std::runtime_error("TODO: implement !Convert(out.module, in.module)");
+    // if (!Convert(out.module, in.module)) {
+    //   return false;
+    // }
 
     // Patch up the unused vertex buffer layouts to use
     // wgpu::VertexStepMode::VertexBufferNotUsed. The converter for optional
