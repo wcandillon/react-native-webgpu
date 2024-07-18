@@ -29,7 +29,7 @@ struct GPUComputePipelineDescriptor {
 
 namespace margelo {
 
-using namespace rnwgpu;
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
@@ -49,7 +49,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
         if (prop.isNull() || prop.isString()) {
           result->layout = nullptr;
         } else {
-          result->layout = JSIConverter<std::shared_ptr<GPUPipelineLayout>>::fromJSI(runtime, prop, false);
+          result->layout =
+              JSIConverter<std::shared_ptr<GPUPipelineLayout>>::fromJSI(
+                  runtime, prop, false);
         }
       }
       if (value.hasProperty(runtime, "label")) {

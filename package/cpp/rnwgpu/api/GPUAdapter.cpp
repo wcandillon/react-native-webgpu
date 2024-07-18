@@ -9,8 +9,8 @@
 
 namespace rnwgpu {
 
-std::future<std::shared_ptr<GPUDevice>>
-GPUAdapter::requestDevice(std::optional<std::shared_ptr<GPUDeviceDescriptor>> descriptor) {
+std::future<std::shared_ptr<GPUDevice>> GPUAdapter::requestDevice(
+    std::optional<std::shared_ptr<GPUDeviceDescriptor>> descriptor) {
   return std::async(std::launch::async, [this,
                                          descriptor = std::move(descriptor)]() {
     wgpu::Device device = nullptr;
@@ -103,7 +103,8 @@ GPUAdapter::requestDevice(std::optional<std::shared_ptr<GPUDeviceDescriptor>> de
           }
         },
         _creationRuntime);
-    std::string label = descriptor.has_value() ? descriptor.value()->label.value_or("") : "";
+    std::string label =
+        descriptor.has_value() ? descriptor.value()->label.value_or("") : "";
     return std::make_shared<GPUDevice>(std::move(device), _async, label);
   });
 }

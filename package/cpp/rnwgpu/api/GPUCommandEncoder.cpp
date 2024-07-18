@@ -20,7 +20,8 @@ std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(
     label = descriptor.value()->label.value_or("");
     Convertor conv;
     if (!conv(desc, descriptor.value())) {
-      throw std::runtime_error("GPUCommandEncoder::finish(): error with GPUCommandBufferDescriptor");
+      throw std::runtime_error(
+          "GPUCommandEncoder::finish(): error with GPUCommandBufferDescriptor");
     }
   }
   auto commandBuffer = _instance.Finish(&desc);

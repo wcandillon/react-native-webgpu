@@ -65,8 +65,11 @@ class RemoteTestingClient implements TestingClient {
   readonly OS = global.testOS;
   readonly arch = global.testArch;
 
-  eval<C = Ctx, R>(fn: (ctx: GPUContext & C) => R, context?: C): Promise<R> {
-    const ctx = this.prepareContext(context);
+  eval<C = Ctx, R = any>(
+    fn: (ctx: GPUContext & C) => R,
+    context?: C,
+  ): Promise<R> {
+    const ctx = this.prepareContext(context ?? {});
     const body = { code: fn.toString(), ctx };
     return this.handleResponse<R>(JSON.stringify(body));
   }

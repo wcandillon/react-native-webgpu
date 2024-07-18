@@ -23,7 +23,7 @@ struct GPUSamplerBindingLayout {
 
 namespace margelo {
 
-using namespace rnwgpu;
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
