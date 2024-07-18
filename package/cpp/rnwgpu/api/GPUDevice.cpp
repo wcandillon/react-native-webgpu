@@ -20,13 +20,14 @@ std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
 std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
     std::optional<std::shared_ptr<GPUCommandEncoderDescriptor>> descriptor) {
   wgpu::CommandEncoderDescriptor desc;
+  std::string label = "";
   if (descriptor.has_value()) {
+    label = descriptor.value()->label.value_or("");
     Convertor conv;
     if (!conv(desc, descriptor.value())) {
       throw std::runtime_error("Error with GPUCommandEncoderDescriptor");
     }
   }
-  std::string label = descriptor.has_value() ? descriptor.value()->label.value_or("") : "";
   auto result = _instance.CreateCommandEncoder(&desc);
   return std::make_shared<GPUCommandEncoder>(result, label);
 }

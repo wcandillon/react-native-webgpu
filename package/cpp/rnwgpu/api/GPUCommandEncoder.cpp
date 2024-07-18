@@ -13,13 +13,18 @@ void GPUCommandEncoder::copyBufferToBuffer(
 }
 
 std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(
-    std::shared_ptr<GPUCommandBufferDescriptor> descriptor) {
+    std::optional<std::shared_ptr<GPUCommandBufferDescriptor>> descriptor) {
   wgpu::CommandBufferDescriptor desc;
-  // TODO: implement, have std::optional<std::shared_ptr<GPUCommandBufferDescriptor>> descriptor
-  // Convertor conv;
-  // conv(desc, descriptor);
+  std::string label = "";
+  if (descriptor.has_value()) {
+    label = descriptor.value()->label.value_or("");
+    Convertor conv;
+    if (!conv(desc, descriptor.value())) {
+      throw std::runtime_error("GPUCommandEncoder::finish(): error with GPUCommandBufferDescriptor");
+    }
+  }
   auto commandBuffer = _instance.Finish(&desc);
-  return std::make_shared<GPUCommandBuffer>(commandBuffer, _label);
+  return std::make_shared<GPUCommandBuffer>(commandBuffer, label);
 }
 
 std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
