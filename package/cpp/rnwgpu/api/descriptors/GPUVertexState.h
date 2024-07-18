@@ -33,12 +33,10 @@ struct GPUVertexState {
 
 static bool conv(wgpu::VertexState &out,
                  const std::shared_ptr<GPUVertexState> &in) {
-
   return conv(out.buffers, in->buffers) && conv(out.module, in->module) &&
          conv(out.entryPoint, in->entryPoint) &&
          conv(out.constants, in->constants);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

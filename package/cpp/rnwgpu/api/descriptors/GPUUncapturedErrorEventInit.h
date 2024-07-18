@@ -25,12 +25,10 @@ struct GPUUncapturedErrorEventInit {
 
 static bool conv(wgpu::UncapturedErrorEventInit &out,
                  const std::shared_ptr<GPUUncapturedErrorEventInit> &in) {
-
   return conv(out.error, in->error) && conv(out.bubbles, in->bubbles) &&
          conv(out.cancelable, in->cancelable) &&
          conv(out.composed, in->composed);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

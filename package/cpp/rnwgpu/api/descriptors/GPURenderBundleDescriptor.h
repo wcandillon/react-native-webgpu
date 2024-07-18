@@ -22,10 +22,8 @@ struct GPURenderBundleDescriptor {
 
 static bool conv(wgpu::RenderBundleDescriptor &out,
                  const std::shared_ptr<GPURenderBundleDescriptor> &in) {
-
   return conv(out.label, in->label);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

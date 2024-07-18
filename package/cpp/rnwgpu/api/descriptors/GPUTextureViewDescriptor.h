@@ -30,7 +30,6 @@ struct GPUTextureViewDescriptor {
 
 static bool conv(wgpu::TextureViewDescriptor &out,
                  const std::shared_ptr<GPUTextureViewDescriptor> &in) {
-
   return conv(out.format, in->format) && conv(out.dimension, in->dimension) &&
          conv(out.aspect, in->aspect) &&
          conv(out.baseMipLevel, in->baseMipLevel) &&
@@ -39,7 +38,6 @@ static bool conv(wgpu::TextureViewDescriptor &out,
          conv(out.arrayLayerCount, in->arrayLayerCount) &&
          conv(out.label, in->label);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

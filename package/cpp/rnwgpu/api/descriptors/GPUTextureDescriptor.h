@@ -19,7 +19,7 @@ namespace m = margelo;
 namespace rnwgpu {
 
 struct GPUTextureDescriptor {
-  std::shared_ptr<GPUExtent3D> size;               // GPUExtent3DStrict
+  std::shared_ptr<GPUExtent3D> size;                                // GPUExtent3DStrict
   std::optional<double> mipLevelCount;             // GPUIntegerCoordinate
   std::optional<double> sampleCount;               // GPUSize32
   std::optional<wgpu::TextureDimension> dimension; // GPUTextureDimension
@@ -32,14 +32,13 @@ struct GPUTextureDescriptor {
 
 static bool conv(wgpu::TextureDescriptor &out,
                  const std::shared_ptr<GPUTextureDescriptor> &in) {
-  out.format = in->format;
   return conv(out.size, in->size) &&
          conv(out.mipLevelCount, in->mipLevelCount) &&
          conv(out.sampleCount, in->sampleCount) &&
-         conv(out.dimension, in->dimension) && conv(out.usage, in->usage) &&
-         conv(out.viewFormats, in->viewFormats) && conv(out.label, in->label);
+         conv(out.dimension, in->dimension) && conv(out.format, in->format) &&
+         conv(out.usage, in->usage) && conv(out.viewFormats, in->viewFormats) &&
+         conv(out.label, in->label);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

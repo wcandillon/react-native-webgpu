@@ -23,12 +23,10 @@ struct GPUBlendComponent {
 
 static bool conv(wgpu::BlendComponent &out,
                  const std::shared_ptr<GPUBlendComponent> &in) {
-
   return conv(out.operation, in->operation) &&
          conv(out.srcFactor, in->srcFactor) &&
          conv(out.dstFactor, in->dstFactor);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

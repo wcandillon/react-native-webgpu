@@ -27,14 +27,9 @@ struct GPUComputePipelineDescriptor {
 
 static bool conv(wgpu::ComputePipelineDescriptor &out,
                  const std::shared_ptr<GPUComputePipelineDescriptor> &in) {
-  if (std::holds_alternative<std::shared_ptr<GPUPipelineLayout>>(in->layout)) {
-    conv(out.layout, std::get<std::shared_ptr<GPUPipelineLayout>>(in->layout));
-  } else {
-    out.layout = nullptr;
-  }
-  return conv(out.compute, in->compute) && conv(out.label, in->label);
+  return conv(out.compute, in->compute) && conv(out.layout, in->layout) &&
+         conv(out.label, in->label);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

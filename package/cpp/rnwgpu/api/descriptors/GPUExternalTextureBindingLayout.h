@@ -18,10 +18,8 @@ struct GPUExternalTextureBindingLayout {};
 
 static bool conv(wgpu::ExternalTextureBindingLayout &out,
                  const std::shared_ptr<GPUExternalTextureBindingLayout> &in) {
-
   return;
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

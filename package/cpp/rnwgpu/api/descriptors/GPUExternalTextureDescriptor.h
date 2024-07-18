@@ -28,11 +28,9 @@ struct GPUExternalTextureDescriptor {
 
 static bool conv(wgpu::ExternalTextureDescriptor &out,
                  const std::shared_ptr<GPUExternalTextureDescriptor> &in) {
-
   return conv(out.source, in->source) && conv(out.colorSpace, in->colorSpace) &&
          conv(out.label, in->label);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

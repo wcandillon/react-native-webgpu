@@ -22,11 +22,9 @@ struct GPUVertexAttribute {
 
 static bool conv(wgpu::VertexAttribute &out,
                  const std::shared_ptr<GPUVertexAttribute> &in) {
-  out.format = in->format;
-  return conv(out.offset, in->offset) &&
+  return conv(out.format, in->format) && conv(out.offset, in->offset) &&
          conv(out.shaderLocation, in->shaderLocation);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

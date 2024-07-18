@@ -29,13 +29,11 @@ struct GPUCanvasConfiguration {
 
 static bool conv(wgpu::CanvasConfiguration &out,
                  const std::shared_ptr<GPUCanvasConfiguration> &in) {
-  out.format = in->format;
-  return conv(out.device, in->device) && conv(out.usage, in->usage) &&
-         conv(out.viewFormats, in->viewFormats) &&
+  return conv(out.device, in->device) && conv(out.format, in->format) &&
+         conv(out.usage, in->usage) && conv(out.viewFormats, in->viewFormats) &&
          conv(out.colorSpace, in->colorSpace) &&
          conv(out.alphaMode, in->alphaMode);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

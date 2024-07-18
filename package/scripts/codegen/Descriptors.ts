@@ -226,18 +226,20 @@ ${
     ? `
 static bool conv(wgpu::${nativeMapName[name] ?? name.substring(3)} &out,
           const std::shared_ptr<${name}> &in) {
-  ${props
-    .filter((t) => t.type.startsWith("wgpu::"))
-    .map((t) => `out.${t.name} = in->${t.name};`)
-    .join("\n")}
-  return ${props
-    .filter((t) => !t.type.startsWith("wgpu::"))
-    .map((p) => `conv(out.${p.name}, in->${p.name})`)
-    .join(" &&")};
+  return ${[
+    ...props
+      .filter((t) => t.type.startsWith("std::vector"))
+      .map(
+        (p) =>
+          `conv(out.${p.name}, out.${makeSingular(p.name)}Count, in->${p.name})`,
+      ),
+    ...props
+      .filter((t) => !t.type.startsWith("std::vector"))
+      .map((p) => `conv(out.${p.name}, in->${p.name})`),
+  ].join(" &&")};
 }`
     : ""
 }
-
 } // namespace rnwgpu
  
 namespace margelo {
@@ -264,6 +266,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
 };
 
 } // namespace margelo`;
+};
+
+const makeSingular = (word: string) => {
+  if (word === "entries") {
+    return "entry";
+  }
+  return word.endsWith("s") ? word.slice(0, -1) : word;
 };
 
 const customConv: Record<string, string> = {

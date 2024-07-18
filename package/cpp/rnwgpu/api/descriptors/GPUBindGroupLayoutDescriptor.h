@@ -29,7 +29,6 @@ static bool conv(wgpu::BindGroupLayoutDescriptor &out,
   return conv(out.entries, out.entryCount, in->entries) &&
          conv(out.label, in->label);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

@@ -24,11 +24,9 @@ struct GPUStorageTextureBindingLayout {
 
 static bool conv(wgpu::StorageTextureBindingLayout &out,
                  const std::shared_ptr<GPUStorageTextureBindingLayout> &in) {
-  out.format = in->format;
-  return conv(out.access, in->access) &&
+  return conv(out.access, in->access) && conv(out.format, in->format) &&
          conv(out.viewDimension, in->viewDimension);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

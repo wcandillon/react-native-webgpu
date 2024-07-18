@@ -31,7 +31,6 @@ struct GPURenderPassDepthStencilAttachment {
 static bool
 conv(wgpu::RenderPassDepthStencilAttachment &out,
      const std::shared_ptr<GPURenderPassDepthStencilAttachment> &in) {
-
   return conv(out.view, in->view) &&
          conv(out.depthClearValue, in->depthClearValue) &&
          conv(out.depthLoadOp, in->depthLoadOp) &&
@@ -42,7 +41,6 @@ conv(wgpu::RenderPassDepthStencilAttachment &out,
          conv(out.stencilStoreOp, in->stencilStoreOp) &&
          conv(out.stencilReadOnly, in->stencilReadOnly);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

@@ -22,10 +22,8 @@ struct GPUQueueDescriptor {
 
 static bool conv(wgpu::QueueDescriptor &out,
                  const std::shared_ptr<GPUQueueDescriptor> &in) {
-
   return conv(out.label, in->label);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

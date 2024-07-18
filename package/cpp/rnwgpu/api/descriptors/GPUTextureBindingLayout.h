@@ -24,12 +24,10 @@ struct GPUTextureBindingLayout {
 
 static bool conv(wgpu::TextureBindingLayout &out,
                  const std::shared_ptr<GPUTextureBindingLayout> &in) {
-
   return conv(out.sampleType, in->sampleType) &&
          conv(out.viewDimension, in->viewDimension) &&
          conv(out.multisampled, in->multisampled);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

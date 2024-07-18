@@ -25,12 +25,10 @@ struct GPUBufferDescriptor {
 
 static bool conv(wgpu::BufferDescriptor &out,
                  const std::shared_ptr<GPUBufferDescriptor> &in) {
-
   return conv(out.size, in->size) && conv(out.usage, in->usage) &&
          conv(out.mappedAtCreation, in->mappedAtCreation) &&
          conv(out.label, in->label);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

@@ -24,10 +24,9 @@ struct GPUColorTargetState {
 
 static bool conv(wgpu::ColorTargetState &out,
                  const std::shared_ptr<GPUColorTargetState> &in) {
-  out.format = in->format;
-  return conv(out.blend, in->blend) && conv(out.writeMask, in->writeMask);
+  return conv(out.format, in->format) && conv(out.blend, in->blend) &&
+         conv(out.writeMask, in->writeMask);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

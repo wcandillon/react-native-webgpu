@@ -23,12 +23,10 @@ struct GPUBufferBindingLayout {
 
 static bool conv(wgpu::BufferBindingLayout &out,
                  const std::shared_ptr<GPUBufferBindingLayout> &in) {
-
   return conv(out.type, in->type) &&
          conv(out.hasDynamicOffset, in->hasDynamicOffset) &&
          conv(out.minBindingSize, in->minBindingSize);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

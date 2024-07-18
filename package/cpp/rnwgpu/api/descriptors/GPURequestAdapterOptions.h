@@ -22,11 +22,9 @@ struct GPURequestAdapterOptions {
 
 static bool conv(wgpu::RequestAdapterOptions &out,
                  const std::shared_ptr<GPURequestAdapterOptions> &in) {
-
   return conv(out.powerPreference, in->powerPreference) &&
          conv(out.forceFallbackAdapter, in->forceFallbackAdapter);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

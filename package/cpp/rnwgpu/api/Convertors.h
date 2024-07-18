@@ -15,11 +15,24 @@ static bool conv(const char *out, const std::string &in) {
   return true;
 }
 
+template <typename OuterT>
+static bool conv(OuterT& out, const std::nullptr_t in) {
+    out = nullptr;
+    return true;
+}
+
 template <typename T, typename U>
 static typename std::enable_if<
     std::is_arithmetic<T>::value && std::is_arithmetic<U>::value, bool>::type
 conv(T &out, const U in) {
   out = static_cast<T>(in);
+  return true;
+}
+
+template <typename EnumT>
+static typename std::enable_if<std::is_enum<EnumT>::value, bool>::type
+conv(EnumT &out, const EnumT in) {
+  out = in;
   return true;
 }
 
@@ -50,6 +63,13 @@ static bool conv(OuterT *out, std::size_t &size,
   }
   out = outVector.data();
   return true;
+}
+
+template <typename OuterT, typename... InnerT>
+static bool conv(OuterT& out, const std::variant<InnerT...>& in) {
+    return std::visit([&out](const auto& value) {
+        return conv(out, value);
+    }, in);
 }
 
 template <typename T, typename = void> struct has_get : std::false_type {};

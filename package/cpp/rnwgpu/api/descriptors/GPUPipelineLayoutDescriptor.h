@@ -26,11 +26,10 @@ struct GPUPipelineLayoutDescriptor {
 
 static bool conv(wgpu::PipelineLayoutDescriptor &out,
                  const std::shared_ptr<GPUPipelineLayoutDescriptor> &in) {
-
-  return conv(out.bindGroupLayouts, in->bindGroupLayouts) &&
+  return conv(out.bindGroupLayouts, out.bindGroupLayoutCount,
+              in->bindGroupLayouts) &&
          conv(out.label, in->label);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

@@ -25,11 +25,9 @@ struct GPUComputePassDescriptor {
 
 static bool conv(wgpu::ComputePassDescriptor &out,
                  const std::shared_ptr<GPUComputePassDescriptor> &in) {
-
   return conv(out.timestampWrites, in->timestampWrites) &&
          conv(out.label, in->label);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

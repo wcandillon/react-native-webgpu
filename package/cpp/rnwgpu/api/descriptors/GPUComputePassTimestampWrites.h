@@ -24,12 +24,10 @@ struct GPUComputePassTimestampWrites {
 
 static bool conv(wgpu::ComputePassTimestampWrites &out,
                  const std::shared_ptr<GPUComputePassTimestampWrites> &in) {
-
   return conv(out.querySet, in->querySet) &&
          conv(out.beginningOfPassWriteIndex, in->beginningOfPassWriteIndex) &&
          conv(out.endOfPassWriteIndex, in->endOfPassWriteIndex);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

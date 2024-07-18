@@ -37,14 +37,12 @@ struct GPUBindGroupLayoutEntry {
 
 static bool conv(wgpu::BindGroupLayoutEntry &out,
                  const std::shared_ptr<GPUBindGroupLayoutEntry> &in) {
-
   return conv(out.binding, in->binding) &&
          conv(out.visibility, in->visibility) && conv(out.buffer, in->buffer) &&
          conv(out.sampler, in->sampler) && conv(out.texture, in->texture) &&
          conv(out.storageTexture, in->storageTexture) &&
          conv(out.externalTexture, in->externalTexture);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

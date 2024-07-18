@@ -33,12 +33,10 @@ struct GPUFragmentState {
 
 static bool conv(wgpu::FragmentState &out,
                  const std::shared_ptr<GPUFragmentState> &in) {
-
   return conv(out.targets, out.targetCount, in->targets) &&
          conv(out.module, in->module) && conv(out.entryPoint, in->entryPoint) &&
          conv(out.constants, in->constants);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

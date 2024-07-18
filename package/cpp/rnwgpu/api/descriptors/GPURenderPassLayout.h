@@ -27,12 +27,10 @@ struct GPURenderPassLayout {
 
 static bool conv(wgpu::RenderPassLayout &out,
                  const std::shared_ptr<GPURenderPassLayout> &in) {
-
-  return conv(out.colorFormats, in->colorFormats) &&
+  return conv(out.colorFormats, out.colorFormatCount, in->colorFormats) &&
          conv(out.depthStencilFormat, in->depthStencilFormat) &&
          conv(out.sampleCount, in->sampleCount) && conv(out.label, in->label);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

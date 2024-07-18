@@ -24,10 +24,9 @@ struct GPUQuerySetDescriptor {
 
 static bool conv(wgpu::QuerySetDescriptor &out,
                  const std::shared_ptr<GPUQuerySetDescriptor> &in) {
-  out.type = in->type;
-  return conv(out.count, in->count) && conv(out.label, in->label);
+  return conv(out.type, in->type) && conv(out.count, in->count) &&
+         conv(out.label, in->label);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

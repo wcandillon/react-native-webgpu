@@ -23,12 +23,10 @@ struct GPUImageDataLayout {
 
 static bool conv(wgpu::ImageDataLayout &out,
                  const std::shared_ptr<GPUImageDataLayout> &in) {
-
   return conv(out.offset, in->offset) &&
          conv(out.bytesPerRow, in->bytesPerRow) &&
          conv(out.rowsPerImage, in->rowsPerImage);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

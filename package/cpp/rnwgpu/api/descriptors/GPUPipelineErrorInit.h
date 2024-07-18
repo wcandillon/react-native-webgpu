@@ -20,10 +20,8 @@ struct GPUPipelineErrorInit {
 
 static bool conv(wgpu::PipelineErrorInit &out,
                  const std::shared_ptr<GPUPipelineErrorInit> &in) {
-  out.reason = in->reason;
-  return;
+  return conv(out.reason, in->reason);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {

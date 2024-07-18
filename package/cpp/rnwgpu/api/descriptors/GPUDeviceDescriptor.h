@@ -31,12 +31,10 @@ struct GPUDeviceDescriptor {
 
 static bool conv(wgpu::DeviceDescriptor &out,
                  const std::shared_ptr<GPUDeviceDescriptor> &in) {
-
   return conv(out.requiredFeatures, in->requiredFeatures) &&
          conv(out.requiredLimits, in->requiredLimits) &&
          conv(out.defaultQueue, in->defaultQueue) && conv(out.label, in->label);
 }
-
 } // namespace rnwgpu
 
 namespace margelo {
