@@ -31,7 +31,7 @@ public:
   std::string getBrand() { return _name; }
 
   std::future<std::shared_ptr<GPUDevice>>
-  requestDevice(std::shared_ptr<GPUDeviceDescriptor> options);
+  requestDevice(std::optional<std::shared_ptr<GPUDeviceDescriptor>> options);
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUAdapter::getBrand, this);
