@@ -4,7 +4,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -22,10 +21,6 @@ struct GPUColorDict {
   double a; // number
 };
 
-static bool conv(wgpu::Color &out, const std::shared_ptr<GPUColorDict> &in) {
-  return conv(out.r, in->r) && conv(out.g, in->g) && conv(out.b, in->b) &&
-         conv(out.a, in->a);
-}
 } // namespace rnwgpu
 
 namespace margelo {

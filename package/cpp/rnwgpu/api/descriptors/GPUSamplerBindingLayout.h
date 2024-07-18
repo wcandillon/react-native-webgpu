@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -20,10 +19,6 @@ struct GPUSamplerBindingLayout {
   std::optional<wgpu::SamplerBindingType> type; // GPUSamplerBindingType
 };
 
-static bool conv(wgpu::SamplerBindingLayout &out,
-                 const std::shared_ptr<GPUSamplerBindingLayout> &in) {
-  return conv(out.type, in->type);
-}
 } // namespace rnwgpu
 
 namespace margelo {

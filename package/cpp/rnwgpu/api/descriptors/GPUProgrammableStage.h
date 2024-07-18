@@ -7,7 +7,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUShaderModule.h"
 #include "Logger.h"
@@ -25,12 +24,6 @@ struct GPUProgrammableStage {
   std::optional<std::map<std::string, double>>
       constants; // Record< string, GPUPipelineConstantValue >
 };
-
-static bool conv(wgpu::ProgrammableStageDescriptor &out,
-                 const std::shared_ptr<GPUProgrammableStage> &in) {
-  // TODO: implement
-  return false;
-}
 
 } // namespace rnwgpu
 

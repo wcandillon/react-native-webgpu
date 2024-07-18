@@ -7,7 +7,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUColorDict.h"
 #include "GPUTextureView.h"
@@ -32,13 +31,6 @@ struct GPURenderPassColorAttachment {
   wgpu::StoreOp storeOp; // GPUStoreOp
 };
 
-static bool conv(wgpu::RenderPassColorAttachment &out,
-                 const std::shared_ptr<GPURenderPassColorAttachment> &in) {
-  return conv(out.view, in->view) && conv(out.depthSlice, in->depthSlice) &&
-         conv(out.resolveTarget, in->resolveTarget) &&
-         conv(out.clearValue, in->clearValue) && conv(out.loadOp, in->loadOp) &&
-         conv(out.storeOp, in->storeOp);
-}
 } // namespace rnwgpu
 
 namespace margelo {

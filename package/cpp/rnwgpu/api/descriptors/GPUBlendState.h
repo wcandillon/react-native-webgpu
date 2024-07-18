@@ -4,7 +4,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUBlendComponent.h"
 #include "Logger.h"
@@ -21,10 +20,6 @@ struct GPUBlendState {
   std::shared_ptr<GPUBlendComponent> alpha; // GPUBlendComponent
 };
 
-static bool conv(wgpu::BlendState &out,
-                 const std::shared_ptr<GPUBlendState> &in) {
-  return conv(out.color, in->color) && conv(out.alpha, in->alpha);
-}
 } // namespace rnwgpu
 
 namespace margelo {

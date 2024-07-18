@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -23,12 +22,6 @@ struct GPUTextureBindingLayout {
   std::optional<bool> multisampled; // boolean
 };
 
-static bool conv(wgpu::TextureBindingLayout &out,
-                 const std::shared_ptr<GPUTextureBindingLayout> &in) {
-  return conv(out.sampleType, in->sampleType) &&
-         conv(out.viewDimension, in->viewDimension) &&
-         conv(out.multisampled, in->multisampled);
-}
 } // namespace rnwgpu
 
 namespace margelo {

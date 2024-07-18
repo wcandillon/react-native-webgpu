@@ -9,7 +9,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUColorTargetState.h"
 #include "GPUShaderModule.h"
@@ -32,12 +31,6 @@ struct GPUFragmentState {
       constants; // Record< string, GPUPipelineConstantValue >
 };
 
-static bool conv(wgpu::FragmentState &out,
-                 const std::shared_ptr<GPUFragmentState> &in) {
-  return conv(out.targets, out.targetCount, in->targets) &&
-         conv(out.module, in->module) && conv(out.entryPoint, in->entryPoint) &&
-         conv(out.constants, in->constants);
-}
 } // namespace rnwgpu
 
 namespace margelo {

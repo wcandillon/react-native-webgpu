@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -23,20 +22,6 @@ struct GPUPrimitiveState {
   std::optional<wgpu::CullMode> cullMode;            // GPUCullMode
   std::optional<bool> unclippedDepth;                // boolean
 };
-
-static bool conv(wgpu::PrimitiveState &out,
-                 const std::shared_ptr<GPUPrimitiveState> &in) {
-  if (in->unclippedDepth) {
-    // TODO: fix memory leak here
-    wgpu::PrimitiveDepthClipControl *depthClip =
-        new wgpu::PrimitiveDepthClipControl();
-    depthClip->unclippedDepth = true;
-    out.nextInChain = depthClip;
-  }
-  return conv(out.topology, in->topology) &&
-         conv(out.stripIndexFormat, in->stripIndexFormat) &&
-         conv(out.frontFace, in->frontFace) && conv(out.cullMode, in->cullMode);
-}
 
 } // namespace rnwgpu
 

@@ -8,78 +8,51 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "GPUBindGroupDescriptor.h"
+
 namespace rnwgpu {
 
-static bool conv(const char *out, const std::string &in) {
-  out = in.c_str();
-  return true;
-}
-
-template <typename OuterT>
-static bool conv(OuterT &out, const std::nullptr_t in) {
-  out = nullptr;
-  return true;
-}
-
-template <typename T, typename U>
-static typename std::enable_if<
-    std::is_arithmetic<T>::value && std::is_arithmetic<U>::value, bool>::type
-conv(T &out, const U in) {
-  out = static_cast<T>(in);
-  return true;
-}
-
-template <typename EnumT>
-static typename std::enable_if<std::is_enum<EnumT>::value, bool>::type
-conv(EnumT &out, const EnumT in) {
-  out = in;
-  return true;
-}
-
-template <typename EnumT>
-static typename std::enable_if<std::is_enum<EnumT>::value, bool>::type
-conv(EnumT &out, const double in) {
-  out = static_cast<EnumT>(in);
-  return true;
-}
-
-template <typename OuterT, typename InnerT>
-static bool conv(OuterT &out, const std::optional<InnerT> &in) {
-  if (in.has_value()) {
-    return conv<OuterT, InnerT>(out, in.value());
-  }
-  return true;
-}
-
-template <typename OuterT, typename InnerT>
-static bool conv(OuterT *out, std::size_t &size,
-                 const std::vector<InnerT> &in) {
-  size = in.size();
-  std::vector<OuterT> outVector;
-  for (std::size_t i = 0; i < size; i++) {
-    if (!conv<OuterT, InnerT>(out[i], in[i])) {
-      return false;
+class Convertor {
+public:
+  ~Convertor() {
+    for (auto &free : free_) {
+      free();
     }
   }
-  out = outVector.data();
-  return true;
+
+  template <typename OUT, typename IN>
+  [[nodiscard]] inline bool operator()(OUT &&out, IN &&in) {
+    return Convert(std::forward<OUT>(out), std::forward<IN>(in));
+  }
+
+  template <typename T> [[nodiscard]] bool Convert(T &out, const T &in) {
+    out = in;
+    return true;
+  }
+
+  template <typename OUT, typename IN>
+  [[nodiscard]] bool Convert(OUT &out, const std::optional<IN> &in) {
+    if (in.has_value()) {
+      return Convert(out, in.value());
+    }
+    return true;
+  }
+
+  [[nodiscard]] bool Convert(wgpu::RequestAdapterOptions &out,
+                             const GPURequestAdapterOptions &in) {
+    return Convert(out.powerPreference, in.powerPreference) &&
+           Convert(out.forceFallbackAdapter, in.forceFallbackAdapter);
+  }
+
+private:
+  template <typename T> T *Allocate(size_t n = 1) {
+    auto *ptr = new T[n]{};
+    free_.emplace_back([ptr] { delete[] ptr; });
+    return ptr;
+  }
+
+  std::vector<std::function<void()>> free_;
 }
 
-template <typename OuterT, typename... InnerT>
-static bool conv(OuterT &out, const std::variant<InnerT...> &in) {
-  return std::visit([&out](const auto &value) { return conv(out, value); }, in);
-}
-
-template <typename T, typename = void> struct has_get : std::false_type {};
-
-template <typename T>
-struct has_get<T, std::void_t<decltype(std::declval<T>().get())>>
-    : std::true_type {};
-
-template <typename OuterT, typename InnerT>
-static auto conv(OuterT &out, const std::shared_ptr<InnerT> &in)
-    -> std::enable_if_t<has_get<InnerT>::value, bool> {
-  return conv<OuterT, decltype(in->get())>(out, in->get());
-}
 
 } // namespace rnwgpu

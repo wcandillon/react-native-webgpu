@@ -4,7 +4,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -17,10 +16,6 @@ namespace rnwgpu {
 
 struct GPUExternalTextureBindingLayout {};
 
-static bool conv(wgpu::ExternalTextureBindingLayout &out,
-                 const std::shared_ptr<GPUExternalTextureBindingLayout> &in) {
-  return;
-}
 } // namespace rnwgpu
 
 namespace margelo {

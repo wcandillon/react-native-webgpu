@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -21,11 +20,6 @@ struct GPURequestAdapterOptions {
   std::optional<bool> forceFallbackAdapter;             // boolean
 };
 
-static bool conv(wgpu::RequestAdapterOptions &out,
-                 const std::shared_ptr<GPURequestAdapterOptions> &in) {
-  return conv(out.powerPreference, in->powerPreference) &&
-         conv(out.forceFallbackAdapter, in->forceFallbackAdapter);
-}
 } // namespace rnwgpu
 
 namespace margelo {

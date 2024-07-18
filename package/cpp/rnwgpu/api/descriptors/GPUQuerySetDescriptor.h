@@ -6,7 +6,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -23,11 +22,6 @@ struct GPUQuerySetDescriptor {
   std::optional<std::string> label; // string
 };
 
-static bool conv(wgpu::QuerySetDescriptor &out,
-                 const std::shared_ptr<GPUQuerySetDescriptor> &in) {
-  return conv(out.type, in->type) && conv(out.count, in->count) &&
-         conv(out.label, in->label);
-}
 } // namespace rnwgpu
 
 namespace margelo {

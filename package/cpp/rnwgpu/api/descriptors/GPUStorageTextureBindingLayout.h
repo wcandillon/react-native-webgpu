@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -23,11 +22,6 @@ struct GPUStorageTextureBindingLayout {
       viewDimension; // GPUTextureViewDimension
 };
 
-static bool conv(wgpu::StorageTextureBindingLayout &out,
-                 const std::shared_ptr<GPUStorageTextureBindingLayout> &in) {
-  return conv(out.access, in->access) && conv(out.format, in->format) &&
-         conv(out.viewDimension, in->viewDimension);
-}
 } // namespace rnwgpu
 
 namespace margelo {

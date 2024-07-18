@@ -6,7 +6,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUDepthStencilState.h"
 #include "GPUFragmentState.h"
@@ -37,14 +36,6 @@ struct GPURenderPipelineDescriptor {
   std::optional<std::string> label; // string
 };
 
-static bool conv(wgpu::RenderPipelineDescriptor &out,
-                 const std::shared_ptr<GPURenderPipelineDescriptor> &in) {
-  return conv(out.vertex, in->vertex) && conv(out.primitive, in->primitive) &&
-         conv(out.depthStencil, in->depthStencil) &&
-         conv(out.multisample, in->multisample) &&
-         conv(out.fragment, in->fragment) && conv(out.layout, in->layout) &&
-         conv(out.label, in->label);
-}
 } // namespace rnwgpu
 
 namespace margelo {

@@ -7,7 +7,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUExtent3D.h"
 #include "Logger.h"
@@ -31,15 +30,6 @@ struct GPUTextureDescriptor {
   std::optional<std::string> label; // string
 };
 
-static bool conv(wgpu::TextureDescriptor &out,
-                 const std::shared_ptr<GPUTextureDescriptor> &in) {
-  return conv(out.size, in->size) &&
-         conv(out.mipLevelCount, in->mipLevelCount) &&
-         conv(out.sampleCount, in->sampleCount) &&
-         conv(out.dimension, in->dimension) && conv(out.format, in->format) &&
-         conv(out.usage, in->usage) && conv(out.viewFormats, in->viewFormats) &&
-         conv(out.label, in->label);
-}
 } // namespace rnwgpu
 
 namespace margelo {

@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUOrigin3D.h"
 #include "GPUTexture.h"
@@ -27,13 +26,6 @@ struct GPUImageCopyTextureTagged {
   std::optional<wgpu::TextureAspect> aspect;          // GPUTextureAspect
 };
 
-static bool conv(wgpu::ImageCopyTextureTagged &out,
-                 const std::shared_ptr<GPUImageCopyTextureTagged> &in) {
-  return conv(out.colorSpace, in->colorSpace) &&
-         conv(out.premultipliedAlpha, in->premultipliedAlpha) &&
-         conv(out.texture, in->texture) && conv(out.mipLevel, in->mipLevel) &&
-         conv(out.origin, in->origin) && conv(out.aspect, in->aspect);
-}
 } // namespace rnwgpu
 
 namespace margelo {

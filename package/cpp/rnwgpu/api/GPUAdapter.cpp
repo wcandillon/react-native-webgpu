@@ -15,6 +15,7 @@ GPUAdapter::requestDevice(std::shared_ptr<GPUDeviceDescriptor> descriptor) {
                                          descriptor = std::move(descriptor)]() {
     wgpu::Device device = nullptr;
     wgpu::DeviceDescriptor aDescriptor;
+    Convertor conv;
     conv(aDescriptor, descriptor);
     wgpu::DeviceLostCallbackInfo info = {
         .callback = [](WGPUDevice const *device, WGPUDeviceLostReason reason,

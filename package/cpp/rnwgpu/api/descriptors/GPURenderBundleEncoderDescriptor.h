@@ -7,7 +7,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -28,14 +27,6 @@ struct GPURenderBundleEncoderDescriptor {
   std::optional<std::string> label;                      // string
 };
 
-static bool conv(wgpu::RenderBundleEncoderDescriptor &out,
-                 const std::shared_ptr<GPURenderBundleEncoderDescriptor> &in) {
-  return conv(out.colorFormats, out.colorFormatCount, in->colorFormats) &&
-         conv(out.depthReadOnly, in->depthReadOnly) &&
-         conv(out.stencilReadOnly, in->stencilReadOnly) &&
-         conv(out.depthStencilFormat, in->depthStencilFormat) &&
-         conv(out.sampleCount, in->sampleCount) && conv(out.label, in->label);
-}
 } // namespace rnwgpu
 
 namespace margelo {

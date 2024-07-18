@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -23,11 +22,6 @@ struct GPUStencilFaceState {
   std::optional<wgpu::StencilOperation> passOp;      // GPUStencilOperation
 };
 
-static bool conv(wgpu::StencilFaceState &out,
-                 const std::shared_ptr<GPUStencilFaceState> &in) {
-  return conv(out.compare, in->compare) && conv(out.failOp, in->failOp) &&
-         conv(out.depthFailOp, in->depthFailOp) && conv(out.passOp, in->passOp);
-}
 } // namespace rnwgpu
 
 namespace margelo {

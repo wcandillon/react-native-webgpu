@@ -7,7 +7,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUBindGroupLayoutEntry.h"
 #include "Logger.h"
@@ -25,11 +24,6 @@ struct GPUBindGroupLayoutDescriptor {
   std::optional<std::string> label; // string
 };
 
-static bool conv(wgpu::BindGroupLayoutDescriptor &out,
-                 const std::shared_ptr<GPUBindGroupLayoutDescriptor> &in) {
-  return conv(out.entries, out.entryCount, in->entries) &&
-         conv(out.label, in->label);
-}
 } // namespace rnwgpu
 
 namespace margelo {

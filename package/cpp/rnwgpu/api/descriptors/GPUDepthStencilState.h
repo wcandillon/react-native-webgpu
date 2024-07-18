@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUStencilFaceState.h"
 #include "Logger.h"
@@ -32,19 +31,6 @@ struct GPUDepthStencilState {
   std::optional<double> depthBiasClamp;      // number
 };
 
-static bool conv(wgpu::DepthStencilState &out,
-                 const std::shared_ptr<GPUDepthStencilState> &in) {
-  return conv(out.format, in->format) &&
-         conv(out.depthWriteEnabled, in->depthWriteEnabled) &&
-         conv(out.depthCompare, in->depthCompare) &&
-         conv(out.stencilFront, in->stencilFront) &&
-         conv(out.stencilBack, in->stencilBack) &&
-         conv(out.stencilReadMask, in->stencilReadMask) &&
-         conv(out.stencilWriteMask, in->stencilWriteMask) &&
-         conv(out.depthBias, in->depthBias) &&
-         conv(out.depthBiasSlopeScale, in->depthBiasSlopeScale) &&
-         conv(out.depthBiasClamp, in->depthBiasClamp);
-}
 } // namespace rnwgpu
 
 namespace margelo {

@@ -6,7 +6,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUVertexAttribute.h"
 #include "Logger.h"
@@ -25,12 +24,6 @@ struct GPUVertexBufferLayout {
       attributes; // Iterable<GPUVertexAttribute>
 };
 
-static bool conv(wgpu::VertexBufferLayout &out,
-                 const std::shared_ptr<GPUVertexBufferLayout> &in) {
-  return conv(out.attributes, out.attributeCount, in->attributes) &&
-         conv(out.arrayStride, in->arrayStride) &&
-         conv(out.stepMode, in->stepMode);
-}
 } // namespace rnwgpu
 
 namespace margelo {

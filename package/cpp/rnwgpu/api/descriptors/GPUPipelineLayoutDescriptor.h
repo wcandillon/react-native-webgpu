@@ -7,7 +7,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUBindGroupLayout.h"
 #include "Logger.h"
@@ -25,12 +24,6 @@ struct GPUPipelineLayoutDescriptor {
   std::optional<std::string> label; // string
 };
 
-static bool conv(wgpu::PipelineLayoutDescriptor &out,
-                 const std::shared_ptr<GPUPipelineLayoutDescriptor> &in) {
-  return conv(out.bindGroupLayouts, out.bindGroupLayoutCount,
-              in->bindGroupLayouts) &&
-         conv(out.label, in->label);
-}
 } // namespace rnwgpu
 
 namespace margelo {

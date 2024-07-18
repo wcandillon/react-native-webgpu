@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUBlendState.h"
 #include "Logger.h"
@@ -23,11 +22,6 @@ struct GPUColorTargetState {
   std::optional<double> writeMask;                     // GPUColorWriteFlags
 };
 
-static bool conv(wgpu::ColorTargetState &out,
-                 const std::shared_ptr<GPUColorTargetState> &in) {
-  return conv(out.format, in->format) && conv(out.blend, in->blend) &&
-         conv(out.writeMask, in->writeMask);
-}
 } // namespace rnwgpu
 
 namespace margelo {

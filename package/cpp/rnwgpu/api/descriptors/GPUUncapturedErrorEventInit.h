@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUError.h"
 #include "Logger.h"
@@ -24,12 +23,6 @@ struct GPUUncapturedErrorEventInit {
   std::optional<bool> composed;    // boolean
 };
 
-static bool conv(wgpu::UncapturedErrorEventInit &out,
-                 const std::shared_ptr<GPUUncapturedErrorEventInit> &in) {
-  return conv(out.error, in->error) && conv(out.bubbles, in->bubbles) &&
-         conv(out.cancelable, in->cancelable) &&
-         conv(out.composed, in->composed);
-}
 } // namespace rnwgpu
 
 namespace margelo {

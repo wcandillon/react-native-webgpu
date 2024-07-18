@@ -6,7 +6,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -21,10 +20,6 @@ struct GPUCommandEncoderDescriptor {
   std::optional<std::string> label; // string
 };
 
-static bool conv(wgpu::CommandEncoderDescriptor &out,
-                 const std::shared_ptr<GPUCommandEncoderDescriptor> &in) {
-  return conv(out.label, in->label);
-}
 } // namespace rnwgpu
 
 namespace margelo {

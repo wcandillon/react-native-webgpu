@@ -1,12 +1,15 @@
 #include "GPU.h"
 #include <utility>
 
+#include "Convertors.h"
+
 namespace rnwgpu {
 
 std::future<std::shared_ptr<GPUAdapter>>
 GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
   return std::async(std::launch::async, [this, options]() {
     wgpu::RequestAdapterOptions aOptions;
+    Convertor conv;
     conv(aOptions, options);
     wgpu::Adapter adapter = nullptr;
     _instance.RequestAdapter(

@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -22,12 +21,6 @@ struct GPUImageDataLayout {
   std::optional<double> rowsPerImage; // GPUSize32
 };
 
-static bool conv(wgpu::ImageDataLayout &out,
-                 const std::shared_ptr<GPUImageDataLayout> &in) {
-  return conv(out.offset, in->offset) &&
-         conv(out.bytesPerRow, in->bytesPerRow) &&
-         conv(out.rowsPerImage, in->rowsPerImage);
-}
 } // namespace rnwgpu
 
 namespace margelo {

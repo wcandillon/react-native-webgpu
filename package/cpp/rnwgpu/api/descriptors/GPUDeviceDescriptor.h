@@ -8,7 +8,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUQueueDescriptor.h"
 #include "Logger.h"
@@ -30,12 +29,6 @@ struct GPUDeviceDescriptor {
   std::optional<std::string> label; // string
 };
 
-static bool conv(wgpu::DeviceDescriptor &out,
-                 const std::shared_ptr<GPUDeviceDescriptor> &in) {
-  return conv(out.requiredFeatures, in->requiredFeatures) &&
-         conv(out.requiredLimits, in->requiredLimits) &&
-         conv(out.defaultQueue, in->defaultQueue) && conv(out.label, in->label);
-}
 } // namespace rnwgpu
 
 namespace margelo {

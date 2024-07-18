@@ -9,7 +9,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUShaderModule.h"
 #include "GPUVertexBufferLayout.h"
@@ -32,12 +31,6 @@ struct GPUVertexState {
       constants; // Record< string, GPUPipelineConstantValue >
 };
 
-static bool conv(wgpu::VertexState &out,
-                 const std::shared_ptr<GPUVertexState> &in) {
-  return conv(out.buffers, in->buffers) && conv(out.module, in->module) &&
-         conv(out.entryPoint, in->entryPoint) &&
-         conv(out.constants, in->constants);
-}
 } // namespace rnwgpu
 
 namespace margelo {

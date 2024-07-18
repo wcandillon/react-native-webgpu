@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUBuffer.h"
 #include "Logger.h"
@@ -23,13 +22,6 @@ struct GPUImageCopyBuffer {
   std::optional<double> bytesPerRow;  // GPUSize32
   std::optional<double> rowsPerImage; // GPUSize32
 };
-
-static bool conv(wgpu::ImageCopyBuffer &out,
-                 const std::shared_ptr<GPUImageCopyBuffer> &in) {
-  return conv(out.buffer, in->buffer) && conv(out.layout.offset, in->offset) &&
-         conv(out.layout.bytesPerRow, in->bytesPerRow) &&
-         conv(out.layout.rowsPerImage, in->rowsPerImage);
-}
 
 } // namespace rnwgpu
 

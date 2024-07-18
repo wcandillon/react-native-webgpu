@@ -6,7 +6,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUComputePassTimestampWrites.h"
 #include "Logger.h"
@@ -24,11 +23,6 @@ struct GPUComputePassDescriptor {
   std::optional<std::string> label; // string
 };
 
-static bool conv(wgpu::ComputePassDescriptor &out,
-                 const std::shared_ptr<GPUComputePassDescriptor> &in) {
-  return conv(out.timestampWrites, in->timestampWrites) &&
-         conv(out.label, in->label);
-}
 } // namespace rnwgpu
 
 namespace margelo {

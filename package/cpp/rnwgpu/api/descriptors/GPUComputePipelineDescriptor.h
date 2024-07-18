@@ -6,7 +6,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUPipelineLayout.h"
 #include "GPUProgrammableStage.h"
@@ -26,11 +25,6 @@ struct GPUComputePipelineDescriptor {
   std::optional<std::string> label; // string
 };
 
-static bool conv(wgpu::ComputePipelineDescriptor &out,
-                 const std::shared_ptr<GPUComputePipelineDescriptor> &in) {
-  return conv(out.compute, in->compute) && conv(out.layout, in->layout) &&
-         conv(out.label, in->label);
-}
 } // namespace rnwgpu
 
 namespace margelo {

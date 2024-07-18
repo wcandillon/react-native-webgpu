@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -22,12 +21,6 @@ struct GPUBlendComponent {
   std::optional<wgpu::BlendFactor> dstFactor;    // GPUBlendFactor
 };
 
-static bool conv(wgpu::BlendComponent &out,
-                 const std::shared_ptr<GPUBlendComponent> &in) {
-  return conv(out.operation, in->operation) &&
-         conv(out.srcFactor, in->srcFactor) &&
-         conv(out.dstFactor, in->dstFactor);
-}
 } // namespace rnwgpu
 
 namespace margelo {

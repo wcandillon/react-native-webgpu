@@ -4,7 +4,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -19,10 +18,6 @@ struct GPUPipelineErrorInit {
   wgpu::PipelineErrorReason reason; // GPUPipelineErrorReason
 };
 
-static bool conv(wgpu::PipelineErrorInit &out,
-                 const std::shared_ptr<GPUPipelineErrorInit> &in) {
-  return conv(out.reason, in->reason);
-}
 } // namespace rnwgpu
 
 namespace margelo {

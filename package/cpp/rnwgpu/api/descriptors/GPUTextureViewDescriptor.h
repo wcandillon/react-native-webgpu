@@ -6,7 +6,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -29,16 +28,6 @@ struct GPUTextureViewDescriptor {
   std::optional<std::string> label;          // string
 };
 
-static bool conv(wgpu::TextureViewDescriptor &out,
-                 const std::shared_ptr<GPUTextureViewDescriptor> &in) {
-  return conv(out.format, in->format) && conv(out.dimension, in->dimension) &&
-         conv(out.aspect, in->aspect) &&
-         conv(out.baseMipLevel, in->baseMipLevel) &&
-         conv(out.mipLevelCount, in->mipLevelCount) &&
-         conv(out.baseArrayLayer, in->baseArrayLayer) &&
-         conv(out.arrayLayerCount, in->arrayLayerCount) &&
-         conv(out.label, in->label);
-}
 } // namespace rnwgpu
 
 namespace margelo {

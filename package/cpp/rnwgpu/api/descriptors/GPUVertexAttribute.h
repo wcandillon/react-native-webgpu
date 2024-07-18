@@ -4,7 +4,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -21,11 +20,6 @@ struct GPUVertexAttribute {
   double shaderLocation;     // GPUIndex32
 };
 
-static bool conv(wgpu::VertexAttribute &out,
-                 const std::shared_ptr<GPUVertexAttribute> &in) {
-  return conv(out.format, in->format) && conv(out.offset, in->offset) &&
-         conv(out.shaderLocation, in->shaderLocation);
-}
 } // namespace rnwgpu
 
 namespace margelo {

@@ -6,7 +6,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUDevice.h"
 #include "Logger.h"
@@ -28,13 +27,6 @@ struct GPUCanvasConfiguration {
   std::optional<wgpu::CanvasAlphaMode> alphaMode;    // GPUCanvasAlphaMode
 };
 
-static bool conv(wgpu::CanvasConfiguration &out,
-                 const std::shared_ptr<GPUCanvasConfiguration> &in) {
-  return conv(out.device, in->device) && conv(out.format, in->format) &&
-         conv(out.usage, in->usage) && conv(out.viewFormats, in->viewFormats) &&
-         conv(out.colorSpace, in->colorSpace) &&
-         conv(out.alphaMode, in->alphaMode);
-}
 } // namespace rnwgpu
 
 namespace margelo {

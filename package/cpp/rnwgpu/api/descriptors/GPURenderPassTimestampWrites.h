@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUQuerySet.h"
 #include "Logger.h"
@@ -23,12 +22,6 @@ struct GPURenderPassTimestampWrites {
   std::optional<double> endOfPassWriteIndex;       // GPUSize32
 };
 
-static bool conv(wgpu::RenderPassTimestampWrites &out,
-                 const std::shared_ptr<GPURenderPassTimestampWrites> &in) {
-  return conv(out.querySet, in->querySet) &&
-         conv(out.beginningOfPassWriteIndex, in->beginningOfPassWriteIndex) &&
-         conv(out.endOfPassWriteIndex, in->endOfPassWriteIndex);
-}
 } // namespace rnwgpu
 
 namespace margelo {

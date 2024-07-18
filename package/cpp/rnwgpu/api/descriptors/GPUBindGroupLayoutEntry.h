@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUBufferBindingLayout.h"
 #include "GPUExternalTextureBindingLayout.h"
@@ -36,14 +35,6 @@ struct GPUBindGroupLayoutEntry {
       externalTexture; // GPUExternalTextureBindingLayout
 };
 
-static bool conv(wgpu::BindGroupLayoutEntry &out,
-                 const std::shared_ptr<GPUBindGroupLayoutEntry> &in) {
-  return conv(out.binding, in->binding) &&
-         conv(out.visibility, in->visibility) && conv(out.buffer, in->buffer) &&
-         conv(out.sampler, in->sampler) && conv(out.texture, in->texture) &&
-         conv(out.storageTexture, in->storageTexture) &&
-         conv(out.externalTexture, in->externalTexture);
-}
 } // namespace rnwgpu
 
 namespace margelo {

@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
@@ -22,12 +21,6 @@ struct GPUBufferBindingLayout {
   std::optional<double> minBindingSize;        // GPUSize64
 };
 
-static bool conv(wgpu::BufferBindingLayout &out,
-                 const std::shared_ptr<GPUBufferBindingLayout> &in) {
-  return conv(out.type, in->type) &&
-         conv(out.hasDynamicOffset, in->hasDynamicOffset) &&
-         conv(out.minBindingSize, in->minBindingSize);
-}
 } // namespace rnwgpu
 
 namespace margelo {
