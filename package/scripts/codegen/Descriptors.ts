@@ -159,7 +159,7 @@ const jsiProp = ({ name, type }: Prop) => {
   }`;
 };
 
-export const getDescriptor = (decl: InterfaceDeclaration) => {
+export const getDescriptor = (decl: InterfaceDeclaration, skeleton = false) => {
   mergeParentInterfaces(decl);
   const name = decl.getName();
   const dependencies = new Set<string>();
@@ -182,6 +182,14 @@ export const getDescriptor = (decl: InterfaceDeclaration) => {
         debug,
       };
     });
+  if (skeleton) {
+    const log = `
+  [[nodiscard]] bool Convert(wgpu::${name.substring(3)} &out,
+                             const ${name} &in) {
+    return ${props.map((p) => `conv(out.${p.name}, in.${p.name})`).join("&&")};
+  }`;
+    console.log(log);
+  }
   return `#pragma once
 
 #include <memory>
