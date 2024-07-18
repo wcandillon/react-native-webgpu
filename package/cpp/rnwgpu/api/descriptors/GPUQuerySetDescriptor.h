@@ -23,8 +23,7 @@ struct GPUQuerySetDescriptor {
 };
 
 static bool conv(wgpu::QuerySetDescriptor &out,
-                 std::shared_ptr<GPUQuerySetDescriptor> &in) {
-
+                 const std::shared_ptr<GPUQuerySetDescriptor> &in) {
   out.type = in->type;
   return conv(out.count, in->count) && conv(out.label, in->label);
 }

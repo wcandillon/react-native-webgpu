@@ -28,7 +28,7 @@ struct GPUBindGroupEntry {
 };
 
 static bool conv(wgpu::BindGroupEntry &out,
-                 std::shared_ptr<GPUBindGroupEntry> &in) {
+                 const std::shared_ptr<GPUBindGroupEntry> &in) {
   // out = {};
   if (!conv(out.binding, in->binding)) {
     return false;

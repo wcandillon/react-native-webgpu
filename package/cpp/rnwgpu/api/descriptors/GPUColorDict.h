@@ -21,7 +21,7 @@ struct GPUColorDict {
   double a; // number
 };
 
-static bool conv(wgpu::Color &out, std::shared_ptr<GPUColorDict> &in) {
+static bool conv(wgpu::Color &out, const std::shared_ptr<GPUColorDict> &in) {
 
   return conv(out.r, in->r) && conv(out.g, in->g) && conv(out.b, in->b) &&
          conv(out.a, in->a);

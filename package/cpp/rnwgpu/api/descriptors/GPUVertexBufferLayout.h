@@ -25,7 +25,8 @@ struct GPUVertexBufferLayout {
 };
 
 static bool conv(wgpu::VertexBufferLayout &out,
-                 std::shared_ptr<GPUVertexBufferLayout> &in) {
+                 const std::shared_ptr<GPUVertexBufferLayout> &in) {
+
   return conv(out.arrayStride, in->arrayStride) &&
          conv(out.stepMode, in->stepMode) &&
          conv(out.attributes, out.attributeCount, in->attributes);

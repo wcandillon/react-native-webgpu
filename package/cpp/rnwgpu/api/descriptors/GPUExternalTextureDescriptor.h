@@ -27,7 +27,7 @@ struct GPUExternalTextureDescriptor {
 };
 
 static bool conv(wgpu::ExternalTextureDescriptor &out,
-                 std::shared_ptr<GPUExternalTextureDescriptor> &in) {
+                 const std::shared_ptr<GPUExternalTextureDescriptor> &in) {
 
   return conv(out.source, in->source) && conv(out.colorSpace, in->colorSpace) &&
          conv(out.label, in->label);

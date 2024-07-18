@@ -31,7 +31,7 @@ struct GPUImageCopyTextureTagged {
 };
 
 static bool conv(wgpu::ImageCopyTextureTagged &out,
-                 std::shared_ptr<GPUImageCopyTextureTagged> &in) {
+                 const std::shared_ptr<GPUImageCopyTextureTagged> &in) {
 
   return conv(out.colorSpace, in->colorSpace) &&
          conv(out.premultipliedAlpha, in->premultipliedAlpha) &&

@@ -28,8 +28,7 @@ struct GPURenderBundleEncoderDescriptor {
 };
 
 static bool conv(wgpu::RenderBundleEncoderDescriptor &out,
-                 std::shared_ptr<GPURenderBundleEncoderDescriptor> &in) {
-  out.colorFormatCount = in->colorFormats.size();
+                 const std::shared_ptr<GPURenderBundleEncoderDescriptor> &in) {
 
   return conv(out.depthReadOnly, in->depthReadOnly) &&
          conv(out.stencilReadOnly, in->stencilReadOnly) &&

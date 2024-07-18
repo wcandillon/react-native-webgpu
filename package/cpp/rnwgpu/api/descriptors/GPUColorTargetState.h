@@ -23,8 +23,7 @@ struct GPUColorTargetState {
 };
 
 static bool conv(wgpu::ColorTargetState &out,
-                 std::shared_ptr<GPUColorTargetState> &in) {
-
+                 const std::shared_ptr<GPUColorTargetState> &in) {
   out.format = in->format;
   return conv(out.blend, in->blend) && conv(out.writeMask, in->writeMask);
 }

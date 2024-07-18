@@ -3,7 +3,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <variant>
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -27,7 +26,7 @@ struct GPUComputePipelineDescriptor {
 };
 
 static bool conv(wgpu::ComputePipelineDescriptor &out,
-                 std::shared_ptr<GPUComputePipelineDescriptor> &in) {
+                 const std::shared_ptr<GPUComputePipelineDescriptor> &in) {
   if (std::holds_alternative<std::shared_ptr<GPUPipelineLayout>>(in->layout)) {
     conv(out.layout, std::get<std::shared_ptr<GPUPipelineLayout>>(in->layout));
   } else {

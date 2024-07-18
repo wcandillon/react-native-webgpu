@@ -28,8 +28,7 @@ struct GPUCanvasConfiguration {
 };
 
 static bool conv(wgpu::CanvasConfiguration &out,
-                 std::shared_ptr<GPUCanvasConfiguration> &in) {
-
+                 const std::shared_ptr<GPUCanvasConfiguration> &in) {
   out.format = in->format;
   return conv(out.device, in->device) && conv(out.usage, in->usage) &&
          conv(out.viewFormats, in->viewFormats) &&

@@ -27,7 +27,8 @@ struct GPUBindGroupDescriptor {
 };
 
 static bool conv(wgpu::BindGroupDescriptor &out,
-                 std::shared_ptr<GPUBindGroupDescriptor> &in) {
+                 const std::shared_ptr<GPUBindGroupDescriptor> &in) {
+
   return conv(out.layout, in->layout) &&
          conv(out.entries, out.entryCount, in->entries) &&
          conv(out.label, in->label);

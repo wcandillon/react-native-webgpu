@@ -24,7 +24,7 @@ struct GPUImageCopyBuffer {
 };
 
 static bool conv(wgpu::ImageCopyBuffer &out,
-                 std::shared_ptr<GPUImageCopyBuffer> &in) {
+                 const std::shared_ptr<GPUImageCopyBuffer> &in) {
   return conv(out.buffer, in->buffer) && conv(out.layout.offset, in->offset) &&
          conv(out.layout.bytesPerRow, in->bytesPerRow) &&
          conv(out.layout.rowsPerImage, in->rowsPerImage);

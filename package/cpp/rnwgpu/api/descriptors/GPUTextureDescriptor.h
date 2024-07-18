@@ -31,8 +31,7 @@ struct GPUTextureDescriptor {
 };
 
 static bool conv(wgpu::TextureDescriptor &out,
-                 std::shared_ptr<GPUTextureDescriptor> &in) {
-
+                 const std::shared_ptr<GPUTextureDescriptor> &in) {
   out.format = in->format;
   return conv(out.size, in->size) &&
          conv(out.mipLevelCount, in->mipLevelCount) &&

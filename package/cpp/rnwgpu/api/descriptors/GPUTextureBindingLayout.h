@@ -23,7 +23,7 @@ struct GPUTextureBindingLayout {
 };
 
 static bool conv(wgpu::TextureBindingLayout &out,
-                 std::shared_ptr<GPUTextureBindingLayout> &in) {
+                 const std::shared_ptr<GPUTextureBindingLayout> &in) {
 
   return conv(out.sampleType, in->sampleType) &&
          conv(out.viewDimension, in->viewDimension) &&

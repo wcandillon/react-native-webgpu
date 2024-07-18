@@ -24,7 +24,7 @@ struct GPUComputePassDescriptor {
 };
 
 static bool conv(wgpu::ComputePassDescriptor &out,
-                 std::shared_ptr<GPUComputePassDescriptor> &in) {
+                 const std::shared_ptr<GPUComputePassDescriptor> &in) {
 
   return conv(out.timestampWrites, in->timestampWrites) &&
          conv(out.label, in->label);

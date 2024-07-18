@@ -21,7 +21,7 @@ struct GPURenderBundleDescriptor {
 };
 
 static bool conv(wgpu::RenderBundleDescriptor &out,
-                 std::shared_ptr<GPURenderBundleDescriptor> &in) {
+                 const std::shared_ptr<GPURenderBundleDescriptor> &in) {
 
   return conv(out.label, in->label);
 }

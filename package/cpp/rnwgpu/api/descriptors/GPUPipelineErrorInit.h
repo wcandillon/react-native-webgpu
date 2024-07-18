@@ -19,8 +19,7 @@ struct GPUPipelineErrorInit {
 };
 
 static bool conv(wgpu::PipelineErrorInit &out,
-                 std::shared_ptr<GPUPipelineErrorInit> &in) {
-
+                 const std::shared_ptr<GPUPipelineErrorInit> &in) {
   out.reason = in->reason;
   return;
 }

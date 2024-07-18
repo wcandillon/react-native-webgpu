@@ -29,7 +29,7 @@ struct GPUTextureViewDescriptor {
 };
 
 static bool conv(wgpu::TextureViewDescriptor &out,
-                 std::shared_ptr<GPUTextureViewDescriptor> &in) {
+                 const std::shared_ptr<GPUTextureViewDescriptor> &in) {
 
   return conv(out.format, in->format) && conv(out.dimension, in->dimension) &&
          conv(out.aspect, in->aspect) &&

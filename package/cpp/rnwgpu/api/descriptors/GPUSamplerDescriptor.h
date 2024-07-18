@@ -31,7 +31,7 @@ struct GPUSamplerDescriptor {
 };
 
 static bool conv(wgpu::SamplerDescriptor &out,
-                 std::shared_ptr<GPUSamplerDescriptor> &in) {
+                 const std::shared_ptr<GPUSamplerDescriptor> &in) {
 
   return conv(out.addressModeU, in->addressModeU) &&
          conv(out.addressModeV, in->addressModeV) &&

@@ -25,8 +25,7 @@ struct GPUPipelineLayoutDescriptor {
 };
 
 static bool conv(wgpu::PipelineLayoutDescriptor &out,
-                 std::shared_ptr<GPUPipelineLayoutDescriptor> &in) {
-  out.bindGroupLayoutCount = in->bindGroupLayouts.size();
+                 const std::shared_ptr<GPUPipelineLayoutDescriptor> &in) {
 
   return conv(out.bindGroupLayouts, in->bindGroupLayouts) &&
          conv(out.label, in->label);

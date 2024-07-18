@@ -23,7 +23,7 @@ struct GPURenderPassTimestampWrites {
 };
 
 static bool conv(wgpu::RenderPassTimestampWrites &out,
-                 std::shared_ptr<GPURenderPassTimestampWrites> &in) {
+                 const std::shared_ptr<GPURenderPassTimestampWrites> &in) {
 
   return conv(out.querySet, in->querySet) &&
          conv(out.beginningOfPassWriteIndex, in->beginningOfPassWriteIndex) &&

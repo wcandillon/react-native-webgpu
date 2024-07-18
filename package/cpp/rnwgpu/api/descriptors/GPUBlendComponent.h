@@ -22,7 +22,7 @@ struct GPUBlendComponent {
 };
 
 static bool conv(wgpu::BlendComponent &out,
-                 std::shared_ptr<GPUBlendComponent> &in) {
+                 const std::shared_ptr<GPUBlendComponent> &in) {
 
   return conv(out.operation, in->operation) &&
          conv(out.srcFactor, in->srcFactor) &&

@@ -26,8 +26,7 @@ struct GPURenderPassLayout {
 };
 
 static bool conv(wgpu::RenderPassLayout &out,
-                 std::shared_ptr<GPURenderPassLayout> &in) {
-  out.colorFormatCount = in->colorFormats.size();
+                 const std::shared_ptr<GPURenderPassLayout> &in) {
 
   return conv(out.colorFormats, in->colorFormats) &&
          conv(out.depthStencilFormat, in->depthStencilFormat) &&

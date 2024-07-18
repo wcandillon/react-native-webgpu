@@ -21,8 +21,7 @@ struct GPUVertexAttribute {
 };
 
 static bool conv(wgpu::VertexAttribute &out,
-                 std::shared_ptr<GPUVertexAttribute> &in) {
-
+                 const std::shared_ptr<GPUVertexAttribute> &in) {
   out.format = in->format;
   return conv(out.offset, in->offset) &&
          conv(out.shaderLocation, in->shaderLocation);

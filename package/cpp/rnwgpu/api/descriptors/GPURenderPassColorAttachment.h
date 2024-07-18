@@ -32,8 +32,7 @@ struct GPURenderPassColorAttachment {
 };
 
 static bool conv(wgpu::RenderPassColorAttachment &out,
-                 std::shared_ptr<GPURenderPassColorAttachment> &in) {
-
+                 const std::shared_ptr<GPURenderPassColorAttachment> &in) {
   out.loadOp = in->loadOp;
   out.storeOp = in->storeOp;
   return conv(out.view, in->view) && conv(out.depthSlice, in->depthSlice) &&

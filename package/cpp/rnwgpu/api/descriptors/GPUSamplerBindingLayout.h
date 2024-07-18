@@ -20,7 +20,7 @@ struct GPUSamplerBindingLayout {
 };
 
 static bool conv(wgpu::SamplerBindingLayout &out,
-                 std::shared_ptr<GPUSamplerBindingLayout> &in) {
+                 const std::shared_ptr<GPUSamplerBindingLayout> &in) {
 
   return conv(out.type, in->type);
 }

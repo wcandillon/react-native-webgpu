@@ -21,7 +21,7 @@ struct GPUCommandEncoderDescriptor {
 };
 
 static bool conv(wgpu::CommandEncoderDescriptor &out,
-                 std::shared_ptr<GPUCommandEncoderDescriptor> &in) {
+                 const std::shared_ptr<GPUCommandEncoderDescriptor> &in) {
 
   return conv(out.label, in->label);
 }

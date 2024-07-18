@@ -225,7 +225,7 @@ ${
   !noConv.includes(name) && !customConv[name]
     ? `
 static bool conv(wgpu::${nativeMapName[name] ?? name.substring(3)} &out,
-          std::shared_ptr<${name}> &in) {
+          const std::shared_ptr<${name}> &in) {
   ${props
     .filter((t) => t.type.startsWith("wgpu::"))
     .map((t) => `out.${t.name} = in->${t.name};`)

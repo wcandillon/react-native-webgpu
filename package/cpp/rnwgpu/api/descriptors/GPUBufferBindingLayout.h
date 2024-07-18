@@ -22,7 +22,7 @@ struct GPUBufferBindingLayout {
 };
 
 static bool conv(wgpu::BufferBindingLayout &out,
-                 std::shared_ptr<GPUBufferBindingLayout> &in) {
+                 const std::shared_ptr<GPUBufferBindingLayout> &in) {
 
   return conv(out.type, in->type) &&
          conv(out.hasDynamicOffset, in->hasDynamicOffset) &&

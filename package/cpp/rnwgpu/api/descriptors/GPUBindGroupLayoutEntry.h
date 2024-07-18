@@ -36,7 +36,7 @@ struct GPUBindGroupLayoutEntry {
 };
 
 static bool conv(wgpu::BindGroupLayoutEntry &out,
-                 std::shared_ptr<GPUBindGroupLayoutEntry> &in) {
+                 const std::shared_ptr<GPUBindGroupLayoutEntry> &in) {
 
   return conv(out.binding, in->binding) &&
          conv(out.visibility, in->visibility) && conv(out.buffer, in->buffer) &&

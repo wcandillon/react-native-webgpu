@@ -23,8 +23,7 @@ struct GPUStorageTextureBindingLayout {
 };
 
 static bool conv(wgpu::StorageTextureBindingLayout &out,
-                 std::shared_ptr<GPUStorageTextureBindingLayout> &in) {
-
+                 const std::shared_ptr<GPUStorageTextureBindingLayout> &in) {
   out.format = in->format;
   return conv(out.access, in->access) &&
          conv(out.viewDimension, in->viewDimension);

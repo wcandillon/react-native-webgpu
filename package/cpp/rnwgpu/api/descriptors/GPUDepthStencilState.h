@@ -32,8 +32,7 @@ struct GPUDepthStencilState {
 };
 
 static bool conv(wgpu::DepthStencilState &out,
-                 std::shared_ptr<GPUDepthStencilState> &in) {
-
+                 const std::shared_ptr<GPUDepthStencilState> &in) {
   out.format = in->format;
   return conv(out.depthWriteEnabled, in->depthWriteEnabled) &&
          conv(out.depthCompare, in->depthCompare) &&

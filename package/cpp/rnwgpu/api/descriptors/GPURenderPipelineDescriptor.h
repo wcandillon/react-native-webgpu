@@ -37,8 +37,7 @@ struct GPURenderPipelineDescriptor {
 };
 
 static bool conv(wgpu::RenderPipelineDescriptor &out,
-                 std::shared_ptr<GPURenderPipelineDescriptor> &in) {
-
+                 const std::shared_ptr<GPURenderPipelineDescriptor> &in) {
   if (std::holds_alternative<std::shared_ptr<GPUPipelineLayout>>(in->layout)) {
     conv(out.layout, std::get<std::shared_ptr<GPUPipelineLayout>>(in->layout));
   } else {

@@ -22,7 +22,7 @@ struct GPUImageDataLayout {
 };
 
 static bool conv(wgpu::ImageDataLayout &out,
-                 std::shared_ptr<GPUImageDataLayout> &in) {
+                 const std::shared_ptr<GPUImageDataLayout> &in) {
 
   return conv(out.offset, in->offset) &&
          conv(out.bytesPerRow, in->bytesPerRow) &&

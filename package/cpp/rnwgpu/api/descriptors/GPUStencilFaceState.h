@@ -23,7 +23,7 @@ struct GPUStencilFaceState {
 };
 
 static bool conv(wgpu::StencilFaceState &out,
-                 std::shared_ptr<GPUStencilFaceState> &in) {
+                 const std::shared_ptr<GPUStencilFaceState> &in) {
 
   return conv(out.compare, in->compare) && conv(out.failOp, in->failOp) &&
          conv(out.depthFailOp, in->depthFailOp) && conv(out.passOp, in->passOp);
