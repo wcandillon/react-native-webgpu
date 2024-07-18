@@ -40,9 +40,22 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUQuerySetDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // type wgpu::QueryType
-      // count double
-      // label std::optional<std::string>
+      if (value.hasProperty(runtime, "type")) {
+        auto prop = value.getProperty(runtime, "type");
+        result->type =
+            JSIConverter<wgpu::QueryType>::fromJSI(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "count")) {
+        auto prop = value.getProperty(runtime, "count");
+        result->count = JSIConverter<double>::fromJSI(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto prop = value.getProperty(runtime, "label");
+        if (!prop.isUndefined()) {
+          result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
     }
 
     return result;

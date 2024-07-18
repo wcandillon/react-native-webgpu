@@ -44,9 +44,26 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUBindGroupDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // layout std::shared_ptr<GPUBindGroupLayout>
-      // entries std::vector<std::shared_ptr<GPUBindGroupEntry>>
-      // label std::optional<std::string>
+      if (value.hasProperty(runtime, "layout")) {
+        auto prop = value.getProperty(runtime, "layout");
+        result->layout =
+            JSIConverter<std::shared_ptr<GPUBindGroupLayout>>::fromJSI(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "entries")) {
+        auto prop = value.getProperty(runtime, "entries");
+        result->entries = JSIConverter<
+            std::vector<std::shared_ptr<GPUBindGroupEntry>>>::fromJSI(runtime,
+                                                                      prop,
+                                                                      false);
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto prop = value.getProperty(runtime, "label");
+        if (!prop.isUndefined()) {
+          result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
     }
 
     return result;

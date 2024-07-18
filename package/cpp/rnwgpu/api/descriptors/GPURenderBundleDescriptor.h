@@ -37,7 +37,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPURenderBundleDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // label std::optional<std::string>
+      if (value.hasProperty(runtime, "label")) {
+        auto prop = value.getProperty(runtime, "label");
+        if (!prop.isUndefined()) {
+          result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
     }
 
     return result;

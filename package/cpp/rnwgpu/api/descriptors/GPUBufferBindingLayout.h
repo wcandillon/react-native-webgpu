@@ -40,9 +40,28 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBindingLayout>> {
     auto result = std::make_unique<rnwgpu::GPUBufferBindingLayout>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // type std::optional<wgpu::BufferBindingType>
-      // hasDynamicOffset std::optional<bool>
-      // minBindingSize std::optional<double>
+      if (value.hasProperty(runtime, "type")) {
+        auto prop = value.getProperty(runtime, "type");
+        if (!prop.isUndefined()) {
+          result->type =
+              JSIConverter<std::optional<wgpu::BufferBindingType>>::fromJSI(
+                  runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "hasDynamicOffset")) {
+        auto prop = value.getProperty(runtime, "hasDynamicOffset");
+        if (!prop.isUndefined()) {
+          result->hasDynamicOffset =
+              JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "minBindingSize")) {
+        auto prop = value.getProperty(runtime, "minBindingSize");
+        if (!prop.isUndefined()) {
+          result->minBindingSize = JSIConverter<std::optional<double>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
     }
 
     return result;

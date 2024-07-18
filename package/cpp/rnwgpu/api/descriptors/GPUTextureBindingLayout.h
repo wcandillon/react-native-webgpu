@@ -41,9 +41,29 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureBindingLayout>> {
     auto result = std::make_unique<rnwgpu::GPUTextureBindingLayout>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // sampleType std::optional<wgpu::TextureSampleType>
-      // viewDimension std::optional<wgpu::TextureViewDimension>
-      // multisampled std::optional<bool>
+      if (value.hasProperty(runtime, "sampleType")) {
+        auto prop = value.getProperty(runtime, "sampleType");
+        if (!prop.isUndefined()) {
+          result->sampleType =
+              JSIConverter<std::optional<wgpu::TextureSampleType>>::fromJSI(
+                  runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "viewDimension")) {
+        auto prop = value.getProperty(runtime, "viewDimension");
+        if (!prop.isUndefined()) {
+          result->viewDimension =
+              JSIConverter<std::optional<wgpu::TextureViewDimension>>::fromJSI(
+                  runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "multisampled")) {
+        auto prop = value.getProperty(runtime, "multisampled");
+        if (!prop.isUndefined()) {
+          result->multisampled =
+              JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
+        }
+      }
     }
 
     return result;

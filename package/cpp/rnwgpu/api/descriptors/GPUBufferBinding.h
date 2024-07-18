@@ -34,9 +34,25 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
     auto result = std::make_unique<rnwgpu::GPUBufferBinding>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // buffer std::shared_ptr<GPUBuffer>
-      // offset std::optional<double>
-      // size std::optional<double>
+      if (value.hasProperty(runtime, "buffer")) {
+        auto prop = value.getProperty(runtime, "buffer");
+        result->buffer = JSIConverter<std::shared_ptr<GPUBuffer>>::fromJSI(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "offset")) {
+        auto prop = value.getProperty(runtime, "offset");
+        if (!prop.isUndefined()) {
+          result->offset = JSIConverter<std::optional<double>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "size")) {
+        auto prop = value.getProperty(runtime, "size");
+        if (!prop.isUndefined()) {
+          result->size = JSIConverter<std::optional<double>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
     }
 
     return result;

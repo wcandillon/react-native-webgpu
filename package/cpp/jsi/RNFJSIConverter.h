@@ -4,12 +4,6 @@
 
 #pragma once
 
-#include "RNFEnumMapper.h"
-#include "RNFHybridObject.h"
-#include "RNFJSIHelper.h"
-#include "RNFPromise.h"
-#include "RNFWorkletRuntimeRegistry.h"
-#include <jsi/jsi.h>
 #include <memory>
 #include <array>
 #include <future>
@@ -19,6 +13,15 @@
 #include <type_traits>
 #include <unordered_map>
 #include <limits>
+#include <variant>
+
+#include <jsi/jsi.h>
+
+#include "RNFEnumMapper.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIHelper.h"
+#include "RNFPromise.h"
+#include "RNFWorkletRuntimeRegistry.h"
 
 #if __has_include(<cxxabi.h>)
 #include <cxxabi.h>
@@ -70,6 +73,15 @@ template <> struct JSIConverter<float> {
   }
   static jsi::Value toJSI(jsi::Runtime&, float arg) {
     return jsi::Value(static_cast<double>(arg));
+  }
+};
+
+template <> struct JSIConverter<std::nullptr_t> {
+  static std::nullptr_t fromJSI(jsi::Runtime&, const jsi::Value& arg, bool outOfBound) {
+    return nullptr;
+  }
+  static jsi::Value toJSI(jsi::Runtime&, std::nullptr_t arg) {
+    return jsi::Value::null();
   }
 };
 

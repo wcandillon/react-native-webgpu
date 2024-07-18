@@ -49,11 +49,35 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
     auto result = std::make_unique<rnwgpu::GPUFragmentState>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // targets std::vector<std::variant<std::nullptr_t,
-      // std::shared_ptr<GPUColorTargetState>>>
-      // module std::shared_ptr<GPUShaderModule>
-      // entryPoint std::optional<std::string>
-      // constants std::optional<std::map<std::string, double>>
+      if (value.hasProperty(runtime, "targets")) {
+        auto prop = value.getProperty(runtime, "targets");
+        result->targets = JSIConverter<std::vector<std::variant<
+            std::nullptr_t, std::shared_ptr<GPUColorTargetState>>>>::
+            fromJSI(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "module")) {
+        auto prop = value.getProperty(runtime, "module");
+        result->module =
+            JSIConverter<std::shared_ptr<GPUShaderModule>>::fromJSI(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "entryPoint")) {
+        auto prop = value.getProperty(runtime, "entryPoint");
+        if (!prop.isUndefined()) {
+          result->entryPoint =
+              JSIConverter<std::optional<std::string>>::fromJSI(runtime, prop,
+                                                                false);
+        }
+      }
+      if (value.hasProperty(runtime, "constants")) {
+        auto prop = value.getProperty(runtime, "constants");
+        if (!prop.isUndefined()) {
+          result->constants = JSIConverter<
+              std::optional<std::map<std::string, double>>>::fromJSI(runtime,
+                                                                     prop,
+                                                                     false);
+        }
+      }
     }
 
     return result;

@@ -41,10 +41,33 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
     auto result = std::make_unique<rnwgpu::GPUImageCopyTexture>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // texture std::shared_ptr<GPUTexture>
-      // mipLevel std::optional<double>
-      // origin std::optional<GPUOrigin3D>
-      // aspect std::optional<wgpu::TextureAspect>
+      if (value.hasProperty(runtime, "texture")) {
+        auto prop = value.getProperty(runtime, "texture");
+        result->texture = JSIConverter<std::shared_ptr<GPUTexture>>::fromJSI(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "mipLevel")) {
+        auto prop = value.getProperty(runtime, "mipLevel");
+        if (!prop.isUndefined()) {
+          result->mipLevel = JSIConverter<std::optional<double>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "origin")) {
+        auto prop = value.getProperty(runtime, "origin");
+        if (!prop.isUndefined()) {
+          result->origin = JSIConverter<std::optional<GPUOrigin3D>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "aspect")) {
+        auto prop = value.getProperty(runtime, "aspect");
+        if (!prop.isUndefined()) {
+          result->aspect =
+              JSIConverter<std::optional<wgpu::TextureAspect>>::fromJSI(
+                  runtime, prop, false);
+        }
+      }
     }
 
     return result;

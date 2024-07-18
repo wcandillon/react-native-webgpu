@@ -39,9 +39,27 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
     auto result = std::make_unique<rnwgpu::GPUColorTargetState>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // format wgpu::TextureFormat
-      // blend std::optional<std::shared_ptr<GPUBlendState>>
-      // writeMask std::optional<double>
+      if (value.hasProperty(runtime, "format")) {
+        auto prop = value.getProperty(runtime, "format");
+        result->format =
+            JSIConverter<wgpu::TextureFormat>::fromJSI(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "blend")) {
+        auto prop = value.getProperty(runtime, "blend");
+        if (!prop.isUndefined()) {
+          result->blend = JSIConverter<
+              std::optional<std::shared_ptr<GPUBlendState>>>::fromJSI(runtime,
+                                                                      prop,
+                                                                      false);
+        }
+      }
+      if (value.hasProperty(runtime, "writeMask")) {
+        auto prop = value.getProperty(runtime, "writeMask");
+        if (!prop.isUndefined()) {
+          result->writeMask = JSIConverter<std::optional<double>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
     }
 
     return result;

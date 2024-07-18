@@ -41,9 +41,22 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUComputePassDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // timestampWrites
-      // std::optional<std::shared_ptr<GPUComputePassTimestampWrites>>
-      // label std::optional<std::string>
+      if (value.hasProperty(runtime, "timestampWrites")) {
+        auto prop = value.getProperty(runtime, "timestampWrites");
+        if (!prop.isUndefined()) {
+          result->timestampWrites = JSIConverter<std::optional<
+              std::shared_ptr<GPUComputePassTimestampWrites>>>::fromJSI(runtime,
+                                                                        prop,
+                                                                        false);
+        }
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto prop = value.getProperty(runtime, "label");
+        if (!prop.isUndefined()) {
+          result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
     }
 
     return result;

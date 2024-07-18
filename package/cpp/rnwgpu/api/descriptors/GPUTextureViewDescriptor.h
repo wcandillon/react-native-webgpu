@@ -51,14 +51,66 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUTextureViewDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // format std::optional<wgpu::TextureFormat>
-      // dimension std::optional<wgpu::TextureViewDimension>
-      // aspect std::optional<wgpu::TextureAspect>
-      // baseMipLevel std::optional<double>
-      // mipLevelCount std::optional<double>
-      // baseArrayLayer std::optional<double>
-      // arrayLayerCount std::optional<double>
-      // label std::optional<std::string>
+      if (value.hasProperty(runtime, "format")) {
+        auto prop = value.getProperty(runtime, "format");
+        if (!prop.isUndefined()) {
+          result->format =
+              JSIConverter<std::optional<wgpu::TextureFormat>>::fromJSI(
+                  runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "dimension")) {
+        auto prop = value.getProperty(runtime, "dimension");
+        if (!prop.isUndefined()) {
+          result->dimension =
+              JSIConverter<std::optional<wgpu::TextureViewDimension>>::fromJSI(
+                  runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "aspect")) {
+        auto prop = value.getProperty(runtime, "aspect");
+        if (!prop.isUndefined()) {
+          result->aspect =
+              JSIConverter<std::optional<wgpu::TextureAspect>>::fromJSI(
+                  runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "baseMipLevel")) {
+        auto prop = value.getProperty(runtime, "baseMipLevel");
+        if (!prop.isUndefined()) {
+          result->baseMipLevel = JSIConverter<std::optional<double>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "mipLevelCount")) {
+        auto prop = value.getProperty(runtime, "mipLevelCount");
+        if (!prop.isUndefined()) {
+          result->mipLevelCount = JSIConverter<std::optional<double>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "baseArrayLayer")) {
+        auto prop = value.getProperty(runtime, "baseArrayLayer");
+        if (!prop.isUndefined()) {
+          result->baseArrayLayer = JSIConverter<std::optional<double>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "arrayLayerCount")) {
+        auto prop = value.getProperty(runtime, "arrayLayerCount");
+        if (!prop.isUndefined()) {
+          result->arrayLayerCount =
+              JSIConverter<std::optional<double>>::fromJSI(runtime, prop,
+                                                           false);
+        }
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto prop = value.getProperty(runtime, "label");
+        if (!prop.isUndefined()) {
+          result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
     }
 
     return result;

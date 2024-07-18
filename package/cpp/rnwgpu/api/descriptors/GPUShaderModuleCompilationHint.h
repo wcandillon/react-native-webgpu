@@ -37,9 +37,19 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
     auto result = std::make_unique<rnwgpu::GPUShaderModuleCompilationHint>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // entryPoint std::string
-      // layout std::optional<std::variant<std::nullptr_t,
-      // std::shared_ptr<GPUPipelineLayout>>>
+      if (value.hasProperty(runtime, "entryPoint")) {
+        auto prop = value.getProperty(runtime, "entryPoint");
+        result->entryPoint =
+            JSIConverter<std::string>::fromJSI(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "layout")) {
+        auto prop = value.getProperty(runtime, "layout");
+        if (!prop.isUndefined()) {
+          result->layout = JSIConverter<std::optional<std::variant<
+              std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>>>::
+              fromJSI(runtime, prop, false);
+        }
+      }
     }
 
     return result;

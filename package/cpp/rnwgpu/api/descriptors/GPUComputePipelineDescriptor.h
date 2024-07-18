@@ -43,9 +43,25 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUComputePipelineDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // compute std::shared_ptr<GPUProgrammableStage>
-      // layout std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>
-      // label std::optional<std::string>
+      if (value.hasProperty(runtime, "compute")) {
+        auto prop = value.getProperty(runtime, "compute");
+        result->compute =
+            JSIConverter<std::shared_ptr<GPUProgrammableStage>>::fromJSI(
+                runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "layout")) {
+        auto prop = value.getProperty(runtime, "layout");
+        result->layout = JSIConverter<
+            std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>>::
+            fromJSI(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto prop = value.getProperty(runtime, "label");
+        if (!prop.isUndefined()) {
+          result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
     }
 
     return result;

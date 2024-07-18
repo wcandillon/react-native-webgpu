@@ -15,7 +15,7 @@ const colorFormats = {
 };
 
 const origin = {
-  type: "GPUOrigin3D",
+  type: "std::shared_ptr<GPUOrigin3D>",
   dependencies: ["GPUOrigin3D"],
 };
 
@@ -28,6 +28,9 @@ const resolved: Record<
   string,
   Record<string, { type: string; dependencies: string[] }>
 > = {
+  GPUImageCopyTextureTagged: {
+    origin,
+  },
   GPUTextureDescriptor: {
     size,
   },
@@ -151,17 +154,16 @@ interface Prop {
 }
 
 const jsiProp = ({ name, type }: Prop) => {
-  return `// ${name} ${type}`;
-  //   return `if (value.hasProperty(runtime, "${name}")) {
-  //   auto prop = value.getProperty(runtime, "${name}");
-  //   ${
-  //     type.startsWith("std::optional")
-  //       ? `if (!prop.isUndefined()) {
-  //   result->${name} = JSIConverter<${type}>::fromJSI(runtime, prop, false);
-  //   }`
-  //       : `result->${name} = JSIConverter<${type}>::fromJSI(runtime, prop, false);`
-  //   }
-  // }`;
+  return `if (value.hasProperty(runtime, "${name}")) {
+    auto prop = value.getProperty(runtime, "${name}");
+    ${
+      type.startsWith("std::optional")
+        ? `if (!prop.isUndefined()) {
+    result->${name} = JSIConverter<${type}>::fromJSI(runtime, prop, false);
+    }`
+        : `result->${name} = JSIConverter<${type}>::fromJSI(runtime, prop, false);`
+    }
+  }`;
 };
 
 export const getDescriptor = (decl: InterfaceDeclaration) => {

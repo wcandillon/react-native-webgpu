@@ -44,10 +44,28 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUExternalTextureDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // source std::variant<std::shared_ptr<HTMLVideoElement>,
-      // std::shared_ptr<VideoFrame>>
-      // colorSpace std::optional<wgpu::definedColorSpace>
-      // label std::optional<std::string>
+      if (value.hasProperty(runtime, "source")) {
+        auto prop = value.getProperty(runtime, "source");
+        result->source = JSIConverter<
+            std::variant<std::shared_ptr<HTMLVideoElement>,
+                         std::shared_ptr<VideoFrame>>>::fromJSI(runtime, prop,
+                                                                false);
+      }
+      if (value.hasProperty(runtime, "colorSpace")) {
+        auto prop = value.getProperty(runtime, "colorSpace");
+        if (!prop.isUndefined()) {
+          result->colorSpace =
+              JSIConverter<std::optional<wgpu::definedColorSpace>>::fromJSI(
+                  runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto prop = value.getProperty(runtime, "label");
+        if (!prop.isUndefined()) {
+          result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
     }
 
     return result;

@@ -41,10 +41,28 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUBufferDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // size double
-      // usage double
-      // mappedAtCreation std::optional<bool>
-      // label std::optional<std::string>
+      if (value.hasProperty(runtime, "size")) {
+        auto prop = value.getProperty(runtime, "size");
+        result->size = JSIConverter<double>::fromJSI(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "usage")) {
+        auto prop = value.getProperty(runtime, "usage");
+        result->usage = JSIConverter<double>::fromJSI(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "mappedAtCreation")) {
+        auto prop = value.getProperty(runtime, "mappedAtCreation");
+        if (!prop.isUndefined()) {
+          result->mappedAtCreation =
+              JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "label")) {
+        auto prop = value.getProperty(runtime, "label");
+        if (!prop.isUndefined()) {
+          result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
     }
 
     return result;

@@ -47,12 +47,48 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
     auto result = std::make_unique<rnwgpu::GPUCanvasConfiguration>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // device std::shared_ptr<GPUDevice>
-      // format wgpu::TextureFormat
-      // usage std::optional<double>
-      // viewFormats std::optional<std::vector<wgpu::TextureFormat>>
-      // colorSpace std::optional<wgpu::definedColorSpace>
-      // alphaMode std::optional<wgpu::CanvasAlphaMode>
+      if (value.hasProperty(runtime, "device")) {
+        auto prop = value.getProperty(runtime, "device");
+        result->device = JSIConverter<std::shared_ptr<GPUDevice>>::fromJSI(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "format")) {
+        auto prop = value.getProperty(runtime, "format");
+        result->format =
+            JSIConverter<wgpu::TextureFormat>::fromJSI(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "usage")) {
+        auto prop = value.getProperty(runtime, "usage");
+        if (!prop.isUndefined()) {
+          result->usage = JSIConverter<std::optional<double>>::fromJSI(
+              runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "viewFormats")) {
+        auto prop = value.getProperty(runtime, "viewFormats");
+        if (!prop.isUndefined()) {
+          result->viewFormats = JSIConverter<
+              std::optional<std::vector<wgpu::TextureFormat>>>::fromJSI(runtime,
+                                                                        prop,
+                                                                        false);
+        }
+      }
+      if (value.hasProperty(runtime, "colorSpace")) {
+        auto prop = value.getProperty(runtime, "colorSpace");
+        if (!prop.isUndefined()) {
+          result->colorSpace =
+              JSIConverter<std::optional<wgpu::definedColorSpace>>::fromJSI(
+                  runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "alphaMode")) {
+        auto prop = value.getProperty(runtime, "alphaMode");
+        if (!prop.isUndefined()) {
+          result->alphaMode =
+              JSIConverter<std::optional<wgpu::CanvasAlphaMode>>::fromJSI(
+                  runtime, prop, false);
+        }
+      }
     }
 
     return result;
