@@ -62,7 +62,7 @@ public:
   std::shared_ptr<GPURenderPipeline>
   createRenderPipeline(std::shared_ptr<GPURenderPipelineDescriptor> descriptor);
   std::shared_ptr<GPUCommandEncoder>
-  createCommandEncoder(std::shared_ptr<GPUCommandEncoderDescriptor> descriptor);
+  createCommandEncoder(std::optional<std::shared_ptr<GPUCommandEncoderDescriptor>> descriptor);
 
   std::shared_ptr<GPUQueue> getQueue();
 

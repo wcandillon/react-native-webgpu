@@ -18,15 +18,17 @@ std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
 }
 
 std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
-    std::shared_ptr<GPUCommandEncoderDescriptor> descriptor) {
+    std::optional<std::shared_ptr<GPUCommandEncoderDescriptor>> descriptor) {
   wgpu::CommandEncoderDescriptor desc;
-//  Convertor conv;
-//  if (!conv(desc, descriptor)) {
-//    throw std::runtime_error("Error with GPUCommandEncoderDescriptor");
-//  }
+  if (descriptor.has_value()) {
+    Convertor conv;
+    if (!conv(desc, descriptor.value())) {
+      throw std::runtime_error("Error with GPUCommandEncoderDescriptor");
+    }
+  }
+  std::string label = descriptor.has_value() ? descriptor.value()->label.value_or("") : "";
   auto result = _instance.CreateCommandEncoder(&desc);
-  return std::make_shared<GPUCommandEncoder>(result,
-                                             descriptor->label.value_or(""));
+  return std::make_shared<GPUCommandEncoder>(result, label);
 }
 
 void GPUDevice::destroy() { _instance.Destroy(); }
