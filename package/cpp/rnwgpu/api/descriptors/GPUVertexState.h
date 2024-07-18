@@ -22,8 +22,7 @@ namespace m = margelo;
 namespace rnwgpu {
 
 struct GPUVertexState {
-  std::optional<std::vector<
-      std::shared_ptr<GPUVertexBufferLayout>>>
+  std::optional<std::vector<std::shared_ptr<GPUVertexBufferLayout>>>
       buffers; // Iterable<GPUVertexBufferLayout | null>
   std::shared_ptr<GPUShaderModule> module; // GPUShaderModule
   std::optional<std::string> entryPoint;   // string
@@ -45,8 +44,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexState>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "buffers")) {
         auto prop = value.getProperty(runtime, "buffers");
-        result->buffers = JSIConverter<std::optional<std::vector<std::shared_ptr<GPUVertexBufferLayout>>>>::
-            fromJSI(runtime, prop, false);
+        result->buffers = JSIConverter<std::optional<std::vector<
+            std::shared_ptr<GPUVertexBufferLayout>>>>::fromJSI(runtime, prop,
+                                                               false);
       }
       if (value.hasProperty(runtime, "module")) {
         auto prop = value.getProperty(runtime, "module");

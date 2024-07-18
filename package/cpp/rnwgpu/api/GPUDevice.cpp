@@ -69,8 +69,9 @@ std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(
 std::shared_ptr<GPUBindGroup>
 GPUDevice::createBindGroup(std::shared_ptr<GPUBindGroupDescriptor> descriptor) {
   wgpu::BindGroupDescriptor desc;
-  Convertor conv;
-  conv(desc, descriptor);
+  throw std::runtime_error("createBindGroup not implemented");
+  // Convertor conv;
+  // conv(desc, descriptor);
   auto bindGroup = _instance.CreateBindGroup(&desc);
   return std::make_shared<GPUBindGroup>(bindGroup,
                                         descriptor->label.value_or(""));

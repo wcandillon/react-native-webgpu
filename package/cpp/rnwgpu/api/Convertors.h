@@ -148,9 +148,17 @@ public:
     if constexpr (has_get_member<IN>::value) {
       return Convert(out, in->get());
     } else {
-      // TODO: implement;
-      return false;
-      // return Convert(out, in.get());
+      return Convert(out, *in);
+    }
+  }
+
+  template <typename OUT, typename IN>
+  [[nodiscard]] bool Convert(const OUT *out, const std::shared_ptr<IN> &in) {
+    std::remove_const_t<std::remove_pointer_t<OUT>> o;
+    if constexpr (has_get_member<IN>::value) {
+      return Convert(o, in->get());
+    } else {
+      return Convert(o, *in);
     }
   }
 
@@ -238,7 +246,13 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::ColorTargetState &out,
                              const GPUColorTargetState &in) {
-    return Convert(out.format, in.format) && Convert(out.blend, in.blend) &&
+    out = {};
+    if (in.blend.has_value()) {
+      if (!Convert(out.blend, in.blend.value())) {
+        return false;
+      }
+    }
+    return Convert(out.format, in.format) &&
            Convert(out.writeMask, in.writeMask);
   }
 
@@ -317,9 +331,10 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::ImageCopyTexture &out,
                              const GPUImageCopyTexture &in) {
+    // TODO: implement origin
+    // Convert(out.origin, in.origin) &&
     return Convert(out.texture, in.texture) &&
-           Convert(out.mipLevel, in.mipLevel) &&
-           Convert(out.origin, in.origin) && Convert(out.aspect, in.aspect);
+           Convert(out.mipLevel, in.mipLevel) && Convert(out.aspect, in.aspect);
   }
 
   [[nodiscard]] bool Convert(wgpu::TextureDataLayout &out,
@@ -394,10 +409,11 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::RenderPassColorAttachment &out,
                              const GPURenderPassColorAttachment &in) {
+    // TODO: implement clearValue
     return Convert(out.view, in.view) &&
            Convert(out.depthSlice, in.depthSlice) &&
            Convert(out.resolveTarget, in.resolveTarget) &&
-           Convert(out.clearValue, in.clearValue) &&
+           // Convert(out.clearValue, in.clearValue) &&
            Convert(out.loadOp, in.loadOp) && Convert(out.storeOp, in.storeOp);
   }
 
@@ -567,17 +583,17 @@ public:
     // wgpu::VertexStepMode::VertexBufferNotUsed. The converter for optional
     // value will have put the default value of wgpu::VertexBufferLayout that
     // has wgpu::VertexStepMode::Vertex.
-//    if (in.buffers.has_value()) {
-//      auto buffers = in.buffers.value();
-//      out.buffers = outBuffers;
-//      for (size_t i = 0; i < buffers.size(); i++) {
-//        if (std::holds_alternative<nullptr_t>(buffers[i])) {
-//          outBuffers[i] = wgpu::VertexBufferLayout{
-//              .stepMode = wgpu::VertexStepMode::VertexBufferNotUsed,
-//          };
-//        }
-//      }
-//    }
+    //    if (in.buffers.has_value()) {
+    //      auto buffers = in.buffers.value();
+    //      out.buffers = outBuffers;
+    //      for (size_t i = 0; i < buffers.size(); i++) {
+    //        if (std::holds_alternative<nullptr_t>(buffers[i])) {
+    //          outBuffers[i] = wgpu::VertexBufferLayout{
+    //              .stepMode = wgpu::VertexStepMode::VertexBufferNotUsed,
+    //          };
+    //        }
+    //      }
+    //    }
     return true;
   }
 
