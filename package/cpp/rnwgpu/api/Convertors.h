@@ -60,6 +60,7 @@
 #include "GPUVertexAttribute.h"
 #include "GPUVertexBufferLayout.h"
 #include "GPUVertexState.h"
+#include "GPUBindGroupEntry.h"
 
 namespace rnwgpu {
 
@@ -618,6 +619,35 @@ public:
                              const GPURenderBundleDescriptor &in) {
     return Convert(out.label, in.label);
   }
+
+  [[nodiscard]] bool Convert(wgpu::BindGroupEntry& out, const GPUBindGroupEntry& in) {
+    out = {};
+    if (!Convert(out.binding, in.binding)) {
+        return false;
+    }
+
+    if (in.sampler != nullptr) {
+        return Convert(out.sampler, in.sampler);
+    }
+    if (in.textureView != nullptr) {
+        return Convert(out.textureView, in.textureView);
+    }
+    if (in.buffer != nullptr) {
+        auto buffer = in.buffer->buffer;
+        out.size = wgpu::kWholeSize;
+        if (!buffer || !Convert(out.offset, in.buffer->offset) || !Convert(out.size, in.buffer->size)) {
+            return false;
+        }
+        out.buffer = buffer->get();
+        return true;
+    }
+    // TODO: implement external textures
+    // if (auto* res = std::get_if<interop::Interface<interop::GPUExternalTexture>>(&in.resource)) {
+    //     // TODO(crbug.com/dawn/1129): External textures
+    //     UNIMPLEMENTED(env, {});
+    // }
+    return false;
+}
 
 private:
   char *ConvertStringReplacingNull(std::string_view in) {

@@ -1,12 +1,16 @@
 #include "GPUDevice.h"
 
+#include "Convertors.h"
+
 namespace rnwgpu {
 
 std::shared_ptr<GPUBuffer>
 GPUDevice::createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
   wgpu::BufferDescriptor desc;
   Convertor conv;
-  conv(desc, descriptor);
+  if (!conv(desc, descriptor)) {
+    throw std::runtime_error("GPUDevice::createBuffer(): Error with GPUBufferDescriptor");
+  }
   auto result = _instance.CreateBuffer(&desc);
   return std::make_shared<GPUBuffer>(result, _async,
                                      descriptor->label.value_or(""));
@@ -78,11 +82,12 @@ std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(
 
 std::shared_ptr<GPUBindGroup>
 GPUDevice::createBindGroup(std::shared_ptr<GPUBindGroupDescriptor> descriptor) {
-  wgpu::BindGroupDescriptor desc;
-  throw std::runtime_error("createBindGroup not implemented");
-  // TODO: implement
-  // Convertor conv;
-  // conv(desc, descriptor);
+  Convertor conv;
+  wgpu::BindGroupDescriptor desc{};
+  if (!conv(desc.label, descriptor->label) || !conv(desc.layout, descriptor->layout) ||
+        !conv(desc.entries, desc.entryCount, descriptor->entries)) {
+    throw std::runtime_error("GPUBindGroup::createBindGroup(): Error with GPUBindGroupDescriptor");
+  }
   auto bindGroup = _instance.CreateBindGroup(&desc);
   return std::make_shared<GPUBindGroup>(bindGroup,
                                         descriptor->label.value_or(""));

@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
 #include "DescriptorConvertors.h"
 #include "GPUBufferBinding.h"
 #include "GPUExternalTexture.h"
@@ -21,11 +20,11 @@ namespace m = margelo;
 namespace rnwgpu {
 
 struct GPUBindGroupEntry {
-  double binding; // GPUIndex32
-  // std::variant<std::shared_ptr<GPUSampler>, std::shared_ptr<GPUTextureView>,
-  //              std::shared_ptr<GPUBufferBinding>,
-  //              std::shared_ptr<GPUExternalTexture>>
-  //     resource; // GPUBindingResource
+  double binding;
+  std::shared_ptr<GPUSampler> sampler = nullptr;
+  std::shared_ptr<GPUTextureView> textureView = nullptr;
+  std::shared_ptr<GPUBufferBinding> buffer = nullptr;
+  // TODO: implement external textures
 };
 
 } // namespace rnwgpu
@@ -41,11 +40,20 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "binding")) {
-        auto prop = value.getProperty(runtime, "binding");
-        result->binding = JSIConverter<double>::fromJSI(runtime, prop, false);
+        result->binding = value.getProperty(runtime, "binding").asNumber();
       }
       if (value.hasProperty(runtime, "resource")) {
         auto prop = value.getProperty(runtime, "resource");
+        if (prop.isObject()) {
+          auto obj = prop.getObject(runtime);
+          if (obj.isHostObject<rnwgpu::GPUSampler>(runtime)) {
+            result->sampler = obj.getHostObject<rnwgpu::GPUSampler>(runtime);
+          } else if (obj.isHostObject<rnwgpu::GPUTextureView>(runtime)) {
+            result->textureView = obj.getHostObject<rnwgpu::GPUTextureView>(runtime);
+          } else {
+              result->buffer = JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>>::fromJSI(runtime, prop, false);
+          }
+        }
         // result->resource = JSIConverter<std::variant<
         //     std::shared_ptr<GPUSampler>, std::shared_ptr<GPUTextureView>,
         //     std::shared_ptr<GPUBufferBinding>,
