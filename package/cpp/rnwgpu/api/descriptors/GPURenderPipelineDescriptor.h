@@ -39,10 +39,15 @@ struct GPURenderPipelineDescriptor {
 static bool conv(wgpu::RenderPipelineDescriptor &out,
                  std::shared_ptr<GPURenderPipelineDescriptor> &in) {
 
+    if (std::holds_alternative<std::shared_ptr<GPUPipelineLayout>>(in->layout)) {
+        conv(out.layout, std::get<std::shared_ptr<GPUPipelineLayout>>(in->layout));
+    } else {
+        out.layout = nullptr;
+    }
   return conv(out.vertex, in->vertex) && conv(out.primitive, in->primitive) &&
          conv(out.depthStencil, in->depthStencil) &&
          conv(out.multisample, in->multisample) &&
-         conv(out.fragment, in->fragment) && conv(out.layout, in->layout) &&
+         conv(out.fragment, in->fragment) &&
          conv(out.label, in->label);
 }
 

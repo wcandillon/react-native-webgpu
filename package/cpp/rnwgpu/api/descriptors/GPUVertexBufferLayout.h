@@ -26,11 +26,9 @@ struct GPUVertexBufferLayout {
 
 static bool conv(wgpu::VertexBufferLayout &out,
                  std::shared_ptr<GPUVertexBufferLayout> &in) {
-  out.attributeCount = in->attributes.size();
-
   return conv(out.arrayStride, in->arrayStride) &&
          conv(out.stepMode, in->stepMode) &&
-         conv(out.attributes, in->attributes);
+         conv(out.attributes, out.attributeCount, in->attributes);
 }
 
 } // namespace rnwgpu

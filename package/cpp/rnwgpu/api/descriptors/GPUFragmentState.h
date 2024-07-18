@@ -33,9 +33,7 @@ struct GPUFragmentState {
 
 static bool conv(wgpu::FragmentState &out,
                  std::shared_ptr<GPUFragmentState> &in) {
-  out.targetCount = in->targets.size();
-
-  return conv(out.targets, in->targets) && conv(out.module, in->module) &&
+  return conv(out.targets, out.targetCount, in->targets) && conv(out.module, in->module) &&
          conv(out.entryPoint, in->entryPoint) &&
          conv(out.constants, in->constants);
 }

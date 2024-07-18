@@ -26,7 +26,7 @@ conv(T &out, const U in) {
 template <typename EnumT>
 static typename std::enable_if<std::is_enum<EnumT>::value, bool>::type
 conv(EnumT &out, const double in) {
-    out = static_cast<EnumT>(static_cast<int>(in));
+    out = static_cast<EnumT>(in);
     return true;
 }
 

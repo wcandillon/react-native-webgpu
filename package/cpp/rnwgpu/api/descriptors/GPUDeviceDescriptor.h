@@ -30,7 +30,7 @@ struct GPUDeviceDescriptor {
 };
 
 static bool conv(wgpu::DeviceDescriptor &out,
-                 std::shared_ptr<GPUDeviceDescriptor> &in) {
+                 const std::shared_ptr<GPUDeviceDescriptor> &in) {
 
   return conv(out.requiredFeatures, in->requiredFeatures) &&
          conv(out.requiredLimits, in->requiredLimits) &&

@@ -24,7 +24,7 @@ struct GPUBufferDescriptor {
 };
 
 static bool conv(wgpu::BufferDescriptor &out,
-                 std::shared_ptr<GPUBufferDescriptor> &in) {
+                 const std::shared_ptr<GPUBufferDescriptor> &in) {
 
   return conv(out.size, in->size) && conv(out.usage, in->usage) &&
          conv(out.mappedAtCreation, in->mappedAtCreation) &&

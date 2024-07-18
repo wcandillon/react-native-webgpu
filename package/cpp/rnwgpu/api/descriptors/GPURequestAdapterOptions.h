@@ -21,7 +21,7 @@ struct GPURequestAdapterOptions {
 };
 
 static bool conv(wgpu::RequestAdapterOptions &out,
-                 std::shared_ptr<GPURequestAdapterOptions> &in) {
+                 const std::shared_ptr<GPURequestAdapterOptions> &in) {
 
   return conv(out.powerPreference, in->powerPreference) &&
          conv(out.forceFallbackAdapter, in->forceFallbackAdapter);

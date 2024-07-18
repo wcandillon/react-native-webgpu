@@ -22,7 +22,6 @@ struct GPUQueueDescriptor {
 
 static bool conv(wgpu::QueueDescriptor &out,
                  std::shared_ptr<GPUQueueDescriptor> &in) {
-
   return conv(out.label, in->label);
 }
 
