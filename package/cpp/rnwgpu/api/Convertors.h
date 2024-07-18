@@ -104,6 +104,11 @@ public:
     return true;
   }
 
+  template <typename T> [[nodiscard]] bool Convert(T &out, const double &in) {
+    out = static_cast<T>(in);
+    return true;
+  }
+
   template <typename OUT, typename IN>
   [[nodiscard]] bool Convert(OUT &out, const std::optional<IN> &in) {
     if (in.has_value()) {
@@ -112,15 +117,10 @@ public:
     return true;
   }
 
-  [[nodiscard]] bool Convert(wgpu::BindGroupDescriptor &out,
-                             const GPUBindGroupDescriptor &in) {
-    return Convert(out.layout, in.layout) && Convert(out.entries, in.entries) &&
-           Convert(out.label, in.label);
-  }
-
-  [[nodiscard]] bool Convert(wgpu::BindGroupLayoutDescriptor &out,
-                             const GPUBindGroupLayoutDescriptor &in) {
-    return Convert(out.entries, in.entries) && Convert(out.label, in.label);
+  [[nodiscard]] bool conv(wgpu::Origin3D &out,
+                          std::shared_ptr<GPUOrigin3D> &in) {
+    return Convert(out.x, in->x) && Convert(out.y, in->y) &&
+           Convert(out.z, in->z);
   }
 
   [[nodiscard]] bool Convert(wgpu::BindGroupLayoutEntry &out,
@@ -130,26 +130,30 @@ public:
            Convert(out.buffer, in.buffer) && Convert(out.sampler, in.sampler) &&
            Convert(out.texture, in.texture) &&
            Convert(out.storageTexture, in.storageTexture);
-          // TODO: Implement
-          //&& Convert(out.externalTexture, in.externalTexture);
+    // TODO: Implement
+    //&& Convert(out.externalTexture, in.externalTexture);
   }
 
   [[nodiscard]] bool Convert(wgpu::BlendComponent &out,
                              const GPUBlendComponent &in) {
+    out = {};
     return Convert(out.operation, in.operation) &&
-           Convert(out.srcFactor, in.srcFactor) &&
-           Convert(out.dstFactor, in.dstFactor);
+           Convert(out.dstFactor, in.dstFactor) &&
+           Convert(out.srcFactor, in.srcFactor);
   }
 
   [[nodiscard]] bool Convert(wgpu::BlendState &out, const GPUBlendState &in) {
-    return Convert(out.color, in.color) && Convert(out.alpha, in.alpha);
+    out = {};
+    return Convert(out.alpha, in.alpha) && Convert(out.color, in.color);
   }
 
-  [[nodiscard]] bool Convert(wgpu::BufferBinding &out,
-                             const GPUBufferBinding &in) {
-    return Convert(out.buffer, in.buffer) && Convert(out.offset, in.offset) &&
-           Convert(out.size, in.size);
-  }
+  // TODO: implement
+  // [[nodiscard]] bool Convert(wgpu::BufferBinding &out,
+  //                            const GPUBufferBinding &in) {
+  //   return Convert(out.buffer, in.buffer) && Convert(out.offset, in.offset)
+  //   &&
+  //          Convert(out.size, in.size);
+  // }
 
   [[nodiscard]] bool Convert(wgpu::BufferBindingLayout &out,
                              const GPUBufferBindingLayout &in) {
@@ -256,19 +260,11 @@ public:
            Convert(out.origin, in.origin) && Convert(out.aspect, in.aspect);
   }
 
-  [[nodiscard]] bool Convert(wgpu::ImageCopyTextureTagged &out,
-                             const GPUImageCopyTextureTagged &in) {
-    return Convert(out.colorSpace, in.colorSpace) &&
-           Convert(out.premultipliedAlpha, in.premultipliedAlpha) &&
-           Convert(out.texture, in.texture) &&
-           Convert(out.mipLevel, in.mipLevel) &&
-           Convert(out.origin, in.origin) && Convert(out.aspect, in.aspect);
-  }
-
-  [[nodiscard]] bool Convert(wgpu::ImageDataLayout &out,
+  [[nodiscard]] bool Convert(wgpu::TextureDataLayout &out,
                              const GPUImageDataLayout &in) {
-    return Convert(out.offset, in.offset) &&
-           Convert(out.bytesPerRow, in.bytesPerRow) &&
+    out = {};
+    return Convert(out.bytesPerRow, in.bytesPerRow) &&
+           Convert(out.offset, in.offset) &&
            Convert(out.rowsPerImage, in.rowsPerImage);
   }
 
@@ -276,11 +272,6 @@ public:
                              const GPUMultisampleState &in) {
     return Convert(out.count, in.count) && Convert(out.mask, in.mask) &&
            Convert(out.alphaToCoverageEnabled, in.alphaToCoverageEnabled);
-  }
-
-  [[nodiscard]] bool Convert(wgpu::PipelineErrorInit &out,
-                             const GPUPipelineErrorInit &in) {
-    return Convert(out.reason, in.reason);
   }
 
   [[nodiscard]] bool Convert(wgpu::PipelineLayoutDescriptor &out,
@@ -291,18 +282,35 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::PrimitiveState &out,
                              const GPUPrimitiveState &in) {
+    out = {};
+
+    if (in.unclippedDepth) {
+      wgpu::PrimitiveDepthClipControl *depthClip =
+          Allocate<wgpu::PrimitiveDepthClipControl>();
+      depthClip->unclippedDepth = true;
+      out.nextInChain = depthClip;
+    }
+
     return Convert(out.topology, in.topology) &&
            Convert(out.stripIndexFormat, in.stripIndexFormat) &&
            Convert(out.frontFace, in.frontFace) &&
-           Convert(out.cullMode, in.cullMode) &&
-           Convert(out.unclippedDepth, in.unclippedDepth);
+           Convert(out.cullMode, in.cullMode);
   }
 
-  [[nodiscard]] bool Convert(wgpu::ProgrammableStage &out,
+  [[nodiscard]] bool Convert(wgpu::ProgrammableStageDescriptor &out,
                              const GPUProgrammableStage &in) {
-    return Convert(out.module, in.module) &&
-           Convert(out.entryPoint, in.entryPoint) &&
-           Convert(out.constants, in.constants);
+    out = {};
+    out.module = in.module->get();
+
+    // Replace nulls in the entryPoint name with another character that's
+    // disallowed in WGSL identifiers. This is so that using "main\0" doesn't
+    // match an entryPoint named "main".
+    out.entryPoint = in.entryPoint
+                         ? ConvertStringReplacingNull(in.entryPoint.value())
+                         : nullptr;
+    // TODO: implement constants
+    return false;
+    // return Convert(out.constants, out.constantCount, in.constants);
   }
 
   [[nodiscard]] bool Convert(wgpu::QuerySetDescriptor &out,
@@ -341,16 +349,6 @@ public:
            Convert(out.stencilLoadOp, in.stencilLoadOp) &&
            Convert(out.stencilStoreOp, in.stencilStoreOp) &&
            Convert(out.stencilReadOnly, in.stencilReadOnly);
-  }
-
-  [[nodiscard]] bool Convert(wgpu::RenderPassDescriptor &out,
-                             const GPURenderPassDescriptor &in) {
-    return Convert(out.colorAttachments, in.colorAttachments) &&
-           Convert(out.depthStencilAttachment, in.depthStencilAttachment) &&
-           Convert(out.occlusionQuerySet, in.occlusionQuerySet) &&
-           Convert(out.timestampWrites, in.timestampWrites) &&
-           Convert(out.maxDrawCount, in.maxDrawCount) &&
-           Convert(out.label, in.label);
   }
 
   [[nodiscard]] bool Convert(wgpu::RenderPassTimestampWrites &out,
@@ -397,19 +395,6 @@ public:
            Convert(out.label, in.label);
   }
 
-  [[nodiscard]] bool Convert(wgpu::ShaderModuleCompilationHint &out,
-                             const GPUShaderModuleCompilationHint &in) {
-    return Convert(out.entryPoint, in.entryPoint) &&
-           Convert(out.layout, in.layout);
-  }
-
-  [[nodiscard]] bool Convert(wgpu::ShaderModuleDescriptor &out,
-                             const GPUShaderModuleDescriptor &in) {
-    return Convert(out.code, in.code) &&
-           Convert(out.compilationHints, in.compilationHints) &&
-           Convert(out.label, in.label);
-  }
-
   [[nodiscard]] bool Convert(wgpu::StencilFaceState &out,
                              const GPUStencilFaceState &in) {
     return Convert(out.compare, in.compare) && Convert(out.failOp, in.failOp) &&
@@ -453,13 +438,6 @@ public:
            Convert(out.label, in.label);
   }
 
-  [[nodiscard]] bool Convert(wgpu::UncapturedErrorEventInit &out,
-                             const GPUUncapturedErrorEventInit &in) {
-    return Convert(out.error, in.error) && Convert(out.bubbles, in.bubbles) &&
-           Convert(out.cancelable, in.cancelable) &&
-           Convert(out.composed, in.composed);
-  }
-
   [[nodiscard]] bool Convert(wgpu::VertexAttribute &out,
                              const GPUVertexAttribute &in) {
     return Convert(out.format, in.format) && Convert(out.offset, in.offset) &&
@@ -468,15 +446,44 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::VertexBufferLayout &out,
                              const GPUVertexBufferLayout &in) {
-    return Convert(out.arrayStride, in.arrayStride) &&
-           Convert(out.stepMode, in.stepMode) &&
-           Convert(out.attributes, in.attributes);
+    out = {};
+    return Convert(out.attributes, out.attributeCount, in.attributes) &&
+           Convert(out.arrayStride, in.arrayStride) &&
+           Convert(out.stepMode, in.stepMode);
   }
 
   [[nodiscard]] bool Convert(wgpu::VertexState &out, const GPUVertexState &in) {
-    return Convert(out.buffers, in.buffers) && Convert(out.module, in.module) &&
-           Convert(out.entryPoint, in.entryPoint) &&
-           Convert(out.constants, in.constants);
+    out = {};
+    // Replace nulls in the entryPoint name with another character that's
+    // disallowed in WGSL identifiers. This is so that using "main\0" doesn't
+    // match an entryPoint named "main".
+    out.entryPoint = in.entryPoint
+                         ? ConvertStringReplacingNull(in.entryPoint.value())
+                         : nullptr;
+
+    wgpu::VertexBufferLayout *outBuffers = nullptr;
+    if (!Convert(out.module, in.module) ||                   //
+        !Convert(outBuffers, out.bufferCount, in.buffers) || //
+        !Convert(out.constants, out.constantCount, in.constants)) {
+      return false;
+    }
+
+    // Patch up the unused vertex buffer layouts to use
+    // wgpu::VertexStepMode::VertexBufferNotUsed. The converter for optional
+    // value will have put the default value of wgpu::VertexBufferLayout that
+    // has wgpu::VertexStepMode::Vertex.
+    if (in.buffers.has_value()) {
+      auto buffers = in.buffers.value();
+      out.buffers = outBuffers;
+      for (size_t i = 0; i < buffers.size(); i++) {
+        if (std::holds_alternative<nullptr_t>(buffers[i])) {
+          outBuffers[i] = wgpu::VertexBufferLayout{
+              .stepMode = wgpu::VertexStepMode::VertexBufferNotUsed,
+          };
+        }
+      }
+    }
+    return true;
   }
 
   [[nodiscard]] bool Convert(wgpu::CommandBufferDescriptor &out,

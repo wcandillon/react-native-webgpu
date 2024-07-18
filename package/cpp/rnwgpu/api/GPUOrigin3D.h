@@ -14,10 +14,6 @@ struct GPUOrigin3D {
   double z = 0;
 };
 
-static bool conv(wgpu::Origin3D &out, std::shared_ptr<GPUOrigin3D> &in) {
-  return conv(out.x, in->x) && conv(out.y, in->y) && conv(out.z, in->z);
-}
-
 } // namespace rnwgpu
 
 namespace margelo {
