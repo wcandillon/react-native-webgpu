@@ -387,7 +387,7 @@ public:
                          ? ConvertStringReplacingNull(in.entryPoint.value())
                          : nullptr;
     // TODO: implement constants
-    return false;
+    return true;
     // return Convert(out.constants, out.constantCount, in.constants);
   }
 

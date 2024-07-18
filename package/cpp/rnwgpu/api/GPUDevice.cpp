@@ -101,7 +101,7 @@ std::shared_ptr<GPUComputePipeline> GPUDevice::createComputePipeline(
   wgpu::ComputePipelineDescriptor desc;
   Convertor conv;
   if (!conv(desc, descriptor)) {
-    throw std::runtime_error("Error with GPUComputePipelineDescriptor");
+    throw std::runtime_error("GPUDevice::createComputePipeline(): Error with GPUComputePipelineDescriptor");
   }
   auto computePipeline = _instance.CreateComputePipeline(&desc);
   return std::make_shared<GPUComputePipeline>(computePipeline,
