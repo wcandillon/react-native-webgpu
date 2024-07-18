@@ -8,6 +8,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "GPURequestAdapterOptions.h"
 #include "GPUBindGroupDescriptor.h"
 
 namespace rnwgpu {
@@ -52,7 +53,6 @@ private:
   }
 
   std::vector<std::function<void()>> free_;
-}
-
+};
 
 } // namespace rnwgpu

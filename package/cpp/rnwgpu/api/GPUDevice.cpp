@@ -5,6 +5,7 @@ namespace rnwgpu {
 std::shared_ptr<GPUBuffer>
 GPUDevice::createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
   wgpu::BufferDescriptor desc;
+  Convertor conv;
   conv(desc, descriptor);
   auto result = _instance.CreateBuffer(&desc);
   return std::make_shared<GPUBuffer>(result, _async,
@@ -19,6 +20,7 @@ std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
 std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
     std::shared_ptr<GPUCommandEncoderDescriptor> descriptor) {
   wgpu::CommandEncoderDescriptor desc;
+  Convertor conv;
   conv(desc, descriptor);
   auto result = _instance.CreateCommandEncoder(&desc);
   return std::make_shared<GPUCommandEncoder>(result,
@@ -30,6 +32,7 @@ void GPUDevice::destroy() { _instance.Destroy(); }
 std::shared_ptr<GPUTexture>
 GPUDevice::createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor) {
   wgpu::TextureDescriptor desc;
+  Convertor conv;
   conv(desc, descriptor);
   auto texture = _instance.CreateTexture(&desc);
   return std::make_shared<GPUTexture>(texture, descriptor->label.value_or(""));
@@ -56,6 +59,7 @@ std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
 std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(
     std::shared_ptr<GPURenderPipelineDescriptor> descriptor) {
   wgpu::RenderPipelineDescriptor desc;
+  Convertor conv;
   conv(desc, descriptor);
   auto renderPipeline = _instance.CreateRenderPipeline(&desc);
   return std::make_shared<GPURenderPipeline>(renderPipeline,
@@ -65,6 +69,7 @@ std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(
 std::shared_ptr<GPUBindGroup>
 GPUDevice::createBindGroup(std::shared_ptr<GPUBindGroupDescriptor> descriptor) {
   wgpu::BindGroupDescriptor desc;
+  Convertor conv;
   conv(desc, descriptor);
   auto bindGroup = _instance.CreateBindGroup(&desc);
   return std::make_shared<GPUBindGroup>(bindGroup,
@@ -81,6 +86,7 @@ GPUDevice::createSampler(std::shared_ptr<GPUSamplerDescriptor> descriptor) {
 std::shared_ptr<GPUComputePipeline> GPUDevice::createComputePipeline(
     std::shared_ptr<GPUComputePipelineDescriptor> descriptor) {
   wgpu::ComputePipelineDescriptor desc;
+  Convertor conv;
   conv(desc, descriptor);
   auto computePipeline = _instance.CreateComputePipeline(&desc);
   return std::make_shared<GPUComputePipeline>(computePipeline,
