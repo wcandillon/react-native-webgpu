@@ -20,7 +20,7 @@ const origin = {
 };
 
 const size = {
-  type: "GPUExtent3D",
+  type: "std::shared_ptr<GPUExtent3D>",
   dependencies: ["GPUExtent3D"],
 };
 

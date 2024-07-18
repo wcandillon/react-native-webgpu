@@ -19,7 +19,7 @@ namespace m = margelo;
 namespace rnwgpu {
 
 struct GPUTextureDescriptor {
-  std::shared_ptr<GPUExtent3D> size;                                // GPUExtent3DStrict
+  std::shared_ptr<GPUExtent3D> size;               // GPUExtent3DStrict
   std::optional<double> mipLevelCount;             // GPUIntegerCoordinate
   std::optional<double> sampleCount;               // GPUSize32
   std::optional<wgpu::TextureDimension> dimension; // GPUTextureDimension
@@ -51,7 +51,7 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUTextureDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      // size GPUExtent3D
+      // size std::shared_ptr<GPUExtent3D>
       // mipLevelCount std::optional<double>
       // sampleCount std::optional<double>
       // dimension std::optional<wgpu::TextureDimension>
