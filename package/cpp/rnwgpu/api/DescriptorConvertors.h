@@ -45,4 +45,31 @@ struct JSIConverter<std::variant<std::nullptr_t, std::shared_ptr<O>>> {
   }
 };
 
+// TODO: careful std::variant<O, std::nullptr_t> doesn't overload
+// std::variant<std::nullptr_t, 0> (order's matter)
+// variant<nullptr_t, numeric>
+template <typename O>
+struct JSIConverter<
+    std::variant<O, std::nullptr_t>,
+    std::enable_if_t<std::is_arithmetic_v<O> || std::is_enum_v<O>>> {
+  using Target = std::variant<O, std::nullptr_t>;
+  static Target fromJSI(jsi::Runtime &runtime, const jsi::Value &arg,
+                        bool outOfBound) {
+    if (arg.isNull()) {
+      return Target(nullptr);
+    }
+    if (arg.isNumber()) {
+      return Target(static_cast<O>(arg.asNumber()));
+    }
+    throw jsi::JSError(runtime, "Expected null or number");
+  }
+
+  static jsi::Value toJSI(jsi::Runtime &runtime, Target arg) {
+    if (std::holds_alternative<std::nullptr_t>(arg)) {
+      return jsi::Value::null();
+    }
+    return jsi::Value(static_cast<double>(std::get<O>(arg)));
+  }
+};
+
 } // namespace margelo

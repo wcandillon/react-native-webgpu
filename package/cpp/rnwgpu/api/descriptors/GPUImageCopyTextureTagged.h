@@ -18,7 +18,7 @@ namespace m = margelo;
 namespace rnwgpu {
 
 struct GPUImageCopyTextureTagged {
-  std::optional<wgpu::definedColorSpace> colorSpace;  // PredefinedColorSpace
+  // std::optional<wgpu::definedColorSpace> colorSpace;  // PredefinedColorSpace
   std::optional<bool> premultipliedAlpha;             // boolean
   std::shared_ptr<GPUTexture> texture;                // GPUTexture
   std::optional<double> mipLevel;                     // GPUIntegerCoordinate
@@ -41,9 +41,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "colorSpace")) {
         auto prop = value.getProperty(runtime, "colorSpace");
-        result->colorSpace =
-            JSIConverter<std::optional<wgpu::definedColorSpace>>::fromJSI(
-                runtime, prop, false);
+        //        result->colorSpace =
+        //            JSIConverter<std::optional<wgpu::definedColorSpace>>::fromJSI(
+        //                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "premultipliedAlpha")) {
         auto prop = value.getProperty(runtime, "premultipliedAlpha");

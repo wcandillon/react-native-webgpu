@@ -20,7 +20,7 @@ namespace rnwgpu {
 struct GPURenderBundleEncoderDescriptor {
   std::optional<bool> depthReadOnly;   // boolean
   std::optional<bool> stencilReadOnly; // boolean
-  std::vector<std::variant<wgpu::TextureFormat, std::nullptr_t>>
+  std::vector<wgpu::TextureFormat>
       colorFormats; // Iterable<GPUTextureFormat | null>
   std::optional<wgpu::TextureFormat> depthStencilFormat; // GPUTextureFormat
   std::optional<double> sampleCount;                     // GPUSize32
@@ -52,9 +52,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
       }
       if (value.hasProperty(runtime, "colorFormats")) {
         auto prop = value.getProperty(runtime, "colorFormats");
-        result->colorFormats = JSIConverter<
-            std::vector<std::variant<wgpu::TextureFormat, std::nullptr_t>>>::
-            fromJSI(runtime, prop, false);
+        result->colorFormats =
+            JSIConverter<std::vector<wgpu::TextureFormat>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthStencilFormat")) {
         auto prop = value.getProperty(runtime, "depthStencilFormat");

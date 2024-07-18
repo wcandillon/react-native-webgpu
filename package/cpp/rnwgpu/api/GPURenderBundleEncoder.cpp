@@ -7,6 +7,7 @@ namespace rnwgpu {
 std::shared_ptr<GPURenderBundle> GPURenderBundleEncoder::finish(
     std::shared_ptr<GPURenderBundleDescriptor> descriptor) {
   wgpu::RenderBundleDescriptor desc;
+  Convertor conv;
   conv(desc, descriptor);
   auto bundle = _instance.Finish(&desc);
   return std::make_shared<GPURenderBundle>(bundle,

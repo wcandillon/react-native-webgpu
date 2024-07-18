@@ -33,7 +33,6 @@
 #include "GPUImageCopyTextureTagged.h"
 #include "GPUImageDataLayout.h"
 #include "GPUMultisampleState.h"
-#include "GPUPipelineErrorInit.h"
 #include "GPUPipelineLayoutDescriptor.h"
 #include "GPUPrimitiveState.h"
 #include "GPUProgrammableStage.h"
@@ -104,8 +103,28 @@ public:
     return true;
   }
 
-  template <typename T> [[nodiscard]] bool Convert(T &out, const double &in) {
+  template <typename T>
+  [[nodiscard]] auto Convert(T &out, const std::nullptr_t &in)
+      -> decltype(out = nullptr, bool()) {
+    out = nullptr;
+    return true;
+  }
+
+  [[nodiscard]] bool Convert(wgpu::Bool &out, const bool &in) {
+    out = in;
+    return true;
+  }
+
+  template <typename T>
+  [[nodiscard]] typename std::enable_if<
+      std::is_arithmetic<T>::value || std::is_enum<T>::value, bool>::type
+  Convert(T &out, const double &in) {
     out = static_cast<T>(in);
+    return true;
+  }
+
+  [[nodiscard]] bool Convert(const char *&out, const std::string &in) {
+    out = in.c_str();
     return true;
   }
 
@@ -117,12 +136,21 @@ public:
     return true;
   }
 
+  template <typename T, typename = void>
+  struct has_get_member : std::false_type {};
+
+  template <typename T>
+  struct has_get_member<T, std::void_t<decltype(std::declval<T>().get())>>
+      : std::true_type {};
+
   template <typename OUT, typename IN>
   [[nodiscard]] bool Convert(OUT &out, const std::shared_ptr<IN> &in) {
-    if constexpr (std::is_member_function_pointer_v<decltype(&IN::get)>) {
+    if constexpr (has_get_member<IN>::value) {
       return Convert(out, in->get());
     } else {
-      return Convert(out, in.get());
+      // TODO: implement;
+      return false;
+      // return Convert(out, in.get());
     }
   }
 
@@ -130,8 +158,7 @@ public:
   [[nodiscard]] bool Convert(OUT &out,
                              const std::variant<std::nullptr_t, IN> &in) {
     if (std::holds_alternative<std::nullptr_t>(in)) {
-      out = nullptr;
-      return true;
+      return Convert(out, std::get<std::nullptr_t>(in));
     }
     return Convert(out, std::get<IN>(in));
   }
@@ -251,23 +278,32 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::DeviceDescriptor &out,
                              const GPUDeviceDescriptor &in) {
-    return Convert(out.requiredFeatures, in.requiredFeatures) &&
-           Convert(out.requiredLimits, in.requiredLimits) &&
-           Convert(out.defaultQueue, in.defaultQueue) &&
+    if (in.requiredFeatures.has_value()) {
+      if (!Convert(out.requiredFeatures, out.requiredFeatureCount,
+                   in.requiredFeatures.value())) {
+        return false;
+      }
+    }
+    // TODO: required limits:
+    //  Convert(out.requiredLimits, in.requiredLimits)
+    return Convert(out.defaultQueue, in.defaultQueue) &&
            Convert(out.label, in.label);
   }
 
   [[nodiscard]] bool Convert(wgpu::ExternalTextureBindingLayout &out,
                              const GPUExternalTextureBindingLayout &in) {
-    return;
+    // TODO: implement
+    return false;
   }
 
   [[nodiscard]] bool Convert(wgpu::FragmentState &out,
                              const GPUFragmentState &in) {
-    return Convert(out.targets, out.targetCount, in.targets) &&
-           Convert(out.module, in.module) &&
-           Convert(out.entryPoint, in.entryPoint) &&
-           Convert(out.constants, in.constants);
+    // TODO: add targets & constants:
+    // Convert(out.targets, out.targetCount, in.targets) &&
+    //            &&
+    //           Convert(out.constants, in.constants);
+    return Convert(out.module, in.module) &&
+           Convert(out.entryPoint, in.entryPoint);
   }
 
   [[nodiscard]] bool Convert(wgpu::ImageCopyBuffer &out,
@@ -444,12 +480,17 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::TextureDescriptor &out,
                              const GPUTextureDescriptor &in) {
+    if (in.viewFormats.has_value()) {
+      if (!Convert(out.viewFormats, out.viewFormatCount,
+                   in.viewFormats.value())) {
+        return false;
+      }
+    }
     return Convert(out.size, in.size) &&
            Convert(out.mipLevelCount, in.mipLevelCount) &&
            Convert(out.sampleCount, in.sampleCount) &&
            Convert(out.dimension, in.dimension) &&
            Convert(out.format, in.format) && Convert(out.usage, in.usage) &&
-           Convert(out.viewFormats, in.viewFormats) &&
            Convert(out.label, in.label);
   }
 
@@ -516,6 +557,7 @@ public:
     //     return false;
     //   }
     // }
+    // TODO: implement
     throw std::runtime_error("TODO: implement !Convert(out.module, in.module)");
     // if (!Convert(out.module, in.module)) {
     //   return false;
@@ -525,17 +567,17 @@ public:
     // wgpu::VertexStepMode::VertexBufferNotUsed. The converter for optional
     // value will have put the default value of wgpu::VertexBufferLayout that
     // has wgpu::VertexStepMode::Vertex.
-    if (in.buffers.has_value()) {
-      auto buffers = in.buffers.value();
-      out.buffers = outBuffers;
-      for (size_t i = 0; i < buffers.size(); i++) {
-        if (std::holds_alternative<nullptr_t>(buffers[i])) {
-          outBuffers[i] = wgpu::VertexBufferLayout{
-              .stepMode = wgpu::VertexStepMode::VertexBufferNotUsed,
-          };
-        }
-      }
-    }
+//    if (in.buffers.has_value()) {
+//      auto buffers = in.buffers.value();
+//      out.buffers = outBuffers;
+//      for (size_t i = 0; i < buffers.size(); i++) {
+//        if (std::holds_alternative<nullptr_t>(buffers[i])) {
+//          outBuffers[i] = wgpu::VertexBufferLayout{
+//              .stepMode = wgpu::VertexStepMode::VertexBufferNotUsed,
+//          };
+//        }
+//      }
+//    }
     return true;
   }
 
