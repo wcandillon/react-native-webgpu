@@ -50,24 +50,18 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyBuffer>> {
       }
       if (value.hasProperty(runtime, "offset")) {
         auto prop = value.getProperty(runtime, "offset");
-        if (!prop.isUndefined()) {
-          result->offset = JSIConverter<std::optional<double>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->offset =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "bytesPerRow")) {
         auto prop = value.getProperty(runtime, "bytesPerRow");
-        if (!prop.isUndefined()) {
-          result->bytesPerRow = JSIConverter<std::optional<double>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->bytesPerRow =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "rowsPerImage")) {
         auto prop = value.getProperty(runtime, "rowsPerImage");
-        if (!prop.isUndefined()) {
-          result->rowsPerImage = JSIConverter<std::optional<double>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->rowsPerImage =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 

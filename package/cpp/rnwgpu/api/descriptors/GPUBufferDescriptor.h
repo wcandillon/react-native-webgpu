@@ -52,17 +52,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferDescriptor>> {
       }
       if (value.hasProperty(runtime, "mappedAtCreation")) {
         auto prop = value.getProperty(runtime, "mappedAtCreation");
-        if (!prop.isUndefined()) {
-          result->mappedAtCreation =
-              JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-        }
+        result->mappedAtCreation =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        if (!prop.isUndefined()) {
-          result->label = JSIConverter<std::optional<std::string>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 

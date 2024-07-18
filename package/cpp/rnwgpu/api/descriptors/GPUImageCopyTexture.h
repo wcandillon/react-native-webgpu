@@ -49,27 +49,20 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
       }
       if (value.hasProperty(runtime, "mipLevel")) {
         auto prop = value.getProperty(runtime, "mipLevel");
-        if (!prop.isUndefined()) {
-          result->mipLevel = JSIConverter<std::optional<double>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->mipLevel =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "origin")) {
         auto prop = value.getProperty(runtime, "origin");
-        if (!prop.isUndefined()) {
-          result->origin = JSIConverter<
-              std::optional<std::shared_ptr<GPUOrigin3D>>>::fromJSI(runtime,
-                                                                    prop,
-                                                                    false);
-        }
+        result->origin =
+            JSIConverter<std::optional<std::shared_ptr<GPUOrigin3D>>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "aspect")) {
         auto prop = value.getProperty(runtime, "aspect");
-        if (!prop.isUndefined()) {
-          result->aspect =
-              JSIConverter<std::optional<wgpu::TextureAspect>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->aspect =
+            JSIConverter<std::optional<wgpu::TextureAspect>>::fromJSI(
+                runtime, prop, false);
       }
     }
 

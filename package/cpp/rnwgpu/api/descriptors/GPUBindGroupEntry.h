@@ -38,7 +38,8 @@ static bool conv(wgpu::BindGroupEntry &out,
   // if (auto *res = std::get_if<std::shared_ptr<GPUSampler>>(&in->resource)) {
   //   return conv(out.sampler, *res);
   // }
-  // if (auto *res = std::get_if<std::shared_ptr<GPUTextureView>>(&in->resource)) {
+  // if (auto *res =
+  // std::get_if<std::shared_ptr<GPUTextureView>>(&in->resource)) {
   //   return conv(out.textureView, *res);
   // }
   // if (auto *res =

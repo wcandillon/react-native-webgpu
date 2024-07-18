@@ -65,35 +65,29 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
       }
       if (value.hasProperty(runtime, "primitive")) {
         auto prop = value.getProperty(runtime, "primitive");
-        if (!prop.isUndefined()) {
-          result->primitive =
-              JSIConverter<std::optional<std::shared_ptr<GPUPrimitiveState>>>::
-                  fromJSI(runtime, prop, false);
-        }
+        result->primitive = JSIConverter<
+            std::optional<std::shared_ptr<GPUPrimitiveState>>>::fromJSI(runtime,
+                                                                        prop,
+                                                                        false);
       }
       if (value.hasProperty(runtime, "depthStencil")) {
         auto prop = value.getProperty(runtime, "depthStencil");
-        if (!prop.isUndefined()) {
-          result->depthStencil = JSIConverter<std::optional<
-              std::shared_ptr<GPUDepthStencilState>>>::fromJSI(runtime, prop,
-                                                               false);
-        }
+        result->depthStencil =
+            JSIConverter<std::optional<std::shared_ptr<GPUDepthStencilState>>>::
+                fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "multisample")) {
         auto prop = value.getProperty(runtime, "multisample");
-        if (!prop.isUndefined()) {
-          result->multisample = JSIConverter<std::optional<
-              std::shared_ptr<GPUMultisampleState>>>::fromJSI(runtime, prop,
-                                                              false);
-        }
+        result->multisample =
+            JSIConverter<std::optional<std::shared_ptr<GPUMultisampleState>>>::
+                fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "fragment")) {
         auto prop = value.getProperty(runtime, "fragment");
-        if (!prop.isUndefined()) {
-          result->fragment =
-              JSIConverter<std::optional<std::shared_ptr<GPUFragmentState>>>::
-                  fromJSI(runtime, prop, false);
-        }
+        result->fragment = JSIConverter<
+            std::optional<std::shared_ptr<GPUFragmentState>>>::fromJSI(runtime,
+                                                                       prop,
+                                                                       false);
       }
       if (value.hasProperty(runtime, "layout")) {
         auto prop = value.getProperty(runtime, "layout");
@@ -103,10 +97,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        if (!prop.isUndefined()) {
-          result->label = JSIConverter<std::optional<std::string>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 

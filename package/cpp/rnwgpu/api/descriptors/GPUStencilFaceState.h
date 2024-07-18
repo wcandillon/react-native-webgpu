@@ -42,35 +42,27 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUStencilFaceState>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "compare")) {
         auto prop = value.getProperty(runtime, "compare");
-        if (!prop.isUndefined()) {
-          result->compare =
-              JSIConverter<std::optional<wgpu::CompareFunction>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->compare =
+            JSIConverter<std::optional<wgpu::CompareFunction>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "failOp")) {
         auto prop = value.getProperty(runtime, "failOp");
-        if (!prop.isUndefined()) {
-          result->failOp =
-              JSIConverter<std::optional<wgpu::StencilOperation>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->failOp =
+            JSIConverter<std::optional<wgpu::StencilOperation>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthFailOp")) {
         auto prop = value.getProperty(runtime, "depthFailOp");
-        if (!prop.isUndefined()) {
-          result->depthFailOp =
-              JSIConverter<std::optional<wgpu::StencilOperation>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->depthFailOp =
+            JSIConverter<std::optional<wgpu::StencilOperation>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "passOp")) {
         auto prop = value.getProperty(runtime, "passOp");
-        if (!prop.isUndefined()) {
-          result->passOp =
-              JSIConverter<std::optional<wgpu::StencilOperation>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->passOp =
+            JSIConverter<std::optional<wgpu::StencilOperation>>::fromJSI(
+                runtime, prop, false);
       }
     }
 

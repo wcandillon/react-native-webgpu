@@ -49,19 +49,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
       }
       if (value.hasProperty(runtime, "beginningOfPassWriteIndex")) {
         auto prop = value.getProperty(runtime, "beginningOfPassWriteIndex");
-        if (!prop.isUndefined()) {
-          result->beginningOfPassWriteIndex =
-              JSIConverter<std::optional<double>>::fromJSI(runtime, prop,
-                                                           false);
-        }
+        result->beginningOfPassWriteIndex =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "endOfPassWriteIndex")) {
         auto prop = value.getProperty(runtime, "endOfPassWriteIndex");
-        if (!prop.isUndefined()) {
-          result->endOfPassWriteIndex =
-              JSIConverter<std::optional<double>>::fromJSI(runtime, prop,
-                                                           false);
-        }
+        result->endOfPassWriteIndex =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 

@@ -64,72 +64,51 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
       }
       if (value.hasProperty(runtime, "depthWriteEnabled")) {
         auto prop = value.getProperty(runtime, "depthWriteEnabled");
-        if (!prop.isUndefined()) {
-          result->depthWriteEnabled =
-              JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-        }
+        result->depthWriteEnabled =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthCompare")) {
         auto prop = value.getProperty(runtime, "depthCompare");
-        if (!prop.isUndefined()) {
-          result->depthCompare =
-              JSIConverter<std::optional<wgpu::CompareFunction>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->depthCompare =
+            JSIConverter<std::optional<wgpu::CompareFunction>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stencilFront")) {
         auto prop = value.getProperty(runtime, "stencilFront");
-        if (!prop.isUndefined()) {
-          result->stencilFront = JSIConverter<std::optional<
-              std::shared_ptr<GPUStencilFaceState>>>::fromJSI(runtime, prop,
-                                                              false);
-        }
+        result->stencilFront =
+            JSIConverter<std::optional<std::shared_ptr<GPUStencilFaceState>>>::
+                fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stencilBack")) {
         auto prop = value.getProperty(runtime, "stencilBack");
-        if (!prop.isUndefined()) {
-          result->stencilBack = JSIConverter<std::optional<
-              std::shared_ptr<GPUStencilFaceState>>>::fromJSI(runtime, prop,
-                                                              false);
-        }
+        result->stencilBack =
+            JSIConverter<std::optional<std::shared_ptr<GPUStencilFaceState>>>::
+                fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stencilReadMask")) {
         auto prop = value.getProperty(runtime, "stencilReadMask");
-        if (!prop.isUndefined()) {
-          result->stencilReadMask =
-              JSIConverter<std::optional<double>>::fromJSI(runtime, prop,
-                                                           false);
-        }
+        result->stencilReadMask =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stencilWriteMask")) {
         auto prop = value.getProperty(runtime, "stencilWriteMask");
-        if (!prop.isUndefined()) {
-          result->stencilWriteMask =
-              JSIConverter<std::optional<double>>::fromJSI(runtime, prop,
-                                                           false);
-        }
+        result->stencilWriteMask =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthBias")) {
         auto prop = value.getProperty(runtime, "depthBias");
-        if (!prop.isUndefined()) {
-          result->depthBias = JSIConverter<std::optional<double>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->depthBias =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthBiasSlopeScale")) {
         auto prop = value.getProperty(runtime, "depthBiasSlopeScale");
-        if (!prop.isUndefined()) {
-          result->depthBiasSlopeScale =
-              JSIConverter<std::optional<double>>::fromJSI(runtime, prop,
-                                                           false);
-        }
+        result->depthBiasSlopeScale =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthBiasClamp")) {
         auto prop = value.getProperty(runtime, "depthBiasClamp");
-        if (!prop.isUndefined()) {
-          result->depthBiasClamp = JSIConverter<std::optional<double>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->depthBiasClamp =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 

@@ -51,10 +51,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutDescriptor>> {
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        if (!prop.isUndefined()) {
-          result->label = JSIConverter<std::optional<std::string>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 

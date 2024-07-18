@@ -43,11 +43,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "access")) {
         auto prop = value.getProperty(runtime, "access");
-        if (!prop.isUndefined()) {
-          result->access =
-              JSIConverter<std::optional<wgpu::StorageTextureAccess>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->access =
+            JSIConverter<std::optional<wgpu::StorageTextureAccess>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "format")) {
         auto prop = value.getProperty(runtime, "format");
@@ -56,11 +54,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
       }
       if (value.hasProperty(runtime, "viewDimension")) {
         auto prop = value.getProperty(runtime, "viewDimension");
-        if (!prop.isUndefined()) {
-          result->viewDimension =
-              JSIConverter<std::optional<wgpu::TextureViewDimension>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->viewDimension =
+            JSIConverter<std::optional<wgpu::TextureViewDimension>>::fromJSI(
+                runtime, prop, false);
       }
     }
 

@@ -39,11 +39,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "type")) {
         auto prop = value.getProperty(runtime, "type");
-        if (!prop.isUndefined()) {
-          result->type =
-              JSIConverter<std::optional<wgpu::SamplerBindingType>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->type =
+            JSIConverter<std::optional<wgpu::SamplerBindingType>>::fromJSI(
+                runtime, prop, false);
       }
     }
 

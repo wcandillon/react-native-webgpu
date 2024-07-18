@@ -47,19 +47,15 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
       }
       if (value.hasProperty(runtime, "blend")) {
         auto prop = value.getProperty(runtime, "blend");
-        if (!prop.isUndefined()) {
-          result->blend = JSIConverter<
-              std::optional<std::shared_ptr<GPUBlendState>>>::fromJSI(runtime,
-                                                                      prop,
-                                                                      false);
-        }
+        result->blend = JSIConverter<
+            std::optional<std::shared_ptr<GPUBlendState>>>::fromJSI(runtime,
+                                                                    prop,
+                                                                    false);
       }
       if (value.hasProperty(runtime, "writeMask")) {
         auto prop = value.getProperty(runtime, "writeMask");
-        if (!prop.isUndefined()) {
-          result->writeMask = JSIConverter<std::optional<double>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->writeMask =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 

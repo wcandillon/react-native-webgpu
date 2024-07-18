@@ -45,11 +45,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
       }
       if (value.hasProperty(runtime, "layout")) {
         auto prop = value.getProperty(runtime, "layout");
-        if (!prop.isUndefined()) {
-          result->layout = JSIConverter<std::optional<std::variant<
-              std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>>>::
-              fromJSI(runtime, prop, false);
-        }
+        result->layout = JSIConverter<std::optional<
+            std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>>>::
+            fromJSI(runtime, prop, false);
       }
     }
 

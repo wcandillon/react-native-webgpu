@@ -51,11 +51,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
       }
       if (value.hasProperty(runtime, "stepMode")) {
         auto prop = value.getProperty(runtime, "stepMode");
-        if (!prop.isUndefined()) {
-          result->stepMode =
-              JSIConverter<std::optional<wgpu::VertexStepMode>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->stepMode =
+            JSIConverter<std::optional<wgpu::VertexStepMode>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "attributes")) {
         auto prop = value.getProperty(runtime, "attributes");

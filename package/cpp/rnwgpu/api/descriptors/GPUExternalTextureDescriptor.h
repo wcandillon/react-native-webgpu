@@ -19,15 +19,17 @@ namespace m = margelo;
 namespace rnwgpu {
 
 struct GPUExternalTextureDescriptor {
-  // std::variant<std::shared_ptr<HTMLVideoElement>, std::shared_ptr<VideoFrame>>
+  // std::variant<std::shared_ptr<HTMLVideoElement>,
+  // std::shared_ptr<VideoFrame>>
   //     source; // | HTMLVideoElement | VideoFrame
-  //std::optional<wgpu::DefinedColorSpace> colorSpace; // PredefinedColorSpace
-  std::optional<std::string> label;                  // string
+  // std::optional<wgpu::DefinedColorSpace> colorSpace; // PredefinedColorSpace
+  std::optional<std::string> label; // string
 };
 
 static bool conv(wgpu::ExternalTextureDescriptor &out,
                  const std::shared_ptr<GPUExternalTextureDescriptor> &in) {
-  //return conv(out.source, in->source) && conv(out.colorSpace, in->colorSpace) &&
+  // return conv(out.source, in->source) && conv(out.colorSpace, in->colorSpace)
+  // &&
   return conv(out.label, in->label);
 }
 } // namespace rnwgpu
@@ -47,7 +49,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
         auto prop = value.getProperty(runtime, "source");
         // result->source = JSIConverter<
         //     std::variant<std::shared_ptr<HTMLVideoElement>,
-        //                  std::shared_ptr<VideoFrame>>>::fromJSI(runtime, prop,
+        //                  std::shared_ptr<VideoFrame>>>::fromJSI(runtime,
+        //                  prop,
         //                                                         false);
       }
       if (value.hasProperty(runtime, "colorSpace")) {

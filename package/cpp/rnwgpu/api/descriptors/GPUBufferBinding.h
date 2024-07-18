@@ -42,17 +42,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
       }
       if (value.hasProperty(runtime, "offset")) {
         auto prop = value.getProperty(runtime, "offset");
-        if (!prop.isUndefined()) {
-          result->offset = JSIConverter<std::optional<double>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->offset =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "size")) {
         auto prop = value.getProperty(runtime, "size");
-        if (!prop.isUndefined()) {
-          result->size = JSIConverter<std::optional<double>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->size =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 

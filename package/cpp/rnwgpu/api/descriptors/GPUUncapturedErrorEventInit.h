@@ -50,24 +50,18 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
       }
       if (value.hasProperty(runtime, "bubbles")) {
         auto prop = value.getProperty(runtime, "bubbles");
-        if (!prop.isUndefined()) {
-          result->bubbles =
-              JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-        }
+        result->bubbles =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "cancelable")) {
         auto prop = value.getProperty(runtime, "cancelable");
-        if (!prop.isUndefined()) {
-          result->cancelable =
-              JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-        }
+        result->cancelable =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "composed")) {
         auto prop = value.getProperty(runtime, "composed");
-        if (!prop.isUndefined()) {
-          result->composed =
-              JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-        }
+        result->composed =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
     }
 

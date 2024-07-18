@@ -59,87 +59,65 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "addressModeU")) {
         auto prop = value.getProperty(runtime, "addressModeU");
-        if (!prop.isUndefined()) {
-          result->addressModeU =
-              JSIConverter<std::optional<wgpu::AddressMode>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->addressModeU =
+            JSIConverter<std::optional<wgpu::AddressMode>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "addressModeV")) {
         auto prop = value.getProperty(runtime, "addressModeV");
-        if (!prop.isUndefined()) {
-          result->addressModeV =
-              JSIConverter<std::optional<wgpu::AddressMode>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->addressModeV =
+            JSIConverter<std::optional<wgpu::AddressMode>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "addressModeW")) {
         auto prop = value.getProperty(runtime, "addressModeW");
-        if (!prop.isUndefined()) {
-          result->addressModeW =
-              JSIConverter<std::optional<wgpu::AddressMode>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->addressModeW =
+            JSIConverter<std::optional<wgpu::AddressMode>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "magFilter")) {
         auto prop = value.getProperty(runtime, "magFilter");
-        if (!prop.isUndefined()) {
-          result->magFilter =
-              JSIConverter<std::optional<wgpu::FilterMode>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->magFilter =
+            JSIConverter<std::optional<wgpu::FilterMode>>::fromJSI(runtime,
+                                                                   prop, false);
       }
       if (value.hasProperty(runtime, "minFilter")) {
         auto prop = value.getProperty(runtime, "minFilter");
-        if (!prop.isUndefined()) {
-          result->minFilter =
-              JSIConverter<std::optional<wgpu::FilterMode>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->minFilter =
+            JSIConverter<std::optional<wgpu::FilterMode>>::fromJSI(runtime,
+                                                                   prop, false);
       }
       if (value.hasProperty(runtime, "mipmapFilter")) {
         auto prop = value.getProperty(runtime, "mipmapFilter");
-        if (!prop.isUndefined()) {
-          result->mipmapFilter =
-              JSIConverter<std::optional<wgpu::MipmapFilterMode>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->mipmapFilter =
+            JSIConverter<std::optional<wgpu::MipmapFilterMode>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "lodMinClamp")) {
         auto prop = value.getProperty(runtime, "lodMinClamp");
-        if (!prop.isUndefined()) {
-          result->lodMinClamp = JSIConverter<std::optional<double>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->lodMinClamp =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "lodMaxClamp")) {
         auto prop = value.getProperty(runtime, "lodMaxClamp");
-        if (!prop.isUndefined()) {
-          result->lodMaxClamp = JSIConverter<std::optional<double>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->lodMaxClamp =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "compare")) {
         auto prop = value.getProperty(runtime, "compare");
-        if (!prop.isUndefined()) {
-          result->compare =
-              JSIConverter<std::optional<wgpu::CompareFunction>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->compare =
+            JSIConverter<std::optional<wgpu::CompareFunction>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "maxAnisotropy")) {
         auto prop = value.getProperty(runtime, "maxAnisotropy");
-        if (!prop.isUndefined()) {
-          result->maxAnisotropy = JSIConverter<std::optional<double>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->maxAnisotropy =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
-        if (!prop.isUndefined()) {
-          result->label = JSIConverter<std::optional<std::string>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 

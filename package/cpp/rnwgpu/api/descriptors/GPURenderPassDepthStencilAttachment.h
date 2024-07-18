@@ -64,65 +64,47 @@ struct JSIConverter<
       }
       if (value.hasProperty(runtime, "depthClearValue")) {
         auto prop = value.getProperty(runtime, "depthClearValue");
-        if (!prop.isUndefined()) {
-          result->depthClearValue =
-              JSIConverter<std::optional<double>>::fromJSI(runtime, prop,
-                                                           false);
-        }
+        result->depthClearValue =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthLoadOp")) {
         auto prop = value.getProperty(runtime, "depthLoadOp");
-        if (!prop.isUndefined()) {
-          result->depthLoadOp =
-              JSIConverter<std::optional<wgpu::LoadOp>>::fromJSI(runtime, prop,
-                                                                 false);
-        }
+        result->depthLoadOp =
+            JSIConverter<std::optional<wgpu::LoadOp>>::fromJSI(runtime, prop,
+                                                               false);
       }
       if (value.hasProperty(runtime, "depthStoreOp")) {
         auto prop = value.getProperty(runtime, "depthStoreOp");
-        if (!prop.isUndefined()) {
-          result->depthStoreOp =
-              JSIConverter<std::optional<wgpu::StoreOp>>::fromJSI(runtime, prop,
-                                                                  false);
-        }
+        result->depthStoreOp =
+            JSIConverter<std::optional<wgpu::StoreOp>>::fromJSI(runtime, prop,
+                                                                false);
       }
       if (value.hasProperty(runtime, "depthReadOnly")) {
         auto prop = value.getProperty(runtime, "depthReadOnly");
-        if (!prop.isUndefined()) {
-          result->depthReadOnly =
-              JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-        }
+        result->depthReadOnly =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stencilClearValue")) {
         auto prop = value.getProperty(runtime, "stencilClearValue");
-        if (!prop.isUndefined()) {
-          result->stencilClearValue =
-              JSIConverter<std::optional<double>>::fromJSI(runtime, prop,
-                                                           false);
-        }
+        result->stencilClearValue =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stencilLoadOp")) {
         auto prop = value.getProperty(runtime, "stencilLoadOp");
-        if (!prop.isUndefined()) {
-          result->stencilLoadOp =
-              JSIConverter<std::optional<wgpu::LoadOp>>::fromJSI(runtime, prop,
-                                                                 false);
-        }
+        result->stencilLoadOp =
+            JSIConverter<std::optional<wgpu::LoadOp>>::fromJSI(runtime, prop,
+                                                               false);
       }
       if (value.hasProperty(runtime, "stencilStoreOp")) {
         auto prop = value.getProperty(runtime, "stencilStoreOp");
-        if (!prop.isUndefined()) {
-          result->stencilStoreOp =
-              JSIConverter<std::optional<wgpu::StoreOp>>::fromJSI(runtime, prop,
-                                                                  false);
-        }
+        result->stencilStoreOp =
+            JSIConverter<std::optional<wgpu::StoreOp>>::fromJSI(runtime, prop,
+                                                                false);
       }
       if (value.hasProperty(runtime, "stencilReadOnly")) {
         auto prop = value.getProperty(runtime, "stencilReadOnly");
-        if (!prop.isUndefined()) {
-          result->stencilReadOnly =
-              JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
-        }
+        result->stencilReadOnly =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
     }
 

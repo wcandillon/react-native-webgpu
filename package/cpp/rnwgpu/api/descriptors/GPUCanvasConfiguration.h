@@ -60,35 +60,27 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
       }
       if (value.hasProperty(runtime, "usage")) {
         auto prop = value.getProperty(runtime, "usage");
-        if (!prop.isUndefined()) {
-          result->usage = JSIConverter<std::optional<double>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->usage =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "viewFormats")) {
         auto prop = value.getProperty(runtime, "viewFormats");
-        if (!prop.isUndefined()) {
-          result->viewFormats = JSIConverter<
-              std::optional<std::vector<wgpu::TextureFormat>>>::fromJSI(runtime,
-                                                                        prop,
-                                                                        false);
-        }
+        result->viewFormats = JSIConverter<
+            std::optional<std::vector<wgpu::TextureFormat>>>::fromJSI(runtime,
+                                                                      prop,
+                                                                      false);
       }
       if (value.hasProperty(runtime, "colorSpace")) {
         auto prop = value.getProperty(runtime, "colorSpace");
-        if (!prop.isUndefined()) {
-          result->colorSpace =
-              JSIConverter<std::optional<wgpu::definedColorSpace>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->colorSpace =
+            JSIConverter<std::optional<wgpu::definedColorSpace>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "alphaMode")) {
         auto prop = value.getProperty(runtime, "alphaMode");
-        if (!prop.isUndefined()) {
-          result->alphaMode =
-              JSIConverter<std::optional<wgpu::CanvasAlphaMode>>::fromJSI(
-                  runtime, prop, false);
-        }
+        result->alphaMode =
+            JSIConverter<std::optional<wgpu::CanvasAlphaMode>>::fromJSI(
+                runtime, prop, false);
       }
     }
 

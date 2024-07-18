@@ -59,27 +59,21 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
       }
       if (value.hasProperty(runtime, "depthSlice")) {
         auto prop = value.getProperty(runtime, "depthSlice");
-        if (!prop.isUndefined()) {
-          result->depthSlice = JSIConverter<std::optional<double>>::fromJSI(
-              runtime, prop, false);
-        }
+        result->depthSlice =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "resolveTarget")) {
         auto prop = value.getProperty(runtime, "resolveTarget");
-        if (!prop.isUndefined()) {
-          result->resolveTarget = JSIConverter<
-              std::optional<std::shared_ptr<GPUTextureView>>>::fromJSI(runtime,
-                                                                       prop,
-                                                                       false);
-        }
+        result->resolveTarget = JSIConverter<
+            std::optional<std::shared_ptr<GPUTextureView>>>::fromJSI(runtime,
+                                                                     prop,
+                                                                     false);
       }
       if (value.hasProperty(runtime, "clearValue")) {
         auto prop = value.getProperty(runtime, "clearValue");
-        if (!prop.isUndefined()) {
-          result->clearValue = JSIConverter<std::optional<std::variant<
-              std::vector<double>, std::shared_ptr<GPUColorDict>>>>::
-              fromJSI(runtime, prop, false);
-        }
+        result->clearValue = JSIConverter<std::optional<
+            std::variant<std::vector<double>, std::shared_ptr<GPUColorDict>>>>::
+            fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "loadOp")) {
         auto prop = value.getProperty(runtime, "loadOp");

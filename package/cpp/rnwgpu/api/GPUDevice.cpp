@@ -13,7 +13,6 @@ GPUDevice::createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
 
 std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
   auto result = _instance.GetQueue();
-  // TODO: is label correct here?
   return std::make_shared<GPUQueue>(result, _async, _label);
 }
 

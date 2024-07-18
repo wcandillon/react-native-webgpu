@@ -156,13 +156,7 @@ interface Prop {
 const jsiProp = ({ name, type }: Prop) => {
   return `if (value.hasProperty(runtime, "${name}")) {
     auto prop = value.getProperty(runtime, "${name}");
-    ${
-      type.startsWith("std::optional")
-        ? `if (!prop.isUndefined()) {
     result->${name} = JSIConverter<${type}>::fromJSI(runtime, prop, false);
-    }`
-        : `result->${name} = JSIConverter<${type}>::fromJSI(runtime, prop, false);`
-    }
   }`;
 };
 
