@@ -53,7 +53,7 @@ std::future<void> GPUBuffer::mapAsync(uint64_t modeIn, std::optional<uint64_t> o
   Convertor conv;
   wgpu::MapMode mode;
   if (!conv(mode, modeIn)) {
-    throw std::runtime_error("Couldn't get mode");
+    throw std::runtime_error("Couldn't get MapMode");
   }
   uint64_t rangeSize = size.has_value() ? size.value() : (_instance.GetSize() - offset.value_or(0));
   return _async->runAsync([=] {
