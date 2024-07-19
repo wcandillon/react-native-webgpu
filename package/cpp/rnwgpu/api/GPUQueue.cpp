@@ -2,62 +2,77 @@
 
 #include <limits>
 
+#include "Convertors.h"
+
 namespace rnwgpu {
 
-// TODO: rename to conv and move to Convertors
-template <typename I> auto conv2(const std::vector<std::shared_ptr<I>> &input) {
-  std::vector<decltype(std::declval<I>().get())> result;
-  result.reserve(input.size());
-  for (const auto &ptr : input) {
-    result.push_back(ptr->get());
-  }
-  return result;
-}
+struct BufferSource {
+  void *data;
+  size_t size;            // in bytes
+  size_t bytesPerElement; // 1 for ArrayBuffers
+};
 
 void GPUQueue::submit(
     std::vector<std::shared_ptr<GPUCommandBuffer>> commandBuffers) {
-  auto bufs = conv2(commandBuffers);
-  _instance.Submit(bufs.size(), bufs.data());
+  std::vector<wgpu::CommandBuffer> bufs(commandBuffers.size());
+  for (size_t i = 0; i < commandBuffers.size(); i++) {
+    bufs[i] = commandBuffers[i]->get();
+  }
+  Convertor conv;
+  uint32_t bufs_size;
+  if (!conv(bufs_size, bufs.size())) {
+    return;
+  }
+  _instance.Submit(bufs_size, bufs.data());
 }
 
 void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,
                            uint64_t bufferOffset,
-                           std::shared_ptr<ArrayBuffer> src,
+                           std::shared_ptr<ArrayBuffer> data,
                            std::optional<uint64_t> dataOffsetElements,
                            std::optional<size_t> sizeElements) {
-  auto buf = buffer->get();
+  wgpu::Buffer buf = buffer->get();
+  BufferSource src{.size = data->_size,
+                   .data = data->_data,
+                   .bytesPerElement = data->_bytesPerElement};
+
   // Note that in the JS semantics of WebGPU, writeBuffer works in number of
   // elements of the typed arrays.
-  if (dataOffsetElements > uint64_t(src->_size / src->_bytesPerElement)) {
+  if (dataOffsetElements > uint64_t(src.size / src.bytesPerElement)) {
     throw std::runtime_error("dataOffset is larger than data's size.");
     return;
   }
-  uint64_t dataOffset = dataOffsetElements.value_or(0) * src->_bytesPerElement;
-  src->_data = reinterpret_cast<uint8_t *>(src->_data) + dataOffset;
-  src->_size -= dataOffset;
+  uint64_t dataOffset = dataOffsetElements.value_or(0) * src.bytesPerElement;
+  src.data = reinterpret_cast<uint8_t *>(src.data) + dataOffset;
+  src.size -= dataOffset;
 
   // Size defaults to dataSize - dataOffset. Instead of computing in elements,
   // we directly use it in bytes, and convert the provided value, if any, in
   // bytes.
-  size_t size = src->_size;
+  uint64_t size64 = uint64_t(src.size);
   if (sizeElements.has_value()) {
     if (sizeElements.value() >
-        std::numeric_limits<uint64_t>::max() / src->_bytesPerElement) {
+        std::numeric_limits<uint64_t>::max() / src.bytesPerElement) {
       throw std::runtime_error("size overflows.");
       return;
     }
-    size = sizeElements.value() * src->_bytesPerElement;
+    size64 = sizeElements.value() * src.bytesPerElement;
   }
 
-  if (size > src->_size) {
-    throw std::runtime_error("size is larger than data's size.");
+  if (size64 > uint64_t(src.size)) {
+    throw std::runtime_error("size + dataOffset is larger than data's size.");
+    return;
   }
 
-  if (size % 4 != 0) {
+  if (size64 % 4 != 0) {
     throw std::runtime_error("size is not a multiple of 4 bytes.");
+
+    return;
   }
 
-  _instance.WriteBuffer(buf, bufferOffset, src->_data, size);
+  assert(size64 <= std::numeric_limits<size_t>::max());
+  _instance.WriteBuffer(buf, bufferOffset, src.data,
+                        static_cast<size_t>(size64));
 }
 
 } // namespace rnwgpu

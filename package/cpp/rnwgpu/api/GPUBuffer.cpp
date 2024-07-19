@@ -1,5 +1,8 @@
 #include "GPUBuffer.h"
 
+#include <iomanip>
+#include <sstream>
+#include <string>
 #include <utility>
 
 namespace rnwgpu {
@@ -25,7 +28,16 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
   if (!ptr) {
     throw std::runtime_error("Failed to get getMappedRange");
   }
-  auto array_buffer = std::make_shared<ArrayBuffer>(ptr, s);
+  auto array_buffer = std::make_shared<ArrayBuffer>(ptr, s, 1);
+  std::stringstream ss;
+  uint8_t *uint8_ptr = static_cast<uint8_t *>(ptr);
+  ss << "Buffer content: ";
+  for (size_t i = 0; i < s; ++i) {
+    ss << std::setw(2) << std::setfill('0') << std::hex
+       << static_cast<int>(uint8_ptr[i]) << " ";
+  }
+  std::string bufferContent = ss.str();
+  Logger::logToConsole("debug: %s", bufferContent.c_str());
   // TODO(crbug.com/dawn/1135): Ownership here is the wrong way around.
   // mappings_.emplace_back(Mapping{start, end,
   // Napi::Persistent(array_buffer)});

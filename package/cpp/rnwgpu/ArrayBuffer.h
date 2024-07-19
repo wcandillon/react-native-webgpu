@@ -30,7 +30,8 @@ namespace margelo {
 
 static std::shared_ptr<rnwgpu::ArrayBuffer>
 createArrayBufferFromJSI(jsi::Runtime &runtime,
-                         const jsi::ArrayBuffer &arrayBuffer, size_t bytesPerElement) {
+                         const jsi::ArrayBuffer &arrayBuffer,
+                         size_t bytesPerElement) {
   auto size = arrayBuffer.size(runtime);
   return std::make_shared<rnwgpu::ArrayBuffer>(arrayBuffer.data(runtime), size,
                                                bytesPerElement);
@@ -42,16 +43,19 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::ArrayBuffer>> {
     if (arg.isObject()) {
       auto obj = arg.getObject(runtime);
       if (obj.isArrayBuffer(runtime)) {
-        return createArrayBufferFromJSI(runtime, obj.getArrayBuffer(runtime), 1);
+        return createArrayBufferFromJSI(runtime, obj.getArrayBuffer(runtime),
+                                        1);
       }
       if (obj.hasProperty(runtime, "buffer")) {
         auto bufferProp = obj.getProperty(runtime, "buffer");
         if (bufferProp.isObject() &&
             bufferProp.getObject(runtime).isArrayBuffer(runtime)) {
           auto buff = bufferProp.getObject(runtime);
-          auto bytesPerElements = obj.getProperty(runtime, "BYTES_PER_ELEMENT").asNumber();
+          auto bytesPerElements =
+              obj.getProperty(runtime, "BYTES_PER_ELEMENT").asNumber();
           return createArrayBufferFromJSI(
-              runtime, buff.getArrayBuffer(runtime), static_cast<size_t>(bytesPerElements));
+              runtime, buff.getArrayBuffer(runtime),
+              static_cast<size_t>(bytesPerElements));
         }
       }
     }

@@ -8,8 +8,15 @@ void GPUCommandEncoder::copyBufferToBuffer(
     std::shared_ptr<GPUBuffer> source, uint64_t sourceOffset,
     std::shared_ptr<GPUBuffer> destination, uint64_t destinationOffset,
     uint64_t size) {
-  _instance.CopyBufferToBuffer(source->get(), sourceOffset, destination->get(),
-                               destinationOffset, size);
+  Convertor conv;
+
+  wgpu::Buffer src{};
+  wgpu::Buffer dst{};
+  if (!conv(src, source) || //
+      !conv(dst, destination)) {
+    return;
+  }
+  _instance.CopyBufferToBuffer(src, sourceOffset, dst, destinationOffset, size);
 }
 
 std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(
@@ -34,17 +41,16 @@ std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
   desc.nextInChain = &maxDrawCountDesc;
   Convertor conv;
 
-// TODO: why is this not in Converter
+  // TODO: why is this not in Converter
   if (!conv(desc.colorAttachments, desc.colorAttachmentCount,
-  descriptor->colorAttachments) ||
-      !conv(desc.depthStencilAttachment,
-      descriptor->depthStencilAttachment) || !conv(desc.label,
-      descriptor->label) || !conv(desc.occlusionQuerySet,
-      descriptor->occlusionQuerySet) || !conv(desc.timestampWrites,
-      descriptor->timestampWrites) || !conv(maxDrawCountDesc.maxDrawCount,
-      descriptor->maxDrawCount))
-  {
-    throw std::runtime_error("PUCommandEncoder::beginRenderPass(): couldn't get GPURenderPassDescriptor");
+            descriptor->colorAttachments) ||
+      !conv(desc.depthStencilAttachment, descriptor->depthStencilAttachment) ||
+      !conv(desc.label, descriptor->label) ||
+      !conv(desc.occlusionQuerySet, descriptor->occlusionQuerySet) ||
+      !conv(desc.timestampWrites, descriptor->timestampWrites) ||
+      !conv(maxDrawCountDesc.maxDrawCount, descriptor->maxDrawCount)) {
+    throw std::runtime_error("PUCommandEncoder::beginRenderPass(): couldn't "
+                             "get GPURenderPassDescriptor");
   }
   auto renderPass = _instance.BeginRenderPass(&desc);
   return std::make_shared<GPURenderPassEncoder>(renderPass,
@@ -72,7 +78,8 @@ std::shared_ptr<GPUComputePassEncoder> GPUCommandEncoder::beginComputePass(
   wgpu::ComputePassDescriptor desc;
   Convertor conv;
   if (!conv(desc, descriptor)) {
-      throw std::runtime_error("GPUCommandEncoder.beginComputePass(): couldn't access GPUComputePassDescriptor.");
+    throw std::runtime_error("GPUCommandEncoder.beginComputePass(): couldn't "
+                             "access GPUComputePassDescriptor.");
   }
   auto computePass = _instance.BeginComputePass(&desc);
   return std::make_shared<GPUComputePassEncoder>(

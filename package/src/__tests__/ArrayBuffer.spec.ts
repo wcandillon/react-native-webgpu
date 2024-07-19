@@ -10,7 +10,6 @@ describe("Buffer", () => {
   it("Array Buffer (2)", async () => {
     const result = await client.eval(({ device }) => {
       const data = new Float32Array([1.0, 2.0, 3.0, 4.0]);
-      console.log(GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST);
       const bufferSize = data.byteLength; // 4 32-bit floats
       const sourceBuffer = device.createBuffer({
         size: bufferSize,

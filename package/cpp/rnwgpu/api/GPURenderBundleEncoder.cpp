@@ -9,7 +9,8 @@ std::shared_ptr<GPURenderBundle> GPURenderBundleEncoder::finish(
   wgpu::RenderBundleDescriptor desc;
   Convertor conv;
   if (!conv(desc, descriptor)) {
-      throw std::runtime_error("GPURenderBundleEncoder.finish(): couldn't get GPURenderBundleDescriptor");
+    throw std::runtime_error("GPURenderBundleEncoder.finish(): couldn't get "
+                             "GPURenderBundleDescriptor");
   }
   auto bundle = _instance.Finish(&desc);
   return std::make_shared<GPURenderBundle>(bundle,

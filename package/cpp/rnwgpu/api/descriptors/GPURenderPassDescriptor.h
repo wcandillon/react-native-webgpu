@@ -50,10 +50,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "colorAttachments")) {
         auto prop = value.getProperty(runtime, "colorAttachments");
-        result->colorAttachments = JSIConverter<std::vector<std::shared_ptr<GPURenderPassColorAttachment>>>::
-            fromJSI(runtime, prop, false);
+        result->colorAttachments = JSIConverter<std::vector<
+            std::shared_ptr<GPURenderPassColorAttachment>>>::fromJSI(runtime,
+                                                                     prop,
+                                                                     false);
         // result->colorAttachments = JSIConverter<std::vector<std::variant<
-        //     std::nullptr_t, std::shared_ptr<GPURenderPassColorAttachment>>>>::
+        //     std::nullptr_t,
+        //     std::shared_ptr<GPURenderPassColorAttachment>>>>::
         //     fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthStencilAttachment")) {
