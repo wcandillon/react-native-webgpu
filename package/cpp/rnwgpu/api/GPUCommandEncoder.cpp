@@ -71,7 +71,9 @@ std::shared_ptr<GPUComputePassEncoder> GPUCommandEncoder::beginComputePass(
     std::shared_ptr<GPUComputePassDescriptor> descriptor) {
   wgpu::ComputePassDescriptor desc;
   Convertor conv;
-  conv(desc, descriptor);
+  if (!conv(desc, descriptor)) {
+      throw std::runtime_error("GPUCommandEncoder.beginComputePass(): couldn't access GPUComputePassDescriptor.");
+  }
   auto computePass = _instance.BeginComputePass(&desc);
   return std::make_shared<GPUComputePassEncoder>(
       computePass, descriptor->label.value_or(""));
