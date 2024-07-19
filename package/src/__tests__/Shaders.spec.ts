@@ -37,7 +37,7 @@ describe("Triangle", () => {
             }),
             targets: [
               {
-                format: "rgba8unorm",
+                format: gpu.getPreferredCanvasFormat(),
               },
             ],
           },
@@ -58,7 +58,7 @@ describe("Triangle", () => {
         const textureSize = 512;
         const texture = device.createTexture({
           size: [textureSize, textureSize],
-          format: "rgba8unorm",
+          format: gpu.getPreferredCanvasFormat(),
           usage:
             GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
         });
@@ -77,7 +77,7 @@ describe("Triangle", () => {
               code: redFragWGSL,
             }),
             entryPoint: "main",
-            targets: [{ format: "rgba8unorm" }],
+            targets: [{ format: gpu.getPreferredCanvasFormat() }],
           },
           primitive: {
             topology: "triangle-list",
@@ -146,50 +146,48 @@ describe("Triangle", () => {
         // // Render the triangle to the texture
         const commandEncoder = device.createCommandEncoder();
         const textureView = texture.createView();
-        return true;
 
-        // const renderPassDescriptor: GPURenderPassDescriptor = {
-        //   colorAttachments: [
-        //     {
-        //       view: textureView,
-        //       clearValue: [0, 0, 0, 1],
-        //       loadOp: "clear",
-        //       storeOp: "store",
-        //     },
-        //   ],
-        // };
+        const renderPassDescriptor: GPURenderPassDescriptor = {
+          colorAttachments: [
+            {
+              view: textureView,
+              clearValue: [0, 0, 0, 1],
+              loadOp: "clear",
+              storeOp: "store",
+            },
+          ],
+        };
 
-        // const passEncoder =
-        //   commandEncoder.beginRenderPass(renderPassDescriptor);
-        // passEncoder.setPipeline(texturePipeline);
-        // passEncoder.draw(3);
-        // passEncoder.end();
+        const passEncoder =
+          commandEncoder.beginRenderPass(renderPassDescriptor);
+        passEncoder.setPipeline(texturePipeline);
+        passEncoder.draw(3);
+        passEncoder.end();
 
-        // device.queue.submit([commandEncoder.finish()]);
+        device.queue.submit([commandEncoder.finish()]);
+
         // // // Function to display the texture on the screen
-        // const cmdEncoder = device.createCommandEncoder();
+        const cmdEncoder = device.createCommandEncoder();
 
-        // const renderPD: GPURenderPassDescriptor = {
-        //   colorAttachments: [
-        //     {
-        //       view: textureView,
-        //       clearValue: [0.5, 0.5, 0.5, 1],
-        //       loadOp: "clear",
-        //       storeOp: "store",
-        //     },
-        //   ],
-        // };
+        const renderPD: GPURenderPassDescriptor = {
+          colorAttachments: [
+            {
+              view: textureView,
+              clearValue: [0.5, 0.5, 0.5, 1],
+              loadOp: "clear",
+              storeOp: "store",
+            },
+          ],
+        };
 
-        // const encoder = cmdEncoder.beginRenderPass(renderPD);
-        // encoder.setPipeline(displayPipeline);
-        // encoder.setBindGroup(0, bindGroup);
-        // encoder.draw(6);
-        // encoder.end();
+        const encoder = cmdEncoder.beginRenderPass(renderPD);
+        encoder.setPipeline(displayPipeline);
+        encoder.setBindGroup(0, bindGroup);
+        encoder.draw(6);
+        encoder.end();
 
-        // device.queue.submit([cmdEncoder.finish()]);
-        // return true;
-        // requestAnimationFrame(frame);
-        // return pipeline.label;
+        //device.queue.submit([cmdEncoder.finish()]);
+        return true;
       },
     );
     expect(result).toBe(true);
