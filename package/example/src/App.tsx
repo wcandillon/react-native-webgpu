@@ -6,6 +6,7 @@ import type { Routes } from "./Route";
 import { Home } from "./Home";
 import { Buffers } from "./Buffers";
 import { Tests } from "./Tests";
+import { NativeView } from "./NativeView";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -13,10 +14,11 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Tests">
+        <Stack.Navigator initialRouteName="Home">
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="Buffers" component={Buffers} />
           <Stack.Screen name="Tests" component={Tests} />
+          <Stack.Screen name="NativeView" component={NativeView} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

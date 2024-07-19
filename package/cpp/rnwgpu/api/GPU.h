@@ -15,7 +15,7 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "GPUAdapter.h"
-#include "GPURequestAdapterOptions.h"
+#include <descriptors/GPURequestAdapterOptions.h>
 
 namespace rnwgpu {
 
@@ -38,6 +38,8 @@ public:
   std::future<std::shared_ptr<GPUAdapter>>
   requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options);
   wgpu::TextureFormat getPreferredCanvasFormat();
+  void attachSurface(void *window);
+  void runTriangleDemo(void *window, int width, int height);
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPU::getBrand, this);
@@ -51,5 +53,6 @@ public:
 private:
   wgpu::Instance _instance;
   std::shared_ptr<AsyncRunner> _async;
+  wgpu::Surface _surface;
 };
 } // namespace rnwgpu

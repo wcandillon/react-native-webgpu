@@ -15,6 +15,10 @@ export const examples = [
     screen: "Tests",
     title: "🧪 Tests",
   },
+  {
+    screen: "NativeView",
+    title: "NativeView",
+  },
 ] as const;
 
 const styles = StyleSheet.create({
