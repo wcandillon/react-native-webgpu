@@ -2,6 +2,7 @@
 
 #include <future>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -35,8 +36,8 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::future<std::shared_ptr<GPUAdapter>>
-  requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options);
+  std::future<std::shared_ptr<GPUAdapter>> requestAdapter(
+      std::optional<std::shared_ptr<GPURequestAdapterOptions>> options);
   wgpu::TextureFormat getPreferredCanvasFormat();
 
   void loadHybridMethods() override {

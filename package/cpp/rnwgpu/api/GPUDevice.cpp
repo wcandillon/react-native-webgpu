@@ -9,7 +9,8 @@ GPUDevice::createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
   wgpu::BufferDescriptor desc;
   Convertor conv;
   if (!conv(desc, descriptor)) {
-    throw std::runtime_error("GPUDevice::createBuffer(): Error with GPUBufferDescriptor");
+    throw std::runtime_error(
+        "GPUDevice::createBuffer(): Error with GPUBufferDescriptor");
   }
   auto result = _instance.CreateBuffer(&desc);
   return std::make_shared<GPUBuffer>(result, _async,
@@ -72,9 +73,10 @@ std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(
     std::shared_ptr<GPURenderPipelineDescriptor> descriptor) {
   wgpu::RenderPipelineDescriptor desc{};
   Convertor conv;
-   if (!conv(desc, descriptor)) {
-     throw std::runtime_error("Error with GPURenderPipelineDescriptor");
-   }
+  if (!conv(desc, descriptor)) {
+    throw std::runtime_error("Error with GPURenderPipelineDescriptor");
+  }
+  assert(desc.fragment != nullptr && "Fragment state must not be null");
   auto renderPipeline = _instance.CreateRenderPipeline(&desc);
   return std::make_shared<GPURenderPipeline>(renderPipeline,
                                              descriptor->label.value_or(""));
@@ -84,9 +86,11 @@ std::shared_ptr<GPUBindGroup>
 GPUDevice::createBindGroup(std::shared_ptr<GPUBindGroupDescriptor> descriptor) {
   Convertor conv;
   wgpu::BindGroupDescriptor desc{};
-  if (!conv(desc.label, descriptor->label) || !conv(desc.layout, descriptor->layout) ||
-        !conv(desc.entries, desc.entryCount, descriptor->entries)) {
-    throw std::runtime_error("GPUBindGroup::createBindGroup(): Error with GPUBindGroupDescriptor");
+  if (!conv(desc.label, descriptor->label) ||
+      !conv(desc.layout, descriptor->layout) ||
+      !conv(desc.entries, desc.entryCount, descriptor->entries)) {
+    throw std::runtime_error(
+        "GPUBindGroup::createBindGroup(): Error with GPUBindGroupDescriptor");
   }
   auto bindGroup = _instance.CreateBindGroup(&desc);
   return std::make_shared<GPUBindGroup>(bindGroup,
