@@ -1,28 +1,33 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUPrimitiveState {
-public:
-  wgpu::PrimitiveState *getInstance() { return &_instance; }
-
-  wgpu::PrimitiveState _instance;
+struct GPUPrimitiveState {
+  std::optional<wgpu::PrimitiveTopology> topology;   // GPUPrimitiveTopology
+  std::optional<wgpu::IndexFormat> stripIndexFormat; // GPUIndexFormat
+  std::optional<wgpu::FrontFace> frontFace;          // GPUFrontFace
+  std::optional<wgpu::CullMode> cullMode;            // GPUCullMode
+  std::optional<bool> unclippedDepth;                // boolean
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPrimitiveState>> {
   static std::shared_ptr<rnwgpu::GPUPrimitiveState>
@@ -31,44 +36,32 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPrimitiveState>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "topology")) {
-        auto topology = value.getProperty(runtime, "topology");
-
-        if (topology.isString()) {
-          auto str = topology.asString(runtime).utf8(runtime);
-          wgpu::PrimitiveTopology enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.topology = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "topology");
+        result->topology =
+            JSIConverter<std::optional<wgpu::PrimitiveTopology>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stripIndexFormat")) {
-        auto stripIndexFormat = value.getProperty(runtime, "stripIndexFormat");
-
-        if (stripIndexFormat.isString()) {
-          auto str = stripIndexFormat.asString(runtime).utf8(runtime);
-          wgpu::IndexFormat enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.stripIndexFormat = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "stripIndexFormat");
+        result->stripIndexFormat =
+            JSIConverter<std::optional<wgpu::IndexFormat>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "frontFace")) {
-        auto frontFace = value.getProperty(runtime, "frontFace");
-
-        if (frontFace.isString()) {
-          auto str = frontFace.asString(runtime).utf8(runtime);
-          wgpu::FrontFace enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.frontFace = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "frontFace");
+        result->frontFace =
+            JSIConverter<std::optional<wgpu::FrontFace>>::fromJSI(runtime, prop,
+                                                                  false);
       }
       if (value.hasProperty(runtime, "cullMode")) {
-        auto cullMode = value.getProperty(runtime, "cullMode");
-
-        if (cullMode.isString()) {
-          auto str = cullMode.asString(runtime).utf8(runtime);
-          wgpu::CullMode enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.cullMode = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "cullMode");
+        result->cullMode = JSIConverter<std::optional<wgpu::CullMode>>::fromJSI(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "unclippedDepth")) {
+        auto prop = value.getProperty(runtime, "unclippedDepth");
+        result->unclippedDepth =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
     }
 
@@ -76,8 +69,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPrimitiveState>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUPrimitiveState> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUPrimitiveState::toJSI()");
   }
 };
+
 } // namespace margelo

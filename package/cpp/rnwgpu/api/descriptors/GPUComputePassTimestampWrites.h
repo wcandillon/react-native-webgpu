@@ -1,30 +1,32 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
-#include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
+#include "DescriptorConvertors.h"
 #include "GPUQuerySet.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUComputePassTimestampWrites {
-public:
-  wgpu::ComputePassTimestampWrites *getInstance() { return &_instance; }
-
-  wgpu::ComputePassTimestampWrites _instance;
+struct GPUComputePassTimestampWrites {
+  std::shared_ptr<GPUQuerySet> querySet;           // GPUQuerySet
+  std::optional<double> beginningOfPassWriteIndex; // GPUSize32
+  std::optional<double> endOfPassWriteIndex;       // GPUSize32
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
@@ -34,41 +36,19 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "querySet")) {
-        auto querySet = value.getProperty(runtime, "querySet");
-
-        if (querySet.isObject() &&
-            querySet.getObject(runtime).isHostObject(runtime)) {
-          result->_instance.querySet =
-              querySet.getObject(runtime)
-                  .asHostObject<rnwgpu::GPUQuerySet>(runtime)
-                  ->get();
-        }
-
-        if (querySet.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUComputePassTimestampWrites::querySet is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUComputePassTimestampWrites::querySet is not defined");
+        auto prop = value.getProperty(runtime, "querySet");
+        result->querySet = JSIConverter<std::shared_ptr<GPUQuerySet>>::fromJSI(
+            runtime, prop, false);
       }
       if (value.hasProperty(runtime, "beginningOfPassWriteIndex")) {
-        auto beginningOfPassWriteIndex =
-            value.getProperty(runtime, "beginningOfPassWriteIndex");
-
-        if (beginningOfPassWriteIndex.isNumber()) {
-          result->_instance.beginningOfPassWriteIndex =
-              static_cast<uint32_t>(beginningOfPassWriteIndex.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "beginningOfPassWriteIndex");
+        result->beginningOfPassWriteIndex =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "endOfPassWriteIndex")) {
-        auto endOfPassWriteIndex =
-            value.getProperty(runtime, "endOfPassWriteIndex");
-
-        if (endOfPassWriteIndex.isNumber()) {
-          result->_instance.endOfPassWriteIndex =
-              static_cast<uint32_t>(endOfPassWriteIndex.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "endOfPassWriteIndex");
+        result->endOfPassWriteIndex =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 
@@ -77,8 +57,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUComputePassTimestampWrites::toJSI()");
   }
 };
+
 } // namespace margelo

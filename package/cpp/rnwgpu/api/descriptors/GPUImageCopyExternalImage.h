@@ -1,31 +1,46 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
+#include <variant>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
+#include "Convertors.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
-#include "GPUImageCopyExternalImageSource.h"
-#include "GPUOrigin2DStrict.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUImageCopyExternalImage {
-public:
-  wgpu::ImageCopyExternalImage *getInstance() { return &_instance; }
-
-  wgpu::ImageCopyExternalImage _instance;
+struct GPUImageCopyExternalImage {
+  // std::variant<std::shared_ptr<ImageBitmap>, std::shared_ptr<ImageData>,
+  //              std::shared_ptr<HTMLImageElement>,
+  //              std::shared_ptr<HTMLVideoElement>,
+  //              std::shared_ptr<VideoFrame>,
+  //              std::shared_ptr<HTMLCanvasElement>,
+  //              std::shared_ptr<OffscreenCanvas>>
+  //     source; // GPUImageCopyExternalImageSource
+  // std::optional<
+  //     std::variant<std::vector<double>,
+  //     std::shared_ptr<GPUOrigin2DDictStrict>>> origin;                //
+  //     GPUOrigin2DStrict
+  std::optional<bool> flipY; // boolean
 };
+
+// static bool conv(wgpu::ImageCopyExternalImage &out,
+//                  const std::shared_ptr<GPUImageCopyExternalImage> &in) {
+//   return conv(out.source, in->source) && conv(out.origin, in->origin) &&
+//          conv(out.flipY, in->flipY);
+// }
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
@@ -34,41 +49,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
     auto result = std::make_unique<rnwgpu::GPUImageCopyExternalImage>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "source")) {
-        auto source = value.getProperty(runtime, "source");
-
-        if (source.isObject()) {
-          auto val = m::JSIConverter<std::shared_ptr<
-              rnwgpu::GPUImageCopyExternalImageSource>>::fromJSI(runtime,
-                                                                 source, false);
-          result->_instance.source = val->_instance;
-        }
-
-        if (source.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUImageCopyExternalImage::source is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUImageCopyExternalImage::source is not defined");
-      }
-      if (value.hasProperty(runtime, "origin")) {
-        auto origin = value.getProperty(runtime, "origin");
-
-        if (origin.isObject()) {
-          auto val = m::JSIConverter<
-              std::shared_ptr<rnwgpu::GPUOrigin2DStrict>>::fromJSI(runtime,
-                                                                   origin,
-                                                                   false);
-          result->_instance.origin = val->_instance;
-        }
-      }
-      if (value.hasProperty(runtime, "flipY")) {
-        auto flipY = value.getProperty(runtime, "flipY");
-        if (flipY.isBool()) {
-          result->_instance.flipY = flipY.getBool();
-        }
-      }
+      // source std::variant<std::shared_ptr<ImageBitmap>,
+      // std::shared_ptr<ImageData>, std::shared_ptr<HTMLImageElement>,
+      // std::shared_ptr<HTMLVideoElement>, std::shared_ptr<VideoFrame>,
+      // std::shared_ptr<HTMLCanvasElement>, std::shared_ptr<OffscreenCanvas>>
+      // origin std::optional<std::variant<std::vector<double>,
+      // std::shared_ptr<GPUOrigin2DDictStrict>>> flipY std::optional<bool>
     }
 
     return result;
@@ -76,8 +62,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUImageCopyExternalImage> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUImageCopyExternalImage::toJSI()");
   }
 };
+
 } // namespace margelo

@@ -1,30 +1,33 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
-#include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
+#include "DescriptorConvertors.h"
 #include "GPUError.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUUncapturedErrorEventInit {
-public:
-  wgpu::UncapturedErrorEventInit *getInstance() { return &_instance; }
-
-  wgpu::UncapturedErrorEventInit _instance;
+struct GPUUncapturedErrorEventInit {
+  std::shared_ptr<GPUError> error; // GPUError
+  std::optional<bool> bubbles;     // boolean
+  std::optional<bool> cancelable;  // boolean
+  std::optional<bool> composed;    // boolean
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
@@ -34,40 +37,24 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "error")) {
-        auto error = value.getProperty(runtime, "error");
-
-        if (error.isObject()) {
-          auto val =
-              m::JSIConverter<std::shared_ptr<rnwgpu::GPUError>>::fromJSI(
-                  runtime, error, false);
-          result->_instance.error = val->_instance;
-        }
-
-        if (error.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUUncapturedErrorEventInit::error is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUUncapturedErrorEventInit::error is not defined");
+        auto prop = value.getProperty(runtime, "error");
+        result->error = JSIConverter<std::shared_ptr<GPUError>>::fromJSI(
+            runtime, prop, false);
       }
       if (value.hasProperty(runtime, "bubbles")) {
-        auto bubbles = value.getProperty(runtime, "bubbles");
-        if (bubbles.isBool()) {
-          result->_instance.bubbles = bubbles.getBool();
-        }
+        auto prop = value.getProperty(runtime, "bubbles");
+        result->bubbles =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "cancelable")) {
-        auto cancelable = value.getProperty(runtime, "cancelable");
-        if (cancelable.isBool()) {
-          result->_instance.cancelable = cancelable.getBool();
-        }
+        auto prop = value.getProperty(runtime, "cancelable");
+        result->cancelable =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "composed")) {
-        auto composed = value.getProperty(runtime, "composed");
-        if (composed.isBool()) {
-          result->_instance.composed = composed.getBool();
-        }
+        auto prop = value.getProperty(runtime, "composed");
+        result->composed =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
     }
 
@@ -76,8 +63,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUUncapturedErrorEventInit::toJSI()");
   }
 };
+
 } // namespace margelo

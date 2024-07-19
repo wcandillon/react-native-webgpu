@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "Convertors.h"
 #include "Unions.h"
-#include <RNFHybridObject.h>
+
+#include "RNFHybridObject.h"
 
 #include "ArrayBuffer.h"
 #include "AsyncRunner.h"
@@ -49,7 +49,7 @@ public:
                            std::shared_ptr<GPUImageCopyBuffer> destination,
                            std::shared_ptr<GPUExtent3D> copySize);
   std::shared_ptr<GPUCommandBuffer>
-  finish(std::shared_ptr<GPUCommandBufferDescriptor> descriptor);
+  finish(std::optional<std::shared_ptr<GPUCommandBufferDescriptor>> descriptor);
 
   std::string getLabel() { return _label; }
 
@@ -74,4 +74,5 @@ private:
   wgpu::CommandEncoder _instance;
   std::string _label;
 };
+
 } // namespace rnwgpu

@@ -1,28 +1,29 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUSamplerBindingLayout {
-public:
-  wgpu::SamplerBindingLayout *getInstance() { return &_instance; }
-
-  wgpu::SamplerBindingLayout _instance;
+struct GPUSamplerBindingLayout {
+  std::optional<wgpu::SamplerBindingType> type; // GPUSamplerBindingType
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
@@ -32,14 +33,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "type")) {
-        auto type = value.getProperty(runtime, "type");
-
-        if (type.isString()) {
-          auto str = type.asString(runtime).utf8(runtime);
-          wgpu::SamplerBindingType enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.type = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "type");
+        result->type =
+            JSIConverter<std::optional<wgpu::SamplerBindingType>>::fromJSI(
+                runtime, prop, false);
       }
     }
 
@@ -48,8 +45,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerBindingLayout>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUSamplerBindingLayout> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUSamplerBindingLayout::toJSI()");
   }
 };
+
 } // namespace margelo

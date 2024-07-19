@@ -1,28 +1,31 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUMultisampleState {
-public:
-  wgpu::MultisampleState *getInstance() { return &_instance; }
-
-  wgpu::MultisampleState _instance;
+struct GPUMultisampleState {
+  std::optional<double> count;                // GPUSize32
+  std::optional<double> mask;                 // GPUSampleMask
+  std::optional<bool> alphaToCoverageEnabled; // boolean
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
   static std::shared_ptr<rnwgpu::GPUMultisampleState>
@@ -31,26 +34,19 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "count")) {
-        auto count = value.getProperty(runtime, "count");
-
-        if (count.isNumber()) {
-          result->_instance.count = static_cast<uint32_t>(count.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "count");
+        result->count =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "mask")) {
-        auto mask = value.getProperty(runtime, "mask");
-
-        if (mask.isNumber()) {
-          result->_instance.mask = static_cast<uint32_t>(mask.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "mask");
+        result->mask =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "alphaToCoverageEnabled")) {
-        auto alphaToCoverageEnabled =
-            value.getProperty(runtime, "alphaToCoverageEnabled");
-        if (alphaToCoverageEnabled.isBool()) {
-          result->_instance.alphaToCoverageEnabled =
-              alphaToCoverageEnabled.getBool();
-        }
+        auto prop = value.getProperty(runtime, "alphaToCoverageEnabled");
+        result->alphaToCoverageEnabled =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
     }
 
@@ -58,8 +54,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUMultisampleState> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUMultisampleState::toJSI()");
   }
 };
+
 } // namespace margelo

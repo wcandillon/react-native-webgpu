@@ -1,31 +1,39 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
+#include <variant>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
-#include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
-#include "GPUColor.h"
+#include "DescriptorConvertors.h"
+#include "GPUColorDict.h"
 #include "GPUTextureView.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPURenderPassColorAttachment {
-public:
-  wgpu::RenderPassColorAttachment *getInstance() { return &_instance; }
-
-  wgpu::RenderPassColorAttachment _instance;
+struct GPURenderPassColorAttachment {
+  std::shared_ptr<GPUTextureView> view; // GPUTextureView
+  std::optional<double> depthSlice;     // GPUIntegerCoordinate
+  std::optional<std::shared_ptr<GPUTextureView>>
+      resolveTarget;                                       // GPUTextureView
+  std::optional<std::shared_ptr<GPUColorDict>> clearValue; // GPUColor
+  wgpu::LoadOp loadOp;                                     // GPULoadOp
+  wgpu::StoreOp storeOp;                                   // GPUStoreOp
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
@@ -35,87 +43,37 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "view")) {
-        auto view = value.getProperty(runtime, "view");
-
-        if (view.isObject() && view.getObject(runtime).isHostObject(runtime)) {
-          result->_instance.view =
-              view.getObject(runtime)
-                  .asHostObject<rnwgpu::GPUTextureView>(runtime)
-                  ->get();
-        }
-
-        if (view.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPURenderPassColorAttachment::view is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPURenderPassColorAttachment::view is not defined");
+        auto prop = value.getProperty(runtime, "view");
+        result->view = JSIConverter<std::shared_ptr<GPUTextureView>>::fromJSI(
+            runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthSlice")) {
-        auto depthSlice = value.getProperty(runtime, "depthSlice");
-
-        if (depthSlice.isNumber()) {
-          result->_instance.depthSlice =
-              static_cast<uint32_t>(depthSlice.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "depthSlice");
+        result->depthSlice =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "resolveTarget")) {
-        auto resolveTarget = value.getProperty(runtime, "resolveTarget");
-
-        if (resolveTarget.isObject() &&
-            resolveTarget.getObject(runtime).isHostObject(runtime)) {
-          result->_instance.resolveTarget =
-              resolveTarget.getObject(runtime)
-                  .asHostObject<rnwgpu::GPUTextureView>(runtime)
-                  ->get();
-        }
+        auto prop = value.getProperty(runtime, "resolveTarget");
+        result->resolveTarget = JSIConverter<
+            std::optional<std::shared_ptr<GPUTextureView>>>::fromJSI(runtime,
+                                                                     prop,
+                                                                     false);
       }
       if (value.hasProperty(runtime, "clearValue")) {
-        auto clearValue = value.getProperty(runtime, "clearValue");
-
-        if (clearValue.isObject()) {
-          auto val =
-              m::JSIConverter<std::shared_ptr<rnwgpu::GPUColor>>::fromJSI(
-                  runtime, clearValue, false);
-          result->_instance.clearValue = val->_instance;
-        }
+        auto prop = value.getProperty(runtime, "clearValue");
+        result->clearValue =
+            JSIConverter<std::optional<std::shared_ptr<GPUColorDict>>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "loadOp")) {
-        auto loadOp = value.getProperty(runtime, "loadOp");
-
-        if (loadOp.isString()) {
-          auto str = loadOp.asString(runtime).utf8(runtime);
-          wgpu::LoadOp enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.loadOp = enumValue;
-        }
-
-        if (loadOp.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPURenderPassColorAttachment::loadOp is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPURenderPassColorAttachment::loadOp is not defined");
+        auto prop = value.getProperty(runtime, "loadOp");
+        result->loadOp =
+            JSIConverter<wgpu::LoadOp>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "storeOp")) {
-        auto storeOp = value.getProperty(runtime, "storeOp");
-
-        if (storeOp.isString()) {
-          auto str = storeOp.asString(runtime).utf8(runtime);
-          wgpu::StoreOp enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.storeOp = enumValue;
-        }
-
-        if (storeOp.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPURenderPassColorAttachment::storeOp is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPURenderPassColorAttachment::storeOp is not defined");
+        auto prop = value.getProperty(runtime, "storeOp");
+        result->storeOp =
+            JSIConverter<wgpu::StoreOp>::fromJSI(runtime, prop, false);
       }
     }
 
@@ -124,8 +82,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPURenderPassColorAttachment> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPURenderPassColorAttachment::toJSI()");
   }
 };
+
 } // namespace margelo

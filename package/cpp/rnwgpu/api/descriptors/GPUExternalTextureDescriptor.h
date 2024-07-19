@@ -1,30 +1,42 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
+#include <variant>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "Convertors.h"
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUExternalTextureDescriptor {
-public:
-  wgpu::ExternalTextureDescriptor *getInstance() { return &_instance; }
-
-  wgpu::ExternalTextureDescriptor _instance;
-
-  std::string label;
+struct GPUExternalTextureDescriptor {
+  // std::variant<std::shared_ptr<HTMLVideoElement>,
+  // std::shared_ptr<VideoFrame>>
+  //     source; // | HTMLVideoElement | VideoFrame
+  // std::optional<wgpu::DefinedColorSpace> colorSpace; // PredefinedColorSpace
+  std::optional<std::string> label; // string
 };
+
+static bool conv(wgpu::ExternalTextureDescriptor &out,
+                 const std::shared_ptr<GPUExternalTextureDescriptor> &in) {
+  // return conv(out.source, in->source) && conv(out.colorSpace, in->colorSpace)
+  // &&
+  return conv(out.label, in->label);
+}
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
@@ -34,33 +46,26 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "source")) {
-        auto source = value.getProperty(runtime, "source");
-
-        if (source.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUExternalTextureDescriptor::source is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUExternalTextureDescriptor::source is not defined");
+        auto prop = value.getProperty(runtime, "source");
+        // result->source = JSIConverter<
+        //     std::variant<std::shared_ptr<HTMLVideoElement>,
+        //                  std::shared_ptr<VideoFrame>>>::fromJSI(runtime,
+        //                  prop,
+        //                                                         false);
       }
       if (value.hasProperty(runtime, "colorSpace")) {
-        auto colorSpace = value.getProperty(runtime, "colorSpace");
-
-        if (colorSpace.isString()) {
-          auto str = colorSpace.asString(runtime).utf8(runtime);
-          wgpu::definedColorSpace enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.colorSpace = enumValue;
+        auto prop = value.getProperty(runtime, "colorSpace");
+        if (!prop.isUndefined()) {
+          // result->colorSpace =
+          //     JSIConverter<std::optional<wgpu::definedColorSpace>>::fromJSI(
+          //         runtime, prop, false);
         }
       }
       if (value.hasProperty(runtime, "label")) {
-        auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
+        auto prop = value.getProperty(runtime, "label");
+        if (!prop.isUndefined()) {
+          result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+              runtime, prop, false);
         }
       }
     }
@@ -70,8 +75,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUExternalTextureDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

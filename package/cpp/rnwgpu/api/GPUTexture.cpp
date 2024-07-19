@@ -1,13 +1,18 @@
 #include "GPUTexture.h"
 
+#include "Convertors.h"
+
 namespace rnwgpu {
 
 void GPUTexture::destroy() { _instance.Destroy(); }
 
 std::shared_ptr<GPUTextureView>
 GPUTexture::createView(std::shared_ptr<GPUTextureViewDescriptor> descriptor) {
-  return std::make_shared<GPUTextureView>(
-      _instance.CreateView(descriptor->getInstance()), descriptor->label);
+  wgpu::TextureViewDescriptor desc;
+  Convertor conv;
+  conv(desc, descriptor);
+  auto view = _instance.CreateView(&desc);
+  return std::make_shared<GPUTextureView>(view, descriptor->label.value_or(""));
 }
 
 uint32_t GPUTexture::getWidth() { return _instance.GetWidth(); }

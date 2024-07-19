@@ -1,30 +1,40 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUSamplerDescriptor {
-public:
-  wgpu::SamplerDescriptor *getInstance() { return &_instance; }
-
-  wgpu::SamplerDescriptor _instance;
-
-  std::string label;
+struct GPUSamplerDescriptor {
+  std::optional<wgpu::AddressMode> addressModeU;      // GPUAddressMode
+  std::optional<wgpu::AddressMode> addressModeV;      // GPUAddressMode
+  std::optional<wgpu::AddressMode> addressModeW;      // GPUAddressMode
+  std::optional<wgpu::FilterMode> magFilter;          // GPUFilterMode
+  std::optional<wgpu::FilterMode> minFilter;          // GPUFilterMode
+  std::optional<wgpu::MipmapFilterMode> mipmapFilter; // GPUMipmapFilterMode
+  std::optional<double> lodMinClamp;                  // number
+  std::optional<double> lodMaxClamp;                  // number
+  std::optional<wgpu::CompareFunction> compare;       // GPUCompareFunction
+  std::optional<double> maxAnisotropy;                // number
+  std::optional<std::string> label;                   // string
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUSamplerDescriptor>
@@ -33,104 +43,66 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "addressModeU")) {
-        auto addressModeU = value.getProperty(runtime, "addressModeU");
-
-        if (addressModeU.isString()) {
-          auto str = addressModeU.asString(runtime).utf8(runtime);
-          wgpu::AddressMode enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.addressModeU = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "addressModeU");
+        result->addressModeU =
+            JSIConverter<std::optional<wgpu::AddressMode>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "addressModeV")) {
-        auto addressModeV = value.getProperty(runtime, "addressModeV");
-
-        if (addressModeV.isString()) {
-          auto str = addressModeV.asString(runtime).utf8(runtime);
-          wgpu::AddressMode enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.addressModeV = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "addressModeV");
+        result->addressModeV =
+            JSIConverter<std::optional<wgpu::AddressMode>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "addressModeW")) {
-        auto addressModeW = value.getProperty(runtime, "addressModeW");
-
-        if (addressModeW.isString()) {
-          auto str = addressModeW.asString(runtime).utf8(runtime);
-          wgpu::AddressMode enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.addressModeW = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "addressModeW");
+        result->addressModeW =
+            JSIConverter<std::optional<wgpu::AddressMode>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "magFilter")) {
-        auto magFilter = value.getProperty(runtime, "magFilter");
-
-        if (magFilter.isString()) {
-          auto str = magFilter.asString(runtime).utf8(runtime);
-          wgpu::FilterMode enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.magFilter = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "magFilter");
+        result->magFilter =
+            JSIConverter<std::optional<wgpu::FilterMode>>::fromJSI(runtime,
+                                                                   prop, false);
       }
       if (value.hasProperty(runtime, "minFilter")) {
-        auto minFilter = value.getProperty(runtime, "minFilter");
-
-        if (minFilter.isString()) {
-          auto str = minFilter.asString(runtime).utf8(runtime);
-          wgpu::FilterMode enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.minFilter = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "minFilter");
+        result->minFilter =
+            JSIConverter<std::optional<wgpu::FilterMode>>::fromJSI(runtime,
+                                                                   prop, false);
       }
       if (value.hasProperty(runtime, "mipmapFilter")) {
-        auto mipmapFilter = value.getProperty(runtime, "mipmapFilter");
-
-        if (mipmapFilter.isString()) {
-          auto str = mipmapFilter.asString(runtime).utf8(runtime);
-          wgpu::MipmapFilterMode enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.mipmapFilter = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "mipmapFilter");
+        result->mipmapFilter =
+            JSIConverter<std::optional<wgpu::MipmapFilterMode>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "lodMinClamp")) {
-        auto lodMinClamp = value.getProperty(runtime, "lodMinClamp");
-
-        if (lodMinClamp.isNumber()) {
-          result->_instance.lodMinClamp = lodMinClamp.getNumber();
-        }
+        auto prop = value.getProperty(runtime, "lodMinClamp");
+        result->lodMinClamp =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "lodMaxClamp")) {
-        auto lodMaxClamp = value.getProperty(runtime, "lodMaxClamp");
-
-        if (lodMaxClamp.isNumber()) {
-          result->_instance.lodMaxClamp = lodMaxClamp.getNumber();
-        }
+        auto prop = value.getProperty(runtime, "lodMaxClamp");
+        result->lodMaxClamp =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "compare")) {
-        auto compare = value.getProperty(runtime, "compare");
-
-        if (compare.isString()) {
-          auto str = compare.asString(runtime).utf8(runtime);
-          wgpu::CompareFunction enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.compare = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "compare");
+        result->compare =
+            JSIConverter<std::optional<wgpu::CompareFunction>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "maxAnisotropy")) {
-        auto maxAnisotropy = value.getProperty(runtime, "maxAnisotropy");
-
-        if (maxAnisotropy.isNumber()) {
-          result->_instance.maxAnisotropy = maxAnisotropy.getNumber();
-        }
+        auto prop = value.getProperty(runtime, "maxAnisotropy");
+        result->maxAnisotropy =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
-        auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 
@@ -138,8 +110,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUSamplerDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUSamplerDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

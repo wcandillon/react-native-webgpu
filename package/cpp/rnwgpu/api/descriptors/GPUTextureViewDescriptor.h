@@ -1,30 +1,38 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUTextureViewDescriptor {
-public:
-  wgpu::TextureViewDescriptor *getInstance() { return &_instance; }
-
-  wgpu::TextureViewDescriptor _instance;
-
-  std::string label;
+struct GPUTextureViewDescriptor {
+  std::optional<wgpu::TextureFormat> format; // GPUTextureFormat
+  std::optional<wgpu::TextureViewDimension>
+      dimension;                             // GPUTextureViewDimension
+  std::optional<wgpu::TextureAspect> aspect; // GPUTextureAspect
+  std::optional<double> baseMipLevel;        // GPUIntegerCoordinate
+  std::optional<double> mipLevelCount;       // GPUIntegerCoordinate
+  std::optional<double> baseArrayLayer;      // GPUIntegerCoordinate
+  std::optional<double> arrayLayerCount;     // GPUIntegerCoordinate
+  std::optional<std::string> label;          // string
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
@@ -34,75 +42,47 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "format")) {
-        auto format = value.getProperty(runtime, "format");
-
-        if (format.isString()) {
-          auto str = format.asString(runtime).utf8(runtime);
-          wgpu::TextureFormat enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.format = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "format");
+        result->format =
+            JSIConverter<std::optional<wgpu::TextureFormat>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "dimension")) {
-        auto dimension = value.getProperty(runtime, "dimension");
-
-        if (dimension.isString()) {
-          auto str = dimension.asString(runtime).utf8(runtime);
-          wgpu::TextureViewDimension enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.dimension = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "dimension");
+        result->dimension =
+            JSIConverter<std::optional<wgpu::TextureViewDimension>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "aspect")) {
-        auto aspect = value.getProperty(runtime, "aspect");
-
-        if (aspect.isString()) {
-          auto str = aspect.asString(runtime).utf8(runtime);
-          wgpu::TextureAspect enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.aspect = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "aspect");
+        result->aspect =
+            JSIConverter<std::optional<wgpu::TextureAspect>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "baseMipLevel")) {
-        auto baseMipLevel = value.getProperty(runtime, "baseMipLevel");
-
-        if (baseMipLevel.isNumber()) {
-          result->_instance.baseMipLevel =
-              static_cast<uint32_t>(baseMipLevel.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "baseMipLevel");
+        result->baseMipLevel =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "mipLevelCount")) {
-        auto mipLevelCount = value.getProperty(runtime, "mipLevelCount");
-
-        if (mipLevelCount.isNumber()) {
-          result->_instance.mipLevelCount =
-              static_cast<uint32_t>(mipLevelCount.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "mipLevelCount");
+        result->mipLevelCount =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "baseArrayLayer")) {
-        auto baseArrayLayer = value.getProperty(runtime, "baseArrayLayer");
-
-        if (baseArrayLayer.isNumber()) {
-          result->_instance.baseArrayLayer =
-              static_cast<uint32_t>(baseArrayLayer.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "baseArrayLayer");
+        result->baseArrayLayer =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "arrayLayerCount")) {
-        auto arrayLayerCount = value.getProperty(runtime, "arrayLayerCount");
-
-        if (arrayLayerCount.isNumber()) {
-          result->_instance.arrayLayerCount =
-              static_cast<uint32_t>(arrayLayerCount.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "arrayLayerCount");
+        result->arrayLayerCount =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
-        auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 
@@ -111,8 +91,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUTextureViewDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUTextureViewDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

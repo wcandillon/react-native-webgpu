@@ -1,30 +1,30 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUCommandEncoderDescriptor {
-public:
-  wgpu::CommandEncoderDescriptor *getInstance() { return &_instance; }
-
-  wgpu::CommandEncoderDescriptor _instance;
-
-  std::string label;
+struct GPUCommandEncoderDescriptor {
+  std::optional<std::string> label; // string
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUCommandEncoderDescriptor>> {
@@ -34,13 +34,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCommandEncoderDescriptor>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "label")) {
-        auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 
@@ -49,8 +45,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCommandEncoderDescriptor>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUCommandEncoderDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUCommandEncoderDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

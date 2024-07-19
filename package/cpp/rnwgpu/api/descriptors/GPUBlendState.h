@@ -1,30 +1,30 @@
 #pragma once
 
 #include <memory>
-#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
-#include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
+#include "DescriptorConvertors.h"
 #include "GPUBlendComponent.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUBlendState {
-public:
-  wgpu::BlendState *getInstance() { return &_instance; }
-
-  wgpu::BlendState _instance;
+struct GPUBlendState {
+  std::shared_ptr<GPUBlendComponent> color; // GPUBlendComponent
+  std::shared_ptr<GPUBlendComponent> alpha; // GPUBlendComponent
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
   static std::shared_ptr<rnwgpu::GPUBlendState>
@@ -33,40 +33,16 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "color")) {
-        auto color = value.getProperty(runtime, "color");
-
-        if (color.isObject()) {
-          auto val = m::JSIConverter<
-              std::shared_ptr<rnwgpu::GPUBlendComponent>>::fromJSI(runtime,
-                                                                   color,
-                                                                   false);
-          result->_instance.color = val->_instance;
-        }
-
-        if (color.isUndefined()) {
-          throw std::runtime_error("Property GPUBlendState::color is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUBlendState::color is not defined");
+        auto prop = value.getProperty(runtime, "color");
+        result->color =
+            JSIConverter<std::shared_ptr<GPUBlendComponent>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "alpha")) {
-        auto alpha = value.getProperty(runtime, "alpha");
-
-        if (alpha.isObject()) {
-          auto val = m::JSIConverter<
-              std::shared_ptr<rnwgpu::GPUBlendComponent>>::fromJSI(runtime,
-                                                                   alpha,
-                                                                   false);
-          result->_instance.alpha = val->_instance;
-        }
-
-        if (alpha.isUndefined()) {
-          throw std::runtime_error("Property GPUBlendState::alpha is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUBlendState::alpha is not defined");
+        auto prop = value.getProperty(runtime, "alpha");
+        result->alpha =
+            JSIConverter<std::shared_ptr<GPUBlendComponent>>::fromJSI(
+                runtime, prop, false);
       }
     }
 
@@ -74,8 +50,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUBlendState> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUBlendState::toJSI()");
   }
 };
+
 } // namespace margelo

@@ -10,7 +10,7 @@ namespace rnwgpu {
 namespace jsi = facebook::jsi;
 
 struct ArrayBuffer : jsi::MutableBuffer {
-  ArrayBuffer(void *data, size_t size, size_t bytesPerElement = 4)
+  ArrayBuffer(void *data, size_t size, size_t bytesPerElement = 1)
       : _data(data), _size(size), _bytesPerElement(bytesPerElement) {}
 
   ~ArrayBuffer() override {}

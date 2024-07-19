@@ -120,8 +120,8 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
 #include <vector>
 
 #include "Unions.h"
-#include "Convertors.h"
-#include <RNFHybridObject.h>
+
+#include "RNFHybridObject.h"
 
 #include "AsyncRunner.h"
 #include "ArrayBuffer.h"
@@ -179,5 +179,6 @@ public:
   ${ctorParams.map((param) => `${param.type} _${param.name};`).join("\n")}
   ${resolveExtra(name)}
 };
+
 } // namespace rnwgpu`;
 };

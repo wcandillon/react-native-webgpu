@@ -1,28 +1,32 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUTextureBindingLayout {
-public:
-  wgpu::TextureBindingLayout *getInstance() { return &_instance; }
-
-  wgpu::TextureBindingLayout _instance;
+struct GPUTextureBindingLayout {
+  std::optional<wgpu::TextureSampleType> sampleType; // GPUTextureSampleType
+  std::optional<wgpu::TextureViewDimension>
+      viewDimension;                // GPUTextureViewDimension
+  std::optional<bool> multisampled; // boolean
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureBindingLayout>> {
@@ -32,30 +36,21 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureBindingLayout>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "sampleType")) {
-        auto sampleType = value.getProperty(runtime, "sampleType");
-
-        if (sampleType.isString()) {
-          auto str = sampleType.asString(runtime).utf8(runtime);
-          wgpu::TextureSampleType enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.sampleType = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "sampleType");
+        result->sampleType =
+            JSIConverter<std::optional<wgpu::TextureSampleType>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "viewDimension")) {
-        auto viewDimension = value.getProperty(runtime, "viewDimension");
-
-        if (viewDimension.isString()) {
-          auto str = viewDimension.asString(runtime).utf8(runtime);
-          wgpu::TextureViewDimension enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.viewDimension = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "viewDimension");
+        result->viewDimension =
+            JSIConverter<std::optional<wgpu::TextureViewDimension>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "multisampled")) {
-        auto multisampled = value.getProperty(runtime, "multisampled");
-        if (multisampled.isBool()) {
-          result->_instance.multisampled = multisampled.getBool();
-        }
+        auto prop = value.getProperty(runtime, "multisampled");
+        result->multisampled =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
     }
 
@@ -64,8 +59,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureBindingLayout>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUTextureBindingLayout> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUTextureBindingLayout::toJSI()");
   }
 };
+
 } // namespace margelo

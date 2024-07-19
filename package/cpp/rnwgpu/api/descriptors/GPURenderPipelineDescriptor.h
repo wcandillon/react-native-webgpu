@@ -1,36 +1,46 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
-#include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
+#include "DescriptorConvertors.h"
 #include "GPUDepthStencilState.h"
 #include "GPUFragmentState.h"
 #include "GPUMultisampleState.h"
+#include "GPUPipelineLayout.h"
 #include "GPUPrimitiveState.h"
 #include "GPUVertexState.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPURenderPipelineDescriptor {
-public:
-  wgpu::RenderPipelineDescriptor *getInstance() { return &_instance; }
-
-  wgpu::RenderPipelineDescriptor _instance;
-
-  std::string label;
+struct GPURenderPipelineDescriptor {
+  std::shared_ptr<GPUVertexState> vertex; // GPUVertexState
+  std::optional<std::shared_ptr<GPUPrimitiveState>>
+      primitive; // GPUPrimitiveState
+  std::optional<std::shared_ptr<GPUDepthStencilState>>
+      depthStencil; // GPUDepthStencilState
+  std::optional<std::shared_ptr<GPUMultisampleState>>
+      multisample; // GPUMultisampleState
+  std::optional<std::shared_ptr<GPUFragmentState>> fragment; // GPUFragmentState
+  std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>
+      layout;                       // | GPUPipelineLayout | GPUAutoLayoutMode
+  std::optional<std::string> label; // string
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
@@ -40,91 +50,50 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "vertex")) {
-        auto vertex = value.getProperty(runtime, "vertex");
-
-        if (vertex.isObject()) {
-          auto val =
-              m::JSIConverter<std::shared_ptr<rnwgpu::GPUVertexState>>::fromJSI(
-                  runtime, vertex, false);
-          result->_instance.vertex = val->_instance;
-        }
-
-        if (vertex.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPURenderPipelineDescriptor::vertex is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPURenderPipelineDescriptor::vertex is not defined");
+        auto prop = value.getProperty(runtime, "vertex");
+        result->vertex = JSIConverter<std::shared_ptr<GPUVertexState>>::fromJSI(
+            runtime, prop, false);
       }
       if (value.hasProperty(runtime, "primitive")) {
-        auto primitive = value.getProperty(runtime, "primitive");
-
-        if (primitive.isObject()) {
-          auto val = m::JSIConverter<
-              std::shared_ptr<rnwgpu::GPUPrimitiveState>>::fromJSI(runtime,
-                                                                   primitive,
-                                                                   false);
-          result->_instance.primitive = val->_instance;
-        }
+        auto prop = value.getProperty(runtime, "primitive");
+        result->primitive = JSIConverter<
+            std::optional<std::shared_ptr<GPUPrimitiveState>>>::fromJSI(runtime,
+                                                                        prop,
+                                                                        false);
       }
       if (value.hasProperty(runtime, "depthStencil")) {
-        auto depthStencil = value.getProperty(runtime, "depthStencil");
-
-        if (depthStencil.isObject()) {
-          auto val =
-              m::JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>>::
-                  fromJSI(runtime, depthStencil, false);
-          result->_instance.depthStencil = val->getInstance();
-        }
+        auto prop = value.getProperty(runtime, "depthStencil");
+        result->depthStencil =
+            JSIConverter<std::optional<std::shared_ptr<GPUDepthStencilState>>>::
+                fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "multisample")) {
-        auto multisample = value.getProperty(runtime, "multisample");
-
-        if (multisample.isObject()) {
-          auto val =
-              m::JSIConverter<std::shared_ptr<rnwgpu::GPUMultisampleState>>::
-                  fromJSI(runtime, multisample, false);
-          result->_instance.multisample = val->_instance;
-        }
+        auto prop = value.getProperty(runtime, "multisample");
+        result->multisample =
+            JSIConverter<std::optional<std::shared_ptr<GPUMultisampleState>>>::
+                fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "fragment")) {
-        auto fragment = value.getProperty(runtime, "fragment");
-
-        if (fragment.isObject()) {
-          auto val = m::JSIConverter<
-              std::shared_ptr<rnwgpu::GPUFragmentState>>::fromJSI(runtime,
-                                                                  fragment,
-                                                                  false);
-          result->_instance.fragment = val->getInstance();
-        }
+        auto prop = value.getProperty(runtime, "fragment");
+        result->fragment = JSIConverter<
+            std::optional<std::shared_ptr<GPUFragmentState>>>::fromJSI(runtime,
+                                                                       prop,
+                                                                       false);
       }
       if (value.hasProperty(runtime, "layout")) {
-        auto layout = value.getProperty(runtime, "layout");
-
-        if (layout.isString()) {
-          auto str = layout.asString(runtime).utf8(runtime);
-          if (str == "auto") {
-            result->_instance.layout = nullptr;
-          }
+        auto prop = value.getProperty(runtime, "layout");
+        if (prop.isNull() || prop.isString()) {
+          result->layout = nullptr;
+        } else {
+          result->layout =
+              JSIConverter<std::shared_ptr<GPUPipelineLayout>>::fromJSI(
+                  runtime, prop, false);
         }
-
-        if (layout.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPURenderPipelineDescriptor::layout is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPURenderPipelineDescriptor::layout is not defined");
       }
       if (value.hasProperty(runtime, "label")) {
-        auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 
@@ -133,8 +102,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPURenderPipelineDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

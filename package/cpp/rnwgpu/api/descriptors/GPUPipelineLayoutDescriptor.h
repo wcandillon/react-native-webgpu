@@ -1,30 +1,34 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
+#include "GPUBindGroupLayout.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUPipelineLayoutDescriptor {
-public:
-  wgpu::PipelineLayoutDescriptor *getInstance() { return &_instance; }
-
-  wgpu::PipelineLayoutDescriptor _instance;
-
-  std::string label;
+struct GPUPipelineLayoutDescriptor {
+  std::vector<std::shared_ptr<GPUBindGroupLayout>>
+      bindGroupLayouts;             // Iterable<GPUBindGroupLayout>
+  std::optional<std::string> label; // string
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
@@ -34,26 +38,16 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "bindGroupLayouts")) {
-        auto bindGroupLayouts = value.getProperty(runtime, "bindGroupLayouts");
-
-        if (bindGroupLayouts.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUPipelineLayoutDescriptor::bindGroupLayouts is "
-              "required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUPipelineLayoutDescriptor::bindGroupLayouts is not "
-            "defined");
+        auto prop = value.getProperty(runtime, "bindGroupLayouts");
+        result->bindGroupLayouts = JSIConverter<
+            std::vector<std::shared_ptr<GPUBindGroupLayout>>>::fromJSI(runtime,
+                                                                       prop,
+                                                                       false);
       }
       if (value.hasProperty(runtime, "label")) {
-        auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 
@@ -62,8 +56,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUPipelineLayoutDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

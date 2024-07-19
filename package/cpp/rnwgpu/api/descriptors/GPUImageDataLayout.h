@@ -1,28 +1,31 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUImageDataLayout {
-public:
-  wgpu::ImageDataLayout *getInstance() { return &_instance; }
-
-  wgpu::ImageDataLayout _instance;
+struct GPUImageDataLayout {
+  std::optional<double> offset;       // GPUSize64
+  std::optional<double> bytesPerRow;  // GPUSize32
+  std::optional<double> rowsPerImage; // GPUSize32
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageDataLayout>> {
   static std::shared_ptr<rnwgpu::GPUImageDataLayout>
@@ -31,27 +34,19 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageDataLayout>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "offset")) {
-        auto offset = value.getProperty(runtime, "offset");
-
-        if (offset.isNumber()) {
-          result->_instance.offset = offset.getNumber();
-        }
+        auto prop = value.getProperty(runtime, "offset");
+        result->offset =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "bytesPerRow")) {
-        auto bytesPerRow = value.getProperty(runtime, "bytesPerRow");
-
-        if (bytesPerRow.isNumber()) {
-          result->_instance.bytesPerRow =
-              static_cast<uint32_t>(bytesPerRow.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "bytesPerRow");
+        result->bytesPerRow =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "rowsPerImage")) {
-        auto rowsPerImage = value.getProperty(runtime, "rowsPerImage");
-
-        if (rowsPerImage.isNumber()) {
-          result->_instance.rowsPerImage =
-              static_cast<uint32_t>(rowsPerImage.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "rowsPerImage");
+        result->rowsPerImage =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 
@@ -59,8 +54,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageDataLayout>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUImageDataLayout> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUImageDataLayout::toJSI()");
   }
 };
+
 } // namespace margelo

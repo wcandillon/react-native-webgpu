@@ -1,30 +1,37 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPURenderBundleEncoderDescriptor {
-public:
-  wgpu::RenderBundleEncoderDescriptor *getInstance() { return &_instance; }
-
-  wgpu::RenderBundleEncoderDescriptor _instance;
-
-  std::string label;
+struct GPURenderBundleEncoderDescriptor {
+  std::optional<bool> depthReadOnly;   // boolean
+  std::optional<bool> stencilReadOnly; // boolean
+  std::vector<wgpu::TextureFormat>
+      colorFormats; // Iterable<GPUTextureFormat | null>
+  std::optional<wgpu::TextureFormat> depthStencilFormat; // GPUTextureFormat
+  std::optional<double> sampleCount;                     // GPUSize32
+  std::optional<std::string> label;                      // string
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
@@ -34,57 +41,36 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "depthReadOnly")) {
-        auto depthReadOnly = value.getProperty(runtime, "depthReadOnly");
-        if (depthReadOnly.isBool()) {
-          result->_instance.depthReadOnly = depthReadOnly.getBool();
-        }
+        auto prop = value.getProperty(runtime, "depthReadOnly");
+        result->depthReadOnly =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "stencilReadOnly")) {
-        auto stencilReadOnly = value.getProperty(runtime, "stencilReadOnly");
-        if (stencilReadOnly.isBool()) {
-          result->_instance.stencilReadOnly = stencilReadOnly.getBool();
-        }
+        auto prop = value.getProperty(runtime, "stencilReadOnly");
+        result->stencilReadOnly =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "colorFormats")) {
-        auto colorFormats = value.getProperty(runtime, "colorFormats");
-
-        if (colorFormats.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPURenderBundleEncoderDescriptor::colorFormats is "
-              "required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPURenderBundleEncoderDescriptor::colorFormats is not "
-            "defined");
+        auto prop = value.getProperty(runtime, "colorFormats");
+        result->colorFormats =
+            JSIConverter<std::vector<wgpu::TextureFormat>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthStencilFormat")) {
-        auto depthStencilFormat =
-            value.getProperty(runtime, "depthStencilFormat");
-
-        if (depthStencilFormat.isString()) {
-          auto str = depthStencilFormat.asString(runtime).utf8(runtime);
-          wgpu::TextureFormat enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.depthStencilFormat = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "depthStencilFormat");
+        result->depthStencilFormat =
+            JSIConverter<std::optional<wgpu::TextureFormat>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "sampleCount")) {
-        auto sampleCount = value.getProperty(runtime, "sampleCount");
-
-        if (sampleCount.isNumber()) {
-          result->_instance.sampleCount =
-              static_cast<uint32_t>(sampleCount.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "sampleCount");
+        result->sampleCount =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
-        auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 
@@ -93,8 +79,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error(
+        "Invalid GPURenderBundleEncoderDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

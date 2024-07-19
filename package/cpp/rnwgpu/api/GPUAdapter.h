@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "Convertors.h"
 #include "Unions.h"
-#include <RNFHybridObject.h>
+
+#include "RNFHybridObject.h"
 
 #include "ArrayBuffer.h"
 #include "AsyncRunner.h"
@@ -31,7 +31,7 @@ public:
   std::string getBrand() { return _name; }
 
   std::future<std::shared_ptr<GPUDevice>>
-  requestDevice(std::shared_ptr<GPUDeviceDescriptor> options);
+  requestDevice(std::optional<std::shared_ptr<GPUDeviceDescriptor>> options);
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUAdapter::getBrand, this);
@@ -44,4 +44,5 @@ private:
   wgpu::Adapter _instance;
   std::shared_ptr<AsyncRunner> _async;
 };
+
 } // namespace rnwgpu

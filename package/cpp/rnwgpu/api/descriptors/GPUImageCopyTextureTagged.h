@@ -1,31 +1,36 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
-#include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
+#include "DescriptorConvertors.h"
 #include "GPUOrigin3D.h"
 #include "GPUTexture.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUImageCopyTextureTagged {
-public:
-  wgpu::ImageCopyTextureTagged *getInstance() { return &_instance; }
-
-  wgpu::ImageCopyTextureTagged _instance;
+struct GPUImageCopyTextureTagged {
+  // std::optional<wgpu::definedColorSpace> colorSpace;  // PredefinedColorSpace
+  std::optional<bool> premultipliedAlpha;             // boolean
+  std::shared_ptr<GPUTexture> texture;                // GPUTexture
+  std::optional<double> mipLevel;                     // GPUIntegerCoordinate
+  std::optional<std::shared_ptr<GPUOrigin3D>> origin; // GPUOrigin3D
+  std::optional<wgpu::TextureAspect> aspect;          // GPUTextureAspect
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
@@ -35,68 +40,37 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "colorSpace")) {
-        auto colorSpace = value.getProperty(runtime, "colorSpace");
-
-        if (colorSpace.isString()) {
-          auto str = colorSpace.asString(runtime).utf8(runtime);
-          wgpu::definedColorSpace enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.colorSpace = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "colorSpace");
+        //        result->colorSpace =
+        //            JSIConverter<std::optional<wgpu::definedColorSpace>>::fromJSI(
+        //                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "premultipliedAlpha")) {
-        auto premultipliedAlpha =
-            value.getProperty(runtime, "premultipliedAlpha");
-        if (premultipliedAlpha.isBool()) {
-          result->_instance.premultipliedAlpha = premultipliedAlpha.getBool();
-        }
+        auto prop = value.getProperty(runtime, "premultipliedAlpha");
+        result->premultipliedAlpha =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "texture")) {
-        auto texture = value.getProperty(runtime, "texture");
-
-        if (texture.isObject() &&
-            texture.getObject(runtime).isHostObject(runtime)) {
-          result->_instance.texture =
-              texture.getObject(runtime)
-                  .asHostObject<rnwgpu::GPUTexture>(runtime)
-                  ->get();
-        }
-
-        if (texture.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUImageCopyTextureTagged::texture is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUImageCopyTextureTagged::texture is not defined");
+        auto prop = value.getProperty(runtime, "texture");
+        result->texture = JSIConverter<std::shared_ptr<GPUTexture>>::fromJSI(
+            runtime, prop, false);
       }
       if (value.hasProperty(runtime, "mipLevel")) {
-        auto mipLevel = value.getProperty(runtime, "mipLevel");
-
-        if (mipLevel.isNumber()) {
-          result->_instance.mipLevel =
-              static_cast<uint32_t>(mipLevel.getNumber());
-        }
+        auto prop = value.getProperty(runtime, "mipLevel");
+        result->mipLevel =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "origin")) {
-        auto origin = value.getProperty(runtime, "origin");
-
-        if (origin.isObject()) {
-          auto val =
-              m::JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin3D>>::fromJSI(
-                  runtime, origin, false);
-          result->_instance.origin = val->_instance;
-        }
+        auto prop = value.getProperty(runtime, "origin");
+        result->origin =
+            JSIConverter<std::optional<std::shared_ptr<GPUOrigin3D>>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "aspect")) {
-        auto aspect = value.getProperty(runtime, "aspect");
-
-        if (aspect.isString()) {
-          auto str = aspect.asString(runtime).utf8(runtime);
-          wgpu::TextureAspect enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.aspect = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "aspect");
+        result->aspect =
+            JSIConverter<std::optional<wgpu::TextureAspect>>::fromJSI(
+                runtime, prop, false);
       }
     }
 
@@ -105,8 +79,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUImageCopyTextureTagged> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUImageCopyTextureTagged::toJSI()");
   }
 };
+
 } // namespace margelo

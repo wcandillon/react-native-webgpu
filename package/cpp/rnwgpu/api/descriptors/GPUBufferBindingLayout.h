@@ -1,28 +1,31 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "DescriptorConvertors.h"
 #include "Logger.h"
+#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUBufferBindingLayout {
-public:
-  wgpu::BufferBindingLayout *getInstance() { return &_instance; }
-
-  wgpu::BufferBindingLayout _instance;
+struct GPUBufferBindingLayout {
+  std::optional<wgpu::BufferBindingType> type; // GPUBufferBindingType
+  std::optional<bool> hasDynamicOffset;        // boolean
+  std::optional<double> minBindingSize;        // GPUSize64
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBindingLayout>> {
@@ -32,27 +35,20 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBindingLayout>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "type")) {
-        auto type = value.getProperty(runtime, "type");
-
-        if (type.isString()) {
-          auto str = type.asString(runtime).utf8(runtime);
-          wgpu::BufferBindingType enumValue;
-          m::EnumMapper::convertJSUnionToEnum(str, &enumValue);
-          result->_instance.type = enumValue;
-        }
+        auto prop = value.getProperty(runtime, "type");
+        result->type =
+            JSIConverter<std::optional<wgpu::BufferBindingType>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "hasDynamicOffset")) {
-        auto hasDynamicOffset = value.getProperty(runtime, "hasDynamicOffset");
-        if (hasDynamicOffset.isBool()) {
-          result->_instance.hasDynamicOffset = hasDynamicOffset.getBool();
-        }
+        auto prop = value.getProperty(runtime, "hasDynamicOffset");
+        result->hasDynamicOffset =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "minBindingSize")) {
-        auto minBindingSize = value.getProperty(runtime, "minBindingSize");
-
-        if (minBindingSize.isNumber()) {
-          result->_instance.minBindingSize = minBindingSize.getNumber();
-        }
+        auto prop = value.getProperty(runtime, "minBindingSize");
+        result->minBindingSize =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 
@@ -60,8 +56,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBindingLayout>> {
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUBufferBindingLayout> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUBufferBindingLayout::toJSI()");
   }
 };
+
 } // namespace margelo

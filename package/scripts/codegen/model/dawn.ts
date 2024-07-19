@@ -32,6 +32,16 @@ const GPUBindingCommandsMixin = [
   },
 ];
 
+export const mapKeys = <T extends object>(obj: T) =>
+  Object.keys(obj) as (keyof T)[];
+
+export const hasPropery = <O, T extends string>(
+  object: unknown,
+  property: T,
+): object is O & Record<T, unknown> => {
+  return typeof object === "object" && object !== null && property in object;
+};
+
 export const resolved: Record<
   string,
   {

@@ -1,32 +1,35 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
-#include "RNFJSIConverter.h"
-#include <RNFHybridObject.h>
-
+#include "DescriptorConvertors.h"
+#include "GPUPipelineLayout.h"
 #include "GPUProgrammableStage.h"
+#include "Logger.h"
+#include "RNFHybridObject.h"
+#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
 namespace rnwgpu {
 
-class GPUComputePipelineDescriptor {
-public:
-  wgpu::ComputePipelineDescriptor *getInstance() { return &_instance; }
-
-  wgpu::ComputePipelineDescriptor _instance;
-
-  std::string label;
+struct GPUComputePipelineDescriptor {
+  std::shared_ptr<GPUProgrammableStage> compute; // GPUProgrammableStage
+  std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>
+      layout;                       // | GPUPipelineLayout | GPUAutoLayoutMode
+  std::optional<std::string> label; // string
 };
+
 } // namespace rnwgpu
 
 namespace margelo {
+
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
@@ -36,50 +39,25 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "compute")) {
-        auto compute = value.getProperty(runtime, "compute");
-
-        if (compute.isObject()) {
-          auto val = m::JSIConverter<
-              std::shared_ptr<rnwgpu::GPUProgrammableStage>>::fromJSI(runtime,
-                                                                      compute,
-                                                                      false);
-          result->_instance.compute = val->_instance;
-        }
-
-        if (compute.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUComputePipelineDescriptor::compute is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUComputePipelineDescriptor::compute is not defined");
+        auto prop = value.getProperty(runtime, "compute");
+        result->compute =
+            JSIConverter<std::shared_ptr<GPUProgrammableStage>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "layout")) {
-        auto layout = value.getProperty(runtime, "layout");
-
-        if (layout.isString()) {
-          auto str = layout.asString(runtime).utf8(runtime);
-          if (str == "auto") {
-            result->_instance.layout = nullptr;
-          }
+        auto prop = value.getProperty(runtime, "layout");
+        if (prop.isNull() || prop.isString()) {
+          result->layout = nullptr;
+        } else {
+          result->layout =
+              JSIConverter<std::shared_ptr<GPUPipelineLayout>>::fromJSI(
+                  runtime, prop, false);
         }
-
-        if (layout.isUndefined()) {
-          throw std::runtime_error(
-              "Property GPUComputePipelineDescriptor::layout is required");
-        }
-      } else {
-        throw std::runtime_error(
-            "Property GPUComputePipelineDescriptor::layout is not defined");
       }
       if (value.hasProperty(runtime, "label")) {
-        auto label = value.getProperty(runtime, "label");
-
-        if (label.isString()) {
-          auto str = label.asString(runtime).utf8(runtime);
-          result->label = str;
-          result->_instance.label = result->label.c_str();
-        }
+        auto prop = value.getProperty(runtime, "label");
+        result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
     }
 
@@ -88,8 +66,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
         std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor> arg) {
-    // No conversions here
-    return jsi::Value::null();
+    throw std::runtime_error("Invalid GPUComputePipelineDescriptor::toJSI()");
   }
 };
+
 } // namespace margelo

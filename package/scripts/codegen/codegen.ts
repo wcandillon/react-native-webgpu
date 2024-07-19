@@ -6,9 +6,9 @@ import { Node, Project } from "ts-morph";
 import { getEnum } from "./templates/Enum";
 import { writeFile } from "./util";
 import { getHybridObject } from "./templates/HybridObject";
-import { getDescriptor } from "./templates/Descriptor";
 import type { Union } from "./templates/Unions";
 import { Unions } from "./templates/Unions";
+import { getDescriptor } from "./Descriptors";
 
 // Define the path to the WebGPU type declaration file
 const tsConfigFilePath = path.resolve(__dirname, "../../tsconfig.json");
@@ -123,6 +123,21 @@ hybridObject.forEach((decl) => {
   writeFile("object", decl.getName(), getHybridObject(decl));
 });
 
+console.log("===");
+console.log("Descriptors");
+console.log("===");
+const toSkip = [
+  "GPUOrigin2DDictStrict",
+  "GPUExtent3DDictStrict",
+  "GPUExtent3DDict",
+  "GPUOrigin2DDict",
+  "GPUOrigin3DDict",
+  "GPUImageCopyExternalImage",
+  "GPURenderPassLayout",
+  "GPUExternalTextureDescriptor",
+  "GPUBindGroupEntry",
+];
+
 // Descriptors
 // the following two descriptors map to:
 // type GPUCommandBufferDescriptor =
@@ -156,19 +171,6 @@ const GPURenderBundleDescriptor = sourceFile.addInterface({
 });
 GPUQueueDescriptor.addExtends("GPUObjectDescriptorBase");
 GPURenderBundleDescriptor.addExtends("GPUObjectDescriptorBase");
-
-console.log("===");
-console.log("Descriptors");
-console.log("===");
-const toSkip = [
-  "GPUOrigin2DDictStrict",
-  "GPUExtent3DDictStrict",
-  "GPUExtent3DDict",
-  "GPUOrigin2DDict",
-  "GPUOrigin3DDict",
-  // TODO: we could remove this one potentially
-  "GPUImageCopyBuffer",
-];
 sourceFile
   .getInterfaces()
   .filter(
@@ -181,13 +183,5 @@ sourceFile
       decl.getProperty("__brand") === undefined,
   )
   .forEach((decl) => {
-    writeFile(
-      "descriptor",
-      decl.getName(),
-      getDescriptor(
-        decl,
-        unions,
-        hybridObject.map((d) => d.getName()),
-      ),
-    );
+    writeFile("descriptor", decl.getName(), getDescriptor(decl));
   });
