@@ -53,8 +53,19 @@ interface GPUContext {
 
 type Ctx = Record<string, unknown>;
 
+type JSONValue =
+  | { [key: string]: JSONValue }
+  | JSONValue[]
+  | number
+  | string
+  | boolean
+  | null;
+
 interface TestingClient {
-  eval<C = Ctx, R = any>(fn: (ctx: GPUContext & C) => R, ctx?: C): Promise<R>;
+  eval<C = Ctx, R extends JSONValue = JSONValue>(
+    fn: (ctx: GPUContext & C) => R,
+    ctx?: C,
+  ): Promise<R>;
   OS: TestOS;
   arch: "paper" | "fabric";
   init(): Promise<void>;
@@ -65,7 +76,7 @@ class RemoteTestingClient implements TestingClient {
   readonly OS = global.testOS;
   readonly arch = global.testArch;
 
-  eval<C = Ctx, R = any>(
+  eval<C = Ctx, R extends JSONValue = JSONValue>(
     fn: (ctx: GPUContext & C) => R,
     context?: C,
   ): Promise<R> {
@@ -110,7 +121,7 @@ class ReferenceTestingClient implements TestingClient {
   private browser: Browser | null = null;
   private page: Page | null = null;
 
-  async eval<C = Ctx, R = any>(
+  async eval<C = Ctx, R extends JSONValue = JSONValue>(
     fn: (ctx: GPUContext & C) => R,
     ctx?: C,
   ): Promise<R> {
