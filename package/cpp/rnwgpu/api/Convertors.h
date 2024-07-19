@@ -158,15 +158,21 @@ public:
     }
   }
 
-  template <typename OUT, typename IN>
-  [[nodiscard]] bool Convert(const OUT *out, const std::shared_ptr<IN> &in) {
-    auto* el = Allocate<std::remove_const_t<OUT>>();
-    if (!Convert(*el, in)) {
-        return false;
+    template <typename OUT,
+              typename IN,
+              typename _ = std::enable_if_t<!std::is_same_v<IN, std::string>>>
+    [[nodiscard]] inline bool Convert(OUT*& out, const std::optional<IN>& in) {
+        if (in.has_value()) {
+            auto* el = Allocate<std::remove_const_t<OUT>>();
+            if (!Convert(*el, in.value())) {
+                return false;
+            }
+            out = el;
+        } else {
+            out = nullptr;
+        }
+        return true;
     }
-    out = el;
-    return true;
-  }
 
   template <typename OUT, typename IN>
   [[nodiscard]] bool Convert(OUT &out,
@@ -254,7 +260,7 @@ public:
                              const GPUColorTargetState &in) {
     out = {};
     if (in.blend.has_value()) {
-      if (!Convert(out.blend, in.blend.value())) {
+      if (!Convert(out.blend, in.blend)) {
         return false;
       }
     }
@@ -318,12 +324,15 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::FragmentState &out,
                              const GPUFragmentState &in) {
-    // TODO: add targets & constants:
-    // Convert(out.targets, out.targetCount, in.targets) &&
-    //            &&
-    //           Convert(out.constants, in.constants);
-    return Convert(out.module, in.module) &&
-           Convert(out.entryPoint, in.entryPoint);
+    out = {};
+
+    // Replace nulls in the entryPoint name with another character that's disallowed in WGSL
+    // identifiers. This is so that using "main\0" doesn't match an entryPoint named "main".
+    out.entryPoint = in.entryPoint ? ConvertStringReplacingNull(in.entryPoint.value()) : nullptr;
+
+    return Convert(out.targets, out.targetCount, in.targets) &&  //
+           Convert(out.module, in.module);                     // TODO: add support for constants
+           //Convert(out.constants, out.constantCount, in.constants);
   }
 
   [[nodiscard]] bool Convert(wgpu::ImageCopyBuffer &out,
