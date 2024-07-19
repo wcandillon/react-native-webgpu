@@ -23,8 +23,8 @@ namespace m = margelo;
 namespace rnwgpu {
 
 struct GPURenderPassDescriptor {
-  std::vector<std::variant<std::nullptr_t,
-                           std::shared_ptr<GPURenderPassColorAttachment>>>
+  // TODO: handle the null case
+  std::vector<std::shared_ptr<GPURenderPassColorAttachment>>
       colorAttachments; // Iterable<GPURenderPassColorAttachment | null>
   std::optional<std::shared_ptr<GPURenderPassDepthStencilAttachment>>
       depthStencilAttachment; // GPURenderPassDepthStencilAttachment
@@ -50,9 +50,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "colorAttachments")) {
         auto prop = value.getProperty(runtime, "colorAttachments");
-        result->colorAttachments = JSIConverter<std::vector<std::variant<
-            std::nullptr_t, std::shared_ptr<GPURenderPassColorAttachment>>>>::
+        result->colorAttachments = JSIConverter<std::vector<std::shared_ptr<GPURenderPassColorAttachment>>>::
             fromJSI(runtime, prop, false);
+        // result->colorAttachments = JSIConverter<std::vector<std::variant<
+        //     std::nullptr_t, std::shared_ptr<GPURenderPassColorAttachment>>>>::
+        //     fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthStencilAttachment")) {
         auto prop = value.getProperty(runtime, "depthStencilAttachment");

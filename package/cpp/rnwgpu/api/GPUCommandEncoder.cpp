@@ -15,14 +15,12 @@ void GPUCommandEncoder::copyBufferToBuffer(
 std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(
     std::optional<std::shared_ptr<GPUCommandBufferDescriptor>> descriptor) {
   wgpu::CommandBufferDescriptor desc;
+  // TODO: set label
   std::string label = "";
-  if (descriptor.has_value()) {
-    label = descriptor.value()->label.value_or("");
-    Convertor conv;
-    if (!conv(desc, descriptor.value())) {
-      throw std::runtime_error(
-          "GPUCommandEncoder::finish(): error with GPUCommandBufferDescriptor");
-    }
+  Convertor conv;
+  if (!conv(desc, descriptor)) {
+    throw std::runtime_error(
+        "GPUCommandEncoder::finish(): error with GPUCommandBufferDescriptor");
   }
   auto commandBuffer = _instance.Finish(&desc);
   return std::make_shared<GPUCommandBuffer>(commandBuffer, label);
@@ -30,22 +28,24 @@ std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(
 
 std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
     std::shared_ptr<GPURenderPassDescriptor> descriptor) {
-  Convertor conv;
 
   wgpu::RenderPassDescriptor desc{};
   wgpu::RenderPassDescriptorMaxDrawCount maxDrawCountDesc{};
   desc.nextInChain = &maxDrawCountDesc;
+  Convertor conv;
 
-  // TODO: reenable
-  //    if (!conv(desc.colorAttachments, desc.colorAttachmentCount,
-  //    descriptor.colorAttachments) ||
-  //        !conv(desc.depthStencilAttachment,
-  //        descriptor.depthStencilAttachment) || !conv(desc.label,
-  //        descriptor.label) || !conv(desc.occlusionQuerySet,
-  //        descriptor.occlusionQuerySet) || !conv(desc.timestampWrites,
-  //        descriptor.timestampWrites) || !conv(maxDrawCountDesc.maxDrawCount,
-  //        descriptor.maxDrawCount)) { return {};
-  //    }
+// TODO: why is this not in Converter
+  if (!conv(desc.colorAttachments, desc.colorAttachmentCount,
+  descriptor->colorAttachments) ||
+      !conv(desc.depthStencilAttachment,
+      descriptor->depthStencilAttachment) || !conv(desc.label,
+      descriptor->label) || !conv(desc.occlusionQuerySet,
+      descriptor->occlusionQuerySet) || !conv(desc.timestampWrites,
+      descriptor->timestampWrites) || !conv(maxDrawCountDesc.maxDrawCount,
+      descriptor->maxDrawCount))
+  {
+    throw std::runtime_error("PUCommandEncoder::beginRenderPass(): couldn't get GPURenderPassDescriptor");
+  }
   auto renderPass = _instance.BeginRenderPass(&desc);
   return std::make_shared<GPURenderPassEncoder>(renderPass,
                                                 descriptor->label.value_or(""));
