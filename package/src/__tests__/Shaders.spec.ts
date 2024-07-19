@@ -123,30 +123,30 @@ describe("Triangle", () => {
             topology: "triangle-list",
           },
         });
-        return true;
         // Create a bind group for the texture
-        // const sampler = device.createSampler({
-        //   magFilter: "linear",
-        //   minFilter: "linear",
-        // });
+        const sampler = device.createSampler({
+          magFilter: "linear",
+          minFilter: "linear",
+        });
 
-        // const bindGroup = device.createBindGroup({
-        //   layout: displayPipeline.getBindGroupLayout(0),
-        //   entries: [
-        //     {
-        //       binding: 0,
-        //       resource: sampler,
-        //     },
-        //     {
-        //       binding: 1,
-        //       resource: texture.createView(),
-        //     },
-        //   ],
-        // });
+        const bindGroup = device.createBindGroup({
+          layout: displayPipeline.getBindGroupLayout(0),
+          entries: [
+            {
+              binding: 0,
+              resource: sampler,
+            },
+            {
+              binding: 1,
+              resource: texture.createView(),
+            },
+          ],
+        });
 
         // // Render the triangle to the texture
-        // const commandEncoder = device.createCommandEncoder();
-        // const textureView = texture.createView();
+        const commandEncoder = device.createCommandEncoder();
+        const textureView = texture.createView();
+        return true;
 
         // const renderPassDescriptor: GPURenderPassDescriptor = {
         //   colorAttachments: [
