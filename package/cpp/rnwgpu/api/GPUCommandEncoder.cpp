@@ -21,7 +21,7 @@ void GPUCommandEncoder::copyBufferToBuffer(
 
 std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(
     std::optional<std::shared_ptr<GPUCommandBufferDescriptor>> descriptor) {
-  wgpu::CommandBufferDescriptor desc;
+  wgpu::CommandBufferDescriptor desc{};
   // TODO: set label
   std::string label = "";
   Convertor conv;

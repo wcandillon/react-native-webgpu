@@ -5,6 +5,8 @@
 #include <string>
 #include <utility>
 
+#include "Convertors.h"
+
 namespace rnwgpu {
 
 std::shared_ptr<ArrayBuffer>
@@ -46,15 +48,16 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
 
 void GPUBuffer::destroy() { _instance.Destroy(); }
 
-std::future<void> GPUBuffer::mapAsync(uint64_t mode, std::optional<size_t> o,
-                                      std::optional<size_t> size) {
+std::future<void> GPUBuffer::mapAsync(uint64_t modeIn, std::optional<uint64_t> offset,
+                                      std::optional<uint64_t> size) {
+  Convertor conv;
+  wgpu::MapMode mode;
+  if (!conv(mode, modeIn)) {
+    throw std::runtime_error("Couldn't get mode");
+  }
+  uint64_t rangeSize = size.has_value() ? size.value() : (_instance.GetSize() - offset.value_or(0));
   return _async->runAsync([=] {
-    auto md = static_cast<wgpu::MapMode>(mode);
-    uint64_t offset = o.value_or(0);
-    uint64_t s =
-        size.has_value() ? size.value() : (_instance.GetSize() - offset);
-    uint64_t start = offset;
-    uint64_t end = offset + s;
+
 
     // for (auto& mapping : mappings) {
     //   if (mapping.Intersects(start, end)) {
@@ -80,7 +83,7 @@ std::future<void> GPUBuffer::mapAsync(uint64_t mode, std::optional<size_t> o,
         break;
       }
     };
-    return _instance.MapAsync(md, offset, s, callback);
+    return _instance.MapAsync(mode, offset.value_or(0), rangeSize, callback);
   });
 }
 
