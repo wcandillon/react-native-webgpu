@@ -157,12 +157,12 @@ public:
 
   template <typename OUT, typename IN>
   [[nodiscard]] bool Convert(const OUT *out, const std::shared_ptr<IN> &in) {
-    std::remove_const_t<std::remove_pointer_t<OUT>> o;
-    if constexpr (has_get_member<IN>::value) {
-      return Convert(o, in->get());
-    } else {
-      return Convert(o, *in);
+    auto* el = Allocate<std::remove_const_t<OUT>>();
+    if (!Convert(*el, in)) {
+        return false;
     }
+    out = el;
+    return true;
   }
 
   template <typename OUT, typename IN>
