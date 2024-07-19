@@ -1,8 +1,5 @@
 #include "GPUBuffer.h"
 
-#include <iomanip>
-#include <sstream>
-#include <string>
 #include <utility>
 
 #include "Convertors.h"
@@ -31,15 +28,6 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
     throw std::runtime_error("Failed to get getMappedRange");
   }
   auto array_buffer = std::make_shared<ArrayBuffer>(ptr, s, 1);
-  std::stringstream ss;
-  uint8_t *uint8_ptr = static_cast<uint8_t *>(ptr);
-  ss << "Buffer content: ";
-  for (size_t i = 0; i < s; ++i) {
-    ss << std::setw(2) << std::setfill('0') << std::hex
-       << static_cast<int>(uint8_ptr[i]) << " ";
-  }
-  std::string bufferContent = ss.str();
-  Logger::logToConsole("debug: %s", bufferContent.c_str());
   // TODO(crbug.com/dawn/1135): Ownership here is the wrong way around.
   // mappings_.emplace_back(Mapping{start, end,
   // Napi::Persistent(array_buffer)});
@@ -48,17 +36,18 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
 
 void GPUBuffer::destroy() { _instance.Destroy(); }
 
-std::future<void> GPUBuffer::mapAsync(uint64_t modeIn, std::optional<uint64_t> offset,
+std::future<void> GPUBuffer::mapAsync(uint64_t modeIn,
+                                      std::optional<uint64_t> offset,
                                       std::optional<uint64_t> size) {
   Convertor conv;
   wgpu::MapMode mode;
   if (!conv(mode, modeIn)) {
     throw std::runtime_error("Couldn't get MapMode");
   }
-  uint64_t rangeSize = size.has_value() ? size.value() : (_instance.GetSize() - offset.value_or(0));
+  uint64_t rangeSize = size.has_value()
+                           ? size.value()
+                           : (_instance.GetSize() - offset.value_or(0));
   return _async->runAsync([=] {
-
-
     // for (auto& mapping : mappings) {
     //   if (mapping.Intersects(start, end)) {
     //     promise.set_exception(std::make_exception_ptr(std::runtime_error("Buffer

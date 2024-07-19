@@ -189,7 +189,7 @@ describe("Buffer", () => {
       // Map the read buffer for reading
       return readBuffer.mapAsync(GPUMapMode.READ).then(() => {
         const readData = new Float32Array(readBuffer.getMappedRange());
-        return readData;
+        return Array.from(readData);
       });
     });
     expect(result).toEqual([1, 2, 3, 4]);

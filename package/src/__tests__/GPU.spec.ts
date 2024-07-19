@@ -15,7 +15,8 @@ describe("Adapter", () => {
   });
   it("execute a simple async function (1)", async () => {
     const result = await client.eval(
-      () => new Promise((resolve) => setTimeout(() => resolve(1 + 1), 100)),
+      () =>
+        new Promise<number>((resolve) => setTimeout(() => resolve(1 + 1), 100)),
     );
     expect(result).toBe(2);
   });

@@ -75,4 +75,12 @@ void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,
                         static_cast<size_t>(size64));
 }
 
+std::future<void> GPUQueue::onSubmittedWorkDone() {
+  return _async->runAsync([=] {
+    return _instance.OnSubmittedWorkDone(
+        wgpu::CallbackMode::WaitAnyOnly,
+        [](wgpu::QueueWorkDoneStatus status) {});
+  });
+}
+
 } // namespace rnwgpu

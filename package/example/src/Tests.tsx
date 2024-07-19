@@ -11,11 +11,7 @@ import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
 export const CI = process.env.CI === "true";
 
 const processResult = (v: unknown) => {
-  let result = v;
-  if (v instanceof Float32Array || v instanceof Uint8Array) {
-    result = Array.from(v);
-  }
-  return JSON.stringify(result);
+  return JSON.stringify(v);
 };
 
 const useWebGPU = () => {
