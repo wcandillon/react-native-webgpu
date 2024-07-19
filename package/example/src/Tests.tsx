@@ -10,6 +10,14 @@ import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
 
 export const CI = process.env.CI === "true";
 
+const processResult = (v: unknown) => {
+  let result = v;
+  if (v instanceof Float32Array || v instanceof Uint8Array) {
+    result = Array.from(v);
+  }
+  return JSON.stringify(result);
+};
+
 const useWebGPU = () => {
   const [adapter, setAdapter] = React.useState<GPUAdapter | null>(null);
   const [device, setDevice] = React.useState<GPUDevice | null>(null);
@@ -57,14 +65,10 @@ export const Tests = () => {
           });
           if (result instanceof Promise) {
             result.then((r) => {
-              client.send(JSON.stringify(r));
+              client.send(processResult(r));
             });
           } else {
-            client.send(
-              JSON.stringify(result, (_, v) =>
-                typeof v === "bigint" ? v.toString() : v,
-              ),
-            );
+            client.send(processResult(result));
           }
         }
       };
