@@ -101,11 +101,7 @@ public:
     return Convert(out_count, in.size());
   }
 
-  template <typename T> [[nodiscard]] bool Convert(T &out, const T &in) {
-    out = in;
-    return true;
-  }
-
+  // TODO remove constraint
   template <typename T>
   [[nodiscard]] auto Convert(T &out, const std::nullptr_t &in)
       -> decltype(out = nullptr, bool()) {
@@ -119,10 +115,16 @@ public:
   }
 
   template <typename T>
-  [[nodiscard]] typename std::enable_if<
-      std::is_arithmetic<T>::value || std::is_enum<T>::value, bool>::type
+  [[nodiscard]] typename std::enable_if<(std::is_arithmetic<T>::value || std::is_enum<T>::value), bool>::type
   Convert(T &out, const double &in) {
     out = static_cast<T>(in);
+    return true;
+  }
+
+  template <typename T>
+  [[nodiscard]] typename std::enable_if<std::is_enum<T>::value, bool>::type
+  Convert(T &out, const T &in) {
+    out = in;
     return true;
   }
 
@@ -149,7 +151,8 @@ public:
   template <typename OUT, typename IN>
   [[nodiscard]] bool Convert(OUT &out, const std::shared_ptr<IN> &in) {
     if constexpr (has_get_member<IN>::value) {
-      return Convert(out, in->get());
+      out = in->get();
+      return true;
     } else {
       return Convert(out, *in);
     }
