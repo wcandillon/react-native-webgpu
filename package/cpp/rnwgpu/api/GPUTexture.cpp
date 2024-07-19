@@ -10,7 +10,10 @@ std::shared_ptr<GPUTextureView>
 GPUTexture::createView(std::shared_ptr<GPUTextureViewDescriptor> descriptor) {
   wgpu::TextureViewDescriptor desc;
   Convertor conv;
-  conv(desc, descriptor);
+  if (!conv(desc, descriptor)) {
+    throw std::runtime_error("GPUTextureView.createView(): couldn't access "
+                             "GPUTextureViewDescriptor");
+  }
   auto view = _instance.CreateView(&desc);
   return std::make_shared<GPUTextureView>(view, descriptor->label.value_or(""));
 }

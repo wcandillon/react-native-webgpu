@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include "Convertors.h"
+
 namespace rnwgpu {
 
 std::shared_ptr<ArrayBuffer>
@@ -25,7 +27,7 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
   if (!ptr) {
     throw std::runtime_error("Failed to get getMappedRange");
   }
-  auto array_buffer = std::make_shared<ArrayBuffer>(ptr, s);
+  auto array_buffer = std::make_shared<ArrayBuffer>(ptr, s, 1);
   // TODO(crbug.com/dawn/1135): Ownership here is the wrong way around.
   // mappings_.emplace_back(Mapping{start, end,
   // Napi::Persistent(array_buffer)});
@@ -34,16 +36,18 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
 
 void GPUBuffer::destroy() { _instance.Destroy(); }
 
-std::future<void> GPUBuffer::mapAsync(uint64_t mode, std::optional<size_t> o,
-                                      std::optional<size_t> size) {
+std::future<void> GPUBuffer::mapAsync(uint64_t modeIn,
+                                      std::optional<uint64_t> offset,
+                                      std::optional<uint64_t> size) {
+  Convertor conv;
+  wgpu::MapMode mode;
+  if (!conv(mode, modeIn)) {
+    throw std::runtime_error("Couldn't get MapMode");
+  }
+  uint64_t rangeSize = size.has_value()
+                           ? size.value()
+                           : (_instance.GetSize() - offset.value_or(0));
   return _async->runAsync([=] {
-    auto md = static_cast<wgpu::MapMode>(mode);
-    uint64_t offset = o.value_or(0);
-    uint64_t s =
-        size.has_value() ? size.value() : (_instance.GetSize() - offset);
-    uint64_t start = offset;
-    uint64_t end = offset + s;
-
     // for (auto& mapping : mappings) {
     //   if (mapping.Intersects(start, end)) {
     //     promise.set_exception(std::make_exception_ptr(std::runtime_error("Buffer
@@ -68,7 +72,7 @@ std::future<void> GPUBuffer::mapAsync(uint64_t mode, std::optional<size_t> o,
         break;
       }
     };
-    return _instance.MapAsync(md, offset, s, callback);
+    return _instance.MapAsync(mode, offset.value_or(0), rangeSize, callback);
   });
 }
 
