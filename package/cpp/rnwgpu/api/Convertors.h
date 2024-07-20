@@ -101,10 +101,8 @@ public:
     return Convert(out_count, in.size());
   }
 
-  // TODO remove constraint
   template <typename T>
-  [[nodiscard]] auto Convert(T &out, const std::nullptr_t &in)
-      -> decltype(out = nullptr, bool()) {
+  [[nodiscard]] auto Convert(T &out, const std::nullptr_t &in) {
     out = nullptr;
     return true;
   }
