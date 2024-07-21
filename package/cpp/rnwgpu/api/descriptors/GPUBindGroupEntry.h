@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-
 #include "GPUBufferBinding.h"
 #include "GPUExternalTexture.h"
 #include "GPUSampler.h"

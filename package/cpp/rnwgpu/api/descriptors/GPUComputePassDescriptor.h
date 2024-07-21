@@ -6,7 +6,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-
 #include "GPUComputePassTimestampWrites.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"

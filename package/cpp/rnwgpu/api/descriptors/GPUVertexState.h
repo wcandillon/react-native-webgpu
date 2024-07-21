@@ -9,7 +9,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-
 #include "GPUShaderModule.h"
 #include "GPUVertexBufferLayout.h"
 #include "Logger.h"

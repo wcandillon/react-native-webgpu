@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-
 #include "GPUQuerySet.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"

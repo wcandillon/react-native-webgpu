@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-
 #include "GPUStencilFaceState.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"

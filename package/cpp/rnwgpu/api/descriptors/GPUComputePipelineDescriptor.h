@@ -6,7 +6,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-
 #include "GPUPipelineLayout.h"
 #include "GPUProgrammableStage.h"
 #include "Logger.h"

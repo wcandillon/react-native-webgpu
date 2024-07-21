@@ -7,7 +7,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-
 #include "GPUShaderModule.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"

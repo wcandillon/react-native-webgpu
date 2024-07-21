@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-
 #include "GPUOrigin3D.h"
 #include "GPUTexture.h"
 #include "Logger.h"

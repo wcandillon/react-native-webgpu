@@ -8,7 +8,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-
 #include "GPUQuerySet.h"
 #include "GPURenderPassColorAttachment.h"
 #include "GPURenderPassDepthStencilAttachment.h"

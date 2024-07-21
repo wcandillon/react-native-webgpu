@@ -6,7 +6,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-
 #include "GPUDepthStencilState.h"
 #include "GPUFragmentState.h"
 #include "GPUMultisampleState.h"

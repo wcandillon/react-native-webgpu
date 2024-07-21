@@ -7,7 +7,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-
 #include "GPUBindGroupLayout.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"
