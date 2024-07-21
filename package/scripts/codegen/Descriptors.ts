@@ -242,7 +242,7 @@ ${Array.from(dependencies)
 
 #include "Logger.h"
 #include "RNFJSIConverter.h"
-#include "DescriptorConvertors.h"
+
 #include "RNFHybridObject.h"
 ${Array.from(dependencies)
   .filter((dep) => dep[0] !== dep[0].toLowerCase())

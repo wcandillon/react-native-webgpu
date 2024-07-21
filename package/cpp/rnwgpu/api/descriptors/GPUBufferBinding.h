@@ -5,7 +5,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "DescriptorConvertors.h"
+
 #include "GPUBuffer.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"

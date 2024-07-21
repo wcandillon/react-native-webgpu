@@ -9,7 +9,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "DescriptorConvertors.h"
+
 #include "GPUColorTargetState.h"
 #include "GPUShaderModule.h"
 #include "Logger.h"

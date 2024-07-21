@@ -32,9 +32,9 @@ void GPURenderBundleEncoder::draw(uint32_t vertexCount,
 }
 
 void GPURenderBundleEncoder::setBindGroup(
-      uint32_t groupIndex,
-      std::variant<std::nullptr_t, std::shared_ptr<GPUBindGroup>> bindGroup,
-      std::optional<std::vector<uint32_t>> dynamicOffsets) {
+    uint32_t groupIndex,
+    std::variant<std::nullptr_t, std::shared_ptr<GPUBindGroup>> bindGroup,
+    std::optional<std::vector<uint32_t>> dynamicOffsets) {
   auto dynOffsets = dynamicOffsets.value_or(std::vector<uint32_t>());
   if (dynOffsets.size() == 0) {
     if (std::holds_alternative<std::nullptr_t>(bindGroup)) {
@@ -44,13 +44,13 @@ void GPURenderBundleEncoder::setBindGroup(
       _instance.SetBindGroup(groupIndex, group->get(), 0, nullptr);
     }
   } else {
-        if (std::holds_alternative<std::nullptr_t>(bindGroup)) {
-    _instance.SetBindGroup(groupIndex, nullptr, dynOffsets.size(),
-                           dynamicOffsets->data());
+    if (std::holds_alternative<std::nullptr_t>(bindGroup)) {
+      _instance.SetBindGroup(groupIndex, nullptr, dynOffsets.size(),
+                             dynamicOffsets->data());
     } else {
       auto group = std::get<std::shared_ptr<GPUBindGroup>>(bindGroup);
-    _instance.SetBindGroup(groupIndex, group->get(), dynOffsets.size(),
-                           dynamicOffsets->data());
+      _instance.SetBindGroup(groupIndex, group->get(), dynOffsets.size(),
+                             dynamicOffsets->data());
     }
   }
 }

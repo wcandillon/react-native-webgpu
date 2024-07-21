@@ -8,7 +8,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "DescriptorConvertors.h"
+
 #include "GPUQueueDescriptor.h"
 #include "Logger.h"
 #include "RNFHybridObject.h"

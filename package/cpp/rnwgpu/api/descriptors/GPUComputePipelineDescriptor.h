@@ -6,7 +6,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "DescriptorConvertors.h"
+
 #include "GPUPipelineLayout.h"
 #include "GPUProgrammableStage.h"
 #include "Logger.h"

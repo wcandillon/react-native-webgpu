@@ -7,7 +7,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "DescriptorConvertors.h"
+
 #include "GPUBindGroupEntry.h"
 #include "GPUBindGroupLayout.h"
 #include "Logger.h"
