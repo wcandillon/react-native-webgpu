@@ -38,7 +38,7 @@ wgpu::TextureDimension GPUTexture::getDimension() {
 
 wgpu::TextureFormat GPUTexture::getFormat() { return _instance.GetFormat(); }
 
-uint32_t GPUTexture::getUsage() {
+double GPUTexture::getUsage() {
   return static_cast<double>(_instance.GetUsage());
 }
 
