@@ -27,14 +27,14 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::future<void> mapAsync(uint64_t mode, std::optional<uint64_t> offset,
-                             std::optional<uint64_t> size);
-  std::shared_ptr<ArrayBuffer> getMappedRange(std::optional<size_t> offset,
-                                              std::optional<size_t> size);
+  std::future<void> mapAsync(double mode, std::optional<double> offset,
+                             std::optional<double> size);
+  std::shared_ptr<ArrayBuffer> getMappedRange(std::optional<double> offset,
+                                              std::optional<double> size);
   void unmap();
   void destroy();
 
-  size_t getSize();
+  uint64_t getSize();
   double getUsage();
   wgpu::BufferMapState getMapState();
 
