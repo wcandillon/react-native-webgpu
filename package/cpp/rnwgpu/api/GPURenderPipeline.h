@@ -1,10 +1,5 @@
 #pragma once
 
-#include <future>
-#include <memory>
-#include <string>
-#include <vector>
-
 #include "Unions.h"
 
 #include "RNFHybridObject.h"
@@ -28,7 +23,7 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<GPUBindGroupLayout> getBindGroupLayout(double index);
+  std::shared_ptr<GPUBindGroupLayout> getBindGroupLayout(uint32_t index);
 
   std::string getLabel() { return _label; }
 

@@ -1,9 +1,7 @@
 #pragma once
 
 #include <future>
-#include <memory>
-#include <string>
-#include <vector>
+#include <variant>
 
 #include "Unions.h"
 
@@ -16,8 +14,6 @@
 
 #include "GPUAdapter.h"
 #include "GPURequestAdapterOptions.h"
-#include "future.h"
-#include "variant.h"
 
 namespace rnwgpu {
 
@@ -37,8 +33,7 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::future<std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>>
-  requestAdapter(
+  std::future<std::shared_ptr<GPUAdapter>> requestAdapter(
       std::optional<std::shared_ptr<GPURequestAdapterOptions>> options);
   wgpu::TextureFormat getPreferredCanvasFormat();
 

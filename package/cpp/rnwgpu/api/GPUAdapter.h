@@ -1,9 +1,6 @@
 #pragma once
 
 #include <future>
-#include <memory>
-#include <string>
-#include <vector>
 
 #include "Unions.h"
 
@@ -16,7 +13,6 @@
 
 #include "GPUDevice.h"
 #include "GPUDeviceDescriptor.h"
-#include "future.h"
 
 namespace rnwgpu {
 

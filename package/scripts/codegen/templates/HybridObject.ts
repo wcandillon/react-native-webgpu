@@ -142,10 +142,10 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
   }
   return `#pragma once
 
-#include <memory>
-#include <string>
-#include <future>
-#include <vector>
+${Array.from(dependencies)
+  .filter((dep) => dep[0] === dep[0].toLowerCase())
+  .map((dep) => `#include <${dep}>`)
+  .join("\n")}
 
 #include "Unions.h"
 
@@ -157,6 +157,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
 #include "webgpu/webgpu_cpp.h"
 
 ${Array.from(dependencies)
+  .filter((dep) => dep[0] !== dep[0].toLowerCase())
   .map((dep) => `#include "${dep}.h"`)
   .join("\n")}
 

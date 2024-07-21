@@ -95,12 +95,18 @@ GPUDevice::createBindGroup(std::shared_ptr<GPUBindGroupDescriptor> descriptor) {
                                         descriptor->label.value_or(""));
 }
 
-std::shared_ptr<GPUSampler>
-GPUDevice::createSampler(std::shared_ptr<GPUSamplerDescriptor> descriptor) {
+std::shared_ptr<GPUSampler> GPUDevice::createSampler(
+    std::optional<std::shared_ptr<GPUSamplerDescriptor>> descriptor) {
   wgpu::SamplerDescriptor desc;
-  // TODO: make std::shared_ptr<GPUSamplerDescriptor> option/implement
+  Convertor conv;
+  if (!conv(desc, descriptor)) {
+    throw std::runtime_error("GPUDevice::createSampler(): Error with "
+                             "GPUSamplerDescriptor");
+  }
   auto sampler = _instance.CreateSampler(&desc);
-  return std::make_shared<GPUSampler>(sampler, descriptor->label.value_or(""));
+  return std::make_shared<GPUSampler>(
+      sampler,
+      descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
 }
 
 std::shared_ptr<GPUComputePipeline> GPUDevice::createComputePipeline(

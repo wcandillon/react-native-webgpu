@@ -1,9 +1,6 @@
 #pragma once
 
 #include <future>
-#include <memory>
-#include <string>
-#include <vector>
 
 #include "Unions.h"
 
@@ -15,7 +12,6 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "ArrayBuffer.h"
-#include "future.h"
 
 namespace rnwgpu {
 
@@ -31,14 +27,14 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::future<void> mapAsync(double mode, std::optional<double> offset,
-                             std::optional<double> size);
-  std::shared_ptr<ArrayBuffer> getMappedRange(std::optional<double> offset,
-                                              std::optional<double> size);
+  std::future<void> mapAsync(uint64_t mode, std::optional<uint64_t> offset,
+                             std::optional<uint64_t> size);
+  std::shared_ptr<ArrayBuffer> getMappedRange(std::optional<size_t> offset,
+                                              std::optional<size_t> size);
   void unmap();
   void destroy();
 
-  double getSize();
+  size_t getSize();
   double getUsage();
   wgpu::BufferMapState getMapState();
 

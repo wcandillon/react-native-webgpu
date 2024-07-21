@@ -74,7 +74,7 @@ void GPUCommandEncoder::copyTextureToBuffer(
 }
 
 std::shared_ptr<GPUComputePassEncoder> GPUCommandEncoder::beginComputePass(
-    std::shared_ptr<GPUComputePassDescriptor> descriptor) {
+    std::optional<std::shared_ptr<GPUComputePassDescriptor>> descriptor) {
   wgpu::ComputePassDescriptor desc;
   Convertor conv;
   if (!conv(desc, descriptor)) {
@@ -83,7 +83,8 @@ std::shared_ptr<GPUComputePassEncoder> GPUCommandEncoder::beginComputePass(
   }
   auto computePass = _instance.BeginComputePass(&desc);
   return std::make_shared<GPUComputePassEncoder>(
-      computePass, descriptor->label.value_or(""));
+      computePass,
+      descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
 }
 
 } // namespace rnwgpu
