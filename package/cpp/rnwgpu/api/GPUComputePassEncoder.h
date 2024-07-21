@@ -37,7 +37,7 @@ public:
   void setBindGroup(
       uint32_t index,
       std::variant<std::nullptr_t, std::shared_ptr<GPUBindGroup>> bindGroup,
-      std::optional<std::vector<uint32_t>> dynamicOffsets);
+      std::optional<std::vector<double>> dynamicOffsets);
 
   std::string getLabel() { return _label; }
 

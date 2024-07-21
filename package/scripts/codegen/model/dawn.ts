@@ -12,11 +12,18 @@ export const hasPropery = <O, T extends string>(
   return typeof object === "object" && object !== null && property in object;
 };
 
+interface Method {
+  returnType: string;
+  args: { name: string; type: string }[];
+  deps: string[];
+}
+
 export const resolved: Record<
   string,
   {
     extra?: string;
     ctor?: string;
+    methods?: Record<string, Method>;
   }
 > = {
   GPU: {
@@ -31,6 +38,25 @@ export const resolved: Record<
       }`,
   },
   GPUBuffer: {
+    methods: {
+      mapAsync: {
+        returnType: "std::future<void>",
+        args: [
+          { name: "modeIn", type: "uint64_t" },
+          { name: "offset", type: "std::optional<uint64_t>" },
+          { name: "size", type: "std::optional<uint64_t>" },
+        ],
+        deps: ["future"],
+      },
+      getMappedRange: {
+        returnType: "std::shared_ptr<ArrayBuffer>",
+        args: [
+          { name: "offset", type: "std::optional<size_t>" },
+          { name: "size", type: "std::optional<size_t>" },
+        ],
+        deps: ["memory", "optional", "ArrayBuffer"],
+      },
+    },
     extra: `struct Mapping {
       uint64_t start;
       uint64_t end;
@@ -39,6 +65,24 @@ export const resolved: Record<
   };
   std::vector<Mapping> mappings;
   `,
+  },
+  GPUCommandEncoder: {
+    methods: {
+      copyTextureToBuffer: {
+        deps: [
+          "memory",
+          "GPUImageCopyTexture",
+          "GPUImageCopyBuffer",
+          "GPUExtent3D",
+        ],
+        returnType: "void",
+        args: [
+          { name: "source", type: "std::shared_ptr<GPUImageCopyTexture>" },
+          { name: "destination", type: "std::shared_ptr<GPUImageCopyBuffer>" },
+          { name: "copySize", type: "std::shared_ptr<GPUExtent3D>" },
+        ],
+      },
+    },
   },
 };
 
@@ -72,4 +116,12 @@ export const resolveExtra = (className: string) => {
 
 export const resolveCtor = (className: string): string | undefined => {
   return resolved[className]?.ctor;
+};
+
+export const resolveMethod = (className: string, methodName: string) => {
+  const obj = resolved[className];
+  if (obj && obj.methods) {
+    return obj.methods[methodName];
+  }
+  return;
 };

@@ -3,7 +3,12 @@ import type { InterfaceDeclaration } from "ts-morph";
 import _ from "lodash";
 
 import { resolveType } from "../Descriptors";
-import { resolveCtor, resolveExtra, resolveNative } from "../model/dawn";
+import {
+  resolveCtor,
+  resolveExtra,
+  resolveMethod,
+  resolveNative,
+} from "../model/dawn";
 
 import { mergeParentInterfaces } from "./common";
 
@@ -49,6 +54,7 @@ const methodWhiteList = [
   "createComputePipeline",
   "beginComputePass",
   "dispatchWorkgroups",
+  "onSubmittedWorkDone",
 ];
 
 const propWhiteList: Record<string, string[]> = {
@@ -103,6 +109,16 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     .getMethods()
     .filter((m) => methodWhiteList.includes(m.getName()))
     .map((signature) => {
+      const resolved = resolveMethod(className, signature.getName());
+      if (resolved) {
+        resolved.deps.forEach((dep) => {
+          dependencies.add(dep);
+        });
+        return {
+          name: signature.getName(),
+          ...resolved,
+        };
+      }
       const nativeMethod = resolveNative(className, signature.getName());
 
       const params = signature.getParameters();

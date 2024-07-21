@@ -1,4 +1,4 @@
-import { checkImage, client, encodeImage } from "./setup";
+import { client } from "./setup";
 
 describe("Texture", () => {
   it("Check usage", async () => {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <future>
 #include <variant>
 #include <vector>
 
@@ -13,8 +14,10 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "ArrayBuffer.h"
+#include "ArrayBufferView.h"
 #include "GPUBuffer.h"
 #include "GPUCommandBuffer.h"
+#include "SharedArrayBuffer.h"
 
 namespace rnwgpu {
 
@@ -31,19 +34,24 @@ public:
   std::string getBrand() { return _name; }
 
   void submit(std::vector<std::shared_ptr<GPUCommandBuffer>> commandBuffers);
-  void writeBuffer(std::shared_ptr<GPUBuffer> buffer, uint64_t bufferOffset,
-                   std::shared_ptr<ArrayBuffer> data,
-                   std::optional<uint64_t> dataOffsetElements,
-                   std::optional<size_t> sizeElements);
   std::future<void> onSubmittedWorkDone();
+  void writeBuffer(std::shared_ptr<GPUBuffer> buffer, uint64_t bufferOffset,
+                   std::variant<std::shared_ptr<ArrayBufferView>,
+                                std::shared_ptr<ArrayBuffer>,
+                                std::shared_ptr<SharedArrayBuffer>>
+                       data,
+                   std::optional<double> dataOffset,
+                   std::optional<double> size);
+
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUQueue::getBrand, this);
     registerHybridMethod("submit", &GPUQueue::submit, this);
-    registerHybridMethod("writeBuffer", &GPUQueue::writeBuffer, this);
     registerHybridMethod("onSubmittedWorkDone", &GPUQueue::onSubmittedWorkDone,
                          this);
+    registerHybridMethod("writeBuffer", &GPUQueue::writeBuffer, this);
+
     registerHybridGetter("label", &GPUQueue::getLabel, this);
   }
 

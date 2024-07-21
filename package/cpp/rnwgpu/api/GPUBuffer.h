@@ -1,6 +1,8 @@
 #pragma once
 
 #include <future>
+#include <memory>
+#include <optional>
 
 #include "Unions.h"
 

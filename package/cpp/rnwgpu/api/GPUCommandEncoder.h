@@ -1,7 +1,6 @@
 #pragma once
 
-#include <variant>
-#include <vector>
+#include <memory>
 
 #include "Unions.h"
 
