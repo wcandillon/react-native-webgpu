@@ -35,7 +35,7 @@ public:
   uint32_t getSampleCount();
   wgpu::TextureDimension getDimension();
   wgpu::TextureFormat getFormat();
-  uint32_t getUsage();
+  double getUsage();
 
   std::string getLabel() { return _label; }
 
