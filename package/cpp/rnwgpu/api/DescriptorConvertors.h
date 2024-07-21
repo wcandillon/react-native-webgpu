@@ -43,8 +43,12 @@ struct JSIConverter<std::variant<std::nullptr_t, std::shared_ptr<O>>> {
         JSIConverter<std::shared_ptr<O>>::fromJSI(runtime, arg, outOfBound));
   }
 
-  static jsi::Value toJSI(jsi::Runtime &, Target arg) {
-    return jsi::Value::null();
+  static jsi::Value toJSI(jsi::Runtime &runtime, Target arg) {
+    if (std::holds_alternative<std::nullptr_t>(arg)) {
+      return jsi::Value::null();
+    }
+    return JSIConverter<std::shared_ptr<O>>::toJSI(
+        runtime, std::get<std::shared_ptr<O>>(arg));
   }
 };
 

@@ -5,34 +5,37 @@
 
 namespace rnwgpu {
 
-std::future<std::shared_ptr<GPUAdapter>> GPU::requestAdapter(
+std::future<std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>>
+GPU::requestAdapter(
     std::optional<std::shared_ptr<GPURequestAdapterOptions>> options) {
-  return std::async(std::launch::async, [this, options]() {
-    wgpu::RequestAdapterOptions aOptions;
-    Convertor conv;
-    if (!conv(aOptions, options)) {
-      throw std::runtime_error("Failed to convert GPUDeviceDescriptor");
-    }
-    wgpu::Adapter adapter = nullptr;
-    _instance.RequestAdapter(
-        &aOptions,
-        [](WGPURequestAdapterStatus, WGPUAdapter cAdapter, const char *message,
-           void *userdata) {
-          if (message != nullptr) {
-            fprintf(stderr, "%s", message);
-            return;
-          }
-          *static_cast<wgpu::Adapter *>(userdata) =
-              wgpu::Adapter::Acquire(cAdapter);
-        },
-        &adapter);
-    // TODO: implement returning null jsi value
-    if (!adapter) {
-      throw std::runtime_error("Failed to request adapter");
-    }
+  return std::async(
+      std::launch::async,
+      [this,
+       options]() -> std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>> {
+        wgpu::RequestAdapterOptions aOptions;
+        Convertor conv;
+        if (!conv(aOptions, options)) {
+          throw std::runtime_error("Failed to convert GPUDeviceDescriptor");
+        }
+        wgpu::Adapter adapter = nullptr;
+        _instance.RequestAdapter(
+            &aOptions,
+            [](WGPURequestAdapterStatus, WGPUAdapter cAdapter,
+               const char *message, void *userdata) {
+              if (message != nullptr) {
+                fprintf(stderr, "%s", message);
+                return;
+              }
+              *static_cast<wgpu::Adapter *>(userdata) =
+                  wgpu::Adapter::Acquire(cAdapter);
+            },
+            &adapter);
+        if (!adapter) {
+          return nullptr;
+        }
 
-    return std::make_shared<GPUAdapter>(std::move(adapter), _async);
-  });
+        return std::make_shared<GPUAdapter>(std::move(adapter), _async);
+      });
 }
 
 // Async impl keeping here as a reference
