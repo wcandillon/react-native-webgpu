@@ -180,7 +180,6 @@ ${Array.from(dependencies)
 #include "RNFHybridObject.h"
 
 #include "AsyncRunner.h"
-#include "ArrayBuffer.h"
 
 #include "webgpu/webgpu_cpp.h"
 

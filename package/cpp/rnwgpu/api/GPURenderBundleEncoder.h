@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <optional>
 #include <variant>
 #include <vector>
 
@@ -7,7 +9,6 @@
 
 #include "RNFHybridObject.h"
 
-#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
@@ -36,7 +37,7 @@ public:
   void setBindGroup(
       uint32_t index,
       std::variant<std::nullptr_t, std::shared_ptr<GPUBindGroup>> bindGroup,
-      std::optional<std::vector<double>> dynamicOffsets);
+      std::optional<std::vector<uint32_t>> dynamicOffsets);
   void setPipeline(std::shared_ptr<GPURenderPipeline> pipeline);
   void draw(uint32_t vertexCount, std::optional<uint32_t> instanceCount,
             std::optional<uint32_t> firstVertex,

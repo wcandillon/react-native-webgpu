@@ -18,6 +18,22 @@ interface Method {
   deps: string[];
 }
 
+const setBindGroup: Method = {
+  deps: ["variant", "memory", "GPUBindGroup", "vector", "optional"],
+  returnType: "void",
+  args: [
+    { name: "index", type: "uint32_t" },
+    {
+      name: "bindGroup",
+      type: "std::variant<std::nullptr_t, std::shared_ptr<GPUBindGroup>>",
+    },
+    {
+      name: "dynamicOffsets",
+      type: "std::optional<std::vector<uint32_t>>",
+    },
+  ],
+};
+
 export const resolved: Record<
   string,
   {
@@ -82,6 +98,36 @@ export const resolved: Record<
           { name: "copySize", type: "std::shared_ptr<GPUExtent3D>" },
         ],
       },
+    },
+  },
+  GPUQueue: {
+    methods: {
+      writeBuffer: {
+        deps: ["GPUBuffer", "memory", "ArrayBuffer"],
+        returnType: "void",
+        args: [
+          { name: "buffer", type: "std::shared_ptr<GPUBuffer>" },
+          { name: "bufferOffset", type: "uint64_t" },
+          { name: "data", type: "std::shared_ptr<ArrayBuffer> " },
+          { name: "dataOffsetElements", type: "std::optional<uint64_t>" },
+          { name: "sizeElements", type: "std::optional<size_t>" },
+        ],
+      },
+    },
+  },
+  GPUComputePassEncoder: {
+    methods: {
+      setBindGroup,
+    },
+  },
+  GPURenderPassEncoder: {
+    methods: {
+      setBindGroup,
+    },
+  },
+  GPURenderBundleEncoder: {
+    methods: {
+      setBindGroup,
     },
   },
 };

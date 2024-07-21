@@ -8,7 +8,6 @@
 
 #include "RNFHybridObject.h"
 
-#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"

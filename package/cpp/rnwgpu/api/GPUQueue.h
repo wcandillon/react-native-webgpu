@@ -1,23 +1,20 @@
 #pragma once
 
 #include <future>
-#include <variant>
+#include <memory>
 #include <vector>
 
 #include "Unions.h"
 
 #include "RNFHybridObject.h"
 
-#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
 
 #include "ArrayBuffer.h"
-#include "ArrayBufferView.h"
 #include "GPUBuffer.h"
 #include "GPUCommandBuffer.h"
-#include "SharedArrayBuffer.h"
 
 namespace rnwgpu {
 
@@ -36,12 +33,9 @@ public:
   void submit(std::vector<std::shared_ptr<GPUCommandBuffer>> commandBuffers);
   std::future<void> onSubmittedWorkDone();
   void writeBuffer(std::shared_ptr<GPUBuffer> buffer, uint64_t bufferOffset,
-                   std::variant<std::shared_ptr<ArrayBufferView>,
-                                std::shared_ptr<ArrayBuffer>,
-                                std::shared_ptr<SharedArrayBuffer>>
-                       data,
-                   std::optional<double> dataOffset,
-                   std::optional<double> size);
+                   std::shared_ptr<ArrayBuffer> data,
+                   std::optional<uint64_t> dataOffsetElements,
+                   std::optional<size_t> sizeElements);
 
   std::string getLabel() { return _label; }
 
