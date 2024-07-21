@@ -2,12 +2,8 @@
 import type { InterfaceDeclaration } from "ts-morph";
 import _ from "lodash";
 
-import {
-  resolveCtor,
-  resolveExtra,
-  resolveMethod,
-  resolveProperty,
-} from "../model/model";
+import { resolveCtor, resolveExtra } from "../model/model";
+import { resolveType } from "../Descriptors";
 
 import { mergeParentInterfaces } from "./common";
 
@@ -78,10 +74,7 @@ const propWhiteList: Record<string, string[]> = {
 export const getHybridObject = (decl: InterfaceDeclaration) => {
   mergeParentInterfaces(decl);
   const name = decl.getName();
-  const methods = decl
-    .getMethods()
-    .filter((m) => methodWhiteList.includes(m.getName()))
-    .map((m) => resolveMethod(m));
+  const dependencies = new Set<string>();
   const properties = decl
     .getProperties()
     .filter(
@@ -90,12 +83,38 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
         propWhiteList[decl.getName()] &&
         propWhiteList[decl.getName()].includes(m.getName()),
     )
-    .map((p) => resolveProperty(p));
+    .map((signature) => {
+      const type = resolveType(signature.getType(), {
+        signature,
+        dependencies,
+        typeNode: signature.getTypeNode(),
+      });
+      return { type, name: signature.getName() };
+    });
+  const methods = decl
+    .getMethods()
+    .filter((m) => methodWhiteList.includes(m.getName()))
+    .map((signature) => {
+      const params = signature.getParameters();
+      const returnType = resolveType(signature.getReturnType(), {
+        signature,
+        dependencies,
+        typeNode: signature.getReturnTypeNode(),
+      });
+      return {
+        name: signature.getName(),
+        returnType: returnType,
+        args: params.map((param) => ({
+          name: param.getName(),
+          type: resolveType(param.getType(), {
+            signature,
+            dependencies,
+            typeNode: param.getTypeNode(),
+          }),
+        })),
+      };
+    });
   const hasLabel = decl.getProperty("label") !== undefined;
-  const dependencies = [
-    ...methods.flatMap((method) => method.dependencies),
-    ...properties.flatMap((prop) => prop.dependencies),
-  ];
   const instanceName = `wgpu::${instanceAliases[name] || name.substring(3)}`;
   const ctor = resolveCtor(name);
   const needsAsync =
@@ -128,7 +147,9 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
 
 #include "webgpu/webgpu_cpp.h"
 
-${dependencies.map((dep) => `#include "${dep}.h"`).join("\n")}
+${Array.from(dependencies)
+  .map((dep) => `#include "${dep}.h"`)
+  .join("\n")}
 
 namespace rnwgpu {
 
@@ -145,17 +166,16 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-
   ${methods
     .map((method) => {
       const args = method.args
         .map((arg) => `${arg.type} ${arg.name}`)
         .join(", ");
-      return `${method.returns} ${method.name}(${args});`;
+      return `${method.returnType} ${method.name}(${args});`;
     })
     .join("\n")}
 
-  ${properties.map((prop) => `${prop.returns} get${_.upperFirst(prop.name)}();`).join("\n")}
+  ${properties.map((prop) => `${prop.type} get${_.upperFirst(prop.name)}();`).join("\n")}
 
   ${hasLabel ? "std::string getLabel() { return _label; }" : ""}
 

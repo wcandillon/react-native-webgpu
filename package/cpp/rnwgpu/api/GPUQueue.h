@@ -36,7 +36,6 @@ public:
                    std::shared_ptr<ArrayBuffer> data,
                    std::optional<uint64_t> dataOffset,
                    std::optional<size_t> size);
-  std::future<void> onSubmittedWorkDone();
 
   std::string getLabel() { return _label; }
 
@@ -44,8 +43,6 @@ public:
     registerHybridGetter("__brand", &GPUQueue::getBrand, this);
     registerHybridMethod("submit", &GPUQueue::submit, this);
     registerHybridMethod("writeBuffer", &GPUQueue::writeBuffer, this);
-    registerHybridMethod("onSubmittedWorkDone", &GPUQueue::onSubmittedWorkDone,
-                         this);
 
     registerHybridGetter("label", &GPUQueue::getLabel, this);
   }

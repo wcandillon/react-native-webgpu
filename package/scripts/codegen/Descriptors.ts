@@ -1,4 +1,10 @@
-import type { InterfaceDeclaration, Type, PropertySignature } from "ts-morph";
+import type {
+  InterfaceDeclaration,
+  Type,
+  PropertySignature,
+  MethodSignature,
+  TypeNode,
+} from "ts-morph";
 import { SyntaxKind } from "ts-morph";
 
 import { debugType, mergeParentInterfaces } from "./templates/common";
@@ -61,7 +67,8 @@ const resolved: Record<
 
 interface ResolveTypeState {
   dependencies: Set<string>;
-  prop: PropertySignature;
+  signature: PropertySignature | MethodSignature;
+  typeNode: TypeNode | undefined;
 }
 
 const nativeMapName: Record<string, string> = {
@@ -69,12 +76,13 @@ const nativeMapName: Record<string, string> = {
   GPUProgrammableStage: "ProgrammableStageDescriptor",
 };
 
-const resolveType = (type: Type, state: ResolveTypeState): string => {
-  const { dependencies, prop } = state;
-  const propName = prop.getName();
+export const resolveType = (type: Type, state: ResolveTypeState): string => {
+  const { dependencies, signature, typeNode } = state;
+  const propName = signature.getName();
   const className =
-    prop.getFirstAncestorByKind(SyntaxKind.InterfaceDeclaration)?.getName() ??
-    "";
+    signature
+      .getFirstAncestorByKind(SyntaxKind.InterfaceDeclaration)
+      ?.getName() ?? "";
   const symbol = type.getSymbol();
   if (resolved[className] && resolved[className][propName]) {
     resolved[className][propName].dependencies.forEach((d) =>
@@ -98,7 +106,7 @@ const resolveType = (type: Type, state: ResolveTypeState): string => {
     } else if (unionTypes.every((t) => t.isStringLiteral())) {
       let name = type.getAliasSymbol()?.getName();
       if (!name) {
-        name = prop.getTypeNode()?.getText();
+        name = typeNode?.getText();
         if (!name) {
           console.log(name);
           console.log(debugType(type));
@@ -167,17 +175,21 @@ export const getDescriptor = (decl: InterfaceDeclaration, skeleton = false) => {
   const props = decl
     .getProperties()
     .filter((p) => !p.getType().isAny())
-    .map((prop) => {
-      const mandatoryType = resolveType(prop.getType(), { prop, dependencies });
-      const type = prop.hasQuestionToken()
+    .map((signature) => {
+      const mandatoryType = resolveType(signature.getType(), {
+        signature,
+        dependencies,
+        typeNode: signature.getTypeNode(),
+      });
+      const type = signature.hasQuestionToken()
         ? `std::optional<${mandatoryType}>`
         : mandatoryType;
-      if (prop.hasQuestionToken()) {
+      if (signature.hasQuestionToken()) {
         dependencies.add("optional");
       }
-      const debug = prop.getTypeNode()?.getText() ?? "";
+      const debug = signature.getTypeNode()?.getText() ?? "";
       return {
-        name: prop.getName(),
+        name: signature.getName(),
         type,
         debug,
       };

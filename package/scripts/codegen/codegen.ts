@@ -8,7 +8,6 @@ import { writeFile } from "./util";
 import { getHybridObject } from "./templates/HybridObject";
 import type { Union } from "./templates/Unions";
 import { Unions } from "./templates/Unions";
-import { getDescriptor } from "./Descriptors";
 
 // Define the path to the WebGPU type declaration file
 const tsConfigFilePath = path.resolve(__dirname, "../../tsconfig.json");
@@ -182,6 +181,6 @@ sourceFile
       !toSkip.includes(decl.getName()) &&
       decl.getProperty("__brand") === undefined,
   )
-  .forEach((decl) => {
-    writeFile("descriptor", decl.getName(), getDescriptor(decl));
+  .forEach((_decl) => {
+    //writeFile("descriptor", decl.getName(), getDescriptor(decl));
   });

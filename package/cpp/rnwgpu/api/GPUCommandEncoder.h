@@ -49,7 +49,7 @@ public:
                            std::shared_ptr<GPUImageCopyBuffer> destination,
                            std::shared_ptr<GPUExtent3D> copySize);
   std::shared_ptr<GPUCommandBuffer>
-  finish(std::optional<std::shared_ptr<GPUCommandBufferDescriptor>> descriptor);
+  finish(std::shared_ptr<GPUCommandBufferDescriptor> descriptor);
 
   std::string getLabel() { return _label; }
 
