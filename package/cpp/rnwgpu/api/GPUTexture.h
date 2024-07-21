@@ -29,18 +29,18 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<GPUTextureView>
-  createView(std::shared_ptr<GPUTextureViewDescriptor> descriptor);
+  std::shared_ptr<GPUTextureView> createView(
+      std::optional<std::shared_ptr<GPUTextureViewDescriptor>> descriptor);
   void destroy();
 
-  uint32_t getWidth();
-  uint32_t getHeight();
-  uint32_t getDepthOrArrayLayers();
-  uint32_t getMipLevelCount();
-  uint32_t getSampleCount();
+  double getWidth();
+  double getHeight();
+  double getDepthOrArrayLayers();
+  double getMipLevelCount();
+  double getSampleCount();
   wgpu::TextureDimension getDimension();
   wgpu::TextureFormat getFormat();
-  uint32_t getUsage();
+  double getUsage();
 
   std::string getLabel() { return _label; }
 

@@ -51,8 +51,8 @@ public:
   createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor);
   std::shared_ptr<GPUTexture>
   createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor);
-  std::shared_ptr<GPUSampler>
-  createSampler(std::shared_ptr<GPUSamplerDescriptor> descriptor);
+  std::shared_ptr<GPUSampler> createSampler(
+      std::optional<std::shared_ptr<GPUSamplerDescriptor>> descriptor);
   std::shared_ptr<GPUBindGroup>
   createBindGroup(std::shared_ptr<GPUBindGroupDescriptor> descriptor);
   std::shared_ptr<GPUShaderModule>
@@ -61,8 +61,8 @@ public:
       std::shared_ptr<GPUComputePipelineDescriptor> descriptor);
   std::shared_ptr<GPURenderPipeline>
   createRenderPipeline(std::shared_ptr<GPURenderPipelineDescriptor> descriptor);
-  std::shared_ptr<GPUCommandEncoder>
-  createCommandEncoder(std::shared_ptr<GPUCommandEncoderDescriptor> descriptor);
+  std::shared_ptr<GPUCommandEncoder> createCommandEncoder(
+      std::optional<std::shared_ptr<GPUCommandEncoderDescriptor>> descriptor);
 
   std::shared_ptr<GPUQueue> getQueue();
 

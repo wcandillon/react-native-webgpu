@@ -90,6 +90,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
         typeNode: signature.getTypeNode(),
         className,
         name: signature.getName(),
+        debug: `${className}.${signature.getName()}`,
       });
       return { type, name: signature.getName() };
     });
@@ -104,6 +105,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
         typeNode: signature.getReturnTypeNode(),
         className,
         name: signature.getName(),
+        debug: `Return value of ${className}.${signature.getName()}`,
       });
       return {
         name: signature.getName(),
@@ -116,6 +118,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
             typeNode: param.getTypeNode(),
             className,
             name: param.getName(),
+            debug: `Parameter ${param.getName()} of ${className}.${signature.getName()}`,
           }),
         })),
       };

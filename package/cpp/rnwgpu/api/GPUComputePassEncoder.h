@@ -16,6 +16,8 @@
 
 #include "GPUBindGroup.h"
 #include "GPUComputePipeline.h"
+#include "variant.h"
+#include "vector.h"
 
 namespace rnwgpu {
 
@@ -32,12 +34,14 @@ public:
   std::string getBrand() { return _name; }
 
   void setPipeline(std::shared_ptr<GPUComputePipeline> pipeline);
-  void dispatchWorkgroups(uint32_t workgroupCountX,
-                          std::optional<uint32_t> workgroupCountY,
-                          std::optional<uint32_t> workgroupCountZ);
+  void dispatchWorkgroups(double workgroupCountX,
+                          std::optional<double> workgroupCountY,
+                          std::optional<double> workgroupCountZ);
   void end();
-  void setBindGroup(uint32_t groupIndex, std::shared_ptr<GPUBindGroup> group,
-                    std::optional<std::vector<uint32_t>> dynamicOffsets);
+  void setBindGroup(
+      double index,
+      std::variant<std::nullptr_t, std::shared_ptr<GPUBindGroup>> bindGroup,
+      std::optional<std::vector<double>> dynamicOffsets);
 
   std::string getLabel() { return _label; }
 

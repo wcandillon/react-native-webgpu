@@ -16,6 +16,8 @@
 
 #include "GPUBindGroup.h"
 #include "GPURenderPipeline.h"
+#include "variant.h"
+#include "vector.h"
 
 namespace rnwgpu {
 
@@ -32,12 +34,14 @@ public:
   std::string getBrand() { return _name; }
 
   void end();
-  void setBindGroup(uint32_t groupIndex, std::shared_ptr<GPUBindGroup> group,
-                    std::optional<std::vector<uint32_t>> dynamicOffsets);
+  void setBindGroup(
+      double index,
+      std::variant<std::nullptr_t, std::shared_ptr<GPUBindGroup>> bindGroup,
+      std::optional<std::vector<double>> dynamicOffsets);
   void setPipeline(std::shared_ptr<GPURenderPipeline> pipeline);
-  void draw(uint32_t vertexCount, std::optional<uint32_t> instanceCount,
-            std::optional<uint32_t> firstVertex,
-            std::optional<uint32_t> firstInstance);
+  void draw(double vertexCount, std::optional<double> instanceCount,
+            std::optional<double> firstVertex,
+            std::optional<double> firstInstance);
 
   std::string getLabel() { return _label; }
 

@@ -14,8 +14,13 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "ArrayBuffer.h"
+#include "ArrayBufferView.h"
 #include "GPUBuffer.h"
 #include "GPUCommandBuffer.h"
+#include "SharedArrayBuffer.h"
+#include "variant.h"
+#include "vector.h"
 
 namespace rnwgpu {
 
@@ -32,10 +37,13 @@ public:
   std::string getBrand() { return _name; }
 
   void submit(std::vector<std::shared_ptr<GPUCommandBuffer>> commandBuffers);
-  void writeBuffer(std::shared_ptr<GPUBuffer> buffer, uint64_t bufferOffset,
-                   std::shared_ptr<ArrayBuffer> data,
-                   std::optional<uint64_t> dataOffset,
-                   std::optional<size_t> size);
+  void writeBuffer(std::shared_ptr<GPUBuffer> buffer, double bufferOffset,
+                   std::variant<std::shared_ptr<ArrayBufferView>,
+                                std::shared_ptr<ArrayBuffer>,
+                                std::shared_ptr<SharedArrayBuffer>>
+                       data,
+                   std::optional<double> dataOffset,
+                   std::optional<double> size);
 
   std::string getLabel() { return _label; }
 

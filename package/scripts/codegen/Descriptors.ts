@@ -73,6 +73,7 @@ interface ResolveTypeState {
   signature: PropertySignature | MethodSignature | ParameterDeclaration;
   typeNode: TypeNode | undefined;
   root?: boolean;
+  debug?: string;
 }
 
 const nativeMapName: Record<string, string> = {
@@ -88,6 +89,7 @@ export const resolveType = (type: Type, state: ResolveTypeState): string => {
     className,
     name: propName,
     root,
+    debug,
   } = state;
   if (signature.hasQuestionToken() && root !== false) {
     return `std::optional<${resolveType(type, { ...state, root: false })}>`;
@@ -141,6 +143,12 @@ export const resolveType = (type: Type, state: ResolveTypeState): string => {
   } else if (type.isInterface()) {
     const name = type.getSymbol()?.getName() ?? "";
     if (name === "GPUObjectDescriptorBase") {
+      console.log({
+        name,
+        className,
+        debug: debugType(type),
+        debugInfo: debug,
+      });
       throw new Error(
         `${className}.${propName} not handled with GPUObjectDescriptorBase`,
       );

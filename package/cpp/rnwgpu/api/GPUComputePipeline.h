@@ -29,7 +29,7 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<GPUBindGroupLayout> getBindGroupLayout(uint32_t groupIndex);
+  std::shared_ptr<GPUBindGroupLayout> getBindGroupLayout(double index);
 
   std::string getLabel() { return _label; }
 

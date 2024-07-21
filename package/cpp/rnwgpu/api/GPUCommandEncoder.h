@@ -19,11 +19,13 @@
 #include "GPUCommandBufferDescriptor.h"
 #include "GPUComputePassDescriptor.h"
 #include "GPUComputePassEncoder.h"
-#include "GPUExtent3D.h"
+#include "GPUExtent3DDictStrict.h"
 #include "GPUImageCopyBuffer.h"
 #include "GPUImageCopyTexture.h"
 #include "GPURenderPassDescriptor.h"
 #include "GPURenderPassEncoder.h"
+#include "variant.h"
+#include "vector.h"
 
 namespace rnwgpu {
 
@@ -39,17 +41,19 @@ public:
 
   std::shared_ptr<GPURenderPassEncoder>
   beginRenderPass(std::shared_ptr<GPURenderPassDescriptor> descriptor);
-  std::shared_ptr<GPUComputePassEncoder>
-  beginComputePass(std::shared_ptr<GPUComputePassDescriptor> descriptor);
+  std::shared_ptr<GPUComputePassEncoder> beginComputePass(
+      std::optional<std::shared_ptr<GPUComputePassDescriptor>> descriptor);
   void copyBufferToBuffer(std::shared_ptr<GPUBuffer> source,
-                          uint64_t sourceOffset,
+                          double sourceOffset,
                           std::shared_ptr<GPUBuffer> destination,
-                          uint64_t destinationOffset, uint64_t size);
-  void copyTextureToBuffer(std::shared_ptr<GPUImageCopyTexture> source,
-                           std::shared_ptr<GPUImageCopyBuffer> destination,
-                           std::shared_ptr<GPUExtent3D> copySize);
+                          double destinationOffset, double size);
+  void copyTextureToBuffer(
+      std::shared_ptr<GPUImageCopyTexture> source,
+      std::shared_ptr<GPUImageCopyBuffer> destination,
+      std::variant<std::vector<double>, std::shared_ptr<GPUExtent3DDictStrict>>
+          copySize);
   std::shared_ptr<GPUCommandBuffer>
-  finish(std::shared_ptr<GPUCommandBufferDescriptor> descriptor);
+  finish(std::optional<std::shared_ptr<GPUCommandBufferDescriptor>> descriptor);
 
   std::string getLabel() { return _label; }
 
