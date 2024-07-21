@@ -1,11 +1,12 @@
+/* eslint-disable prefer-destructuring */
 import type {
   InterfaceDeclaration,
   Type,
   PropertySignature,
   MethodSignature,
   TypeNode,
+  ParameterDeclaration,
 } from "ts-morph";
-import { SyntaxKind } from "ts-morph";
 
 import { debugType, mergeParentInterfaces } from "./templates/common";
 
@@ -66,9 +67,12 @@ const resolved: Record<
 };
 
 interface ResolveTypeState {
+  name: string;
+  className: string;
   dependencies: Set<string>;
-  signature: PropertySignature | MethodSignature;
+  signature: PropertySignature | MethodSignature | ParameterDeclaration;
   typeNode: TypeNode | undefined;
+  root?: boolean;
 }
 
 const nativeMapName: Record<string, string> = {
@@ -77,14 +81,17 @@ const nativeMapName: Record<string, string> = {
 };
 
 export const resolveType = (type: Type, state: ResolveTypeState): string => {
-  const { dependencies, signature, typeNode } = state;
-  const propName = signature.getName();
-  const className =
-    signature
-      .getFirstAncestorByKind(SyntaxKind.InterfaceDeclaration)
-      ?.getName() ?? "";
-  const symbol = type.getSymbol();
-  if (resolved[className] && resolved[className][propName]) {
+  const {
+    dependencies,
+    signature,
+    typeNode,
+    className,
+    name: propName,
+    root,
+  } = state;
+  if (signature.hasQuestionToken() && root !== false) {
+    return `std::optional<${resolveType(type, { ...state, root: false })}>`;
+  } else if (resolved[className] && resolved[className][propName]) {
     resolved[className][propName].dependencies.forEach((d) =>
       dependencies.add(d),
     );
@@ -108,7 +115,7 @@ export const resolveType = (type: Type, state: ResolveTypeState): string => {
       if (!name) {
         name = typeNode?.getText();
         if (!name) {
-          console.log(name);
+          console.log({ name });
           console.log(debugType(type));
           throw new Error(
             `${className}.${propName} not handled with string literal union`,
@@ -127,6 +134,8 @@ export const resolveType = (type: Type, state: ResolveTypeState): string => {
         return `std::variant<${unionNames.join(", ")}>`;
       }
     }
+  } else if (type.isUndefined()) {
+    return "void";
   } else if (type.isNull()) {
     return "std::nullptr_t";
   } else if (type.isInterface()) {
@@ -144,10 +153,18 @@ export const resolveType = (type: Type, state: ResolveTypeState): string => {
       .map((arg) => resolveType(arg, state));
     dependencies.add("map");
     return `std::map<${args[0]}, ${args[1]}>`;
-  } else if (symbol && symbol.getName() === "Iterable") {
+  }
+  const symbol = type.getSymbol();
+  if (symbol && symbol.getName() === "Iterable") {
     const args = type.getTypeArguments().map((arg) => resolveType(arg, state));
     dependencies.add("vector");
     return `std::vector<${args.length === 1 ? args[0] : `std::variant<${args.join(", ")}>`}>`;
+  } else if (symbol && symbol.getName() === "Promise") {
+    const arg = (type.getTypeArguments() ?? []).map((a) =>
+      resolveType(a, state),
+    )[0];
+    dependencies.add("future");
+    return `std::future<${arg}>`;
   }
   //return "unknown";
   console.log(JSON.stringify(debugType(type), null, 2));
@@ -176,17 +193,13 @@ export const getDescriptor = (decl: InterfaceDeclaration, skeleton = false) => {
     .getProperties()
     .filter((p) => !p.getType().isAny())
     .map((signature) => {
-      const mandatoryType = resolveType(signature.getType(), {
+      const type = resolveType(signature.getType(), {
+        name: signature.getName(),
         signature,
         dependencies,
         typeNode: signature.getTypeNode(),
+        className: name,
       });
-      const type = signature.hasQuestionToken()
-        ? `std::optional<${mandatoryType}>`
-        : mandatoryType;
-      if (signature.hasQuestionToken()) {
-        dependencies.add("optional");
-      }
       const debug = signature.getTypeNode()?.getText() ?? "";
       return {
         name: signature.getName(),

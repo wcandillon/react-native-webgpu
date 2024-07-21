@@ -16,6 +16,8 @@
 
 #include "GPUAdapter.h"
 #include "GPURequestAdapterOptions.h"
+#include "future.h"
+#include "variant.h"
 
 namespace rnwgpu {
 
@@ -35,8 +37,9 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::future<std::shared_ptr<GPUAdapter>>
-  requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options);
+  std::future<std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>>
+  requestAdapter(
+      std::optional<std::shared_ptr<GPURequestAdapterOptions>> options);
   wgpu::TextureFormat getPreferredCanvasFormat();
 
   void loadHybridMethods() override {

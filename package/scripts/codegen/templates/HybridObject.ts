@@ -2,8 +2,8 @@
 import type { InterfaceDeclaration } from "ts-morph";
 import _ from "lodash";
 
-import { resolveCtor, resolveExtra } from "../model/model";
 import { resolveType } from "../Descriptors";
+import { resolveCtor, resolveExtra } from "../model/dawn";
 
 import { mergeParentInterfaces } from "./common";
 
@@ -73,21 +73,23 @@ const propWhiteList: Record<string, string[]> = {
 
 export const getHybridObject = (decl: InterfaceDeclaration) => {
   mergeParentInterfaces(decl);
-  const name = decl.getName();
+  const className = decl.getName();
   const dependencies = new Set<string>();
   const properties = decl
     .getProperties()
     .filter(
       (m) =>
         !m.getName().startsWith("__") &&
-        propWhiteList[decl.getName()] &&
-        propWhiteList[decl.getName()].includes(m.getName()),
+        propWhiteList[className] &&
+        propWhiteList[className].includes(m.getName()),
     )
     .map((signature) => {
       const type = resolveType(signature.getType(), {
         signature,
         dependencies,
         typeNode: signature.getTypeNode(),
+        className,
+        name: signature.getName(),
       });
       return { type, name: signature.getName() };
     });
@@ -100,6 +102,8 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
         signature,
         dependencies,
         typeNode: signature.getReturnTypeNode(),
+        className,
+        name: signature.getName(),
       });
       return {
         name: signature.getName(),
@@ -107,16 +111,18 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
         args: params.map((param) => ({
           name: param.getName(),
           type: resolveType(param.getType(), {
-            signature,
+            signature: param,
             dependencies,
             typeNode: param.getTypeNode(),
+            className,
+            name: param.getName(),
           }),
         })),
       };
     });
   const hasLabel = decl.getProperty("label") !== undefined;
-  const instanceName = `wgpu::${instanceAliases[name] || name.substring(3)}`;
-  const ctor = resolveCtor(name);
+  const instanceName = `wgpu::${instanceAliases[className] || className.substring(3)}`;
+  const ctor = resolveCtor(className);
   const needsAsync =
     decl
       .getMethods()
@@ -155,12 +161,12 @@ namespace rnwgpu {
 
 namespace m = margelo;
 
-class ${name} : public m::HybridObject {
+class ${className} : public m::HybridObject {
 public:
   ${
     ctor
       ? ctor
-      : `  explicit ${name}(${ctorParams.map((param) => `${param.type} ${param.name}`).join(", ")}) : HybridObject("${name}"), ${ctorParams.map((param) => `_${param.name}(${param.name})`).join(", ")} {}`
+      : `  explicit ${className}(${ctorParams.map((param) => `${param.type} ${param.name}`).join(", ")}) : HybridObject("${className}"), ${ctorParams.map((param) => `_${param.name}(${param.name})`).join(", ")} {}`
   }
 
 public:
@@ -180,15 +186,15 @@ public:
   ${hasLabel ? "std::string getLabel() { return _label; }" : ""}
 
   void loadHybridMethods() override {
-    registerHybridGetter("__brand", &${name}::getBrand, this);
+    registerHybridGetter("__brand", &${className}::getBrand, this);
     ${methods
       .map(
         (method) =>
-          `registerHybridMethod("${method.name}", &${name}::${method.name}, this);`,
+          `registerHybridMethod("${method.name}", &${className}::${method.name}, this);`,
       )
       .join("\n")}
-    ${properties.map((prop) => `registerHybridGetter("${prop.name}", &${name}::get${_.upperFirst(prop.name)}, this);`).join("\n")}
-    ${hasLabel ? `registerHybridGetter("label", &${name}::getLabel, this);` : ""}
+    ${properties.map((prop) => `registerHybridGetter("${prop.name}", &${className}::get${_.upperFirst(prop.name)}, this);`).join("\n")}
+    ${hasLabel ? `registerHybridGetter("label", &${className}::getLabel, this);` : ""}
   }
   
   inline const ${instanceName} get() {
@@ -197,7 +203,7 @@ public:
 
  private:
   ${ctorParams.map((param) => `${param.type} _${param.name};`).join("\n")}
-  ${resolveExtra(name)}
+  ${resolveExtra(className)}
 };
 
 } // namespace rnwgpu`;

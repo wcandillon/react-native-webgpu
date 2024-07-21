@@ -1,4 +1,4 @@
-import dawnJSON from "../../../libs/dawn.json";
+//import dawnJSON from "../../../libs/dawn.json";
 
 interface NativeMethod {
   dependencies: string[];
@@ -203,4 +203,12 @@ export const resolved: Record<
   },
 };
 
-export const dawn = dawnJSON;
+//export const dawn = dawnJSON;
+
+export const resolveExtra = (className: string) => {
+  return resolved[className]?.extra ?? "";
+};
+
+export const resolveCtor = (className: string): string | undefined => {
+  return resolved[className]?.ctor;
+};

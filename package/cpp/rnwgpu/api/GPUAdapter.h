@@ -16,6 +16,7 @@
 
 #include "GPUDevice.h"
 #include "GPUDeviceDescriptor.h"
+#include "future.h"
 
 namespace rnwgpu {
 
@@ -31,7 +32,7 @@ public:
   std::string getBrand() { return _name; }
 
   std::future<std::shared_ptr<GPUDevice>>
-  requestDevice(std::shared_ptr<GPUDeviceDescriptor> options);
+  requestDevice(std::optional<std::shared_ptr<GPUDeviceDescriptor>> descriptor);
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUAdapter::getBrand, this);

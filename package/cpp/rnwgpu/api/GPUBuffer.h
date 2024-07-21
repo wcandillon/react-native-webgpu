@@ -14,6 +14,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "ArrayBuffer.h"
+#include "future.h"
+
 namespace rnwgpu {
 
 namespace m = margelo;
@@ -28,14 +31,14 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::future<void> mapAsync(uint64_t mode, std::optional<size_t> offset,
-                             std::optional<size_t> size);
-  std::shared_ptr<ArrayBuffer> getMappedRange(std::optional<size_t> offset,
-                                              std::optional<size_t> size);
+  std::future<void> mapAsync(double mode, std::optional<double> offset,
+                             std::optional<double> size);
+  std::shared_ptr<ArrayBuffer> getMappedRange(std::optional<double> offset,
+                                              std::optional<double> size);
   void unmap();
   void destroy();
 
-  size_t getSize();
+  double getSize();
   double getUsage();
   wgpu::BufferMapState getMapState();
 
