@@ -3,7 +3,7 @@ import type { InterfaceDeclaration } from "ts-morph";
 import _ from "lodash";
 
 import { resolveType } from "../Descriptors";
-import { resolveCtor, resolveExtra } from "../model/dawn";
+import { resolveCtor, resolveExtra, resolveNative } from "../model/dawn";
 
 import { mergeParentInterfaces } from "./common";
 
@@ -84,6 +84,10 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
         propWhiteList[className].includes(m.getName()),
     )
     .map((signature) => {
+      const nativeMethod = resolveNative(
+        className,
+        `get${_.upperFirst(signature.getName())}`,
+      );
       const type = resolveType(signature.getType(), {
         signature,
         dependencies,
@@ -91,6 +95,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
         className,
         name: signature.getName(),
         debug: `${className}.${signature.getName()}`,
+        native: nativeMethod ? nativeMethod?.returns : undefined,
       });
       return { type, name: signature.getName() };
     });
@@ -98,6 +103,8 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     .getMethods()
     .filter((m) => methodWhiteList.includes(m.getName()))
     .map((signature) => {
+      const nativeMethod = resolveNative(className, signature.getName());
+
       const params = signature.getParameters();
       const returnType = resolveType(signature.getReturnType(), {
         signature,
@@ -106,11 +113,12 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
         className,
         name: signature.getName(),
         debug: `Return value of ${className}.${signature.getName()}`,
+        native: nativeMethod ? nativeMethod?.returns : undefined,
       });
       return {
         name: signature.getName(),
-        returnType: returnType,
-        args: params.map((param) => ({
+        returnType,
+        args: params.map((param, i) => ({
           name: param.getName(),
           type: resolveType(param.getType(), {
             signature: param,
@@ -119,6 +127,10 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
             className,
             name: param.getName(),
             debug: `Parameter ${param.getName()} of ${className}.${signature.getName()}`,
+            native:
+              nativeMethod && nativeMethod?.args && nativeMethod?.args[i]
+                ? nativeMethod?.args?.[i].type
+                : undefined,
           }),
         })),
       };

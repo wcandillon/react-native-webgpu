@@ -1,4 +1,6 @@
-//import dawnJSON from "../../../libs/dawn.json";
+import _ from "lodash";
+
+import dawn from "../../../libs/dawn.json";
 
 interface NativeMethod {
   dependencies: string[];
@@ -42,6 +44,7 @@ export const hasPropery = <O, T extends string>(
   return typeof object === "object" && object !== null && property in object;
 };
 
+// TODO: remove methods and properties?
 export const resolved: Record<
   string,
   {
@@ -203,7 +206,29 @@ export const resolved: Record<
   },
 };
 
-//export const dawn = dawnJSON;
+const toNativeName = (name: string) => {
+  return _.upperFirst(_.camelCase(name));
+};
+
+export const resolveNative = (
+  className: string,
+  methodName: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any => {
+  const key = Object.keys(dawn).find(
+    (k) => toNativeName(k) === className.substring(3),
+  );
+  const object = dawn[key as keyof typeof dawn];
+  if (!object) {
+    return null;
+  }
+  if (!hasPropery(object, "methods")) {
+    return null;
+  }
+  return object.methods.find((m) => {
+    return _.camelCase(m.name.toLowerCase()) === methodName;
+  });
+};
 
 export const resolveExtra = (className: string) => {
   return resolved[className]?.extra ?? "";

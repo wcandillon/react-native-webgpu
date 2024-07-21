@@ -74,12 +74,15 @@ interface ResolveTypeState {
   typeNode: TypeNode | undefined;
   root?: boolean;
   debug?: string;
+  native?: string;
 }
 
 const nativeMapName: Record<string, string> = {
   GPUColorDict: "Color",
   GPUProgrammableStage: "ProgrammableStageDescriptor",
 };
+
+const nativeNumber = ["uint64_t", "uint32_t"];
 
 export const resolveType = (type: Type, state: ResolveTypeState): string => {
   const {
@@ -90,6 +93,7 @@ export const resolveType = (type: Type, state: ResolveTypeState): string => {
     name: propName,
     root,
     debug,
+    native,
   } = state;
   if (signature.hasQuestionToken() && root !== false) {
     return `std::optional<${resolveType(type, { ...state, root: false })}>`;
@@ -104,6 +108,9 @@ export const resolveType = (type: Type, state: ResolveTypeState): string => {
   } else if (type.isBoolean() || type.isBooleanLiteral()) {
     return "bool";
   } else if (type.isNumber()) {
+    if (native && nativeNumber.includes(native)) {
+      return native;
+    }
     return "double";
   } else if (type.isArray()) {
     dependencies.add("vector");
