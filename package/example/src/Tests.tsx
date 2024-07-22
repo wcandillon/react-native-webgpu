@@ -56,7 +56,9 @@ export const Tests = () => {
               GPUMapMode,
               GPUShaderStage,
               GPUTextureUsage,
-              cubeVertexArray,
+              assets: {
+                cubeVertexArray,
+              },
               shaders: {
                 triangleVertWGSL,
                 redFragWGSL,

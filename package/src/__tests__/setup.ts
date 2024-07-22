@@ -59,8 +59,13 @@ interface GPUContext {
   GPUMapMode: typeof GPUMapMode;
   GPUShaderStage: typeof GPUShaderStage;
   GPUTextureUsage: typeof GPUTextureUsage;
-  cubeVertexArray: Float32Array;
-  shaders: Record<string, string>;
+  shaders: {
+    triangleVertWGSL: string;
+    redFragWGSL: string;
+  };
+  assets: {
+    cubeVertexArray: Float32Array;
+  };
   ctx: DrawingContext;
 }
 
@@ -190,7 +195,9 @@ class ReferenceTestingClient implements TestingClient {
         GPUMapMode,
         GPUShaderStage,
         GPUTextureUsage,
-        cubeVertexArray,
+        assets: {
+          cubeVertexArray,
+        },
         shaders: {
           triangleVertWGSL,
           redFragWGSL,
