@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 /* eslint-disable prefer-destructuring */
 import type {
   InterfaceDeclaration,
@@ -29,6 +30,17 @@ const size = {
   type: "std::shared_ptr<GPUExtent3D>",
   dependencies: ["GPUExtent3D"],
 };
+
+const layoutProp = `if (value.hasProperty(runtime, "layout")) {
+  auto prop = value.getProperty(runtime, "layout");
+  if (prop.isNull() || prop.isString()) {
+    result->layout = nullptr;
+  } else {
+    result->layout =
+        JSIConverter<std::shared_ptr<GPUPipelineLayout>>::fromJSI(
+            runtime, prop, false);
+  }
+}`;
 
 const resolved: Record<
   string,
@@ -284,7 +296,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
     auto result = std::make_unique<rnwgpu::${name}>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      ${props.map((prop) => jsiProp(prop)).join("\n")}
+      ${props.map((prop) => (prop.name === "layout" && (prop.type === "std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>" || prop.type === "std::optional<std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>>") ? layoutProp : jsiProp(prop))).join("\n")}
     }
 
     return result;
