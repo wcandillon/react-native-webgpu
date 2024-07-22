@@ -41,7 +41,12 @@ afterAll(async () => {
 interface DrawingContext {
   getCurrentTexture(): GPUTexture;
   present(commandEncoder: GPUCommandEncoder): void;
-  getImageData(): Promise<number[]>;
+  getImageData(): Promise<{
+    data: number[];
+    width: number;
+    height: number;
+    format: string;
+  }>;
 }
 
 interface GPUContext {
@@ -163,11 +168,16 @@ class ReferenceTestingClient implements TestingClient {
         }
         getImageData() {
             return this.buffer.mapAsync(GPUMapMode.READ).then(() => {
-                const arrayBuffer = this.buffer.getMappedRange();
-                const uint8Array = new Uint8Array(arrayBuffer);
-                const r = Array.from(uint8Array);
-                this.buffer.unmap();
-                return r;
+              const arrayBuffer = this.buffer.getMappedRange();
+              const uint8Array = new Uint8Array(arrayBuffer);
+              const data = Array.from(uint8Array);
+              this.buffer.unmap();
+              return {
+                data,
+                width: this.width,
+                height: this.height,
+                format: gpu.getPreferredCanvasFormat(),
+              };
             });
         }
     }
@@ -238,13 +248,28 @@ class ReferenceTestingClient implements TestingClient {
   }
 }
 
-export const encodeImage = (
-  rawData: Uint8Array | number[],
-  width: number,
-  height: number,
-) => {
-  const data =
-    rawData instanceof Uint8Array ? rawData : new Uint8Array(rawData);
+interface Bitmap {
+  data: number[];
+  width: number;
+  height: number;
+  format: string;
+}
+
+export const encodeImage = (bitmap: Bitmap) => {
+  const { width, height, format } = bitmap;
+  let data = new Uint8Array(bitmap.data);
+  // Convert BGRA to RGBA if necessary
+  if (format === "bgra8unorm") {
+    data = new Uint8Array(bitmap.data.length);
+    for (let i = 0; i < bitmap.data.length; i += 4) {
+      data[i] = bitmap.data[i + 2]; // R
+      data[i + 1] = bitmap.data[i + 1]; // G
+      data[i + 2] = bitmap.data[i]; // B
+      data[i + 3] = bitmap.data[i + 3]; // A
+    }
+  } else if (format !== "rgba8unorm") {
+    throw new Error(`Unsupported format ${format}`);
+  }
   // Create a new PNG
   const png = new PNG({
     width: width,

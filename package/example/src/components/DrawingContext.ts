@@ -35,9 +35,14 @@ export class DrawingContext {
     return this.buffer.mapAsync(GPUMapMode.READ).then(() => {
       const arrayBuffer = this.buffer.getMappedRange();
       const uint8Array = new Uint8Array(arrayBuffer);
-      const r = Array.from(uint8Array);
+      const data = Array.from(uint8Array);
       this.buffer.unmap();
-      return r;
+      return {
+        data,
+        width: this.width,
+        height: this.height,
+        format: gpu.getPreferredCanvasFormat(),
+      };
     });
   }
 }

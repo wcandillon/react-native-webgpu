@@ -186,7 +186,7 @@ describe("Texture", () => {
         return ctx.getImageData();
       },
     );
-    const image = encodeImage(result, 1024, 1024);
+    const image = encodeImage(result);
     checkImage(image, "snapshots/texture.png");
   });
 });

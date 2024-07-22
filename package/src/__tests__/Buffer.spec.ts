@@ -276,7 +276,12 @@ describe("Buffer", () => {
       }
       return Array.from(pixels);
     });
-    const png = encodeImage(new Uint8Array(data), 256, 256);
+    const png = encodeImage({
+      data,
+      width: 256,
+      height: 256,
+      format: "rgba8unorm",
+    });
     checkImage(png, "snapshots/buffer.png");
   });
   it("Builds the reference result (2)", async () => {
@@ -294,7 +299,12 @@ describe("Buffer", () => {
       },
       { pixels: Array.from(data) },
     );
-    const png = encodeImage(new Uint8Array(result), 256, 256);
+    const png = encodeImage({
+      data: result,
+      width: 256,
+      height: 256,
+      format: "rgba8unorm",
+    });
     checkImage(png, "snapshots/buffer.png");
   });
   it("writes an image into a buffer and reads it back", async () => {
@@ -326,7 +336,12 @@ describe("Buffer", () => {
           return r;
         });
     });
-    const png = encodeImage(new Uint8Array(imageData), 256, 256);
+    const png = encodeImage({
+      data: imageData,
+      width: 256,
+      height: 256,
+      format: "rgba8unorm",
+    });
     checkImage(png, "snapshots/buffer.png");
   });
 });
