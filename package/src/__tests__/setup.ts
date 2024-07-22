@@ -39,6 +39,8 @@ afterAll(async () => {
 });
 
 interface DrawingContext {
+  width: number;
+  height: number;
   getCurrentTexture(): GPUTexture;
   present(commandEncoder: GPUCommandEncoder): void;
   getImageData(): Promise<{
