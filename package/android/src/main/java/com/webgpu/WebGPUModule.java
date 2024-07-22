@@ -21,7 +21,7 @@ import com.facebook.react.turbomodule.core.interfaces.CallInvokerHolder;
         initialize();
     }
 
-    @Override
+  @Override
     public String getName() {
         return "WebGPUModule";
     }
@@ -31,9 +31,19 @@ import com.facebook.react.turbomodule.core.interfaces.CallInvokerHolder;
       ReactApplicationContext context = getReactApplicationContext();
       JavaScriptContextHolder jsContext = context.getJavaScriptContextHolder();
       CallInvokerHolder callInvokerHolder = context.getCatalystInstance().getJSCallInvokerHolder();
-      initializeNative(jsContext.get(),  (CallInvokerHolderImpl) callInvokerHolder);
+      initializeNative(jsContext.get(), (CallInvokerHolderImpl) callInvokerHolder);
     }
 
-    @DoNotStrip
-    private native void initializeNative(long jsRuntime, CallInvokerHolderImpl jsInvoker);
+  @DoNotStrip
+  private native void initializeNative(long jsRuntime, CallInvokerHolderImpl jsInvoker);
+
+  @ReactMethod(isBlockingSynchronousMethod = true)
+  public void registerContext(Integer contextId) {
+    ReactApplicationContext context = getReactApplicationContext();
+    JavaScriptContextHolder jsContext = context.getJavaScriptContextHolder();
+    registerContext(jsContext.get(), contextId);
+  }
+
+  @DoNotStrip
+  private native void registerContext(long jsRuntime, int contextId);
 }

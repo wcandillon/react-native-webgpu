@@ -3,6 +3,7 @@ import { TurboModuleRegistry } from "react-native";
 
 export interface Spec extends TurboModule {
   install: () => boolean;
+  registerContext: (contextId: number) => void;
 }
 
 // eslint-disable-next-line import/no-default-export

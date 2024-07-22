@@ -4,22 +4,31 @@ import androidx.annotation.NonNull;
 
 import android.content.Context;
 
+import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import com.facebook.proguard.annotations.DoNotStrip;
+import com.facebook.react.bridge.JavaScriptContextHolder;
+import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.turbomodule.core.interfaces.CallInvokerHolder;
+import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.views.view.ReactViewGroup;
 
 public class WebGPUView extends ReactViewGroup implements SurfaceHolder.Callback {
 
   private final SurfaceView mSurfaceView;
 
-  public WebGPUView(Context context) {
+  public WebGPUView(ThemedReactContext context) {
     super(context);
     mSurfaceView = new SurfaceView(context);
     mSurfaceView.getHolder().addCallback(this);
     addView(mSurfaceView);
+  }
+
+  public void setContextId(Integer contextId) {
+
   }
 
   @Override

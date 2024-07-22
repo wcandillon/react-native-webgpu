@@ -21,8 +21,9 @@ public class WebGPUViewManager extends com.webgpu.WebGPUViewManagerSpec<WebGPUVi
     return new WebGPUView(context);
   }
 
-  @ReactProp(name = "color")
-  public void setColor(WebGPUView view, @Nullable String color) {
-    view.setBackgroundColor(Color.parseColor(color));
+  @ReactProp(name = "contextId")
+  public void setContextId(WebGPUView view, @Nullable Integer contextId) {
+    view.setContextId(contextId);
   }
 }
+
