@@ -192,6 +192,7 @@ const toSkip = [
   "GPUOrigin2DDict",
   "GPUOrigin3DDict",
   "GPUColorDict",
+  "GPUColor",
   // TODO: remove these
   "GPUImageCopyExternalImage",
   "GPURenderPassLayout",
