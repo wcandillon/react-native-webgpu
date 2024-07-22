@@ -4,7 +4,7 @@
 import fs from "fs";
 import path from "path";
 
-import { mat4, vec3 } from "wgpu-matrix";
+import type { mat4, vec3 } from "wgpu-matrix";
 import type { Server, WebSocket } from "ws";
 import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer";
