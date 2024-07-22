@@ -1,15 +1,12 @@
 #pragma once
 
-#include <future>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "Unions.h"
 
 #include "RNFHybridObject.h"
 
-#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
@@ -29,8 +26,8 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::shared_ptr<GPUTextureView>
-  createView(std::shared_ptr<GPUTextureViewDescriptor> descriptor);
+  std::shared_ptr<GPUTextureView> createView(
+      std::optional<std::shared_ptr<GPUTextureViewDescriptor>> descriptor);
   void destroy();
 
   uint32_t getWidth();
@@ -40,7 +37,7 @@ public:
   uint32_t getSampleCount();
   wgpu::TextureDimension getDimension();
   wgpu::TextureFormat getFormat();
-  uint32_t getUsage();
+  double getUsage();
 
   std::string getLabel() { return _label; }
 

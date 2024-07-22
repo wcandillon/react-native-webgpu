@@ -22,6 +22,63 @@ const project = new Project({
 
 const sourceFile = project.addSourceFileAtPath(filePath);
 
+// Descriptors
+// the following two descriptors map to:
+// type GPUCommandBufferDescriptor =
+//   GPUObjectDescriptorBase;
+// type GPUCommandEncoderDescriptor =
+//   GPUObjectDescriptorBase;
+sourceFile.getTypeAlias("GPUCommandBufferDescriptor")!.remove();
+sourceFile.getTypeAlias("GPUCommandEncoderDescriptor")!.remove();
+//sourceFile.getType("GPUCommandBufferDescriptor");
+const GPUCommandBufferDescriptor = sourceFile.addInterface({
+  name: "GPUCommandBufferDescriptor",
+  isExported: true,
+});
+const GPUCommandEncoderDescriptor = sourceFile.addInterface({
+  name: "GPUCommandEncoderDescriptor",
+  isExported: true,
+});
+GPUCommandEncoderDescriptor.addExtends("GPUObjectDescriptorBase");
+GPUCommandBufferDescriptor.addExtends("GPUObjectDescriptorBase");
+
+/*
+type GPUQueueDescriptor =
+  GPUObjectDescriptorBase;
+type GPURenderBundleDescriptor =
+  GPUObjectDescriptorBase;
+  */
+sourceFile.getTypeAlias("GPUQueueDescriptor")!.remove();
+sourceFile.getTypeAlias("GPURenderBundleDescriptor")!.remove();
+const GPUQueueDescriptor = sourceFile.addInterface({
+  name: "GPUQueueDescriptor",
+  isExported: true,
+});
+const GPURenderBundleDescriptor = sourceFile.addInterface({
+  name: "GPURenderBundleDescriptor",
+  isExported: true,
+});
+GPUQueueDescriptor.addExtends("GPUObjectDescriptorBase");
+GPURenderBundleDescriptor.addExtends("GPUObjectDescriptorBase");
+
+/*
+// type PredefinedColorSpace = "display-p3" | "srgb";
+// type PremultiplyAlpha = "default" | "none" | "premultiply";
+*/
+// Add PredefinedColorSpace type alias
+sourceFile.addTypeAlias({
+  name: "PredefinedColorSpace",
+  type: '"display-p3" | "srgb"',
+  isExported: true,
+});
+
+// Add PremultiplyAlpha type alias
+sourceFile.addTypeAlias({
+  name: "PremultiplyAlpha",
+  type: '"default" | "none" | "premultiply"',
+  isExported: true,
+});
+
 const hasConstructor = (node: VariableDeclaration) => {
   let found = false;
 
@@ -132,45 +189,16 @@ const toSkip = [
   "GPUExtent3DDict",
   "GPUOrigin2DDict",
   "GPUOrigin3DDict",
+  // TODO: remove these
   "GPUImageCopyExternalImage",
   "GPURenderPassLayout",
   "GPUExternalTextureDescriptor",
   "GPUBindGroupEntry",
+  "GPUCanvasConfiguration",
+  "GPUPipelineErrorInit",
+  "GPUUncapturedErrorEvent",
 ];
 
-// Descriptors
-// the following two descriptors map to:
-// type GPUCommandBufferDescriptor =
-//   GPUObjectDescriptorBase;
-// type GPUCommandEncoderDescriptor =
-//   GPUObjectDescriptorBase;
-const GPUCommandBufferDescriptor = sourceFile.addInterface({
-  name: "GPUCommandBufferDescriptor",
-  isExported: true,
-});
-const GPUCommandEncoderDescriptor = sourceFile.addInterface({
-  name: "GPUCommandEncoderDescriptor",
-  isExported: true,
-});
-GPUCommandEncoderDescriptor.addExtends("GPUObjectDescriptorBase");
-GPUCommandBufferDescriptor.addExtends("GPUObjectDescriptorBase");
-
-/*
-type GPUQueueDescriptor =
-  GPUObjectDescriptorBase;
-type GPURenderBundleDescriptor =
-  GPUObjectDescriptorBase;
-  */
-const GPUQueueDescriptor = sourceFile.addInterface({
-  name: "GPUQueueDescriptor",
-  isExported: true,
-});
-const GPURenderBundleDescriptor = sourceFile.addInterface({
-  name: "GPURenderBundleDescriptor",
-  isExported: true,
-});
-GPUQueueDescriptor.addExtends("GPUObjectDescriptorBase");
-GPURenderBundleDescriptor.addExtends("GPUObjectDescriptorBase");
 sourceFile
   .getInterfaces()
   .filter(

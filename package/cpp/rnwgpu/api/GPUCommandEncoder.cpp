@@ -1,5 +1,7 @@
 #include "GPUCommandEncoder.h"
 
+#include <vector>
+
 #include "Convertors.h"
 
 namespace rnwgpu {
@@ -40,10 +42,20 @@ std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
   wgpu::RenderPassDescriptorMaxDrawCount maxDrawCountDesc{};
   desc.nextInChain = &maxDrawCountDesc;
   Convertor conv;
+  std::vector<std::shared_ptr<GPURenderPassColorAttachment>>
+      filteredColorAttachments;
+  for (const auto &attachment : descriptor->colorAttachments) {
+    if (auto ptr = std::get_if<std::shared_ptr<GPURenderPassColorAttachment>>(
+            &attachment)) {
+      if (*ptr) {
+        filteredColorAttachments.push_back(*ptr);
+      }
+    }
+  }
 
   // TODO: why is this not in Converter
   if (!conv(desc.colorAttachments, desc.colorAttachmentCount,
-            descriptor->colorAttachments) ||
+            filteredColorAttachments) ||
       !conv(desc.depthStencilAttachment, descriptor->depthStencilAttachment) ||
       !conv(desc.label, descriptor->label) ||
       !conv(desc.occlusionQuerySet, descriptor->occlusionQuerySet) ||
@@ -74,7 +86,7 @@ void GPUCommandEncoder::copyTextureToBuffer(
 }
 
 std::shared_ptr<GPUComputePassEncoder> GPUCommandEncoder::beginComputePass(
-    std::shared_ptr<GPUComputePassDescriptor> descriptor) {
+    std::optional<std::shared_ptr<GPUComputePassDescriptor>> descriptor) {
   wgpu::ComputePassDescriptor desc;
   Convertor conv;
   if (!conv(desc, descriptor)) {
@@ -83,7 +95,8 @@ std::shared_ptr<GPUComputePassEncoder> GPUCommandEncoder::beginComputePass(
   }
   auto computePass = _instance.BeginComputePass(&desc);
   return std::make_shared<GPUComputePassEncoder>(
-      computePass, descriptor->label.value_or(""));
+      computePass,
+      descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
 }
 
 } // namespace rnwgpu

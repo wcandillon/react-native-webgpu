@@ -9,11 +9,11 @@
 
 #include "RNFHybridObject.h"
 
-#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "ArrayBuffer.h"
 #include "GPUBuffer.h"
 #include "GPUCommandBuffer.h"
 
@@ -32,20 +32,20 @@ public:
   std::string getBrand() { return _name; }
 
   void submit(std::vector<std::shared_ptr<GPUCommandBuffer>> commandBuffers);
+  std::future<void> onSubmittedWorkDone();
   void writeBuffer(std::shared_ptr<GPUBuffer> buffer, uint64_t bufferOffset,
                    std::shared_ptr<ArrayBuffer> data,
-                   std::optional<uint64_t> dataOffset,
-                   std::optional<size_t> size);
-  std::future<void> onSubmittedWorkDone();
+                   std::optional<uint64_t> dataOffsetElements,
+                   std::optional<size_t> sizeElements);
 
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUQueue::getBrand, this);
     registerHybridMethod("submit", &GPUQueue::submit, this);
-    registerHybridMethod("writeBuffer", &GPUQueue::writeBuffer, this);
     registerHybridMethod("onSubmittedWorkDone", &GPUQueue::onSubmittedWorkDone,
                          this);
+    registerHybridMethod("writeBuffer", &GPUQueue::writeBuffer, this);
 
     registerHybridGetter("label", &GPUQueue::getLabel, this);
   }

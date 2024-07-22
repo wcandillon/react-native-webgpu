@@ -2,15 +2,13 @@
 
 #include <future>
 #include <memory>
-#include <optional>
 #include <string>
-#include <vector>
+#include <variant>
 
 #include "Unions.h"
 
 #include "RNFHybridObject.h"
 
-#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
@@ -36,7 +34,8 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::future<std::shared_ptr<GPUAdapter>> requestAdapter(
+  std::future<std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>>
+  requestAdapter(
       std::optional<std::shared_ptr<GPURequestAdapterOptions>> options);
   wgpu::TextureFormat getPreferredCanvasFormat();
   void attachSurface(void *window);

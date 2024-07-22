@@ -2,6 +2,7 @@
 
 #include <future>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -9,10 +10,11 @@
 
 #include "RNFHybridObject.h"
 
-#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
+
+#include "ArrayBuffer.h"
 
 namespace rnwgpu {
 
@@ -28,14 +30,14 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::future<void> mapAsync(uint64_t mode, std::optional<uint64_t> offset,
+  std::future<void> mapAsync(uint64_t modeIn, std::optional<uint64_t> offset,
                              std::optional<uint64_t> size);
   std::shared_ptr<ArrayBuffer> getMappedRange(std::optional<size_t> offset,
                                               std::optional<size_t> size);
   void unmap();
   void destroy();
 
-  size_t getSize();
+  uint64_t getSize();
   double getUsage();
   wgpu::BufferMapState getMapState();
 

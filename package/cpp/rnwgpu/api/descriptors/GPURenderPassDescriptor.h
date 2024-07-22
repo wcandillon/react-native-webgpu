@@ -1,21 +1,20 @@
 #pragma once
 
 #include <memory>
-#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "DescriptorConvertors.h"
+#include "Logger.h"
+#include "RNFJSIConverter.h"
+
 #include "GPUQuerySet.h"
 #include "GPURenderPassColorAttachment.h"
 #include "GPURenderPassDepthStencilAttachment.h"
 #include "GPURenderPassTimestampWrites.h"
-#include "Logger.h"
 #include "RNFHybridObject.h"
-#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
@@ -23,8 +22,8 @@ namespace m = margelo;
 namespace rnwgpu {
 
 struct GPURenderPassDescriptor {
-  // TODO: handle the null case
-  std::vector<std::shared_ptr<GPURenderPassColorAttachment>>
+  std::vector<std::variant<std::nullptr_t,
+                           std::shared_ptr<GPURenderPassColorAttachment>>>
       colorAttachments; // Iterable<GPURenderPassColorAttachment | null>
   std::optional<std::shared_ptr<GPURenderPassDepthStencilAttachment>>
       depthStencilAttachment; // GPURenderPassDepthStencilAttachment
@@ -50,14 +49,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "colorAttachments")) {
         auto prop = value.getProperty(runtime, "colorAttachments");
-        result->colorAttachments = JSIConverter<std::vector<
-            std::shared_ptr<GPURenderPassColorAttachment>>>::fromJSI(runtime,
-                                                                     prop,
-                                                                     false);
-        // result->colorAttachments = JSIConverter<std::vector<std::variant<
-        //     std::nullptr_t,
-        //     std::shared_ptr<GPURenderPassColorAttachment>>>>::
-        //     fromJSI(runtime, prop, false);
+        result->colorAttachments = JSIConverter<std::vector<std::variant<
+            std::nullptr_t, std::shared_ptr<GPURenderPassColorAttachment>>>>::
+            fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "depthStencilAttachment")) {
         auto prop = value.getProperty(runtime, "depthStencilAttachment");

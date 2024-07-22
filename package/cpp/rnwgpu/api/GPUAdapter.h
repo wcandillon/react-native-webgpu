@@ -3,13 +3,11 @@
 #include <future>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "Unions.h"
 
 #include "RNFHybridObject.h"
 
-#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
@@ -31,7 +29,7 @@ public:
   std::string getBrand() { return _name; }
 
   std::future<std::shared_ptr<GPUDevice>>
-  requestDevice(std::optional<std::shared_ptr<GPUDeviceDescriptor>> options);
+  requestDevice(std::optional<std::shared_ptr<GPUDeviceDescriptor>> descriptor);
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUAdapter::getBrand, this);

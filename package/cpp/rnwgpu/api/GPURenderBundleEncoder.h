@@ -1,15 +1,15 @@
 #pragma once
 
-#include <future>
 #include <memory>
+#include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "Unions.h"
 
 #include "RNFHybridObject.h"
 
-#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
@@ -34,9 +34,11 @@ public:
   std::string getBrand() { return _name; }
 
   std::shared_ptr<GPURenderBundle>
-  finish(std::shared_ptr<GPURenderBundleDescriptor> descriptor);
-  void setBindGroup(uint32_t groupIndex, std::shared_ptr<GPUBindGroup> group,
-                    std::optional<std::vector<uint32_t>> dynamicOffsets);
+  finish(std::optional<std::shared_ptr<GPURenderBundleDescriptor>> descriptor);
+  void setBindGroup(
+      uint32_t index,
+      std::variant<std::nullptr_t, std::shared_ptr<GPUBindGroup>> bindGroup,
+      std::optional<std::vector<uint32_t>> dynamicOffsets);
   void setPipeline(std::shared_ptr<GPURenderPipeline> pipeline);
   void draw(uint32_t vertexCount, std::optional<uint32_t> instanceCount,
             std::optional<uint32_t> firstVertex,

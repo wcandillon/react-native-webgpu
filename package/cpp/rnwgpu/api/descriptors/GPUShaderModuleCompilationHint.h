@@ -1,16 +1,15 @@
 #pragma once
 
 #include <memory>
-#include <optional>
 #include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "DescriptorConvertors.h"
-#include "GPUPipelineLayout.h"
 #include "Logger.h"
-#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
+
+#include "GPUPipelineLayout.h"
+#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
@@ -44,9 +43,13 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
       }
       if (value.hasProperty(runtime, "layout")) {
         auto prop = value.getProperty(runtime, "layout");
-        result->layout = JSIConverter<std::optional<
-            std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>>>::
-            fromJSI(runtime, prop, false);
+        if (prop.isNull() || prop.isString()) {
+          result->layout = nullptr;
+        } else {
+          result->layout =
+              JSIConverter<std::shared_ptr<GPUPipelineLayout>>::fromJSI(
+                  runtime, prop, false);
+        }
       }
     }
 

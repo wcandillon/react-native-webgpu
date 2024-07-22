@@ -1,36 +1,6 @@
-import dawnJSON from "../../../libs/dawn.json";
+import _ from "lodash";
 
-interface NativeMethod {
-  dependencies: string[];
-  name: string;
-  args: {
-    name: string;
-    type: string;
-  }[];
-  returns: string;
-}
-
-interface NativeProperty {
-  dependencies: string[];
-  name: string;
-  returns: string;
-}
-
-const GPUBindingCommandsMixin = [
-  {
-    name: "setBindGroup",
-    dependencies: ["GPUBindGroup"],
-    returns: "void",
-    args: [
-      { name: "groupIndex", type: "uint32_t" },
-      { name: "group", type: "std::shared_ptr<GPUBindGroup>" },
-      {
-        name: "dynamicOffsets",
-        type: "std::optional<std::vector<uint32_t>>",
-      },
-    ],
-  },
-];
+import dawn from "../../../libs/dawn.json";
 
 export const mapKeys = <T extends object>(obj: T) =>
   Object.keys(obj) as (keyof T)[];
@@ -42,13 +12,35 @@ export const hasPropery = <O, T extends string>(
   return typeof object === "object" && object !== null && property in object;
 };
 
+interface Method {
+  returnType: string;
+  args: { name: string; type: string }[];
+  deps: string[];
+}
+
+const setBindGroup: Method = {
+  deps: ["variant", "memory", "GPUBindGroup", "vector", "optional"],
+  returnType: "void",
+  args: [
+    { name: "index", type: "uint32_t" },
+    {
+      name: "bindGroup",
+      type: "std::variant<std::nullptr_t, std::shared_ptr<GPUBindGroup>>",
+    },
+    {
+      name: "dynamicOffsets",
+      type: "std::optional<std::vector<uint32_t>>",
+    },
+  ],
+};
+
 export const resolved: Record<
   string,
   {
-    methods: NativeMethod[];
-    properties: NativeProperty[];
+    extraDeps?: string[];
     extra?: string;
     ctor?: string;
+    methods?: Record<string, Method>;
   }
 > = {
   GPU: {
@@ -61,137 +53,27 @@ export const resolved: Record<
           auto instance = &_instance;
           _async = std::make_shared<AsyncRunner>(instance);
       }`,
-    properties: [],
-    methods: [
-      {
-        name: "getPreferredCanvasFormat",
-        returns: "wgpu::TextureFormat",
-        args: [],
-        dependencies: [],
-      },
-      {
-        name: "requestAdapter",
-        args: [
-          {
-            name: "options",
-            type: "std::shared_ptr<GPURequestAdapterOptions>",
-          },
-        ],
-        returns: "std::future<std::shared_ptr<GPUAdapter>>",
-        dependencies: ["GPURequestAdapterOptions", "GPUAdapter"],
-      },
-    ],
-  },
-  GPUAdapter: {
-    properties: [],
-    methods: [
-      {
-        name: "requestDevice",
-        args: [
-          {
-            name: "options",
-            type: "std::shared_ptr<GPUDeviceDescriptor>",
-          },
-        ],
-        returns: "std::future<std::shared_ptr<GPUDevice>>",
-        dependencies: ["GPUDeviceDescriptor", "GPUDevice"],
-      },
-    ],
-  },
-  GPUQueue: {
-    properties: [],
-    methods: [
-      {
-        name: "writeBuffer",
-        dependencies: ["GPUBuffer"],
-        returns: "void",
-        args: [
-          {
-            name: "buffer",
-            type: "std::shared_ptr<GPUBuffer>",
-          },
-          {
-            name: "bufferOffset",
-            type: "uint64_t",
-          },
-          {
-            name: "data",
-            type: "std::shared_ptr<ArrayBuffer>",
-          },
-          {
-            name: "dataOffset",
-            type: "std::optional<uint64_t>",
-          },
-          {
-            name: "size",
-            type: "std::optional<size_t>",
-          },
-        ],
-      },
-      {
-        name: "submit",
-        dependencies: ["GPUCommandBuffer"],
-        args: [
-          {
-            name: "commandBuffers",
-            type: "std::vector<std::shared_ptr<GPUCommandBuffer>>",
-          },
-        ],
-        returns: "void",
-      },
-    ],
-  },
-  GPUComputePassEncoder: {
-    properties: [],
-    methods: [...GPUBindingCommandsMixin],
-  },
-  GPURenderPassEncoder: {
-    properties: [],
-    methods: [...GPUBindingCommandsMixin],
-  },
-  GPURenderBundleEncoder: {
-    properties: [],
-    methods: [...GPUBindingCommandsMixin],
   },
   GPUBuffer: {
-    properties: [
-      {
-        name: "size",
-        returns: "size_t",
-        dependencies: [],
-      },
-      {
-        name: "usage",
-        returns: "double",
-        dependencies: [],
-      },
-      {
-        name: "mapState",
-        returns: "wgpu::BufferMapState",
-        dependencies: [],
-      },
-    ],
-    methods: [
-      {
-        name: "mapAsync",
-        returns: "std::future<void>",
-        dependencies: [],
+    methods: {
+      mapAsync: {
+        returnType: "std::future<void>",
         args: [
-          {
-            name: "mode",
-            type: "uint64_t",
-          },
-          {
-            name: "offset",
-            type: "std::optional<size_t>",
-          },
-          {
-            name: "size",
-            type: "std::optional<size_t>",
-          },
+          { name: "modeIn", type: "uint64_t" },
+          { name: "offset", type: "std::optional<uint64_t>" },
+          { name: "size", type: "std::optional<uint64_t>" },
         ],
+        deps: ["future"],
       },
-    ],
+      getMappedRange: {
+        returnType: "std::shared_ptr<ArrayBuffer>",
+        args: [
+          { name: "offset", type: "std::optional<size_t>" },
+          { name: "size", type: "std::optional<size_t>" },
+        ],
+        deps: ["memory", "optional", "ArrayBuffer"],
+      },
+    },
     extra: `struct Mapping {
       uint64_t start;
       uint64_t end;
@@ -200,7 +82,98 @@ export const resolved: Record<
   };
   std::vector<Mapping> mappings;
   `,
+    extraDeps: ["vector"],
+  },
+  GPUCommandEncoder: {
+    methods: {
+      copyTextureToBuffer: {
+        deps: [
+          "memory",
+          "GPUImageCopyTexture",
+          "GPUImageCopyBuffer",
+          "GPUExtent3D",
+        ],
+        returnType: "void",
+        args: [
+          { name: "source", type: "std::shared_ptr<GPUImageCopyTexture>" },
+          { name: "destination", type: "std::shared_ptr<GPUImageCopyBuffer>" },
+          { name: "copySize", type: "std::shared_ptr<GPUExtent3D>" },
+        ],
+      },
+    },
+  },
+  GPUQueue: {
+    methods: {
+      writeBuffer: {
+        deps: ["GPUBuffer", "memory", "ArrayBuffer"],
+        returnType: "void",
+        args: [
+          { name: "buffer", type: "std::shared_ptr<GPUBuffer>" },
+          { name: "bufferOffset", type: "uint64_t" },
+          { name: "data", type: "std::shared_ptr<ArrayBuffer> " },
+          { name: "dataOffsetElements", type: "std::optional<uint64_t>" },
+          { name: "sizeElements", type: "std::optional<size_t>" },
+        ],
+      },
+    },
+  },
+  GPUComputePassEncoder: {
+    methods: {
+      setBindGroup,
+    },
+  },
+  GPURenderPassEncoder: {
+    methods: {
+      setBindGroup,
+    },
+  },
+  GPURenderBundleEncoder: {
+    methods: {
+      setBindGroup,
+    },
   },
 };
 
-export const dawn = dawnJSON;
+const toNativeName = (name: string) => {
+  return _.upperFirst(_.camelCase(name));
+};
+
+export const resolveNative = (
+  className: string,
+  methodName: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any => {
+  const key = Object.keys(dawn).find(
+    (k) => toNativeName(k) === className.substring(3),
+  );
+  const object = dawn[key as keyof typeof dawn];
+  if (!object) {
+    return null;
+  }
+  if (!hasPropery(object, "methods")) {
+    return null;
+  }
+  return object.methods.find((m) => {
+    return _.camelCase(m.name.toLowerCase()) === methodName;
+  });
+};
+
+export const resolveExtra = (className: string) => {
+  return resolved[className]?.extra ?? "";
+};
+
+export const resolveExtraDeps = (className: string) => {
+  return resolved[className]?.extraDeps ?? [];
+};
+
+export const resolveCtor = (className: string): string | undefined => {
+  return resolved[className]?.ctor;
+};
+
+export const resolveMethod = (className: string, methodName: string) => {
+  const obj = resolved[className];
+  if (obj && obj.methods) {
+    return obj.methods[methodName];
+  }
+  return;
+};

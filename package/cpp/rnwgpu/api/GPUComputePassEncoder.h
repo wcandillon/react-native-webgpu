@@ -1,15 +1,15 @@
 #pragma once
 
-#include <future>
 #include <memory>
+#include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "Unions.h"
 
 #include "RNFHybridObject.h"
 
-#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
@@ -36,8 +36,10 @@ public:
                           std::optional<uint32_t> workgroupCountY,
                           std::optional<uint32_t> workgroupCountZ);
   void end();
-  void setBindGroup(uint32_t groupIndex, std::shared_ptr<GPUBindGroup> group,
-                    std::optional<std::vector<uint32_t>> dynamicOffsets);
+  void setBindGroup(
+      uint32_t index,
+      std::variant<std::nullptr_t, std::shared_ptr<GPUBindGroup>> bindGroup,
+      std::optional<std::vector<uint32_t>> dynamicOffsets);
 
   std::string getLabel() { return _label; }
 
