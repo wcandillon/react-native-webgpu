@@ -80,7 +80,11 @@ interface ResolveTypeState {
 const nativeMapName: Record<string, string> = {
   GPUColorDict: "Color",
   GPUProgrammableStage: "ProgrammableStageDescriptor",
+  PredefinedColorSpace: "PredefinedColorSpace",
+  PremultiplyAlpha: "PremultiplyAlpha",
 };
+
+export const externalDefs = ["PredefinedColorSpace", "PremultiplyAlpha"];
 
 const nativeNumber = ["uint64_t", "uint32_t"];
 
@@ -130,6 +134,10 @@ export const resolveType = (type: Type, state: ResolveTypeState): string => {
             `${className}.${propName} not handled with string literal union`,
           );
         }
+      }
+      if (externalDefs.includes(name)) {
+        dependencies.add("External");
+        return `${nativeMapName[name] ?? name.substring(3)}`;
       }
       return `wgpu::${nativeMapName[name] ?? name.substring(3)}`;
     } else {
@@ -267,7 +275,7 @@ struct ${name} {
  
 namespace margelo {
 
-using namespace rnwgpu; // NOLINT(build/namespaces) // NOLINT(build/namespaces)
+using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {

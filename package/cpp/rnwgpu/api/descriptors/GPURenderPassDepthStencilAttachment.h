@@ -1,14 +1,14 @@
 #pragma once
 
 #include <memory>
-#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "GPUTextureView.h"
 #include "Logger.h"
-#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
+
+#include "GPUTextureView.h"
+#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;

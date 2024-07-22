@@ -2,18 +2,18 @@
 
 #include <map>
 #include <memory>
-#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "Logger.h"
+#include "RNFJSIConverter.h"
+
 #include "GPUColorTargetState.h"
 #include "GPUShaderModule.h"
-#include "Logger.h"
 #include "RNFHybridObject.h"
-#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
@@ -21,8 +21,8 @@ namespace m = margelo;
 namespace rnwgpu {
 
 struct GPUFragmentState {
-  // TODO: implement null values here
-  std::vector<std::shared_ptr<GPUColorTargetState>>
+  std::vector<
+      std::variant<std::nullptr_t, std::shared_ptr<GPUColorTargetState>>>
       targets; // Iterable<GPUColorTargetState | null>
   std::shared_ptr<GPUShaderModule> module; // GPUShaderModule
   std::optional<std::string> entryPoint;   // string
@@ -44,13 +44,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "targets")) {
         auto prop = value.getProperty(runtime, "targets");
-        result->targets = JSIConverter<
-            std::vector<std::shared_ptr<GPUColorTargetState>>>::fromJSI(runtime,
-                                                                        prop,
-                                                                        false);
-        // result->targets = JSIConverter<std::vector<std::variant<
-        //     std::nullptr_t, std::shared_ptr<GPUColorTargetState>>>>::
-        //     fromJSI(runtime, prop, false);
+        result->targets = JSIConverter<std::vector<std::variant<
+            std::nullptr_t, std::shared_ptr<GPUColorTargetState>>>>::
+            fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "module")) {
         auto prop = value.getProperty(runtime, "module");

@@ -8,6 +8,7 @@ import { writeFile } from "./util";
 import { getHybridObject } from "./templates/HybridObject";
 import type { Union } from "./templates/Unions";
 import { Unions } from "./templates/Unions";
+import { getDescriptor } from "./Descriptors";
 
 // Define the path to the WebGPU type declaration file
 const tsConfigFilePath = path.resolve(__dirname, "../../tsconfig.json");
@@ -59,6 +60,24 @@ const GPURenderBundleDescriptor = sourceFile.addInterface({
 });
 GPUQueueDescriptor.addExtends("GPUObjectDescriptorBase");
 GPURenderBundleDescriptor.addExtends("GPUObjectDescriptorBase");
+
+/*
+// type PredefinedColorSpace = "display-p3" | "srgb";
+// type PremultiplyAlpha = "default" | "none" | "premultiply";
+*/
+// Add PredefinedColorSpace type alias
+sourceFile.addTypeAlias({
+  name: "PredefinedColorSpace",
+  type: '"display-p3" | "srgb"',
+  isExported: true,
+});
+
+// Add PremultiplyAlpha type alias
+sourceFile.addTypeAlias({
+  name: "PremultiplyAlpha",
+  type: '"default" | "none" | "premultiply"',
+  isExported: true,
+});
 
 const hasConstructor = (node: VariableDeclaration) => {
   let found = false;
@@ -170,10 +189,13 @@ const toSkip = [
   "GPUExtent3DDict",
   "GPUOrigin2DDict",
   "GPUOrigin3DDict",
+  // TODO: remove these
   "GPUImageCopyExternalImage",
   "GPURenderPassLayout",
   "GPUExternalTextureDescriptor",
   "GPUBindGroupEntry",
+  "GPUCanvasConfiguration",
+  "GPUPipelineErrorInit",
 ];
 
 sourceFile
@@ -187,6 +209,6 @@ sourceFile
       !toSkip.includes(decl.getName()) &&
       decl.getProperty("__brand") === undefined,
   )
-  .forEach((_decl) => {
-    //writeFile("descriptor", decl.getName(), getDescriptor(decl));
+  .forEach((decl) => {
+    writeFile("descriptor", decl.getName(), getDescriptor(decl));
   });

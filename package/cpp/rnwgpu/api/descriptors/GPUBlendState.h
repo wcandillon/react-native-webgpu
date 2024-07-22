@@ -4,10 +4,11 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "GPUBlendComponent.h"
 #include "Logger.h"
-#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
+
+#include "GPUBlendComponent.h"
+#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;

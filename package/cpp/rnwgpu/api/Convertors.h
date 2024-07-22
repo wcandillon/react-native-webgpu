@@ -257,12 +257,7 @@ public:
   [[nodiscard]] bool Convert(wgpu::ColorTargetState &out,
                              const GPUColorTargetState &in) {
     out = {};
-    if (in.blend.has_value()) {
-      if (!Convert(out.blend, in.blend)) {
-        return false;
-      }
-    }
-    return Convert(out.format, in.format) &&
+    return Convert(out.blend, in.blend) && Convert(out.format, in.format) &&
            Convert(out.writeMask, in.writeMask);
   }
 

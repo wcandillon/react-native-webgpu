@@ -1,18 +1,18 @@
 #pragma once
 
 #include <memory>
-#include <optional>
 
 #include "webgpu/webgpu_cpp.h"
+
+#include "Logger.h"
+#include "RNFJSIConverter.h"
 
 #include "GPUBufferBindingLayout.h"
 #include "GPUExternalTextureBindingLayout.h"
 #include "GPUSamplerBindingLayout.h"
 #include "GPUStorageTextureBindingLayout.h"
 #include "GPUTextureBindingLayout.h"
-#include "Logger.h"
 #include "RNFHybridObject.h"
-#include "RNFJSIConverter.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;

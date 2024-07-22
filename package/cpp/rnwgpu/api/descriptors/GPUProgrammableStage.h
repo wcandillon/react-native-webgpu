@@ -2,15 +2,15 @@
 
 #include <map>
 #include <memory>
-#include <optional>
 #include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "GPUShaderModule.h"
 #include "Logger.h"
-#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
+
+#include "GPUShaderModule.h"
+#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
