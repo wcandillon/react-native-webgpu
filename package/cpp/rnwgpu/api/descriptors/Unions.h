@@ -2,9 +2,9 @@
 
 #include <string>
 
-#include "webgpu/webgpu_cpp.h"
-
+#include "External.h"
 #include "RNFEnumMapper.h"
+#include "webgpu/webgpu_cpp.h"
 
 namespace margelo {
 namespace EnumMapper {
@@ -1635,6 +1635,61 @@ static void convertEnumToJSUnion(wgpu::VertexStepMode inEnum,
     break;
   case wgpu::VertexStepMode::Instance:
     *outUnion = "instance";
+    break;
+  default:
+    throw invalidEnum(inEnum);
+  }
+}
+
+static void convertJSUnionToEnum(const std::string &inUnion,
+                                 rnwgpu::PredefinedColorSpace *outEnum) {
+  if (inUnion == "display-p3") {
+    *outEnum = rnwgpu::PredefinedColorSpace::DisplayP3;
+  } else if (inUnion == "srgb") {
+    *outEnum = rnwgpu::PredefinedColorSpace::Srgb;
+  } else {
+    throw invalidUnion(inUnion);
+  }
+}
+
+static void convertEnumToJSUnion(rnwgpu::PredefinedColorSpace inEnum,
+                                 std::string *outUnion) {
+  switch (inEnum) {
+  case rnwgpu::PredefinedColorSpace::DisplayP3:
+    *outUnion = "display-p3";
+    break;
+  case rnwgpu::PredefinedColorSpace::Srgb:
+    *outUnion = "srgb";
+    break;
+  default:
+    throw invalidEnum(inEnum);
+  }
+}
+
+static void convertJSUnionToEnum(const std::string &inUnion,
+                                 rnwgpu::PremultiplyAlpha *outEnum) {
+  if (inUnion == "none") {
+    *outEnum = rnwgpu::PremultiplyAlpha::None;
+  } else if (inUnion == "default") {
+    *outEnum = rnwgpu::PremultiplyAlpha::Default;
+  } else if (inUnion == "premultiply") {
+    *outEnum = rnwgpu::PremultiplyAlpha::Premultiply;
+  } else {
+    throw invalidUnion(inUnion);
+  }
+}
+
+static void convertEnumToJSUnion(rnwgpu::PremultiplyAlpha inEnum,
+                                 std::string *outUnion) {
+  switch (inEnum) {
+  case rnwgpu::PremultiplyAlpha::None:
+    *outUnion = "none";
+    break;
+  case rnwgpu::PremultiplyAlpha::Default:
+    *outUnion = "default";
+    break;
+  case rnwgpu::PremultiplyAlpha::Premultiply:
+    *outUnion = "premultiply";
     break;
   default:
     throw invalidEnum(inEnum);

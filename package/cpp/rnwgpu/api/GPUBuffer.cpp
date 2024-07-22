@@ -78,7 +78,7 @@ std::future<void> GPUBuffer::mapAsync(uint64_t modeIn,
 
 void GPUBuffer::unmap() { _instance.Unmap(); }
 
-size_t GPUBuffer::getSize() { return _instance.GetSize(); }
+uint64_t GPUBuffer::getSize() { return _instance.GetSize(); }
 
 double GPUBuffer::getUsage() {
   return static_cast<double>(_instance.GetUsage());

@@ -32,8 +32,8 @@ void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,
                            std::optional<uint64_t> dataOffsetElements,
                            std::optional<size_t> sizeElements) {
   wgpu::Buffer buf = buffer->get();
-  BufferSource src{.size = data->_size,
-                   .data = data->_data,
+  BufferSource src{.data = data->_data,
+                   .size = data->_size,
                    .bytesPerElement = data->_bytesPerElement};
 
   // Note that in the JS semantics of WebGPU, writeBuffer works in number of

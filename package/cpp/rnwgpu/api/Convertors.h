@@ -101,10 +101,8 @@ public:
     return Convert(out_count, in.size());
   }
 
-  // TODO remove constraint
   template <typename T>
-  [[nodiscard]] auto Convert(T &out, const std::nullptr_t &in)
-      -> decltype(out = nullptr, bool()) {
+  [[nodiscard]] auto Convert(T &out, const std::nullptr_t &in) {
     out = nullptr;
     return true;
   }
@@ -259,12 +257,7 @@ public:
   [[nodiscard]] bool Convert(wgpu::ColorTargetState &out,
                              const GPUColorTargetState &in) {
     out = {};
-    if (in.blend.has_value()) {
-      if (!Convert(out.blend, in.blend)) {
-        return false;
-      }
-    }
-    return Convert(out.format, in.format) &&
+    return Convert(out.blend, in.blend) && Convert(out.format, in.format) &&
            Convert(out.writeMask, in.writeMask);
   }
 
@@ -332,8 +325,17 @@ public:
     out.entryPoint = in.entryPoint
                          ? ConvertStringReplacingNull(in.entryPoint.value())
                          : nullptr;
-
-    return Convert(out.targets, out.targetCount, in.targets) && //
+    std::vector<std::shared_ptr<GPUColorTargetState>> filteredTargets;
+    filteredTargets.reserve(in.targets.size());
+    for (const auto &target : in.targets) {
+      if (auto ptr =
+              std::get_if<std::shared_ptr<GPUColorTargetState>>(&target)) {
+        if (*ptr) {
+          filteredTargets.push_back(*ptr);
+        }
+      }
+    }
+    return Convert(out.targets, out.targetCount, filteredTargets) && //
            Convert(out.module, in.module); // TODO: add support for constants
     // Convert(out.constants, out.constantCount, in.constants);
   }
@@ -417,9 +419,18 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::RenderBundleEncoderDescriptor &out,
                              const GPURenderBundleEncoderDescriptor &in) {
+    std::vector<wgpu::TextureFormat> filteredColorFormats;
+    filteredColorFormats.reserve(in.colorFormats.size());
+
+    for (const auto &format : in.colorFormats) {
+      if (auto textureFormat = std::get_if<wgpu::TextureFormat>(&format)) {
+        filteredColorFormats.push_back(*textureFormat);
+      }
+    }
     return Convert(out.depthReadOnly, in.depthReadOnly) &&
            Convert(out.stencilReadOnly, in.stencilReadOnly) &&
-           Convert(out.colorFormats, out.colorFormatCount, in.colorFormats) &&
+           Convert(out.colorFormats, out.colorFormatCount,
+                   filteredColorFormats) &&
            Convert(out.depthStencilFormat, in.depthStencilFormat) &&
            Convert(out.sampleCount, in.sampleCount) &&
            Convert(out.label, in.label);
@@ -589,7 +600,16 @@ public:
     }
 
     if (in.buffers.has_value()) {
-      if (!Convert(outBuffers, out.bufferCount, in.buffers.value())) {
+      std::vector<std::shared_ptr<GPUVertexBufferLayout>> filteredBuffers;
+      for (const auto &buffer : in.buffers.value()) {
+        if (auto ptr =
+                std::get_if<std::shared_ptr<GPUVertexBufferLayout>>(&buffer)) {
+          if (*ptr) {
+            filteredBuffers.push_back(*ptr);
+          }
+        }
+      }
+      if (!Convert(outBuffers, out.bufferCount, filteredBuffers)) {
         return false;
       }
     }

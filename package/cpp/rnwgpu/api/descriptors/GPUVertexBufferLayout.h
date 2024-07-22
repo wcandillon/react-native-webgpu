@@ -1,16 +1,15 @@
 #pragma once
 
 #include <memory>
-#include <optional>
 #include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "DescriptorConvertors.h"
-#include "GPUVertexAttribute.h"
 #include "Logger.h"
-#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
+
+#include "GPUVertexAttribute.h"
+#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
@@ -55,8 +54,6 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
                                                                        prop,
                                                                        false);
       }
-    } else if (!outOfBounds && arg.isNull()) {
-      result->stepMode = wgpu::VertexStepMode::VertexBufferNotUsed;
     }
 
     return result;

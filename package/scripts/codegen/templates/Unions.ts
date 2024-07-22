@@ -1,5 +1,7 @@
 import _ from "lodash";
 
+import { externalDefs } from "../Descriptors";
+
 export interface Union {
   name: string;
   values: string[];
@@ -11,7 +13,7 @@ export const Unions = (unions: Union[]) => {
 #include <string>
 
 #include "webgpu/webgpu_cpp.h"
-
+#include "External.h"
 #include "RNFEnumMapper.h"
 
 namespace margelo {
@@ -71,7 +73,9 @@ const enumName = (input: string) => {
 
 const Union = (union: Union) => {
   const { name } = union;
-  const wgpuName = `wgpu::${name.substring(3)}`;
+  const wgpuName = externalDefs.includes(name)
+    ? `rnwgpu::${name}`
+    : `wgpu::${name.substring(3)}`;
   return `
 static void convertJSUnionToEnum(const std::string& inUnion, ${wgpuName}* outEnum) { 
     ${union.values

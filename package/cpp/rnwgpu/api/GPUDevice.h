@@ -1,15 +1,12 @@
 #pragma once
 
-#include <future>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "Unions.h"
 
 #include "RNFHybridObject.h"
 
-#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
@@ -51,8 +48,8 @@ public:
   createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor);
   std::shared_ptr<GPUTexture>
   createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor);
-  std::shared_ptr<GPUSampler>
-  createSampler(std::shared_ptr<GPUSamplerDescriptor> descriptor);
+  std::shared_ptr<GPUSampler> createSampler(
+      std::optional<std::shared_ptr<GPUSamplerDescriptor>> descriptor);
   std::shared_ptr<GPUBindGroup>
   createBindGroup(std::shared_ptr<GPUBindGroupDescriptor> descriptor);
   std::shared_ptr<GPUShaderModule>

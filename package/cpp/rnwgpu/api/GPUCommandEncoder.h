@@ -1,15 +1,12 @@
 #pragma once
 
-#include <future>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "Unions.h"
 
 #include "RNFHybridObject.h"
 
-#include "ArrayBuffer.h"
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
@@ -39,8 +36,8 @@ public:
 
   std::shared_ptr<GPURenderPassEncoder>
   beginRenderPass(std::shared_ptr<GPURenderPassDescriptor> descriptor);
-  std::shared_ptr<GPUComputePassEncoder>
-  beginComputePass(std::shared_ptr<GPUComputePassDescriptor> descriptor);
+  std::shared_ptr<GPUComputePassEncoder> beginComputePass(
+      std::optional<std::shared_ptr<GPUComputePassDescriptor>> descriptor);
   void copyBufferToBuffer(std::shared_ptr<GPUBuffer> source,
                           uint64_t sourceOffset,
                           std::shared_ptr<GPUBuffer> destination,
