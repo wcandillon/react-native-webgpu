@@ -3,7 +3,7 @@ import { checkImage, client, encodeImage } from "../setup";
 describe("Triangle", () => {
   it("Simple Triangle", async () => {
     const result = await client.eval(
-      ({ device, triangleVertWGSL, redFragWGSL, gpu, ctx }) => {
+      ({ device, shaders: { triangleVertWGSL, redFragWGSL }, gpu, ctx }) => {
         const pipeline = device.createRenderPipeline({
           layout: "auto",
           vertex: {
@@ -54,7 +54,7 @@ describe("Triangle", () => {
   });
   it("Triangle MSAA", async () => {
     const result = await client.eval(
-      ({ device, triangleVertWGSL, redFragWGSL, gpu, ctx }) => {
+      ({ device, shaders: { triangleVertWGSL, redFragWGSL }, gpu, ctx }) => {
         const sampleCount = 4;
         const presentationFormat = gpu.getPreferredCanvasFormat();
         const pipeline = device.createRenderPipeline({

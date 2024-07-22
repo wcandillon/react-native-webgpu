@@ -57,8 +57,10 @@ export const Tests = () => {
               GPUShaderStage,
               GPUTextureUsage,
               cubeVertexArray,
-              triangleVertWGSL,
-              redFragWGSL,
+              shaders: {
+                triangleVertWGSL,
+                redFragWGSL,
+              },
               ctx,
             },
           });

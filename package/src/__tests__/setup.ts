@@ -60,8 +60,7 @@ interface GPUContext {
   GPUShaderStage: typeof GPUShaderStage;
   GPUTextureUsage: typeof GPUTextureUsage;
   cubeVertexArray: Float32Array;
-  triangleVertWGSL: string;
-  redFragWGSL: string;
+  shaders: Record<string, string>;
   ctx: DrawingContext;
 }
 
@@ -192,8 +191,10 @@ class ReferenceTestingClient implements TestingClient {
         GPUShaderStage,
         GPUTextureUsage,
         cubeVertexArray,
-        triangleVertWGSL,
-        redFragWGSL,
+        shaders: {
+          triangleVertWGSL,
+          redFragWGSL,
+        },
         ctx,
         ...${JSON.stringify(ctx || {})}
       });

@@ -45,7 +45,7 @@ describe("Texture", () => {
   });
   it("Write to texture", async () => {
     const result = await client.eval(
-      ({ device, triangleVertWGSL, redFragWGSL }) => {
+      ({ device, shaders: { triangleVertWGSL, redFragWGSL } }) => {
         // Define the size of the off-screen texture
         const textureWidth = 800;
         const textureHeight = 600;
@@ -138,7 +138,7 @@ describe("Texture", () => {
   });
   it("Create texture and reads it", async () => {
     const result = await client.eval(
-      ({ device, triangleVertWGSL, redFragWGSL, gpu, ctx }) => {
+      ({ device, shaders: { triangleVertWGSL, redFragWGSL }, gpu, ctx }) => {
         const pipeline = device.createRenderPipeline({
           layout: "auto",
           vertex: {
