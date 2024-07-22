@@ -22,6 +22,8 @@ const project = new Project({
 
 const sourceFile = project.addSourceFileAtPath(filePath);
 
+sourceFile.getTypeAlias("GPUColor")!.remove();
+sourceFile.addInterface({ name: "GPUColor", isExported: true });
 // Descriptors
 // the following two descriptors map to:
 // type GPUCommandBufferDescriptor =

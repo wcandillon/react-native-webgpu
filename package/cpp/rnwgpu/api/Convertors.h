@@ -20,7 +20,7 @@
 #include "GPUBufferBindingLayout.h"
 #include "GPUBufferDescriptor.h"
 #include "GPUCanvasConfiguration.h"
-#include "GPUColorDict.h"
+#include "GPUColor.h"
 #include "GPUColorTargetState.h"
 #include "GPUCommandBufferDescriptor.h"
 #include "GPUCommandEncoderDescriptor.h"
@@ -248,11 +248,10 @@ public:
   //          Convert(out.alphaMode, in.alphaMode);
   // }
 
-   [[nodiscard]] bool Convert(wgpu::Color &out, const GPUColorDict &in) {
-     return Convert(out.r, in.r) && Convert(out.g, in.g) && Convert(out.b,
-     in.b) &&
-            Convert(out.a, in.a);
-   }
+  [[nodiscard]] bool Convert(wgpu::Color &out, const GPUColor &in) {
+    return Convert(out.r, in.r) && Convert(out.g, in.g) &&
+           Convert(out.b, in.b) && Convert(out.a, in.a);
+  }
 
   [[nodiscard]] bool Convert(wgpu::ColorTargetState &out,
                              const GPUColorTargetState &in) {
