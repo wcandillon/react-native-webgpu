@@ -1,4 +1,4 @@
-import { client } from "./setup";
+import { checkImage, client, encodeImage } from "./setup";
 
 describe("Texture", () => {
   it("Check usage", async () => {
@@ -136,113 +136,86 @@ describe("Texture", () => {
     );
     expect(result).toEqual(["", 800, 600, 1, 1, 1, "2d", "rgba8unorm", 17]);
   });
-  // it("Create texture and reads it", async () => {
-  //   const result = await client.eval(
-  //     ({ device, triangleVertWGSL, redFragWGSL }) => {
-  //       // Define the size of the off-screen texture
-  //       const textureWidth = 1024;
-  //       const textureHeight = 1024;
+  it("Create texture and reads it", async () => {
+    const result = await client.eval(
+      ({ device, triangleVertWGSL, redFragWGSL, gpu }) => {
+        // Define the size of the off-screen texture
+        const textureWidth = 1024;
+        const textureHeight = 1024;
+        const bytesPerRow = textureWidth * 4;
+        const texture = device.createTexture({
+          size: [textureWidth, textureHeight],
+          format: gpu.getPreferredCanvasFormat(),
+          usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+        });
+        const pipeline = device.createRenderPipeline({
+          layout: "auto",
+          vertex: {
+            module: device.createShaderModule({
+              code: triangleVertWGSL,
+            }),
+          },
+          fragment: {
+            module: device.createShaderModule({
+              code: redFragWGSL,
+            }),
+            targets: [
+              {
+                format: gpu.getPreferredCanvasFormat(),
+              },
+            ],
+          },
+          primitive: {
+            topology: "triangle-list",
+          },
+        });
 
-  //       // Calculate the required buffer size
-  //       const bytesPerRow = 4 * textureWidth;
-  //       const size = 4 * textureWidth * textureHeight;
+        const commandEncoder = device.createCommandEncoder();
+        const textureView = texture.createView();
 
-  //       // Create the off-screen texture
-  //       const texture = device.createTexture({
-  //         size: [textureWidth, textureHeight],
-  //         format: "rgba8unorm",
-  //         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
-  //       });
+        const renderPassDescriptor: GPURenderPassDescriptor = {
+          colorAttachments: [
+            {
+              view: textureView,
+              clearValue: [0, 0, 0, 0],
+              loadOp: "clear",
+              storeOp: "store",
+            },
+          ],
+        };
 
-  //       const pipeline = device.createRenderPipeline({
-  //         layout: "auto",
-  //         vertex: {
-  //           module: device.createShaderModule({
-  //             code: triangleVertWGSL,
-  //           }),
-  //           entryPoint: "main",
-  //         },
-  //         fragment: {
-  //           module: device.createShaderModule({
-  //             code: redFragWGSL,
-  //           }),
-  //           entryPoint: "main",
-  //           targets: [
-  //             {
-  //               format: "rgba8unorm",
-  //             },
-  //           ],
-  //         },
-  //         primitive: {
-  //           topology: "triangle-list",
-  //         },
-  //       });
+        const outputBuffer = device.createBuffer({
+          size: bytesPerRow * textureHeight,
+          usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+        });
 
-  //       // Create a buffer to store the rendered image
-  //       const outputBuffer = device.createBuffer({
-  //         size,
-  //         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-  //       });
+        const passEncoder =
+          commandEncoder.beginRenderPass(renderPassDescriptor);
+        passEncoder.setPipeline(pipeline);
+        passEncoder.draw(3);
+        passEncoder.end();
 
-  //       const commandEncoder = device.createCommandEncoder();
-  //       const textureView = texture.createView();
+        commandEncoder.copyTextureToBuffer(
+          { texture },
+          { buffer: outputBuffer, bytesPerRow },
+          [textureWidth, textureHeight],
+        );
 
-  //       const renderPassDescriptor: GPURenderPassDescriptor = {
-  //         colorAttachments: [
-  //           {
-  //             view: textureView,
-  //             clearValue: [0, 0, 0, 1],
-  //             loadOp: "clear",
-  //             storeOp: "store",
-  //           },
-  //         ],
-  //       };
+        device.queue.submit([commandEncoder.finish()]);
+        return outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
+          const arrayBuffer = outputBuffer.getMappedRange();
+          const uint8Array = new Uint8Array(arrayBuffer);
 
-  //       const passEncoder =
-  //         commandEncoder.beginRenderPass(renderPassDescriptor);
-  //       passEncoder.setPipeline(pipeline);
-  //       passEncoder.draw(3);
-  //       passEncoder.end();
+          // At this point, uint8Array contains the pixel data of the rendered image
+          // You can process it further, save it, or send it somewhere else
 
-  //       // Copy the rendered texture to the output buffer
-  //       commandEncoder.copyTextureToBuffer(
-  //         { texture },
-  //         { buffer: outputBuffer, bytesPerRow },
-  //         [textureWidth, textureHeight],
-  //       );
-
-  //       device.queue.submit([commandEncoder.finish()]);
-
-  //       // Read the result
-  //       return outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
-  //         const arrayBuffer = outputBuffer.getMappedRange();
-  //         const uint8Array = new Uint8Array(arrayBuffer);
-
-  //         // At this point, uint8Array contains the pixel data of the rendered image
-  //         // You can process it further, save it, or send it somewhere else
-
-  //         const r = Array.from(uint8Array);
-  //         outputBuffer.unmap();
-  //         return r;
-  //       });
-  //     },
-  //   );
-  //   expect(result.some((b) => b !== 0)).toBe(true);
-  //   const uint8Array = new Uint8Array(result);
-  //   const textureWidth = 1024;
-  //   const textureHeight = 1024;
-  //   const bytesPerRow = 4;
-  //   const imageData = new Uint8Array(textureWidth * textureHeight * 4);
-  //   for (let y = 0; y < textureHeight; y++) {
-  //     const sourceOffset = y * bytesPerRow;
-  //     const targetOffset = y * textureWidth * 4;
-  //     imageData.set(
-  //       uint8Array.subarray(sourceOffset, sourceOffset + textureWidth * 4),
-  //       targetOffset,
-  //     );
-  //   }
-
-  //   const image = encodeImage(imageData, textureWidth, textureHeight);
-  //   checkImage(image, "snapshots/texture.png");
-  // });
+          const r = Array.from(uint8Array);
+          outputBuffer.unmap();
+          return r;
+        });
+      },
+    );
+    const image = encodeImage(result, 1024, 1024);
+    checkImage(image, "snapshots/texture.png");
+  });
 });

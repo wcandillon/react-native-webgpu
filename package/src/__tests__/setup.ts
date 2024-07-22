@@ -196,10 +196,12 @@ class ReferenceTestingClient implements TestingClient {
 }
 
 export const encodeImage = (
-  data: Uint8Array,
+  rawData: Uint8Array | number[],
   width: number,
   height: number,
 ) => {
+  const data =
+    rawData instanceof Uint8Array ? rawData : new Uint8Array(rawData);
   // Create a new PNG
   const png = new PNG({
     width: width,
