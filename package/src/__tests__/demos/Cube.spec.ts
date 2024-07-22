@@ -49,6 +49,7 @@ describe("Cube", () => {
         verticesBuffer.unmap();
 
         const pipeline = device.createRenderPipeline({
+          label: "cube render pipeline",
           layout: "auto",
           vertex: {
             module: device.createShaderModule({
@@ -130,7 +131,6 @@ describe("Cube", () => {
           colorAttachments: [
             {
               view: ctx.getCurrentTexture().createView(), // Assigned later
-
               clearValue: [0.5, 0.5, 0.5, 1.0],
               loadOp: "clear",
               storeOp: "store",
@@ -138,7 +138,6 @@ describe("Cube", () => {
           ],
           depthStencilAttachment: {
             view: depthTexture.createView(),
-
             depthClearValue: 1.0,
             depthLoadOp: "clear",
             depthStoreOp: "store",

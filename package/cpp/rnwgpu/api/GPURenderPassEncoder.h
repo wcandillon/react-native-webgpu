@@ -15,6 +15,7 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "GPUBindGroup.h"
+#include "GPUBuffer.h"
 #include "GPURenderPipeline.h"
 
 namespace rnwgpu {
@@ -37,6 +38,10 @@ public:
       std::variant<std::nullptr_t, std::shared_ptr<GPUBindGroup>> bindGroup,
       std::optional<std::vector<uint32_t>> dynamicOffsets);
   void setPipeline(std::shared_ptr<GPURenderPipeline> pipeline);
+  void setVertexBuffer(
+      uint32_t slot,
+      std::variant<std::nullptr_t, std::shared_ptr<GPUBuffer>> buffer,
+      std::optional<uint64_t> offset, std::optional<uint64_t> size);
   void draw(uint32_t vertexCount, std::optional<uint32_t> instanceCount,
             std::optional<uint32_t> firstVertex,
             std::optional<uint32_t> firstInstance);
@@ -50,6 +55,8 @@ public:
                          this);
     registerHybridMethod("setPipeline", &GPURenderPassEncoder::setPipeline,
                          this);
+    registerHybridMethod("setVertexBuffer",
+                         &GPURenderPassEncoder::setVertexBuffer, this);
     registerHybridMethod("draw", &GPURenderPassEncoder::draw, this);
 
     registerHybridGetter("label", &GPURenderPassEncoder::getLabel, this);

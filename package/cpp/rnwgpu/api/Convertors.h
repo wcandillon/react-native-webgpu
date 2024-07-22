@@ -558,10 +558,12 @@ public:
   [[nodiscard]] bool Convert(wgpu::VertexBufferLayout &out,
                              const GPUVertexBufferLayout &in) {
     out = {};
-    // TODO: Check if this is correct (see GPUVertexBufferLayout)
-    if (in.stepMode == wgpu::VertexStepMode::VertexBufferNotUsed) {
-      return Convert(out.stepMode, in.stepMode);
-    }
+    /*
+     TODO:
+     -    if (in.stepMode == wgpu::VertexStepMode::VertexBufferNotUsed) {
+     -      return Convert(out.stepMode, in.stepMode);
+     -    }
+     */
     return Convert(out.attributes, out.attributeCount, in.attributes) &&
            Convert(out.arrayStride, in.arrayStride) &&
            Convert(out.stepMode, in.stepMode);
@@ -592,22 +594,19 @@ public:
                          ? ConvertStringReplacingNull(in.entryPoint.value())
                          : nullptr;
     // TODO: implement !Convert(out.constants, out.constantCount, in.constants)
-    wgpu::VertexBufferLayout *outBuffers = nullptr;
     if (!Convert(out.module, in.module)) {
       return false;
     }
-
     if (in.buffers.has_value()) {
       std::vector<std::shared_ptr<GPUVertexBufferLayout>> filteredBuffers;
       for (const auto &buffer : in.buffers.value()) {
-        if (auto ptr =
-                std::get_if<std::shared_ptr<GPUVertexBufferLayout>>(&buffer)) {
-          if (*ptr) {
-            filteredBuffers.push_back(*ptr);
-          }
+        if (std::holds_alternative<std::shared_ptr<GPUVertexBufferLayout>>(
+                buffer)) {
+          auto ptr = std::get<std::shared_ptr<GPUVertexBufferLayout>>(buffer);
+          filteredBuffers.push_back(ptr);
         }
       }
-      if (!Convert(outBuffers, out.bufferCount, filteredBuffers)) {
+      if (!Convert(out.buffers, out.bufferCount, filteredBuffers)) {
         return false;
       }
     }

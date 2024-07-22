@@ -1,4 +1,5 @@
 #include "GPURenderPassEncoder.h"
+#include "Convertors.h"
 
 namespace rnwgpu {
 
@@ -15,6 +16,19 @@ void GPURenderPassEncoder::draw(uint32_t vertexCount,
                                 std::optional<uint32_t> firstInstance) {
   _instance.Draw(vertexCount, instanceCount.value_or(1),
                  firstVertex.value_or(0), firstInstance.value_or(0));
+}
+void GPURenderPassEncoder::setVertexBuffer(
+    uint32_t slot,
+    std::variant<std::nullptr_t, std::shared_ptr<GPUBuffer>> buffer,
+    std::optional<uint64_t> offset, std::optional<uint64_t> size) {
+  Convertor conv;
+
+  wgpu::Buffer b{};
+  uint64_t s = wgpu::kWholeSize;
+  if (!conv(b, buffer) || !conv(s, size)) {
+    return;
+  }
+  _instance.SetVertexBuffer(slot, b, offset.value_or(0), s);
 }
 
 void GPURenderPassEncoder::setBindGroup(

@@ -56,6 +56,7 @@ const methodWhiteList = [
   "beginComputePass",
   "dispatchWorkgroups",
   "onSubmittedWorkDone",
+  "setVertexBuffer",
 ];
 
 const propWhiteList: Record<string, string[]> = {
