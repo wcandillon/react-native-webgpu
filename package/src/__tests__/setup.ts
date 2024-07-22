@@ -37,6 +37,13 @@ afterAll(async () => {
   await client.dispose();
 });
 
+interface OffscreenCanvas {
+  new (device: GPUDevice, width: number, height: number): OffscreenCanvas;
+  getCurrentTexture(): GPUTexture;
+  present(): void;
+  getImageData(): Promise<number[]>;
+}
+
 interface GPUContext {
   gpu: GPU;
   adapter: GPUAdapter;
@@ -49,6 +56,7 @@ interface GPUContext {
   cubeVertexArray: Float32Array;
   triangleVertWGSL: string;
   redFragWGSL: string;
+  OffscreenCanvas: OffscreenCanvas;
 }
 
 type Ctx = Record<string, unknown>;

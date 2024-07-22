@@ -7,6 +7,7 @@ import { gpu } from "react-native-webgpu";
 import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
+import { OffscreenCanvas } from "./components/OffscreenCanvas";
 
 export const CI = process.env.CI === "true";
 
@@ -57,6 +58,7 @@ export const Tests = () => {
               cubeVertexArray,
               triangleVertWGSL,
               redFragWGSL,
+              OffscreenCanvas,
             },
           });
           if (result instanceof Promise) {

@@ -138,16 +138,9 @@ describe("Texture", () => {
   });
   it("Create texture and reads it", async () => {
     const result = await client.eval(
-      ({ device, triangleVertWGSL, redFragWGSL, gpu }) => {
-        // Define the size of the off-screen texture
-        const textureWidth = 1024;
-        const textureHeight = 1024;
-        const bytesPerRow = textureWidth * 4;
-        const texture = device.createTexture({
-          size: [textureWidth, textureHeight],
-          format: gpu.getPreferredCanvasFormat(),
-          usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
-        });
+      ({ device, triangleVertWGSL, redFragWGSL, gpu, OffscreenCanvas }) => {
+        const context = new OffscreenCanvas(device, 1024, 1024);
+
         const pipeline = device.createRenderPipeline({
           layout: "auto",
           vertex: {
@@ -171,7 +164,7 @@ describe("Texture", () => {
         });
 
         const commandEncoder = device.createCommandEncoder();
-        const textureView = texture.createView();
+        const textureView = context.getCurrentTexture().createView();
 
         const renderPassDescriptor: GPURenderPassDescriptor = {
           colorAttachments: [
@@ -184,35 +177,15 @@ describe("Texture", () => {
           ],
         };
 
-        const outputBuffer = device.createBuffer({
-          size: bytesPerRow * textureHeight,
-          usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-        });
-
         const passEncoder =
           commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(pipeline);
         passEncoder.draw(3);
         passEncoder.end();
 
-        commandEncoder.copyTextureToBuffer(
-          { texture },
-          { buffer: outputBuffer, bytesPerRow },
-          [textureWidth, textureHeight],
-        );
-
         device.queue.submit([commandEncoder.finish()]);
-        return outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
-          const arrayBuffer = outputBuffer.getMappedRange();
-          const uint8Array = new Uint8Array(arrayBuffer);
-
-          // At this point, uint8Array contains the pixel data of the rendered image
-          // You can process it further, save it, or send it somewhere else
-
-          const r = Array.from(uint8Array);
-          outputBuffer.unmap();
-          return r;
-        });
+        context.present();
+        return context.getImageData();
       },
     );
     const image = encodeImage(result, 1024, 1024);
