@@ -28,8 +28,8 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::future<void> mapAsync(uint64_t mode, std::optional<size_t> offset,
-                             std::optional<size_t> size);
+  std::future<void> mapAsync(uint64_t mode, std::optional<uint64_t> offset,
+                             std::optional<uint64_t> size);
   std::shared_ptr<ArrayBuffer> getMappedRange(std::optional<size_t> offset,
                                               std::optional<size_t> size);
   void unmap();

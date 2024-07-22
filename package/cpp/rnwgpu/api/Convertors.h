@@ -11,6 +11,7 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "GPUBindGroupDescriptor.h"
+#include "GPUBindGroupEntry.h"
 #include "GPUBindGroupLayoutDescriptor.h"
 #include "GPUBindGroupLayoutEntry.h"
 #include "GPUBlendComponent.h"
@@ -60,7 +61,6 @@
 #include "GPUVertexAttribute.h"
 #include "GPUVertexBufferLayout.h"
 #include "GPUVertexState.h"
-#include "GPUBindGroupEntry.h"
 
 namespace rnwgpu {
 
@@ -101,11 +101,7 @@ public:
     return Convert(out_count, in.size());
   }
 
-  template <typename T> [[nodiscard]] bool Convert(T &out, const T &in) {
-    out = in;
-    return true;
-  }
-
+  // TODO remove constraint
   template <typename T>
   [[nodiscard]] auto Convert(T &out, const std::nullptr_t &in)
       -> decltype(out = nullptr, bool()) {
@@ -120,9 +116,16 @@ public:
 
   template <typename T>
   [[nodiscard]] typename std::enable_if<
-      std::is_arithmetic<T>::value || std::is_enum<T>::value, bool>::type
+      (std::is_arithmetic<T>::value || std::is_enum<T>::value), bool>::type
   Convert(T &out, const double &in) {
     out = static_cast<T>(in);
+    return true;
+  }
+
+  template <typename T>
+  [[nodiscard]] typename std::enable_if<std::is_enum<T>::value, bool>::type
+  Convert(T &out, const T &in) {
+    out = in;
     return true;
   }
 
@@ -149,20 +152,26 @@ public:
   template <typename OUT, typename IN>
   [[nodiscard]] bool Convert(OUT &out, const std::shared_ptr<IN> &in) {
     if constexpr (has_get_member<IN>::value) {
-      return Convert(out, in->get());
+      out = in->get();
+      return true;
     } else {
       return Convert(out, *in);
     }
   }
 
-  template <typename OUT, typename IN>
-  [[nodiscard]] bool Convert(const OUT *out, const std::shared_ptr<IN> &in) {
-    std::remove_const_t<std::remove_pointer_t<OUT>> o;
-    if constexpr (has_get_member<IN>::value) {
-      return Convert(o, in->get());
+  template <typename OUT, typename IN,
+            typename _ = std::enable_if_t<!std::is_same_v<IN, std::string>>>
+  [[nodiscard]] inline bool Convert(OUT *&out, const std::optional<IN> &in) {
+    if (in.has_value()) {
+      auto *el = Allocate<std::remove_const_t<OUT>>();
+      if (!Convert(*el, in.value())) {
+        return false;
+      }
+      out = el;
     } else {
-      return Convert(o, *in);
+      out = nullptr;
     }
+    return true;
   }
 
   template <typename OUT, typename IN>
@@ -251,7 +260,7 @@ public:
                              const GPUColorTargetState &in) {
     out = {};
     if (in.blend.has_value()) {
-      if (!Convert(out.blend, in.blend.value())) {
+      if (!Convert(out.blend, in.blend)) {
         return false;
       }
     }
@@ -315,12 +324,18 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::FragmentState &out,
                              const GPUFragmentState &in) {
-    // TODO: add targets & constants:
-    // Convert(out.targets, out.targetCount, in.targets) &&
-    //            &&
-    //           Convert(out.constants, in.constants);
-    return Convert(out.module, in.module) &&
-           Convert(out.entryPoint, in.entryPoint);
+    out = {};
+
+    // Replace nulls in the entryPoint name with another character that's
+    // disallowed in WGSL identifiers. This is so that using "main\0" doesn't
+    // match an entryPoint named "main".
+    out.entryPoint = in.entryPoint
+                         ? ConvertStringReplacingNull(in.entryPoint.value())
+                         : nullptr;
+
+    return Convert(out.targets, out.targetCount, in.targets) && //
+           Convert(out.module, in.module); // TODO: add support for constants
+    // Convert(out.constants, out.constantCount, in.constants);
   }
 
   [[nodiscard]] bool Convert(wgpu::ImageCopyBuffer &out,
@@ -568,17 +583,16 @@ public:
                          ? ConvertStringReplacingNull(in.entryPoint.value())
                          : nullptr;
     // TODO: implement !Convert(out.constants, out.constantCount, in.constants)
-    wgpu::VertexBufferLayout* outBuffers = nullptr;
+    wgpu::VertexBufferLayout *outBuffers = nullptr;
     if (!Convert(out.module, in.module)) {
-        return false;
+      return false;
     }
 
     if (in.buffers.has_value()) {
-       if(!Convert(outBuffers, out.bufferCount, in.buffers.value())) {
+      if (!Convert(outBuffers, out.bufferCount, in.buffers.value())) {
         return false;
-       }
+      }
     }
-
 
     return true;
   }
@@ -603,34 +617,38 @@ public:
     return Convert(out.label, in.label);
   }
 
-  [[nodiscard]] bool Convert(wgpu::BindGroupEntry& out, const GPUBindGroupEntry& in) {
+  [[nodiscard]] bool Convert(wgpu::BindGroupEntry &out,
+                             const GPUBindGroupEntry &in) {
     out = {};
     if (!Convert(out.binding, in.binding)) {
-        return false;
+      return false;
     }
 
     if (in.sampler != nullptr) {
-        return Convert(out.sampler, in.sampler);
+      return Convert(out.sampler, in.sampler);
     }
     if (in.textureView != nullptr) {
-        return Convert(out.textureView, in.textureView);
+      return Convert(out.textureView, in.textureView);
     }
     if (in.buffer != nullptr) {
-        auto buffer = in.buffer->buffer;
-        out.size = wgpu::kWholeSize;
-        if (!buffer || !Convert(out.offset, in.buffer->offset) || !Convert(out.size, in.buffer->size)) {
-            return false;
-        }
-        out.buffer = buffer->get();
-        return true;
+      auto buffer = in.buffer->buffer;
+      out.size = wgpu::kWholeSize;
+      if (!buffer || !Convert(out.offset, in.buffer->offset) ||
+          !Convert(out.size, in.buffer->size)) {
+        return false;
+      }
+      out.buffer = buffer->get();
+      return true;
     }
     // TODO: implement external textures
-    // if (auto* res = std::get_if<interop::Interface<interop::GPUExternalTexture>>(&in.resource)) {
+    // if (auto* res =
+    // std::get_if<interop::Interface<interop::GPUExternalTexture>>(&in.resource))
+    // {
     //     // TODO(crbug.com/dawn/1129): External textures
     //     UNIMPLEMENTED(env, {});
     // }
     return false;
-}
+  }
 
 private:
   char *ConvertStringReplacingNull(std::string_view in) {

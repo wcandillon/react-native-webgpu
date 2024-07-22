@@ -49,9 +49,13 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
           if (obj.isHostObject<rnwgpu::GPUSampler>(runtime)) {
             result->sampler = obj.getHostObject<rnwgpu::GPUSampler>(runtime);
           } else if (obj.isHostObject<rnwgpu::GPUTextureView>(runtime)) {
-            result->textureView = obj.getHostObject<rnwgpu::GPUTextureView>(runtime);
+            result->textureView =
+                obj.getHostObject<rnwgpu::GPUTextureView>(runtime);
           } else {
-              result->buffer = JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>>::fromJSI(runtime, prop, false);
+            result->buffer = JSIConverter<
+                std::shared_ptr<rnwgpu::GPUBufferBinding>>::fromJSI(runtime,
+                                                                    prop,
+                                                                    false);
           }
         }
         // result->resource = JSIConverter<std::variant<

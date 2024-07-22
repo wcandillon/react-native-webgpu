@@ -11,13 +11,14 @@ using namespace wgpu;
 
 namespace rnwgpu {
 
-std::future<std::shared_ptr<GPUAdapter>>
-GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
+std::future<std::shared_ptr<GPUAdapter>> GPU::requestAdapter(
+    std::optional<std::shared_ptr<GPURequestAdapterOptions>> options) {
   return std::async(std::launch::async, [this, options]() {
     wgpu::RequestAdapterOptions aOptions;
-    // TODO: enable, make std::shared_ptr<GPURequestAdapterOptions>  optional
-    // Convertor conv;
-    // conv(aOptions, options);
+    Convertor conv;
+    if (!conv(aOptions, options)) {
+      throw std::runtime_error("Failed to convert GPUDeviceDescriptor");
+    }
     wgpu::Adapter adapter = nullptr;
     _instance.RequestAdapter(
         &aOptions,

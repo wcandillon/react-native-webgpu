@@ -15,11 +15,9 @@ std::future<std::shared_ptr<GPUDevice>> GPUAdapter::requestDevice(
                                          descriptor = std::move(descriptor)]() {
     wgpu::Device device = nullptr;
     wgpu::DeviceDescriptor aDescriptor;
-    if (descriptor.has_value()) {
-      Convertor conv;
-      if (!conv(aDescriptor, descriptor)) {
-        throw std::runtime_error("Failed to convert GPUDeviceDescriptor");
-      }
+    Convertor conv;
+    if (!conv(aDescriptor, descriptor)) {
+      throw std::runtime_error("Failed to convert GPUDeviceDescriptor");
     }
     wgpu::DeviceLostCallbackInfo info = {
         .callback = [](WGPUDevice const *device, WGPUDeviceLostReason reason,

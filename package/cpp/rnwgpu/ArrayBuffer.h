@@ -10,15 +10,13 @@ namespace rnwgpu {
 namespace jsi = facebook::jsi;
 
 struct ArrayBuffer : jsi::MutableBuffer {
-  ArrayBuffer(void *data, size_t size, size_t bytesPerElement = 1)
+  ArrayBuffer(void *data, size_t size, size_t bytesPerElement)
       : _data(data), _size(size), _bytesPerElement(bytesPerElement) {}
 
   ~ArrayBuffer() override {}
 
-  // Implement the size() method
   size_t size() const override { return _size; }
 
-  // Implement the data() method
   uint8_t *data() override { return static_cast<uint8_t *>(_data); }
 
   void *_data;
@@ -32,10 +30,9 @@ namespace margelo {
 
 static std::shared_ptr<rnwgpu::ArrayBuffer>
 createArrayBufferFromJSI(jsi::Runtime &runtime,
-                         const jsi::ArrayBuffer &arrayBuffer) {
-  auto length = arrayBuffer.length(runtime);
+                         const jsi::ArrayBuffer &arrayBuffer,
+                         size_t bytesPerElement) {
   auto size = arrayBuffer.size(runtime);
-  auto bytesPerElement = size / length;
   return std::make_shared<rnwgpu::ArrayBuffer>(arrayBuffer.data(runtime), size,
                                                bytesPerElement);
 }
@@ -46,14 +43,19 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::ArrayBuffer>> {
     if (arg.isObject()) {
       auto obj = arg.getObject(runtime);
       if (obj.isArrayBuffer(runtime)) {
-        return createArrayBufferFromJSI(runtime, obj.getArrayBuffer(runtime));
+        return createArrayBufferFromJSI(runtime, obj.getArrayBuffer(runtime),
+                                        1);
       }
       if (obj.hasProperty(runtime, "buffer")) {
         auto bufferProp = obj.getProperty(runtime, "buffer");
         if (bufferProp.isObject() &&
             bufferProp.getObject(runtime).isArrayBuffer(runtime)) {
+          auto buff = bufferProp.getObject(runtime);
+          auto bytesPerElements =
+              obj.getProperty(runtime, "BYTES_PER_ELEMENT").asNumber();
           return createArrayBufferFromJSI(
-              runtime, bufferProp.getObject(runtime).getArrayBuffer(runtime));
+              runtime, buff.getArrayBuffer(runtime),
+              static_cast<size_t>(bytesPerElements));
         }
       }
     }
