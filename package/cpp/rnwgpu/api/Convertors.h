@@ -248,11 +248,11 @@ public:
   //          Convert(out.alphaMode, in.alphaMode);
   // }
 
-  // [[nodiscard]] bool Convert(wgpu::ColorDict &out, const GPUColorDict &in) {
-  //   return Convert(out.r, in.r) && Convert(out.g, in.g) && Convert(out.b,
-  //   in.b) &&
-  //          Convert(out.a, in.a);
-  // }
+   [[nodiscard]] bool Convert(wgpu::Color &out, const GPUColorDict &in) {
+     return Convert(out.r, in.r) && Convert(out.g, in.g) && Convert(out.b,
+     in.b) &&
+            Convert(out.a, in.a);
+   }
 
   [[nodiscard]] bool Convert(wgpu::ColorTargetState &out,
                              const GPUColorTargetState &in) {
@@ -438,11 +438,10 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::RenderPassColorAttachment &out,
                              const GPURenderPassColorAttachment &in) {
-    // TODO: implement clearValue
     return Convert(out.view, in.view) &&
            Convert(out.depthSlice, in.depthSlice) &&
            Convert(out.resolveTarget, in.resolveTarget) &&
-           // Convert(out.clearValue, in.clearValue) &&
+           Convert(out.clearValue, in.clearValue) &&
            Convert(out.loadOp, in.loadOp) && Convert(out.storeOp, in.storeOp);
   }
 

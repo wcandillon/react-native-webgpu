@@ -23,9 +23,7 @@ struct GPURenderPassColorAttachment {
   std::optional<double> depthSlice;     // GPUIntegerCoordinate
   std::optional<std::shared_ptr<GPUTextureView>>
       resolveTarget; // GPUTextureView
-  std::optional<
-      std::variant<std::vector<double>, std::shared_ptr<GPUColorDict>>>
-      clearValue;        // GPUColor
+  std::optional<std::shared_ptr<GPUColorDict>> clearValue; // GPUColor
   wgpu::LoadOp loadOp;   // GPULoadOp
   wgpu::StoreOp storeOp; // GPUStoreOp
 };
@@ -62,9 +60,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
       }
       if (value.hasProperty(runtime, "clearValue")) {
         auto prop = value.getProperty(runtime, "clearValue");
-        result->clearValue = JSIConverter<std::optional<
-            std::variant<std::vector<double>, std::shared_ptr<GPUColorDict>>>>::
-            fromJSI(runtime, prop, false);
+        result->clearValue = JSIConverter<std::shared_ptr<GPUColorDict>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "loadOp")) {
         auto prop = value.getProperty(runtime, "loadOp");
