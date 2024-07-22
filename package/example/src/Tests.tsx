@@ -7,7 +7,7 @@ import { gpu } from "react-native-webgpu";
 import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
-import { OffscreenCanvas } from "./components/OffscreenCanvas";
+import { DrawingContext } from "./components/DrawingContext";
 
 export const CI = process.env.CI === "true";
 
@@ -40,6 +40,7 @@ export const Tests = () => {
       client.onmessage = (e) => {
         const tree = JSON.parse(e.data);
         if (tree.code) {
+          const ctx = new DrawingContext(device, 1024, 1024);
           const result = eval(
             `(function Main() {
               return (${tree.code})(this.ctx);
@@ -58,7 +59,7 @@ export const Tests = () => {
               cubeVertexArray,
               triangleVertWGSL,
               redFragWGSL,
-              OffscreenCanvas,
+              ctx,
             },
           });
           if (result instanceof Promise) {

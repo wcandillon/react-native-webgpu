@@ -1,4 +1,4 @@
-export class OffscreenCanvas {
+export class DrawingContext {
   private texture: GPUTexture;
   private buffer: GPUBuffer;
   constructor(
@@ -22,15 +22,13 @@ export class OffscreenCanvas {
     return this.texture;
   }
 
-  present() {
+  present(commandEncoder: GPUCommandEncoder) {
     const bytesPerRow = this.width * 4;
-    const commandEncoder = this.device.createCommandEncoder();
     commandEncoder.copyTextureToBuffer(
       { texture: this.texture },
       { buffer: this.buffer, bytesPerRow },
       [this.width, this.height],
     );
-    this.device.queue.submit([commandEncoder.finish()]);
   }
 
   getImageData() {

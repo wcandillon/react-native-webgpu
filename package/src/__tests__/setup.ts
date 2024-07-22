@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-var */
 import fs from "fs";
@@ -37,10 +38,9 @@ afterAll(async () => {
   await client.dispose();
 });
 
-interface OffscreenCanvas {
-  new (device: GPUDevice, width: number, height: number): OffscreenCanvas;
+interface DrawingContext {
   getCurrentTexture(): GPUTexture;
-  present(): void;
+  present(commandEncoder: GPUCommandEncoder): void;
   getImageData(): Promise<number[]>;
 }
 
@@ -56,7 +56,7 @@ interface GPUContext {
   cubeVertexArray: Float32Array;
   triangleVertWGSL: string;
   redFragWGSL: string;
-  OffscreenCanvas: OffscreenCanvas;
+  ctx: DrawingContext;
 }
 
 type Ctx = Record<string, unknown>;
@@ -138,6 +138,40 @@ class ReferenceTestingClient implements TestingClient {
     }
     const source = `(async function Main(){
       const { device, adapter, gpu, cubeVertexArray, triangleVertWGSL, redFragWGSL } = window;
+      class DrawingContext {
+        constructor(device, width, height) {
+            this.device = device;
+            this.width = width;
+            this.height = height;
+            const bytesPerRow = this.width * 4;
+            this.texture = device.createTexture({
+                size: [width, height],
+                format: gpu.getPreferredCanvasFormat(),
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+            });
+            this.buffer = device.createBuffer({
+                size: bytesPerRow * this.height,
+                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+            });
+        }
+        getCurrentTexture() {
+            return this.texture;
+        }
+        present(commandEncoder) {
+            const bytesPerRow = this.width * 4;
+            commandEncoder.copyTextureToBuffer({ texture: this.texture }, { buffer: this.buffer, bytesPerRow }, [this.width, this.height]);
+        }
+        getImageData() {
+            return this.buffer.mapAsync(GPUMapMode.READ).then(() => {
+                const arrayBuffer = this.buffer.getMappedRange();
+                const uint8Array = new Uint8Array(arrayBuffer);
+                const r = Array.from(uint8Array);
+                this.buffer.unmap();
+                return r;
+            });
+        }
+    }
+      const ctx = new DrawingContext(device, 1024, 1024);
       return (${fn.toString()})({
         device, adapter, gpu, 
         GPUBufferUsage,
@@ -148,6 +182,7 @@ class ReferenceTestingClient implements TestingClient {
         cubeVertexArray,
         triangleVertWGSL,
         redFragWGSL,
+        ctx,
         ...${JSON.stringify(ctx || {})}
       });
     })();`;

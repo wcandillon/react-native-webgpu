@@ -138,9 +138,7 @@ describe("Texture", () => {
   });
   it("Create texture and reads it", async () => {
     const result = await client.eval(
-      ({ device, triangleVertWGSL, redFragWGSL, gpu, OffscreenCanvas }) => {
-        const context = new OffscreenCanvas(device, 1024, 1024);
-
+      ({ device, triangleVertWGSL, redFragWGSL, gpu, ctx }) => {
         const pipeline = device.createRenderPipeline({
           layout: "auto",
           vertex: {
@@ -164,7 +162,7 @@ describe("Texture", () => {
         });
 
         const commandEncoder = device.createCommandEncoder();
-        const textureView = context.getCurrentTexture().createView();
+        const textureView = ctx.getCurrentTexture().createView();
 
         const renderPassDescriptor: GPURenderPassDescriptor = {
           colorAttachments: [
@@ -183,9 +181,9 @@ describe("Texture", () => {
         passEncoder.draw(3);
         passEncoder.end();
 
+        ctx.present(commandEncoder);
         device.queue.submit([commandEncoder.finish()]);
-        context.present();
-        return context.getImageData();
+        return ctx.getImageData();
       },
     );
     const image = encodeImage(result, 1024, 1024);
