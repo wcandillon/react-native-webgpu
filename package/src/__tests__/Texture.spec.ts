@@ -181,7 +181,6 @@ describe("Texture", () => {
         passEncoder.draw(3);
         passEncoder.end();
 
-        ctx.present(commandEncoder);
         device.queue.submit([commandEncoder.finish()]);
         return ctx.getImageData();
       },

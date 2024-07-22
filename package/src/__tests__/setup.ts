@@ -42,7 +42,6 @@ interface DrawingContext {
   width: number;
   height: number;
   getCurrentTexture(): GPUTexture;
-  present(commandEncoder: GPUCommandEncoder): void;
   getImageData(): Promise<{
     data: number[];
     width: number;
@@ -164,11 +163,12 @@ class ReferenceTestingClient implements TestingClient {
         getCurrentTexture() {
             return this.texture;
         }
-        present(commandEncoder) {
+        getImageData() {
+            const commandEncoder = this.device.createCommandEncoder();
             const bytesPerRow = this.width * 4;
             commandEncoder.copyTextureToBuffer({ texture: this.texture }, { buffer: this.buffer, bytesPerRow }, [this.width, this.height]);
-        }
-        getImageData() {
+            this.device.queue.submit([commandEncoder.finish()]);
+
             return this.buffer.mapAsync(GPUMapMode.READ).then(() => {
               const arrayBuffer = this.buffer.getMappedRange();
               const uint8Array = new Uint8Array(arrayBuffer);

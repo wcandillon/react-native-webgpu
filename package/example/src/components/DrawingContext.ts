@@ -21,17 +21,16 @@ export class DrawingContext {
   getCurrentTexture() {
     return this.texture;
   }
-
-  present(commandEncoder: GPUCommandEncoder) {
+  getImageData() {
+    const commandEncoder = this.device.createCommandEncoder();
     const bytesPerRow = this.width * 4;
     commandEncoder.copyTextureToBuffer(
       { texture: this.texture },
       { buffer: this.buffer, bytesPerRow },
       [this.width, this.height],
     );
-  }
+    this.device.queue.submit([commandEncoder.finish()]);
 
-  getImageData() {
     return this.buffer.mapAsync(GPUMapMode.READ).then(() => {
       const arrayBuffer = this.buffer.getMappedRange();
       const uint8Array = new Uint8Array(arrayBuffer);
