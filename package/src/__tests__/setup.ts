@@ -4,6 +4,7 @@
 import fs from "fs";
 import path from "path";
 
+import { mat4, vec3 } from "wgpu-matrix";
 import type { Server, WebSocket } from "ws";
 import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer";
@@ -67,6 +68,8 @@ interface GPUContext {
     cubeVertexArray: Float32Array;
   };
   ctx: DrawingContext;
+  mat4: typeof mat4;
+  vec3: typeof vec3;
 }
 
 type Ctx = Record<string, unknown>;
@@ -147,6 +150,10 @@ class ReferenceTestingClient implements TestingClient {
       throw new Error("RemoteSurface not initialized");
     }
     const source = `(async function Main(){
+    var global = window;  
+    const r = () => {${fs.readFileSync(path.join(__dirname, "../../node_modules/wgpu-matrix/dist/3.x/wgpu-matrix.js"), "utf8")} };
+      r();
+      const { mat4, vec3 } = window.wgpuMatrix;
       const { device, adapter, gpu, cubeVertexArray, triangleVertWGSL, redFragWGSL } = window;
       class DrawingContext {
         constructor(device, width, height) {
@@ -203,6 +210,8 @@ class ReferenceTestingClient implements TestingClient {
           redFragWGSL,
         },
         ctx,
+        mat4,
+        vec3,
         ...${JSON.stringify(ctx || {})}
       });
     })();`;

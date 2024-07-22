@@ -93,6 +93,7 @@
     "ts-node": "^10.9.2",
     "turbo": "^1.10.7",
     "typescript": "^5.2.2",
+    "wgpu-matrix": "^3.0.2",
     "ws": "^8.18.0"
   },
   "resolutions": {

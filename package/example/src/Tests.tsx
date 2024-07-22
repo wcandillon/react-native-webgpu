@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { Text, View } from "react-native";
 import { gpu } from "react-native-webgpu";
+import { mat4, vec3 } from "wgpu-matrix";
 
 import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
@@ -64,6 +65,8 @@ export const Tests = () => {
                 redFragWGSL,
               },
               ctx,
+              mat4,
+              vec3,
             },
           });
           if (result instanceof Promise) {
