@@ -1,5 +1,7 @@
 #include "GPUTexture.h"
 
+#include <memory>
+
 #include "Convertors.h"
 
 namespace rnwgpu {

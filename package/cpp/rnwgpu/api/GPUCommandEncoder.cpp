@@ -1,5 +1,7 @@
 #include "GPUCommandEncoder.h"
 
+#include <vector>
+
 #include "Convertors.h"
 
 namespace rnwgpu {

@@ -180,6 +180,7 @@ export const resolveType = (type: Type, state: ResolveTypeState): string => {
         `${className}.${propName} not handled with GPUObjectDescriptorBase`,
       );
     }
+    dependencies.add("memory");
     dependencies.add(name);
     return `std::shared_ptr<${name}>`;
   } else if (type?.getText().startsWith("Record<")) {

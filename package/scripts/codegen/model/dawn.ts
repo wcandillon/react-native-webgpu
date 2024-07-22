@@ -37,6 +37,7 @@ const setBindGroup: Method = {
 export const resolved: Record<
   string,
   {
+    extraDeps?: string[];
     extra?: string;
     ctor?: string;
     methods?: Record<string, Method>;
@@ -81,6 +82,7 @@ export const resolved: Record<
   };
   std::vector<Mapping> mappings;
   `,
+    extraDeps: ["vector"],
   },
   GPUCommandEncoder: {
     methods: {
@@ -158,6 +160,10 @@ export const resolveNative = (
 
 export const resolveExtra = (className: string) => {
   return resolved[className]?.extra ?? "";
+};
+
+export const resolveExtraDeps = (className: string) => {
+  return resolved[className]?.extraDeps ?? [];
 };
 
 export const resolveCtor = (className: string): string | undefined => {

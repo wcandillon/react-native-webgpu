@@ -196,6 +196,7 @@ const toSkip = [
   "GPUBindGroupEntry",
   "GPUCanvasConfiguration",
   "GPUPipelineErrorInit",
+  "GPUUncapturedErrorEvent",
 ];
 
 sourceFile

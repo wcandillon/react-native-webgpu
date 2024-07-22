@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <string>
+
 #include "Unions.h"
 
 #include "RNFHybridObject.h"

@@ -6,6 +6,7 @@ import { resolveType } from "../Descriptors";
 import {
   resolveCtor,
   resolveExtra,
+  resolveExtraDeps,
   resolveMethod,
   resolveNative,
 } from "../model/dawn";
@@ -81,6 +82,9 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
   mergeParentInterfaces(decl);
   const className = decl.getName();
   const dependencies = new Set<string>();
+  dependencies.add("string");
+  const extraDeps = resolveExtraDeps(className);
+  extraDeps.forEach((d) => dependencies.add(d));
   const properties = decl
     .getProperties()
     .filter(
@@ -164,6 +168,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
   ];
   if (needsAsync) {
     ctorParams.push({ name: "async", type: "std::shared_ptr<AsyncRunner>" });
+    dependencies.add("memory");
   }
   if (hasLabel) {
     ctorParams.push({ name: "label", type: "std::string" });
