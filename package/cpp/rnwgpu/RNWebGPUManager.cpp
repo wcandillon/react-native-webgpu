@@ -12,12 +12,16 @@
 #include <utility>
 
 namespace rnwgpu {
+
+std::shared_ptr<wgpu::Surface> RNWebGPUManager::surface;
+
 RNWebGPUManager::RNWebGPUManager(
     jsi::Runtime *jsRuntime,
     std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker)
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker) {
 
   auto gpu = std::make_shared<GPU>();
+  this->gpu = gpu;
 
   auto bufferUsage = std::make_shared<GPUBufferUsage>();
   _jsRuntime->global().setProperty(

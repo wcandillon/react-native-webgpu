@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <memory>
+
 
 #include "Unions.h"
 
@@ -9,6 +11,8 @@
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
+#include "GPUTexture.h"
+#include "GPUCanvasConfiguration.h"
 
 namespace rnwgpu {
 
@@ -16,22 +20,27 @@ namespace m = margelo;
 
 class GPUCanvasContext : public m::HybridObject {
 public:
-  explicit GPUCanvasContext()
-    : HybridObject("GPUCanvasContext") {}
-//  explicit GPUCanvasContext(wgpu::CanvasContext instance)
-//      : HybridObject("GPUCanvasContext"), _instance(instance) {}
+  explicit GPUCanvasContext(wgpu::Surface instance)
+      : HybridObject("GPUCanvasContext"), _instance(instance) {}
 
 public:
   std::string getBrand() { return _name; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUCanvasContext::getBrand, this);
+    registerHybridMethod("configure", &GPUCanvasContext::configure, this);
+    registerHybridMethod("unconfigure", &GPUCanvasContext::unconfigure, this);
+    registerHybridMethod("getCurrentTexture", &GPUCanvasContext::getCurrentTexture, this);
   }
 
-//  inline const wgpu::CanvasContext get() { return _instance; }
+ inline const wgpu::Surface get() { return _instance; }
+  void configure(std::shared_ptr<GPUCanvasConfiguration> configuration);
+  void unconfigure();
+  std::shared_ptr<GPUTexture> getCurrentTexture();
 
 private:
-//  wgpu::CanvasContext _instance;
+  wgpu::Surface _instance;
+  wgpu::Device _device;
 };
 
 } // namespace rnwgpu

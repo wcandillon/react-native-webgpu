@@ -61,6 +61,7 @@
 #include "GPUVertexAttribute.h"
 #include "GPUVertexBufferLayout.h"
 #include "GPUVertexState.h"
+#include "GPUSurfaceConfiguration.h"
 
 namespace rnwgpu {
 
@@ -239,14 +240,18 @@ public:
            Convert(out.label, in.label);
   }
 
-  // [[nodiscard]] bool Convert(wgpu::CanvasConfiguration &out,
-  //                            const GPUCanvasConfiguration &in) {
-  //   return Convert(out.device, in.device) && Convert(out.format, in.format)
-  //   &&
-  //          Convert(out.usage, in.usage) && Convert(out.viewFormats,
-  //          in.viewFormats) && Convert(out.colorSpace, in.colorSpace) &&
-  //          Convert(out.alphaMode, in.alphaMode);
-  // }
+   [[nodiscard]] bool Convert(wgpu::SurfaceConfiguration &out,
+                              const GPUCanvasConfiguration &in) {
+     if (in.viewFormats.has_value()) {
+       if (!Convert(out.viewFormats, out.viewFormatCount,
+                    in.viewFormats.value())) {
+         return false;
+       }
+     }
+     return Convert(out.device, in.device) &&
+            Convert(out.format, in.format)  &&
+            Convert(out.usage, in.usage);
+   }
 
   // [[nodiscard]] bool Convert(wgpu::ColorDict &out, const GPUColorDict &in) {
   //   return Convert(out.r, in.r) && Convert(out.g, in.g) && Convert(out.b,
@@ -438,12 +443,42 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::RenderPassColorAttachment &out,
                              const GPURenderPassColorAttachment &in) {
-    // TODO: implement clearValue
     return Convert(out.view, in.view) &&
            Convert(out.depthSlice, in.depthSlice) &&
            Convert(out.resolveTarget, in.resolveTarget) &&
-           // Convert(out.clearValue, in.clearValue) &&
-           Convert(out.loadOp, in.loadOp) && Convert(out.storeOp, in.storeOp);
+           Convert(out.clearValue, in.clearValue) &&
+           Convert(out.loadOp, in.loadOp) &&
+           Convert(out.storeOp, in.storeOp);
+  }
+
+  [[nodiscard]] bool Convert(wgpu::Color &out,
+                             const std::optional<std::variant<std::vector<double>, std::shared_ptr<GPUColorDict>>> &in) {
+    double red = 0, green = 0, blue = 0, alpha = 0;
+    if (in.has_value()) {
+      const auto& variantValue = in.value();
+      if (std::holds_alternative<std::vector<double>>(variantValue)) {
+        const std::vector<double>& rgbVector = std::get<std::vector<double>>(variantValue);
+        if (rgbVector.size() >= 1) {
+          red = rgbVector.at(0);
+        }
+        if (rgbVector.size() >= 2) {
+          green = rgbVector.at(1);
+        }
+        if (rgbVector.size() >= 3) {
+          blue = rgbVector.at(2);
+        }
+        if (rgbVector.size() >= 4) {
+          alpha = rgbVector.at(3);
+        }
+      } else if (std::holds_alternative<std::shared_ptr<GPUColorDict>>(variantValue)) {
+        const auto colorDict = std::get<std::shared_ptr<GPUColorDict>>(variantValue);
+        red = colorDict->a;
+        green = colorDict->r;
+        blue = colorDict->b;
+        alpha = colorDict->a;
+      }
+    }
+    return Convert(out.r, red);
   }
 
   [[nodiscard]] bool Convert(wgpu::RenderPassDepthStencilAttachment &out,

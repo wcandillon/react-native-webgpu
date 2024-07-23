@@ -20,8 +20,7 @@ struct GPUCanvasConfiguration {
   std::shared_ptr<GPUDevice> device; // GPUDevice
   wgpu::TextureFormat format;        // GPUTextureFormat
   std::optional<double> usage;       // GPUTextureUsageFlags
-  std::optional<std::vector<wgpu::TextureFormat>>
-      viewFormats; // Iterable<GPUTextureFormat>
+  std::optional<std::vector<wgpu::TextureFormat>> viewFormats; // Iterable<GPUTextureFormat>
 };
 
 } // namespace rnwgpu

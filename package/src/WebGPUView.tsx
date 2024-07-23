@@ -23,12 +23,12 @@ export const WebGPUView = forwardRef<WebGPUViewRef, ViewProps>((props, ref) => {
       if (contextName !== 'webgpu') {
         throw new Error('[WebGPU] Unsupported context');
       }
+      WebGPUNativeModule.registerContext(contextId);
       return WebGPUContextRegistry[contextId] ?? null;
     },
   }), [ref]);
 
   useEffect(() => {
-    WebGPUNativeModule.registerContext(contextId);
     return () => {
       delete WebGPUContextRegistry[contextId];
     }
