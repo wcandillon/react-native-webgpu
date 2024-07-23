@@ -85,6 +85,24 @@ void GPUCommandEncoder::copyTextureToBuffer(
   _instance.CopyTextureToBuffer(&src, &dst, &size);
 }
 
+void GPUCommandEncoder::copyTextureToTexture(
+    std::shared_ptr<GPUImageCopyTexture> source,
+    std::shared_ptr<GPUImageCopyTexture> destination,
+    std::shared_ptr<GPUExtent3D> copySize) {
+  Convertor conv;
+
+  wgpu::ImageCopyTexture src{};
+  wgpu::ImageCopyTexture dst{};
+  wgpu::Extent3D size{};
+  if (!conv(src, source) ||      //
+      !conv(dst, destination) || //
+      !conv(size, copySize)) {
+    return;
+  }
+
+  _instance.CopyTextureToTexture(&src, &dst, &size);
+}
+
 std::shared_ptr<GPUComputePassEncoder> GPUCommandEncoder::beginComputePass(
     std::optional<std::shared_ptr<GPUComputePassDescriptor>> descriptor) {
   wgpu::ComputePassDescriptor desc;

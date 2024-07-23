@@ -100,6 +100,20 @@ export const resolved: Record<
           { name: "copySize", type: "std::shared_ptr<GPUExtent3D>" },
         ],
       },
+      copyTextureToTexture: {
+        deps: [
+          "memory",
+          "GPUImageCopyTexture",
+          "GPUImageCopyTexture",
+          "GPUExtent3D",
+        ],
+        returnType: "void",
+        args: [
+          { name: "source", type: "std::shared_ptr<GPUImageCopyTexture>" },
+          { name: "destination", type: "std::shared_ptr<GPUImageCopyTexture>" },
+          { name: "copySize", type: "std::shared_ptr<GPUExtent3D>" },
+        ],
+      },
     },
   },
   GPUQueue: {
@@ -113,6 +127,31 @@ export const resolved: Record<
           { name: "data", type: "std::shared_ptr<ArrayBuffer> " },
           { name: "dataOffsetElements", type: "std::optional<uint64_t>" },
           { name: "sizeElements", type: "std::optional<size_t>" },
+        ],
+      },
+      writeTexture: {
+        deps: [],
+        returnType: "void",
+        args: [
+          { name: "destination", type: "std::shared_ptr<GPUImageCopyTexture>" },
+          { name: "data", type: "std::shared_ptr<ArrayBuffer>" },
+          { name: "dataLayout", type: "std::shared_ptr<GPUImageDataLayout>" },
+          { name: "size", type: "std::shared_ptr<GPUExtent3D>" },
+        ],
+      },
+      copyExternalImageToTexture: {
+        deps: ["GPUImageCopyExternalImage", "GPUImageCopyTextureTagged"],
+        returnType: "void",
+        args: [
+          {
+            name: "source",
+            type: "std::shared_ptr<GPUImageCopyExternalImage>",
+          },
+          {
+            name: "destination",
+            type: "std::shared_ptr<GPUImageCopyTextureTagged>",
+          },
+          { name: "copySize", type: "std::shared_ptr<GPUExtent3D>" },
         ],
       },
     },
