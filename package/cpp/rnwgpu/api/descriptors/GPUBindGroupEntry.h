@@ -9,9 +9,9 @@
 #include "GPUExternalTexture.h"
 #include "GPUSampler.h"
 #include "GPUTextureView.h"
-#include "WGPULogger.h"
 #include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
+#include "WGPULogger.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;

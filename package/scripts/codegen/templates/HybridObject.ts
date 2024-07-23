@@ -22,7 +22,8 @@ const objectWhileList = [
   "GPUAdapter",
   "GPUSupportedLimits",
   "GPUAdapterInfo",
-]; // , "GPUDevice", "GPUQueue", etc
+  //"GPUDevice",
+]; //  "GPUQueue", etc
 
 const methodBlackList = ["requestAdapterInfo"];
 
@@ -86,6 +87,8 @@ const propWhiteList: Record<string, string[]> = {
   ],
 };
 
+const propblackList = ["onuncapturederror", "label", "prototype"];
+
 // const propWhiteList: string[] = [
 //   //"info"
 //   //"label",
@@ -103,6 +106,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     .filter(
       (m) =>
         !m.getName().startsWith("__") &&
+        !propblackList.includes(m.getName()) &&
         ((propWhiteList[className] &&
           propWhiteList[className].includes(m.getName())) ||
           objectWhileList.includes(decl.getName())),
