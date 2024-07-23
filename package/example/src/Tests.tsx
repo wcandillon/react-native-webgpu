@@ -8,7 +8,7 @@ import { mat4, vec3 } from "wgpu-matrix";
 import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
-import { DrawingContext } from "./components/DrawingContext";
+import { NativeDrawingContext } from "./components/NativeDrawingContext";
 
 export const CI = process.env.CI === "true";
 
@@ -41,7 +41,7 @@ export const Tests = () => {
       client.onmessage = (e) => {
         const tree = JSON.parse(e.data);
         if (tree.code) {
-          const ctx = new DrawingContext(device, 1024, 1024);
+          const ctx = new NativeDrawingContext(device, 1024, 1024);
           const result = eval(
             `(function Main() {
               return (${tree.code})(this.ctx);
@@ -58,6 +58,7 @@ export const Tests = () => {
               GPUTextureUsage,
               assets: {
                 cubeVertexArray,
+                //di3D,
               },
               shaders: {
                 triangleVertWGSL,

@@ -18,6 +18,7 @@ import {
 } from "../../example/src/components/triangle";
 
 import { DEBUG, REFERENCE } from "./config";
+import { DrawingContext } from "../../example/src/components/DrawingContext";
 
 jest.setTimeout(180 * 1000);
 
@@ -27,18 +28,6 @@ declare global {
   var testServer: Server;
   var testClient: WebSocket;
   var testOS: TestOS;
-}
-
-interface DrawingContext {
-  width: number;
-  height: number;
-  getCurrentTexture(): GPUTexture;
-  getImageData(): Promise<{
-    data: number[];
-    width: number;
-    height: number;
-    format: string;
-  }>;
 }
 
 interface GPUContext {
@@ -240,7 +229,9 @@ class ReferenceTestingClient implements TestingClient {
       })
       .catch((e) => console.log(e));
     await page.waitForNetworkIdle();
-    const di3D = decodeImage(path.join(__dirname, "assets/Di-3d.png"));
+    const di3D = decodeImage(
+      path.join(__dirname, "../../example/src/assets/Di-3d.png"),
+    );
     await page.evaluate(
       `
 (async () => {
@@ -259,12 +250,11 @@ class ReferenceTestingClient implements TestingClient {
   window.triangleVertWGSL = \`${triangleVertWGSL}\`;
   window.redFragWGSL = \`${redFragWGSL}\`;
   const raw = ${JSON.stringify(di3D)};
-  const imageData = new ImageData(
+  window.di3D = new ImageData(
     new Uint8ClampedArray(raw.data),
     raw.width,
     raw.height
   );
-  window.di3D = await createImageBitmap(imageData);
 })();
       `,
     );
