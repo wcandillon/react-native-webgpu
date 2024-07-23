@@ -67,18 +67,101 @@ describe("Adapter", () => {
     expect(result.includes("shader-f16")).toBe(true);
     expect(result.includes("texture-compression-etc2")).toBe(true);
   });
-  // it("limits", async () => {
-  //   const result = await client.eval(({ adapter }) => {
-  //     return adapter.limits;
-  //   });
-  //   expect(result).toEqual({});
-  // });
-  // it("requestAdapter (6)", async () => {
-  //   const result = await client.eval(({ gpu }) => {
-  //     return gpu.requestAdapter().then((adapter) => adapter?.limits);
-  //   });
-  //   expect(result).toBe(true);
-  // });
+  it("limits", async () => {
+    const result = await client.eval(({ adapter }) => {
+      const {
+        maxTextureDimension1D,
+        maxTextureDimension2D,
+        maxTextureDimension3D,
+        maxTextureArrayLayers,
+        maxBindGroups,
+        maxBindGroupsPlusVertexBuffers,
+        maxBindingsPerBindGroup,
+        maxDynamicUniformBuffersPerPipelineLayout,
+        maxDynamicStorageBuffersPerPipelineLayout,
+        maxSampledTexturesPerShaderStage,
+        maxSamplersPerShaderStage,
+        maxStorageBuffersPerShaderStage,
+        maxStorageTexturesPerShaderStage,
+        maxUniformBuffersPerShaderStage,
+        maxUniformBufferBindingSize,
+        maxStorageBufferBindingSize,
+        minUniformBufferOffsetAlignment,
+        minStorageBufferOffsetAlignment,
+        maxVertexBuffers,
+        maxBufferSize,
+        maxVertexAttributes,
+        maxVertexBufferArrayStride,
+        maxInterStageShaderComponents,
+        maxInterStageShaderVariables,
+        maxColorAttachments,
+        maxColorAttachmentBytesPerSample,
+        maxComputeWorkgroupStorageSize,
+        maxComputeInvocationsPerWorkgroup,
+        maxComputeWorkgroupSizeX,
+        maxComputeWorkgroupSizeY,
+        maxComputeWorkgroupSizeZ,
+        maxComputeWorkgroupsPerDimension,
+      } = adapter.limits;
+      return {
+        maxTextureDimension1D,
+        maxTextureDimension2D,
+        maxTextureDimension3D,
+        maxTextureArrayLayers,
+        maxBindGroups,
+        maxBindGroupsPlusVertexBuffers,
+        maxBindingsPerBindGroup,
+        maxDynamicUniformBuffersPerPipelineLayout,
+        maxDynamicStorageBuffersPerPipelineLayout,
+        maxSampledTexturesPerShaderStage,
+        maxSamplersPerShaderStage,
+        maxStorageBuffersPerShaderStage,
+        maxStorageTexturesPerShaderStage,
+        maxUniformBuffersPerShaderStage,
+        maxUniformBufferBindingSize,
+        maxStorageBufferBindingSize,
+        minUniformBufferOffsetAlignment,
+        minStorageBufferOffsetAlignment,
+        maxVertexBuffers,
+        maxBufferSize,
+        maxVertexAttributes,
+        maxVertexBufferArrayStride,
+        maxInterStageShaderComponents,
+        maxInterStageShaderVariables,
+        maxColorAttachments,
+        maxColorAttachmentBytesPerSample,
+        maxComputeWorkgroupStorageSize,
+        maxComputeInvocationsPerWorkgroup,
+        maxComputeWorkgroupSizeX,
+        maxComputeWorkgroupSizeY,
+        maxComputeWorkgroupSizeZ,
+        maxComputeWorkgroupsPerDimension,
+      };
+    });
+    expect(result.maxBindGroups).toBeGreaterThan(0);
+    expect(result.maxBindGroupsPlusVertexBuffers).toBeGreaterThan(
+      result.maxBindGroups,
+    );
+    expect(result.maxBindingsPerBindGroup).toBeGreaterThan(0);
+    expect(result.maxBufferSize).toBeGreaterThan(0);
+    expect(result.maxColorAttachmentBytesPerSample).toBeGreaterThan(0);
+    expect(result.maxColorAttachments).toBeGreaterThan(0);
+    expect(result.maxComputeInvocationsPerWorkgroup).toBeGreaterThan(0);
+    expect(result.maxComputeWorkgroupSizeX).toBeGreaterThan(0);
+    expect(result.maxComputeWorkgroupSizeY).toBeGreaterThan(0);
+    expect(result.maxComputeWorkgroupSizeZ).toBeGreaterThan(0);
+    expect(result.maxComputeWorkgroupStorageSize).toBeGreaterThan(0);
+    expect(result.maxComputeWorkgroupsPerDimension).toBeGreaterThan(0);
+
+    // For alignment values, check if they're powers of 2
+    expect(Math.log2(result.minStorageBufferOffsetAlignment) % 1).toBe(0);
+    expect(Math.log2(result.minUniformBufferOffsetAlignment) % 1).toBe(0);
+
+    // For maximum dimensions, you might want to set a reasonable lower bound
+    expect(result.maxTextureDimension1D).toBeGreaterThanOrEqual(2048);
+    expect(result.maxTextureDimension2D).toBeGreaterThanOrEqual(2048);
+    expect(result.maxTextureDimension3D).toBeGreaterThanOrEqual(256);
+  });
   it("getPreferredCanvasFormat", async () => {
     const result = await client.eval(({ gpu }) => {
       return gpu.getPreferredCanvasFormat();
