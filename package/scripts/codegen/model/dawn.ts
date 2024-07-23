@@ -115,6 +115,31 @@ export const resolved: Record<
           { name: "sizeElements", type: "std::optional<size_t>" },
         ],
       },
+      writeTexture: {
+        deps: [],
+        returnType: "void",
+        args: [
+          { name: "destination", type: "std::shared_ptr<GPUImageCopyTexture>" },
+          { name: "data", type: "std::shared_ptr<ArrayBuffer>" },
+          { name: "dataLayout", type: "std::shared_ptr<GPUImageDataLayout>" },
+          { name: "size", type: "std::shared_ptr<GPUExtent3D>" },
+        ],
+      },
+      copyExternalImageToTexture: {
+        deps: ["GPUImageCopyExternalImage", "GPUImageCopyTextureTagged"],
+        returnType: "void",
+        args: [
+          {
+            name: "source",
+            type: "std::shared_ptr<GPUImageCopyExternalImage>",
+          },
+          {
+            name: "destination",
+            type: "std::shared_ptr<GPUImageCopyTextureTagged>",
+          },
+          { name: "copySize", type: "std::shared_ptr<GPUExtent3D>" },
+        ],
+      },
     },
   },
   GPUComputePassEncoder: {
