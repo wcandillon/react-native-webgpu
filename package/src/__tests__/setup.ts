@@ -196,7 +196,7 @@ class ReferenceTestingClient implements TestingClient {
     }
       const ctx = new DrawingContext(device, 1024, 1024);
       return (${fn.toString()})({
-        device, adapter, gpu, 
+        device, adapter, gpu, createImageBitmap,
         GPUBufferUsage,
         GPUColorWrite,
         GPUMapMode,
@@ -267,14 +267,14 @@ class ReferenceTestingClient implements TestingClient {
   }
 }
 
-interface Bitmap {
+interface ImageBitmap {
   data: number[];
   width: number;
   height: number;
   format: string;
 }
 
-export const encodeImage = (bitmap: Bitmap) => {
+export const encodeImage = (bitmap: ImageBitmap) => {
   const { width, height, format } = bitmap;
   let data = new Uint8Array(bitmap.data);
   // Convert BGRA to RGBA if necessary
@@ -363,4 +363,22 @@ export const checkImage = (
     fs.writeFileSync(p, buffer);
   }
   return 0;
+};
+
+export const createImageBitmap = (relPath: string): Promise<ImageBitmap> => {
+  return new Promise((resolve, reject) => {
+    const p = path.resolve(__dirname, relPath);
+    fs.createReadStream(p)
+      .pipe(new PNG())
+      .on("parsed", function () {
+        const bitmap: ImageBitmap = {
+          data: Array.from(this.data),
+          width: this.width,
+          height: this.height,
+          format: "rgba8unorm",
+        };
+        resolve(bitmap);
+      })
+      .on("error", reject);
+  });
 };

@@ -48,7 +48,6 @@ export const Tests = () => {
             })`,
           ).call({
             ctx: {
-              ...tree.ctx,
               gpu,
               adapter,
               device,
@@ -67,6 +66,7 @@ export const Tests = () => {
               ctx,
               mat4,
               vec3,
+              ...tree.ctx,
             },
           });
           if (result instanceof Promise) {
