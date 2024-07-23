@@ -28,16 +28,6 @@ declare global {
   var testClient: WebSocket;
   var testOS: TestOS;
 }
-export let client: TestingClient;
-
-beforeAll(async () => {
-  client = REFERENCE ? new ReferenceTestingClient() : new RemoteTestingClient();
-  await client.init();
-});
-
-afterAll(async () => {
-  await client.dispose();
-});
 
 interface DrawingContext {
   width: number;
@@ -66,6 +56,7 @@ interface GPUContext {
   };
   assets: {
     cubeVertexArray: Float32Array;
+    di3D: ImageData;
   };
   ctx: DrawingContext;
   mat4: typeof mat4;
@@ -92,6 +83,17 @@ interface TestingClient {
   init(): Promise<void>;
   dispose(): Promise<void>;
 }
+
+export let client: TestingClient;
+
+beforeAll(async () => {
+  client = REFERENCE ? new ReferenceTestingClient() : new RemoteTestingClient();
+  await client.init();
+});
+
+afterAll(async () => {
+  await client.dispose();
+});
 
 class RemoteTestingClient implements TestingClient {
   readonly OS = global.testOS;
@@ -154,7 +156,7 @@ class ReferenceTestingClient implements TestingClient {
     const r = () => {${fs.readFileSync(path.join(__dirname, "../../node_modules/wgpu-matrix/dist/3.x/wgpu-matrix.js"), "utf8")} };
       r();
       const { mat4, vec3 } = window.wgpuMatrix;
-      const { device, adapter, gpu, cubeVertexArray, triangleVertWGSL, redFragWGSL } = window;
+      const { device, adapter, gpu, cubeVertexArray, triangleVertWGSL, redFragWGSL, di3D } = window;
       class DrawingContext {
         constructor(device, width, height) {
             this.device = device;
@@ -193,10 +195,11 @@ class ReferenceTestingClient implements TestingClient {
               };
             });
         }
-    }
+    } 
+
       const ctx = new DrawingContext(device, 1024, 1024);
       return (${fn.toString()})({
-        device, adapter, gpu, createImageBitmap,
+        device, adapter, gpu,
         GPUBufferUsage,
         GPUColorWrite,
         GPUMapMode,
@@ -204,6 +207,7 @@ class ReferenceTestingClient implements TestingClient {
         GPUTextureUsage,
         assets: {
           cubeVertexArray,
+          di3D
         },
         shaders: {
           triangleVertWGSL,
@@ -236,6 +240,7 @@ class ReferenceTestingClient implements TestingClient {
       })
       .catch((e) => console.log(e));
     await page.waitForNetworkIdle();
+    const di3D = decodeImage(path.join(__dirname, "assets/Di-3d.png"));
     await page.evaluate(
       `
 (async () => {
@@ -253,7 +258,13 @@ class ReferenceTestingClient implements TestingClient {
   window.cubeVertexArray = new Float32Array(${JSON.stringify(Array.from(cubeVertexArray))});
   window.triangleVertWGSL = \`${triangleVertWGSL}\`;
   window.redFragWGSL = \`${redFragWGSL}\`;
-
+  const raw = ${JSON.stringify(di3D)};
+  const imageData = new ImageData(
+    new Uint8ClampedArray(raw.data),
+    raw.width,
+    raw.height
+  );
+  window.di3D = await createImageBitmap(imageData);
 })();
       `,
     );
@@ -267,14 +278,14 @@ class ReferenceTestingClient implements TestingClient {
   }
 }
 
-interface ImageBitmap {
+interface BitmapData {
   data: number[];
   width: number;
   height: number;
   format: string;
 }
 
-export const encodeImage = (bitmap: ImageBitmap) => {
+export const encodeImage = (bitmap: BitmapData) => {
   const { width, height, format } = bitmap;
   let data = new Uint8Array(bitmap.data);
   // Convert BGRA to RGBA if necessary
@@ -365,20 +376,17 @@ export const checkImage = (
   return 0;
 };
 
-export const createImageBitmap = (relPath: string): Promise<ImageBitmap> => {
-  return new Promise((resolve, reject) => {
-    const p = path.resolve(__dirname, relPath);
-    fs.createReadStream(p)
-      .pipe(new PNG())
-      .on("parsed", function () {
-        const bitmap: ImageBitmap = {
-          data: Array.from(this.data),
-          width: this.width,
-          height: this.height,
-          format: "rgba8unorm",
-        };
-        resolve(bitmap);
-      })
-      .on("error", reject);
-  });
+export const decodeImage = (relPath: string): BitmapData => {
+  const p = path.resolve(__dirname, relPath);
+  const data = fs.readFileSync(p);
+  const png = PNG.sync.read(data);
+
+  const bitmap: BitmapData = {
+    data: Array.from(png.data),
+    width: png.width,
+    height: png.height,
+    format: "rgba8unorm",
+  };
+
+  return bitmap;
 };
