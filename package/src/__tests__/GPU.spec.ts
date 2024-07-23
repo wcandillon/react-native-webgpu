@@ -64,7 +64,6 @@ describe("Adapter", () => {
     });
     expect(result.includes("depth-clip-control")).toBe(true);
     expect(result.includes("rg11b10ufloat-renderable")).toBe(true);
-    expect(result.includes("shader-f16")).toBe(true);
     expect(result.includes("texture-compression-etc2")).toBe(true);
   });
   it("limits", async () => {

@@ -5,7 +5,7 @@
 #pragma once
 
 #include "RNFJSIConverter.h"
-#include "Logger.h"
+#include "WGPULogger.h"
 #include "RNFWorkletRuntimeRegistry.h"
 #include <functional>
 #include <jsi/jsi.h>

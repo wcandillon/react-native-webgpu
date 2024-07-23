@@ -9,7 +9,7 @@
 #include "GPUExternalTexture.h"
 #include "GPUSampler.h"
 #include "GPUTextureView.h"
-#include "Logger.h"
+#include "WGPULogger.h"
 #include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
 

@@ -1,4 +1,4 @@
-#include "Logger.h"
+#include "WGPULogger.h"
 #include "RNWebGPUManager.h"
 #include <fbjni/fbjni.h>
 #include <jni.h>

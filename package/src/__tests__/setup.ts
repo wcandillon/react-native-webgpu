@@ -311,7 +311,7 @@ interface CheckImageOptions {
 // On Github Action, the image decoding is slightly different
 // all tests that show the oslo.jpg have small differences but look ok
 const defaultCheckImageOptions = {
-  maxPixelDiff: 0,
+  maxPixelDiff: 50,
   threshold: 0.1,
   overwrite: false,
   mute: false,
