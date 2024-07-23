@@ -32,6 +32,7 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  void beginOcclusionQuery(uint32_t queryIndex);
   void endOcclusionQuery();
   void end();
   void setBindGroup(
@@ -50,11 +51,17 @@ public:
   void draw(uint32_t vertexCount, std::optional<uint32_t> instanceCount,
             std::optional<uint32_t> firstVertex,
             std::optional<uint32_t> firstInstance);
+  void drawIndexed(uint32_t indexCount, std::optional<uint32_t> instanceCount,
+                   std::optional<uint32_t> firstIndex,
+                   std::optional<double> baseVertex,
+                   std::optional<uint32_t> firstInstance);
 
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPURenderPassEncoder::getBrand, this);
+    registerHybridMethod("beginOcclusionQuery",
+                         &GPURenderPassEncoder::beginOcclusionQuery, this);
     registerHybridMethod("endOcclusionQuery",
                          &GPURenderPassEncoder::endOcclusionQuery, this);
     registerHybridMethod("end", &GPURenderPassEncoder::end, this);
@@ -67,6 +74,8 @@ public:
     registerHybridMethod("setVertexBuffer",
                          &GPURenderPassEncoder::setVertexBuffer, this);
     registerHybridMethod("draw", &GPURenderPassEncoder::draw, this);
+    registerHybridMethod("drawIndexed", &GPURenderPassEncoder::drawIndexed,
+                         this);
 
     registerHybridGetter("label", &GPURenderPassEncoder::getLabel, this);
   }

@@ -19,6 +19,7 @@
 #include "GPUExtent3D.h"
 #include "GPUImageCopyBuffer.h"
 #include "GPUImageCopyTexture.h"
+#include "GPUQuerySet.h"
 #include "GPURenderPassDescriptor.h"
 #include "GPURenderPassEncoder.h"
 
@@ -48,6 +49,10 @@ public:
   void copyTextureToTexture(std::shared_ptr<GPUImageCopyTexture> source,
                             std::shared_ptr<GPUImageCopyTexture> destination,
                             std::shared_ptr<GPUExtent3D> copySize);
+  void resolveQuerySet(std::shared_ptr<GPUQuerySet> querySet,
+                       uint32_t firstQuery, uint32_t queryCount,
+                       std::shared_ptr<GPUBuffer> destination,
+                       uint64_t destinationOffset);
   std::shared_ptr<GPUCommandBuffer>
   finish(std::optional<std::shared_ptr<GPUCommandBufferDescriptor>> descriptor);
 
@@ -65,6 +70,8 @@ public:
                          &GPUCommandEncoder::copyTextureToBuffer, this);
     registerHybridMethod("copyTextureToTexture",
                          &GPUCommandEncoder::copyTextureToTexture, this);
+    registerHybridMethod("resolveQuerySet", &GPUCommandEncoder::resolveQuerySet,
+                         this);
     registerHybridMethod("finish", &GPUCommandEncoder::finish, this);
 
     registerHybridGetter("label", &GPUCommandEncoder::getLabel, this);

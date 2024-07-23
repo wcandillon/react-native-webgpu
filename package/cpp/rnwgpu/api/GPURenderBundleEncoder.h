@@ -52,6 +52,10 @@ public:
   void draw(uint32_t vertexCount, std::optional<uint32_t> instanceCount,
             std::optional<uint32_t> firstVertex,
             std::optional<uint32_t> firstInstance);
+  void drawIndexed(uint32_t indexCount, std::optional<uint32_t> instanceCount,
+                   std::optional<uint32_t> firstIndex,
+                   std::optional<double> baseVertex,
+                   std::optional<uint32_t> firstInstance);
 
   std::string getLabel() { return _label; }
 
@@ -67,6 +71,8 @@ public:
     registerHybridMethod("setVertexBuffer",
                          &GPURenderBundleEncoder::setVertexBuffer, this);
     registerHybridMethod("draw", &GPURenderBundleEncoder::draw, this);
+    registerHybridMethod("drawIndexed", &GPURenderBundleEncoder::drawIndexed,
+                         this);
 
     registerHybridGetter("label", &GPURenderBundleEncoder::getLabel, this);
   }

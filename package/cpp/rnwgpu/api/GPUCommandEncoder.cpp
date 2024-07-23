@@ -117,4 +117,28 @@ std::shared_ptr<GPUComputePassEncoder> GPUCommandEncoder::beginComputePass(
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
 }
 
+void GPUCommandEncoder::resolveQuerySet(std::shared_ptr<GPUQuerySet> querySet,
+                                        uint32_t firstQuery,
+                                        uint32_t queryCount,
+                                        std::shared_ptr<GPUBuffer> destination,
+                                        uint64_t destinationOffset) {
+  Convertor conv;
+
+  wgpu::QuerySet q{};
+  uint32_t f = 0;
+  uint32_t c = 0;
+  wgpu::Buffer b{};
+  uint64_t o = 0;
+
+  if (!conv(q, querySet) ||    //
+      !conv(f, firstQuery) ||  //
+      !conv(c, queryCount) ||  //
+      !conv(b, destination) || //
+      !conv(o, destinationOffset)) {
+    return;
+  }
+
+  _instance.ResolveQuerySet(q, f, c, b, o);
+}
+
 } // namespace rnwgpu

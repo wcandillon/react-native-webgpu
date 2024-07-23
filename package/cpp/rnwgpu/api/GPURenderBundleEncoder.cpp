@@ -89,4 +89,13 @@ void GPURenderBundleEncoder::setIndexBuffer(std::shared_ptr<GPUBuffer> buffer,
   _instance.SetIndexBuffer(b, f, o, s);
 }
 
+void GPURenderBundleEncoder::drawIndexed(
+    uint32_t indexCount, std::optional<uint32_t> instanceCount,
+    std::optional<uint32_t> firstIndex, std::optional<double> baseVertex,
+    std::optional<uint32_t> firstInstance) {
+  _instance.DrawIndexed(indexCount, instanceCount.value_or(1),
+                        firstIndex.value_or(0), baseVertex.value_or(0),
+                        firstInstance.value_or(0));
+}
+
 } // namespace rnwgpu

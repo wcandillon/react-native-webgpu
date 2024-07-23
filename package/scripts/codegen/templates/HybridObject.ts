@@ -73,8 +73,10 @@ const methodWhiteList = [
   "copyTextureToTexture",
   "createQuerySet",
   "setIndexBuffer",
-  "begininOcclusionQuery",
+  "beginOcclusionQuery",
   "endOcclusionQuery",
+  "drawIndexed",
+  "resolveQuerySet",
 ];
 
 const propWhiteList: Record<string, string[]> = {
