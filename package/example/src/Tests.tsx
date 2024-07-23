@@ -33,7 +33,11 @@ const useWebGPU = () => {
   return { adapter, device };
 };
 
-export const Tests = () => {
+interface TestsProps {
+  assets: { di3D: ImageData };
+}
+
+export const Tests = ({ assets: { di3D } }: TestsProps) => {
   const { adapter, device } = useWebGPU();
   const [client, hostname] = useClient();
   useEffect(() => {
@@ -58,7 +62,7 @@ export const Tests = () => {
               GPUTextureUsage,
               assets: {
                 cubeVertexArray,
-                //di3D,
+                di3D,
               },
               shaders: {
                 triangleVertWGSL,

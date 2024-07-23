@@ -57,6 +57,7 @@ const methodWhiteList = [
   "dispatchWorkgroups",
   "onSubmittedWorkDone",
   "setVertexBuffer",
+  "copyExternalImageToTexture",
 ];
 
 const propWhiteList: Record<string, string[]> = {
