@@ -201,6 +201,13 @@ export const resolveType = (type: Type, state: ResolveTypeState): string => {
     )[0];
     dependencies.add("future");
     return `std::future<${arg}>`;
+  } else if (
+    type.getAliasSymbol() &&
+    type.getAliasSymbol()!.getName() === "WGSLLanguageFeatures"
+  ) {
+    dependencies.add("unordered_set");
+    dependencies.add("string");
+    return "std::unordered_set<std::string>";
   }
   //return "unknown";
   console.log(JSON.stringify(debugType(type), null, 2));

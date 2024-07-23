@@ -3,6 +3,7 @@
 #include <future>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <variant>
 
 #include "Unions.h"
@@ -39,11 +40,15 @@ public:
       std::optional<std::shared_ptr<GPURequestAdapterOptions>> options);
   wgpu::TextureFormat getPreferredCanvasFormat();
 
+  std::unordered_set<std::string> getWgslLanguageFeatures();
+
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPU::getBrand, this);
     registerHybridMethod("requestAdapter", &GPU::requestAdapter, this);
     registerHybridMethod("getPreferredCanvasFormat",
                          &GPU::getPreferredCanvasFormat, this);
+    registerHybridGetter("wgslLanguageFeatures", &GPU::getWgslLanguageFeatures,
+                         this);
   }
 
   inline const wgpu::Instance get() { return _instance; }

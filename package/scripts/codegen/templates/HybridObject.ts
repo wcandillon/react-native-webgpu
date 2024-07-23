@@ -17,6 +17,8 @@ const instanceAliases: Record<string, string> = {
   GPU: "Instance",
 };
 
+const objectWhileList = ["GPU"];
+
 const methodWhiteList = [
   // GPU
   "getPreferredCanvasFormat",
@@ -94,8 +96,9 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     .filter(
       (m) =>
         !m.getName().startsWith("__") &&
-        propWhiteList[className] &&
-        propWhiteList[className].includes(m.getName()),
+        ((propWhiteList[className] &&
+          propWhiteList[className].includes(m.getName())) ||
+          objectWhileList.includes(decl.getName())),
     )
     .map((signature) => {
       const nativeMethod = resolveNative(
@@ -115,7 +118,11 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     });
   const methods = decl
     .getMethods()
-    .filter((m) => methodWhiteList.includes(m.getName()))
+    .filter(
+      (m) =>
+        methodWhiteList.includes(m.getName()) ||
+        objectWhileList.includes(decl.getName()),
+    )
     .map((signature) => {
       const resolved = resolveMethod(className, signature.getName());
       if (resolved) {

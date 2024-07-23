@@ -64,4 +64,15 @@ describe("Adapter", () => {
     });
     expect(result).toBe(client.OS === "android" ? "rgba8unorm" : "bgra8unorm");
   });
+  it("wgslLanguageFeatures", async () => {
+    const result = await client.eval(({ gpu }) => {
+      return Array.from(gpu.wgslLanguageFeatures);
+    });
+    expect(result.includes("readonly_and_readwrite_storage_textures")).toBe(
+      true,
+    );
+    expect(result.includes("packed_4x8_integer_dot_product")).toBe(true);
+    expect(result.includes("unrestricted_pointer_parameters")).toBe(true);
+    expect(result.includes("pointer_composite_access")).toBe(true);
+  });
 });

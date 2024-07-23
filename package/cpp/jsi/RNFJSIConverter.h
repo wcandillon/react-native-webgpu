@@ -15,6 +15,7 @@
 #include <limits>
 #include <variant>
 #include <map>
+#include <unordered_set>
 
 #include <jsi/jsi.h>
 
@@ -541,6 +542,26 @@ struct JSIConverter<
       return jsi::Value::null();
     }
     return jsi::Value(static_cast<double>(std::get<O>(arg)));
+  }
+};
+
+template <>
+struct JSIConverter<std::unordered_set<std::string>> {
+  using Target = std::unordered_set<std::string>;
+  static Target fromJSI(jsi::Runtime &runtime, const jsi::Value &arg,
+                        bool outOfBound) {
+    throw jsi::JSError(runtime, "JSIConverter<std::unordered_set<std::string>>::fromJSI not implemented");
+  }
+
+  static jsi::Value toJSI(jsi::Runtime &runtime, Target arg) {
+    auto setConstructor = runtime.global().getPropertyAsFunction(runtime, "Set");
+    auto set = setConstructor.callAsConstructor(runtime).asObject(runtime);
+    auto add = set.getPropertyAsFunction(runtime, "add");
+    for (const auto& value : arg) {
+     jsi::Value jsiValue = JSIConverter<std::string>::toJSI(runtime, value);
+     add.callWithThis(runtime, set, jsiValue);
+    }
+    return std::move(set);
   }
 };
 
