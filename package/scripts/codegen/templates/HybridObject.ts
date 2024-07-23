@@ -17,7 +17,9 @@ const instanceAliases: Record<string, string> = {
   GPU: "Instance",
 };
 
-const objectWhileList = ["GPU"];
+const objectWhileList = ["GPU", "GPUAdapter"]; // , "GPUDevice"
+
+const methodBlackList = ["requestAdapterInfo"];
 
 const methodWhiteList = [
   // GPU
@@ -121,7 +123,8 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     .filter(
       (m) =>
         methodWhiteList.includes(m.getName()) ||
-        objectWhileList.includes(decl.getName()),
+        (objectWhileList.includes(decl.getName()) &&
+          !methodBlackList.includes(m.getName())),
     )
     .map((signature) => {
       const resolved = resolveMethod(className, signature.getName());

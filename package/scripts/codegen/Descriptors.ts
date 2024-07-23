@@ -99,6 +99,7 @@ const nativeMapName: Record<string, string> = {
 export const externalDefs = ["PredefinedColorSpace", "PremultiplyAlpha"];
 
 const nativeNumber = ["uint64_t", "uint32_t"];
+const stringSetNames = ["WGSLLanguageFeatures", "GPUSupportedFeatures"];
 
 export const resolveType = (type: Type, state: ResolveTypeState): string => {
   const {
@@ -203,7 +204,7 @@ export const resolveType = (type: Type, state: ResolveTypeState): string => {
     return `std::future<${arg}>`;
   } else if (
     type.getAliasSymbol() &&
-    type.getAliasSymbol()!.getName() === "WGSLLanguageFeatures"
+    stringSetNames.includes(type.getAliasSymbol()!.getName())
   ) {
     dependencies.add("unordered_set");
     dependencies.add("string");

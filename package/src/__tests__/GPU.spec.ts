@@ -52,6 +52,27 @@ describe("Adapter", () => {
     });
     expect(result).toBe(true);
   });
+  it("isFallback", async () => {
+    const result = await client.eval(({ adapter }) => {
+      return adapter.isFallbackAdapter;
+    });
+    expect(result).toBe(false);
+  });
+  it("features", async () => {
+    const result = await client.eval(({ adapter }) => {
+      return Array.from(adapter.features);
+    });
+    expect(result.includes("depth-clip-control")).toBe(true);
+    expect(result.includes("rg11b10ufloat-renderable")).toBe(true);
+    expect(result.includes("shader-f16")).toBe(true);
+    expect(result.includes("texture-compression-etc2")).toBe(true);
+  });
+  // it("limits", async () => {
+  //   const result = await client.eval(({ adapter }) => {
+  //     return adapter.limits;
+  //   });
+  //   expect(result).toEqual({});
+  // });
   // it("requestAdapter (6)", async () => {
   //   const result = await client.eval(({ gpu }) => {
   //     return gpu.requestAdapter().then((adapter) => adapter?.limits);
