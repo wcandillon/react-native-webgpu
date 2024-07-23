@@ -83,4 +83,11 @@ std::future<void> GPUQueue::onSubmittedWorkDone() {
   });
 }
 
+void GPUQueue::copyExternalImageToTexture(
+    std::shared_ptr<GPUImageCopyExternalImage> source,
+    std::shared_ptr<GPUImageCopyTextureTagged> destination,
+    std::shared_ptr<GPUExtent3D> copySize) {
+  throw std::runtime_error("Unimplemented");
+}
+
 } // namespace rnwgpu

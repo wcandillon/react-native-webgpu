@@ -19,7 +19,6 @@
 #include "GPUBufferBinding.h"
 #include "GPUBufferBindingLayout.h"
 #include "GPUBufferDescriptor.h"
-#include "GPUCanvasConfiguration.h"
 #include "GPUColor.h"
 #include "GPUColorTargetState.h"
 #include "GPUCommandBufferDescriptor.h"

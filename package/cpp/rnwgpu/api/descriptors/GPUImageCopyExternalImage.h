@@ -11,31 +11,22 @@
 #include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
 
+#include "ImageData.h"
+#include "GPUOrigin2D.h"
+
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
-namespace rnwgpu {
+namespace rnwgpu { 
+
 
 struct GPUImageCopyExternalImage {
-  // std::variant<std::shared_ptr<ImageBitmap>, std::shared_ptr<ImageData>,
-  //              std::shared_ptr<HTMLImageElement>,
-  //              std::shared_ptr<HTMLVideoElement>,
-  //              std::shared_ptr<VideoFrame>,
-  //              std::shared_ptr<HTMLCanvasElement>,
-  //              std::shared_ptr<OffscreenCanvas>>
-  //     source; // GPUImageCopyExternalImageSource
-  // std::optional<
-  //     std::variant<std::vector<double>,
-  //     std::shared_ptr<GPUOrigin2DDictStrict>>> origin;                //
-  //     GPUOrigin2DStrict
+  std::shared_ptr<ImageData> source; // GPUImageCopyExternalImageSource
+  std::optional<std::shared_ptr<GPUOrigin2D>> origin; // GPUOrigin2DStrict
   std::optional<bool> flipY; // boolean
 };
 
-// static bool conv(wgpu::ImageCopyExternalImage &out,
-//                  const std::shared_ptr<GPUImageCopyExternalImage> &in) {
-//   return conv(out.source, in->source) && conv(out.origin, in->origin) &&
-//          conv(out.flipY, in->flipY);
-// }
+
 } // namespace rnwgpu
 
 namespace margelo {
@@ -48,13 +39,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
     auto result = std::make_unique<rnwgpu::GPUImageCopyExternalImage>();
     if (!outOfBounds && arg.isObject()) {
-      auto value = arg.getObject(runtime);
-      // source std::variant<std::shared_ptr<ImageBitmap>,
-      // std::shared_ptr<ImageData>, std::shared_ptr<HTMLImageElement>,
-      // std::shared_ptr<HTMLVideoElement>, std::shared_ptr<VideoFrame>,
-      // std::shared_ptr<HTMLCanvasElement>, std::shared_ptr<OffscreenCanvas>>
-      // origin std::optional<std::variant<std::vector<double>,
-      // std::shared_ptr<GPUOrigin2DDictStrict>>> flipY std::optional<bool>
+      auto obj = arg.getObject(runtime);
+      if (obj.hasProperty(runtime, "source")) {
+        auto prop = obj.getProperty(runtime, "source");
+        result->source = JSIConverter<std::shared_ptr<ImageData>>::fromJSI(runtime, prop, false);
+      }
     }
 
     return result;

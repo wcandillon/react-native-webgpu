@@ -3,6 +3,7 @@
 #include <future>
 #include <memory>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "Unions.h"
@@ -16,6 +17,9 @@
 #include "ArrayBuffer.h"
 #include "GPUBuffer.h"
 #include "GPUCommandBuffer.h"
+#include "GPUExtent3D.h"
+#include "GPUImageCopyExternalImage.h"
+#include "GPUImageCopyTextureTagged.h"
 
 namespace rnwgpu {
 
@@ -37,6 +41,10 @@ public:
                    std::shared_ptr<ArrayBuffer> data,
                    std::optional<uint64_t> dataOffsetElements,
                    std::optional<size_t> sizeElements);
+  void copyExternalImageToTexture(
+      std::shared_ptr<GPUImageCopyExternalImage> source,
+      std::shared_ptr<GPUImageCopyTextureTagged> destination,
+      std::shared_ptr<GPUExtent3D> copySize);
 
   std::string getLabel() { return _label; }
 
@@ -46,6 +54,8 @@ public:
     registerHybridMethod("onSubmittedWorkDone", &GPUQueue::onSubmittedWorkDone,
                          this);
     registerHybridMethod("writeBuffer", &GPUQueue::writeBuffer, this);
+    registerHybridMethod("copyExternalImageToTexture",
+                         &GPUQueue::copyExternalImageToTexture, this);
 
     registerHybridGetter("label", &GPUQueue::getLabel, this);
   }

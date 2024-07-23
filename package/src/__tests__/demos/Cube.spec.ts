@@ -559,11 +559,22 @@ describe("Cube", () => {
             GPUTextureUsage.RENDER_ATTACHMENT,
         });
 
-        device.queue.copyExternalImageToTexture(
-          { source: imageBitmap },
-          { texture: cubeTexture },
-          [imageBitmap.width, imageBitmap.height],
+        device.queue.writeTexture(
+          { texture: cubeTexture, mipLevel: 0, origin: { x: 0, y: 0, z: 0 } },
+          imageBitmap.data.buffer,
+          {
+            offset: 0,
+            bytesPerRow: 4 * imageBitmap.width,
+            rowsPerImage: imageBitmap.height,
+          },
+          { width: imageBitmap.width, height: imageBitmap.height },
         );
+
+        // device.queue.copyExternalImageToTexture(
+        //   { source: imageBitmap },
+        //   { texture: cubeTexture },
+        //   [imageBitmap.width, imageBitmap.height],
+        // );
 
         // Create a sampler with linear filtering for smooth interpolation.
         const sampler = device.createSampler({
