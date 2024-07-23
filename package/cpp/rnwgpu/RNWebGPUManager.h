@@ -25,7 +25,10 @@ public:
                   std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker);
   ~RNWebGPUManager();
   std::shared_ptr<GPU> gpu;
+  static ANativeWindow *window;
   static std::shared_ptr<wgpu::Surface> surface;
+  static std::shared_ptr<wgpu::Texture> texture;
+  static std::shared_ptr<wgpu::SwapChain> swapChain;
 private:
   jsi::Runtime *_jsRuntime;
   std::shared_ptr<facebook::react::CallInvoker> _jsCallInvoker;

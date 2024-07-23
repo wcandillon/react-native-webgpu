@@ -12,7 +12,7 @@ void GPUCanvasContext::configure(std::shared_ptr<GPUCanvasConfiguration> configu
  }
  surfaceConfiguration.width = 200;
  surfaceConfiguration.height = 200;
- _instance.Configure(&surfaceConfiguration);
+// _instance.Configure(&surfaceConfiguration);
 
  _device = surfaceConfiguration.device;
 }
@@ -30,7 +30,16 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   swapChainDesc.presentMode = wgpu::PresentMode::Fifo;
   auto surface = rnwgpu::RNWebGPUManager::surface;
   auto swapChain = _device.CreateSwapChain(*surface, &swapChainDesc);
-  return std::make_shared<GPUTexture>(swapChain.GetCurrentTexture(), "mleko");
+  auto texture = swapChain.GetCurrentTexture();
+
+  RNWebGPUManager::swapChain = std::make_shared<wgpu::SwapChain>(swapChain);
+  RNWebGPUManager::texture = std::make_shared<wgpu::Texture>(texture);
+
+  return std::make_shared<GPUTexture>(texture, "mleko");
+}
+
+void GPUCanvasContext::present() {
+  RNWebGPUManager::swapChain->Present();
 }
 
 } // namespace rnwgpu

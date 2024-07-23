@@ -16,3 +16,5 @@ export const WebGPUContextRegistry = global.__WebGPUContextRegistry;
 
 WebGPUNativeModule.install();
 export const { gpu } = global;
+
+export const mleko = WebGPUNativeModule;

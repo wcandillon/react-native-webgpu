@@ -1,8 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Button, StyleSheet, View } from "react-native";
-import { gpu, WebGPUView, WebGPUViewRef } from "react-native-webgpu";
+import { gpu, WebGPUView, WebGPUViewRef, mleko } from "react-native-webgpu";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
-import { set } from "lodash";
 
 export const NativeView = () => {
   const ref = useRef<WebGPUViewRef>(null);
@@ -23,7 +22,7 @@ export const NativeView = () => {
     context.configure({
       device,
       format: presentationFormat,
-      alphaMode: 'premultiplied',
+      alphaMode: 'opaque',
     });
 
     const pipeline = device.createRenderPipeline({
@@ -52,12 +51,6 @@ export const NativeView = () => {
 
     const commandEncoder = device.createCommandEncoder();
 
-    // const texture = device.createTexture({
-    //   size: [200, 200],
-    //   format: "rgba8unorm",
-    //   usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
-    // });
-    // const textureView = texture.createView();
     const textureView = context.getCurrentTexture().createView();
     
     const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -76,10 +69,9 @@ export const NativeView = () => {
     passEncoder.draw(3);
     passEncoder.end();
 
-    const tmp = commandEncoder.finish()
-    device.queue.submit([tmp]);
+    device.queue.submit([commandEncoder.finish()]);
 
-    console.log(tmp)
+    context.present();
   }
 
   useEffect(() => {
@@ -87,6 +79,9 @@ export const NativeView = () => {
 
   return <View style={style.container}>
     <Button title="Run" onPress={demo} />
+    <Button title="gpu" onPress={() => {
+      mleko.triggergpu();
+    }} />
     <WebGPUView ref={ref} style={style.webgpu} />
   </View>;
 };

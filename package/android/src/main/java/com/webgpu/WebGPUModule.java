@@ -44,6 +44,14 @@ import com.facebook.react.turbomodule.core.interfaces.CallInvokerHolder;
     registerContext(jsContext.get(), contextId);
   }
 
+  @ReactMethod(isBlockingSynchronousMethod = true)
+  public void triggergpu() {
+    triggerGPU();
+  }
+
   @DoNotStrip
   private native void registerContext(long jsRuntime, int contextId);
+
+  @DoNotStrip
+  private native void triggerGPU();
 }

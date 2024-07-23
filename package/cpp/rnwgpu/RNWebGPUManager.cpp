@@ -13,7 +13,10 @@
 
 namespace rnwgpu {
 
+ANativeWindow *RNWebGPUManager::window;
 std::shared_ptr<wgpu::Surface> RNWebGPUManager::surface;
+std::shared_ptr<wgpu::Texture> RNWebGPUManager::texture;
+std::shared_ptr<wgpu::SwapChain> RNWebGPUManager::swapChain;
 
 RNWebGPUManager::RNWebGPUManager(
     jsi::Runtime *jsRuntime,

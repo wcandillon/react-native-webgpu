@@ -79,19 +79,10 @@ wgpu::TextureFormat GPU::getPreferredCanvasFormat() {
 }
 
 void GPU::attachSurface(void *window) {
-//  runTriangleDemo(window, 200, 200);
+  runTriangleDemo(window, 200, 200);
 }
 
 void GPU::runTriangleDemo(void *window, int width, int height) {
-//  SurfaceDescriptorFromAndroidNativeWindow androidSurfaceDesc = {};
-//  androidSurfaceDesc.window = window;
-//
-//  // Set up the generic surface descriptor to use the platform-specific one
-//  SurfaceDescriptor surfaceDesc = {};
-//  surfaceDesc.nextInChain =
-//    reinterpret_cast<const ChainedStruct *>(&androidSurfaceDesc);
-//  Surface surface = _instance.CreateSurface(&surfaceDesc);
-
   RequestAdapterOptions adapterOpts;
   wgpu::Adapter adapter = nullptr;
   _instance.RequestAdapter(
@@ -129,8 +120,17 @@ void GPU::runTriangleDemo(void *window, int width, int height) {
   swapChainDesc.usage = TextureUsage::RenderAttachment;
   swapChainDesc.format = TextureFormat::RGBA8Unorm;
   swapChainDesc.presentMode = PresentMode::Fifo;
-  auto surface = rnwgpu::RNWebGPUManager::surface;
-  SwapChain swapChain = device.CreateSwapChain(*surface, &swapChainDesc);
+
+
+//    SurfaceDescriptorFromAndroidNativeWindow androidSurfaceDesc = {};
+//    androidSurfaceDesc.window = rnwgpu::RNWebGPUManager::window;
+//    SurfaceDescriptor surfaceDesc = {};
+//    surfaceDesc.nextInChain = reinterpret_cast<const ChainedStruct *>(&androidSurfaceDesc);
+//    Surface surface = _instance.CreateSurface(&surfaceDesc);
+//    SwapChain swapChain = device.CreateSwapChain(surface, &swapChainDesc);
+
+    auto surface = rnwgpu::RNWebGPUManager::surface;
+    SwapChain swapChain = device.CreateSwapChain(*surface, &swapChainDesc);
 
   const char *shaderSource = R"(
 @vertex
@@ -172,16 +172,13 @@ fn fs_main() -> @location(0) vec4f {
 
   ColorTargetState colorTarget;
   colorTarget.format = TextureFormat::RGBA8Unorm;
-  colorTarget.writeMask = ColorWriteMask::All; // We could write to only some
-  // of the color channels.
-
-  // We have only one target because our render pass has only one output
-  // color attachment.
+  colorTarget.writeMask = ColorWriteMask::All;
   fragmentState.targetCount = 1;
   fragmentState.targets = &colorTarget;
 
   RenderPipeline pipeline = device.CreateRenderPipeline(&pipelineDesc);
 
+//  auto texture = RNWebGPUManager::swapChain->GetCurrentTexture();
   auto texture = swapChain.GetCurrentTexture();
   TextureViewDescriptor textureViewDescriptor;
   TextureView nextTexture = texture.CreateView(&textureViewDescriptor);
@@ -223,11 +220,8 @@ fn fs_main() -> @location(0) vec4f {
   while (!done) {
     _instance.ProcessEvents();
   }
+//  RNWebGPUManager::swapChain->Present();
   swapChain.Present();
-
-  // surface.release();
-  // glfwDestroyWindow(window);
-  // glfwTerminate();
 }
 
 } // namespace rnwgpu

@@ -31,12 +31,14 @@ public:
     registerHybridMethod("configure", &GPUCanvasContext::configure, this);
     registerHybridMethod("unconfigure", &GPUCanvasContext::unconfigure, this);
     registerHybridMethod("getCurrentTexture", &GPUCanvasContext::getCurrentTexture, this);
+    registerHybridMethod("present", &GPUCanvasContext::present, this);
   }
 
  inline const wgpu::Surface get() { return _instance; }
   void configure(std::shared_ptr<GPUCanvasConfiguration> configuration);
   void unconfigure();
   std::shared_ptr<GPUTexture> getCurrentTexture();
+  void present();
 
 private:
   wgpu::Surface _instance;
