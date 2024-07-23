@@ -69,4 +69,24 @@ void GPURenderBundleEncoder::setBindGroup(
   }
 }
 
+void GPURenderBundleEncoder::setIndexBuffer(std::shared_ptr<GPUBuffer> buffer,
+                                            wgpu::IndexFormat indexFormat,
+                                            std::optional<uint64_t> offset,
+                                            std::optional<uint64_t> size) {
+  Convertor conv;
+
+  wgpu::Buffer b{};
+  wgpu::IndexFormat f{};
+  uint64_t o = 0;
+  uint64_t s = wgpu::kWholeSize;
+  if (!conv(b, buffer) ||      //
+      !conv(f, indexFormat) || //
+      !conv(o, offset) ||      //
+      !conv(s, size)) {
+    return;
+  }
+
+  _instance.SetIndexBuffer(b, f, o, s);
+}
+
 } // namespace rnwgpu

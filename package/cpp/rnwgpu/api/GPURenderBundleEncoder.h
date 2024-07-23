@@ -41,6 +41,10 @@ public:
       std::variant<std::nullptr_t, std::shared_ptr<GPUBindGroup>> bindGroup,
       std::optional<std::vector<uint32_t>> dynamicOffsets);
   void setPipeline(std::shared_ptr<GPURenderPipeline> pipeline);
+  void setIndexBuffer(std::shared_ptr<GPUBuffer> buffer,
+                      wgpu::IndexFormat indexFormat,
+                      std::optional<uint64_t> offset,
+                      std::optional<uint64_t> size);
   void setVertexBuffer(
       uint32_t slot,
       std::variant<std::nullptr_t, std::shared_ptr<GPUBuffer>> buffer,
@@ -58,6 +62,8 @@ public:
                          this);
     registerHybridMethod("setPipeline", &GPURenderBundleEncoder::setPipeline,
                          this);
+    registerHybridMethod("setIndexBuffer",
+                         &GPURenderBundleEncoder::setIndexBuffer, this);
     registerHybridMethod("setVertexBuffer",
                          &GPURenderBundleEncoder::setVertexBuffer, this);
     registerHybridMethod("draw", &GPURenderBundleEncoder::draw, this);

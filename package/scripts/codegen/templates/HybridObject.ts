@@ -22,8 +22,9 @@ const objectWhileList = [
   "GPUAdapter",
   "GPUSupportedLimits",
   "GPUAdapterInfo",
+  "GPUQueue",
   //"GPUDevice",
-]; //  "GPUQueue", etc
+];
 
 const methodBlackList = ["requestAdapterInfo"];
 
@@ -70,6 +71,10 @@ const methodWhiteList = [
   "copyExternalImageToTexture",
   "writeTexture",
   "copyTextureToTexture",
+  "createQuerySet",
+  "setIndexBuffer",
+  "begininOcclusionQuery",
+  "endOcclusionQuery",
 ];
 
 const propWhiteList: Record<string, string[]> = {

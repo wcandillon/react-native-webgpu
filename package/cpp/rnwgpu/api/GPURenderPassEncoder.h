@@ -32,12 +32,17 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  void endOcclusionQuery();
   void end();
   void setBindGroup(
       uint32_t index,
       std::variant<std::nullptr_t, std::shared_ptr<GPUBindGroup>> bindGroup,
       std::optional<std::vector<uint32_t>> dynamicOffsets);
   void setPipeline(std::shared_ptr<GPURenderPipeline> pipeline);
+  void setIndexBuffer(std::shared_ptr<GPUBuffer> buffer,
+                      wgpu::IndexFormat indexFormat,
+                      std::optional<uint64_t> offset,
+                      std::optional<uint64_t> size);
   void setVertexBuffer(
       uint32_t slot,
       std::variant<std::nullptr_t, std::shared_ptr<GPUBuffer>> buffer,
@@ -50,11 +55,15 @@ public:
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPURenderPassEncoder::getBrand, this);
+    registerHybridMethod("endOcclusionQuery",
+                         &GPURenderPassEncoder::endOcclusionQuery, this);
     registerHybridMethod("end", &GPURenderPassEncoder::end, this);
     registerHybridMethod("setBindGroup", &GPURenderPassEncoder::setBindGroup,
                          this);
     registerHybridMethod("setPipeline", &GPURenderPassEncoder::setPipeline,
                          this);
+    registerHybridMethod("setIndexBuffer",
+                         &GPURenderPassEncoder::setIndexBuffer, this);
     registerHybridMethod("setVertexBuffer",
                          &GPURenderPassEncoder::setVertexBuffer, this);
     registerHybridMethod("draw", &GPURenderPassEncoder::draw, this);
