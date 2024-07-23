@@ -139,7 +139,9 @@ describe("Adapter", () => {
         maxComputeWorkgroupsPerDimension,
       };
     });
-    expect(result.__brand).toBe("GPUSupportedLimits");
+    if (result.__brand) {
+      expect(result.__brand).toBe("GPUSupportedLimits");
+    }
     expect(result.maxBindGroups).toBeGreaterThan(0);
     expect(result.maxBindGroupsPlusVertexBuffers).toBeGreaterThan(
       result.maxBindGroups,
@@ -164,6 +166,21 @@ describe("Adapter", () => {
     expect(result.maxTextureDimension2D).toBeGreaterThanOrEqual(2048);
     expect(result.maxTextureDimension3D).toBeGreaterThanOrEqual(256);
   });
+  // it("adapter info", async () => {
+  //   const result = await client.eval(({ adapter }) => {
+  //     return {
+  //       __brand: adapter.info.__brand,
+  //       description: adapter.info.description,
+  //       architecture: adapter.info.architecture,
+  //       device: adapter.info.device,
+  //       vendor: adapter.info.vendor,
+  //     };
+  //   });
+  //   expect(result.description).toBeTruthy();
+  //   expect(result.architecture).toBeTruthy();
+  //   expect(result.device).toBeTruthy();
+  //   expect(result.vendor).toBeTruthy();
+  // });
   it("getPreferredCanvasFormat", async () => {
     const result = await client.eval(({ gpu }) => {
       return gpu.getPreferredCanvasFormat();

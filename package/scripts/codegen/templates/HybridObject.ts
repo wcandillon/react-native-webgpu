@@ -17,7 +17,12 @@ const instanceAliases: Record<string, string> = {
   GPU: "Instance",
 };
 
-const objectWhileList = ["GPU", "GPUAdapter", "GPUSupportedLimits"]; // , "GPUDevice", "GPUQueue", etc
+const objectWhileList = [
+  "GPU",
+  "GPUAdapter",
+  "GPUSupportedLimits",
+  "GPUAdapterInfo",
+]; // , "GPUDevice", "GPUQueue", etc
 
 const methodBlackList = ["requestAdapterInfo"];
 
@@ -248,7 +253,7 @@ public:
   }
   
   inline const ${instanceName} get() {
-    return _instance;
+    return std::move(_instance);
   }
 
  private:
