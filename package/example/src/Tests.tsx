@@ -3,10 +3,12 @@
 import React, { useEffect } from "react";
 import { Text, View } from "react-native";
 import { gpu } from "react-native-webgpu";
+import { mat4, vec3 } from "wgpu-matrix";
 
 import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
+import { NativeDrawingContext } from "./components/NativeDrawingContext";
 
 export const CI = process.env.CI === "true";
 
@@ -31,7 +33,11 @@ const useWebGPU = () => {
   return { adapter, device };
 };
 
-export const Tests = () => {
+interface TestsProps {
+  assets: { di3D: ImageData };
+}
+
+export const Tests = ({ assets: { di3D } }: TestsProps) => {
   const { adapter, device } = useWebGPU();
   const [client, hostname] = useClient();
   useEffect(() => {
@@ -39,13 +45,13 @@ export const Tests = () => {
       client.onmessage = (e) => {
         const tree = JSON.parse(e.data);
         if (tree.code) {
+          const ctx = new NativeDrawingContext(device, 1024, 1024);
           const result = eval(
             `(function Main() {
               return (${tree.code})(this.ctx);
             })`,
           ).call({
             ctx: {
-              ...tree.ctx,
               gpu,
               adapter,
               device,
@@ -54,9 +60,18 @@ export const Tests = () => {
               GPUMapMode,
               GPUShaderStage,
               GPUTextureUsage,
-              cubeVertexArray,
-              triangleVertWGSL,
-              redFragWGSL,
+              assets: {
+                cubeVertexArray,
+                di3D,
+              },
+              shaders: {
+                triangleVertWGSL,
+                redFragWGSL,
+              },
+              ctx,
+              mat4,
+              vec3,
+              ...tree.ctx,
             },
           });
           if (result instanceof Promise) {
@@ -73,7 +88,7 @@ export const Tests = () => {
       };
     }
     return;
-  }, [adapter, client, device]);
+  }, [adapter, client, device, di3D]);
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
       <Text style={{ color: "black" }}>

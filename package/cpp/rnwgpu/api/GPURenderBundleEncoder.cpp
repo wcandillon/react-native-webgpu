@@ -31,6 +31,20 @@ void GPURenderBundleEncoder::draw(uint32_t vertexCount,
                  firstVertex.value_or(0), firstInstance.value_or(0));
 }
 
+void GPURenderBundleEncoder::setVertexBuffer(
+    uint32_t slot,
+    std::variant<std::nullptr_t, std::shared_ptr<GPUBuffer>> buffer,
+    std::optional<uint64_t> offset, std::optional<uint64_t> size) {
+  Convertor conv;
+
+  wgpu::Buffer b{};
+  uint64_t s = wgpu::kWholeSize;
+  if (!conv(b, buffer) || !conv(s, size)) {
+    return;
+  }
+  _instance.SetVertexBuffer(slot, b, offset.value_or(0), s);
+}
+
 void GPURenderBundleEncoder::setBindGroup(
     uint32_t groupIndex,
     std::variant<std::nullptr_t, std::shared_ptr<GPUBindGroup>> bindGroup,

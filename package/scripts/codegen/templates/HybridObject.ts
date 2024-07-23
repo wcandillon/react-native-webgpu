@@ -56,6 +56,9 @@ const methodWhiteList = [
   "beginComputePass",
   "dispatchWorkgroups",
   "onSubmittedWorkDone",
+  "setVertexBuffer",
+  "copyExternalImageToTexture",
+  "writeTexture",
 ];
 
 const propWhiteList: Record<string, string[]> = {

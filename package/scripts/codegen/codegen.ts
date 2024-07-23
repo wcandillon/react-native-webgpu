@@ -22,6 +22,8 @@ const project = new Project({
 
 const sourceFile = project.addSourceFileAtPath(filePath);
 
+sourceFile.getTypeAlias("GPUColor")!.remove();
+sourceFile.addInterface({ name: "GPUColor", isExported: true });
 // Descriptors
 // the following two descriptors map to:
 // type GPUCommandBufferDescriptor =
@@ -189,6 +191,8 @@ const toSkip = [
   "GPUExtent3DDict",
   "GPUOrigin2DDict",
   "GPUOrigin3DDict",
+  "GPUColorDict",
+  "GPUColor",
   // TODO: remove these
   "GPUImageCopyExternalImage",
   "GPURenderPassLayout",

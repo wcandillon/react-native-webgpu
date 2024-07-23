@@ -19,8 +19,7 @@
 #include "GPUBufferBinding.h"
 #include "GPUBufferBindingLayout.h"
 #include "GPUBufferDescriptor.h"
-#include "GPUCanvasConfiguration.h"
-#include "GPUColorDict.h"
+#include "GPUColor.h"
 #include "GPUColorTargetState.h"
 #include "GPUCommandBufferDescriptor.h"
 #include "GPUCommandEncoderDescriptor.h"
@@ -248,11 +247,10 @@ public:
   //          Convert(out.alphaMode, in.alphaMode);
   // }
 
-  // [[nodiscard]] bool Convert(wgpu::ColorDict &out, const GPUColorDict &in) {
-  //   return Convert(out.r, in.r) && Convert(out.g, in.g) && Convert(out.b,
-  //   in.b) &&
-  //          Convert(out.a, in.a);
-  // }
+  [[nodiscard]] bool Convert(wgpu::Color &out, const GPUColor &in) {
+    return Convert(out.r, in.r) && Convert(out.g, in.g) &&
+           Convert(out.b, in.b) && Convert(out.a, in.a);
+  }
 
   [[nodiscard]] bool Convert(wgpu::ColorTargetState &out,
                              const GPUColorTargetState &in) {
@@ -438,11 +436,10 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::RenderPassColorAttachment &out,
                              const GPURenderPassColorAttachment &in) {
-    // TODO: implement clearValue
     return Convert(out.view, in.view) &&
            Convert(out.depthSlice, in.depthSlice) &&
            Convert(out.resolveTarget, in.resolveTarget) &&
-           // Convert(out.clearValue, in.clearValue) &&
+           Convert(out.clearValue, in.clearValue) &&
            Convert(out.loadOp, in.loadOp) && Convert(out.storeOp, in.storeOp);
   }
 
@@ -560,10 +557,12 @@ public:
   [[nodiscard]] bool Convert(wgpu::VertexBufferLayout &out,
                              const GPUVertexBufferLayout &in) {
     out = {};
-    // TODO: Check if this is correct (see GPUVertexBufferLayout)
-    if (in.stepMode == wgpu::VertexStepMode::VertexBufferNotUsed) {
-      return Convert(out.stepMode, in.stepMode);
-    }
+    /*
+     TODO:
+     -    if (in.stepMode == wgpu::VertexStepMode::VertexBufferNotUsed) {
+     -      return Convert(out.stepMode, in.stepMode);
+     -    }
+     */
     return Convert(out.attributes, out.attributeCount, in.attributes) &&
            Convert(out.arrayStride, in.arrayStride) &&
            Convert(out.stepMode, in.stepMode);
@@ -594,22 +593,19 @@ public:
                          ? ConvertStringReplacingNull(in.entryPoint.value())
                          : nullptr;
     // TODO: implement !Convert(out.constants, out.constantCount, in.constants)
-    wgpu::VertexBufferLayout *outBuffers = nullptr;
     if (!Convert(out.module, in.module)) {
       return false;
     }
-
     if (in.buffers.has_value()) {
       std::vector<std::shared_ptr<GPUVertexBufferLayout>> filteredBuffers;
       for (const auto &buffer : in.buffers.value()) {
-        if (auto ptr =
-                std::get_if<std::shared_ptr<GPUVertexBufferLayout>>(&buffer)) {
-          if (*ptr) {
-            filteredBuffers.push_back(*ptr);
-          }
+        if (std::holds_alternative<std::shared_ptr<GPUVertexBufferLayout>>(
+                buffer)) {
+          auto ptr = std::get<std::shared_ptr<GPUVertexBufferLayout>>(buffer);
+          filteredBuffers.push_back(ptr);
         }
       }
-      if (!Convert(outBuffers, out.bufferCount, filteredBuffers)) {
+      if (!Convert(out.buffers, out.bufferCount, filteredBuffers)) {
         return false;
       }
     }

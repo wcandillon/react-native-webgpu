@@ -1,14 +1,17 @@
+/* eslint-disable max-len */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-var */
 import fs from "fs";
 import path from "path";
 
+import type { mat4, vec3 } from "wgpu-matrix";
 import type { Server, WebSocket } from "ws";
 import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
 
+import type { DrawingContext } from "../../example/src/components/DrawingContext";
 import { cubeVertexArray } from "../../example/src/components/cube";
 import {
   redFragWGSL,
@@ -26,16 +29,6 @@ declare global {
   var testClient: WebSocket;
   var testOS: TestOS;
 }
-export let client: TestingClient;
-
-beforeAll(async () => {
-  client = REFERENCE ? new ReferenceTestingClient() : new RemoteTestingClient();
-  await client.init();
-});
-
-afterAll(async () => {
-  await client.dispose();
-});
 
 interface GPUContext {
   gpu: GPU;
@@ -46,9 +39,17 @@ interface GPUContext {
   GPUMapMode: typeof GPUMapMode;
   GPUShaderStage: typeof GPUShaderStage;
   GPUTextureUsage: typeof GPUTextureUsage;
-  cubeVertexArray: Float32Array;
-  triangleVertWGSL: string;
-  redFragWGSL: string;
+  shaders: {
+    triangleVertWGSL: string;
+    redFragWGSL: string;
+  };
+  assets: {
+    cubeVertexArray: Float32Array;
+    di3D: ImageData;
+  };
+  ctx: DrawingContext;
+  mat4: typeof mat4;
+  vec3: typeof vec3;
 }
 
 type Ctx = Record<string, unknown>;
@@ -62,7 +63,7 @@ type JSONValue =
   | null;
 
 interface TestingClient {
-  eval<C = Ctx, R extends JSONValue = JSONValue>(
+  eval<C = Ctx, R = JSONValue>(
     fn: (ctx: GPUContext & C) => R | Promise<R>,
     ctx?: C,
   ): Promise<R>;
@@ -72,11 +73,22 @@ interface TestingClient {
   dispose(): Promise<void>;
 }
 
+export let client: TestingClient;
+
+beforeAll(async () => {
+  client = REFERENCE ? new ReferenceTestingClient() : new RemoteTestingClient();
+  await client.init();
+});
+
+afterAll(async () => {
+  await client.dispose();
+});
+
 class RemoteTestingClient implements TestingClient {
   readonly OS = global.testOS;
   readonly arch = global.testArch;
 
-  eval<C = Ctx, R extends JSONValue = JSONValue>(
+  eval<C = Ctx, R = JSONValue>(
     fn: (ctx: GPUContext & C) => R | Promise<R>,
     context?: C,
   ): Promise<R> {
@@ -121,7 +133,7 @@ class ReferenceTestingClient implements TestingClient {
   private browser: Browser | null = null;
   private page: Page | null = null;
 
-  async eval<C = Ctx, R extends JSONValue = JSONValue>(
+  async eval<C = Ctx, R = JSONValue>(
     fn: (ctx: GPUContext & C) => R | Promise<R>,
     ctx?: C,
   ): Promise<R> {
@@ -129,17 +141,70 @@ class ReferenceTestingClient implements TestingClient {
       throw new Error("RemoteSurface not initialized");
     }
     const source = `(async function Main(){
-      const { device, adapter, gpu, cubeVertexArray, triangleVertWGSL, redFragWGSL } = window;
+    var global = window;  
+    const r = () => {${fs.readFileSync(path.join(__dirname, "../../node_modules/wgpu-matrix/dist/3.x/wgpu-matrix.js"), "utf8")} };
+      r();
+      const { mat4, vec3 } = window.wgpuMatrix;
+      const { device, adapter, gpu, cubeVertexArray, triangleVertWGSL, redFragWGSL, di3D } = window;
+      class DrawingContext {
+        constructor(device, width, height) {
+            this.device = device;
+            this.width = width;
+            this.height = height;
+            const bytesPerRow = this.width * 4;
+            this.texture = device.createTexture({
+                size: [width, height],
+                format: gpu.getPreferredCanvasFormat(),
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+            });
+            this.buffer = device.createBuffer({
+                size: bytesPerRow * this.height,
+                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+            });
+        }
+        getCurrentTexture() {
+            return this.texture;
+        }
+        getImageData() {
+            const commandEncoder = this.device.createCommandEncoder();
+            const bytesPerRow = this.width * 4;
+            commandEncoder.copyTextureToBuffer({ texture: this.texture }, { buffer: this.buffer, bytesPerRow }, [this.width, this.height]);
+            this.device.queue.submit([commandEncoder.finish()]);
+
+            return this.buffer.mapAsync(GPUMapMode.READ).then(() => {
+              const arrayBuffer = this.buffer.getMappedRange();
+              const uint8Array = new Uint8Array(arrayBuffer);
+              const data = Array.from(uint8Array);
+              this.buffer.unmap();
+              return {
+                data,
+                width: this.width,
+                height: this.height,
+                format: gpu.getPreferredCanvasFormat(),
+              };
+            });
+        }
+    } 
+
+      const ctx = new DrawingContext(device, 1024, 1024);
       return (${fn.toString()})({
-        device, adapter, gpu, 
+        device, adapter, gpu,
         GPUBufferUsage,
         GPUColorWrite,
         GPUMapMode,
         GPUShaderStage,
         GPUTextureUsage,
-        cubeVertexArray,
-        triangleVertWGSL,
-        redFragWGSL,
+        assets: {
+          cubeVertexArray,
+          di3D
+        },
+        shaders: {
+          triangleVertWGSL,
+          redFragWGSL,
+        },
+        ctx,
+        mat4,
+        vec3,
         ...${JSON.stringify(ctx || {})}
       });
     })();`;
@@ -164,6 +229,9 @@ class ReferenceTestingClient implements TestingClient {
       })
       .catch((e) => console.log(e));
     await page.waitForNetworkIdle();
+    const di3D = decodeImage(
+      path.join(__dirname, "../../example/src/assets/Di-3d.png"),
+    );
     await page.evaluate(
       `
 (async () => {
@@ -181,7 +249,12 @@ class ReferenceTestingClient implements TestingClient {
   window.cubeVertexArray = new Float32Array(${JSON.stringify(Array.from(cubeVertexArray))});
   window.triangleVertWGSL = \`${triangleVertWGSL}\`;
   window.redFragWGSL = \`${redFragWGSL}\`;
-
+  const raw = ${JSON.stringify(di3D)};
+  window.di3D = new ImageData(
+    new Uint8ClampedArray(raw.data),
+    raw.width,
+    raw.height
+  );
 })();
       `,
     );
@@ -195,11 +268,28 @@ class ReferenceTestingClient implements TestingClient {
   }
 }
 
-export const encodeImage = (
-  data: Uint8Array,
-  width: number,
-  height: number,
-) => {
+interface BitmapData {
+  data: number[];
+  width: number;
+  height: number;
+  format: string;
+}
+
+export const encodeImage = (bitmap: BitmapData) => {
+  const { width, height, format } = bitmap;
+  let data = new Uint8Array(bitmap.data);
+  // Convert BGRA to RGBA if necessary
+  if (format === "bgra8unorm") {
+    data = new Uint8Array(bitmap.data.length);
+    for (let i = 0; i < bitmap.data.length; i += 4) {
+      data[i] = bitmap.data[i + 2]; // R
+      data[i + 1] = bitmap.data[i + 1]; // G
+      data[i + 2] = bitmap.data[i]; // B
+      data[i + 3] = bitmap.data[i + 3]; // A
+    }
+  } else if (format !== "rgba8unorm") {
+    throw new Error(`Unsupported format ${format}`);
+  }
   // Create a new PNG
   const png = new PNG({
     width: width,
@@ -221,7 +311,7 @@ interface CheckImageOptions {
 // On Github Action, the image decoding is slightly different
 // all tests that show the oslo.jpg have small differences but look ok
 const defaultCheckImageOptions = {
-  maxPixelDiff: 200,
+  maxPixelDiff: 0,
   threshold: 0.1,
   overwrite: false,
   mute: false,
@@ -274,4 +364,19 @@ export const checkImage = (
     fs.writeFileSync(p, buffer);
   }
   return 0;
+};
+
+export const decodeImage = (relPath: string): BitmapData => {
+  const p = path.resolve(__dirname, relPath);
+  const data = fs.readFileSync(p);
+  const png = PNG.sync.read(data);
+
+  const bitmap: BitmapData = {
+    data: Array.from(png.data),
+    width: png.width,
+    height: png.height,
+    format: "rgba8unorm",
+  };
+
+  return bitmap;
 };
