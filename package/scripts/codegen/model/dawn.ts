@@ -100,6 +100,20 @@ export const resolved: Record<
           { name: "copySize", type: "std::shared_ptr<GPUExtent3D>" },
         ],
       },
+      copyTextureToTexture: {
+        deps: [
+          "memory",
+          "GPUImageCopyTexture",
+          "GPUImageCopyTexture",
+          "GPUExtent3D",
+        ],
+        returnType: "void",
+        args: [
+          { name: "source", type: "std::shared_ptr<GPUImageCopyTexture>" },
+          { name: "destination", type: "std::shared_ptr<GPUImageCopyTexture>" },
+          { name: "copySize", type: "std::shared_ptr<GPUExtent3D>" },
+        ],
+      },
     },
   },
   GPUQueue: {

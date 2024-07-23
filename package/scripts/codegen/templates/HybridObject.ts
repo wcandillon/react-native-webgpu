@@ -59,6 +59,7 @@ const methodWhiteList = [
   "setVertexBuffer",
   "copyExternalImageToTexture",
   "writeTexture",
+  "copyTextureToTexture",
 ];
 
 const propWhiteList: Record<string, string[]> = {

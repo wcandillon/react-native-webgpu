@@ -2,7 +2,7 @@ import type { Mat4 } from "wgpu-matrix";
 
 import { checkImage, client, encodeImage } from "../setup";
 
-const basicVert = /*wgsl*/ `struct Uniforms {
+export const basicVert = /*wgsl*/ `struct Uniforms {
   modelViewProjectionMatrix : mat4x4f,
 }
 @binding(0) @group(0) var<uniform> uniforms : Uniforms;
