@@ -19,7 +19,9 @@
 #include "GPUCommandBuffer.h"
 #include "GPUExtent3D.h"
 #include "GPUImageCopyExternalImage.h"
+#include "GPUImageCopyTexture.h"
 #include "GPUImageCopyTextureTagged.h"
+#include "GPUImageDataLayout.h"
 
 namespace rnwgpu {
 
@@ -41,10 +43,14 @@ public:
                    std::shared_ptr<ArrayBuffer> data,
                    std::optional<uint64_t> dataOffsetElements,
                    std::optional<size_t> sizeElements);
+  void writeTexture(std::shared_ptr<GPUImageCopyTexture> destination,
+                    std::shared_ptr<ArrayBuffer> data,
+                    std::shared_ptr<GPUImageDataLayout> dataLayout,
+                    std::shared_ptr<GPUExtent3D> size);
   void copyExternalImageToTexture(
       std::shared_ptr<GPUImageCopyExternalImage> source,
       std::shared_ptr<GPUImageCopyTextureTagged> destination,
-      std::shared_ptr<GPUExtent3D> copySize);
+      std::shared_ptr<GPUExtent3D> size);
 
   std::string getLabel() { return _label; }
 
@@ -54,6 +60,7 @@ public:
     registerHybridMethod("onSubmittedWorkDone", &GPUQueue::onSubmittedWorkDone,
                          this);
     registerHybridMethod("writeBuffer", &GPUQueue::writeBuffer, this);
+    registerHybridMethod("writeTexture", &GPUQueue::writeTexture, this);
     registerHybridMethod("copyExternalImageToTexture",
                          &GPUQueue::copyExternalImageToTexture, this);
 

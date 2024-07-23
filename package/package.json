@@ -97,7 +97,8 @@
     "ws": "^8.18.0"
   },
   "resolutions": {
-    "@types/react": "^18.2.44"
+    "@types/react": "^18.2.44",
+    "@webgpu/types": "^0.1.42"
   },
   "peerDependencies": {
     "react": "*",

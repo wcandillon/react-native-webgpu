@@ -58,6 +58,7 @@ const methodWhiteList = [
   "onSubmittedWorkDone",
   "setVertexBuffer",
   "copyExternalImageToTexture",
+  "writeTexture",
 ];
 
 const propWhiteList: Record<string, string[]> = {

@@ -11,21 +11,19 @@
 #include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
 
-#include "ImageData.h"
 #include "GPUOrigin2D.h"
+#include "ImageData.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
 
-namespace rnwgpu { 
-
+namespace rnwgpu {
 
 struct GPUImageCopyExternalImage {
   std::shared_ptr<ImageData> source; // GPUImageCopyExternalImageSource
   std::optional<std::shared_ptr<GPUOrigin2D>> origin; // GPUOrigin2DStrict
-  std::optional<bool> flipY; // boolean
+  std::optional<bool> flipY;                          // boolean
 };
-
 
 } // namespace rnwgpu
 
@@ -42,7 +40,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
       auto obj = arg.getObject(runtime);
       if (obj.hasProperty(runtime, "source")) {
         auto prop = obj.getProperty(runtime, "source");
-        result->source = JSIConverter<std::shared_ptr<ImageData>>::fromJSI(runtime, prop, false);
+        result->source = JSIConverter<std::shared_ptr<ImageData>>::fromJSI(
+            runtime, prop, false);
       }
     }
 
