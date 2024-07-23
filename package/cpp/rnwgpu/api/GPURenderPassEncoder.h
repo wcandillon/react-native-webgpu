@@ -26,8 +26,8 @@ class GPURenderPassEncoder : public m::HybridObject {
 public:
   explicit GPURenderPassEncoder(wgpu::RenderPassEncoder instance,
                                 std::string label)
-      : HybridObject("GPURenderPassEncoder"), _instance(std::move(instance)),
-        _label(std::move(label)) {}
+      : HybridObject("GPURenderPassEncoder"), _instance(instance),
+        _label(label) {}
 
 public:
   std::string getBrand() { return _name; }

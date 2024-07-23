@@ -29,8 +29,7 @@ namespace m = margelo;
 class GPUCommandEncoder : public m::HybridObject {
 public:
   explicit GPUCommandEncoder(wgpu::CommandEncoder instance, std::string label)
-      : HybridObject("GPUCommandEncoder"), _instance(std::move(instance)),
-        _label(std::move(label)) {}
+      : HybridObject("GPUCommandEncoder"), _instance(instance), _label(label) {}
 
 public:
   std::string getBrand() { return _name; }

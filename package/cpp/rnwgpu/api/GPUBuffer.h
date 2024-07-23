@@ -24,8 +24,8 @@ class GPUBuffer : public m::HybridObject {
 public:
   explicit GPUBuffer(wgpu::Buffer instance, std::shared_ptr<AsyncRunner> async,
                      std::string label)
-      : HybridObject("GPUBuffer"), _instance(std::move(instance)),
-        _async(std::move(async)), _label(std::move(label)) {}
+      : HybridObject("GPUBuffer"), _instance(instance), _async(async),
+        _label(label) {}
 
 public:
   std::string getBrand() { return _name; }

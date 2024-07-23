@@ -4,8 +4,8 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include "WGPULogger.h"
 
 #include "GPUStencilFaceState.h"
 #include "RNFHybridObject.h"

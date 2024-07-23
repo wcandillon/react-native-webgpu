@@ -17,7 +17,7 @@ namespace m = margelo;
 class GPUSupportedLimits : public m::HybridObject {
 public:
   explicit GPUSupportedLimits(wgpu::SupportedLimits instance)
-      : HybridObject("GPUSupportedLimits"), _instance(std::move(instance)) {}
+      : HybridObject("GPUSupportedLimits"), _instance(instance) {}
 
 public:
   std::string getBrand() { return _name; }

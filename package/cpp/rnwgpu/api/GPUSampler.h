@@ -17,8 +17,7 @@ namespace m = margelo;
 class GPUSampler : public m::HybridObject {
 public:
   explicit GPUSampler(wgpu::Sampler instance, std::string label)
-      : HybridObject("GPUSampler"), _instance(std::move(instance)),
-        _label(std::move(label)) {}
+      : HybridObject("GPUSampler"), _instance(instance), _label(label) {}
 
 public:
   std::string getBrand() { return _name; }

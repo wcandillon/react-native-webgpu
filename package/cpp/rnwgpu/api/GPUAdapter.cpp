@@ -6,7 +6,7 @@
 
 #include "Convertors.h"
 
-#include "Logger.h"
+#include "WGPULogger.h"
 
 namespace rnwgpu {
 static void convertEnumToJSUnion(wgpu::FeatureName inEnum,

@@ -221,7 +221,7 @@ public:
   ${
     ctor
       ? ctor
-      : `  explicit ${className}(${ctorParams.map((param) => `${param.type} ${param.name}`).join(", ")}) : HybridObject("${className}"), ${ctorParams.map((param) => `_${param.name}(std::move(${param.name}))`).join(", ")} {}`
+      : `  explicit ${className}(${ctorParams.map((param) => `${param.type} ${param.name}`).join(", ")}) : HybridObject("${className}"), ${ctorParams.map((param) => `_${param.name}(${param.name})`).join(", ")} {}`
   }
 
 public:
@@ -253,7 +253,7 @@ public:
   }
   
   inline const ${instanceName} get() {
-    return std::move(_instance);
+    return _instance;
   }
 
  private:

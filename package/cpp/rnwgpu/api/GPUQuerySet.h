@@ -17,8 +17,7 @@ namespace m = margelo;
 class GPUQuerySet : public m::HybridObject {
 public:
   explicit GPUQuerySet(wgpu::QuerySet instance, std::string label)
-      : HybridObject("GPUQuerySet"), _instance(std::move(instance)),
-        _label(std::move(label)) {}
+      : HybridObject("GPUQuerySet"), _instance(instance), _label(label) {}
 
 public:
   std::string getBrand() { return _name; }

@@ -17,7 +17,7 @@ namespace m = margelo;
 class GPUCompilationMessage : public m::HybridObject {
 public:
   explicit GPUCompilationMessage(wgpu::CompilationMessage instance)
-      : HybridObject("GPUCompilationMessage"), _instance(std::move(instance)) {}
+      : HybridObject("GPUCompilationMessage"), _instance(instance) {}
 
 public:
   std::string getBrand() { return _name; }

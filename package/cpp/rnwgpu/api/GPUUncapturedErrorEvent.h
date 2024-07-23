@@ -17,8 +17,7 @@ namespace m = margelo;
 class GPUUncapturedErrorEvent : public m::HybridObject {
 public:
   explicit GPUUncapturedErrorEvent(wgpu::UncapturedErrorEvent instance)
-      : HybridObject("GPUUncapturedErrorEvent"),
-        _instance(std::move(instance)) {}
+      : HybridObject("GPUUncapturedErrorEvent"), _instance(instance) {}
 
 public:
   std::string getBrand() { return _name; }

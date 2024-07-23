@@ -269,7 +269,7 @@ ${Array.from(dependencies)
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
+#include "WGPULogger.h"
 #include "RNFJSIConverter.h"
 
 #include "RNFHybridObject.h"

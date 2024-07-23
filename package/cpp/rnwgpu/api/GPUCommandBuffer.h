@@ -17,8 +17,7 @@ namespace m = margelo;
 class GPUCommandBuffer : public m::HybridObject {
 public:
   explicit GPUCommandBuffer(wgpu::CommandBuffer instance, std::string label)
-      : HybridObject("GPUCommandBuffer"), _instance(std::move(instance)),
-        _label(std::move(label)) {}
+      : HybridObject("GPUCommandBuffer"), _instance(instance), _label(label) {}
 
 public:
   std::string getBrand() { return _name; }

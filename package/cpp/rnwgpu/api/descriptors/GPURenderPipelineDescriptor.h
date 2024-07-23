@@ -5,8 +5,8 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
 #include "RNFJSIConverter.h"
+#include "WGPULogger.h"
 
 #include "GPUDepthStencilState.h"
 #include "GPUFragmentState.h"
