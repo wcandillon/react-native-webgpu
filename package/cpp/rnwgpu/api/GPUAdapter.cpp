@@ -174,7 +174,8 @@ std::shared_ptr<GPUSupportedLimits> GPUAdapter::getLimits() {
 std::shared_ptr<GPUAdapterInfo> GPUAdapter::getInfo() {
   wgpu::AdapterInfo info = {};
   _instance.GetInfo(&info);
-  return std::make_shared<GPUAdapterInfo>(info);
+  return nullptr;
+  // return std::make_shared<GPUAdapterInfo>(info);
 }
 
 bool GPUAdapter::getIsFallbackAdapter() {

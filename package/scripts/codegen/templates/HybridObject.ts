@@ -17,7 +17,7 @@ const instanceAliases: Record<string, string> = {
   GPU: "Instance",
 };
 
-const objectWhileList = ["GPU", "GPUAdapter"]; // , "GPUDevice"
+const objectWhileList = ["GPU", "GPUAdapter", "GPUSupportedLimits"]; // , "GPUDevice", "GPUQueue", etc
 
 const methodBlackList = ["requestAdapterInfo"];
 

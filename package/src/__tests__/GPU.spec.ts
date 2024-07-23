@@ -104,6 +104,7 @@ describe("Adapter", () => {
         maxComputeWorkgroupsPerDimension,
       } = adapter.limits;
       return {
+        __brand: adapter.limits.__brand,
         maxTextureDimension1D,
         maxTextureDimension2D,
         maxTextureDimension3D,
@@ -138,6 +139,7 @@ describe("Adapter", () => {
         maxComputeWorkgroupsPerDimension,
       };
     });
+    expect(result.__brand).toBe("GPUSupportedLimits");
     expect(result.maxBindGroups).toBeGreaterThan(0);
     expect(result.maxBindGroupsPlusVertexBuffers).toBeGreaterThan(
       result.maxBindGroups,
