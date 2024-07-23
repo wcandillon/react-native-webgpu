@@ -17,7 +17,7 @@ namespace m = margelo;
 class GPUCanvasContext : public m::HybridObject {
 public:
   explicit GPUCanvasContext(wgpu::CanvasContext instance)
-      : HybridObject("GPUCanvasContext"), _instance(instance) {}
+      : HybridObject("GPUCanvasContext"), _instance(std::move(instance)) {}
 
 public:
   std::string getBrand() { return _name; }

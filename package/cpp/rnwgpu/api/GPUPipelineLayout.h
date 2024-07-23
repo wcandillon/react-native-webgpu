@@ -17,7 +17,8 @@ namespace m = margelo;
 class GPUPipelineLayout : public m::HybridObject {
 public:
   explicit GPUPipelineLayout(wgpu::PipelineLayout instance, std::string label)
-      : HybridObject("GPUPipelineLayout"), _instance(instance), _label(label) {}
+      : HybridObject("GPUPipelineLayout"), _instance(std::move(instance)),
+        _label(std::move(label)) {}
 
 public:
   std::string getBrand() { return _name; }

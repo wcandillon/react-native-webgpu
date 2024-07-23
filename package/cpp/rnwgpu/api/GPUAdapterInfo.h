@@ -26,7 +26,6 @@ public:
     registerHybridGetter("__brand", &GPUAdapterInfo::getBrand, this);
   }
 
-  inline const wgpu::AdapterInfo get() { return std::move(_instance); }
 
 private:
   wgpu::AdapterInfo _instance;

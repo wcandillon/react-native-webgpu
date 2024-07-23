@@ -25,8 +25,8 @@ class GPUComputePassEncoder : public m::HybridObject {
 public:
   explicit GPUComputePassEncoder(wgpu::ComputePassEncoder instance,
                                  std::string label)
-      : HybridObject("GPUComputePassEncoder"), _instance(instance),
-        _label(label) {}
+      : HybridObject("GPUComputePassEncoder"), _instance(std::move(instance)),
+        _label(std::move(label)) {}
 
 public:
   std::string getBrand() { return _name; }

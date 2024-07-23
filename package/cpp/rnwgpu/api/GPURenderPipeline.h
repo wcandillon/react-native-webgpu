@@ -20,7 +20,8 @@ namespace m = margelo;
 class GPURenderPipeline : public m::HybridObject {
 public:
   explicit GPURenderPipeline(wgpu::RenderPipeline instance, std::string label)
-      : HybridObject("GPURenderPipeline"), _instance(instance), _label(label) {}
+      : HybridObject("GPURenderPipeline"), _instance(std::move(instance)),
+        _label(std::move(label)) {}
 
 public:
   std::string getBrand() { return _name; }

@@ -17,8 +17,8 @@ namespace m = margelo;
 class GPUBindGroupLayout : public m::HybridObject {
 public:
   explicit GPUBindGroupLayout(wgpu::BindGroupLayout instance, std::string label)
-      : HybridObject("GPUBindGroupLayout"), _instance(instance), _label(label) {
-  }
+      : HybridObject("GPUBindGroupLayout"), _instance(std::move(instance)),
+        _label(std::move(label)) {}
 
 public:
   std::string getBrand() { return _name; }

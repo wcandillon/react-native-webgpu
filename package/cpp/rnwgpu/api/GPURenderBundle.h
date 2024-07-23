@@ -17,7 +17,8 @@ namespace m = margelo;
 class GPURenderBundle : public m::HybridObject {
 public:
   explicit GPURenderBundle(wgpu::RenderBundle instance, std::string label)
-      : HybridObject("GPURenderBundle"), _instance(instance), _label(label) {}
+      : HybridObject("GPURenderBundle"), _instance(std::move(instance)),
+        _label(std::move(label)) {}
 
 public:
   std::string getBrand() { return _name; }

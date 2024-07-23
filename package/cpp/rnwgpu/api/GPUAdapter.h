@@ -26,7 +26,8 @@ class GPUAdapter : public m::HybridObject {
 public:
   explicit GPUAdapter(wgpu::Adapter instance,
                       std::shared_ptr<AsyncRunner> async)
-      : HybridObject("GPUAdapter"), _instance(instance), _async(async) {}
+      : HybridObject("GPUAdapter"), _instance(std::move(instance)),
+        _async(std::move(async)) {}
 
 public:
   std::string getBrand() { return _name; }

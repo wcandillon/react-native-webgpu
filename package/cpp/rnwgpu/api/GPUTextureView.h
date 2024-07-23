@@ -17,7 +17,8 @@ namespace m = margelo;
 class GPUTextureView : public m::HybridObject {
 public:
   explicit GPUTextureView(wgpu::TextureView instance, std::string label)
-      : HybridObject("GPUTextureView"), _instance(instance), _label(label) {}
+      : HybridObject("GPUTextureView"), _instance(std::move(instance)),
+        _label(std::move(label)) {}
 
 public:
   std::string getBrand() { return _name; }

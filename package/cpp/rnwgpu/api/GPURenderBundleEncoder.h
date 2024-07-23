@@ -28,8 +28,8 @@ class GPURenderBundleEncoder : public m::HybridObject {
 public:
   explicit GPURenderBundleEncoder(wgpu::RenderBundleEncoder instance,
                                   std::string label)
-      : HybridObject("GPURenderBundleEncoder"), _instance(instance),
-        _label(label) {}
+      : HybridObject("GPURenderBundleEncoder"), _instance(std::move(instance)),
+        _label(std::move(label)) {}
 
 public:
   std::string getBrand() { return _name; }
