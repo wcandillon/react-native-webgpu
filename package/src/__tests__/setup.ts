@@ -11,6 +11,7 @@ import puppeteer from "puppeteer";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
 
+import type { DrawingContext } from "../../example/src/components/DrawingContext";
 import { cubeVertexArray } from "../../example/src/components/cube";
 import {
   redFragWGSL,
@@ -18,7 +19,6 @@ import {
 } from "../../example/src/components/triangle";
 
 import { DEBUG, REFERENCE } from "./config";
-import { DrawingContext } from "../../example/src/components/DrawingContext";
 
 jest.setTimeout(180 * 1000);
 

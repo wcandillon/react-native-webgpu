@@ -88,7 +88,7 @@ export const Tests = ({ assets: { di3D } }: TestsProps) => {
       };
     }
     return;
-  }, [adapter, client, device]);
+  }, [adapter, client, device, di3D]);
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
       <Text style={{ color: "black" }}>

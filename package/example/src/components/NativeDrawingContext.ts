@@ -1,4 +1,4 @@
-import { DrawingContext } from "./DrawingContext";
+import type { DrawingContext } from "./DrawingContext";
 
 export class NativeDrawingContext implements DrawingContext {
   private texture: GPUTexture;
