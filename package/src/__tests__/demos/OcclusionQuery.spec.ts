@@ -250,6 +250,7 @@ describe("OcclusionQuery", () => {
 
         let time = 0;
         let then = 0;
+        let visible = "";
         function render(now: number) {
           now *= 0.001; // convert to seconds
           const deltaTime = now - then;
@@ -354,7 +355,7 @@ describe("OcclusionQuery", () => {
             resultBuf.mapAsync(GPUMapMode.READ).then(() => {
               const results = new BigUint64Array(resultBuf.getMappedRange());
 
-              const visible = objectInfos
+              visible = objectInfos
                 .filter((_, i) => results[i])
                 .map(({ id }) => id)
                 .join("");
@@ -364,11 +365,12 @@ describe("OcclusionQuery", () => {
           }
         }
         render(1721766068905 + 150 * 16);
-        return ctx.getImageData();
+        return ctx.getImageData().then((image) => ({ image, visible }));
       },
       { solidColorLitWGSL: solidColorLit },
     );
-    const image = encodeImage(result);
+    expect(result.visible).toBe("🟥🟨🟩🟧🟦🟪");
+    const image = encodeImage(result.image);
     checkImage(image, "snapshots/occlusion-query.png");
   });
 });

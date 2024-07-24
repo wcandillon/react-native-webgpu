@@ -1,8 +1,8 @@
-// GPUAdapter.cpp
-
 #include "GPUAdapter.h"
+
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "Convertors.h"
 
