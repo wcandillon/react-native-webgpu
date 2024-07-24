@@ -3098,6 +3098,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/seedrandom@npm:^3.0.8":
+  version: 3.0.8
+  resolution: "@types/seedrandom@npm:3.0.8"
+  checksum: 9651de4ecb5ad060053678d6a42403dd78222bcca80016417c23b58b4f739e544b7197a78b97d6862cf417ea80fd2df612cc50ca0fa387fbe794e326a382ab0b
+  languageName: node
+  linkType: hard
+
 "@types/semver@npm:^7.3.12, @types/semver@npm:^7.5.0":
   version: 7.5.8
   resolution: "@types/semver@npm:7.5.8"
@@ -9782,6 +9789,7 @@ __metadata:
     "@types/pixelmatch": 5.2.4
     "@types/pngjs": ^6.0.5
     "@types/react": ^18.2.44
+    "@types/seedrandom": ^3.0.8
     "@types/ws": ^8.5.10
     "@typescript-eslint/eslint-plugin": ^7.13.1
     "@webgpu/types": ^0.1.42
@@ -9801,6 +9809,7 @@ __metadata:
     react-native: 0.74.2
     react-native-builder-bob: ^0.23.2
     rimraf: ^5.0.7
+    seedrandom: ^3.0.5
     ts-morph: ^22.0.0
     ts-node: ^10.9.2
     turbo: ^1.10.7
@@ -10310,6 +10319,13 @@ __metadata:
   dependencies:
     loose-envify: ^1.1.0
   checksum: 4f8285076041ed2c81acdd1faa987f1655fdbd30554bc667c1ea64743fc74fb3a04ca7d27454b3d678735df5a230137a3b84756061b43dc5796e80701b66d124
+  languageName: node
+  linkType: hard
+
+"seedrandom@npm:^3.0.5":
+  version: 3.0.5
+  resolution: "seedrandom@npm:3.0.5"
+  checksum: 728b56bc3bc1b9ddeabd381e449b51cb31bdc0aa86e27fcd0190cea8c44613d5bcb2f6bb63ed79f78180cbe791c20b8ec31a9627f7b7fc7f476fd2bdb7e2da9f
   languageName: node
   linkType: hard
 

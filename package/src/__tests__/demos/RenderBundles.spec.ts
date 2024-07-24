@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
+import seedrandom from "seedrandom";
+
 import { checkImage, client, encodeImage } from "../setup";
 
 const mesh = /*wgsl*/ `struct Uniforms {
@@ -55,9 +57,10 @@ interface Renderable {
   bindGroup?: GPUBindGroup;
 }
 
+const rng = seedrandom("asteroid");
 const randomValues: number[] = [];
-for (let i = 0; i < 30000; i++) {
-  randomValues.push(Math.random());
+for (let j = 0; j < 30000; j++) {
+  randomValues.push(rng());
 }
 
 describe("Render Bundles", () => {
@@ -85,11 +88,10 @@ describe("Render Bundles", () => {
           uvOffset: 6 * 4,
         };
 
-        let i = 0;
+        let k = 0;
         const random = () => {
-          i++;
-          console.log(i);
-          return vals[i % vals.length];
+          k++;
+          return vals[k % vals.length];
         };
 
         // Borrowed and simplified from https://github.com/mrdoob/three.js/blob/master/src/geometries/SphereGeometry.js

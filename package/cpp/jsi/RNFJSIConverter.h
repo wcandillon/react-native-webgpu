@@ -519,7 +519,7 @@ struct JSIConverter<std::variant<std::nullptr_t, std::shared_ptr<O>>> {
 };
 
 template <typename O>
-struct JSIConverter<std::variant<std::nullptr_t, O>, 
+struct JSIConverter<std::variant<std::nullptr_t, O>,
                     std::enable_if_t<std::is_enum_v<O>>> {
   using Target = std::variant<std::nullptr_t, O>;
 
