@@ -18,10 +18,10 @@ GPUDevice::createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
 }
 
 std::shared_ptr<GPUSupportedLimits> GPUDevice::getLimits() {
-    wgpu::SupportedLimits limits{};
-    if (!_instance.GetLimits(&limits)) {
-      throw std::runtime_error("failed to get device limits");
-    }
+  wgpu::SupportedLimits limits{};
+  if (!_instance.GetLimits(&limits)) {
+    throw std::runtime_error("failed to get device limits");
+  }
   return std::make_shared<GPUSupportedLimits>(limits);
 }
 
