@@ -518,6 +518,29 @@ struct JSIConverter<std::variant<std::nullptr_t, std::shared_ptr<O>>> {
   }
 };
 
+template <typename O>
+struct JSIConverter<std::variant<std::nullptr_t, O>, 
+                    std::enable_if_t<std::is_enum_v<O>>> {
+  using Target = std::variant<std::nullptr_t, O>;
+
+  static Target fromJSI(jsi::Runtime &runtime, const jsi::Value &arg,
+                        bool outOfBound) {
+    if (arg.isNull()) {
+      return Target(nullptr);
+    } else if (arg.isNumber()) {
+      return Target(static_cast<O>(arg.asNumber()));
+    }
+    return Target(JSIConverter<O>::fromJSI(runtime, arg, outOfBound));
+  }
+
+  static jsi::Value toJSI(jsi::Runtime &runtime, Target arg) {
+    if (std::holds_alternative<std::nullptr_t>(arg)) {
+      return jsi::Value::null();
+    }
+    return JSIConverter<O>::toJSI(runtime, std::get<O>(arg));
+  }
+};
+
 // TODO: careful std::variant<O, std::nullptr_t> doesn't overload
 // std::variant<std::nullptr_t, 0> (order's matter)
 // variant<nullptr_t, numeric>

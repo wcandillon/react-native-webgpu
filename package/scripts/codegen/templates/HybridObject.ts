@@ -78,6 +78,7 @@ const methodWhiteList = [
   "drawIndexed",
   "resolveQuerySet",
   "createRenderBundleEncoder",
+  "executeBundles",
 ];
 
 const propWhiteList: Record<string, string[]> = {

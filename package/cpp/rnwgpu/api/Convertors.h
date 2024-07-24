@@ -100,6 +100,22 @@ public:
     return Convert(out_count, in.size());
   }
 
+  // TODO remove array that have been filtered upfront
+  template <typename OUT, typename IN>
+  [[nodiscard]] inline bool Convert(OUT *&out_els, size_t &out_count,
+                                    const std::vector<std::variant<std::nullptr_t, IN>> &in) {
+    std::vector<IN> filtered;
+    filtered.reserve(in.size());
+    
+    for (const auto& item : in) {
+      if (auto ptr = std::get_if<IN>(&item)) {
+        filtered.push_back(*ptr);
+      }
+    }
+    
+    return Convert(out_els, out_count, filtered);
+  }
+
   template <typename T>
   [[nodiscard]] auto Convert(T &out, const std::nullptr_t &in) {
     out = nullptr;
