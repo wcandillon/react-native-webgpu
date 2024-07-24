@@ -93,4 +93,16 @@ void GPURenderPassEncoder::drawIndexed(uint32_t indexCount,
                         firstInstance.value_or(0));
 }
 
+void GPURenderPassEncoder::executeBundles(std::vector<std::shared_ptr<GPURenderBundle>> bundles_in) {
+      Convertor conv;
+
+    wgpu::RenderBundle* bundles = nullptr;
+    size_t bundleCount = 0;
+    if (!conv(bundles, bundleCount, bundles_in)) {
+        return;
+    }
+
+    _instance.ExecuteBundles(bundleCount, bundles);
+}
+
 } // namespace rnwgpu

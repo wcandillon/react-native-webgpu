@@ -138,7 +138,7 @@ GPUDevice::createQuerySet(std::shared_ptr<GPUQuerySetDescriptor> descriptor) {
 std::shared_ptr<GPURenderBundleEncoder> GPUDevice::createRenderBundleEncoder(
     std::shared_ptr<GPURenderBundleEncoderDescriptor> descriptor) {
   Convertor conv;
-  
+
   wgpu::RenderBundleEncoderDescriptor desc{};
   if (!conv(desc.label, descriptor->label) ||
       !conv(desc.colorFormats, desc.colorFormatCount,

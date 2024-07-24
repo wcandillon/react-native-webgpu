@@ -16,6 +16,7 @@
 
 #include "GPUBindGroup.h"
 #include "GPUBuffer.h"
+#include "GPURenderBundle.h"
 #include "GPURenderPipeline.h"
 
 namespace rnwgpu {
@@ -34,6 +35,7 @@ public:
 
   void beginOcclusionQuery(uint32_t queryIndex);
   void endOcclusionQuery();
+  void executeBundles(std::vector<std::shared_ptr<GPURenderBundle>> bundles);
   void end();
   void setBindGroup(
       uint32_t index,
@@ -64,6 +66,8 @@ public:
                          &GPURenderPassEncoder::beginOcclusionQuery, this);
     registerHybridMethod("endOcclusionQuery",
                          &GPURenderPassEncoder::endOcclusionQuery, this);
+    registerHybridMethod("executeBundles",
+                         &GPURenderPassEncoder::executeBundles, this);
     registerHybridMethod("end", &GPURenderPassEncoder::end, this);
     registerHybridMethod("setBindGroup", &GPURenderPassEncoder::setBindGroup,
                          this);
