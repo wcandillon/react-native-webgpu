@@ -77,6 +77,7 @@ const methodWhiteList = [
   "endOcclusionQuery",
   "drawIndexed",
   "resolveQuerySet",
+  "createRenderBundleEncoder",
 ];
 
 const propWhiteList: Record<string, string[]> = {

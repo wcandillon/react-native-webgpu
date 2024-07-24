@@ -40,10 +40,10 @@ const useWebGPU = () => {
 };
 
 interface TestsProps {
-  assets: { di3D: ImageData };
+  assets: { di3D: ImageData; saturn: ImageData; moon: ImageData };
 }
 
-export const Tests = ({ assets: { di3D } }: TestsProps) => {
+export const Tests = ({ assets: { di3D, saturn, moon } }: TestsProps) => {
   const [image, setImage] = useState<SkImage | null>(null);
   const { adapter, device } = useWebGPU();
   const [client, hostname] = useClient();
@@ -70,6 +70,8 @@ export const Tests = ({ assets: { di3D } }: TestsProps) => {
               assets: {
                 cubeVertexArray,
                 di3D,
+                saturn,
+                moon,
               },
               shaders: {
                 triangleVertWGSL,

@@ -46,6 +46,8 @@ interface GPUContext {
   assets: {
     cubeVertexArray: Float32Array;
     di3D: ImageData;
+    moon: ImageData;
+    saturn: ImageData;
   };
   ctx: DrawingContext;
   mat4: typeof mat4;
@@ -145,7 +147,7 @@ class ReferenceTestingClient implements TestingClient {
     const r = () => {${fs.readFileSync(path.join(__dirname, "../../node_modules/wgpu-matrix/dist/3.x/wgpu-matrix.js"), "utf8")} };
       r();
       const { mat4, vec3 } = window.wgpuMatrix;
-      const { device, adapter, gpu, cubeVertexArray, triangleVertWGSL, redFragWGSL, di3D } = window;
+      const { device, adapter, gpu, cubeVertexArray, triangleVertWGSL, redFragWGSL, di3D, saturn, moon } = window;
       class DrawingContext {
         constructor(device, width, height) {
             this.device = device;
@@ -196,7 +198,9 @@ class ReferenceTestingClient implements TestingClient {
         GPUTextureUsage,
         assets: {
           cubeVertexArray,
-          di3D
+          di3D,
+          moon,
+          saturn,
         },
         shaders: {
           triangleVertWGSL,
@@ -232,6 +236,12 @@ class ReferenceTestingClient implements TestingClient {
     const di3D = decodeImage(
       path.join(__dirname, "../../example/src/assets/Di-3d.png"),
     );
+    const moon = decodeImage(
+      path.join(__dirname, "../../example/src/assets/moon.png"),
+    );
+    const saturn = decodeImage(
+      path.join(__dirname, "../../example/src/assets/saturn.png"),
+    );
     await page.evaluate(
       `
 (async () => {
@@ -249,11 +259,23 @@ class ReferenceTestingClient implements TestingClient {
   window.cubeVertexArray = new Float32Array(${JSON.stringify(Array.from(cubeVertexArray))});
   window.triangleVertWGSL = \`${triangleVertWGSL}\`;
   window.redFragWGSL = \`${redFragWGSL}\`;
-  const raw = ${JSON.stringify(di3D)};
+  const rawDi3D = ${JSON.stringify(di3D)};
   window.di3D = new ImageData(
-    new Uint8ClampedArray(raw.data),
-    raw.width,
-    raw.height
+    new Uint8ClampedArray(rawDi3D.data),
+    rawDi3D.width,
+    rawDi3D.height
+  );
+  const rawMoon = ${JSON.stringify(moon)};
+  window.moon = new ImageData(
+    new Uint8ClampedArray(rawMoon.data),
+    rawMoon.width,
+    rawMoon.height
+  );
+  const rawSaturn = ${JSON.stringify(saturn)};
+  window.saturn = new ImageData(
+    new Uint8ClampedArray(rawSaturn.data),
+    rawSaturn.width,
+    rawSaturn.height
   );
 })();
       `,
