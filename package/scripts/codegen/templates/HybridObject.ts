@@ -79,6 +79,9 @@ const methodWhiteList = [
   "resolveQuerySet",
   "createRenderBundleEncoder",
   "executeBundles",
+  "createBindGroupLayout",
+  "setScissorRect",
+  "createPipelineLayout",
 ];
 
 const propWhiteList: Record<string, string[]> = {

@@ -13,12 +13,16 @@
 
 #include "GPUBindGroup.h"
 #include "GPUBindGroupDescriptor.h"
+#include "GPUBindGroupLayout.h"
+#include "GPUBindGroupLayoutDescriptor.h"
 #include "GPUBuffer.h"
 #include "GPUBufferDescriptor.h"
 #include "GPUCommandEncoder.h"
 #include "GPUCommandEncoderDescriptor.h"
 #include "GPUComputePipeline.h"
 #include "GPUComputePipelineDescriptor.h"
+#include "GPUPipelineLayout.h"
+#include "GPUPipelineLayoutDescriptor.h"
 #include "GPUQuerySet.h"
 #include "GPUQuerySetDescriptor.h"
 #include "GPUQueue.h"
@@ -54,6 +58,10 @@ public:
   createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor);
   std::shared_ptr<GPUSampler> createSampler(
       std::optional<std::shared_ptr<GPUSamplerDescriptor>> descriptor);
+  std::shared_ptr<GPUBindGroupLayout> createBindGroupLayout(
+      std::shared_ptr<GPUBindGroupLayoutDescriptor> descriptor);
+  std::shared_ptr<GPUPipelineLayout>
+  createPipelineLayout(std::shared_ptr<GPUPipelineLayoutDescriptor> descriptor);
   std::shared_ptr<GPUBindGroup>
   createBindGroup(std::shared_ptr<GPUBindGroupDescriptor> descriptor);
   std::shared_ptr<GPUShaderModule>
@@ -79,6 +87,10 @@ public:
     registerHybridMethod("createBuffer", &GPUDevice::createBuffer, this);
     registerHybridMethod("createTexture", &GPUDevice::createTexture, this);
     registerHybridMethod("createSampler", &GPUDevice::createSampler, this);
+    registerHybridMethod("createBindGroupLayout",
+                         &GPUDevice::createBindGroupLayout, this);
+    registerHybridMethod("createPipelineLayout",
+                         &GPUDevice::createPipelineLayout, this);
     registerHybridMethod("createBindGroup", &GPUDevice::createBindGroup, this);
     registerHybridMethod("createShaderModule", &GPUDevice::createShaderModule,
                          this);
