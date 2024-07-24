@@ -35,7 +35,7 @@ const objectWhileList = [
   // "GPUComputePassEncoder",
   // "GPUComputePipeline",
   // "GPUDeviceLostInfo",
-  // "GPUExternalTexture",
+  "GPUExternalTexture",
   // "GPUPipelineLayout",
   "GPUQuerySet",
   "GPURenderBundle",
