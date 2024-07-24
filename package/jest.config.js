@@ -1,11 +1,17 @@
 module.exports = {
   preset: 'react-native',
   modulePathIgnorePatterns: [
-    '(setup)|(setup.(ts|tsx))$',
+    '(meshes)|(setup)|(setup.(ts|tsx))',
     'config.ts',
     'globalSetup.ts',
     'globalTeardown.ts'
   ],
   globalSetup: './src/__tests__/globalSetup.ts',
-  globalTeardown: './src/__tests__/globalTeardown.ts'
+  globalTeardown: './src/__tests__/globalTeardown.ts',
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
+  },
+  transformIgnorePatterns: [
+    'node_modules/(?!(wgpu-matrix|react-native|@react-native|react-native-.*)/)',
+  ],
 };

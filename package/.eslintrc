@@ -2,5 +2,6 @@
   "extends": "react-native-wcandillon",
   "rules": {
     "no-bitwise": "off"
-  }
+  },
+  "ignorePatterns": ["src/__tests__/demos/meshes"]
 }

@@ -79,11 +79,14 @@ const methodWhiteList = [
   "resolveQuerySet",
   "createRenderBundleEncoder",
   "executeBundles",
+  "createBindGroupLayout",
+  "setScissorRect",
+  "createPipelineLayout",
 ];
 
 const propWhiteList: Record<string, string[]> = {
   GPUBuffer: ["size", "usage", "mapState"],
-  GPUDevice: ["queue"],
+  GPUDevice: ["queue", "limits"],
   GPUTexture: [
     "width",
     "height",

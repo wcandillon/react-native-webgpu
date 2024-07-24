@@ -91,6 +91,7 @@
     "react-native-builder-bob": "^0.23.2",
     "rimraf": "^5.0.7",
     "seedrandom": "^3.0.5",
+    "teapot": "^1.0.0",
     "ts-morph": "^22.0.0",
     "ts-node": "^10.9.2",
     "turbo": "^1.10.7",

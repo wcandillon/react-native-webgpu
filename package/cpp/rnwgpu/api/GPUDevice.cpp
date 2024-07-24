@@ -17,6 +17,14 @@ GPUDevice::createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
                                      descriptor->label.value_or(""));
 }
 
+std::shared_ptr<GPUSupportedLimits> GPUDevice::getLimits() {
+    wgpu::SupportedLimits limits{};
+    if (!_instance.GetLimits(&limits)) {
+      throw std::runtime_error("failed to get device limits");
+    }
+  return std::make_shared<GPUSupportedLimits>(limits);
+}
+
 std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
   auto result = _instance.GetQueue();
   return std::make_shared<GPUQueue>(result, _async, _label);
@@ -152,5 +160,32 @@ std::shared_ptr<GPURenderBundleEncoder> GPUDevice::createRenderBundleEncoder(
   return std::make_shared<GPURenderBundleEncoder>(
       _instance.CreateRenderBundleEncoder(&desc),
       descriptor->label.value_or(""));
+}
+
+std::shared_ptr<GPUBindGroupLayout> GPUDevice::createBindGroupLayout(
+    std::shared_ptr<GPUBindGroupLayoutDescriptor> descriptor) {
+  Convertor conv;
+
+  wgpu::BindGroupLayoutDescriptor desc{};
+  if (!conv(desc.label, descriptor->label) ||
+      !conv(desc.entries, desc.entryCount, descriptor->entries)) {
+    return {};
+  }
+  return std::make_shared<GPUBindGroupLayout>(
+      _instance.CreateBindGroupLayout(&desc), descriptor->label.value_or(""));
+}
+
+std::shared_ptr<GPUPipelineLayout> GPUDevice::createPipelineLayout(
+    std::shared_ptr<GPUPipelineLayoutDescriptor> descriptor) {
+  Convertor conv;
+
+  wgpu::PipelineLayoutDescriptor desc{};
+  if (!conv(desc.label, descriptor->label) ||
+      !conv(desc.bindGroupLayouts, desc.bindGroupLayoutCount,
+            descriptor->bindGroupLayouts)) {
+    return {};
+  }
+  return std::make_shared<GPUPipelineLayout>(
+      _instance.CreatePipelineLayout(&desc), descriptor->label.value_or(""));
 }
 } // namespace rnwgpu

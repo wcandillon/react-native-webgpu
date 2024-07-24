@@ -33,6 +33,7 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  void setScissorRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
   void beginOcclusionQuery(uint32_t queryIndex);
   void endOcclusionQuery();
   void executeBundles(std::vector<std::shared_ptr<GPURenderBundle>> bundles);
@@ -62,6 +63,8 @@ public:
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPURenderPassEncoder::getBrand, this);
+    registerHybridMethod("setScissorRect",
+                         &GPURenderPassEncoder::setScissorRect, this);
     registerHybridMethod("beginOcclusionQuery",
                          &GPURenderPassEncoder::beginOcclusionQuery, this);
     registerHybridMethod("endOcclusionQuery",

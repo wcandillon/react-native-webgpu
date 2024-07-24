@@ -17,7 +17,7 @@ const layout = {
 };
 
 const colorFormats = {
-  type: "std::vector<std::variant<wgpu::TextureFormat, std::nullptr_t>>",
+  type: "std::vector<std::variant<std::nullptr_t, wgpu::TextureFormat>>",
   dependencies: ["vector"],
 };
 
