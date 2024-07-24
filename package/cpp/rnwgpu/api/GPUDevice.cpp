@@ -188,4 +188,134 @@ std::shared_ptr<GPUPipelineLayout> GPUDevice::createPipelineLayout(
   return std::make_shared<GPUPipelineLayout>(
       _instance.CreatePipelineLayout(&desc), descriptor->label.value_or(""));
 }
+
+std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
+    std::shared_ptr<GPUExternalTextureDescriptor> descriptor) {
+  throw std::runtime_error(
+      "GPUDevice::importExternalTexture(): Not implemented");
+}
+
+std::future<std::shared_ptr<GPUComputePipeline>>
+GPUDevice::createComputePipelineAsync(
+    std::shared_ptr<GPUComputePipelineDescriptor> descriptor) {
+  return _async->runAsync([=](wgpu::Instance *instance) {
+    wgpu::ComputePipelineDescriptor desc{};
+    Convertor conv;
+    if (!conv(desc, descriptor)) {
+      throw std::runtime_error("GPUDevice::createComputePipeline(): Error with "
+                               "GPUComputePipelineDescriptor");
+    }
+    wgpu::ComputePipeline computePipeline = nullptr;
+    auto label = std::string(descriptor->label.has_value() ? descriptor->label.value() : "");
+    auto result = std::make_shared<GPUComputePipeline>(computePipeline, label);
+    auto future = _instance.CreateComputePipelineAsync(
+        &desc, wgpu::CallbackMode::WaitAnyOnly,
+        [&result](
+            wgpu::CreatePipelineAsyncStatus status,
+            wgpu::ComputePipeline pipeline, char const *msg) {
+          switch (status) {
+          case wgpu::CreatePipelineAsyncStatus::Success:
+            result->_instance = pipeline;
+            break;
+          default:
+            throw std::runtime_error(msg);
+            break;
+          }
+        });
+    instance->WaitAny(future, UINT64_MAX);
+    return result;
+  });
+}
+
+std::future<std::shared_ptr<GPURenderPipeline>>
+GPUDevice::createRenderPipelineAsync(
+    std::shared_ptr<GPURenderPipelineDescriptor> descriptor) {
+  return _async->runAsync([=](wgpu::Instance *instance) {
+    wgpu::RenderPipelineDescriptor desc{};
+    Convertor conv;
+    if (!conv(desc, descriptor)) {
+      throw std::runtime_error(
+          "GPUDevice::createRenderPipelineAsync(): Error with "
+          "GPURenderPipelineDescriptor");
+    }
+    wgpu::RenderPipeline renderPipeline = nullptr;
+    auto label = std::string(descriptor->label.has_value() ? descriptor->label.value() : "");
+    auto result = std::make_shared<GPURenderPipeline>(renderPipeline, label);
+    auto future = _instance.CreateRenderPipelineAsync(
+        &desc, wgpu::CallbackMode::WaitAnyOnly,
+        [&result](
+            wgpu::CreatePipelineAsyncStatus status,
+            wgpu::RenderPipeline pipeline, char const *msg) {
+          switch (status) {
+          case wgpu::CreatePipelineAsyncStatus::Success:
+            result->_instance = pipeline;
+            break;
+          default:
+            throw std::runtime_error(msg);
+            break;
+          }
+        });
+    instance->WaitAny(future, UINT64_MAX);
+    return result;
+  });
+}
+
+void GPUDevice::pushErrorScope(wgpu::ErrorFilter filter) {
+  _instance.PushErrorScope(filter);
+}
+
+std::future<std::variant<std::nullptr_t, std::shared_ptr<GPUError>>>
+GPUDevice::popErrorScope() {
+  return _async->runAsync([=](wgpu::Instance *instance) {
+    std::variant<std::nullptr_t, std::shared_ptr<GPUError>> result = nullptr;
+    auto future = _instance.PopErrorScope(
+        wgpu::CallbackMode::WaitAnyOnly,
+        [&result](wgpu::PopErrorScopeStatus, wgpu::ErrorType type,
+                               char const *message) {
+          switch (type) {
+          case wgpu::ErrorType::NoError:
+            break;
+          case wgpu::ErrorType::OutOfMemory: {
+            result = std::make_shared<GPUError>(wgpu::ErrorType::OutOfMemory, message);
+            break;
+          }
+          case wgpu::ErrorType::Validation: {
+            result = std::make_shared<GPUError>(wgpu::ErrorType::Validation, message);
+            break;
+          }
+          case wgpu::ErrorType::Internal: {
+            result = std::make_shared<GPUError>(wgpu::ErrorType::Internal, message);
+            break;
+          }
+          case wgpu::ErrorType::Unknown:
+          case wgpu::ErrorType::DeviceLost:
+            result = std::make_shared<GPUError>(wgpu::ErrorType::DeviceLost, message);
+            break;
+          default:
+            throw std::runtime_error(
+                "unhandled error type (" +
+                std::to_string(
+                    static_cast<std::underlying_type<wgpu::ErrorType>::type>(
+                        type)) +
+                ")");
+            break;
+          }
+        });
+    instance->WaitAny(future, UINT64_MAX);
+    return result;
+  });
+}
+
+std::unordered_set<std::string> GPUDevice::getFeatures() {
+  size_t count = _instance.EnumerateFeatures(nullptr);
+  std::vector<wgpu::FeatureName> features(count);
+  if (count > 0) {
+      _instance.EnumerateFeatures(features.data());
+  }
+  return std::unordered_set<std::string>(features.begin(), features.end());
+}
+
+std::future<std::shared_ptr<GPUDeviceLostInfo>> GPUDevice::getLost() {
+    throw std::runtime_error("GPUDevice::getLost(): not implemented");
+}
 } // namespace rnwgpu

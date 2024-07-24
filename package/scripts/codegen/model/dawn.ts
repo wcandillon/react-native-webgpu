@@ -171,6 +171,12 @@ export const resolved: Record<
       setBindGroup,
     },
   },
+  GPUComputePipeline: {
+    extra: "friend class GPUDevice;",
+  },
+  GPURenderPipeline: {
+    extra: "friend class GPUDevice;",
+  },
 };
 
 const toNativeName = (name: string) => {

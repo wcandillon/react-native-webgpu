@@ -23,7 +23,7 @@ const objectWhileList = [
   "GPUSupportedLimits",
   "GPUAdapterInfo",
   "GPUQueue",
-  //"GPUDevice",
+  "GPUDevice",
 ];
 
 const methodBlackList = ["requestAdapterInfo"];

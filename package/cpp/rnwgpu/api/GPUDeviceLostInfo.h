@@ -16,7 +16,7 @@ namespace m = margelo;
 
 class GPUDeviceLostInfo : public m::HybridObject {
 public:
-  explicit GPUDeviceLostInfo(wgpu::DeviceLostInfo instance)
+  explicit GPUDeviceLostInfo(wgpu::DeviceLostReason instance)
       : HybridObject("GPUDeviceLostInfo"), _instance(instance) {}
 
 public:
@@ -26,10 +26,10 @@ public:
     registerHybridGetter("__brand", &GPUDeviceLostInfo::getBrand, this);
   }
 
-  inline const wgpu::DeviceLostInfo get() { return _instance; }
+  inline const wgpu::DeviceLostReason get() { return _instance; }
 
 private:
-  wgpu::DeviceLostInfo _instance;
+  wgpu::DeviceLostReason _instance;
 };
 
 } // namespace rnwgpu
