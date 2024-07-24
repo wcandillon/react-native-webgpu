@@ -24,12 +24,16 @@ public:
 
   void destroy();
 
+  wgpu::QueryType getType();
+  uint32_t getCount();
+
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUQuerySet::getBrand, this);
     registerHybridMethod("destroy", &GPUQuerySet::destroy, this);
-
+    registerHybridGetter("type", &GPUQuerySet::getType, this);
+    registerHybridGetter("count", &GPUQuerySet::getCount, this);
     registerHybridGetter("label", &GPUQuerySet::getLabel, this);
   }
 

@@ -19,8 +19,7 @@
 #include "GPUBufferBinding.h"
 #include "GPUBufferBindingLayout.h"
 #include "GPUBufferDescriptor.h"
-#include "GPUCanvasConfiguration.h"
-#include "GPUColorDict.h"
+#include "GPUColor.h"
 #include "GPUColorTargetState.h"
 #include "GPUCommandBufferDescriptor.h"
 #include "GPUCommandEncoderDescriptor.h"
@@ -61,7 +60,6 @@
 #include "GPUVertexAttribute.h"
 #include "GPUVertexBufferLayout.h"
 #include "GPUVertexState.h"
-#include "GPUSurfaceConfiguration.h"
 
 namespace rnwgpu {
 
@@ -100,6 +98,23 @@ public:
     }
     out_els = els;
     return Convert(out_count, in.size());
+  }
+
+  // TODO remove array that have been filtered upfront
+  template <typename OUT, typename IN>
+  [[nodiscard]] inline bool
+  Convert(OUT *&out_els, size_t &out_count,
+          const std::vector<std::variant<std::nullptr_t, IN>> &in) {
+    std::vector<IN> filtered;
+    filtered.reserve(in.size());
+
+    for (const auto &item : in) {
+      if (auto ptr = std::get_if<IN>(&item)) {
+        filtered.push_back(*ptr);
+      }
+    }
+
+    return Convert(out_els, out_count, filtered);
   }
 
   template <typename T>
@@ -240,24 +255,19 @@ public:
            Convert(out.label, in.label);
   }
 
-   [[nodiscard]] bool Convert(wgpu::SurfaceConfiguration &out,
-                              const GPUCanvasConfiguration &in) {
-     if (in.viewFormats.has_value()) {
-       if (!Convert(out.viewFormats, out.viewFormatCount,
-                    in.viewFormats.value())) {
-         return false;
-       }
-     }
-     return Convert(out.device, in.device) &&
-            Convert(out.format, in.format)  &&
-            Convert(out.usage, in.usage);
-   }
-
-  // [[nodiscard]] bool Convert(wgpu::ColorDict &out, const GPUColorDict &in) {
-  //   return Convert(out.r, in.r) && Convert(out.g, in.g) && Convert(out.b,
-  //   in.b) &&
-  //          Convert(out.a, in.a);
+  // [[nodiscard]] bool Convert(wgpu::CanvasConfiguration &out,
+  //                            const GPUCanvasConfiguration &in) {
+  //   return Convert(out.device, in.device) && Convert(out.format, in.format)
+  //   &&
+  //          Convert(out.usage, in.usage) && Convert(out.viewFormats,
+  //          in.viewFormats) && Convert(out.colorSpace, in.colorSpace) &&
+  //          Convert(out.alphaMode, in.alphaMode);
   // }
+
+  [[nodiscard]] bool Convert(wgpu::Color &out, const GPUColor &in) {
+    return Convert(out.r, in.r) && Convert(out.g, in.g) &&
+           Convert(out.b, in.b) && Convert(out.a, in.a);
+  }
 
   [[nodiscard]] bool Convert(wgpu::ColorTargetState &out,
                              const GPUColorTargetState &in) {
@@ -447,38 +457,7 @@ public:
            Convert(out.depthSlice, in.depthSlice) &&
            Convert(out.resolveTarget, in.resolveTarget) &&
            Convert(out.clearValue, in.clearValue) &&
-           Convert(out.loadOp, in.loadOp) &&
-           Convert(out.storeOp, in.storeOp);
-  }
-
-  [[nodiscard]] bool Convert(wgpu::Color &out,
-                             const std::optional<std::variant<std::vector<double>, std::shared_ptr<GPUColorDict>>> &in) {
-    double red = 0, green = 0, blue = 0, alpha = 0;
-    if (in.has_value()) {
-      const auto& variantValue = in.value();
-      if (std::holds_alternative<std::vector<double>>(variantValue)) {
-        const std::vector<double>& rgbVector = std::get<std::vector<double>>(variantValue);
-        if (rgbVector.size() >= 1) {
-          red = rgbVector.at(0);
-        }
-        if (rgbVector.size() >= 2) {
-          green = rgbVector.at(1);
-        }
-        if (rgbVector.size() >= 3) {
-          blue = rgbVector.at(2);
-        }
-        if (rgbVector.size() >= 4) {
-          alpha = rgbVector.at(3);
-        }
-      } else if (std::holds_alternative<std::shared_ptr<GPUColorDict>>(variantValue)) {
-        const auto colorDict = std::get<std::shared_ptr<GPUColorDict>>(variantValue);
-        red = colorDict->a;
-        green = colorDict->r;
-        blue = colorDict->b;
-        alpha = colorDict->a;
-      }
-    }
-    return Convert(out.r, red);
+           Convert(out.loadOp, in.loadOp) && Convert(out.storeOp, in.storeOp);
   }
 
   [[nodiscard]] bool Convert(wgpu::RenderPassDepthStencilAttachment &out,
@@ -595,10 +574,12 @@ public:
   [[nodiscard]] bool Convert(wgpu::VertexBufferLayout &out,
                              const GPUVertexBufferLayout &in) {
     out = {};
-    // TODO: Check if this is correct (see GPUVertexBufferLayout)
-    if (in.stepMode == wgpu::VertexStepMode::VertexBufferNotUsed) {
-      return Convert(out.stepMode, in.stepMode);
-    }
+    /*
+     TODO:
+     -    if (in.stepMode == wgpu::VertexStepMode::VertexBufferNotUsed) {
+     -      return Convert(out.stepMode, in.stepMode);
+     -    }
+     */
     return Convert(out.attributes, out.attributeCount, in.attributes) &&
            Convert(out.arrayStride, in.arrayStride) &&
            Convert(out.stepMode, in.stepMode);
@@ -629,22 +610,19 @@ public:
                          ? ConvertStringReplacingNull(in.entryPoint.value())
                          : nullptr;
     // TODO: implement !Convert(out.constants, out.constantCount, in.constants)
-    wgpu::VertexBufferLayout *outBuffers = nullptr;
     if (!Convert(out.module, in.module)) {
       return false;
     }
-
     if (in.buffers.has_value()) {
       std::vector<std::shared_ptr<GPUVertexBufferLayout>> filteredBuffers;
       for (const auto &buffer : in.buffers.value()) {
-        if (auto ptr =
-                std::get_if<std::shared_ptr<GPUVertexBufferLayout>>(&buffer)) {
-          if (*ptr) {
-            filteredBuffers.push_back(*ptr);
-          }
+        if (std::holds_alternative<std::shared_ptr<GPUVertexBufferLayout>>(
+                buffer)) {
+          auto ptr = std::get<std::shared_ptr<GPUVertexBufferLayout>>(buffer);
+          filteredBuffers.push_back(ptr);
         }
       }
-      if (!Convert(outBuffers, out.bufferCount, filteredBuffers)) {
+      if (!Convert(out.buffers, out.bufferCount, filteredBuffers)) {
         return false;
       }
     }

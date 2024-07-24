@@ -1,4 +1,5 @@
 #include "GPURenderPassEncoder.h"
+#include "Convertors.h"
 
 namespace rnwgpu {
 
@@ -15,6 +16,19 @@ void GPURenderPassEncoder::draw(uint32_t vertexCount,
                                 std::optional<uint32_t> firstInstance) {
   _instance.Draw(vertexCount, instanceCount.value_or(1),
                  firstVertex.value_or(0), firstInstance.value_or(0));
+}
+void GPURenderPassEncoder::setVertexBuffer(
+    uint32_t slot,
+    std::variant<std::nullptr_t, std::shared_ptr<GPUBuffer>> buffer,
+    std::optional<uint64_t> offset, std::optional<uint64_t> size) {
+  Convertor conv;
+
+  wgpu::Buffer b{};
+  uint64_t s = wgpu::kWholeSize;
+  if (!conv(b, buffer) || !conv(s, size)) {
+    return;
+  }
+  _instance.SetVertexBuffer(slot, b, offset.value_or(0), s);
 }
 
 void GPURenderPassEncoder::setBindGroup(
@@ -39,6 +53,62 @@ void GPURenderPassEncoder::setBindGroup(
                              dynamicOffsets->data());
     }
   }
+}
+
+void GPURenderPassEncoder::setIndexBuffer(std::shared_ptr<GPUBuffer> buffer,
+                                          wgpu::IndexFormat indexFormat,
+                                          std::optional<uint64_t> offset,
+                                          std::optional<uint64_t> size) {
+  Convertor conv;
+
+  wgpu::Buffer b{};
+  wgpu::IndexFormat f{};
+  uint64_t o = 0;
+  uint64_t s = wgpu::kWholeSize;
+  if (!conv(b, buffer) ||      //
+      !conv(f, indexFormat) || //
+      !conv(o, offset) ||      //
+      !conv(s, size)) {
+    return;
+  }
+
+  _instance.SetIndexBuffer(b, f, o, s);
+}
+
+void GPURenderPassEncoder::endOcclusionQuery() {
+  _instance.EndOcclusionQuery();
+}
+
+void GPURenderPassEncoder::beginOcclusionQuery(uint32_t queryIndex) {
+  _instance.BeginOcclusionQuery(queryIndex);
+}
+
+void GPURenderPassEncoder::drawIndexed(uint32_t indexCount,
+                                       std::optional<uint32_t> instanceCount,
+                                       std::optional<uint32_t> firstIndex,
+                                       std::optional<double> baseVertex,
+                                       std::optional<uint32_t> firstInstance) {
+  _instance.DrawIndexed(indexCount, instanceCount.value_or(1),
+                        firstIndex.value_or(0), baseVertex.value_or(0),
+                        firstInstance.value_or(0));
+}
+
+void GPURenderPassEncoder::executeBundles(
+    std::vector<std::shared_ptr<GPURenderBundle>> bundles_in) {
+  Convertor conv;
+
+  wgpu::RenderBundle *bundles = nullptr;
+  size_t bundleCount = 0;
+  if (!conv(bundles, bundleCount, bundles_in)) {
+    return;
+  }
+
+  _instance.ExecuteBundles(bundleCount, bundles);
+}
+
+void GPURenderPassEncoder::setScissorRect(uint32_t x, uint32_t y,
+                                          uint32_t width, uint32_t height) {
+  _instance.SetScissorRect(x, y, width, height);
 }
 
 } // namespace rnwgpu

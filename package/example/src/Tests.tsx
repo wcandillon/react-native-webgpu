@@ -1,22 +1,30 @@
 /* eslint-disable no-eval */
 
-import React, { useEffect } from "react";
-import { Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Dimensions, Platform, Text, View } from "react-native";
 import { gpu } from "react-native-webgpu";
+import { mat4, vec3, mat3 } from "wgpu-matrix";
+import type { SkImage } from "@shopify/react-native-skia";
+import {
+  AlphaType,
+  Canvas,
+  ColorType,
+  Image,
+  Skia,
+} from "@shopify/react-native-skia";
 
 import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
+import { NativeDrawingContext } from "./components/NativeDrawingContext";
 
 export const CI = process.env.CI === "true";
 
-const processResult = (v: unknown) => {
-  return JSON.stringify(v);
-};
+const { width } = Dimensions.get("window");
 
 const useWebGPU = () => {
-  const [adapter, setAdapter] = React.useState<GPUAdapter | null>(null);
-  const [device, setDevice] = React.useState<GPUDevice | null>(null);
+  const [adapter, setAdapter] = useState<GPUAdapter | null>(null);
+  const [device, setDevice] = useState<GPUDevice | null>(null);
   useEffect(() => {
     (async () => {
       const a = await gpu.requestAdapter();
@@ -31,7 +39,12 @@ const useWebGPU = () => {
   return { adapter, device };
 };
 
-export const Tests = () => {
+interface TestsProps {
+  assets: { di3D: ImageData; saturn: ImageData; moon: ImageData };
+}
+
+export const Tests = ({ assets: { di3D, saturn, moon } }: TestsProps) => {
+  const [image, setImage] = useState<SkImage | null>(null);
   const { adapter, device } = useWebGPU();
   const [client, hostname] = useClient();
   useEffect(() => {
@@ -39,13 +52,13 @@ export const Tests = () => {
       client.onmessage = (e) => {
         const tree = JSON.parse(e.data);
         if (tree.code) {
+          const ctx = new NativeDrawingContext(device, 1024, 1024);
           const result = eval(
             `(function Main() {
               return (${tree.code})(this.ctx);
             })`,
           ).call({
             ctx: {
-              ...tree.ctx,
               gpu,
               adapter,
               device,
@@ -54,17 +67,46 @@ export const Tests = () => {
               GPUMapMode,
               GPUShaderStage,
               GPUTextureUsage,
-              cubeVertexArray,
-              triangleVertWGSL,
-              redFragWGSL,
+              assets: {
+                cubeVertexArray,
+                di3D,
+                saturn,
+                moon,
+              },
+              shaders: {
+                triangleVertWGSL,
+                redFragWGSL,
+              },
+              ctx,
+              mat4,
+              vec3,
+              mat3,
+              ...tree.ctx,
             },
           });
           if (result instanceof Promise) {
             result.then((r) => {
-              client.send(processResult(r));
+              if (r.data && r.width && r.height) {
+                const data = Skia.Data.fromBytes(new Uint8Array(r.data));
+                const img = Skia.Image.MakeImage(
+                  {
+                    width: r.width,
+                    height: r.height,
+                    alphaType: AlphaType.Premul,
+                    colorType:
+                      Platform.OS === "ios"
+                        ? ColorType.BGRA_8888
+                        : ColorType.RGBA_8888,
+                  },
+                  data,
+                  4 * r.width,
+                );
+                setImage(img);
+              }
+              client.send(JSON.stringify(r));
             });
           } else {
-            client.send(processResult(result));
+            client.send(JSON.stringify(result));
           }
         }
       };
@@ -73,7 +115,7 @@ export const Tests = () => {
       };
     }
     return;
-  }, [adapter, client, device]);
+  }, [adapter, client, device, di3D, moon, saturn]);
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
       <Text style={{ color: "black" }}>
@@ -81,6 +123,16 @@ export const Tests = () => {
           ? `⚪️ Connecting to ${hostname}. Use yarn e2e to run tests.`
           : "🟢 Waiting for the server to send tests"}
       </Text>
+      <Canvas style={{ width, height: width }}>
+        <Image
+          image={image}
+          x={0}
+          y={0}
+          width={width}
+          height={width}
+          fit="cover"
+        />
+      </Canvas>
     </View>
   );
 };

@@ -85,6 +85,24 @@ void GPUCommandEncoder::copyTextureToBuffer(
   _instance.CopyTextureToBuffer(&src, &dst, &size);
 }
 
+void GPUCommandEncoder::copyTextureToTexture(
+    std::shared_ptr<GPUImageCopyTexture> source,
+    std::shared_ptr<GPUImageCopyTexture> destination,
+    std::shared_ptr<GPUExtent3D> copySize) {
+  Convertor conv;
+
+  wgpu::ImageCopyTexture src{};
+  wgpu::ImageCopyTexture dst{};
+  wgpu::Extent3D size{};
+  if (!conv(src, source) ||      //
+      !conv(dst, destination) || //
+      !conv(size, copySize)) {
+    return;
+  }
+
+  _instance.CopyTextureToTexture(&src, &dst, &size);
+}
+
 std::shared_ptr<GPUComputePassEncoder> GPUCommandEncoder::beginComputePass(
     std::optional<std::shared_ptr<GPUComputePassDescriptor>> descriptor) {
   wgpu::ComputePassDescriptor desc;
@@ -97,6 +115,73 @@ std::shared_ptr<GPUComputePassEncoder> GPUCommandEncoder::beginComputePass(
   return std::make_shared<GPUComputePassEncoder>(
       computePass,
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
+}
+
+void GPUCommandEncoder::resolveQuerySet(std::shared_ptr<GPUQuerySet> querySet,
+                                        uint32_t firstQuery,
+                                        uint32_t queryCount,
+                                        std::shared_ptr<GPUBuffer> destination,
+                                        uint64_t destinationOffset) {
+  Convertor conv;
+
+  wgpu::QuerySet q{};
+  uint32_t f = 0;
+  uint32_t c = 0;
+  wgpu::Buffer b{};
+  uint64_t o = 0;
+
+  if (!conv(q, querySet) ||    //
+      !conv(f, firstQuery) ||  //
+      !conv(c, queryCount) ||  //
+      !conv(b, destination) || //
+      !conv(o, destinationOffset)) {
+    return;
+  }
+
+  _instance.ResolveQuerySet(q, f, c, b, o);
+}
+
+void GPUCommandEncoder::copyBufferToTexture(
+    std::shared_ptr<GPUImageCopyBuffer> source,
+    std::shared_ptr<GPUImageCopyTexture> destination,
+    std::shared_ptr<GPUExtent3D> copySize) {
+  Convertor conv;
+
+  wgpu::ImageCopyBuffer src{};
+  wgpu::ImageCopyTexture dst{};
+  wgpu::Extent3D size{};
+  if (!conv(src, source) ||      //
+      !conv(dst, destination) || //
+      !conv(size, copySize)) {
+    return;
+  }
+
+  _instance.CopyBufferToTexture(&src, &dst, &size);
+}
+
+void GPUCommandEncoder::clearBuffer(std::shared_ptr<GPUBuffer> buffer,
+                                    std::optional<uint64_t> offset,
+                                    std::optional<uint64_t> size) {
+  Convertor conv;
+
+  wgpu::Buffer b{};
+  uint64_t s = wgpu::kWholeSize;
+  if (!conv(b, buffer) || //
+      !conv(s, size)) {
+    return;
+  }
+
+  _instance.ClearBuffer(b, offset.value_or(0), s);
+}
+
+void GPUCommandEncoder::pushDebugGroup(std::string groupLabel) {
+  _instance.PushDebugGroup(groupLabel.c_str());
+}
+
+void GPUCommandEncoder::popDebugGroup() { _instance.PopDebugGroup(); }
+
+void GPUCommandEncoder::insertDebugMarker(std::string markerLabel) {
+  _instance.InsertDebugMarker(markerLabel.c_str());
 }
 
 } // namespace rnwgpu

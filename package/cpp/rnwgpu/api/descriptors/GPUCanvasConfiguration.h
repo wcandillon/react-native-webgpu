@@ -5,7 +5,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
 #include "RNFJSIConverter.h"
 
 #include "GPUDevice.h"

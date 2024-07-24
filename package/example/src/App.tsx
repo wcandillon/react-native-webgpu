@@ -7,18 +7,25 @@ import { Home } from "./Home";
 import { Buffers } from "./Buffers";
 import { Tests } from "./Tests";
 import { NativeView } from "./NativeView";
+import { useAssets } from "./components/useAssets";
 
 const Stack = createNativeStackNavigator<Routes>();
 
 function App() {
+  const assets = useAssets();
+  if (assets === null) {
+    return null;
+  }
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
         <Stack.Navigator initialRouteName="Home">
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="Buffers" component={Buffers} />
-          <Stack.Screen name="Tests" component={Tests} />
           <Stack.Screen name="NativeView" component={NativeView} />
+          <Stack.Screen name="Tests">
+            {(props) => <Tests {...props} assets={assets} />}
+          </Stack.Screen>
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

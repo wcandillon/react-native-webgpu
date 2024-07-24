@@ -70,6 +70,7 @@
     "@types/pixelmatch": "5.2.4",
     "@types/pngjs": "^6.0.5",
     "@types/react": "^18.2.44",
+    "@types/seedrandom": "^3.0.8",
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^7.13.1",
     "@webgpu/types": "^0.1.42",
@@ -89,14 +90,18 @@
     "react-native": "0.74.2",
     "react-native-builder-bob": "^0.23.2",
     "rimraf": "^5.0.7",
+    "seedrandom": "^3.0.5",
+    "teapot": "^1.0.0",
     "ts-morph": "^22.0.0",
     "ts-node": "^10.9.2",
     "turbo": "^1.10.7",
     "typescript": "^5.2.2",
+    "wgpu-matrix": "^3.0.2",
     "ws": "^8.18.0"
   },
   "resolutions": {
-    "@types/react": "^18.2.44"
+    "@types/react": "^18.2.44",
+    "@webgpu/types": "^0.1.42"
   },
   "peerDependencies": {
     "react": "*",

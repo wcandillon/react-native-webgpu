@@ -2,17 +2,19 @@ import { client } from "./setup";
 
 describe("Triangle", () => {
   it("creates a shader module (1)", async () => {
-    const result = await client.eval(({ device, triangleVertWGSL }) => {
-      const mod = device.createShaderModule({
-        code: triangleVertWGSL,
-        label: "triangleVertWGSL",
-      });
-      return mod.label;
-    });
+    const result = await client.eval(
+      ({ device, shaders: { triangleVertWGSL } }) => {
+        const mod = device.createShaderModule({
+          code: triangleVertWGSL,
+          label: "triangleVertWGSL",
+        });
+        return mod.label;
+      },
+    );
     expect(result).toBe("triangleVertWGSL");
   });
   it("creates a shader module (2)", async () => {
-    const result = await client.eval(({ device, redFragWGSL }) => {
+    const result = await client.eval(({ device, shaders: { redFragWGSL } }) => {
       const mod = device.createShaderModule({
         code: redFragWGSL,
         label: "redFragWGSL",
@@ -23,7 +25,7 @@ describe("Triangle", () => {
   });
   it("create the pipeline", async () => {
     const result = await client.eval(
-      ({ device, triangleVertWGSL, redFragWGSL }) => {
+      ({ device, shaders: { triangleVertWGSL, redFragWGSL } }) => {
         const pipeline = device.createRenderPipeline({
           layout: "auto",
           vertex: {
@@ -53,7 +55,7 @@ describe("Triangle", () => {
   });
   it("create the pipeline and sample it", async () => {
     const result = await client.eval(
-      ({ device, triangleVertWGSL, redFragWGSL, gpu }) => {
+      ({ device, shaders: { triangleVertWGSL, redFragWGSL }, gpu }) => {
         // Create a texture to render to
         const textureSize = 512;
         const texture = device.createTexture({

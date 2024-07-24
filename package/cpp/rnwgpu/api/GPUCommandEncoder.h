@@ -19,6 +19,7 @@
 #include "GPUExtent3D.h"
 #include "GPUImageCopyBuffer.h"
 #include "GPUImageCopyTexture.h"
+#include "GPUQuerySet.h"
 #include "GPURenderPassDescriptor.h"
 #include "GPURenderPassEncoder.h"
 
@@ -42,11 +43,27 @@ public:
                           uint64_t sourceOffset,
                           std::shared_ptr<GPUBuffer> destination,
                           uint64_t destinationOffset, uint64_t size);
+  void copyBufferToTexture(std::shared_ptr<GPUImageCopyBuffer> source,
+                           std::shared_ptr<GPUImageCopyTexture> destination,
+                           std::shared_ptr<GPUExtent3D> copySize);
   void copyTextureToBuffer(std::shared_ptr<GPUImageCopyTexture> source,
                            std::shared_ptr<GPUImageCopyBuffer> destination,
                            std::shared_ptr<GPUExtent3D> copySize);
+  void copyTextureToTexture(std::shared_ptr<GPUImageCopyTexture> source,
+                            std::shared_ptr<GPUImageCopyTexture> destination,
+                            std::shared_ptr<GPUExtent3D> copySize);
+  void clearBuffer(std::shared_ptr<GPUBuffer> buffer,
+                   std::optional<uint64_t> offset,
+                   std::optional<uint64_t> size);
+  void resolveQuerySet(std::shared_ptr<GPUQuerySet> querySet,
+                       uint32_t firstQuery, uint32_t queryCount,
+                       std::shared_ptr<GPUBuffer> destination,
+                       uint64_t destinationOffset);
   std::shared_ptr<GPUCommandBuffer>
   finish(std::optional<std::shared_ptr<GPUCommandBufferDescriptor>> descriptor);
+  void pushDebugGroup(std::string groupLabel);
+  void popDebugGroup();
+  void insertDebugMarker(std::string markerLabel);
 
   std::string getLabel() { return _label; }
 
@@ -58,9 +75,22 @@ public:
                          &GPUCommandEncoder::beginComputePass, this);
     registerHybridMethod("copyBufferToBuffer",
                          &GPUCommandEncoder::copyBufferToBuffer, this);
+    registerHybridMethod("copyBufferToTexture",
+                         &GPUCommandEncoder::copyBufferToTexture, this);
     registerHybridMethod("copyTextureToBuffer",
                          &GPUCommandEncoder::copyTextureToBuffer, this);
+    registerHybridMethod("copyTextureToTexture",
+                         &GPUCommandEncoder::copyTextureToTexture, this);
+    registerHybridMethod("clearBuffer", &GPUCommandEncoder::clearBuffer, this);
+    registerHybridMethod("resolveQuerySet", &GPUCommandEncoder::resolveQuerySet,
+                         this);
     registerHybridMethod("finish", &GPUCommandEncoder::finish, this);
+    registerHybridMethod("pushDebugGroup", &GPUCommandEncoder::pushDebugGroup,
+                         this);
+    registerHybridMethod("popDebugGroup", &GPUCommandEncoder::popDebugGroup,
+                         this);
+    registerHybridMethod("insertDebugMarker",
+                         &GPUCommandEncoder::insertDebugMarker, this);
 
     registerHybridGetter("label", &GPUCommandEncoder::getLabel, this);
   }

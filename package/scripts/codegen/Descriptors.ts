@@ -17,7 +17,7 @@ const layout = {
 };
 
 const colorFormats = {
-  type: "std::vector<std::variant<wgpu::TextureFormat, std::nullptr_t>>",
+  type: "std::vector<std::variant<std::nullptr_t, wgpu::TextureFormat>>",
   dependencies: ["vector"],
 };
 
@@ -99,6 +99,7 @@ const nativeMapName: Record<string, string> = {
 export const externalDefs = ["PredefinedColorSpace", "PremultiplyAlpha"];
 
 const nativeNumber = ["uint64_t", "uint32_t"];
+const stringSetNames = ["WGSLLanguageFeatures", "GPUSupportedFeatures"];
 
 export const resolveType = (type: Type, state: ResolveTypeState): string => {
   const {
@@ -201,6 +202,13 @@ export const resolveType = (type: Type, state: ResolveTypeState): string => {
     )[0];
     dependencies.add("future");
     return `std::future<${arg}>`;
+  } else if (
+    type.getAliasSymbol() &&
+    stringSetNames.includes(type.getAliasSymbol()!.getName())
+  ) {
+    dependencies.add("unordered_set");
+    dependencies.add("string");
+    return "std::unordered_set<std::string>";
   }
   //return "unknown";
   console.log(JSON.stringify(debugType(type), null, 2));
@@ -261,7 +269,7 @@ ${Array.from(dependencies)
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Logger.h"
+#include "WGPULogger.h"
 #include "RNFJSIConverter.h"
 
 #include "RNFHybridObject.h"

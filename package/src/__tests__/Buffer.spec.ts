@@ -2,73 +2,83 @@ import { checkImage, client, encodeImage } from "./setup";
 
 describe("Buffer", () => {
   it("Label", async () => {
-    const result = await client.eval(({ device, cubeVertexArray }) => {
-      const buffer1 = device.createBuffer({
-        size: cubeVertexArray.byteLength,
-        usage: GPUBufferUsage.VERTEX,
-        mappedAtCreation: true,
-      });
-      const buffer2 = device.createBuffer({
-        size: cubeVertexArray.byteLength,
-        usage: GPUBufferUsage.VERTEX,
-        mappedAtCreation: true,
-        label: "verticesBuffer",
-      });
-      return [buffer1.label, buffer2.label];
-    });
+    const result = await client.eval(
+      ({ device, assets: { cubeVertexArray } }) => {
+        const buffer1 = device.createBuffer({
+          size: cubeVertexArray.byteLength,
+          usage: GPUBufferUsage.VERTEX,
+          mappedAtCreation: true,
+        });
+        const buffer2 = device.createBuffer({
+          size: cubeVertexArray.byteLength,
+          usage: GPUBufferUsage.VERTEX,
+          mappedAtCreation: true,
+          label: "verticesBuffer",
+        });
+        return [buffer1.label, buffer2.label];
+      },
+    );
     expect(result).toEqual(["", "verticesBuffer"]);
   });
   it("metadata", async () => {
-    const result = await client.eval(({ device, cubeVertexArray }) => {
-      const buffer = device.createBuffer({
-        size: cubeVertexArray.byteLength,
-        usage: GPUBufferUsage.VERTEX,
-        mappedAtCreation: true,
-      });
-      return [buffer.label, buffer.size, buffer.usage, buffer.mapState];
-    });
+    const result = await client.eval(
+      ({ device, assets: { cubeVertexArray } }) => {
+        const buffer = device.createBuffer({
+          size: cubeVertexArray.byteLength,
+          usage: GPUBufferUsage.VERTEX,
+          mappedAtCreation: true,
+        });
+        return [buffer.label, buffer.size, buffer.usage, buffer.mapState];
+      },
+    );
     expect(result).toEqual(["", 1440, 32, "mapped"]);
   });
   it("metadata (1)", async () => {
-    const result = await client.eval(({ device, cubeVertexArray }) => {
-      const buffer = device.createBuffer({
-        size: cubeVertexArray.byteLength,
-        usage: GPUBufferUsage.VERTEX,
-        mappedAtCreation: false,
-      });
-      return [buffer.label, buffer.size, buffer.usage, buffer.mapState];
-    });
+    const result = await client.eval(
+      ({ device, assets: { cubeVertexArray } }) => {
+        const buffer = device.createBuffer({
+          size: cubeVertexArray.byteLength,
+          usage: GPUBufferUsage.VERTEX,
+          mappedAtCreation: false,
+        });
+        return [buffer.label, buffer.size, buffer.usage, buffer.mapState];
+      },
+    );
     expect(result).toEqual(["", 1440, 32, "unmapped"]);
   });
   it("upload data (1)", async () => {
-    const result = await client.eval(({ device, cubeVertexArray }) => {
-      const verticesBuffer = device.createBuffer({
-        size: cubeVertexArray.byteLength,
-        usage: GPUBufferUsage.VERTEX,
-        mappedAtCreation: true,
-        label: "verticesBuffer",
-      });
-      new Float32Array(verticesBuffer.getMappedRange()).set(cubeVertexArray);
-      verticesBuffer.unmap();
-      return !!verticesBuffer;
-    });
+    const result = await client.eval(
+      ({ device, assets: { cubeVertexArray } }) => {
+        const verticesBuffer = device.createBuffer({
+          size: cubeVertexArray.byteLength,
+          usage: GPUBufferUsage.VERTEX,
+          mappedAtCreation: true,
+          label: "verticesBuffer",
+        });
+        new Float32Array(verticesBuffer.getMappedRange()).set(cubeVertexArray);
+        verticesBuffer.unmap();
+        return !!verticesBuffer;
+      },
+    );
     expect(result).toBe(true);
   });
 
   it("upload data (2)", async () => {
-    const result = await client.eval(({ device, cubeVertexArray }) => {
-      const verticesBuffer = device.createBuffer({
-        size: cubeVertexArray.byteLength,
-        usage: GPUBufferUsage.VERTEX,
-        mappedAtCreation: true,
-        label: "verticesBuffer",
-      });
-      new Float32Array(
-        verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
-      ).set(cubeVertexArray);
-      verticesBuffer.unmap();
-      return !!verticesBuffer;
-    });
+    const result = await client.eval(
+      ({ device, assets: { cubeVertexArray } }) => {
+        const verticesBuffer = device.createBuffer({
+          size: cubeVertexArray.byteLength,
+          usage: GPUBufferUsage.VERTEX,
+          mappedAtCreation: true,
+          label: "verticesBuffer",
+        });
+        new Float32Array(
+          verticesBuffer.getMappedRange(0, cubeVertexArray.byteLength),
+        ).set(cubeVertexArray);
+        verticesBuffer.unmap();
+        return !!verticesBuffer;
+      },
+    );
     expect(result).toBe(true);
   });
   it("writes into a buffer (1)", async () => {
@@ -276,7 +286,12 @@ describe("Buffer", () => {
       }
       return Array.from(pixels);
     });
-    const png = encodeImage(new Uint8Array(data), 256, 256);
+    const png = encodeImage({
+      data,
+      width: 256,
+      height: 256,
+      format: "rgba8unorm",
+    });
     checkImage(png, "snapshots/buffer.png");
   });
   it("Builds the reference result (2)", async () => {
@@ -294,7 +309,12 @@ describe("Buffer", () => {
       },
       { pixels: Array.from(data) },
     );
-    const png = encodeImage(new Uint8Array(result), 256, 256);
+    const png = encodeImage({
+      data: result,
+      width: 256,
+      height: 256,
+      format: "rgba8unorm",
+    });
     checkImage(png, "snapshots/buffer.png");
   });
   it("writes an image into a buffer and reads it back", async () => {
@@ -326,7 +346,12 @@ describe("Buffer", () => {
           return r;
         });
     });
-    const png = encodeImage(new Uint8Array(imageData), 256, 256);
+    const png = encodeImage({
+      data: imageData,
+      width: 256,
+      height: 256,
+      format: "rgba8unorm",
+    });
     checkImage(png, "snapshots/buffer.png");
   });
 });

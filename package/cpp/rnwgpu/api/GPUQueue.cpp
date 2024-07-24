@@ -6,6 +6,7 @@
 
 namespace rnwgpu {
 
+// TODO: remove
 struct BufferSource {
   void *data;
   size_t size;            // in bytes
@@ -81,6 +82,30 @@ std::future<void> GPUQueue::onSubmittedWorkDone() {
         wgpu::CallbackMode::WaitAnyOnly,
         [](wgpu::QueueWorkDoneStatus status) {});
   });
+}
+
+void GPUQueue::copyExternalImageToTexture(
+    std::shared_ptr<GPUImageCopyExternalImage> source,
+    std::shared_ptr<GPUImageCopyTextureTagged> destination,
+    std::shared_ptr<GPUExtent3D> copySize) {
+  throw std::runtime_error("Unimplemented");
+}
+
+void GPUQueue::writeTexture(std::shared_ptr<GPUImageCopyTexture> destination,
+                            std::shared_ptr<ArrayBuffer> data,
+                            std::shared_ptr<GPUImageDataLayout> dataLayout,
+                            std::shared_ptr<GPUExtent3D> size) {
+  wgpu::ImageCopyTexture dst{};
+  wgpu::TextureDataLayout layout{};
+  wgpu::Extent3D sz{};
+  Convertor conv;
+  if (!conv(dst, destination) ||   //
+      !conv(layout, dataLayout) || //
+      !conv(sz, size)) {
+    throw std::runtime_error("Invalid input for GPUQueue::writeTexture()");
+  }
+
+  _instance.WriteTexture(&dst, data->_data, data->_size, &layout, &sz);
 }
 
 } // namespace rnwgpu
