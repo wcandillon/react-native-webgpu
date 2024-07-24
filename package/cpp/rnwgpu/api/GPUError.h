@@ -2,18 +2,22 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
 #include "RNFEnumMapper.h"
+#include "RNFJSIConverter.h"
 
 namespace rnwgpu {
 
-struct GPUError {
+class GPUError {
+
+public:
+  GPUError(wgpu::ErrorType aType, char const *aMessage)
+      : type(aType), message(aMessage) {}
+
   wgpu::ErrorType type;
   char const *message;
 };
 
 } // namespace rnwgpu
-
 
 namespace margelo {
 
@@ -27,7 +31,8 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUError>> {
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<rnwgpu::GPUError> arg) {
     jsi::Object result(runtime);
-    result.setProperty(runtime, "message", jsi::String::createFromUtf8(runtime, arg->message));
+    result.setProperty(runtime, "message",
+                       jsi::String::createFromUtf8(runtime, arg->message));
     return result;
   }
 };

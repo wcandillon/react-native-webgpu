@@ -9,9 +9,9 @@
 
 #include "Convertors.h"
 
-#include "Logger.h"
 #include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
+#include "WGPULogger.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
@@ -29,10 +29,10 @@ struct GPUExternalTextureDescriptor {
 static bool conv(wgpu::ExternalTextureDescriptor &out,
                  const std::shared_ptr<GPUExternalTextureDescriptor> &in) {
   // TODO: implement
-    // return conv(out.source, in->source) && conv(out.colorSpace, in->colorSpace)
+  // return conv(out.source, in->source) && conv(out.colorSpace, in->colorSpace)
   // &&
-  //return conv(out.label, in->label);
-    return false;
+  // return conv(out.label, in->label);
+  return false;
 }
 } // namespace rnwgpu
 

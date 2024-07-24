@@ -3,6 +3,46 @@
 #include "Convertors.h"
 
 namespace rnwgpu {
+static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
+                                 std::string *outUnion) {
+  switch (inEnum) {
+  case wgpu::FeatureName::DepthClipControl:
+    *outUnion = "depth-clip-control";
+    break;
+  case wgpu::FeatureName::Depth32FloatStencil8:
+    *outUnion = "depth32float-stencil8";
+    break;
+  case wgpu::FeatureName::TextureCompressionBC:
+    *outUnion = "texture-compression-bc";
+    break;
+  case wgpu::FeatureName::TextureCompressionETC2:
+    *outUnion = "texture-compression-etc2";
+    break;
+  case wgpu::FeatureName::TextureCompressionASTC:
+    *outUnion = "texture-compression-astc";
+    break;
+  case wgpu::FeatureName::TimestampQuery:
+    *outUnion = "timestamp-query";
+    break;
+  case wgpu::FeatureName::IndirectFirstInstance:
+    *outUnion = "indirect-first-instance";
+    break;
+  case wgpu::FeatureName::ShaderF16:
+    *outUnion = "shader-f16";
+    break;
+  case wgpu::FeatureName::RG11B10UfloatRenderable:
+    *outUnion = "rg11b10ufloat-renderable";
+    break;
+  case wgpu::FeatureName::BGRA8UnormStorage:
+    *outUnion = "bgra8unorm-storage";
+    break;
+  case wgpu::FeatureName::Float32Filterable:
+    *outUnion = "float32-filterable";
+    break;
+  default:
+    *outUnion = "";
+  }
+}
 
 std::shared_ptr<GPUBuffer>
 GPUDevice::createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
@@ -206,13 +246,13 @@ GPUDevice::createComputePipelineAsync(
                                "GPUComputePipelineDescriptor");
     }
     wgpu::ComputePipeline computePipeline = nullptr;
-    auto label = std::string(descriptor->label.has_value() ? descriptor->label.value() : "");
+    auto label = std::string(
+        descriptor->label.has_value() ? descriptor->label.value() : "");
     auto result = std::make_shared<GPUComputePipeline>(computePipeline, label);
     auto future = _instance.CreateComputePipelineAsync(
         &desc, wgpu::CallbackMode::WaitAnyOnly,
-        [&result](
-            wgpu::CreatePipelineAsyncStatus status,
-            wgpu::ComputePipeline pipeline, char const *msg) {
+        [&result](wgpu::CreatePipelineAsyncStatus status,
+                  wgpu::ComputePipeline pipeline, char const *msg) {
           switch (status) {
           case wgpu::CreatePipelineAsyncStatus::Success:
             result->_instance = pipeline;
@@ -239,13 +279,13 @@ GPUDevice::createRenderPipelineAsync(
           "GPURenderPipelineDescriptor");
     }
     wgpu::RenderPipeline renderPipeline = nullptr;
-    auto label = std::string(descriptor->label.has_value() ? descriptor->label.value() : "");
+    auto label = std::string(
+        descriptor->label.has_value() ? descriptor->label.value() : "");
     auto result = std::make_shared<GPURenderPipeline>(renderPipeline, label);
     auto future = _instance.CreateRenderPipelineAsync(
         &desc, wgpu::CallbackMode::WaitAnyOnly,
-        [&result](
-            wgpu::CreatePipelineAsyncStatus status,
-            wgpu::RenderPipeline pipeline, char const *msg) {
+        [&result](wgpu::CreatePipelineAsyncStatus status,
+                  wgpu::RenderPipeline pipeline, char const *msg) {
           switch (status) {
           case wgpu::CreatePipelineAsyncStatus::Success:
             result->_instance = pipeline;
@@ -271,25 +311,29 @@ GPUDevice::popErrorScope() {
     auto future = _instance.PopErrorScope(
         wgpu::CallbackMode::WaitAnyOnly,
         [&result](wgpu::PopErrorScopeStatus, wgpu::ErrorType type,
-                               char const *message) {
+                  char const *message) {
           switch (type) {
           case wgpu::ErrorType::NoError:
             break;
           case wgpu::ErrorType::OutOfMemory: {
-            result = std::make_shared<GPUError>(wgpu::ErrorType::OutOfMemory, message);
+            result = std::make_shared<GPUError>(wgpu::ErrorType::OutOfMemory,
+                                                message);
             break;
           }
           case wgpu::ErrorType::Validation: {
-            result = std::make_shared<GPUError>(wgpu::ErrorType::Validation, message);
+            result = std::make_shared<GPUError>(wgpu::ErrorType::Validation,
+                                                message);
             break;
           }
           case wgpu::ErrorType::Internal: {
-            result = std::make_shared<GPUError>(wgpu::ErrorType::Internal, message);
+            result =
+                std::make_shared<GPUError>(wgpu::ErrorType::Internal, message);
             break;
           }
           case wgpu::ErrorType::Unknown:
           case wgpu::ErrorType::DeviceLost:
-            result = std::make_shared<GPUError>(wgpu::ErrorType::DeviceLost, message);
+            result = std::make_shared<GPUError>(wgpu::ErrorType::DeviceLost,
+                                                message);
             break;
           default:
             throw std::runtime_error(
@@ -310,12 +354,18 @@ std::unordered_set<std::string> GPUDevice::getFeatures() {
   size_t count = _instance.EnumerateFeatures(nullptr);
   std::vector<wgpu::FeatureName> features(count);
   if (count > 0) {
-      _instance.EnumerateFeatures(features.data());
+    _instance.EnumerateFeatures(features.data());
   }
-  return std::unordered_set<std::string>(features.begin(), features.end());
+  std::unordered_set<std::string> result;
+  for (auto feature : features) {
+    std::string name;
+    convertEnumToJSUnion(feature, &name);
+    result.insert(name);
+  }
+  return result;
 }
 
 std::future<std::shared_ptr<GPUDeviceLostInfo>> GPUDevice::getLost() {
-    throw std::runtime_error("GPUDevice::getLost(): not implemented");
+  throw std::runtime_error("GPUDevice::getLost(): not implemented");
 }
 } // namespace rnwgpu
