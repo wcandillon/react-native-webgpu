@@ -15,7 +15,7 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "GPUAdapter.h"
-#include <descriptors/GPURequestAdapterOptions.h>
+#include "GPURequestAdapterOptions.h"
 
 namespace rnwgpu {
 

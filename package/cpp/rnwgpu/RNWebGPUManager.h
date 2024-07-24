@@ -1,10 +1,9 @@
 #pragma once
 
 #include <memory>
+
 #include "GPU.h"
 #include "SurfaceRegistry.h"
-#include <android/native_window.h>
-#include <android/native_window_jni.h>
 
 namespace facebook {
 namespace jsi {

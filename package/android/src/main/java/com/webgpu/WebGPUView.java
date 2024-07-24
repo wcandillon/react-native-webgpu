@@ -48,9 +48,7 @@ public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
   }
 
   @Override
-  public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
-    onSurfaceUpdate(mContextId, width, height);
-  }
+  public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {}
 
   @Override
   public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
@@ -59,9 +57,6 @@ public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
 
   @DoNotStrip
   private native void onSurfaceCreate(Surface surface, int contextId, int width, int height);
-
-  @DoNotStrip
-  private native void onSurfaceUpdate(int contextId, int width, int height);
 
   @DoNotStrip
   private native void onSurfaceDestroy(int contextId);

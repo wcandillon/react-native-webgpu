@@ -66,14 +66,6 @@ Java_com_webgpu_WebGPUView_onSurfaceCreate(JNIEnv *env, jobject thiz, jobject su
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_webgpu_WebGPUView_onSurfaceUpdate(JNIEnv *env, jobject thiz, jint contextId, jint width, jint height) {
-  auto data = manager->surfacesRegistry.getSurface(contextId);
-  data->width = width;
-  data->height = height;
-}
-
-extern "C"
-JNIEXPORT void JNICALL
 Java_com_webgpu_WebGPUView_onSurfaceDestroy(JNIEnv *env, jobject thiz, jint contextId) {
   ANativeWindow_release(windowsRegistry[contextId]);
   manager->surfacesRegistry.removeSurface(contextId);

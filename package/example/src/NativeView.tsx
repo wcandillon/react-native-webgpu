@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Button, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { gpu, WebGPUView, WebGPUViewRef } from "react-native-webgpu";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
 
@@ -78,9 +78,11 @@ export const NativeView = () => {
     demo();
   }, [ref]);
 
-  return <View style={style.container}>
-    <WebGPUView ref={ref} style={style.webgpu} />
-  </View>;
+  return (
+    <View style={style.container}>
+      <WebGPUView ref={ref} style={style.webgpu} />
+    </View>
+  );
 };
 
 const style = StyleSheet.create({
