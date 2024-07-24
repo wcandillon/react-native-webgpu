@@ -1,7 +1,10 @@
 #pragma once
 
+#include <future>
 #include <memory>
 #include <string>
+#include <unordered_set>
+#include <variant>
 
 #include "Unions.h"
 
@@ -21,6 +24,10 @@
 #include "GPUCommandEncoderDescriptor.h"
 #include "GPUComputePipeline.h"
 #include "GPUComputePipelineDescriptor.h"
+#include "GPUDeviceLostInfo.h"
+#include "GPUError.h"
+#include "GPUExternalTexture.h"
+#include "GPUExternalTextureDescriptor.h"
 #include "GPUPipelineLayout.h"
 #include "GPUPipelineLayoutDescriptor.h"
 #include "GPUQuerySet.h"
@@ -59,6 +66,8 @@ public:
   createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor);
   std::shared_ptr<GPUSampler> createSampler(
       std::optional<std::shared_ptr<GPUSamplerDescriptor>> descriptor);
+  std::shared_ptr<GPUExternalTexture> importExternalTexture(
+      std::shared_ptr<GPUExternalTextureDescriptor> descriptor);
   std::shared_ptr<GPUBindGroupLayout> createBindGroupLayout(
       std::shared_ptr<GPUBindGroupLayoutDescriptor> descriptor);
   std::shared_ptr<GPUPipelineLayout>
@@ -71,15 +80,24 @@ public:
       std::shared_ptr<GPUComputePipelineDescriptor> descriptor);
   std::shared_ptr<GPURenderPipeline>
   createRenderPipeline(std::shared_ptr<GPURenderPipelineDescriptor> descriptor);
+  std::future<std::shared_ptr<GPUComputePipeline>> createComputePipelineAsync(
+      std::shared_ptr<GPUComputePipelineDescriptor> descriptor);
+  std::future<std::shared_ptr<GPURenderPipeline>> createRenderPipelineAsync(
+      std::shared_ptr<GPURenderPipelineDescriptor> descriptor);
   std::shared_ptr<GPUCommandEncoder> createCommandEncoder(
       std::optional<std::shared_ptr<GPUCommandEncoderDescriptor>> descriptor);
   std::shared_ptr<GPURenderBundleEncoder> createRenderBundleEncoder(
       std::shared_ptr<GPURenderBundleEncoderDescriptor> descriptor);
   std::shared_ptr<GPUQuerySet>
   createQuerySet(std::shared_ptr<GPUQuerySetDescriptor> descriptor);
+  void pushErrorScope(wgpu::ErrorFilter filter);
+  std::future<std::variant<std::nullptr_t, std::shared_ptr<GPUError>>>
+  popErrorScope();
 
+  std::unordered_set<std::string> getFeatures();
   std::shared_ptr<GPUSupportedLimits> getLimits();
   std::shared_ptr<GPUQueue> getQueue();
+  std::future<std::shared_ptr<GPUDeviceLostInfo>> getLost();
 
   std::string getLabel() { return _label; }
 
@@ -89,6 +107,8 @@ public:
     registerHybridMethod("createBuffer", &GPUDevice::createBuffer, this);
     registerHybridMethod("createTexture", &GPUDevice::createTexture, this);
     registerHybridMethod("createSampler", &GPUDevice::createSampler, this);
+    registerHybridMethod("importExternalTexture",
+                         &GPUDevice::importExternalTexture, this);
     registerHybridMethod("createBindGroupLayout",
                          &GPUDevice::createBindGroupLayout, this);
     registerHybridMethod("createPipelineLayout",
@@ -100,13 +120,21 @@ public:
                          &GPUDevice::createComputePipeline, this);
     registerHybridMethod("createRenderPipeline",
                          &GPUDevice::createRenderPipeline, this);
+    registerHybridMethod("createComputePipelineAsync",
+                         &GPUDevice::createComputePipelineAsync, this);
+    registerHybridMethod("createRenderPipelineAsync",
+                         &GPUDevice::createRenderPipelineAsync, this);
     registerHybridMethod("createCommandEncoder",
                          &GPUDevice::createCommandEncoder, this);
     registerHybridMethod("createRenderBundleEncoder",
                          &GPUDevice::createRenderBundleEncoder, this);
     registerHybridMethod("createQuerySet", &GPUDevice::createQuerySet, this);
+    registerHybridMethod("pushErrorScope", &GPUDevice::pushErrorScope, this);
+    registerHybridMethod("popErrorScope", &GPUDevice::popErrorScope, this);
+    registerHybridGetter("features", &GPUDevice::getFeatures, this);
     registerHybridGetter("limits", &GPUDevice::getLimits, this);
     registerHybridGetter("queue", &GPUDevice::getQueue, this);
+    registerHybridGetter("lost", &GPUDevice::getLost, this);
     registerHybridGetter("label", &GPUDevice::getLabel, this);
   }
 

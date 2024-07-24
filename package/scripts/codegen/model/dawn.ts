@@ -114,6 +114,20 @@ export const resolved: Record<
           { name: "copySize", type: "std::shared_ptr<GPUExtent3D>" },
         ],
       },
+      copyBufferToTexture: {
+        deps: [
+          "memory",
+          "GPUImageCopyBuffer",
+          "GPUImageCopyBuffer",
+          "GPUExtent3D",
+        ],
+        returnType: "void",
+        args: [
+          { name: "source", type: "std::shared_ptr<GPUImageCopyBuffer>" },
+          { name: "destination", type: "std::shared_ptr<GPUImageCopyTexture>" },
+          { name: "copySize", type: "std::shared_ptr<GPUExtent3D>" },
+        ],
+      },
     },
   },
   GPUQueue: {
@@ -170,6 +184,12 @@ export const resolved: Record<
     methods: {
       setBindGroup,
     },
+  },
+  GPUComputePipeline: {
+    extra: "friend class GPUDevice;",
+  },
+  GPURenderPipeline: {
+    extra: "friend class GPUDevice;",
   },
 };
 

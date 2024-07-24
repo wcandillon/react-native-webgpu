@@ -15,6 +15,7 @@ import { mergeParentInterfaces } from "./common";
 
 const instanceAliases: Record<string, string> = {
   GPU: "Instance",
+  GPUDeviceLostInfo: "DeviceLostReason",
 };
 
 const objectWhileList = [
@@ -23,7 +24,30 @@ const objectWhileList = [
   "GPUSupportedLimits",
   "GPUAdapterInfo",
   "GPUQueue",
-  //"GPUDevice",
+  "GPUDevice",
+  "GPUBindGroup",
+  "GPUBindGroupLayout",
+  "GPUBuffer",
+  "GPUCommandBuffer",
+  "GPUCommandEncoder",
+  //"GPUCompilationInfo",
+  // "GPUCompilationMessage",
+  // "GPUComputePassEncoder",
+  // "GPUComputePipeline",
+  // "GPUDeviceLostInfo",
+  "GPUExternalTexture",
+  // "GPUPipelineLayout",
+  "GPUQuerySet",
+  "GPURenderBundle",
+  // "GPURenderBundleEncoder",
+  //"GPURenderPassEncoder",
+  "GPURenderPipeline",
+  "GPUSampler",
+  //"GPUShaderModule",
+  // "GPUSupportedLimits",
+  "GPUTexture",
+  "GPUTextureView",
+  // "GPUUncapturedErrorEvent",
 ];
 
 const methodBlackList = ["requestAdapterInfo"];

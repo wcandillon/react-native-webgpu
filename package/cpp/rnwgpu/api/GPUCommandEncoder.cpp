@@ -141,4 +141,47 @@ void GPUCommandEncoder::resolveQuerySet(std::shared_ptr<GPUQuerySet> querySet,
   _instance.ResolveQuerySet(q, f, c, b, o);
 }
 
+void GPUCommandEncoder::copyBufferToTexture(
+    std::shared_ptr<GPUImageCopyBuffer> source,
+    std::shared_ptr<GPUImageCopyTexture> destination,
+    std::shared_ptr<GPUExtent3D> copySize) {
+  Convertor conv;
+
+  wgpu::ImageCopyBuffer src{};
+  wgpu::ImageCopyTexture dst{};
+  wgpu::Extent3D size{};
+  if (!conv(src, source) ||      //
+      !conv(dst, destination) || //
+      !conv(size, copySize)) {
+    return;
+  }
+
+  _instance.CopyBufferToTexture(&src, &dst, &size);
+}
+
+void GPUCommandEncoder::clearBuffer(std::shared_ptr<GPUBuffer> buffer,
+                                    std::optional<uint64_t> offset,
+                                    std::optional<uint64_t> size) {
+  Convertor conv;
+
+  wgpu::Buffer b{};
+  uint64_t s = wgpu::kWholeSize;
+  if (!conv(b, buffer) || //
+      !conv(s, size)) {
+    return;
+  }
+
+  _instance.ClearBuffer(b, offset.value_or(0), s);
+}
+
+void GPUCommandEncoder::pushDebugGroup(std::string groupLabel) {
+  _instance.PushDebugGroup(groupLabel.c_str());
+}
+
+void GPUCommandEncoder::popDebugGroup() { _instance.PopDebugGroup(); }
+
+void GPUCommandEncoder::insertDebugMarker(std::string markerLabel) {
+  _instance.InsertDebugMarker(markerLabel.c_str());
+}
+
 } // namespace rnwgpu

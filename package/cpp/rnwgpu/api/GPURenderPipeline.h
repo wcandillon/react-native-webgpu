@@ -42,6 +42,7 @@ public:
 private:
   wgpu::RenderPipeline _instance;
   std::string _label;
+  friend class GPUDevice;
 };
 
 } // namespace rnwgpu
