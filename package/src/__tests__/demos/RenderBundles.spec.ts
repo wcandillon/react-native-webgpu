@@ -55,6 +55,11 @@ interface Renderable {
   bindGroup?: GPUBindGroup;
 }
 
+const randomValues: number[] = [];
+for (let i = 0; i < 30000; i++) {
+  randomValues.push(Math.random());
+}
+
 describe("Render Bundles", () => {
   it("Asteroid", async () => {
     const result = await client.eval(
@@ -66,6 +71,7 @@ describe("Render Bundles", () => {
         mat4,
         vec3,
         assets: { saturn, moon },
+        vals,
       }) => {
         interface SphereMesh {
           vertices: Float32Array;
@@ -77,6 +83,13 @@ describe("Render Bundles", () => {
           positionsOffset: 0,
           normalOffset: 3 * 4,
           uvOffset: 6 * 4,
+        };
+
+        let i = 0;
+        const random = () => {
+          i++;
+          console.log(i);
+          return vals[i % vals.length];
         };
 
         // Borrowed and simplified from https://github.com/mrdoob/three.js/blob/master/src/geometries/SphereGeometry.js
@@ -119,8 +132,7 @@ describe("Render Bundles", () => {
               if (ix === widthSegments) {
                 vec3.copy(firstVertex, vertex);
               } else if (ix === 0 || (iy !== 0 && iy !== heightSegments)) {
-                const rr =
-                  radius + (Math.random() - 0.5) * 2 * randomness * radius;
+                const rr = radius + (random() - 0.5) * 2 * randomness * radius;
 
                 // vertex
                 vertex[0] =
@@ -413,16 +425,16 @@ describe("Render Bundles", () => {
         function ensureEnoughAsteroids() {
           for (let i = renderables.length; i <= asteroidCount; ++i) {
             // Place copies of the asteroid in a ring.
-            const radius = Math.random() * 1.7 + 1.25;
-            const angle = Math.random() * Math.PI * 2;
+            const radius = random() * 1.7 + 1.25;
+            const angle = random() * Math.PI * 2;
             const x = Math.sin(angle) * radius;
-            const y = (Math.random() - 0.5) * 0.015;
+            const y = (random() - 0.5) * 0.015;
             const z = Math.cos(angle) * radius;
 
             mat4.identity(transform);
             mat4.translate(transform, [x, y, z], transform);
-            mat4.rotateX(transform, Math.random() * Math.PI, transform);
-            mat4.rotateY(transform, Math.random() * Math.PI, transform);
+            mat4.rotateX(transform, random() * Math.PI, transform);
+            mat4.rotateY(transform, random() * Math.PI, transform);
             renderables.push({
               ...asteroids[i % asteroids.length],
               bindGroup: createSphereBindGroup(moonTexture, transform),
@@ -575,7 +587,7 @@ describe("Render Bundles", () => {
         frame();
         return ctx.getImageData();
       },
-      { meshWGSL: mesh },
+      { meshWGSL: mesh, vals: randomValues },
     );
     const image = encodeImage(result);
     checkImage(image, "snapshots/asteroid.png");
