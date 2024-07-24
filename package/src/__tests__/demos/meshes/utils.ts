@@ -82,7 +82,7 @@ export function generateNormals(
     );
   }
 
-  let tempVerts = {};
+  let tempVerts: Record<string, number> = {};
   let tempVertNdx = 0;
 
   // this assumes vertex positions are an exact match

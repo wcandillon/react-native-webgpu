@@ -34,6 +34,7 @@
 #include "GPUSamplerDescriptor.h"
 #include "GPUShaderModule.h"
 #include "GPUShaderModuleDescriptor.h"
+#include "GPUSupportedLimits.h"
 #include "GPUTexture.h"
 #include "GPUTextureDescriptor.h"
 
@@ -77,6 +78,7 @@ public:
   std::shared_ptr<GPUQuerySet>
   createQuerySet(std::shared_ptr<GPUQuerySetDescriptor> descriptor);
 
+  std::shared_ptr<GPUSupportedLimits> getLimits();
   std::shared_ptr<GPUQueue> getQueue();
 
   std::string getLabel() { return _label; }
@@ -103,6 +105,7 @@ public:
     registerHybridMethod("createRenderBundleEncoder",
                          &GPUDevice::createRenderBundleEncoder, this);
     registerHybridMethod("createQuerySet", &GPUDevice::createQuerySet, this);
+    registerHybridGetter("limits", &GPUDevice::getLimits, this);
     registerHybridGetter("queue", &GPUDevice::getQueue, this);
     registerHybridGetter("label", &GPUDevice::getLabel, this);
   }

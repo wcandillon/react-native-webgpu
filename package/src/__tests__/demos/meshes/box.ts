@@ -1,4 +1,4 @@
-import { Mesh } from './mesh';
+import type { Mesh } from "./mesh";
 
 /**
  * Constructs a box mesh with the given dimensions.
@@ -16,7 +16,7 @@ import { Mesh } from './mesh';
 export function createBoxMeshWithTangents(
   width: number,
   height: number,
-  depth: number
+  depth: number,
 ): Mesh {
   //    __________
   //   /         /|      y
@@ -46,7 +46,7 @@ export function createBoxMeshWithTangents(
   const f32sPerVertex = 14; // position : vec3f, tangent : vec3f, bitangent : vec3f, normal : vec3f, uv :vec2f
   const vertexStride = f32sPerVertex * 4;
   const vertices = new Float32Array(
-    faces.length * verticesPerSide * f32sPerVertex
+    faces.length * verticesPerSide * f32sPerVertex,
   );
   const indices = new Uint16Array(faces.length * indicesPerSize);
   const halfVecs = [
