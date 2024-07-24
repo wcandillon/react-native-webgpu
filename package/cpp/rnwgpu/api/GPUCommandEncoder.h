@@ -2,8 +2,6 @@
 
 #include <memory>
 #include <string>
-#include <variant>
-#include <vector>
 
 #include "Unions.h"
 
@@ -45,11 +43,9 @@ public:
                           uint64_t sourceOffset,
                           std::shared_ptr<GPUBuffer> destination,
                           uint64_t destinationOffset, uint64_t size);
-  void copyBufferToTexture(
-      std::shared_ptr<GPUImageCopyBuffer> source,
-      std::shared_ptr<GPUImageCopyTexture> destination,
-      std::shared_ptr<GPUExtent3D>
-          copySize);
+  void copyBufferToTexture(std::shared_ptr<GPUImageCopyBuffer> source,
+                           std::shared_ptr<GPUImageCopyTexture> destination,
+                           std::shared_ptr<GPUExtent3D> copySize);
   void copyTextureToBuffer(std::shared_ptr<GPUImageCopyTexture> source,
                            std::shared_ptr<GPUImageCopyBuffer> destination,
                            std::shared_ptr<GPUExtent3D> copySize);

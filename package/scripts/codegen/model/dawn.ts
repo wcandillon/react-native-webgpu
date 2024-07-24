@@ -114,7 +114,7 @@ export const resolved: Record<
           { name: "copySize", type: "std::shared_ptr<GPUExtent3D>" },
         ],
       },
-      copyBufferToBuffer: {
+      copyBufferToTexture: {
         deps: [
           "memory",
           "GPUImageCopyBuffer",
@@ -124,7 +124,7 @@ export const resolved: Record<
         returnType: "void",
         args: [
           { name: "source", type: "std::shared_ptr<GPUImageCopyBuffer>" },
-          { name: "destination", type: "std::shared_ptr<GPUImageCopyBuffer>" },
+          { name: "destination", type: "std::shared_ptr<GPUImageCopyTexture>" },
           { name: "copySize", type: "std::shared_ptr<GPUExtent3D>" },
         ],
       },
