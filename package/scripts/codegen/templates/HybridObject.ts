@@ -29,7 +29,7 @@ const objectWhileList = [
   "GPUBindGroupLayout",
   "GPUBuffer",
   "GPUCommandBuffer",
-  // "GPUCommandEncoder",
+  "GPUCommandEncoder",
   // "GPUCompilationInfo",
   // "GPUCompilationMessage",
   // "GPUComputePassEncoder",
