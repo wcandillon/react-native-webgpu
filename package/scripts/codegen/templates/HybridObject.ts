@@ -15,6 +15,7 @@ import { mergeParentInterfaces } from "./common";
 
 const instanceAliases: Record<string, string> = {
   GPU: "Instance",
+  GPUDeviceLostInfo: "DeviceLostReason",
 };
 
 const objectWhileList = [
