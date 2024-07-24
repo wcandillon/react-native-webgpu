@@ -1,6 +1,5 @@
 package com.webgpu;
 
-import android.graphics.Color;
 
 import androidx.annotation.Nullable;
 

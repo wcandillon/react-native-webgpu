@@ -10,11 +10,9 @@ void GPUCanvasContext::configure(std::shared_ptr<GPUCanvasConfiguration> configu
  if (!conv(surfaceConfiguration, configuration)) {
    throw std::runtime_error("Error with GPUTextureDescriptor");
  }
- surfaceConfiguration.width = 200;
- surfaceConfiguration.height = 200;
-// _instance.Configure(&surfaceConfiguration);
-
- _device = surfaceConfiguration.device;
+ surfaceConfiguration.width = _width;
+ surfaceConfiguration.height = _height;
+ _instance.Configure(&surfaceConfiguration);
 }
 
 void GPUCanvasContext::unconfigure() {
@@ -22,24 +20,14 @@ void GPUCanvasContext::unconfigure() {
 }
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
-  wgpu::SwapChainDescriptor swapChainDesc;
-  swapChainDesc.width = 200;
-  swapChainDesc.height = 200;
-  swapChainDesc.usage = wgpu::TextureUsage::RenderAttachment;
-  swapChainDesc.format = wgpu::TextureFormat::RGBA8Unorm;
-  swapChainDesc.presentMode = wgpu::PresentMode::Fifo;
-  auto surface = rnwgpu::RNWebGPUManager::surface;
-  auto swapChain = _device.CreateSwapChain(*surface, &swapChainDesc);
-  auto texture = swapChain.GetCurrentTexture();
-
-  RNWebGPUManager::swapChain = std::make_shared<wgpu::SwapChain>(swapChain);
-  RNWebGPUManager::texture = std::make_shared<wgpu::Texture>(texture);
-
-  return std::make_shared<GPUTexture>(texture, "mleko");
+  wgpu::SurfaceTexture surfaceTexture;
+  _instance.GetCurrentTexture(&surfaceTexture);
+  auto texture = surfaceTexture.texture;
+  return std::make_shared<GPUTexture>(texture, _label);
 }
 
 void GPUCanvasContext::present() {
-  RNWebGPUManager::swapChain->Present();
+  _instance.Present();
 }
 
 } // namespace rnwgpu

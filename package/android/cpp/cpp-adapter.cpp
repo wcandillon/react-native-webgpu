@@ -16,55 +16,65 @@
 
 #define LOG_TAG "WebGPUModule"
 
-rnwgpu::RNWebGPUManager *manager;
-ANativeWindow *window;
-std::shared_ptr<wgpu::SwapChain> swapChain;
-wgpu::SurfaceDescriptorFromAndroidNativeWindow androidSurfaceDesc;
-std::shared_ptr<wgpu::SurfaceDescriptor> surfaceDescriptor;
+std::shared_ptr<rnwgpu::RNWebGPUManager> manager;
+std::unordered_map<int, ANativeWindow*> windowsRegistry;
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     JNIEnv *env, jobject /* this */, jlong jsRuntime, jobject jsInvokerHolder) {
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
-  manager = new rnwgpu::RNWebGPUManager(runtime, nullptr);
+  manager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, nullptr);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_webgpu_WebGPUModule_registerContext(JNIEnv *env, jobject thiz, jlong jsRuntime, jint contextId) {
+Java_com_webgpu_WebGPUModule_createSurfaceContext(JNIEnv *env, jobject thiz, jlong jsRuntime, jint contextId) {
+  auto surfaceData = manager->surfacesRegistry.getSurface(contextId);
+  if (surfaceData == nullptr) {
+    throw std::runtime_error("Surface haven't configured yet");
+  }
+
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
   auto webGPUContextRegistry = runtime->global().getPropertyAsObject(*runtime, "__WebGPUContextRegistry");
+  if (webGPUContextRegistry.hasProperty(*runtime, std::to_string(contextId).c_str())) {
+    // Context already exists
+    return;
+  }
 
-  androidSurfaceDesc.window = window;
-  surfaceDescriptor = std::make_shared<wgpu::SurfaceDescriptor>();
-  surfaceDescriptor->nextInChain = reinterpret_cast<const wgpu::ChainedStruct *>(&androidSurfaceDesc);
-  auto surface = std::make_shared<wgpu::Surface>(manager->gpu->get().CreateSurface(surfaceDescriptor.get()));
-  auto gpuCanvasContext = std::make_shared<rnwgpu::GPUCanvasContext>(*surface);
+  auto label = "Context: " + std::to_string(contextId);
+  auto gpuCanvasContext = std::make_shared<rnwgpu::GPUCanvasContext>(
+    *surfaceData->surface,
+    surfaceData->width,
+    surfaceData->height,
+    label
+  );
   auto gpuCanvasContextJs = facebook::jsi::Object::createFromHostObject(*runtime, gpuCanvasContext);
   webGPUContextRegistry.setProperty(*runtime, std::to_string(contextId).c_str(), gpuCanvasContextJs);
-
-//  rnwgpu::RNWebGPUManager::surface = surface;
-//  rnwgpu::RNWebGPUManager::window = window;
-
-//  auto gpu = std::make_shared<rnwgpu::GPU>();
-//  gpu->attachSurface(nullptr);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_webgpu_WebGPUModule_triggerGPU(JNIEnv *env, jobject thiz) {
-  auto gpu = std::make_shared<rnwgpu::GPU>();
-  gpu->attachSurface(nullptr);
-}
-
-extern "C"
-JNIEXPORT void JNICALL
-Java_com_webgpu_WebGPUView_connectSurface(JNIEnv *env, jobject thiz, jobject surface) {
-  window = ANativeWindow_fromSurface(env, surface);
-
+Java_com_webgpu_WebGPUView_onSurfaceCreate(JNIEnv *env, jobject thiz, jobject surface, jint contextId, jint width, jint height) {
+  auto window = ANativeWindow_fromSurface(env, surface);
+  windowsRegistry[contextId] = window;
+  wgpu::SurfaceDescriptorFromAndroidNativeWindow androidSurfaceDesc;
   androidSurfaceDesc.window = window;
-  surfaceDescriptor = std::make_shared<wgpu::SurfaceDescriptor>();
-  surfaceDescriptor->nextInChain = reinterpret_cast<const wgpu::ChainedStruct *>(&androidSurfaceDesc);
-  auto surfaceGpu = std::make_shared<wgpu::Surface>(manager->gpu->get().CreateSurface(surfaceDescriptor.get()));
-  rnwgpu::RNWebGPUManager::surface = surfaceGpu;
-  rnwgpu::RNWebGPUManager::window = window;
+  wgpu::SurfaceDescriptor surfaceDescriptor;
+  surfaceDescriptor.nextInChain = &androidSurfaceDesc;
+  auto surfaceGpu = std::make_shared<wgpu::Surface>(manager->getGPU()->get().CreateSurface(&surfaceDescriptor));
+  manager->surfacesRegistry.addSurface(contextId, { width, height, surfaceGpu });
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUView_onSurfaceUpdate(JNIEnv *env, jobject thiz, jint contextId, jint width, jint height) {
+  auto data = manager->surfacesRegistry.getSurface(contextId);
+  data->width = width;
+  data->height = height;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUView_onSurfaceDestroy(JNIEnv *env, jobject thiz, jint contextId) {
+  ANativeWindow_release(windowsRegistry[contextId]);
+  manager->surfacesRegistry.removeSurface(contextId);
 }

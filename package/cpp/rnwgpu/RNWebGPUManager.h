@@ -2,6 +2,7 @@
 
 #include <memory>
 #include "GPU.h"
+#include "SurfaceRegistry.h"
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
 
@@ -24,14 +25,15 @@ public:
   RNWebGPUManager(jsi::Runtime *jsRuntime,
                   std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker);
   ~RNWebGPUManager();
-  std::shared_ptr<GPU> gpu;
-  static ANativeWindow *window;
-  static std::shared_ptr<wgpu::Surface> surface;
-  static std::shared_ptr<wgpu::Texture> texture;
-  static std::shared_ptr<wgpu::SwapChain> swapChain;
+
+  SurfaceRegistry surfacesRegistry;
+
+  std::shared_ptr<GPU> getGPU();
+
 private:
   jsi::Runtime *_jsRuntime;
   std::shared_ptr<facebook::react::CallInvoker> _jsCallInvoker;
+  std::shared_ptr<GPU> _gpu;
 };
 
 } // namespace rnwgpu

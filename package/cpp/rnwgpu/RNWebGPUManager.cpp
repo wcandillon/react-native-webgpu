@@ -13,18 +13,11 @@
 
 namespace rnwgpu {
 
-ANativeWindow *RNWebGPUManager::window;
-std::shared_ptr<wgpu::Surface> RNWebGPUManager::surface;
-std::shared_ptr<wgpu::Texture> RNWebGPUManager::texture;
-std::shared_ptr<wgpu::SwapChain> RNWebGPUManager::swapChain;
-
 RNWebGPUManager::RNWebGPUManager(
     jsi::Runtime *jsRuntime,
     std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker)
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker) {
-
-  auto gpu = std::make_shared<GPU>();
-  this->gpu = gpu;
+  _gpu = std::make_shared<GPU>();
 
   auto bufferUsage = std::make_shared<GPUBufferUsage>();
   _jsRuntime->global().setProperty(
@@ -53,11 +46,16 @@ RNWebGPUManager::RNWebGPUManager(
 
   _jsRuntime->global().setProperty(
       *_jsRuntime, "gpu",
-      jsi::Object::createFromHostObject(*_jsRuntime, std::move(gpu)));
+      jsi::Object::createFromHostObject(*_jsRuntime, _gpu));
 }
 
 RNWebGPUManager::~RNWebGPUManager() {
   _jsRuntime = nullptr;
   _jsCallInvoker = nullptr;
 }
+
+std::shared_ptr<GPU> RNWebGPUManager::getGPU() {
+  return _gpu;
+}
+
 } // namespace rnwgpu

@@ -20,8 +20,12 @@ namespace m = margelo;
 
 class GPUCanvasContext : public m::HybridObject {
 public:
-  explicit GPUCanvasContext(wgpu::Surface instance)
-      : HybridObject("GPUCanvasContext"), _instance(instance) {}
+  explicit GPUCanvasContext(wgpu::Surface instance, int width, int height, std::string label)
+      : HybridObject("GPUCanvasContext"),
+        _instance(instance),
+        _width(width),
+        _height(height),
+        _label(label) {}
 
 public:
   std::string getBrand() { return _name; }
@@ -42,7 +46,9 @@ public:
 
 private:
   wgpu::Surface _instance;
-  wgpu::Device _device;
+  int _width;
+  int _height;
+  std::string _label;
 };
 
 } // namespace rnwgpu

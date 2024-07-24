@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Button, StyleSheet, View } from "react-native";
-import { gpu, WebGPUView, WebGPUViewRef, mleko } from "react-native-webgpu";
+import { gpu, WebGPUView, WebGPUViewRef } from "react-native-webgpu";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
 
 export const NativeView = () => {
@@ -57,7 +57,7 @@ export const NativeView = () => {
       colorAttachments: [
         {
           view: textureView,
-          clearValue: [0, 1, 0, 0.5],
+          clearValue: [0, 0, 0, 1],
           loadOp: 'clear',
           storeOp: 'store',
         },
@@ -75,13 +75,10 @@ export const NativeView = () => {
   }
 
   useEffect(() => {
+    demo();
   }, [ref]);
 
   return <View style={style.container}>
-    <Button title="Run" onPress={demo} />
-    <Button title="gpu" onPress={() => {
-      mleko.triggergpu();
-    }} />
     <WebGPUView ref={ref} style={style.webgpu} />
   </View>;
 };
