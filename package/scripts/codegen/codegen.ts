@@ -168,6 +168,7 @@ sourceFile
 console.log("===");
 console.log("Objects");
 console.log("===");
+const objectsToSkip = ["GPUAdapterInfo"];
 const hybridObject = sourceFile
   .getInterfaces()
   .filter(
@@ -176,6 +177,7 @@ const hybridObject = sourceFile
       !decl.getName().endsWith("Mixin") &&
       !decl.getName().endsWith("Error") &&
       !decl.getName().endsWith("Base") &&
+      !objectsToSkip.includes(decl.getName()) &&
       decl.getProperty("__brand") !== undefined,
   );
 hybridObject.forEach((decl) => {

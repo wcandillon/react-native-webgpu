@@ -15,6 +15,7 @@
 #include <limits>
 #include <variant>
 #include <map>
+#include <unordered_set>
 
 #include <jsi/jsi.h>
 
@@ -517,6 +518,29 @@ struct JSIConverter<std::variant<std::nullptr_t, std::shared_ptr<O>>> {
   }
 };
 
+template <typename O>
+struct JSIConverter<std::variant<std::nullptr_t, O>,
+                    std::enable_if_t<std::is_enum_v<O>>> {
+  using Target = std::variant<std::nullptr_t, O>;
+
+  static Target fromJSI(jsi::Runtime &runtime, const jsi::Value &arg,
+                        bool outOfBound) {
+    if (arg.isNull()) {
+      return Target(nullptr);
+    } else if (arg.isNumber()) {
+      return Target(static_cast<O>(arg.asNumber()));
+    }
+    return Target(JSIConverter<O>::fromJSI(runtime, arg, outOfBound));
+  }
+
+  static jsi::Value toJSI(jsi::Runtime &runtime, Target arg) {
+    if (std::holds_alternative<std::nullptr_t>(arg)) {
+      return jsi::Value::null();
+    }
+    return JSIConverter<O>::toJSI(runtime, std::get<O>(arg));
+  }
+};
+
 // TODO: careful std::variant<O, std::nullptr_t> doesn't overload
 // std::variant<std::nullptr_t, 0> (order's matter)
 // variant<nullptr_t, numeric>
@@ -541,6 +565,26 @@ struct JSIConverter<
       return jsi::Value::null();
     }
     return jsi::Value(static_cast<double>(std::get<O>(arg)));
+  }
+};
+
+template <>
+struct JSIConverter<std::unordered_set<std::string>> {
+  using Target = std::unordered_set<std::string>;
+  static Target fromJSI(jsi::Runtime &runtime, const jsi::Value &arg,
+                        bool outOfBound) {
+    throw jsi::JSError(runtime, "JSIConverter<std::unordered_set<std::string>>::fromJSI not implemented");
+  }
+
+  static jsi::Value toJSI(jsi::Runtime &runtime, Target arg) {
+    auto setConstructor = runtime.global().getPropertyAsFunction(runtime, "Set");
+    auto set = setConstructor.callAsConstructor(runtime).asObject(runtime);
+    auto add = set.getPropertyAsFunction(runtime, "add");
+    for (const auto& value : arg) {
+     jsi::Value jsiValue = JSIConverter<std::string>::toJSI(runtime, value);
+     add.callWithThis(runtime, set, jsiValue);
+    }
+    return std::move(set);
   }
 };
 

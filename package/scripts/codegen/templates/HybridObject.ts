@@ -17,6 +17,17 @@ const instanceAliases: Record<string, string> = {
   GPU: "Instance",
 };
 
+const objectWhileList = [
+  "GPU",
+  "GPUAdapter",
+  "GPUSupportedLimits",
+  "GPUAdapterInfo",
+  "GPUQueue",
+  //"GPUDevice",
+];
+
+const methodBlackList = ["requestAdapterInfo"];
+
 const methodWhiteList = [
   // GPU
   "getPreferredCanvasFormat",
@@ -60,6 +71,14 @@ const methodWhiteList = [
   "copyExternalImageToTexture",
   "writeTexture",
   "copyTextureToTexture",
+  "createQuerySet",
+  "setIndexBuffer",
+  "beginOcclusionQuery",
+  "endOcclusionQuery",
+  "drawIndexed",
+  "resolveQuerySet",
+  "createRenderBundleEncoder",
+  "executeBundles",
 ];
 
 const propWhiteList: Record<string, string[]> = {
@@ -76,6 +95,8 @@ const propWhiteList: Record<string, string[]> = {
     "usage",
   ],
 };
+
+const propblackList = ["onuncapturederror", "label", "prototype"];
 
 // const propWhiteList: string[] = [
 //   //"info"
@@ -94,8 +115,10 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     .filter(
       (m) =>
         !m.getName().startsWith("__") &&
-        propWhiteList[className] &&
-        propWhiteList[className].includes(m.getName()),
+        !propblackList.includes(m.getName()) &&
+        ((propWhiteList[className] &&
+          propWhiteList[className].includes(m.getName())) ||
+          objectWhileList.includes(decl.getName())),
     )
     .map((signature) => {
       const nativeMethod = resolveNative(
@@ -115,7 +138,12 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     });
   const methods = decl
     .getMethods()
-    .filter((m) => methodWhiteList.includes(m.getName()))
+    .filter(
+      (m) =>
+        methodWhiteList.includes(m.getName()) ||
+        (objectWhileList.includes(decl.getName()) &&
+          !methodBlackList.includes(m.getName())),
+    )
     .map((signature) => {
       const resolved = resolveMethod(className, signature.getName());
       if (resolved) {

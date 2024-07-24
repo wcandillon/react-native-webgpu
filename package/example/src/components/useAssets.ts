@@ -36,10 +36,14 @@ const useImageData = (mod: number) => {
 
 export const useAssets = () => {
   const di3D = useImageData(require("../assets/Di-3d.png"));
-  if (!di3D) {
+  const moon = useImageData(require("../assets/moon.png"));
+  const saturn = useImageData(require("../assets/saturn.png"));
+  if (!di3D || !moon || !saturn) {
     return null;
   }
   return {
     di3D,
+    moon,
+    saturn,
   };
 };

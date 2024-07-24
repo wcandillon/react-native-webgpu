@@ -19,7 +19,11 @@
 #include "GPUCommandEncoderDescriptor.h"
 #include "GPUComputePipeline.h"
 #include "GPUComputePipelineDescriptor.h"
+#include "GPUQuerySet.h"
+#include "GPUQuerySetDescriptor.h"
 #include "GPUQueue.h"
+#include "GPURenderBundleEncoder.h"
+#include "GPURenderBundleEncoderDescriptor.h"
 #include "GPURenderPipeline.h"
 #include "GPURenderPipelineDescriptor.h"
 #include "GPUSampler.h"
@@ -60,6 +64,10 @@ public:
   createRenderPipeline(std::shared_ptr<GPURenderPipelineDescriptor> descriptor);
   std::shared_ptr<GPUCommandEncoder> createCommandEncoder(
       std::optional<std::shared_ptr<GPUCommandEncoderDescriptor>> descriptor);
+  std::shared_ptr<GPURenderBundleEncoder> createRenderBundleEncoder(
+      std::shared_ptr<GPURenderBundleEncoderDescriptor> descriptor);
+  std::shared_ptr<GPUQuerySet>
+  createQuerySet(std::shared_ptr<GPUQuerySetDescriptor> descriptor);
 
   std::shared_ptr<GPUQueue> getQueue();
 
@@ -80,6 +88,9 @@ public:
                          &GPUDevice::createRenderPipeline, this);
     registerHybridMethod("createCommandEncoder",
                          &GPUDevice::createCommandEncoder, this);
+    registerHybridMethod("createRenderBundleEncoder",
+                         &GPUDevice::createRenderBundleEncoder, this);
+    registerHybridMethod("createQuerySet", &GPUDevice::createQuerySet, this);
     registerHybridGetter("queue", &GPUDevice::getQueue, this);
     registerHybridGetter("label", &GPUDevice::getLabel, this);
   }

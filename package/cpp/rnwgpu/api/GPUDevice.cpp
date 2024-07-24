@@ -122,4 +122,35 @@ std::shared_ptr<GPUComputePipeline> GPUDevice::createComputePipeline(
                                               descriptor->label.value_or(""));
 }
 
+std::shared_ptr<GPUQuerySet>
+GPUDevice::createQuerySet(std::shared_ptr<GPUQuerySetDescriptor> descriptor) {
+  wgpu::QuerySetDescriptor desc;
+  Convertor conv;
+  if (!conv(desc, descriptor)) {
+    throw std::runtime_error("GPUDevice::createQuerySet(): Error with "
+                             "GPUQuerySetDescriptor");
+  }
+  auto querySet = _instance.CreateQuerySet(&desc);
+  return std::make_shared<GPUQuerySet>(querySet,
+                                       descriptor->label.value_or(""));
+}
+
+std::shared_ptr<GPURenderBundleEncoder> GPUDevice::createRenderBundleEncoder(
+    std::shared_ptr<GPURenderBundleEncoderDescriptor> descriptor) {
+  Convertor conv;
+
+  wgpu::RenderBundleEncoderDescriptor desc{};
+  if (!conv(desc.label, descriptor->label) ||
+      !conv(desc.colorFormats, desc.colorFormatCount,
+            descriptor->colorFormats) ||
+      !conv(desc.depthStencilFormat, descriptor->depthStencilFormat) ||
+      !conv(desc.sampleCount, descriptor->sampleCount) ||
+      !conv(desc.depthReadOnly, descriptor->depthReadOnly) ||
+      !conv(desc.stencilReadOnly, descriptor->stencilReadOnly)) {
+    return {};
+  }
+  return std::make_shared<GPURenderBundleEncoder>(
+      _instance.CreateRenderBundleEncoder(&desc),
+      descriptor->label.value_or(""));
+}
 } // namespace rnwgpu

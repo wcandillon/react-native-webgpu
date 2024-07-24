@@ -3,7 +3,7 @@
 //
 #include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
-#include "Logger.h"
+#include "WGPULogger.h"
 
 #include <vector>
 #include <utility>
