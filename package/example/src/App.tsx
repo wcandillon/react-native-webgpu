@@ -5,8 +5,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { Routes } from "./Route";
 import { Home } from "./Home";
 import { Tests } from "./Tests";
-import { HelloTriangle, HelloTriangleMSAA } from "./Triangle";
 import { useAssets } from "./components/useAssets";
+import { Cube } from "./Cube";
+import { HelloTriangle, HelloTriangleMSAA } from "./Triangle";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -25,6 +26,7 @@ function App() {
             name="HelloTriangleMSAA"
             component={HelloTriangleMSAA}
           />
+          <Stack.Screen name="Cube" component={Cube} />
           <Stack.Screen name="Tests">
             {(props) => <Tests {...props} assets={assets} />}
           </Stack.Screen>

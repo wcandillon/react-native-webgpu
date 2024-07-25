@@ -16,6 +16,10 @@ export const examples = [
     title: "🔺 Hello Triangle MSAA",
   },
   {
+    screen: "Cube",
+    title: "🧊 Cube",
+  },
+  {
     screen: "Tests",
     title: "🧪 E2E Tests",
   },
