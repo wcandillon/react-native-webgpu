@@ -17,6 +17,7 @@ export function HelloTriangle() {
     const presentationFormat = gpu.getPreferredCanvasFormat();
 
     const context = ref.current?.getContext("webgpu");
+    console.log("context", context);
     if (!context) {
       throw new Error("No context");
     }

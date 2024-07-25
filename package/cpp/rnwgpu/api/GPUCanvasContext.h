@@ -29,9 +29,13 @@ public:
 
 public:
   std::string getBrand() { return _name; }
+  int getWidth() { return _width; }
+  int getHeight() { return _height; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUCanvasContext::getBrand, this);
+    registerHybridGetter("width", &GPUCanvasContext::getWidth, this);
+    registerHybridGetter("height", &GPUCanvasContext::getHeight, this);
     registerHybridMethod("configure", &GPUCanvasContext::configure, this);
     registerHybridMethod("unconfigure", &GPUCanvasContext::unconfigure, this);
     registerHybridMethod("getCurrentTexture", &GPUCanvasContext::getCurrentTexture, this);
