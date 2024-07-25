@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { gpu, WebGPUView, WebGPUViewRef } from "react-native-webgpu";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
 
-export const NativeView = () => {
+export function HelloTriangle() {
   const ref = useRef<WebGPUViewRef>(null);
   
   async function demo() {

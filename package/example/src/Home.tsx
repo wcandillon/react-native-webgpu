@@ -16,8 +16,8 @@ export const examples = [
     title: "🧪 Tests",
   },
   {
-    screen: "NativeView",
-    title: "NativeView",
+    screen: "HelloTriangle",
+    title: "HelloTriangle",
   },
 ] as const;
 
