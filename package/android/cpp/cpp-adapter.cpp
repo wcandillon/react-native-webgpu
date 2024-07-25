@@ -1,18 +1,15 @@
-#include "RNWebGPUManager.h"
-#include "WGPULogger.h"
+#include <memory>
+#include <unordered_map>
+
 #include <fbjni/fbjni.h>
 #include <jni.h>
 #include <jsi/jsi.h>
-#include "GPU.h"
-#include "GPUCanvasContext.h"
-#include <android/native_window.h>
-#include <android/native_window_jni.h>
 
-#include <webgpu/webgpu_cpp.h>
 #include <android/native_window_jni.h>
-#include <android/surface_texture.h>
-#include <android/surface_texture_jni.h>
-#include <dawn/webgpu_cpp.h>
+#include <webgpu/webgpu_cpp.h>
+
+#include "RNWebGPUManager.h"
+#include "GPUCanvasContext.h"
 
 #define LOG_TAG "WebGPUModule"
 

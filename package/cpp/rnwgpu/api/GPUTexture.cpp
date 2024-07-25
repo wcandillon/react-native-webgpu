@@ -16,7 +16,6 @@ std::shared_ptr<GPUTextureView> GPUTexture::createView(
     throw std::runtime_error("GPUTextureView.createView(): couldn't access "
                              "GPUTextureViewDescriptor");
   }
-  desc.format = wgpu::TextureFormat::RGBA8Unorm;
   auto view = _instance.CreateView(&desc);
   return std::make_shared<GPUTextureView>(
       view,

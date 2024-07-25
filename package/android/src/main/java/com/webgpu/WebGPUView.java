@@ -1,7 +1,6 @@
 package com.webgpu;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.OptIn;
 
 import android.content.Context;
 import android.view.Surface;
@@ -9,25 +8,23 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import com.facebook.proguard.annotations.DoNotStrip;
-import com.facebook.react.common.annotations.FrameworkAPI;
 import com.facebook.react.uimanager.ThemedReactContext;
 
 public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
 
   private Integer mContextId;
-  private @OptIn(markerClass = FrameworkAPI.class) WebGPUModule module;
+  private WebGPUModule mModule;
 
   public WebGPUView(Context context) {
     super(context);
     getHolder().addCallback(this);
   }
 
-  @OptIn(markerClass = FrameworkAPI.class)
   public void setContextId(Integer contextId) {
-    if (module == null) {
+    if (mModule == null) {
       Context context = getContext();
       if (context instanceof ThemedReactContext) {
-        module = ((ThemedReactContext)context).getNativeModule(WebGPUModule.class);
+        mModule = ((ThemedReactContext)context).getNativeModule(WebGPUModule.class);
       }
     }
     mContextId = contextId;
@@ -39,12 +36,9 @@ public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
   }
 
   @Override
-  @OptIn(markerClass = FrameworkAPI.class)
   public void surfaceCreated(@NonNull SurfaceHolder holder) {
     onSurfaceCreate(holder.getSurface(), mContextId, this.getMeasuredWidth(), this.getMeasuredHeight());
-    if (module != null) {
-      module.onSurfaceCreated(mContextId);
-    }
+    mModule.onSurfaceCreated(mContextId);
   }
 
   @Override

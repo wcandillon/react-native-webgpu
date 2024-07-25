@@ -17,6 +17,7 @@ RNWebGPUManager::RNWebGPUManager(
     jsi::Runtime *jsRuntime,
     std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker)
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker) {
+
   _gpu = std::make_shared<GPU>();
 
   auto bufferUsage = std::make_shared<GPUBufferUsage>();

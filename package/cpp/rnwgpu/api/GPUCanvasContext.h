@@ -38,7 +38,7 @@ public:
     registerHybridMethod("present", &GPUCanvasContext::present, this);
   }
 
- inline const wgpu::Surface get() { return _instance; }
+  inline const wgpu::Surface get() { return _instance; }
   void configure(std::shared_ptr<GPUCanvasConfiguration> configuration);
   void unconfigure();
   std::shared_ptr<GPUTexture> getCurrentTexture();

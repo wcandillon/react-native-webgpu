@@ -36,7 +36,8 @@ public:
   std::string getBrand() { return _name; }
 
   std::future<std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>>
-  requestAdapter(std::optional<std::shared_ptr<GPURequestAdapterOptions>> options);
+  requestAdapter(
+      std::optional<std::shared_ptr<GPURequestAdapterOptions>> options);
   wgpu::TextureFormat getPreferredCanvasFormat();
 
   std::unordered_set<std::string> getWgslLanguageFeatures();

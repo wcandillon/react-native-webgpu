@@ -1,6 +1,8 @@
 package com.webgpu;
 
 import android.util.Log;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.facebook.proguard.annotations.DoNotStrip;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -12,10 +14,6 @@ import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.turbomodule.core.CallInvokerHolderImpl;
 import com.facebook.react.turbomodule.core.interfaces.CallInvokerHolder;
 
-import java.util.HashSet;
-import java.util.Set;
-
-@FrameworkAPI
 @ReactModule(name = WebGPUModule.NAME)
 public class WebGPUModule extends ReactContextBaseJavaModule {
   static {
