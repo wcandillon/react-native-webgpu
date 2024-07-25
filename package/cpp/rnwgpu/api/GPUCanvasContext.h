@@ -9,9 +9,9 @@
 
 #include "AsyncRunner.h"
 
-#include "SurfaceRegistry.h"
 #include "GPUCanvasConfiguration.h"
 #include "GPUTexture.h"
+#include "SurfaceRegistry.h"
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
