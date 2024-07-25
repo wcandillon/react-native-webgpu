@@ -19,7 +19,7 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Home">
+        <Stack.Navigator initialRouteName="Tests">
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="Buffers" component={Buffers} />
           <Stack.Screen name="NativeView" component={NativeView} />
