@@ -9,6 +9,7 @@
 
 #include "AsyncRunner.h"
 
+#include "SurfaceRegistry.h"
 #include "GPUCanvasConfiguration.h"
 #include "GPUTexture.h"
 #include "webgpu/webgpu_cpp.h"
