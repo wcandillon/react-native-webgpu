@@ -1,19 +1,18 @@
-#include "RNWebGPUManager.h"
 #include "GPUCanvasContext.h"
 #include "Convertors.h"
+#include "RNWebGPUManager.h"
 
 namespace rnwgpu {
 
-void GPUCanvasContext::configure(std::shared_ptr<GPUCanvasConfiguration> configuration) {
+void GPUCanvasContext::configure(
+    std::shared_ptr<GPUCanvasConfiguration> configuration) {
   Convertor conv;
   wgpu::SurfaceConfiguration surfaceConfiguration;
   surfaceConfiguration.device = configuration->device->get();
   if (configuration->viewFormats.has_value()) {
-    if (!conv(
-        surfaceConfiguration.viewFormats,
-        surfaceConfiguration.viewFormatCount,
-        configuration->viewFormats.value()
-      )) {
+    if (!conv(surfaceConfiguration.viewFormats,
+              surfaceConfiguration.viewFormatCount,
+              configuration->viewFormats.value())) {
       throw std::runtime_error("Error with SurfaceConfiguration");
     }
   }
@@ -23,24 +22,21 @@ void GPUCanvasContext::configure(std::shared_ptr<GPUCanvasConfiguration> configu
   if (!conv(surfaceConfiguration.usage, configuration->usage)) {
     throw std::runtime_error("Error with SurfaceConfiguration");
   }
-  surfaceConfiguration.width = _width;
-  surfaceConfiguration.height = _height;
+  surfaceConfiguration.width = _canvas->getWidth();
+  surfaceConfiguration.height = _canvas->getHeight();
   _instance.Configure(&surfaceConfiguration);
 }
 
-void GPUCanvasContext::unconfigure() {
-  _instance.Unconfigure();
-}
+void GPUCanvasContext::unconfigure() { _instance.Unconfigure(); }
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   wgpu::SurfaceTexture surfaceTexture;
   _instance.GetCurrentTexture(&surfaceTexture);
   auto texture = surfaceTexture.texture;
-  return std::make_shared<GPUTexture>(texture, _label);
+  // Default canvas texture label is ""
+  return std::make_shared<GPUTexture>(texture, "");
 }
 
-void GPUCanvasContext::present() {
-  _instance.Present();
-}
+void GPUCanvasContext::present() { _instance.Present(); }
 
 } // namespace rnwgpu

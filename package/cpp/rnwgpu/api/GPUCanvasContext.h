@@ -1,8 +1,7 @@
 #pragma once
 
-#include <string>
 #include <memory>
-
+#include <string>
 
 #include "Unions.h"
 
@@ -10,41 +9,55 @@
 
 #include "AsyncRunner.h"
 
-#include "webgpu/webgpu_cpp.h"
-#include "GPUTexture.h"
 #include "GPUCanvasConfiguration.h"
+#include "GPUTexture.h"
+#include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
 namespace m = margelo;
 
+class Canvas : public m::HybridObject {
+public:
+  explicit Canvas(const float width, const float height)
+      : HybridObject("Canvas"), _width(width), _height(height) {}
+
+  float getWidth() { return _width; }
+  float getHeight() { return _height; }
+  float getClientWidth() { return _width; }
+  float getClientHeight() { return _height; }
+
+  void loadHybridMethods() override {
+    registerHybridGetter("width", &Canvas::getWidth, this);
+    registerHybridGetter("height", &Canvas::getHeight, this);
+    registerHybridGetter("clientWidth", &Canvas::getClientWidth, this);
+    registerHybridGetter("clientHeight", &Canvas::getClientHeight, this);
+  }
+
+private:
+  const float _width;
+  const float _height;
+};
+
 class GPUCanvasContext : public m::HybridObject {
 public:
-  explicit GPUCanvasContext(const SurfaceData &surfaceData, std::string label)
-      : HybridObject("GPUCanvasContext"),
-        _instance(*surfaceData.surface),
-        _clientWidth(surfaceData.clientWidth),
-        _clientHeight(surfaceData.clientHeight),
-        _width(surfaceData.width),
-        _height(surfaceData.height),
-        _label(label) {}
+  explicit GPUCanvasContext(const SurfaceData &surfaceData)
+      : HybridObject("GPUCanvasContext"), _instance(*surfaceData.surface),
+        _canvas(std::make_shared<rnwgpu::Canvas>(surfaceData.width,
+                                                 surfaceData.height)) {}
 
 public:
   std::string getBrand() { return _name; }
-  float getWidth() { return _width; }
-  float getHeight() { return _height; }
-  float getClientWidth() { return _clientWidth; }
-  float getClientHeight() { return _clientHeight; }
+
+  std::shared_ptr<Canvas> getCanvas() { return _canvas; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUCanvasContext::getBrand, this);
-    registerHybridGetter("width", &GPUCanvasContext::getWidth, this);
-    registerHybridGetter("height", &GPUCanvasContext::getHeight, this);
-    registerHybridGetter("clientWidth", &GPUCanvasContext::getClientWidth, this);
-    registerHybridGetter("clientHeight", &GPUCanvasContext::getClientHeight, this);
+    registerHybridGetter("canvas", &GPUCanvasContext::getCanvas, this);
     registerHybridMethod("configure", &GPUCanvasContext::configure, this);
     registerHybridMethod("unconfigure", &GPUCanvasContext::unconfigure, this);
-    registerHybridMethod("getCurrentTexture", &GPUCanvasContext::getCurrentTexture, this);
+    registerHybridMethod("getCurrentTexture",
+                         &GPUCanvasContext::getCurrentTexture, this);
     registerHybridMethod("present", &GPUCanvasContext::present, this);
   }
 
@@ -56,11 +69,7 @@ public:
 
 private:
   wgpu::Surface _instance;
-  float _clientWidth;
-  float _clientHeight;
-  float _width;
-  float _height;
-  std::string _label;
+  std::shared_ptr<Canvas> _canvas;
 };
 
 } // namespace rnwgpu

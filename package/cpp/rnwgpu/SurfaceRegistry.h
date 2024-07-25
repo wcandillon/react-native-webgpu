@@ -8,8 +8,6 @@
 namespace rnwgpu {
 
 struct SurfaceData {
-  float clientWidth = 0;
-  float clientHeight = 0;
   float width = 0;
   float height = 0;
   std::shared_ptr<wgpu::Surface> surface;
@@ -25,9 +23,7 @@ public:
   std::shared_ptr<SurfaceData> getSurface(const int contextId) {
     return _registry[contextId];
   }
-  void removeSurface(const int contextId) {
-    _registry.erase(contextId);
-  }
+  void removeSurface(const int contextId) { _registry.erase(contextId); }
 };
 
 } // namespace rnwgpu

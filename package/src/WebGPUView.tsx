@@ -10,30 +10,28 @@ function generateContextId() {
 }
 
 global.__WebGPUContextRegistry = {};
+console.log(global.__WebGPUContextRegistry);
 const WebGPUContextRegistry = global.__WebGPUContextRegistry;
 
 type CanvasContext = GPUCanvasContext & {
   present: () => void;
-  width: number;
-  height: number;
-  clientWidth: number;
-  clientHeight: number;
 };
 
 export interface WebGPUViewRef {
-  getContext(contextName: string): CanvasContext | null;
+  getContext(contextName: "webgpu"): CanvasContext | null;
 }
 
 export const WebGPUView = forwardRef<WebGPUViewRef, ViewProps>((props, ref) => {
   const [contextId, _] = useState(() => generateContextId());
 
   useImperativeHandle(ref, () => ({
-    getContext: (contextName: string): CanvasContext | null => {
+    getContext(contextName: "webgpu"): CanvasContext | null {
       if (contextName !== "webgpu") {
         throw new Error("[WebGPU] Unsupported context");
       }
       WebGPUNativeModule.createSurfaceContext(contextId);
-      return (WebGPUContextRegistry[contextId] as CanvasContext) ?? null;
+      const ctx = (WebGPUContextRegistry[contextId] as CanvasContext) ?? null;
+      return ctx;
     },
   }));
 

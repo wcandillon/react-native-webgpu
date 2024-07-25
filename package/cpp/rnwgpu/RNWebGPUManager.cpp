@@ -46,8 +46,7 @@ RNWebGPUManager::RNWebGPUManager(
       jsi::Object::createFromHostObject(*_jsRuntime, std::move(textureUsage)));
 
   _jsRuntime->global().setProperty(
-      *_jsRuntime, "gpu",
-      jsi::Object::createFromHostObject(*_jsRuntime, _gpu));
+      *_jsRuntime, "gpu", jsi::Object::createFromHostObject(*_jsRuntime, _gpu));
 }
 
 RNWebGPUManager::~RNWebGPUManager() {
@@ -55,8 +54,6 @@ RNWebGPUManager::~RNWebGPUManager() {
   _jsCallInvoker = nullptr;
 }
 
-std::shared_ptr<GPU> RNWebGPUManager::getGPU() {
-  return _gpu;
-}
+std::shared_ptr<GPU> RNWebGPUManager::getGPU() { return _gpu; }
 
 } // namespace rnwgpu

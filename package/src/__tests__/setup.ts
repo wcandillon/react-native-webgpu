@@ -16,7 +16,7 @@ import { cubeVertexArray } from "../../example/src/components/cube";
 import {
   redFragWGSL,
   triangleVertWGSL,
-} from "../../example/src/components/triangle";
+} from "../../example/src/Triangle/triangle";
 
 import { DEBUG, REFERENCE } from "./config";
 
