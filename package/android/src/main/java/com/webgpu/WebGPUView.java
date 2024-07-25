@@ -8,6 +8,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import com.facebook.proguard.annotations.DoNotStrip;
+import com.facebook.react.uimanager.PixelUtil;
 import com.facebook.react.uimanager.ThemedReactContext;
 
 public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
@@ -37,7 +38,11 @@ public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
 
   @Override
   public void surfaceCreated(@NonNull SurfaceHolder holder) {
-    onSurfaceCreate(holder.getSurface(), mContextId, this.getMeasuredWidth(), this.getMeasuredHeight());
+    float clientWidth = getWidth();
+    float clientHeight = getWidth();
+    float width = PixelUtil.toDIPFromPixel(clientWidth);
+    float height = PixelUtil.toDIPFromPixel(clientHeight);
+    onSurfaceCreate(holder.getSurface(), mContextId, clientWidth, clientHeight, width, height);
     mModule.onSurfaceCreated(mContextId);
   }
 
@@ -50,7 +55,14 @@ public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
   }
 
   @DoNotStrip
-  private native void onSurfaceCreate(Surface surface, int contextId, int width, int height);
+  private native void onSurfaceCreate(
+    Surface surface,
+    int contextId,
+    float clientWidth,
+    float clientHeight,
+    float width,
+    float height
+  );
 
   @DoNotStrip
   private native void onSurfaceDestroy(int contextId);
