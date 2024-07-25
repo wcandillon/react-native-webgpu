@@ -8,11 +8,9 @@ export { default as WebGPUModule } from "./WebGPUNativeModule";
 declare global {
   // eslint-disable-next-line no-var
   var gpu: GPU;
+  // eslint-disable-next-line no-var
   var __WebGPUContextRegistry: Record<number, GPUCanvasContext>;
 }
-
-global.__WebGPUContextRegistry = {};
-export const WebGPUContextRegistry = global.__WebGPUContextRegistry;
 
 WebGPUNativeModule.install();
 export const { gpu } = global;

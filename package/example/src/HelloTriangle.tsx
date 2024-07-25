@@ -1,11 +1,13 @@
 import React, { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
-import { gpu, WebGPUView, WebGPUViewRef } from "react-native-webgpu";
+import type { WebGPUViewRef } from "react-native-webgpu";
+import { gpu, WebGPUView } from "react-native-webgpu";
+
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
 
 export function HelloTriangle() {
   const ref = useRef<WebGPUViewRef>(null);
-  
+
   async function demo() {
     const adapter = await gpu.requestAdapter();
     if (!adapter) {
@@ -22,7 +24,7 @@ export function HelloTriangle() {
     context.configure({
       device,
       format: presentationFormat,
-      alphaMode: 'opaque',
+      alphaMode: "opaque",
     });
 
     const pipeline = device.createRenderPipeline({
@@ -52,14 +54,14 @@ export function HelloTriangle() {
     const commandEncoder = device.createCommandEncoder();
 
     const textureView = context.getCurrentTexture().createView();
-    
+
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [
         {
           view: textureView,
           clearValue: [0, 0, 0, 1],
-          loadOp: 'clear',
-          storeOp: 'store',
+          loadOp: "clear",
+          storeOp: "store",
         },
       ],
     };
@@ -83,7 +85,7 @@ export function HelloTriangle() {
       <WebGPUView ref={ref} style={style.webgpu} />
     </View>
   );
-};
+}
 
 const style = StyleSheet.create({
   container: {
