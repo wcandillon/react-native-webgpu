@@ -6,6 +6,7 @@ import type { Routes } from "./Route";
 import { Home } from "./Home";
 import { Buffers } from "./Buffers";
 import { Tests } from "./Tests";
+import { HelloTriangle } from "./HelloTriangle";
 import { useAssets } from "./components/useAssets";
 
 const Stack = createNativeStackNavigator<Routes>();
@@ -21,6 +22,7 @@ function App() {
         <Stack.Navigator initialRouteName="Tests">
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="Buffers" component={Buffers} />
+          <Stack.Screen name="HelloTriangle" component={HelloTriangle} />
           <Stack.Screen name="Tests">
             {(props) => <Tests {...props} assets={assets} />}
           </Stack.Screen>

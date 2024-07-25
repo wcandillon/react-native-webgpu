@@ -2,6 +2,9 @@
 
 #include <memory>
 
+#include "GPU.h"
+#include "SurfaceRegistry.h"
+
 namespace facebook {
 namespace jsi {
 class Runtime;
@@ -22,9 +25,14 @@ public:
                   std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker);
   ~RNWebGPUManager();
 
+  SurfaceRegistry surfacesRegistry;
+
+  std::shared_ptr<GPU> getGPU();
+
 private:
   jsi::Runtime *_jsRuntime;
   std::shared_ptr<facebook::react::CallInvoker> _jsCallInvoker;
+  std::shared_ptr<GPU> _gpu;
 };
 
 } // namespace rnwgpu

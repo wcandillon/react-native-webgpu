@@ -1,24 +1,57 @@
 package com.webgpu;
 
-import androidx.annotation.Nullable;
+import androidx.annotation.NonNull;
 
 import android.content.Context;
-import android.util.AttributeSet;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 
-import android.view.View;
+import com.facebook.proguard.annotations.DoNotStrip;
+import com.facebook.react.uimanager.ThemedReactContext;
 
-public class WebGPUView extends View {
+public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
+
+  private Integer mContextId;
+  private WebGPUModule mModule;
 
   public WebGPUView(Context context) {
     super(context);
+    getHolder().addCallback(this);
   }
 
-  public WebGPUView(Context context, @Nullable AttributeSet attrs) {
-    super(context, attrs);
+  public void setContextId(Integer contextId) {
+    if (mModule == null) {
+      Context context = getContext();
+      if (context instanceof ThemedReactContext) {
+        mModule = ((ThemedReactContext)context).getNativeModule(WebGPUModule.class);
+      }
+    }
+    mContextId = contextId;
   }
 
-  public WebGPUView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
-    super(context, attrs, defStyleAttr);
+  @Override
+  protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+    super.onLayout(changed, left, top, right, bottom);
   }
 
+  @Override
+  public void surfaceCreated(@NonNull SurfaceHolder holder) {
+    onSurfaceCreate(holder.getSurface(), mContextId, this.getMeasuredWidth(), this.getMeasuredHeight());
+    mModule.onSurfaceCreated(mContextId);
+  }
+
+  @Override
+  public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {}
+
+  @Override
+  public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
+    onSurfaceDestroy(mContextId);
+  }
+
+  @DoNotStrip
+  private native void onSurfaceCreate(Surface surface, int contextId, int width, int height);
+
+  @DoNotStrip
+  private native void onSurfaceDestroy(int contextId);
 }

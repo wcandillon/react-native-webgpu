@@ -1,7 +1,5 @@
 package com.webgpu;
 
-import android.graphics.Color;
-
 import androidx.annotation.Nullable;
 
 import com.facebook.react.module.annotations.ReactModule;
@@ -24,8 +22,8 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
   }
 
   @Override
-  @ReactProp(name = "color")
-  public void setColor(WebGPUView view, @Nullable String color) {
-    view.setBackgroundColor(Color.parseColor(color));
+  @ReactProp(name = "contextId")
+  public void setContextId(WebGPUView view, @Nullable Integer contextId) {
+    view.setContextId(contextId);
   }
 }

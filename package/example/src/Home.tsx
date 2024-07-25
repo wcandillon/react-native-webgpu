@@ -15,6 +15,10 @@ export const examples = [
     screen: "Tests",
     title: "🧪 Tests",
   },
+  {
+    screen: "HelloTriangle",
+    title: "HelloTriangle",
+  },
 ] as const;
 
 const styles = StyleSheet.create({
