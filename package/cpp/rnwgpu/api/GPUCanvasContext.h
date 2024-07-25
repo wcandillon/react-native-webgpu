@@ -20,22 +20,28 @@ namespace m = margelo;
 
 class GPUCanvasContext : public m::HybridObject {
 public:
-  explicit GPUCanvasContext(wgpu::Surface instance, int width, int height, std::string label)
+  explicit GPUCanvasContext(const SurfaceData &surfaceData, std::string label)
       : HybridObject("GPUCanvasContext"),
-        _instance(instance),
-        _width(width),
-        _height(height),
+        _instance(*surfaceData.surface),
+        _clientWidth(surfaceData.clientWidth),
+        _clientHeight(surfaceData.clientHeight),
+        _width(surfaceData.width),
+        _height(surfaceData.height),
         _label(label) {}
 
 public:
   std::string getBrand() { return _name; }
-  int getWidth() { return _width; }
-  int getHeight() { return _height; }
+  float getWidth() { return _width; }
+  float getHeight() { return _height; }
+  float getClientWidth() { return _clientWidth; }
+  float getClientHeight() { return _clientHeight; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUCanvasContext::getBrand, this);
     registerHybridGetter("width", &GPUCanvasContext::getWidth, this);
     registerHybridGetter("height", &GPUCanvasContext::getHeight, this);
+    registerHybridGetter("clientWidth", &GPUCanvasContext::getClientWidth, this);
+    registerHybridGetter("clientHeight", &GPUCanvasContext::getClientHeight, this);
     registerHybridMethod("configure", &GPUCanvasContext::configure, this);
     registerHybridMethod("unconfigure", &GPUCanvasContext::unconfigure, this);
     registerHybridMethod("getCurrentTexture", &GPUCanvasContext::getCurrentTexture, this);
@@ -50,8 +56,10 @@ public:
 
 private:
   wgpu::Surface _instance;
-  int _width;
-  int _height;
+  float _clientWidth;
+  float _clientHeight;
+  float _width;
+  float _height;
   std::string _label;
 };
 

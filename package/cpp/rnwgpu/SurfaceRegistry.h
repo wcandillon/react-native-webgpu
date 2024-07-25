@@ -8,8 +8,10 @@
 namespace rnwgpu {
 
 struct SurfaceData {
-  int width = 0;
-  int height = 0;
+  float clientWidth = 0;
+  float clientHeight = 0;
+  float width = 0;
+  float height = 0;
   std::shared_ptr<wgpu::Surface> surface;
 };
 
