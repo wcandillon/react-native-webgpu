@@ -12,12 +12,12 @@ function generateContextId() {
 global.__WebGPUContextRegistry = {};
 const WebGPUContextRegistry = global.__WebGPUContextRegistry;
 
-type CanvasContext = GPUCanvasContext & { 
-  present: () => void,
-  width: number,
-  height: number,
-  clientWidth: number,
-  clientHeight: number,
+type CanvasContext = GPUCanvasContext & {
+  present: () => void;
+  width: number;
+  height: number;
+  clientWidth: number;
+  clientHeight: number;
 };
 
 export interface WebGPUViewRef {
