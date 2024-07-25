@@ -11,25 +11,12 @@ import {
   cubeVertexCount,
   cubeVertexSize,
 } from "../components/cube";
+import { useWebGPU } from "../components/useWebGPU";
 
 import { basicVertWGSL, vertexPositionColorWGSL } from "./Shaders";
 
 export function Cube() {
-  const ref = useRef<WebGPUViewRef>(null);
-
-  async function demo() {
-    const adapter = await gpu.requestAdapter();
-    if (!adapter) {
-      throw new Error("No adapter");
-    }
-    const device = await adapter.requestDevice();
-    const presentationFormat = gpu.getPreferredCanvasFormat();
-
-    const context = ref.current!.getContext("webgpu")!;
-    const { canvas } = context;
-    if (!context) {
-      throw new Error("No context");
-    }
+  const ref = useWebGPU(({ context, device, presentationFormat, canvas }) => {
     context.configure({
       device,
       format: presentationFormat,
@@ -189,15 +176,9 @@ export function Cube() {
       passEncoder.end();
       device.queue.submit([commandEncoder.finish()]);
       context.present();
-
-      requestAnimationFrame(frame);
     }
-    requestAnimationFrame(frame);
-  }
-
-  useEffect(() => {
-    demo();
-  }, [ref]);
+    return frame;
+  });
 
   return (
     <View style={style.container}>

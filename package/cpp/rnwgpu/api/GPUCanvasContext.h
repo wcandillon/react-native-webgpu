@@ -12,6 +12,7 @@
 #include "GPUCanvasConfiguration.h"
 #include "GPUTexture.h"
 #include "webgpu/webgpu_cpp.h"
+#include "SurfaceRegistry.h"
 
 namespace rnwgpu {
 
