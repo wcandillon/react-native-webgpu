@@ -10,7 +10,6 @@ function generateContextId() {
 }
 
 global.__WebGPUContextRegistry = {};
-console.log(global.__WebGPUContextRegistry);
 const WebGPUContextRegistry = global.__WebGPUContextRegistry;
 
 type CanvasContext = GPUCanvasContext & {
