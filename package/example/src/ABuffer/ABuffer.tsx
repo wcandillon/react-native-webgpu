@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Canvas } from "react-native-webgpu";
@@ -14,8 +15,8 @@ function roundUp(n: number, k: number): number {
 
 export function ABuffer() {
   const { canvasRef } = useWebGPU(
-    ({ context, device, presentationFormat, canvas }) => {
-      context.configure({
+    ({ context: ctx, device, presentationFormat, canvas }) => {
+      ctx.configure({
         device,
         format: presentationFormat,
         alphaMode: "opaque",
@@ -114,6 +115,7 @@ export function ABuffer() {
       });
 
       const opaquePassDescriptor: GPURenderPassDescriptor = {
+        // @ts-expect-error
         colorAttachments: [
           {
             view: undefined,
@@ -123,6 +125,7 @@ export function ABuffer() {
           },
         ],
         depthStencilAttachment: {
+          // @ts-expect-error
           view: undefined,
           depthClearValue: 1.0,
           depthLoadOp: "clear",
@@ -227,6 +230,7 @@ export function ABuffer() {
       });
 
       const translucentPassDescriptor: GPURenderPassDescriptor = {
+        // @ts-expect-error
         colorAttachments: [
           {
             loadOp: "load",
@@ -308,6 +312,7 @@ export function ABuffer() {
       });
 
       const compositePassDescriptor: GPURenderPassDescriptor = {
+        // @ts-expect-error
         colorAttachments: [
           {
             view: undefined,
@@ -319,8 +324,6 @@ export function ABuffer() {
       };
 
       const configure = () => {
-        let { devicePixelRatio } = window;
-
         // The default maximum storage buffer binding size is 128Mib. The amount
         // of memory we need to store transparent fragments depends on the size
         // of the canvas and the average number of layers per fragment we want to
@@ -339,11 +342,8 @@ export function ABuffer() {
         //    of the slice. The tradeoff is the performance reduction due to multiple
         //    passes.
         if (settings.memoryStrategy === "clamp-pixel-ratio") {
-          devicePixelRatio = Math.min(window.devicePixelRatio, 3);
+          devicePixelRatio = 1;
         }
-
-        canvas.width = canvas.width * devicePixelRatio;
-        canvas.height = canvas.height * devicePixelRatio;
 
         const depthTexture = device.createTexture({
           size: [canvas.width, canvas.height],
@@ -508,7 +508,7 @@ export function ABuffer() {
             },
           ],
         });
-
+        // @ts-expect-error
         opaquePassDescriptor.depthStencilAttachment.view = depthTextureView;
 
         // Rotates the camera around the origin based on time.
@@ -551,9 +551,10 @@ export function ABuffer() {
           }
 
           const commandEncoder = device.createCommandEncoder();
-          const textureView = context.getCurrentTexture().createView();
+          const textureView = ctx.getCurrentTexture().createView();
 
           // Draw the opaque objects
+          // @ts-expect-error
           opaquePassDescriptor.colorAttachments[0].view = textureView;
           const opaquePassEncoder =
             commandEncoder.beginRenderPass(opaquePassDescriptor);
@@ -582,6 +583,7 @@ export function ABuffer() {
               slice * sliceHeight;
 
             // Draw the translucent objects
+            // @ts-expect-error
             translucentPassDescriptor.colorAttachments[0].view = textureView;
             const translucentPassEncoder = commandEncoder.beginRenderPass(
               translucentPassDescriptor,
@@ -605,6 +607,7 @@ export function ABuffer() {
             translucentPassEncoder.end();
 
             // Composite the opaque and translucent objects
+            // @ts-expect-error
             compositePassDescriptor.colorAttachments[0].view = textureView;
             const compositePassEncoder = commandEncoder.beginRenderPass(
               compositePassDescriptor,
