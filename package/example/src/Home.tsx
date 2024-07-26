@@ -24,6 +24,10 @@ export const examples = [
     title: "🖼️ Textured Cube",
   },
   {
+    screen: "RenderBundles",
+    title: "🪐 Render Bundles",
+  },
+  {
     screen: "Tests",
     title: "🧪 E2E Tests",
   },
