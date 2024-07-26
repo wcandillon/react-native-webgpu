@@ -4,5 +4,7 @@ export type Routes = {
   HelloTriangleMSAA: undefined;
   Cube: undefined;
   TexturedCube: undefined;
+  RenderBundles: undefined;
+  ABuffer: undefined;
   Tests: undefined;
 };

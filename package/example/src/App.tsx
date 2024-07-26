@@ -9,6 +9,7 @@ import { useAssets } from "./components/useAssets";
 import { Cube, TexturedCube } from "./Cube";
 import { HelloTriangle, HelloTriangleMSAA } from "./Triangle";
 import { RenderBundles } from "./RenderBundles";
+import { ABuffer } from "./ABuffer";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -33,6 +34,9 @@ function App() {
           </Stack.Screen>
           <Stack.Screen name="RenderBundles">
             {(props) => <RenderBundles {...props} assets={assets} />}
+          </Stack.Screen>
+          <Stack.Screen name="ABuffer">
+            {(props) => <ABuffer {...props} />}
           </Stack.Screen>
           <Stack.Screen name="Tests">
             {(props) => <Tests {...props} assets={assets} />}

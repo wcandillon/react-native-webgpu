@@ -28,6 +28,10 @@ export const examples = [
     title: "🪐 Render Bundles",
   },
   {
+    screen: "ABuffer",
+    title: "🫖 A-Buffer",
+  },
+  {
     screen: "Tests",
     title: "🧪 E2E Tests",
   },
