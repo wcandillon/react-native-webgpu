@@ -2,11 +2,14 @@
 
 #import <React/RCTBridgeModule.h>
 #import <React/RCTEventEmitter.h>
+#include "RNWebGPUManager.h"
 
 @interface WebGPUModule : NSObject <RCTBridgeModule>
 
 @property(nonatomic, weak) RCTBridge *bridge;
 @property(nonatomic, weak) RCTModuleRegistry *moduleRegistry;
+
+- (rnwgpu::RNWebGPUManager *)getManager;
 
 @end
 
