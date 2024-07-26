@@ -28,6 +28,10 @@ export const examples = [
     title: "🪐 Render Bundles",
   },
   {
+    screen: "OcclusionQuery",
+    title: "🟩 Occlusion Query",
+  },
+  {
     screen: "ABuffer",
     title: "🫖 A-Buffer",
   },

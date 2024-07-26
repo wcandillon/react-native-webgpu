@@ -5,6 +5,7 @@ export type Routes = {
   Cube: undefined;
   TexturedCube: undefined;
   RenderBundles: undefined;
+  OcclusionQuery: undefined;
   ABuffer: undefined;
   Tests: undefined;
 };
