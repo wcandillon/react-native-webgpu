@@ -1,7 +1,6 @@
 import WebGPUNativeModule from "./WebGPUNativeModule";
 
-export { WebGPUView } from "./WebGPUView";
-export type { WebGPUViewRef } from "./WebGPUView";
+export * from "./Canvas";
 export * from "./WebGPUViewNativeComponent";
 export { default as WebGPUModule } from "./WebGPUNativeModule";
 
