@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 import type { WebGPUViewRef } from "react-native-webgpu";
 import { gpu, WebGPUView } from "react-native-webgpu";
 
-import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
+import { redFragWGSL, triangleVertWGSL } from "./triangle";
 
 export function HelloTriangle() {
   const ref = useRef<WebGPUViewRef>(null);
@@ -16,8 +16,8 @@ export function HelloTriangle() {
     const device = await adapter.requestDevice();
     const presentationFormat = gpu.getPreferredCanvasFormat();
 
-    const context = ref.current?.getContext("webgpu");
-    console.log("context", context);
+    const context = ref.current!.getContext("webgpu")!;
+
     if (!context) {
       throw new Error("No context");
     }
@@ -91,13 +91,8 @@ export function HelloTriangle() {
 const style = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
   },
   webgpu: {
-    width: 200,
-    height: 200,
-    justifyContent: "center",
-    alignItems: "center",
+    flex: 1,
   },
 });

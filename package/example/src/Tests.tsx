@@ -15,7 +15,7 @@ import {
 
 import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
-import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
+import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
 import { NativeDrawingContext } from "./components/NativeDrawingContext";
 
 export const CI = process.env.CI === "true";

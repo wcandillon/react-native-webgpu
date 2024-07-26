@@ -8,16 +8,16 @@ import type { Routes } from "./Route";
 
 export const examples = [
   {
-    screen: "Buffers",
-    title: "🧮 Buffers",
+    screen: "HelloTriangle",
+    title: "🔺 Hello Triangle",
+  },
+  {
+    screen: "HelloTriangleMSAA",
+    title: "🔺 Hello Triangle MSAA",
   },
   {
     screen: "Tests",
-    title: "🧪 Tests",
-  },
-  {
-    screen: "HelloTriangle",
-    title: "HelloTriangle",
+    title: "🧪 E2E Tests",
   },
 ] as const;
 
