@@ -5,6 +5,8 @@
 
 #include "Unions.h"
 
+#include "webgpu/webgpu_cpp.h"
+
 #include "RNFHybridObject.h"
 
 #include "AsyncRunner.h"
@@ -12,7 +14,6 @@
 #include "GPUCanvasConfiguration.h"
 #include "GPUTexture.h"
 #include "SurfaceRegistry.h"
-#include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 

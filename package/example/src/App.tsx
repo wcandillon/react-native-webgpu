@@ -5,8 +5,12 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { Routes } from "./Route";
 import { Home } from "./Home";
 import { Tests } from "./Tests";
-import { HelloTriangle, HelloTriangleMSAA } from "./Triangle";
 import { useAssets } from "./components/useAssets";
+import { Cube, TexturedCube } from "./Cube";
+import { HelloTriangle, HelloTriangleMSAA } from "./Triangle";
+import { RenderBundles } from "./RenderBundles";
+import { ABuffer } from "./ABuffer";
+import { OcclusionQuery } from "./OcclusionQuery";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -25,6 +29,15 @@ function App() {
             name="HelloTriangleMSAA"
             component={HelloTriangleMSAA}
           />
+          <Stack.Screen name="Cube" component={Cube} />
+          <Stack.Screen name="TexturedCube">
+            {(props) => <TexturedCube {...props} assets={assets} />}
+          </Stack.Screen>
+          <Stack.Screen name="RenderBundles">
+            {(props) => <RenderBundles {...props} assets={assets} />}
+          </Stack.Screen>
+          <Stack.Screen name="ABuffer" component={ABuffer} />
+          <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />
           <Stack.Screen name="Tests">
             {(props) => <Tests {...props} assets={assets} />}
           </Stack.Screen>

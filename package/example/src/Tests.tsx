@@ -17,6 +17,7 @@ import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
 import { NativeDrawingContext } from "./components/NativeDrawingContext";
+import type { AssetProps } from "./components/useAssets";
 
 export const CI = process.env.CI === "true";
 
@@ -39,11 +40,7 @@ const useWebGPU = () => {
   return { adapter, device };
 };
 
-interface TestsProps {
-  assets: { di3D: ImageData; saturn: ImageData; moon: ImageData };
-}
-
-export const Tests = ({ assets: { di3D, saturn, moon } }: TestsProps) => {
+export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   const [image, setImage] = useState<SkImage | null>(null);
   const { adapter, device } = useWebGPU();
   const [client, hostname] = useClient();

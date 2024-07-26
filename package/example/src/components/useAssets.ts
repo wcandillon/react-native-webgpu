@@ -17,6 +17,10 @@ export const decodeImage = async (uri: string) => {
   return bitmap;
 };
 
+export interface AssetProps {
+  assets: { di3D: ImageData; saturn: ImageData; moon: ImageData };
+}
+
 const useImageData = (mod: number) => {
   const [imageData, setImageData] = useState<ImageData | null>(null);
   useEffect(() => {

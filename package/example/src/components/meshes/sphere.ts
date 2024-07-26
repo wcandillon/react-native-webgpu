@@ -1,4 +1,4 @@
-import { vec3 } from 'wgpu-matrix';
+import { vec3 } from "wgpu-matrix";
 
 export interface SphereMesh {
   vertices: Float32Array;
@@ -17,7 +17,7 @@ export function createSphereMesh(
   radius: number,
   widthSegments = 32,
   heightSegments = 16,
-  randomness = 0
+  randomness = 0,
 ): SphereMesh {
   const vertices = [];
   const indices = [];
@@ -87,8 +87,12 @@ export function createSphereMesh(
       const c = grid[iy + 1][ix];
       const d = grid[iy + 1][ix + 1];
 
-      if (iy !== 0) indices.push(a, b, d);
-      if (iy !== heightSegments - 1) indices.push(b, c, d);
+      if (iy !== 0) {
+        indices.push(a, b, d);
+      }
+      if (iy !== heightSegments - 1) {
+        indices.push(b, c, d);
+      }
     }
   }
 
