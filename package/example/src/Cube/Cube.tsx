@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import { StyleSheet, View } from "react-native";
-import type { WebGPUViewRef } from "react-native-webgpu";
-import { gpu, WebGPUView } from "react-native-webgpu";
+import type { CanvasRef } from "react-native-webgpu";
+import { Canvas } from "react-native-webgpu";
 import { mat4, vec3 } from "wgpu-matrix";
 
 import {
@@ -16,7 +16,8 @@ import { useWebGPU } from "../components/useWebGPU";
 import { basicVertWGSL, vertexPositionColorWGSL } from "./Shaders";
 
 export function Cube() {
-  const ref = useWebGPU(({ context, device, presentationFormat, canvas }) => {
+  const canvasRef = useRef<CanvasRef>(null);
+  useWebGPU(canvasRef, ({ context, device, presentationFormat, canvas }) => {
     context.configure({
       device,
       format: presentationFormat,
@@ -175,14 +176,13 @@ export function Cube() {
       passEncoder.draw(cubeVertexCount);
       passEncoder.end();
       device.queue.submit([commandEncoder.finish()]);
-      context.present();
     }
     return frame;
   });
 
   return (
     <View style={style.container}>
-      <WebGPUView ref={ref} style={style.webgpu} />
+      <Canvas ref={canvasRef} style={style.webgpu} />
     </View>
   );
 }

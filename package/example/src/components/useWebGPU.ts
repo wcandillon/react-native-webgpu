@@ -1,81 +1,88 @@
-import { useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
+import { useEffect, useState } from "react";
+import type { CanvasRef } from "react-native-webgpu";
+import { gpu } from "react-native-webgpu";
+
+const useDevice = () => {
+  const [device, setDevice] = useState<GPUDevice | null>(null);
+  useEffect(() => {
+    (async () => {
+      const adapter = await gpu.requestAdapter();
+      if (!adapter) {
+        throw new Error("No appropriate GPUAdapter found.");
+      }
+      const dev = await adapter.requestDevice();
+      if (!dev) {
+        throw new Error("No appropriate GPUDevice found.");
+      }
+      setDevice(dev);
+    })();
+  }, []);
+  return {
+    device,
+  };
+};
 
 interface SceneProps {
   context: GPUCanvasContext;
   device: GPUDevice;
-  adapter: GPUAdapter;
   gpu: GPU;
   presentationFormat: GPUTextureFormat;
+  canvas: OffscreenCanvas;
 }
 
 type RenderScene = (timestamp: number) => void;
 type Scene = (props: SceneProps) => RenderScene | void;
 
-export const useWebGPU = (scene: Scene) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isReady, setIsReady] = useState(false);
-
+export const useWebGPU = (canvasRef: RefObject<CanvasRef>, scene: Scene) => {
+  const { device } = useDevice();
   useEffect(() => {
     let animationFrameId: number;
-    let renderScene: RenderScene | void;
 
-    const initWebGPU = async () => {
-      const canvas = canvasRef.current;
-      if (!canvas) {
-        return;
-      }
+    if (!device) {
+      return;
+    }
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
 
-      if (!navigator.gpu) {
-        throw new Error("WebGPU not supported on this browser.");
-      }
+    const context = canvas.getContext("webgpu") as GPUCanvasContext;
+    const presentationFormat = gpu.getPreferredCanvasFormat();
 
-      const { gpu } = navigator;
-      const adapter = await gpu.requestAdapter();
-      if (!adapter) {
-        throw new Error("No appropriate GPUAdapter found.");
-      }
+    context.configure({
+      device,
+      format: presentationFormat,
+      alphaMode: "opaque",
+    });
 
-      const device = await adapter.requestDevice();
-      const context = canvas.getContext("webgpu") as GPUCanvasContext;
-      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-
-      context.configure({
-        device,
-        format: presentationFormat,
-        alphaMode: "opaque",
-      });
-
-      const sceneProps: SceneProps = {
-        context,
-        device,
-        adapter,
-        gpu,
-        presentationFormat,
-      };
-
-      renderScene = scene(sceneProps);
-      setIsReady(true);
+    const sceneProps: SceneProps = {
+      context,
+      device,
+      gpu,
+      presentationFormat,
+      canvas: context.canvas as OffscreenCanvas,
     };
 
-    initWebGPU();
+    const renderScene = scene(sceneProps);
 
-    const render = (timestamp: number) => {
+    const render = () => {
+      const timestamp = Date.now();
       if (typeof renderScene === "function") {
         renderScene(timestamp);
       }
+      context.present();
       animationFrameId = requestAnimationFrame(render);
     };
 
-    if (isReady) {
-      animationFrameId = requestAnimationFrame(render);
-    }
+    animationFrameId = requestAnimationFrame(render);
 
     return () => {
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [scene, isReady]);
+  }, [scene, canvasRef, device]);
 
-  return { canvasRef, isReady };
+  return { canvasRef };
 };
