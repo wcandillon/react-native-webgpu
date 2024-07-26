@@ -3,5 +3,5 @@
   "rules": {
     "no-bitwise": "off"
   },
-  "ignorePatterns": ["src/__tests__/demos/meshes", "example/src/components/meshes"]
+  "ignorePatterns": ["example/src/components/meshes"]
 }
