@@ -16,6 +16,26 @@ export const examples = [
     title: "🔺 Hello Triangle MSAA",
   },
   {
+    screen: "Cube",
+    title: "🧊 Cube",
+  },
+  {
+    screen: "TexturedCube",
+    title: "🖼️ Textured Cube",
+  },
+  {
+    screen: "RenderBundles",
+    title: "🪐 Render Bundles",
+  },
+  {
+    screen: "OcclusionQuery",
+    title: "🟩 Occlusion Query",
+  },
+  {
+    screen: "ABuffer",
+    title: "🫖 A-Buffer",
+  },
+  {
     screen: "Tests",
     title: "🧪 E2E Tests",
   },

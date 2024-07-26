@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { checkImage, client, encodeImage } from "../setup";
-
-import { mesh as teapotMesh } from "./meshes/teapot";
+import { mesh as teapotMesh } from "../../../example/src/components/meshes/teapot";
 
 const opaque = /*wgsl*/ `struct Uniforms {
   modelViewProjectionMatrix: mat4x4f,

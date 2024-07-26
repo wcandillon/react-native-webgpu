@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import { vec3, vec2 } from "wgpu-matrix";
 
 // Defines what to pass to pipeline to render mesh
