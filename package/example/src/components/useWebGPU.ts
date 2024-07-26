@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CanvasRef } from "react-native-webgpu";
 import { gpu } from "react-native-webgpu";
 
@@ -34,7 +34,8 @@ interface SceneProps {
 type RenderScene = (timestamp: number) => void;
 type Scene = (props: SceneProps) => RenderScene | void;
 
-export const useWebGPU = (canvasRef: RefObject<CanvasRef>, scene: Scene) => {
+export const useWebGPU = (scene: Scene) => {
+  const canvasRef = useRef<CanvasRef>(null);
   const { device } = useDevice();
   useEffect(() => {
     let animationFrameId: number;
