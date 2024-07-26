@@ -2,8 +2,9 @@
 #import <React/RCTBridge+Private.h>
 #import <React/RCTLog.h>
 #import <ReactCommon/RCTTurboModule.h>
-
-#include "RNWebGPUManager.h"
+#import <jsi/jsi.h>
+#import <memory>
+#import "GPUCanvasContext.h"
 
 namespace jsi = facebook::jsi;
 namespace react = facebook::react;
@@ -31,6 +32,11 @@ RCT_EXPORT_MODULE(WebGPUModule)
   //   [_webgpuManager invalidate];
   // }
   _webgpuManager = nil;
+}
+
+- (rnwgpu::RNWebGPUManager *)getManager
+{
+  return _webgpuManager;
 }
 
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
@@ -62,6 +68,26 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   }
   // TODO: remove allocation here
   _webgpuManager = new rnwgpu::RNWebGPUManager(runtime, jsInvoker);
+  return @true;
+}
+
+RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext:(nonnull NSNumber *)contextId) {
+  int contextIdInt = [contextId intValue];
+  RCTCxxBridge *cxxBridge = (RCTCxxBridge *)[RCTBridge currentBridge];
+  auto runtime = (jsi::Runtime *)cxxBridge.runtime;
+  auto webGPUContextRegistry = runtime->global().getPropertyAsObject(
+      *runtime, "__WebGPUContextRegistry");
+  if (webGPUContextRegistry.hasProperty(*runtime, std::to_string(contextIdInt).c_str())) {
+    // Context already exists
+    return @true;
+  }
+  
+  auto surfaceData = _webgpuManager->surfacesRegistry.getSurface(contextIdInt);
+  auto label = "Context: " + std::to_string(contextIdInt);
+  auto gpuCanvasContext = std::make_shared<rnwgpu::GPUCanvasContext>(*surfaceData);
+  auto gpuCanvasContextJs = facebook::jsi::Object::createFromHostObject(*runtime, gpuCanvasContext);
+  webGPUContextRegistry.setProperty(*runtime, std::to_string(contextIdInt).c_str(), gpuCanvasContextJs);
+
   return @true;
 }
 
