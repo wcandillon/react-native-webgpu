@@ -14,7 +14,6 @@
 #include "GPUCanvasConfiguration.h"
 #include "GPUTexture.h"
 #include "SurfaceRegistry.h"
-#include "SurfaceRegistry.h"
 
 namespace rnwgpu {
 
