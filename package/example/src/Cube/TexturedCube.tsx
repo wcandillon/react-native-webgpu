@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Canvas } from "react-native-webgpu";
@@ -11,11 +12,11 @@ import {
   cubeVertexSize,
 } from "../components/cube";
 import { useWebGPU } from "../components/useWebGPU";
+import type { AssetProps } from "../components/useAssets";
 
 import { basicVertWGSL, sampleTextureMixColorWGSL } from "./Shaders";
-import { AssetProps } from "../components/useAssets";
 
-export const TexturedCube = ({ assets: {di3D: imageBitmap} }: AssetProps) => {
+export const TexturedCube = ({ assets: { di3D: imageBitmap } }: AssetProps) => {
   const { canvasRef } = useWebGPU(
     ({ device, presentationFormat, canvas, context }) => {
       context.configure({
@@ -100,28 +101,24 @@ export const TexturedCube = ({ assets: {di3D: imageBitmap} }: AssetProps) => {
       });
 
       // Fetch the image and upload it into a GPUTexture.
-      let cubeTexture: GPUTexture;
-      {
-
-        cubeTexture = device.createTexture({
-          size: [imageBitmap.width, imageBitmap.height, 1],
-          format: "rgba8unorm",
-          usage:
-            GPUTextureUsage.TEXTURE_BINDING |
-            GPUTextureUsage.COPY_DST |
-            GPUTextureUsage.RENDER_ATTACHMENT,
-        });
-        device.queue.writeTexture(
-          { texture: cubeTexture, mipLevel: 0, origin: { x: 0, y: 0, z: 0 } },
-          imageBitmap.data.buffer,
-          {
-            offset: 0,
-            bytesPerRow: 4 * imageBitmap.width,
-            rowsPerImage: imageBitmap.height,
-          },
-          { width: imageBitmap.width, height: imageBitmap.height },
-        );
-      }
+      const cubeTexture = device.createTexture({
+        size: [imageBitmap.width, imageBitmap.height, 1],
+        format: "rgba8unorm",
+        usage:
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.RENDER_ATTACHMENT,
+      });
+      device.queue.writeTexture(
+        { texture: cubeTexture, mipLevel: 0, origin: { x: 0, y: 0, z: 0 } },
+        imageBitmap.data.buffer,
+        {
+          offset: 0,
+          bytesPerRow: 4 * imageBitmap.width,
+          rowsPerImage: imageBitmap.height,
+        },
+        { width: imageBitmap.width, height: imageBitmap.height },
+      );
 
       // Create a sampler with linear filtering for smooth interpolation.
       const sampler = device.createSampler({
@@ -150,6 +147,7 @@ export const TexturedCube = ({ assets: {di3D: imageBitmap} }: AssetProps) => {
       });
 
       const renderPassDescriptor: GPURenderPassDescriptor = {
+        // @ts-expect-error
         colorAttachments: [
           {
             view: undefined, // Assigned later
@@ -202,6 +200,7 @@ export const TexturedCube = ({ assets: {di3D: imageBitmap} }: AssetProps) => {
           transformationMatrix.byteOffset,
           transformationMatrix.byteLength,
         );
+        // @ts-expect-error
         renderPassDescriptor.colorAttachments[0].view = context
           .getCurrentTexture()
           .createView();
@@ -224,7 +223,7 @@ export const TexturedCube = ({ assets: {di3D: imageBitmap} }: AssetProps) => {
       <Canvas ref={canvasRef} style={style.webgpu} />
     </View>
   );
-}
+};
 
 const style = StyleSheet.create({
   container: {

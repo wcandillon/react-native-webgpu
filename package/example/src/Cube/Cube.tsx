@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Canvas } from "react-native-webgpu";
@@ -111,6 +112,7 @@ export function Cube() {
       });
 
       const renderPassDescriptor: GPURenderPassDescriptor = {
+        // @ts-expect-error
         colorAttachments: [
           {
             view: undefined, // Assigned later
@@ -163,6 +165,7 @@ export function Cube() {
           transformationMatrix.byteOffset,
           transformationMatrix.byteLength,
         );
+        // @ts-expect-error
         renderPassDescriptor.colorAttachments[0].view = context
           .getCurrentTexture()
           .createView();

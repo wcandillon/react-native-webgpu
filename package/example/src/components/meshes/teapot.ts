@@ -1,3 +1,4 @@
+// @ts-expect-error
 import teapotData from "teapot";
 
 import { computeSurfaceNormals } from "./utils";

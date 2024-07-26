@@ -257,7 +257,7 @@ export function OcclusionQuery() {
 
       let time = 0;
       let then = 0;
-      let visible = "";
+      //let visible = "";
       function render(now: number) {
         now *= 0.001; // convert to seconds
         const deltaTime = now - then;
@@ -354,12 +354,12 @@ export function OcclusionQuery() {
 
         if (resultBuf.mapState === "unmapped") {
           resultBuf.mapAsync(GPUMapMode.READ).then(() => {
-            const results = new BigUint64Array(resultBuf.getMappedRange());
+            // const results = new BigUint64Array(resultBuf.getMappedRange());
 
-            visible = objectInfos
-              .filter((_, i) => results[i])
-              .map(({ id }) => id)
-              .join("");
+            // visible = objectInfos
+            //   .filter((_, i) => results[i])
+            //   .map(({ id }) => id)
+            //   .join("");
             // console.log({ visible });
             resultBuf.unmap();
           });

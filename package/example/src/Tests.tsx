@@ -17,7 +17,7 @@ import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
 import { NativeDrawingContext } from "./components/NativeDrawingContext";
-import { AssetProps } from "./components/useAssets";
+import type { AssetProps } from "./components/useAssets";
 
 export const CI = process.env.CI === "true";
 

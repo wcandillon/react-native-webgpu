@@ -1,4 +1,3 @@
-import type { RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { CanvasRef } from "react-native-webgpu";
 import { gpu } from "react-native-webgpu";
@@ -48,7 +47,7 @@ export const useWebGPU = (scene: Scene) => {
       return;
     }
 
-    const context = canvas.getContext("webgpu") as GPUCanvasContext;
+    const context = canvas.getContext("webgpu")!;
     const presentationFormat = gpu.getPreferredCanvasFormat();
 
     context.configure({
