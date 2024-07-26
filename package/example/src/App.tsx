@@ -6,7 +6,7 @@ import type { Routes } from "./Route";
 import { Home } from "./Home";
 import { Tests } from "./Tests";
 import { useAssets } from "./components/useAssets";
-import { Cube } from "./Cube";
+import { Cube, TexturedCube } from "./Cube";
 import { HelloTriangle, HelloTriangleMSAA } from "./Triangle";
 
 const Stack = createNativeStackNavigator<Routes>();
@@ -27,6 +27,9 @@ function App() {
             component={HelloTriangleMSAA}
           />
           <Stack.Screen name="Cube" component={Cube} />
+          <Stack.Screen name="TexturedCube">
+            {(props) => <TexturedCube {...props} assets={assets} />}
+          </Stack.Screen>
           <Stack.Screen name="Tests">
             {(props) => <Tests {...props} assets={assets} />}
           </Stack.Screen>
