@@ -43,7 +43,7 @@ export function HelloTriangle() {
         entryPoint: "main",
         targets: [
           {
-            format: presentationFormat
+            format: presentationFormat,
           },
         ],
       },
