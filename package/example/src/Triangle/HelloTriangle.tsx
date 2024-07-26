@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
-import type { WebGPUViewRef } from "react-native-webgpu";
-import { gpu, WebGPUView } from "react-native-webgpu";
+import type { CanvasRef } from "react-native-webgpu";
+import { gpu, Canvas } from "react-native-webgpu";
 
 import { redFragWGSL, triangleVertWGSL } from "./triangle";
 
 export function HelloTriangle() {
-  const ref = useRef<WebGPUViewRef>(null);
+  const ref = useRef<CanvasRef>(null);
 
   async function demo() {
     const adapter = await gpu.requestAdapter();
@@ -83,7 +83,7 @@ export function HelloTriangle() {
 
   return (
     <View style={style.container}>
-      <WebGPUView ref={ref} style={style.webgpu} />
+      <Canvas ref={ref} style={style.webgpu} />
     </View>
   );
 }

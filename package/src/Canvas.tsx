@@ -16,11 +16,11 @@ type CanvasContext = GPUCanvasContext & {
   present: () => void;
 };
 
-export interface WebGPUViewRef {
+export interface CanvasRef {
   getContext(contextName: "webgpu"): CanvasContext | null;
 }
 
-export const WebGPUView = forwardRef<WebGPUViewRef, ViewProps>((props, ref) => {
+export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
   const [contextId, _] = useState(() => generateContextId());
 
   useImperativeHandle(ref, () => ({
