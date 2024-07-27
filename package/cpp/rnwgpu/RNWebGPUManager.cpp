@@ -49,7 +49,8 @@ RNWebGPUManager::RNWebGPUManager(
       jsi::Object::createFromHostObject(*_jsRuntime, std::move(textureUsage)));
 
   _jsRuntime->global().setProperty(
-      *_jsRuntime, "navigator", jsi::Object::createFromHostObject(*_jsRuntime, navigator));
+      *_jsRuntime, "navigator",
+      jsi::Object::createFromHostObject(*_jsRuntime, navigator));
 }
 
 RNWebGPUManager::~RNWebGPUManager() {

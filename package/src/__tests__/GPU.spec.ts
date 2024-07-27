@@ -66,6 +66,23 @@ describe("Adapter", () => {
     expect(result.includes("rg11b10ufloat-renderable")).toBe(true);
     expect(result.includes("texture-compression-etc2")).toBe(true);
   });
+  // TODO: re-enable
+  // it("timestamp", async () => {
+  //   const result = await client.eval(({ adapter }) => {
+  //     return adapter.features.has("timestamp-query");
+  //   });
+  //   expect(result).toBe(true);
+  // });
+  // it("request device with timestamp queries", async () => {
+  //   const result = await client.eval(({ adapter }) => {
+  //     return adapter
+  //       .requestDevice({
+  //         requiredFeatures: ["timestamp-query"],
+  //       })
+  //       .then((device) => device.features.has("timestamp-query"));
+  //   });
+  //   expect(result).toBe(true);
+  // });
   it("limits", async () => {
     const result = await client.eval(({ adapter }) => {
       const {
