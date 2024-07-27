@@ -21,7 +21,11 @@ export const examples = [
   },
   {
     screen: "TexturedCube",
-    title: "🖼️ Textured Cube",
+    title: "🥷 Textured Cube",
+  },
+  {
+    screen: "FractalCube",
+    title: "❄️ Fractal Cube",
   },
   {
     screen: "RenderBundles",
