@@ -1,8 +1,8 @@
 #pragma once
 
+#include "RNWebGPUManager.h"
 #import <React/RCTBridgeModule.h>
 #import <React/RCTEventEmitter.h>
-#include "RNWebGPUManager.h"
 
 @interface WebGPUModule : NSObject <RCTBridgeModule>
 
