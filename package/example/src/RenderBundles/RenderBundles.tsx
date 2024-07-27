@@ -14,7 +14,7 @@ export const RenderBundles = ({ assets: { moon, saturn } }: AssetProps) => {
   const { canvasRef } = useWebGPU(
     ({ device, presentationFormat, canvas, context }) => {
       const settings = {
-        asteroidCount: 5000,
+        asteroidCount: 4000,
       };
 
       context.configure({
@@ -406,7 +406,7 @@ export const RenderBundles = ({ assets: { moon, saturn } }: AssetProps) => {
 const style = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "red",
+    backgroundColor: "black",
   },
   webgpu: {
     flex: 1,
