@@ -39,7 +39,7 @@ describe("Triangle", () => {
             }),
             targets: [
               {
-                format: gpu.getPreferredCanvasFormat(),
+                format: navigator.gpu.getPreferredCanvasFormat(),
               },
             ],
           },

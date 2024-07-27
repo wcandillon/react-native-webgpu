@@ -19,8 +19,6 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
-
 class GPU : public m::HybridObject {
 public:
   GPU() : HybridObject("GPU") {

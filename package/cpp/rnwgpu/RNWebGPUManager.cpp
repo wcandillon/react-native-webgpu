@@ -1,6 +1,8 @@
 #include "RNWebGPUManager.h"
 
 #include "GPU.h"
+#include "Navigator.h"
+
 // Enums
 #include "GPUBufferUsage.h"
 #include "GPUColorWrite.h"
@@ -19,6 +21,7 @@ RNWebGPUManager::RNWebGPUManager(
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker) {
 
   _gpu = std::make_shared<GPU>();
+  auto navigator = std::make_shared<Navigator>(_gpu);
 
   auto bufferUsage = std::make_shared<GPUBufferUsage>();
   _jsRuntime->global().setProperty(
@@ -46,7 +49,7 @@ RNWebGPUManager::RNWebGPUManager(
       jsi::Object::createFromHostObject(*_jsRuntime, std::move(textureUsage)));
 
   _jsRuntime->global().setProperty(
-      *_jsRuntime, "gpu", jsi::Object::createFromHostObject(*_jsRuntime, _gpu));
+      *_jsRuntime, "navigator", jsi::Object::createFromHostObject(*_jsRuntime, navigator));
 }
 
 RNWebGPUManager::~RNWebGPUManager() {
