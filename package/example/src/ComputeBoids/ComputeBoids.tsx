@@ -1,7 +1,6 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Canvas } from "react-native-webgpu";
-import { mat4, vec3 } from "wgpu-matrix";
 
 import { useWebGPU } from "../components/useWebGPU";
 import { toBeAssignedLater } from "../components/utils";
@@ -236,6 +235,8 @@ export function ComputeBoids() {
     let renderPassDurationSum = 0;
     let timerSamples = 0;
     function frame() {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
       renderPassDescriptor.colorAttachments[0].view = context
         .getCurrentTexture()
         .createView();
@@ -261,7 +262,7 @@ export function ComputeBoids() {
       }
 
       let resultBuffer: GPUBuffer | undefined;
-      if (hasTimestampQuery) {
+      if (hasTimestampQuery && resolveBuffer && querySet) {
         resultBuffer =
           spareResultBuffers.pop() ||
           device.createBuffer({
@@ -280,7 +281,7 @@ export function ComputeBoids() {
 
       device.queue.submit([commandEncoder.finish()]);
 
-      if (hasTimestampQuery) {
+      if (hasTimestampQuery && resultBuffer) {
         resultBuffer.mapAsync(GPUMapMode.READ).then(() => {
           const times = new BigInt64Array(resultBuffer.getMappedRange());
           const computePassDuration = Number(times[1] - times[0]);
