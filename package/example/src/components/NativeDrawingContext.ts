@@ -11,7 +11,7 @@ export class NativeDrawingContext implements DrawingContext {
     const bytesPerRow = this.width * 4;
     this.texture = device.createTexture({
       size: [width, height],
-      format: gpu.getPreferredCanvasFormat(),
+      format: navigator.gpu.getPreferredCanvasFormat(),
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     });
     this.buffer = device.createBuffer({
@@ -42,7 +42,7 @@ export class NativeDrawingContext implements DrawingContext {
         data,
         width: this.width,
         height: this.height,
-        format: gpu.getPreferredCanvasFormat(),
+        format: navigator.gpu.getPreferredCanvasFormat(),
       };
     });
   }

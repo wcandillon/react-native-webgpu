@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
-import { Canvas, gpu } from "react-native-webgpu";
+import { Canvas } from "react-native-webgpu";
 import type { CanvasRef } from "react-native-webgpu";
 
 import { redFragWGSL, triangleVertWGSL } from "./triangle";
@@ -9,12 +9,12 @@ export function HelloTriangleMSAA() {
   const ref = useRef<CanvasRef>(null);
 
   async function demo() {
-    const adapter = await gpu.requestAdapter();
+    const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) {
       throw new Error("No adapter");
     }
     const device = await adapter.requestDevice();
-    const presentationFormat = gpu.getPreferredCanvasFormat();
+    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
     const context = ref.current!.getContext("webgpu")!;
     const { canvas } = context;
