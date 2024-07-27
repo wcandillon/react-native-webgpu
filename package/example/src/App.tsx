@@ -11,6 +11,7 @@ import { HelloTriangle, HelloTriangleMSAA } from "./Triangle";
 import { RenderBundles } from "./RenderBundles";
 import { ABuffer } from "./ABuffer";
 import { OcclusionQuery } from "./OcclusionQuery";
+import { ComputeBoids } from "./ComputeBoids";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -39,6 +40,7 @@ function App() {
           </Stack.Screen>
           <Stack.Screen name="ABuffer" component={ABuffer} />
           <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />
+          <Stack.Screen name="ComputeBoids" component={ComputeBoids} />
           <Stack.Screen name="Tests">
             {(props) => <Tests {...props} assets={assets} />}
           </Stack.Screen>

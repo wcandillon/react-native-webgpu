@@ -36,6 +36,10 @@ export const examples = [
     title: "🟩 Occlusion Query",
   },
   {
+    screen: "ComputeBoids",
+    title: "🐦‍⬛ Compute Boids",
+  },
+  {
     screen: "ABuffer",
     title: "🫖 A-Buffer",
   },
