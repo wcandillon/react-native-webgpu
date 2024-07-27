@@ -4,7 +4,7 @@
 
 #include "Convertors.h"
 
-#include "Features.h"
+#include "GPUFeatures.h"
 
 namespace rnwgpu {
 

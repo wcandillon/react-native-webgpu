@@ -373,7 +373,6 @@ export const RenderBundles = ({ assets: { moon, saturn } }: AssetProps) => {
 
       console.log("update render bundle");
       function frame() {
-        console.log("frame()");
         const transformationMatrix = getTransformationMatrix();
         device.queue.writeBuffer(
           uniformBuffer,

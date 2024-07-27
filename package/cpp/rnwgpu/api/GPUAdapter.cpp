@@ -6,7 +6,7 @@
 
 #include "Convertors.h"
 
-#include "Features.h"
+#include "GPUFeatures.h"
 #include "WGPULogger.h"
 
 namespace rnwgpu {

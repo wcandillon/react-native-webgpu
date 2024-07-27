@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "webgpu/webgpu_cpp.h"
 
 #include "WGPULogger.h"
