@@ -127,7 +127,6 @@ describe("Wireframe", () => {
             },
           ],
         });
-
         const litPipeline = device.createRenderPipeline({
           label: "lit pipeline",
           layout: device.createPipelineLayout({

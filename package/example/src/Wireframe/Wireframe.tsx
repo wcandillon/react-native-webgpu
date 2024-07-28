@@ -461,7 +461,7 @@ export const Wireframe = () => {
         const commandBuffer = encoder.finish();
         device.queue.submit([commandBuffer]);
       }
-      render(Date.now());
+      return render;
     },
   );
 
