@@ -9,5 +9,6 @@ export type Routes = {
   OcclusionQuery: undefined;
   ComputeBoids: undefined;
   ABuffer: undefined;
+  Wireframe: undefined;
   Tests: undefined;
 };
