@@ -15,9 +15,9 @@ namespace m = margelo;
 namespace rnwgpu {
 
 struct GPUBufferBindingLayout {
-  wgpu::BufferBindingType type = wgpu::BufferBindingType::Uniform; // GPUBufferBindingType
-  bool hasDynamicOffset = false;        // boolean
-  double minBindingSize = 0;        // GPUSize64
+  std::optional<wgpu::BufferBindingType> type; // GPUBufferBindingType
+  std::optional<bool> hasDynamicOffset;        // boolean
+  std::optional<double> minBindingSize;        // GPUSize64
 };
 
 } // namespace rnwgpu
@@ -36,18 +36,18 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBindingLayout>> {
       if (value.hasProperty(runtime, "type")) {
         auto prop = value.getProperty(runtime, "type");
         result->type =
-            JSIConverter<wgpu::BufferBindingType>::fromJSI(
+            JSIConverter<std::optional<wgpu::BufferBindingType>>::fromJSI(
                 runtime, prop, false);
       }
       if (value.hasProperty(runtime, "hasDynamicOffset")) {
         auto prop = value.getProperty(runtime, "hasDynamicOffset");
         result->hasDynamicOffset =
-            JSIConverter<bool>::fromJSI(runtime, prop, false);
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
       if (value.hasProperty(runtime, "minBindingSize")) {
         auto prop = value.getProperty(runtime, "minBindingSize");
         result->minBindingSize =
-            JSIConverter<double>::fromJSI(runtime, prop, false);
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
       }
     }
 
