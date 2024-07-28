@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Canvas } from "react-native-webgpu";
@@ -311,6 +312,7 @@ export const Wireframe = () => {
 
       const renderPassDescriptor: GPURenderPassDescriptor = {
         label: "our basic canvas renderPass",
+        // @ts-expect-error
         colorAttachments: [
           {
             view: undefined, // <- to be filled out when we render
@@ -320,6 +322,7 @@ export const Wireframe = () => {
           },
         ],
         depthStencilAttachment: {
+          // @ts-expect-error
           view: undefined, // <- to be filled out when we render
           depthClearValue: 1.0,
           depthLoadOp: "clear",
@@ -347,6 +350,7 @@ export const Wireframe = () => {
         // Get the current texture from the canvas context and
         // set it as the texture to render to.
         const canvasTexture = context.getCurrentTexture();
+        // @ts-expect-error
         renderPassDescriptor.colorAttachments[0].view =
           canvasTexture.createView();
 
@@ -366,6 +370,7 @@ export const Wireframe = () => {
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
           });
         }
+        // @ts-expect-error
         renderPassDescriptor.depthStencilAttachment.view =
           depthTexture.createView();
 
