@@ -35,8 +35,9 @@
   rnwgpu::RNWebGPUManager *manager = [_webGPUModule getManager];
   auto surfaceGpu = std::make_shared<wgpu::Surface>(
       manager->getGPU()->get().CreateSurface(&surfaceDescriptor));
-  float width = self.frame.size.width;
-  float height = self.frame.size.height;
+  CGFloat scaleFactor = [UIScreen mainScreen].scale;
+  float width = self.frame.size.width * scaleFactor;
+  float height = self.frame.size.height * scaleFactor;
   rnwgpu::SurfaceData surfaceData = {width, height, surfaceGpu};
   [_webGPUModule getManager]->surfacesRegistry.addSurface([_contextId intValue],
                                                           surfaceData);
