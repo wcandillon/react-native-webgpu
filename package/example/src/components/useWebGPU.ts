@@ -70,8 +70,6 @@ export const useWebGPU = (scene: Scene) => {
       if (typeof renderScene === "function") {
         renderScene(timestamp);
       }
-      // TODO: is there a cleaner way to do this?
-      // Also this doesn't seem necessary on Android
       device.queue.onSubmittedWorkDone().then(() => {
         context.present();
         animationFrameId = requestAnimationFrame(render);

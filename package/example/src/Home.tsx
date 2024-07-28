@@ -44,6 +44,10 @@ export const examples = [
     title: "🫖 A-Buffer",
   },
   {
+    screen: "Wireframe",
+    title: "🧬 Wireframe",
+  },
+  {
     screen: "Tests",
     title: "🧪 E2E Tests",
   },

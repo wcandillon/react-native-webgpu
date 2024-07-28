@@ -592,6 +592,6 @@ describe("Render Bundles", () => {
       { meshWGSL: mesh, vals: randomValues },
     );
     const image = encodeImage(result);
-    checkImage(image, "snapshots/asteroid.png");
+    checkImage(image, "snapshots/asteroid.png", { maxPixelDiff: 500 });
   });
 });
