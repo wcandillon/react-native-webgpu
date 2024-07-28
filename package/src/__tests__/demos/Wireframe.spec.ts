@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { modelData as model } from "../../../example/src/Wireframe/models";
 import {
   solidColorLitWGSL as solidColorLit,
@@ -107,13 +108,14 @@ describe("Wireframe", () => {
 
         const presentationFormat = gpu.getPreferredCanvasFormat();
         const depthFormat = "depth24plus";
+        // @ts-ignore
         const models = Object.values(modelData).map((data) =>
           createVertexAndIndexBuffer(device, data),
         );
         const litModule = device.createShaderModule({
           code: solidColorLitWGSL,
         });
-
+        // @ts-ignore
         const wireframeModule = device.createShaderModule({
           code: wireframeWGSL,
         });
