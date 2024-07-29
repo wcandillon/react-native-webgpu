@@ -9,10 +9,10 @@ import com.facebook.react.uimanager.ViewManagerDelegate;
 import com.facebook.react.viewmanagers.WebGPUViewManagerDelegate;
 import com.facebook.react.viewmanagers.WebGPUViewManagerInterface;
 
-public abstract class WgpuViewManagerSpec<T extends View> extends SimpleViewManager<T> implements WebGPUViewManagerInterface<T> {
+public abstract class WebGPUViewManagerSpec<T extends View> extends SimpleViewManager<T> implements WebGPUViewManagerInterface<T> {
   private final ViewManagerDelegate<T> mDelegate;
 
-  public WgpuViewManagerSpec() {
+  public WebGPUViewManagerSpec() {
     mDelegate = new WebGPUViewManagerDelegate(this);
   }
 
