@@ -4,18 +4,17 @@
 #import <React/RCTEventEmitter.h>
 #include "RNWebGPUManager.h"
 
-@interface WebGPUModule : NSObject <RCTBridgeModule>
+#ifdef RCT_NEW_ARCH_ENABLED
+#import <RNWgpuViewSpec/RNWgpuViewSpec.h>
+@interface WebGPUModule : RCTEventEmitter<NativeWebGPUModuleSpec>
+#else
+@interface WebGPUModule : RCTEventEmitter<RCTBridgeModule>
+#endif
 
 @property(nonatomic, weak) RCTBridge *bridge;
 @property(nonatomic, weak) RCTModuleRegistry *moduleRegistry;
 
-- (rnwgpu::RNWebGPUManager *)getManager;
++ (rnwgpu::RNWebGPUManager *)getManager;
++ (void)onSurfaceCreated:(NSNumber *)contextId;
 
 @end
-
-#ifdef RCT_NEW_ARCH_ENABLED
-#import <rnwebgpu/rnwebgpu.h>
-
-@interface WebGPUModule () <WebGPUModuleSpec>
-@end
-#endif

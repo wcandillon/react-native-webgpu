@@ -9,16 +9,24 @@
 namespace jsi = facebook::jsi;
 namespace react = facebook::react;
 
-@implementation WebGPUModule {
-  rnwgpu::RNWebGPUManager *_webgpuManager;
-}
+@implementation WebGPUModule
 
 RCT_EXPORT_MODULE(WebGPUModule)
 
-#pragma Accessors
+static rnwgpu::RNWebGPUManager *webgpuManager;
+static NSCondition *_condition;
+static NSMutableSet *_surfaceContextsIds;
 
-- (rnwgpu::RNWebGPUManager *)manager {
-  return _webgpuManager;
++ (rnwgpu::RNWebGPUManager *)getManager {
+  return webgpuManager;
+}
+
++ (void)onSurfaceCreated:(NSNumber *)contextId
+{
+  [_condition lock];
+  [_surfaceContextsIds addObject:contextId];
+  [_condition signal];
+  [_condition unlock];
 }
 
 #pragma Setup and invalidation
@@ -27,20 +35,22 @@ RCT_EXPORT_MODULE(WebGPUModule)
   return YES;
 }
 
+- (instancetype)init
+{
+  self = [super init];
+  _condition = [NSCondition new];
+  return self;
+}
+
 - (void)invalidate {
   // if (_webgpuManager != nil) {
   //   [_webgpuManager invalidate];
   // }
-  _webgpuManager = nil;
-}
-
-- (rnwgpu::RNWebGPUManager *)getManager
-{
-  return _webgpuManager;
+  webgpuManager = nil;
 }
 
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
-  if (_webgpuManager != nil) {
+  if (webgpuManager != nil) {
     // Already initialized, ignore call.
     return @true;
   }
@@ -67,12 +77,15 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
     jsInvoker = cxxBridge.jsCallInvoker;
   }
   // TODO: remove allocation here
-  _webgpuManager = new rnwgpu::RNWebGPUManager(runtime, jsInvoker);
+  webgpuManager = new rnwgpu::RNWebGPUManager(runtime, jsInvoker);
   return @true;
 }
 
-RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext:(nonnull NSNumber *)contextId) {
-  int contextIdInt = [contextId intValue];
+//RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext:(nonnull NSNumber *)contextId) {
+RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext:(double)contextId) {
+//  int contextIdInt = [contextId intValue];
+  int contextIdInt = contextId;
+  return @(0);
   RCTCxxBridge *cxxBridge = (RCTCxxBridge *)[RCTBridge currentBridge];
   auto runtime = (jsi::Runtime *)cxxBridge.runtime;
   auto webGPUContextRegistry = runtime->global().getPropertyAsObject(
@@ -82,7 +95,13 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext:(nonnull NSNumber *)
     return @true;
   }
   
-  auto surfaceData = _webgpuManager->surfacesRegistry.getSurface(contextIdInt);
+  [_condition lock];
+  while (![_surfaceContextsIds containsObject:@(contextIdInt)]) {
+    [_condition wait];
+  }
+  [_condition unlock];
+  
+  auto surfaceData = webgpuManager->surfacesRegistry.getSurface(contextIdInt);
   auto label = "Context: " + std::to_string(contextIdInt);
   auto gpuCanvasContext = std::make_shared<rnwgpu::GPUCanvasContext>(*surfaceData);
   auto gpuCanvasContextJs = facebook::jsi::Object::createFromHostObject(*runtime, gpuCanvasContext);
@@ -91,11 +110,17 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext:(nonnull NSNumber *)
   return @true;
 }
 
+RCT_EXPORT_METHOD(createSurfaceContextAsync:(double)contextId
+                                   resolver:(RCTPromiseResolveBlock)resolve
+                                   rejecter:(RCTPromiseRejectBlock)reject
+) {
+  
+}
+
 #ifdef RCT_NEW_ARCH_ENABLED
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
     (const facebook::react::ObjCTurboModule::InitParams &)params {
-  jsInvoker = params.jsInvoker;
-  return std::make_shared<facebook::react::NativeSkiaModuleSpecJSI>(params);
+  return std::make_shared<facebook::react::NativeWebGPUModuleSpecJSI>(params);
 }
 #endif
 

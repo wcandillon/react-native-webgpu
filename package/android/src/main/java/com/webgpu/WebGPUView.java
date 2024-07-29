@@ -24,7 +24,8 @@ public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
     if (mModule == null) {
       Context context = getContext();
       if (context instanceof ThemedReactContext) {
-        mModule = ((ThemedReactContext)context).getNativeModule(WebGPUModule.class);
+        mModule = WebGPUModule.instance;
+//        mModule = ((ThemedReactContext)context).getNativeModule(WebGPUModule.class);
       }
     }
     mContextId = contextId;

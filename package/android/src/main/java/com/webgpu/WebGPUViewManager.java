@@ -7,7 +7,7 @@ import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.annotations.ReactProp;
 
 @ReactModule(name = WebGPUViewManager.NAME)
-public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
+public class WebGPUViewManager extends com.webgpu.WgpuViewManagerSpec<WebGPUView> {
 
   public static final String NAME = "WebGPUView";
 
@@ -21,9 +21,14 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
     return new WebGPUView(context);
   }
 
-  @Override
+//  @Override
   @ReactProp(name = "contextId")
   public void setContextId(WebGPUView view, @Nullable Integer contextId) {
     view.setContextId(contextId);
+  }
+
+  @Override
+  public void setContextId(WebGPUView view, int value) {
+    view.setContextId(value);
   }
 }

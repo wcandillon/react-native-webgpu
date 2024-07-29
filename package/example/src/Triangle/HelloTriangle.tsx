@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import type { CanvasRef } from "react-native-webgpu";
 import { gpu, Canvas } from "react-native-webgpu";
-
 import { redFragWGSL, triangleVertWGSL } from "./triangle";
 
 export function HelloTriangle() {
