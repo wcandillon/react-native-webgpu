@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import { spawn, execSync } from "child_process";
 import { existsSync } from "fs";
 import { exit } from "process";
@@ -93,8 +94,14 @@ export const copyLib = (os: OS, platform: Platform, sdk?: string) => {
   const out = `${os}_${suffix}`;
   const dstPath = `package/libs/${os}/${suffix}/`;
   $(`mkdir -p ${dstPath}`);
+  if (os === "android") {
+    console.log("Strip debug symbols from libwebgpu_dawn.a...");
+    $(
+      `$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.so`,
+    );
+  }
   [
-    `externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.${os === "ios" ? "dylib" : "so"}`,
+    `externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.${os === "ios" ? "a" : "so"}`,
   ].forEach((lib) => {
     const libPath = lib;
     console.log(`Copying ${libPath} to ${dstPath}`);

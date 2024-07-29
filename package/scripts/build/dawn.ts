@@ -1,5 +1,6 @@
-/* eslint-disable camelcase */
 /* eslint-disable max-len */
+/* eslint-disable camelcase */
+
 import { chdir } from "process";
 
 import type { Platform } from "./util";
@@ -48,11 +49,27 @@ const ios = {
 (async () => {
   process.chdir("..");
   process.chdir("externals/dawn");
-  // $("git reset --hard HEAD");
-  // add patch here if needed
-  // $(
-  //   "git fetch https://dawn.googlesource.com/dawn refs/changes/96/195996/27 && git checkout FETCH_HEAD",
-  // );
+  $("git reset --hard HEAD");
+  //$(`git apply ${__dirname}/static_build.patch`);
+  process.chdir("../..");
+
+  // Build Android
+  for (const platform of android.platforms) {
+    console.log(`Build Android: ${platform}`);
+    await build(
+      `android_${platform}`,
+      {
+        ANDROID_ABI: platform,
+        ...android.args,
+      },
+      `🤖 ${platform}`,
+    );
+    copyLib("android", platform);
+  }
+
+  process.chdir("externals/dawn");
+  $("git reset --hard HEAD");
+  $(`git apply ${__dirname}/static_build.patch`);
   process.chdir("../..");
 
   // Build iOS
@@ -74,7 +91,7 @@ const ios = {
   libs.forEach((lib) => {
     console.log(`Building fat binary for iphone simulator: ${lib}`);
     $(
-      `lipo -create package/libs/ios/x86_64_iphonesimulator/${lib}.dylib package/libs/ios/arm64_iphonesimulator/${lib}.dylib -output package/libs/ios/${lib}.dylib`,
+      `lipo -create package/libs/ios/x86_64_iphonesimulator/${lib}.a package/libs/ios/arm64_iphonesimulator/${lib}.a -output package/libs/ios/${lib}.a`,
     );
   });
 
@@ -83,24 +100,11 @@ const ios = {
     $(`rm -rf ./package/libs/ios/${lib}.xcframework`);
     $(
       "xcodebuild -create-xcframework " +
-        `-library ./package/libs/ios/${lib}.dylib ` +
-        `-library ./package/libs/ios/arm64_iphoneos/${lib}.dylib ` +
+        `-library ./package/libs/ios/${lib}.a ` +
+        `-library ./package/libs/ios/arm64_iphoneos/${lib}.a ` +
         ` -output ./package/libs/ios/${lib}.xcframework `,
     );
   });
-  // Build Android
-  for (const platform of android.platforms) {
-    console.log(`Build Android: ${platform}`);
-    await build(
-      `android_${platform}`,
-      {
-        ANDROID_ABI: platform,
-        ...android.args,
-      },
-      `🤖 ${platform}`,
-    );
-    copyLib("android", platform);
-  }
 
   console.log("Copy headers");
   $("cp -R externals/dawn/out/android_arm64-v8a/gen/include/* package/cpp");

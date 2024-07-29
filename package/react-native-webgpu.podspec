@@ -19,7 +19,9 @@ Pod::Spec.new do |s|
     "cpp/**/*.{h,cpp}"
   ]
 
-  s.vendored_libraries = 'libs/ios/libwebgpu_dawn.dylib'
+  s.ios.vendored_frameworks = [
+    'libs/ios/libwebgpu_dawn.xcframework',
+  ]
 
   s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',
