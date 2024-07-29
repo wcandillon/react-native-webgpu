@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import { spawn, execSync } from "child_process";
 import { existsSync } from "fs";
 import { exit } from "process";
@@ -93,13 +94,19 @@ export const copyLib = (os: OS, platform: Platform, sdk?: string) => {
   const out = `${os}_${suffix}`;
   const dstPath = `package/libs/${os}/${suffix}/`;
   $(`mkdir -p ${dstPath}`);
-  [
-    `externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.${os === "ios" ? "dylib" : "so"}`,
-  ].forEach((lib) => {
-    const libPath = lib;
-    console.log(`Copying ${libPath} to ${dstPath}`);
-    $(`cp ${libPath} ${dstPath}`);
-  });
+  if (os === "android") {
+    console.log("Strip debug symbols from libwebgpu_dawn.a...");
+    $(
+      `$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.a`,
+    );
+  }
+  [`externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.a`].forEach(
+    (lib) => {
+      const libPath = lib;
+      console.log(`Copying ${libPath} to ${dstPath}`);
+      $(`cp ${libPath} ${dstPath}`);
+    },
+  );
 };
 
 export const checkBuildArtifacts = () => {
@@ -108,7 +115,7 @@ export const checkBuildArtifacts = () => {
     .filter((arch) => arch !== "arm64")
     .forEach((platform) => {
       libs.forEach((lib) => {
-        checkFileExists(`libs/android/${platform}/${lib}.so`);
+        checkFileExists(`libs/android/${platform}/${lib}.a`);
       });
     });
   libs.forEach((lib) => {
