@@ -243,8 +243,8 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::BufferBindingLayout &out,
                              const GPUBufferBindingLayout &in) {
-    // TODO: the default of GPUBufferBindingLayout::type if Uniform not Undefined.
-    // not sure why this particular default is wrong here
+    // TODO: the default of GPUBufferBindingLayout::type if Uniform not
+    // Undefined. not sure why this particular default is wrong here
     if (!in.type.has_value()) {
       out.type = wgpu::BufferBindingType::Uniform;
     }
