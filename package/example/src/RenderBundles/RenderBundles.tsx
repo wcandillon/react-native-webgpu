@@ -14,8 +14,7 @@ export const RenderBundles = ({ assets: { moon, saturn } }: AssetProps) => {
   const { canvasRef } = useWebGPU(
     ({ device, presentationFormat, canvas, context }) => {
       const settings = {
-        useRenderBundles: true,
-        asteroidCount: 5000,
+        asteroidCount: 4000,
       };
 
       context.configure({
@@ -365,17 +364,14 @@ export const RenderBundles = ({ assets: { moon, saturn } }: AssetProps) => {
       // textures used. Cases where the executed commands differ from frame-to-frame,
       // such as when using frustrum or occlusion culling, will not benefit from
       // using render bundles as much.
-      let renderBundle: GPURenderBundle;
-      function updateRenderBundle() {
-        const renderBundleEncoder = device.createRenderBundleEncoder({
-          colorFormats: [presentationFormat],
-          depthStencilFormat: "depth24plus",
-        });
-        renderScene(renderBundleEncoder);
-        renderBundle = renderBundleEncoder.finish();
-      }
-      updateRenderBundle();
+      const renderBundleEncoder = device.createRenderBundleEncoder({
+        colorFormats: [presentationFormat],
+        depthStencilFormat: "depth24plus",
+      });
+      renderScene(renderBundleEncoder);
+      const renderBundle = renderBundleEncoder.finish();
 
+      console.log("update render bundle");
       function frame() {
         const transformationMatrix = getTransformationMatrix();
         device.queue.writeBuffer(
@@ -393,18 +389,7 @@ export const RenderBundles = ({ assets: { moon, saturn } }: AssetProps) => {
         const commandEncoder = device.createCommandEncoder();
         const passEncoder =
           commandEncoder.beginRenderPass(renderPassDescriptor);
-
-        if (settings.useRenderBundles) {
-          // Executing a bundle is equivalent to calling all of the commands encoded
-          // in the render bundle as part of the current render pass.
-          passEncoder.executeBundles([renderBundle]);
-        } else {
-          // Alternatively, the same render commands can be encoded manually, which
-          // can take longer since each command needs to be interpreted by the
-          // JavaScript virtual machine and re-validated each time.
-          renderScene(passEncoder);
-        }
-
+        passEncoder.executeBundles([renderBundle]);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
       }
@@ -421,7 +406,7 @@ export const RenderBundles = ({ assets: { moon, saturn } }: AssetProps) => {
 const style = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "red",
+    backgroundColor: "black",
   },
   webgpu: {
     flex: 1,

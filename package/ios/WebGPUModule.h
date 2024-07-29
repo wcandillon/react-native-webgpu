@@ -1,8 +1,8 @@
 #pragma once
 
+#include "RNWebGPUManager.h"
 #import <React/RCTBridgeModule.h>
 #import <React/RCTEventEmitter.h>
-#include "RNWebGPUManager.h"
 
 #ifdef RCT_NEW_ARCH_ENABLED
 #import <RNWgpuViewSpec/RNWgpuViewSpec.h>

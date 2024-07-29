@@ -4,47 +4,9 @@
 
 #include "Convertors.h"
 
+#include "GPUFeatures.h"
+
 namespace rnwgpu {
-static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
-                                 std::string *outUnion) {
-  switch (inEnum) {
-  case wgpu::FeatureName::DepthClipControl:
-    *outUnion = "depth-clip-control";
-    break;
-  case wgpu::FeatureName::Depth32FloatStencil8:
-    *outUnion = "depth32float-stencil8";
-    break;
-  case wgpu::FeatureName::TextureCompressionBC:
-    *outUnion = "texture-compression-bc";
-    break;
-  case wgpu::FeatureName::TextureCompressionETC2:
-    *outUnion = "texture-compression-etc2";
-    break;
-  case wgpu::FeatureName::TextureCompressionASTC:
-    *outUnion = "texture-compression-astc";
-    break;
-  case wgpu::FeatureName::TimestampQuery:
-    *outUnion = "timestamp-query";
-    break;
-  case wgpu::FeatureName::IndirectFirstInstance:
-    *outUnion = "indirect-first-instance";
-    break;
-  case wgpu::FeatureName::ShaderF16:
-    *outUnion = "shader-f16";
-    break;
-  case wgpu::FeatureName::RG11B10UfloatRenderable:
-    *outUnion = "rg11b10ufloat-renderable";
-    break;
-  case wgpu::FeatureName::BGRA8UnormStorage:
-    *outUnion = "bgra8unorm-storage";
-    break;
-  case wgpu::FeatureName::Float32Filterable:
-    *outUnion = "float32-filterable";
-    break;
-  default:
-    *outUnion = "";
-  }
-}
 
 std::shared_ptr<GPUBuffer>
 GPUDevice::createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {

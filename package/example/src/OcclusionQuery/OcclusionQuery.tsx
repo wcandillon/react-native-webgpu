@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import React from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useState } from "react";
+import { StyleSheet, View, Text } from "react-native";
 import { Canvas } from "react-native-webgpu";
 import { mat4 } from "wgpu-matrix";
 
@@ -59,6 +59,7 @@ export type TypedArrayConstructor =
   | Float64ArrayConstructor;
 
 export function OcclusionQuery() {
+  const [visible, setVisible] = useState("");
   const { canvasRef } = useWebGPU(
     ({ context, device, presentationFormat, canvas }) => {
       context.configure({
@@ -354,12 +355,13 @@ export function OcclusionQuery() {
 
         if (resultBuf.mapState === "unmapped") {
           resultBuf.mapAsync(GPUMapMode.READ).then(() => {
-            // const results = new BigUint64Array(resultBuf.getMappedRange());
+            const results = new BigUint64Array(resultBuf.getMappedRange());
 
-            // visible = objectInfos
-            //   .filter((_, i) => results[i])
-            //   .map(({ id }) => id)
-            //   .join("");
+            const v = objectInfos
+              .filter((_, i) => results[i])
+              .map(({ id }) => id)
+              .join("");
+            setVisible(v);
             // console.log({ visible });
             resultBuf.unmap();
           });
@@ -371,6 +373,9 @@ export function OcclusionQuery() {
 
   return (
     <View style={style.container}>
+      <View style={{ height: 32, justifyContent: "center" }}>
+        <Text>{visible}</Text>
+      </View>
       <Canvas ref={canvasRef} style={style.webgpu} />
     </View>
   );
@@ -379,7 +384,6 @@ export function OcclusionQuery() {
 const style = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "red",
   },
   webgpu: {
     flex: 1,

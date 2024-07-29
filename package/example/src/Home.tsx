@@ -21,7 +21,11 @@ export const examples = [
   },
   {
     screen: "TexturedCube",
-    title: "🖼️ Textured Cube",
+    title: "🥷 Textured Cube",
+  },
+  {
+    screen: "FractalCube",
+    title: "❄️ Fractal Cube",
   },
   {
     screen: "RenderBundles",
@@ -32,8 +36,16 @@ export const examples = [
     title: "🟩 Occlusion Query",
   },
   {
+    screen: "ComputeBoids",
+    title: "🐦‍⬛ Compute Boids",
+  },
+  {
     screen: "ABuffer",
     title: "🫖 A-Buffer",
+  },
+  {
+    screen: "Wireframe",
+    title: "🧬 Wireframe",
   },
   {
     screen: "Tests",

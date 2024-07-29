@@ -6,11 +6,13 @@ import type { Routes } from "./Route";
 import { Home } from "./Home";
 import { Tests } from "./Tests";
 import { useAssets } from "./components/useAssets";
-import { Cube, TexturedCube } from "./Cube";
+import { Cube, TexturedCube, FractalCube } from "./Cube";
 import { HelloTriangle, HelloTriangleMSAA } from "./Triangle";
 import { RenderBundles } from "./RenderBundles";
 import { ABuffer } from "./ABuffer";
 import { OcclusionQuery } from "./OcclusionQuery";
+import { ComputeBoids } from "./ComputeBoids";
+import { Wireframe } from "./Wireframe";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -33,11 +35,14 @@ function App() {
           <Stack.Screen name="TexturedCube">
             {(props) => <TexturedCube {...props} assets={assets} />}
           </Stack.Screen>
+          <Stack.Screen name="FractalCube" component={FractalCube} />
           <Stack.Screen name="RenderBundles">
             {(props) => <RenderBundles {...props} assets={assets} />}
           </Stack.Screen>
           <Stack.Screen name="ABuffer" component={ABuffer} />
           <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />
+          <Stack.Screen name="ComputeBoids" component={ComputeBoids} />
+          <Stack.Screen name="Wireframe" component={Wireframe} />
           <Stack.Screen name="Tests">
             {(props) => <Tests {...props} assets={assets} />}
           </Stack.Screen>

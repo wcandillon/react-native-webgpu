@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { CanvasRef } from "react-native-webgpu";
-import { gpu } from "react-native-webgpu";
 
 const useDevice = () => {
   const [device, setDevice] = useState<GPUDevice | null>(null);
   useEffect(() => {
     (async () => {
-      const adapter = await gpu.requestAdapter();
+      const adapter = await navigator.gpu.requestAdapter();
       if (!adapter) {
         throw new Error("No appropriate GPUAdapter found.");
       }
@@ -48,7 +47,7 @@ export const useWebGPU = (scene: Scene) => {
     }
 
     const context = canvas.getContext("webgpu")!;
-    const presentationFormat = gpu.getPreferredCanvasFormat();
+    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
     context.configure({
       device,
@@ -59,7 +58,7 @@ export const useWebGPU = (scene: Scene) => {
     const sceneProps: SceneProps = {
       context,
       device,
-      gpu,
+      gpu: navigator.gpu,
       presentationFormat,
       canvas: context.canvas as OffscreenCanvas,
     };
@@ -71,8 +70,10 @@ export const useWebGPU = (scene: Scene) => {
       if (typeof renderScene === "function") {
         renderScene(timestamp);
       }
-      context.present();
-      animationFrameId = requestAnimationFrame(render);
+      device.queue.onSubmittedWorkDone().then(() => {
+        context.present();
+        animationFrameId = requestAnimationFrame(render);
+      });
     };
 
     animationFrameId = requestAnimationFrame(render);

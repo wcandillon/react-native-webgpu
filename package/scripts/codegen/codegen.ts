@@ -168,7 +168,7 @@ sourceFile
 console.log("===");
 console.log("Objects");
 console.log("===");
-const objectsToSkip = ["GPUAdapterInfo"];
+const objectsToSkip = ["GPUAdapterInfo", "GPUCanvasContext"];
 const hybridObject = sourceFile
   .getInterfaces()
   .filter(

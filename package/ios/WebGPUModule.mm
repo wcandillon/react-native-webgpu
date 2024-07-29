@@ -1,10 +1,10 @@
 #import "WebGPUModule.h"
+#import "GPUCanvasContext.h"
 #import <React/RCTBridge+Private.h>
 #import <React/RCTLog.h>
 #import <ReactCommon/RCTTurboModule.h>
 #import <jsi/jsi.h>
 #import <memory>
-#import "GPUCanvasContext.h"
 
 namespace jsi = facebook::jsi;
 namespace react = facebook::react;
@@ -46,7 +46,11 @@ static NSMutableSet *_surfaceContextsIds;
   // if (_webgpuManager != nil) {
   //   [_webgpuManager invalidate];
   // }
-  webgpuManager = nil;
+  _webgpuManager = nil;
+}
+
+- (rnwgpu::RNWebGPUManager *)getManager {
+  return _webgpuManager;
 }
 
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
@@ -90,7 +94,8 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext:(double)contextId) {
   auto runtime = (jsi::Runtime *)cxxBridge.runtime;
   auto webGPUContextRegistry = runtime->global().getPropertyAsObject(
       *runtime, "__WebGPUContextRegistry");
-  if (webGPUContextRegistry.hasProperty(*runtime, std::to_string(contextIdInt).c_str())) {
+  if (webGPUContextRegistry.hasProperty(*runtime,
+                                        std::to_string(contextIdInt).c_str())) {
     // Context already exists
     return @true;
   }
@@ -103,9 +108,12 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext:(double)contextId) {
   
   auto surfaceData = webgpuManager->surfacesRegistry.getSurface(contextIdInt);
   auto label = "Context: " + std::to_string(contextIdInt);
-  auto gpuCanvasContext = std::make_shared<rnwgpu::GPUCanvasContext>(*surfaceData);
-  auto gpuCanvasContextJs = facebook::jsi::Object::createFromHostObject(*runtime, gpuCanvasContext);
-  webGPUContextRegistry.setProperty(*runtime, std::to_string(contextIdInt).c_str(), gpuCanvasContextJs);
+  auto gpuCanvasContext =
+      std::make_shared<rnwgpu::GPUCanvasContext>(*surfaceData);
+  auto gpuCanvasContextJs =
+      facebook::jsi::Object::createFromHostObject(*runtime, gpuCanvasContext);
+  webGPUContextRegistry.setProperty(
+      *runtime, std::to_string(contextIdInt).c_str(), gpuCanvasContextJs);
 
   return @true;
 }
