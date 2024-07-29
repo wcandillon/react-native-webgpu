@@ -97,16 +97,16 @@ export const copyLib = (os: OS, platform: Platform, sdk?: string) => {
   if (os === "android") {
     console.log("Strip debug symbols from libwebgpu_dawn.a...");
     $(
-      `$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.a`,
+      `$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.so`,
     );
   }
-  [`externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.a`].forEach(
-    (lib) => {
-      const libPath = lib;
-      console.log(`Copying ${libPath} to ${dstPath}`);
-      $(`cp ${libPath} ${dstPath}`);
-    },
-  );
+  [
+    `externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.${os === "ios" ? "a" : "so"}`,
+  ].forEach((lib) => {
+    const libPath = lib;
+    console.log(`Copying ${libPath} to ${dstPath}`);
+    $(`cp ${libPath} ${dstPath}`);
+  });
 };
 
 export const checkBuildArtifacts = () => {
@@ -115,7 +115,7 @@ export const checkBuildArtifacts = () => {
     .filter((arch) => arch !== "arm64")
     .forEach((platform) => {
       libs.forEach((lib) => {
-        checkFileExists(`libs/android/${platform}/${lib}.a`);
+        checkFileExists(`libs/android/${platform}/${lib}.so`);
       });
     });
   libs.forEach((lib) => {

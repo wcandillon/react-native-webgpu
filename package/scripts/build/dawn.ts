@@ -1,5 +1,6 @@
-/* eslint-disable camelcase */
 /* eslint-disable max-len */
+/* eslint-disable camelcase */
+
 import { chdir } from "process";
 
 import type { Platform } from "./util";
@@ -49,6 +50,25 @@ const ios = {
   process.chdir("..");
   process.chdir("externals/dawn");
   $("git reset --hard HEAD");
+  //$(`git apply ${__dirname}/static_build.patch`);
+  process.chdir("../..");
+
+  // Build Android
+  for (const platform of android.platforms) {
+    console.log(`Build Android: ${platform}`);
+    await build(
+      `android_${platform}`,
+      {
+        ANDROID_ABI: platform,
+        ...android.args,
+      },
+      `🤖 ${platform}`,
+    );
+    copyLib("android", platform);
+  }
+
+  process.chdir("externals/dawn");
+  $("git reset --hard HEAD");
   $(`git apply ${__dirname}/static_build.patch`);
   process.chdir("../..");
 
@@ -85,19 +105,6 @@ const ios = {
         ` -output ./package/libs/ios/${lib}.xcframework `,
     );
   });
-  // Build Android
-  for (const platform of android.platforms) {
-    console.log(`Build Android: ${platform}`);
-    await build(
-      `android_${platform}`,
-      {
-        ANDROID_ABI: platform,
-        ...android.args,
-      },
-      `🤖 ${platform}`,
-    );
-    copyLib("android", platform);
-  }
 
   console.log("Copy headers");
   $("cp -R externals/dawn/out/android_arm64-v8a/gen/include/* package/cpp");

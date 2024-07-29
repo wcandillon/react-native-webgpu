@@ -70,8 +70,8 @@ target_include_directories(
         ${libfbjni_include_DIRS}
 )
 
-add_library(webgpu_dawn STATIC IMPORTED)
-set_property(TARGET webgpu_dawn PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.a")
+add_library(webgpu_dawn SHARED IMPORTED)
+set_property(TARGET webgpu_dawn PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.so")
 
 # Link
 target_link_libraries(
