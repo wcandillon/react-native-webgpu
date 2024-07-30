@@ -98,4 +98,31 @@ void GPURenderBundleEncoder::drawIndexed(
                         firstInstance.value_or(0));
 }
 
+void GPURenderBundleEncoder::pushDebugGroup(std::string groupLabel) {
+  _instance.PushDebugGroup(groupLabel.c_str());
+}
+
+void GPURenderBundleEncoder::popDebugGroup() { _instance.PopDebugGroup(); }
+
+void GPURenderBundleEncoder::insertDebugMarker(std::string markerLabel) {
+  _instance.InsertDebugMarker(markerLabel.c_str());
+}
+void GPURenderBundleEncoder::drawIndirect(
+    std::shared_ptr<GPUBuffer> indirectBuffer, uint64_t indirectOffset) {
+  Convertor conv;
+  wgpu::Buffer b{};
+  if (!conv(b, indirectBuffer)) {
+    return;
+  }
+  _instance.DrawIndirect(b, indirectOffset);
+}
+void GPURenderBundleEncoder::drawIndexedIndirect(
+    std::shared_ptr<GPUBuffer> indirectBuffer, uint64_t indirectOffset) {
+  Convertor conv;
+  wgpu::Buffer b{};
+  if (!conv(b, indirectBuffer)) {
+    return;
+  }
+  _instance.DrawIndexedIndirect(b, indirectOffset);
+}
 } // namespace rnwgpu

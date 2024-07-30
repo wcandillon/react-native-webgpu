@@ -36,6 +36,9 @@ public:
 
   std::shared_ptr<GPURenderBundle>
   finish(std::optional<std::shared_ptr<GPURenderBundleDescriptor>> descriptor);
+  void pushDebugGroup(std::string groupLabel);
+  void popDebugGroup();
+  void insertDebugMarker(std::string markerLabel);
   void setBindGroup(
       uint32_t index,
       std::variant<std::nullptr_t, std::shared_ptr<GPUBindGroup>> bindGroup,
@@ -56,12 +59,22 @@ public:
                    std::optional<uint32_t> firstIndex,
                    std::optional<double> baseVertex,
                    std::optional<uint32_t> firstInstance);
+  void drawIndirect(std::shared_ptr<GPUBuffer> indirectBuffer,
+                    uint64_t indirectOffset);
+  void drawIndexedIndirect(std::shared_ptr<GPUBuffer> indirectBuffer,
+                           uint64_t indirectOffset);
 
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPURenderBundleEncoder::getBrand, this);
     registerHybridMethod("finish", &GPURenderBundleEncoder::finish, this);
+    registerHybridMethod("pushDebugGroup",
+                         &GPURenderBundleEncoder::pushDebugGroup, this);
+    registerHybridMethod("popDebugGroup",
+                         &GPURenderBundleEncoder::popDebugGroup, this);
+    registerHybridMethod("insertDebugMarker",
+                         &GPURenderBundleEncoder::insertDebugMarker, this);
     registerHybridMethod("setBindGroup", &GPURenderBundleEncoder::setBindGroup,
                          this);
     registerHybridMethod("setPipeline", &GPURenderBundleEncoder::setPipeline,
@@ -73,6 +86,10 @@ public:
     registerHybridMethod("draw", &GPURenderBundleEncoder::draw, this);
     registerHybridMethod("drawIndexed", &GPURenderBundleEncoder::drawIndexed,
                          this);
+    registerHybridMethod("drawIndirect", &GPURenderBundleEncoder::drawIndirect,
+                         this);
+    registerHybridMethod("drawIndexedIndirect",
+                         &GPURenderBundleEncoder::drawIndexedIndirect, this);
 
     registerHybridGetter("label", &GPURenderBundleEncoder::getLabel, this);
   }
