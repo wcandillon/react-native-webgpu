@@ -1,5 +1,5 @@
 import type { ViewProps } from "react-native";
-import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState, useRef } from "react";
 
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
 import WebGPUNativeModule from "./NativeWebGPUModule";
@@ -22,29 +22,24 @@ export interface CanvasRef {
 
 export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
   const [contextId, _] = useState(() => generateContextId());
+  const innerRef = useRef(null);
 
   useImperativeHandle(ref, () => ({
     getContext(contextName: "webgpu"): CanvasContext | null {
-      // if (contextName !== "webgpu") {
-      //   throw new Error("[WebGPU] Unsupported context");
-      // }
-      // WebGPUNativeModule.createSurfaceContext(contextId);
-      // console.log('mleko')
-      // console.log('WebGPUNativeModule', WebGPUNativeModule)
+      if (contextName !== "webgpu") {
+        throw new Error("[WebGPU] Unsupported context");
+      }
       WebGPUNativeModule.createSurfaceContext(contextId);
-      // console.log('WebGPUNativeModule', WebGPUNativeModule)
-      // console.log('getcontext')
       const ctx = (WebGPUContextRegistry[contextId] as CanvasContext) ?? null;
       return ctx;
     },
   }));
 
   useEffect(() => {
-    // console.log('useEffect')
     return () => {
       delete WebGPUContextRegistry[contextId];
     };
   }, [contextId]);
 
-  return <WebGPUNativeView {...props} contextId={contextId} />;
+  return <WebGPUNativeView {...props} contextId={contextId} ref={innerRef} />;
 });

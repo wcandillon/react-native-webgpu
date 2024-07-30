@@ -5,6 +5,7 @@
 #import <ReactCommon/RCTTurboModule.h>
 #import <jsi/jsi.h>
 #import <memory>
+#import <React/RCTUIManagerUtils.h>
 
 namespace jsi = facebook::jsi;
 namespace react = facebook::react;
@@ -13,20 +14,10 @@ namespace react = facebook::react;
 
 RCT_EXPORT_MODULE(WebGPUModule)
 
-static rnwgpu::RNWebGPUManager *webgpuManager;
-static NSCondition *_condition;
-static NSMutableSet *_surfaceContextsIds;
+static std::shared_ptr<rnwgpu::RNWebGPUManager> webgpuManager;
 
-+ (rnwgpu::RNWebGPUManager *)getManager {
++ (std::shared_ptr<rnwgpu::RNWebGPUManager>)getManager {
   return webgpuManager;
-}
-
-+ (void)onSurfaceCreated:(NSNumber *)contextId
-{
-  [_condition lock];
-  [_surfaceContextsIds addObject:contextId];
-  [_condition signal];
-  [_condition unlock];
 }
 
 #pragma Setup and invalidation
@@ -35,22 +26,15 @@ static NSMutableSet *_surfaceContextsIds;
   return YES;
 }
 
-- (instancetype)init
-{
-  self = [super init];
-  _condition = [NSCondition new];
-  return self;
-}
-
 - (void)invalidate {
   // if (_webgpuManager != nil) {
   //   [_webgpuManager invalidate];
   // }
-  _webgpuManager = nil;
+  webgpuManager = nil;
 }
 
-- (rnwgpu::RNWebGPUManager *)getManager {
-  return _webgpuManager;
+- (std::shared_ptr<rnwgpu::RNWebGPUManager>)getManager {
+  return webgpuManager;
 }
 
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
@@ -81,7 +65,7 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
     jsInvoker = cxxBridge.jsCallInvoker;
   }
   // TODO: remove allocation here
-  webgpuManager = new rnwgpu::RNWebGPUManager(runtime, jsInvoker);
+  webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker);
   return @true;
 }
 
@@ -89,22 +73,14 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext:(double)contextId) {
 //  int contextIdInt = [contextId intValue];
   int contextIdInt = contextId;
-  return @(0);
   RCTCxxBridge *cxxBridge = (RCTCxxBridge *)[RCTBridge currentBridge];
   auto runtime = (jsi::Runtime *)cxxBridge.runtime;
   auto webGPUContextRegistry = runtime->global().getPropertyAsObject(
       *runtime, "__WebGPUContextRegistry");
-  if (webGPUContextRegistry.hasProperty(*runtime,
-                                        std::to_string(contextIdInt).c_str())) {
+  if (webGPUContextRegistry.hasProperty(*runtime, std::to_string(contextIdInt).c_str())) {
     // Context already exists
     return @true;
   }
-  
-  [_condition lock];
-  while (![_surfaceContextsIds containsObject:@(contextIdInt)]) {
-    [_condition wait];
-  }
-  [_condition unlock];
   
   auto surfaceData = webgpuManager->surfacesRegistry.getSurface(contextIdInt);
   auto label = "Context: " + std::to_string(contextIdInt);

@@ -1,6 +1,8 @@
 #import "RCTBridge.h"
 #import "WebGPUModule.h"
 #import "MetalView.h"
+#import <React/RCTUIManager.h>
+#import <React/RCTViewManager.h>
 
 @interface WebGPUViewManager : RCTViewManager
 @end
