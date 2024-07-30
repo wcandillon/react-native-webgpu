@@ -168,7 +168,11 @@ sourceFile
 console.log("===");
 console.log("Objects");
 console.log("===");
-const objectsToSkip = ["GPUAdapterInfo", "GPUCanvasContext"];
+const objectsToSkip = [
+  "GPUAdapterInfo",
+  "GPUCanvasContext",
+  "GPUCompilationInfo",
+];
 const hybridObject = sourceFile
   .getInterfaces()
   .filter(

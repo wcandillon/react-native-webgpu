@@ -1,5 +1,6 @@
 #pragma once
 
+#include <future>
 #include <memory>
 #include <string>
 
@@ -10,6 +11,8 @@
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
+
+#include "GPUCompilationInfo.h"
 
 namespace rnwgpu {
 
@@ -26,10 +29,14 @@ public:
 public:
   std::string getBrand() { return _name; }
 
+  std::future<std::shared_ptr<GPUCompilationInfo>> getCompilationInfo();
+
   std::string getLabel() { return _label; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUShaderModule::getBrand, this);
+    registerHybridMethod("getCompilationInfo",
+                         &GPUShaderModule::getCompilationInfo, this);
 
     registerHybridGetter("label", &GPUShaderModule::getLabel, this);
   }

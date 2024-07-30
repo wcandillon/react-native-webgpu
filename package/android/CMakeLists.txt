@@ -28,6 +28,7 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/rnwgpu/api/GPU.cpp
     ../cpp/rnwgpu/api/GPUAdapter.cpp
     ../cpp/rnwgpu/api/GPUSupportedLimits.cpp
+    ../cpp/rnwgpu/api/GPUShaderModule.cpp
     ../cpp/rnwgpu/api/GPUDevice.cpp
     ../cpp/rnwgpu/api/GPUBuffer.cpp
     ../cpp/rnwgpu/api/GPUQueue.cpp

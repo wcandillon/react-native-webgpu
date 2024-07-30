@@ -43,7 +43,7 @@ const objectWhileList = [
   "GPURenderPassEncoder",
   "GPURenderPipeline",
   "GPUSampler",
-  //"GPUShaderModule",
+  "GPUShaderModule",
   "GPUSupportedLimits",
   "GPUTexture",
   "GPUTextureView",
