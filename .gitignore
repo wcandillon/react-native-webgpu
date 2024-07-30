@@ -11,7 +11,7 @@ yarn-error.log
 
 # Xcode
 #
-build/
+build
 *.pbxuser
 !default.pbxuser
 *.mode1v3
@@ -30,7 +30,7 @@ DerivedData
 project.xcworkspace
 
 # Android/IntelliJ
-build/
+build
 .idea
 .gradle
 local.properties
@@ -52,5 +52,5 @@ buck-out/
 # Build
 dist
 package/lib
-
 .vscode
+!package/script/build
