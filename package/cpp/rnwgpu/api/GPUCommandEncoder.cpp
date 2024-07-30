@@ -42,20 +42,10 @@ std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
   wgpu::RenderPassDescriptorMaxDrawCount maxDrawCountDesc{};
   desc.nextInChain = &maxDrawCountDesc;
   Convertor conv;
-  std::vector<std::shared_ptr<GPURenderPassColorAttachment>>
-      filteredColorAttachments;
-  for (const auto &attachment : descriptor->colorAttachments) {
-    if (auto ptr = std::get_if<std::shared_ptr<GPURenderPassColorAttachment>>(
-            &attachment)) {
-      if (*ptr) {
-        filteredColorAttachments.push_back(*ptr);
-      }
-    }
-  }
 
   // TODO: why is this not in Converter
   if (!conv(desc.colorAttachments, desc.colorAttachmentCount,
-            filteredColorAttachments) ||
+            descriptor->colorAttachments) ||
       !conv(desc.depthStencilAttachment, descriptor->depthStencilAttachment) ||
       !conv(desc.label, descriptor->label) ||
       !conv(desc.occlusionQuerySet, descriptor->occlusionQuerySet) ||

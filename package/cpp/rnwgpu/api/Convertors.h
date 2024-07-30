@@ -100,7 +100,6 @@ public:
     return Convert(out_count, in.size());
   }
 
-  // TODO remove array that have been filtered upfront
   template <typename OUT, typename IN>
   [[nodiscard]] inline bool
   Convert(OUT *&out_els, size_t &out_count,
@@ -345,17 +344,7 @@ public:
     out.entryPoint = in.entryPoint
                          ? ConvertStringReplacingNull(in.entryPoint.value())
                          : nullptr;
-    std::vector<std::shared_ptr<GPUColorTargetState>> filteredTargets;
-    filteredTargets.reserve(in.targets.size());
-    for (const auto &target : in.targets) {
-      if (auto ptr =
-              std::get_if<std::shared_ptr<GPUColorTargetState>>(&target)) {
-        if (*ptr) {
-          filteredTargets.push_back(*ptr);
-        }
-      }
-    }
-    return Convert(out.targets, out.targetCount, filteredTargets) && //
+    return Convert(out.targets, out.targetCount, in.targets) && //
            Convert(out.module, in.module); // TODO: add support for constants
     // Convert(out.constants, out.constantCount, in.constants);
   }
@@ -439,18 +428,10 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::RenderBundleEncoderDescriptor &out,
                              const GPURenderBundleEncoderDescriptor &in) {
-    std::vector<wgpu::TextureFormat> filteredColorFormats;
-    filteredColorFormats.reserve(in.colorFormats.size());
-
-    for (const auto &format : in.colorFormats) {
-      if (auto textureFormat = std::get_if<wgpu::TextureFormat>(&format)) {
-        filteredColorFormats.push_back(*textureFormat);
-      }
-    }
     return Convert(out.depthReadOnly, in.depthReadOnly) &&
            Convert(out.stencilReadOnly, in.stencilReadOnly) &&
            Convert(out.colorFormats, out.colorFormatCount,
-                   filteredColorFormats) &&
+                   in.colorFormats) &&
            Convert(out.depthStencilFormat, in.depthStencilFormat) &&
            Convert(out.sampleCount, in.sampleCount) &&
            Convert(out.label, in.label);
@@ -619,15 +600,7 @@ public:
       return false;
     }
     if (in.buffers.has_value()) {
-      std::vector<std::shared_ptr<GPUVertexBufferLayout>> filteredBuffers;
-      for (const auto &buffer : in.buffers.value()) {
-        if (std::holds_alternative<std::shared_ptr<GPUVertexBufferLayout>>(
-                buffer)) {
-          auto ptr = std::get<std::shared_ptr<GPUVertexBufferLayout>>(buffer);
-          filteredBuffers.push_back(ptr);
-        }
-      }
-      if (!Convert(out.buffers, out.bufferCount, filteredBuffers)) {
+      if (!Convert(out.buffers, out.bufferCount, in.buffers.value())) {
         return false;
       }
     }
