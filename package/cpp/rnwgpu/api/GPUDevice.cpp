@@ -49,7 +49,8 @@ std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
 
 void GPUDevice::destroy() {
   _instance.Destroy();
-  auto lostInfo = std::make_shared<GPUDeviceLostInfo>(wgpu::DeviceLostReason::Destroyed, "device was destroyed");
+  auto lostInfo = std::make_shared<GPUDeviceLostInfo>(
+      wgpu::DeviceLostReason::Destroyed, "device was destroyed");
   m_lostPromise->set_value(lostInfo);
 }
 
