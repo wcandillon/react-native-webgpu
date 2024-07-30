@@ -215,7 +215,7 @@ public:
            Convert(out.buffer, in.buffer) && Convert(out.sampler, in.sampler) &&
            Convert(out.texture, in.texture) &&
            Convert(out.storageTexture, in.storageTexture);
-    // TODO: Implement
+    // no external textures here
     //&& Convert(out.externalTexture, in.externalTexture);
   }
 
@@ -232,18 +232,9 @@ public:
     return Convert(out.alpha, in.alpha) && Convert(out.color, in.color);
   }
 
-  // TODO: implement
-  // [[nodiscard]] bool Convert(wgpu::BufferBinding &out,
-  //                            const GPUBufferBinding &in) {
-  //   return Convert(out.buffer, in.buffer) && Convert(out.offset, in.offset)
-  //   &&
-  //          Convert(out.size, in.size);
-  // }
-
   [[nodiscard]] bool Convert(wgpu::BufferBindingLayout &out,
                              const GPUBufferBindingLayout &in) {
-    // TODO: the default of GPUBufferBindingLayout::type if Uniform not
-    // Undefined. not sure why this particular default is wrong here
+    // here the buffer property is set so type is set to its default value
     if (!in.type.has_value()) {
       out.type = wgpu::BufferBindingType::Uniform;
     }
@@ -330,7 +321,7 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::ExternalTextureBindingLayout &out,
                              const GPUExternalTextureBindingLayout &in) {
-    // TODO: implement
+    // no external textures at the moment
     return false;
   }
 
@@ -485,6 +476,10 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::SamplerBindingLayout &out,
                              const GPUSamplerBindingLayout &in) {
+                                  // here the buffer property is set so type is set to its default value
+    if (!in.type.has_value()) {
+      out.type = wgpu::SamplerBindingType::Filtering;
+    }
     return Convert(out.type, in.type);
   }
 
@@ -512,12 +507,18 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::StorageTextureBindingLayout &out,
                              const GPUStorageTextureBindingLayout &in) {
+    if (!in.access.has_value()) {
+      out.access = wgpu::StorageTextureAccess::WriteOnly;
+    }
     return Convert(out.access, in.access) && Convert(out.format, in.format) &&
            Convert(out.viewDimension, in.viewDimension);
   }
 
   [[nodiscard]] bool Convert(wgpu::TextureBindingLayout &out,
                              const GPUTextureBindingLayout &in) {
+    if (!in.sampleType.has_value()) {
+      out.sampleType = wgpu::TextureSampleType::Float;
+    }
     return Convert(out.sampleType, in.sampleType) &&
            Convert(out.viewDimension, in.viewDimension) &&
            Convert(out.multisampled, in.multisampled);
@@ -651,13 +652,7 @@ public:
       out.buffer = buffer->get();
       return true;
     }
-    // TODO: implement external textures
-    // if (auto* res =
-    // std::get_if<interop::Interface<interop::GPUExternalTexture>>(&in.resource))
-    // {
-    //     // TODO(crbug.com/dawn/1129): External textures
-    //     UNIMPLEMENTED(env, {});
-    // }
+    // Not external textures at the moment
     return false;
   }
 
