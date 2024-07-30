@@ -172,6 +172,7 @@ const objectsToSkip = [
   "GPUAdapterInfo",
   "GPUCanvasContext",
   "GPUCompilationInfo",
+  "GPUCompilationMessage",
 ];
 const hybridObject = sourceFile
   .getInterfaces()
