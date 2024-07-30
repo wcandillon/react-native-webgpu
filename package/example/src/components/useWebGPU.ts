@@ -37,6 +37,7 @@ export const useWebGPU = (scene: Scene) => {
   const { device } = useDevice();
   useEffect(() => {
     let animationFrameId: number;
+    let frameNumber = 0;
 
     if (!device) {
       return;
@@ -66,12 +67,19 @@ export const useWebGPU = (scene: Scene) => {
     const renderScene = scene(sceneProps);
 
     const render = () => {
+      frameNumber++;
       const timestamp = Date.now();
       if (typeof renderScene === "function") {
         renderScene(timestamp);
       }
       device.queue.onSubmittedWorkDone().then(() => {
         context.present();
+        if (frameNumber > 2500) {
+          frameNumber = 0;
+          if (gc) {
+            gc();
+          }
+        }
         animationFrameId = requestAnimationFrame(render);
       });
     };
