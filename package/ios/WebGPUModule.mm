@@ -69,11 +69,9 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   return @true;
 }
 
-//RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext:(nonnull NSNumber *)contextId) {
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext:(double)contextId) {
-//  int contextIdInt = [contextId intValue];
   int contextIdInt = contextId;
-  RCTCxxBridge *cxxBridge = (RCTCxxBridge *)[RCTBridge currentBridge];
+  RCTCxxBridge *cxxBridge = (RCTCxxBridge *)self.bridge;
   auto runtime = (jsi::Runtime *)cxxBridge.runtime;
   auto webGPUContextRegistry = runtime->global().getPropertyAsObject(
       *runtime, "__WebGPUContextRegistry");

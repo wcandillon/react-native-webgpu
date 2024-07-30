@@ -22,7 +22,6 @@ export interface CanvasRef {
 
 export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
   const [contextId, _] = useState(() => generateContextId());
-  const innerRef = useRef(null);
 
   useImperativeHandle(ref, () => ({
     getContext(contextName: "webgpu"): CanvasContext | null {
@@ -41,5 +40,5 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
     };
   }, [contextId]);
 
-  return <WebGPUNativeView {...props} contextId={contextId} ref={innerRef} />;
+  return <WebGPUNativeView {...props} contextId={contextId} />;
 });

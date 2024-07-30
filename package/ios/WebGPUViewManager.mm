@@ -16,10 +16,8 @@ RCT_EXPORT_MODULE(WebGPUView)
 }
 
 RCT_CUSTOM_VIEW_PROPERTY(contextId, NSNumber, UIView) {
-  WebGPUModule *webGPUModule =
-      [self.bridge moduleForClass:[WebGPUModule class]];
   NSNumber *contextId = [RCTConvert NSNumber:json];
-  [(MetalView *)view setContectId:contextId webGPUModule:webGPUModule];
+  [(MetalView *)view setContextId:contextId];
 }
 
 @end

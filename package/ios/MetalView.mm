@@ -1,10 +1,9 @@
 #import <React/RCTViewManager.h>
 #import "MetalView.h"
+#import "SurfaceUtils.h"
 #import "webgpu_cpp.h"
 
 @implementation MetalView {
-  __weak WebGPUModule *_webGPUModule;
-  NSNumber *_contextId;
   BOOL _isConfigured;
 }
 
@@ -12,29 +11,14 @@
   return [CAMetalLayer class];
 }
 
-- (void)setContectId:(NSNumber *)contextId webGPUModule:(WebGPUModule *)webGPUModule
-{
-  _contextId = contextId;
-  _webGPUModule = webGPUModule;
-}
-
+// Paper only method
 - (void)reactSetFrame:(CGRect)frame
 {
   [super reactSetFrame:frame];
-  if (_isConfigured) {
-    return;
+  if (!_isConfigured) {
+    [SurfaceUtils configureSurface:self.layer size:self.frame.size contextId:[_contextId intValue]];
+    _isConfigured = YES;
   }
-  wgpu::SurfaceDescriptorFromMetalLayer metalSurfaceDesc;
-  metalSurfaceDesc.layer = (void *)CFBridgingRetain(self.layer);
-  wgpu::SurfaceDescriptor surfaceDescriptor;
-  surfaceDescriptor.nextInChain = &metalSurfaceDesc;
-  auto manager = [WebGPUModule getManager];
-  auto surfaceGpu = std::make_shared<wgpu::Surface>(manager->getGPU()->get().CreateSurface(&surfaceDescriptor));
-  float width = self.frame.size.width;
-  float height = self.frame.size.height;
-  rnwgpu::SurfaceData surfaceData = {width, height, surfaceGpu};
-  [WebGPUModule getManager]->surfacesRegistry.addSurface([_contextId intValue], surfaceData);
-  _isConfigured = YES;
 }
 
 @end

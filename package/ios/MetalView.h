@@ -5,6 +5,6 @@
 
 @interface MetalView : UIView
 
-- (void)setContectId:(NSNumber *)contextId webGPUModule:(WebGPUModule *)webGPUModule;
+@property NSNumber *contextId;
 
 @end

@@ -59,8 +59,7 @@ static NSMutableDictionary<NSNumber *, MetalView *> *metalViewRegistry = [NSMuta
   [super updateLayoutMetrics:layoutMetrics oldLayoutMetrics:oldLayoutMetrics];
   if (!self.contentView) {
     const auto &props = *std::static_pointer_cast<WebGPUViewProps const>(_props);
-    _contextId = @(props.contextId);
-    self.contentView = metalViewRegistry[_contextId];
+    self.contentView = metalViewRegistry[@(props.contextId)];
   }
 }
 

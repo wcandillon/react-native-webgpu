@@ -10,6 +10,7 @@
 
 #import "MetalView.h"
 #import "WebGPUView.h"
+#import "SurfaceUtils.h"
 
 namespace facebook {
 namespace react {
@@ -21,30 +22,25 @@ public:
  
   void layout(LayoutContext layoutContext) override {
     YogaLayoutableShadowNode::layout(layoutContext);
-    
+    configureSurface();
+  }
+  
+  void configureSurface() {
     const auto &viewProps = *std::static_pointer_cast<WebGPUViewProps const>(props_);
-    auto contextId = @(viewProps.contextId);
-    if (![WebGPUView isContextRegisterd:contextId]) {
-      wgpu::SurfaceDescriptorFromMetalLayer metalSurfaceDesc;
-      
-      __block MetalView *metalView;
-      __block CALayer *layer;
-      dispatch_sync(dispatch_get_main_queue(), ^{
-        metalView = [[MetalView alloc] init];
-        layer = metalView.layer;
-      });
-      [WebGPUView registerMetalView:metalView withContextId:contextId];
-    
-      metalSurfaceDesc.layer = (void *)CFBridgingRetain(layer);
-      wgpu::SurfaceDescriptor surfaceDescriptor;
-      surfaceDescriptor.nextInChain = &metalSurfaceDesc;
-      std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule getManager];
-      auto surfaceGpu = std::make_shared<wgpu::Surface>(manager->getGPU()->get().CreateSurface(&surfaceDescriptor));
-      float width = layoutMetrics_.frame.size.width;
-      float height = layoutMetrics_.frame.size.height;
-      rnwgpu::SurfaceData surfaceData = {width, height, surfaceGpu};
-      manager->surfacesRegistry.addSurface(viewProps.contextId, surfaceData);
+    if ([WebGPUView isContextRegisterd:@(viewProps.contextId)]) {
+      return;
     }
+    __block MetalView *metalView;
+    __block CALayer *layer;
+    dispatch_sync(dispatch_get_main_queue(), ^{
+      metalView = [[MetalView alloc] init];
+      layer = metalView.layer;
+    });
+    [WebGPUView registerMetalView:metalView withContextId:@(viewProps.contextId)];
+
+    float width = layoutMetrics_.frame.size.width;
+    float height = layoutMetrics_.frame.size.height;
+    [SurfaceUtils configureSurface:layer size:CGSizeMake(width, height) contextId:viewProps.contextId];
   }
 };
 
