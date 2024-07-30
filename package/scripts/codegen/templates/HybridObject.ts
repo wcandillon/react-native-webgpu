@@ -18,8 +18,7 @@ const instanceAliases: Record<string, string> = {
   GPUDeviceLostInfo: "DeviceLostReason",
 };
 
-const methodBlackList = ["requestAdapterInfo"];
-
+const deprecatedMethods = ["requestAdapterInfo"];
 const propblackList = ["onuncapturederror", "label", "prototype"];
 
 // const propWhiteList: string[] = [
@@ -58,7 +57,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     });
   const methods = decl
     .getMethods()
-    .filter((m) => !methodBlackList.includes(m.getName()))
+    .filter((m) => !deprecatedMethods.includes(m.getName()))
     .map((signature) => {
       const resolved = resolveMethod(className, signature.getName());
       if (resolved) {
