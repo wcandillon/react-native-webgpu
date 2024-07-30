@@ -168,11 +168,13 @@ sourceFile
 console.log("===");
 console.log("Objects");
 console.log("===");
+// the following objects have been manually written for simplicity and therefore can be skipped
 const objectsToSkip = [
   "GPUAdapterInfo",
   "GPUCanvasContext",
   "GPUCompilationInfo",
   "GPUCompilationMessage",
+  "GPUDeviceLostInfo",
 ];
 const hybridObject = sourceFile
   .getInterfaces()

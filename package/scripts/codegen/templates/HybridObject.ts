@@ -34,7 +34,7 @@ const objectWhileList = [
   "GPUCompilationMessage",
   "GPUComputePassEncoder",
   "GPUComputePipeline",
-  // "GPUDeviceLostInfo",
+  "GPUDeviceLostInfo",
   "GPUExternalTexture",
   "GPUPipelineLayout",
   "GPUQuerySet",

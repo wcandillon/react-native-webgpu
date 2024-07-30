@@ -54,7 +54,9 @@ public:
   explicit GPUDevice(wgpu::Device instance, std::shared_ptr<AsyncRunner> async,
                      std::string label)
       : HybridObject("GPUDevice"), _instance(instance), _async(async),
-        _label(label) {}
+        _label(label) {
+          m_lostPromise = std::make_shared<std::promise<std::shared_ptr<GPUDeviceLostInfo>>>();
+        }
 
 public:
   std::string getBrand() { return _name; }
@@ -144,6 +146,7 @@ private:
   wgpu::Device _instance;
   std::shared_ptr<AsyncRunner> _async;
   std::string _label;
+  std::shared_ptr<std::promise<std::shared_ptr<GPUDeviceLostInfo>>> m_lostPromise;
 };
 
 } // namespace rnwgpu
