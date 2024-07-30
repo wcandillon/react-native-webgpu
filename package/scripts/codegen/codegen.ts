@@ -170,6 +170,8 @@ console.log("Objects");
 console.log("===");
 // the following objects have been manually written for simplicity and therefore can be skipped
 const objectsToSkip = [
+  "GPUUncapturedErrorEvent",
+  "GPUUncapturedErrorEventInit",
   "GPUAdapterInfo",
   "GPUCanvasContext",
   "GPUCompilationInfo",

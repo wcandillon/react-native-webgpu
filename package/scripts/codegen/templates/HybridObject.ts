@@ -18,110 +18,7 @@ const instanceAliases: Record<string, string> = {
   GPUDeviceLostInfo: "DeviceLostReason",
 };
 
-const objectWhileList = [
-  "GPU",
-  "GPUAdapter",
-  "GPUSupportedLimits",
-  "GPUAdapterInfo",
-  "GPUQueue",
-  "GPUDevice",
-  "GPUBindGroup",
-  "GPUBindGroupLayout",
-  "GPUBuffer",
-  "GPUCommandBuffer",
-  "GPUCommandEncoder",
-  "GPUCompilationInfo",
-  "GPUCompilationMessage",
-  "GPUComputePassEncoder",
-  "GPUComputePipeline",
-  "GPUDeviceLostInfo",
-  "GPUExternalTexture",
-  "GPUPipelineLayout",
-  "GPUQuerySet",
-  "GPURenderBundle",
-  "GPURenderBundleEncoder",
-  "GPURenderPassEncoder",
-  "GPURenderPipeline",
-  "GPUSampler",
-  "GPUShaderModule",
-  "GPUSupportedLimits",
-  "GPUTexture",
-  "GPUTextureView",
-  // "GPUUncapturedErrorEvent",
-];
-
 const methodBlackList = ["requestAdapterInfo"];
-
-const methodWhiteList = [
-  // GPU
-  "getPreferredCanvasFormat",
-  // Texture
-  "createTexture",
-  // Queue
-  "writeBuffer",
-  "submit",
-  //
-  "requestAdapter",
-  "requestDevice",
-  // Device
-  "createBuffer",
-  "createCommandEncoder",
-  "createShaderModule",
-  "createRenderPipeline",
-  "destroy",
-  "createTexture",
-  "createSampler",
-  "createView",
-  "createBindGroup",
-  // Buffer
-  "unmap",
-  "getMappedRange",
-  "mapAsync",
-  // CommandEncoder,
-  "copyBufferToBuffer",
-  "finish",
-  "beginRenderPass",
-  "setPipeline",
-  "draw",
-  "end",
-  "getBindGroupLayout",
-  "setBindGroup",
-  "copyTextureToBuffer",
-  "createComputePipeline",
-  "beginComputePass",
-  "dispatchWorkgroups",
-  "onSubmittedWorkDone",
-  "setVertexBuffer",
-  "copyExternalImageToTexture",
-  "writeTexture",
-  "copyTextureToTexture",
-  "createQuerySet",
-  "setIndexBuffer",
-  "beginOcclusionQuery",
-  "endOcclusionQuery",
-  "drawIndexed",
-  "resolveQuerySet",
-  "createRenderBundleEncoder",
-  "executeBundles",
-  "createBindGroupLayout",
-  "setScissorRect",
-  "createPipelineLayout",
-];
-
-const propWhiteList: Record<string, string[]> = {
-  GPUBuffer: ["size", "usage", "mapState"],
-  GPUDevice: ["queue", "limits"],
-  GPUTexture: [
-    "width",
-    "height",
-    "depthOrArrayLayers",
-    "mipLevelCount",
-    "sampleCount",
-    "dimension",
-    "format",
-    "usage",
-  ],
-};
 
 const propblackList = ["onuncapturederror", "label", "prototype"];
 
@@ -141,11 +38,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     .getProperties()
     .filter(
       (m) =>
-        !m.getName().startsWith("__") &&
-        !propblackList.includes(m.getName()) &&
-        ((propWhiteList[className] &&
-          propWhiteList[className].includes(m.getName())) ||
-          objectWhileList.includes(decl.getName())),
+        !m.getName().startsWith("__") && !propblackList.includes(m.getName()),
     )
     .map((signature) => {
       const nativeMethod = resolveNative(
@@ -165,12 +58,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     });
   const methods = decl
     .getMethods()
-    .filter(
-      (m) =>
-        methodWhiteList.includes(m.getName()) ||
-        (objectWhileList.includes(decl.getName()) &&
-          !methodBlackList.includes(m.getName())),
-    )
+    .filter((m) => !methodBlackList.includes(m.getName()))
     .map((signature) => {
       const resolved = resolveMethod(className, signature.getName());
       if (resolved) {
