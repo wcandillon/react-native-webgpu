@@ -17,7 +17,9 @@ using namespace facebook::react;
 
 @end
 
-@implementation WebGPUView
+@implementation WebGPUView {
+  NSNumber *_contextId;
+}
 
 static NSMutableDictionary<NSNumber *, MetalView *> *metalViewRegistry = [NSMutableDictionary new];
 
@@ -28,6 +30,11 @@ static NSMutableDictionary<NSNumber *, MetalView *> *metalViewRegistry = [NSMuta
 + (void)registerMetalView:(MetalView *)metalView withContextId:(NSNumber *)contextId
 {
   metalViewRegistry[contextId] = metalView;
+}
+
++ (bool)isContextRegisterd:(NSNumber *)contextId
+{
+  return metalViewRegistry[contextId] != nil;
 }
 
 - (instancetype)initWithFrame:(CGRect)frame {
@@ -43,6 +50,7 @@ static NSMutableDictionary<NSNumber *, MetalView *> *metalViewRegistry = [NSMuta
 {
   [super prepareForRecycle];
   self.contentView = nil;
+  [metalViewRegistry removeObjectForKey:_contextId];
 }
 
 - (void)updateLayoutMetrics:(const facebook::react::LayoutMetrics &)layoutMetrics
@@ -51,9 +59,8 @@ static NSMutableDictionary<NSNumber *, MetalView *> *metalViewRegistry = [NSMuta
   [super updateLayoutMetrics:layoutMetrics oldLayoutMetrics:oldLayoutMetrics];
   if (!self.contentView) {
     const auto &props = *std::static_pointer_cast<WebGPUViewProps const>(_props);
-    auto contextId = @(props.contextId);
-    self.contentView = metalViewRegistry[contextId];
-    [metalViewRegistry removeObjectForKey:contextId];
+    _contextId = @(props.contextId);
+    self.contentView = metalViewRegistry[_contextId];
   }
 }
 

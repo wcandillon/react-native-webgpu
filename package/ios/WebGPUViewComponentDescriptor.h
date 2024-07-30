@@ -16,15 +16,15 @@ namespace react {
 
 class WebGPUViewCustomShadowNode final : public WebGPUViewShadowNode {
 
-bool isConfigured_ = false;
-
 public:
   using ConcreteViewShadowNode::ConcreteViewShadowNode;
  
   void layout(LayoutContext layoutContext) override {
     YogaLayoutableShadowNode::layout(layoutContext);
-    if (!isConfigured_) {
-      const auto &viewProps = *std::static_pointer_cast<WebGPUViewProps const>(props_);
+    
+    const auto &viewProps = *std::static_pointer_cast<WebGPUViewProps const>(props_);
+    auto contextId = @(viewProps.contextId);
+    if (![WebGPUView isContextRegisterd:contextId]) {
       wgpu::SurfaceDescriptorFromMetalLayer metalSurfaceDesc;
       
       __block MetalView *metalView;
@@ -33,7 +33,7 @@ public:
         metalView = [[MetalView alloc] init];
         layer = metalView.layer;
       });
-      [WebGPUView registerMetalView:metalView withContextId:@(viewProps.contextId)];
+      [WebGPUView registerMetalView:metalView withContextId:contextId];
     
       metalSurfaceDesc.layer = (void *)CFBridgingRetain(layer);
       wgpu::SurfaceDescriptor surfaceDescriptor;
