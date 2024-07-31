@@ -1,13 +1,15 @@
 #ifdef RCT_NEW_ARCH_ENABLED
 #import "WebGPUView.h"
 
-#import <react/renderer/components/RNWebGPUViewSpec/ComponentDescriptors.h>
-#import <react/renderer/components/RNWebGPUViewSpec/EventEmitters.h>
-#import <react/renderer/components/RNWebGPUViewSpec/Props.h>
-#import <react/renderer/components/RNWebGPUViewSpec/RCTComponentViewHelpers.h>
+#import <react/renderer/components/RNWgpuViewSpec/EventEmitters.h>
+#import <react/renderer/components/RNWgpuViewSpec/Props.h>
+#import <react/renderer/components/RNWgpuViewSpec/RCTComponentViewHelpers.h>
 
 #import "RCTFabricComponentsPlugins.h"
 #import "Utils.h"
+#import "MetalView.h"
+#import "WebGPUModule.h"
+#import "WebGPUViewComponentDescriptor.h"
 
 using namespace facebook::react;
 
@@ -16,40 +18,49 @@ using namespace facebook::react;
 @end
 
 @implementation WebGPUView {
-  UIView *_view;
+  NSNumber *_contextId;
 }
 
+static NSMutableDictionary<NSNumber *, MetalView *> *metalViewRegistry = [NSMutableDictionary new];
+
 + (ComponentDescriptorProvider)componentDescriptorProvider {
-  return concreteComponentDescriptorProvider<WgpuViewComponentDescriptor>();
+  return concreteComponentDescriptorProvider<WebGPUViewComponentDescriptor>();
+}
+
++ (void)registerMetalView:(MetalView *)metalView withContextId:(NSNumber *)contextId
+{
+  metalViewRegistry[contextId] = metalView;
+}
+
++ (bool)isContextRegisterd:(NSNumber *)contextId
+{
+  return metalViewRegistry[contextId] != nil;
 }
 
 - (instancetype)initWithFrame:(CGRect)frame {
   if (self = [super initWithFrame:frame]) {
-    static const auto defaultProps = std::make_shared<const WgpuViewProps>();
+    static const auto defaultProps = std::make_shared<const WebGPUViewProps>();
     _props = defaultProps;
-
-    _view = [[UIView alloc] init];
-
-    self.contentView = _view;
   }
 
   return self;
 }
 
-- (void)updateProps:(Props::Shared const &)props
-           oldProps:(Props::Shared const &)oldProps {
-  const auto &oldViewProps =
-      *std::static_pointer_cast<WebGPUViewProps const>(_props);
-  const auto &newViewProps =
-      *std::static_pointer_cast<WebGPUViewProps const>(props);
+- (void)prepareForRecycle
+{
+  [super prepareForRecycle];
+  self.contentView = nil;
+  [metalViewRegistry removeObjectForKey:_contextId];
+}
 
-  if (oldViewProps.color != newViewProps.color) {
-    NSString *colorToConvert =
-        [[NSString alloc] initWithUTF8String:newViewProps.color.c_str()];
-    [_view setBackgroundColor:[UIColor cyan]];
+- (void)updateLayoutMetrics:(const facebook::react::LayoutMetrics &)layoutMetrics
+           oldLayoutMetrics:(const facebook::react::LayoutMetrics &)oldLayoutMetrics
+{
+  [super updateLayoutMetrics:layoutMetrics oldLayoutMetrics:oldLayoutMetrics];
+  if (!self.contentView) {
+    const auto &props = *std::static_pointer_cast<WebGPUViewProps const>(_props);
+    self.contentView = metalViewRegistry[@(props.contextId)];
   }
-
-  [super updateProps:props oldProps:oldProps];
 }
 
 Class<RCTComponentViewProtocol> WebGPUViewCls(void) { return WebGPUView.class; }

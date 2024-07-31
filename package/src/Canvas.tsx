@@ -2,9 +2,9 @@ import type { ViewProps } from "react-native";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
-import WebGPUNativeModule from "./WebGPUNativeModule";
+import WebGPUNativeModule from "./NativeWebGPUModule";
 
-let CONTEXT_COUNTER = 0;
+let CONTEXT_COUNTER = 1;
 function generateContextId() {
   return CONTEXT_COUNTER++;
 }

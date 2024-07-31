@@ -1,13 +1,15 @@
-// This guard prevent this file to be compiled in the old architecture.
 #ifdef RCT_NEW_ARCH_ENABLED
+#pragma once
+
 #import <React/RCTViewComponentView.h>
 #import <UIKit/UIKit.h>
-
-#pragma once
+#import "MetalView.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface WebGPUView : RCTViewComponentView
++ (void)registerMetalView:(MetalView *)metalView withContextId:(NSNumber *)contextId;
++ (bool)isContextRegisterd:(NSNumber *)contextId;
 @end
 
 NS_ASSUME_NONNULL_END

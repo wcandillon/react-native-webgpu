@@ -6,14 +6,14 @@ import androidx.annotation.Nullable;
 
 import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ViewManagerDelegate;
-import com.facebook.react.viewmanagers.WgpuViewManagerDelegate;
-import com.facebook.react.viewmanagers.WgpuViewManagerInterface;
+import com.facebook.react.viewmanagers.WebGPUViewManagerDelegate;
+import com.facebook.react.viewmanagers.WebGPUViewManagerInterface;
 
-public abstract class WgpuViewManagerSpec<T extends View> extends SimpleViewManager<T> implements WgpuViewManagerInterface<T> {
+public abstract class WebGPUViewManagerSpec<T extends View> extends SimpleViewManager<T> implements WebGPUViewManagerInterface<T> {
   private final ViewManagerDelegate<T> mDelegate;
 
-  public WgpuViewManagerSpec() {
-    mDelegate = new WgpuViewManagerDelegate(this);
+  public WebGPUViewManagerSpec() {
+    mDelegate = new WebGPUViewManagerDelegate(this);
   }
 
   @Nullable

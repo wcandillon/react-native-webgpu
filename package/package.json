@@ -127,7 +127,10 @@
   },
   "codegenConfig": {
     "name": "RNWgpuViewSpec",
-    "type": "components",
-    "jsSrcsDir": "src"
+    "type": "all",
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "com.webgpu"
+    }
   }
 }

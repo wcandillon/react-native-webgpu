@@ -7,5 +7,5 @@ import androidx.annotation.Nullable;
 import com.facebook.react.uimanager.SimpleViewManager;
 
 public abstract class WebGPUViewManagerSpec<T extends View> extends SimpleViewManager<T> {
-  public abstract void setContextId(T view, @Nullable Integer contextId);
+  public abstract void setContextId(T view, int contextId);
 }
