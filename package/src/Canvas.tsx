@@ -1,5 +1,10 @@
 import type { ViewProps } from "react-native";
-import { forwardRef, useEffect, useImperativeHandle, useState, useRef } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from "react";
 
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
 import WebGPUNativeModule from "./NativeWebGPUModule";
