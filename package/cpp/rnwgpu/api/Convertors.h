@@ -343,8 +343,81 @@ public:
         return false;
       }
     }
-    // TODO:
-    // Convert(out.requiredLimits, in.requiredLimits) &&
+
+    if (in.requiredLimits.has_value()) {
+      const auto &limits = in.requiredLimits.value();
+      auto *requiredLimits = Allocate<wgpu::RequiredLimits>();
+      for (const auto &[key, value] : limits) {
+        if (key == "maxTextureDimension1D") {
+          requiredLimits->limits.maxTextureDimension1D = value;
+        } else if (key == "maxTextureDimension2D") {
+          requiredLimits->limits.maxTextureDimension2D = value;
+        } else if (key == "maxTextureDimension3D") {
+          requiredLimits->limits.maxTextureDimension3D = value;
+        } else if (key == "maxTextureArrayLayers") {
+          requiredLimits->limits.maxTextureArrayLayers = value;
+        } else if (key == "maxBindGroups") {
+          requiredLimits->limits.maxBindGroups = value;
+        } else if (key == "maxBindGroupsPlusVertexBuffers") {
+          requiredLimits->limits.maxBindGroupsPlusVertexBuffers = value;
+        } else if (key == "maxBindingsPerBindGroup") {
+          requiredLimits->limits.maxBindingsPerBindGroup = value;
+        } else if (key == "maxDynamicUniformBuffersPerPipelineLayout") {
+          requiredLimits->limits.maxDynamicUniformBuffersPerPipelineLayout =
+              value;
+        } else if (key == "maxDynamicStorageBuffersPerPipelineLayout") {
+          requiredLimits->limits.maxDynamicStorageBuffersPerPipelineLayout =
+              value;
+        } else if (key == "maxSampledTexturesPerShaderStage") {
+          requiredLimits->limits.maxSampledTexturesPerShaderStage = value;
+        } else if (key == "maxSamplersPerShaderStage") {
+          requiredLimits->limits.maxSamplersPerShaderStage = value;
+        } else if (key == "maxStorageBuffersPerShaderStage") {
+          requiredLimits->limits.maxStorageBuffersPerShaderStage = value;
+        } else if (key == "maxStorageTexturesPerShaderStage") {
+          requiredLimits->limits.maxStorageTexturesPerShaderStage = value;
+        } else if (key == "maxUniformBuffersPerShaderStage") {
+          requiredLimits->limits.maxUniformBuffersPerShaderStage = value;
+        } else if (key == "maxUniformBufferBindingSize") {
+          requiredLimits->limits.maxUniformBufferBindingSize = value;
+        } else if (key == "maxStorageBufferBindingSize") {
+          requiredLimits->limits.maxStorageBufferBindingSize = value;
+        } else if (key == "minUniformBufferOffsetAlignment") {
+          requiredLimits->limits.minUniformBufferOffsetAlignment = value;
+        } else if (key == "minStorageBufferOffsetAlignment") {
+          requiredLimits->limits.minStorageBufferOffsetAlignment = value;
+        } else if (key == "maxVertexBuffers") {
+          requiredLimits->limits.maxVertexBuffers = value;
+        } else if (key == "maxBufferSize") {
+          requiredLimits->limits.maxBufferSize = value;
+        } else if (key == "maxVertexAttributes") {
+          requiredLimits->limits.maxVertexAttributes = value;
+        } else if (key == "maxVertexBufferArrayStride") {
+          requiredLimits->limits.maxVertexBufferArrayStride = value;
+        } else if (key == "maxInterStageShaderComponents") {
+          requiredLimits->limits.maxInterStageShaderComponents = value;
+        } else if (key == "maxInterStageShaderVariables") {
+          requiredLimits->limits.maxInterStageShaderVariables = value;
+        } else if (key == "maxColorAttachments") {
+          requiredLimits->limits.maxColorAttachments = value;
+        } else if (key == "maxColorAttachmentBytesPerSample") {
+          requiredLimits->limits.maxColorAttachmentBytesPerSample = value;
+        } else if (key == "maxComputeWorkgroupStorageSize") {
+          requiredLimits->limits.maxComputeWorkgroupStorageSize = value;
+        } else if (key == "maxComputeInvocationsPerWorkgroup") {
+          requiredLimits->limits.maxComputeInvocationsPerWorkgroup = value;
+        } else if (key == "maxComputeWorkgroupSizeX") {
+          requiredLimits->limits.maxComputeWorkgroupSizeX = value;
+        } else if (key == "maxComputeWorkgroupSizeY") {
+          requiredLimits->limits.maxComputeWorkgroupSizeY = value;
+        } else if (key == "maxComputeWorkgroupSizeZ") {
+          requiredLimits->limits.maxComputeWorkgroupSizeZ = value;
+        } else if (key == "maxComputeWorkgroupsPerDimension") {
+          requiredLimits->limits.maxComputeWorkgroupsPerDimension = value;
+        }
+      }
+      out.requiredLimits = requiredLimits;
+    }
     return Convert(out.defaultQueue, in.defaultQueue) &&
            Convert(out.label, in.label);
   }
