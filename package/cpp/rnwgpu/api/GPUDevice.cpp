@@ -57,7 +57,6 @@ void GPUDevice::destroy() {
 std::shared_ptr<GPUTexture>
 GPUDevice::createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor) {
   wgpu::TextureDescriptor desc;
-  // TODO: implement
   Convertor conv;
   if (!conv(desc, descriptor)) {
     throw std::runtime_error("Error with GPUTextureDescriptor");

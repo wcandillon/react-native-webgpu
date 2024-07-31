@@ -23,11 +23,16 @@ public:
   std::string getBrand() { return _name; }
 
   std::string getLabel() { return _label; }
+  void setLabel(const std::string &label) {
+    _label = label;
+    _instance.SetLabel(_label.c_str());
+  }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUBindGroup::getBrand, this);
 
     registerHybridGetter("label", &GPUBindGroup::getLabel, this);
+    registerHybridSetter("label", &GPUBindGroup::setLabel, this);
   }
 
   inline const wgpu::BindGroup get() { return _instance; }

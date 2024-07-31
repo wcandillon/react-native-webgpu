@@ -48,6 +48,10 @@ public:
       std::optional<std::vector<uint32_t>> dynamicOffsets);
 
   std::string getLabel() { return _label; }
+  void setLabel(const std::string &label) {
+    _label = label;
+    _instance.SetLabel(_label.c_str());
+  }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUComputePassEncoder::getBrand, this);
@@ -69,6 +73,7 @@ public:
                          this);
 
     registerHybridGetter("label", &GPUComputePassEncoder::getLabel, this);
+    registerHybridSetter("label", &GPUComputePassEncoder::setLabel, this);
   }
 
   inline const wgpu::ComputePassEncoder get() { return _instance; }

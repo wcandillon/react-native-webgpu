@@ -28,6 +28,10 @@ public:
   std::shared_ptr<GPUBindGroupLayout> getBindGroupLayout(uint32_t index);
 
   std::string getLabel() { return _label; }
+  void setLabel(const std::string &label) {
+    _label = label;
+    _instance.SetLabel(_label.c_str());
+  }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPURenderPipeline::getBrand, this);
@@ -35,6 +39,7 @@ public:
                          &GPURenderPipeline::getBindGroupLayout, this);
 
     registerHybridGetter("label", &GPURenderPipeline::getLabel, this);
+    registerHybridSetter("label", &GPURenderPipeline::setLabel, this);
   }
 
   inline const wgpu::RenderPipeline get() { return _instance; }

@@ -42,6 +42,10 @@ public:
   wgpu::BufferMapState getMapState();
 
   std::string getLabel() { return _label; }
+  void setLabel(const std::string &label) {
+    _label = label;
+    _instance.SetLabel(_label.c_str());
+  }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUBuffer::getBrand, this);
@@ -53,6 +57,7 @@ public:
     registerHybridGetter("usage", &GPUBuffer::getUsage, this);
     registerHybridGetter("mapState", &GPUBuffer::getMapState, this);
     registerHybridGetter("label", &GPUBuffer::getLabel, this);
+    registerHybridSetter("label", &GPUBuffer::setLabel, this);
   }
 
   inline const wgpu::Buffer get() { return _instance; }

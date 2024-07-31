@@ -65,6 +65,10 @@ public:
                            uint64_t indirectOffset);
 
   std::string getLabel() { return _label; }
+  void setLabel(const std::string &label) {
+    _label = label;
+    _instance.SetLabel(_label.c_str());
+  }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPURenderBundleEncoder::getBrand, this);
@@ -92,6 +96,7 @@ public:
                          &GPURenderBundleEncoder::drawIndexedIndirect, this);
 
     registerHybridGetter("label", &GPURenderBundleEncoder::getLabel, this);
+    registerHybridSetter("label", &GPURenderBundleEncoder::setLabel, this);
   }
 
   inline const wgpu::RenderBundleEncoder get() { return _instance; }

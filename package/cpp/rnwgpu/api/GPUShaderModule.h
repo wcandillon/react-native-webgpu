@@ -32,6 +32,10 @@ public:
   std::future<std::shared_ptr<GPUCompilationInfo>> getCompilationInfo();
 
   std::string getLabel() { return _label; }
+  void setLabel(const std::string &label) {
+    _label = label;
+    _instance.SetLabel(_label.c_str());
+  }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUShaderModule::getBrand, this);
@@ -39,6 +43,7 @@ public:
                          &GPUShaderModule::getCompilationInfo, this);
 
     registerHybridGetter("label", &GPUShaderModule::getLabel, this);
+    registerHybridSetter("label", &GPUShaderModule::setLabel, this);
   }
 
   inline const wgpu::ShaderModule get() { return _instance; }

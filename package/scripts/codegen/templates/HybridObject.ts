@@ -165,7 +165,14 @@ public:
 
   ${properties.map((prop) => `${prop.type} get${_.upperFirst(prop.name)}();`).join("\n")}
 
-  ${hasLabel ? "std::string getLabel() { return _label; }" : ""}
+  ${
+    hasLabel
+      ? `std::string getLabel() { return _label; }
+    void setLabel(const std::string& label) { _label = label;
+      _instance.SetLabel(_label.c_str());
+    }`
+      : ""
+  }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &${className}::getBrand, this);
@@ -176,7 +183,12 @@ public:
       )
       .join("\n")}
     ${properties.map((prop) => `registerHybridGetter("${prop.name}", &${className}::get${_.upperFirst(prop.name)}, this);`).join("\n")}
-    ${hasLabel ? `registerHybridGetter("label", &${className}::getLabel, this);` : ""}
+    ${
+      hasLabel
+        ? `registerHybridGetter("label", &${className}::getLabel, this);
+      registerHybridSetter("label", &${className}::setLabel, this);`
+        : ""
+    }
   }
   
   inline const ${instanceName} get() {
