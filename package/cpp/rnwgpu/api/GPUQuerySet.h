@@ -28,6 +28,10 @@ public:
   uint32_t getCount();
 
   std::string getLabel() { return _label; }
+  void setLabel(const std::string &label) {
+    _label = label;
+    _instance.SetLabel(_label.c_str());
+  }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUQuerySet::getBrand, this);
@@ -35,6 +39,7 @@ public:
     registerHybridGetter("type", &GPUQuerySet::getType, this);
     registerHybridGetter("count", &GPUQuerySet::getCount, this);
     registerHybridGetter("label", &GPUQuerySet::getLabel, this);
+    registerHybridSetter("label", &GPUQuerySet::setLabel, this);
   }
 
   inline const wgpu::QuerySet get() { return _instance; }

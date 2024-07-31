@@ -49,6 +49,10 @@ public:
       std::shared_ptr<GPUExtent3D> copySize);
 
   std::string getLabel() { return _label; }
+  void setLabel(const std::string &label) {
+    _label = label;
+    _instance.SetLabel(_label.c_str());
+  }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUQueue::getBrand, this);
@@ -61,6 +65,7 @@ public:
                          &GPUQueue::copyExternalImageToTexture, this);
 
     registerHybridGetter("label", &GPUQueue::getLabel, this);
+    registerHybridSetter("label", &GPUQueue::setLabel, this);
   }
 
   inline const wgpu::Queue get() { return _instance; }

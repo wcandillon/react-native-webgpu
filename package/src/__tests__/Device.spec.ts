@@ -20,4 +20,16 @@ describe("Device", () => {
     );
     expect(result).toBe("MyGPU");
   });
+  it("destroy device (3)", async () => {
+    const result = await client.eval(({ adapter }) =>
+      adapter.requestDevice({ label: "MyGPU" }).then((device) => {
+        device.destroy();
+        return device.lost.then((r) => ({
+          reason: r.reason,
+          message: r.message,
+        }));
+      }),
+    );
+    expect(result.reason).toBe("destroyed");
+  });
 });

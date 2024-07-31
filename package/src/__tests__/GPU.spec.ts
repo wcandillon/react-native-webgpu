@@ -66,6 +66,18 @@ describe("Adapter", () => {
     expect(result.includes("rg11b10ufloat-renderable")).toBe(true);
     expect(result.includes("texture-compression-etc2")).toBe(true);
   });
+  // it("requiredLimits", async () => {
+  //   const result = await client.eval(({ adapter }) => {
+  //     return adapter
+  //       .requestDevice({
+  //         requiredLimits: {
+  //           maxBufferSize: 1024 * 1024 * 4,
+  //         },
+  //       })
+  //       .then((device) => device.limits.maxBufferSize);
+  //   });
+  //   expect(result).toBe(1024 * 1024 * 4);
+  // });
   // TODO: re-enable
   // it("timestamp", async () => {
   //   const result = await client.eval(({ adapter }) => {

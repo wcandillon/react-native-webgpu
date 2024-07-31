@@ -40,4 +40,19 @@ void GPUComputePassEncoder::dispatchWorkgroups(
                                workgroupCountZ.value_or(1));
 }
 
+void GPUComputePassEncoder::dispatchWorkgroupsIndirect(
+    std::shared_ptr<GPUBuffer> indirectBuffer, uint64_t indirectOffset) {
+  _instance.DispatchWorkgroupsIndirect(indirectBuffer->get(), indirectOffset);
+}
+
+void GPUComputePassEncoder::pushDebugGroup(std::string groupLabel) {
+  _instance.PushDebugGroup(groupLabel.c_str());
+}
+
+void GPUComputePassEncoder::popDebugGroup() { _instance.PopDebugGroup(); }
+
+void GPUComputePassEncoder::insertDebugMarker(std::string markerLabel) {
+  _instance.InsertDebugMarker(markerLabel.c_str());
+}
+
 } // namespace rnwgpu
