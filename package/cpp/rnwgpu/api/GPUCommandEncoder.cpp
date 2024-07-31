@@ -30,8 +30,9 @@ std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(
         "GPUCommandEncoder::finish(): error with GPUCommandBufferDescriptor");
   }
   auto commandBuffer = _instance.Finish(&desc);
-  std::string label = desc.label;
-  return std::make_shared<GPUCommandBuffer>(commandBuffer, label);
+  return std::make_shared<GPUCommandBuffer>(
+      commandBuffer,
+      descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
 }
 
 std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
