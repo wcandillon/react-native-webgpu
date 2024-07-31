@@ -229,16 +229,13 @@ public:
     return Convert(out, std::get<IN>(in));
   }
 
-  [[nodiscard]] bool conv(wgpu::Origin3D &out,
-                          const std::shared_ptr<GPUOrigin3D> &in) {
-    return Convert(out.x, in->x) && Convert(out.y, in->y) &&
-           Convert(out.z, in->z);
+  [[nodiscard]] bool Convert(wgpu::Origin3D &out, const GPUOrigin3D &in) {
+    return Convert(out.x, in.x) && Convert(out.y, in.y) && Convert(out.z, in.z);
   }
 
-  [[nodiscard]] bool Convert(wgpu::Extent3D &out,
-                             const std::shared_ptr<GPUExtent3D> &in) {
-    return Convert(out.width, in->width) && Convert(out.height, in->height) &&
-           Convert(out.depthOrArrayLayers, in->depthOrArrayLayers);
+  [[nodiscard]] bool Convert(wgpu::Extent3D &out, const GPUExtent3D &in) {
+    return Convert(out.width, in.width) && Convert(out.height, in.height) &&
+           Convert(out.depthOrArrayLayers, in.depthOrArrayLayers);
   }
 
   [[nodiscard]] bool Convert(wgpu::BindGroupLayoutEntry &out,
@@ -391,9 +388,7 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::ImageCopyTexture &out,
                              const GPUImageCopyTexture &in) {
-    // TODO: implement origin
-    // Convert(out.origin, in.origin) &&
-    return Convert(out.texture, in.texture) &&
+    return Convert(out.origin, in.origin) && Convert(out.texture, in.texture) &&
            Convert(out.mipLevel, in.mipLevel) && Convert(out.aspect, in.aspect);
   }
 
