@@ -29,7 +29,7 @@ struct GPUCompilationMessage {
 
 class GPUCompilationInfo : public m::HybridObject {
 public:
-  explicit GPUCompilationInfo() : HybridObject("GPUCompilationInfo") {}
+  GPUCompilationInfo() : HybridObject("GPUCompilationInfo") {}
 
 public:
   std::string getBrand() { return _name; }

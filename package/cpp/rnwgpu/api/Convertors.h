@@ -81,17 +81,17 @@ public:
                                        const std::vector<IN> &in) {
     return Convert(out_els, out_count, in);
   }
-    
-    template <typename OUT, typename IN>
-    [[nodiscard]] inline bool Convert(OUT *&out_els, size_t &out_count,
-                                      const std::optional<std::vector<IN>> &in) {
-      if (!in.has_value()) {
-        out_els = nullptr;
-        out_count = 0;
-        return true;
-      }
-      return Convert(out_els, out_count, in.value());
+
+  template <typename OUT, typename IN>
+  [[nodiscard]] inline bool Convert(OUT *&out_els, size_t &out_count,
+                                    const std::optional<std::vector<IN>> &in) {
+    if (!in.has_value()) {
+      out_els = nullptr;
+      out_count = 0;
+      return true;
     }
+    return Convert(out_els, out_count, in.value());
+  }
 
   template <typename OUT, typename IN>
   [[nodiscard]] inline bool Convert(OUT *&out_els, size_t &out_count,
@@ -358,7 +358,8 @@ public:
     return false;
   }
 
-  [[nodiscard]] bool Convert(wgpu::ConstantEntry &out, const std::string& key, const double &value) {
+  [[nodiscard]] bool Convert(wgpu::ConstantEntry &out, const std::string &key,
+                             const double &value) {
     out.key = ConvertStringReplacingNull(key);
     out.value = value;
     return true;
@@ -616,7 +617,9 @@ public:
     out.entryPoint = in.entryPoint
                          ? ConvertStringReplacingNull(in.entryPoint.value())
                          : nullptr;
-    return Convert(out.module, in.module) && Convert(out.buffers, out.bufferCount, in.buffers) && Convert(out.constants, out.constantCount, in.constants);
+    return Convert(out.module, in.module) &&
+           Convert(out.buffers, out.bufferCount, in.buffers) &&
+           Convert(out.constants, out.constantCount, in.constants);
   }
 
   [[nodiscard]] bool Convert(wgpu::CommandBufferDescriptor &out,

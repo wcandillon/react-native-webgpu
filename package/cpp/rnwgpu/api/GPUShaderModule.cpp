@@ -1,5 +1,7 @@
 #include "GPUShaderModule.h"
 
+#include <utility>
+
 namespace rnwgpu {
 
 std::future<std::shared_ptr<GPUCompilationInfo>>
