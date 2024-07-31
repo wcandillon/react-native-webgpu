@@ -116,6 +116,28 @@ public:
     return Convert(out_els, out_count, filtered);
   }
 
+  template <typename OUT, typename INKEY, typename INVALUE>
+  [[nodiscard]] inline bool
+  Convert(OUT *&out_els, size_t &out_count,
+          const std::optional<std::map<INKEY, INVALUE>> &in) {
+    if (!in.has_value() || in.value().size() == 0) {
+      out_els = nullptr;
+      out_count = 0;
+      return true;
+    }
+    auto val = in.value();
+    auto *els = Allocate<std::remove_const_t<OUT>>(val.size());
+    size_t i = 0;
+    for (const auto &item : val) {
+      if (!Convert(els[i], item.first, item.second)) {
+        return false;
+      }
+      i++;
+    }
+    out_els = els;
+    return Convert(out_count, val.size());
+  }
+
   template <typename T>
   [[nodiscard]] auto Convert(T &out, const std::nullptr_t &in) {
     out = nullptr;
@@ -313,8 +335,8 @@ public:
         return false;
       }
     }
-    // TODO: required limits:
-    //  Convert(out.requiredLimits, in.requiredLimits)
+    // TODO:
+    // Convert(out.requiredLimits, in.requiredLimits) &&
     return Convert(out.defaultQueue, in.defaultQueue) &&
            Convert(out.label, in.label);
   }
@@ -323,6 +345,12 @@ public:
                              const GPUExternalTextureBindingLayout &in) {
     // no external textures at the moment
     return false;
+  }
+
+  [[nodiscard]] bool Convert(wgpu::ConstantEntry &out, const std::string& key, const double &value) {
+    out.key = key.c_str();
+    out.value = value;
+    return true;
   }
 
   [[nodiscard]] bool Convert(wgpu::FragmentState &out,
@@ -336,8 +364,8 @@ public:
                          ? ConvertStringReplacingNull(in.entryPoint.value())
                          : nullptr;
     return Convert(out.targets, out.targetCount, in.targets) && //
-           Convert(out.module, in.module); // TODO: add support for constants
-    // Convert(out.constants, out.constantCount, in.constants);
+           Convert(out.module, in.module) &&
+           Convert(out.constants, out.constantCount, in.constants);
   }
 
   [[nodiscard]] bool Convert(wgpu::ImageCopyBuffer &out,
@@ -406,9 +434,7 @@ public:
     out.entryPoint = in.entryPoint
                          ? ConvertStringReplacingNull(in.entryPoint.value())
                          : nullptr;
-    // TODO: implement constants
-    return true;
-    // return Convert(out.constants, out.constantCount, in.constants);
+    return Convert(out.constants, out.constantCount, in.constants);
   }
 
   [[nodiscard]] bool Convert(wgpu::QuerySetDescriptor &out,
@@ -421,8 +447,7 @@ public:
                              const GPURenderBundleEncoderDescriptor &in) {
     return Convert(out.depthReadOnly, in.depthReadOnly) &&
            Convert(out.stencilReadOnly, in.stencilReadOnly) &&
-           Convert(out.colorFormats, out.colorFormatCount,
-                   in.colorFormats) &&
+           Convert(out.colorFormats, out.colorFormatCount, in.colorFormats) &&
            Convert(out.depthStencilFormat, in.depthStencilFormat) &&
            Convert(out.sampleCount, in.sampleCount) &&
            Convert(out.label, in.label);
@@ -476,7 +501,7 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::SamplerBindingLayout &out,
                              const GPUSamplerBindingLayout &in) {
-                                  // here the buffer property is set so type is set to its default value
+    // here the buffer property is set so type is set to its default value
     if (!in.type.has_value()) {
       out.type = wgpu::SamplerBindingType::Filtering;
     }
@@ -582,12 +607,6 @@ public:
     return true;
   }
 
-  [[nodiscard]] bool Convert(wgpu::ShaderModule &out,
-                             const GPUShaderModule &in) {
-
-    return true;
-  }
-
   [[nodiscard]] bool Convert(wgpu::VertexState &out, const GPUVertexState &in) {
     out = {};
     // Replace nulls in the entryPoint name with another character that's
@@ -596,17 +615,7 @@ public:
     out.entryPoint = in.entryPoint
                          ? ConvertStringReplacingNull(in.entryPoint.value())
                          : nullptr;
-    // TODO: implement !Convert(out.constants, out.constantCount, in.constants)
-    if (!Convert(out.module, in.module)) {
-      return false;
-    }
-    if (in.buffers.has_value()) {
-      if (!Convert(out.buffers, out.bufferCount, in.buffers.value())) {
-        return false;
-      }
-    }
-
-    return true;
+    return Convert(out.module, in.module) && Convert(out.buffers, out.bufferCount, in.buffers.value()) && Convert(out.constants, out.constantCount, in.constants);
   }
 
   [[nodiscard]] bool Convert(wgpu::CommandBufferDescriptor &out,
