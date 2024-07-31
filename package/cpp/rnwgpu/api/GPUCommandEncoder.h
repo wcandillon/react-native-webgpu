@@ -66,6 +66,10 @@ public:
   void insertDebugMarker(std::string markerLabel);
 
   std::string getLabel() { return _label; }
+  void setLabel(const std::string &label) {
+    _label = label;
+    _instance.SetLabel(_label.c_str());
+  }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUCommandEncoder::getBrand, this);
@@ -93,6 +97,7 @@ public:
                          &GPUCommandEncoder::insertDebugMarker, this);
 
     registerHybridGetter("label", &GPUCommandEncoder::getLabel, this);
+    registerHybridSetter("label", &GPUCommandEncoder::setLabel, this);
   }
 
   inline const wgpu::CommandEncoder get() { return _instance; }

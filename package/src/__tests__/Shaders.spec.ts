@@ -23,6 +23,41 @@ describe("Triangle", () => {
     });
     expect(result).toBe("redFragWGSL");
   });
+  it("creates a shader module (3)", async () => {
+    const result = await client.eval(({ device, shaders: { redFragWGSL } }) => {
+      const mod = device.createShaderModule({
+        code: redFragWGSL,
+        label: "redFragWGSL",
+      });
+      return mod.getCompilationInfo().then((info) => info.messages.length);
+    });
+    // On Chrome the message property is undefined if no errors are present
+    expect(result).toBe(0);
+  });
+  // it("creates a shader module (4)", async () => {
+  //   const result = await client.eval(({ device, shaders: { redFragWGSL } }) => {
+  //     const mod = device.createShaderModule({
+  //       code: redFragWGSL + "  ++++ ",
+  //       label: "redFragWGSL",
+  //     });
+  //     return mod.getCompilationInfo().then((info) => {
+  //       const msg1 = info.messages[0];
+  //       const msg2 = info.messages[1];
+  //       return {
+  //         messages: [
+  //           { type: msg1.type, message: msg1.message },
+  //           { type: msg2.type, message: msg2.message },
+  //         ],
+  //       };
+  //     });
+  //   });
+  //   expect(result).toEqual({
+  //     messages: [
+  //       { type: "error", message: "unexpected token" },
+  //       { type: "error", message: "unexpected token" },
+  //     ],
+  //   });
+  // });
   it("create the pipeline", async () => {
     const result = await client.eval(
       ({ device, shaders: { triangleVertWGSL, redFragWGSL } }) => {

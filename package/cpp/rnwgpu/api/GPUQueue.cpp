@@ -6,7 +6,6 @@
 
 namespace rnwgpu {
 
-// TODO: remove
 struct BufferSource {
   void *data;
   size_t size;            // in bytes

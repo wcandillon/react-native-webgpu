@@ -40,6 +40,10 @@ public:
   double getUsage();
 
   std::string getLabel() { return _label; }
+  void setLabel(const std::string &label) {
+    _label = label;
+    _instance.SetLabel(_label.c_str());
+  }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUTexture::getBrand, this);
@@ -55,6 +59,7 @@ public:
     registerHybridGetter("format", &GPUTexture::getFormat, this);
     registerHybridGetter("usage", &GPUTexture::getUsage, this);
     registerHybridGetter("label", &GPUTexture::getLabel, this);
+    registerHybridSetter("label", &GPUTexture::setLabel, this);
   }
 
   inline const wgpu::Texture get() { return _instance; }

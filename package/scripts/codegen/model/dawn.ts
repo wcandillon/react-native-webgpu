@@ -54,6 +54,16 @@ export const resolved: Record<
           _async = std::make_shared<AsyncRunner>(instance);
       }`,
   },
+  GPUDevice: {
+    ctor: `  explicit GPUDevice(wgpu::Device instance, std::shared_ptr<AsyncRunner> async,
+                     std::string label)
+      : HybridObject("GPUDevice"), _instance(instance), _async(async),
+        _label(label) {
+          m_lostPromise = std::make_shared<std::promise<std::shared_ptr<GPUDeviceLostInfo>>>();
+        }`,
+    extra:
+      "std::shared_ptr<std::promise<std::shared_ptr<GPUDeviceLostInfo>>>  m_lostPromise;",
+  },
   GPUBuffer: {
     methods: {
       mapAsync: {

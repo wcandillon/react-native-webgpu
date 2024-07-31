@@ -23,7 +23,7 @@ struct GPUBindGroupEntry {
   std::shared_ptr<GPUSampler> sampler = nullptr;
   std::shared_ptr<GPUTextureView> textureView = nullptr;
   std::shared_ptr<GPUBufferBinding> buffer = nullptr;
-  // TODO: implement external textures
+  // external textures
 };
 
 } // namespace rnwgpu

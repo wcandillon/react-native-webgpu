@@ -84,6 +84,17 @@ public:
 
   template <typename OUT, typename IN>
   [[nodiscard]] inline bool Convert(OUT *&out_els, size_t &out_count,
+                                    const std::optional<std::vector<IN>> &in) {
+    if (!in.has_value()) {
+      out_els = nullptr;
+      out_count = 0;
+      return true;
+    }
+    return Convert(out_els, out_count, in.value());
+  }
+
+  template <typename OUT, typename IN>
+  [[nodiscard]] inline bool Convert(OUT *&out_els, size_t &out_count,
                                     const std::vector<IN> &in) {
     if (in.size() == 0) {
       out_els = nullptr;
@@ -100,7 +111,6 @@ public:
     return Convert(out_count, in.size());
   }
 
-  // TODO remove array that have been filtered upfront
   template <typename OUT, typename IN>
   [[nodiscard]] inline bool
   Convert(OUT *&out_els, size_t &out_count,
@@ -115,6 +125,28 @@ public:
     }
 
     return Convert(out_els, out_count, filtered);
+  }
+
+  template <typename OUT, typename INKEY, typename INVALUE>
+  [[nodiscard]] inline bool
+  Convert(OUT *&out_els, size_t &out_count,
+          const std::optional<std::map<INKEY, INVALUE>> &in) {
+    if (!in.has_value() || in.value().size() == 0) {
+      out_els = nullptr;
+      out_count = 0;
+      return true;
+    }
+    auto val = in.value();
+    auto *els = Allocate<std::remove_const_t<OUT>>(val.size());
+    size_t i = 0;
+    for (const auto &item : val) {
+      if (!Convert(els[i], item.first, item.second)) {
+        return false;
+      }
+      i++;
+    }
+    out_els = els;
+    return Convert(out_count, val.size());
   }
 
   template <typename T>
@@ -197,16 +229,13 @@ public:
     return Convert(out, std::get<IN>(in));
   }
 
-  [[nodiscard]] bool conv(wgpu::Origin3D &out,
-                          const std::shared_ptr<GPUOrigin3D> &in) {
-    return Convert(out.x, in->x) && Convert(out.y, in->y) &&
-           Convert(out.z, in->z);
+  [[nodiscard]] bool Convert(wgpu::Origin3D &out, const GPUOrigin3D &in) {
+    return Convert(out.x, in.x) && Convert(out.y, in.y) && Convert(out.z, in.z);
   }
 
-  [[nodiscard]] bool Convert(wgpu::Extent3D &out,
-                             const std::shared_ptr<GPUExtent3D> &in) {
-    return Convert(out.width, in->width) && Convert(out.height, in->height) &&
-           Convert(out.depthOrArrayLayers, in->depthOrArrayLayers);
+  [[nodiscard]] bool Convert(wgpu::Extent3D &out, const GPUExtent3D &in) {
+    return Convert(out.width, in.width) && Convert(out.height, in.height) &&
+           Convert(out.depthOrArrayLayers, in.depthOrArrayLayers);
   }
 
   [[nodiscard]] bool Convert(wgpu::BindGroupLayoutEntry &out,
@@ -216,7 +245,7 @@ public:
            Convert(out.buffer, in.buffer) && Convert(out.sampler, in.sampler) &&
            Convert(out.texture, in.texture) &&
            Convert(out.storageTexture, in.storageTexture);
-    // TODO: Implement
+    // no external textures here
     //&& Convert(out.externalTexture, in.externalTexture);
   }
 
@@ -233,18 +262,9 @@ public:
     return Convert(out.alpha, in.alpha) && Convert(out.color, in.color);
   }
 
-  // TODO: implement
-  // [[nodiscard]] bool Convert(wgpu::BufferBinding &out,
-  //                            const GPUBufferBinding &in) {
-  //   return Convert(out.buffer, in.buffer) && Convert(out.offset, in.offset)
-  //   &&
-  //          Convert(out.size, in.size);
-  // }
-
   [[nodiscard]] bool Convert(wgpu::BufferBindingLayout &out,
                              const GPUBufferBindingLayout &in) {
-    // TODO: the default of GPUBufferBindingLayout::type if Uniform not
-    // Undefined. not sure why this particular default is wrong here
+    // here the buffer property is set so type is set to its default value
     if (!in.type.has_value()) {
       out.type = wgpu::BufferBindingType::Uniform;
     }
@@ -323,16 +343,96 @@ public:
         return false;
       }
     }
-    // TODO: required limits:
-    //  Convert(out.requiredLimits, in.requiredLimits)
+
+    if (in.requiredLimits.has_value()) {
+      const auto &limits = in.requiredLimits.value();
+      auto *requiredLimits = Allocate<wgpu::RequiredLimits>();
+      for (const auto &[key, value] : limits) {
+        if (key == "maxTextureDimension1D") {
+          requiredLimits->limits.maxTextureDimension1D = value;
+        } else if (key == "maxTextureDimension2D") {
+          requiredLimits->limits.maxTextureDimension2D = value;
+        } else if (key == "maxTextureDimension3D") {
+          requiredLimits->limits.maxTextureDimension3D = value;
+        } else if (key == "maxTextureArrayLayers") {
+          requiredLimits->limits.maxTextureArrayLayers = value;
+        } else if (key == "maxBindGroups") {
+          requiredLimits->limits.maxBindGroups = value;
+        } else if (key == "maxBindGroupsPlusVertexBuffers") {
+          requiredLimits->limits.maxBindGroupsPlusVertexBuffers = value;
+        } else if (key == "maxBindingsPerBindGroup") {
+          requiredLimits->limits.maxBindingsPerBindGroup = value;
+        } else if (key == "maxDynamicUniformBuffersPerPipelineLayout") {
+          requiredLimits->limits.maxDynamicUniformBuffersPerPipelineLayout =
+              value;
+        } else if (key == "maxDynamicStorageBuffersPerPipelineLayout") {
+          requiredLimits->limits.maxDynamicStorageBuffersPerPipelineLayout =
+              value;
+        } else if (key == "maxSampledTexturesPerShaderStage") {
+          requiredLimits->limits.maxSampledTexturesPerShaderStage = value;
+        } else if (key == "maxSamplersPerShaderStage") {
+          requiredLimits->limits.maxSamplersPerShaderStage = value;
+        } else if (key == "maxStorageBuffersPerShaderStage") {
+          requiredLimits->limits.maxStorageBuffersPerShaderStage = value;
+        } else if (key == "maxStorageTexturesPerShaderStage") {
+          requiredLimits->limits.maxStorageTexturesPerShaderStage = value;
+        } else if (key == "maxUniformBuffersPerShaderStage") {
+          requiredLimits->limits.maxUniformBuffersPerShaderStage = value;
+        } else if (key == "maxUniformBufferBindingSize") {
+          requiredLimits->limits.maxUniformBufferBindingSize = value;
+        } else if (key == "maxStorageBufferBindingSize") {
+          requiredLimits->limits.maxStorageBufferBindingSize = value;
+        } else if (key == "minUniformBufferOffsetAlignment") {
+          requiredLimits->limits.minUniformBufferOffsetAlignment = value;
+        } else if (key == "minStorageBufferOffsetAlignment") {
+          requiredLimits->limits.minStorageBufferOffsetAlignment = value;
+        } else if (key == "maxVertexBuffers") {
+          requiredLimits->limits.maxVertexBuffers = value;
+        } else if (key == "maxBufferSize") {
+          requiredLimits->limits.maxBufferSize = value;
+        } else if (key == "maxVertexAttributes") {
+          requiredLimits->limits.maxVertexAttributes = value;
+        } else if (key == "maxVertexBufferArrayStride") {
+          requiredLimits->limits.maxVertexBufferArrayStride = value;
+        } else if (key == "maxInterStageShaderComponents") {
+          requiredLimits->limits.maxInterStageShaderComponents = value;
+        } else if (key == "maxInterStageShaderVariables") {
+          requiredLimits->limits.maxInterStageShaderVariables = value;
+        } else if (key == "maxColorAttachments") {
+          requiredLimits->limits.maxColorAttachments = value;
+        } else if (key == "maxColorAttachmentBytesPerSample") {
+          requiredLimits->limits.maxColorAttachmentBytesPerSample = value;
+        } else if (key == "maxComputeWorkgroupStorageSize") {
+          requiredLimits->limits.maxComputeWorkgroupStorageSize = value;
+        } else if (key == "maxComputeInvocationsPerWorkgroup") {
+          requiredLimits->limits.maxComputeInvocationsPerWorkgroup = value;
+        } else if (key == "maxComputeWorkgroupSizeX") {
+          requiredLimits->limits.maxComputeWorkgroupSizeX = value;
+        } else if (key == "maxComputeWorkgroupSizeY") {
+          requiredLimits->limits.maxComputeWorkgroupSizeY = value;
+        } else if (key == "maxComputeWorkgroupSizeZ") {
+          requiredLimits->limits.maxComputeWorkgroupSizeZ = value;
+        } else if (key == "maxComputeWorkgroupsPerDimension") {
+          requiredLimits->limits.maxComputeWorkgroupsPerDimension = value;
+        }
+      }
+      out.requiredLimits = requiredLimits;
+    }
     return Convert(out.defaultQueue, in.defaultQueue) &&
            Convert(out.label, in.label);
   }
 
   [[nodiscard]] bool Convert(wgpu::ExternalTextureBindingLayout &out,
                              const GPUExternalTextureBindingLayout &in) {
-    // TODO: implement
+    // no external textures at the moment
     return false;
+  }
+
+  [[nodiscard]] bool Convert(wgpu::ConstantEntry &out, const std::string &key,
+                             const double &value) {
+    out.key = ConvertStringReplacingNull(key);
+    out.value = value;
+    return true;
   }
 
   [[nodiscard]] bool Convert(wgpu::FragmentState &out,
@@ -345,19 +445,9 @@ public:
     out.entryPoint = in.entryPoint
                          ? ConvertStringReplacingNull(in.entryPoint.value())
                          : nullptr;
-    std::vector<std::shared_ptr<GPUColorTargetState>> filteredTargets;
-    filteredTargets.reserve(in.targets.size());
-    for (const auto &target : in.targets) {
-      if (auto ptr =
-              std::get_if<std::shared_ptr<GPUColorTargetState>>(&target)) {
-        if (*ptr) {
-          filteredTargets.push_back(*ptr);
-        }
-      }
-    }
-    return Convert(out.targets, out.targetCount, filteredTargets) && //
-           Convert(out.module, in.module); // TODO: add support for constants
-    // Convert(out.constants, out.constantCount, in.constants);
+    return Convert(out.targets, out.targetCount, in.targets) && //
+           Convert(out.module, in.module) &&
+           Convert(out.constants, out.constantCount, in.constants);
   }
 
   [[nodiscard]] bool Convert(wgpu::ImageCopyBuffer &out,
@@ -371,9 +461,7 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::ImageCopyTexture &out,
                              const GPUImageCopyTexture &in) {
-    // TODO: implement origin
-    // Convert(out.origin, in.origin) &&
-    return Convert(out.texture, in.texture) &&
+    return Convert(out.origin, in.origin) && Convert(out.texture, in.texture) &&
            Convert(out.mipLevel, in.mipLevel) && Convert(out.aspect, in.aspect);
   }
 
@@ -426,9 +514,7 @@ public:
     out.entryPoint = in.entryPoint
                          ? ConvertStringReplacingNull(in.entryPoint.value())
                          : nullptr;
-    // TODO: implement constants
-    return true;
-    // return Convert(out.constants, out.constantCount, in.constants);
+    return Convert(out.constants, out.constantCount, in.constants);
   }
 
   [[nodiscard]] bool Convert(wgpu::QuerySetDescriptor &out,
@@ -439,18 +525,9 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::RenderBundleEncoderDescriptor &out,
                              const GPURenderBundleEncoderDescriptor &in) {
-    std::vector<wgpu::TextureFormat> filteredColorFormats;
-    filteredColorFormats.reserve(in.colorFormats.size());
-
-    for (const auto &format : in.colorFormats) {
-      if (auto textureFormat = std::get_if<wgpu::TextureFormat>(&format)) {
-        filteredColorFormats.push_back(*textureFormat);
-      }
-    }
     return Convert(out.depthReadOnly, in.depthReadOnly) &&
            Convert(out.stencilReadOnly, in.stencilReadOnly) &&
-           Convert(out.colorFormats, out.colorFormatCount,
-                   filteredColorFormats) &&
+           Convert(out.colorFormats, out.colorFormatCount, in.colorFormats) &&
            Convert(out.depthStencilFormat, in.depthStencilFormat) &&
            Convert(out.sampleCount, in.sampleCount) &&
            Convert(out.label, in.label);
@@ -504,6 +581,10 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::SamplerBindingLayout &out,
                              const GPUSamplerBindingLayout &in) {
+    // here the buffer property is set so type is set to its default value
+    if (!in.type.has_value()) {
+      out.type = wgpu::SamplerBindingType::Filtering;
+    }
     return Convert(out.type, in.type);
   }
 
@@ -531,12 +612,18 @@ public:
 
   [[nodiscard]] bool Convert(wgpu::StorageTextureBindingLayout &out,
                              const GPUStorageTextureBindingLayout &in) {
+    if (!in.access.has_value()) {
+      out.access = wgpu::StorageTextureAccess::WriteOnly;
+    }
     return Convert(out.access, in.access) && Convert(out.format, in.format) &&
            Convert(out.viewDimension, in.viewDimension);
   }
 
   [[nodiscard]] bool Convert(wgpu::TextureBindingLayout &out,
                              const GPUTextureBindingLayout &in) {
+    if (!in.sampleType.has_value()) {
+      out.sampleType = wgpu::TextureSampleType::Float;
+    }
     return Convert(out.sampleType, in.sampleType) &&
            Convert(out.viewDimension, in.viewDimension) &&
            Convert(out.multisampled, in.multisampled);
@@ -590,22 +677,6 @@ public:
            Convert(out.stepMode, in.stepMode);
   }
 
-  bool Convert(wgpu::ConstantEntry &out, const std::string &in_name,
-               const std::map<std::string, double> &in_value) {
-    // Replace nulls in the key with another character that's disallowed in WGSL
-    // identifiers. This is so that using "c\0" doesn't match a constant named
-    // "c".
-    out.key = ConvertStringReplacingNull(in_name);
-    out.value = in_value.at(in_name);
-    return true;
-  }
-
-  [[nodiscard]] bool Convert(wgpu::ShaderModule &out,
-                             const GPUShaderModule &in) {
-
-    return true;
-  }
-
   [[nodiscard]] bool Convert(wgpu::VertexState &out, const GPUVertexState &in) {
     out = {};
     // Replace nulls in the entryPoint name with another character that's
@@ -614,25 +685,9 @@ public:
     out.entryPoint = in.entryPoint
                          ? ConvertStringReplacingNull(in.entryPoint.value())
                          : nullptr;
-    // TODO: implement !Convert(out.constants, out.constantCount, in.constants)
-    if (!Convert(out.module, in.module)) {
-      return false;
-    }
-    if (in.buffers.has_value()) {
-      std::vector<std::shared_ptr<GPUVertexBufferLayout>> filteredBuffers;
-      for (const auto &buffer : in.buffers.value()) {
-        if (std::holds_alternative<std::shared_ptr<GPUVertexBufferLayout>>(
-                buffer)) {
-          auto ptr = std::get<std::shared_ptr<GPUVertexBufferLayout>>(buffer);
-          filteredBuffers.push_back(ptr);
-        }
-      }
-      if (!Convert(out.buffers, out.bufferCount, filteredBuffers)) {
-        return false;
-      }
-    }
-
-    return true;
+    return Convert(out.module, in.module) &&
+           Convert(out.buffers, out.bufferCount, in.buffers) &&
+           Convert(out.constants, out.constantCount, in.constants);
   }
 
   [[nodiscard]] bool Convert(wgpu::CommandBufferDescriptor &out,
@@ -678,13 +733,7 @@ public:
       out.buffer = buffer->get();
       return true;
     }
-    // TODO: implement external textures
-    // if (auto* res =
-    // std::get_if<interop::Interface<interop::GPUExternalTexture>>(&in.resource))
-    // {
-    //     // TODO(crbug.com/dawn/1129): External textures
-    //     UNIMPLEMENTED(env, {});
-    // }
+    // Not external textures at the moment
     return false;
   }
 

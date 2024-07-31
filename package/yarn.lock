@@ -2777,9 +2777,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@shopify/react-native-skia@npm:^1.3.8":
-  version: 1.3.8
-  resolution: "@shopify/react-native-skia@npm:1.3.8"
+"@shopify/react-native-skia@npm:^1.3.9":
+  version: 1.3.9
+  resolution: "@shopify/react-native-skia@npm:1.3.9"
   dependencies:
     canvaskit-wasm: 0.39.1
     react-reconciler: 0.27.0
@@ -2794,7 +2794,7 @@ __metadata:
       optional: true
   bin:
     setup-skia-web: scripts/setup-canvaskit.js
-  checksum: 7bcce08c9d15f59f5f401cf01d37060d67de1338795c21de45678bdf90528152efb6a8050455515400a3c1c4080189aff5e73e1374fd491e7661c87bc235f806
+  checksum: 18650c8bc9c50f1757e552edfbc1452340e8285ed5996b2bd7b79cb4ab27160e366b6078744e495286ebe79c72fdba4c9050d6bb5d9e492b7ff3cb1e164db880
   languageName: node
   linkType: hard
 
@@ -9765,7 +9765,7 @@ __metadata:
     "@react-native/typescript-config": 0.74.84
     "@react-navigation/native": ^6.1.17
     "@react-navigation/native-stack": ^6.10.0
-    "@shopify/react-native-skia": ^1.3.8
+    "@shopify/react-native-skia": ^1.3.9
     "@webgpu/types": ^0.1.44
     babel-plugin-module-resolver: ^5.0.0
     react: 18.2.0

@@ -111,4 +111,51 @@ void GPURenderPassEncoder::setScissorRect(uint32_t x, uint32_t y,
   _instance.SetScissorRect(x, y, width, height);
 }
 
+void GPURenderPassEncoder::setViewport(double x, double y, double width,
+                                       double height, double minDepth,
+                                       double maxDepth) {
+  _instance.SetViewport(x, y, width, height, minDepth, maxDepth);
+}
+
+void GPURenderPassEncoder::setBlendConstant(std::shared_ptr<GPUColor> color) {
+  Convertor conv;
+  wgpu::Color c{};
+  if (!conv(c, color)) {
+    return;
+  }
+  _instance.SetBlendConstant(&c);
+}
+
+void GPURenderPassEncoder::setStencilReference(uint32_t reference) {
+  _instance.SetStencilReference(reference);
+}
+
+void GPURenderPassEncoder::pushDebugGroup(std::string groupLabel) {
+  _instance.PushDebugGroup(groupLabel.c_str());
+}
+
+void GPURenderPassEncoder::popDebugGroup() { _instance.PopDebugGroup(); }
+
+void GPURenderPassEncoder::insertDebugMarker(std::string markerLabel) {
+  _instance.InsertDebugMarker(markerLabel.c_str());
+}
+void GPURenderPassEncoder::drawIndirect(
+    std::shared_ptr<GPUBuffer> indirectBuffer, uint64_t indirectOffset) {
+  Convertor conv;
+  wgpu::Buffer b{};
+  if (!conv(b, indirectBuffer)) {
+    return;
+  }
+  _instance.DrawIndirect(b, indirectOffset);
+}
+void GPURenderPassEncoder::drawIndexedIndirect(
+    std::shared_ptr<GPUBuffer> indirectBuffer, uint64_t indirectOffset) {
+  Convertor conv;
+  wgpu::Buffer b{};
+  if (!conv(b, indirectBuffer)) {
+    return;
+  }
+  _instance.DrawIndexedIndirect(b, indirectOffset);
+}
+
 } // namespace rnwgpu

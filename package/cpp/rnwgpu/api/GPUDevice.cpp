@@ -47,12 +47,16 @@ std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
 }
 
-void GPUDevice::destroy() { _instance.Destroy(); }
+void GPUDevice::destroy() {
+  _instance.Destroy();
+  auto lostInfo = std::make_shared<GPUDeviceLostInfo>(
+      wgpu::DeviceLostReason::Destroyed, "device was destroyed");
+  m_lostPromise->set_value(lostInfo);
+}
 
 std::shared_ptr<GPUTexture>
 GPUDevice::createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor) {
   wgpu::TextureDescriptor desc;
-  // TODO: implement
   Convertor conv;
   if (!conv(desc, descriptor)) {
     throw std::runtime_error("Error with GPUTextureDescriptor");
@@ -330,6 +334,6 @@ std::unordered_set<std::string> GPUDevice::getFeatures() {
 }
 
 std::future<std::shared_ptr<GPUDeviceLostInfo>> GPUDevice::getLost() {
-  throw std::runtime_error("GPUDevice::getLost(): not implemented");
+  return m_lostPromise->get_future();
 }
 } // namespace rnwgpu

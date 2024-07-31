@@ -18,111 +18,7 @@ const instanceAliases: Record<string, string> = {
   GPUDeviceLostInfo: "DeviceLostReason",
 };
 
-const objectWhileList = [
-  "GPU",
-  "GPUAdapter",
-  "GPUSupportedLimits",
-  "GPUAdapterInfo",
-  "GPUQueue",
-  "GPUDevice",
-  "GPUBindGroup",
-  "GPUBindGroupLayout",
-  "GPUBuffer",
-  "GPUCommandBuffer",
-  "GPUCommandEncoder",
-  //"GPUCompilationInfo",
-  // "GPUCompilationMessage",
-  // "GPUComputePassEncoder",
-  // "GPUComputePipeline",
-  // "GPUDeviceLostInfo",
-  "GPUExternalTexture",
-  // "GPUPipelineLayout",
-  "GPUQuerySet",
-  "GPURenderBundle",
-  // "GPURenderBundleEncoder",
-  //"GPURenderPassEncoder",
-  "GPURenderPipeline",
-  "GPUSampler",
-  //"GPUShaderModule",
-  // "GPUSupportedLimits",
-  "GPUTexture",
-  "GPUTextureView",
-  // "GPUUncapturedErrorEvent",
-];
-
-const methodBlackList = ["requestAdapterInfo"];
-
-const methodWhiteList = [
-  // GPU
-  "getPreferredCanvasFormat",
-  // Texture
-  "createTexture",
-  // Queue
-  "writeBuffer",
-  "submit",
-  //
-  "requestAdapter",
-  "requestDevice",
-  // Device
-  "createBuffer",
-  "createCommandEncoder",
-  "createShaderModule",
-  "createRenderPipeline",
-  "destroy",
-  "createTexture",
-  "createSampler",
-  "createView",
-  "createBindGroup",
-  // Buffer
-  "unmap",
-  "getMappedRange",
-  "mapAsync",
-  // CommandEncoder,
-  "copyBufferToBuffer",
-  "finish",
-  "beginRenderPass",
-  "setPipeline",
-  "draw",
-  "end",
-  "getBindGroupLayout",
-  "setBindGroup",
-  "copyTextureToBuffer",
-  "createComputePipeline",
-  "beginComputePass",
-  "dispatchWorkgroups",
-  "onSubmittedWorkDone",
-  "setVertexBuffer",
-  "copyExternalImageToTexture",
-  "writeTexture",
-  "copyTextureToTexture",
-  "createQuerySet",
-  "setIndexBuffer",
-  "beginOcclusionQuery",
-  "endOcclusionQuery",
-  "drawIndexed",
-  "resolveQuerySet",
-  "createRenderBundleEncoder",
-  "executeBundles",
-  "createBindGroupLayout",
-  "setScissorRect",
-  "createPipelineLayout",
-];
-
-const propWhiteList: Record<string, string[]> = {
-  GPUBuffer: ["size", "usage", "mapState"],
-  GPUDevice: ["queue", "limits"],
-  GPUTexture: [
-    "width",
-    "height",
-    "depthOrArrayLayers",
-    "mipLevelCount",
-    "sampleCount",
-    "dimension",
-    "format",
-    "usage",
-  ],
-};
-
+const deprecatedMethods = ["requestAdapterInfo"];
 const propblackList = ["onuncapturederror", "label", "prototype"];
 
 // const propWhiteList: string[] = [
@@ -141,11 +37,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     .getProperties()
     .filter(
       (m) =>
-        !m.getName().startsWith("__") &&
-        !propblackList.includes(m.getName()) &&
-        ((propWhiteList[className] &&
-          propWhiteList[className].includes(m.getName())) ||
-          objectWhileList.includes(decl.getName())),
+        !m.getName().startsWith("__") && !propblackList.includes(m.getName()),
     )
     .map((signature) => {
       const nativeMethod = resolveNative(
@@ -165,12 +57,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     });
   const methods = decl
     .getMethods()
-    .filter(
-      (m) =>
-        methodWhiteList.includes(m.getName()) ||
-        (objectWhileList.includes(decl.getName()) &&
-          !methodBlackList.includes(m.getName())),
-    )
+    .filter((m) => !deprecatedMethods.includes(m.getName()))
     .map((signature) => {
       const resolved = resolveMethod(className, signature.getName());
       if (resolved) {
@@ -278,7 +165,14 @@ public:
 
   ${properties.map((prop) => `${prop.type} get${_.upperFirst(prop.name)}();`).join("\n")}
 
-  ${hasLabel ? "std::string getLabel() { return _label; }" : ""}
+  ${
+    hasLabel
+      ? `std::string getLabel() { return _label; }
+    void setLabel(const std::string& label) { _label = label;
+      _instance.SetLabel(_label.c_str());
+    }`
+      : ""
+  }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &${className}::getBrand, this);
@@ -289,7 +183,12 @@ public:
       )
       .join("\n")}
     ${properties.map((prop) => `registerHybridGetter("${prop.name}", &${className}::get${_.upperFirst(prop.name)}, this);`).join("\n")}
-    ${hasLabel ? `registerHybridGetter("label", &${className}::getLabel, this);` : ""}
+    ${
+      hasLabel
+        ? `registerHybridGetter("label", &${className}::getLabel, this);
+      registerHybridSetter("label", &${className}::setLabel, this);`
+        : ""
+    }
   }
   
   inline const ${instanceName} get() {

@@ -29,6 +29,10 @@ public:
   std::shared_ptr<GPUBindGroupLayout> getBindGroupLayout(uint32_t index);
 
   std::string getLabel() { return _label; }
+  void setLabel(const std::string &label) {
+    _label = label;
+    _instance.SetLabel(_label.c_str());
+  }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUComputePipeline::getBrand, this);
@@ -36,6 +40,7 @@ public:
                          &GPUComputePipeline::getBindGroupLayout, this);
 
     registerHybridGetter("label", &GPUComputePipeline::getLabel, this);
+    registerHybridSetter("label", &GPUComputePipeline::setLabel, this);
   }
 
   inline const wgpu::ComputePipeline get() { return _instance; }
