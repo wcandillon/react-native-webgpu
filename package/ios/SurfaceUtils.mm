@@ -13,7 +13,10 @@
   surfaceDescriptor.nextInChain = &metalSurfaceDesc;
   std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule getManager];
   auto surfaceGpu = std::make_shared<wgpu::Surface>(manager->getGPU()->get().CreateSurface(&surfaceDescriptor));
-  rnwgpu::SurfaceData surfaceData = {(float)size.width, (float)size.height, surfaceGpu};
+  CGFloat scaleFactor = [UIScreen mainScreen].scale;
+  float width = size.width * scaleFactor;
+  float height = size.height * scaleFactor;
+  rnwgpu::SurfaceData surfaceData = {width, height, surfaceGpu};
   manager->surfacesRegistry.addSurface(contextId, surfaceData);
 }
 
