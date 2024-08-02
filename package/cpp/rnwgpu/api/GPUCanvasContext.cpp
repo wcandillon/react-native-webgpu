@@ -9,6 +9,7 @@ void GPUCanvasContext::configure(
   Convertor conv;
   wgpu::SurfaceConfiguration surfaceConfiguration;
   surfaceConfiguration.device = configuration->device->get();
+  _device = configuration->device->get();
   if (configuration->viewFormats.has_value()) {
     if (!conv(surfaceConfiguration.viewFormats,
               surfaceConfiguration.viewFormatCount,
@@ -37,6 +38,11 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   return std::make_shared<GPUTexture>(texture, "");
 }
 
-void GPUCanvasContext::present() { _instance.Present(); }
+void GPUCanvasContext::present() {
+#ifdef __APPLE__
+  dawn::native::metal::WaitForCommandsToBeScheduled(_device.Get());
+#endif
+  _instance.Present();
+}
 
 } // namespace rnwgpu
