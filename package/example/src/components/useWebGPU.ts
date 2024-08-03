@@ -72,16 +72,14 @@ export const useWebGPU = (scene: Scene) => {
       if (typeof renderScene === "function") {
         renderScene(timestamp);
       }
-      device.queue.onSubmittedWorkDone().then(() => {
-        context.present();
-        if (frameNumber > 2500) {
-          frameNumber = 0;
-          if (gc) {
-            gc();
-          }
+      context.present();
+      if (frameNumber > 2500) {
+        frameNumber = 0;
+        if (gc) {
+          gc();
         }
-        animationFrameId = requestAnimationFrame(render);
-      });
+      }
+      animationFrameId = requestAnimationFrame(render);
     };
 
     animationFrameId = requestAnimationFrame(render);
