@@ -1,7 +1,7 @@
 #pragma once
 
-#import <UIKit/UIKit.h>
 #import "WebGPUModule.h"
+#import <UIKit/UIKit.h>
 
 @interface MetalView : UIView
 

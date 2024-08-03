@@ -2,10 +2,10 @@
 #import "GPUCanvasContext.h"
 #import <React/RCTBridge+Private.h>
 #import <React/RCTLog.h>
+#import <React/RCTUIManagerUtils.h>
 #import <ReactCommon/RCTTurboModule.h>
 #import <jsi/jsi.h>
 #import <memory>
-#import <React/RCTUIManagerUtils.h>
 
 namespace jsi = facebook::jsi;
 namespace react = facebook::react;
@@ -69,17 +69,19 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   return @true;
 }
 
-RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext:(double)contextId) {
+RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext
+                                       : (double)contextId) {
   int contextIdInt = contextId;
   RCTCxxBridge *cxxBridge = (RCTCxxBridge *)self.bridge;
   auto runtime = (jsi::Runtime *)cxxBridge.runtime;
   auto webGPUContextRegistry = runtime->global().getPropertyAsObject(
       *runtime, "__WebGPUContextRegistry");
-  if (webGPUContextRegistry.hasProperty(*runtime, std::to_string(contextIdInt).c_str())) {
+  if (webGPUContextRegistry.hasProperty(*runtime,
+                                        std::to_string(contextIdInt).c_str())) {
     // Context already exists
     return @true;
   }
-  
+
   auto surfaceData = webgpuManager->surfacesRegistry.getSurface(contextIdInt);
   auto label = "Context: " + std::to_string(contextIdInt);
   auto gpuCanvasContext =

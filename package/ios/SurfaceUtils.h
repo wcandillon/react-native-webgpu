@@ -4,6 +4,8 @@
 
 @interface SurfaceUtils : NSObject
 
-+ (void)configureSurface:(CALayer *)layer size:(CGSize)size contextId:(int)contextId;
++ (void)configureSurface:(CALayer *)layer
+                    size:(CGSize)size
+               contextId:(int)contextId;
 
 @end

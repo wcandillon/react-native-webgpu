@@ -1,14 +1,15 @@
 #ifdef RCT_NEW_ARCH_ENABLED
 #pragma once
 
+#import "MetalView.h"
 #import <React/RCTViewComponentView.h>
 #import <UIKit/UIKit.h>
-#import "MetalView.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface WebGPUView : RCTViewComponentView
-+ (void)registerMetalView:(MetalView *)metalView withContextId:(NSNumber *)contextId;
++ (void)registerMetalView:(MetalView *)metalView
+            withContextId:(NSNumber *)contextId;
 + (bool)isContextRegisterd:(NSNumber *)contextId;
 @end
 
