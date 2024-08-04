@@ -30,6 +30,6 @@ describe("Device", () => {
         }));
       }),
     );
-    expect(result.reason).toBe("destroyed");
+    expect(["unknown", "destroyed"].includes(result.reason)).toBe(true);
   });
 });

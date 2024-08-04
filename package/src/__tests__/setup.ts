@@ -34,11 +34,6 @@ interface GPUContext {
   gpu: GPU;
   adapter: GPUAdapter;
   device: GPUDevice;
-  GPUBufferUsage: typeof GPUBufferUsage;
-  GPUColorWrite: typeof GPUColorWrite;
-  GPUMapMode: typeof GPUMapMode;
-  GPUShaderStage: typeof GPUShaderStage;
-  GPUTextureUsage: typeof GPUTextureUsage;
   shaders: {
     triangleVertWGSL: string;
     redFragWGSL: string;
@@ -192,11 +187,6 @@ class ReferenceTestingClient implements TestingClient {
       const ctx = new DrawingContext(device, 1024, 1024);
       return (${fn.toString()})({
         device, adapter, gpu,
-        GPUBufferUsage,
-        GPUColorWrite,
-        GPUMapMode,
-        GPUShaderStage,
-        GPUTextureUsage,
         assets: {
           cubeVertexArray,
           di3D,

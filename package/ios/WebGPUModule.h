@@ -6,9 +6,9 @@
 
 #ifdef RCT_NEW_ARCH_ENABLED
 #import <RNWgpuViewSpec/RNWgpuViewSpec.h>
-@interface WebGPUModule : RCTEventEmitter<NativeWebGPUModuleSpec>
+@interface WebGPUModule : RCTEventEmitter <NativeWebGPUModuleSpec>
 #else
-@interface WebGPUModule : RCTEventEmitter<RCTBridgeModule>
+@interface WebGPUModule : RCTEventEmitter <RCTBridgeModule>
 #endif
 
 @property(nonatomic, weak) RCTBridge *bridge;

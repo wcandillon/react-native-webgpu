@@ -5,9 +5,9 @@
 #import <react/renderer/components/RNWgpuViewSpec/Props.h>
 #import <react/renderer/components/RNWgpuViewSpec/RCTComponentViewHelpers.h>
 
+#import "MetalView.h"
 #import "RCTFabricComponentsPlugins.h"
 #import "Utils.h"
-#import "MetalView.h"
 #import "WebGPUModule.h"
 #import "WebGPUViewComponentDescriptor.h"
 
@@ -21,19 +21,19 @@ using namespace facebook::react;
   NSNumber *_contextId;
 }
 
-static NSMutableDictionary<NSNumber *, MetalView *> *metalViewRegistry = [NSMutableDictionary new];
+static NSMutableDictionary<NSNumber *, MetalView *> *metalViewRegistry =
+    [NSMutableDictionary new];
 
 + (ComponentDescriptorProvider)componentDescriptorProvider {
   return concreteComponentDescriptorProvider<WebGPUViewComponentDescriptor>();
 }
 
-+ (void)registerMetalView:(MetalView *)metalView withContextId:(NSNumber *)contextId
-{
++ (void)registerMetalView:(MetalView *)metalView
+            withContextId:(NSNumber *)contextId {
   metalViewRegistry[contextId] = metalView;
 }
 
-+ (bool)isContextRegisterd:(NSNumber *)contextId
-{
++ (bool)isContextRegisterd:(NSNumber *)contextId {
   return metalViewRegistry[contextId] != nil;
 }
 
@@ -46,19 +46,20 @@ static NSMutableDictionary<NSNumber *, MetalView *> *metalViewRegistry = [NSMuta
   return self;
 }
 
-- (void)prepareForRecycle
-{
+- (void)prepareForRecycle {
   [super prepareForRecycle];
   self.contentView = nil;
   [metalViewRegistry removeObjectForKey:_contextId];
 }
 
-- (void)updateLayoutMetrics:(const facebook::react::LayoutMetrics &)layoutMetrics
-           oldLayoutMetrics:(const facebook::react::LayoutMetrics &)oldLayoutMetrics
-{
+- (void)updateLayoutMetrics:
+            (const facebook::react::LayoutMetrics &)layoutMetrics
+           oldLayoutMetrics:
+               (const facebook::react::LayoutMetrics &)oldLayoutMetrics {
   [super updateLayoutMetrics:layoutMetrics oldLayoutMetrics:oldLayoutMetrics];
   if (!self.contentView) {
-    const auto &props = *std::static_pointer_cast<WebGPUViewProps const>(_props);
+    const auto &props =
+        *std::static_pointer_cast<WebGPUViewProps const>(_props);
     self.contentView = metalViewRegistry[@(props.contextId)];
   }
 }

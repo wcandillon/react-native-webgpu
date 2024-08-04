@@ -3,14 +3,14 @@
 #pragma once
 
 #include <react/debug/react_native_assert.h>
+#include <react/renderer/components/RNWgpuViewSpec/ShadowNodes.h>
+#include <react/renderer/components/view/ConcreteViewShadowNode.h>
 #include <react/renderer/core/ConcreteComponentDescriptor.h>
 #include <react/renderer/core/LayoutContext.h>
-#include <react/renderer/components/view/ConcreteViewShadowNode.h>
-#include <react/renderer/components/RNWgpuViewSpec/ShadowNodes.h>
 
 #import "MetalView.h"
-#import "WebGPUView.h"
 #import "SurfaceUtils.h"
+#import "WebGPUView.h"
 
 namespace facebook {
 namespace react {
@@ -19,14 +19,15 @@ class WebGPUViewCustomShadowNode final : public WebGPUViewShadowNode {
 
 public:
   using ConcreteViewShadowNode::ConcreteViewShadowNode;
- 
+
   void layout(LayoutContext layoutContext) override {
     YogaLayoutableShadowNode::layout(layoutContext);
     configureSurface();
   }
-  
+
   void configureSurface() {
-    const auto &viewProps = *std::static_pointer_cast<WebGPUViewProps const>(props_);
+    const auto &viewProps =
+        *std::static_pointer_cast<WebGPUViewProps const>(props_);
     if ([WebGPUView isContextRegisterd:@(viewProps.contextId)]) {
       return;
     }
@@ -36,17 +37,21 @@ public:
       metalView = [[MetalView alloc] init];
       layer = metalView.layer;
     });
-    [WebGPUView registerMetalView:metalView withContextId:@(viewProps.contextId)];
+    [WebGPUView registerMetalView:metalView
+                    withContextId:@(viewProps.contextId)];
 
     float width = layoutMetrics_.frame.size.width;
     float height = layoutMetrics_.frame.size.height;
-    [SurfaceUtils configureSurface:layer size:CGSizeMake(width, height) contextId:viewProps.contextId];
+    [SurfaceUtils configureSurface:layer
+                              size:CGSizeMake(width, height)
+                         contextId:viewProps.contextId];
   }
 };
 
-class WebGPUViewComponentDescriptor final : public ConcreteComponentDescriptor<WebGPUViewCustomShadowNode> {
+class WebGPUViewComponentDescriptor final
+    : public ConcreteComponentDescriptor<WebGPUViewCustomShadowNode> {
 public:
-using ConcreteComponentDescriptor::ConcreteComponentDescriptor;
+  using ConcreteComponentDescriptor::ConcreteComponentDescriptor;
 };
 
 } // namespace react

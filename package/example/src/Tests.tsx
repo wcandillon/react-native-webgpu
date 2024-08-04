@@ -59,11 +59,6 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
               gpu: navigator.gpu,
               adapter,
               device,
-              GPUBufferUsage,
-              GPUColorWrite,
-              GPUMapMode,
-              GPUShaderStage,
-              GPUTextureUsage,
               assets: {
                 cubeVertexArray,
                 di3D,
