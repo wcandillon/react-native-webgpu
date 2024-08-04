@@ -34,39 +34,6 @@ interface GPUContext {
   gpu: GPU;
   adapter: GPUAdapter;
   device: GPUDevice;
-  GPU: typeof GPU;
-  GPUAdapter: typeof GPUAdapter;
-  GPUAdapterInfo: typeof GPUAdapterInfo;
-  GPUBindGroup: typeof GPUBindGroup;
-  GPUBindGroupLayout: typeof GPUBindGroupLayout;
-  GPUBuffer: typeof GPUBuffer;
-  GPUCanvasContext: typeof GPUCanvasContext;
-  GPUCommandBuffer: typeof GPUCommandBuffer;
-  GPUCommandEncoder: typeof GPUCommandEncoder;
-  GPUCompilationInfo: typeof GPUCompilationInfo;
-  GPUCompilationMessage: typeof GPUCompilationMessage;
-  GPUComputePassEncoder: typeof GPUComputePassEncoder;
-  GPUComputePipeline: typeof GPUComputePipeline;
-  GPUDevice: typeof GPUDevice;
-  GPUDeviceLostInfo: typeof GPUDeviceLostInfo;
-  GPUError: typeof GPUError;
-  GPUExternalTexture: typeof GPUExternalTexture;
-  GPUPipelineLayout: typeof GPUPipelineLayout;
-  GPUQuerySet: typeof GPUQuerySet;
-  GPUQueue: typeof GPUQueue;
-  GPURenderBundle: typeof GPURenderBundle;
-  GPURenderBundleEncoder: typeof GPURenderBundleEncoder;
-  GPURenderPassEncoder: typeof GPURenderPassEncoder;
-  GPURenderPipeline: typeof GPURenderPipeline;
-  GPUSampler: typeof GPUSampler;
-  GPUShaderModule: typeof GPUShaderModule;
-  GPUTexture: typeof GPUTexture;
-  GPUTextureView: typeof GPUTextureView;
-  GPUBufferUsage: typeof GPUBufferUsage;
-  GPUColorWrite: typeof GPUColorWrite;
-  GPUMapMode: typeof GPUMapMode;
-  GPUShaderStage: typeof GPUShaderStage;
-  GPUTextureUsage: typeof GPUTextureUsage;
   shaders: {
     triangleVertWGSL: string;
     redFragWGSL: string;
@@ -220,39 +187,6 @@ class ReferenceTestingClient implements TestingClient {
       const ctx = new DrawingContext(device, 1024, 1024);
       return (${fn.toString()})({
         device, adapter, gpu,
-        GPU,
-        GPUAdapter,
-        GPUAdapterInfo,
-        GPUBindGroup,
-        GPUBindGroupLayout,
-        GPUBuffer,
-        GPUCanvasContext,
-        GPUCommandBuffer,
-        GPUCommandEncoder,
-        GPUCompilationInfo,
-        GPUCompilationMessage,
-        GPUComputePassEncoder,
-        GPUComputePipeline,
-        GPUDevice,
-        GPUDeviceLostInfo,
-        GPUError,
-        GPUExternalTexture,
-        GPUPipelineLayout,
-        GPUQuerySet,
-        GPUQueue,
-        GPURenderBundle,
-        GPURenderBundleEncoder,
-        GPURenderPassEncoder,
-        GPURenderPipeline,
-        GPUSampler,
-        GPUShaderModule,
-        GPUTexture,
-        GPUTextureView,
-        GPUBufferUsage,
-        GPUColorWrite,
-        GPUMapMode,
-        GPUShaderStage,
-        GPUTextureUsage,
         assets: {
           cubeVertexArray,
           di3D,

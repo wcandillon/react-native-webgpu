@@ -1,7 +1,7 @@
 import * as path from "path";
 
 import type { VariableDeclaration } from "ts-morph";
-import { Node, Project, SyntaxKind } from "ts-morph";
+import { Node, Project } from "ts-morph";
 
 import { getEnum } from "./templates/Enum";
 import { writeFile } from "./util";

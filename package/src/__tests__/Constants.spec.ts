@@ -2,7 +2,7 @@ import { client } from "./setup";
 
 describe("WebGPUConstants", () => {
   it("GPUBufferUsage", async () => {
-    const result = await client.eval(({ GPUBufferUsage }) => {
+    const result = await client.eval(() => {
       return GPUBufferUsage;
     });
     expect(result).toEqual({
@@ -19,7 +19,7 @@ describe("WebGPUConstants", () => {
     });
   });
   it("GPUColorWrite", async () => {
-    const result = await client.eval(({ GPUColorWrite }) => {
+    const result = await client.eval(() => {
       return GPUColorWrite;
     });
     expect(result).toEqual({
@@ -31,7 +31,7 @@ describe("WebGPUConstants", () => {
     });
   });
   it("GPUMapMode", async () => {
-    const result = await client.eval(({ GPUMapMode }) => {
+    const result = await client.eval(() => {
       return GPUMapMode;
     });
     expect(result).toEqual({
@@ -40,7 +40,7 @@ describe("WebGPUConstants", () => {
     });
   });
   it("GPUShaderStage", async () => {
-    const result = await client.eval(({ GPUShaderStage }) => {
+    const result = await client.eval(() => {
       return GPUShaderStage;
     });
     expect(result).toEqual({
@@ -50,7 +50,7 @@ describe("WebGPUConstants", () => {
     });
   });
   it("GPUTextureUsage", async () => {
-    const result = await client.eval(({ GPUTextureUsage }) => {
+    const result = await client.eval(() => {
       return GPUTextureUsage;
     });
     expect(result).toEqual({
@@ -62,21 +62,20 @@ describe("WebGPUConstants", () => {
     });
   });
   it("GPUAdapter", async () => {
-    const result = await client.eval(
-      ({ adapter, device, GPUAdapter, GPUDevice }) => {
-        return [
-          adapter instanceof GPUAdapter,
-          device instanceof GPUDevice,
-          adapter instanceof GPUDevice,
-          device instanceof GPUAdapter,
-        ];
-      },
-    );
-    expect(result).toEqual([true, true, false, false]);
+    const result = await client.eval(({ adapter, device, gpu }) => {
+      return [
+        gpu instanceof GPU,
+        adapter instanceof GPUAdapter,
+        device instanceof GPUDevice,
+        adapter instanceof GPUDevice,
+        device instanceof GPUAdapter,
+      ];
+    });
+    expect(result).toEqual([true, true, true, false, false]);
   });
   it("instanceof", async () => {
     const result = await client.eval(
-      ({ device, GPUBuffer, shaders: { triangleVertWGSL } }) => {
+      ({ device, shaders: { triangleVertWGSL } }) => {
         const buffer = device.createBuffer({
           size: 16,
           usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
