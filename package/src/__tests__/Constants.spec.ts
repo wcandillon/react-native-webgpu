@@ -61,4 +61,32 @@ describe("WebGPUConstants", () => {
       RENDER_ATTACHMENT: 16,
     });
   });
+  it("GPUAdapter", async () => {
+    const result = await client.eval(
+      ({ adapter, device, GPUAdapter, GPUDevice }) => {
+        return [
+          adapter instanceof GPUAdapter,
+          device instanceof GPUDevice,
+          adapter instanceof GPUDevice,
+          device instanceof GPUAdapter,
+        ];
+      },
+    );
+    expect(result).toEqual([true, true, false, false]);
+  });
+  it("instanceof", async () => {
+    const result = await client.eval(
+      ({ device, GPUBuffer, shaders: { triangleVertWGSL } }) => {
+        const buffer = device.createBuffer({
+          size: 16,
+          usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+        });
+        const module = device.createShaderModule({
+          code: triangleVertWGSL,
+        });
+        return [buffer instanceof GPUBuffer, module instanceof GPUShaderModule];
+      },
+    );
+    expect(result).toEqual([true, true]);
+  });
 });

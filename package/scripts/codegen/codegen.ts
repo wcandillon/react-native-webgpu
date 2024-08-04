@@ -1,7 +1,7 @@
 import * as path from "path";
 
 import type { VariableDeclaration } from "ts-morph";
-import { Node, Project } from "ts-morph";
+import { Node, Project, SyntaxKind } from "ts-morph";
 
 import { getEnum } from "./templates/Enum";
 import { writeFile } from "./util";
@@ -108,6 +108,20 @@ const hasProptotype = (node: VariableDeclaration) => {
 
   return found;
 };
+
+// sourceFile.getVariableDeclarations().forEach((decl) => {
+//   const [hasNeverConstructor] = decl.getDescendantsOfKind(
+//     SyntaxKind.ConstructSignature,
+//   );
+//   if (hasNeverConstructor && hasNeverConstructor.getReturnType().isNever()) {
+//     const name = decl.getName();
+//     console.log(`${name}: typeof ${name};`);
+//     console.log(`const ${name}: any = {};
+//     ${name}[Symbol.hasInstance] = function (instance: object) {
+//       return "__brand" in instance && instance.__brand === "${name}";
+//     };`);
+//   }
+// });
 
 const unions: Union[] = [];
 
