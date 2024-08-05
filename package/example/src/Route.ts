@@ -10,5 +10,6 @@ export type Routes = {
   ComputeBoids: undefined;
   ABuffer: undefined;
   Wireframe: undefined;
+  Resize: undefined;
   Tests: undefined;
 };

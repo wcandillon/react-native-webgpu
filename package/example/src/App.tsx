@@ -13,6 +13,7 @@ import { ABuffer } from "./ABuffer";
 import { OcclusionQuery } from "./OcclusionQuery";
 import { ComputeBoids } from "./ComputeBoids";
 import { Wireframe } from "./Wireframe";
+import { Resize } from "./Resize";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -24,7 +25,7 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Home">
+        <Stack.Navigator initialRouteName="Resize">
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="HelloTriangle" component={HelloTriangle} />
           <Stack.Screen
@@ -43,6 +44,7 @@ function App() {
           <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />
           <Stack.Screen name="ComputeBoids" component={ComputeBoids} />
           <Stack.Screen name="Wireframe" component={Wireframe} />
+          <Stack.Screen name="Resize" component={Resize} />
           <Stack.Screen name="Tests">
             {(props) => <Tests {...props} assets={assets} />}
           </Stack.Screen>
