@@ -8,7 +8,7 @@ import { useWebGPU } from "../components/useWebGPU";
 const window = Dimensions.get("window");
 
 export const Resize = () => {
-  const width = useRef(new Animated.Value(0));
+  const width = useRef(new Animated.Value(window.width));
   const { canvasRef } = useWebGPU(({ context, device, presentationFormat }) => {
     const pipeline = device.createRenderPipeline({
       layout: "auto",
@@ -35,6 +35,7 @@ export const Resize = () => {
     });
 
     return () => {
+      console.log(context.canvas.width, context.canvas.height, Date.now());
       const commandEncoder = device.createCommandEncoder();
 
       const textureView = context.getCurrentTexture().createView();
@@ -63,12 +64,12 @@ export const Resize = () => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(width.current, {
-          toValue: window.width,
+          toValue: 20,
           duration: 4000,
           useNativeDriver: false,
         }),
         Animated.timing(width.current, {
-          toValue: 0,
+          toValue: window.width,
           duration: 4000,
           useNativeDriver: false,
         }),
@@ -79,8 +80,10 @@ export const Resize = () => {
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
       <Animated.View
-        style={{ width: width.current, backgroundColor: "red", flex: 1 }}
-      />
+        style={{ width: width.current, flex: 1, backgroundColor: "red" }}
+      >
+        <Canvas ref={canvasRef} style={{ flex: 1 }} />
+      </Animated.View>
     </View>
   );
 };

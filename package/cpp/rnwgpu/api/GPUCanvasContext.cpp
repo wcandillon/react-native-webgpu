@@ -34,6 +34,9 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   wgpu::SurfaceTexture surfaceTexture;
   _instance.GetCurrentTexture(&surfaceTexture);
   auto texture = surfaceTexture.texture;
+  if (texture == nullptr) {
+    throw std::runtime_error("Couldn't get current texture");
+  }
   // Default canvas texture label is ""
   return std::make_shared<GPUTexture>(texture, "");
 }
