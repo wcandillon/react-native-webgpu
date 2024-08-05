@@ -1,9 +1,11 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, View } from "react-native";
+import { Animated, Dimensions, View } from "react-native";
 import { Canvas } from "react-native-webgpu";
 
 import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
 import { useWebGPU } from "../components/useWebGPU";
+
+const window = Dimensions.get("window");
 
 export const Resize = () => {
   const width = useRef(new Animated.Value(0));
@@ -59,19 +61,26 @@ export const Resize = () => {
 
   useEffect(() => {
     Animated.loop(
-      Animated.timing(width.current, {
-        toValue: 500,
-        duration: 4000,
-        useNativeDriver: false,
-      }),
+      Animated.sequence([
+        Animated.timing(width.current, {
+          toValue: window.width,
+          duration: 4000,
+          useNativeDriver: false,
+        }),
+        Animated.timing(width.current, {
+          toValue: 0,
+          duration: 4000,
+          useNativeDriver: false,
+        }),
+      ]),
     ).start();
   }, []);
 
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
-      <Animated.View style={{ flex: 1, width: width.current }}>
-        <Canvas ref={canvasRef} style={{ flex: 1 }} />
-      </Animated.View>
+      <Animated.View
+        style={{ width: width.current, backgroundColor: "red", flex: 1 }}
+      />
     </View>
   );
 };
