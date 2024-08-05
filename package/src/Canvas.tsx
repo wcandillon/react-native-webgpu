@@ -26,7 +26,7 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
   useImperativeHandle(ref, () => ({
     getContext(contextName: "webgpu"): CanvasContext | null {
       if (contextName !== "webgpu") {
-        throw new Error("[WebGPU] Unsupported context");
+        throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
       }
       WebGPUNativeModule.createSurfaceContext(contextId);
       const ctx = (WebGPUContextRegistry[contextId] as CanvasContext) ?? null;
