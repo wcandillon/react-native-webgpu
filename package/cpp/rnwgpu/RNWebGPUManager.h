@@ -31,6 +31,10 @@ public:
 
   std::shared_ptr<GPU> getGPU();
 
+  void setPlatformContext(std::shared_ptr<PlatformContext> platformContext) {
+    _platformContext = platformContext;
+  }
+
 private:
   jsi::Runtime *_jsRuntime;
   std::shared_ptr<facebook::react::CallInvoker> _jsCallInvoker;

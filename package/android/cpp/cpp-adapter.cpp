@@ -10,6 +10,7 @@
 
 #include "GPUCanvasContext.h"
 #include "RNWebGPUManager.h"
+#include "AndroidPlatformContext.h"
 
 #define LOG_TAG "WebGPUModule"
 
@@ -19,8 +20,9 @@ std::unordered_map<int, ANativeWindow *> windowsRegistry;
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     JNIEnv *env, jobject /* this */, jlong jsRuntime, jobject jsInvokerHolder) {
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
-  // TODO: Add the android platform context here
   manager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, nullptr, nullptr);
+  auto platformContext = std::make_shared<rnwgpu::AndroidPlatformContext>(manager);
+  manager->setPlatformContext(platformContext);
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -40,15 +42,15 @@ Java_com_webgpu_WebGPUModule_createSurfaceContext(JNIEnv *env, jobject thiz,
     // Context already exists
     return;
   }
-
   auto label = "Context: " + std::to_string(contextId);
-  // TODO: fix
-//  auto gpuCanvasContext =
-//      std::make_shared<rnwgpu::GPUCanvasContext>(*surfaceData);
-//  auto gpuCanvasContextJs =
-//      facebook::jsi::Object::createFromHostObject(*runtime, gpuCanvasContext);
-//  webGPUContextRegistry.setProperty(*runtime, std::to_string(contextId).c_str(),
-//                                    gpuCanvasContextJs);
+  auto resultObject = facebook::jsi::Object(*runtime);
+  resultObject.setProperty(*runtime, "width", surfaceData->width);
+  resultObject.setProperty(*runtime, "height", surfaceData->height);
+  uintptr_t surfacePtr = reinterpret_cast<uintptr_t>(surfaceData->surface);
+  auto surfaceBigInt = facebook::jsi::BigInt::fromUint64(*runtime, surfacePtr);
+  resultObject.setProperty(*runtime, "surface", surfaceBigInt);
+  webGPUContextRegistry.setProperty(*runtime, std::to_string(contextId).c_str(),
+                                   resultObject);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
@@ -56,12 +58,6 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     jfloat height) {
   auto window = ANativeWindow_fromSurface(env, surface);
   windowsRegistry[contextId] = window;
-//  wgpu::SurfaceDescriptorFromAndroidNativeWindow androidSurfaceDesc;
-//  androidSurfaceDesc.window = window;
-//  wgpu::SurfaceDescriptor surfaceDescriptor;
-//  surfaceDescriptor.nextInChain = &androidSurfaceDesc;
-//  auto surfaceGpu = std::make_shared<wgpu::Surface>(
-//      manager->getGPU()->get().CreateSurface(&surfaceDescriptor));
   rnwgpu::SurfaceData surfaceData = {width, height, window};
   manager->surfacesRegistry.addSurface(contextId, surfaceData);
 }

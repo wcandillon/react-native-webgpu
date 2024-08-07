@@ -90,8 +90,14 @@ template <> struct JSIConverter<std::nullptr_t> {
 template <typename T>
 struct JSIConverter<T, std::enable_if_t<!std::is_same_v<T, uint64_t> && std::is_same_v<T, size_t>>> {
   static size_t fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
-    double value = arg.asNumber();
-    return static_cast<size_t>(value);
+      if (arg.isNumber()) {
+          double value = arg.asNumber();
+          return static_cast<size_t>(value);
+      } else {
+
+              return arg.asBigInt(runtime).asInt64(runtime);
+
+      }
   }
 
   static jsi::Value toJSI(jsi::Runtime& runtime, size_t arg) {
@@ -119,9 +125,9 @@ template <> struct JSIConverter<uint64_t> {
         throw jsi::JSError(runtime, "Number out of range for uint64_t");
       }
       return static_cast<uint64_t>(value);
-    } else {
-      return arg.asBigInt(runtime).asInt64(runtime);
-    }
+    } else if (arg.isBigInt()) {
+      return arg.asBigInt(runtime).getUint64(runtime);
+    } 
   }
 
   static jsi::Value toJSI(jsi::Runtime& runtime, uint64_t arg) {

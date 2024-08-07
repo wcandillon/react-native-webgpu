@@ -33,6 +33,8 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
       if (!nativeSurface) {
         return null;
       }
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
       const ctx = navigator.MakeWebGPUCanvasContext(
         nativeSurface.surface,
         nativeSurface.width,
