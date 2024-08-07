@@ -21,34 +21,34 @@ namespace rnwgpu {
 
 namespace m = margelo;
 
-
 class WebGPUCanvasContextFactory : public m::HybridObject {
 public:
-   GPUCanvasContextFactory()
-      : HybridObject("GPUCanvasContextFactory") {}
+  GPUCanvasContextFactory() : HybridObject("GPUCanvasContextFactory") {}
 
 public:
-  std::shared_ptr<GPUCanvasContext> Make(uint64_t surface, int width, int height) {
+  std::shared_ptr<GPUCanvasContext> Make(uint64_t surface, int width,
+                                         int height) {
 #ifdef __APPLE__
     wgpu::SurfaceDescriptorFromMetalLayer metalSurfaceDesc;
-    metalSurfaceDesc.layer = reinterpret_cast<void*>(surface);
-    
+    metalSurfaceDesc.layer = reinterpret_cast<void *>(surface);
+
     wgpu::SurfaceDescriptor surfaceDescriptor;
     surfaceDescriptor.nextInChain = &metalSurfaceDesc;
-    
+
     auto surfaceGpu = std::make_unique<wgpu::Surface>(
-        WebGPUModule::getManager()->getGPU()->get().CreateSurface(&surfaceDescriptor));
+        WebGPUModule::getManager()->getGPU()->get().CreateSurface(
+            &surfaceDescriptor));
     const float scaleFactor = 1;
     const float scaledWidth = width * scaleFactor;
     const float scaledHeight = height * scaleFactor;
-    
-    rnwgpu::SurfaceData surfaceData{scaledWidth, scaledHeight, std::move(surfaceGpu)};
+
+    rnwgpu::SurfaceData surfaceData{scaledWidth, scaledHeight,
+                                    std::move(surfaceGpu)};
 #elif __ANDROID__
     throw std::runtime_error("Not implemented");
 #endif
     return std::make_shared<rnwgpu::GPUCanvasContext>(surfaceData);
   }
-
 
   void loadHybridMethods() override {
     registerHybridGetter("Make", &GPUCanvasContextFactory::Make, this);

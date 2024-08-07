@@ -66,9 +66,11 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   if (!jsInvoker) {
     jsInvoker = cxxBridge.jsCallInvoker;
   }
-  std::shared_ptr<rnwgpu::PlatformContext> platformContext = std::make_shared<rnwgpu::IOSPlatformContext>();
+  std::shared_ptr<rnwgpu::PlatformContext> platformContext =
+      std::make_shared<rnwgpu::IOSPlatformContext>();
   // TODO: remove allocation here
-  webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker, platformContext);
+  webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker,
+                                                            platformContext);
   return @true;
 }
 

@@ -19,7 +19,8 @@ RNWebGPUManager::RNWebGPUManager(
     jsi::Runtime *jsRuntime,
     std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker,
     std::shared_ptr<PlatformContext> platformContext)
-    : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker), _platformContext(platformContext) {
+    : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker),
+      _platformContext(platformContext) {
 
   _gpu = std::make_shared<GPU>();
   auto navigator = std::make_shared<Navigator>(_gpu, _platformContext);

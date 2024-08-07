@@ -1,12 +1,13 @@
 #include "IOSPlatformContext.h"
 
-#include "WebGPUModule.h"
 #include "RNWebGPUManager.h"
+#include "WebGPUModule.h"
 
 namespace rnwgpu {
 
 // TODO: are width and height in physical pixels?
-wgpu::Surface IOSPlatformContext::makeSurface(void* surface, int width, int height) {
+wgpu::Surface IOSPlatformContext::makeSurface(void *surface, int width,
+                                              int height) {
   wgpu::SurfaceDescriptorFromMetalLayer metalSurfaceDesc;
   metalSurfaceDesc.layer = surface;
   wgpu::SurfaceDescriptor surfaceDescriptor;

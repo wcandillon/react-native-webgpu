@@ -10,7 +10,7 @@ namespace rnwgpu {
 struct SurfaceData {
   float width = 0;
   float height = 0;
-  void* surface;
+  void *surface;
 };
 
 class SurfaceRegistry {

@@ -11,10 +11,11 @@ namespace rnwgpu {
 
 class AndroidPlatformContext : public PlatformContext {
 public:
-  AndroidPlatformContext(std::shared_ptr<rnwgpu::RNWebGPUManager> manager): _manager(manager) {}
+  AndroidPlatformContext(std::shared_ptr<rnwgpu::RNWebGPUManager> manager)
+      : _manager(manager) {}
   ~AndroidPlatformContext() = default;
 
-  wgpu::Surface makeSurface(void* window, int width, int height) override {
+  wgpu::Surface makeSurface(void *window, int width, int height) override {
     wgpu::SurfaceDescriptorFromAndroidNativeWindow androidSurfaceDesc;
     androidSurfaceDesc.window = window;
     wgpu::SurfaceDescriptor surfaceDescriptor;

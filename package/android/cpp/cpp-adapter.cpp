@@ -8,9 +8,9 @@
 #include <android/native_window_jni.h>
 #include <webgpu/webgpu_cpp.h>
 
+#include "AndroidPlatformContext.h"
 #include "GPUCanvasContext.h"
 #include "RNWebGPUManager.h"
-#include "AndroidPlatformContext.h"
 
 #define LOG_TAG "WebGPUModule"
 
@@ -20,8 +20,10 @@ std::unordered_map<int, ANativeWindow *> windowsRegistry;
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     JNIEnv *env, jobject /* this */, jlong jsRuntime, jobject jsInvokerHolder) {
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
-  manager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, nullptr, nullptr);
-  auto platformContext = std::make_shared<rnwgpu::AndroidPlatformContext>(manager);
+  manager =
+      std::make_shared<rnwgpu::RNWebGPUManager>(runtime, nullptr, nullptr);
+  auto platformContext =
+      std::make_shared<rnwgpu::AndroidPlatformContext>(manager);
   manager->setPlatformContext(platformContext);
 }
 
@@ -50,7 +52,7 @@ Java_com_webgpu_WebGPUModule_createSurfaceContext(JNIEnv *env, jobject thiz,
   auto surfaceBigInt = facebook::jsi::BigInt::fromUint64(*runtime, surfacePtr);
   resultObject.setProperty(*runtime, "surface", surfaceBigInt);
   webGPUContextRegistry.setProperty(*runtime, std::to_string(contextId).c_str(),
-                                   resultObject);
+                                    resultObject);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(

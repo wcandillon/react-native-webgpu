@@ -3,8 +3,8 @@
 #include <memory>
 
 #include "GPU.h"
-#include "SurfaceRegistry.h"
 #include "PlatformContext.h"
+#include "SurfaceRegistry.h"
 
 namespace facebook {
 namespace jsi {

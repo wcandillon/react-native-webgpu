@@ -13,7 +13,7 @@
   CGFloat scaleFactor = [UIScreen mainScreen].scale;
   void *nativeSurface = (__bridge void *)layer;
   float width = size.width * scaleFactor;
-  float height = size.height  * scaleFactor;
+  float height = size.height * scaleFactor;
   rnwgpu::SurfaceData surfaceData = {width, height, nativeSurface};
   manager->surfacesRegistry.addSurface(contextId, surfaceData);
 }
