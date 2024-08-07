@@ -20,11 +20,10 @@ std::unordered_map<int, ANativeWindow *> windowsRegistry;
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     JNIEnv *env, jobject /* this */, jlong jsRuntime, jobject jsInvokerHolder) {
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
-  manager =
-      std::make_shared<rnwgpu::RNWebGPUManager>(runtime, nullptr, nullptr);
   auto platformContext =
-      std::make_shared<rnwgpu::AndroidPlatformContext>(manager);
-  manager->setPlatformContext(platformContext);
+      std::make_shared<rnwgpu::AndroidPlatformContext>();
+  manager =
+      std::make_shared<rnwgpu::RNWebGPUManager>(runtime, nullptr, platformContext);
 }
 
 extern "C" JNIEXPORT void JNICALL

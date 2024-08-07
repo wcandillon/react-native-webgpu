@@ -125,7 +125,7 @@ template <> struct JSIConverter<uint64_t> {
         throw jsi::JSError(runtime, "Number out of range for uint64_t");
       }
       return static_cast<uint64_t>(value);
-    } else if (arg.isBigInt()) {
+    } else {
       return arg.asBigInt(runtime).getUint64(runtime);
     } 
   }
