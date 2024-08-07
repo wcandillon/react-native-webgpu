@@ -5,9 +5,15 @@ export * from "./Canvas";
 export * from "./WebGPUViewNativeComponent";
 export { default as WebGPUModule } from "./NativeWebGPUModule";
 
+interface NativeSurface {
+  surface: bigint;
+  width: number;
+  height: number;
+}
+
 declare global {
   // eslint-disable-next-line no-var
-  var __WebGPUContextRegistry: Record<number, GPUCanvasContext>;
+  var __WebGPUContextRegistry: Record<number, NativeSurface>;
 }
 
 const GPU: any = {};

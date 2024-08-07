@@ -29,7 +29,15 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
         throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
       }
       WebGPUNativeModule.createSurfaceContext(contextId);
-      const ctx = (WebGPUContextRegistry[contextId] as CanvasContext) ?? null;
+      const nativeSurface = WebGPUContextRegistry[contextId];
+      if (!nativeSurface) {
+        return null;
+      }
+      const ctx = navigator.MakeWebGPUCanvasContext(
+        nativeSurface.surface,
+        nativeSurface.width,
+        nativeSurface.height,
+      );
       return ctx;
     },
   }));

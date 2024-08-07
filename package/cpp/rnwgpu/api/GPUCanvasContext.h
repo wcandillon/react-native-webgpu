@@ -59,10 +59,9 @@ private:
 
 class GPUCanvasContext : public m::HybridObject {
 public:
-  explicit GPUCanvasContext(const SurfaceData &surfaceData)
-      : HybridObject("GPUCanvasContext"), _instance(*surfaceData.surface),
-        _canvas(std::make_shared<rnwgpu::Canvas>(surfaceData.width,
-                                                 surfaceData.height)) {}
+  explicit GPUCanvasContext(wgpu::Surface instance, float width, float height)
+      : HybridObject("GPUCanvasContext"), _instance(instance),
+        _canvas(std::make_shared<rnwgpu::Canvas>(width, height)) {}
 
 public:
   std::string getBrand() { return _name; }

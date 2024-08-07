@@ -10,7 +10,6 @@ public:
   ~IOSPlatformContext() = default;
 
   wgpu::Surface makeSurface(void* surface, int width, int height) override;
-
 };
 
 } // namespace rnwgpu

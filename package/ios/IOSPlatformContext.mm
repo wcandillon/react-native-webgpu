@@ -5,6 +5,7 @@
 
 namespace rnwgpu {
 
+// TODO: are width and height in physical pixels?
 wgpu::Surface IOSPlatformContext::makeSurface(void* surface, int width, int height) {
   wgpu::SurfaceDescriptorFromMetalLayer metalSurfaceDesc;
   metalSurfaceDesc.layer = surface;

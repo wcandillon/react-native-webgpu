@@ -3,22 +3,18 @@
 #import "WebGPUModule.h"
 #import "WebGPUView.h"
 
+// TODO: to delete now
 @implementation SurfaceUtils
 
 + (void)configureSurface:(CALayer *)layer
                     size:(CGSize)size
                contextId:(int)contextId {
-  wgpu::SurfaceDescriptorFromMetalLayer metalSurfaceDesc;
-  metalSurfaceDesc.layer = (void *)CFBridgingRetain(layer);
-  wgpu::SurfaceDescriptor surfaceDescriptor;
-  surfaceDescriptor.nextInChain = &metalSurfaceDesc;
   std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule getManager];
-  auto surfaceGpu = std::make_shared<wgpu::Surface>(
-      manager->getGPU()->get().CreateSurface(&surfaceDescriptor));
   CGFloat scaleFactor = [UIScreen mainScreen].scale;
+  void *nativeSurface = (__bridge void *)layer;
   float width = size.width * scaleFactor;
-  float height = size.height * scaleFactor;
-  rnwgpu::SurfaceData surfaceData = {width, height, surfaceGpu};
+  float height = size.height  * scaleFactor;
+  rnwgpu::SurfaceData surfaceData = {width, height, nativeSurface};
   manager->surfacesRegistry.addSurface(contextId, surfaceData);
 }
 

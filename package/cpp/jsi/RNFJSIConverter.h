@@ -113,11 +113,15 @@ template <> struct JSIConverter<uint32_t> {
 // uint64_t <> BigInt
 template <> struct JSIConverter<uint64_t> {
   static double fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
+    if (arg.isNumber()) {
       double value = arg.asNumber();
       if (value < 0 || value > static_cast<double>(std::numeric_limits<uint64_t>::max())) {
         throw jsi::JSError(runtime, "Number out of range for uint64_t");
       }
       return static_cast<uint64_t>(value);
+    } else {
+      return arg.asBigInt(runtime).asInt64(runtime);
+    }
   }
 
   static jsi::Value toJSI(jsi::Runtime& runtime, uint64_t arg) {
