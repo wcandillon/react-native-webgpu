@@ -46,8 +46,7 @@ Java_com_webgpu_WebGPUModule_createSurfaceContext(JNIEnv *env, jobject thiz,
   auto resultObject = facebook::jsi::Object(*runtime);
   resultObject.setProperty(*runtime, "width", surfaceData->width);
   resultObject.setProperty(*runtime, "height", surfaceData->height);
-  uintptr_t surfacePtr = reinterpret_cast<uintptr_t>(surfaceData->surface);
-  auto surfaceBigInt = facebook::jsi::BigInt::fromUint64(*runtime, surfacePtr);
+  auto surfaceBigInt = facebook::jsi::BigInt::fromUint64(*runtime, reinterpret_cast<uint64_t>(surfaceData->surface));
   resultObject.setProperty(*runtime, "surface", surfaceBigInt);
   webGPUContextRegistry.setProperty(*runtime, std::to_string(contextId).c_str(),
                                     resultObject);
@@ -57,6 +56,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     JNIEnv *env, jobject thiz, jobject surface, jint contextId, jfloat width,
     jfloat height) {
   auto window = ANativeWindow_fromSurface(env, surface);
+  //ANativeWindow_acquire(window);
   rnwgpu::SurfaceData surfaceData = {width, height, window};
   manager->surfacesRegistry.addSurface(contextId, surfaceData);
 }

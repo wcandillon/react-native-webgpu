@@ -94,9 +94,7 @@ struct JSIConverter<T, std::enable_if_t<!std::is_same_v<T, uint64_t> && std::is_
           double value = arg.asNumber();
           return static_cast<size_t>(value);
       } else {
-
-              return arg.asBigInt(runtime).asInt64(runtime);
-
+          return arg.asBigInt(runtime).asInt64(runtime);
       }
   }
 
@@ -118,7 +116,7 @@ template <> struct JSIConverter<uint32_t> {
 
 // uint64_t <> BigInt
 template <> struct JSIConverter<uint64_t> {
-  static double fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
+  static uint64_t fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
     if (arg.isNumber()) {
       double value = arg.asNumber();
       if (value < 0 || value > static_cast<double>(std::numeric_limits<uint64_t>::max())) {
@@ -127,7 +125,7 @@ template <> struct JSIConverter<uint64_t> {
       return static_cast<uint64_t>(value);
     } else {
       return arg.asBigInt(runtime).getUint64(runtime);
-    } 
+    }
   }
 
   static jsi::Value toJSI(jsi::Runtime& runtime, uint64_t arg) {

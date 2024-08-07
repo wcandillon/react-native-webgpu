@@ -1,15 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { NativeSurface } from "./Canvas";
 import WebGPUNativeModule from "./NativeWebGPUModule";
 
 export * from "./Canvas";
 export * from "./WebGPUViewNativeComponent";
 export { default as WebGPUModule } from "./NativeWebGPUModule";
-
-interface NativeSurface {
-  surface: bigint;
-  width: number;
-  height: number;
-}
 
 declare global {
   // eslint-disable-next-line no-var

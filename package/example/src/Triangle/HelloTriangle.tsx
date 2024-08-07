@@ -5,6 +5,19 @@ import { Canvas } from "react-native-webgpu";
 
 import { redFragWGSL, triangleVertWGSL } from "./triangle";
 
+function bigIntToHex(value: bigint): string {
+  if (value < 0n) {
+    throw new Error("Input must be a non-negative BigInt");
+  }
+
+  if (value === 0n) {
+    return "0x0";
+  }
+
+  const hex = value.toString(16);
+  return "0x" + hex;
+}
+
 export function HelloTriangle() {
   const ref = useRef<CanvasRef>(null);
 
@@ -15,6 +28,12 @@ export function HelloTriangle() {
     }
     const device = await adapter.requestDevice();
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+    if (!ref.current) {
+      throw new Error("No canvas reference available");
+    }
+
+    let hexResult = bigIntToHex(ref.current.getNativeSurface().surface);
+    console.log(hexResult);
 
     const context = ref.current!.getContext("webgpu")!;
 
@@ -27,53 +46,57 @@ export function HelloTriangle() {
       alphaMode: "opaque",
     });
 
-    const pipeline = device.createRenderPipeline({
-      layout: "auto",
-      vertex: {
-        module: device.createShaderModule({
-          code: triangleVertWGSL,
-        }),
-        entryPoint: "main",
-      },
-      fragment: {
-        module: device.createShaderModule({
-          code: redFragWGSL,
-        }),
-        entryPoint: "main",
-        targets: [
-          {
-            format: presentationFormat,
-          },
-        ],
-      },
-      primitive: {
-        topology: "triangle-list",
-      },
-    });
+    hexResult = bigIntToHex(ref.current.getNativeSurface().surface);
+    console.log(hexResult);
+    console.log("Configured!");
 
-    const commandEncoder = device.createCommandEncoder();
+    // const pipeline = device.createRenderPipeline({
+    //   layout: "auto",
+    //   vertex: {
+    //     module: device.createShaderModule({
+    //       code: triangleVertWGSL,
+    //     }),
+    //     entryPoint: "main",
+    //   },
+    //   fragment: {
+    //     module: device.createShaderModule({
+    //       code: redFragWGSL,
+    //     }),
+    //     entryPoint: "main",
+    //     targets: [
+    //       {
+    //         format: presentationFormat,
+    //       },
+    //     ],
+    //   },
+    //   primitive: {
+    //     topology: "triangle-list",
+    //   },
+    // });
 
-    const textureView = context.getCurrentTexture().createView();
+    // const commandEncoder = device.createCommandEncoder();
 
-    const renderPassDescriptor: GPURenderPassDescriptor = {
-      colorAttachments: [
-        {
-          view: textureView,
-          clearValue: [0, 0, 0, 1],
-          loadOp: "clear",
-          storeOp: "store",
-        },
-      ],
-    };
+    // const textureView = context.getCurrentTexture().createView();
 
-    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-    passEncoder.setPipeline(pipeline);
-    passEncoder.draw(3);
-    passEncoder.end();
+    // const renderPassDescriptor: GPURenderPassDescriptor = {
+    //   colorAttachments: [
+    //     {
+    //       view: textureView,
+    //       clearValue: [0, 0, 0, 1],
+    //       loadOp: "clear",
+    //       storeOp: "store",
+    //     },
+    //   ],
+    // };
 
-    device.queue.submit([commandEncoder.finish()]);
+    // const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+    // passEncoder.setPipeline(pipeline);
+    // passEncoder.draw(3);
+    // passEncoder.end();
 
-    context.present();
+    // device.queue.submit([commandEncoder.finish()]);
+
+    // context.present();
   }
 
   useEffect(() => {
