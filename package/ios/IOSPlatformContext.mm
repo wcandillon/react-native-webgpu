@@ -5,7 +5,8 @@
 
 namespace rnwgpu {
 
-wgpu::Surface IOSPlatformContext::makeSurface(wgpu::Instance instance, void *surface, int width,
+wgpu::Surface IOSPlatformContext::makeSurface(wgpu::Instance instance,
+                                              void *surface, int width,
                                               int height) {
   wgpu::SurfaceDescriptorFromMetalLayer metalSurfaceDesc;
   metalSurfaceDesc.layer = surface;

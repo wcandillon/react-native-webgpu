@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NativeSurface } from "./Canvas";
+import type { NativeSurface } from "./Canvas";
 import WebGPUNativeModule from "./NativeWebGPUModule";
 
 export * from "./Canvas";

@@ -13,7 +13,8 @@ public:
   AndroidPlatformContext() = default;
   ~AndroidPlatformContext() = default;
 
-  wgpu::Surface makeSurface(wgpu::Instance instance, void *window, int width, int height) override {
+  wgpu::Surface makeSurface(wgpu::Instance instance, void *window, int width,
+                            int height) override {
     wgpu::SurfaceDescriptorFromAndroidNativeWindow androidSurfaceDesc;
     androidSurfaceDesc.window = reinterpret_cast<ANativeWindow *>(window);
     wgpu::SurfaceDescriptor surfaceDescriptor;
