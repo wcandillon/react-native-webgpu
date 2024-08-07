@@ -15,7 +15,6 @@
 #define LOG_TAG "WebGPUModule"
 
 std::shared_ptr<rnwgpu::RNWebGPUManager> manager;
-std::unordered_map<int, ANativeWindow *> windowsRegistry;
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     JNIEnv *env, jobject /* this */, jlong jsRuntime, jobject jsInvokerHolder) {
@@ -58,13 +57,13 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     JNIEnv *env, jobject thiz, jobject surface, jint contextId, jfloat width,
     jfloat height) {
   auto window = ANativeWindow_fromSurface(env, surface);
-  windowsRegistry[contextId] = window;
   rnwgpu::SurfaceData surfaceData = {width, height, window};
   manager->surfacesRegistry.addSurface(contextId, surfaceData);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
     JNIEnv *env, jobject thiz, jint contextId) {
-  ANativeWindow_release(windowsRegistry[contextId]);
+  auto surfaceData = manager->surfacesRegistry.getSurface(contextId);
+  ANativeWindow_release(static_cast<ANativeWindow*>(surfaceData->surface));
   manager->surfacesRegistry.removeSurface(contextId);
 }

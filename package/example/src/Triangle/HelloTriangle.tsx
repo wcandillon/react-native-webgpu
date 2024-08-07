@@ -21,7 +21,6 @@ export function HelloTriangle() {
     if (!context) {
       throw new Error("No context");
     }
-
     context.configure({
       device,
       format: presentationFormat,
