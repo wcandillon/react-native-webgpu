@@ -51,7 +51,6 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
         nativeSurface.width,
         nativeSurface.height,
       );
-      console.log({ ctx });
       return ctx;
     },
   }));
