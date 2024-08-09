@@ -40,6 +40,7 @@ public:
     [WebGPUView registerMetalView:metalView
                     withContextId:@(viewProps.contextId)];
 
+    // TODO: use physical size
     float width = layoutMetrics_.frame.size.width;
     float height = layoutMetrics_.frame.size.height;
     [SurfaceUtils configureSurface:layer

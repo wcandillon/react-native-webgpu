@@ -1,5 +1,7 @@
 #import "WebGPUModule.h"
 #import "GPUCanvasContext.h"
+#include "IOSPlatformContext.h"
+
 #import <React/RCTBridge+Private.h>
 #import <React/RCTLog.h>
 #import <React/RCTUIManagerUtils.h>
@@ -64,8 +66,11 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   if (!jsInvoker) {
     jsInvoker = cxxBridge.jsCallInvoker;
   }
+  std::shared_ptr<rnwgpu::PlatformContext> platformContext =
+      std::make_shared<rnwgpu::IOSPlatformContext>();
   // TODO: remove allocation here
-  webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker);
+  webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker,
+                                                            platformContext);
   return @true;
 }
 
@@ -84,12 +89,15 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext
 
   auto surfaceData = webgpuManager->surfacesRegistry.getSurface(contextIdInt);
   auto label = "Context: " + std::to_string(contextIdInt);
-  auto gpuCanvasContext =
-      std::make_shared<rnwgpu::GPUCanvasContext>(*surfaceData);
-  auto gpuCanvasContextJs =
-      facebook::jsi::Object::createFromHostObject(*runtime, gpuCanvasContext);
+  auto resultObject = facebook::jsi::Object(*runtime);
+  resultObject.setProperty(*runtime, "width", surfaceData->width);
+  resultObject.setProperty(*runtime, "height", surfaceData->height);
+  uintptr_t surfacePtr = reinterpret_cast<uintptr_t>(surfaceData->surface);
+  auto surfaceBigInt = facebook::jsi::BigInt::fromUint64(*runtime, surfacePtr);
+  resultObject.setProperty(*runtime, "surface", surfaceBigInt);
+
   webGPUContextRegistry.setProperty(
-      *runtime, std::to_string(contextIdInt).c_str(), gpuCanvasContextJs);
+      *runtime, std::to_string(contextIdInt).c_str(), resultObject);
 
   return @true;
 }

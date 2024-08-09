@@ -8,6 +8,10 @@ import type { Routes } from "./Route";
 
 export const examples = [
   {
+    screen: "Tests",
+    title: "🧪 E2E Tests",
+  },
+  {
     screen: "HelloTriangle",
     title: "🔺 Hello Triangle",
   },
@@ -48,8 +52,8 @@ export const examples = [
     title: "🧬 Wireframe",
   },
   {
-    screen: "Tests",
-    title: "🧪 E2E Tests",
+    screen: "Resize",
+    title: "↔️ Resize",
   },
 ] as const;
 

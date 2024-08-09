@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { NativeSurface } from "./Canvas";
 import WebGPUNativeModule from "./NativeWebGPUModule";
 
 export * from "./Canvas";
@@ -7,7 +8,7 @@ export { default as WebGPUModule } from "./NativeWebGPUModule";
 
 declare global {
   // eslint-disable-next-line no-var
-  var __WebGPUContextRegistry: Record<number, GPUCanvasContext>;
+  var __WebGPUContextRegistry: Record<number, NativeSurface>;
 }
 
 const GPU: any = {};
