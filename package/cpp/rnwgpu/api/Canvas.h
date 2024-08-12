@@ -28,13 +28,9 @@ public:
   float getClientWidth() { return _clientWidth; }
   float getClientHeight() { return _clientHeight; }
 
-  void setClientWidth(const float width) { 
-    _clientWidth = width;
-  }
+  void setClientWidth(const float width) { _clientWidth = width; }
 
-  void setClientHeight(const float height) { 
-    _clientHeight = height;
-  }
+  void setClientHeight(const float height) { _clientHeight = height; }
 
   uint64_t getSurface() { return _surface; }
 

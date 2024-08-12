@@ -4,12 +4,12 @@
 import fs from "fs";
 import path from "path";
 
-import type { mat4, vec3, mat3 } from "wgpu-matrix";
-import type { Server, WebSocket } from "ws";
-import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
+import type { mat4, vec3, mat3 } from "wgpu-matrix";
+import type { Server, WebSocket } from "ws";
+import type { Browser, Page } from "puppeteer";
 
 import type { DrawingContext } from "../../example/src/components/DrawingContext";
 import { cubeVertexArray } from "../../example/src/components/cube";

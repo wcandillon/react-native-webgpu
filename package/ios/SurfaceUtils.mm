@@ -12,7 +12,8 @@
   std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule getManager];
   CGFloat scaleFactor = [UIScreen mainScreen].scale;
   void *nativeSurface = (__bridge void *)layer;
-  manager->surfacesRegistry.addSurface(contextId, nativeSurface,  size.width,  size.height);
+  manager->surfacesRegistry.addSurface(contextId, nativeSurface, size.width,
+                                       size.height);
 }
 
 + (void)updateSurface:(int)contextId size:(CGSize)size {

@@ -9,6 +9,11 @@ function generateContextId() {
   return CONTEXT_COUNTER++;
 }
 
+declare global {
+  // eslint-disable-next-line no-var
+  var __WebGPUContextRegistry: Record<number, NativeCanvas>;
+}
+
 export interface NativeCanvas {
   surface: bigint;
   width: number;
