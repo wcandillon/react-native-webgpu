@@ -24,6 +24,12 @@ public:
     return _registry[contextId];
   }
   void removeSurface(const int contextId) { _registry.erase(contextId); }
+  void updateSurface(const int contextId, float width, float height) {
+    if (_registry.find(contextId) != _registry.end()) {
+      _registry[contextId]->width = width;
+      _registry[contextId]->height = height;
+    }
+  }
 };
 
 } // namespace rnwgpu

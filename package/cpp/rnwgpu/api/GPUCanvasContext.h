@@ -94,6 +94,7 @@ private:
   wgpu::Surface _instance;
   wgpu::Device _device;
   std::shared_ptr<Canvas> _canvas;
+  std::shared_ptr<GPUCanvasConfiguration> _lastConfig;
 };
 
 } // namespace rnwgpu

@@ -26,9 +26,13 @@ void GPUCanvasContext::configure(
   surfaceConfiguration.width = _canvas->getWidth();
   surfaceConfiguration.height = _canvas->getHeight();
   _instance.Configure(&surfaceConfiguration);
+  _lastConfig = configuration;
 }
 
-void GPUCanvasContext::unconfigure() { _instance.Unconfigure(); }
+void GPUCanvasContext::unconfigure() {
+  _lastConfig = nullptr;
+  _instance.Unconfigure();
+}
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   wgpu::SurfaceTexture surfaceTexture;

@@ -53,6 +53,7 @@ export const Resize = () => {
       ) {
         context.canvas.width = canvas.width;
         context.canvas.height = canvas.height;
+        canvasRef.current?.getContext("webgpu");
         context.configure({
           device,
           format: presentationFormat,

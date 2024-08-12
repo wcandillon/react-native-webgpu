@@ -81,13 +81,16 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext
   auto runtime = (jsi::Runtime *)cxxBridge.runtime;
   auto webGPUContextRegistry = runtime->global().getPropertyAsObject(
       *runtime, "__WebGPUContextRegistry");
+  auto surfaceData = webgpuManager->surfacesRegistry.getSurface(contextIdInt);
   if (webGPUContextRegistry.hasProperty(*runtime,
                                         std::to_string(contextIdInt).c_str())) {
-    // Context already exists
+    // Context already exists, just update width/height
+    auto prop = webGPUContextRegistry.getPropertyAsObject(*runtime, std::to_string(contextIdInt).c_str());
+    prop.setProperty(*runtime, "width", surfaceData->width);
+    prop.setProperty(*runtime, "height", surfaceData->height);
     return @true;
   }
 
-  auto surfaceData = webgpuManager->surfacesRegistry.getSurface(contextIdInt);
   auto label = "Context: " + std::to_string(contextIdInt);
   auto resultObject = facebook::jsi::Object(*runtime);
   resultObject.setProperty(*runtime, "width", surfaceData->width);
