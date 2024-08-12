@@ -37,14 +37,20 @@ public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
 
   @Override
   public void surfaceCreated(@NonNull SurfaceHolder holder) {
-    float width = getWidth();
-    float height = getHeight();
+    float density = getResources().getDisplayMetrics().density;
+    float width = getWidth() / density;
+    float height = getHeight() / density;
     onSurfaceCreate(holder.getSurface(), mContextId, width, height);
     mModule.onSurfaceCreated(mContextId);
   }
 
   @Override
-  public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {}
+  public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
+    float density = getResources().getDisplayMetrics().density;
+    float scaledWidth = width / density;
+    float scaledHeight = height / density;
+    onSurfaceChanged(holder.getSurface(), mContextId, scaledWidth, scaledHeight);
+  }
 
   @Override
   public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
@@ -58,6 +64,15 @@ public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
     float width,
     float height
   );
+
+  @DoNotStrip
+  private native void onSurfaceChanged(
+    Surface surface,
+    int contextId,
+    float width,
+    float height
+  );
+
 
   @DoNotStrip
   private native void onSurfaceDestroy(int contextId);

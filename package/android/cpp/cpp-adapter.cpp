@@ -28,28 +28,34 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_webgpu_WebGPUModule_createSurfaceContext(JNIEnv *env, jobject thiz,
                                                   jlong jsRuntime,
                                                   jint contextId) {
-  auto surfaceData = manager->surfacesRegistry.getSurface(contextId);
-  if (surfaceData == nullptr) {
+  auto canvas = manager->surfacesRegistry.getSurface(contextId);
+  if (canvas == nullptr) {
     throw std::runtime_error("Surface haven't configured yet");
   }
 
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
   auto webGPUContextRegistry = runtime->global().getPropertyAsObject(
       *runtime, "__WebGPUContextRegistry");
-  if (webGPUContextRegistry.hasProperty(*runtime,
-                                        std::to_string(contextId).c_str())) {
-    // Context already exists
-    return;
-  }
-  auto label = "Context: " + std::to_string(contextId);
-  auto resultObject = facebook::jsi::Object(*runtime);
-  resultObject.setProperty(*runtime, "width", surfaceData->width);
-  resultObject.setProperty(*runtime, "height", surfaceData->height);
-  auto surfaceBigInt = facebook::jsi::BigInt::fromUint64(
-      *runtime, reinterpret_cast<uint64_t>(surfaceData->surface));
-  resultObject.setProperty(*runtime, "surface", surfaceBigInt);
-  webGPUContextRegistry.setProperty(*runtime, std::to_string(contextId).c_str(),
-                                    resultObject);
+    if (webGPUContextRegistry.hasProperty(*runtime,
+                                          std::to_string(contextId).c_str())) {
+        // Context already exists, just update width/height
+        auto prop =
+                webGPUContextRegistry
+                        .getPropertyAsObject(*runtime, std::to_string(contextId).c_str())
+                        .asHostObject<rnwgpu::Canvas>(*runtime);
+        prop->setWidth(canvas->getWidth());
+        prop->setHeight(canvas->getHeight());
+        return;
+    }
+    webGPUContextRegistry.setProperty(
+            *runtime, std::to_string(contextId).c_str(),
+            facebook::jsi::Object::createFromHostObject(*runtime, canvas));
+}
+
+extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceChanged(
+    JNIEnv *env, jobject thiz, jobject surface, jint contextId, jfloat width,
+    jfloat height) {
+  manager->surfacesRegistry.updateSurface(contextId, width, height);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
@@ -57,13 +63,12 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     jfloat height) {
   auto window = ANativeWindow_fromSurface(env, surface);
   // ANativeWindow_acquire(window);
-  rnwgpu::SurfaceData surfaceData = {width, height, window};
-  manager->surfacesRegistry.addSurface(contextId, surfaceData);
+  manager->surfacesRegistry.addSurface(contextId, window, width, height);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
     JNIEnv *env, jobject thiz, jint contextId) {
-  auto surfaceData = manager->surfacesRegistry.getSurface(contextId);
-  ANativeWindow_release(static_cast<ANativeWindow *>(surfaceData->surface));
+  auto canvas = manager->surfacesRegistry.getSurface(contextId);
+  ANativeWindow_release(reinterpret_cast<ANativeWindow *>(canvas->getSurface()));
   manager->surfacesRegistry.removeSurface(contextId);
 }
