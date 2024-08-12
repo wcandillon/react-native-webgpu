@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, Dimensions, View } from "react-native";
+import { Animated, Dimensions, PixelRatio, View } from "react-native";
 import { Canvas } from "react-native-webgpu";
 
 import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
@@ -9,6 +9,12 @@ const window = Dimensions.get("window");
 
 export const Resize = () => {
   const width = useRef(new Animated.Value(20));
+  const widthRef = useRef(20);
+  useEffect(() => {
+    width.current.addListener(({ value }) => {
+      widthRef.current = value;
+    });
+  }, []);
   const { canvasRef } = useWebGPU(
     ({ context, device, presentationFormat, canvas }) => {
       const sampleCount = 4;
@@ -42,8 +48,8 @@ export const Resize = () => {
 
       return () => {
         if (
-          currentSize.width !== canvas.width ||
-          currentSize.height !== canvas.height
+          currentSize.width !== canvas.clientWidth ||
+          currentSize.height !== canvas.clientHeight
         ) {
           if (renderTarget !== undefined) {
             // Destroy the previous render target
@@ -52,7 +58,13 @@ export const Resize = () => {
 
           // Setting the canvas width and height will automatically resize the textures returned
           // when calling getCurrentTexture() on the context.
-          currentSize = { width: canvas.width, height: canvas.height };
+          canvas.width = canvas.clientWidth * PixelRatio.get();
+          canvas.height = canvas.clientHeight * PixelRatio.get();
+
+          currentSize = {
+            width: canvas.clientWidth,
+            height: canvas.clientHeight,
+          };
           renderTarget = device.createTexture({
             size: [canvas.width, canvas.height],
             sampleCount,
@@ -64,7 +76,6 @@ export const Resize = () => {
         }
         if (renderTargetView) {
           const commandEncoder = device.createCommandEncoder();
-
           const renderPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: [
               {

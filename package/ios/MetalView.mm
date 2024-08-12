@@ -19,6 +19,8 @@
                               size:self.frame.size
                          contextId:[_contextId intValue]];
     _isConfigured = YES;
+  } else {
+    [SurfaceUtils updateSurface:[_contextId intValue] size:self.frame.size];
   }
 }
 

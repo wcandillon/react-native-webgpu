@@ -8,4 +8,6 @@
                     size:(CGSize)size
                contextId:(int)contextId;
 
++ (void)updateSurface:(int)contextId size:(CGSize)size;
+
 @end
