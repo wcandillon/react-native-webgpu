@@ -12,19 +12,12 @@
   std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule getManager];
   CGFloat scaleFactor = [UIScreen mainScreen].scale;
   void *nativeSurface = (__bridge void *)layer;
-  float width = size.width * scaleFactor;
-  float height = size.height * scaleFactor;
-  //NSLog(@"configureSurface - Width: %f, Height: %f", width, height);
-  manager->surfacesRegistry.addSurface(contextId, nativeSurface, width, height);
+  manager->surfacesRegistry.addSurface(contextId, nativeSurface,  size.width,  size.height);
 }
 
 + (void)updateSurface:(int)contextId size:(CGSize)size {
   std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule getManager];
-  CGFloat scaleFactor = [UIScreen mainScreen].scale;
-  float width = size.width * scaleFactor;
-  float height = size.height * scaleFactor;
-  //NSLog(@"updateSurface - Width: %f, Height: %f", width, height);
-  manager->surfacesRegistry.updateSurface(contextId, width, height);
+  manager->surfacesRegistry.updateSurface(contextId, size.width, size.height);
 }
 
 @end

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { PixelRatio } from "react-native";
 import type { CanvasRef, NativeCanvas } from "react-native-webgpu";
 
 const useDevice = () => {
@@ -42,14 +43,15 @@ export const useWebGPU = (scene: Scene) => {
     if (!device) {
       return;
     }
-    const canvas = canvasRef.current;
-    if (!canvas) {
+    if (!canvasRef.current) {
       return;
     }
 
-    const context = canvas.getContext("webgpu")!;
+    const context = canvasRef.current.getContext("webgpu")!;
+    const canvas = context.canvas as HTMLCanvasElement;
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-
+    canvas.width = canvas.clientWidth * PixelRatio.get();
+    canvas.height = canvas.clientHeight * PixelRatio.get();
     context.configure({
       device,
       format: presentationFormat,

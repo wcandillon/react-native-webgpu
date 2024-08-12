@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, Dimensions, View } from "react-native";
+import { Animated, Dimensions, PixelRatio, View } from "react-native";
 import { Canvas } from "react-native-webgpu";
 
 import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
@@ -58,10 +58,8 @@ export const Resize = () => {
 
           // Setting the canvas width and height will automatically resize the textures returned
           // when calling getCurrentTexture() on the context.
-          console.log({ width: canvas.width, height: canvas.height });
-          canvas.width = canvas.clientWidth;
-          canvas.height = canvas.clientHeight;
-          console.log({ width: canvas.width, height: canvas.height });
+          canvas.width = canvas.clientWidth * PixelRatio.get();
+          canvas.height = canvas.clientHeight * PixelRatio.get();
 
           currentSize = {
             width: canvas.clientWidth,
