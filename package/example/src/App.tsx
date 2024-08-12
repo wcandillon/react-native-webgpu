@@ -14,6 +14,7 @@ import { OcclusionQuery } from "./OcclusionQuery";
 import { ComputeBoids } from "./ComputeBoids";
 import { Wireframe } from "./Wireframe";
 import { Resize } from "./Resize";
+import { Particules } from "./Particles";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -43,7 +44,21 @@ function App() {
           <Stack.Screen name="ABuffer" component={ABuffer} />
           <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />
           <Stack.Screen name="ComputeBoids" component={ComputeBoids} />
-          <Stack.Screen name="Wireframe" component={Wireframe} />
+          <Stack.Screen
+            name="Wireframe"
+            component={Wireframe}
+            options={{
+              header: () => null,
+            }}
+          />
+          <Stack.Screen
+            name="Particles"
+            options={{
+              header: () => null,
+            }}
+          >
+            {(props) => <Particules {...props} assets={assets} />}
+          </Stack.Screen>
           <Stack.Screen name="Resize" component={Resize} />
           <Stack.Screen name="Tests">
             {(props) => <Tests {...props} assets={assets} />}

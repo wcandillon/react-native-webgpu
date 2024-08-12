@@ -32,6 +32,10 @@ export const examples = [
     title: "❄️ Fractal Cube",
   },
   {
+    screen: "Particles",
+    title: "🌌 Particles",
+  },
+  {
     screen: "RenderBundles",
     title: "🪐 Render Bundles",
   },

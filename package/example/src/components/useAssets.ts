@@ -18,7 +18,12 @@ export const decodeImage = async (uri: string) => {
 };
 
 export interface AssetProps {
-  assets: { di3D: ImageData; saturn: ImageData; moon: ImageData };
+  assets: {
+    di3D: ImageData;
+    saturn: ImageData;
+    moon: ImageData;
+    react: ImageData;
+  };
 }
 
 const useImageData = (mod: number) => {
@@ -42,12 +47,14 @@ export const useAssets = () => {
   const di3D = useImageData(require("../assets/Di-3d.png"));
   const moon = useImageData(require("../assets/moon.png"));
   const saturn = useImageData(require("../assets/saturn.png"));
-  if (!di3D || !moon || !saturn) {
+  const react = useImageData(require("../assets/react.png"));
+  if (!di3D || !moon || !saturn || !react) {
     return null;
   }
   return {
     di3D,
     moon,
     saturn,
+    react,
   };
 };
