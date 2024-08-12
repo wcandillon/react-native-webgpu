@@ -9,7 +9,6 @@
 
 #include "RNFHybridObject.h"
 
-
 namespace rnwgpu {
 
 namespace m = margelo;
@@ -17,7 +16,8 @@ namespace m = margelo;
 class Canvas : public m::HybridObject {
 public:
   explicit Canvas(uint64_t surface, const float width, const float height)
-      : HybridObject("Canvas"), _surface(surface), _width(width), _height(height) {}
+      : HybridObject("Canvas"), _surface(surface), _width(width),
+        _height(height) {}
 
   float getWidth() { return _width; }
   float getHeight() { return _height; }

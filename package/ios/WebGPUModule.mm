@@ -85,13 +85,17 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext
   if (webGPUContextRegistry.hasProperty(*runtime,
                                         std::to_string(contextIdInt).c_str())) {
     // Context already exists, just update width/height
-    auto prop = webGPUContextRegistry.getPropertyAsObject(*runtime, std::to_string(contextIdInt).c_str()).asHostObject<rnwgpu::Canvas>(*runtime);
+    auto prop =
+        webGPUContextRegistry
+            .getPropertyAsObject(*runtime, std::to_string(contextIdInt).c_str())
+            .asHostObject<rnwgpu::Canvas>(*runtime);
     prop->setWidth(canvas->getWidth());
     prop->setHeight(canvas->getHeight());
     return @true;
   }
   webGPUContextRegistry.setProperty(
-      *runtime, std::to_string(contextIdInt).c_str(), facebook::jsi::Object::createFromHostObject(*runtime, canvas));
+      *runtime, std::to_string(contextIdInt).c_str(),
+      facebook::jsi::Object::createFromHostObject(*runtime, canvas));
 
   return @true;
 }
