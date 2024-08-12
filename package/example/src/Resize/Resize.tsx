@@ -51,8 +51,8 @@ export const Resize = () => {
         currentSize.width !== canvas.width ||
         currentSize.height !== canvas.height
       ) {
-        context.canvas.setWidth(canvas.width);
-        context.canvas.setHeight(canvas.height);
+        context.canvas.width = canvas.width;
+        context.canvas.height = canvas.height;
         context.configure({
           device,
           format: presentationFormat,

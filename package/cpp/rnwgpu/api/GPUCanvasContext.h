@@ -42,8 +42,10 @@ public:
 
   float getWidth() { return _width; }
   float getHeight() { return _height; }
+
   void setWidth(const float width) { _width = width; }
   void setHeight(const float height) { _height = height; }
+
   float getClientWidth() { return _width; }
   float getClientHeight() { return _height; }
 
@@ -52,8 +54,8 @@ public:
     registerHybridGetter("height", &Canvas::getHeight, this);
     registerHybridGetter("clientWidth", &Canvas::getClientWidth, this);
     registerHybridGetter("clientHeight", &Canvas::getClientHeight, this);
-    registerHybridMethod("setWidth", &Canvas::setWidth, this);
-    registerHybridMethod("setHeight", &Canvas::setHeight, this);
+    registerHybridSetter("width", &Canvas::setWidth, this);
+    registerHybridSetter("height", &Canvas::setHeight, this);
   }
 
 private:
