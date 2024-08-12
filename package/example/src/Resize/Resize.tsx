@@ -47,10 +47,9 @@ export const Resize = () => {
       let renderTargetView: GPUTextureView;
 
       return () => {
-        //const canvas = { width: widthRef.current, height: window.height };
         if (
-          currentSize.width !== canvas.width ||
-          currentSize.height !== canvas.height
+          currentSize.width !== canvas.clientWidth ||
+          currentSize.height !== canvas.clientHeight
         ) {
           if (renderTarget !== undefined) {
             // Destroy the previous render target
@@ -59,7 +58,15 @@ export const Resize = () => {
 
           // Setting the canvas width and height will automatically resize the textures returned
           // when calling getCurrentTexture() on the context.
-          currentSize = { width: canvas.width, height: canvas.height };
+          console.log({ width: canvas.width, height: canvas.height });
+          canvas.width = canvas.clientWidth;
+          canvas.height = canvas.clientHeight;
+          console.log({ width: canvas.width, height: canvas.height });
+
+          currentSize = {
+            width: canvas.clientWidth,
+            height: canvas.clientHeight,
+          };
           renderTarget = device.createTexture({
             size: [canvas.width, canvas.height],
             sampleCount,

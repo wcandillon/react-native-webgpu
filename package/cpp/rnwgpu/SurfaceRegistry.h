@@ -27,8 +27,8 @@ public:
 
   void updateSurface(const int contextId, float width, float height) {
     if (_registry.find(contextId) != _registry.end()) {
-      _registry[contextId]->setWidth(width);
-      _registry[contextId]->setHeight(height);
+      _registry[contextId]->setClientWidth(width);
+      _registry[contextId]->setClientHeight(height);
     }
   }
 };

@@ -14,7 +14,7 @@
   void *nativeSurface = (__bridge void *)layer;
   float width = size.width * scaleFactor;
   float height = size.height * scaleFactor;
-  NSLog(@"configureSurface - Width: %f, Height: %f", width, height);
+  //NSLog(@"configureSurface - Width: %f, Height: %f", width, height);
   manager->surfacesRegistry.addSurface(contextId, nativeSurface, width, height);
 }
 
@@ -23,7 +23,7 @@
   CGFloat scaleFactor = [UIScreen mainScreen].scale;
   float width = size.width * scaleFactor;
   float height = size.height * scaleFactor;
-  NSLog(@"updateSurface - Width: %f, Height: %f", width, height);
+  //NSLog(@"updateSurface - Width: %f, Height: %f", width, height);
   manager->surfacesRegistry.updateSurface(contextId, width, height);
 }
 

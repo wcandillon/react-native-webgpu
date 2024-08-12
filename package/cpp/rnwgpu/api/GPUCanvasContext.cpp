@@ -39,6 +39,10 @@ void GPUCanvasContext::unconfigure() {
 }
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
+  // we need to reconfigure if the size of the canvas has changed
+  if (_width != _canvas->getWidth() || _height != _canvas->getHeight()) {
+    configure(_lastConfig);
+  }
   wgpu::SurfaceTexture surfaceTexture;
   _instance.GetCurrentTexture(&surfaceTexture);
   auto texture = surfaceTexture.texture;
@@ -54,10 +58,6 @@ void GPUCanvasContext::present() {
   dawn::native::metal::WaitForCommandsToBeScheduled(_device.Get());
 #endif
   _instance.Present();
-  // we need to reconfigure if the size of the canvas has changed
-  if (_width != _canvas->getWidth() || _height != _canvas->getHeight()) {
-    configure(_lastConfig);
-  }
 }
 
 } // namespace rnwgpu

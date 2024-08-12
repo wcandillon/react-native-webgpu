@@ -13,6 +13,8 @@ export interface NativeCanvas {
   surface: bigint;
   width: number;
   height: number;
+  clientWidth: number;
+  clientHeight: number;
 }
 
 global.__WebGPUContextRegistry = {};
