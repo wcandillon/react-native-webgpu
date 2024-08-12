@@ -14,8 +14,7 @@
   void *nativeSurface = (__bridge void *)layer;
   float width = size.width * scaleFactor;
   float height = size.height * scaleFactor;
-  rnwgpu::SurfaceData surfaceData = {width, height, nativeSurface};
-  manager->surfacesRegistry.addSurface(contextId, surfaceData);
+  manager->surfacesRegistry.addSurface(contextId, nativeSurface, width, height);
 }
 
 + (void)updateSurface:(int)contextId size:(CGSize)size {

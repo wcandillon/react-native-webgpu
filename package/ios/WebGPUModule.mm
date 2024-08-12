@@ -81,26 +81,17 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext
   auto runtime = (jsi::Runtime *)cxxBridge.runtime;
   auto webGPUContextRegistry = runtime->global().getPropertyAsObject(
       *runtime, "__WebGPUContextRegistry");
-  auto surfaceData = webgpuManager->surfacesRegistry.getSurface(contextIdInt);
+  auto canvas = webgpuManager->surfacesRegistry.getSurface(contextIdInt);
   if (webGPUContextRegistry.hasProperty(*runtime,
                                         std::to_string(contextIdInt).c_str())) {
     // Context already exists, just update width/height
-    auto prop = webGPUContextRegistry.getPropertyAsObject(*runtime, std::to_string(contextIdInt).c_str());
-    prop.setProperty(*runtime, "width", surfaceData->width);
-    prop.setProperty(*runtime, "height", surfaceData->height);
+    auto prop = webGPUContextRegistry.getPropertyAsObject(*runtime, std::to_string(contextIdInt).c_str()).asHostObject<rnwgpu::Canvas>(*runtime);
+    prop->setWidth(canvas->getWidth());
+    prop->setHeight(canvas->getHeight());
     return @true;
   }
-
-  auto label = "Context: " + std::to_string(contextIdInt);
-  auto resultObject = facebook::jsi::Object(*runtime);
-  resultObject.setProperty(*runtime, "width", surfaceData->width);
-  resultObject.setProperty(*runtime, "height", surfaceData->height);
-  uintptr_t surfacePtr = reinterpret_cast<uintptr_t>(surfaceData->surface);
-  auto surfaceBigInt = facebook::jsi::BigInt::fromUint64(*runtime, surfacePtr);
-  resultObject.setProperty(*runtime, "surface", surfaceBigInt);
-
   webGPUContextRegistry.setProperty(
-      *runtime, std::to_string(contextIdInt).c_str(), resultObject);
+      *runtime, std::to_string(contextIdInt).c_str(), facebook::jsi::Object::createFromHostObject(*runtime, canvas));
 
   return @true;
 }

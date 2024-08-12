@@ -4,15 +4,15 @@ import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
 import WebGPUNativeModule from "./NativeWebGPUModule";
 
-export interface NativeSurface {
-  surface: bigint;
-  width: number;
-  height: number;
-}
-
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
   return CONTEXT_COUNTER++;
+}
+
+interface ReactNativeCanvas {
+  surface: bigint;
+  width: number;
+  height: number;
 }
 
 global.__WebGPUContextRegistry = {};
@@ -20,7 +20,7 @@ const WebGPUContextRegistry = global.__WebGPUContextRegistry;
 
 type CanvasContext = GPUCanvasContext & {
   present: () => void;
-  getNativeSurface: () => NativeSurface;
+  getNativeSurface: () => ReactNativeCanvas;
 };
 
 export interface CanvasRef {
@@ -44,14 +44,9 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
       if (!nativeSurface) {
         return null;
       }
-      console.log({ nativeSurface });
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
-      const ctx = navigator.MakeWebGPUCanvasContext(
-        nativeSurface.surface,
-        nativeSurface.width,
-        nativeSurface.height,
-      );
+      const ctx = navigator.MakeWebGPUCanvasContext(nativeSurface);
       return ctx;
     },
   }));
