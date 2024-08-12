@@ -9,7 +9,7 @@ function generateContextId() {
   return CONTEXT_COUNTER++;
 }
 
-interface ReactNativeCanvas {
+export interface NativeCanvas {
   surface: bigint;
   width: number;
   height: number;
@@ -20,7 +20,7 @@ const WebGPUContextRegistry = global.__WebGPUContextRegistry;
 
 type CanvasContext = GPUCanvasContext & {
   present: () => void;
-  getNativeSurface: () => ReactNativeCanvas;
+  getNativeSurface: () => NativeCanvas;
 };
 
 export interface CanvasRef {

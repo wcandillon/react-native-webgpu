@@ -52,11 +52,6 @@ export const Resize = () => {
           currentSize.width !== canvas.width ||
           currentSize.height !== canvas.height
         ) {
-          context.configure({
-            device,
-            format: presentationFormat,
-            alphaMode: "premultiplied",
-          });
           if (renderTarget !== undefined) {
             // Destroy the previous render target
             renderTarget.destroy();

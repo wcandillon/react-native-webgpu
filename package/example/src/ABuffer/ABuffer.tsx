@@ -647,7 +647,6 @@ export function ABuffer() {
 const style = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "red",
   },
   webgpu: {
     flex: 1,

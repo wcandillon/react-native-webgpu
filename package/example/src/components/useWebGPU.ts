@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { CanvasRef } from "react-native-webgpu";
+import type { CanvasRef, NativeCanvas } from "react-native-webgpu";
 
 const useDevice = () => {
   const [device, setDevice] = useState<GPUDevice | null>(null);
@@ -26,7 +26,7 @@ interface SceneProps {
   device: GPUDevice;
   gpu: GPU;
   presentationFormat: GPUTextureFormat;
-  canvas: OffscreenCanvas;
+  canvas: NativeCanvas;
 }
 
 type RenderScene = (timestamp: number) => void;
@@ -61,7 +61,7 @@ export const useWebGPU = (scene: Scene) => {
       device,
       gpu: navigator.gpu,
       presentationFormat,
-      canvas: context.canvas as OffscreenCanvas,
+      canvas: context.canvas as unknown as NativeCanvas,
     };
 
     const renderScene = scene(sceneProps);

@@ -27,10 +27,14 @@ void GPUCanvasContext::configure(
   surfaceConfiguration.height = _canvas->getHeight();
   _instance.Configure(&surfaceConfiguration);
   _lastConfig = configuration;
+  _width = _canvas->getWidth();
+  _height = _canvas->getHeight();
 }
 
 void GPUCanvasContext::unconfigure() {
   _lastConfig = nullptr;
+  _width = _canvas->getWidth();
+  _height = _canvas->getHeight();
   _instance.Unconfigure();
 }
 
@@ -50,6 +54,10 @@ void GPUCanvasContext::present() {
   dawn::native::metal::WaitForCommandsToBeScheduled(_device.Get());
 #endif
   _instance.Present();
+  // we need to reconfigure if the size of the canvas has changed
+  if (_width != _canvas->getWidth() || _height != _canvas->getHeight()) {
+    configure(_lastConfig);
+  }
 }
 
 } // namespace rnwgpu

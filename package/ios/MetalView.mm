@@ -14,7 +14,6 @@
 // Paper only method
 - (void)reactSetFrame:(CGRect)frame {
   [super reactSetFrame:frame];
-  NSLog(@"MetalView size updated: %@", NSStringFromCGSize(frame.size));
   if (!_isConfigured) {
     [SurfaceUtils configureSurface:self.layer
                               size:self.frame.size

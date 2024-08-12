@@ -52,7 +52,6 @@ static NSMutableDictionary<NSNumber *, MetalView *> *metalViewRegistry =
   [metalViewRegistry removeObjectForKey:_contextId];
 }
 
-// TODO implement resize!
 - (void)updateLayoutMetrics:
             (const facebook::react::LayoutMetrics &)layoutMetrics
            oldLayoutMetrics:

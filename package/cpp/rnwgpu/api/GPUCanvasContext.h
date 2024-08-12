@@ -69,6 +69,8 @@ private:
   wgpu::Device _device;
   std::shared_ptr<Canvas> _canvas;
   std::shared_ptr<GPUCanvasConfiguration> _lastConfig;
+  float _width;
+  float _height;
 };
 
 } // namespace rnwgpu
