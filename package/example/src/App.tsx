@@ -46,33 +46,10 @@ function App() {
           <Stack.Screen name="ABuffer" component={ABuffer} />
           <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />
           <Stack.Screen name="ComputeBoids" component={ComputeBoids} />
-          <Stack.Screen
-            name="ShadowMapping"
-            component={ShadowMapping}
-            options={{
-              header: () => null,
-            }}
-          />
-          <Stack.Screen
-            name="DeferedRendering"
-            component={DeferedRendering}
-            options={{
-              header: () => null,
-            }}
-          />
-          <Stack.Screen
-            name="Wireframe"
-            component={Wireframe}
-            options={{
-              header: () => null,
-            }}
-          />
-          <Stack.Screen
-            name="Particles"
-            options={{
-              header: () => null,
-            }}
-          >
+          <Stack.Screen name="ShadowMapping" component={ShadowMapping} />
+          <Stack.Screen name="DeferedRendering" component={DeferedRendering} />
+          <Stack.Screen name="Wireframe" component={Wireframe} />
+          <Stack.Screen name="Particles">
             {(props) => <Particules {...props} assets={assets} />}
           </Stack.Screen>
           <Stack.Screen name="Resize" component={Resize} />
