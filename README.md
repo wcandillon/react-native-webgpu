@@ -2,11 +2,10 @@
 
 React Native implementation of WebGPU using [Dawn](https://dawn.googlesource.com/dawn).  
 This is currently a technical preview for early adopters.  
-We still have a lot of rough edges and missing features.
 
 ## Installation
 
-Please note that the package name is `react-native-wgpu` (not `react-native-webgpu`).
+Please note that the package name is `react-native-wgpu`.
 
 ```
 npm install react-native-wgpu
@@ -14,7 +13,7 @@ npm install react-native-wgpu
 
 ## Usage
 
-You can look at the [example](/tree/main/package/example) folder for working examples.
+You can look at the [example](/package/example) folder for working examples.
 
 ```tsx
 import React, { useEffect, useRef } from "react";
@@ -136,7 +135,7 @@ ctx.canvas.height = ctx.canvas.clientHeight * PixelRatio.get();
 
 However, there are two differences with the Web: frame scheduling and external textures.
 
-### Present
+### Frame Scheduling
 
 In React Native, we want to keep frame presentation as a manual operation as we plan to provide more advanced rendering options that are React Native specific.  
 This means that when you are ready to present a frame, you need to call `present` on the context.
@@ -166,7 +165,7 @@ device.queue.copyExternalImageToTexture(
 ```
 
 In React Native, you would need to load the texture yourself.  
-For instance, we use Skia for image decoding [here](/blob/main/package/example/src/components/useAssets.ts#L6).
+For instance, we use Skia for image decoding [here](/package/example/src/components/useAssets.ts#L6).
 
 ```tsx
 const imageBitmap = await decodeImage(require("./assets/Di-3d.png"));
@@ -233,7 +232,7 @@ yarn test:ref
 
 To run the e2e test, open the example app on the e2e screen.  
 By default, it will try to connect to a localhost test server.  
-If you want to run the test suite on a physical device, you can modify the address [/blob/main/package/example/src/useClient.ts#L4](here).
+If you want to run the test suite on a physical device, you can modify the address [here](/package/example/src/useClient.ts#L4).
 
 ```
 yarn test
