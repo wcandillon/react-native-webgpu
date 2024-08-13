@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { Canvas } from "react-native-webgpu";
+import { Canvas } from "react-native-wgpu";
 import { mat4, vec3 } from "wgpu-matrix";
 
 import { useWebGPU } from "../components/useWebGPU";

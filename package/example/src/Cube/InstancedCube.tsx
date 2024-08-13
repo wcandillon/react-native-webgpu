@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { Canvas } from "react-native-webgpu";
+import { Canvas } from "react-native-wgpu";
 import type { Mat4 } from "wgpu-matrix";
 import { mat4, vec3 } from "wgpu-matrix";
 

@@ -90,7 +90,7 @@ std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(
   if (!conv(desc, descriptor)) {
     throw std::runtime_error("Error with GPURenderPipelineDescriptor");
   }
-  //assert(desc.fragment != nullptr && "Fragment state must not be null");
+  // assert(desc.fragment != nullptr && "Fragment state must not be null");
   auto renderPipeline = _instance.CreateRenderPipeline(&desc);
   return std::make_shared<GPURenderPipeline>(renderPipeline,
                                              descriptor->label.value_or(""));

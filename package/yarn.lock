@@ -9779,9 +9779,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"react-native-webgpu@workspace:.":
+"react-native-wgpu@workspace:.":
   version: 0.0.0-use.local
-  resolution: "react-native-webgpu@workspace:."
+  resolution: "react-native-wgpu@workspace:."
   dependencies:
     "@react-native/eslint-config": ^0.74.84
     "@types/jest": ^29.5.12

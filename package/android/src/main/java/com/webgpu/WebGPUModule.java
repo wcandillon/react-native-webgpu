@@ -19,7 +19,7 @@ import com.facebook.react.turbomodule.core.interfaces.CallInvokerHolder;
 @ReactModule(name = WebGPUModule.NAME)
 public class WebGPUModule extends NativeWebGPUModuleSpec {
   static {
-      System.loadLibrary("react-native-webgpu"); // Load the C++ library
+      System.loadLibrary("react-native-wgpu"); // Load the C++ library
   }
 
   private final Object mContextLock = new Object();

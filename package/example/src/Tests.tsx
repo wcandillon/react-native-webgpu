@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Dimensions, Platform, Text, View } from "react-native";
-import "react-native-webgpu";
+import "react-native-wgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 import type { SkImage } from "@shopify/react-native-skia";
 import {

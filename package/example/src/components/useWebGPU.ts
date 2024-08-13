@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { PixelRatio } from "react-native";
-import type { CanvasRef, NativeCanvas } from "react-native-webgpu";
+import type { CanvasRef, NativeCanvas } from "react-native-wgpu";
 
 const useDevice = () => {
   const [device, setDevice] = useState<GPUDevice | null>(null);
