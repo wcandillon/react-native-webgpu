@@ -54,3 +54,4 @@ dist
 package/lib
 .vscode
 !package/script/build
+*.tgz
