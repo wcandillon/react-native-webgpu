@@ -15,6 +15,7 @@ import { ComputeBoids } from "./ComputeBoids";
 import { Wireframe } from "./Wireframe";
 import { Resize } from "./Resize";
 import { Particules } from "./Particles";
+import { ShadowMapping } from "./ShadowMapping";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -26,7 +27,7 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Home">
+        <Stack.Navigator initialRouteName="ShadowMapping">
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="HelloTriangle" component={HelloTriangle} />
           <Stack.Screen
@@ -45,6 +46,13 @@ function App() {
           <Stack.Screen name="ABuffer" component={ABuffer} />
           <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />
           <Stack.Screen name="ComputeBoids" component={ComputeBoids} />
+          <Stack.Screen
+            name="ShadowMapping"
+            component={ShadowMapping}
+            options={{
+              header: () => null,
+            }}
+          />
           <Stack.Screen
             name="Wireframe"
             component={Wireframe}

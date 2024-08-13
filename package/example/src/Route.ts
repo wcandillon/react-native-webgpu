@@ -11,6 +11,7 @@ export type Routes = {
   ComputeBoids: undefined;
   ABuffer: undefined;
   Particles: undefined;
+  ShadowMapping: undefined;
   Wireframe: undefined;
   Resize: undefined;
   Tests: undefined;

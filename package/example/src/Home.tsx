@@ -52,6 +52,10 @@ export const examples = [
     title: "🐦‍⬛ Compute Boids",
   },
   {
+    screen: "ShadowMapping",
+    title: "🐲 Shadow Mapping",
+  },
+  {
     screen: "ABuffer",
     title: "🫖 A-Buffer",
   },
