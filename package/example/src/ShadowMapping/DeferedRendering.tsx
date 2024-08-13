@@ -14,16 +14,13 @@ const lightExtentMax = vec3.fromValues(50, 50, 50);
 import {
   fragmentDeferredRendering,
   fragmentGBuffersDebugView,
-  fragmentWGSL,
   fragmentWriteGBuffers,
   lightUpdate,
-  vertexShadowWGSL,
   vertexTextureQuad,
-  vertexWGSL,
   vertexWriteGBuffers,
 } from "./Shaders";
 
-export function ShadowMapping() {
+export function DeferedRendering() {
   const { canvasRef } = useWebGPU(
     ({ context, device, presentationFormat, canvas }) => {
       const aspect = canvas.width / canvas.height;

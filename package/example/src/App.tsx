@@ -15,7 +15,7 @@ import { ComputeBoids } from "./ComputeBoids";
 import { Wireframe } from "./Wireframe";
 import { Resize } from "./Resize";
 import { Particules } from "./Particles";
-import { ShadowMapping } from "./ShadowMapping";
+import { DeferedRendering, ShadowMapping } from "./ShadowMapping";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -27,7 +27,7 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="ShadowMapping">
+        <Stack.Navigator initialRouteName="Home">
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="HelloTriangle" component={HelloTriangle} />
           <Stack.Screen
@@ -49,6 +49,13 @@ function App() {
           <Stack.Screen
             name="ShadowMapping"
             component={ShadowMapping}
+            options={{
+              header: () => null,
+            }}
+          />
+          <Stack.Screen
+            name="DeferedRendering"
+            component={DeferedRendering}
             options={{
               header: () => null,
             }}

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { RectButton } from "react-native-gesture-handler";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -51,9 +51,17 @@ export const examples = [
     screen: "ComputeBoids",
     title: "🐦‍⬛ Compute Boids",
   },
+  ...[
+    Platform.OS !== "ios"
+      ? ({
+          screen: "ShadowMapping",
+          title: "🐲 Shadow Mapping",
+        } as const)
+      : null,
+  ].filter((b) => b !== null),
   {
-    screen: "ShadowMapping",
-    title: "🐲 Shadow Mapping",
+    screen: "DeferedRendering",
+    title: "🚦 Deferred Rendeering",
   },
   {
     screen: "ABuffer",
