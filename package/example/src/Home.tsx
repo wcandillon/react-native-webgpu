@@ -51,14 +51,14 @@ export const examples = [
     screen: "ComputeBoids",
     title: "🐦‍⬛ Compute Boids",
   },
-  ...[
-    Platform.OS !== "ios"
-      ? ({
+  ...(Platform.OS !== "ios"
+    ? ([
+        {
           screen: "ShadowMapping",
           title: "🐲 Shadow Mapping",
-        } as const)
-      : null,
-  ].filter((b) => b !== null),
+        },
+      ] as const)
+    : []),
   {
     screen: "DeferedRendering",
     title: "🚦 Deferred Rendeering",

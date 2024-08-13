@@ -14,12 +14,9 @@ const lightExtentMax = vec3.fromValues(50, 50, 50);
 import {
   fragmentDeferredRendering,
   fragmentGBuffersDebugView,
-  fragmentWGSL,
   fragmentWriteGBuffers,
   lightUpdate,
-  vertexShadowWGSL,
   vertexTextureQuad,
-  vertexWGSL,
   vertexWriteGBuffers,
 } from "./Shaders";
 
@@ -547,6 +544,8 @@ export function ShadowMapping() {
           // Left: depth
           // Middle: normal
           // Right: albedo (use uv to mimic a checkerboard texture)
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error
           textureQuadPassDescriptor.colorAttachments[0].view = context
             .getCurrentTexture()
             .createView();
@@ -559,6 +558,8 @@ export function ShadowMapping() {
           debugViewPass.end();
         } else {
           // Deferred rendering
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error
           textureQuadPassDescriptor.colorAttachments[0].view = context
             .getCurrentTexture()
             .createView();

@@ -5,9 +5,9 @@ import { Canvas } from "react-native-webgpu";
 import { mat4, vec3 } from "wgpu-matrix";
 
 import { useWebGPU } from "../components/useWebGPU";
+import type { AssetProps } from "../components/useAssets";
 
 import { particleWGSL, probabilityMapWGSL } from "./Shaders";
-import { AssetProps } from "../components/useAssets";
 
 const numParticles = 50000;
 const particlePositionOffset = 0;
@@ -20,7 +20,7 @@ const particleInstanceByteSize =
   1 * 4 + // padding
   0;
 
-export function Particules({ assets: { react: imageBitmap }}: AssetProps) {
+export function Particules({ assets: { react: imageBitmap } }: AssetProps) {
   const { canvasRef } = useWebGPU(({ context, device, canvas }) => {
     const presentationFormat = "rgba16float";
 
@@ -143,6 +143,7 @@ export function Particules({ assets: { react: imageBitmap }}: AssetProps) {
     });
 
     const renderPassDescriptor: GPURenderPassDescriptor = {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
       colorAttachments: [
         {
@@ -179,7 +180,6 @@ export function Particules({ assets: { react: imageBitmap }}: AssetProps) {
     //////////////////////////////////////////////////////////////////////////////
     // Texture
     //////////////////////////////////////////////////////////////////////////////
-    let texture: GPUTexture;
     let textureWidth = 1;
     let textureHeight = 1;
     let numMipLevels = 1;
@@ -193,7 +193,7 @@ export function Particules({ assets: { react: imageBitmap }}: AssetProps) {
       textureHeight *= 2;
       numMipLevels++;
     }
-    texture = device.createTexture({
+    const texture = device.createTexture({
       size: [imageBitmap.width, imageBitmap.height, 1],
       mipLevelCount: numMipLevels,
       format: "rgba8unorm",
@@ -214,7 +214,6 @@ export function Particules({ assets: { react: imageBitmap }}: AssetProps) {
       },
       { width: imageBitmap.width, height: imageBitmap.height },
     );
-
 
     //////////////////////////////////////////////////////////////////////////////
     // Probability map generation

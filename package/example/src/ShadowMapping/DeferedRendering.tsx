@@ -544,6 +544,8 @@ export function DeferedRendering() {
           // Left: depth
           // Middle: normal
           // Right: albedo (use uv to mimic a checkerboard texture)
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error
           textureQuadPassDescriptor.colorAttachments[0].view = context
             .getCurrentTexture()
             .createView();
@@ -556,6 +558,8 @@ export function DeferedRendering() {
           debugViewPass.end();
         } else {
           // Deferred rendering
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error
           textureQuadPassDescriptor.colorAttachments[0].view = context
             .getCurrentTexture()
             .createView();

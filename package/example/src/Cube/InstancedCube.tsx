@@ -177,6 +177,8 @@ export const InstancedCube = () => {
       }
 
       const renderPassDescriptor: GPURenderPassDescriptor = {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
         colorAttachments: [
           {
             view: undefined, // Assigned later
