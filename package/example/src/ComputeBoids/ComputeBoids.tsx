@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { Canvas } from "react-native-webgpu";
+import { Canvas } from "react-native-wgpu";
 
 import { useWebGPU } from "../components/useWebGPU";
 import { toBeAssignedLater } from "../components/utils";

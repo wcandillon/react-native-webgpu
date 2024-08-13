@@ -23,7 +23,7 @@ target 'WgpuExample' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
-  pod "react-native-webgpu", path: "../.."
+  pod "react-native-wgpu", path: "../.."
 
   target 'WgpuExampleTests' do
     inherit! :complete
