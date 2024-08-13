@@ -960,7 +960,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-webgpu (0.1.0):
+  - react-native-wgpu (0.1.1):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1312,7 +1312,7 @@ DEPENDENCIES:
   - React-Mapbuffer (from `../../node_modules/react-native/ReactCommon`)
   - react-native-safe-area-context (from `../../node_modules/react-native-safe-area-context`)
   - "react-native-skia (from `../../node_modules/@shopify/react-native-skia`)"
-  - react-native-webgpu (from `../..`)
+  - react-native-wgpu (from `../..`)
   - React-nativeconfig (from `../../node_modules/react-native/ReactCommon`)
   - React-NativeModulesApple (from `../../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-perflogger (from `../../node_modules/react-native/ReactCommon/reactperflogger`)
@@ -1411,7 +1411,7 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/react-native-safe-area-context"
   react-native-skia:
     :path: "../../node_modules/@shopify/react-native-skia"
-  react-native-webgpu:
+  react-native-wgpu:
     :path: "../.."
   React-nativeconfig:
     :path: "../../node_modules/react-native/ReactCommon"
@@ -1501,7 +1501,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: bf56147c9775491e53122a94c423ac201417e326
   react-native-safe-area-context: 422017db8bcabbada9ad607d010996c56713234c
   react-native-skia: 4008bb2e4923ead4b8be7d17326840ba9c8b46f4
-  react-native-webgpu: 8d115ae309a932635a6b7f4d6570f25f4b3dbb7f
+  react-native-wgpu: 76726c4893a88eb31c7b02cc7d30f4632416815d
   React-nativeconfig: 9f223cd321823afdecf59ed00861ab2d69ee0fc1
   React-NativeModulesApple: ff7efaff7098639db5631236cfd91d60abff04c0
   React-perflogger: 32ed45d9cee02cf6639acae34251590dccd30994
@@ -1531,6 +1531,6 @@ SPEC CHECKSUMS:
   SocketRocket: abac6f5de4d4d62d24e11868d7a2f427e0ef940d
   Yoga: ae3c32c514802d30f687a04a6a35b348506d411f
 
-PODFILE CHECKSUM: bc103ee88cf3f3d6c6d2118ef4de93b283783dee
+PODFILE CHECKSUM: 2e9d01dbfe056434fee48fbb7ed2d00dc53cf9fd
 
 COCOAPODS: 1.15.2
