@@ -6,7 +6,7 @@ import type { Routes } from "./Route";
 import { Home } from "./Home";
 import { Tests } from "./Tests";
 import { useAssets } from "./components/useAssets";
-import { Cube, TexturedCube, FractalCube } from "./Cube";
+import { Cube, TexturedCube, FractalCube, InstancedCube } from "./Cube";
 import { HelloTriangle, HelloTriangleMSAA } from "./Triangle";
 import { RenderBundles } from "./RenderBundles";
 import { ABuffer } from "./ABuffer";
@@ -14,6 +14,8 @@ import { OcclusionQuery } from "./OcclusionQuery";
 import { ComputeBoids } from "./ComputeBoids";
 import { Wireframe } from "./Wireframe";
 import { Resize } from "./Resize";
+import { Particules } from "./Particles";
+import { DeferedRendering, ShadowMapping } from "./ShadowMapping";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -33,6 +35,7 @@ function App() {
             component={HelloTriangleMSAA}
           />
           <Stack.Screen name="Cube" component={Cube} />
+          <Stack.Screen name="InstancedCube" component={InstancedCube} />
           <Stack.Screen name="TexturedCube">
             {(props) => <TexturedCube {...props} assets={assets} />}
           </Stack.Screen>
@@ -43,7 +46,12 @@ function App() {
           <Stack.Screen name="ABuffer" component={ABuffer} />
           <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />
           <Stack.Screen name="ComputeBoids" component={ComputeBoids} />
+          <Stack.Screen name="ShadowMapping" component={ShadowMapping} />
+          <Stack.Screen name="DeferedRendering" component={DeferedRendering} />
           <Stack.Screen name="Wireframe" component={Wireframe} />
+          <Stack.Screen name="Particles">
+            {(props) => <Particules {...props} assets={assets} />}
+          </Stack.Screen>
           <Stack.Screen name="Resize" component={Resize} />
           <Stack.Screen name="Tests">
             {(props) => <Tests {...props} assets={assets} />}

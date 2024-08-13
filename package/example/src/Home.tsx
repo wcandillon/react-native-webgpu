@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { RectButton } from "react-native-gesture-handler";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -24,12 +24,20 @@ export const examples = [
     title: "🧊 Cube",
   },
   {
+    screen: "InstancedCube",
+    title: "🎲 Instanced Cube",
+  },
+  {
     screen: "TexturedCube",
     title: "🥷 Textured Cube",
   },
   {
     screen: "FractalCube",
     title: "❄️ Fractal Cube",
+  },
+  {
+    screen: "Particles",
+    title: "🌌 Particles",
   },
   {
     screen: "RenderBundles",
@@ -42,6 +50,18 @@ export const examples = [
   {
     screen: "ComputeBoids",
     title: "🐦‍⬛ Compute Boids",
+  },
+  ...(Platform.OS !== "ios"
+    ? ([
+        {
+          screen: "ShadowMapping",
+          title: "🐲 Shadow Mapping",
+        },
+      ] as const)
+    : []),
+  {
+    screen: "DeferedRendering",
+    title: "🚦 Deferred Rendeering",
   },
   {
     screen: "ABuffer",

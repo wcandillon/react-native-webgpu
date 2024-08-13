@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Canvas } from "react-native-webgpu";
+import type { Mat4 } from "wgpu-matrix";
 import { mat4, vec3 } from "wgpu-matrix";
 
 import {
@@ -13,17 +13,11 @@ import {
 } from "../components/cube";
 import { useWebGPU } from "../components/useWebGPU";
 
-import { basicVertWGSL, vertexPositionColorWGSL } from "./Shaders";
+import { instancedVertWGSL, vertexPositionColorWGSL } from "./Shaders";
 
-export function Cube() {
+export const InstancedCube = () => {
   const { canvasRef } = useWebGPU(
-    ({ context, device, presentationFormat, canvas }) => {
-      context.configure({
-        device,
-        format: presentationFormat,
-        alphaMode: "premultiplied",
-      });
-
+    ({ device, presentationFormat, canvas, context }) => {
       // Create a vertex buffer from the cube data.
       const verticesBuffer = device.createBuffer({
         size: cubeVertexArray.byteLength,
@@ -37,7 +31,7 @@ export function Cube() {
         layout: "auto",
         vertex: {
           module: device.createShaderModule({
-            code: basicVertWGSL,
+            code: instancedVertWGSL,
           }),
           buffers: [
             {
@@ -93,7 +87,15 @@ export function Cube() {
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
       });
 
-      const uniformBufferSize = 4 * 16; // 4x4 matrix
+      const xCount = 4;
+      const yCount = 4;
+      const numInstances = xCount * yCount;
+      const matrixFloatCount = 16; // 4x4 matrix
+      const matrixSize = 4 * matrixFloatCount;
+      const uniformBufferSize = numInstances * matrixSize;
+
+      // Allocate a buffer large enough to hold transforms for every
+      // instance.
       const uniformBuffer = device.createBuffer({
         size: uniformBufferSize,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -111,7 +113,71 @@ export function Cube() {
         ],
       });
 
+      const aspect = canvas.width / canvas.height;
+      const projectionMatrix = mat4.perspective(
+        (2 * Math.PI) / 5,
+        aspect,
+        1,
+        100.0,
+      );
+
+      const modelMatrices = new Array<Mat4>(numInstances);
+      const mvpMatricesData = new Float32Array(matrixFloatCount * numInstances);
+
+      const step = 4.0;
+
+      // Initialize the matrix data for every instance.
+      let m = 0;
+      for (let x = 0; x < xCount; x++) {
+        for (let y = 0; y < yCount; y++) {
+          modelMatrices[m] = mat4.translation(
+            vec3.fromValues(
+              step * (x - xCount / 2 + 0.5),
+              step * (y - yCount / 2 + 0.5),
+              0,
+            ),
+          );
+          m++;
+        }
+      }
+
+      const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -12));
+
+      const tmpMat4 = mat4.create();
+
+      // Update the transformation matrix data for each instance.
+      function updateTransformationMatrix() {
+        const now = Date.now() / 1000;
+
+        // eslint-disable-next-line @typescript-eslint/no-shadow
+        let m = 0,
+          i = 0;
+        for (let x = 0; x < xCount; x++) {
+          for (let y = 0; y < yCount; y++) {
+            mat4.rotate(
+              modelMatrices[i],
+              vec3.fromValues(
+                Math.sin((x + 0.5) * now),
+                Math.cos((y + 0.5) * now),
+                0,
+              ),
+              1,
+              tmpMat4,
+            );
+
+            mat4.multiply(viewMatrix, tmpMat4, tmpMat4);
+            mat4.multiply(projectionMatrix, tmpMat4, tmpMat4);
+
+            mvpMatricesData.set(tmpMat4, m);
+
+            i++;
+            m += matrixFloatCount;
+          }
+        }
+      }
+
       const renderPassDescriptor: GPURenderPassDescriptor = {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
         colorAttachments: [
           {
@@ -131,40 +197,18 @@ export function Cube() {
         },
       };
 
-      const aspect = canvas.width / canvas.height;
-      const projectionMatrix = mat4.perspective(
-        (2 * Math.PI) / 5,
-        aspect,
-        1,
-        100.0,
-      );
-      const modelViewProjectionMatrix = mat4.create();
-
-      function getTransformationMatrix() {
-        const viewMatrix = mat4.identity();
-        mat4.translate(viewMatrix, vec3.fromValues(0, 0, -4), viewMatrix);
-        const now = Date.now() / 1000;
-        mat4.rotate(
-          viewMatrix,
-          vec3.fromValues(Math.sin(now), Math.cos(now), 0),
-          1,
-          viewMatrix,
-        );
-
-        mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
-
-        return modelViewProjectionMatrix;
-      }
-
       function frame() {
-        const transformationMatrix = getTransformationMatrix();
+        // Update the matrix data.
+        updateTransformationMatrix();
         device.queue.writeBuffer(
           uniformBuffer,
           0,
-          transformationMatrix.buffer,
-          transformationMatrix.byteOffset,
-          transformationMatrix.byteLength,
+          mvpMatricesData.buffer,
+          mvpMatricesData.byteOffset,
+          mvpMatricesData.byteLength,
         );
+
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
         renderPassDescriptor.colorAttachments[0].view = context
           .getCurrentTexture()
@@ -176,7 +220,7 @@ export function Cube() {
         passEncoder.setPipeline(pipeline);
         passEncoder.setBindGroup(0, uniformBindGroup);
         passEncoder.setVertexBuffer(0, verticesBuffer);
-        passEncoder.draw(cubeVertexCount);
+        passEncoder.draw(cubeVertexCount, numInstances, 0, 0);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
       }
@@ -189,7 +233,7 @@ export function Cube() {
       <Canvas ref={canvasRef} style={style.webgpu} />
     </View>
   );
-}
+};
 
 const style = StyleSheet.create({
   container: {
