@@ -46,15 +46,6 @@ GPU::requestAdapter(
     adapter.GetProperties(&properties);
     if (properties.backendType == wgpu::BackendType::Null) {
       promise.set_value(nullptr);
-    } else {
-      if (std::string(properties.name).find("SwiftShader") !=
-          std::string::npos) {
-        Logger::warnToJavascriptConsole(
-            *_creationRuntime,
-            "This device is running SwiftShader, a CPU-based implementation of "
-            "the Vulkan graphics API. WebGPU will be much slower than on a "
-            "physical device. Some WebGPU APIs may crash.");
-      }
     }
 #endif
     auto result = std::make_shared<GPUAdapter>(std::move(adapter), _async);
