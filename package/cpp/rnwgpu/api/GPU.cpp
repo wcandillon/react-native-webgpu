@@ -19,6 +19,12 @@ GPU::requestAdapter(
         if (!conv(aOptions, options)) {
           throw std::runtime_error("Failed to convert GPUDeviceDescriptor");
         }
+#ifdef __APPLE__
+        constexpr auto kDefaultBackendType = wgpu::BackendType::Metal;
+#else
+        constexpr auto kDefaultBackendType = wgpu::BackendType::Vulkan;
+#endif
+        aOptions.backendType = kDefaultBackendType;
         wgpu::Adapter adapter = nullptr;
         _instance.RequestAdapter(
             &aOptions,
@@ -35,35 +41,16 @@ GPU::requestAdapter(
         if (!adapter) {
           return nullptr;
         }
-
+#if defined(ANDROID) || defined(__ANDROID__)
+          wgpu::AdapterProperties properties;
+          adapter.GetProperties(&properties);
+          if (properties.backendType == wgpu::BackendType::Null) {
+            return nullptr;
+          }
+#endif
         return std::make_shared<GPUAdapter>(std::move(adapter), _async);
       });
 }
-
-// Async impl keeping here as a reference
-// std::future<std::shared_ptr<GPUAdapter>>
-// GPU::requestAdapter(std::shared_ptr<GPURequestAdapterOptions> options) {
-//   return _async->runAsync([=](wgpu::Instance *instance) {
-//     auto aOptions = options->getInstance();
-//     wgpu::Adapter adapter = nullptr;
-//     auto result = std::make_shared<GPUAdapter>(adapter, _async);
-//     wgpu::RequestAdapterCallbackInfo callback;
-//     callback.callback = [](WGPURequestAdapterStatus, WGPUAdapter cAdapter,
-//                            const char *message, void *userdata) {
-//       if (message != nullptr) {
-//         fprintf(stderr, "%s", message);
-//         return;
-//       }
-//       *static_cast<wgpu::Adapter *>(userdata) =
-//           wgpu::Adapter::Acquire(cAdapter);
-//     };
-//     callback.mode = wgpu::CallbackMode::WaitAnyOnly;
-//     callback.userdata = &(result->_instance);
-//     auto future = _instance.RequestAdapter(aOptions, callback);
-//     instance->WaitAny(future, UINT64_MAX);
-//     return result;
-//   });
-// }
 
 std::unordered_set<std::string> GPU::getWgslLanguageFeatures() {
   auto count = _instance.EnumerateWGSLLanguageFeatures(nullptr);

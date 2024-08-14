@@ -191,12 +191,6 @@ In "Edit Scheme," uncheck "Metal Validation."
 
 <img width="1052" alt="Uncheck 'Metal Validation'" src="https://github.com/user-attachments/assets/2676e5cc-e351-4a97-bdc8-22cbd7df2ef2">
 
-### Android
-
-On a physical device, you need Android API level 26 or higher.  
-On a simulator, you need Android API level 34 or higher.  
-We are currently working on relaxing that rule for Android simulators.
-
 ## Library Development
 
 Make sure to check out the submodules:
