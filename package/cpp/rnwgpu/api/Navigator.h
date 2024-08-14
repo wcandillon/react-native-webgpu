@@ -11,10 +11,10 @@ namespace m = margelo;
 
 class Navigator : public m::HybridObject {
 public:
-  explicit Navigator(std::shared_ptr<GPU> gpu,
-                     std::shared_ptr<PlatformContext> platformContext)
-      : HybridObject("Navigator"), _gpu(gpu),
-        _platformContext(platformContext) {}
+  explicit Navigator(std::shared_ptr<PlatformContext> platformContext)
+      : HybridObject("Navigator"), _platformContext(platformContext) {
+    _gpu = std::make_shared<GPU>();
+  }
 
   std::shared_ptr<GPU> getGPU() { return _gpu; }
 

@@ -42,11 +42,17 @@ GPU::requestAdapter(
           return nullptr;
         }
 #if defined(ANDROID) || defined(__ANDROID__)
-          wgpu::AdapterProperties properties;
-          adapter.GetProperties(&properties);
-          if (properties.backendType == wgpu::BackendType::Null) {
-            return nullptr;
-          }
+        wgpu::AdapterProperties properties;
+        adapter.GetProperties(&properties);
+        if (properties.backendType == wgpu::BackendType::Null) {
+          return nullptr;
+        }
+        if (std::string(properties.name).find("SwiftShader") !=
+            std::string::npos) {
+          Logger::logToConsole("This device is using a Vulkan CPU emulation. "
+                               "WebGPU will be much slower than on a physical "
+                               "device. Some WebGPU APIs might crash.");
+        }
 #endif
         return std::make_shared<GPUAdapter>(std::move(adapter), _async);
       });
