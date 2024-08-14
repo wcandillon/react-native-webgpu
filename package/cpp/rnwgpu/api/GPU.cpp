@@ -55,10 +55,10 @@ GPU::requestAdapter(
             "the Vulkan graphics API. WebGPU will be much slower than on a "
             "physical device. Some WebGPU APIs may crash.");
       }
-#endif
-      auto result = std::make_shared<GPUAdapter>(std::move(adapter), _async);
-      promise.set_value(result);
     }
+#endif
+    auto result = std::make_shared<GPUAdapter>(std::move(adapter), _async);
+    promise.set_value(result);
   }
   return future;
 }
