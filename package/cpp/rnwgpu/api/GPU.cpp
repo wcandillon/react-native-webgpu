@@ -10,52 +10,57 @@ namespace rnwgpu {
 std::future<std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>>
 GPU::requestAdapter(
     std::optional<std::shared_ptr<GPURequestAdapterOptions>> options) {
-  return std::async(
-      std::launch::async,
-      [this,
-       options]() -> std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>> {
-        wgpu::RequestAdapterOptions aOptions;
-        Convertor conv;
-        if (!conv(aOptions, options)) {
-          throw std::runtime_error("Failed to convert GPUDeviceDescriptor");
-        }
+  std::promise<std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>>
+      promise;
+  auto future = promise.get_future();
+
+  wgpu::RequestAdapterOptions aOptions;
+  Convertor conv;
+  if (!conv(aOptions, options)) {
+    throw std::runtime_error("Failed to convert GPUDeviceDescriptor");
+  }
 #ifdef __APPLE__
-        constexpr auto kDefaultBackendType = wgpu::BackendType::Metal;
+  constexpr auto kDefaultBackendType = wgpu::BackendType::Metal;
 #else
-        constexpr auto kDefaultBackendType = wgpu::BackendType::Vulkan;
+  constexpr auto kDefaultBackendType = wgpu::BackendType::Vulkan;
 #endif
-        aOptions.backendType = kDefaultBackendType;
-        wgpu::Adapter adapter = nullptr;
-        _instance.RequestAdapter(
-            &aOptions,
-            [](WGPURequestAdapterStatus, WGPUAdapter cAdapter,
-               const char *message, void *userdata) {
-              if (message != nullptr) {
-                fprintf(stderr, "%s", message);
-                return;
-              }
-              *static_cast<wgpu::Adapter *>(userdata) =
-                  wgpu::Adapter::Acquire(cAdapter);
-            },
-            &adapter);
-        if (!adapter) {
-          return nullptr;
+  aOptions.backendType = kDefaultBackendType;
+  wgpu::Adapter adapter = nullptr;
+  _instance.RequestAdapter(
+      &aOptions,
+      [](WGPURequestAdapterStatus, WGPUAdapter cAdapter, const char *message,
+         void *userdata) {
+        if (message != nullptr) {
+          fprintf(stderr, "%s", message);
+          return;
         }
+        *static_cast<wgpu::Adapter *>(userdata) =
+            wgpu::Adapter::Acquire(cAdapter);
+      },
+      &adapter);
+  if (!adapter) {
+    promise.set_value(nullptr);
+  } else {
 #if defined(ANDROID) || defined(__ANDROID__)
-        wgpu::AdapterProperties properties;
-        adapter.GetProperties(&properties);
-        if (properties.backendType == wgpu::BackendType::Null) {
-          return nullptr;
-        }
-        if (std::string(properties.name).find("SwiftShader") !=
-            std::string::npos) {
-          Logger::logToConsole("This device is using a Vulkan CPU emulation. "
-                               "WebGPU will be much slower than on a physical "
-                               "device. Some WebGPU APIs might crash.");
-        }
+    wgpu::AdapterProperties properties;
+    adapter.GetProperties(&properties);
+    if (properties.backendType == wgpu::BackendType::Null) {
+      promise.set_value(nullptr);
+    } else {
+      if (std::string(properties.name).find("SwiftShader") !=
+          std::string::npos) {
+        Logger::warnToJavascriptConsole(
+            *_creationRuntime,
+            "This device is running SwiftShader, a CPU-based implementation of "
+            "the Vulkan graphics API. WebGPU will be much slower than on a "
+            "physical device. Some WebGPU APIs may crash.");
+      }
 #endif
-        return std::make_shared<GPUAdapter>(std::move(adapter), _async);
-      });
+      auto result = std::make_shared<GPUAdapter>(std::move(adapter), _async);
+      promise.set_value(result);
+    }
+  }
+  return future;
 }
 
 std::unordered_set<std::string> GPU::getWgslLanguageFeatures() {

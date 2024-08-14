@@ -81,7 +81,6 @@ private:
     auto console = runtime.global().getProperty(runtime, "console");
     if (console.isUndefined() || console.isNull()) {
       throw jsi::JSError(runtime, "Could not find console object.");
-      return jsi::Value::undefined();
     }
     return console;
   }
