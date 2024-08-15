@@ -3,6 +3,7 @@ import WebGPUNativeModule from "./NativeWebGPUModule";
 
 export * from "./Canvas";
 export * from "./WebGPUViewNativeComponent";
+export * from "./hooks";
 export { default as WebGPUModule } from "./NativeWebGPUModule";
 
 const GPU: any = {};

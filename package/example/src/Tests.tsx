@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Dimensions, Platform, Text, View } from "react-native";
-import "react-native-wgpu";
+import { useAdapter, useDevice } from "react-native-wgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 import type { SkImage } from "@shopify/react-native-skia";
 import {
@@ -23,26 +23,10 @@ export const CI = process.env.CI === "true";
 
 const { width } = Dimensions.get("window");
 
-const useWebGPU = () => {
-  const [adapter, setAdapter] = useState<GPUAdapter | null>(null);
-  const [device, setDevice] = useState<GPUDevice | null>(null);
-  useEffect(() => {
-    (async () => {
-      const a = await navigator.gpu.requestAdapter();
-      if (!a) {
-        throw new Error("No adapter");
-      }
-      const d = await a.requestDevice();
-      setAdapter(a);
-      setDevice(d);
-    })();
-  }, []);
-  return { adapter, device };
-};
-
 export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   const [image, setImage] = useState<SkImage | null>(null);
-  const { adapter, device } = useWebGPU();
+  const adapter = useAdapter();
+  const device = useDevice();
   const [client, hostname] = useClient();
   useEffect(() => {
     if (client !== null && adapter !== null && device !== null) {
