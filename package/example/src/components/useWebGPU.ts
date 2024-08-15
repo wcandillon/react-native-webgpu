@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { PixelRatio } from "react-native";
-import type { CanvasRef, NativeCanvas } from "react-native-wgpu";
+import {
+  warnIfNotHardwareAccelerated,
+  type CanvasRef,
+  type NativeCanvas,
+} from "react-native-wgpu";
 
 const useDevice = () => {
   const [device, setDevice] = useState<GPUDevice | null>(null);
@@ -10,6 +14,7 @@ const useDevice = () => {
       if (!adapter) {
         throw new Error("No appropriate GPUAdapter found.");
       }
+      warnIfNotHardwareAccelerated(adapter);
       const dev = await adapter.requestDevice();
       if (!dev) {
         throw new Error("No appropriate GPUDevice found.");
