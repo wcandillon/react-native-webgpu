@@ -29,13 +29,10 @@ public:
 
   SurfaceRegistry surfacesRegistry;
 
-  std::shared_ptr<GPU> getGPU();
-
 private:
   jsi::Runtime *_jsRuntime;
   std::shared_ptr<facebook::react::CallInvoker> _jsCallInvoker;
   std::shared_ptr<PlatformContext> _platformContext;
-  std::shared_ptr<GPU> _gpu;
 };
 
 } // namespace rnwgpu
