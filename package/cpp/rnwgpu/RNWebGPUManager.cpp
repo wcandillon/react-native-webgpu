@@ -22,8 +22,11 @@ RNWebGPUManager::RNWebGPUManager(
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker),
       _platformContext(platformContext) {
 
-  _gpu = std::make_shared<GPU>();
-  auto navigator = std::make_shared<Navigator>(_gpu, _platformContext);
+  auto gpu = std::make_shared<GPU>();
+  auto navigator = std::make_shared<Navigator>(gpu, _platformContext);
+  _jsRuntime->global().setProperty(
+      *_jsRuntime, "navigator",
+      jsi::Object::createFromHostObject(*_jsRuntime, navigator));
 
   auto bufferUsage = std::make_shared<GPUBufferUsage>();
   _jsRuntime->global().setProperty(
@@ -49,17 +52,11 @@ RNWebGPUManager::RNWebGPUManager(
   _jsRuntime->global().setProperty(
       *_jsRuntime, "GPUTextureUsage",
       jsi::Object::createFromHostObject(*_jsRuntime, std::move(textureUsage)));
-
-  _jsRuntime->global().setProperty(
-      *_jsRuntime, "navigator",
-      jsi::Object::createFromHostObject(*_jsRuntime, navigator));
 }
 
 RNWebGPUManager::~RNWebGPUManager() {
   _jsRuntime = nullptr;
   _jsCallInvoker = nullptr;
 }
-
-std::shared_ptr<GPU> RNWebGPUManager::getGPU() { return _gpu; }
 
 } // namespace rnwgpu
