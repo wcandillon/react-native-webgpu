@@ -193,9 +193,7 @@ In "Edit Scheme," uncheck "Metal Validation."
 
 ### Android
 
-On a physical device, you need Android API level 26 or higher.  
-On a simulator, you need Android API level 34 or higher.  
-We are currently working on relaxing that rule for Android simulators.
+On an Android simulator, a CPU emulation layer is used which may result in very slow performance.
 
 ## Library Development
 
