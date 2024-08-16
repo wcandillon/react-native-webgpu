@@ -123,6 +123,18 @@ const style = StyleSheet.create({
 });
 ```
 
+## Example App
+
+To run the example app you first need to build Dawn.
+
+```sh
+$ git submodule update --init
+$ cd package && yarn`
+$ yarn build-dawn
+```
+
+From there you will be able to run the example app properly.
+
 ## Similarities and Differences with the Web
 
 The API has been designed to be completely symmetric with the Web.  
