@@ -18,8 +18,6 @@ https://github.com/user-attachments/assets/116a41b2-2cf8-49f1-9f16-a5c83637c198
 
 ## Usage
 
-You can look at the [example](/package/example) folder for working examples.
-
 ```tsx
 import React, { useEffect, useRef } from "react";
 import { StyleSheet, View, PixelRatio } from "react-native";
