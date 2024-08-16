@@ -90,6 +90,8 @@ const ios = {
 
   libs.forEach((lib) => {
     console.log(`Building fat binary for iphone simulator: ${lib}`);
+    $(`xcrun strip -S package/libs/ios/x86_64_iphonesimulator/${lib}.a`);
+    $(`xcrun strip -S package/libs/ios/arm64_iphonesimulator/${lib}.a`);
     $(
       `lipo -create package/libs/ios/x86_64_iphonesimulator/${lib}.a package/libs/ios/arm64_iphonesimulator/${lib}.a -output package/libs/ios/${lib}.a`,
     );
