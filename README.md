@@ -11,6 +11,11 @@ Please note that the package name is `react-native-wgpu`.
 npm install react-native-wgpu
 ```
 
+Below are some examples from the [example app](/package/example/).
+
+https://github.com/user-attachments/assets/116a41b2-2cf8-49f1-9f16-a5c83637c198
+
+
 ## Usage
 
 You can look at the [example](/package/example) folder for working examples.
