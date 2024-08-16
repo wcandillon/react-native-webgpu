@@ -10,40 +10,40 @@ namespace rnwgpu {
 std::future<std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>>
 GPU::requestAdapter(
     std::optional<std::shared_ptr<GPURequestAdapterOptions>> options) {
-  return std::async(
-      std::launch::async,
-      [this,
-       options]() -> std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>> {
-        wgpu::RequestAdapterOptions aOptions;
-        Convertor conv;
-        if (!conv(aOptions, options)) {
-          throw std::runtime_error("Failed to convert GPUDeviceDescriptor");
-        }
-#ifdef __APPLE__
-        constexpr auto kDefaultBackendType = wgpu::BackendType::Metal;
-#else
-        constexpr auto kDefaultBackendType = wgpu::BackendType::Vulkan;
-#endif
-        aOptions.backendType = kDefaultBackendType;
-        wgpu::Adapter adapter = nullptr;
-        _instance.RequestAdapter(
-            &aOptions,
-            [](WGPURequestAdapterStatus, WGPUAdapter cAdapter,
-               const char *message, void *userdata) {
-              if (message != nullptr) {
-                fprintf(stderr, "%s", message);
-                return;
-              }
-              *static_cast<wgpu::Adapter *>(userdata) =
-                  wgpu::Adapter::Acquire(cAdapter);
-            },
-            &adapter);
-        if (!adapter) {
-          return nullptr;
-        }
+  std::promise<std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>>
+      promise;
+  auto future = promise.get_future();
 
-        return std::make_shared<GPUAdapter>(std::move(adapter), _async);
-      });
+  wgpu::RequestAdapterOptions aOptions;
+  Convertor conv;
+  if (!conv(aOptions, options)) {
+    throw std::runtime_error("Failed to convert GPUDeviceDescriptor");
+  }
+#ifdef __APPLE__
+  constexpr auto kDefaultBackendType = wgpu::BackendType::Metal;
+#else
+  constexpr auto kDefaultBackendType = wgpu::BackendType::Vulkan;
+#endif
+  aOptions.backendType = kDefaultBackendType;
+  wgpu::Adapter adapter = nullptr;
+  _instance.RequestAdapter(
+      &aOptions,
+      [](WGPURequestAdapterStatus, WGPUAdapter cAdapter, const char *message,
+         void *userdata) {
+        if (message != nullptr) {
+          fprintf(stderr, "%s", message);
+          return;
+        }
+        *static_cast<wgpu::Adapter *>(userdata) =
+            wgpu::Adapter::Acquire(cAdapter);
+      },
+      &adapter);
+  if (!adapter) {
+    promise.set_value(nullptr);
+  } else {
+    promise.set_value(std::make_shared<GPUAdapter>(std::move(adapter), _async));
+  }
+  return future;
 }
 
 std::unordered_set<std::string> GPU::getWgslLanguageFeatures() {
