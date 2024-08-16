@@ -1,3 +1,4 @@
+import type { DependencyList, EffectCallback } from "react";
 import { useEffect, useRef } from "react";
 import { PixelRatio } from "react-native";
 import {
@@ -17,10 +18,17 @@ interface SceneProps {
 type RenderScene = (timestamp: number) => void;
 type Scene = (props: SceneProps) => RenderScene | void;
 
+const useCanvasEffect = (effect: EffectCallback, deps?: DependencyList) => {
+  useEffect(() => {
+    requestAnimationFrame(effect);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+};
+
 export const useWebGPU = (scene: Scene) => {
   const canvasRef = useRef<CanvasRef>(null);
   const device = useDevice();
-  useEffect(() => {
+  useCanvasEffect(() => {
     let animationFrameId: number;
     let frameNumber = 0;
 

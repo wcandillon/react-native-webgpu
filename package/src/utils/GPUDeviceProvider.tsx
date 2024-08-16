@@ -1,8 +1,12 @@
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useState } from "react";
+import { Platform } from "react-native";
 
 export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
-  if (adapter.info.architecture === "swiftshader") {
+  if (
+    Platform.OS === "android" &&
+    adapter.info.architecture === "swiftshader"
+  ) {
     console.warn(
       "GPUAdapter is not hardware accelerated. This is common on Android emulators. Rendering will be slow.",
     );

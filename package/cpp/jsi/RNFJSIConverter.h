@@ -401,8 +401,10 @@ template <typename T> struct JSIConverter<T, std::enable_if_t<is_shared_ptr_to_h
 #if DEBUG
     if (!object.isHostObject<TPointee>(runtime)) {
       [[unlikely]];
-      std::string stringRepresentation = arg.toString(runtime).utf8(runtime);
-      throw jsi::JSError(runtime, invalidTypeErrorMessage(stringRepresentation, "It is a different HostObject<T>!"));
+      //std::string stringRepresentation = arg.toString(runtime).utf8(runtime);
+      throw jsi::JSError(runtime, invalidTypeErrorMessage("fromJSI", "It is a different HostObject<T>!"));
+    } else if (outOfBound) {
+        throw jsi::JSError(runtime, "Value out of bound");
     }
 #endif
     return object.getHostObject<TPointee>(runtime);
