@@ -23,6 +23,7 @@ import { Resize } from "./Resize";
 import { Particules } from "./Particles";
 import { DeferedRendering, ShadowMapping } from "./ShadowMapping";
 import { SamplerParameters } from "./Sampler";
+import { ReversedZ } from "./ReversedZ";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -55,6 +56,7 @@ function App() {
           <Stack.Screen name="RenderBundles">
             {(props) => <RenderBundles {...props} assets={assets} />}
           </Stack.Screen>
+          <Stack.Screen name="ReversedZ" component={ReversedZ} />
           <Stack.Screen name="ABuffer" component={ABuffer} />
           <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />
           <Stack.Screen name="ComputeBoids" component={ComputeBoids} />

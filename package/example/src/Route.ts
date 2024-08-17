@@ -15,6 +15,7 @@ export type Routes = {
   Particles: undefined;
   ShadowMapping: undefined;
   DeferedRendering: undefined;
+  ReversedZ: undefined;
   Wireframe: undefined;
   Resize: undefined;
   Tests: undefined;

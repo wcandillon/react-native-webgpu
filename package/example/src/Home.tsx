@@ -52,6 +52,10 @@ export const examples = [
     title: "🟩 Occlusion Query",
   },
   {
+    screen: "ReversedZ",
+    title: "🟥 Reversed Z",
+  },
+  {
     screen: "ComputeBoids",
     title: "🐦‍⬛ Compute Boids",
   },
