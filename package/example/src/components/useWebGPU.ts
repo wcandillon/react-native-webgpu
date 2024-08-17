@@ -79,24 +79,24 @@ export const useWebGPU = (scene: Scene) => {
       } else {
         renderScene = r;
       }
-
-      const render = () => {
-        frameNumber++;
-        const timestamp = Date.now();
-        if (typeof renderScene === "function") {
+      if (typeof renderScene === "function") {
+        const render = () => {
+          frameNumber++;
+          const timestamp = Date.now();
           renderScene(timestamp);
-        }
-        context.present();
-        if (frameNumber > 2500) {
-          frameNumber = 0;
-          if (gc) {
-            gc();
-          }
-        }
-        animationFrameId = requestAnimationFrame(render);
-      };
 
-      animationFrameId = requestAnimationFrame(render);
+          context.present();
+          if (frameNumber > 2500) {
+            frameNumber = 0;
+            if (gc) {
+              gc();
+            }
+          }
+          animationFrameId = requestAnimationFrame(render);
+        };
+
+        animationFrameId = requestAnimationFrame(render);
+      }
 
       return () => {
         if (animationFrameId) {

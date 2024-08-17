@@ -217,12 +217,15 @@ export const SamplerParameters = () => {
       const kTextureMipLevels = 4;
       const kTextureBaseSize = 16;
       const checkerboard = device.createTexture({
+        label: "Checkerboard Texture",
         format: "rgba8unorm",
         usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
         size: [kTextureBaseSize, kTextureBaseSize],
         mipLevelCount: 4,
       });
-      const checkerboardView = checkerboard.createView();
+      const checkerboardView = checkerboard.createView({
+        label: "Checkerboard Texture View",
+      });
 
       const kColorForLevel = [
         [255, 255, 255, 255],
@@ -254,9 +257,11 @@ export const SamplerParameters = () => {
       //
 
       const showTextureModule = device.createShaderModule({
+        label: "Show Texture Shader Module",
         code: showTextureWGSL,
       });
       const showTexturePipeline = device.createRenderPipeline({
+        label: "Show Texture Render Pipeline",
         layout: "auto",
         vertex: { module: showTextureModule },
         fragment: {
@@ -267,6 +272,7 @@ export const SamplerParameters = () => {
       });
 
       const showTextureBG = device.createBindGroup({
+        label: "Show Texture Bind Group",
         layout: showTexturePipeline.getBindGroupLayout(0),
         entries: [{ binding: 0, resource: checkerboardView }],
       });
@@ -276,10 +282,12 @@ export const SamplerParameters = () => {
       //
 
       const texturedSquareModule = device.createShaderModule({
+        label: "Textured Square Shader Module",
         code: texturedSquareWGSL,
       });
 
       const texturedSquarePipeline = device.createRenderPipeline({
+        label: "Textured Square Render Pipeline",
         layout: "auto",
         vertex: {
           module: texturedSquareModule,
@@ -294,6 +302,7 @@ export const SamplerParameters = () => {
       const texturedSquareBGL = texturedSquarePipeline.getBindGroupLayout(0);
 
       const bufConfig = device.createBuffer({
+        label: "Configuration Buffer",
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
         size: 128,
       });
@@ -306,6 +315,7 @@ export const SamplerParameters = () => {
       device.queue.writeBuffer(bufConfig, 0, viewProj);
 
       const bufMatrices = device.createBuffer({
+        label: "Matrices Buffer",
         usage: GPUBufferUsage.STORAGE,
         size: kMatrices.byteLength,
         mappedAtCreation: true,
@@ -317,6 +327,7 @@ export const SamplerParameters = () => {
         updateConfigBuffer();
 
         const sampler = device.createSampler({
+          label: "Sampler",
           ...samplerDescriptor,
           maxAnisotropy:
             samplerDescriptor.minFilter === "linear" &&
@@ -327,6 +338,7 @@ export const SamplerParameters = () => {
         });
 
         const bindGroup = device.createBindGroup({
+          label: "Textured Square Bind Group",
           layout: texturedSquareBGL,
           entries: [
             { binding: 0, resource: { buffer: bufConfig } },
@@ -336,11 +348,16 @@ export const SamplerParameters = () => {
           ],
         });
 
-        const textureView = context.getCurrentTexture().createView();
+        const textureView = context.getCurrentTexture().createView({
+          label: "Current Texture View",
+        });
 
-        const commandEncoder = device.createCommandEncoder();
+        const commandEncoder = device.createCommandEncoder({
+          label: "Command Encoder",
+        });
 
         const renderPassDescriptor: GPURenderPassDescriptor = {
+          label: "Render Pass Descriptor",
           colorAttachments: [
             {
               view: textureView,
@@ -378,8 +395,7 @@ export const SamplerParameters = () => {
 
         device.queue.submit([commandEncoder.finish()]);
       }
-      frame();
-      //return frame;
+      return frame;
     },
   );
 

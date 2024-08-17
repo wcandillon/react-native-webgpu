@@ -28,10 +28,6 @@ export const examples = [
     title: "🌉 Cubemap",
   },
   {
-    screen: "SamplerParameters",
-    title: "🏁 Sampler Parameters",
-  },
-  {
     screen: "InstancedCube",
     title: "🎲 Instanced Cube",
   },
@@ -64,6 +60,10 @@ export const examples = [
         {
           screen: "ShadowMapping",
           title: "🐲 Shadow Mapping",
+        },
+        {
+          screen: "SamplerParameters",
+          title: "🏁 Sampler Parameters",
         },
       ] as const)
     : []),
