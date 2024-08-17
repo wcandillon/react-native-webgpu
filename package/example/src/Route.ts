@@ -7,6 +7,7 @@ export type Routes = {
   TexturedCube: undefined;
   FractalCube: undefined;
   Cubemap: undefined;
+  SamplerParameters: undefined;
   RenderBundles: undefined;
   OcclusionQuery: undefined;
   ComputeBoids: undefined;

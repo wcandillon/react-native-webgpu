@@ -22,6 +22,7 @@ import { Wireframe } from "./Wireframe";
 import { Resize } from "./Resize";
 import { Particules } from "./Particles";
 import { DeferedRendering, ShadowMapping } from "./ShadowMapping";
+import { SamplerParameters } from "./Sampler";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -47,6 +48,10 @@ function App() {
           </Stack.Screen>
           <Stack.Screen name="FractalCube" component={FractalCube} />
           <Stack.Screen name="Cubemap" component={Cubemap} />
+          <Stack.Screen
+            name="SamplerParameters"
+            component={SamplerParameters}
+          />
           <Stack.Screen name="RenderBundles">
             {(props) => <RenderBundles {...props} assets={assets} />}
           </Stack.Screen>

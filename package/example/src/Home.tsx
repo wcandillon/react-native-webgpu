@@ -28,6 +28,10 @@ export const examples = [
     title: "🌉 Cubemap",
   },
   {
+    screen: "SamplerParameters",
+    title: "🏁 Sampler Parameters",
+  },
+  {
     screen: "InstancedCube",
     title: "🎲 Instanced Cube",
   },
