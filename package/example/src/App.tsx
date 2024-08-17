@@ -6,7 +6,13 @@ import type { Routes } from "./Route";
 import { Home } from "./Home";
 import { Tests } from "./Tests";
 import { useAssets } from "./components/useAssets";
-import { Cube, TexturedCube, FractalCube, InstancedCube } from "./Cube";
+import {
+  Cube,
+  TexturedCube,
+  FractalCube,
+  InstancedCube,
+  Cubemap,
+} from "./Cube";
 import { HelloTriangle, HelloTriangleMSAA } from "./Triangle";
 import { RenderBundles } from "./RenderBundles";
 import { ABuffer } from "./ABuffer";
@@ -40,6 +46,7 @@ function App() {
             {(props) => <TexturedCube {...props} assets={assets} />}
           </Stack.Screen>
           <Stack.Screen name="FractalCube" component={FractalCube} />
+          <Stack.Screen name="Cubemap" component={Cubemap} />
           <Stack.Screen name="RenderBundles">
             {(props) => <RenderBundles {...props} assets={assets} />}
           </Stack.Screen>

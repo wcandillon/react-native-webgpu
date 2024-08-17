@@ -6,6 +6,7 @@ export type Routes = {
   InstancedCube: undefined;
   TexturedCube: undefined;
   FractalCube: undefined;
+  Cubemap: undefined;
   RenderBundles: undefined;
   OcclusionQuery: undefined;
   ComputeBoids: undefined;

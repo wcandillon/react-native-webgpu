@@ -36,66 +36,74 @@ interface SceneProps {
 }
 
 type RenderScene = (timestamp: number) => void;
-type Scene = (props: SceneProps) => RenderScene | void;
+type Scene = (props: SceneProps) => RenderScene | void | Promise<RenderScene>;
 
 export const useWebGPU = (scene: Scene) => {
   const canvasRef = useRef<CanvasRef>(null);
   const { device } = useDevice();
   useEffect(() => {
-    let animationFrameId: number;
-    let frameNumber = 0;
+    (async () => {
+      let animationFrameId: number;
+      let frameNumber = 0;
 
-    if (!device) {
-      return;
-    }
-    if (!canvasRef.current) {
-      return;
-    }
-
-    const context = canvasRef.current.getContext("webgpu")!;
-    const canvas = context.canvas as HTMLCanvasElement;
-    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-    canvas.width = canvas.clientWidth * PixelRatio.get();
-    canvas.height = canvas.clientHeight * PixelRatio.get();
-    context.configure({
-      device,
-      format: presentationFormat,
-      alphaMode: "opaque",
-    });
-
-    const sceneProps: SceneProps = {
-      context,
-      device,
-      gpu: navigator.gpu,
-      presentationFormat,
-      canvas: context.canvas as unknown as NativeCanvas,
-    };
-
-    const renderScene = scene(sceneProps);
-
-    const render = () => {
-      frameNumber++;
-      const timestamp = Date.now();
-      if (typeof renderScene === "function") {
-        renderScene(timestamp);
+      if (!device) {
+        return;
       }
-      context.present();
-      if (frameNumber > 2500) {
-        frameNumber = 0;
-        if (gc) {
-          gc();
+      if (!canvasRef.current) {
+        return;
+      }
+
+      const context = canvasRef.current.getContext("webgpu")!;
+      const canvas = context.canvas as HTMLCanvasElement;
+      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+      canvas.width = canvas.clientWidth * PixelRatio.get();
+      canvas.height = canvas.clientHeight * PixelRatio.get();
+      context.configure({
+        device,
+        format: presentationFormat,
+        alphaMode: "opaque",
+      });
+
+      const sceneProps: SceneProps = {
+        context,
+        device,
+        gpu: navigator.gpu,
+        presentationFormat,
+        canvas: context.canvas as unknown as NativeCanvas,
+      };
+
+      const r = scene(sceneProps);
+      let renderScene;
+      if (r instanceof Promise) {
+        renderScene = await r;
+      } else {
+        renderScene = r;
+      }
+
+      const render = () => {
+        frameNumber++;
+        const timestamp = Date.now();
+        if (typeof renderScene === "function") {
+          renderScene(timestamp);
         }
-      }
+        context.present();
+        if (frameNumber > 2500) {
+          frameNumber = 0;
+          if (gc) {
+            gc();
+          }
+        }
+        animationFrameId = requestAnimationFrame(render);
+      };
+
       animationFrameId = requestAnimationFrame(render);
-    };
 
-    animationFrameId = requestAnimationFrame(render);
-
-    return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-    };
+      return () => {
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+      };
+    })();
   }, [scene, canvasRef, device]);
 
   return { canvasRef };
