@@ -49,17 +49,6 @@ export const useAssets = () => {
   const moon = useImageData(require("../assets/moon.png"));
   const saturn = useImageData(require("../assets/saturn.png"));
   const react = useImageData(require("../assets/react.png"));
-  useEffect(() => {
-    (async () => {
-      const response = await fetch(
-        Image.resolveAssetSource(require("../assets/Di-3d.png")).uri,
-      );
-      const blob = await response.blob();
-      console.log(blob);
-      const imageBitmap = await createImageBitmap(blob);
-      console.log(imageBitmap);
-    })();
-  }, []);
   if (!di3D || !moon || !saturn || !react) {
     return null;
   }

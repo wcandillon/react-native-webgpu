@@ -50,9 +50,6 @@ public:
   }
 
   std::shared_ptr<ImageBitmap> createImageBitmap(std::shared_ptr<Blob> blob) {
-    Logger::logToConsole("createImageBitmap(%s, %s, %s, %f, %f)",
-                         blob->type.c_str(), blob->name.c_str(),
-                         blob->blobId.c_str(), blob->offset, blob->size);
     auto imageData = _platformContext->createImageBitmap(blob->blobId, blob->offset, blob->size);
     auto imageBitmap = std::make_shared<ImageBitmap>(imageData);
     return imageBitmap;

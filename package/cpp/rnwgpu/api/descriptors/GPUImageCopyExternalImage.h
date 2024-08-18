@@ -12,6 +12,7 @@
 #include "RNFJSIConverter.h"
 
 #include "GPUOrigin2D.h"
+#include "ImageBitmap.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
@@ -19,7 +20,7 @@ namespace m = margelo;
 namespace rnwgpu {
 
 struct GPUImageCopyExternalImage {
-  //std::shared_ptr<ImageData> source; // GPUImageCopyExternalImageSource
+  std::shared_ptr<ImageBitmap> source; // GPUImageCopyExternalImageSource
   std::optional<std::shared_ptr<GPUOrigin2D>> origin; // GPUOrigin2DStrict
   std::optional<bool> flipY;                          // boolean
 };
@@ -38,9 +39,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
     if (!outOfBounds && arg.isObject()) {
       auto obj = arg.getObject(runtime);
       if (obj.hasProperty(runtime, "source")) {
-//        auto prop = obj.getProperty(runtime, "source");
-//        result->source = JSIConverter<std::shared_ptr<ImageData>>::fromJSI(
-//            runtime, prop, false);
+        auto prop = obj.getProperty(runtime, "source");
+        result->source = JSIConverter<std::shared_ptr<ImageBitmap>>::fromJSI(
+            runtime, prop, false);
       }
     }
 

@@ -86,8 +86,26 @@ std::future<void> GPUQueue::onSubmittedWorkDone() {
 void GPUQueue::copyExternalImageToTexture(
     std::shared_ptr<GPUImageCopyExternalImage> source,
     std::shared_ptr<GPUImageCopyTextureTagged> destination,
-    std::shared_ptr<GPUExtent3D> copySize) {
-  throw std::runtime_error("Unimplemented");
+    std::shared_ptr<GPUExtent3D> size) {
+  wgpu::ImageCopyTexture dst{};
+  wgpu::TextureDataLayout layout{};
+  wgpu::Extent3D sz{};
+  Convertor conv;
+  auto dataLayout = std::make_shared<GPUImageDataLayout>(GPUImageDataLayout{
+      std::optional<double>{0.0},
+      std::optional<double>{static_cast<double>(4 * source->source->getWidth())},
+      std::optional<double>{static_cast<double>(source->source->getHeight())}
+  });
+  if (!conv(dst.aspect, destination->aspect) ||
+      !conv(dst.mipLevel, destination->mipLevel) ||
+      !conv(dst.origin, destination->origin) ||
+      !conv(dst.texture, destination->texture) ||
+      !conv(layout, dataLayout) || //
+      !conv(sz, size)) {
+    throw std::runtime_error("Invalid input for GPUQueue::writeTexture()");
+  }
+
+  _instance.WriteTexture(&dst, source->source->getData(), source->source->getSize(), &layout, &sz);
 }
 
 void GPUQueue::writeTexture(std::shared_ptr<GPUImageCopyTexture> destination,
