@@ -48,10 +48,11 @@ public:
     return result;
   }
 
-  std::shared_ptr<ArrayBuffer> createImageBitmap(std::shared_ptr<Blob> blob) {
+  std::shared_ptr<ImageData2> createImageBitmap(std::shared_ptr<Blob> blob) {
     Logger::logToConsole("createImageBitmap(%s, %s, %s, %f, %f)",
                          blob->type.c_str(), blob->name.c_str(),
                          blob->blobId.c_str(), blob->offset, blob->size);
+    auto result = _platformContext->createImageBitmap(blob->blobId, blob->offset, blob->size);
     return nullptr;
   }
 
