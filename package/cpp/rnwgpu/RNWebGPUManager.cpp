@@ -1,7 +1,7 @@
 #include "RNWebGPUManager.h"
 
 #include "GPU.h"
-#include "Navigator.h"
+#include "RNWebGPU.h"
 
 // Enums
 #include "GPUBufferUsage.h"
@@ -23,10 +23,10 @@ RNWebGPUManager::RNWebGPUManager(
       _platformContext(platformContext) {
 
   auto gpu = std::make_shared<GPU>();
-  auto navigator = std::make_shared<Navigator>(gpu, _platformContext);
+  auto rnWebGPU = std::make_shared<RNWebGPU>(gpu, _platformContext);
   _jsRuntime->global().setProperty(
-      *_jsRuntime, "navigator",
-      jsi::Object::createFromHostObject(*_jsRuntime, navigator));
+      *_jsRuntime, "RNWebGPU",
+      jsi::Object::createFromHostObject(*_jsRuntime, rnWebGPU));
 
   auto bufferUsage = std::make_shared<GPUBufferUsage>();
   _jsRuntime->global().setProperty(

@@ -4,16 +4,17 @@
 
 #include "GPU.h"
 #include "GPUCanvasContext.h"
+#include "PlatformContext.h"
 
 namespace rnwgpu {
 
 namespace m = margelo;
 
-class Navigator : public m::HybridObject {
+class RNWebGPU : public m::HybridObject {
 public:
-  explicit Navigator(std::shared_ptr<GPU> gpu,
+  explicit RNWebGPU(std::shared_ptr<GPU> gpu,
                      std::shared_ptr<PlatformContext> platformContext)
-      : HybridObject("Navigator"), _gpu(gpu),
+      : HybridObject("RNWebGPU"), _gpu(gpu),
         _platformContext(platformContext) {}
 
   std::shared_ptr<GPU> getGPU() { return _gpu; }
@@ -33,9 +34,9 @@ public:
   }
 
   void loadHybridMethods() override {
-    registerHybridGetter("gpu", &Navigator::getGPU, this);
+    registerHybridGetter("gpu", &RNWebGPU::getGPU, this);
     registerHybridMethod("MakeWebGPUCanvasContext",
-                         &Navigator::MakeWebGPUCanvasContext, this);
+                         &RNWebGPU::MakeWebGPUCanvasContext, this);
   }
 
 private:
