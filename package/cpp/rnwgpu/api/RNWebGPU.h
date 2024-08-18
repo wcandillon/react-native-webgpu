@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "GPU.h"
 #include "GPUCanvasContext.h"
@@ -10,12 +11,20 @@ namespace rnwgpu {
 
 namespace m = margelo;
 
+struct Blob {
+  std::string blobId;
+  double size;
+  double offset;
+  std::string type;
+  std::string name;
+};
+
 class RNWebGPU : public m::HybridObject {
 public:
   explicit RNWebGPU(std::shared_ptr<GPU> gpu,
-                     std::shared_ptr<PlatformContext> platformContext)
-      : HybridObject("RNWebGPU"), _gpu(gpu),
-        _platformContext(platformContext) {}
+                    std::shared_ptr<PlatformContext> platformContext)
+      : HybridObject("RNWebGPU"), _gpu(gpu), _platformContext(platformContext) {
+  }
 
   std::shared_ptr<GPU> getGPU() { return _gpu; }
 
@@ -39,10 +48,18 @@ public:
     return result;
   }
 
+  std::shared_ptr<ArrayBuffer> createImageBitmap(std::shared_ptr<Blob> blob) {
+    Logger::logToConsole("createImageBitmap(%s, %s, %s, %f, %f)",
+                         blob->type.c_str(), blob->name.c_str(),
+                         blob->blobId.c_str(), blob->offset, blob->size);
+    return nullptr;
+  }
+
   void loadHybridMethods() override {
     registerHybridGetter("gpu", &RNWebGPU::getGPU, this);
-    registerHybridMethod("DecodeToUTF8",
-                         &RNWebGPU::DecodeToUTF8, this);
+    registerHybridMethod("createImageBitmap", &RNWebGPU::createImageBitmap,
+                         this);
+    registerHybridMethod("DecodeToUTF8", &RNWebGPU::DecodeToUTF8, this);
     registerHybridMethod("MakeWebGPUCanvasContext",
                          &RNWebGPU::MakeWebGPUCanvasContext, this);
   }
@@ -53,3 +70,37 @@ private:
 };
 
 } // namespace rnwgpu
+
+namespace margelo {
+
+template <> struct JSIConverter<std::shared_ptr<rnwgpu::Blob>> {
+  static std::shared_ptr<rnwgpu::Blob>
+  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
+    if (!outOfBounds && arg.isObject()) {
+      auto result = std::make_unique<rnwgpu::Blob>();
+      auto val = arg.asObject(runtime);
+      if (val.hasProperty(runtime, "_data")) {
+        auto value = val.getPropertyAsObject(runtime, "_data");
+        result->blobId = JSIConverter<std::string>::fromJSI(
+            runtime, value.getProperty(runtime, "blobId"), false);
+        result->type = JSIConverter<std::string>::fromJSI(
+            runtime, value.getProperty(runtime, "type"), false);
+        result->name = JSIConverter<std::string>::fromJSI(
+            runtime, value.getProperty(runtime, "name"), false);
+        result->size = JSIConverter<double>::fromJSI(
+            runtime, value.getProperty(runtime, "size"), false);
+        result->offset = JSIConverter<double>::fromJSI(
+            runtime, value.getProperty(runtime, "offset"), false);
+      }
+      return result;
+    } else {
+      throw std::runtime_error("Invalid Blob::fromJSI()");
+    }
+  }
+  static jsi::Value toJSI(jsi::Runtime &runtime,
+                          std::shared_ptr<rnwgpu::Blob> arg) {
+    throw std::runtime_error("Invalid Blob::toJSI()");
+  }
+};
+
+} // namespace margelo

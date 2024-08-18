@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Text } from "react-native";
-
 import WebGPUNativeModule from "./NativeWebGPUModule";
 
 export * from "./Canvas";
@@ -218,3 +216,5 @@ class TextDecoder {
 }
 
 global.TextDecoder = global.TextDecoder ?? TextDecoder;
+global.createImageBitmap =
+  global.createImageBitmap ?? RNWebGPU.createImageBitmap;
