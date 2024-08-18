@@ -16,6 +16,7 @@ declare global {
   var RNWebGPU: {
     gpu: GPU;
     MakeWebGPUCanvasContext: (nativeCanvas: NativeCanvas) => CanvasContext;
+    DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
   };
 }
 

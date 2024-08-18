@@ -247,6 +247,11 @@ class ReferenceTestingClient implements TestingClient {
   if (!adapter) {
     throw new Error("No adapter");
   }
+  window.RNWebGPU = {
+    DecodeToUTF8: (data) => {
+      return new TextDecoder().decode(data);
+    }
+  };
   window.device = await adapter.requestDevice();
   window.cubeVertexArray = new Float32Array(${JSON.stringify(Array.from(cubeVertexArray))});
   window.triangleVertWGSL = \`${triangleVertWGSL}\`;
