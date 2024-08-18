@@ -39,6 +39,7 @@ export interface GUIParams {
   width?: number | undefined;
 }
 
+// TODO: it would be nice to implement
 export class GUI {
   width = 0;
   height = 0;
@@ -73,9 +74,9 @@ export class GUI {
   }
 
   add<T extends object>(
-    target: T,
-    propName: keyof T,
-    ...args: any[]
+    _target: T,
+    _propName: keyof T,
+    ..._args: any[]
   ): GUIController {
     return new GUIController();
   }
@@ -96,14 +97,14 @@ class GUIController {
     return this;
   }
 
-  onChange(fnc: (value?: any) => void): GUIController {
+  onChange(_fnc: (value?: any) => void): GUIController {
     return this;
   }
-  onFinishChange(fnc: (value?: any) => void): GUIController {
+  onFinishChange(_fnc: (value?: any) => void): GUIController {
     return this;
   }
 
-  setValue(value: any): GUIController {
+  setValue(_value: any): GUIController {
     return this;
   }
   getValue(): any {
