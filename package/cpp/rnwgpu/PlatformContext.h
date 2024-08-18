@@ -21,7 +21,7 @@ public:
 
   virtual wgpu::Surface makeSurface(wgpu::Instance instance, void *surface,
                                     int width, int height) = 0;
-  virtual std::shared_ptr<ImageData> createImageBitmap(std::string blobId, double offset, double size) = 0;
+  virtual ImageData createImageBitmap(std::string blobId, double offset, double size) = 0;
 };
 
 } // namespace rnwgpu

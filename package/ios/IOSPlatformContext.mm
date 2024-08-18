@@ -20,17 +20,17 @@ wgpu::Surface IOSPlatformContext::makeSurface(wgpu::Instance instance,
 }
 
 
-std::shared_ptr<ImageData> IOSPlatformContext::createImageBitmap(std::string blobId, double offset, double size) {
+ImageData IOSPlatformContext::createImageBitmap(std::string blobId, double offset, double size) {
   RCTBlobManager* blobManager = [[RCTBridge currentBridge] moduleForClass:RCTBlobManager.class];
   NSData* blobData = [blobManager resolve:[NSString stringWithUTF8String:blobId.c_str()] offset:(long)offset size:(long)size];
     
   if (!blobData) {
-      return nullptr;
+      throw std::runtime_error("Couldn't retrive blob data");
   }
     
     UIImage* image = [UIImage imageWithData:blobData];
     if (!image) {
-        return nullptr;
+        throw std::runtime_error("Couldn't decode image");
     }
     
     CGImageRef cgImage = image.CGImage;
@@ -49,11 +49,11 @@ std::shared_ptr<ImageData> IOSPlatformContext::createImageBitmap(std::string blo
     CGContextRelease(context);
     CGColorSpaceRelease(colorSpace);
     
-    auto result = std::make_shared<ImageData>();
-    result->width = static_cast<int>(width);
-    result->height = static_cast<int>(height);
-    result->data = imageData.data();
-    result->size = imageData.size();
+    ImageData result;
+    result.width = static_cast<int>(width);
+    result.height = static_cast<int>(height);
+    result.data = imageData.data();
+    result.size = imageData.size();
     return result;
 }
 

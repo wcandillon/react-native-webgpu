@@ -12,7 +12,6 @@
 #include "RNFJSIConverter.h"
 
 #include "GPUOrigin2D.h"
-#include "ImageData.h"
 
 namespace jsi = facebook::jsi;
 namespace m = margelo;
