@@ -3,12 +3,13 @@ import { useEffect, useState } from "react";
 import { Image } from "react-native";
 import { Skia } from "@shopify/react-native-skia";
 
-export const decodeImage = async (uri: string) => {
+export const decodeImage = async (mod: number) => {
+  const { uri } = Image.resolveAssetSource(mod);
   const data = await Skia.Data.fromURI(uri);
   const png = Skia.Image.MakeImageFromEncoded(data)!;
 
   const bitmap = {
-    data: Array.from(png.readPixels() as Uint8Array),
+    data: new Uint8ClampedArray(png.readPixels() as Uint8Array),
     width: png.width(),
     height: png.height(),
     format: "rgba8unorm",
@@ -30,10 +31,9 @@ const useImageData = (mod: number) => {
   const [imageData, setImageData] = useState<ImageData | null>(null);
   useEffect(() => {
     (async () => {
-      const { uri } = Image.resolveAssetSource(mod);
-      const { data, width, height } = await decodeImage(uri);
+      const { data, width, height } = await decodeImage(mod);
       setImageData({
-        data: new Uint8ClampedArray(data),
+        data,
         width,
         height,
         colorSpace: "srgb",

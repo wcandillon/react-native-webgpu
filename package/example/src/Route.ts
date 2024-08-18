@@ -6,6 +6,8 @@ export type Routes = {
   InstancedCube: undefined;
   TexturedCube: undefined;
   FractalCube: undefined;
+  Cubemap: undefined;
+  SamplerParameters: undefined;
   RenderBundles: undefined;
   OcclusionQuery: undefined;
   ComputeBoids: undefined;
@@ -13,6 +15,7 @@ export type Routes = {
   Particles: undefined;
   ShadowMapping: undefined;
   DeferedRendering: undefined;
+  ReversedZ: undefined;
   Wireframe: undefined;
   Resize: undefined;
   Tests: undefined;

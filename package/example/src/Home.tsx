@@ -24,6 +24,10 @@ export const examples = [
     title: "🧊 Cube",
   },
   {
+    screen: "Cubemap",
+    title: "🌉 Cubemap",
+  },
+  {
     screen: "InstancedCube",
     title: "🎲 Instanced Cube",
   },
@@ -48,6 +52,10 @@ export const examples = [
     title: "🟩 Occlusion Query",
   },
   {
+    screen: "ReversedZ",
+    title: "🟥 Reversed Z",
+  },
+  {
     screen: "ComputeBoids",
     title: "🐦‍⬛ Compute Boids",
   },
@@ -56,6 +64,10 @@ export const examples = [
         {
           screen: "ShadowMapping",
           title: "🐲 Shadow Mapping",
+        },
+        {
+          screen: "SamplerParameters",
+          title: "🏁 Sampler Parameters",
         },
       ] as const)
     : []),
