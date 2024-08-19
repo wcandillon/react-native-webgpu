@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable no-eval */
 
 import React, { useEffect, useState } from "react";
-import { Dimensions, Platform, Text, View } from "react-native";
+import { Dimensions, Platform, Text, View, Image } from "react-native";
 import "react-native-wgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 import type { SkImage } from "@shopify/react-native-skia";
@@ -9,7 +10,7 @@ import {
   AlphaType,
   Canvas,
   ColorType,
-  Image,
+  Image as SkiaImage,
   Skia,
 } from "@shopify/react-native-skia";
 
@@ -59,6 +60,10 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
               gpu: navigator.gpu,
               adapter,
               device,
+              urls: {
+                fTexture: Image.resolveAssetSource(require("./assets/f.png"))
+                  .uri,
+              },
               assets: {
                 cubeVertexArray,
                 di3D,
@@ -116,7 +121,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
           : "🟢 Waiting for the server to send tests"}
       </Text>
       <Canvas style={{ width, height: width }}>
-        <Image
+        <SkiaImage
           image={image}
           x={0}
           y={0}
