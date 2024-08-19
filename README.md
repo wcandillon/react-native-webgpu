@@ -148,8 +148,6 @@ ctx.canvas.width = ctx.canvas.clientWidth * PixelRatio.get();
 ctx.canvas.height = ctx.canvas.clientHeight * PixelRatio.get();
 ```
 
-However, there are two differences with the Web: frame scheduling and external textures.
-
 ### Frame Scheduling
 
 In React Native, we want to keep frame presentation as a manual operation as we plan to provide more advanced rendering options that are React Native specific.  
@@ -165,35 +163,25 @@ context.present();
 
 ### External Textures
 
-External textures are not a concept that exists in React Native.  
-Consider the following Web example:
+This module provides a `createImageBitmap` function that you can use in `copyExternalImageToTexture`.
 
 ```tsx
-const response = await fetch('./assets/img/Di-3d.png');
+const url = Image.resolveAssetSource(require("./assets/image.png")).uri;
+const response = await fetch(url);
 const imageBitmap = await createImageBitmap(await response.blob());
 
+const texture = device.createTexture({
+  size: [imageBitmap.width, imageBitmap.height, 1],
+  format: "rgba8unorm",
+  usage:
+    GPUTextureUsage.TEXTURE_BINDING |
+    GPUTextureUsage.COPY_DST |
+    GPUTextureUsage.RENDER_ATTACHMENT,
+});
 device.queue.copyExternalImageToTexture(
   { source: imageBitmap },
-  { texture: cubeTexture },
-  [imageBitmap.width, imageBitmap.height]
-);
-```
-
-In React Native, you would need to load the texture yourself.  
-For instance, we use Skia for image decoding [here](/package/example/src/components/useAssets.ts#L6).
-
-```tsx
-const imageBitmap = await decodeImage(require("./assets/Di-3d.png"));
-
-device.queue.writeTexture(
-  { texture: cubeTexture, mipLevel: 0, origin: { x: 0, y: 0, z: 0 } },
-  imageBitmap.data.buffer,
-  {
-    offset: 0,
-    bytesPerRow: 4 * imageBitmap.width,
-    rowsPerImage: imageBitmap.height,
-  },
-  { width: imageBitmap.width, height: imageBitmap.height },
+  { texture },
+  [imageBitmap.width, imageBitmap.height],
 );
 ```
 

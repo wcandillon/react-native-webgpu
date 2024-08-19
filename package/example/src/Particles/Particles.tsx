@@ -5,7 +5,7 @@ import { Canvas } from "react-native-wgpu";
 import { mat4, vec3 } from "wgpu-matrix";
 
 import { useWebGPU } from "../components/useWebGPU";
-import type { AssetProps } from "../components/useAssets";
+import { fetchAsset } from "../components/useAssets";
 
 import { particleWGSL, probabilityMapWGSL } from "./Shaders";
 
@@ -20,8 +20,8 @@ const particleInstanceByteSize =
   1 * 4 + // padding
   0;
 
-export function Particules({ assets: { react: imageBitmap } }: AssetProps) {
-  const { canvasRef } = useWebGPU(({ context, device, canvas }) => {
+export function Particules() {
+  const { canvasRef } = useWebGPU(async ({ context, device, canvas }) => {
     const presentationFormat = "rgba16float";
 
     function configureContext() {
@@ -183,37 +183,37 @@ export function Particules({ assets: { react: imageBitmap } }: AssetProps) {
     let textureWidth = 1;
     let textureHeight = 1;
     let numMipLevels = 1;
+    let texture: GPUTexture;
+    {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const response = await fetchAsset(require("../assets/react.png"));
+      const imageBitmap = await createImageBitmap(await response.blob());
 
-    // Calculate number of mip levels required to generate the probability map
-    while (
-      textureWidth < imageBitmap.width ||
-      textureHeight < imageBitmap.height
-    ) {
-      textureWidth *= 2;
-      textureHeight *= 2;
-      numMipLevels++;
+      // Calculate number of mip levels required to generate the probability map
+      while (
+        textureWidth < imageBitmap.width ||
+        textureHeight < imageBitmap.height
+      ) {
+        textureWidth *= 2;
+        textureHeight *= 2;
+        numMipLevels++;
+      }
+      texture = device.createTexture({
+        size: [imageBitmap.width, imageBitmap.height, 1],
+        mipLevelCount: numMipLevels,
+        format: "rgba8unorm",
+        usage:
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.STORAGE_BINDING |
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.RENDER_ATTACHMENT,
+      });
+      device.queue.copyExternalImageToTexture(
+        { source: imageBitmap },
+        { texture: texture },
+        [imageBitmap.width, imageBitmap.height],
+      );
     }
-    const texture = device.createTexture({
-      size: [imageBitmap.width, imageBitmap.height, 1],
-      mipLevelCount: numMipLevels,
-      format: "rgba8unorm",
-      usage:
-        GPUTextureUsage.TEXTURE_BINDING |
-        GPUTextureUsage.STORAGE_BINDING |
-        GPUTextureUsage.COPY_DST |
-        GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-
-    device.queue.writeTexture(
-      { texture: texture, mipLevel: 0, origin: { x: 0, y: 0, z: 0 } },
-      imageBitmap.data.buffer,
-      {
-        offset: 0,
-        bytesPerRow: 4 * imageBitmap.width,
-        rowsPerImage: imageBitmap.height,
-      },
-      { width: imageBitmap.width, height: imageBitmap.height },
-    );
 
     //////////////////////////////////////////////////////////////////////////////
     // Probability map generation

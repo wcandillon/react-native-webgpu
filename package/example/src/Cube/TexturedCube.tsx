@@ -12,13 +12,13 @@ import {
   cubeVertexSize,
 } from "../components/cube";
 import { useWebGPU } from "../components/useWebGPU";
-import type { AssetProps } from "../components/useAssets";
+import { fetchAsset } from "../components/useAssets";
 
 import { basicVertWGSL, sampleTextureMixColorWGSL } from "./Shaders";
 
-export const TexturedCube = ({ assets: { di3D: imageBitmap } }: AssetProps) => {
+export const TexturedCube = () => {
   const { canvasRef } = useWebGPU(
-    ({ device, presentationFormat, canvas, context }) => {
+    async ({ device, presentationFormat, canvas, context }) => {
       context.configure({
         device,
         format: presentationFormat,
@@ -101,24 +101,27 @@ export const TexturedCube = ({ assets: { di3D: imageBitmap } }: AssetProps) => {
       });
 
       // Fetch the image and upload it into a GPUTexture.
-      const cubeTexture = device.createTexture({
-        size: [imageBitmap.width, imageBitmap.height, 1],
-        format: "rgba8unorm",
-        usage:
-          GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.COPY_DST |
-          GPUTextureUsage.RENDER_ATTACHMENT,
-      });
-      device.queue.writeTexture(
-        { texture: cubeTexture, mipLevel: 0, origin: { x: 0, y: 0, z: 0 } },
-        imageBitmap.data.buffer,
-        {
-          offset: 0,
-          bytesPerRow: 4 * imageBitmap.width,
-          rowsPerImage: imageBitmap.height,
-        },
-        { width: imageBitmap.width, height: imageBitmap.height },
-      );
+      let cubeTexture: GPUTexture;
+      {
+        const response = await fetchAsset(
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          require("../assets/Di-3d.png"),
+        );
+        const imageBitmap = await createImageBitmap(await response.blob());
+        cubeTexture = device.createTexture({
+          size: [imageBitmap.width, imageBitmap.height, 1],
+          format: "rgba8unorm",
+          usage:
+            GPUTextureUsage.TEXTURE_BINDING |
+            GPUTextureUsage.COPY_DST |
+            GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+        device.queue.copyExternalImageToTexture(
+          { source: imageBitmap },
+          { texture: cubeTexture },
+          [imageBitmap.width, imageBitmap.height],
+        );
+      }
 
       // Create a sampler with linear filtering for smooth interpolation.
       const sampler = device.createSampler({
@@ -228,7 +231,6 @@ export const TexturedCube = ({ assets: { di3D: imageBitmap } }: AssetProps) => {
 const style = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "red",
   },
   webgpu: {
     flex: 1,

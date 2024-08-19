@@ -17,9 +17,12 @@
 std::shared_ptr<rnwgpu::RNWebGPUManager> manager;
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
-    JNIEnv *env, jobject /* this */, jlong jsRuntime, jobject jsInvokerHolder) {
+    JNIEnv *env, jobject /* this */, jlong jsRuntime, jobject jsInvokerHolder,
+    jobject blobModule) {
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
-  auto platformContext = std::make_shared<rnwgpu::AndroidPlatformContext>();
+  jobject globalBlobModule = env->NewGlobalRef(blobModule);
+  auto platformContext =
+      std::make_shared<rnwgpu::AndroidPlatformContext>(globalBlobModule);
   manager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, nullptr,
                                                       platformContext);
 }

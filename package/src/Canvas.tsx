@@ -12,6 +12,13 @@ function generateContextId() {
 declare global {
   // eslint-disable-next-line no-var
   var __WebGPUContextRegistry: Record<number, NativeCanvas>;
+  // eslint-disable-next-line no-var
+  var RNWebGPU: {
+    gpu: GPU;
+    MakeWebGPUCanvasContext: (nativeCanvas: NativeCanvas) => CanvasContext;
+    DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
+    createImageBitmap: typeof createImageBitmap;
+  };
 }
 
 export interface NativeCanvas {
@@ -51,9 +58,7 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
       if (!nativeSurface) {
         return null;
       }
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error
-      const ctx = navigator.MakeWebGPUCanvasContext(nativeSurface);
+      const ctx = RNWebGPU.MakeWebGPUCanvasContext(nativeSurface);
       return ctx;
     },
   }));

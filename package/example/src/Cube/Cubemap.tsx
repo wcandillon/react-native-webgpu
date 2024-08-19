@@ -11,7 +11,7 @@ import {
   cubeVertexCount,
   cubeVertexSize,
 } from "../components/cube";
-import { decodeImage } from "../components/useAssets";
+import { fetchAsset } from "../components/useAssets";
 
 import { basicVertWGSL, sampleCubemapWGSL } from "./Shaders";
 
@@ -109,7 +109,8 @@ export const Cubemap = () => {
           require("../assets/cubemap/negz.jpg"),
         ];
         const promises = imgSrcs.map(async (src) => {
-          return decodeImage(src);
+          const response = await fetchAsset(src);
+          return createImageBitmap(await response.blob());
         });
         const imageBitmaps = await Promise.all(promises);
 
@@ -127,15 +128,10 @@ export const Cubemap = () => {
 
         for (let i = 0; i < imageBitmaps.length; i++) {
           const imageBitmap = imageBitmaps[i];
-          device.queue.writeTexture(
-            { texture: cubemapTexture, mipLevel: 0, origin: [0, 0, i] },
-            imageBitmap.data.buffer,
-            {
-              offset: 0,
-              bytesPerRow: 4 * imageBitmap.width,
-              rowsPerImage: imageBitmap.height,
-            },
-            { width: imageBitmap.width, height: imageBitmap.height },
+          device.queue.copyExternalImageToTexture(
+            { source: imageBitmap },
+            { texture: cubemapTexture, origin: [0, 0, i] },
+            [imageBitmap.width, imageBitmap.height],
           );
         }
       }

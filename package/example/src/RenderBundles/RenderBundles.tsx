@@ -6,13 +6,13 @@ import { Canvas } from "react-native-wgpu";
 import { mat4, vec3 } from "wgpu-matrix";
 
 import { useWebGPU } from "../components/useWebGPU";
-import type { AssetProps } from "../components/useAssets";
+import { fetchAsset } from "../components/useAssets";
 import { createSphereMesh, SphereLayout } from "../components/meshes/sphere";
 import { meshWGSL } from "../Cube/Shaders";
 
-export const RenderBundles = ({ assets: { moon, saturn } }: AssetProps) => {
+export const RenderBundles = () => {
   const { canvasRef } = useWebGPU(
-    ({ device, presentationFormat, canvas, context }) => {
+    async ({ device, presentationFormat, canvas, context }) => {
       const settings = {
         asteroidCount: 4000,
       };
@@ -96,9 +96,12 @@ export const RenderBundles = ({ assets: { moon, saturn } }: AssetProps) => {
       });
 
       // Fetch the images and upload them into a GPUTexture.
+      // Fetch the images and upload them into a GPUTexture.
       let planetTexture: GPUTexture;
       {
-        const imageBitmap = saturn;
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const response = await fetchAsset(require("../assets/saturn.png"));
+        const imageBitmap = await createImageBitmap(await response.blob());
 
         planetTexture = device.createTexture({
           size: [imageBitmap.width, imageBitmap.height, 1],
@@ -108,26 +111,19 @@ export const RenderBundles = ({ assets: { moon, saturn } }: AssetProps) => {
             GPUTextureUsage.COPY_DST |
             GPUTextureUsage.RENDER_ATTACHMENT,
         });
-
-        device.queue.writeTexture(
-          {
-            texture: planetTexture,
-            mipLevel: 0,
-            origin: { x: 0, y: 0, z: 0 },
-          },
-          imageBitmap.data.buffer,
-          {
-            offset: 0,
-            bytesPerRow: 4 * imageBitmap.width,
-            rowsPerImage: imageBitmap.height,
-          },
-          { width: imageBitmap.width, height: imageBitmap.height },
+        device.queue.copyExternalImageToTexture(
+          { source: imageBitmap },
+          { texture: planetTexture },
+          [imageBitmap.width, imageBitmap.height],
         );
       }
 
       let moonTexture: GPUTexture;
       {
-        const imageBitmap = moon;
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const response = await fetchAsset(require("../assets/moon.png"));
+        const imageBitmap = await createImageBitmap(await response.blob());
+
         moonTexture = device.createTexture({
           size: [imageBitmap.width, imageBitmap.height, 1],
           format: "rgba8unorm",
@@ -136,19 +132,10 @@ export const RenderBundles = ({ assets: { moon, saturn } }: AssetProps) => {
             GPUTextureUsage.COPY_DST |
             GPUTextureUsage.RENDER_ATTACHMENT,
         });
-        device.queue.writeTexture(
-          {
-            texture: moonTexture,
-            mipLevel: 0,
-            origin: { x: 0, y: 0, z: 0 },
-          },
-          imageBitmap.data.buffer,
-          {
-            offset: 0,
-            bytesPerRow: 4 * imageBitmap.width,
-            rowsPerImage: imageBitmap.height,
-          },
-          { width: imageBitmap.width, height: imageBitmap.height },
+        device.queue.copyExternalImageToTexture(
+          { source: imageBitmap },
+          { texture: moonTexture },
+          [imageBitmap.width, imageBitmap.height],
         );
       }
 

@@ -44,18 +44,14 @@ function App() {
           />
           <Stack.Screen name="Cube" component={Cube} />
           <Stack.Screen name="InstancedCube" component={InstancedCube} />
-          <Stack.Screen name="TexturedCube">
-            {(props) => <TexturedCube {...props} assets={assets} />}
-          </Stack.Screen>
+          <Stack.Screen name="TexturedCube" component={TexturedCube} />
           <Stack.Screen name="FractalCube" component={FractalCube} />
           <Stack.Screen name="Cubemap" component={Cubemap} />
           <Stack.Screen
             name="SamplerParameters"
             component={SamplerParameters}
           />
-          <Stack.Screen name="RenderBundles">
-            {(props) => <RenderBundles {...props} assets={assets} />}
-          </Stack.Screen>
+          <Stack.Screen name="RenderBundles" component={RenderBundles} />
           <Stack.Screen name="ReversedZ" component={ReversedZ} />
           <Stack.Screen name="ABuffer" component={ABuffer} />
           <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />
@@ -63,9 +59,7 @@ function App() {
           <Stack.Screen name="ShadowMapping" component={ShadowMapping} />
           <Stack.Screen name="DeferedRendering" component={DeferedRendering} />
           <Stack.Screen name="Wireframe" component={Wireframe} />
-          <Stack.Screen name="Particles">
-            {(props) => <Particules {...props} assets={assets} />}
-          </Stack.Screen>
+          <Stack.Screen name="Particles" component={Particules} />
           <Stack.Screen name="Resize" component={Resize} />
           <Stack.Screen name="Tests">
             {(props) => <Tests {...props} assets={assets} />}

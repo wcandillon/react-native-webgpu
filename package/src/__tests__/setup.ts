@@ -38,6 +38,9 @@ interface GPUContext {
     triangleVertWGSL: string;
     redFragWGSL: string;
   };
+  urls: {
+    fTexture: string;
+  };
   assets: {
     cubeVertexArray: Float32Array;
     di3D: ImageData;
@@ -138,6 +141,9 @@ class ReferenceTestingClient implements TestingClient {
     if (!this.page) {
       throw new Error("RemoteSurface not initialized");
     }
+    const fTexturePath = path.join(__dirname, "../../example/src/assets/f.png");
+    const fTextureData = fs.readFileSync(fTexturePath);
+    const fTextureBase64 = `data:image/png;base64,${fTextureData.toString("base64")}`;
     const source = `(async function Main(){
     var global = window;  
     const r = () => {${fs.readFileSync(path.join(__dirname, "../../node_modules/wgpu-matrix/dist/3.x/wgpu-matrix.js"), "utf8")} };
@@ -187,6 +193,9 @@ class ReferenceTestingClient implements TestingClient {
       const ctx = new DrawingContext(device, 1024, 1024);
       return (${fn.toString()})({
         device, adapter, gpu,
+        urls: {
+          fTexture: "${fTextureBase64}"
+        },
         assets: {
           cubeVertexArray,
           di3D,
@@ -247,6 +256,11 @@ class ReferenceTestingClient implements TestingClient {
   if (!adapter) {
     throw new Error("No adapter");
   }
+  window.RNWebGPU = {
+    DecodeToUTF8: (data) => {
+      return new TextDecoder().decode(data);
+    }
+  };
   window.device = await adapter.requestDevice();
   window.cubeVertexArray = new Float32Array(${JSON.stringify(Array.from(cubeVertexArray))});
   window.triangleVertWGSL = \`${triangleVertWGSL}\`;
