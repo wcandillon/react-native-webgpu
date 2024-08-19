@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { PixelRatio } from "react-native";
+import { useFrameCallback } from "react-native-reanimated";
 import {
   warnIfNotHardwareAccelerated,
   type CanvasRef,
@@ -42,8 +43,8 @@ export const useWebGPU = (scene: Scene) => {
   const canvasRef = useRef<CanvasRef>(null);
   const { device } = useDevice();
   useEffect(() => {
+    let animationFrameId: number;
     (async () => {
-      let animationFrameId: number;
       let frameNumber = 0;
 
       if (!device) {
@@ -97,13 +98,12 @@ export const useWebGPU = (scene: Scene) => {
 
         animationFrameId = requestAnimationFrame(render);
       }
-
-      return () => {
-        if (animationFrameId) {
-          cancelAnimationFrame(animationFrameId);
-        }
-      };
     })();
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
   }, [scene, canvasRef, device]);
 
   return { canvasRef };
