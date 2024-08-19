@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { PixelRatio } from "react-native";
-import { useFrameCallback } from "react-native-reanimated";
 import {
   warnIfNotHardwareAccelerated,
   type CanvasRef,
