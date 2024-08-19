@@ -59,9 +59,7 @@ function App() {
           <Stack.Screen name="ShadowMapping" component={ShadowMapping} />
           <Stack.Screen name="DeferedRendering" component={DeferedRendering} />
           <Stack.Screen name="Wireframe" component={Wireframe} />
-          <Stack.Screen name="Particles">
-            {(props) => <Particules {...props} assets={assets} />}
-          </Stack.Screen>
+          <Stack.Screen name="Particles" component={Particules} />
           <Stack.Screen name="Resize" component={Resize} />
           <Stack.Screen name="Tests">
             {(props) => <Tests {...props} assets={assets} />}
