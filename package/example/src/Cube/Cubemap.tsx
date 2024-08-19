@@ -11,7 +11,7 @@ import {
   cubeVertexCount,
   cubeVertexSize,
 } from "../components/cube";
-import { decodeImage, fetchAsset } from "../components/useAssets";
+import { fetchAsset } from "../components/useAssets";
 
 import { basicVertWGSL, sampleCubemapWGSL } from "./Shaders";
 
