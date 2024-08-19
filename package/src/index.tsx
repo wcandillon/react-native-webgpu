@@ -186,6 +186,8 @@ if (!navigator) {
 // @ts-expect-error
 navigator.gpu = RNWebGPU.gpu;
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
 navigator.userAgent = "react-native";
 
 class TextDecoder {

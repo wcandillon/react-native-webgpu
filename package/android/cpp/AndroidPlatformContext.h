@@ -4,6 +4,8 @@
 #include <jni.h>
 
 #include <memory>
+#include <string>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
