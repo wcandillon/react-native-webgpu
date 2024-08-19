@@ -60,6 +60,7 @@ ImageData IOSPlatformContext::createImageBitmap(std::string blobId,
   result.height = static_cast<int>(height);
   result.data = imageData.data();
   result.size = imageData.size();
+  result.format = wgpu::TextureFormat::RGBA8Unorm;
   return result;
 }
 
