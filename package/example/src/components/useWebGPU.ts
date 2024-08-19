@@ -42,8 +42,8 @@ export const useWebGPU = (scene: Scene) => {
   const canvasRef = useRef<CanvasRef>(null);
   const { device } = useDevice();
   useEffect(() => {
+    let animationFrameId: number;
     (async () => {
-      let animationFrameId: number;
       let frameNumber = 0;
 
       if (!device) {
@@ -97,13 +97,12 @@ export const useWebGPU = (scene: Scene) => {
 
         animationFrameId = requestAnimationFrame(render);
       }
-
-      return () => {
-        if (animationFrameId) {
-          cancelAnimationFrame(animationFrameId);
-        }
-      };
     })();
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
   }, [scene, canvasRef, device]);
 
   return { canvasRef };
