@@ -127,7 +127,7 @@ To run the example app you first need to build Dawn.
 
 ```sh
 $ git submodule update --init
-$ cd package && yarn`
+$ cd package && yarn
 $ yarn build-dawn
 ```
 
