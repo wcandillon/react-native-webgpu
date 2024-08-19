@@ -42,7 +42,6 @@ ImageData IOSPlatformContext::createImageBitmap(std::string blobId,
   size_t height = CGImageGetHeight(cgImage);
   size_t bitsPerComponent = 8;
   size_t bytesPerRow = width * 4;
-
   std::vector<uint8_t> imageData(height * bytesPerRow);
 
   CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
@@ -52,14 +51,16 @@ ImageData IOSPlatformContext::createImageBitmap(std::string blobId,
 
   CGContextDrawImage(context, CGRectMake(0, 0, width, height), cgImage);
 
+  // Now imageData contains a copy of the bitmap data
+
   CGContextRelease(context);
   CGColorSpaceRelease(colorSpace);
 
+  // Use the copied data
   ImageData result;
   result.width = static_cast<int>(width);
   result.height = static_cast<int>(height);
-  result.data = imageData.data();
-  result.size = imageData.size();
+  result.data = imageData;
   result.format = wgpu::TextureFormat::RGBA8Unorm;
   return result;
 }

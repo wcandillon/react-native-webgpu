@@ -18,9 +18,9 @@ public:
 
   size_t getHeight() { return _imageData.height; }
 
-  void *getData() { return _imageData.data; }
+  void *getData() { return _imageData.data.data(); }
 
-  size_t getSize() { return _imageData.size; }
+  size_t getSize() { return _imageData.data.size(); }
 
   void loadHybridMethods() override {
     registerHybridGetter("width", &ImageBitmap::getWidth, this);

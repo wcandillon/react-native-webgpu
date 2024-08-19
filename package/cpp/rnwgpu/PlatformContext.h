@@ -2,14 +2,14 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
 struct ImageData {
-  void *data;
-  size_t size;
+  std::vector<uint8_t> data;
   size_t width;
   size_t height;
   wgpu::TextureFormat format;
