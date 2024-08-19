@@ -127,13 +127,28 @@ To run the example app you first need to build Dawn.
 
 ```sh
 $ git submodule update --init
-$ cd package && yarn`
+$ cd package && yarn
 $ yarn build-dawn
 ```
 
 From there you will be able to run the example app properly.
 
-## Frame Scheduling
+## Similarities and Differences with the Web
+
+The API has been designed to be completely symmetric with the Web.  
+For instance, you can access the WebGPU context synchronously, as well as the canvas size.  
+Pixel density and canvas resizing are handled exactly like on the Web as well.
+
+```tsx
+// The default canvas size is not scaled to the device pixel ratio
+// When resizing the canvas, the clientWidth and clientHeight are updated automatically
+// This behaviour is symmetric to the Web
+const ctx = canvas.current.getContext("webgpu")!;
+ctx.canvas.width = ctx.canvas.clientWidth * PixelRatio.get();
+ctx.canvas.height = ctx.canvas.clientHeight * PixelRatio.get();
+```
+
+### Frame Scheduling
 
 In React Native, we want to keep frame presentation as a manual operation as we plan to provide more advanced rendering options that are React Native specific.  
 This means that when you are ready to present a frame, you need to call `present` on the context.
@@ -146,6 +161,29 @@ device.queue.submit([commandEncoder.finish()]);
 context.present();
 ```
 
+### External Textures
+
+This module provides a `createImageBitmap` function that you can use in `copyExternalImageToTexture`.
+
+```tsx
+const url = Image.resolveAssetSource(require("./assets/image.png")).uri;
+const response = await fetch(url);
+const imageBitmap = await createImageBitmap(await response.blob());
+
+const texture = device.createTexture({
+  size: [imageBitmap.width, imageBitmap.height, 1],
+  format: "rgba8unorm",
+  usage:
+    GPUTextureUsage.TEXTURE_BINDING |
+    GPUTextureUsage.COPY_DST |
+    GPUTextureUsage.RENDER_ATTACHMENT,
+});
+device.queue.copyExternalImageToTexture(
+  { source: imageBitmap },
+  { texture },
+  [imageBitmap.width, imageBitmap.height],
+);
+```
 
 ## Troubleshooting
 
