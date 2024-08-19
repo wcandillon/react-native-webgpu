@@ -13,6 +13,8 @@ import com.facebook.react.bridge.JavaScriptContextHolder;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.common.annotations.FrameworkAPI;
 import com.facebook.react.module.annotations.ReactModule;
+import com.facebook.react.modules.blob.BlobModule;
+import com.facebook.react.modules.blob.BlobProvider;
 import com.facebook.react.turbomodule.core.CallInvokerHolderImpl;
 import com.facebook.react.turbomodule.core.interfaces.CallInvokerHolder;
 
@@ -37,13 +39,17 @@ public class WebGPUModule extends NativeWebGPUModuleSpec {
     ReactApplicationContext context = getReactApplicationContext();
     JavaScriptContextHolder jsContext = context.getJavaScriptContextHolder();
     CallInvokerHolder callInvokerHolder = context.getCatalystInstance().getJSCallInvokerHolder();
-    initializeNative(jsContext.get(), (CallInvokerHolderImpl) callInvokerHolder);
+    BlobModule blobModule = getReactApplicationContext().getNativeModule(BlobModule.class);
+    if (blobModule == null) {
+      throw new RuntimeException("React Native's BlobModule was not found!");
+    }
+    initializeNative(jsContext.get(), (CallInvokerHolderImpl) callInvokerHolder, blobModule);
     return true;
   }
 
   @OptIn(markerClass = FrameworkAPI.class)
   @DoNotStrip
-  private native void initializeNative(long jsRuntime, CallInvokerHolderImpl jsInvoker);
+  private native void initializeNative(long jsRuntime, CallInvokerHolderImpl jsInvoker, BlobModule blobModule);
 
   @ReactMethod(isBlockingSynchronousMethod = true)
   public boolean createSurfaceContext(double contextId) {

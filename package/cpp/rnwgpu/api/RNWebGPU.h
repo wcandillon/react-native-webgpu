@@ -84,10 +84,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::Blob>> {
         auto value = val.getPropertyAsObject(runtime, "_data");
         result->blobId = JSIConverter<std::string>::fromJSI(
             runtime, value.getProperty(runtime, "blobId"), false);
-        result->type = JSIConverter<std::string>::fromJSI(
-            runtime, value.getProperty(runtime, "type"), false);
-        result->name = JSIConverter<std::string>::fromJSI(
-            runtime, value.getProperty(runtime, "name"), false);
+//        result->type = JSIConverter<std::string>::fromJSI(
+//            runtime, value.getProperty(runtime, "type"), false);
+//        result->name = JSIConverter<std::string>::fromJSI(
+//            runtime, value.getProperty(runtime, "name"), false);
         result->size = JSIConverter<double>::fromJSI(
             runtime, value.getProperty(runtime, "size"), false);
         result->offset = JSIConverter<double>::fromJSI(
