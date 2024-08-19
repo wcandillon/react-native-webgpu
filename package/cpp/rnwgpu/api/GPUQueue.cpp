@@ -108,8 +108,29 @@ void GPUQueue::copyExternalImageToTexture(
     throw std::runtime_error("Invalid input for GPUQueue::writeTexture()");
   }
 
-  _instance.WriteTexture(&dst, source->source->getData(),
-                         source->source->getSize(), &layout, &sz);
+  if (source->flipY) {
+    // Calculate the row size and total size
+    uint32_t rowSize = bytesPerPixel * source->source->getWidth();
+    uint32_t totalSize = source->source->getSize();
+
+    // Create a new buffer for the flipped data
+    std::vector<uint8_t> flippedData(totalSize);
+
+    // Flip the data vertically
+    for (uint32_t row = 0; row < source->source->getHeight(); ++row) {
+      std::memcpy(flippedData.data() +
+                      (source->source->getHeight() - 1 - row) * rowSize,
+                  static_cast<const uint8_t *>(source->source->getData()) +
+                      row * rowSize,
+                  rowSize);
+    }
+    // Use the flipped data for writing to texture
+    _instance.WriteTexture(&dst, flippedData.data(), totalSize, &layout, &sz);
+  } else {
+
+    _instance.WriteTexture(&dst, source->source->getData(),
+                           source->source->getSize(), &layout, &sz);
+  }
 }
 
 void GPUQueue::writeTexture(std::shared_ptr<GPUImageCopyTexture> destination,

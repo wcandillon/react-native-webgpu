@@ -45,8 +45,8 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
       }
       if (obj.hasProperty(runtime, "origin")) {
         auto prop = obj.getProperty(runtime, "origin");
-        result->origin =
-            JSIConverter<std::shared_ptr<GPUOrigin2D>>::fromJSI(runtime, prop, false);
+        result->origin = JSIConverter<std::shared_ptr<GPUOrigin2D>>::fromJSI(
+            runtime, prop, false);
       }
 
       if (obj.hasProperty(runtime, "flipY")) {
