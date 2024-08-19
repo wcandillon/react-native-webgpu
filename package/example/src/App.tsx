@@ -44,18 +44,14 @@ function App() {
           />
           <Stack.Screen name="Cube" component={Cube} />
           <Stack.Screen name="InstancedCube" component={InstancedCube} />
-          <Stack.Screen name="TexturedCube">
-            {(props) => <TexturedCube {...props} assets={assets} />}
-          </Stack.Screen>
+          <Stack.Screen name="TexturedCube" component={TexturedCube} />
           <Stack.Screen name="FractalCube" component={FractalCube} />
           <Stack.Screen name="Cubemap" component={Cubemap} />
           <Stack.Screen
             name="SamplerParameters"
             component={SamplerParameters}
           />
-          <Stack.Screen name="RenderBundles">
-            {(props) => <RenderBundles {...props} assets={assets} />}
-          </Stack.Screen>
+          <Stack.Screen name="RenderBundles" component={RenderBundles} />
           <Stack.Screen name="ReversedZ" component={ReversedZ} />
           <Stack.Screen name="ABuffer" component={ABuffer} />
           <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />

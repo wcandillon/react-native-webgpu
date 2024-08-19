@@ -5,8 +5,8 @@
 
 #include "GPU.h"
 #include "GPUCanvasContext.h"
-#include "PlatformContext.h"
 #include "ImageBitmap.h"
+#include "PlatformContext.h"
 
 namespace rnwgpu {
 
@@ -50,7 +50,8 @@ public:
   }
 
   std::shared_ptr<ImageBitmap> createImageBitmap(std::shared_ptr<Blob> blob) {
-    auto imageData = _platformContext->createImageBitmap(blob->blobId, blob->offset, blob->size);
+    auto imageData = _platformContext->createImageBitmap(
+        blob->blobId, blob->offset, blob->size);
     auto imageBitmap = std::make_shared<ImageBitmap>(imageData);
     return imageBitmap;
   }

@@ -4,6 +4,11 @@ import { Image } from "react-native";
 import { Skia } from "@shopify/react-native-skia";
 import "react-native-wgpu";
 
+export const fetchAsset = async (mod: number) => {
+  const response = await fetch(Image.resolveAssetSource(mod).uri);
+  return response;
+};
+
 export const decodeImage = async (mod: number) => {
   const { uri } = Image.resolveAssetSource(mod);
   const data = await Skia.Data.fromURI(uri);

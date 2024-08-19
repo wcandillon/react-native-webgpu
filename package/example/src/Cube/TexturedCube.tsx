@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import React from "react";
-import { Image, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Canvas } from "react-native-wgpu";
 import { mat4, vec3 } from "wgpu-matrix";
 
@@ -12,6 +12,7 @@ import {
   cubeVertexSize,
 } from "../components/cube";
 import { useWebGPU } from "../components/useWebGPU";
+import { fetchAsset } from "../components/useAssets";
 
 import { basicVertWGSL, sampleTextureMixColorWGSL } from "./Shaders";
 
@@ -102,8 +103,9 @@ export const TexturedCube = () => {
       // Fetch the image and upload it into a GPUTexture.
       let cubeTexture: GPUTexture;
       {
-        const response = await fetch(
-          Image.resolveAssetSource(require("../../src/assets/Di-3d.png")).uri,
+        const response = await fetchAsset(
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          require("../assets/Di-3d.png"),
         );
         const imageBitmap = await createImageBitmap(await response.blob());
         cubeTexture = device.createTexture({
@@ -229,7 +231,6 @@ export const TexturedCube = () => {
 const style = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "red",
   },
   webgpu: {
     flex: 1,

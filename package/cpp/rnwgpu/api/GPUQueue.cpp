@@ -91,11 +91,14 @@ void GPUQueue::copyExternalImageToTexture(
   wgpu::TextureDataLayout layout{};
   wgpu::Extent3D sz{};
   Convertor conv;
+  uint32_t bytesPerPixel =
+      source->source->getSize() /
+      (source->source->getWidth() * source->source->getHeight());
   auto dataLayout = std::make_shared<GPUImageDataLayout>(GPUImageDataLayout{
       std::optional<double>{0.0},
-      std::optional<double>{static_cast<double>(4 * source->source->getWidth())},
-      std::optional<double>{static_cast<double>(source->source->getHeight())}
-  });
+      std::optional<double>{
+          static_cast<double>(bytesPerPixel * source->source->getWidth())},
+      std::optional<double>{static_cast<double>(source->source->getHeight())}});
   if (!conv(dst.aspect, destination->aspect) ||
       !conv(dst.mipLevel, destination->mipLevel) ||
       !conv(dst.origin, destination->origin) ||
@@ -105,7 +108,8 @@ void GPUQueue::copyExternalImageToTexture(
     throw std::runtime_error("Invalid input for GPUQueue::writeTexture()");
   }
 
-  _instance.WriteTexture(&dst, source->source->getData(), source->source->getSize(), &layout, &sz);
+  _instance.WriteTexture(&dst, source->source->getData(),
+                         source->source->getSize(), &layout, &sz);
 }
 
 void GPUQueue::writeTexture(std::shared_ptr<GPUImageCopyTexture> destination,
