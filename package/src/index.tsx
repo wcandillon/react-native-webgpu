@@ -190,33 +190,6 @@ navigator.gpu = RNWebGPU.gpu;
 // @ts-expect-error
 navigator.userAgent = "react-native";
 
-class TextDecoder {
-  readonly encoding: string;
-  readonly fatal: boolean;
-  readonly ignoreBOM: boolean;
-
-  constructor(
-    encoding?: string,
-    options?: {
-      fatal?: boolean | undefined;
-      ignoreBOM?: boolean | undefined;
-    },
-  ) {
-    this.encoding = encoding ?? "utf-8";
-    this.fatal = options?.fatal ?? false;
-    this.ignoreBOM = options?.ignoreBOM ?? false;
-  }
-  decode(
-    input?: NodeJS.ArrayBufferView | ArrayBuffer | null,
-    _options?: {
-      stream?: boolean | undefined;
-    },
-  ) {
-    return RNWebGPU.DecodeToUTF8(input ?? new Uint8Array());
-  }
-}
-
-global.TextDecoder = global.TextDecoder ?? TextDecoder;
 global.createImageBitmap =
   global.createImageBitmap ??
   ((...params: Parameters<typeof createImageBitmap>) =>
