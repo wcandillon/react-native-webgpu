@@ -174,7 +174,7 @@ describe("Blur", () => {
         });
 
         const [srcWidth, srcHeight] = [imageBitmap.width, imageBitmap.height];
-        const cubeTexture = device.createTexture({
+        const imageTexture = device.createTexture({
           size: [srcWidth, srcHeight, 1],
           format: "rgba8unorm",
           usage:
@@ -182,15 +182,10 @@ describe("Blur", () => {
             GPUTextureUsage.COPY_DST |
             GPUTextureUsage.RENDER_ATTACHMENT,
         });
-        device.queue.writeTexture(
-          { texture: cubeTexture, mipLevel: 0, origin: { x: 0, y: 0, z: 0 } },
-          imageBitmap.data.buffer,
-          {
-            offset: 0,
-            bytesPerRow: 4 * imageBitmap.width,
-            rowsPerImage: imageBitmap.height,
-          },
-          { width: imageBitmap.width, height: imageBitmap.height },
+        device.queue.copyExternalImageToTexture(
+          { source: imageBitmap },
+          { texture: imageTexture },
+          [imageBitmap.width, imageBitmap.height],
         );
         const textures = [0, 1].map(() => {
           return device.createTexture({
@@ -254,7 +249,7 @@ describe("Blur", () => {
           entries: [
             {
               binding: 1,
-              resource: cubeTexture.createView(),
+              resource: imageTexture.createView(),
             },
             {
               binding: 2,
