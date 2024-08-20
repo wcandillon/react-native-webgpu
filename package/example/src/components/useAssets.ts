@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { useEffect, useState } from "react";
 import { Image } from "react-native";
-import { Skia } from "@shopify/react-native-skia";
 import "react-native-wgpu";
 
 export const fetchAsset = async (mod: number) => {
@@ -11,39 +10,26 @@ export const fetchAsset = async (mod: number) => {
 
 export const decodeImage = async (mod: number) => {
   const { uri } = Image.resolveAssetSource(mod);
-  const data = await Skia.Data.fromURI(uri);
-  const png = Skia.Image.MakeImageFromEncoded(data)!;
-
-  const bitmap = {
-    data: new Uint8ClampedArray(png.readPixels() as Uint8Array),
-    width: png.width(),
-    height: png.height(),
-    format: "rgba8unorm",
-  };
-
-  return bitmap;
+  const response = await fetch(uri);
+  const blob = await response.blob();
+  const image = await createImageBitmap(blob);
+  return image;
 };
 
 export interface AssetProps {
   assets: {
-    di3D: ImageData;
-    saturn: ImageData;
-    moon: ImageData;
-    react: ImageData;
+    di3D: ImageBitmap;
+    saturn: ImageBitmap;
+    moon: ImageBitmap;
+    react: ImageBitmap;
   };
 }
 
 const useImageData = (mod: number) => {
-  const [imageData, setImageData] = useState<ImageData | null>(null);
+  const [imageData, setImageData] = useState<ImageBitmap | null>(null);
   useEffect(() => {
     (async () => {
-      const { data, width, height } = await decodeImage(mod);
-      setImageData({
-        data,
-        width,
-        height,
-        colorSpace: "srgb",
-      });
+      setImageData(await decodeImage(mod));
     })();
   }, [mod]);
   return imageData;

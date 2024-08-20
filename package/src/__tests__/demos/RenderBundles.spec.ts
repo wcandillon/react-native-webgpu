@@ -281,19 +281,10 @@ describe("Render Bundles", () => {
               GPUTextureUsage.RENDER_ATTACHMENT,
           });
 
-          device.queue.writeTexture(
-            {
-              texture: planetTexture,
-              mipLevel: 0,
-              origin: { x: 0, y: 0, z: 0 },
-            },
-            imageBitmap.data.buffer,
-            {
-              offset: 0,
-              bytesPerRow: 4 * imageBitmap.width,
-              rowsPerImage: imageBitmap.height,
-            },
-            { width: imageBitmap.width, height: imageBitmap.height },
+          device.queue.copyExternalImageToTexture(
+            { source: imageBitmap },
+            { texture: planetTexture },
+            [imageBitmap.width, imageBitmap.height],
           );
         }
 
@@ -310,19 +301,10 @@ describe("Render Bundles", () => {
               GPUTextureUsage.RENDER_ATTACHMENT,
           });
 
-          device.queue.writeTexture(
-            {
-              texture: moonTexture,
-              mipLevel: 0,
-              origin: { x: 0, y: 0, z: 0 },
-            },
-            imageBitmap.data.buffer,
-            {
-              offset: 0,
-              bytesPerRow: 4 * imageBitmap.width,
-              rowsPerImage: imageBitmap.height,
-            },
-            { width: imageBitmap.width, height: imageBitmap.height },
+          device.queue.copyExternalImageToTexture(
+            { source: imageBitmap },
+            { texture: moonTexture },
+            [imageBitmap.width, imageBitmap.height],
           );
         }
 
