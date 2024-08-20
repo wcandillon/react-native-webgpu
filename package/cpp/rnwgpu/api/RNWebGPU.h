@@ -43,12 +43,6 @@ public:
     return ctx;
   }
 
-  std::string DecodeToUTF8(std::shared_ptr<ArrayBuffer> buffer) {
-    auto data = reinterpret_cast<const char *>(buffer->data());
-    std::string result(data, buffer->size());
-    return result;
-  }
-
   std::shared_ptr<ImageBitmap> createImageBitmap(std::shared_ptr<Blob> blob) {
     auto imageData = _platformContext->createImageBitmap(
         blob->blobId, blob->offset, blob->size);
@@ -60,7 +54,6 @@ public:
     registerHybridGetter("gpu", &RNWebGPU::getGPU, this);
     registerHybridMethod("createImageBitmap", &RNWebGPU::createImageBitmap,
                          this);
-    registerHybridMethod("DecodeToUTF8", &RNWebGPU::DecodeToUTF8, this);
     registerHybridMethod("MakeWebGPUCanvasContext",
                          &RNWebGPU::MakeWebGPUCanvasContext, this);
   }
