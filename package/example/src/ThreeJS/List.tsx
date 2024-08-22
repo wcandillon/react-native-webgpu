@@ -11,6 +11,10 @@ export const examples = [
     screen: "Cube",
     title: "🧊 Cube",
   },
+  {
+    screen: "Helmet",
+    title: "⛑️ Helmet",
+  },
 ] as const;
 
 const styles = StyleSheet.create({

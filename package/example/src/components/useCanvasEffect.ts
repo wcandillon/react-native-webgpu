@@ -1,10 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+
+type Unsubscribe = () => void;
 
 export const useCanvasEffect = (
   effect: (payload: {
     device: GPUDevice;
-  }) => void | (() => void) | Promise<void | (() => void)>,
+  }) => void | Unsubscribe | Promise<void | Unsubscribe>,
 ) => {
+  const unsubscribe = useRef<Unsubscribe>();
   useEffect(() => {
     requestAnimationFrame(async () => {
       const adapter = await navigator.gpu.requestAdapter();
@@ -12,8 +15,16 @@ export const useCanvasEffect = (
         return;
       }
       const device = await adapter.requestDevice();
-      effect({ device });
+      const unsub = effect({ device });
+      if (unsub instanceof Function) {
+        unsubscribe.current = unsub;
+      }
     });
+    return () => {
+      if (unsubscribe.current) {
+        unsubscribe.current();
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 };

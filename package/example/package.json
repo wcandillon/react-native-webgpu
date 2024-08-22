@@ -21,6 +21,7 @@
     "react-native-screens": "^3.32.0",
     "teapot": "^1.0.0",
     "three": "^0.167.1",
+    "three-stdlib": "^2.32.2",
     "wgpu-matrix": "^3.0.2"
   },
   "devDependencies": {

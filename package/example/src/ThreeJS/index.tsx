@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Cube } from "./Cube";
 import type { Routes } from "./Routes";
 import { List } from "./List";
+import { Helmet } from "./Helmet";
 
 const Stack = createNativeStackNavigator<Routes>();
 export const ThreeJS = () => {
@@ -22,7 +23,13 @@ export const ThreeJS = () => {
         component={Cube}
         options={{
           title: "🧊 Cube",
-          header: () => null,
+        }}
+      />
+      <Stack.Screen
+        name="Helmet"
+        component={Helmet}
+        options={{
+          title: "⛑️ Helmet",
         }}
       />
     </Stack.Navigator>
