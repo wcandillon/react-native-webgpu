@@ -1,9 +1,9 @@
 import * as THREE from "three/webgpu";
 import type { CanvasRef } from "react-native-wgpu";
 import { Canvas } from "react-native-wgpu";
-import { Image, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useRef } from "react";
-import { GLTFLoader, OrbitControls, RGBELoader } from "three-stdlib";
+import { GLTFLoader, RGBELoader } from "three-stdlib";
 
 import { useCanvasEffect } from "../components/useCanvasEffect";
 
@@ -56,13 +56,6 @@ export const Helmet = () => {
       });
 
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-
-      const controls = new OrbitControls(camera, renderer.domElement);
-      controls.addEventListener("change", render); // use if there is no animation loop
-      controls.minDistance = 2;
-      controls.maxDistance = 10;
-      controls.target.set(0, 0, -0.2);
-      controls.update();
     }
 
     //
@@ -87,8 +80,11 @@ export const Helmet = () => {
   });
 
   return (
-    <View style={{ flex: 1 }}>
-      <Canvas ref={ref} style={{ flex: 1 }} />
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <Text>Loading assets...</Text>
+      <View style={StyleSheet.absoluteFill}>
+        <Canvas ref={ref} style={{ flex: 1 }} />
+      </View>
     </View>
   );
 };
