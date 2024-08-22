@@ -2893,6 +2893,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tweenjs/tween.js@npm:~23.1.2":
+  version: 23.1.3
+  resolution: "@tweenjs/tween.js@npm:23.1.3"
+  checksum: 2f8a908b275bb6729bde4b863c277bf7411d2e0302ceb0455369479077b89eaf8380cd9206b91ff574416418a95c6f06db4e1ddea732a286d0db0ba8e7c093d3
+  languageName: node
+  linkType: hard
+
 "@types/babel__core@npm:^7.1.14":
   version: 7.20.5
   resolution: "@types/babel__core@npm:7.20.5"
@@ -3116,6 +3123,33 @@ __metadata:
   version: 2.0.3
   resolution: "@types/stack-utils@npm:2.0.3"
   checksum: 72576cc1522090fe497337c2b99d9838e320659ac57fa5560fcbdcbafcf5d0216c6b3a0a8a4ee4fdb3b1f5e3420aa4f6223ab57b82fef3578bec3206425c6cf5
+  languageName: node
+  linkType: hard
+
+"@types/stats.js@npm:*":
+  version: 0.17.3
+  resolution: "@types/stats.js@npm:0.17.3"
+  checksum: 4f84a012f630532877f62959b6335d3fa081ccaac15ce3f1f916741db265bda22b9c927d7efc9cc3389ffd60919a370673cb0b4e7221d580c571031e94b689fd
+  languageName: node
+  linkType: hard
+
+"@types/three@npm:^0.167.2":
+  version: 0.167.2
+  resolution: "@types/three@npm:0.167.2"
+  dependencies:
+    "@tweenjs/tween.js": ~23.1.2
+    "@types/stats.js": "*"
+    "@types/webxr": "*"
+    fflate: ~0.8.2
+    meshoptimizer: ~0.18.1
+  checksum: d8e13c89b93e63c592ce3adc1bd813f44c399848d1b3e10f7b064c4709a439845182a34c0a63df6a9b9e0e7f2ea9d006ed838536d44b16d374f354b2991668a6
+  languageName: node
+  linkType: hard
+
+"@types/webxr@npm:*":
+  version: 0.5.19
+  resolution: "@types/webxr@npm:0.5.19"
+  checksum: aed3e799d66084923ab7238129ad9e1876d4c9b1f26d3f4351fb82733107842f0e53a29b5d43d8460228bf51ef75daa578922a64ef6c15265ba3fc43e23972cb
   languageName: node
   linkType: hard
 
@@ -5955,6 +5989,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"fflate@npm:~0.8.2":
+  version: 0.8.2
+  resolution: "fflate@npm:0.8.2"
+  checksum: 29470337b85d3831826758e78f370e15cda3169c5cd4477c9b5eea2402261a74b2975bae816afabe1c15d21d98591e0d30a574f7103aa117bff60756fa3035d4
+  languageName: node
+  linkType: hard
+
 "file-entry-cache@npm:^6.0.1":
   version: 6.0.1
   resolution: "file-entry-cache@npm:6.0.1"
@@ -8242,6 +8283,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"meshoptimizer@npm:~0.18.1":
+  version: 0.18.1
+  resolution: "meshoptimizer@npm:0.18.1"
+  checksum: 101dbed8abd4cf167cdb7a0bc13db90dd0743332c689e43b18cc5254d238f0766750752432401fa63dc7e9e32399ef68daacf48f0d89db1484042c1761c7362d
+  languageName: node
+  linkType: hard
+
 "metro-babel-transformer@npm:0.80.9":
   version: 0.80.9
   resolution: "metro-babel-transformer@npm:0.80.9"
@@ -9766,6 +9814,7 @@ __metadata:
     "@react-navigation/native": ^6.1.17
     "@react-navigation/native-stack": ^6.10.0
     "@shopify/react-native-skia": ^1.3.9
+    "@types/three": ^0.167.2
     "@webgpu/types": ^0.1.44
     babel-plugin-module-resolver: ^5.0.0
     react: 18.2.0
@@ -9775,6 +9824,7 @@ __metadata:
     react-native-safe-area-context: ^4.10.7
     react-native-screens: ^3.32.0
     teapot: ^1.0.0
+    three: ^0.167.1
     wgpu-matrix: ^3.0.2
   languageName: unknown
   linkType: soft
@@ -11090,6 +11140,13 @@ __metadata:
   version: 0.2.0
   resolution: "text-table@npm:0.2.0"
   checksum: b6937a38c80c7f84d9c11dd75e49d5c44f71d95e810a3250bd1f1797fc7117c57698204adf676b71497acc205d769d65c16ae8fa10afad832ae1322630aef10a
+  languageName: node
+  linkType: hard
+
+"three@npm:^0.167.1":
+  version: 0.167.1
+  resolution: "three@npm:0.167.1"
+  checksum: 4500a7eb16dc9143f0e71b11c4886d003f31cd8e4cd4e755a045afbcdce0f3f9cec47ab1c9d00eb45fa2bb3ace6ef17b105eee93b90b15b43f0af1139db8741d
   languageName: node
   linkType: hard
 

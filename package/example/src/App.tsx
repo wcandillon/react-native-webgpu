@@ -24,6 +24,7 @@ import { Particules } from "./Particles";
 import { DeferedRendering, ShadowMapping } from "./ShadowMapping";
 import { SamplerParameters } from "./Sampler";
 import { ReversedZ } from "./ReversedZ";
+import { ThreeJS } from "./ThreeJS";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -42,6 +43,7 @@ function App() {
             name="HelloTriangleMSAA"
             component={HelloTriangleMSAA}
           />
+          <Stack.Screen name="ThreeJS" component={ThreeJS} />
           <Stack.Screen name="Cube" component={Cube} />
           <Stack.Screen name="InstancedCube" component={InstancedCube} />
           <Stack.Screen name="TexturedCube" component={TexturedCube} />
