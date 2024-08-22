@@ -20,12 +20,6 @@ const config = {
       'three': threePackagePath,
     },
     resolveRequest: (context, moduleName, platform) => {
-      // if (moduleName.startsWith("three/addons/")) {
-      //   return {
-      //     filePath: path.resolve(threePackagePath, '../../node_modules/three/addons', moduleName.slice(13)),
-      //     type: 'absolute',
-      //   };
-      // }
       if (moduleName === 'three/webgpu') { 
         return {
           filePath: path.resolve(threePackagePath, '../../example/build/three.webgpu.js'),
