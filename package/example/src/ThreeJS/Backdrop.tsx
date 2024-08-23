@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable prefer-destructuring */
 import * as THREE from "three/webgpu";
 import type { CanvasRef } from "react-native-wgpu";
 import { Canvas } from "react-native-wgpu";
@@ -40,6 +42,7 @@ export const Backdrop = () => {
       camera.position.set(1, 2, 3);
 
       scene = new THREE.Scene();
+      // @ts-expect-error
       scene.backgroundNode = viewportTopLeft.y.mix(
         color(0x66bbff),
         color(0x4466ff),
@@ -60,6 +63,7 @@ export const Backdrop = () => {
         const object = gltf.scene;
         mixer = new THREE.AnimationMixer(object);
 
+        // @ts-expect-error
         const { material } = object.children[0].children[0];
 
         // output material effect ( better using hsv )
@@ -83,7 +87,10 @@ export const Backdrop = () => {
       portals = new THREE.Group();
       scene.add(portals);
 
-      function addBackdropSphere(backdropNode, backdropAlphaNode = null) {
+      function addBackdropSphere(
+        backdropNode: THREE.Node,
+        backdropAlphaNode = null,
+      ) {
         const distance = 1;
         const id = portals.children.length;
         const rotation = THREE.MathUtils.degToRad(id * 45);
@@ -112,6 +119,7 @@ export const Backdrop = () => {
       );
       addBackdropSphere(viewportSharedTexture().rgb.oneMinus());
       addBackdropSphere(viewportSharedTexture().rgb.saturation(0));
+      // @ts-expect-error
       addBackdropSphere(viewportSharedTexture().rgb.saturation(10), oscSine());
       addBackdropSphere(
         viewportSharedTexture().rgb.overlay(checker(uv().mul(10))),
@@ -130,7 +138,7 @@ export const Backdrop = () => {
 
       renderer = new THREE.WebGPURenderer({
         antialias: true,
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+
         // @ts-expect-error
         canvas: context.canvas,
         context,

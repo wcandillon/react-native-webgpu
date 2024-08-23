@@ -25,9 +25,9 @@ export const Cube = () => {
 
     const renderer = new THREE.WebGPURenderer({
       antialias: true,
-      canvas: context.canvas,
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
+      canvas: context.canvas,
       context,
       device,
     });

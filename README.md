@@ -16,11 +16,10 @@ Below are some examples from the [example app](/package/example/).
 https://github.com/user-attachments/assets/116a41b2-2cf8-49f1-9f16-a5c83637c198
 
 Our example app has examples running [three.js](https://threejs.org/) on top of React Native WebGPU.
-We use a the [regular three.js build](/package/example/build) with the following two patches:
-* [ShaderNode: Remove .isArrayInput](https://github.com/mrdoob/three.js/pull/29205)
-* [Make getStaticAdapter async](https://github.com/mrdoob/three.js/pull/29206)
+Right now, we use `r167` with a small patch on top of it.
+Starting from `r168`, we will be able to use the official version of Three.js.
 
-https://github.com/user-attachments/assets/46498989-7b17-49ae-ae5a-2776482345b4
+https://github.com/user-attachments/assets/5b49ef63-0a3c-4679-aeb5-e4b4dddfcc1d
 
 ## Usage
 

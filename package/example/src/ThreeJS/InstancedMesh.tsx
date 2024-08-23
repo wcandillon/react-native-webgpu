@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import * as THREE from "three/webgpu";
 import type { CanvasRef } from "react-native-wgpu";
 import { Canvas } from "react-native-wgpu";
@@ -17,7 +18,7 @@ export const InstancedMesh = () => {
     const { width, height } = context.canvas;
     let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer;
 
-    let mesh: THREE.Mesh;
+    let mesh: THREE.InstancedMesh;
     const amount = 10;
     const count = Math.pow(amount, 3);
     const dummy = new THREE.Object3D();
@@ -39,6 +40,7 @@ export const InstancedMesh = () => {
         new THREE.Color(0xffffff),
       );
 
+      // @ts-expect-error
       material.colorNode = mix(
         THREE.normalWorld,
         randomColors,
@@ -66,7 +68,7 @@ export const InstancedMesh = () => {
 
       renderer = new THREE.WebGPURenderer({
         antialias: true,
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+
         // @ts-expect-error
         canvas: context.canvas,
         context,
@@ -104,7 +106,6 @@ export const InstancedMesh = () => {
               dummy.rotation.z = dummy.rotation.y * 2;
 
               dummy.updateMatrix();
-
               mesh.setMatrixAt(i++, dummy.matrix);
             }
           }

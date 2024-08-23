@@ -6,7 +6,6 @@ import type { Routes } from "./Routes";
 import { List } from "./List";
 import { Helmet } from "./Helmet";
 import { Backdrop } from "./Backdrop";
-import { Cubemap } from "./Cubemap";
 import { InstancedMesh } from "./InstancedMesh";
 
 const Stack = createNativeStackNavigator<Routes>();
