@@ -17,7 +17,7 @@ https://github.com/user-attachments/assets/116a41b2-2cf8-49f1-9f16-a5c83637c198
 
 Below is an early demo of [three.js](https://threejs.org/) running on top of React Native WebGPU.
 
-https://github.com/user-attachments/assets/46498989-7b17-49ae-ae5a-2776482345b4
+https://github.com/user-attachments/assets/5b49ef63-0a3c-4679-aeb5-e4b4dddfcc1d
 
 ## Usage
 
