@@ -6,8 +6,18 @@ const resolve = (mod: ReturnType<typeof require>) => {
   return Image.resolveAssetSource(mod).uri;
 };
 
-const urls = {
-  "models/gltf/Michelle.glb": resolve(require("./Michelle.glb")),
+const urls: Record<string, string> = {
+  "models/gltf/Michelle.glb": resolve(require("./michelle/model.gltf")),
+  "models/gltf/model.bin": resolve(require("./michelle/model.bin")),
+  "models/gltf/Ch03_1001_Diffuse.png": resolve(
+    require("./michelle/Ch03_1001_Diffuse.png"),
+  ),
+  "models/gltf/Ch03_1001_Glossiness.png": resolve(
+    require("./michelle/Ch03_1001_Glossiness.png"),
+  ),
+  "models/gltf/Ch03_1001_Normal.png": resolve(
+    require("./michelle/Ch03_1001_Normal.png"),
+  ),
   "textures/equirectangular/royal_esplanade_1k.hdr": resolve(
     require("./royal_esplanade_1k.hdr"),
   ),
@@ -41,3 +51,35 @@ manager.setURLModifier((url: string) => {
   }
   throw new Error(`URL not found: ${url}`);
 });
+
+manager.onStart = function (url, itemsLoaded, itemsTotal) {
+  console.log(
+    "Started loading file: " +
+      url +
+      ".\nLoaded " +
+      itemsLoaded +
+      " of " +
+      itemsTotal +
+      " files.",
+  );
+};
+
+manager.onLoad = function () {
+  console.log("Loading complete!");
+};
+
+manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+  console.log(
+    "Loading file: " +
+      url +
+      ".\nLoaded " +
+      itemsLoaded +
+      " of " +
+      itemsTotal +
+      " files.",
+  );
+};
+
+manager.onError = function (url) {
+  console.log("There was an error loading " + url);
+};

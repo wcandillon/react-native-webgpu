@@ -25,20 +25,18 @@ const {
 export const Backdrop = () => {
   const ref = useRef<CanvasRef>(null);
   useCanvasEffect(async ({ device }) => {
+    const rotate = true;
     const context = ref.current!.getContext("webgpu")!;
+    const { width, height } = context.canvas;
     let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer;
     let portals: THREE.Group;
     let mixer: THREE.AnimationMixer;
+    let clock: THREE.Clock;
 
-    await init();
+    init();
 
-    async function init() {
-      camera = new THREE.PerspectiveCamera(
-        50,
-        window.innerWidth / window.innerHeight,
-        0.01,
-        100,
-      );
+    function init() {
+      camera = new THREE.PerspectiveCamera(50, width / height, 0.01, 100);
       camera.position.set(1, 2, 3);
 
       scene = new THREE.Scene();
@@ -62,7 +60,6 @@ export const Backdrop = () => {
         const object = gltf.scene;
         mixer = new THREE.AnimationMixer(object);
 
-        // eslint-disable-next-line prefer-destructuring
         const { material } = object.children[0].children[0];
 
         // output material effect ( better using hsv )
@@ -129,26 +126,35 @@ export const Backdrop = () => {
       );
       addBackdropSphere(vec3(0, 0, viewportSharedTexture().b));
 
+      //renderer
+
       renderer = new THREE.WebGPURenderer({
         antialias: true,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
         canvas: context.canvas,
         context,
         device,
       });
+      renderer.setAnimationLoop(animate);
       renderer.toneMapping = THREE.NeutralToneMapping;
       renderer.toneMappingExposure = 0.3;
-      await renderer.init();
     }
 
-    function animate(time: number) {
-      //mesh.rotation.x = time / 2000;
-      //mesh.rotation.y = time / 1000;
+    function animate() {
+      const delta = clock.getDelta();
+
+      if (mixer) {
+        mixer.update(delta);
+      }
+
+      if (rotate) {
+        portals.rotation.y += delta * 0.5;
+      }
 
       renderer.render(scene, camera);
       context.present();
     }
-    renderer.setAnimationLoop(animate);
-
     return () => {
       renderer.setAnimationLoop(null);
     };
