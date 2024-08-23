@@ -12,6 +12,10 @@ export const examples = [
     title: "🧊 Cube",
   },
   {
+    screen: "InstancedMesh",
+    title: "🐵 Instanced Mesh",
+  },
+  {
     screen: "Backdrop",
     title: "💃🏿 Backdrop",
   },

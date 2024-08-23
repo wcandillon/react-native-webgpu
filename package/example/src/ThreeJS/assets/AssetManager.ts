@@ -7,6 +7,11 @@ const resolve = (mod: ReturnType<typeof require>) => {
 };
 
 const urls: Record<string, string> = {
+  "models/json/suzanne_buffergeometry.json":
+    "https://threejs.org/examples/models/json/suzanne_buffergeometry.json",
+  "./textures/uv_grid_opengl.jpg": resolve(
+    require("./textures/uv_grid_opengl.jpg"),
+  ),
   "models/gltf/Michelle.glb": resolve(require("./michelle/model.gltf")),
   "models/gltf/model.bin": resolve(require("./michelle/model.bin")),
   "models/gltf/Ch03_1001_Diffuse.png": resolve(
@@ -46,10 +51,12 @@ const urls: Record<string, string> = {
 
 export const manager = new THREE.LoadingManager();
 manager.setURLModifier((url: string) => {
-  if (urls[url]) {
-    return urls[url];
+  const asset = urls[url];
+  if (asset) {
+    return asset;
   }
-  throw new Error(`URL not found: ${url}`);
+  console.error("url not found", url);
+  return url;
 });
 
 manager.onStart = function (url, itemsLoaded, itemsTotal) {

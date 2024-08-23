@@ -6,6 +6,8 @@ import type { Routes } from "./Routes";
 import { List } from "./List";
 import { Helmet } from "./Helmet";
 import { Backdrop } from "./Backdrop";
+import { Cubemap } from "./Cubemap";
+import { InstancedMesh } from "./InstancedMesh";
 
 const Stack = createNativeStackNavigator<Routes>();
 export const ThreeJS = () => {
@@ -31,6 +33,13 @@ export const ThreeJS = () => {
         component={Backdrop}
         options={{
           title: "💃 Backdrop",
+        }}
+      />
+      <Stack.Screen
+        name="InstancedMesh"
+        component={InstancedMesh}
+        options={{
+          title: "🐵 InstancedMesh",
         }}
       />
       <Stack.Screen

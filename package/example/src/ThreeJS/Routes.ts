@@ -3,4 +3,5 @@ export type Routes = {
   Cube: undefined;
   Helmet: undefined;
   Backdrop: undefined;
+  InstancedMesh: undefined;
 };
