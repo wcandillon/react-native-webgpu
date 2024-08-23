@@ -12,6 +12,10 @@ export const examples = [
     title: "🧊 Cube",
   },
   {
+    screen: "Backdrop",
+    title: "💃🏿 Backdrop",
+  },
+  {
     screen: "Helmet",
     title: "⛑️ Helmet",
   },

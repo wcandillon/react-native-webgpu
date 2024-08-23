@@ -7,6 +7,7 @@ const resolve = (mod: ReturnType<typeof require>) => {
 };
 
 const urls = {
+  "models/gltf/Michelle.glb": resolve(require("./Michelle.glb")),
   "textures/equirectangular/royal_esplanade_1k.hdr": resolve(
     require("./royal_esplanade_1k.hdr"),
   ),
@@ -34,13 +35,9 @@ const urls = {
 };
 
 export const manager = new THREE.LoadingManager();
-manager.setURLModifier((url) => {
+manager.setURLModifier((url: string) => {
   if (urls[url]) {
     return urls[url];
   }
-  return url;
+  throw new Error(`URL not found: ${url}`);
 });
-
-manager.onError = function (url) {
-  console.log("There was an error loading " + url);
-};

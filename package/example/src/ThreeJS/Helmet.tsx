@@ -16,7 +16,7 @@ export const Helmet = () => {
   useCanvasEffect(async ({ device }) => {
     const context = ref.current!.getContext("webgpu")!;
     const { width, height } = context.canvas;
-    let camera, scene, renderer;
+    let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer;
 
     const clock = new THREE.Clock();
     init();
@@ -48,9 +48,9 @@ export const Helmet = () => {
 
       renderer = new THREE.WebGPURenderer({
         antialias: true,
-        canvas: context.canvas,
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
+        canvas: context.canvas,
         context,
         device,
       });

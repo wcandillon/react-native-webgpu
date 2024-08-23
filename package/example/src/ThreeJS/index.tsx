@@ -5,6 +5,7 @@ import { Cube } from "./Cube";
 import type { Routes } from "./Routes";
 import { List } from "./List";
 import { Helmet } from "./Helmet";
+import { Backdrop } from "./Backdrop";
 
 const Stack = createNativeStackNavigator<Routes>();
 export const ThreeJS = () => {
@@ -23,6 +24,13 @@ export const ThreeJS = () => {
         component={Cube}
         options={{
           title: "🧊 Cube",
+        }}
+      />
+      <Stack.Screen
+        name="Backdrop"
+        component={Backdrop}
+        options={{
+          title: "💃 Backdrop",
         }}
       />
       <Stack.Screen
