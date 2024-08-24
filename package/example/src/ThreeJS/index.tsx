@@ -13,7 +13,9 @@ const Stack = createNativeStackNavigator<Routes>();
 export const ThreeJS = () => {
   useEffect(() => {
     navigator.gpu.requestAdapter().then((adapter) => {
-      warnIfNotHardwareAccelerated(adapter);
+      if (adapter) {
+        warnIfNotHardwareAccelerated(adapter);
+      }
     });
   }, []);
   return (
