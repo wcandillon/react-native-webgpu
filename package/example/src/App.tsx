@@ -1,6 +1,7 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { LogBox } from "react-native";
 
 import type { Routes } from "./Route";
 import { Home } from "./Home";
@@ -24,8 +25,11 @@ import { Particules } from "./Particles";
 import { DeferedRendering, ShadowMapping } from "./ShadowMapping";
 import { SamplerParameters } from "./Sampler";
 import { ReversedZ } from "./ReversedZ";
+import { ThreeJS } from "./ThreeJS";
 
 const Stack = createNativeStackNavigator<Routes>();
+
+LogBox.ignoreLogs(["WARNING: Multiple instances of Three.js being imported"]);
 
 function App() {
   const assets = useAssets();
@@ -42,6 +46,7 @@ function App() {
             name="HelloTriangleMSAA"
             component={HelloTriangleMSAA}
           />
+          <Stack.Screen name="ThreeJS" component={ThreeJS} />
           <Stack.Screen name="Cube" component={Cube} />
           <Stack.Screen name="InstancedCube" component={InstancedCube} />
           <Stack.Screen name="TexturedCube" component={TexturedCube} />
