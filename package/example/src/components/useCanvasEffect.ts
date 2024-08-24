@@ -15,8 +15,8 @@ export const useCanvasEffect = (
         return;
       }
       const device = await adapter.requestDevice();
-      const unsub = effect({ device });
-      if (unsub instanceof Function) {
+      const unsub = await effect({ device });
+      if (unsub) {
         unsubscribe.current = unsub;
       }
     });
