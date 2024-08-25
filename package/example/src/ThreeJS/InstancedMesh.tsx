@@ -8,6 +8,7 @@ import { useRef } from "react";
 import { useCanvasEffect } from "../components/useCanvasEffect";
 
 import { manager } from "./assets/AssetManager";
+import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 const { timerLocal, oscSine, mix, range } = THREE;
 
@@ -65,15 +66,8 @@ export const InstancedMesh = () => {
       );
 
       //
+      renderer = makeWebGPURenderer(device, context);
 
-      renderer = new THREE.WebGPURenderer({
-        antialias: true,
-
-        // @ts-expect-error
-        canvas: context.canvas,
-        context,
-        device,
-      });
       //renderer.setPixelRatio(window.devicePixelRatio);
       //renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setAnimationLoop(animate);

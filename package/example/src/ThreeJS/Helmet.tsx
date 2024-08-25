@@ -8,6 +8,7 @@ import { GLTFLoader, RGBELoader } from "three-stdlib";
 import { useCanvasEffect } from "../components/useCanvasEffect";
 
 import { manager } from "./assets/AssetManager";
+import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 window.parent = window;
 
@@ -46,14 +47,7 @@ export const Helmet = () => {
           });
         });
 
-      renderer = new THREE.WebGPURenderer({
-        antialias: true,
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
-        canvas: context.canvas,
-        context,
-        device,
-      });
+      renderer = makeWebGPURenderer(device, context);
 
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
     }

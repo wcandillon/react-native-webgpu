@@ -6,6 +6,8 @@ import { useRef } from "react";
 
 import { useCanvasEffect } from "../components/useCanvasEffect";
 
+import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
+
 export const Cube = () => {
   const ref = useRef<CanvasRef>(null);
   useCanvasEffect(async ({ device }) => {
@@ -23,14 +25,7 @@ export const Cube = () => {
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
-    const renderer = new THREE.WebGPURenderer({
-      antialias: true,
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error
-      canvas: context.canvas,
-      context,
-      device,
-    });
+    const renderer = makeWebGPURenderer(device, context);
     await renderer.init();
 
     function animate(time: number) {

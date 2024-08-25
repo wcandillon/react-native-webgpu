@@ -10,6 +10,7 @@ import { GLTFLoader } from "three-stdlib";
 import { useCanvasEffect } from "../components/useCanvasEffect";
 
 import { manager } from "./assets/AssetManager";
+import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 const {
   float,
@@ -136,14 +137,7 @@ export const Backdrop = () => {
 
       //renderer
 
-      renderer = new THREE.WebGPURenderer({
-        antialias: true,
-
-        // @ts-expect-error
-        canvas: context.canvas,
-        context,
-        device,
-      });
+      renderer = makeWebGPURenderer(device, context);
       renderer.setAnimationLoop(animate);
       renderer.toneMapping = THREE.NeutralToneMapping;
       renderer.toneMappingExposure = 0.3;
