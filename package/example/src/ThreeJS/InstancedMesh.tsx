@@ -1,11 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import * as THREE from "three/webgpu";
-import type { CanvasRef } from "react-native-wgpu";
-import { Canvas } from "react-native-wgpu";
+import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { View } from "react-native";
-import { useRef } from "react";
-
-import { useCanvasEffect } from "../components/useCanvasEffect";
 
 import { manager } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
@@ -13,8 +9,7 @@ import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 const { timerLocal, oscSine, mix, range } = THREE;
 
 export const InstancedMesh = () => {
-  const ref = useRef<CanvasRef>(null);
-  useCanvasEffect(async () => {
+  const ref = useCanvasEffect(async () => {
     const context = ref.current!.getContext("webgpu")!;
     const { width, height } = context.canvas;
     let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer;

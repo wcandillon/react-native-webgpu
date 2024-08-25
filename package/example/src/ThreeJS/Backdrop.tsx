@@ -1,13 +1,9 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable prefer-destructuring */
 import * as THREE from "three/webgpu";
-import type { CanvasRef } from "react-native-wgpu";
-import { Canvas } from "react-native-wgpu";
+import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { View } from "react-native";
-import { useRef } from "react";
 import { GLTFLoader } from "three-stdlib";
-
-import { useCanvasEffect } from "../components/useCanvasEffect";
 
 import { manager } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
@@ -26,8 +22,7 @@ const {
 } = THREE;
 
 export const Backdrop = () => {
-  const ref = useRef<CanvasRef>(null);
-  useCanvasEffect(async () => {
+  const ref = useCanvasEffect(async () => {
     const rotate = true;
     const context = ref.current!.getContext("webgpu")!;
     const { width, height } = context.canvas;
