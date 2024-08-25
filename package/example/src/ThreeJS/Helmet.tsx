@@ -1,11 +1,7 @@
 import * as THREE from "three/webgpu";
-import type { CanvasRef } from "react-native-wgpu";
-import { Canvas } from "react-native-wgpu";
+import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { StyleSheet, Text, View } from "react-native";
-import { useRef } from "react";
 import { GLTFLoader, RGBELoader } from "three-stdlib";
-
-import { useCanvasEffect } from "../components/useCanvasEffect";
 
 import { manager } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
@@ -13,8 +9,7 @@ import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 window.parent = window;
 
 export const Helmet = () => {
-  const ref = useRef<CanvasRef>(null);
-  useCanvasEffect(async () => {
+  const ref = useCanvasEffect(async () => {
     const context = ref.current!.getContext("webgpu")!;
     const { width, height } = context.canvas;
     let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer;

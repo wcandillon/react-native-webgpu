@@ -24,18 +24,17 @@ https://github.com/user-attachments/assets/5b49ef63-0a3c-4679-aeb5-e4b4dddfcc1d
 
 ## Usage
 
+Currently we recommend to use the `useCanvasEffect` to access the WebGPU context.
+
 ```tsx
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { StyleSheet, View, PixelRatio } from "react-native";
-import type { CanvasRef } from "react-native-wgpu";
-import { Canvas } from "react-native-wgpu";
+import { Canvas, useCanvasEffect } from "react-native-wgpu";
 
 import { redFragWGSL, triangleVertWGSL } from "./triangle";
 
 export function HelloTriangle() {
-  const ref = useRef<CanvasRef>(null);
-
-  async function demo() {
+  const ref = useCanvasEffect(async () => {
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) {
       throw new Error("No adapter");
@@ -44,6 +43,7 @@ export function HelloTriangle() {
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
     const context = ref.current!.getContext("webgpu")!;
+    const canvas = context.canvas as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();
     canvas.height = canvas.clientHeight * PixelRatio.get();
 
@@ -104,11 +104,7 @@ export function HelloTriangle() {
     device.queue.submit([commandEncoder.finish()]);
 
     context.present();
-  }
-
-  useEffect(() => {
-    demo();
-  }, []);
+  });
 
   return (
     <View style={style.container}>
