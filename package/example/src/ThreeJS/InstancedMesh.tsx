@@ -8,12 +8,13 @@ import { useRef } from "react";
 import { useCanvasEffect } from "../components/useCanvasEffect";
 
 import { manager } from "./assets/AssetManager";
+import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 const { timerLocal, oscSine, mix, range } = THREE;
 
 export const InstancedMesh = () => {
   const ref = useRef<CanvasRef>(null);
-  useCanvasEffect(async ({ device }) => {
+  useCanvasEffect(async () => {
     const context = ref.current!.getContext("webgpu")!;
     const { width, height } = context.canvas;
     let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer;
@@ -65,15 +66,8 @@ export const InstancedMesh = () => {
       );
 
       //
+      renderer = makeWebGPURenderer(context);
 
-      renderer = new THREE.WebGPURenderer({
-        antialias: true,
-
-        // @ts-expect-error
-        canvas: context.canvas,
-        context,
-        device,
-      });
       //renderer.setPixelRatio(window.devicePixelRatio);
       //renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setAnimationLoop(animate);

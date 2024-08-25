@@ -10,6 +10,7 @@ import { GLTFLoader } from "three-stdlib";
 import { useCanvasEffect } from "../components/useCanvasEffect";
 
 import { manager } from "./assets/AssetManager";
+import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 const {
   float,
@@ -26,7 +27,7 @@ const {
 
 export const Backdrop = () => {
   const ref = useRef<CanvasRef>(null);
-  useCanvasEffect(async ({ device }) => {
+  useCanvasEffect(async () => {
     const rotate = true;
     const context = ref.current!.getContext("webgpu")!;
     const { width, height } = context.canvas;
@@ -136,14 +137,7 @@ export const Backdrop = () => {
 
       //renderer
 
-      renderer = new THREE.WebGPURenderer({
-        antialias: true,
-
-        // @ts-expect-error
-        canvas: context.canvas,
-        context,
-        device,
-      });
+      renderer = makeWebGPURenderer(context);
       renderer.setAnimationLoop(animate);
       renderer.toneMapping = THREE.NeutralToneMapping;
       renderer.toneMappingExposure = 0.3;
