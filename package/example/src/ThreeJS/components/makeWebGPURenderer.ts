@@ -1,4 +1,4 @@
-import { NativeCanvas } from "react-native-wgpu";
+import type { NativeCanvas } from "react-native-wgpu";
 import * as THREE from "three/webgpu";
 
 // Here we need to wrap the Canvas into a non-host object for now
@@ -30,9 +30,7 @@ class ReactNativeCanvas {
   }
 }
 
-export const makeWebGPURenderer = (
-  context: GPUCanvasContext,
-) =>
+export const makeWebGPURenderer = (context: GPUCanvasContext) =>
   new THREE.WebGPURenderer({
     antialias: true,
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
