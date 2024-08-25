@@ -10,7 +10,7 @@ import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 export const Cube = () => {
   const ref = useRef<CanvasRef>(null);
-  useCanvasEffect(async ({ device }) => {
+  useCanvasEffect(async () => {
     const context = ref.current!.getContext("webgpu")!;
     const { width, height } = context.canvas;
 
@@ -25,7 +25,7 @@ export const Cube = () => {
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
-    const renderer = makeWebGPURenderer(device, context);
+    const renderer = makeWebGPURenderer(context);
     await renderer.init();
 
     function animate(time: number) {

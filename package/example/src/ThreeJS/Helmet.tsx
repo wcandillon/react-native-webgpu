@@ -14,7 +14,7 @@ window.parent = window;
 
 export const Helmet = () => {
   const ref = useRef<CanvasRef>(null);
-  useCanvasEffect(async ({ device }) => {
+  useCanvasEffect(async () => {
     const context = ref.current!.getContext("webgpu")!;
     const { width, height } = context.canvas;
     let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer;
@@ -43,11 +43,11 @@ export const Helmet = () => {
             console.log("helmet loaded");
             scene.add(gltf.scene);
 
-            render();
+            renderer.setAnimationLoop(animate);
           });
         });
 
-      renderer = makeWebGPURenderer(device, context);
+      renderer = makeWebGPURenderer(context);
 
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
     }
@@ -61,13 +61,12 @@ export const Helmet = () => {
       camera.lookAt(new THREE.Vector3(0, 0, 0));
     }
 
-    function render() {
+    function animate() {
       animateCamera();
-      renderer.renderAsync(scene, camera).then(() => {
-        context.present();
-        requestAnimationFrame(render);
-      });
+      renderer.render(scene, camera);
+      context.present();
     }
+
     return () => {
       renderer.setAnimationLoop(null);
     };

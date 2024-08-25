@@ -14,7 +14,7 @@ const { timerLocal, oscSine, mix, range } = THREE;
 
 export const InstancedMesh = () => {
   const ref = useRef<CanvasRef>(null);
-  useCanvasEffect(async ({ device }) => {
+  useCanvasEffect(async () => {
     const context = ref.current!.getContext("webgpu")!;
     const { width, height } = context.canvas;
     let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer;
@@ -66,7 +66,7 @@ export const InstancedMesh = () => {
       );
 
       //
-      renderer = makeWebGPURenderer(device, context);
+      renderer = makeWebGPURenderer(context);
 
       //renderer.setPixelRatio(window.devicePixelRatio);
       //renderer.setSize(window.innerWidth, window.innerHeight);

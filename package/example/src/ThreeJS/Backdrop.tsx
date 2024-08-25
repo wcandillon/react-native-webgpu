@@ -27,7 +27,7 @@ const {
 
 export const Backdrop = () => {
   const ref = useRef<CanvasRef>(null);
-  useCanvasEffect(async ({ device }) => {
+  useCanvasEffect(async () => {
     const rotate = true;
     const context = ref.current!.getContext("webgpu")!;
     const { width, height } = context.canvas;
@@ -137,7 +137,7 @@ export const Backdrop = () => {
 
       //renderer
 
-      renderer = makeWebGPURenderer(device, context);
+      renderer = makeWebGPURenderer(context);
       renderer.setAnimationLoop(animate);
       renderer.toneMapping = THREE.NeutralToneMapping;
       renderer.toneMappingExposure = 0.3;
