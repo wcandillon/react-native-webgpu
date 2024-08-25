@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { PixelRatio } from "react-native";
 import {
   useCanvasEffect,
@@ -6,27 +6,6 @@ import {
   type CanvasRef,
   type NativeCanvas,
 } from "react-native-wgpu";
-
-const useDevice = () => {
-  const [device, setDevice] = useState<GPUDevice | null>(null);
-  useEffect(() => {
-    (async () => {
-      const adapter = await navigator.gpu.requestAdapter();
-      if (!adapter) {
-        throw new Error("No appropriate GPUAdapter found.");
-      }
-      warnIfNotHardwareAccelerated(adapter);
-      const dev = await adapter.requestDevice();
-      if (!dev) {
-        throw new Error("No appropriate GPUDevice found.");
-      }
-      setDevice(dev);
-    })();
-  }, []);
-  return {
-    device,
-  };
-};
 
 interface SceneProps {
   context: GPUCanvasContext;
