@@ -11,15 +11,18 @@ Pod::Spec.new do |s|
   s.license      = package["license"]
   s.authors      = package["author"]
 
-  s.platforms    = { :ios => min_ios_version_supported }
+  s.platforms    = { :ios => min_ios_version_supported, :visionos => "1.0" }
   s.source       = { :git => "https://github.com/wcandillon/react-native-webgpu.git", :tag => "#{s.version}" }
 
   s.source_files = [
-    "ios/**/*.{h,c,cc,cpp,m,mm,swift}",  
+    "ios/**/*.{h,c,cc,cpp,m,mm,swift}",
     "cpp/**/*.{h,cpp}"
   ]
 
   s.ios.vendored_frameworks = [
+    'libs/ios/libwebgpu_dawn.xcframework',
+  ]
+  s.visionos.vendored_frameworks = [
     'libs/ios/libwebgpu_dawn.xcframework',
   ]
 

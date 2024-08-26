@@ -45,6 +45,7 @@ android.iml
 # Cocoapods
 #
 example/ios/Pods
+example/visionos/Pods
 
 # Ruby
 example/vendor/
