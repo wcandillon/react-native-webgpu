@@ -24,6 +24,8 @@ const PLATFORM_MAP: Record<string, string> = {
   arm64_iphoneos: "OS64",
   arm64_iphonesimulator: "SIMULATORARM64",
   x86_64_iphonesimulator: "SIMULATOR64",
+  arm64_xros: "VISIONOS",
+  arm64_xrsimulator: "SIMULATOR_VISIONOS",
 };
 
 const android = {
@@ -37,7 +39,7 @@ const android = {
 
 const ios = {
   matrix: {
-    arm64: ["iphoneos", "iphonesimulator"],
+    arm64: ["iphoneos", "iphonesimulator", "xros", "xrsimulator"],
     x86_64: ["iphonesimulator"],
   },
   args: {
@@ -102,6 +104,8 @@ const ios = {
       "xcodebuild -create-xcframework " +
         `-library ./package/libs/ios/${lib}.a ` +
         `-library ./package/libs/ios/arm64_iphoneos/${lib}.a ` +
+        `-library ./package/libs/ios/arm64_xros/${lib}.a ` +
+        `-library ./package/libs/ios/arm64_xrsimulator/${lib}.a ` +
         ` -output ./package/libs/ios/${lib}.xcframework `,
     );
   });
