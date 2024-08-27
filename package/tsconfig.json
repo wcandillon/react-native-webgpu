@@ -3,7 +3,10 @@
   "compilerOptions": {
     "paths": {
       "react-native-wgpu": ["./src/index"],
-      "three/webgpu": ["./node_modules/@types/three/src/Three.WebGPU.d.ts"]
+      "three/webgpu": ["./node_modules/@types/three/src/Three.WebGPU.d.ts"],
+      "@react-three/fiber/native": [
+        "./example/build/react-three-fiber/packages/fiber/src/native"
+      ]
     },
     "types": ["@webgpu/types", "@types/node", "@types/jest"]
   }

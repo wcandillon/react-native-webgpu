@@ -19,11 +19,6 @@ export const useCanvasEffect = (
   const unsubscribe = useRef<Unsubscribe>();
   useEffect(() => {
     requestAnimationFrame(async () => {
-      // const adapter = await navigator.gpu.requestAdapter();
-      // if (!adapter) {
-      //   return;
-      // }
-      // const device = await adapter.requestDevice();
       const unsub = await effect();
       if (unsub) {
         unsubscribe.current = unsub;
