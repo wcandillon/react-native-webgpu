@@ -4,7 +4,7 @@ jobs:
   build:
     runs-on: macos-latest
     env:
-      WORKING_DIRECTORY: ./package
+      WORKING_DIRECTORY: ./packages/webgpu
     steps:
       - name: checkout
         uses: actions/checkout@v2
@@ -23,11 +23,10 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: 'yarn'
-          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/yarn.lock
+          cache-dependency-path: yarn.lock
 
       - name: Install Package
         run: yarn install --frozen-lockfile
-        working-directory: ${{ env.WORKING_DIRECTORY }}
 
       - name: Build Dawn
         working-directory: ${{ env.WORKING_DIRECTORY }}

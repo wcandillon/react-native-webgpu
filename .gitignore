@@ -1,3 +1,14 @@
+# Yarn
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+#apps/*/ios
+#apps/*/android
+
 # OSX
 #
 .DS_Store
@@ -39,11 +50,6 @@ local.properties
 # Legacy Eclipse Settings
 .settings/
 
-# Externals
-libs
-package/cpp/dawn/
-package/cpp/webgpu/
-
 # BUCK
 buck-out/
 \.buckd/
@@ -53,5 +59,21 @@ buck-out/
 dist
 package/lib
 .vscode
-!package/script/build
 *.tgz
+
+
+# Externals
+packages/webgpu/libs
+packages/webgpu/cpp/dawn/
+packages/webgpu/cpp/webgpu/
+packages/webgpu/lib
+!packages/webgpu/scripts/build
+
+
+# Cocoapods
+#
+apps/paper/ios/Pods
+# Ruby
+apps/vendor/
+
+.turbo

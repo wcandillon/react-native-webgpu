@@ -10,9 +10,6 @@ concurrency:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: package
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -23,19 +20,21 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clang Format
+        working-directory: packages/webgpu
         run: yarn clang-format
 
       - name: Lint files
         run: yarn lint
 
       - name: Typecheck files
+        working-directory: packages/webgpu
         run: yarn tsc
 
   test:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: package
+        working-directory: packages/webgpu
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -52,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: package
+        working-directory: packages/webgpu
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -69,7 +68,7 @@ jobs:
     runs-on: macos-latest
     defaults:
       run:
-        working-directory: package
+        working-directory: packages/webgpu
     env:
       TURBO_CACHE_DIR: .turbo/android
     steps:
@@ -126,7 +125,7 @@ jobs:
           path: |
             ~/.gradle/wrapper
             ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('example/android/gradle/wrapper/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('../../apps/paper/android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
@@ -140,7 +139,7 @@ jobs:
     runs-on: macos-latest
     defaults:
       run:
-        working-directory: package
+        working-directory: packages/webgpu
     env:
       TURBO_CACHE_DIR: .turbo/ios
     steps:
@@ -163,7 +162,7 @@ jobs:
           name: dawn-libs
 
       - name: Copy Artifacts to libs folder
-        working-directory: package
+        working-directory: packages/webgpu
         run: yarn copy-artifacts
 
       - name: Cache turborepo for iOS
@@ -189,14 +188,14 @@ jobs:
         with:
           path: |
             **/ios/Pods
-          key: ${{ runner.os }}-cocoapods-${{ hashFiles('example/ios/Podfile.lock') }}
+          key: ${{ runner.os }}-cocoapods-${{ hashFiles('./apps/paper/ios/Podfile.lock') }}
           restore-keys: |
             ${{ runner.os }}-cocoapods-
 
       - name: Install cocoapods
         if: env.turbo_cache_hit != 1 && steps.cocoapods-cache.outputs.cache-hit != 'true'
         run: |
-          cd example/ios
+          cd apps/paper/ios
           pod install
         env:
           NO_FLIPPER: 1
