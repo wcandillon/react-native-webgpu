@@ -55,12 +55,12 @@ const depthRangeRemapMatrix = mat4.identity();
 depthRangeRemapMatrix[10] = -1;
 depthRangeRemapMatrix[14] = 1;
 
-enum DepthBufferMode {
-  Default = 0,
-  Reversed,
-}
+const DepthBufferMode = {
+  Default: 0,
+  Reversed: 1,
+};
 
-const depthBufferModes: DepthBufferMode[] = [
+const depthBufferModes = [
   DepthBufferMode.Default,
   DepthBufferMode.Reversed,
 ];
