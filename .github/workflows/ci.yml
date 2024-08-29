@@ -66,9 +66,6 @@ jobs:
 
   build-android:
     runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: packages/webgpu
     env:
       TURBO_CACHE_DIR: .turbo/android
     steps:
