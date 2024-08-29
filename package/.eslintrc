@@ -1,7 +1,0 @@
-{ 
-  "extends": "react-native-wcandillon",
-  "rules": {
-    "no-bitwise": "off"
-  },
-  "ignorePatterns": ["example/src/components/meshes"]
-}

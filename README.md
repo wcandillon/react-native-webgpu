@@ -212,7 +212,7 @@ Make sure you have all the tools required for building the Skia libraries (Andro
 
 ### Building
 
-* `cd package && yarn`
+* `cd packages/webgpu && yarn`
 * `yarn build-dawn`
 
 ### Upgrading
@@ -223,7 +223,7 @@ Make sure you have all the tools required for building the Skia libraries (Andro
 
 ### Codegen
 
-* `cd package && yarn codegen`
+* `cd packages/webgpu && yarn codegen`
 
 ### Testing
 

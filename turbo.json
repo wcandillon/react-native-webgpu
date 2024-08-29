@@ -1,0 +1,35 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build:android": {
+      "inputs": [
+        "packages/webgpu/package.json",
+        "packages/webgpu/android",
+        "!packages/webgpu/android/build",
+        "packages/webgpu/src/*.ts",
+        "packages/webgpu/src/*.tsx",
+        "packages/webgpu/example/package.json",
+        "packages/webgpu/example/android",
+        "!packages/webgpu/example/android/.gradle",
+        "!packages/webgpu/example/android/build",
+        "!packages/webgpu/example/android/app/build"
+      ],
+      "outputs": []
+    },
+    "build:ios": {
+      "inputs": [
+        "packages/webgpu/package.json",
+        "packages/webgpu/*.podspec",
+        "packages/webgpu/ios",
+        "packages/webgpu/src/*.ts",
+        "packages/webgpu/src/*.tsx",
+        "packages/webgpu/example/package.json",
+        "packages/webgpu/example/ios",
+        "!packages/webgpu/example/ios/build",
+        "!packages/webgpu/example/ios/Pods"
+      ],
+      "outputs": []
+    },
+    "lint": {}
+  }
+}
