@@ -109,7 +109,7 @@ const ios = {
   libs.forEach((lib) => {
     console.log(`Building fat binary for visionos simulator: ${lib}`);
     $(
-      `lipo -create package/libs/ios/x86_64_xrsimulator/${lib}.a package/libs/ios/arm64_xrsimulator/${lib}.a -output package/libs/ios/${lib}_visionos.a`,
+      `lipo -create ${projectRoot}/libs/ios/x86_64_xrsimulator/${lib}.a ${projectRoot}/libs/ios/arm64_xrsimulator/${lib}.a -output ${projectRoot}/libs/ios/${lib}_visionos.a`,
     );
   });
 
