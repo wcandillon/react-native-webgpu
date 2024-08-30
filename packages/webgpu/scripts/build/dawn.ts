@@ -32,6 +32,9 @@ const PLATFORM_MAP: Record<string, string> = {
   arm64_iphoneos: "OS64",
   arm64_iphonesimulator: "SIMULATORARM64",
   x86_64_iphonesimulator: "SIMULATOR64",
+  arm64_xros: "VISIONOS",
+  arm64_xrsimulator: "SIMULATOR_VISIONOS",
+  x86_64_xrsimulator: "SIMULATOR64_VISIONOS",
 };
 
 const android = {
@@ -45,8 +48,8 @@ const android = {
 
 const ios = {
   matrix: {
-    arm64: ["iphoneos", "iphonesimulator"],
-    x86_64: ["iphonesimulator"],
+    arm64: ["iphoneos", "iphonesimulator", "xros", "xrsimulator"],
+    x86_64: ["iphonesimulator", "xrsimulator"],
   },
   args: {
     CMAKE_TOOLCHAIN_FILE: `${__dirname}/ios.toolchain.cmake`,
@@ -104,12 +107,21 @@ const ios = {
   });
 
   libs.forEach((lib) => {
+    console.log(`Building fat binary for visionos simulator: ${lib}`);
+    $(
+      `lipo -create ${projectRoot}/libs/ios/x86_64_xrsimulator/${lib}.a ${projectRoot}/libs/ios/arm64_xrsimulator/${lib}.a -output ${projectRoot}/libs/ios/${lib}_visionos.a`,
+    );
+  });
+
+  libs.forEach((lib) => {
     console.log(`Building ${lib}`);
     $(`rm -rf ${projectRoot}/libs/ios/${lib}.xcframework`);
     $(
       "xcodebuild -create-xcframework " +
         `-library ${projectRoot}/libs/ios/${lib}.a ` +
         `-library ${projectRoot}/libs/ios/arm64_iphoneos/${lib}.a ` +
+        `-library ${projectRoot}/libs/ios/${lib}_visionos.a ` +
+        `-library ${projectRoot}/libs/ios/arm64_xros/${lib}.a ` +
         ` -output ${projectRoot}/libs/ios/${lib}.xcframework `,
     );
   });
