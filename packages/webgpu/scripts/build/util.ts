@@ -98,9 +98,9 @@ export const copyLib = (os: OS, platform: Platform, sdk?: string) => {
   $(`mkdir -p ${dstPath}`);
   if (os === "android") {
     console.log("Strip debug symbols from libwebgpu_dawn.a...");
-    // $(
-    //   `$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.so`,
-    // );
+    $(
+      `$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.so`,
+    );
   }
   [
     `externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.${os === "ios" ? "a" : "so"}`,
