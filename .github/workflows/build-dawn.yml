@@ -40,6 +40,6 @@ jobs:
         with:
           name: dawn-libs
           path: |
-            package/libs
-            package/cpp/dawn
-            package/cpp/webgpu
+            packages/webgpu/libs
+            packages/webgpu/cpp/dawn
+            packages/webgpu/cpp/webgpu
