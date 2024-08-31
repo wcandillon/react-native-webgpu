@@ -2,7 +2,7 @@ name: Build Dawn
 on: workflow_dispatch
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-latest-large
     env:
       WORKING_DIRECTORY: ./packages/webgpu
     steps:
