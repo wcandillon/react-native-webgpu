@@ -2,7 +2,10 @@ const { getDefaultConfig, mergeConfig } = require("@react-native/metro-config");
 const path = require("path");
 
 const root = path.resolve(__dirname, "..");
-const threePackagePath = path.resolve(root, "node_modules/three");
+const threePackagePath = path.resolve(
+  root,
+  "node_modules/three/src/Three.WebGPU.js",
+);
 const threeFiberPackagePath = path.resolve(
   root,
   "./build/react-three-fiber/packages/fiber/src/native",
@@ -21,16 +24,12 @@ const config = {
 
   resolver: {
     extraNodeModules: {
-      three: threePackagePath,
       "@react-three/fiber/native": threeFiberPackagePath,
     },
     resolveRequest: (context, moduleName, platform) => {
-      if (moduleName === "three/webgpu") {
+      if (moduleName === "three") {
         return {
-          filePath: path.resolve(
-            threePackagePath,
-            "../../example/build/three.webgpu.js",
-          ),
+          filePath: path.resolve(threePackagePath),
           type: "sourceFile",
         };
       }

@@ -1,4 +1,4 @@
-import * as THREE from "three/webgpu";
+import * as THREE from "three/src/Three.WebGPU";
 import { Image, NativeModules, Platform } from "react-native";
 import { fromByteArray } from "base64-js";
 import { Buffer } from "buffer";

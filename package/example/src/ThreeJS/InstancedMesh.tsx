@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import * as THREE from "three/webgpu";
+import * as THREE from "three/src/Three.WebGPU";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { View } from "react-native";
 

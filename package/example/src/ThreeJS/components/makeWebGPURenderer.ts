@@ -1,9 +1,8 @@
-import type { NativeCanvas } from "react-native-wgpu";
-import * as THREE from "three/webgpu";
+import * as THREE from "three/src/Three.WebGPU";
 
 // Here we need to wrap the Canvas into a non-host object for now
-class ReactNativeCanvas {
-  constructor(private canvas: NativeCanvas) {}
+export class ReactNativeCanvas {
+  constructor(private canvas: HTMLCanvasElement) {}
 
   get width() {
     return this.canvas.width;

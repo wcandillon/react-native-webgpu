@@ -1,9 +1,8 @@
 import { View } from "react-native";
 import React, { useRef, useState } from "react";
 import { Canvas } from "./fiber-webgpu/Canvas";
-import * as THREE from "three/webgpu";
 
-global.THREE = global.THREE || THREE;
+//global.THREE = global.THREE || THREE;
 
 function Box(props) {
   // This reference will give us direct access to the mesh

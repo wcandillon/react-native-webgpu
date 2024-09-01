@@ -1,5 +1,5 @@
 import * as React from "react";
-import * as THREE from "three/webgpu";
+import * as THREE from "three/src/Three.WebGPU";
 import {
   StyleSheet,
   View,
@@ -26,12 +26,15 @@ import {
   SetBlock,
   useMutableCallback,
 } from "../../../build/react-three-fiber/packages/fiber/src/core/utils";
-import { Canvas as WebGPUCanvas, useCanvasEffect } from "react-native-wgpu";
+import {
+  CanvasContext,
+  Canvas as WebGPUCanvas,
+  useCanvasEffect,
+} from "react-native-wgpu";
 import {
   RootState,
   Size,
 } from "../../../build/react-three-fiber/packages/fiber/src/core/store";
-import { makeWebGPURenderer } from "../components/makeWebGPURenderer";
 
 export interface CanvasProps
   extends Omit<RenderProps<HTMLCanvasElement>, "size" | "dpr">,
@@ -85,6 +88,8 @@ const CanvasImpl = /*#__PURE__*/ React.forwardRef<View, Props>(
       left: 0,
     });
     const [canvas, setCanvas] = React.useState<HTMLCanvasElement | null>(null);
+    const [context, setContext] = React.useState<CanvasContext>();
+
     const [bind, setBind] = React.useState<GestureResponderHandlers>();
     React.useImperativeHandle(forwardedRef, () => viewRef.current);
 
@@ -92,16 +97,21 @@ const CanvasImpl = /*#__PURE__*/ React.forwardRef<View, Props>(
     const [block, setBlock] = React.useState<SetBlock>(false);
     const [error, setError] = React.useState<Error | undefined>(undefined);
 
-    const [renderer, setRenderer] = React.useState<THREE.WebGPURenderer>();
-
     const canvasRef = useCanvasEffect(async () => {
-      const context = canvasRef.current?.getContext("webgpu")!;
-      const webGpuRenderer = makeWebGPURenderer(context);
-      await webGpuRenderer.init();
+      console.log("useCanvasEffect()");
+      if (canvasRef.current != null) {
+        const context = canvasRef.current!.getContext("webgpu")!;
 
-      setRenderer(webGpuRenderer);
+        // TODO: Why is getNativeSurface not defined?
+        console.log(
+          "getNativeSurface()",
+          canvasRef.current.getContext("webgpu"),
+        );
 
-      onContextCreate(context);
+        console.log("context:", context);
+        setContext(context);
+        onContextCreate(context);
+      }
     });
 
     // Suspend this component if block is a promise (2nd run)
@@ -118,16 +128,19 @@ const CanvasImpl = /*#__PURE__*/ React.forwardRef<View, Props>(
     }, []);
 
     const onContextCreate = React.useCallback((context: GPUCanvasContext) => {
+      console.log("onContextCreate");
       const listeners = new Map<string, EventListener[]>();
 
-      const canvasElement = context.canvas as HTMLCanvasElement;
+      const gpuCanvas = context.canvas as HTMLCanvasElement;
 
-      const canvas = {
+      console.log("gpuCanvas", gpuCanvas);
+
+      const baseCanvas = {
         style: {},
-        width: canvasElement.width,
-        height: canvasElement.height,
-        clientWidth: canvasElement.clientWidth,
-        clientHeight: canvasElement.clientHeight,
+        width: gpuCanvas.width,
+        height: gpuCanvas.height,
+        clientWidth: gpuCanvas.clientWidth,
+        clientHeight: gpuCanvas.clientHeight,
         getContext: (_: any) => {
           return context;
         },
@@ -167,10 +180,11 @@ const CanvasImpl = /*#__PURE__*/ React.forwardRef<View, Props>(
 
       // TODO: this is wrong but necessary to trick controls
       // @ts-ignore
-      canvas.ownerDocument = canvas;
-      canvas.getRootNode = () => canvas;
+      baseCanvas.ownerDocument = baseCanvas;
+      baseCanvas.getRootNode = () => baseCanvas;
 
-      root.current = createRoot<HTMLCanvasElement>(canvas);
+      root.current = createRoot<HTMLCanvasElement>(baseCanvas);
+      setCanvas(baseCanvas);
 
       function handleTouch(
         gestureEvent: GestureResponderEvent,
@@ -178,7 +192,7 @@ const CanvasImpl = /*#__PURE__*/ React.forwardRef<View, Props>(
       ): true {
         gestureEvent.persist();
 
-        canvas.dispatchEvent(
+        baseCanvas.dispatchEvent(
           Object.assign(gestureEvent.nativeEvent, {
             type,
             offsetX: gestureEvent.nativeEvent.locationX,
@@ -208,12 +222,16 @@ const CanvasImpl = /*#__PURE__*/ React.forwardRef<View, Props>(
         onPanResponderReject: (e) => handleTouch(e, "lostpointercapture"),
       });
       setBind(responder.panHandlers);
-      setCanvas(canvasElement);
     }, []);
 
-    if (root.current && renderer != null) {
+    if (root.current && context) {
       root.current.configure({
-        gl: (_) => renderer,
+        gl: (canvas: HTMLCanvasElement) => {
+          const r = new THREE.WebGPURenderer({ forceWebGL: false, canvas });
+          r.setClearColor(0xffffff, 20);
+          r.xr = { addEventListener: () => {} };
+          return r;
+        },
         events,
         shadows,
         linear,
@@ -231,14 +249,30 @@ const CanvasImpl = /*#__PURE__*/ React.forwardRef<View, Props>(
         onPointerMissed: (...args) => handlePointerMissed.current?.(...args),
         // Overwrite onCreated to apply RN bindings
         onCreated: async (state: RootState) => {
-          // Bind render to RN bridge
-          const renderFrame = state.gl.render.bind(state.gl);
-          state.gl.render = (scene: THREE.Scene, camera: THREE.Camera) => {
-            renderFrame(scene, camera);
-          };
+          console.log("onCreated", state.gl);
 
-          // Ensure frames don't start rendering until context has been created
-          state.set({ frameloop: "always" });
+          try {
+            await state.gl.init();
+
+            console.log("current texture", context.getCurrentTexture());
+            console.log("native surface", context.getNativeSurface());
+
+            /*
+            console.log("render function", state.gl.render);
+            // Bind render to RN bridge
+            //const renderFrame = state.gl.render.bind(state.gl);
+            state.gl.render = (scene: THREE.Scene, camera: THREE.Camera) => {
+              console.log("renderFrame");
+              state.gl.render(scene, camera);
+              //renderFrame(scene, camera);
+            };
+
+            // Ensure frames don't start rendering until context has been created
+            state.set({ frameloop: "always" });
+            */
+          } catch (e) {
+            console.error("Failed to initialize renderer", e);
+          }
 
           return onCreated?.(state);
         },
