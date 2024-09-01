@@ -32,7 +32,7 @@ export interface NativeCanvas {
 global.__WebGPUContextRegistry = {};
 const WebGPUContextRegistry = global.__WebGPUContextRegistry;
 
-type CanvasContext = GPUCanvasContext & {
+export type CanvasContext = GPUCanvasContext & {
   present: () => void;
   getNativeSurface: () => NativeCanvas;
 };
