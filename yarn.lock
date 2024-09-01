@@ -9804,7 +9804,7 @@ __metadata:
     react-native-screens: ^3.32.0
     react-native-wgpu: "*"
     teapot: ^1.0.0
-    three: ^0.167.1
+    three: ^0.168.0
     three-stdlib: ^2.32.2
     wgpu-matrix: ^3.0.2
   languageName: unknown
@@ -11137,10 +11137,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"three@npm:^0.167.1":
-  version: 0.167.1
-  resolution: "three@npm:0.167.1"
-  checksum: 4500a7eb16dc9143f0e71b11c4886d003f31cd8e4cd4e755a045afbcdce0f3f9cec47ab1c9d00eb45fa2bb3ace6ef17b105eee93b90b15b43f0af1139db8741d
+"three@npm:^0.168.0":
+  version: 0.168.0
+  resolution: "three@npm:0.168.0"
+  checksum: 1f186006ad5c8df348d4a2bcdccc078f0454f196b8ccc450d405cdf8c88436ff773e545725ef1122891b5552b5cf03add8394288b58985a0c3ebe66b588cab2f
   languageName: node
   linkType: hard
 
