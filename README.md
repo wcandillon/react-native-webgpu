@@ -15,10 +15,8 @@ Below are some examples from the [example app](/package/example/).
 
 https://github.com/user-attachments/assets/116a41b2-2cf8-49f1-9f16-a5c83637c198
 
-Our example app has examples running [three.js](https://threejs.org/) on top of React Native WebGPU.
-Right now, we use `r167` with a small patch on top of it.
-Starting from `r168`, we will be able to use the official version of Three.js.
-We also have a slight modification of [the metro config](/package/example/metro.config.js) to resolve Three.js to the WebGPU build.
+Starting from `r168`, Three.js runs out of the box with React Native WebGPU.
+You need to have a slight modification of [the metro config](/package/example/metro.config.js) to resolve Three.js to the WebGPU build.
 
 https://github.com/user-attachments/assets/5b49ef63-0a3c-4679-aeb5-e4b4dddfcc1d
 
