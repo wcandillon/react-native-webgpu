@@ -23,6 +23,10 @@ Pod::Spec.new do |s|
     'libs/ios/libwebgpu_dawn.xcframework',
   ]
 
+  s.visionos.vendored_frameworks = [
+    'libs/ios/libwebgpu_dawn_visionos.xcframework',
+  ]
+
   s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',
   }
