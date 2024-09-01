@@ -11,22 +11,28 @@ Please note that the package name is `react-native-wgpu`.
 npm install react-native-wgpu
 ```
 
+Below are some examples from the [example app](/package/example/).
+
+https://github.com/user-attachments/assets/116a41b2-2cf8-49f1-9f16-a5c83637c198
+
+Starting from `r168`, Three.js runs out of the box with React Native WebGPU.
+You need to have a slight modification of [the metro config](/package/example/metro.config.js) to resolve Three.js to the WebGPU build.
+
+https://github.com/user-attachments/assets/5b49ef63-0a3c-4679-aeb5-e4b4dddfcc1d
+
 ## Usage
 
-You can look at the [example](/package/example) folder for working examples.
+Currently we recommend to use the `useCanvasEffect` to access the WebGPU context.
 
 ```tsx
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { StyleSheet, View, PixelRatio } from "react-native";
-import type { CanvasRef } from "react-native-webgpu";
-import { Canvas } from "react-native-webgpu";
+import { Canvas, useCanvasEffect } from "react-native-wgpu";
 
 import { redFragWGSL, triangleVertWGSL } from "./triangle";
 
 export function HelloTriangle() {
-  const ref = useRef<CanvasRef>(null);
-
-  async function demo() {
+  const ref = useCanvasEffect(async () => {
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) {
       throw new Error("No adapter");
@@ -35,6 +41,7 @@ export function HelloTriangle() {
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
     const context = ref.current!.getContext("webgpu")!;
+    const canvas = context.canvas as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();
     canvas.height = canvas.clientHeight * PixelRatio.get();
 
@@ -95,11 +102,7 @@ export function HelloTriangle() {
     device.queue.submit([commandEncoder.finish()]);
 
     context.present();
-  }
-
-  useEffect(() => {
-    demo();
-  }, []);
+  });
 
   return (
     <View style={style.container}>
@@ -118,6 +121,18 @@ const style = StyleSheet.create({
 });
 ```
 
+## Example App
+
+To run the example app you first need to build Dawn.
+
+```sh
+$ git submodule update --init
+$ cd package && yarn
+$ yarn build-dawn
+```
+
+From there you will be able to run the example app properly.
+
 ## Similarities and Differences with the Web
 
 The API has been designed to be completely symmetric with the Web.  
@@ -132,8 +147,6 @@ const ctx = canvas.current.getContext("webgpu")!;
 ctx.canvas.width = ctx.canvas.clientWidth * PixelRatio.get();
 ctx.canvas.height = ctx.canvas.clientHeight * PixelRatio.get();
 ```
-
-However, there are two differences with the Web: frame scheduling and external textures.
 
 ### Frame Scheduling
 
@@ -150,35 +163,25 @@ context.present();
 
 ### External Textures
 
-External textures are not a concept that exists in React Native.  
-Consider the following Web example:
+This module provides a `createImageBitmap` function that you can use in `copyExternalImageToTexture`.
 
 ```tsx
-const response = await fetch('./assets/img/Di-3d.png');
+const url = Image.resolveAssetSource(require("./assets/image.png")).uri;
+const response = await fetch(url);
 const imageBitmap = await createImageBitmap(await response.blob());
 
+const texture = device.createTexture({
+  size: [imageBitmap.width, imageBitmap.height, 1],
+  format: "rgba8unorm",
+  usage:
+    GPUTextureUsage.TEXTURE_BINDING |
+    GPUTextureUsage.COPY_DST |
+    GPUTextureUsage.RENDER_ATTACHMENT,
+});
 device.queue.copyExternalImageToTexture(
   { source: imageBitmap },
-  { texture: cubeTexture },
-  [imageBitmap.width, imageBitmap.height]
-);
-```
-
-In React Native, you would need to load the texture yourself.  
-For instance, we use Skia for image decoding [here](/package/example/src/components/useAssets.ts#L6).
-
-```tsx
-const imageBitmap = await decodeImage(require("./assets/Di-3d.png"));
-
-device.queue.writeTexture(
-  { texture: cubeTexture, mipLevel: 0, origin: { x: 0, y: 0, z: 0 } },
-  imageBitmap.data.buffer,
-  {
-    offset: 0,
-    bytesPerRow: 4 * imageBitmap.width,
-    rowsPerImage: imageBitmap.height,
-  },
-  { width: imageBitmap.width, height: imageBitmap.height },
+  { texture },
+  [imageBitmap.width, imageBitmap.height],
 );
 ```
 
@@ -193,9 +196,7 @@ In "Edit Scheme," uncheck "Metal Validation."
 
 ### Android
 
-On a physical device, you need Android API level 26 or higher.  
-On a simulator, you need Android API level 34 or higher.  
-We are currently working on relaxing that rule for Android simulators.
+On an Android simulator, a CPU emulation layer is used which may result in very slow performance.
 
 ## Library Development
 
@@ -209,7 +210,7 @@ Make sure you have all the tools required for building the Skia libraries (Andro
 
 ### Building
 
-* `cd package && yarn`
+* `cd packages/webgpu && yarn`
 * `yarn build-dawn`
 
 ### Upgrading
@@ -220,7 +221,7 @@ Make sure you have all the tools required for building the Skia libraries (Andro
 
 ### Codegen
 
-* `cd package && yarn codegen`
+* `cd packages/webgpu && yarn codegen`
 
 ### Testing
 
