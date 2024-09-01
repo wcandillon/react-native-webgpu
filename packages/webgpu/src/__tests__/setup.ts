@@ -137,12 +137,15 @@ class ReferenceTestingClient implements TestingClient {
     if (!this.page) {
       throw new Error("RemoteSurface not initialized");
     }
-    const fTexturePath = path.join(__dirname, "../../example/src/assets/f.png");
+    const fTexturePath = path.join(
+      __dirname,
+      "../../../../apps/paper/src/assets/f.png",
+    );
     const fTextureData = fs.readFileSync(fTexturePath);
     const fTextureBase64 = `data:image/png;base64,${fTextureData.toString("base64")}`;
     const source = `(async function Main(){
     var global = window;  
-    const r = () => {${fs.readFileSync(path.join(__dirname, "../../node_modules/wgpu-matrix/dist/3.x/wgpu-matrix.js"), "utf8")} };
+    const r = () => {${fs.readFileSync(path.join(__dirname, "../../../../node_modules/wgpu-matrix/dist/3.x/wgpu-matrix.js"), "utf8")} };
       r();
       const { mat4, vec3, mat3 } = window.wgpuMatrix;
       const { device, adapter, gpu, cubeVertexArray, triangleVertWGSL, redFragWGSL, di3D, saturn, moon } = window;
@@ -231,13 +234,13 @@ class ReferenceTestingClient implements TestingClient {
       .catch((e) => console.log(e));
     await page.waitForNetworkIdle();
     const di3D = decodeImage(
-      path.join(__dirname, "../../example/src/assets/Di-3d.png"),
+      path.join(__dirname, "../../../../apps/paper/src/assets/Di-3d.png"),
     );
     const moon = decodeImage(
-      path.join(__dirname, "../../example/src/assets/moon.png"),
+      path.join(__dirname, "../../../../apps/paper/src/assets/moon.png"),
     );
     const saturn = decodeImage(
-      path.join(__dirname, "../../example/src/assets/saturn.png"),
+      path.join(__dirname, "../../../../apps/paper/src/assets/saturn.png"),
     );
     await page.evaluate(
       `

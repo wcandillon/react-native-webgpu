@@ -120,9 +120,13 @@ const ios = {
       "xcodebuild -create-xcframework " +
         `-library ${projectRoot}/libs/ios/${lib}.a ` +
         `-library ${projectRoot}/libs/ios/arm64_iphoneos/${lib}.a ` +
-        `-library ${projectRoot}/libs/ios/${lib}_visionos.a ` +
-        `-library ${projectRoot}/libs/ios/arm64_xros/${lib}.a ` +
         ` -output ${projectRoot}/libs/ios/${lib}.xcframework `,
+    );
+    $(
+      "xcodebuild -create-xcframework " +
+        `-library ${projectRoot}/libs/ios/${lib}_visionos.a ` +
+        `-library ${projectRoot}/libs/ios/arm64_xros/${lib}_visionos.a ` +
+        ` -output ${projectRoot}/libs/ios/${lib}_visionos.xcframework `,
     );
   });
 
