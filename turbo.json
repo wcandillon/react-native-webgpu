@@ -11,8 +11,14 @@
         "apps/paper/android/build.gradle",
         "apps/paper/android/app/build.gradle",
         "apps/paper/android/gradle.properties",
-        "packages/webgpu/cpp/**/*",
-        "packages/webgpu/android/**/*"
+        "!apps/paper/android/.gradle",
+        "!apps/paper/android/build",
+        "!apps/paper/android/app/build",
+        "packages/webgpu/package.json",
+        "packages/webgpu/android",
+        "!packages/webgpu/android/build",
+        "packages/webgpu/src",
+        "packages/webgpu/cpp"
       ]
     },
     "build:ios": {
@@ -25,8 +31,13 @@
         "apps/paper/ios/Podfile",
         "apps/paper/ios/Podfile.lock",
         "apps/paper/ios/Pods/**/*",
-        "packages/webgpu/cpp/**/*",
-        "packages/webgpu/ios/**/*"
+        "!apps/paper/ios/build",
+        "!apps/paper/ios/Pods",
+        "packages/webgpu/package.json",
+        "packages/webgpu/*.podspec",
+        "packages/webgpu/ios",
+        "packages/webgpu/src",
+        "packages/webgpu/cpp"
       ]
     },
     "lint": {},
