@@ -103,10 +103,7 @@ export const TexturedCube = () => {
       // Fetch the image and upload it into a GPUTexture.
       let cubeTexture: GPUTexture;
       {
-        const response = await fetchAsset(
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          require("../assets/Di-3d.png"),
-        );
+        const response = await fetchAsset(require("../assets/Di-3d.png"));
         const imageBitmap = await createImageBitmap(await response.blob());
         cubeTexture = device.createTexture({
           size: [imageBitmap.width, imageBitmap.height, 1],
