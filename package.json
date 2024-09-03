@@ -12,6 +12,7 @@
   "packageManager": "yarn@3.6.1",
   "scripts": {
     "lint": "turbo run lint",
+    "tsc": "turbo run tsc",
     "build:ios": "turbo run build:ios",
     "build:android": "turbo run build:android"
   },
