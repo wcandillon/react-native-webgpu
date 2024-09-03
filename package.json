@@ -16,14 +16,6 @@
     "build:android": "turbo run build:android"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.3.0",
-    "@typescript-eslint/parser": "^8.3.0",
-    "eslint": "8",
-    "eslint-config-react-native-wcandillon": "^3.10.2",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-jest": "^28.8.0",
-    "eslint-plugin-prettier": "^5.2.1",
-    "turbo": "^2.1.0",
-    "typescript": "^5.2.2"
+    "turbo": "^2.1.0"
   }
 }

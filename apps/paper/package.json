@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
+    "tsc": "tsc --noEmit",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",
@@ -35,7 +36,10 @@
     "@react-native/typescript-config": "0.74.84",
     "@types/three": "^0.167.2",
     "@webgpu/types": "^0.1.44",
-    "babel-plugin-module-resolver": "^5.0.0"
+    "babel-plugin-module-resolver": "^5.0.0",
+    "eslint": "8",
+    "eslint-config-react-native-wcandillon": "^3.10.2",
+    "eslint-plugin-import": "2.27.5"
   },
   "engines": {
     "node": ">=18"
