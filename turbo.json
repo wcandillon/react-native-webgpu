@@ -8,6 +8,7 @@
         "apps/paper/android/build/**/*"
       ],
       "inputs": [
+        "apps/**/*/package.json",
         "apps/paper/android/build.gradle",
         "apps/paper/android/app/build.gradle",
         "apps/paper/android/gradle.properties",
@@ -22,6 +23,7 @@
         "apps/paper/ios/Podfile.lock"
       ],
       "inputs": [
+        "apps/**/*/package.json",
         "apps/paper/ios/Podfile",
         "apps/paper/ios/Podfile.lock",
         "apps/paper/ios/Pods/**/*",
