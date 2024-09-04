@@ -9,7 +9,7 @@
     "ios": "react-native run-ios",
     "start": "react-native start",
     "build:android": "cd android && ./gradlew assembleDebug",
-    "build:ios": "cd ios && xcodebuild -scheme WgpuExample -workspace WgpuExample.xcworkspace -configuration Debug -sdk iphonesimulator | xcpretty"
+    "build:ios": "cd ios && xcodebuild -scheme WgpuExample -workspace WgpuExample.xcworkspace -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14' | xcpretty"
   },
   "dependencies": {
     "@react-navigation/native": "^6.1.17",

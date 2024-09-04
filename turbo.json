@@ -2,8 +2,11 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "build:android": {
-      "env": ["JAVA_HOME", "ANDROID_NDK", "ANDROID_SDK", "ANDROID_HOME"],
       "outputs": [
+        "apps/*/android",
+        "!apps/*/android/.gradle",
+        "!apps/*/android/build",
+        "!apps/*/android/app/build"
       ],
       "inputs": [
         "**/*/package.json",
@@ -13,6 +16,10 @@
         "packages/webgpu/src/*.tsx",
         "apps/*/package.json",
         "apps/*/android",
+        "apps/*/android/app/build.gradle",
+        "apps/*/android/build.gradle",
+        "apps/*/android/gradle.properties",
+        "apps/*/android/local.properties",
         "!apps/*/android/.gradle",
         "!apps/*/android/build",
         "!apps/*/android/app/build"
@@ -20,11 +27,16 @@
     },
     "build:ios": {
       "outputs": [
+        "apps/*/ios/build",
+        "apps/*/ios/Pods"
       ],
       "inputs": [
         "package.json",
         "*.podspec",
         "ios",
+        "ios/Podfile",
+        "ios/*.xcconfig",
+        "ios/**/*.plist",
         "packages/webgpu/src/*.ts",
         "packages/webgpu/src/*.tsx",
         "apps/*/package.json",
