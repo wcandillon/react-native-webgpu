@@ -130,7 +130,6 @@ jobs:
       - name: Build example for Android
         env:
           JAVA_OPTS: "-XX:MaxHeapSize=6g"
-          GRADLE_OPTS: "-Xmx4g"  # or try "-Xmx8g" for larger builds
         run: |
           yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}"
 
