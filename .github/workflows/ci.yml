@@ -27,6 +27,7 @@ jobs:
         run: yarn lint
 
       - name: Typecheck files
+        working-directory: packages/webgpu
         run: yarn tsc
 
   test:
