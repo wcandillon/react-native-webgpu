@@ -97,10 +97,24 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+
+      - name: Install NDK
+        if: env.turbo_cache_hit != 1
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r22b
+
+      - name: Set ANDROID_NDK
+        run: echo "ANDROID_NDK=$ANDROID_HOME/ndk-bundle" >> $GITHUB_ENV
+
       - name: Finalize Android SDK
         if: env.turbo_cache_hit != 1
         run: |
           /bin/bash -c "yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null"
+
+      - name: Install Android SDK
+        run: echo "sdk.dir=$ANDROID_HOME" > $GITHUB_WORKSPACE/apps/paper/android/local.properties
 
       - name: Cache Gradle
         if: env.turbo_cache_hit != 1
