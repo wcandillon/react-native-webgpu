@@ -8,7 +8,7 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",
-    "build:android": "cd android && ./gradlew assembleDebug --no-daemon --console=plain",
+    "build:android": "cd android && ./gradlew assembleDebug",
     "build:ios": "cd ios && xcodebuild -scheme WgpuExample -workspace WgpuExample.xcworkspace -configuration Debug -sdk iphonesimulator | xcpretty"
   },
   "dependencies": {
