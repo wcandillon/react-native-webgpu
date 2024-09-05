@@ -62,7 +62,7 @@ jobs:
         run: yarn prepare
 
   build-android:
-    runs-on: ubuntu-latest
+    runs-on: macos-14
     env:
       TURBO_CACHE_DIR: .turbo/android
     steps:
