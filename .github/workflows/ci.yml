@@ -32,19 +32,24 @@ jobs:
       - name: Typecheck files
         run: yarn tsc
 
-  # test:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v3
+  test:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-  #     - name: Setup
-  #       uses: ./.github/actions/setup
-  #       with:
-  #         github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
-  #     - name: Run unit tests
-  #       run: yarn test --maxWorkers=2 --coverage
+      - name: Codegen
+        working-directory: packages/webgpu
+        run: yarn codegen
+
+      - name: Run unit tests
+        working-directory: packages/webgpu
+        run: yarn test:ref
 
   build-library:
     runs-on: ubuntu-latest
