@@ -15,7 +15,8 @@ jobs:
         id: setup-ndk
         uses: nttld/setup-ndk@v1
         with:
-          ndk-version: r22b
+          ndk-version: r26d
+          link-to-sdk: true
 
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
