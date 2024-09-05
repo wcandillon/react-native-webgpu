@@ -14,7 +14,7 @@ import { getDescriptor } from "./Descriptors";
 const tsConfigFilePath = path.resolve(__dirname, "../../tsconfig.json");
 const filePath = path.resolve(
   __dirname,
-  "../../node_modules/@webgpu/types/dist/index.d.ts",
+  "../../../../node_modules/@webgpu/types/dist/index.d.ts",
 );
 const project = new Project({
   tsConfigFilePath,

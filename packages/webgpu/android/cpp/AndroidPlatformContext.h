@@ -22,7 +22,8 @@ private:
   jobject _blobModule;
 
 public:
-  explicit AndroidPlatformContext(jobject blobModule) : _blobModule(blobModule) {}
+  explicit AndroidPlatformContext(jobject blobModule)
+      : _blobModule(blobModule) {}
   ~AndroidPlatformContext() {
     if (_blobModule) {
       JNIEnv *env = facebook::jni::Environment::current();
