@@ -15,7 +15,10 @@ jobs:
         id: setup-ndk
         uses: nttld/setup-ndk@v1
         with:
-          ndk-version: r22b
+          ndk-version: r26d
+
+      - name: Set ANDROID_NDK
+        run: echo "ANDROID_NDK=$ANDROID_HOME/ndk-bundle" >> $GITHUB_ENV
 
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
