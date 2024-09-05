@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
+    "tsc": "tsc --noEmit",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",
-    "build:android": "cd android && ./gradlew assembleDebug --no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a",
-    "build:ios": "cd ios && xcodebuild -workspace WgpuExample.xcworkspace -scheme WgpuExample -configuration Debug -sdk iphonesimulator CC=clang CPLUSPLUS=clang++ LD=clang LDPLUSPLUS=clang++ GCC_OPTIMIZATION_LEVEL=0 GCC_PRECOMPILE_PREFIX_HEADER=YES ASSETCATALOG_COMPILER_OPTIMIZATION=time DEBUG_INFORMATION_FORMAT=dwarf COMPILER_INDEX_STORE_ENABLE=NO | xcpretty"
+    "build:android": "cd android && ./gradlew assembleDebug --warning-mode all",
+    "build:ios": "npm run mkdist && react-native bundle --entry-file index.js --platform ios --dev true --bundle-output dist/main.ios.jsbundle --assets-dest dist && react-native build-ios --scheme WgpuExample --mode Debug --extra-params \"-sdk iphonesimulator CC=clang CPLUSPLUS=clang++ LD=clang LDPLUSPLUS=clang++ GCC_OPTIMIZATION_LEVEL=0 GCC_PRECOMPILE_PREFIX_HEADER=YES ASSETCATALOG_COMPILER_OPTIMIZATION=time DEBUG_INFORMATION_FORMAT=dwarf COMPILER_INDEX_STORE_ENABLE=NO\"",
+    "mkdist": "node -e \"require('node:fs').mkdirSync('dist', { recursive: true, mode: 0o755 })\""
   },
   "dependencies": {
     "@react-navigation/native": "^6.1.17",
@@ -35,7 +37,11 @@
     "@react-native/typescript-config": "0.74.84",
     "@types/three": "^0.167.2",
     "@webgpu/types": "^0.1.44",
-    "babel-plugin-module-resolver": "^5.0.0"
+    "babel-plugin-module-resolver": "^5.0.0",
+    "eslint": "8",
+    "eslint-config-react-native-wcandillon": "^3.10.2",
+    "eslint-plugin-import": "2.27.5",
+    "typescript": "^5.2.2"
   },
   "engines": {
     "node": ">=18"

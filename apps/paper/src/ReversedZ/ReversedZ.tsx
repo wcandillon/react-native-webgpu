@@ -60,10 +60,7 @@ const DepthBufferMode = {
   Reversed: 1,
 };
 
-const depthBufferModes = [
-  DepthBufferMode.Default,
-  DepthBufferMode.Reversed,
-];
+const depthBufferModes = [DepthBufferMode.Default, DepthBufferMode.Reversed];
 const depthCompareFuncs = {
   [DepthBufferMode.Default]: "less" as GPUCompareFunction,
   [DepthBufferMode.Reversed]: "greater" as GPUCompareFunction,

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable no-eval */
 
 import React, { useEffect, useState } from "react";

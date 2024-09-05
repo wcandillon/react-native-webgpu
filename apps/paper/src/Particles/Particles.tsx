@@ -185,7 +185,6 @@ export function Particules() {
     let numMipLevels = 1;
     let texture: GPUTexture;
     {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const response = await fetchAsset(require("../assets/react.png"));
       const imageBitmap = await createImageBitmap(await response.blob());
 
