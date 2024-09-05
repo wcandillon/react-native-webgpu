@@ -1,6 +1,6 @@
 import _ from "lodash";
 
-import dawn from "../../../../../externals/dawn/src/dawn/dawn.json";
+import dawn from "../../../libs/dawn.json";
 
 export const mapKeys = <T extends object>(obj: T) =>
   Object.keys(obj) as (keyof T)[];
