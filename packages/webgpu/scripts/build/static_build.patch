@@ -11,7 +11,7 @@ index 046a6af10d..5a63ac3d6d 100644
 +  if(${CMAKE_SYSTEM_NAME} STREQUAL "iOS" OR ${CMAKE_SYSTEM_NAME} STREQUAL "visionOS")
 +    add_library(${output_target} STATIC ${all_objects})
 +  else()
-+    add_library(${output_target} STATIC ${all_objects}) # Default to STATIC for other platforms
++    add_library(${output_target} SHARED ${all_objects}) # Default to STATIC for other platforms
 +  endif()
    add_dependencies(${output_target} ${ARGN})
  
