@@ -99,7 +99,6 @@ export const RenderBundles = () => {
       // Fetch the images and upload them into a GPUTexture.
       let planetTexture: GPUTexture;
       {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const response = await fetchAsset(require("../assets/saturn.png"));
         const imageBitmap = await createImageBitmap(await response.blob());
 
@@ -120,7 +119,6 @@ export const RenderBundles = () => {
 
       let moonTexture: GPUTexture;
       {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const response = await fetchAsset(require("../assets/moon.png"));
         const imageBitmap = await createImageBitmap(await response.blob());
 

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
 import { useEffect, useState } from "react";
 import { Image } from "react-native";
 import "react-native-wgpu";

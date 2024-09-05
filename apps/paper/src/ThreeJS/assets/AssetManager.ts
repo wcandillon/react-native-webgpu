@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
 import * as THREE from "three/webgpu";
 import { Image } from "react-native";
 
