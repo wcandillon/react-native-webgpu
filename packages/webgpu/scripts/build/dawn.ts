@@ -61,7 +61,7 @@ const ios = {
   process.chdir("../..");
   process.chdir("externals/dawn");
   $("git reset --hard HEAD");
-  //$(`git apply ${__dirname}/static_build.patch`);
+  $(`git apply ${__dirname}/static_build.patch`);
   process.chdir("../..");
 
   // Build Android
@@ -77,11 +77,6 @@ const ios = {
     );
     copyLib("android", platform);
   }
-
-  process.chdir("externals/dawn");
-  $("git reset --hard HEAD");
-  $(`git apply ${__dirname}/static_build.patch`);
-  process.chdir("../..");
 
   // Build iOS
   for (const platform of mapKeys(ios.matrix)) {
