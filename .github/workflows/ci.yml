@@ -115,16 +115,16 @@ jobs:
       - name: Install Android SDK
         run: echo "sdk.dir=$ANDROID_HOME" > $GITHUB_WORKSPACE/apps/paper/android/local.properties
 
-      # - name: Cache Gradle
-      #   if: env.turbo_cache_hit != 1
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: |
-      #       ~/.gradle/wrapper
-      #       ~/.gradle/caches
-      #     key: ${{ runner.os }}-gradle-${{ hashFiles('./apps/paper/android/gradle/wrapper/gradle-wrapper.properties') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-gradle-
+      - name: Cache Gradle
+        if: env.turbo_cache_hit != 1
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/wrapper
+            ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('./apps/paper/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Build example for Android
         env:
