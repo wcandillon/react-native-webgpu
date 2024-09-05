@@ -110,6 +110,7 @@ const ios = {
 
   libs.forEach((lib) => {
     console.log(`Building ${lib}`);
+    // iOS
     $(`rm -rf ${projectRoot}/libs/ios/${lib}.xcframework`);
     $(
       "xcodebuild -create-xcframework " +
@@ -117,6 +118,8 @@ const ios = {
         `-library ${projectRoot}/libs/ios/arm64_iphoneos/${lib}.a ` +
         ` -output ${projectRoot}/libs/ios/${lib}.xcframework `,
     );
+    // VisionOS
+    $(`rm -rf ${projectRoot}/libs/ios/${lib}_visionos.xcframework`);
     $(
       "xcodebuild -create-xcframework " +
         `-library ${projectRoot}/libs/ios/${lib}_visionos.a ` +
