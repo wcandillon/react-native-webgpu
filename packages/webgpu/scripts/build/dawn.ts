@@ -60,7 +60,6 @@ const apple = {
 };
 
 (async () => {
-  checkBuildArtifacts();
   process.chdir("../..");
   process.chdir("externals/dawn");
   $("git reset --hard HEAD");
