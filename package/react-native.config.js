@@ -5,7 +5,7 @@ module.exports = {
         componentDescriptors: [
           "WebGPUViewComponentDescriptor",
         ],
-        cmakeListsPath: "./jni/CMakeLists.txt"
+        cmakeListsPath: "./codegen/CMakeLists.txt"
       },
     },
   },
