@@ -11,12 +11,18 @@
   },
   "packageManager": "yarn@3.6.1",
   "scripts": {
-    "lint": "turbo run lint",
-    "tsc": "turbo run tsc",
-    "build:ios": "turbo run build:ios",
-    "build:android": "turbo run build:android"
+    "lint": "yarn nx run-many -t lint",
+    "tsc": "yarn nx run-many -t tsc",
+    "build:ios": "yarn nx run-many -t  build:ios",
+    "build:android": "yarn nx run-many -t build:android"
   },
   "devDependencies": {
-    "turbo": "^2.1.0"
+    "@nx/react-native": "19.6.5",
+    "nx": "19.6.5"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-native": "0.74.1"
   }
 }
