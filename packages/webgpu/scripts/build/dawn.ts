@@ -35,6 +35,8 @@ const PLATFORM_MAP: Record<string, string> = {
   arm64_xros: "VISIONOS",
   arm64_xrsimulator: "SIMULATOR_VISIONOS",
   x86_64_xrsimulator: "SIMULATOR64_VISIONOS",
+  arm64_macosx: "MAC_ARM64",
+  x86_64_macosx: "MAC",
 };
 
 const android = {
@@ -46,13 +48,13 @@ const android = {
   },
 };
 
-const ios = {
+const apple = {
   matrix: {
-    arm64: ["iphoneos", "iphonesimulator", "xros", "xrsimulator"],
-    x86_64: ["iphonesimulator", "xrsimulator"],
+    arm64: ["iphoneos", "iphonesimulator", "macosx", "xros", "xrsimulator"],
+    x86_64: ["iphonesimulator", "macosx", "xrsimulator"],
   },
   args: {
-    CMAKE_TOOLCHAIN_FILE: `${__dirname}/ios.toolchain.cmake`,
+    CMAKE_TOOLCHAIN_FILE: `${__dirname}/apple.toolchain.cmake`,
     ...commonArgs,
   },
 };
@@ -78,53 +80,67 @@ const ios = {
     copyLib("android", platform);
   }
 
-  // Build iOS
-  for (const platform of mapKeys(ios.matrix)) {
+  // Build Apple
+  for (const platform of mapKeys(apple.matrix)) {
     console.log(`Build iOS: ${platform}`);
-    for (const sdk of ios.matrix[platform]) {
+    for (const sdk of apple.matrix[platform]) {
       await build(
-        `ios_${platform}_${sdk}`,
+        `apple_${platform}_${sdk}`,
         {
           PLATFORM: PLATFORM_MAP[`${platform}_${sdk}`],
-          ...ios.args,
+          ...apple.args,
         },
         `🍏 ${platform} ${sdk}`,
       );
-      copyLib("ios", platform, sdk);
+      copyLib("apple", platform, sdk);
     }
   }
 
   libs.forEach((lib) => {
     console.log(`Building fat binary for iphone simulator: ${lib}`);
     $(
-      `lipo -create ${projectRoot}/libs/ios/x86_64_iphonesimulator/${lib}.a ${projectRoot}/libs/ios/arm64_iphonesimulator/${lib}.a -output ${projectRoot}/libs/ios/${lib}.a`,
+      `lipo -create ${projectRoot}/libs/apple/x86_64_iphonesimulator/${lib}.a ${projectRoot}/libs/apple/arm64_iphonesimulator/${lib}.a -output ${projectRoot}/libs/apple/${lib}.a`,
     );
   });
 
   libs.forEach((lib) => {
     console.log(`Building fat binary for visionos simulator: ${lib}`);
     $(
-      `lipo -create ${projectRoot}/libs/ios/x86_64_xrsimulator/${lib}.a ${projectRoot}/libs/ios/arm64_xrsimulator/${lib}.a -output ${projectRoot}/libs/ios/${lib}_visionos.a`,
+      `lipo -create ${projectRoot}/libs/apple/x86_64_xrsimulator/${lib}.a ${projectRoot}/libs/apple/arm64_xrsimulator/${lib}.a -output ${projectRoot}/libs/apple/${lib}_visionos.a`,
+    );
+  });
+
+  libs.forEach((lib) => {
+    console.log(`Building fat binary for macOS: ${lib}`);
+    $(
+      `lipo -create ${projectRoot}/libs/apple/x86_64_macosx/${lib}.a ${projectRoot}/libs/apple/arm64_macosx/${lib}.a -output ${projectRoot}/libs/apple/${lib}_macos.a`,
     );
   });
 
   libs.forEach((lib) => {
     console.log(`Building ${lib}`);
     // iOS
-    $(`rm -rf ${projectRoot}/libs/ios/${lib}.xcframework`);
+    $(`rm -rf ${projectRoot}/libs/apple/${lib}.xcframework`);
     $(
       "xcodebuild -create-xcframework " +
-        `-library ${projectRoot}/libs/ios/${lib}.a ` +
-        `-library ${projectRoot}/libs/ios/arm64_iphoneos/${lib}.a ` +
-        ` -output ${projectRoot}/libs/ios/${lib}.xcframework `,
+        `-library ${projectRoot}/libs/apple/${lib}.a ` +
+        `-library ${projectRoot}/libs/apple/arm64_iphoneos/${lib}.a ` +
+        ` -output ${projectRoot}/libs/apple/${lib}.xcframework `,
     );
     // VisionOS
-    $(`rm -rf ${projectRoot}/libs/ios/${lib}_visionos.xcframework`);
+    $(`rm -rf ${projectRoot}/libs/apple/${lib}_visionos.xcframework`);
     $(
       "xcodebuild -create-xcframework " +
-        `-library ${projectRoot}/libs/ios/${lib}_visionos.a ` +
-        `-library ${projectRoot}/libs/ios/arm64_xros/${lib}.a ` +
-        ` -output ${projectRoot}/libs/ios/${lib}_visionos.xcframework `,
+        `-library ${projectRoot}/libs/apple/${lib}_visionos.a ` +
+        `-library ${projectRoot}/libs/apple/arm64_xros/${lib}.a ` +
+        ` -output ${projectRoot}/libs/apple/${lib}_visionos.xcframework `,
+    );
+     // macOS
+     $(
+      "xcodebuild -create-xcframework " +
+        `-library ${projectRoot}/libs/apple/${lib}_macos.a ` +
+        `-library ${projectRoot}/libs/apple/arm64_macosx/${lib}.a ` +
+        ` -output ${projectRoot}/libs/apple/${lib}_macos.xcframework `,
     );
   });
 

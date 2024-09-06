@@ -15,7 +15,7 @@ export const platforms = [
   "arm64-v8a",
 ] as const;
 
-export type OS = "ios" | "android";
+export type OS = "apple" | "android";
 export type Platform = (typeof platforms)[number];
 
 export const runAsync = (command: string, label: string): Promise<void> => {
@@ -103,7 +103,7 @@ export const copyLib = (os: OS, platform: Platform, sdk?: string) => {
     );
   }
   [
-    `externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.${os === "ios" ? "a" : "so"}`,
+    `externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.${os === "apple" ? "a" : "so"}`,
   ].forEach((lib) => {
     const libPath = lib;
     console.log(`Copying ${libPath} to ${dstPath}`);
@@ -121,7 +121,7 @@ export const checkBuildArtifacts = () => {
       });
     });
   libs.forEach((lib) => {
-    checkFileExists(`libs/ios/${lib}.xcframework`);
+    checkFileExists(`libs/apple/${lib}.xcframework`);
   });
   checkFileExists("cpp/dawn/webgpu_cpp.h");
   checkFileExists("libs/dawn.json");
