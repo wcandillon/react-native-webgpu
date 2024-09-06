@@ -1,109 +1,74 @@
-import React, { useEffect, useRef } from "react";
-import { StyleSheet, View } from "react-native";
-import type { CanvasRef } from "react-native-wgpu";
-import { Canvas } from "react-native-wgpu";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
-import { set } from "lodash";
+import type { Routes } from "./Route";
+import { Home } from "./Home";
+import { Tests } from "./Tests";
+import { useAssets } from "./components/useAssets";
+import {
+  Cube,
+  TexturedCube,
+  FractalCube,
+  InstancedCube,
+  Cubemap,
+} from "./Cube";
+import { HelloTriangle, HelloTriangleMSAA } from "./Triangle";
+import { RenderBundles } from "./RenderBundles";
+import { ABuffer } from "./ABuffer";
+import { OcclusionQuery } from "./OcclusionQuery";
+import { ComputeBoids } from "./ComputeBoids";
+import { Wireframe } from "./Wireframe";
+import { Resize } from "./Resize";
+import { Particules } from "./Particles";
+import { DeferedRendering, ShadowMapping } from "./ShadowMapping";
+import { SamplerParameters } from "./Sampler";
+import { ReversedZ } from "./ReversedZ";
 
-export default function HelloTriangle() {
-  const ref = useRef<CanvasRef>(null);
+const Stack = createNativeStackNavigator<Routes>();
 
-  async function demo() {
-    const adapter = await navigator.gpu.requestAdapter();
-    if (!adapter) {
-      throw new Error("No adapter");
-    }
-    const device = await adapter.requestDevice();
-    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-
-    const context = ref.current!.getContext("webgpu")!;
-    console.log(context.canvas.width, context.canvas.height);
-    if (!context) {
-      throw new Error("No context");
-    }
-
-    context.configure({
-      device,
-      format: presentationFormat,
-      alphaMode: "opaque",
-    });
-
-    const pipeline = device.createRenderPipeline({
-      layout: "auto",
-      vertex: {
-        module: device.createShaderModule({
-          code: triangleVertWGSL, 
-        }),
-        entryPoint: "main",
-      },
-      fragment: {
-        module: device.createShaderModule({
-          code: redFragWGSL,
-        }),
-        entryPoint: "main",
-        targets: [
-          {
-            format: presentationFormat,
-          },
-        ],
-      },
-      primitive: {
-        topology: "triangle-list",
-      },
-    });
-
-    const commandEncoder = device.createCommandEncoder();
-
-    const textureView = context.getCurrentTexture().createView();
-
-    const renderPassDescriptor: GPURenderPassDescriptor = {
-      colorAttachments: [
-        {
-          view: textureView,
-          clearValue: [0, 1, 0, 1],
-          loadOp: "clear",
-          storeOp: "store",
-        },
-      ],
-    };
-
-    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-    passEncoder.setPipeline(pipeline);
-    passEncoder.draw(3);
-    passEncoder.end();
-
-    device.queue.submit([commandEncoder.finish()]);
-
-    // context.present();
-    // requestAnimationFrame(() => {
-    //   requestAnimationFrame(() => {
-    //     context.present();
-    //   });
-    // });
-    // setTimeout(() => {
-      context.present();
-    // }
-    // , 10000);
+function App() {
+  const assets = useAssets();
+  if (assets === null) {
+    return null;
   }
-
-  useEffect(() => {
-    demo();
-    console.log("HelloTriangle");
-  }, [ref]);
-
   return (
-    <View style={style.container}>
-      <Canvas ref={ref} style={style.webgpu} />
-    </View>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Home">
+          <Stack.Screen name="Home" component={Home} />
+          <Stack.Screen name="HelloTriangle" component={HelloTriangle} />
+          <Stack.Screen
+            name="HelloTriangleMSAA"
+            component={HelloTriangleMSAA}
+          />
+          <Stack.Screen name="Cube" component={Cube} />
+          <Stack.Screen name="InstancedCube" component={InstancedCube} />
+          <Stack.Screen name="TexturedCube" component={TexturedCube} />
+          <Stack.Screen name="FractalCube" component={FractalCube} />
+          <Stack.Screen name="Cubemap" component={Cubemap} />
+          <Stack.Screen
+            name="SamplerParameters"
+            component={SamplerParameters}
+          />
+          <Stack.Screen name="RenderBundles" component={RenderBundles} />
+          <Stack.Screen name="ReversedZ" component={ReversedZ} />
+          <Stack.Screen name="ABuffer" component={ABuffer} />
+          <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />
+          <Stack.Screen name="ComputeBoids" component={ComputeBoids} />
+          <Stack.Screen name="ShadowMapping" component={ShadowMapping} />
+          <Stack.Screen name="DeferedRendering" component={DeferedRendering} />
+          <Stack.Screen name="Wireframe" component={Wireframe} />
+          <Stack.Screen name="Particles" component={Particules} />
+          <Stack.Screen name="Resize" component={Resize} />
+          <Stack.Screen name="Tests">
+            {(props) => <Tests {...props} assets={assets} />}
+          </Stack.Screen>
+        </Stack.Navigator>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }
 
-const style = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  webgpu: {
-    flex: 1,
-  },
-});
+// eslint-disable-next-line import/no-default-export
+export default App;
