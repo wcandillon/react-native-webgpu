@@ -29,42 +29,40 @@ public class WebGPUView extends TextureView {
     mSurface = new Surface(mSurfaceTexture);
     setSurfaceTextureListener(new SurfaceTextureListener() {
       @Override
-      public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {
-        Log.e("q", "q1");
-      }
+      public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {}
 
       @Override
       public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surface, int width, int height) {
-        Log.e("q", "q2");
+        onSurfaceChanged(mSurface, mContextId, applyDensity(width), applyDensity(height));
       }
 
       @Override
       public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surface) {
+        onSurfaceDestroy(mContextId);
         return false;
       }
 
       @Override
-      public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surface) {
-        Log.e("q", "q3");
-      }
+      public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surface) {}
     });
   }
 
   public void setContextId(Integer contextId) {
-    if (mModule == null) {
-      Context context = getContext();
-      if (context instanceof ThemedReactContext) {
-        mModule = ((ThemedReactContext) context).getReactApplicationContext().getNativeModule(WebGPUModule.class);
-      }
-    }
     mContextId = contextId;
-    onSurfaceCreate(mSurface, mContextId, getWidth(), getHeight());
+    float width = applyDensity(getWidth());
+    float height = applyDensity(getHeight());
+    onSurfaceCreate(mSurface, mContextId, width, height);
   }
 
   @Override
   protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
     super.onLayout(changed, left, top, right, bottom);
     androidSimulatorWorkaround();
+  }
+
+  float applyDensity(float size) {
+    float density = getResources().getDisplayMetrics().density;
+    return size / density;
   }
 
   void androidSimulatorWorkaround() {
