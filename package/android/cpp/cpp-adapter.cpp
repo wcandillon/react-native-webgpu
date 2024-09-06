@@ -12,6 +12,8 @@
 #include "GPUCanvasContext.h"
 #include "RNWebGPUManager.h"
 
+#include "../SizeHolder/SizeHolder.h"
+
 #define LOG_TAG "WebGPUModule"
 
 std::shared_ptr<rnwgpu::RNWebGPUManager> manager;
@@ -35,7 +37,10 @@ Java_com_webgpu_WebGPUModule_createSurfaceContext(JNIEnv *env, jobject thiz,
   if (canvas == nullptr) {
     throw std::runtime_error("Surface haven't configured yet");
   }
-
+  auto size = rnwgpu::SizeHolder::getSize(contextId);
+  manager->surfacesRegistry.updateSurface(contextId, size.width, size.height);
+  canvas->setWidth(size.width);
+  canvas->setHeight(size.height);
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
   auto webGPUContextRegistry = runtime->global().getPropertyAsObject(
       *runtime, "__WebGPUContextRegistry");

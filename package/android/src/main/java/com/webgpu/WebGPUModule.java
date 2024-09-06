@@ -4,7 +4,9 @@ import android.util.Log;
 
 import androidx.annotation.OptIn;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import com.facebook.proguard.annotations.DoNotStrip;
@@ -53,7 +55,7 @@ public class WebGPUModule extends NativeWebGPUModuleSpec {
 
   @ReactMethod(isBlockingSynchronousMethod = true)
   public boolean createSurfaceContext(double contextId) {
-    waitForNativeSurface((int)contextId);
+//    waitForNativeSurface((int)contextId);
 
     ReactApplicationContext context = getReactApplicationContext();
     JavaScriptContextHolder jsContext = context.getJavaScriptContextHolder();

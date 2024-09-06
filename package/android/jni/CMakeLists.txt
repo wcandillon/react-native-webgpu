@@ -5,7 +5,7 @@
 
 cmake_minimum_required(VERSION 3.13)
 set(CMAKE_VERBOSE_MAKEFILE on)
-
+MESSAGE(WARNING "mleko1")
 file(GLOB react_codegen_SRCS CONFIGURE_DEPENDS *.cpp react/renderer/components/RNWgpuViewSpec/*.cpp)
 
 add_library(
@@ -15,6 +15,14 @@ add_library(
 )
 
 target_include_directories(react_codegen_RNWgpuViewSpec PUBLIC . react/renderer/components/RNWgpuViewSpec)
+
+# Include the path to MyClass.h
+include_directories("../SizeHolder")
+
+# Link the MyStaticField library
+add_subdirectory("../SizeHolder" "../SizeHolder")
+
+message(WARNING "dzik1: ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
 
 target_link_libraries(
   react_codegen_RNWgpuViewSpec
@@ -36,6 +44,7 @@ target_link_libraries(
   rrc_view
   turbomodulejsijni
   yoga
+  MyStaticField
 )
 
 target_compile_options(

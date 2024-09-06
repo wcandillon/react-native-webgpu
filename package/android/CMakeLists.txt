@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.4.1)
 project(RNWGPU)
-
+MESSAGE(WARNING "mleko2")
 set (CMAKE_VERBOSE_MAKEFILE ON)
 set (CMAKE_CXX_STANDARD 17)
 
@@ -21,10 +21,16 @@ endif()
 set (WEBGPU_LIBS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../libs/android/${ANDROID_ABI}")
 
 find_package(ReactAndroid REQUIRED CONFIG)
+
+MESSAGE(WARNING dupa1 ${ReactAndroid_CONSIDERED_CONFIGS})
+
+MESSAGE(WARNING dupa2 ${ReactAndroid_CONFIG})
+
 find_package(fbjni REQUIRED CONFIG)
 
 add_library(${PACKAGE_NAME} SHARED
     ./cpp/cpp-adapter.cpp
+#        SizeHolder/SizeHolder.cpp
     ../cpp/rnwgpu/api/GPU.cpp
     ../cpp/rnwgpu/api/GPUAdapter.cpp
     ../cpp/rnwgpu/api/GPUSupportedLimits.cpp
@@ -62,6 +68,7 @@ target_include_directories(
         "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/jni"
         "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/java/com/facebook/react/turbomodule/core/jni"
 
+        SizeHolder/SizeHolder.h
         ../cpp
         ../cpp/rnwgpu
         ../cpp/rnwgpu/api
@@ -75,6 +82,42 @@ target_include_directories(
 add_library(webgpu_dawn SHARED IMPORTED)
 set_property(TARGET webgpu_dawn PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.so")
 
+#find_library("", react_codegen_RNWgpuViewSpec)
+
+#set(BUILD_DIR "${CMAKE_SOURCE_DIR}/build")
+#file(GLOB SO_DIR "/Users/piaskowyk/project/react-native-webgpu/package/example/android/app/build/intermediates/stripped_native_libs/debug/out/lib/arm64-v8a/")
+#MESSAGE(WARNING "${CMAKE_SOURCE_DIR}")
+#MESSAGE(WARNING "${BUILD_DIR}/intermediates/stripped_native_libs/*/${ANDROID_ABI}")
+#find_library(
+#        WGPU_LIB
+#        react_codegen_RNWgpuViewSpec
+#        PATHS ${SO_DIR}
+#        NO_DEFAULT_PATH
+#        NO_CMAKE_FIND_ROOT_PATH
+#)
+
+message(WARNING "dzik2: ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+message(WARNING "dzik3: ${CMAKE_PREFIX_PATH} | ${CMAKE_FRAMEWORK_PATH} | ${CMAKE_APPBUNDLE_PATH}}")
+#message(WARNING "dzik4: ${ReactAndroid_FOUND}, ${ReactAndroid_INCLUDE_DIR}, ${ReactAndroid_INCLUDE_DIRS} or ${ReactAndroid_LIBRARIES}")
+message(WARNING "dzik4: ${ReactAndroid_FOUND}, ${ReactAndroid_DIR}, ${ReactAndroid_CONFIG_DIR}")
+#message(WARNING "Shared libraries are in these directories: $ENV{LD_LIBRARY_PATH}")
+#file(GLOB SO_DIR "/Users/piaskowyk/project/react-native-webgpu/package/example/android/app/build/intermediates/cxx/Debug/1k334u16/obj/arm64-v8a/*")
+#find_library(MyStaticFieldVAR MyStaticField HINTS "/Users/piaskowyk/project/react-native-webgpu/package/example/android/app/build/intermediates/cxx/Debug/1k334u16/obj/arm64-v8a/*")
+
+#find_package(MyStaticField REQUIRED CONFIG)
+
+# Include the path to MyClass.h
+#include_directories("../SizeHolder")
+
+# Link the MyStaticField library
+#add_subdirectory("../SizeHolder" "../SizeHolder")
+
+# Include the path to MyClass.h
+include_directories("./SizeHolder")
+
+# Link the MyStaticField library
+add_subdirectory("./SizeHolder" "./SizeHolder")
+
 # Link
 target_link_libraries(
         ${PACKAGE_NAME}
@@ -85,4 +128,7 @@ target_link_libraries(
         fbjni::fbjni
         ReactAndroid::jsi
         webgpu_dawn
+#        ${MyStaticFieldVAR}
+        MyStaticField
+#        WGPU_LIB
     )

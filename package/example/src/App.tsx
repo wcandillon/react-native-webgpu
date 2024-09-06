@@ -4,6 +4,7 @@ import type { CanvasRef } from "react-native-wgpu";
 import { Canvas } from "react-native-wgpu";
 
 import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
+import { set } from "lodash";
 
 export default function HelloTriangle() {
   const ref = useRef<CanvasRef>(null);
@@ -11,13 +12,13 @@ export default function HelloTriangle() {
   async function demo() {
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) {
-      throw new Error("No adapters");
+      throw new Error("No adapter");
     }
     const device = await adapter.requestDevice();
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
     const context = ref.current!.getContext("webgpu")!;
-
+    console.log(context.canvas.width, context.canvas.height);
     if (!context) {
       throw new Error("No context");
     }
@@ -32,7 +33,7 @@ export default function HelloTriangle() {
       layout: "auto",
       vertex: {
         module: device.createShaderModule({
-          code: triangleVertWGSL,
+          code: triangleVertWGSL, 
         }),
         entryPoint: "main",
       },
@@ -60,7 +61,7 @@ export default function HelloTriangle() {
       colorAttachments: [
         {
           view: textureView,
-          clearValue: [0, 0, 0, 1],
+          clearValue: [0, 1, 0, 1],
           loadOp: "clear",
           storeOp: "store",
         },
@@ -74,13 +75,23 @@ export default function HelloTriangle() {
 
     device.queue.submit([commandEncoder.finish()]);
 
-    context.present();
+    // context.present();
+    // requestAnimationFrame(() => {
+    //   requestAnimationFrame(() => {
+    //     context.present();
+    //   });
+    // });
+    // setTimeout(() => {
+      context.present();
+    // }
+    // , 10000);
   }
 
   useEffect(() => {
-    console.log("HelloTriangle");
     demo();
+    console.log("HelloTriangle");
   }, [ref]);
+
   return (
     <View style={style.container}>
       <Canvas ref={ref} style={style.webgpu} />
@@ -91,7 +102,6 @@ export default function HelloTriangle() {
 const style = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "blue",
   },
   webgpu: {
     flex: 1,
