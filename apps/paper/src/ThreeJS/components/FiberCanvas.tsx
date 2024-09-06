@@ -8,7 +8,7 @@ import {
   events,
 } from "@react-three/fiber";
 import type { ViewProps } from "react-native";
-import { View } from "react-native";
+import { PixelRatio, View } from "react-native";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 
 import { makeWebGPURenderer } from "./makeWebGPURenderer";
@@ -27,6 +27,8 @@ export const FiberCanvas = ({ children, style }: FiberCanvasProps) => {
     const context = canvasRef.current!.getContext("webgpu")!;
     const renderer = makeWebGPURenderer(context);
     const canvas = context.canvas as HTMLCanvasElement;
+    canvas.width = canvas.clientWidth * PixelRatio.get();
+    canvas.height = canvas.clientHeight * PixelRatio.get();
     const size = {
       top: 0,
       left: 0,

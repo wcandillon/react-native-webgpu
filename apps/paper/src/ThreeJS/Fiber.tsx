@@ -25,7 +25,7 @@ function TorusKnot() {
   );
 }
 
-export const Helmet = () => {
+export const Fiber = () => {
   return (
     <View style={{ flex: 1 }}>
       <FiberCanvas style={{ flex: 1 }}>
