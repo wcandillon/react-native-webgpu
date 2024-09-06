@@ -38,9 +38,11 @@ Java_com_webgpu_WebGPUModule_createSurfaceContext(JNIEnv *env, jobject thiz,
     throw std::runtime_error("Surface haven't configured yet");
   }
   auto size = rnwgpu::SizeHolder::getSize(contextId);
-  manager->surfacesRegistry.updateSurface(contextId, size.width, size.height);
-  canvas->setWidth(size.width);
-  canvas->setHeight(size.height);
+  if (size.width != 0 && size.height != 0) {
+    manager->surfacesRegistry.updateSurface(contextId, size.width, size.height);
+    canvas->setWidth(size.width);
+    canvas->setHeight(size.height);
+  }
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
   auto webGPUContextRegistry = runtime->global().getPropertyAsObject(
       *runtime, "__WebGPUContextRegistry");

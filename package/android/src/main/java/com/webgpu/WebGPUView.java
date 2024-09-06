@@ -6,17 +6,14 @@ import androidx.annotation.RequiresApi;
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.os.Build;
-import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
 
-import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.proguard.annotations.DoNotStrip;
 
 public class WebGPUView extends TextureView {
 
   private Integer mContextId;
-  private WebGPUModule mModule;
 
   private final SurfaceTexture mSurfaceTexture;
   private final Surface mSurface;

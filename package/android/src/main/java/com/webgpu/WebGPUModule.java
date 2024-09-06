@@ -1,12 +1,8 @@
 package com.webgpu;
 
-import android.util.Log;
-
 import androidx.annotation.OptIn;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import com.facebook.proguard.annotations.DoNotStrip;
@@ -16,7 +12,6 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.common.annotations.FrameworkAPI;
 import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.modules.blob.BlobModule;
-import com.facebook.react.modules.blob.BlobProvider;
 import com.facebook.react.turbomodule.core.CallInvokerHolderImpl;
 import com.facebook.react.turbomodule.core.interfaces.CallInvokerHolder;
 
@@ -25,9 +20,6 @@ public class WebGPUModule extends NativeWebGPUModuleSpec {
   static {
       System.loadLibrary("react-native-wgpu"); // Load the C++ library
   }
-
-  private final Object mContextLock = new Object();
-  private final Set<Integer> mSurfaceContextsIds = new HashSet<>();
 
   public WebGPUModule(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -55,8 +47,6 @@ public class WebGPUModule extends NativeWebGPUModuleSpec {
 
   @ReactMethod(isBlockingSynchronousMethod = true)
   public boolean createSurfaceContext(double contextId) {
-//    waitForNativeSurface((int)contextId);
-
     ReactApplicationContext context = getReactApplicationContext();
     JavaScriptContextHolder jsContext = context.getJavaScriptContextHolder();
     createSurfaceContext(jsContext.get(), (int)contextId);
@@ -65,25 +55,5 @@ public class WebGPUModule extends NativeWebGPUModuleSpec {
 
   @DoNotStrip
   private native void createSurfaceContext(long jsRuntime, int contextId);
-
-  private void waitForNativeSurface(Integer contextId) {
-    synchronized (mContextLock) {
-      while (!mSurfaceContextsIds.contains(contextId)) {
-        try {
-          mContextLock.wait();
-        } catch (InterruptedException e) {
-          Log.e("RNWebGPU", "Unable to create a context");
-          return;
-        }
-      }
-    }
-  }
-
-  protected void onSurfaceCreated(Integer contextId) {
-    synchronized (mContextLock) {
-      mSurfaceContextsIds.add(contextId);
-      mContextLock.notifyAll();
-    }
-  }
 
 }
