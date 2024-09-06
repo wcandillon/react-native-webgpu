@@ -35,8 +35,7 @@ const PLATFORM_MAP: Record<string, string> = {
   arm64_xros: "VISIONOS",
   arm64_xrsimulator: "SIMULATOR_VISIONOS",
   x86_64_xrsimulator: "SIMULATOR64_VISIONOS",
-  arm64_macosx: "MAC_ARM64",
-  x86_64_macosx: "MAC",
+  universal_macosx: "MAC_UNIVERSAL",
 };
 
 const android = {
@@ -50,8 +49,9 @@ const android = {
 
 const apple = {
   matrix: {
-    arm64: ["iphoneos", "iphonesimulator", "macosx", "xros", "xrsimulator"],
-    x86_64: ["iphonesimulator", "macosx", "xrsimulator"],
+    arm64: ["iphoneos", "iphonesimulator", "xros", "xrsimulator"] as const,
+    x86_64: ["iphonesimulator", "xrsimulator"] as const,
+    universal: ["macosx"] as const,
   },
   args: {
     CMAKE_TOOLCHAIN_FILE: `${__dirname}/apple.toolchain.cmake`,
@@ -60,6 +60,7 @@ const apple = {
 };
 
 (async () => {
+  checkBuildArtifacts();
   process.chdir("../..");
   process.chdir("externals/dawn");
   $("git reset --hard HEAD");
@@ -82,7 +83,7 @@ const apple = {
 
   // Build Apple
   for (const platform of mapKeys(apple.matrix)) {
-    console.log(`Build iOS: ${platform}`);
+    console.log(`Build Apple: ${platform}`);
     for (const sdk of apple.matrix[platform]) {
       await build(
         `apple_${platform}_${sdk}`,
@@ -97,28 +98,21 @@ const apple = {
   }
 
   libs.forEach((lib) => {
-    console.log(`Building fat binary for iphone simulator: ${lib}`);
+    console.log(`📱 Building fat binary for iphone simulator: ${lib}`);
     $(
       `lipo -create ${projectRoot}/libs/apple/x86_64_iphonesimulator/${lib}.a ${projectRoot}/libs/apple/arm64_iphonesimulator/${lib}.a -output ${projectRoot}/libs/apple/${lib}.a`,
     );
   });
 
   libs.forEach((lib) => {
-    console.log(`Building fat binary for visionos simulator: ${lib}`);
+    console.log(`👓 Building fat binary for visionos simulator: ${lib}`);
     $(
       `lipo -create ${projectRoot}/libs/apple/x86_64_xrsimulator/${lib}.a ${projectRoot}/libs/apple/arm64_xrsimulator/${lib}.a -output ${projectRoot}/libs/apple/${lib}_visionos.a`,
     );
   });
 
   libs.forEach((lib) => {
-    console.log(`Building fat binary for macOS: ${lib}`);
-    $(
-      `lipo -create ${projectRoot}/libs/apple/x86_64_macosx/${lib}.a ${projectRoot}/libs/apple/arm64_macosx/${lib}.a -output ${projectRoot}/libs/apple/${lib}_macos.a`,
-    );
-  });
-
-  libs.forEach((lib) => {
-    console.log(`Building ${lib}`);
+    console.log(`📱 Building ${lib} for iOS`);
     // iOS
     $(`rm -rf ${projectRoot}/libs/apple/${lib}.xcframework`);
     $(
@@ -127,6 +121,7 @@ const apple = {
         `-library ${projectRoot}/libs/apple/arm64_iphoneos/${lib}.a ` +
         ` -output ${projectRoot}/libs/apple/${lib}.xcframework `,
     );
+    console.log(`👓 Building ${lib} for VisionOS`);
     // VisionOS
     $(`rm -rf ${projectRoot}/libs/apple/${lib}_visionos.xcframework`);
     $(
@@ -135,12 +130,12 @@ const apple = {
         `-library ${projectRoot}/libs/apple/arm64_xros/${lib}.a ` +
         ` -output ${projectRoot}/libs/apple/${lib}_visionos.xcframework `,
     );
-     // macOS
-     $(
+    console.log(`🖥️ Building ${lib} for macOS`);
+    // macOS
+    $(
       "xcodebuild -create-xcframework " +
-        `-library ${projectRoot}/libs/apple/${lib}_macos.a ` +
-        `-library ${projectRoot}/libs/apple/arm64_macosx/${lib}.a ` +
-        ` -output ${projectRoot}/libs/apple/${lib}_macos.xcframework `,
+        `-library ${projectRoot}/libs/apple/universal_macosx/${lib}.a ` +
+        ` -output ${projectRoot}/libs/apple/${lib}_macosx.xcframework `,
     );
   });
 
