@@ -61,7 +61,7 @@ target_include_directories(
         "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/jni"
         "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/java/com/facebook/react/turbomodule/core/jni"
 
-        SizeHolder/SizeHolder.h
+        StaticDataBridge/SizeHolder.h
         ../cpp
         ../cpp/rnwgpu
         ../cpp/rnwgpu/api
@@ -75,8 +75,8 @@ target_include_directories(
 add_library(webgpu_dawn SHARED IMPORTED)
 set_property(TARGET webgpu_dawn PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.so")
 
-include_directories("./SizeHolder")
-add_subdirectory("./SizeHolder" "./SizeHolder")
+include_directories("./StaticDataBridge")
+add_subdirectory("./StaticDataBridge" "./StaticDataBridge")
 
 # Link
 target_link_libraries(
@@ -88,5 +88,5 @@ target_link_libraries(
         fbjni::fbjni
         ReactAndroid::jsi
         webgpu_dawn
-        MyStaticField
+        StaticDataBridge
     )

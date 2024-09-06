@@ -11,8 +11,8 @@ add_library(
 
 target_include_directories(react_codegen_RNWgpuViewSpec PUBLIC . react/renderer/components/RNWgpuViewSpec)
 
-include_directories("../SizeHolder")
-add_subdirectory("../SizeHolder" "../SizeHolder")
+include_directories("../StaticDataBridge")
+add_subdirectory("../StaticDataBridge" "../StaticDataBridge")
 
 target_link_libraries(
   react_codegen_RNWgpuViewSpec
@@ -34,7 +34,7 @@ target_link_libraries(
   rrc_view
   turbomodulejsijni
   yoga
-  MyStaticField
+  StaticDataBridge
 )
 
 target_compile_options(

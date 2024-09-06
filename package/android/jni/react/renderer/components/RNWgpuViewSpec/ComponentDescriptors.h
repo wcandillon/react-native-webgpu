@@ -15,7 +15,7 @@
 #include <react/renderer/componentregistry/ComponentDescriptorProviderRegistry.h>
 #include <react/renderer/core/LayoutContext.h>
 
-#include "../../../../../SizeHolder/SizeHolder.h"
+#include "../../../../../StaticDataBridge/SizeHolder.h"
 
 namespace facebook::react {
 

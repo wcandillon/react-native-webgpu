@@ -12,7 +12,7 @@
 #include "GPUCanvasContext.h"
 #include "RNWebGPUManager.h"
 
-#include "../SizeHolder/SizeHolder.h"
+#include "../StaticDataBridge/SizeHolder.h"
 
 #define LOG_TAG "WebGPUModule"
 
