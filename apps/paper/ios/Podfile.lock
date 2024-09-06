@@ -1545,7 +1545,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: bf56147c9775491e53122a94c423ac201417e326
   react-native-safe-area-context: ab8f4a3d8180913bd78ae75dd599c94cce3d5e9a
   react-native-skia: 8da84ea9410504bf27f0db229539a43f6caabb6a
-  react-native-wgpu: a7cafd1960f61fa2fca1ddd478553f0950052f0a
+  react-native-wgpu: 7b017059e1841bee7a7347fc154353115c9bb2da
   React-nativeconfig: 9f223cd321823afdecf59ed00861ab2d69ee0fc1
   React-NativeModulesApple: ff7efaff7098639db5631236cfd91d60abff04c0
   React-perflogger: 32ed45d9cee02cf6639acae34251590dccd30994
