@@ -3,13 +3,12 @@
 namespace rnwgpu {
 
 std::map<int, Size> SizeHolder::sizeHolder;
-int SizeHolder::tmp = 7;
 
-Size SizeHolder::getSize(int contextId) {
+Size SizeHolder::getSize(const int contextId) {
   return sizeHolder[contextId];
 }
 
-void SizeHolder::setSize(int contextId, Size size) {
+void SizeHolder::setSize(const int contextId, const Size& size) {
   sizeHolder[contextId] = size;
 }
 

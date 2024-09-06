@@ -58,8 +58,6 @@ void GPUCanvasContext::present() {
   dawn::native::metal::WaitForCommandsToBeScheduled(_device.Get());
 #endif
   _instance.Present();
-  int a = 9;
-  (void)a;
 }
 
 } // namespace rnwgpu
