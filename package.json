@@ -15,9 +15,11 @@
     "tsc": "turbo run tsc",
     "build:ios": "turbo run build:ios",
     "build:android": "turbo run build:android",
-    "pod:install": "turbo run pod:install"
+    "pod:install": "turbo run pod:install",
+    "postinstall": "patch-package"
   },
   "devDependencies": {
+    "patch-package": "^8.0.0",
     "turbo": "^2.1.0"
   }
 }
