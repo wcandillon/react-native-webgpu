@@ -1,6 +1,6 @@
 import * as THREE from "three/webgpu";
 import React, { useRef } from "react";
-import type { ReconcilerRoot } from "@react-three/fiber";
+import type { ReconcilerRoot, RootState } from "@react-three/fiber";
 import {
   extend,
   createRoot,
@@ -8,11 +8,12 @@ import {
   events,
 } from "@react-three/fiber";
 import type { ViewProps } from "react-native";
-import { PixelRatio, View } from "react-native";
-import type { NativeCanvas } from "react-native-wgpu";
+import { PixelRatio } from "react-native";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 
 import { makeWebGPURenderer, ReactNativeCanvas } from "./makeWebGPURenderer";
+
+//global.THREE = global.THREE || THREE;
 
 interface FiberCanvasProps {
   children: React.ReactNode;
@@ -27,14 +28,10 @@ export const FiberCanvas = ({ children, style }: FiberCanvasProps) => {
   const canvasRef = useCanvasEffect(async () => {
     const context = canvasRef.current!.getContext("webgpu")!;
     const renderer = makeWebGPURenderer(context);
-    await renderer.init();
-    const renderFrame = renderer.render.bind(renderer);
-    renderer.render = (scene: THREE.Scene, camera: THREE.Camera) => {
-      renderFrame(scene, camera);
-      context?.present();
-    };
 
-    const canvas = context.canvas as HTMLCanvasElement;
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const canvas = new ReactNativeCanvas(context.canvas) as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();
     canvas.height = canvas.clientHeight * PixelRatio.get();
     const size = {
@@ -46,11 +43,25 @@ export const FiberCanvas = ({ children, style }: FiberCanvasProps) => {
 
     if (!root.current) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      root.current = createRoot<any>(
-        new ReactNativeCanvas(context.canvas as NativeCanvas),
-      );
+      root.current = createRoot<any>(canvas);
     }
-    root.current.configure({ size, events, gl: renderer, frameloop: "never" });
+    root.current.configure({
+      size,
+      events,
+      gl: renderer,
+      frameloop: "always",
+      dpr: PixelRatio.get(),
+      onCreated: async (state: RootState) => {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
+        await state.gl.init();
+        const renderFrame = state.gl.render.bind(state.gl);
+        state.gl.render = (scene: THREE.Scene, camera: THREE.Camera) => {
+          renderFrame(scene, camera);
+          context?.present();
+        };
+      },
+    });
     root.current.render(children);
     return () => {
       if (canvas != null) {

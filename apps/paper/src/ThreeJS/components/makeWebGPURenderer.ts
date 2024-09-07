@@ -13,6 +13,14 @@ export class ReactNativeCanvas {
     return this.canvas.height;
   }
 
+  set width(width: number) {
+    this.canvas.width = width;
+  }
+
+  set height(height: number) {
+    this.canvas.height = height;
+  }
+
   get clientWidth() {
     return this.canvas.width;
   }

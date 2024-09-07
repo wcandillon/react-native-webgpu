@@ -67,6 +67,7 @@ export const Backdrop = () => {
 
         material.outputNode = oscSine(timerLocal(0.1)).mix(
           output,
+          // @ts-expect-error
           output.add(0.1).posterize(4).mul(2),
         );
 
@@ -111,13 +112,16 @@ export const Backdrop = () => {
       }
 
       addBackdropSphere(
+        // @ts-expect-error
         viewportSharedTexture().bgr.hue(oscSine().mul(Math.PI)),
       );
       addBackdropSphere(viewportSharedTexture().rgb.oneMinus());
+      // @ts-expect-error
       addBackdropSphere(viewportSharedTexture().rgb.saturation(0));
       // @ts-expect-error
       addBackdropSphere(viewportSharedTexture().rgb.saturation(10), oscSine());
       addBackdropSphere(
+        // @ts-expect-error
         viewportSharedTexture().rgb.overlay(checker(uv().mul(10))),
       );
       addBackdropSphere(
