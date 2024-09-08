@@ -1,3 +1,10 @@
 {
-  "extends": "@react-native/typescript-config/tsconfig.json"
+  "extends": "@react-native/typescript-config/tsconfig.json",
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": false,
+    "paths": {
+      "react-native-wgpu": ["../../packages/webgpu/src/index"],
+      "three/webgpu": ["../../node_modules/@types/three/src/Three.WebGPU.d.ts"]
+    },
+  }
 }
