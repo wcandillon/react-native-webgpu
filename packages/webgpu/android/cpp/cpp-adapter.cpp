@@ -17,6 +17,7 @@
 #define LOG_TAG "WebGPUModule"
 
 std::shared_ptr<rnwgpu::RNWebGPUManager> manager;
+float DENSITY = 1;
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     JNIEnv *env, jobject /* this */, jlong jsRuntime, jobject jsInvokerHolder,
@@ -41,10 +42,10 @@ Java_com_webgpu_WebGPUModule_createSurfaceContext(JNIEnv *env, jobject thiz,
   auto size = rnwgpu::SizeHolder::getSize(contextId);
   if (size.width != 0 && size.height != 0) {
     manager->surfacesRegistry.updateSurface(contextId, size.width, size.height);
-    canvas->setWidth(size.width);
-    canvas->setHeight(size.height);
+    canvas->setWidth(size.width * DENSITY);
+    canvas->setHeight(size.height * DENSITY);
   }
-  
+
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
   auto webGPUContextRegistry = runtime->global().getPropertyAsObject(
       *runtime, "__WebGPUContextRegistry");
@@ -84,4 +85,9 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
   ANativeWindow_release(
       reinterpret_cast<ANativeWindow *>(canvas->getSurface()));
   manager->surfacesRegistry.removeSurface(contextId);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_setDensity(
+  JNIEnv *env, jobject thiz, jfloat density) {
+  DENSITY = density;
 }

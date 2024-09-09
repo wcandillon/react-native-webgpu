@@ -17,6 +17,7 @@ public class WebGPUView extends TextureView {
 
   private final SurfaceTexture mSurfaceTexture;
   private final Surface mSurface;
+  private static boolean isDensitySet = false;
 
   @RequiresApi(api = Build.VERSION_CODES.O)
   public WebGPUView(Context context) {
@@ -42,6 +43,12 @@ public class WebGPUView extends TextureView {
       @Override
       public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surface) {}
     });
+
+    if (!isDensitySet) {
+      float density = getResources().getDisplayMetrics().density;
+      setDensity(density);
+      isDensitySet = true;
+    }
   }
 
   public void setContextId(Integer contextId) {
@@ -91,4 +98,7 @@ public class WebGPUView extends TextureView {
 
   @DoNotStrip
   private native void onSurfaceDestroy(int contextId);
+
+  @DoNotStrip
+  private native void setDensity(float density);
 }
