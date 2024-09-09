@@ -123,12 +123,23 @@ const style = StyleSheet.create({
 
 ## Example App
 
-To run the example app you first need to build Dawn.
+To run the example app you first need to build Dawn or download the prebuilt binaries.
+
+To build Dawn:
 
 ```sh
 $ git submodule update --init
-$ cd package && yarn
+$ yarn
+$ cd packages/webgpu
 $ yarn build-dawn
+```
+
+To download the prebuilt binaries, you need to have the [Github CLI](https://cli.github.com/) installed:
+
+```sh
+$ yarn
+$ cd packages/webgpu
+$ yarn download-artifacts
 ```
 
 From there you will be able to run the example app properly.
@@ -210,8 +221,18 @@ Make sure you have all the tools required for building the Skia libraries (Andro
 
 ### Building
 
-* `cd packages/webgpu && yarn`
+* `yarn`
+* `cd packages/webgpu`
 * `yarn build-dawn`
+
+There is an alternative way which is to download the prebuilt binaries from GitHub.
+You need to have the [Github CLI](https://cli.github.com/) installed:
+
+```sh
+$ yarn
+$ cd packages/webgpu
+$ yarn download-artifacts
+```
 
 ### Upgrading
 
