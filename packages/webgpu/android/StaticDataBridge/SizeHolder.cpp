@@ -12,4 +12,8 @@ void SizeHolder::setSize(const int contextId, const Size& size) {
   sizeHolder[contextId] = size;
 }
 
+void SizeHolder::eraseSize(const int contextId) {
+  sizeHolder.erase(contextId);
+}
+
 }

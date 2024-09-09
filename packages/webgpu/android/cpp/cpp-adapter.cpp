@@ -85,6 +85,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
   ANativeWindow_release(
       reinterpret_cast<ANativeWindow *>(canvas->getSurface()));
   manager->surfacesRegistry.removeSurface(contextId);
+  rnwgpu::SizeHolder::eraseSize(contextId);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_setDensity(
