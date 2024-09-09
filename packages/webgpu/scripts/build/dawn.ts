@@ -45,6 +45,9 @@ const args = argv as any;
 const excludeList = args.exclude ? args.exclude.split(",") : [];
 const includeOnlyList = args.includeOnly ? args.includeOnly.split(",") : [];
 
+const platforms = (plts: string[]) =>
+  filterPlatforms(plts, excludeList, includeOnlyList) as Platform[];
+
 const commonArgs = {
   CMAKE_BUILD_TYPE: "Release",
   BUILD_SAMPLES: "OFF",
@@ -70,11 +73,7 @@ const PLATFORM_MAP: Record<string, string> = {
 };
 
 const android = {
-  platforms: filterPlatforms(
-    ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"] as Platform[],
-    excludeList,
-    includeOnlyList,
-  ),
+  platforms: platforms(["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]),
   args: {
     CMAKE_TOOLCHAIN_FILE: "$ANDROID_NDK/build/cmake/android.toolchain.cmake",
     ANDROID_PLATFORM: "android-26",
@@ -84,21 +83,9 @@ const android = {
 
 const apple = {
   matrix: {
-    arm64: filterPlatforms(
-      ["iphoneos", "iphonesimulator", "xros", "xrsimulator"] as const,
-      excludeList,
-      includeOnlyList,
-    ),
-    x86_64: filterPlatforms(
-      ["iphonesimulator", "xrsimulator"] as const,
-      excludeList,
-      includeOnlyList,
-    ),
-    universal: filterPlatforms(
-      ["macosx"] as const,
-      excludeList,
-      includeOnlyList,
-    ),
+    arm64: platforms(["iphoneos", "iphonesimulator", "xros", "xrsimulator"]),
+    x86_64: platforms(["iphonesimulator", "xrsimulator"]),
+    universal: platforms(["macosx"]),
   },
   args: {
     CMAKE_TOOLCHAIN_FILE: `${__dirname}/apple.toolchain.cmake`,
