@@ -26,6 +26,7 @@ import { DeferedRendering, ShadowMapping } from "./ShadowMapping";
 import { SamplerParameters } from "./Sampler";
 import { ReversedZ } from "./ReversedZ";
 import { ThreeJS } from "./ThreeJS";
+import { TypeGPU } from "./TypeGPU";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -69,6 +70,7 @@ function App() {
           <Stack.Screen name="Tests">
             {(props) => <Tests {...props} assets={assets} />}
           </Stack.Screen>
+          <Stack.Screen name="TypeGPU" component={TypeGPU} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

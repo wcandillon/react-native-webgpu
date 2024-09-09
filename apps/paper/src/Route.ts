@@ -20,4 +20,5 @@ export type Routes = {
   Wireframe: undefined;
   Resize: undefined;
   Tests: undefined;
+  TypeGPU: undefined;
 };

@@ -91,6 +91,10 @@ export const examples = [
     screen: "Resize",
     title: "↔️ Resize",
   },
+  {
+    screen: "TypeGPU",
+    title: "💜 TypeGPU",
+  },
 ] as const;
 
 const styles = StyleSheet.create({
