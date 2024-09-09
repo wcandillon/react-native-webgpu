@@ -3,6 +3,9 @@
 
 import { chdir } from "process";
 
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
+
 import type { Platform } from "./util";
 import {
   $,
@@ -13,6 +16,24 @@ import {
   mapKeys,
   projectRoot,
 } from "./util";
+
+const { argv } = yargs(hideBin(process.argv)).option("exclude", {
+  type: "string",
+  describe: "Comma-separated list of platforms to exclude",
+});
+
+// Function to filter platforms based on exclude list
+function filterPlatforms<T extends string>(
+  platforms: T[],
+  excludeList: string[],
+): T[] {
+  return platforms.filter((platform) => !excludeList.includes(platform));
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const excludeList = (argv as any).exclude
+  ? (argv as any).exclude.split(",")
+  : [];
 
 const commonArgs = {
   CMAKE_BUILD_TYPE: "Release",
@@ -39,7 +60,10 @@ const PLATFORM_MAP: Record<string, string> = {
 };
 
 const android = {
-  platforms: ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"] as Platform[],
+  platforms: filterPlatforms(
+    ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"] as Platform[],
+    excludeList,
+  ),
   args: {
     CMAKE_TOOLCHAIN_FILE: "$ANDROID_NDK/build/cmake/android.toolchain.cmake",
     ANDROID_PLATFORM: "android-26",
@@ -49,9 +73,15 @@ const android = {
 
 const apple = {
   matrix: {
-    arm64: ["iphoneos", "iphonesimulator", "xros", "xrsimulator"] as const,
-    x86_64: ["iphonesimulator", "xrsimulator"] as const,
-    universal: ["macosx"] as const,
+    arm64: filterPlatforms(
+      ["iphoneos", "iphonesimulator", "xros", "xrsimulator"] as const,
+      excludeList,
+    ),
+    x86_64: filterPlatforms(
+      ["iphonesimulator", "xrsimulator"] as const,
+      excludeList,
+    ),
+    universal: filterPlatforms(["macosx"] as const, excludeList),
   },
   args: {
     CMAKE_TOOLCHAIN_FILE: `${__dirname}/apple.toolchain.cmake`,

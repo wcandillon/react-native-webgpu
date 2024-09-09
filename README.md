@@ -123,24 +123,7 @@ const style = StyleSheet.create({
 
 ## Example App
 
-To run the example app you first need to build Dawn or download the prebuilt binaries.
-
-To build Dawn:
-
-```sh
-$ git submodule update --init
-$ yarn
-$ cd packages/webgpu
-$ yarn build-dawn
-```
-
-To download the prebuilt binaries, you need to have the [Github CLI](https://cli.github.com/) installed:
-
-```sh
-$ yarn
-$ cd packages/webgpu
-$ yarn download-artifacts
-```
+To run the example app you first need to [build Dawn or download the prebuilt binaries](#building-dawn).
 
 From there you will be able to run the example app properly.
 
@@ -219,11 +202,18 @@ git submodule update --init
 
 Make sure you have all the tools required for building the Skia libraries (Android Studio, XCode, Ninja, CMake, Android NDK/build tools).
 
-### Building
+### Building Dawn
 
-* `yarn`
-* `cd packages/webgpu`
-* `yarn build-dawn`
+```sh
+yarn
+cd packages/webgpu
+yarn build-dawn
+```
+
+You can also filter the platforms to build, for instance to skip the macOS and visionOS build:
+```sh
+yarn build-dawn --exclude=xros,xrsimulator,macosx
+```
 
 There is an alternative way which is to download the prebuilt binaries from GitHub.
 You need to have the [Github CLI](https://cli.github.com/) installed:

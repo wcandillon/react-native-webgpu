@@ -97,7 +97,8 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.2.2",
     "wgpu-matrix": "^3.0.2",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "yargs": "^17.7.2"
   },
   "peerDependencies": {
     "react": "*",
