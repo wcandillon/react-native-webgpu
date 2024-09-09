@@ -1,6 +1,8 @@
 import React from "react";
 import { StyleSheet, View, PixelRatio } from "react-native";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
+import { struct, u32 } from "typegpu/data";
+import tgpu from "typegpu";
 
 export const vertWGSL = `
 struct Output {
@@ -95,10 +97,15 @@ export function GradientTiles() {
       },
     });
 
-    const spanBuffer = device.createBuffer({
-      size: 8,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    const Span = struct({
+      x: u32,
+      y: u32,
     });
+
+    const spanBuffer = tgpu
+      .createBuffer(Span, { x: 10, y: 10 })
+      .$device(device)
+      .$usage(tgpu.Uniform);
 
     const bindGroup = device.createBindGroup({
       layout: pipeline.getBindGroupLayout(0),
@@ -106,7 +113,7 @@ export function GradientTiles() {
         {
           binding: 0,
           resource: {
-            buffer: spanBuffer,
+            buffer: spanBuffer.buffer,
           },
         },
       ],
@@ -126,8 +133,6 @@ export function GradientTiles() {
         },
       ],
     };
-
-    device.queue.writeBuffer(spanBuffer, 0, new Uint32Array([10, 10]));
 
     const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
     passEncoder.setPipeline(pipeline);
