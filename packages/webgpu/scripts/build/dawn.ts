@@ -165,6 +165,7 @@ const apple = {
     );
     console.log(`🖥️ Building ${lib} for macOS`);
     // macOS
+    $(`rm -rf ${projectRoot}/libs/apple/${lib}_macosx.xcframework`);
     $(
       "xcodebuild -create-xcframework " +
         `-library ${projectRoot}/libs/apple/universal_macosx/${lib}.a ` +
