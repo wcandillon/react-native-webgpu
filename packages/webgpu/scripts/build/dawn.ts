@@ -17,23 +17,33 @@ import {
   projectRoot,
 } from "./util";
 
-const { argv } = yargs(hideBin(process.argv)).option("exclude", {
-  type: "string",
-  describe: "Comma-separated list of platforms to exclude",
-});
+const { argv } = yargs(hideBin(process.argv))
+  .option("exclude", {
+    type: "string",
+    describe: "Comma-separated list of platforms to exclude",
+  })
+  .option("includeOnly", {
+    type: "string",
+    describe: "Comma-separated list of platforms to include exclusively",
+  });
 
 // Function to filter platforms based on exclude list
 function filterPlatforms<T extends string>(
   platforms: T[],
   excludeList: string[],
+  includeOnlyList: string[],
 ): T[] {
-  return platforms.filter((platform) => !excludeList.includes(platform));
+  if (includeOnlyList.length > 0) {
+    return platforms.filter((platform) => includeOnlyList.includes(platform));
+  } else {
+    return platforms.filter((platform) => !excludeList.includes(platform));
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const excludeList = (argv as any).exclude
-  ? (argv as any).exclude.split(",")
-  : [];
+const args = argv as any;
+const excludeList = args.exclude ? args.exclude.split(",") : [];
+const includeOnlyList = args.includeOnly ? args.includeOnly.split(",") : [];
 
 const commonArgs = {
   CMAKE_BUILD_TYPE: "Release",
@@ -63,6 +73,7 @@ const android = {
   platforms: filterPlatforms(
     ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"] as Platform[],
     excludeList,
+    includeOnlyList,
   ),
   args: {
     CMAKE_TOOLCHAIN_FILE: "$ANDROID_NDK/build/cmake/android.toolchain.cmake",
@@ -76,12 +87,18 @@ const apple = {
     arm64: filterPlatforms(
       ["iphoneos", "iphonesimulator", "xros", "xrsimulator"] as const,
       excludeList,
+      includeOnlyList,
     ),
     x86_64: filterPlatforms(
       ["iphonesimulator", "xrsimulator"] as const,
       excludeList,
+      includeOnlyList,
     ),
-    universal: filterPlatforms(["macosx"] as const, excludeList),
+    universal: filterPlatforms(
+      ["macosx"] as const,
+      excludeList,
+      includeOnlyList,
+    ),
   },
   args: {
     CMAKE_TOOLCHAIN_FILE: `${__dirname}/apple.toolchain.cmake`,

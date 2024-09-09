@@ -215,6 +215,11 @@ You can also filter the platforms to build, for instance to skip the macOS and v
 yarn build-dawn --exclude=xros,xrsimulator,macosx
 ```
 
+Alternatively if you want to build for a specific platform only, you can use `includeOnly`.
+```sh
+yarn build-dawn --includeOnly=xros,xrsimulator
+```
+
 There is an alternative way which is to download the prebuilt binaries from GitHub.
 You need to have the [Github CLI](https://cli.github.com/) installed:
 
