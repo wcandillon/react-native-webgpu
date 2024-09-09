@@ -61,23 +61,11 @@ public class WebGPUView extends TextureView {
   @Override
   protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
     super.onLayout(changed, left, top, right, bottom);
-    androidSimulatorWorkaround();
   }
 
   float applyDensity(float size) {
     float density = getResources().getDisplayMetrics().density;
     return size / density;
-  }
-
-  void androidSimulatorWorkaround() {
-    /*
-      Software emulated TextureView on android emulator sometimes need additional call of
-      invalidate method to flush gpu output
-    */
-    post(() -> {
-      invalidate();
-      postInvalidate();
-    });
   }
 
   @DoNotStrip
