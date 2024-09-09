@@ -1,10 +1,14 @@
 import React from "react";
-import { StyleSheet, View, PixelRatio } from "react-native";
-import { Canvas, useCanvasEffect } from "react-native-wgpu";
+import { Button, StyleSheet, View } from "react-native";
+import { Canvas } from "react-native-wgpu";
 import { struct, u32 } from "typegpu/data";
 import tgpu from "typegpu";
 
-export const vertWGSL = `
+import { useWebGPU } from "../components/useWebGPU";
+
+let span = 1;
+
+const vertWGSL = `
 struct Output {
   @builtin(position) posOut: vec4f,
   @location(0) uvOut: vec2f,
@@ -34,7 +38,7 @@ fn main(
   return out;
 }`;
 
-export const fragWGSL = `
+const fragWGSL = `
 struct Span {
   x: u32,
   y: u32,
@@ -52,102 +56,98 @@ fn main(
 }`;
 
 export function GradientTiles() {
-  const ref = useCanvasEffect(async () => {
-    const adapter = await navigator.gpu.requestAdapter();
-    if (!adapter) {
-      throw new Error("No adapter");
-    }
-    const device = await adapter.requestDevice();
-    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+  const { canvasRef: ref } = useWebGPU(
+    ({ context, device, presentationFormat }) => {
+      const Span = struct({
+        x: u32,
+        y: u32,
+      });
 
-    const context = ref.current!.getContext("webgpu")!;
-    const canvas = context.canvas as HTMLCanvasElement;
-    canvas.width = canvas.clientWidth * PixelRatio.get();
-    canvas.height = canvas.clientHeight * PixelRatio.get();
+      const spanBuffer = tgpu
+        .createBuffer(Span, { x: 10, y: 10 })
+        .$device(device)
+        .$usage(tgpu.Uniform);
 
-    if (!context) {
-      throw new Error("No context");
-    }
+      const pipeline = device.createRenderPipeline({
+        layout: "auto",
+        vertex: {
+          module: device.createShaderModule({
+            code: vertWGSL,
+          }),
+        },
+        fragment: {
+          module: device.createShaderModule({
+            code: fragWGSL,
+          }),
+          targets: [
+            {
+              format: presentationFormat,
+            },
+          ],
+        },
+        primitive: {
+          topology: "triangle-strip",
+        },
+      });
 
-    context.configure({
-      device,
-      format: presentationFormat,
-      alphaMode: "premultiplied",
-    });
-
-    const pipeline = device.createRenderPipeline({
-      layout: "auto",
-      vertex: {
-        module: device.createShaderModule({
-          code: vertWGSL,
-        }),
-      },
-      fragment: {
-        module: device.createShaderModule({
-          code: fragWGSL,
-        }),
-        targets: [
+      const bindGroup = device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(0),
+        entries: [
           {
-            format: presentationFormat,
+            binding: 0,
+            resource: {
+              buffer: spanBuffer.buffer,
+            },
           },
         ],
-      },
-      primitive: {
-        topology: "triangle-strip",
-      },
-    });
+      });
 
-    const Span = struct({
-      x: u32,
-      y: u32,
-    });
+      return () => {
+        const textureView = context.getCurrentTexture().createView();
 
-    const spanBuffer = tgpu
-      .createBuffer(Span, { x: 10, y: 10 })
-      .$device(device)
-      .$usage(tgpu.Uniform);
+        const renderPassDescriptor: GPURenderPassDescriptor = {
+          colorAttachments: [
+            {
+              view: textureView,
+              clearValue: [0, 0, 0, 1],
+              loadOp: "clear",
+              storeOp: "store",
+            },
+          ],
+        };
 
-    const bindGroup = device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(0),
-      entries: [
-        {
-          binding: 0,
-          resource: {
-            buffer: spanBuffer.buffer,
-          },
-        },
-      ],
-    });
+        tgpu.write(spanBuffer, { x: span, y: span });
 
-    const commandEncoder = device.createCommandEncoder();
+        const commandEncoder = device.createCommandEncoder();
+        const passEncoder =
+          commandEncoder.beginRenderPass(renderPassDescriptor);
+        passEncoder.setPipeline(pipeline);
+        passEncoder.setBindGroup(0, bindGroup);
+        passEncoder.draw(4);
+        passEncoder.end();
 
-    const textureView = context.getCurrentTexture().createView();
-
-    const renderPassDescriptor: GPURenderPassDescriptor = {
-      colorAttachments: [
-        {
-          view: textureView,
-          clearValue: [0, 0, 0, 1],
-          loadOp: "clear",
-          storeOp: "store",
-        },
-      ],
-    };
-
-    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-    passEncoder.setPipeline(pipeline);
-    passEncoder.setBindGroup(0, bindGroup);
-    passEncoder.draw(4);
-    passEncoder.end();
-
-    device.queue.submit([commandEncoder.finish()]);
-
-    context.present();
-  });
+        device.queue.submit([commandEncoder.finish()]);
+      };
+    }
+  );
 
   return (
     <View style={style.container}>
       <Canvas ref={ref} style={style.webgpu} />
+      <View>
+        <Button
+          title="-"
+          onPress={() => {
+            span -= 1;
+          }}
+        />
+        <Button
+          title="+"
+          onPress={() => {
+            span += 1;
+          }}
+        />
+      </View>
     </View>
   );
 }
