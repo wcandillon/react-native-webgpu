@@ -14,7 +14,8 @@
     "lint": "turbo run lint",
     "tsc": "turbo run tsc",
     "build:ios": "turbo run build:ios",
-    "build:android": "turbo run build:android"
+    "build:android": "turbo run build:android",
+    "pod:install": "turbo run pod:install"
   },
   "devDependencies": {
     "turbo": "^2.1.0"

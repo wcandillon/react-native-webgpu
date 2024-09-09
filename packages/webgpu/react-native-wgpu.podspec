@@ -20,11 +20,11 @@ Pod::Spec.new do |s|
   ]
 
   s.ios.vendored_frameworks = [
-    'libs/ios/libwebgpu_dawn.xcframework',
+    'libs/apple/libwebgpu_dawn.xcframework',
   ]
 
   s.visionos.vendored_frameworks = [
-    'libs/ios/libwebgpu_dawn_visionos.xcframework',
+    'libs/apple/libwebgpu_dawn_visionos.xcframework',
   ]
 
   s.pod_target_xcconfig = {
