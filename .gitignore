@@ -72,7 +72,7 @@ packages/webgpu/lib
 
 # Cocoapods
 #
-apps/paper/ios/Pods
+apps/example/ios/Pods
 # Ruby
 apps/vendor/
 
