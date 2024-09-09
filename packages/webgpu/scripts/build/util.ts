@@ -13,9 +13,10 @@ export const platforms = [
   "x86",
   "armeabi-v7a",
   "arm64-v8a",
+  "universal",
 ] as const;
 
-export type OS = "ios" | "android";
+export type OS = "apple" | "android";
 export type Platform = (typeof platforms)[number];
 
 export const runAsync = (command: string, label: string): Promise<void> => {
@@ -83,6 +84,7 @@ export const build = async (
   args: Record<string, string>,
   debugLabel: string,
 ) => {
+  console.log(`🔨 Building ${label}`);
   $(`mkdir -p externals/dawn/out/${label}`);
   process.chdir(`externals/dawn/out/${label}`);
   const cmd = `cmake ../.. -G Ninja ${serializeCMakeArgs(args)}`;
@@ -103,7 +105,7 @@ export const copyLib = (os: OS, platform: Platform, sdk?: string) => {
     );
   }
   [
-    `externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.${os === "ios" ? "a" : "so"}`,
+    `externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.${os === "apple" ? "a" : "so"}`,
   ].forEach((lib) => {
     const libPath = lib;
     console.log(`Copying ${libPath} to ${dstPath}`);
@@ -114,14 +116,14 @@ export const copyLib = (os: OS, platform: Platform, sdk?: string) => {
 export const checkBuildArtifacts = () => {
   console.log("Check build artifacts...");
   platforms
-    .filter((arch) => arch !== "arm64")
+    .filter((arch) => arch !== "arm64" && arch !== "universal")
     .forEach((platform) => {
       libs.forEach((lib) => {
         checkFileExists(`libs/android/${platform}/${lib}.so`);
       });
     });
   libs.forEach((lib) => {
-    checkFileExists(`libs/ios/${lib}.xcframework`);
+    checkFileExists(`libs/apple/${lib}.xcframework`);
   });
   checkFileExists("cpp/dawn/webgpu_cpp.h");
   checkFileExists("libs/dawn.json");

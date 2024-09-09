@@ -27,6 +27,7 @@
       ]
     },
     "build:ios": {
+      "dependsOn": ["pod:install"],
       "outputs": [
         "apps/*/ios/build",
         "apps/*/ios/Pods"
@@ -45,6 +46,11 @@
         "!apps/*/ios/build",
         "!apps/*/ios/Pods"
       ]
+    },
+    "pod:install": {
+      "cache": false,
+      "inputs": ["**/ios/Podfile", "**/ios/Podfile.lock"],
+      "outputs": ["**/ios/Pods/**"]
     },
     "lint": {},
     "tsc": {}
