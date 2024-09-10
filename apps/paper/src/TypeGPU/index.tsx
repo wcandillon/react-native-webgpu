@@ -5,6 +5,7 @@ import { warnIfNotHardwareAccelerated } from "react-native-wgpu";
 import { GradientTiles } from "./GradientTiles";
 import type { Routes } from "./Routes";
 import { List } from "./List";
+import { Boids } from "./Boids";
 
 const Stack = createNativeStackNavigator<Routes>();
 export const TypeGPU = () => {
@@ -30,6 +31,13 @@ export const TypeGPU = () => {
         component={GradientTiles}
         options={{
           title: "🌈 Gradient Tiles",
+        }}
+      />
+      <Stack.Screen
+        name="Boids"
+        component={Boids}
+        options={{
+          title: "🐧 Boids",
         }}
       />
     </Stack.Navigator>
