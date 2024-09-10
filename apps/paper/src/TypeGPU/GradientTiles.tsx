@@ -9,6 +9,7 @@ import { useWebGPU } from "../components/useWebGPU";
 import { vertWGSL, fragWGSL } from "./gradientWgsl";
 
 let span = 4;
+let draw = () => {};
 
 export function GradientTiles() {
   const { canvasRef } = useWebGPU(({ context, device, presentationFormat }) => {
@@ -56,9 +57,8 @@ export function GradientTiles() {
       ],
     });
 
-    return () => {
+    draw = () => {
       const textureView = context.getCurrentTexture().createView();
-
       const renderPassDescriptor: GPURenderPassDescriptor = {
         colorAttachments: [
           {
@@ -80,7 +80,14 @@ export function GradientTiles() {
       passEncoder.end();
 
       device.queue.submit([commandEncoder.finish()]);
+      (
+        context as GPUCanvasContext & {
+          present: () => void;
+        }
+      ).present();
     };
+
+    draw();
   });
 
   return (
@@ -94,6 +101,8 @@ export function GradientTiles() {
             if (span > 1) {
               span -= 1;
             }
+
+            draw();
           }}
         />
         <Button
@@ -102,6 +111,8 @@ export function GradientTiles() {
             if (span < 10) {
               span += 1;
             }
+
+            draw();
           }}
         />
       </View>
