@@ -1,7 +1,7 @@
 /* eslint-disable no-eval */
 
 import React, { useEffect, useState } from "react";
-import { Dimensions, Platform, Text, View, Image } from "react-native";
+import { Dimensions, Text, View, Image } from "react-native";
 import "react-native-wgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
@@ -10,7 +10,7 @@ import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
 import { NativeDrawingContext } from "./components/NativeDrawingContext";
 import type { AssetProps } from "./components/useAssets";
-import { Bitmap } from "./components/Bitmap";
+import { Texture } from "./components/Texture";
 
 export const CI = process.env.CI === "true";
 
@@ -34,7 +34,7 @@ const useWebGPU = () => {
 };
 
 export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
-  const [bitmap, setBitmap] = useState<Bitmap | null>(null);
+  const [texture, setTexture] = useState<GPUTexture | null>(null);
   const { adapter, device } = useWebGPU();
   const [client, hostname] = useClient();
   useEffect(() => {
@@ -76,16 +76,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
           if (result instanceof Promise) {
             result.then((r) => {
               if (r.data && r.width && r.height) {
-                const img = {
-                  width: r.width,
-                  height: r.height,
-                  colorType:
-                    Platform.OS === "ios"
-                      ? ("bgra8unorm" as const)
-                      : ("rgba8unorm" as const),
-                  data: new Uint8Array(r.data),
-                };
-                setBitmap(img);
+                setTexture(ctx.getCurrentTexture());
               }
               client.send(JSON.stringify(r));
             });
@@ -107,7 +98,11 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
           ? `⚪️ Connecting to ${hostname}. Use yarn e2e to run tests.`
           : "🟢 Waiting for the server to send tests"}
       </Text>
-      <Bitmap bitmap={bitmap} style={{ width: width, height: width }} />
+      <Texture
+        texture={texture}
+        device={device}
+        style={{ width: width, height: width }}
+      />
     </View>
   );
 };

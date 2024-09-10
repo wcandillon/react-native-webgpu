@@ -1,33 +1,22 @@
 import { PixelRatio } from "react-native";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 
-export interface Bitmap {
-  width: number;
-  height: number;
-  colorType: "rgba8unorm" | "bgra8unorm";
-  data: Uint8Array;
-}
-
-interface BitmapProps {
-  bitmap: Bitmap | null;
+interface GPUTextureProps {
+  texture: GPUTexture | null;
+  device: GPUDevice | null;
   style?: {
     width: number;
     height: number;
   };
 }
 
-export const Bitmap = ({ bitmap, style }: BitmapProps) => {
+export const Texture = ({ texture, style, device }: GPUTextureProps) => {
   const ref = useCanvasEffect(async () => {
-    if (!bitmap) {
+    if (!texture || !device) {
       return;
     }
-    const adapter = await navigator.gpu.requestAdapter();
-    if (!adapter) {
-      throw new Error("No adapter");
-    }
-    const device = await adapter.requestDevice();
-    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
+    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
     const context = ref.current!.getContext("webgpu")!;
     const canvas = context.canvas as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();
@@ -38,24 +27,6 @@ export const Bitmap = ({ bitmap, style }: BitmapProps) => {
       format: presentationFormat,
       alphaMode: "premultiplied",
     });
-
-    // Create a texture to hold the bitmap
-    const texture = device.createTexture({
-      size: { width: bitmap.width, height: bitmap.height },
-      format: bitmap.colorType,
-      usage:
-        GPUTextureUsage.TEXTURE_BINDING |
-        GPUTextureUsage.COPY_DST |
-        GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-
-    // Copy the buffer data to the texture
-    device.queue.writeTexture(
-      { texture },
-      bitmap.data,
-      { bytesPerRow: bitmap.width * 4 },
-      { width: bitmap.width, height: bitmap.height },
-    );
 
     // Create a sampler
     const sampler = device.createSampler({
@@ -134,32 +105,27 @@ export const Bitmap = ({ bitmap, style }: BitmapProps) => {
     });
 
     // Render function
-    function render() {
-      const commandEncoder = device.createCommandEncoder();
-      const textureView = context.getCurrentTexture().createView();
+    const commandEncoder = device.createCommandEncoder();
+    const textureView = context.getCurrentTexture().createView();
 
-      const renderPass = commandEncoder.beginRenderPass({
-        colorAttachments: [
-          {
-            view: textureView,
-            clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-            loadOp: "clear",
-            storeOp: "store",
-          },
-        ],
-      });
+    const renderPass = commandEncoder.beginRenderPass({
+      colorAttachments: [
+        {
+          view: textureView,
+          clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+          loadOp: "clear",
+          storeOp: "store",
+        },
+      ],
+    });
 
-      renderPass.setPipeline(pipeline);
-      renderPass.setBindGroup(0, bindGroup);
-      renderPass.draw(4);
-      renderPass.end();
+    renderPass.setPipeline(pipeline);
+    renderPass.setBindGroup(0, bindGroup);
+    renderPass.draw(4);
+    renderPass.end();
 
-      device.queue.submit([commandEncoder.finish()]);
-      context.present();
-    }
-
-    // Initial render
-    render();
-  }, [bitmap]);
+    device.queue.submit([commandEncoder.finish()]);
+    context.present();
+  }, [texture]);
   return <Canvas ref={ref} style={style} />;
 };
