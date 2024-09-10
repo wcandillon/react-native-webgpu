@@ -6413,10 +6413,10 @@ typed-binary@^4.0.1:
   resolved "https://registry.npmjs.org/typed-binary/-/typed-binary-4.0.1.tgz"
   integrity sha512-nne2iMvXX8Qi3KI7do55udYsPNIUr7zFhPJNdWpujkWUzr6sJK6gQjCUcZGMM6+lws75oiFtGk8if6S2KgWppg==
 
-typegpu@^0.1.0:
-  version "0.1.0"
-  resolved "https://registry.npmjs.org/typegpu/-/typegpu-0.1.0.tgz"
-  integrity sha512-LMRGSCtO9ycaisZi1Cc3xa/0fzNFNToO9987eFzbIycfSwekMZPlKhr9mv7vbMhv3j4AaIgYH+oLfMVZGlNyrA==
+typegpu@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.npmjs.org/typegpu/-/typegpu-0.1.1.tgz"
+  integrity sha512-2XP6ykJJ+uiMBIwqMiVArblzJ2SQVAUw/8SEjRhwuFAT4gavdjn3hO9X5ubDNF3J3rIyl8UzK3M+LzCgmuAaTQ==
   dependencies:
     typed-binary "^4.0.1"
 

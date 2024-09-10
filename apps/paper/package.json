@@ -6,7 +6,7 @@
     "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
     "tsc": "tsc --noEmit",
     "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "ios": "react-native run-ios --simulator=\"iPhone 15 Pro Max\"",
     "start": "react-native start",
     "pod:install": "cd ios && pod install",
     "build:android": "cd android && ./gradlew assembleDebug --warning-mode all",
@@ -27,7 +27,7 @@
     "teapot": "^1.0.0",
     "three": "^0.168.0",
     "three-stdlib": "^2.32.2",
-    "typegpu": "^0.1.0",
+    "typegpu": "^0.1.1",
     "wgpu-matrix": "^3.0.2"
   },
   "devDependencies": {
