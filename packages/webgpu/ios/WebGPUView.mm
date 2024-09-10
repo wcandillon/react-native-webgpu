@@ -49,7 +49,20 @@ static NSMutableDictionary<NSNumber *, MetalView *> *metalViewRegistry =
 - (void)prepareForRecycle {
   [super prepareForRecycle];
   self.contentView = nil;
-  [metalViewRegistry removeObjectForKey:_contextId];
+  if ([metalViewRegistry objectForKey:_contextId] != nil) {
+   [metalViewRegistry removeObjectForKey:_contextId];
+  }
+}
+
+- (void)updateProps:(const facebook::react::Props::Shared &)props oldProps:(const facebook::react::Props::Shared &)oldProps {
+  const auto &oldViewProps = *std::static_pointer_cast<const WebGPUViewProps>(_props);
+  const auto &newViewProps = *std::static_pointer_cast<const WebGPUViewProps>(props);
+  
+  if (newViewProps.contextId != oldViewProps.contextId) {
+    _contextId = [[NSNumber alloc] initWithInt:newViewProps.contextId];
+  }
+  
+  [super updateProps:props oldProps:oldProps];
 }
 
 - (void)updateLayoutMetrics:
