@@ -6,5 +6,6 @@
       "react-native-wgpu": ["../../packages/webgpu/src/index"],
       "three/webgpu": ["../../node_modules/@types/three/src/Three.WebGPU.d.ts"]
     },
+    "types": ["@webgpu/types"]
   }
 }

@@ -12,7 +12,10 @@ export class NativeDrawingContext implements DrawingContext {
     this.texture = device.createTexture({
       size: [width, height],
       format: navigator.gpu.getPreferredCanvasFormat(),
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT |
+        GPUTextureUsage.COPY_SRC |
+        GPUTextureUsage.TEXTURE_BINDING,
     });
     this.buffer = device.createBuffer({
       size: bytesPerRow * this.height,
