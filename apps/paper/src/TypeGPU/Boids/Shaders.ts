@@ -1,5 +1,5 @@
 const triangleAmount = 1000;
-const triangleSize = 0.02;
+const triangleSize = 0.03;
 
 export const renderCode = /* wgsl */ `
   fn rotate(v: vec2f, angle: f32) -> vec2f {
