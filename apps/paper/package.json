@@ -6,7 +6,7 @@
     "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
     "tsc": "tsc --noEmit",
     "android": "react-native run-android",
-    "ios": "react-native run-ios --simulator=\"iPhone 15 Pro Max\"",
+    "ios": "react-native run-ios",
     "start": "react-native start",
     "pod:install": "cd ios && pod install",
     "build:android": "cd android && ./gradlew assembleDebug --warning-mode all",
