@@ -4,15 +4,19 @@ on:
     branches:
       - main
   pull_request:
+    branches:
+      - main
+  merge_group:
+    types:
+      - checks_requested
+
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: package
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -23,6 +27,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clang Format
+        working-directory: packages/webgpu
         run: yarn clang-format
 
       - name: Lint files
@@ -31,28 +36,12 @@ jobs:
       - name: Typecheck files
         run: yarn tsc
 
-  test:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: package
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup
-        uses: ./.github/actions/setup
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      # - name: Run unit tests
-      #   run: yarn test --maxWorkers=2 --coverage
+      - name: Codegen
+        working-directory: packages/webgpu
+        run: yarn codegen
 
   build-library:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: package
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -63,13 +52,11 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build package
+        working-directory: packages/webgpu
         run: yarn prepare
 
   build-android:
-    runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: package
+    runs-on: macos-latest-large
     env:
       TURBO_CACHE_DIR: .turbo/android
     steps:
@@ -87,7 +74,7 @@ jobs:
           path: ${{ env.TURBO_CACHE_DIR }}
           key: ${{ runner.os }}-turborepo-android-${{ hashFiles('yarn.lock') }}
           restore-keys: |
-            ${{ runner.os }}-turborepo-android-
+            ${{ runner.os }}-turborepo-android
 
       - name: Check turborepo cache for Android
         run: |
@@ -109,7 +96,7 @@ jobs:
         uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r21d
+          ndk-version: r26d
   
       - name: Set ANDROID_NDK
         run: echo "ANDROID_NDK=$ANDROID_HOME/ndk-bundle" >> $GITHUB_ENV
@@ -119,6 +106,9 @@ jobs:
         run: |
           /bin/bash -c "yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null"
 
+      - name: Install Android SDK
+        run: echo "sdk.dir=$ANDROID_HOME" > $GITHUB_WORKSPACE/apps/paper/android/local.properties
+
       - name: Cache Gradle
         if: env.turbo_cache_hit != 1
         uses: actions/cache@v3
@@ -126,7 +116,7 @@ jobs:
           path: |
             ~/.gradle/wrapper
             ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('example/android/gradle/wrapper/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('./apps/paper/android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
@@ -137,10 +127,7 @@ jobs:
           yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}"
 
   build-ios:
-    runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: package
+    runs-on: macos-latest-large
     env:
       TURBO_CACHE_DIR: .turbo/ios
     steps:
@@ -151,20 +138,6 @@ jobs:
         uses: ./.github/actions/setup
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Download Dawn Binary Artifacts
-        uses: dawidd6/action-download-artifact@v2
-        with:
-          workflow: "build-dawn.yml"
-          repo: wcandillon/react-native-webgpu
-          github_token: ${{secrets.GITHUB_TOKEN}}
-          path: artifacts
-          branch: main
-          name: dawn-libs
-
-      - name: Copy Artifacts to libs folder
-        working-directory: package
-        run: yarn copy-artifacts
 
       - name: Cache turborepo for iOS
         uses: actions/cache@v3
@@ -181,25 +154,6 @@ jobs:
           if [[ $TURBO_CACHE_STATUS == "HIT" ]]; then
             echo "turbo_cache_hit=1" >> $GITHUB_ENV
           fi
-
-      - name: Cache cocoapods
-        if: env.turbo_cache_hit != 1
-        id: cocoapods-cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            **/ios/Pods
-          key: ${{ runner.os }}-cocoapods-${{ hashFiles('example/ios/Podfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cocoapods-
-
-      - name: Install cocoapods
-        if: env.turbo_cache_hit != 1 && steps.cocoapods-cache.outputs.cache-hit != 'true'
-        run: |
-          cd example/ios
-          pod install
-        env:
-          NO_FLIPPER: 1
 
       - name: Build example for iOS
         run: |

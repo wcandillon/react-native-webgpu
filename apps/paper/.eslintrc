@@ -1,0 +1,8 @@
+{ 
+  "extends": "react-native-wcandillon",
+  "ignorePatterns": ["**/*/components/meshes"],
+  "rules": {
+    "no-bitwise": "off",
+    "@typescript-eslint/no-require-imports": "off"
+  }
+} 

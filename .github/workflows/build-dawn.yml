@@ -2,9 +2,9 @@ name: Build Dawn
 on: workflow_dispatch
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-latest-large
     env:
-      WORKING_DIRECTORY: ./package
+      WORKING_DIRECTORY: ./packages/webgpu
     steps:
       - name: checkout
         uses: actions/checkout@v2
@@ -15,7 +15,10 @@ jobs:
         id: setup-ndk
         uses: nttld/setup-ndk@v1
         with:
-          ndk-version: r22b
+          ndk-version: r26d
+
+      - name: Set ANDROID_NDK
+        run: echo "ANDROID_NDK=$ANDROID_HOME/ndk-bundle" >> $GITHUB_ENV
 
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
@@ -23,11 +26,10 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: 'yarn'
-          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/yarn.lock
+          cache-dependency-path: yarn.lock
 
       - name: Install Package
         run: yarn install --frozen-lockfile
-        working-directory: ${{ env.WORKING_DIRECTORY }}
 
       - name: Build Dawn
         working-directory: ${{ env.WORKING_DIRECTORY }}
@@ -41,6 +43,6 @@ jobs:
         with:
           name: dawn-libs
           path: |
-            package/libs
-            package/cpp/dawn
-            package/cpp/webgpu
+            packages/webgpu/libs
+            packages/webgpu/cpp/dawn
+            packages/webgpu/cpp/webgpu
