@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button, StyleSheet, View, Text } from "react-native";
 import { Canvas } from "react-native-wgpu";
 import { struct, u32 } from "typegpu/data";
@@ -8,10 +8,16 @@ import { useWebGPU } from "../components/useWebGPU";
 
 import { vertWGSL, fragWGSL } from "./gradientWgsl";
 
-let span = 4;
-let draw = () => {};
+let draw = (_: number, __: number) => {};
 
 export function GradientTiles() {
+  const [spanX, setSpanX] = useState(4);
+  const [spanY, setSpanY] = useState(4);
+
+  useEffect(() => {
+    draw(spanX, spanY);
+  }, [spanX, spanY]);
+
   const { canvasRef } = useWebGPU(({ context, device, presentationFormat }) => {
     const Span = struct({
       x: u32,
@@ -57,7 +63,7 @@ export function GradientTiles() {
       ],
     });
 
-    draw = () => {
+    draw = (spanXValue: number, spanYValue: number) => {
       const textureView = context.getCurrentTexture().createView();
       const renderPassDescriptor: GPURenderPassDescriptor = {
         colorAttachments: [
@@ -70,7 +76,7 @@ export function GradientTiles() {
         ],
       };
 
-      tgpu.write(spanBuffer, { x: span, y: span });
+      tgpu.write(spanBuffer, { x: spanXValue, y: spanYValue });
 
       const commandEncoder = device.createCommandEncoder();
       const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
@@ -87,34 +93,44 @@ export function GradientTiles() {
       ).present();
     };
 
-    draw();
+    draw(spanX, spanY);
   });
 
   return (
     <View style={style.container}>
       <Canvas ref={canvasRef} style={style.webgpu} />
-      <View style={style.buttonRow}>
-        <Text style={style.spanText}>span: </Text>
-        <Button
-          title="➖"
-          onPress={() => {
-            if (span > 1) {
-              span -= 1;
-            }
+      <View style={style.controls}>
+        <View style={style.buttonRow}>
+          <Text style={style.spanText}>span x: </Text>
+          <Button
+            title="➖"
+            onPress={() => {
+              setSpanX((prevSpan) => (prevSpan > 1 ? prevSpan - 1 : prevSpan));
+            }}
+          />
+          <Button
+            title="➕"
+            onPress={() => {
+              setSpanX((prevSpan) => (prevSpan < 10 ? prevSpan + 1 : prevSpan));
+            }}
+          />
+        </View>
 
-            draw();
-          }}
-        />
-        <Button
-          title="➕"
-          onPress={() => {
-            if (span < 10) {
-              span += 1;
-            }
-
-            draw();
-          }}
-        />
+        <View style={style.buttonRow}>
+          <Text style={style.spanText}>span y: </Text>
+          <Button
+            title="➖"
+            onPress={() => {
+              setSpanY((prevSpan) => (prevSpan > 1 ? prevSpan - 1 : prevSpan));
+            }}
+          />
+          <Button
+            title="➕"
+            onPress={() => {
+              setSpanY((prevSpan) => (prevSpan < 10 ? prevSpan + 1 : prevSpan));
+            }}
+          />
+        </View>
       </View>
     </View>
   );
@@ -131,10 +147,13 @@ const style = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
   },
+  controls: {
+    flex: 1,
+    justifyContent: "center",
+  },
   buttonRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    flex: 1,
   },
 });
