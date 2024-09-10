@@ -104,15 +104,11 @@ export function GradientTiles() {
           <Text style={style.spanText}>span x: </Text>
           <Button
             title="➖"
-            onPress={() => {
-              setSpanX((prevSpan) => (prevSpan > 1 ? prevSpan - 1 : prevSpan));
-            }}
+            onPress={() => setSpanX((prev) => Math.max(1, prev - 1))}
           />
           <Button
             title="➕"
-            onPress={() => {
-              setSpanX((prevSpan) => (prevSpan < 10 ? prevSpan + 1 : prevSpan));
-            }}
+            onPress={() => setSpanX((prev) => Math.min(prev + 1, 10))}
           />
         </View>
 
@@ -120,15 +116,11 @@ export function GradientTiles() {
           <Text style={style.spanText}>span y: </Text>
           <Button
             title="➖"
-            onPress={() => {
-              setSpanY((prevSpan) => (prevSpan > 1 ? prevSpan - 1 : prevSpan));
-            }}
+            onPress={() => setSpanY((prev) => Math.max(1, prev - 1))}
           />
           <Button
             title="➕"
-            onPress={() => {
-              setSpanY((prevSpan) => (prevSpan < 10 ? prevSpan + 1 : prevSpan));
-            }}
+            onPress={() => setSpanY((prev) => Math.min(prev + 1, 10))}
           />
         </View>
       </View>

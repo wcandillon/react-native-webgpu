@@ -1,12 +1,12 @@
 export const vertWGSL = `
 struct Output {
-  @builtin(position) posOut: vec4f,
-  @location(0) uvOut: vec2f,
+  @builtin(position) pos: vec4f,
+  @location(0) uv: vec2f,
 }
 
 @vertex
 fn main(
-  @builtin(vertex_index) VertexIndex : u32
+  @builtin(vertex_index) vertexIndex: u32,
 ) -> Output {
   var pos = array<vec2f, 4>(
     vec2(1, 1), // top-right
@@ -23,8 +23,8 @@ fn main(
   );
 
   var out: Output;
-  out.posOut = vec4f(pos[VertexIndex], 0.0, 1.0);
-  out.uvOut = uv[VertexIndex];
+  out.pos = vec4f(pos[vertexIndex], 0.0, 1.0);
+  out.uv = uv[vertexIndex];
   return out;
 }`;
 
@@ -38,9 +38,9 @@ struct Span {
 
 @fragment
 fn main(
-  @location(0) uvOut: vec2f,
+  @location(0) uv: vec2f,
 ) -> @location(0) vec4f {
-  let red = floor(uvOut.x * f32(span.x)) / f32(span.x);
-  let green = floor(uvOut.y * f32(span.y)) / f32(span.y);
+  let red = floor(uv.x * f32(span.x)) / f32(span.x);
+  let green = floor(uv.y * f32(span.y)) / f32(span.y);
   return vec4(red, green, 0.5, 1.0);
 }`;
