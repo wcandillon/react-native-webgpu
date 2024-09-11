@@ -122,6 +122,9 @@ export const Backdrop = () => {
       addBackdropSphere(
         overlay(viewportSharedTexture().rgb, checker(uv().mul(10))),
       );
+
+      // For the two nodes below to work, antialias needs to be set to false in renderer
+      // See https://github.com/mrdoob/three.js/pull/29025/files#r1753646774
       // addBackdropSphere(
       //   viewportSharedTexture(
       //     viewportSafeUV(viewportUV.mul(40).floor().div(40)),
