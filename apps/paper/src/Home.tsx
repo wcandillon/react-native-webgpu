@@ -92,8 +92,8 @@ export const examples = [
     title: "↔️ Resize",
   },
   {
-    screen: "TypeGPU",
-    title: "💜 TypeGPU",
+    screen: "GradientTiles",
+    title: "🌈 Gradient Tiles",
   },
 ] as const;
 

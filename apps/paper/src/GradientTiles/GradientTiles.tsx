@@ -4,7 +4,7 @@ import { Canvas } from "react-native-wgpu";
 import { struct, u32 } from "typegpu/data";
 import tgpu from "typegpu";
 
-import { useWebGPU } from "../../components/useWebGPU";
+import { useWebGPU } from "../components/useWebGPU";
 
 import { vertWGSL, fragWGSL } from "./gradientWgsl";
 
