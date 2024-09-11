@@ -20,6 +20,10 @@ You need to have a slight modification of [the metro config](/package/example/me
 
 https://github.com/user-attachments/assets/5b49ef63-0a3c-4679-aeb5-e4b4dddfcc1d
 
+We also provide prebuilt binaries for visionOS and macOS.
+
+https://github.com/user-attachments/assets/2d5c618e-5b15-4cef-8558-d4ddf8c70667
+
 ## Usage
 
 Currently we recommend to use the `useCanvasEffect` to access the WebGPU context.
