@@ -2,7 +2,7 @@
 /* eslint-disable prefer-destructuring */
 import * as THREE from "three/webgpu";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
-import { View } from "react-native";
+import { PixelRatio, View } from "react-native";
 import { GLTFLoader } from "three-stdlib";
 
 import { manager } from "./assets/AssetManager";
@@ -24,12 +24,19 @@ const {
   saturation,
   overlay,
   viewportUV,
+  viewportSafeUV,
 } = THREE;
 
 export const Backdrop = () => {
   const ref = useCanvasEffect(async () => {
     const rotate = true;
+
+    // Anti alias in the renderer is set to false and we handle the pixel density here
     const context = ref.current!.getContext("webgpu")!;
+    const canvas = context.canvas as HTMLCanvasElement;
+    canvas.width = canvas.clientWidth * PixelRatio.get();
+    canvas.height = canvas.clientHeight * PixelRatio.get();
+
     const { width, height } = context.canvas;
     let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer;
     let portals: THREE.Group;
@@ -125,29 +132,21 @@ export const Backdrop = () => {
 
       // For the two nodes below to work, antialias needs to be set to false in renderer
       // See https://github.com/mrdoob/three.js/pull/29025/files#r1753646774
-      // addBackdropSphere(
-      //   viewportSharedTexture(
-      //     viewportSafeUV(viewportUV.mul(40).floor().div(40)),
-      //   ),
-      // );
-      // addBackdropSphere(
-      //   viewportSharedTexture(
-      //     viewportSafeUV(viewportUV.mul(80).floor().div(80)),
-      //   ).add(color(0x0033ff)),
-      // );
-
       addBackdropSphere(
-        viewportSharedTexture(viewportUV.mul(40).floor().div(40)),
-      );
-      addBackdropSphere(
-        viewportSharedTexture(viewportUV.mul(80).floor().div(80)).add(
-          color(0x0033ff),
+        viewportSharedTexture(
+          viewportSafeUV(viewportUV.mul(40).floor().div(40)),
         ),
       );
+      addBackdropSphere(
+        viewportSharedTexture(
+          viewportSafeUV(viewportUV.mul(80).floor().div(80)),
+        ).add(color(0x0033ff)),
+      );
+
       addBackdropSphere(vec3(0, 0, viewportSharedTexture().b));
 
       //renderer
-      renderer = makeWebGPURenderer(context);
+      renderer = makeWebGPURenderer(context, { antialias: false });
       renderer.setAnimationLoop(animate);
       renderer.toneMapping = THREE.NeutralToneMapping;
       renderer.toneMappingExposure = 0.3;
