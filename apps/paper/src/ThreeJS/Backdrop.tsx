@@ -13,12 +13,17 @@ const {
   vec3,
   color,
   viewportSharedTexture,
-  viewportTopLeft,
   checker,
   uv,
   timerLocal,
   oscSine,
   output,
+  posterize,
+  hue,
+  grayscale,
+  saturation,
+  overlay,
+  viewportUV,
 } = THREE;
 
 export const Backdrop = () => {
@@ -39,10 +44,7 @@ export const Backdrop = () => {
 
       scene = new THREE.Scene();
       // @ts-expect-error
-      scene.backgroundNode = viewportTopLeft.y.mix(
-        color(0x66bbff),
-        color(0x4466ff),
-      );
+      scene.backgroundNode = viewportUV.y.mix(color(0x66bbff), color(0x4466ff));
       camera.lookAt(0, 1, 0);
 
       clock = new THREE.Clock();
@@ -67,7 +69,7 @@ export const Backdrop = () => {
 
         material.outputNode = oscSine(timerLocal(0.1)).mix(
           output,
-          output.add(0.1).posterize(4).mul(2),
+          posterize(output.add(0.1), 4).mul(2),
         );
 
         const action = mixer.clipAction(gltf.animations[0]);
@@ -111,27 +113,37 @@ export const Backdrop = () => {
       }
 
       addBackdropSphere(
-        viewportSharedTexture().bgr.hue(oscSine().mul(Math.PI)),
+        hue(viewportSharedTexture().bgr, oscSine().mul(Math.PI)),
       );
       addBackdropSphere(viewportSharedTexture().rgb.oneMinus());
-      addBackdropSphere(viewportSharedTexture().rgb.saturation(0));
+      addBackdropSphere(grayscale(viewportSharedTexture().rgb));
       // @ts-expect-error
-      addBackdropSphere(viewportSharedTexture().rgb.saturation(10), oscSine());
+      addBackdropSphere(saturation(viewportSharedTexture().rgb, 10), oscSine());
       addBackdropSphere(
-        viewportSharedTexture().rgb.overlay(checker(uv().mul(10))),
+        overlay(viewportSharedTexture().rgb, checker(uv().mul(10))),
+      );
+      // addBackdropSphere(
+      //   viewportSharedTexture(
+      //     viewportSafeUV(viewportUV.mul(40).floor().div(40)),
+      //   ),
+      // );
+      // addBackdropSphere(
+      //   viewportSharedTexture(
+      //     viewportSafeUV(viewportUV.mul(80).floor().div(80)),
+      //   ).add(color(0x0033ff)),
+      // );
+
+      addBackdropSphere(
+        viewportSharedTexture(viewportUV.mul(40).floor().div(40)),
       );
       addBackdropSphere(
-        viewportSharedTexture(viewportTopLeft.mul(40).floor().div(40)),
-      );
-      addBackdropSphere(
-        viewportSharedTexture(viewportTopLeft.mul(80).floor().div(80)).add(
+        viewportSharedTexture(viewportUV.mul(80).floor().div(80)).add(
           color(0x0033ff),
         ),
       );
       addBackdropSphere(vec3(0, 0, viewportSharedTexture().b));
 
       //renderer
-
       renderer = makeWebGPURenderer(context);
       renderer.setAnimationLoop(animate);
       renderer.toneMapping = THREE.NeutralToneMapping;
