@@ -137,6 +137,16 @@ template <> struct JSIConverter<uint64_t> {
   }
 };
 
+template <> struct JSIConverter<void *> {
+  static void* fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
+    return reinterpret_cast<void *>(arg.asBigInt(runtime).getUint64(runtime));
+  }
+
+  static jsi::Value toJSI(jsi::Runtime& runtime, void* arg) {
+    return jsi::BigInt::fromUint64(runtime, reinterpret_cast<uint64_t>(arg));
+  }
+};
+
 // bool <> boolean
 template <> struct JSIConverter<bool> {
   static bool fromJSI(jsi::Runtime&, const jsi::Value& arg, bool outOfBound) {
