@@ -15,7 +15,7 @@ namespace m = margelo;
 
 class Canvas : public m::HybridObject {
 public:
-  explicit Canvas(uint64_t surface, const float width, const float height)
+  explicit Canvas(void* surface, const float width, const float height)
       : HybridObject("Canvas"), _surface(surface), _width(width),
         _height(height), _clientWidth(width), _clientHeight(height) {}
 
@@ -32,7 +32,7 @@ public:
 
   void setClientHeight(const float height) { _clientHeight = height; }
 
-  uint64_t getSurface() { return _surface; }
+  void* getSurface() { return _surface; }
 
   void loadHybridMethods() override {
     registerHybridGetter("surface", &Canvas::getSurface, this);
@@ -45,7 +45,7 @@ public:
   }
 
 private:
-  uint64_t _surface;
+  void* _surface;
   float _width;
   float _height;
   float _clientWidth;

@@ -10,13 +10,11 @@
         "!apps/*/android/app/build"
       ],
       "inputs": [
-        "**/*/package.json",
+        "**/package.json",
         "packages/webgpu/android",
         "!packages/webgpu/android/build",
-        "packages/webgpu/src/*.ts",
-        "packages/webgpu/src/*.tsx",
-        "apps/*/package.json",
-        "apps/*/android",
+        "packages/webgpu/cpp/**",
+        "apps/*/android/**",
         "apps/*/android/app/build.gradle",
         "apps/*/android/build.gradle",
         "apps/*/android/gradle.properties",
@@ -33,14 +31,10 @@
         "apps/*/ios/Pods"
       ],
       "inputs": [
-        "package.json",
-        "*.podspec",
-        "ios",
-        "ios/Podfile",
-        "ios/*.xcconfig",
-        "ios/**/*.plist",
-        "packages/webgpu/src/*.ts",
-        "packages/webgpu/src/*.tsx",
+        "**/package.json",
+        "**/*.podspec",
+        "packages/webgpu/cpp/**",
+        "packages/webgpu/ios/**",
         "apps/*/package.json",
         "apps/*/ios",
         "!apps/*/ios/build",
@@ -53,6 +47,7 @@
       "outputs": ["**/ios/Pods/**"]
     },
     "lint": {},
-    "tsc": {}
+    "tsc": {},
+    "build": {}
   }
 }
