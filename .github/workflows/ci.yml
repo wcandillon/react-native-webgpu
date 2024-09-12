@@ -52,8 +52,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build package
-        working-directory: packages/webgpu
-        run: yarn prepare
+        run: yarn build
 
   build-android:
     runs-on: macos-latest-large
