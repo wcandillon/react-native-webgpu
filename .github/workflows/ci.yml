@@ -36,9 +36,6 @@ jobs:
       - name: Typecheck files
         run: yarn tsc
 
-      - name: Build package
-        run: yarn build
-
       - name: Codegen
         working-directory: packages/webgpu
         run: yarn codegen
@@ -55,8 +52,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build package
-        working-directory: packages/webgpu
-        run: yarn prepare
+        run: yarn build
 
   build-android:
     runs-on: macos-latest-large
