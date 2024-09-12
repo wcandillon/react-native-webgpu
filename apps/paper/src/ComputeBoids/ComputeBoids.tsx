@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import tgpu from "typegpu";
 import { arrayOf, f32, struct, vec2f, vec3f } from "typegpu/data";
-import { StyleSheet, View, Text, Button } from "react-native";
+import { StyleSheet, View, Text, Button, KeyboardType } from "react-native";
 import { Canvas } from "react-native-wgpu";
 
 import { useWebGPU } from "../components/useWebGPU";
@@ -9,9 +9,6 @@ import { toBeAssignedLater } from "../components/utils";
 
 import { renderCode, computeCode } from "./Shaders";
 
-let randomizePositions: () => void = () => {};
-let updateParams: (newOptions: Options) => void = () => {};
-let updateColorPreset: (newColorPreset: string) => void = () => {};
 type Options = {
   separationDistance: number;
   separationStrength: number;
@@ -26,7 +23,8 @@ const colorPresets = {
   jeans: vec3f(2.0, 1.5, 1.0),
   greyscale: vec3f(0, 0, 0),
   hotcold: vec3f(0, 3.14, 3.14),
-};
+} as const;
+type ColorPresets = keyof typeof colorPresets;
 
 const presets = {
   default: {
@@ -61,20 +59,16 @@ const presets = {
     cohesionDistance: 0.0,
     cohesionStrength: 0.0,
   },
-};
+} as const;
+
+let randomizePositions: () => void = () => {};
+let updateParams: (newOptions: Options) => void = () => {};
+let updateColorPreset: (newColorPreset: ColorPresets) => void = () => {};
 
 export function ComputeBoids() {
   const [randomize, setRandomize] = useState(true);
-  const [options, setOptions] = useState<Options>({
-    separationDistance: 0.05,
-    separationStrength: 0.001,
-    alignmentDistance: 0.3,
-    alignmentStrength: 0.01,
-    cohesionDistance: 0.3,
-    cohesionStrength: 0.001,
-  });
-  const [colorPreset, setColorPreset] =
-    useState<keyof typeof colorPresets>("plumTree");
+  const [options, setOptions] = useState<Options>(presets.default);
+  const [colorPreset, setColorPreset] = useState<ColorPresets>("plumTree");
 
   useEffect(() => {
     if (randomize) {
@@ -84,15 +78,11 @@ export function ComputeBoids() {
   }, [randomize]);
 
   useEffect(() => {
-    if (options) {
-      updateParams(options);
-    }
+    updateParams(options);
   }, [options]);
 
   useEffect(() => {
-    if (colorPreset) {
-      updateColorPreset(colorPreset);
-    }
+    updateColorPreset(colorPreset);
   }, [colorPreset]);
 
   const { canvasRef } = useWebGPU(({ context, device, presentationFormat }) => {
@@ -156,7 +146,7 @@ export function ComputeBoids() {
       .$device(device)
       .$usage(tgpu.Uniform);
 
-    updateColorPreset = (newColorPreset: string) => {
+    updateColorPreset = (newColorPreset: ColorPresets) => {
       tgpu.write(colorPaletteBuffer, colorPresets[newColorPreset]);
     };
     updateColorPreset(colorPreset);
@@ -271,9 +261,9 @@ export function ComputeBoids() {
     let even = false;
     function frame() {
       even = !even;
-      renderPassDescriptor.colorAttachments[0].view = context
-        .getCurrentTexture()
-        .createView();
+      (
+        renderPassDescriptor.colorAttachments as [GPURenderPassColorAttachment]
+      )[0].view = context.getCurrentTexture().createView();
 
       const commandEncoder = device.createCommandEncoder();
       const computePass = commandEncoder.beginComputePass();
