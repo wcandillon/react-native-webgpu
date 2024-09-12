@@ -47,6 +47,7 @@
       "outputs": ["**/ios/Pods/**"]
     },
     "lint": {},
-    "tsc": {}
+    "tsc": {},
+    "build": {}
   }
 }

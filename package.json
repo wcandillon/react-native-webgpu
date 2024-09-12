@@ -15,6 +15,7 @@
     "tsc": "turbo run tsc",
     "build:ios": "turbo run build:ios",
     "build:android": "turbo run build:android",
+    "build": "turbo run build",
     "pod:install": "turbo run pod:install"
   },
   "devDependencies": {

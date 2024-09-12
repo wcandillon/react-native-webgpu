@@ -23,7 +23,7 @@
     "test:ref": "REFERENCE=true yarn test -i",
     "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
     "tsc": "tsc --noEmit",
-    "prepare": "bob build",
+    "build": "bob build",
     "build-dawn": "ts-node scripts/build/dawn.ts",
     "clean-dawn": "rimraf ./libs && rimraf ../../externals/dawn/out",
     "clang-format": "yarn clang-format-ios && yarn clang-format-android && yarn clang-format-common",
