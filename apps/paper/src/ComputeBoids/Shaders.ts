@@ -104,7 +104,10 @@ export const computeCode = /* wgsl */ `
     if (cohesionCount > 0u) {
       cohesion = (cohesion / f32(cohesionCount)) - instanceInfo.position;
     }
-    instanceInfo.velocity += (separation * params.separation_strength) + (alignment * params.alignment_strength) + (cohesion * params.cohesion_strength);
+    instanceInfo.velocity +=
+      (separation * params.separation_strength)
+      + (alignment * params.alignment_strength)
+      + (cohesion * params.cohesion_strength);
     instanceInfo.velocity = normalize(instanceInfo.velocity) * clamp(length(instanceInfo.velocity), 0.0, 0.01);
     let triangleSize = ${triangleSize};
     if (instanceInfo.position[0] > 1.0 + triangleSize) {
