@@ -15,8 +15,7 @@ class SurfaceRegistry {
 public:
   void addSurface(const int contextId, void *surface, float width,
                   float height) {
-    _registry[contextId] = std::make_shared<Canvas>(
-        reinterpret_cast<uint64_t>(surface), width, height);
+    _registry[contextId] = std::make_shared<Canvas>(surface, width, height);
   }
 
   std::shared_ptr<Canvas> getSurface(const int contextId) {
