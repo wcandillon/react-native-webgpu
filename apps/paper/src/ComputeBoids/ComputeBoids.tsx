@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useRef } from "react";
 import tgpu from "typegpu";
 import { arrayOf, f32, struct, vec2f, vec3f } from "typegpu/data";
-import { StyleSheet, View, Text, Button, KeyboardType } from "react-native";
+import { StyleSheet, View, Text, Button } from "react-native";
 import { Canvas } from "react-native-wgpu";
 
 import { useWebGPU } from "../components/useWebGPU";
@@ -9,7 +9,7 @@ import { toBeAssignedLater } from "../components/utils";
 
 import { renderCode, computeCode } from "./Shaders";
 
-type Options = {
+type BoidsOptions = {
   separationDistance: number;
   separationStrength: number;
   alignmentDistance: number;
@@ -61,29 +61,12 @@ const presets = {
   },
 } as const;
 
-let randomizePositions: () => void = () => {};
-let updateParams: (newOptions: Options) => void = () => {};
-let updateColorPreset: (newColorPreset: ColorPresets) => void = () => {};
-
 export function ComputeBoids() {
-  const [randomize, setRandomize] = useState(true);
-  const [options, setOptions] = useState<Options>(presets.default);
-  const [colorPreset, setColorPreset] = useState<ColorPresets>("plumTree");
-
-  useEffect(() => {
-    if (randomize) {
-      randomizePositions();
-      setRandomize(false);
-    }
-  }, [randomize]);
-
-  useEffect(() => {
-    updateParams(options);
-  }, [options]);
-
-  useEffect(() => {
-    updateColorPreset(colorPreset);
-  }, [colorPreset]);
+  const randomizePositions = useRef<() => void>(() => {});
+  const updateParams = useRef<(newOptions: BoidsOptions) => void>(() => {});
+  const updateColorPreset = useRef<(newColorPreset: ColorPresets) => void>(
+    () => {},
+  );
 
   const { canvasRef } = useWebGPU(({ context, device, presentationFormat }) => {
     context.configure({
@@ -102,7 +85,7 @@ export function ComputeBoids() {
     });
 
     const paramsBuffer = tgpu
-      .createBuffer(params)
+      .createBuffer(params, presets.default)
       .$device(device)
       .$usage(tgpu.Storage);
 
@@ -131,7 +114,7 @@ export function ComputeBoids() {
         .$usage(tgpu.Storage, tgpu.Uniform),
     );
 
-    randomizePositions = () => {
+    randomizePositions.current = () => {
       const positions = Array.from({ length: triangleAmount }, () => ({
         position: vec2f(Math.random() * 2 - 1, Math.random() * 2 - 1),
         velocity: vec2f(Math.random() * 0.1 - 0.05, Math.random() * 0.1 - 0.05),
@@ -139,22 +122,20 @@ export function ComputeBoids() {
       tgpu.write(trianglePosBuffers[0], positions);
       tgpu.write(trianglePosBuffers[1], positions);
     };
-    randomizePositions();
+    randomizePositions.current();
 
     const colorPaletteBuffer = tgpu
-      .createBuffer(vec3f, colorPresets[colorPreset])
+      .createBuffer(vec3f, colorPresets.plumTree)
       .$device(device)
       .$usage(tgpu.Uniform);
 
-    updateColorPreset = (newColorPreset: ColorPresets) => {
+    updateColorPreset.current = (newColorPreset: ColorPresets) => {
       tgpu.write(colorPaletteBuffer, colorPresets[newColorPreset]);
     };
-    updateColorPreset(colorPreset);
 
-    updateParams = (newOptions: Options) => {
+    updateParams.current = (newOptions: BoidsOptions) => {
       tgpu.write(paramsBuffer, newOptions);
     };
-    updateParams(presets.default);
 
     const renderModule = device.createShaderModule({
       code: renderCode,
@@ -290,27 +271,45 @@ export function ComputeBoids() {
     return frame;
   });
 
+  const randomizeHandler = useCallback(() => {
+    randomizePositions.current();
+  }, []);
+
+  const handleChoosePreset = useCallback(
+    (params: BoidsOptions) => () => {
+      updateParams.current(params);
+    },
+    [],
+  );
+
+  const colorPresetHandler = useCallback(
+    (preset: ColorPresets) => () => {
+      updateColorPreset.current(preset);
+    },
+    [],
+  );
+
   return (
     <View style={style.container}>
       <Canvas ref={canvasRef} style={style.webgpu} />
       <View style={style.controls}>
         <View style={style.buttonRow}>
           <Text style={style.spanText}>randomize: </Text>
-          <Button title="🔀" onPress={() => setRandomize(!randomize)} />
+          <Button title="🔀" onPress={randomizeHandler} />
         </View>
         <View style={style.buttonRow}>
           <Text style={style.spanText}>presets: </Text>
-          <Button title="🐦" onPress={() => setOptions(presets.default)} />
-          <Button title="🦟" onPress={() => setOptions(presets.mosquitos)} />
-          <Button title="💧" onPress={() => setOptions(presets.blobs)} />
-          <Button title="⚛️" onPress={() => setOptions(presets.particles)} />
+          <Button title="🐦" onPress={handleChoosePreset(presets.default)} />
+          <Button title="🦟" onPress={handleChoosePreset(presets.mosquitos)} />
+          <Button title="💧" onPress={handleChoosePreset(presets.blobs)} />
+          <Button title="⚛️" onPress={handleChoosePreset(presets.particles)} />
         </View>
         <View style={style.buttonRow}>
           <Text style={style.spanText}>colors: </Text>
-          <Button title="🟪🟩" onPress={() => setColorPreset("plumTree")} />
-          <Button title="🟦🟫" onPress={() => setColorPreset("jeans")} />
-          <Button title="⬛️⬜️" onPress={() => setColorPreset("greyscale")} />
-          <Button title="🟥🟦" onPress={() => setColorPreset("hotcold")} />
+          <Button title="🟪🟩" onPress={colorPresetHandler("plumTree")} />
+          <Button title="🟦🟫" onPress={colorPresetHandler("jeans")} />
+          <Button title="⬛️⬜️" onPress={colorPresetHandler("greyscale")} />
+          <Button title="🟥🟦" onPress={colorPresetHandler("hotcold")} />
         </View>
       </View>
     </View>
