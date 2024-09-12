@@ -21,8 +21,10 @@ declare global {
   };
 }
 
+type SurfacePointer = bigint;
+
 export interface NativeCanvas {
-  surface: bigint;
+  surface: SurfacePointer;
   width: number;
   height: number;
   clientWidth: number;
@@ -34,11 +36,11 @@ const WebGPUContextRegistry = global.__WebGPUContextRegistry;
 
 type CanvasContext = GPUCanvasContext & {
   present: () => void;
-  getNativeSurface: () => NativeCanvas;
 };
 
 export interface CanvasRef {
   getContext(contextName: "webgpu"): CanvasContext | null;
+  getNativeSurface: () => NativeCanvas;
 }
 
 export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {

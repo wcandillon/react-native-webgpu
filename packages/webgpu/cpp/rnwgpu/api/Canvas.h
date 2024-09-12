@@ -32,7 +32,7 @@ public:
 
   void setClientHeight(const float height) { _clientHeight = height; }
 
-  uint64_t getSurface() { return _surface; }
+  void* getSurface() { return reinterpret_cast<void*>(_surface); }
 
   void loadHybridMethods() override {
     registerHybridGetter("surface", &Canvas::getSurface, this);
