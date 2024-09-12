@@ -13,8 +13,6 @@
         "**/package.json",
         "packages/webgpu/android",
         "!packages/webgpu/android/build",
-        "packages/webgpu/src/*.ts",
-        "packages/webgpu/src/*.tsx",
         "packages/webgpu/cpp/**",
         "apps/*/android/**",
         "apps/*/android/app/build.gradle",
@@ -35,8 +33,6 @@
       "inputs": [
         "**/package.json",
         "**/*.podspec",
-        "packages/webgpu/src/**/*.ts",
-        "packages/webgpu/src/**/*.tsx",
         "packages/webgpu/cpp/**",
         "packages/webgpu/ios/**",
         "apps/*/package.json",
