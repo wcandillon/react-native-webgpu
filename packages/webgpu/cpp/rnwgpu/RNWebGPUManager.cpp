@@ -1,7 +1,6 @@
 #include "RNWebGPUManager.h"
 
 #include "GPU.h"
-#include "RNWebGPU.h"
 
 // Enums
 #include "GPUBufferUsage.h"
@@ -23,10 +22,10 @@ RNWebGPUManager::RNWebGPUManager(
       _platformContext(platformContext) {
 
   auto gpu = std::make_shared<GPU>();
-  auto rnWebGPU = std::make_shared<RNWebGPU>(gpu, _platformContext);
+  _rnWebGPU = std::make_shared<RNWebGPU>(gpu, _platformContext);
   _jsRuntime->global().setProperty(
       *_jsRuntime, "RNWebGPU",
-      jsi::Object::createFromHostObject(*_jsRuntime, rnWebGPU));
+      jsi::Object::createFromHostObject(*_jsRuntime, _rnWebGPU));
 
   auto bufferUsage = std::make_shared<GPUBufferUsage>();
   _jsRuntime->global().setProperty(
@@ -57,6 +56,14 @@ RNWebGPUManager::RNWebGPUManager(
 RNWebGPUManager::~RNWebGPUManager() {
   _jsRuntime = nullptr;
   _jsCallInvoker = nullptr;
+}
+
+void RNWebGPUManager::onSurfaceCreate(const std::shared_ptr<Canvas>& surface) const {
+  _rnWebGPU->onSurfaceCreate(surface);
+}
+
+void RNWebGPUManager::onSurfaceDestroy(const std::shared_ptr<Canvas>& surface) const {
+  _rnWebGPU->onSurfaceDestroy(surface);
 }
 
 } // namespace rnwgpu

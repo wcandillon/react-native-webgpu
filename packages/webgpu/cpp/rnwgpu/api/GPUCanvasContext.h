@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <string>
 
 #include "Unions.h"
@@ -14,6 +15,8 @@
 #include "Canvas.h"
 #include "GPUCanvasConfiguration.h"
 #include "GPUTexture.h"
+#include "SurfaceRegistry.h"
+#include "GPU.h"
 #include "SurfaceRegistry.h"
 
 #ifdef __APPLE__
@@ -39,9 +42,12 @@ namespace m = margelo;
 class GPUCanvasContext : public m::HybridObject {
 public:
   explicit GPUCanvasContext(wgpu::Surface instance,
-                            std::shared_ptr<Canvas> canvas)
-      : HybridObject("GPUCanvasContext"), _instance(instance), _canvas(canvas) {
-  }
+                            std::shared_ptr<Canvas> canvas,
+                            std::shared_ptr<PlatformContext> platformContext,
+                            std::shared_ptr<GPU> gpu)
+      : HybridObject("GPUCanvasContext"), _instance(instance), _canvas(canvas),
+      _platformContext(platformContext), _gpu(gpu),
+      _width(canvas->getWidth()), _height(canvas->getHeight()) {}
 
 public:
   std::string getBrand() { return _name; }
@@ -63,6 +69,8 @@ public:
   void unconfigure();
   std::shared_ptr<GPUTexture> getCurrentTexture();
   void present();
+  void updateInstance(std::shared_ptr<Canvas> surface);
+  void maybeFlushPendingTexture(std::shared_ptr<Canvas> surface);
 
 private:
   wgpu::Surface _instance;
@@ -71,6 +79,13 @@ private:
   std::shared_ptr<GPUCanvasConfiguration> _lastConfig;
   float _width;
   float _height;
+  wgpu::Texture _pendingTextureToFlush;
+  bool _isPendingTextureToFlush = false;
+  std::shared_ptr<PlatformContext> _platformContext;
+  std::shared_ptr<GPU> _gpu;
+  std::recursive_mutex _mutex;
+
+  wgpu::Texture createMockTexture();
 };
 
 } // namespace rnwgpu

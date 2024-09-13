@@ -9,16 +9,14 @@
 #include <webgpu/webgpu_cpp.h>
 
 #include "AndroidPlatformContext.h"
-#include "GPUCanvasContext.h"
 #include "RNWebGPUManager.h"
-
 #include "../StaticDataBridge/SizeHolder.h"
 
 #define LOG_TAG "WebGPUModule"
 
 std::shared_ptr<rnwgpu::RNWebGPUManager> manager;
-float DENSITY = 1;
 
+/* JS Thread call */
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     JNIEnv *env, jobject /* this */, jlong jsRuntime, jobject jsInvokerHolder,
     jobject blobModule) {
@@ -30,20 +28,16 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
                                                       platformContext);
 }
 
+/* JS Thread call */
 extern "C" JNIEXPORT void JNICALL
 Java_com_webgpu_WebGPUModule_createSurfaceContext(JNIEnv *env, jobject thiz,
                                                   jlong jsRuntime,
                                                   jint contextId) {
   auto canvas = manager->surfacesRegistry.getSurface(contextId);
   if (canvas == nullptr) {
-    throw std::runtime_error("Surface haven't configured yet");
-  }
-
-  auto size = rnwgpu::SizeHolder::getSize(contextId);
-  if (size.width != 0 && size.height != 0) {
-    manager->surfacesRegistry.updateSurface(contextId, size.width, size.height);
-    canvas->setWidth(size.width * DENSITY);
-    canvas->setHeight(size.height * DENSITY);
+    auto size = rnwgpu::SizeHolder::getSize(contextId);
+    manager->surfacesRegistry.addEmptySurface(contextId, size.width, size.height);
+    canvas = manager->surfacesRegistry.getSurface(contextId);
   }
 
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
@@ -65,30 +59,32 @@ Java_com_webgpu_WebGPUModule_createSurfaceContext(JNIEnv *env, jobject thiz,
       facebook::jsi::Object::createFromHostObject(*runtime, canvas));
 }
 
+/* UI Thread call */
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceChanged(
     JNIEnv *env, jobject thiz, jobject surface, jint contextId, jfloat width,
     jfloat height) {
   manager->surfacesRegistry.updateSurface(contextId, width, height);
 }
 
+/* UI Thread call */
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
-    JNIEnv *env, jobject thiz, jobject surface, jint contextId, jfloat width,
+    JNIEnv *env, jobject thiz, jobject jSurface, jint contextId, jfloat width,
     jfloat height) {
-  auto window = ANativeWindow_fromSurface(env, surface);
+  auto window = ANativeWindow_fromSurface(env, jSurface);
   // ANativeWindow_acquire(window);
-  manager->surfacesRegistry.addSurface(contextId, window, width, height);
+  manager->surfacesRegistry.addSurface(
+    contextId, reinterpret_cast<uint64_t>(window), width, height);
+  auto canvas = manager->surfacesRegistry.getSurface(contextId);
+  manager->onSurfaceCreate(canvas);
 }
 
+/* UI Thread call */
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
     JNIEnv *env, jobject thiz, jint contextId) {
   auto canvas = manager->surfacesRegistry.getSurface(contextId);
   ANativeWindow_release(
       reinterpret_cast<ANativeWindow *>(canvas->getSurface()));
+  manager->onSurfaceDestroy(canvas);
   manager->surfacesRegistry.removeSurface(contextId);
   rnwgpu::SizeHolder::eraseSize(contextId);
-}
-
-extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_setDensity(
-  JNIEnv *env, jobject thiz, jfloat density) {
-  DENSITY = density;
 }

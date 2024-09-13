@@ -15,9 +15,9 @@ namespace m = margelo;
 
 class Canvas : public m::HybridObject {
 public:
-  explicit Canvas(uint64_t surface, const float width, const float height)
+  explicit Canvas(const uint64_t surface, const float width, const float height, const int contextId)
       : HybridObject("Canvas"), _surface(surface), _width(width),
-        _height(height), _clientWidth(width), _clientHeight(height) {}
+        _height(height), _clientWidth(width), _clientHeight(height), _contextId(contextId) {}
 
   float getWidth() { return _width; }
   float getHeight() { return _height; }
@@ -33,6 +33,8 @@ public:
   void setClientHeight(const float height) { _clientHeight = height; }
 
   uint64_t getSurface() { return _surface; }
+  void setSurface(uint64_t surface) { _surface = surface; }
+  int getContextId() { return _contextId; }
 
   void loadHybridMethods() override {
     registerHybridGetter("surface", &Canvas::getSurface, this);
@@ -50,6 +52,7 @@ private:
   float _height;
   float _clientWidth;
   float _clientHeight;
+  int _contextId;
 };
 
 } // namespace rnwgpu
