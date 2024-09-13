@@ -58,9 +58,12 @@ export class ReactNativeCanvas {
   }
 }
 
-export const makeWebGPURenderer = (context: GPUCanvasContext) =>
+export const makeWebGPURenderer = (
+  context: GPUCanvasContext,
+  { antialias = true }: { antialias?: boolean } = {},
+) =>
   new THREE.WebGPURenderer({
-    antialias: true,
+    antialias,
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     canvas: new ReactNativeCanvas(context.canvas),

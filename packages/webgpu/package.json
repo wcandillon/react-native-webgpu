@@ -1,6 +1,6 @@
 {
   "name": "react-native-wgpu",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "React Native WebGPU",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -8,31 +8,22 @@
   "react-native": "src/index",
   "source": "src/index",
   "files": [
-    "src",
-    "lib",
-    "android",
-    "ios",
-    "cpp",
-    "*.podspec",
-    "libs/**",
-    "!scripts",
-    "!ios/build",
-    "!android/build",
-    "!android/gradle",
-    "!android/gradlew",
-    "!android/gradlew.bat",
-    "!android/local.properties",
-    "!**/__tests__",
-    "!**/__fixtures__",
-    "!**/__mocks__",
-    "!**/.*"
+    "src/**",
+    "lib/**",
+    "android/build.gradle",
+    "android/CMakeLists.txt",
+    "android/cpp/**",
+    "android/src/**",
+    "cpp/**/*.{h,cpp}",
+    "ios/**",
+    "libs/**"
   ],
   "scripts": {
     "test": "jest -i",
     "test:ref": "REFERENCE=true yarn test -i",
     "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
     "tsc": "tsc --noEmit",
-    "prepare": "bob build",
+    "build": "bob build",
     "build-dawn": "ts-node scripts/build/dawn.ts",
     "clean-dawn": "rimraf ./libs && rimraf ../../externals/dawn/out",
     "clang-format": "yarn clang-format-ios && yarn clang-format-android && yarn clang-format-common",
@@ -40,6 +31,7 @@
     "clang-format-android": "find android/cpp/ -iname \"*.h\" -o -iname \"*.m\" -o -iname \"*.cpp\" | xargs clang-format -i",
     "clang-format-common": "find cpp/rnwgpu -iname \"*.h\" -o -iname \"*.m\" -o -iname \"*.cpp\" | xargs clang-format -i",
     "cpplint": "cpplint --linelength=230 --filter=-legal/copyright,-whitespace/indent,-whitespace/comments,-whitespace/ending_newline,-build/include_order,-runtime/references,-readability/todo,-whitespace/blank_line,-whitespace/todo,-runtime/int,-build/c++11,-whitespace/parens --exclude=example --exclude=android/.cxx --exclude=cpp/webgpu --exclude=cpp/dawn --exclude=ios --exclude=android/build --exclude=node_modules --recursive .",
+    "download-artifacts": "ts-node scripts/build/download-artifacts.ts && yarn copy-artifacts",
     "copy-artifacts": "ts-node scripts/build/copy-artifacts.ts",
     "codegen": "ts-node scripts/codegen/codegen.ts && yarn clang-format"
   },
@@ -96,7 +88,8 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.2.2",
     "wgpu-matrix": "^3.0.2",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "yargs": "^17.7.2"
   },
   "peerDependencies": {
     "react": "*",

@@ -2788,27 +2788,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@shopify/react-native-skia@npm:^1.3.9":
-  version: 1.3.11
-  resolution: "@shopify/react-native-skia@npm:1.3.11"
-  dependencies:
-    canvaskit-wasm: 0.39.1
-    react-reconciler: 0.27.0
-  peerDependencies:
-    react: ">=18.0"
-    react-native: ">=0.64"
-    react-native-reanimated: ">=2.0.0"
-  peerDependenciesMeta:
-    react-native:
-      optional: true
-    react-native-reanimated:
-      optional: true
-  bin:
-    setup-skia-web: scripts/setup-canvaskit.js
-  checksum: 9b2ab2d6b3f8d12e1ae99c1815b10feaf774d4ac1bf54bf7f4d4f3096442160b9e4d9857815bc67dede14b773837f04d73b3e19c41eb5a039400294d9597cc6b
-  languageName: node
-  linkType: hard
-
 "@sideway/address@npm:^4.1.5":
   version: 4.1.5
   resolution: "@sideway/address@npm:4.1.5"
@@ -3183,7 +3162,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/three@npm:^0.168.0":
+"@types/three@npm:0.168.0":
   version: 0.168.0
   resolution: "@types/three@npm:0.168.0"
   dependencies:
@@ -4423,15 +4402,6 @@ __metadata:
   version: 1.0.30001653
   resolution: "caniuse-lite@npm:1.0.30001653"
   checksum: 289cf06c26a46f3e6460ccd5feffa788ab0ab35d306898c48120c65cfb11959bfa560e9f739393769b4fd01150c69b0747ad3ad5ec3abf3dfafd66df3c59254e
-  languageName: node
-  linkType: hard
-
-"canvaskit-wasm@npm:0.39.1":
-  version: 0.39.1
-  resolution: "canvaskit-wasm@npm:0.39.1"
-  dependencies:
-    "@webgpu/types": 0.1.21
-  checksum: da62926fc81f424a781e148b4d76bb5fc9b0188f136090b3b287522dc653cb002bfb406e2eff45b55fcc1cafbc7629f988e20ad6c777bab85c1bb09e1091a5e2
   languageName: node
   linkType: hard
 
@@ -9940,9 +9910,7 @@ __metadata:
     "@react-native/typescript-config": 0.74.84
     "@react-navigation/native": ^6.1.17
     "@react-navigation/native-stack": ^6.10.0
-    "@react-three/fiber": ^8.17.6
-    "@shopify/react-native-skia": ^1.3.9
-    "@types/three": ^0.168.0
+    "@types/three": 0.168.0
     "@webgpu/types": ^0.1.44
     babel-plugin-module-resolver: ^5.0.0
     eslint: 8
@@ -9956,8 +9924,9 @@ __metadata:
     react-native-screens: ^3.32.0
     react-native-wgpu: "*"
     teapot: ^1.0.0
-    three: ^0.168.0
-    three-stdlib: ^2.32.2
+    three: 0.168.0
+    three-stdlib: 2.32.2
+    typegpu: ^0.1.1
     typescript: ^5.2.2
     wgpu-matrix: ^3.0.2
   languageName: unknown
@@ -10011,6 +9980,7 @@ __metadata:
     typescript: ^5.2.2
     wgpu-matrix: ^3.0.2
     ws: ^8.18.0
+    yargs: ^17.7.2
   peerDependencies:
     react: "*"
     react-native: "*"
@@ -10067,18 +10037,6 @@ __metadata:
   bin:
     react-native: cli.js
   checksum: dce120f90a3d66261e06c8fc673519a4e11ab60a8bcd34e61423e6e763a9dab76648fd718dd03c399e52c8a425e8e2d1ce19de88934a510664603fd6e32ea752
-  languageName: node
-  linkType: hard
-
-"react-reconciler@npm:0.27.0, react-reconciler@npm:^0.27.0":
-  version: 0.27.0
-  resolution: "react-reconciler@npm:0.27.0"
-  dependencies:
-    loose-envify: ^1.1.0
-    scheduler: ^0.21.0
-  peerDependencies:
-    react: ^18.0.0
-  checksum: c2ae111f150c2a46970182df12ea8254719fdfec5e26574711b1838fc37863c63671460a351570fd359c088d891e7bb0ff89023c2f7c1582393b57dd517b92c2
   languageName: node
   linkType: hard
 
@@ -10516,15 +10474,6 @@ __metadata:
   dependencies:
     loose-envify: ^1.1.0
   checksum: 232149125c10f10193b1340ec4bbf14a8e6a845152790d6fd6f58207642db801abdb5a21227561a0a93871b98ba47539a6233b4e6155aae72d6db6db9f9f09b3
-  languageName: node
-  linkType: hard
-
-"scheduler@npm:^0.21.0":
-  version: 0.21.0
-  resolution: "scheduler@npm:0.21.0"
-  dependencies:
-    loose-envify: ^1.1.0
-  checksum: 4f8285076041ed2c81acdd1faa987f1655fdbd30554bc667c1ea64743fc74fb3a04ca7d27454b3d678735df5a230137a3b84756061b43dc5796e80701b66d124
   languageName: node
   linkType: hard
 
@@ -11301,7 +11250,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"three-stdlib@npm:^2.32.2":
+"three-stdlib@npm:2.32.2":
   version: 2.32.2
   resolution: "three-stdlib@npm:2.32.2"
   dependencies:
@@ -11317,7 +11266,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"three@npm:^0.168.0":
+"three@npm:0.168.0":
   version: 0.168.0
   resolution: "three@npm:0.168.0"
   checksum: 1f186006ad5c8df348d4a2bcdccc078f0454f196b8ccc450d405cdf8c88436ff773e545725ef1122891b5552b5cf03add8394288b58985a0c3ebe66b588cab2f
@@ -11659,6 +11608,22 @@ __metadata:
     is-typed-array: ^1.1.13
     possible-typed-array-names: ^1.0.0
   checksum: f0315e5b8f0168c29d390ff410ad13e4d511c78e6006df4a104576844812ee447fcc32daab1f3a76c9ef4f64eff808e134528b5b2439de335586b392e9750e5c
+  languageName: node
+  linkType: hard
+
+"typed-binary@npm:^4.0.1":
+  version: 4.0.1
+  resolution: "typed-binary@npm:4.0.1"
+  checksum: 92c4e7cc80669e679881c13f331d9a25c94b333daff19194e1b3ea33c3bf642d7ff5899ddffb87a62cb608a08e2068b34ab35f62708566bd2cde116a6d812e2e
+  languageName: node
+  linkType: hard
+
+"typegpu@npm:^0.1.1":
+  version: 0.1.1
+  resolution: "typegpu@npm:0.1.1"
+  dependencies:
+    typed-binary: ^4.0.1
+  checksum: 3eceaaf922f947ce0140c6f300a6a283f22f39a2d69d545dfd9b35fe0b037c5870feaf4e8fb6c93b957e4e6f12e2d3c6e42dd325c05d0da76e9544851275f052
   languageName: node
   linkType: hard
 

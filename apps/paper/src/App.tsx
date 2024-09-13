@@ -26,6 +26,7 @@ import { DeferedRendering, ShadowMapping } from "./ShadowMapping";
 import { SamplerParameters } from "./Sampler";
 import { ReversedZ } from "./ReversedZ";
 import { ThreeJS } from "./ThreeJS";
+import { GradientTiles } from "./GradientTiles";
 
 const Stack = createNativeStackNavigator<Routes>();
 
@@ -69,6 +70,7 @@ function App() {
           <Stack.Screen name="Tests">
             {(props) => <Tests {...props} assets={assets} />}
           </Stack.Screen>
+          <Stack.Screen name="GradientTiles" component={GradientTiles} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

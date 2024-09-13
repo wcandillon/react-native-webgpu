@@ -20,6 +20,10 @@ You need to have a slight modification of [the metro config](/package/example/me
 
 https://github.com/user-attachments/assets/5b49ef63-0a3c-4679-aeb5-e4b4dddfcc1d
 
+We also provide prebuilt binaries for visionOS and macOS.
+
+https://github.com/user-attachments/assets/2d5c618e-5b15-4cef-8558-d4ddf8c70667
+
 ## Usage
 
 Currently we recommend to use the `useCanvasEffect` to access the WebGPU context.
@@ -123,13 +127,7 @@ const style = StyleSheet.create({
 
 ## Example App
 
-To run the example app you first need to build Dawn.
-
-```sh
-$ git submodule update --init
-$ cd package && yarn
-$ yarn build-dawn
-```
+To run the example app you first need to [build Dawn or download the prebuilt binaries](#building-dawn).
 
 From there you will be able to run the example app properly.
 
@@ -208,10 +206,32 @@ git submodule update --init
 
 Make sure you have all the tools required for building the Skia libraries (Android Studio, XCode, Ninja, CMake, Android NDK/build tools).
 
-### Building
+### Building Dawn
 
-* `cd packages/webgpu && yarn`
-* `yarn build-dawn`
+```sh
+yarn
+cd packages/webgpu
+yarn build-dawn
+```
+
+You can also filter the platforms to build, for instance to skip the macOS and visionOS build:
+```sh
+yarn build-dawn --exclude=xros,xrsimulator,macosx
+```
+
+Alternatively if you want to build for a specific platform only, you can use `includeOnly`.
+```sh
+yarn build-dawn --includeOnly=xros,xrsimulator
+```
+
+There is an alternative way which is to download the prebuilt binaries from GitHub.
+You need to have the [Github CLI](https://cli.github.com/) installed:
+
+```sh
+$ yarn
+$ cd packages/webgpu
+$ yarn download-artifacts
+```
 
 ### Upgrading
 
