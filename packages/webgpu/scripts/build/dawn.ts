@@ -3,6 +3,9 @@
 
 import { chdir } from "process";
 
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
+
 import type { Platform } from "./util";
 import {
   $,
@@ -13,6 +16,37 @@ import {
   mapKeys,
   projectRoot,
 } from "./util";
+
+const { argv } = yargs(hideBin(process.argv))
+  .option("exclude", {
+    type: "string",
+    describe: "Comma-separated list of platforms to exclude",
+  })
+  .option("includeOnly", {
+    type: "string",
+    describe: "Comma-separated list of platforms to include exclusively",
+  });
+
+// Function to filter platforms based on exclude list
+function filterPlatforms<T extends string>(
+  platforms: T[],
+  excludeList: string[],
+  includeOnlyList: string[],
+): T[] {
+  if (includeOnlyList.length > 0) {
+    return platforms.filter((platform) => includeOnlyList.includes(platform));
+  } else {
+    return platforms.filter((platform) => !excludeList.includes(platform));
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const args = argv as any;
+const excludeList = args.exclude ? args.exclude.split(",") : [];
+const includeOnlyList = args.includeOnly ? args.includeOnly.split(",") : [];
+
+const platforms = (plts: string[]) =>
+  filterPlatforms(plts, excludeList, includeOnlyList) as Platform[];
 
 const commonArgs = {
   CMAKE_BUILD_TYPE: "Release",
@@ -39,7 +73,7 @@ const PLATFORM_MAP: Record<string, string> = {
 };
 
 const android = {
-  platforms: ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"] as Platform[],
+  platforms: platforms(["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]),
   args: {
     CMAKE_TOOLCHAIN_FILE: "$ANDROID_NDK/build/cmake/android.toolchain.cmake",
     ANDROID_PLATFORM: "android-26",
@@ -49,9 +83,9 @@ const android = {
 
 const apple = {
   matrix: {
-    arm64: ["iphoneos", "iphonesimulator", "xros", "xrsimulator"] as const,
-    x86_64: ["iphonesimulator", "xrsimulator"] as const,
-    universal: ["macosx"] as const,
+    arm64: platforms(["iphoneos", "iphonesimulator", "xros", "xrsimulator"]),
+    x86_64: platforms(["iphonesimulator", "xrsimulator"]),
+    universal: platforms(["macosx"]),
   },
   args: {
     CMAKE_TOOLCHAIN_FILE: `${__dirname}/apple.toolchain.cmake`,
@@ -131,6 +165,7 @@ const apple = {
     );
     console.log(`🖥️ Building ${lib} for macOS`);
     // macOS
+    $(`rm -rf ${projectRoot}/libs/apple/${lib}_macosx.xcframework`);
     $(
       "xcodebuild -create-xcframework " +
         `-library ${projectRoot}/libs/apple/universal_macosx/${lib}.a ` +
