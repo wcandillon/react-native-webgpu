@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable prefer-destructuring */
-import * as THREE from "three/webgpu";
+import * as THREE from "three";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { PixelRatio, View } from "react-native";
 import { GLTFLoader } from "three-stdlib";

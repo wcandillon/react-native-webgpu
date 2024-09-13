@@ -1,5 +1,5 @@
 import type { NativeCanvas } from "react-native-wgpu";
-import * as THREE from "three/webgpu";
+import * as THREE from "three";
 
 // Here we need to wrap the Canvas into a non-host object for now
 export class ReactNativeCanvas {

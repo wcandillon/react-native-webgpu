@@ -1,4 +1,4 @@
-import * as THREE from "three/webgpu";
+import * as THREE from "three";
 import React, { useRef } from "react";
 import type { ReconcilerRoot, RootState } from "@react-three/fiber";
 import {
@@ -42,8 +42,7 @@ export const FiberCanvas = ({ children, style }: FiberCanvasProps) => {
     };
 
     if (!root.current) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      root.current = createRoot<any>(canvas);
+      root.current = createRoot(canvas);
     }
     root.current.configure({
       size,
@@ -52,11 +51,10 @@ export const FiberCanvas = ({ children, style }: FiberCanvasProps) => {
       frameloop: "always",
       dpr: PixelRatio.get(),
       onCreated: async (state: RootState) => {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
         await state.gl.init();
         const renderFrame = state.gl.render.bind(state.gl);
         state.gl.render = (scene: THREE.Scene, camera: THREE.Camera) => {
+          camera.position.z = 1;
           renderFrame(scene, camera);
           context?.present();
         };

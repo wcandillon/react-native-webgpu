@@ -20,7 +20,7 @@ const config = {
       'three': threePackagePath,
     },
     resolveRequest: (context, moduleName, platform) => {
-      if (moduleName === 'three/webgpu') { 
+      if (moduleName === 'three') { 
         return {
           filePath: path.resolve(threePackagePath, 'build/three.webgpu.js'),
           type: 'sourceFile',

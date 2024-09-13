@@ -1,4 +1,4 @@
-import * as THREE from "three/webgpu";
+import * as THREE from "three";
 import { Image } from "react-native";
 
 const resolve = (mod: ReturnType<typeof require>) => {

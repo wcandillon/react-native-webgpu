@@ -1,4 +1,4 @@
-import * as THREE from "three/webgpu";
+import * as THREE from "three";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { StyleSheet, Text, View } from "react-native";
 import { GLTFLoader, RGBELoader } from "three-stdlib";
