@@ -72,8 +72,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     jfloat height) {
   auto window = ANativeWindow_fromSurface(env, jSurface);
   // ANativeWindow_acquire(window);
-  manager->surfacesRegistry.addSurface(
-    contextId, reinterpret_cast<uint64_t>(window), width, height);
+  manager->surfacesRegistry.addSurface(contextId, window, width, height);
   auto canvas = manager->surfacesRegistry.getSurface(contextId);
   manager->onSurfaceCreate(canvas);
 }

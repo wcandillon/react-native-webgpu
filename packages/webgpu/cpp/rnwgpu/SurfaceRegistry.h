@@ -13,7 +13,7 @@ class SurfaceRegistry {
   std::recursive_mutex _registryMutex;
 
 public:
-  void addSurface(int contextId, uint64_t surface, float width, float height);
+  void addSurface(int contextId, const void *surface, float width, float height);
   void addEmptySurface(int contextId, float width, float height);
   std::shared_ptr<Canvas> getSurface(int contextId);
   void removeSurface(int contextId);
