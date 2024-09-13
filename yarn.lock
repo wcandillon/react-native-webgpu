@@ -9910,6 +9910,7 @@ __metadata:
     "@react-native/typescript-config": 0.74.84
     "@react-navigation/native": ^6.1.17
     "@react-navigation/native-stack": ^6.10.0
+    "@react-three/fiber": ^8.17.6
     "@types/three": 0.168.0
     "@webgpu/types": ^0.1.44
     babel-plugin-module-resolver: ^5.0.0
@@ -10037,6 +10038,18 @@ __metadata:
   bin:
     react-native: cli.js
   checksum: dce120f90a3d66261e06c8fc673519a4e11ab60a8bcd34e61423e6e763a9dab76648fd718dd03c399e52c8a425e8e2d1ce19de88934a510664603fd6e32ea752
+  languageName: node
+  linkType: hard
+
+"react-reconciler@npm:^0.27.0":
+  version: 0.27.0
+  resolution: "react-reconciler@npm:0.27.0"
+  dependencies:
+    loose-envify: ^1.1.0
+    scheduler: ^0.21.0
+  peerDependencies:
+    react: ^18.0.0
+  checksum: c2ae111f150c2a46970182df12ea8254719fdfec5e26574711b1838fc37863c63671460a351570fd359c088d891e7bb0ff89023c2f7c1582393b57dd517b92c2
   languageName: node
   linkType: hard
 
@@ -10474,6 +10487,15 @@ __metadata:
   dependencies:
     loose-envify: ^1.1.0
   checksum: 232149125c10f10193b1340ec4bbf14a8e6a845152790d6fd6f58207642db801abdb5a21227561a0a93871b98ba47539a6233b4e6155aae72d6db6db9f9f09b3
+  languageName: node
+  linkType: hard
+
+"scheduler@npm:^0.21.0":
+  version: 0.21.0
+  resolution: "scheduler@npm:0.21.0"
+  dependencies:
+    loose-envify: ^1.1.0
+  checksum: 4f8285076041ed2c81acdd1faa987f1655fdbd30554bc667c1ea64743fc74fb3a04ca7d27454b3d678735df5a230137a3b84756061b43dc5796e80701b66d124
   languageName: node
   linkType: hard
 
