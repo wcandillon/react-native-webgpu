@@ -15,7 +15,7 @@ namespace m = margelo;
 
 class Canvas : public m::HybridObject {
 public:
-  explicit Canvas(const void* surface, const float width, const float height, const int contextId)
+  explicit Canvas(void* surface, const float width, const float height, const int contextId)
       : HybridObject("Canvas"), _surface(surface), _width(width),
         _height(height), _clientWidth(width), _clientHeight(height), _contextId(contextId) {}
 
@@ -33,7 +33,7 @@ public:
   void setClientHeight(const float height) { _clientHeight = height; }
 
   void* getSurface() { return _surface; }
-  void setSurface(uint64_t surface) { _surface = surface; }
+  void setSurface(void *surface) { _surface = surface; }
   int getContextId() { return _contextId; }
 
   void loadHybridMethods() override {
