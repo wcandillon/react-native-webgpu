@@ -27,7 +27,7 @@
     "teapot": "^1.0.0",
     "three": "0.168.0",
     "three-stdlib": "2.32.2",
-    "typegpu": "^0.1.1",
+    "typegpu": "^0.1.2",
     "wgpu-matrix": "^3.0.2"
   },
   "devDependencies": {

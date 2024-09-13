@@ -9926,7 +9926,7 @@ __metadata:
     teapot: ^1.0.0
     three: 0.168.0
     three-stdlib: 2.32.2
-    typegpu: ^0.1.1
+    typegpu: ^0.1.2
     typescript: ^5.2.2
     wgpu-matrix: ^3.0.2
   languageName: unknown
@@ -11618,12 +11618,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typegpu@npm:^0.1.1":
-  version: 0.1.1
-  resolution: "typegpu@npm:0.1.1"
+"typegpu@npm:^0.1.2":
+  version: 0.1.2
+  resolution: "typegpu@npm:0.1.2"
   dependencies:
     typed-binary: ^4.0.1
-  checksum: 3eceaaf922f947ce0140c6f300a6a283f22f39a2d69d545dfd9b35fe0b037c5870feaf4e8fb6c93b957e4e6f12e2d3c6e42dd325c05d0da76e9544851275f052
+  checksum: e8bb501305ad7e280fd396b178afd5a61e470358881fda3be37014ac5f2238402a63056f1bbb9bd3c191923d259b3dd799821877ca3c2adc5a5c08dac49836c6
   languageName: node
   linkType: hard
 
