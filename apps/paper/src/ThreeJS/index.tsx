@@ -22,6 +22,13 @@ export const ThreeJS = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen
+        name="Fiber"
+        component={Fiber}
+        options={{
+          title: "👕 Fiber",
+        }}
+      />
+      <Stack.Screen
         name="List"
         component={List}
         options={{
@@ -55,13 +62,6 @@ export const ThreeJS = () => {
         component={Helmet}
         options={{
           title: "⛑️ Helmet",
-        }}
-      />
-      <Stack.Screen
-        name="Fiber"
-        component={Fiber}
-        options={{
-          title: "👕 Fiber",
         }}
       />
     </Stack.Navigator>

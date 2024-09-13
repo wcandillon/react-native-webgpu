@@ -18,9 +18,16 @@ import { makeWebGPURenderer, ReactNativeCanvas } from "./makeWebGPURenderer";
 interface FiberCanvasProps {
   children: React.ReactNode;
   style?: ViewProps["style"];
+  camera?: THREE.Camera;
+  scene?: THREE.Scene;
 }
 
-export const FiberCanvas = ({ children, style }: FiberCanvasProps) => {
+export const FiberCanvas = ({
+  children,
+  style,
+  scene,
+  camera,
+}: FiberCanvasProps) => {
   const root = useRef<ReconcilerRoot<OffscreenCanvas>>(null!);
 
   React.useMemo(() => extend(THREE), []);
@@ -47,6 +54,8 @@ export const FiberCanvas = ({ children, style }: FiberCanvasProps) => {
     root.current.configure({
       size,
       events,
+      scene,
+      camera,
       gl: renderer,
       frameloop: "always",
       dpr: PixelRatio.get(),
@@ -54,7 +63,6 @@ export const FiberCanvas = ({ children, style }: FiberCanvasProps) => {
         await state.gl.init();
         const renderFrame = state.gl.render.bind(state.gl);
         state.gl.render = (scene: THREE.Scene, camera: THREE.Camera) => {
-          camera.position.z = 1;
           renderFrame(scene, camera);
           context?.present();
         };
