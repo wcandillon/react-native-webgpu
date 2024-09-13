@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import * as THREE from "three";
 import { Dimensions, View } from "react-native";
 import { useRef } from "react";
@@ -7,6 +8,8 @@ import { FiberCanvas } from "./components/FiberCanvas";
 
 const { width, height } = Dimensions.get("window");
 const NUM_SPHERES = 10; // Number of spheres in the scene
+
+const { viewportUV, color } = THREE;
 
 interface SphereProps {
   index: number;
@@ -59,8 +62,7 @@ const Scene = () => {
 
   return (
     <>
-      <ambientLight intensity={0.3} />
-      <pointLight position={[0, 10, 0]} intensity={1.5} />
+      <spotLight args={[0xffffff, 1]} power={200} />
       {Array.from({ length: NUM_SPHERES }).map((_, i) => (
         <Sphere key={i} index={i} numSpheres={NUM_SPHERES} />
       ))}
@@ -69,12 +71,17 @@ const Scene = () => {
 };
 
 export const Fiber = () => {
-  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-  camera.position.set(0, 5, 10);
+  const camera = new THREE.PerspectiveCamera(50, width / height, 0.01, 100);
+  camera.position.set(1, 2, 3);
+
+  const scene = new THREE.Scene();
+  // @ts-expect-error
+  scene.backgroundNode = viewportUV.y.mix(color(0x66bbff), color(0x4466ff));
+  camera.lookAt(0, 1, 0);
 
   return (
     <View style={{ flex: 1 }}>
-      <FiberCanvas style={{ flex: 1 }} camera={camera}>
+      <FiberCanvas style={{ flex: 1 }} camera={camera} scene={scene}>
         <Scene />
       </FiberCanvas>
     </View>
