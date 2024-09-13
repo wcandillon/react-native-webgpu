@@ -67,12 +67,7 @@ void GPUCanvasContext::present() {
 
 void GPUCanvasContext::updateInstance(std::shared_ptr<Canvas> surface) {
   auto lock = std::unique_lock<std::recursive_mutex>(_mutex);
-  _instance = _platformContext->makeSurface(
-    _gpu->get(),
-    reinterpret_cast<void *>(surface->getSurface()),
-    _width,
-    _height
-  );
+  _instance = _platformContext->makeSurface(_gpu->get(), surface->getSurface(), _width, _height);
   if (_lastConfig != nullptr) {
     configure(_lastConfig);
   }
