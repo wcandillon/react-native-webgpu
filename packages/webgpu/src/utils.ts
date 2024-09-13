@@ -1,3 +1,4 @@
+import type { DependencyList } from "react";
 import { useEffect, useRef } from "react";
 
 import type { CanvasRef } from "./Canvas";
@@ -14,6 +15,7 @@ export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
 
 export const useCanvasEffect = (
   effect: () => void | Unsubscribe | Promise<void | Unsubscribe>,
+  deps: DependencyList = [],
 ) => {
   const ref = useRef<CanvasRef>(null);
   const unsubscribe = useRef<Unsubscribe>();
@@ -35,6 +37,6 @@ export const useCanvasEffect = (
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, deps);
   return ref;
 };

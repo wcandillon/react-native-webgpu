@@ -2,7 +2,7 @@
 /* eslint-disable prefer-destructuring */
 import * as THREE from "three/webgpu";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
-import { View } from "react-native";
+import { PixelRatio, View } from "react-native";
 import { GLTFLoader } from "three-stdlib";
 
 import { manager } from "./assets/AssetManager";
@@ -13,18 +13,30 @@ const {
   vec3,
   color,
   viewportSharedTexture,
-  viewportTopLeft,
   checker,
   uv,
   timerLocal,
   oscSine,
   output,
+  posterize,
+  hue,
+  grayscale,
+  saturation,
+  overlay,
+  viewportUV,
+  viewportSafeUV,
 } = THREE;
 
 export const Backdrop = () => {
   const ref = useCanvasEffect(async () => {
     const rotate = true;
+
+    // Anti alias in the renderer is set to false and we handle the pixel density here
     const context = ref.current!.getContext("webgpu")!;
+    const canvas = context.canvas as HTMLCanvasElement;
+    canvas.width = canvas.clientWidth * PixelRatio.get();
+    canvas.height = canvas.clientHeight * PixelRatio.get();
+
     const { width, height } = context.canvas;
     let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer;
     let portals: THREE.Group;
@@ -39,10 +51,7 @@ export const Backdrop = () => {
 
       scene = new THREE.Scene();
       // @ts-expect-error
-      scene.backgroundNode = viewportTopLeft.y.mix(
-        color(0x66bbff),
-        color(0x4466ff),
-      );
+      scene.backgroundNode = viewportUV.y.mix(color(0x66bbff), color(0x4466ff));
       camera.lookAt(0, 1, 0);
 
       clock = new THREE.Clock();
@@ -67,7 +76,7 @@ export const Backdrop = () => {
 
         material.outputNode = oscSine(timerLocal(0.1)).mix(
           output,
-          output.add(0.1).posterize(4).mul(2),
+          posterize(output.add(0.1), 4).mul(2),
         );
 
         const action = mixer.clipAction(gltf.animations[0]);
@@ -111,28 +120,33 @@ export const Backdrop = () => {
       }
 
       addBackdropSphere(
-        viewportSharedTexture().bgr.hue(oscSine().mul(Math.PI)),
+        hue(viewportSharedTexture().bgr, oscSine().mul(Math.PI)),
       );
       addBackdropSphere(viewportSharedTexture().rgb.oneMinus());
-      addBackdropSphere(viewportSharedTexture().rgb.saturation(0));
+      addBackdropSphere(grayscale(viewportSharedTexture().rgb));
       // @ts-expect-error
-      addBackdropSphere(viewportSharedTexture().rgb.saturation(10), oscSine());
+      addBackdropSphere(saturation(viewportSharedTexture().rgb, 10), oscSine());
       addBackdropSphere(
-        viewportSharedTexture().rgb.overlay(checker(uv().mul(10))),
+        overlay(viewportSharedTexture().rgb, checker(uv().mul(10))),
       );
+
+      // For the two nodes below to work, antialias needs to be set to false in renderer
+      // See https://github.com/mrdoob/three.js/pull/29025/files#r1753646774
       addBackdropSphere(
-        viewportSharedTexture(viewportTopLeft.mul(40).floor().div(40)),
-      );
-      addBackdropSphere(
-        viewportSharedTexture(viewportTopLeft.mul(80).floor().div(80)).add(
-          color(0x0033ff),
+        viewportSharedTexture(
+          viewportSafeUV(viewportUV.mul(40).floor().div(40)),
         ),
       );
+      addBackdropSphere(
+        viewportSharedTexture(
+          viewportSafeUV(viewportUV.mul(80).floor().div(80)),
+        ).add(color(0x0033ff)),
+      );
+
       addBackdropSphere(vec3(0, 0, viewportSharedTexture().b));
 
       //renderer
-
-      renderer = makeWebGPURenderer(context);
+      renderer = makeWebGPURenderer(context, { antialias: false });
       renderer.setAnimationLoop(animate);
       renderer.toneMapping = THREE.NeutralToneMapping;
       renderer.toneMappingExposure = 0.3;
