@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { View } from "react-native";
-import { useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useEffect, useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 
 import { FiberCanvas } from "./components/FiberCanvas";
 import useControls from "./components/OrbitControl";
@@ -92,6 +92,10 @@ function Sphere({ position, color }: Props) {
 }
 
 const Scene = () => {
+  const { camera } = useThree();
+  useEffect(() => {
+    camera.position.set(0, 5, 5);
+  }, [camera]);
   return (
     <>
       <ambientLight intensity={Math.PI / 2} />
