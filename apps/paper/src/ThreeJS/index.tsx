@@ -8,6 +8,7 @@ import { List } from "./List";
 import { Helmet } from "./Helmet";
 import { Backdrop } from "./Backdrop";
 import { InstancedMesh } from "./InstancedMesh";
+import { Fiber } from "./Fiber";
 
 const Stack = createNativeStackNavigator<Routes>();
 export const ThreeJS = () => {
@@ -26,6 +27,13 @@ export const ThreeJS = () => {
         options={{
           title: "🧊 Three.js",
           header: () => null,
+        }}
+      />
+      <Stack.Screen
+        name="Fiber"
+        component={Fiber}
+        options={{
+          title: "👕 Fiber",
         }}
       />
       <Stack.Screen

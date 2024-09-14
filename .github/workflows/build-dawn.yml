@@ -3,8 +3,6 @@ on: workflow_dispatch
 jobs:
   build:
     runs-on: macos-latest-large
-    env:
-      WORKING_DIRECTORY: ./packages/webgpu
     steps:
       - name: checkout
         uses: actions/checkout@v2
@@ -32,7 +30,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build Dawn
-        working-directory: ${{ env.WORKING_DIRECTORY }}
+        working-directory: packages/webgpu
         env:
           ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: yarn build-dawn

@@ -1,7 +1,9 @@
-import * as THREE from "three/webgpu";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import * as THREE from "three";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { StyleSheet, Text, View } from "react-native";
-import { GLTFLoader, RGBELoader } from "three-stdlib";
+import { GLTFLoader } from "GLTFLoader";
+import { RGBELoader } from "RGBELoader";
 
 import { manager } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
@@ -25,7 +27,7 @@ export const Helmet = () => {
 
       new RGBELoader(manager)
         .setPath("textures/equirectangular/")
-        .load("royal_esplanade_1k.hdr", function (texture) {
+        .load("royal_esplanade_1k.hdr", function (texture: any) {
           texture.mapping = THREE.EquirectangularReflectionMapping;
 
           scene.background = texture;
@@ -34,7 +36,7 @@ export const Helmet = () => {
           const loader = new GLTFLoader(manager).setPath(
             "models/gltf/DamagedHelmet/glTF/",
           );
-          loader.load("DamagedHelmet.gltf", function (gltf) {
+          loader.load("DamagedHelmet.gltf", function (gltf: any) {
             console.log("helmet loaded");
             scene.add(gltf.scene);
 
