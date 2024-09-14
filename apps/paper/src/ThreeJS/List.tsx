@@ -27,6 +27,10 @@ export const examples = [
     screen: "Fiber",
     title: "👕 Fiber",
   },
+  {
+    screen: "Shoe",
+    title: "👟 Shoe",
+  },
 ] as const;
 
 const styles = StyleSheet.create({

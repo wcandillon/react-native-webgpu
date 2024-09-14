@@ -46,6 +46,9 @@ const urls: Record<string, string> = {
   "models/gltf/DamagedHelmet/glTF/./Default_emissive.jpg": resolve(
     require("./Default_emissive.jpg"),
   ),
+  "jordan_shoe.gltf": resolve(require("./jordan_shoe.gltf")),
+  "./jordan_shoe.bin": resolve(require("./jordan_shoe.bin")),
+  "light.hdr": resolve(require("./light.hdr")),
 };
 
 export const manager = new THREE.LoadingManager();
@@ -54,14 +57,14 @@ manager.setURLModifier((url: string) => {
   if (asset) {
     return asset;
   }
-  console.error("url not found", url);
+  console.error("url not found", url.substring(0, 150));
   return url;
 });
 
 manager.onStart = function (url, itemsLoaded, itemsTotal) {
   console.log(
     "Started loading file: " +
-      url +
+      url.substring(0, 150) +
       ".\nLoaded " +
       itemsLoaded +
       " of " +
@@ -77,7 +80,7 @@ manager.onLoad = function () {
 manager.onProgress = function (url, itemsLoaded, itemsTotal) {
   console.log(
     "Loading file: " +
-      url +
+      url.substring(0, 150) +
       ".\nLoaded " +
       itemsLoaded +
       " of " +

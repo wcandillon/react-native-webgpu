@@ -5,4 +5,5 @@ export type Routes = {
   Backdrop: undefined;
   InstancedMesh: undefined;
   Fiber: undefined;
+  Shoe: undefined;
 };

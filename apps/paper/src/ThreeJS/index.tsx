@@ -9,6 +9,7 @@ import { Helmet } from "./Helmet";
 import { Backdrop } from "./Backdrop";
 import { InstancedMesh } from "./InstancedMesh";
 import { Fiber } from "./Fiber";
+import { ShoeDemo } from "./Shoe";
 
 const Stack = createNativeStackNavigator<Routes>();
 export const ThreeJS = () => {
@@ -20,7 +21,7 @@ export const ThreeJS = () => {
     });
   }, []);
   return (
-    <Stack.Navigator>
+    <Stack.Navigator initialRouteName="Shoe">
       <Stack.Screen
         name="List"
         component={List}
@@ -34,6 +35,13 @@ export const ThreeJS = () => {
         component={Fiber}
         options={{
           title: "👕 Fiber",
+        }}
+      />
+      <Stack.Screen
+        name="Shoe"
+        component={ShoeDemo}
+        options={{
+          title: "👟 Shoe",
         }}
       />
       <Stack.Screen
