@@ -73,7 +73,7 @@ export function createControls() {
     panStart: new Vector2(),
     panEnd: new Vector2(),
     panDelta: new Vector2(),
-    panOffset: new Vector3(),
+    panOffset: new Vector3(0, 2, 2),
 
     spherical: new Spherical(),
     sphericalDelta: new Spherical(),

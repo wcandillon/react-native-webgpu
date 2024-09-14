@@ -31,8 +31,6 @@ import "fast-text-encoding";
 
 const Stack = createNativeStackNavigator<Routes>();
 
-LogBox.ignoreLogs(["WARNING: Multiple instances of Three.js being imported."]);
-
 function App() {
   const assets = useAssets();
   if (assets === null) {

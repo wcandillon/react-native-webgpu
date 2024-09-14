@@ -16,7 +16,8 @@
     "build:ios": "turbo run build:ios",
     "build:android": "turbo run build:android",
     "build": "turbo run build",
-    "pod:install": "turbo run pod:install"
+    "pod:install": "turbo run pod:install",
+    "postinstall": "patch-package"
   },
   "devDependencies": {
     "patch-package": "^8.0.0",
