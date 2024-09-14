@@ -1,15 +1,33 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import * as THREE from "three";
 import { Dimensions, View } from "react-native";
-import { useRef } from "react";
+import type { MutableRefObject, RefObject } from "react";
+import { Ref, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
+import { GLTFLoader } from "GLTFLoader";
 
 import { FiberCanvas } from "./components/FiberCanvas";
-
+import { manager } from "./assets/AssetManager";
 const { width, height } = Dimensions.get("window");
-const NUM_SPHERES = 10; // Number of spheres in the scene
+const NUM_SPHERES = 0; // Number of spheres in the scene
 
-const { viewportUV, color } = THREE;
+const {
+  float,
+  vec3,
+  color,
+  viewportSharedTexture,
+  checker,
+  uv,
+  timerLocal,
+  oscSine,
+  output,
+  posterize,
+  hue,
+  grayscale,
+  saturation,
+  overlay,
+  viewportUV,
+  viewportSafeUV,
+} = THREE;
 
 interface SphereProps {
   index: number;
@@ -47,11 +65,40 @@ const Sphere = ({ index, numSpheres }: SphereProps) => {
   );
 };
 
-const Scene = () => {
-  const { camera } = useThree();
+interface SceneProps {
+}
 
-  useFrame((state) => {
+const Scene = ({}: SceneProps) => {
+  const { camera, scene } = useThree();
+  const mixer = useRef<THREE.AnimationMixer>();
+
+  useEffect(() => {
+    const loader = new GLTFLoader(manager);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    loader.load("models/gltf/Michelle.glb", function (gltf: any) {
+      const object = gltf.scene;
+      mixer.current = new THREE.AnimationMixer(object);
+
+      // eslint-disable-next-line prefer-destructuring
+      const { material } = object.children[0].children[0];
+
+      material.outputNode = oscSine(timerLocal(0.1)).mix(
+        output,
+        posterize(output.add(0.1), 4).mul(2),
+      );
+
+      const action = mixer.current.clipAction(gltf.animations[0]);
+      action.play();
+      scene.backgroundNode = viewportUV.y.mix(color(0x66bbff), color(0x4466ff));
+      scene.add(object);
+    });
+  }, [mixer, scene]);
+
+  useFrame((state, delta) => {
     const elapsed = state.clock.getElapsedTime();
+    if (mixer.current) {
+      mixer.current.update(delta);
+    }
 
     // Update camera position to rotate around the scene
     const distance = 10;
@@ -62,7 +109,7 @@ const Scene = () => {
 
   return (
     <>
-      <spotLight args={[0xffffff, 1]} power={200} />
+      <spotLight args={[0xffffff, 1]} power={2000} />
       {Array.from({ length: NUM_SPHERES }).map((_, i) => (
         <Sphere key={i} index={i} numSpheres={NUM_SPHERES} />
       ))}
@@ -71,17 +118,9 @@ const Scene = () => {
 };
 
 export const Fiber = () => {
-  const camera = new THREE.PerspectiveCamera(50, width / height, 0.01, 100);
-  camera.position.set(1, 2, 3);
-
-  const scene = new THREE.Scene();
-  // @ts-expect-error
-  scene.backgroundNode = viewportUV.y.mix(color(0x66bbff), color(0x4466ff));
-  camera.lookAt(0, 1, 0);
-
   return (
     <View style={{ flex: 1 }}>
-      <FiberCanvas style={{ flex: 1 }} camera={camera} scene={scene}>
+      <FiberCanvas style={{ flex: 1 }}>
         <Scene />
       </FiberCanvas>
     </View>

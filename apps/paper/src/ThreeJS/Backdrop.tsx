@@ -3,7 +3,7 @@
 import * as THREE from "three";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { PixelRatio, View } from "react-native";
-import { GLTFLoader } from "three-stdlib";
+import { GLTFLoader } from "GLTFLoader";
 
 import { manager } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";

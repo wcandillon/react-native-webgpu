@@ -27,6 +27,7 @@ import { SamplerParameters } from "./Sampler";
 import { ReversedZ } from "./ReversedZ";
 import { ThreeJS } from "./ThreeJS";
 import { GradientTiles } from "./GradientTiles";
+import "fast-text-encoding";
 
 const Stack = createNativeStackNavigator<Routes>();
 
