@@ -1,23 +1,19 @@
-import {
-  Matrix4,
-  OrthographicCamera,
-  PerspectiveCamera,
-  Quaternion,
-  Spherical,
-  Vector2,
-  Vector3,
-} from "three"
-import { GestureResponderEvent, LayoutChangeEvent } from "react-native"
-import { useEffect, useMemo } from "react"
-import { useFrame, useThree } from "@react-three/fiber"
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable prefer-destructuring */
+/* eslint-disable max-len */
+import type { Matrix4, OrthographicCamera, PerspectiveCamera } from "three";
+import { Quaternion, Spherical, Vector2, Vector3 } from "three";
+import type { GestureResponderEvent, LayoutChangeEvent } from "react-native";
+import { useEffect, useMemo } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 
-const EPSILON = 0.000001
+const EPSILON = 0.000001;
 
 const STATE = {
   NONE: 0,
   ROTATE: 1,
   DOLLY: 2,
-}
+};
 
 const partialScope = {
   camera: undefined as PerspectiveCamera | OrthographicCamera | undefined,
@@ -56,16 +52,16 @@ const partialScope = {
   panSpeed: 1.0,
 
   ignoreQuickPress: false,
-}
+};
 
 export function createControls() {
-  let height = 0
+  let height = 0;
 
   const scope = {
     ...partialScope,
     target: new Vector3(),
-    onChange: (event: { target: typeof partialScope }) => {},
-  }
+    onChange: (_event: { target: typeof partialScope }) => {},
+  };
 
   const internals = {
     moveStart: new Vector3(),
@@ -85,7 +81,7 @@ export function createControls() {
     scale: 1,
 
     state: STATE.NONE,
-  }
+  };
 
   const functions = {
     shouldClaimTouch(event: GestureResponderEvent) {
@@ -123,31 +119,33 @@ export function createControls() {
       // `addEventListener`-like in @react-three/fiber.
       // I have suggested this feature here:
       // https://github.com/pmndrs/react-three-fiber/issues/3173
-      if (!scope.ignoreQuickPress) return true
+      if (!scope.ignoreQuickPress) {
+        return true;
+      }
 
       if (event.nativeEvent.touches.length === 1) {
         const {
           locationX: x,
           locationY: y,
           timestamp: t,
-        } = event.nativeEvent.touches[0]
+        } = event.nativeEvent.touches[0];
 
-        const dx = Math.abs(internals.moveStart.x - x)
-        const dy = Math.abs(internals.moveStart.y - y)
-        const dt = Math.pow(internals.moveStart.z - t, 2)
+        const dx = Math.abs(internals.moveStart.x - x);
+        const dy = Math.abs(internals.moveStart.y - y);
+        const dt = Math.pow(internals.moveStart.z - t, 2);
 
         if (
           !internals.moveStart.length() ||
           (dx * dt <= 1000 && dy * dt <= 1000)
         ) {
-          internals.moveStart.set(x, y, t)
-          return false
+          internals.moveStart.set(x, y, t);
+          return false;
         }
 
-        internals.moveStart.set(0, 0, 0)
+        internals.moveStart.set(0, 0, 0);
       }
 
-      return true
+      return true;
     },
 
     handleTouchStartRotate(event: GestureResponderEvent) {
@@ -155,18 +153,18 @@ export function createControls() {
         internals.rotateStart.set(
           event.nativeEvent.touches[0].locationX,
           event.nativeEvent.touches[0].locationY,
-        )
+        );
       } else if (event.nativeEvent.touches.length === 2) {
         const x =
           0.5 *
           (event.nativeEvent.touches[0].locationX +
-            event.nativeEvent.touches[1].locationX)
+            event.nativeEvent.touches[1].locationX);
         const y =
           0.5 *
           (event.nativeEvent.touches[0].locationY +
-            event.nativeEvent.touches[1].locationY)
+            event.nativeEvent.touches[1].locationY);
 
-        internals.rotateStart.set(x, y)
+        internals.rotateStart.set(x, y);
       }
     },
 
@@ -175,13 +173,13 @@ export function createControls() {
       if (event.nativeEvent.touches.length === 2) {
         const dx =
           event.nativeEvent.touches[0].locationX -
-          event.nativeEvent.touches[1].locationX
+          event.nativeEvent.touches[1].locationX;
         const dy =
           event.nativeEvent.touches[0].locationY -
-          event.nativeEvent.touches[1].locationY
-        const distance = Math.sqrt(dx * dx + dy * dy)
+          event.nativeEvent.touches[1].locationY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-        internals.dollyStart = distance
+        internals.dollyStart = distance;
       }
     },
 
@@ -190,53 +188,61 @@ export function createControls() {
         internals.panStart.set(
           event.nativeEvent.touches[0].locationX,
           event.nativeEvent.touches[0].locationY,
-        )
+        );
       } else if (event.nativeEvent.touches.length === 2) {
         const x =
           0.5 *
           (event.nativeEvent.touches[0].locationX +
-            event.nativeEvent.touches[1].locationX)
+            event.nativeEvent.touches[1].locationX);
         const y =
           0.5 *
           (event.nativeEvent.touches[0].locationY +
-            event.nativeEvent.touches[1].locationY)
+            event.nativeEvent.touches[1].locationY);
 
-        internals.panStart.set(x, y)
+        internals.panStart.set(x, y);
       }
     },
 
     handleTouchStartDollyPan(event: GestureResponderEvent) {
-      if (scope.enableZoom) this.handleTouchStartDolly(event)
-      if (scope.enablePan) this.handleTouchStartPan(event)
+      if (scope.enableZoom) {
+        this.handleTouchStartDolly(event);
+      }
+      if (scope.enablePan) {
+        this.handleTouchStartPan(event);
+      }
     },
 
     onTouchStart(event: GestureResponderEvent) {
       switch (event.nativeEvent.touches.length) {
         case STATE.ROTATE:
-          if (!scope.enableRotate) return
-          this.handleTouchStartRotate(event)
-          internals.state = STATE.ROTATE
+          if (!scope.enableRotate) {
+            return;
+          }
+          this.handleTouchStartRotate(event);
+          internals.state = STATE.ROTATE;
 
-          break
+          break;
 
         case STATE.DOLLY:
-          if (!scope.enableZoom && !scope.enablePan) return
-          this.handleTouchStartDollyPan(event)
-          internals.state = STATE.DOLLY
+          if (!scope.enableZoom && !scope.enablePan) {
+            return;
+          }
+          this.handleTouchStartDollyPan(event);
+          internals.state = STATE.DOLLY;
 
-          break
+          break;
 
         default:
-          internals.state = STATE.NONE
+          internals.state = STATE.NONE;
       }
     },
 
     rotateLeft(angle: number) {
-      internals.sphericalDelta.theta -= angle
+      internals.sphericalDelta.theta -= angle;
     },
 
     rotateUp(angle: number) {
-      internals.sphericalDelta.phi -= angle
+      internals.sphericalDelta.phi -= angle;
     },
 
     handleTouchMoveRotate(event: GestureResponderEvent) {
@@ -244,35 +250,35 @@ export function createControls() {
         internals.rotateEnd.set(
           event.nativeEvent.locationX,
           event.nativeEvent.locationY,
-        )
+        );
       } else if (event.nativeEvent.touches.length === 2) {
         const x =
           0.5 *
           (event.nativeEvent.touches[0].locationX +
-            event.nativeEvent.touches[1].locationX)
+            event.nativeEvent.touches[1].locationX);
         const y =
           0.5 *
           (event.nativeEvent.touches[0].locationY +
-            event.nativeEvent.touches[1].locationY)
-        internals.rotateEnd.set(x, y)
+            event.nativeEvent.touches[1].locationY);
+        internals.rotateEnd.set(x, y);
       }
 
       internals.rotateDelta
         .subVectors(internals.rotateEnd, internals.rotateStart)
-        .multiplyScalar(scope.rotateSpeed)
+        .multiplyScalar(scope.rotateSpeed);
 
       // Avoid division by 0.
       if (height) {
         // yes, height
-        this.rotateLeft((2 * Math.PI * internals.rotateDelta.x) / height)
-        this.rotateUp((2 * Math.PI * internals.rotateDelta.y) / height)
+        this.rotateLeft((2 * Math.PI * internals.rotateDelta.x) / height);
+        this.rotateUp((2 * Math.PI * internals.rotateDelta.y) / height);
       }
 
-      internals.rotateStart.copy(internals.rotateEnd)
+      internals.rotateStart.copy(internals.rotateEnd);
     },
 
     dollyOut(dollyScale: number) {
-      internals.scale /= dollyScale
+      internals.scale /= dollyScale;
     },
 
     handleTouchMoveDolly(event: GestureResponderEvent) {
@@ -280,57 +286,59 @@ export function createControls() {
       if (event.nativeEvent.touches.length === 2) {
         const dx =
           event.nativeEvent.touches[0].locationX -
-          event.nativeEvent.touches[1].locationX
+          event.nativeEvent.touches[1].locationX;
         const dy =
           event.nativeEvent.touches[0].locationY -
-          event.nativeEvent.touches[1].locationY
-        const distance = Math.sqrt(dx * dx + dy * dy)
+          event.nativeEvent.touches[1].locationY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-        internals.dollyEnd = distance
+        internals.dollyEnd = distance;
         this.dollyOut(
           Math.pow(internals.dollyEnd / internals.dollyStart, scope.zoomSpeed),
-        )
-        internals.dollyStart = internals.dollyEnd
+        );
+        internals.dollyStart = internals.dollyEnd;
       }
     },
 
     panLeft(distance: number, objectMatrix: Matrix4) {
-      const v = new Vector3()
+      const v = new Vector3();
 
-      v.setFromMatrixColumn(objectMatrix, 0) // get X column of objectMatrix
-      v.multiplyScalar(-distance)
+      v.setFromMatrixColumn(objectMatrix, 0); // get X column of objectMatrix
+      v.multiplyScalar(-distance);
 
-      internals.panOffset.add(v)
+      internals.panOffset.add(v);
     },
 
     panUp(distance: number, objectMatrix: Matrix4) {
-      const v = new Vector3()
+      const v = new Vector3();
 
-      v.setFromMatrixColumn(objectMatrix, 1)
-      v.multiplyScalar(distance)
+      v.setFromMatrixColumn(objectMatrix, 1);
+      v.multiplyScalar(distance);
 
-      internals.panOffset.add(v)
+      internals.panOffset.add(v);
     },
 
     pan(deltaX: number, deltaY: number) {
-      if (!scope.camera) return
+      if (!scope.camera) {
+        return;
+      }
 
-      const position = scope.camera.position
+      const { position } = scope.camera;
 
-      let targetDistance = position.clone().sub(scope.target).length()
+      let targetDistance = position.clone().sub(scope.target).length();
 
       const linearSquare =
         // interpolate between x and x²
-        (x: number) => x + (1 - Math.exp(-x / 10000)) * (x * x - x + 1 / 4)
+        (x: number) => x + (1 - Math.exp(-x / 10000)) * (x * x - x + 1 / 4);
 
       const distanceScale = (scope.camera as PerspectiveCamera)
         .isPerspectiveCamera
         ? // half of the fov is center to top of screen
           (scope.camera as PerspectiveCamera).fov / 2
         : // scale the zoom speed by a factor of 300
-          (1 / linearSquare(scope.camera.zoom)) * scope.zoomSpeed * 300
+          (1 / linearSquare(scope.camera.zoom)) * scope.zoomSpeed * 300;
 
-      targetDistance *= Math.tan((distanceScale * Math.PI) / 180.0)
+      targetDistance *= Math.tan((distanceScale * Math.PI) / 180.0);
 
       // Avoid division by 0.
       if (height) {
@@ -338,8 +346,8 @@ export function createControls() {
         this.panLeft(
           (2 * deltaX * targetDistance) / height,
           scope.camera.matrix,
-        )
-        this.panUp((2 * deltaY * targetDistance) / height, scope.camera.matrix)
+        );
+        this.panUp((2 * deltaY * targetDistance) / height, scope.camera.matrix);
       }
     },
 
@@ -348,108 +356,124 @@ export function createControls() {
         internals.panEnd.set(
           event.nativeEvent.locationX,
           event.nativeEvent.locationY,
-        )
+        );
       } else if (event.nativeEvent.touches.length === 2) {
         const x =
           0.5 *
           (event.nativeEvent.touches[0].locationX +
-            event.nativeEvent.touches[1].locationX)
+            event.nativeEvent.touches[1].locationX);
         const y =
           0.5 *
           (event.nativeEvent.touches[0].locationY +
-            event.nativeEvent.touches[1].locationY)
-        internals.panEnd.set(x, y)
+            event.nativeEvent.touches[1].locationY);
+        internals.panEnd.set(x, y);
       } else {
-        return
+        return;
       }
 
       internals.panDelta
         .subVectors(internals.panEnd, internals.panStart)
-        .multiplyScalar(scope.panSpeed)
-      this.pan(internals.panDelta.x, internals.panDelta.y)
-      internals.panStart.copy(internals.panEnd)
+        .multiplyScalar(scope.panSpeed);
+      this.pan(internals.panDelta.x, internals.panDelta.y);
+      internals.panStart.copy(internals.panEnd);
     },
 
     handleTouchMoveDollyPan(event: GestureResponderEvent) {
-      if (scope.enableZoom) this.handleTouchMoveDolly(event)
-      if (scope.enablePan) this.handleTouchMovePan(event)
+      if (scope.enableZoom) {
+        this.handleTouchMoveDolly(event);
+      }
+      if (scope.enablePan) {
+        this.handleTouchMovePan(event);
+      }
     },
 
     onTouchMove(event: GestureResponderEvent) {
       switch (internals.state) {
         case STATE.ROTATE:
-          if (!scope.enableRotate) return
-          this.handleTouchMoveRotate(event)
-          update()
-          break
+          if (!scope.enableRotate) {
+            return;
+          }
+          this.handleTouchMoveRotate(event);
+          update();
+          break;
 
         case STATE.DOLLY:
-          if (!scope.enableZoom && !scope.enablePan) return
-          this.handleTouchMoveDollyPan(event)
-          update()
-          break
+          if (!scope.enableZoom && !scope.enablePan) {
+            return;
+          }
+          this.handleTouchMoveDollyPan(event);
+          update();
+          break;
 
         default:
-          internals.state = STATE.NONE
+          internals.state = STATE.NONE;
       }
     },
-  }
+  };
 
   const update = (() => {
-    const offset = new Vector3()
+    const offset = new Vector3();
 
-    const lastPosition = new Vector3()
-    const lastQuaternion = new Quaternion()
+    const lastPosition = new Vector3();
+    const lastQuaternion = new Quaternion();
 
-    const twoPI = 2 * Math.PI
+    const twoPI = 2 * Math.PI;
 
     return () => {
-      if (!scope.camera) return
+      if (!scope.camera) {
+        return;
+      }
 
-      const position = scope.camera.position
+      const { position } = scope.camera;
 
       // so camera.up is the orbit axis
       const quat = new Quaternion().setFromUnitVectors(
         scope.camera.up,
         new Vector3(0, 1, 0),
-      )
-      const quatInverse = quat.clone().invert()
+      );
+      const quatInverse = quat.clone().invert();
 
-      offset.copy(position).sub(scope.target)
+      offset.copy(position).sub(scope.target);
 
       // rotate offset to "y-axis-is-up" space
-      offset.applyQuaternion(quat)
+      offset.applyQuaternion(quat);
 
       // angle from z-axis around y-axis
-      internals.spherical.setFromVector3(offset)
+      internals.spherical.setFromVector3(offset);
 
       internals.spherical.theta +=
-        internals.sphericalDelta.theta * scope.dampingFactor
+        internals.sphericalDelta.theta * scope.dampingFactor;
       internals.spherical.phi +=
-        internals.sphericalDelta.phi * scope.dampingFactor
+        internals.sphericalDelta.phi * scope.dampingFactor;
 
       // restrict theta to be between desired limits
 
-      let min = scope.minAzimuthAngle
-      let max = scope.maxAzimuthAngle
+      let min = scope.minAzimuthAngle;
+      let max = scope.maxAzimuthAngle;
 
       if (isFinite(min) && isFinite(max)) {
-        if (min < -Math.PI) min += twoPI
-        else if (min > Math.PI) min -= twoPI
+        if (min < -Math.PI) {
+          min += twoPI;
+        } else if (min > Math.PI) {
+          min -= twoPI;
+        }
 
-        if (max < -Math.PI) max += twoPI
-        else if (max > Math.PI) max -= twoPI
+        if (max < -Math.PI) {
+          max += twoPI;
+        } else if (max > Math.PI) {
+          max -= twoPI;
+        }
 
         if (min <= max) {
           internals.spherical.theta = Math.max(
             min,
             Math.min(max, internals.spherical.theta),
-          )
+          );
         } else {
           internals.spherical.theta =
             internals.spherical.theta > (min + max) / 2
               ? Math.max(min, internals.spherical.theta)
-              : Math.min(max, internals.spherical.theta)
+              : Math.min(max, internals.spherical.theta);
         }
       }
 
@@ -457,10 +481,10 @@ export function createControls() {
       internals.spherical.phi = Math.max(
         scope.minPolarAngle + EPSILON,
         Math.min(scope.maxPolarAngle - EPSILON, internals.spherical.phi),
-      )
+      );
 
       if ((scope.camera as PerspectiveCamera).isPerspectiveCamera) {
-        internals.spherical.radius *= internals.scale
+        internals.spherical.radius *= internals.scale;
       } else {
         scope.camera.zoom = Math.max(
           Math.min(
@@ -468,35 +492,35 @@ export function createControls() {
             scope.maxZoom,
           ),
           scope.minZoom,
-        )
-        scope.camera.updateProjectionMatrix()
+        );
+        scope.camera.updateProjectionMatrix();
       }
 
       // restrict radius to be between desired limits
       internals.spherical.radius = Math.max(
         scope.minZoom,
         Math.min(scope.maxZoom, internals.spherical.radius),
-      )
+      );
 
       // move target to panned location
 
-      scope.target.addScaledVector(internals.panOffset, scope.dampingFactor)
+      scope.target.addScaledVector(internals.panOffset, scope.dampingFactor);
 
-      offset.setFromSpherical(internals.spherical)
+      offset.setFromSpherical(internals.spherical);
 
       // rotate offset back to "camera-up-vector-is-up" space
-      offset.applyQuaternion(quatInverse)
+      offset.applyQuaternion(quatInverse);
 
-      position.copy(scope.target).add(offset)
+      position.copy(scope.target).add(offset);
 
-      scope.camera.lookAt(scope.target)
+      scope.camera.lookAt(scope.target);
 
-      internals.sphericalDelta.theta *= 1 - scope.dampingFactor
-      internals.sphericalDelta.phi *= 1 - scope.dampingFactor
+      internals.sphericalDelta.theta *= 1 - scope.dampingFactor;
+      internals.sphericalDelta.phi *= 1 - scope.dampingFactor;
 
-      internals.panOffset.multiplyScalar(1 - scope.dampingFactor)
+      internals.panOffset.multiplyScalar(1 - scope.dampingFactor);
 
-      internals.scale = 1
+      internals.scale = 1;
 
       // update condition is:
       // min(camera displacement, camera rotation in radians)^2 > EPSILON
@@ -507,13 +531,13 @@ export function createControls() {
       ) {
         //invalidate()
 
-        scope.onChange({ target: scope })
+        scope.onChange({ target: scope });
 
-        lastPosition.copy(scope.camera.position)
-        lastQuaternion.copy(scope.camera.quaternion)
+        lastPosition.copy(scope.camera.position);
+        lastQuaternion.copy(scope.camera.quaternion);
       }
-    }
-  })()
+    };
+  })();
 
   return {
     scope,
@@ -526,96 +550,100 @@ export function createControls() {
     events: {
       // Equivalent to componentDidMount.
       onLayout(event: LayoutChangeEvent) {
-        height = event.nativeEvent.layout.height
+        height = event.nativeEvent.layout.height;
       },
 
       // See https://reactnative.dev/docs/gesture-responder-system
       onStartShouldSetResponder(event: GestureResponderEvent) {
         // On some devices this fires only for 2+ touches.
-        if (!scope.enabled || !functions.shouldClaimTouch(event)) return false
+        if (!scope.enabled || !functions.shouldClaimTouch(event)) {
+          return false;
+        }
 
-        functions.onTouchStart(event)
+        functions.onTouchStart(event);
 
-        return true
+        return true;
       },
 
       onMoveShouldSetResponder(event: GestureResponderEvent) {
         // And on the same devices this fires only for 1 touch.
-        if (!scope.enabled || !functions.shouldClaimTouch(event)) return false
+        if (!scope.enabled || !functions.shouldClaimTouch(event)) {
+          return false;
+        }
 
-        functions.onTouchStart(event)
+        functions.onTouchStart(event);
 
-        return true
+        return true;
       },
 
       onResponderMove(event: GestureResponderEvent) {
         if (internals.state !== event.nativeEvent.touches.length) {
-          functions.onTouchStart(event)
+          functions.onTouchStart(event);
         }
 
-        functions.onTouchMove(event)
+        functions.onTouchMove(event);
       },
 
       onResponderRelease() {
-        internals.state = STATE.NONE
+        internals.state = STATE.NONE;
       },
     },
-  }
+  };
 }
 
 type Partial<T> = {
-  [P in keyof T]?: T[P]
-}
+  [P in keyof T]?: T[P];
+};
 
 export type OrbitControlsProps = Partial<
   Omit<ReturnType<typeof createControls>["scope"], "camera">
->
+>;
 
 export type OrbitControlsChangeEvent = Parameters<
   ReturnType<typeof createControls>["scope"]["onChange"]
->[0]
-
+>[0];
 
 type OrbitControlsInternalProps = OrbitControlsProps & {
-  controls: ReturnType<typeof createControls>
-}
+  controls: ReturnType<typeof createControls>;
+};
 
 function OrbitControls({ controls, ...props }: OrbitControlsInternalProps) {
-  const camera = useThree((state) => state.camera)
+  const camera = useThree((state) => state.camera);
 
   useEffect(() => {
     if (
       (camera as PerspectiveCamera).isPerspectiveCamera ||
       (camera as OrthographicCamera).isOrthographicCamera
     ) {
-      controls.scope.camera = camera as PerspectiveCamera | OrthographicCamera
+      controls.scope.camera = camera as PerspectiveCamera | OrthographicCamera;
     } else {
       throw new Error(
-        "The camera must be a PerspectiveCamera or OrthographicCamera to orbit controls work"
-      )
+        "The camera must be a PerspectiveCamera or OrthographicCamera to orbit controls work",
+      );
     }
-  }, [camera])
+  }, [camera]);
 
   useEffect(() => {
     for (const prop in props) {
-      ;(controls.scope[prop as keyof typeof controls.scope] as any) =
-        props[prop as keyof typeof props]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (controls.scope[prop as keyof typeof controls.scope] as any) =
+        props[prop as keyof typeof props];
     }
-  }, [props])
+  }, [props]);
 
-  useFrame(controls.functions.update, -1)
+  useFrame(controls.functions.update, -1);
 
-  return null as unknown as JSX.Element
+  return null as unknown as JSX.Element;
 }
 
+// eslint-disable-next-line import/no-default-export
 export default function useControls() {
-  const controls = useMemo(() => createControls(), [])
+  const controls = useMemo(() => createControls(), []);
 
   return [
     (props: OrbitControlsProps) => (
       <OrbitControls controls={controls} {...props} />
     ),
     controls.events,
-  ] as const
+  ] as const;
 }
-

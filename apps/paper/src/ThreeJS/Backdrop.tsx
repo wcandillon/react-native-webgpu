@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable prefer-destructuring */
 import * as THREE from "three";
@@ -64,11 +65,10 @@ export const Backdrop = () => {
       scene.add(camera);
 
       const loader = new GLTFLoader(manager);
-      loader.load("models/gltf/Michelle.glb", function (gltf) {
+      loader.load("models/gltf/Michelle.glb", function (gltf: any) {
         const object = gltf.scene;
         mixer = new THREE.AnimationMixer(object);
 
-        // @ts-expect-error
         const { material } = object.children[0].children[0];
 
         // output material effect ( better using hsv )

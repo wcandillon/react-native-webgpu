@@ -18,7 +18,7 @@ import { makeWebGPURenderer, ReactNativeCanvas } from "./makeWebGPURenderer";
 interface FiberCanvasProps {
   children: React.ReactNode;
   style?: ViewProps["style"];
-  camera?: THREE.Camera;
+  camera?: THREE.PerspectiveCamera;
   scene?: THREE.Scene;
 }
 

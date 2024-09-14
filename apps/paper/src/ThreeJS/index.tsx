@@ -22,18 +22,18 @@ export const ThreeJS = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="Fiber"
-        component={Fiber}
-        options={{
-          title: "👕 Fiber",
-        }}
-      />
-      <Stack.Screen
         name="List"
         component={List}
         options={{
           title: "🧊 Three.js",
           header: () => null,
+        }}
+      />
+      <Stack.Screen
+        name="Fiber"
+        component={Fiber}
+        options={{
+          title: "👕 Fiber",
         }}
       />
       <Stack.Screen
