@@ -46,8 +46,7 @@ const urls: Record<string, string> = {
   "models/gltf/DamagedHelmet/glTF/./Default_emissive.jpg": resolve(
     require("./Default_emissive.jpg"),
   ),
-  "jordan_shoe.gltf": resolve(require("./jordan_shoe.gltf")),
-  "./jordan_shoe.bin": resolve(require("./jordan_shoe.bin")),
+  "jordan_shoe.glb": resolve(require("./jordan_shoe.glb")),
   "light.hdr": resolve(require("./light.hdr")),
 };
 

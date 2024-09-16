@@ -1,31 +1,57 @@
-import React, { useState } from "react";
-import { View } from "react-native";
+import React, { useRef } from "react";
+import { View, Image } from "react-native";
 import * as THREE from "three";
 import { GLTFLoader } from "GLTFLoader";
-import { DRACOLoader } from "DRACOLoader";
 
 import { FiberCanvas } from "../components/FiberCanvas";
 import useControls from "../components/OrbitControl";
-import { manager } from "../assets/AssetManager";
+import { useLoader } from "@react-three/fiber";
 
-const useGLTF = (asset: string) => {
-  const [model, setModel] = useState<THREE.Object3D | null>(null);
-  const loader = new GLTFLoader(manager);
-  const dracoLoader = new DRACOLoader();
-  loader.setDRACOLoader(dracoLoader);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  loader.load(asset, function (gltf: any) {
-    const object = gltf.scene;
-    const result  = object.children[0].children[0];
-    setModel(result);
-  });
-  return model;
-};
+
+const modelUrl = Image.resolveAssetSource(
+  require("../assets/jordan_shoe.glb")
+  ).uri;
+
+// function buildGraph(object: THREE.Object3D) {
+//   const data: ObjectMap = { nodes: {}, materials: {} }
+//   if (object) {
+//     object.traverse((obj: any) => {
+//       if (obj.name) data.nodes[obj.name] = obj
+//       if (obj.material && !data.materials[obj.material.name]) data.materials[obj.material.name] = obj.material
+//     })
+//   }
+//   return data
+// }
+
+// const useGLTF = (asset: string) => {
+//   const [model, setModel] = useState<any | null>(null);
+//   useEffect(() => {
+//     const loader = new GLTFLoader(manager);
+//     const dracoLoader = new DRACOLoader();
+//     loader.setDRACOLoader(dracoLoader);
+//     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//     loader.load(asset, function (data: any) {
+//       if (data.scene) {
+//         Object.assign(data, buildGraph(data.scene));
+//       }
+//       console.log({ data: data.nodes });
+//       setModel(data);
+//     });
+//   }, []);
+//   return model;
+// };
 
 const Shoe = () => {
-  const model = useGLTF("jordan_shoe.gltf");
-  console.log(!!model);
-  return <group />;
+  const ref = useRef<THREE.Group>(null!);
+  const gltf = useLoader(GLTFLoader, modelUrl);
+
+  if (!gltf) {
+    return null;
+  }
+  console.log(gltf);
+  return  <group ref={ref}>
+  <primitive object={gltf.scene} />
+</group>;
 };
 
 export const ShoeDemo = () => {
