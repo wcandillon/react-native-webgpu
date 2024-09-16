@@ -1,6 +1,6 @@
 {
   "name": "react-native-wgpu",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "React Native WebGPU",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -16,7 +16,8 @@
     "android/src/**",
     "cpp/**/*.{h,cpp}",
     "ios/**",
-    "libs/**"
+    "libs/**",
+    "*.podspec"
   ],
   "scripts": {
     "test": "jest -i",
