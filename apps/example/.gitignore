@@ -7,7 +7,7 @@
 .idea/
 .vs/
 .xcode.env
-Pods/
+**/Pods/**
 build/
 dist/*
 !dist/.gitignore

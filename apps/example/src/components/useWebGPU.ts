@@ -59,11 +59,11 @@ export const useWebGPU = (scene: Scene) => {
     };
 
     const r = scene(sceneProps);
-    let renderScene;
+    let renderScene: RenderScene;
     if (r instanceof Promise) {
       renderScene = await r;
     } else {
-      renderScene = r;
+      renderScene = r as RenderScene;
     }
     if (typeof renderScene === "function") {
       const render = () => {

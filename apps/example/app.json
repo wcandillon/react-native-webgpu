@@ -1,10 +1,12 @@
 {
   "name": "Example",
   "displayName": "Example",
+  "singleApp": "example-app",
   "components": [
     {
       "appKey": "Example",
-      "displayName": "Example"
+      "displayName": "Example",
+      "slug": "example-app"
     }
   ],
   "resources": {
@@ -23,10 +25,6 @@
     "visionos": [
       "dist/assets",
       "dist/main.visionos.jsbundle"
-    ],
-    "windows": [
-      "dist/assets",
-      "dist/main.windows.bundle"
     ]
   }
 }

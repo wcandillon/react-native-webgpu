@@ -7,11 +7,7 @@ const project = (() => {
       },
       ios: {
         sourceDir: "ios",
-      },
-      windows: {
-        sourceDir: "windows",
-        solutionFile: "windows/Example.sln",
-      },
+      }
     });
   } catch (_) {
     return undefined;

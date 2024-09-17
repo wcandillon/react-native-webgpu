@@ -1,4 +1,5 @@
 # Yarn
+.package/.yarn/*
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
@@ -72,7 +73,7 @@ packages/webgpu/lib
 
 # Cocoapods
 #
-apps/example/ios/Pods
+apps/example/**/Pods
 # Ruby
 apps/vendor/
 

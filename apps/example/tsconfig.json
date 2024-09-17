@@ -1,10 +1,14 @@
 {
-  "extends": "@react-native/typescript-config/tsconfig.json",
+  "extends": "eslint-config-react-native-wcandillon/tsconfig.base",
   "compilerOptions": {
     "noUncheckedIndexedAccess": false,
     "paths": {
       "react-native-wgpu": ["../../packages/webgpu/src/index"],
-      "three/webgpu": ["../../node_modules/@types/three/src/Three.WebGPU.d.ts"]
+      "three": ["../../node_modules/@types/three/src/Three.WebGPU.d.ts"]
     },
-  }
+    "types": ["@webgpu/types", "@types/node"],
+  },
+  "exclude": [
+    "**/Pods/**"
+  ]
 }
