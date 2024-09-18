@@ -6,7 +6,7 @@ import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { PixelRatio, View } from "react-native";
 import { GLTFLoader } from "GLTFLoader";
 
-import { manager } from "./assets/AssetManager";
+import { manager, resolve } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 const {
@@ -64,26 +64,29 @@ export const Backdrop = () => {
       camera.add(light);
       scene.add(camera);
 
-      const loader = new GLTFLoader(manager);
-      loader.load("models/gltf/Michelle.glb", function (gltf: any) {
-        const object = gltf.scene;
-        mixer = new THREE.AnimationMixer(object);
+      const loader = new GLTFLoader();
+      loader.load(
+        resolve(require("./assets/michelle/model.gltf")),
+        function (gltf: any) {
+          const object = gltf.scene;
+          mixer = new THREE.AnimationMixer(object);
 
-        const { material } = object.children[0].children[0];
+          const { material } = object.children[0].children[0];
 
-        // output material effect ( better using hsv )
-        // ignore output.sRGBToLinear().linearTosRGB() for now
+          // output material effect ( better using hsv )
+          // ignore output.sRGBToLinear().linearTosRGB() for now
 
-        material.outputNode = oscSine(timerLocal(0.1)).mix(
-          output,
-          posterize(output.add(0.1), 4).mul(2),
-        );
+          material.outputNode = oscSine(timerLocal(0.1)).mix(
+            output,
+            posterize(output.add(0.1), 4).mul(2),
+          );
 
-        const action = mixer.clipAction(gltf.animations[0]);
-        action.play();
+          const action = mixer.clipAction(gltf.animations[0]);
+          action.play();
 
-        scene.add(object);
-      });
+          scene.add(object);
+        },
+      );
 
       // portals
 

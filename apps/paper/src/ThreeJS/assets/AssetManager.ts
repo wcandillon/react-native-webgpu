@@ -47,13 +47,14 @@ const urls: Record<string, string> = {
 };
 
 export const manager = new THREE.LoadingManager();
-manager.setURLModifier((url: string) => {
-  const asset = urls[url];
-  if (asset) {
-    return asset;
-  }
-  return url;
-});
+// manager.setURLModifier((url: string) => {
+//   const asset = urls[url];
+//   if (asset) {
+//     return asset;
+//   }
+//   console.log("url not found: " + url);
+//   return url;
+// });
 
 manager.onStart = function (url, itemsLoaded, itemsTotal) {
   console.log(
