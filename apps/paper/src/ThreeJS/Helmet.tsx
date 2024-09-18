@@ -7,10 +7,10 @@ import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 export const Helmet = () => {
   const texture = useRGBE(require("./assets/helmet/royal_esplanade_1k.hdr"));
-  const gltfScene = useGLTF(require("./assets/helmet/DamagedHelmet.gltf"));
+  const gltf = useGLTF(require("./assets/helmet/DamagedHelmet.gltf"));
 
   const ref = useCanvasEffect(async () => {
-    if (!texture || !gltfScene) {
+    if (!texture || !gltf) {
       return;
     }
     const context = ref.current!.getContext("webgpu")!;
@@ -32,7 +32,7 @@ export const Helmet = () => {
     scene.background = texture;
     scene.environment = texture;
 
-    scene.add(gltfScene);
+    scene.add(gltf.scene);
     renderer.setAnimationLoop(animate);
 
     //
@@ -53,7 +53,7 @@ export const Helmet = () => {
     return () => {
       renderer.setAnimationLoop(null);
     };
-  }, [texture, gltfScene]);
+  }, [texture, gltf]);
 
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>

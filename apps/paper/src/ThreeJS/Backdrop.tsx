@@ -1,12 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable prefer-destructuring */
 import * as THREE from "three";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
-import { PixelRatio, View } from "react-native";
-import { GLTFLoader } from "GLTFLoader";
+import { PixelRatio, Text, View, StyleSheet } from "react-native";
 
-import { resolveAsset } from "./assets/AssetManager";
+import { useGLTF } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 const {
@@ -29,7 +27,11 @@ const {
 } = THREE;
 
 export const Backdrop = () => {
+  const gltf = useGLTF(require("./assets/michelle/model.gltf"));
   const ref = useCanvasEffect(async () => {
+    if (!gltf) {
+      return;
+    }
     const rotate = true;
 
     // Anti alias in the renderer is set to false and we handle the pixel density here
@@ -64,29 +66,23 @@ export const Backdrop = () => {
       camera.add(light);
       scene.add(camera);
 
-      const loader = new GLTFLoader();
-      loader.load(
-        resolveAsset(require("./assets/michelle/model.gltf")),
-        function (gltf: any) {
-          const object = gltf.scene;
-          mixer = new THREE.AnimationMixer(object);
+      const object = gltf.scene;
+      mixer = new THREE.AnimationMixer(object);
 
-          const { material } = object.children[0].children[0];
+      const { material } = object.children[0].children[0];
 
-          // output material effect ( better using hsv )
-          // ignore output.sRGBToLinear().linearTosRGB() for now
+      // output material effect ( better using hsv )
+      // ignore output.sRGBToLinear().linearTosRGB() for now
 
-          material.outputNode = oscSine(timerLocal(0.1)).mix(
-            output,
-            posterize(output.add(0.1), 4).mul(2),
-          );
-
-          const action = mixer.clipAction(gltf.animations[0]);
-          action.play();
-
-          scene.add(object);
-        },
+      material.outputNode = oscSine(timerLocal(0.1)).mix(
+        output,
+        posterize(output.add(0.1), 4).mul(2),
       );
+
+      const action = mixer.clipAction(gltf.animations[0]);
+      action.play();
+
+      scene.add(object);
 
       // portals
 
@@ -172,11 +168,14 @@ export const Backdrop = () => {
     return () => {
       renderer.setAnimationLoop(null);
     };
-  });
+  }, [gltf]);
 
   return (
-    <View style={{ flex: 1 }}>
-      <Canvas ref={ref} style={{ flex: 1 }} />
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <Text>Loading assets...</Text>
+      <View style={StyleSheet.absoluteFill}>
+        <Canvas ref={ref} style={{ flex: 1 }} />
+      </View>
     </View>
   );
 };
