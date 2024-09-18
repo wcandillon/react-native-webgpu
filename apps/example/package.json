@@ -8,7 +8,7 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",
-    "pod:install": "cd ios && pod install",
+    "pod:install": "pod install --project-directory=ios",
     "build:android": "cd android && ./gradlew assembleDebug --warning-mode all",
     "build:ios": "yarn run mkdist && react-native bundle --entry-file index.js --platform ios --dev true --bundle-output dist/main.ios.jsbundle --assets-dest dist && react-native build-ios --scheme Example --mode Debug --extra-params \"-sdk iphonesimulator CC=clang CPLUSPLUS=clang++ LD=clang LDPLUSPLUS=clang++ GCC_OPTIMIZATION_LEVEL=0 GCC_PRECOMPILE_PREFIX_HEADER=YES ASSETCATALOG_COMPILER_OPTIMIZATION=time DEBUG_INFORMATION_FORMAT=dwarf COMPILER_INDEX_STORE_ENABLE=NO\"",
     "mkdist": "node -e \"require('node:fs').mkdirSync('dist', { recursive: true, mode: 0o755 })\""
@@ -51,7 +51,7 @@
     "eslint-config-react-native-wcandillon": "^3.10.2",
     "jest": "^29.6.3",
     "prettier": "2.8.8",
-    "react-native-test-app": "^3.9.7",
+    "react-native-test-app": "^3.10.8",
     "react-test-renderer": "18.2.0",
     "typescript": "5.0.4"
   },
