@@ -1,13 +1,11 @@
 import * as THREE from "three";
 import { Image } from "react-native";
 
-const resolve = (mod: ReturnType<typeof require>) => {
+export const resolve = (mod: ReturnType<typeof require>) => {
   return Image.resolveAssetSource(mod).uri;
 };
 
 const urls: Record<string, string> = {
-  "models/json/suzanne_buffergeometry.json":
-    "https://threejs.org/examples/models/json/suzanne_buffergeometry.json",
   "./textures/uv_grid_opengl.jpg": resolve(
     require("./textures/uv_grid_opengl.jpg"),
   ),
@@ -54,7 +52,6 @@ manager.setURLModifier((url: string) => {
   if (asset) {
     return asset;
   }
-  console.error("url not found", url);
   return url;
 });
 

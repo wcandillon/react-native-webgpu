@@ -43,9 +43,9 @@ export const InstancedMesh = () => {
         oscSine(timerLocal(0.1)),
       );
 
-      const loader = new THREE.BufferGeometryLoader(manager);
+      const loader = new THREE.BufferGeometryLoader();
       loader.load(
-        "models/json/suzanne_buffergeometry.json",
+        "https://threejs.org/examples/models/json/suzanne_buffergeometry.json",
         function (geometry) {
           console.log("geometry loaded");
           geometry.computeVertexNormals();
