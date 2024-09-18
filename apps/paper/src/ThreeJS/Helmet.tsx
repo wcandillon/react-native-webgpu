@@ -8,8 +8,6 @@ import { RGBELoader } from "RGBELoader";
 import { resolveAsset } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
-window.parent = window;
-
 export const Helmet = () => {
   const ref = useCanvasEffect(async () => {
     const context = ref.current!.getContext("webgpu")!;
