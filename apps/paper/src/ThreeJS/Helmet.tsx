@@ -1,53 +1,39 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as THREE from "three";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { StyleSheet, Text, View } from "react-native";
-import { GLTFLoader } from "GLTFLoader";
-import { RGBELoader } from "RGBELoader";
 
-import { resolveAsset } from "./assets/AssetManager";
+import { useGLTF, useRGBE } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 export const Helmet = () => {
+  const texture = useRGBE(require("./assets/helmet/royal_esplanade_1k.hdr"));
+  const gltfScene = useGLTF(require("./assets/helmet/DamagedHelmet.gltf"));
+
   const ref = useCanvasEffect(async () => {
+    if (!texture || !gltfScene) {
+      return;
+    }
     const context = ref.current!.getContext("webgpu")!;
     const { width, height } = context.canvas;
-    let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer;
 
     const clock = new THREE.Clock();
-    init();
 
-    function init() {
-      camera = new THREE.PerspectiveCamera(45, width / height, 0.25, 20);
-      camera.position.set(-1.8, 0.6, 2.7);
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.25, 20);
+    camera.position.set(-1.8, 0.6, 2.7);
 
-      scene = new THREE.Scene();
+    const scene = new THREE.Scene();
 
-      new RGBELoader().load(
-        resolveAsset(require("./assets/helmet/royal_esplanade_1k.hdr")),
-        function (texture: any) {
-          texture.mapping = THREE.EquirectangularReflectionMapping;
+    const renderer = makeWebGPURenderer(context);
 
-          scene.background = texture;
-          scene.environment = texture;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
-          const loader = new GLTFLoader();
-          loader.load(
-            resolveAsset(require("./assets/helmet/DamagedHelmet.gltf")),
-            function (gltf: any) {
-              console.log("helmet loaded");
-              scene.add(gltf.scene);
+    texture.mapping = THREE.EquirectangularReflectionMapping;
 
-              renderer.setAnimationLoop(animate);
-            },
-          );
-        },
-      );
+    scene.background = texture;
+    scene.environment = texture;
 
-      renderer = makeWebGPURenderer(context);
-
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    }
+    scene.add(gltfScene);
+    renderer.setAnimationLoop(animate);
 
     //
     function animateCamera() {
@@ -67,7 +53,7 @@ export const Helmet = () => {
     return () => {
       renderer.setAnimationLoop(null);
     };
-  });
+  }, [texture, gltfScene]);
 
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
