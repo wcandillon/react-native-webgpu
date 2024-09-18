@@ -1,64 +1,35 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as THREE from "three";
 import { Image } from "react-native";
+import { useEffect, useState } from "react";
+import { GLTFLoader } from "GLTFLoader";
+import { DRACOLoader } from "DRACOLoader";
+import { RGBELoader } from "RGBELoader";
 
-const resolve = (mod: ReturnType<typeof require>) => {
+export interface GLTF {
+  animations: THREE.AnimationClip[];
+  scene: THREE.Group;
+  scenes: THREE.Group[];
+  cameras: THREE.Camera[];
+  asset: {
+    copyright?: string | undefined;
+    generator?: string | undefined;
+    version?: string | undefined;
+    minVersion?: string | undefined;
+    extensions?: any;
+    extras?: any;
+  };
+  parser: any;
+  userData: Record<string, any>;
+}
+
+export const resolveAsset = (mod: ReturnType<typeof require>) => {
   return Image.resolveAssetSource(mod).uri;
 };
 
-const urls: Record<string, string> = {
-  "models/json/suzanne_buffergeometry.json":
-    "https://threejs.org/examples/models/json/suzanne_buffergeometry.json",
-  "./textures/uv_grid_opengl.jpg": resolve(
-    require("./textures/uv_grid_opengl.jpg"),
-  ),
-  "models/gltf/Michelle.glb": resolve(require("./michelle/model.gltf")),
-  "models/gltf/model.bin": resolve(require("./michelle/model.bin")),
-  "models/gltf/Ch03_1001_Diffuse.png": resolve(
-    require("./michelle/Ch03_1001_Diffuse.png"),
-  ),
-  "models/gltf/Ch03_1001_Glossiness.png": resolve(
-    require("./michelle/Ch03_1001_Glossiness.png"),
-  ),
-  "models/gltf/Ch03_1001_Normal.png": resolve(
-    require("./michelle/Ch03_1001_Normal.png"),
-  ),
-  "textures/equirectangular/royal_esplanade_1k.hdr": resolve(
-    require("./royal_esplanade_1k.hdr"),
-  ),
-  "models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf": resolve(
-    require("./DamagedHelmet.gltf"),
-  ),
-  "models/gltf/DamagedHelmet/glTF/./DamagedHelmet.bin": resolve(
-    require("./DamagedHelmet.bin"),
-  ),
-  "models/gltf/DamagedHelmet/glTF/./Default_albedo.jpg": resolve(
-    require("./Default_albedo.jpg"),
-  ),
-  "models/gltf/DamagedHelmet/glTF/./Default_metalRoughness.jpg": resolve(
-    require("./Default_metalRoughness.jpg"),
-  ),
-  "models/gltf/DamagedHelmet/glTF/./Default_normal.jpg": resolve(
-    require("./Default_normal.jpg"),
-  ),
-  "models/gltf/DamagedHelmet/glTF/./Default_AO.jpg": resolve(
-    require("./Default_AO.jpg"),
-  ),
-  "models/gltf/DamagedHelmet/glTF/./Default_emissive.jpg": resolve(
-    require("./Default_emissive.jpg"),
-  ),
-};
+export const debugManager = new THREE.LoadingManager();
 
-export const manager = new THREE.LoadingManager();
-manager.setURLModifier((url: string) => {
-  const asset = urls[url];
-  if (asset) {
-    return asset;
-  }
-  console.error("url not found", url);
-  return url;
-});
-
-manager.onStart = function (url, itemsLoaded, itemsTotal) {
+debugManager.onStart = function (url, itemsLoaded, itemsTotal) {
   console.log(
     "Started loading file: " +
       url +
@@ -70,11 +41,7 @@ manager.onStart = function (url, itemsLoaded, itemsTotal) {
   );
 };
 
-manager.onLoad = function () {
-  console.log("Loading complete!");
-};
-
-manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+debugManager.onProgress = function (url, itemsLoaded, itemsTotal) {
   console.log(
     "Loading file: " +
       url +
@@ -86,6 +53,32 @@ manager.onProgress = function (url, itemsLoaded, itemsTotal) {
   );
 };
 
-manager.onError = function (url) {
-  console.log("There was an error loading " + url);
+debugManager.onError = function (url) {
+  console.error("There was an error loading " + url);
+};
+
+export const useRGBE = (asset: ReturnType<typeof require>) => {
+  const url = resolveAsset(asset);
+  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+  useEffect(() => {
+    const loader = new RGBELoader();
+    loader.load(url, function (tex: THREE.Texture) {
+      setTexture(tex);
+    });
+  }, [url]);
+  return texture;
+};
+
+export const useGLTF = (asset: string) => {
+  const [GLTF, setGLTF] = useState<GLTF | null>(null);
+  const url = resolveAsset(asset);
+  useEffect(() => {
+    const loader = new GLTFLoader();
+    const dracoLoader = new DRACOLoader();
+    loader.setDRACOLoader(dracoLoader);
+    loader.load(url, (model: GLTF) => {
+      setGLTF(model);
+    });
+  }, [url]);
+  return GLTF;
 };

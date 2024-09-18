@@ -3,7 +3,6 @@ import * as THREE from "three";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { View } from "react-native";
 
-import { manager } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 const { timerLocal, oscSine, mix, range } = THREE;
@@ -43,9 +42,9 @@ export const InstancedMesh = () => {
         oscSine(timerLocal(0.1)),
       );
 
-      const loader = new THREE.BufferGeometryLoader(manager);
+      const loader = new THREE.BufferGeometryLoader();
       loader.load(
-        "models/json/suzanne_buffergeometry.json",
+        "https://threejs.org/examples/models/json/suzanne_buffergeometry.json",
         function (geometry) {
           console.log("geometry loaded");
           geometry.computeVertexNormals();
