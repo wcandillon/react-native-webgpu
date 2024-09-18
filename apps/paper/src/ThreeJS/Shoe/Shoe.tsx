@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import { View } from "react-native";
 import * as THREE from "three";
 
@@ -6,13 +6,20 @@ import { FiberCanvas } from "../components/FiberCanvas";
 import useControls from "../components/OrbitControl";
 import { useGLTF } from "../assets/AssetManager";
 
-
 const Shoe = () => {
   const ref = useRef<THREE.Group>(null!);
   const gltf = useGLTF(require("../assets/jordan/jordan_shoe.glb"));
   if (!gltf) {
     return null;
   }
+
+  // Center the model
+  const box = new THREE.Box3().setFromObject(gltf.scene);
+  const center = box.getCenter(new THREE.Vector3());
+  gltf.scene.position.x -= center.x;
+  gltf.scene.position.y -= center.y;
+  gltf.scene.position.z -= center.z;
+
   return (
     <group ref={ref}>
       <primitive object={gltf.scene} />
