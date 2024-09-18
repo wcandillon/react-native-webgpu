@@ -56,7 +56,7 @@ manager.setURLModifier((url: string) => {
   if (asset) {
     return asset;
   }
-  console.error("url not found", url.substring(0, 150));
+  //console.error("url not found", url.substring(0, 150));
   return url;
 });
 
