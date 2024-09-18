@@ -89,8 +89,12 @@ export const ShoeDemo = () => {
       <FiberCanvas style={{ flex: 1 }}>
         <color attach="background" args={[0xffffff]} />
         <OrbitControls />
-        <ambientLight intensity={0.5} />
-        <directionalLight intensity={1} position={[5, 10, 7.5]} castShadow />
+        {/* Increase ambient light intensity */}
+        <ambientLight intensity={1} />
+        {/* Adjust directional light position and intensity */}
+        <directionalLight intensity={1.5} position={[5, 10, 7.5]} castShadow />
+        {/* Optional: Add additional lights */}
+        <pointLight intensity={0.5} position={[-5, -10, -7.5]} />
         <Shoe />
       </FiberCanvas>
     </View>
