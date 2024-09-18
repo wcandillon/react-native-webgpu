@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { GLTFLoader } from "GLTFLoader";
 import { RGBELoader } from "RGBELoader";
 
-import { manager } from "./assets/AssetManager";
+import { resolveAsset } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 window.parent = window;
@@ -25,24 +25,26 @@ export const Helmet = () => {
 
       scene = new THREE.Scene();
 
-      new RGBELoader(manager)
-        .setPath("textures/equirectangular/")
-        .load("royal_esplanade_1k.hdr", function (texture: any) {
+      new RGBELoader().load(
+        resolveAsset(require("./assets/helmet/royal_esplanade_1k.hdr")),
+        function (texture: any) {
           texture.mapping = THREE.EquirectangularReflectionMapping;
 
           scene.background = texture;
           scene.environment = texture;
 
-          const loader = new GLTFLoader(manager).setPath(
-            "models/gltf/DamagedHelmet/glTF/",
-          );
-          loader.load("DamagedHelmet.gltf", function (gltf: any) {
-            console.log("helmet loaded");
-            scene.add(gltf.scene);
+          const loader = new GLTFLoader();
+          loader.load(
+            resolveAsset(require("./assets/helmet/DamagedHelmet.gltf")),
+            function (gltf: any) {
+              console.log("helmet loaded");
+              scene.add(gltf.scene);
 
-            renderer.setAnimationLoop(animate);
-          });
-        });
+              renderer.setAnimationLoop(animate);
+            },
+          );
+        },
+      );
 
       renderer = makeWebGPURenderer(context);
 

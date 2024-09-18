@@ -6,7 +6,7 @@ import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { PixelRatio, View } from "react-native";
 import { GLTFLoader } from "GLTFLoader";
 
-import { manager, resolve } from "./assets/AssetManager";
+import { resolveAsset } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 const {
@@ -66,7 +66,7 @@ export const Backdrop = () => {
 
       const loader = new GLTFLoader();
       loader.load(
-        resolve(require("./assets/michelle/model.gltf")),
+        resolveAsset(require("./assets/michelle/model.gltf")),
         function (gltf: any) {
           const object = gltf.scene;
           mixer = new THREE.AnimationMixer(object);

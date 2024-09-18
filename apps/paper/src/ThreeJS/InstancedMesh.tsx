@@ -3,7 +3,6 @@ import * as THREE from "three";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { View } from "react-native";
 
-import { manager } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 const { timerLocal, oscSine, mix, range } = THREE;
