@@ -11,14 +11,14 @@ Please note that the package name is `react-native-wgpu`.
 npm install react-native-wgpu
 ```
 
-Below are some examples from the [example app](/package/example/).
+Below are some examples from the [example app](/apps/paper/).
 
 https://github.com/user-attachments/assets/116a41b2-2cf8-49f1-9f16-a5c83637c198
 
 Starting from `r168`, Three.js runs out of the box with React Native WebGPU.
-You need to have a slight modification of [the metro config](/package/example/metro.config.js) to resolve Three.js to the WebGPU build.
-We also support [three-fiber](/apps/apps/src/ThreeJS/Fiber.tsx).
-For model loading, we also need [the following polyfill](/apps/apps/src/App.tsx#29).
+You need to have a slight modification of [the metro config](/apps/paper/metro.config.js) to resolve Three.js to the WebGPU build.
+We also support [three-fiber](/apps/paper/src/ThreeJS/Fiber.tsx).
+For model loading, we also need [the following polyfill](/apps/paper/src/App.tsx#29).
 
 https://github.com/user-attachments/assets/5b49ef63-0a3c-4679-aeb5-e4b4dddfcc1d
 
