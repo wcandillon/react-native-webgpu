@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import React, { useRef, useEffect } from "react";
 import { View } from "react-native";
 import * as THREE from "three";
@@ -5,6 +6,28 @@ import * as THREE from "three";
 import { FiberCanvas } from "../components/FiberCanvas";
 import useControls from "../components/OrbitControl";
 import { useGLTF } from "../assets/AssetManager";
+
+const colorMap = {
+  nikelogo: 0xfe8cdd,
+  lateralwhite: 0xffffff,
+  upperlateral: 0x2e65fe,
+  base_white: 0xffffff,
+  upper: 0xffffff,
+  base_red: 0xfe8cdd,
+  Cylinder: 0x2e65fe,
+  uppercap: 0x2e65fe,
+  lateralcords_left_1: 0xffffff,
+  lateralcords_right_1: 0xffffff,
+  tongue: 0xffffff,
+  redcollar: 0xfe8cdd,
+  counterlinning: 0x2e65fe,
+  counterlinninginside: 0x2e65fe,
+  conterlinninginside: 0x2e65fe,
+  logotag: 0x2e65fe,
+  counter: 0xfe8cdd,
+  shapetongueleft_1: "0xffffff",
+  shapetongueright_1: "0xffffff",
+};
 
 const Shoe = () => {
   const ref = useRef<THREE.Group>(null!);
@@ -19,26 +42,30 @@ const Shoe = () => {
       gltf.scene.position.y -= center.y;
       gltf.scene.position.z -= center.z;
 
-      // Assign different colors to each mesh
-      let colorIndex = 0;
-      const colors = [
-        0xff0000, // Red
-        0x00ff00, // Green
-        0x0000ff, // Blue
-        0xffff00, // Yellow
-        0x00ffff, // Cyan
-        0xff00ff, // Magenta
-        0x3366ff, // White
-        0x000000, // Black
-      ];
-
       gltf.scene.traverse((child) => {
         if (child.isMesh) {
-          // Clone the existing material to avoid affecting other meshes
-          child.material = child.material.clone();
-          // Set a new color from the colors array
-          child.material.color.setHex(colors[colorIndex % colors.length]);
-          colorIndex++;
+          // Replace the existing material with MeshStandardMaterial
+          const material = new THREE.MeshStandardMaterial({
+            color: 0xffffff, // Default color
+            side: THREE.DoubleSide, // Render both sides
+            roughness: 0.5, // Adjust as needed
+            metalness: 0.1, // Adjust as needed
+          });
+
+          // Set the color based on your colorMap
+          const key = child.name.split("_")[0];
+          if (child.name.startsWith("cord")) {
+            material.color.setHex(0xffffff);
+          } else if (colorMap[child.name]) {
+            material.color.setHex(colorMap[child.name]);
+          } else if (colorMap[key]) {
+            material.color.setHex(colorMap[key]);
+          } else {
+            console.log("No color found for:", child.name);
+            material.color.setHex(0xff0000);
+          }
+
+          child.material = material;
         }
       });
     }
