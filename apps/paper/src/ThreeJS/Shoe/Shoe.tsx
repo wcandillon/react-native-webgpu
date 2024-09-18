@@ -35,14 +35,8 @@ export const ShoeDemo = () => {
         <color attach="background" args={[0xffffff]} />
 
         <OrbitControls />
-        <ambientLight intensity={0.7} />
-        <spotLight
-          intensity={0.5}
-          angle={0.1}
-          penumbra={1}
-          position={[10, 15, 10]}
-          castShadow
-        />
+        <ambientLight intensity={0.5} />
+        <directionalLight intensity={1} position={[5, 10, 7.5]} castShadow />
         <Shoe />
       </FiberCanvas>
     </View>
