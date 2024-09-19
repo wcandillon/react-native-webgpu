@@ -4,10 +4,10 @@
 
 namespace rnwgpu {
 
-class IOSPlatformContext : public PlatformContext {
+class ApplePlatformContext : public PlatformContext {
 public:
-  IOSPlatformContext() = default;
-  ~IOSPlatformContext() = default;
+  ApplePlatformContext() = default;
+  ~ApplePlatformContext() = default;
 
   wgpu::Surface makeSurface(wgpu::Instance instance, void *surface, int width,
                             int height) override;

@@ -1,9 +1,9 @@
 #pragma once
 
 #import "WebGPUModule.h"
-#import <UIKit/UIKit.h>
+#import "RNWGUIKit.h"
 
-@interface MetalView : UIView
+@interface MetalView : RNWGPlatformView
 
 @property NSNumber *contextId;
 
