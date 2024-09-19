@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createStackNavigator } from "@react-navigation/stack";
 import { warnIfNotHardwareAccelerated } from "react-native-wgpu";
 
 import { Cube } from "./Cube";
@@ -10,7 +10,7 @@ import { Backdrop } from "./Backdrop";
 import { InstancedMesh } from "./InstancedMesh";
 import { Fiber } from "./Fiber";
 
-const Stack = createNativeStackNavigator<Routes>();
+const Stack = createStackNavigator<Routes>();
 export const ThreeJS = () => {
   useEffect(() => {
     navigator.gpu.requestAdapter().then((adapter) => {
