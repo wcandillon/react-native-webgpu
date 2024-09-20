@@ -84,7 +84,7 @@ const android = {
 const apple = {
   matrix: {
     arm64: platforms(["iphoneos", "iphonesimulator", "xros", "xrsimulator"]),
-    x86_64: platforms(["iphonesimulator", "xrsimulator"]),
+    x86_64: platforms(["iphonesimulator"]),
     universal: platforms(["macosx"]),
   },
   args: {
@@ -130,46 +130,26 @@ const apple = {
     }
   }
 
+  $(`mkdir -p ${projectRoot}/libs/apple/iphonesimulator`);
   libs.forEach((lib) => {
     console.log(`📱 Building fat binary for iphone simulator: ${lib}`);
     $(
-      `lipo -create ${projectRoot}/libs/apple/x86_64_iphonesimulator/${lib}.a ${projectRoot}/libs/apple/arm64_iphonesimulator/${lib}.a -output ${projectRoot}/libs/apple/${lib}.a`,
+      `lipo -create ${projectRoot}/libs/apple/x86_64_iphonesimulator/${lib}.a ${projectRoot}/libs/apple/arm64_iphonesimulator/${lib}.a -output ${projectRoot}/libs/apple/iphonesimulator/${lib}.a`,
     );
   });
 
   libs.forEach((lib) => {
-    console.log(`👓 Building fat binary for visionos simulator: ${lib}`);
-    $(
-      `lipo -create ${projectRoot}/libs/apple/x86_64_xrsimulator/${lib}.a ${projectRoot}/libs/apple/arm64_xrsimulator/${lib}.a -output ${projectRoot}/libs/apple/${lib}_visionos.a`,
-    );
-  });
+    console.log(`📱 Building ${lib} (XCFramework) for iOS, visionOS and macOS`);
 
-  libs.forEach((lib) => {
-    console.log(`📱 Building ${lib} for iOS`);
-    // iOS
     $(`rm -rf ${projectRoot}/libs/apple/${lib}.xcframework`);
     $(
       "xcodebuild -create-xcframework " +
-        `-library ${projectRoot}/libs/apple/${lib}.a ` +
+        `-library ${projectRoot}/libs/apple/iphonesimulator/${lib}.a ` +
         `-library ${projectRoot}/libs/apple/arm64_iphoneos/${lib}.a ` +
-        ` -output ${projectRoot}/libs/apple/${lib}.xcframework `,
-    );
-    console.log(`👓 Building ${lib} for VisionOS`);
-    // VisionOS
-    $(`rm -rf ${projectRoot}/libs/apple/${lib}_visionos.xcframework`);
-    $(
-      "xcodebuild -create-xcframework " +
-        `-library ${projectRoot}/libs/apple/${lib}_visionos.a ` +
         `-library ${projectRoot}/libs/apple/arm64_xros/${lib}.a ` +
-        ` -output ${projectRoot}/libs/apple/${lib}_visionos.xcframework `,
-    );
-    console.log(`🖥️ Building ${lib} for macOS`);
-    // macOS
-    $(`rm -rf ${projectRoot}/libs/apple/${lib}_macosx.xcframework`);
-    $(
-      "xcodebuild -create-xcframework " +
+        `-library ${projectRoot}/libs/apple/arm64_xrsimulator/${lib}.a ` +
         `-library ${projectRoot}/libs/apple/universal_macosx/${lib}.a ` +
-        ` -output ${projectRoot}/libs/apple/${lib}_macosx.xcframework `,
+        ` -output ${projectRoot}/libs/apple/${lib}.xcframework `,
     );
   });
 
