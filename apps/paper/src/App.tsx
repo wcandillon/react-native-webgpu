@@ -1,7 +1,6 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { LogBox } from "react-native";
 
 import type { Routes } from "./Route";
 import { Home } from "./Home";
@@ -27,10 +26,11 @@ import { SamplerParameters } from "./Sampler";
 import { ReversedZ } from "./ReversedZ";
 import { ThreeJS } from "./ThreeJS";
 import { GradientTiles } from "./GradientTiles";
+// The two lines below are needed by three.js
+import "fast-text-encoding";
+window.parent = window;
 
 const Stack = createNativeStackNavigator<Routes>();
-
-LogBox.ignoreLogs(["WARNING: Multiple instances of Three.js being imported"]);
 
 function App() {
   const assets = useAssets();

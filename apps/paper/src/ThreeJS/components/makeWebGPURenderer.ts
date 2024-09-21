@@ -1,8 +1,8 @@
 import type { NativeCanvas } from "react-native-wgpu";
-import * as THREE from "three/webgpu";
+import * as THREE from "three";
 
 // Here we need to wrap the Canvas into a non-host object for now
-class ReactNativeCanvas {
+export class ReactNativeCanvas {
   constructor(private canvas: NativeCanvas) {}
 
   get width() {
@@ -11,6 +11,14 @@ class ReactNativeCanvas {
 
   get height() {
     return this.canvas.height;
+  }
+
+  set width(width: number) {
+    this.canvas.width = width;
+  }
+
+  set height(height: number) {
+    this.canvas.height = height;
   }
 
   get clientWidth() {
@@ -27,6 +35,26 @@ class ReactNativeCanvas {
 
   set clientHeight(height: number) {
     this.canvas.height = height;
+  }
+
+  addEventListener(_type: string, _listener: EventListener) {
+    // TODO
+  }
+
+  removeEventListener(_type: string, _listener: EventListener) {
+    // TODO
+  }
+
+  dispatchEvent(_event: Event) {
+    // TODO
+  }
+
+  setPointerCapture() {
+    // TODO
+  }
+
+  releasePointerCapture() {
+    // TODO
   }
 }
 

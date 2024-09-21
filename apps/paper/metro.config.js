@@ -20,7 +20,25 @@ const config = {
       'three': threePackagePath,
     },
     resolveRequest: (context, moduleName, platform) => {
-      if (moduleName === 'three/webgpu') { 
+      if (moduleName === "DRACOLoader") {
+        return {
+          filePath: path.resolve(threePackagePath, 'examples/jsm/loaders/DRACOLoader.js'),
+          type: 'sourceFile',
+        };
+      }
+      if (moduleName === "GLTFLoader") {
+        return {
+          filePath: path.resolve(threePackagePath, 'examples/jsm/loaders/GLTFLoader.js'),
+          type: 'sourceFile',
+        };
+      }
+      if (moduleName === "RGBELoader") {
+        return {
+          filePath: path.resolve(threePackagePath, 'examples/jsm/loaders/RGBELoader.js'),
+          type: 'sourceFile',
+        };
+      }
+      if (moduleName === 'three') { 
         return {
           filePath: path.resolve(threePackagePath, 'build/three.webgpu.js'),
           type: 'sourceFile',

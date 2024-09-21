@@ -16,6 +16,8 @@
   "dependencies": {
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/native-stack": "^6.10.0",
+    "@react-three/fiber": "^8.17.6",
+    "fast-text-encoding": "^1.0.6",
     "react": "18.2.0",
     "react-native": "0.74.2",
     "react-native-gesture-handler": "^2.17.1",
@@ -25,7 +27,6 @@
     "react-native-wgpu": "*",
     "teapot": "^1.0.0",
     "three": "0.168.0",
-    "three-stdlib": "2.32.2",
     "typegpu": "^0.1.2",
     "wgpu-matrix": "^3.0.2"
   },
