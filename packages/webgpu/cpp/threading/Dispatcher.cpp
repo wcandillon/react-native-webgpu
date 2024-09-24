@@ -1,4 +1,4 @@
-#include "Dispatcher.hpp"
+#include "Dispatcher.h"
 #include "JSIHelpers.hpp"
 #include "NitroDefines.hpp"
 #include "NitroLogger.hpp"

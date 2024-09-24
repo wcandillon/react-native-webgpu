@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Dispatcher.hpp"
+#include "Dispatcher.h"
 #include <ReactCommon/CallInvoker.h>
 
 namespace margelo::nitro

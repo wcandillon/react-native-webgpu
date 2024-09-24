@@ -5,7 +5,7 @@
 //  Created by Marc Rousavy on 21.06.24.
 //
 
-#include "ThreadPool.hpp"
+#include "ThreadPool.h"
 #include "NitroLogger.hpp"
 #include "ThreadUtils.hpp"
 
