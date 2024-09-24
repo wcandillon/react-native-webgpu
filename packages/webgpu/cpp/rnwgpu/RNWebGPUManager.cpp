@@ -2,6 +2,8 @@
 
 #include "GPU.h"
 #include "RNWebGPU.h"
+#include "CallInvokerDispatcher.h"
+#include "Dispatcher.h"
 
 // Enums
 #include "GPUBufferUsage.h"
@@ -21,6 +23,11 @@ RNWebGPUManager::RNWebGPUManager(
     std::shared_ptr<PlatformContext> platformContext)
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker),
       _platformContext(platformContext) {
+
+  // Installs the global Dispatcher mechanism into this Runtime.
+  // This allows creating Promises and calling back to JS.
+  auto dispatcher = std::make_shared<CallInvokerDispatcher>(_callInvoker);
+  Dispatcher::installRuntimeGlobalDispatcher(_jsRuntime, dispatcher);
 
   auto gpu = std::make_shared<GPU>();
   auto rnWebGPU = std::make_shared<RNWebGPU>(gpu, _platformContext);
