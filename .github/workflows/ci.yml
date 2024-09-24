@@ -51,6 +51,9 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install Chrome
+        run: npx puppeteer browsers install chrome
+
       - name: Run reference test suite
         working-directory: packages/webgpu
         run: yarn test:ref
