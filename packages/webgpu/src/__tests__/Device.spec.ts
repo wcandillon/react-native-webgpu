@@ -55,7 +55,7 @@ describe("Device", () => {
         const timeout = new Promise((resolve) => {
           setTimeout(() => {
             resolve(false);
-          }, 1);
+          }, 50);
         });
 
         device.destroy();
