@@ -15,17 +15,11 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/wcandillon/react-native-webgpu.git", :tag => "#{s.version}" }
 
   s.source_files = [
-    "ios/**/*.{h,c,cc,cpp,m,mm,swift}",  
+    "ios/**/*.{h,c,cc,cpp,m,mm,swift}",
     "cpp/**/*.{h,cpp}"
   ]
 
-  s.ios.vendored_frameworks = [
-    'libs/apple/libwebgpu_dawn.xcframework',
-  ]
-
-  s.visionos.vendored_frameworks = [
-    'libs/apple/libwebgpu_dawn_visionos.xcframework',
-  ]
+  s.vendored_frameworks = 'libs/apple/libwebgpu_dawn.xcframework'
 
   s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',
