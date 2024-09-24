@@ -170,6 +170,14 @@ class ReferenceTestingClient implements TestingClient {
         getCurrentTexture() {
             return this.texture;
         }
+
+        get canvas() {
+          return {
+            width: this.width,
+            height: this.height,
+          };
+        }
+
         getImageData() {
             const commandEncoder = this.device.createCommandEncoder();
             const bytesPerRow = this.width * 4;
