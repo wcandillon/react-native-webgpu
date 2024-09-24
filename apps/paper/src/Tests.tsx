@@ -2,19 +2,19 @@
 
 import React, { useEffect, useState } from "react";
 import { Dimensions, Text, View, Image } from "react-native";
-import "react-native-wgpu";
+import { GPUOffscreenCanvas } from "react-native-wgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
 import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
-import { NativeDrawingContext } from "./components/NativeDrawingContext";
 import type { AssetProps } from "./components/useAssets";
 import { Texture } from "./components/Texture";
 
 export const CI = process.env.CI === "true";
 
 const { width } = Dimensions.get("window");
+const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
 const useWebGPU = () => {
   const [adapter, setAdapter] = useState<GPUAdapter | null>(null);
@@ -42,7 +42,13 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
       client.onmessage = (e) => {
         const tree = JSON.parse(e.data);
         if (tree.code) {
-          const ctx = new NativeDrawingContext(device, 1024, 1024);
+          const canvas = new GPUOffscreenCanvas(1024, 1024);
+          const ctx = canvas.getContext("webgpu")!;
+          ctx.configure({
+            device,
+            format: presentationFormat,
+            alphaMode: "premultiplied",
+          });
           const result = eval(
             `(function Main() {
               return (${tree.code})(this.ctx);
@@ -67,6 +73,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                 redFragWGSL,
               },
               ctx,
+              canvas: ctx.canvas,
               mat4,
               vec3,
               mat3,

@@ -248,6 +248,7 @@ describe("A Buffer", () => {
         translucentWGSL,
         mat4,
         vec3,
+        canvas,
       }) => {
         const presentationFormat = gpu.getPreferredCanvasFormat();
         const settings = {
@@ -579,7 +580,7 @@ describe("A Buffer", () => {
           }
 
           const depthTexture = device.createTexture({
-            size: [ctx.width, ctx.height],
+            size: [ctx.canvas.width, ctx.canvas.height],
             format: "depth24plus",
             usage:
               GPUTextureUsage.RENDER_ATTACHMENT |
@@ -605,12 +606,12 @@ describe("A Buffer", () => {
           // We want to keep the linked-list buffer size under the maxStorageBufferBindingSize.
           // Split the frame into enough slices to meet that constraint.
           const bytesPerline =
-            ctx.width * averageLayersPerFragment * linkedListElementSize;
+            ctx.canvas.width * averageLayersPerFragment * linkedListElementSize;
           const maxLinesSupported = Math.floor(
             device.limits.maxStorageBufferBindingSize / bytesPerline,
           );
-          const numSlices = Math.ceil(ctx.height / maxLinesSupported);
-          const sliceHeight = Math.ceil(ctx.height / numSlices);
+          const numSlices = Math.ceil(ctx.canvas.height / maxLinesSupported);
+          const sliceHeight = Math.ceil(ctx.canvas.height / numSlices);
           const linkedListBufferSize = sliceHeight * bytesPerline;
 
           const linkedListBuffer = device.createBuffer({
@@ -645,13 +646,17 @@ describe("A Buffer", () => {
           // * numFragments : u32
           // * data : array<u32>
           const headsBuffer = device.createBuffer({
-            size: (1 + ctx.width * sliceHeight) * Uint32Array.BYTES_PER_ELEMENT,
+            size:
+              (1 + ctx.canvas.width * sliceHeight) *
+              Uint32Array.BYTES_PER_ELEMENT,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
             label: "headsBuffer",
           });
 
           const headsInitBuffer = device.createBuffer({
-            size: (1 + ctx.width * sliceHeight) * Uint32Array.BYTES_PER_ELEMENT,
+            size:
+              (1 + ctx.canvas.width * sliceHeight) *
+              Uint32Array.BYTES_PER_ELEMENT,
             usage: GPUBufferUsage.COPY_SRC,
             mappedAtCreation: true,
             label: "headsInitBuffer",
@@ -745,7 +750,7 @@ describe("A Buffer", () => {
 
           // Rotates the camera around the origin based on time.
           function getCameraViewProjMatrix() {
-            const aspect = ctx.width / ctx.height;
+            const aspect = ctx.canvas.width / ctx.canvas.height;
 
             const projectionMatrix = mat4.perspective(
               (2 * Math.PI) / 5,
@@ -776,8 +781,8 @@ describe("A Buffer", () => {
 
               new Float32Array(buffer).set(getCameraViewProjMatrix());
               new Uint32Array(buffer, 16 * Float32Array.BYTES_PER_ELEMENT).set([
-                averageLayersPerFragment * ctx.width * sliceHeight,
-                ctx.width,
+                averageLayersPerFragment * ctx.canvas.width * sliceHeight,
+                ctx.canvas.width,
               ]);
 
               device.queue.writeBuffer(uniformBuffer, 0, buffer);
@@ -810,9 +815,9 @@ describe("A Buffer", () => {
 
               const scissorX = 0;
               const scissorY = slice * sliceHeight;
-              const scissorWidth = ctx.width;
+              const scissorWidth = ctx.canvas.width;
               const scissorHeight =
-                Math.min((slice + 1) * sliceHeight, ctx.height) -
+                Math.min((slice + 1) * sliceHeight, ctx.canvas.height) -
                 slice * sliceHeight;
 
               // Draw the translucent objects
@@ -870,7 +875,7 @@ describe("A Buffer", () => {
 
         doDraw();
 
-        return ctx.getImageData();
+        return canvas.getImageData();
       },
       {
         mesh: teapotMesh,

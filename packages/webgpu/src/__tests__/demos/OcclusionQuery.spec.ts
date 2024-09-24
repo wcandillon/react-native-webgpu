@@ -56,7 +56,7 @@ export type TypedArrayConstructor =
 describe("OcclusionQuery", () => {
   it("occlusionQuery", async () => {
     const result = await client.eval(
-      ({ device, ctx, gpu, solidColorLitWGSL, mat4 }) => {
+      ({ device, ctx, gpu, solidColorLitWGSL, mat4, canvas }) => {
         const depthFormat = "depth24plus";
         const presentationFormat = gpu.getPreferredCanvasFormat();
         const animate = true;
@@ -262,7 +262,7 @@ describe("OcclusionQuery", () => {
 
           const projection = mat4.perspective(
             (30 * Math.PI) / 180,
-            ctx.width / ctx.height,
+            ctx.canvas.width / ctx.canvas.height,
             0.5,
             100,
           );
@@ -365,7 +365,7 @@ describe("OcclusionQuery", () => {
           }
         }
         render(1721766068905 + 150 * 16);
-        return ctx.getImageData().then((image) => ({ image, visible }));
+        return canvas.getImageData().then((image) => ({ image, visible }));
       },
       { solidColorLitWGSL: solidColorLit },
     );

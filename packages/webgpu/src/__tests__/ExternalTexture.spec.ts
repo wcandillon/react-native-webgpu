@@ -3,7 +3,7 @@ import { checkImage, client, encodeImage } from "./setup";
 describe("External Textures", () => {
   it("Simple (1)", async () => {
     const result = await client.eval(
-      ({ gpu, device, ctx, urls: { fTexture } }) => {
+      ({ gpu, device, ctx, canvas, urls: { fTexture } }) => {
         const module = device.createShaderModule({
           label: "our hardcoded textured quad shaders",
           code: /* wgsl */ `
@@ -131,7 +131,7 @@ describe("External Textures", () => {
                 device.queue.submit([commandBuffer]);
               }
               render();
-              return ctx.getImageData();
+              return canvas.getImageData();
             });
           });
         });
@@ -143,7 +143,7 @@ describe("External Textures", () => {
   });
   it("Simple (2)", async () => {
     const result = await client.eval(
-      ({ gpu, device, ctx, urls: { fTexture } }) => {
+      ({ gpu, device, ctx, canvas, urls: { fTexture } }) => {
         const module = device.createShaderModule({
           label: "our hardcoded textured quad shaders",
           code: /* wgsl */ `
@@ -271,7 +271,7 @@ describe("External Textures", () => {
                 device.queue.submit([commandBuffer]);
               }
               render();
-              return ctx.getImageData();
+              return canvas.getImageData();
             });
           });
         });
