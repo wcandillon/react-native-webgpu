@@ -6,16 +6,13 @@
 //
 
 #include "ThreadPool.h"
-#include "NitroLogger.hpp"
-#include "ThreadUtils.hpp"
+#include "ThreadUtils.h"
 
 namespace margelo::nitro
 {
 
   ThreadPool::ThreadPool(const char *name, size_t numThreads) : _isAlive(true), _name(name)
   {
-    Logger::log(LogLevel::Info, TAG, "Creating ThreadPool \"%s\" with %i threads...", name, numThreads);
-
     for (size_t i = 0; i < numThreads; ++i)
     {
       std::string threadName = std::string(name) + "-" + std::to_string(i + 1);
@@ -62,8 +59,6 @@ namespace margelo::nitro
 
   ThreadPool::~ThreadPool()
   {
-    Logger::log(LogLevel::Info, TAG, "Destroying ThreadPool \"%s\"...", _name);
-
     {
       // Lock and set `_isAlive` to false.
       std::unique_lock<std::mutex> lock(_queueMutex);

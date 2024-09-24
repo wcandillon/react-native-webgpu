@@ -1,7 +1,5 @@
 #include "Dispatcher.h"
-#include "JSIHelpers.hpp"
-#include "NitroDefines.hpp"
-#include "NitroLogger.hpp"
+#include "RNFJSIHelper.h"
 
 namespace margelo::nitro
 {
@@ -14,7 +12,6 @@ namespace margelo::nitro
 
   void Dispatcher::installRuntimeGlobalDispatcher(jsi::Runtime &runtime, std::shared_ptr<Dispatcher> dispatcher)
   {
-    Logger::log(LogLevel::Info, TAG, "Installing global Dispatcher Holder into Runtime \"%s\"...", getRuntimeId(runtime).c_str());
 
     // Store a weak reference in global cache
     _globalCache[&runtime] = std::weak_ptr(dispatcher);
@@ -39,8 +36,6 @@ namespace margelo::nitro
       }
     }
 
-    Logger::log(LogLevel::Warning, TAG, "Unknown Runtime (%s), looking for Dispatcher through JSI global lookup...",
-                getRuntimeId(runtime).c_str());
     jsi::Value dispatcherHolderValue = getRuntimeGlobalDispatcherHolder(runtime);
     jsi::Object dispatcherHolder = dispatcherHolderValue.getObject(runtime);
     return dispatcherHolder.getNativeState<Dispatcher>(runtime);
@@ -48,17 +43,6 @@ namespace margelo::nitro
 
   jsi::Value Dispatcher::getRuntimeGlobalDispatcherHolder(jsi::Runtime &runtime)
   {
-#ifdef NITRO_DEBUG
-    if (!runtime.global().hasProperty(runtime, GLOBAL_DISPATCHER_HOLDER_NAME)) [[unlikely]]
-    {
-      throw std::runtime_error("Failed to get current Dispatcher - the global Dispatcher "
-                               "holder (global." +
-                               std::string(GLOBAL_DISPATCHER_HOLDER_NAME) +
-                               ") "
-                               "does not exist! Was Dispatcher::installDispatcherIntoRuntime() called "
-                               "for this jsi::Runtime?");
-    }
-#endif
     return runtime.global().getProperty(runtime, GLOBAL_DISPATCHER_HOLDER_NAME);
   }
 
