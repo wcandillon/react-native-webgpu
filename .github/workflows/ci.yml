@@ -40,7 +40,7 @@ jobs:
         working-directory: packages/webgpu
         run: yarn codegen
 
-  build-library:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -50,6 +50,10 @@ jobs:
         uses: ./.github/actions/setup
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run reference test suite
+        working-directory: packages/webgpu
+        run: yarn test:ref
 
       - name: Build package
         run: yarn build
