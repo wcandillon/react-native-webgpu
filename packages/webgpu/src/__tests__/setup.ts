@@ -11,7 +11,8 @@ import type { mat4, vec3, mat3 } from "wgpu-matrix";
 import type { Server, WebSocket } from "ws";
 import type { Browser, Page } from "puppeteer";
 
-import type { DrawingContext } from "./components/DrawingContext";
+import type { GPUOffscreenCanvas } from "../Offscreen";
+
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
 import { DEBUG, REFERENCE } from "./config";
@@ -26,7 +27,7 @@ declare global {
   var testOS: TestOS;
 }
 
-interface GPUContext {
+interface GPUTestingContext {
   gpu: GPU;
   adapter: GPUAdapter;
   device: GPUDevice;
@@ -43,7 +44,8 @@ interface GPUContext {
     moon: ImageData;
     saturn: ImageData;
   };
-  ctx: DrawingContext;
+  ctx: GPUCanvasContext;
+  canvas: GPUOffscreenCanvas;
   mat4: typeof mat4;
   vec3: typeof vec3;
   mat3: typeof mat3;
@@ -61,7 +63,7 @@ type JSONValue =
 
 interface TestingClient {
   eval<C = Ctx, R = JSONValue>(
-    fn: (ctx: GPUContext & C) => R | Promise<R>,
+    fn: (ctx: GPUTestingContext & C) => R | Promise<R>,
     ctx?: C,
   ): Promise<R>;
   OS: TestOS;
@@ -86,7 +88,7 @@ class RemoteTestingClient implements TestingClient {
   readonly arch = global.testArch;
 
   eval<C = Ctx, R = JSONValue>(
-    fn: (ctx: GPUContext & C) => R | Promise<R>,
+    fn: (ctx: GPUTestingContext & C) => R | Promise<R>,
     context?: C,
   ): Promise<R> {
     const ctx = this.prepareContext(context ?? {});
@@ -131,7 +133,7 @@ class ReferenceTestingClient implements TestingClient {
   private page: Page | null = null;
 
   async eval<C = Ctx, R = JSONValue>(
-    fn: (ctx: GPUContext & C) => R | Promise<R>,
+    fn: (ctx: GPUTestingContext & C) => R | Promise<R>,
     ctx?: C,
   ): Promise<R> {
     if (!this.page) {
@@ -206,6 +208,11 @@ class ReferenceTestingClient implements TestingClient {
           redFragWGSL,
         },
         ctx,
+        canvas: {
+          getImageData: ctx.getImageData.bind(ctx),
+          width: ctx.width,
+          height: ctx.height,
+        },
         mat4,
         vec3,
         mat3,

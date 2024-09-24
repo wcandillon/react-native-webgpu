@@ -133,6 +133,7 @@ describe("Blur", () => {
         assets: { di3D: imageBitmap },
         fullscreenTexturedQuadWGSL,
         blurWGSL,
+        canvas,
       }) => {
         const tileDim = 128;
         const batch = [4, 4];
@@ -387,7 +388,7 @@ describe("Blur", () => {
           device.queue.submit([commandEncoder.finish()]);
         }
         frame();
-        return ctx.getImageData();
+        return canvas.getImageData();
       },
       { blurWGSL: blur, fullscreenTexturedQuadWGSL: fullscreenTexturedQuad },
     );

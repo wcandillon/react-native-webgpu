@@ -138,7 +138,13 @@ describe("Texture", () => {
   });
   it("Create texture and reads it", async () => {
     const result = await client.eval(
-      ({ device, shaders: { triangleVertWGSL, redFragWGSL }, gpu, ctx }) => {
+      ({
+        device,
+        shaders: { triangleVertWGSL, redFragWGSL },
+        gpu,
+        ctx,
+        canvas,
+      }) => {
         const pipeline = device.createRenderPipeline({
           layout: "auto",
           vertex: {
@@ -182,7 +188,7 @@ describe("Texture", () => {
         passEncoder.end();
 
         device.queue.submit([commandEncoder.finish()]);
-        return ctx.getImageData();
+        return canvas.getImageData();
       },
     );
     const image = encodeImage(result);
