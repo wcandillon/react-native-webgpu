@@ -10,7 +10,7 @@
 #include <queue>
 #include <unordered_map>
 
-namespace margelo::nitro
+namespace margelo
 {
 
   using namespace facebook;
@@ -83,4 +83,4 @@ namespace margelo::nitro
     static constexpr auto TAG = "Dispatcher";
   };
 
-} // namespace margelo::nitro
+} // namespace margelo

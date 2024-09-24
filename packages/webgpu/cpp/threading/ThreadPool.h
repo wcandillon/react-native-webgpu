@@ -17,7 +17,7 @@
 #include <thread>
 #include <vector>
 
-namespace margelo::nitro
+namespace margelo
 {
 
   class ThreadPool final
@@ -52,4 +52,4 @@ namespace margelo::nitro
     static constexpr auto TAG = "ThreadPool";
   };
 
-} // namespace margelo::nitro
+} // namespace margelo

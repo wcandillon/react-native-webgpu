@@ -12,7 +12,7 @@
 #include <sys/prctl.h>
 #include <thread>
 
-namespace margelo::nitro
+namespace margelo
 {
 
   std::string ThreadUtils::getThreadName()
@@ -41,4 +41,4 @@ namespace margelo::nitro
     prctl(PR_SET_NAME, name.c_str(), 0, 0, 0);
   }
 
-} // namespace margelo::nitro
+} // namespace margelo

@@ -8,7 +8,7 @@
 #include "Dispatcher.h"
 #include <ReactCommon/CallInvoker.h>
 
-namespace margelo::nitro
+namespace margelo
 {
 
   using namespace facebook;
@@ -35,4 +35,4 @@ namespace margelo::nitro
     std::shared_ptr<react::CallInvoker> _callInvoker;
   };
 
-} // namespace margelo::nitro
+} // namespace margelo

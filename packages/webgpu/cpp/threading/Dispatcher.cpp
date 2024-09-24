@@ -1,7 +1,7 @@
 #include "Dispatcher.h"
 #include "RNFJSIHelper.h"
 
-namespace margelo::nitro
+namespace margelo
 {
 
   using namespace facebook;
@@ -46,4 +46,4 @@ namespace margelo::nitro
     return runtime.global().getProperty(runtime, GLOBAL_DISPATCHER_HOLDER_NAME);
   }
 
-} // namespace margelo::nitro
+} // namespace margelo

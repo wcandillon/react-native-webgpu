@@ -7,7 +7,7 @@
 
 #include <string>
 
-namespace margelo::nitro {
+namespace margelo {
 
 class ThreadUtils final {
 public:
@@ -26,4 +26,4 @@ public:
   static void setThreadName(const std::string& name);
 };
 
-} // namespace margelo::nitro
+} // namespace margelo

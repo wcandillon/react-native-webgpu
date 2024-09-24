@@ -10,7 +10,7 @@
 #include <sstream>
 #include <thread>
 
-namespace margelo::nitro {
+namespace margelo {
 
 std::string ThreadUtils::getThreadName() {
   // Try using pthread APIs
@@ -30,4 +30,4 @@ void ThreadUtils::setThreadName(const std::string& name) {
   pthread_setname_np(name.c_str());
 }
 
-} // namespace margelo::nitro
+} // namespace margelo

@@ -8,7 +8,7 @@
 #include "ThreadPool.h"
 #include "ThreadUtils.h"
 
-namespace margelo::nitro
+namespace margelo
 {
 
   ThreadPool::ThreadPool(const char *name, size_t numThreads) : _isAlive(true), _name(name)
@@ -85,4 +85,4 @@ namespace margelo::nitro
     return shared;
   }
 
-} // namespace margelo::nitro
+} // namespace margelo
