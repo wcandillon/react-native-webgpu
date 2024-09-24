@@ -223,7 +223,7 @@ template <typename TResult> struct JSIConverter<std::future<TResult>> {
 
         std::shared_ptr<nitro::Dispatcher> dispatcher = weakDispatcher.lock();
         if (!dispatcher) {
-          // TODO: throw std::runtime_error("Tried resolving Promise on JS Thread, but the `Dispatcher` has already been destroyed!")
+          throw std::runtime_error("Tried resolving Promise on JS Thread, but the `Dispatcher` has already been destroyed!");
           return;
         }
 
