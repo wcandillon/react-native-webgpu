@@ -68,6 +68,7 @@ packages/webgpu/cpp/dawn/
 packages/webgpu/cpp/webgpu/
 packages/webgpu/lib
 !packages/webgpu/scripts/build
+artifacts/
 
 
 # Cocoapods
@@ -75,5 +76,6 @@ packages/webgpu/lib
 apps/paper/ios/Pods
 # Ruby
 apps/vendor/
+apps/paper/vendor/
 
 .turbo

@@ -5,7 +5,7 @@
 //  Created by Marc Rousavy on 14.07.24.
 //
 
-#include "ThreadUtils.hpp"
+#include "ThreadUtils.h"
 #include <pthread.h>
 #include <sstream>
 #include <thread>
