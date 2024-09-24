@@ -2,6 +2,7 @@
 import WebGPUNativeModule from "./NativeWebGPUModule";
 
 export * from "./Canvas";
+export * from "./Offscreen";
 export * from "./WebGPUViewNativeComponent";
 export * from "./utils";
 export { default as WebGPUModule } from "./NativeWebGPUModule";

@@ -75,6 +75,7 @@ describe("Render Bundles", () => {
         vec3,
         assets: { saturn, moon },
         vals,
+        canvas,
       }) => {
         interface SphereMesh {
           vertices: Float32Array;
@@ -255,7 +256,7 @@ describe("Render Bundles", () => {
         });
 
         const depthTexture = device.createTexture({
-          size: [ctx.width, ctx.height],
+          size: [ctx.canvas.width, ctx.canvas.height],
           format: "depth24plus",
           usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
@@ -447,7 +448,7 @@ describe("Render Bundles", () => {
           },
         };
 
-        const aspect = ctx.width / ctx.height;
+        const aspect = ctx.canvas.width / ctx.canvas.height;
         const projectionMatrix = mat4.perspective(
           (2 * Math.PI) / 5,
           aspect,
@@ -569,7 +570,7 @@ describe("Render Bundles", () => {
           device.queue.submit([commandEncoder.finish()]);
         }
         frame();
-        return ctx.getImageData();
+        return canvas.getImageData();
       },
       { meshWGSL: mesh, vals: randomValues },
     );

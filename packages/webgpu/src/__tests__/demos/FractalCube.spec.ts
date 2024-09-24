@@ -28,6 +28,7 @@ describe("Fractal Cube", () => {
         vec3,
         sampleSelfWGSL,
         basicVertWGSL,
+        canvas,
       }) => {
         const cubeVertexSize = 4 * 10; // Byte size of one cube vertex.
         const cubePositionOffset = 0;
@@ -98,7 +99,7 @@ describe("Fractal Cube", () => {
         });
 
         const depthTexture = device.createTexture({
-          size: [ctx.width, ctx.height],
+          size: [ctx.canvas.width, ctx.canvas.height],
           format: "depth24plus",
           usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
@@ -112,7 +113,7 @@ describe("Fractal Cube", () => {
         // We will copy the frame's rendering results into this texture and
         // sample it on the next frame.
         const cubeTexture = device.createTexture({
-          size: [ctx.width, ctx.height],
+          size: [ctx.canvas.width, ctx.canvas.height],
           format: presentationFormat,
           usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
         });
@@ -163,7 +164,7 @@ describe("Fractal Cube", () => {
           },
         };
 
-        const aspect = ctx.width / ctx.height;
+        const aspect = ctx.canvas.width / ctx.canvas.height;
         const projectionMatrix = mat4.perspective(
           (2 * Math.PI) / 5,
           aspect,
@@ -217,7 +218,7 @@ describe("Fractal Cube", () => {
             {
               texture: cubeTexture,
             },
-            [ctx.width, ctx.height],
+            [ctx.canvas.width, ctx.canvas.height],
           );
 
           device.queue.submit([commandEncoder.finish()]);
@@ -226,7 +227,7 @@ describe("Fractal Cube", () => {
         for (let i = 0; i < 10; i++) {
           frame(now + i * 16);
         }
-        return ctx.getImageData();
+        return canvas.getImageData();
       },
       {
         basicVertWGSL: basicVert,

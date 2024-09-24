@@ -84,6 +84,7 @@ describe("Cube", () => {
         vec3,
         basicVertWGSL,
         vertexPositionColorWGSL,
+        canvas,
       }) => {
         const cubeVertexSize = 4 * 10; // Byte size of one cube vertex.
         const cubePositionOffset = 0;
@@ -156,7 +157,7 @@ describe("Cube", () => {
         });
 
         const depthTexture = device.createTexture({
-          size: [ctx.width, ctx.height],
+          size: [ctx.canvas.width, ctx.canvas.height],
           format: "depth24plus",
           usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
@@ -196,7 +197,7 @@ describe("Cube", () => {
           },
         };
 
-        const aspect = ctx.width / ctx.height;
+        const aspect = ctx.canvas.width / ctx.canvas.height;
         const projectionMatrix = mat4.perspective(
           (2 * Math.PI) / 5,
           aspect,
@@ -243,7 +244,7 @@ describe("Cube", () => {
         passEncoder.draw(cubeVertexCount);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
-        return ctx.getImageData();
+        return canvas.getImageData();
       },
       {
         basicVertWGSL: basicVert,
@@ -264,6 +265,7 @@ describe("Cube", () => {
         vec3,
         basicVertWGSL,
         vertexPositionColorWGSL,
+        canvas,
       }) => {
         const cubeVertexSize = 4 * 10; // Byte size of one cube vertex.
         const cubePositionOffset = 0;
@@ -334,7 +336,7 @@ describe("Cube", () => {
         });
 
         const depthTexture = device.createTexture({
-          size: [ctx.width, ctx.height],
+          size: [ctx.canvas.width, ctx.canvas.height],
           format: "depth24plus",
           usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
@@ -395,7 +397,7 @@ describe("Cube", () => {
           },
         };
 
-        const aspect = ctx.width / ctx.height;
+        const aspect = ctx.canvas.width / ctx.canvas.height;
         const projectionMatrix = mat4.perspective(
           (2 * Math.PI) / 5,
           aspect,
@@ -475,7 +477,7 @@ describe("Cube", () => {
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
 
-        return ctx.getImageData();
+        return canvas.getImageData();
       },
       {
         basicVertWGSL: basicVert,
@@ -496,6 +498,7 @@ describe("Cube", () => {
         vec3,
         basicVertWGSL,
         sampleTextureMixColorWGSL,
+        canvas,
       }) => {
         const cubeVertexSize = 4 * 10; // Byte size of one cube vertex.
         const cubePositionOffset = 0;
@@ -567,7 +570,7 @@ describe("Cube", () => {
         });
 
         const depthTexture = device.createTexture({
-          size: [ctx.width, ctx.height],
+          size: [ctx.canvas.width, ctx.canvas.height],
           format: "depth24plus",
           usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
@@ -638,7 +641,7 @@ describe("Cube", () => {
           },
         };
 
-        const aspect = ctx.width / ctx.height;
+        const aspect = ctx.canvas.width / ctx.canvas.height;
         const projectionMatrix = mat4.perspective(
           (2 * Math.PI) / 5,
           aspect,
@@ -686,7 +689,7 @@ describe("Cube", () => {
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
 
-        return ctx.getImageData();
+        return canvas.getImageData();
       },
       {
         basicVertWGSL: basicVert,
@@ -708,6 +711,7 @@ describe("Cube", () => {
         vec3,
         vertexPositionColorWGSL,
         instancedVertWGSL,
+        canvas,
       }) => {
         const cubeVertexSize = 4 * 10; // Byte size of one cube vertex.
         const cubePositionOffset = 0;
@@ -778,7 +782,7 @@ describe("Cube", () => {
         });
 
         const depthTexture = device.createTexture({
-          size: [ctx.width, ctx.height],
+          size: [ctx.canvas.width, ctx.canvas.height],
           format: "depth24plus",
           usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
@@ -809,7 +813,7 @@ describe("Cube", () => {
           ],
         });
 
-        const aspect = ctx.width / ctx.height;
+        const aspect = ctx.canvas.width / ctx.canvas.height;
         const projectionMatrix = mat4.perspective(
           (2 * Math.PI) / 5,
           aspect,
@@ -912,7 +916,7 @@ describe("Cube", () => {
         passEncoder.draw(cubeVertexCount, numInstances, 0, 0);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
-        return ctx.getImageData();
+        return canvas.getImageData();
       },
       {
         vertexPositionColorWGSL: vertexPositionColor,

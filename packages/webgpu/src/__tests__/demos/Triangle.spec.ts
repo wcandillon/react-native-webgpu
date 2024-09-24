@@ -3,7 +3,13 @@ import { checkImage, client, encodeImage } from "../setup";
 describe("Triangle", () => {
   it("Simple Triangle", async () => {
     const result = await client.eval(
-      ({ device, shaders: { triangleVertWGSL, redFragWGSL }, gpu, ctx }) => {
+      ({
+        device,
+        shaders: { triangleVertWGSL, redFragWGSL },
+        gpu,
+        ctx,
+        canvas,
+      }) => {
         const pipeline = device.createRenderPipeline({
           layout: "auto",
           vertex: {
@@ -46,7 +52,7 @@ describe("Triangle", () => {
         passEncoder.draw(3);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
-        return ctx.getImageData();
+        return canvas.getImageData();
       },
     );
     const image = encodeImage(result);
@@ -54,7 +60,13 @@ describe("Triangle", () => {
   });
   it("Async Simple Triangle", async () => {
     const result = await client.eval(
-      ({ device, shaders: { triangleVertWGSL, redFragWGSL }, gpu, ctx }) => {
+      ({
+        device,
+        shaders: { triangleVertWGSL, redFragWGSL },
+        gpu,
+        ctx,
+        canvas,
+      }) => {
         return device
           .createRenderPipelineAsync({
             layout: "auto",
@@ -98,7 +110,7 @@ describe("Triangle", () => {
             passEncoder.draw(3);
             passEncoder.end();
             device.queue.submit([commandEncoder.finish()]);
-            return ctx.getImageData();
+            return canvas.getImageData();
           });
       },
     );
@@ -107,7 +119,13 @@ describe("Triangle", () => {
   });
   it("Triangle MSAA", async () => {
     const result = await client.eval(
-      ({ device, shaders: { triangleVertWGSL, redFragWGSL }, gpu, ctx }) => {
+      ({
+        device,
+        shaders: { triangleVertWGSL, redFragWGSL },
+        gpu,
+        ctx,
+        canvas,
+      }) => {
         const sampleCount = 4;
         const presentationFormat = gpu.getPreferredCanvasFormat();
         const pipeline = device.createRenderPipeline({
@@ -136,7 +154,7 @@ describe("Triangle", () => {
         });
 
         const texture = device.createTexture({
-          size: [ctx.width, ctx.height],
+          size: [ctx.canvas.width, ctx.canvas.height],
           sampleCount,
           format: presentationFormat,
           usage: GPUTextureUsage.RENDER_ATTACHMENT,
@@ -163,7 +181,7 @@ describe("Triangle", () => {
         passEncoder.draw(3);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
-        return ctx.getImageData();
+        return canvas.getImageData();
       },
     );
     const image = encodeImage(result);
@@ -171,7 +189,7 @@ describe("Triangle", () => {
   });
   it("Triangle with constants", async () => {
     const result = await client.eval(
-      ({ device, shaders: { triangleVertWGSL }, gpu, ctx }) => {
+      ({ device, shaders: { triangleVertWGSL }, gpu, ctx, canvas }) => {
         const pipeline = device.createRenderPipeline({
           layout: "auto",
           vertex: {
@@ -239,7 +257,7 @@ describe("Triangle", () => {
         passEncoder.draw(3);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
-        return ctx.getImageData();
+        return canvas.getImageData();
       },
     );
     const image = encodeImage(result);
