@@ -151,6 +151,16 @@ const apple = {
         `-library ${projectRoot}/libs/apple/universal_macosx/${lib}.a ` +
         ` -output ${projectRoot}/libs/apple/${lib}.xcframework `,
     );
+
+    // Remove intermediate libraries
+    $(
+      "rm -rf " +
+        `${projectRoot}/libs/apple/iphonesimulator` +
+        `${projectRoot}/libs/apple/arm64_iphoneos` +
+        `${projectRoot}/libs/apple/arm64_xros` +
+        `${projectRoot}/libs/apple/arm64_xrsimulator` +
+        `${projectRoot}/libs/apple/universal_macosx`,
+    );
   });
 
   console.log("Copy headers");
