@@ -49,20 +49,17 @@ describe("Device", () => {
     expect(isDeviceLost).toBeFalsy();
   });
 
-  it("resolves device.lost immediately if the device has been destroyed", async () => {
-    const isDeviceLost = await client.eval(({ adapter }) =>
+  it("resolves an awaited device.lost when device.destroy is called", async () => {
+    const result = await client.eval(({ adapter }) =>
       adapter.requestDevice({ label: "MyGPU" }).then((device) => {
-        const timeout = new Promise((resolve) => {
-          setTimeout(() => {
-            resolve(false);
-          }, 50);
-        });
+        setTimeout(() => {
+          device.destroy();
+        }, 50);
 
-        device.destroy();
-        return Promise.race([device.lost.then(() => true), timeout]);
+        return device.lost;
       }),
     );
 
-    expect(isDeviceLost).toBeTruthy();
+    expect(["unknown", "destroyed"].includes(result.reason)).toBeTruthy();
   });
 });
