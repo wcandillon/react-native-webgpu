@@ -42,6 +42,6 @@ jobs:
           name: dawn-libs
           path: |
             packages/webgpu/libs/android
-            packages/webgpu/libs/ios/*.xcframework
+            packages/webgpu/libs/apple/*.xcframework
             packages/webgpu/cpp/dawn
             packages/webgpu/cpp/webgpu
