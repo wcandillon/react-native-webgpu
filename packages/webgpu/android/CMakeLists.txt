@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.4.1)
 project(RNWGPU)
 
 set (CMAKE_VERBOSE_MAKEFILE ON)
-set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD 20)
 
 set (PACKAGE_NAME "react-native-wgpu")
 
@@ -25,6 +25,7 @@ find_package(fbjni REQUIRED CONFIG)
 
 add_library(${PACKAGE_NAME} SHARED
     ./cpp/cpp-adapter.cpp
+    ./cpp/platform/ThreadUtils.cpp
     ../cpp/rnwgpu/api/GPU.cpp
     ../cpp/rnwgpu/api/GPUAdapter.cpp
     ../cpp/rnwgpu/api/GPUSupportedLimits.cpp
@@ -48,6 +49,8 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/jsi/RNFHybridObject.cpp
     ../cpp/jsi/RNFRuntimeCache.cpp
     ../cpp/jsi/RNFWorkletRuntimeRegistry.cpp
+    ../cpp/threading/Dispatcher.cpp
+    ../cpp/threading/ThreadPool.cpp
 )
 
 target_include_directories(
@@ -68,6 +71,8 @@ target_include_directories(
         ../cpp/rnwgpu/api/descriptors
         ../cpp/jsi
         ../cpp/webgpu
+        ../cpp/threading
+        ../cpp/platform
 
         ${libfbjni_include_DIRS}
 )
