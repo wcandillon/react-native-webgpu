@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { PixelRatio } from "react-native";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
+import type { RNCanvasContext } from "react-native-wgpu";
 
 interface TextureState {
   pipeline: GPURenderPipeline;
   sampler: GPUSampler;
-  context: GPUCanvasContext;
+  context: RNCanvasContext;
 }
 
 interface GPUTextureProps {
