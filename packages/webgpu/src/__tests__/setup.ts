@@ -141,7 +141,7 @@ class ReferenceTestingClient implements TestingClient {
     }
     const fTexturePath = path.join(
       __dirname,
-      "../../../../apps/paper/src/assets/f.png",
+      "../../../../apps/example/src/assets/f.png",
     );
     const fTextureData = fs.readFileSync(fTexturePath);
     const fTextureBase64 = `data:image/png;base64,${fTextureData.toString("base64")}`;
@@ -249,13 +249,13 @@ class ReferenceTestingClient implements TestingClient {
       .catch((e) => console.log(e));
     await page.waitForNetworkIdle();
     const di3D = decodeImage(
-      path.join(__dirname, "../../../../apps/paper/src/assets/Di-3d.png"),
+      path.join(__dirname, "../../../../apps/example/src/assets/Di-3d.png"),
     );
     const moon = decodeImage(
-      path.join(__dirname, "../../../../apps/paper/src/assets/moon.png"),
+      path.join(__dirname, "../../../../apps/example/src/assets/moon.png"),
     );
     const saturn = decodeImage(
-      path.join(__dirname, "../../../../apps/paper/src/assets/saturn.png"),
+      path.join(__dirname, "../../../../apps/example/src/assets/saturn.png"),
     );
     await page.evaluate(
       `
