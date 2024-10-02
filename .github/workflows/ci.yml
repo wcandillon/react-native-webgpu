@@ -119,13 +119,14 @@ jobs:
           JAVA_OPTS: "-XX:MaxHeapSize=6g"
         run: |
           yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}"
-          - name: Cache apk
-          uses: actions/cache/save@v3
-          env:
-            cache-name: cache-apk
-          with:
-            path: apps/example/android/app/build/outputs/apk/debug/app-debug.apk
-            key: apk-${{ github.sha }}
+      
+      - name: Cache apk
+        uses: actions/cache/save@v3
+        env:
+          cache-name: cache-apk
+        with:
+          path: apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+          key: apk-${{ github.sha }}
 
   test-android:
     needs: build-android
