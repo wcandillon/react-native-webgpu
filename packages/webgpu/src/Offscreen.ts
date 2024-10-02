@@ -107,11 +107,13 @@ export class GPUOffscreenCanvas implements OffscreenCanvas {
 class GPUOffscreenCanvasContext implements GPUCanvasContext {
   __brand = "GPUCanvasContext" as const;
 
-  private textureFormat: GPUTextureFormat = "bgra8unorm";
+  private textureFormat: GPUTextureFormat;
   private texture: GPUTexture | null = null;
   private device: GPUDevice | null = null;
 
-  constructor(public readonly canvas: OffscreenCanvas) {}
+  constructor(public readonly canvas: OffscreenCanvas) {
+    this.textureFormat = navigator.gpu.getPreferredCanvasFormat();
+  }
 
   getDevice() {
     if (!this.device) {
