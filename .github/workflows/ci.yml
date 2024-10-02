@@ -177,7 +177,7 @@ jobs:
 
       - name: Launch APK
         env:
-          PACKAGE_NAME: com.webgpu
+          PACKAGE_NAME: com.wgpuexample
         run: adb shell monkey -p ${{ env.PACKAGE_NAME }} 1
 
       - name: Run e2e Tests
