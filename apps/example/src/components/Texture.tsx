@@ -1,5 +1,12 @@
+import { useEffect, useState } from "react";
 import { PixelRatio } from "react-native";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
+
+interface TextureState {
+  pipeline: GPURenderPipeline;
+  sampler: GPUSampler;
+  context: GPUCanvasContext;
+}
 
 interface GPUTextureProps {
   texture: GPUTexture | null;
@@ -11,8 +18,9 @@ interface GPUTextureProps {
 }
 
 export const Texture = ({ texture, style, device }: GPUTextureProps) => {
+  const [state, setState] = useState<TextureState | null>(null);
   const ref = useCanvasEffect(async () => {
-    if (!texture || !device) {
+    if (!device) {
       return;
     }
 
@@ -88,6 +96,17 @@ export const Texture = ({ texture, style, device }: GPUTextureProps) => {
         stripIndexFormat: "uint32",
       },
     });
+    setState({
+      pipeline,
+      sampler,
+      context,
+    });
+  }, [device]);
+  useEffect(() => {
+    if (!texture || !state || !device) {
+      return;
+    }
+    const { pipeline, sampler, context } = state;
 
     // Create a bind group
     const bindGroup = device.createBindGroup({
@@ -126,6 +145,6 @@ export const Texture = ({ texture, style, device }: GPUTextureProps) => {
 
     device.queue.submit([commandEncoder.finish()]);
     context.present();
-  }, [texture]);
+  }, [device, state, texture]);
   return <Canvas ref={ref} style={style} />;
 };
