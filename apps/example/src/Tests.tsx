@@ -12,7 +12,6 @@ import type { AssetProps } from "./components/useAssets";
 import { Texture } from "./components/Texture";
 
 export const CI = process.env.CI === "true";
-
 const { width } = Dimensions.get("window");
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
