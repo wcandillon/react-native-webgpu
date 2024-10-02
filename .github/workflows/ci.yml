@@ -134,7 +134,7 @@ jobs:
 
   test-android:
     needs: build-android
-    runs-on: macos-latest
+    runs-on: macos-latest-large
     env:
       TURBO_CACHE_DIR: .turbo/android
     steps:
@@ -164,7 +164,7 @@ jobs:
 
       - name: ADB Wait For Device
         run: adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
-        timeout-minutes: 10
+        timeout-minutes: 15
 
       - name: Start Package Manager
         working-directory: apps/example
