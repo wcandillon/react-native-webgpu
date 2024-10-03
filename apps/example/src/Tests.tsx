@@ -13,26 +13,19 @@ import { Texture } from "./components/Texture";
 export const CI = process.env.CI === "true";
 const { width } = Dimensions.get("window");
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-console.log({
-  CI,
-  presentationFormat,
-});
 
 const useWebGPU = () => {
   const [adapter, setAdapter] = useState<GPUAdapter | null>(null);
   const [device, setDevice] = useState<GPUDevice | null>(null);
   useEffect(() => {
     (async () => {
-      console.log("Requesting adapter");
       const a = await navigator.gpu.requestAdapter();
       if (!a) {
         throw new Error("No adapter");
       }
-      console.log("Requesting device");
       const d = await a.requestDevice();
       setAdapter(a);
       setDevice(d);
-      console.log("Ready");
     })();
   }, []);
   return { adapter, device };
@@ -44,7 +37,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   const [client, hostname] = useClient();
   useEffect(() => {
     if (client !== null && adapter !== null && device !== null) {
-      console.log("p1");
+      console.log("ready to listen");
       client.onmessage = (e) => {
         console.log("GOT A MESSAGE");
         const tree = JSON.parse(e.data);
