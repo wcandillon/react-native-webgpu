@@ -197,6 +197,10 @@ jobs:
         if: always()
         run: cat apps/example/yarn_start_output.log
 
+      - name: Display logcat output
+        if: always()
+        run: adb logcat -d > logcat_output.txt && cat logcat_output.txt
+
   build-ios:
     runs-on: macos-latest
     env:
