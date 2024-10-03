@@ -45,6 +45,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   const [client, hostname] = useClient();
   useEffect(() => {
     if (client !== null && adapter !== null && device !== null) {
+      console.log("p1");
       client.onmessage = (e) => {
         console.log("GOT A MESSAGE");
         const tree = JSON.parse(e.data);

@@ -91,6 +91,7 @@ class RemoteTestingClient implements TestingClient {
     fn: (ctx: GPUTestingContext & C) => R | Promise<R>,
     context?: C,
   ): Promise<R> {
+    console.log("eval");
     const ctx = this.prepareContext(context ?? {});
     const body = { code: fn.toString(), ctx };
     return this.handleResponse<R>(JSON.stringify(body));
