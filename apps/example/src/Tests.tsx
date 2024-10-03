@@ -1,5 +1,4 @@
 /* eslint-disable no-eval */
-
 import React, { useEffect, useState } from "react";
 import { Dimensions, Text, View, Image } from "react-native";
 import { GPUOffscreenCanvas } from "react-native-wgpu";

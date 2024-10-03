@@ -91,7 +91,6 @@ class RemoteTestingClient implements TestingClient {
     fn: (ctx: GPUTestingContext & C) => R | Promise<R>,
     context?: C,
   ): Promise<R> {
-    console.log("eval");
     const ctx = this.prepareContext(context ?? {});
     const body = { code: fn.toString(), ctx };
     return this.handleResponse<R>(JSON.stringify(body));
@@ -100,8 +99,10 @@ class RemoteTestingClient implements TestingClient {
   private handleResponse<R>(body: string): Promise<R> {
     return new Promise((resolve) => {
       this.client.once("message", (raw: Buffer) => {
+        console.log("receive message");
         resolve(JSON.parse(raw.toString()));
       });
+      console.log("send message");
       this.client.send(body);
     });
   }
