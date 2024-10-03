@@ -13,6 +13,10 @@ import { Texture } from "./components/Texture";
 
 export const CI = process.env.CI === "true";
 const { width } = Dimensions.get("window");
+console.log({
+  CI,
+  presentationFormat: navigator.gpu.getPreferredCanvasFormat(),
+});
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
 const useWebGPU = () => {
