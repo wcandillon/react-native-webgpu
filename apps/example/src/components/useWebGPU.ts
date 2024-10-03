@@ -1,9 +1,7 @@
-import { useRef } from "react";
 import { PixelRatio } from "react-native";
 import {
   useCanvasEffect,
   warnIfNotHardwareAccelerated,
-  type CanvasRef,
   type NativeCanvas,
 } from "react-native-wgpu";
 
@@ -19,8 +17,7 @@ type RenderScene = (timestamp: number) => void;
 type Scene = (props: SceneProps) => RenderScene | void | Promise<RenderScene>;
 
 export const useWebGPU = (scene: Scene) => {
-  const canvasRef = useRef<CanvasRef>(null);
-  useCanvasEffect(async () => {
+  const canvasRef = useCanvasEffect(async () => {
     let animationFrameId: number;
     let frameNumber = 0;
     const adapter = await navigator.gpu.requestAdapter();
