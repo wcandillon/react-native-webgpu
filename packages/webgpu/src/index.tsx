@@ -195,10 +195,3 @@ global.createImageBitmap =
   global.createImageBitmap ??
   ((...params: Parameters<typeof createImageBitmap>) =>
     new Promise((resolve) => resolve(RNWebGPU.createImageBitmap(...params))));
-
-export const initWebGPU = () => {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-expect-error
-  navigator.gpu = RNWebGPU.gpu;
-  console.log("WebGPU initialized");
-};

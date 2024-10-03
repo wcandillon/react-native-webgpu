@@ -32,8 +32,6 @@ window.parent = window;
 
 const Stack = createNativeStackNavigator<Routes>();
 
-console.log({ CI });
-
 function App() {
   const assets = useAssets();
   if (assets === null) {

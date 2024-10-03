@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Dimensions, Text, View, Image } from "react-native";
-import { GPUOffscreenCanvas, initWebGPU } from "react-native-wgpu";
+import { GPUOffscreenCanvas } from "react-native-wgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
 import { useClient } from "./useClient";
@@ -11,15 +11,13 @@ import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
 import type { AssetProps } from "./components/useAssets";
 import { Texture } from "./components/Texture";
 
-initWebGPU();
-
 export const CI = process.env.CI === "true";
 const { width } = Dimensions.get("window");
+const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 console.log({
   CI,
-  presentationFormat: navigator.gpu.getPreferredCanvasFormat(),
+  presentationFormat,
 });
-const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
 const useWebGPU = () => {
   const [adapter, setAdapter] = useState<GPUAdapter | null>(null);
