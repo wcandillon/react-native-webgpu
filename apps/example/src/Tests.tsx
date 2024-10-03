@@ -24,13 +24,16 @@ const useWebGPU = () => {
   const [device, setDevice] = useState<GPUDevice | null>(null);
   useEffect(() => {
     (async () => {
+      console.log("Requesting adapter");
       const a = await navigator.gpu.requestAdapter();
       if (!a) {
         throw new Error("No adapter");
       }
+      console.log("Requesting device");
       const d = await a.requestDevice();
       setAdapter(a);
       setDevice(d);
+      console.log("Ready");
     })();
   }, []);
   return { adapter, device };
@@ -43,6 +46,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   useEffect(() => {
     if (client !== null && adapter !== null && device !== null) {
       client.onmessage = (e) => {
+        console.log("GOT A MESSAGE");
         const tree = JSON.parse(e.data);
         if (tree.code) {
           const canvas = new GPUOffscreenCanvas(1024, 1024);
