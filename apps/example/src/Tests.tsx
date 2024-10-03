@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Dimensions, Text, View, Image } from "react-native";
-import { GPUOffscreenCanvas } from "react-native-wgpu";
+import { GPUOffscreenCanvas, initWebGPU } from "react-native-wgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
 import { useClient } from "./useClient";
@@ -10,6 +10,8 @@ import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
 import type { AssetProps } from "./components/useAssets";
 import { Texture } from "./components/Texture";
+
+initWebGPU();
 
 export const CI = process.env.CI === "true";
 const { width } = Dimensions.get("window");
