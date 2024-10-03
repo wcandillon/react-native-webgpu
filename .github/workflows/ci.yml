@@ -175,6 +175,9 @@ jobs:
       - name: Install APK
         run: adb install -r apps/example/android/app/build/outputs/apk/debug/app-debug.apk
 
+      - name: Reverse Port
+        run: adb devices | grep '\t' | awk '{print $1}' | sed 's/\\s//g' | xargs -I {} adb -s {} reverse tcp:8081 tcp:8081
+
       - name: Launch APK
         env:
           PACKAGE_NAME: com.microsoft.reacttestapp
