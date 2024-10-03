@@ -164,7 +164,7 @@ jobs:
 
       - name: Start Package Manager
         working-directory: apps/example
-        run: CI=true yarn start &
+        run: CI=true yarn start > yarn_start_output.log 2>&1 &
 
       - name: Check APK existence
         uses: andstor/file-existence-action@v2
@@ -192,6 +192,10 @@ jobs:
         with:
           path: packages/webgpu/src/__tests__/snapshots/
           name: tests-snapshots-screenshots
+
+      - name: Display yarn start output
+        if: always()
+        run: cat apps/example/yarn_start_output.log
 
   build-ios:
     runs-on: macos-latest
