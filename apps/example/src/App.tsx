@@ -4,7 +4,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import type { Routes } from "./Route";
 import { Home } from "./Home";
-import { CI, Tests } from "./Tests";
+import { Tests } from "./Tests";
 import { useAssets } from "./components/useAssets";
 import {
   Cube,
@@ -40,7 +40,7 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName={CI ? "Tests" : "Home"}>
+        <Stack.Navigator initialRouteName={"Tests"}>
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="HelloTriangle" component={HelloTriangle} />
           <Stack.Screen
