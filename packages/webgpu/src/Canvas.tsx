@@ -15,7 +15,7 @@ declare global {
   // eslint-disable-next-line no-var
   var RNWebGPU: {
     gpu: GPU;
-    MakeWebGPUCanvasContext: (nativeCanvas: NativeCanvas) => CanvasContext;
+    MakeWebGPUCanvasContext: (nativeCanvas: NativeCanvas) => RNCanvasContext;
     DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
     createImageBitmap: typeof createImageBitmap;
   };
@@ -34,12 +34,12 @@ export interface NativeCanvas {
 global.__WebGPUContextRegistry = {};
 const WebGPUContextRegistry = global.__WebGPUContextRegistry;
 
-type CanvasContext = GPUCanvasContext & {
+export type RNCanvasContext = GPUCanvasContext & {
   present: () => void;
 };
 
 export interface CanvasRef {
-  getContext(contextName: "webgpu"): CanvasContext | null;
+  getContext(contextName: "webgpu"): RNCanvasContext | null;
   getNativeSurface: () => NativeCanvas;
 }
 
@@ -51,7 +51,7 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
       WebGPUNativeModule.createSurfaceContext(contextId);
       return WebGPUContextRegistry[contextId];
     },
-    getContext(contextName: "webgpu"): CanvasContext | null {
+    getContext(contextName: "webgpu"): RNCanvasContext | null {
       if (contextName !== "webgpu") {
         throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
       }
