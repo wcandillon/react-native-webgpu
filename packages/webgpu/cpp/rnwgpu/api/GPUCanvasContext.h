@@ -14,8 +14,8 @@
 #include "Canvas.h"
 #include "GPUCanvasConfiguration.h"
 #include "GPUTexture.h"
-#include "SurfaceRegistry.h"
 #include "OffscreenSurface.h"
+#include "SurfaceRegistry.h"
 
 #ifdef __APPLE__
 

@@ -28,9 +28,7 @@ void GPUCanvasContext::configure(
   _offscreenSurface->configure(surfaceConfiguration);
 }
 
-void GPUCanvasContext::unconfigure() {
-  _offscreenSurface->unconfigure();
-}
+void GPUCanvasContext::unconfigure() { _offscreenSurface->unconfigure(); }
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   // we need to reconfigure if the size of the canvas or the surface has changed
@@ -43,7 +41,7 @@ void GPUCanvasContext::present() {
   dawn::native::metal::WaitForCommandsToBeScheduled(_device.Get());
 #endif
   if (_instance) {
-  _instance.Present();
+    _instance.Present();
   }
   _pristine = true;
 }

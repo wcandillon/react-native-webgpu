@@ -8,47 +8,47 @@ namespace rnwgpu {
 
 class OffscreenSurface {
 public:
-    explicit OffscreenSurface(std::shared_ptr<Canvas> canvas)
-        : _canvas(std::move(canvas)) {
+  explicit OffscreenSurface(std::shared_ptr<Canvas> canvas)
+      : _canvas(std::move(canvas)) {
 #if defined(__ANDROID__)
-  _textureFormat = wgpu::TextureFormat::RGBA8Unorm;
+    _textureFormat = wgpu::TextureFormat::RGBA8Unorm;
 #else
-  _textureFormat = wgpu::TextureFormat::BGRA8Unorm;
+    _textureFormat = wgpu::TextureFormat::BGRA8Unorm;
 #endif // defined(__ANDROID__)
+  }
+
+  void configure(const wgpu::SurfaceConfiguration &config) {
+    // Configure the canvas context with the device and format
+    _device = config.device;
+
+    wgpu::TextureDescriptor textureDesc;
+    textureDesc.size.width = _canvas->getWidth();
+    textureDesc.size.height = _canvas->getHeight();
+    textureDesc.format = _textureFormat;
+    textureDesc.usage = wgpu::TextureUsage::RenderAttachment |
+                        wgpu::TextureUsage::CopySrc |
+                        wgpu::TextureUsage::TextureBinding;
+
+    _texture = _device.CreateTexture(&textureDesc);
+  }
+
+  void unconfigure() {
+    _device = nullptr;
+    _texture = nullptr;
+  }
+
+  wgpu::Texture getCurrentTexture() {
+    if (!_texture) {
+      throw std::runtime_error("Texture is not configured");
     }
-
-    void configure(const wgpu::SurfaceConfiguration& config) {
-        // Configure the canvas context with the device and format
-        _device = config.device;
-
-        wgpu::TextureDescriptor textureDesc;
-        textureDesc.size.width = _canvas->getWidth();
-        textureDesc.size.height = _canvas->getHeight();
-        textureDesc.format = _textureFormat;
-        textureDesc.usage = wgpu::TextureUsage::RenderAttachment |
-                            wgpu::TextureUsage::CopySrc |
-                            wgpu::TextureUsage::TextureBinding;
-
-        _texture = _device.CreateTexture(&textureDesc);
-    }
-
-    void unconfigure() {
-        _device = nullptr;
-        _texture = nullptr;
-    }
-
-    wgpu::Texture getCurrentTexture() {
-        if (!_texture) {
-            throw std::runtime_error("Texture is not configured");
-        }
-        return _texture;
-    }
+    return _texture;
+  }
 
 private:
-    wgpu::TextureFormat _textureFormat;
-    wgpu::Texture _texture = nullptr;
-    wgpu::Device _device;
-    std::shared_ptr<Canvas> _canvas;
+  wgpu::TextureFormat _textureFormat;
+  wgpu::Texture _texture = nullptr;
+  wgpu::Device _device;
+  std::shared_ptr<Canvas> _canvas;
 };
 
-}
+} // namespace rnwgpu
