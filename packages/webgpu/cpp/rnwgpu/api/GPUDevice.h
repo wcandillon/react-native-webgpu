@@ -57,6 +57,10 @@ public:
         _label(label) {
     m_lostPromise =
         std::make_shared<std::promise<std::shared_ptr<GPUDeviceLostInfo>>>();
+
+    auto sharedFuture = m_lostPromise->get_future().share();
+    m_lostSharedFuture =
+        std::make_shared<std::shared_future<std::shared_ptr<GPUDeviceLostInfo>>>(sharedFuture);
   }
 
 public:
@@ -154,6 +158,7 @@ private:
   std::string _label;
   std::shared_ptr<std::promise<std::shared_ptr<GPUDeviceLostInfo>>>
       m_lostPromise;
+  std::shared_ptr<std::shared_future<std::shared_ptr<GPUDeviceLostInfo>>> m_lostSharedFuture;
 };
 
 } // namespace rnwgpu
