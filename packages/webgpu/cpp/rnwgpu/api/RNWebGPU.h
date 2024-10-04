@@ -29,10 +29,10 @@ public:
 
   std::shared_ptr<GPU> getGPU() { return _gpu; }
 
-  std::shared_ptr<GPUCanvasContext> MakeWebGPUCanvasContext(int contextId,
+  std::shared_ptr<GPUCanvasContext> MakeWebGPUCanvasContext(std::shared_ptr<GPU> gpu, int contextId,
                                                             float width,
                                                             float height) {
-    auto ctx = std::make_shared<GPUCanvasContext>(contextId, width, height);
+    auto ctx = std::make_shared<GPUCanvasContext>(gpu, contextId, width, height);
     return ctx;
   }
 

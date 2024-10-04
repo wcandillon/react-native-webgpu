@@ -2,6 +2,9 @@
 #include "Convertors.h"
 #include "RNWebGPUManager.h"
 
+#include <android/native_window.h>
+
+
 namespace rnwgpu {
 
 void GPUCanvasContext::configure(
@@ -25,21 +28,38 @@ void GPUCanvasContext::configure(
   }
   surfaceConfiguration.width = _canvas->getWidth();
   surfaceConfiguration.height = _canvas->getHeight();
-  _offscreenSurface->configure(surfaceConfiguration);
+  _surfaceConfiguration = surfaceConfiguration;
+  _offscreenSurface->configure(_surfaceConfiguration);
 }
 
 void GPUCanvasContext::unconfigure() { _offscreenSurface->unconfigure(); }
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   // we need to reconfigure if the size of the canvas or the surface has changed
+
   if (_pristine) {
     auto& registry = rnwgpu::SurfaceRegistry::getInstance();
-    auto surface = registry.getSurface(_contextId);
-    if (surface != nullptr) {
-    //  throw std::runtime_error("FOUND on Screen surface");
+    auto info = registry.getSurface(_contextId);
+    if (info != nullptr) {
+      wgpu::SurfaceDescriptorFromAndroidNativeWindow androidSurfaceDesc;
+      androidSurfaceDesc.window = reinterpret_cast<ANativeWindow *>(info->surface);
+      wgpu::SurfaceDescriptor surfaceDescriptor;
+      surfaceDescriptor.nextInChain = &androidSurfaceDesc;
+      _instance = _gpu->get().CreateSurface(&surfaceDescriptor);
+      _instance.Configure(&_surfaceConfiguration);
+      _pristine = false;
     }
   }
-  _pristine = false;
+    if (_instance) {
+        wgpu::SurfaceTexture surfaceTexture;
+        _instance.GetCurrentTexture(&surfaceTexture);
+        auto texture = surfaceTexture.texture;
+        if (texture == nullptr) {
+            throw std::runtime_error("Couldn't get current texture");
+        }
+        // Default canvas texture label is ""
+        return std::make_shared<GPUTexture>(texture, "");
+    }
   auto tex = _offscreenSurface->getCurrentTexture();
   return std::make_shared<GPUTexture>(tex, "offscreen_texture");
 }

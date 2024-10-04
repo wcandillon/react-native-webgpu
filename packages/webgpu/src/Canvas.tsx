@@ -22,6 +22,7 @@ declare global {
   var RNWebGPU: {
     gpu: GPU;
     MakeWebGPUCanvasContext: (
+      gpu: GPU,
       contextId: number,
       width: number,
       height: number,
@@ -116,6 +117,7 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
         throw new Error("[WebGPU] Canvas size is not available yet");
       }
       return RNWebGPU.MakeWebGPUCanvasContext(
+        navigator.gpu,
         contextId,
         size.width,
         size.height,
