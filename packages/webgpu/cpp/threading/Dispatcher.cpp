@@ -14,7 +14,7 @@ namespace margelo
   {
 
     // Store a weak reference in global cache
-    _globalCache[&runtime] = std::weak_ptr(dispatcher);
+    _globalCache[&runtime] = std::weak_ptr<Dispatcher>(dispatcher);
 
     // Inject the dispatcher into Runtime global (runtime will hold a strong reference)
     jsi::Object dispatcherHolder(runtime);
