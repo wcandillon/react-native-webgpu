@@ -37,7 +37,7 @@ void GPUCanvasContext::unconfigure() { _offscreenSurface->unconfigure(); }
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   // we need to reconfigure if the size of the canvas or the surface has changed
 
-  if (_pristine) {
+  if (_pristine && _instance == nullptr) {
     auto& registry = rnwgpu::SurfaceRegistry::getInstance();
     auto info = registry.getSurface(_contextId);
     if (info != nullptr) {
