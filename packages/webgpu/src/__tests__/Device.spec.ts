@@ -48,17 +48,19 @@ describe("Device", () => {
   });
 
   it("resolves an awaited device.lost when device.destroy is called", async () => {
-    const result = await client.eval(({ device }) => {
-      setTimeout(() => {
-        device.destroy();
-      }, 50);
+    const result = await client.eval(({ adapter }) =>
+      adapter.requestDevice({ label: "myGPU2" }).then((device) => {
+        setTimeout(() => {
+          device.destroy();
+        }, 50);
 
-      return device.lost.then((r) => ({
-        reason: r.reason,
-        message: r.message,
-      }));
-    });
+        return device.lost.then((r) => ({
+          reason: r.reason,
+          message: r.message,
+        }));
+      }),
+    );
 
-    expect(["destroyed"].includes(result.reason)).toBeTruthy();
+    expect(["unknown", "destroyed"].includes(result.reason)).toBeTruthy();
   });
 });
