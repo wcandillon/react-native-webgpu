@@ -24,7 +24,7 @@ namespace margelo
 
   std::shared_ptr<Dispatcher> Dispatcher::getRuntimeGlobalDispatcher(jsi::Runtime &runtime)
   {
-    if (_globalCache.contains(&runtime)) [[likely]]
+    if (auto search = _globalCache.find(&runtime); search != _globalCache.end()) [[likely]]
     {
       // the runtime is known - we have something in cache
       std::weak_ptr<Dispatcher> weakDispatcher = _globalCache[&runtime];
