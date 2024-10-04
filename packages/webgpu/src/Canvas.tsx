@@ -8,11 +8,9 @@ import {
   useLayoutEffect,
   useCallback,
 } from "react";
-import type { ForwardedRef, RefObject } from "react";
+import type { RefObject } from "react";
 
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
-import WebGPUNativeModule from "./NativeWebGPUModule";
-import { GPUOffscreenCanvas } from "./Offscreen";
 
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
@@ -93,6 +91,11 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
   const [contextId, _] = useState(() => generateContextId());
   const cb = useRef<() => void>();
   const { size, onLayout } = useSize(ref as RefObject<View>);
+  useEffect(() => {
+    if (size && cb.current) {
+      cb.current();
+    }
+  }, [size]);
   useImperativeHandle(ref, () => ({
     getNativeSurface: () => {
       return {

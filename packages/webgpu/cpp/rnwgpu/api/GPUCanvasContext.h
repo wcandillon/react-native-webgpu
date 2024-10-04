@@ -71,6 +71,7 @@ private:
   wgpu::Surface _instance = nullptr;
   wgpu::Device _device;
   std::shared_ptr<Canvas> _canvas;
+  bool _pristine = true;
 };
 
 } // namespace rnwgpu

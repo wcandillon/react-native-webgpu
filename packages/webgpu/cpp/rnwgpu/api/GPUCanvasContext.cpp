@@ -25,11 +25,11 @@ void GPUCanvasContext::configure(
   }
   surfaceConfiguration.width = _canvas->getWidth();
   surfaceConfiguration.height = _canvas->getHeight();
-  _instance.Configure(&surfaceConfiguration);
+  _offscreenSurface->configure(surfaceConfiguration);
 }
 
 void GPUCanvasContext::unconfigure() {
-  _instance.Unconfigure();
+  _offscreenSurface->unconfigure();
 }
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
@@ -39,12 +39,13 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
 }
 
 void GPUCanvasContext::present() {
-  if (_instance) {
 #ifdef __APPLE__
   dawn::native::metal::WaitForCommandsToBeScheduled(_device.Get());
 #endif
+  if (_instance) {
   _instance.Present();
   }
+  _pristine = true;
 }
 
 } // namespace rnwgpu

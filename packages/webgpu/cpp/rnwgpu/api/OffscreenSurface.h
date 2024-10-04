@@ -24,7 +24,6 @@ public:
         wgpu::TextureDescriptor textureDesc;
         textureDesc.size.width = _canvas->getWidth();
         textureDesc.size.height = _canvas->getHeight();
-        textureDesc.size.depthOrArrayLayers = 1;
         textureDesc.format = _textureFormat;
         textureDesc.usage = wgpu::TextureUsage::RenderAttachment |
                             wgpu::TextureUsage::CopySrc |
