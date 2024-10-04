@@ -39,8 +39,8 @@ namespace m = margelo;
 
 class GPUCanvasContext : public m::HybridObject {
 public:
-  explicit GPUCanvasContext(float width, float height)
-      : HybridObject("GPUCanvasContext") {
+  explicit GPUCanvasContext(int contextId, float width, float height)
+      : HybridObject("GPUCanvasContext"), _contextId(contextId) {
     _canvas = std::make_shared<Canvas>(nullptr, width, height);
     _offscreenSurface = std::make_shared<OffscreenSurface>(_canvas);
   }
@@ -72,6 +72,7 @@ private:
   wgpu::Device _device;
   std::shared_ptr<Canvas> _canvas;
   bool _pristine = true;
+  int _contextId;
 };
 
 } // namespace rnwgpu

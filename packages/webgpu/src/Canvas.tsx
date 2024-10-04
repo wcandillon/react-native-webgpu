@@ -19,11 +19,13 @@ function generateContextId() {
 
 declare global {
   // eslint-disable-next-line no-var
-  var __WebGPUContextRegistry: Record<number, NativeCanvas>;
-  // eslint-disable-next-line no-var
   var RNWebGPU: {
     gpu: GPU;
-    MakeWebGPUCanvasContext: (width: number, height: number) => RNCanvasContext;
+    MakeWebGPUCanvasContext: (
+      contextId: number,
+      width: number,
+      height: number,
+    ) => RNCanvasContext;
     DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
     createImageBitmap: typeof createImageBitmap;
   };
@@ -38,9 +40,6 @@ export interface NativeCanvas {
   clientWidth: number;
   clientHeight: number;
 }
-
-global.__WebGPUContextRegistry = {};
-const WebGPUContextRegistry = global.__WebGPUContextRegistry;
 
 export type RNCanvasContext = GPUCanvasContext & {
   present: () => void;
@@ -116,13 +115,17 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
       if (size === null) {
         throw new Error("[WebGPU] Canvas size is not available yet");
       }
-      return RNWebGPU.MakeWebGPUCanvasContext(size.width, size.height);
+      return RNWebGPU.MakeWebGPUCanvasContext(
+        contextId,
+        size.width,
+        size.height,
+      );
     },
   }));
 
   useEffect(() => {
     return () => {
-      delete WebGPUContextRegistry[contextId];
+      // TODO: clean surface registry?
     };
   }, [contextId]);
 

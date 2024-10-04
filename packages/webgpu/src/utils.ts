@@ -20,7 +20,7 @@ export const useCanvasEffect = (
   const ref = useRef<CanvasRef>(null);
   const unsubscribe = useRef<Unsubscribe>();
   useEffect(() => {
-    ref.current.whenReady(async () => {
+    ref.current!.whenReady(async () => {
       const unsub = await effect();
       if (unsub) {
         unsubscribe.current = unsub;
