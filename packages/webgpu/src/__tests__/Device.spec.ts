@@ -56,7 +56,10 @@ describe("Device", () => {
           device.destroy();
         }, 50);
 
-        return device.lost;
+        return device.lost.then((r) => ({
+          reason: r.reason,
+          message: r.message,
+        }));
       }),
     );
 
