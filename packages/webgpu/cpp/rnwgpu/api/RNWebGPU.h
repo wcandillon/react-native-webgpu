@@ -30,16 +30,8 @@ public:
   std::shared_ptr<GPU> getGPU() { return _gpu; }
 
   std::shared_ptr<GPUCanvasContext>
-  MakeWebGPUCanvasContext(std::shared_ptr<Canvas> canvas) {
-    auto nativeSurface = canvas->getSurface();
-    auto width = canvas->getWidth();
-    auto height = canvas->getHeight();
-    auto surface = _platformContext->makeSurface(
-        _gpu->get(), reinterpret_cast<void *>(nativeSurface), width, height);
-    if (surface == nullptr) {
-      throw std::runtime_error("null surface");
-    }
-    auto ctx = std::make_shared<GPUCanvasContext>(surface, canvas);
+  MakeWebGPUCanvasContext(float width, float height) {
+    auto ctx = std::make_shared<GPUCanvasContext>(width, height);
     return ctx;
   }
 

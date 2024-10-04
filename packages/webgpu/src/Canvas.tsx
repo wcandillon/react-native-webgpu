@@ -25,7 +25,7 @@ declare global {
   // eslint-disable-next-line no-var
   var RNWebGPU: {
     gpu: GPU;
-    MakeWebGPUCanvasContext: (nativeCanvas: NativeCanvas) => RNCanvasContext;
+    MakeWebGPUCanvasContext: (width: number, height: number) => RNCanvasContext;
     DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
     createImageBitmap: typeof createImageBitmap;
   };
@@ -113,8 +113,7 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
       if (size === null) {
         throw new Error("[WebGPU] Canvas size is not available yet");
       }
-      const canvas = new GPUOffscreenCanvas(size.width, size.height);
-      return canvas.getContext("webgpu");
+      return RNWebGPU.MakeWebGPUCanvasContext(size.width, size.height);
     },
   }));
 

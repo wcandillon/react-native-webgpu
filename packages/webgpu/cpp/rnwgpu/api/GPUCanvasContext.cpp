@@ -26,38 +26,25 @@ void GPUCanvasContext::configure(
   surfaceConfiguration.width = _canvas->getWidth();
   surfaceConfiguration.height = _canvas->getHeight();
   _instance.Configure(&surfaceConfiguration);
-  _lastConfig = configuration;
-  _width = _canvas->getWidth();
-  _height = _canvas->getHeight();
 }
 
 void GPUCanvasContext::unconfigure() {
-  _lastConfig = nullptr;
-  _width = _canvas->getWidth();
-  _height = _canvas->getHeight();
   _instance.Unconfigure();
 }
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
-  // we need to reconfigure if the size of the canvas has changed
-  if (_width != _canvas->getWidth() || _height != _canvas->getHeight()) {
-    configure(_lastConfig);
-  }
-  wgpu::SurfaceTexture surfaceTexture;
-  _instance.GetCurrentTexture(&surfaceTexture);
-  auto texture = surfaceTexture.texture;
-  if (texture == nullptr) {
-    throw std::runtime_error("Couldn't get current texture");
-  }
-  // Default canvas texture label is ""
-  return std::make_shared<GPUTexture>(texture, "");
+  // we need to reconfigure if the size of the canvas or the surface has changed
+  auto tex = _offscreenSurface->getCurrentTexture();
+  return std::make_shared<GPUTexture>(tex, "offscreen_texture");
 }
 
 void GPUCanvasContext::present() {
+  if (_instance) {
 #ifdef __APPLE__
   dawn::native::metal::WaitForCommandsToBeScheduled(_device.Get());
 #endif
   _instance.Present();
+  }
 }
 
 } // namespace rnwgpu
