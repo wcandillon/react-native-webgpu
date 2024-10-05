@@ -38,21 +38,36 @@ void GPUCanvasContext::unconfigure() {
 }
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   // TODO: flush the content of the offscreen surface
   // TODO: delete Java_com_webgpu_WebGPUModule_createSurfaceContext (and on iOS)
-  // we need to reconfigure if the size of the canvas or the surface has changed
-
+  // 1. is a surface no available?
   if (_pristine && _instance == nullptr) {
-    auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     auto info = registry.getSurface(_contextId);
     if (info != nullptr) {
       _instance = _platformContext->makeSurface(_gpu->get(), info->surface, info->width, info->height);
+     // _surfaceConfiguration.width = info->width;
+     // _surfaceConfiguration.height = info->height;
       _instance.Configure(&_surfaceConfiguration);
       _offscreenSurface->unconfigure();
       _offscreenSurface = nullptr;
       _pristine = false;
     }
   }
+  // 2. did the surface resize?
+//  if (_instance) {
+//      auto info = registry.getSurface(_contextId);
+//      if (info != nullptr) {
+//        if (info->width != _surfaceConfiguration.width || info->height != _surfaceConfiguration.height) {
+//          _width = info->width;
+//          _height = info->height;
+//          _surfaceConfiguration.width = _width;
+//          _surfaceConfiguration.height = _height;
+//          _instance.Configure(&_surfaceConfiguration);
+//        }
+//      }
+//  }
+  // 3. get onscreen texture
   if (_instance) {
     wgpu::SurfaceTexture surfaceTexture;
     _instance.GetCurrentTexture(&surfaceTexture);
@@ -62,6 +77,7 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
     }
     return std::make_shared<GPUTexture>(texture, "");
   } else {
+    // 4. get offscreen texture
     auto tex = _offscreenSurface->getCurrentTexture();
     return std::make_shared<GPUTexture>(tex, "");
   }
