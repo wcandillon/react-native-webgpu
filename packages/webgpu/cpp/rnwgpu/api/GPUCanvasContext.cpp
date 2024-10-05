@@ -48,6 +48,8 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
     if (info != nullptr) {
       _instance = _platformContext->makeSurface(_gpu->get(), info->surface, info->width, info->height);
       _instance.Configure(&_surfaceConfiguration);
+      _offscreenSurface->unconfigure();
+      _offscreenSurface = nullptr;
       _pristine = false;
     }
   }
@@ -58,11 +60,11 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
     if (texture == nullptr) {
       throw std::runtime_error("Couldn't get current texture");
     }
-    // Default canvas texture label is ""
     return std::make_shared<GPUTexture>(texture, "");
+  } else {
+    auto tex = _offscreenSurface->getCurrentTexture();
+    return std::make_shared<GPUTexture>(tex, "");
   }
-  auto tex = _offscreenSurface->getCurrentTexture();
-  return std::make_shared<GPUTexture>(tex, "offscreen_texture");
 }
 
 void GPUCanvasContext::present() {
