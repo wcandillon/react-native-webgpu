@@ -4,7 +4,6 @@
 
 #include <android/native_window.h>
 
-
 namespace rnwgpu {
 
 void GPUCanvasContext::configure(
@@ -35,14 +34,17 @@ void GPUCanvasContext::configure(
 void GPUCanvasContext::unconfigure() { _offscreenSurface->unconfigure(); }
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
+  // TODO: use Platform Context?
+  // TODO: flush the content of the offscreen surface
   // we need to reconfigure if the size of the canvas or the surface has changed
 
   if (_pristine && _instance == nullptr) {
-    auto& registry = rnwgpu::SurfaceRegistry::getInstance();
+    auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     auto info = registry.getSurface(_contextId);
     if (info != nullptr) {
       wgpu::SurfaceDescriptorFromAndroidNativeWindow androidSurfaceDesc;
-      androidSurfaceDesc.window = reinterpret_cast<ANativeWindow *>(info->surface);
+      androidSurfaceDesc.window =
+          reinterpret_cast<ANativeWindow *>(info->surface);
       wgpu::SurfaceDescriptor surfaceDescriptor;
       surfaceDescriptor.nextInChain = &androidSurfaceDesc;
       _instance = _gpu->get().CreateSurface(&surfaceDescriptor);
@@ -50,16 +52,16 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
       _pristine = false;
     }
   }
-    if (_instance) {
-        wgpu::SurfaceTexture surfaceTexture;
-        _instance.GetCurrentTexture(&surfaceTexture);
-        auto texture = surfaceTexture.texture;
-        if (texture == nullptr) {
-            throw std::runtime_error("Couldn't get current texture");
-        }
-        // Default canvas texture label is ""
-        return std::make_shared<GPUTexture>(texture, "");
+  if (_instance) {
+    wgpu::SurfaceTexture surfaceTexture;
+    _instance.GetCurrentTexture(&surfaceTexture);
+    auto texture = surfaceTexture.texture;
+    if (texture == nullptr) {
+      throw std::runtime_error("Couldn't get current texture");
     }
+    // Default canvas texture label is ""
+    return std::make_shared<GPUTexture>(texture, "");
+  }
   auto tex = _offscreenSurface->getCurrentTexture();
   return std::make_shared<GPUTexture>(tex, "offscreen_texture");
 }

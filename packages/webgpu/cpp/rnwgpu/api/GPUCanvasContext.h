@@ -40,8 +40,10 @@ namespace m = margelo;
 
 class GPUCanvasContext : public m::HybridObject {
 public:
-  GPUCanvasContext(std::shared_ptr<GPU> gpu, int contextId, float width, float height)
-      : HybridObject("GPUCanvasContext"), _contextId(contextId), _gpu(std::move(gpu)) {
+  GPUCanvasContext(std::shared_ptr<GPU> gpu, int contextId, float width,
+                   float height)
+      : HybridObject("GPUCanvasContext"), _contextId(contextId),
+        _gpu(std::move(gpu)) {
     _canvas = std::make_shared<Canvas>(nullptr, width, height);
     _offscreenSurface = std::make_shared<OffscreenSurface>(_canvas);
   }

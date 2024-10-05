@@ -31,15 +31,13 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
 extern "C" JNIEXPORT void JNICALL
 Java_com_webgpu_WebGPUModule_createSurfaceContext(JNIEnv *env, jobject thiz,
                                                   jlong jsRuntime,
-                                                  jint contextId) {
-
-}
+                                                  jint contextId) {}
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceChanged(
     JNIEnv *env, jobject thiz, jobject surface, jint contextId, jfloat width,
     jfloat height) {
-    auto& registry = rnwgpu::SurfaceRegistry::getInstance();
-    registry.updateSurface(contextId, width, height);
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  registry.updateSurface(contextId, width, height);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
@@ -47,15 +45,14 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     jfloat height) {
   auto window = ANativeWindow_fromSurface(env, surface);
   // ANativeWindow_acquire(window);
-  auto& registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   registry.addSurface(contextId, window, width, height);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
     JNIEnv *env, jobject thiz, jint contextId) {
-    auto& registry = rnwgpu::SurfaceRegistry::getInstance();
-    auto canvas = registry.getSurface(contextId);
-  ANativeWindow_release(
-      reinterpret_cast<ANativeWindow *>(canvas->surface));
- registry.removeSurface(contextId);
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto canvas = registry.getSurface(contextId);
+  ANativeWindow_release(reinterpret_cast<ANativeWindow *>(canvas->surface));
+  registry.removeSurface(contextId);
 }

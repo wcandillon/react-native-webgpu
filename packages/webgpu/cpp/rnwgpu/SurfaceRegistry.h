@@ -1,8 +1,8 @@
 #pragma once
 
 #include <memory>
-#include <unordered_map>
 #include <shared_mutex>
+#include <unordered_map>
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -35,11 +35,11 @@ private:
 
 public:
   // Delete copy constructor and assignment operator
-  SurfaceRegistry(const SurfaceRegistry&) = delete;
-  SurfaceRegistry& operator=(const SurfaceRegistry&) = delete;
+  SurfaceRegistry(const SurfaceRegistry &) = delete;
+  SurfaceRegistry &operator=(const SurfaceRegistry &) = delete;
 
   // Static method to get the singleton instance
-  static SurfaceRegistry& getInstance() {
+  static SurfaceRegistry &getInstance() {
     static SurfaceRegistry instance;
     return instance;
   }
