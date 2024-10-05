@@ -77,9 +77,11 @@ const useSizePaper = (_ref: RefObject<View>) => {
         layout: { width, height },
       },
     }) => {
-      setSize({ width, height });
+      if (size === null) {
+        setSize({ width, height });
+      }
     },
-    [],
+    [size],
   );
   return { size, onLayout };
 };
