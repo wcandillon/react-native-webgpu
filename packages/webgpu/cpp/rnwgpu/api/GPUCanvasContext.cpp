@@ -2,8 +2,6 @@
 #include "Convertors.h"
 #include "RNWebGPUManager.h"
 
-#include <android/native_window.h>
-
 namespace rnwgpu {
 
 void GPUCanvasContext::configure(
@@ -31,23 +29,24 @@ void GPUCanvasContext::configure(
   _offscreenSurface->configure(_surfaceConfiguration);
 }
 
-void GPUCanvasContext::unconfigure() { _offscreenSurface->unconfigure(); }
+void GPUCanvasContext::unconfigure() {
+  if (_instance) {
+    _instance.Unconfigure();
+  } else if (_offscreenSurface) {
+    _offscreenSurface->unconfigure();
+  }
+}
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
-  // TODO: use Platform Context?
   // TODO: flush the content of the offscreen surface
+  // TODO: delete Java_com_webgpu_WebGPUModule_createSurfaceContext (and on iOS)
   // we need to reconfigure if the size of the canvas or the surface has changed
 
   if (_pristine && _instance == nullptr) {
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     auto info = registry.getSurface(_contextId);
     if (info != nullptr) {
-      wgpu::SurfaceDescriptorFromAndroidNativeWindow androidSurfaceDesc;
-      androidSurfaceDesc.window =
-          reinterpret_cast<ANativeWindow *>(info->surface);
-      wgpu::SurfaceDescriptor surfaceDescriptor;
-      surfaceDescriptor.nextInChain = &androidSurfaceDesc;
-      _instance = _gpu->get().CreateSurface(&surfaceDescriptor);
+      _instance = _platformContext->makeSurface(_gpu->get(), info->surface, info->width, info->height);
       _instance.Configure(&_surfaceConfiguration);
       _pristine = false;
     }
