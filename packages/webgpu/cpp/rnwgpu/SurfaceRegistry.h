@@ -10,19 +10,19 @@ namespace rnwgpu {
 
 struct SurfaceInfo {
   void *surface;
-  float width;
-  float height;
+  int width;
+    int height;
 
-  SurfaceInfo(void *surface, float width, float height)
+  SurfaceInfo(void *surface, int width, int height)
       : surface(surface), width(width), height(height) {}
 
-  void setClientWidth(float width) { this->width = width; }
+  void setClientWidth(int width) { this->width = width; }
 
-  void setClientHeight(float height) { this->height = height; }
+  void setClientHeight(int height) { this->height = height; }
 
-  float getWidth() { return width; }
+  int getWidth() { return width; }
 
-  float getHeight() { return height; }
+  int getHeight() { return height; }
 };
 
 class SurfaceRegistry {
@@ -44,8 +44,8 @@ public:
     return instance;
   }
 
-  void addSurface(const int contextId, void *surface, float width,
-                  float height) {
+  void addSurface(const int contextId, void *surface, int width,
+                  int height) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _registry[contextId] =
         std::make_shared<SurfaceInfo>(surface, width, height);
@@ -65,7 +65,7 @@ public:
     _registry.erase(contextId);
   }
 
-  void updateSurface(const int contextId, float width, float height) {
+  void updateSurface(const int contextId, int width, int height) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     auto it = _registry.find(contextId);
     if (it != _registry.end()) {
