@@ -15,7 +15,7 @@ type TypedArrayView = Float32Array | Uint32Array;
 function createBufferWithData(
   device: GPUDevice,
   data: TypedArrayView,
-  usage: GPUBufferUsageFlags,
+  usage: GPUBufferUsageFlags
 ) {
   const buffer = device.createBuffer({
     size: data.byteLength,
@@ -45,17 +45,17 @@ const settings = {
 
 function createVertexAndIndexBuffer(
   device: GPUDevice,
-  { vertices, indices }: { vertices: Float32Array; indices: Uint32Array },
+  { vertices, indices }: { vertices: Float32Array; indices: Uint32Array }
 ): Model {
   const vertexBuffer = createBufferWithData(
     device,
     vertices,
-    GPUBufferUsage.VERTEX | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    GPUBufferUsage.VERTEX | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
   );
   const indexBuffer = createBufferWithData(
     device,
     indices,
-    GPUBufferUsage.INDEX | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    GPUBufferUsage.INDEX | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
   );
   return {
     vertexBuffer,
@@ -76,7 +76,7 @@ export const Wireframe = () => {
       const depthFormat = "depth24plus";
 
       const models = Object.values(modelData).map((data) =>
-        createVertexAndIndexBuffer(device, data),
+        createVertexAndIndexBuffer(device, data)
       );
 
       const litModule = device.createShaderModule({
@@ -232,15 +232,15 @@ export const Wireframe = () => {
         const kColorOffset = 32;
         const worldViewProjectionMatrixValue = uniformValues.subarray(
           kWorldViewProjectionMatrixOffset,
-          kWorldViewProjectionMatrixOffset + 16,
+          kWorldViewProjectionMatrixOffset + 16
         );
         const worldMatrixValue = uniformValues.subarray(
           kWorldMatrixOffset,
-          kWorldMatrixOffset + 15,
+          kWorldMatrixOffset + 15
         );
         const colorValue = uniformValues.subarray(
           kColorOffset,
-          kColorOffset + 4,
+          kColorOffset + 4
         );
         colorValue.set(randColor());
 
@@ -259,7 +259,7 @@ export const Wireframe = () => {
         // these settings.
         const lineUniformValues = new Float32Array(3 + 1);
         const lineUniformValuesAsU32 = new Uint32Array(
-          lineUniformValues.buffer,
+          lineUniformValues.buffer
         );
         const lineUniformBuffer = device.createBuffer({
           size: lineUniformValues.byteLength,
@@ -284,7 +284,7 @@ export const Wireframe = () => {
           device.createBindGroup({
             layout:
               barycentricCoordinatesBasedWireframePipeline.getBindGroupLayout(
-                0,
+                0
               ),
             entries: [
               { binding: 0, resource: { buffer: uniformBuffer } },
@@ -381,7 +381,7 @@ export const Wireframe = () => {
         const view = mat4.lookAt(
           [-300, 0, 300], // eye
           [0, 0, 0], // target
-          [0, 1, 0], // up
+          [0, 1, 0] // up
         );
 
         const viewProjection = mat4.multiply(projection, view);
@@ -403,27 +403,27 @@ export const Wireframe = () => {
               litBindGroup,
               model: { vertexBuffer, indexBuffer, indexFormat, vertexCount },
             },
-            i,
+            i
           ) => {
             const world = mat4.identity();
             mat4.translate(
               world,
               [0, 0, Math.sin(i * 3.721 + time * 0.1) * 200],
-              world,
+              world
             );
             mat4.rotateX(world, i * 4.567, world);
             mat4.rotateY(world, i * 2.967, world);
             mat4.translate(
               world,
               [0, 0, Math.sin(i * 9.721 + time * 0.1) * 200],
-              world,
+              world
             );
             mat4.rotateX(world, time * 0.53 + i, world);
 
             mat4.multiply(
               viewProjection,
               world,
-              worldViewProjectionMatrixValue,
+              worldViewProjectionMatrixValue
             );
             mat3.fromMat4(world, worldMatrixValue);
 
@@ -436,7 +436,7 @@ export const Wireframe = () => {
               pass.setBindGroup(0, litBindGroup);
               pass.drawIndexed(vertexCount);
             }
-          },
+          }
         );
 
         if (settings.lines) {
@@ -452,7 +452,7 @@ export const Wireframe = () => {
             ({ wireframeBindGroups, model: { vertexCount } }) => {
               pass.setBindGroup(0, wireframeBindGroups[bindGroupNdx]);
               pass.draw(vertexCount * countMult);
-            },
+            }
           );
         }
 
@@ -462,7 +462,7 @@ export const Wireframe = () => {
         device.queue.submit([commandBuffer]);
       }
       return render;
-    },
+    }
   );
 
   return (

@@ -11,7 +11,7 @@ namespace rnwgpu {
 struct SurfaceInfo {
   void *surface;
   int width;
-    int height;
+  int height;
 
   SurfaceInfo(void *surface, int width, int height)
       : surface(surface), width(width), height(height) {}
@@ -44,8 +44,7 @@ public:
     return instance;
   }
 
-  void addSurface(const int contextId, void *surface, int width,
-                  int height) {
+  void addSurface(const int contextId, void *surface, int width, int height) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _registry[contextId] =
         std::make_shared<SurfaceInfo>(surface, width, height);

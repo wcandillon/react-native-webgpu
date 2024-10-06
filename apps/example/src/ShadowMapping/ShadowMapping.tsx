@@ -403,7 +403,7 @@ export function ShadowMapping() {
         0,
         lightExtentData.buffer,
         lightExtentData.byteOffset,
-        lightExtentData.byteLength,
+        lightExtentData.byteLength
       );
 
       const lightUpdateComputePipeline = device.createComputePipeline({
@@ -471,7 +471,7 @@ export function ShadowMapping() {
         (2 * Math.PI) / 5,
         aspect,
         1,
-        2000.0,
+        2000.0
       );
 
       // Move the model so it's centered.
@@ -485,7 +485,7 @@ export function ShadowMapping() {
         64,
         normalModelData.buffer,
         normalModelData.byteOffset,
-        normalModelData.byteLength,
+        normalModelData.byteLength
       );
 
       // Rotates the camera around the origin based on time.
@@ -506,7 +506,7 @@ export function ShadowMapping() {
           0,
           cameraViewProj.buffer,
           cameraViewProj.byteOffset,
-          cameraViewProj.byteLength,
+          cameraViewProj.byteLength
         );
         const cameraInvViewProj = mat4.invert(cameraViewProj);
         device.queue.writeBuffer(
@@ -514,14 +514,14 @@ export function ShadowMapping() {
           64,
           cameraInvViewProj.buffer,
           cameraInvViewProj.byteOffset,
-          cameraInvViewProj.byteLength,
+          cameraInvViewProj.byteLength
         );
 
         const commandEncoder = device.createCommandEncoder();
         {
           // Write position, normal, albedo etc. data to gBuffers
           const gBufferPass = commandEncoder.beginRenderPass(
-            writeGBufferPassDescriptor,
+            writeGBufferPassDescriptor
           );
           gBufferPass.setPipeline(writeGBuffersPipeline);
           gBufferPass.setBindGroup(0, sceneUniformBindGroup);
@@ -550,7 +550,7 @@ export function ShadowMapping() {
             .getCurrentTexture()
             .createView();
           const debugViewPass = commandEncoder.beginRenderPass(
-            textureQuadPassDescriptor,
+            textureQuadPassDescriptor
           );
           debugViewPass.setPipeline(gBuffersDebugViewPipeline);
           debugViewPass.setBindGroup(0, gBufferTexturesBindGroup);
@@ -564,7 +564,7 @@ export function ShadowMapping() {
             .getCurrentTexture()
             .createView();
           const deferredRenderingPass = commandEncoder.beginRenderPass(
-            textureQuadPassDescriptor,
+            textureQuadPassDescriptor
           );
           deferredRenderingPass.setPipeline(deferredRenderPipeline);
           deferredRenderingPass.setBindGroup(0, gBufferTexturesBindGroup);
@@ -575,7 +575,7 @@ export function ShadowMapping() {
         device.queue.submit([commandEncoder.finish()]);
       }
       return frame;
-    },
+    }
   );
 
   return (

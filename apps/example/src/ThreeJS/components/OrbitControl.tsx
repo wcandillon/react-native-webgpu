@@ -152,7 +152,7 @@ export function createControls() {
       if (event.nativeEvent.touches.length === 1) {
         internals.rotateStart.set(
           event.nativeEvent.touches[0].locationX,
-          event.nativeEvent.touches[0].locationY,
+          event.nativeEvent.touches[0].locationY
         );
       } else if (event.nativeEvent.touches.length === 2) {
         const x =
@@ -187,7 +187,7 @@ export function createControls() {
       if (event.nativeEvent.touches.length === 1) {
         internals.panStart.set(
           event.nativeEvent.touches[0].locationX,
-          event.nativeEvent.touches[0].locationY,
+          event.nativeEvent.touches[0].locationY
         );
       } else if (event.nativeEvent.touches.length === 2) {
         const x =
@@ -249,7 +249,7 @@ export function createControls() {
       if (event.nativeEvent.touches.length === 1) {
         internals.rotateEnd.set(
           event.nativeEvent.locationX,
-          event.nativeEvent.locationY,
+          event.nativeEvent.locationY
         );
       } else if (event.nativeEvent.touches.length === 2) {
         const x =
@@ -294,7 +294,7 @@ export function createControls() {
 
         internals.dollyEnd = distance;
         this.dollyOut(
-          Math.pow(internals.dollyEnd / internals.dollyStart, scope.zoomSpeed),
+          Math.pow(internals.dollyEnd / internals.dollyStart, scope.zoomSpeed)
         );
         internals.dollyStart = internals.dollyEnd;
       }
@@ -345,7 +345,7 @@ export function createControls() {
         // we use only height here so aspect ratio does not distort speed
         this.panLeft(
           (2 * deltaX * targetDistance) / height,
-          scope.camera.matrix,
+          scope.camera.matrix
         );
         this.panUp((2 * deltaY * targetDistance) / height, scope.camera.matrix);
       }
@@ -355,7 +355,7 @@ export function createControls() {
       if (event.nativeEvent.touches.length === 1) {
         internals.panEnd.set(
           event.nativeEvent.locationX,
-          event.nativeEvent.locationY,
+          event.nativeEvent.locationY
         );
       } else if (event.nativeEvent.touches.length === 2) {
         const x =
@@ -429,7 +429,7 @@ export function createControls() {
       // so camera.up is the orbit axis
       const quat = new Quaternion().setFromUnitVectors(
         scope.camera.up,
-        new Vector3(0, 1, 0),
+        new Vector3(0, 1, 0)
       );
       const quatInverse = quat.clone().invert();
 
@@ -467,7 +467,7 @@ export function createControls() {
         if (min <= max) {
           internals.spherical.theta = Math.max(
             min,
-            Math.min(max, internals.spherical.theta),
+            Math.min(max, internals.spherical.theta)
           );
         } else {
           internals.spherical.theta =
@@ -480,7 +480,7 @@ export function createControls() {
       // restrict phi to be between desired limits
       internals.spherical.phi = Math.max(
         scope.minPolarAngle + EPSILON,
-        Math.min(scope.maxPolarAngle - EPSILON, internals.spherical.phi),
+        Math.min(scope.maxPolarAngle - EPSILON, internals.spherical.phi)
       );
 
       if ((scope.camera as PerspectiveCamera).isPerspectiveCamera) {
@@ -489,9 +489,9 @@ export function createControls() {
         scope.camera.zoom = Math.max(
           Math.min(
             scope.camera.zoom / (internals.scale * scope.zoomSpeed),
-            scope.maxZoom,
+            scope.maxZoom
           ),
-          scope.minZoom,
+          scope.minZoom
         );
         scope.camera.updateProjectionMatrix();
       }
@@ -499,7 +499,7 @@ export function createControls() {
       // restrict radius to be between desired limits
       internals.spherical.radius = Math.max(
         scope.minZoom,
-        Math.min(scope.maxZoom, internals.spherical.radius),
+        Math.min(scope.maxZoom, internals.spherical.radius)
       );
 
       // move target to panned location
@@ -618,7 +618,7 @@ function OrbitControls({ controls, ...props }: OrbitControlsInternalProps) {
       controls.scope.camera = camera as PerspectiveCamera | OrthographicCamera;
     } else {
       throw new Error(
-        "The camera must be a PerspectiveCamera or OrthographicCamera to orbit controls work",
+        "The camera must be a PerspectiveCamera or OrthographicCamera to orbit controls work"
       );
     }
   }, [camera]);

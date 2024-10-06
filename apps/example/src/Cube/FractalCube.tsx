@@ -164,7 +164,7 @@ export const FractalCube = () => {
         (2 * Math.PI) / 5,
         aspect,
         1,
-        100.0,
+        100.0
       );
       const modelViewProjectionMatrix = mat4.create();
 
@@ -176,7 +176,7 @@ export const FractalCube = () => {
           viewMatrix,
           vec3.fromValues(Math.sin(now), Math.cos(now), 0),
           1,
-          viewMatrix,
+          viewMatrix
         );
 
         mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
@@ -191,7 +191,7 @@ export const FractalCube = () => {
           0,
           transformationMatrix.buffer,
           transformationMatrix.byteOffset,
-          transformationMatrix.byteLength,
+          transformationMatrix.byteLength
         );
 
         const swapChainTexture = context.getCurrentTexture();
@@ -216,13 +216,13 @@ export const FractalCube = () => {
           {
             texture: cubeTexture,
           },
-          [canvas.width, canvas.height],
+          [canvas.width, canvas.height]
         );
 
         device.queue.submit([commandEncoder.finish()]);
       }
       return frame;
-    },
+    }
   );
 
   return (

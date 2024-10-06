@@ -37,7 +37,7 @@ debugManager.onStart = function (url, itemsLoaded, itemsTotal) {
       itemsLoaded +
       " of " +
       itemsTotal +
-      " files.",
+      " files."
   );
 };
 
@@ -49,7 +49,7 @@ debugManager.onProgress = function (url, itemsLoaded, itemsTotal) {
       itemsLoaded +
       " of " +
       itemsTotal +
-      " files.",
+      " files."
   );
 };
 

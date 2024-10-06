@@ -97,7 +97,7 @@ export const Resize = () => {
           device.queue.submit([commandEncoder.finish()]);
         }
       };
-    },
+    }
   );
 
   useEffect(() => {
@@ -113,7 +113,7 @@ export const Resize = () => {
           duration: 4000,
           useNativeDriver: false,
         }),
-      ]),
+      ])
     ).start();
   }, []);
 

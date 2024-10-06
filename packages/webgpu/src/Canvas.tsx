@@ -127,7 +127,7 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
 
   useEffect(() => {
     return () => {
-      // TODO: clean surface registry?
+      // TODO: nothing to do here right?
     };
   }, [contextId]);
 

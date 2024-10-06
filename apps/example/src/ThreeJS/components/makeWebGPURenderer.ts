@@ -60,7 +60,7 @@ export class ReactNativeCanvas {
 
 export const makeWebGPURenderer = (
   context: GPUCanvasContext,
-  { antialias = true }: { antialias?: boolean } = {},
+  { antialias = true }: { antialias?: boolean } = {}
 ) =>
   new THREE.WebGPURenderer({
     antialias,

@@ -13,7 +13,7 @@ export type Matrix3 = readonly [
   number,
   number,
   number,
-  number,
+  number
 ];
 
 export type Matrix4 = readonly [
@@ -32,7 +32,7 @@ export type Matrix4 = readonly [
   number,
   number,
   number,
-  number,
+  number
 ];
 
 type Transform3dName =
@@ -56,8 +56,8 @@ type Transformations = {
   [Name in Transform3dName]: Name extends "matrix"
     ? Matrix4
     : Name extends "translate"
-      ? Vec3 | Vec2
-      : number;
+    ? Vec3 | Vec2
+    : number;
 };
 
 type Transform3d =
@@ -122,7 +122,7 @@ const normalizeVec = (vec: Vec3): Vec3 => {
 const rotatedUnitSinCos = (
   axisVec: Vec3,
   sinAngle: number,
-  cosAngle: number,
+  cosAngle: number
 ): Matrix4 => {
   "worklet";
   const x = axisVec[0];
@@ -214,7 +214,7 @@ const rotate = (axis: Vec3, value: number) => {
   return rotatedUnitSinCos(
     normalizeVec(axis),
     Math.sin(value),
-    Math.cos(value),
+    Math.cos(value)
   );
 };
 
