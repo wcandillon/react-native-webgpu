@@ -56,8 +56,8 @@ type Transformations = {
   [Name in Transform3dName]: Name extends "matrix"
     ? Matrix4
     : Name extends "translate"
-      ? Vec3 | Vec2
-      : number;
+    ? Vec3 | Vec2
+    : number;
 };
 
 type Transform3d =
