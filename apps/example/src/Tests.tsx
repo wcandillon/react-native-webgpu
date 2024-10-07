@@ -1,5 +1,4 @@
 /* eslint-disable no-eval */
-
 import React, { useEffect, useState } from "react";
 import { Dimensions, Text, View, Image } from "react-native";
 import { GPUOffscreenCanvas } from "react-native-wgpu";
@@ -12,7 +11,6 @@ import type { AssetProps } from "./components/useAssets";
 import { Texture } from "./components/Texture";
 
 export const CI = process.env.CI === "true";
-
 const { width } = Dimensions.get("window");
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
@@ -39,7 +37,9 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   const [client, hostname] = useClient();
   useEffect(() => {
     if (client !== null && adapter !== null && device !== null) {
+      console.log("ready to listen");
       client.onmessage = (e) => {
+        console.log("GOT A MESSAGE");
         const tree = JSON.parse(e.data);
         if (tree.code) {
           const canvas = new GPUOffscreenCanvas(1024, 1024);

@@ -99,8 +99,10 @@ class RemoteTestingClient implements TestingClient {
   private handleResponse<R>(body: string): Promise<R> {
     return new Promise((resolve) => {
       this.client.once("message", (raw: Buffer) => {
+        console.log("receive message");
         resolve(JSON.parse(raw.toString()));
       });
+      console.log("send message");
       this.client.send(body);
     });
   }

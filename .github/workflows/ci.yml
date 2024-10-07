@@ -82,23 +82,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-turborepo-android
 
-      - name: Check turborepo cache for Android
-        run: |
-          TURBO_CACHE_STATUS=$(node -p "($(yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}" --dry=json)).tasks.find(t => t.task === 'build:android').cache.status")
-
-          if [[ $TURBO_CACHE_STATUS == "HIT" ]]; then
-            echo "turbo_cache_hit=1" >> $GITHUB_ENV
-          fi
-
       - name: Install JDK
-        if: env.turbo_cache_hit != 1
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
           java-version: '17'
 
       - name: Install NDK
-        if: env.turbo_cache_hit != 1
         uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
@@ -108,7 +98,6 @@ jobs:
         run: echo "ANDROID_NDK=$ANDROID_HOME/ndk-bundle" >> $GITHUB_ENV
 
       - name: Finalize Android SDK
-        if: env.turbo_cache_hit != 1
         run: |
           /bin/bash -c "yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null"
 
@@ -116,7 +105,6 @@ jobs:
         run: echo "sdk.dir=$ANDROID_HOME" > $GITHUB_WORKSPACE/apps/example/android/local.properties
 
       - name: Cache Gradle
-        if: env.turbo_cache_hit != 1
         uses: actions/cache@v3
         with:
           path: |
@@ -131,6 +119,225 @@ jobs:
           JAVA_OPTS: "-XX:MaxHeapSize=6g"
         run: |
           yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}" --force
+      
+      - name: Cache apk
+        uses: actions/cache/save@v3
+        env:
+          cache-name: cache-apk
+        with:
+          path: apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+          key: apk-${{ github.sha }}
+
+  test-android:
+    needs: build-android
+    runs-on: macos-latest-large
+    env:
+      TURBO_CACHE_DIR: .turbo/android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore APK
+        id: cache-apk
+        uses: actions/cache/restore@v3
+        with:
+          path: apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+          key: apk-${{ github.sha }}
+
+      - name: SDKs - download required images
+        run: $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "system-images;android-30;default;x86_64"
+
+      - name: Emulator - Create
+        run: $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd -n Pixel_API_30 --device 'Nexus 5X' --package "system-images;android-30;default;x86_64" --sdcard 512M
+
+      - name: Emulator - Boot
+        run: $ANDROID_HOME/emulator/emulator -memory 4096 -avd Pixel_API_30 -wipe-data -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim &
+
+      - name: ADB Wait For Device
+        run: adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
+        timeout-minutes: 15
+
+      - name: Start Package Manager
+        working-directory: apps/example
+        run: CI=true yarn start > yarn_start_output.log 2>&1 &
+
+      - name: Check APK existence
+        uses: andstor/file-existence-action@v2
+        with:
+          files: apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+          fail: true
+
+      - name: Install APK
+        run: adb install -r apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Reverse Port
+        run: adb devices | grep '\t' | awk '{print $1}' | sed 's/\\s//g' | xargs -I {} adb -s {} reverse tcp:8081 tcp:8081
+
+      - name: Launch APK
+        env:
+          PACKAGE_NAME: com.microsoft.reacttestapp
+        run: adb shell monkey -p ${{ env.PACKAGE_NAME }} 1
+
+      - name: Run e2e Tests
+        working-directory: packages/webgpu
+        run: yarn test
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          path: packages/webgpu/src/__tests__/snapshots/
+          name: tests-snapshots-screenshots
+
+      - name: Display yarn start output
+        if: always()
+        run: cat apps/example/yarn_start_output.log
+
+  test-android2:
+    needs: build-android
+    runs-on: ubuntu-22.04
+    env:
+      TURBO_CACHE_DIR: .turbo/android
+      ANDROID_AVD_HOME: ${{ github.workspace }}/.android/avd
+      ANDROID_EMULATOR_USE_SYSTEM_LIBS: 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install SDK Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-11-jdk qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
+          sudo adduser $USER libvirt
+          sudo adduser $USER kvm
+          sdkmanager --update
+
+      - name: Adjust KVM permissions
+        run: sudo chown $USER /dev/kvm
+
+      - name: Install system images
+        run: sdkmanager "system-images;android-30;default;x86_64"
+
+      - name: Emulator - Create
+        run: avdmanager create avd -n Pixel_API_30 --device 'Nexus 5X' --package "system-images;android-30;default;x86_64" --sdcard 512M
+
+      - name: Start Emulator
+        run: |
+          $ANDROID_HOME/emulator/emulator -avd Pixel_API_30 -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -netdelay none -netspeed full > emulator_output.log 2>&1 &
+      
+      - name: Wait for emulator to boot
+        run: |
+          adb wait-for-device
+          adb shell 'while [[ $(getprop sys.boot_completed) != "1" ]]; do sleep 1; done;'
+
+      - name: Test network connectivity
+        run: adb shell ping -c 3 www.google.com
+
+      - name: Start Package Manager
+        working-directory: apps/example
+        run: CI=true yarn start > yarn_start_output.log 2>&1 &
+
+      - name: Check APK existence
+        uses: andstor/file-existence-action@v2
+        with:
+          files: apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+          fail: true
+
+      - name: Install APK
+        run: adb install -r apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Reverse Port
+        run: adb reverse tcp:8081 tcp:8081
+
+      - name: Launch APK
+        env:
+          PACKAGE_NAME: com.microsoft.reacttestapp
+        run: adb shell monkey -p ${{ env.PACKAGE_NAME }} 1
+
+      - name: Run e2e Tests
+        working-directory: packages/webgpu
+        run: yarn test
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          path: packages/webgpu/src/__tests__/snapshots/
+          name: tests-snapshots-screenshots
+
+      - name: Display yarn start output
+        if: always()
+        run: cat apps/example/yarn_start_output.log
+
+      - name: Upload emulator logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-logs
+          path: emulator_output.log
+
+  test-android3:
+    needs: build-android
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: default
+          arch: x86_64
+          profile: Nexus 5X
+          emulator-options: '-no-window -noaudio -no-boot-anim -netdelay none -netspeed full'
+
+      - name: Start Package Manager
+        working-directory: apps/example
+        run: CI=true yarn start > yarn_start_output.log 2>&1 &
+
+      - name: Check APK existence
+        uses: andstor/file-existence-action@v2
+        with:
+          files: apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+          fail: true
+
+      - name: Install APK
+        run: adb install -r apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Reverse Port
+        run: adb reverse tcp:8081 tcp:8081
+
+      - name: Launch APK
+        env:
+          PACKAGE_NAME: com.microsoft.reacttestapp
+        run: adb shell monkey -p ${{ env.PACKAGE_NAME }} 1
+
+      - name: Run e2e Tests
+        working-directory: packages/webgpu
+        run: yarn test
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          path: packages/webgpu/src/__tests__/snapshots/
+          name: tests-snapshots-screenshots
+
+      - name: Display yarn start output
+        if: always()
+        run: cat apps/example/yarn_start_output.log
 
   build-ios:
     runs-on: macos-latest
@@ -152,14 +359,6 @@ jobs:
           key: ${{ runner.os }}-turborepo-ios-${{ hashFiles('yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-turborepo-ios-
-
-      - name: Check turborepo cache for iOS
-        run: |
-          TURBO_CACHE_STATUS=$(node -p "($(yarn turbo run build:ios --cache-dir="${{ env.TURBO_CACHE_DIR }}" --dry=json)).tasks.find(t => t.task === 'build:ios').cache.status")
-
-          if [[ $TURBO_CACHE_STATUS == "HIT" ]]; then
-            echo "turbo_cache_hit=1" >> $GITHUB_ENV
-          fi
 
       - name: Build example for iOS
         run: |
