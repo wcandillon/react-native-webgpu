@@ -65,7 +65,7 @@ export function ComputeBoids() {
   const randomizePositions = useRef<() => void>(() => {});
   const updateParams = useRef<(newOptions: BoidsOptions) => void>(() => {});
   const updateColorPreset = useRef<(newColorPreset: ColorPresets) => void>(
-    () => {}
+    () => {},
   );
 
   const { canvasRef } = useWebGPU(({ context, device, presentationFormat }) => {
@@ -111,7 +111,7 @@ export function ComputeBoids() {
       tgpu
         .createBuffer(arrayOf(triangleInfoStruct, triangleAmount))
         .$device(device)
-        .$usage(tgpu.Storage, tgpu.Uniform)
+        .$usage(tgpu.Storage, tgpu.Uniform),
     );
 
     randomizePositions.current = () => {
@@ -199,7 +199,7 @@ export function ComputeBoids() {
             },
           },
         ],
-      })
+      }),
     );
 
     const computeBindGroups = [0, 1].map((idx) =>
@@ -225,7 +225,7 @@ export function ComputeBoids() {
             },
           },
         ],
-      })
+      }),
     );
 
     const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -251,7 +251,7 @@ export function ComputeBoids() {
       computePass.setPipeline(computePipeline);
       computePass.setBindGroup(
         0,
-        even ? computeBindGroups[0] : computeBindGroups[1]
+        even ? computeBindGroups[0] : computeBindGroups[1],
       );
       computePass.dispatchWorkgroups(triangleAmount);
       computePass.end();
@@ -261,7 +261,7 @@ export function ComputeBoids() {
       passEncoder.setVertexBuffer(0, triangleVertexBuffer.buffer);
       passEncoder.setBindGroup(
         0,
-        even ? renderBindGroups[1] : renderBindGroups[0]
+        even ? renderBindGroups[1] : renderBindGroups[0],
       );
       passEncoder.draw(3, triangleAmount);
       passEncoder.end();
@@ -279,14 +279,14 @@ export function ComputeBoids() {
     (params: BoidsOptions) => () => {
       updateParams.current(params);
     },
-    []
+    [],
   );
 
   const colorPresetHandler = useCallback(
     (preset: ColorPresets) => () => {
       updateColorPreset.current(preset);
     },
-    []
+    [],
   );
 
   return (

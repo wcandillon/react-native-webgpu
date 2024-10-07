@@ -210,7 +210,7 @@ export function Particules() {
       device.queue.copyExternalImageToTexture(
         { source: imageBitmap },
         { texture: texture },
-        [imageBitmap.width, imageBitmap.height]
+        [imageBitmap.width, imageBitmap.height],
       );
     }
 
@@ -255,7 +255,7 @@ export function Particules() {
       device.queue.writeBuffer(
         probabilityMapUBOBuffer,
         0,
-        new Int32Array([textureWidth])
+        new Int32Array([textureWidth]),
       );
       const commandEncoder = device.createCommandEncoder();
       for (let level = 0; level < numMipLevels; level++) {
@@ -301,7 +301,7 @@ export function Particules() {
           passEncoder.setBindGroup(0, probabilityMapBindGroup);
           passEncoder.dispatchWorkgroups(
             Math.ceil(levelWidth / 64),
-            levelHeight
+            levelHeight,
           );
           passEncoder.end();
         } else {
@@ -310,7 +310,7 @@ export function Particules() {
           passEncoder.setBindGroup(0, probabilityMapBindGroup);
           passEncoder.dispatchWorkgroups(
             Math.ceil(levelWidth / 64),
-            levelHeight
+            levelHeight,
           );
           passEncoder.end();
         }
@@ -391,7 +391,7 @@ export function Particules() {
           Math.random() * 100, // seed.xy
           1 + Math.random(),
           1 + Math.random(), // seed.zw
-        ])
+        ]),
       );
 
       mat4.identity(view);

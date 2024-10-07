@@ -63,7 +63,7 @@ export function ABuffer() {
       // * targetWidth: u32
       const uniformsSize = roundUp(
         16 * Float32Array.BYTES_PER_ELEMENT + 2 * Uint32Array.BYTES_PER_ELEMENT,
-        16
+        16,
       );
 
       const uniformBuffer = device.createBuffer({
@@ -373,7 +373,7 @@ export function ABuffer() {
         const bytesPerline =
           canvas.width * averageLayersPerFragment * linkedListElementSize;
         const maxLinesSupported = Math.floor(
-          device.limits.maxStorageBufferBindingSize / bytesPerline
+          device.limits.maxStorageBufferBindingSize / bytesPerline,
         );
         const numSlices = Math.ceil(canvas.height / maxLinesSupported);
         const sliceHeight = Math.ceil(canvas.height / numSlices);
@@ -519,7 +519,7 @@ export function ABuffer() {
             (2 * Math.PI) / 5,
             aspect,
             1,
-            2000.0
+            2000.0,
           );
 
           const upVector = vec3.fromValues(0, 1, 0);
@@ -572,7 +572,7 @@ export function ABuffer() {
               0,
               headsBuffer,
               0,
-              headsInitBuffer.size
+              headsInitBuffer.size,
             );
 
             const scissorX = 0;
@@ -586,7 +586,7 @@ export function ABuffer() {
             // @ts-expect-error
             translucentPassDescriptor.colorAttachments[0].view = textureView;
             const translucentPassEncoder = commandEncoder.beginRenderPass(
-              translucentPassDescriptor
+              translucentPassDescriptor,
             );
 
             // Set the scissor to only process a horizontal slice of the frame
@@ -594,7 +594,7 @@ export function ABuffer() {
               scissorX,
               scissorY,
               scissorWidth,
-              scissorHeight
+              scissorHeight,
             );
 
             translucentPassEncoder.setPipeline(translucentPipeline);
@@ -610,7 +610,7 @@ export function ABuffer() {
             // @ts-expect-error
             compositePassDescriptor.colorAttachments[0].view = textureView;
             const compositePassEncoder = commandEncoder.beginRenderPass(
-              compositePassDescriptor
+              compositePassDescriptor,
             );
 
             // Set the scissor to only process a horizontal slice of the frame
@@ -618,7 +618,7 @@ export function ABuffer() {
               scissorX,
               scissorY,
               scissorWidth,
-              scissorHeight
+              scissorHeight,
             );
 
             compositePassEncoder.setPipeline(compositePipeline);
@@ -634,7 +634,7 @@ export function ABuffer() {
       };
 
       return configure();
-    }
+    },
   );
 
   return (

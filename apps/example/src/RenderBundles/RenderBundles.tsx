@@ -113,7 +113,7 @@ export const RenderBundles = () => {
         device.queue.copyExternalImageToTexture(
           { source: imageBitmap },
           { texture: planetTexture },
-          [imageBitmap.width, imageBitmap.height]
+          [imageBitmap.width, imageBitmap.height],
         );
       }
 
@@ -133,7 +133,7 @@ export const RenderBundles = () => {
         device.queue.copyExternalImageToTexture(
           { source: imageBitmap },
           { texture: moonTexture },
-          [imageBitmap.width, imageBitmap.height]
+          [imageBitmap.width, imageBitmap.height],
         );
       }
 
@@ -147,13 +147,13 @@ export const RenderBundles = () => {
         radius: number,
         widthSegments = 32,
         heightSegments = 16,
-        randomness = 0
+        randomness = 0,
       ) {
         const sphereMesh = createSphereMesh(
           radius,
           widthSegments,
           heightSegments,
-          randomness
+          randomness,
         );
 
         // Create a vertex buffer from the sphere data.
@@ -183,7 +183,7 @@ export const RenderBundles = () => {
 
       function createSphereBindGroup(
         texture: GPUTexture,
-        transform: Float32Array
+        transform: Float32Array,
       ): GPUBindGroup {
         const uniformBufferSize = 4 * 16; // 4x4 matrix
         const uniformBuffer = device.createBuffer({
@@ -280,7 +280,7 @@ export const RenderBundles = () => {
         (2 * Math.PI) / 5,
         aspect,
         1,
-        100.0
+        100.0,
       );
       const modelViewProjectionMatrix = mat4.create();
 
@@ -314,7 +314,7 @@ export const RenderBundles = () => {
       // Render bundles function as partial, limited render passes, so we can use the
       // same code both to render the scene normally and to build the render bundle.
       function renderScene(
-        passEncoder: GPURenderPassEncoder | GPURenderBundleEncoder
+        passEncoder: GPURenderPassEncoder | GPURenderBundleEncoder,
       ) {
         passEncoder.setPipeline(pipeline);
         passEncoder.setBindGroup(0, frameBindGroup);
@@ -364,7 +364,7 @@ export const RenderBundles = () => {
           0,
           transformationMatrix.buffer,
           transformationMatrix.byteOffset,
-          transformationMatrix.byteLength
+          transformationMatrix.byteLength,
         );
         // @ts-expect-error
         renderPassDescriptor.colorAttachments[0].view = context
@@ -379,7 +379,7 @@ export const RenderBundles = () => {
         device.queue.submit([commandEncoder.finish()]);
       }
       return frame;
-    }
+    },
   );
   return (
     <View style={style.container}>

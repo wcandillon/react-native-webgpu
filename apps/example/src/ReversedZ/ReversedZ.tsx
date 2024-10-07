@@ -85,7 +85,7 @@ export const ReversedZ = () => {
         mappedAtCreation: true,
       });
       new Float32Array(verticesBuffer.getMappedRange()).set(
-        geometryVertexArray
+        geometryVertexArray,
       );
       verticesBuffer.unmap();
 
@@ -294,7 +294,7 @@ export const ReversedZ = () => {
       colorPassRenderPipelineDescriptorBase.depthStencil.depthCompare =
         depthCompareFuncs[DepthBufferMode.Default];
       colorPassPipelines[DepthBufferMode.Default] = device.createRenderPipeline(
-        colorPassRenderPipelineDescriptorBase
+        colorPassRenderPipelineDescriptorBase,
       );
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
@@ -511,13 +511,13 @@ export const ReversedZ = () => {
             vec3.fromValues(
               x - xCount / 2 + 0.5,
               (4.0 - 0.2 * z) * (y - yCount / 2 + 1.0),
-              z
-            )
+              z,
+            ),
           );
           mat4.scale(
             modelMatrices[m],
             vec3.fromValues(s, s, s),
-            modelMatrices[m]
+            modelMatrices[m],
           );
 
           m++;
@@ -533,21 +533,21 @@ export const ReversedZ = () => {
         (2 * Math.PI) / 5,
         aspect,
         5,
-        9999
+        9999,
       );
 
       const viewProjectionMatrix = mat4.multiply(projectionMatrix, viewMatrix);
       // to use 1/z we just multiple depthRangeRemapMatrix to our default camera view projection matrix
       const reversedRangeViewProjectionMatrix = mat4.multiply(
         depthRangeRemapMatrix,
-        viewProjectionMatrix
+        viewProjectionMatrix,
       );
 
       device.queue.writeBuffer(cameraMatrixBuffer, 0, viewProjectionMatrix);
       device.queue.writeBuffer(
         cameraMatrixReversedDepthBuffer,
         0,
-        reversedRangeViewProjectionMatrix
+        reversedRangeViewProjectionMatrix,
       );
 
       const tmpMat4 = mat4.create();
@@ -559,7 +559,7 @@ export const ReversedZ = () => {
             modelMatrices[i],
             vec3.fromValues(Math.sin(now), Math.cos(now), 0),
             (Math.PI / 180) * 30,
-            tmpMat4
+            tmpMat4,
           );
           mvpMatricesData.set(tmpMat4, m);
         }
@@ -578,7 +578,7 @@ export const ReversedZ = () => {
           0,
           mvpMatricesData.buffer,
           mvpMatricesData.byteOffset,
-          mvpMatricesData.byteLength
+          mvpMatricesData.byteLength,
         );
 
         const attachment = context.getCurrentTexture().createView();
@@ -593,7 +593,7 @@ export const ReversedZ = () => {
             drawPassDescriptors[m].depthStencilAttachment.depthClearValue =
               depthClearValues[m];
             const colorPass = commandEncoder.beginRenderPass(
-              drawPassDescriptors[m]
+              drawPassDescriptors[m],
             );
             colorPass.setPipeline(colorPassPipelines[m]);
             colorPass.setBindGroup(0, uniformBindGroups[m]);
@@ -604,7 +604,7 @@ export const ReversedZ = () => {
               canvas.width / 2,
               canvas.height,
               0,
-              1
+              1,
             );
             colorPass.draw(geometryDrawCount, numInstances, 0, 0);
             colorPass.end();
@@ -617,7 +617,7 @@ export const ReversedZ = () => {
               depthPrePassDescriptor.depthStencilAttachment.depthClearValue =
                 depthClearValues[m];
               const depthPrePass = commandEncoder.beginRenderPass(
-                depthPrePassDescriptor
+                depthPrePassDescriptor,
               );
               depthPrePass.setPipeline(depthPrePassPipelines[m]);
               depthPrePass.setBindGroup(0, uniformBindGroups[m]);
@@ -628,7 +628,7 @@ export const ReversedZ = () => {
                 canvas.width / 2,
                 canvas.height,
                 0,
-                1
+                1,
               );
               depthPrePass.draw(geometryDrawCount, numInstances, 0, 0);
               depthPrePass.end();
@@ -642,7 +642,7 @@ export const ReversedZ = () => {
               drawPassDescriptors[m].depthStencilAttachment.depthClearValue =
                 depthClearValues[m];
               const precisionErrorPass = commandEncoder.beginRenderPass(
-                drawPassDescriptors[m]
+                drawPassDescriptors[m],
               );
               precisionErrorPass.setPipeline(precisionPassPipelines[m]);
               precisionErrorPass.setBindGroup(0, uniformBindGroups[m]);
@@ -654,7 +654,7 @@ export const ReversedZ = () => {
                 canvas.width / 2,
                 canvas.height,
                 0,
-                1
+                1,
               );
               precisionErrorPass.draw(geometryDrawCount, numInstances, 0, 0);
               precisionErrorPass.end();
@@ -669,7 +669,7 @@ export const ReversedZ = () => {
               depthPrePassDescriptor.depthStencilAttachment.depthClearValue =
                 depthClearValues[m];
               const depthPrePass = commandEncoder.beginRenderPass(
-                depthPrePassDescriptor
+                depthPrePassDescriptor,
               );
               depthPrePass.setPipeline(depthPrePassPipelines[m]);
               depthPrePass.setBindGroup(0, uniformBindGroups[m]);
@@ -680,7 +680,7 @@ export const ReversedZ = () => {
                 canvas.width / 2,
                 canvas.height,
                 0,
-                1
+                1,
               );
               depthPrePass.draw(geometryDrawCount, numInstances, 0, 0);
               depthPrePass.end();
@@ -691,7 +691,7 @@ export const ReversedZ = () => {
               textureQuadPassDescriptors[m].colorAttachments[0].view =
                 attachment;
               const depthTextureQuadPass = commandEncoder.beginRenderPass(
-                textureQuadPassDescriptors[m]
+                textureQuadPassDescriptors[m],
               );
               depthTextureQuadPass.setPipeline(textureQuadPassPipline);
               depthTextureQuadPass.setBindGroup(0, depthTextureBindGroup);
@@ -701,7 +701,7 @@ export const ReversedZ = () => {
                 canvas.width / 2,
                 canvas.height,
                 0,
-                1
+                1,
               );
               depthTextureQuadPass.draw(6);
               depthTextureQuadPass.end();
@@ -711,7 +711,7 @@ export const ReversedZ = () => {
         device.queue.submit([commandEncoder.finish()]);
       }
       return frame;
-    }
+    },
   );
 
   return (

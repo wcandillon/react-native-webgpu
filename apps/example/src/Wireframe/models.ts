@@ -17,11 +17,11 @@ type Mesh = {
 export function convertMeshToTypedArrays(
   mesh: Mesh,
   scale: number,
-  offset = [0, 0, 0]
+  offset = [0, 0, 0],
 ) {
   const { positions, normals, triangles } = mesh;
   const scaledPositions = positions.map((p) =>
-    p.map((v, i) => v * scale + offset[i % 3])
+    p.map((v, i) => v * scale + offset[i % 3]),
   );
   const vertices = new Float32Array(scaledPositions.length * 6);
   for (let i = 0; i < scaledPositions.length; ++i) {
@@ -43,13 +43,13 @@ function createSphereTypedArrays(
   radius: number,
   widthSegments = 32,
   heightSegments = 16,
-  randomness = 0
+  randomness = 0,
 ) {
   const { vertices: verticesWithUVs, indices } = createSphereMesh(
     radius,
     widthSegments,
     heightSegments,
-    randomness
+    randomness,
   );
   const numVertices = verticesWithUVs.length / 8;
   const vertices = new Float32Array(numVertices * 6);
@@ -89,8 +89,8 @@ function flattenNormals({
     const normal = vec3.normalize(
       vec3.cross(
         vec3.normalize(vec3.subtract(positions[1], positions[0])),
-        vec3.normalize(vec3.subtract(positions[2], positions[1]))
-      )
+        vec3.normalize(vec3.subtract(positions[2], positions[1])),
+      ),
     );
 
     for (let j = 0; j < 3; ++j) {

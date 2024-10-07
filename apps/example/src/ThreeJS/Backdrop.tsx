@@ -70,7 +70,7 @@ export const Backdrop = () => {
 
     material.outputNode = oscSine(timerLocal(0.1)).mix(
       output,
-      posterize(output.add(0.1), 4).mul(2)
+      posterize(output.add(0.1), 4).mul(2),
     );
 
     const action = mixer.clipAction(gltf.animations[0]);
@@ -87,7 +87,7 @@ export const Backdrop = () => {
 
     function addBackdropSphere(
       backdropNode: THREE.Node,
-      backdropAlphaNode = null
+      backdropAlphaNode = null,
     ) {
       const distance = 1;
       const id = portals.children.length;
@@ -107,7 +107,7 @@ export const Backdrop = () => {
       mesh.position.set(
         Math.cos(rotation) * distance,
         1,
-        Math.sin(rotation) * distance
+        Math.sin(rotation) * distance,
       );
 
       portals.add(mesh);
@@ -119,18 +119,18 @@ export const Backdrop = () => {
     // @ts-expect-error
     addBackdropSphere(saturation(viewportSharedTexture().rgb, 10), oscSine());
     addBackdropSphere(
-      overlay(viewportSharedTexture().rgb, checker(uv().mul(10)))
+      overlay(viewportSharedTexture().rgb, checker(uv().mul(10))),
     );
 
     // For the two nodes below to work, antialias needs to be set to false in renderer
     // See https://github.com/mrdoob/three.js/pull/29025/files#r1753646774
     addBackdropSphere(
-      viewportSharedTexture(viewportSafeUV(viewportUV.mul(40).floor().div(40)))
+      viewportSharedTexture(viewportSafeUV(viewportUV.mul(40).floor().div(40))),
     );
     addBackdropSphere(
       viewportSharedTexture(
-        viewportSafeUV(viewportUV.mul(80).floor().div(80))
-      ).add(color(0x0033ff))
+        viewportSafeUV(viewportUV.mul(80).floor().div(80)),
+      ).add(color(0x0033ff)),
     );
 
     addBackdropSphere(vec3(0, 0, viewportSharedTexture().b));

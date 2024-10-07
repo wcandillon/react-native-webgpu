@@ -131,7 +131,7 @@ export const Cubemap = () => {
           device.queue.copyExternalImageToTexture(
             { source: imageBitmap },
             { texture: cubemapTexture, origin: [0, 0, i] },
-            [imageBitmap.width, imageBitmap.height]
+            [imageBitmap.width, imageBitmap.height],
           );
         }
       }
@@ -195,7 +195,7 @@ export const Cubemap = () => {
         (2 * Math.PI) / 5,
         aspect,
         1,
-        3000
+        3000,
       );
 
       const modelMatrix = mat4.scaling(vec3.fromValues(1000, 1000, 1000));
@@ -213,7 +213,7 @@ export const Cubemap = () => {
           viewMatrix,
           vec3.fromValues(1, 0, 0),
           (Math.PI / 10) * Math.sin(now),
-          tmpMat4
+          tmpMat4,
         );
         mat4.rotate(tmpMat4, vec3.fromValues(0, 1, 0), now * 0.2, tmpMat4);
 
@@ -221,7 +221,7 @@ export const Cubemap = () => {
         mat4.multiply(
           projectionMatrix,
           modelViewProjectionMatrix,
-          modelViewProjectionMatrix
+          modelViewProjectionMatrix,
         );
       }
 
@@ -232,7 +232,7 @@ export const Cubemap = () => {
           0,
           modelViewProjectionMatrix.buffer,
           modelViewProjectionMatrix.byteOffset,
-          modelViewProjectionMatrix.byteLength
+          modelViewProjectionMatrix.byteLength,
         );
 
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -252,7 +252,7 @@ export const Cubemap = () => {
         device.queue.submit([commandEncoder.finish()]);
       }
       return frame;
-    }
+    },
   );
 
   return (

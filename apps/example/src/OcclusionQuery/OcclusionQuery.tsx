@@ -163,7 +163,7 @@ export function OcclusionQuery() {
         dev: GPUDevice,
         data: TypedArrayView,
         usage: GPUBufferUsageFlags,
-        label: string
+        label: string,
       ) {
         const buffer = dev.createBuffer({
           label,
@@ -220,13 +220,13 @@ export function OcclusionQuery() {
         device,
         vertexData,
         GPUBufferUsage.VERTEX,
-        "vertexBuffer"
+        "vertexBuffer",
       );
       const indicesBuf = createBufferWithData(
         device,
         indices,
         GPUBufferUsage.INDEX,
-        "indexBuffer"
+        "indexBuffer",
       );
 
       const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -272,7 +272,7 @@ export function OcclusionQuery() {
           (30 * Math.PI) / 180,
           canvas.width / canvas.height,
           0.5,
-          100
+          100,
         );
 
         const m = mat4.identity();
@@ -281,7 +281,7 @@ export function OcclusionQuery() {
         mat4.translate(
           m,
           lerpV([0, 0, 5], [0, 0, 40], pingPongSine(time * 0.2)),
-          m
+          m,
         );
         const view = mat4.inverse(m);
         const viewProjection = mat4.multiply(projection, view);
@@ -324,7 +324,7 @@ export function OcclusionQuery() {
               worldInverseTranspose,
               position,
             },
-            i
+            i,
           ) => {
             const world = mat4.translation(position);
             mat4.transpose(mat4.inverse(world), worldInverseTranspose);
@@ -336,7 +336,7 @@ export function OcclusionQuery() {
             pass.beginOcclusionQuery(i);
             pass.drawIndexed(indices.length);
             pass.endOcclusionQuery();
-          }
+          },
         );
 
         pass.end();
@@ -347,7 +347,7 @@ export function OcclusionQuery() {
             0,
             resultBuf,
             0,
-            resultBuf.size
+            resultBuf.size,
           );
         }
 
@@ -368,7 +368,7 @@ export function OcclusionQuery() {
         }
       }
       return render;
-    }
+    },
   );
 
   return (

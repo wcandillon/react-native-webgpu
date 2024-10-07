@@ -136,14 +136,14 @@ export const SamplerParameters = () => {
             "lodMinClamp",
             0,
             4,
-            0.1
+            0.1,
           );
           const ctlMax = folder.add(
             samplerDescriptor,
             "lodMaxClamp",
             0,
             4,
-            0.1
+            0.1,
           );
           ctlMin.onChange((value: number) => {
             if (samplerDescriptor.lodMaxClamp! < value) {
@@ -158,7 +158,7 @@ export const SamplerParameters = () => {
 
           {
             const folder2 = folder.addFolder(
-              'maxAnisotropy (set only if all "linear")'
+              'maxAnisotropy (set only if all "linear")',
             );
             folder2.open();
             const kMaxAnisotropy = 16;
@@ -167,7 +167,7 @@ export const SamplerParameters = () => {
               "maxAnisotropy",
               1,
               kMaxAnisotropy,
-              1
+              1,
             );
           }
         }
@@ -240,7 +240,7 @@ export const SamplerParameters = () => {
           for (let x = 0; x < size; ++x) {
             data.set(
               (x + y) % 2 ? kColorForLevel[mipLevel] : [0, 0, 0, 255],
-              (y * size + x) * 4
+              (y * size + x) * 4,
             );
           }
         }
@@ -248,7 +248,7 @@ export const SamplerParameters = () => {
           { texture: checkerboard, mipLevel },
           data,
           { bytesPerRow: size * 4 },
-          [size, size]
+          [size, size],
         );
       }
 
@@ -310,7 +310,7 @@ export const SamplerParameters = () => {
       const kCameraDist = 3;
       const viewProj = mat4.translate(
         mat4.perspective(2 * Math.atan(1 / kCameraDist), 1, 0.1, 100),
-        [0, 0, -kCameraDist]
+        [0, 0, -kCameraDist],
       );
       device.queue.writeBuffer(bufConfig, 0, viewProj);
 
@@ -396,7 +396,7 @@ export const SamplerParameters = () => {
         device.queue.submit([commandEncoder.finish()]);
       }
       return frame;
-    }
+    },
   );
 
   return (

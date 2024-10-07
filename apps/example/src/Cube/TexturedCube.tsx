@@ -116,7 +116,7 @@ export const TexturedCube = () => {
         device.queue.copyExternalImageToTexture(
           { source: imageBitmap },
           { texture: cubeTexture },
-          [imageBitmap.width, imageBitmap.height]
+          [imageBitmap.width, imageBitmap.height],
         );
       }
 
@@ -171,7 +171,7 @@ export const TexturedCube = () => {
         (2 * Math.PI) / 5,
         aspect,
         1,
-        100.0
+        100.0,
       );
       const modelViewProjectionMatrix = mat4.create();
 
@@ -183,7 +183,7 @@ export const TexturedCube = () => {
           viewMatrix,
           vec3.fromValues(Math.sin(now), Math.cos(now), 0),
           1,
-          viewMatrix
+          viewMatrix,
         );
 
         mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
@@ -198,7 +198,7 @@ export const TexturedCube = () => {
           0,
           transformationMatrix.buffer,
           transformationMatrix.byteOffset,
-          transformationMatrix.byteLength
+          transformationMatrix.byteLength,
         );
         // @ts-expect-error
         renderPassDescriptor.colorAttachments[0].view = context
@@ -215,7 +215,7 @@ export const TexturedCube = () => {
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
       };
-    }
+    },
   );
 
   return (

@@ -130,7 +130,7 @@ export function Cube() {
         (2 * Math.PI) / 5,
         aspect,
         1,
-        100.0
+        100.0,
       );
       const modelViewProjectionMatrix = mat4.create();
 
@@ -142,7 +142,7 @@ export function Cube() {
           viewMatrix,
           vec3.fromValues(Math.sin(now), Math.cos(now), 0),
           1,
-          viewMatrix
+          viewMatrix,
         );
 
         mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
@@ -157,7 +157,7 @@ export function Cube() {
           0,
           transformationMatrix.buffer,
           transformationMatrix.byteOffset,
-          transformationMatrix.byteLength
+          transformationMatrix.byteLength,
         );
         // @ts-expect-error
         renderPassDescriptor.colorAttachments[0].view = context
@@ -175,7 +175,7 @@ export function Cube() {
         device.queue.submit([commandEncoder.finish()]);
       }
       return frame;
-    }
+    },
   );
 
   return (

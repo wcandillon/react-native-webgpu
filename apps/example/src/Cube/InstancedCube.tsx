@@ -118,7 +118,7 @@ export const InstancedCube = () => {
         (2 * Math.PI) / 5,
         aspect,
         1,
-        100.0
+        100.0,
       );
 
       const modelMatrices = new Array<Mat4>(numInstances);
@@ -134,8 +134,8 @@ export const InstancedCube = () => {
             vec3.fromValues(
               step * (x - xCount / 2 + 0.5),
               step * (y - yCount / 2 + 0.5),
-              0
-            )
+              0,
+            ),
           );
           m++;
         }
@@ -159,10 +159,10 @@ export const InstancedCube = () => {
               vec3.fromValues(
                 Math.sin((x + 0.5) * now),
                 Math.cos((y + 0.5) * now),
-                0
+                0,
               ),
               1,
-              tmpMat4
+              tmpMat4,
             );
 
             mat4.multiply(viewMatrix, tmpMat4, tmpMat4);
@@ -205,7 +205,7 @@ export const InstancedCube = () => {
           0,
           mvpMatricesData.buffer,
           mvpMatricesData.byteOffset,
-          mvpMatricesData.byteLength
+          mvpMatricesData.byteLength,
         );
 
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -225,7 +225,7 @@ export const InstancedCube = () => {
         device.queue.submit([commandEncoder.finish()]);
       }
       return frame;
-    }
+    },
   );
 
   return (

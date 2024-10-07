@@ -32,14 +32,14 @@ export const InstancedMesh = () => {
       // random colors between instances from 0x000000 to 0xFFFFFF
       const randomColors = range(
         new THREE.Color(0x000000),
-        new THREE.Color(0xffffff)
+        new THREE.Color(0xffffff),
       );
 
       // @ts-expect-error
       material.colorNode = mix(
         THREE.normalWorld,
         randomColors,
-        oscSine(timerLocal(0.1))
+        oscSine(timerLocal(0.1)),
       );
 
       const loader = new THREE.BufferGeometryLoader();
@@ -56,7 +56,7 @@ export const InstancedMesh = () => {
           scene.add(mesh);
 
           //
-        }
+        },
       );
 
       //
