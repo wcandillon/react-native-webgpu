@@ -1,4 +1,5 @@
-import type { ViewProps, LayoutChangeEvent, View } from "react-native";
+import type { ViewProps, LayoutChangeEvent } from "react-native";
+import { View } from "react-native";
 import {
   forwardRef,
   useEffect,
@@ -21,6 +22,7 @@ declare global {
   // eslint-disable-next-line no-var
   var RNWebGPU: {
     gpu: GPU;
+    fabric: boolean;
     MakeWebGPUCanvasContext: (
       contextId: number,
       width: number,
@@ -51,9 +53,6 @@ export interface CanvasRef {
   whenReady: (callback: () => void) => void;
 }
 
-// TODO: use JSI fucntion for that;
-const FABRIC = false;
-
 interface Size {
   width: number;
   height: number;
@@ -62,7 +61,10 @@ interface Size {
 const useSizeFabric = (ref: RefObject<View>) => {
   const [size, setSize] = useState<null | Size>(null);
   useLayoutEffect(() => {
-    ref.current?.measureInWindow((_x, _y, width, height) => {
+    if (!ref.current) {
+      throw new Error("Canvas ref is null");
+    }
+    ref.current.measureInWindow((_x, _y, width, height) => {
       setSize({ width, height });
     });
   }, [ref]);
@@ -86,12 +88,13 @@ const useSizePaper = (_ref: RefObject<View>) => {
   return { size, onLayout };
 };
 
-const useSize = FABRIC ? useSizeFabric : useSizePaper;
-
 export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
+  const viewRef = useRef(null);
+  const FABRIC = RNWebGPU.fabric;
+  const useSize = FABRIC ? useSizeFabric : useSizePaper;
   const [contextId, _] = useState(() => generateContextId());
   const cb = useRef<() => void>();
-  const { size, onLayout } = useSize(ref as RefObject<View>);
+  const { size, onLayout } = useSize(viewRef);
   useEffect(() => {
     if (size && cb.current) {
       cb.current();
@@ -133,6 +136,12 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
   }, [contextId]);
 
   return (
-    <WebGPUNativeView {...props} onLayout={onLayout} contextId={contextId} />
+    <View ref={viewRef} {...props}>
+      <WebGPUNativeView
+        style={{ flex: 1 }}
+        onLayout={onLayout}
+        contextId={contextId}
+      />
+    </View>
   );
 });
