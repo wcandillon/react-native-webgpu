@@ -99,6 +99,7 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>((props, ref) => {
   }, [size]);
   useImperativeHandle(ref, () => ({
     getNativeSurface: () => {
+      // TODO: implement
       return {
         surface: 0n,
         width: 0,
