@@ -92,8 +92,14 @@ void GPUCanvasContext::present() {
 #endif
   if (_instance) {
     _instance.Present();
+    // We update the client width/height for the next frame
+    auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+    auto info = registry.getSurface(_contextId);
+    _canvas->setClientWidth(info->width);
+    _canvas->setClientHeight(info->height);
   }
   _pristine = true;
+
 }
 
 } // namespace rnwgpu
