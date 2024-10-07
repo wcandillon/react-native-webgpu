@@ -38,6 +38,9 @@ void GPUCanvasContext::unconfigure() {
 }
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
+  auto width = _canvas->getWidth();
+  auto height =  _canvas->getHeight();
+
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   // TODO: flush the content of the offscreen surface
   // TODO: delete Java_com_webgpu_WebGPUModule_createSurfaceContext (and on iOS)
@@ -46,35 +49,27 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   if (_pristine && _instance == nullptr) {
     auto info = registry.getSurface(_contextId);
     if (info != nullptr) {
-      auto width = _canvas->getWidth();
-      auto height =  _canvas->getHeight();
       _instance = _platformContext->makeSurface(_gpu->get(), info->surface,
                                                 width, height);
       _surfaceConfiguration.width = width;
       _surfaceConfiguration.height = height;
       _instance.Configure(&_surfaceConfiguration);
       _offscreenSurface = nullptr;
-      _pristine = false;
       // TODO: flush offscreen content to onscreen
     }
   }
 
   // 2. did the surface resize?
-  // if (_instance && _pristine) {
-  //     auto info = registry.getSurface(_contextId);
-  //     if (info != nullptr) {
-  //       if (info->width != _surfaceConfiguration.width || info->height !=
-  //       _surfaceConfiguration.height) {
-  //         _surfaceConfiguration.width = info->width;
-  //         _surfaceConfiguration.height = info->height;
-  //         _canvas->setClientWidth(info->width);
-  //         _canvas->setClientHeight(info->height);
-  //         //_canvas->setSize(info->width, info->height);
-  //         _instance.Configure(&_surfaceConfiguration);
-  //       }
-  //     }
-  // }
+  auto prevWidth = _surfaceConfiguration.width;
+  auto prevHeight = _surfaceConfiguration.height;
+  auto sizeHasChanged = prevWidth != width || prevHeight != height;
+  if (_instance && _pristine && sizeHasChanged) {
+      _surfaceConfiguration.width = width;
+      _surfaceConfiguration.height = height;
+      _instance.Configure(&_surfaceConfiguration);
+  }
 
+  _pristine = false;
   // 3. get onscreen texture
   if (_instance) {
     wgpu::SurfaceTexture surfaceTexture;
