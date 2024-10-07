@@ -52,7 +52,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
           const result = eval(
             `(function Main() {
               return (${tree.code})(this.ctx);
-            })`
+            })`,
           ).call({
             ctx: {
               gpu: navigator.gpu,

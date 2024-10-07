@@ -4,6 +4,12 @@
   "rules": {
     "no-bitwise": "off",
     "@typescript-eslint/no-require-imports": "off",
-    "no-dupe-class-members": "off"
+    "no-dupe-class-members": "off",
+    "prettier/prettier": [
+      "error",
+      {
+        "trailingComma": "all"
+      }
+    ]
   }
 } 
