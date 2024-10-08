@@ -88,57 +88,62 @@ const useSizePaper = (_ref: RefObject<View>) => {
   return { size, onLayout };
 };
 
-export const Canvas = forwardRef<CanvasRef, ViewProps>(({onLayout: _onLayout, ...props}, ref) => {
-  const viewRef = useRef(null);
-  const FABRIC = RNWebGPU.fabric;
-  const useSize = FABRIC ? useSizeFabric : useSizePaper;
-  const [contextId, _] = useState(() => generateContextId());
-  const cb = useRef<() => void>();
-  const { size, onLayout } = useSize(viewRef);
+export const Canvas = forwardRef<CanvasRef, ViewProps>(
+  ({ onLayout: _onLayout, ...props }, ref) => {
+    console.log("Render <Canvas />");
+    const viewRef = useRef(null);
+    const FABRIC = RNWebGPU.fabric;
+    const useSize = FABRIC ? useSizeFabric : useSizePaper;
+    const [contextId, _] = useState(() => generateContextId());
+    const cb = useRef<() => void>();
+    const { size, onLayout } = useSize(viewRef);
 
-  useEffect(() => {
-    if (size && cb.current) {
-      cb.current();
-    }
-  }, [size]);
-  useImperativeHandle(ref, () => ({
-    getNativeSurface: () => {
-      // TODO: implement
-      return {
-        surface: 0n,
-        width: 0,
-        height: 0,
-        clientWidth: 0,
-        clientHeight: 0,
+    useEffect(() => {
+      if (size && cb.current) {
+        cb.current();
+      }
+    }, [size]);
+    useImperativeHandle(ref, () => ({
+      getNativeSurface: () => {
+        // TODO: implement
+        return {
+          surface: 0n,
+          width: 0,
+          height: 0,
+          clientWidth: 0,
+          clientHeight: 0,
+        };
+      },
+      whenReady(callback: () => void) {
+        cb.current = callback;
+      },
+      getCallback: () => {
+        return cb.current;
+      },
+      getContext(contextName: "webgpu"): RNCanvasContext | null {
+        if (contextName !== "webgpu") {
+          throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
+        }
+        if (size === null) {
+          throw new Error("[WebGPU] Canvas size is not available yet");
+        }
+        return RNWebGPU.MakeWebGPUCanvasContext(
+          contextId,
+          size.width,
+          size.height,
+        );
+      },
+    }));
+    useEffect(() => {
+      return () => {
+        // TODO: Remove from the surface registry instead of doing it on the native side?
+        console.log("Unmounting <Canvas />");
       };
-    },
-    whenReady(callback: () => void) {
-      cb.current = callback;
-    },
-    getCallback: () => {
-      return cb.current;
-    },
-    getContext(contextName: "webgpu"): RNCanvasContext | null {
-      if (contextName !== "webgpu") {
-        throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
-      }
-      if (size === null) {
-        throw new Error("[WebGPU] Canvas size is not available yet");
-      }
-      return RNWebGPU.MakeWebGPUCanvasContext(
-        contextId,
-        size.width,
-        size.height,
-      );
-    },
-  }));
-
-  return (
-    <View ref={viewRef} onLayout={onLayout} {...props}>
-      <WebGPUNativeView
-        style={{ flex: 1 }}
-        contextId={contextId}
-      />
-    </View>
-  );
-});
+    });
+    return (
+      <View ref={viewRef} onLayout={onLayout} {...props}>
+        <WebGPUNativeView style={{ flex: 1 }} contextId={contextId} />
+      </View>
+    );
+  },
+);

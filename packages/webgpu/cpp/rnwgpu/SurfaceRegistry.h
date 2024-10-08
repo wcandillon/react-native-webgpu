@@ -9,7 +9,7 @@
 namespace rnwgpu {
 
 struct SurfaceInfo {
-  void* nativeSurface = nullptr;
+  void *nativeSurface = nullptr;
   wgpu::Surface surface;
   int width;
   int height;
@@ -19,32 +19,30 @@ struct SurfaceInfo {
   wgpu::SurfaceConfiguration config;
 
   void flush() {
-     // 1.a flush texture to the onscreen surface
-      if (texture) {
-        wgpu::CommandEncoderDescriptor encoderDesc;
-        wgpu::CommandEncoder encoder =
-            device.CreateCommandEncoder(&encoderDesc);
+    // 1.a flush texture to the onscreen surface
+    if (texture) {
+      wgpu::CommandEncoderDescriptor encoderDesc;
+      wgpu::CommandEncoder encoder = device.CreateCommandEncoder(&encoderDesc);
 
-        wgpu::ImageCopyTexture sourceTexture = {};
-        sourceTexture.texture = texture;
+      wgpu::ImageCopyTexture sourceTexture = {};
+      sourceTexture.texture = texture;
 
-        wgpu::ImageCopyTexture destinationTexture = {};
-        wgpu::SurfaceTexture surfaceTexture;
-        surface.GetCurrentTexture(&surfaceTexture);
-        destinationTexture.texture = surfaceTexture.texture;
+      wgpu::ImageCopyTexture destinationTexture = {};
+      wgpu::SurfaceTexture surfaceTexture;
+      surface.GetCurrentTexture(&surfaceTexture);
+      destinationTexture.texture = surfaceTexture.texture;
 
-        wgpu::Extent3D size = {sourceTexture.texture.GetWidth(),
-                               sourceTexture.texture.GetHeight(),
-                               sourceTexture.texture.GetDepthOrArrayLayers()};
+      wgpu::Extent3D size = {sourceTexture.texture.GetWidth(),
+                             sourceTexture.texture.GetHeight(),
+                             sourceTexture.texture.GetDepthOrArrayLayers()};
 
-        encoder.CopyTextureToTexture(&sourceTexture, &destinationTexture,
-                                     &size);
+      encoder.CopyTextureToTexture(&sourceTexture, &destinationTexture, &size);
 
-        wgpu::CommandBuffer commands = encoder.Finish();
-        wgpu::Queue queue = device.GetQueue();
-        queue.Submit(1, &commands);
-        // TODO: info->texture = nullptr;
-      }
+      wgpu::CommandBuffer commands = encoder.Finish();
+      wgpu::Queue queue = device.GetQueue();
+      queue.Submit(1, &commands);
+      // TODO: info->texture = nullptr;
+    }
   }
 };
 

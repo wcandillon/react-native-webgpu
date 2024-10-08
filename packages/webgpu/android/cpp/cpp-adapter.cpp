@@ -53,7 +53,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
   // 1. The scene has already be drawn offscreen
   if (registry.hasSurfaceInfo(contextId)) {
     auto info = registry.getSurface(contextId);
-    auto surface = manager->_platformContext->makeSurface(info.gpu, window, width, height);
+    auto surface =
+        manager->_platformContext->makeSurface(info.gpu, window, width, height);
     info.config.usage = info.config.usage | wgpu::TextureUsage::CopyDst;
     surface.Configure(&info.config);
     info.nativeSurface = window;
@@ -64,7 +65,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     surface.Present();
     registry.updateSurface(contextId, info);
   } else {
-    // 2. The scene has not been drawn offscreen yet, we will draw onscreen directly
+    // 2. The scene has not been drawn offscreen yet, we will draw onscreen
+    // directly
     rnwgpu::SurfaceInfo info;
     info.nativeSurface = window;
     info.width = width;
@@ -77,6 +79,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
     JNIEnv *env, jobject thiz, jint contextId) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto canvas = registry.getSurface(contextId);
-  ANativeWindow_release(reinterpret_cast<ANativeWindow *>(canvas.nativeSurface));
+  ANativeWindow_release(
+      reinterpret_cast<ANativeWindow *>(canvas.nativeSurface));
   registry.removeSurface(contextId);
 }

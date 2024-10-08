@@ -1,8 +1,7 @@
 import type { DependencyList } from "react";
 import { useEffect, useRef, useState } from "react";
 
-import type { RNCanvasContext } from "./Canvas";
-import type { CanvasRef } from "./Canvas";
+import type { RNCanvasContext, CanvasRef } from "./Canvas";
 
 type Unsubscribe = () => void;
 
@@ -15,9 +14,10 @@ export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
 };
 
 export const useGPUContextEffect = (
-  effect: (ctx: RNCanvasContext) => void | Unsubscribe | Promise<void | Unsubscribe>,
-  deps?: DependencyList
+  effect: (ctx: RNCanvasContext) => void | Unsubscribe,
+  deps?: DependencyList,
 ) => {
+  const unsub = useRef<Unsubscribe | null>(null);
   const [context, setContext] = useState<RNCanvasContext | null>(null);
   const ref = useCanvasEffect(() => {
     const ctx = ref.current!.getContext("webgpu")!;
@@ -25,21 +25,43 @@ export const useGPUContextEffect = (
   });
   useEffect(() => {
     if (context) {
-      effect(context);
+      const ret = effect(context);
+      if (ret) {
+        unsub.current = ret;
+      }
     }
-  }, [context, ...(deps ?? [])])
-  return {ref, context};
-}
+    return () => {
+      if (unsub.current) {
+        unsub.current();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [context, unsub, effect, ...(deps ?? [])]);
+  return { ref, context };
+};
 
-// TODO: add example en fabric that uses useEffect or useLayoutEffect directly
 export const useCanvasEffect = (
-  effect: () => void
+  effect: () => void | Unsubscribe | Promise<void>,
 ) => {
+  const unsub = useRef<Unsubscribe | null>(null);
   const ref = useRef<CanvasRef>(null);
   useEffect(() => {
     ref.current!.whenReady(async () => {
-      effect();
+      const sub = effect();
+      if (sub && !(sub instanceof Promise)) {
+        unsub.current = sub;
+      }
     });
+    return () => {
+      if (unsub.current) {
+        if (unsub.current instanceof Promise) {
+          unsub.current.then((sub) => sub());
+        } else {
+          unsub.current();
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return ref;
 };

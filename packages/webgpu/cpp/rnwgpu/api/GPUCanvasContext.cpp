@@ -62,9 +62,11 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   if (_pristine && _instance == nullptr) {
     if (registry.hasOnScreenSurface(_contextId)) {
       auto info = registry.getSurface(_contextId);
-      // if the native surface is available, but we didn't create the WGPU instance yet, do it now
+      // if the native surface is available, but we didn't create the WGPU
+      // instance yet, do it now
       if (info.surface == nullptr) {
-        info.surface = _platformContext->makeSurface(_gpu->get(), info.nativeSurface, width, height);
+        info.surface = _platformContext->makeSurface(
+            _gpu->get(), info.nativeSurface, width, height);
       }
       _instance = info.surface;
 
