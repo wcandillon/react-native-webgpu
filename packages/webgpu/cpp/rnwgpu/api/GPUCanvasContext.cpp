@@ -28,18 +28,22 @@ void GPUCanvasContext::configure(
   surfaceConfiguration.width = width;
   surfaceConfiguration.height = height;
   _surfaceConfiguration = surfaceConfiguration;
-  _offscreenSurface->configure(_surfaceConfiguration);
-  // Add texture to the surface registry, when the native surface is available,
-  // we will copy its content there
-  // This only makes sense if the on screen native surface is not available yet
-  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  SurfaceInfo info;
-  info.width = width;
-  info.height = height;
-  info.texture = _offscreenSurface->getCurrentTexture();
-  info.gpu = _gpu->get();
-  info.config = _surfaceConfiguration;
-  registry.addIfEmptySurface(_contextId, info);
+  if (_instance) {
+    _instance.Configure(&surfaceConfiguration);
+  } else {
+    _offscreenSurface->configure(_surfaceConfiguration);
+    // Add texture to the surface registry, when the native surface is available,
+    // we will copy its content there
+    // This only makes sense if the on screen native surface is not available yet
+    auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+    SurfaceInfo info;
+    info.width = width;
+    info.height = height;
+    info.texture = _offscreenSurface->getCurrentTexture();
+    info.gpu = _gpu->get();
+    info.config = _surfaceConfiguration;
+    registry.addIfEmptySurface(_contextId, info);
+  }
 }
 
 void GPUCanvasContext::unconfigure() {
@@ -71,7 +75,7 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
       _surfaceConfiguration.width = width;
       _surfaceConfiguration.height = height;
       _instance.Configure(&_surfaceConfiguration);
-      // TODO: _offscreenSurface = nullptr; ?
+      _offscreenSurface = nullptr;
     }
   }
 
@@ -110,7 +114,7 @@ void GPUCanvasContext::present() {
     _instance.Present();
     // We update the client width/height for the next frame
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-    auto info = registry.getSurface(_contextId);
+    auto info = registry.getSize(_contextId);
     _canvas->setClientWidth(info.width);
     _canvas->setClientHeight(info.height);
   }

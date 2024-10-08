@@ -8,6 +8,11 @@
 
 namespace rnwgpu {
 
+struct ISize {
+  int width;
+  int height;
+};
+
 struct SurfaceInfo {
   void *nativeSurface = nullptr;
   wgpu::Surface surface;
@@ -111,6 +116,17 @@ public:
     if (it != _registry.end()) {
       it->second = info;
     }
+  }
+  
+  ISize getSize(const int contextId) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    ISize size;
+    auto it = _registry.find(contextId);
+    if (it != _registry.end()) {
+      size.width = it->second.width;
+      size.height = it->second.height;
+    }
+    return size;
   }
 
   void configureSurface(const int contextId, void *nativeSurface, int width,

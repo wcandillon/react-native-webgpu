@@ -23,6 +23,7 @@ declare global {
   var RNWebGPU: {
     gpu: GPU;
     fabric: boolean;
+    getNativeSurface: (contextId: number) => NativeCanvas;
     MakeWebGPUCanvasContext: (
       contextId: number,
       width: number,
@@ -96,12 +97,6 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>(
     const [contextId, _] = useState(() => generateContextId());
     const cb = useRef<() => void>();
     const { size, onLayout } = useSize(viewRef);
-    const [isMounted] = useState(true);
-    // useEffect(() => {
-    //   setInterval(() => {
-    //     setMounted(true);
-    //   }, 2000);
-    // }, []);
     useEffect(() => {
       if (size && cb.current) {
         cb.current();
@@ -109,14 +104,7 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>(
     }, [size]);
     useImperativeHandle(ref, () => ({
       getNativeSurface: () => {
-        // TODO: implement
-        return {
-          surface: 0n,
-          width: 0,
-          height: 0,
-          clientWidth: 0,
-          clientHeight: 0,
-        };
+        return RNWebGPU.getNativeSurface(contextId);
       },
       whenReady(callback: () => void) {
         cb.current = callback;
@@ -140,9 +128,7 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>(
     }));
     return (
       <View ref={viewRef} onLayout={onLayout} {...props}>
-        {isMounted && (
-          <WebGPUNativeView style={{ flex: 1 }} contextId={contextId} />
-        )}
+        <WebGPUNativeView style={{ flex: 1 }} contextId={contextId} />
       </View>
     );
   },
