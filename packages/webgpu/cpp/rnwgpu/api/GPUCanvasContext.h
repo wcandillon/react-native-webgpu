@@ -76,6 +76,9 @@ private:
   wgpu::Device _device;
   std::shared_ptr<Canvas> _canvas;
   bool _pristine = true;
+  // for testing only;
+  // TODO: to remove
+  bool _test = true;
   int _contextId;
 
   std::shared_ptr<GPU> _gpu;

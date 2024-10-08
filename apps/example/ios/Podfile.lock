@@ -936,7 +936,71 @@ PODS:
     - glog
     - React-debug
   - react-native-safe-area-context (4.11.0):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.01.01.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Codegen
     - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - react-native-safe-area-context/common (= 4.11.0)
+    - react-native-safe-area-context/fabric (= 4.11.0)
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
+  - react-native-safe-area-context/common (4.11.0):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.01.01.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Codegen
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
+  - react-native-safe-area-context/fabric (4.11.0):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.01.01.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Codegen
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - react-native-safe-area-context/common
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
   - react-native-wgpu (0.1.8):
     - DoubleConversion
     - glog
@@ -1203,6 +1267,7 @@ PODS:
     - React-graphics
     - React-ImageManager
     - React-NativeModulesApple
+    - React-RCTAppDelegate
     - React-RCTFabric
     - React-rendererdebug
     - React-utils
@@ -1300,6 +1365,29 @@ PODS:
     - ReactCommon/turbomodule/core
     - Yoga
   - RNScreens (3.34.0):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.01.01.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Codegen
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-RCTImage
+    - React-rendererdebug
+    - React-utils
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - RNScreens/common (= 3.34.0)
+    - Yoga
+  - RNScreens/common (3.34.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1552,16 +1640,16 @@ SPEC CHECKSUMS:
   React-jsitracing: 0fa7f78d8fdda794667cb2e6f19c874c1cf31d7e
   React-logger: 29fa3e048f5f67fe396bc08af7606426d9bd7b5d
   React-Mapbuffer: bf56147c9775491e53122a94c423ac201417e326
-  react-native-safe-area-context: 851c62c48dce80ccaa5637b6aa5991a1bc36eca9
-  react-native-wgpu: 2805714d6764920ef05df7648cdb861d8aa94416
+  react-native-safe-area-context: f0d592c427d75508f2a7cd7375f533cc9283cd8a
+  react-native-wgpu: b153c0c6f9be2d73d2c805485e0da425d5f61abb
   React-nativeconfig: 9f223cd321823afdecf59ed00861ab2d69ee0fc1
   React-NativeModulesApple: ff7efaff7098639db5631236cfd91d60abff04c0
   React-perflogger: 32ed45d9cee02cf6639acae34251590dccd30994
   React-RCTActionSheet: 19f967ddaea258182b56ef11437133b056ba2adf
   React-RCTAnimation: d7f4137fc44a08bba465267ea7cb1dbdb7c4ec87
-  React-RCTAppDelegate: 2b3f4d8009796af209a0d496e73276b743acee08
+  React-RCTAppDelegate: dca95e1a6194f7ae06c2b5f1d5f891c61af00ec8
   React-RCTBlob: c6c3e1e0251700b7bea036b893913f22e2b9cb47
-  React-RCTFabric: 93a3ea55169d19294f07092013c1c9ea7a015c9b
+  React-RCTFabric: a7874c54aea18f64677446efc5f839ec4fa5e931
   React-RCTImage: 40528ab74a4fef0f0e2ee797a074b26d120b6cc6
   React-RCTLinking: 385b5beb96749aae9ae1606746e883e1c9f8a6a7
   React-RCTNetwork: ffc9f05bd8fa5b3bce562199ba41235ad0af645c
@@ -1577,12 +1665,12 @@ SPEC CHECKSUMS:
   React-runtimescheduler: 56b642bf605ba5afa500d35790928fc1d51565ad
   React-utils: 4476b7fcbbd95cfd002f3e778616155241d86e31
   ReactCommon: ecad995f26e0d1e24061f60f4e5d74782f003f12
-  ReactNativeHost: 76fb17eac13a9a2200f659deffc91c054731a7e2
+  ReactNativeHost: 79327c427c83bf1de6cb90ddb6d50db5f65e68a0
   ReactTestApp-DevSupport: 690d06567b7ecae4f2f98dff5e4881c8d25be8e2
   ReactTestApp-Resources: 857244f3a23f2b3157b364fa06cf3e8866deff9c
-  RNGestureHandler: 67e78f16895947f7e57ab91e75e914d3e9ef7239
-  RNReanimated: 4c72fc2c0f4c6a9c36932e653cd68e4521b6c4ac
-  RNScreens: aa943ad421c3ced3ef5a47ede02b0cbfc43a012e
+  RNGestureHandler: e723a54dfedabf2a6be36bbcb6c7d5c96de8a379
+  RNReanimated: 156f0b8d2bca0ac55c58248c0e94f4975297a9d1
+  RNScreens: c55a1c0375e26d211940f09b0798bb44a5b3d968
   SocketRocket: abac6f5de4d4d62d24e11868d7a2f427e0ef940d
   Yoga: ae3c32c514802d30f687a04a6a35b348506d411f
 

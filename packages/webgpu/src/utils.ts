@@ -13,6 +13,7 @@ export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
   }
 };
 
+// TODO: add example en fabric that uses useEffect or useLayoutEffect directly
 export const useCanvasEffect = (
   effect: () => void | Unsubscribe | Promise<void | Unsubscribe>,
   deps: DependencyList = [],

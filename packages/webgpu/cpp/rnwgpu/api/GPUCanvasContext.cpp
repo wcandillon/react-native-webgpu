@@ -47,15 +47,19 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
 
   // 1. is a surface no available?
   if (_pristine && _instance == nullptr) {
-    auto info = registry.getSurface(_contextId);
-    if (info != nullptr) {
-      _instance = _platformContext->makeSurface(_gpu->get(), info->surface,
-                                                width, height);
-      _surfaceConfiguration.width = width;
-      _surfaceConfiguration.height = height;
-      _instance.Configure(&_surfaceConfiguration);
-      _offscreenSurface = nullptr;
-      // TODO: flush offscreen content to onscreen
+    if (_test) {
+      _test = false;
+    } else {
+      auto info = registry.getSurface(_contextId);
+      if (info != nullptr) {
+        _instance = _platformContext->makeSurface(_gpu->get(), info->surface,
+                                                  width, height);
+        _surfaceConfiguration.width = width;
+        _surfaceConfiguration.height = height;
+        _instance.Configure(&_surfaceConfiguration);
+        _offscreenSurface = nullptr;
+        // TODO: flush offscreen content to onscreen
+      }
     }
   }
 
