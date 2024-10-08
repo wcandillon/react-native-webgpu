@@ -115,6 +115,9 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>(({onLayout: _onLayout, ..
     whenReady(callback: () => void) {
       cb.current = callback;
     },
+    getCallback: () => {
+      return cb.current;
+    },
     getContext(contextName: "webgpu"): RNCanvasContext | null {
       if (contextName !== "webgpu") {
         throw new Error(`[WebGPU] Unsupported context: ${contextName}`);

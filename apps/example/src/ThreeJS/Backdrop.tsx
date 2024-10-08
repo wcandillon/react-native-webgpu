@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-
 import * as THREE from "three";
+import { useState, useEffect } from "react";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { PixelRatio, Text, View, StyleSheet } from "react-native";
 
@@ -28,14 +27,17 @@ const {
 
 export const Backdrop = () => {
   const gltf = useGLTF(require("./assets/michelle/model.gltf"));
+  const [context, setContext] = useState<GPUCanvasContext | null>(null);
   const ref = useCanvasEffect(async () => {
-    if (!gltf) {
+    // Anti alias in the renderer is set to false and we handle the pixel density here
+    const ctx = ref.current!.getContext("webgpu")!;
+    setContext(ctx);
+  });
+  useEffect(() => {
+    if (!gltf || !context) {
       return;
     }
     const rotate = true;
-
-    // Anti alias in the renderer is set to false and we handle the pixel density here
-    const context = ref.current!.getContext("webgpu")!;
     const canvas = context.canvas as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();
     canvas.height = canvas.clientHeight * PixelRatio.get();
@@ -46,7 +48,7 @@ export const Backdrop = () => {
     camera.position.set(1, 2, 3);
 
     const scene = new THREE.Scene();
-    // @ts-expect-error
+    // @ts-expect-error will be fixed in the next @types/three.js
     scene.backgroundNode = viewportUV.y.mix(color(0x66bbff), color(0x4466ff));
     camera.lookAt(0, 1, 0);
 
@@ -116,7 +118,7 @@ export const Backdrop = () => {
     addBackdropSphere(hue(viewportSharedTexture().bgr, oscSine().mul(Math.PI)));
     addBackdropSphere(viewportSharedTexture().rgb.oneMinus());
     addBackdropSphere(grayscale(viewportSharedTexture().rgb));
-    // @ts-expect-error
+    // @ts-expect-error will be fixed in the next @types/three.js
     addBackdropSphere(saturation(viewportSharedTexture().rgb, 10), oscSine());
     addBackdropSphere(
       overlay(viewportSharedTexture().rgb, checker(uv().mul(10))),
@@ -153,13 +155,13 @@ export const Backdrop = () => {
       }
 
       renderer.render(scene, camera);
+      // @ts-expect-error exists in RN
       context.present();
     }
     return () => {
       renderer.setAnimationLoop(null);
     };
-  }, [gltf]);
-
+  }, [context, gltf]);
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <Text>Loading assets...</Text>

@@ -15,8 +15,7 @@ export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
 
 // TODO: add example en fabric that uses useEffect or useLayoutEffect directly
 export const useCanvasEffect = (
-  effect: () => void | Unsubscribe | Promise<void | Unsubscribe>,
-  deps: DependencyList = [],
+  effect: () => void | Unsubscribe | Promise<void | Unsubscribe>
 ) => {
   const ref = useRef<CanvasRef>(null);
   const unsubscribe = useRef<Unsubscribe>();
@@ -32,7 +31,6 @@ export const useCanvasEffect = (
         unsubscribe.current();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, []);
   return ref;
 };
