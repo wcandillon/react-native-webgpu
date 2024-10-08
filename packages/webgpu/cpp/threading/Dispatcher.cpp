@@ -3,11 +3,13 @@
 //
 
 #include "Dispatcher.h"
+
+#include <memory>
 #include "RNFJSIHelper.h"
 
 namespace margelo {
 
-using namespace facebook;
+namespace jsi = facebook::jsi;
 
 static constexpr auto GLOBAL_DISPATCHER_HOLDER_NAME = "__nitroDispatcher";
 
@@ -30,8 +32,7 @@ void Dispatcher::installRuntimeGlobalDispatcher(
 
 std::shared_ptr<Dispatcher>
 Dispatcher::getRuntimeGlobalDispatcher(jsi::Runtime &runtime) {
-  if (auto search = _globalCache.find(&runtime); search != _globalCache.end())
-      [[likely]] {
+  if (auto search = _globalCache.find(&runtime); search != _globalCache.end()) {
     // the runtime is known - we have something in cache
     std::weak_ptr<Dispatcher> weakDispatcher = _globalCache[&runtime];
     std::shared_ptr<Dispatcher> strongDispatcher = weakDispatcher.lock();

@@ -4,6 +4,7 @@
 //
 //  Created by Marc Rousavy on 14.07.24.
 //
+#pragma once
 
 #include <string>
 

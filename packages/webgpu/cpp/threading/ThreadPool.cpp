@@ -8,6 +8,9 @@
 #include "ThreadPool.h"
 #include "ThreadUtils.h"
 
+#include <utility>
+#include <algorithm>
+
 namespace margelo {
 
 ThreadPool::ThreadPool(const char *name, size_t numThreads)

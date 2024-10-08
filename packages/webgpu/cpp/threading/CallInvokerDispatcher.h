@@ -6,11 +6,12 @@
 #pragma once
 
 #include "Dispatcher.h"
+
+#include <utility>
+#include <memory>
 #include <ReactCommon/CallInvoker.h>
 
 namespace margelo {
-
-using namespace facebook;
 
 /**
  * A Dispatcher that uses react::CallInvoker for it's implementation

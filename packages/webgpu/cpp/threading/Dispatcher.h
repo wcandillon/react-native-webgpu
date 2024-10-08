@@ -9,10 +9,12 @@
 #include <jsi/jsi.h>
 #include <queue>
 #include <unordered_map>
+#include <utility>
+#include <memory>
 
 namespace margelo {
 
-using namespace facebook;
+namespace jsi = facebook::jsi;
 
 class Dispatcher : public jsi::NativeState {
 public:
