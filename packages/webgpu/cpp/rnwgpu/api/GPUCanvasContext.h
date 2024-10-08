@@ -40,6 +40,7 @@ namespace m = margelo;
 
 class GPUCanvasContext : public m::HybridObject {
 public:
+  // TODO: platformContext no necessary here
   GPUCanvasContext(std::shared_ptr<GPU> gpu,
                    std::shared_ptr<PlatformContext> platformContext,
                    // TODO: width/height is int32
@@ -80,8 +81,10 @@ private:
   int _contextId;
 
   std::shared_ptr<GPU> _gpu;
+  // TODO: not needed
   std::shared_ptr<PlatformContext> _platformContext;
 
+  // TODO: not needed
   wgpu::SurfaceConfiguration _surfaceConfiguration;
 };
 

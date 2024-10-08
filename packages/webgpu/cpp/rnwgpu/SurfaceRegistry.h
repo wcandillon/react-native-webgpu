@@ -9,18 +9,48 @@
 namespace rnwgpu {
 
 struct SurfaceInfo {
-  void *surface;
+  void* nativeSurface = nullptr;
+  wgpu::Surface surface;
   int width;
   int height;
   wgpu::Texture texture;
+  wgpu::Device device;
+  wgpu::Instance gpu;
+  wgpu::SurfaceConfiguration config;
 
-  SurfaceInfo(void *surface, int width, int height, wgpu::Texture texture)
-      : surface(surface), width(width), height(height), texture(texture) {}
+  void flush() {
+     // 1.a flush texture to the onscreen surface
+      if (texture) {
+        wgpu::CommandEncoderDescriptor encoderDesc;
+        wgpu::CommandEncoder encoder =
+            device.CreateCommandEncoder(&encoderDesc);
+
+        wgpu::ImageCopyTexture sourceTexture = {};
+        sourceTexture.texture = texture;
+
+        wgpu::ImageCopyTexture destinationTexture = {};
+        wgpu::SurfaceTexture surfaceTexture;
+        surface.GetCurrentTexture(&surfaceTexture);
+        destinationTexture.texture = surfaceTexture.texture;
+
+        wgpu::Extent3D size = {sourceTexture.texture.GetWidth(),
+                               sourceTexture.texture.GetHeight(),
+                               sourceTexture.texture.GetDepthOrArrayLayers()};
+
+        encoder.CopyTextureToTexture(&sourceTexture, &destinationTexture,
+                                     &size);
+
+        wgpu::CommandBuffer commands = encoder.Finish();
+        wgpu::Queue queue = device.GetQueue();
+        queue.Submit(1, &commands);
+        // TODO: info->texture = nullptr;
+      }
+  }
 };
 
 class SurfaceRegistry {
 private:
-  std::unordered_map<int, std::shared_ptr<SurfaceInfo>> _registry;
+  std::unordered_map<int, SurfaceInfo> _registry;
   mutable std::shared_mutex _mutex;
 
   // Private constructor to prevent instantiation
@@ -37,20 +67,39 @@ public:
     return instance;
   }
 
-  void addSurface(const int contextId, void *surface, int width, int height,
-                  wgpu::Texture texture) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    _registry[contextId] =
-        std::make_shared<SurfaceInfo>(surface, width, height, texture);
+  bool hasOnScreenSurface(const int contextId) const {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    auto it = _registry.find(contextId);
+    if (it != _registry.end()) {
+      return it->second.nativeSurface != nullptr;
+    }
+    return false;
   }
 
-  std::shared_ptr<SurfaceInfo> getSurface(const int contextId) const {
+  void addSurface(const int contextId, SurfaceInfo &info) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    _registry[contextId] = info;
+  }
+
+  void addIfEmptySurface(const int contextId, SurfaceInfo &info) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (_registry.find(contextId) == _registry.end()) {
+      _registry[contextId] = info;
+    }
+  }
+
+  bool hasSurface(const int contextId) const {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    return _registry.find(contextId) != _registry.end();
+  }
+
+  SurfaceInfo getSurface(const int contextId) const {
     std::shared_lock<std::shared_mutex> lock(_mutex);
     auto it = _registry.find(contextId);
     if (it != _registry.end()) {
       return it->second;
     }
-    return nullptr;
+    throw std::out_of_range("Surface not found");
   }
 
   void removeSurface(const int contextId) {
@@ -58,12 +107,11 @@ public:
     _registry.erase(contextId);
   }
 
-  void updateSurface(const int contextId, int width, int height) {
+  void updateSurface(const int contextId, SurfaceInfo &info) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     auto it = _registry.find(contextId);
     if (it != _registry.end()) {
-      it->second->width = width;
-      it->second->height = height;
+      it->second = info;
     }
   }
 };

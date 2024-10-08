@@ -31,9 +31,16 @@ void GPUCanvasContext::configure(
   _offscreenSurface->configure(_surfaceConfiguration);
   // Add texture to the surface registry, when the native surface is available,
   // we will copy its content there
+  // This only makes sense if the on screen native surface is not available yet
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  registry.addSurface(_contextId, nullptr, width, height,
-                      _offscreenSurface->getCurrentTexture());
+  SurfaceInfo info;
+  info.width = width;
+  info.height = height;
+  info.texture = _offscreenSurface->getCurrentTexture();
+  info.device = _device;
+  info.gpu = _gpu->get();
+  info.config = _surfaceConfiguration;
+  registry.addIfEmptySurface(_contextId, info);
 }
 
 void GPUCanvasContext::unconfigure() {
@@ -49,46 +56,22 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   auto height = _canvas->getHeight();
 
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  // TODO: flush the content of the offscreen surface
   // TODO: delete Java_com_webgpu_WebGPUModule_createSurfaceContext (and on iOS)
 
-  // 1. is a surface no available?
+  // 1. is a onscreen surface now available?
   if (_pristine && _instance == nullptr) {
+    if (registry.hasOnScreenSurface(_contextId)) {
+      auto info = registry.getSurface(_contextId);
+      // if the native surface is available, but we didn't create the WGPU instance yet, do it now
+      if (info.surface == nullptr) {
+        info.surface = _platformContext->makeSurface(_gpu->get(), info.nativeSurface, width, height);
+      }
+      _instance = info.surface;
 
-    auto info = registry.getSurface(_contextId);
-    if (info != nullptr && info->surface != nullptr) {
-      _instance = _platformContext->makeSurface(_gpu->get(), info->surface,
-                                                width, height);
       _surfaceConfiguration.width = width;
       _surfaceConfiguration.height = height;
       _instance.Configure(&_surfaceConfiguration);
-      // 1.a flush texture to the onscreen surface
-      if (info->texture) {
-        wgpu::CommandEncoderDescriptor encoderDesc;
-        wgpu::CommandEncoder encoder =
-            _device.CreateCommandEncoder(&encoderDesc);
-
-        wgpu::ImageCopyTexture sourceTexture = {};
-        sourceTexture.texture = info->texture;
-
-        wgpu::ImageCopyTexture destinationTexture = {};
-        wgpu::SurfaceTexture surfaceTexture;
-        _instance.GetCurrentTexture(&surfaceTexture);
-        destinationTexture.texture = surfaceTexture.texture;
-
-        wgpu::Extent3D size = {sourceTexture.texture.GetWidth(),
-                               sourceTexture.texture.GetHeight(),
-                               sourceTexture.texture.GetDepthOrArrayLayers()};
-
-        encoder.CopyTextureToTexture(&sourceTexture, &destinationTexture,
-                                     &size);
-
-        wgpu::CommandBuffer commands = encoder.Finish();
-        wgpu::Queue queue = _device.GetQueue();
-        queue.Submit(1, &commands);
-        // TODO: info->texture = nullptr;
-      }
-      _offscreenSurface = nullptr;
+      // TODO: _offscreenSurface = nullptr; ?
     }
   }
 
@@ -128,8 +111,8 @@ void GPUCanvasContext::present() {
     // We update the client width/height for the next frame
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     auto info = registry.getSurface(_contextId);
-    _canvas->setClientWidth(info->width);
-    _canvas->setClientHeight(info->height);
+    _canvas->setClientWidth(info.width);
+    _canvas->setClientHeight(info.height);
   }
   _pristine = true;
 }

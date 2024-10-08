@@ -30,6 +30,7 @@ public:
 private:
   jsi::Runtime *_jsRuntime;
   std::shared_ptr<facebook::react::CallInvoker> _jsCallInvoker;
+public:
   std::shared_ptr<PlatformContext> _platformContext;
 };
 
