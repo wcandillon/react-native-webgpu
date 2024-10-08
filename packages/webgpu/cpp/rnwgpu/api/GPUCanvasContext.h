@@ -42,6 +42,7 @@ class GPUCanvasContext : public m::HybridObject {
 public:
   GPUCanvasContext(std::shared_ptr<GPU> gpu,
                    std::shared_ptr<PlatformContext> platformContext,
+                   // TODO: width/height is int32
                    int contextId, float width, float height)
       : HybridObject("GPUCanvasContext"), _contextId(contextId),
         _gpu(std::move(gpu)), _platformContext(std::move(platformContext)) {
@@ -76,9 +77,6 @@ private:
   wgpu::Device _device;
   std::shared_ptr<Canvas> _canvas;
   bool _pristine = true;
-  // for testing only;
-  // TODO: to remove
-  bool _test = true;
   int _contextId;
 
   std::shared_ptr<GPU> _gpu;

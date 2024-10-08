@@ -23,10 +23,17 @@ void GPUCanvasContext::configure(
   if (!conv(surfaceConfiguration.usage, configuration->usage)) {
     throw std::runtime_error("Error with SurfaceConfiguration");
   }
-  surfaceConfiguration.width = _canvas->getWidth();
-  surfaceConfiguration.height = _canvas->getHeight();
+  auto width = _canvas->getWidth();
+  auto height = _canvas->getHeight();
+  surfaceConfiguration.width = width;
+  surfaceConfiguration.height = height;
   _surfaceConfiguration = surfaceConfiguration;
   _offscreenSurface->configure(_surfaceConfiguration);
+  // Add texture to the surface registry, when the native surface is available,
+  // we will copy its content there
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  registry.addSurface(_contextId, nullptr, width, height,
+                      _offscreenSurface->getCurrentTexture());
 }
 
 void GPUCanvasContext::unconfigure() {
@@ -39,7 +46,7 @@ void GPUCanvasContext::unconfigure() {
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   auto width = _canvas->getWidth();
-  auto height =  _canvas->getHeight();
+  auto height = _canvas->getHeight();
 
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   // TODO: flush the content of the offscreen surface
@@ -47,19 +54,41 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
 
   // 1. is a surface no available?
   if (_pristine && _instance == nullptr) {
-    if (_test) {
-      _test = false;
-    } else {
-      auto info = registry.getSurface(_contextId);
-      if (info != nullptr) {
-        _instance = _platformContext->makeSurface(_gpu->get(), info->surface,
-                                                  width, height);
-        _surfaceConfiguration.width = width;
-        _surfaceConfiguration.height = height;
-        _instance.Configure(&_surfaceConfiguration);
-        _offscreenSurface = nullptr;
-        // TODO: flush offscreen content to onscreen
+
+    auto info = registry.getSurface(_contextId);
+    if (info != nullptr && info->surface != nullptr) {
+      _instance = _platformContext->makeSurface(_gpu->get(), info->surface,
+                                                width, height);
+      _surfaceConfiguration.width = width;
+      _surfaceConfiguration.height = height;
+      _instance.Configure(&_surfaceConfiguration);
+      // 1.a flush texture to the onscreen surface
+      if (info->texture) {
+        wgpu::CommandEncoderDescriptor encoderDesc;
+        wgpu::CommandEncoder encoder =
+            _device.CreateCommandEncoder(&encoderDesc);
+
+        wgpu::ImageCopyTexture sourceTexture = {};
+        sourceTexture.texture = info->texture;
+
+        wgpu::ImageCopyTexture destinationTexture = {};
+        wgpu::SurfaceTexture surfaceTexture;
+        _instance.GetCurrentTexture(&surfaceTexture);
+        destinationTexture.texture = surfaceTexture.texture;
+
+        wgpu::Extent3D size = {sourceTexture.texture.GetWidth(),
+                               sourceTexture.texture.GetHeight(),
+                               sourceTexture.texture.GetDepthOrArrayLayers()};
+
+        encoder.CopyTextureToTexture(&sourceTexture, &destinationTexture,
+                                     &size);
+
+        wgpu::CommandBuffer commands = encoder.Finish();
+        wgpu::Queue queue = _device.GetQueue();
+        queue.Submit(1, &commands);
+        // TODO: info->texture = nullptr;
       }
+      _offscreenSurface = nullptr;
     }
   }
 
@@ -68,9 +97,9 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   auto prevHeight = _surfaceConfiguration.height;
   auto sizeHasChanged = prevWidth != width || prevHeight != height;
   if (_instance && _pristine && sizeHasChanged) {
-      _surfaceConfiguration.width = width;
-      _surfaceConfiguration.height = height;
-      _instance.Configure(&_surfaceConfiguration);
+    _surfaceConfiguration.width = width;
+    _surfaceConfiguration.height = height;
+    _instance.Configure(&_surfaceConfiguration);
   }
 
   _pristine = false;
@@ -103,7 +132,6 @@ void GPUCanvasContext::present() {
     _canvas->setClientHeight(info->height);
   }
   _pristine = true;
-
 }
 
 } // namespace rnwgpu

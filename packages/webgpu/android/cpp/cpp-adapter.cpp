@@ -46,7 +46,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
   auto window = ANativeWindow_fromSurface(env, surface);
   // ANativeWindow_acquire(window);
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  registry.addSurface(contextId, window, width, height);
+  registry.addSurface(contextId, window, width, height, nullptr);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(

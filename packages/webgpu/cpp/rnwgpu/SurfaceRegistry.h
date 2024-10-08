@@ -12,17 +12,10 @@ struct SurfaceInfo {
   void *surface;
   int width;
   int height;
+  wgpu::Texture texture;
 
-  SurfaceInfo(void *surface, int width, int height)
-      : surface(surface), width(width), height(height) {}
-
-  void setClientWidth(int width) { this->width = width; }
-
-  void setClientHeight(int height) { this->height = height; }
-
-  int getWidth() { return width; }
-
-  int getHeight() { return height; }
+  SurfaceInfo(void *surface, int width, int height, wgpu::Texture texture)
+      : surface(surface), width(width), height(height), texture(texture) {}
 };
 
 class SurfaceRegistry {
@@ -44,10 +37,11 @@ public:
     return instance;
   }
 
-  void addSurface(const int contextId, void *surface, int width, int height) {
+  void addSurface(const int contextId, void *surface, int width, int height,
+                  wgpu::Texture texture) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _registry[contextId] =
-        std::make_shared<SurfaceInfo>(surface, width, height);
+        std::make_shared<SurfaceInfo>(surface, width, height, texture);
   }
 
   std::shared_ptr<SurfaceInfo> getSurface(const int contextId) const {
@@ -68,8 +62,8 @@ public:
     std::unique_lock<std::shared_mutex> lock(_mutex);
     auto it = _registry.find(contextId);
     if (it != _registry.end()) {
-      it->second->setClientWidth(width);
-      it->second->setClientHeight(height);
+      it->second->width = width;
+      it->second->height = height;
     }
   }
 };
