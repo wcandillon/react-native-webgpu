@@ -1,6 +1,4 @@
 import * as THREE from "three";
-import { useState, useEffect } from "react";
-import type { RNCanvasContext } from "react-native-wgpu";
 import { Canvas, useGPUContextEffect } from "react-native-wgpu";
 import { PixelRatio, Text, View, StyleSheet } from "react-native";
 
