@@ -74,15 +74,14 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   return @true;
 }
 
-// TODO: remove?
-RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext
-                                       : (double)contextId) {
-  int contextIdInt = contextId;
-  RCTCxxBridge *cxxBridge = (RCTCxxBridge *)self.bridge;
-  auto runtime = (jsi::Runtime *)cxxBridge.runtime;
+// RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext
+//                                        : (double)contextId) {
+//   int contextIdInt = contextId;
+//   RCTCxxBridge *cxxBridge = (RCTCxxBridge *)self.bridge;
+//   auto runtime = (jsi::Runtime *)cxxBridge.runtime;
 
-  return @true;
-}
+//   return @true;
+// }
 
 #ifdef RCT_NEW_ARCH_ENABLED
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:

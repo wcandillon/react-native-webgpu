@@ -56,7 +56,6 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   auto height = _canvas->getHeight();
 
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  // TODO: delete Java_com_webgpu_WebGPUModule_createSurfaceContext (and on iOS)
 
   // 1. is a onscreen surface now available?
   if (_pristine && _instance == nullptr) {

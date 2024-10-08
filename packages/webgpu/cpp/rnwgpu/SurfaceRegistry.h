@@ -41,7 +41,7 @@ struct SurfaceInfo {
       wgpu::CommandBuffer commands = encoder.Finish();
       wgpu::Queue queue = device.GetQueue();
       queue.Submit(1, &commands);
-      // TODO: info->texture = nullptr;
+      texture = nullptr;
     }
   }
 };
