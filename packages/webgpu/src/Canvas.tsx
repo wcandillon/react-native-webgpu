@@ -134,12 +134,6 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>(
         );
       },
     }));
-    useEffect(() => {
-      return () => {
-        // TODO: Remove from the surface registry instead of doing it on the native side?
-        console.log("Unmounting <Canvas />");
-      };
-    });
     return (
       <View ref={viewRef} onLayout={onLayout} {...props}>
         <WebGPUNativeView style={{ flex: 1 }} contextId={contextId} />

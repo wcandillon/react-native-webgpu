@@ -47,4 +47,11 @@
   registry.updateSurface(contextId, info);
 }
 
+
++ (void)cleanupSurface:(int)contextId {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  // Remove the surface info from the registry
+  registry.removeSurface(contextId);
+}
+
 @end
