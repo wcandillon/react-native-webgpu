@@ -69,12 +69,11 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
       if (info.surface == nullptr) {
         info.surface = _platformContext->makeSurface(
             _gpu->get(), info.nativeSurface, width, height);
+        _surfaceConfiguration.width = width;
+        _surfaceConfiguration.height = height;
+        info.surface.Configure(&_surfaceConfiguration);
       }
       _instance = info.surface;
-
-      _surfaceConfiguration.width = width;
-      _surfaceConfiguration.height = height;
-      _instance.Configure(&_surfaceConfiguration);
       _offscreenSurface = nullptr;
     }
   }

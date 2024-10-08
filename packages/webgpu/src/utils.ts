@@ -41,7 +41,11 @@ export const useGPUContextEffect = (
 };
 
 export const useCanvasEffect = (
-  effect: () => void | Unsubscribe | Promise<void>,
+  effect: () =>
+    | void
+    | Unsubscribe
+    | Promise<Unsubscribe | void>
+    | Promise<void>,
 ) => {
   const unsub = useRef<Unsubscribe | null>(null);
   const ref = useRef<CanvasRef>(null);
