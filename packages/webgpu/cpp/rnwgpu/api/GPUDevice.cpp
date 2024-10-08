@@ -70,8 +70,9 @@ std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
   wgpu::ShaderModuleWGSLDescriptor wgsl_desc{};
   wgpu::ShaderModuleDescriptor sm_desc{};
   Convertor conv;
-  if (!conv(wgsl_desc.code, descriptor->code) || !conv(sm_desc.label, descriptor->label)) {
-      return {};
+  if (!conv(wgsl_desc.code, descriptor->code) ||
+      !conv(sm_desc.label, descriptor->label)) {
+    return {};
   }
   sm_desc.nextInChain = &wgsl_desc;
   if (descriptor->code.find('\0') != std::string::npos) {
@@ -336,8 +337,7 @@ std::unordered_set<std::string> GPUDevice::getFeatures() {
 }
 
 std::future<std::shared_ptr<GPUDeviceLostInfo>> GPUDevice::getLost() {
-  return std::async(std::launch::async, [=]() {
-    return m_lostSharedFuture->get();
-  });
+  return std::async(std::launch::async,
+                    [=]() { return m_lostSharedFuture->get(); });
 }
 } // namespace rnwgpu
