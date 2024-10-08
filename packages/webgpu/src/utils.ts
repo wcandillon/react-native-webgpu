@@ -1,6 +1,7 @@
 import type { DependencyList } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import type { RNCanvasContext } from "./Canvas";
 import type { CanvasRef } from "./Canvas";
 
 type Unsubscribe = () => void;
@@ -13,24 +14,32 @@ export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
   }
 };
 
+export const useGPUContextEffect = (
+  effect: (ctx: RNCanvasContext) => void | Unsubscribe | Promise<void | Unsubscribe>,
+  deps?: DependencyList
+) => {
+  const [context, setContext] = useState<RNCanvasContext | null>(null);
+  const ref = useCanvasEffect(() => {
+    const ctx = ref.current!.getContext("webgpu")!;
+    setContext(ctx);
+  });
+  useEffect(() => {
+    if (context) {
+      effect(context);
+    }
+  }, [context, ...(deps ?? [])])
+  return {ref, context};
+}
+
 // TODO: add example en fabric that uses useEffect or useLayoutEffect directly
 export const useCanvasEffect = (
-  effect: () => void | Unsubscribe | Promise<void | Unsubscribe>
+  effect: () => void
 ) => {
   const ref = useRef<CanvasRef>(null);
-  const unsubscribe = useRef<Unsubscribe>();
   useEffect(() => {
     ref.current!.whenReady(async () => {
-      const unsub = await effect();
-      if (unsub) {
-        unsubscribe.current = unsub;
-      }
+      effect();
     });
-    return () => {
-      if (unsubscribe.current) {
-        unsubscribe.current();
-      }
-    };
   }, []);
   return ref;
 };
