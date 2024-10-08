@@ -13,7 +13,7 @@
   void *nativeSurface = (__bridge void *)layer;
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   // 1. The scene has already be drawn offscreen
-  if (registry.hasSurface(contextId)) {
+  if (registry.hasSurfaceInfo(contextId)) {
      auto info = registry.getSurface(contextId);
      auto surface = manager->_platformContext->makeSurface(info.gpu, nativeSurface, size.width, size.height);
      info.config.usage = info.config.usage | wgpu::TextureUsage::CopyDst;

@@ -88,7 +88,7 @@ public:
     }
   }
 
-  bool hasSurface(const int contextId) const {
+  bool hasSurfaceInfo(const int contextId) const {
     std::shared_lock<std::shared_mutex> lock(_mutex);
     return _registry.find(contextId) != _registry.end();
   }
