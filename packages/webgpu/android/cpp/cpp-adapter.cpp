@@ -27,19 +27,13 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
                                                       platformContext);
 }
 
-// TODO: remove
-extern "C" JNIEXPORT void JNICALL
-Java_com_webgpu_WebGPUModule_createSurfaceContext(JNIEnv *env, jobject thiz,
-                                                  jlong jsRuntime,
-                                                  jint contextId) {}
-
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceChanged(
     JNIEnv *env, jobject thiz, jobject surface, jint contextId, jfloat width,
     jfloat height) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurface(contextId);
-  info.width = width;
-  info.height = height;
+  info.width = static_cast<int>(width);
+  info.height = static_cast<int>(height);
   registry.updateSurface(contextId, info);
 }
 
@@ -49,7 +43,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
   auto window = ANativeWindow_fromSurface(env, jSurface);
   // ANativeWindow_acquire(window);
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  registry.configureSurface(contextId, window, width, height,
+  registry.configureSurface(contextId, window, static_cast<int>(width), static_cast<int>(height),
                             manager->_platformContext);
 }
 
