@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { useState, useEffect } from "react";
+import type { RNCanvasContext } from "react-native-wgpu";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { PixelRatio, Text, View, StyleSheet } from "react-native";
 
@@ -27,7 +28,7 @@ const {
 
 export const Backdrop = () => {
   const gltf = useGLTF(require("./assets/michelle/model.gltf"));
-  const [context, setContext] = useState<GPUCanvasContext | null>(null);
+  const [context, setContext] = useState<RNCanvasContext | null>(null);
   const ref = useCanvasEffect(async () => {
     // Anti alias in the renderer is set to false and we handle the pixel density here
     const ctx = ref.current!.getContext("webgpu")!;
@@ -155,8 +156,7 @@ export const Backdrop = () => {
       }
 
       renderer.render(scene, camera);
-      // @ts-expect-error exists in RN
-      context.present();
+      context!.present();
     }
     return () => {
       renderer.setAnimationLoop(null);
