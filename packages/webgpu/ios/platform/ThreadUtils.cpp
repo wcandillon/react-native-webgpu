@@ -26,7 +26,7 @@ std::string ThreadUtils::getThreadName() {
   return "Thread #" + threadId;
 }
 
-void ThreadUtils::setThreadName(const std::string& name) {
+void ThreadUtils::setThreadName(const std::string &name) {
   pthread_setname_np(name.c_str());
 }
 
