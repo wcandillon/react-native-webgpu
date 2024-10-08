@@ -37,7 +37,6 @@ void GPUCanvasContext::configure(
   info.width = width;
   info.height = height;
   info.texture = _offscreenSurface->getCurrentTexture();
-  info.device = _device;
   info.gpu = _gpu->get();
   info.config = _surfaceConfiguration;
   registry.addIfEmptySurface(_contextId, info);

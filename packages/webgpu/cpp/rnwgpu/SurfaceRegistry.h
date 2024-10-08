@@ -14,7 +14,6 @@ struct SurfaceInfo {
   int width;
   int height;
   wgpu::Texture texture;
-  wgpu::Device device;
   wgpu::Instance gpu;
   wgpu::SurfaceConfiguration config;
 
@@ -22,6 +21,7 @@ struct SurfaceInfo {
     // 1.a flush texture to the onscreen surface
     if (texture) {
       wgpu::CommandEncoderDescriptor encoderDesc;
+      auto device = config.device;
       wgpu::CommandEncoder encoder = device.CreateCommandEncoder(&encoderDesc);
 
       wgpu::ImageCopyTexture sourceTexture = {};
