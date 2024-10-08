@@ -112,6 +112,34 @@ public:
       it->second = info;
     }
   }
+
+  void configureSurface(const int contextId, void *nativeSurface, int width,
+                        int height,
+                        std::shared_ptr<PlatformContext> platformContext) {
+    // 1. The scene has already be drawn offscreen
+    if (hasSurfaceInfo(contextId)) {
+      auto info = getSurface(contextId);
+      auto surface =
+          platformContext->makeSurface(info.gpu, nativeSurface, width, height);
+      info.config.usage = info.config.usage | wgpu::TextureUsage::CopyDst;
+      surface.Configure(&info.config);
+      info.nativeSurface = nativeSurface;
+      info.surface = surface;
+      info.width = width;
+      info.height = height;
+      info.flush();
+      surface.Present();
+      updateSurface(contextId, info);
+    } else {
+      // 2. The scene has not been drawn offscreen yet, we will draw onscreen
+      // directly
+      rnwgpu::SurfaceInfo info;
+      info.nativeSurface = nativeSurface;
+      info.width = width;
+      info.height = height;
+      addSurface(contextId, info);
+    }
+  }
 };
 
 } // namespace rnwgpu

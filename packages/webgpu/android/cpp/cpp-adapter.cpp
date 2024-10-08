@@ -49,30 +49,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
   auto window = ANativeWindow_fromSurface(env, jSurface);
   // ANativeWindow_acquire(window);
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  // TODO: move to platform context?
-  // 1. The scene has already be drawn offscreen
-  if (registry.hasSurfaceInfo(contextId)) {
-    auto info = registry.getSurface(contextId);
-    auto surface =
-        manager->_platformContext->makeSurface(info.gpu, window, width, height);
-    info.config.usage = info.config.usage | wgpu::TextureUsage::CopyDst;
-    surface.Configure(&info.config);
-    info.nativeSurface = window;
-    info.surface = surface;
-    info.width = width;
-    info.height = height;
-    info.flush();
-    surface.Present();
-    registry.updateSurface(contextId, info);
-  } else {
-    // 2. The scene has not been drawn offscreen yet, we will draw onscreen
-    // directly
-    rnwgpu::SurfaceInfo info;
-    info.nativeSurface = window;
-    info.width = width;
-    info.height = height;
-    registry.addSurface(contextId, info);
-  }
+  registry.configureSurface(contextId, window, width, height,
+                            manager->_platformContext);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(

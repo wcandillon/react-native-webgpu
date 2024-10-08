@@ -12,29 +12,8 @@
   std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule getManager];
   void *nativeSurface = (__bridge void *)layer;
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  // 1. The scene has already be drawn offscreen
-  if (registry.hasSurfaceInfo(contextId)) {
-    auto info = registry.getSurface(contextId);
-    auto surface = manager->_platformContext->makeSurface(
-        info.gpu, nativeSurface, size.width, size.height);
-    info.config.usage = info.config.usage | wgpu::TextureUsage::CopyDst;
-    surface.Configure(&info.config);
-    info.nativeSurface = nativeSurface;
-    info.surface = surface;
-    info.width = size.width;
-    info.height = size.height;
-    info.flush();
-    surface.Present();
-    registry.updateSurface(contextId, info);
-  } else {
-    // 2. The scene has not been drawn offscreen yet, we will draw onscreen
-    // directly
-    rnwgpu::SurfaceInfo info;
-    info.nativeSurface = nativeSurface;
-    info.width = size.width;
-    info.height = size.height;
-    registry.addSurface(contextId, info);
-  }
+  registry.configureSurface(contextId, nativeSurface, size.width, size.height,
+                            manager->_platformContext);
 }
 
 + (void)updateSurface:(int)contextId size:(CGSize)size {
@@ -46,7 +25,6 @@
   info.height = size.height;
   registry.updateSurface(contextId, info);
 }
-
 
 + (void)cleanupSurface:(int)contextId {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
