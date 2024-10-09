@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
 #include <string>
 
 #include "GPU.h"
@@ -39,7 +40,9 @@ public:
     if (surface == nullptr) {
       throw std::runtime_error("null surface");
     }
-    auto ctx = std::make_shared<GPUCanvasContext>(surface, canvas);
+    auto ctx = std::make_shared<GPUCanvasContext>(
+      surface, canvas, _platformContext, _gpu);
+    _contextRegistry[canvas->getContextId()] = ctx;
     return ctx;
   }
 
@@ -58,9 +61,23 @@ public:
                          &RNWebGPU::MakeWebGPUCanvasContext, this);
   }
 
+  void onSurfaceCreate(std::shared_ptr<Canvas> surface) {
+    auto context = _contextRegistry[surface->getContextId()];
+    if (context == nullptr) {
+      return;
+    }
+    context->updateInstance(surface);
+    context->maybeFlushPendingTexture(surface);
+  }
+
+  void onSurfaceDestroy(std::shared_ptr<Canvas> surface) {
+    _contextRegistry.erase(surface->getContextId());
+  }
+
 private:
   std::shared_ptr<GPU> _gpu;
   std::shared_ptr<PlatformContext> _platformContext;
+  std::unordered_map<int, std::shared_ptr<GPUCanvasContext>> _contextRegistry;
 };
 
 } // namespace rnwgpu

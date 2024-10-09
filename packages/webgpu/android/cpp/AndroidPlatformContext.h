@@ -34,10 +34,12 @@ public:
 
   wgpu::Surface makeSurface(wgpu::Instance instance, void *window, int width,
                             int height) override {
-    wgpu::SurfaceDescriptorFromAndroidNativeWindow androidSurfaceDesc;
-    androidSurfaceDesc.window = reinterpret_cast<ANativeWindow *>(window);
     wgpu::SurfaceDescriptor surfaceDescriptor;
-    surfaceDescriptor.nextInChain = &androidSurfaceDesc;
+    if (window != nullptr) {
+      wgpu::SurfaceDescriptorFromAndroidNativeWindow androidSurfaceDesc;
+      androidSurfaceDesc.window = reinterpret_cast<ANativeWindow *>(window);
+      surfaceDescriptor.nextInChain = &androidSurfaceDesc;
+    }
     return instance.CreateSurface(&surfaceDescriptor);
   }
 

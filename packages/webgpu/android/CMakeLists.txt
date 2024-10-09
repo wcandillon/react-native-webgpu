@@ -44,6 +44,7 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/rnwgpu/api/GPUComputePipeline.cpp
     ../cpp/rnwgpu/api/GPUCanvasContext.cpp
     ../cpp/rnwgpu/RNWebGPUManager.cpp
+    ../cpp/rnwgpu/SurfaceRegistry.cpp
     ../cpp/jsi/RNFPromise.cpp
     ../cpp/jsi/RNFHybridObject.cpp
     ../cpp/jsi/RNFRuntimeCache.cpp
@@ -62,6 +63,7 @@ target_include_directories(
         "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/jni"
         "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/java/com/facebook/react/turbomodule/core/jni"
 
+        StaticDataBridge/SizeHolder.h
         ../cpp
         ../cpp/rnwgpu
         ../cpp/rnwgpu/api
@@ -75,6 +77,9 @@ target_include_directories(
 add_library(webgpu_dawn SHARED IMPORTED)
 set_property(TARGET webgpu_dawn PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.so")
 
+include_directories("./StaticDataBridge")
+add_subdirectory("./StaticDataBridge" "./StaticDataBridge")
+
 # Link
 target_link_libraries(
         ${PACKAGE_NAME}
@@ -85,4 +90,5 @@ target_link_libraries(
         fbjni::fbjni
         ReactAndroid::jsi
         webgpu_dawn
+        StaticDataBridge
     )
