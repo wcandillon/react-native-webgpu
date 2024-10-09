@@ -1,6 +1,6 @@
 #import "WebGPUModule.h"
 #import "GPUCanvasContext.h"
-#include "IOSPlatformContext.h"
+#include "ApplePlatformContext.h"
 
 #import <React/RCTBridge+Private.h>
 #import <React/RCTLog.h>
@@ -67,7 +67,7 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
     jsInvoker = cxxBridge.jsCallInvoker;
   }
   std::shared_ptr<rnwgpu::PlatformContext> platformContext =
-      std::make_shared<rnwgpu::IOSPlatformContext>();
+      std::make_shared<rnwgpu::ApplePlatformContext>();
   // TODO: remove allocation here
   webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker,
                                                             platformContext);
