@@ -99,18 +99,22 @@ void GPUCanvasContext::present() {
   dawn::native::metal::WaitForCommandsToBeScheduled(_device.Get());
 #endif
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  auto info = registry.getSurface(_contextId);
-  // We are starting a new frame, this is a good time to update the client
-  _canvas->setClientWidth(info.width);
-  _canvas->setClientHeight(info.height);
+  auto infoVal = registry.getSurfaceMaybe(_contextId);
+  if (infoVal.has_value()) {
+    auto info = infoVal.value();
+    // We are starting a new frame, this is a good time to update the client
+    _canvas->setClientWidth(info.width);
+    _canvas->setClientHeight(info.height);
+    if (_offscreenSurface) {
+      // Are we onscreen now?
+      if (info.surface) {
+        _instance = info.surface;
+        _offscreenSurface = nullptr;
+      }
+    }
+  }
   if (_instance) {
     _instance.Present();
-  } else {
-    // Are we onscreen now?
-    if (info.surface) {
-      _instance = info.surface;
-      _offscreenSurface = nullptr;
-    }
   }
 }
 
