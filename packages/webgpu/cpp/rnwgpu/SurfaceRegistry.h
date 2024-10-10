@@ -90,7 +90,6 @@ public:
     return instance;
   }
 
-
   void removeSurface(const int contextId) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _registry.erase(contextId);
@@ -122,7 +121,10 @@ public:
     }
   }
 
-  void configureOffscreenSurface(const int contextId, wgpu::Instance gpu, wgpu::Texture texture, wgpu::SurfaceConfiguration surfaceConfiguration) {
+  void
+  configureOffscreenSurface(const int contextId, wgpu::Instance gpu,
+                            wgpu::Texture texture,
+                            wgpu::SurfaceConfiguration surfaceConfiguration) {
     SurfaceInfo info;
     info.width = surfaceConfiguration.width;
     info.height = surfaceConfiguration.height;
@@ -134,8 +136,8 @@ public:
   }
 
   void createSurface(const int contextId, void *nativeSurface, int width,
-                        int height,
-                        std::shared_ptr<PlatformContext> platformContext) {
+                     int height,
+                     std::shared_ptr<PlatformContext> platformContext) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     // 1. The scene has already be drawn offscreen
     if (hasSurfaceInfo(contextId)) {
@@ -156,7 +158,8 @@ public:
       // directly
       rnwgpu::SurfaceInfo info;
       info.nativeSurface = nativeSurface;
-      info.surface = platformContext->makeSurface(info.gpu, nativeSurface, width, height);
+      info.surface =
+          platformContext->makeSurface(info.gpu, nativeSurface, width, height);
       info.width = width;
       info.height = height;
       _registry[contextId] = info;

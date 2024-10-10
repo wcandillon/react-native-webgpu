@@ -92,17 +92,11 @@ const useSizePaper = (_ref: RefObject<View>) => {
 export const Canvas = forwardRef<CanvasRef, ViewProps>(
   ({ onLayout: _onLayout, ...props }, ref) => {
     const viewRef = useRef(null);
-    const [mounted, setMounted] = useState(false);
     const FABRIC = RNWebGPU.fabric;
     const useSize = FABRIC ? useSizeFabric : useSizePaper;
     const [contextId, _] = useState(() => generateContextId());
     const cb = useRef<() => void>();
     const { size, onLayout } = useSize(viewRef);
-    useEffect(() => {
-      setTimeout(() => {
-        setMounted(true);
-      }, 2000);
-    }, []);
     useEffect(() => {
       if (size && cb.current) {
         cb.current();
@@ -138,9 +132,7 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>(
     }));
     return (
       <View ref={viewRef} onLayout={onLayout} {...props}>
-        {mounted && (
-          <WebGPUNativeView style={{ flex: 1 }} contextId={contextId} />
-        )}
+        <WebGPUNativeView style={{ flex: 1 }} contextId={contextId} />
       </View>
     );
   },

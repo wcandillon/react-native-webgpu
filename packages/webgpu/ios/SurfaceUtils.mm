@@ -13,7 +13,7 @@
   void *nativeSurface = (__bridge void *)layer;
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   registry.createSurface(contextId, nativeSurface, size.width, size.height,
-                            manager->_platformContext);
+                         manager->_platformContext);
 }
 
 + (void)updateSurface:(int)contextId size:(CGSize)size {

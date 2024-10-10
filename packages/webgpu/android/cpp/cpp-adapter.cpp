@@ -32,7 +32,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceChanged(
     jfloat height) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurface(contextId);
-  registry.setSize(contextId, static_cast<int>(width), static_cast<int>(height));
+  registry.setSize(contextId, static_cast<int>(width),
+                   static_cast<int>(height));
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
@@ -42,8 +43,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
   // ANativeWindow_acquire(window);
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   registry.createSurface(contextId, window, static_cast<int>(width),
-                            static_cast<int>(height),
-                            manager->_platformContext);
+                         static_cast<int>(height), manager->_platformContext);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
