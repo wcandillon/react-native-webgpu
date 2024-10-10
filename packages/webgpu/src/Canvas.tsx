@@ -104,13 +104,17 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>(
     }, [size]);
     useImperativeHandle(ref, () => ({
       getNativeSurface: () => {
+        if (size === null) {
+          throw new Error("[WebGPU] Canvas size is not available yet");
+        }
         return RNWebGPU.getNativeSurface(contextId);
       },
       whenReady(callback: () => void) {
-        cb.current = callback;
-      },
-      getCallback: () => {
-        return cb.current;
+        if (size === null) {
+          cb.current = callback;
+        } else {
+          callback();
+        }
       },
       getContext(contextName: "webgpu"): RNCanvasContext | null {
         if (contextName !== "webgpu") {
