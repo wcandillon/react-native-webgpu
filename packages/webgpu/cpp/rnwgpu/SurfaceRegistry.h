@@ -79,14 +79,6 @@ private:
     return _registry.find(contextId) != _registry.end();
   }
 
-  SurfaceInfo surface(const int contextId) const {
-    auto it = _registry.find(contextId);
-    if (it != _registry.end()) {
-      return it->second;
-    }
-    throw std::out_of_range("Surface not found");
-  }
-
 public:
   // Delete copy constructor and assignment operator
   SurfaceRegistry(const SurfaceRegistry &) = delete;
@@ -104,9 +96,21 @@ public:
     _registry.erase(contextId);
   }
 
-  SurfaceInfo getSurface(const int contextId) {
+  std::optional<SurfaceInfo> getSurfaceMaybe(const int contextId) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    return surface(contextId);
+    auto it = _registry.find(contextId);
+    if (it != _registry.end()) {
+      return it->second;
+    }
+    return std::nullopt;
+  }
+
+  SurfaceInfo getSurface(const int contextId) const {
+    auto it = _registry.find(contextId);
+    if (it != _registry.end()) {
+      return it->second;
+    }
+    throw std::out_of_range("Surface not found");
   }
 
   void setSize(const int contextId, int width, int height) {
@@ -135,7 +139,7 @@ public:
     std::unique_lock<std::shared_mutex> lock(_mutex);
     // 1. The scene has already be drawn offscreen
     if (hasSurfaceInfo(contextId)) {
-      auto info = surface(contextId);
+      auto info = getSurface(contextId);
       auto surface =
           platformContext->makeSurface(info.gpu, nativeSurface, width, height);
       info.config.usage = info.config.usage | wgpu::TextureUsage::CopyDst;

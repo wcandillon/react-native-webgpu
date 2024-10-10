@@ -30,10 +30,13 @@ void GPUCanvasContext::configure(
   _surfaceConfiguration = surfaceConfiguration;
    // Are we onscreen now?
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  auto info = registry.getSurface(_contextId);
-  if (info.surface) {
-    _instance = info.surface;   
-    _offscreenSurface = nullptr;
+  auto infoVal = registry.getSurfaceMaybe(_contextId);
+  if (infoVal.has_value()) {
+    auto info = infoVal.value();
+    if (info.surface) {
+      _instance = info.surface;   
+      _offscreenSurface = nullptr;
+    }
   }
 
   if (_instance) {
@@ -43,7 +46,6 @@ void GPUCanvasContext::configure(
     // Add texture to the surface registry, when the native surface is
     // available, we will copy its content there This only makes sense if the on
     // screen native surface is not available yet
-    auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     registry.configureOffscreenSurface(_contextId, _gpu->get(), _offscreenSurface->getCurrentTexture(), _surfaceConfiguration);
   }
 }
@@ -64,8 +66,6 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
     // Did the surface resize?
     auto prevWidth = _surfaceConfiguration.width;
     auto prevHeight = _surfaceConfiguration.height;
-    auto width = _canvas->getWidth();
-    auto height = _canvas->getHeight();
     auto sizeHasChanged = prevWidth != width || prevHeight != height;
     if (_instance && sizeHasChanged) {
       _surfaceConfiguration.width = width;
