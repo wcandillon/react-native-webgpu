@@ -22,7 +22,7 @@ struct SurfaceInfo {
   wgpu::Instance gpu;
   wgpu::SurfaceConfiguration config;
 
-  void flush() {
+  void flushTextureToSurface() {
     // 1.a flush texture to the onscreen surface
     if (texture) {
       wgpu::CommandEncoderDescriptor encoderDesc;
@@ -143,7 +143,7 @@ public:
       info.surface = surface;
       info.width = width;
       info.height = height;
-      info.flush();
+      info.flushTextureToSurface();
       surface.Present();
       updateSurface(contextId, info);
     } else {
