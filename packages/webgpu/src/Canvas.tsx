@@ -92,7 +92,7 @@ const useSizePaper = (_ref: RefObject<View>) => {
 export const Canvas = forwardRef<CanvasRef, ViewProps>(
   ({ onLayout: _onLayout, ...props }, ref) => {
     const viewRef = useRef(null);
-    const [mounted, setMounted] = useState(false);
+    const [mounted, setMounted] = useState(true);
     const FABRIC = RNWebGPU.fabric;
     const useSize = FABRIC ? useSizeFabric : useSizePaper;
     const [contextId, _] = useState(() => generateContextId());
