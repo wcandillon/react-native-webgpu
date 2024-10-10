@@ -61,12 +61,13 @@ void GPUCanvasContext::unconfigure() {
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   auto width = _canvas->getWidth();
   auto height = _canvas->getHeight();
+
+  auto prevWidth = _surfaceConfiguration.width;
+  auto prevHeight = _surfaceConfiguration.height;
+  auto sizeHasChanged = prevWidth != width || prevHeight != height;
   // Get onscreen texture
   if (_instance) {
     // Did the surface resize?
-    auto prevWidth = _surfaceConfiguration.width;
-    auto prevHeight = _surfaceConfiguration.height;
-    auto sizeHasChanged = prevWidth != width || prevHeight != height;
     if (_instance && sizeHasChanged) {
       _surfaceConfiguration.width = width;
       _surfaceConfiguration.height = height;
@@ -81,10 +82,7 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
     return std::make_shared<GPUTexture>(texture, "");
   } else {
     // Get offscreen texture
-        // Did the surface resize?
-    auto prevWidth = _surfaceConfiguration.width;
-    auto prevHeight = _surfaceConfiguration.height;
-    auto sizeHasChanged = prevWidth != width || prevHeight != height;
+    // Did the surface resize?
     if (sizeHasChanged) {
       _surfaceConfiguration.width = width;
       _surfaceConfiguration.height = height;
