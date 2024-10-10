@@ -50,7 +50,7 @@ void GPUCanvasContext::unconfigure() {
   if (_instance) {
     _instance.Unconfigure();
   } else if (_offscreenSurface) {
-    _offscreenSurface->unconfigure();
+    _offscreenSurface = nullptr;
   }
 }
 

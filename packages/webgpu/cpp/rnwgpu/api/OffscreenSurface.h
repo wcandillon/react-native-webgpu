@@ -32,11 +32,6 @@ public:
     _texture = _device.CreateTexture(&textureDesc);
   }
 
-  void unconfigure() {
-    _device = nullptr;
-    _texture = nullptr;
-  }
-
   wgpu::Texture getCurrentTexture() {
     if (!_texture) {
       throw std::runtime_error("Texture is not configured");
