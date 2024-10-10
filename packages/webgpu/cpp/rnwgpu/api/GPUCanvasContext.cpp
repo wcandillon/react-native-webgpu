@@ -81,6 +81,15 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
     return std::make_shared<GPUTexture>(texture, "");
   } else {
     // Get offscreen texture
+        // Did the surface resize?
+    auto prevWidth = _surfaceConfiguration.width;
+    auto prevHeight = _surfaceConfiguration.height;
+    auto sizeHasChanged = prevWidth != width || prevHeight != height;
+    if (sizeHasChanged) {
+      _surfaceConfiguration.width = width;
+      _surfaceConfiguration.height = height;
+      _offscreenSurface->configure(_surfaceConfiguration);
+    }
     auto tex = _offscreenSurface->getCurrentTexture();
     return std::make_shared<GPUTexture>(tex, "");
   }
