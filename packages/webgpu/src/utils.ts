@@ -47,19 +47,19 @@ export const useCanvasEffect = (
     | Promise<Unsubscribe | void>
     | Promise<void>,
 ) => {
-  const unsub = useRef<Unsubscribe | null>(null);
+  const unsub = useRef<Unsubscribe | null | Promise<Unsubscribe | void>>(null);
   const ref = useRef<CanvasRef>(null);
   useEffect(() => {
     ref.current!.whenReady(async () => {
       const sub = effect();
-      if (sub && !(sub instanceof Promise)) {
+      if (sub) {
         unsub.current = sub;
       }
     });
     return () => {
       if (unsub.current) {
         if (unsub.current instanceof Promise) {
-          unsub.current.then((sub) => sub());
+          unsub.current.then((sub) => sub && sub());
         } else {
           unsub.current();
         }
