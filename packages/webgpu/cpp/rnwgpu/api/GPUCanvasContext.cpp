@@ -61,6 +61,17 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   auto height = _canvas->getHeight();
   // Get onscreen texture
   if (_instance) {
+    // Did the surface resize?
+    auto prevWidth = _surfaceConfiguration.width;
+    auto prevHeight = _surfaceConfiguration.height;
+    auto width = _canvas->getWidth();
+    auto height = _canvas->getHeight();
+    auto sizeHasChanged = prevWidth != width || prevHeight != height;
+    if (_instance && sizeHasChanged) {
+      _surfaceConfiguration.width = width;
+      _surfaceConfiguration.height = height;
+      _instance.Configure(&_surfaceConfiguration);
+    }
     wgpu::SurfaceTexture surfaceTexture;
     _instance.GetCurrentTexture(&surfaceTexture);
     auto texture = surfaceTexture.texture;
@@ -81,21 +92,11 @@ void GPUCanvasContext::present() {
 #endif
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurface(_contextId);
-  // Did the surface resize?
+  // We are starting a new frame, this is a good time to update the client
   _canvas->setClientWidth(info.width);
   _canvas->setClientHeight(info.height);
   if (_instance) {
     _instance.Present();
-    auto prevWidth = _surfaceConfiguration.width;
-    auto prevHeight = _surfaceConfiguration.height;
-    auto width = _canvas->getWidth();
-    auto height = _canvas->getHeight();
-    auto sizeHasChanged = prevWidth != width || prevHeight != height;
-    if (_instance && sizeHasChanged) {
-      _surfaceConfiguration.width = width;
-      _surfaceConfiguration.height = height;
-      _instance.Configure(&_surfaceConfiguration);
-    }
   } else {
     // Are we onscreen now?
     if (info.surface) {
