@@ -76,14 +76,12 @@ private:
   wgpu::Surface _instance = nullptr;
   wgpu::Device _device;
   std::shared_ptr<Canvas> _canvas;
-  bool _pristine = true;
   int _contextId;
 
   std::shared_ptr<GPU> _gpu;
   std::shared_ptr<PlatformContext> _platformContext;
   // TODO: do we need this or can it be stored in the surface registry?
   wgpu::SurfaceConfiguration _surfaceConfiguration;
-
 };
 
 } // namespace rnwgpu

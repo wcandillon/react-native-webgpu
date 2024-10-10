@@ -28,21 +28,23 @@ void GPUCanvasContext::configure(
   surfaceConfiguration.width = width;
   surfaceConfiguration.height = height;
   _surfaceConfiguration = surfaceConfiguration;
+   // Are we onscreen now?
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurface(_contextId);
+  if (info.surface) {
+    _instance = info.surface;   
+    _offscreenSurface = nullptr;
+  }
+
   if (_instance) {
     _instance.Configure(&surfaceConfiguration);
   } else {
     _offscreenSurface->configure(_surfaceConfiguration);
-    // Add texture to the surface registry, when the native surface is available,
-    // we will copy its content there
-    // This only makes sense if the on screen native surface is not available yet
+    // Add texture to the surface registry, when the native surface is
+    // available, we will copy its content there This only makes sense if the on
+    // screen native surface is not available yet
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-    SurfaceInfo info;
-    info.width = width;
-    info.height = height;
-    info.texture = _offscreenSurface->getCurrentTexture();
-    info.gpu = _gpu->get();
-    info.config = _surfaceConfiguration;
-    registry.addIfEmptySurface(_contextId, info);
+    registry.configureOffscreenSurface(_contextId, _gpu->get(), _offscreenSurface->getCurrentTexture(), _surfaceConfiguration);
   }
 }
 
@@ -57,39 +59,7 @@ void GPUCanvasContext::unconfigure() {
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   auto width = _canvas->getWidth();
   auto height = _canvas->getHeight();
-
-  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-
-  // 1. is a onscreen surface now available?
-  if (_pristine && _instance == nullptr) {
-    if (registry.hasOnScreenSurface(_contextId)) {
-      auto info = registry.getSurface(_contextId);
-      // if the native surface is available, but we didn't create the WGPU
-      // instance yet, do it now
-      if (info.surface == nullptr) {
-        info.surface = _platformContext->makeSurface(
-            _gpu->get(), info.nativeSurface, width, height);
-        _surfaceConfiguration.width = width;
-        _surfaceConfiguration.height = height;
-        info.surface.Configure(&_surfaceConfiguration);
-      }
-      _instance = info.surface;
-      _offscreenSurface = nullptr;
-    }
-  }
-
-  // 2. did the surface resize?
-  auto prevWidth = _surfaceConfiguration.width;
-  auto prevHeight = _surfaceConfiguration.height;
-  auto sizeHasChanged = prevWidth != width || prevHeight != height;
-  if (_instance && _pristine && sizeHasChanged) {
-    _surfaceConfiguration.width = width;
-    _surfaceConfiguration.height = height;
-    _instance.Configure(&_surfaceConfiguration);
-  }
-
-  _pristine = false;
-  // 3. get onscreen texture
+  // Get onscreen texture
   if (_instance) {
     wgpu::SurfaceTexture surfaceTexture;
     _instance.GetCurrentTexture(&surfaceTexture);
@@ -99,7 +69,7 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
     }
     return std::make_shared<GPUTexture>(texture, "");
   } else {
-    // 4. get offscreen texture
+    // Get offscreen texture
     auto tex = _offscreenSurface->getCurrentTexture();
     return std::make_shared<GPUTexture>(tex, "");
   }
@@ -109,15 +79,30 @@ void GPUCanvasContext::present() {
 #ifdef __APPLE__
   dawn::native::metal::WaitForCommandsToBeScheduled(_device.Get());
 #endif
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurface(_contextId);
+  // Did the surface resize?
+  _canvas->setClientWidth(info.width);
+  _canvas->setClientHeight(info.height);
   if (_instance) {
     _instance.Present();
-    // We update the client width/height for the next frame
-    auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-    auto info = registry.getSize(_contextId);
-    _canvas->setClientWidth(info.width);
-    _canvas->setClientHeight(info.height);
+    auto prevWidth = _surfaceConfiguration.width;
+    auto prevHeight = _surfaceConfiguration.height;
+    auto width = _canvas->getWidth();
+    auto height = _canvas->getHeight();
+    auto sizeHasChanged = prevWidth != width || prevHeight != height;
+    if (_instance && sizeHasChanged) {
+      _surfaceConfiguration.width = width;
+      _surfaceConfiguration.height = height;
+      _instance.Configure(&_surfaceConfiguration);
+    }
+  } else {
+    // Are we onscreen now?
+    if (info.surface) {
+      _instance = info.surface;
+      _offscreenSurface = nullptr;
+    }
   }
-  _pristine = true;
 }
 
 } // namespace rnwgpu

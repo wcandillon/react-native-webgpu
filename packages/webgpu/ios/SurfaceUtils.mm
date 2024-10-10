@@ -12,7 +12,7 @@
   std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule getManager];
   void *nativeSurface = (__bridge void *)layer;
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  registry.configureSurface(contextId, nativeSurface, size.width, size.height,
+  registry.createSurface(contextId, nativeSurface, size.width, size.height,
                             manager->_platformContext);
 }
 
@@ -23,7 +23,7 @@
   auto info = registry.getSurface(contextId);
   info.width = size.width;
   info.height = size.height;
-  registry.updateSurface(contextId, info);
+  registry.setSize(contextId, size.width, size.height);
 }
 
 + (void)cleanupSurface:(int)contextId {

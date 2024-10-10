@@ -59,6 +59,34 @@ private:
   // Private constructor to prevent instantiation
   SurfaceRegistry() {}
 
+  void updateSurface(const int contextId, SurfaceInfo &info) {
+    auto it = _registry.find(contextId);
+    if (it != _registry.end()) {
+      it->second = info;
+    }
+  }
+
+  // bool hasOnScreenSurface(const int contextId) const {
+  //   std::shared_lock<std::shared_mutex> lock(_mutex);
+  //   auto it = _registry.find(contextId);
+  //   if (it != _registry.end()) {
+  //     return it->second.nativeSurface != nullptr;
+  //   }
+  //   return false;
+  // }
+
+  bool hasSurfaceInfo(const int contextId) const {
+    return _registry.find(contextId) != _registry.end();
+  }
+
+  SurfaceInfo surface(const int contextId) const {
+    auto it = _registry.find(contextId);
+    if (it != _registry.end()) {
+      return it->second;
+    }
+    throw std::out_of_range("Surface not found");
+  }
+
 public:
   // Delete copy constructor and assignment operator
   SurfaceRegistry(const SurfaceRegistry &) = delete;
@@ -70,71 +98,44 @@ public:
     return instance;
   }
 
-  bool hasOnScreenSurface(const int contextId) const {
-    std::shared_lock<std::shared_mutex> lock(_mutex);
-    auto it = _registry.find(contextId);
-    if (it != _registry.end()) {
-      return it->second.nativeSurface != nullptr;
-    }
-    return false;
-  }
-
-  void addSurface(const int contextId, SurfaceInfo &info) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    _registry[contextId] = info;
-  }
-
-  void addIfEmptySurface(const int contextId, SurfaceInfo &info) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    if (_registry.find(contextId) == _registry.end()) {
-      _registry[contextId] = info;
-    }
-  }
-
-  bool hasSurfaceInfo(const int contextId) const {
-    std::shared_lock<std::shared_mutex> lock(_mutex);
-    return _registry.find(contextId) != _registry.end();
-  }
-
-  SurfaceInfo getSurface(const int contextId) const {
-    std::shared_lock<std::shared_mutex> lock(_mutex);
-    auto it = _registry.find(contextId);
-    if (it != _registry.end()) {
-      return it->second;
-    }
-    throw std::out_of_range("Surface not found");
-  }
 
   void removeSurface(const int contextId) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _registry.erase(contextId);
   }
 
-  void updateSurface(const int contextId, SurfaceInfo &info) {
+  SurfaceInfo getSurface(const int contextId) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    auto it = _registry.find(contextId);
-    if (it != _registry.end()) {
-      it->second = info;
-    }
-  }
-  
-  ISize getSize(const int contextId) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    ISize size;
-    auto it = _registry.find(contextId);
-    if (it != _registry.end()) {
-      size.width = it->second.width;
-      size.height = it->second.height;
-    }
-    return size;
+    return surface(contextId);
   }
 
-  void configureSurface(const int contextId, void *nativeSurface, int width,
+  void setSize(const int contextId, int width, int height) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    auto it = _registry.find(contextId);
+    if (it != _registry.end()) {
+      it->second.width = width;
+      it->second.height = height;
+    }
+  }
+
+  void configureOffscreenSurface(const int contextId, wgpu::Instance gpu, wgpu::Texture texture, wgpu::SurfaceConfiguration surfaceConfiguration) {
+    SurfaceInfo info;
+    info.width = surfaceConfiguration.width;
+    info.height = surfaceConfiguration.height;
+    info.texture = texture;
+    info.gpu = gpu;
+    info.config = surfaceConfiguration;
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    _registry[contextId] = info;
+  }
+
+  void createSurface(const int contextId, void *nativeSurface, int width,
                         int height,
                         std::shared_ptr<PlatformContext> platformContext) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
     // 1. The scene has already be drawn offscreen
     if (hasSurfaceInfo(contextId)) {
-      auto info = getSurface(contextId);
+      auto info = surface(contextId);
       auto surface =
           platformContext->makeSurface(info.gpu, nativeSurface, width, height);
       info.config.usage = info.config.usage | wgpu::TextureUsage::CopyDst;
@@ -151,9 +152,10 @@ public:
       // directly
       rnwgpu::SurfaceInfo info;
       info.nativeSurface = nativeSurface;
+      info.surface = platformContext->makeSurface(info.gpu, nativeSurface, width, height);
       info.width = width;
       info.height = height;
-      addSurface(contextId, info);
+      _registry[contextId] = info;
     }
   }
 };

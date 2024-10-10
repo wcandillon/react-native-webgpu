@@ -3,11 +3,11 @@
 #include <memory>
 #include <string>
 
+#include "Canvas.h"
 #include "GPU.h"
 #include "GPUCanvasContext.h"
 #include "ImageBitmap.h"
 #include "PlatformContext.h"
-#include "Canvas.h"
 
 namespace rnwgpu {
 
@@ -55,7 +55,8 @@ public:
   std::shared_ptr<Canvas> getNativeSurface(int contextId) {
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     auto info = registry.getSurface(contextId);
-    return std::make_shared<Canvas>(info.nativeSurface, info.width, info.height);
+    return std::make_shared<Canvas>(info.nativeSurface, info.width,
+                                    info.height);
   }
 
   void loadHybridMethods() override {
@@ -63,8 +64,7 @@ public:
     registerHybridGetter("gpu", &RNWebGPU::getGPU, this);
     registerHybridMethod("createImageBitmap", &RNWebGPU::createImageBitmap,
                          this);
-    registerHybridMethod("getNativeSurface", &RNWebGPU::getNativeSurface,
-                         this);
+    registerHybridMethod("getNativeSurface", &RNWebGPU::getNativeSurface, this);
     registerHybridMethod("MakeWebGPUCanvasContext",
                          &RNWebGPU::MakeWebGPUCanvasContext, this);
   }
