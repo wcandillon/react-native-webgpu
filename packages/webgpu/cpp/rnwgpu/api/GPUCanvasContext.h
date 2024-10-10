@@ -42,10 +42,9 @@ class GPUCanvasContext : public m::HybridObject {
 public:
   // TODO: platformContext no necessary here
   GPUCanvasContext(std::shared_ptr<GPU> gpu,
-                   std::shared_ptr<PlatformContext> platformContext,
                    int contextId, int width, int height)
       : HybridObject("GPUCanvasContext"), _contextId(contextId),
-        _gpu(std::move(gpu)), _platformContext(std::move(platformContext)) {
+        _gpu(std::move(gpu)) {
     _canvas = std::make_shared<Canvas>(nullptr, width, height);
     _offscreenSurface = std::make_shared<OffscreenSurface>(_canvas);
   }
@@ -79,7 +78,6 @@ private:
   int _contextId;
 
   std::shared_ptr<GPU> _gpu;
-  std::shared_ptr<PlatformContext> _platformContext;
   // TODO: do we need this or can it be stored in the surface registry?
   wgpu::SurfaceConfiguration _surfaceConfiguration;
 };

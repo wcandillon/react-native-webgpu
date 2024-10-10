@@ -65,14 +65,15 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   auto prevWidth = _surfaceConfiguration.width;
   auto prevHeight = _surfaceConfiguration.height;
   auto sizeHasChanged = prevWidth != width || prevHeight != height;
+  _surfaceConfiguration.width = width;
+  _surfaceConfiguration.height = height;
   // Get onscreen texture
   if (_instance) {
     // Did the surface resize?
-    if (_instance && sizeHasChanged) {
-      _surfaceConfiguration.width = width;
-      _surfaceConfiguration.height = height;
+    if (sizeHasChanged) {
       _instance.Configure(&_surfaceConfiguration);
     }
+    // Get onscreen texture
     wgpu::SurfaceTexture surfaceTexture;
     _instance.GetCurrentTexture(&surfaceTexture);
     auto texture = surfaceTexture.texture;
@@ -81,13 +82,11 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
     }
     return std::make_shared<GPUTexture>(texture, "");
   } else {
-    // Get offscreen texture
     // Did the surface resize?
     if (sizeHasChanged) {
-      _surfaceConfiguration.width = width;
-      _surfaceConfiguration.height = height;
       _offscreenSurface->configure(_surfaceConfiguration);
     }
+    // Get offscreen texture
     auto tex = _offscreenSurface->getCurrentTexture();
     return std::make_shared<GPUTexture>(tex, "");
   }
