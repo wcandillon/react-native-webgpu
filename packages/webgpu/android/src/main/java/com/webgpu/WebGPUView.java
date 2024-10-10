@@ -41,7 +41,6 @@ public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
     float width = getWidth() / density;
     float height = getHeight() / density;
     onSurfaceCreate(holder.getSurface(), mContextId, width, height);
-    mModule.onSurfaceCreated(mContextId);
   }
 
   @Override

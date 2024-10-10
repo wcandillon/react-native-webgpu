@@ -31,7 +31,6 @@ export const Cube = () => {
       context.present();
     }
     renderer.setAnimationLoop(animate);
-
     return () => {
       renderer.setAnimationLoop(null);
     };

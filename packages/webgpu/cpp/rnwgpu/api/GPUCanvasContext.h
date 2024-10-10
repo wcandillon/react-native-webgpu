@@ -12,8 +12,10 @@
 #include "AsyncRunner.h"
 
 #include "Canvas.h"
+#include "GPU.h"
 #include "GPUCanvasConfiguration.h"
 #include "GPUTexture.h"
+#include "OffscreenSurface.h"
 #include "SurfaceRegistry.h"
 
 #ifdef __APPLE__
@@ -38,9 +40,13 @@ namespace m = margelo;
 
 class GPUCanvasContext : public m::HybridObject {
 public:
-  explicit GPUCanvasContext(wgpu::Surface instance,
-                            std::shared_ptr<Canvas> canvas)
-      : HybridObject("GPUCanvasContext"), _instance(instance), _canvas(canvas) {
+  // TODO: platformContext no necessary here
+  GPUCanvasContext(std::shared_ptr<GPU> gpu, int contextId, int width,
+                   int height)
+      : HybridObject("GPUCanvasContext"), _contextId(contextId),
+        _gpu(std::move(gpu)) {
+    _canvas = std::make_shared<Canvas>(nullptr, width, height);
+    _offscreenSurface = std::make_shared<OffscreenSurface>(_canvas);
   }
 
 public:
@@ -65,12 +71,15 @@ public:
   void present();
 
 private:
-  wgpu::Surface _instance;
+  std::shared_ptr<OffscreenSurface> _offscreenSurface;
+  wgpu::Surface _instance = nullptr;
   wgpu::Device _device;
   std::shared_ptr<Canvas> _canvas;
-  std::shared_ptr<GPUCanvasConfiguration> _lastConfig;
-  float _width;
-  float _height;
+  int _contextId;
+
+  std::shared_ptr<GPU> _gpu;
+  // TODO: do we need this or can it be stored in the surface registry?
+  wgpu::SurfaceConfiguration _surfaceConfiguration;
 };
 
 } // namespace rnwgpu

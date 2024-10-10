@@ -10,4 +10,6 @@
 
 + (void)updateSurface:(int)contextId size:(CGSize)size;
 
++ (void)cleanupSurface:(int)contextId;
+
 @end

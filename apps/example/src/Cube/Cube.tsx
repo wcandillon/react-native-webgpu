@@ -18,12 +18,6 @@ import { basicVertWGSL, vertexPositionColorWGSL } from "./Shaders";
 export function Cube() {
   const { canvasRef } = useWebGPU(
     ({ context, device, presentationFormat, canvas }) => {
-      context.configure({
-        device,
-        format: presentationFormat,
-        alphaMode: "premultiplied",
-      });
-
       // Create a vertex buffer from the cube data.
       const verticesBuffer = device.createBuffer({
         size: cubeVertexArray.byteLength,
@@ -116,7 +110,6 @@ export function Cube() {
         colorAttachments: [
           {
             view: undefined, // Assigned later
-
             clearValue: [0.5, 0.5, 0.5, 1.0],
             loadOp: "clear",
             storeOp: "store",

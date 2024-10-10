@@ -102,7 +102,7 @@ export const Texture = ({ texture, style, device }: GPUTextureProps) => {
       sampler,
       context,
     });
-  }, [device]);
+  });
   useEffect(() => {
     if (!texture || !state || !device) {
       return;
