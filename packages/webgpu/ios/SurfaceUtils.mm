@@ -11,13 +11,25 @@
                contextId:(int)contextId {
   std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule getManager];
   void *nativeSurface = (__bridge void *)layer;
-  manager->surfacesRegistry.addSurface(contextId, nativeSurface, size.width,
-                                       size.height);
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  registry.createSurface(contextId, nativeSurface, size.width, size.height,
+                         manager->_platformContext);
 }
 
 + (void)updateSurface:(int)contextId size:(CGSize)size {
-  std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule getManager];
-  manager->surfacesRegistry.updateSurface(contextId, size.width, size.height);
+  // std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule
+  // getManager];
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurface(contextId);
+  info.width = size.width;
+  info.height = size.height;
+  registry.setSize(contextId, size.width, size.height);
+}
+
++ (void)cleanupSurface:(int)contextId {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  // Remove the surface info from the registry
+  registry.removeSurface(contextId);
 }
 
 @end

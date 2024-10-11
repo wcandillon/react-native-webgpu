@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "Canvas.h"
 #include "GPU.h"
 #include "GPUCanvasContext.h"
 #include "ImageBitmap.h"
@@ -29,17 +30,18 @@ public:
 
   std::shared_ptr<GPU> getGPU() { return _gpu; }
 
+  bool getFabric() {
+#ifdef RCT_NEW_ARCH_ENABLED
+    return true;
+#else
+    return false;
+#endif
+  }
+
   std::shared_ptr<GPUCanvasContext>
-  MakeWebGPUCanvasContext(std::shared_ptr<Canvas> canvas) {
-    auto nativeSurface = canvas->getSurface();
-    auto width = canvas->getWidth();
-    auto height = canvas->getHeight();
-    auto surface = _platformContext->makeSurface(
-        _gpu->get(), reinterpret_cast<void *>(nativeSurface), width, height);
-    if (surface == nullptr) {
-      throw std::runtime_error("null surface");
-    }
-    auto ctx = std::make_shared<GPUCanvasContext>(surface, canvas);
+  MakeWebGPUCanvasContext(int contextId, float width, float height) {
+    auto ctx =
+        std::make_shared<GPUCanvasContext>(_gpu, contextId, width, height);
     return ctx;
   }
 
@@ -50,10 +52,19 @@ public:
     return imageBitmap;
   }
 
+  std::shared_ptr<Canvas> getNativeSurface(int contextId) {
+    auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+    auto info = registry.getSurface(contextId);
+    return std::make_shared<Canvas>(info.nativeSurface, info.width,
+                                    info.height);
+  }
+
   void loadHybridMethods() override {
+    registerHybridGetter("fabric", &RNWebGPU::getFabric, this);
     registerHybridGetter("gpu", &RNWebGPU::getGPU, this);
     registerHybridMethod("createImageBitmap", &RNWebGPU::createImageBitmap,
                          this);
+    registerHybridMethod("getNativeSurface", &RNWebGPU::getNativeSurface, this);
     registerHybridMethod("MakeWebGPUCanvasContext",
                          &RNWebGPU::MakeWebGPUCanvasContext, this);
   }

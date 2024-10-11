@@ -24,9 +24,6 @@ public class WebGPUModule extends NativeWebGPUModuleSpec {
       System.loadLibrary("react-native-wgpu"); // Load the C++ library
   }
 
-  private final Object mContextLock = new Object();
-  private final Set<Integer> mSurfaceContextsIds = new HashSet<>();
-
   public WebGPUModule(ReactApplicationContext reactContext) {
     super(reactContext);
     // Initialize the C++ module
@@ -50,38 +47,4 @@ public class WebGPUModule extends NativeWebGPUModuleSpec {
   @OptIn(markerClass = FrameworkAPI.class)
   @DoNotStrip
   private native void initializeNative(long jsRuntime, CallInvokerHolderImpl jsInvoker, BlobModule blobModule);
-
-  @ReactMethod(isBlockingSynchronousMethod = true)
-  public boolean createSurfaceContext(double contextId) {
-    waitForNativeSurface((int)contextId);
-
-    ReactApplicationContext context = getReactApplicationContext();
-    JavaScriptContextHolder jsContext = context.getJavaScriptContextHolder();
-    createSurfaceContext(jsContext.get(), (int)contextId);
-    return true;
-  }
-
-  @DoNotStrip
-  private native void createSurfaceContext(long jsRuntime, int contextId);
-
-  private void waitForNativeSurface(Integer contextId) {
-    synchronized (mContextLock) {
-      while (!mSurfaceContextsIds.contains(contextId)) {
-        try {
-          mContextLock.wait();
-        } catch (InterruptedException e) {
-          Log.e("RNWebGPU", "Unable to create a context");
-          return;
-        }
-      }
-    }
-  }
-
-  protected void onSurfaceCreated(Integer contextId) {
-    synchronized (mContextLock) {
-      mSurfaceContextsIds.add(contextId);
-      mContextLock.notifyAll();
-    }
-  }
-
 }

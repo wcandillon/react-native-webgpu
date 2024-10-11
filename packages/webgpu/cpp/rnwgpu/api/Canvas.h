@@ -15,24 +15,24 @@ namespace m = margelo;
 
 class Canvas : public m::HybridObject {
 public:
-  explicit Canvas(void* surface, const float width, const float height)
+  explicit Canvas(void *surface, const int width, const int height)
       : HybridObject("Canvas"), _surface(surface), _width(width),
         _height(height), _clientWidth(width), _clientHeight(height) {}
 
-  float getWidth() { return _width; }
-  float getHeight() { return _height; }
+  int getWidth() { return _width; }
+  int getHeight() { return _height; }
 
-  void setWidth(const float width) { _width = width; }
-  void setHeight(const float height) { _height = height; }
+  void setWidth(const int width) { _width = width; }
+  void setHeight(const int height) { _height = height; }
 
-  float getClientWidth() { return _clientWidth; }
-  float getClientHeight() { return _clientHeight; }
+  int getClientWidth() { return _clientWidth; }
+  int getClientHeight() { return _clientHeight; }
 
-  void setClientWidth(const float width) { _clientWidth = width; }
+  void setClientWidth(const int width) { _clientWidth = width; }
 
-  void setClientHeight(const float height) { _clientHeight = height; }
+  void setClientHeight(const int height) { _clientHeight = height; }
 
-  void* getSurface() { return _surface; }
+  void *getSurface() { return _surface; }
 
   void loadHybridMethods() override {
     registerHybridGetter("surface", &Canvas::getSurface, this);
@@ -45,11 +45,11 @@ public:
   }
 
 private:
-  void* _surface;
-  float _width;
-  float _height;
-  float _clientWidth;
-  float _clientHeight;
+  void *_surface;
+  int _width;
+  int _height;
+  int _clientWidth;
+  int _clientHeight;
 };
 
 } // namespace rnwgpu

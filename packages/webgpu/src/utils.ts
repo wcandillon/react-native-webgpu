@@ -1,7 +1,6 @@
-import type { DependencyList } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import type { CanvasRef } from "./Canvas";
+import type { RNCanvasContext, CanvasRef } from "./Canvas";
 
 type Unsubscribe = () => void;
 
@@ -13,30 +12,41 @@ export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
   }
 };
 
+export const useGPUContext = () => {
+  const [context, setContext] = useState<RNCanvasContext | null>(null);
+  const ref = useCanvasEffect(() => {
+    const ctx = ref.current!.getContext("webgpu")!;
+    setContext(ctx);
+  });
+  return { ref, context };
+};
+
 export const useCanvasEffect = (
-  effect: () => void | Unsubscribe | Promise<void | Unsubscribe>,
-  deps: DependencyList = [],
+  effect: () =>
+    | void
+    | Unsubscribe
+    | Promise<Unsubscribe | void>
+    | Promise<void>,
 ) => {
+  const unsub = useRef<Unsubscribe | null | Promise<Unsubscribe | void>>(null);
   const ref = useRef<CanvasRef>(null);
-  const unsubscribe = useRef<Unsubscribe>();
   useEffect(() => {
-    requestAnimationFrame(async () => {
-      // const adapter = await navigator.gpu.requestAdapter();
-      // if (!adapter) {
-      //   return;
-      // }
-      // const device = await adapter.requestDevice();
-      const unsub = await effect();
-      if (unsub) {
-        unsubscribe.current = unsub;
+    ref.current!.whenReady(async () => {
+      const sub = effect();
+      if (sub) {
+        unsub.current = sub;
       }
     });
     return () => {
-      if (unsubscribe.current) {
-        unsubscribe.current();
+      if (unsub.current) {
+        if (unsub.current instanceof Promise) {
+          unsub.current.then((sub) => sub && sub());
+        } else {
+          unsub.current();
+        }
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, []);
   return ref;
 };

@@ -21,6 +21,6 @@ public class WebGPUViewPackage implements ReactPackage {
 
   @Override
   public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
-      return Arrays.asList(new WebGPUModule(reactContext));
+      return List.of(new WebGPUModule(reactContext));
   }
 }

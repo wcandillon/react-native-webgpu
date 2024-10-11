@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import { PixelRatio } from "react-native";
-import { Canvas, useCanvasEffect } from "react-native-wgpu";
-import type { RNCanvasContext } from "react-native-wgpu";
+import { Canvas, useGPUContext } from "react-native-wgpu";
 
 interface TextureState {
   pipeline: GPURenderPipeline;
   sampler: GPUSampler;
-  context: RNCanvasContext;
 }
 
 interface GPUTextureProps {
@@ -20,13 +18,13 @@ interface GPUTextureProps {
 
 export const Texture = ({ texture, style, device }: GPUTextureProps) => {
   const [state, setState] = useState<TextureState | null>(null);
-  const ref = useCanvasEffect(async () => {
-    if (!device) {
+  const { ref, context } = useGPUContext();
+  useEffect(() => {
+    if (!device || !context) {
       return;
     }
 
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-    const context = ref.current!.getContext("webgpu")!;
     const canvas = context.canvas as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();
     canvas.height = canvas.clientHeight * PixelRatio.get();
@@ -100,14 +98,13 @@ export const Texture = ({ texture, style, device }: GPUTextureProps) => {
     setState({
       pipeline,
       sampler,
-      context,
     });
-  }, [device]);
+  }, [context, device]);
   useEffect(() => {
-    if (!texture || !state || !device) {
+    if (!texture || !state || !device || !context) {
       return;
     }
-    const { pipeline, sampler, context } = state;
+    const { pipeline, sampler } = state;
 
     // Create a bind group
     const bindGroup = device.createBindGroup({
@@ -146,6 +143,6 @@ export const Texture = ({ texture, style, device }: GPUTextureProps) => {
 
     device.queue.submit([commandEncoder.finish()]);
     context.present();
-  }, [device, state, texture]);
+  }, [device, state, texture, context]);
   return <Canvas ref={ref} style={style} />;
 };

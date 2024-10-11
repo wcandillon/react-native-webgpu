@@ -33,11 +33,11 @@ export class GPUOffscreenCanvas implements OffscreenCanvas {
     contextId: OffscreenRenderingContextId,
     options?: any,
   ): OffscreenRenderingContext | null;
-  getContext(contextId: "webgpu"): GPUCanvasContext | null;
+  getContext(contextId: "webgpu"): GPUOffscreenCanvasContext | null;
   getContext(
     contextId: unknown,
     _options?: any,
-  ): OffscreenRenderingContext | GPUCanvasContext | null {
+  ): OffscreenRenderingContext | GPUOffscreenCanvasContext | null {
     if (contextId === "webgpu") {
       return this.context;
     }
@@ -113,6 +113,10 @@ class GPUOffscreenCanvasContext implements GPUCanvasContext {
 
   constructor(public readonly canvas: OffscreenCanvas) {
     this.textureFormat = navigator.gpu.getPreferredCanvasFormat();
+  }
+
+  present() {
+    // Do nothing
   }
 
   getDevice() {
