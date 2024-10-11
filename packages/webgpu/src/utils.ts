@@ -1,4 +1,3 @@
-import type { DependencyList } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import type { RNCanvasContext, CanvasRef } from "./Canvas";
@@ -13,30 +12,12 @@ export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
   }
 };
 
-export const useGPUContextEffect = (
-  effect: (ctx: RNCanvasContext) => void | Unsubscribe,
-  deps?: DependencyList,
-) => {
-  const unsub = useRef<Unsubscribe | null>(null);
+export const useGPUContext = () => {
   const [context, setContext] = useState<RNCanvasContext | null>(null);
   const ref = useCanvasEffect(() => {
     const ctx = ref.current!.getContext("webgpu")!;
     setContext(ctx);
   });
-  useEffect(() => {
-    if (context) {
-      const ret = effect(context);
-      if (ret) {
-        unsub.current = ret;
-      }
-    }
-    return () => {
-      if (unsub.current) {
-        unsub.current();
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [context, unsub, effect, ...(deps ?? [])]);
   return { ref, context };
 };
 
