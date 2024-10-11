@@ -72,7 +72,6 @@ public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
     float height
   );
 
-
   @DoNotStrip
   private native void onSurfaceDestroy(int contextId);
 }

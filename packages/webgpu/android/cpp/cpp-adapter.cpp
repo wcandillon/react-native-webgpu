@@ -31,7 +31,6 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceChanged(
     JNIEnv *env, jobject thiz, jobject surface, jint contextId, jfloat width,
     jfloat height) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  auto info = registry.getSurface(contextId);
   registry.setSize(contextId, static_cast<int>(width),
                    static_cast<int>(height));
 }
@@ -49,8 +48,10 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
     JNIEnv *env, jobject thiz, jint contextId) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  auto canvas = registry.getSurface(contextId);
-  ANativeWindow_release(
-      reinterpret_cast<ANativeWindow *>(canvas.nativeSurface));
-  registry.removeSurface(contextId);
+  auto canvas = registry.getSurfaceMaybe(contextId);
+  if (canvas.has_value()) {
+      ANativeWindow_release(
+              reinterpret_cast<ANativeWindow *>(canvas.value().nativeSurface));
+      registry.removeSurface(contextId);
+  }
 }
