@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-
 import * as THREE from "three";
-import { Canvas, useCanvasEffect } from "react-native-wgpu";
+import { Canvas, useGPUContext } from "react-native-wgpu";
 import { PixelRatio, Text, View, StyleSheet } from "react-native";
+import { useEffect } from "react";
 
 import { useGLTF } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
@@ -28,14 +27,12 @@ const {
 
 export const Backdrop = () => {
   const gltf = useGLTF(require("./assets/michelle/model.gltf"));
-  const ref = useCanvasEffect(async () => {
-    if (!gltf) {
+  const { ref, context } = useGPUContext();
+  useEffect(() => {
+    if (!gltf || !context) {
       return;
     }
     const rotate = true;
-
-    // Anti alias in the renderer is set to false and we handle the pixel density here
-    const context = ref.current!.getContext("webgpu")!;
     const canvas = context.canvas as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();
     canvas.height = canvas.clientHeight * PixelRatio.get();
@@ -46,7 +43,7 @@ export const Backdrop = () => {
     camera.position.set(1, 2, 3);
 
     const scene = new THREE.Scene();
-    // @ts-expect-error
+    // @ts-expect-error will be fixed in the next @types/three.js
     scene.backgroundNode = viewportUV.y.mix(color(0x66bbff), color(0x4466ff));
     camera.lookAt(0, 1, 0);
 
@@ -116,7 +113,7 @@ export const Backdrop = () => {
     addBackdropSphere(hue(viewportSharedTexture().bgr, oscSine().mul(Math.PI)));
     addBackdropSphere(viewportSharedTexture().rgb.oneMinus());
     addBackdropSphere(grayscale(viewportSharedTexture().rgb));
-    // @ts-expect-error
+    // @ts-expect-error will be fixed in the next @types/three.js
     addBackdropSphere(saturation(viewportSharedTexture().rgb, 10), oscSine());
     addBackdropSphere(
       overlay(viewportSharedTexture().rgb, checker(uv().mul(10))),
@@ -153,13 +150,12 @@ export const Backdrop = () => {
       }
 
       renderer.render(scene, camera);
-      context.present();
+      context!.present();
     }
     return () => {
       renderer.setAnimationLoop(null);
     };
-  }, [gltf]);
-
+  }, [gltf, context]);
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <Text>Loading assets...</Text>

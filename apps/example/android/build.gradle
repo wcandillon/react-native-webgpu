@@ -7,7 +7,7 @@ buildscript {
                 return p.toRealPath().toString()
             }
         } while (searchDir = searchDir.getParent())
-        throw new GradleException("Could not find `react-native-test-app`");
+        throw new GradleException("Could not find `react-native-test-app`")
     }())
 
     repositories {
@@ -34,7 +34,7 @@ allprojects {
                         return p.toRealPath().toString()
                     }
                 } while (searchDir = searchDir.getParent())
-                throw new GradleException("Could not find `react-native`");
+                throw new GradleException("Could not find `react-native`")
             }())
         }
         mavenCentral()

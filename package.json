@@ -7,7 +7,8 @@
   ],
   "resolutions": {
     "@types/react": "^18.2.44",
-    "@webgpu/types": "^0.1.42"
+    "@webgpu/types": "^0.1.42",
+    "@react-three/fiber@^8.17.6": "patch:@react-three/fiber@npm%3A8.17.6#./.yarn/patches/@react-three-fiber-npm-8.17.6-bc537e834c.patch"
   },
   "packageManager": "yarn@3.6.1",
   "scripts": {
@@ -16,11 +17,9 @@
     "build:ios": "turbo run build:ios",
     "build:android": "turbo run build:android",
     "build": "turbo run build",
-    "pod:install": "turbo run pod:install",
-    "postinstall": "patch-package"
+    "pod:install": "turbo run pod:install"
   },
   "devDependencies": {
-    "patch-package": "^8.0.0",
     "turbo": "^2.1.0"
   }
 }

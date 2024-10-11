@@ -24,4 +24,15 @@
   }
 }
 
+- (void)willMoveToSuperview:(UIView *)newSuperview {
+  [super willMoveToSuperview:newSuperview];
+
+  if (newSuperview == nil) {
+    // The view is being removed from its superview
+    // Add your cleanup code here
+    [SurfaceUtils cleanupSurface:[_contextId intValue]];
+    _isConfigured = NO;
+  }
+}
+
 @end
