@@ -66,17 +66,12 @@ private:
     }
   }
 
-  // bool hasOnScreenSurface(const int contextId) const {
-  //   std::shared_lock<std::shared_mutex> lock(_mutex);
-  //   auto it = _registry.find(contextId);
-  //   if (it != _registry.end()) {
-  //     return it->second.nativeSurface != nullptr;
-  //   }
-  //   return false;
-  // }
-
-  bool hasSurfaceInfo(const int contextId) const {
-    return _registry.find(contextId) != _registry.end();
+  std::optional<SurfaceInfo> getSurface(const int contextId) const {
+    auto it = _registry.find(contextId);
+    if (it != _registry.end()) {
+      return it->second;
+    }
+    return std::nullopt;
   }
 
 public:
@@ -92,24 +87,12 @@ public:
 
   void removeSurface(const int contextId) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    _registry.erase(contextId);
+    //_registry.erase(contextId);
   }
 
   std::optional<SurfaceInfo> getSurfaceMaybe(const int contextId) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    auto it = _registry.find(contextId);
-    if (it != _registry.end()) {
-      return it->second;
-    }
-    return std::nullopt;
-  }
-
-  SurfaceInfo getSurface(const int contextId) const {
-    auto it = _registry.find(contextId);
-    if (it != _registry.end()) {
-      return it->second;
-    }
-    throw std::out_of_range("Surface not found");
+    return getSurface(contextId);
   }
 
   void setSize(const int contextId, int width, int height) {
@@ -139,9 +122,10 @@ public:
                      int height,
                      std::shared_ptr<PlatformContext> platformContext) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    auto infoVal = getSurface(contextId);
     // 1. The scene has already be drawn offscreen
-    if (hasSurfaceInfo(contextId)) {
-      auto info = getSurface(contextId);
+    if (infoVal.has_value()) {
+      auto info = infoVal.value();
       auto surface =
           platformContext->makeSurface(info.gpu, nativeSurface, width, height);
       info.config.usage = info.config.usage | wgpu::TextureUsage::CopyDst;

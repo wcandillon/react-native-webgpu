@@ -20,9 +20,6 @@
   // std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule
   // getManager];
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  auto info = registry.getSurface(contextId);
-  info.width = size.width;
-  info.height = size.height;
   registry.setSize(contextId, size.width, size.height);
 }
 
