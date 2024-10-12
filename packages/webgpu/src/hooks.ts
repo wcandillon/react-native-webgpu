@@ -1,8 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { RNCanvasContext, CanvasRef } from "./Canvas";
+import type { RNCanvasContext, CanvasRef, NativeCanvas } from "./Canvas";
 
 type Unsubscribe = () => void;
+
+export const useSurface = () => {
+  const [surface, setSurface] = useState<NativeCanvas | null>(null);
+  const ref = useCanvasEffect(() => {
+    const sur = ref.current!.getNativeSurface();
+    console.log({ sur });
+    setSurface(sur);
+  });
+  return { ref, surface };
+};
 
 export const useGPUContext = () => {
   const [context, setContext] = useState<RNCanvasContext | null>(null);

@@ -27,6 +27,7 @@ import { SamplerParameters } from "./Sampler";
 import { ReversedZ } from "./ReversedZ";
 import { ThreeJS } from "./ThreeJS";
 import { GradientTiles } from "./GradientTiles";
+import { CanvasAPI } from "./CanvasAPI";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -52,6 +53,7 @@ function App() {
             component={HelloTriangleMSAA}
           />
           <Stack.Screen name="ThreeJS" component={ThreeJS} />
+          <Stack.Screen name="CanvasAPI" component={CanvasAPI} />
           <Stack.Screen name="Cube" component={Cube} />
           <Stack.Screen name="InstancedCube" component={InstancedCube} />
           <Stack.Screen name="TexturedCube" component={TexturedCube} />

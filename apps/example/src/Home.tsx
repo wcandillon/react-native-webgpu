@@ -28,6 +28,10 @@ export const examples = [
     title: "🧊 Cube",
   },
   {
+    screen: "CanvasAPI",
+    title: "🧩 Canvas API",
+  },
+  {
     screen: "Cubemap",
     title: "🌉 Cubemap",
   },

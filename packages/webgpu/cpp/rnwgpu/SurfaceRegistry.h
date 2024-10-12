@@ -87,7 +87,7 @@ public:
 
   void removeSurface(const int contextId) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    //_registry.erase(contextId);
+    _registry.erase(contextId);
   }
 
   std::optional<SurfaceInfo> getSurfaceMaybe(const int contextId) {
