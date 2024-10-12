@@ -3,7 +3,6 @@
 #import "WebGPUModule.h"
 #import "WebGPUView.h"
 
-// TODO: to delete now
 @implementation SurfaceUtils
 
 + (void)configureSurface:(CALayer *)layer

@@ -1,79 +1,73 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import * as THREE from "three";
-import { Canvas, useCanvasEffect } from "react-native-wgpu";
+import { Canvas, useGPUContext } from "react-native-wgpu";
 import { View } from "react-native";
+import { useEffect } from "react";
 
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
+import { useGeometry } from "./assets/AssetManager";
 
 const { timerLocal, oscSine, mix, range } = THREE;
 
 export const InstancedMesh = () => {
-  const ref = useCanvasEffect(async () => {
-    const context = ref.current!.getContext("webgpu")!;
+  const geometry = useGeometry(
+    "https://threejs.org/examples/models/json/suzanne_buffergeometry.json",
+  );
+  const { ref, context } = useGPUContext();
+  useEffect(() => {
+    if (!context || !geometry) {
+      return;
+    }
     const { width, height } = context.canvas;
-    let camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.Renderer;
 
-    let mesh: THREE.InstancedMesh;
     const amount = 10;
     const count = Math.pow(amount, 3);
     const dummy = new THREE.Object3D();
 
-    init();
+    const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 100);
+    camera.position.set(amount * 0.9, amount * 0.9, amount * 0.9);
+    camera.lookAt(0, 0, 0);
 
-    function init() {
-      camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 100);
-      camera.position.set(amount * 0.9, amount * 0.9, amount * 0.9);
-      camera.lookAt(0, 0, 0);
+    const scene = new THREE.Scene();
 
-      scene = new THREE.Scene();
+    const material = new THREE.MeshBasicMaterial();
 
-      const material = new THREE.MeshBasicMaterial();
+    // random colors between instances from 0x000000 to 0xFFFFFF
+    const randomColors = range(
+      new THREE.Color(0x000000),
+      new THREE.Color(0xffffff),
+    );
 
-      // random colors between instances from 0x000000 to 0xFFFFFF
-      const randomColors = range(
-        new THREE.Color(0x000000),
-        new THREE.Color(0xffffff),
-      );
+    // @ts-expect-error
+    material.colorNode = mix(
+      THREE.normalWorld,
+      randomColors,
+      oscSine(timerLocal(0.1)),
+    );
 
-      // @ts-expect-error
-      material.colorNode = mix(
-        THREE.normalWorld,
-        randomColors,
-        oscSine(timerLocal(0.1)),
-      );
+    console.log("geometry loaded");
+    geometry.computeVertexNormals();
+    geometry.scale(0.5, 0.5, 0.5);
 
-      const loader = new THREE.BufferGeometryLoader();
-      loader.load(
-        "https://threejs.org/examples/models/json/suzanne_buffergeometry.json",
-        function (geometry) {
-          console.log("geometry loaded");
-          geometry.computeVertexNormals();
-          geometry.scale(0.5, 0.5, 0.5);
+    const mesh = new THREE.InstancedMesh(geometry, material, count);
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 
-          mesh = new THREE.InstancedMesh(geometry, material, count);
-          mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    scene.add(mesh);
 
-          scene.add(mesh);
+    //
+    const renderer = makeWebGPURenderer(context!);
 
-          //
-        },
-      );
+    //renderer.setPixelRatio(window.devicePixelRatio);
+    //renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setAnimationLoop(animate);
+    //document.body.appendChild(renderer.domElement);
 
-      //
-      renderer = makeWebGPURenderer(context);
-
-      //renderer.setPixelRatio(window.devicePixelRatio);
-      //renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setAnimationLoop(animate);
-      //document.body.appendChild(renderer.domElement);
+    function animate() {
+      render();
+      context!.present();
     }
 
-    async function animate() {
-      await render();
-      context.present();
-    }
-
-    async function render() {
+    function render() {
       if (mesh) {
         const time = Date.now() * 0.001;
 
@@ -100,12 +94,12 @@ export const InstancedMesh = () => {
         }
       }
 
-      await renderer.render(scene, camera);
+      renderer.render(scene, camera);
     }
     return () => {
       renderer.setAnimationLoop(null);
     };
-  });
+  }, [context, geometry]);
 
   return (
     <View style={{ flex: 1 }}>
