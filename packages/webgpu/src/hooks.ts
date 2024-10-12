@@ -8,7 +8,6 @@ export const useSurface = () => {
   const [surface, setSurface] = useState<NativeCanvas | null>(null);
   const ref = useCanvasEffect(() => {
     const sur = ref.current!.getNativeSurface();
-    console.log({ sur });
     setSurface(sur);
   });
   return { ref, surface };
