@@ -4,14 +4,6 @@ import type { RNCanvasContext, CanvasRef } from "./Canvas";
 
 type Unsubscribe = () => void;
 
-export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
-  if (adapter.info.architecture === "swiftshader") {
-    console.warn(
-      "GPUAdapter is not hardware accelerated. This is common on Android emulators. Rendering will be slow.",
-    );
-  }
-};
-
 export const useGPUContext = () => {
   const [context, setContext] = useState<RNCanvasContext | null>(null);
   const ref = useCanvasEffect(() => {
