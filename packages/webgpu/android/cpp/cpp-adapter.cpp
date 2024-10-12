@@ -50,8 +50,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto canvas = registry.getSurfaceMaybe(contextId);
   if (canvas.has_value()) {
-      ANativeWindow_release(
-              reinterpret_cast<ANativeWindow *>(canvas.value().nativeSurface));
-      registry.removeSurface(contextId);
+    ANativeWindow_release(
+        reinterpret_cast<ANativeWindow *>(canvas.value().nativeSurface));
+    registry.removeSurface(contextId);
   }
 }
