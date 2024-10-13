@@ -14,7 +14,8 @@
   auto gpu = manager->_gpu;
   auto surface = manager->_platformContext->makeSurface(
       gpu, nativeSurface, size.width, size.height);
-  registry.getSurfaceInfoOrCreate(contextId, gpu, size.width, size.height)->switchToOnscreen(nativeSurface, surface);
+  registry.getSurfaceInfoOrCreate(contextId, gpu, size.width, size.height)
+      ->switchToOnscreen(nativeSurface, surface);
 }
 
 + (void)updateSurface:(int)contextId size:(CGSize)size {

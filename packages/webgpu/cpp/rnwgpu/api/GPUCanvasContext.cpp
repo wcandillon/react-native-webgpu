@@ -34,7 +34,7 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   auto height = _canvas->getHeight();
   auto sizeHasChanged = prevWidth != width || prevHeight != height;
   if (sizeHasChanged) {
-    _surfaceInfo->resize(width, height);
+    _surfaceInfo->reconfigure(width, height);
   }
   auto texture = _surfaceInfo->getCurrentTexture();
   return std::make_shared<GPUTexture>(texture, "");
@@ -45,7 +45,6 @@ void GPUCanvasContext::present() {
   dawn::native::metal::WaitForCommandsToBeScheduled(
       _surfaceInfo->getConfig().device.Get());
 #endif
-  // TODO: handle resizing
   _canvas->setClientWidth(_surfaceInfo->getWidth());
   _canvas->setClientHeight(_surfaceInfo->getHeight());
   _surfaceInfo->present();
