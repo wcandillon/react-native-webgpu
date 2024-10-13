@@ -37,14 +37,15 @@ public:
     }
   }
 
-  void switchToOffscreen() {
+  void* switchToOffscreen() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    surface = nullptr;
     wgpu::TextureDescriptor textureDesc;
     config.usage = wgpu::TextureUsage::RenderAttachment |
                    wgpu::TextureUsage::CopySrc |
                    wgpu::TextureUsage::TextureBinding;
     texture = config.device.CreateTexture(&textureDesc);
+    surface = nullptr;
+    return nativeSurface;
   }
 
   void switchToOnscreen(void *newNativeSurface, wgpu::Surface newSurface) {
@@ -58,28 +59,28 @@ public:
       _configure();
       // We flush the offscreen texture to the onscreen one
       // TODO: there is a faster way to do this without validation?
-      wgpu::CommandEncoderDescriptor encoderDesc;
-      auto device = config.device;
-      wgpu::CommandEncoder encoder = device.CreateCommandEncoder(&encoderDesc);
+      // wgpu::CommandEncoderDescriptor encoderDesc;
+      // auto device = config.device;
+      // wgpu::CommandEncoder encoder = device.CreateCommandEncoder(&encoderDesc);
 
-      wgpu::ImageCopyTexture sourceTexture = {};
-      sourceTexture.texture = texture;
+      // wgpu::ImageCopyTexture sourceTexture = {};
+      // sourceTexture.texture = texture;
 
-      wgpu::ImageCopyTexture destinationTexture = {};
-      wgpu::SurfaceTexture surfaceTexture;
-      surface.GetCurrentTexture(&surfaceTexture);
-      destinationTexture.texture = surfaceTexture.texture;
+      // wgpu::ImageCopyTexture destinationTexture = {};
+      // wgpu::SurfaceTexture surfaceTexture;
+      // surface.GetCurrentTexture(&surfaceTexture);
+      // destinationTexture.texture = surfaceTexture.texture;
 
-      wgpu::Extent3D size = {sourceTexture.texture.GetWidth(),
-                             sourceTexture.texture.GetHeight(),
-                             sourceTexture.texture.GetDepthOrArrayLayers()};
+      // wgpu::Extent3D size = {sourceTexture.texture.GetWidth(),
+      //                        sourceTexture.texture.GetHeight(),
+      //                        sourceTexture.texture.GetDepthOrArrayLayers()};
 
-      encoder.CopyTextureToTexture(&sourceTexture, &destinationTexture, &size);
+      // encoder.CopyTextureToTexture(&sourceTexture, &destinationTexture, &size);
 
-      wgpu::CommandBuffer commands = encoder.Finish();
-      wgpu::Queue queue = device.GetQueue();
-      queue.Submit(1, &commands);
-      surface.Present();
+      // wgpu::CommandBuffer commands = encoder.Finish();
+      // wgpu::Queue queue = device.GetQueue();
+      // queue.Submit(1, &commands);
+      // surface.Present();
       texture = nullptr;
     }
   }
