@@ -53,10 +53,9 @@ public:
     surface = std::move(newSurface);
     // If we are comming from an offscreen context, we need to configure the new surface
     if (texture != nullptr) {
-      surface.Configure(&config);
-      // TODO: flush
+      _configure();
+      texture = nullptr;
     }
-    texture = nullptr;
   }
 
   void resize(int newWidth, int newHeight) {
@@ -109,7 +108,10 @@ private:
       surface.Configure(&config);
     } else {
       wgpu::TextureDescriptor textureDesc;
-      config.usage = wgpu::TextureUsage::RenderAttachment |
+      textureDesc.format = config.format;
+      textureDesc.size.width = config.width;
+      textureDesc.size.height = config.height;
+      textureDesc.usage = wgpu::TextureUsage::RenderAttachment |
                      wgpu::TextureUsage::CopySrc |
                      wgpu::TextureUsage::TextureBinding;
       texture = config.device.CreateTexture(&textureDesc);
