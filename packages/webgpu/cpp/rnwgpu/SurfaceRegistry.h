@@ -12,14 +12,14 @@ class SurfaceInfo {
 public:
   SurfaceInfo(wgpu::Instance gpu, int width, int height)
       : gpu(gpu), width(width), height(height) {}
-  
+
   void reconfigure(int newWidth, int newHeight) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     config.width = newWidth;
     config.height = newHeight;
     _configure();
   }
-  
+
   void configure(wgpu::SurfaceConfiguration &newConfig) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     config = newConfig;
@@ -51,7 +51,8 @@ public:
     std::unique_lock<std::shared_mutex> lock(_mutex);
     nativeSurface = newNativeSurface;
     surface = std::move(newSurface);
-    // If we are comming from an offscreen context, we need to configure the new surface
+    // If we are comming from an offscreen context, we need to configure the new
+    // surface
     if (texture != nullptr) {
       config.usage = config.usage | wgpu::TextureUsage::CopyDst;
       _configure();
@@ -137,8 +138,8 @@ private:
       textureDesc.size.width = config.width;
       textureDesc.size.height = config.height;
       textureDesc.usage = wgpu::TextureUsage::RenderAttachment |
-                     wgpu::TextureUsage::CopySrc |
-                     wgpu::TextureUsage::TextureBinding;
+                          wgpu::TextureUsage::CopySrc |
+                          wgpu::TextureUsage::TextureBinding;
       texture = config.device.CreateTexture(&textureDesc);
     }
   }

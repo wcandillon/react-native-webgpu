@@ -31,8 +31,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceChanged(
     JNIEnv *env, jobject thiz, jobject surface, jint contextId, jfloat width,
     jfloat height) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  registry.setSize(contextId, static_cast<int>(width),
-                   static_cast<int>(height));
+  registry.getSurfaceInfo(contextId)->resize(static_cast<int>(width),
+                                             static_cast<int>(height));
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
@@ -41,28 +41,30 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
   auto window = ANativeWindow_fromSurface(env, jSurface);
   // ANativeWindow_acquire(window);
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  registry.createSurface(contextId, window, static_cast<int>(width),
-                         static_cast<int>(height), manager->_platformContext);
+  auto gpu = manager->_gpu;
+  auto surface = manager->_platformContext->makeSurface(
+      gpu, window, static_cast<int>(width), static_cast<int>(height));
+  registry
+      .getSurfaceInfoOrCreate(contextId, gpu, static_cast<int>(width),
+                              static_cast<int>(height))
+      ->switchToOnscreen(window, surface);
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_webgpu_WebGPUView_switchToOffscreenSurface(JNIEnv *env, jobject thiz,
                                                     jint contextId) {
-  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  auto canvas = registry.getSurfaceMaybe(contextId);
-  if (canvas.has_value()) {
-    auto info = canvas.value();
-    ANativeWindow_release(
-        reinterpret_cast<ANativeWindow *>(info.nativeSurface));
-    info.switchToOffscreenSurface();
-  }
+  //  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  //  auto canvas = registry.getSurfaceMaybe(contextId);
+  //  if (canvas.has_value()) {
+  //    auto info = canvas.value();
+  //    ANativeWindow_release(
+  //        reinterpret_cast<ANativeWindow *>(info.nativeSurface));
+  //    info.switchToOffscreenSurface();
+  //  }
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
     JNIEnv *env, jobject thiz, jint contextId) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  auto canvas = registry.getSurfaceMaybe(contextId);
-  if (canvas.has_value()) {
-    registry.removeSurface(contextId);
-  }
+  registry.removeSurfaceInfo(contextId);
 }
