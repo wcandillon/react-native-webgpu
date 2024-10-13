@@ -8,147 +8,135 @@
 
 namespace rnwgpu {
 
-struct ISize {
-  int width;
-  int height;
-};
+class SurfaceInfo {
+public:
+  SurfaceInfo(wgpu::Instance gpu, int width, int height)
+      : gpu(gpu), width(width), height(height) {}
 
-struct SurfaceInfo {
-  void *nativeSurface = nullptr;
-  wgpu::Surface surface;
-  int width;
-  int height;
-  wgpu::Texture texture;
-  wgpu::Instance gpu;
-  wgpu::SurfaceConfiguration config;
+  void configure(wgpu::SurfaceConfiguration &newConfig) {
+    config = newConfig;
+    config.width = width;
+    config.height = height;
+    if (surface) {
+      surface.Configure(&config);
+    } else {
+      wgpu::TextureDescriptor textureDesc;
+      config.usage = wgpu::TextureUsage::RenderAttachment |
+                     wgpu::TextureUsage::CopySrc |
+                     wgpu::TextureUsage::TextureBinding;
+      texture = config.device.CreateTexture(&textureDesc);
+    }
+  }
 
-  void flushTextureToSurface() {
-    // 1.a flush texture to the onscreen surface
-    if (texture) {
-      wgpu::CommandEncoderDescriptor encoderDesc;
-      auto device = config.device;
-      wgpu::CommandEncoder encoder = device.CreateCommandEncoder(&encoderDesc);
-
-      wgpu::ImageCopyTexture sourceTexture = {};
-      sourceTexture.texture = texture;
-
-      wgpu::ImageCopyTexture destinationTexture = {};
-      wgpu::SurfaceTexture surfaceTexture;
-      surface.GetCurrentTexture(&surfaceTexture);
-      destinationTexture.texture = surfaceTexture.texture;
-
-      wgpu::Extent3D size = {sourceTexture.texture.GetWidth(),
-                             sourceTexture.texture.GetHeight(),
-                             sourceTexture.texture.GetDepthOrArrayLayers()};
-
-      encoder.CopyTextureToTexture(&sourceTexture, &destinationTexture, &size);
-
-      wgpu::CommandBuffer commands = encoder.Finish();
-      wgpu::Queue queue = device.GetQueue();
-      queue.Submit(1, &commands);
+  void unconfigure() {
+    if (surface) {
+      surface.Unconfigure();
+    } else {
       texture = nullptr;
     }
   }
+
+  void switchToOffscreen() {
+    surface = nullptr;
+    wgpu::TextureDescriptor textureDesc;
+    config.usage = wgpu::TextureUsage::RenderAttachment |
+                   wgpu::TextureUsage::CopySrc |
+                   wgpu::TextureUsage::TextureBinding;
+    texture = config.device.CreateTexture(&textureDesc);
+  }
+
+  void switchToOnscreen(void *newNativeSurface, wgpu::Surface newSurface) {
+    nativeSurface = newNativeSurface;
+    surface = std::move(newSurface);
+    // If we had an offscreen texture we can configure it and flush it
+    if (texture != nullptr) {
+      surface.Configure(&config);
+      // TODO: flush
+    }
+    texture = nullptr;
+  }
+
+  void resize(int newWidth, int newHeight) {
+    width = newWidth;
+    height = newHeight;
+    config.width = width;
+    config.height = height;
+    configure(config);
+  }
+
+  void present() {
+    if (surface) {
+      surface.Present();
+    }
+  }
+
+  wgpu::Texture getCurrentTexture() {
+    if (surface) {
+      wgpu::SurfaceTexture surfaceTexture;
+      surface.GetCurrentTexture(&surfaceTexture);
+      return surfaceTexture.texture;
+    } else {
+      return texture;
+    }
+  }
+
+  void *getNativeSurface() { return nativeSurface; }
+
+  wgpu::SurfaceConfiguration &getConfig() { return config; }
+
+  int getWidth() const { return width; }
+
+  int getHeight() const { return height; }
+
+private:
+  void *nativeSurface = nullptr;
+  wgpu::Surface surface = nullptr;
+  wgpu::Texture texture = nullptr;
+  wgpu::Instance gpu;
+  wgpu::SurfaceConfiguration config;
+  int width;
+  int height;
 };
 
 class SurfaceRegistry {
-private:
-  std::unordered_map<int, SurfaceInfo> _registry;
-  mutable std::shared_mutex _mutex;
-
-  // Private constructor to prevent instantiation
-  SurfaceRegistry() {}
-
-  void updateSurface(const int contextId, SurfaceInfo &info) {
-    auto it = _registry.find(contextId);
-    if (it != _registry.end()) {
-      it->second = info;
-    }
-  }
-
-  std::optional<SurfaceInfo> getSurface(const int contextId) const {
-    auto it = _registry.find(contextId);
-    if (it != _registry.end()) {
-      return it->second;
-    }
-    return std::nullopt;
-  }
-
 public:
-  // Delete copy constructor and assignment operator
-  SurfaceRegistry(const SurfaceRegistry &) = delete;
-  SurfaceRegistry &operator=(const SurfaceRegistry &) = delete;
-
-  // Static method to get the singleton instance
   static SurfaceRegistry &getInstance() {
     static SurfaceRegistry instance;
     return instance;
   }
 
-  void removeSurface(const int contextId) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    _registry.erase(contextId);
+  SurfaceRegistry(const SurfaceRegistry &) = delete;
+  SurfaceRegistry &operator=(const SurfaceRegistry &) = delete;
+
+  std::shared_ptr<SurfaceInfo> getSurfaceInfo(int id) {
+    return _registry[id];
   }
 
-  std::optional<SurfaceInfo> getSurfaceMaybe(const int contextId) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    return getSurface(contextId);
+  void removeSurfaceInfo(int id) {
+    _registry.erase(id);
   }
 
-  void setSize(const int contextId, int width, int height) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    auto it = _registry.find(contextId);
+  // Thread-safe method to add a new SurfaceInfo
+  std::shared_ptr<SurfaceInfo> addSurfaceInfo(int id, wgpu::Instance gpu,
+                                              int width, int height) {
+    std::shared_ptr<SurfaceInfo> info =
+        std::make_shared<SurfaceInfo>(gpu, width, height);
+    _registry.emplace(id, info);
+    return _registry[id];
+  }
+  
+  std::shared_ptr<SurfaceInfo> getSurfaceInfoOrCreate(int id, wgpu::Instance gpu,
+                                                      int width, int height) {
+    auto it = _registry.find(id);
     if (it != _registry.end()) {
-      it->second.width = width;
-      it->second.height = height;
+      return it->second;
     }
+    return addSurfaceInfo(id, gpu, width, height);
   }
 
-  void
-  configureOffscreenSurface(const int contextId, wgpu::Instance gpu,
-                            wgpu::Texture texture,
-                            wgpu::SurfaceConfiguration surfaceConfiguration) {
-    SurfaceInfo info;
-    info.width = surfaceConfiguration.width;
-    info.height = surfaceConfiguration.height;
-    info.texture = texture;
-    info.gpu = gpu;
-    info.config = surfaceConfiguration;
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    _registry[contextId] = info;
-  }
-
-  void createSurface(const int contextId, void *nativeSurface, int width,
-                     int height,
-                     std::shared_ptr<PlatformContext> platformContext) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    auto infoVal = getSurface(contextId);
-    // 1. The scene has already be drawn offscreen
-    if (infoVal.has_value()) {
-      auto info = infoVal.value();
-      auto surface =
-          platformContext->makeSurface(info.gpu, nativeSurface, width, height);
-      info.config.usage = info.config.usage | wgpu::TextureUsage::CopyDst;
-      surface.Configure(&info.config);
-      info.nativeSurface = nativeSurface;
-      info.surface = surface;
-      info.width = width;
-      info.height = height;
-      info.flushTextureToSurface();
-      surface.Present();
-      updateSurface(contextId, info);
-    } else {
-      // 2. The scene has not been drawn offscreen yet, we will draw onscreen
-      // directly
-      rnwgpu::SurfaceInfo info;
-      info.nativeSurface = nativeSurface;
-      info.surface =
-          platformContext->makeSurface(info.gpu, nativeSurface, width, height);
-      info.width = width;
-      info.height = height;
-      _registry[contextId] = info;
-    }
-  }
+private:
+  SurfaceRegistry() = default;
+  std::unordered_map<int, std::shared_ptr<SurfaceInfo>> _registry;
 };
 
 } // namespace rnwgpu

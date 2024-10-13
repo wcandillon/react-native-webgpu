@@ -24,6 +24,7 @@ RNWebGPUManager::RNWebGPUManager(
 
   auto gpu = std::make_shared<GPU>();
   auto rnWebGPU = std::make_shared<RNWebGPU>(gpu, _platformContext);
+  _gpu = gpu->get();
   _jsRuntime->global().setProperty(
       *_jsRuntime, "RNWebGPU",
       jsi::Object::createFromHostObject(*_jsRuntime, rnWebGPU));

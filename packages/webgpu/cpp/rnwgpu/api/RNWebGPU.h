@@ -53,14 +53,8 @@ public:
   }
 
   std::shared_ptr<Canvas> getNativeSurface(int contextId) {
-    auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-    auto infoVal = registry.getSurfaceMaybe(contextId);
-    if (infoVal.has_value()) {
-      auto info = infoVal.value();
-      return std::make_shared<Canvas>(info.nativeSurface, info.width,
-                                      info.height);
-    }
-    throw std::runtime_error("Native surface not found");
+    // TODO: implement
+    return std::make_shared<Canvas>(nullptr, 0, 0);
   }
 
   void loadHybridMethods() override {
