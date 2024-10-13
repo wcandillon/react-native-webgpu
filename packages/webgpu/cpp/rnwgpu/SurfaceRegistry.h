@@ -53,7 +53,32 @@ public:
     surface = std::move(newSurface);
     // If we are comming from an offscreen context, we need to configure the new surface
     if (texture != nullptr) {
+      config.usage = config.usage | wgpu::TextureUsage::CopyDst;
       _configure();
+      // We flush the offscreen texture to the onscreen one
+      // TODO: there is a faster way to do this without validation?
+      wgpu::CommandEncoderDescriptor encoderDesc;
+      auto device = config.device;
+      wgpu::CommandEncoder encoder = device.CreateCommandEncoder(&encoderDesc);
+
+      wgpu::ImageCopyTexture sourceTexture = {};
+      sourceTexture.texture = texture;
+
+      wgpu::ImageCopyTexture destinationTexture = {};
+      wgpu::SurfaceTexture surfaceTexture;
+      surface.GetCurrentTexture(&surfaceTexture);
+      destinationTexture.texture = surfaceTexture.texture;
+
+      wgpu::Extent3D size = {sourceTexture.texture.GetWidth(),
+                             sourceTexture.texture.GetHeight(),
+                             sourceTexture.texture.GetDepthOrArrayLayers()};
+
+      encoder.CopyTextureToTexture(&sourceTexture, &destinationTexture, &size);
+
+      wgpu::CommandBuffer commands = encoder.Finish();
+      wgpu::Queue queue = device.GetQueue();
+      queue.Submit(1, &commands);
+      surface.Present();
       texture = nullptr;
     }
   }
