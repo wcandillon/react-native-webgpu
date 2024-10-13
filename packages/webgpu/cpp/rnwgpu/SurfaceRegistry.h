@@ -8,6 +8,17 @@
 
 namespace rnwgpu {
 
+struct NativeInfo {
+  void *nativeSurface;
+  int width;
+  int height;
+};
+
+struct Size {
+  int width;
+  int height;
+};
+
 class SurfaceInfo {
 public:
   SurfaceInfo(wgpu::Instance gpu, int width, int height)
@@ -112,24 +123,19 @@ public:
     }
   }
 
-  void *getNativeSurface() {
+  NativeInfo getNativeInfo() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
-    return nativeSurface;
+    return {.nativeSurface = nativeSurface, .width = width, .height = height};
   }
 
-  wgpu::SurfaceConfiguration &getConfig() {
+  Size getSize() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
-    return config;
+    return {.width = width, .height = height};
   }
 
-  int getWidth() const {
+  wgpu::Device getDevice() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
-    return width;
-  }
-
-  int getHeight() const {
-    std::shared_lock<std::shared_mutex> lock(_mutex);
-    return height;
+    return config.device;
   }
 
 private:

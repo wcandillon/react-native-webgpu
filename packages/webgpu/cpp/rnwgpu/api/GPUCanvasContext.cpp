@@ -28,11 +28,10 @@ void GPUCanvasContext::configure(
 void GPUCanvasContext::unconfigure() {}
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
-  auto prevWidth = _surfaceInfo->getConfig().width;
-  auto prevHeight = _surfaceInfo->getConfig().height;
+  auto prevSize = _surfaceInfo->getSize();
   auto width = _canvas->getWidth();
   auto height = _canvas->getHeight();
-  auto sizeHasChanged = prevWidth != width || prevHeight != height;
+  auto sizeHasChanged = prevSize.width != width || prevSize.height != height;
   if (sizeHasChanged) {
     _surfaceInfo->reconfigure(width, height);
   }
@@ -43,10 +42,11 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
 void GPUCanvasContext::present() {
 #ifdef __APPLE__
   dawn::native::metal::WaitForCommandsToBeScheduled(
-      _surfaceInfo->getConfig().device.Get());
+      _surfaceInfo->getDevice().Get());
 #endif
-  _canvas->setClientWidth(_surfaceInfo->getWidth());
-  _canvas->setClientHeight(_surfaceInfo->getHeight());
+  auto size = _surfaceInfo->getSize();
+  _canvas->setClientWidth(size.width);
+  _canvas->setClientHeight(size.height);
   _surfaceInfo->present();
 }
 
