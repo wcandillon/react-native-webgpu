@@ -3,21 +3,21 @@ package com.webgpu;
 import androidx.annotation.NonNull;
 
 import android.content.Context;
+import android.graphics.SurfaceTexture;
 import android.view.Surface;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
+import android.view.TextureView;
 
 import com.facebook.proguard.annotations.DoNotStrip;
 import com.facebook.react.uimanager.ThemedReactContext;
 
-public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
+public class WebGPUView extends TextureView implements TextureView.SurfaceTextureListener {
 
   private Integer mContextId;
   private WebGPUModule mModule;
 
   public WebGPUView(Context context) {
     super(context);
-    getHolder().addCallback(this);
+    setSurfaceTextureListener(this);
   }
 
   public void setContextId(Integer contextId) {
@@ -36,24 +36,29 @@ public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
   }
 
   @Override
-  public void surfaceCreated(@NonNull SurfaceHolder holder) {
-    float density = getResources().getDisplayMetrics().density;
-    float width = getWidth() / density;
-    float height = getHeight() / density;
-    onSurfaceCreate(holder.getSurface(), mContextId, width, height);
-  }
-
-  @Override
-  public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
+  public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surfaceTexture, int width, int height) {
     float density = getResources().getDisplayMetrics().density;
     float scaledWidth = width / density;
     float scaledHeight = height / density;
-    onSurfaceChanged(holder.getSurface(), mContextId, scaledWidth, scaledHeight);
+    onSurfaceCreate(new Surface(surfaceTexture), mContextId, scaledWidth, scaledHeight);
   }
 
   @Override
-  public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
+  public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surfaceTexture, int width, int height) {
+    float density = getResources().getDisplayMetrics().density;
+    float scaledWidth = width / density;
+    float scaledHeight = height / density;
+    onSurfaceChanged(new Surface(surfaceTexture), mContextId, scaledWidth, scaledHeight);
+  }
+
+  @Override
+  public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surfaceTexture) {
     onSurfaceDestroy(mContextId);
+    return true;
+  }
+
+  @Override
+  public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surfaceTexture) {
   }
 
   @DoNotStrip
