@@ -1,7 +1,6 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { enableScreens } from "react-native-screens";
 
 import type { Routes } from "./Route";
 import { Home } from "./Home";
@@ -34,8 +33,6 @@ import "fast-text-encoding";
 window.parent = window;
 
 const Stack = createNativeStackNavigator<Routes>();
-
-enableScreens(false);
 
 function App() {
   const assets = useAssets();
