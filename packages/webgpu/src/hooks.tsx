@@ -79,7 +79,7 @@ export const useDevice = (
       }
     })();
   }, [adapterOptions, deviceDescriptor, state]);
-  return { ...state };
+  return { adapter: state?.adapter ?? null, device: state?.device ?? null };
 };
 
 export const useGPUContext = () => {
