@@ -14,7 +14,7 @@ function roundUp(n: number, k: number): number {
 }
 
 export function ABuffer() {
-  const { canvasRef } = useWebGPU(
+  const ref = useWebGPU(
     ({ context: ctx, device, presentationFormat, canvas }) => {
       ctx.configure({
         device,
@@ -639,7 +639,7 @@ export function ABuffer() {
 
   return (
     <View style={style.container}>
-      <Canvas ref={canvasRef} style={style.webgpu} />
+      <Canvas ref={ref} style={style.webgpu} />
     </View>
   );
 }

@@ -87,6 +87,5 @@ export const useWebGPU = (scene: Scene) => {
       }
     };
   }, [adapter, context, device, scene]);
-  // TODO: rename
-  return { canvasRef: ref };
+  return ref;
 };

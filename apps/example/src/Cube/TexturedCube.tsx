@@ -17,7 +17,7 @@ import { fetchAsset } from "../components/useAssets";
 import { basicVertWGSL, sampleTextureMixColorWGSL } from "./Shaders";
 
 export const TexturedCube = () => {
-  const { canvasRef } = useWebGPU(
+  const ref = useWebGPU(
     async ({ device, presentationFormat, canvas, context }) => {
       context.configure({
         device,
@@ -220,7 +220,7 @@ export const TexturedCube = () => {
 
   return (
     <View style={style.container}>
-      <Canvas ref={canvasRef} style={style.webgpu} />
+      <Canvas ref={ref} style={style.webgpu} />
     </View>
   );
 };
