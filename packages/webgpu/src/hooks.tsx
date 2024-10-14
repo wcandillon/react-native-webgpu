@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 import type { RNCanvasContext, CanvasRef, NativeCanvas } from "./Canvas";
 
@@ -12,6 +13,33 @@ export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
   }
 };
 
+interface DeviceContext {
+  device: GPUDevice | null;
+  adapter: GPUAdapter | null;
+}
+
+const DeviceContext = createContext<DeviceContext | null>(null);
+
+interface DeviceProviderProps {
+  children?: ReactNode | ReactNode[];
+  adapterOptions?: GPURequestAdapterOptions;
+  deviceDescriptor?: GPUDeviceDescriptor;
+}
+
+export const GPUDeviceProvider = ({
+  children,
+  adapterOptions,
+  deviceDescriptor,
+}: DeviceProviderProps) => {
+  const state = useDevice(adapterOptions, deviceDescriptor);
+  if (!state.device) {
+    return null;
+  }
+  return (
+    <DeviceContext.Provider value={state}>{children}</DeviceContext.Provider>
+  );
+};
+
 export const useSurface = () => {
   const [surface, setSurface] = useState<NativeCanvas | null>(null);
   const ref = useCanvasEffect(() => {
@@ -21,34 +49,37 @@ export const useSurface = () => {
   return { ref, surface };
 };
 
+export const useMainDevice = () => {
+  const ctx = useContext(DeviceContext);
+  if (!ctx) {
+    throw new Error("No DeviceContext found.");
+  }
+  return ctx;
+};
+
 export const useDevice = (
   adapterOptions?: GPURequestAdapterOptions,
   deviceDescriptor?: GPUDeviceDescriptor,
 ) => {
-  const [adapter, setAdapter] = useState<GPUAdapter | null>(null);
-  const [device, setDevice] = useState<GPUDevice | null>(null);
+  const [state, setState] = useState<DeviceContext | null>(null);
   useEffect(() => {
     (async () => {
-      if (!adapter) {
-        const adp = await navigator.gpu.requestAdapter(adapterOptions);
-        if (!adp) {
+      if (!state) {
+        const adapter = await navigator.gpu.requestAdapter(adapterOptions);
+        if (!adapter) {
           throw new Error("No appropriate GPUAdapter found.");
         }
-        setAdapter(adp);
-        warnIfNotHardwareAccelerated(adp);
-        return;
-      }
-      if (!device) {
-        const dev = await adapter.requestDevice(deviceDescriptor);
-        if (!dev) {
+        warnIfNotHardwareAccelerated(adapter);
+        const device = await adapter.requestDevice(deviceDescriptor);
+        if (!device) {
           throw new Error("No appropriate GPUDevice found.");
         }
-        setDevice(dev);
+        setState({ adapter, device });
         return;
       }
     })();
-  }, [adapter, adapterOptions, device, deviceDescriptor]);
-  return { adapter, device };
+  }, [adapterOptions, deviceDescriptor, state]);
+  return { ...state };
 };
 
 export const useGPUContext = () => {
