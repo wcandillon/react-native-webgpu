@@ -1,34 +1,35 @@
 /* eslint-disable no-eval */
 
-import React, { useEffect, useState } from "react";
-import { Dimensions, Text, View, Image } from "react-native";
-import { GPUOffscreenCanvas, useDevice } from "react-native-wgpu";
+import React, { useEffect } from "react";
+import { Text, View, Image } from "react-native";
+import { Canvas, useDevice, useGPUContext } from "react-native-wgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
 import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
 import type { AssetProps } from "./components/useAssets";
-import { Texture } from "./components/Texture";
 
 export const CI = process.env.CI === "true";
 
-const { width } = Dimensions.get("window");
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
 export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
-  const [texture, setTexture] = useState<GPUTexture | null>(null);
   const { adapter, device } = useDevice();
+  const { ref, context } = useGPUContext();
   const [client, hostname] = useClient();
   useEffect(() => {
-    if (client !== null && adapter !== null && device !== null) {
+    if (
+      client !== null &&
+      adapter !== null &&
+      device !== null &&
+      context !== null
+    ) {
       client.onmessage = (e) => {
         const tree = JSON.parse(e.data);
         if (tree.code) {
-          const canvas = new GPUOffscreenCanvas(1024, 1024);
-          const ctx = canvas.getContext("webgpu")!;
-          ctx.configure({
-            device: device!,
+          context.configure({
+            device,
             format: presentationFormat,
             alphaMode: "premultiplied",
           });
@@ -55,19 +56,17 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                 triangleVertWGSL,
                 redFragWGSL,
               },
-              ctx,
-              canvas: ctx.canvas,
+              ctx: context,
+              canvas: context.canvas,
               mat4,
               vec3,
               mat3,
               ...tree.ctx,
             },
           });
+          context.present();
           if (result instanceof Promise) {
             result.then((r) => {
-              if (r.data && r.width && r.height) {
-                setTexture(ctx.getCurrentTexture());
-              }
               client.send(JSON.stringify(r));
             });
           } else {
@@ -80,10 +79,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
       };
     }
     return;
-  }, [adapter, client, device, di3D, moon, saturn]);
-  if (!device) {
-    return null;
-  }
+  }, [adapter, client, context, device, di3D, moon, saturn]);
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
       <Text style={{ color: "black" }}>
@@ -91,11 +87,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
           ? `⚪️ Connecting to ${hostname}. Use yarn e2e to run tests.`
           : "🟢 Waiting for the server to send tests"}
       </Text>
-      <Texture
-        texture={texture}
-        device={device}
-        style={{ width: width, height: width }}
-      />
+      <Canvas ref={ref} style={{ width: 1024, height: 1024 }} />
     </View>
   );
 };

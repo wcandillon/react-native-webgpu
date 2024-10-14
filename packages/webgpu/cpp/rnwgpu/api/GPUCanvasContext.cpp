@@ -41,8 +41,7 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
 
 void GPUCanvasContext::present() {
 #ifdef __APPLE__
-  dawn::native::metal::WaitForCommandsToBeScheduled(
-      _surfaceInfo->getDevice().Get());
+  dawn::native::metal::WaitForCommandsToBeScheduled(_surfaceInfo->getConfig().device.Get());
 #endif
   auto size = _surfaceInfo->getSize();
   _canvas->setClientWidth(size.width);

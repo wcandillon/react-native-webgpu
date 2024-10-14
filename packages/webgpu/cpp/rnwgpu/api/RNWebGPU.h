@@ -56,10 +56,10 @@ public:
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     auto info = registry.getSurfaceInfo(contextId);
     if (info == nullptr) {
-      return std::make_shared<Canvas>(nullptr, 0, 0);
+      return std::make_shared<Canvas>(0, nullptr, 0, 0);
     }
     auto nativeInfo = info->getNativeInfo();
-    return std::make_shared<Canvas>(nativeInfo.nativeSurface, nativeInfo.width,
+    return std::make_shared<Canvas>(contextId, nativeInfo.nativeSurface, nativeInfo.width,
                                     nativeInfo.height);
   }
 

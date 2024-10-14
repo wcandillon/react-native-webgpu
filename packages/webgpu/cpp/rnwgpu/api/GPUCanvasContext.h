@@ -42,7 +42,7 @@ public:
   GPUCanvasContext(std::shared_ptr<GPU> gpu, int contextId, int width,
                    int height)
       : HybridObject("GPUCanvasContext"), _gpu(std::move(gpu)) {
-    _canvas = std::make_shared<Canvas>(nullptr, width, height);
+    _canvas = std::make_shared<Canvas>(contextId, nullptr, width, height);
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     _surfaceInfo =
         registry.getSurfaceInfoOrCreate(contextId, _gpu->get(), width, height);

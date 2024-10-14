@@ -138,11 +138,6 @@ public:
     return config;
   }
 
-  wgpu::Device getDevice() {
-    std::shared_lock<std::shared_mutex> lock(_mutex);
-    return config.device;
-  }
-
 private:
   void _configure() {
     if (surface) {
