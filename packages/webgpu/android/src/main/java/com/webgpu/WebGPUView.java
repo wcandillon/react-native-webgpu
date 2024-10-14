@@ -52,8 +52,14 @@ public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
   }
 
   @Override
-  public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
+  protected void onDetachedFromWindow() {
+    super.onDetachedFromWindow();
     onSurfaceDestroy(mContextId);
+  }
+
+  @Override
+  public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
+    switchToOffscreenSurface(mContextId);
   }
 
   @DoNotStrip
@@ -75,4 +81,7 @@ public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
 
   @DoNotStrip
   private native void onSurfaceDestroy(int contextId);
+
+  @DoNotStrip
+  private native void switchToOffscreenSurface(int contextId);
 }

@@ -21,4 +21,5 @@ export type Routes = {
   Resize: undefined;
   Tests: undefined;
   GradientTiles: undefined;
+  CanvasAPI: undefined;
 };

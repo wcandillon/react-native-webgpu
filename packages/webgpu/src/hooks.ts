@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { RNCanvasContext, CanvasRef } from "./Canvas";
+import type { RNCanvasContext, CanvasRef, NativeCanvas } from "./Canvas";
 
 type Unsubscribe = () => void;
 
-export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
-  if (adapter.info.architecture === "swiftshader") {
-    console.warn(
-      "GPUAdapter is not hardware accelerated. This is common on Android emulators. Rendering will be slow.",
-    );
-  }
+export const useSurface = () => {
+  const [surface, setSurface] = useState<NativeCanvas | null>(null);
+  const ref = useCanvasEffect(() => {
+    const sur = ref.current!.getNativeSurface();
+    setSurface(sur);
+  });
+  return { ref, surface };
 };
 
 export const useGPUContext = () => {
