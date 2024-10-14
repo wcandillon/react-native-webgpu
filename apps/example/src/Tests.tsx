@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Dimensions, Text, View, Image } from "react-native";
-import { GPUOffscreenCanvas } from "react-native-wgpu";
+import { GPUOffscreenCanvas, useDevice } from "react-native-wgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
 import { useClient } from "./useClient";
@@ -16,26 +16,9 @@ export const CI = process.env.CI === "true";
 const { width } = Dimensions.get("window");
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
-const useWebGPU = () => {
-  const [adapter, setAdapter] = useState<GPUAdapter | null>(null);
-  const [device, setDevice] = useState<GPUDevice | null>(null);
-  useEffect(() => {
-    (async () => {
-      const a = await navigator.gpu.requestAdapter();
-      if (!a) {
-        throw new Error("No adapter");
-      }
-      const d = await a.requestDevice();
-      setAdapter(a);
-      setDevice(d);
-    })();
-  }, []);
-  return { adapter, device };
-};
-
 export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   const [texture, setTexture] = useState<GPUTexture | null>(null);
-  const { adapter, device } = useWebGPU();
+  const { adapter, device } = useDevice();
   const [client, hostname] = useClient();
   useEffect(() => {
     if (client !== null && adapter !== null && device !== null) {
@@ -45,7 +28,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
           const canvas = new GPUOffscreenCanvas(1024, 1024);
           const ctx = canvas.getContext("webgpu")!;
           ctx.configure({
-            device,
+            device: device!,
             format: presentationFormat,
             alphaMode: "premultiplied",
           });
@@ -98,6 +81,9 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
     }
     return;
   }, [adapter, client, device, di3D, moon, saturn]);
+  if (!device) {
+    return null;
+  }
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
       <Text style={{ color: "black" }}>

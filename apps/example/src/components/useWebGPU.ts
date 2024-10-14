@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { PixelRatio } from "react-native";
-import { useDevice, useGPUContext, type NativeCanvas } from "react-native-wgpu";
+import { useGPUContext, useDevice, type NativeCanvas } from "react-native-wgpu";
 
 interface SceneProps {
   context: GPUCanvasContext;
