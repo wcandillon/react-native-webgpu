@@ -110,7 +110,7 @@ export function Cube() {
         colorAttachments: [
           {
             view: undefined, // Assigned later
-            clearValue: [0.5, 0.5, 0.5, 1.0],
+            clearValue: [0.3, 0.6, 0.9, 1.0],
             loadOp: "clear",
             storeOp: "store",
           },
