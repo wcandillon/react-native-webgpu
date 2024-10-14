@@ -28,7 +28,7 @@ void GPUCanvasContext::configure(
 void GPUCanvasContext::unconfigure() {}
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
-  auto prevSize = _surfaceInfo->getSize();
+  auto prevSize = _surfaceInfo->getConfig();
   auto width = _canvas->getWidth();
   auto height = _canvas->getHeight();
   auto sizeHasChanged = prevSize.width != width || prevSize.height != height;

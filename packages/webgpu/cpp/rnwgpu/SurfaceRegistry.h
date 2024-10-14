@@ -133,6 +133,11 @@ public:
     return {.width = width, .height = height};
   }
 
+  wgpu::SurfaceConfiguration getConfig() {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    return config;
+  }
+
   wgpu::Device getDevice() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
     return config.device;
