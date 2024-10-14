@@ -7,14 +7,6 @@ export * from "./WebGPUViewNativeComponent";
 export * from "./hooks";
 export { default as WebGPUModule } from "./NativeWebGPUModule";
 
-export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
-  if (adapter.info.architecture === "swiftshader") {
-    console.warn(
-      "GPUAdapter is not hardware accelerated. This is common on Android emulators. Rendering will be slow.",
-    );
-  }
-};
-
 const GPU: any = {};
 GPU[Symbol.hasInstance] = function (instance: object) {
   return "__brand" in instance && instance.__brand === "GPU";

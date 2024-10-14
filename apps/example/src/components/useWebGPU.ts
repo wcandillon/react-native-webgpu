@@ -1,10 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { PixelRatio } from "react-native";
-import {
-  useGPUContext,
-  warnIfNotHardwareAccelerated,
-  type NativeCanvas,
-} from "react-native-wgpu";
+import { useDevice, useGPUContext, type NativeCanvas } from "react-native-wgpu";
 
 interface SceneProps {
   context: GPUCanvasContext;
@@ -18,30 +14,12 @@ type RenderScene = (timestamp: number) => void;
 type Scene = (props: SceneProps) => RenderScene | void | Promise<RenderScene>;
 
 export const useWebGPU = (scene: Scene) => {
-  const [adapter, setAdapter] = useState<GPUAdapter | null>(null);
-  const [device, setDevice] = useState<GPUDevice | null>(null);
+  const { device } = useDevice();
   const { ref, context } = useGPUContext();
   const animationFrameId = useRef<number | null>(null);
   useEffect(() => {
     (async () => {
-      if (!adapter) {
-        const adp = await navigator.gpu.requestAdapter();
-        if (!adp) {
-          throw new Error("No appropriate GPUAdapter found.");
-        }
-        setAdapter(adp);
-        warnIfNotHardwareAccelerated(adp);
-        return;
-      }
-      if (!device) {
-        const dev = await adapter.requestDevice();
-        if (!dev) {
-          throw new Error("No appropriate GPUDevice found.");
-        }
-        setDevice(dev);
-        return;
-      }
-      if (!context) {
+      if (!context || !device) {
         return;
       }
 
@@ -86,6 +64,6 @@ export const useWebGPU = (scene: Scene) => {
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [adapter, context, device, scene]);
+  }, [context, device, scene]);
   return ref;
 };
