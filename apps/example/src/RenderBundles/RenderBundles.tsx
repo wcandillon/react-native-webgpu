@@ -11,7 +11,7 @@ import { createSphereMesh, SphereLayout } from "../components/meshes/sphere";
 import { meshWGSL } from "../Cube/Shaders";
 
 export const RenderBundles = () => {
-  const { canvasRef } = useWebGPU(
+  const ref = useWebGPU(
     async ({ device, presentationFormat, canvas, context }) => {
       const settings = {
         asteroidCount: 4000,
@@ -383,7 +383,7 @@ export const RenderBundles = () => {
   );
   return (
     <View style={style.container}>
-      <Canvas ref={canvasRef} style={style.webgpu} />
+      <Canvas ref={ref} style={style.webgpu} />
     </View>
   );
 };

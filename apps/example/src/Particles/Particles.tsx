@@ -21,7 +21,7 @@ const particleInstanceByteSize =
   0;
 
 export function Particules() {
-  const { canvasRef } = useWebGPU(async ({ context, device, canvas }) => {
+  const ref = useWebGPU(async ({ context, device, canvas }) => {
     const presentationFormat = "rgba16float";
 
     function configureContext() {
@@ -452,7 +452,7 @@ export function Particules() {
 
   return (
     <View style={style.container}>
-      <Canvas ref={canvasRef} style={style.webgpu} />
+      <Canvas ref={ref} style={style.webgpu} />
     </View>
   );
 }
