@@ -32,6 +32,7 @@ private:
   std::shared_ptr<facebook::react::CallInvoker> _jsCallInvoker;
 
 public:
+  wgpu::Instance _gpu;
   std::shared_ptr<PlatformContext> _platformContext;
 };
 

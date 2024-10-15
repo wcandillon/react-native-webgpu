@@ -12,6 +12,8 @@
 }
 
 // Paper only method
+// TODO: this method is wrong, it appears to call configureSurface instead of
+// updateSurface sometimes
 - (void)reactSetFrame:(CGRect)frame {
   [super reactSetFrame:frame];
   if (!_isConfigured) {

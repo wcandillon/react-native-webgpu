@@ -15,7 +15,6 @@
 #include "GPU.h"
 #include "GPUCanvasConfiguration.h"
 #include "GPUTexture.h"
-#include "OffscreenSurface.h"
 #include "SurfaceRegistry.h"
 
 #ifdef __APPLE__
@@ -40,13 +39,13 @@ namespace m = margelo;
 
 class GPUCanvasContext : public m::HybridObject {
 public:
-  // TODO: platformContext no necessary here
   GPUCanvasContext(std::shared_ptr<GPU> gpu, int contextId, int width,
                    int height)
-      : HybridObject("GPUCanvasContext"), _contextId(contextId),
-        _gpu(std::move(gpu)) {
+      : HybridObject("GPUCanvasContext"), _gpu(std::move(gpu)) {
     _canvas = std::make_shared<Canvas>(nullptr, width, height);
-    _offscreenSurface = std::make_shared<OffscreenSurface>(_canvas);
+    auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+    _surfaceInfo =
+        registry.getSurfaceInfoOrCreate(contextId, _gpu->get(), width, height);
   }
 
 public:
@@ -64,22 +63,17 @@ public:
     registerHybridMethod("present", &GPUCanvasContext::present, this);
   }
 
-  inline const wgpu::Surface get() { return _instance; }
+  // TODO: is this ok?
+  inline const wgpu::Surface get() { return nullptr; }
   void configure(std::shared_ptr<GPUCanvasConfiguration> configuration);
   void unconfigure();
   std::shared_ptr<GPUTexture> getCurrentTexture();
   void present();
 
 private:
-  std::shared_ptr<OffscreenSurface> _offscreenSurface;
-  wgpu::Surface _instance = nullptr;
-  wgpu::Device _device;
   std::shared_ptr<Canvas> _canvas;
-  int _contextId;
-
+  std::shared_ptr<SurfaceInfo> _surfaceInfo;
   std::shared_ptr<GPU> _gpu;
-  // TODO: do we need this or can it be stored in the surface registry?
-  wgpu::SurfaceConfiguration _surfaceConfiguration;
 };
 
 } // namespace rnwgpu

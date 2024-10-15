@@ -57,6 +57,17 @@ debugManager.onError = function (url) {
   console.error("There was an error loading " + url);
 };
 
+export const useGeometry = (uri: string) => {
+  const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
+  useEffect(() => {
+    const loader = new THREE.BufferGeometryLoader();
+    loader.load(uri, function (geo) {
+      setGeometry(geo);
+    });
+  }, [uri]);
+  return geometry;
+};
+
 export const useRGBE = (asset: ReturnType<typeof require>) => {
   const url = resolveAsset(asset);
   const [texture, setTexture] = useState<THREE.Texture | null>(null);

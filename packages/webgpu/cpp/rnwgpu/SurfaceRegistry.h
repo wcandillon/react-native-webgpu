@@ -8,23 +8,71 @@
 
 namespace rnwgpu {
 
-struct ISize {
+struct NativeInfo {
+  void *nativeSurface;
   int width;
   int height;
 };
 
-struct SurfaceInfo {
-  void *nativeSurface = nullptr;
-  wgpu::Surface surface;
+struct Size {
   int width;
   int height;
-  wgpu::Texture texture;
-  wgpu::Instance gpu;
-  wgpu::SurfaceConfiguration config;
+};
 
-  void flushTextureToSurface() {
-    // 1.a flush texture to the onscreen surface
-    if (texture) {
+class SurfaceInfo {
+public:
+  SurfaceInfo(wgpu::Instance gpu, int width, int height)
+      : gpu(gpu), width(width), height(height) {}
+
+  void reconfigure(int newWidth, int newHeight) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    config.width = newWidth;
+    config.height = newHeight;
+    _configure();
+  }
+
+  void configure(wgpu::SurfaceConfiguration &newConfig) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    config = newConfig;
+    config.width = width;
+    config.height = height;
+    _configure();
+  }
+
+  void unconfigure() {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (surface) {
+      surface.Unconfigure();
+    } else {
+      texture = nullptr;
+    }
+  }
+
+  void *switchToOffscreen() {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    wgpu::TextureDescriptor textureDesc;
+    textureDesc.usage = wgpu::TextureUsage::RenderAttachment |
+                        wgpu::TextureUsage::CopySrc |
+                        wgpu::TextureUsage::TextureBinding;
+    textureDesc.format = config.format;
+    textureDesc.size.width = config.width;
+    textureDesc.size.height = config.height;
+    texture = config.device.CreateTexture(&textureDesc);
+    surface = nullptr;
+    return nativeSurface;
+  }
+
+  void switchToOnscreen(void *newNativeSurface, wgpu::Surface newSurface) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    nativeSurface = newNativeSurface;
+    surface = std::move(newSurface);
+    // If we are comming from an offscreen context, we need to configure the new
+    // surface
+    if (texture != nullptr) {
+      config.usage = config.usage | wgpu::TextureUsage::CopyDst;
+      _configure();
+      // We flush the offscreen texture to the onscreen one
+      // TODO: there is a faster way to do this without validation?
       wgpu::CommandEncoderDescriptor encoderDesc;
       auto device = config.device;
       wgpu::CommandEncoder encoder = device.CreateCommandEncoder(&encoderDesc);
@@ -46,125 +94,129 @@ struct SurfaceInfo {
       wgpu::CommandBuffer commands = encoder.Finish();
       wgpu::Queue queue = device.GetQueue();
       queue.Submit(1, &commands);
+      surface.Present();
       texture = nullptr;
     }
   }
-};
 
-class SurfaceRegistry {
-private:
-  std::unordered_map<int, SurfaceInfo> _registry;
-  mutable std::shared_mutex _mutex;
+  void resize(int newWidth, int newHeight) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    width = newWidth;
+    height = newHeight;
+  }
 
-  // Private constructor to prevent instantiation
-  SurfaceRegistry() {}
-
-  void updateSurface(const int contextId, SurfaceInfo &info) {
-    auto it = _registry.find(contextId);
-    if (it != _registry.end()) {
-      it->second = info;
+  void present() {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (surface) {
+      surface.Present();
     }
   }
 
-  // bool hasOnScreenSurface(const int contextId) const {
-  //   std::shared_lock<std::shared_mutex> lock(_mutex);
-  //   auto it = _registry.find(contextId);
-  //   if (it != _registry.end()) {
-  //     return it->second.nativeSurface != nullptr;
-  //   }
-  //   return false;
-  // }
-
-  bool hasSurfaceInfo(const int contextId) const {
-    return _registry.find(contextId) != _registry.end();
+  wgpu::Texture getCurrentTexture() {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    if (surface) {
+      wgpu::SurfaceTexture surfaceTexture;
+      surface.GetCurrentTexture(&surfaceTexture);
+      return surfaceTexture.texture;
+    } else {
+      return texture;
+    }
   }
 
-public:
-  // Delete copy constructor and assignment operator
-  SurfaceRegistry(const SurfaceRegistry &) = delete;
-  SurfaceRegistry &operator=(const SurfaceRegistry &) = delete;
+  NativeInfo getNativeInfo() {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    return {.nativeSurface = nativeSurface, .width = width, .height = height};
+  }
 
-  // Static method to get the singleton instance
+  Size getSize() {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    return {.width = width, .height = height};
+  }
+
+  wgpu::SurfaceConfiguration getConfig() {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    return config;
+  }
+
+  wgpu::Device getDevice() {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    return config.device;
+  }
+
+private:
+  void _configure() {
+    if (surface) {
+      surface.Configure(&config);
+    } else {
+      wgpu::TextureDescriptor textureDesc;
+      textureDesc.format = config.format;
+      textureDesc.size.width = config.width;
+      textureDesc.size.height = config.height;
+      textureDesc.usage = wgpu::TextureUsage::RenderAttachment |
+                          wgpu::TextureUsage::CopySrc |
+                          wgpu::TextureUsage::TextureBinding;
+      texture = config.device.CreateTexture(&textureDesc);
+    }
+  }
+
+  mutable std::shared_mutex _mutex;
+  void *nativeSurface = nullptr;
+  wgpu::Surface surface = nullptr;
+  wgpu::Texture texture = nullptr;
+  wgpu::Instance gpu;
+  wgpu::SurfaceConfiguration config;
+  int width;
+  int height;
+};
+
+class SurfaceRegistry {
+public:
   static SurfaceRegistry &getInstance() {
     static SurfaceRegistry instance;
     return instance;
   }
 
-  void removeSurface(const int contextId) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    _registry.erase(contextId);
-  }
+  SurfaceRegistry(const SurfaceRegistry &) = delete;
+  SurfaceRegistry &operator=(const SurfaceRegistry &) = delete;
 
-  std::optional<SurfaceInfo> getSurfaceMaybe(const int contextId) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    auto it = _registry.find(contextId);
+  std::shared_ptr<SurfaceInfo> getSurfaceInfo(int id) {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    auto it = _registry.find(id);
     if (it != _registry.end()) {
       return it->second;
     }
-    return std::nullopt;
+    return nullptr;
   }
 
-  SurfaceInfo getSurface(const int contextId) const {
-    auto it = _registry.find(contextId);
+  void removeSurfaceInfo(int id) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    _registry.erase(id);
+  }
+
+  std::shared_ptr<SurfaceInfo> addSurfaceInfo(int id, wgpu::Instance gpu,
+                                              int width, int height) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    auto info = std::make_shared<SurfaceInfo>(gpu, width, height);
+    _registry[id] = info;
+    return info;
+  }
+
+  std::shared_ptr<SurfaceInfo>
+  getSurfaceInfoOrCreate(int id, wgpu::Instance gpu, int width, int height) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    auto it = _registry.find(id);
     if (it != _registry.end()) {
       return it->second;
     }
-    throw std::out_of_range("Surface not found");
+    auto info = std::make_shared<SurfaceInfo>(gpu, width, height);
+    _registry[id] = info;
+    return info;
   }
 
-  void setSize(const int contextId, int width, int height) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    auto it = _registry.find(contextId);
-    if (it != _registry.end()) {
-      it->second.width = width;
-      it->second.height = height;
-    }
-  }
-
-  void
-  configureOffscreenSurface(const int contextId, wgpu::Instance gpu,
-                            wgpu::Texture texture,
-                            wgpu::SurfaceConfiguration surfaceConfiguration) {
-    SurfaceInfo info;
-    info.width = surfaceConfiguration.width;
-    info.height = surfaceConfiguration.height;
-    info.texture = texture;
-    info.gpu = gpu;
-    info.config = surfaceConfiguration;
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    _registry[contextId] = info;
-  }
-
-  void createSurface(const int contextId, void *nativeSurface, int width,
-                     int height,
-                     std::shared_ptr<PlatformContext> platformContext) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    // 1. The scene has already be drawn offscreen
-    if (hasSurfaceInfo(contextId)) {
-      auto info = getSurface(contextId);
-      auto surface =
-          platformContext->makeSurface(info.gpu, nativeSurface, width, height);
-      info.config.usage = info.config.usage | wgpu::TextureUsage::CopyDst;
-      surface.Configure(&info.config);
-      info.nativeSurface = nativeSurface;
-      info.surface = surface;
-      info.width = width;
-      info.height = height;
-      info.flushTextureToSurface();
-      surface.Present();
-      updateSurface(contextId, info);
-    } else {
-      // 2. The scene has not been drawn offscreen yet, we will draw onscreen
-      // directly
-      rnwgpu::SurfaceInfo info;
-      info.nativeSurface = nativeSurface;
-      info.surface =
-          platformContext->makeSurface(info.gpu, nativeSurface, width, height);
-      info.width = width;
-      info.height = height;
-      _registry[contextId] = info;
-    }
-  }
+private:
+  SurfaceRegistry() = default;
+  mutable std::shared_mutex _mutex;
+  std::unordered_map<int, std::shared_ptr<SurfaceInfo>> _registry;
 };
 
 } // namespace rnwgpu

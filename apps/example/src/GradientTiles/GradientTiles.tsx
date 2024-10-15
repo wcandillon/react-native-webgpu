@@ -18,7 +18,7 @@ export function GradientTiles() {
     draw(spanX, spanY);
   }, [spanX, spanY]);
 
-  const { canvasRef } = useWebGPU(({ context, device, presentationFormat }) => {
+  const ref = useWebGPU(({ context, device, presentationFormat }) => {
     const Span = struct({
       x: u32,
       y: u32,
@@ -98,7 +98,7 @@ export function GradientTiles() {
 
   return (
     <View style={style.container}>
-      <Canvas ref={canvasRef} style={style.webgpu} />
+      <Canvas ref={ref} style={style.webgpu} />
       <View style={style.controls}>
         <View style={style.buttonRow}>
           <Text style={style.spanText}>span x: </Text>

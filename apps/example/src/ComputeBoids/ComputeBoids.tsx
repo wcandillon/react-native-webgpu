@@ -68,7 +68,7 @@ export function ComputeBoids() {
     () => {},
   );
 
-  const { canvasRef } = useWebGPU(({ context, device, presentationFormat }) => {
+  const ref = useWebGPU(({ context, device, presentationFormat }) => {
     context.configure({
       device,
       format: presentationFormat,
@@ -291,7 +291,7 @@ export function ComputeBoids() {
 
   return (
     <View style={style.container}>
-      <Canvas ref={canvasRef} style={style.webgpu} />
+      <Canvas ref={ref} style={style.webgpu} />
       <View style={style.controls}>
         <View style={style.buttonRow}>
           <Text style={style.spanText}>randomize: </Text>

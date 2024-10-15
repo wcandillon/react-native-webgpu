@@ -18,7 +18,7 @@ import { basicVertWGSL, sampleCubemapWGSL } from "./Shaders";
 const size = Dimensions.get("window").width;
 
 export const Cubemap = () => {
-  const { canvasRef } = useWebGPU(
+  const ref = useWebGPU(
     async ({ context, device, presentationFormat, canvas }) => {
       context.configure({
         device,
@@ -257,7 +257,7 @@ export const Cubemap = () => {
 
   return (
     <View style={style.container}>
-      <Canvas ref={canvasRef} style={style.webgpu} />
+      <Canvas ref={ref} style={style.webgpu} />
     </View>
   );
 };
