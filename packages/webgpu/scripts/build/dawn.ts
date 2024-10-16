@@ -99,6 +99,7 @@ const apple = {
   $("git reset --hard HEAD");
   $(`git apply ${__dirname}/static_build.patch`);
   process.chdir("../..");
+  console.log("Copy headers");
 
   // Build Android
   for (const platform of android.platforms) {
@@ -164,17 +165,20 @@ const apple = {
   });
 
   console.log("Copy headers");
+  $(`rm -rf ${projectRoot}/cpp/webgpu`);
+  $(`rm -rf ${projectRoot}/cpp/dawn`);
   $(
     `cp -R externals/dawn/out/android_arm64-v8a/gen/include/webgpu ${projectRoot}/cpp`,
   );
   $(
-    `cp -R externals/dawn/out/android_arm64-v8a/gen/include/dawn/webgpu.h ${projectRoot}/cpp/webgpu/webgpu.h`,
+    `cp externals/dawn/out/android_arm64-v8a/gen/include/dawn/webgpu.h ${projectRoot}/cpp/webgpu/webgpu.h`,
   );
-  $(`cp externals/dawn/include/webgpu/webgpu_cpp.h ${projectRoot}/cpp/webgpu/`);
+  $(
+    `cp externals/dawn/out/android_arm64-v8a/gen/include/dawn/webgpu_cpp.h ${projectRoot}/cpp/webgpu/webgpu_cpp.h`,
+  );
   $(
     `cp externals/dawn/include/webgpu/webgpu_enum_class_bitmasks.h ${projectRoot}/cpp/webgpu/`,
   );
-  $(`cp externals/dawn/include/webgpu/webgpu.h ${projectRoot}/cpp/webgpu/`);
   $(`cp externals/dawn/src/dawn/dawn.json ${projectRoot}/libs`);
   chdir(projectRoot);
   checkBuildArtifacts();
