@@ -1,7 +1,6 @@
 #import "SurfaceUtils.h"
 #import "MetalView.h"
 #import "WebGPUModule.h"
-#import "WebGPUView.h"
 
 @implementation SurfaceUtils
 
@@ -19,8 +18,6 @@
 }
 
 + (void)updateSurface:(int)contextId size:(CGSize)size {
-  // std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule
-  // getManager];
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   registry.getSurfaceInfo(contextId)->resize(size.width, size.height);
 }
