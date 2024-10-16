@@ -165,7 +165,10 @@ const apple = {
 
   console.log("Copy headers");
   $(
-    `cp -R externals/dawn/out/android_arm64-v8a/gen/include/* ${projectRoot}/cpp`,
+    `cp -R externals/dawn/out/android_arm64-v8a/gen/include/webgpu ${projectRoot}/cpp`,
+  );
+  $(
+    `cp -R externals/dawn/out/android_arm64-v8a/gen/include/dawn/webgpu.h ${projectRoot}/cpp/webgpu/webgpu.h`,
   );
   $(`cp externals/dawn/include/webgpu/webgpu_cpp.h ${projectRoot}/cpp/webgpu/`);
   $(

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "webgpu/webgpu_cpp.h"
+#include "dawn/webgpu_cpp.h"
 
 namespace rnwgpu {
 enum class PredefinedColorSpace : uint32_t {
