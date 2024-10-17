@@ -1,5 +1,5 @@
 import { NavigationContainer } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createStackNavigator } from "@react-navigation/stack";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import type { Routes } from "./Route";
@@ -32,7 +32,7 @@ import { CanvasAPI } from "./CanvasAPI";
 import "fast-text-encoding";
 window.parent = window;
 
-const Stack = createNativeStackNavigator<Routes>();
+const Stack = createStackNavigator<Routes>();
 
 function App() {
   const assets = useAssets();
