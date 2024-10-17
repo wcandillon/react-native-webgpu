@@ -8,9 +8,6 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface WebGPUView : RCTViewComponentView
-+ (void)registerMetalView:(MetalView *)metalView
-            withContextId:(NSNumber *)contextId;
-+ (bool)isContextRegisterd:(NSNumber *)contextId;
 @end
 
 NS_ASSUME_NONNULL_END
