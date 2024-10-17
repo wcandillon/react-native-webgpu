@@ -9,7 +9,6 @@
 #import "MetalView.h"
 #import "RCTFabricComponentsPlugins.h"
 #import "Utils.h"
-#import "SurfaceUtils.h"
 
 using namespace facebook::react;
 

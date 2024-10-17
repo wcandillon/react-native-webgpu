@@ -3,7 +3,6 @@
 #import "MetalView.h"
 #import "RCTBridge.h"
 #import "WebGPUModule.h"
-#import "SurfaceUtils.h"
 
 @interface WebGPUViewManager : RCTViewManager
 @end

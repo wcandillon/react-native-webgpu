@@ -1,5 +1,4 @@
 #import "MetalView.h"
-#import "SurfaceUtils.h"
 #import "webgpu_cpp.h"
 
 #ifndef RCT_NEW_ARCH_ENABLED
@@ -16,17 +15,29 @@
 
 - (void)configure
 {
-  [SurfaceUtils configureSurface:self.layer size:self.frame.size contextId:[_contextId intValue]];
+  auto size = self.frame.size;
+  std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule getManager];
+  void *nativeSurface = (__bridge void *)self.layer;
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto gpu = manager->_gpu;
+  auto surface = manager->_platformContext->makeSurface(
+      gpu, nativeSurface, size.width, size.height);
+  registry.getSurfaceInfoOrCreate([_contextId intValue], gpu, size.width, size.height)
+      ->switchToOnscreen(nativeSurface, surface);
 }
 
 - (void)update
 {
-  [SurfaceUtils updateSurface:[_contextId intValue] size:self.frame.size];
+  auto size = self.frame.size;
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  registry.getSurfaceInfo([_contextId intValue])->resize(size.width, size.height);
 }
 
 - (void)dealloc
 {
-  [SurfaceUtils cleanupSurface:[_contextId intValue]];
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  // Remove the surface info from the registry
+  registry.removeSurfaceInfo([_contextId intValue]);
 }
 
 #ifndef RCT_NEW_ARCH_ENABLED
