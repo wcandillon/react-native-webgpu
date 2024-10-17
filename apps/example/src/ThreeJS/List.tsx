@@ -2,7 +2,7 @@ import * as React from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { RectButton } from "react-native-gesture-handler";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { StackNavigationProp } from "@react-navigation/stack";
 
 import type { Routes } from "./Routes";
 
@@ -43,8 +43,7 @@ const styles = StyleSheet.create({
 });
 
 export const List = () => {
-  const { navigate } =
-    useNavigation<NativeStackNavigationProp<Routes, "List">>();
+  const { navigate } = useNavigation<StackNavigationProp<Routes, "List">>();
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {examples.map((thumbnail) => (
