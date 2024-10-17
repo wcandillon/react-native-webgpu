@@ -1,4 +1,4 @@
-#include "IOSPlatformContext.h"
+#include "ApplePlatformContext.h"
 
 #import <React/RCTBlobManager.h>
 #import <React/RCTBridge+Private.h>
@@ -9,7 +9,7 @@
 
 namespace rnwgpu {
 
-wgpu::Surface IOSPlatformContext::makeSurface(wgpu::Instance instance,
+wgpu::Surface ApplePlatformContext::makeSurface(wgpu::Instance instance,
                                               void *surface, int width,
                                               int height) {
   wgpu::SurfaceDescriptorFromMetalLayer metalSurfaceDesc;
@@ -19,7 +19,7 @@ wgpu::Surface IOSPlatformContext::makeSurface(wgpu::Instance instance,
   return instance.CreateSurface(&surfaceDescriptor);
 }
 
-ImageData IOSPlatformContext::createImageBitmap(std::string blobId,
+ImageData ApplePlatformContext::createImageBitmap(std::string blobId,
                                                 double offset, double size) {
   RCTBlobManager *blobManager =
       [[RCTBridge currentBridge] moduleForClass:RCTBlobManager.class];

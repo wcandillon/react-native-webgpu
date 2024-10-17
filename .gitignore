@@ -69,6 +69,7 @@ packages/webgpu/cpp/dawn/
 packages/webgpu/cpp/webgpu/
 packages/webgpu/lib
 !packages/webgpu/scripts/build
+artifacts/
 
 
 # Cocoapods

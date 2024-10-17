@@ -125,6 +125,5 @@ export const checkBuildArtifacts = () => {
   libs.forEach((lib) => {
     checkFileExists(`libs/apple/${lib}.xcframework`);
   });
-  checkFileExists("cpp/dawn/webgpu_cpp.h");
   checkFileExists("libs/dawn.json");
 };
