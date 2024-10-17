@@ -7,4 +7,7 @@
 
 @property NSNumber *contextId;
 
+- (void)configure;
+- (void)update;
+
 @end

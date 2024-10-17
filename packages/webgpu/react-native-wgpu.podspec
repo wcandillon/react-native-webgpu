@@ -15,7 +15,7 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/wcandillon/react-native-webgpu.git", :tag => "#{s.version}" }
 
   s.source_files = [
-    "ios/**/*.{h,c,cc,cpp,m,mm,swift}",
+    "apple/**/*.{h,c,cc,cpp,m,mm,swift}",  
     "cpp/**/*.{h,cpp}"
   ]
 
