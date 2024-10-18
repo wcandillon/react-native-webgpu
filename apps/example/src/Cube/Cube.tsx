@@ -109,7 +109,7 @@ export function Cube() {
       colorAttachments: [
         {
           view: undefined, // Assigned later
-          clearValue: [0.5, 0.5, 0.5, 1.0],
+          clearValue: [0, 0, 0, 0],
           loadOp: "clear",
           storeOp: "store",
         },
@@ -184,6 +184,7 @@ export function Cube() {
 const style = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "rgb(90, 180, 255)",
   },
   webgpu: {
     flex: 1,

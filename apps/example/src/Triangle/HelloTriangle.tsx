@@ -60,7 +60,7 @@ export function HelloTriangle() {
       colorAttachments: [
         {
           view: textureView,
-          clearValue: [0, 0, 0, 1],
+          clearValue: [0, 0, 0, 0],
           loadOp: "clear",
           storeOp: "store",
         },
