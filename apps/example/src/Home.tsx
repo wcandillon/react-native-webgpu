@@ -115,8 +115,7 @@ const styles = StyleSheet.create({
 });
 
 export const Home = () => {
-  const { navigate } =
-    useNavigation<StackNavigationProp<Routes, "Home">>();
+  const { navigate } = useNavigation<StackNavigationProp<Routes, "Home">>();
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {examples.map((thumbnail) => (
