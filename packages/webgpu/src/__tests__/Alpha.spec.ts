@@ -1,4 +1,4 @@
-import { checkImage, client, encodeImage } from "../setup";
+import { checkImage, client, encodeImage } from "./setup";
 
 describe("Alpha", () => {
   it("Premultiplied Color", async () => {

@@ -25,7 +25,7 @@ export function HelloTriangle() {
     context.configure({
       device,
       format: presentationFormat,
-      alphaMode: "opaque",
+      alphaMode: "premultiplied",
     });
 
     const pipeline = device.createRenderPipeline({
