@@ -50,12 +50,20 @@ ImageData ApplePlatformContext::createImageBitmap(std::string blobId,
     throw std::runtime_error("Couldn't retrive blob data");
   }
 
+#if !TARGET_OS_OSX
   UIImage *image = [UIImage imageWithData:blobData];
+#else
+  NSImage *image = [[NSImage alloc] initWithData:blobData];
+#endif
   if (!image) {
     throw std::runtime_error("Couldn't decode image");
   }
 
+#if !TARGET_OS_OSX
   CGImageRef cgImage = image.CGImage;
+#else
+  CGImageRef cgImage = [image CGImageForProposedRect:NULL context:NULL hints:NULL];
+#endif
   size_t width = CGImageGetWidth(cgImage);
   size_t height = CGImageGetHeight(cgImage);
   size_t bitsPerComponent = 8;
