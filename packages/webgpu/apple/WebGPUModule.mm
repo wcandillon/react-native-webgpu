@@ -1,6 +1,6 @@
 #import "WebGPUModule.h"
-#import "GPUCanvasContext.h"
 #include "ApplePlatformContext.h"
+#import "GPUCanvasContext.h"
 
 #import <React/RCTBridge+Private.h>
 #import <React/RCTLog.h>

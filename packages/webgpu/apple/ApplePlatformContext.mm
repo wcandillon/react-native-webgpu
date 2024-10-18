@@ -1,5 +1,7 @@
 #include "ApplePlatformContext.h"
 
+#include <TargetConditionals.h>
+
 #import <React/RCTBlobManager.h>
 #import <React/RCTBridge+Private.h>
 #import <ReactCommon/RCTTurboModule.h>
@@ -9,9 +11,23 @@
 
 namespace rnwgpu {
 
+void isSimulatorWithAPIValidation() {
+#if TARGET_OS_SIMULATOR
+  NSDictionary *environment = [[NSProcessInfo processInfo] environment];
+  NSString *metalDeviceWrapperType = environment[@"METAL_DEVICE_WRAPPER_TYPE"];
+
+  if ([metalDeviceWrapperType isEqualToString:@"1"]) {
+    throw std::runtime_error('To run the React Native WebGPU project on the iOS simulator, you need to disable the Metal validation API.
+In "Edit Scheme," uncheck "Metal Validation."');
+  }
+#endif
+}
+
+ApplePlatformContext::ApplePlatformContext() { isSimulatorWithAPIValidation(); }
+
 wgpu::Surface ApplePlatformContext::makeSurface(wgpu::Instance instance,
-                                              void *surface, int width,
-                                              int height) {
+                                                void *surface, int width,
+                                                int height) {
   wgpu::SurfaceDescriptorFromMetalLayer metalSurfaceDesc;
   metalSurfaceDesc.layer = surface;
   wgpu::SurfaceDescriptor surfaceDescriptor;
@@ -20,7 +36,7 @@ wgpu::Surface ApplePlatformContext::makeSurface(wgpu::Instance instance,
 }
 
 ImageData ApplePlatformContext::createImageBitmap(std::string blobId,
-                                                double offset, double size) {
+                                                  double offset, double size) {
   RCTBlobManager *blobManager =
       [[RCTBridge currentBridge] moduleForClass:RCTBlobManager.class];
   NSData *blobData =

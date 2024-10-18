@@ -6,7 +6,7 @@ namespace rnwgpu {
 
 class ApplePlatformContext : public PlatformContext {
 public:
-  ApplePlatformContext() = default;
+  ApplePlatformContext();
   ~ApplePlatformContext() = default;
 
   wgpu::Surface makeSurface(wgpu::Instance instance, void *surface, int width,

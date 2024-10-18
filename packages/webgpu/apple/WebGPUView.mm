@@ -1,10 +1,10 @@
 #ifdef RCT_NEW_ARCH_ENABLED
 #import "WebGPUView.h"
 
+#import <react/renderer/components/RNWgpuViewSpec/ComponentDescriptors.h>
 #import <react/renderer/components/RNWgpuViewSpec/EventEmitters.h>
 #import <react/renderer/components/RNWgpuViewSpec/Props.h>
 #import <react/renderer/components/RNWgpuViewSpec/RCTComponentViewHelpers.h>
-#import <react/renderer/components/RNWgpuViewSpec/ComponentDescriptors.h>
 
 #import "MetalView.h"
 #import "RCTFabricComponentsPlugins.h"
@@ -28,8 +28,7 @@ using namespace facebook::react;
   self.contentView = nil;
 }
 
-- (MetalView *)getContentView
-{
+- (MetalView *)getContentView {
   if (!self.contentView) {
     self.contentView = [MetalView new];
   }
