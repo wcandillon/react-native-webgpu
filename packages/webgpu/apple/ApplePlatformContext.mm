@@ -17,8 +17,10 @@ void isSimulatorWithAPIValidation() {
   NSString *metalDeviceWrapperType = environment[@"METAL_DEVICE_WRAPPER_TYPE"];
 
   if ([metalDeviceWrapperType isEqualToString:@"1"]) {
-    throw std::runtime_error('To use React Native WebGPU project on the iOS simulator, you need to disable the Metal validation API.
-In "Edit Scheme," uncheck "Metal Validation."');
+    throw std::runtime_error(
+        "To use React Native WebGPU project on the iOS simulator, you need to "
+        "disable the Metal validation API. In 'Edit Scheme,' uncheck 'Metal "
+        "Validation.'");
   }
 #endif
 }

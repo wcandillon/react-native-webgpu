@@ -101,7 +101,10 @@ export const useCanvasEffect = (
   const unsub = useRef<Unsubscribe | null | Promise<Unsubscribe | void>>(null);
   const ref = useRef<CanvasRef>(null);
   useEffect(() => {
-    ref.current!.whenReady(async () => {
+    if (!ref.current || !ref.current.whenReady) {
+      throw new Error("The reference is not assigned to a WebGPU Canvas");
+    }
+    ref.current.whenReady(async () => {
       const sub = effect();
       if (sub) {
         unsub.current = sub;

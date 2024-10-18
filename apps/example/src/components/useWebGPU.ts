@@ -30,7 +30,7 @@ export const useWebGPU = (scene: Scene) => {
       context.configure({
         device,
         format: presentationFormat,
-        alphaMode: "opaque",
+        alphaMode: "premultiplied",
       });
 
       const sceneProps: SceneProps = {
