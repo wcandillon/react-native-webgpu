@@ -16,13 +16,10 @@ void GPUCanvasContext::configure(
       throw std::runtime_error("Error with SurfaceConfiguration");
     }
   }
-  if (!conv(surfaceConfiguration.format, configuration->format)) {
-    throw std::runtime_error("Error with SurfaceConfiguration");
+  if (!conv(surfaceConfiguration.usage, configuration->usage) || !conv(surfaceConfiguration.format, configuration->format)) {
+        throw std::runtime_error("Error with SurfaceConfiguration");
   }
-  if (!conv(surfaceConfiguration.usage, configuration->usage)) {
-    throw std::runtime_error("Error with SurfaceConfiguration");
-  }
-  surfaceConfiguration.alphaMode = wgpu::CompositeAlphaMode::Premultiplied;
+  surfaceConfiguration.alphaMode = configuration->alphaMode;
   _surfaceInfo->configure(surfaceConfiguration);
 }
 

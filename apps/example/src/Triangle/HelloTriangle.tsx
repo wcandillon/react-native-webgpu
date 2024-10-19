@@ -79,16 +79,14 @@ export function HelloTriangle() {
 
   return (
     <View style={style.container}>
-      <Canvas ref={ref} style={style.webgpu} />
+      <View style={{ flex: 1, backgroundColor: "#3498db" }} />
+      <Canvas ref={ref} style={StyleSheet.absoluteFill} />
     </View>
   );
 }
 
 const style = StyleSheet.create({
   container: {
-    flex: 1,
-  },
-  webgpu: {
     flex: 1,
   },
 });
