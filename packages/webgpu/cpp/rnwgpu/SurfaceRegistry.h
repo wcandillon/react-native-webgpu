@@ -48,18 +48,42 @@ public:
     }
   }
 
-  void *switchToOffscreen() {
+void *switchToOffscreen() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    wgpu::TextureDescriptor textureDesc;
-    textureDesc.usage = wgpu::TextureUsage::RenderAttachment |
-                        wgpu::TextureUsage::CopySrc |
-                        wgpu::TextureUsage::TextureBinding;
-    textureDesc.format = config.format;
-    textureDesc.size.width = config.width;
-    textureDesc.size.height = config.height;
-    texture = config.device.CreateTexture(&textureDesc);
+    _createOffscreenTexture();
+
+    if (surface) {
+      // Copy the current surface texture to the offscreen texture
+      wgpu::CommandEncoderDescriptor encoderDesc;
+      wgpu::CommandEncoder encoder = config.device.CreateCommandEncoder(&encoderDesc);
+
+      wgpu::ImageCopyTexture sourceTexture = {};
+      wgpu::SurfaceTexture surfaceTexture;
+      surface.GetCurrentTexture(&surfaceTexture);
+      sourceTexture.texture = surfaceTexture.texture;
+
+      wgpu::ImageCopyTexture destinationTexture = {};
+      destinationTexture.texture = texture;
+
+      wgpu::Extent3D copySize = {
+          static_cast<uint32_t>(config.width),
+          static_cast<uint32_t>(config.height),
+          1
+      };
+
+      encoder.CopyTextureToTexture(&sourceTexture, &destinationTexture, &copySize);
+
+      wgpu::CommandBuffer commands = encoder.Finish();
+      config.device.GetQueue().Submit(1, &commands);
+
+      // Unconfigure the surface
+      surface.Unconfigure();
+    }
+
+    void* oldNativeSurface = nativeSurface;
     surface = nullptr;
-    return nativeSurface;
+    nativeSurface = nullptr;
+    return oldNativeSurface;
   }
 
   void switchToOnscreen(void *newNativeSurface, wgpu::Surface newSurface) {
@@ -69,7 +93,6 @@ public:
     // If we are comming from an offscreen context, we need to configure the new
     // surface
     if (texture != nullptr) {
-      config.usage = config.usage | wgpu::TextureUsage::CopyDst;
       _configure();
       // We flush the offscreen texture to the onscreen one
       // TODO: there is a faster way to do this without validation?
@@ -146,17 +169,23 @@ public:
 private:
   void _configure() {
     if (surface) {
+      config.usage = config.usage | wgpu::TextureUsage::CopyDst | wgpu::TextureUsage::CopySrc;
       surface.Configure(&config);
     } else {
-      wgpu::TextureDescriptor textureDesc;
-      textureDesc.format = config.format;
-      textureDesc.size.width = config.width;
-      textureDesc.size.height = config.height;
-      textureDesc.usage = wgpu::TextureUsage::RenderAttachment |
-                          wgpu::TextureUsage::CopySrc |
-                          wgpu::TextureUsage::TextureBinding;
-      texture = config.device.CreateTexture(&textureDesc);
+      _createOffscreenTexture();
     }
+  }
+
+  void _createOffscreenTexture() {
+    wgpu::TextureDescriptor textureDesc;
+    textureDesc.format = config.format;
+    textureDesc.size.width = config.width;
+    textureDesc.size.height = config.height;
+    textureDesc.usage = wgpu::TextureUsage::RenderAttachment |
+                        wgpu::TextureUsage::CopySrc |
+                        wgpu::TextureUsage::CopyDst |
+                        wgpu::TextureUsage::TextureBinding;
+    texture = config.device.CreateTexture(&textureDesc);
   }
 
   mutable std::shared_mutex _mutex;
