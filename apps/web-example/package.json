@@ -1,0 +1,26 @@
+{
+  "name": "web-example",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~3.2.3",
+    "expo": "~51.0.28",
+    "expo-status-bar": "~1.12.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-native": "0.74.5",
+    "react-native-web": "~0.19.10",
+    "react-native-wgpu": "link:../../packages/webgpu"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@rnx-kit/metro-config": "^2.0.1"
+  },
+  "private": true
+}
