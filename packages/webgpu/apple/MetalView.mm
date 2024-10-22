@@ -3,7 +3,7 @@
 
 #ifndef RCT_NEW_ARCH_ENABLED
 #import <React/RCTViewManager.h>
-#endif //RCT_NEW_ARCH_ENABLED
+#endif // RCT_NEW_ARCH_ENABLED
 
 @implementation MetalView {
   BOOL _isConfigured;
@@ -13,8 +13,7 @@
   return [CAMetalLayer class];
 }
 
-- (void)configure
-{
+- (void)configure {
   auto size = self.frame.size;
   std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule getManager];
   void *nativeSurface = (__bridge void *)self.layer;
@@ -22,19 +21,20 @@
   auto gpu = manager->_gpu;
   auto surface = manager->_platformContext->makeSurface(
       gpu, nativeSurface, size.width, size.height);
-  registry.getSurfaceInfoOrCreate([_contextId intValue], gpu, size.width, size.height)
+  registry
+      .getSurfaceInfoOrCreate([_contextId intValue], gpu, size.width,
+                              size.height)
       ->switchToOnscreen(nativeSurface, surface);
 }
 
-- (void)update
-{
+- (void)update {
   auto size = self.frame.size;
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  registry.getSurfaceInfo([_contextId intValue])->resize(size.width, size.height);
+  registry.getSurfaceInfo([_contextId intValue])
+      ->resize(size.width, size.height);
 }
 
-- (void)dealloc
-{
+- (void)dealloc {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   // Remove the surface info from the registry
   registry.removeSurfaceInfo([_contextId intValue]);
@@ -53,6 +53,6 @@
     [self update];
   }
 }
-#endif //RCT_NEW_ARCH_ENABLED
+#endif // RCT_NEW_ARCH_ENABLED
 
 @end
