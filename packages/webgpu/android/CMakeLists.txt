@@ -85,5 +85,6 @@ target_link_libraries(
         android
         fbjni::fbjni
         ReactAndroid::jsi
+        ReactAndroid::reactnativejni
         webgpu_dawn
     )
