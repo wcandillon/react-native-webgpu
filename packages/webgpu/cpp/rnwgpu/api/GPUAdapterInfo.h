@@ -24,13 +24,29 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::string getVendor() { return _instance.vendor.data; }
-  std::string getArchitecture() {
-    return _instance.architecture.data;
+  std::string getVendor() {
+    if (_instance.vendor.length) {
+      return _instance.vendor.data;
+    }
+    return "";
   }
-  std::string getDevice() { return _instance.device.data; }
+  std::string getArchitecture() {
+    if (_instance.architecture.length) {
+      return _instance.architecture.data;
+    }
+    return "";
+  }
+  std::string getDevice() {
+    if (_instance.device.length) {
+      return _instance.device.data;
+    }
+    return "";
+  }
   std::string getDescription() {
-    return _instance.description.data;
+    if (_instance.device.length) {
+      return _instance.device.data;
+    }
+    return "";
   }
 
   void loadHybridMethods() override {

@@ -35,7 +35,8 @@ std::future<std::shared_ptr<GPUDevice>> GPUAdapter::requestDevice(
         default:
           lostReason = "Unknown";
         }
-        Logger::logToConsole("GPU Device Lost (%s): %s", lostReason, message.data);
+        Logger::logToConsole("GPU Device Lost (%s): %s", lostReason,
+                             message.data);
       }};
   aDescriptor.deviceLostCallbackInfo = info;
   wgpu::UncapturedErrorCallbackInfo errorInfo;
