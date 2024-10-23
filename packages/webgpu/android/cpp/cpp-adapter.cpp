@@ -18,11 +18,15 @@
 std::shared_ptr<rnwgpu::RNWebGPUManager> manager;
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
-    JNIEnv *env, jobject /* this */, jlong jsRuntime, jobject jsCallInvokerHolder,
-    jobject blobModule) {
+    JNIEnv *env, jobject /* this */, jlong jsRuntime,
+    jobject jsCallInvokerHolder, jobject blobModule) {
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
   jobject globalBlobModule = env->NewGlobalRef(blobModule);
-  auto jsCallInvoker{ facebook::jni::alias_ref<facebook::react::CallInvokerHolder::javaobject>{ reinterpret_cast<facebook::react::CallInvokerHolder::javaobject>(jsCallInvokerHolder) }->cthis()->getCallInvoker() };
+  auto jsCallInvoker{
+      facebook::jni::alias_ref<facebook::react::CallInvokerHolder::javaobject>{
+          reinterpret_cast<facebook::react::CallInvokerHolder::javaobject>(
+              jsCallInvokerHolder)} -> cthis()
+          ->getCallInvoker()};
   auto platformContext =
       std::make_shared<rnwgpu::AndroidPlatformContext>(globalBlobModule);
   manager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsCallInvoker,
@@ -57,7 +61,7 @@ Java_com_webgpu_WebGPUView_switchToOffscreenSurface(JNIEnv *env, jobject thiz,
                                                     jint contextId) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto nativeSurface = registry.getSurfaceInfo(contextId)->switchToOffscreen();
-  //ANativeWindow_release(reinterpret_cast<ANativeWindow *>(nativeSurface));
+  // ANativeWindow_release(reinterpret_cast<ANativeWindow *>(nativeSurface));
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
