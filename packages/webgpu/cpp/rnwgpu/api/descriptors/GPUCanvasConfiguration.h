@@ -21,6 +21,7 @@ struct GPUCanvasConfiguration {
   std::optional<double> usage;       // GPUTextureUsageFlags
   std::optional<std::vector<wgpu::TextureFormat>>
       viewFormats; // Iterable<GPUTextureFormat>
+  wgpu::CompositeAlphaMode alphaMode = wgpu::CompositeAlphaMode::Opaque;
 };
 
 } // namespace rnwgpu
@@ -57,6 +58,14 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
             std::optional<std::vector<wgpu::TextureFormat>>>::fromJSI(runtime,
                                                                       prop,
                                                                       false);
+      }
+      if (value.hasProperty(runtime, "alphaMode")) {
+        auto prop = value.getProperty(runtime, "alphaMode")
+                        .asString(runtime)
+                        .utf8(runtime);
+        if (prop == "premultiplied") {
+          result->alphaMode = wgpu::CompositeAlphaMode::Premultiplied;
+        }
       }
     }
 

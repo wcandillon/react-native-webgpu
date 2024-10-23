@@ -280,15 +280,6 @@ public:
            Convert(out.label, in.label);
   }
 
-  // [[nodiscard]] bool Convert(wgpu::CanvasConfiguration &out,
-  //                            const GPUCanvasConfiguration &in) {
-  //   return Convert(out.device, in.device) && Convert(out.format, in.format)
-  //   &&
-  //          Convert(out.usage, in.usage) && Convert(out.viewFormats,
-  //          in.viewFormats) && Convert(out.colorSpace, in.colorSpace) &&
-  //          Convert(out.alphaMode, in.alphaMode);
-  // }
-
   [[nodiscard]] bool Convert(wgpu::Color &out, const GPUColor &in) {
     return Convert(out.r, in.r) && Convert(out.g, in.g) &&
            Convert(out.b, in.b) && Convert(out.a, in.a);
