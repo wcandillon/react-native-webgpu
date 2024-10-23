@@ -76,10 +76,9 @@ std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
   }
   sm_desc.nextInChain = &wgsl_desc;
   if (descriptor->code.find('\0') != std::string::npos) {
-    return std::make_shared<GPUShaderModule>(
-        _instance.CreateErrorShaderModule(
-            &sm_desc, "The WGSL shader contains an illegal character '\\0'"),
-        _async, sm_desc.label);
+    auto mod = _instance.CreateErrorShaderModule(
+        &sm_desc, "The WGSL shader contains an illegal character '\\0'");
+    return std::make_shared<GPUShaderModule>(mod, _async, sm_desc.label.data);
   }
   auto module = _instance.CreateShaderModule(&sm_desc);
   return std::make_shared<GPUShaderModule>(module, _async,

@@ -65,9 +65,9 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::ImplicitDeviceSynchronization:
     *outUnion = "implicit-device-synchronization";
     break;
-  case wgpu::FeatureName::SurfaceCapabilities:
-    *outUnion = "surface-capabilities";
-    break;
+    //  case wgpu::FeatureName::SurfaceCapabilities:
+    //    *outUnion = "surface-capabilities";
+    //    break;
   case wgpu::FeatureName::TransientAttachments:
     *outUnion = "transient-attachments";
     break;
