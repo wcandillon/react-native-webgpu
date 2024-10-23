@@ -6,10 +6,9 @@ import type { RNCanvasContext, CanvasRef, NativeCanvas } from "./Canvas";
 type Unsubscribe = () => void;
 
 export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
-  if (adapter.isFallbackAdapter) {
+  if (adapter.info.architecture === "swiftshader") {
     console.warn(
-      // eslint-disable-next-line max-len
-      "GPUAdapter is not hardware accelerated. This is common on Android emulators. Rendering will be slow. Some features may be unavailable.",
+      "GPUAdapter is not hardware accelerated. This is common on Android emulators. Rendering will be slow.",
     );
   }
 };

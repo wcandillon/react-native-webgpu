@@ -28,10 +28,10 @@ GPU::requestAdapter(
   wgpu::Adapter adapter = nullptr;
   _instance.RequestAdapter(
       &aOptions,
-      [](WGPURequestAdapterStatus, WGPUAdapter cAdapter,
-         const WGPUStringView message, void *userdata) {
-        if (message.length) {
-          fprintf(stderr, "%s", message.data);
+      [](WGPURequestAdapterStatus, WGPUAdapter cAdapter, const char *message,
+         void *userdata) {
+        if (message != nullptr) {
+          fprintf(stderr, "%s", message);
           return;
         }
         *static_cast<wgpu::Adapter *>(userdata) =

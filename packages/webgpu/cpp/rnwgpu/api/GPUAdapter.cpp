@@ -23,7 +23,7 @@ std::future<std::shared_ptr<GPUDevice>> GPUAdapter::requestDevice(
   }
   wgpu::DeviceLostCallbackInfo info = {
       .callback = [](WGPUDevice const *device, WGPUDeviceLostReason reason,
-                     const WGPUStringView message, void *userdata) {
+                     char const *message, void *userdata) {
         const char *lostReason = "";
         switch (reason) {
         case WGPUDeviceLostReason_Destroyed:
@@ -35,13 +35,12 @@ std::future<std::shared_ptr<GPUDevice>> GPUAdapter::requestDevice(
         default:
           lostReason = "Unknown";
         }
-        Logger::logToConsole("GPU Device Lost (%s): %s", lostReason,
-                             message.data);
+        Logger::logToConsole("GPU Device Lost (%s): %s", lostReason, message);
       }};
   aDescriptor.deviceLostCallbackInfo = info;
   wgpu::UncapturedErrorCallbackInfo errorInfo;
   errorInfo.userdata = static_cast<void *>(_creationRuntime);
-  errorInfo.callback = [](WGPUErrorType type, const WGPUStringView message,
+  errorInfo.callback = [](WGPUErrorType type, const char *message,
                           void *userdata) {
     auto creationRuntime = static_cast<jsi::Runtime *>(userdata);
     const char *errorType = "";
@@ -61,16 +60,16 @@ std::future<std::shared_ptr<GPUDevice>> GPUAdapter::requestDevice(
     default:
       errorType = "Unknown";
     }
-    std::string fullMessage = std::string(errorType) + ": " + message.data;
-    Logger::errorToJavascriptConsole(*creationRuntime, fullMessage);
+    std::string fullMessage = std::string(errorType) + ": " + message;
+    Logger::errorToJavascriptConsole(*creationRuntime, fullMessage.c_str());
   };
   aDescriptor.uncapturedErrorCallbackInfo = errorInfo;
   _instance.RequestDevice(
       &aDescriptor,
       [](WGPURequestDeviceStatus status, WGPUDevice cDevice,
-         const WGPUStringView message, void *userdata) {
-        if (message.length) {
-          fprintf(stderr, "%s", message.data);
+         const char *message, void *userdata) {
+        if (message != nullptr) {
+          fprintf(stderr, "%s", message);
           return;
         }
         *static_cast<wgpu::Device *>(userdata) = wgpu::Device::Acquire(cDevice);
@@ -81,17 +80,17 @@ std::future<std::shared_ptr<GPUDevice>> GPUAdapter::requestDevice(
     throw std::runtime_error("Failed to request device");
   }
   device.SetLoggingCallback(
-      [](WGPULoggingType type, const WGPUStringView message, void *userdata) {
+      [](WGPULoggingType type, const char *message, void *userdata) {
         auto creationRuntime = static_cast<jsi::Runtime *>(userdata);
         const char *logLevel = "";
         switch (type) {
         case WGPULoggingType_Warning:
           logLevel = "Warning";
-          Logger::warnToJavascriptConsole(*creationRuntime, message.data);
+          Logger::warnToJavascriptConsole(*creationRuntime, message);
           break;
         case WGPULoggingType_Error:
           logLevel = "Error";
-          Logger::errorToJavascriptConsole(*creationRuntime, message.data);
+          Logger::errorToJavascriptConsole(*creationRuntime, message);
           break;
         case WGPULoggingType_Verbose:
           logLevel = "Verbose";
@@ -140,9 +139,9 @@ std::shared_ptr<GPUAdapterInfo> GPUAdapter::getInfo() {
 }
 
 bool GPUAdapter::getIsFallbackAdapter() {
-  wgpu::AdapterInfo adapterInfo = {};
-  _instance.GetInfo(&adapterInfo);
-  return adapterInfo.adapterType == wgpu::AdapterType::CPU;
+  wgpu::AdapterProperties adapterProperties = {};
+  _instance.GetProperties(&adapterProperties);
+  return adapterProperties.adapterType == wgpu::AdapterType::DiscreteGPU;
 }
 
 } // namespace rnwgpu
