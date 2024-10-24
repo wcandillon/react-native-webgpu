@@ -76,5 +76,5 @@ public abstract class WebGPUBaseView extends ReactViewGroup {
   private native void onSurfaceDestroy(int contextId);
 
   @DoNotStrip
-  private native void switchToOffscreenSurface(int contextId);
+  protected native void switchToOffscreenSurface(int contextId);
 }

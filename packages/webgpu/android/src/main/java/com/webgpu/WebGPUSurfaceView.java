@@ -25,6 +25,12 @@ public class WebGPUSurfaceView extends WebGPUBaseView implements SurfaceHolder.C
   }
 
   @Override
+  protected void onDetachedFromWindow() {
+    super.onDetachedFromWindow();
+    handleSurfaceDestroyed();
+  }
+
+  @Override
   public void surfaceCreated(@NonNull SurfaceHolder holder) {
     handleSurfaceCreate(holder.getSurface(), getWidth(), getHeight());
   }
@@ -36,6 +42,6 @@ public class WebGPUSurfaceView extends WebGPUBaseView implements SurfaceHolder.C
 
   @Override
   public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
-    handleSurfaceDestroyed();
+    switchToOffscreenSurface(mContextId);
   }
 }

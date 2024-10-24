@@ -13,6 +13,8 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUBaseView> {
 
   public static final String NAME = "WebGPUView";
 
+  private boolean transparent = false;
+
   @NonNull
   @Override
   public String getName() {
@@ -21,13 +23,16 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUBaseView> {
 
   @Override
   public WebGPUBaseView createViewInstance(ThemedReactContext context) {
-    return new WebGPUTextureView(context);
+    if (transparent) {
+      return new WebGPUTextureView(context);
+    }
+    return new WebGPUSurfaceView(context);
   }
 
   @Override
   @ReactProp(name = "androidTransparency")
   public void setAndroidTransparency(WebGPUBaseView view, boolean value) {
-    Log.i(NAME, "" + value);
+    transparent = value;
   }
 
   @Override
