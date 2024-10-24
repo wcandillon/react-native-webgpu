@@ -412,6 +412,10 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::FeatureName::BGRA8UnormStorage;
   } else if (inUnion == "float32-filterable") {
     *outEnum = wgpu::FeatureName::Float32Filterable;
+  } else if (inUnion == "clip-distances") {
+    *outEnum = wgpu::FeatureName::ClipDistances;
+  } else if (inUnion == "dual-source-blending") {
+    *outEnum = wgpu::FeatureName::DualSourceBlending;
   } else {
     throw invalidUnion(inUnion);
   }
@@ -452,6 +456,12 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
     break;
   case wgpu::FeatureName::Float32Filterable:
     *outUnion = "float32-filterable";
+    break;
+  case wgpu::FeatureName::ClipDistances:
+    *outUnion = "clip-distances";
+    break;
+  case wgpu::FeatureName::DualSourceBlending:
+    *outUnion = "dual-source-blending";
     break;
   default:
     throw invalidEnum(inEnum);
