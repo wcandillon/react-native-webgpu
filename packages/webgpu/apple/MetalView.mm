@@ -9,9 +9,21 @@
   BOOL _isConfigured;
 }
 
+#if !TARGET_OS_OSX
 + (Class)layerClass {
   return [CAMetalLayer class];
 }
+#else // !TARGET_OS_OSX
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        self.wantsLayer = true;
+        self.layer = [CAMetalLayer layer];
+    }
+    return self;
+}
+#endif // !TARGET_OS_OSX
 
 - (void)configure {
   auto size = self.frame.size;
