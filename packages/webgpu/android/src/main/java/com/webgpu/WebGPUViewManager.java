@@ -19,7 +19,7 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUBaseView> {
 
   @Override
   public WebGPUBaseView createViewInstance(ThemedReactContext context) {
-    return new WebGPUSurfaceView(context);
+    return new WebGPUTextureView(context);
   }
 
   @Override

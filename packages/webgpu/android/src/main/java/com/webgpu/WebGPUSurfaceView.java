@@ -9,11 +9,19 @@ import androidx.annotation.NonNull;
 
 public class WebGPUSurfaceView extends WebGPUBaseView implements SurfaceHolder.Callback {
 
+  SurfaceView mSurfaceView;
+
   public WebGPUSurfaceView(Context context) {
     super(context);
-    SurfaceView surfaceView = new SurfaceView(context);
-    surfaceView.getHolder().addCallback(this);
-    addView(surfaceView);
+    mSurfaceView = new SurfaceView(context);
+    mSurfaceView.getHolder().addCallback(this);
+    addView(mSurfaceView);
+  }
+
+  @Override
+  protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+    super.onLayout(changed, left, top, right, bottom);
+    mSurfaceView.layout(0, 0, this.getMeasuredWidth(), this.getMeasuredHeight());
   }
 
   @Override
