@@ -89,51 +89,56 @@ const useSizePaper = (_ref: RefObject<View>) => {
   return { size, onLayout };
 };
 
-export const Canvas = forwardRef<CanvasRef, ViewProps>(
-  ({ onLayout: _onLayout, ...props }, ref) => {
-    const viewRef = useRef(null);
-    const FABRIC = RNWebGPU.fabric;
-    const useSize = FABRIC ? useSizeFabric : useSizePaper;
-    const [contextId, _] = useState(() => generateContextId());
-    const cb = useRef<() => void>();
-    const { size, onLayout } = useSize(viewRef);
-    useEffect(() => {
-      if (size && cb.current) {
-        cb.current();
+export const Canvas = forwardRef<
+  CanvasRef,
+  ViewProps & { androidTransparency?: boolean }
+>(({ onLayout: _onLayout, androidTransparency, ...props }, ref) => {
+  const viewRef = useRef(null);
+  const FABRIC = RNWebGPU.fabric;
+  const useSize = FABRIC ? useSizeFabric : useSizePaper;
+  const [contextId, _] = useState(() => generateContextId());
+  const cb = useRef<() => void>();
+  const { size, onLayout } = useSize(viewRef);
+  useEffect(() => {
+    if (size && cb.current) {
+      cb.current();
+    }
+  }, [size]);
+  useImperativeHandle(ref, () => ({
+    getNativeSurface: () => {
+      if (size === null) {
+        throw new Error("[WebGPU] Canvas size is not available yet");
       }
-    }, [size]);
-    useImperativeHandle(ref, () => ({
-      getNativeSurface: () => {
-        if (size === null) {
-          throw new Error("[WebGPU] Canvas size is not available yet");
-        }
-        return RNWebGPU.getNativeSurface(contextId);
-      },
-      whenReady(callback: () => void) {
-        if (size === null) {
-          cb.current = callback;
-        } else {
-          callback();
-        }
-      },
-      getContext(contextName: "webgpu"): RNCanvasContext | null {
-        if (contextName !== "webgpu") {
-          throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
-        }
-        if (size === null) {
-          throw new Error("[WebGPU] Canvas size is not available yet");
-        }
-        return RNWebGPU.MakeWebGPUCanvasContext(
-          contextId,
-          size.width,
-          size.height,
-        );
-      },
-    }));
-    return (
-      <View ref={viewRef} onLayout={onLayout} {...props}>
-        <WebGPUNativeView style={{ flex: 1 }} contextId={contextId} />
-      </View>
-    );
-  },
-);
+      return RNWebGPU.getNativeSurface(contextId);
+    },
+    whenReady(callback: () => void) {
+      if (size === null) {
+        cb.current = callback;
+      } else {
+        callback();
+      }
+    },
+    getContext(contextName: "webgpu"): RNCanvasContext | null {
+      if (contextName !== "webgpu") {
+        throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
+      }
+      if (size === null) {
+        throw new Error("[WebGPU] Canvas size is not available yet");
+      }
+      return RNWebGPU.MakeWebGPUCanvasContext(
+        contextId,
+        size.width,
+        size.height,
+      );
+    },
+  }));
+  return (
+    <View ref={viewRef} onLayout={onLayout} {...props}>
+      <WebGPUNativeView
+        style={{ flex: 1 }}
+        contextId={contextId}
+        androidTransparency={!!androidTransparency}
+      />
+    </View>
+  );
+});

@@ -1,5 +1,7 @@
 package com.webgpu;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 import com.facebook.react.module.annotations.ReactModule;
@@ -20,6 +22,12 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUBaseView> {
   @Override
   public WebGPUBaseView createViewInstance(ThemedReactContext context) {
     return new WebGPUTextureView(context);
+  }
+
+  @Override
+  @ReactProp(name = "androidTransparency")
+  public void setAndroidTransparency(WebGPUBaseView view, boolean value) {
+    Log.i(NAME, "" + value);
   }
 
   @Override
