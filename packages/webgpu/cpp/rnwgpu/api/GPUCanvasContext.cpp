@@ -16,8 +16,9 @@ void GPUCanvasContext::configure(
       throw std::runtime_error("Error with SurfaceConfiguration");
     }
   }
-  if (!conv(surfaceConfiguration.usage, configuration->usage) || !conv(surfaceConfiguration.format, configuration->format)) {
-        throw std::runtime_error("Error with SurfaceConfiguration");
+  if (!conv(surfaceConfiguration.usage, configuration->usage) ||
+      !conv(surfaceConfiguration.format, configuration->format)) {
+    throw std::runtime_error("Error with SurfaceConfiguration");
   }
 
 #ifdef __APPLE__

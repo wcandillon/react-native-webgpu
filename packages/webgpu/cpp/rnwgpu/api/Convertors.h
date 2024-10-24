@@ -175,6 +175,17 @@ public:
     return true;
   }
 
+  [[nodiscard]] bool Convert(wgpu::OptionalBool &out,
+                             const std::optional<bool> &in) {
+    out = in;
+    return true;
+  }
+
+  [[nodiscard]] bool Convert(wgpu::StringView &out, const std::string &in) {
+    out = {in.data(), in.size()};
+    return true;
+  }
+
   [[nodiscard]] bool Convert(const char *&out, const std::string &in) {
     out = in.c_str();
     return true;
@@ -481,11 +492,8 @@ public:
                              const GPUPrimitiveState &in) {
     out = {};
 
-    if (in.unclippedDepth) {
-      wgpu::PrimitiveDepthClipControl *depthClip =
-          Allocate<wgpu::PrimitiveDepthClipControl>();
-      depthClip->unclippedDepth = true;
-      out.nextInChain = depthClip;
+    if (in.unclippedDepth.has_value()) {
+      out.unclippedDepth = in.unclippedDepth.value();
     }
 
     return Convert(out.topology, in.topology) &&

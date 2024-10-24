@@ -18,7 +18,8 @@ GPUShaderModule::getCompilationInfo() {
             for (size_t i = 0; i < compilationInfo->messageCount; ++i) {
               const auto &wgpuMessage = compilationInfo->messages[i];
               GPUCompilationMessage message;
-              message.message = wgpuMessage.message ? wgpuMessage.message : "";
+              message.message =
+                  wgpuMessage.message.length ? wgpuMessage.message.data : "";
               message.type = wgpuMessage.type;
               message.lineNum = wgpuMessage.lineNum;
               message.linePos = wgpuMessage.linePos;

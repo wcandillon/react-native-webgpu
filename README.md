@@ -226,6 +226,8 @@ Alternatively if you want to build for a specific platform only, you can use `in
 yarn build-dawn --includeOnly=xros,xrsimulator
 ```
 
+### Downloading Dawn
+
 There is an alternative way which is to download the prebuilt binaries from GitHub.
 You need to have the [Github CLI](https://cli.github.com/) installed:
 
@@ -234,6 +236,8 @@ $ yarn
 $ cd packages/webgpu
 $ yarn download-artifacts
 ```
+
+Alternatively you can also download the prebuilt binaries [here](https://github.com/wcandillon/react-native-webgpu/actions/workflows/build-dawn.yml).
 
 ### Upgrading
 

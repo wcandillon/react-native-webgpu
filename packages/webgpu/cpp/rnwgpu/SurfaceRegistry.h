@@ -50,14 +50,18 @@ public:
 
   void *switchToOffscreen() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    wgpu::TextureDescriptor textureDesc;
-    textureDesc.usage = wgpu::TextureUsage::RenderAttachment |
-                        wgpu::TextureUsage::CopySrc |
-                        wgpu::TextureUsage::TextureBinding;
-    textureDesc.format = config.format;
-    textureDesc.size.width = config.width;
-    textureDesc.size.height = config.height;
-    texture = config.device.CreateTexture(&textureDesc);
+    // We only do this if the onscreen surface is configured.
+    auto isConfigured = config.device != nullptr;
+    if (isConfigured) {
+      wgpu::TextureDescriptor textureDesc;
+      textureDesc.usage = wgpu::TextureUsage::RenderAttachment |
+                          wgpu::TextureUsage::CopySrc |
+                          wgpu::TextureUsage::TextureBinding;
+      textureDesc.format = config.format;
+      textureDesc.size.width = config.width;
+      textureDesc.size.height = config.height;
+      texture = config.device.CreateTexture(&textureDesc);
+    }
     surface = nullptr;
     return nativeSurface;
   }

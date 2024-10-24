@@ -4283,7 +4283,7 @@ __metadata:
     "@types/react": ^18.2.6
     "@types/react-test-renderer": ^18.0.0
     "@types/three": 0.168.0
-    "@webgpu/types": ^0.1.44
+    "@webgpu/types": 0.1.49
     babel-jest: ^29.6.3
     eslint: ^8.19.0
     eslint-config-react-native-wcandillon: ^3.10.2
@@ -10617,7 +10617,7 @@ __metadata:
     "@types/ws": ^8.5.10
     "@typescript-eslint/eslint-plugin": ^8.4.0
     "@typescript-eslint/parser": ^8.4.0
-    "@webgpu/types": ^0.1.44
+    "@webgpu/types": 0.1.49
     clang-format: ^1.8.0
     del-cli: ^5.1.0
     eslint: 8

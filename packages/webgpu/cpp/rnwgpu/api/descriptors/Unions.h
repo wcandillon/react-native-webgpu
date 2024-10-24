@@ -67,6 +67,14 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::BlendFactor::Constant;
   } else if (inUnion == "one-minus-constant") {
     *outEnum = wgpu::BlendFactor::OneMinusConstant;
+  } else if (inUnion == "src1") {
+    *outEnum = wgpu::BlendFactor::Src1;
+  } else if (inUnion == "one-minus-src1") {
+    *outEnum = wgpu::BlendFactor::OneMinusSrc1;
+  } else if (inUnion == "src1-alpha") {
+    *outEnum = wgpu::BlendFactor::Src1Alpha;
+  } else if (inUnion == "one-minus-src1-alpha") {
+    *outEnum = wgpu::BlendFactor::OneMinusSrc1Alpha;
   } else {
     throw invalidUnion(inUnion);
   }
@@ -113,6 +121,18 @@ static void convertEnumToJSUnion(wgpu::BlendFactor inEnum,
     break;
   case wgpu::BlendFactor::OneMinusConstant:
     *outUnion = "one-minus-constant";
+    break;
+  case wgpu::BlendFactor::Src1:
+    *outUnion = "src1";
+    break;
+  case wgpu::BlendFactor::OneMinusSrc1:
+    *outUnion = "one-minus-src1";
+    break;
+  case wgpu::BlendFactor::Src1Alpha:
+    *outUnion = "src1-alpha";
+    break;
+  case wgpu::BlendFactor::OneMinusSrc1Alpha:
+    *outUnion = "one-minus-src1-alpha";
     break;
   default:
     throw invalidEnum(inEnum);
@@ -412,6 +432,10 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::FeatureName::BGRA8UnormStorage;
   } else if (inUnion == "float32-filterable") {
     *outEnum = wgpu::FeatureName::Float32Filterable;
+  } else if (inUnion == "clip-distances") {
+    *outEnum = wgpu::FeatureName::ClipDistances;
+  } else if (inUnion == "dual-source-blending") {
+    *outEnum = wgpu::FeatureName::DualSourceBlending;
   } else {
     throw invalidUnion(inUnion);
   }
@@ -452,6 +476,12 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
     break;
   case wgpu::FeatureName::Float32Filterable:
     *outUnion = "float32-filterable";
+    break;
+  case wgpu::FeatureName::ClipDistances:
+    *outUnion = "clip-distances";
+    break;
+  case wgpu::FeatureName::DualSourceBlending:
+    *outUnion = "dual-source-blending";
     break;
   default:
     throw invalidEnum(inEnum);

@@ -60,7 +60,9 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
                                                                       false);
       }
       if (value.hasProperty(runtime, "alphaMode")) {
-        auto prop = value.getProperty(runtime, "alphaMode").asString(runtime).utf8(runtime);
+        auto prop = value.getProperty(runtime, "alphaMode")
+                        .asString(runtime)
+                        .utf8(runtime);
         if (prop == "premultiplied") {
           result->alphaMode = wgpu::CompositeAlphaMode::Premultiplied;
         }

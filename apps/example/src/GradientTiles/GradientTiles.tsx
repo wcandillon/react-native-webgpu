@@ -1,24 +1,37 @@
-import React, { useEffect, useState } from "react";
-import { Button, StyleSheet, View, Text } from "react-native";
-import { Canvas } from "react-native-wgpu";
+import { useEffect, useState } from "react";
+import { Button, PixelRatio, StyleSheet, Text, View } from "react-native";
+import { Canvas, useDevice, useGPUContext } from "react-native-wgpu";
 import { struct, u32 } from "typegpu/data";
 import tgpu from "typegpu";
 
-import { useWebGPU } from "../components/useWebGPU";
-
 import { vertWGSL, fragWGSL } from "./gradientWgsl";
 
-let draw = (_: number, __: number) => {};
+interface RenderingState {
+  pipeline: GPURenderPipeline;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  spanBuffer: any;
+  bindGroup: GPUBindGroup;
+}
 
 export function GradientTiles() {
+  const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+  const [state, setState] = useState<null | RenderingState>(null);
   const [spanX, setSpanX] = useState(4);
   const [spanY, setSpanY] = useState(4);
-
+  const { device } = useDevice();
+  const { ref, context } = useGPUContext();
   useEffect(() => {
-    draw(spanX, spanY);
-  }, [spanX, spanY]);
+    if (!device || !context || state !== null) {
+      return;
+    }
+    const canvas = context.canvas as HTMLCanvasElement;
+    canvas.width = canvas.clientWidth * PixelRatio.get();
+    canvas.height = canvas.clientHeight * PixelRatio.get();
+    context.configure({
+      device,
+      format: presentationFormat,
+    });
 
-  const ref = useWebGPU(({ context, device, presentationFormat }) => {
     const Span = struct({
       x: u32,
       y: u32,
@@ -62,39 +75,38 @@ export function GradientTiles() {
         },
       ],
     });
+    setState({ bindGroup, pipeline, spanBuffer });
+  }, [context, device, presentationFormat, state]);
 
-    draw = (spanXValue: number, spanYValue: number) => {
-      const textureView = context.getCurrentTexture().createView();
-      const renderPassDescriptor: GPURenderPassDescriptor = {
-        colorAttachments: [
-          {
-            view: textureView,
-            clearValue: [0, 0, 0, 0],
-            loadOp: "clear",
-            storeOp: "store",
-          },
-        ],
-      };
-
-      tgpu.write(spanBuffer, { x: spanXValue, y: spanYValue });
-
-      const commandEncoder = device.createCommandEncoder();
-      const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-      passEncoder.setPipeline(pipeline);
-      passEncoder.setBindGroup(0, bindGroup);
-      passEncoder.draw(4);
-      passEncoder.end();
-
-      device.queue.submit([commandEncoder.finish()]);
-      (
-        context as GPUCanvasContext & {
-          present: () => void;
-        }
-      ).present();
+  useEffect(() => {
+    if (!context || !device || !state) {
+      return;
+    }
+    const { bindGroup, pipeline, spanBuffer } = state;
+    const textureView = context.getCurrentTexture().createView();
+    const renderPassDescriptor: GPURenderPassDescriptor = {
+      colorAttachments: [
+        {
+          view: textureView,
+          clearValue: [0, 0, 0, 0],
+          loadOp: "clear",
+          storeOp: "store",
+        },
+      ],
     };
 
-    draw(spanX, spanY);
-  });
+    tgpu.write(spanBuffer, { x: spanX, y: spanY });
+
+    const commandEncoder = device.createCommandEncoder();
+    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+    passEncoder.setPipeline(pipeline);
+    passEncoder.setBindGroup(0, bindGroup);
+    passEncoder.draw(4);
+    passEncoder.end();
+
+    device.queue.submit([commandEncoder.finish()]);
+    context.present();
+  }, [context, device, spanX, spanY, state]);
 
   return (
     <View style={style.container}>
