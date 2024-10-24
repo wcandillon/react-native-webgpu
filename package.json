@@ -3,7 +3,7 @@
   "private": true,
   "workspaces": [
     "packages/*",
-    "apps/*"
+    "apps/example"
   ],
   "resolutions": {
     "@types/react": "^18.2.44",

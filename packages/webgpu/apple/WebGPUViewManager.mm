@@ -1,5 +1,5 @@
 #import "MetalView.h"
-#import "RCTBridge.h"
+#import <React/RCTBridge.h>
 #import "WebGPUModule.h"
 #import <React/RCTUIManager.h>
 #import <React/RCTViewManager.h>
