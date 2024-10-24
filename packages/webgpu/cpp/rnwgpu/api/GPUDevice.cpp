@@ -336,6 +336,7 @@ std::unordered_set<std::string> GPUDevice::getFeatures() {
 }
 
 std::future<std::shared_ptr<GPUDeviceLostInfo>> GPUDevice::getLost() {
-  return m_lostPromise->get_future();
+  return std::async(std::launch::async,
+                    [=]() { return m_lostSharedFuture->get(); });
 }
 } // namespace rnwgpu
