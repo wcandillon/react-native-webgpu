@@ -15,12 +15,15 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import java.util.LinkedList;
+import java.util.Queue;
+
 @SuppressLint("ViewConstructor")
 @RequiresApi(api = Build.VERSION_CODES.Q)
 public class WebGPUAHBView extends View {
 
-  private ImageReader mImageReader = null;
-  private Bitmap mBitmap = null;
+  private final Queue<ImageReader> mImageReaders = new LinkedList<>();
+  private final Queue<Bitmap> mBitmaps = new LinkedList<>();
 
   private final Matrix matrix = new Matrix();
 
@@ -39,34 +42,45 @@ public class WebGPUAHBView extends View {
       HardwareBuffer.USAGE_CPU_WRITE_RARELY |
       HardwareBuffer.USAGE_GPU_COLOR_OUTPUT |
       HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE;
-    mImageReader = ImageReader.newInstance(getWidth(), getHeight(), PixelFormat.RGBA_8888, 2, usage);
-    mApi.surfaceCreated(mImageReader.getSurface());
-    mImageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
+    ImageReader imageReader = ImageReader.newInstance(getWidth(), getHeight(), PixelFormat.RGBA_8888, 2, usage);
+    if (mImageReaders.isEmpty()) {
+      mApi.surfaceCreated(imageReader.getSurface());
+    } else {
+      mApi.surfaceChanged(imageReader.getSurface());
+    }
+    imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
       @Override
       public void onImageAvailable(ImageReader reader) {
-        try (Image image = mImageReader.acquireLatestImage()) {
+        try (Image image = reader.acquireLatestImage()) {
           if (image != null) {
             //start = System.nanoTime();
             HardwareBuffer hb = image.getHardwareBuffer();
             if (hb != null) {
-              mBitmap = Bitmap.wrapHardwareBuffer(hb, null);
+              Bitmap bitmap = Bitmap.wrapHardwareBuffer(hb, null);
+              mBitmaps.add(bitmap);
+              invalidate();
               hb.close();
             }
-            invalidate();
           }
         }
       }
     }, null);
+    mImageReaders.add(imageReader);
   }
 
   @Override
   protected void onDraw(@NonNull Canvas canvas) {
     super.onDraw(canvas);
-    if (mBitmap != null) {
+    Bitmap bitmap = mBitmaps.poll();
+    if (bitmap != null) {
       //end = System.nanoTime();
       //Log.i(tag, "render time: " + (end - start) / 1000000 + "ms");
-      canvas.drawBitmap(mBitmap, matrix, null);
+      canvas.drawBitmap(bitmap, matrix, null);
     }
+    ImageReader top = mImageReaders.poll();
+    mImageReaders.clear();
+    mImageReaders.add(top);
+    mBitmaps.clear();
   }
 
   @Override
