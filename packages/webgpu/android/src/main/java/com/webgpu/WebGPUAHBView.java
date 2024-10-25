@@ -1,5 +1,6 @@
 package com.webgpu;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -14,15 +15,14 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
-import java.util.Queue;
-
+@SuppressLint("ViewConstructor")
 @RequiresApi(api = Build.VERSION_CODES.Q)
 public class WebGPUAHBView extends View {
 
   private ImageReader mImageReader = null;
   private Bitmap mBitmap = null;
 
-  private Matrix matrix = new Matrix();
+  private final Matrix matrix = new Matrix();
 
   WebGPUAPI mApi;
 
@@ -42,15 +42,16 @@ public class WebGPUAHBView extends View {
     mImageReader = ImageReader.newInstance(getWidth(), getHeight(), PixelFormat.RGBA_8888, 2, usage);
     mApi.surfaceCreated(mImageReader.getSurface());
     mImageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
-
       @Override
       public void onImageAvailable(ImageReader reader) {
         try (Image image = mImageReader.acquireLatestImage()) {
           if (image != null) {
             //start = System.nanoTime();
             HardwareBuffer hb = image.getHardwareBuffer();
-            mBitmap = Bitmap.wrapHardwareBuffer(hb, null);
-            hb.close();
+            if (hb != null) {
+              mBitmap = Bitmap.wrapHardwareBuffer(hb, null);
+              hb.close();
+            }
             invalidate();
           }
         }
@@ -72,9 +73,5 @@ public class WebGPUAHBView extends View {
   protected void onDetachedFromWindow() {
     super.onDetachedFromWindow();
     mApi.surfaceDestroyed();
-  }
-
-  public void surfaceDestroyed() {
-    //switchToOffscreenSurface(mContextId);
   }
 }
