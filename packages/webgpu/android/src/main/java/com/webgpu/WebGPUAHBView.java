@@ -84,7 +84,7 @@ public class WebGPUAHBView extends View {
       //Log.i(tag, "render time: " + (end - start) / 1000000 + "ms");
       canvas.drawBitmap(mBitmap, matrix, null);
     } else {
-      canvas.drawColor(0xffff0000);
+      canvas.drawColor(0x00000000);
     }
   }
 
