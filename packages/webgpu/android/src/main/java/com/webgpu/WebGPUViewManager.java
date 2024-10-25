@@ -17,9 +17,16 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
     return NAME;
   }
 
+  @NonNull
   @Override
-  public WebGPUView createViewInstance(ThemedReactContext context) {
+  public WebGPUView createViewInstance(@NonNull ThemedReactContext context) {
     return new WebGPUView(context);
+  }
+
+  @Override
+  @ReactProp(name = "androidTransparency")
+  public void setAndroidTransparency(WebGPUView view, boolean value) {
+    view.setTransparent(value);
   }
 
   @Override

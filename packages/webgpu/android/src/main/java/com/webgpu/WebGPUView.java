@@ -1,26 +1,25 @@
 package com.webgpu;
 
-import androidx.annotation.NonNull;
-
 import android.content.Context;
+import android.os.Build;
 import android.view.Surface;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
+import android.view.View;
 
 import com.facebook.proguard.annotations.DoNotStrip;
 import com.facebook.react.uimanager.ThemedReactContext;
+import com.facebook.react.views.view.ReactViewGroup;
 
-public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
-
-  private Integer mContextId;
+public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
+  private int mContextId;
+  private boolean mTransparent;
   private WebGPUModule mModule;
+  private View mView;
 
-  public WebGPUView(Context context) {
+  WebGPUView(Context context) {
     super(context);
-    getHolder().addCallback(this);
   }
 
-  public void setContextId(Integer contextId) {
+  public void setContextId(int contextId) {
     if (mModule == null) {
       Context context = getContext();
       if (context instanceof ThemedReactContext) {
@@ -30,35 +29,52 @@ public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
     mContextId = contextId;
   }
 
+  public void setTransparent(boolean transparent) {
+    Context ctx = getContext();
+    if (mTransparent != transparent) {
+      removeAllViews();
+    }
+    mTransparent = transparent;
+//    if (mTransparent && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//      mView = new WebGPUAHBView(ctx, this);
+//    } else
+    if (transparent) {
+      mView = new WebGPUTextureView(ctx, this);
+    } else {
+      mView = new WebGPUSurfaceView(ctx, this);
+    }
+    addView(mView);
+  }
+
   @Override
   protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
     super.onLayout(changed, left, top, right, bottom);
+    mView.layout(0, 0, this.getMeasuredWidth(), this.getMeasuredHeight());
   }
 
   @Override
-  public void surfaceCreated(@NonNull SurfaceHolder holder) {
+  public void surfaceCreated(Surface surface) {
     float density = getResources().getDisplayMetrics().density;
     float width = getWidth() / density;
     float height = getHeight() / density;
-    onSurfaceCreate(holder.getSurface(), mContextId, width, height);
+    onSurfaceCreate(surface, mContextId, width, height);
   }
 
   @Override
-  public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
+  public void surfaceChanged(Surface surface) {
     float density = getResources().getDisplayMetrics().density;
-    float scaledWidth = width / density;
-    float scaledHeight = height / density;
-    onSurfaceChanged(holder.getSurface(), mContextId, scaledWidth, scaledHeight);
+    float width = getWidth() / density;
+    float height = getHeight() / density;
+    onSurfaceChanged(surface, mContextId, width, height);
   }
 
   @Override
-  protected void onDetachedFromWindow() {
-    super.onDetachedFromWindow();
+  public void surfaceDestroyed() {
     onSurfaceDestroy(mContextId);
   }
 
   @Override
-  public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
+  public void surfaceOffscreen() {
     switchToOffscreenSurface(mContextId);
   }
 
@@ -78,10 +94,10 @@ public class WebGPUView extends SurfaceView implements SurfaceHolder.Callback {
     float height
   );
 
-
   @DoNotStrip
   private native void onSurfaceDestroy(int contextId);
 
   @DoNotStrip
   private native void switchToOffscreenSurface(int contextId);
+
 }

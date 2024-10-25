@@ -110,7 +110,7 @@ export function GradientTiles() {
 
   return (
     <View style={style.container}>
-      <Canvas ref={ref} style={style.webgpu} />
+      <Canvas ref={ref} style={style.webgpu} androidTransparency />
       <View style={style.controls}>
         <View style={style.buttonRow}>
           <Text style={style.spanText}>span x: </Text>
