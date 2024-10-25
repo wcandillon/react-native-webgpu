@@ -1,11 +1,13 @@
 package com.webgpu;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import androidx.annotation.NonNull;
 
+@SuppressLint("ViewConstructor")
 public class WebGPUSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
 
   WebGPUAPI mApi;

@@ -1,5 +1,6 @@
 package com.webgpu;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.view.Surface;
@@ -8,9 +9,9 @@ import androidx.annotation.NonNull;
 
 import org.w3c.dom.Text;
 
+@SuppressLint("ViewConstructor")
 public class WebGPUTextureView extends TextureView implements TextureView.SurfaceTextureListener {
 
-  TextureView mTextureView;
   WebGPUAPI mApi;
 
   public WebGPUTextureView(Context context, WebGPUAPI api) {
