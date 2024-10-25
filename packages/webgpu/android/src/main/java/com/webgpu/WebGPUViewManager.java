@@ -1,7 +1,5 @@
 package com.webgpu;
 
-import android.util.Log;
-
 import androidx.annotation.NonNull;
 
 import com.facebook.react.module.annotations.ReactModule;
@@ -9,11 +7,9 @@ import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.annotations.ReactProp;
 
 @ReactModule(name = WebGPUViewManager.NAME)
-public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUBaseView> {
+public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
 
   public static final String NAME = "WebGPUView";
-
-  private boolean transparent = false;
 
   @NonNull
   @Override
@@ -21,23 +17,21 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUBaseView> {
     return NAME;
   }
 
+  @NonNull
   @Override
-  public WebGPUBaseView createViewInstance(ThemedReactContext context) {
-    if (transparent) {
-      return new WebGPUTextureView(context);
-    }
-    return new WebGPUSurfaceView(context);
+  public WebGPUView createViewInstance(@NonNull ThemedReactContext context) {
+    return new WebGPUView(context);
   }
 
   @Override
   @ReactProp(name = "androidTransparency")
-  public void setAndroidTransparency(WebGPUBaseView view, boolean value) {
-    transparent = value;
+  public void setAndroidTransparency(WebGPUView view, boolean value) {
+    view.setTransparent(value);
   }
 
   @Override
   @ReactProp(name = "contextId")
-  public void setContextId(WebGPUBaseView view, int value) {
+  public void setContextId(WebGPUView view, int value) {
     view.setContextId(value);
   }
 }

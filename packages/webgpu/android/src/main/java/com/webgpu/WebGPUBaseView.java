@@ -4,40 +4,26 @@ import android.content.Context;
 import android.view.Surface;
 import android.view.View;
 import com.facebook.proguard.annotations.DoNotStrip;
-import com.facebook.react.uimanager.ThemedReactContext;
-import com.facebook.react.views.view.ReactViewGroup;
 
-public abstract class WebGPUBaseView extends ReactViewGroup {
+public abstract class WebGPUBaseView extends View {
   protected Integer mContextId;
-  protected WebGPUModule mModule;
 
-  public WebGPUBaseView(Context context) {
+  public WebGPUBaseView(Context context, Integer contextId) {
     super(context);
-  }
-
-  public void setContextId(Integer contextId) {
-    if (mModule == null) {
-      Context context = getContext();
-      if (context instanceof ThemedReactContext) {
-        mModule = ((ThemedReactContext) context)
-          .getReactApplicationContext()
-          .getNativeModule(WebGPUModule.class);
-      }
-    }
     mContextId = contextId;
   }
 
-  protected void handleSurfaceCreate(Surface surface, int width, int height) {
+  protected void handleSurfaceCreate(Surface surface) {
     float density = getResources().getDisplayMetrics().density;
-    float scaledWidth = width / density;
-    float scaledHeight = height / density;
+    float scaledWidth = getWidth() / density;
+    float scaledHeight = getHeight() / density;
     onSurfaceCreate(surface, mContextId, scaledWidth, scaledHeight);
   }
 
-  protected void handleSurfaceChanged(Surface surface, int width, int height) {
+  protected void handleSurfaceChanged(Surface surface) {
     float density = getResources().getDisplayMetrics().density;
-    float scaledWidth = width / density;
-    float scaledHeight = height / density;
+    float scaledWidth = getWidth() / density;
+    float scaledHeight = getHeight() / density;
     onSurfaceChanged(surface, mContextId, scaledWidth, scaledHeight);
   }
 
@@ -50,11 +36,6 @@ public abstract class WebGPUBaseView extends ReactViewGroup {
     super.onLayout(changed, left, top, right, bottom);
   }
 
-  @Override
-  protected void onDetachedFromWindow() {
-    super.onDetachedFromWindow();
-    onSurfaceDestroy(mContextId);
-  }
 
   @DoNotStrip
   private native void onSurfaceCreate(
