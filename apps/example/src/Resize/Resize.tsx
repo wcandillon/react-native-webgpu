@@ -117,7 +117,9 @@ export const Resize = () => {
 
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
-      <Animated.View style={{ width: width.current, flex: 1 }}>
+      <Animated.View
+        style={{ width: width.current, flex: 1, backgroundColor: "red" }}
+      >
         <Canvas ref={ref} style={{ flex: 1 }} androidTransparency />
       </Animated.View>
     </View>

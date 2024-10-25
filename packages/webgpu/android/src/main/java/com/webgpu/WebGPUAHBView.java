@@ -60,12 +60,12 @@ public class WebGPUAHBView extends View {
               if (bitmap != null) {
                 WebGPUAHBView.this.mBitmap = bitmap;
                 hb.close();
-                ImageReader imgReader = mImageReaders.poll();
+                ImageReader imageReader = mImageReaders.poll();
                 ImageReader ir;
                 while((ir = mImageReaders.poll()) != null) {
-                  ir.close();
+                    ir.close();
                 }
-                mImageReaders.add(imgReader);
+                mImageReaders.add(imageReader);
                 invalidate();
               }
             }
