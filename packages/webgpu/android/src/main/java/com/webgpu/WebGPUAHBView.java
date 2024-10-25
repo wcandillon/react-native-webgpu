@@ -57,9 +57,18 @@ public class WebGPUAHBView extends View {
             HardwareBuffer hb = image.getHardwareBuffer();
             if (hb != null) {
               Bitmap bitmap = Bitmap.wrapHardwareBuffer(hb, null);
-              mBitmaps.add(bitmap);
-              invalidate();
-              hb.close();
+              if (bitmap != null) {
+                mBitmaps.clear();
+                mBitmaps.add(bitmap);
+                hb.close();
+                ImageReader imgReader = mImageReaders.poll();
+                ImageReader ir;
+                while((ir = mImageReaders.poll()) != null) {
+                  ir.close();
+                }
+                mImageReaders.add(imgReader);
+                invalidate();
+              }
             }
           }
         }
@@ -76,11 +85,9 @@ public class WebGPUAHBView extends View {
       //end = System.nanoTime();
       //Log.i(tag, "render time: " + (end - start) / 1000000 + "ms");
       canvas.drawBitmap(bitmap, matrix, null);
+    } else {
+      canvas.drawColor(0xffff0000);
     }
-    ImageReader top = mImageReaders.poll();
-    mImageReaders.clear();
-    mImageReaders.add(top);
-    mBitmaps.clear();
   }
 
   @Override
