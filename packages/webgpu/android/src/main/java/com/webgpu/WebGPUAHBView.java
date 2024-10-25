@@ -23,7 +23,7 @@ import java.util.Queue;
 public class WebGPUAHBView extends View {
 
   private final Queue<ImageReader> mImageReaders = new LinkedList<>();
-  private final Queue<Bitmap> mBitmaps = new LinkedList<>();
+  private Bitmap mBitmap = null;
 
   private final Matrix matrix = new Matrix();
 
@@ -58,8 +58,7 @@ public class WebGPUAHBView extends View {
             if (hb != null) {
               Bitmap bitmap = Bitmap.wrapHardwareBuffer(hb, null);
               if (bitmap != null) {
-                mBitmaps.clear();
-                mBitmaps.add(bitmap);
+                WebGPUAHBView.this.mBitmap = bitmap;
                 hb.close();
                 ImageReader imgReader = mImageReaders.poll();
                 ImageReader ir;
@@ -80,11 +79,10 @@ public class WebGPUAHBView extends View {
   @Override
   protected void onDraw(@NonNull Canvas canvas) {
     super.onDraw(canvas);
-    Bitmap bitmap = mBitmaps.poll();
-    if (bitmap != null) {
+    if (mBitmap != null) {
       //end = System.nanoTime();
       //Log.i(tag, "render time: " + (end - start) / 1000000 + "ms");
-      canvas.drawBitmap(bitmap, matrix, null);
+      canvas.drawBitmap(mBitmap, matrix, null);
     } else {
       canvas.drawColor(0xffff0000);
     }
