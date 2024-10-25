@@ -31,17 +31,14 @@ public class WebGPUAHBView extends View {
 
   public WebGPUAHBView(Context context, WebGPUAPI api) {
     super(context);
-    setWillNotDraw(false);
     mApi = api;
   }
 
   @Override
   protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
     super.onLayout(changed, left, top, right, bottom);
-    long usage = HardwareBuffer.USAGE_CPU_READ_RARELY |
-      HardwareBuffer.USAGE_CPU_WRITE_RARELY |
-      HardwareBuffer.USAGE_GPU_COLOR_OUTPUT |
-      HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE;
+    long usage = HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE |
+      HardwareBuffer.USAGE_GPU_COLOR_OUTPUT;
     ImageReader imageReader = ImageReader.newInstance(getWidth(), getHeight(), PixelFormat.RGBA_8888, 2, usage);
     if (mImageReaders.isEmpty()) {
       mApi.surfaceCreated(imageReader.getSurface());

@@ -35,9 +35,10 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
       removeAllViews();
     }
     mTransparent = transparent;
-    if (mTransparent && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      mView = new WebGPUAHBView(ctx, this);
-    } else if (transparent) {
+//    if (mTransparent && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//      mView = new WebGPUAHBView(ctx, this);
+//    } else
+    if (transparent) {
       mView = new WebGPUTextureView(ctx, this);
     } else {
       mView = new WebGPUSurfaceView(ctx, this);
