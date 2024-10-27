@@ -22,7 +22,7 @@ struct Size {
 class SurfaceInfo {
 public:
   SurfaceInfo(wgpu::Instance gpu, int width, int height)
-      : gpu(gpu), width(width), height(height) {}
+      : gpu(std::move(gpu)), width(width), height(height) {}
 
   ~SurfaceInfo() {
     surface = nullptr;
