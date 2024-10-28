@@ -5,13 +5,35 @@ import android.os.Build;
 import android.view.Surface;
 import android.view.View;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.StringDef;
+
 import com.facebook.proguard.annotations.DoNotStrip;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.views.view.ReactViewGroup;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+
 public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
+
+  public static final String SURFACE_VIEW = "SurfaceView";
+  public static final String TEXTURE_VIEW = "TextureView";
+  public static final String HARDWARE_BUFFER = "HardwareBuffer";
+  public static final String SURFACE_VIEW2 = "SurfaceView2";
+
+  @Retention(RetentionPolicy.SOURCE)
+  @StringDef({
+    SURFACE_VIEW,
+    TEXTURE_VIEW,
+    HARDWARE_BUFFER,
+    SURFACE_VIEW2
+  })
+  public @interface ViewType {}
+
   private int mContextId;
-  private boolean mTransparent;
+  private @ViewType String mName = null;
   private WebGPUModule mModule;
   private View mView;
 
@@ -29,21 +51,31 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     mContextId = contextId;
   }
 
-  public void setTransparent(boolean transparent) {
+  public void setView(@NonNull @ViewType String name) {
     Context ctx = getContext();
-    if (mTransparent != transparent) {
-      removeAllViews();
+    if (mName == null || !mName.equals(name)) {
+      removeView(mView);
+      mName = name;
+      switch (name) {
+        case TEXTURE_VIEW -> mView = new WebGPUTextureView(ctx, this);
+        case HARDWARE_BUFFER -> {
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            mView = new WebGPUAHBView(ctx, this);
+          } else {
+            throw new RuntimeException("HardwareBuffer Canvas implementation is only available on API Level 29 and above");
+          }
+        }
+        case SURFACE_VIEW2 -> {
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            mView = new SurfaceView2(ctx, this);
+          } else {
+            throw new RuntimeException("HardwareBuffer Canvas implementation is only available on API Level 29 and above");
+          }
+        }
+        default -> mView = new WebGPUSurfaceView(ctx, this);
+      }
+      addView(mView);
     }
-    mTransparent = transparent;
-//    if (mTransparent && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-//      mView = new WebGPUAHBView(ctx, this);
-//    } else
-    if (transparent) {
-      mView = new WebGPUTextureView(ctx, this);
-    } else {
-      mView = new WebGPUSurfaceView(ctx, this);
-    }
-    addView(mView);
   }
 
   @Override
