@@ -8,5 +8,5 @@ import com.facebook.react.uimanager.SimpleViewManager;
 
 public abstract class WebGPUViewManagerSpec<T extends View> extends SimpleViewManager<T> {
   public abstract void setContextId(T view, int contextId);
-  public abstract void setAndroidTransparency(T view, boolean transparency);
+  public abstract void setAndroidView(T view, @Nullable String name);
 }
