@@ -60,8 +60,14 @@ const useSizePaper = (_ref: RefObject<View>) => {
   return { size, onLayout };
 };
 
-export const Canvas = forwardRef<CanvasRef, ViewProps>(
-  ({ onLayout: _onLayout, ...props }, ref) => {
+export const Canvas = forwardRef<
+  CanvasRef,
+  ViewProps & { androidTransparency?: boolean; androidExperimental?: boolean }
+>(
+  (
+    { onLayout: _onLayout, androidTransparency, androidExperimental, ...props },
+    ref,
+  ) => {
     const viewRef = useRef(null);
     const useSize = fabricIsEnabled() ? useSizeFabric : useSizePaper;
     const [contextId, _] = useState(() => generateContextId());
@@ -74,6 +80,7 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>(
     }, [size]);
 
     useImperativeHandle(ref, () => ({
+      getContextId: () => contextId,
       getNativeSurface: () => {
         if (size === null) {
           throw new Error("[WebGPU] Canvas size is not available yet");
@@ -99,7 +106,20 @@ export const Canvas = forwardRef<CanvasRef, ViewProps>(
     }));
     return (
       <View ref={viewRef} onLayout={onLayout} {...props}>
-        <WebGPUWrapper style={{ flex: 1 }} contextId={contextId} />
+        <WebGPUWrapper
+          style={{ flex: 1 }}
+          contextId={contextId}
+          androidView={
+            // eslint-disable-next-line no-nested-ternary
+            androidExperimental
+              ? androidTransparency
+                ? "HardwareBuffer"
+                : "SurfaceView2"
+              : androidTransparency
+                ? "TextureView"
+                : "SurfaceView"
+          }
+        />
       </View>
     );
   },

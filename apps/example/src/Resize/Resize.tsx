@@ -80,7 +80,7 @@ export const Resize = () => {
             {
               view: renderTargetView,
               resolveTarget: context.getCurrentTexture().createView(),
-              clearValue: [0.2, 0.2, 0.2, 1.0],
+              clearValue: [0.5, 0.5, 0.5, 1],
               loadOp: "clear",
               storeOp: "store",
             },
@@ -117,7 +117,9 @@ export const Resize = () => {
 
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
-      <Animated.View style={{ width: width.current, flex: 1 }}>
+      <Animated.View
+        style={{ width: width.current, flex: 1, backgroundColor: "red" }}
+      >
         <Canvas ref={ref} style={{ flex: 1 }} />
       </Animated.View>
     </View>

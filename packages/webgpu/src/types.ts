@@ -13,6 +13,7 @@ export type RNCanvasContext = GPUCanvasContext & {
 };
 
 export interface CanvasRef {
+  getContextId: () => number;
   getContext(contextName: "webgpu"): RNCanvasContext | null;
   getNativeSurface: () => NativeCanvas;
   whenReady: (callback: () => void) => void;

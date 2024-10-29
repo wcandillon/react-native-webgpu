@@ -1,6 +1,7 @@
 package com.webgpu;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.uimanager.ThemedReactContext;
@@ -17,9 +18,16 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
     return NAME;
   }
 
+  @NonNull
   @Override
-  public WebGPUView createViewInstance(ThemedReactContext context) {
+  public WebGPUView createViewInstance(@NonNull ThemedReactContext context) {
     return new WebGPUView(context);
+  }
+
+  @Override
+  @ReactProp(name = "androidView")
+  public void setAndroidView(WebGPUView view, @Nullable String value) {
+    view.setView(value == null ? WebGPUView.SURFACE_VIEW : value);
   }
 
   @Override
