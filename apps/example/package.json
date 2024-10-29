@@ -4,8 +4,9 @@
   "main": "index.js",
   "scripts": {
     "start": "expo start --dev-client",
-    "android": "expo prebuild -p android && expo run:android",
-    "ios": "rm -rf ios && (expo prebuild -p ios) && node ./scripts/modify-ios-directory.js && expo run:ios",
+    "prebuild": "(expo prebuild) && node ./scripts/modify-ios-directory.js",
+    "android": "yarn prebuild && expo run:android",
+    "ios": "yarn prebuild && expo run:ios",
     "web": "expo start --web -c"
   },
   "dependencies": {
