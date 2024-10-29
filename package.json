@@ -8,7 +8,9 @@
   "resolutions": {
     "@types/react": "^18.2.44",
     "@webgpu/types": "^0.1.42",
-    "@react-three/fiber@^8.17.6": "patch:@react-three/fiber@npm%3A8.17.6#./.yarn/patches/@react-three-fiber-npm-8.17.6-bc537e834c.patch"
+    "@react-three/fiber@^8.17.6": "patch:@react-three/fiber@npm%3A8.17.6#./.yarn/patches/@react-three-fiber-npm-8.17.6-bc537e834c.patch",
+    "react-native-web@~0.19.10": "patch:react-native-web@npm%3A0.19.13#./.yarn/patches/react-native-web-npm-0.19.13-fe8941425a.patch",
+    "three@0.168.0": "patch:three@npm%3A0.168.0#./.yarn/patches/three-npm-0.168.0-240bac8179.patch"
   },
   "packageManager": "yarn@3.6.1",
   "scripts": {

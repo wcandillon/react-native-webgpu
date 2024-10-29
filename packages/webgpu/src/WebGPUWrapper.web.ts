@@ -1,10 +1,11 @@
 import type { ViewProps } from "react-native";
 import _ from "lodash";
-import { StyleSheet } from "react-native";
-//@ts-ignore - Ignore b/c it's problematic installing react-native as a devDependency since it uses @types/react-native for its own types which don't have this method
-import { unstable_createElement } from "react-native-web";
-import { contextIdToId } from "./utils";
 import { useEffect, useRef } from "react";
+import { StyleSheet } from "react-native";
+//@ts-expect-error - rn web uses @types/react-native and doesn't have types for web only exports
+import { unstable_createElement as unstableCreateElement } from "react-native-web";
+
+import { contextIdToId } from "./utils";
 
 export const WebGPUWrapper = (props: ViewProps & { contextId: number }) => {
   const { contextId, style, ...rest } = props;
@@ -23,7 +24,7 @@ export const WebGPUWrapper = (props: ViewProps & { contextId: number }) => {
     };
   }, []);
 
-  return unstable_createElement("canvas", {
+  return unstableCreateElement("canvas", {
     ...rest,
     style: [styles.view, styles.flex1, style],
     id: contextIdToId(contextId),
@@ -55,7 +56,7 @@ const styles = StyleSheet.create({
   view: {
     alignItems: "stretch",
     backgroundColor: "transparent",
-    //@ts-ignore
+    //@ts-expect-error need a web only override
     border: "0 solid black",
     boxSizing: "border-box",
     display: "flex",

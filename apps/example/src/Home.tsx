@@ -102,9 +102,12 @@ export const examples = [
 ] as const;
 
 const styles = StyleSheet.create({
-  container: {},
+  container: {
+    flex: 1
+  },
   content: {
     paddingBottom: 32,
+    flexGrow: 1
   },
   thumbnail: {
     backgroundColor: "white",
@@ -117,7 +120,7 @@ const styles = StyleSheet.create({
 export const Home = () => {
   const { navigate } = useNavigation<StackNavigationProp<Routes, "Home">>();
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} testID="TESTYO">
       {examples.map((thumbnail) => (
         <RectButton
           key={thumbnail.screen}

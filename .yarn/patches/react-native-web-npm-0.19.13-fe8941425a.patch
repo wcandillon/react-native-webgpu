@@ -1,0 +1,33 @@
+diff --git a/dist/exports/Image/index.js b/dist/exports/Image/index.js
+index 348831dc4cc4182a35a5259b612e46e88594ba3a..b917361e73658ea16fa9f80ced985df28abdcf1e 100644
+--- a/dist/exports/Image/index.js
++++ b/dist/exports/Image/index.js
+@@ -5,7 +5,7 @@
+  * This source code is licensed under the MIT license found in the
+  * LICENSE file in the root directory of this source tree.
+  *
+- * 
++ *
+  */
+ 
+ 'use client';
+@@ -294,6 +294,19 @@ ImageWithStatics.prefetch = function (uri) {
+ ImageWithStatics.queryCache = function (uris) {
+   return ImageLoader.queryCache(uris);
+ };
++ImageWithStatics.resolveAssetSource = function (source) {
++  var asset = getAssetByID(source);
++  var displayImageUri = resolveAssetUri(source);
++  var imageSizeStyle = resolveAssetDimensions(source);
++
++  return {
++    height: imageSizeStyle.height,
++    width: imageSizeStyle.width,
++    uri: displayImageUri,
++    scale: asset.scales[0],
++  };
++};
++
+ var styles = StyleSheet.create({
+   root: {
+     flexBasis: 'auto',
