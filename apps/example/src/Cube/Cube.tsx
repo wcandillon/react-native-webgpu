@@ -176,12 +176,7 @@ export function Cube() {
 
   return (
     <View style={style.container}>
-      <Canvas
-        ref={ref}
-        style={style.webgpu}
-        androidTransparency
-        androidExperimental
-      />
+      <Canvas ref={ref} style={style.webgpu} />
     </View>
   );
 }

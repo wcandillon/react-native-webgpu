@@ -120,12 +120,7 @@ export const Resize = () => {
       <Animated.View
         style={{ width: width.current, flex: 1, backgroundColor: "cyan" }}
       >
-        <Canvas
-          ref={ref}
-          style={{ flex: 1 }}
-          androidTransparency
-          androidExperimental
-        />
+        <Canvas ref={ref} style={{ flex: 1 }} />
       </Animated.View>
     </View>
   );

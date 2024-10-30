@@ -15,10 +15,6 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
-import java.io.PipedReader;
-import java.util.LinkedList;
-import java.util.Queue;
-
 @SuppressLint("ViewConstructor")
 @RequiresApi(api = Build.VERSION_CODES.Q)
 public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableListener {
