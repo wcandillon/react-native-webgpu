@@ -6,9 +6,7 @@
       "react-native-wgpu": ["../../packages/webgpu/src/index"],
       "three": ["../../node_modules/@types/three/src/Three.WebGPU.d.ts"]
     },
-    "types": ["@webgpu/types", "@types/node"],
+    "types": ["@webgpu/types", "@types/node"]
   },
-  "exclude": [
-    "**/Pods/**"
-  ]
+  "exclude": ["**/Pods/**"]
 }

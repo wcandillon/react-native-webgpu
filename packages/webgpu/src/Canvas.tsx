@@ -10,49 +10,19 @@ import {
   useCallback,
 } from "react";
 import type { RefObject } from "react";
+import React from "react";
 
-import WebGPUNativeView from "./WebGPUViewNativeComponent";
+import { WebGPUWrapper } from "./WebGPUWrapper";
+import { CanvasRef, RNCanvasContext } from "./types";
+import {
+  fabricIsEnabled,
+  getNativeSurface,
+  MakeWebGPUCanvasContext,
+} from "./utils";
 
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
   return CONTEXT_COUNTER++;
-}
-
-declare global {
-  // eslint-disable-next-line no-var
-  var RNWebGPU: {
-    gpu: GPU;
-    fabric: boolean;
-    getNativeSurface: (contextId: number) => NativeCanvas;
-    MakeWebGPUCanvasContext: (
-      contextId: number,
-      width: number,
-      height: number,
-    ) => RNCanvasContext;
-    DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
-    createImageBitmap: typeof createImageBitmap;
-  };
-}
-
-type SurfacePointer = bigint;
-
-export interface NativeCanvas {
-  surface: SurfacePointer;
-  width: number;
-  height: number;
-  clientWidth: number;
-  clientHeight: number;
-}
-
-export type RNCanvasContext = GPUCanvasContext & {
-  present: () => void;
-};
-
-export interface CanvasRef {
-  getContextId: () => number;
-  getContext(contextName: "webgpu"): RNCanvasContext | null;
-  getNativeSurface: () => NativeCanvas;
-  whenReady: (callback: () => void) => void;
 }
 
 interface Size {
@@ -99,8 +69,7 @@ export const Canvas = forwardRef<
     ref,
   ) => {
     const viewRef = useRef(null);
-    const FABRIC = RNWebGPU.fabric;
-    const useSize = FABRIC ? useSizeFabric : useSizePaper;
+    const useSize = fabricIsEnabled() ? useSizeFabric : useSizePaper;
     const [contextId, _] = useState(() => generateContextId());
     const cb = useRef<() => void>();
     const { size, onLayout } = useSize(viewRef);
@@ -109,13 +78,14 @@ export const Canvas = forwardRef<
         cb.current();
       }
     }, [size]);
+
     useImperativeHandle(ref, () => ({
       getContextId: () => contextId,
       getNativeSurface: () => {
         if (size === null) {
           throw new Error("[WebGPU] Canvas size is not available yet");
         }
-        return RNWebGPU.getNativeSurface(contextId);
+        return getNativeSurface(contextId);
       },
       whenReady(callback: () => void) {
         if (size === null) {
@@ -131,16 +101,12 @@ export const Canvas = forwardRef<
         if (size === null) {
           throw new Error("[WebGPU] Canvas size is not available yet");
         }
-        return RNWebGPU.MakeWebGPUCanvasContext(
-          contextId,
-          size.width,
-          size.height,
-        );
+        return MakeWebGPUCanvasContext(contextId, size.width, size.height);
       },
     }));
     return (
-      <View collapsable={false} ref={viewRef} onLayout={onLayout} {...props}>
-        <WebGPUNativeView
+      <View ref={viewRef} onLayout={onLayout} {...props}>
+        <WebGPUWrapper
           style={{ flex: 1 }}
           contextId={contextId}
           androidView={

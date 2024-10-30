@@ -30,19 +30,22 @@ import { CanvasAPI } from "./CanvasAPI";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
+import { Image } from "react-native";
 window.parent = window;
 
 const Stack = createStackNavigator<Routes>();
 
 function App() {
+
+  console.log(require("./assets/Di-3d.png").default);
   const assets = useAssets();
   if (assets === null) {
     return null;
   }
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
-        <Stack.Navigator initialRouteName="Home">
+    <GestureHandlerRootView style={{ flex: 1 }} testID="ROOTYO">
+      <NavigationContainer >
+        <Stack.Navigator initialRouteName="Home" screenOptions={{cardStyle: {flex: 1, minHeight: 0}}}>
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="HelloTriangle" component={HelloTriangle} />
           <Stack.Screen

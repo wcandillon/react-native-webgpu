@@ -3,7 +3,7 @@ description: Setup Node.js and install dependencies
 
 inputs:
   github_token:
-    description: 'GitHub Token'
+    description: "GitHub Token"
     required: true
 
 runs:
@@ -45,3 +45,8 @@ runs:
       working-directory: packages/webgpu
       shell: bash
       run: yarn copy-artifacts
+
+    - name: Generate example app native directories
+      working-directory: apps/example
+      shell: bash
+      run: yarn prebuild

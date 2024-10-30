@@ -1,31 +1,32 @@
 {
-  "name": "Example",
-  "version": "0.0.1",
-  "private": true,
+  "name": "web-example",
+  "version": "1.0.0",
+  "main": "index.js",
   "scripts": {
-    "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
-    "tsc": "tsc --noEmit",
-    "android": "react-native run-android",
-    "ios": "react-native run-ios",
-    "start": "react-native start",
-    "pod:install": "pod install --project-directory=ios",
-    "build:android": "cd android && ./gradlew assembleDebug --warning-mode all",
-    "build:ios": "react-native build-ios --scheme Example --mode Debug --extra-params \"-sdk iphonesimulator CC=clang CPLUSPLUS=clang++ LD=clang LDPLUSPLUS=clang++ GCC_OPTIMIZATION_LEVEL=0 GCC_PRECOMPILE_PREFIX_HEADER=YES ASSETCATALOG_COMPILER_OPTIMIZATION=time DEBUG_INFORMATION_FORMAT=dwarf COMPILER_INDEX_STORE_ENABLE=NO\"",
-    "mkdist": "node -e \"require('node:fs').mkdirSync('dist', { recursive: true, mode: 0o755 })\""
+    "start": "expo start --dev-client",
+    "prebuild": "(expo prebuild) && node ./scripts/modify-ios-directory.js",
+    "android": "yarn prebuild && expo run:android",
+    "ios": "yarn prebuild && expo run:ios",
+    "web": "expo start --web -c"
   },
   "dependencies": {
     "@callstack/react-native-visionos": "^0.74.0",
+    "@expo/metro-runtime": "~3.2.3",
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/stack": "^6.4.0",
     "@react-three/fiber": "^8.17.6",
+    "expo": "~51.0.28",
+    "expo-status-bar": "~1.12.1",
     "fast-text-encoding": "^1.0.6",
     "react": "18.2.0",
+    "react-dom": "18.2.0",
     "react-native": "0.74.2",
     "react-native-gesture-handler": "^2.17.1",
     "react-native-macos": "^0.74.0",
     "react-native-reanimated": "^3.12.1",
     "react-native-safe-area-context": "^4.10.7",
-    "react-native-wgpu": "*",
+    "react-native-web": "~0.19.10",
+    "react-native-wgpu": "link:../../packages/webgpu",
     "teapot": "^1.0.0",
     "three": "0.168.0",
     "typegpu": "^0.1.2",
@@ -44,17 +45,20 @@
     "@types/react": "^18.2.6",
     "@types/react-test-renderer": "^18.0.0",
     "@types/three": "0.168.0",
-    "@webgpu/types": "0.1.49",
+    "@webgpu/types": "^0.1.44",
     "babel-jest": "^29.6.3",
+    "cheerio": "^1.0.0",
     "eslint": "^8.19.0",
     "eslint-config-react-native-wcandillon": "^3.10.2",
     "jest": "^29.6.3",
     "prettier": "2.8.8",
-    "react-native-test-app": "^3.10.8",
     "react-test-renderer": "18.2.0",
     "typescript": "5.0.4"
   },
-  "engines": {
-    "node": ">=18"
+  "private": true,
+  "resolutions": {
+    "three@0.168.0": "patch:three@npm%3A0.168.0#./.yarn/patches/three-npm-0.168.0-240bac8179.patch",
+    "react-native-web@~0.19.10": "patch:react-native-web@npm%3A0.19.13#./.yarn/patches/react-native-web-npm-0.19.13-fe8941425a.patch",
+    "@react-three/fiber@^8.17.6": "patch:@react-three/fiber@npm%3A8.17.10#./.yarn/patches/@react-three-fiber-npm-8.17.10-017ecc3153.patch"
   }
 }
