@@ -118,7 +118,7 @@ export const Resize = () => {
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
       <Animated.View
-        style={{ width: width.current, flex: 1, backgroundColor: "red" }}
+        style={{ width: width.current, flex: 1, backgroundColor: "cyan" }}
       >
         <Canvas ref={ref} style={{ flex: 1 }} />
       </Animated.View>
