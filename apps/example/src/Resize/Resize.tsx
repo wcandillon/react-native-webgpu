@@ -10,12 +10,11 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import { mix } from "three/src/Three.WebGPU";
 
 import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
 import { useWebGPU } from "../components/useWebGPU";
 
-const window = Dimensions.get("window");
+const win = Dimensions.get("window");
 
 export const useLoop = ({ duration }: { duration: number }) => {
   const progress = useSharedValue(0);
@@ -33,9 +32,9 @@ export const useLoop = ({ duration }: { duration: number }) => {
 };
 
 export const Resize = () => {
-  const progress = useLoop({ duration: 1000 });
+  const progress = useLoop({ duration: 4000 });
   const width = useDerivedValue(() => {
-    return mix(progress.value, 0, window.width);
+    return 20 + progress.value * (win.width - 20);
   });
   const ref = useWebGPU(({ context, device, presentationFormat, canvas }) => {
     const sampleCount = 4;
@@ -125,12 +124,7 @@ export const Resize = () => {
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
       <Animated.View style={style}>
-        <Canvas
-          ref={ref}
-          style={{ flex: 1 }}
-          androidTransparency
-          androidExperimental
-        />
+        <Canvas ref={ref} style={{ flex: 0.5 }} />
       </Animated.View>
     </View>
   );
