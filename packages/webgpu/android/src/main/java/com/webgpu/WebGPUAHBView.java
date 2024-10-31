@@ -10,6 +10,7 @@ import android.hardware.HardwareBuffer;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Build;
+import android.util.Log;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -23,8 +24,6 @@ public class WebGPUAHBView extends View {
 
   private ImageReader mReader = null;
   private ImageReader mOldReader = null;
-  private int mWidth = 0;
-  private int mHeight = 0;
 
   private Bitmap mBitmap = null;
 
@@ -38,18 +37,18 @@ public class WebGPUAHBView extends View {
   }
 
   private ImageReader createReader() {
-    return ImageReader.newInstance(mWidth, mHeight, PixelFormat.RGBA_8888, 2, HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE |
+    return ImageReader.newInstance(getWidth(), getHeight(), PixelFormat.RGBA_8888, 2, HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE |
       HardwareBuffer.USAGE_GPU_COLOR_OUTPUT);
   }
 
   @Override
   protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
     super.onLayout(changed, left, top, right, bottom);
-    mWidth = getWidth();
-    mHeight = getHeight();
     if (mReader == null) {
       mReader = createReader();
       mApi.surfaceCreated(mReader.getSurface());
+    } else {
+      mApi.surfaceChanged(mReader.getSurface());
     }
   }
 
@@ -60,15 +59,10 @@ public class WebGPUAHBView extends View {
         if (hb != null) {
           Bitmap bitmap = Bitmap.wrapHardwareBuffer(hb, null);
           if (bitmap != null) {
+            Log.i("WebGPUView", "size: " + bitmap.getWidth() + "x" + bitmap.getHeight());
             mBitmap = bitmap;
             hb.close();
             invalidate();
-            boolean hasResized = mWidth != mReader.getWidth() || mHeight != mReader.getHeight();
-            if (hasResized) {
-              mOldReader = mReader;
-              mReader = createReader();
-              mApi.surfaceChanged(mReader.getSurface());
-            }
           }
         }
       }

@@ -118,7 +118,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
       @Override
       public void run() {
         if (mView instanceof WebGPUAHBView) {
-          ((WebGPUAHBView)mView).present();
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ((WebGPUAHBView)mView).present();
+          }
         }
       }
     });
