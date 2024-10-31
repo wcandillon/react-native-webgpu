@@ -15,12 +15,14 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import java.util.LinkedList;
+
 @SuppressLint("ViewConstructor")
 @RequiresApi(api = Build.VERSION_CODES.Q)
-public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableListener {
+public class WebGPUAHBView extends View {
 
-  private ImageReader mReader1;
-  private ImageReader mReader2;
+  private ImageReader mReader = null;
+  private ImageReader mOldReader = null;
   private int mWidth = 0;
   private int mHeight = 0;
 
@@ -36,10 +38,8 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
   }
 
   private ImageReader createReader() {
-    ImageReader reader = ImageReader.newInstance(mWidth, mHeight, PixelFormat.RGBA_8888, 2, HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE |
+    return ImageReader.newInstance(mWidth, mHeight, PixelFormat.RGBA_8888, 2, HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE |
       HardwareBuffer.USAGE_GPU_COLOR_OUTPUT);
-    reader.setOnImageAvailableListener(this, null);
-    return reader;
   }
 
   @Override
@@ -47,15 +47,14 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
     super.onLayout(changed, left, top, right, bottom);
     mWidth = getWidth();
     mHeight = getHeight();
-    if (mReader1 == null) {
-      mReader1 = createReader();
-      mApi.surfaceCreated(mReader1.getSurface());
+    if (mReader == null) {
+      mReader = createReader();
+      mApi.surfaceCreated(mReader.getSurface());
     }
   }
 
-  @Override
-  public void onImageAvailable(ImageReader reader) {
-    try (Image image = reader.acquireLatestImage()) {
+  public void present() {
+    try (Image image = mReader.acquireLatestImage()) {
       if (image != null) {
         HardwareBuffer hb = image.getHardwareBuffer();
         if (hb != null) {
@@ -64,15 +63,11 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
             mBitmap = bitmap;
             hb.close();
             invalidate();
-            boolean hasResized = mWidth != reader.getWidth() || mHeight != reader.getHeight();
+            boolean hasResized = mWidth != mReader.getWidth() || mHeight != mReader.getHeight();
             if (hasResized) {
-              ImageReader newReader = createReader();
-              mApi.surfaceChanged(newReader.getSurface());
-              if (reader == mReader1) {
-                mReader2 = newReader;
-              } else {
-                mReader1 = newReader;
-              }
+              mOldReader = mReader;
+              mReader = createReader();
+              mApi.surfaceChanged(mReader.getSurface());
             }
           }
         }

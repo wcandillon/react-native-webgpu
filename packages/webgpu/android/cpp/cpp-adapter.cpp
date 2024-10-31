@@ -50,10 +50,21 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
   auto gpu = manager->_gpu;
   auto surface = manager->_platformContext->makeSurface(
       gpu, window, static_cast<int>(width), static_cast<int>(height));
+  // TODO: needs to be cleaned up
+  jobject globalThiz = env->NewGlobalRef(thiz);
   registry
       .getSurfaceInfoOrCreate(contextId, gpu, static_cast<int>(width),
                               static_cast<int>(height))
-      ->switchToOnscreen(window, surface);
+      ->switchToOnscreen(window, surface, [globalThiz](){
+          // Get the Java WebGPUView instance
+          facebook::jni::ThreadScope ts; // Manages JNI thread attachment/detachment
+            // Get the JNI environment
+            JNIEnv *env = facebook::jni::Environment::current();
+            // Call postEvent on the Java WebGPUView instance
+            jclass clazz = env->GetObjectClass(globalThiz);
+            jmethodID methodId = env->GetMethodID(clazz, "postEvent", "()V");
+            env->CallVoidMethod(globalThiz, methodId);
+      });
 }
 
 extern "C" JNIEXPORT void JNICALL

@@ -2,6 +2,9 @@ package com.webgpu;
 
 import android.content.Context;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 import android.view.Surface;
 import android.view.View;
 
@@ -89,7 +92,7 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     float density = getResources().getDisplayMetrics().density;
     float width = getWidth() / density;
     float height = getHeight() / density;
-    onSurfaceCreate(surface, mContextId, width, height);
+    onSurfaceCreate(surface, mContextId, width, height, this::postEvent);
   }
 
   @Override
@@ -110,12 +113,24 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     switchToOffscreenSurface(mContextId);
   }
 
+  public void postEvent() {
+    new Handler(Looper.getMainLooper()).post(new Runnable() {
+      @Override
+      public void run() {
+        if (mView instanceof WebGPUAHBView) {
+          ((WebGPUAHBView)mView).present();
+        }
+      }
+    });
+  }
+
   @DoNotStrip
   private native void onSurfaceCreate(
     Surface surface,
     int contextId,
     float width,
-    float height
+    float height,
+    Runnable postEvent
   );
 
   @DoNotStrip

@@ -70,9 +70,10 @@ public:
     return nativeSurface;
   }
 
-  void switchToOnscreen(void *newNativeSurface, wgpu::Surface newSurface) {
+  void switchToOnscreen(void *newNativeSurface, wgpu::Surface newSurface, std::function<void()> cb) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     nativeSurface = newNativeSurface;
+    presentCB = std::move(cb);
     surface = std::move(newSurface);
     // If we are comming from an offscreen context, we need to configure the new
     // surface
@@ -117,6 +118,9 @@ public:
     std::unique_lock<std::shared_mutex> lock(_mutex);
     if (surface) {
       surface.Present();
+      if (presentCB) {
+        presentCB();
+      }
     }
   }
 
@@ -169,6 +173,7 @@ private:
 
   mutable std::shared_mutex _mutex;
   void *nativeSurface = nullptr;
+  std::function<void()> presentCB = nullptr;
   wgpu::Surface surface = nullptr;
   wgpu::Texture texture = nullptr;
   wgpu::Instance gpu;
