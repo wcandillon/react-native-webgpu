@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { Dimensions, PixelRatio, View } from "react-native";
 import { Canvas } from "react-native-wgpu";
 import Animated, {
@@ -96,12 +96,13 @@ export const Resize = () => {
       }
       if (renderTargetView) {
         const commandEncoder = device.createCommandEncoder();
+        const a = 0.7;
         const renderPassDescriptor: GPURenderPassDescriptor = {
           colorAttachments: [
             {
               view: renderTargetView,
               resolveTarget: context.getCurrentTexture().createView(),
-              clearValue: [0.5, 0.5, 0.5, 0.5],
+              clearValue: [a, a, a, a],
               loadOp: "clear",
               storeOp: "store",
             },
@@ -124,12 +125,7 @@ export const Resize = () => {
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
       <Animated.View style={style}>
-        <Canvas
-          ref={ref}
-          style={{ flex: 0.5 }}
-          androidExperimental
-          androidTransparency
-        />
+        <Canvas ref={ref} style={{ flex: 0.5 }} transparent />
       </Animated.View>
     </View>
   );

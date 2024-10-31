@@ -3,8 +3,8 @@ import type { ViewProps } from "react-native";
 import type { Int32 } from "react-native/Libraries/Types/CodegenTypes";
 
 interface NativeProps extends ViewProps {
-  contextId?: Int32;
-  androidView?: string;
+  contextId: Int32;
+  transparent: boolean;
 }
 
 // eslint-disable-next-line import/no-default-export
