@@ -80,11 +80,7 @@ export function HelloTriangle() {
   return (
     <View style={style.container}>
       <View style={{ flex: 1, backgroundColor: "#3498db" }} />
-      <Canvas
-        ref={ref}
-        style={StyleSheet.absoluteFill}
-        androidTransparency={true}
-      />
+      <Canvas ref={ref} style={StyleSheet.absoluteFill} transparent />
     </View>
   );
 }
