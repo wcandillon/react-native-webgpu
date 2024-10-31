@@ -6,7 +6,6 @@ import android.view.Surface;
 import android.view.View;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.StringDef;
 
 import com.facebook.proguard.annotations.DoNotStrip;

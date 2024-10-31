@@ -19,10 +19,7 @@ import androidx.annotation.RequiresApi;
 @RequiresApi(api = Build.VERSION_CODES.Q)
 public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableListener {
 
-  private ImageReader mReader1;
-  private ImageReader mReader2;
-  private int mWidth = 0;
-  private int mHeight = 0;
+  private ImageReader mReader;
 
   private Bitmap mBitmap = null;
 
@@ -36,7 +33,7 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
   }
 
   private ImageReader createReader() {
-    ImageReader reader = ImageReader.newInstance(mWidth, mHeight, PixelFormat.RGBA_8888, 2, HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE |
+    ImageReader reader = ImageReader.newInstance(getWidth(), getHeight(), PixelFormat.RGBA_8888, 2, HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE |
       HardwareBuffer.USAGE_GPU_COLOR_OUTPUT);
     reader.setOnImageAvailableListener(this, null);
     return reader;
@@ -45,11 +42,11 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
   @Override
   protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
     super.onLayout(changed, left, top, right, bottom);
-    mWidth = getWidth();
-    mHeight = getHeight();
-    if (mReader1 == null) {
-      mReader1 = createReader();
-      mApi.surfaceCreated(mReader1.getSurface());
+    if (mReader == null) {
+      mReader = createReader();
+      mApi.surfaceCreated(mReader.getSurface());
+    } else {
+      mApi.surfaceChanged(mReader.getSurface());
     }
   }
 
@@ -64,16 +61,6 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
             mBitmap = bitmap;
             hb.close();
             invalidate();
-            boolean hasResized = mWidth != reader.getWidth() || mHeight != reader.getHeight();
-            if (hasResized) {
-              ImageReader newReader = createReader();
-              mApi.surfaceChanged(newReader.getSurface());
-              if (reader == mReader1) {
-                mReader2 = newReader;
-              } else {
-                mReader1 = newReader;
-              }
-            }
           }
         }
       }
@@ -84,6 +71,19 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
   protected void onDraw(@NonNull Canvas canvas) {
     super.onDraw(canvas);
     if (mBitmap != null) {
+      float viewWidth = getWidth();
+      float viewHeight = getHeight();
+      float bitmapWidth = mBitmap.getWidth();
+      float bitmapHeight = mBitmap.getHeight();
+
+      // Calculate the scale factors
+      float scaleX = viewWidth / bitmapWidth;
+      float scaleY = viewHeight / bitmapHeight;
+
+      // Reset the matrix and apply scaling
+      matrix.reset();
+      matrix.setScale(scaleX, scaleY);
+
       canvas.drawBitmap(mBitmap, matrix, null);
     }
   }

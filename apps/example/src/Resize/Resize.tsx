@@ -1,20 +1,41 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, Dimensions, PixelRatio, View } from "react-native";
+import { Dimensions, PixelRatio, View } from "react-native";
 import { Canvas } from "react-native-wgpu";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 
 import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
 import { useWebGPU } from "../components/useWebGPU";
 
-const window = Dimensions.get("window");
+const win = Dimensions.get("window");
+
+export const useLoop = ({ duration }: { duration: number }) => {
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    progress.value = withRepeat(
+      withTiming(1, { duration, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+    return () => {
+      cancelAnimation(progress);
+    };
+  }, [duration, progress]);
+  return progress;
+};
 
 export const Resize = () => {
-  const width = useRef(new Animated.Value(20));
-  const widthRef = useRef(20);
-  useEffect(() => {
-    width.current.addListener(({ value }) => {
-      widthRef.current = value;
-    });
-  }, []);
+  const progress = useLoop({ duration: 4000 });
+  const width = useDerivedValue(() => {
+    return 20 + progress.value * (win.width - 20);
+  });
   const ref = useWebGPU(({ context, device, presentationFormat, canvas }) => {
     const sampleCount = 4;
     const pipeline = device.createRenderPipeline({
@@ -80,7 +101,7 @@ export const Resize = () => {
             {
               view: renderTargetView,
               resolveTarget: context.getCurrentTexture().createView(),
-              clearValue: [0.5, 0.5, 0.5, 1],
+              clearValue: [0.5, 0.5, 0.5, 0.5],
               loadOp: "clear",
               storeOp: "store",
             },
@@ -97,30 +118,18 @@ export const Resize = () => {
       }
     };
   });
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(width.current, {
-          toValue: window.width,
-          duration: 4000,
-          useNativeDriver: false,
-        }),
-        Animated.timing(width.current, {
-          toValue: 20,
-          duration: 4000,
-          useNativeDriver: false,
-        }),
-      ]),
-    ).start();
-  }, []);
-
+  const style = useAnimatedStyle(() => {
+    return { width: width.value, flex: 1, backgroundColor: "cyan" };
+  });
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
-      <Animated.View
-        style={{ width: width.current, flex: 1, backgroundColor: "cyan" }}
-      >
-        <Canvas ref={ref} style={{ flex: 1 }} />
+      <Animated.View style={style}>
+        <Canvas
+          ref={ref}
+          style={{ flex: 0.5 }}
+          androidExperimental
+          androidTransparency
+        />
       </Animated.View>
     </View>
   );
