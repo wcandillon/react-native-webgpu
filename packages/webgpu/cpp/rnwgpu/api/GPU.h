@@ -27,8 +27,6 @@ namespace m = margelo;
 class GPU : public m::HybridObject {
 public:
   GPU() : HybridObject("GPU") {
-//    DawnProcTable backendProcs = dawn::native::GetProcs();
-//    dawnProcSetProcs(&backendProcs);
     wgpu::InstanceDescriptor instanceDesc;
     instanceDesc.features.timedWaitAnyEnable = true;
     instanceDesc.features.timedWaitAnyMaxCount = 64;

@@ -6,17 +6,16 @@ import { chdir } from "process";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import type { Platform } from "./util";
+import type { Platform } from "./dawn-configuration";
+import { $, mapKeys } from "./util";
 import {
-  $,
   build,
   checkBuildArtifacts,
+  copyHeaders,
   copyLib,
   libs,
-  mapKeys,
   projectRoot,
-} from "./util";
-import { copyHeaders } from "./dawn-configuration";
+} from "./dawn-configuration";
 
 const { argv } = yargs(hideBin(process.argv))
   .option("exclude", {
