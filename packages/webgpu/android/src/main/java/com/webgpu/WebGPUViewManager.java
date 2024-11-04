@@ -25,9 +25,9 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
   }
 
   @Override
-  @ReactProp(name = "androidView")
-  public void setAndroidView(WebGPUView view, @Nullable String value) {
-    view.setView(value == null ? WebGPUView.SURFACE_VIEW : value);
+  @ReactProp(name = "transparent")
+  public void setTransparent(WebGPUView view, boolean value) {
+    view.setTransparent(value);
   }
 
   @Override

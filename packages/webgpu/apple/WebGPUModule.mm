@@ -46,19 +46,19 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   }
   RCTCxxBridge *cxxBridge = (RCTCxxBridge *)[RCTBridge currentBridge];
   if (!cxxBridge.runtime) {
-    NSLog(@"Failed to install react-native-filament: RCTBridge is not a "
+    NSLog(@"Failed to install react-native-wgpu: RCTBridge is not a "
           @"RCTCxxBridge!");
     return [NSNumber numberWithBool:NO];
   }
 
   jsi::Runtime *runtime = (jsi::Runtime *)cxxBridge.runtime;
   if (!runtime) {
-    NSLog(@"Failed to install react-native-filament: jsi::Runtime* was null!");
+    NSLog(@"Failed to install react-native-wgpu: jsi::Runtime* was null!");
     return [NSNumber numberWithBool:NO];
   }
   std::shared_ptr<react::CallInvoker> jsInvoker = cxxBridge.jsCallInvoker;
   if (!jsInvoker) {
-    NSLog(@"Failed to install react-native-filament: react::CallInvoker was "
+    NSLog(@"Failed to install react-native-wgpu: react::CallInvoker was "
           @"null!");
     return [NSNumber numberWithBool:NO];
   }
@@ -73,15 +73,6 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
                                                             platformContext);
   return @true;
 }
-
-// RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(createSurfaceContext
-//                                        : (double)contextId) {
-//   int contextIdInt = contextId;
-//   RCTCxxBridge *cxxBridge = (RCTCxxBridge *)self.bridge;
-//   auto runtime = (jsi::Runtime *)cxxBridge.runtime;
-
-//   return @true;
-// }
 
 #ifdef RCT_NEW_ARCH_ENABLED
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:

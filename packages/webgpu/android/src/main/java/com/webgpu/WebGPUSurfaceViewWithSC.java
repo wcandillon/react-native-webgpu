@@ -15,13 +15,13 @@ import androidx.annotation.RequiresApi;
 
 @SuppressLint("ViewConstructor")
 @RequiresApi(api = Build.VERSION_CODES.Q)
-public class SurfaceView2 extends SurfaceView implements SurfaceHolder.Callback {
+public class WebGPUSurfaceViewWithSC extends SurfaceView implements SurfaceHolder.Callback {
 
   WebGPUAPI mApi;
   SurfaceControl mSurfaceControl;
   Surface mSurface;
 
-  public SurfaceView2(Context context, WebGPUAPI api) {
+  public WebGPUSurfaceViewWithSC(Context context, WebGPUAPI api) {
     super(context);
     mApi = api;
     getHolder().addCallback(this);
@@ -48,7 +48,7 @@ public class SurfaceView2 extends SurfaceView implements SurfaceHolder.Callback 
     } else {
       SurfaceControl.Builder scb = new SurfaceControl.Builder();
       scb.setName("WebGPUView");
-      scb.setOpaque(false);
+      scb.setOpaque(true);
       scb.setBufferSize(getWidth(), getHeight());
       scb.setParent(getSurfaceControl());
       scb.setFormat(PixelFormat.RGBA_8888);

@@ -91,7 +91,7 @@ export function HelloTriangleMSAA() {
 
   return (
     <View style={style.container}>
-      <Canvas ref={ref} style={style.webgpu} />
+      <Canvas ref={ref} style={style.webgpu} transparent />
     </View>
   );
 }
