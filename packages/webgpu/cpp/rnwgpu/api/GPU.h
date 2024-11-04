@@ -6,6 +6,9 @@
 #include <unordered_set>
 #include <variant>
 
+#include "dawn/dawn_proc.h"
+#include "dawn/native/DawnNative.h"
+
 #include "Unions.h"
 
 #include "RNFHybridObject.h"
@@ -24,6 +27,8 @@ namespace m = margelo;
 class GPU : public m::HybridObject {
 public:
   GPU() : HybridObject("GPU") {
+//    DawnProcTable backendProcs = dawn::native::GetProcs();
+//    dawnProcSetProcs(&backendProcs);
     wgpu::InstanceDescriptor instanceDesc;
     instanceDesc.features.timedWaitAnyEnable = true;
     instanceDesc.features.timedWaitAnyMaxCount = 64;

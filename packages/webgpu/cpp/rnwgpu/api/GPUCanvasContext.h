@@ -17,22 +17,6 @@
 #include "GPUTexture.h"
 #include "SurfaceRegistry.h"
 
-#ifdef __APPLE__
-
-namespace dawn {
-namespace native {
-namespace metal {
-
-// See
-// https://source.chromium.org/chromium/chromium/src/+/main:third_party/dawn/include/dawn/native/MetalBackend.h;l=41
-void WaitForCommandsToBeScheduled(WGPUDevice device);
-
-} // namespace metal
-} // namespace native
-} // namespace dawn
-
-#endif
-
 namespace rnwgpu {
 
 namespace m = margelo;
