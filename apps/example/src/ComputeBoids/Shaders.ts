@@ -24,7 +24,7 @@ export const renderCode = /* wgsl */ `
     @location(1) color : vec4f,
   };
 
-  @binding(0) @group(0) var<uniform> trianglePos : array<TriangleData, ${triangleAmount}>;
+  @binding(0) @group(0) var<storage> trianglePos : array<TriangleData>;
   @binding(1) @group(0) var<uniform> colorPalette : vec3f;
 
   @vertex
@@ -67,9 +67,9 @@ export const computeCode = /* wgsl */ `
     cohesion_strength : f32,
   };
 
-  @binding(0) @group(0) var<uniform> currentTrianglePos : array<TriangleData, ${triangleAmount}>;
+  @binding(0) @group(0) var<storage> currentTrianglePos : array<TriangleData>;
   @binding(1) @group(0) var<storage, read_write> nextTrianglePos : array<TriangleData>;
-  @binding(2) @group(0) var<storage> params : Parameters;
+  @binding(2) @group(0) var<uniform> params : Parameters;
 
   @compute @workgroup_size(1)
   fn mainCompute(@builtin(global_invocation_id) gid: vec3u) {
