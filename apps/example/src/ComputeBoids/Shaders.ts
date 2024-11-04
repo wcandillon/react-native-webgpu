@@ -1,4 +1,3 @@
-const triangleAmount = 1000;
 const triangleSize = 0.03;
 
 export const renderCode = /* wgsl */ `
@@ -80,7 +79,7 @@ export const computeCode = /* wgsl */ `
     var alignmentCount = 0u;
     var cohesion = vec2(0.0, 0.0);
     var cohesionCount = 0u;
-    for (var i = 0u; i < ${triangleAmount}; i = i + 1) {
+    for (var i = 0u; i < arrayLength(&currentTrianglePos); i = i + 1) {
       if (i == index) {
         continue;
       }
