@@ -6,9 +6,6 @@
 #include <unordered_set>
 #include <variant>
 
-#include "dawn/dawn_proc.h"
-#include "dawn/native/DawnNative.h"
-
 #include "Unions.h"
 
 #include "RNFHybridObject.h"
