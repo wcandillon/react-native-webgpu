@@ -30,7 +30,7 @@ ApplePlatformContext::ApplePlatformContext() { isSimulatorWithAPIValidation(); }
 wgpu::Surface ApplePlatformContext::makeSurface(wgpu::Instance instance,
                                                 void *surface, int width,
                                                 int height) {
-  wgpu::SurfaceDescriptorFromMetalLayer metalSurfaceDesc;
+  wgpu::SurfaceSourceMetalLayer metalSurfaceDesc;
   metalSurfaceDesc.layer = surface;
   wgpu::SurfaceDescriptor surfaceDescriptor;
   surfaceDescriptor.nextInChain = &metalSurfaceDesc;
