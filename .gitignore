@@ -1,3 +1,4 @@
+!packages/webgpu/scripts/build
 # Yarn
 .package/.yarn/*
 .yarn/*
