@@ -259,7 +259,7 @@ yarn test:ref
 
 To run the e2e test, open the example app on the e2e screen.  
 By default, it will try to connect to a localhost test server.  
-If you want to run the test suite on a physical device, you can modify the address [here](/package/example/src/useClient.ts#L4).
+If you want to run the test suite on a physical device, you can modify the address [here](/apps/example/src/useClient.ts#L4).
 
 ```
 yarn test

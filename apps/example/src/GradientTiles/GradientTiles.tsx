@@ -1,16 +1,33 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, PixelRatio, StyleSheet, Text, View } from "react-native";
 import { Canvas, useDevice, useGPUContext } from "react-native-wgpu";
 import { struct, u32 } from "typegpu/data";
-import tgpu from "typegpu";
+import tgpu, { type TgpuBindGroup, type TgpuBuffer } from "typegpu";
 
-import { vertWGSL, fragWGSL } from "./gradientWgsl";
+import { vertWGSL, fragWGSL } from './gradientWgsl';
+
+const Span = struct({
+  x: u32,
+  y: u32,
+});
+
+const bindGroupLayout = tgpu.bindGroupLayout({
+  span: { uniform: Span },
+});
 
 interface RenderingState {
   pipeline: GPURenderPipeline;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  spanBuffer: any;
-  bindGroup: GPUBindGroup;
+  spanBuffer: TgpuBuffer<typeof Span>;
+  bindGroup: TgpuBindGroup<(typeof bindGroupLayout)['entries']>;
+}
+
+function useRoot() {
+  const { device } = useDevice();
+
+  return useMemo(
+    () => (device ? tgpu.initFromDevice({ device }) : null),
+    [device]
+  );
 }
 
 export function GradientTiles() {
@@ -18,12 +35,15 @@ export function GradientTiles() {
   const [state, setState] = useState<null | RenderingState>(null);
   const [spanX, setSpanX] = useState(4);
   const [spanY, setSpanY] = useState(4);
-  const { device } = useDevice();
+  const root = useRoot();
+  const { device = null } = root ?? {};
   const { ref, context } = useGPUContext();
+
   useEffect(() => {
-    if (!device || !context || state !== null) {
+    if (!device || !root || !context || state !== null) {
       return;
     }
+
     const canvas = context.canvas as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();
     canvas.height = canvas.clientHeight * PixelRatio.get();
@@ -32,18 +52,14 @@ export function GradientTiles() {
       format: presentationFormat,
     });
 
-    const Span = struct({
-      x: u32,
-      y: u32,
-    });
-
-    const spanBuffer = tgpu
+    const spanBuffer = root
       .createBuffer(Span, { x: 10, y: 10 })
-      .$device(device)
-      .$usage(tgpu.Uniform);
+      .$usage("uniform");
 
     const pipeline = device.createRenderPipeline({
-      layout: "auto",
+      layout: device.createPipelineLayout({
+        bindGroupLayouts: [root.unwrap(bindGroupLayout)],
+      }),
       vertex: {
         module: device.createShaderModule({
           code: vertWGSL,
@@ -64,24 +80,18 @@ export function GradientTiles() {
       },
     });
 
-    const bindGroup = device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(0),
-      entries: [
-        {
-          binding: 0,
-          resource: {
-            buffer: spanBuffer.buffer,
-          },
-        },
-      ],
+    const bindGroup = bindGroupLayout.populate({
+      span: spanBuffer,
     });
+
     setState({ bindGroup, pipeline, spanBuffer });
-  }, [context, device, presentationFormat, state]);
+  }, [context, device, root, presentationFormat, state]);
 
   useEffect(() => {
-    if (!context || !device || !state) {
+    if (!context || !device || !root || !state) {
       return;
     }
+
     const { bindGroup, pipeline, spanBuffer } = state;
     const textureView = context.getCurrentTexture().createView();
     const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -95,18 +105,18 @@ export function GradientTiles() {
       ],
     };
 
-    tgpu.write(spanBuffer, { x: spanX, y: spanY });
+    spanBuffer.write({ x: spanX, y: spanY });
 
     const commandEncoder = device.createCommandEncoder();
     const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
     passEncoder.setPipeline(pipeline);
-    passEncoder.setBindGroup(0, bindGroup);
+    passEncoder.setBindGroup(0, root.unwrap(bindGroup));
     passEncoder.draw(4);
     passEncoder.end();
 
     device.queue.submit([commandEncoder.finish()]);
     context.present();
-  }, [context, device, spanX, spanY, state]);
+  }, [context, device, root, spanX, spanY, state]);
 
   return (
     <View style={style.container}>

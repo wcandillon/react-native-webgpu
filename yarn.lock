@@ -4301,7 +4301,7 @@ __metadata:
     react-test-renderer: 18.2.0
     teapot: ^1.0.0
     three: 0.168.0
-    typegpu: ^0.1.2
+    typegpu: ^0.2.0
     typescript: 5.0.4
     wgpu-matrix: ^3.0.2
   languageName: unknown
@@ -12300,12 +12300,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typegpu@npm:^0.1.2":
-  version: 0.1.2
-  resolution: "typegpu@npm:0.1.2"
+"typegpu@npm:^0.2.0":
+  version: 0.2.0
+  resolution: "typegpu@npm:0.2.0"
   dependencies:
     typed-binary: ^4.0.1
-  checksum: e8bb501305ad7e280fd396b178afd5a61e470358881fda3be37014ac5f2238402a63056f1bbb9bd3c191923d259b3dd799821877ca3c2adc5a5c08dac49836c6
+  checksum: 219f5a06ac7313ae36ed10fbcbf712d56504300b9b53fc2485bbe4113e82ce7ce6c317ebdc23e205bcdc7f22718078da57ff100cbc6e1bb88cd63ce47e6c60ce
   languageName: node
   linkType: hard
 

@@ -18,6 +18,33 @@ type BoidsOptions = {
   cohesionStrength: number;
 };
 
+const Parameters = struct({
+  separationDistance: f32,
+  separationStrength: f32,
+  alignmentDistance: f32,
+  alignmentStrength: f32,
+  cohesionDistance: f32,
+  cohesionStrength: f32,
+});
+
+const TriangleData = struct({
+  position: vec2f,
+  velocity: vec2f,
+});
+
+const TriangleDataArray = (n: number) => arrayOf(TriangleData, n);
+
+const renderBindGroupLayout = tgpu.bindGroupLayout({
+  trianglePos: { storage: TriangleDataArray },
+  colorPalette: { uniform: vec3f },
+});
+
+const computeBindGroupLayout = tgpu.bindGroupLayout({
+  currentTrianglePos: { storage: TriangleDataArray },
+  nextTrianglePos: { storage: TriangleDataArray, access: 'mutable' },
+  params: { uniform: Parameters },
+});
+
 const colorPresets = {
   plumTree: vec3f(1.0, 2.0, 1.0),
   jeans: vec3f(2.0, 1.5, 1.0),
@@ -69,28 +96,20 @@ export function ComputeBoids() {
   );
 
   const ref = useWebGPU(({ context, device, presentationFormat }) => {
+    const root = tgpu.initFromDevice({ device });
+
     context.configure({
       device,
       format: presentationFormat,
       alphaMode: "premultiplied",
     });
 
-    const params = struct({
-      separationDistance: f32,
-      separationStrength: f32,
-      alignmentDistance: f32,
-      alignmentStrength: f32,
-      cohesionDistance: f32,
-      cohesionStrength: f32,
-    });
-
-    const paramsBuffer = tgpu
-      .createBuffer(params, presets.default)
-      .$device(device)
-      .$usage(tgpu.Storage);
+    const paramsBuffer = root
+      .createBuffer(Parameters, presets.default)
+      .$usage("uniform");
 
     const triangleSize = 0.03;
-    const triangleVertexBuffer = tgpu
+    const triangleVertexBuffer = root
       .createBuffer(arrayOf(f32, 6), [
         0.0,
         triangleSize,
@@ -99,19 +118,11 @@ export function ComputeBoids() {
         triangleSize / 2,
         -triangleSize / 2,
       ])
-      .$device(device)
-      .$usage(tgpu.Vertex);
+      .$usage("vertex");
 
     const triangleAmount = 1000;
-    const triangleInfoStruct = struct({
-      position: vec2f,
-      velocity: vec2f,
-    });
     const trianglePosBuffers = Array.from({ length: 2 }, () =>
-      tgpu
-        .createBuffer(arrayOf(triangleInfoStruct, triangleAmount))
-        .$device(device)
-        .$usage(tgpu.Storage, tgpu.Uniform),
+      root.createBuffer(TriangleDataArray(triangleAmount)).$usage("storage")
     );
 
     randomizePositions.current = () => {
@@ -119,22 +130,21 @@ export function ComputeBoids() {
         position: vec2f(Math.random() * 2 - 1, Math.random() * 2 - 1),
         velocity: vec2f(Math.random() * 0.1 - 0.05, Math.random() * 0.1 - 0.05),
       }));
-      tgpu.write(trianglePosBuffers[0], positions);
-      tgpu.write(trianglePosBuffers[1], positions);
+      trianglePosBuffers[0].write(positions);
+      trianglePosBuffers[1].write(positions);
     };
     randomizePositions.current();
 
-    const colorPaletteBuffer = tgpu
+    const colorPaletteBuffer = root
       .createBuffer(vec3f, colorPresets.plumTree)
-      .$device(device)
-      .$usage(tgpu.Uniform);
+      .$usage("uniform");
 
     updateColorPreset.current = (newColorPreset: ColorPresets) => {
-      tgpu.write(colorPaletteBuffer, colorPresets[newColorPreset]);
+      colorPaletteBuffer.write(colorPresets[newColorPreset]);
     };
 
     updateParams.current = (newOptions: BoidsOptions) => {
-      tgpu.write(paramsBuffer, newOptions);
+      paramsBuffer.write(newOptions);
     };
 
     const renderModule = device.createShaderModule({
@@ -146,7 +156,9 @@ export function ComputeBoids() {
     });
 
     const pipeline = device.createRenderPipeline({
-      layout: "auto",
+      layout: device.createPipelineLayout({
+        bindGroupLayouts: [root.unwrap(renderBindGroupLayout)],
+      }),
       vertex: {
         module: renderModule,
         buffers: [
@@ -176,55 +188,26 @@ export function ComputeBoids() {
     });
 
     const computePipeline = device.createComputePipeline({
-      layout: "auto",
+      layout: device.createPipelineLayout({
+        bindGroupLayouts: [root.unwrap(computeBindGroupLayout)],
+      }),
       compute: {
         module: computeModule,
       },
     });
 
     const renderBindGroups = [0, 1].map((idx) =>
-      device.createBindGroup({
-        layout: pipeline.getBindGroupLayout(0),
-        entries: [
-          {
-            binding: 0,
-            resource: {
-              buffer: trianglePosBuffers[idx].buffer,
-            },
-          },
-          {
-            binding: 1,
-            resource: {
-              buffer: colorPaletteBuffer.buffer,
-            },
-          },
-        ],
+      renderBindGroupLayout.populate({
+        trianglePos: trianglePosBuffers[idx],
+        colorPalette: colorPaletteBuffer,
       }),
     );
 
     const computeBindGroups = [0, 1].map((idx) =>
-      device.createBindGroup({
-        layout: computePipeline.getBindGroupLayout(0),
-        entries: [
-          {
-            binding: 0,
-            resource: {
-              buffer: trianglePosBuffers[idx].buffer,
-            },
-          },
-          {
-            binding: 1,
-            resource: {
-              buffer: trianglePosBuffers[1 - idx].buffer,
-            },
-          },
-          {
-            binding: 2,
-            resource: {
-              buffer: paramsBuffer.buffer,
-            },
-          },
-        ],
+      computeBindGroupLayout.populate({
+        currentTrianglePos: trianglePosBuffers[idx],
+        nextTrianglePos: trianglePosBuffers[1 - idx],
+        params: paramsBuffer,
       }),
     );
 
@@ -251,7 +234,7 @@ export function ComputeBoids() {
       computePass.setPipeline(computePipeline);
       computePass.setBindGroup(
         0,
-        even ? computeBindGroups[0] : computeBindGroups[1],
+        root.unwrap(even ? computeBindGroups[0] : computeBindGroups[1])
       );
       computePass.dispatchWorkgroups(triangleAmount);
       computePass.end();
@@ -261,7 +244,7 @@ export function ComputeBoids() {
       passEncoder.setVertexBuffer(0, triangleVertexBuffer.buffer);
       passEncoder.setBindGroup(
         0,
-        even ? renderBindGroups[1] : renderBindGroups[0],
+        root.unwrap(even ? renderBindGroups[1] : renderBindGroups[0])
       );
       passEncoder.draw(3, triangleAmount);
       passEncoder.end();
