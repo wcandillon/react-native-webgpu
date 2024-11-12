@@ -2,6 +2,10 @@
 #include "Convertors.h"
 #include "RNWebGPUManager.h"
 
+#ifdef __APPLE__
+#include "dawn/native/MetalBackend.h"
+#endif
+
 namespace rnwgpu {
 
 void GPUCanvasContext::configure(

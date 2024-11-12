@@ -6,16 +6,16 @@ import { chdir } from "process";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import type { Platform } from "./util";
+import type { Platform } from "./dawn-configuration";
+import { $, mapKeys } from "./util";
 import {
-  $,
   build,
   checkBuildArtifacts,
+  copyHeaders,
   copyLib,
   libs,
-  mapKeys,
   projectRoot,
-} from "./util";
+} from "./dawn-configuration";
 
 const { argv } = yargs(hideBin(process.argv))
   .option("exclude", {
@@ -164,22 +164,7 @@ const apple = {
     );
   });
 
-  console.log("Copy headers");
-  $(`rm -rf ${projectRoot}/cpp/webgpu`);
-  $(`rm -rf ${projectRoot}/cpp/dawn`);
-  $(
-    `cp -R externals/dawn/out/android_arm64-v8a/gen/include/webgpu ${projectRoot}/cpp`,
-  );
-  $(
-    `cp externals/dawn/out/android_arm64-v8a/gen/include/dawn/webgpu.h ${projectRoot}/cpp/webgpu/webgpu.h`,
-  );
-  $(
-    `cp externals/dawn/out/android_arm64-v8a/gen/include/dawn/webgpu_cpp.h ${projectRoot}/cpp/webgpu/webgpu_cpp.h`,
-  );
-  $(
-    `cp externals/dawn/include/webgpu/webgpu_enum_class_bitmasks.h ${projectRoot}/cpp/webgpu/`,
-  );
-  $(`cp externals/dawn/src/dawn/dawn.json ${projectRoot}/libs`);
+  copyHeaders();
   chdir(projectRoot);
   checkBuildArtifacts();
 })();

@@ -1,4 +1,5 @@
-import { $, checkBuildArtifacts } from "./util";
+import { checkBuildArtifacts } from "./dawn-configuration";
+import { $ } from "./util";
 
 $("cp -R ../../artifacts/libs .");
 $("cp -R ../../artifacts/cpp/webgpu cpp");

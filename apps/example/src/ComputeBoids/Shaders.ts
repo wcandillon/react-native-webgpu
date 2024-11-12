@@ -1,4 +1,3 @@
-const triangleAmount = 1000;
 const triangleSize = 0.03;
 
 export const renderCode = /* wgsl */ `
@@ -24,7 +23,7 @@ export const renderCode = /* wgsl */ `
     @location(1) color : vec4f,
   };
 
-  @binding(0) @group(0) var<uniform> trianglePos : array<TriangleData, ${triangleAmount}>;
+  @binding(0) @group(0) var<storage> trianglePos : array<TriangleData>;
   @binding(1) @group(0) var<uniform> colorPalette : vec3f;
 
   @vertex
@@ -67,9 +66,9 @@ export const computeCode = /* wgsl */ `
     cohesion_strength : f32,
   };
 
-  @binding(0) @group(0) var<uniform> currentTrianglePos : array<TriangleData, ${triangleAmount}>;
+  @binding(0) @group(0) var<storage> currentTrianglePos : array<TriangleData>;
   @binding(1) @group(0) var<storage, read_write> nextTrianglePos : array<TriangleData>;
-  @binding(2) @group(0) var<storage> params : Parameters;
+  @binding(2) @group(0) var<uniform> params : Parameters;
 
   @compute @workgroup_size(1)
   fn mainCompute(@builtin(global_invocation_id) gid: vec3u) {
@@ -80,7 +79,7 @@ export const computeCode = /* wgsl */ `
     var alignmentCount = 0u;
     var cohesion = vec2(0.0, 0.0);
     var cohesionCount = 0u;
-    for (var i = 0u; i < ${triangleAmount}; i = i + 1) {
+    for (var i = 0u; i < arrayLength(&currentTrianglePos); i = i + 1) {
       if (i == index) {
         continue;
       }
