@@ -8,9 +8,11 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",
-    "pod:install": "pod install --project-directory=ios",
+    "pod:install:ios": "pod install --project-directory=ios",
+    "pod:install:macos": "pod install --project-directory=macos",
     "build:android": "cd android && ./gradlew assembleDebug --warning-mode all",
     "build:ios": "react-native build-ios --scheme Example --mode Debug --extra-params \"-sdk iphonesimulator CC=clang CPLUSPLUS=clang++ LD=clang LDPLUSPLUS=clang++ GCC_OPTIMIZATION_LEVEL=0 GCC_PRECOMPILE_PREFIX_HEADER=YES ASSETCATALOG_COMPILER_OPTIMIZATION=time DEBUG_INFORMATION_FORMAT=dwarf COMPILER_INDEX_STORE_ENABLE=NO\"",
+    "build:macos": "react-native build-macos --scheme Example --mode Debug",
     "mkdist": "node -e \"require('node:fs').mkdirSync('dist', { recursive: true, mode: 0o755 })\""
   },
   "dependencies": {

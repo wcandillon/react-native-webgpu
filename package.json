@@ -15,6 +15,7 @@
     "lint": "turbo run lint",
     "tsc": "turbo run tsc",
     "build:ios": "turbo run build:ios",
+    "build:macos": "turbo run build:macos",
     "build:android": "turbo run build:android",
     "build": "turbo run build",
     "pod:install": "turbo run pod:install"
