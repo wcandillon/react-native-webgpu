@@ -11,7 +11,7 @@
 
 namespace rnwgpu {
 
-void isSimulatorWithAPIValidation() {
+void checkIfUsingSimulatorWithAPIValidation() {
 #if TARGET_OS_SIMULATOR
   NSDictionary *environment = [[NSProcessInfo processInfo] environment];
   NSString *metalDeviceWrapperType = environment[@"METAL_DEVICE_WRAPPER_TYPE"];
@@ -25,7 +25,7 @@ void isSimulatorWithAPIValidation() {
 #endif
 }
 
-ApplePlatformContext::ApplePlatformContext() { isSimulatorWithAPIValidation(); }
+ApplePlatformContext::ApplePlatformContext() { checkIfUsingSimulatorWithAPIValidation(); }
 
 wgpu::Surface ApplePlatformContext::makeSurface(wgpu::Instance instance,
                                                 void *surface, int width,
