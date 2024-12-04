@@ -27,8 +27,8 @@ RNWebGPUManager::RNWebGPUManager(
   // Installs the global Dispatcher mechanism into this Runtime.
   // This allows creating Promises and calling back to JS.
   auto dispatcher =
-      std::make_shared<margelo::CallInvokerDispatcher>(_jsCallInvoker);
-  margelo::Dispatcher::installRuntimeGlobalDispatcher(*_jsRuntime, dispatcher);
+      std::make_shared<margelo::threading::CallInvokerDispatcher>(_jsCallInvoker);
+  margelo::threading::Dispatcher::installRuntimeGlobalDispatcher(*_jsRuntime, dispatcher);
 
   auto gpu = std::make_shared<GPU>();
   auto rnWebGPU = std::make_shared<RNWebGPU>(gpu, _platformContext);

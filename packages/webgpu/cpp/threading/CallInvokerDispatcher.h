@@ -11,7 +11,7 @@
 #include <memory>
 #include <ReactCommon/CallInvoker.h>
 
-namespace margelo {
+namespace margelo::threading {
 
 /**
  * A Dispatcher that uses react::CallInvoker for it's implementation

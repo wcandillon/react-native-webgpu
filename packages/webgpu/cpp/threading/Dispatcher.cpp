@@ -7,7 +7,7 @@
 #include <memory>
 #include "RNFJSIHelper.h"
 
-namespace margelo {
+namespace margelo::threading {
 
 namespace jsi = facebook::jsi;
 

@@ -210,18 +210,18 @@ template <typename TResult> struct JSIConverter<std::future<TResult>> {
   }
   static jsi::Value toJSI(jsi::Runtime& runtime, std::future<TResult>&& arg) {
     auto sharedFuture = std::make_shared<std::future<TResult>>(std::move(arg));
-    std::shared_ptr<Dispatcher> strongDispatcher = Dispatcher::getRuntimeGlobalDispatcher(runtime);
-    std::weak_ptr<Dispatcher> weakDispatcher = strongDispatcher;
+    std::shared_ptr<threading::Dispatcher> strongDispatcher = threading::Dispatcher::getRuntimeGlobalDispatcher(runtime);
+    std::weak_ptr<threading::Dispatcher> weakDispatcher = strongDispatcher;
 
     return Promise::createPromise(runtime, [sharedFuture = std::move(sharedFuture), weakDispatcher](jsi::Runtime& runtime,
                                                                                            std::shared_ptr<Promise> promise) {
       // Spawn new async thread to synchronously wait for the `future<T>` to complete
-      std::shared_ptr<ThreadPool> pool = ThreadPool::getSharedPool();
+      std::shared_ptr<threading::ThreadPool> pool = threading::ThreadPool::getSharedPool();
       pool->run([promise, &runtime, weakDispatcher, sharedFuture]() {
         // synchronously wait until the `future<T>` completes. we are running on a background task here.
         sharedFuture->wait();
 
-        std::shared_ptr<Dispatcher> dispatcher = weakDispatcher.lock();
+        std::shared_ptr<threading::Dispatcher> dispatcher = weakDispatcher.lock();
         if (!dispatcher) {
           throw std::runtime_error("Tried resolving Promise on JS Thread, but the `Dispatcher` has already been destroyed!");
           return;

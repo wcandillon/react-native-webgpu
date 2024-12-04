@@ -937,7 +937,7 @@ PODS:
     - React-debug
   - react-native-safe-area-context (4.11.0):
     - React-Core
-  - react-native-wgpu (0.1.19):
+  - react-native-wgpu (0.1.20):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1528,7 +1528,7 @@ SPEC CHECKSUMS:
   React-logger: 29fa3e048f5f67fe396bc08af7606426d9bd7b5d
   React-Mapbuffer: bf56147c9775491e53122a94c423ac201417e326
   react-native-safe-area-context: 851c62c48dce80ccaa5637b6aa5991a1bc36eca9
-  react-native-wgpu: 5fd8cb5fd7bd00c88831d29438697d897fb680e8
+  react-native-wgpu: 078c84b159de97704f8926011b0f9bc96591d478
   React-nativeconfig: 9f223cd321823afdecf59ed00861ab2d69ee0fc1
   React-NativeModulesApple: ff7efaff7098639db5631236cfd91d60abff04c0
   React-perflogger: 32ed45d9cee02cf6639acae34251590dccd30994

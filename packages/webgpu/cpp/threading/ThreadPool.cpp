@@ -11,7 +11,7 @@
 #include <utility>
 #include <algorithm>
 
-namespace margelo {
+namespace margelo::threading {
 
 ThreadPool::ThreadPool(const char *name, size_t numThreads)
     : _isAlive(true), _name(name) {

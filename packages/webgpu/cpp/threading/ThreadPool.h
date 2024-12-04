@@ -17,7 +17,7 @@
 #include <thread>
 #include <vector>
 
-namespace margelo {
+namespace margelo::threading {
 
 class ThreadPool final {
 public:

@@ -12,7 +12,7 @@
 #include <utility>
 #include <memory>
 
-namespace margelo {
+namespace margelo::threading {
 
 namespace jsi = facebook::jsi;
 
