@@ -4,6 +4,7 @@ export type Routes = {
   HelloTriangleMSAA: undefined;
   Cube: undefined;
   ThreeJS: undefined;
+  TransformerJS: undefined;
   InstancedCube: undefined;
   TexturedCube: undefined;
   FractalCube: undefined;
