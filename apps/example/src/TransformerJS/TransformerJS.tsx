@@ -1,13 +1,24 @@
 // @ts-nocheck
 
 /* eslint-disable camelcase */
+import { View } from "react-native";
+
 import {
   AutoTokenizer,
   AutoModelForCausalLM,
   TextStreamer,
   InterruptableStoppingCriteria,
-} from "@huggingface/transformers";
-import { View } from "react-native";
+} from "./transformers";
+
+class Self {
+  constructor() {}
+
+  postMessage(data) {
+    console.log(data);
+  }
+}
+
+const self = new Self();
 
 /**
  * This class uses the Singleton pattern to enable lazy-loading of the pipeline
@@ -135,7 +146,11 @@ async function load() {
   self.postMessage({ status: "ready" });
 }
 
-load();
+load().then((r) => {
+  console.log(r);
+
+  check();
+});
 
 // Listen for messages from the main thread
 // self.addEventListener("message", async (e) => {

@@ -17,7 +17,6 @@
   },
   "dependencies": {
     "@callstack/react-native-visionos": "^0.74.0",
-    "@huggingface/transformers": "^3.1.2",
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/stack": "^6.4.0",
     "@react-three/fiber": "^8.17.6",
