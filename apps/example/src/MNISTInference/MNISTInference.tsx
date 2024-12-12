@@ -1,6 +1,6 @@
 import React from "react";
 import { Dimensions, StyleSheet, View } from "react-native";
-import type { SkImage } from "@shopify/react-native-skia";
+import type { SkImage, SkSurface } from "@shopify/react-native-skia";
 import {
   Canvas,
   Fill,
@@ -15,22 +15,30 @@ import { SIZE } from "./Lib";
 
 const { width } = Dimensions.get("window");
 
-const surface = Skia.Surface.MakeOffscreen(SIZE, SIZE)!;
-const path = Skia.Path.Make();
-path.moveTo(0, 0);
-path.lineTo(SIZE, SIZE);
-path.close();
 const paint = Skia.Paint();
 paint.setColor(Skia.Color("black"));
 paint.setStyle(PaintStyle.Stroke);
 paint.setStrokeWidth(1);
-surface.getCanvas().drawPath(path, paint);
-surface.flush();
-const img = surface.makeImageSnapshot().makeNonTextureImage();
+
+const f = (1 / width) * SIZE;
 
 export function MNISTInference() {
-  const image = useSharedValue<SkImage | null>(img);
-  const gesture = Gesture.Pan().onChange((e) => {});
+  const surface = useSharedValue<SkSurface | null>(null);
+  const path = useSharedValue(Skia.Path.Make());
+  const image = useSharedValue<SkImage | null>(null);
+  const gesture = Gesture.Pan()
+    .onStart((e) => {
+      path.value.moveTo(e.x * f, e.y * f);
+    })
+    .onChange((e) => {
+      path.value.lineTo(e.x * f, e.y * f);
+      if (surface.value === null) {
+        surface.value = Skia.Surface.MakeOffscreen(SIZE, SIZE)!;
+      }
+      surface.value.getCanvas().drawPath(path.value, paint);
+      surface.value.flush();
+      image.value = surface.value.makeImageSnapshot();
+    });
   return (
     <View style={style.container}>
       <GestureDetector gesture={gesture}>
