@@ -82,7 +82,20 @@ add_library(webgpu_dawn SHARED IMPORTED)
 set_property(TARGET webgpu_dawn PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.so")
 
 # Link
-target_link_libraries(
+if(ReactAndroid_VERSION_MINOR GREATER_EQUAL 76)
+    target_link_libraries(
+            ${PACKAGE_NAME}
+            ${FBJNI_LIBRARY}
+            log
+            jnigraphics
+            android
+            fbjni::fbjni
+            ReactAndroid::jsi
+            ReactAndroid::reactnative
+            webgpu_dawn
+        )
+else()
+    target_link_libraries(
         ${PACKAGE_NAME}
         ${FBJNI_LIBRARY}
         log
@@ -93,3 +106,4 @@ target_link_libraries(
         ReactAndroid::reactnativejni
         webgpu_dawn
     )
+endif()
