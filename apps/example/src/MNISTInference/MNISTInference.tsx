@@ -7,6 +7,7 @@ import {
   Skia,
   Image,
   PaintStyle,
+  Path,
 } from "@shopify/react-native-skia";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSharedValue } from "react-native-reanimated";
@@ -18,9 +19,26 @@ const { width } = Dimensions.get("window");
 const paint = Skia.Paint();
 paint.setColor(Skia.Color("black"));
 paint.setStyle(PaintStyle.Stroke);
-paint.setStrokeWidth(1);
+paint.setStrokeWidth(0.5);
 
-const f = (1 / width) * SIZE;
+const grid = Skia.Path.Make();
+const cellSize = width / SIZE;
+
+grid.moveTo(0, 0);
+
+// Draw vertical lines
+for (let i = 0; i <= SIZE; i++) {
+  grid.moveTo(i * cellSize, 0);
+  grid.lineTo(i * cellSize, width);
+}
+
+// Draw horizontal lines
+for (let i = 0; i <= SIZE; i++) {
+  grid.moveTo(0, i * cellSize);
+  grid.lineTo(width, i * cellSize);
+}
+
+const f = 1 / cellSize;
 
 export function MNISTInference() {
   const surface = useSharedValue<SkSurface | null>(null);
@@ -43,6 +61,13 @@ export function MNISTInference() {
     <View style={style.container}>
       <GestureDetector gesture={gesture}>
         <Canvas style={style.canvas}>
+          <Fill color="rgb(239, 239, 248)" />
+          <Path
+            path={grid}
+            style="stroke"
+            color="rgb(209, 209, 209)"
+            strokeWidth={1}
+          />
           <Image
             image={image}
             x={0}
