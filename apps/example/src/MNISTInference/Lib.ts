@@ -272,6 +272,6 @@ export const createDemo = async (device: GPUDevice) => {
   function onCleanup() {
     root.destroy();
   }
-  return network;
+  return { network, onCleanup };
   // #endregion
 };

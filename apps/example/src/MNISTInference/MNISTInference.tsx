@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from "react";
-import { Dimensions, StyleSheet, View } from "react-native";
+import { Dimensions, Platform, StyleSheet, View } from "react-native";
 import type { SkImage, SkSurface } from "@shopify/react-native-skia";
 import {
   Canvas,
@@ -10,8 +10,11 @@ import {
   Path,
   ColorType,
   AlphaType,
+  matchFont,
+  Text,
 } from "@shopify/react-native-skia";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import type { SharedValue } from "react-native-reanimated";
 import { runOnJS, runOnUI, useSharedValue } from "react-native-reanimated";
 import { useDevice } from "react-native-wgpu";
 
@@ -19,6 +22,13 @@ import type { Network } from "./Lib";
 import { createDemo, centerData, SIZE } from "./Lib";
 
 const { width } = Dimensions.get("window");
+
+const fontFamily = Platform.select({ ios: "Helvetica", default: "serif" });
+const fontStyle = {
+  fontFamily,
+  fontSize: 200,
+};
+const font = matchFont(fontStyle);
 
 const paint = Skia.Paint();
 paint.setColor(Skia.Color("black"));
@@ -47,20 +57,25 @@ const f = 1 / cellSize;
 export function MNISTInference() {
   const { device } = useDevice();
   const network = useRef<Network>();
+  const text = useSharedValue("0");
   const surface = useSharedValue<SkSurface | null>(null);
   const path = useSharedValue(Skia.Path.Make());
   const image = useSharedValue<SkImage | null>(null);
-  const runInference = useCallback(async (data: number[]) => {
-    if (network.current === undefined) {
-      return;
-    }
-    const certainties = await network.current.inference(data);
-    const max = Math.max(...certainties);
-    const index = certainties.indexOf(max);
-    const sum = certainties.reduce((a, b) => a + b, 0);
-    const normalized = certainties.map((x) => x / sum);
-    console.log("Result:", index, normalized);
-  }, []);
+  const runInference = useCallback(
+    async (data: number[]) => {
+      if (network.current === undefined) {
+        return;
+      }
+      const certainties = await network.current.inference(data);
+      const max = Math.max(...certainties);
+      const index = certainties.indexOf(max);
+      //const sum = certainties.reduce((a, b) => a + b, 0);
+      //const normalized = certainties.map((x) => x / sum);
+      console.log(`${index}`);
+      text.value = `${index}`;
+    },
+    [text],
+  );
   const gesture = Gesture.Pan()
     .onStart((e) => {
       path.value.moveTo(e.x * f, e.y * f);
@@ -70,7 +85,6 @@ export function MNISTInference() {
       if (surface.value === null) {
         return;
       }
-      console.log("draw");
       surface.value.getCanvas().drawPath(path.value, paint);
       surface.value.flush();
       image.value = surface.value.makeImageSnapshot();
@@ -79,11 +93,9 @@ export function MNISTInference() {
         height: SIZE,
         alphaType: AlphaType.Opaque,
         colorType: ColorType.Alpha_8,
-      });
-      console.log(pixels?.slice(0, 16));
-      console.log(pixels?.length === SIZE * SIZE);
+      })!;
       runOnJS(runInference)(
-        centerData(pixels!).map((x) => (x / 255) * 3.24 - 0.42),
+        centerData(pixels as Uint8Array).map((x) => (x / 255) * 3.24 - 0.42),
       );
     });
   useEffect(() => {
@@ -93,7 +105,7 @@ export function MNISTInference() {
     (async () => {
       if (device) {
         const demo = await createDemo(device);
-        network.current = demo;
+        network.current = demo.network;
       }
     })();
   }, [device, network, surface]);
@@ -116,6 +128,7 @@ export function MNISTInference() {
             height={width}
             fit="cover"
           />
+          <Text text={text} x={(width - 100) / 2} y={1.5 * width} font={font} />
         </Canvas>
       </GestureDetector>
     </View>
@@ -128,6 +141,6 @@ const style = StyleSheet.create({
   },
   canvas: {
     width,
-    height: width,
+    height: width * 2,
   },
 });
