@@ -194,10 +194,6 @@ In "Edit Scheme," uncheck "Metal Validation."
 
 <img width="1052" alt="Uncheck 'Metal Validation'" src="https://github.com/user-attachments/assets/2676e5cc-e351-4a97-bdc8-22cbd7df2ef2">
 
-### Android
-
-On an Android simulator, a CPU emulation layer is used which may result in very slow performance.
-
 ## Library Development
 
 Make sure to check out the submodules:
@@ -235,6 +231,7 @@ You need to have the [Github CLI](https://cli.github.com/) installed:
 $ yarn
 $ cd packages/webgpu
 $ yarn download-artifacts
+$ yarn copy-artifacts
 ```
 
 Alternatively you can also download the prebuilt binaries [here](https://github.com/wcandillon/react-native-webgpu/actions/workflows/build-dawn.yml).

@@ -26,7 +26,6 @@
     "tsc": "tsc --noEmit",
     "build": "bob build",
     "build-dawn": "ts-node scripts/build/dawn.ts",
-    "copy-headers": "ts-node scripts/build/copy-headers.ts",
     "clean-dawn": "rimraf ./libs && rimraf ../../externals/dawn/out",
     "clang-format": "yarn clang-format-ios && yarn clang-format-android && yarn clang-format-common",
     "clang-format-ios": "find apple/ -iname \"*.h\" -o -iname \"*.mm\" -o -iname \"*.cpp\" | xargs clang-format -i",
