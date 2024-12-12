@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { Dimensions, StyleSheet, View } from "react-native";
 import type { SkImage, SkSurface } from "@shopify/react-native-skia";
 import {
@@ -8,12 +8,15 @@ import {
   Image,
   PaintStyle,
   Path,
+  ColorType,
+  AlphaType,
 } from "@shopify/react-native-skia";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { useSharedValue } from "react-native-reanimated";
+import { runOnJS, runOnUI, useSharedValue } from "react-native-reanimated";
 import { useDevice } from "react-native-wgpu";
 
-import { createDemo, SIZE } from "./Lib";
+import type { Network } from "./Lib";
+import { createDemo, centerData, SIZE } from "./Lib";
 
 const { width } = Dimensions.get("window");
 
@@ -43,9 +46,21 @@ const f = 1 / cellSize;
 
 export function MNISTInference() {
   const { device } = useDevice();
+  const network = useRef<Network>();
   const surface = useSharedValue<SkSurface | null>(null);
   const path = useSharedValue(Skia.Path.Make());
   const image = useSharedValue<SkImage | null>(null);
+  const runInference = useCallback(async (data: number[]) => {
+    if (network.current === undefined) {
+      return;
+    }
+    const certainties = await network.current.inference(data);
+    const max = Math.max(...certainties);
+    const index = certainties.indexOf(max);
+    const sum = certainties.reduce((a, b) => a + b, 0);
+    const normalized = certainties.map((x) => x / sum);
+    console.log("Result:", index, normalized);
+  }, []);
   const gesture = Gesture.Pan()
     .onStart((e) => {
       path.value.moveTo(e.x * f, e.y * f);
@@ -53,19 +68,33 @@ export function MNISTInference() {
     .onChange((e) => {
       path.value.lineTo(e.x * f, e.y * f);
       if (surface.value === null) {
-        surface.value = Skia.Surface.MakeOffscreen(SIZE, SIZE)!;
+        return;
       }
+      console.log("draw");
       surface.value.getCanvas().drawPath(path.value, paint);
       surface.value.flush();
       image.value = surface.value.makeImageSnapshot();
+      const pixels = surface.value.getCanvas().readPixels(0, 0, {
+        width: SIZE,
+        height: SIZE,
+        alphaType: AlphaType.Unpremul,
+        colorType: ColorType.RGBA_8888,
+      });
+      runOnJS(runInference)(
+        centerData(pixels!).map((x) => (x / 255) * 3.24 - 0.42),
+      );
     });
   useEffect(() => {
+    runOnUI(() => {
+      surface.value = Skia.Surface.MakeOffscreen(SIZE, SIZE)!;
+    })();
     (async () => {
       if (device) {
-        createDemo(device);
+        const demo = await createDemo(device);
+        network.current = demo;
       }
     })();
-  }, [device]);
+  }, [device, network, surface]);
   return (
     <View style={style.container}>
       <GestureDetector gesture={gesture}>

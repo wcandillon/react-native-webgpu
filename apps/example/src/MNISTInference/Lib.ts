@@ -2,6 +2,53 @@ import tgpu, { type TgpuBuffer, type Storage } from "typegpu";
 import { type F32, type TgpuArray, arrayOf, f32 } from "typegpu/data";
 
 export const SIZE = 28;
+
+// Definitions for the network
+
+interface LayerData {
+  shape: readonly [number] | readonly [number, number];
+  buffer: TgpuBuffer<TgpuArray<F32>> & Storage;
+}
+
+interface Layer {
+  weights: TgpuBuffer<TgpuArray<F32>> & Storage;
+  biases: TgpuBuffer<TgpuArray<F32>> & Storage;
+  state: TgpuBuffer<TgpuArray<F32>> & Storage;
+}
+
+export interface Network {
+  layers: Layer[];
+  input: TgpuBuffer<TgpuArray<F32>> & Storage;
+  output: TgpuBuffer<TgpuArray<F32>> & Storage;
+
+  inference(data: number[]): Promise<number[]>;
+}
+
+export const centerData = (data: Uint8Array) => {
+  "worklet";
+  const mass = data.reduce((acc, value) => acc + value, 0);
+  const x = data.reduce((acc, value, i) => acc + value * (i % SIZE), 0) / mass;
+  const y =
+    data.reduce((acc, value, i) => acc + value * Math.floor(i / SIZE), 0) /
+    mass;
+
+  const offsetX = Math.round(SIZE / 2 - x);
+  const offsetY = Math.round(SIZE / 2 - y);
+
+  const newData = new Array(SIZE * SIZE).fill(0);
+  for (let i = 0; i < SIZE; i++) {
+    for (let j = 0; j < SIZE; j++) {
+      const index = i * SIZE + j;
+      const newIndex = (i + offsetY) * SIZE + j + offsetX;
+      if (newIndex >= 0 && newIndex < SIZE * SIZE) {
+        newData[newIndex] = data[index];
+      }
+    }
+  }
+
+  return newData;
+};
+
 export const createDemo = async (device: GPUDevice) => {
   const root = tgpu.initFromDevice({ device });
 
@@ -69,27 +116,6 @@ export const createDemo = async (device: GPUDevice) => {
       }),
     },
   });
-
-  // Definitions for the network
-
-  interface LayerData {
-    shape: readonly [number] | readonly [number, number];
-    buffer: TgpuBuffer<TgpuArray<F32>> & Storage;
-  }
-
-  interface Layer {
-    weights: TgpuBuffer<TgpuArray<F32>> & Storage;
-    biases: TgpuBuffer<TgpuArray<F32>> & Storage;
-    state: TgpuBuffer<TgpuArray<F32>> & Storage;
-  }
-
-  interface Network {
-    layers: Layer[];
-    input: TgpuBuffer<TgpuArray<F32>> & Storage;
-    output: TgpuBuffer<TgpuArray<F32>> & Storage;
-
-    inference(data: number[]): Promise<number[]>;
-  }
 
   /**
    * Creates a network from a list of pairs of weights and biases
@@ -246,6 +272,6 @@ export const createDemo = async (device: GPUDevice) => {
   function onCleanup() {
     root.destroy();
   }
-
+  return network;
   // #endregion
 };
