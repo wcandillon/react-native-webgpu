@@ -4,7 +4,6 @@ import { type F32, type TgpuArray, arrayOf, f32 } from "typegpu/data";
 export const SIZE = 28;
 export const createDemo = async (device: GPUDevice) => {
   const root = tgpu.initFromDevice({ device });
-  const canvasData = new Array<number>(SIZE ** 2).fill(0);
 
   // Shader code
 
@@ -150,7 +149,7 @@ export const createDemo = async (device: GPUDevice) => {
         pass.setPipeline(pipeline);
         pass.setBindGroup(0, root.unwrap(ioBindGroups[i]));
         pass.setBindGroup(1, root.unwrap(weightsBindGroups[i]));
-        pass.dispatchWorkgroups(buffers[i].biases.dataType.size); //.length
+        pass.dispatchWorkgroups(buffers[i].biases.dataType.elementCount); //.length
         pass.end();
       }
       device.queue.submit([encoder.finish()]);
@@ -220,7 +219,7 @@ export const createDemo = async (device: GPUDevice) => {
   function downloadLayers(): Promise<[LayerData, LayerData][]> {
     const downloadLayer = async (fileName: string): Promise<LayerData> => {
       const buffer = await fetch(
-        `/TypeGPU/assets/mnist-weights/${fileName}`,
+        `https://docs.swmansion.com/TypeGPU/assets/mnist-weights/${fileName}`,
       ).then((res) => res.arrayBuffer());
 
       return getLayerData(buffer);

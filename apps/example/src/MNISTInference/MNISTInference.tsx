@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Dimensions, StyleSheet, View } from "react-native";
 import type { SkImage, SkSurface } from "@shopify/react-native-skia";
 import {
@@ -11,8 +11,9 @@ import {
 } from "@shopify/react-native-skia";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSharedValue } from "react-native-reanimated";
+import { useDevice } from "react-native-wgpu";
 
-import { SIZE } from "./Lib";
+import { createDemo, SIZE } from "./Lib";
 
 const { width } = Dimensions.get("window");
 
@@ -41,6 +42,7 @@ for (let i = 0; i <= SIZE; i++) {
 const f = 1 / cellSize;
 
 export function MNISTInference() {
+  const { device } = useDevice();
   const surface = useSharedValue<SkSurface | null>(null);
   const path = useSharedValue(Skia.Path.Make());
   const image = useSharedValue<SkImage | null>(null);
@@ -57,6 +59,13 @@ export function MNISTInference() {
       surface.value.flush();
       image.value = surface.value.makeImageSnapshot();
     });
+  useEffect(() => {
+    (async () => {
+      if (device) {
+        createDemo(device);
+      }
+    })();
+  }, [device]);
   return (
     <View style={style.container}>
       <GestureDetector gesture={gesture}>
