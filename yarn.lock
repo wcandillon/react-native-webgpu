@@ -3470,6 +3470,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tensorflow/tfjs-backend-webgpu@npm:^4.22.0":
+  version: 4.22.0
+  resolution: "@tensorflow/tfjs-backend-webgpu@npm:4.22.0"
+  dependencies:
+    "@tensorflow/tfjs-backend-cpu": 4.22.0
+  peerDependencies:
+    "@tensorflow/tfjs-core": 4.22.0
+  checksum: da9f3c3db9a78d5e6c3c332cd33716bc6b7dbc6fdc0237bf899587936c07a1f483da9ffc43ffad86ee9f7af8619cab7c421c2de9bd2f9c128a185e462b6ae9da
+  languageName: node
+  linkType: hard
+
 "@tensorflow/tfjs-converter@npm:4.22.0":
   version: 4.22.0
   resolution: "@tensorflow/tfjs-converter@npm:4.22.0"
@@ -4469,6 +4480,7 @@ __metadata:
     "@react-three/fiber": ^8.17.6
     "@rnx-kit/metro-config": ^1.3.17
     "@tensorflow/tfjs": ^4.22.0
+    "@tensorflow/tfjs-backend-webgpu": ^4.22.0
     "@types/node": ^20.14.7
     "@types/react": ^18.2.6
     "@types/react-test-renderer": ^18.0.0
