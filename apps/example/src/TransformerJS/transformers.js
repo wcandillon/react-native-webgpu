@@ -2054,6 +2054,7 @@ const META_URL = "http://localhost:5173/";
           const errors = [];
           const availableBackendNames = /* @__PURE__ */ new Set();
           for (const backendName of backendNames) {
+            console.log({ backendName });
             const resolveResult = await tryResolveAndInitializeBackend(backendName);
             if (typeof resolveResult === "string") {
               errors.push({ name: backendName, err: resolveResult });
@@ -5248,7 +5249,7 @@ const META_URL = "http://localhost:5173/";
                 tt(b);
               } });
             }
-            var ci = typeof TextDecoder < "u" ? new TextDecoder("utf-16le") : void 0, _c = (s, p) => {
+            var ci = typeof TextDecoder < "u" ? new TextDecoder("utf-8") : void 0, _c = (s, p) => {
               for (var f = s >> 1, b = f + p / 2; !(f >= b) && o()[f >>> 0]; ) ++f;
               if (32 < (f <<= 1) - s && ci) return ci.decode(r().slice(s, f));
               for (f = "", b = 0; !(b >= p / 2); ++b) {
@@ -6215,6 +6216,7 @@ const META_URL = "http://localhost:5173/";
               let n = r.buffer, o = r.byteOffset, i = r.byteLength, a = Qn(i), d = this.storageCache.get(t);
               if (!d) throw new Error("gpu data for uploading does not exist");
               if (d.originalSize !== i) throw new Error(`inconsistent data size. gpu data size=${d.originalSize}, data size=${i}`);
+              console.log({ backend: this.backend, device: this.backend.device });
               let l = this.backend.device.createBuffer({ mappedAtCreation: true, size: a, usage: GPUBufferUsage.MAP_WRITE | GPUBufferUsage.COPY_SRC }), c = l.getMappedRange();
               new Uint8Array(c).set(new Uint8Array(n, o, i)), l.unmap();
               let m = this.backend.getCommandEncoder();
@@ -11828,9 +11830,7 @@ const META_URL = "http://localhost:5173/";
             async initialize(t, r) {
               this.env = t;
               let n = [], o = { requiredLimits: { maxComputeWorkgroupStorageSize: r.limits.maxComputeWorkgroupStorageSize, maxComputeWorkgroupsPerDimension: r.limits.maxComputeWorkgroupsPerDimension, maxStorageBufferBindingSize: r.limits.maxStorageBufferBindingSize, maxBufferSize: r.limits.maxBufferSize, maxComputeInvocationsPerWorkgroup: r.limits.maxComputeInvocationsPerWorkgroup, maxComputeWorkgroupSizeX: r.limits.maxComputeWorkgroupSizeX, maxComputeWorkgroupSizeY: r.limits.maxComputeWorkgroupSizeY, maxComputeWorkgroupSizeZ: r.limits.maxComputeWorkgroupSizeZ }, requiredFeatures: n };
-              r.features.has("chromium-experimental-timestamp-query-inside-passes") ? n.push("chromium-experimental-timestamp-query-inside-passes") : r.features.has("timestamp-query") && n.push("timestamp-query"), r.features.has("shader-f16") && n.push("shader-f16"), this.device = await r.requestDevice(o), this.adapterInfo = new Io(r.info || await r.requestAdapterInfo()), this.gpuDataManager = ja(this), this.programManager = new an(this), this.kernels = /* @__PURE__ */ new Map(), this.kernelPersistentData = /* @__PURE__ */ new Map(), this.kernelCustomData = /* @__PURE__ */ new Map(), Wr(t.logLevel, !!t.debug), this.device.onuncapturederror = (i) => {
-                i.error instanceof GPUValidationError && console.error(`An uncaught WebGPU validation error was raised: ${i.error.message}`);
-              }, Object.defineProperty(this.env.webgpu, "device", { value: this.device, writable: false, enumerable: true, configurable: false }), Object.defineProperty(this.env.webgpu, "adapter", { value: r, writable: false, enumerable: true, configurable: false }), this.setQueryType();
+              r.features.has("chromium-experimental-timestamp-query-inside-passes") ? n.push("chromium-experimental-timestamp-query-inside-passes") : r.features.has("timestamp-query") && n.push("timestamp-query"), r.features.has("shader-f16") && n.push("shader-f16"), this.device = await r.requestDevice(o), this.adapterInfo = new Io(r.info || await r.requestAdapterInfo()), this.gpuDataManager = ja(this), this.programManager = new an(this), this.kernels = /* @__PURE__ */ new Map(), this.kernelPersistentData = /* @__PURE__ */ new Map(), this.kernelCustomData = /* @__PURE__ */ new Map(), Wr(t.logLevel, !!t.debug), Object.defineProperty(this.env.webgpu, "device", { value: this.device, writable: false, enumerable: true, configurable: false }), Object.defineProperty(this.env.webgpu, "adapter", { value: r, writable: false, enumerable: true, configurable: false }), this.setQueryType();
             }
             dispose() {
               typeof this.querySet < "u" && this.querySet.destroy(), this.gpuDataManager.dispose();

@@ -148,7 +148,12 @@ public:
     registerHybridGetter("lost", &GPUDevice::getLost, this);
     registerHybridGetter("label", &GPUDevice::getLabel, this);
     registerHybridSetter("label", &GPUDevice::setLabel, this);
+   // registerHybridSetter("onuncapturederror", &GPUDevice::setOnuncapturederror, this);
   }
+
+//   void setOnuncapturederror() {
+//     ;
+//   }
 
   inline const wgpu::Device get() { return _instance; }
 

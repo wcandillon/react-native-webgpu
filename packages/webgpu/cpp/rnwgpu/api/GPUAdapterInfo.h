@@ -31,21 +31,21 @@ public:
     return "";
   }
   std::string getArchitecture() {
-    if (_instance.architecture.length) {
-      return _instance.architecture.data;
-    }
+//    if (_instance.architecture.length) {
+//      return _instance.architecture.data;
+//    }
     return "";
   }
   std::string getDevice() {
-    if (_instance.device.length) {
-      return _instance.device.data;
-    }
+//    if (_instance.device.length) {
+//      return _instance.device.data;
+//    }
     return "";
   }
   std::string getDescription() {
-    if (_instance.device.length) {
-      return _instance.device.data;
-    }
+//    if (_instance.device.length) {
+//      return _instance.device.data;
+//    }
     return "";
   }
 

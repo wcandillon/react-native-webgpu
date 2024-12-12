@@ -147,9 +147,8 @@ async function load() {
 }
 
 load().then((r) => {
-  console.log(r);
-
   check();
+  console.log({ done: r });
 });
 
 // Listen for messages from the main thread
