@@ -12,6 +12,7 @@ export type Routes = {
   RenderBundles: undefined;
   OcclusionQuery: undefined;
   ComputeBoids: undefined;
+  MNISTInference: undefined;
   ABuffer: undefined;
   Particles: undefined;
   ShadowMapping: undefined;
