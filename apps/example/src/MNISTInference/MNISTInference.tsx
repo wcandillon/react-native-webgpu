@@ -77,9 +77,11 @@ export function MNISTInference() {
       const pixels = surface.value.getCanvas().readPixels(0, 0, {
         width: SIZE,
         height: SIZE,
-        alphaType: AlphaType.Unpremul,
-        colorType: ColorType.RGBA_8888,
+        alphaType: AlphaType.Opaque,
+        colorType: ColorType.Alpha_8,
       });
+      console.log(pixels?.slice(0, 16));
+      console.log(pixels?.length === SIZE * SIZE);
       runOnJS(runInference)(
         centerData(pixels!).map((x) => (x / 255) * 3.24 - 0.42),
       );
