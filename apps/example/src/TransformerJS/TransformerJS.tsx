@@ -96,7 +96,7 @@ const createModel = () => {
   }));
   
   model.compile({
-    optimizer: tf.train.adam(0.001),
+    optimizer: tf.train.adam(0.0005),
     loss: 'binaryCrossentropy',
     metrics: ['accuracy']
   });
@@ -172,7 +172,7 @@ export const TransformerJS = () => {
         
         // Train the model
         await sentimentModel.fit(xTrain, yTrain, {
-          epochs: 10,
+          epochs: 50,
           verbose: 1
         });
         
