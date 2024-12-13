@@ -24,7 +24,7 @@ export const examples = [
     title: "☘️ Three.js",
   },
   {
-    screen: "tensorflow.js",
+    screen: "TransformerJS",
     title: "🤖 tensorflow.js",
   },
   {
