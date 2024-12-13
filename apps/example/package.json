@@ -22,6 +22,7 @@
     "@react-three/fiber": "^8.17.6",
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-backend-webgpu": "^4.22.0",
+    "@tensorflow/tfjs-vis": "^1.5.1",
     "babel-plugin-transform-import-meta": "^2.2.1",
     "fast-text-encoding": "^1.0.6",
     "react": "18.2.0",

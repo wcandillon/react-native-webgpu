@@ -40,19 +40,19 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
     auto result = std::make_unique<rnwgpu::GPUDeviceDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
-      if (value.hasProperty(runtime, "requiredFeatures")) {
-        auto prop = value.getProperty(runtime, "requiredFeatures");
-        result->requiredFeatures = JSIConverter<
-            std::optional<std::vector<wgpu::FeatureName>>>::fromJSI(runtime,
-                                                                    prop,
-                                                                    false);
-      }
-      if (value.hasProperty(runtime, "requiredLimits")) {
-        auto prop = value.getProperty(runtime, "requiredLimits");
-        result->requiredLimits =
-            JSIConverter<std::optional<std::map<std::string, double>>>::fromJSI(
-                runtime, prop, false);
-      }
+//      if (value.hasProperty(runtime, "requiredFeatures")) {
+//        auto prop = value.getProperty(runtime, "requiredFeatures");
+//        result->requiredFeatures = JSIConverter<
+//            std::optional<std::vector<wgpu::FeatureName>>>::fromJSI(runtime,
+//                                                                    prop,
+//                                                                    false);
+//      }
+//      if (value.hasProperty(runtime, "requiredLimits")) {
+//        auto prop = value.getProperty(runtime, "requiredLimits");
+//        result->requiredLimits =
+//            JSIConverter<std::optional<std::map<std::string, double>>>::fromJSI(
+//                runtime, prop, false);
+//      }
       if (value.hasProperty(runtime, "defaultQueue")) {
         auto prop = value.getProperty(runtime, "defaultQueue");
         result->defaultQueue =

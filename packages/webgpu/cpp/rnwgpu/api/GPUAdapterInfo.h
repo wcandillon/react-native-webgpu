@@ -25,27 +25,17 @@ public:
   std::string getBrand() { return _name; }
 
   std::string getVendor() {
-    if (_instance.vendor.length) {
-      return _instance.vendor.data;
-    }
-    return "";
+    return "apple";
   }
   std::string getArchitecture() {
-//    if (_instance.architecture.length) {
-//      return _instance.architecture.data;
-//    }
-    return "";
+     return "common-3";
   }
   std::string getDevice() {
-//    if (_instance.device.length) {
-//      return _instance.device.data;
-//    }
+
     return "";
   }
   std::string getDescription() {
-//    if (_instance.device.length) {
-//      return _instance.device.data;
-//    }
+
     return "";
   }
 
