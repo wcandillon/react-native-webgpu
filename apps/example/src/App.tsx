@@ -19,6 +19,7 @@ import { RenderBundles } from "./RenderBundles";
 import { ABuffer } from "./ABuffer";
 import { OcclusionQuery } from "./OcclusionQuery";
 import { ComputeBoids } from "./ComputeBoids";
+import { MNISTInference } from "./MNISTInference";
 import { Wireframe } from "./Wireframe";
 import { Resize } from "./Resize";
 import { Particules } from "./Particles";
@@ -44,7 +45,7 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Home">
+        <Stack.Navigator initialRouteName="MNISTInference">
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="HelloTriangle" component={HelloTriangle} />
           <Stack.Screen
@@ -67,6 +68,7 @@ function App() {
           <Stack.Screen name="ReversedZ" component={ReversedZ} />
           <Stack.Screen name="ABuffer" component={ABuffer} />
           <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />
+          <Stack.Screen name="MNISTInference" component={MNISTInference} />
           <Stack.Screen name="ComputeBoids" component={ComputeBoids} />
           <Stack.Screen name="ShadowMapping" component={ShadowMapping} />
           <Stack.Screen name="DeferedRendering" component={DeferedRendering} />

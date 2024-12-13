@@ -71,6 +71,10 @@ export const examples = [
     screen: "ComputeBoids",
     title: "🐦‍⬛ Compute Boids",
   },
+  {
+    screen: "MNISTInference",
+    title: "1️⃣ MNIST Inference",
+  },
   ...(Platform.OS !== "ios"
     ? ([
         {
