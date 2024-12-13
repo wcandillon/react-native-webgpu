@@ -83,11 +83,8 @@ const createModel = () => {
     inputLength: MAX_LENGTH
   }));
   
-  model.add(tf.layers.lstm({units: 32, returnSequences: false}));
-
-  //model.add(tf.layers.globalAveragePooling1d());
- // model.add(tf.layers.dropout({rate: 0.5}));
-
+  model.add(tf.layers.globalAveragePooling1d());
+  
   model.add(tf.layers.dense({
     units: 16,
     activation: 'relu'
@@ -175,7 +172,7 @@ export const TransformerJS = () => {
         
         // Train the model
         await sentimentModel.fit(xTrain, yTrain, {
-          epochs: 30,
+          epochs: 10,
           verbose: 1
         });
         
