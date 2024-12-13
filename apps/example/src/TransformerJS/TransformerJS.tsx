@@ -84,7 +84,9 @@ tf.setPlatform("react-native", new PlatformReactNative());
   // Create a simple model with one dense layer.
   const model = tf.sequential();
   model.add(tf.layers.dense({ units: 1, inputShape: [1] }));
-  model.compile({ loss: "meanSquaredError", optimizer: "sgd" });
+  model.compile({ loss: 'meanSquaredError', 
+       optimizer: tf.train.sgd(0.1)
+  });
 
   // Reshape inputs to match the model's input.
   const xTensor = xs.reshape([100, 1]);
@@ -109,7 +111,7 @@ tf.setPlatform("react-native", new PlatformReactNative());
   const testValues = [-0.5, 0.5, 2, -2];
   const testXs = tf.tensor2d(testValues, [testValues.length, 1]);
   const preds = model.predict(testXs);
-  const predValues = preds.dataSync();
+  const predValues = await preds.data();
 
   console.log("Test inputs: ", testValues);
   console.log("Predictions: ", predValues);
