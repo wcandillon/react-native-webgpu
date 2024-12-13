@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import { Button, Dimensions, Platform, StyleSheet, View } from "react-native";
-import type { SkImage, SkSurface } from "@shopify/react-native-skia";
+import type { SkImage } from "@shopify/react-native-skia";
 import {
   Canvas,
   Fill,
@@ -14,7 +14,7 @@ import {
   Text,
 } from "@shopify/react-native-skia";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { runOnJS, runOnUI, useSharedValue } from "react-native-reanimated";
+import { runOnJS, useSharedValue } from "react-native-reanimated";
 import { useDevice } from "react-native-wgpu";
 
 import type { Network } from "./Lib";
@@ -52,12 +52,13 @@ for (let i = 0; i <= SIZE; i++) {
 }
 
 const f = 1 / cellSize;
+const surface = Skia.Surface.MakeOffscreen(SIZE, SIZE)!;
+const canvas = surface.getCanvas();
 
 export function MNISTInference() {
   const { device } = useDevice();
   const network = useRef<Network>();
   const text = useSharedValue("0");
-  const surface = useSharedValue<SkSurface | null>(null);
   const path = useSharedValue(Skia.Path.Make());
   const image = useSharedValue<SkImage | null>(null);
   const runInference = useCallback(
@@ -68,9 +69,6 @@ export function MNISTInference() {
       const certainties = await network.current.inference(data);
       const max = Math.max(...certainties);
       const index = certainties.indexOf(max);
-      //const sum = certainties.reduce((a, b) => a + b, 0);
-      //const normalized = certainties.map((x) => x / sum);
-      console.log(`${index}`);
       text.value = `${index}`;
     },
     [text],
@@ -81,43 +79,46 @@ export function MNISTInference() {
     })
     .onChange((e) => {
       path.value.lineTo(e.x * f, e.y * f);
-      if (surface.value === null) {
-        return;
-      }
-      surface.value.getCanvas().drawPath(path.value, paint);
-      surface.value.flush();
-      image.value = surface.value.makeImageSnapshot();
-      const pixels = surface.value.getCanvas().readPixels(0, 0, {
+      canvas.drawPath(path.value, paint);
+      //      surface.flush();
+      //    image.value = surface.makeImageSnapshot().makeNonTextureImage();
+      const pixels = canvas.readPixels(0, 0, {
         width: SIZE,
         height: SIZE,
         alphaType: AlphaType.Opaque,
         colorType: ColorType.Alpha_8,
       })!;
+      image.value = Skia.Image.MakeImage(
+        {
+          width: SIZE,
+          height: SIZE,
+          alphaType: AlphaType.Opaque,
+          colorType: ColorType.Alpha_8,
+        },
+        Skia.Data.fromBytes(pixels as Uint8Array),
+        SIZE,
+      );
+
       runOnJS(runInference)(
         centerData(pixels as Uint8Array).map((x) => (x / 255) * 3.24 - 0.42),
       );
     });
   useEffect(() => {
-    runOnUI(() => {
-      surface.value = Skia.Surface.MakeOffscreen(SIZE, SIZE)!;
-    })();
     (async () => {
       if (device) {
         const demo = await createDemo(device);
         network.current = demo.network;
       }
     })();
-  }, [device, network, surface]);
+  }, [device, network]);
   return (
     <View style={style.container}>
       <Button
         onPress={() => {
-          runOnUI(() => {
-            surface.value?.getCanvas().clear(Skia.Color("transparent"));
-            surface.value?.flush();
-            path.value = Skia.Path.Make();
-            image.value = null;
-          })();
+          surface.getCanvas().clear(Skia.Color("transparent"));
+          surface.flush();
+          path.value = Skia.Path.Make();
+          image.value = null;
         }}
         title="Reset"
       />
