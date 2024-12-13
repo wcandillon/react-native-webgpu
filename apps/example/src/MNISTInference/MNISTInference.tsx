@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from "react";
-import { Dimensions, Platform, StyleSheet, View } from "react-native";
+import { Button, Dimensions, Platform, StyleSheet, View } from "react-native";
 import type { SkImage, SkSurface } from "@shopify/react-native-skia";
 import {
   Canvas,
@@ -14,7 +14,6 @@ import {
   Text,
 } from "@shopify/react-native-skia";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import type { SharedValue } from "react-native-reanimated";
 import { runOnJS, runOnUI, useSharedValue } from "react-native-reanimated";
 import { useDevice } from "react-native-wgpu";
 
@@ -111,6 +110,17 @@ export function MNISTInference() {
   }, [device, network, surface]);
   return (
     <View style={style.container}>
+      <Button
+        onPress={() => {
+          runOnUI(() => {
+            surface.value?.getCanvas().clear(Skia.Color("transparent"));
+            surface.value?.flush();
+            path.value = Skia.Path.Make();
+            image.value = null;
+          })();
+        }}
+        title="Reset"
+      />
       <GestureDetector gesture={gesture}>
         <Canvas style={style.canvas}>
           <Fill color="rgb(239, 239, 248)" />

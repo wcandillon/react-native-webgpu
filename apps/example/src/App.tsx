@@ -29,7 +29,7 @@ import { ReversedZ } from "./ReversedZ";
 import { ThreeJS } from "./ThreeJS";
 import { GradientTiles } from "./GradientTiles";
 import { CanvasAPI } from "./CanvasAPI";
-import { TransformerJS } from "./TransformerJS";
+import { Tensorflow } from "./Tensorflow";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -45,7 +45,7 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="MNISTInference">
+        <Stack.Navigator initialRouteName="Home">
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="HelloTriangle" component={HelloTriangle} />
           <Stack.Screen
@@ -53,7 +53,7 @@ function App() {
             component={HelloTriangleMSAA}
           />
           <Stack.Screen name="ThreeJS" component={ThreeJS} />
-          <Stack.Screen name="TransformerJS" component={TransformerJS} />
+          <Stack.Screen name="Tensorflow" component={Tensorflow} />
           <Stack.Screen name="CanvasAPI" component={CanvasAPI} />
           <Stack.Screen name="Cube" component={Cube} />
           <Stack.Screen name="InstancedCube" component={InstancedCube} />
