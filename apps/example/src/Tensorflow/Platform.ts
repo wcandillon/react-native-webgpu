@@ -1,5 +1,5 @@
-import { Platform } from "@tensorflow/tfjs-core";
-import { RequestDetails } from "@tensorflow/tfjs-core/dist/io/types";
+import type { Platform } from "@tensorflow/tfjs-core";
+import type { RequestDetails } from "@tensorflow/tfjs-core/dist/io/types";
 
 export class PlatformReactNative implements Platform {
   fetch(path: string, init?: RequestInit, _options?: RequestDetails) {
@@ -22,7 +22,9 @@ export class PlatformReactNative implements Platform {
     throw new Error("react native does not support setTimeoutCustom");
   }
 
-  isTypedArray(a: unknown) {
+  isTypedArray(
+    a: unknown,
+  ): a is Uint8Array | Uint8ClampedArray | Int32Array | Float32Array {
     return (
       a instanceof Float32Array ||
       a instanceof Int32Array ||

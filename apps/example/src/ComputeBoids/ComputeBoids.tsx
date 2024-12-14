@@ -41,7 +41,7 @@ const renderBindGroupLayout = tgpu.bindGroupLayout({
 
 const computeBindGroupLayout = tgpu.bindGroupLayout({
   currentTrianglePos: { storage: TriangleDataArray },
-  nextTrianglePos: { storage: TriangleDataArray, access: 'mutable' },
+  nextTrianglePos: { storage: TriangleDataArray, access: "mutable" },
   params: { uniform: Parameters },
 });
 
@@ -122,7 +122,7 @@ export function ComputeBoids() {
 
     const triangleAmount = 1000;
     const trianglePosBuffers = Array.from({ length: 2 }, () =>
-      root.createBuffer(TriangleDataArray(triangleAmount)).$usage("storage")
+      root.createBuffer(TriangleDataArray(triangleAmount)).$usage("storage"),
     );
 
     randomizePositions.current = () => {
@@ -234,7 +234,7 @@ export function ComputeBoids() {
       computePass.setPipeline(computePipeline);
       computePass.setBindGroup(
         0,
-        root.unwrap(even ? computeBindGroups[0] : computeBindGroups[1])
+        root.unwrap(even ? computeBindGroups[0] : computeBindGroups[1]),
       );
       computePass.dispatchWorkgroups(triangleAmount);
       computePass.end();
@@ -244,7 +244,7 @@ export function ComputeBoids() {
       passEncoder.setVertexBuffer(0, triangleVertexBuffer.buffer);
       passEncoder.setBindGroup(
         0,
-        root.unwrap(even ? renderBindGroups[1] : renderBindGroups[0])
+        root.unwrap(even ? renderBindGroups[1] : renderBindGroups[0]),
       );
       passEncoder.draw(3, triangleAmount);
       passEncoder.end();
