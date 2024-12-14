@@ -52,6 +52,26 @@ describe("Adapter", () => {
     });
     expect(result).toBe(true);
   });
+  it("requestAdapter (6)", async () => {
+    const result = await client.eval(({ gpu }) => {
+      return gpu.requestAdapter().then((adapter) => {
+        if (!adapter) {
+          return null;
+        }
+        return {
+          vendor: adapter.info.vendor,
+          architecture: adapter.info.architecture,
+          device: adapter.info.device,
+          description: adapter.info.description,
+        };
+      });
+    });
+    expect(result).toBeDefined();
+    expect(result!.vendor).toBeDefined();
+    expect(result!.architecture).toBeDefined();
+    expect(result!.device).toBeDefined();
+    expect(result!.description).toBeDefined();
+  });
   it("isFallback", async () => {
     const result = await client.eval(({ adapter }) => {
       return adapter.isFallbackAdapter;

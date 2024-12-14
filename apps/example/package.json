@@ -51,7 +51,7 @@
     "@types/react": "^18.2.6",
     "@types/react-test-renderer": "^18.0.0",
     "@types/three": "0.168.0",
-    "@webgpu/types": "0.1.49",
+    "@webgpu/types": "0.1.51",
     "babel-jest": "^29.6.3",
     "eslint": "^8.19.0",
     "eslint-config-react-native-wcandillon": "^3.10.2",
