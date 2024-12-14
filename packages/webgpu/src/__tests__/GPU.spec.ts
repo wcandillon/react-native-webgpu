@@ -115,7 +115,8 @@ describe("Adapter", () => {
     const result = await client.eval(({ adapter }) => {
       return adapter
         .requestDevice({
-          //
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error
           requiredFeatures: [["bgra8unorm-storage"]],
           requiredLimits: {
             maxComputeWorkgroupStorageSize: 16352,
