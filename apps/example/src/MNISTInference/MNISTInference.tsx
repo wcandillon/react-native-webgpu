@@ -1,19 +1,20 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import { Button, Dimensions, Platform, StyleSheet, View } from "react-native";
-import type { SkImage } from "@shopify/react-native-skia";
 import {
   Canvas,
   Fill,
   Skia,
-  Image,
   PaintStyle,
   Path,
   ColorType,
   AlphaType,
   matchFont,
   Text,
+  notifyChange,
+  Group,
 } from "@shopify/react-native-skia";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import type { SharedValue } from "react-native-reanimated";
 import { runOnJS, useSharedValue } from "react-native-reanimated";
 import { useDevice } from "react-native-wgpu";
 
@@ -58,9 +59,8 @@ const canvas = surface.getCanvas();
 export function MNISTInference() {
   const { device } = useDevice();
   const network = useRef<Network>();
-  const text = useSharedValue("0");
+  const text = useSharedValue("");
   const path = useSharedValue(Skia.Path.Make());
-  const image = useSharedValue<SkImage | null>(null);
   const runInference = useCallback(
     async (data: number[]) => {
       if (network.current === undefined) {
@@ -80,25 +80,13 @@ export function MNISTInference() {
     .onChange((e) => {
       path.value.lineTo(e.x * f, e.y * f);
       canvas.drawPath(path.value, paint);
-      //      surface.flush();
-      //    image.value = surface.makeImageSnapshot().makeNonTextureImage();
       const pixels = canvas.readPixels(0, 0, {
         width: SIZE,
         height: SIZE,
         alphaType: AlphaType.Opaque,
         colorType: ColorType.Alpha_8,
       })!;
-      image.value = Skia.Image.MakeImage(
-        {
-          width: SIZE,
-          height: SIZE,
-          alphaType: AlphaType.Opaque,
-          colorType: ColorType.Alpha_8,
-        },
-        Skia.Data.fromBytes(pixels as Uint8Array),
-        SIZE,
-      );
-
+      notifyChange(path as SharedValue<unknown>);
       runOnJS(runInference)(
         centerData(pixels as Uint8Array).map((x) => (x / 255) * 3.24 - 0.42),
       );
@@ -115,10 +103,9 @@ export function MNISTInference() {
     <View style={style.container}>
       <Button
         onPress={() => {
-          surface.getCanvas().clear(Skia.Color("transparent"));
-          surface.flush();
+          canvas.clear(Skia.Color("transparent"));
           path.value = Skia.Path.Make();
-          image.value = null;
+          text.value = "";
         }}
         title="Reset"
       />
@@ -131,14 +118,15 @@ export function MNISTInference() {
             color="rgb(209, 209, 209)"
             strokeWidth={1}
           />
-          <Image
-            image={image}
-            x={0}
-            y={0}
-            width={width}
-            height={width}
-            fit="cover"
-          />
+          <Group transform={[{ scale: width / SIZE }]}>
+            <Path
+              path={path}
+              style="stroke"
+              color="black"
+              strokeWidth={1}
+              strokeCap="round"
+            />
+          </Group>
           <Text text={text} x={(width - 100) / 2} y={1.5 * width} font={font} />
         </Canvas>
       </GestureDetector>
