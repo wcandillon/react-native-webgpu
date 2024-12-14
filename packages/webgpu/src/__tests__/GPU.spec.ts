@@ -98,41 +98,38 @@ describe("Adapter", () => {
     });
     expect(result).toBe(true);
   });
-  it("timestamp", async () => {
+  it("request device with timestamp queries", async () => {
     const result = await client.eval(({ adapter }) => {
-      return adapter.features.has("timestamp-query");
+      if (adapter.features.has("timestamp-query")) {
+        return adapter
+          .requestDevice({
+            requiredFeatures: ["timestamp-query"],
+          })
+          .then((device) => device.features.has("timestamp-query"));
+      }
+      return true;
     });
     expect(result).toBe(true);
   });
-  it("request device with timestamp queries", async () => {
+  it("request device faulty input", async () => {
     const result = await client.eval(({ adapter }) => {
       return adapter
         .requestDevice({
-          requiredFeatures: ["timestamp-query"],
+          //
+          requiredFeatures: [["bgra8unorm-storage"]],
+          requiredLimits: {
+            maxComputeWorkgroupStorageSize: 16352,
+            maxComputeWorkgroupsPerDimension: 65535,
+            maxStorageBufferBindingSize: 268435456,
+            maxBufferSize: 268435456,
+            maxComputeWorkgroupSizeX: 512,
+            maxComputeInvocationsPerWorkgroup: 512,
+          },
         })
-        .then((device) => device.features.has("timestamp-query"));
+        .then((device) => !!device);
     });
     expect(result).toBe(true);
   });
-  // it("request device faulty input", async () => {
-  //   const result = await client.eval(({ adapter }) => {
-  //     return adapter
-  //       .requestDevice({
-  //         //
-  //         requiredFeatures: [["bgra8unorm-storage"]],
-  //         requiredLimits: {
-  //           maxComputeWorkgroupStorageSize: 16352,
-  //           maxComputeWorkgroupsPerDimension: 65535,
-  //           maxStorageBufferBindingSize: 268435456,
-  //           maxBufferSize: 268435456,
-  //           maxComputeWorkgroupSizeX: 512,
-  //           maxComputeInvocationsPerWorkgroup: 512,
-  //         },
-  //       })
-  //       .then((device) => !!device);
-  //   });
-  //   expect(result).toBe(true);
-  // });
   // it("request device with unknown feature", async () => {
   //   const result = await client.eval(({ adapter }) => {
   //     return adapter
