@@ -1,6 +1,6 @@
 {
   "name": "react-native-wgpu",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "description": "React Native WebGPU",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -65,7 +65,7 @@
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^8.4.0",
     "@typescript-eslint/parser": "^8.4.0",
-    "@webgpu/types": "0.1.49",
+    "@webgpu/types": "0.1.51",
     "clang-format": "^1.8.0",
     "del-cli": "^5.1.0",
     "eslint": "8",
