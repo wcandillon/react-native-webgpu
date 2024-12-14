@@ -1582,7 +1582,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/template@npm:^7.0.0, @babel/template@npm:^7.25.9, @babel/template@npm:^7.3.3, @babel/template@npm:^7.4.4":
+"@babel/template@npm:^7.0.0, @babel/template@npm:^7.25.9, @babel/template@npm:^7.3.3":
   version: 7.25.9
   resolution: "@babel/template@npm:7.25.9"
   dependencies:
@@ -4421,7 +4421,6 @@ __metadata:
     "@types/three": 0.168.0
     "@webgpu/types": 0.1.51
     babel-jest: ^29.6.3
-    babel-plugin-transform-import-meta: ^2.2.1
     eslint: ^8.19.0
     eslint-config-react-native-wcandillon: ^3.10.2
     fast-text-encoding: ^1.0.6
@@ -4942,18 +4941,6 @@ __metadata:
   dependencies:
     "@babel/plugin-syntax-flow": ^7.12.1
   checksum: fd52aef54448e01948a9d1cca0c8f87d064970c8682458962b7a222c372704bc2ce26ae8109e0ab2566e7ea5106856460f04c1a5ed794ab3bcd2f42cae1d9845
-  languageName: node
-  linkType: hard
-
-"babel-plugin-transform-import-meta@npm:^2.2.1":
-  version: 2.2.1
-  resolution: "babel-plugin-transform-import-meta@npm:2.2.1"
-  dependencies:
-    "@babel/template": ^7.4.4
-    tslib: ^2.4.0
-  peerDependencies:
-    "@babel/core": ^7.10.0
-  checksum: 2868e3ac22fc403003b19750dd04f9f05303d2ade3d005e2e557ba8e260ac0b8ee3717f772ec4db8a9e6a8aac13dc61eb82b79a6479f933290cef2d89e4b731b
   languageName: node
   linkType: hard
 
@@ -12920,7 +12907,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.0.1, tslib@npm:^2.4.0, tslib@npm:^2.6.2":
+"tslib@npm:^2.0.1, tslib@npm:^2.6.2":
   version: 2.8.1
   resolution: "tslib@npm:2.8.1"
   checksum: e4aba30e632b8c8902b47587fd13345e2827fa639e7c3121074d5ee0880723282411a8838f830b55100cbe4517672f84a2472667d355b81e8af165a55dc6203a

@@ -935,8 +935,31 @@ PODS:
   - React-Mapbuffer (0.74.2):
     - glog
     - React-debug
-  - react-native-safe-area-context (4.11.0):
+  - react-native-safe-area-context (4.14.1):
     - React-Core
+  - react-native-skia (1.7.2):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.01.01.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React
+    - React-callinvoker
+    - React-Codegen
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
   - react-native-wgpu (0.1.22):
     - DoubleConversion
     - glog
@@ -1187,7 +1210,7 @@ PODS:
     - React-logger (= 0.74.2)
     - React-perflogger (= 0.74.2)
     - React-utils (= 0.74.2)
-  - ReactNativeHost (0.5.0):
+  - ReactNativeHost (0.5.2):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1209,11 +1232,11 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - ReactTestApp-DevSupport (3.10.8):
+  - ReactTestApp-DevSupport (3.10.22):
     - React-Core
     - React-jsi
   - ReactTestApp-Resources (1.0.0-dev)
-  - RNGestureHandler (2.19.0):
+  - RNGestureHandler (2.21.2):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1234,7 +1257,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNReanimated (3.15.2):
+  - RNReanimated (3.16.5):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1254,10 +1277,32 @@ PODS:
     - React-utils
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNReanimated/reanimated (= 3.15.2)
-    - RNReanimated/worklets (= 3.15.2)
+    - RNReanimated/reanimated (= 3.16.5)
+    - RNReanimated/worklets (= 3.16.5)
     - Yoga
-  - RNReanimated/reanimated (3.15.2):
+  - RNReanimated/reanimated (3.16.5):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.01.01.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Codegen
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - RNReanimated/reanimated/apple (= 3.16.5)
+    - Yoga
+  - RNReanimated/reanimated/apple (3.16.5):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1278,7 +1323,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNReanimated/worklets (3.15.2):
+  - RNReanimated/worklets (3.16.5):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1336,6 +1381,7 @@ DEPENDENCIES:
   - React-logger (from `../../../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../../../node_modules/react-native/ReactCommon`)
   - react-native-safe-area-context (from `../../../node_modules/react-native-safe-area-context`)
+  - "react-native-skia (from `../../../node_modules/@shopify/react-native-skia`)"
   - react-native-wgpu (from `../../../node_modules/react-native-wgpu`)
   - React-nativeconfig (from `../../../node_modules/react-native/ReactCommon`)
   - React-NativeModulesApple (from `../../../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
@@ -1435,6 +1481,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native/ReactCommon"
   react-native-safe-area-context:
     :path: "../../../node_modules/react-native-safe-area-context"
+  react-native-skia:
+    :path: "../../../node_modules/@shopify/react-native-skia"
   react-native-wgpu:
     :path: "../../../node_modules/react-native-wgpu"
   React-nativeconfig:
@@ -1527,7 +1575,8 @@ SPEC CHECKSUMS:
   React-jsitracing: 0fa7f78d8fdda794667cb2e6f19c874c1cf31d7e
   React-logger: 29fa3e048f5f67fe396bc08af7606426d9bd7b5d
   React-Mapbuffer: bf56147c9775491e53122a94c423ac201417e326
-  react-native-safe-area-context: 851c62c48dce80ccaa5637b6aa5991a1bc36eca9
+  react-native-safe-area-context: 141eca0fd4e4191288dfc8b96a7c7e1c2983447a
+  react-native-skia: c85483f709f2b58d30a11fc005c2938ee87d6656
   react-native-wgpu: fc73fc100b757c6c89e489ffbcc927214bd270f8
   React-nativeconfig: 9f223cd321823afdecf59ed00861ab2d69ee0fc1
   React-NativeModulesApple: ff7efaff7098639db5631236cfd91d60abff04c0
@@ -1552,11 +1601,11 @@ SPEC CHECKSUMS:
   React-runtimescheduler: 56b642bf605ba5afa500d35790928fc1d51565ad
   React-utils: 4476b7fcbbd95cfd002f3e778616155241d86e31
   ReactCommon: ecad995f26e0d1e24061f60f4e5d74782f003f12
-  ReactNativeHost: 76fb17eac13a9a2200f659deffc91c054731a7e2
-  ReactTestApp-DevSupport: 690d06567b7ecae4f2f98dff5e4881c8d25be8e2
+  ReactNativeHost: 619621c39cdb4339c1336cea844b66cdf43c4d84
+  ReactTestApp-DevSupport: 42abce6b0c88dfb47c86e80aa22831b2abcc3144
   ReactTestApp-Resources: 857244f3a23f2b3157b364fa06cf3e8866deff9c
-  RNGestureHandler: 67e78f16895947f7e57ab91e75e914d3e9ef7239
-  RNReanimated: 4c72fc2c0f4c6a9c36932e653cd68e4521b6c4ac
+  RNGestureHandler: 6fee3422fd8c81c5ee756fa72e3d1780e9943d9d
+  RNReanimated: 77bde2fb01415b61799ed173f9420010632b76e1
   SocketRocket: abac6f5de4d4d62d24e11868d7a2f427e0ef940d
   Yoga: ae3c32c514802d30f687a04a6a35b348506d411f
 
