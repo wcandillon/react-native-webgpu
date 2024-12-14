@@ -66,7 +66,6 @@ describe("Adapter", () => {
         };
       });
     });
-    console.log(result);
     expect(result).toBeDefined();
     expect(result!.vendor).toBeDefined();
     expect(result!.architecture).toBeDefined();
