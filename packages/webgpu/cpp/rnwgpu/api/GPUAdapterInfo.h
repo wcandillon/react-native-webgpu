@@ -18,25 +18,26 @@ namespace m = margelo;
 
 class GPUAdapterInfo : public m::HybridObject {
 public:
-  explicit GPUAdapterInfo(wgpu::AdapterInfo &instance)
-      : HybridObject("GPUAdapterInfo"), _instance(std::move(instance)) {}
+  explicit GPUAdapterInfo(wgpu::AdapterInfo &info)
+      : HybridObject("GPUAdapterInfo"), _vendor(info.vendor),
+  _architecture(info.architecture),
+  _device(info.device),
+  _description(info.description) {}
 
 public:
   std::string getBrand() { return _name; }
 
   std::string getVendor() {
-    return "apple";
+    return _vendor;
   }
   std::string getArchitecture() {
-     return "common-3";
+    return _architecture;
   }
   std::string getDevice() {
-
-    return "";
+    return _device;
   }
   std::string getDescription() {
-
-    return "";
+    return _description;
   }
 
   void loadHybridMethods() override {
@@ -50,7 +51,10 @@ public:
   }
 
 private:
-  wgpu::AdapterInfo _instance;
+  std::string _vendor;
+  std::string _architecture;
+  std::string _device;
+  std::string _description;
 };
 
 } // namespace rnwgpu
