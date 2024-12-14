@@ -86,32 +86,62 @@ describe("Adapter", () => {
     expect(result.includes("rg11b10ufloat-renderable")).toBe(true);
     expect(result.includes("texture-compression-etc2")).toBe(true);
   });
-  // it("requiredLimits", async () => {
+  it("requiredLimits", async () => {
+    const result = await client.eval(({ adapter }) => {
+      return adapter
+        .requestDevice({
+          requiredLimits: {
+            maxBufferSize: 1024 * 1024 * 4,
+          },
+        })
+        .then((device) => !!device);
+    });
+    expect(result).toBe(true);
+  });
+  it("timestamp", async () => {
+    const result = await client.eval(({ adapter }) => {
+      return adapter.features.has("timestamp-query");
+    });
+    expect(result).toBe(true);
+  });
+  it("request device with timestamp queries", async () => {
+    const result = await client.eval(({ adapter }) => {
+      return adapter
+        .requestDevice({
+          requiredFeatures: ["timestamp-query"],
+        })
+        .then((device) => device.features.has("timestamp-query"));
+    });
+    expect(result).toBe(true);
+  });
+  // it("request device faulty input", async () => {
   //   const result = await client.eval(({ adapter }) => {
   //     return adapter
   //       .requestDevice({
+  //         //
+  //         requiredFeatures: [["bgra8unorm-storage"]],
   //         requiredLimits: {
-  //           maxBufferSize: 1024 * 1024 * 4,
+  //           maxComputeWorkgroupStorageSize: 16352,
+  //           maxComputeWorkgroupsPerDimension: 65535,
+  //           maxStorageBufferBindingSize: 268435456,
+  //           maxBufferSize: 268435456,
+  //           maxComputeWorkgroupSizeX: 512,
+  //           maxComputeInvocationsPerWorkgroup: 512,
   //         },
   //       })
-  //       .then((device) => device.limits.maxBufferSize);
-  //   });
-  //   expect(result).toBe(1024 * 1024 * 4);
-  // });
-  // TODO: re-enable
-  // it("timestamp", async () => {
-  //   const result = await client.eval(({ adapter }) => {
-  //     return adapter.features.has("timestamp-query");
+  //       .then((device) => !!device);
   //   });
   //   expect(result).toBe(true);
   // });
-  // it("request device with timestamp queries", async () => {
+  // it("request device with unknown feature", async () => {
   //   const result = await client.eval(({ adapter }) => {
   //     return adapter
   //       .requestDevice({
-  //         requiredFeatures: ["timestamp-query"],
+  //         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  //         // @ts-expect-error
+  //         requiredFeatures: ["foobar"],
   //       })
-  //       .then((device) => device.features.has("timestamp-query"));
+  //       .catch(() => true);
   //   });
   //   expect(result).toBe(true);
   // });
@@ -212,21 +242,6 @@ describe("Adapter", () => {
     expect(result.maxTextureDimension2D).toBeGreaterThanOrEqual(2048);
     expect(result.maxTextureDimension3D).toBeGreaterThanOrEqual(256);
   });
-  // it("adapter info", async () => {
-  //   const result = await client.eval(({ adapter }) => {
-  //     return {
-  //       __brand: adapter.info.__brand,
-  //       description: adapter.info.description,
-  //       architecture: adapter.info.architecture,
-  //       device: adapter.info.device,
-  //       vendor: adapter.info.vendor,
-  //     };
-  //   });
-  //   expect(result.description).toBeTruthy();
-  //   expect(result.architecture).toBeTruthy();
-  //   expect(result.device).toBeTruthy();
-  //   expect(result.vendor).toBeTruthy();
-  // });
   it("getPreferredCanvasFormat", async () => {
     const result = await client.eval(({ gpu }) => {
       return gpu.getPreferredCanvasFormat();

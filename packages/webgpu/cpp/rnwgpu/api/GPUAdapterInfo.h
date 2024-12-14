@@ -20,25 +20,16 @@ class GPUAdapterInfo : public m::HybridObject {
 public:
   explicit GPUAdapterInfo(wgpu::AdapterInfo &info)
       : HybridObject("GPUAdapterInfo"), _vendor(info.vendor),
-  _architecture(info.architecture),
-  _device(info.device),
-  _description(info.description) {}
+        _architecture(info.architecture), _device(info.device),
+        _description(info.description) {}
 
 public:
   std::string getBrand() { return _name; }
 
-  std::string getVendor() {
-    return _vendor;
-  }
-  std::string getArchitecture() {
-    return _architecture;
-  }
-  std::string getDevice() {
-    return _device;
-  }
-  std::string getDescription() {
-    return _description;
-  }
+  std::string getVendor() { return _vendor; }
+  std::string getArchitecture() { return _architecture; }
+  std::string getDevice() { return _device; }
+  std::string getDescription() { return _description; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUAdapterInfo::getBrand, this);
