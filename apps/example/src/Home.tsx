@@ -24,6 +24,10 @@ export const examples = [
     title: "☘️ Three.js",
   },
   {
+    screen: "Tensorflow",
+    title: "🤖 tensorflow.js",
+  },
+  {
     screen: "Cube",
     title: "🧊 Cube",
   },
@@ -66,6 +70,10 @@ export const examples = [
   {
     screen: "ComputeBoids",
     title: "🐦‍⬛ Compute Boids",
+  },
+  {
+    screen: "MNISTInference",
+    title: "1️⃣ MNIST Inference",
   },
   ...(Platform.OS !== "ios"
     ? ([

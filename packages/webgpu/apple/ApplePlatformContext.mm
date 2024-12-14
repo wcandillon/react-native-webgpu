@@ -25,7 +25,9 @@ void checkIfUsingSimulatorWithAPIValidation() {
 #endif
 }
 
-ApplePlatformContext::ApplePlatformContext() { checkIfUsingSimulatorWithAPIValidation(); }
+ApplePlatformContext::ApplePlatformContext() {
+  checkIfUsingSimulatorWithAPIValidation();
+}
 
 wgpu::Surface ApplePlatformContext::makeSurface(wgpu::Instance instance,
                                                 void *surface, int width,
@@ -62,7 +64,9 @@ ImageData ApplePlatformContext::createImageBitmap(std::string blobId,
 #if !TARGET_OS_OSX
   CGImageRef cgImage = image.CGImage;
 #else
-  CGImageRef cgImage = [image CGImageForProposedRect:NULL context:NULL hints:NULL];
+  CGImageRef cgImage = [image CGImageForProposedRect:NULL
+                                             context:NULL
+                                               hints:NULL];
 #endif
   size_t width = CGImageGetWidth(cgImage);
   size_t height = CGImageGetHeight(cgImage);

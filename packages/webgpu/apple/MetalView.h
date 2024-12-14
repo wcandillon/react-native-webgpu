@@ -1,7 +1,7 @@
 #pragma once
 
-#import "WebGPUModule.h"
 #import "RNWGUIKit.h"
+#import "WebGPUModule.h"
 
 @interface MetalView : RNWGPlatformView
 

@@ -4,7 +4,7 @@ import { Canvas, useDevice, useGPUContext } from "react-native-wgpu";
 import { struct, u32 } from "typegpu/data";
 import tgpu, { type TgpuBindGroup, type TgpuBuffer } from "typegpu";
 
-import { vertWGSL, fragWGSL } from './gradientWgsl';
+import { vertWGSL, fragWGSL } from "./gradientWgsl";
 
 const Span = struct({
   x: u32,
@@ -18,7 +18,7 @@ const bindGroupLayout = tgpu.bindGroupLayout({
 interface RenderingState {
   pipeline: GPURenderPipeline;
   spanBuffer: TgpuBuffer<typeof Span>;
-  bindGroup: TgpuBindGroup<(typeof bindGroupLayout)['entries']>;
+  bindGroup: TgpuBindGroup<(typeof bindGroupLayout)["entries"]>;
 }
 
 function useRoot() {
@@ -26,7 +26,7 @@ function useRoot() {
 
   return useMemo(
     () => (device ? tgpu.initFromDevice({ device }) : null),
-    [device]
+    [device],
   );
 }
 

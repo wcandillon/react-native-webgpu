@@ -4,6 +4,7 @@ export type Routes = {
   HelloTriangleMSAA: undefined;
   Cube: undefined;
   ThreeJS: undefined;
+  Tensorflow: undefined;
   InstancedCube: undefined;
   TexturedCube: undefined;
   FractalCube: undefined;
@@ -12,6 +13,7 @@ export type Routes = {
   RenderBundles: undefined;
   OcclusionQuery: undefined;
   ComputeBoids: undefined;
+  MNISTInference: undefined;
   ABuffer: undefined;
   Particles: undefined;
   ShadowMapping: undefined;
