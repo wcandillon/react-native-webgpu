@@ -20,16 +20,26 @@ export const mergeParentInterfaces = (interfaceDecl: InterfaceDeclaration) => {
       const mergedParentInterface = mergeParentInterfaces(parentInterfaceDecl);
 
       // Merge properties from parent to child
-      for (const prop of mergedParentInterface.getProperties()) {
-        if (!interfaceDecl.getProperty(prop.getName())) {
-          interfaceDecl.addProperty(prop.getStructure());
+      if (
+        mergedParentInterface &&
+        typeof mergedParentInterface.getProperties === "function"
+      ) {
+        const properties = mergedParentInterface.getProperties();
+        for (const prop of properties) {
+          if (!interfaceDecl.getProperty(prop.getName())) {
+            interfaceDecl.addProperty(prop.getStructure());
+          }
         }
       }
-
-      // Merge methods from parent to child
-      for (const method of mergedParentInterface.getMethods()) {
-        if (!interfaceDecl.getMethod(method.getName())) {
-          interfaceDecl.addMethod(method.getStructure());
+      if (
+        mergedParentInterface &&
+        typeof mergedParentInterface.getMethods === "function"
+      ) {
+        // Merge methods from parent to child
+        for (const method of mergedParentInterface.getMethods()) {
+          if (!interfaceDecl.getMethod(method.getName())) {
+            interfaceDecl.addMethod(method.getStructure());
+          }
         }
       }
     }
