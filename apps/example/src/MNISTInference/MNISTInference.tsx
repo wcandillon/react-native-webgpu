@@ -85,13 +85,13 @@ export function MNISTInference() {
         if (surface.value) {
           const canvas = surface.value.getCanvas();
           canvas.drawPath(path.value, paint);
-          const pixels = canvas.readPixels(0, 0, {
+          image.value = surface.value!.makeImageSnapshot();
+          const pixels = image.value.readPixels(0, 0, {
             width: SIZE,
             height: SIZE,
             alphaType: AlphaType.Opaque,
-            colorType: ColorType.Gray_8,
-          })!;
-          image.value = surface.value!.makeImageSnapshot();
+            colorType: ColorType.Alpha_8,
+          });
           runOnJS(runInference)(
             centerData(pixels as Uint8Array).map(
               (x) => (x / 255) * 3.24 - 0.42,
