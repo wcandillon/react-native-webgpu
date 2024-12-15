@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Button, Dimensions, Platform, StyleSheet, View } from "react-native";
+import type { SkImage, SkSurface } from "@shopify/react-native-skia";
 import {
   Canvas,
   Fill,
@@ -11,11 +12,11 @@ import {
   matchFont,
   Text,
   notifyChange,
-  Group,
+  Image,
 } from "@shopify/react-native-skia";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import type { SharedValue } from "react-native-reanimated";
-import { runOnJS, useSharedValue } from "react-native-reanimated";
+import { runOnJS, runOnUI, useSharedValue } from "react-native-reanimated";
 import { useDevice } from "react-native-wgpu";
 
 import type { Network } from "./Lib";
@@ -33,7 +34,7 @@ const font = matchFont(fontStyle);
 const paint = Skia.Paint();
 paint.setColor(Skia.Color("black"));
 paint.setStyle(PaintStyle.Stroke);
-paint.setStrokeWidth(0.5);
+paint.setStrokeWidth(1);
 
 const grid = Skia.Path.Make();
 const cellSize = width / SIZE;
@@ -53,14 +54,14 @@ for (let i = 0; i <= SIZE; i++) {
 }
 
 const f = 1 / cellSize;
-const surface = Skia.Surface.MakeOffscreen(SIZE, SIZE)!;
-const canvas = surface.getCanvas();
 
 export function MNISTInference() {
   const { device } = useDevice();
   const network = useRef<Network>();
   const text = useSharedValue("");
   const path = useSharedValue(Skia.Path.Make());
+  const surface = useSharedValue<SkSurface | null>(null);
+  const image = useSharedValue<SkImage | null>(null);
   const runInference = useCallback(
     async (data: number[]) => {
       if (network.current === undefined) {
@@ -73,37 +74,50 @@ export function MNISTInference() {
     },
     [text],
   );
-  const gesture = Gesture.Pan()
-    .onStart((e) => {
-      path.value.moveTo(e.x * f, e.y * f);
-    })
-    .onChange((e) => {
-      path.value.lineTo(e.x * f, e.y * f);
-      canvas.drawPath(path.value, paint);
-      const pixels = canvas.readPixels(0, 0, {
-        width: SIZE,
-        height: SIZE,
-        alphaType: AlphaType.Opaque,
-        colorType: ColorType.Alpha_8,
-      })!;
-      notifyChange(path as SharedValue<unknown>);
-      runOnJS(runInference)(
-        centerData(pixels as Uint8Array).map((x) => (x / 255) * 3.24 - 0.42),
-      );
-    });
+
+  const gesture = useMemo(() => {
+    return Gesture.Pan()
+      .onStart((e) => {
+        path.value.moveTo(e.x * f, e.y * f);
+      })
+      .onChange((e) => {
+        path.value.lineTo(e.x * f, e.y * f);
+        if (surface.value) {
+          const canvas = surface.value.getCanvas();
+          canvas.drawPath(path.value, paint);
+          const pixels = canvas.readPixels(0, 0, {
+            width: SIZE,
+            height: SIZE,
+            alphaType: AlphaType.Opaque,
+            colorType: ColorType.Gray_8,
+          })!;
+          image.value = surface.value!.makeImageSnapshot();
+          runOnJS(runInference)(
+            centerData(pixels as Uint8Array).map(
+              (x) => (x / 255) * 3.24 - 0.42,
+            ),
+          );
+        }
+      });
+  }, [path, runInference, surface, image]);
+
   useEffect(() => {
     (async () => {
       if (device) {
         const demo = await createDemo(device);
         network.current = demo.network;
       }
+      runOnUI(() => {
+        surface.value = Skia.Surface.MakeOffscreen(SIZE, SIZE)!;
+      })();
     })();
-  }, [device, network]);
+  }, [device, network, surface]);
   return (
     <View style={style.container}>
       <Button
         onPress={() => {
-          canvas.clear(Skia.Color("transparent"));
+          surface.value?.getCanvas().clear(Skia.Color("transparent"));
+          image.value = null;
           path.value = Skia.Path.Make();
           text.value = "";
         }}
@@ -118,15 +132,14 @@ export function MNISTInference() {
             color="rgb(209, 209, 209)"
             strokeWidth={1}
           />
-          <Group transform={[{ scale: width / SIZE }]}>
-            <Path
-              path={path}
-              style="stroke"
-              color="black"
-              strokeWidth={1}
-              strokeCap="round"
-            />
-          </Group>
+          <Image
+            image={image}
+            x={0}
+            y={0}
+            width={width}
+            height={width}
+            fit="cover"
+          />
           <Text text={text} x={(width - 100) / 2} y={1.5 * width} font={font} />
         </Canvas>
       </GestureDetector>
