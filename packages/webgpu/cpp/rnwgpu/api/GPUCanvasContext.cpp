@@ -24,10 +24,7 @@ void GPUCanvasContext::configure(
       !conv(surfaceConfiguration.format, configuration->format)) {
     throw std::runtime_error("Error with SurfaceConfiguration");
   }
-
-#ifdef __APPLE__
   surfaceConfiguration.alphaMode = configuration->alphaMode;
-#endif
   _surfaceInfo->configure(surfaceConfiguration);
 }
 
