@@ -11,11 +11,9 @@ import {
   AlphaType,
   matchFont,
   Text,
-  notifyChange,
   Image,
 } from "@shopify/react-native-skia";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import type { SharedValue } from "react-native-reanimated";
 import { runOnJS, runOnUI, useSharedValue } from "react-native-reanimated";
 import { useDevice } from "react-native-wgpu";
 
