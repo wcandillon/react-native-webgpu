@@ -58,7 +58,7 @@ export function GradientTiles() {
 
     const shader = device.createShaderModule({
       code: tgpu.resolve({
-        template: vertWGSL.concat(fragWGSL),
+        template: `${vertWGSL} ${fragWGSL}`,
         externals: {
           ...bindGroupLayout.bound,
         },
