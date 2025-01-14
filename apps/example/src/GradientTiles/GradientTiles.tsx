@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, PixelRatio, StyleSheet, Text, View } from "react-native";
 import { Canvas, useDevice, useGPUContext } from "react-native-wgpu";
-import { struct, u32 } from "typegpu/data";
+import * as d from "typegpu/data";
 import tgpu, { type TgpuBindGroup, type TgpuBuffer } from "typegpu";
 
 import { vertWGSL, fragWGSL } from "./gradientWgsl";
 
-const Span = struct({
-  x: u32,
-  y: u32,
+const Span = d.struct({
+  x: d.u32,
+  y: d.u32,
 });
 
 const bindGroupLayout = tgpu.bindGroupLayout({
@@ -56,19 +56,24 @@ export function GradientTiles() {
       .createBuffer(Span, { x: 10, y: 10 })
       .$usage("uniform");
 
+    const shader = device.createShaderModule({
+      code: tgpu.resolve({
+        template: vertWGSL.concat(fragWGSL),
+        externals: {
+          ...bindGroupLayout.bound,
+        },
+      }),
+    });
+
     const pipeline = device.createRenderPipeline({
       layout: device.createPipelineLayout({
         bindGroupLayouts: [root.unwrap(bindGroupLayout)],
       }),
       vertex: {
-        module: device.createShaderModule({
-          code: vertWGSL,
-        }),
+        module: shader,
       },
       fragment: {
-        module: device.createShaderModule({
-          code: fragWGSL,
-        }),
+        module: shader,
         targets: [
           {
             format: presentationFormat,

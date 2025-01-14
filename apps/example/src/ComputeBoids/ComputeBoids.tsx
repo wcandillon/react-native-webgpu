@@ -1,6 +1,6 @@
 import React, { useCallback, useRef } from "react";
 import tgpu from "typegpu";
-import { arrayOf, f32, struct, vec2f, vec3f } from "typegpu/data";
+import * as d from "typegpu/data";
 import { StyleSheet, View, Text, Button } from "react-native";
 import { Canvas } from "react-native-wgpu";
 
@@ -18,25 +18,25 @@ type BoidsOptions = {
   cohesionStrength: number;
 };
 
-const Parameters = struct({
-  separationDistance: f32,
-  separationStrength: f32,
-  alignmentDistance: f32,
-  alignmentStrength: f32,
-  cohesionDistance: f32,
-  cohesionStrength: f32,
+const Parameters = d.struct({
+  separationDistance: d.f32,
+  separationStrength: d.f32,
+  alignmentDistance: d.f32,
+  alignmentStrength: d.f32,
+  cohesionDistance: d.f32,
+  cohesionStrength: d.f32,
 });
 
-const TriangleData = struct({
-  position: vec2f,
-  velocity: vec2f,
+const TriangleData = d.struct({
+  position: d.vec2f,
+  velocity: d.vec2f,
 });
 
-const TriangleDataArray = (n: number) => arrayOf(TriangleData, n);
+const TriangleDataArray = (n: number) => d.arrayOf(TriangleData, n);
 
 const renderBindGroupLayout = tgpu.bindGroupLayout({
   trianglePos: { storage: TriangleDataArray },
-  colorPalette: { uniform: vec3f },
+  colorPalette: { uniform: d.vec3f },
 });
 
 const computeBindGroupLayout = tgpu.bindGroupLayout({
@@ -46,10 +46,10 @@ const computeBindGroupLayout = tgpu.bindGroupLayout({
 });
 
 const colorPresets = {
-  plumTree: vec3f(1.0, 2.0, 1.0),
-  jeans: vec3f(2.0, 1.5, 1.0),
-  greyscale: vec3f(0, 0, 0),
-  hotcold: vec3f(0, 3.14, 3.14),
+  plumTree: d.vec3f(1.0, 2.0, 1.0),
+  jeans: d.vec3f(2.0, 1.5, 1.0),
+  greyscale: d.vec3f(0, 0, 0),
+  hotcold: d.vec3f(0, 3.14, 3.14),
 } as const;
 type ColorPresets = keyof typeof colorPresets;
 
@@ -110,7 +110,7 @@ export function ComputeBoids() {
 
     const triangleSize = 0.03;
     const triangleVertexBuffer = root
-      .createBuffer(arrayOf(f32, 6), [
+      .createBuffer(d.arrayOf(d.f32, 6), [
         0.0,
         triangleSize,
         -triangleSize / 2,
@@ -127,8 +127,11 @@ export function ComputeBoids() {
 
     randomizePositions.current = () => {
       const positions = Array.from({ length: triangleAmount }, () => ({
-        position: vec2f(Math.random() * 2 - 1, Math.random() * 2 - 1),
-        velocity: vec2f(Math.random() * 0.1 - 0.05, Math.random() * 0.1 - 0.05),
+        position: d.vec2f(Math.random() * 2 - 1, Math.random() * 2 - 1),
+        velocity: d.vec2f(
+          Math.random() * 0.1 - 0.05,
+          Math.random() * 0.1 - 0.05,
+        ),
       }));
       trianglePosBuffers[0].write(positions);
       trianglePosBuffers[1].write(positions);
@@ -136,7 +139,7 @@ export function ComputeBoids() {
     randomizePositions.current();
 
     const colorPaletteBuffer = root
-      .createBuffer(vec3f, colorPresets.plumTree)
+      .createBuffer(d.vec3f, colorPresets.plumTree)
       .$usage("uniform");
 
     updateColorPreset.current = (newColorPreset: ColorPresets) => {
@@ -148,11 +151,21 @@ export function ComputeBoids() {
     };
 
     const renderModule = device.createShaderModule({
-      code: renderCode,
+      code: tgpu.resolve({
+        template: renderCode,
+        externals: {
+          ...renderBindGroupLayout.bound,
+        },
+      }),
     });
 
     const computeModule = device.createShaderModule({
-      code: computeCode,
+      code: tgpu.resolve({
+        template: computeCode,
+        externals: {
+          ...computeBindGroupLayout.bound,
+        },
+      }),
     });
 
     const pipeline = device.createRenderPipeline({

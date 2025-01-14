@@ -13,18 +13,10 @@ export const renderCode = /* wgsl */ `
     return -atan2(velocity.x, velocity.y);
   };
 
-  struct TriangleData {
-    position : vec2f,
-    velocity : vec2f,
-  };
-
   struct VertexOutput {
     @builtin(position) position : vec4f,
     @location(1) color : vec4f,
   };
-
-  @binding(0) @group(0) var<storage> trianglePos : array<TriangleData>;
-  @binding(1) @group(0) var<uniform> colorPalette : vec3f;
 
   @vertex
   fn mainVert(@builtin(instance_index) ii: u32, @location(0) v: vec2f) -> VertexOutput {
@@ -52,24 +44,6 @@ export const renderCode = /* wgsl */ `
 `;
 
 export const computeCode = /* wgsl */ `
-  struct TriangleData {
-    position : vec2f,
-    velocity : vec2f,
-  };
-
-  struct Parameters {
-    separation_distance : f32,
-    separation_strength : f32,
-    alignment_distance : f32,
-    alignment_strength : f32,
-    cohesion_distance : f32,
-    cohesion_strength : f32,
-  };
-
-  @binding(0) @group(0) var<storage> currentTrianglePos : array<TriangleData>;
-  @binding(1) @group(0) var<storage, read_write> nextTrianglePos : array<TriangleData>;
-  @binding(2) @group(0) var<uniform> params : Parameters;
-
   @compute @workgroup_size(1)
   fn mainCompute(@builtin(global_invocation_id) gid: vec3u) {
     let index = gid.x;
@@ -85,14 +59,14 @@ export const computeCode = /* wgsl */ `
       }
       var other = currentTrianglePos[i];
       var dist = distance(instanceInfo.position, other.position);
-      if (dist < params.separation_distance) {
+      if (dist < params.separationDistance) {
         separation += instanceInfo.position - other.position;
       }
-      if (dist < params.alignment_distance) {
+      if (dist < params.alignmentDistance) {
         alignment += other.velocity;
         alignmentCount++;
       }
-      if (dist < params.cohesion_distance) {
+      if (dist < params.cohesionDistance) {
         cohesion += other.position;
         cohesionCount++;
       }
@@ -104,9 +78,9 @@ export const computeCode = /* wgsl */ `
       cohesion = (cohesion / f32(cohesionCount)) - instanceInfo.position;
     }
     instanceInfo.velocity +=
-      (separation * params.separation_strength)
-      + (alignment * params.alignment_strength)
-      + (cohesion * params.cohesion_strength);
+      (separation * params.separationStrength)
+      + (alignment * params.alignmentStrength)
+      + (cohesion * params.cohesionStrength);
     instanceInfo.velocity = normalize(instanceInfo.velocity) * clamp(length(instanceInfo.velocity), 0.0, 0.01);
     let triangleSize = ${triangleSize};
     if (instanceInfo.position[0] > 1.0 + triangleSize) {
