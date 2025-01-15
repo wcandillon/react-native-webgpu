@@ -4437,7 +4437,7 @@ __metadata:
     react-test-renderer: 18.2.0
     teapot: ^1.0.0
     three: 0.168.0
-    typegpu: ^0.3.1
+    typegpu: ^0.3.2
     typescript: 5.0.4
     wgpu-matrix: ^3.0.2
   languageName: unknown
@@ -13114,7 +13114,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typegpu@npm:^0.3.1":
+"typegpu@npm:^0.3.2":
   version: 0.3.2
   resolution: "typegpu@npm:0.3.2"
   dependencies:
