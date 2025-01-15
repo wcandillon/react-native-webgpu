@@ -82,7 +82,7 @@ export const createDemo = async (device: GPUDevice) => {
 
   @compute @workgroup_size(1)
   fn main(@builtin(global_invocation_id) gid: vec3u) {
-    let inputSize = arrayLength( &input );
+    let inputSize = arrayLength( &_EXT_.input );
 
     let i = gid.x;
 
@@ -90,14 +90,19 @@ export const createDemo = async (device: GPUDevice) => {
     var sum = 0.0;
 
     for (var j = 0u; j < inputSize; j = j + 1) {
-      sum = sum + input[j] * weights[weightsOffset + j];
+      sum = sum + _EXT_.input[j] * _EXT_.weights[weightsOffset + j];
     }
 
-    sum = sum + biases[i];
-    output[i] = relu(sum);
+    sum = sum + _EXT_.biases[i];
+    _EXT_.output[i] = relu(sum);
   }
 `,
-    externals: { ...ioLayout.bound, ...weightsBiasesLayout.bound },
+    externals: {
+      _EXT_: {
+        ...ioLayout.bound,
+        ...weightsBiasesLayout.bound,
+      },
+    },
   });
 
   const pipeline = device.createComputePipeline({

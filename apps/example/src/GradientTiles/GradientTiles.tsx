@@ -60,7 +60,9 @@ export function GradientTiles() {
       code: tgpu.resolve({
         template: `${vertWGSL} ${fragWGSL}`,
         externals: {
-          ...bindGroupLayout.bound,
+          _EXT_: {
+            span: bindGroupLayout.bound.span,
+          },
         },
       }),
     });
@@ -85,7 +87,7 @@ export function GradientTiles() {
       },
     });
 
-    const bindGroup = bindGroupLayout.populate({
+    const bindGroup = root.createBindGroup(bindGroupLayout, {
       span: spanBuffer,
     });
 
