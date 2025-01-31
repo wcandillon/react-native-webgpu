@@ -35,6 +35,12 @@ const extraConfig = {
           type: 'sourceFile',
         };
       }
+      // if (moduleName === 'three/tsl') { 
+      //   return {
+      //     filePath: path.resolve(threePackagePath, 'build/three.tsl.js'),
+      //     type: 'sourceFile',
+      //   };
+      // }
       // Let Metro handle other modules
       return context.resolveRequest(context, moduleName, platform);
     },
