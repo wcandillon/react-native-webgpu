@@ -2,9 +2,9 @@
 import * as THREE from "three";
 import { Image } from "react-native";
 import { useEffect, useState } from "react";
-import { GLTFLoader } from "GLTFLoader";
-import { DRACOLoader } from "DRACOLoader";
-import { RGBELoader } from "RGBELoader";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader";
+import { RGBELoader } from "three/addons/loaders/RGBELoader";
 
 export interface GLTF {
   animations: THREE.AnimationClip[];
