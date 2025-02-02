@@ -2,11 +2,7 @@ import * as THREE from "three";
 import { Canvas, useGPUContext } from "react-native-wgpu";
 import { PixelRatio, Text, View, StyleSheet } from "react-native";
 import { useEffect } from "react";
-
-import { useGLTF } from "./assets/AssetManager";
-import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
-
-const {
+import {
   float,
   vec3,
   color,
@@ -24,7 +20,10 @@ const {
   viewportUV,
   viewportSafeUV,
   screenUV,
-} = THREE.TSL;
+} from "three/tsl";
+
+import { useGLTF } from "./assets/AssetManager";
+import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 export const Backdrop = () => {
   const gltf = useGLTF(require("./assets/michelle/model.gltf"));

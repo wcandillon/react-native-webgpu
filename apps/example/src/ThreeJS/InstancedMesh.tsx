@@ -3,11 +3,10 @@ import * as THREE from "three";
 import { Canvas, useGPUContext } from "react-native-wgpu";
 import { View } from "react-native";
 import { useEffect } from "react";
+import { time, oscSine, mix, range, normalWorld } from "three/tsl";
 
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 import { useGeometry } from "./assets/AssetManager";
-
-const { time, oscSine, mix, range, normalWorld } = THREE.TSL;
 
 export const InstancedMesh = () => {
   const geometry = useGeometry(
