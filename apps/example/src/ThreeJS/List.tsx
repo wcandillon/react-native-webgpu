@@ -24,6 +24,10 @@ export const examples = [
     title: "⛑️ Helmet",
   },
   {
+    screen: "PostProcessing",
+    title: "🪄 Post Processing Effects",
+  },
+  {
     screen: "Fiber",
     title: "👕 Fiber",
   },

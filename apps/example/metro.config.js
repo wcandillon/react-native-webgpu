@@ -30,7 +30,7 @@ const extraConfig = {
         };
       }
 
-      if (moduleName === "BloomNode") {
+      if (moduleName === "three/addons/tsl/display/BloomNode") {
         return {
           filePath: path.resolve(threePackagePath, 'examples/jsm/tsl/display/BloomNode.js'),
           type: 'sourceFile',

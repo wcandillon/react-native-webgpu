@@ -8,7 +8,8 @@
       "three/tsl": ["../../node_modules/@types/three/src/Three.TSL.d.ts"],
       "GLTFLoader": ["../../node_modules/@types/three/examples/jsm/loaders/GLTFLoader.d.ts"],
       "RGBELoader": ["../../node_modules/@types/three/examples/jsm/loaders/RGBELoader.d.ts"],
-      "DRACOLoader": ["../../node_modules/@types/three/examples/jsm/loaders/DRACOLoader.d.ts"]
+      "DRACOLoader": ["../../node_modules/@types/three/examples/jsm/loaders/DRACOLoader.d.ts"],
+      "three/addons/tsl/display/BloomNode": ["../../node_modules/@types/three/examples/jsm/tsl/display/BloomNode.d.ts"],
     },
     "types": ["@webgpu/types", "@types/node"],
   },
