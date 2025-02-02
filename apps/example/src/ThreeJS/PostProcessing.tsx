@@ -59,6 +59,8 @@ export const PostProcessing = () => {
 
     const bloomPass = bloom(scenePassColor);
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
     postProcessing.outputNode = scenePassColor.add(bloomPass);
 
     function animate() {
