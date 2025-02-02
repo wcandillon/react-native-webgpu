@@ -29,18 +29,25 @@ const extraConfig = {
           type: 'sourceFile',
         };
       }
-      if (moduleName === 'three') { 
+
+      if (moduleName === "BloomNode") {
+        return {
+          filePath: path.resolve(threePackagePath, 'examples/jsm/tsl/display/BloomNode.js'),
+          type: 'sourceFile',
+        };
+      }
+      if (moduleName === 'three' || moduleName === 'three/webgpu') { 
         return {
           filePath: path.resolve(threePackagePath, 'build/three.webgpu.js'),
           type: 'sourceFile',
         };
       }
-      // if (moduleName === 'three/tsl') { 
-      //   return {
-      //     filePath: path.resolve(threePackagePath, 'build/three.tsl.js'),
-      //     type: 'sourceFile',
-      //   };
-      // }
+      if (moduleName === 'three/tsl') { 
+        return {
+          filePath: path.resolve(threePackagePath, 'build/three.tsl.js'),
+          type: 'sourceFile',
+        };
+      }
       // Let Metro handle other modules
       return context.resolveRequest(context, moduleName, platform);
     },
