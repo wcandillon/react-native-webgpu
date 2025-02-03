@@ -2,9 +2,9 @@
 import * as THREE from "three";
 import { Image } from "react-native";
 import { useEffect, useState } from "react";
-import { GLTFLoader } from "GLTFLoader";
-import { DRACOLoader } from "DRACOLoader";
-import { RGBELoader } from "RGBELoader";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader";
+import { RGBELoader } from "three/addons/loaders/RGBELoader";
 
 export interface GLTF {
   animations: THREE.AnimationClip[];
@@ -80,11 +80,11 @@ export const useRGBE = (asset: ReturnType<typeof require>) => {
   return texture;
 };
 
-export const useGLTF = (asset: string) => {
+export const useGLTF = (asset: ReturnType<typeof require>) => {
   const [GLTF, setGLTF] = useState<GLTF | null>(null);
   const url = resolveAsset(asset);
   useEffect(() => {
-    const loader = new GLTFLoader();
+    const loader = new GLTFLoader(debugManager);
     const dracoLoader = new DRACOLoader();
     loader.setDRACOLoader(dracoLoader);
     loader.load(url, (model: GLTF) => {

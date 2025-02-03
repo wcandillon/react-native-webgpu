@@ -9,6 +9,7 @@ import { Helmet } from "./Helmet";
 import { Backdrop } from "./Backdrop";
 import { InstancedMesh } from "./InstancedMesh";
 import { Fiber } from "./Fiber";
+import { PostProcessing } from "./PostProcessing";
 
 const Stack = createStackNavigator<Routes>();
 export const ThreeJS = () => {
@@ -55,6 +56,13 @@ export const ThreeJS = () => {
         component={InstancedMesh}
         options={{
           title: "🐵 InstancedMesh",
+        }}
+      />
+      <Stack.Screen
+        name="PostProcessing"
+        component={PostProcessing}
+        options={{
+          title: "🪄 Post Processing Effects",
         }}
       />
       <Stack.Screen
