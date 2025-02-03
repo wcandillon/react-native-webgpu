@@ -34,7 +34,7 @@
     "react-native-wgpu": "*",
     "teapot": "^1.0.0",
     "three": "0.172.0",
-    "typegpu": "^0.2.0",
+    "typegpu": "^0.3.2",
     "wgpu-matrix": "^3.0.2"
   },
   "devDependencies": {

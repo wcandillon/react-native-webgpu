@@ -4437,7 +4437,7 @@ __metadata:
     react-test-renderer: 18.2.0
     teapot: ^1.0.0
     three: 0.172.0
-    typegpu: ^0.2.0
+    typegpu: ^0.3.2
     typescript: 5.0.4
     wgpu-matrix: ^3.0.2
   languageName: unknown
@@ -12781,6 +12781,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"tinyest@npm:~0.1.0-alpha.1":
+  version: 0.1.0-alpha.1
+  resolution: "tinyest@npm:0.1.0-alpha.1"
+  checksum: d39fa3730468cc7f43e41afebb07d66b5771bc09ae05abae7810531c910d93b1d5ff2e0d8ebc77860b1fbd9374a69a9fbe51aad90895b75438bd291390892c35
+  languageName: node
+  linkType: hard
+
 "tmpl@npm:1.0.5":
   version: 1.0.5
   resolution: "tmpl@npm:1.0.5"
@@ -13100,19 +13107,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typed-binary@npm:^4.0.1":
-  version: 4.2.0
-  resolution: "typed-binary@npm:4.2.0"
-  checksum: 8999fc777c7ac0134f8f2bf30588840ac247bb4b92a5e7ffcf74c2a5d2c76e0384f4be95d67f84a0d5df430bac3d76268c25ed6d14339f0a6c6cb4bb5b096ca8
+"typed-binary@npm:^4.3.1":
+  version: 4.3.1
+  resolution: "typed-binary@npm:4.3.1"
+  checksum: dc35630cf27c254e7d0ffb25f1150185b052accc5c6fdfc4c339a6690a514052c4e874063925587d03ef4a998f3cdf602d3c52abdc41ae3775ce3b34df8052ad
   languageName: node
   linkType: hard
 
-"typegpu@npm:^0.2.0":
-  version: 0.2.0
-  resolution: "typegpu@npm:0.2.0"
+"typegpu@npm:^0.3.2":
+  version: 0.3.2
+  resolution: "typegpu@npm:0.3.2"
   dependencies:
-    typed-binary: ^4.0.1
-  checksum: 219f5a06ac7313ae36ed10fbcbf712d56504300b9b53fc2485bbe4113e82ce7ce6c317ebdc23e205bcdc7f22718078da57ff100cbc6e1bb88cd63ce47e6c60ce
+    tinyest: ~0.1.0-alpha.1
+    typed-binary: ^4.3.1
+  checksum: 4d6ada236b7644db02cccf1c9dcbc9f9f340705b0823dd1ac1860670feea31d344259898f796d45c232409dbb2d06a4e8aecfa956e88a5bc171d90bbbe170675
   languageName: node
   linkType: hard
 

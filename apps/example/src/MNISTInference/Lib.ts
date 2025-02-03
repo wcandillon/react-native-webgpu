@@ -1,5 +1,5 @@
 import tgpu, { type TgpuBuffer, type Storage } from "typegpu";
-import { type F32, type TgpuArray, arrayOf, f32 } from "typegpu/data";
+import * as d from "typegpu/data";
 
 export const SIZE = 28;
 
@@ -7,19 +7,19 @@ export const SIZE = 28;
 
 interface LayerData {
   shape: readonly [number] | readonly [number, number];
-  buffer: TgpuBuffer<TgpuArray<F32>> & Storage;
+  buffer: TgpuBuffer<d.TgpuArray<d.F32>> & Storage;
 }
 
 interface Layer {
-  weights: TgpuBuffer<TgpuArray<F32>> & Storage;
-  biases: TgpuBuffer<TgpuArray<F32>> & Storage;
-  state: TgpuBuffer<TgpuArray<F32>> & Storage;
+  weights: TgpuBuffer<d.TgpuArray<d.F32>> & Storage;
+  biases: TgpuBuffer<d.TgpuArray<d.F32>> & Storage;
+  state: TgpuBuffer<d.TgpuArray<d.F32>> & Storage;
 }
 
 export interface Network {
   layers: Layer[];
-  input: TgpuBuffer<TgpuArray<F32>> & Storage;
-  output: TgpuBuffer<TgpuArray<F32>> & Storage;
+  input: TgpuBuffer<d.TgpuArray<d.F32>> & Storage;
+  output: TgpuBuffer<d.TgpuArray<d.F32>> & Storage;
 
   inference(data: number[]): Promise<number[]>;
 }
@@ -52,44 +52,13 @@ export const centerData = (data: Uint8Array) => {
 export const createDemo = async (device: GPUDevice) => {
   const root = tgpu.initFromDevice({ device });
 
-  // Shader code
-
-  const layerShader = /* wgsl */ `
-  @binding(0) @group(0) var<storage, read> input: array<f32>;
-  @binding(1) @group(0) var<storage, read_write> output: array<f32>;
-
-  @binding(0) @group(1) var<storage, read> weights: array<f32>;
-  @binding(1) @group(1) var<storage, read> biases: array<f32>;
-
-  fn relu(x: f32) -> f32 {
-    return max(0.0, x);
-  }
-
-  @compute @workgroup_size(1)
-  fn main(@builtin(global_invocation_id) gid: vec3u) {
-    let inputSize = arrayLength( &input );
-
-    let i = gid.x;
-
-    let weightsOffset = i * inputSize;
-    var sum = 0.0;
-
-    for (var j = 0u; j < inputSize; j = j + 1) {
-      sum = sum + input[j] * weights[weightsOffset + j];
-    }
-
-    sum = sum + biases[i];
-    output[i] = relu(sum);
-  }
-`;
-
   const ReadonlyFloats = {
-    storage: (n: number) => arrayOf(f32, n),
+    storage: (n: number) => d.arrayOf(d.f32, n),
     access: "readonly",
   } as const;
 
   const MutableFloats = {
-    storage: (n: number) => arrayOf(f32, n),
+    storage: (n: number) => d.arrayOf(d.f32, n),
     access: "mutable",
   } as const;
 
@@ -101,6 +70,39 @@ export const createDemo = async (device: GPUDevice) => {
   const weightsBiasesLayout = tgpu.bindGroupLayout({
     weights: ReadonlyFloats,
     biases: ReadonlyFloats,
+  });
+
+  // Shader code
+  const layerShader = tgpu.resolve({
+    template: /* wgsl */ `
+
+  fn relu(x: f32) -> f32 {
+    return max(0.0, x);
+  }
+
+  @compute @workgroup_size(1)
+  fn main(@builtin(global_invocation_id) gid: vec3u) {
+    let inputSize = arrayLength( &_EXT_.input );
+
+    let i = gid.x;
+
+    let weightsOffset = i * inputSize;
+    var sum = 0.0;
+
+    for (var j = 0u; j < inputSize; j = j + 1) {
+      sum = sum + _EXT_.input[j] * _EXT_.weights[weightsOffset + j];
+    }
+
+    sum = sum + _EXT_.biases[i];
+    _EXT_.output[i] = relu(sum);
+  }
+`,
+    externals: {
+      _EXT_: {
+        ...ioLayout.bound,
+        ...weightsBiasesLayout.bound,
+      },
+    },
   });
 
   const pipeline = device.createComputePipeline({
@@ -135,25 +137,25 @@ export const createDemo = async (device: GPUDevice) => {
         weights: weights.buffer,
         biases: biases.buffer,
         state: root
-          .createBuffer(arrayOf(f32, biases.shape[0]))
+          .createBuffer(d.arrayOf(d.f32, biases.shape[0]))
           .$usage("storage"),
       };
     });
 
     const input = root
-      .createBuffer(arrayOf(f32, layers[0][0].shape[0]))
+      .createBuffer(d.arrayOf(d.f32, layers[0][0].shape[0]))
       .$usage("storage");
     const output = buffers[buffers.length - 1].state;
 
     const ioBindGroups = buffers.map((_, i) =>
-      ioLayout.populate({
+      root.createBindGroup(ioLayout, {
         input: i === 0 ? input : buffers[i - 1].state,
         output: buffers[i].state,
       }),
     );
 
     const weightsBindGroups = buffers.map((layer) =>
-      weightsBiasesLayout.populate({
+      root.createBindGroup(weightsBiasesLayout, {
         weights: layer.weights,
         biases: layer.biases,
       }),
@@ -233,7 +235,7 @@ export const createDemo = async (device: GPUDevice) => {
     }
 
     const buffer = root
-      .createBuffer(arrayOf(f32, data.length), [...data])
+      .createBuffer(d.arrayOf(d.f32, data.length), [...data])
       .$usage("storage");
 
     return {
