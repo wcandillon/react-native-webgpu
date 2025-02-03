@@ -26,5 +26,14 @@
       "dist/assets",
       "dist/main.visionos.jsbundle"
     ]
+  },
+  "ios": {
+    "metalAPIValidation": false
+  },
+  "macos": {
+    "metalAPIValidation": false
+  },
+  "visionos": {
+    "metalAPIValidation": false
   }
 }
