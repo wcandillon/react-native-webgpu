@@ -1,7 +1,9 @@
 import * as THREE from "three";
 import { View } from "react-native";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
+import { pass } from "three/tsl";
+import { bloom } from "three/addons/tsl/display/BloomNode";
 
 import { FiberCanvas } from "./components/FiberCanvas";
 import useControls from "./components/OrbitControl";
@@ -128,11 +130,44 @@ const Scene = () => {
   );
 };
 
+const BloomEffect = () => {
+  const { gl: renderer, scene, camera } = useThree();
+  const postProcessing = useRef<THREE.PostProcessing>();
+  useLayoutEffect(() => {
+    renderer.toneMapping = THREE.NeutralToneMapping;
+    renderer.toneMappingExposure = 0.3;
+    postProcessing.current = new THREE.PostProcessing(renderer);
+
+    const scenePass = pass(scene, camera);
+    const scenePassColor = scenePass.getTextureNode("output");
+
+    const bloomPass = bloom(scenePassColor);
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    postProcessing.current.outputNode = scenePassColor.add(bloomPass);
+    //const render = renderer.render.bind(renderer);
+    // renderer.render = () => {
+    //   postProcessing.render();
+    //   //render(scene, camera);
+    //   renderer.backend.context.present();
+    // };
+  }, [camera, renderer, scene]);
+  useFrame(() => {
+    if (postProcessing.current) {
+      postProcessing.current.render();
+      renderer.backend.context.present();
+    }
+  });
+  return null;
+};
+
 export const Fiber = () => {
   const [OrbitControls, events] = useControls();
   return (
     <View style={{ flex: 1 }} {...events}>
       <FiberCanvas style={{ flex: 1 }}>
+        <BloomEffect />
         <OrbitControls />
         <Scene />
       </FiberCanvas>

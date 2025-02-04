@@ -1210,7 +1210,7 @@ PODS:
     - React-logger (= 0.74.2)
     - React-perflogger (= 0.74.2)
     - React-utils (= 0.74.2)
-  - ReactNativeHost (0.5.2):
+  - ReactNativeHost (0.5.3):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1232,7 +1232,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - ReactTestApp-DevSupport (3.10.22):
+  - ReactTestApp-DevSupport (4.1.0):
     - React-Core
     - React-jsi
   - ReactTestApp-Resources (1.0.0-dev)
@@ -1601,9 +1601,9 @@ SPEC CHECKSUMS:
   React-runtimescheduler: 56b642bf605ba5afa500d35790928fc1d51565ad
   React-utils: 4476b7fcbbd95cfd002f3e778616155241d86e31
   ReactCommon: ecad995f26e0d1e24061f60f4e5d74782f003f12
-  ReactNativeHost: 619621c39cdb4339c1336cea844b66cdf43c4d84
-  ReactTestApp-DevSupport: 42abce6b0c88dfb47c86e80aa22831b2abcc3144
-  ReactTestApp-Resources: 857244f3a23f2b3157b364fa06cf3e8866deff9c
+  ReactNativeHost: 0e7c750a6101db3fb4d15d135b82790ae4b574a0
+  ReactTestApp-DevSupport: c56d7bb32f233e12be407697c4aad55892f2565c
+  ReactTestApp-Resources: 1bd9ff10e4c24f2ad87101a32023721ae923bccf
   RNGestureHandler: 6fee3422fd8c81c5ee756fa72e3d1780e9943d9d
   RNReanimated: 77bde2fb01415b61799ed173f9420010632b76e1
   SocketRocket: abac6f5de4d4d62d24e11868d7a2f427e0ef940d

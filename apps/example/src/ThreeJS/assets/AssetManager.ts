@@ -84,7 +84,7 @@ export const useGLTF = (asset: ReturnType<typeof require>) => {
   const [GLTF, setGLTF] = useState<GLTF | null>(null);
   const url = resolveAsset(asset);
   useEffect(() => {
-    const loader = new GLTFLoader(debugManager);
+    const loader = new GLTFLoader();
     const dracoLoader = new DRACOLoader();
     loader.setDRACOLoader(dracoLoader);
     loader.load(url, (model: GLTF) => {

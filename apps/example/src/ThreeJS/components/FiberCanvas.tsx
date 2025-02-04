@@ -61,11 +61,11 @@ export const FiberCanvas = ({
       dpr: 1, //PixelRatio.get(),
       onCreated: async (state: RootState) => {
         await state.gl.init();
-        const renderFrame = state.gl.render.bind(state.gl);
-        state.gl.render = (s: THREE.Scene, c: THREE.Camera) => {
-          renderFrame(s, c);
-          context?.present();
-        };
+        // const renderFrame = state.gl.render.bind(state.gl);
+        // state.gl.render = (s: THREE.Scene, c: THREE.Camera) => {
+        //   renderFrame(s, c);
+        //   context?.present();
+        // };
       },
     });
     root.current.render(children);
