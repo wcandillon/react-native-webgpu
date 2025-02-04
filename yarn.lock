@@ -3236,12 +3236,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rnx-kit/react-native-host@npm:^0.5.0":
-  version: 0.5.2
-  resolution: "@rnx-kit/react-native-host@npm:0.5.2"
+"@rnx-kit/react-native-host@npm:^0.5.3":
+  version: 0.5.3
+  resolution: "@rnx-kit/react-native-host@npm:0.5.3"
   peerDependencies:
     react-native: ">=0.66"
-  checksum: 10a935eda81de4978f8c04e058c39e0205586deea16154a452c63dcd3d30b8d2f2f024fae40c665e2031c127aa96ac6f23f27d9eae81e0db933bb4617efa432b
+  checksum: 98c1d8187239bd13b733f1e3ccd79db8d1879657fd9f393f166fb26f43caa4145ab04273f7124a4caa932a0999a712b14ea4a57340c90ae89bcb8d0ec92d0bb1
   languageName: node
   linkType: hard
 
@@ -3252,12 +3252,28 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rnx-kit/tools-node@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "@rnx-kit/tools-node@npm:3.0.0"
+  checksum: fecf7d94e1d1eed1e06ac9e172591011ed24c8babe435492c8b8cecc1a6ab5c4445630bc14468990345e8e3804ee4a1f4ad59b5ef3ae9dd0827572a5378d642b
+  languageName: node
+  linkType: hard
+
 "@rnx-kit/tools-react-native@npm:^1.4.1":
   version: 1.4.2
   resolution: "@rnx-kit/tools-react-native@npm:1.4.2"
   dependencies:
     "@rnx-kit/tools-node": ^2.0.1
   checksum: 94af27d673c02d3c380363f84528a450084f4803a7e0d69fefc02d2182d80d99d554aba5e9f25638de79354e28673b21a985bd07b354b22c4db2a37a02777884
+  languageName: node
+  linkType: hard
+
+"@rnx-kit/tools-react-native@npm:^2.0.2":
+  version: 2.0.4
+  resolution: "@rnx-kit/tools-react-native@npm:2.0.4"
+  dependencies:
+    "@rnx-kit/tools-node": ^3.0.0
+  checksum: fc0bd334df50ed60845ca4de8d5cb18f356c23362b9624e7d63e0cbc7b4a1422b93a8503265e045d7eb2338b6127d9bf9933699a69405cd1fec828929495de2a
   languageName: node
   linkType: hard
 
@@ -4432,7 +4448,7 @@ __metadata:
     react-native-macos: ^0.74.0
     react-native-reanimated: ^3.12.1
     react-native-safe-area-context: ^4.10.7
-    react-native-test-app: ^3.10.8
+    react-native-test-app: ^4.1.0
     react-native-wgpu: "*"
     react-test-renderer: 18.2.0
     teapot: ^1.0.0
@@ -11299,24 +11315,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-test-app@npm:^3.10.8":
-  version: 3.10.22
-  resolution: "react-native-test-app@npm:3.10.22"
+"react-native-test-app@npm:^4.1.0":
+  version: 4.1.0
+  resolution: "react-native-test-app@npm:4.1.0"
   dependencies:
-    "@rnx-kit/react-native-host": ^0.5.0
+    "@rnx-kit/react-native-host": ^0.5.3
+    "@rnx-kit/tools-react-native": ^2.0.2
     ajv: ^8.0.0
     cliui: ^8.0.0
     fast-xml-parser: ^4.0.0
     prompts: ^2.4.0
     semver: ^7.3.5
-    uuid: ^10.0.0
+    uuid: ^11.0.0
   peerDependencies:
-    "@callstack/react-native-visionos": 0.73 - 0.76
+    "@callstack/react-native-visionos": 0.73 - 0.77
     "@expo/config-plugins": ">=5.0"
-    react: 17.0.1 - 19.0
-    react-native: 0.66 - 0.76 || >=0.77.0-0 <0.77.0
-    react-native-macos: ^0.0.0-0 || 0.66 || 0.68 || 0.71 - 0.76
-    react-native-windows: ^0.0.0-0 || 0.66 - 0.76
+    react: 18.1 - 19.0
+    react-native: 0.70 - 0.77 || >=0.78.0-0 <0.78.0
+    react-native-macos: ^0.0.0-0 || 0.71 - 0.76
+    react-native-windows: ^0.0.0-0 || 0.70 - 0.76
   peerDependenciesMeta:
     "@callstack/react-native-visionos":
       optional: true
@@ -11331,7 +11348,7 @@ __metadata:
     init: scripts/init.mjs
     init-test-app: scripts/init.mjs
     install-windows-test-app: windows/test-app.mjs
-  checksum: 138985b4aa0bac75d4d7de0b94cfacd26119be7dbbf12fa747e9723a7d31214fbb88817bf4167bda3a96732157ec093a44a4982518988a434fc71b6fdf8c0391
+  checksum: f046ba6ee317a98cdf213b3b19abe3a951b9e27263f1645b2bc343aeea93da7d6d36d017aec419bae68fbf7cbe859668197e03f16d5fd4c52c342752e42c5394
   languageName: node
   linkType: hard
 
@@ -13366,12 +13383,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uuid@npm:^10.0.0":
-  version: 10.0.0
-  resolution: "uuid@npm:10.0.0"
+"uuid@npm:^11.0.0":
+  version: 11.0.5
+  resolution: "uuid@npm:11.0.5"
   bin:
-    uuid: dist/bin/uuid
-  checksum: 4b81611ade2885d2313ddd8dc865d93d8dccc13ddf901745edca8f86d99bc46d7a330d678e7532e7ebf93ce616679fb19b2e3568873ac0c14c999032acb25869
+    uuid: dist/esm/bin/uuid
+  checksum: 8a8ed824c77ccc9387eed3049e75268a862379f0d41222716020743c438f31e9acfbe6495bd4cb1a7727c91fcf5ae20be40b306826a62c96f9ff42db48e8ed93
   languageName: node
   linkType: hard
 
