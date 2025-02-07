@@ -432,10 +432,118 @@ static void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::FeatureName::BGRA8UnormStorage;
   } else if (inUnion == "float32-filterable") {
     *outEnum = wgpu::FeatureName::Float32Filterable;
-  } else if (inUnion == "clip-distances") {
-    *outEnum = wgpu::FeatureName::ClipDistances;
+  } else if (inUnion == "subgroups") {
+    *outEnum = wgpu::FeatureName::Subgroups;
+  } else if (inUnion == "subgroups-f16") {
+    *outEnum = wgpu::FeatureName::SubgroupsF16;
+  } else if (inUnion == "dawn-internal-usages") {
+    *outEnum = wgpu::FeatureName::DawnInternalUsages;
+  } else if (inUnion == "dawn-multi-planar-formats") {
+    *outEnum = wgpu::FeatureName::DawnMultiPlanarFormats;
+  } else if (inUnion == "dawn-native") {
+    *outEnum = wgpu::FeatureName::DawnNative;
+  } else if (inUnion == "chromium-experimental-timestamp-query-inside-passes") {
+    *outEnum = wgpu::FeatureName::ChromiumExperimentalTimestampQueryInsidePasses;
+  } else if (inUnion == "implicit-device-synchronization") {
+    *outEnum = wgpu::FeatureName::ImplicitDeviceSynchronization;
+  } else if (inUnion == "transient-attachments") {
+    *outEnum = wgpu::FeatureName::TransientAttachments;
+  } else if (inUnion == "msaa-render-to-single-sampled") {
+    *outEnum = wgpu::FeatureName::MSAARenderToSingleSampled;
   } else if (inUnion == "dual-source-blending") {
     *outEnum = wgpu::FeatureName::DualSourceBlending;
+  } else if (inUnion == "d3d11-multithread-protected") {
+    *outEnum = wgpu::FeatureName::D3D11MultithreadProtected;
+  } else if (inUnion == "angle-texture-sharing") {
+    *outEnum = wgpu::FeatureName::ANGLETextureSharing;
+  } else if (inUnion == "chromium-experimental-subgroups") {
+    *outEnum = wgpu::FeatureName::ChromiumExperimentalSubgroups;
+  } else if (inUnion == "chromium-experimental-subgroup-uniform-control-flow") {
+    *outEnum = wgpu::FeatureName::ChromiumExperimentalSubgroupUniformControlFlow;
+  } else if (inUnion == "pixel-local-storage-coherent") {
+    *outEnum = wgpu::FeatureName::PixelLocalStorageCoherent;
+  } else if (inUnion == "pixel-local-storage-non-coherent") {
+    *outEnum = wgpu::FeatureName::PixelLocalStorageNonCoherent;
+  } else if (inUnion == "unorm16-texture-formats") {
+    *outEnum = wgpu::FeatureName::Unorm16TextureFormats;
+  } else if (inUnion == "snorm16-texture-formats") {
+    *outEnum = wgpu::FeatureName::Snorm16TextureFormats;
+  } else if (inUnion == "multi-planar-format-extended-usages") {
+    *outEnum = wgpu::FeatureName::MultiPlanarFormatExtendedUsages;
+  } else if (inUnion == "multi-planar-format-p010") {
+    *outEnum = wgpu::FeatureName::MultiPlanarFormatP010;
+  } else if (inUnion == "host-mapped-pointer") {
+    *outEnum = wgpu::FeatureName::HostMappedPointer;
+  } else if (inUnion == "multi-planar-render-targets") {
+    *outEnum = wgpu::FeatureName::MultiPlanarRenderTargets;
+  } else if (inUnion == "multi-planar-format-nv12a") {
+    *outEnum = wgpu::FeatureName::MultiPlanarFormatNv12a;
+  } else if (inUnion == "framebuffer-fetch") {
+    *outEnum = wgpu::FeatureName::FramebufferFetch;
+  } else if (inUnion == "buffer-map-extended-usages") {
+    *outEnum = wgpu::FeatureName::BufferMapExtendedUsages;
+  } else if (inUnion == "adapter-properties-memory-heaps") {
+    *outEnum = wgpu::FeatureName::AdapterPropertiesMemoryHeaps;
+  } else if (inUnion == "adapter-properties-d3d") {
+    *outEnum = wgpu::FeatureName::AdapterPropertiesD3D;
+  } else if (inUnion == "adapter-properties-vk") {
+    *outEnum = wgpu::FeatureName::AdapterPropertiesVk;
+  } else if (inUnion == "r8unorm-storage") {
+    *outEnum = wgpu::FeatureName::R8UnormStorage;
+  } else if (inUnion == "format-capabilities") {
+    *outEnum = wgpu::FeatureName::FormatCapabilities;
+  } else if (inUnion == "drm-format-capabilities") {
+    *outEnum = wgpu::FeatureName::DrmFormatCapabilities;
+  } else if (inUnion == "norm16-texture-formats") {
+    *outEnum = wgpu::FeatureName::Norm16TextureFormats;
+  } else if (inUnion == "multi-planar-format-nv16") {
+    *outEnum = wgpu::FeatureName::MultiPlanarFormatNv16;
+  } else if (inUnion == "multi-planar-format-nv24") {
+    *outEnum = wgpu::FeatureName::MultiPlanarFormatNv24;
+  } else if (inUnion == "multi-planar-format-p210") {
+    *outEnum = wgpu::FeatureName::MultiPlanarFormatP210;
+  } else if (inUnion == "multi-planar-format-p410") {
+    *outEnum = wgpu::FeatureName::MultiPlanarFormatP410;
+  } else if (inUnion == "shared-texture-memory-vk-dedicated-allocation") {
+    *outEnum = wgpu::FeatureName::SharedTextureMemoryVkDedicatedAllocation;
+  } else if (inUnion == "shared-texture-memory-ahardware-buffer") {
+    *outEnum = wgpu::FeatureName::SharedTextureMemoryAHardwareBuffer;
+  } else if (inUnion == "shared-texture-memory-dma-buf") {
+    *outEnum = wgpu::FeatureName::SharedTextureMemoryDmaBuf;
+  } else if (inUnion == "shared-texture-memory-opaque-fd") {
+    *outEnum = wgpu::FeatureName::SharedTextureMemoryOpaqueFD;
+  } else if (inUnion == "shared-texture-memory-zircon-handle") {
+    *outEnum = wgpu::FeatureName::SharedTextureMemoryZirconHandle;
+  } else if (inUnion == "shared-texture-memory-dxgi-shared-handle") {
+    *outEnum = wgpu::FeatureName::SharedTextureMemoryDXGISharedHandle;
+  } else if (inUnion == "shared-texture-memory-d3d11-texture2d") {
+    *outEnum = wgpu::FeatureName::SharedTextureMemoryD3D11Texture2D;
+  } else if (inUnion == "shared-texture-memory-iosurface") {
+    *outEnum = wgpu::FeatureName::SharedTextureMemoryIOSurface;
+  } else if (inUnion == "shared-texture-memory-egl-image") {
+    *outEnum = wgpu::FeatureName::SharedTextureMemoryEGLImage;
+  } else if (inUnion == "shared-fence-vk-semaphore-opaque-fd") {
+    *outEnum = wgpu::FeatureName::SharedFenceVkSemaphoreOpaqueFD;
+  } else if (inUnion == "shared-fence-vk-semaphore-sync-fd") {
+    *outEnum = wgpu::FeatureName::SharedFenceVkSemaphoreSyncFD;
+  } else if (inUnion == "shared-fence-vk-semaphore-zircon-handle") {
+    *outEnum = wgpu::FeatureName::SharedFenceVkSemaphoreZirconHandle;
+  } else if (inUnion == "shared-fence-dxgi-shared-handle") {
+    *outEnum = wgpu::FeatureName::SharedFenceDXGISharedHandle;
+  } else if (inUnion == "shared-fence-mtl-shared-event") {
+    *outEnum = wgpu::FeatureName::SharedFenceMTLSharedEvent;
+  } else if (inUnion == "shared-buffer-memory-d3d12-resource") {
+    *outEnum = wgpu::FeatureName::SharedBufferMemoryD3D12Resource;
+  } else if (inUnion == "static-samplers") {
+    *outEnum = wgpu::FeatureName::StaticSamplers;
+  } else if (inUnion == "ycbcr-vulkan-samplers") {
+    *outEnum = wgpu::FeatureName::YCbCrVulkanSamplers;
+  } else if (inUnion == "shader-module-compilation-options") {
+    *outEnum = wgpu::FeatureName::ShaderModuleCompilationOptions;
+  } else if (inUnion == "dawn-load-resolve-texture") {
+    *outEnum = wgpu::FeatureName::DawnLoadResolveTexture;
+  } else if (inUnion == "clip-distances") {
+    *outEnum = wgpu::FeatureName::ClipDistances;
   } else {
     throw invalidUnion(inUnion);
   }
@@ -477,11 +585,176 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::Float32Filterable:
     *outUnion = "float32-filterable";
     break;
-  case wgpu::FeatureName::ClipDistances:
-    *outUnion = "clip-distances";
+  case wgpu::FeatureName::Subgroups:
+    *outUnion = "subgroups";
+    break;
+  case wgpu::FeatureName::SubgroupsF16:
+    *outUnion = "subgroups-f16";
+    break;
+  case wgpu::FeatureName::DawnInternalUsages:
+    *outUnion = "dawn-internal-usages";
+    break;
+  case wgpu::FeatureName::DawnMultiPlanarFormats:
+    *outUnion = "dawn-multi-planar-formats";
+    break;
+  case wgpu::FeatureName::DawnNative:
+    *outUnion = "dawn-native";
+    break;
+  case wgpu::FeatureName::ChromiumExperimentalTimestampQueryInsidePasses:
+    *outUnion = "chromium-experimental-timestamp-query-inside-passes";
+    break;
+  case wgpu::FeatureName::ImplicitDeviceSynchronization:
+    *outUnion = "implicit-device-synchronization";
+    break;
+    //  case wgpu::FeatureName::SurfaceCapabilities:
+    //    *outUnion = "surface-capabilities";
+    //    break;
+  case wgpu::FeatureName::TransientAttachments:
+    *outUnion = "transient-attachments";
+    break;
+  case wgpu::FeatureName::MSAARenderToSingleSampled:
+    *outUnion = "msaa-render-to-single-sampled";
     break;
   case wgpu::FeatureName::DualSourceBlending:
     *outUnion = "dual-source-blending";
+    break;
+  case wgpu::FeatureName::D3D11MultithreadProtected:
+    *outUnion = "d3d11-multithread-protected";
+    break;
+  case wgpu::FeatureName::ANGLETextureSharing:
+    *outUnion = "angle-texture-sharing";
+    break;
+  case wgpu::FeatureName::ChromiumExperimentalSubgroups:
+    *outUnion = "chromium-experimental-subgroups";
+    break;
+  case wgpu::FeatureName::ChromiumExperimentalSubgroupUniformControlFlow:
+    *outUnion = "chromium-experimental-subgroup-uniform-control-flow";
+    break;
+  case wgpu::FeatureName::PixelLocalStorageCoherent:
+    *outUnion = "pixel-local-storage-coherent";
+    break;
+  case wgpu::FeatureName::PixelLocalStorageNonCoherent:
+    *outUnion = "pixel-local-storage-non-coherent";
+    break;
+  case wgpu::FeatureName::Unorm16TextureFormats:
+    *outUnion = "unorm16-texture-formats";
+    break;
+  case wgpu::FeatureName::Snorm16TextureFormats:
+    *outUnion = "snorm16-texture-formats";
+    break;
+  case wgpu::FeatureName::MultiPlanarFormatExtendedUsages:
+    *outUnion = "multi-planar-format-extended-usages";
+    break;
+  case wgpu::FeatureName::MultiPlanarFormatP010:
+    *outUnion = "multi-planar-format-p010";
+    break;
+  case wgpu::FeatureName::HostMappedPointer:
+    *outUnion = "host-mapped-pointer";
+    break;
+  case wgpu::FeatureName::MultiPlanarRenderTargets:
+    *outUnion = "multi-planar-render-targets";
+    break;
+  case wgpu::FeatureName::MultiPlanarFormatNv12a:
+    *outUnion = "multi-planar-format-nv12a";
+    break;
+  case wgpu::FeatureName::FramebufferFetch:
+    *outUnion = "framebuffer-fetch";
+    break;
+  case wgpu::FeatureName::BufferMapExtendedUsages:
+    *outUnion = "buffer-map-extended-usages";
+    break;
+  case wgpu::FeatureName::AdapterPropertiesMemoryHeaps:
+    *outUnion = "adapter-properties-memory-heaps";
+    break;
+  case wgpu::FeatureName::AdapterPropertiesD3D:
+    *outUnion = "adapter-properties-d3d";
+    break;
+  case wgpu::FeatureName::AdapterPropertiesVk:
+    *outUnion = "adapter-properties-vk";
+    break;
+  case wgpu::FeatureName::R8UnormStorage:
+    *outUnion = "r8unorm-storage";
+    break;
+  case wgpu::FeatureName::FormatCapabilities:
+    *outUnion = "format-capabilities";
+    break;
+  case wgpu::FeatureName::DrmFormatCapabilities:
+    *outUnion = "drm-format-capabilities";
+    break;
+  case wgpu::FeatureName::Norm16TextureFormats:
+    *outUnion = "norm16-texture-formats";
+    break;
+  case wgpu::FeatureName::MultiPlanarFormatNv16:
+    *outUnion = "multi-planar-format-nv16";
+    break;
+  case wgpu::FeatureName::MultiPlanarFormatNv24:
+    *outUnion = "multi-planar-format-nv24";
+    break;
+  case wgpu::FeatureName::MultiPlanarFormatP210:
+    *outUnion = "multi-planar-format-p210";
+    break;
+  case wgpu::FeatureName::MultiPlanarFormatP410:
+    *outUnion = "multi-planar-format-p410";
+    break;
+  case wgpu::FeatureName::SharedTextureMemoryVkDedicatedAllocation:
+    *outUnion = "shared-texture-memory-vk-dedicated-allocation";
+    break;
+  case wgpu::FeatureName::SharedTextureMemoryAHardwareBuffer:
+    *outUnion = "shared-texture-memory-ahardware-buffer";
+    break;
+  case wgpu::FeatureName::SharedTextureMemoryDmaBuf:
+    *outUnion = "shared-texture-memory-dma-buf";
+    break;
+  case wgpu::FeatureName::SharedTextureMemoryOpaqueFD:
+    *outUnion = "shared-texture-memory-opaque-fd";
+    break;
+  case wgpu::FeatureName::SharedTextureMemoryZirconHandle:
+    *outUnion = "shared-texture-memory-zircon-handle";
+    break;
+  case wgpu::FeatureName::SharedTextureMemoryDXGISharedHandle:
+    *outUnion = "shared-texture-memory-dxgi-shared-handle";
+    break;
+  case wgpu::FeatureName::SharedTextureMemoryD3D11Texture2D:
+    *outUnion = "shared-texture-memory-d3d11-texture2d";
+    break;
+  case wgpu::FeatureName::SharedTextureMemoryIOSurface:
+    *outUnion = "shared-texture-memory-iosurface";
+    break;
+  case wgpu::FeatureName::SharedTextureMemoryEGLImage:
+    *outUnion = "shared-texture-memory-egl-image";
+    break;
+  case wgpu::FeatureName::SharedFenceVkSemaphoreOpaqueFD:
+    *outUnion = "shared-fence-vk-semaphore-opaque-fd";
+    break;
+  case wgpu::FeatureName::SharedFenceVkSemaphoreSyncFD:
+    *outUnion = "shared-fence-vk-semaphore-sync-fd";
+    break;
+  case wgpu::FeatureName::SharedFenceVkSemaphoreZirconHandle:
+    *outUnion = "shared-fence-vk-semaphore-zircon-handle";
+    break;
+  case wgpu::FeatureName::SharedFenceDXGISharedHandle:
+    *outUnion = "shared-fence-dxgi-shared-handle";
+    break;
+  case wgpu::FeatureName::SharedFenceMTLSharedEvent:
+    *outUnion = "shared-fence-mtl-shared-event";
+    break;
+  case wgpu::FeatureName::SharedBufferMemoryD3D12Resource:
+    *outUnion = "shared-buffer-memory-d3d12-resource";
+    break;
+  case wgpu::FeatureName::StaticSamplers:
+    *outUnion = "static-samplers";
+    break;
+  case wgpu::FeatureName::YCbCrVulkanSamplers:
+    *outUnion = "ycbcr-vulkan-samplers";
+    break;
+  case wgpu::FeatureName::ShaderModuleCompilationOptions:
+    *outUnion = "shader-module-compilation-options";
+    break;
+  case wgpu::FeatureName::DawnLoadResolveTexture:
+    *outUnion = "dawn-load-resolve-texture";
+    break;
+  case wgpu::FeatureName::ClipDistances:
+    *outUnion = "clip-distances";
     break;
   default:
     throw invalidEnum(inEnum);
