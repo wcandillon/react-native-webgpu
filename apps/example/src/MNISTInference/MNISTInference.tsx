@@ -12,6 +12,7 @@ import {
   matchFont,
   Text,
   Image,
+  FilterMode,
 } from "@shopify/react-native-skia";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS, runOnUI, useSharedValue } from "react-native-reanimated";
@@ -137,6 +138,7 @@ export function MNISTInference() {
             width={width}
             height={width}
             fit="cover"
+            sampling={{ filter: FilterMode.Nearest }}
           />
           <Text text={text} x={(width - 100) / 2} y={1.5 * width} font={font} />
         </Canvas>
