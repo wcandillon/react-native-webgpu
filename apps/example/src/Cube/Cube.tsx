@@ -1,8 +1,13 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import React from "react";
+import React, { useCallback } from "react";
 import { StyleSheet, View } from "react-native";
-import { Canvas } from "react-native-wgpu";
-import { mat4, vec3 } from "wgpu-matrix";
+import { Canvas, useCanvasEffect } from "react-native-wgpu";
+import type { FrameInfo } from "react-native-reanimated";
+import {
+  useAnimatedReaction,
+  useFrameCallback,
+  useSharedValue,
+} from "react-native-reanimated";
 
 import {
   cubePositionOffset,
@@ -11,12 +16,55 @@ import {
   cubeVertexCount,
   cubeVertexSize,
 } from "../components/cube";
-import { useWebGPU } from "../components/useWebGPU";
 
 import { basicVertWGSL, vertexPositionColorWGSL } from "./Shaders";
 
+export const useClock = () => {
+  const clock = useSharedValue(0);
+  const callback = useCallback(
+    (info: FrameInfo) => {
+      "worklet";
+      clock.value = info.timeSinceFirstFrame;
+    },
+    [clock],
+  );
+  useFrameCallback(callback);
+  return clock;
+};
+
+interface WebGPUCtx {
+  device: GPUDevice;
+  context: GPUCanvasContext;
+  depthTexture: GPUTexture;
+  uniformBindGroup: GPUBindGroup;
+  pipeline: GPURenderPipeline;
+  verticesBuffer: GPUBuffer;
+  uniformBuffer: GPUBuffer;
+}
+
 export function Cube() {
-  const ref = useWebGPU(({ context, device, presentationFormat, canvas }) => {
+  const clock = useClock();
+  const ctx = useSharedValue<WebGPUCtx | null>(null);
+  const ref = useCanvasEffect(async () => {
+    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) {
+      throw new Error("No adapter");
+    }
+    const device = await adapter.requestDevice();
+    ref.current?.getContext("webgpu")?.configure({
+      device,
+      format: presentationFormat,
+      alphaMode: "opaque",
+    });
+    const canvas = ref.current;
+    if (!canvas) {
+      throw new Error("No canvas available");
+    }
+    const context = canvas.getContext("webgpu");
+    if (!context) {
+      throw new Error("No WebGPU context available");
+    }
     // Create a vertex buffer from the cube data.
     const verticesBuffer = device.createBuffer({
       size: cubeVertexArray.byteLength,
@@ -81,7 +129,7 @@ export function Cube() {
     });
 
     const depthTexture = device.createTexture({
-      size: [canvas.width, canvas.height],
+      size: [context.canvas.width, context.canvas.height],
       format: "depth24plus",
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
@@ -103,53 +151,58 @@ export function Cube() {
         },
       ],
     });
-
-    const renderPassDescriptor: GPURenderPassDescriptor = {
-      // @ts-expect-error
-      colorAttachments: [
-        {
-          view: undefined, // Assigned later
-          clearValue: [0, 0, 0, 0],
-          loadOp: "clear",
-          storeOp: "store",
-        },
-      ],
-      depthStencilAttachment: {
-        view: depthTexture.createView(),
-
-        depthClearValue: 1.0,
-        depthLoadOp: "clear",
-        depthStoreOp: "store",
-      },
+    ctx.value = {
+      device,
+      context,
+      depthTexture,
+      uniformBindGroup,
+      pipeline,
+      verticesBuffer,
+      uniformBuffer,
     };
+  });
 
-    const aspect = canvas.width / canvas.height;
-    const projectionMatrix = mat4.perspective(
-      (2 * Math.PI) / 5,
-      aspect,
-      1,
-      100.0,
-    );
-    const modelViewProjectionMatrix = mat4.create();
+  useAnimatedReaction(
+    () => clock.value,
+    (time) => {
+      if (!ctx.value) {
+        return;
+      }
+      const {
+        device,
+        pipeline,
+        uniformBindGroup,
+        verticesBuffer,
+        context,
+        depthTexture,
+        uniformBuffer,
+      } = ctx.value;
+      const renderPassDescriptor: GPURenderPassDescriptor = {
+        // @ts-expect-error
+        colorAttachments: [
+          {
+            view: undefined, // Assigned later
+            clearValue: [0, 0, 0, 0],
+            loadOp: "clear",
+            storeOp: "store",
+          },
+        ],
+        depthStencilAttachment: {
+          view: depthTexture.createView(),
 
-    function getTransformationMatrix() {
-      const viewMatrix = mat4.identity();
-      mat4.translate(viewMatrix, vec3.fromValues(0, 0, -4), viewMatrix);
-      const now = Date.now() / 1000;
-      mat4.rotate(
-        viewMatrix,
-        vec3.fromValues(Math.sin(now), Math.cos(now), 0),
-        1,
-        viewMatrix,
+          depthClearValue: 1.0,
+          depthLoadOp: "clear",
+          depthStoreOp: "store",
+        },
+      };
+
+      const aspect = context.canvas.width / context.canvas.height;
+      const transformationMatrix = Float32Array.of(
+          1, 0, 0, 0,
+          0, 1, 0, 0,
+          0, 0, 1, 0,
+          0, 0, 0, 1,
       );
-
-      mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
-
-      return modelViewProjectionMatrix;
-    }
-
-    function frame() {
-      const transformationMatrix = getTransformationMatrix();
       device.queue.writeBuffer(
         uniformBuffer,
         0,
@@ -170,10 +223,10 @@ export function Cube() {
       passEncoder.draw(cubeVertexCount);
       passEncoder.end();
       device.queue.submit([commandEncoder.finish()]);
-    }
-    return frame;
-  });
-
+      context.present();
+      console.log("Time: ", time);
+    },
+  );
   return (
     <View style={style.container}>
       <Canvas ref={ref} style={style.webgpu} transparent />
