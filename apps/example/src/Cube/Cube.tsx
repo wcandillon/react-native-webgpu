@@ -55,7 +55,7 @@ export function Cube() {
     ref.current?.getContext("webgpu")?.configure({
       device,
       format: presentationFormat,
-      alphaMode: "opaque",
+      alphaMode: "premultiplied",
     });
     const canvas = ref.current;
     if (!canvas) {
@@ -196,13 +196,13 @@ export function Cube() {
         },
       };
 
-      const aspect = context.canvas.width / context.canvas.height;
-      const transformationMatrix = Float32Array.of(
-          1, 0, 0, 0,
-          0, 1, 0, 0,
-          0, 0, 1, 0,
-          0, 0, 0, 1,
-      );
+      const transformationMatrix = new Float32Array([
+        2.5817277431488037, -0.12328082323074341, -0.16898392140865326,
+        -0.16729408502578735, -0.2355215847492218, 0.7686712145805359,
+        -0.8330033421516418, -0.8246733546257019, -0.43990078568458557,
+        -1.1350654363632202, -0.5457598567008972, -0.5403022766113281, 0, 0,
+        3.0303030014038086, 4,
+      ]);
       device.queue.writeBuffer(
         uniformBuffer,
         0,
