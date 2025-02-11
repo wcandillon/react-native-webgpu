@@ -4,7 +4,6 @@ import { StyleSheet, View } from "react-native";
 import type { RNCanvasContext } from "react-native-wgpu";
 import { Canvas } from "react-native-wgpu";
 import type { SharedValue } from "react-native-reanimated";
-import { useAnimatedReaction } from "react-native-reanimated";
 
 import {
   cubePositionOffset,
@@ -13,12 +12,9 @@ import {
   cubeVertexCount,
   cubeVertexSize,
 } from "../components/cube";
-import {
-  useAnimatedContext,
-  useAnimatedRenderer,
-  useClock,
-} from "../components/Animations";
+import { useAnimatedRenderer, useClock } from "../components/Animations";
 
+import wgpuMatrixSrc from "./wgpu-matrix-src";
 import { basicVertWGSL, vertexPositionColorWGSL } from "./Shaders";
 
 const init = (device: GPUDevice, context: RNCanvasContext) => {
@@ -124,8 +120,18 @@ type Values = {
   clock: SharedValue<number>;
 };
 
-const frame = (ctx: ReturnType<typeof init>, { clock }: Values) => {
+const frame = (
+  ctx: ReturnType<typeof init>,
+  _values: Values,
+  firstFrame: boolean,
+) => {
   "worklet";
+  if (firstFrame) {
+    // eslint-disable-next-line no-eval
+    eval(wgpuMatrixSrc);
+  }
+  const { mat4, vec3 } = global;
+  // console.log({ global, mat4, vec3 });
   const {
     device,
     pipeline,
@@ -153,14 +159,27 @@ const frame = (ctx: ReturnType<typeof init>, { clock }: Values) => {
       depthStoreOp: "store",
     },
   };
+  const aspect = context.canvas.width / context.canvas.height;
+  const projectionMatrix = mat4.perspective(
+    (2 * Math.PI) / 5,
+    aspect,
+    1,
+    100.0,
+  );
+  const transformationMatrix = mat4.create();
 
-  const transformationMatrix = new Float32Array([
-    2.5817277431488037, -0.12328082323074341, -0.16898392140865326,
-    -0.16729408502578735, -0.2355215847492218, 0.7686712145805359,
-    -0.8330033421516418, -0.8246733546257019, -0.43990078568458557,
-    -1.1350654363632202, -0.5457598567008972, -0.5403022766113281, 0, 0,
-    3.0303030014038086, 4,
-  ]);
+  const viewMatrix = mat4.identity();
+  mat4.translate(viewMatrix, vec3.fromValues(0, 0, -4), viewMatrix);
+  const now = Date.now() / 1000;
+  mat4.rotate(
+    viewMatrix,
+    vec3.fromValues(Math.sin(now), Math.cos(now), 0),
+    1,
+    viewMatrix,
+  );
+
+  mat4.multiply(projectionMatrix, viewMatrix, transformationMatrix);
+
   device.queue.writeBuffer(
     uniformBuffer,
     0,
