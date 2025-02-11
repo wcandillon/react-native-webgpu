@@ -3,6 +3,7 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import type { RNCanvasContext } from "react-native-wgpu";
 import { Canvas } from "react-native-wgpu";
+import type { SharedValue } from "react-native-reanimated";
 import { useAnimatedReaction } from "react-native-reanimated";
 
 import {
@@ -12,7 +13,11 @@ import {
   cubeVertexCount,
   cubeVertexSize,
 } from "../components/cube";
-import { useAnimatedContext, useClock } from "../components/Animations";
+import {
+  useAnimatedContext,
+  useAnimatedRenderer,
+  useClock,
+} from "../components/Animations";
 
 import { basicVertWGSL, vertexPositionColorWGSL } from "./Shaders";
 
@@ -115,7 +120,11 @@ const init = (device: GPUDevice, context: RNCanvasContext) => {
   };
 };
 
-const frame = (time: number, ctx: ReturnType<typeof init>) => {
+type Values = {
+  clock: SharedValue<number>;
+};
+
+const frame = (ctx: ReturnType<typeof init>, values: Values) => {
   "worklet";
   const {
     device,
@@ -177,16 +186,7 @@ const frame = (time: number, ctx: ReturnType<typeof init>) => {
 
 export function Cube() {
   const clock = useClock();
-  const { ctx, ref } = useAnimatedContext(init);
-  useAnimatedReaction(
-    () => clock.value,
-    (time) => {
-      if (!ctx.value) {
-        return;
-      }
-      frame(time, ctx.value);
-    },
-  );
+  const { ref } = useAnimatedRenderer(init, frame, { clock });
   return (
     <View style={style.container}>
       <Canvas ref={ref} style={style.webgpu} transparent />

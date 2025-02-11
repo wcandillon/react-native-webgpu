@@ -1,6 +1,11 @@
-import { useCallback } from "react";
-import type { FrameInfo } from "react-native-reanimated";
-import { useFrameCallback, useSharedValue } from "react-native-reanimated";
+import { useCallback, useEffect } from "react";
+import type { FrameInfo, SharedValue } from "react-native-reanimated";
+import {
+  startMapper,
+  stopMapper,
+  useFrameCallback,
+  useSharedValue,
+} from "react-native-reanimated";
 import type { RNCanvasContext } from "react-native-wgpu";
 import { useCanvasEffect } from "react-native-wgpu";
 
@@ -49,4 +54,28 @@ export const useAnimatedContext = <T extends BaseGPUContext>(
     ctx.value = cb(device, context);
   });
   return { ctx, ref };
+};
+
+export const useAnimatedRenderer = <
+  Ctx extends BaseGPUContext,
+  Values extends object,
+>(
+  init: (device: GPUDevice, context: RNCanvasContext) => Ctx,
+  frame: (ctx: Ctx, values: Values) => void,
+  values: Values,
+) => {
+  const { ctx, ref } = useAnimatedContext(init);
+  useEffect(() => {
+    const mapperId = startMapper(() => {
+      "worklet";
+      if (!ctx.value) {
+        return;
+      }
+      frame(ctx.value, values);
+    }, Object.values(values));
+    return () => {
+      stopMapper(mapperId);
+    };
+  }, [ctx.value, frame, values]);
+  return { ref };
 };
