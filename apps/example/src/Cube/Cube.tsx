@@ -124,7 +124,7 @@ type Values = {
   clock: SharedValue<number>;
 };
 
-const frame = (ctx: ReturnType<typeof init>, values: Values) => {
+const frame = (ctx: ReturnType<typeof init>, { clock }: Values) => {
   "worklet";
   const {
     device,

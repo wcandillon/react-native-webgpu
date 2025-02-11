@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from "react";
-import type { FrameInfo, SharedValue } from "react-native-reanimated";
+import type { FrameInfo } from "react-native-reanimated";
 import {
   startMapper,
   stopMapper,
