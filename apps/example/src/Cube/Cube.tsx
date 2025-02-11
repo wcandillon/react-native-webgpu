@@ -123,7 +123,6 @@ type Values = {
 const frame = (ctx: ReturnType<typeof init>, _values: Values) => {
   "worklet";
   const { mat4, vec3 } = global;
-  // console.log({ global, mat4, vec3 });
   const {
     device,
     pipeline,

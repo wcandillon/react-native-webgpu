@@ -1,8 +1,9 @@
-import { vec3, mat4 } from "wgpu-matrix";
+import { vec3 as vec3Type, mat4 as mat4Type } from "wgpu-matrix";
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
+declare global {
+  var vec3: typeof vec3Type;
+  var mat4: typeof mat4Type;
+}
+
 global.vec3 = vec3;
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
 global.mat4 = mat4;
