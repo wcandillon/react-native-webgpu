@@ -120,16 +120,8 @@ type Values = {
   clock: SharedValue<number>;
 };
 
-const frame = (
-  ctx: ReturnType<typeof init>,
-  _values: Values,
-  firstFrame: boolean,
-) => {
+const frame = (ctx: ReturnType<typeof init>, _values: Values) => {
   "worklet";
-  if (firstFrame) {
-    // eslint-disable-next-line no-eval
-    eval(wgpuMatrixSrc);
-  }
   const { mat4, vec3 } = global;
   // console.log({ global, mat4, vec3 });
   const {
@@ -205,7 +197,7 @@ const frame = (
 
 export function Cube() {
   const clock = useClock();
-  const { ref } = useAnimatedRenderer(init, frame, { clock });
+  const { ref } = useAnimatedRenderer(init, frame, { clock }, [wgpuMatrixSrc]);
   return (
     <View style={style.container}>
       <Canvas ref={ref} style={style.webgpu} transparent />

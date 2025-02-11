@@ -61,8 +61,9 @@ export const useAnimatedRenderer = <
   Values extends object,
 >(
   init: (device: GPUDevice, context: RNCanvasContext) => Ctx,
-  frame: (ctx: Ctx, values: Values, firstFrame: boolean) => void,
+  frame: (ctx: Ctx, values: Values) => void,
   values: Values,
+  libs: string[] = [],
 ) => {
   const firstFrame = useSharedValue(true);
   const { ctx, ref } = useAnimatedContext(init);
@@ -72,12 +73,18 @@ export const useAnimatedRenderer = <
       if (!ctx.value) {
         return;
       }
-      frame(ctx.value, values, firstFrame.value);
+      if (firstFrame.value) {
+        libs.forEach((lib) => {
+          // eslint-disable-next-line no-eval
+          eval(lib);
+        });
+      }
+      frame(ctx.value, values);
       firstFrame.value = false;
     }, Object.values(values));
     return () => {
       stopMapper(mapperId);
     };
-  }, [ctx.value, firstFrame, frame, values]);
+  }, [ctx.value, firstFrame, frame, libs, values]);
   return { ref };
 };
