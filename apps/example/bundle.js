@@ -37,7 +37,8 @@ exec(bundleCommand, (error, stdout, stderr) => {
         const content = fs.readFileSync(tmpOutputFile, 'utf8');
         
         // Output the content in the desired format
-        console.log(`export default ${JSON.stringify(content)};`);
+        console.log(`// eslint-disable-next-line
+export default ${JSON.stringify(content)};`);
         
         // Clean up the temporary file
         fs.unlinkSync(tmpOutputFile);

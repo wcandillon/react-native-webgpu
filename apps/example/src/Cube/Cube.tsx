@@ -122,7 +122,7 @@ type Values = {
 
 const frame = (ctx: ReturnType<typeof init>, _values: Values) => {
   "worklet";
-  const { mat4, vec3 } = global;
+  const { mat4, vec3 } = global.wgpuMatrix;
   const {
     device,
     pipeline,

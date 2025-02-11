@@ -2,7 +2,9 @@
   "extends": "react-native-wcandillon",
   "ignorePatterns": ["**/*/components/meshes", "**/Pods/**"],
   "rules": {
+    "no-var": "off",
     "no-bitwise": "off",
+    "eslint-comments/no-unlimited-disable": "off",
     "@typescript-eslint/no-require-imports": "off",
     "prettier/prettier": [
       "error",
