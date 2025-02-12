@@ -443,7 +443,8 @@ static void convertJSUnionToEnum(const std::string &inUnion,
   } else if (inUnion == "dawn-native") {
     *outEnum = wgpu::FeatureName::DawnNative;
   } else if (inUnion == "chromium-experimental-timestamp-query-inside-passes") {
-    *outEnum = wgpu::FeatureName::ChromiumExperimentalTimestampQueryInsidePasses;
+    *outEnum =
+        wgpu::FeatureName::ChromiumExperimentalTimestampQueryInsidePasses;
   } else if (inUnion == "implicit-device-synchronization") {
     *outEnum = wgpu::FeatureName::ImplicitDeviceSynchronization;
   } else if (inUnion == "transient-attachments") {
@@ -459,7 +460,8 @@ static void convertJSUnionToEnum(const std::string &inUnion,
   } else if (inUnion == "chromium-experimental-subgroups") {
     *outEnum = wgpu::FeatureName::ChromiumExperimentalSubgroups;
   } else if (inUnion == "chromium-experimental-subgroup-uniform-control-flow") {
-    *outEnum = wgpu::FeatureName::ChromiumExperimentalSubgroupUniformControlFlow;
+    *outEnum =
+        wgpu::FeatureName::ChromiumExperimentalSubgroupUniformControlFlow;
   } else if (inUnion == "pixel-local-storage-coherent") {
     *outEnum = wgpu::FeatureName::PixelLocalStorageCoherent;
   } else if (inUnion == "pixel-local-storage-non-coherent") {
