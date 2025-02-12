@@ -21,7 +21,13 @@ RNWebGPUManager::RNWebGPUManager(
     std::shared_ptr<PlatformContext> platformContext)
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker),
       _platformContext(platformContext) {
-
+  
+  // Installs the global Dispatcher mechanism into this Runtime.
+  // This allows creating Promises and calling back to JS.
+  auto dispatcher =
+  std::make_shared<CallInvokerDispatcher>(_jsCallInvoker);
+  RuntimeDispatcherRegistry::getInstance().registerDispatcher(_jsRuntime, dispatcher);
+  
   auto gpu = std::make_shared<GPU>();
   auto rnWebGPU = std::make_shared<RNWebGPU>(gpu, _platformContext);
   _gpu = gpu->get();
@@ -56,6 +62,9 @@ RNWebGPUManager::RNWebGPUManager(
 }
 
 RNWebGPUManager::~RNWebGPUManager() {
+  if (_jsRuntime != nullptr) {
+    RuntimeDispatcherRegistry::getInstance().unregisterDispatcher(_jsRuntime);
+  }
   _jsRuntime = nullptr;
   _jsCallInvoker = nullptr;
 }
