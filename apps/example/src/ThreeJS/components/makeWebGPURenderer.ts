@@ -60,6 +60,7 @@ export class ReactNativeCanvas {
 
 export const makeWebGPURenderer = (
   context: GPUCanvasContext,
+  device: GPUDevice,
   { antialias = true }: { antialias?: boolean } = {},
 ) =>
   new THREE.WebGPURenderer({
@@ -68,4 +69,5 @@ export const makeWebGPURenderer = (
     // @ts-expect-error
     canvas: new ReactNativeCanvas(context.canvas),
     context,
+    device,
   });
