@@ -8,14 +8,25 @@ export const Cube = () => {
   const ref = useCanvasEffect(async () => {
     const context = ref.current!.getContext("webgpu")!;
     runOnUI(async () => {
-      global.setImmediate = requestAnimationFrame;
+      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+      // global.setImmediate = requestAnimationFrame;
 
+      console.log("requiring adapter");
       const adapter = await navigator.gpu.requestAdapter();
-      const device = await adapter!.requestDevice();
+      if (!adapter) {
+        throw new Error("No adapter");
+      }
+      console.log("requiring adapter");
+      const device = await adapter.requestDevice();
+      ref.current?.getContext("webgpu")?.configure({
+        device,
+        format: presentationFormat,
+        alphaMode: "premultiplied",
+      });
+      console.log("GOT A DEVICE!");
+      eval(CubeSceneSrc);
+      await global.renderCubeScene(context, device);
       console.log("DONE!");
-
-      //eval(CubeSceneSrc);
-      //await global.renderCubeScene(device, context);
     })();
   });
 

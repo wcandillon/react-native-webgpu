@@ -1,17 +1,19 @@
 import * as THREE from "three";
 import type { RNCanvasContext } from "react-native-wgpu";
-import { render } from "@react-three/fiber";
 
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 declare global {
   var renderCubeScene: (
-    device: GPUDevice,
     context: RNCanvasContext,
-  ) => () => void;
+    device: GPUDevice,
+  ) => Promise<() => void>;
 }
 
-global.renderCubeScene = (device: GPUDevice, context: RNCanvasContext) => {
+global.renderCubeScene = async (
+  context: RNCanvasContext,
+  device: GPUDevice,
+) => {
   const { width, height } = context.canvas;
 
   const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 10);
@@ -27,7 +29,7 @@ global.renderCubeScene = (device: GPUDevice, context: RNCanvasContext) => {
 
   const renderer = makeWebGPURenderer(context, device);
   console.log("Before init()");
-  renderer.init();
+  await renderer.init();
   console.log("After init()");
 
   function animate(time: number) {
