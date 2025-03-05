@@ -24,4 +24,5 @@ export type Routes = {
   Tests: undefined;
   GradientTiles: undefined;
   CanvasAPI: undefined;
+  ComputeToys: undefined;
 };
