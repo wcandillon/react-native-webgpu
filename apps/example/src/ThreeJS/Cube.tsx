@@ -1,21 +1,20 @@
 import * as THREE from "three";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { View } from "react-native";
-
-import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
-import CubeSceneSrc from "./CubeSceneSrc";
 import { useEffect } from "react";
 import { runOnUI, useAnimatedReaction } from "react-native-reanimated";
 import { useClock } from "@shopify/react-native-skia";
 
-const gpu = navigator.gpu;
-const RNWebGPU = global.RNWebGPU;
-const GPUBufferUsage = global.GPUBufferUsage;
-const GPUColorWrite = global.GPUColorWrite;
-const GPUMapMode = global.GPUMapMode;
-const GPUShaderStage = global.GPUShaderStage;
-const GPUTextureUsage = global.GPUTextureUsage;
+import CubeSceneSrc from "./CubeSceneSrc";
+import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
+const { gpu } = navigator;
+const { RNWebGPU } = global;
+const { GPUBufferUsage } = global;
+const { GPUColorWrite } = global;
+const { GPUMapMode } = global;
+const { GPUShaderStage } = global;
+const { GPUTextureUsage } = global;
 
 const fibonacci = (num: number) => {
   let a = 1,
@@ -60,12 +59,11 @@ export const Cube = () => {
       global.GPUTextureUsage = GPUTextureUsage;
       global.setImmediate = requestAnimationFrame;
       global.self = global;
-  
 
       eval(CubeSceneSrc);
       global.renderCubeScene(context, device);
-   })();
-   
+    })();
+
     // const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 10);
     // camera.position.z = 1;
 
@@ -93,18 +91,23 @@ export const Cube = () => {
     // };
   });
 
-  useAnimatedReaction(() => clock.value, (time) => {
-   // function animate(time: number) {
-   if (!global.renderer || !global.renderer._initialized) {
-    return;
-  }
-    global.mesh.rotation.x = time / 2000;
-    global.mesh.rotation.y = time / 1000;
+  useMakeJsThreadBusy();
+
+  useAnimatedReaction(
+    () => clock.value,
+    (time) => {
+      // function animate(time: number) {
+      if (!global.renderer || !global.renderer._initialized) {
+        return;
+      }
+      global.mesh.rotation.x = time / 2000;
+      global.mesh.rotation.y = time / 1000;
 
       global.renderer.render(global.scene, global.camera);
       global.context.present();
-  });
-  
+    },
+  );
+
   return (
     <View style={{ flex: 1 }}>
       <Canvas ref={ref} style={{ flex: 1 }} />
