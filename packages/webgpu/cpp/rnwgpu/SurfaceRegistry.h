@@ -152,6 +152,21 @@ public:
 private:
   void _configure() {
     if (surface) {
+      wgpu::SurfaceCapabilities capabilities;
+      surface.GetCapabilities(&capabilities);
+      
+      // Check if requested alpha mode is supported
+      bool alphaModeSupported = false;
+      for (size_t i = 0; i < capabilities.alphaModeCount; i++) {
+          if (capabilities.alphaModes[i] == config.alphaMode) {
+              alphaModeSupported = true;
+              break;
+          }
+      }
+      // Revert to Auto if requested mode is not supported
+      if (!alphaModeSupported) {
+          config.alphaMode = wgpu::CompositeAlphaMode::Auto;
+      }
       surface.Configure(&config);
     } else {
       wgpu::TextureDescriptor textureDesc;
