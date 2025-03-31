@@ -1,3 +1,4 @@
+/* eslint-disable prefer-destructuring */
 // HDR format loading from https://enkimute.github.io/hdrpng.js/
 
 export function loadHDR(data: Uint8Array): {
@@ -14,15 +15,15 @@ export function loadHDR(data: Uint8Array): {
   }
 
   // Check format
-  const format = header.match(/FORMAT=(.*)$/m)![1];
+  const [, format] = header.match(/FORMAT=(.*)$/m)!;
   if (format !== "32-bit_rle_rgbe") {
     console.warn("unknown format : " + format);
   }
 
   // Parse resolution
   const rez = header.split(/\n/).reverse()[1].split(" ");
-  const width = parseInt(rez[3]);
-  const height = parseInt(rez[1]);
+  const width = parseInt(rez[3], 10);
+  const height = parseInt(rez[1], 10);
 
   // Create image
   const img = new Uint8Array(width * height * 4);
@@ -62,11 +63,11 @@ export function loadHDR(data: Uint8Array): {
 
       for (let i = 0; i < 4; i++) {
         let ptr = i * width;
-        const ptr_end = (i + 1) * width;
+        const ptrEnd = (i + 1) * width;
         let buf: Uint8Array;
         let count: number;
 
-        while (ptr < ptr_end) {
+        while (ptr < ptrEnd) {
           buf = data.slice(pos, (pos += 2));
           if (buf[0] > 128) {
             count = buf[0] - 128;

@@ -4,6 +4,7 @@
  */
 
 import { Mutex } from "async-mutex";
+import type { CanvasRef, RNCanvasContext } from "react-native-wgpu";
 
 import { Bindings } from "./bind";
 import { Blitter, ColorSpace } from "./blit";
@@ -36,7 +37,7 @@ export class ComputeEngine {
 
   private device: GPUDevice;
 
-  private surface: GPUCanvasContext | null = null;
+  private surface: RNCanvasContext | null = null;
   private screenWidth = -1;
   private screenHeight = -1;
 
@@ -108,12 +109,12 @@ export class ComputeEngine {
     return ComputeEngine.instance;
   }
 
-  public setSurface(canvas: HTMLCanvasElement) {
-    const context = canvas.getContext("webgpu");
+  public setSurface(canvas: CanvasRef) {
+    const context = canvas.getContext("webgpu") as RNCanvasContext;
     if (!context) {
       throw new Error("WebGPU not supported");
     }
-    this.surface = context as unknown as GPUCanvasContext;
+    this.surface = context;
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
     this.surface.configure({
       device: this.device,

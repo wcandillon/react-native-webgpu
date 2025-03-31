@@ -1,7 +1,7 @@
+/* eslint-disable max-len */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { useWindowDimensions } from "react-native";
-import { useCanvasRef } from "@shopify/react-native-skia";
 
 import { ComputeEngine } from "./engine";
 

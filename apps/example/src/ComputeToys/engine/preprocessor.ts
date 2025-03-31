@@ -1,3 +1,4 @@
+/* eslint-disable prefer-destructuring */
 /**
  * WGSL shader preprocessor implementation
  */
@@ -135,7 +136,7 @@ export class Preprocessor {
           if (chars.length > STRING_MAX_LEN) {
             error = new WGSLError(
               `String literals cannot be longer than ${STRING_MAX_LEN} characters`,
-              lineNum
+              lineNum,
             );
             return match;
           }
@@ -168,7 +169,7 @@ export class Preprocessor {
    */
   private async handleInclude(
     tokens: string[],
-    lineNum: number
+    lineNum: number,
   ): Promise<void> {
     if (tokens.length !== 2) {
       throw new WGSLError("Invalid #include syntax", lineNum);
@@ -178,7 +179,7 @@ export class Preprocessor {
     if (!nameMatcher) {
       throw new WGSLError(
         "Path must be enclosed in quotes or chevrons",
-        lineNum
+        lineNum,
       );
     }
 
@@ -241,7 +242,7 @@ export class Preprocessor {
   private handleDefine(
     lineOrig: string,
     tokens: string[],
-    lineNum: number
+    lineNum: number,
   ): void {
     const name = lineOrig.trim().split(" ")[1];
     if (!name) {
@@ -263,7 +264,7 @@ export class Preprocessor {
     if (this.storageCount >= 2) {
       throw new WGSLError(
         "Only two storage buffers are currently supported",
-        lineNum
+        lineNum,
       );
     }
 
@@ -271,7 +272,7 @@ export class Preprocessor {
     const type = types.join(" ");
     this.source.pushLine(
       `@group(0) @binding(${this.storageCount}) var<storage,read_write> ${name}: ${type};`,
-      lineNum
+      lineNum,
     );
     this.storageCount++;
   }

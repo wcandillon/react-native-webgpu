@@ -271,7 +271,7 @@ export class Bindings {
     device: GPUDevice,
     width: number,
     height: number,
-    passF32: boolean
+    passF32: boolean,
   ) {
     const uniformBuffer: GPUBufferBindingLayout = {
       type: "uniform",
@@ -597,14 +597,14 @@ export class Bindings {
   createBindGroupLayout(device: GPUDevice): GPUBindGroupLayout {
     return device.createBindGroupLayout({
       entries: this.getAllBindings().map((binding, index) =>
-        binding.getLayoutEntry(index)
+        binding.getLayoutEntry(index),
       ),
     });
   }
 
   createPipelineLayout(
     device: GPUDevice,
-    layout: GPUBindGroupLayout
+    layout: GPUBindGroupLayout,
   ): GPUPipelineLayout {
     return device.createPipelineLayout({
       bindGroupLayouts: [layout],

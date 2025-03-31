@@ -61,7 +61,7 @@ export async function fetchInclude(name: string): Promise<string | null> {
 
       if (!response.ok) {
         console.error(
-          `Failed to fetch include ${name}: ${response.statusText}`
+          `Failed to fetch include ${name}: ${response.statusText}`,
         );
         return null;
       }

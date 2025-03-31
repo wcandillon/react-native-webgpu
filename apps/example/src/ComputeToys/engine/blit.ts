@@ -1,5 +1,5 @@
 // WGSL shader for blit operations
-const BLIT_SHADER = `
+const BLIT_SHADER = /* wgsl */ `
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>
@@ -78,7 +78,7 @@ export class Blitter {
     src: GPUTextureView,
     srcSpace: ColorSpace,
     destFormat: GPUTextureFormat,
-    filter: GPUFilterMode
+    filter: GPUFilterMode,
   ) {
     this.destFormat = destFormat;
 
@@ -168,7 +168,7 @@ export class Blitter {
    */
   private getFragmentEntry(
     srcSpace: ColorSpace,
-    destFormat: GPUTextureFormat
+    destFormat: GPUTextureFormat,
   ): string {
     if (srcSpace === ColorSpace.Linear) {
       // Handle sRGB conversion cases
@@ -187,7 +187,7 @@ export class Blitter {
       return "fs_main_rgbe_to_linear";
     }
     throw new Error(
-      `Unsupported color space conversion: ${srcSpace} to ${destFormat}`
+      `Unsupported color space conversion: ${srcSpace} to ${destFormat}`,
     );
   }
 
@@ -220,7 +220,7 @@ export class Blitter {
     queue: GPUQueue,
     width: number,
     height: number,
-    mipLevelCount: number
+    mipLevelCount: number,
   ): GPUTexture {
     const texture = device.createTexture({
       size: {
@@ -245,7 +245,7 @@ export class Blitter {
         texture.createView({
           baseMipLevel: i,
           mipLevelCount: 1,
-        })
+        }),
     );
 
     // Blit to first mip level
@@ -258,7 +258,7 @@ export class Blitter {
         views[targetMip - 1],
         ColorSpace.Linear,
         this.destFormat,
-        "linear"
+        "linear",
       );
       prevLevelBlitter.blit(encoder, views[targetMip]);
     }
