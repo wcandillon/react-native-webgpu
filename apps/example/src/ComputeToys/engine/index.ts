@@ -339,22 +339,6 @@ fn passSampleLevelBilinearRepeat(pass_index: int, uv: float2, lod: float) -> flo
       // Update bindings
       this.bindings!.stage(this.device.queue);
 
-      // Clear debug buffer periodically
-      // if (this.bindings.time.host.frame % WgpuToyRenderer.STATS_PERIOD === 0) {
-      //     this.device.queue.writeBuffer(
-      //         this.bindings.debugBuffer.device,
-      //         0,
-      //         new Uint32Array(40) // NUM_ASSERT_COUNTERS * 4
-      //     );
-
-      //     if (this.bindings.time.host.frame > 0) {
-      //         const mean =
-      //             (performance.now() - this.lastStats) / WgpuToyRenderer.STATS_PERIOD;
-      //         this.lastStats = performance.now();
-      //         console.log(`${(1000 / mean).toFixed(1)} fps (${mean.toFixed(1)} ms)`);
-      //     }
-      // }
-
       // Handle shader errors
       if (ComputeEngine.shaderError) {
         ComputeEngine.shaderError = false;
