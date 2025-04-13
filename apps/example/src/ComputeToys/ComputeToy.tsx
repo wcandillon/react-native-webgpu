@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
-import { PixelRatio, useWindowDimensions } from "react-native";
+import { useWindowDimensions } from "react-native";
+import { SharedValue, useSharedValue } from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 import { ComputeEngine } from "./engine";
 
@@ -44,6 +46,7 @@ export interface ComputeToyProps {
 }
 
 export const ComputeToy = ({ toy: { shader, uniforms } }: ComputeToyProps) => {
+  const mouse = useSharedValue({ pos: { x: 0, y: 0 }, click: false });
   const { width, height } = useWindowDimensions();
   const [engine, setEngine] = useState<ComputeEngine | null>(null);
   const animationRef = useRef<number | null>(null);
@@ -62,8 +65,8 @@ export const ComputeToy = ({ toy: { shader, uniforms } }: ComputeToyProps) => {
           eng.setSurface(canvasRef.current!);
 
           // Set the canvas size based on your CANVAS constants
-          // TODO: use PixelRatio.get()
-          eng.resize(width, height, PixelRatio.get());
+          // TODO: use PixelRatio.get()?
+          eng.resize(width, height, 1);
 
           // Initialize render state
           eng.reset();
@@ -121,18 +124,46 @@ export const ComputeToy = ({ toy: { shader, uniforms } }: ComputeToyProps) => {
       // Update time uniforms
       engine.setTimeElapsed(timestamp / 1000);
       engine.setTimeDelta(delta);
+      if (mouse) {
+        engine.setMousePos(mouse.value.pos.x, mouse.value.pos.y);
+        engine.setMouseClick(mouse.value.click);
+      }
       // Render frame
 
       engine.render();
       // Schedule next frame
       animationRef.current = requestAnimationFrame(renderLoop);
     },
-    [engine],
+    [engine, mouse],
   );
 
   useEffect(() => {
     renderLoop(new Date().getTime());
   }, [renderLoop]);
 
-  return <Canvas ref={canvasRef} style={{ width, height }} />;
+  const gesture = Gesture.Pan()
+    .onChange((e) => {
+      mouse.value = {
+        pos: {
+          x: e.absoluteX / width,
+          y: e.absoluteY / height,
+        },
+        click: true,
+      };
+    })
+    .onEnd((e) => {
+      mouse.value = {
+        pos: {
+          x: e.absoluteX / width,
+          y: e.absoluteY / height,
+        },
+        click: false,
+      };
+    });
+
+  return (
+    <GestureDetector gesture={gesture}>
+      <Canvas ref={canvasRef} style={{ width, height }} />
+    </GestureDetector>
+  );
 };
