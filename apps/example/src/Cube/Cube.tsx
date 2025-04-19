@@ -3,6 +3,8 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Canvas } from "react-native-wgpu";
 import { mat4, vec3 } from "wgpu-matrix";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useSharedValue, withDecay } from "react-native-reanimated";
 
 import {
   cubePositionOffset,
@@ -16,6 +18,17 @@ import { useWebGPU } from "../components/useWebGPU";
 import { basicVertWGSL, vertexPositionColorWGSL } from "./Shaders";
 
 export function Cube() {
+  const rotateX = useSharedValue(0);
+  const rotateY = useSharedValue(0);
+  const gesture = Gesture.Pan()
+    .onChange((e) => {
+      rotateY.value += e.changeX * 0.01;
+      rotateX.value += e.changeY * 0.01;
+    })
+    .onEnd(({ velocityX, velocityY }) => {
+      rotateX.value = withDecay({ velocity: velocityY * 0.01 });
+      rotateY.value = withDecay({ velocity: velocityX * 0.01 });
+    });
   const ref = useWebGPU(({ context, device, presentationFormat, canvas }) => {
     // Create a vertex buffer from the cube data.
     const verticesBuffer = device.createBuffer({
@@ -135,14 +148,18 @@ export function Cube() {
     function getTransformationMatrix() {
       const viewMatrix = mat4.identity();
       mat4.translate(viewMatrix, vec3.fromValues(0, 0, -4), viewMatrix);
-      const now = Date.now() / 1000;
       mat4.rotate(
         viewMatrix,
-        vec3.fromValues(Math.sin(now), Math.cos(now), 0),
-        1,
+        vec3.fromValues(1, 0, 0),
+        rotateX.value,
         viewMatrix,
       );
-
+      mat4.rotate(
+        viewMatrix,
+        vec3.fromValues(0, 1, 0),
+        rotateY.value,
+        viewMatrix,
+      );
       mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
 
       return modelViewProjectionMatrix;
@@ -177,6 +194,9 @@ export function Cube() {
   return (
     <View style={style.container}>
       <Canvas ref={ref} style={style.webgpu} transparent />
+      <GestureDetector gesture={gesture}>
+        <View style={StyleSheet.absoluteFill} />
+      </GestureDetector>
     </View>
   );
 }
