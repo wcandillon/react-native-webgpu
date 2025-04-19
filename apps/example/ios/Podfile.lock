@@ -1334,7 +1334,7 @@ PODS:
     - ReactCommon/turbomodule/core
   - react-native-safe-area-context (5.4.0):
     - React-Core
-  - react-native-skia (1.12.2):
+  - react-native-skia (2.0.0-next.3):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2171,7 +2171,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 8df5296f9d9a61f980d293b55026cfebcd8dfb0a
   React-microtasksnativemodule: c8ed30f8ec30affbc73411c54207bd67b1125bbb
   react-native-safe-area-context: 9d72abf6d8473da73033b597090a80b709c0b2f1
-  react-native-skia: b68e7b315a933cca9ed9053ab15ad05bce642158
+  react-native-skia: e1950c29256762676e96abdc6363e358f467b97b
   react-native-wgpu: abe68b04b022a671e94eaf22b00f6cf26817e1a5
   React-NativeModulesApple: 8a465be9a58afc56f48c1322331ffbdecd3d4877
   React-oscompat: 74eb4badd12e93899f37a5dbb03d8a638011a292
