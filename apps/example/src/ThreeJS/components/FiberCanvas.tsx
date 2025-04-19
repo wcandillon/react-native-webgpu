@@ -30,6 +30,8 @@ export const FiberCanvas = ({
 }: FiberCanvasProps) => {
   const root = useRef<ReconcilerRoot<OffscreenCanvas>>(null!);
 
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-expect-error
   React.useMemo(() => extend(THREE), []);
 
   const canvasRef = useCanvasEffect(async () => {

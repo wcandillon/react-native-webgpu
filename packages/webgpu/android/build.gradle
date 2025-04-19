@@ -90,6 +90,7 @@ android {
     excludes = [
       "**/libjsi.so",
       "**/libreactnativejni.so",
+      "**/libreactnative.so",
     ]
   }
 
