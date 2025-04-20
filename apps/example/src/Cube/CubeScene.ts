@@ -5,7 +5,7 @@ import { cubePositionOffset, cubeUVOffset, cubeVertexArray, cubeVertexCount, cub
 import { basicVertWGSL, vertexPositionColorWGSL } from "./Shaders";
 import { SharedValue } from "react-native-reanimated";
 import { PixelRatio } from "react-native";
-import { convertToColumnMajor, multiply4, perspective2, rotate, translate } from "../components/Matrix4";
+import { perspective2, rotate, translate, wgpuConcat } from "../components/Matrix4";
 
 export class CubeScene {
   private device: GPUDevice | null = null;
@@ -148,11 +148,6 @@ export class CubeScene {
   render(rotateX: SharedValue<number>, rotateY: SharedValue<number>) {
     const aspect = this.context.canvas.width / this.context.canvas.height;
 
-    //const modelViewProjectionMatrix = Matrix4();
-    function getTransformationMatrix() {
-        let viewMatrix = translate(0, 0, -4);
-        viewMatrix = multiply4(viewMatrix, rotate([1, 0, 0], rotateX.value));
-        viewMatrix = multiply4(viewMatrix, rotate([0, 1, 0], rotateY.value));
         const projectionMatrix = perspective2(
           (2 * Math.PI) / 5,
           aspect,
@@ -161,10 +156,8 @@ export class CubeScene {
         );
    
   
-        return new Float32Array((multiply4(convertToColumnMajor(viewMatrix), projectionMatrix)));
-      }
+        const transformationMatrix =  wgpuConcat(projectionMatrix,  translate(0, 0, -4), rotate([1, 0, 0], rotateX.value), rotate([0, 1, 0], rotateY.value));
   
-        const transformationMatrix = getTransformationMatrix();
         if (!this.device) {
             throw new Error("Device not initialized");
         }

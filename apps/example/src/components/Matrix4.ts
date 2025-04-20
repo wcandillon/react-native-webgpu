@@ -89,10 +89,12 @@ export const concat = (...matrices: Matrix4[]): Matrix4 => {
   return matrices.reduce((acc, matrix) => multiply4(acc, matrix), Matrix4());
 };
 
-export const wgpuConcat = (...matrices: Matrix4[]): Matrix4 => {
+export const wgpuConcat = (...matrices: Matrix4[]) => {
   "worklet";
-  return convertToColumnMajor(
-    matrices.reduce((acc, matrix) => multiply4(acc, matrix), Matrix4()),
+  return new Float32Array(
+    convertToColumnMajor(
+      matrices.reduce((acc, matrix) => multiply4(acc, matrix), Matrix4()),
+    ),
   );
 };
 
@@ -125,40 +127,43 @@ export const perspective2 = (
   aspect: number,
   zNear: number,
   zFar: number,
-) => {
+): Matrix4 => {
   "worklet";
-  const newDst = new Array(16);
+  const result = new Array(16);
 
   const f = Math.tan(Math.PI * 0.5 - 0.5 * fieldOfViewYInRadians);
 
-  newDst[0] = f / aspect;
-  newDst[1] = 0;
-  newDst[2] = 0;
-  newDst[3] = 0;
+  // Assignments transposed for row-major format
+  result[0] = f / aspect;
+  result[1] = 0;
+  result[2] = 0;
+  result[3] = 0;
 
-  newDst[4] = 0;
-  newDst[5] = f;
-  newDst[6] = 0;
-  newDst[7] = 0;
+  result[4] = 0;
+  result[5] = f;
+  result[6] = 0;
+  result[7] = 0;
 
-  newDst[8] = 0;
-  newDst[9] = 0;
-  newDst[11] = -1;
+  result[8] = 0;
+  result[9] = 0;
+  // result[10] is conditional
+  result[14] = -1; // Transposed from colMajor[11]
 
-  newDst[12] = 0;
-  newDst[13] = 0;
-  newDst[15] = 0;
+  result[12] = 0;
+  result[13] = 0;
+  // result[11] is conditional
+  result[15] = 0;
 
   if (Number.isFinite(zFar)) {
     const rangeInv = 1 / (zNear - zFar);
-    newDst[10] = zFar * rangeInv;
-    newDst[14] = zFar * zNear * rangeInv;
+    result[10] = zFar * rangeInv; // Transposed from colMajor[10]
+    result[11] = zFar * zNear * rangeInv; // Transposed from colMajor[14]
   } else {
-    newDst[10] = -1;
-    newDst[14] = -zNear;
+    result[10] = -1; // Transposed from colMajor[10]
+    result[11] = -zNear; // Transposed from colMajor[14]
   }
 
-  return newDst;
+  return result as unknown as Matrix4; // Cast to Matrix4
 };
 
 const normalizeVec = (vec: Vec3): Vec3 => {
