@@ -84,39 +84,16 @@ const exhaustiveCheck = (a: never): never => {
   throw new Error(`Unexhaustive handling for ${a}`);
 };
 
-export const concat = (...matrices: Matrix4[]): Matrix4 => {
-  "worklet";
-  return matrices.reduce((acc, matrix) => multiply4(acc, matrix), Matrix4());
-};
-
-export const wgpuConcat = (...matrices: Matrix4[]) => {
-  "worklet";
-  return new Float32Array(
-    convertToColumnMajor(
-      matrices.reduce((acc, matrix) => multiply4(acc, matrix), Matrix4()),
-    ),
-  );
-};
-
-/**
- * @worklet
- */
 export const Matrix4 = (): Matrix4 => {
   "worklet";
   return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 };
 
-/**
- * @worklet
- */
 export const translate = (x: number, y: number, z = 0): Matrix4 => {
   "worklet";
   return [1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z, 0, 0, 0, 1];
 };
 
-/**
- * @worklet
- */
 export const perspective = (p: number): Matrix4 => {
   "worklet";
   return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, -1 / p, 1];
@@ -209,9 +186,6 @@ const rotatedUnitSinCos = (
   ];
 };
 
-/**
- * @worklet
- */
 export const matrixVecMul4 = (m: Matrix4, v: Vec4): Vec4 => {
   "worklet";
   return [
@@ -222,18 +196,12 @@ export const matrixVecMul4 = (m: Matrix4, v: Vec4): Vec4 => {
   ];
 };
 
-/**
- * @worklet
- */
 export const mapPoint3d = (m: Matrix4, v: Vec3) => {
   "worklet";
   const r = matrixVecMul4(m, [...v, 1]);
   return [r[0] / r[3], r[1] / r[3], r[2] / r[3]] as const;
 };
 
-/**
- * @worklet
- */
 export const multiply4 = (a: Matrix4, b: Matrix4): Matrix4 => {
   "worklet";
   const result = new Array(16).fill(0);
@@ -259,9 +227,6 @@ const skewX = (angle: number): Matrix4 => {
   return [1, 0, 0, 0, Math.tan(angle), 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 };
 
-/**
- * @worklet
- */
 export const toMatrix3 = (m: Matrix4) => {
   "worklet";
   return [m[0], m[1], m[3], m[4], m[5], m[7], m[12], m[13], m[15]];
@@ -276,17 +241,11 @@ export const rotate = (axis: Vec3, value: number) => {
   );
 };
 
-/**
- * @worklet
- */
 export const pivot = (m: Matrix4, p: Point) => {
   "worklet";
   return multiply4(translate(p.x, p.y), multiply4(m, translate(-p.x, -p.y)));
 };
 
-/**
- * @worklet
- */
 export const scale = (sx: number, sy: number, sz = 1, p?: Point): Matrix4 => {
   "worklet";
   const m4: Matrix4 = [sx, 0, 0, 0, 0, sy, 0, 0, 0, 0, sz, 0, 0, 0, 0, 1];
@@ -305,33 +264,21 @@ const rotateAxis = (axis: Vec3, angle: number, p?: Point) => {
   return result;
 };
 
-/**
- * @worklet
- */
 export const rotateZ = (value: number, p?: Point) => {
   "worklet";
   return rotateAxis([0, 0, 1], value, p);
 };
 
-/**
- * @worklet
- */
 export const rotateX = (value: number, p?: Point) => {
   "worklet";
   return rotateAxis([1, 0, 0], value, p);
 };
 
-/**
- * @worklet
- */
 export const rotateY = (value: number, p?: Point) => {
   "worklet";
   return rotateAxis([0, 1, 0], value, p);
 };
 
-/**
- * @worklet
- */
 export const processTransform3d = (transforms: Transforms3d) => {
   "worklet";
   return transforms.reduce((acc, val) => {
@@ -397,9 +344,6 @@ export const processTransform3d = (transforms: Transforms3d) => {
   }, Matrix4());
 };
 
-/**
- * @worklet
- */
 export const convertToColumnMajor = (rowMajorMatrix: Matrix4) => {
   "worklet";
 
@@ -413,9 +357,6 @@ export const convertToColumnMajor = (rowMajorMatrix: Matrix4) => {
   return colMajorMatrix as unknown as Matrix4;
 };
 
-/**
- * @worklet
- */
 export const convertToAffineMatrix = (m4: Matrix4) => {
   "worklet";
   // Extracting the relevant components from the 4x4 matrix
@@ -428,4 +369,18 @@ export const convertToAffineMatrix = (m4: Matrix4) => {
 
   // Returning the 6-element affine transformation matrix
   return [a, b, c, d, tx, ty];
+};
+
+export const concat = (...matrices: Matrix4[]): Matrix4 => {
+  "worklet";
+  return matrices.reduce((acc, matrix) => multiply4(acc, matrix), Matrix4());
+};
+
+export const wgpuConcat = (...matrices: Matrix4[]) => {
+  "worklet";
+  return new Float32Array(
+    convertToColumnMajor(
+      matrices.reduce((acc, matrix) => multiply4(acc, matrix), Matrix4()),
+    ),
+  );
 };

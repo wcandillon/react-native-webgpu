@@ -1,42 +1,30 @@
+"worklet";
 
-//import { mat4, vec3 } from "wgpu-matrix";
 import { RNCanvasContext } from "react-native-wgpu";
 import { cubePositionOffset, cubeUVOffset, cubeVertexArray, cubeVertexCount, cubeVertexSize } from "../components/cube";
 import { basicVertWGSL, vertexPositionColorWGSL } from "./Shaders";
 import { SharedValue } from "react-native-reanimated";
-import { PixelRatio } from "react-native";
 import { perspective2, rotate, translate, wgpuConcat } from "../components/Matrix4";
 
 export class CubeScene {
-  private device: GPUDevice | null = null;
-  private adapter: GPUAdapter | null = null;
+  private device: GPUDevice;
   private renderPassDescriptor: GPURenderPassDescriptor | null = null;
   private pipeline: GPURenderPipeline | null = null;
   private uniformBuffer: GPUBuffer | null = null;
   private uniformBindGroup: GPUBindGroup | null = null;
   private verticesBuffer: GPUBuffer | null = null;
   private context: RNCanvasContext;
-
-  constructor(context: RNCanvasContext) {
+  private presentationFormat: GPUTextureFormat;
+  constructor(device: GPUDevice, context: RNCanvasContext, presentationFormat: GPUTextureFormat) {
+    this.device = device;
     this.context = context;
+    this.presentationFormat = presentationFormat;
   }
 
-  async init() {
-    this.adapter = await navigator.gpu.requestAdapter();
-    if (!this.adapter) {
-      throw new Error("Failed to request adapter");
-    }
-    this.device = await this.adapter.requestDevice();
-    if (!this.device) {
-      throw new Error("Failed to request device");
-    }
-    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-    const canvas = this.context.canvas as HTMLCanvasElement;
-    canvas.width = canvas.clientWidth * PixelRatio.get();
-    canvas.height = canvas.clientHeight * PixelRatio.get();
+   init() {
     this.context.configure({
       device: this.device,
-      format: presentationFormat,
+      format: this.presentationFormat,
       alphaMode: "premultiplied",
     });
     this.verticesBuffer = this.device.createBuffer({
@@ -79,7 +67,7 @@ export class CubeScene {
           }),
           targets: [
             {
-              format: presentationFormat,
+              format: this.presentationFormat,
             },
           ],
         },
@@ -102,7 +90,7 @@ export class CubeScene {
       });
   
       const depthTexture = this.device.createTexture({
-        size: [canvas.width, canvas.height],
+        size: [this.context.canvas.width, this.context.canvas.height],
         format: "depth24plus",
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
       });

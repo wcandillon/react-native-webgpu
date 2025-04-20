@@ -1,13 +1,14 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { PixelRatio, StyleSheet, View } from "react-native";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { useSharedValue, withDecay } from "react-native-reanimated";
+import { runOnUI, useSharedValue, withDecay } from "react-native-reanimated";
 import { useClock } from "@shopify/react-native-skia";
 
 import { CubeScene } from "./CubeScene";
 
 export function Cube() {
+  const scene = useSharedValue<CubeScene | null>(null);
   const clock = useClock();
   const rotateX = useSharedValue(0);
   const rotateY = useSharedValue(0);
@@ -21,17 +22,21 @@ export function Cube() {
       rotateY.value = withDecay({ velocity: velocityX * 0.01 });
     });
   const ref = useCanvasEffect(async () => {
-    const context = ref.current?.getContext("webgpu");
-    if (!context) {
-      throw new Error("Context not initialized");
+    const context = ref.current!.getContext("webgpu")!;
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) {
+      throw new Error("Adapter not found");
     }
-    const scene = new CubeScene(context);
-    await scene.init();
-    function frame() {
-      scene.render(rotateX, rotateY);
-      requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
+    const device = await adapter.requestDevice();
+    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+    const canvas = context.canvas as HTMLCanvasElement;
+    canvas.width = canvas.clientWidth * PixelRatio.get();
+    canvas.height = canvas.clientHeight * PixelRatio.get();
+    runOnUI(() => {
+      const cube = new CubeScene(device, context, presentationFormat);
+      cube.init();
+      cube.render(rotateX, rotateY);
+    })();
   });
 
   return (
