@@ -31,14 +31,14 @@ export class CubeScene {
       throw new Error("Failed to request device");
     }
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-    this.context.canvas.width = this.context.canvas.clientWidth * PixelRatio.get();
-    this.context.canvas.height = this.context.canvas.clientHeight * PixelRatio.get();
+    const canvas = this.context.canvas as HTMLCanvasElement;
+    canvas.width = canvas.clientWidth * PixelRatio.get();
+    canvas.height = canvas.clientHeight * PixelRatio.get();
     this.context.configure({
       device: this.device,
       format: presentationFormat,
       alphaMode: "premultiplied",
     });
-    const { canvas } = this.context;
     this.verticesBuffer = this.device.createBuffer({
         size: cubeVertexArray.byteLength,
         usage: GPUBufferUsage.VERTEX,
