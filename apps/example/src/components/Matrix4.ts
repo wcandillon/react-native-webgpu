@@ -84,6 +84,18 @@ const exhaustiveCheck = (a: never): never => {
   throw new Error(`Unexhaustive handling for ${a}`);
 };
 
+export const concat = (...matrices: Matrix4[]): Matrix4 => {
+  "worklet";
+  return matrices.reduce((acc, matrix) => multiply4(acc, matrix), Matrix4());
+};
+
+export const wgpuConcat = (...matrices: Matrix4[]): Matrix4 => {
+  "worklet";
+  return convertToColumnMajor(
+    matrices.reduce((acc, matrix) => multiply4(acc, matrix), Matrix4()),
+  );
+};
+
 /**
  * @worklet
  */
@@ -250,7 +262,7 @@ export const toMatrix3 = (m: Matrix4) => {
   return [m[0], m[1], m[3], m[4], m[5], m[7], m[12], m[13], m[15]];
 };
 
-const rotate = (axis: Vec3, value: number) => {
+export const rotate = (axis: Vec3, value: number) => {
   "worklet";
   return rotatedUnitSinCos(
     normalizeVec(axis),

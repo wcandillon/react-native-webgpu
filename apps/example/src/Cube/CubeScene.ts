@@ -5,8 +5,7 @@ import { cubePositionOffset, cubeUVOffset, cubeVertexArray, cubeVertexCount, cub
 import { basicVertWGSL, vertexPositionColorWGSL } from "./Shaders";
 import { SharedValue } from "react-native-reanimated";
 import { PixelRatio } from "react-native";
-import { mat4, vec3 } from "wgpu-matrix";
-import { convertToColumnMajor, Matrix4, multiply4, perspective, perspective2, translate } from "../components/Matrix4";
+import { convertToColumnMajor, multiply4, perspective2, rotate, translate } from "../components/Matrix4";
 
 export class CubeScene {
   private device: GPUDevice | null = null;
@@ -148,30 +147,21 @@ export class CubeScene {
 
   render(rotateX: SharedValue<number>, rotateY: SharedValue<number>) {
     const aspect = this.context.canvas.width / this.context.canvas.height;
-    const projectionMatrix = perspective2(
-      (2 * Math.PI) / 5,
-      aspect,
-      1,
-      100.0,
-    );
-    const modelViewProjectionMatrix = Matrix4();
+
+    //const modelViewProjectionMatrix = Matrix4();
     function getTransformationMatrix() {
-        let viewMatrix = convertToColumnMajor(translate(0, 0, -4));
-        mat4.rotate(
-          viewMatrix,
-          vec3.fromValues(1, 0, 0),
-          rotateX.value,
-          viewMatrix,
+        let viewMatrix = translate(0, 0, -4);
+        viewMatrix = multiply4(viewMatrix, rotate([1, 0, 0], rotateX.value));
+        viewMatrix = multiply4(viewMatrix, rotate([0, 1, 0], rotateY.value));
+        const projectionMatrix = perspective2(
+          (2 * Math.PI) / 5,
+          aspect,
+          1,
+          100.0,
         );
-        mat4.rotate(
-          viewMatrix,
-          vec3.fromValues(0, 1, 0),
-          rotateY.value,
-          viewMatrix,
-        );
-        mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
+   
   
-        return new Float32Array(modelViewProjectionMatrix);
+        return new Float32Array((multiply4(convertToColumnMajor(viewMatrix), projectionMatrix)));
       }
   
         const transformationMatrix = getTransformationMatrix();
