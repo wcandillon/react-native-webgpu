@@ -5,6 +5,7 @@ import { cubePositionOffset, cubeUVOffset, cubeVertexArray, cubeVertexCount, cub
 import { basicVertWGSL, vertexPositionColorWGSL } from "./Shaders";
 import { mat4, vec3 } from "wgpu-matrix";
 import { SharedValue } from "react-native-reanimated";
+import { PixelRatio } from "react-native";
 
 export class CubeScene {
   private device: GPUDevice | null = null;
@@ -30,6 +31,8 @@ export class CubeScene {
       throw new Error("Failed to request device");
     }
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+    this.context.canvas.width = this.context.canvas.clientWidth * PixelRatio.get();
+    this.context.canvas.height = this.context.canvas.clientHeight * PixelRatio.get();
     this.context.configure({
       device: this.device,
       format: presentationFormat,
