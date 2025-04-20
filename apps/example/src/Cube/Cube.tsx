@@ -5,11 +5,14 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnUI, useSharedValue, withDecay } from "react-native-reanimated";
 import { useClock } from "@shopify/react-native-skia";
 
+import { useMakeJsThreadBusy } from "../components/useMakeJSThreadBusy";
+
 import { CubeScene } from "./CubeScene";
 
 export function Cube() {
   const scene = useSharedValue<CubeScene | null>(null);
   const clock = useClock();
+  useMakeJsThreadBusy();
   const rotateX = useSharedValue(0);
   const rotateY = useSharedValue(0);
   const gesture = Gesture.Pan()
@@ -35,7 +38,11 @@ export function Cube() {
     runOnUI(() => {
       const cube = new CubeScene(device, context, presentationFormat);
       cube.init();
-      cube.render(rotateX, rotateY);
+      function frame() {
+        cube.render(rotateX, rotateY);
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
     })();
   });
 
