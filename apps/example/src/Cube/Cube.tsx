@@ -26,10 +26,7 @@ export function Cube() {
       throw new Error("Context not initialized");
     }
     const scene = new CubeScene(context);
-
-    console.log("before init");
     await scene.init();
-    console.log("after init");
     function frame() {
       scene.render(rotateX, rotateY);
       requestAnimationFrame(frame);

@@ -3,9 +3,10 @@
 import { RNCanvasContext } from "react-native-wgpu";
 import { cubePositionOffset, cubeUVOffset, cubeVertexArray, cubeVertexCount, cubeVertexSize } from "../components/cube";
 import { basicVertWGSL, vertexPositionColorWGSL } from "./Shaders";
-import { mat4, vec3 } from "wgpu-matrix";
 import { SharedValue } from "react-native-reanimated";
 import { PixelRatio } from "react-native";
+import { mat4, vec3 } from "wgpu-matrix";
+import { convertToColumnMajor, Matrix4, multiply4, perspective, perspective2, translate } from "../components/Matrix4";
 
 export class CubeScene {
   private device: GPUDevice | null = null;
@@ -147,16 +148,15 @@ export class CubeScene {
 
   render(rotateX: SharedValue<number>, rotateY: SharedValue<number>) {
     const aspect = this.context.canvas.width / this.context.canvas.height;
-    const projectionMatrix = mat4.perspective(
+    const projectionMatrix = perspective2(
       (2 * Math.PI) / 5,
       aspect,
       1,
       100.0,
     );
-    const modelViewProjectionMatrix = mat4.create();
+    const modelViewProjectionMatrix = Matrix4();
     function getTransformationMatrix() {
-        const viewMatrix = mat4.identity();
-        mat4.translate(viewMatrix, vec3.fromValues(0, 0, -4), viewMatrix);
+        let viewMatrix = convertToColumnMajor(translate(0, 0, -4));
         mat4.rotate(
           viewMatrix,
           vec3.fromValues(1, 0, 0),
@@ -171,7 +171,7 @@ export class CubeScene {
         );
         mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
   
-        return modelViewProjectionMatrix;
+        return new Float32Array(modelViewProjectionMatrix);
       }
   
         const transformationMatrix = getTransformationMatrix();

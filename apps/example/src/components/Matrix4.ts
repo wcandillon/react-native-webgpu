@@ -108,6 +108,47 @@ export const perspective = (p: number): Matrix4 => {
   return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, -1 / p, 1];
 };
 
+export const perspective2 = (
+  fieldOfViewYInRadians: number,
+  aspect: number,
+  zNear: number,
+  zFar: number,
+) => {
+  "worklet";
+  const newDst = new Array(16);
+
+  const f = Math.tan(Math.PI * 0.5 - 0.5 * fieldOfViewYInRadians);
+
+  newDst[0] = f / aspect;
+  newDst[1] = 0;
+  newDst[2] = 0;
+  newDst[3] = 0;
+
+  newDst[4] = 0;
+  newDst[5] = f;
+  newDst[6] = 0;
+  newDst[7] = 0;
+
+  newDst[8] = 0;
+  newDst[9] = 0;
+  newDst[11] = -1;
+
+  newDst[12] = 0;
+  newDst[13] = 0;
+  newDst[15] = 0;
+
+  if (Number.isFinite(zFar)) {
+    const rangeInv = 1 / (zNear - zFar);
+    newDst[10] = zFar * rangeInv;
+    newDst[14] = zFar * zNear * rangeInv;
+  } else {
+    newDst[10] = -1;
+    newDst[14] = -zNear;
+  }
+
+  return newDst;
+};
+
 const normalizeVec = (vec: Vec3): Vec3 => {
   "worklet";
   const [x, y, z] = vec;
