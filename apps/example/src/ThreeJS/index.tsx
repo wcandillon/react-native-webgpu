@@ -10,6 +10,7 @@ import { Backdrop } from "./Backdrop";
 import { InstancedMesh } from "./InstancedMesh";
 import { Fiber } from "./Fiber";
 import { PostProcessing } from "./PostProcessing";
+import { Logo } from "./Logo";
 
 const Stack = createStackNavigator<Routes>();
 export const ThreeJS = () => {
@@ -70,6 +71,13 @@ export const ThreeJS = () => {
         component={Helmet}
         options={{
           title: "⛑️ Helmet",
+        }}
+      />
+      <Stack.Screen
+        name="Logo"
+        component={Logo}
+        options={{
+          title: "⚛️  Logo",
         }}
       />
     </Stack.Navigator>

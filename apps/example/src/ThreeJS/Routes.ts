@@ -6,4 +6,5 @@ export type Routes = {
   InstancedMesh: undefined;
   Fiber: undefined;
   PostProcessing: undefined;
+  Logo: undefined;
 };
