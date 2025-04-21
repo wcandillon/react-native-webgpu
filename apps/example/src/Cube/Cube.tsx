@@ -6,6 +6,7 @@ import { runOnUI, useSharedValue, withDecay } from "react-native-reanimated";
 import { useClock } from "@shopify/react-native-skia";
 
 import { useMakeJsThreadBusy } from "../components/useMakeJSThreadBusy";
+import { concat } from "../components/Matrix4";
 
 import { CubeScene } from "./CubeScene";
 

@@ -78,6 +78,7 @@ export const ThreeJS = () => {
         component={Logo}
         options={{
           title: "⚛️  Logo",
+          header: () => null,
         }}
       />
     </Stack.Navigator>
