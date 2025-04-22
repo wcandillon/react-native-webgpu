@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable prefer-destructuring */
-/* eslint-disable @typescript-eslint/no-shadow */
-import { View, TextInput, Text, Button } from "react-native";
+
+import { View, TextInput, Text, Button, ActivityIndicator } from "react-native";
 import React, { useState, useEffect } from "react";
 import * as tf from "@tensorflow/tfjs";
 
@@ -10,178 +9,105 @@ import { PlatformReactNative } from "./Platform";
 
 tf.setPlatform("react-native", new PlatformReactNative());
 
-// Vocabulary for text tokenization
-const VOCAB_SIZE = 5000;
-const MAX_LENGTH = 100;
+// Constants for the pre-trained model
+const MODEL_URL =
+  "https://storage.googleapis.com/tfjs-models/tfjs/sentiment_cnn_v1/model.json";
+const METADATA_URL =
+  "https://storage.googleapis.com/tfjs-models/tfjs/sentiment_cnn_v1/metadata.json";
+const OOV_INDEX = 2; // Out-of-vocabulary word index for this model
 
-// Create a simple tokenizer
-const tokenize = (text: string) => {
-  const words = text.toLowerCase().split(/\s+/);
-  return words.map((word) => {
-    // Simple hash function for word to index mapping
-    const hash = Array.from(word).reduce(
-      (hash, char) => (hash << 5) - hash + char.charCodeAt(0),
-      0,
-    );
-    return Math.abs(hash) % VOCAB_SIZE;
-  });
-};
+// Type for the model metadata
+interface ModelMetadata {
+  word_index: Record<string, number>;
+  vocabulary_size: number;
+  max_len: number;
+  index_from: number;
+}
 
-const padSequence = (sequence: number[], maxLength: number) => {
-  if (sequence.length > maxLength) {
-    return sequence.slice(0, maxLength);
+// Tokenizer for the pre-trained model
+class PretrainedTokenizer {
+  wordIndex: Record<string, number> = {};
+  vocabularySize: number;
+  maxLen: number;
+  indexFrom: number;
+
+  constructor(metadata: ModelMetadata) {
+    this.wordIndex = metadata.word_index;
+    this.vocabularySize = metadata.vocabulary_size;
+    this.maxLen = metadata.max_len;
+    this.indexFrom = metadata.index_from;
   }
-  return [...sequence, ...new Array(maxLength - sequence.length).fill(0)];
-};
 
-const createModel = () => {
-  const model = tf.sequential();
+  textToSequence(text: string): number[] {
+    // Convert the text to lowercase and split by spaces
+    const words = text.toLowerCase().split(/\s+/);
+    // Map each word to its index in the vocabulary
+    return words.map((word) => {
+      // Use the word index if available, otherwise use OOV index
+      return this.wordIndex[word] + this.indexFrom || OOV_INDEX;
+    });
+  }
+}
 
-  model.add(
-    tf.layers.embedding({
-      inputDim: VOCAB_SIZE,
-      outputDim: 32,
-      inputLength: MAX_LENGTH,
-    }),
-  );
-
-  model.add(tf.layers.globalAveragePooling1d());
-
-  model.add(
-    tf.layers.dense({
-      units: 16,
-      activation: "relu",
-    }),
-  );
-
-  model.add(
-    tf.layers.dense({
-      units: 1,
-      activation: "sigmoid",
-    }),
-  );
-
-  model.compile({
-    optimizer: tf.train.adam(0.0005),
-    loss: "binaryCrossentropy",
-    metrics: ["accuracy"],
-  });
-
-  return model;
+// Pad sequence to a fixed length
+const padSequence = (sequence: number[], maxLen: number) => {
+  if (sequence.length > maxLen) {
+    return sequence.slice(0, maxLen);
+  }
+  return [...sequence, ...new Array(maxLen - sequence.length).fill(0)];
 };
 
 export const Tensorflow = () => {
   const [isModelReady, setIsModelReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState(
+    "Initializing TensorFlow.js...",
+  );
   const [inputText, setInputText] = useState("");
   const [sentiment, setSentiment] = useState<null | number>(null);
-  const [model, setModel] = useState<null | tf.Sequential>(null);
+  const [model, setModel] = useState<null | tf.LayersModel>(null);
+  const [tokenizer, setTokenizer] = useState<null | PretrainedTokenizer>(null);
 
   useEffect(() => {
     const initializeTensorFlow = async () => {
       try {
-        console.log("Initializing TensorFlow.js with WebGPU backend...");
+        setLoadingStatus("Initializing TensorFlow.js with WebGPU backend...");
         await tf.setBackend("webgpu");
         console.log("Backend initialized:", tf.getBackend());
 
-        // Create and initialize the model
-        const sentimentModel = createModel();
+        // Load the pre-trained model metadata
+        setLoadingStatus("Loading model metadata...");
+        const metadataResponse = await fetch(METADATA_URL);
+        const metadata = (await metadataResponse.json()) as ModelMetadata;
+        const newTokenizer = new PretrainedTokenizer(metadata);
+        setTokenizer(newTokenizer);
 
-        // Train the model with some sample data
-        const sampleTexts = [
-          "this is great",
-          "i love it",
-          "amazing experience",
-          "i am happy",
-          "feeling wonderful",
-          "excellent service",
-          "fantastic results",
-          "very satisfied",
-          "perfect solution",
-          "awesome day",
-          "really pleased",
-          "joy and happiness",
-          "feeling blessed",
-          "incredible experience",
-          "super excited",
-          "this is fun",
+        // Load the pre-trained model
+        setLoadingStatus("Loading pre-trained model...");
+        const sentimentModel = await tf.loadLayersModel(MODEL_URL);
+        console.log("Model loaded successfully");
 
-          // Negative examples
-          "terrible service",
-          "worst product ever",
-          "very disappointed",
-          "i am sad",
-          "feeling depressed",
-          "awful experience",
-          "this is horrible",
-          "completely frustrated",
-          "waste of time",
-          "very unhappy",
-          "absolutely terrible",
-          "poor quality",
-          "extremely disappointed",
-          "total failure",
-          "not satisfied",
-          "this is tedious",
-        ];
+        // Warm up the model with a sample prediction
+        setLoadingStatus("Warming up model...");
+        const dummySequence = padSequence([0], metadata.max_len);
+        const dummyTensor = tf.tensor2d([dummySequence]);
+        const predictionResult = sentimentModel.predict(dummyTensor);
 
-        const labels = [
-          1,
-          1,
-          1,
-          1,
-          1,
-          1,
-          1,
-          1,
-          1,
-          1,
-          1,
-          1,
-          1,
-          1,
-          1,
-          1, // Positive labels
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0, // Negative labels
-        ];
-
-        // Tokenize and pad the sample texts
-        const sequences = sampleTexts.map((text) =>
-          padSequence(tokenize(text), MAX_LENGTH),
-        );
-
-        // Convert to tensors
-        const xTrain = tf.tensor2d(sequences);
-        const yTrain = tf.tensor1d(labels);
-
-        // Train the model
-        await sentimentModel.fit(xTrain, yTrain, {
-          epochs: 50,
-          verbose: 1,
-        });
+        if (predictionResult instanceof tf.Tensor) {
+          await predictionResult.data();
+          predictionResult.dispose();
+        }
+        dummyTensor.dispose();
 
         setModel(sentimentModel);
         setIsModelReady(true);
-
-        // Clean up tensors
-        xTrain.dispose();
-        yTrain.dispose();
-      } catch (error) {
+        setIsLoading(false);
+      } catch (error: unknown) {
         console.error("Error initializing TensorFlow:", error);
+        setLoadingStatus(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        setIsLoading(false);
       }
     };
 
@@ -189,28 +115,45 @@ export const Tensorflow = () => {
   }, []);
 
   const analyzeSentiment = async () => {
-    if (!model || !inputText) {
+    if (!model || !inputText || !tokenizer) {
       return;
     }
 
     try {
+      // Show loading state during prediction
+      setIsLoading(true);
+      setSentiment(null);
+
       // Tokenize and pad the input text
-      const sequence = padSequence(tokenize(inputText), MAX_LENGTH);
+      const sequence = tokenizer.textToSequence(inputText);
+      const paddedSequence = padSequence(sequence, tokenizer.maxLen);
 
       // Convert to tensor and get prediction
-      const inputTensor = tf.tensor2d([sequence]);
-      // @ts-expect-error
-      const prediction = (await model.predict(inputTensor).data()) as [number];
+      const inputTensor = tf.tensor2d([paddedSequence]);
+      const predictionResult = model.predict(inputTensor);
+
+      let predictionData;
+      if (predictionResult instanceof tf.Tensor) {
+        predictionData = await predictionResult.data();
+        predictionResult.dispose();
+      } else {
+        // Handle array of tensors case (though unlikely in this model)
+        console.warn("Prediction returned multiple tensors, using first one");
+        predictionData = await predictionResult[0].data();
+        predictionResult.forEach((tensor) => tensor.dispose());
+      }
 
       // Get sentiment score (0-1)
-      console.log("Prediction:", prediction);
-      const sentimentScore = prediction[0];
+      console.log("Prediction:", predictionData);
+      const sentimentScore = predictionData[0];
       setSentiment(sentimentScore);
 
       // Clean up tensor
       inputTensor.dispose();
-    } catch (error) {
+      setIsLoading(false);
+    } catch (error: unknown) {
       console.error("Error analyzing sentiment:", error);
+      setIsLoading(false);
     }
   };
 
@@ -221,7 +164,10 @@ export const Tensorflow = () => {
       </Text>
 
       {!isModelReady ? (
-        <Text>Loading model...</Text>
+        <View style={{ alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color="#0000ff" />
+          <Text style={{ marginTop: 10 }}>{loadingStatus}</Text>
+        </View>
       ) : (
         <>
           <TextInput
@@ -239,12 +185,19 @@ export const Tensorflow = () => {
           />
 
           <Button
-            title="Analyze Sentiment"
+            title={isLoading ? "Analyzing..." : "Analyze Sentiment"}
             onPress={analyzeSentiment}
-            disabled={!inputText}
+            disabled={!inputText || isLoading}
           />
 
-          {sentiment !== null && (
+          {isLoading && (
+            <View style={{ marginTop: 20, alignItems: "center" }}>
+              <ActivityIndicator size="small" color="#0000ff" />
+              <Text>Processing...</Text>
+            </View>
+          )}
+
+          {sentiment !== null && !isLoading && (
             <View style={{ marginTop: 20 }}>
               <Text style={{ fontSize: 18 }}>
                 Sentiment Score: {sentiment.toFixed(6)}
@@ -252,6 +205,23 @@ export const Tensorflow = () => {
               <Text style={{ fontSize: 16, marginTop: 10 }}>
                 {sentiment > 0.5 ? "Positive 😊" : "Negative 😞"}
               </Text>
+              <View
+                style={{
+                  marginTop: 15,
+                  height: 20,
+                  backgroundColor: "#e0e0e0",
+                  borderRadius: 10,
+                  overflow: "hidden",
+                }}
+              >
+                <View
+                  style={{
+                    width: `${sentiment * 100}%`,
+                    height: 20,
+                    backgroundColor: sentiment > 0.5 ? "#4CAF50" : "#F44336",
+                  }}
+                />
+              </View>
             </View>
           )}
         </>
