@@ -11,9 +11,6 @@ import { concat } from "../components/Matrix4";
 import { CubeScene } from "./CubeScene";
 
 export function Cube() {
-  const scene = useSharedValue<CubeScene | null>(null);
-  const clock = useClock();
-  useMakeJsThreadBusy();
   const rotateX = useSharedValue(0);
   const rotateY = useSharedValue(0);
   const gesture = Gesture.Pan()
