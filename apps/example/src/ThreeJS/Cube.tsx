@@ -1,12 +1,9 @@
-import * as THREE from "three";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { View } from "react-native";
-import { useEffect } from "react";
 import { runOnUI, useAnimatedReaction } from "react-native-reanimated";
 import { useClock } from "@shopify/react-native-skia";
 
 import CubeSceneSrc from "./CubeSceneSrc";
-import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 const { gpu } = navigator;
 const { RNWebGPU } = global;
@@ -15,31 +12,6 @@ const { GPUColorWrite } = global;
 const { GPUMapMode } = global;
 const { GPUShaderStage } = global;
 const { GPUTextureUsage } = global;
-
-const fibonacci = (num: number) => {
-  let a = 1,
-    b = 0,
-    temp;
-
-  while (num >= 0) {
-    temp = a;
-    a = a + b;
-    b = temp;
-    num--;
-  }
-
-  return b;
-};
-
-export const useMakeJsThreadBusy = () =>
-  useEffect(() => {
-    setInterval(() => {
-      console.log("JS thread is busy now");
-      while (true) {
-        fibonacci(10000);
-      }
-    }, 2000);
-  }, []);
 
 export const Cube = () => {
   const clock = useClock();
@@ -63,35 +35,7 @@ export const Cube = () => {
       eval(CubeSceneSrc);
       global.renderCubeScene(context, device);
     })();
-
-    // const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 10);
-    // camera.position.z = 1;
-
-    // const scene = new THREE.Scene();
-
-    // const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
-    // const material = new THREE.MeshNormalMaterial();
-
-    // const mesh = new THREE.Mesh(geometry, material);
-    // scene.add(mesh);
-
-    // const renderer = makeWebGPURenderer(context, device);
-    // renderer.init();
-    // console.log(renderer._initialized);
-    // function animate(time: number) {
-    //   mesh.rotation.x = time / 2000;
-    //   mesh.rotation.y = time / 1000;
-
-    //   renderer.render(scene, camera);
-    //   context.present();
-    // }
-    // renderer.setAnimationLoop(animate);
-    // return () => {
-    //   renderer.setAnimationLoop(null);
-    // };
   });
-
-  useMakeJsThreadBusy();
 
   useAnimatedReaction(
     () => clock.value,
