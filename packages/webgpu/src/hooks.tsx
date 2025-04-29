@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import type { RNCanvasContext, CanvasRef, NativeCanvas } from "./Canvas";
 
@@ -63,64 +70,84 @@ export const useDevice = (
   deviceDescriptor?: GPUDeviceDescriptor,
 ) => {
   const [state, setState] = useState<DeviceContext | null>(null);
+
   useEffect(() => {
-    (async () => {
-      if (!state) {
-        const adapter = await navigator.gpu.requestAdapter(adapterOptions);
-        if (!adapter) {
-          throw new Error("No appropriate GPUAdapter found.");
-        }
-        warnIfNotHardwareAccelerated(adapter);
-        const device = await adapter.requestDevice(deviceDescriptor);
-        if (!device) {
-          throw new Error("No appropriate GPUDevice found.");
-        }
-        setState({ adapter, device });
-        return;
+    setState(null); // resetting old adapter and device
+
+    let deviceContext: Promise<DeviceContext> | DeviceContext = (async () => {
+      const adapter = await navigator.gpu.requestAdapter(adapterOptions);
+      if (!adapter) {
+        throw new Error("No appropriate GPUAdapter found.");
       }
+      warnIfNotHardwareAccelerated(adapter);
+      const device = await adapter.requestDevice(deviceDescriptor);
+      if (!device) {
+        throw new Error("No appropriate GPUDevice found.");
+      }
+      deviceContext = { adapter, device };
+      setState(deviceContext);
+      return deviceContext;
     })();
-  }, [adapterOptions, deviceDescriptor, state]);
+
+    return () => {
+      if (deviceContext instanceof Promise) {
+        deviceContext.then((dev) => dev.device?.destroy());
+      } else {
+        deviceContext.device?.destroy();
+      }
+    };
+  }, [adapterOptions, deviceDescriptor]);
+
   return { adapter: state?.adapter ?? null, device: state?.device ?? null };
 };
 
 export const useGPUContext = () => {
   const [context, setContext] = useState<RNCanvasContext | null>(null);
-  const ref = useCanvasEffect(() => {
-    const ctx = ref.current!.getContext("webgpu")!;
-    setContext(ctx);
-  });
+  const ref = useCanvasEffect(
+    useCallback((canvas) => {
+      const ctx = canvas.getContext("webgpu")!;
+      setContext(ctx);
+    }, []),
+  );
   return { ref, context };
 };
 
 export const useCanvasEffect = (
-  effect: () =>
-    | void
-    | Unsubscribe
-    | Promise<Unsubscribe | void>
-    | Promise<void>,
+  effect: (
+    canvas: CanvasRef,
+  ) => void | Unsubscribe | Promise<Unsubscribe | void> | Promise<void>,
 ) => {
-  const unsub = useRef<Unsubscribe | null | Promise<Unsubscribe | void>>(null);
   const ref = useRef<CanvasRef>(null);
+
   useEffect(() => {
-    if (!ref.current || !ref.current.whenReady) {
+    const canvas = ref.current;
+    if (!canvas || !canvas.whenReady) {
       throw new Error("The reference is not assigned to a WebGPU Canvas");
     }
-    ref.current.whenReady(async () => {
-      const sub = effect();
+    let mounted = true;
+    let unsub: Unsubscribe | undefined | Promise<Unsubscribe | void>;
+
+    canvas.whenReady(() => {
+      if (!mounted) {
+        return;
+      }
+      const sub = effect(canvas);
       if (sub) {
-        unsub.current = sub;
+        unsub = sub;
       }
     });
+
     return () => {
-      if (unsub.current) {
-        if (unsub.current instanceof Promise) {
-          unsub.current.then((sub) => sub && sub());
+      mounted = false;
+      if (unsub) {
+        if (unsub instanceof Promise) {
+          unsub.then((sub) => sub?.());
         } else {
-          unsub.current();
+          unsub();
         }
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [effect]);
+
   return ref;
 };
