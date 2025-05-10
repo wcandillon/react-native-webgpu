@@ -4,10 +4,15 @@ const project = (() => {
     return configureProjects({
       android: {
         sourceDir: "android",
+        packageName: "com.microsoft.reacttestapp"
       },
       ios: {
         sourceDir: "ios",
-      }
+      },
+      windows: {
+        sourceDir: "windows",
+        solutionFile: "windows/example.sln",
+      },
     });
   } catch (_) {
     return undefined;
