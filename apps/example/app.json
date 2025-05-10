@@ -11,8 +11,7 @@
   ],
   "resources": {
     "android": [
-      "dist/res",
-      "dist/main.android.jsbundle"
+      "dist/res"
     ],
     "ios": [
       "dist/assets",
