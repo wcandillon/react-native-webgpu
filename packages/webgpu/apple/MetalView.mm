@@ -13,15 +13,14 @@
 + (Class)layerClass {
   return [CAMetalLayer class];
 }
-#else // !TARGET_OS_OSX
-- (instancetype)init
-{
-    self = [super init];
-    if (self) {
-        self.wantsLayer = true;
-        self.layer = [CAMetalLayer layer];
-    }
-    return self;
+#else  // !TARGET_OS_OSX
+- (instancetype)init {
+  self = [super init];
+  if (self) {
+    self.wantsLayer = true;
+    self.layer = [CAMetalLayer layer];
+  }
+  return self;
 }
 #endif // !TARGET_OS_OSX
 

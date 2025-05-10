@@ -18,6 +18,7 @@ import { RenderBundles } from "./RenderBundles";
 import { ABuffer } from "./ABuffer";
 import { OcclusionQuery } from "./OcclusionQuery";
 import { ComputeBoids } from "./ComputeBoids";
+import { MNISTInference } from "./MNISTInference";
 import { Wireframe } from "./Wireframe";
 import { Resize } from "./Resize";
 import { Particules } from "./Particles";
@@ -27,6 +28,7 @@ import { ReversedZ } from "./ReversedZ";
 import { ThreeJS } from "./ThreeJS";
 import { GradientTiles } from "./GradientTiles";
 import { CanvasAPI } from "./CanvasAPI";
+import { Tensorflow } from "./Tensorflow";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -50,6 +52,7 @@ function App() {
             component={HelloTriangleMSAA}
           />
           <Stack.Screen name="ThreeJS" component={ThreeJS} />
+          <Stack.Screen name="Tensorflow" component={Tensorflow} />
           <Stack.Screen name="CanvasAPI" component={CanvasAPI} />
           <Stack.Screen name="Cube" component={Cube} />
           <Stack.Screen name="InstancedCube" component={InstancedCube} />
@@ -64,6 +67,7 @@ function App() {
           <Stack.Screen name="ReversedZ" component={ReversedZ} />
           <Stack.Screen name="ABuffer" component={ABuffer} />
           <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />
+          <Stack.Screen name="MNISTInference" component={MNISTInference} />
           <Stack.Screen name="ComputeBoids" component={ComputeBoids} />
           <Stack.Screen name="ShadowMapping" component={ShadowMapping} />
           <Stack.Screen name="DeferedRendering" component={DeferedRendering} />

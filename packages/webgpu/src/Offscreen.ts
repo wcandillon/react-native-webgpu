@@ -1,9 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export class GPUOffscreenCanvas implements OffscreenCanvas {
+export class GPUOffscreenCanvas {
   width: number;
   height: number;
-  oncontextlost: ((this: OffscreenCanvas, ev: Event) => any) | null = null;
-  oncontextrestored: ((this: OffscreenCanvas, ev: Event) => any) | null = null;
 
   private context: GPUOffscreenCanvasContext;
 
@@ -13,64 +10,12 @@ export class GPUOffscreenCanvas implements OffscreenCanvas {
     this.context = new GPUOffscreenCanvasContext(this);
   }
 
-  convertToBlob(_options?: ImageEncodeOptions): Promise<Blob> {
-    // Implementation for converting the canvas content to a Blob
-    throw new Error("Method not implemented.");
-  }
-
-  // Overloaded method signatures
-  getContext(
-    contextId: "2d",
-    options?: any,
-  ): OffscreenCanvasRenderingContext2D | null;
-  getContext(
-    contextId: "bitmaprenderer",
-    options?: any,
-  ): ImageBitmapRenderingContext | null;
-  getContext(contextId: "webgl", options?: any): WebGLRenderingContext | null;
-  getContext(contextId: "webgl2", options?: any): WebGL2RenderingContext | null;
-  getContext(
-    contextId: OffscreenRenderingContextId,
-    options?: any,
-  ): OffscreenRenderingContext | null;
-  getContext(contextId: "webgpu"): GPUOffscreenCanvasContext | null;
-  getContext(
-    contextId: unknown,
-    _options?: any,
-  ): OffscreenRenderingContext | GPUOffscreenCanvasContext | null {
+  getContext(contextId: "webgpu"): GPUOffscreenCanvasContext | null {
     if (contextId === "webgpu") {
       return this.context;
     }
     // Implement other context types if necessary
     return null;
-  }
-
-  transferToImageBitmap(): ImageBitmap {
-    // Implementation for transferring the canvas content to an ImageBitmap
-    throw new Error("Method not implemented.");
-  }
-
-  addEventListener<K extends keyof OffscreenCanvasEventMap>(
-    _type: K,
-    _listener: (this: OffscreenCanvas, ev: OffscreenCanvasEventMap[K]) => any,
-    _options?: boolean | AddEventListenerOptions,
-  ): void {
-    // Event listener implementation
-    throw new Error("Method not implemented.");
-  }
-
-  removeEventListener<K extends keyof OffscreenCanvasEventMap>(
-    _type: K,
-    _listener: (this: OffscreenCanvas, ev: OffscreenCanvasEventMap[K]) => any,
-    _options?: boolean | EventListenerOptions,
-  ): void {
-    // Remove event listener implementation
-    throw new Error("Method not implemented.");
-  }
-
-  dispatchEvent(_event: Event): boolean {
-    // Event dispatch implementation
-    throw new Error("Method not implemented.");
   }
 
   getImageData() {
@@ -111,8 +56,12 @@ class GPUOffscreenCanvasContext implements GPUCanvasContext {
   private texture: GPUTexture | null = null;
   private device: GPUDevice | null = null;
 
-  constructor(public readonly canvas: OffscreenCanvas) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(public readonly canvas: any) {
     this.textureFormat = navigator.gpu.getPreferredCanvasFormat();
+  }
+  getConfiguration(): GPUCanvasConfigurationOut | null {
+    throw new Error("Method not implemented.");
   }
 
   present() {

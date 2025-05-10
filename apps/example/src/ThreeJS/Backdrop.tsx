@@ -2,28 +2,28 @@ import * as THREE from "three";
 import { Canvas, useGPUContext } from "react-native-wgpu";
 import { PixelRatio, Text, View, StyleSheet } from "react-native";
 import { useEffect } from "react";
-
-import { useGLTF } from "./assets/AssetManager";
-import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
-
-const {
+import {
   float,
   vec3,
   color,
   viewportSharedTexture,
   checker,
   uv,
-  timerLocal,
+  time,
   oscSine,
   output,
   posterize,
   hue,
   grayscale,
   saturation,
-  overlay,
+  blendOverlay,
   viewportUV,
   viewportSafeUV,
-} = THREE;
+  screenUV,
+} from "three/tsl";
+
+import { useGLTF } from "./assets/AssetManager";
+import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 export const Backdrop = () => {
   const gltf = useGLTF(require("./assets/michelle/model.gltf"));
@@ -43,8 +43,7 @@ export const Backdrop = () => {
     camera.position.set(1, 2, 3);
 
     const scene = new THREE.Scene();
-    // @ts-expect-error will be fixed in the next @types/three.js
-    scene.backgroundNode = viewportUV.y.mix(color(0x66bbff), color(0x4466ff));
+    scene.backgroundNode = screenUV.y.mix(color(0x66bbff), color(0x4466ff));
     camera.lookAt(0, 1, 0);
 
     const clock = new THREE.Clock();
@@ -65,7 +64,7 @@ export const Backdrop = () => {
     // output material effect ( better using hsv )
     // ignore output.sRGBToLinear().linearTosRGB() for now
 
-    material.outputNode = oscSine(timerLocal(0.1)).mix(
+    material.outputNode = oscSine(time.mul(0.1)).mix(
       output,
       posterize(output.add(0.1), 4).mul(2),
     );
@@ -84,7 +83,7 @@ export const Backdrop = () => {
 
     function addBackdropSphere(
       backdropNode: THREE.Node,
-      backdropAlphaNode = null,
+      backdropAlphaNode: THREE.Node | null = null,
     ) {
       const distance = 1;
       const id = portals.children.length;
@@ -113,10 +112,9 @@ export const Backdrop = () => {
     addBackdropSphere(hue(viewportSharedTexture().bgr, oscSine().mul(Math.PI)));
     addBackdropSphere(viewportSharedTexture().rgb.oneMinus());
     addBackdropSphere(grayscale(viewportSharedTexture().rgb));
-    // @ts-expect-error will be fixed in the next @types/three.js
     addBackdropSphere(saturation(viewportSharedTexture().rgb, 10), oscSine());
     addBackdropSphere(
-      overlay(viewportSharedTexture().rgb, checker(uv().mul(10))),
+      blendOverlay(viewportSharedTexture().rgb, checker(uv().mul(10))),
     );
 
     // For the two nodes below to work, antialias needs to be set to false in renderer

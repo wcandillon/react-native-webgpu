@@ -11,27 +11,21 @@ const extraConfig = {
       'three': threePackagePath,
     },
     resolveRequest: (context, moduleName, platform) => {
-      if (moduleName === "DRACOLoader") {
+      if (moduleName.startsWith('three/addons/')) {
         return {
-          filePath: path.resolve(threePackagePath, 'examples/jsm/loaders/DRACOLoader.js'),
+          filePath: path.resolve(threePackagePath, 'examples/jsm/' + moduleName.replace('three/addons/', '') + '.js'),
           type: 'sourceFile',
         };
       }
-      if (moduleName === "GLTFLoader") {
-        return {
-          filePath: path.resolve(threePackagePath, 'examples/jsm/loaders/GLTFLoader.js'),
-          type: 'sourceFile',
-        };
-      }
-      if (moduleName === "RGBELoader") {
-        return {
-          filePath: path.resolve(threePackagePath, 'examples/jsm/loaders/RGBELoader.js'),
-          type: 'sourceFile',
-        };
-      }
-      if (moduleName === 'three') { 
+      if (moduleName === 'three' || moduleName === 'three/webgpu') { 
         return {
           filePath: path.resolve(threePackagePath, 'build/three.webgpu.js'),
+          type: 'sourceFile',
+        };
+      }
+      if (moduleName === 'three/tsl') { 
+        return {
+          filePath: path.resolve(threePackagePath, 'build/three.tsl.js'),
           type: 'sourceFile',
         };
       }

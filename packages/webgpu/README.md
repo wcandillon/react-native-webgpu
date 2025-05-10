@@ -11,14 +11,20 @@ Please note that the package name is `react-native-wgpu`.
 npm install react-native-wgpu
 ```
 
-Below are some examples from the [example app](/package/example/).
+Below are some examples from the [example app](/apps/example/).
 
 https://github.com/user-attachments/assets/116a41b2-2cf8-49f1-9f16-a5c83637c198
 
 Starting from `r168`, Three.js runs out of the box with React Native WebGPU.
-You need to have a slight modification of [the metro config](/package/example/metro.config.js) to resolve Three.js to the WebGPU build.
+You need to have a slight modification of [the metro config](/apps/example/metro.config.js) to resolve Three.js to the WebGPU build.
+We also support [three-fiber](/apps/example/src/ThreeJS/Fiber.tsx).
+For model loading, we also need [the following polyfill](/apps/example/src/App.tsx#29).
 
 https://github.com/user-attachments/assets/5b49ef63-0a3c-4679-aeb5-e4b4dddfcc1d
+
+We also provide prebuilt binaries for visionOS and macOS.
+
+https://github.com/user-attachments/assets/2d5c618e-5b15-4cef-8558-d4ddf8c70667
 
 ## Usage
 
@@ -123,13 +129,7 @@ const style = StyleSheet.create({
 
 ## Example App
 
-To run the example app you first need to build Dawn.
-
-```sh
-$ git submodule update --init
-$ cd package && yarn
-$ yarn build-dawn
-```
+To run the example app you first need to [build Dawn or download the prebuilt binaries](#building-dawn).
 
 From there you will be able to run the example app properly.
 
@@ -183,58 +183,4 @@ device.queue.copyExternalImageToTexture(
   { texture },
   [imageBitmap.width, imageBitmap.height],
 );
-```
-
-## Troubleshooting
-
-### iOS
-
-To run the React Native WebGPU project on the iOS simulator, you need to disable the Metal validation API.  
-In "Edit Scheme," uncheck "Metal Validation."
-
-<img width="1052" alt="Uncheck 'Metal Validation'" src="https://github.com/user-attachments/assets/2676e5cc-e351-4a97-bdc8-22cbd7df2ef2">
-
-### Android
-
-On an Android simulator, a CPU emulation layer is used which may result in very slow performance.
-
-## Library Development
-
-Make sure to check out the submodules:
-
-```
-git submodule update --init
-```
-
-Make sure you have all the tools required for building the Skia libraries (Android Studio, XCode, Ninja, CMake, Android NDK/build tools).
-
-### Building
-
-* `cd packages/webgpu && yarn`
-* `yarn build-dawn`
-
-### Upgrading
-
-1. `git submodule update --remote`
-2. `yarn clean-dawn`
-3. `yarn build-dawn`
-
-### Codegen
-
-* `cd packages/webgpu && yarn codegen`
-
-### Testing
-
-In the `package` folder, to run the test against Chrome for reference:
-
-```
-yarn test:ref
-```
-
-To run the e2e test, open the example app on the e2e screen.  
-By default, it will try to connect to a localhost test server.  
-If you want to run the test suite on a physical device, you can modify the address [here](/package/example/src/useClient.ts#L4).
-
-```
-yarn test
 ```
