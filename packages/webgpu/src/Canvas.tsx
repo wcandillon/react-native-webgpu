@@ -2,7 +2,6 @@ import type { ViewProps, LayoutChangeEvent } from "react-native";
 import { View } from "react-native";
 import {
   forwardRef,
-  useEffect,
   useImperativeHandle,
   useRef,
   useState,
@@ -12,6 +11,7 @@ import {
 import type { RefObject } from "react";
 
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
+import { useSignal } from "./useSignal";
 
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
@@ -60,34 +60,38 @@ interface Size {
   height: number;
 }
 
-const useSizeFabric = (ref: RefObject<View>) => {
-  const [size, setSize] = useState<null | Size>(null);
+const useSizeFabric = (ref: RefObject<View>, onSizeChange: (v: Size) => void) => {
+  const [sizeSignal] = useSignal<null | Size>(null);
   useLayoutEffect(() => {
     if (!ref.current) {
       throw new Error("Canvas ref is null");
     }
     ref.current.measureInWindow((_x, _y, width, height) => {
-      setSize({ width, height });
+      const size: Size = { width, height };
+      sizeSignal.set(size);
+      onSizeChange(size);
     });
   }, [ref]);
-  return { size, onLayout: undefined };
+  return { sizeSignal, onLayout: undefined };
 };
 
-const useSizePaper = (_ref: RefObject<View>) => {
-  const [size, setSize] = useState<null | Size>(null);
+const useSizePaper = (_ref: RefObject<View>, onSizeChange: (v: Size) => void) => {
+  const [sizeSignal] = useSignal<null | Size>(null);
   const onLayout = useCallback<(event: LayoutChangeEvent) => void>(
     ({
       nativeEvent: {
         layout: { width, height },
       },
     }) => {
-      if (size === null) {
-        setSize({ width, height });
+      if (sizeSignal.get() === null) {
+        const size: Size = { width, height };
+        sizeSignal.set(size);
+        onSizeChange(size);
       }
     },
-    [size],
+    [sizeSignal],
   );
-  return { size, onLayout };
+  return { sizeSignal, onLayout };
 };
 
 export const Canvas = forwardRef<
@@ -97,30 +101,33 @@ export const Canvas = forwardRef<
   const viewRef = useRef(null);
   const FABRIC = RNWebGPU.fabric;
   const useSize = FABRIC ? useSizeFabric : useSizePaper;
-  const [contextId, _] = useState(() => generateContextId());
-  const cb = useRef<() => void>();
-  const { size, onLayout } = useSize(viewRef);
-  useEffect(() => {
-    if (size && cb.current) {
-      cb.current();
-    }
-  }, [size]);
+  const [contextId, _] = useState(generateContextId);
+  const whenReadyCallbacks = useRef<(() => void)[]>([]);
+  const onSizeChange = useCallback(() => {
+    // The size of the canvas has been computed, meaning we're ready
+    // to display things on it!
+    whenReadyCallbacks.current.forEach(cb => cb());
+    whenReadyCallbacks.current = [];
+  }, []);
+  const { sizeSignal, onLayout } = useSize(viewRef, onSizeChange);
+  
   useImperativeHandle(ref, () => ({
     getContextId: () => contextId,
     getNativeSurface: () => {
-      if (size === null) {
+      if (sizeSignal.get() === null) {
         throw new Error("[WebGPU] Canvas size is not available yet");
       }
       return RNWebGPU.getNativeSurface(contextId);
     },
     whenReady(callback: () => void) {
-      if (size === null) {
-        cb.current = callback;
+      if (sizeSignal.get() === null) {
+        whenReadyCallbacks.current.push(callback);
       } else {
         callback();
       }
     },
     getContext(contextName: "webgpu"): RNCanvasContext | null {
+      const size = sizeSignal.get();
       if (contextName !== "webgpu") {
         throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
       }
