@@ -26,6 +26,7 @@ find_package(fbjni REQUIRED CONFIG)
 add_library(${PACKAGE_NAME} SHARED
     ./cpp/cpp-adapter.cpp
     ./cpp/platform/ThreadUtils.cpp
+    ../cpp/dawn_logging.cpp
     ../cpp/rnwgpu/api/GPU.cpp
     ../cpp/rnwgpu/api/GPUAdapter.cpp
     ../cpp/rnwgpu/api/GPUSupportedLimits.cpp
