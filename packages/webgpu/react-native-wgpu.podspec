@@ -19,7 +19,11 @@ Pod::Spec.new do |s|
     "cpp/**/*.{h,cpp}"
   ]
 
-  s.vendored_frameworks = 'libs/apple/libwebgpu_dawn.xcframework'
+  s.vendored_frameworks = [
+    'libs/apple/libdawn_native_static.xcframework',
+    'libs/apple/libdawn_platform_static.xcframework',
+    'libs/apple/libdawn_proc_static.xcframework'
+  ]
 
   s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',

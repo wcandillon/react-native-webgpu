@@ -1,7 +1,4 @@
-import { checkBuildArtifacts } from "./dawn-configuration";
-import { $ } from "./util";
+import { installDawnBuild, checkNewBuildArtifacts } from "./install-dawn-build";
 
-$("cp -R ../../artifacts/libs .");
-$("cp -R ../../artifacts/cpp/webgpu cpp");
-$("cp -R ../../artifacts/cpp/dawn cpp");
-checkBuildArtifacts();
+installDawnBuild();
+checkNewBuildArtifacts();

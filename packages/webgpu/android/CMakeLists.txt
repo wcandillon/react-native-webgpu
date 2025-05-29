@@ -78,8 +78,14 @@ target_include_directories(
         ${libfbjni_include_DIRS}
 )
 
-add_library(webgpu_dawn SHARED IMPORTED)
-set_property(TARGET webgpu_dawn PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.so")
+add_library(dawn_native_static STATIC IMPORTED)
+set_property(TARGET dawn_native_static PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_native_static.a")
+
+add_library(dawn_platform_static STATIC IMPORTED)
+set_property(TARGET dawn_platform_static PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_platform_static.a")
+
+add_library(dawn_proc_static STATIC IMPORTED)
+set_property(TARGET dawn_proc_static PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libdawn_proc_static.a")
 
 # Link
 if(ReactAndroid_VERSION_MINOR GREATER_EQUAL 76)
@@ -92,7 +98,9 @@ if(ReactAndroid_VERSION_MINOR GREATER_EQUAL 76)
             fbjni::fbjni
             ReactAndroid::jsi
             ReactAndroid::reactnative
-            webgpu_dawn
+            dawn_native_static
+            dawn_platform_static
+            dawn_proc_static
         )
 else()
     target_link_libraries(
@@ -104,6 +112,8 @@ else()
         fbjni::fbjni
         ReactAndroid::jsi
         ReactAndroid::reactnativejni
-        webgpu_dawn
+        dawn_native_static
+        dawn_platform_static
+        dawn_proc_static
     )
 endif()

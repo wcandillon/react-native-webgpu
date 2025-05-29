@@ -22,7 +22,7 @@ GPUDevice::createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
 }
 
 std::shared_ptr<GPUSupportedLimits> GPUDevice::getLimits() {
-  wgpu::SupportedLimits limits{};
+  wgpu::Limits limits{};
   if (!_instance.GetLimits(&limits)) {
     throw std::runtime_error("failed to get device limits");
   }
@@ -301,8 +301,7 @@ GPUDevice::popErrorScope() {
             break;
           }
           case wgpu::ErrorType::Unknown:
-          case wgpu::ErrorType::DeviceLost:
-            result = std::make_shared<GPUError>(wgpu::ErrorType::DeviceLost,
+            result = std::make_shared<GPUError>(wgpu::ErrorType::Unknown,
                                                 message);
             break;
           default:
@@ -321,13 +320,11 @@ GPUDevice::popErrorScope() {
 }
 
 std::unordered_set<std::string> GPUDevice::getFeatures() {
-  size_t count = _instance.EnumerateFeatures(nullptr);
-  std::vector<wgpu::FeatureName> features(count);
-  if (count > 0) {
-    _instance.EnumerateFeatures(features.data());
-  }
+  wgpu::SupportedFeatures supportedFeatures;
+  _instance.GetFeatures(&supportedFeatures);
   std::unordered_set<std::string> result;
-  for (auto feature : features) {
+  for (size_t i = 0; i < supportedFeatures.featureCount; ++i) {
+    auto feature = supportedFeatures.features[i];
     std::string name;
     convertEnumToJSUnion(feature, &name);
     result.insert(name);

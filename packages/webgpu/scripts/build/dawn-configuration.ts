@@ -1,7 +1,7 @@
 /* eslint-disable max-len */
 import { $, checkFileExists, runAsync } from "./util";
 
-export const libs = ["libwebgpu_dawn"] as const;
+export const libs = ["libdawn_native_static", "libdawn_platform_static", "libdawn_proc_static"] as const;
 
 export const projectRoot = "packages/webgpu";
 
@@ -82,7 +82,7 @@ export const checkBuildArtifacts = () => {
     .filter((arch) => arch !== "arm64" && arch !== "universal")
     .forEach((platform) => {
       libs.forEach((lib) => {
-        checkFileExists(`libs/android/${platform}/${lib}.so`);
+        checkFileExists(`libs/android/${platform}/${lib}.a`);
       });
     });
   libs.forEach((lib) => {

@@ -457,9 +457,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
   } else if (inUnion == "angle-texture-sharing") {
     *outEnum = wgpu::FeatureName::ANGLETextureSharing;
   } else if (inUnion == "chromium-experimental-subgroups") {
-    *outEnum = wgpu::FeatureName::ChromiumExperimentalSubgroups;
+    *outEnum = wgpu::FeatureName::ChromiumExperimentalSubgroupMatrix;
   } else if (inUnion == "chromium-experimental-subgroup-uniform-control-flow") {
-    *outEnum = wgpu::FeatureName::ChromiumExperimentalSubgroupUniformControlFlow;
+    // ChromiumExperimentalSubgroupUniformControlFlow removed in new WebGPU headers
   } else if (inUnion == "pixel-local-storage-coherent") {
     *outEnum = wgpu::FeatureName::PixelLocalStorageCoherent;
   } else if (inUnion == "pixel-local-storage-non-coherent") {
@@ -491,9 +491,9 @@ static void convertJSUnionToEnum(const std::string &inUnion,
   } else if (inUnion == "r8unorm-storage") {
     *outEnum = wgpu::FeatureName::R8UnormStorage;
   } else if (inUnion == "format-capabilities") {
-    *outEnum = wgpu::FeatureName::FormatCapabilities;
+    *outEnum = wgpu::FeatureName::DawnFormatCapabilities;
   } else if (inUnion == "drm-format-capabilities") {
-    *outEnum = wgpu::FeatureName::DrmFormatCapabilities;
+    *outEnum = wgpu::FeatureName::DawnDrmFormatCapabilities;
   } else if (inUnion == "norm16-texture-formats") {
     *outEnum = wgpu::FeatureName::Norm16TextureFormats;
   } else if (inUnion == "multi-planar-format-nv16") {
@@ -525,7 +525,7 @@ static void convertJSUnionToEnum(const std::string &inUnion,
   } else if (inUnion == "shared-fence-vk-semaphore-opaque-fd") {
     *outEnum = wgpu::FeatureName::SharedFenceVkSemaphoreOpaqueFD;
   } else if (inUnion == "shared-fence-vk-semaphore-sync-fd") {
-    *outEnum = wgpu::FeatureName::SharedFenceVkSemaphoreSyncFD;
+    *outEnum = wgpu::FeatureName::SharedFenceSyncFD;
   } else if (inUnion == "shared-fence-vk-semaphore-zircon-handle") {
     *outEnum = wgpu::FeatureName::SharedFenceVkSemaphoreZirconHandle;
   } else if (inUnion == "shared-fence-dxgi-shared-handle") {
@@ -624,10 +624,10 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::ANGLETextureSharing:
     *outUnion = "angle-texture-sharing";
     break;
-  case wgpu::FeatureName::ChromiumExperimentalSubgroups:
+  case wgpu::FeatureName::ChromiumExperimentalSubgroupMatrix:
     *outUnion = "chromium-experimental-subgroups";
     break;
-  case wgpu::FeatureName::ChromiumExperimentalSubgroupUniformControlFlow:
+  // case wgpu::FeatureName::ChromiumExperimentalSubgroupUniformControlFlow: // Removed
     *outUnion = "chromium-experimental-subgroup-uniform-control-flow";
     break;
   case wgpu::FeatureName::PixelLocalStorageCoherent:
@@ -675,10 +675,10 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::R8UnormStorage:
     *outUnion = "r8unorm-storage";
     break;
-  case wgpu::FeatureName::FormatCapabilities:
+  case wgpu::FeatureName::DawnFormatCapabilities:
     *outUnion = "format-capabilities";
     break;
-  case wgpu::FeatureName::DrmFormatCapabilities:
+  case wgpu::FeatureName::DawnDrmFormatCapabilities:
     *outUnion = "drm-format-capabilities";
     break;
   case wgpu::FeatureName::Norm16TextureFormats:
@@ -726,7 +726,7 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::SharedFenceVkSemaphoreOpaqueFD:
     *outUnion = "shared-fence-vk-semaphore-opaque-fd";
     break;
-  case wgpu::FeatureName::SharedFenceVkSemaphoreSyncFD:
+  case wgpu::FeatureName::SharedFenceSyncFD:
     *outUnion = "shared-fence-vk-semaphore-sync-fd";
     break;
   case wgpu::FeatureName::SharedFenceVkSemaphoreZirconHandle:

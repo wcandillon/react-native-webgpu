@@ -309,7 +309,7 @@ public:
            Convert(out.label, in.label);
   }
 
-  [[nodiscard]] bool Convert(wgpu::ComputePassTimestampWrites &out,
+  [[nodiscard]] bool Convert(wgpu::PassTimestampWrites &out,
                              const GPUComputePassTimestampWrites &in) {
     return Convert(out.querySet, in.querySet) &&
            Convert(out.beginningOfPassWriteIndex,
@@ -348,74 +348,72 @@ public:
 
     if (in.requiredLimits.has_value()) {
       const auto &limits = in.requiredLimits.value();
-      auto *requiredLimits = Allocate<wgpu::RequiredLimits>();
+      auto *requiredLimits = Allocate<wgpu::Limits>();
       for (const auto &[key, value] : limits) {
         if (key == "maxTextureDimension1D") {
-          requiredLimits->limits.maxTextureDimension1D = value;
+          requiredLimits->maxTextureDimension1D = value;
         } else if (key == "maxTextureDimension2D") {
-          requiredLimits->limits.maxTextureDimension2D = value;
+          requiredLimits->maxTextureDimension2D = value;
         } else if (key == "maxTextureDimension3D") {
-          requiredLimits->limits.maxTextureDimension3D = value;
+          requiredLimits->maxTextureDimension3D = value;
         } else if (key == "maxTextureArrayLayers") {
-          requiredLimits->limits.maxTextureArrayLayers = value;
+          requiredLimits->maxTextureArrayLayers = value;
         } else if (key == "maxBindGroups") {
-          requiredLimits->limits.maxBindGroups = value;
+          requiredLimits->maxBindGroups = value;
         } else if (key == "maxBindGroupsPlusVertexBuffers") {
-          requiredLimits->limits.maxBindGroupsPlusVertexBuffers = value;
+          requiredLimits->maxBindGroupsPlusVertexBuffers = value;
         } else if (key == "maxBindingsPerBindGroup") {
-          requiredLimits->limits.maxBindingsPerBindGroup = value;
+          requiredLimits->maxBindingsPerBindGroup = value;
         } else if (key == "maxDynamicUniformBuffersPerPipelineLayout") {
-          requiredLimits->limits.maxDynamicUniformBuffersPerPipelineLayout =
+          requiredLimits->maxDynamicUniformBuffersPerPipelineLayout =
               value;
         } else if (key == "maxDynamicStorageBuffersPerPipelineLayout") {
-          requiredLimits->limits.maxDynamicStorageBuffersPerPipelineLayout =
+          requiredLimits->maxDynamicStorageBuffersPerPipelineLayout =
               value;
         } else if (key == "maxSampledTexturesPerShaderStage") {
-          requiredLimits->limits.maxSampledTexturesPerShaderStage = value;
+          requiredLimits->maxSampledTexturesPerShaderStage = value;
         } else if (key == "maxSamplersPerShaderStage") {
-          requiredLimits->limits.maxSamplersPerShaderStage = value;
+          requiredLimits->maxSamplersPerShaderStage = value;
         } else if (key == "maxStorageBuffersPerShaderStage") {
-          requiredLimits->limits.maxStorageBuffersPerShaderStage = value;
+          requiredLimits->maxStorageBuffersPerShaderStage = value;
         } else if (key == "maxStorageTexturesPerShaderStage") {
-          requiredLimits->limits.maxStorageTexturesPerShaderStage = value;
+          requiredLimits->maxStorageTexturesPerShaderStage = value;
         } else if (key == "maxUniformBuffersPerShaderStage") {
-          requiredLimits->limits.maxUniformBuffersPerShaderStage = value;
+          requiredLimits->maxUniformBuffersPerShaderStage = value;
         } else if (key == "maxUniformBufferBindingSize") {
-          requiredLimits->limits.maxUniformBufferBindingSize = value;
+          requiredLimits->maxUniformBufferBindingSize = value;
         } else if (key == "maxStorageBufferBindingSize") {
-          requiredLimits->limits.maxStorageBufferBindingSize = value;
+          requiredLimits->maxStorageBufferBindingSize = value;
         } else if (key == "minUniformBufferOffsetAlignment") {
-          requiredLimits->limits.minUniformBufferOffsetAlignment = value;
+          requiredLimits->minUniformBufferOffsetAlignment = value;
         } else if (key == "minStorageBufferOffsetAlignment") {
-          requiredLimits->limits.minStorageBufferOffsetAlignment = value;
+          requiredLimits->minStorageBufferOffsetAlignment = value;
         } else if (key == "maxVertexBuffers") {
-          requiredLimits->limits.maxVertexBuffers = value;
+          requiredLimits->maxVertexBuffers = value;
         } else if (key == "maxBufferSize") {
-          requiredLimits->limits.maxBufferSize = value;
+          requiredLimits->maxBufferSize = value;
         } else if (key == "maxVertexAttributes") {
-          requiredLimits->limits.maxVertexAttributes = value;
+          requiredLimits->maxVertexAttributes = value;
         } else if (key == "maxVertexBufferArrayStride") {
-          requiredLimits->limits.maxVertexBufferArrayStride = value;
-        } else if (key == "maxInterStageShaderComponents") {
-          requiredLimits->limits.maxInterStageShaderComponents = value;
+          requiredLimits->maxVertexBufferArrayStride = value;
         } else if (key == "maxInterStageShaderVariables") {
-          requiredLimits->limits.maxInterStageShaderVariables = value;
+          requiredLimits->maxInterStageShaderVariables = value;
         } else if (key == "maxColorAttachments") {
-          requiredLimits->limits.maxColorAttachments = value;
+          requiredLimits->maxColorAttachments = value;
         } else if (key == "maxColorAttachmentBytesPerSample") {
-          requiredLimits->limits.maxColorAttachmentBytesPerSample = value;
+          requiredLimits->maxColorAttachmentBytesPerSample = value;
         } else if (key == "maxComputeWorkgroupStorageSize") {
-          requiredLimits->limits.maxComputeWorkgroupStorageSize = value;
+          requiredLimits->maxComputeWorkgroupStorageSize = value;
         } else if (key == "maxComputeInvocationsPerWorkgroup") {
-          requiredLimits->limits.maxComputeInvocationsPerWorkgroup = value;
+          requiredLimits->maxComputeInvocationsPerWorkgroup = value;
         } else if (key == "maxComputeWorkgroupSizeX") {
-          requiredLimits->limits.maxComputeWorkgroupSizeX = value;
+          requiredLimits->maxComputeWorkgroupSizeX = value;
         } else if (key == "maxComputeWorkgroupSizeY") {
-          requiredLimits->limits.maxComputeWorkgroupSizeY = value;
+          requiredLimits->maxComputeWorkgroupSizeY = value;
         } else if (key == "maxComputeWorkgroupSizeZ") {
-          requiredLimits->limits.maxComputeWorkgroupSizeZ = value;
+          requiredLimits->maxComputeWorkgroupSizeZ = value;
         } else if (key == "maxComputeWorkgroupsPerDimension") {
-          requiredLimits->limits.maxComputeWorkgroupsPerDimension = value;
+          requiredLimits->maxComputeWorkgroupsPerDimension = value;
         }
       }
       out.requiredLimits = requiredLimits;
@@ -452,7 +450,7 @@ public:
            Convert(out.constants, out.constantCount, in.constants);
   }
 
-  [[nodiscard]] bool Convert(wgpu::ImageCopyBuffer &out,
+  [[nodiscard]] bool Convert(wgpu::TexelCopyBufferInfo &out,
                              const GPUImageCopyBuffer &in) {
     out = {};
     out.buffer = in.buffer->get();
@@ -461,13 +459,13 @@ public:
            Convert(out.layout.rowsPerImage, in.rowsPerImage);
   }
 
-  [[nodiscard]] bool Convert(wgpu::ImageCopyTexture &out,
+  [[nodiscard]] bool Convert(wgpu::TexelCopyTextureInfo &out,
                              const GPUImageCopyTexture &in) {
     return Convert(out.origin, in.origin) && Convert(out.texture, in.texture) &&
            Convert(out.mipLevel, in.mipLevel) && Convert(out.aspect, in.aspect);
   }
 
-  [[nodiscard]] bool Convert(wgpu::TextureDataLayout &out,
+  [[nodiscard]] bool Convert(wgpu::TexelCopyBufferLayout &out,
                              const GPUImageDataLayout &in) {
     out = {};
     return Convert(out.bytesPerRow, in.bytesPerRow) &&
@@ -502,7 +500,7 @@ public:
            Convert(out.cullMode, in.cullMode);
   }
 
-  [[nodiscard]] bool Convert(wgpu::ProgrammableStageDescriptor &out,
+  [[nodiscard]] bool Convert(wgpu::ComputeState &out,
                              const GPUProgrammableStage &in) {
     out = {};
     out.module = in.module->get();
@@ -554,7 +552,7 @@ public:
            Convert(out.stencilReadOnly, in.stencilReadOnly);
   }
 
-  [[nodiscard]] bool Convert(wgpu::RenderPassTimestampWrites &out,
+  [[nodiscard]] bool Convert(wgpu::PassTimestampWrites &out,
                              const GPURenderPassTimestampWrites &in) {
     return Convert(out.querySet, in.querySet) &&
            Convert(out.beginningOfPassWriteIndex,
