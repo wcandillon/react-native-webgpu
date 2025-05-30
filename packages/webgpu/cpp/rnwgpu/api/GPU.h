@@ -13,6 +13,8 @@
 #include "AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
+#include "dawn/dawn_proc.h"
+#include "dawn/native/DawnNative.h"
 
 #include "GPUAdapter.h"
 #include "GPURequestAdapterOptions.h"
@@ -24,6 +26,8 @@ namespace m = margelo;
 class GPU : public m::HybridObject {
 public:
   GPU() : HybridObject("GPU") {
+    DawnProcTable backendProcs = dawn::native::GetProcs();
+    dawnProcSetProcs(&backendProcs);
     wgpu::InstanceDescriptor instanceDesc;
     instanceDesc.capabilities.timedWaitAnyEnable = true;
     instanceDesc.capabilities.timedWaitAnyMaxCount = 64;
