@@ -72,7 +72,7 @@ target_include_directories(
         ../cpp/rnwgpu/api
         ../cpp/rnwgpu/api/descriptors
         ../cpp/jsi
-        ../cpp/webgpu
+        ../cpp/dawn/include/
         ../cpp/threading
         ../cpp/platform
 
