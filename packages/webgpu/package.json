@@ -25,16 +25,12 @@
     "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
     "tsc": "tsc --noEmit",
     "build": "bob build",
-    "build-dawn": "ts-node scripts/build/dawn.ts",
-    "clean-dawn": "rimraf ./libs && rimraf ../../externals/dawn/out",
     "clang-format": "yarn clang-format-ios && yarn clang-format-android && yarn clang-format-common",
     "clang-format-ios": "find apple/ -iname \"*.h\" -o -iname \"*.mm\" -o -iname \"*.cpp\" | xargs clang-format -i",
     "clang-format-android": "find android/cpp/ -iname \"*.h\" -o -iname \"*.m\" -o -iname \"*.cpp\" | xargs clang-format -i",
     "clang-format-common": "find cpp/rnwgpu -iname \"*.h\" -o -iname \"*.m\" -o -iname \"*.cpp\" | xargs clang-format -i",
     "cpplint": "cpplint --linelength=230 --filter=-legal/copyright,-whitespace/indent,-whitespace/comments,-whitespace/ending_newline,-build/include_order,-runtime/references,-readability/todo,-whitespace/blank_line,-whitespace/todo,-runtime/int,-build/c++11,-whitespace/parens --exclude=example --exclude=android/.cxx --exclude=cpp/webgpu --exclude=cpp/dawn --exclude=ios --exclude=android/build --exclude=node_modules --recursive .",
-    "download-artifacts": "ts-node scripts/build/download-artifacts.ts && yarn copy-artifacts",
-    "copy-artifacts": "ts-node scripts/build/copy-artifacts.ts",
-    "install-dawn-build": "ts-node scripts/build/install-dawn-build.ts",
+    "install-dawn-build": "ts-node scripts/install-dawn-build.ts",
     "codegen": "ts-node scripts/codegen/codegen.ts && yarn clang-format"
   },
   "keywords": [
