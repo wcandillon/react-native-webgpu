@@ -2,10 +2,6 @@
 #include "Convertors.h"
 #include "RNWebGPUManager.h"
 
-#ifdef __APPLE__
-#include "dawn/native/MetalBackend.h"
-#endif
-
 namespace rnwgpu {
 
 void GPUCanvasContext::configure(
@@ -46,10 +42,7 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
 }
 
 void GPUCanvasContext::present() {
-#ifdef __APPLE__
-  dawn::native::metal::WaitForCommandsToBeScheduled(
-      _surfaceInfo->getDevice().Get());
-#endif
+  // TODO: WaitForCommandsToBeScheduled?
   auto size = _surfaceInfo->getSize();
   _canvas->setClientWidth(size.width);
   _canvas->setClientHeight(size.height);
