@@ -51,9 +51,8 @@ export const GPUDeviceProvider = ({
 export const useSurface = () => {
   const [surface, setSurface] = useState<NativeCanvas | null>(null);
   const ref = useCanvasEffect(
-    useCallback(({ canvasRef }) => {
-      const sur = canvasRef.getNativeSurface();
-      setSurface(sur);
+    useCallback(({ getNativeSurface }) => {
+      setSurface(getNativeSurface());
     }, []),
   );
   return { ref, surface };
@@ -105,8 +104,7 @@ export function useGPUContext(): {
 } {
   const [context, setContext] = useState<RNCanvasContext | null>(null);
   const ref = useCanvasEffect(
-    useCallback(({ canvasRef }) => {
-      const ctx = canvasRef.getContext("webgpu")!;
+    useCallback(({ context: ctx }) => {
       setContext(ctx);
     }, []),
   );
@@ -119,13 +117,23 @@ type EffectReturn =
   | Promise<Unsubscribe | void>
   | Promise<void>;
 
-interface CanvasEffectContext {
+interface CanvasEffectContext<TCanvas extends HTMLCanvasElement | OffscreenCanvas> {
   signal: AbortSignal;
-  canvasRef: CanvasRef;
+  context: RNCanvasContext;
+  canvas: TCanvas;
+  getNativeSurface(): NativeCanvas;
 }
 
 export function useCanvasEffect(
-  effect: (ctx: CanvasEffectContext) => EffectReturn,
+  effect: (ctx: CanvasEffectContext<HTMLCanvasElement>) => EffectReturn,
+): RefObject<CanvasRef>;
+
+export function useCanvasEffect<TCanvas extends HTMLCanvasElement | OffscreenCanvas>(
+  effect: (ctx: CanvasEffectContext<NoInfer<TCanvas>>) => EffectReturn,
+): RefObject<CanvasRef>;
+
+export function useCanvasEffect<TCanvas extends HTMLCanvasElement | OffscreenCanvas>(
+  effect: (ctx: CanvasEffectContext<TCanvas>) => EffectReturn,
 ): RefObject<CanvasRef> {
   const ref = useRef<CanvasRef>(null);
 
@@ -144,7 +152,16 @@ export function useCanvasEffect(
         return;
       }
 
-      unsub = effect({ signal: ctrl.signal, canvasRef });
+      const context = canvasRef.getContext("webgpu")!;
+      if (!context) {
+        throw new Error("No context");
+      }
+      unsub = effect({
+        signal: ctrl.signal,
+        context,
+        canvas: context.canvas as TCanvas,
+        getNativeSurface: () => canvasRef.getNativeSurface(),
+      });
     });
 
     return () => {

@@ -6,7 +6,7 @@ import { redFragWGSL, triangleVertWGSL } from "./triangle";
 
 export function HelloTriangleMSAA() {
   const ref = useCanvasEffect(
-    useCallback(async ({ signal, canvasRef }) => {
+    useCallback(async ({ signal, context, canvas }) => {
       const adapter = await navigator.gpu.requestAdapter();
       if (!adapter) {
         throw new Error("No adapter");
@@ -19,11 +19,6 @@ export function HelloTriangleMSAA() {
       }
 
       const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-      const context = canvasRef.getContext("webgpu")!;
-      const { canvas } = context;
-      if (!context) {
-        throw new Error("No context");
-      }
       context.configure({
         device,
         format: presentationFormat,

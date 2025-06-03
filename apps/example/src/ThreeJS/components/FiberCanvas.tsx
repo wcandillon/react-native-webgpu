@@ -35,8 +35,7 @@ export const FiberCanvas = ({
 
   const ref = useCanvasEffect(
     useCallback(
-      async ({ canvasRef }) => {
-        const context = canvasRef.getContext("webgpu")!;
+      async ({ context }) => {
         const renderer = makeWebGPURenderer(context);
 
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment

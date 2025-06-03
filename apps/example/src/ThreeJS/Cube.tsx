@@ -7,9 +7,8 @@ import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 export const Cube = () => {
   const ref = useCanvasEffect(
-    useCallback(async ({ canvasRef }) => {
-      const context = canvasRef.getContext("webgpu")!;
-      const { width, height } = context.canvas;
+    useCallback(async ({ context, canvas }) => {
+      const { width, height } = canvas;
 
       const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 10);
       camera.position.z = 1;
