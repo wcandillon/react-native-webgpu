@@ -129,7 +129,7 @@ export function useCanvasEffect(
 ): RefObject<CanvasRef>;
 
 export function useCanvasEffect<TCanvas extends HTMLCanvasElement | OffscreenCanvas>(
-  effect: (ctx: CanvasEffectContext<NoInfer<TCanvas>>) => EffectReturn,
+  effect: (ctx: CanvasEffectContext<TCanvas>) => EffectReturn,
 ): RefObject<CanvasRef>;
 
 export function useCanvasEffect<TCanvas extends HTMLCanvasElement | OffscreenCanvas>(
