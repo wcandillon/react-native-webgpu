@@ -27,7 +27,7 @@ GPU::requestAdapter(
   aOptions.backendType = kDefaultBackendType;
   wgpu::Adapter adapter = nullptr;
   _instance.RequestAdapter(
-      &aOptions, wgpu::CallbackMode::AllowProcessEvents,
+      &aOptions, wgpu::CallbackMode::AllowSpontaneous,
       [](wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,
          wgpu::StringView message, wgpu::Adapter *userdata) {
         if (message.length) {

@@ -38,6 +38,7 @@ public:
     config = newConfig;
     config.width = width;
     config.height = height;
+    config.presentMode = wgpu::PresentMode::Fifo;
     _configure();
   }
 

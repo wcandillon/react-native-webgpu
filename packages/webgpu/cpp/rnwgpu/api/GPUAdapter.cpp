@@ -66,10 +66,10 @@ std::future<std::shared_ptr<GPUDevice>> GPUAdapter::requestDevice(
         message.length > 0 ? std::string(errorType) + ": " +
                                  std::string(message.data, message.length)
                            : "no message";
-    // TODO: log error
+    fprintf(stderr, "%s", fullMessage.c_str());
   });
   _instance.RequestDevice(
-      &aDescriptor, wgpu::CallbackMode::AllowProcessEvents,
+      &aDescriptor, wgpu::CallbackMode::AllowSpontaneous,
       [](wgpu::RequestDeviceStatus status, wgpu::Device device,
          wgpu::StringView message, wgpu::Device *userdata) {
         if (message.length) {
