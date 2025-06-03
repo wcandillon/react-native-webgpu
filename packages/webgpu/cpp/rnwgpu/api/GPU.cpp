@@ -48,43 +48,44 @@ GPU::requestAdapter(
 }
 
 std::unordered_set<std::string> GPU::getWgslLanguageFeatures() {
-  // auto count = _instance.EnumerateWGSLLanguageFeatures(nullptr);
-  // std::vector<wgpu::WGSLFeatureName> features(count);
-  ///_instance.EnumerateWGSLLanguageFeatures(features.data());
+  wgpu::SupportedWGSLLanguageFeatures supportedFeatures = {};
+  _instance.GetWGSLLanguageFeatures(&supportedFeatures);
+  
   std::unordered_set<std::string> result;
-  //  for (auto feature : features) {
-  //    std::string name;
-  //    switch (feature) {
-  //    case wgpu::WGPUFeatureName::ReadonlyAndReadwriteStorageTextures:
-  //      name = "readonly_and_readwrite_storage_textures";
-  //      break;
-  //    case wgpu::WGPUFeatureName::Packed4x8IntegerDotProduct:
-  //      name = "packed_4x8_integer_dot_product";
-  //      break;
-  //    case wgpu::WGPUFeatureName::UnrestrictedPointerParameters:
-  //      name = "unrestricted_pointer_parameters";
-  //      break;
-  //    case wgpu::WGPUFeatureName::PointerCompositeAccess:
-  //      name = "pointer_composite_access";
-  //      break;
-  //    case wgpu::WGPUFeatureName::ChromiumTestingUnimplemented:
-  //      name = "chromium_testing_unimplemented";
-  //      break;
-  //    case wgpu::WGPUFeatureName::ChromiumTestingUnsafeExperimental:
-  //      name = "chromium_testing_unsafe_experimental";
-  //      break;
-  //    case wgpu::WGPUFeatureName::ChromiumTestingExperimental:
-  //      name = "chromium_testing_experimental";
-  //      break;
-  //    case wgpu::WGPUFeatureName::ChromiumTestingShippedWithKillswitch:
-  //      name = "chromium_testing_shipped_with_killswitch";
-  //      break;
-  //    case wgpu::WGPUFeatureName::ChromiumTestingShipped:
-  //      name = "chromium_testing_shipped";
-  //      break;
-  //    }
-  //    result.insert(name);
-  //  }
+  for (size_t i = 0; i < supportedFeatures.featureCount; i++) {
+    wgpu::WGSLLanguageFeatureName feature = supportedFeatures.features[i];
+    std::string name;
+    switch (feature) {
+    case wgpu::WGSLLanguageFeatureName::ReadonlyAndReadwriteStorageTextures:
+      name = "readonly_and_readwrite_storage_textures";
+      break;
+    case wgpu::WGSLLanguageFeatureName::Packed4x8IntegerDotProduct:
+      name = "packed_4x8_integer_dot_product";
+      break;
+    case wgpu::WGSLLanguageFeatureName::UnrestrictedPointerParameters:
+      name = "unrestricted_pointer_parameters";
+      break;
+    case wgpu::WGSLLanguageFeatureName::PointerCompositeAccess:
+      name = "pointer_composite_access";
+      break;
+    case wgpu::WGSLLanguageFeatureName::ChromiumTestingUnimplemented:
+      name = "chromium_testing_unimplemented";
+      break;
+    case wgpu::WGSLLanguageFeatureName::ChromiumTestingUnsafeExperimental:
+      name = "chromium_testing_unsafe_experimental";
+      break;
+    case wgpu::WGSLLanguageFeatureName::ChromiumTestingExperimental:
+      name = "chromium_testing_experimental";
+      break;
+    case wgpu::WGSLLanguageFeatureName::ChromiumTestingShippedWithKillswitch:
+      name = "chromium_testing_shipped_with_killswitch";
+      break;
+    case wgpu::WGSLLanguageFeatureName::ChromiumTestingShipped:
+      name = "chromium_testing_shipped";
+      break;
+    }
+    result.insert(name);
+  }
   return result;
 }
 
