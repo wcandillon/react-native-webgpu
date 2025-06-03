@@ -16,7 +16,7 @@ namespace m = margelo;
 
 class GPUSupportedLimits : public m::HybridObject {
 public:
-  explicit GPUSupportedLimits(wgpu::SupportedLimits instance)
+  explicit GPUSupportedLimits(wgpu::Limits instance)
       : HybridObject("GPUSupportedLimits"), _instance(instance) {}
 
 public:
@@ -44,7 +44,6 @@ public:
   double getMaxBufferSize();
   double getMaxVertexAttributes();
   double getMaxVertexBufferArrayStride();
-  double getMaxInterStageShaderComponents();
   double getMaxInterStageShaderVariables();
   double getMaxColorAttachments();
   double getMaxColorAttachmentBytesPerSample();
@@ -117,9 +116,6 @@ public:
     registerHybridGetter("maxVertexBufferArrayStride",
                          &GPUSupportedLimits::getMaxVertexBufferArrayStride,
                          this);
-    registerHybridGetter("maxInterStageShaderComponents",
-                         &GPUSupportedLimits::getMaxInterStageShaderComponents,
-                         this);
     registerHybridGetter("maxInterStageShaderVariables",
                          &GPUSupportedLimits::getMaxInterStageShaderVariables,
                          this);
@@ -148,10 +144,10 @@ public:
         &GPUSupportedLimits::getMaxComputeWorkgroupsPerDimension, this);
   }
 
-  inline const wgpu::SupportedLimits get() { return _instance; }
+  inline const wgpu::Limits get() { return _instance; }
 
 private:
-  wgpu::SupportedLimits _instance;
+  wgpu::Limits _instance;
 };
 
 } // namespace rnwgpu

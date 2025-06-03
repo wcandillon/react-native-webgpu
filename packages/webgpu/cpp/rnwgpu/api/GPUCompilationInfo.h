@@ -22,9 +22,6 @@ struct GPUCompilationMessage {
   uint64_t linePos;
   uint64_t offset;
   uint64_t length;
-  uint64_t utf16LinePos;
-  uint64_t utf16Offset;
-  uint64_t utf16Length;
 };
 
 class GPUCompilationInfo : public m::HybridObject {
@@ -75,12 +72,6 @@ template <> struct JSIConverter<std::vector<rnwgpu::GPUCompilationMessage>> {
                              static_cast<double>(message.offset));
       messageObj.setProperty(runtime, "length",
                              static_cast<double>(message.length));
-      messageObj.setProperty(runtime, "utf16LinePos",
-                             static_cast<double>(message.utf16LinePos));
-      messageObj.setProperty(runtime, "utf16Offset",
-                             static_cast<double>(message.utf16Offset));
-      messageObj.setProperty(runtime, "utf16Length",
-                             static_cast<double>(message.utf16Length));
       result.setValueAtIndex(runtime, i, messageObj);
     }
     return result;

@@ -27,15 +27,16 @@ GPU::requestAdapter(
   aOptions.backendType = kDefaultBackendType;
   wgpu::Adapter adapter = nullptr;
   _instance.RequestAdapter(
-      &aOptions,
-      [](WGPURequestAdapterStatus, WGPUAdapter cAdapter,
-         const WGPUStringView message, void *userdata) {
+      &aOptions, wgpu::CallbackMode::AllowSpontaneous,
+      [](wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,
+         wgpu::StringView message, wgpu::Adapter *userdata) {
         if (message.length) {
           fprintf(stderr, "%s", message.data);
           return;
         }
-        *static_cast<wgpu::Adapter *>(userdata) =
-            wgpu::Adapter::Acquire(cAdapter);
+        if (status == wgpu::RequestAdapterStatus::Success) {
+          *userdata = std::move(adapter);
+        }
       },
       &adapter);
   if (!adapter) {
@@ -47,38 +48,39 @@ GPU::requestAdapter(
 }
 
 std::unordered_set<std::string> GPU::getWgslLanguageFeatures() {
-  auto count = _instance.EnumerateWGSLLanguageFeatures(nullptr);
-  std::vector<wgpu::WGSLFeatureName> features(count);
-  _instance.EnumerateWGSLLanguageFeatures(features.data());
+  wgpu::SupportedWGSLLanguageFeatures supportedFeatures = {};
+  _instance.GetWGSLLanguageFeatures(&supportedFeatures);
+  
   std::unordered_set<std::string> result;
-  for (auto feature : features) {
+  for (size_t i = 0; i < supportedFeatures.featureCount; i++) {
+    wgpu::WGSLLanguageFeatureName feature = supportedFeatures.features[i];
     std::string name;
     switch (feature) {
-    case wgpu::WGSLFeatureName::ReadonlyAndReadwriteStorageTextures:
+    case wgpu::WGSLLanguageFeatureName::ReadonlyAndReadwriteStorageTextures:
       name = "readonly_and_readwrite_storage_textures";
       break;
-    case wgpu::WGSLFeatureName::Packed4x8IntegerDotProduct:
+    case wgpu::WGSLLanguageFeatureName::Packed4x8IntegerDotProduct:
       name = "packed_4x8_integer_dot_product";
       break;
-    case wgpu::WGSLFeatureName::UnrestrictedPointerParameters:
+    case wgpu::WGSLLanguageFeatureName::UnrestrictedPointerParameters:
       name = "unrestricted_pointer_parameters";
       break;
-    case wgpu::WGSLFeatureName::PointerCompositeAccess:
+    case wgpu::WGSLLanguageFeatureName::PointerCompositeAccess:
       name = "pointer_composite_access";
       break;
-    case wgpu::WGSLFeatureName::ChromiumTestingUnimplemented:
+    case wgpu::WGSLLanguageFeatureName::ChromiumTestingUnimplemented:
       name = "chromium_testing_unimplemented";
       break;
-    case wgpu::WGSLFeatureName::ChromiumTestingUnsafeExperimental:
+    case wgpu::WGSLLanguageFeatureName::ChromiumTestingUnsafeExperimental:
       name = "chromium_testing_unsafe_experimental";
       break;
-    case wgpu::WGSLFeatureName::ChromiumTestingExperimental:
+    case wgpu::WGSLLanguageFeatureName::ChromiumTestingExperimental:
       name = "chromium_testing_experimental";
       break;
-    case wgpu::WGSLFeatureName::ChromiumTestingShippedWithKillswitch:
+    case wgpu::WGSLLanguageFeatureName::ChromiumTestingShippedWithKillswitch:
       name = "chromium_testing_shipped_with_killswitch";
       break;
-    case wgpu::WGSLFeatureName::ChromiumTestingShipped:
+    case wgpu::WGSLLanguageFeatureName::ChromiumTestingShipped:
       name = "chromium_testing_shipped";
       break;
     }
