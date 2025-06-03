@@ -3,131 +3,127 @@
 namespace rnwgpu {
 
 double GPUSupportedLimits::getMaxTextureDimension1D() {
-  return _instance.limits.maxTextureDimension1D;
+  return _instance.maxTextureDimension1D;
 }
 
 double GPUSupportedLimits::getMaxTextureDimension2D() {
-  return _instance.limits.maxTextureDimension2D;
+  return _instance.maxTextureDimension2D;
 }
 
 double GPUSupportedLimits::getMaxTextureDimension3D() {
-  return _instance.limits.maxTextureDimension3D;
+  return _instance.maxTextureDimension3D;
 }
 
 double GPUSupportedLimits::getMaxTextureArrayLayers() {
-  return _instance.limits.maxTextureArrayLayers;
+  return _instance.maxTextureArrayLayers;
 }
 
 double GPUSupportedLimits::getMaxBindGroups() {
-  return _instance.limits.maxBindGroups;
+  return _instance.maxBindGroups;
 }
 
 double GPUSupportedLimits::getMaxBindGroupsPlusVertexBuffers() {
-  return _instance.limits.maxBindGroupsPlusVertexBuffers;
+  return _instance.maxBindGroupsPlusVertexBuffers;
 }
 
 double GPUSupportedLimits::getMaxBindingsPerBindGroup() {
-  return _instance.limits.maxBindingsPerBindGroup;
+  return _instance.maxBindingsPerBindGroup;
 }
 
 double GPUSupportedLimits::getMaxDynamicUniformBuffersPerPipelineLayout() {
-  return _instance.limits.maxDynamicUniformBuffersPerPipelineLayout;
+  return _instance.maxDynamicUniformBuffersPerPipelineLayout;
 }
 
 double GPUSupportedLimits::getMaxDynamicStorageBuffersPerPipelineLayout() {
-  return _instance.limits.maxDynamicStorageBuffersPerPipelineLayout;
+  return _instance.maxDynamicStorageBuffersPerPipelineLayout;
 }
 
 double GPUSupportedLimits::getMaxSampledTexturesPerShaderStage() {
-  return _instance.limits.maxSampledTexturesPerShaderStage;
+  return _instance.maxSampledTexturesPerShaderStage;
 }
 
 double GPUSupportedLimits::getMaxSamplersPerShaderStage() {
-  return _instance.limits.maxSamplersPerShaderStage;
+  return _instance.maxSamplersPerShaderStage;
 }
 
 double GPUSupportedLimits::getMaxStorageBuffersPerShaderStage() {
-  return _instance.limits.maxStorageBuffersPerShaderStage;
+  return _instance.maxStorageBuffersPerShaderStage;
 }
 
 double GPUSupportedLimits::getMaxStorageTexturesPerShaderStage() {
-  return _instance.limits.maxStorageTexturesPerShaderStage;
+  return _instance.maxStorageTexturesPerShaderStage;
 }
 
 double GPUSupportedLimits::getMaxUniformBuffersPerShaderStage() {
-  return _instance.limits.maxUniformBuffersPerShaderStage;
+  return _instance.maxUniformBuffersPerShaderStage;
 }
 
 double GPUSupportedLimits::getMaxUniformBufferBindingSize() {
-  return _instance.limits.maxUniformBufferBindingSize;
+  return _instance.maxUniformBufferBindingSize;
 }
 
 double GPUSupportedLimits::getMaxStorageBufferBindingSize() {
-  return _instance.limits.maxStorageBufferBindingSize;
+  return _instance.maxStorageBufferBindingSize;
 }
 
 double GPUSupportedLimits::getMinUniformBufferOffsetAlignment() {
-  return _instance.limits.minUniformBufferOffsetAlignment;
+  return _instance.minUniformBufferOffsetAlignment;
 }
 
 double GPUSupportedLimits::getMinStorageBufferOffsetAlignment() {
-  return _instance.limits.minStorageBufferOffsetAlignment;
+  return _instance.minStorageBufferOffsetAlignment;
 }
 
 double GPUSupportedLimits::getMaxVertexBuffers() {
-  return _instance.limits.maxVertexBuffers;
+  return _instance.maxVertexBuffers;
 }
 
 double GPUSupportedLimits::getMaxBufferSize() {
-  return _instance.limits.maxBufferSize;
+  return _instance.maxBufferSize;
 }
 
 double GPUSupportedLimits::getMaxVertexAttributes() {
-  return _instance.limits.maxVertexAttributes;
+  return _instance.maxVertexAttributes;
 }
 
 double GPUSupportedLimits::getMaxVertexBufferArrayStride() {
-  return _instance.limits.maxVertexBufferArrayStride;
-}
-
-double GPUSupportedLimits::getMaxInterStageShaderComponents() {
-  return _instance.limits.maxInterStageShaderComponents;
+  return _instance.maxVertexBufferArrayStride;
 }
 
 double GPUSupportedLimits::getMaxInterStageShaderVariables() {
-  return _instance.limits.maxInterStageShaderVariables;
+  return _instance.maxInterStageShaderVariables;
 }
 
 double GPUSupportedLimits::getMaxColorAttachments() {
-  return _instance.limits.maxColorAttachments;
+  return _instance.maxColorAttachments;
 }
 
 double GPUSupportedLimits::getMaxColorAttachmentBytesPerSample() {
-  return _instance.limits.maxColorAttachmentBytesPerSample;
+  return _instance.maxColorAttachmentBytesPerSample;
 }
 
 double GPUSupportedLimits::getMaxComputeWorkgroupStorageSize() {
-  return _instance.limits.maxComputeWorkgroupStorageSize;
+  return _instance.maxComputeWorkgroupStorageSize;
 }
 
 double GPUSupportedLimits::getMaxComputeInvocationsPerWorkgroup() {
-  return _instance.limits.maxComputeInvocationsPerWorkgroup;
+  return _instance.maxComputeInvocationsPerWorkgroup;
 }
 
 double GPUSupportedLimits::getMaxComputeWorkgroupSizeX() {
-  return _instance.limits.maxComputeWorkgroupSizeX;
+  return _instance.maxComputeWorkgroupSizeX;
 }
 
 double GPUSupportedLimits::getMaxComputeWorkgroupSizeY() {
-  return _instance.limits.maxComputeWorkgroupSizeY;
+  return _instance.maxComputeWorkgroupSizeY;
 }
 
 double GPUSupportedLimits::getMaxComputeWorkgroupSizeZ() {
-  return _instance.limits.maxComputeWorkgroupSizeZ;
+  return _instance.maxComputeWorkgroupSizeZ;
 }
 
 double GPUSupportedLimits::getMaxComputeWorkgroupsPerDimension() {
-  return _instance.limits.maxComputeWorkgroupsPerDimension;
+  return _instance.maxComputeWorkgroupsPerDimension;
 }
 
 } // namespace rnwgpu

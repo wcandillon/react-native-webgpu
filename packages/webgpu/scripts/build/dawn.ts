@@ -96,7 +96,9 @@ const apple = {
 (async () => {
   process.chdir("../..");
   process.chdir("externals/dawn");
-  $("git reset --hard HEAD");
+  $(
+    "git reset --hard HEAD && cd third_party/abseil-cpp && git reset --hard HEAD && cd ../..",
+  );
   $(`git apply ${__dirname}/static_build.patch`);
   process.chdir("../..");
   console.log("Copy headers");

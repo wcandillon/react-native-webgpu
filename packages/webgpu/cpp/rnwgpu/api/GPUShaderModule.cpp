@@ -25,9 +25,6 @@ GPUShaderModule::getCompilationInfo() {
               message.linePos = wgpuMessage.linePos;
               message.offset = wgpuMessage.offset;
               message.length = wgpuMessage.length;
-              message.utf16LinePos = wgpuMessage.utf16LinePos;
-              message.utf16Offset = wgpuMessage.utf16Offset;
-              message.utf16Length = wgpuMessage.utf16Length;
               result->_messages.push_back(std::move(message));
             }
           }
