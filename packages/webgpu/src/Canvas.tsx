@@ -61,37 +61,37 @@ interface Size {
 }
 
 const useSizeFabric = (ref: RefObject<View>, onSizeChange: (v: Size) => void) => {
-  const [sizeSignal] = useImmediate<null | Size>(null);
+  const [sizeImmediate] = useImmediate<null | Size>(null);
   useLayoutEffect(() => {
     if (!ref.current) {
       throw new Error("Canvas ref is null");
     }
     ref.current.measureInWindow((_x, _y, width, height) => {
       const size: Size = { width, height };
-      sizeSignal.set(size);
+      sizeImmediate.set(size);
       onSizeChange(size);
     });
   }, [ref]);
-  return { sizeSignal, onLayout: undefined };
+  return { sizeImmediate, onLayout: undefined };
 };
 
 const useSizePaper = (_ref: RefObject<View>, onSizeChange: (v: Size) => void) => {
-  const [sizeSignal] = useImmediate<null | Size>(null);
+  const [sizeImmediate] = useImmediate<null | Size>(null);
   const onLayout = useCallback<(event: LayoutChangeEvent) => void>(
     ({
       nativeEvent: {
         layout: { width, height },
       },
     }) => {
-      if (sizeSignal.get() === null) {
+      if (sizeImmediate.get() === null) {
         const size: Size = { width, height };
-        sizeSignal.set(size);
+        sizeImmediate.set(size);
         onSizeChange(size);
       }
     },
-    [sizeSignal],
+    [sizeImmediate],
   );
-  return { sizeSignal, onLayout };
+  return { sizeImmediate, onLayout };
 };
 
 export const Canvas = forwardRef<
@@ -109,25 +109,25 @@ export const Canvas = forwardRef<
     whenReadyCallbacks.current.forEach(cb => cb());
     whenReadyCallbacks.current = [];
   }, []);
-  const { sizeSignal, onLayout } = useSize(viewRef, onSizeChange);
+  const { sizeImmediate, onLayout } = useSize(viewRef, onSizeChange);
   
   useImperativeHandle(ref, () => ({
     getContextId: () => contextId,
     getNativeSurface: () => {
-      if (sizeSignal.get() === null) {
+      if (sizeImmediate.get() === null) {
         throw new Error("[WebGPU] Canvas size is not available yet");
       }
       return RNWebGPU.getNativeSurface(contextId);
     },
     whenReady(callback: () => void) {
-      if (sizeSignal.get() === null) {
+      if (sizeImmediate.get() === null) {
         whenReadyCallbacks.current.push(callback);
       } else {
         callback();
       }
     },
     getContext(contextName: "webgpu"): RNCanvasContext | null {
-      const size = sizeSignal.get();
+      const size = sizeImmediate.get();
       if (contextName !== "webgpu") {
         throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
       }

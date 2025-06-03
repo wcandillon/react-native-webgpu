@@ -4507,7 +4507,7 @@ __metadata:
     react-native: 0.79.2
     react-native-gesture-handler: ^2.17.1
     react-native-macos: ^0.78.3
-    react-native-reanimated: ^3.17.5
+    react-native-reanimated: ^3.12.1
     react-native-safe-area-context: ^5.4.0
     react-native-test-app: 4.3.10
     react-native-wgpu: "*"
@@ -11996,7 +11996,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-reanimated@npm:^3.17.5":
+"react-native-reanimated@npm:^3.12.1":
   version: 3.17.5
   resolution: "react-native-reanimated@npm:3.17.5"
   dependencies:
