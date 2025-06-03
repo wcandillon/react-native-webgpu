@@ -1,6 +1,6 @@
 import { useReducer, useState } from "react";
 
-export interface Signal<T> {
+export interface Immediate<T> {
   /** Get latest value */
   get(): T;
   set(value: T): void;
@@ -10,12 +10,12 @@ function emptyReducer<T>(value: T): T {
   return value;
 }
 
-interface CreateSignalOptions<T> {
-  initialValue: T;
+interface CreateImmediateOptions<T> {
+  readonly initialValue: T;
   setValue(v: T): void;
 }
 
-function createSignal<T>(options: CreateSignalOptions<T>): Signal<T> {
+function createImmediate<T>(options: CreateImmediateOptions<T>): Immediate<T> {
   let value = options.initialValue;
 
   return {
@@ -30,17 +30,17 @@ function createSignal<T>(options: CreateSignalOptions<T>): Signal<T> {
 }
 
 /**
- * A replacement for `useState` that returns a "Signal", which in this case is an object
- * that allows to read the latest value, and to write a new value. It's object identity
+ * A replacement for `useState` that returns an "Immediate", which in this case is an object
+ * that allows to read the latest value, and to write a new value. Its object identity
  * is stable, and does not change when writing a new value. That also means that it's
  * not reactive (you can't depend on it in useMemo or useEffect). For that, use the
  * second value from the returned tuple.
  * @param initialValue 
  * @returns 
  */
-export function useSignal<T>(initialValue: T): [Signal<T>, T] {
+export function useImmediate<T>(initialValue: T): [Immediate<T>, T] {
   const [value, setValue] = useState(initialValue);
-  const [signal] = useReducer(emptyReducer<Signal<T>>, { initialValue, setValue }, createSignal<T>);
+  const [immediate] = useReducer(emptyReducer<Immediate<T>>, { initialValue, setValue }, createImmediate<T>);
 
-  return [signal, value] as const;
+  return [immediate, value] as const;
 }

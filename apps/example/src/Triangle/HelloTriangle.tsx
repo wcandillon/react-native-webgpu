@@ -4,10 +4,6 @@ import { Canvas, useCanvasEffect } from "react-native-wgpu";
 
 import { redFragWGSL, triangleVertWGSL } from "./triangle";
 
-const onAbort = (signal: AbortSignal, cb: () => unknown) => {
-  signal.addEventListener('abort', cb);
-}
-
 export function HelloTriangle() {
   const ref = useCanvasEffect(useCallback(async (signal) => {
     const adapter = await navigator.gpu.requestAdapter();
@@ -15,9 +11,9 @@ export function HelloTriangle() {
       throw new Error("No adapter");
     }
     const device = await adapter.requestDevice();
-    onAbort(signal, () => device.destroy());
 
     if (signal.aborted) {
+      device.destroy();
       return;
     }
 
@@ -29,6 +25,7 @@ export function HelloTriangle() {
     canvas.height = canvas.clientHeight * PixelRatio.get();
 
     if (!context) {
+      device.destroy();
       throw new Error("No context");
     }
 
@@ -85,6 +82,7 @@ export function HelloTriangle() {
     device.queue.submit([commandEncoder.finish()]);
 
     context.present();
+    device.destroy();
   }, []));
 
   return (

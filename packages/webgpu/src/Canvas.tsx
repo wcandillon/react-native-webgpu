@@ -11,7 +11,7 @@ import {
 import type { RefObject } from "react";
 
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
-import { useSignal } from "./useSignal";
+import { useImmediate } from "./useImmediate";
 
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
@@ -61,7 +61,7 @@ interface Size {
 }
 
 const useSizeFabric = (ref: RefObject<View>, onSizeChange: (v: Size) => void) => {
-  const [sizeSignal] = useSignal<null | Size>(null);
+  const [sizeSignal] = useImmediate<null | Size>(null);
   useLayoutEffect(() => {
     if (!ref.current) {
       throw new Error("Canvas ref is null");
@@ -76,7 +76,7 @@ const useSizeFabric = (ref: RefObject<View>, onSizeChange: (v: Size) => void) =>
 };
 
 const useSizePaper = (_ref: RefObject<View>, onSizeChange: (v: Size) => void) => {
-  const [sizeSignal] = useSignal<null | Size>(null);
+  const [sizeSignal] = useImmediate<null | Size>(null);
   const onLayout = useCallback<(event: LayoutChangeEvent) => void>(
     ({
       nativeEvent: {
