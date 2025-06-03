@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
-import type { RNCanvasContext, CanvasRef, NativeCanvas } from "./Canvas";
+import type {} from "./Canvas";
+import { CanvasRef, NativeCanvas, RNCanvasContext } from "./types";
 
 type Unsubscribe = () => void;
 
