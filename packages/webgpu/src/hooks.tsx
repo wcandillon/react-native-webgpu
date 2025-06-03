@@ -1,5 +1,12 @@
 import type { ReactNode, RefObject } from "react";
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import type { RNCanvasContext, CanvasRef, NativeCanvas } from "./Canvas";
 
@@ -43,10 +50,12 @@ export const GPUDeviceProvider = ({
 
 export const useSurface = () => {
   const [surface, setSurface] = useState<NativeCanvas | null>(null);
-  const ref = useCanvasEffect(() => {
-    const sur = ref.current!.getNativeSurface();
-    setSurface(sur);
-  });
+  const ref = useCanvasEffect(
+    useCallback(({ canvasRef }) => {
+      const sur = canvasRef.getNativeSurface();
+      setSurface(sur);
+    }, []),
+  );
   return { ref, surface };
 };
 
@@ -85,22 +94,24 @@ export const useDevice = (
 
     return () => {
       mounted = false;
-    }
+    };
   }, [adapterOptions, deviceDescriptor, state]);
   return { adapter: state?.adapter ?? null, device: state?.device ?? null };
 };
 
 export function useGPUContext(): {
-  ref: RefObject<CanvasRef>,
-  context: RNCanvasContext | null,
+  ref: RefObject<CanvasRef>;
+  context: RNCanvasContext | null;
 } {
   const [context, setContext] = useState<RNCanvasContext | null>(null);
-  const ref = useCanvasEffect(useCallback(() => {
-    const ctx = ref.current!.getContext("webgpu")!;
-    setContext(ctx);
-  }, []));
+  const ref = useCanvasEffect(
+    useCallback(({ canvasRef }) => {
+      const ctx = canvasRef.getContext("webgpu")!;
+      setContext(ctx);
+    }, []),
+  );
   return { ref, context };
-};
+}
 
 type EffectReturn =
   | void
@@ -108,30 +119,39 @@ type EffectReturn =
   | Promise<Unsubscribe | void>
   | Promise<void>;
 
-export function useCanvasEffect(effect: (signal: AbortSignal) => EffectReturn): RefObject<CanvasRef> {
+interface CanvasEffectContext {
+  signal: AbortSignal;
+  canvasRef: CanvasRef;
+}
+
+export function useCanvasEffect(
+  effect: (ctx: CanvasEffectContext) => EffectReturn,
+): RefObject<CanvasRef> {
   const ref = useRef<CanvasRef>(null);
 
   useEffect(() => {
     const ctrl = new AbortController();
     let unsub: EffectReturn;
 
-    if (!ref.current || !ref.current.whenReady) {
+    const canvasRef = ref.current;
+
+    if (!canvasRef || !canvasRef.whenReady) {
       throw new Error("The reference is not assigned to a WebGPU Canvas");
     }
 
-    ref.current.whenReady(() => {
+    canvasRef.whenReady(() => {
       if (ctrl.signal.aborted) {
         return;
       }
 
-      unsub = effect(ctrl.signal);
+      unsub = effect({ signal: ctrl.signal, canvasRef });
     });
-    
+
     return () => {
       ctrl.abort();
 
       if (unsub) {
-        if ('then' in unsub) {
+        if ("then" in unsub) {
           unsub.then((cb) => cb && cb());
         } else {
           unsub();
@@ -141,4 +161,4 @@ export function useCanvasEffect(effect: (signal: AbortSignal) => EffectReturn): 
   }, [effect]);
 
   return ref;
-};
+}

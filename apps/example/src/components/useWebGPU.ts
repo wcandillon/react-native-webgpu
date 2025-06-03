@@ -43,10 +43,10 @@ export const useWebGPU = (scene: Scene) => {
 
     let handle: number | undefined;
     const abortCtrl = new AbortController();
-    
+
     (async () => {
       let renderScene: RenderScene;
-      if (r && 'then' in r) {
+      if (r && "then" in r) {
         renderScene = await r;
       } else {
         renderScene = r as RenderScene;
@@ -66,7 +66,7 @@ export const useWebGPU = (scene: Scene) => {
 
       render();
     })();
-    
+
     return () => {
       abortCtrl.abort();
       if (handle !== undefined) {

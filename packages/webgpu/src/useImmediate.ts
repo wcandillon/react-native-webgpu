@@ -35,12 +35,14 @@ function createImmediate<T>(options: CreateImmediateOptions<T>): Immediate<T> {
  * is stable, and does not change when writing a new value. That also means that it's
  * not reactive (you can't depend on it in useMemo or useEffect). For that, use the
  * second value from the returned tuple.
- * @param initialValue 
- * @returns 
  */
 export function useImmediate<T>(initialValue: T): [Immediate<T>, T] {
   const [value, setValue] = useState(initialValue);
-  const [immediate] = useReducer(emptyReducer<Immediate<T>>, { initialValue, setValue }, createImmediate<T>);
+  const [immediate] = useReducer(
+    emptyReducer<Immediate<T>>,
+    { initialValue, setValue },
+    createImmediate<T>,
+  );
 
   return [immediate, value] as const;
 }

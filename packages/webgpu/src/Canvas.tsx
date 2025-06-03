@@ -60,7 +60,10 @@ interface Size {
   height: number;
 }
 
-const useSizeFabric = (ref: RefObject<View>, onSizeChange: (v: Size) => void) => {
+const useSizeFabric = (
+  ref: RefObject<View>,
+  onSizeChange: (v: Size) => void,
+) => {
   const [sizeImmediate] = useImmediate<null | Size>(null);
   useLayoutEffect(() => {
     if (!ref.current) {
@@ -71,11 +74,14 @@ const useSizeFabric = (ref: RefObject<View>, onSizeChange: (v: Size) => void) =>
       sizeImmediate.set(size);
       onSizeChange(size);
     });
-  }, [ref]);
+  }, [ref, sizeImmediate, onSizeChange]);
   return { sizeImmediate, onLayout: undefined };
 };
 
-const useSizePaper = (_ref: RefObject<View>, onSizeChange: (v: Size) => void) => {
+const useSizePaper = (
+  _ref: RefObject<View>,
+  onSizeChange: (v: Size) => void,
+) => {
   const [sizeImmediate] = useImmediate<null | Size>(null);
   const onLayout = useCallback<(event: LayoutChangeEvent) => void>(
     ({
@@ -89,7 +95,7 @@ const useSizePaper = (_ref: RefObject<View>, onSizeChange: (v: Size) => void) =>
         onSizeChange(size);
       }
     },
-    [sizeImmediate],
+    [sizeImmediate, onSizeChange],
   );
   return { sizeImmediate, onLayout };
 };
@@ -106,11 +112,11 @@ export const Canvas = forwardRef<
   const onSizeChange = useCallback(() => {
     // The size of the canvas has been computed, meaning we're ready
     // to display things on it!
-    whenReadyCallbacks.current.forEach(cb => cb());
+    whenReadyCallbacks.current.forEach((cb) => cb());
     whenReadyCallbacks.current = [];
   }, []);
   const { sizeImmediate, onLayout } = useSize(viewRef, onSizeChange);
-  
+
   useImperativeHandle(ref, () => ({
     getContextId: () => contextId,
     getNativeSurface: () => {

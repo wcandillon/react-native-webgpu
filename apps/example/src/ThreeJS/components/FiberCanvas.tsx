@@ -9,6 +9,7 @@ import {
 } from "@react-three/fiber";
 import type { ViewProps } from "react-native";
 import { PixelRatio } from "react-native";
+import type { NativeCanvas } from "react-native-wgpu";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 
 import { makeWebGPURenderer, ReactNativeCanvas } from "./makeWebGPURenderer";
@@ -32,49 +33,56 @@ export const FiberCanvas = ({
 
   React.useMemo(() => extend(THREE), []);
 
-  const canvasRef = useCanvasEffect(useCallback(async () => {
-    const context = canvasRef.current!.getContext("webgpu")!;
-    const renderer = makeWebGPURenderer(context);
+  const ref = useCanvasEffect(
+    useCallback(
+      async ({ canvasRef }) => {
+        const context = canvasRef.getContext("webgpu")!;
+        const renderer = makeWebGPURenderer(context);
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    const canvas = new ReactNativeCanvas(context.canvas) as HTMLCanvasElement;
-    canvas.width = canvas.clientWidth * PixelRatio.get();
-    canvas.height = canvas.clientHeight * PixelRatio.get();
-    const size = {
-      top: 0,
-      left: 0,
-      width: canvas.clientWidth,
-      height: canvas.clientHeight,
-    };
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
+        const canvas = new ReactNativeCanvas(
+          context.canvas as unknown as NativeCanvas,
+        ) as HTMLCanvasElement;
+        canvas.width = canvas.clientWidth * PixelRatio.get();
+        canvas.height = canvas.clientHeight * PixelRatio.get();
+        const size = {
+          top: 0,
+          left: 0,
+          width: canvas.clientWidth,
+          height: canvas.clientHeight,
+        };
 
-    if (!root.current) {
-      root.current = createRoot(canvas);
-    }
-    root.current.configure({
-      size,
-      events,
-      scene,
-      camera,
-      gl: renderer,
-      frameloop: "always",
-      dpr: 1, //PixelRatio.get(),
-      onCreated: async (state: RootState) => {
-        await state.gl.init();
-        const renderFrame = state.gl.render.bind(state.gl);
-        state.gl.render = (s: THREE.Scene, c: THREE.Camera) => {
-          renderFrame(s, c);
-          context?.present();
+        if (!root.current) {
+          root.current = createRoot(canvas);
+        }
+        root.current.configure({
+          size,
+          events,
+          scene,
+          camera,
+          gl: renderer,
+          frameloop: "always",
+          dpr: 1, //PixelRatio.get(),
+          onCreated: async (state: RootState) => {
+            await state.gl.init();
+            const renderFrame = state.gl.render.bind(state.gl);
+            state.gl.render = (s: THREE.Scene, c: THREE.Camera) => {
+              renderFrame(s, c);
+              context?.present();
+            };
+          },
+        });
+        root.current.render(children);
+        return () => {
+          if (canvas != null) {
+            unmountComponentAtNode(canvas!);
+          }
         };
       },
-    });
-    root.current.render(children);
-    return () => {
-      if (canvas != null) {
-        unmountComponentAtNode(canvas!);
-      }
-    };
-  }, [scene, camera]));
+      [scene, camera, children],
+    ),
+  );
 
-  return <Canvas ref={canvasRef} style={style} />;
+  return <Canvas ref={ref} style={style} />;
 };
