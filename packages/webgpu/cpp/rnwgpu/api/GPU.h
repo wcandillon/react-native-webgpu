@@ -12,10 +12,14 @@
 
 #include "AsyncRunner.h"
 
+#include "dawn/dawn_proc.h"
+#include "dawn/native/DawnNative.h"
 #include "webgpu/webgpu_cpp.h"
 
 #include "GPUAdapter.h"
 #include "GPURequestAdapterOptions.h"
+
+#include <webgpu/webgpu.h>
 
 namespace rnwgpu {
 
@@ -25,8 +29,8 @@ class GPU : public m::HybridObject {
 public:
   GPU() : HybridObject("GPU") {
     wgpu::InstanceDescriptor instanceDesc;
-    instanceDesc.features.timedWaitAnyEnable = true;
-    instanceDesc.features.timedWaitAnyMaxCount = 64;
+    instanceDesc.capabilities.timedWaitAnyEnable = true;
+    instanceDesc.capabilities.timedWaitAnyMaxCount = 64;
     _instance = wgpu::CreateInstance(&instanceDesc);
     auto instance = &_instance;
     _async = std::make_shared<AsyncRunner>(instance);

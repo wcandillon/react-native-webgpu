@@ -21,15 +21,17 @@ std::future<std::shared_ptr<GPUDevice>> GPUAdapter::requestDevice(
   if (!conv(aDescriptor, descriptor)) {
     throw std::runtime_error("Failed to convert GPUDeviceDescriptor");
   }
-  wgpu::DeviceLostCallbackInfo info = {
-      .callback = [](WGPUDevice const *device, WGPUDeviceLostReason reason,
-                     const WGPUStringView message, void *userdata) {
+  // Set device lost callback using new template API
+  aDescriptor.SetDeviceLostCallback(
+      wgpu::CallbackMode::AllowSpontaneous,
+      [](const wgpu::Device &device, wgpu::DeviceLostReason reason,
+         wgpu::StringView message) {
         const char *lostReason = "";
         switch (reason) {
-        case WGPUDeviceLostReason_Destroyed:
+        case wgpu::DeviceLostReason::Destroyed:
           lostReason = "Destroyed";
           break;
-        case WGPUDeviceLostReason_Unknown:
+        case wgpu::DeviceLostReason::Unknown:
           lostReason = "Unknown";
           break;
         default:
@@ -37,43 +39,46 @@ std::future<std::shared_ptr<GPUDevice>> GPUAdapter::requestDevice(
         }
         Logger::logToConsole("GPU Device Lost (%s): %s", lostReason,
                              message.data);
-      }};
-  aDescriptor.deviceLostCallbackInfo = info;
-  wgpu::UncapturedErrorCallbackInfo errorInfo;
-  errorInfo.userdata = static_cast<void *>(_creationRuntime);
-  errorInfo.callback = [](WGPUErrorType type, const WGPUStringView message,
-                          void *userdata) {
-    auto creationRuntime = static_cast<jsi::Runtime *>(userdata);
+      });
+
+  // Set uncaptured error callback using new template API
+  aDescriptor.SetUncapturedErrorCallback([](const wgpu::Device &device,
+                                            wgpu::ErrorType type,
+                                            wgpu::StringView message) {
     const char *errorType = "";
     switch (type) {
-    case WGPUErrorType_Validation:
+    case wgpu::ErrorType::Validation:
       errorType = "Validation";
       break;
-    case WGPUErrorType_OutOfMemory:
+    case wgpu::ErrorType::OutOfMemory:
       errorType = "Out of Memory";
       break;
-    case WGPUErrorType_Internal:
+    case wgpu::ErrorType::Internal:
       errorType = "Internal";
       break;
-    case WGPUErrorType_Unknown:
+    case wgpu::ErrorType::Unknown:
       errorType = "Unknown";
       break;
     default:
       errorType = "Unknown";
     }
-    std::string fullMessage = std::string(errorType) + ": " + message.data;
-    Logger::errorToJavascriptConsole(*creationRuntime, fullMessage);
-  };
-  aDescriptor.uncapturedErrorCallbackInfo = errorInfo;
+    std::string fullMessage =
+        message.length > 0 ? std::string(errorType) + ": " +
+                                 std::string(message.data, message.length)
+                           : "no message";
+    fprintf(stderr, "%s", fullMessage.c_str());
+  });
   _instance.RequestDevice(
-      &aDescriptor,
-      [](WGPURequestDeviceStatus status, WGPUDevice cDevice,
-         const WGPUStringView message, void *userdata) {
+      &aDescriptor, wgpu::CallbackMode::AllowSpontaneous,
+      [](wgpu::RequestDeviceStatus status, wgpu::Device device,
+         wgpu::StringView message, wgpu::Device *userdata) {
         if (message.length) {
           fprintf(stderr, "%s", message.data);
           return;
         }
-        *static_cast<wgpu::Device *>(userdata) = wgpu::Device::Acquire(cDevice);
+        if (status == wgpu::RequestDeviceStatus::Success) {
+          *userdata = std::move(device);
+        }
       },
       &device);
 
@@ -81,28 +86,32 @@ std::future<std::shared_ptr<GPUDevice>> GPUAdapter::requestDevice(
     throw std::runtime_error("Failed to request device");
   }
   device.SetLoggingCallback(
-      [](WGPULoggingType type, const WGPUStringView message, void *userdata) {
-        auto creationRuntime = static_cast<jsi::Runtime *>(userdata);
+      [creationRuntime = _creationRuntime](wgpu::LoggingType type,
+                                           wgpu::StringView message) {
         const char *logLevel = "";
         switch (type) {
-        case WGPULoggingType_Warning:
+        case wgpu::LoggingType::Warning:
           logLevel = "Warning";
-          Logger::warnToJavascriptConsole(*creationRuntime, message.data);
+          Logger::warnToJavascriptConsole(
+              *creationRuntime, std::string(message.data, message.length));
           break;
-        case WGPULoggingType_Error:
+        case wgpu::LoggingType::Error:
           logLevel = "Error";
-          Logger::errorToJavascriptConsole(*creationRuntime, message.data);
+          Logger::errorToJavascriptConsole(
+              *creationRuntime, std::string(message.data, message.length));
           break;
-        case WGPULoggingType_Verbose:
+        case wgpu::LoggingType::Verbose:
           logLevel = "Verbose";
-        case WGPULoggingType_Info:
+          break;
+        case wgpu::LoggingType::Info:
           logLevel = "Info";
+          break;
         default:
           logLevel = "Unknown";
-          Logger::logToConsole("%s: %s", logLevel, message);
+          Logger::logToConsole("%s: %.*s", logLevel,
+                               static_cast<int>(message.length), message.data);
         }
-      },
-      _creationRuntime);
+      });
   std::string label =
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "";
   promise.set_value(
@@ -111,11 +120,11 @@ std::future<std::shared_ptr<GPUDevice>> GPUAdapter::requestDevice(
 }
 
 std::unordered_set<std::string> GPUAdapter::getFeatures() {
-  size_t count = _instance.EnumerateFeatures(nullptr);
-  std::vector<wgpu::FeatureName> features(count);
-  _instance.EnumerateFeatures(features.data());
+  wgpu::SupportedFeatures supportedFeatures;
+  _instance.GetFeatures(&supportedFeatures);
   std::unordered_set<std::string> result;
-  for (auto feature : features) {
+  for (size_t i = 0; i < supportedFeatures.featureCount; ++i) {
+    auto feature = supportedFeatures.features[i];
     std::string name;
     convertEnumToJSUnion(feature, &name);
     if (name != "") {
@@ -126,7 +135,7 @@ std::unordered_set<std::string> GPUAdapter::getFeatures() {
 }
 
 std::shared_ptr<GPUSupportedLimits> GPUAdapter::getLimits() {
-  wgpu::SupportedLimits limits{};
+  wgpu::Limits limits{};
   if (!_instance.GetLimits(&limits)) {
     throw std::runtime_error("Failed to get limits");
   }

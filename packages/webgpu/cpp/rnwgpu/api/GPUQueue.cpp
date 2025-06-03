@@ -87,8 +87,8 @@ void GPUQueue::copyExternalImageToTexture(
     std::shared_ptr<GPUImageCopyExternalImage> source,
     std::shared_ptr<GPUImageCopyTextureTagged> destination,
     std::shared_ptr<GPUExtent3D> size) {
-  wgpu::ImageCopyTexture dst{};
-  wgpu::TextureDataLayout layout{};
+  wgpu::TexelCopyTextureInfo dst{};
+  wgpu::TexelCopyBufferLayout layout{};
   wgpu::Extent3D sz{};
   Convertor conv;
   uint32_t bytesPerPixel =
@@ -137,8 +137,8 @@ void GPUQueue::writeTexture(std::shared_ptr<GPUImageCopyTexture> destination,
                             std::shared_ptr<ArrayBuffer> data,
                             std::shared_ptr<GPUImageDataLayout> dataLayout,
                             std::shared_ptr<GPUExtent3D> size) {
-  wgpu::ImageCopyTexture dst{};
-  wgpu::TextureDataLayout layout{};
+  wgpu::TexelCopyTextureInfo dst{};
+  wgpu::TexelCopyBufferLayout layout{};
   wgpu::Extent3D sz{};
   Convertor conv;
   if (!conv(dst, destination) ||   //
