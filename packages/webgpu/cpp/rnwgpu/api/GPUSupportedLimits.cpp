@@ -90,9 +90,6 @@ double GPUSupportedLimits::getMaxVertexBufferArrayStride() {
   return _instance.maxVertexBufferArrayStride;
 }
 
-// getMaxInterStageShaderComponents removed (not available in new WebGPU
-// headers)
-
 double GPUSupportedLimits::getMaxInterStageShaderVariables() {
   return _instance.maxInterStageShaderVariables;
 }

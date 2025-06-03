@@ -44,8 +44,6 @@ public:
   double getMaxBufferSize();
   double getMaxVertexAttributes();
   double getMaxVertexBufferArrayStride();
-  // getMaxInterStageShaderComponents removed (not available in new WebGPU
-  // headers)
   double getMaxInterStageShaderVariables();
   double getMaxColorAttachments();
   double getMaxColorAttachmentBytesPerSample();
@@ -118,8 +116,6 @@ public:
     registerHybridGetter("maxVertexBufferArrayStride",
                          &GPUSupportedLimits::getMaxVertexBufferArrayStride,
                          this);
-    // maxInterStageShaderComponents removed (not available in new WebGPU
-    // headers)
     registerHybridGetter("maxInterStageShaderVariables",
                          &GPUSupportedLimits::getMaxInterStageShaderVariables,
                          this);

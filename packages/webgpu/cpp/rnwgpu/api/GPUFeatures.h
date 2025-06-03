@@ -62,9 +62,6 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::ImplicitDeviceSynchronization:
     *outUnion = "implicit-device-synchronization";
     break;
-    //  case wgpu::FeatureName::SurfaceCapabilities:
-    //    *outUnion = "surface-capabilities";
-    //    break;
   case wgpu::FeatureName::TransientAttachments:
     *outUnion = "transient-attachments";
     break;
@@ -81,12 +78,8 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
     *outUnion = "angle-texture-sharing";
     break;
   case wgpu::FeatureName::ChromiumExperimentalSubgroupMatrix:
-    *outUnion = "chromium-experimental-subgroups";
+    *outUnion = "chromium-experimental-subgroups-matrix";
     break;
-  // case wgpu::FeatureName::ChromiumExperimentalSubgroupUniformControlFlow: //
-  // Removed
-  //   *outUnion = "chromium-experimental-subgroup-uniform-control-flow";
-  //   break;
   case wgpu::FeatureName::PixelLocalStorageCoherent:
     *outUnion = "pixel-local-storage-coherent";
     break;

@@ -25,8 +25,6 @@ GPUShaderModule::getCompilationInfo() {
               message.linePos = wgpuMessage.linePos;
               message.offset = wgpuMessage.offset;
               message.length = wgpuMessage.length;
-              // utf16LinePos, utf16Offset, utf16Length removed (not available
-              // in new WebGPU headers)
               result->_messages.push_back(std::move(message));
             }
           }

@@ -22,8 +22,6 @@ struct GPUCompilationMessage {
   uint64_t linePos;
   uint64_t offset;
   uint64_t length;
-  // utf16LinePos, utf16Offset, utf16Length removed (not available in new WebGPU
-  // headers)
 };
 
 class GPUCompilationInfo : public m::HybridObject {
@@ -74,8 +72,6 @@ template <> struct JSIConverter<std::vector<rnwgpu::GPUCompilationMessage>> {
                              static_cast<double>(message.offset));
       messageObj.setProperty(runtime, "length",
                              static_cast<double>(message.length));
-      // utf16LinePos, utf16Offset, utf16Length removed (not available in new
-      // WebGPU headers)
       result.setValueAtIndex(runtime, i, messageObj);
     }
     return result;
