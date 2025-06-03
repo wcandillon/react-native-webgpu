@@ -1,11 +1,12 @@
 import * as THREE from "three";
+import { useCallback } from "react";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { View } from "react-native";
 
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 export const Cube = () => {
-  const ref = useCanvasEffect(async () => {
+  const ref = useCanvasEffect(useCallback(async () => {
     const context = ref.current!.getContext("webgpu")!;
     const { width, height } = context.canvas;
 
@@ -34,7 +35,7 @@ export const Cube = () => {
     return () => {
       renderer.setAnimationLoop(null);
     };
-  });
+  }, []));
 
   return (
     <View style={{ flex: 1 }}>

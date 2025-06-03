@@ -1,16 +1,26 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { StyleSheet, View, PixelRatio } from "react-native";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 
 import { redFragWGSL, triangleVertWGSL } from "./triangle";
 
+const onAbort = (signal: AbortSignal, cb: () => unknown) => {
+  signal.addEventListener('abort', cb);
+}
+
 export function HelloTriangle() {
-  const ref = useCanvasEffect(async () => {
+  const ref = useCanvasEffect(useCallback(async (signal) => {
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) {
       throw new Error("No adapter");
     }
     const device = await adapter.requestDevice();
+    onAbort(signal, () => device.destroy());
+
+    if (signal.aborted) {
+      return;
+    }
+
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
     const context = ref.current!.getContext("webgpu")!;
@@ -75,7 +85,7 @@ export function HelloTriangle() {
     device.queue.submit([commandEncoder.finish()]);
 
     context.present();
-  });
+  }, []));
 
   return (
     <View style={style.container}>

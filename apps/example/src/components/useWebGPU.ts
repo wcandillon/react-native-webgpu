@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { PixelRatio } from "react-native";
 import { useGPUContext, useDevice, type NativeCanvas } from "react-native-wgpu";
 
@@ -16,52 +16,61 @@ type Scene = (props: SceneProps) => RenderScene | void | Promise<RenderScene>;
 export const useWebGPU = (scene: Scene) => {
   const { device } = useDevice();
   const { ref, context } = useGPUContext();
-  const animationFrameId = useRef<number | null>(null);
   useEffect(() => {
+    if (!context || !device) {
+      return undefined; // No cleanup
+    }
+
+    const canvas = context.canvas as HTMLCanvasElement;
+    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+    canvas.width = canvas.clientWidth * PixelRatio.get();
+    canvas.height = canvas.clientHeight * PixelRatio.get();
+    context.configure({
+      device,
+      format: presentationFormat,
+      alphaMode: "premultiplied",
+    });
+
+    const sceneProps: SceneProps = {
+      context,
+      device,
+      gpu: navigator.gpu,
+      presentationFormat,
+      canvas: context.canvas as unknown as NativeCanvas,
+    };
+
+    const r = scene(sceneProps);
+
+    let handle: number | undefined;
+    const abortCtrl = new AbortController();
+    
     (async () => {
-      if (!context || !device) {
-        return;
-      }
-
-      const canvas = context.canvas as HTMLCanvasElement;
-      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-      canvas.width = canvas.clientWidth * PixelRatio.get();
-      canvas.height = canvas.clientHeight * PixelRatio.get();
-      context.configure({
-        device,
-        format: presentationFormat,
-        alphaMode: "premultiplied",
-      });
-
-      const sceneProps: SceneProps = {
-        context,
-        device,
-        gpu: navigator.gpu,
-        presentationFormat,
-        canvas: context.canvas as unknown as NativeCanvas,
-      };
-
-      const r = scene(sceneProps);
       let renderScene: RenderScene;
-      if (r instanceof Promise) {
+      if (r && 'then' in r) {
         renderScene = await r;
       } else {
         renderScene = r as RenderScene;
       }
-      if (typeof renderScene === "function") {
-        const render = () => {
-          const timestamp = Date.now();
-          renderScene(timestamp);
-          context.present();
-          animationFrameId.current = requestAnimationFrame(render);
-        };
 
-        animationFrameId.current = requestAnimationFrame(render);
+      if (typeof renderScene !== "function" || abortCtrl.signal.aborted) {
+        // No scene to render, or already aborted
+        return;
       }
+
+      const render = () => {
+        const timestamp = Date.now();
+        renderScene(timestamp);
+        context.present();
+        handle = requestAnimationFrame(render);
+      };
+
+      render();
     })();
+    
     return () => {
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
+      abortCtrl.abort();
+      if (handle !== undefined) {
+        cancelAnimationFrame(handle);
       }
     };
   }, [context, device, scene]);

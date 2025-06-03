@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import React, { useRef } from "react";
+import React, { useCallback, useRef } from "react";
 import type { ReconcilerRoot, RootState } from "@react-three/fiber";
 import {
   extend,
@@ -32,7 +32,7 @@ export const FiberCanvas = ({
 
   React.useMemo(() => extend(THREE), []);
 
-  const canvasRef = useCanvasEffect(async () => {
+  const canvasRef = useCanvasEffect(useCallback(async () => {
     const context = canvasRef.current!.getContext("webgpu")!;
     const renderer = makeWebGPURenderer(context);
 
@@ -74,7 +74,7 @@ export const FiberCanvas = ({
         unmountComponentAtNode(canvas!);
       }
     };
-  });
+  }, [scene, camera]));
 
   return <Canvas ref={canvasRef} style={style} />;
 };
