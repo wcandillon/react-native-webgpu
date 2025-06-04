@@ -212,16 +212,6 @@ cd packages/webgpu
 yarn build-dawn
 ```
 
-You can also filter the platforms to build, for instance to skip the macOS and visionOS build:
-```sh
-yarn build-dawn --exclude=xros,xrsimulator,macosx
-```
-
-Alternatively if you want to build for a specific platform only, you can use `includeOnly`.
-```sh
-yarn build-dawn --includeOnly=xros,xrsimulator
-```
-
 ### Downloading Dawn
 
 There is an alternative way which is to download the prebuilt binaries from GitHub.
