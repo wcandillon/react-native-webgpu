@@ -69,8 +69,18 @@ export const Canvas = forwardRef<
   const cb = useRef<() => void>();
   const { size, onLayout } = useSize(viewRef);
   useEffect(() => {
-    if (size && cb.current) {
+    const hasNonZeroDims = !!size?.height && !!size?.width;
+    if (size && hasNonZeroDims && cb.current) {
       cb.current();
+    }
+
+    if (size && !hasNonZeroDims) {
+      console.warn(
+        [
+          `react-native-wgpu canvas has zero dimensions (width:${size.width}px; height:${size.height}px)!`,
+          "Unable to initialize underlying canvas.",
+        ].join(" "),
+      );
     }
   }, [size]);
 
