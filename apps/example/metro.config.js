@@ -30,6 +30,14 @@ const extraConfig = {
           type: 'sourceFile',
         };
       }
+
+      if (moduleName === "@react-three/fiber") {
+        //Just use the vanilla web build of react three fiber, not the stale "native" code path which has not been kept up to date.
+        return {
+          filePath: path.resolve(r3fPath, "dist/react-three-fiber.esm.js"),
+          type: "sourceFile",
+        };
+      }
       // Let Metro handle other modules
       return context.resolveRequest(context, moduleName, platform);
     },

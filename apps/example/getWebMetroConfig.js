@@ -23,14 +23,6 @@ module.exports = function(metroConfig){
       };
     }
 
-    if (moduleName === "@react-three/fiber") {
-      //Do NOT use the stale react three fiber "native" version originally added for expo-gl
-      return {
-        filePath: path.resolve(r3fPath, "dist/react-three-fiber.esm.js"),
-        type: "sourceFile",
-      };
-    }
-
     // Let default config handle other modules
     return origResolveRequest(context, moduleName, platform);
   };

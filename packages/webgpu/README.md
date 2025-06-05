@@ -1,7 +1,7 @@
 # React Native WebGPU
 
-React Native implementation of WebGPU using [Dawn](https://dawn.googlesource.com/dawn).  
-This is currently a technical preview for early adopters.  
+React Native implementation of WebGPU using [Dawn](https://dawn.googlesource.com/dawn).
+This is currently a technical preview for early adopters.
 
 ## Installation
 
@@ -10,6 +10,9 @@ Please note that the package name is `react-native-wgpu`.
 ```
 npm install react-native-wgpu
 ```
+
+Note that if you use pnpm, you MUST use a `node-linker = hoisted` so that the external reference to the Dawn webgpu
+library can successfully link
 
 Below are some examples from the [example app](/apps/example/).
 
@@ -135,8 +138,8 @@ From there you will be able to run the example app properly.
 
 ## Similarities and Differences with the Web
 
-The API has been designed to be completely symmetric with the Web.  
-For instance, you can access the WebGPU context synchronously, as well as the canvas size.  
+The API has been designed to be completely symmetric with the Web.
+For instance, you can access the WebGPU context synchronously, as well as the canvas size.
 Pixel density and canvas resizing are handled exactly like on the Web as well.
 
 ```tsx
@@ -150,7 +153,7 @@ ctx.canvas.height = ctx.canvas.clientHeight * PixelRatio.get();
 
 ### Frame Scheduling
 
-In React Native, we want to keep frame presentation as a manual operation as we plan to provide more advanced rendering options that are React Native specific.  
+In React Native, we want to keep frame presentation as a manual operation as we plan to provide more advanced rendering options that are React Native specific.
 This means that when you are ready to present a frame, you need to call `present` on the context.
 
 ```tsx
