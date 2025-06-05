@@ -112,7 +112,7 @@ export const Canvas = forwardRef<
   return (
     <View collapsable={false} ref={viewRef} onLayout={onLayout} {...props}>
       <WebGPUWrapper
-        style={{ flex: 1 }}
+        style={size}
         contextId={contextId}
         transparent={!!transparent}
       />
