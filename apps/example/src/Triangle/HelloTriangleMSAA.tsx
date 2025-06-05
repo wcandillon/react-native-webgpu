@@ -1,24 +1,24 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { StyleSheet, View } from "react-native";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 
 import { redFragWGSL, triangleVertWGSL } from "./triangle";
 
 export function HelloTriangleMSAA() {
-  const ref = useCanvasEffect(() => {
-    (async () => {
+  const ref = useCanvasEffect(
+    useCallback(async ({ signal, context, canvas }) => {
       const adapter = await navigator.gpu.requestAdapter();
       if (!adapter) {
         throw new Error("No adapter");
       }
       const device = await adapter.requestDevice();
-      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
-      const context = ref.current!.getContext("webgpu")!;
-      const { canvas } = context;
-      if (!context) {
-        throw new Error("No context");
+      if (signal.aborted) {
+        device.destroy();
+        return;
       }
+
+      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
       context.configure({
         device,
         format: presentationFormat,
@@ -60,34 +60,33 @@ export function HelloTriangleMSAA() {
       });
       const view = texture.createView();
 
-      function frame() {
-        const commandEncoder = device.createCommandEncoder();
+      const commandEncoder = device.createCommandEncoder();
 
-        const renderPassDescriptor: GPURenderPassDescriptor = {
-          colorAttachments: [
-            {
-              view,
-              resolveTarget: context.getCurrentTexture().createView(),
-              clearValue: [0, 0, 0, 1],
-              loadOp: "clear",
-              storeOp: "discard",
-            },
-          ],
-        };
+      const renderPassDescriptor: GPURenderPassDescriptor = {
+        colorAttachments: [
+          {
+            view,
+            resolveTarget: context.getCurrentTexture().createView(),
+            clearValue: [0, 0, 0, 1],
+            loadOp: "clear",
+            storeOp: "discard",
+          },
+        ],
+      };
 
-        const passEncoder =
-          commandEncoder.beginRenderPass(renderPassDescriptor);
-        passEncoder.setPipeline(pipeline);
-        passEncoder.draw(3);
-        passEncoder.end();
+      const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+      passEncoder.setPipeline(pipeline);
+      passEncoder.draw(3);
+      passEncoder.end();
 
-        device.queue.submit([commandEncoder.finish()]);
-      }
+      device.queue.submit([commandEncoder.finish()]);
 
-      frame();
       context.present();
-    })();
-  });
+
+      // Cleanup
+      device.destroy();
+    }, []),
+  );
 
   return (
     <View style={style.container}>
