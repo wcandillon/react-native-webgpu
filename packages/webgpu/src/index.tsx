@@ -1,4 +1,4 @@
-import "@webgpu/types";
+/// <reference types="@webgpu/types" />
 
 export * from "./main";
 
