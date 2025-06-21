@@ -30,7 +30,8 @@ RNWebGPUManager::RNWebGPUManager(
       std::make_shared<margelo::CallInvokerDispatcher>(_jsCallInvoker);
   margelo::Dispatcher::installRuntimeGlobalDispatcher(*_jsRuntime, dispatcher);
 
-  auto gpu = std::make_shared<GPU>();
+  // Use the singleton GPU instance instead of creating a new one
+  auto gpu = GPU::getInstance();
   auto rnWebGPU = std::make_shared<RNWebGPU>(gpu, _platformContext);
   _gpu = gpu->get();
   _jsRuntime->global().setProperty(
