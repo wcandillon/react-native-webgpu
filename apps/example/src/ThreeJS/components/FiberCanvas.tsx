@@ -65,7 +65,7 @@ export const FiberCanvas = ({
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
         renderer.xr = { addEventListener: () => {} };
-        // Initialize the renderer asynchronously and update frameloop when ready
+        // Initialize the renderer asynchronously
         renderer.init().then(() => {
           setFrameloop("always");
         });
@@ -73,8 +73,8 @@ export const FiberCanvas = ({
       },
       frameloop,
       dpr: 1, //PixelRatio.get(),
-      onCreated: async (state: RootState) => {
-        await state.gl.init();
+      onCreated: (state: RootState) => {
+        // Renderer is already initialized in the gl function
         const renderFrame = state.gl.render.bind(state.gl);
         state.gl.render = (s: THREE.Scene, c: THREE.Camera) => {
           renderFrame(s, c);
