@@ -20,6 +20,10 @@ export const examples = [
     title: "🔺 Hello Triangle MSAA",
   },
   {
+    screen: "HelloTriangleAutoPresent",
+    title: "🔺 Hello Triangle Auto-Present",
+  },
+  {
     screen: "ThreeJS",
     title: "☘️ Three.js",
   },

@@ -35,7 +35,7 @@ function startAutoPresentLoop() {
         entry.needsPresent = false;
       }
     });
-    
+
     if (autoPresentContexts.size > 0) {
       requestAnimationFrame(autoPresentFrame);
     } else {
@@ -46,8 +46,16 @@ function startAutoPresentLoop() {
   requestAnimationFrame(autoPresentFrame);
 }
 
-// Create an auto-present context wrapper  
-function createAutoPresentContext(baseContext: RNCanvasContext): RNCanvasContext {
+// Auto-present context interface
+interface AutoPresentContext extends RNCanvasContext {
+  _markNeedsPresent: () => void;
+  _cleanup: () => void;
+}
+
+// Create an auto-present context wrapper
+function createAutoPresentContext(
+  baseContext: RNCanvasContext,
+): AutoPresentContext {
   const contextEntry = {
     context: baseContext,
     needsPresent: false,
@@ -75,10 +83,7 @@ function createAutoPresentContext(baseContext: RNCanvasContext): RNCanvasContext
     },
   };
 
-  return autoPresentContext as RNCanvasContext & {
-    _markNeedsPresent: () => void;
-    _cleanup: () => void;
-  };
+  return autoPresentContext;
 }
 
 let CONTEXT_COUNTER = 1;
@@ -161,60 +166,65 @@ const useSizePaper = (_ref: RefObject<View>) => {
 export const Canvas = forwardRef<
   CanvasRef,
   ViewProps & { transparent?: boolean; autoPresent?: boolean }
->(({ onLayout: _onLayout, transparent, autoPresent = false, ...props }, ref) => {
-  const viewRef = useRef(null);
-  const FABRIC = RNWebGPU.fabric;
-  const useSize = FABRIC ? useSizeFabric : useSizePaper;
-  const [contextId, _] = useState(() => generateContextId());
-  const cb = useRef<() => void>();
-  const { size, onLayout } = useSize(viewRef);
-  useEffect(() => {
-    if (size && cb.current) {
-      cb.current();
-    }
-  }, [size]);
-  useImperativeHandle(ref, () => ({
-    getContextId: () => contextId,
-    getNativeSurface: () => {
-      if (size === null) {
-        throw new Error("[WebGPU] Canvas size is not available yet");
+>(
+  (
+    { onLayout: _onLayout, transparent, autoPresent = false, ...props },
+    ref,
+  ) => {
+    const viewRef = useRef(null);
+    const FABRIC = RNWebGPU.fabric;
+    const useSize = FABRIC ? useSizeFabric : useSizePaper;
+    const [contextId, _] = useState(() => generateContextId());
+    const cb = useRef<() => void>();
+    const { size, onLayout } = useSize(viewRef);
+    useEffect(() => {
+      if (size && cb.current) {
+        cb.current();
       }
-      return RNWebGPU.getNativeSurface(contextId);
-    },
-    whenReady(callback: () => void) {
-      if (size === null) {
-        cb.current = callback;
-      } else {
-        callback();
-      }
-    },
-    getContext(contextName: "webgpu"): RNCanvasContext | null {
-      if (contextName !== "webgpu") {
-        throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
-      }
-      if (size === null) {
-        throw new Error("[WebGPU] Canvas size is not available yet");
-      }
-      const context = RNWebGPU.MakeWebGPUCanvasContext(
-        contextId,
-        size.width,
-        size.height,
-      );
-      
-      if (autoPresent) {
-        return createAutoPresentContext(context);
-      }
-      
-      return context;
-    },
-  }));
-  return (
-    <View collapsable={false} ref={viewRef} onLayout={onLayout} {...props}>
-      <WebGPUNativeView
-        style={size}
-        contextId={contextId}
-        transparent={!!transparent}
-      />
-    </View>
-  );
-});
+    }, [size]);
+    useImperativeHandle(ref, () => ({
+      getContextId: () => contextId,
+      getNativeSurface: () => {
+        if (size === null) {
+          throw new Error("[WebGPU] Canvas size is not available yet");
+        }
+        return RNWebGPU.getNativeSurface(contextId);
+      },
+      whenReady(callback: () => void) {
+        if (size === null) {
+          cb.current = callback;
+        } else {
+          callback();
+        }
+      },
+      getContext(contextName: "webgpu"): RNCanvasContext | null {
+        if (contextName !== "webgpu") {
+          throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
+        }
+        if (size === null) {
+          throw new Error("[WebGPU] Canvas size is not available yet");
+        }
+        const context = RNWebGPU.MakeWebGPUCanvasContext(
+          contextId,
+          size.width,
+          size.height,
+        );
+
+        if (autoPresent) {
+          return createAutoPresentContext(context);
+        }
+
+        return context;
+      },
+    }));
+    return (
+      <View collapsable={false} ref={viewRef} onLayout={onLayout} {...props}>
+        <WebGPUNativeView
+          style={size}
+          contextId={contextId}
+          transparent={!!transparent}
+        />
+      </View>
+    );
+  },
+);

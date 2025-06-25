@@ -13,7 +13,11 @@ import {
   InstancedCube,
   Cubemap,
 } from "./Cube";
-import { HelloTriangle, HelloTriangleMSAA } from "./Triangle";
+import {
+  HelloTriangle,
+  HelloTriangleMSAA,
+  HelloTriangleAutoPresent,
+} from "./Triangle";
 import { RenderBundles } from "./RenderBundles";
 import { ABuffer } from "./ABuffer";
 import { OcclusionQuery } from "./OcclusionQuery";
@@ -50,6 +54,10 @@ function App() {
           <Stack.Screen
             name="HelloTriangleMSAA"
             component={HelloTriangleMSAA}
+          />
+          <Stack.Screen
+            name="HelloTriangleAutoPresent"
+            component={HelloTriangleAutoPresent}
           />
           <Stack.Screen name="ThreeJS" component={ThreeJS} />
           <Stack.Screen name="Tensorflow" component={Tensorflow} />

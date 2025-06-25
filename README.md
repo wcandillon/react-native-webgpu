@@ -150,7 +150,10 @@ ctx.canvas.height = ctx.canvas.clientHeight * PixelRatio.get();
 
 ### Frame Scheduling
 
-In React Native, we want to keep frame presentation as a manual operation as we plan to provide more advanced rendering options that are React Native specific.  
+React Native WebGPU supports both manual and automatic frame presentation modes:
+
+#### Manual Presentation (Default)
+In React Native, frame presentation is kept as a manual operation by default to provide more advanced rendering options that are React Native specific.  
 This means that when you are ready to present a frame, you need to call `present` on the context.
 
 ```tsx
@@ -160,6 +163,24 @@ device.queue.submit([commandEncoder.finish()]);
 // This method is React Native only
 context.present();
 ```
+
+#### Automatic Presentation
+For a more web-like development experience, you can enable automatic frame presentation by setting the `autoPresent` prop on the Canvas component. When enabled, frames are automatically presented after `device.queue.submit()` calls during the next `requestAnimationFrame` cycle.
+
+```tsx
+// Enable auto-present mode
+<Canvas ref={ref} style={style.webgpu} autoPresent={true} />
+
+// In your render loop - no need to call context.present()
+const render = () => {
+  const commandEncoder = device.createCommandEncoder();
+  // ... rendering commands ...
+  device.queue.submit([commandEncoder.finish()]); // Frame automatically presented
+  requestAnimationFrame(render);
+};
+```
+
+**Note**: Auto-present mode maintains full compatibility with manual presentation - you can still call `context.present()` manually if needed.
 
 ### External Textures
 

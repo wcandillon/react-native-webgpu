@@ -93,9 +93,12 @@ export const useGPUContext = () => {
 };
 
 // Hook for auto-presenting contexts - automatically presents after device.queue.submit
-export const useAutoPresent = (context: RNCanvasContext | null, device: GPUDevice | null) => {
+export const useAutoPresent = (
+  context: RNCanvasContext | null,
+  device: GPUDevice | null,
+) => {
   useEffect(() => {
-    if (!context || !device || !(context as any)._markNeedsPresent) {
+    if (!context || !device || !("_markNeedsPresent" in context)) {
       return;
     }
 
@@ -104,14 +107,16 @@ export const useAutoPresent = (context: RNCanvasContext | null, device: GPUDevic
     device.queue.submit = (commandBuffers: GPUCommandBuffer[]) => {
       const result = originalSubmit(commandBuffers);
       // Mark the auto-present context as needing present
-      (context as any)._markNeedsPresent();
+      (
+        context as RNCanvasContext & { _markNeedsPresent: () => void }
+      )._markNeedsPresent();
       return result;
     };
 
     return () => {
       // Cleanup the context when component unmounts
-      if ((context as any)._cleanup) {
-        (context as any)._cleanup();
+      if ("_cleanup" in context) {
+        (context as RNCanvasContext & { _cleanup: () => void })._cleanup();
       }
     };
   }, [context, device]);
@@ -121,9 +126,9 @@ export const useAutoPresent = (context: RNCanvasContext | null, device: GPUDevic
 export const useGPUContextWithAutoPresent = () => {
   const { ref, context } = useGPUContext();
   const { device } = useDevice();
-  
+
   useAutoPresent(context, device);
-  
+
   return { ref, context };
 };
 

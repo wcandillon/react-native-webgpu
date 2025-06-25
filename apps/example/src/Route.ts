@@ -2,6 +2,7 @@ export type Routes = {
   Home: undefined;
   HelloTriangle: undefined;
   HelloTriangleMSAA: undefined;
+  HelloTriangleAutoPresent: undefined;
   Cube: undefined;
   ThreeJS: undefined;
   Tensorflow: undefined;

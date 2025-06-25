@@ -31,7 +31,7 @@ export const useWebGPUAutoPresent = (scene: Scene) => {
       canvas.height = canvas.clientHeight * PixelRatio.get();
 
       // Check if context has auto-present capability
-      const hasAutoPresent = !!(context as any)._markNeedsPresent;
+      const hasAutoPresent = "_markNeedsPresent" in context;
       isAutoPresentEnabled.current = hasAutoPresent;
 
       context.configure({
@@ -46,7 +46,7 @@ export const useWebGPUAutoPresent = (scene: Scene) => {
         device.queue.submit = (commandBuffers: GPUCommandBuffer[]) => {
           const result = originalSubmit(commandBuffers);
           // Mark context as needing present
-          (context as any)._markNeedsPresent();
+          (context as { _markNeedsPresent: () => void })._markNeedsPresent();
           return result;
         };
       }
@@ -66,34 +66,34 @@ export const useWebGPUAutoPresent = (scene: Scene) => {
       } else {
         renderScene = r as RenderScene;
       }
-      
+
       if (typeof renderScene === "function") {
         const render = () => {
           const timestamp = Date.now();
           renderScene(timestamp);
-          
+
           // Only call present manually if auto-present is not enabled
           if (!isAutoPresentEnabled.current) {
             context.present();
           }
-          
+
           animationFrameId.current = requestAnimationFrame(render);
         };
 
         animationFrameId.current = requestAnimationFrame(render);
       }
     })();
-    
+
     return () => {
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
       }
       // Cleanup auto-present context
-      if (isAutoPresentEnabled.current && (context as any)._cleanup) {
-        (context as any)._cleanup();
+      if (isAutoPresentEnabled.current && "_cleanup" in context) {
+        (context as { _cleanup: () => void })._cleanup();
       }
     };
   }, [context, device, scene]);
-  
+
   return ref;
 };

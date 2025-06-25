@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Canvas } from "react-native-wgpu";
+
 import { useWebGPUAutoPresent } from "./useWebGPUAutoPresent";
 
 const triangleVertWGSL = `@vertex
@@ -60,7 +61,7 @@ export function AutoPresentTriangle() {
                 0.3 + 0.3 * Math.sin(timestamp * 0.001),
                 0.6 + 0.3 * Math.sin(timestamp * 0.002),
                 1,
-                1
+                1,
               ],
               loadOp: "clear",
               storeOp: "store",
@@ -68,15 +69,16 @@ export function AutoPresentTriangle() {
           ],
         };
 
-        const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+        const passEncoder =
+          commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(pipeline);
         passEncoder.draw(3);
         passEncoder.end();
-        
+
         // Submit commands - auto-present should handle presentation
         device.queue.submit([commandEncoder.finish()]);
       };
-    }
+    },
   );
 
   return (
