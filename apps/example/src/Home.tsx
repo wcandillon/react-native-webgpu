@@ -107,6 +107,10 @@ export const examples = [
     screen: "GradientTiles",
     title: "🌈 Gradient Tiles",
   },
+  {
+    screen: "VideoSupport",
+    title: "🎬 Video Support",
+  },
 ] as const;
 
 const styles = StyleSheet.create({

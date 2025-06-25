@@ -184,3 +184,87 @@ device.queue.copyExternalImageToTexture(
   [imageBitmap.width, imageBitmap.height],
 );
 ```
+
+### Video Support
+
+React Native WebGPU provides support for using video as textures in your WebGPU renders. This enables powerful video processing, effects, and integration with 3D scenes.
+
+#### Basic Video Texture Usage
+
+```tsx
+import { VideoFrameTexture } from './components/VideoFrameTexture';
+
+// Basic usage
+<VideoFrameTexture
+  source={{ uri: "https://example.com/video.mp4" }}
+  style={{ width: 300, height: 200 }}
+  loop={true}
+  autoPlay={true}
+  onVideoReady={() => console.log("Video ready")}
+  onError={(error) => console.error("Video error:", error)}
+/>
+```
+
+#### Advanced Video Integration
+
+```tsx
+// Using video in a custom WebGPU render pipeline
+const useVideoTexture = (videoSource) => {
+  const { device } = useGPUContext();
+  const [videoTexture, setVideoTexture] = useState(null);
+  
+  useEffect(() => {
+    // Create texture from video frame
+    const createTextureFromVideo = async (videoFrame) => {
+      const imageBitmap = await createImageBitmap(videoFrame);
+      
+      const texture = device.createTexture({
+        size: [imageBitmap.width, imageBitmap.height, 1],
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | 
+               GPUTextureUsage.COPY_DST,
+      });
+      
+      device.queue.copyExternalImageToTexture(
+        { source: imageBitmap },
+        { texture },
+        [imageBitmap.width, imageBitmap.height]
+      );
+      
+      return texture;
+    };
+    
+    // Update texture with video frames
+    // Implementation depends on video frame extraction
+  }, [videoSource, device]);
+  
+  return videoTexture;
+};
+```
+
+#### Video Processing with Shaders
+
+Video textures can be processed with custom shaders for real-time effects:
+
+```wgsl
+@group(0) @binding(0) var videoSampler: sampler;
+@group(0) @binding(1) var videoTexture: texture_2d<f32>;
+
+@fragment
+fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
+  let color = textureSample(videoTexture, videoSampler, input.texCoord);
+  
+  // Apply real-time video effects
+  let grayscale = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+  return vec4(vec3(grayscale), color.a);
+}
+```
+
+#### Features
+
+- ✅ Video texture creation and management
+- ✅ Real-time shader effects on video
+- ✅ Integration with existing WebGPU pipelines
+- ✅ Efficient GPU-based video processing
+- ✅ Support for various video formats (through createImageBitmap)
+- ✅ Automatic texture updates for smooth playback

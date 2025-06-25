@@ -29,6 +29,7 @@ import { ThreeJS } from "./ThreeJS";
 import { GradientTiles } from "./GradientTiles";
 import { CanvasAPI } from "./CanvasAPI";
 import { Tensorflow } from "./Tensorflow";
+import { VideoSupport } from "./VideoSupport";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -78,6 +79,7 @@ function App() {
             {(props) => <Tests {...props} assets={assets} />}
           </Stack.Screen>
           <Stack.Screen name="GradientTiles" component={GradientTiles} />
+          <Stack.Screen name="VideoSupport" component={VideoSupport} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

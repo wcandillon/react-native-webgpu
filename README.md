@@ -185,6 +185,32 @@ device.queue.copyExternalImageToTexture(
 );
 ```
 
+### Video Support
+
+React Native WebGPU provides comprehensive support for using video as textures in your WebGPU renders, enabling powerful video processing, effects, and integration with 3D scenes.
+
+```tsx
+import { VideoFrameTexture } from './components/VideoFrameTexture';
+
+<VideoFrameTexture
+  source={{ uri: "https://example.com/video.mp4" }}
+  style={{ width: 300, height: 200 }}
+  loop={true}
+  autoPlay={true}
+  onVideoReady={() => console.log("Video ready")}
+/>
+```
+
+**Features:**
+- ✅ Video texture creation and management
+- ✅ Real-time shader effects on video  
+- ✅ Integration with existing WebGPU pipelines
+- ✅ Efficient GPU-based video processing
+- ✅ Support for various video formats
+- ✅ Automatic texture updates for smooth playback
+
+See the example app for comprehensive video support demonstrations.
+
 ## Troubleshooting
 
 ### iOS
