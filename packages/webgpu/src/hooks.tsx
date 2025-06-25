@@ -92,6 +92,41 @@ export const useGPUContext = () => {
   return { ref, context };
 };
 
+// Hook for auto-presenting contexts - automatically presents after device.queue.submit
+export const useAutoPresent = (context: RNCanvasContext | null, device: GPUDevice | null) => {
+  useEffect(() => {
+    if (!context || !device || !(context as any)._markNeedsPresent) {
+      return;
+    }
+
+    // Hook into the device's queue to detect submissions
+    const originalSubmit = device.queue.submit.bind(device.queue);
+    device.queue.submit = (commandBuffers: GPUCommandBuffer[]) => {
+      const result = originalSubmit(commandBuffers);
+      // Mark the auto-present context as needing present
+      (context as any)._markNeedsPresent();
+      return result;
+    };
+
+    return () => {
+      // Cleanup the context when component unmounts
+      if ((context as any)._cleanup) {
+        (context as any)._cleanup();
+      }
+    };
+  }, [context, device]);
+};
+
+// Combined hook for context with auto-present support
+export const useGPUContextWithAutoPresent = () => {
+  const { ref, context } = useGPUContext();
+  const { device } = useDevice();
+  
+  useAutoPresent(context, device);
+  
+  return { ref, context };
+};
+
 export const useCanvasEffect = (
   effect: () =>
     | void

@@ -13,6 +13,74 @@ import type { RefObject } from "react";
 
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
 
+// Global registry for auto-present contexts
+const autoPresentContexts = new Set<{
+  context: RNCanvasContext;
+  needsPresent: boolean;
+}>();
+let autoPresentLoopStarted = false;
+
+// Start the global auto-present loop
+function startAutoPresentLoop() {
+  if (autoPresentLoopStarted) {
+    return;
+  }
+  autoPresentLoopStarted = true;
+
+  const autoPresentFrame = () => {
+    // Present all contexts that need it
+    autoPresentContexts.forEach((entry) => {
+      if (entry.needsPresent) {
+        entry.context.present();
+        entry.needsPresent = false;
+      }
+    });
+    
+    if (autoPresentContexts.size > 0) {
+      requestAnimationFrame(autoPresentFrame);
+    } else {
+      autoPresentLoopStarted = false;
+    }
+  };
+
+  requestAnimationFrame(autoPresentFrame);
+}
+
+// Create an auto-present context wrapper  
+function createAutoPresentContext(baseContext: RNCanvasContext): RNCanvasContext {
+  const contextEntry = {
+    context: baseContext,
+    needsPresent: false,
+  };
+
+  // Add to registry and start loop
+  autoPresentContexts.add(contextEntry);
+  startAutoPresentLoop();
+
+  // Create wrapper context
+  const autoPresentContext = {
+    ...baseContext,
+    present: () => {
+      // In auto mode, just call the base present - the loop handles timing
+      baseContext.present();
+      contextEntry.needsPresent = false;
+    },
+    // Add a method to mark as needing present (can be called by hooks/utilities)
+    _markNeedsPresent: () => {
+      contextEntry.needsPresent = true;
+    },
+    // Cleanup method
+    _cleanup: () => {
+      autoPresentContexts.delete(contextEntry);
+    },
+  };
+
+  return autoPresentContext as RNCanvasContext & {
+    _markNeedsPresent: () => void;
+    _cleanup: () => void;
+  };
+}
+
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
   return CONTEXT_COUNTER++;
@@ -92,8 +160,8 @@ const useSizePaper = (_ref: RefObject<View>) => {
 
 export const Canvas = forwardRef<
   CanvasRef,
-  ViewProps & { transparent?: boolean }
->(({ onLayout: _onLayout, transparent, ...props }, ref) => {
+  ViewProps & { transparent?: boolean; autoPresent?: boolean }
+>(({ onLayout: _onLayout, transparent, autoPresent = false, ...props }, ref) => {
   const viewRef = useRef(null);
   const FABRIC = RNWebGPU.fabric;
   const useSize = FABRIC ? useSizeFabric : useSizePaper;
@@ -127,11 +195,17 @@ export const Canvas = forwardRef<
       if (size === null) {
         throw new Error("[WebGPU] Canvas size is not available yet");
       }
-      return RNWebGPU.MakeWebGPUCanvasContext(
+      const context = RNWebGPU.MakeWebGPUCanvasContext(
         contextId,
         size.width,
         size.height,
       );
+      
+      if (autoPresent) {
+        return createAutoPresentContext(context);
+      }
+      
+      return context;
     },
   }));
   return (
