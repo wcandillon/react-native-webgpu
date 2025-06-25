@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { VideoFrameTexture } from "./components/VideoFrameTexture";
+import { SimpleVideoExample } from "./components/SimpleVideoExample";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -13,6 +14,14 @@ export const VideoSupport = () => {
         React Native WebGPU provides support for using video as textures in your WebGPU renders. 
         This enables powerful video processing, effects, and integration with 3D scenes.
       </Text>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>0. Interactive Video Example</Text>
+        <Text style={styles.sectionDescription}>
+          A simple interactive example showing animated video-like content with WebGPU shaders.
+        </Text>
+        <SimpleVideoExample />
+      </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>1. Basic Video Texture</Text>
