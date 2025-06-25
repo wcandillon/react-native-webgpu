@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import type { ReconcilerRoot, RootState } from "@react-three/fiber";
 import {
   extend,
@@ -11,7 +11,7 @@ import type { ViewProps } from "react-native";
 import { PixelRatio } from "react-native";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 
-import { makeWebGPURenderer, ReactNativeCanvas } from "./makeWebGPURenderer";
+import { ReactNativeCanvas } from "./makeWebGPURenderer";
 
 //global.THREE = global.THREE || THREE;
 
@@ -29,12 +29,12 @@ export const FiberCanvas = ({
   camera,
 }: FiberCanvasProps) => {
   const root = useRef<ReconcilerRoot<OffscreenCanvas>>(null!);
+  const [frameloop, setFrameloop] = useState<"always" | "never">("never");
 
   React.useMemo(() => extend(THREE), []);
 
   const canvasRef = useCanvasEffect(async () => {
     const context = canvasRef.current!.getContext("webgpu")!;
-    const renderer = makeWebGPURenderer(context);
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
@@ -56,8 +56,22 @@ export const FiberCanvas = ({
       events,
       scene,
       camera,
-      gl: renderer,
-      frameloop: "always",
+      gl: () => {
+        const renderer = new THREE.WebGPURenderer({
+          antialias: true,
+          canvas,
+          context,
+        });
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
+        renderer.xr = { addEventListener: () => {} };
+        // Initialize the renderer asynchronously and update frameloop when ready
+        renderer.init().then(() => {
+          setFrameloop("always");
+        });
+        return renderer;
+      },
+      frameloop,
       dpr: 1, //PixelRatio.get(),
       onCreated: async (state: RootState) => {
         await state.gl.init();
@@ -75,6 +89,13 @@ export const FiberCanvas = ({
       }
     };
   });
+
+  // Update the frameloop when it changes
+  React.useEffect(() => {
+    if (root.current) {
+      root.current.configure({ frameloop });
+    }
+  }, [frameloop]);
 
   return <Canvas ref={canvasRef} style={style} />;
 };
