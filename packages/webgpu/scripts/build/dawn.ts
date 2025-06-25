@@ -28,6 +28,17 @@ const commonArgs = {
   DAWN_ENABLE_DESKTOP_GL: "OFF",
 };
 
+const androidArgs = {
+  CMAKE_TOOLCHAIN_FILE: "$ANDROID_NDK/build/cmake/android.toolchain.cmake",
+  ANDROID_PLATFORM: "android-26",
+  // Disable Vulkan validation and debug utilities for Android to prevent crashes on Android 16.0
+  DAWN_ENABLE_VULKAN_VALIDATION_LAYERS: "OFF",
+  DAWN_USE_BUILT_DXC: "OFF",
+  DAWN_ENABLE_ASSERTS: "OFF",
+  DAWN_ALWAYS_ASSERT: "OFF",
+  ...commonArgs,
+};
+
 const PLATFORM_MAP: Record<string, string> = {
   arm64_iphoneos: "OS64",
   arm64_iphonesimulator: "SIMULATORARM64",
@@ -40,11 +51,7 @@ const PLATFORM_MAP: Record<string, string> = {
 
 const android = {
   platforms: ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"] as Platform[],
-  args: {
-    CMAKE_TOOLCHAIN_FILE: "$ANDROID_NDK/build/cmake/android.toolchain.cmake",
-    ANDROID_PLATFORM: "android-26",
-    ...commonArgs,
-  },
+  args: androidArgs,
 };
 
 const apple = {
