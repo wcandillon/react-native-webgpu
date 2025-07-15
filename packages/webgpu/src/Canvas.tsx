@@ -150,7 +150,7 @@ export const Canvas = forwardRef<
   return (
     <View collapsable={false} ref={viewRef} onLayout={onLayout} {...props}>
       <WebGPUNativeView
-        style={{ flex: 1 }}
+        style={size}
         contextId={contextId}
         transparent={!!transparent}
       />
