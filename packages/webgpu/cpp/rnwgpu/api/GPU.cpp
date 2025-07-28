@@ -7,6 +7,10 @@
 
 namespace rnwgpu {
 
+// Static member definitions for singleton pattern
+std::shared_ptr<GPU> GPU::_instance = nullptr;
+std::once_flag GPU::_onceFlag;
+
 std::future<std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>>
 GPU::requestAdapter(
     std::optional<std::shared_ptr<GPURequestAdapterOptions>> options) {
@@ -50,7 +54,7 @@ GPU::requestAdapter(
 std::unordered_set<std::string> GPU::getWgslLanguageFeatures() {
   wgpu::SupportedWGSLLanguageFeatures supportedFeatures = {};
   _instance.GetWGSLLanguageFeatures(&supportedFeatures);
-  
+
   std::unordered_set<std::string> result;
   for (size_t i = 0; i < supportedFeatures.featureCount; i++) {
     wgpu::WGSLLanguageFeatureName feature = supportedFeatures.features[i];

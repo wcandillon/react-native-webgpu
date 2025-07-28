@@ -1,7 +1,9 @@
 #pragma once
 
+#include <atomic>
 #include <future>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_set>
 #include <variant>
@@ -27,14 +29,16 @@ namespace m = margelo;
 
 class GPU : public m::HybridObject {
 public:
-  GPU() : HybridObject("GPU") {
-    wgpu::InstanceDescriptor instanceDesc;
-    instanceDesc.capabilities.timedWaitAnyEnable = true;
-    instanceDesc.capabilities.timedWaitAnyMaxCount = 64;
-    _instance = wgpu::CreateInstance(&instanceDesc);
-    auto instance = &_instance;
-    _async = std::make_shared<AsyncRunner>(instance);
+  // Singleton pattern - get the single instance
+  static std::shared_ptr<GPU> getInstance() {
+    std::call_once(_onceFlag,
+                   []() { _instance = std::shared_ptr<GPU>(new GPU()); });
+    return _instance;
   }
+
+  // Delete copy constructor and assignment operator
+  GPU(const GPU &) = delete;
+  GPU &operator=(const GPU &) = delete;
 
 public:
   std::string getBrand() { return _name; }
@@ -56,6 +60,21 @@ public:
   }
 
   inline const wgpu::Instance get() { return _instance; }
+
+private:
+  // Private constructor for singleton pattern
+  GPU() : HybridObject("GPU") {
+    wgpu::InstanceDescriptor instanceDesc;
+    instanceDesc.capabilities.timedWaitAnyEnable = true;
+    instanceDesc.capabilities.timedWaitAnyMaxCount = 64;
+    _instance = wgpu::CreateInstance(&instanceDesc);
+    auto instance = &_instance;
+    _async = std::make_shared<AsyncRunner>(instance);
+  }
+
+  // Static members for singleton pattern
+  static std::shared_ptr<GPU> _instance;
+  static std::once_flag _onceFlag;
 
 private:
   wgpu::Instance _instance;

@@ -441,7 +441,8 @@ static void convertJSUnionToEnum(const std::string &inUnion,
   } else if (inUnion == "dawn-native") {
     *outEnum = wgpu::FeatureName::DawnNative;
   } else if (inUnion == "chromium-experimental-timestamp-query-inside-passes") {
-    *outEnum = wgpu::FeatureName::ChromiumExperimentalTimestampQueryInsidePasses;
+    *outEnum =
+        wgpu::FeatureName::ChromiumExperimentalTimestampQueryInsidePasses;
   } else if (inUnion == "implicit-device-synchronization") {
     *outEnum = wgpu::FeatureName::ImplicitDeviceSynchronization;
   } else if (inUnion == "transient-attachments") {
@@ -613,7 +614,7 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::ANGLETextureSharing:
     *outUnion = "angle-texture-sharing";
     break;
-    case wgpu::FeatureName::ChromiumExperimentalSubgroupMatrix:
+  case wgpu::FeatureName::ChromiumExperimentalSubgroupMatrix:
     *outUnion = "chromium-experimental-subgroups-matrix";
     break;
   case wgpu::FeatureName::PixelLocalStorageCoherent:
