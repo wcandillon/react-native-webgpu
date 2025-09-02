@@ -32,11 +32,11 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   public void setTransparent(boolean value) {
-    Context ctx = getContext();
     if (value != mTransparent || mView == null) {
       if (mView != null) {
         removeView(mView);
       }
+      Context ctx = getContext();
       mTransparent = value;
       if (mTransparent) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
