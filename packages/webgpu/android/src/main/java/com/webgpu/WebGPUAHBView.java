@@ -32,22 +32,27 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
     mApi = api;
   }
 
-  private ImageReader createReader() {
-    ImageReader reader = ImageReader.newInstance(getWidth(), getHeight(), PixelFormat.RGBA_8888, 2, HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE |
+  private static ImageReader createReader(int width, int height, ImageReader.OnImageAvailableListener listener) {
+    ImageReader reader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2, HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE |
       HardwareBuffer.USAGE_GPU_COLOR_OUTPUT);
-    reader.setOnImageAvailableListener(this, null);
+    reader.setOnImageAvailableListener(listener, null);
     return reader;
   }
 
   @Override
   protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
     super.onLayout(changed, left, top, right, bottom);
+
     if (mReader == null) {
-      mReader = createReader();
-      mApi.surfaceCreated(mReader.getSurface());
-    } else {
-      mApi.surfaceChanged(mReader.getSurface());
+      int width = getWidth();
+      int height = getHeight();
+
+      if (width == 0 || height == 0) return;
+
+      mReader = WebGPUAHBView.createReader(width, height, this);
     }
+
+    mApi.surfaceChanged(mReader.getSurface());
   }
 
   @Override
