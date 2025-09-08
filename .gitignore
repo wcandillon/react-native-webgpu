@@ -1,4 +1,3 @@
-!packages/webgpu/scripts/build
 # Yarn
 .package/.yarn/*
 .yarn/*
@@ -65,11 +64,6 @@ package/lib
 
 
 # Externals
-packages/webgpu/libs
-packages/webgpu/cpp/dawn/
-packages/webgpu/cpp/webgpu/
-packages/webgpu/lib
-!packages/webgpu/scripts/build
 artifacts/
 
 
