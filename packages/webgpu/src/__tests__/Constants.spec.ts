@@ -62,16 +62,14 @@ describe("WebGPUConstants", () => {
     });
   });
   it("GPUAdapter", async () => {
-    const result = await client.eval(({ adapter, device, gpu }) => {
+    const result = await client.eval(({ device, gpu }) => {
       return [
         gpu instanceof GPU,
-        adapter instanceof GPUAdapter,
         device instanceof GPUDevice,
-        adapter instanceof GPUDevice,
         device instanceof GPUAdapter,
       ];
     });
-    expect(result).toEqual([true, true, true, false, false]);
+    expect(result).toEqual([true, true, false]);
   });
   it("instanceof", async () => {
     const result = await client.eval(

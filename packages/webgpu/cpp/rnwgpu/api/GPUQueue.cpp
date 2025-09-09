@@ -76,10 +76,12 @@ void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,
 }
 
 std::future<void> GPUQueue::onSubmittedWorkDone() {
-  return _async->runAsync([=] {
+  return _async->runAsync([&] {
     return _instance.OnSubmittedWorkDone(
         wgpu::CallbackMode::WaitAnyOnly,
-        [](wgpu::QueueWorkDoneStatus status) {});
+        [](wgpu::QueueWorkDoneStatus status, wgpu::StringView message) {
+            // Handle the callback if needed
+        });
   });
 }
 
