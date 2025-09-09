@@ -23,8 +23,8 @@ const commonArgs = {
   DAWN_BUILD_SAMPLES: "OFF",
   DAWN_USE_GLFW: "OFF",
   DAWN_FETCH_DEPENDENCIES: "ON",
-  DAWN_BUILD_MONOLITHIC_LIBRARY: "ON",
-  DAWN_ENABLE_OPENGLES: "OFF",
+  DAWN_BUILD_MONOLITHIC_LIBRARY: "STATIC",
+  BUILD_SHARED_LIBS: "OFF",
   DAWN_ENABLE_DESKTOP_GL: "OFF",
 };
 
@@ -43,6 +43,7 @@ const android = {
   args: {
     CMAKE_TOOLCHAIN_FILE: "$ANDROID_NDK/build/cmake/android.toolchain.cmake",
     ANDROID_PLATFORM: "android-26",
+    DAWN_ENABLE_OPENGLES: "ON",
     ...commonArgs,
   },
 };
@@ -55,20 +56,14 @@ const apple = {
   },
   args: {
     CMAKE_TOOLCHAIN_FILE: `${__dirname}/apple.toolchain.cmake`,
+    DAWN_ENABLE_OPENGLES: "OFF",
+    //  -DPLATFORM=OS64 -DDEPLOYMENT_TARGET=13.0 -DENABLE_BITCODE=OFF -DENABLE_ARC=OFF -DENABLE_VISIBILITY=OFF
     ...commonArgs,
   },
 };
 
 (async () => {
   process.chdir("../..");
-  process.chdir("externals/dawn");
-  $("git submodule update --init third_party/abseil-cpp");
-  $(
-    "git reset --hard HEAD && cd third_party/abseil-cpp && git reset --hard HEAD && cd ../..",
-  );
-  $(`git apply ${__dirname}/static_build.patch`);
-  process.chdir("../..");
-  console.log("Copy headers");
 
   // Build Android
   for (const platform of android.platforms) {
