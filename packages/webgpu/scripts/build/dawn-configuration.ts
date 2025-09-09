@@ -62,18 +62,18 @@ export const copyLib = (os: OS, platform: Platform, sdk?: string) => {
   const dstPath = `${projectRoot}/libs/${os}/${suffix}/`;
   $(`mkdir -p ${dstPath}`);
   if (os === "android") {
-    console.log("Strip debug symbols from libwebgpu_dawn.a...");
+    console.log("Strip debug symbols from libwebgpu_dawn.so...");
     $(
-      `$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.a`,
+      `$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.so`,
     );
   }
-  [`externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.a`].forEach(
-    (lib) => {
-      const libPath = lib;
-      console.log(`Copying ${libPath} to ${dstPath}`);
-      $(`cp ${libPath} ${dstPath}`);
-    },
-  );
+  [
+    `externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.${os === "android" ? "so" : "a"}`,
+  ].forEach((lib) => {
+    const libPath = lib;
+    console.log(`Copying ${libPath} to ${dstPath}`);
+    $(`cp ${libPath} ${dstPath}`);
+  });
 };
 
 export const checkBuildArtifacts = () => {

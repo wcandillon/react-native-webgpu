@@ -78,8 +78,8 @@ target_include_directories(
         ${libfbjni_include_DIRS}
 )
 
-add_library(webgpu_dawn STATIC IMPORTED)
-set_property(TARGET webgpu_dawn PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.a")
+add_library(webgpu_dawn SHARED IMPORTED)
+set_property(TARGET webgpu_dawn PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.so")
 
 # Link
 if(ReactAndroid_VERSION_MINOR GREATER_EQUAL 76)
@@ -106,9 +106,4 @@ else()
         ReactAndroid::reactnativejni
         webgpu_dawn
     )
-endif()
-
-# Enable Android 16kb native library alignment
-if(CMAKE_ANDROID_NDK_VERSION VERSION_LESS "27")
-    target_link_options(${PACKAGE_NAME} PRIVATE "-Wl,-z,max-page-size=16384")
 endif()
