@@ -20,21 +20,24 @@ import androidx.annotation.RequiresApi;
 public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableListener {
 
   private ImageReader mReader;
-
   private Bitmap mBitmap = null;
-
-  private final Matrix matrix = new Matrix();
-
-  WebGPUAPI mApi;
+  private final Matrix mMatrix = new Matrix();
+  private final WebGPUAPI mApi;
 
   public WebGPUAHBView(Context context, WebGPUAPI api) {
     super(context);
     mApi = api;
+    setWillNotDraw(false);
   }
 
-  private ImageReader createReader() {
-    ImageReader reader = ImageReader.newInstance(getWidth(), getHeight(), PixelFormat.RGBA_8888, 2, HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE |
-      HardwareBuffer.USAGE_GPU_COLOR_OUTPUT);
+  private ImageReader createReader(int width, int height) {
+    ImageReader reader = ImageReader.newInstance(
+      width, 
+      height, 
+      PixelFormat.RGBA_8888, 
+      2, 
+      HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE | HardwareBuffer.USAGE_GPU_COLOR_OUTPUT
+    );
     reader.setOnImageAvailableListener(this, null);
     return reader;
   }
@@ -42,11 +45,23 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
   @Override
   protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
     super.onLayout(changed, left, top, right, bottom);
+    
+    int width = getWidth();
+    int height = getHeight();
+    
+    if (width <= 0 || height <= 0) {
+      return;
+    }
+    
     if (mReader == null) {
-      mReader = createReader();
+      mReader = createReader(width, height);
       mApi.surfaceCreated(mReader.getSurface());
-    } else {
-      mApi.surfaceChanged(mReader.getSurface());
+    } else if (changed) {
+      if (mReader.getWidth() != width || mReader.getHeight() != height) {
+        mReader.close();
+        mReader = createReader(width, height);
+        mApi.surfaceChanged(mReader.getSurface());
+      }
     }
   }
 
@@ -58,39 +73,53 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
         if (hb != null) {
           Bitmap bitmap = Bitmap.wrapHardwareBuffer(hb, null);
           if (bitmap != null) {
+            if (mBitmap != null) {
+              mBitmap.recycle();
+            }
             mBitmap = bitmap;
-            hb.close();
-            invalidate();
+            postInvalidate();
           }
+          hb.close();
         }
       }
+    } catch (Exception e) {
+      e.printStackTrace();
     }
   }
 
   @Override
   protected void onDraw(@NonNull Canvas canvas) {
     super.onDraw(canvas);
-    if (mBitmap != null) {
+    
+    if (mBitmap != null && !mBitmap.isRecycled()) {
       float viewWidth = getWidth();
       float viewHeight = getHeight();
       float bitmapWidth = mBitmap.getWidth();
       float bitmapHeight = mBitmap.getHeight();
-
-      // Calculate the scale factors
+      
       float scaleX = viewWidth / bitmapWidth;
       float scaleY = viewHeight / bitmapHeight;
-
-      // Reset the matrix and apply scaling
-      matrix.reset();
-      matrix.setScale(scaleX, scaleY);
-
-      canvas.drawBitmap(mBitmap, matrix, null);
+      
+      mMatrix.reset();
+      mMatrix.setScale(scaleX, scaleY);
+      
+      canvas.drawBitmap(mBitmap, mMatrix, null);
     }
   }
 
   @Override
   protected void onDetachedFromWindow() {
     super.onDetachedFromWindow();
-    mApi.surfaceDestroyed();
+    
+    if (mReader != null) {
+      mApi.surfaceDestroyed();
+      mReader.close();
+      mReader = null;
+    }
+    
+    if (mBitmap != null) {
+      mBitmap.recycle();
+      mBitmap = null;
+    }
   }
 }
