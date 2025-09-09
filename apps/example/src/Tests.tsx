@@ -39,7 +39,6 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
           ).call({
             ctx: {
               gpu: navigator.gpu,
-              adapter,
               device,
               urls: {
                 fTexture: Image.resolveAssetSource(require("./assets/f.png"))
