@@ -446,7 +446,12 @@ template <typename T> struct JSIConverter<T, std::enable_if_t<is_shared_ptr_to_h
       throw jsi::JSError(runtime, "Cannot convert nullptr to HostObject<" + getFriendlyTypename() + ">!");
     }
 #endif
-    return jsi::Object::createFromHostObject(runtime, arg);
+    auto result = jsi::Object::createFromHostObject(runtime, arg);
+    auto memoryPressure = arg->getMemoryPressure();
+    if (memoryPressure > 0) {
+      result.setExternalMemoryPressure(runtime, memoryPressure);
+    }
+    return result;
   }
 };
 

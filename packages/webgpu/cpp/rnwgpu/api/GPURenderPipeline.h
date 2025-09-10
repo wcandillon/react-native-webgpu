@@ -44,6 +44,14 @@ public:
 
   inline const wgpu::RenderPipeline get() { return _instance; }
 
+  size_t getMemoryPressure() override {
+    // Render pipelines contain compiled shader state, vertex/fragment shaders,
+    // render state, and driver-specific optimized code
+    // Estimate: 24KB for a typical render pipeline with vertex + fragment
+    // shaders
+    return 24 * 1024;
+  }
+
 private:
   wgpu::RenderPipeline _instance;
   std::string _label;

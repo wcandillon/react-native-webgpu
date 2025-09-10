@@ -44,6 +44,27 @@ public:
 
   inline const wgpu::QuerySet get() { return _instance; }
 
+  size_t getMemoryPressure() override {
+    uint32_t count = getCount();
+    wgpu::QueryType type = getType();
+
+    // Estimate bytes per query based on type
+    size_t bytesPerQuery = 8; // Default estimate
+    switch (type) {
+    case wgpu::QueryType::Occlusion:
+      bytesPerQuery = 8; // 64-bit counter
+      break;
+    case wgpu::QueryType::Timestamp:
+      bytesPerQuery = 8; // 64-bit timestamp
+      break;
+    default:
+      bytesPerQuery = 8; // Safe default
+      break;
+    }
+
+    return static_cast<size_t>(count) * bytesPerQuery;
+  }
+
 private:
   wgpu::QuerySet _instance;
   std::string _label;

@@ -13,4 +13,4 @@ typedef UIView RNWGPlatformView;
 typedef NSView RNWGPlatformView;
 #endif
 
-#endif  // PACKAGES_WEBGPU_APPLE_RNWGUIKIT_H_
+#endif // PACKAGES_WEBGPU_APPLE_RNWGUIKIT_H_

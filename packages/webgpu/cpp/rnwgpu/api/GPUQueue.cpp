@@ -40,7 +40,8 @@ void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,
 
   // Note that in the JS semantics of WebGPU, writeBuffer works in number of
   // elements of the typed arrays.
-  if (dataOffsetElements > static_cast<uint64_t>(src.size / src.bytesPerElement)) {
+  if (dataOffsetElements >
+      static_cast<uint64_t>(src.size / src.bytesPerElement)) {
     throw std::runtime_error("dataOffset is larger than data's size.");
     return;
   }
