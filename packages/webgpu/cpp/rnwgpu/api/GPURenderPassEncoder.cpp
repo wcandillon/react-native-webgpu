@@ -1,3 +1,7 @@
+#include <vector>
+#include <string>
+#include <memory>
+
 #include "GPURenderPassEncoder.h"
 #include "Convertors.h"
 

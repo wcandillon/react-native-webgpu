@@ -29,10 +29,8 @@ class GPU : public m::HybridObject {
 public:
   GPU() : HybridObject("GPU") {
     static const auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
-    wgpu::InstanceDescriptor instanceDesc{
-        .requiredFeatureCount = 1,
-        .requiredFeatures = &kTimedWaitAny
-    };
+    wgpu::InstanceDescriptor instanceDesc{.requiredFeatureCount = 1,
+                                          .requiredFeatures = &kTimedWaitAny};
 
     // For limits:
     wgpu::InstanceLimits limits{.timedWaitAnyMaxCount = 64};

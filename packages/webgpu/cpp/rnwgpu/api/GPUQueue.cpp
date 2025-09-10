@@ -80,7 +80,7 @@ std::future<void> GPUQueue::onSubmittedWorkDone() {
     return _instance.OnSubmittedWorkDone(
         wgpu::CallbackMode::WaitAnyOnly,
         [](wgpu::QueueWorkDoneStatus status, wgpu::StringView message) {
-            // Handle the callback if needed
+          // Handle the callback if needed
         });
   });
 }

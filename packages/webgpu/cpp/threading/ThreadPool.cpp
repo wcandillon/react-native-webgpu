@@ -10,6 +10,8 @@
 
 #include <utility>
 #include <algorithm>
+#include <string>
+#include <memory>
 
 namespace margelo {
 
