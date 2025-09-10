@@ -1,7 +1,7 @@
 #include "GPUCanvasContext.h"
-#include <memory>
 #include "Convertors.h"
 #include "RNWebGPUManager.h"
+#include <memory>
 
 #ifdef __APPLE__
 #include "dawn/native/MetalBackend.h"

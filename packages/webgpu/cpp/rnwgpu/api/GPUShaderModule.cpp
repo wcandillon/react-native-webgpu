@@ -1,7 +1,7 @@
 #include "GPUShaderModule.h"
 
-#include <utility>
 #include <memory>
+#include <utility>
 
 namespace rnwgpu {
 
