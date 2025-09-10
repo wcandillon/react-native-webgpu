@@ -82,7 +82,7 @@ export const checkBuildArtifacts = () => {
     .filter((arch) => arch !== "arm64" && arch !== "universal")
     .forEach((platform) => {
       libs.forEach((lib) => {
-        checkFileExists(`libs/android/${platform}/${lib}.a`);
+        checkFileExists(`libs/android/${platform}/${lib}.so`);
       });
     });
   libs.forEach((lib) => {

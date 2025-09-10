@@ -1,5 +1,9 @@
 #include "GPU.h"
 
+#include <cstdio>
+#include <memory>
+#include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -50,7 +54,7 @@ GPU::requestAdapter(
 std::unordered_set<std::string> GPU::getWgslLanguageFeatures() {
   wgpu::SupportedWGSLLanguageFeatures supportedFeatures = {};
   _instance.GetWGSLLanguageFeatures(&supportedFeatures);
-  
+
   std::unordered_set<std::string> result;
   for (size_t i = 0; i < supportedFeatures.featureCount; i++) {
     wgpu::WGSLLanguageFeatureName feature = supportedFeatures.features[i];

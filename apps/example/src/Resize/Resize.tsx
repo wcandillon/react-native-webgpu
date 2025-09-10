@@ -62,14 +62,21 @@ export const Resize = () => {
         count: sampleCount,
       },
     });
-    let currentSize = { width: 0, height: 0 };
     let renderTarget: GPUTexture | undefined;
     let renderTargetView: GPUTextureView;
-
     return () => {
+      const currentWidth = canvas.clientWidth * PixelRatio.get();
+      const currentHeight = canvas.clientHeight * PixelRatio.get();
+
+      // The canvas size is animating via CSS.
+      // When the size changes, we need to reallocate the render target.
+      // We also need to set the physical size of the canvas to match the computed CSS size.
       if (
-        currentSize.width !== canvas.clientWidth ||
-        currentSize.height !== canvas.clientHeight
+        (currentWidth !== canvas.width ||
+          currentHeight !== canvas.height ||
+          !renderTargetView) &&
+        currentWidth &&
+        currentHeight
       ) {
         if (renderTarget !== undefined) {
           // Destroy the previous render target
@@ -78,13 +85,10 @@ export const Resize = () => {
 
         // Setting the canvas width and height will automatically resize the textures returned
         // when calling getCurrentTexture() on the context.
-        canvas.width = canvas.clientWidth * PixelRatio.get();
-        canvas.height = canvas.clientHeight * PixelRatio.get();
+        canvas.width = currentWidth;
+        canvas.height = currentHeight;
 
-        currentSize = {
-          width: canvas.clientWidth,
-          height: canvas.clientHeight,
-        };
+        // Resize the multisampled render target to match the new canvas size.
         renderTarget = device.createTexture({
           size: [canvas.width, canvas.height],
           sampleCount,
@@ -94,15 +98,16 @@ export const Resize = () => {
 
         renderTargetView = renderTarget.createView();
       }
+
       if (renderTargetView) {
         const commandEncoder = device.createCommandEncoder();
-        const a = 0.7;
+
         const renderPassDescriptor: GPURenderPassDescriptor = {
           colorAttachments: [
             {
               view: renderTargetView,
               resolveTarget: context.getCurrentTexture().createView(),
-              clearValue: [a, a, a, a],
+              clearValue: [0.5, 0.5, 0.5, 0.5],
               loadOp: "clear",
               storeOp: "store",
             },
@@ -125,7 +130,7 @@ export const Resize = () => {
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
       <Animated.View style={style}>
-        <Canvas ref={ref} style={{ flex: 0.5 }} transparent />
+        <Canvas ref={ref} style={{ flex: 1 }} transparent />
       </Animated.View>
     </View>
   );

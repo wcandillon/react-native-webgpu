@@ -5,9 +5,10 @@
 #include "RNFJSIConverter.h"
 #include "WGPULogger.h"
 
-#include <vector>
+#include <unordered_map>
 #include <utility>
 #include <string>
+#include <vector>
 
 namespace margelo {
 

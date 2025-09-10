@@ -29,7 +29,7 @@
 #include "ThreadPool.h"
 
 // This number is the maximum integer that can be represented exactly as a double
-#define MAX_SAFE_INTEGER uint64_t(9007199254740991)
+#define MAX_SAFE_INTEGER static_cast<uint64_t>(9007199254740991)
 
 #if __has_include(<cxxabi.h>)
 #include <cxxabi.h>
