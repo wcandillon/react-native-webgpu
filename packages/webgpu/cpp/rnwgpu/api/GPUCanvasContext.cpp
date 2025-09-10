@@ -1,4 +1,5 @@
 #include "GPUCanvasContext.h"
+#include <memory>
 #include "Convertors.h"
 #include "RNWebGPUManager.h"
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PlatformContext.h"
+#include <string>
 
 namespace rnwgpu {
 

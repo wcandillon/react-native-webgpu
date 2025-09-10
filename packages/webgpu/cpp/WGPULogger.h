@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cstdio>
 #include <jsi/jsi.h>
 #include <string>
 

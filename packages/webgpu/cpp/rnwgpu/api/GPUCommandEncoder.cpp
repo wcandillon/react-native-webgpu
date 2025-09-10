@@ -1,5 +1,7 @@
 #include "GPUCommandEncoder.h"
 
+#include <memory>
+#include <string>
 #include <vector>
 
 #include "Convertors.h"

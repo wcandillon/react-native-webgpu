@@ -1,4 +1,5 @@
 #include "GPUComputePipeline.h"
+#include <memory>
 
 namespace rnwgpu {
 
