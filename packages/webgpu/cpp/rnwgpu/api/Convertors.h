@@ -10,7 +10,6 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Unions.h"
 #include "GPUBindGroupDescriptor.h"
 #include "GPUBindGroupEntry.h"
 #include "GPUBindGroupLayoutDescriptor.h"
@@ -61,6 +60,7 @@
 #include "GPUVertexAttribute.h"
 #include "GPUVertexBufferLayout.h"
 #include "GPUVertexState.h"
+#include "Unions.h"
 
 namespace rnwgpu {
 
