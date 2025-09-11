@@ -3,7 +3,6 @@
 #include <vector>
 
 #include "GPURenderPassEncoder.h"
-#include "Convertors.h"
 
 namespace rnwgpu {
 

@@ -8,6 +8,7 @@
 
 #include "Unions.h"
 
+#include "Convertors.h"
 #include "RNFHybridObject.h"
 
 #include "AsyncRunner.h"
