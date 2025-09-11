@@ -65,7 +65,7 @@ LogMessage::~LogMessage() {
         case LogSeverity::Error: severityName = "Error"; break;
         default: severityName = "Unknown"; break;
     }
-    
+
 #ifdef __ANDROID__
     int androidPriority;
     switch (mSeverity) {
