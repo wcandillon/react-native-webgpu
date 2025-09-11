@@ -18,7 +18,7 @@
 
 // Forward declare to avoid circular dependency
 namespace margelo {
-template <typename ArgType, typename Enable> 
+template <typename ArgType, typename SFINAE = void>
 struct JSIConverter;
 }
 
