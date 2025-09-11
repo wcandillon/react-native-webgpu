@@ -1,8 +1,8 @@
 #pragma once
 
 #include <memory>
-#include <utility>
 #include <string>
+#include <utility>
 
 #include "webgpu/webgpu_cpp.h"
 

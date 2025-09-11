@@ -20,7 +20,6 @@
 #include <jsi/jsi.h>
 
 #include "RNFEnumMapper.h"
-#include "RNFHybridObject.h"
 #include "RNFJSIHelper.h"
 #include "RNFPromise.h"
 #include "RNFWorkletRuntimeRegistry.h"

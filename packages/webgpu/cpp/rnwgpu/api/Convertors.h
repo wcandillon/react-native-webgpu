@@ -10,6 +10,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "Unions.h"
 #include "GPUBindGroupDescriptor.h"
 #include "GPUBindGroupEntry.h"
 #include "GPUBindGroupLayoutDescriptor.h"
