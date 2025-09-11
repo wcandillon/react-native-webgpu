@@ -29,7 +29,6 @@ declare global {
 
 interface GPUTestingContext {
   gpu: GPU;
-  adapter: GPUAdapter;
   device: GPUDevice;
   shaders: {
     triangleVertWGSL: string;

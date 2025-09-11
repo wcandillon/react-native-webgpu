@@ -1,4 +1,5 @@
 #include "GPUDeviceLostInfo.h"
+#include <string>
 
 namespace rnwgpu {
 wgpu::DeviceLostReason getReason();

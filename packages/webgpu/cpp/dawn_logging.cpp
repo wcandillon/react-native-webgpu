@@ -1,5 +1,7 @@
+#include <cstdio>
 #include <sstream>
 #include <string>
+#include <utility>
 
 #ifdef __ANDROID__
 #include <android/log.h>
@@ -21,10 +23,8 @@ class LogMessage {
 public:
     explicit LogMessage(LogSeverity severity);
     ~LogMessage();
-    
     LogMessage(LogMessage&& other);
     LogMessage& operator=(LogMessage&& other);
-    
     template <typename T>
     LogMessage& operator<<(T&& value) {
         mStream << value;
@@ -34,7 +34,6 @@ public:
 private:
     LogMessage(const LogMessage& other) = delete;
     LogMessage& operator=(const LogMessage& other) = delete;
-    
     LogSeverity mSeverity;
     std::ostringstream mStream;
 };
@@ -42,7 +41,7 @@ private:
 // Implementation of LogMessage methods
 LogMessage::LogMessage(LogSeverity severity) : mSeverity(severity) {}
 
-LogMessage::LogMessage(LogMessage&& other) 
+LogMessage::LogMessage(LogMessage&& other)
     : mSeverity(other.mSeverity), mStream(std::move(other.mStream)) {}
 
 LogMessage& LogMessage::operator=(LogMessage&& other) {
@@ -55,11 +54,9 @@ LogMessage& LogMessage::operator=(LogMessage&& other) {
 
 LogMessage::~LogMessage() {
     std::string fullMessage = mStream.str();
-    
     if (fullMessage.empty()) {
         return;
     }
-    
     const char* severityName;
     switch (mSeverity) {
         case LogSeverity::Debug: severityName = "Debug"; break;

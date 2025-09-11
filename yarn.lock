@@ -4507,7 +4507,7 @@ __metadata:
     react-native: 0.79.2
     react-native-gesture-handler: ^2.17.1
     react-native-macos: ^0.78.3
-    react-native-reanimated: ^3.12.1
+    react-native-reanimated: 3.19.1
     react-native-safe-area-context: ^5.4.0
     react-native-test-app: 4.3.10
     react-native-wgpu: "*"
@@ -11996,9 +11996,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-reanimated@npm:^3.12.1":
-  version: 3.17.5
-  resolution: "react-native-reanimated@npm:3.17.5"
+"react-native-reanimated@npm:3.19.1":
+  version: 3.19.1
+  resolution: "react-native-reanimated@npm:3.19.1"
   dependencies:
     "@babel/plugin-transform-arrow-functions": ^7.0.0-0
     "@babel/plugin-transform-class-properties": ^7.0.0-0
@@ -12016,7 +12016,7 @@ __metadata:
     "@babel/core": ^7.0.0-0
     react: "*"
     react-native: "*"
-  checksum: fe667e4764f691b2e752eaedb7527fd8ac251637ae9e7dd9ab124abae85627839b5daea064befc5e09ca710ef673d5501ed11286eb39dfcb04f5d57b2d47e49c
+  checksum: 679c737e6fc775102a31c077552b37889c3a18eeefcfd5b213925d2014ce71d0643cf7501e03ac3b65157eea862c9976dca3987eaa2e3377d21fc095b82cb998
   languageName: node
   linkType: hard
 
