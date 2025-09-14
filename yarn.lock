@@ -3349,16 +3349,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@shopify/react-native-skia@npm:2.0.0":
-  version: 2.0.0
-  resolution: "@shopify/react-native-skia@npm:2.0.0"
+"@shopify/react-native-skia@npm:2.2.14":
+  version: 2.2.14
+  resolution: "@shopify/react-native-skia@npm:2.2.14"
   dependencies:
     canvaskit-wasm: 0.40.0
     react-reconciler: 0.31.0
   peerDependencies:
     react: ">=19.0"
     react-native: ">=0.78"
-    react-native-reanimated: ^3.0
+    react-native-reanimated: ">=3.19.1"
   peerDependenciesMeta:
     react-native:
       optional: true
@@ -3366,7 +3366,7 @@ __metadata:
       optional: true
   bin:
     setup-skia-web: scripts/setup-canvaskit.js
-  checksum: 9d14fbcdc8241f9664a27196e585761acb0f9abff92a2d59d59b631e63d67f7029ac07418d8dcbe25e029b7b2457eb7340fbc899e8a871187c68c1c2a19e5141
+  checksum: 68d588a61b345e41e96ab94cb0b65ca883d788135ebaa0f1175ca2fa0448317d779ef96ff52678bc17d01abff142141671c71c6af339e495b515b6c1d45a78c6
   languageName: node
   linkType: hard
 
@@ -4487,7 +4487,7 @@ __metadata:
     "@react-navigation/stack": ^6.4.0
     "@react-three/fiber": ^8.17.6
     "@rnx-kit/metro-config": ^2.0.0
-    "@shopify/react-native-skia": 2.0.0
+    "@shopify/react-native-skia": 2.2.14
     "@tensorflow/tfjs": ^4.22.0
     "@tensorflow/tfjs-backend-webgpu": ^4.22.0
     "@tensorflow/tfjs-vis": ^1.5.1

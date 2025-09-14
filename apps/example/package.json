@@ -20,7 +20,7 @@
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/stack": "^6.4.0",
     "@react-three/fiber": "^8.17.6",
-    "@shopify/react-native-skia": "2.0.0",
+    "@shopify/react-native-skia": "2.2.14",
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-backend-webgpu": "^4.22.0",
     "@tensorflow/tfjs-vis": "^1.5.1",
