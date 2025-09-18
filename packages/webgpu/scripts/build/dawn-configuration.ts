@@ -32,6 +32,7 @@ export const copyHeaders = () => {
     `rm -rf ${projectRoot}/cpp/dawn/webgpu.h`,
     `rm -rf ${projectRoot}/cpp/dawn/webgpu_cpp.h`,
     `rm -rf ${projectRoot}/cpp/dawn/wire`,
+    `rm -rf ${projectRoot}/cpp/webgpu/webgpu_cpp_print.h`,
     `cp externals/dawn/src/dawn/dawn.json ${projectRoot}/libs`,
   ].map((cmd) => $(cmd));
 };
