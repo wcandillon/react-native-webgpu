@@ -15,10 +15,18 @@ Below are some examples from the [example app](/apps/example/).
 
 https://github.com/user-attachments/assets/116a41b2-2cf8-49f1-9f16-a5c83637c198
 
+## Three.js
+
 Starting from `r168`, Three.js runs out of the box with React Native WebGPU.
 You need to have a slight modification of [the metro config](/apps/example/metro.config.js) to resolve Three.js to the WebGPU build.
 We also support [three-fiber](/apps/example/src/ThreeJS/Fiber.tsx).
-For model loading, we also need [the following polyfill](/apps/example/src/App.tsx#29).
+For model loading, we also need the following polyfill:
+
+```tsx
+// The two lines below are needed by three.js
+import "fast-text-encoding";
+window.parent = window;
+```
 
 https://github.com/user-attachments/assets/5b49ef63-0a3c-4679-aeb5-e4b4dddfcc1d
 
@@ -190,7 +198,7 @@ device.queue.copyExternalImageToTexture(
 ### iOS
 
 To run the React Native WebGPU project on the iOS simulator, you need to disable the Metal validation API.  
-In "Edit Scheme," uncheck "Metal Validation."
+In "Edit Scheme," uncheck "Metal Validation.". Learn more [here](https://developer.apple.com/documentation/xcode/validating-your-apps-metal-api-usage/).
 
 <img width="1052" alt="Uncheck 'Metal Validation'" src="https://github.com/user-attachments/assets/2676e5cc-e351-4a97-bdc8-22cbd7df2ef2">
 
