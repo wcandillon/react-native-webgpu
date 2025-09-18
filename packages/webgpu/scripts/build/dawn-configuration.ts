@@ -1,5 +1,6 @@
 /* eslint-disable max-len */
 import { $, checkFileExists, runAsync } from "./util";
+import { checkDuplicateHeaders } from "../codegen/util";
 
 export const libs = ["libwebgpu_dawn"] as const;
 
@@ -32,8 +33,12 @@ export const copyHeaders = () => {
     `rm -rf ${projectRoot}/cpp/dawn/webgpu.h`,
     `rm -rf ${projectRoot}/cpp/dawn/webgpu_cpp.h`,
     `rm -rf ${projectRoot}/cpp/dawn/wire`,
+    `rm -rf ${projectRoot}/cpp/webgpu/webgpu_cpp_print.h`,
     `cp externals/dawn/src/dawn/dawn.json ${projectRoot}/libs`,
   ].map((cmd) => $(cmd));
+
+  // Check for duplicate header names and issue warnings
+  checkDuplicateHeaders(`${projectRoot}/cpp`);
 };
 
 const serializeCMakeArgs = (args: Record<string, string>) => {
