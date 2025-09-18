@@ -198,7 +198,7 @@ device.queue.copyExternalImageToTexture(
 ### iOS
 
 To run the React Native WebGPU project on the iOS simulator, you need to disable the Metal validation API.  
-In "Edit Scheme," uncheck "Metal Validation.". Learn more [here](https://developer.apple.com/documentation/xcode/validating-your-apps-metal-api-usage/).
+In "Edit Scheme," uncheck "Metal Validation". Learn more [here](https://developer.apple.com/documentation/xcode/validating-your-apps-metal-api-usage/).
 
 <img width="1052" alt="Uncheck 'Metal Validation'" src="https://github.com/user-attachments/assets/2676e5cc-e351-4a97-bdc8-22cbd7df2ef2">
 
