@@ -1,5 +1,4 @@
 {
-  "type": "module",
   "name": "react-native-wgpu",
   "version": "0.2.7",
   "description": "React Native WebGPU",
