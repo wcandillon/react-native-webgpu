@@ -1,6 +1,5 @@
 {
   "name": "react-native-wgpu",
-  "type": "module",
   "version": "0.2.7",
   "description": "React Native WebGPU",
   "main": "lib/commonjs/index",
@@ -21,8 +20,8 @@
     "*.podspec"
   ],
   "scripts": {
-    "test": "NODE_OPTIONS='--experimental-require-module' jest -i --config jest.config.mjs",
-    "test:ref": "REFERENCE=true NODE_OPTIONS='--experimental-require-module' jest -i --config jest.config.mjs",
+    "test": "NODE_OPTIONS='--experimental-require-module' jest -i",
+    "test:ref": "REFERENCE=true NODE_OPTIONS='--experimental-require-module' jest -i",
     "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
     "tsc": "tsc --noEmit",
     "build": "bob build",
