@@ -1,4 +1,3 @@
-/* eslint-disable no-var */
 import type { Server, WebSocket } from "ws";
 import { WebSocketServer } from "ws";
 
