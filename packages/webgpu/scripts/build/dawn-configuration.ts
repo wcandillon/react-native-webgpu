@@ -1,6 +1,7 @@
 /* eslint-disable max-len */
-import { $, checkFileExists, runAsync } from "./util";
 import { checkDuplicateHeaders } from "../codegen/util";
+
+import { $, checkFileExists, runAsync } from "./util";
 
 export const libs = ["libwebgpu_dawn"] as const;
 

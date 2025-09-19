@@ -1,6 +1,6 @@
 {
   "name": "react-native-wgpu",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "React Native WebGPU",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -79,8 +79,8 @@
     "pngjs": "^7.0.0",
     "prettier": "^3.0.3",
     "puppeteer": "22",
-    "react": "19.0.0",
-    "react-native": "0.79.2",
+    "react": "19.1.0",
+    "react-native": "0.81.4",
     "react-native-builder-bob": "^0.23.2",
     "rimraf": "^5.0.7",
     "seedrandom": "^3.0.5",
@@ -116,6 +116,11 @@
     "jsSrcsDir": "src",
     "android": {
       "javaPackageName": "com.webgpu"
+    },
+    "ios": {
+      "componentProviders": {
+        "WebGPUView": "WebGPUView"
+      }
     }
   }
 }
