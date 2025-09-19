@@ -7,4 +7,5 @@ const globalTeardown = () => {
   }
 };
 
-module.exports = globalTeardown;
+// eslint-disable-next-line import/no-default-export
+export default globalTeardown;

@@ -21,8 +21,8 @@
     "*.podspec"
   ],
   "scripts": {
-    "test": "jest -i",
-    "test:ref": "REFERENCE=true jest -i",
+    "test": "NODE_OPTIONS='--experimental-require-module' jest -i --config jest.config.mjs",
+    "test:ref": "REFERENCE=true NODE_OPTIONS='--experimental-require-module' jest -i --config jest.config.mjs",
     "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
     "tsc": "tsc --noEmit",
     "build": "bob build",

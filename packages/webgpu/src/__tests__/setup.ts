@@ -25,6 +25,7 @@ declare global {
   var testServer: Server;
   var testClient: WebSocket;
   var testOS: TestOS;
+  var testArch: "paper" | "fabric";
 }
 
 interface GPUTestingContext {
