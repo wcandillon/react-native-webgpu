@@ -22,7 +22,7 @@
   ],
   "scripts": {
     "test": "jest -i",
-    "test:ref": "REFERENCE=true yarn test -i",
+    "test:ref": "REFERENCE=true jest -i",
     "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
     "tsc": "tsc --noEmit",
     "build": "bob build",
