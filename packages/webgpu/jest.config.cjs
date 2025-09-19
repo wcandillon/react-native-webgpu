@@ -1,4 +1,4 @@
-const config = {
+module.exports = {
   preset: 'react-native',
   modulePathIgnorePatterns: [
     '(meshes)|(setup)|(setup.(ts|tsx))',
@@ -16,5 +16,3 @@ const config = {
     'node_modules/(?!(wgpu-matrix|react-native|@react-native|react-native-.*)/)',
   ],
 };
-
-export default config;

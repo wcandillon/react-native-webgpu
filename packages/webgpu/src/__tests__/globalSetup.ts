@@ -1,14 +1,6 @@
-import type { Server, WebSocket } from "ws";
-import { WebSocketServer } from "ws";
+const { WebSocketServer } = require("ws");
+const { REFERENCE } = require("./config");
 
-import { REFERENCE } from "./config";
-
-declare global {
-  var testServer: Server;
-  var testClient: WebSocket;
-  var testOS: "ios" | "android" | "web" | "node";
-  var testArch: "paper" | "fabric";
-}
 
 const isOS = (os: string): os is "android" | "ios" | "web" => {
   return ["ios", "android", "web"].indexOf(os) !== -1;
@@ -49,5 +41,4 @@ const globalSetup = () => {
   });
 };
 
-// eslint-disable-next-line import/no-default-export
-export default globalSetup;
+module.exports = globalSetup;

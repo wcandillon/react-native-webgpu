@@ -1,2 +1,4 @@
-export const DEBUG = process.env.DEBUG === "true";
-export const REFERENCE = process.env.REFERENCE === "true";
+module.exports = {
+  DEBUG: process.env.DEBUG === "true",
+  REFERENCE: process.env.REFERENCE === "true"
+};
