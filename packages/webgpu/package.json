@@ -116,6 +116,11 @@
     "jsSrcsDir": "src",
     "android": {
       "javaPackageName": "com.webgpu"
+    },
+    "ios": {
+      "componentProviders": {
+        "WebGPUView": "WebGPUView"
+      }
     }
   }
 }
