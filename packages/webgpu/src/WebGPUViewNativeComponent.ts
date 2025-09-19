@@ -1,8 +1,9 @@
 import { codegenNativeComponent } from "react-native";
 import type { ViewProps } from "react-native";
+import { Int32 } from "react-native/Libraries/Types/CodegenTypes";
 
 interface NativeProps extends ViewProps {
-  contextId: number;
+  contextId: Int32;
   transparent: boolean;
 }
 
