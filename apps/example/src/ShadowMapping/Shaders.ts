@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 export const vertexShadowWGSL = /* wgsl */ `struct Scene {
   lightViewProjMatrix: mat4x4f,
   cameraViewProjMatrix: mat4x4f,

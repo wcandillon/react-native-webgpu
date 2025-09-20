@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import { checkDuplicateHeaders } from "../codegen/util";
 
 import { $, checkFileExists, runAsync } from "./util";
