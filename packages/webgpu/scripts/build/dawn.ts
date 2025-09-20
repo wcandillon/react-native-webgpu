@@ -23,6 +23,7 @@ const commonArgs = {
   DAWN_USE_GLFW: "OFF",
   DAWN_FETCH_DEPENDENCIES: "ON",
   DAWN_ENABLE_DESKTOP_GL: "OFF",
+  DAWN_ENABLE_OPENGLES: "OFF",
   BUILD_SHARED_LIBS: "OFF",
 };
 
@@ -41,7 +42,6 @@ const android = {
   args: {
     CMAKE_TOOLCHAIN_FILE: "$ANDROID_NDK/build/cmake/android.toolchain.cmake",
     ANDROID_PLATFORM: "android-26",
-    DAWN_ENABLE_OPENGLES: "ON",
     DAWN_BUILD_MONOLITHIC_LIBRARY: "SHARED",
     CMAKE_EXE_LINKER_FLAGS: "-llog",
     CMAKE_SHARED_LINKER_FLAGS: "-llog",
@@ -57,7 +57,6 @@ const apple = {
   },
   args: {
     CMAKE_TOOLCHAIN_FILE: `${__dirname}/apple.toolchain.cmake`,
-    DAWN_ENABLE_OPENGLES: "OFF",
     DAWN_BUILD_MONOLITHIC_LIBRARY: "STATIC",
     //  -DPLATFORM=OS64 -DDEPLOYMENT_TARGET=13.0 -DENABLE_BITCODE=OFF -DENABLE_ARC=OFF -DENABLE_VISIBILITY=OFF
     ...commonArgs,
