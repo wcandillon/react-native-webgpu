@@ -1,6 +1,6 @@
 /* eslint-disable max-len */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable no-var */
+
 import fs from "fs";
 import path from "path";
 
@@ -25,6 +25,7 @@ declare global {
   var testServer: Server;
   var testClient: WebSocket;
   var testOS: TestOS;
+  var testArch: "paper" | "fabric";
 }
 
 interface GPUTestingContext {

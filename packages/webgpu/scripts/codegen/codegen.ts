@@ -1,4 +1,5 @@
 import * as path from "path";
+import { fileURLToPath } from "url";
 
 import type { VariableDeclaration } from "ts-morph";
 import { Node, Project } from "ts-morph";
@@ -10,12 +11,16 @@ import type { Union } from "./templates/Unions";
 import { Unions } from "./templates/Unions";
 import { getDescriptor } from "./Descriptors";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Define the path to the WebGPU type declaration file
 const tsConfigFilePath = path.resolve(__dirname, "../../tsconfig.json");
 const filePath = path.resolve(
   __dirname,
   "../../../../node_modules/@webgpu/types/dist/index.d.ts",
 );
+
 const project = new Project({
   tsConfigFilePath,
 });
