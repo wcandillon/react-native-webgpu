@@ -1,6 +1,5 @@
 // eslint.config.js
 import wcandillon from "eslint-config-react-native-wcandillon";
-import prettierPlugin from "eslint-plugin-prettier";
 
 export default [
   {
@@ -9,9 +8,6 @@ export default [
   ...wcandillon,
   {
     files: ["**/*.{js,jsx,ts,tsx}"],
-    plugins: {
-      prettier: prettierPlugin
-    },
     languageOptions: {
       parserOptions: {
         ecmaVersion: "latest",
