@@ -20,13 +20,14 @@
 #include <jsi/jsi.h>
 
 #include "RNFEnumMapper.h"
-#include "RNFHybridObject.h"
 #include "RNFJSIHelper.h"
 #include "RNFPromise.h"
 #include "RNFWorkletRuntimeRegistry.h"
 
 #include "Dispatcher.h"
 #include "ThreadPool.h"
+
+#include "Unions.h"
 
 // This number is the maximum integer that can be represented exactly as a double
 #define MAX_SAFE_INTEGER static_cast<uint64_t>(9007199254740991)

@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "RNFJSIConverter.h"
 #include "WGPULogger.h"
 #include "RNFWorkletRuntimeRegistry.h"
 #include <functional>
@@ -16,6 +15,15 @@
 #include <vector>
 #include <utility>
 #include <string>
+
+// Forward declare to avoid circular dependency
+namespace margelo {
+template <typename ArgType, typename SFINAE>
+struct JSIConverter;
+}
+
+// Include the converter - this must come after forward declaration
+#include "RNFJSIConverter.h"
 
 namespace margelo {
 
