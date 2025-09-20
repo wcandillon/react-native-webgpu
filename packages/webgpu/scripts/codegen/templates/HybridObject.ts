@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import type { InterfaceDeclaration } from "ts-morph";
 import _ from "lodash";
 
