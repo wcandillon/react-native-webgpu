@@ -44,7 +44,8 @@ const android = {
     ANDROID_PLATFORM: "android-26",
     DAWN_BUILD_MONOLITHIC_LIBRARY: "SHARED",
     CMAKE_EXE_LINKER_FLAGS: "-llog",
-    CMAKE_SHARED_LINKER_FLAGS: "-llog",
+    CMAKE_SHARED_LINKER_FLAGS: "-llog -Wl,-z,max-page-size=16384",
+    ANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES: "ON",
     ...commonArgs,
   },
 };
