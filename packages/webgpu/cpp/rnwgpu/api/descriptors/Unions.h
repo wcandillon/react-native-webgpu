@@ -487,7 +487,7 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::FeatureName::AdapterPropertiesVk;
   } else if (inUnion == "r8unorm-storage") {
     *outEnum = wgpu::FeatureName::R8UnormStorage;
-  } else if (inUnion == "dawn-format-capabilities") {
+  } else if (inUnion == "format-capabilities") {
     *outEnum = wgpu::FeatureName::DawnFormatCapabilities;
   } else if (inUnion == "norm16-texture-formats") {
     *outEnum = wgpu::FeatureName::Norm16TextureFormats;
@@ -590,6 +590,9 @@ inline void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::DawnNative:
     *outUnion = "dawn-native";
     break;
+  case wgpu::FeatureName::DawnFormatCapabilities:
+    *outUnion = "format-capabilities";
+    break;
   case wgpu::FeatureName::ChromiumExperimentalTimestampQueryInsidePasses:
     *outUnion = "chromium-experimental-timestamp-query-inside-passes";
     break;
@@ -661,9 +664,6 @@ inline void convertEnumToJSUnion(wgpu::FeatureName inEnum,
     break;
   case wgpu::FeatureName::R8UnormStorage:
     *outUnion = "r8unorm-storage";
-    break;
-  case wgpu::FeatureName::DawnFormatCapabilities:
-    *outUnion = "dawn-format-capabilities";
     break;
   case wgpu::FeatureName::Norm16TextureFormats:
     *outUnion = "norm16-texture-formats";

@@ -41,7 +41,7 @@ std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
     std::shared_ptr<GPURenderPassDescriptor> descriptor) {
 
   wgpu::RenderPassDescriptor desc{};
-  wgpu::RenderPassDescriptorMaxDrawCount maxDrawCountDesc{};
+  wgpu::RenderPassMaxDrawCount maxDrawCountDesc{};
   desc.nextInChain = &maxDrawCountDesc;
   Convertor conv;
 

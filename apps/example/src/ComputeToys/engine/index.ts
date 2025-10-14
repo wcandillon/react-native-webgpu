@@ -167,8 +167,8 @@ struct DispatchInfo { id: uint }
 `;
 
     // Add custom uniforms struct
-    prelude += "struct Custom {\n";
     const [customNames] = this.bindings!.custom.host;
+    prelude += "struct Custom {\n";
     for (const name of customNames) {
       prelude += `    ${name}: float,\n`;
     }

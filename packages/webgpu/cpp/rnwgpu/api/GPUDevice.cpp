@@ -70,7 +70,7 @@ GPUDevice::createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor) {
 
 std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
     std::shared_ptr<GPUShaderModuleDescriptor> descriptor) {
-  wgpu::ShaderModuleWGSLDescriptor wgsl_desc{};
+  wgpu::ShaderSourceWGSL wgsl_desc{};
   wgpu::ShaderModuleDescriptor sm_desc{};
   Convertor conv;
   if (!conv(wgsl_desc.code, descriptor->code) ||
