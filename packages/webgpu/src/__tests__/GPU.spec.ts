@@ -74,7 +74,9 @@ describe("Adapter", () => {
   });
   it("isFallback", async () => {
     const result = await client.eval(({ gpu }) => {
-      return gpu.requestAdapter().then((adapter) => adapter!.isFallbackAdapter);
+      return gpu
+        .requestAdapter()
+        .then((adapter) => adapter && adapter.info.isFallbackAdapter);
     });
     expect(result).toBe(false);
   });

@@ -6,8 +6,6 @@ import {
 } from "../components/Wireframe/Shaders";
 import { client } from "../setup";
 
-type TypedArrayView = Float32Array | Uint32Array;
-
 type Model = {
   vertexBuffer: GPUBuffer;
   indexBuffer: GPUBuffer;
@@ -65,14 +63,14 @@ describe("Wireframe", () => {
         function createBufferWithData(
           // eslint-disable-next-line @typescript-eslint/no-shadow
           device: GPUDevice,
-          data: TypedArrayView,
+          data: Float32Array<ArrayBufferLike> | Uint32Array<ArrayBufferLike>,
           usage: GPUBufferUsageFlags,
         ) {
           const buffer = device.createBuffer({
             size: data.byteLength,
             usage,
           });
-          device.queue.writeBuffer(buffer, 0, data);
+          device.queue.writeBuffer(buffer, 0, data.buffer);
           return buffer;
         }
 

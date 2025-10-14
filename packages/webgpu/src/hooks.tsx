@@ -6,7 +6,9 @@ import type { RNCanvasContext, CanvasRef, NativeCanvas } from "./Canvas";
 type Unsubscribe = () => void;
 
 export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
-  if (adapter.isFallbackAdapter) {
+  // Check if adapter is a fallback adapter using the new GPUAdapterInfo API
+  // Note: isFallbackAdapter was moved from GPUAdapter to GPUAdapterInfo in Chrome 140
+  if (adapter.info && adapter.info.isFallbackAdapter) {
     console.warn(
       "GPUAdapter is not hardware accelerated. This is common on Android emulators. Rendering will be slow. Some features may be unavailable.",
     );
