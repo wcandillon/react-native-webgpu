@@ -8,7 +8,6 @@ type Unsubscribe = () => void;
 export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
   if (adapter.isFallbackAdapter) {
     console.warn(
-      // eslint-disable-next-line max-len
       "GPUAdapter is not hardware accelerated. This is common on Android emulators. Rendering will be slow. Some features may be unavailable.",
     );
   }

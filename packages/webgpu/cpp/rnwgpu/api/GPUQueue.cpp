@@ -1,6 +1,8 @@
 #include "GPUQueue.h"
 
 #include <limits>
+#include <memory>
+#include <vector>
 
 #include "Convertors.h"
 
@@ -38,7 +40,8 @@ void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,
 
   // Note that in the JS semantics of WebGPU, writeBuffer works in number of
   // elements of the typed arrays.
-  if (dataOffsetElements > uint64_t(src.size / src.bytesPerElement)) {
+  if (dataOffsetElements >
+      static_cast<uint64_t>(src.size / src.bytesPerElement)) {
     throw std::runtime_error("dataOffset is larger than data's size.");
     return;
   }
@@ -49,7 +52,7 @@ void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,
   // Size defaults to dataSize - dataOffset. Instead of computing in elements,
   // we directly use it in bytes, and convert the provided value, if any, in
   // bytes.
-  uint64_t size64 = uint64_t(src.size);
+  uint64_t size64 = static_cast<uint64_t>(src.size);
   if (sizeElements.has_value()) {
     if (sizeElements.value() >
         std::numeric_limits<uint64_t>::max() / src.bytesPerElement) {
@@ -59,7 +62,7 @@ void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,
     size64 = sizeElements.value() * src.bytesPerElement;
   }
 
-  if (size64 > uint64_t(src.size)) {
+  if (size64 > static_cast<uint64_t>(src.size)) {
     throw std::runtime_error("size + dataOffset is larger than data's size.");
     return;
   }
@@ -76,10 +79,12 @@ void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,
 }
 
 std::future<void> GPUQueue::onSubmittedWorkDone() {
-  return _async->runAsync([=] {
+  return _async->runAsync([&] {
     return _instance.OnSubmittedWorkDone(
         wgpu::CallbackMode::WaitAnyOnly,
-        [](wgpu::QueueWorkDoneStatus status) {});
+        [](wgpu::QueueWorkDoneStatus status, wgpu::StringView message) {
+          // Handle the callback if needed
+        });
   });
 }
 
@@ -87,8 +92,8 @@ void GPUQueue::copyExternalImageToTexture(
     std::shared_ptr<GPUImageCopyExternalImage> source,
     std::shared_ptr<GPUImageCopyTextureTagged> destination,
     std::shared_ptr<GPUExtent3D> size) {
-  wgpu::ImageCopyTexture dst{};
-  wgpu::TextureDataLayout layout{};
+  wgpu::TexelCopyTextureInfo dst{};
+  wgpu::TexelCopyBufferLayout layout{};
   wgpu::Extent3D sz{};
   Convertor conv;
   uint32_t bytesPerPixel =
@@ -137,8 +142,8 @@ void GPUQueue::writeTexture(std::shared_ptr<GPUImageCopyTexture> destination,
                             std::shared_ptr<ArrayBuffer> data,
                             std::shared_ptr<GPUImageDataLayout> dataLayout,
                             std::shared_ptr<GPUExtent3D> size) {
-  wgpu::ImageCopyTexture dst{};
-  wgpu::TextureDataLayout layout{};
+  wgpu::TexelCopyTextureInfo dst{};
+  wgpu::TexelCopyBufferLayout layout{};
   wgpu::Extent3D sz{};
   Convertor conv;
   if (!conv(dst, destination) ||   //

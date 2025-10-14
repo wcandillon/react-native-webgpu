@@ -3,6 +3,7 @@
 #include <memory>
 #include <shared_mutex>
 #include <unordered_map>
+#include <utility>
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -38,6 +39,7 @@ public:
     config = newConfig;
     config.width = width;
     config.height = height;
+    config.presentMode = wgpu::PresentMode::Fifo;
     _configure();
   }
 
@@ -83,10 +85,10 @@ public:
       auto device = config.device;
       wgpu::CommandEncoder encoder = device.CreateCommandEncoder(&encoderDesc);
 
-      wgpu::ImageCopyTexture sourceTexture = {};
+      wgpu::TexelCopyTextureInfo sourceTexture = {};
       sourceTexture.texture = texture;
 
-      wgpu::ImageCopyTexture destinationTexture = {};
+      wgpu::TexelCopyTextureInfo destinationTexture = {};
       wgpu::SurfaceTexture surfaceTexture;
       surface.GetCurrentTexture(&surfaceTexture);
       destinationTexture.texture = surfaceTexture.texture;

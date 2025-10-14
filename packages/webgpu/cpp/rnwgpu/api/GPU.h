@@ -12,10 +12,14 @@
 
 #include "AsyncRunner.h"
 
+#include "dawn/dawn_proc.h"
+#include "dawn/native/DawnNative.h"
 #include "webgpu/webgpu_cpp.h"
 
 #include "GPUAdapter.h"
 #include "GPURequestAdapterOptions.h"
+
+#include <webgpu/webgpu.h>
 
 namespace rnwgpu {
 
@@ -24,9 +28,13 @@ namespace m = margelo;
 class GPU : public m::HybridObject {
 public:
   GPU() : HybridObject("GPU") {
-    wgpu::InstanceDescriptor instanceDesc;
-    instanceDesc.features.timedWaitAnyEnable = true;
-    instanceDesc.features.timedWaitAnyMaxCount = 64;
+    static const auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
+    wgpu::InstanceDescriptor instanceDesc{.requiredFeatureCount = 1,
+                                          .requiredFeatures = &kTimedWaitAny};
+
+    // For limits:
+    wgpu::InstanceLimits limits{.timedWaitAnyMaxCount = 64};
+    instanceDesc.requiredLimits = &limits;
     _instance = wgpu::CreateInstance(&instanceDesc);
     auto instance = &_instance;
     _async = std::make_shared<AsyncRunner>(instance);

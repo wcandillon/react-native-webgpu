@@ -8,6 +8,7 @@
 #include "ThreadUtils.h"
 #include <pthread.h>
 #include <sstream>
+#include <string>
 #include <thread>
 
 namespace margelo {

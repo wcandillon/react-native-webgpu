@@ -1,5 +1,7 @@
 #include "GPUCommandEncoder.h"
 
+#include <memory>
+#include <string>
 #include <vector>
 
 #include "Convertors.h"
@@ -64,8 +66,8 @@ void GPUCommandEncoder::copyTextureToBuffer(
     std::shared_ptr<GPUImageCopyBuffer> destination,
     std::shared_ptr<GPUExtent3D> copySize) {
   Convertor conv;
-  wgpu::ImageCopyTexture src{};
-  wgpu::ImageCopyBuffer dst{};
+  wgpu::TexelCopyTextureInfo src{};
+  wgpu::TexelCopyBufferInfo dst{};
   wgpu::Extent3D size{};
   if (!conv(src, source) ||      //
       !conv(dst, destination) || //
@@ -81,8 +83,8 @@ void GPUCommandEncoder::copyTextureToTexture(
     std::shared_ptr<GPUExtent3D> copySize) {
   Convertor conv;
 
-  wgpu::ImageCopyTexture src{};
-  wgpu::ImageCopyTexture dst{};
+  wgpu::TexelCopyTextureInfo src{};
+  wgpu::TexelCopyTextureInfo dst{};
   wgpu::Extent3D size{};
   if (!conv(src, source) ||      //
       !conv(dst, destination) || //
@@ -137,8 +139,8 @@ void GPUCommandEncoder::copyBufferToTexture(
     std::shared_ptr<GPUExtent3D> copySize) {
   Convertor conv;
 
-  wgpu::ImageCopyBuffer src{};
-  wgpu::ImageCopyTexture dst{};
+  wgpu::TexelCopyBufferInfo src{};
+  wgpu::TexelCopyTextureInfo dst{};
   wgpu::Extent3D size{};
   if (!conv(src, source) ||      //
       !conv(dst, destination) || //

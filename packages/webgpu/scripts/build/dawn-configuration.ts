@@ -1,4 +1,5 @@
-/* eslint-disable max-len */
+import { checkDuplicateHeaders } from "../codegen/util";
+
 import { $, checkFileExists, runAsync } from "./util";
 
 export const libs = ["libwebgpu_dawn"] as const;
@@ -32,8 +33,12 @@ export const copyHeaders = () => {
     `rm -rf ${projectRoot}/cpp/dawn/webgpu.h`,
     `rm -rf ${projectRoot}/cpp/dawn/webgpu_cpp.h`,
     `rm -rf ${projectRoot}/cpp/dawn/wire`,
+    `rm -rf ${projectRoot}/cpp/webgpu/webgpu_cpp_print.h`,
     `cp externals/dawn/src/dawn/dawn.json ${projectRoot}/libs`,
   ].map((cmd) => $(cmd));
+
+  // Check for duplicate header names and issue warnings
+  checkDuplicateHeaders(`${projectRoot}/cpp`);
 };
 
 const serializeCMakeArgs = (args: Record<string, string>) => {
@@ -62,13 +67,13 @@ export const copyLib = (os: OS, platform: Platform, sdk?: string) => {
   const dstPath = `${projectRoot}/libs/${os}/${suffix}/`;
   $(`mkdir -p ${dstPath}`);
   if (os === "android") {
-    console.log("Strip debug symbols from libwebgpu_dawn.a...");
+    console.log("Strip debug symbols from libwebgpu_dawn.so...");
     $(
       `$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.so`,
     );
   }
   [
-    `externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.${os === "apple" ? "a" : "so"}`,
+    `externals/dawn/out/${out}/src/dawn/native/libwebgpu_dawn.${os === "android" ? "so" : "a"}`,
   ].forEach((lib) => {
     const libPath = lib;
     console.log(`Copying ${libPath} to ${dstPath}`);

@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 /* eslint-disable prefer-destructuring */
 import type {
   InterfaceDeclaration,

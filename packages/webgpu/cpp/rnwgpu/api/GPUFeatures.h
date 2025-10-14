@@ -47,9 +47,6 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::Subgroups:
     *outUnion = "subgroups";
     break;
-  case wgpu::FeatureName::SubgroupsF16:
-    *outUnion = "subgroups-f16";
-    break;
   case wgpu::FeatureName::DawnInternalUsages:
     *outUnion = "dawn-internal-usages";
     break;
@@ -65,9 +62,6 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::ImplicitDeviceSynchronization:
     *outUnion = "implicit-device-synchronization";
     break;
-    //  case wgpu::FeatureName::SurfaceCapabilities:
-    //    *outUnion = "surface-capabilities";
-    //    break;
   case wgpu::FeatureName::TransientAttachments:
     *outUnion = "transient-attachments";
     break;
@@ -83,11 +77,8 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::ANGLETextureSharing:
     *outUnion = "angle-texture-sharing";
     break;
-  case wgpu::FeatureName::ChromiumExperimentalSubgroups:
-    *outUnion = "chromium-experimental-subgroups";
-    break;
-  case wgpu::FeatureName::ChromiumExperimentalSubgroupUniformControlFlow:
-    *outUnion = "chromium-experimental-subgroup-uniform-control-flow";
+  case wgpu::FeatureName::ChromiumExperimentalSubgroupMatrix:
+    *outUnion = "chromium-experimental-subgroups-matrix";
     break;
   case wgpu::FeatureName::PixelLocalStorageCoherent:
     *outUnion = "pixel-local-storage-coherent";
@@ -134,10 +125,10 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::R8UnormStorage:
     *outUnion = "r8unorm-storage";
     break;
-  case wgpu::FeatureName::FormatCapabilities:
+  case wgpu::FeatureName::DawnFormatCapabilities:
     *outUnion = "format-capabilities";
     break;
-  case wgpu::FeatureName::DrmFormatCapabilities:
+  case wgpu::FeatureName::DawnDrmFormatCapabilities:
     *outUnion = "drm-format-capabilities";
     break;
   case wgpu::FeatureName::Norm16TextureFormats:
@@ -185,7 +176,7 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::SharedFenceVkSemaphoreOpaqueFD:
     *outUnion = "shared-fence-vk-semaphore-opaque-fd";
     break;
-  case wgpu::FeatureName::SharedFenceVkSemaphoreSyncFD:
+  case wgpu::FeatureName::SharedFenceSyncFD:
     *outUnion = "shared-fence-vk-semaphore-sync-fd";
     break;
   case wgpu::FeatureName::SharedFenceVkSemaphoreZirconHandle:

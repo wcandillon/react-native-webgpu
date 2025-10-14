@@ -2,6 +2,7 @@
 // Created by Marc Rousavy on 22.02.24.
 //
 #include "RNFWorkletRuntimeRegistry.h"
+#include <set>
 
 namespace margelo {
 

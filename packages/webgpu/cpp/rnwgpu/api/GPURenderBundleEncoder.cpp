@@ -1,5 +1,8 @@
 #include "GPURenderBundleEncoder.h"
 
+#include <memory>
+#include <string>
+
 #include "Convertors.h"
 
 namespace rnwgpu {

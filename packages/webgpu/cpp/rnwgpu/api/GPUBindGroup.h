@@ -37,6 +37,13 @@ public:
 
   inline const wgpu::BindGroup get() { return _instance; }
 
+  size_t getMemoryPressure() override {
+    // Bind groups store resource bindings and descriptor state
+    // They reference buffers, textures, samplers, etc.
+    // Estimate: 1KB per bind group (descriptor tables and binding state)
+    return 1024;
+  }
+
 private:
   wgpu::BindGroup _instance;
   std::string _label;

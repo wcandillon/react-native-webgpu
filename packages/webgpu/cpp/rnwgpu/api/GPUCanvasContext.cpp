@@ -1,6 +1,7 @@
 #include "GPUCanvasContext.h"
 #include "Convertors.h"
 #include "RNWebGPUManager.h"
+#include <memory>
 
 #ifdef __APPLE__
 #include "dawn/native/MetalBackend.h"
@@ -28,6 +29,7 @@ void GPUCanvasContext::configure(
 #ifdef __APPLE__
   surfaceConfiguration.alphaMode = configuration->alphaMode;
 #endif
+  surfaceConfiguration.presentMode = wgpu::PresentMode::Fifo;
   _surfaceInfo->configure(surfaceConfiguration);
 }
 

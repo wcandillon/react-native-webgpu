@@ -1,5 +1,6 @@
 #include "GPUBuffer.h"
 
+#include <memory>
 #include <utility>
 
 #include "Convertors.h"
@@ -54,25 +55,27 @@ std::future<void> GPUBuffer::mapAsync(uint64_t modeIn,
     //     is already mapped"))); return future;
     //   }
     // }
-    wgpu::BufferMapCallbackInfo callback;
-    callback.mode = wgpu::CallbackMode::WaitAnyOnly;
-    callback.callback = [](WGPUBufferMapAsyncStatus status, void *userdata) {
-      switch (status) {
-      case WGPUBufferMapAsyncStatus_Success:
-        break;
-      case WGPUBufferMapAsyncStatus_InstanceDropped:
-        throw std::runtime_error("WGPUBufferMapAsyncStatus_InstanceDropped");
-        break;
-      case WGPUBufferMapAsyncStatus_ValidationError:
-        throw std::runtime_error("WGPUBufferMapAsyncStatus_ValidationError");
-        break;
-      default:
-        throw std::runtime_error("WGPUBufferMapAsyncStatus: " +
-                                 std::to_string(status));
-        break;
-      }
-    };
-    return _instance.MapAsync(mode, offset.value_or(0), rangeSize, callback);
+    return _instance.MapAsync(
+        mode, offset.value_or(0), rangeSize, wgpu::CallbackMode::WaitAnyOnly,
+        [](wgpu::MapAsyncStatus status, wgpu::StringView message) {
+          switch (status) {
+          case wgpu::MapAsyncStatus::Success:
+            break;
+          case wgpu::MapAsyncStatus::CallbackCancelled:
+            throw std::runtime_error("MapAsyncStatus::CallbackCancelled");
+            break;
+          case wgpu::MapAsyncStatus::Error:
+            throw std::runtime_error("MapAsyncStatus::Error");
+            break;
+          case wgpu::MapAsyncStatus::Aborted:
+            throw std::runtime_error("MapAsyncStatus::Aborted");
+            break;
+          default:
+            throw std::runtime_error("MapAsyncStatus: " +
+                                     std::to_string(static_cast<int>(status)));
+            break;
+          }
+        });
   });
 }
 

@@ -1,10 +1,6 @@
-/* eslint-disable max-len */
 /* eslint-disable camelcase */
 
 import { chdir } from "process";
-
-import yargs from "yargs";
-import { hideBin } from "yargs/helpers";
 
 import type { Platform } from "./dawn-configuration";
 import { $, mapKeys } from "./util";
@@ -17,37 +13,6 @@ import {
   projectRoot,
 } from "./dawn-configuration";
 
-const { argv } = yargs(hideBin(process.argv))
-  .option("exclude", {
-    type: "string",
-    describe: "Comma-separated list of platforms to exclude",
-  })
-  .option("includeOnly", {
-    type: "string",
-    describe: "Comma-separated list of platforms to include exclusively",
-  });
-
-// Function to filter platforms based on exclude list
-function filterPlatforms<T extends string>(
-  platforms: T[],
-  excludeList: string[],
-  includeOnlyList: string[],
-): T[] {
-  if (includeOnlyList.length > 0) {
-    return platforms.filter((platform) => includeOnlyList.includes(platform));
-  } else {
-    return platforms.filter((platform) => !excludeList.includes(platform));
-  }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const args = argv as any;
-const excludeList = args.exclude ? args.exclude.split(",") : [];
-const includeOnlyList = args.includeOnly ? args.includeOnly.split(",") : [];
-
-const platforms = (plts: string[]) =>
-  filterPlatforms(plts, excludeList, includeOnlyList) as Platform[];
-
 const commonArgs = {
   CMAKE_BUILD_TYPE: "Release",
   BUILD_SAMPLES: "OFF",
@@ -57,9 +22,9 @@ const commonArgs = {
   DAWN_BUILD_SAMPLES: "OFF",
   DAWN_USE_GLFW: "OFF",
   DAWN_FETCH_DEPENDENCIES: "ON",
-  DAWN_BUILD_MONOLITHIC_LIBRARY: "ON",
-  DAWN_ENABLE_OPENGLES: "OFF",
   DAWN_ENABLE_DESKTOP_GL: "OFF",
+  DAWN_ENABLE_OPENGLES: "OFF",
+  BUILD_SHARED_LIBS: "OFF",
 };
 
 const PLATFORM_MAP: Record<string, string> = {
@@ -73,33 +38,34 @@ const PLATFORM_MAP: Record<string, string> = {
 };
 
 const android = {
-  platforms: platforms(["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]),
+  platforms: ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"] as Platform[],
   args: {
     CMAKE_TOOLCHAIN_FILE: "$ANDROID_NDK/build/cmake/android.toolchain.cmake",
     ANDROID_PLATFORM: "android-26",
+    DAWN_BUILD_MONOLITHIC_LIBRARY: "SHARED",
+    CMAKE_EXE_LINKER_FLAGS: "-llog",
+    CMAKE_SHARED_LINKER_FLAGS: "-llog -Wl,-z,max-page-size=16384",
+    ANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES: "ON",
     ...commonArgs,
   },
 };
 
 const apple = {
   matrix: {
-    arm64: platforms(["iphoneos", "iphonesimulator", "xros", "xrsimulator"]),
-    x86_64: platforms(["iphonesimulator"]),
-    universal: platforms(["macosx"]),
+    arm64: ["iphoneos", "iphonesimulator", "xros", "xrsimulator"],
+    x86_64: ["iphonesimulator"],
+    universal: ["macosx"],
   },
   args: {
     CMAKE_TOOLCHAIN_FILE: `${__dirname}/apple.toolchain.cmake`,
+    DAWN_BUILD_MONOLITHIC_LIBRARY: "STATIC",
+    //  -DPLATFORM=OS64 -DDEPLOYMENT_TARGET=13.0 -DENABLE_BITCODE=OFF -DENABLE_ARC=OFF -DENABLE_VISIBILITY=OFF
     ...commonArgs,
   },
 };
 
 (async () => {
   process.chdir("../..");
-  process.chdir("externals/dawn");
-  $("git reset --hard HEAD");
-  $(`git apply ${__dirname}/static_build.patch`);
-  process.chdir("../..");
-  console.log("Copy headers");
 
   // Build Android
   for (const platform of android.platforms) {

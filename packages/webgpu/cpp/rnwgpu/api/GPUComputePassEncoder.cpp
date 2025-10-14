@@ -1,4 +1,6 @@
 #include "GPUComputePassEncoder.h"
+#include <memory>
+#include <string>
 
 namespace rnwgpu {
 
