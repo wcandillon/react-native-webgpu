@@ -1,4 +1,4 @@
 [submodule "externals/dawn"]
   path = externals/dawn
   url = https://dawn.googlesource.com/dawn
-  branch = chromium/7403
+  branch = chromium/7472

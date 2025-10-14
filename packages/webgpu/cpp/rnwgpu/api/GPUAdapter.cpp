@@ -151,10 +151,4 @@ std::shared_ptr<GPUAdapterInfo> GPUAdapter::getInfo() {
   return std::make_shared<GPUAdapterInfo>(info);
 }
 
-bool GPUAdapter::getIsFallbackAdapter() {
-  wgpu::AdapterInfo adapterInfo = {};
-  _instance.GetInfo(&adapterInfo);
-  return adapterInfo.adapterType == wgpu::AdapterType::CPU;
-}
-
 } // namespace rnwgpu
