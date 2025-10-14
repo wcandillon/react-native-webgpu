@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { useWindowDimensions } from "react-native";
-import { SharedValue, useSharedValue } from "react-native-reanimated";
+import { useSharedValue } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 import { ComputeEngine } from "./engine";
