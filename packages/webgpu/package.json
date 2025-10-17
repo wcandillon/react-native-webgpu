@@ -1,6 +1,6 @@
 {
   "name": "react-native-wgpu",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "React Native WebGPU",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
