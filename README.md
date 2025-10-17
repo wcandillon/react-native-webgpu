@@ -46,7 +46,7 @@ import { Canvas, useCanvasEffect } from "react-native-wgpu";
 import { redFragWGSL, triangleVertWGSL } from "./triangle";
 
 export function HelloTriangle() {
-  const ref = useCanvasEffect(async () => {
+  const ref = useCanvasEffect(React.useCallback(async ({ context, canvas }) => {
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) {
       throw new Error("No adapter");
@@ -54,14 +54,8 @@ export function HelloTriangle() {
     const device = await adapter.requestDevice();
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
-    const context = ref.current!.getContext("webgpu")!;
-    const canvas = context.canvas as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();
     canvas.height = canvas.clientHeight * PixelRatio.get();
-
-    if (!context) {
-      throw new Error("No context");
-    }
 
     context.configure({
       device,
@@ -116,7 +110,7 @@ export function HelloTriangle() {
     device.queue.submit([commandEncoder.finish()]);
 
     context.present();
-  });
+  }, []));
 
   return (
     <View style={style.container}>
