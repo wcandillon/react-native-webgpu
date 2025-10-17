@@ -12,7 +12,7 @@ namespace margelo {
 
 namespace jsi = facebook::jsi;
 
-static constexpr auto GLOBAL_DISPATCHER_HOLDER_NAME = "__nitroDispatcher";
+static constexpr auto GLOBAL_DISPATCHER_HOLDER_NAME = "__nitroDispatcher_WEBGPU_FORK";
 
 std::unordered_map<jsi::Runtime *, std::weak_ptr<Dispatcher>>
     Dispatcher::_globalCache;
