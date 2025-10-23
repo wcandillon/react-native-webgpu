@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import WebGPUModule from "../NativeWebGPUModule";
 
+export { default as WebGPUModule } from "../NativeWebGPUModule";
+
 export * from "../Canvas";
 export * from "../Offscreen";
 export * from "../WebGPUViewNativeComponent";
