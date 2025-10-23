@@ -6,6 +6,11 @@ export * from "../types";
 
 // We don't need to set all global properties on web, webgpu is already available globally
 
+// Create RNWebGPU global object for web
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const RNWebGPU: any = {};
+window.RNWebGPU = RNWebGPU;
+
 RNWebGPU.fabric = true;
 RNWebGPU.getNativeSurface = (contextId: number) => {
   const canvas = document.getElementById(
