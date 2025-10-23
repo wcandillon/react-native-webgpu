@@ -1,5 +1,6 @@
 #include "GPUBuffer.h"
 
+#include <memory>
 #include <utility>
 
 #include "Convertors.h"

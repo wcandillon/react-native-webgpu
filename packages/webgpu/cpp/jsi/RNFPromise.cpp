@@ -4,6 +4,8 @@
 #include "RNFPromise.h"
 #include <future>
 #include <jsi/jsi.h>
+#include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 

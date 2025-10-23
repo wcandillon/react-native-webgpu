@@ -1,6 +1,9 @@
 #include "GPUAdapter.h"
 
+#include <cstdio>
+#include <memory>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -146,12 +149,6 @@ std::shared_ptr<GPUAdapterInfo> GPUAdapter::getInfo() {
   wgpu::AdapterInfo info = {};
   _instance.GetInfo(&info);
   return std::make_shared<GPUAdapterInfo>(info);
-}
-
-bool GPUAdapter::getIsFallbackAdapter() {
-  wgpu::AdapterInfo adapterInfo = {};
-  _instance.GetInfo(&adapterInfo);
-  return adapterInfo.adapterType == wgpu::AdapterType::CPU;
 }
 
 } // namespace rnwgpu

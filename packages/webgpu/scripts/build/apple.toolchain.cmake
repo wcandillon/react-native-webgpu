@@ -265,10 +265,10 @@ set(NAMED_LANGUAGE_SUPPORT_INT ${NAMED_LANGUAGE_SUPPORT} CACHE BOOL
 # Specify the minimum version of the deployment target.
 if(NOT DEFINED DEPLOYMENT_TARGET)
   if (PLATFORM MATCHES "WATCHOS")
-    # Unless specified, SDK version 4.0 is used by default as minimum target version (watchOS).
+    # Unless specified, SDK version 6.0 is used by default as minimum target version (watchOS).
     set(DEPLOYMENT_TARGET "6.0")
   elseif(PLATFORM STREQUAL "MAC")
-    # Unless specified, SDK version 10.13 (High Sierra) is used by default as the minimum target version (macos).
+    # Unless specified, SDK version 11.0 (Big Sur) is used by default as the minimum target version (macOS on x86).
     set(DEPLOYMENT_TARGET "11.0")
   elseif(PLATFORM STREQUAL "VISIONOS" OR PLATFORM STREQUAL "SIMULATOR_VISIONOS" OR PLATFORM STREQUAL "VISIONOSCOMBINED")
     # Unless specified, SDK version 1.0 is used by default as minimum target version (visionOS).
@@ -280,10 +280,10 @@ if(NOT DEFINED DEPLOYMENT_TARGET)
     # Unless specified, SDK version 11.0 (Big Sur) is used by default as minimum target version for universal builds.
     set(DEPLOYMENT_TARGET "11.0")
   elseif(PLATFORM STREQUAL "MAC_CATALYST" OR PLATFORM STREQUAL "MAC_CATALYST_ARM64" OR PLATFORM STREQUAL "MAC_CATALYST_UNIVERSAL")
-    # Unless specified, SDK version 13.0 is used by default as the minimum target version (mac catalyst minimum requirement).
+    # Unless specified, SDK version 13.1 is used by default as the minimum target version (mac catalyst minimum requirement).
     set(DEPLOYMENT_TARGET "13.1")
   else()
-    # Unless specified, SDK version 11.0 is used by default as the minimum target version (iOS, tvOS).
+    # Unless specified, SDK version 13.0 is used by default as the minimum target version (iOS, tvOS).
     set(DEPLOYMENT_TARGET "13.0")
   endif()
   message(STATUS "[DEFAULTS] Using the default min-version since DEPLOYMENT_TARGET not provided!")
@@ -594,7 +594,7 @@ elseif(PLATFORM_INT STREQUAL "MAC_CATALYST_UNIVERSAL")
     set(ARCHS "x86_64;arm64")
   endif()
   string(REPLACE ";" "-" ARCHS_SPLIT "${ARCHS}")
-  set(APPLE_TARGET_TRIPLE_INT ${ARCHS_SPLIT}-apple-ios${DEPLOYMENT_TARGET}-macabi)
+  set(APPLE_TARGET_TRIPLE_INT apple-ios${DEPLOYMENT_TARGET}-macabi)
 else()
   message(FATAL_ERROR "Invalid PLATFORM: ${PLATFORM_INT}")
 endif()
@@ -992,7 +992,7 @@ else()
     set(CMAKE_OBJCXX_LINK_FLAGS "${C_TARGET_FLAGS} ${SDK_NAME_VERSION_FLAGS} -Wl,-search_paths_first ${CMAKE_OBJCXX_LINK_FLAGS}" CACHE INTERNAL
      "Flags used by the compiler for all OBJCXX link types.")
   endif()
-  set(CMAKE_ASM_FLAGS "${CMAKE_C_FLAGS} -x assembler-with-cpp -arch ${CMAKE_OSX_ARCHITECTURES} ${APPLE_TARGET_TRIPLE_FLAG}" CACHE INTERNAL
+  set(CMAKE_ASM_FLAGS "${CMAKE_C_FLAGS} -x assembler-with-cpp" CACHE INTERNAL
      "Flags used by the compiler for all ASM build types.")
 endif()
 

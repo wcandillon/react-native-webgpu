@@ -38,6 +38,13 @@ public:
 
   inline const wgpu::BindGroupLayout get() { return _instance; }
 
+  size_t getMemoryPressure() override {
+    // Bind group layouts define the structure/schema for bind groups
+    // They store binding descriptors, types, and validation info
+    // Estimate: 512 bytes per layout (smaller than actual bind groups)
+    return 512;
+  }
+
 private:
   wgpu::BindGroupLayout _instance;
   std::string _label;

@@ -1,15 +1,6 @@
-/* eslint-disable no-var */
-import type { Server, WebSocket } from "ws";
 import { WebSocketServer } from "ws";
 
 import { REFERENCE } from "./config";
-
-declare global {
-  var testServer: Server;
-  var testClient: WebSocket;
-  var testOS: "ios" | "android" | "web" | "node";
-  var testArch: "paper" | "fabric";
-}
 
 const isOS = (os: string): os is "android" | "ios" | "web" => {
   return ["ios", "android", "web"].indexOf(os) !== -1;

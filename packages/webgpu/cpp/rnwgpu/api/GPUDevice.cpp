@@ -1,5 +1,8 @@
 #include "GPUDevice.h"
 
+#include <memory>
+#include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "Convertors.h"
@@ -67,7 +70,7 @@ GPUDevice::createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor) {
 
 std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
     std::shared_ptr<GPUShaderModuleDescriptor> descriptor) {
-  wgpu::ShaderModuleWGSLDescriptor wgsl_desc{};
+  wgpu::ShaderSourceWGSL wgsl_desc{};
   wgpu::ShaderModuleDescriptor sm_desc{};
   Convertor conv;
   if (!conv(wgsl_desc.code, descriptor->code) ||
@@ -276,47 +279,68 @@ void GPUDevice::pushErrorScope(wgpu::ErrorFilter filter) {
 
 std::future<std::variant<std::nullptr_t, std::shared_ptr<GPUError>>>
 GPUDevice::popErrorScope() {
-  return _async->runAsync([=](wgpu::Instance *instance) {
-    std::variant<std::nullptr_t, std::shared_ptr<GPUError>> result = nullptr;
-    auto future = _instance.PopErrorScope(
-        wgpu::CallbackMode::WaitAnyOnly,
-        [&result](wgpu::PopErrorScopeStatus, wgpu::ErrorType type,
-                  char const *message) {
-          switch (type) {
-          case wgpu::ErrorType::NoError:
-            break;
-          case wgpu::ErrorType::OutOfMemory: {
-            result = std::make_shared<GPUError>(wgpu::ErrorType::OutOfMemory,
-                                                message);
-            break;
-          }
-          case wgpu::ErrorType::Validation: {
-            result = std::make_shared<GPUError>(wgpu::ErrorType::Validation,
-                                                message);
-            break;
-          }
-          case wgpu::ErrorType::Internal: {
-            result =
-                std::make_shared<GPUError>(wgpu::ErrorType::Internal, message);
-            break;
-          }
-          case wgpu::ErrorType::Unknown:
-            result =
-                std::make_shared<GPUError>(wgpu::ErrorType::Unknown, message);
-            break;
-          default:
-            throw std::runtime_error(
-                "unhandled error type (" +
-                std::to_string(
-                    static_cast<std::underlying_type<wgpu::ErrorType>::type>(
-                        type)) +
-                ")");
-            break;
-          }
-        });
-    instance->WaitAny(future, UINT64_MAX);
-    return result;
-  });
+  // Create a promise to return a future, but do the work synchronously on main
+  // thread
+  auto promise = std::make_shared<
+      std::promise<std::variant<std::nullptr_t, std::shared_ptr<GPUError>>>>();
+  auto future = promise->get_future();
+
+  std::variant<std::nullptr_t, std::shared_ptr<GPUError>> result = nullptr;
+
+  auto wgpu_future = _instance.PopErrorScope(
+      wgpu::CallbackMode::WaitAnyOnly,
+      [&result](wgpu::PopErrorScopeStatus status, wgpu::ErrorType type,
+                wgpu::StringView message) {
+        switch (status) {
+        case wgpu::PopErrorScopeStatus::Error:
+          // PopErrorScope itself failed, e.g. the error scope stack was empty.
+          return;
+        case wgpu::PopErrorScopeStatus::CallbackCancelled:
+          // The instance has been dropped. Shouldn't happen except maybe during
+          // shutdown.
+          return;
+        case wgpu::PopErrorScopeStatus::Success:
+          // This is the only case where `type` is set to a meaningful value.
+          break;
+        }
+        switch (type) {
+        case wgpu::ErrorType::NoError:
+          break;
+        case wgpu::ErrorType::OutOfMemory: {
+          result = std::make_shared<GPUError>(wgpu::ErrorType::OutOfMemory,
+                                              std::string(message));
+          break;
+        }
+        case wgpu::ErrorType::Validation: {
+          result = std::make_shared<GPUError>(wgpu::ErrorType::Validation,
+                                              std::string(message));
+          break;
+        }
+        case wgpu::ErrorType::Internal: {
+          result = std::make_shared<GPUError>(wgpu::ErrorType::Internal,
+                                              std::string(message));
+          break;
+        }
+        case wgpu::ErrorType::Unknown:
+          result = std::make_shared<GPUError>(wgpu::ErrorType::Unknown,
+                                              std::string(message));
+          break;
+        default:
+          throw std::runtime_error(
+              "unhandled error type (" +
+              std::to_string(
+                  static_cast<std::underlying_type<wgpu::ErrorType>::type>(
+                      type)) +
+              ")");
+          break;
+        }
+      });
+
+  // Wait synchronously on main thread - both push and pop now on same thread
+  _async->instance->WaitAny(wgpu_future, UINT64_MAX);
+
+  promise->set_value(result);
+  return future;
 }
 
 std::unordered_set<std::string> GPUDevice::getFeatures() {

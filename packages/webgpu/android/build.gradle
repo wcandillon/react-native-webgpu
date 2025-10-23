@@ -81,7 +81,8 @@ android {
         cppFlags "-fexceptions", "-frtti", "-std=c++1y", "-DONANDROID"
         abiFilters (*reactNativeArchitectures())
         arguments '-DANDROID_STL=c++_shared',
-          "-DNODE_MODULES_DIR=${nodeModules}"
+          "-DNODE_MODULES_DIR=${nodeModules}",
+          "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
       }
     }
   }

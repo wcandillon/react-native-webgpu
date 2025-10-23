@@ -73,61 +73,71 @@ describe("Adapter", () => {
     expect(result!.description).toBeDefined();
   });
   it("isFallback", async () => {
-    const result = await client.eval(({ adapter }) => {
-      return adapter.isFallbackAdapter;
+    const result = await client.eval(({ gpu }) => {
+      return gpu
+        .requestAdapter()
+        .then((adapter) => adapter && adapter.info.isFallbackAdapter);
     });
     expect(result).toBe(false);
   });
   it("features", async () => {
-    const result = await client.eval(({ adapter }) => {
-      return Array.from(adapter.features);
+    const result = await client.eval(({ gpu }) => {
+      return gpu
+        .requestAdapter()
+        .then((adapter) => Array.from(adapter!.features));
     });
     expect(result.includes("depth-clip-control")).toBe(true);
     expect(result.includes("rg11b10ufloat-renderable")).toBe(true);
     expect(result.includes("texture-compression-etc2")).toBe(true);
   });
   it("requiredLimits", async () => {
-    const result = await client.eval(({ adapter }) => {
-      return adapter
-        .requestDevice({
-          requiredLimits: {
-            maxBufferSize: 1024 * 1024 * 4,
-          },
-        })
-        .then((device) => !!device);
+    const result = await client.eval(({ gpu }) => {
+      return gpu.requestAdapter().then((adapter) =>
+        adapter!
+          .requestDevice({
+            requiredLimits: {
+              maxBufferSize: 1024 * 1024 * 4,
+            },
+          })
+          .then((device) => !!device),
+      );
     });
     expect(result).toBe(true);
   });
   it("request device with timestamp queries", async () => {
-    const result = await client.eval(({ adapter }) => {
-      if (adapter.features.has("timestamp-query")) {
-        return adapter
-          .requestDevice({
-            requiredFeatures: ["timestamp-query"],
-          })
-          .then((device) => device.features.has("timestamp-query"));
-      }
-      return true;
+    const result = await client.eval(({ gpu }) => {
+      return gpu.requestAdapter().then((adapter) => {
+        if (adapter!.features.has("timestamp-query")) {
+          return adapter!
+            .requestDevice({
+              requiredFeatures: ["timestamp-query"],
+            })
+            .then((device) => device.features.has("timestamp-query"));
+        }
+        return true;
+      });
     });
     expect(result).toBe(true);
   });
   it("request device faulty input", async () => {
-    const result = await client.eval(({ adapter }) => {
-      return adapter
-        .requestDevice({
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-expect-error
-          requiredFeatures: [["bgra8unorm-storage"]],
-          requiredLimits: {
-            maxComputeWorkgroupStorageSize: 16352,
-            maxComputeWorkgroupsPerDimension: 65535,
-            maxStorageBufferBindingSize: 268435456,
-            maxBufferSize: 268435456,
-            maxComputeWorkgroupSizeX: 512,
-            maxComputeInvocationsPerWorkgroup: 512,
-          },
-        })
-        .then((device) => !!device);
+    const result = await client.eval(({ gpu }) => {
+      return gpu.requestAdapter().then((adapter) =>
+        adapter!
+          .requestDevice({
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
+            requiredFeatures: [["bgra8unorm-storage"]],
+            requiredLimits: {
+              maxComputeWorkgroupStorageSize: 16352,
+              maxComputeWorkgroupsPerDimension: 65535,
+              maxStorageBufferBindingSize: 268435456,
+              maxBufferSize: 268435456,
+              maxComputeWorkgroupSizeX: 512,
+              maxComputeInvocationsPerWorkgroup: 512,
+            },
+          })
+          .then((device) => !!device),
+      );
     });
     expect(result).toBe(true);
   });
@@ -144,74 +154,76 @@ describe("Adapter", () => {
   //   expect(result).toBe(true);
   // });
   it("limits", async () => {
-    const result = await client.eval(({ adapter }) => {
-      const {
-        maxTextureDimension1D,
-        maxTextureDimension2D,
-        maxTextureDimension3D,
-        maxTextureArrayLayers,
-        maxBindGroups,
-        maxBindGroupsPlusVertexBuffers,
-        maxBindingsPerBindGroup,
-        maxDynamicUniformBuffersPerPipelineLayout,
-        maxDynamicStorageBuffersPerPipelineLayout,
-        maxSampledTexturesPerShaderStage,
-        maxSamplersPerShaderStage,
-        maxStorageBuffersPerShaderStage,
-        maxStorageTexturesPerShaderStage,
-        maxUniformBuffersPerShaderStage,
-        maxUniformBufferBindingSize,
-        maxStorageBufferBindingSize,
-        minUniformBufferOffsetAlignment,
-        minStorageBufferOffsetAlignment,
-        maxVertexBuffers,
-        maxBufferSize,
-        maxVertexAttributes,
-        maxVertexBufferArrayStride,
-        maxInterStageShaderVariables,
-        maxColorAttachments,
-        maxColorAttachmentBytesPerSample,
-        maxComputeWorkgroupStorageSize,
-        maxComputeInvocationsPerWorkgroup,
-        maxComputeWorkgroupSizeX,
-        maxComputeWorkgroupSizeY,
-        maxComputeWorkgroupSizeZ,
-        maxComputeWorkgroupsPerDimension,
-      } = adapter.limits;
-      return {
-        __brand: adapter.limits.__brand,
-        maxTextureDimension1D,
-        maxTextureDimension2D,
-        maxTextureDimension3D,
-        maxTextureArrayLayers,
-        maxBindGroups,
-        maxBindGroupsPlusVertexBuffers,
-        maxBindingsPerBindGroup,
-        maxDynamicUniformBuffersPerPipelineLayout,
-        maxDynamicStorageBuffersPerPipelineLayout,
-        maxSampledTexturesPerShaderStage,
-        maxSamplersPerShaderStage,
-        maxStorageBuffersPerShaderStage,
-        maxStorageTexturesPerShaderStage,
-        maxUniformBuffersPerShaderStage,
-        maxUniformBufferBindingSize,
-        maxStorageBufferBindingSize,
-        minUniformBufferOffsetAlignment,
-        minStorageBufferOffsetAlignment,
-        maxVertexBuffers,
-        maxBufferSize,
-        maxVertexAttributes,
-        maxVertexBufferArrayStride,
-        maxInterStageShaderVariables,
-        maxColorAttachments,
-        maxColorAttachmentBytesPerSample,
-        maxComputeWorkgroupStorageSize,
-        maxComputeInvocationsPerWorkgroup,
-        maxComputeWorkgroupSizeX,
-        maxComputeWorkgroupSizeY,
-        maxComputeWorkgroupSizeZ,
-        maxComputeWorkgroupsPerDimension,
-      };
+    const result = await client.eval(({ gpu }) => {
+      return gpu.requestAdapter().then((adapter) => {
+        const {
+          maxTextureDimension1D,
+          maxTextureDimension2D,
+          maxTextureDimension3D,
+          maxTextureArrayLayers,
+          maxBindGroups,
+          maxBindGroupsPlusVertexBuffers,
+          maxBindingsPerBindGroup,
+          maxDynamicUniformBuffersPerPipelineLayout,
+          maxDynamicStorageBuffersPerPipelineLayout,
+          maxSampledTexturesPerShaderStage,
+          maxSamplersPerShaderStage,
+          maxStorageBuffersPerShaderStage,
+          maxStorageTexturesPerShaderStage,
+          maxUniformBuffersPerShaderStage,
+          maxUniformBufferBindingSize,
+          maxStorageBufferBindingSize,
+          minUniformBufferOffsetAlignment,
+          minStorageBufferOffsetAlignment,
+          maxVertexBuffers,
+          maxBufferSize,
+          maxVertexAttributes,
+          maxVertexBufferArrayStride,
+          maxInterStageShaderVariables,
+          maxColorAttachments,
+          maxColorAttachmentBytesPerSample,
+          maxComputeWorkgroupStorageSize,
+          maxComputeInvocationsPerWorkgroup,
+          maxComputeWorkgroupSizeX,
+          maxComputeWorkgroupSizeY,
+          maxComputeWorkgroupSizeZ,
+          maxComputeWorkgroupsPerDimension,
+        } = adapter!.limits;
+        return {
+          __brand: adapter!.limits.__brand,
+          maxTextureDimension1D,
+          maxTextureDimension2D,
+          maxTextureDimension3D,
+          maxTextureArrayLayers,
+          maxBindGroups,
+          maxBindGroupsPlusVertexBuffers,
+          maxBindingsPerBindGroup,
+          maxDynamicUniformBuffersPerPipelineLayout,
+          maxDynamicStorageBuffersPerPipelineLayout,
+          maxSampledTexturesPerShaderStage,
+          maxSamplersPerShaderStage,
+          maxStorageBuffersPerShaderStage,
+          maxStorageTexturesPerShaderStage,
+          maxUniformBuffersPerShaderStage,
+          maxUniformBufferBindingSize,
+          maxStorageBufferBindingSize,
+          minUniformBufferOffsetAlignment,
+          minStorageBufferOffsetAlignment,
+          maxVertexBuffers,
+          maxBufferSize,
+          maxVertexAttributes,
+          maxVertexBufferArrayStride,
+          maxInterStageShaderVariables,
+          maxColorAttachments,
+          maxColorAttachmentBytesPerSample,
+          maxComputeWorkgroupStorageSize,
+          maxComputeInvocationsPerWorkgroup,
+          maxComputeWorkgroupSizeX,
+          maxComputeWorkgroupSizeY,
+          maxComputeWorkgroupSizeZ,
+          maxComputeWorkgroupsPerDimension,
+        };
+      });
     });
     if (result.__brand) {
       expect(result.__brand).toBe("GPUSupportedLimits");

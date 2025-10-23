@@ -48,6 +48,14 @@ public:
 
   inline const wgpu::ShaderModule get() { return _instance; }
 
+  size_t getMemoryPressure() override {
+    // Estimate memory usage for compiled shader module
+    // Shaders can vary widely, but a reasonable estimate is 8-16KB for typical
+    // shaders Complex shaders (with many uniforms, textures, or computations)
+    // can be much larger
+    return 12 * 1024; // 12KB estimate for average shader
+  }
+
 private:
   wgpu::ShaderModule _instance;
   std::shared_ptr<AsyncRunner> _async;

@@ -29,6 +29,7 @@ import { ThreeJS } from "./ThreeJS";
 import { GradientTiles } from "./GradientTiles";
 import { CanvasAPI } from "./CanvasAPI";
 import { Tensorflow } from "./Tensorflow";
+import { ComputeToys } from "./ComputeToys";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -54,6 +55,7 @@ function App() {
             name="HelloTriangleMSAA"
             component={HelloTriangleMSAA}
           />
+          <Stack.Screen name="ComputeToys" component={ComputeToys} />
           <Stack.Screen name="ThreeJS" component={ThreeJS} />
           <Stack.Screen name="Tensorflow" component={Tensorflow} />
           <Stack.Screen name="CanvasAPI" component={CanvasAPI} />

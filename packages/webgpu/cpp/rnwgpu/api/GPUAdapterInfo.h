@@ -21,7 +21,8 @@ public:
   explicit GPUAdapterInfo(wgpu::AdapterInfo &info)
       : HybridObject("GPUAdapterInfo"), _vendor(info.vendor),
         _architecture(info.architecture), _device(info.device),
-        _description(info.description) {}
+        _description(info.description),
+        _isFallbackAdapter(info.adapterType == wgpu::AdapterType::CPU) {}
 
 public:
   std::string getBrand() { return _name; }
@@ -30,6 +31,7 @@ public:
   std::string getArchitecture() { return _architecture; }
   std::string getDevice() { return _device; }
   std::string getDescription() { return _description; }
+  bool getIsFallbackAdapter() { return _isFallbackAdapter; }
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUAdapterInfo::getBrand, this);
@@ -39,6 +41,8 @@ public:
                          this);
     registerHybridGetter("device", &GPUAdapterInfo::getDevice, this);
     registerHybridGetter("description", &GPUAdapterInfo::getDescription, this);
+    registerHybridGetter("isFallbackAdapter",
+                         &GPUAdapterInfo::getIsFallbackAdapter, this);
   }
 
 private:
@@ -46,6 +50,7 @@ private:
   std::string _architecture;
   std::string _device;
   std::string _description;
+  bool _isFallbackAdapter;
 };
 
 } // namespace rnwgpu

@@ -62,6 +62,8 @@ public:
 
   inline const wgpu::Buffer get() { return _instance; }
 
+  size_t getMemoryPressure() override { return static_cast<size_t>(getSize()); }
+
 private:
   wgpu::Buffer _instance;
   std::shared_ptr<AsyncRunner> _async;

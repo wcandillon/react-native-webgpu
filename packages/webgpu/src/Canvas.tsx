@@ -12,7 +12,6 @@ import {
 import type { RefObject } from "react";
 
 import { WebGPUWrapper } from "./WebGPUWrapper";
-import type { CanvasRef, RNCanvasContext } from "./types";
 import {
   fabricIsEnabled,
   getNativeSurface,
@@ -22,6 +21,42 @@ import {
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
   return CONTEXT_COUNTER++;
+}
+
+declare global {
+  var RNWebGPU: {
+    gpu: GPU;
+    fabric: boolean;
+    getNativeSurface: (contextId: number) => NativeCanvas;
+    MakeWebGPUCanvasContext: (
+      contextId: number,
+      width: number,
+      height: number,
+    ) => RNCanvasContext;
+    DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
+    createImageBitmap: typeof createImageBitmap;
+  };
+}
+
+type SurfacePointer = bigint;
+
+export interface NativeCanvas {
+  surface: SurfacePointer;
+  width: number;
+  height: number;
+  clientWidth: number;
+  clientHeight: number;
+}
+
+export type RNCanvasContext = GPUCanvasContext & {
+  present: () => void;
+};
+
+export interface CanvasRef {
+  getContextId: () => number;
+  getContext(contextName: "webgpu"): RNCanvasContext | null;
+  getNativeSurface: () => NativeCanvas;
+  whenReady: (callback: () => void) => void;
 }
 
 interface Size {

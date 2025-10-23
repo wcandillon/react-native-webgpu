@@ -23,7 +23,7 @@ public:
         });
   }
 
-private:
+public:
   wgpu::Instance *instance;
 };
 

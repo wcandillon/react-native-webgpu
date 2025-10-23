@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "RNFJSIConverter.h"
 #include "WGPULogger.h"
 #include "RNFWorkletRuntimeRegistry.h"
 #include <functional>
@@ -16,6 +15,15 @@
 #include <vector>
 #include <utility>
 #include <string>
+
+// Forward declare to avoid circular dependency
+namespace margelo {
+template <typename ArgType, typename SFINAE>
+struct JSIConverter;
+}
+
+// Include the converter - this must come after forward declaration
+#include "RNFJSIConverter.h"
 
 namespace margelo {
 
@@ -64,6 +72,12 @@ public:
    * Get a string representation of this HostObject, useful for logging or debugging.
    */
   virtual std::string toString(jsi::Runtime& runtime);
+
+  /**
+   * Get the memory pressure of this HostObject in bytes.
+   * This is used to inform the JavaScript runtime about memory usage for garbage collection.
+   */
+  virtual size_t getMemoryPressure() { return 1024; }
 
 private:
   static constexpr auto TAG = "HybridObject";

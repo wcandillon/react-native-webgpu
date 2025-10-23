@@ -28,9 +28,13 @@ namespace m = margelo;
 class GPU : public m::HybridObject {
 public:
   GPU() : HybridObject("GPU") {
-    wgpu::InstanceDescriptor instanceDesc;
-    instanceDesc.capabilities.timedWaitAnyEnable = true;
-    instanceDesc.capabilities.timedWaitAnyMaxCount = 64;
+    static const auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
+    wgpu::InstanceDescriptor instanceDesc{.requiredFeatureCount = 1,
+                                          .requiredFeatures = &kTimedWaitAny};
+
+    // For limits:
+    wgpu::InstanceLimits limits{.timedWaitAnyMaxCount = 64};
+    instanceDesc.requiredLimits = &limits;
     _instance = wgpu::CreateInstance(&instanceDesc);
     auto instance = &_instance;
     _async = std::make_shared<AsyncRunner>(instance);

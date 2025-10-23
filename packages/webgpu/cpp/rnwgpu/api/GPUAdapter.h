@@ -37,7 +37,6 @@ public:
   std::unordered_set<std::string> getFeatures();
   std::shared_ptr<GPUSupportedLimits> getLimits();
   std::shared_ptr<GPUAdapterInfo> getInfo();
-  bool getIsFallbackAdapter();
 
   void loadHybridMethods() override {
     registerHybridGetter("__brand", &GPUAdapter::getBrand, this);
@@ -45,8 +44,6 @@ public:
     registerHybridGetter("features", &GPUAdapter::getFeatures, this);
     registerHybridGetter("limits", &GPUAdapter::getLimits, this);
     registerHybridGetter("info", &GPUAdapter::getInfo, this);
-    registerHybridGetter("isFallbackAdapter", &GPUAdapter::getIsFallbackAdapter,
-                         this);
   }
 
   inline const wgpu::Adapter get() { return _instance; }

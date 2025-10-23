@@ -27,6 +27,8 @@ public:
     registerHybridGetter("height", &ImageBitmap::getHeight, this);
   }
 
+  size_t getMemoryPressure() override { return getSize(); }
+
 private:
   ImageData _imageData;
 };

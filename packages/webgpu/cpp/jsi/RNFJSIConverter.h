@@ -20,13 +20,17 @@
 #include <jsi/jsi.h>
 
 #include "RNFEnumMapper.h"
-#include "RNFHybridObject.h"
 #include "RNFJSIHelper.h"
 #include "RNFPromise.h"
 #include "RNFWorkletRuntimeRegistry.h"
 
 #include "Dispatcher.h"
 #include "ThreadPool.h"
+
+#include "Unions.h"
+
+// This number is the maximum integer that can be represented exactly as a double
+#define MAX_SAFE_INTEGER static_cast<uint64_t>(9007199254740991)
 
 #if __has_include(<cxxabi.h>)
 #include <cxxabi.h>
@@ -122,7 +126,7 @@ template <> struct JSIConverter<uint64_t> {
   static uint64_t fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
     if (arg.isNumber()) {
       double value = arg.asNumber();
-      if (value < 0 || value > static_cast<double>(std::numeric_limits<uint64_t>::max())) {
+      if (value < 0 || value > MAX_SAFE_INTEGER) {
         throw jsi::JSError(runtime, "Number out of range for uint64_t");
       }
       return static_cast<uint64_t>(value);
@@ -132,7 +136,7 @@ template <> struct JSIConverter<uint64_t> {
   }
 
   static jsi::Value toJSI(jsi::Runtime& runtime, uint64_t arg) {
-    if (arg <= static_cast<uint64_t>(std::numeric_limits<double>::max())) {
+    if (arg <= MAX_SAFE_INTEGER) {
       return jsi::Value(static_cast<double>(arg));
     } else {
       throw jsi::JSError(runtime, "Number too large to be represented as a double");
@@ -443,7 +447,12 @@ template <typename T> struct JSIConverter<T, std::enable_if_t<is_shared_ptr_to_h
       throw jsi::JSError(runtime, "Cannot convert nullptr to HostObject<" + getFriendlyTypename() + ">!");
     }
 #endif
-    return jsi::Object::createFromHostObject(runtime, arg);
+    auto result = jsi::Object::createFromHostObject(runtime, arg);
+    auto memoryPressure = arg->getMemoryPressure();
+    if (memoryPressure > 0) {
+      result.setExternalMemoryPressure(runtime, memoryPressure);
+    }
+    return result;
   }
 };
 

@@ -1,5 +1,9 @@
-#include "GPURenderPassEncoder.h"
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "Convertors.h"
+#include "GPURenderPassEncoder.h"
 
 namespace rnwgpu {
 

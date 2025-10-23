@@ -60,6 +60,7 @@
 #include "GPUVertexAttribute.h"
 #include "GPUVertexBufferLayout.h"
 #include "GPUVertexState.h"
+#include "Unions.h"
 
 namespace rnwgpu {
 
