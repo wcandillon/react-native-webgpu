@@ -2,10 +2,15 @@ import _ from "lodash";
 import { useEffect, useRef } from "react";
 import { StyleSheet } from "react-native";
 import { unstable_createElement as unstableCreateElement } from "react-native-web";
+import type { Int32 } from "react-native/Libraries/Types/CodegenTypes";
+import type { ViewProps } from "react-native";
 
-import { contextIdToId } from "../utils";
+import { contextIdToId } from "./utils";
 
-import type { NativeProps } from "./types";
+export interface NativeProps extends ViewProps {
+  contextId: Int32;
+  transparent: boolean;
+}
 
 function resizeCanvas(canvas?: HTMLCanvasElement) {
   if (!canvas) {
