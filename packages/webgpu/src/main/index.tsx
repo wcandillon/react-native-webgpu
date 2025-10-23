@@ -1,29 +1,13 @@
-import { WebGPUModule } from "./NativeWebGPUModuleWrapper";
-import { NativeCanvas, RNCanvasContext } from "./types";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import WebGPUModule from "../WebGPUModule";
 
-export * from "./Canvas";
-export * from "./Offscreen";
-export * from "./WebGPUWrapper";
-export * from "./hooks";
-export * from "./types";
+export { default as WebGPUModule } from "../WebGPUModule";
 
-export { WebGPUModule } from "./NativeWebGPUModuleWrapper";
-
-declare global {
-  // eslint-disable-next-line no-var
-  var RNWebGPU: {
-    gpu: GPU;
-    fabric: boolean;
-    getNativeSurface: (contextId: number) => NativeCanvas;
-    MakeWebGPUCanvasContext: (
-      contextId: number,
-      width: number,
-      height: number,
-    ) => RNCanvasContext;
-    DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
-    createImageBitmap: typeof createImageBitmap;
-  };
-}
+export * from "../Canvas";
+export * from "../Offscreen";
+export * from "../WebGPUViewNativeComponent";
+export * from "../hooks";
+export * from "../types";
 
 const GPU: any = {};
 GPU[Symbol.hasInstance] = function (instance: object) {

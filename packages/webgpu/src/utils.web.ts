@@ -1,4 +1,4 @@
-import { NativeCanvas, RNCanvasContext } from "./types";
+import type { NativeCanvas, RNCanvasContext } from "./types";
 
 //Only used on the web
 export function contextIdToId(contextId: number) {

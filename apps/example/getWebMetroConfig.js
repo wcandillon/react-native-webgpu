@@ -7,7 +7,7 @@ const assetRegistryPath = path.resolve(
   "node_modules/react-native-web/dist/modules/AssetRegistry/index",
 );
 
-module.exports = function(metroConfig){
+module.exports = function (metroConfig) {
   metroConfig.resolver.platforms = ["ios", "android", "web"];
   const origResolveRequest = metroConfig.resolver.resolveRequest;
   metroConfig.resolver.resolveRequest = (contextRaw, moduleName, platform) => {
@@ -29,6 +29,5 @@ module.exports = function(metroConfig){
 
   metroConfig.transformer.assetRegistryPath = assetRegistryPath;
 
-  return metroConfig
-}
-
+  return metroConfig;
+};

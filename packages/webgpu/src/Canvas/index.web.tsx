@@ -11,31 +11,16 @@ import {
 } from "react";
 import type { RefObject } from "react";
 
-import { WebGPUWrapper } from "./WebGPUWrapper";
 import {
   fabricIsEnabled,
   getNativeSurface,
   MakeWebGPUCanvasContext,
-} from "./utils";
+} from "../utils";
+import WebGPUViewNativeComponent from "../WebGPUViewNativeComponent";
 
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
   return CONTEXT_COUNTER++;
-}
-
-declare global {
-  var RNWebGPU: {
-    gpu: GPU;
-    fabric: boolean;
-    getNativeSurface: (contextId: number) => NativeCanvas;
-    MakeWebGPUCanvasContext: (
-      contextId: number,
-      width: number,
-      height: number,
-    ) => RNCanvasContext;
-    DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
-    createImageBitmap: typeof createImageBitmap;
-  };
 }
 
 type SurfacePointer = bigint;
@@ -146,7 +131,7 @@ export const Canvas = forwardRef<
   }));
   return (
     <View collapsable={false} ref={viewRef} onLayout={onLayout} {...props}>
-      <WebGPUWrapper
+      <WebGPUViewNativeComponent
         style={size}
         contextId={contextId}
         transparent={!!transparent}
