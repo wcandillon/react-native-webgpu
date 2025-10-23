@@ -212,27 +212,25 @@ git submodule update --init
 
 Make sure you have all the tools required for building the Skia libraries (Android Studio, XCode, Ninja, CMake, Android NDK/build tools).
 
+### Downloading Dawn
+
+There is an alternative way which is to download the prebuilt binaries from GitHub.
+
+```sh
+$ yarn
+$ cd packages/webgpu
+$ yarn install-dawn
+```
+
 ### Building Dawn
+
+Alternatively, you can build Dawn locally.
 
 ```sh
 yarn
 cd packages/webgpu
 yarn build-dawn
 ```
-
-### Downloading Dawn
-
-There is an alternative way which is to download the prebuilt binaries from GitHub.
-You need to have the [Github CLI](https://cli.github.com/) installed:
-
-```sh
-$ yarn
-$ cd packages/webgpu
-$ yarn download-artifacts
-$ yarn copy-artifacts
-```
-
-Alternatively you can also download the prebuilt binaries [here](https://github.com/wcandillon/react-native-webgpu/actions/workflows/build-dawn.yml).
 
 ### Upgrading
 

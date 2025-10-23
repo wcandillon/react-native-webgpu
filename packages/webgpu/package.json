@@ -19,6 +19,7 @@
     "libs/**",
     "*.podspec"
   ],
+  "dawn": "chromium/7472",
   "scripts": {
     "test": "NODE_OPTIONS='--experimental-require-module' jest -i",
     "test:ref": "REFERENCE=true NODE_OPTIONS='--experimental-require-module' jest -i",
@@ -32,8 +33,7 @@
     "clang-format-android": "find android/cpp/ -iname \"*.h\" -o -iname \"*.m\" -o -iname \"*.cpp\" | xargs clang-format -i",
     "clang-format-common": "find cpp/rnwgpu -iname \"*.h\" -o -iname \"*.m\" -o -iname \"*.cpp\" | xargs clang-format -i",
     "cpplint": "cpplint --linelength=230 --filter=-legal/copyright,-whitespace/indent,-whitespace/comments,-whitespace/ending_newline,-build/include_order,-runtime/references,-readability/todo,-whitespace/blank_line,-whitespace/todo,-runtime/int,-build/c++11,-whitespace/parens --exclude=example --exclude=android/.cxx --exclude=cpp/webgpu --exclude=cpp/dawn --exclude=ios --exclude=android/build --exclude=node_modules --recursive .",
-    "download-artifacts": "tsx scripts/build/download-artifacts.ts && yarn copy-artifacts",
-    "copy-artifacts": "tsx scripts/build/copy-artifacts.ts",
+    "install-dawn": "tsx scripts/install-dawn.ts",
     "codegen": "tsx scripts/codegen/codegen.ts && yarn clang-format"
   },
   "keywords": [
