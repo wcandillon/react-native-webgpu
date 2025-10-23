@@ -11,37 +11,12 @@ import {
 } from "react";
 import type { RefObject } from "react";
 
-import {
-  fabricIsEnabled,
-  getNativeSurface,
-  MakeWebGPUCanvasContext,
-} from "../utils";
-import WebGPUViewNativeComponent from "../WebGPUViewNativeComponent";
+import WebGPUNativeView from "./WebGPUViewNativeComponent";
+import type { CanvasRef, RNCanvasContext } from "./types";
 
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
   return CONTEXT_COUNTER++;
-}
-
-type SurfacePointer = bigint;
-
-export interface NativeCanvas {
-  surface: SurfacePointer;
-  width: number;
-  height: number;
-  clientWidth: number;
-  clientHeight: number;
-}
-
-export type RNCanvasContext = GPUCanvasContext & {
-  present: () => void;
-};
-
-export interface CanvasRef {
-  getContextId: () => number;
-  getContext(contextName: "webgpu"): RNCanvasContext | null;
-  getNativeSurface: () => NativeCanvas;
-  whenReady: (callback: () => void) => void;
 }
 
 interface Size {
@@ -84,7 +59,8 @@ export const Canvas = forwardRef<
   ViewProps & { transparent?: boolean }
 >(({ onLayout: _onLayout, transparent, ...props }, ref) => {
   const viewRef = useRef(null);
-  const useSize = fabricIsEnabled() ? useSizeFabric : useSizePaper;
+  const FABRIC = RNWebGPU.fabric;
+  const useSize = FABRIC ? useSizeFabric : useSizePaper;
   const [contextId, _] = useState(() => generateContextId());
   const cb = useRef<() => void>();
   const { size, onLayout } = useSize(viewRef);
@@ -110,7 +86,7 @@ export const Canvas = forwardRef<
       if (size === null) {
         throw new Error("[WebGPU] Canvas size is not available yet");
       }
-      return getNativeSurface(contextId);
+      return RNWebGPU.getNativeSurface(contextId);
     },
     whenReady(callback: () => void) {
       if (size === null) {
@@ -126,12 +102,17 @@ export const Canvas = forwardRef<
       if (size === null) {
         throw new Error("[WebGPU] Canvas size is not available yet");
       }
-      return MakeWebGPUCanvasContext(contextId, size.width, size.height);
+      return RNWebGPU.MakeWebGPUCanvasContext(
+        contextId,
+        size.width,
+        size.height,
+      );
     },
   }));
+
   return (
     <View collapsable={false} ref={viewRef} onLayout={onLayout} {...props}>
-      <WebGPUViewNativeComponent
+      <WebGPUNativeView
         style={size}
         contextId={contextId}
         transparent={!!transparent}
