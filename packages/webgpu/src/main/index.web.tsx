@@ -1,5 +1,3 @@
-export { default as WebGPUModule } from "../WebGPUModule";
-
 export * from "../Canvas";
 export * from "../Offscreen";
 export * from "../WebGPUViewNativeComponent";

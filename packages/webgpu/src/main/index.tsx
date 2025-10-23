@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import WebGPUModule from "../WebGPUModule";
-
-export { default as WebGPUModule } from "../WebGPUModule";
+import WebGPUModule from "../NativeWebGPUModule";
 
 export * from "../Canvas";
 export * from "../Offscreen";
