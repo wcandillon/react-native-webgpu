@@ -12,7 +12,6 @@
 
 #include "AsyncRunner.h"
 
-#include "dawn/dawn_proc.h"
 #include "dawn/native/DawnNative.h"
 #include "webgpu/webgpu_cpp.h"
 
