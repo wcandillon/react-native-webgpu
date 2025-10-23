@@ -1,6 +1,5 @@
 const path = require("path");
 const root = path.resolve(__dirname, "../..");
-const r3fPath = path.resolve(root, "node_modules/@react-three/fiber");
 const rnwPath = path.resolve(root, "node_modules/react-native-web");
 const assetRegistryPath = path.resolve(
   root,

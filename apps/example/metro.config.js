@@ -5,6 +5,7 @@ const getWebMetroConfig = require('./getWebMetroConfig');
 const root = path.resolve(__dirname, '../..');
 const threePackagePath = path.resolve(root, 'node_modules/three');
 
+const r3fPath = path.resolve(root, "node_modules/@react-three/fiber");
 const defaultConfig = getDefaultConfig(__dirname);
 
 const customConfig = {
