@@ -181,8 +181,7 @@ global.GPUTextureView = GPUTextureView;
 WebGPUModule.install();
 
 if (!navigator) {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-expect-error
+  // @ts-expect-error Navigation object is more complex than this, setting it to an empty object to add gpu property
   navigator = {};
 }
 

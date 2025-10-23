@@ -1,6 +1,9 @@
 import { TurboModuleRegistry } from "react-native";
+import type { TurboModule } from "react-native";
 
-import type { Spec } from "./types";
+export interface Spec extends TurboModule {
+  install: () => boolean;
+}
 
 // eslint-disable-next-line import/no-default-export
 export default TurboModuleRegistry.getEnforcing<Spec>("WebGPUModule");
