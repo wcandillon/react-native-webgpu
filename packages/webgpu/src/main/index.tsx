@@ -185,8 +185,7 @@ if (!navigator) {
 
 navigator.gpu = RNWebGPU.gpu;
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+// @ts-expect-error: set a fake userAgent so code expecting it doesn’t break
 navigator.userAgent = "react-native";
 
 global.createImageBitmap =

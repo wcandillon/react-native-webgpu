@@ -9,10 +9,6 @@ declare global {
     gpu: GPU;
   }
 
-  // If a non-DOM env, this augment global with navigator
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore: Ignore if 'Navigator' doesn't exist
-
   var navigator: Navigator;
 
   var RNWebGPU: {
