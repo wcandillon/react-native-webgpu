@@ -11,8 +11,7 @@ Please note that the package name is `react-native-wgpu`.
 npm install react-native-wgpu
 ```
 
-Note that if you use pnpm, you MUST use a `node-linker = hoisted` so that the external reference to the Dawn webgpu
-library can successfully link
+Note that if you use pnpm, you MUST use a `node-linker = hoisted` so that the external reference to the Dawn webgpu library can successfully link it.
 
 Below are some examples from the [example app](/apps/example/).
 
