@@ -93,5 +93,5 @@ export const checkBuildArtifacts = () => {
   libs.forEach((lib) => {
     checkFileExists(`libs/apple/${lib}.xcframework`);
   });
-  checkFileExists("libs/dawn.json");
+  //checkFileExists("libs/dawn.json");
 };

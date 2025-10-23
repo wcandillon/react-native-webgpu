@@ -199,30 +199,6 @@ for (const [index, asset] of assets.entries()) {
   }
 }
 
-// Download dawn.json from the Dawn repository
-log.subheader("Configuration");
-
-console.log("");
-log.step("Downloading dawn.json configuration");
-const dawnJsonUrl = `https://raw.githubusercontent.com/google/dawn/${dawnVersion}/src/dawn/dawn.json`;
-const dawnJsonPath = join(libsDir, "dawn.json");
-
-try {
-  process.stdout.write(
-    `   ${colors.dim}${symbols.download} Fetching configuration...${colors.reset}`,
-  );
-  execSync(`curl -L -o "${dawnJsonPath}" "${dawnJsonUrl}" 2>&1`, {
-    stdio: "pipe",
-  });
-  process.stdout.write("\r\x1b[K"); // Clear the line
-  log.success("Configuration downloaded");
-} catch (error) {
-  console.log(""); // New line after progress
-  log.error("Failed to download dawn.json");
-  console.error(error);
-  process.exit(1);
-}
-
 // Verify build artifacts
 log.subheader("Verifying Installation");
 console.log("");
