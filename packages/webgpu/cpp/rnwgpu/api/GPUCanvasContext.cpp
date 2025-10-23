@@ -4,7 +4,11 @@
 #include <memory>
 
 #ifdef __APPLE__
-#include "dawn/native/MetalBackend.h"
+namespace dawn::native::metal {
+
+void WaitForCommandsToBeScheduled(WGPUDevice device);
+
+}
 #endif
 
 namespace rnwgpu {
