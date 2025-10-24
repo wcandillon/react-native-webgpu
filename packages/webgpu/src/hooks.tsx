@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { RNCanvasContext, CanvasRef, NativeCanvas } from "./Canvas";
 
-type Unsubscribe = () => void;
 
 export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
   // Check if adapter is a fallback adapter using the new GPUAdapterInfo API
@@ -43,11 +42,12 @@ export const GPUDeviceProvider = ({
 };
 
 export const useSurface = () => {
+  const ref = useRef<CanvasRef>(null);
   const [surface, setSurface] = useState<NativeCanvas | null>(null);
-  const ref = useCanvasEffect(() => {
+  useLayoutEffect(() => {
     const sur = ref.current!.getNativeSurface();
     setSurface(sur);
-  });
+  }, []);
   return { ref, surface };
 };
 
@@ -85,43 +85,11 @@ export const useDevice = (
 };
 
 export const useGPUContext = () => {
+  const ref = useRef<CanvasRef>(null);
   const [context, setContext] = useState<RNCanvasContext | null>(null);
-  const ref = useCanvasEffect(() => {
+  useLayoutEffect(() => {
     const ctx = ref.current!.getContext("webgpu")!;
     setContext(ctx);
-  });
-  return { ref, context };
-};
-
-export const useCanvasEffect = (
-  effect: () =>
-    | void
-    | Unsubscribe
-    | Promise<Unsubscribe | void>
-    | Promise<void>,
-) => {
-  const unsub = useRef<Unsubscribe | null | Promise<Unsubscribe | void>>(null);
-  const ref = useRef<CanvasRef>(null);
-  useEffect(() => {
-    if (!ref.current || !ref.current.whenReady) {
-      throw new Error("The reference is not assigned to a WebGPU Canvas");
-    }
-    ref.current.whenReady(async () => {
-      const sub = effect();
-      if (sub) {
-        unsub.current = sub;
-      }
-    });
-    return () => {
-      if (unsub.current) {
-        if (unsub.current instanceof Promise) {
-          unsub.current.then((sub) => sub && sub());
-        } else {
-          unsub.current();
-        }
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  return ref;
+  return { ref, context };
 };
