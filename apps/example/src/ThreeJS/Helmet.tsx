@@ -1,7 +1,8 @@
 import * as THREE from "three";
-import { Canvas, useGPUContext } from "react-native-wgpu";
+import type { CanvasRef } from "react-native-wgpu";
+import { Canvas } from "react-native-wgpu";
 import { StyleSheet, Text, View } from "react-native";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { useGLTF, useRGBE } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
@@ -9,11 +10,12 @@ import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 export const Helmet = () => {
   const texture = useRGBE(require("./assets/helmet/royal_esplanade_1k.hdr"));
   const gltf = useGLTF(require("./assets/helmet/DamagedHelmet.gltf"));
-  const { ref, context } = useGPUContext();
+  const ref = useRef<CanvasRef>(null);
   useEffect(() => {
-    if (!texture || !gltf || !context) {
+    if (!texture || !gltf) {
       return;
     }
+    const context = ref.current?.getContext("webgpu")!;
     const { width, height } = context.canvas;
 
     const clock = new THREE.Clock();
@@ -53,7 +55,7 @@ export const Helmet = () => {
     return () => {
       renderer.setAnimationLoop(null);
     };
-  }, [texture, gltf, context]);
+  }, [texture, gltf, ref]);
 
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>

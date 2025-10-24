@@ -1,7 +1,8 @@
 import * as THREE from "three";
-import { Canvas, useGPUContext } from "react-native-wgpu";
+import type { CanvasRef } from "react-native-wgpu";
+import { Canvas } from "react-native-wgpu";
 import { PixelRatio, Text, View, StyleSheet } from "react-native";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { color, pass } from "three/tsl";
 import { bloom } from "three/addons/tsl/display/BloomNode";
 
@@ -10,11 +11,12 @@ import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 export const PostProcessing = () => {
   const gltf = useGLTF(require("./assets/PrimaryIonDrive.glb"));
-  const { ref, context } = useGPUContext();
+  const ref = useRef<CanvasRef>(null);
   useEffect(() => {
-    if (!gltf || !context) {
+    if (!gltf) {
       return;
     }
+    const context = ref.current?.getContext("webgpu")!;
     const canvas = context.canvas as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();
     canvas.height = canvas.clientHeight * PixelRatio.get();
@@ -75,7 +77,7 @@ export const PostProcessing = () => {
     return () => {
       renderer.setAnimationLoop(null);
     };
-  }, [gltf, context]);
+  }, [gltf, ref]);
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <Text>Loading assets...</Text>

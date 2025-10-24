@@ -1,6 +1,10 @@
 import { useEffect, useRef } from "react";
 import { PixelRatio } from "react-native";
-import { useGPUContext, useDevice, type NativeCanvas } from "react-native-wgpu";
+import {
+  useDevice,
+  type CanvasRef,
+  type NativeCanvas,
+} from "react-native-wgpu";
 
 interface SceneProps {
   context: GPUCanvasContext;
@@ -15,10 +19,11 @@ type Scene = (props: SceneProps) => RenderScene | void | Promise<RenderScene>;
 
 export const useWebGPU = (scene: Scene) => {
   const { device } = useDevice();
-  const { ref, context } = useGPUContext();
+  const ref = useRef<CanvasRef>(null);
   const animationFrameId = useRef<number | null>(null);
   useEffect(() => {
     (async () => {
+      const context = ref.current?.getContext("webgpu");
       if (!context || !device) {
         return;
       }
@@ -64,6 +69,6 @@ export const useWebGPU = (scene: Scene) => {
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [context, device, scene]);
+  }, [ref, device, scene]);
   return ref;
 };

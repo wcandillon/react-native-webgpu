@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PixelRatio } from "react-native";
-import { Canvas, useGPUContext } from "react-native-wgpu";
+import type { CanvasRef } from "react-native-wgpu";
+import { Canvas } from "react-native-wgpu";
 
 interface TextureState {
   pipeline: GPURenderPipeline;
@@ -18,13 +19,14 @@ interface GPUTextureProps {
 
 export const Texture = ({ texture, style, device }: GPUTextureProps) => {
   const [state, setState] = useState<TextureState | null>(null);
-  const { ref, context } = useGPUContext();
+  const ref = useRef<CanvasRef>(null);
   useEffect(() => {
-    if (!device || !context) {
+    if (!device) {
       return;
     }
 
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+    const context = ref.current?.getContext("webgpu")!;
     const canvas = context.canvas as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();
     canvas.height = canvas.clientHeight * PixelRatio.get();
@@ -99,9 +101,9 @@ export const Texture = ({ texture, style, device }: GPUTextureProps) => {
       pipeline,
       sampler,
     });
-  }, [context, device]);
+  }, [ref, device]);
   useEffect(() => {
-    if (!texture || !state || !device || !context) {
+    if (!texture || !state || !device) {
       return;
     }
     const { pipeline, sampler } = state;
@@ -123,6 +125,7 @@ export const Texture = ({ texture, style, device }: GPUTextureProps) => {
 
     // Render function
     const commandEncoder = device.createCommandEncoder();
+    const context = ref.current?.getContext("webgpu")!;
     const textureView = context.getCurrentTexture().createView();
 
     const renderPass = commandEncoder.beginRenderPass({
@@ -143,6 +146,6 @@ export const Texture = ({ texture, style, device }: GPUTextureProps) => {
 
     device.queue.submit([commandEncoder.finish()]);
     context.present();
-  }, [device, state, texture, context]);
+  }, [device, state, texture, ref]);
   return <Canvas ref={ref} style={style} />;
 };

@@ -1,16 +1,18 @@
 import { Button, View } from "react-native";
-import { Canvas, useGPUContext } from "react-native-wgpu";
+import type { CanvasRef } from "react-native-wgpu";
+import { Canvas } from "react-native-wgpu";
+import { useRef } from "react";
 
 import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
 
 export const CanvasAPI = () => {
-  const { ref, context } = useGPUContext();
-
+  const ref = useRef<CanvasRef>(null);
   return (
     <View style={{ flex: 1 }}>
       <Button
         onPress={() =>
           (async () => {
+            const context = ref.current?.getContext("webgpu");
             if (!context) {
               throw new Error("No context");
             }

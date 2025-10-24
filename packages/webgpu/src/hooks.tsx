@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 
-import type { RNCanvasContext, CanvasRef, NativeCanvas } from "./Canvas";
+import type {  CanvasRef, NativeCanvas } from "./Canvas";
 
 export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
   // Check if adapter is a fallback adapter using the new GPUAdapterInfo API
@@ -92,12 +92,3 @@ export const useDevice = (
   return { adapter: state?.adapter ?? null, device: state?.device ?? null };
 };
 
-export const useGPUContext = () => {
-  const ref = useRef<CanvasRef>(null);
-  const [context, setContext] = useState<RNCanvasContext | null>(null);
-  useEffect(() => {
-    const ctx = ref.current!.getContext("webgpu")!;
-    setContext(ctx);
-  }, []);
-  return { ref, context };
-};
