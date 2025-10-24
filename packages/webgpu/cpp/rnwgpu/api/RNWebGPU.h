@@ -31,11 +31,7 @@ public:
   std::shared_ptr<GPU> getGPU() { return _gpu; }
 
   bool getFabric() {
-#ifdef RCT_NEW_ARCH_ENABLED
     return true;
-#else
-    return false;
-#endif
   }
 
   std::shared_ptr<GPUCanvasContext>

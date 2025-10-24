@@ -4,7 +4,6 @@
 
 #import <React/RCTBridge+Private.h>
 #import <React/RCTLog.h>
-#import <React/RCTUIManagerUtils.h>
 #import <ReactCommon/RCTTurboModule.h>
 #import <jsi/jsi.h>
 #import <memory>
@@ -74,11 +73,9 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   return @true;
 }
 
-#ifdef RCT_NEW_ARCH_ENABLED
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
     (const facebook::react::ObjCTurboModule::InitParams &)params {
   return std::make_shared<facebook::react::NativeWebGPUModuleSpecJSI>(params);
 }
-#endif
 
 @end
