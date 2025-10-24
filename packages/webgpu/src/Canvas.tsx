@@ -44,11 +44,6 @@ export interface CanvasRef {
   getNativeSurface: () => NativeCanvas;
 }
 
-interface Size {
-  width: number;
-  height: number;
-}
-
 export const Canvas = forwardRef<
   CanvasRef,
   ViewProps & { transparent?: boolean }

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import type { ReconcilerRoot, RootState } from "@react-three/fiber";
 import {
   extend,
@@ -9,7 +9,8 @@ import {
 } from "@react-three/fiber";
 import type { ViewProps } from "react-native";
 import { PixelRatio } from "react-native";
-import { Canvas, useCanvasEffect } from "react-native-wgpu";
+import type { CanvasRef } from "react-native-wgpu";
+import { Canvas } from "react-native-wgpu";
 
 import { makeWebGPURenderer, ReactNativeCanvas } from "./makeWebGPURenderer";
 
@@ -31,8 +32,8 @@ export const FiberCanvas = ({
   const root = useRef<ReconcilerRoot<OffscreenCanvas>>(null!);
 
   React.useMemo(() => extend(THREE), []);
-
-  const canvasRef = useCanvasEffect(async () => {
+  const canvasRef = useRef<CanvasRef>(null);
+  useEffect(() => {
     const context = canvasRef.current!.getContext("webgpu")!;
     const renderer = makeWebGPURenderer(context);
 
