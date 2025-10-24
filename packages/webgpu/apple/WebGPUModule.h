@@ -1,8 +1,8 @@
 #pragma once
 
 #import "RNWebGPUManager.h"
-#import <React/RCTEventEmitter.h>
 #import <RNWgpuViewSpec/RNWgpuViewSpec.h>
+#import <React/RCTEventEmitter.h>
 
 @interface WebGPUModule : RCTEventEmitter <NativeWebGPUModuleSpec>
 

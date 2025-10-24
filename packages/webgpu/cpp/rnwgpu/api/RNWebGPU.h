@@ -30,9 +30,7 @@ public:
 
   std::shared_ptr<GPU> getGPU() { return _gpu; }
 
-  bool getFabric() {
-    return true;
-  }
+  bool getFabric() { return true; }
 
   std::shared_ptr<GPUCanvasContext>
   MakeWebGPUCanvasContext(int contextId, float width, float height) {
