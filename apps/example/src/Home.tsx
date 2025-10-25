@@ -114,9 +114,11 @@ export const examples = [
 ] as const;
 
 const styles = StyleSheet.create({
-  container: {},
+  container: {
+    flex: 1,
+  },
   content: {
-    paddingBottom: 32,
+    marginBottom: 32,
   },
   thumbnail: {
     backgroundColor: "white",

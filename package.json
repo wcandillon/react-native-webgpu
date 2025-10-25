@@ -21,6 +21,7 @@
     "pod:install": "turbo run pod:install"
   },
   "devDependencies": {
+    "@types/react-native-web": "^0.19.2",
     "turbo": "^2.1.0"
   }
 }

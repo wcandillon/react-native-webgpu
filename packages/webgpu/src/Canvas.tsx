@@ -1,6 +1,6 @@
 import type { ViewProps, LayoutChangeEvent } from "react-native";
 import { View } from "react-native";
-import {
+import React, {
   forwardRef,
   useEffect,
   useImperativeHandle,
@@ -12,46 +12,11 @@ import {
 import type { RefObject } from "react";
 
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
+import type { CanvasRef, RNCanvasContext } from "./types";
 
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
   return CONTEXT_COUNTER++;
-}
-
-declare global {
-  var RNWebGPU: {
-    gpu: GPU;
-    fabric: boolean;
-    getNativeSurface: (contextId: number) => NativeCanvas;
-    MakeWebGPUCanvasContext: (
-      contextId: number,
-      width: number,
-      height: number,
-    ) => RNCanvasContext;
-    DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
-    createImageBitmap: typeof createImageBitmap;
-  };
-}
-
-type SurfacePointer = bigint;
-
-export interface NativeCanvas {
-  surface: SurfacePointer;
-  width: number;
-  height: number;
-  clientWidth: number;
-  clientHeight: number;
-}
-
-export type RNCanvasContext = GPUCanvasContext & {
-  present: () => void;
-};
-
-export interface CanvasRef {
-  getContextId: () => number;
-  getContext(contextName: "webgpu"): RNCanvasContext | null;
-  getNativeSurface: () => NativeCanvas;
-  whenReady: (callback: () => void) => void;
 }
 
 interface Size {
@@ -94,16 +59,26 @@ export const Canvas = forwardRef<
   ViewProps & { transparent?: boolean }
 >(({ onLayout: _onLayout, transparent, ...props }, ref) => {
   const viewRef = useRef(null);
-  const FABRIC = RNWebGPU.fabric;
-  const useSize = FABRIC ? useSizeFabric : useSizePaper;
+  const useSize = RNWebGPU.fabric ? useSizeFabric : useSizePaper;
   const [contextId, _] = useState(() => generateContextId());
   const cb = useRef<() => void>();
   const { size, onLayout } = useSize(viewRef);
   useEffect(() => {
-    if (size && cb.current) {
+    const hasNonZeroDims = !!size?.height && !!size?.width;
+    if (size && hasNonZeroDims && cb.current) {
       cb.current();
     }
+
+    if (size && !hasNonZeroDims) {
+      console.warn(
+        [
+          `react-native-wgpu canvas has zero dimensions (width:${size.width}px; height:${size.height}px)!`,
+          "Unable to initialize underlying canvas.",
+        ].join(" "),
+      );
+    }
   }, [size]);
+
   useImperativeHandle(ref, () => ({
     getContextId: () => contextId,
     getNativeSurface: () => {
@@ -133,6 +108,7 @@ export const Canvas = forwardRef<
       );
     },
   }));
+
   return (
     <View collapsable={false} ref={viewRef} onLayout={onLayout} {...props}>
       <WebGPUNativeView
