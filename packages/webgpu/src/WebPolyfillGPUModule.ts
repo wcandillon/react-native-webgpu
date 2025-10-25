@@ -1,11 +1,8 @@
-// Only used on the web
-export function contextIdToId(contextId: number) {
-  return "rnwgpu-canvas-" + contextId;
-}
+import { contextIdToId } from "./utils";
 
-export const fabric = true;
+const fabric = true;
 
-export function getNativeSurface(contextId: number) {
+function getNativeSurface(contextId: number) {
   const canvas = document.getElementById(
     contextIdToId(contextId),
   ) as HTMLCanvasElement;
@@ -21,7 +18,7 @@ export function getNativeSurface(contextId: number) {
   };
 }
 
-export function makeWebGPUCanvasContext(
+function makeWebGPUCanvasContext(
   contextId: number,
   width: number,
   height: number,
@@ -44,3 +41,10 @@ export function makeWebGPUCanvasContext(
     present: () => {},
   });
 }
+
+// @ts-expect-error - polyfill for RNWebGPU native module
+window.RNWebGPU = {
+  getNativeSurface,
+  MakeWebGPUCanvasContext: makeWebGPUCanvasContext,
+  fabric,
+};

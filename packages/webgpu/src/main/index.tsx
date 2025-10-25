@@ -1,13 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import WebGPUModule from "../NativeWebGPUModule";
 
-export { default as WebGPUModule } from "../NativeWebGPUModule";
-
 export * from "../Canvas";
 export * from "../Offscreen";
 export * from "../WebGPUViewNativeComponent";
 export * from "../hooks";
 export * from "../types";
+export { default as WebGPUModule } from "../NativeWebGPUModule";
 
 const GPU: any = {};
 GPU[Symbol.hasInstance] = function (instance: object) {

@@ -1,3 +1,5 @@
+import "../WebPolyfillGPUModule";
+
 export * from "../Canvas";
 export * from "../Offscreen";
 export * from "../WebGPUViewNativeComponent";

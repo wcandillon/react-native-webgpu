@@ -13,7 +13,6 @@ import type { RefObject } from "react";
 
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
 import type { CanvasRef, RNCanvasContext } from "./types";
-import { fabric, getNativeSurface, makeWebGPUCanvasContext } from "./utils";
 
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
@@ -60,7 +59,7 @@ export const Canvas = forwardRef<
   ViewProps & { transparent?: boolean }
 >(({ onLayout: _onLayout, transparent, ...props }, ref) => {
   const viewRef = useRef(null);
-  const useSize = fabric ? useSizeFabric : useSizePaper;
+  const useSize = RNWebGPU.fabric ? useSizeFabric : useSizePaper;
   const [contextId, _] = useState(() => generateContextId());
   const cb = useRef<() => void>();
   const { size, onLayout } = useSize(viewRef);
@@ -86,7 +85,7 @@ export const Canvas = forwardRef<
       if (size === null) {
         throw new Error("[WebGPU] Canvas size is not available yet");
       }
-      return getNativeSurface(contextId);
+      return RNWebGPU.getNativeSurface(contextId);
     },
     whenReady(callback: () => void) {
       if (size === null) {
@@ -102,7 +101,11 @@ export const Canvas = forwardRef<
       if (size === null) {
         throw new Error("[WebGPU] Canvas size is not available yet");
       }
-      return makeWebGPUCanvasContext(contextId, size.width, size.height);
+      return RNWebGPU.MakeWebGPUCanvasContext(
+        contextId,
+        size.width,
+        size.height,
+      );
     },
   }));
 
