@@ -1,6 +1,6 @@
 import type { ViewProps, LayoutChangeEvent } from "react-native";
 import { View } from "react-native";
-import {
+import React, {
   forwardRef,
   useEffect,
   useImperativeHandle,
