@@ -7,9 +7,9 @@
 
 namespace rnwgpu {
 
-class AsyncRunner {
+class AsyncRunnerLegacy {
 public:
-  explicit AsyncRunner(wgpu::Instance *instance) : instance(instance) {}
+  explicit AsyncRunnerLegacy(wgpu::Instance *instance) : instance(instance) {}
 
   template <typename F> auto runAsync(F &&func) {
     return std::async(

@@ -10,7 +10,7 @@
 
 #include "RNFHybridObject.h"
 
-#include "AsyncRunner.h"
+#include "AsyncRunnerLegacy.h"
 
 #include "Canvas.h"
 #include "GPU.h"

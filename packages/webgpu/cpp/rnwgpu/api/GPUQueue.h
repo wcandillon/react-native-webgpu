@@ -9,7 +9,7 @@
 
 #include "RNFHybridObject.h"
 
-#include "AsyncRunner.h"
+#include "AsyncRunnerLegacy.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -25,8 +25,8 @@ namespace m = margelo;
 
 class GPUQueue : public m::HybridObject {
 public:
-  explicit GPUQueue(wgpu::Queue instance, std::shared_ptr<AsyncRunner> async,
-                    std::string label)
+  explicit GPUQueue(wgpu::Queue instance,
+                    std::shared_ptr<AsyncRunnerLegacy> async, std::string label)
       : HybridObject("GPUQueue"), _instance(instance), _async(async),
         _label(label) {}
 
@@ -72,7 +72,7 @@ public:
 
 private:
   wgpu::Queue _instance;
-  std::shared_ptr<AsyncRunner> _async;
+  std::shared_ptr<AsyncRunnerLegacy> _async;
   std::string _label;
 };
 

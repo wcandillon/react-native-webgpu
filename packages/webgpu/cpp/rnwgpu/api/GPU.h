@@ -10,7 +10,7 @@
 
 #include "RNFHybridObject.h"
 
-#include "AsyncRunner.h"
+#include "AsyncRunnerLegacy.h"
 
 #include "dawn/native/DawnNative.h"
 #include "webgpu/webgpu_cpp.h"
@@ -36,7 +36,7 @@ public:
     instanceDesc.requiredLimits = &limits;
     _instance = wgpu::CreateInstance(&instanceDesc);
     auto instance = &_instance;
-    _async = std::make_shared<AsyncRunner>(instance);
+    _async = std::make_shared<AsyncRunnerLegacy>(instance);
   }
 
 public:
@@ -62,7 +62,7 @@ public:
 
 private:
   wgpu::Instance _instance;
-  std::shared_ptr<AsyncRunner> _async;
+  std::shared_ptr<AsyncRunnerLegacy> _async;
 };
 
 } // namespace rnwgpu

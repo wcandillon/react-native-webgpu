@@ -10,7 +10,7 @@
 
 #include "RNFHybridObject.h"
 
-#include "AsyncRunner.h"
+#include "AsyncRunnerLegacy.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -22,7 +22,8 @@ namespace m = margelo;
 
 class GPUBuffer : public m::HybridObject {
 public:
-  explicit GPUBuffer(wgpu::Buffer instance, std::shared_ptr<AsyncRunner> async,
+  explicit GPUBuffer(wgpu::Buffer instance,
+                     std::shared_ptr<AsyncRunnerLegacy> async,
                      std::string label)
       : HybridObject("GPUBuffer"), _instance(instance), _async(async),
         _label(label) {}
@@ -66,7 +67,7 @@ public:
 
 private:
   wgpu::Buffer _instance;
-  std::shared_ptr<AsyncRunner> _async;
+  std::shared_ptr<AsyncRunnerLegacy> _async;
   std::string _label;
   struct Mapping {
     uint64_t start;

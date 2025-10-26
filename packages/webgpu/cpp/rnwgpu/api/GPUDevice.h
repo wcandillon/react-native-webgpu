@@ -10,7 +10,7 @@
 
 #include "RNFHybridObject.h"
 
-#include "AsyncRunner.h"
+#include "AsyncRunnerLegacy.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -51,7 +51,8 @@ namespace m = margelo;
 
 class GPUDevice : public m::HybridObject {
 public:
-  explicit GPUDevice(wgpu::Device instance, std::shared_ptr<AsyncRunner> async,
+  explicit GPUDevice(wgpu::Device instance,
+                     std::shared_ptr<AsyncRunnerLegacy> async,
                      std::string label)
       : HybridObject("GPUDevice"), _instance(instance), _async(async),
         _label(label) {
@@ -154,7 +155,7 @@ public:
 
 private:
   wgpu::Device _instance;
-  std::shared_ptr<AsyncRunner> _async;
+  std::shared_ptr<AsyncRunnerLegacy> _async;
   std::string _label;
   std::shared_ptr<std::promise<std::shared_ptr<GPUDeviceLostInfo>>>
       m_lostPromise;
