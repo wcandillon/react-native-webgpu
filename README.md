@@ -15,18 +15,10 @@ Below are some examples from the [example app](/apps/example/).
 
 https://github.com/user-attachments/assets/116a41b2-2cf8-49f1-9f16-a5c83637c198
 
-## Three.js
-
 Starting from `r168`, Three.js runs out of the box with React Native WebGPU.
 You need to have a slight modification of [the metro config](/apps/example/metro.config.js) to resolve Three.js to the WebGPU build.
 We also support [three-fiber](/apps/example/src/ThreeJS/Fiber.tsx).
-For model loading, we also need the following polyfill:
-
-```tsx
-// The two lines below are needed by three.js
-import "fast-text-encoding";
-window.parent = window;
-```
+For model loading, we also need [the following polyfill](/apps/example/src/App.tsx#29).
 
 https://github.com/user-attachments/assets/5b49ef63-0a3c-4679-aeb5-e4b4dddfcc1d
 
@@ -36,87 +28,91 @@ https://github.com/user-attachments/assets/2d5c618e-5b15-4cef-8558-d4ddf8c70667
 
 ## Usage
 
-Currently we recommend to use the `useCanvasEffect` to access the WebGPU context.
+Usage is identical to Web.
 
 ```tsx
 import React from "react";
 import { StyleSheet, View, PixelRatio } from "react-native";
-import { Canvas, useCanvasEffect } from "react-native-wgpu";
+import { Canvas, CanvasRef } from "react-native-wgpu";
 
 import { redFragWGSL, triangleVertWGSL } from "./triangle";
 
 export function HelloTriangle() {
-  const ref = useCanvasEffect(async () => {
-    const adapter = await navigator.gpu.requestAdapter();
-    if (!adapter) {
-      throw new Error("No adapter");
-    }
-    const device = await adapter.requestDevice();
-    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+  const ref = useRef<CanvasRef>(null);
+  useEffect(() => {
+    const helloTriangle = async () => {
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        throw new Error("No adapter");
+      }
+      const device = await adapter.requestDevice();
+      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
-    const context = ref.current!.getContext("webgpu")!;
-    const canvas = context.canvas as HTMLCanvasElement;
-    canvas.width = canvas.clientWidth * PixelRatio.get();
-    canvas.height = canvas.clientHeight * PixelRatio.get();
+      const context = ref.current!.getContext("webgpu")!;
+      const canvas = context.canvas as HTMLCanvasElement;
+      canvas.width = canvas.clientWidth * PixelRatio.get();
+      canvas.height = canvas.clientHeight * PixelRatio.get();
 
-    if (!context) {
-      throw new Error("No context");
-    }
+      if (!context) {
+        throw new Error("No context");
+      }
 
-    context.configure({
-      device,
-      format: presentationFormat,
-      alphaMode: "opaque",
-    });
+      context.configure({
+        device,
+        format: presentationFormat,
+        alphaMode: "opaque",
+      });
 
-    const pipeline = device.createRenderPipeline({
-      layout: "auto",
-      vertex: {
-        module: device.createShaderModule({
-          code: triangleVertWGSL,
-        }),
-        entryPoint: "main",
-      },
-      fragment: {
-        module: device.createShaderModule({
-          code: redFragWGSL,
-        }),
-        entryPoint: "main",
-        targets: [
+      const pipeline = device.createRenderPipeline({
+        layout: "auto",
+        vertex: {
+          module: device.createShaderModule({
+            code: triangleVertWGSL,
+          }),
+          entryPoint: "main",
+        },
+        fragment: {
+          module: device.createShaderModule({
+            code: redFragWGSL,
+          }),
+          entryPoint: "main",
+          targets: [
+            {
+              format: presentationFormat,
+            },
+          ],
+        },
+        primitive: {
+          topology: "triangle-list",
+        },
+      });
+
+      const commandEncoder = device.createCommandEncoder();
+
+      const textureView = context.getCurrentTexture().createView();
+
+      const renderPassDescriptor: GPURenderPassDescriptor = {
+        colorAttachments: [
           {
-            format: presentationFormat,
+            view: textureView,
+            clearValue: [0, 0, 0, 1],
+            loadOp: "clear",
+            storeOp: "store",
           },
         ],
-      },
-      primitive: {
-        topology: "triangle-list",
-      },
-    });
+      };
 
-    const commandEncoder = device.createCommandEncoder();
+      const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+      passEncoder.setPipeline(pipeline);
+      passEncoder.draw(3);
+      passEncoder.end();
 
-    const textureView = context.getCurrentTexture().createView();
+      device.queue.submit([commandEncoder.finish()]);
 
-    const renderPassDescriptor: GPURenderPassDescriptor = {
-      colorAttachments: [
-        {
-          view: textureView,
-          clearValue: [0, 0, 0, 1],
-          loadOp: "clear",
-          storeOp: "store",
-        },
-      ],
+      context.present();
     };
-
-    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-    passEncoder.setPipeline(pipeline);
-    passEncoder.draw(3);
-    passEncoder.end();
-
-    device.queue.submit([commandEncoder.finish()]);
-
-    context.present();
-  });
+    helloTriangle();
+  }, [ref]);
 
   return (
     <View style={style.container}>
@@ -137,7 +133,7 @@ const style = StyleSheet.create({
 
 ## Example App
 
-To run the example app you first need to [build Dawn or download the prebuilt binaries](#building-dawn).
+To run the example app you first need to [install Dawn](#installing-dawn).
 
 From there you will be able to run the example app properly.
 
@@ -212,9 +208,9 @@ git submodule update --init
 
 Make sure you have all the tools required for building the Skia libraries (Android Studio, XCode, Ninja, CMake, Android NDK/build tools).
 
-### Downloading Dawn
+### Installing Dawn
 
-There is an alternative way which is to download the prebuilt binaries from GitHub.
+There is an alternative way which is to install the prebuilt binaries from GitHub.
 
 ```sh
 $ yarn
