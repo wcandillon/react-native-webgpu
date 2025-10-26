@@ -14,7 +14,8 @@ struct RuntimeData {
 } // namespace
 
 AsyncRunner::AsyncRunner(wgpu::Instance instance, std::shared_ptr<AsyncDispatcher> dispatcher)
-    : _instance(std::move(instance)), _dispatcher(std::move(dispatcher)), _pendingTasks(0), _tickScheduled(false) {
+    : _instance(std::move(instance)), _dispatcher(std::move(dispatcher)), _pendingTasks(0), _pumpTasks(0),
+      _tickScheduled(false) {
   if (!_dispatcher) {
     throw std::runtime_error("AsyncRunner requires a valid dispatcher.");
   }
@@ -43,13 +44,16 @@ std::shared_ptr<AsyncRunner> AsyncRunner::getOrCreate(jsi::Runtime& runtime, wgp
   return runner;
 }
 
-AsyncTaskHandle AsyncRunner::postTask(const TaskCallback& callback) {
-  auto handle = AsyncTaskHandle::create(shared_from_this());
+AsyncTaskHandle AsyncRunner::postTask(const TaskCallback& callback, bool keepPumping) {
+  auto handle = AsyncTaskHandle::create(shared_from_this(), keepPumping);
   if (!handle.valid()) {
     throw std::runtime_error("Failed to create AsyncTaskHandle.");
   }
 
   _pendingTasks.fetch_add(1, std::memory_order_acq_rel);
+  if (keepPumping) {
+    _pumpTasks.fetch_add(1, std::memory_order_acq_rel);
+  }
   requestTick();
 
   auto resolve = handle.createResolveFunction();
@@ -81,13 +85,16 @@ void AsyncRunner::requestTick() {
 void AsyncRunner::tick(jsi::Runtime& /*runtime*/) {
   _tickScheduled.store(false, std::memory_order_release);
   _instance.ProcessEvents();
-  if (_pendingTasks.load(std::memory_order_acquire) > 0) {
+  if (_pumpTasks.load(std::memory_order_acquire) > 0) {
     requestTick();
   }
 }
 
-void AsyncRunner::onTaskSettled() {
+void AsyncRunner::onTaskSettled(bool keepPumping) {
   _pendingTasks.fetch_sub(1, std::memory_order_acq_rel);
+  if (keepPumping) {
+    _pumpTasks.fetch_sub(1, std::memory_order_acq_rel);
+  }
 }
 
 std::shared_ptr<AsyncDispatcher> AsyncRunner::dispatcher() const {
@@ -100,4 +107,3 @@ jsi::UUID AsyncRunner::runtimeDataUUID() {
 }
 
 } // namespace rnwgpu::async
-

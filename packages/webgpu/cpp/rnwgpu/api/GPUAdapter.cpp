@@ -22,11 +22,13 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
   if (!conv(aDescriptor, descriptor)) {
     throw std::runtime_error("Failed to convert GPUDeviceDescriptor");
   }
+  auto deviceLostBinding = std::make_shared<std::weak_ptr<GPUDevice>>();
   // Set device lost callback using new template API
   aDescriptor.SetDeviceLostCallback(
       wgpu::CallbackMode::AllowProcessEvents,
-      [](const wgpu::Device &device, wgpu::DeviceLostReason reason,
-         wgpu::StringView message) {
+      [deviceLostBinding](const wgpu::Device & /*device*/,
+                          wgpu::DeviceLostReason reason,
+                          wgpu::StringView message) {
         const char *lostReason = "";
         switch (reason) {
         case wgpu::DeviceLostReason::Destroyed:
@@ -38,8 +40,13 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
         default:
           lostReason = "Unknown";
         }
+        std::string msg =
+            message.length ? std::string(message.data, message.length) : "";
         Logger::logToConsole("GPU Device Lost (%s): %s", lostReason,
-                             message.data);
+                             msg.c_str());
+        if (auto deviceHost = deviceLostBinding->lock()) {
+          deviceHost->notifyDeviceLost(reason, std::move(msg));
+        }
       });
 
   // Set uncaptured error callback using new template API
@@ -76,14 +83,15 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
     this,
     aDescriptor,
     descriptor,
-    label = std::move(label)
+    label = std::move(label),
+    deviceLostBinding
   ](const async::AsyncTaskHandle::ResolveFunction& resolve,
     const async::AsyncTaskHandle::RejectFunction& reject) {
     (void)descriptor;
     _instance.RequestDevice(
         &aDescriptor, wgpu::CallbackMode::AllowProcessEvents,
         [asyncRunner = _async, resolve, reject, label,
-         creationRuntime = _creationRuntime](wgpu::RequestDeviceStatus status,
+         creationRuntime = _creationRuntime, deviceLostBinding](wgpu::RequestDeviceStatus status,
                                              wgpu::Device device,
                                              wgpu::StringView message) mutable {
           if (message.length) {
@@ -129,7 +137,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
               });
 
           auto deviceHost = std::make_shared<GPUDevice>(std::move(device), asyncRunner, label);
-          deviceHost->initializeCallbacks();
+          *deviceLostBinding = deviceHost;
           resolve([deviceHost = std::move(deviceHost)](jsi::Runtime& runtime) mutable {
             return margelo::JSIConverter<std::shared_ptr<GPUDevice>>::toJSI(runtime, deviceHost);
           });

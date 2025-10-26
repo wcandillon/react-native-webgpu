@@ -1,10 +1,11 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <variant>
-#include <optional>
 
 #include "Unions.h"
 
@@ -99,6 +100,7 @@ public:
   std::shared_ptr<GPUSupportedLimits> getLimits();
   std::shared_ptr<GPUQueue> getQueue();
   async::AsyncTaskHandle getLost();
+  void notifyDeviceLost(wgpu::DeviceLostReason reason, std::string message);
 
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
@@ -148,9 +150,6 @@ public:
 
 private:
   friend class GPUAdapter;
-
-  void initializeCallbacks();
-  void notifyDeviceLost(wgpu::DeviceLostReason reason, std::string message);
 
   wgpu::Device _instance;
   std::shared_ptr<async::AsyncRunner> _async;

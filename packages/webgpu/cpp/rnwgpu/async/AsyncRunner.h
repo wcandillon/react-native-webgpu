@@ -25,11 +25,11 @@ public:
   static std::shared_ptr<AsyncRunner> getOrCreate(jsi::Runtime& runtime, wgpu::Instance instance,
                                                   std::shared_ptr<AsyncDispatcher> dispatcher);
 
-  AsyncTaskHandle postTask(const TaskCallback& callback);
+  AsyncTaskHandle postTask(const TaskCallback& callback, bool keepPumping = true);
 
   void requestTick();
   void tick(jsi::Runtime& runtime);
-  void onTaskSettled();
+  void onTaskSettled(bool keepPumping);
 
   std::shared_ptr<AsyncDispatcher> dispatcher() const;
 
@@ -39,8 +39,8 @@ private:
   wgpu::Instance _instance;
   std::shared_ptr<AsyncDispatcher> _dispatcher;
   std::atomic<size_t> _pendingTasks;
+  std::atomic<size_t> _pumpTasks;
   std::atomic<bool> _tickScheduled;
 };
 
 } // namespace rnwgpu::async
-

@@ -43,7 +43,7 @@ public:
 
   void attachPromise(const std::shared_ptr<margelo::Promise>& promise) const;
 
-  static AsyncTaskHandle create(const std::shared_ptr<AsyncRunner>& runner);
+  static AsyncTaskHandle create(const std::shared_ptr<AsyncRunner>& runner, bool keepPumping);
 
 private:
   std::shared_ptr<State> _state;

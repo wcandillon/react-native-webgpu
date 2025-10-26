@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "Convertors.h"
@@ -11,20 +12,6 @@
 #include "GPUFeatures.h"
 
 namespace rnwgpu {
-
-void GPUDevice::initializeCallbacks() {
-  std::weak_ptr<GPUDevice> weakSelf = shared<GPUDevice>();
-  // _instance.SetDeviceLostCallback(
-  //     wgpu::CallbackMode::AllowProcessEvents,
-  //     [weakSelf](const wgpu::Device & /*device*/, wgpu::DeviceLostReason reason,
-  //                wgpu::StringView message) {
-  //       if (auto self = weakSelf.lock()) {
-  //         std::string msg =
-  //             message.length ? std::string(message.data, message.length) : "";
-  //         self->notifyDeviceLost(reason, std::move(msg));
-  //       }
-  //     });
-}
 
 void GPUDevice::notifyDeviceLost(wgpu::DeviceLostReason reason,
                                  std::string message) {
@@ -43,6 +30,7 @@ void GPUDevice::notifyDeviceLost(wgpu::DeviceLostReason reason,
     });
   }
 
+  _lostHandle.reset();
 }
 
 std::shared_ptr<GPUBuffer>
@@ -392,7 +380,7 @@ async::AsyncTaskHandle GPUDevice::getLost() {
       resolve([info](jsi::Runtime& runtime) mutable {
         return margelo::JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(runtime, info);
       });
-    });
+    }, false);
   }
 
   auto handle = _async->postTask([
@@ -407,7 +395,7 @@ async::AsyncTaskHandle GPUDevice::getLost() {
     }
 
     _lostResolve = resolve;
-  });
+  }, false);
 
   _lostHandle = handle;
   return handle;
