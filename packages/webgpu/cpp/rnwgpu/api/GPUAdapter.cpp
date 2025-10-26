@@ -11,14 +11,12 @@
 
 #include "GPUFeatures.h"
 #include "WGPULogger.h"
+#include "RNFJSIConverter.h"
 
 namespace rnwgpu {
 
-std::future<std::shared_ptr<GPUDevice>> GPUAdapter::requestDevice(
+async::AsyncTaskHandle GPUAdapter::requestDevice(
     std::optional<std::shared_ptr<GPUDeviceDescriptor>> descriptor) {
-  std::promise<std::shared_ptr<GPUDevice>> promise;
-  auto future = promise.get_future();
-  wgpu::Device device = nullptr;
   wgpu::DeviceDescriptor aDescriptor;
   Convertor conv;
   if (!conv(aDescriptor, descriptor)) {
@@ -26,7 +24,7 @@ std::future<std::shared_ptr<GPUDevice>> GPUAdapter::requestDevice(
   }
   // Set device lost callback using new template API
   aDescriptor.SetDeviceLostCallback(
-      wgpu::CallbackMode::AllowSpontaneous,
+      wgpu::CallbackMode::AllowProcessEvents,
       [](const wgpu::Device &device, wgpu::DeviceLostReason reason,
          wgpu::StringView message) {
         const char *lostReason = "";
@@ -71,55 +69,72 @@ std::future<std::shared_ptr<GPUDevice>> GPUAdapter::requestDevice(
                            : "no message";
     fprintf(stderr, "%s", fullMessage.c_str());
   });
-  _instance.RequestDevice(
-      &aDescriptor, wgpu::CallbackMode::AllowSpontaneous,
-      [](wgpu::RequestDeviceStatus status, wgpu::Device device,
-         wgpu::StringView message, wgpu::Device *userdata) {
-        if (message.length) {
-          fprintf(stderr, "%s", message.data);
-          return;
-        }
-        if (status == wgpu::RequestDeviceStatus::Success) {
-          *userdata = std::move(device);
-        }
-      },
-      &device);
-
-  if (!device) {
-    throw std::runtime_error("Failed to request device");
-  }
-  device.SetLoggingCallback(
-      [creationRuntime = _creationRuntime](wgpu::LoggingType type,
-                                           wgpu::StringView message) {
-        const char *logLevel = "";
-        switch (type) {
-        case wgpu::LoggingType::Warning:
-          logLevel = "Warning";
-          Logger::warnToJavascriptConsole(
-              *creationRuntime, std::string(message.data, message.length));
-          break;
-        case wgpu::LoggingType::Error:
-          logLevel = "Error";
-          Logger::errorToJavascriptConsole(
-              *creationRuntime, std::string(message.data, message.length));
-          break;
-        case wgpu::LoggingType::Verbose:
-          logLevel = "Verbose";
-          break;
-        case wgpu::LoggingType::Info:
-          logLevel = "Info";
-          break;
-        default:
-          logLevel = "Unknown";
-          Logger::logToConsole("%s: %.*s", logLevel,
-                               static_cast<int>(message.length), message.data);
-        }
-      });
   std::string label =
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "";
-  promise.set_value(
-      std::make_shared<GPUDevice>(std::move(device), _async, label));
-  return future;
+
+  return _async->postTask([
+    this,
+    aDescriptor,
+    descriptor,
+    label = std::move(label)
+  ](const async::AsyncTaskHandle::ResolveFunction& resolve,
+    const async::AsyncTaskHandle::RejectFunction& reject) {
+    (void)descriptor;
+    _instance.RequestDevice(
+        &aDescriptor, wgpu::CallbackMode::AllowProcessEvents,
+        [asyncRunner = _async, resolve, reject, label,
+         creationRuntime = _creationRuntime](wgpu::RequestDeviceStatus status,
+                                             wgpu::Device device,
+                                             wgpu::StringView message) mutable {
+          if (message.length) {
+            fprintf(stderr, "%s", message.data);
+          }
+
+          if (status != wgpu::RequestDeviceStatus::Success || !device) {
+            std::string error = message.length
+                                    ? std::string(message.data, message.length)
+                                    : "Failed to request device";
+            reject(std::move(error));
+            return;
+          }
+
+          device.SetLoggingCallback(
+              [creationRuntime](wgpu::LoggingType type, wgpu::StringView msg) {
+                const char *logLevel = "";
+                switch (type) {
+                case wgpu::LoggingType::Warning:
+                  logLevel = "Warning";
+                  Logger::warnToJavascriptConsole(
+                      *creationRuntime,
+                      std::string(msg.data, msg.length));
+                  break;
+                case wgpu::LoggingType::Error:
+                  logLevel = "Error";
+                  Logger::errorToJavascriptConsole(
+                      *creationRuntime,
+                      std::string(msg.data, msg.length));
+                  break;
+                case wgpu::LoggingType::Verbose:
+                  logLevel = "Verbose";
+                  break;
+                case wgpu::LoggingType::Info:
+                  logLevel = "Info";
+                  break;
+                default:
+                  logLevel = "Unknown";
+                  Logger::logToConsole("%s: %.*s", logLevel,
+                                       static_cast<int>(msg.length),
+                                       msg.data);
+                }
+              });
+
+          auto deviceHost = std::make_shared<GPUDevice>(std::move(device), asyncRunner, label);
+          deviceHost->initializeCallbacks();
+          resolve([deviceHost = std::move(deviceHost)](jsi::Runtime& runtime) mutable {
+            return margelo::JSIConverter<std::shared_ptr<GPUDevice>>::toJSI(runtime, deviceHost);
+          });
+        });
+  });
 }
 
 std::unordered_set<std::string> GPUAdapter::getFeatures() {

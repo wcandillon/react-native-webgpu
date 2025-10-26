@@ -30,7 +30,7 @@ RNWebGPUManager::RNWebGPUManager(
       std::make_shared<margelo::CallInvokerDispatcher>(_jsCallInvoker);
   margelo::Dispatcher::installRuntimeGlobalDispatcher(*_jsRuntime, dispatcher);
 
-  auto gpu = std::make_shared<GPU>();
+  auto gpu = std::make_shared<GPU>(*_jsRuntime);
   auto rnWebGPU = std::make_shared<RNWebGPU>(gpu, _platformContext);
   _gpu = gpu->get();
   _jsRuntime->global().setProperty(

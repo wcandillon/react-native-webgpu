@@ -1,16 +1,17 @@
 #pragma once
 
-#include <future>
 #include <memory>
 #include <string>
 #include <unordered_set>
 #include <variant>
+#include <optional>
 
 #include "Unions.h"
 
 #include "RNFHybridObject.h"
 
-#include "AsyncRunnerLegacy.h"
+#include "rnwgpu/async/AsyncRunner.h"
+#include "rnwgpu/async/AsyncTaskHandle.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -52,17 +53,10 @@ namespace m = margelo;
 class GPUDevice : public m::HybridObject {
 public:
   explicit GPUDevice(wgpu::Device instance,
-                     std::shared_ptr<AsyncRunnerLegacy> async,
+                     std::shared_ptr<async::AsyncRunner> async,
                      std::string label)
       : HybridObject("GPUDevice"), _instance(instance), _async(async),
-        _label(label) {
-    m_lostPromise =
-        std::make_shared<std::promise<std::shared_ptr<GPUDeviceLostInfo>>>();
-
-    auto sharedFuture = m_lostPromise->get_future().share();
-    m_lostSharedFuture = std::make_shared<
-        std::shared_future<std::shared_ptr<GPUDeviceLostInfo>>>(sharedFuture);
-  }
+        _label(label) {}
 
 public:
   std::string getBrand() { return _name; }
@@ -88,9 +82,9 @@ public:
       std::shared_ptr<GPUComputePipelineDescriptor> descriptor);
   std::shared_ptr<GPURenderPipeline>
   createRenderPipeline(std::shared_ptr<GPURenderPipelineDescriptor> descriptor);
-  std::future<std::shared_ptr<GPUComputePipeline>> createComputePipelineAsync(
+  async::AsyncTaskHandle createComputePipelineAsync(
       std::shared_ptr<GPUComputePipelineDescriptor> descriptor);
-  std::future<std::shared_ptr<GPURenderPipeline>> createRenderPipelineAsync(
+  async::AsyncTaskHandle createRenderPipelineAsync(
       std::shared_ptr<GPURenderPipelineDescriptor> descriptor);
   std::shared_ptr<GPUCommandEncoder> createCommandEncoder(
       std::optional<std::shared_ptr<GPUCommandEncoderDescriptor>> descriptor);
@@ -99,13 +93,12 @@ public:
   std::shared_ptr<GPUQuerySet>
   createQuerySet(std::shared_ptr<GPUQuerySetDescriptor> descriptor);
   void pushErrorScope(wgpu::ErrorFilter filter);
-  std::future<std::variant<std::nullptr_t, std::shared_ptr<GPUError>>>
-  popErrorScope();
+  async::AsyncTaskHandle popErrorScope();
 
   std::unordered_set<std::string> getFeatures();
   std::shared_ptr<GPUSupportedLimits> getLimits();
   std::shared_ptr<GPUQueue> getQueue();
-  std::future<std::shared_ptr<GPUDeviceLostInfo>> getLost();
+  async::AsyncTaskHandle getLost();
 
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
@@ -154,13 +147,18 @@ public:
   inline const wgpu::Device get() { return _instance; }
 
 private:
+  friend class GPUAdapter;
+
+  void initializeCallbacks();
+  void notifyDeviceLost(wgpu::DeviceLostReason reason, std::string message);
+
   wgpu::Device _instance;
-  std::shared_ptr<AsyncRunnerLegacy> _async;
+  std::shared_ptr<async::AsyncRunner> _async;
   std::string _label;
-  std::shared_ptr<std::promise<std::shared_ptr<GPUDeviceLostInfo>>>
-      m_lostPromise;
-  std::shared_ptr<std::shared_future<std::shared_ptr<GPUDeviceLostInfo>>>
-      m_lostSharedFuture;
+  std::optional<async::AsyncTaskHandle> _lostHandle;
+  std::shared_ptr<GPUDeviceLostInfo> _lostInfo;
+  bool _lostSettled = false;
+  std::optional<async::AsyncTaskHandle::ResolveFunction> _lostResolve;
 };
 
 } // namespace rnwgpu

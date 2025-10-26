@@ -1,6 +1,5 @@
 #pragma once
 
-#include <future>
 #include <memory>
 #include <optional>
 #include <string>
@@ -10,7 +9,8 @@
 
 #include "RNFHybridObject.h"
 
-#include "AsyncRunnerLegacy.h"
+#include "rnwgpu/async/AsyncRunner.h"
+#include "rnwgpu/async/AsyncTaskHandle.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -23,7 +23,7 @@ namespace m = margelo;
 class GPUBuffer : public m::HybridObject {
 public:
   explicit GPUBuffer(wgpu::Buffer instance,
-                     std::shared_ptr<AsyncRunnerLegacy> async,
+                     std::shared_ptr<async::AsyncRunner> async,
                      std::string label)
       : HybridObject("GPUBuffer"), _instance(instance), _async(async),
         _label(label) {}
@@ -31,8 +31,8 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::future<void> mapAsync(uint64_t modeIn, std::optional<uint64_t> offset,
-                             std::optional<uint64_t> size);
+  async::AsyncTaskHandle mapAsync(uint64_t modeIn, std::optional<uint64_t> offset,
+                                  std::optional<uint64_t> size);
   std::shared_ptr<ArrayBuffer> getMappedRange(std::optional<size_t> offset,
                                               std::optional<size_t> size);
   void unmap();
@@ -67,7 +67,7 @@ public:
 
 private:
   wgpu::Buffer _instance;
-  std::shared_ptr<AsyncRunnerLegacy> _async;
+  std::shared_ptr<async::AsyncRunner> _async;
   std::string _label;
   struct Mapping {
     uint64_t start;
