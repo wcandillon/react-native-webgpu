@@ -24,9 +24,6 @@
 #include "RNFPromise.h"
 #include "RNFWorkletRuntimeRegistry.h"
 
-#include "Dispatcher.h"
-#include "ThreadPool.h"
-
 #include "Unions.h"
 
 #include "rnwgpu/async/AsyncTaskHandle.h"
@@ -206,66 +203,6 @@ template <typename TEnum> struct JSIConverter<TEnum, std::enable_if_t<std::is_en
     std::string outUnion;
     EnumMapper::convertEnumToJSUnion(arg, &outUnion);
     return jsi::String::createFromUtf8(runtime, outUnion);
-  }
-};
-
-// std::future<T> <> Promise<T>
-template <typename TResult> struct JSIConverter<std::future<TResult>> {
-  static std::future<TResult> fromJSI(jsi::Runtime&, const jsi::Value&, bool outOfBound) {
-    throw std::runtime_error("Promise cannot be converted to a native type - it needs to be awaited first!");
-  }
-  static jsi::Value toJSI(jsi::Runtime& runtime, std::future<TResult>&& arg) {
-    auto sharedFuture = std::make_shared<std::future<TResult>>(std::move(arg));
-    std::shared_ptr<Dispatcher> strongDispatcher = Dispatcher::getRuntimeGlobalDispatcher(runtime);
-    std::weak_ptr<Dispatcher> weakDispatcher = strongDispatcher;
-
-    return Promise::createPromise(runtime, [sharedFuture = std::move(sharedFuture), weakDispatcher](jsi::Runtime& runtime,
-                                                                                           std::shared_ptr<Promise> promise) {
-      // Spawn new async thread to synchronously wait for the `future<T>` to complete
-      std::shared_ptr<ThreadPool> pool = ThreadPool::getSharedPool();
-      pool->run([promise, &runtime, weakDispatcher, sharedFuture]() {
-        // synchronously wait until the `future<T>` completes. we are running on a background task here.
-        sharedFuture->wait();
-
-        std::shared_ptr<Dispatcher> dispatcher = weakDispatcher.lock();
-        if (!dispatcher) {
-          throw std::runtime_error("Tried resolving Promise on JS Thread, but the `Dispatcher` has already been destroyed!");
-          return;
-        }
-
-        dispatcher->runAsync([&runtime, promise, sharedFuture]() mutable {
-          try {
-            if constexpr (std::is_same_v<TResult, void>) {
-                // it's returning void, just return undefined to JS
-              sharedFuture->get();
-              promise->resolve(jsi::Value::undefined());
-            } else {
-              // it's returning a custom type, convert it to a jsi::Value
-              TResult result = sharedFuture->get();
-              jsi::Value jsResult = JSIConverter<TResult>::toJSI(runtime, result);
-              promise->resolve(std::move(jsResult));
-            }
-          } catch (const std::exception& exception) {
-            // the async function threw an error, reject the promise
-            std::string what = exception.what();
-            promise->reject(what);
-          } catch (...) {
-            // the async function threw a non-std error, try getting it
-    #if __has_include(<cxxabi.h>)
-            std::string name = __cxxabiv1::__cxa_current_exception_type()->name();
-    #else
-            std::string name = "<unknown>";
-    #endif
-            promise->reject("Unknown non-std exception: " + name);
-          }
-
-          // This lambda owns the promise shared pointer, and we need to call its
-          // destructor correctly here - otherwise it might be called
-          // from the threadPool thread.
-          promise = nullptr;
-        });
-      });
-    });
   }
 };
 

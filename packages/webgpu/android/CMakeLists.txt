@@ -49,8 +49,6 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/jsi/RNFHybridObject.cpp
     ../cpp/jsi/RNFRuntimeCache.cpp
     ../cpp/jsi/RNFWorkletRuntimeRegistry.cpp
-    ../cpp/threading/Dispatcher.cpp
-    ../cpp/threading/ThreadPool.cpp
 )
 
 target_include_directories(
@@ -72,7 +70,6 @@ target_include_directories(
         ../cpp/rnwgpu/api/descriptors
         ../cpp/jsi
         ../cpp/webgpu
-        ../cpp/threading
         ../cpp/platform
 
         ${libfbjni_include_DIRS}
