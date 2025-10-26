@@ -49,6 +49,9 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/jsi/RNFHybridObject.cpp
     ../cpp/jsi/RNFRuntimeCache.cpp
     ../cpp/jsi/RNFWorkletRuntimeRegistry.cpp
+    ../cpp/rnwgpu/async/AsyncRunner.cpp
+    ../cpp/rnwgpu/async/AsyncTaskHandle.cpp
+    ../cpp/rnwgpu/async/JSIMicrotaskDispatcher.cpp
 )
 
 target_include_directories(
