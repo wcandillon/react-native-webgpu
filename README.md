@@ -3,6 +3,8 @@
 React Native implementation of WebGPU using [Dawn](https://dawn.googlesource.com/dawn).  
 This is currently a technical preview for early adopters.  
 
+React Native WebGPU requires React Native 0.81 or newer and doesn't run on legacy architecture.
+
 ## Installation
 
 Please note that the package name is `react-native-wgpu`.
@@ -17,7 +19,15 @@ https://github.com/user-attachments/assets/116a41b2-2cf8-49f1-9f16-a5c83637c198
 
 Starting from `r168`, Three.js runs out of the box with React Native WebGPU.
 You need to have a slight modification of [the metro config](/apps/example/metro.config.js) to resolve Three.js to the WebGPU build.
-We also support [three-fiber](/apps/example/src/ThreeJS/Fiber.tsx).
+We also support [react-three-fiber](/apps/example/src/ThreeJS/Fiber.tsx); to make it work, patch `node_modules/@react-three/fiber/package.json` (for instance via `patch-package`) so that it resolves to the WebGPU entry point instead of the React Native bundle:
+
+```diff
+diff --git a/node_modules/@react-three/fiber/package.json b/node_modules/@react-three/fiber/package.json
+@@
+-  "react-native": "native/dist/react-three-fiber-native.cjs.js",
++  "react-native": "dist/react-three-fiber.cjs.js",
+```
+
 For model loading, we also need [the following polyfill](/apps/example/src/App.tsx#29).
 
 https://github.com/user-attachments/assets/5b49ef63-0a3c-4679-aeb5-e4b4dddfcc1d
