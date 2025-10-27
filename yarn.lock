@@ -3404,31 +3404,31 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-three/fiber@npm:8.17.6":
-  version: 8.17.6
-  resolution: "@react-three/fiber@npm:8.17.6"
+"@react-three/fiber@npm:9.4.0":
+  version: 9.4.0
+  resolution: "@react-three/fiber@npm:9.4.0"
   dependencies:
     "@babel/runtime": ^7.17.8
-    "@types/debounce": ^1.2.1
-    "@types/react-reconciler": ^0.26.7
+    "@types/react-reconciler": ^0.32.0
     "@types/webxr": "*"
     base64-js: ^1.5.1
     buffer: ^6.0.3
-    debounce: ^1.2.1
-    its-fine: ^1.0.6
-    react-reconciler: ^0.27.0
-    scheduler: ^0.21.0
+    its-fine: ^2.0.0
+    react-reconciler: ^0.31.0
+    react-use-measure: ^2.1.7
+    scheduler: ^0.25.0
     suspend-react: ^0.1.3
-    zustand: ^3.7.1
+    use-sync-external-store: ^1.4.0
+    zustand: ^5.0.3
   peerDependencies:
     expo: ">=43.0"
     expo-asset: ">=8.4"
     expo-file-system: ">=11.0"
     expo-gl: ">=11.0"
-    react: ">=18.0"
-    react-dom: ">=18.0"
-    react-native: ">=0.64"
-    three: ">=0.133"
+    react: ^19.0.0
+    react-dom: ^19.0.0
+    react-native: ">=0.78"
+    three: ">=0.156"
   peerDependenciesMeta:
     expo:
       optional: true
@@ -3442,35 +3442,35 @@ __metadata:
       optional: true
     react-native:
       optional: true
-  checksum: bf60ea8fae051ffe2102bee467338f338a33739c011ddbc2d2f61e68b6ed0f7350d6da2fc0cfae9a7e31b56bb113fdeb6d16fd41decf2cb4a91634ff7eb26e61
+  checksum: 594919addbc67c12becbe9272e86be7aa7eba7d72528afcd1bf6724ee60a17d0dc473cfea9cd296b094f7a6d306fa9c8cbe540899486c79edbe681b7f1e9dd0a
   languageName: node
   linkType: hard
 
-"@react-three/fiber@patch:@react-three/fiber@npm%3A8.17.6#./.yarn/patches/@react-three-fiber-npm-8.17.6-bc537e834c.patch::locator=react-native-webgpu%40workspace%3A.":
-  version: 8.17.6
-  resolution: "@react-three/fiber@patch:@react-three/fiber@npm%3A8.17.6#./.yarn/patches/@react-three-fiber-npm-8.17.6-bc537e834c.patch::version=8.17.6&hash=e3aaaf&locator=react-native-webgpu%40workspace%3A."
+"@react-three/fiber@patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch::locator=react-native-webgpu%40workspace%3A.":
+  version: 9.4.0
+  resolution: "@react-three/fiber@patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch::version=9.4.0&hash=7de131&locator=react-native-webgpu%40workspace%3A."
   dependencies:
     "@babel/runtime": ^7.17.8
-    "@types/debounce": ^1.2.1
-    "@types/react-reconciler": ^0.26.7
+    "@types/react-reconciler": ^0.32.0
     "@types/webxr": "*"
     base64-js: ^1.5.1
     buffer: ^6.0.3
-    debounce: ^1.2.1
-    its-fine: ^1.0.6
-    react-reconciler: ^0.27.0
-    scheduler: ^0.21.0
+    its-fine: ^2.0.0
+    react-reconciler: ^0.31.0
+    react-use-measure: ^2.1.7
+    scheduler: ^0.25.0
     suspend-react: ^0.1.3
-    zustand: ^3.7.1
+    use-sync-external-store: ^1.4.0
+    zustand: ^5.0.3
   peerDependencies:
     expo: ">=43.0"
     expo-asset: ">=8.4"
     expo-file-system: ">=11.0"
     expo-gl: ">=11.0"
-    react: ">=18.0"
-    react-dom: ">=18.0"
-    react-native: ">=0.64"
-    three: ">=0.133"
+    react: ^19.0.0
+    react-dom: ^19.0.0
+    react-native: ">=0.78"
+    three: ">=0.156"
   peerDependenciesMeta:
     expo:
       optional: true
@@ -3484,7 +3484,7 @@ __metadata:
       optional: true
     react-native:
       optional: true
-  checksum: dcbc6044e9115a844288434b16189c7b38e03b8d4c3db150e46f3eb21a1186e38e0c3aa7584b4cc1e10946b514c2d472fd2927d9a2164fd6c6197ee73cf3a064
+  checksum: 62517c19c24754b1beb952671f27d21017e90717321265cf80343939b8d5c86d97719734fd9c52b89f5ee66256074a65d11ac99a056f5bcdd9688d41b216ab8c
   languageName: node
   linkType: hard
 
@@ -3839,13 +3839,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/debounce@npm:^1.2.1":
-  version: 1.2.4
-  resolution: "@types/debounce@npm:1.2.4"
-  checksum: decef3eee65d681556d50f7fac346f1b33134f6b21f806d41326f9dfb362fa66b0282ff0640ae6791b690694c9dc3dad4e146e909e707e6f96650f3aa325b9da
-  languageName: node
-  linkType: hard
-
 "@types/estree@npm:^1.0.0, @types/estree@npm:^1.0.6":
   version: 1.0.8
   resolution: "@types/estree@npm:1.0.8"
@@ -4045,21 +4038,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react-reconciler@npm:^0.26.7":
-  version: 0.26.7
-  resolution: "@types/react-reconciler@npm:0.26.7"
-  dependencies:
-    "@types/react": "*"
-  checksum: 4122d2b08580f775d0aeae9bd10b68248f894096ed14c0ebbc143ef712e21b159e89d0c628bd95dd3329947fc1ee94a0cb1d2d32b32b1d5d225e70030e91e58f
-  languageName: node
-  linkType: hard
-
-"@types/react-reconciler@npm:^0.28.0":
+"@types/react-reconciler@npm:^0.28.9":
   version: 0.28.9
   resolution: "@types/react-reconciler@npm:0.28.9"
   peerDependencies:
     "@types/react": "*"
   checksum: 06257f693c7b148a4258c0d0a958288116100014e7b3c21ceaea2d55a668c71718f79b4105a9a0f35b480f3729e46960b40026d685719f9386b4ed63108dda09
+  languageName: node
+  linkType: hard
+
+"@types/react-reconciler@npm:^0.32.0":
+  version: 0.32.2
+  resolution: "@types/react-reconciler@npm:0.32.2"
+  peerDependencies:
+    "@types/react": "*"
+  checksum: 95a26656510b4491d857d78c1714a441e899021dca228086c5979c569c6a44832600ea156efbd7d3cb75ed052e35431cc294d46ce0b0f4a7c59915d59e6355e2
   languageName: node
   linkType: hard
 
@@ -4713,7 +4706,7 @@ __metadata:
     "@react-native/typescript-config": 0.81.0
     "@react-navigation/native": ^6.1.17
     "@react-navigation/stack": ^6.4.0
-    "@react-three/fiber": ^8.17.6
+    "@react-three/fiber": ^9.4.0
     "@rnx-kit/metro-config": ^2.0.0
     "@shopify/react-native-skia": 2.2.14
     "@tensorflow/tfjs": ^4.22.0
@@ -6529,13 +6522,6 @@ __metadata:
   version: 1.11.18
   resolution: "dayjs@npm:1.11.18"
   checksum: cc90054bad30ab011417a7a474b2ffa70e7a28ca6f834d7e86fe53a408a40a14c174f26155072628670e9eda4c48c4ed0d847d2edf83d47c0bfb78be15bbf2dd
-  languageName: node
-  linkType: hard
-
-"debounce@npm:^1.2.1":
-  version: 1.2.1
-  resolution: "debounce@npm:1.2.1"
-  checksum: 682a89506d9e54fb109526f4da255c5546102fbb8e3ae75eef3b04effaf5d4853756aee97475cd4650641869794e44f410eeb20ace2b18ea592287ab2038519e
   languageName: node
   linkType: hard
 
@@ -9359,14 +9345,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"its-fine@npm:^1.0.6":
-  version: 1.2.5
-  resolution: "its-fine@npm:1.2.5"
+"its-fine@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "its-fine@npm:2.0.0"
   dependencies:
-    "@types/react-reconciler": ^0.28.0
+    "@types/react-reconciler": ^0.28.9
   peerDependencies:
-    react: ">=18.0"
-  checksum: b801f101a618f0659566d1793efd2498719463a3f1a93c063c0745524fbfae1abc5e0bafdb4fd4d7d4382ac845755e86197f3c7cb5d0c07b56d380acb9b7c6d4
+    react: ^19.0.0
+  checksum: 887ff10d8dfe8558683d5f68ad963c72a28c6df027c5039de7ec57978e5071c564ef4b00b14ef41e7706e5839a5584cbd480a79a3880f78d7ff826931e5dc22a
   languageName: node
   linkType: hard
 
@@ -12576,7 +12562,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-reconciler@npm:0.31.0":
+"react-reconciler@npm:0.31.0, react-reconciler@npm:^0.31.0":
   version: 0.31.0
   resolution: "react-reconciler@npm:0.31.0"
   dependencies:
@@ -12584,18 +12570,6 @@ __metadata:
   peerDependencies:
     react: ^19.0.0
   checksum: 820c4e4003c5615849bf0cda97d8a55b99af2bb59cc0825882b727f0ad0c4bf4581bb3d25e00beca1164203dbc172f0a8c4725e7aa2fb85e025938722384a84e
-  languageName: node
-  linkType: hard
-
-"react-reconciler@npm:^0.27.0":
-  version: 0.27.0
-  resolution: "react-reconciler@npm:0.27.0"
-  dependencies:
-    loose-envify: ^1.1.0
-    scheduler: ^0.21.0
-  peerDependencies:
-    react: ^18.0.0
-  checksum: c2ae111f150c2a46970182df12ea8254719fdfec5e26574711b1838fc37863c63671460a351570fd359c088d891e7bb0ff89023c2f7c1582393b57dd517b92c2
   languageName: node
   linkType: hard
 
@@ -12628,6 +12602,19 @@ __metadata:
   peerDependencies:
     react: ^18.2.0
   checksum: 6b6980ced93fa2b72662d5e4ab3b4896833586940047ce52ca9aca801e5432adf05fcbe28289b0af3ce6a2a7c590974e25dcc8aa43d0de658bfe8bbcd686f958
+  languageName: node
+  linkType: hard
+
+"react-use-measure@npm:^2.1.7":
+  version: 2.1.7
+  resolution: "react-use-measure@npm:2.1.7"
+  peerDependencies:
+    react: ">=16.13"
+    react-dom: ">=16.13"
+  peerDependenciesMeta:
+    react-dom:
+      optional: true
+  checksum: 5f00c14cf50b0710cdbd27b63a005be20283099d2fa2723a97f3a1cf0b2daedddd67249520c21e49e95348f56428689f3229c343dcb9ed37da58f9c227d29bee
   languageName: node
   linkType: hard
 
@@ -13076,15 +13063,6 @@ __metadata:
   version: 0.26.0
   resolution: "scheduler@npm:0.26.0"
   checksum: c63a9f1c0e5089b537231cff6c11f75455b5c8625ae09535c1d7cd0a1b0c77ceecdd9f1074e5e063da5d8dc11e73e8033dcac3361791088be08a6e60c0283ed9
-  languageName: node
-  linkType: hard
-
-"scheduler@npm:^0.21.0":
-  version: 0.21.0
-  resolution: "scheduler@npm:0.21.0"
-  dependencies:
-    loose-envify: ^1.1.0
-  checksum: 4f8285076041ed2c81acdd1faa987f1655fdbd30554bc667c1ea64743fc74fb3a04ca7d27454b3d678735df5a230137a3b84756061b43dc5796e80701b66d124
   languageName: node
   linkType: hard
 
@@ -14546,6 +14524,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"use-sync-external-store@npm:^1.4.0":
+  version: 1.6.0
+  resolution: "use-sync-external-store@npm:1.6.0"
+  peerDependencies:
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 61a62e910713adfaf91bdb72ff2cd30e5ba83687accaf3b6e75a903b45bf635f5722e3694af30d83a03e92cb533c0a5c699298d2fef639a03ffc86b469f4eee2
+  languageName: node
+  linkType: hard
+
 "util-deprecate@npm:^1.0.1, util-deprecate@npm:~1.0.1":
   version: 1.0.2
   resolution: "util-deprecate@npm:1.0.2"
@@ -15633,14 +15620,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zustand@npm:^3.7.1":
-  version: 3.7.2
-  resolution: "zustand@npm:3.7.2"
+"zustand@npm:^5.0.3":
+  version: 5.0.8
+  resolution: "zustand@npm:5.0.8"
   peerDependencies:
-    react: ">=16.8"
+    "@types/react": ">=18.0.0"
+    immer: ">=9.0.6"
+    react: ">=18.0.0"
+    use-sync-external-store: ">=1.2.0"
   peerDependenciesMeta:
+    "@types/react":
+      optional: true
+    immer:
+      optional: true
     react:
       optional: true
-  checksum: 18f025b1b666a311121d3855303ff58e6a21fd107920ca474307e86984c13338d6c4cfa5cdf13382a9e0f76821f2554a12d4d200a98a66b58637e729f149797b
+    use-sync-external-store:
+      optional: true
+  checksum: 1a0f896f335e21841509a605fb61db34342497c5073f8c4b69889a669f829c9cf39d0282d68ac8fec1c8814cdaa89ee6711d59989feb80dc0364f19ac72e75e0
   languageName: node
   linkType: hard

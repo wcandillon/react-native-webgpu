@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 
-import type {  CanvasRef, NativeCanvas } from "./Canvas";
+import type { CanvasRef, NativeCanvas } from "./Canvas";
 
 export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
   // Check if adapter is a fallback adapter using the new GPUAdapterInfo API
@@ -91,4 +91,3 @@ export const useDevice = (
   }, [adapterOptions, deviceDescriptor, state]);
   return { adapter: state?.adapter ?? null, device: state?.device ?? null };
 };
-
