@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "AsyncTaskHandle.h"
+#include "WGPULogger.h"
 
 namespace rnwgpu::async {
 
@@ -11,6 +12,7 @@ namespace {
 struct RuntimeData {
   std::shared_ptr<AsyncRunner> runner;
 };
+constexpr const char *TAG = "AsyncRunner";
 } // namespace
 
 AsyncRunner::AsyncRunner(wgpu::Instance instance, std::shared_ptr<AsyncDispatcher> dispatcher)
@@ -19,6 +21,7 @@ AsyncRunner::AsyncRunner(wgpu::Instance instance, std::shared_ptr<AsyncDispatche
   if (!_dispatcher) {
     throw std::runtime_error("AsyncRunner requires a valid dispatcher.");
   }
+  Logger::logToConsole("[%s] Created runner (dispatcher=%p)", TAG, _dispatcher.get());
 }
 
 std::shared_ptr<AsyncRunner> AsyncRunner::get(jsi::Runtime& runtime) {
@@ -56,6 +59,11 @@ AsyncTaskHandle AsyncRunner::postTask(const TaskCallback& callback, bool keepPum
   }
   requestTick();
 
+  Logger::logToConsole("[%s] postTask (keepPumping=%s, pending=%zu, pumping=%zu)", TAG,
+                       keepPumping ? "true" : "false",
+                       _pendingTasks.load(std::memory_order_acquire),
+                       _pumpTasks.load(std::memory_order_acquire));
+
   auto resolve = handle.createResolveFunction();
   auto reject = handle.createRejectFunction();
 
@@ -73,10 +81,12 @@ AsyncTaskHandle AsyncRunner::postTask(const TaskCallback& callback, bool keepPum
 void AsyncRunner::requestTick() {
   bool expected = false;
   if (!_tickScheduled.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
+    Logger::logToConsole("[%s] requestTick skipped (already scheduled)", TAG);
     return;
   }
 
   auto self = shared_from_this();
+  Logger::logToConsole("[%s] requestTick scheduled microtask", TAG);
   _dispatcher->post([self](jsi::Runtime& runtime) {
     self->tick(runtime);
   });
@@ -85,6 +95,9 @@ void AsyncRunner::requestTick() {
 void AsyncRunner::tick(jsi::Runtime& /*runtime*/) {
   _tickScheduled.store(false, std::memory_order_release);
   _instance.ProcessEvents();
+  Logger::logToConsole("[%s] tick processed events (pending=%zu, pumping=%zu)", TAG,
+                       _pendingTasks.load(std::memory_order_acquire),
+                       _pumpTasks.load(std::memory_order_acquire));
   if (_pumpTasks.load(std::memory_order_acquire) > 0) {
     requestTick();
   }
@@ -95,6 +108,10 @@ void AsyncRunner::onTaskSettled(bool keepPumping) {
   if (keepPumping) {
     _pumpTasks.fetch_sub(1, std::memory_order_acq_rel);
   }
+  Logger::logToConsole("[%s] onTaskSettled (keepPumping=%s, pending=%zu, pumping=%zu)", TAG,
+                       keepPumping ? "true" : "false",
+                       _pendingTasks.load(std::memory_order_acquire),
+                       _pumpTasks.load(std::memory_order_acquire));
 }
 
 std::shared_ptr<AsyncDispatcher> AsyncRunner::dispatcher() const {
