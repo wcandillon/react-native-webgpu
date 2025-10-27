@@ -52,14 +52,17 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
 }
 
 void GPUCanvasContext::present() {
+  auto request = _surfaceInfo->takePendingPresent();
+  if (!request.has_value()) {
+    return;
+  }
 #ifdef __APPLE__
   dawn::native::metal::WaitForCommandsToBeScheduled(
-      _surfaceInfo->getDevice().Get());
+      request->device.Get());
 #endif
-  auto size = _surfaceInfo->getSize();
-  _canvas->setClientWidth(size.width);
-  _canvas->setClientHeight(size.height);
-  _surfaceInfo->present();
+  _canvas->setClientWidth(request->width);
+  _canvas->setClientHeight(request->height);
+  request->surface.Present();
 }
 
 } // namespace rnwgpu

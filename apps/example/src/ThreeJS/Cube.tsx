@@ -31,7 +31,7 @@ export const Cube = () => {
       mesh.rotation.y = time / 1000;
 
       renderer.render(scene, camera);
-      context.present();
+      //context.present();
     }
     renderer.setAnimationLoop(animate);
     return () => {

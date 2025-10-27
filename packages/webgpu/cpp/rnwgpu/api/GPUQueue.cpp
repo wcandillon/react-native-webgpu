@@ -6,6 +6,8 @@
 
 #include "Convertors.h"
 
+#include "../SurfaceRegistry.h"
+
 namespace rnwgpu {
 
 struct BufferSource {
@@ -26,6 +28,7 @@ void GPUQueue::submit(
     return;
   }
   _instance.Submit(bufs_size, bufs.data());
+  SurfaceRegistry::getInstance().presentPendingSurfaces();
 }
 
 void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,

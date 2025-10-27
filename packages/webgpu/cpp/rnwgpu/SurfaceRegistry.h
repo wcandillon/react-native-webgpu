@@ -1,9 +1,11 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <shared_mutex>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #ifdef __APPLE__
 #include <dispatch/dispatch.h>
@@ -11,6 +13,16 @@
 #endif
 
 #include "webgpu/webgpu_cpp.h"
+
+#include "api/Canvas.h"
+
+#ifdef __APPLE__
+namespace dawn::native::metal {
+
+void WaitForCommandsToBeScheduled(WGPUDevice device);
+
+} // namespace dawn::native::metal
+#endif
 
 namespace rnwgpu {
 
@@ -32,6 +44,14 @@ public:
 
   ~SurfaceInfo() { surface = nullptr; }
 
+  struct PresentRequest {
+    wgpu::Device device;
+    wgpu::Surface surface;
+    int width;
+    int height;
+    std::weak_ptr<Canvas> canvas;
+  };
+
   void reconfigure(int newWidth, int newHeight) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     config.width = newWidth;
@@ -45,6 +65,7 @@ public:
     config.width = width;
     config.height = height;
     config.presentMode = wgpu::PresentMode::Fifo;
+    _needsPresent = false;
     _configure();
   }
 
@@ -55,6 +76,7 @@ public:
     } else {
       texture = nullptr;
     }
+    _needsPresent = false;
   }
 
   void *switchToOffscreen() {
@@ -72,6 +94,7 @@ public:
       texture = config.device.CreateTexture(&textureDesc);
     }
     surface = nullptr;
+    _needsPresent = false;
     return nativeSurface;
   }
 
@@ -110,6 +133,7 @@ public:
       surface.Present();
       texture = nullptr;
     }
+    _needsPresent = false;
   }
 
   void resize(int newWidth, int newHeight) {
@@ -118,22 +142,37 @@ public:
     height = newHeight;
   }
 
-  void present() {
+  void setCanvas(std::weak_ptr<Canvas> canvas) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    if (surface) {
-      surface.Present();
-    }
+    _canvas = std::move(canvas);
   }
 
   wgpu::Texture getCurrentTexture() {
-    std::shared_lock<std::shared_mutex> lock(_mutex);
+    std::unique_lock<std::shared_mutex> lock(_mutex);
     if (surface) {
       wgpu::SurfaceTexture surfaceTexture;
       surface.GetCurrentTexture(&surfaceTexture);
+      _needsPresent = true;
       return surfaceTexture.texture;
     } else {
+      _needsPresent = false;
       return texture;
     }
+  }
+
+  std::optional<PresentRequest> takePendingPresent() {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (!_needsPresent || !surface) {
+      _needsPresent = false;
+      return std::nullopt;
+    }
+    PresentRequest request{.device = config.device,
+                           .surface = surface,
+                           .width = width,
+                           .height = height,
+                           .canvas = _canvas};
+    _needsPresent = false;
+    return request;
   }
 
   NativeInfo getNativeInfo() {
@@ -191,6 +230,7 @@ private:
   }
 
   mutable std::shared_mutex _mutex;
+  std::weak_ptr<Canvas> _canvas;
   void *nativeSurface = nullptr;
   wgpu::Surface surface = nullptr;
   wgpu::Texture texture = nullptr;
@@ -198,6 +238,7 @@ private:
   wgpu::SurfaceConfiguration config;
   int width;
   int height;
+  bool _needsPresent = false;
 };
 
 class SurfaceRegistry {
@@ -242,6 +283,35 @@ public:
     auto info = std::make_shared<SurfaceInfo>(gpu, width, height);
     _registry[id] = info;
     return info;
+  }
+
+  void presentPendingSurfaces() {
+    std::vector<std::shared_ptr<SurfaceInfo>> infosCopy;
+    {
+      std::shared_lock<std::shared_mutex> lock(_mutex);
+      infosCopy.reserve(_registry.size());
+      for (auto &entry : _registry) {
+        infosCopy.push_back(entry.second);
+      }
+    }
+
+    for (auto &info : infosCopy) {
+      auto request = info->takePendingPresent();
+      if (!request.has_value()) {
+        continue;
+      }
+
+      auto presentRequest = std::move(request.value());
+#ifdef __APPLE__
+      dawn::native::metal::WaitForCommandsToBeScheduled(
+          presentRequest.device.Get());
+#endif
+      if (auto canvas = presentRequest.canvas.lock()) {
+        canvas->setClientWidth(presentRequest.width);
+        canvas->setClientHeight(presentRequest.height);
+      }
+      presentRequest.surface.Present();
+    }
   }
 
 private:
