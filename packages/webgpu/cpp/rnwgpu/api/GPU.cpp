@@ -8,16 +8,26 @@
 #include <vector>
 
 #include "Convertors.h"
+#include "RNFJSIConverter.h"
+#include "rnwgpu/async/JSIMicrotaskDispatcher.h"
 
 namespace rnwgpu {
 
-std::future<std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>>
-GPU::requestAdapter(
-    std::optional<std::shared_ptr<GPURequestAdapterOptions>> options) {
-  std::promise<std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>>
-      promise;
-  auto future = promise.get_future();
+GPU::GPU(jsi::Runtime &runtime) : HybridObject("GPU") {
+  static const auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
+  wgpu::InstanceDescriptor instanceDesc{.requiredFeatureCount = 1,
+                                        .requiredFeatures = &kTimedWaitAny};
 
+  wgpu::InstanceLimits limits{.timedWaitAnyMaxCount = 64};
+  instanceDesc.requiredLimits = &limits;
+  _instance = wgpu::CreateInstance(&instanceDesc);
+
+  auto dispatcher = std::make_shared<async::JSIMicrotaskDispatcher>(runtime);
+  _async = async::AsyncRunner::getOrCreate(runtime, _instance, dispatcher);
+}
+
+async::AsyncTaskHandle GPU::requestAdapter(
+    std::optional<std::shared_ptr<GPURequestAdapterOptions>> options) {
   wgpu::RequestAdapterOptions aOptions;
   Convertor conv;
   if (!conv(aOptions, options)) {
@@ -29,26 +39,41 @@ GPU::requestAdapter(
   constexpr auto kDefaultBackendType = wgpu::BackendType::Vulkan;
 #endif
   aOptions.backendType = kDefaultBackendType;
-  wgpu::Adapter adapter = nullptr;
-  _instance.RequestAdapter(
-      &aOptions, wgpu::CallbackMode::AllowSpontaneous,
-      [](wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,
-         wgpu::StringView message, wgpu::Adapter *userdata) {
-        if (message.length) {
-          fprintf(stderr, "%s", message.data);
-          return;
-        }
-        if (status == wgpu::RequestAdapterStatus::Success) {
-          *userdata = std::move(adapter);
-        }
-      },
-      &adapter);
-  if (!adapter) {
-    promise.set_value(nullptr);
-  } else {
-    promise.set_value(std::make_shared<GPUAdapter>(std::move(adapter), _async));
-  }
-  return future;
+  return _async->postTask(
+      [this, aOptions](const async::AsyncTaskHandle::ResolveFunction &resolve,
+                       const async::AsyncTaskHandle::RejectFunction &reject) {
+        _instance.RequestAdapter(
+            &aOptions, wgpu::CallbackMode::AllowProcessEvents,
+            [asyncRunner = _async, resolve,
+             reject](wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,
+                     wgpu::StringView message) {
+              if (message.length) {
+                fprintf(stderr, "%s", message.data);
+              }
+
+              if (status == wgpu::RequestAdapterStatus::Success && adapter) {
+                auto adapterHost = std::make_shared<GPUAdapter>(
+                    std::move(adapter), asyncRunner);
+                auto result =
+                    std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>(
+                        adapterHost);
+                resolve([result =
+                             std::move(result)](jsi::Runtime &runtime) mutable {
+                  return margelo::JSIConverter<decltype(result)>::toJSI(runtime,
+                                                                        result);
+                });
+              } else {
+                auto result =
+                    std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>(
+                        nullptr);
+                resolve([result =
+                             std::move(result)](jsi::Runtime &runtime) mutable {
+                  return margelo::JSIConverter<decltype(result)>::toJSI(runtime,
+                                                                        result);
+                });
+              }
+            });
+      });
 }
 
 std::unordered_set<std::string> GPU::getWgslLanguageFeatures() {

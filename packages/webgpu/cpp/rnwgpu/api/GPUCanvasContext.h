@@ -10,8 +10,6 @@
 
 #include "RNFHybridObject.h"
 
-#include "AsyncRunner.h"
-
 #include "Canvas.h"
 #include "GPU.h"
 #include "GPUCanvasConfiguration.h"

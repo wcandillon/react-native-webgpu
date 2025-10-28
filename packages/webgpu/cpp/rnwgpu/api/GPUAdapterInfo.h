@@ -7,7 +7,6 @@
 
 #include "RNFHybridObject.h"
 
-#include "AsyncRunner.h"
 #include "Convertors.h"
 
 #include "webgpu/webgpu_cpp.h"

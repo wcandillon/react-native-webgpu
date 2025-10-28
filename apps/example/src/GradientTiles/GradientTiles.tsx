@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, PixelRatio, StyleSheet, Text, View } from "react-native";
-import { Canvas, useDevice, useGPUContext } from "react-native-wgpu";
+import type { CanvasRef } from "react-native-wgpu";
+import { Canvas, useDevice } from "react-native-wgpu";
 import * as d from "typegpu/data";
 import tgpu, { type TgpuBindGroup, type TgpuBuffer } from "typegpu";
 
@@ -37,12 +38,13 @@ export function GradientTiles() {
   const [spanY, setSpanY] = useState(4);
   const root = useRoot();
   const { device = null } = root ?? {};
-  const { ref, context } = useGPUContext();
+  const ref = useRef<CanvasRef>(null);
 
   useEffect(() => {
-    if (!device || !root || !context || state !== null) {
+    if (!device || !root || state !== null) {
       return;
     }
+    const context = ref.current?.getContext("webgpu")!;
 
     const canvas = context.canvas as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();
@@ -92,14 +94,15 @@ export function GradientTiles() {
     });
 
     setState({ bindGroup, pipeline, spanBuffer });
-  }, [context, device, root, presentationFormat, state]);
+  }, [ref, device, root, presentationFormat, state]);
 
   useEffect(() => {
-    if (!context || !device || !root || !state) {
+    if (!device || !root || !state) {
       return;
     }
 
     const { bindGroup, pipeline, spanBuffer } = state;
+    const context = ref.current?.getContext("webgpu")!;
     const textureView = context.getCurrentTexture().createView();
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [
@@ -123,7 +126,7 @@ export function GradientTiles() {
 
     device.queue.submit([commandEncoder.finish()]);
     context.present();
-  }, [context, device, root, spanX, spanY, state]);
+  }, [ref, device, root, spanX, spanY, state]);
 
   return (
     <View style={style.container}>

@@ -10,8 +10,6 @@
 
 #include "RNFHybridObject.h"
 
-#include "AsyncRunner.h"
-
 #include "webgpu/webgpu_cpp.h"
 
 #include "GPUBindGroup.h"

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <future>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -10,7 +9,8 @@
 
 #include "RNFHybridObject.h"
 
-#include "AsyncRunner.h"
+#include "rnwgpu/async/AsyncRunner.h"
+#include "rnwgpu/async/AsyncTaskHandle.h"
 
 #include "dawn/native/DawnNative.h"
 #include "webgpu/webgpu_cpp.h"
@@ -26,24 +26,12 @@ namespace m = margelo;
 
 class GPU : public m::HybridObject {
 public:
-  GPU() : HybridObject("GPU") {
-    static const auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
-    wgpu::InstanceDescriptor instanceDesc{.requiredFeatureCount = 1,
-                                          .requiredFeatures = &kTimedWaitAny};
-
-    // For limits:
-    wgpu::InstanceLimits limits{.timedWaitAnyMaxCount = 64};
-    instanceDesc.requiredLimits = &limits;
-    _instance = wgpu::CreateInstance(&instanceDesc);
-    auto instance = &_instance;
-    _async = std::make_shared<AsyncRunner>(instance);
-  }
+  explicit GPU(jsi::Runtime &runtime);
 
 public:
   std::string getBrand() { return _name; }
 
-  std::future<std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>>
-  requestAdapter(
+  async::AsyncTaskHandle requestAdapter(
       std::optional<std::shared_ptr<GPURequestAdapterOptions>> options);
   wgpu::TextureFormat getPreferredCanvasFormat();
 
@@ -62,7 +50,7 @@ public:
 
 private:
   wgpu::Instance _instance;
-  std::shared_ptr<AsyncRunner> _async;
+  std::shared_ptr<async::AsyncRunner> _async;
 };
 
 } // namespace rnwgpu

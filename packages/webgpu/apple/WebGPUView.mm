@@ -1,4 +1,3 @@
-#ifdef RCT_NEW_ARCH_ENABLED
 #import "WebGPUView.h"
 
 #import <react/renderer/components/RNWgpuViewSpec/ComponentDescriptors.h>
@@ -65,4 +64,3 @@ using namespace facebook::react;
 Class<RCTComponentViewProtocol> WebGPUViewCls(void) { return WebGPUView.class; }
 
 @end
-#endif

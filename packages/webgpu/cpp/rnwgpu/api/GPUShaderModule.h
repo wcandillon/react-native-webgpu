@@ -1,6 +1,5 @@
 #pragma once
 
-#include <future>
 #include <memory>
 #include <string>
 
@@ -8,7 +7,8 @@
 
 #include "RNFHybridObject.h"
 
-#include "AsyncRunner.h"
+#include "rnwgpu/async/AsyncRunner.h"
+#include "rnwgpu/async/AsyncTaskHandle.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -21,7 +21,7 @@ namespace m = margelo;
 class GPUShaderModule : public m::HybridObject {
 public:
   explicit GPUShaderModule(wgpu::ShaderModule instance,
-                           std::shared_ptr<AsyncRunner> async,
+                           std::shared_ptr<async::AsyncRunner> async,
                            std::string label)
       : HybridObject("GPUShaderModule"), _instance(instance), _async(async),
         _label(label) {}
@@ -29,7 +29,7 @@ public:
 public:
   std::string getBrand() { return _name; }
 
-  std::future<std::shared_ptr<GPUCompilationInfo>> getCompilationInfo();
+  async::AsyncTaskHandle getCompilationInfo();
 
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
@@ -58,7 +58,7 @@ public:
 
 private:
   wgpu::ShaderModule _instance;
-  std::shared_ptr<AsyncRunner> _async;
+  std::shared_ptr<async::AsyncRunner> _async;
   std::string _label;
 };
 

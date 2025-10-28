@@ -1,26 +1,50 @@
 
 package com.webgpu;
 
-import com.facebook.react.ReactPackage;
+import com.facebook.react.TurboReactPackage;
 import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.module.annotations.ReactModule;
+import com.facebook.react.module.model.ReactModuleInfo;
+import com.facebook.react.module.model.ReactModuleInfoProvider;
 import com.facebook.react.uimanager.ViewManager;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public class WebGPUViewPackage implements ReactPackage {
+public class WebGPUViewPackage extends TurboReactPackage {
   @Override
-  public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
-    List<ViewManager> viewManagers = new ArrayList<>();
-    viewManagers.add(new WebGPUViewManager());
-    return viewManagers;
+  public NativeModule getModule(String name, ReactApplicationContext reactContext) {
+    if (name.equals(WebGPUModule.NAME)) {
+      return new WebGPUModule(reactContext);
+    }
+    return null;
   }
 
+  @Override
+  public ReactModuleInfoProvider getReactModuleInfoProvider() {
+    return () -> {
+      Map<String, ReactModuleInfo> map = new HashMap<>();
+      map.put(
+        WebGPUModule.NAME,
+        new ReactModuleInfo(
+          WebGPUModule.NAME,
+          WebGPUModule.class.getName(),
+          false,
+          false,
+          false,
+          false,
+          true // isTurboModule
+        )
+      );
+      return map;
+    };
+  }
 
   @Override
-  public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
-      return List.of(new WebGPUModule(reactContext));
+  public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
+    return Collections.singletonList(new WebGPUViewManager());
   }
 }
