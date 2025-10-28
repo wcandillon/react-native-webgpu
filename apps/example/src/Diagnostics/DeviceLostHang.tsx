@@ -29,6 +29,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
     lineHeight: 20,
   },
+  resultSuccess: {
+    color: "#4ade80",
+    marginTop: 12,
+    lineHeight: 20,
+  },
   note: {
     color: "#aaa",
     marginTop: 16,
@@ -145,13 +150,17 @@ export const DeviceLostHang = () => {
       <View style={styles.card}>
         <Text style={styles.title}>Device Lost Promise Hang</Text>
         <Text style={styles.paragraph}>{status}</Text>
-        {result ? <Text style={styles.result}>{result}</Text> : null}
-        <Text style={styles.note}>
-          Expected: once forceLossForTesting runs, Dawn invokes the device-lost
-          callback, resolving the promise. Observed: the promise remains pending
-          indefinitely because the native event loop is no longer pumping
-          events.
-        </Text>
+        {result ? (
+          <Text
+            style={
+              result.startsWith("device.lost resolved with reason")
+                ? styles.resultSuccess
+                : styles.result
+            }
+          >
+            {result}
+          </Text>
+        ) : null}
       </View>
     </View>
   );

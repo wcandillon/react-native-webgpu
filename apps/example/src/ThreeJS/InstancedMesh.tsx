@@ -21,7 +21,7 @@ export const InstancedMesh = () => {
     const context = ref.current!.getContext("webgpu")!;
     const { width, height } = context.canvas;
 
-    const amount = 4;
+    const amount = 5;
     const count = Math.pow(amount, 3);
     const dummy = new THREE.Object3D();
 

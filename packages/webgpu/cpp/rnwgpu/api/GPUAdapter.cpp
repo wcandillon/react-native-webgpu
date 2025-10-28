@@ -25,7 +25,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
   auto deviceLostBinding = std::make_shared<std::weak_ptr<GPUDevice>>();
   // Set device lost callback using new template API
   aDescriptor.SetDeviceLostCallback(
-      wgpu::CallbackMode::AllowProcessEvents,
+      wgpu::CallbackMode::AllowSpontaneous,
       [deviceLostBinding](const wgpu::Device & /*device*/,
                           wgpu::DeviceLostReason reason,
                           wgpu::StringView message) {
