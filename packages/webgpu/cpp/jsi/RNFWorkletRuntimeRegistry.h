@@ -5,40 +5,37 @@
 
 #include <jsi/jsi.h>
 
+#include <memory>
 #include <mutex>
-#include <set>
+#include <unordered_map>
 
 namespace jsi = facebook::jsi;
 
 namespace margelo {
 
-// From:
-// https://github.com/software-mansion/react-native-reanimated/blob/6cb1a66f1a68cac8079de2b6b305d22359847e51/Common/cpp/ReanimatedRuntime/WorkletRuntimeRegistry.h
 class RNFWorkletRuntimeRegistry {
+public:
+  static void registerRuntime(jsi::Runtime& runtime);
+  static void unregisterRuntime(jsi::Runtime& runtime);
+  static bool isRuntimeAlive(jsi::Runtime* runtime);
+
 private:
-  static std::set<jsi::Runtime*> registry_;
-  static std::mutex mutex_; // Protects `registry_`.
+  struct RuntimeSentinel {
+    explicit RuntimeSentinel(jsi::Runtime* runtime);
+    ~RuntimeSentinel();
+
+    jsi::Runtime* runtime;
+  };
+
+  static void removeRuntime(jsi::Runtime* runtime);
+
+  static std::unordered_map<jsi::Runtime*, std::weak_ptr<RuntimeSentinel>> registry_;
+  static std::mutex mutex_;
+  static const jsi::UUID uuid_;
 
   RNFWorkletRuntimeRegistry() {} // private ctor
 
-  static void registerRuntime(jsi::Runtime& runtime) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    registry_.insert(&runtime);
-  }
-
-  static void unregisterRuntime(jsi::Runtime& runtime) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    registry_.erase(&runtime);
-  }
-
   friend class WorkletRuntimeCollector;
-
-public:
-  static bool isRuntimeAlive(jsi::Runtime* runtime) {
-    assert(runtime != nullptr);
-    std::lock_guard<std::mutex> lock(mutex_);
-    return registry_.find(runtime) != registry_.end();
-  }
 };
 
 } // namespace margelo

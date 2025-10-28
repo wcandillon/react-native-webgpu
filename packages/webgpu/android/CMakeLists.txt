@@ -47,7 +47,6 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/rnwgpu/RNWebGPUManager.cpp
     ../cpp/jsi/RNFPromise.cpp
     ../cpp/jsi/RNFHybridObject.cpp
-    ../cpp/jsi/RNFRuntimeCache.cpp
     ../cpp/jsi/RNFWorkletRuntimeRegistry.cpp
     ../cpp/threading/Dispatcher.cpp
     ../cpp/threading/ThreadPool.cpp
