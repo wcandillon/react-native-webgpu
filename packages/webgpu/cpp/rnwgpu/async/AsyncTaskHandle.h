@@ -19,13 +19,15 @@ namespace rnwgpu::async {
 class AsyncRunner;
 
 /**
- * Represents a pending asynchronous WebGPU operation that can be converted into a JavaScript Promise.
+ * Represents a pending asynchronous WebGPU operation that can be converted into
+ * a JavaScript Promise.
  */
 class AsyncTaskHandle {
 public:
   struct State;
 
-  using ValueFactory = std::function<facebook::jsi::Value(facebook::jsi::Runtime&)>;
+  using ValueFactory =
+      std::function<facebook::jsi::Value(facebook::jsi::Runtime &)>;
   using ResolveFunction = std::function<void(ValueFactory)>;
   using RejectFunction = std::function<void(std::string)>;
 
@@ -41,9 +43,10 @@ public:
   ResolveFunction createResolveFunction() const;
   RejectFunction createRejectFunction() const;
 
-  void attachPromise(const std::shared_ptr<margelo::Promise>& promise) const;
+  void attachPromise(const std::shared_ptr<margelo::Promise> &promise) const;
 
-  static AsyncTaskHandle create(const std::shared_ptr<AsyncRunner>& runner, bool keepPumping);
+  static AsyncTaskHandle create(const std::shared_ptr<AsyncRunner> &runner,
+                                bool keepPumping);
 
 private:
   std::shared_ptr<State> _state;

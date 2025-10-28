@@ -51,36 +51,35 @@ async::AsyncTaskHandle GPUBuffer::mapAsync(uint64_t modeIn,
   auto bufferHandle = _instance;
   uint64_t resolvedOffset = offset.value_or(0);
 
-  return _async->postTask([
-    bufferHandle,
-    mode,
-    resolvedOffset,
-    rangeSize
-  ](const async::AsyncTaskHandle::ResolveFunction& resolve,
-    const async::AsyncTaskHandle::RejectFunction& reject) {
-    bufferHandle.MapAsync(
-        mode, resolvedOffset, rangeSize, wgpu::CallbackMode::AllowProcessEvents,
-        [resolve, reject](wgpu::MapAsyncStatus status, wgpu::StringView message) {
-          switch (status) {
-          case wgpu::MapAsyncStatus::Success:
-            resolve(nullptr);
-            break;
-          case wgpu::MapAsyncStatus::CallbackCancelled:
-            reject("MapAsyncStatus::CallbackCancelled");
-            break;
-          case wgpu::MapAsyncStatus::Error:
-            reject("MapAsyncStatus::Error");
-            break;
-          case wgpu::MapAsyncStatus::Aborted:
-            reject("MapAsyncStatus::Aborted");
-            break;
-          default:
-            reject("MapAsyncStatus: " +
-                   std::to_string(static_cast<int>(status)));
-            break;
-          }
-        });
-  });
+  return _async->postTask(
+      [bufferHandle, mode, resolvedOffset,
+       rangeSize](const async::AsyncTaskHandle::ResolveFunction &resolve,
+                  const async::AsyncTaskHandle::RejectFunction &reject) {
+        bufferHandle.MapAsync(mode, resolvedOffset, rangeSize,
+                              wgpu::CallbackMode::AllowProcessEvents,
+                              [resolve, reject](wgpu::MapAsyncStatus status,
+                                                wgpu::StringView message) {
+                                switch (status) {
+                                case wgpu::MapAsyncStatus::Success:
+                                  resolve(nullptr);
+                                  break;
+                                case wgpu::MapAsyncStatus::CallbackCancelled:
+                                  reject("MapAsyncStatus::CallbackCancelled");
+                                  break;
+                                case wgpu::MapAsyncStatus::Error:
+                                  reject("MapAsyncStatus::Error");
+                                  break;
+                                case wgpu::MapAsyncStatus::Aborted:
+                                  reject("MapAsyncStatus::Aborted");
+                                  break;
+                                default:
+                                  reject(
+                                      "MapAsyncStatus: " +
+                                      std::to_string(static_cast<int>(status)));
+                                  break;
+                                }
+                              });
+      });
 }
 
 void GPUBuffer::unmap() { _instance.Unmap(); }

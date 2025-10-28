@@ -10,11 +10,12 @@ namespace rnwgpu::async {
 namespace jsi = facebook::jsi;
 
 /**
- * Abstract dispatcher used by the AsyncRunner to enqueue work back onto the JavaScript thread.
+ * Abstract dispatcher used by the AsyncRunner to enqueue work back onto the
+ * JavaScript thread.
  */
 class AsyncDispatcher {
 public:
-  using Work = std::function<void(jsi::Runtime&)>;
+  using Work = std::function<void(jsi::Runtime &)>;
 
   virtual ~AsyncDispatcher() = default;
 
@@ -25,4 +26,3 @@ public:
 };
 
 } // namespace rnwgpu::async
-

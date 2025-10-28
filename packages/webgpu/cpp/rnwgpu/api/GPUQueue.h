@@ -26,7 +26,8 @@ namespace m = margelo;
 class GPUQueue : public m::HybridObject {
 public:
   explicit GPUQueue(wgpu::Queue instance,
-                    std::shared_ptr<async::AsyncRunner> async, std::string label)
+                    std::shared_ptr<async::AsyncRunner> async,
+                    std::string label)
       : HybridObject("GPUQueue"), _instance(instance), _async(async),
         _label(label) {}
 

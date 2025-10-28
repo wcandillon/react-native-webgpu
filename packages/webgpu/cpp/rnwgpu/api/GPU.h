@@ -26,7 +26,7 @@ namespace m = margelo;
 
 class GPU : public m::HybridObject {
 public:
-  explicit GPU(jsi::Runtime& runtime);
+  explicit GPU(jsi::Runtime &runtime);
 
 public:
   std::string getBrand() { return _name; }

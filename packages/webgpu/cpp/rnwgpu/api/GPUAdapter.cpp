@@ -10,8 +10,8 @@
 #include "Convertors.h"
 
 #include "GPUFeatures.h"
-#include "WGPULogger.h"
 #include "RNFJSIConverter.h"
+#include "WGPULogger.h"
 
 namespace rnwgpu {
 
@@ -79,48 +79,44 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
   std::string label =
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "";
 
-  return _async->postTask([
-    this,
-    aDescriptor,
-    descriptor,
-    label = std::move(label),
-    deviceLostBinding
-  ](const async::AsyncTaskHandle::ResolveFunction& resolve,
-    const async::AsyncTaskHandle::RejectFunction& reject) {
-    (void)descriptor;
-    _instance.RequestDevice(
-        &aDescriptor, wgpu::CallbackMode::AllowProcessEvents,
-        [asyncRunner = _async, resolve, reject, label,
-         creationRuntime = _creationRuntime, deviceLostBinding](wgpu::RequestDeviceStatus status,
-                                             wgpu::Device device,
-                                             wgpu::StringView message) mutable {
-          if (message.length) {
-            fprintf(stderr, "%s", message.data);
-          }
+  return _async->postTask(
+      [this, aDescriptor, descriptor, label = std::move(label),
+       deviceLostBinding](
+          const async::AsyncTaskHandle::ResolveFunction &resolve,
+          const async::AsyncTaskHandle::RejectFunction &reject) {
+        (void)descriptor;
+        _instance.RequestDevice(
+            &aDescriptor, wgpu::CallbackMode::AllowProcessEvents,
+            [asyncRunner = _async, resolve, reject, label,
+             creationRuntime = _creationRuntime, deviceLostBinding](
+                wgpu::RequestDeviceStatus status, wgpu::Device device,
+                wgpu::StringView message) mutable {
+              if (message.length) {
+                fprintf(stderr, "%s", message.data);
+              }
 
-          if (status != wgpu::RequestDeviceStatus::Success || !device) {
-            std::string error = message.length
-                                    ? std::string(message.data, message.length)
-                                    : "Failed to request device";
-            reject(std::move(error));
-            return;
-          }
+              if (status != wgpu::RequestDeviceStatus::Success || !device) {
+                std::string error =
+                    message.length ? std::string(message.data, message.length)
+                                   : "Failed to request device";
+                reject(std::move(error));
+                return;
+              }
 
-          device.SetLoggingCallback(
-              [creationRuntime](wgpu::LoggingType type, wgpu::StringView msg) {
+              device.SetLoggingCallback([creationRuntime](
+                                            wgpu::LoggingType type,
+                                            wgpu::StringView msg) {
                 const char *logLevel = "";
                 switch (type) {
                 case wgpu::LoggingType::Warning:
                   logLevel = "Warning";
                   Logger::warnToJavascriptConsole(
-                      *creationRuntime,
-                      std::string(msg.data, msg.length));
+                      *creationRuntime, std::string(msg.data, msg.length));
                   break;
                 case wgpu::LoggingType::Error:
                   logLevel = "Error";
                   Logger::errorToJavascriptConsole(
-                      *creationRuntime,
-                      std::string(msg.data, msg.length));
+                      *creationRuntime, std::string(msg.data, msg.length));
                   break;
                 case wgpu::LoggingType::Verbose:
                   logLevel = "Verbose";
@@ -131,18 +127,20 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
                 default:
                   logLevel = "Unknown";
                   Logger::logToConsole("%s: %.*s", logLevel,
-                                       static_cast<int>(msg.length),
-                                       msg.data);
+                                       static_cast<int>(msg.length), msg.data);
                 }
               });
 
-          auto deviceHost = std::make_shared<GPUDevice>(std::move(device), asyncRunner, label);
-          *deviceLostBinding = deviceHost;
-          resolve([deviceHost = std::move(deviceHost)](jsi::Runtime& runtime) mutable {
-            return margelo::JSIConverter<std::shared_ptr<GPUDevice>>::toJSI(runtime, deviceHost);
-          });
-        });
-  });
+              auto deviceHost = std::make_shared<GPUDevice>(std::move(device),
+                                                            asyncRunner, label);
+              *deviceLostBinding = deviceHost;
+              resolve([deviceHost = std::move(deviceHost)](
+                          jsi::Runtime &runtime) mutable {
+                return margelo::JSIConverter<std::shared_ptr<GPUDevice>>::toJSI(
+                    runtime, deviceHost);
+              });
+            });
+      });
 }
 
 std::unordered_set<std::string> GPUAdapter::getFeatures() {

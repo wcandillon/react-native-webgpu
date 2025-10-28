@@ -6,7 +6,6 @@
 
 #include "RNFHybridObject.h"
 
-
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
