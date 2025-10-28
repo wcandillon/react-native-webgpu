@@ -25,4 +25,7 @@ export type Routes = {
   GradientTiles: undefined;
   CanvasAPI: undefined;
   ComputeToys: undefined;
+  Reanimated: undefined;
+  AsyncStarvation: undefined;
+  DeviceLostHang: undefined;
 };

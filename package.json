@@ -8,7 +8,7 @@
   "resolutions": {
     "@types/react": "^18.2.44",
     "@webgpu/types": "^0.1.42",
-    "@react-three/fiber@^8.17.6": "patch:@react-three/fiber@npm%3A8.17.6#./.yarn/patches/@react-three-fiber-npm-8.17.6-bc537e834c.patch"
+    "@react-three/fiber@^9.4.0": "patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch"
   },
   "packageManager": "yarn@3.6.1",
   "scripts": {

@@ -27,12 +27,17 @@ public:
    * @param message Message to be written out
    */
   static void logToConsole(std::string message) {
+#ifdef DEBUG
 #if defined(ANDROID) || defined(__ANDROID__)
     __android_log_write(ANDROID_LOG_INFO, "WebGPU", message.c_str());
 #endif
 
 #ifdef __APPLE__
     syslog(LOG_ERR, "%s\n", message.c_str());
+#endif
+#else
+    // In release mode, do nothing
+    (void)message;
 #endif
   }
 
@@ -42,6 +47,7 @@ public:
    * @param ... Arguments to format string
    */
   static void logToConsole(const char *fmt, ...) {
+#ifdef DEBUG
     va_list args;
     va_start(args, fmt);
 
@@ -54,6 +60,10 @@ public:
     syslog(LOG_ERR, "WebGPU: %s\n", buffer);
 #endif
     va_end(args);
+#else
+    // In release mode, do nothing
+    (void)fmt;
+#endif
   }
 
   static void logToJavascriptConsole(jsi::Runtime &runtime,
