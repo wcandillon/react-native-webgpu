@@ -37,6 +37,12 @@ HybridObject::~HybridObject() {
 #if DEBUG && RNF_ENABLE_LOGS
   Logger::log(TAG, "(MEMORY) Deleting %s (#%i)... ❌", _name, _instanceId);
 #endif
+  for (auto& entry : _runtimeStates) {
+    if (auto state = entry.second.lock()) {
+      state->removeCacheFor(this);
+    }
+  }
+  _runtimeStates.clear();
   _functionCache.clear();
 }
 
@@ -75,7 +81,8 @@ jsi::Value HybridObject::get(facebook::jsi::Runtime& runtime, const facebook::js
   ensureInitialized(runtime);
 
   std::string name = propName.utf8(runtime);
-  auto& functionCache = _functionCache[&runtime];
+  auto cache = getFunctionCache(runtime);
+  auto& functionCache = cache->functions;
 
   if (_getters.count(name) > 0) {
     // it's a property getter
@@ -129,6 +136,8 @@ void HybridObject::ensureInitialized(facebook::jsi::Runtime& runtime) {
   if (!_didLoadMethods) {
     [[unlikely]];
     _creationRuntime = &runtime;
+    auto state = WorkletRuntimeState::get(runtime);
+    _runtimeStates[&runtime] = state;
     // lazy-load all exposed methods
     loadHybridMethods();
     _didLoadMethods = true;
@@ -140,7 +149,27 @@ bool HybridObject::isRuntimeAlive() {
     [[unlikely]];
     return false;
   }
-  return RNFWorkletRuntimeRegistry::isRuntimeAlive(_creationRuntime);
+  auto iterator = _runtimeStates.find(_creationRuntime);
+  if (iterator == _runtimeStates.end()) {
+    return false;
+  }
+  return !iterator->second.expired();
+}
+
+std::shared_ptr<WorkletRuntimeState::FunctionCache> HybridObject::getFunctionCache(facebook::jsi::Runtime& runtime) {
+  auto iterator = _functionCache.find(&runtime);
+  if (iterator != _functionCache.end()) {
+    if (auto cache = iterator->second.lock()) {
+      return cache;
+    }
+  }
+
+  auto state = WorkletRuntimeState::get(runtime);
+  _runtimeStates[&runtime] = state;
+
+  auto cache = state->getOrCreateCache(this);
+  _functionCache[&runtime] = cache;
+  return cache;
 }
 
 } // namespace margelo

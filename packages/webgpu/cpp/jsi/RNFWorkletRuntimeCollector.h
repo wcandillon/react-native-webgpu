@@ -3,7 +3,8 @@
 //
 #pragma once
 
-#include "RNFWorkletRuntimeRegistry.h"
+#include "RNFWorkletRuntimeState.h"
+#include "WGPULogger.h"
 
 #include <jsi/jsi.h>
 
@@ -17,17 +18,16 @@ class WorkletRuntimeCollector : public jsi::HostObject {
   // When worklet runtime is created, we inject an instance of this class as a
   // `jsi::HostObject` into the global object. When worklet runtime is
   // terminated, the object is garbage-collected, which runs the C++ destructor.
-  // In the destructor, we unregister the worklet runtime from the registry.
+  // We only keep the state alive while the runtime exists; destruction is purely for logging.
 
 public:
   explicit WorkletRuntimeCollector(jsi::Runtime& runtime) : _runtime(runtime) {
     Logger::log("WorkletRuntimeCollector", "Registering WorkletRuntime %p", &runtime);
-    RNFWorkletRuntimeRegistry::registerRuntime(_runtime);
+    WorkletRuntimeState::get(_runtime);
   }
 
   ~WorkletRuntimeCollector() {
     Logger::log("WorkletRuntimeCollector", "Unregistering WorkletRuntime %p", &_runtime);
-    RNFWorkletRuntimeRegistry::unregisterRuntime(_runtime);
   }
 
   static void install(jsi::Runtime& rt) {

@@ -5,7 +5,7 @@
 #pragma once
 
 #include "WGPULogger.h"
-#include "RNFWorkletRuntimeRegistry.h"
+#include "RNFWorkletRuntimeState.h"
 #include <functional>
 #include <jsi/jsi.h>
 #include <memory>
@@ -87,15 +87,17 @@ private:
   std::unordered_map<std::string, HybridFunction> _methods;
   std::unordered_map<std::string, jsi::HostFunctionType> _getters;
   std::unordered_map<std::string, jsi::HostFunctionType> _setters;
-  std::unordered_map<jsi::Runtime*, std::unordered_map<std::string, std::shared_ptr<jsi::Function>>> _functionCache;
+  std::unordered_map<jsi::Runtime*, std::weak_ptr<WorkletRuntimeState::FunctionCache>> _functionCache;
+  std::unordered_map<jsi::Runtime*, std::weak_ptr<WorkletRuntimeState>> _runtimeStates;
 
 protected:
   const char* _name = TAG;
-  // Store a pointer to the runtime. Needed for checking if the runtime is still active, see WorkletRuntimeRegistry.
+  // Store a pointer to the runtime. Needed for checking if the runtime is still active via WorkletRuntimeState.
   jsi::Runtime* _creationRuntime = nullptr;
 
 private:
   inline void ensureInitialized(facebook::jsi::Runtime& runtime);
+  std::shared_ptr<WorkletRuntimeState::FunctionCache> getFunctionCache(facebook::jsi::Runtime& runtime);
 
 private:
   template <typename Derived, typename ReturnType, typename... Args, size_t... Is>
