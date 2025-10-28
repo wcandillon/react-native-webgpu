@@ -5,11 +5,6 @@
 #include <unordered_map>
 #include <utility>
 
-#ifdef __APPLE__
-#include <dispatch/dispatch.h>
-#include <pthread.h>
-#endif
-
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
@@ -159,25 +154,7 @@ public:
 private:
   void _configure() {
     if (surface) {
-#ifdef __APPLE__
-      struct ConfigureSurfaceContext {
-        wgpu::Surface surface;
-        wgpu::SurfaceConfiguration config;
-      };
-      ConfigureSurfaceContext context{surface, config};
-      auto configure = [](void *ctx) {
-        auto *context =
-            static_cast<ConfigureSurfaceContext *>(ctx);
-        context->surface.Configure(&context->config);
-      };
-      if (pthread_main_np() != 0) {
-        configure(&context);
-      } else {
-        dispatch_sync_f(dispatch_get_main_queue(), &context, configure);
-      }
-#else
       surface.Configure(&config);
-#endif
     } else {
       wgpu::TextureDescriptor textureDesc;
       textureDesc.format = config.format;
