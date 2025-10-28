@@ -101,6 +101,7 @@ public:
   std::shared_ptr<GPUQueue> getQueue();
   async::AsyncTaskHandle getLost();
   void notifyDeviceLost(wgpu::DeviceLostReason reason, std::string message);
+  void forceLossForTesting();
 
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
@@ -144,6 +145,8 @@ public:
     registerHybridGetter("lost", &GPUDevice::getLost, this);
     registerHybridGetter("label", &GPUDevice::getLabel, this);
     registerHybridSetter("label", &GPUDevice::setLabel, this);
+    registerHybridMethod("forceLossForTesting", &GPUDevice::forceLossForTesting,
+                         this);
   }
 
   inline const wgpu::Device get() { return _instance; }

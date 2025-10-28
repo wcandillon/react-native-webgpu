@@ -36,6 +36,13 @@ We also provide prebuilt binaries for visionOS and macOS.
 
 https://github.com/user-attachments/assets/2d5c618e-5b15-4cef-8558-d4ddf8c70667
 
+## Diagnostics
+
+Two diagnostic screens were added to the example app so you can reproduce the issues highlighted in the code review:
+
+- `Async Runner Starvation` (`apps/example/src/Diagnostics/AsyncStarvation.tsx`) shows that a zero-delay `setTimeout` never fires before `device.createRenderPipelineAsync()` resolves because the event loop is kept busy. Launch the example app and open the screen from the home list to observe the stalled timer.
+- `Device Lost Promise Hang` (`apps/example/src/Diagnostics/DeviceLostHang.tsx`) forces a synthetic device loss by calling the native `forceLossForTesting()` helper. On the current build the `device.lost` promise remains pending indefinitely, confirming that the loss callback is never delivered once pumping stops.
+
 ## Usage
 
 Usage is identical to Web.

@@ -33,6 +33,11 @@ void GPUDevice::notifyDeviceLost(wgpu::DeviceLostReason reason,
   _lostHandle.reset();
 }
 
+void GPUDevice::forceLossForTesting() {
+  //wgpu::StringView view("forceLossForTesting invoked from JS");
+  _instance.ForceLoss(wgpu::DeviceLostReason::Unknown, "forceLossForTesting invoked from JS");
+}
+
 std::shared_ptr<GPUBuffer>
 GPUDevice::createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
   wgpu::BufferDescriptor desc;
