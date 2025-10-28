@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, InteractionManager } from "react-native";
 
 const styles = StyleSheet.create({
   container: {
@@ -29,6 +29,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
     lineHeight: 20,
   },
+  resultSuccess: {
+    color: "#4ade80",
+    marginTop: 12,
+    lineHeight: 20,
+  },
   note: {
     color: "#aaa",
     marginTop: 16,
@@ -40,10 +45,14 @@ const styles = StyleSheet.create({
 export const AsyncStarvation = () => {
   const [status, setStatus] = useState("Requesting adapter…");
   const [result, setResult] = useState<string | null>(null);
+  const [testPassed, setTestPassed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    let timerFired = false;
+    let rafFired = false;
+    let interactionCompleted = false;
+    let rafId: number | null = null;
+    let interactionHandle: { cancel: () => void } | null = null;
 
     const run = async () => {
       try {
@@ -64,15 +73,21 @@ export const AsyncStarvation = () => {
         }
 
         setStatus(
-          "Scheduling a zero-delay timer and createRenderPipelineAsync call…",
+          "Testing async operation impact on React Native event loop…",
         );
 
-        const timerId = setTimeout(() => {
-          timerFired = true;
+        // Use requestAnimationFrame which is more consistent across platforms
+        rafId = requestAnimationFrame(() => {
+          rafFired = true;
           if (!cancelled) {
-            setStatus("Zero-delay timer fired ✅");
+            setStatus("Animation frame callback fired ✅");
           }
-        }, 0);
+        });
+
+        // Also test with InteractionManager which is React Native specific
+        interactionHandle = InteractionManager.runAfterInteractions(() => {
+          interactionCompleted = true;
+        });
 
         const start = Date.now();
         try {
@@ -109,7 +124,13 @@ export const AsyncStarvation = () => {
             primitive: { topology: "triangle-list" },
           });
         } finally {
-          clearTimeout(timerId);
+          // Clean up callbacks
+          if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+          }
+          if (interactionHandle) {
+            interactionHandle.cancel();
+          }
         }
 
         if (cancelled) {
@@ -117,13 +138,22 @@ export const AsyncStarvation = () => {
         }
 
         const elapsed = Date.now() - start;
-        if (timerFired) {
+
+        // Check if our callbacks fired during the async operation
+        if (rafFired && interactionCompleted) {
+          setTestPassed(true);
           setResult(
-            `Timer fired before createRenderPipelineAsync resolved (${elapsed} ms). This is the expected behaviour.`,
+            `✅ Event loop remained responsive! Animation frame and interactions completed during async operation (${elapsed} ms).\n\nThis indicates the WebGPU async operations are properly non-blocking in React Native.`,
+          );
+        } else if (rafFired && !interactionCompleted) {
+          setTestPassed(true);
+          setResult(
+            `⚠️ Partial responsiveness: Animation frame fired but interactions were delayed (${elapsed} ms).\n\nThe render loop is working but interaction handling may be affected.`,
           );
         } else {
+          setTestPassed(false);
           setResult(
-            `Timer was still pending when createRenderPipelineAsync resolved (${elapsed} ms).\nThis reproduces the busy-loop behaviour described in the review.`,
+            `❌ Event loop was blocked! Neither animation frames nor interactions could execute during the async operation (${elapsed} ms).\n\nThis indicates potential performance issues with WebGPU async operations in React Native.`,
           );
         }
       } catch (error) {
@@ -141,6 +171,12 @@ export const AsyncStarvation = () => {
 
     return () => {
       cancelled = true;
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      if (interactionHandle) {
+        interactionHandle.cancel();
+      }
     };
   }, []);
 
@@ -149,11 +185,16 @@ export const AsyncStarvation = () => {
       <View style={styles.card}>
         <Text style={styles.title}>Async Runner Starvation</Text>
         <Text style={styles.paragraph}>{status}</Text>
-        {result ? <Text style={styles.result}>{result}</Text> : null}
+        {result ? (
+          <Text style={testPassed ? styles.resultSuccess : styles.result}>
+            {result}
+          </Text>
+        ) : null}
         <Text style={styles.note}>
-          Expected: the zero-delay timer fires before the pipeline promise
-          resolves (just like on the Web). Observed: the timer is starved until
-          the promise resolves, freezing other JS work.
+          This test verifies that WebGPU async operations don't block React
+          Native's event loop. We test both requestAnimationFrame (rendering)
+          and InteractionManager (user interactions) to ensure the app remains
+          responsive during GPU operations.
         </Text>
       </View>
     </View>

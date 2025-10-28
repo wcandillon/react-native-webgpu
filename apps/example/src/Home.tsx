@@ -12,14 +12,6 @@ export const examples = [
     title: "🧪 E2E Tests",
   },
   {
-    screen: "AsyncStarvation",
-    title: "⚠️ Async Runner Starvation",
-  },
-  {
-    screen: "DeviceLostHang",
-    title: "⚠️ Device Lost Hang",
-  },
-  {
     screen: "HelloTriangle",
     title: "🔺 Hello Triangle",
   },
@@ -122,6 +114,14 @@ export const examples = [
   {
     screen: "GradientTiles",
     title: "🌈 Gradient Tiles",
+  },
+  {
+    screen: "AsyncStarvation",
+    title: "⚠️ Async Runner Starvation",
+  },
+  {
+    screen: "DeviceLostHang",
+    title: "⚠️ Device Lost Hang",
   },
 ] as const;
 
