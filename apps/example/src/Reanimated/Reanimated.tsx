@@ -2,11 +2,16 @@ import React, { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import type { CanvasRef } from "react-native-wgpu";
 import { Canvas } from "react-native-wgpu";
-import { runOnUI } from "react-native-reanimated";
+import type { SharedValue } from "react-native-reanimated";
+import { runOnUI, useSharedValue } from "react-native-reanimated";
 
 import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
 
-const webGPUDemo = (device: GPUDevice, context: GPUCanvasContext) => {
+const webGPUDemo = (
+  runAnimation: SharedValue<boolean>,
+  device: GPUDevice,
+  context: GPUCanvasContext,
+) => {
   "worklet";
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
@@ -43,33 +48,48 @@ const webGPUDemo = (device: GPUDevice, context: GPUCanvasContext) => {
       topology: "triangle-list",
     },
   });
+  const frame = () => {
+    console.log(Date.now());
+    const commandEncoder = device.createCommandEncoder();
 
-  const commandEncoder = device.createCommandEncoder();
+    const textureView = context.getCurrentTexture().createView();
 
-  const textureView = context.getCurrentTexture().createView();
+    // Animate the clearValue color based on Date.now()
+    const time = Date.now() / 1000; // Convert to seconds for smoother animation
 
-  const renderPassDescriptor: GPURenderPassDescriptor = {
-    colorAttachments: [
-      {
-        view: textureView,
-        clearValue: [0, 0, 0, 0],
-        loadOp: "clear",
-        storeOp: "store",
-      },
-    ],
+    // Create animated RGB values using sine waves with different frequencies
+    const r = (Math.sin(time * 2) + 1) / 2; // Red channel oscillates faster
+    const g = (Math.sin(time * 1.5 + Math.PI / 3) + 1) / 2; // Green with phase offset
+    const b = (Math.sin(time * 1 + Math.PI / 2) + 1) / 2; // Blue with different phase
+
+    const renderPassDescriptor: GPURenderPassDescriptor = {
+      colorAttachments: [
+        {
+          view: textureView,
+          clearValue: [r, g, b, 1],
+          loadOp: "clear",
+          storeOp: "store",
+        },
+      ],
+    };
+
+    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+    passEncoder.setPipeline(pipeline);
+    passEncoder.draw(3);
+    passEncoder.end();
+
+    device.queue.submit([commandEncoder.finish()]);
+
+    context.present();
+    if (runAnimation.value) {
+      requestAnimationFrame(frame);
+    }
   };
-
-  const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-  passEncoder.setPipeline(pipeline);
-  passEncoder.draw(3);
-  passEncoder.end();
-
-  device.queue.submit([commandEncoder.finish()]);
-
-  context.present();
+  frame();
 };
 
 export function Reanimated() {
+  const runAnimation = useSharedValue(true);
   const ref = useRef<CanvasRef>(null);
   useEffect(() => {
     const initWebGPU = async () => {
@@ -89,13 +109,16 @@ export function Reanimated() {
         return;
       }
       // TODO: stop the animation on unmount
-      runOnUI(webGPUDemo)(device, ctx);
+      runOnUI(webGPUDemo)(runAnimation, device, ctx);
     };
     initWebGPU();
+    return () => {
+      runAnimation.value = false;
+    };
   });
   return (
     <View style={style.container}>
-      <Canvas ref={ref} style={style.webgpu} transparent />
+      <Canvas ref={ref} style={style.webgpu} />
     </View>
   );
 }

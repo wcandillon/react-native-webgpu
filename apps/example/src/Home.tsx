@@ -19,6 +19,10 @@ export const examples = [
     screen: "HelloTriangleMSAA",
     title: "🔺 Hello Triangle MSAA",
   },
+  {
+    screen: "Reanimated",
+    title: "🐎 Reanimated",
+  },
   // {
   //   screen: "ComputeToys",
   //   title: "🧮 Compute Toys",
@@ -110,10 +114,6 @@ export const examples = [
   {
     screen: "GradientTiles",
     title: "🌈 Gradient Tiles",
-  },
-  {
-    screen: "Reanimated",
-    title: "🐎 Reanimated",
   },
 ] as const;
 
