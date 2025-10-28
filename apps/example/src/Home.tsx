@@ -111,6 +111,10 @@ export const examples = [
     screen: "GradientTiles",
     title: "🌈 Gradient Tiles",
   },
+  {
+    screen: "Reanimated",
+    title: "🐎 Reanimated",
+  },
 ] as const;
 
 const styles = StyleSheet.create({
