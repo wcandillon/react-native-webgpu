@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
-import type { CanvasRef } from "react-native-wgpu";
+import type { CanvasRef, RNCanvasContext } from "react-native-wgpu";
 import { Canvas } from "react-native-wgpu";
 import type { SharedValue } from "react-native-reanimated";
 import { runOnUI, useSharedValue } from "react-native-reanimated";
@@ -10,7 +10,7 @@ import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
 const webGPUDemo = (
   runAnimation: SharedValue<boolean>,
   device: GPUDevice,
-  context: GPUCanvasContext,
+  context: RNCanvasContext,
 ) => {
   "worklet";
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();

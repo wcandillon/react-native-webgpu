@@ -123,7 +123,7 @@ export const examples = [
     screen: "DeviceLostHang",
     title: "⚠️ Device Lost Hang",
   },
-] as const;
+];
 
 const styles = StyleSheet.create({
   container: {},
@@ -145,7 +145,8 @@ export const Home = () => {
       {examples.map((thumbnail) => (
         <RectButton
           key={thumbnail.screen}
-          onPress={() => navigate(thumbnail.screen)}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onPress={() => navigate(thumbnail.screen as any)}
         >
           <View style={styles.thumbnail}>
             <Text style={styles.title}>{thumbnail.title}</Text>

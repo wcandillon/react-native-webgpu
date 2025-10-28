@@ -72,9 +72,7 @@ export const AsyncStarvation = () => {
           return;
         }
 
-        setStatus(
-          "Testing async operation impact on React Native event loop…",
-        );
+        setStatus("Testing async operation impact on React Native event loop…");
 
         // Use requestAnimationFrame which is more consistent across platforms
         rafId = requestAnimationFrame(() => {
