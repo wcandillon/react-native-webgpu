@@ -79,16 +79,17 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
   std::string label =
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "";
 
+  auto creationRuntime = getCreationRuntime();
   return _async->postTask(
       [this, aDescriptor, descriptor, label = std::move(label),
-       deviceLostBinding](
+       deviceLostBinding, creationRuntime](
           const async::AsyncTaskHandle::ResolveFunction &resolve,
           const async::AsyncTaskHandle::RejectFunction &reject) {
         (void)descriptor;
         _instance.RequestDevice(
             &aDescriptor, wgpu::CallbackMode::AllowProcessEvents,
             [asyncRunner = _async, resolve, reject, label,
-             creationRuntime = _creationRuntime, deviceLostBinding](
+             creationRuntime, deviceLostBinding](
                 wgpu::RequestDeviceStatus status, wgpu::Device device,
                 wgpu::StringView message) mutable {
               if (message.length) {
@@ -106,6 +107,9 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
               device.SetLoggingCallback([creationRuntime](
                                             wgpu::LoggingType type,
                                             wgpu::StringView msg) {
+                if (creationRuntime == nullptr) {
+                  return;
+                }
                 const char *logLevel = "";
                 switch (type) {
                 case wgpu::LoggingType::Warning:

@@ -22,7 +22,6 @@
 #include "RNFEnumMapper.h"
 #include "RNFJSIHelper.h"
 #include "RNFPromise.h"
-#include "RNFWorkletRuntimeRegistry.h"
 
 #include "Unions.h"
 

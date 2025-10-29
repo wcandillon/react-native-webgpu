@@ -46,8 +46,7 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/rnwgpu/RNWebGPUManager.cpp
     ../cpp/jsi/RNFPromise.cpp
     ../cpp/jsi/RNFHybridObject.cpp
-    ../cpp/jsi/RNFRuntimeCache.cpp
-    ../cpp/jsi/RNFWorkletRuntimeRegistry.cpp
+    ../cpp/jsi/RNFRuntimeState.cpp
     ../cpp/rnwgpu/async/AsyncRunner.cpp
     ../cpp/rnwgpu/async/AsyncTaskHandle.cpp
     ../cpp/rnwgpu/async/JSIMicrotaskDispatcher.cpp
