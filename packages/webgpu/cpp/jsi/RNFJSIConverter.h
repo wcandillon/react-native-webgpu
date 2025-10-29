@@ -224,52 +224,6 @@ template <> struct JSIConverter<rnwgpu::async::AsyncTaskHandle> {
   }
 };
 
-
-// [](Args...) -> T {} <> (Args...) => T
-template <typename ReturnType, typename... Args> struct JSIConverter<std::function<ReturnType(Args...)>> {
-  static std::function<ReturnType(Args...)> fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
-    jsi::Function function = arg.asObject(runtime).asFunction(runtime);
-
-    std::shared_ptr<jsi::Function> sharedFunction = JSIHelper::createSharedJsiFunction(runtime, std::move(function));
-    return [&runtime, sharedFunction, outOfBound](Args... args) -> ReturnType {
-      jsi::Value result = sharedFunction->call(runtime, JSIConverter<std::decay_t<Args>>::toJSI(runtime, args)...);
-      if constexpr (std::is_same_v<ReturnType, void>) {
-        // it is a void function (returns undefined)
-        return;
-      } else {
-        // it returns a custom type, parse it from the JSI value.
-        return JSIConverter<ReturnType>::fromJSI(runtime, std::move(result), outOfBound);
-      }
-    };
-  }
-
-  template <size_t... Is>
-  static jsi::Value callHybridFunction(const std::function<ReturnType(Args...)>& function, jsi::Runtime& runtime, const jsi::Value* args,
-                                       std::index_sequence<Is...>, size_t count) {
-    if constexpr (std::is_same_v<ReturnType, void>) {
-      // it is a void function (will return undefined in JS)
-      function(JSIConverter<std::decay_t<Args>>::fromJSI(runtime, args[Is], Is >= count)...);
-      return jsi::Value::undefined();
-    } else {
-      // it is a custom type, parse it to a JS value
-      ReturnType result = function(JSIConverter<std::decay_t<Args>>::fromJSI(runtime, args[Is], Is >= count)...);
-      return JSIConverter<ReturnType>::toJSI(runtime, result);
-    }
-  }
-  static jsi::Value toJSI(jsi::Runtime& runtime, const std::function<ReturnType(Args...)>& function) {
-    jsi::HostFunctionType jsFunction = [function = std::move(function)](jsi::Runtime& runtime, const jsi::Value& thisValue,
-                                                                        const jsi::Value* args, size_t count) -> jsi::Value {
-      if (count != sizeof...(Args)) {
-        [[unlikely]];
-        throw jsi::JSError(runtime, "Function expected " + std::to_string(sizeof...(Args)) + " arguments, but received " +
-                                        std::to_string(count) + "!");
-      }
-      return callHybridFunction(function, runtime, args, std::index_sequence_for<Args...>{}, count);
-    };
-    return jsi::Function::createFromHostFunction(runtime, jsi::PropNameID::forUtf8(runtime, "hostFunction"), sizeof...(Args), jsFunction);
-  }
-};
-
 // std::map<std::string, T> <> Record<string, T>
 template <typename ValueType> struct JSIConverter<std::map<std::string, ValueType>> {
   static std::map<std::string, ValueType> fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
