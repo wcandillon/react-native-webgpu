@@ -10,6 +10,7 @@
   "files": [
     "src/**",
     "lib/**",
+    "!**/__tests__/**",
     "android/build.gradle",
     "android/CMakeLists.txt",
     "android/cpp/**",
