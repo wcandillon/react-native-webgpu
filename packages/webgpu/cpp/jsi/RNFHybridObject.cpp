@@ -129,6 +129,7 @@ void HybridObject::ensureInitialized(facebook::jsi::Runtime& runtime) {
   if (!_didLoadMethods) {
     [[unlikely]];
     _creationRuntime = &runtime;
+    _runtimeState = rnwgpu::RNFRuntimeState::get(runtime);
     // lazy-load all exposed methods
     loadHybridMethods();
     _didLoadMethods = true;
@@ -136,11 +137,14 @@ void HybridObject::ensureInitialized(facebook::jsi::Runtime& runtime) {
 }
 
 bool HybridObject::isRuntimeAlive() {
-  if (_creationRuntime == nullptr) {
-    [[unlikely]];
-    return false;
+  return !_runtimeState.expired();
+}
+
+facebook::jsi::Runtime* HybridObject::getCreationRuntime() const {
+  if (_runtimeState.expired()) {
+    return nullptr;
   }
-  return RNFWorkletRuntimeRegistry::isRuntimeAlive(_creationRuntime);
+  return _creationRuntime;
 }
 
 } // namespace margelo

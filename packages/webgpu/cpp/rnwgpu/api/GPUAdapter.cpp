@@ -88,7 +88,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
         _instance.RequestDevice(
             &aDescriptor, wgpu::CallbackMode::AllowProcessEvents,
             [asyncRunner = _async, resolve, reject, label,
-             creationRuntime = _creationRuntime, deviceLostBinding](
+             host = this, deviceLostBinding](
                 wgpu::RequestDeviceStatus status, wgpu::Device device,
                 wgpu::StringView message) mutable {
               if (message.length) {
@@ -103,9 +103,13 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
                 return;
               }
 
-              device.SetLoggingCallback([creationRuntime](
+              device.SetLoggingCallback([host](
                                             wgpu::LoggingType type,
                                             wgpu::StringView msg) {
+                auto creationRuntime = host->getCreationRuntime();
+                if (creationRuntime == nullptr) {
+                  return;
+                }
                 const char *logLevel = "";
                 switch (type) {
                 case wgpu::LoggingType::Warning:
