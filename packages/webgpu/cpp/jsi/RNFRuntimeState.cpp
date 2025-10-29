@@ -1,6 +1,6 @@
 #include "RNFRuntimeState.h"
 
-namespace margelo {
+namespace rnwgpu {
 
 const facebook::jsi::UUID RNFRuntimeState::kRuntimeStateKey = facebook::jsi::UUID();
 
@@ -15,4 +15,4 @@ std::shared_ptr<RNFRuntimeState> RNFRuntimeState::get(facebook::jsi::Runtime& ru
   return state;
 }
 
-} // namespace margelo
+} // namespace rnwgpu

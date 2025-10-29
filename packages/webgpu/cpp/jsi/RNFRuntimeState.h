@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace margelo {
+namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
 
@@ -103,4 +103,4 @@ public:
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu
