@@ -29,6 +29,7 @@ public:
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     _surfaceInfo =
         registry.getSurfaceInfoOrCreate(contextId, _gpu->get(), width, height);
+    _surfaceInfo->setCanvas(_canvas);
   }
 
 public:

@@ -35,7 +35,11 @@ export interface NativeCanvas {
 }
 
 export type RNCanvasContext = GPUCanvasContext & {
-  present: () => void;
+  /**
+   * @deprecated Presentation happens automatically after queue submission.
+   * This method is kept for backwards compatibility and is a no-op.
+   */
+  present?: () => void;
 };
 
 export interface CanvasRef {

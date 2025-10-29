@@ -125,8 +125,6 @@ export function HelloTriangle() {
       passEncoder.end();
 
       device.queue.submit([commandEncoder.finish()]);
-
-      context.present();
     };
     helloTriangle();
   }, [ref]);
@@ -171,16 +169,8 @@ ctx.canvas.height = ctx.canvas.clientHeight * PixelRatio.get();
 
 ### Frame Scheduling
 
-In React Native, we want to keep frame presentation as a manual operation as we plan to provide more advanced rendering options that are React Native specific.  
-This means that when you are ready to present a frame, you need to call `present` on the context.
-
-```tsx
-// draw
-// submit to the queue
-device.queue.submit([commandEncoder.finish()]);
-// This method is React Native only
-context.present();
-```
+Frames are presented automatically once you submit command buffers to the device queue, matching the behaviour on the web.  
+The native context still exposes a `present()` method for backwards compatibility, but calling it is optional and typically a no-op.
 
 ### External Textures
 
