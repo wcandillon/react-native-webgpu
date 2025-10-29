@@ -82,16 +82,16 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
   auto creationRuntime = getCreationRuntime();
   return _async->postTask(
       [this, aDescriptor, descriptor, label = std::move(label),
-       deviceLostBinding,
-       creationRuntime](const async::AsyncTaskHandle::ResolveFunction &resolve,
-                        const async::AsyncTaskHandle::RejectFunction &reject) {
+       deviceLostBinding, creationRuntime](
+          const async::AsyncTaskHandle::ResolveFunction &resolve,
+          const async::AsyncTaskHandle::RejectFunction &reject) {
         (void)descriptor;
         _instance.RequestDevice(
             &aDescriptor, wgpu::CallbackMode::AllowProcessEvents,
-            [asyncRunner = _async, resolve, reject, label, creationRuntime,
-             deviceLostBinding](wgpu::RequestDeviceStatus status,
-                                wgpu::Device device,
-                                wgpu::StringView message) mutable {
+            [asyncRunner = _async, resolve, reject, label,
+             creationRuntime, deviceLostBinding](
+                wgpu::RequestDeviceStatus status, wgpu::Device device,
+                wgpu::StringView message) mutable {
               if (message.length) {
                 fprintf(stderr, "%s", message.data);
               }
