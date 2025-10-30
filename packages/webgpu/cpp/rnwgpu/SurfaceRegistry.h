@@ -1,11 +1,16 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <shared_mutex>
 #include <unordered_map>
 #include <utility>
 
 #include "webgpu/webgpu_cpp.h"
+
+#ifdef __APPLE__
+#include "../../apple/MainThreadUtils.h"
+#endif
 
 namespace rnwgpu {
 
@@ -31,7 +36,7 @@ public:
     std::unique_lock<std::shared_mutex> lock(_mutex);
     config.width = newWidth;
     config.height = newHeight;
-    _configure();
+    _invokeOnMainThread([this]() { _applyConfigurationLocked(); });
   }
 
   void configure(wgpu::SurfaceConfiguration &newConfig) {
@@ -40,7 +45,7 @@ public:
     config.width = width;
     config.height = height;
     config.presentMode = wgpu::PresentMode::Fifo;
-    _configure();
+    _invokeOnMainThread([this]() { _applyConfigurationLocked(); });
   }
 
   void unconfigure() {
@@ -78,7 +83,7 @@ public:
     // surface
     if (texture != nullptr) {
       config.usage = config.usage | wgpu::TextureUsage::CopyDst;
-      _configure();
+      _invokeOnMainThread([this]() { _applyConfigurationLocked(); });
       // We flush the offscreen texture to the onscreen one
       // TODO: there is a faster way to do this without validation?
       wgpu::CommandEncoderDescriptor encoderDesc;
@@ -102,7 +107,7 @@ public:
       wgpu::CommandBuffer commands = encoder.Finish();
       wgpu::Queue queue = device.GetQueue();
       queue.Submit(1, &commands);
-      surface.Present();
+      _invokeOnMainThread([this]() { surface.Present(); });
       texture = nullptr;
     }
   }
@@ -116,7 +121,7 @@ public:
   void present() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     if (surface) {
-      surface.Present();
+      _invokeOnMainThread([this]() { surface.Present(); });
     }
   }
 
@@ -152,7 +157,15 @@ public:
   }
 
 private:
-  void _configure() {
+  void _invokeOnMainThread(const std::function<void()> &task) {
+#ifdef __APPLE__
+    RunOnMainThreadSync(task);
+#else
+    task();
+#endif
+  }
+
+  void _applyConfigurationLocked() {
     if (surface) {
       surface.Configure(&config);
     } else {
