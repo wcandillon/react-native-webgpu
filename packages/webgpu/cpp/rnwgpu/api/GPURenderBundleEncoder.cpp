@@ -1,5 +1,7 @@
 #include "GPURenderBundleEncoder.h"
 
+#include <algorithm>
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -16,14 +18,19 @@ std::shared_ptr<GPURenderBundle> GPURenderBundleEncoder::finish(
                              "GPURenderBundleDescriptor");
   }
   auto bundle = _instance.Finish(&desc);
+  auto recordedBytes = std::max(_estimatedCommandBytes, kBaseEncoderBytes);
+  _finished = true;
+  _estimatedCommandBytes = kFinishResidualCost;
   return std::make_shared<GPURenderBundle>(
       bundle,
-      descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
+      descriptor.has_value() ? descriptor.value()->label.value_or("") : "",
+      recordedBytes);
 }
 
 void GPURenderBundleEncoder::setPipeline(
     std::shared_ptr<GPURenderPipeline> pipeline) {
   _instance.SetPipeline(pipeline->get());
+  trackCommand(kSmallCommandCost);
 }
 
 void GPURenderBundleEncoder::draw(uint32_t vertexCount,
@@ -32,6 +39,7 @@ void GPURenderBundleEncoder::draw(uint32_t vertexCount,
                                   std::optional<uint32_t> firstInstance) {
   _instance.Draw(vertexCount, instanceCount.value_or(1),
                  firstVertex.value_or(0), firstInstance.value_or(0));
+  trackCommand(kDrawCommandCost);
 }
 
 void GPURenderBundleEncoder::setVertexBuffer(
@@ -46,6 +54,7 @@ void GPURenderBundleEncoder::setVertexBuffer(
     return;
   }
   _instance.SetVertexBuffer(slot, b, offset.value_or(0), s);
+  trackCommand(kSmallCommandCost);
 }
 
 void GPURenderBundleEncoder::setBindGroup(
@@ -70,6 +79,9 @@ void GPURenderBundleEncoder::setBindGroup(
                              dynamicOffsets->data());
     }
   }
+  size_t dynamicOffsetCost =
+      dynOffsets.size() > 0 ? dynOffsets.size() * 32 : 0;
+  trackCommand(kSmallCommandCost + dynamicOffsetCost);
 }
 
 void GPURenderBundleEncoder::setIndexBuffer(std::shared_ptr<GPUBuffer> buffer,
@@ -90,6 +102,7 @@ void GPURenderBundleEncoder::setIndexBuffer(std::shared_ptr<GPUBuffer> buffer,
   }
 
   _instance.SetIndexBuffer(b, f, o, s);
+  trackCommand(kSmallCommandCost);
 }
 
 void GPURenderBundleEncoder::drawIndexed(
@@ -99,16 +112,22 @@ void GPURenderBundleEncoder::drawIndexed(
   _instance.DrawIndexed(indexCount, instanceCount.value_or(1),
                         firstIndex.value_or(0), baseVertex.value_or(0),
                         firstInstance.value_or(0));
+  trackCommand(kDrawCommandCost);
 }
 
 void GPURenderBundleEncoder::pushDebugGroup(std::string groupLabel) {
   _instance.PushDebugGroup(groupLabel.c_str());
+  trackCommand(kDebugCommandCost);
 }
 
-void GPURenderBundleEncoder::popDebugGroup() { _instance.PopDebugGroup(); }
+void GPURenderBundleEncoder::popDebugGroup() {
+  _instance.PopDebugGroup();
+  trackCommand(kDebugCommandCost);
+}
 
 void GPURenderBundleEncoder::insertDebugMarker(std::string markerLabel) {
   _instance.InsertDebugMarker(markerLabel.c_str());
+  trackCommand(kDebugCommandCost);
 }
 void GPURenderBundleEncoder::drawIndirect(
     std::shared_ptr<GPUBuffer> indirectBuffer, uint64_t indirectOffset) {
@@ -118,6 +137,7 @@ void GPURenderBundleEncoder::drawIndirect(
     return;
   }
   _instance.DrawIndirect(b, indirectOffset);
+  trackCommand(kIndirectCommandCost);
 }
 void GPURenderBundleEncoder::drawIndexedIndirect(
     std::shared_ptr<GPUBuffer> indirectBuffer, uint64_t indirectOffset) {
@@ -127,5 +147,16 @@ void GPURenderBundleEncoder::drawIndexedIndirect(
     return;
   }
   _instance.DrawIndexedIndirect(b, indirectOffset);
+  trackCommand(kIndirectCommandCost);
 }
+
+void GPURenderBundleEncoder::trackCommand(size_t bytes) {
+  if (_finished) {
+    return;
+  }
+  const size_t headroom =
+      std::numeric_limits<size_t>::max() - _estimatedCommandBytes;
+  _estimatedCommandBytes += std::min(bytes, headroom);
+}
+
 } // namespace rnwgpu

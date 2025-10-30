@@ -1,4 +1,6 @@
 #include "GPUComputePassEncoder.h"
+#include <algorithm>
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -7,9 +9,18 @@ namespace rnwgpu {
 void GPUComputePassEncoder::setPipeline(
     std::shared_ptr<GPUComputePipeline> pipeline) {
   _instance.SetPipeline(pipeline->get());
+  trackCommand(kSmallCommandCost);
 }
 
-void GPUComputePassEncoder::end() { _instance.End(); }
+void GPUComputePassEncoder::end() {
+  if (_ended) {
+    return;
+  }
+  _instance.End();
+  flushToOwner();
+  _ended = true;
+  _estimatedCommandBytes = kEndedResidual;
+}
 
 void GPUComputePassEncoder::setBindGroup(
     uint32_t index,
@@ -33,6 +44,9 @@ void GPUComputePassEncoder::setBindGroup(
                              dynamicOffsets->data());
     }
   }
+  size_t dynamicOffsetCost =
+      dynOffsets.size() > 0 ? dynOffsets.size() * 32 : 0;
+  trackCommand(kSmallCommandCost + dynamicOffsetCost);
 }
 
 void GPUComputePassEncoder::dispatchWorkgroups(
@@ -40,21 +54,44 @@ void GPUComputePassEncoder::dispatchWorkgroups(
     std::optional<uint32_t> workgroupCountZ) {
   _instance.DispatchWorkgroups(workgroupCountX, workgroupCountY.value_or(1),
                                workgroupCountZ.value_or(1));
+  trackCommand(kDispatchCommandCost);
 }
 
 void GPUComputePassEncoder::dispatchWorkgroupsIndirect(
     std::shared_ptr<GPUBuffer> indirectBuffer, uint64_t indirectOffset) {
   _instance.DispatchWorkgroupsIndirect(indirectBuffer->get(), indirectOffset);
+  trackCommand(kDispatchCommandCost);
 }
 
 void GPUComputePassEncoder::pushDebugGroup(std::string groupLabel) {
   _instance.PushDebugGroup(groupLabel.c_str());
+  trackCommand(kDebugCommandCost);
 }
 
-void GPUComputePassEncoder::popDebugGroup() { _instance.PopDebugGroup(); }
+void GPUComputePassEncoder::popDebugGroup() {
+  _instance.PopDebugGroup();
+  trackCommand(kDebugCommandCost);
+}
 
 void GPUComputePassEncoder::insertDebugMarker(std::string markerLabel) {
   _instance.InsertDebugMarker(markerLabel.c_str());
+  trackCommand(kDebugCommandCost);
+}
+
+void GPUComputePassEncoder::trackCommand(size_t bytes) {
+  if (_ended) {
+    return;
+  }
+  const size_t headroom =
+      std::numeric_limits<size_t>::max() - _estimatedCommandBytes;
+  _estimatedCommandBytes += std::min(bytes, headroom);
+}
+
+void GPUComputePassEncoder::flushToOwner() {
+  if (_byteSink) {
+    _byteSink(_estimatedCommandBytes);
+    _byteSink = nullptr;
+  }
 }
 
 } // namespace rnwgpu

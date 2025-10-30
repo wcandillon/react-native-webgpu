@@ -100,9 +100,23 @@ public:
 
   inline const wgpu::CommandEncoder get() { return _instance; }
 
+  size_t getMemoryPressure() override;
+
 private:
+  void trackCommand(size_t bytes);
+  void absorbSubEncoderBytes(size_t bytes);
+  static constexpr size_t kBaseEncoderBytes = 8 * 1024;
+  static constexpr size_t kDefaultCommandCost = 256;
+  static constexpr size_t kCopyCommandCost = 512;
+  static constexpr size_t kDebugCommandCost = 96;
+  static constexpr size_t kFinishResidualCost = 1024;
   wgpu::CommandEncoder _instance;
   std::string _label;
+  size_t _estimatedCommandBytes = kBaseEncoderBytes;
+  bool _finished = false;
+  friend class GPUDevice;
+  friend class GPURenderPassEncoder;
+  friend class GPUComputePassEncoder;
 };
 
 } // namespace rnwgpu

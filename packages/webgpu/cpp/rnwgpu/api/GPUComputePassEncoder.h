@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -23,9 +24,10 @@ namespace m = margelo;
 class GPUComputePassEncoder : public m::HybridObject {
 public:
   explicit GPUComputePassEncoder(wgpu::ComputePassEncoder instance,
-                                 std::string label)
+                                 std::string label,
+                                 std::function<void(size_t)> byteSink)
       : HybridObject("GPUComputePassEncoder"), _instance(instance),
-        _label(label) {}
+        _label(label), _byteSink(std::move(byteSink)) {}
 
 public:
   std::string getBrand() { return _name; }
@@ -76,9 +78,21 @@ public:
 
   inline const wgpu::ComputePassEncoder get() { return _instance; }
 
+  size_t getMemoryPressure() override { return _estimatedCommandBytes; }
+
 private:
+  void trackCommand(size_t bytes);
+  void flushToOwner();
+  static constexpr size_t kBasePassBytes = 8 * 1024;
+  static constexpr size_t kDispatchCommandCost = 512;
+  static constexpr size_t kSmallCommandCost = 160;
+  static constexpr size_t kDebugCommandCost = 96;
+  static constexpr size_t kEndedResidual = 512;
   wgpu::ComputePassEncoder _instance;
   std::string _label;
+  std::function<void(size_t)> _byteSink;
+  size_t _estimatedCommandBytes = kBasePassBytes;
+  bool _ended = false;
 };
 
 } // namespace rnwgpu

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <string>
 
 #include "Unions.h"
@@ -14,8 +15,10 @@ namespace m = margelo;
 
 class GPUCommandBuffer : public m::HybridObject {
 public:
-  explicit GPUCommandBuffer(wgpu::CommandBuffer instance, std::string label)
-      : HybridObject("GPUCommandBuffer"), _instance(instance), _label(label) {}
+  explicit GPUCommandBuffer(wgpu::CommandBuffer instance, std::string label,
+                            size_t estimatedBytes)
+      : HybridObject("GPUCommandBuffer"), _instance(instance), _label(label),
+        _estimatedBytes(std::max<size_t>(estimatedBytes, kBaseCommandBufferBytes)) {}
 
 public:
   std::string getBrand() { return _name; }
@@ -35,9 +38,13 @@ public:
 
   inline const wgpu::CommandBuffer get() { return _instance; }
 
+  size_t getMemoryPressure() override { return _estimatedBytes; }
+
 private:
+  static constexpr size_t kBaseCommandBufferBytes = 8 * 1024;
   wgpu::CommandBuffer _instance;
   std::string _label;
+  size_t _estimatedBytes;
 };
 
 } // namespace rnwgpu

@@ -1,5 +1,7 @@
 #include "GPUCommandEncoder.h"
 
+#include <algorithm>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -21,6 +23,7 @@ void GPUCommandEncoder::copyBufferToBuffer(
     return;
   }
   _instance.CopyBufferToBuffer(src, sourceOffset, dst, destinationOffset, size);
+  trackCommand(kCopyCommandCost);
 }
 
 std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(
@@ -32,9 +35,13 @@ std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(
         "GPUCommandEncoder::finish(): error with GPUCommandBufferDescriptor");
   }
   auto commandBuffer = _instance.Finish(&desc);
+  auto recordedBytes = std::max(_estimatedCommandBytes, kBaseEncoderBytes);
+  _finished = true;
+  _estimatedCommandBytes = kFinishResidualCost;
   return std::make_shared<GPUCommandBuffer>(
       commandBuffer,
-      descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
+      descriptor.has_value() ? descriptor.value()->label.value_or("") : "",
+      recordedBytes);
 }
 
 std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
@@ -57,8 +64,14 @@ std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
                              "get GPURenderPassDescriptor");
   }
   auto renderPass = _instance.BeginRenderPass(&desc);
-  return std::make_shared<GPURenderPassEncoder>(renderPass,
-                                                descriptor->label.value_or(""));
+  auto self = shared<GPUCommandEncoder>();
+  auto sink = [weakSelf = std::weak_ptr<GPUCommandEncoder>(self)](size_t bytes) {
+    if (auto locked = weakSelf.lock()) {
+      locked->absorbSubEncoderBytes(bytes);
+    }
+  };
+  return std::make_shared<GPURenderPassEncoder>(
+      renderPass, descriptor->label.value_or(""), std::move(sink));
 }
 
 void GPUCommandEncoder::copyTextureToBuffer(
@@ -75,6 +88,7 @@ void GPUCommandEncoder::copyTextureToBuffer(
     return;
   }
   _instance.CopyTextureToBuffer(&src, &dst, &size);
+  trackCommand(kCopyCommandCost);
 }
 
 void GPUCommandEncoder::copyTextureToTexture(
@@ -93,6 +107,7 @@ void GPUCommandEncoder::copyTextureToTexture(
   }
 
   _instance.CopyTextureToTexture(&src, &dst, &size);
+  trackCommand(kCopyCommandCost);
 }
 
 std::shared_ptr<GPUComputePassEncoder> GPUCommandEncoder::beginComputePass(
@@ -104,9 +119,16 @@ std::shared_ptr<GPUComputePassEncoder> GPUCommandEncoder::beginComputePass(
                              "access GPUComputePassDescriptor.");
   }
   auto computePass = _instance.BeginComputePass(&desc);
+  auto self = shared<GPUCommandEncoder>();
+  auto sink = [weakSelf = std::weak_ptr<GPUCommandEncoder>(self)](size_t bytes) {
+    if (auto locked = weakSelf.lock()) {
+      locked->absorbSubEncoderBytes(bytes);
+    }
+  };
   return std::make_shared<GPUComputePassEncoder>(
       computePass,
-      descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
+      descriptor.has_value() ? descriptor.value()->label.value_or("") : "",
+      std::move(sink));
 }
 
 void GPUCommandEncoder::resolveQuerySet(std::shared_ptr<GPUQuerySet> querySet,
@@ -131,6 +153,7 @@ void GPUCommandEncoder::resolveQuerySet(std::shared_ptr<GPUQuerySet> querySet,
   }
 
   _instance.ResolveQuerySet(q, f, c, b, o);
+  trackCommand(kDefaultCommandCost);
 }
 
 void GPUCommandEncoder::copyBufferToTexture(
@@ -149,6 +172,7 @@ void GPUCommandEncoder::copyBufferToTexture(
   }
 
   _instance.CopyBufferToTexture(&src, &dst, &size);
+  trackCommand(kCopyCommandCost);
 }
 
 void GPUCommandEncoder::clearBuffer(std::shared_ptr<GPUBuffer> buffer,
@@ -164,16 +188,36 @@ void GPUCommandEncoder::clearBuffer(std::shared_ptr<GPUBuffer> buffer,
   }
 
   _instance.ClearBuffer(b, offset.value_or(0), s);
+  trackCommand(kDefaultCommandCost);
 }
 
 void GPUCommandEncoder::pushDebugGroup(std::string groupLabel) {
   _instance.PushDebugGroup(groupLabel.c_str());
+  trackCommand(kDebugCommandCost);
 }
 
 void GPUCommandEncoder::popDebugGroup() { _instance.PopDebugGroup(); }
 
 void GPUCommandEncoder::insertDebugMarker(std::string markerLabel) {
   _instance.InsertDebugMarker(markerLabel.c_str());
+  trackCommand(kDebugCommandCost);
+}
+
+size_t GPUCommandEncoder::getMemoryPressure() {
+  return _estimatedCommandBytes;
+}
+
+void GPUCommandEncoder::trackCommand(size_t bytes) {
+  if (_finished) {
+    return;
+  }
+  absorbSubEncoderBytes(bytes);
+}
+
+void GPUCommandEncoder::absorbSubEncoderBytes(size_t bytes) {
+  const size_t headroom =
+      std::numeric_limits<size_t>::max() - _estimatedCommandBytes;
+  _estimatedCommandBytes += std::min(bytes, headroom);
 }
 
 } // namespace rnwgpu

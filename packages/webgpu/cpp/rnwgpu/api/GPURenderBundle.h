@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <string>
 
 #include "Unions.h"
@@ -14,8 +15,10 @@ namespace m = margelo;
 
 class GPURenderBundle : public m::HybridObject {
 public:
-  explicit GPURenderBundle(wgpu::RenderBundle instance, std::string label)
-      : HybridObject("GPURenderBundle"), _instance(instance), _label(label) {}
+  explicit GPURenderBundle(wgpu::RenderBundle instance, std::string label,
+                           size_t estimatedBytes)
+      : HybridObject("GPURenderBundle"), _instance(instance), _label(label),
+        _estimatedBytes(std::max<size_t>(estimatedBytes, kBaseBundleBytes)) {}
 
 public:
   std::string getBrand() { return _name; }
@@ -35,9 +38,13 @@ public:
 
   inline const wgpu::RenderBundle get() { return _instance; }
 
+  size_t getMemoryPressure() override { return _estimatedBytes; }
+
 private:
+  static constexpr size_t kBaseBundleBytes = 4 * 1024;
   wgpu::RenderBundle _instance;
   std::string _label;
+  size_t _estimatedBytes;
 };
 
 } // namespace rnwgpu

@@ -99,9 +99,20 @@ public:
 
   inline const wgpu::RenderBundleEncoder get() { return _instance; }
 
+  size_t getMemoryPressure() override { return _estimatedCommandBytes; }
+
 private:
+  void trackCommand(size_t bytes);
+  static constexpr size_t kBaseEncoderBytes = 6 * 1024;
+  static constexpr size_t kDrawCommandCost = 512;
+  static constexpr size_t kSmallCommandCost = 160;
+  static constexpr size_t kDebugCommandCost = 96;
+  static constexpr size_t kIndirectCommandCost = 768;
+  static constexpr size_t kFinishResidualCost = 512;
   wgpu::RenderBundleEncoder _instance;
   std::string _label;
+  size_t _estimatedCommandBytes = kBaseEncoderBytes;
+  bool _finished = false;
 };
 
 } // namespace rnwgpu

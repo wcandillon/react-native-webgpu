@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -7,11 +9,20 @@
 
 namespace rnwgpu {
 
-void GPURenderPassEncoder::end() { _instance.End(); }
+void GPURenderPassEncoder::end() {
+  if (_ended) {
+    return;
+  }
+  _instance.End();
+  flushToOwner();
+  _ended = true;
+  _estimatedCommandBytes = kEndedResidual;
+}
 
 void GPURenderPassEncoder::setPipeline(
     std::shared_ptr<GPURenderPipeline> pipeline) {
   _instance.SetPipeline(pipeline->get());
+  trackCommand(kSmallCommandCost);
 }
 
 void GPURenderPassEncoder::draw(uint32_t vertexCount,
@@ -20,6 +31,7 @@ void GPURenderPassEncoder::draw(uint32_t vertexCount,
                                 std::optional<uint32_t> firstInstance) {
   _instance.Draw(vertexCount, instanceCount.value_or(1),
                  firstVertex.value_or(0), firstInstance.value_or(0));
+  trackCommand(kDrawCommandCost);
 }
 void GPURenderPassEncoder::setVertexBuffer(
     uint32_t slot,
@@ -33,6 +45,7 @@ void GPURenderPassEncoder::setVertexBuffer(
     return;
   }
   _instance.SetVertexBuffer(slot, b, offset.value_or(0), s);
+  trackCommand(kSmallCommandCost);
 }
 
 void GPURenderPassEncoder::setBindGroup(
@@ -57,6 +70,9 @@ void GPURenderPassEncoder::setBindGroup(
                              dynamicOffsets->data());
     }
   }
+  size_t dynamicOffsetCost =
+      dynOffsets.size() > 0 ? dynOffsets.size() * 32 : 0;
+  trackCommand(kSmallCommandCost + dynamicOffsetCost);
 }
 
 void GPURenderPassEncoder::setIndexBuffer(std::shared_ptr<GPUBuffer> buffer,
@@ -77,14 +93,17 @@ void GPURenderPassEncoder::setIndexBuffer(std::shared_ptr<GPUBuffer> buffer,
   }
 
   _instance.SetIndexBuffer(b, f, o, s);
+  trackCommand(kSmallCommandCost);
 }
 
 void GPURenderPassEncoder::endOcclusionQuery() {
   _instance.EndOcclusionQuery();
+  trackCommand(kSmallCommandCost);
 }
 
 void GPURenderPassEncoder::beginOcclusionQuery(uint32_t queryIndex) {
   _instance.BeginOcclusionQuery(queryIndex);
+  trackCommand(kSmallCommandCost);
 }
 
 void GPURenderPassEncoder::drawIndexed(uint32_t indexCount,
@@ -95,6 +114,7 @@ void GPURenderPassEncoder::drawIndexed(uint32_t indexCount,
   _instance.DrawIndexed(indexCount, instanceCount.value_or(1),
                         firstIndex.value_or(0), baseVertex.value_or(0),
                         firstInstance.value_or(0));
+  trackCommand(kDrawCommandCost);
 }
 
 void GPURenderPassEncoder::executeBundles(
@@ -108,17 +128,22 @@ void GPURenderPassEncoder::executeBundles(
   }
 
   _instance.ExecuteBundles(bundleCount, bundles);
+  size_t bundleCost =
+      std::max<size_t>(kSmallCommandCost, bundleCount * kSmallCommandCost);
+  trackCommand(bundleCost);
 }
 
 void GPURenderPassEncoder::setScissorRect(uint32_t x, uint32_t y,
                                           uint32_t width, uint32_t height) {
   _instance.SetScissorRect(x, y, width, height);
+  trackCommand(kSmallCommandCost);
 }
 
 void GPURenderPassEncoder::setViewport(double x, double y, double width,
                                        double height, double minDepth,
                                        double maxDepth) {
   _instance.SetViewport(x, y, width, height, minDepth, maxDepth);
+  trackCommand(kSmallCommandCost);
 }
 
 void GPURenderPassEncoder::setBlendConstant(std::shared_ptr<GPUColor> color) {
@@ -128,20 +153,27 @@ void GPURenderPassEncoder::setBlendConstant(std::shared_ptr<GPUColor> color) {
     return;
   }
   _instance.SetBlendConstant(&c);
+  trackCommand(kSmallCommandCost);
 }
 
 void GPURenderPassEncoder::setStencilReference(uint32_t reference) {
   _instance.SetStencilReference(reference);
+  trackCommand(kSmallCommandCost);
 }
 
 void GPURenderPassEncoder::pushDebugGroup(std::string groupLabel) {
   _instance.PushDebugGroup(groupLabel.c_str());
+  trackCommand(kDebugCommandCost);
 }
 
-void GPURenderPassEncoder::popDebugGroup() { _instance.PopDebugGroup(); }
+void GPURenderPassEncoder::popDebugGroup() {
+  _instance.PopDebugGroup();
+  trackCommand(kDebugCommandCost);
+}
 
 void GPURenderPassEncoder::insertDebugMarker(std::string markerLabel) {
   _instance.InsertDebugMarker(markerLabel.c_str());
+  trackCommand(kDebugCommandCost);
 }
 void GPURenderPassEncoder::drawIndirect(
     std::shared_ptr<GPUBuffer> indirectBuffer, uint64_t indirectOffset) {
@@ -151,6 +183,7 @@ void GPURenderPassEncoder::drawIndirect(
     return;
   }
   _instance.DrawIndirect(b, indirectOffset);
+  trackCommand(kIndirectCommandCost);
 }
 void GPURenderPassEncoder::drawIndexedIndirect(
     std::shared_ptr<GPUBuffer> indirectBuffer, uint64_t indirectOffset) {
@@ -160,6 +193,23 @@ void GPURenderPassEncoder::drawIndexedIndirect(
     return;
   }
   _instance.DrawIndexedIndirect(b, indirectOffset);
+  trackCommand(kIndirectCommandCost);
+}
+
+void GPURenderPassEncoder::trackCommand(size_t bytes) {
+  if (_ended) {
+    return;
+  }
+  const size_t headroom =
+      std::numeric_limits<size_t>::max() - _estimatedCommandBytes;
+  _estimatedCommandBytes += std::min(bytes, headroom);
+}
+
+void GPURenderPassEncoder::flushToOwner() {
+  if (_byteSink) {
+    _byteSink(_estimatedCommandBytes);
+    _byteSink = nullptr;
+  }
 }
 
 } // namespace rnwgpu
