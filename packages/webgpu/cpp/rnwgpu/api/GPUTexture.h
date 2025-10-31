@@ -201,10 +201,12 @@ public:
       case wgpu::TextureFormat::R10X6BG10X6Biplanar420Unorm:
       case wgpu::TextureFormat::R8BG8A8Triplanar420Unorm:
       case wgpu::TextureFormat::R8BG8Biplanar422Unorm:
-      case wgpu::TextureFormat::R8BG8Biplanar444Unorm:
       case wgpu::TextureFormat::R10X6BG10X6Biplanar422Unorm:
-      case wgpu::TextureFormat::R10X6BG10X6Biplanar444Unorm:
         return {1, 1, 2, false};
+      case wgpu::TextureFormat::R8BG8Biplanar444Unorm:
+        return {1, 1, 3, false};
+      case wgpu::TextureFormat::R10X6BG10X6Biplanar444Unorm:
+        return {1, 1, 6, false};
       case wgpu::TextureFormat::Undefined:
       default:
         return {1, 1, 4, false};
@@ -246,8 +248,7 @@ public:
     if (totalMemory == 0) {
       totalMemory = kAlignment;
     } else {
-      totalMemory =
-          ((totalMemory + kAlignment - 1) / kAlignment) * kAlignment;
+      totalMemory = ((totalMemory + kAlignment - 1) / kAlignment) * kAlignment;
     }
     return totalMemory;
   }
