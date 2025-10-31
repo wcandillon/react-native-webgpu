@@ -151,6 +151,12 @@ public:
 
   inline const wgpu::Device get() { return _instance; }
 
+  size_t getMemoryPressure() override {
+    // Devices keep large driver heaps, pipeline caches and residency tracking.
+    constexpr size_t kDeviceFloor = 8 * 1024 * 1024; // 8MB baseline
+    return kDeviceFloor + _label.capacity();
+  }
+
 private:
   friend class GPUAdapter;
 

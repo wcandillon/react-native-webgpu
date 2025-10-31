@@ -35,6 +35,8 @@ public:
 
   inline const wgpu::TextureView get() { return _instance; }
 
+  size_t getMemoryPressure() override { return 1024; }
+
 private:
   wgpu::TextureView _instance;
   std::string _label;

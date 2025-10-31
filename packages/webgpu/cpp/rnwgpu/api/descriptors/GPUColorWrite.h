@@ -27,5 +27,7 @@ public:
     registerHybridGetter("ALPHA", &GPUColorWrite::Alpha, this);
     registerHybridGetter("ALL", &GPUColorWrite::All, this);
   }
+
+  size_t getMemoryPressure() override { return sizeof(GPUColorWrite); }
 };
 } // namespace rnwgpu

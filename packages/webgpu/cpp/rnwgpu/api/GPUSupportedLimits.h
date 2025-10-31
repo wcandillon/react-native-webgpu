@@ -144,6 +144,8 @@ public:
 
   inline const wgpu::Limits get() { return _instance; }
 
+  size_t getMemoryPressure() override { return sizeof(wgpu::Limits); }
+
 private:
   wgpu::Limits _instance;
 };

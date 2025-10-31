@@ -71,6 +71,12 @@ public:
 
   inline const wgpu::Queue get() { return _instance; }
 
+  size_t getMemoryPressure() override {
+    // Queues retain submitted command buffers and backend scheduling state.
+    constexpr size_t kQueueFloor = 1 * 1024 * 1024; // 1MB baseline
+    return kQueueFloor + _label.capacity();
+  }
+
 private:
   wgpu::Queue _instance;
   std::shared_ptr<async::AsyncRunner> _async;
