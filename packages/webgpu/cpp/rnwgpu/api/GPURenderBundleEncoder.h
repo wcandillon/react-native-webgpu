@@ -99,6 +99,8 @@ public:
 
   inline const wgpu::RenderBundleEncoder get() { return _instance; }
 
+  size_t getMemoryPressure() override { return 1024 * 1024; }
+
 private:
   wgpu::RenderBundleEncoder _instance;
   std::string _label;

@@ -26,6 +26,10 @@ public:
 
   inline const wgpu::CompilationMessage get() { return _instance; }
 
+  size_t getMemoryPressure() override {
+    return sizeof(wgpu::CompilationMessage);
+  }
+
 private:
   wgpu::CompilationMessage _instance;
 };

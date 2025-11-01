@@ -67,6 +67,8 @@ public:
                          &RNWebGPU::MakeWebGPUCanvasContext, this);
   }
 
+  size_t getMemoryPressure() override { return sizeof(RNWebGPU); }
+
 private:
   std::shared_ptr<GPU> _gpu;
   std::shared_ptr<PlatformContext> _platformContext;

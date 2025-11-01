@@ -44,6 +44,8 @@ public:
     registerHybridSetter("height", &Canvas::setHeight, this);
   }
 
+  size_t getMemoryPressure() override { return sizeof(Canvas); }
+
 private:
   void *_surface;
   int _width;

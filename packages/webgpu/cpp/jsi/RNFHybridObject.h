@@ -77,7 +77,7 @@ public:
    * Get the memory pressure of this HostObject in bytes.
    * This is used to inform the JavaScript runtime about memory usage for garbage collection.
    */
-  virtual size_t getMemoryPressure() { return 1024; }
+  virtual size_t getMemoryPressure() = 0;
 
 private:
   static constexpr auto TAG = "HybridObject";

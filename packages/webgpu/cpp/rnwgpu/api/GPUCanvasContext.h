@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -44,6 +45,32 @@ public:
     registerHybridMethod("getCurrentTexture",
                          &GPUCanvasContext::getCurrentTexture, this);
     registerHybridMethod("present", &GPUCanvasContext::present, this);
+  }
+
+  size_t getMemoryPressure() override {
+    int width = 0;
+    int height = 0;
+
+    if (_surfaceInfo) {
+      auto size = _surfaceInfo->getSize();
+      width = size.width;
+      height = size.height;
+    }
+
+    if (_canvas) {
+      width = std::max(width, _canvas->getWidth());
+      height = std::max(height, _canvas->getHeight());
+    }
+
+    if (width <= 0 || height <= 0) {
+      return 4 * 1024 * 1024; // default to 4MB when size is unknown
+    }
+
+    constexpr size_t kBytesPerPixel = 4; // RGBA8 fallback
+    constexpr size_t kFloor = 4 * 1024 * 1024;
+    size_t estimated = static_cast<size_t>(width) *
+                       static_cast<size_t>(height) * kBytesPerPixel;
+    return std::max(estimated, kFloor);
   }
 
   // TODO: is this ok?

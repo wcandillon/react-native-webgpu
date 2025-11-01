@@ -48,6 +48,8 @@ public:
 
   inline const wgpu::Adapter get() { return _instance; }
 
+  size_t getMemoryPressure() override { return 1024; }
+
 private:
   wgpu::Adapter _instance;
   std::shared_ptr<async::AsyncRunner> _async;
