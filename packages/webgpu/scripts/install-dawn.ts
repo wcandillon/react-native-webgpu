@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from "fs";
 import { join } from "path";
 
 import { checkBuildArtifacts } from "./build/dawn-configuration";
-import { checkDuplicateHeaders } from "./codegen/util";
+import { checkDuplicateHeaders } from "./build/util";
 
 // ANSI color codes
 const colors = {
