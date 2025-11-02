@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from "fs";
 import { join } from "path";
 
 import { checkBuildArtifacts } from "./build/dawn-configuration";
+import { checkDuplicateHeaders } from "./build/util";
 
 // ANSI color codes
 const colors = {
@@ -133,6 +134,9 @@ const assets = [
     name: `dawn-headers-${releaseTag}.tar.gz`,
     extractTo: libsDir,
     postProcess: () => {
+      // clean folders
+      rmSync("cpp/dawn", { recursive: true, force: true });
+      rmSync("cpp/webgpu", { recursive: true, force: true });
       // Move headers directly to cpp directory
       const headersIncludePath = join(libsDir, "dawn-headers", "include");
       if (existsSync(join(headersIncludePath, "webgpu"))) {
@@ -143,6 +147,15 @@ const assets = [
       }
       // Remove the dawn-headers directory after copying
       rmSync(join(libsDir, "dawn-headers"), { recursive: true, force: true });
+      rmSync("cpp/dawn/wire", { recursive: true, force: true });
+      // Copy headers from cpp/dawn/ to cpp/webgpu/ and then delete source files
+      execSync(
+        `cp "cpp/dawn/webgpu_cpp_print.h" "cpp/webgpu/webgpu_cpp_print.h"`,
+      );
+      execSync(`cp "cpp/dawn/webgpu_cpp.h" "cpp/webgpu/webgpu_cpp.h"`);
+      execSync(`cp "cpp/dawn/webgpu.h" "cpp/webgpu/webgpu.h"`);
+      rmSync("cpp/dawn", { recursive: true, force: true });
+      checkDuplicateHeaders(`cpp`);
     },
   },
 ];
