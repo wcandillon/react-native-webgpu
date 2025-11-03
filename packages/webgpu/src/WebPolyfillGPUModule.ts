@@ -27,16 +27,19 @@ function makeWebGPUCanvasContext(
     contextIdToId(contextId),
   ) as HTMLCanvasElement;
 
+  const dpr = window.devicePixelRatio || 1;
+  const pixelWidth = (width * dpr).toString();
+  const pixelHeight = (height * dpr).toString();
+
   if (
-    canvas.getAttribute("width") !== width.toString() ||
-    canvas.getAttribute("height") !== height.toString()
+    canvas.getAttribute("width") !== pixelWidth ||
+    canvas.getAttribute("height") !== pixelHeight
   ) {
-    canvas.setAttribute("width", width.toString());
-    canvas.setAttribute("height", height.toString());
+    canvas.setAttribute("width", pixelWidth);
+    canvas.setAttribute("height", pixelHeight);
   }
 
   const context = canvas.getContext("webgpu")!;
-
   return Object.assign(context, {
     present: () => {},
   });
