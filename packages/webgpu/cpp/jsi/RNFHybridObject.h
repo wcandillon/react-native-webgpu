@@ -5,7 +5,7 @@
 #pragma once
 
 #include "WGPULogger.h"
-#include "RNFWorkletRuntimeRegistry.h"
+#include "RNFRuntimeState.h"
 #include <functional>
 #include <jsi/jsi.h>
 #include <memory>
@@ -91,8 +91,9 @@ private:
 
 protected:
   const char* _name = TAG;
-  // Store a pointer to the runtime. Needed for checking if the runtime is still active, see WorkletRuntimeRegistry.
+  // Store a pointer to the runtime for convenience; ensure it is only used while the runtime state is alive.
   jsi::Runtime* _creationRuntime = nullptr;
+  std::weak_ptr<rnwgpu::RNFRuntimeState> _runtimeState;
 
 private:
   inline void ensureInitialized(facebook::jsi::Runtime& runtime);
@@ -127,6 +128,10 @@ private:
       }
     };
   }
+
+protected:
+  facebook::jsi::Runtime* getCreationRuntime() const;
+  std::weak_ptr<rnwgpu::RNFRuntimeState> getRuntimeStateWeak() const { return _runtimeState; }
 
 protected:
   template <typename Derived, typename ReturnType, typename... Args>

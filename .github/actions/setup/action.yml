@@ -31,17 +31,7 @@ runs:
       run: yarn install --immutable
       shell: bash
 
-    - name: Download Dawn Binary Artifacts
-      uses: dawidd6/action-download-artifact@v2
-      with:
-        workflow: "build-dawn.yml"
-        repo: wcandillon/react-native-webgpu
-        github_token: ${{ inputs.github_token }}
-        path: artifacts
-        branch: main
-        name: dawn-libs
-
-    - name: Copy Artifacts to libs folder
+    - name: Install Dawn
       working-directory: packages/webgpu
       shell: bash
-      run: yarn copy-artifacts
+      run: yarn install-dawn

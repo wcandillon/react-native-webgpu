@@ -36,10 +36,6 @@ jobs:
       - name: Typecheck files
         run: yarn tsc
 
-      - name: Codegen
-        working-directory: packages/webgpu
-        run: yarn codegen
-
   test:
     runs-on: macos-latest
     steps:

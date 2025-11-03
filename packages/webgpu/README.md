@@ -3,6 +3,8 @@
 React Native implementation of WebGPU using [Dawn](https://dawn.googlesource.com/dawn).
 This is currently a technical preview for early adopters.
 
+React Native WebGPU requires React Native 0.81 or newer and doesn't run on legacy architecture.
+
 ## Installation
 
 Please note that the package name is `react-native-wgpu`.
@@ -19,7 +21,15 @@ https://github.com/user-attachments/assets/116a41b2-2cf8-49f1-9f16-a5c83637c198
 
 Starting from `r168`, Three.js runs out of the box with React Native WebGPU.
 You need to have a slight modification of [the metro config](/apps/example/metro.config.js) to resolve Three.js to the WebGPU build.
-We also support [three-fiber](/apps/example/src/ThreeJS/Fiber.tsx).
+We also support [react-three-fiber](/apps/example/src/ThreeJS/Fiber.tsx); to make it work, patch `node_modules/@react-three/fiber/package.json` (for instance via `patch-package`) so that it resolves to the WebGPU entry point instead of the React Native bundle:
+
+```diff
+diff --git a/node_modules/@react-three/fiber/package.json b/node_modules/@react-three/fiber/package.json
+@@
+-  "react-native": "native/dist/react-three-fiber-native.cjs.js",
++  "react-native": "dist/react-three-fiber.cjs.js",
+```
+
 For model loading, we also need [the following polyfill](/apps/example/src/App.tsx#29).
 
 https://github.com/user-attachments/assets/5b49ef63-0a3c-4679-aeb5-e4b4dddfcc1d
@@ -28,89 +38,100 @@ We also provide prebuilt binaries for visionOS and macOS.
 
 https://github.com/user-attachments/assets/2d5c618e-5b15-4cef-8558-d4ddf8c70667
 
+## Diagnostics
+
+Two diagnostic screens were added to the example app so you can reproduce the issues highlighted in the code review:
+
+- `Async Runner Starvation` (`apps/example/src/Diagnostics/AsyncStarvation.tsx`) shows that a zero-delay `setTimeout` never fires before `device.createRenderPipelineAsync()` resolves because the event loop is kept busy. Launch the example app and open the screen from the home list to observe the stalled timer.
+- `Device Lost Promise Hang` (`apps/example/src/Diagnostics/DeviceLostHang.tsx`) forces a synthetic device loss by calling the native `forceLossForTesting()` helper. On the current build the `device.lost` promise remains pending indefinitely, confirming that the loss callback is never delivered once pumping stops.
+
 ## Usage
 
-Currently we recommend to use the `useCanvasEffect` to access the WebGPU context.
+Usage is identical to Web.
 
 ```tsx
 import React from "react";
 import { StyleSheet, View, PixelRatio } from "react-native";
-import { Canvas, useCanvasEffect } from "react-native-wgpu";
+import { Canvas, CanvasRef } from "react-native-wgpu";
 
 import { redFragWGSL, triangleVertWGSL } from "./triangle";
 
 export function HelloTriangle() {
-  const ref = useCanvasEffect(async () => {
-    const adapter = await navigator.gpu.requestAdapter();
-    if (!adapter) {
-      throw new Error("No adapter");
-    }
-    const device = await adapter.requestDevice();
-    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+  const ref = useRef<CanvasRef>(null);
+  useEffect(() => {
+    const helloTriangle = async () => {
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        throw new Error("No adapter");
+      }
+      const device = await adapter.requestDevice();
+      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
-    const context = ref.current!.getContext("webgpu")!;
-    const canvas = context.canvas as HTMLCanvasElement;
-    canvas.width = canvas.clientWidth * PixelRatio.get();
-    canvas.height = canvas.clientHeight * PixelRatio.get();
+      const context = ref.current!.getContext("webgpu")!;
+      const canvas = context.canvas as HTMLCanvasElement;
+      canvas.width = canvas.clientWidth * PixelRatio.get();
+      canvas.height = canvas.clientHeight * PixelRatio.get();
 
-    if (!context) {
-      throw new Error("No context");
-    }
+      if (!context) {
+        throw new Error("No context");
+      }
 
-    context.configure({
-      device,
-      format: presentationFormat,
-      alphaMode: "opaque",
-    });
+      context.configure({
+        device,
+        format: presentationFormat,
+        alphaMode: "opaque",
+      });
 
-    const pipeline = device.createRenderPipeline({
-      layout: "auto",
-      vertex: {
-        module: device.createShaderModule({
-          code: triangleVertWGSL,
-        }),
-        entryPoint: "main",
-      },
-      fragment: {
-        module: device.createShaderModule({
-          code: redFragWGSL,
-        }),
-        entryPoint: "main",
-        targets: [
+      const pipeline = device.createRenderPipeline({
+        layout: "auto",
+        vertex: {
+          module: device.createShaderModule({
+            code: triangleVertWGSL,
+          }),
+          entryPoint: "main",
+        },
+        fragment: {
+          module: device.createShaderModule({
+            code: redFragWGSL,
+          }),
+          entryPoint: "main",
+          targets: [
+            {
+              format: presentationFormat,
+            },
+          ],
+        },
+        primitive: {
+          topology: "triangle-list",
+        },
+      });
+
+      const commandEncoder = device.createCommandEncoder();
+
+      const textureView = context.getCurrentTexture().createView();
+
+      const renderPassDescriptor: GPURenderPassDescriptor = {
+        colorAttachments: [
           {
-            format: presentationFormat,
+            view: textureView,
+            clearValue: [0, 0, 0, 1],
+            loadOp: "clear",
+            storeOp: "store",
           },
         ],
-      },
-      primitive: {
-        topology: "triangle-list",
-      },
-    });
+      };
 
-    const commandEncoder = device.createCommandEncoder();
+      const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+      passEncoder.setPipeline(pipeline);
+      passEncoder.draw(3);
+      passEncoder.end();
 
-    const textureView = context.getCurrentTexture().createView();
+      device.queue.submit([commandEncoder.finish()]);
 
-    const renderPassDescriptor: GPURenderPassDescriptor = {
-      colorAttachments: [
-        {
-          view: textureView,
-          clearValue: [0, 0, 0, 1],
-          loadOp: "clear",
-          storeOp: "store",
-        },
-      ],
+      context.present();
     };
-
-    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-    passEncoder.setPipeline(pipeline);
-    passEncoder.draw(3);
-    passEncoder.end();
-
-    device.queue.submit([commandEncoder.finish()]);
-
-    context.present();
-  });
+    helloTriangle();
+  }, [ref]);
 
   return (
     <View style={style.container}>
@@ -131,7 +152,7 @@ const style = StyleSheet.create({
 
 ## Example App
 
-To run the example app you first need to [build Dawn or download the prebuilt binaries](#building-dawn).
+To run the example app you first need to [install Dawn](#installing-dawn).
 
 From there you will be able to run the example app properly.
 
@@ -185,4 +206,69 @@ device.queue.copyExternalImageToTexture(
   { texture },
   [imageBitmap.width, imageBitmap.height],
 );
+```
+
+## Troubleshooting
+
+### iOS
+
+To run the React Native WebGPU project on the iOS simulator, you need to disable the Metal validation API.  
+In "Edit Scheme," uncheck "Metal Validation". Learn more [here](https://developer.apple.com/documentation/xcode/validating-your-apps-metal-api-usage/).
+
+<img width="1052" alt="Uncheck 'Metal Validation'" src="https://github.com/user-attachments/assets/2676e5cc-e351-4a97-bdc8-22cbd7df2ef2">
+
+## Library Development
+
+Make sure to check out the submodules:
+
+```
+git submodule update --init
+```
+
+Make sure you have all the tools required for building the Skia libraries (Android Studio, XCode, Ninja, CMake, Android NDK/build tools).
+
+### Installing Dawn
+
+There is an alternative way which is to install the prebuilt binaries from GitHub.
+
+```sh
+$ yarn
+$ cd packages/webgpu
+$ yarn install-dawn
+```
+
+### Building Dawn
+
+Alternatively, you can build Dawn locally.
+
+```sh
+yarn
+cd packages/webgpu
+yarn build-dawn
+```
+
+### Upgrading
+
+1. `git submodule update --remote`
+2. `yarn clean-dawn`
+3. `yarn build-dawn`
+
+### Codegen
+
+* `cd packages/webgpu && yarn codegen`
+
+### Testing
+
+In the `package` folder, to run the test against Chrome for reference:
+
+```
+yarn test:ref
+```
+
+To run the e2e test, open the example app on the e2e screen.  
+By default, it will try to connect to a localhost test server.  
+If you want to run the test suite on a physical device, you can modify the address [here](/apps/example/src/useClient.ts#L4).
+
+```
+yarn test
 ```

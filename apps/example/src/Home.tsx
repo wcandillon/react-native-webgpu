@@ -20,9 +20,13 @@ export const examples = [
     title: "🔺 Hello Triangle MSAA",
   },
   {
-    screen: "ComputeToys",
-    title: "🧮 Compute Toys",
+    screen: "Reanimated",
+    title: "🐎 Reanimated",
   },
+  // {
+  //   screen: "ComputeToys",
+  //   title: "🧮 Compute Toys",
+  // },
   {
     screen: "ThreeJS",
     title: "☘️ Three.js",
@@ -111,7 +115,15 @@ export const examples = [
     screen: "GradientTiles",
     title: "🌈 Gradient Tiles",
   },
-] as const;
+  {
+    screen: "AsyncStarvation",
+    title: "⚠️ Async Runner Starvation",
+  },
+  {
+    screen: "DeviceLostHang",
+    title: "⚠️ Device Lost Hang",
+  },
+];
 
 const styles = StyleSheet.create({
   container: {
@@ -135,7 +147,8 @@ export const Home = () => {
       {examples.map((thumbnail) => (
         <RectButton
           key={thumbnail.screen}
-          onPress={() => navigate(thumbnail.screen)}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onPress={() => navigate(thumbnail.screen as any)}
         >
           <View style={styles.thumbnail}>
             <Text style={styles.title}>{thumbnail.title}</Text>

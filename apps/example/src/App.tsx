@@ -32,6 +32,9 @@ import { GradientTiles } from "./GradientTiles";
 import { CanvasAPI } from "./CanvasAPI";
 import { Tensorflow } from "./Tensorflow";
 import { ComputeToys } from "./ComputeToys";
+import { Reanimated } from "./Reanimated";
+import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
+import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -85,6 +88,9 @@ function App() {
             {(props) => <Tests {...props} assets={assets} />}
           </Stack.Screen>
           <Stack.Screen name="GradientTiles" component={GradientTiles} />
+          <Stack.Screen name="Reanimated" component={Reanimated} />
+          <Stack.Screen name="AsyncStarvation" component={AsyncStarvation} />
+          <Stack.Screen name="DeviceLostHang" component={DeviceLostHang} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

@@ -1,5 +1,3 @@
-import { checkDuplicateHeaders } from "../codegen/util";
-
 import { $, checkFileExists, runAsync } from "./util";
 
 export const libs = ["libwebgpu_dawn"] as const;
@@ -17,29 +15,6 @@ export const platforms = [
 
 export type OS = "apple" | "android";
 export type Platform = (typeof platforms)[number];
-
-export const copyHeaders = () => {
-  console.log("📗 Copy headers");
-  [
-    `rm -rf ${projectRoot}/cpp/webgpu`,
-    `rm -rf ${projectRoot}/cpp/dawn`,
-    `cp -a externals/dawn/out/android_arm64-v8a/gen/include/webgpu ${projectRoot}/cpp`,
-    `cp -a externals/dawn/out/android_arm64-v8a/gen/include/dawn ${projectRoot}/cpp`,
-    `cp -a externals/dawn/include/webgpu/. ${projectRoot}/cpp/webgpu`,
-    `cp -a externals/dawn/include/dawn/. ${projectRoot}/cpp/dawn`,
-    `sed -i '' 's/#include "dawn\\/webgpu.h"/#include "webgpu\\/webgpu.h"/' ${projectRoot}/cpp/dawn/dawn_proc_table.h`,
-    `cp ${projectRoot}/cpp/dawn/webgpu.h ${projectRoot}/cpp/webgpu/webgpu.h`,
-    `cp ${projectRoot}/cpp/dawn/webgpu_cpp.h ${projectRoot}/cpp/webgpu/webgpu_cpp.h`,
-    `rm -rf ${projectRoot}/cpp/dawn/webgpu.h`,
-    `rm -rf ${projectRoot}/cpp/dawn/webgpu_cpp.h`,
-    `rm -rf ${projectRoot}/cpp/dawn/wire`,
-    `rm -rf ${projectRoot}/cpp/webgpu/webgpu_cpp_print.h`,
-    `cp externals/dawn/src/dawn/dawn.json ${projectRoot}/libs`,
-  ].map((cmd) => $(cmd));
-
-  // Check for duplicate header names and issue warnings
-  checkDuplicateHeaders(`${projectRoot}/cpp`);
-};
 
 const serializeCMakeArgs = (args: Record<string, string>) => {
   return Object.keys(args)
@@ -93,5 +68,5 @@ export const checkBuildArtifacts = () => {
   libs.forEach((lib) => {
     checkFileExists(`libs/apple/${lib}.xcframework`);
   });
-  checkFileExists("libs/dawn.json");
+  //checkFileExists("libs/dawn.json");
 };

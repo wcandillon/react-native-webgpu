@@ -1,7 +1,8 @@
 import * as THREE from "three";
-import { Canvas, useGPUContext } from "react-native-wgpu";
+import type { CanvasRef } from "react-native-wgpu";
+import { Canvas } from "react-native-wgpu";
 import { PixelRatio, Text, View, StyleSheet } from "react-native";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   float,
   vec3,
@@ -27,11 +28,12 @@ import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 export const Backdrop = () => {
   const gltf = useGLTF(require("./assets/michelle/model.gltf"));
-  const { ref, context } = useGPUContext();
+  const ref = useRef<CanvasRef>(null);
   useEffect(() => {
-    if (!gltf || !context) {
+    if (!gltf) {
       return;
     }
+    const context = ref.current?.getContext("webgpu")!;
     const rotate = true;
     const canvas = context.canvas as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();
@@ -153,7 +155,7 @@ export const Backdrop = () => {
     return () => {
       renderer.setAnimationLoop(null);
     };
-  }, [gltf, context]);
+  }, [gltf, ref]);
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <Text>Loading assets...</Text>

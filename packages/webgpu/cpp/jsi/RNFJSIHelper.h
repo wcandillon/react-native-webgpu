@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "RNFWorkletRuntimeRegistry.h"
+#include "RNFRuntimeState.h"
 #include <jsi/jsi.h>
 #include <memory>
 #include <utility>
@@ -20,8 +20,10 @@ public:
    * Every jsi::Function you intend to share or hold should be wrapped using this function.
    */
   static std::shared_ptr<jsi::Function> createSharedJsiFunction(jsi::Runtime& runtime, jsi::Function&& function) {
-    std::shared_ptr<jsi::Function> sharedFunction(new jsi::Function(std::move(function)), [&runtime](jsi::Function* ptr) {
-      if (RNFWorkletRuntimeRegistry::isRuntimeAlive(&runtime)) {
+    auto runtimeState = rnwgpu::RNFRuntimeState::get(runtime);
+    std::weak_ptr<rnwgpu::RNFRuntimeState> runtimeStateWeak = runtimeState;
+    std::shared_ptr<jsi::Function> sharedFunction(new jsi::Function(std::move(function)), [runtimeStateWeak](jsi::Function* ptr) {
+      if (!runtimeStateWeak.expired()) {
         // Only delete the jsi::Function when the runtime it created is still alive.
         // Otherwise leak memory. We do this on purpose, as sometimes we would keep
         // references to JSI objects past the lifetime of its runtime (e.g.,

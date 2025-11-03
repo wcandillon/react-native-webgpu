@@ -25,7 +25,6 @@ find_package(fbjni REQUIRED CONFIG)
 
 add_library(${PACKAGE_NAME} SHARED
     ./cpp/cpp-adapter.cpp
-    ./cpp/platform/ThreadUtils.cpp
     ../cpp/rnwgpu/api/GPU.cpp
     ../cpp/rnwgpu/api/GPUAdapter.cpp
     ../cpp/rnwgpu/api/GPUSupportedLimits.cpp
@@ -47,10 +46,10 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/rnwgpu/RNWebGPUManager.cpp
     ../cpp/jsi/RNFPromise.cpp
     ../cpp/jsi/RNFHybridObject.cpp
-    ../cpp/jsi/RNFRuntimeCache.cpp
-    ../cpp/jsi/RNFWorkletRuntimeRegistry.cpp
-    ../cpp/threading/Dispatcher.cpp
-    ../cpp/threading/ThreadPool.cpp
+    ../cpp/jsi/RNFRuntimeState.cpp
+    ../cpp/rnwgpu/async/AsyncRunner.cpp
+    ../cpp/rnwgpu/async/AsyncTaskHandle.cpp
+    ../cpp/rnwgpu/async/JSIMicrotaskDispatcher.cpp
 )
 
 target_include_directories(
@@ -72,7 +71,6 @@ target_include_directories(
         ../cpp/rnwgpu/api/descriptors
         ../cpp/jsi
         ../cpp/webgpu
-        ../cpp/threading
         ../cpp/platform
 
         ${libfbjni_include_DIRS}

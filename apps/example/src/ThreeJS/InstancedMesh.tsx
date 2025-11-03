@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import * as THREE from "three";
-import { Canvas, useGPUContext } from "react-native-wgpu";
+import type { CanvasRef } from "react-native-wgpu";
+import { Canvas } from "react-native-wgpu";
 import { View } from "react-native";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { time, oscSine, mix, range, normalWorld } from "three/tsl";
 
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
@@ -12,14 +13,15 @@ export const InstancedMesh = () => {
   const geometry = useGeometry(
     "https://threejs.org/examples/models/json/suzanne_buffergeometry.json",
   );
-  const { ref, context } = useGPUContext();
+  const ref = useRef<CanvasRef>(null);
   useEffect(() => {
-    if (!context || !geometry) {
+    if (!geometry) {
       return;
     }
+    const context = ref.current!.getContext("webgpu")!;
     const { width, height } = context.canvas;
 
-    const amount = 10;
+    const amount = 5;
     const count = Math.pow(amount, 3);
     const dummy = new THREE.Object3D();
 
@@ -50,7 +52,7 @@ export const InstancedMesh = () => {
     scene.add(mesh);
 
     //
-    const renderer = makeWebGPURenderer(context!);
+    const renderer = makeWebGPURenderer(context);
 
     //renderer.setPixelRatio(window.devicePixelRatio);
     //renderer.setSize(window.innerWidth, window.innerHeight);
@@ -92,7 +94,7 @@ export const InstancedMesh = () => {
     return () => {
       renderer.setAnimationLoop(null);
     };
-  }, [context, geometry]);
+  }, [geometry, ref]);
 
   return (
     <View style={{ flex: 1 }}>

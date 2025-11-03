@@ -1,6 +1,5 @@
 #pragma once
 
-#include <future>
 #include <memory>
 #include <string>
 #include <vector>
@@ -9,7 +8,8 @@
 
 #include "RNFHybridObject.h"
 
-#include "AsyncRunner.h"
+#include "rnwgpu/async/AsyncRunner.h"
+#include "rnwgpu/async/AsyncTaskHandle.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -25,7 +25,8 @@ namespace m = margelo;
 
 class GPUQueue : public m::HybridObject {
 public:
-  explicit GPUQueue(wgpu::Queue instance, std::shared_ptr<AsyncRunner> async,
+  explicit GPUQueue(wgpu::Queue instance,
+                    std::shared_ptr<async::AsyncRunner> async,
                     std::string label)
       : HybridObject("GPUQueue"), _instance(instance), _async(async),
         _label(label) {}
@@ -34,7 +35,7 @@ public:
   std::string getBrand() { return _name; }
 
   void submit(std::vector<std::shared_ptr<GPUCommandBuffer>> commandBuffers);
-  std::future<void> onSubmittedWorkDone();
+  async::AsyncTaskHandle onSubmittedWorkDone();
   void writeBuffer(std::shared_ptr<GPUBuffer> buffer, uint64_t bufferOffset,
                    std::shared_ptr<ArrayBuffer> data,
                    std::optional<uint64_t> dataOffsetElements,
@@ -72,7 +73,7 @@ public:
 
 private:
   wgpu::Queue _instance;
-  std::shared_ptr<AsyncRunner> _async;
+  std::shared_ptr<async::AsyncRunner> _async;
   std::string _label;
 };
 

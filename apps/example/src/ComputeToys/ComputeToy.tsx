@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Canvas, useCanvasEffect } from "react-native-wgpu";
-import { Platform, useWindowDimensions } from "react-native";
+import type { CanvasRef } from "react-native-wgpu";
+import { Canvas } from "react-native-wgpu";
+import { useWindowDimensions } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
@@ -57,6 +58,7 @@ export interface ComputeToyProps {
 }
 
 export const ComputeToy = ({ toy: { shader, uniforms } }: ComputeToyProps) => {
+  const ref = useRef<CanvasRef>(null);
   const mouse = useSharedValue({ pos: { x: 0, y: 0 }, click: false });
   const { width, height } = useWindowDimensions();
   const [engine, setEngine] = useState<ComputeEngine | null>(null);
@@ -64,7 +66,7 @@ export const ComputeToy = ({ toy: { shader, uniforms } }: ComputeToyProps) => {
   const lastTimeRef = useRef<number>(0);
 
   // Initialize WebGPU and the compute engine
-  const canvasRef = useCanvasEffect(() => {
+  useEffect(() => {
     const initWebGPU = async () => {
       try {
         // Create the compute engine
@@ -72,8 +74,8 @@ export const ComputeToy = ({ toy: { shader, uniforms } }: ComputeToyProps) => {
         const eng = ComputeEngine.getInstance();
 
         // Set the canvas surface
-        if (canvasRef.current) {
-          eng.setSurface(canvasRef.current!);
+        if (ref.current) {
+          eng.setSurface(ref.current!);
 
           // Set the canvas size based on your CANVAS constants
           // TODO: use PixelRatio.get()?
@@ -117,7 +119,7 @@ export const ComputeToy = ({ toy: { shader, uniforms } }: ComputeToyProps) => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  });
+  }, [height, ref, shader, uniforms, width]);
 
   // Animation/render loop
   const renderLoop = useCallback(
@@ -174,7 +176,7 @@ export const ComputeToy = ({ toy: { shader, uniforms } }: ComputeToyProps) => {
 
   return (
     <GestureDetector gesture={gesture}>
-      <Canvas ref={canvasRef} style={{ width, height }} />
+      <Canvas ref={ref} style={{ width, height }} />
     </GestureDetector>
   );
 };

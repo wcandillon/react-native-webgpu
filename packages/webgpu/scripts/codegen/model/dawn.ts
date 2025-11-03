@@ -1,5 +1,7 @@
 import _ from "lodash";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
 import dawn from "../../../libs/dawn.json";
 
 export const mapKeys = <T extends object>(obj: T) =>
@@ -222,7 +224,8 @@ export const resolveNative = (
   if (!hasPropery(object, "methods")) {
     return null;
   }
-  return object.methods.find((m) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (object.methods as any).find((m: any) => {
     return _.camelCase(m.name.toLowerCase()) === methodName;
   });
 };

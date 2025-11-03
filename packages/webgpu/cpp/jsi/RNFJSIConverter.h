@@ -22,12 +22,10 @@
 #include "RNFEnumMapper.h"
 #include "RNFJSIHelper.h"
 #include "RNFPromise.h"
-#include "RNFWorkletRuntimeRegistry.h"
-
-#include "Dispatcher.h"
-#include "ThreadPool.h"
 
 #include "Unions.h"
+
+#include "rnwgpu/async/AsyncTaskHandle.h"
 
 // This number is the maximum integer that can be represented exactly as a double
 #define MAX_SAFE_INTEGER static_cast<uint64_t>(9007199254740991)
@@ -207,109 +205,22 @@ template <typename TEnum> struct JSIConverter<TEnum, std::enable_if_t<std::is_en
   }
 };
 
-// std::future<T> <> Promise<T>
-template <typename TResult> struct JSIConverter<std::future<TResult>> {
-  static std::future<TResult> fromJSI(jsi::Runtime&, const jsi::Value&, bool outOfBound) {
-    throw std::runtime_error("Promise cannot be converted to a native type - it needs to be awaited first!");
+// AsyncTaskHandle <> Promise
+template <> struct JSIConverter<rnwgpu::async::AsyncTaskHandle> {
+  static rnwgpu::async::AsyncTaskHandle fromJSI(jsi::Runtime&, const jsi::Value&, bool) {
+    throw std::runtime_error("Cannot convert a Promise to AsyncTaskHandle on the native side.");
   }
-  static jsi::Value toJSI(jsi::Runtime& runtime, std::future<TResult>&& arg) {
-    auto sharedFuture = std::make_shared<std::future<TResult>>(std::move(arg));
-    std::shared_ptr<Dispatcher> strongDispatcher = Dispatcher::getRuntimeGlobalDispatcher(runtime);
-    std::weak_ptr<Dispatcher> weakDispatcher = strongDispatcher;
 
-    return Promise::createPromise(runtime, [sharedFuture = std::move(sharedFuture), weakDispatcher](jsi::Runtime& runtime,
-                                                                                           std::shared_ptr<Promise> promise) {
-      // Spawn new async thread to synchronously wait for the `future<T>` to complete
-      std::shared_ptr<ThreadPool> pool = ThreadPool::getSharedPool();
-      pool->run([promise, &runtime, weakDispatcher, sharedFuture]() {
-        // synchronously wait until the `future<T>` completes. we are running on a background task here.
-        sharedFuture->wait();
-
-        std::shared_ptr<Dispatcher> dispatcher = weakDispatcher.lock();
-        if (!dispatcher) {
-          throw std::runtime_error("Tried resolving Promise on JS Thread, but the `Dispatcher` has already been destroyed!");
-          return;
-        }
-
-        dispatcher->runAsync([&runtime, promise, sharedFuture]() mutable {
-          try {
-            if constexpr (std::is_same_v<TResult, void>) {
-                // it's returning void, just return undefined to JS
-              sharedFuture->get();
-              promise->resolve(jsi::Value::undefined());
-            } else {
-              // it's returning a custom type, convert it to a jsi::Value
-              TResult result = sharedFuture->get();
-              jsi::Value jsResult = JSIConverter<TResult>::toJSI(runtime, result);
-              promise->resolve(std::move(jsResult));
-            }
-          } catch (const std::exception& exception) {
-            // the async function threw an error, reject the promise
-            std::string what = exception.what();
-            promise->reject(what);
-          } catch (...) {
-            // the async function threw a non-std error, try getting it
-    #if __has_include(<cxxabi.h>)
-            std::string name = __cxxabiv1::__cxa_current_exception_type()->name();
-    #else
-            std::string name = "<unknown>";
-    #endif
-            promise->reject("Unknown non-std exception: " + name);
-          }
-
-          // This lambda owns the promise shared pointer, and we need to call its
-          // destructor correctly here - otherwise it might be called
-          // from the threadPool thread.
-          promise = nullptr;
-        });
-      });
-    });
-  }
-};
-
-
-// [](Args...) -> T {} <> (Args...) => T
-template <typename ReturnType, typename... Args> struct JSIConverter<std::function<ReturnType(Args...)>> {
-  static std::function<ReturnType(Args...)> fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
-    jsi::Function function = arg.asObject(runtime).asFunction(runtime);
-
-    std::shared_ptr<jsi::Function> sharedFunction = JSIHelper::createSharedJsiFunction(runtime, std::move(function));
-    return [&runtime, sharedFunction, outOfBound](Args... args) -> ReturnType {
-      jsi::Value result = sharedFunction->call(runtime, JSIConverter<std::decay_t<Args>>::toJSI(runtime, args)...);
-      if constexpr (std::is_same_v<ReturnType, void>) {
-        // it is a void function (returns undefined)
+  static jsi::Value toJSI(jsi::Runtime& runtime, rnwgpu::async::AsyncTaskHandle&& handle) {
+    return Promise::createPromise(runtime, [handle = std::move(handle)](jsi::Runtime& runtime,
+                                                                        std::shared_ptr<Promise> promise) mutable {
+      if (!handle.valid()) {
+        promise->resolve(jsi::Value::undefined());
         return;
-      } else {
-        // it returns a custom type, parse it from the JSI value.
-        return JSIConverter<ReturnType>::fromJSI(runtime, std::move(result), outOfBound);
       }
-    };
-  }
 
-  template <size_t... Is>
-  static jsi::Value callHybridFunction(const std::function<ReturnType(Args...)>& function, jsi::Runtime& runtime, const jsi::Value* args,
-                                       std::index_sequence<Is...>, size_t count) {
-    if constexpr (std::is_same_v<ReturnType, void>) {
-      // it is a void function (will return undefined in JS)
-      function(JSIConverter<std::decay_t<Args>>::fromJSI(runtime, args[Is], Is >= count)...);
-      return jsi::Value::undefined();
-    } else {
-      // it is a custom type, parse it to a JS value
-      ReturnType result = function(JSIConverter<std::decay_t<Args>>::fromJSI(runtime, args[Is], Is >= count)...);
-      return JSIConverter<ReturnType>::toJSI(runtime, result);
-    }
-  }
-  static jsi::Value toJSI(jsi::Runtime& runtime, const std::function<ReturnType(Args...)>& function) {
-    jsi::HostFunctionType jsFunction = [function = std::move(function)](jsi::Runtime& runtime, const jsi::Value& thisValue,
-                                                                        const jsi::Value* args, size_t count) -> jsi::Value {
-      if (count != sizeof...(Args)) {
-        [[unlikely]];
-        throw jsi::JSError(runtime, "Function expected " + std::to_string(sizeof...(Args)) + " arguments, but received " +
-                                        std::to_string(count) + "!");
-      }
-      return callHybridFunction(function, runtime, args, std::index_sequence_for<Args...>{}, count);
-    };
-    return jsi::Function::createFromHostFunction(runtime, jsi::PropNameID::forUtf8(runtime, "hostFunction"), sizeof...(Args), jsFunction);
+      handle.attachPromise(promise);
+    });
   }
 };
 

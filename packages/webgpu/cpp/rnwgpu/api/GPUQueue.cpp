@@ -78,14 +78,25 @@ void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,
                         static_cast<size_t>(size64));
 }
 
-std::future<void> GPUQueue::onSubmittedWorkDone() {
-  return _async->runAsync([&] {
-    return _instance.OnSubmittedWorkDone(
-        wgpu::CallbackMode::WaitAnyOnly,
-        [](wgpu::QueueWorkDoneStatus status, wgpu::StringView message) {
-          // Handle the callback if needed
-        });
-  });
+async::AsyncTaskHandle GPUQueue::onSubmittedWorkDone() {
+  auto queue = _instance;
+  return _async->postTask(
+      [queue](const async::AsyncTaskHandle::ResolveFunction &resolve,
+              const async::AsyncTaskHandle::RejectFunction &reject) {
+        queue.OnSubmittedWorkDone(
+            wgpu::CallbackMode::AllowProcessEvents,
+            [resolve, reject](wgpu::QueueWorkDoneStatus status,
+                              wgpu::StringView message) {
+              if (status == wgpu::QueueWorkDoneStatus::Success) {
+                resolve(nullptr);
+              } else {
+                std::string error =
+                    message.length ? std::string(message.data, message.length)
+                                   : "Queue work did not complete successfully";
+                reject(std::move(error));
+              }
+            });
+      });
 }
 
 void GPUQueue::copyExternalImageToTexture(
