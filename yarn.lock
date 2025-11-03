@@ -4167,6 +4167,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/react-dom@npm:^19.2.2":
+  version: 19.2.2
+  resolution: "@types/react-dom@npm:19.2.2"
+  peerDependencies:
+    "@types/react": ^19.2.0
+  checksum: a9e16d59f89b2794a3b062766de2eedf98cf66e59de7560de5beb95fb8742161b2dc4751530380c38d51320bc99b8a1d66fa113cee9b5d0f138ef6fb49fb4ce9
+  languageName: node
+  linkType: hard
+
+"@types/react-native-web@npm:^0.19.2":
+  version: 0.19.2
+  resolution: "@types/react-native-web@npm:0.19.2"
+  dependencies:
+    "@types/react": "*"
+    react-native: "*"
+  checksum: d6c6bbaa4610dbc1588205b2a936d88938f3d24e6b6a79d238192ff1cf1dc1865864c9c5e00d500c108f0324b6464c3903e5b5aba9e69fc1ab5638ec81b0f163
+  languageName: node
+  linkType: hard
+
 "@types/react-reconciler@npm:^0.28.9":
   version: 0.28.9
   resolution: "@types/react-reconciler@npm:0.28.9"

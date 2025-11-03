@@ -1,9 +1,8 @@
 import type { ViewProps } from "react-native";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
-import type { CanvasRef, RNCanvasContext } from "./types";
 
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
@@ -63,9 +62,16 @@ export const Canvas = forwardRef<
       if (!viewRef.current) {
         throw new Error("[WebGPU] Cannot get context before mount");
       }
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error
-      const size = viewRef.current.unstable_getBoundingClientRect();
+      let size;
+      if (Platform.OS === "web") {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
+        size = viewRef.current.getBoundingClientRect();
+      } else {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
+        size = viewRef.current.unstable_getBoundingClientRect();
+      }
       return RNWebGPU.MakeWebGPUCanvasContext(
         contextId,
         size.width,
