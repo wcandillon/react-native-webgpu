@@ -5,7 +5,7 @@ export * from "../Canvas";
 export * from "../Offscreen";
 export * from "../WebGPUViewNativeComponent";
 export * from "../hooks";
-export * from "../types";
+
 export { default as WebGPUModule } from "../NativeWebGPUModule";
 
 const GPU: any = {};
@@ -181,13 +181,11 @@ WebGPUModule.install();
 
 if (!navigator) {
   // @ts-expect-error Navigation object is more complex than this, setting it to an empty object to add gpu property
-  navigator = {};
+  navigator = {
+    gpu: RNWebGPU.gpu,
+    userAgent: "react-native",
+  };
 }
-
-navigator.gpu = RNWebGPU.gpu;
-
-// @ts-expect-error: set a fake userAgent so code expecting it doesn’t break
-navigator.userAgent = "react-native";
 
 global.createImageBitmap =
   global.createImageBitmap ??
