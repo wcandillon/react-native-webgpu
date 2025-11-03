@@ -1,6 +1,6 @@
 {
   "name": "react-native-wgpu",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "React Native WebGPU",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -81,6 +81,7 @@
     "react": "19.1.0",
     "react-native": "0.81.4",
     "react-native-builder-bob": "^0.23.2",
+    "react-native-web": "^0.21.2",
     "rimraf": "^5.0.7",
     "seedrandom": "^3.0.5",
     "teapot": "^1.0.0",

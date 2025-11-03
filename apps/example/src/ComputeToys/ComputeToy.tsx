@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CanvasRef } from "react-native-wgpu";
 import { Canvas } from "react-native-wgpu";
-import { useWindowDimensions } from "react-native";
+import { Platform, useWindowDimensions } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
@@ -12,13 +12,24 @@ export interface ComputeToy {
   uniforms: Record<string, number>;
 }
 
+// Use a CORS proxy for web to bypass CORS restrictions
+const getCorsProxyUrl = (url: string) => {
+  return Platform.OS === "web"
+    ? `https://corsproxy.io/?${encodeURIComponent(url)}`
+    : url;
+};
+
 export const useComputeToy = (toyId: number) => {
   const [props, setProps] = useState<ComputeToy | null>(null);
 
   useEffect(() => {
     (async () => {
-      const shaderURL = `https://compute.toys/view/${toyId}/wgsl`;
-      const uniformsURL = `https://compute.toys/view/${toyId}/json`;
+      const shaderURL = getCorsProxyUrl(
+        `https://compute.toys/view/${toyId}/wgsl`,
+      );
+      const uniformsURL = getCorsProxyUrl(
+        `https://compute.toys/view/${toyId}/json`,
+      );
 
       // Execute both fetch requests in parallel
       const [shaderResponse, uniformsResponse] = await Promise.all([
