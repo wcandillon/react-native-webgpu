@@ -185,6 +185,17 @@ if (!navigator) {
     gpu: RNWebGPU.gpu,
     userAgent: "react-native",
   };
+} else {
+  navigator.gpu = RNWebGPU.gpu;
+  if (typeof navigator.userAgent !== "string") {
+    try {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore - Hermes navigator may not include a userAgent, align with the polyfill if needed
+      navigator.userAgent = "react-native";
+    } catch {
+      // navigator.userAgent can be read-only; ignore if assignment fails
+    }
+  }
 }
 
 global.createImageBitmap =
