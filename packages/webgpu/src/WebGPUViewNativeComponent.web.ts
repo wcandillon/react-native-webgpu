@@ -1,4 +1,3 @@
-import _ from "lodash";
 import { useEffect, useRef } from "react";
 import { StyleSheet } from "react-native";
 import { unstable_createElement as unstableCreateElement } from "react-native-web";
@@ -10,6 +9,34 @@ import { contextIdToId } from "./utils";
 export interface NativeProps extends ViewProps {
   contextId: Int32;
   transparent: boolean;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function debounce<T extends (...args: any[]) => void>(
+  func: T,
+  wait: number,
+  immediate = false,
+) {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  return function debounced(
+    this: ThisParameterType<T>,
+    ...args: Parameters<T>
+  ) {
+    const context = this;
+    const callNow = immediate && !timeout;
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(() => {
+      timeout = undefined;
+      if (!immediate) {
+        func.apply(context, args);
+      }
+    }, wait);
+    if (callNow) {
+      func.apply(context, args);
+    }
+  };
 }
 
 function resizeCanvas(canvas?: HTMLCanvasElement) {
@@ -31,11 +58,7 @@ export default function WebGPUViewNativeComponent(props: NativeProps) {
   const canvasElm = useRef<HTMLCanvasElement>();
 
   useEffect(() => {
-    const onResize = _.debounce(() => resizeCanvas(canvasElm.current), 100, {
-      leading: false,
-      trailing: true,
-      maxWait: 2000,
-    });
+    const onResize = debounce(() => resizeCanvas(canvasElm.current), 100);
     window.addEventListener("resize", onResize);
     return () => {
       window.removeEventListener("resize", onResize);
