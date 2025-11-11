@@ -1,9 +1,8 @@
 # React Native WebGPU
 
-React Native implementation of WebGPU using [Dawn](https://dawn.googlesource.com/dawn).
-This is currently a technical preview for early adopters.
+React Native implementation of WebGPU using [Dawn](https://dawn.googlesource.com/dawn).  
 
-React Native WebGPU requires React Native 0.81 or newer and doesn't run on legacy architecture.
+React Native WebGPU requires React Native 0.81 or newer. It doesn't support the legacy architecture.
 
 ## Installation
 
@@ -12,8 +11,6 @@ Please note that the package name is `react-native-wgpu`.
 ```
 npm install react-native-wgpu
 ```
-
-Note that if you use pnpm, you MUST use a `node-linker = hoisted` so that the external reference to the Dawn webgpu library can successfully link it.
 
 Below are some examples from the [example app](/apps/example/).
 
@@ -37,13 +34,6 @@ https://github.com/user-attachments/assets/5b49ef63-0a3c-4679-aeb5-e4b4dddfcc1d
 We also provide prebuilt binaries for visionOS and macOS.
 
 https://github.com/user-attachments/assets/2d5c618e-5b15-4cef-8558-d4ddf8c70667
-
-## Diagnostics
-
-Two diagnostic screens were added to the example app so you can reproduce the issues highlighted in the code review:
-
-- `Async Runner Starvation` (`apps/example/src/Diagnostics/AsyncStarvation.tsx`) shows that a zero-delay `setTimeout` never fires before `device.createRenderPipelineAsync()` resolves because the event loop is kept busy. Launch the example app and open the screen from the home list to observe the stalled timer.
-- `Device Lost Promise Hang` (`apps/example/src/Diagnostics/DeviceLostHang.tsx`) forces a synthetic device loss by calling the native `forceLossForTesting()` helper. On the current build the `device.lost` promise remains pending indefinitely, confirming that the loss callback is never delivered once pumping stops.
 
 ## Usage
 
@@ -158,8 +148,8 @@ From there you will be able to run the example app properly.
 
 ## Similarities and Differences with the Web
 
-The API has been designed to be completely symmetric with the Web.
-For instance, you can access the WebGPU context synchronously, as well as the canvas size.
+The API has been designed to be completely symmetric with the Web.  
+For instance, you can access the WebGPU context synchronously, as well as the canvas size.  
 Pixel density and canvas resizing are handled exactly like on the Web as well.
 
 ```tsx
@@ -173,7 +163,7 @@ ctx.canvas.height = ctx.canvas.clientHeight * PixelRatio.get();
 
 ### Frame Scheduling
 
-In React Native, we want to keep frame presentation as a manual operation as we plan to provide more advanced rendering options that are React Native specific.
+In React Native, we want to keep frame presentation as a manual operation as we plan to provide more advanced rendering options that are React Native specific.  
 This means that when you are ready to present a frame, you need to call `present` on the context.
 
 ```tsx
