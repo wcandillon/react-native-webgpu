@@ -1,9 +1,8 @@
 # React Native WebGPU
 
 React Native implementation of WebGPU using [Dawn](https://dawn.googlesource.com/dawn).  
-This is currently a technical preview for early adopters.  
 
-React Native WebGPU requires React Native 0.81 or newer and doesn't run on legacy architecture.
+React Native WebGPU requires React Native 0.81 or newer. It doesn't support the legacy architecture.
 
 ## Installation
 
