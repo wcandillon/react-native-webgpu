@@ -3,6 +3,7 @@
   "compilerOptions": {
     "module": "esnext",
     "noUncheckedIndexedAccess": false,
+    "jsx": "react",
     "types": ["@webgpu/types", "@types/node", "@types/jest"]
   }
 }
