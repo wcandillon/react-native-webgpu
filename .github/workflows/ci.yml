@@ -23,6 +23,10 @@ on:
         description: 'Build for macOS'
         type: boolean
         default: false
+      run_reference_tests:
+        description: 'Run reference tests'
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.ref }}
@@ -65,25 +69,24 @@ jobs:
           path: packages/webgpu/package.tgz
           compression-level: 0
 
-  # These are disabled since they are not useful in the context of
-  # GitHub Actions CI and they slow down the workflow significantly.
-  # test:
-  #   runs-on: macos-latest
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
+  reference-tests:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_reference_tests == 'true'
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  #     - name: Setup
-  #       uses: ./.github/actions/setup
-  #       with:
-  #         github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
-  #     - name: Install Chrome
-  #       run: npx puppeteer browsers install chrome
+      - name: Install Chrome
+        run: npx puppeteer browsers install chrome
 
-  #     - name: Run reference test suite
-  #       working-directory: packages/webgpu
-  #       run: yarn test:ref
+      - name: Run reference test suite
+        working-directory: packages/webgpu
+        run: yarn test:ref
 
   build-android:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_android == 'true'
