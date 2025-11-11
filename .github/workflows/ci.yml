@@ -9,6 +9,20 @@ on:
   merge_group:
     types:
       - checks_requested
+  workflow_dispatch:
+    inputs:
+      build_android:
+        description: 'Build for Android'
+        type: boolean
+        default: false
+      build_ios:
+        description: 'Build for iOS'
+        type: boolean
+        default: false
+      build_macos:
+        description: 'Build for macOS'
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.ref }}
