@@ -49,6 +49,7 @@ jobs:
         with:
           name: package
           path: packages/webgpu/package.tgz
+          compression-level: 0
 
   test:
     runs-on: macos-latest
