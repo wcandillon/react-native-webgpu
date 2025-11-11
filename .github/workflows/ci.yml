@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  static-analysis:
+  build-package:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -36,6 +36,20 @@ jobs:
       - name: Typecheck files
         run: yarn tsc
 
+      - name: Build
+        working-directory: packages/webgpu
+        run: yarn build
+
+      - name: Package
+        working-directory: packages/webgpu
+        run: yarn pack
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: package
+          path: packages/webgpu/package.tgz
+
   test:
     runs-on: macos-latest
     steps:
@@ -53,9 +67,6 @@ jobs:
       - name: Run reference test suite
         working-directory: packages/webgpu
         run: yarn test:ref
-
-      - name: Build package
-        run: yarn build
 
   build-android:
     runs-on: macos-latest
