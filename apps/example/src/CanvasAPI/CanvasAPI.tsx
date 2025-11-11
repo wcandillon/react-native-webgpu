@@ -1,7 +1,7 @@
 import { Button, View } from "react-native";
 import type { CanvasRef } from "react-native-wgpu";
 import { Canvas } from "react-native-wgpu";
-import React, { useRef } from "react";
+import { useRef } from "react";
 
 import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
 
