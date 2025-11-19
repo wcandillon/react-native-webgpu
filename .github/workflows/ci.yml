@@ -9,17 +9,35 @@ on:
   merge_group:
     types:
       - checks_requested
+  workflow_dispatch:
+    inputs:
+      build_android:
+        description: 'Build for Android'
+        type: boolean
+        default: false
+      build_ios:
+        description: 'Build for iOS'
+        type: boolean
+        default: false
+      build_macos:
+        description: 'Build for macOS'
+        type: boolean
+        default: false
+      run_reference_tests:
+        description: 'Run reference tests'
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  static-analysis:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup
         uses: ./.github/actions/setup
@@ -36,11 +54,27 @@ jobs:
       - name: Typecheck files
         run: yarn tsc
 
-  test:
+      - name: Build
+        working-directory: packages/webgpu
+        run: yarn build
+
+      - name: Package
+        working-directory: packages/webgpu
+        run: yarn pack
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: packages/webgpu/package.tgz
+          compression-level: 0
+
+  reference-tests:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_reference_tests == 'true'
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup
         uses: ./.github/actions/setup
@@ -54,16 +88,14 @@ jobs:
         working-directory: packages/webgpu
         run: yarn test:ref
 
-      - name: Build package
-        run: yarn build
-
   build-android:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_android == 'true'
     runs-on: macos-latest
     env:
       TURBO_CACHE_DIR: .turbo/android
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup
         uses: ./.github/actions/setup
@@ -71,7 +103,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache turborepo for Android
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.TURBO_CACHE_DIR }}
           key: ${{ runner.os }}-turborepo-android-${{ hashFiles('yarn.lock') }}
@@ -98,7 +130,7 @@ jobs:
         id: setup-ndk
         with:
           ndk-version: r27d
-  
+
       - name: Set ANDROID_NDK
         run: echo "ANDROID_NDK=$ANDROID_HOME/ndk-bundle" >> $GITHUB_ENV
 
@@ -112,7 +144,7 @@ jobs:
 
       - name: Cache Gradle
         if: env.turbo_cache_hit != 1
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/wrapper
@@ -128,12 +160,13 @@ jobs:
           yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}" --force
 
   build-ios:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_ios == 'true'
     runs-on: macos-latest
     env:
       TURBO_CACHE_DIR: .turbo/ios
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup
         uses: ./.github/actions/setup
@@ -141,7 +174,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache turborepo for iOS
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.TURBO_CACHE_DIR }}
           key: ${{ runner.os }}-turborepo-ios-${{ hashFiles('yarn.lock') }}
@@ -159,36 +192,39 @@ jobs:
       - name: Build example for iOS
         run: |
           yarn turbo run build:ios --cache-dir="${{ env.TURBO_CACHE_DIR }}"
-# We disable it until RNTA support 0.81
-# build-macos:
-#   runs-on: macos-latest
-#   env:
-#     TURBO_CACHE_DIR: .turbo/macos
-#   steps:
-#     - name: Checkout
-#       uses: actions/checkout@v3
 
-#     - name: Setup
-#       uses: ./.github/actions/setup
-#       with:
-#         github_token: ${{ secrets.GITHUB_TOKEN }}
+  # Note: This job is disabled by default until RNTA supports 0.81
+  # Enable it manually via workflow_dispatch when needed
+  build-macos:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_macos == 'true'
+    runs-on: macos-latest
+    env:
+      TURBO_CACHE_DIR: .turbo/macos
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-#     - name: Cache turborepo for macOS
-#       uses: actions/cache@v3
-#       with:
-#         path: ${{ env.TURBO_CACHE_DIR }}
-#         key: ${{ runner.os }}-turborepo-macos-${{ hashFiles('yarn.lock') }}
-#         restore-keys: |
-#           ${{ runner.os }}-turborepo-macos-
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
-#     - name: Check turborepo cache for macOS
-#       run: |
-#         TURBO_CACHE_STATUS=$(node -p "($(yarn turbo run build:macos --cache-dir="${{ env.TURBO_CACHE_DIR }}" --dry=json)).tasks.find(t => t.task === 'build:macos').cache.status")
+      - name: Cache turborepo for macOS
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TURBO_CACHE_DIR }}
+          key: ${{ runner.os }}-turborepo-macos-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-turborepo-macos-
 
-#         if [[ $TURBO_CACHE_STATUS == "HIT" ]]; then
-#           echo "turbo_cache_hit=1" >> $GITHUB_ENV
-#         fi
+      - name: Check turborepo cache for macOS
+        run: |
+          TURBO_CACHE_STATUS=$(node -p "($(yarn turbo run build:macos --cache-dir="${{ env.TURBO_CACHE_DIR }}" --dry=json)).tasks.find(t => t.task === 'build:macos').cache.status")
 
-#     - name: Build example for macOS
-#       run: |
-#         yarn turbo run build:macos --cache-dir="${{ env.TURBO_CACHE_DIR }}"
+          if [[ $TURBO_CACHE_STATUS == "HIT" ]]; then
+            echo "turbo_cache_hit=1" >> $GITHUB_ENV
+          fi
+
+      - name: Build example for macOS
+        run: |
+          yarn turbo run build:macos --cache-dir="${{ env.TURBO_CACHE_DIR }}"

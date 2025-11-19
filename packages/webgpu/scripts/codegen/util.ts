@@ -39,38 +39,3 @@ export const writeFile = (
     `${labels[label]} ${file.substring(file.indexOf("/package/") + "/package/".length)}`,
   );
 };
-
-export const checkDuplicateHeaders = (cppPath: string) => {
-  // Check for duplicate header names and issue warnings
-  const duplicateHeaders = $(
-    `find ${cppPath} -name '*.h' -type f | sed 's/.*\\///' | sort | uniq -d`,
-  ).toString();
-  if (duplicateHeaders.trim()) {
-    console.warn("⚠️  WARNING: Found duplicate header names:");
-    let hasConflicts = false;
-
-    duplicateHeaders
-      .split("\n")
-      .filter(Boolean)
-      .forEach((filename: string) => {
-        const fullPaths = $(
-          `find ${cppPath} -name "${filename}" -type f`,
-        ).toString();
-        const paths = fullPaths.split("\n").filter(Boolean);
-
-        console.warn(`   ${filename}:`);
-        paths.forEach((filePath: string) => {
-          console.warn(`     ${filePath}`);
-        });
-
-        hasConflicts = true;
-      });
-
-    if (hasConflicts) {
-      console.error(
-        "❌ ERROR: Duplicate headers found that will cause iOS build conflicts!",
-      );
-      exit(1);
-    }
-  }
-};

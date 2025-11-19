@@ -1,5 +1,5 @@
 #import "MetalView.h"
-#import "webgpu_cpp.h"
+#import "webgpu/webgpu_cpp.h"
 
 @implementation MetalView {
   BOOL _isConfigured;

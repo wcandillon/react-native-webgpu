@@ -1,3 +1,5 @@
+import "./resolveAssetSourcePolyfill";
+
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -48,7 +50,10 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Home">
+        <Stack.Navigator
+          initialRouteName="Home"
+          screenOptions={{ cardStyle: { flex: 1 } }}
+        >
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="HelloTriangle" component={HelloTriangle} />
           <Stack.Screen

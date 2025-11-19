@@ -12,7 +12,6 @@
 #include "rnwgpu/async/AsyncRunner.h"
 #include "rnwgpu/async/AsyncTaskHandle.h"
 
-#include "dawn/native/DawnNative.h"
 #include "webgpu/webgpu_cpp.h"
 
 #include "GPUAdapter.h"

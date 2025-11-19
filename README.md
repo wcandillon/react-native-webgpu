@@ -1,9 +1,8 @@
 # React Native WebGPU
 
 React Native implementation of WebGPU using [Dawn](https://dawn.googlesource.com/dawn).  
-This is currently a technical preview for early adopters.  
 
-React Native WebGPU requires React Native 0.81 or newer and doesn't run on legacy architecture.
+React Native WebGPU requires React Native 0.81 or newer. It doesn't support the legacy architecture.
 
 ## Installation
 
@@ -12,6 +11,17 @@ Please note that the package name is `react-native-wgpu`.
 ```
 npm install react-native-wgpu
 ```
+
+## With Expo
+
+Expo provides a React Native WebGPU template that works with React Three Fiber.
+The works on iOS, Android, and Web.
+
+```
+npx create-expo-app@latest -e with-webgpu
+```
+
+https://github.com/user-attachments/assets/efbd05f8-4ce0-46c2-919c-03e1095bc8ac
 
 Below are some examples from the [example app](/apps/example/).
 
@@ -173,6 +183,19 @@ This means that when you are ready to present a frame, you need to call `present
 device.queue.submit([commandEncoder.finish()]);
 // This method is React Native only
 context.present();
+```
+
+### Canvas Transparency
+
+On Android, the `alphaMode` property is ignored when configuring the canvas.
+To have a transparent canvas by default, use the `transparent` property.
+
+```tsx
+return (
+  <View style={style.container}>
+    <Canvas ref={ref} style={style.webgpu} transparent />
+  </View>
+);
 ```
 
 ### External Textures

@@ -3,11 +3,10 @@
 import { chdir } from "process";
 
 import type { Platform } from "./dawn-configuration";
-import { $, mapKeys } from "./util";
+import { $, checkDuplicateHeaders, mapKeys } from "./util";
 import {
   build,
   checkBuildArtifacts,
-  copyHeaders,
   copyLib,
   libs,
   projectRoot,
@@ -62,6 +61,32 @@ const apple = {
     //  -DPLATFORM=OS64 -DDEPLOYMENT_TARGET=13.0 -DENABLE_BITCODE=OFF -DENABLE_ARC=OFF -DENABLE_VISIBILITY=OFF
     ...commonArgs,
   },
+};
+
+// TODO: should be:
+// cmake --install ${{ output_dir }} --prefix dawn-headers
+// and the associated postProcess from install-dawn
+export const copyHeaders = () => {
+  console.log("📗 Copy headers");
+  [
+    `rm -rf ${projectRoot}/cpp/webgpu`,
+    `rm -rf ${projectRoot}/cpp/dawn`,
+    `cp -a externals/dawn/out/android_arm64-v8a/gen/include/webgpu ${projectRoot}/cpp`,
+    `cp -a externals/dawn/out/android_arm64-v8a/gen/include/dawn ${projectRoot}/cpp`,
+    `cp -a externals/dawn/include/webgpu/. ${projectRoot}/cpp/webgpu`,
+    `cp -a externals/dawn/include/dawn/. ${projectRoot}/cpp/dawn`,
+    `sed -i '' 's/#include "dawn\\/webgpu.h"/#include "webgpu\\/webgpu.h"/' ${projectRoot}/cpp/dawn/dawn_proc_table.h`,
+    `cp ${projectRoot}/cpp/dawn/webgpu.h ${projectRoot}/cpp/webgpu/webgpu.h`,
+    `cp ${projectRoot}/cpp/dawn/webgpu_cpp.h ${projectRoot}/cpp/webgpu/webgpu_cpp.h`,
+    `rm -rf ${projectRoot}/cpp/dawn/webgpu.h`,
+    `rm -rf ${projectRoot}/cpp/dawn/webgpu_cpp.h`,
+    `rm -rf ${projectRoot}/cpp/dawn/wire`,
+    `rm -rf ${projectRoot}/cpp/webgpu/webgpu_cpp_print.h`,
+    `cp externals/dawn/src/dawn/dawn.json ${projectRoot}/libs`,
+  ].map((cmd) => $(cmd));
+
+  // Check for duplicate header names and issue warnings
+  checkDuplicateHeaders(`${projectRoot}/cpp`);
 };
 
 (async () => {
