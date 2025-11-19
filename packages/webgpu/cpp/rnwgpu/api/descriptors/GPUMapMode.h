@@ -21,5 +21,7 @@ public:
     registerHybridGetter("READ", &GPUMapMode::Read, this);
     registerHybridGetter("WRITE", &GPUMapMode::Write, this);
   }
+
+  size_t getMemoryPressure() override { return sizeof(GPUMapMode); }
 };
 } // namespace rnwgpu

@@ -43,20 +43,23 @@ public:
   inline const wgpu::QuerySet get() { return _instance; }
 
   size_t getMemoryPressure() override {
-    uint32_t count = getCount();
-    wgpu::QueryType type = getType();
+    const uint32_t count = getCount();
+    const wgpu::QueryType type = getType();
 
-    // Estimate bytes per query based on type
-    size_t bytesPerQuery = 8; // Default estimate
+    size_t bytesPerQuery = 16; // default to an overshoot
     switch (type) {
     case wgpu::QueryType::Occlusion:
-      bytesPerQuery = 8; // 64-bit counter
+      bytesPerQuery = 16; // occlusion result is 64-bit; pad to 16 for safety
       break;
     case wgpu::QueryType::Timestamp:
-      bytesPerQuery = 8; // 64-bit timestamp
+      bytesPerQuery = 16; // timestamps are 64-bit; double to overshoot
       break;
+    case wgpu::QueryType::PipelineStatistics: {
+      constexpr size_t kAssumedCountersPerQuery = 8;
+      bytesPerQuery = 8 * kAssumedCountersPerQuery;
+      break;
+    }
     default:
-      bytesPerQuery = 8; // Safe default
       break;
     }
 

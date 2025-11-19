@@ -44,6 +44,12 @@ public:
                          &GPUAdapterInfo::getIsFallbackAdapter, this);
   }
 
+  size_t getMemoryPressure() override {
+    return sizeof(GPUAdapterInfo) + _vendor.capacity() +
+           _architecture.capacity() + _device.capacity() +
+           _description.capacity();
+  }
+
 private:
   std::string _vendor;
   std::string _architecture;

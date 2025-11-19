@@ -30,6 +30,10 @@ public:
     registerHybridGetter("message", &GPUDeviceLostInfo::getMessage, this);
   }
 
+  size_t getMemoryPressure() override {
+    return sizeof(wgpu::DeviceLostReason) + _message.capacity();
+  }
+
 private:
   wgpu::DeviceLostReason _reason;
   std::string _message;

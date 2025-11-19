@@ -76,6 +76,8 @@ public:
 
   inline const wgpu::ComputePassEncoder get() { return _instance; }
 
+  size_t getMemoryPressure() override { return 1024; }
+
 private:
   wgpu::ComputePassEncoder _instance;
   std::string _label;

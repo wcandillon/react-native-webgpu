@@ -44,10 +44,9 @@ public:
   inline const wgpu::ComputePipeline get() { return _instance; }
 
   size_t getMemoryPressure() override {
-    // Compute pipelines contain compiled compute shader state and
-    // driver-specific optimized code
-    // Estimate: 16KB for a typical compute pipeline (single compute shader)
-    return 16 * 1024;
+    // Compute pipelines retain compiled shader state and backend caches.
+    // Overshoot intentionally to reflect the native resources they fan out to.
+    return 3 * 1024 * 1024; // 3MB
   }
 
 private:

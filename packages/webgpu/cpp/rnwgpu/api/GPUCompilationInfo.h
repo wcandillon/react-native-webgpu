@@ -36,6 +36,15 @@ public:
     registerHybridGetter("messages", &GPUCompilationInfo::getMessages, this);
   }
 
+  size_t getMemoryPressure() override {
+    size_t total = sizeof(GPUCompilationInfo) +
+                   _messages.capacity() * sizeof(GPUCompilationMessage);
+    for (const auto &message : _messages) {
+      total += message.message.capacity();
+    }
+    return total;
+  }
+
 private:
   std::vector<GPUCompilationMessage> _messages;
   friend class GPUShaderModule;
