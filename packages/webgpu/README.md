@@ -185,6 +185,19 @@ device.queue.submit([commandEncoder.finish()]);
 context.present();
 ```
 
+### Canvas Transparency
+
+On Android, the `alphaMode` property is ignored when configuring the canvas.
+To have a transparent canvas by default, use the `transparent` property.
+
+```tsx
+return (
+  <View style={style.container}>
+    <Canvas ref={ref} style={style.webgpu} transparent />
+  </View>
+);
+```
+
 ### External Textures
 
 This module provides a `createImageBitmap` function that you can use in `copyExternalImageToTexture`.
