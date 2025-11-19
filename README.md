@@ -17,6 +17,10 @@ npm install react-native-wgpu
 Expo provides a React Native WebGPU template that works with React Three Fiber.
 The works on iOS, Android, and Web.
 
+```
+npx create-expo-app@latest -e with-webgpu
+```
+
 https://github.com/user-attachments/assets/efbd05f8-4ce0-46c2-919c-03e1095bc8ac
 
 Below are some examples from the [example app](/apps/example/).
