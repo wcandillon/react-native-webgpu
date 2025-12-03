@@ -1,9 +1,4 @@
-import React, {
-  forwardRef,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from "react";
+import React, { useImperativeHandle, useRef, useState } from "react";
 import type { ViewProps } from "react-native";
 import { Platform, View } from "react-native";
 
@@ -49,10 +44,12 @@ export interface CanvasRef {
   getNativeSurface: () => NativeCanvas;
 }
 
-export const Canvas = forwardRef<
-  CanvasRef,
-  ViewProps & { transparent?: boolean }
->(({ onLayout: _onLayout, transparent, ...props }, ref) => {
+interface CanvasProps extends ViewProps {
+  transparent?: boolean;
+  ref?: React.Ref<CanvasRef>;
+}
+
+export const Canvas = ({ transparent, ref, ...props }: CanvasProps) => {
   const viewRef = useRef(null);
   const [contextId, _] = useState(() => generateContextId());
   useImperativeHandle(ref, () => ({
@@ -94,4 +91,4 @@ export const Canvas = forwardRef<
       />
     </View>
   );
-});
+};
