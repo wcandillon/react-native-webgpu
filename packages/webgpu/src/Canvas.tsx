@@ -64,16 +64,11 @@ export const Canvas = ({ transparent, ref, ...props }: CanvasProps) => {
       if (!viewRef.current) {
         throw new Error("[WebGPU] Cannot get context before mount");
       }
-      let size;
-      if (Platform.OS === "web") {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
-        size = viewRef.current.getBoundingClientRect();
-      } else {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
-        size = viewRef.current.unstable_getBoundingClientRect();
-      }
+      const size = 'getBoundingClientRect' in viewRef.current
+        // Web and React Native 0.83
+        ? viewRef.current.getBoundingClientRect()
+        // React Native <0.83
+        : viewRef.current.unstable_getBoundingClientRect();
       return RNWebGPU.MakeWebGPUCanvasContext(
         contextId,
         size.width,
