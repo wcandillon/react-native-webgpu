@@ -35,6 +35,8 @@ public:
 
   inline const wgpu::RenderBundle get() { return _instance; }
 
+  size_t getMemoryPressure() override { return 1024 * 1024; }
+
 private:
   wgpu::RenderBundle _instance;
   std::string _label;

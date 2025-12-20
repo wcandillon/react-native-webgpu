@@ -36,5 +36,7 @@ public:
     registerHybridGetter("RENDER_ATTACHMENT",
                          &GPUTextureUsage::RenderAttachment, this);
   }
+
+  size_t getMemoryPressure() override { return sizeof(GPUTextureUsage); }
 };
 } // namespace rnwgpu

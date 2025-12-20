@@ -120,6 +120,8 @@ public:
 
   inline const wgpu::RenderPassEncoder get() { return _instance; }
 
+  size_t getMemoryPressure() override { return 1024 * 1024; }
+
 private:
   wgpu::RenderPassEncoder _instance;
   std::string _label;

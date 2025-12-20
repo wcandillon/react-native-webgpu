@@ -16,6 +16,16 @@ namespace margelo {
 namespace jsi = facebook::jsi;
 
 template <typename T> class PointerHolder : public HybridObject {
+public:
+  size_t getMemoryPressure() override {
+    std::unique_lock lock(_mutex);
+    if (_pointer == nullptr) {
+      return 0;
+    }
+    // Default to a small-but-nonzero floor so holders contribute to pressure.
+    return 64 * 1024; // 64KB
+  }
+
 protected:
   // no default constructor
   PointerHolder() = delete;

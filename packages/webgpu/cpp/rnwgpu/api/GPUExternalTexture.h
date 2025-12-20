@@ -36,6 +36,12 @@ public:
 
   inline const wgpu::ExternalTexture get() { return _instance; }
 
+  size_t getMemoryPressure() override {
+    // External textures usually wrap decoder/camera surfaces (multi-MB frames).
+    constexpr size_t kExternalTextureFloor = 8 * 1024 * 1024; // 8MB baseline
+    return kExternalTextureFloor + _label.capacity();
+  }
+
 private:
   wgpu::ExternalTexture _instance;
   std::string _label;

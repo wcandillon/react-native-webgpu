@@ -35,6 +35,8 @@ public:
 
   inline const wgpu::PipelineLayout get() { return _instance; }
 
+  size_t getMemoryPressure() override { return 1024; }
+
 private:
   wgpu::PipelineLayout _instance;
   std::string _label;

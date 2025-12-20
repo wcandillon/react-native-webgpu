@@ -49,11 +49,9 @@ public:
   inline const wgpu::ShaderModule get() { return _instance; }
 
   size_t getMemoryPressure() override {
-    // Estimate memory usage for compiled shader module
-    // Shaders can vary widely, but a reasonable estimate is 8-16KB for typical
-    // shaders Complex shaders (with many uniforms, textures, or computations)
-    // can be much larger
-    return 12 * 1024; // 12KB estimate for average shader
+    // Shader modules can fan out into compiled IR, reflection data and backend
+    // caches. Report a conservative 1MB to reflect that cost.
+    return 1 * 1024 * 1024; // 1MB
   }
 
 private:

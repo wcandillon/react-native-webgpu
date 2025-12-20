@@ -39,5 +39,7 @@ public:
     registerHybridGetter("INDIRECT", &GPUBufferUsage::Indirect, this);
     registerHybridGetter("QUERY_RESOLVE", &GPUBufferUsage::QueryResolve, this);
   }
+
+  size_t getMemoryPressure() override { return sizeof(GPUBufferUsage); }
 };
 } // namespace rnwgpu

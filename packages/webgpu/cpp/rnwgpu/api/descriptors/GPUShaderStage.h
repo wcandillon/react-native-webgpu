@@ -23,5 +23,7 @@ public:
     registerHybridGetter("FRAGMENT", &GPUShaderStage::Fragment, this);
     registerHybridGetter("COMPUTE", &GPUShaderStage::Compute, this);
   }
+
+  size_t getMemoryPressure() override { return sizeof(GPUShaderStage); }
 };
 } // namespace rnwgpu

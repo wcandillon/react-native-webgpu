@@ -47,6 +47,11 @@ public:
 
   inline const wgpu::Instance get() { return _instance; }
 
+  size_t getMemoryPressure() override {
+    // Instance discovery spins up adapter caches and driver state.
+    return 512 * 1024; // 512KB baseline
+  }
+
 private:
   wgpu::Instance _instance;
   std::shared_ptr<async::AsyncRunner> _async;
