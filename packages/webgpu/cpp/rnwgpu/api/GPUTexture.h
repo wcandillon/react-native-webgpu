@@ -6,7 +6,7 @@
 
 #include "Unions.h"
 
-#include "RNFNativeObject.h"
+#include "NativeObject.h"
 
 #include "webgpu/webgpu_cpp.h"
 

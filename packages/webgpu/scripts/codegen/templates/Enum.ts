@@ -18,7 +18,7 @@ export const getEnum = (decl: VariableDeclaration) => {
   return `#pragma once
 #include <string>
 
-#include <RNFNativeObject.h>
+#include <NativeObject.h>
 
 #include "webgpu/webgpu_cpp.h"
 

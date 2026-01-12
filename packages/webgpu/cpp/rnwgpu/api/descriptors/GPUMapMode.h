@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-#include <RNFNativeObject.h>
+#include <NativeObject.h>
 
 #include "webgpu/webgpu_cpp.h"
 

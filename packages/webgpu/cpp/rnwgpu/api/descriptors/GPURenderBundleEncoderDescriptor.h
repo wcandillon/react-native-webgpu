@@ -9,7 +9,6 @@
 #include "RNFJSIConverter.h"
 #include "WGPULogger.h"
 
-
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {

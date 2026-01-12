@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "RNFNativeObject.h"
+#include "NativeObject.h"
 
 #include "Canvas.h"
 #include "GPU.h"

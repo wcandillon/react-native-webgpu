@@ -5,7 +5,7 @@
 
 #include "Unions.h"
 
-#include "RNFNativeObject.h"
+#include "NativeObject.h"
 
 #include "Convertors.h"
 

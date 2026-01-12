@@ -6,7 +6,7 @@
 
 #include "Unions.h"
 
-#include "RNFNativeObject.h"
+#include "NativeObject.h"
 
 #include "rnwgpu/async/AsyncRunner.h"
 #include "rnwgpu/async/AsyncTaskHandle.h"
