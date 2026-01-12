@@ -14,7 +14,6 @@
 #include "GPURenderPassColorAttachment.h"
 #include "GPURenderPassDepthStencilAttachment.h"
 #include "GPURenderPassTimestampWrites.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

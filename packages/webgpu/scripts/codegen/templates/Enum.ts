@@ -18,17 +18,19 @@ export const getEnum = (decl: VariableDeclaration) => {
   return `#pragma once
 #include <string>
 
-#include <RNFHybridObject.h>
+#include <RNFNativeObject.h>
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
-namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class ${name} : public m::HybridObject {
+class ${name} : public NativeObject<${name}> {
 public:
-  ${name}() : HybridObject("${name}") {}
+  static constexpr const char *CLASS_NAME = "${name}";
+
+  ${name}() : NativeObject(CLASS_NAME) {}
 
 public:
   ${properties
@@ -40,11 +42,11 @@ public:
     })
     .join("\n    ")}
 
-  void loadHybridMethods() override {
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     ${properties
       .map((property) => {
         const prop = getPropName(property);
-        return `registerHybridGetter("${property.getName()}", &${name}::${prop}, this);`;
+        return `installGetter(runtime, prototype, "${property.getName()}", &${name}::${prop});`;
       })
       .join("\n    ")}
   }

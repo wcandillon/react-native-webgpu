@@ -12,7 +12,6 @@
 #include "GPUSamplerBindingLayout.h"
 #include "GPUStorageTextureBindingLayout.h"
 #include "GPUTextureBindingLayout.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

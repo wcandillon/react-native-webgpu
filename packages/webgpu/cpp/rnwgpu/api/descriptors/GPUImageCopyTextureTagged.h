@@ -10,7 +10,6 @@
 #include "External.h"
 #include "GPUOrigin3D.h"
 #include "GPUTexture.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

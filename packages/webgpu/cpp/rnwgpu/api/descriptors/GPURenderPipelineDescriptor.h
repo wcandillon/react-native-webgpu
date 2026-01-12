@@ -14,7 +14,6 @@
 #include "GPUPipelineLayout.h"
 #include "GPUPrimitiveState.h"
 #include "GPUVertexState.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

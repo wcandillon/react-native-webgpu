@@ -8,7 +8,6 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "Convertors.h"
-#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
 
 #include "GPUOrigin2D.h"

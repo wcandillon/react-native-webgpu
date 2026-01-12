@@ -9,7 +9,6 @@
 
 #include "GPUColor.h"
 #include "GPUTextureView.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

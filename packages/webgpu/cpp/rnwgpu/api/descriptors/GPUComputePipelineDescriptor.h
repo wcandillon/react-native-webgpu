@@ -10,7 +10,6 @@
 
 #include "GPUPipelineLayout.h"
 #include "GPUProgrammableStage.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

@@ -11,7 +11,6 @@
 
 #include "GPUBindGroupEntry.h"
 #include "GPUBindGroupLayout.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

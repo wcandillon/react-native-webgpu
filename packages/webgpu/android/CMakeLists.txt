@@ -45,7 +45,6 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/rnwgpu/api/GPUCanvasContext.cpp
     ../cpp/rnwgpu/RNWebGPUManager.cpp
     ../cpp/jsi/RNFPromise.cpp
-    ../cpp/jsi/RNFHybridObject.cpp
     ../cpp/jsi/RNFRuntimeState.cpp
     ../cpp/rnwgpu/async/AsyncRunner.cpp
     ../cpp/rnwgpu/async/AsyncTaskHandle.cpp

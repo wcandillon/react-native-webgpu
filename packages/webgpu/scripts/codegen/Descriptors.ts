@@ -271,14 +271,12 @@ ${Array.from(dependencies)
 #include "WGPULogger.h"
 #include "RNFJSIConverter.h"
 
-#include "RNFHybridObject.h"
 ${Array.from(dependencies)
   .filter((dep) => dep[0] !== dep[0].toLowerCase())
   .map((dep) => `#include "${dep}.h"`)
   .join("\n")}
 
 namespace jsi = facebook::jsi;
-namespace m = margelo;
 
 namespace rnwgpu {
 

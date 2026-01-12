@@ -11,7 +11,6 @@
 #include "WGPULogger.h"
 
 #include "GPUQueueDescriptor.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

@@ -13,7 +13,6 @@
 
 #include "GPUShaderModule.h"
 #include "GPUVertexBufferLayout.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

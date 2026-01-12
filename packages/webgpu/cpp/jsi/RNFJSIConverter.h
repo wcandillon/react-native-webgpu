@@ -302,7 +302,7 @@ template <typename ValueType> struct JSIConverter<std::unordered_map<std::string
   }
 };
 
-// HybridObject <> {}
+// HostObject (non-NativeState) <> {}
 template <typename T> struct is_shared_ptr_to_host_object : std::false_type {};
 
 // Only match HostObject types that are NOT NativeState types

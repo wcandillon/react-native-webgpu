@@ -9,7 +9,6 @@
 #include "WGPULogger.h"
 
 #include "GPUComputePassTimestampWrites.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

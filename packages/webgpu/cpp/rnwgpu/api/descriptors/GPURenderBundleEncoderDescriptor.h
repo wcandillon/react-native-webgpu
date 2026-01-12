@@ -9,7 +9,6 @@
 #include "RNFJSIConverter.h"
 #include "WGPULogger.h"
 
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

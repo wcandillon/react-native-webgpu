@@ -9,7 +9,6 @@
 #include "WGPULogger.h"
 
 #include "GPUVertexAttribute.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

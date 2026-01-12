@@ -8,7 +8,6 @@
 #include "WGPULogger.h"
 
 #include "GPUStencilFaceState.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

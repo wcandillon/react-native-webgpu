@@ -10,7 +10,6 @@
 #include "WGPULogger.h"
 
 #include "GPUShaderModule.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

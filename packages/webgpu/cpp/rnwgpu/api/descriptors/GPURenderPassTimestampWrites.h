@@ -8,7 +8,6 @@
 #include "WGPULogger.h"
 
 #include "GPUQuerySet.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

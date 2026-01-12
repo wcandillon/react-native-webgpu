@@ -8,7 +8,6 @@
 #include "RNFJSIConverter.h"
 
 #include "GPUDevice.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
 

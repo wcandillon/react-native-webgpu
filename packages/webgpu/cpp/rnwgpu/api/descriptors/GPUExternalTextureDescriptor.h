@@ -9,7 +9,6 @@
 
 #include "Convertors.h"
 
-#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
 #include "WGPULogger.h"
 

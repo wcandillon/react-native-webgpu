@@ -47,7 +47,7 @@ export const resolved: Record<
 > = {
   GPU: {
     ctor: `GPU()
-      : HybridObject("GPU")  {
+      : NativeObject(CLASS_NAME)  {
           wgpu::InstanceDescriptor instanceDesc;
           instanceDesc.features.timedWaitAnyEnable = true;
           instanceDesc.features.timedWaitAnyMaxCount = 64;
@@ -57,9 +57,9 @@ export const resolved: Record<
       }`,
   },
   GPUDevice: {
-    ctor: `  explicit GPUDevice(wgpu::Device instance, std::shared_ptr<AsyncRunner> async,
+    ctor: `explicit GPUDevice(wgpu::Device instance, std::shared_ptr<AsyncRunner> async,
                      std::string label)
-      : HybridObject("GPUDevice"), _instance(instance), _async(async),
+      : NativeObject(CLASS_NAME), _instance(instance), _async(async),
         _label(label) {
           m_lostPromise = std::make_shared<std::promise<std::shared_ptr<GPUDeviceLostInfo>>>();
         }`,

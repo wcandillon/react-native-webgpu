@@ -127,9 +127,9 @@ ${Array.from(dependencies)
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
-#include "AsyncRunner.h"
+#include "rnwgpu/async/AsyncRunner.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -140,18 +140,20 @@ ${Array.from(dependencies)
 
 namespace rnwgpu {
 
-namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class ${className} : public m::HybridObject {
+class ${className} : public NativeObject<${className}> {
 public:
+  static constexpr const char *CLASS_NAME = "${className}";
+
   ${
     ctor
       ? ctor
-      : `  explicit ${className}(${ctorParams.map((param) => `${param.type} ${param.name}`).join(", ")}) : HybridObject("${className}"), ${ctorParams.map((param) => `_${param.name}(${param.name})`).join(", ")} {}`
+      : `explicit ${className}(${ctorParams.map((param) => `${param.type} ${param.name}`).join(", ")}) : NativeObject(CLASS_NAME), ${ctorParams.map((param) => `_${param.name}(${param.name})`).join(", ")} {}`
   }
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   ${methods
     .map((method) => {
@@ -167,35 +169,35 @@ public:
   ${
     hasLabel
       ? `std::string getLabel() { return _label; }
-    void setLabel(const std::string& label) { _label = label;
-      _instance.SetLabel(_label.c_str());
-    }`
+  void setLabel(const std::string& label) {
+    _label = label;
+    _instance.SetLabel(_label.c_str());
+  }`
       : ""
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &${className}::getBrand, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &${className}::getBrand);
     ${methods
       .map(
         (method) =>
-          `registerHybridMethod("${method.name}", &${className}::${method.name}, this);`,
+          `installMethod(runtime, prototype, "${method.name}", &${className}::${method.name});`,
       )
-      .join("\n")}
-    ${properties.map((prop) => `registerHybridGetter("${prop.name}", &${className}::get${_.upperFirst(prop.name)}, this);`).join("\n")}
+      .join("\n    ")}
+    ${properties.map((prop) => `installGetter(runtime, prototype, "${prop.name}", &${className}::get${_.upperFirst(prop.name)});`).join("\n    ")}
     ${
       hasLabel
-        ? `registerHybridGetter("label", &${className}::getLabel, this);
-      registerHybridSetter("label", &${className}::setLabel, this);`
+        ? `installGetterSetter(runtime, prototype, "label", &${className}::getLabel, &${className}::setLabel);`
         : ""
     }
   }
-  
+
   inline const ${instanceName} get() {
     return _instance;
   }
 
  private:
-  ${ctorParams.map((param) => `${param.type} _${param.name};`).join("\n")}
+  ${ctorParams.map((param) => `${param.type} _${param.name};`).join("\n  ")}
   ${resolveExtra(className)}
 };
 
