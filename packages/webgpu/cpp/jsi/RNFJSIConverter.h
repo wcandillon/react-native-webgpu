@@ -416,16 +416,33 @@ template <typename T> struct JSIConverter<T, std::enable_if_t<is_shared_ptr_to_n
 #endif
     return object.getNativeState<TPointee>(runtime);
   }
+private:
+  // SFINAE helper to detect if T has a IsNativeObject marker type
+  template <typename U, typename = typename U::IsNativeObject>
+  static std::true_type hasNativeObjectMarker(int);
+  template <typename U>
+  static std::false_type hasNativeObjectMarker(...);
+
+  // Type trait for detection
+  static constexpr bool is_native_object = decltype(hasNativeObjectMarker<TPointee>(0))::value;
+
+public:
   static jsi::Value toJSI(jsi::Runtime& runtime, const T& arg) {
 #if DEBUG
     if (arg == nullptr) {
       [[unlikely]];
-      throw jsi::JSError(runtime, "Cannot convert nullptr to HostObject<" + getFriendlyTypename() + ">!");
+      throw jsi::JSError(runtime, "Cannot convert nullptr to NativeState<" + getFriendlyTypename() + ">!");
     }
 #endif
-    jsi::Object object(runtime);
-    object.setNativeState(runtime, arg);
-    return object;
+    // Check if the type is a NativeObject (has IsNativeObject marker)
+    // Use TPointee::create() if it's a NativeObject, otherwise fall back to plain setNativeState
+    if constexpr (is_native_object) {
+      return TPointee::create(runtime, arg);
+    } else {
+      jsi::Object object(runtime);
+      object.setNativeState(runtime, arg);
+      return object;
+    }
   }
 };
 
