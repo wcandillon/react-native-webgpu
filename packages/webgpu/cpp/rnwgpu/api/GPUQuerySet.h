@@ -10,10 +10,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUQuerySet : public m::NativeObject<GPUQuerySet> {
+class GPUQuerySet : public NativeObject<GPUQuerySet> {
 public:
   static constexpr const char *CLASS_NAME = "GPUQuerySet";
 

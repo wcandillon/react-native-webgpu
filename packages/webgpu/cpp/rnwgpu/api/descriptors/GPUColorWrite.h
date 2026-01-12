@@ -7,10 +7,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUColorWrite : public m::NativeObject<GPUColorWrite> {
+class GPUColorWrite : public NativeObject<GPUColorWrite> {
 public:
   static constexpr const char *CLASS_NAME = "GPUColorWrite";
 

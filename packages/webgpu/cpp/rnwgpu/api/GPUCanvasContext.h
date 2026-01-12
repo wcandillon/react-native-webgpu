@@ -18,10 +18,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUCanvasContext : public m::NativeObject<GPUCanvasContext> {
+class GPUCanvasContext : public NativeObject<GPUCanvasContext> {
 public:
   static constexpr const char *CLASS_NAME = "GPUCanvasContext";
 

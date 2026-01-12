@@ -10,10 +10,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUExternalTexture : public m::NativeObject<GPUExternalTexture> {
+class GPUExternalTexture : public NativeObject<GPUExternalTexture> {
 public:
   static constexpr const char *CLASS_NAME = "GPUExternalTexture";
 

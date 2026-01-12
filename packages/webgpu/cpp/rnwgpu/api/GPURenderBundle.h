@@ -10,10 +10,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPURenderBundle : public m::NativeObject<GPURenderBundle> {
+class GPURenderBundle : public NativeObject<GPURenderBundle> {
 public:
   static constexpr const char *CLASS_NAME = "GPURenderBundle";
 

@@ -7,10 +7,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUShaderStage : public m::NativeObject<GPUShaderStage> {
+class GPUShaderStage : public NativeObject<GPUShaderStage> {
 public:
   static constexpr const char *CLASS_NAME = "GPUShaderStage";
 

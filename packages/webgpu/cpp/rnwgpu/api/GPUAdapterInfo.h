@@ -13,10 +13,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUAdapterInfo : public m::NativeObject<GPUAdapterInfo> {
+class GPUAdapterInfo : public NativeObject<GPUAdapterInfo> {
 public:
   static constexpr const char *CLASS_NAME = "GPUAdapterInfo";
 

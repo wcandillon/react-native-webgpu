@@ -10,10 +10,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUCommandBuffer : public m::NativeObject<GPUCommandBuffer> {
+class GPUCommandBuffer : public NativeObject<GPUCommandBuffer> {
 public:
   static constexpr const char *CLASS_NAME = "GPUCommandBuffer";
 

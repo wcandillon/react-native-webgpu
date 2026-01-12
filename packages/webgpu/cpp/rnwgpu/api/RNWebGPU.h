@@ -13,7 +13,6 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
 struct Blob {
@@ -24,7 +23,7 @@ struct Blob {
   std::string name;
 };
 
-class RNWebGPU : public m::NativeObject<RNWebGPU> {
+class RNWebGPU : public NativeObject<RNWebGPU> {
 public:
   static constexpr const char *CLASS_NAME = "RNWebGPU";
 

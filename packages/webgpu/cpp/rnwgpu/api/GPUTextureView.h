@@ -10,10 +10,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUTextureView : public m::NativeObject<GPUTextureView> {
+class GPUTextureView : public NativeObject<GPUTextureView> {
 public:
   static constexpr const char *CLASS_NAME = "GPUTextureView";
 

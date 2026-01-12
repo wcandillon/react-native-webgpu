@@ -7,10 +7,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUMapMode : public m::NativeObject<GPUMapMode> {
+class GPUMapMode : public NativeObject<GPUMapMode> {
 public:
   static constexpr const char *CLASS_NAME = "GPUMapMode";
 

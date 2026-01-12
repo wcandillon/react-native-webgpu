@@ -10,10 +10,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUCompilationMessage : public m::NativeObject<GPUCompilationMessage> {
+class GPUCompilationMessage : public NativeObject<GPUCompilationMessage> {
 public:
   static constexpr const char *CLASS_NAME = "GPUCompilationMessage";
 

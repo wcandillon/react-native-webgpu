@@ -11,10 +11,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class Canvas : public m::NativeObject<Canvas> {
+class Canvas : public NativeObject<Canvas> {
 public:
   static constexpr const char *CLASS_NAME = "Canvas";
 

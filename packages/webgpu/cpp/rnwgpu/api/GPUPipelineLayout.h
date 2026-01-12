@@ -10,10 +10,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUPipelineLayout : public m::NativeObject<GPUPipelineLayout> {
+class GPUPipelineLayout : public NativeObject<GPUPipelineLayout> {
 public:
   static constexpr const char *CLASS_NAME = "GPUPipelineLayout";
 

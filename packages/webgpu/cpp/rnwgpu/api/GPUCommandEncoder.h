@@ -23,10 +23,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUCommandEncoder : public m::NativeObject<GPUCommandEncoder> {
+class GPUCommandEncoder : public NativeObject<GPUCommandEncoder> {
 public:
   static constexpr const char *CLASS_NAME = "GPUCommandEncoder";
 

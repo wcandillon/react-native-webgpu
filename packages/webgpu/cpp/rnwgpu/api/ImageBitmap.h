@@ -9,10 +9,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class ImageBitmap : public m::NativeObject<ImageBitmap> {
+class ImageBitmap : public NativeObject<ImageBitmap> {
 public:
   static constexpr const char *CLASS_NAME = "ImageBitmap";
 

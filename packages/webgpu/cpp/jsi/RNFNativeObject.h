@@ -25,7 +25,7 @@ template <typename ArgType, typename SFINAE> struct JSIConverter;
 // Include the converter - must come after forward declaration
 #include "RNFJSIConverter.h"
 
-namespace margelo {
+namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
 
@@ -40,10 +40,9 @@ struct PrototypeCacheEntry {
 
 /**
  * Simple runtime-aware cache that stores data per-runtime.
- * When a runtime is destroyed, its cached data is automatically invalidated
- * on next access (by checking if the runtime pointer is still valid).
+ * Used by NativeObject to cache prototypes per runtime.
  */
-template <typename T> class RuntimeAwareCache {
+template <typename T> class PrototypeCache {
 public:
   T &get(jsi::Runtime &rt) {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -101,8 +100,8 @@ public:
    * Get the prototype cache for this type.
    * Each NativeObject<Derived> type has its own static cache.
    */
-  static RuntimeAwareCache<PrototypeCacheEntry> &getPrototypeCache() {
-    static RuntimeAwareCache<PrototypeCacheEntry> cache;
+  static PrototypeCache<PrototypeCacheEntry> &getPrototypeCache() {
+    static PrototypeCache<PrototypeCacheEntry> cache;
     return cache;
   }
 
@@ -121,6 +120,26 @@ public:
 
     // Let derived class define its methods/properties
     Derived::definePrototype(runtime, prototype);
+
+    // Add Symbol.toStringTag for proper object identification in console.log
+    auto symbolCtor = runtime.global().getPropertyAsObject(runtime, "Symbol");
+    auto toStringTag = symbolCtor.getProperty(runtime, "toStringTag");
+    if (!toStringTag.isUndefined()) {
+      // Use Object.defineProperty to set symbol property since setProperty
+      // doesn't support symbols directly
+      auto objectCtor =
+          runtime.global().getPropertyAsObject(runtime, "Object");
+      auto defineProperty =
+          objectCtor.getPropertyAsFunction(runtime, "defineProperty");
+      jsi::Object descriptor(runtime);
+      descriptor.setProperty(
+          runtime, "value",
+          jsi::String::createFromUtf8(runtime, Derived::CLASS_NAME));
+      descriptor.setProperty(runtime, "writable", false);
+      descriptor.setProperty(runtime, "enumerable", false);
+      descriptor.setProperty(runtime, "configurable", true);
+      defineProperty.call(runtime, prototype, toStringTag, descriptor);
+    }
 
     // Cache the prototype
     entry.prototype = std::move(prototype);
@@ -254,7 +273,7 @@ protected:
             return jsi::Value::undefined();
           } else {
             ReturnType result = (native.get()->*getter)();
-            return JSIConverter<std::decay_t<ReturnType>>::toJSI(
+            return margelo::JSIConverter<std::decay_t<ReturnType>>::toJSI(
                 rt, std::move(result));
           }
         });
@@ -287,7 +306,7 @@ protected:
                  const jsi::Value *args, size_t count) -> jsi::Value {
           auto native = Derived::fromValue(rt, thisVal);
           auto value =
-              JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
+              margelo::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
           (native.get()->*setter)(std::move(value));
           return jsi::Value::undefined();
         });
@@ -334,7 +353,7 @@ protected:
                  const jsi::Value *args, size_t count) -> jsi::Value {
           auto native = Derived::fromValue(rt, thisVal);
           ReturnType result = (native.get()->*getter)();
-          return JSIConverter<std::decay_t<ReturnType>>::toJSI(rt,
+          return margelo::JSIConverter<std::decay_t<ReturnType>>::toJSI(rt,
                                                                std::move(result));
         });
 
@@ -345,7 +364,7 @@ protected:
                  const jsi::Value *args, size_t count) -> jsi::Value {
           auto native = Derived::fromValue(rt, thisVal);
           auto value =
-              JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
+              margelo::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
           (native.get()->*setter)(std::move(value));
           return jsi::Value::undefined();
         });
@@ -372,7 +391,7 @@ private:
                                jsi::Runtime &runtime, const jsi::Value *args,
                                std::index_sequence<Is...>, size_t count) {
     if constexpr (std::is_same_v<ReturnType, void>) {
-      (obj->*method)(JSIConverter<std::decay_t<Args>>::fromJSI(
+      (obj->*method)(margelo::JSIConverter<std::decay_t<Args>>::fromJSI(
           runtime, args[Is], Is >= count)...);
       return jsi::Value::undefined();
     } else if constexpr (std::is_same_v<ReturnType, jsi::Value>) {
@@ -380,9 +399,9 @@ private:
       // This requires the method signature to match HostFunction
       return (obj->*method)(runtime, jsi::Value::undefined(), args, count);
     } else {
-      ReturnType result = (obj->*method)(JSIConverter<std::decay_t<Args>>::fromJSI(
+      ReturnType result = (obj->*method)(margelo::JSIConverter<std::decay_t<Args>>::fromJSI(
           runtime, args[Is], Is >= count)...);
-      return JSIConverter<std::decay_t<ReturnType>>::toJSI(runtime,
+      return margelo::JSIConverter<std::decay_t<ReturnType>>::toJSI(runtime,
                                                            std::move(result));
     }
   }
@@ -395,4 +414,4 @@ template <typename T>
 struct is_native_object<std::shared_ptr<T>>
     : std::bool_constant<std::is_base_of_v<NativeObject<T>, T>> {};
 
-} // namespace margelo
+} // namespace rnwgpu

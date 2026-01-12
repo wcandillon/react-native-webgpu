@@ -21,10 +21,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUQueue : public m::NativeObject<GPUQueue> {
+class GPUQueue : public NativeObject<GPUQueue> {
 public:
   static constexpr const char *CLASS_NAME = "GPUQueue";
 

@@ -10,10 +10,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUSupportedLimits : public m::NativeObject<GPUSupportedLimits> {
+class GPUSupportedLimits : public NativeObject<GPUSupportedLimits> {
 public:
   static constexpr const char *CLASS_NAME = "GPUSupportedLimits";
 

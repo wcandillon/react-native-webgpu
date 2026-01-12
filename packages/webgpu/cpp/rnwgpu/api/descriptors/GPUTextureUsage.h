@@ -7,10 +7,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUTextureUsage : public m::NativeObject<GPUTextureUsage> {
+class GPUTextureUsage : public NativeObject<GPUTextureUsage> {
 public:
   static constexpr const char *CLASS_NAME = "GPUTextureUsage";
 

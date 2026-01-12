@@ -18,10 +18,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUBuffer : public m::NativeObject<GPUBuffer> {
+class GPUBuffer : public NativeObject<GPUBuffer> {
 public:
   static constexpr const char *CLASS_NAME = "GPUBuffer";
 

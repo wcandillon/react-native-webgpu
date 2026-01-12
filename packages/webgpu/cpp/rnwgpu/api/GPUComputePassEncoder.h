@@ -18,10 +18,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUComputePassEncoder : public m::NativeObject<GPUComputePassEncoder> {
+class GPUComputePassEncoder : public NativeObject<GPUComputePassEncoder> {
 public:
   static constexpr const char *CLASS_NAME = "GPUComputePassEncoder";
 

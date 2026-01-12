@@ -10,10 +10,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUBindGroupLayout : public m::NativeObject<GPUBindGroupLayout> {
+class GPUBindGroupLayout : public NativeObject<GPUBindGroupLayout> {
 public:
   static constexpr const char *CLASS_NAME = "GPUBindGroupLayout";
 

@@ -12,7 +12,6 @@
 #include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
-namespace m = margelo;
 
 namespace rnwgpu {
 

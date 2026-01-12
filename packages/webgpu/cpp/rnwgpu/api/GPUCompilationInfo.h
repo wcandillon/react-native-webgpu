@@ -11,7 +11,6 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
 struct GPUCompilationMessageData {
@@ -23,7 +22,7 @@ struct GPUCompilationMessageData {
   uint64_t length;
 };
 
-class GPUCompilationInfo : public m::NativeObject<GPUCompilationInfo> {
+class GPUCompilationInfo : public NativeObject<GPUCompilationInfo> {
 public:
   static constexpr const char *CLASS_NAME = "GPUCompilationInfo";
 

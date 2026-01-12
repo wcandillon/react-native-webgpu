@@ -10,10 +10,9 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
 namespace jsi = facebook::jsi;
 
-class GPUSampler : public m::NativeObject<GPUSampler> {
+class GPUSampler : public NativeObject<GPUSampler> {
 public:
   static constexpr const char *CLASS_NAME = "GPUSampler";
 
