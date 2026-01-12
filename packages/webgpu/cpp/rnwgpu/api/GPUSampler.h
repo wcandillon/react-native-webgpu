@@ -4,21 +4,24 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUSampler : public m::HybridObject {
+class GPUSampler : public m::NativeObject<GPUSampler> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUSampler";
+
   explicit GPUSampler(wgpu::Sampler instance, std::string label)
-      : HybridObject("GPUSampler"), _instance(instance), _label(label) {}
+      : NativeObject(CLASS_NAME), _instance(instance), _label(label) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
@@ -26,11 +29,10 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUSampler::getBrand, this);
-
-    registerHybridGetter("label", &GPUSampler::getLabel, this);
-    registerHybridSetter("label", &GPUSampler::setLabel, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUSampler::getBrand);
+    installGetterSetter(runtime, prototype, "label", &GPUSampler::getLabel,
+                        &GPUSampler::setLabel);
   }
 
   inline const wgpu::Sampler get() { return _instance; }

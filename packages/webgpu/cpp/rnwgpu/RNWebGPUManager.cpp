@@ -25,34 +25,32 @@ RNWebGPUManager::RNWebGPUManager(
   auto gpu = std::make_shared<GPU>(*_jsRuntime);
   auto rnWebGPU = std::make_shared<RNWebGPU>(gpu, _platformContext);
   _gpu = gpu->get();
-  _jsRuntime->global().setProperty(
-      *_jsRuntime, "RNWebGPU",
-      jsi::Object::createFromHostObject(*_jsRuntime, rnWebGPU));
+  _jsRuntime->global().setProperty(*_jsRuntime, "RNWebGPU",
+                                   RNWebGPU::create(*_jsRuntime, rnWebGPU));
 
   auto bufferUsage = std::make_shared<GPUBufferUsage>();
   _jsRuntime->global().setProperty(
       *_jsRuntime, "GPUBufferUsage",
-      jsi::Object::createFromHostObject(*_jsRuntime, std::move(bufferUsage)));
+      GPUBufferUsage::create(*_jsRuntime, std::move(bufferUsage)));
 
   auto colorWrite = std::make_shared<GPUColorWrite>();
   _jsRuntime->global().setProperty(
       *_jsRuntime, "GPUColorWrite",
-      jsi::Object::createFromHostObject(*_jsRuntime, std::move(colorWrite)));
+      GPUColorWrite::create(*_jsRuntime, std::move(colorWrite)));
 
   auto mapMode = std::make_shared<GPUMapMode>();
-  _jsRuntime->global().setProperty(
-      *_jsRuntime, "GPUMapMode",
-      jsi::Object::createFromHostObject(*_jsRuntime, std::move(mapMode)));
+  _jsRuntime->global().setProperty(*_jsRuntime, "GPUMapMode",
+                                   GPUMapMode::create(*_jsRuntime, mapMode));
 
   auto shaderStage = std::make_shared<GPUShaderStage>();
   _jsRuntime->global().setProperty(
       *_jsRuntime, "GPUShaderStage",
-      jsi::Object::createFromHostObject(*_jsRuntime, std::move(shaderStage)));
+      GPUShaderStage::create(*_jsRuntime, std::move(shaderStage)));
 
   auto textureUsage = std::make_shared<GPUTextureUsage>();
   _jsRuntime->global().setProperty(
       *_jsRuntime, "GPUTextureUsage",
-      jsi::Object::createFromHostObject(*_jsRuntime, std::move(textureUsage)));
+      GPUTextureUsage::create(*_jsRuntime, std::move(textureUsage)));
 }
 
 RNWebGPUManager::~RNWebGPUManager() {

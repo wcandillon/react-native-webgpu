@@ -6,7 +6,7 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -16,14 +16,17 @@
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUTexture : public m::HybridObject {
+class GPUTexture : public m::NativeObject<GPUTexture> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUTexture";
+
   explicit GPUTexture(wgpu::Texture instance, std::string label)
-      : HybridObject("GPUTexture"), _instance(instance), _label(label) {}
+      : NativeObject(CLASS_NAME), _instance(instance), _label(label) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   std::shared_ptr<GPUTextureView> createView(
       std::optional<std::shared_ptr<GPUTextureViewDescriptor>> descriptor);
@@ -44,21 +47,23 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUTexture::getBrand, this);
-    registerHybridMethod("createView", &GPUTexture::createView, this);
-    registerHybridMethod("destroy", &GPUTexture::destroy, this);
-    registerHybridGetter("width", &GPUTexture::getWidth, this);
-    registerHybridGetter("height", &GPUTexture::getHeight, this);
-    registerHybridGetter("depthOrArrayLayers",
-                         &GPUTexture::getDepthOrArrayLayers, this);
-    registerHybridGetter("mipLevelCount", &GPUTexture::getMipLevelCount, this);
-    registerHybridGetter("sampleCount", &GPUTexture::getSampleCount, this);
-    registerHybridGetter("dimension", &GPUTexture::getDimension, this);
-    registerHybridGetter("format", &GPUTexture::getFormat, this);
-    registerHybridGetter("usage", &GPUTexture::getUsage, this);
-    registerHybridGetter("label", &GPUTexture::getLabel, this);
-    registerHybridSetter("label", &GPUTexture::setLabel, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUTexture::getBrand);
+    installMethod(runtime, prototype, "createView", &GPUTexture::createView);
+    installMethod(runtime, prototype, "destroy", &GPUTexture::destroy);
+    installGetter(runtime, prototype, "width", &GPUTexture::getWidth);
+    installGetter(runtime, prototype, "height", &GPUTexture::getHeight);
+    installGetter(runtime, prototype, "depthOrArrayLayers",
+                  &GPUTexture::getDepthOrArrayLayers);
+    installGetter(runtime, prototype, "mipLevelCount",
+                  &GPUTexture::getMipLevelCount);
+    installGetter(runtime, prototype, "sampleCount",
+                  &GPUTexture::getSampleCount);
+    installGetter(runtime, prototype, "dimension", &GPUTexture::getDimension);
+    installGetter(runtime, prototype, "format", &GPUTexture::getFormat);
+    installGetter(runtime, prototype, "usage", &GPUTexture::getUsage);
+    installGetterSetter(runtime, prototype, "label", &GPUTexture::getLabel,
+                        &GPUTexture::setLabel);
   }
 
   inline const wgpu::Texture get() { return _instance; }

@@ -5,14 +5,19 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "PlatformContext.h"
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
 namespace rnwgpu {
 
-class ImageBitmap : public margelo::HybridObject {
+namespace m = margelo;
+namespace jsi = facebook::jsi;
+
+class ImageBitmap : public m::NativeObject<ImageBitmap> {
 public:
+  static constexpr const char *CLASS_NAME = "ImageBitmap";
+
   explicit ImageBitmap(ImageData &imageData)
-      : HybridObject("ImageBitmap"), _imageData(imageData) {}
+      : NativeObject(CLASS_NAME), _imageData(imageData) {}
 
   size_t getWidth() { return _imageData.width; }
 
@@ -22,9 +27,9 @@ public:
 
   size_t getSize() { return _imageData.data.size(); }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("width", &ImageBitmap::getWidth, this);
-    registerHybridGetter("height", &ImageBitmap::getHeight, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "width", &ImageBitmap::getWidth);
+    installGetter(runtime, prototype, "height", &ImageBitmap::getHeight);
   }
 
   size_t getMemoryPressure() override { return getSize(); }

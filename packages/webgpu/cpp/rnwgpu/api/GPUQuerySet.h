@@ -4,21 +4,24 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUQuerySet : public m::HybridObject {
+class GPUQuerySet : public m::NativeObject<GPUQuerySet> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUQuerySet";
+
   explicit GPUQuerySet(wgpu::QuerySet instance, std::string label)
-      : HybridObject("GPUQuerySet"), _instance(instance), _label(label) {}
+      : NativeObject(CLASS_NAME), _instance(instance), _label(label) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   void destroy();
 
@@ -31,13 +34,13 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUQuerySet::getBrand, this);
-    registerHybridMethod("destroy", &GPUQuerySet::destroy, this);
-    registerHybridGetter("type", &GPUQuerySet::getType, this);
-    registerHybridGetter("count", &GPUQuerySet::getCount, this);
-    registerHybridGetter("label", &GPUQuerySet::getLabel, this);
-    registerHybridSetter("label", &GPUQuerySet::setLabel, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUQuerySet::getBrand);
+    installMethod(runtime, prototype, "destroy", &GPUQuerySet::destroy);
+    installGetter(runtime, prototype, "type", &GPUQuerySet::getType);
+    installGetter(runtime, prototype, "count", &GPUQuerySet::getCount);
+    installGetterSetter(runtime, prototype, "label", &GPUQuerySet::getLabel,
+                        &GPUQuerySet::setLabel);
   }
 
   inline const wgpu::QuerySet get() { return _instance; }

@@ -4,21 +4,24 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUTextureView : public m::HybridObject {
+class GPUTextureView : public m::NativeObject<GPUTextureView> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUTextureView";
+
   explicit GPUTextureView(wgpu::TextureView instance, std::string label)
-      : HybridObject("GPUTextureView"), _instance(instance), _label(label) {}
+      : NativeObject(CLASS_NAME), _instance(instance), _label(label) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
@@ -26,11 +29,10 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUTextureView::getBrand, this);
-
-    registerHybridGetter("label", &GPUTextureView::getLabel, this);
-    registerHybridSetter("label", &GPUTextureView::setLabel, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUTextureView::getBrand);
+    installGetterSetter(runtime, prototype, "label", &GPUTextureView::getLabel,
+                        &GPUTextureView::setLabel);
   }
 
   inline const wgpu::TextureView get() { return _instance; }

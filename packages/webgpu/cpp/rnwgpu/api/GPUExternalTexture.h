@@ -4,22 +4,24 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUExternalTexture : public m::HybridObject {
+class GPUExternalTexture : public m::NativeObject<GPUExternalTexture> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUExternalTexture";
+
   explicit GPUExternalTexture(wgpu::ExternalTexture instance, std::string label)
-      : HybridObject("GPUExternalTexture"), _instance(instance), _label(label) {
-  }
+      : NativeObject(CLASS_NAME), _instance(instance), _label(label) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
@@ -27,11 +29,11 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUExternalTexture::getBrand, this);
-
-    registerHybridGetter("label", &GPUExternalTexture::getLabel, this);
-    registerHybridSetter("label", &GPUExternalTexture::setLabel, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUExternalTexture::getBrand);
+    installGetterSetter(runtime, prototype, "label",
+                        &GPUExternalTexture::getLabel,
+                        &GPUExternalTexture::setLabel);
   }
 
   inline const wgpu::ExternalTexture get() { return _instance; }

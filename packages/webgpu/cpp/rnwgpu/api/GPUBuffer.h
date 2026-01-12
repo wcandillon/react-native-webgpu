@@ -7,7 +7,7 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
 #include "rnwgpu/async/AsyncRunner.h"
 #include "rnwgpu/async/AsyncTaskHandle.h"
@@ -19,17 +19,20 @@
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUBuffer : public m::HybridObject {
+class GPUBuffer : public m::NativeObject<GPUBuffer> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUBuffer";
+
   explicit GPUBuffer(wgpu::Buffer instance,
                      std::shared_ptr<async::AsyncRunner> async,
                      std::string label)
-      : HybridObject("GPUBuffer"), _instance(instance), _async(async),
+      : NativeObject(CLASS_NAME), _instance(instance), _async(async),
         _label(label) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   async::AsyncTaskHandle mapAsync(uint64_t modeIn,
                                   std::optional<uint64_t> offset,
@@ -49,17 +52,18 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUBuffer::getBrand, this);
-    registerHybridMethod("mapAsync", &GPUBuffer::mapAsync, this);
-    registerHybridMethod("getMappedRange", &GPUBuffer::getMappedRange, this);
-    registerHybridMethod("unmap", &GPUBuffer::unmap, this);
-    registerHybridMethod("destroy", &GPUBuffer::destroy, this);
-    registerHybridGetter("size", &GPUBuffer::getSize, this);
-    registerHybridGetter("usage", &GPUBuffer::getUsage, this);
-    registerHybridGetter("mapState", &GPUBuffer::getMapState, this);
-    registerHybridGetter("label", &GPUBuffer::getLabel, this);
-    registerHybridSetter("label", &GPUBuffer::setLabel, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUBuffer::getBrand);
+    installMethod(runtime, prototype, "mapAsync", &GPUBuffer::mapAsync);
+    installMethod(runtime, prototype, "getMappedRange",
+                  &GPUBuffer::getMappedRange);
+    installMethod(runtime, prototype, "unmap", &GPUBuffer::unmap);
+    installMethod(runtime, prototype, "destroy", &GPUBuffer::destroy);
+    installGetter(runtime, prototype, "size", &GPUBuffer::getSize);
+    installGetter(runtime, prototype, "usage", &GPUBuffer::getUsage);
+    installGetter(runtime, prototype, "mapState", &GPUBuffer::getMapState);
+    installGetterSetter(runtime, prototype, "label", &GPUBuffer::getLabel,
+                        &GPUBuffer::setLabel);
   }
 
   inline const wgpu::Buffer get() { return _instance; }

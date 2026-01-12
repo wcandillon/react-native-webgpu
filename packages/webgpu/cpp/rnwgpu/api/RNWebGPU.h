@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+#include "RNFNativeObject.h"
+
 #include "Canvas.h"
 #include "GPU.h"
 #include "GPUCanvasContext.h"
@@ -12,6 +14,7 @@
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
 struct Blob {
   std::string blobId;
@@ -21,11 +24,13 @@ struct Blob {
   std::string name;
 };
 
-class RNWebGPU : public m::HybridObject {
+class RNWebGPU : public m::NativeObject<RNWebGPU> {
 public:
+  static constexpr const char *CLASS_NAME = "RNWebGPU";
+
   explicit RNWebGPU(std::shared_ptr<GPU> gpu,
                     std::shared_ptr<PlatformContext> platformContext)
-      : HybridObject("RNWebGPU"), _gpu(gpu), _platformContext(platformContext) {
+      : NativeObject(CLASS_NAME), _gpu(gpu), _platformContext(platformContext) {
   }
 
   std::shared_ptr<GPU> getGPU() { return _gpu; }
@@ -57,14 +62,15 @@ public:
                                     nativeInfo.height);
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("fabric", &RNWebGPU::getFabric, this);
-    registerHybridGetter("gpu", &RNWebGPU::getGPU, this);
-    registerHybridMethod("createImageBitmap", &RNWebGPU::createImageBitmap,
-                         this);
-    registerHybridMethod("getNativeSurface", &RNWebGPU::getNativeSurface, this);
-    registerHybridMethod("MakeWebGPUCanvasContext",
-                         &RNWebGPU::MakeWebGPUCanvasContext, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "fabric", &RNWebGPU::getFabric);
+    installGetter(runtime, prototype, "gpu", &RNWebGPU::getGPU);
+    installMethod(runtime, prototype, "createImageBitmap",
+                  &RNWebGPU::createImageBitmap);
+    installMethod(runtime, prototype, "getNativeSurface",
+                  &RNWebGPU::getNativeSurface);
+    installMethod(runtime, prototype, "MakeWebGPUCanvasContext",
+                  &RNWebGPU::MakeWebGPUCanvasContext);
   }
 
 private:

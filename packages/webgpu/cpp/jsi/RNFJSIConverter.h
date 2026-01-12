@@ -305,7 +305,11 @@ template <typename ValueType> struct JSIConverter<std::unordered_map<std::string
 // HybridObject <> {}
 template <typename T> struct is_shared_ptr_to_host_object : std::false_type {};
 
-template <typename T> struct is_shared_ptr_to_host_object<std::shared_ptr<T>> : std::is_base_of<jsi::HostObject, T> {};
+// Only match HostObject types that are NOT NativeState types
+template <typename T>
+struct is_shared_ptr_to_host_object<std::shared_ptr<T>>
+    : std::bool_constant<std::is_base_of_v<jsi::HostObject, T> &&
+                         !std::is_base_of_v<jsi::NativeState, T>> {};
 
 template <typename T> struct JSIConverter<T, std::enable_if_t<is_shared_ptr_to_host_object<T>::value>> {
   using TPointee = typename T::element_type;

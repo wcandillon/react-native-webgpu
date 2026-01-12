@@ -133,6 +133,9 @@ public:
                            std::shared_ptr<Derived> instance) {
     installPrototype(runtime);
 
+    // Store creation runtime for logging etc.
+    instance->setCreationRuntime(&runtime);
+
     // Create a new object
     jsi::Object obj(runtime);
 
@@ -184,6 +187,17 @@ public:
    */
   virtual size_t getMemoryPressure() { return 1024; }
 
+  /**
+   * Set the creation runtime. Called during create().
+   */
+  void setCreationRuntime(jsi::Runtime *runtime) { _creationRuntime = runtime; }
+
+  /**
+   * Get the creation runtime.
+   * WARNING: This pointer may become invalid if the runtime is destroyed.
+   */
+  jsi::Runtime *getCreationRuntime() const { return _creationRuntime; }
+
 protected:
   explicit NativeObject(const char *name) : _name(name) {
 #if DEBUG && RNF_ENABLE_LOGS
@@ -198,6 +212,7 @@ protected:
   }
 
   const char *_name;
+  jsi::Runtime *_creationRuntime = nullptr;
 
   // ============================================================
   // Helper methods for definePrototype() implementations

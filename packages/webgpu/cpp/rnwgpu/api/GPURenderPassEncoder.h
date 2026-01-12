@@ -8,7 +8,7 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -21,16 +21,18 @@
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPURenderPassEncoder : public m::HybridObject {
+class GPURenderPassEncoder : public m::NativeObject<GPURenderPassEncoder> {
 public:
+  static constexpr const char *CLASS_NAME = "GPURenderPassEncoder";
+
   explicit GPURenderPassEncoder(wgpu::RenderPassEncoder instance,
                                 std::string label)
-      : HybridObject("GPURenderPassEncoder"), _instance(instance),
-        _label(label) {}
+      : NativeObject(CLASS_NAME), _instance(instance), _label(label) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   void setViewport(double x, double y, double width, double height,
                    double minDepth, double maxDepth);
@@ -75,47 +77,48 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPURenderPassEncoder::getBrand, this);
-    registerHybridMethod("setViewport", &GPURenderPassEncoder::setViewport,
-                         this);
-    registerHybridMethod("setScissorRect",
-                         &GPURenderPassEncoder::setScissorRect, this);
-    registerHybridMethod("setBlendConstant",
-                         &GPURenderPassEncoder::setBlendConstant, this);
-    registerHybridMethod("setStencilReference",
-                         &GPURenderPassEncoder::setStencilReference, this);
-    registerHybridMethod("beginOcclusionQuery",
-                         &GPURenderPassEncoder::beginOcclusionQuery, this);
-    registerHybridMethod("endOcclusionQuery",
-                         &GPURenderPassEncoder::endOcclusionQuery, this);
-    registerHybridMethod("executeBundles",
-                         &GPURenderPassEncoder::executeBundles, this);
-    registerHybridMethod("end", &GPURenderPassEncoder::end, this);
-    registerHybridMethod("pushDebugGroup",
-                         &GPURenderPassEncoder::pushDebugGroup, this);
-    registerHybridMethod("popDebugGroup", &GPURenderPassEncoder::popDebugGroup,
-                         this);
-    registerHybridMethod("insertDebugMarker",
-                         &GPURenderPassEncoder::insertDebugMarker, this);
-    registerHybridMethod("setBindGroup", &GPURenderPassEncoder::setBindGroup,
-                         this);
-    registerHybridMethod("setPipeline", &GPURenderPassEncoder::setPipeline,
-                         this);
-    registerHybridMethod("setIndexBuffer",
-                         &GPURenderPassEncoder::setIndexBuffer, this);
-    registerHybridMethod("setVertexBuffer",
-                         &GPURenderPassEncoder::setVertexBuffer, this);
-    registerHybridMethod("draw", &GPURenderPassEncoder::draw, this);
-    registerHybridMethod("drawIndexed", &GPURenderPassEncoder::drawIndexed,
-                         this);
-    registerHybridMethod("drawIndirect", &GPURenderPassEncoder::drawIndirect,
-                         this);
-    registerHybridMethod("drawIndexedIndirect",
-                         &GPURenderPassEncoder::drawIndexedIndirect, this);
-
-    registerHybridGetter("label", &GPURenderPassEncoder::getLabel, this);
-    registerHybridSetter("label", &GPURenderPassEncoder::setLabel, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand",
+                  &GPURenderPassEncoder::getBrand);
+    installMethod(runtime, prototype, "setViewport",
+                  &GPURenderPassEncoder::setViewport);
+    installMethod(runtime, prototype, "setScissorRect",
+                  &GPURenderPassEncoder::setScissorRect);
+    installMethod(runtime, prototype, "setBlendConstant",
+                  &GPURenderPassEncoder::setBlendConstant);
+    installMethod(runtime, prototype, "setStencilReference",
+                  &GPURenderPassEncoder::setStencilReference);
+    installMethod(runtime, prototype, "beginOcclusionQuery",
+                  &GPURenderPassEncoder::beginOcclusionQuery);
+    installMethod(runtime, prototype, "endOcclusionQuery",
+                  &GPURenderPassEncoder::endOcclusionQuery);
+    installMethod(runtime, prototype, "executeBundles",
+                  &GPURenderPassEncoder::executeBundles);
+    installMethod(runtime, prototype, "end", &GPURenderPassEncoder::end);
+    installMethod(runtime, prototype, "pushDebugGroup",
+                  &GPURenderPassEncoder::pushDebugGroup);
+    installMethod(runtime, prototype, "popDebugGroup",
+                  &GPURenderPassEncoder::popDebugGroup);
+    installMethod(runtime, prototype, "insertDebugMarker",
+                  &GPURenderPassEncoder::insertDebugMarker);
+    installMethod(runtime, prototype, "setBindGroup",
+                  &GPURenderPassEncoder::setBindGroup);
+    installMethod(runtime, prototype, "setPipeline",
+                  &GPURenderPassEncoder::setPipeline);
+    installMethod(runtime, prototype, "setIndexBuffer",
+                  &GPURenderPassEncoder::setIndexBuffer);
+    installMethod(runtime, prototype, "setVertexBuffer",
+                  &GPURenderPassEncoder::setVertexBuffer);
+    installMethod(runtime, prototype, "draw", &GPURenderPassEncoder::draw);
+    installMethod(runtime, prototype, "drawIndexed",
+                  &GPURenderPassEncoder::drawIndexed);
+    installMethod(runtime, prototype, "drawIndirect",
+                  &GPURenderPassEncoder::drawIndirect);
+    installMethod(runtime, prototype, "drawIndexedIndirect",
+                  &GPURenderPassEncoder::drawIndexedIndirect);
+    installGetterSetter(runtime, prototype, "label",
+                        &GPURenderPassEncoder::getLabel,
+                        &GPURenderPassEncoder::setLabel);
   }
 
   inline const wgpu::RenderPassEncoder get() { return _instance; }

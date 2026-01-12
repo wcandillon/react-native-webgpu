@@ -4,22 +4,24 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUBindGroupLayout : public m::HybridObject {
+class GPUBindGroupLayout : public m::NativeObject<GPUBindGroupLayout> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUBindGroupLayout";
+
   explicit GPUBindGroupLayout(wgpu::BindGroupLayout instance, std::string label)
-      : HybridObject("GPUBindGroupLayout"), _instance(instance), _label(label) {
-  }
+      : NativeObject(CLASS_NAME), _instance(instance), _label(label) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
@@ -27,11 +29,11 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUBindGroupLayout::getBrand, this);
-
-    registerHybridGetter("label", &GPUBindGroupLayout::getLabel, this);
-    registerHybridSetter("label", &GPUBindGroupLayout::setLabel, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUBindGroupLayout::getBrand);
+    installGetterSetter(runtime, prototype, "label",
+                        &GPUBindGroupLayout::getLabel,
+                        &GPUBindGroupLayout::setLabel);
   }
 
   inline const wgpu::BindGroupLayout get() { return _instance; }

@@ -9,7 +9,6 @@
 #include "GPUExternalTexture.h"
 #include "GPUSampler.h"
 #include "GPUTextureView.h"
-#include "RNFHybridObject.h"
 #include "RNFJSIConverter.h"
 #include "WGPULogger.h"
 
@@ -45,11 +44,11 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
         auto prop = value.getProperty(runtime, "resource");
         if (prop.isObject()) {
           auto obj = prop.getObject(runtime);
-          if (obj.isHostObject<rnwgpu::GPUSampler>(runtime)) {
-            result->sampler = obj.getHostObject<rnwgpu::GPUSampler>(runtime);
-          } else if (obj.isHostObject<rnwgpu::GPUTextureView>(runtime)) {
+          if (obj.hasNativeState<rnwgpu::GPUSampler>(runtime)) {
+            result->sampler = obj.getNativeState<rnwgpu::GPUSampler>(runtime);
+          } else if (obj.hasNativeState<rnwgpu::GPUTextureView>(runtime)) {
             result->textureView =
-                obj.getHostObject<rnwgpu::GPUTextureView>(runtime);
+                obj.getNativeState<rnwgpu::GPUTextureView>(runtime);
           } else {
             result->buffer = JSIConverter<
                 std::shared_ptr<rnwgpu::GPUBufferBinding>>::fromJSI(runtime,

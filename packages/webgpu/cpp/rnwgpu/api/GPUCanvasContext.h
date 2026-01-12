@@ -8,7 +8,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
 #include "Canvas.h"
 #include "GPU.h"
@@ -19,12 +19,15 @@
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUCanvasContext : public m::HybridObject {
+class GPUCanvasContext : public m::NativeObject<GPUCanvasContext> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUCanvasContext";
+
   GPUCanvasContext(std::shared_ptr<GPU> gpu, int contextId, int width,
                    int height)
-      : HybridObject("GPUCanvasContext"), _gpu(std::move(gpu)) {
+      : NativeObject(CLASS_NAME), _gpu(std::move(gpu)) {
     _canvas = std::make_shared<Canvas>(nullptr, width, height);
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     _surfaceInfo =
@@ -32,18 +35,20 @@ public:
   }
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   std::shared_ptr<Canvas> getCanvas() { return _canvas; }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUCanvasContext::getBrand, this);
-    registerHybridGetter("canvas", &GPUCanvasContext::getCanvas, this);
-    registerHybridMethod("configure", &GPUCanvasContext::configure, this);
-    registerHybridMethod("unconfigure", &GPUCanvasContext::unconfigure, this);
-    registerHybridMethod("getCurrentTexture",
-                         &GPUCanvasContext::getCurrentTexture, this);
-    registerHybridMethod("present", &GPUCanvasContext::present, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUCanvasContext::getBrand);
+    installGetter(runtime, prototype, "canvas", &GPUCanvasContext::getCanvas);
+    installMethod(runtime, prototype, "configure",
+                  &GPUCanvasContext::configure);
+    installMethod(runtime, prototype, "unconfigure",
+                  &GPUCanvasContext::unconfigure);
+    installMethod(runtime, prototype, "getCurrentTexture",
+                  &GPUCanvasContext::getCurrentTexture);
+    installMethod(runtime, prototype, "present", &GPUCanvasContext::present);
   }
 
   // TODO: is this ok?

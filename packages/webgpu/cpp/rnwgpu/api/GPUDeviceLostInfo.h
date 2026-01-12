@@ -4,30 +4,33 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUDeviceLostInfo : public m::HybridObject {
+class GPUDeviceLostInfo : public m::NativeObject<GPUDeviceLostInfo> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUDeviceLostInfo";
+
   explicit GPUDeviceLostInfo(wgpu::DeviceLostReason reason, std::string message)
-      : HybridObject("GPUDeviceLostInfo"), _reason(reason), _message(message) {}
+      : NativeObject(CLASS_NAME), _reason(reason), _message(message) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   wgpu::DeviceLostReason getReason() { return _reason; }
   std::string getMessage() { return _message; }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUDeviceLostInfo::getBrand, this);
-
-    registerHybridGetter("reason", &GPUDeviceLostInfo::getReason, this);
-    registerHybridGetter("message", &GPUDeviceLostInfo::getMessage, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUDeviceLostInfo::getBrand);
+    installGetter(runtime, prototype, "reason", &GPUDeviceLostInfo::getReason);
+    installGetter(runtime, prototype, "message",
+                  &GPUDeviceLostInfo::getMessage);
   }
 
 private:

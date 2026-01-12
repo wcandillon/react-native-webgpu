@@ -1,17 +1,20 @@
 #pragma once
 #include <string>
 
-#include <RNFHybridObject.h>
+#include <RNFNativeObject.h>
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUTextureUsage : public m::HybridObject {
+class GPUTextureUsage : public m::NativeObject<GPUTextureUsage> {
 public:
-  GPUTextureUsage() : HybridObject("GPUTextureUsage") {}
+  static constexpr const char *CLASS_NAME = "GPUTextureUsage";
+
+  GPUTextureUsage() : NativeObject(CLASS_NAME) {}
 
 public:
   double CopySrc() { return static_cast<double>(wgpu::TextureUsage::CopySrc); }
@@ -26,15 +29,15 @@ public:
     return static_cast<double>(wgpu::TextureUsage::RenderAttachment);
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("COPY_SRC", &GPUTextureUsage::CopySrc, this);
-    registerHybridGetter("COPY_DST", &GPUTextureUsage::CopyDst, this);
-    registerHybridGetter("TEXTURE_BINDING", &GPUTextureUsage::TextureBinding,
-                         this);
-    registerHybridGetter("STORAGE_BINDING", &GPUTextureUsage::StorageBinding,
-                         this);
-    registerHybridGetter("RENDER_ATTACHMENT",
-                         &GPUTextureUsage::RenderAttachment, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "COPY_SRC", &GPUTextureUsage::CopySrc);
+    installGetter(runtime, prototype, "COPY_DST", &GPUTextureUsage::CopyDst);
+    installGetter(runtime, prototype, "TEXTURE_BINDING",
+                  &GPUTextureUsage::TextureBinding);
+    installGetter(runtime, prototype, "STORAGE_BINDING",
+                  &GPUTextureUsage::StorageBinding);
+    installGetter(runtime, prototype, "RENDER_ATTACHMENT",
+                  &GPUTextureUsage::RenderAttachment);
   }
 };
 } // namespace rnwgpu

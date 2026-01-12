@@ -8,7 +8,7 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -19,16 +19,18 @@
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUComputePassEncoder : public m::HybridObject {
+class GPUComputePassEncoder : public m::NativeObject<GPUComputePassEncoder> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUComputePassEncoder";
+
   explicit GPUComputePassEncoder(wgpu::ComputePassEncoder instance,
                                  std::string label)
-      : HybridObject("GPUComputePassEncoder"), _instance(instance),
-        _label(label) {}
+      : NativeObject(CLASS_NAME), _instance(instance), _label(label) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   void setPipeline(std::shared_ptr<GPUComputePipeline> pipeline);
   void dispatchWorkgroups(uint32_t workgroupCountX,
@@ -51,27 +53,27 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUComputePassEncoder::getBrand, this);
-    registerHybridMethod("setPipeline", &GPUComputePassEncoder::setPipeline,
-                         this);
-    registerHybridMethod("dispatchWorkgroups",
-                         &GPUComputePassEncoder::dispatchWorkgroups, this);
-    registerHybridMethod("dispatchWorkgroupsIndirect",
-                         &GPUComputePassEncoder::dispatchWorkgroupsIndirect,
-                         this);
-    registerHybridMethod("end", &GPUComputePassEncoder::end, this);
-    registerHybridMethod("pushDebugGroup",
-                         &GPUComputePassEncoder::pushDebugGroup, this);
-    registerHybridMethod("popDebugGroup", &GPUComputePassEncoder::popDebugGroup,
-                         this);
-    registerHybridMethod("insertDebugMarker",
-                         &GPUComputePassEncoder::insertDebugMarker, this);
-    registerHybridMethod("setBindGroup", &GPUComputePassEncoder::setBindGroup,
-                         this);
-
-    registerHybridGetter("label", &GPUComputePassEncoder::getLabel, this);
-    registerHybridSetter("label", &GPUComputePassEncoder::setLabel, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand",
+                  &GPUComputePassEncoder::getBrand);
+    installMethod(runtime, prototype, "setPipeline",
+                  &GPUComputePassEncoder::setPipeline);
+    installMethod(runtime, prototype, "dispatchWorkgroups",
+                  &GPUComputePassEncoder::dispatchWorkgroups);
+    installMethod(runtime, prototype, "dispatchWorkgroupsIndirect",
+                  &GPUComputePassEncoder::dispatchWorkgroupsIndirect);
+    installMethod(runtime, prototype, "end", &GPUComputePassEncoder::end);
+    installMethod(runtime, prototype, "pushDebugGroup",
+                  &GPUComputePassEncoder::pushDebugGroup);
+    installMethod(runtime, prototype, "popDebugGroup",
+                  &GPUComputePassEncoder::popDebugGroup);
+    installMethod(runtime, prototype, "insertDebugMarker",
+                  &GPUComputePassEncoder::insertDebugMarker);
+    installMethod(runtime, prototype, "setBindGroup",
+                  &GPUComputePassEncoder::setBindGroup);
+    installGetterSetter(runtime, prototype, "label",
+                        &GPUComputePassEncoder::getLabel,
+                        &GPUComputePassEncoder::setLabel);
   }
 
   inline const wgpu::ComputePassEncoder get() { return _instance; }

@@ -1,17 +1,20 @@
 #pragma once
 #include <string>
 
-#include <RNFHybridObject.h>
+#include <RNFNativeObject.h>
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUBufferUsage : public m::HybridObject {
+class GPUBufferUsage : public m::NativeObject<GPUBufferUsage> {
 public:
-  GPUBufferUsage() : HybridObject("GPUBufferUsage") {}
+  static constexpr const char *CLASS_NAME = "GPUBufferUsage";
+
+  GPUBufferUsage() : NativeObject(CLASS_NAME) {}
 
 public:
   double MapRead() { return static_cast<double>(wgpu::BufferUsage::MapRead); }
@@ -27,17 +30,18 @@ public:
     return static_cast<double>(wgpu::BufferUsage::QueryResolve);
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("MAP_READ", &GPUBufferUsage::MapRead, this);
-    registerHybridGetter("MAP_WRITE", &GPUBufferUsage::MapWrite, this);
-    registerHybridGetter("COPY_SRC", &GPUBufferUsage::CopySrc, this);
-    registerHybridGetter("COPY_DST", &GPUBufferUsage::CopyDst, this);
-    registerHybridGetter("INDEX", &GPUBufferUsage::Index, this);
-    registerHybridGetter("VERTEX", &GPUBufferUsage::Vertex, this);
-    registerHybridGetter("UNIFORM", &GPUBufferUsage::Uniform, this);
-    registerHybridGetter("STORAGE", &GPUBufferUsage::Storage, this);
-    registerHybridGetter("INDIRECT", &GPUBufferUsage::Indirect, this);
-    registerHybridGetter("QUERY_RESOLVE", &GPUBufferUsage::QueryResolve, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "MAP_READ", &GPUBufferUsage::MapRead);
+    installGetter(runtime, prototype, "MAP_WRITE", &GPUBufferUsage::MapWrite);
+    installGetter(runtime, prototype, "COPY_SRC", &GPUBufferUsage::CopySrc);
+    installGetter(runtime, prototype, "COPY_DST", &GPUBufferUsage::CopyDst);
+    installGetter(runtime, prototype, "INDEX", &GPUBufferUsage::Index);
+    installGetter(runtime, prototype, "VERTEX", &GPUBufferUsage::Vertex);
+    installGetter(runtime, prototype, "UNIFORM", &GPUBufferUsage::Uniform);
+    installGetter(runtime, prototype, "STORAGE", &GPUBufferUsage::Storage);
+    installGetter(runtime, prototype, "INDIRECT", &GPUBufferUsage::Indirect);
+    installGetter(runtime, prototype, "QUERY_RESOLVE",
+                  &GPUBufferUsage::QueryResolve);
   }
 };
 } // namespace rnwgpu

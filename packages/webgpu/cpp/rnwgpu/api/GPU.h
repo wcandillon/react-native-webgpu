@@ -7,7 +7,7 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
 #include "rnwgpu/async/AsyncRunner.h"
 #include "rnwgpu/async/AsyncTaskHandle.h"
@@ -22,13 +22,16 @@
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPU : public m::HybridObject {
+class GPU : public m::NativeObject<GPU> {
 public:
+  static constexpr const char *CLASS_NAME = "GPU";
+
   explicit GPU(jsi::Runtime &runtime);
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   async::AsyncTaskHandle requestAdapter(
       std::optional<std::shared_ptr<GPURequestAdapterOptions>> options);
@@ -36,13 +39,13 @@ public:
 
   std::unordered_set<std::string> getWgslLanguageFeatures();
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPU::getBrand, this);
-    registerHybridMethod("requestAdapter", &GPU::requestAdapter, this);
-    registerHybridMethod("getPreferredCanvasFormat",
-                         &GPU::getPreferredCanvasFormat, this);
-    registerHybridGetter("wgslLanguageFeatures", &GPU::getWgslLanguageFeatures,
-                         this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPU::getBrand);
+    installMethod(runtime, prototype, "requestAdapter", &GPU::requestAdapter);
+    installMethod(runtime, prototype, "getPreferredCanvasFormat",
+                  &GPU::getPreferredCanvasFormat);
+    installGetter(runtime, prototype, "wgslLanguageFeatures",
+                  &GPU::getWgslLanguageFeatures);
   }
 
   inline const wgpu::Instance get() { return _instance; }

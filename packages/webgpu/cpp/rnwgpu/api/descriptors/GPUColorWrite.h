@@ -1,17 +1,20 @@
 #pragma once
 #include <string>
 
-#include <RNFHybridObject.h>
+#include <RNFNativeObject.h>
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUColorWrite : public m::HybridObject {
+class GPUColorWrite : public m::NativeObject<GPUColorWrite> {
 public:
-  GPUColorWrite() : HybridObject("GPUColorWrite") {}
+  static constexpr const char *CLASS_NAME = "GPUColorWrite";
+
+  GPUColorWrite() : NativeObject(CLASS_NAME) {}
 
 public:
   double Red() { return static_cast<double>(wgpu::ColorWriteMask::Red); }
@@ -20,12 +23,12 @@ public:
   double Alpha() { return static_cast<double>(wgpu::ColorWriteMask::Alpha); }
   double All() { return static_cast<double>(wgpu::ColorWriteMask::All); }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("RED", &GPUColorWrite::Red, this);
-    registerHybridGetter("GREEN", &GPUColorWrite::Green, this);
-    registerHybridGetter("BLUE", &GPUColorWrite::Blue, this);
-    registerHybridGetter("ALPHA", &GPUColorWrite::Alpha, this);
-    registerHybridGetter("ALL", &GPUColorWrite::All, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "RED", &GPUColorWrite::Red);
+    installGetter(runtime, prototype, "GREEN", &GPUColorWrite::Green);
+    installGetter(runtime, prototype, "BLUE", &GPUColorWrite::Blue);
+    installGetter(runtime, prototype, "ALPHA", &GPUColorWrite::Alpha);
+    installGetter(runtime, prototype, "ALL", &GPUColorWrite::All);
   }
 };
 } // namespace rnwgpu

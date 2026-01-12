@@ -6,7 +6,7 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
 #include "rnwgpu/async/AsyncRunner.h"
 #include "rnwgpu/async/AsyncTaskHandle.h"
@@ -22,17 +22,20 @@
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUQueue : public m::HybridObject {
+class GPUQueue : public m::NativeObject<GPUQueue> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUQueue";
+
   explicit GPUQueue(wgpu::Queue instance,
                     std::shared_ptr<async::AsyncRunner> async,
                     std::string label)
-      : HybridObject("GPUQueue"), _instance(instance), _async(async),
+      : NativeObject(CLASS_NAME), _instance(instance), _async(async),
         _label(label) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   void submit(std::vector<std::shared_ptr<GPUCommandBuffer>> commandBuffers);
   async::AsyncTaskHandle onSubmittedWorkDone();
@@ -55,18 +58,17 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUQueue::getBrand, this);
-    registerHybridMethod("submit", &GPUQueue::submit, this);
-    registerHybridMethod("onSubmittedWorkDone", &GPUQueue::onSubmittedWorkDone,
-                         this);
-    registerHybridMethod("writeBuffer", &GPUQueue::writeBuffer, this);
-    registerHybridMethod("writeTexture", &GPUQueue::writeTexture, this);
-    registerHybridMethod("copyExternalImageToTexture",
-                         &GPUQueue::copyExternalImageToTexture, this);
-
-    registerHybridGetter("label", &GPUQueue::getLabel, this);
-    registerHybridSetter("label", &GPUQueue::setLabel, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUQueue::getBrand);
+    installMethod(runtime, prototype, "submit", &GPUQueue::submit);
+    installMethod(runtime, prototype, "onSubmittedWorkDone",
+                  &GPUQueue::onSubmittedWorkDone);
+    installMethod(runtime, prototype, "writeBuffer", &GPUQueue::writeBuffer);
+    installMethod(runtime, prototype, "writeTexture", &GPUQueue::writeTexture);
+    installMethod(runtime, prototype, "copyExternalImageToTexture",
+                  &GPUQueue::copyExternalImageToTexture);
+    installGetterSetter(runtime, prototype, "label", &GPUQueue::getLabel,
+                        &GPUQueue::setLabel);
   }
 
   inline const wgpu::Queue get() { return _instance; }

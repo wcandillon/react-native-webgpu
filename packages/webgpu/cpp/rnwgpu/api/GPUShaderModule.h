@@ -5,7 +5,7 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "RNFNativeObject.h"
 
 #include "rnwgpu/async/AsyncRunner.h"
 #include "rnwgpu/async/AsyncTaskHandle.h"
@@ -17,17 +17,20 @@
 namespace rnwgpu {
 
 namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUShaderModule : public m::HybridObject {
+class GPUShaderModule : public m::NativeObject<GPUShaderModule> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUShaderModule";
+
   explicit GPUShaderModule(wgpu::ShaderModule instance,
                            std::shared_ptr<async::AsyncRunner> async,
                            std::string label)
-      : HybridObject("GPUShaderModule"), _instance(instance), _async(async),
+      : NativeObject(CLASS_NAME), _instance(instance), _async(async),
         _label(label) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   async::AsyncTaskHandle getCompilationInfo();
 
@@ -37,13 +40,12 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUShaderModule::getBrand, this);
-    registerHybridMethod("getCompilationInfo",
-                         &GPUShaderModule::getCompilationInfo, this);
-
-    registerHybridGetter("label", &GPUShaderModule::getLabel, this);
-    registerHybridSetter("label", &GPUShaderModule::setLabel, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUShaderModule::getBrand);
+    installMethod(runtime, prototype, "getCompilationInfo",
+                  &GPUShaderModule::getCompilationInfo);
+    installGetterSetter(runtime, prototype, "label", &GPUShaderModule::getLabel,
+                        &GPUShaderModule::setLabel);
   }
 
   inline const wgpu::ShaderModule get() { return _instance; }

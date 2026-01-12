@@ -28,7 +28,7 @@ async::AsyncTaskHandle GPUShaderModule::getCompilationInfo() {
               result->_messages.reserve(compilationInfo->messageCount);
               for (size_t i = 0; i < compilationInfo->messageCount; ++i) {
                 const auto &wgpuMessage = compilationInfo->messages[i];
-                GPUCompilationMessage message;
+                GPUCompilationMessageData message;
                 message.message =
                     wgpuMessage.message.length ? wgpuMessage.message.data : "";
                 message.type = wgpuMessage.type;

@@ -13,7 +13,7 @@
 
 namespace rnwgpu {
 
-GPU::GPU(jsi::Runtime &runtime) : HybridObject("GPU") {
+GPU::GPU(jsi::Runtime &runtime) : NativeObject(CLASS_NAME) {
   static const auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
   wgpu::InstanceDescriptor instanceDesc{.requiredFeatureCount = 1,
                                         .requiredFeatures = &kTimedWaitAny};
