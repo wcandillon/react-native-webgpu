@@ -13,8 +13,6 @@ export function HelloTriangle() {
       if (!adapter) {
         throw new Error("No adapter");
       }
-      console.log(adapter);
-      console.log(adapter instanceof GPUAdapter);
 
       const device = await adapter.requestDevice();
       const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
