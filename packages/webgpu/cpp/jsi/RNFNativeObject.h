@@ -8,13 +8,13 @@
 #include <jsi/jsi.h>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
 
 #include "RNFJSIHelper.h"
-#include "RNFRuntimeState.h"
 #include "WGPULogger.h"
 
 // Forward declare to avoid circular dependency
@@ -30,31 +30,36 @@ namespace margelo {
 namespace jsi = facebook::jsi;
 
 /**
- * Per-runtime cache for prototype objects.
- * Uses a simple static map keyed by runtime pointer.
- * Each NativeObject<Derived> type has its own static cache.
+ * Per-runtime cache entry for a prototype object.
+ * Uses std::optional<jsi::Object> so the prototype is stored directly
+ * without extra indirection.
  */
-template <typename Derived> class PrototypeCache {
+struct PrototypeCacheEntry {
+  std::optional<jsi::Object> prototype;
+};
+
+/**
+ * Simple runtime-aware cache that stores data per-runtime.
+ * When a runtime is destroyed, its cached data is automatically invalidated
+ * on next access (by checking if the runtime pointer is still valid).
+ */
+template <typename T> class RuntimeAwareCache {
 public:
-  static std::shared_ptr<jsi::Object> get(jsi::Runtime &runtime) {
+  T &get(jsi::Runtime &rt) {
     std::lock_guard<std::mutex> lock(mutex_);
-    auto it = cache_.find(&runtime);
+    // Use runtime address as key
+    auto it = cache_.find(&rt);
     if (it != cache_.end()) {
       return it->second;
     }
-    return nullptr;
-  }
-
-  static void set(jsi::Runtime &runtime,
-                  std::shared_ptr<jsi::Object> prototype) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    cache_[&runtime] = std::move(prototype);
+    // Create new entry for this runtime
+    auto result = cache_.emplace(&rt, T{});
+    return result.first->second;
   }
 
 private:
-  static inline std::mutex mutex_;
-  static inline std::unordered_map<jsi::Runtime *,
-                                   std::shared_ptr<jsi::Object>> cache_;
+  std::mutex mutex_;
+  std::unordered_map<jsi::Runtime *, T> cache_;
 };
 
 /**
@@ -93,12 +98,21 @@ public:
   using IsNativeObject = std::true_type;
 
   /**
+   * Get the prototype cache for this type.
+   * Each NativeObject<Derived> type has its own static cache.
+   */
+  static RuntimeAwareCache<PrototypeCacheEntry> &getPrototypeCache() {
+    static RuntimeAwareCache<PrototypeCacheEntry> cache;
+    return cache;
+  }
+
+  /**
    * Ensure the prototype is installed for this runtime.
    * Called automatically by create(), but can be called manually.
    */
   static void installPrototype(jsi::Runtime &runtime) {
-    auto existing = PrototypeCache<Derived>::get(runtime);
-    if (existing) {
+    auto &entry = getPrototypeCache().get(runtime);
+    if (entry.prototype.has_value()) {
       return; // Already installed
     }
 
@@ -109,8 +123,7 @@ public:
     Derived::definePrototype(runtime, prototype);
 
     // Cache the prototype
-    auto sharedProto = std::make_shared<jsi::Object>(std::move(prototype));
-    PrototypeCache<Derived>::set(runtime, sharedProto);
+    entry.prototype = std::move(prototype);
   }
 
   /**
@@ -127,14 +140,14 @@ public:
     obj.setNativeState(runtime, instance);
 
     // Set prototype
-    auto proto = PrototypeCache<Derived>::get(runtime);
-    if (proto) {
+    auto &entry = getPrototypeCache().get(runtime);
+    if (entry.prototype.has_value()) {
       // Use Object.setPrototypeOf to set the prototype
       auto objectCtor =
           runtime.global().getPropertyAsObject(runtime, "Object");
       auto setPrototypeOf =
           objectCtor.getPropertyAsFunction(runtime, "setPrototypeOf");
-      setPrototypeOf.call(runtime, obj, *proto);
+      setPrototypeOf.call(runtime, obj, *entry.prototype);
     }
 
     // Set memory pressure hint for GC
@@ -142,10 +155,6 @@ public:
     if (pressure > 0) {
       obj.setExternalMemoryPressure(runtime, pressure);
     }
-
-    // Store runtime reference in instance
-    instance->_creationRuntime = &runtime;
-    instance->_runtimeState = rnwgpu::RNFRuntimeState::get(runtime);
 
     return std::move(obj);
   }
@@ -189,17 +198,6 @@ protected:
   }
 
   const char *_name;
-  jsi::Runtime *_creationRuntime = nullptr;
-  std::weak_ptr<rnwgpu::RNFRuntimeState> _runtimeState;
-
-  jsi::Runtime *getCreationRuntime() const {
-    if (_runtimeState.expired()) {
-      return nullptr;
-    }
-    return _creationRuntime;
-  }
-
-  bool isRuntimeAlive() const { return !_runtimeState.expired(); }
 
   // ============================================================
   // Helper methods for definePrototype() implementations

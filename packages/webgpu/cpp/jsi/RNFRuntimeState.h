@@ -78,12 +78,36 @@ public:
     return cache;
   }
 
+  /**
+   * Store a prototype object for a given type key.
+   * Used by NativeObject to cache prototypes per runtime.
+   */
+  void setPrototype(void* typeKey, std::shared_ptr<jsi::Object> prototype) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    prototypes_[typeKey] = std::move(prototype);
+  }
+
+  /**
+   * Get a cached prototype for a given type key.
+   * Returns nullptr if not found.
+   */
+  std::shared_ptr<jsi::Object> getPrototype(void* typeKey) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = prototypes_.find(typeKey);
+    if (it != prototypes_.end()) {
+      return it->second;
+    }
+    return nullptr;
+  }
+
 private:
   RNFRuntimeState() = default;
 
   std::mutex mutex_;
   // Map from type_info to cache instance
   std::unordered_map<const std::type_info*, std::shared_ptr<void>> typeCaches_;
+  // Map from type key to prototype object (for NativeObject pattern)
+  std::unordered_map<void*, std::shared_ptr<jsi::Object>> prototypes_;
 };
 
 /**

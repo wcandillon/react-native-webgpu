@@ -27,7 +27,7 @@ public:
         _isFallbackAdapter(info.adapterType == wgpu::AdapterType::CPU) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   std::string getVendor() { return _vendor; }
   std::string getArchitecture() { return _architecture; }
