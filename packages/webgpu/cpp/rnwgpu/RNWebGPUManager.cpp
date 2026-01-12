@@ -3,6 +3,35 @@
 #include "GPU.h"
 #include "RNWebGPU.h"
 
+// GPU API classes (for instanceof support)
+#include "GPUAdapter.h"
+#include "GPUAdapterInfo.h"
+#include "GPUBindGroup.h"
+#include "GPUBindGroupLayout.h"
+#include "GPUBuffer.h"
+#include "GPUCanvasContext.h"
+#include "GPUCommandBuffer.h"
+#include "GPUCommandEncoder.h"
+#include "GPUCompilationInfo.h"
+#include "GPUCompilationMessage.h"
+#include "GPUComputePassEncoder.h"
+#include "GPUComputePipeline.h"
+#include "GPUDevice.h"
+#include "GPUDeviceLostInfo.h"
+#include "GPUExternalTexture.h"
+#include "GPUPipelineLayout.h"
+#include "GPUQuerySet.h"
+#include "GPUQueue.h"
+#include "GPURenderBundle.h"
+#include "GPURenderBundleEncoder.h"
+#include "GPURenderPassEncoder.h"
+#include "GPURenderPipeline.h"
+#include "GPUSampler.h"
+#include "GPUShaderModule.h"
+#include "GPUSupportedLimits.h"
+#include "GPUTexture.h"
+#include "GPUTextureView.h"
+
 // Enums
 #include "GPUBufferUsage.h"
 #include "GPUColorWrite.h"
@@ -28,29 +57,47 @@ RNWebGPUManager::RNWebGPUManager(
   _jsRuntime->global().setProperty(*_jsRuntime, "RNWebGPU",
                                    RNWebGPU::create(*_jsRuntime, rnWebGPU));
 
-  auto bufferUsage = std::make_shared<GPUBufferUsage>();
-  _jsRuntime->global().setProperty(
-      *_jsRuntime, "GPUBufferUsage",
-      GPUBufferUsage::create(*_jsRuntime, std::move(bufferUsage)));
+  // Install constructors for instanceof support
+  GPU::installConstructor(*_jsRuntime);
+  GPUAdapter::installConstructor(*_jsRuntime);
+  GPUAdapterInfo::installConstructor(*_jsRuntime);
+  GPUBindGroup::installConstructor(*_jsRuntime);
+  GPUBindGroupLayout::installConstructor(*_jsRuntime);
+  GPUBuffer::installConstructor(*_jsRuntime);
+  GPUCanvasContext::installConstructor(*_jsRuntime);
+  GPUCommandBuffer::installConstructor(*_jsRuntime);
+  GPUCommandEncoder::installConstructor(*_jsRuntime);
+  GPUCompilationInfo::installConstructor(*_jsRuntime);
+  GPUCompilationMessage::installConstructor(*_jsRuntime);
+  GPUComputePassEncoder::installConstructor(*_jsRuntime);
+  GPUComputePipeline::installConstructor(*_jsRuntime);
+  GPUDevice::installConstructor(*_jsRuntime);
+  GPUDeviceLostInfo::installConstructor(*_jsRuntime);
+  GPUExternalTexture::installConstructor(*_jsRuntime);
+  GPUPipelineLayout::installConstructor(*_jsRuntime);
+  GPUQuerySet::installConstructor(*_jsRuntime);
+  GPUQueue::installConstructor(*_jsRuntime);
+  GPURenderBundle::installConstructor(*_jsRuntime);
+  GPURenderBundleEncoder::installConstructor(*_jsRuntime);
+  GPURenderPassEncoder::installConstructor(*_jsRuntime);
+  GPURenderPipeline::installConstructor(*_jsRuntime);
+  GPUSampler::installConstructor(*_jsRuntime);
+  GPUShaderModule::installConstructor(*_jsRuntime);
+  GPUSupportedLimits::installConstructor(*_jsRuntime);
+  GPUTexture::installConstructor(*_jsRuntime);
+  GPUTextureView::installConstructor(*_jsRuntime);
 
-  auto colorWrite = std::make_shared<GPUColorWrite>();
-  _jsRuntime->global().setProperty(
-      *_jsRuntime, "GPUColorWrite",
-      GPUColorWrite::create(*_jsRuntime, std::move(colorWrite)));
-
-  auto mapMode = std::make_shared<GPUMapMode>();
+  // Install constant objects as plain JS objects with own properties
+  _jsRuntime->global().setProperty(*_jsRuntime, "GPUBufferUsage",
+                                   GPUBufferUsage::create(*_jsRuntime));
+  _jsRuntime->global().setProperty(*_jsRuntime, "GPUColorWrite",
+                                   GPUColorWrite::create(*_jsRuntime));
   _jsRuntime->global().setProperty(*_jsRuntime, "GPUMapMode",
-                                   GPUMapMode::create(*_jsRuntime, mapMode));
-
-  auto shaderStage = std::make_shared<GPUShaderStage>();
-  _jsRuntime->global().setProperty(
-      *_jsRuntime, "GPUShaderStage",
-      GPUShaderStage::create(*_jsRuntime, std::move(shaderStage)));
-
-  auto textureUsage = std::make_shared<GPUTextureUsage>();
-  _jsRuntime->global().setProperty(
-      *_jsRuntime, "GPUTextureUsage",
-      GPUTextureUsage::create(*_jsRuntime, std::move(textureUsage)));
+                                   GPUMapMode::create(*_jsRuntime));
+  _jsRuntime->global().setProperty(*_jsRuntime, "GPUShaderStage",
+                                   GPUShaderStage::create(*_jsRuntime));
+  _jsRuntime->global().setProperty(*_jsRuntime, "GPUTextureUsage",
+                                   GPUTextureUsage::create(*_jsRuntime));
 }
 
 RNWebGPUManager::~RNWebGPUManager() {

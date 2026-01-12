@@ -65,6 +65,7 @@
     "@types/seedrandom": "^3.0.8",
     "@types/ws": "^8.5.10",
     "@webgpu/types": "0.1.65",
+    "baseline-browser-mapping": "^2.9.14",
     "clang-format": "^1.8.0",
     "del-cli": "^5.1.0",
     "eslint": "9.35.0",

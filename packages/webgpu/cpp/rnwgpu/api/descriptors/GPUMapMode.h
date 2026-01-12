@@ -1,7 +1,6 @@
 #pragma once
-#include <string>
 
-#include <NativeObject.h>
+#include <jsi/jsi.h>
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -9,19 +8,16 @@ namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
 
-class GPUMapMode : public NativeObject<GPUMapMode> {
+class GPUMapMode {
 public:
-  static constexpr const char *CLASS_NAME = "GPUMapMode";
-
-  GPUMapMode() : NativeObject(CLASS_NAME) {}
-
-public:
-  double Read() { return static_cast<double>(wgpu::MapMode::Read); }
-  double Write() { return static_cast<double>(wgpu::MapMode::Write); }
-
-  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
-    installGetter(runtime, prototype, "READ", &GPUMapMode::Read);
-    installGetter(runtime, prototype, "WRITE", &GPUMapMode::Write);
+  static jsi::Object create(jsi::Runtime &runtime) {
+    jsi::Object obj(runtime);
+    obj.setProperty(runtime, "READ",
+                    static_cast<double>(wgpu::MapMode::Read));
+    obj.setProperty(runtime, "WRITE",
+                    static_cast<double>(wgpu::MapMode::Write));
+    return obj;
   }
 };
+
 } // namespace rnwgpu

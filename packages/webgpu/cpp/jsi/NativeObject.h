@@ -145,6 +145,42 @@ public:
   }
 
   /**
+   * Install a constructor function on the global object.
+   * This enables `instanceof` checks: `obj instanceof ClassName`
+   *
+   * The constructor throws if called directly (these objects are only
+   * created internally by the native code).
+   */
+  static void installConstructor(jsi::Runtime &runtime) {
+    installPrototype(runtime);
+
+    auto &entry = getPrototypeCache().get(runtime);
+    if (!entry.prototype.has_value()) {
+      return;
+    }
+
+    // Create a constructor function that throws when called directly
+    auto ctor = jsi::Function::createFromHostFunction(
+        runtime, jsi::PropNameID::forUtf8(runtime, Derived::CLASS_NAME), 0,
+        [](jsi::Runtime &rt, const jsi::Value & /*thisVal*/,
+           const jsi::Value * /*args*/, size_t /*count*/) -> jsi::Value {
+          throw jsi::JSError(
+              rt, std::string("Illegal constructor: ") + Derived::CLASS_NAME +
+                      " objects are created by the WebGPU API");
+        });
+
+    // Set the prototype property on the constructor
+    // This is what makes `instanceof` work
+    ctor.setProperty(runtime, "prototype", *entry.prototype);
+
+    // Set constructor property on prototype pointing back to constructor
+    entry.prototype->setProperty(runtime, "constructor", ctor);
+
+    // Install on global
+    runtime.global().setProperty(runtime, Derived::CLASS_NAME, std::move(ctor));
+  }
+
+  /**
    * Create a JS object with native state attached.
    */
   static jsi::Value create(jsi::Runtime &runtime,
