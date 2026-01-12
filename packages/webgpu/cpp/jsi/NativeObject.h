@@ -14,7 +14,6 @@
 #include <unordered_map>
 #include <utility>
 
-#include "RNFJSIHelper.h"
 #include "WGPULogger.h"
 
 // Forward declare to avoid circular dependency

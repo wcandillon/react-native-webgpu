@@ -5,13 +5,10 @@
 #pragma once
 
 #include <memory>
-#include <array>
-#include <future>
 #include <vector>
 #include <string>
 #include <utility>
 #include <type_traits>
-#include <unordered_map>
 #include <limits>
 #include <variant>
 #include <map>
@@ -20,7 +17,6 @@
 #include <jsi/jsi.h>
 
 #include "RNFEnumMapper.h"
-#include "RNFJSIHelper.h"
 #include "RNFPromise.h"
 
 #include "Unions.h"
@@ -272,102 +268,6 @@ template <typename ElementType> struct JSIConverter<std::vector<ElementType>> {
       array.setValueAtIndex(runtime, i, std::move(value));
     }
     return array;
-  }
-};
-
-// std::unordered_map<std::string, T> <> Record<string, T>
-template <typename ValueType> struct JSIConverter<std::unordered_map<std::string, ValueType>> {
-  static std::unordered_map<std::string, ValueType> fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
-    jsi::Object object = arg.asObject(runtime);
-    jsi::Array propertyNames = object.getPropertyNames(runtime);
-    size_t length = propertyNames.size(runtime);
-
-    std::unordered_map<std::string, ValueType> map;
-    map.reserve(length);
-    for (size_t i = 0; i < length; ++i) {
-      std::string key = propertyNames.getValueAtIndex(runtime, i).asString(runtime).utf8(runtime);
-      jsi::Value value = object.getProperty(runtime, key.c_str());
-      map.emplace(key, JSIConverter<ValueType>::fromJSI(runtime, value, outOfBound));
-    }
-    return map;
-  }
-  static jsi::Value toJSI(jsi::Runtime& runtime, const std::unordered_map<std::string, ValueType>& map) {
-    jsi::Object object(runtime);
-    for (const auto& pair : map) {
-      jsi::Value value = JSIConverter<ValueType>::toJSI(runtime, pair.second);
-      jsi::String key = jsi::String::createFromUtf8(runtime, pair.first);
-      object.setProperty(runtime, key, std::move(value));
-    }
-    return object;
-  }
-};
-
-// HostObject (non-NativeState) <> {}
-template <typename T> struct is_shared_ptr_to_host_object : std::false_type {};
-
-// Only match HostObject types that are NOT NativeState types
-template <typename T>
-struct is_shared_ptr_to_host_object<std::shared_ptr<T>>
-    : std::bool_constant<std::is_base_of_v<jsi::HostObject, T> &&
-                         !std::is_base_of_v<jsi::NativeState, T>> {};
-
-template <typename T> struct JSIConverter<T, std::enable_if_t<is_shared_ptr_to_host_object<T>::value>> {
-  using TPointee = typename T::element_type;
-
-#if DEBUG
-  inline static std::string getFriendlyTypename() {
-    std::string name = std::string(typeid(TPointee).name());
-#if __has_include(<cxxabi.h>)
-    int status = 0;
-    char* demangled_name = abi::__cxa_demangle(name.c_str(), NULL, NULL, &status);
-    if (status == 0) {
-      name = demangled_name;
-      std::free(demangled_name);
-    }
-#endif
-    return name;
-  }
-
-  inline static std::string invalidTypeErrorMessage(const std::string& typeDescription, const std::string& reason) {
-    return "Cannot convert \"" + typeDescription + "\" to HostObject<" + getFriendlyTypename() + ">! " + reason;
-  }
-#endif
-
-  static T fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
-#if DEBUG
-    if (arg.isUndefined()) {
-      [[unlikely]];
-      throw jsi::JSError(runtime, invalidTypeErrorMessage("undefined", "It is undefined!"));
-    }
-    if (!arg.isObject()) {
-      [[unlikely]];
-      std::string stringRepresentation = arg.toString(runtime).utf8(runtime);
-      throw jsi::JSError(runtime, invalidTypeErrorMessage(stringRepresentation, "It is not an object!"));
-    }
-#endif
-    jsi::Object object = arg.getObject(runtime);
-#if DEBUG
-    if (!object.isHostObject<TPointee>(runtime)) {
-      [[unlikely]];
-      std::string stringRepresentation = arg.toString(runtime).utf8(runtime);
-      throw jsi::JSError(runtime, invalidTypeErrorMessage(stringRepresentation, "It is a different HostObject<T>!"));
-    }
-#endif
-    return object.getHostObject<TPointee>(runtime);
-  }
-  static jsi::Value toJSI(jsi::Runtime& runtime, const T& arg) {
-#if DEBUG
-    if (arg == nullptr) {
-      [[unlikely]];
-      throw jsi::JSError(runtime, "Cannot convert nullptr to HostObject<" + getFriendlyTypename() + ">!");
-    }
-#endif
-    auto result = jsi::Object::createFromHostObject(runtime, arg);
-    auto memoryPressure = arg->getMemoryPressure();
-    if (memoryPressure > 0) {
-      result.setExternalMemoryPressure(runtime, memoryPressure);
-    }
-    return result;
   }
 };
 
