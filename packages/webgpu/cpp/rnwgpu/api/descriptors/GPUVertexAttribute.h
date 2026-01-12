@@ -4,7 +4,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 namespace jsi = facebook::jsi;
@@ -19,9 +19,8 @@ struct GPUVertexAttribute {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
   static std::shared_ptr<rnwgpu::GPUVertexAttribute>
@@ -53,4 +52,4 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

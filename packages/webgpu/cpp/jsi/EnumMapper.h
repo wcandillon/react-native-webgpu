@@ -1,13 +1,9 @@
-//
-// Created by Marc Rousavy on 22.02.24.
-//
-
 #pragma once
 
 #include <stdexcept>
 #include <string>
 
-namespace margelo {
+namespace rnwgpu {
 
 namespace EnumMapper {
   // Add these two methods in namespace "EnumMapper" to allow parsing a custom enum:
@@ -46,4 +42,4 @@ namespace EnumMapper {
   }
 } // namespace EnumMapper
 
-} // namespace margelo
+} // namespace rnwgpu

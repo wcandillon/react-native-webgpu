@@ -7,7 +7,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 #include "GPUQueueDescriptor.h"
@@ -28,9 +28,8 @@ struct GPUDeviceDescriptor {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 // We add this extra convertor because we found so library that are sending
 // invalid feature elements
@@ -99,4 +98,4 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

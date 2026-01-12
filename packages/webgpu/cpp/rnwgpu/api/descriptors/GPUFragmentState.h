@@ -8,7 +8,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 #include "GPUColorTargetState.h"
@@ -30,9 +30,8 @@ struct GPUFragmentState {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
   static std::shared_ptr<rnwgpu::GPUFragmentState>
@@ -73,4 +72,4 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

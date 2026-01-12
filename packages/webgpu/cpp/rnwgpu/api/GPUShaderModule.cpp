@@ -3,7 +3,7 @@
 #include <memory>
 #include <utility>
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 
 namespace rnwgpu {
 
@@ -41,7 +41,7 @@ async::AsyncTaskHandle GPUShaderModule::getCompilationInfo() {
 
               resolve(
                   [result = std::move(result)](jsi::Runtime &runtime) mutable {
-                    return margelo::JSIConverter<
+                    return JSIConverter<
                         std::shared_ptr<GPUCompilationInfo>>::toJSI(runtime,
                                                                     result);
                   });

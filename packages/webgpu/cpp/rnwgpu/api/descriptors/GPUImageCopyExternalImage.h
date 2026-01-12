@@ -8,7 +8,7 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "Convertors.h"
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 
 #include "GPUOrigin2D.h"
 #include "ImageBitmap.h"
@@ -25,9 +25,8 @@ struct GPUImageCopyExternalImage {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
@@ -62,4 +61,4 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

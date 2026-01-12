@@ -6,7 +6,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 #include "GPUExtent3D.h"
@@ -29,9 +29,8 @@ struct GPUTextureDescriptor {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUTextureDescriptor>
@@ -91,4 +90,4 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

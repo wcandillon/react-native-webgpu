@@ -10,7 +10,7 @@
 #include "Convertors.h"
 
 #include "GPUFeatures.h"
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 namespace rnwgpu {
@@ -140,7 +140,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
               *deviceLostBinding = deviceHost;
               resolve([deviceHost = std::move(deviceHost)](
                           jsi::Runtime &runtime) mutable {
-                return margelo::JSIConverter<std::shared_ptr<GPUDevice>>::toJSI(
+                return JSIConverter<std::shared_ptr<GPUDevice>>::toJSI(
                     runtime, deviceHost);
               });
             });

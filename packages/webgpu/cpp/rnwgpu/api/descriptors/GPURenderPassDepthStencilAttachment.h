@@ -4,7 +4,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 #include "GPUTextureView.h"
@@ -27,9 +27,8 @@ struct GPURenderPassDepthStencilAttachment {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<
@@ -101,4 +100,4 @@ struct JSIConverter<
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

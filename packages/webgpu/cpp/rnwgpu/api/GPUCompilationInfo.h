@@ -44,17 +44,14 @@ private:
   friend class GPUShaderModule;
 };
 
-} // namespace rnwgpu
-
-namespace margelo {
 template <>
-struct JSIConverter<std::vector<rnwgpu::GPUCompilationMessageData>> {
-  static std::vector<rnwgpu::GPUCompilationMessageData>
+struct JSIConverter<std::vector<GPUCompilationMessageData>> {
+  static std::vector<GPUCompilationMessageData>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
     throw std::runtime_error("Invalid GPUCompilationMessageData::fromJSI()");
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::vector<rnwgpu::GPUCompilationMessageData> arg) {
+                          std::vector<GPUCompilationMessageData> arg) {
     jsi::Array result = jsi::Array(runtime, arg.size());
     for (size_t i = 0; i < arg.size(); i++) {
       const auto &message = arg[i];
@@ -80,4 +77,4 @@ struct JSIConverter<std::vector<rnwgpu::GPUCompilationMessageData>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

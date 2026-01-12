@@ -5,7 +5,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 
 #include "GPUDevice.h"
 
@@ -24,9 +24,8 @@ struct GPUCanvasConfiguration {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces) // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
@@ -75,4 +74,4 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

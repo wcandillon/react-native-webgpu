@@ -4,7 +4,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 #include "GPUBuffer.h"
@@ -21,9 +21,8 @@ struct GPUBufferBinding {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
   static std::shared_ptr<rnwgpu::GPUBufferBinding>
@@ -56,4 +55,4 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

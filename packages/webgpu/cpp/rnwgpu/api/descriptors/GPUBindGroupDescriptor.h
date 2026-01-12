@@ -6,7 +6,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 #include "GPUBindGroupEntry.h"
@@ -25,9 +25,8 @@ struct GPUBindGroupDescriptor {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
@@ -64,4 +63,4 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupDescriptor>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

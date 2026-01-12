@@ -6,7 +6,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 #include "GPUShaderModuleCompilationHint.h"
@@ -24,9 +24,8 @@ struct GPUShaderModuleDescriptor {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
@@ -62,4 +61,4 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

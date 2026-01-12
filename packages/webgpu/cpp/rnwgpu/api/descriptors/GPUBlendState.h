@@ -4,7 +4,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 #include "GPUBlendComponent.h"
@@ -20,9 +20,8 @@ struct GPUBlendState {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
   static std::shared_ptr<rnwgpu::GPUBlendState>
@@ -52,4 +51,4 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

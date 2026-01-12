@@ -4,7 +4,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 namespace jsi = facebook::jsi;
@@ -21,9 +21,8 @@ struct GPUPrimitiveState {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPrimitiveState>> {
   static std::shared_ptr<rnwgpu::GPUPrimitiveState>
@@ -69,4 +68,4 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUPrimitiveState>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

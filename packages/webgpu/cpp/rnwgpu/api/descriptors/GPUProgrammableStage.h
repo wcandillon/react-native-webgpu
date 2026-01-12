@@ -6,7 +6,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 #include "GPUShaderModule.h"
@@ -24,9 +24,8 @@ struct GPUProgrammableStage {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
   static std::shared_ptr<rnwgpu::GPUProgrammableStage>
@@ -61,4 +60,4 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUProgrammableStage>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

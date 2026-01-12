@@ -17,12 +17,12 @@
 #include "WGPULogger.h"
 
 // Forward declare to avoid circular dependency
-namespace margelo {
+namespace rnwgpu {
 template <typename ArgType, typename SFINAE> struct JSIConverter;
-} // namespace margelo
+} // namespace rnwgpu
 
 // Include the converter - must come after forward declaration
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 
 namespace rnwgpu {
 
@@ -272,7 +272,7 @@ protected:
             return jsi::Value::undefined();
           } else {
             ReturnType result = (native.get()->*getter)();
-            return margelo::JSIConverter<std::decay_t<ReturnType>>::toJSI(
+            return rnwgpu::JSIConverter<std::decay_t<ReturnType>>::toJSI(
                 rt, std::move(result));
           }
         });
@@ -305,7 +305,7 @@ protected:
                  const jsi::Value *args, size_t count) -> jsi::Value {
           auto native = Derived::fromValue(rt, thisVal);
           auto value =
-              margelo::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
+              rnwgpu::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
           (native.get()->*setter)(std::move(value));
           return jsi::Value::undefined();
         });
@@ -352,7 +352,7 @@ protected:
                  const jsi::Value *args, size_t count) -> jsi::Value {
           auto native = Derived::fromValue(rt, thisVal);
           ReturnType result = (native.get()->*getter)();
-          return margelo::JSIConverter<std::decay_t<ReturnType>>::toJSI(rt,
+          return rnwgpu::JSIConverter<std::decay_t<ReturnType>>::toJSI(rt,
                                                                std::move(result));
         });
 
@@ -363,7 +363,7 @@ protected:
                  const jsi::Value *args, size_t count) -> jsi::Value {
           auto native = Derived::fromValue(rt, thisVal);
           auto value =
-              margelo::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
+              rnwgpu::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
           (native.get()->*setter)(std::move(value));
           return jsi::Value::undefined();
         });
@@ -390,7 +390,7 @@ private:
                                jsi::Runtime &runtime, const jsi::Value *args,
                                std::index_sequence<Is...>, size_t count) {
     if constexpr (std::is_same_v<ReturnType, void>) {
-      (obj->*method)(margelo::JSIConverter<std::decay_t<Args>>::fromJSI(
+      (obj->*method)(rnwgpu::JSIConverter<std::decay_t<Args>>::fromJSI(
           runtime, args[Is], Is >= count)...);
       return jsi::Value::undefined();
     } else if constexpr (std::is_same_v<ReturnType, jsi::Value>) {
@@ -398,9 +398,9 @@ private:
       // This requires the method signature to match HostFunction
       return (obj->*method)(runtime, jsi::Value::undefined(), args, count);
     } else {
-      ReturnType result = (obj->*method)(margelo::JSIConverter<std::decay_t<Args>>::fromJSI(
+      ReturnType result = (obj->*method)(rnwgpu::JSIConverter<std::decay_t<Args>>::fromJSI(
           runtime, args[Is], Is >= count)...);
-      return margelo::JSIConverter<std::decay_t<ReturnType>>::toJSI(runtime,
+      return rnwgpu::JSIConverter<std::decay_t<ReturnType>>::toJSI(runtime,
                                                            std::move(result));
     }
   }

@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "Convertors.h"
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "rnwgpu/async/JSIMicrotaskDispatcher.h"
 
 namespace rnwgpu {
@@ -59,7 +59,7 @@ async::AsyncTaskHandle GPU::requestAdapter(
                         adapterHost);
                 resolve([result =
                              std::move(result)](jsi::Runtime &runtime) mutable {
-                  return margelo::JSIConverter<decltype(result)>::toJSI(runtime,
+                  return JSIConverter<decltype(result)>::toJSI(runtime,
                                                                         result);
                 });
               } else {
@@ -68,7 +68,7 @@ async::AsyncTaskHandle GPU::requestAdapter(
                         nullptr);
                 resolve([result =
                              std::move(result)](jsi::Runtime &runtime) mutable {
-                  return margelo::JSIConverter<decltype(result)>::toJSI(runtime,
+                  return JSIConverter<decltype(result)>::toJSI(runtime,
                                                                         result);
                 });
               }

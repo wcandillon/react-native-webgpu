@@ -1,7 +1,3 @@
-//
-// Created by Marc Rousavy on 21.02.24.
-//
-
 #pragma once
 
 #include <memory>
@@ -16,8 +12,8 @@
 
 #include <jsi/jsi.h>
 
-#include "RNFEnumMapper.h"
-#include "RNFPromise.h"
+#include "EnumMapper.h"
+#include "Promise.h"
 
 #include "Unions.h"
 
@@ -30,7 +26,7 @@
 #include <cxxabi.h>
 #endif
 
-namespace margelo {
+namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
 
@@ -208,8 +204,8 @@ template <> struct JSIConverter<rnwgpu::async::AsyncTaskHandle> {
   }
 
   static jsi::Value toJSI(jsi::Runtime& runtime, rnwgpu::async::AsyncTaskHandle&& handle) {
-    return Promise::createPromise(runtime, [handle = std::move(handle)](jsi::Runtime& runtime,
-                                                                        std::shared_ptr<Promise> promise) mutable {
+    return rnwgpu::Promise::createPromise(runtime, [handle = std::move(handle)](jsi::Runtime& runtime,
+                                                                        std::shared_ptr<rnwgpu::Promise> promise) mutable {
       if (!handle.valid()) {
         promise->resolve(jsi::Value::undefined());
         return;
@@ -466,4 +462,4 @@ struct JSIConverter<std::unordered_set<std::string>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

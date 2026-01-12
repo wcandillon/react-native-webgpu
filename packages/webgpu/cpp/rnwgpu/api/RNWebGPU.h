@@ -77,15 +77,11 @@ private:
   std::shared_ptr<PlatformContext> _platformContext;
 };
 
-} // namespace rnwgpu
-
-namespace margelo {
-
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::Blob>> {
-  static std::shared_ptr<rnwgpu::Blob>
+template <> struct JSIConverter<std::shared_ptr<Blob>> {
+  static std::shared_ptr<Blob>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
     if (!outOfBounds && arg.isObject()) {
-      auto result = std::make_unique<rnwgpu::Blob>();
+      auto result = std::make_unique<Blob>();
       auto val = arg.asObject(runtime);
       if (val.hasProperty(runtime, "_data")) {
         auto value = val.getPropertyAsObject(runtime, "_data");
@@ -106,9 +102,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::Blob>> {
     }
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::Blob> arg) {
+                          std::shared_ptr<Blob> arg) {
     throw std::runtime_error("Invalid Blob::toJSI()");
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

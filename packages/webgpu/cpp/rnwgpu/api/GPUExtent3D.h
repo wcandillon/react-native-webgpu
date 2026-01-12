@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -14,14 +14,10 @@ struct GPUExtent3D {
   double depthOrArrayLayers = 1;
 };
 
-} // namespace rnwgpu
-
-namespace margelo {
-
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3D>> {
-  static std::shared_ptr<rnwgpu::GPUExtent3D>
+template <> struct JSIConverter<std::shared_ptr<GPUExtent3D>> {
+  static std::shared_ptr<GPUExtent3D>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUExtent3D>();
+    auto result = std::make_unique<GPUExtent3D>();
     if (!outOfBounds && arg.isObject()) {
       if (arg.getObject(runtime).isArray(runtime)) {
         auto array = arg.getObject(runtime).asArray(runtime);
@@ -61,9 +57,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUExtent3D>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUExtent3D> arg) {
+                          std::shared_ptr<GPUExtent3D> arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
-} // namespace margelo
+
+} // namespace rnwgpu

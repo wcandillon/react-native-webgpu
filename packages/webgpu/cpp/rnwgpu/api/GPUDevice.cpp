@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "Convertors.h"
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 
 #include "GPUFeatures.h"
 
@@ -26,7 +26,7 @@ void GPUDevice::notifyDeviceLost(wgpu::DeviceLostReason reason,
     auto resolve = std::move(*_lostResolve);
     _lostResolve.reset();
     resolve([info = _lostInfo](jsi::Runtime &runtime) mutable {
-      return margelo::JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(
+      return JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(
           runtime, info);
     });
   }
@@ -262,8 +262,7 @@ async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
                   pipeline) {
                 pipelineHolder->_instance = pipeline;
                 resolve([pipelineHolder](jsi::Runtime &runtime) mutable {
-                  return margelo::
-                      JSIConverter<std::shared_ptr<GPUComputePipeline>>::toJSI(
+                  return JSIConverter<std::shared_ptr<GPUComputePipeline>>::toJSI(
                           runtime, pipelineHolder);
                 });
               } else {
@@ -303,8 +302,7 @@ async::AsyncTaskHandle GPUDevice::createRenderPipelineAsync(
                   pipeline) {
                 pipelineHolder->_instance = pipeline;
                 resolve([pipelineHolder](jsi::Runtime &runtime) mutable {
-                  return margelo::
-                      JSIConverter<std::shared_ptr<GPURenderPipeline>>::toJSI(
+                  return JSIConverter<std::shared_ptr<GPURenderPipeline>>::toJSI(
                           runtime, pipelineHolder);
                 });
               } else {
@@ -359,7 +357,7 @@ async::AsyncTaskHandle GPUDevice::popErrorScope() {
 
               resolve([result =
                            std::move(result)](jsi::Runtime &runtime) mutable {
-                return margelo::JSIConverter<decltype(result)>::toJSI(runtime,
+                return JSIConverter<decltype(result)>::toJSI(runtime,
                                                                       result);
               });
             });
@@ -390,7 +388,7 @@ async::AsyncTaskHandle GPUDevice::getLost() {
             const async::AsyncTaskHandle::ResolveFunction &resolve,
             const async::AsyncTaskHandle::RejectFunction & /*reject*/) {
           resolve([info](jsi::Runtime &runtime) mutable {
-            return margelo::JSIConverter<
+            return JSIConverter<
                 std::shared_ptr<GPUDeviceLostInfo>>::toJSI(runtime, info);
           });
         },
@@ -402,7 +400,7 @@ async::AsyncTaskHandle GPUDevice::getLost() {
              const async::AsyncTaskHandle::RejectFunction & /*reject*/) {
         if (_lostSettled && _lostInfo) {
           resolve([info = _lostInfo](jsi::Runtime &runtime) mutable {
-            return margelo::JSIConverter<
+            return JSIConverter<
                 std::shared_ptr<GPUDeviceLostInfo>>::toJSI(runtime, info);
           });
           return;

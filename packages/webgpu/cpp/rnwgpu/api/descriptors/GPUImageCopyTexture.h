@@ -4,7 +4,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 #include "GPUOrigin3D.h"
@@ -23,9 +23,8 @@ struct GPUImageCopyTexture {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
   static std::shared_ptr<rnwgpu::GPUImageCopyTexture>
@@ -65,4 +64,4 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

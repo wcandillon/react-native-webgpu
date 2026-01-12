@@ -3,10 +3,10 @@
 #include <string>
 
 #include "External.h"
-#include "RNFEnumMapper.h"
+#include "EnumMapper.h"
 #include "webgpu/webgpu_cpp.h"
 
-namespace margelo {
+namespace rnwgpu {
 namespace EnumMapper {
 
 inline void convertJSUnionToEnum(const std::string &inUnion,
@@ -1981,4 +1981,4 @@ inline void convertEnumToJSUnion(rnwgpu::PremultiplyAlpha inEnum,
 }
 
 } // namespace EnumMapper
-} // namespace margelo
+} // namespace rnwgpu

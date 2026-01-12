@@ -4,7 +4,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 #include "GPUStencilFaceState.h"
@@ -30,9 +30,8 @@ struct GPUDepthStencilState {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
   static std::shared_ptr<rnwgpu::GPUDepthStencilState>
@@ -103,4 +102,4 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

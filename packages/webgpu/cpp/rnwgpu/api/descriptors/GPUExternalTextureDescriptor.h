@@ -9,7 +9,7 @@
 
 #include "Convertors.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 namespace jsi = facebook::jsi;
@@ -34,9 +34,8 @@ static bool conv(wgpu::ExternalTextureDescriptor &out,
 }
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
@@ -79,4 +78,4 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

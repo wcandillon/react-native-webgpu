@@ -5,7 +5,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 #include "GPUComputePassTimestampWrites.h"
@@ -22,9 +22,8 @@ struct GPUComputePassDescriptor {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
@@ -56,4 +55,4 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassDescriptor>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

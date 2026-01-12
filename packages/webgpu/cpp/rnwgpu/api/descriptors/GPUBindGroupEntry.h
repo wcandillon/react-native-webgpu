@@ -9,7 +9,7 @@
 #include "GPUExternalTexture.h"
 #include "GPUSampler.h"
 #include "GPUTextureView.h"
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 namespace jsi = facebook::jsi;
@@ -26,9 +26,8 @@ struct GPUBindGroupEntry {
 
 } // namespace rnwgpu
 
-namespace margelo {
+namespace rnwgpu {
 
-using namespace rnwgpu; // NOLINT(build/namespaces)
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
   static std::shared_ptr<rnwgpu::GPUBindGroupEntry>
@@ -71,4 +70,4 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu
