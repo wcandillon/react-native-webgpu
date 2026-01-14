@@ -37,7 +37,6 @@ struct GPURenderPipelineDescriptor {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
   static std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>

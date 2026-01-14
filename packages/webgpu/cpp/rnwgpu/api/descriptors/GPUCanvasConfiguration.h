@@ -26,7 +26,6 @@ struct GPUCanvasConfiguration {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
   static std::shared_ptr<rnwgpu::GPUCanvasConfiguration>

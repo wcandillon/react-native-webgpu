@@ -32,7 +32,6 @@ struct GPUFragmentState {
 
 namespace rnwgpu {
 
-
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUFragmentState>> {
   static std::shared_ptr<rnwgpu::GPUFragmentState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {

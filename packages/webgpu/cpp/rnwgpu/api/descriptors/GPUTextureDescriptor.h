@@ -31,7 +31,6 @@ struct GPUTextureDescriptor {
 
 namespace rnwgpu {
 
-
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUTextureDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {

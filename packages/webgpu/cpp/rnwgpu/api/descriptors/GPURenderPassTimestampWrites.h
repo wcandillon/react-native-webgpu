@@ -23,7 +23,6 @@ struct GPURenderPassTimestampWrites {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassTimestampWrites>> {
   static std::shared_ptr<rnwgpu::GPURenderPassTimestampWrites>

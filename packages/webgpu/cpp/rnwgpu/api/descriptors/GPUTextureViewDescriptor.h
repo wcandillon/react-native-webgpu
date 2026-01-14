@@ -28,7 +28,6 @@ struct GPUTextureViewDescriptor {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>

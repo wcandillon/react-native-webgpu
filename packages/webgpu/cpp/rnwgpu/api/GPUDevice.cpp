@@ -10,6 +10,9 @@
 #include "JSIConverter.h"
 
 #include "GPUFeatures.h"
+#include "GPUInternalError.h"
+#include "GPUOutOfMemoryError.h"
+#include "GPUValidationError.h"
 
 namespace rnwgpu {
 
@@ -26,8 +29,8 @@ void GPUDevice::notifyDeviceLost(wgpu::DeviceLostReason reason,
     auto resolve = std::move(*_lostResolve);
     _lostResolve.reset();
     resolve([info = _lostInfo](jsi::Runtime &runtime) mutable {
-      return JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(
-          runtime, info);
+      return JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(runtime,
+                                                                     info);
     });
   }
 
@@ -248,30 +251,31 @@ async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
       descriptor->label.has_value() ? descriptor->label.value() : "");
   auto pipelineHolder = std::make_shared<GPUComputePipeline>(nullptr, label);
 
-  return _async->postTask(
-      [device = _instance, desc, descriptor,
-       pipelineHolder](const async::AsyncTaskHandle::ResolveFunction &resolve,
-                       const async::AsyncTaskHandle::RejectFunction &reject) {
-        (void)descriptor;
-        device.CreateComputePipelineAsync(
-            &desc, wgpu::CallbackMode::AllowProcessEvents,
-            [pipelineHolder, resolve,
-             reject](wgpu::CreatePipelineAsyncStatus status,
-                     wgpu::ComputePipeline pipeline, const char *msg) mutable {
-              if (status == wgpu::CreatePipelineAsyncStatus::Success &&
-                  pipeline) {
-                pipelineHolder->_instance = pipeline;
-                resolve([pipelineHolder](jsi::Runtime &runtime) mutable {
-                  return JSIConverter<std::shared_ptr<GPUComputePipeline>>::toJSI(
-                          runtime, pipelineHolder);
-                });
-              } else {
-                std::string error = msg ? std::string(msg)
-                                        : "Failed to create compute pipeline";
-                reject(std::move(error));
-              }
+  return _async->postTask([device = _instance, desc, descriptor,
+                           pipelineHolder](
+                              const async::AsyncTaskHandle::ResolveFunction
+                                  &resolve,
+                              const async::AsyncTaskHandle::RejectFunction
+                                  &reject) {
+    (void)descriptor;
+    device.CreateComputePipelineAsync(
+        &desc, wgpu::CallbackMode::AllowProcessEvents,
+        [pipelineHolder, resolve,
+         reject](wgpu::CreatePipelineAsyncStatus status,
+                 wgpu::ComputePipeline pipeline, const char *msg) mutable {
+          if (status == wgpu::CreatePipelineAsyncStatus::Success && pipeline) {
+            pipelineHolder->_instance = pipeline;
+            resolve([pipelineHolder](jsi::Runtime &runtime) mutable {
+              return JSIConverter<std::shared_ptr<GPUComputePipeline>>::toJSI(
+                  runtime, pipelineHolder);
             });
-      });
+          } else {
+            std::string error =
+                msg ? std::string(msg) : "Failed to create compute pipeline";
+            reject(std::move(error));
+          }
+        });
+  });
 }
 
 async::AsyncTaskHandle GPUDevice::createRenderPipelineAsync(
@@ -288,30 +292,31 @@ async::AsyncTaskHandle GPUDevice::createRenderPipelineAsync(
       descriptor->label.has_value() ? descriptor->label.value() : "");
   auto pipelineHolder = std::make_shared<GPURenderPipeline>(nullptr, label);
 
-  return _async->postTask(
-      [device = _instance, desc, descriptor,
-       pipelineHolder](const async::AsyncTaskHandle::ResolveFunction &resolve,
-                       const async::AsyncTaskHandle::RejectFunction &reject) {
-        (void)descriptor;
-        device.CreateRenderPipelineAsync(
-            &desc, wgpu::CallbackMode::AllowProcessEvents,
-            [pipelineHolder, resolve,
-             reject](wgpu::CreatePipelineAsyncStatus status,
-                     wgpu::RenderPipeline pipeline, const char *msg) mutable {
-              if (status == wgpu::CreatePipelineAsyncStatus::Success &&
-                  pipeline) {
-                pipelineHolder->_instance = pipeline;
-                resolve([pipelineHolder](jsi::Runtime &runtime) mutable {
-                  return JSIConverter<std::shared_ptr<GPURenderPipeline>>::toJSI(
-                          runtime, pipelineHolder);
-                });
-              } else {
-                std::string error =
-                    msg ? std::string(msg) : "Failed to create render pipeline";
-                reject(std::move(error));
-              }
+  return _async->postTask([device = _instance, desc, descriptor,
+                           pipelineHolder](
+                              const async::AsyncTaskHandle::ResolveFunction
+                                  &resolve,
+                              const async::AsyncTaskHandle::RejectFunction
+                                  &reject) {
+    (void)descriptor;
+    device.CreateRenderPipelineAsync(
+        &desc, wgpu::CallbackMode::AllowProcessEvents,
+        [pipelineHolder, resolve,
+         reject](wgpu::CreatePipelineAsyncStatus status,
+                 wgpu::RenderPipeline pipeline, const char *msg) mutable {
+          if (status == wgpu::CreatePipelineAsyncStatus::Success && pipeline) {
+            pipelineHolder->_instance = pipeline;
+            resolve([pipelineHolder](jsi::Runtime &runtime) mutable {
+              return JSIConverter<std::shared_ptr<GPURenderPipeline>>::toJSI(
+                  runtime, pipelineHolder);
             });
-      });
+          } else {
+            std::string error =
+                msg ? std::string(msg) : "Failed to create render pipeline";
+            reject(std::move(error));
+          }
+        });
+  });
 }
 
 void GPUDevice::pushErrorScope(wgpu::ErrorFilter filter) {
@@ -321,47 +326,60 @@ void GPUDevice::pushErrorScope(wgpu::ErrorFilter filter) {
 async::AsyncTaskHandle GPUDevice::popErrorScope() {
   auto device = _instance;
 
-  return _async->postTask(
-      [device](const async::AsyncTaskHandle::ResolveFunction &resolve,
-               const async::AsyncTaskHandle::RejectFunction &reject) {
-        device.PopErrorScope(
-            wgpu::CallbackMode::AllowProcessEvents,
-            [resolve, reject](wgpu::PopErrorScopeStatus status,
-                              wgpu::ErrorType type, wgpu::StringView message) {
-              if (status == wgpu::PopErrorScopeStatus::Error ||
-                  status == wgpu::PopErrorScopeStatus::CallbackCancelled) {
-                reject("PopErrorScope failed");
-                return;
-              }
+  return _async->postTask([device](const async::AsyncTaskHandle::ResolveFunction
+                                       &resolve,
+                                   const async::AsyncTaskHandle::RejectFunction
+                                       &reject) {
+    device.PopErrorScope(
+        wgpu::CallbackMode::AllowProcessEvents,
+        [resolve, reject](wgpu::PopErrorScopeStatus status,
+                          wgpu::ErrorType type, wgpu::StringView message) {
+          if (status == wgpu::PopErrorScopeStatus::Error ||
+              status == wgpu::PopErrorScopeStatus::CallbackCancelled) {
+            reject("PopErrorScope failed");
+            return;
+          }
 
-              std::variant<std::nullptr_t, std::shared_ptr<GPUError>> result =
-                  nullptr;
+          std::string messageString =
+              message.length ? std::string(message.data, message.length) : "";
 
-              switch (type) {
-              case wgpu::ErrorType::NoError:
-                break;
-              case wgpu::ErrorType::OutOfMemory:
-              case wgpu::ErrorType::Validation:
-              case wgpu::ErrorType::Internal:
-              case wgpu::ErrorType::Unknown: {
-                std::string messageString =
-                    message.length ? std::string(message.data, message.length)
-                                   : "";
-                result = std::make_shared<GPUError>(type, messageString);
-                break;
-              }
-              default:
-                reject("Unhandled GPU error type");
-                return;
-              }
-
-              resolve([result =
-                           std::move(result)](jsi::Runtime &runtime) mutable {
-                return JSIConverter<decltype(result)>::toJSI(runtime,
-                                                                      result);
-              });
+          switch (type) {
+          case wgpu::ErrorType::NoError:
+            resolve([](jsi::Runtime &runtime) mutable {
+              return jsi::Value::null();
             });
-      });
+            break;
+          case wgpu::ErrorType::Validation: {
+            auto error = std::make_shared<GPUValidationError>(messageString);
+            resolve([error](jsi::Runtime &runtime) mutable {
+              return JSIConverter<std::shared_ptr<GPUValidationError>>::toJSI(
+                  runtime, error);
+            });
+            break;
+          }
+          case wgpu::ErrorType::OutOfMemory: {
+            auto error = std::make_shared<GPUOutOfMemoryError>(messageString);
+            resolve([error](jsi::Runtime &runtime) mutable {
+              return JSIConverter<std::shared_ptr<GPUOutOfMemoryError>>::toJSI(
+                  runtime, error);
+            });
+            break;
+          }
+          case wgpu::ErrorType::Internal:
+          case wgpu::ErrorType::Unknown: {
+            auto error = std::make_shared<GPUInternalError>(messageString);
+            resolve([error](jsi::Runtime &runtime) mutable {
+              return JSIConverter<std::shared_ptr<GPUInternalError>>::toJSI(
+                  runtime, error);
+            });
+            break;
+          }
+          default:
+            reject("Unhandled GPU error type");
+            return;
+          }
+        });
+  });
 }
 
 std::unordered_set<std::string> GPUDevice::getFeatures() {
@@ -388,8 +406,8 @@ async::AsyncTaskHandle GPUDevice::getLost() {
             const async::AsyncTaskHandle::ResolveFunction &resolve,
             const async::AsyncTaskHandle::RejectFunction & /*reject*/) {
           resolve([info](jsi::Runtime &runtime) mutable {
-            return JSIConverter<
-                std::shared_ptr<GPUDeviceLostInfo>>::toJSI(runtime, info);
+            return JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(
+                runtime, info);
           });
         },
         false);
@@ -400,8 +418,8 @@ async::AsyncTaskHandle GPUDevice::getLost() {
              const async::AsyncTaskHandle::RejectFunction & /*reject*/) {
         if (_lostSettled && _lostInfo) {
           resolve([info = _lostInfo](jsi::Runtime &runtime) mutable {
-            return JSIConverter<
-                std::shared_ptr<GPUDeviceLostInfo>>::toJSI(runtime, info);
+            return JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(
+                runtime, info);
           });
           return;
         }

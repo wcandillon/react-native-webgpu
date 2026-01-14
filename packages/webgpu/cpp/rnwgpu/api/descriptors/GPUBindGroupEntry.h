@@ -28,7 +28,6 @@ struct GPUBindGroupEntry {
 
 namespace rnwgpu {
 
-
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
   static std::shared_ptr<rnwgpu::GPUBindGroupEntry>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {

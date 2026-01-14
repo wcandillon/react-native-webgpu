@@ -44,8 +44,7 @@ private:
   friend class GPUShaderModule;
 };
 
-template <>
-struct JSIConverter<std::vector<GPUCompilationMessageData>> {
+template <> struct JSIConverter<std::vector<GPUCompilationMessageData>> {
   static std::vector<GPUCompilationMessageData>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
     throw std::runtime_error("Invalid GPUCompilationMessageData::fromJSI()");

@@ -4,8 +4,8 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "PlatformContext.h"
 #include "NativeObject.h"
+#include "PlatformContext.h"
 
 namespace rnwgpu {
 

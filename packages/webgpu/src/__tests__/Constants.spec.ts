@@ -86,4 +86,24 @@ describe("WebGPUConstants", () => {
     );
     expect(result).toEqual([true, true]);
   });
+  it("GPUError instanceof", async () => {
+    const result = await client.eval(({ device }) => {
+      device.pushErrorScope("validation");
+      device.createSampler({
+        maxAnisotropy: 0, // Invalid, maxAnisotropy must be at least 1.
+      });
+      return device.popErrorScope().then((error) => {
+        if (error) {
+          return [
+            error instanceof GPUError,
+            error instanceof GPUValidationError,
+            error instanceof GPUOutOfMemoryError,
+            error instanceof GPUInternalError,
+          ];
+        }
+        return [false, false, false, false];
+      });
+    });
+    expect(result).toEqual([false, true, false, false]);
+  });
 });

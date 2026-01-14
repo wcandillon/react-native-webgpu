@@ -29,7 +29,6 @@ struct GPURenderPassDepthStencilAttachment {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<
     std::shared_ptr<rnwgpu::GPURenderPassDepthStencilAttachment>> {

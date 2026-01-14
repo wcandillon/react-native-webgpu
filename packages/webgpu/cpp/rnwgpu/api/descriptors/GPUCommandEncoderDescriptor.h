@@ -20,7 +20,6 @@ struct GPUCommandEncoderDescriptor {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUCommandEncoderDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUCommandEncoderDescriptor>

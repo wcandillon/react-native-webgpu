@@ -26,7 +26,6 @@ struct GPUShaderModuleDescriptor {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUShaderModuleDescriptor>

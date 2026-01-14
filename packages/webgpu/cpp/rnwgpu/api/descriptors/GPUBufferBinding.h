@@ -23,7 +23,6 @@ struct GPUBufferBinding {
 
 namespace rnwgpu {
 
-
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBufferBinding>> {
   static std::shared_ptr<rnwgpu::GPUBufferBinding>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {

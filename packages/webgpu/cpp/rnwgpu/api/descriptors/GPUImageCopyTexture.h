@@ -25,7 +25,6 @@ struct GPUImageCopyTexture {
 
 namespace rnwgpu {
 
-
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyTexture>> {
   static std::shared_ptr<rnwgpu::GPUImageCopyTexture>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {

@@ -30,7 +30,6 @@ struct GPUDeviceDescriptor {
 
 namespace rnwgpu {
 
-
 // We add this extra convertor because we found so library that are sending
 // invalid feature elements
 template <> struct JSIConverter<std::vector<wgpu::FeatureName>> {

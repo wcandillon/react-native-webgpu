@@ -27,7 +27,6 @@ struct GPUImageCopyExternalImage {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
   static std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>

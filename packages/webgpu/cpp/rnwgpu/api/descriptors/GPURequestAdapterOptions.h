@@ -20,7 +20,6 @@ struct GPURequestAdapterOptions {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
   static std::shared_ptr<rnwgpu::GPURequestAdapterOptions>

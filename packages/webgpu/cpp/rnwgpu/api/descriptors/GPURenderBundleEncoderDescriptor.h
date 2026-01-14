@@ -27,7 +27,6 @@ struct GPURenderBundleEncoderDescriptor {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>> {
   static std::shared_ptr<rnwgpu::GPURenderBundleEncoderDescriptor>

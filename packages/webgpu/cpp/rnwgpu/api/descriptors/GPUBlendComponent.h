@@ -21,7 +21,6 @@ struct GPUBlendComponent {
 
 namespace rnwgpu {
 
-
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendComponent>> {
   static std::shared_ptr<rnwgpu::GPUBlendComponent>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {

@@ -22,7 +22,6 @@ struct GPUStorageTextureBindingLayout {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>> {
   static std::shared_ptr<rnwgpu::GPUStorageTextureBindingLayout>

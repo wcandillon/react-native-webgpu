@@ -30,7 +30,6 @@ struct GPUSamplerDescriptor {
 
 namespace rnwgpu {
 
-
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUSamplerDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUSamplerDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {

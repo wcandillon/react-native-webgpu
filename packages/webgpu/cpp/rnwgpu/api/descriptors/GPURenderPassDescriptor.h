@@ -36,7 +36,6 @@ struct GPURenderPassDescriptor {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassDescriptor>> {
   static std::shared_ptr<rnwgpu::GPURenderPassDescriptor>

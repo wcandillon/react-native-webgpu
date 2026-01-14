@@ -28,7 +28,6 @@ struct GPURenderPassColorAttachment {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>> {
   static std::shared_ptr<rnwgpu::GPURenderPassColorAttachment>

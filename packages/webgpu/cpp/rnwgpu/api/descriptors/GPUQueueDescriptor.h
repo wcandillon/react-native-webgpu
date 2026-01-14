@@ -20,7 +20,6 @@ struct GPUQueueDescriptor {
 
 namespace rnwgpu {
 
-
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUQueueDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUQueueDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {

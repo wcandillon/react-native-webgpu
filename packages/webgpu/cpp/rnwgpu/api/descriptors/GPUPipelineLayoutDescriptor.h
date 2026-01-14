@@ -25,7 +25,6 @@ struct GPUPipelineLayoutDescriptor {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUPipelineLayoutDescriptor>

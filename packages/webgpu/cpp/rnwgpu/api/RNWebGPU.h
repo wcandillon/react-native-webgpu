@@ -101,8 +101,7 @@ template <> struct JSIConverter<std::shared_ptr<Blob>> {
       throw std::runtime_error("Invalid Blob::fromJSI()");
     }
   }
-  static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<Blob> arg) {
+  static jsi::Value toJSI(jsi::Runtime &runtime, std::shared_ptr<Blob> arg) {
     throw std::runtime_error("Invalid Blob::toJSI()");
   }
 };

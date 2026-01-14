@@ -24,7 +24,6 @@ struct GPUUncapturedErrorEventInit {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>> {
   static std::shared_ptr<rnwgpu::GPUUncapturedErrorEventInit>

@@ -23,7 +23,6 @@ struct GPUComputePassTimestampWrites {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>> {
   static std::shared_ptr<rnwgpu::GPUComputePassTimestampWrites>

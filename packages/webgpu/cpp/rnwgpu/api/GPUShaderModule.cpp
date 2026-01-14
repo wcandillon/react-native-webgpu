@@ -39,12 +39,11 @@ async::AsyncTaskHandle GPUShaderModule::getCompilationInfo() {
                 result->_messages.push_back(std::move(message));
               }
 
-              resolve(
-                  [result = std::move(result)](jsi::Runtime &runtime) mutable {
-                    return JSIConverter<
-                        std::shared_ptr<GPUCompilationInfo>>::toJSI(runtime,
-                                                                    result);
-                  });
+              resolve([result =
+                           std::move(result)](jsi::Runtime &runtime) mutable {
+                return JSIConverter<std::shared_ptr<GPUCompilationInfo>>::toJSI(
+                    runtime, result);
+              });
             });
       });
 }

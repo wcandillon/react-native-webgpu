@@ -25,7 +25,6 @@ struct GPUBindGroupLayoutDescriptor {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupLayoutDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUBindGroupLayoutDescriptor>

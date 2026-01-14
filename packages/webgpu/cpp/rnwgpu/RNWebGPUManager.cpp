@@ -19,7 +19,10 @@
 #include "GPUComputePipeline.h"
 #include "GPUDevice.h"
 #include "GPUDeviceLostInfo.h"
+#include "GPUError.h"
 #include "GPUExternalTexture.h"
+#include "GPUInternalError.h"
+#include "GPUOutOfMemoryError.h"
 #include "GPUPipelineLayout.h"
 #include "GPUQuerySet.h"
 #include "GPUQueue.h"
@@ -32,6 +35,7 @@
 #include "GPUSupportedLimits.h"
 #include "GPUTexture.h"
 #include "GPUTextureView.h"
+#include "GPUValidationError.h"
 
 // Enums
 #include "GPUBufferUsage.h"
@@ -77,7 +81,11 @@ RNWebGPUManager::RNWebGPUManager(
   GPUComputePipeline::installConstructor(*_jsRuntime);
   GPUDevice::installConstructor(*_jsRuntime);
   GPUDeviceLostInfo::installConstructor(*_jsRuntime);
+  GPUError::installConstructor(*_jsRuntime);
   GPUExternalTexture::installConstructor(*_jsRuntime);
+  GPUInternalError::installConstructor(*_jsRuntime);
+  GPUOutOfMemoryError::installConstructor(*_jsRuntime);
+  GPUValidationError::installConstructor(*_jsRuntime);
   GPUPipelineLayout::installConstructor(*_jsRuntime);
   GPUQuerySet::installConstructor(*_jsRuntime);
   GPUQueue::installConstructor(*_jsRuntime);

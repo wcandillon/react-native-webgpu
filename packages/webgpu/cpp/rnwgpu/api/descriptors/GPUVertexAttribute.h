@@ -21,7 +21,6 @@ struct GPUVertexAttribute {
 
 namespace rnwgpu {
 
-
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexAttribute>> {
   static std::shared_ptr<rnwgpu::GPUVertexAttribute>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {

@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "External.h"
 #include "EnumMapper.h"
+#include "External.h"
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {

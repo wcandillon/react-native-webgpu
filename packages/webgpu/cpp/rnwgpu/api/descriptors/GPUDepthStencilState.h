@@ -32,7 +32,6 @@ struct GPUDepthStencilState {
 
 namespace rnwgpu {
 
-
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDepthStencilState>> {
   static std::shared_ptr<rnwgpu::GPUDepthStencilState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {

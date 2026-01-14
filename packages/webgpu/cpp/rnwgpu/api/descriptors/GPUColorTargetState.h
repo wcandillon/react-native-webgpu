@@ -23,7 +23,6 @@ struct GPUColorTargetState {
 
 namespace rnwgpu {
 
-
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColorTargetState>> {
   static std::shared_ptr<rnwgpu::GPUColorTargetState>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {

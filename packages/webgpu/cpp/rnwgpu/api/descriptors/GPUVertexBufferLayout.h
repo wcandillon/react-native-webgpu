@@ -25,7 +25,6 @@ struct GPUVertexBufferLayout {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUVertexBufferLayout>> {
   static std::shared_ptr<rnwgpu::GPUVertexBufferLayout>

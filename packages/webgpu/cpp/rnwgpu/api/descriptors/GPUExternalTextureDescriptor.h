@@ -36,7 +36,6 @@ static bool conv(wgpu::ExternalTextureDescriptor &out,
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>

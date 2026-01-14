@@ -25,7 +25,6 @@ struct GPUShaderModuleCompilationHint {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>> {
   static std::shared_ptr<rnwgpu::GPUShaderModuleCompilationHint>

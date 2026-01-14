@@ -26,7 +26,6 @@ struct GPUComputePipelineDescriptor {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUComputePipelineDescriptor>

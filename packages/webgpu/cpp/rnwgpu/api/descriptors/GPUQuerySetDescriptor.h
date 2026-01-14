@@ -22,7 +22,6 @@ struct GPUQuerySetDescriptor {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUQuerySetDescriptor>

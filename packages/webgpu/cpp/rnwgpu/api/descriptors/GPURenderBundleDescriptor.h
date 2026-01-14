@@ -20,7 +20,6 @@ struct GPURenderBundleDescriptor {
 
 namespace rnwgpu {
 
-
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderBundleDescriptor>> {
   static std::shared_ptr<rnwgpu::GPURenderBundleDescriptor>

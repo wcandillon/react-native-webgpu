@@ -59,8 +59,7 @@ async::AsyncTaskHandle GPU::requestAdapter(
                         adapterHost);
                 resolve([result =
                              std::move(result)](jsi::Runtime &runtime) mutable {
-                  return JSIConverter<decltype(result)>::toJSI(runtime,
-                                                                        result);
+                  return JSIConverter<decltype(result)>::toJSI(runtime, result);
                 });
               } else {
                 auto result =
@@ -68,8 +67,7 @@ async::AsyncTaskHandle GPU::requestAdapter(
                         nullptr);
                 resolve([result =
                              std::move(result)](jsi::Runtime &runtime) mutable {
-                  return JSIConverter<decltype(result)>::toJSI(runtime,
-                                                                        result);
+                  return JSIConverter<decltype(result)>::toJSI(runtime, result);
                 });
               }
             });
