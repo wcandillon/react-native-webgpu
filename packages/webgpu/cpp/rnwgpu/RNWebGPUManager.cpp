@@ -1,6 +1,7 @@
 #include "RNWebGPUManager.h"
 
 #include "GPU.h"
+#include "NativeObject.h"
 #include "RNWebGPU.h"
 
 // GPU API classes (for instanceof support)
@@ -50,6 +51,9 @@ RNWebGPUManager::RNWebGPUManager(
     std::shared_ptr<PlatformContext> platformContext)
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker),
       _platformContext(platformContext) {
+
+  // Register main runtime for RuntimeAwareCache
+  BaseRuntimeAwareCache::setMainJsRuntime(_jsRuntime);
 
   auto gpu = std::make_shared<GPU>(*_jsRuntime);
   auto rnWebGPU = std::make_shared<RNWebGPU>(gpu, _platformContext);

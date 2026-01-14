@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <functional>
 #include <jsi/jsi.h>
 #include <memory>
@@ -14,6 +15,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "RuntimeLifecycleMonitor.h"
 #include "WGPULogger.h"
 
 // Forward declare to avoid circular dependency
@@ -38,26 +40,81 @@ struct PrototypeCacheEntry {
 };
 
 /**
- * Simple runtime-aware cache that stores data per-runtime.
- * Used by NativeObject to cache prototypes per runtime.
+ * Base class for runtime-aware caches. Provides static storage for the
+ * main runtime pointer, which must be set during initialization.
  */
-template <typename T> class PrototypeCache {
+class BaseRuntimeAwareCache {
 public:
-  T &get(jsi::Runtime &rt) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    // Use runtime address as key
-    auto it = cache_.find(&rt);
-    if (it != cache_.end()) {
-      return it->second;
-    }
-    // Create new entry for this runtime
-    auto result = cache_.emplace(&rt, T{});
-    return result.first->second;
+  static void setMainJsRuntime(jsi::Runtime *rt) { _mainRuntime = rt; }
+
+protected:
+  static jsi::Runtime *getMainJsRuntime() {
+    assert(_mainRuntime != nullptr &&
+           "Expected main Javascript runtime to be set in the "
+           "BaseRuntimeAwareCache class.");
+    return _mainRuntime;
   }
 
 private:
-  std::mutex mutex_;
-  std::unordered_map<jsi::Runtime *, T> cache_;
+  static jsi::Runtime *_mainRuntime;
+};
+
+/**
+ * Runtime-aware cache that stores data per-runtime and automatically
+ * cleans up when a runtime is destroyed.
+ *
+ * This follows the same pattern as React Native Skia's RuntimeAwareCache:
+ * - For the primary/main runtime: uses a simple member variable (zero overhead)
+ * - For secondary runtimes: tracks lifecycle and auto-cleans on destruction
+ *
+ * The assumption is that the main runtime outlives the cache itself,
+ * so we don't need to register for its destruction events.
+ */
+template <typename T>
+class RuntimeAwareCache : public BaseRuntimeAwareCache,
+                          public RuntimeLifecycleListener {
+public:
+  void onRuntimeDestroyed(jsi::Runtime *rt) override {
+    if (getMainJsRuntime() != rt) {
+      // We are removing a secondary runtime
+      _secondaryRuntimeCaches.erase(rt);
+    }
+  }
+
+  ~RuntimeAwareCache() {
+    for (auto &cache : _secondaryRuntimeCaches) {
+      RuntimeLifecycleMonitor::removeListener(
+          *static_cast<jsi::Runtime *>(cache.first), this);
+    }
+  }
+
+  T &get(jsi::Runtime &rt) {
+    // We check if we're accessing the main runtime - this is the happy path
+    // to avoid us having to lookup by runtime for caches that only has a single
+    // runtime
+    if (getMainJsRuntime() == &rt) {
+      return _primaryCache;
+    } else {
+      if (_secondaryRuntimeCaches.count(&rt) == 0) {
+        // We only add listener when the secondary runtime is used, this assumes
+        // that the secondary runtime is terminated first. This lets us avoid
+        // additional complexity for the majority of cases when objects are not
+        // shared between runtimes. Otherwise we'd have to register all objects
+        // with the RuntimeMonitor as opposed to only registering ones that are
+        // used in secondary runtime. Note that we can't register listener here
+        // with the primary runtime as it may run on a separate thread.
+        RuntimeLifecycleMonitor::addListener(rt, this);
+
+        T cache;
+        _secondaryRuntimeCaches.emplace(&rt, std::move(cache));
+      }
+    }
+    return _secondaryRuntimeCaches.at(&rt);
+  }
+
+private:
+  std::unordered_map<void *, T> _secondaryRuntimeCaches;
+  T _primaryCache;
 };
 
 /**
@@ -98,9 +155,10 @@ public:
   /**
    * Get the prototype cache for this type.
    * Each NativeObject<Derived> type has its own static cache.
+   * Uses RuntimeAwareCache to properly handle runtime lifecycle.
    */
-  static PrototypeCache<PrototypeCacheEntry> &getPrototypeCache() {
-    static PrototypeCache<PrototypeCacheEntry> cache;
+  static RuntimeAwareCache<PrototypeCacheEntry> &getPrototypeCache() {
+    static RuntimeAwareCache<PrototypeCacheEntry> cache;
     return cache;
   }
 
@@ -339,6 +397,9 @@ protected:
         1,
         [setter](jsi::Runtime &rt, const jsi::Value &thisVal,
                  const jsi::Value *args, size_t count) -> jsi::Value {
+          if (count < 1) {
+            throw jsi::JSError(rt, "Setter requires a value argument");
+          }
           auto native = Derived::fromValue(rt, thisVal);
           auto value =
               rnwgpu::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
@@ -397,6 +458,9 @@ protected:
         1,
         [setter](jsi::Runtime &rt, const jsi::Value &thisVal,
                  const jsi::Value *args, size_t count) -> jsi::Value {
+          if (count < 1) {
+            throw jsi::JSError(rt, "Setter requires a value argument");
+          }
           auto native = Derived::fromValue(rt, thisVal);
           auto value =
               rnwgpu::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
