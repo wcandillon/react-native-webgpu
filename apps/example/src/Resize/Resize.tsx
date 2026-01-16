@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { Dimensions, PixelRatio, View } from "react-native";
 import { Canvas } from "react-native-wgpu";
 import Animated, {
@@ -10,6 +10,9 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const AnimatedView = Animated.View as any;
 
 import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
 import { useWebGPU } from "../components/useWebGPU";
@@ -129,9 +132,9 @@ export const Resize = () => {
   });
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
-      <Animated.View style={style}>
+      <AnimatedView style={style}>
         <Canvas ref={ref} style={{ flex: 1 }} transparent />
-      </Animated.View>
+      </AnimatedView>
     </View>
   );
 };

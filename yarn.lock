@@ -4249,12 +4249,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react-dom@npm:^19.2.2":
-  version: 19.2.3
-  resolution: "@types/react-dom@npm:19.2.3"
+"@types/react-dom@npm:19.1.0":
+  version: 19.1.0
+  resolution: "@types/react-dom@npm:19.1.0"
   peerDependencies:
-    "@types/react": ^19.2.0
-  checksum: b9c548f7378979cd8384444ae6c96f7a933b98e341c271c33e74231f27bf3082f04ad7c2927f1b1e6d8af35ccf83e549fce4978ebe0a02ded5a8803aa5f80e06
+    "@types/react": ^19.0.0
+  checksum: 9bd88e628a0e90c81472f1513dd3e3593af3304754f264357ccee73c5a74af1276b078725a5913f5188561331f72f877a6417a3fb915813b596af66f74dbb4c6
   languageName: node
   linkType: hard
 
@@ -4941,8 +4941,8 @@ __metadata:
     "@tensorflow/tfjs-backend-webgpu": ^4.22.0
     "@tensorflow/tfjs-vis": ^1.5.1
     "@types/node": ^20.14.7
-    "@types/react": ^18.2.6
-    "@types/react-dom": ^19.2.2
+    "@types/react": 19.1.0
+    "@types/react-dom": 19.1.0
     "@types/react-test-renderer": ^18.0.0
     "@types/three": 0.172.0
     "@webgpu/types": 0.1.65
