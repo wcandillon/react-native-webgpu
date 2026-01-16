@@ -208,6 +208,10 @@ public:
    *
    * The constructor throws if called directly (these objects are only
    * created internally by the native code).
+   *
+   * Since we don't use prototype chain inheritance (to support Reanimated),
+   * we implement `instanceof` via Symbol.hasInstance which checks the __brand
+   * property instead.
    */
   static void installConstructor(jsi::Runtime &runtime) {
     installPrototype(runtime);
@@ -227,12 +231,49 @@ public:
                       " objects are created by the WebGPU API");
         });
 
-    // Set the prototype property on the constructor
-    // This is what makes `instanceof` work
+    // Set the prototype property on the constructor (for consistency)
     ctor.setProperty(runtime, "prototype", *entry.prototype);
 
     // Set constructor property on prototype pointing back to constructor
     entry.prototype->setProperty(runtime, "constructor", ctor);
+
+    // Implement Symbol.hasInstance for instanceof support
+    // Since we copy properties instead of using setPrototypeOf, we need
+    // custom instanceof behavior that checks the __brand property
+    auto symbolCtor = runtime.global().getPropertyAsObject(runtime, "Symbol");
+    auto hasInstance = symbolCtor.getProperty(runtime, "hasInstance");
+    if (!hasInstance.isUndefined()) {
+      auto hasInstanceFunc = jsi::Function::createFromHostFunction(
+          runtime,
+          jsi::PropNameID::forUtf8(runtime,
+                                   std::string("[Symbol.hasInstance]")),
+          1,
+          [](jsi::Runtime &rt, const jsi::Value & /*thisVal*/,
+             const jsi::Value *args, size_t count) -> jsi::Value {
+            if (count < 1 || !args[0].isObject()) {
+              return jsi::Value(false);
+            }
+            auto obj = args[0].getObject(rt);
+            auto brand = obj.getProperty(rt, "__brand");
+            if (!brand.isString()) {
+              return jsi::Value(false);
+            }
+            return jsi::Value(brand.getString(rt).utf8(rt) ==
+                              Derived::CLASS_NAME);
+          });
+
+      // Use Object.defineProperty to set the symbol property
+      auto objectCtor =
+          runtime.global().getPropertyAsObject(runtime, "Object");
+      auto defineProperty =
+          objectCtor.getPropertyAsFunction(runtime, "defineProperty");
+      jsi::Object descriptor(runtime);
+      descriptor.setProperty(runtime, "value", hasInstanceFunc);
+      descriptor.setProperty(runtime, "writable", false);
+      descriptor.setProperty(runtime, "enumerable", false);
+      descriptor.setProperty(runtime, "configurable", true);
+      defineProperty.call(runtime, ctor, hasInstance, descriptor);
+    }
 
     // Install on global
     runtime.global().setProperty(runtime, Derived::CLASS_NAME, std::move(ctor));
@@ -240,6 +281,13 @@ public:
 
   /**
    * Create a JS object with native state attached.
+   *
+   * Instead of using Object.setPrototypeOf (which would change the prototype
+   * chain and break Reanimated's isPlainJSObject check), we copy all properties
+   * from the cached prototype directly onto the new object. This ensures:
+   * 1. Object.getPrototypeOf(obj) === Object.prototype (passes isPlainJSObject)
+   * 2. The object still has all WebGPU methods and getters
+   * 3. The native state is preserved when serialized by Reanimated/Worklets
    */
   static jsi::Value create(jsi::Runtime &runtime,
                            std::shared_ptr<Derived> instance) {
@@ -254,15 +302,41 @@ public:
     // Attach native state
     obj.setNativeState(runtime, instance);
 
-    // Set prototype
+    // Copy all properties from the prototype to the object
+    // This keeps Object.prototype as the prototype (important for Reanimated)
+    // while still giving the object all its methods and getters
     auto &entry = getPrototypeCache().get(runtime);
     if (entry.prototype.has_value()) {
-      // Use Object.setPrototypeOf to set the prototype
       auto objectCtor =
           runtime.global().getPropertyAsObject(runtime, "Object");
-      auto setPrototypeOf =
-          objectCtor.getPropertyAsFunction(runtime, "setPrototypeOf");
-      setPrototypeOf.call(runtime, obj, *entry.prototype);
+
+      // Get all property names from prototype (including non-enumerable)
+      auto getOwnPropertyNames =
+          objectCtor.getPropertyAsFunction(runtime, "getOwnPropertyNames");
+      auto getOwnPropertyDescriptor =
+          objectCtor.getPropertyAsFunction(runtime, "getOwnPropertyDescriptor");
+      auto defineProperty =
+          objectCtor.getPropertyAsFunction(runtime, "defineProperty");
+
+      auto names =
+          getOwnPropertyNames.call(runtime, *entry.prototype).asObject(runtime);
+      auto namesArray = names.asArray(runtime);
+      size_t length = namesArray.size(runtime);
+
+      for (size_t i = 0; i < length; i++) {
+        auto name = namesArray.getValueAtIndex(runtime, i);
+        // Skip 'constructor' property
+        if (name.isString() &&
+            name.getString(runtime).utf8(runtime) == "constructor") {
+          continue;
+        }
+        // Get the property descriptor and define it on the new object
+        auto descriptor =
+            getOwnPropertyDescriptor.call(runtime, *entry.prototype, name);
+        if (!descriptor.isUndefined()) {
+          defineProperty.call(runtime, obj, name, descriptor);
+        }
+      }
     }
 
     // Set memory pressure hint for GC
