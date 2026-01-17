@@ -1,3 +1,4 @@
+import { registerWebGPUForReanimated } from "../external";
 import WebGPUModule from "../NativeWebGPUModule";
 
 export * from "../Canvas";
@@ -8,6 +9,8 @@ export * from "../hooks";
 export { default as WebGPUModule } from "../NativeWebGPUModule";
 
 WebGPUModule.install();
+
+registerWebGPUForReanimated();
 
 if (!navigator) {
   // @ts-expect-error Navigation object is more complex than this, setting it to an empty object to add gpu property

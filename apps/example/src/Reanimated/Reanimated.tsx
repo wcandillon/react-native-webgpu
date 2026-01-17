@@ -1,14 +1,11 @@
 import React, { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import type { CanvasRef, RNCanvasContext } from "react-native-wgpu";
-import { Canvas, registerWebGPUForReanimated } from "react-native-wgpu";
+import { Canvas } from "react-native-wgpu";
 import type { SharedValue } from "react-native-reanimated";
 import { runOnUI, useSharedValue } from "react-native-reanimated";
 
 import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
-
-// Register WebGPU objects for Worklets serialization
-registerWebGPUForReanimated();
 
 const webGPUDemo = (
   runAnimation: SharedValue<boolean>,

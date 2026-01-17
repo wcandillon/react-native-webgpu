@@ -3,7 +3,6 @@
 import type { NativeCanvas, RNCanvasContext } from "./types";
 
 export * from "./main";
-export * from "./external";
 
 declare global {
   interface Navigator {

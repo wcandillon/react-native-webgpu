@@ -10,12 +10,7 @@ let isRegistered = false;
  * Register WebGPU objects for Worklets serialization.
  * This allows GPUDevice, GPUCanvasContext, etc. to be passed to worklets.
  *
- * Call this once in your App.tsx before using WebGPU objects in worklets:
- *
- * ```tsx
- * import { registerWebGPUForReanimated } from "react-native-wgpu";
- * registerWebGPUForReanimated();
- * ```
+ * This is called automatically when the module loads if react-native-worklets is installed.
  */
 export const registerWebGPUForReanimated = () => {
   if (isRegistered) {
@@ -23,22 +18,26 @@ export const registerWebGPUForReanimated = () => {
   }
   isRegistered = true;
 
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { registerCustomSerializable } = require("react-native-worklets");
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { registerCustomSerializable } = require("react-native-worklets");
 
-  registerCustomSerializable({
-    name: "WebGPU",
-    determine: (value: object): value is object => {
-      "worklet";
-      return __webgpuIsWebGPUObject(value);
-    },
-    pack: (value: object) => {
-      "worklet";
-      return __webgpuBox(value);
-    },
-    unpack: (boxed: { unbox: () => object }) => {
-      "worklet";
-      return boxed.unbox();
-    },
-  });
+    registerCustomSerializable({
+      name: "WebGPU",
+      determine: (value: object): value is object => {
+        "worklet";
+        return __webgpuIsWebGPUObject(value);
+      },
+      pack: (value: object) => {
+        "worklet";
+        return __webgpuBox(value);
+      },
+      unpack: (boxed: { unbox: () => object }) => {
+        "worklet";
+        return boxed.unbox();
+      },
+    });
+  } catch {
+    // react-native-worklets not installed, skip registration
+  }
 };
