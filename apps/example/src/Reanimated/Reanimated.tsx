@@ -1,37 +1,15 @@
 import React, { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import type { CanvasRef, RNCanvasContext } from "react-native-wgpu";
-import { Canvas } from "react-native-wgpu";
+import { Canvas, registerWebGPUSerializable } from "react-native-wgpu";
 import type { SharedValue } from "react-native-reanimated";
 import { runOnUI, useSharedValue } from "react-native-reanimated";
-import { registerCustomSerializable } from "react-native-worklets";
 
 import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
 
-// Declare global WebGPU worklet helper functions (installed on main runtime)
-declare function __webgpuIsWebGPUObject(obj: unknown): boolean;
-declare function __webgpuBox(
-  obj: object,
-): { unbox: () => object; __boxedWebGPU: true };
-
 // Register WebGPU objects for Worklets serialization at module load time
 // This allows GPUDevice, GPUCanvasContext, etc. to be passed to worklets
-// The unbox() method automatically installs the prototype on the UI runtime if needed
-registerCustomSerializable({
-  name: "WebGPU",
-  determine: (value: object): value is object => {
-    "worklet";
-    return __webgpuIsWebGPUObject(value);
-  },
-  pack: (value: object) => {
-    "worklet";
-    return __webgpuBox(value);
-  },
-  unpack: (boxed: { unbox: () => object }) => {
-    "worklet";
-    return boxed.unbox();
-  },
-});
+registerWebGPUSerializable();
 
 const webGPUDemo = (
   runAnimation: SharedValue<boolean>,

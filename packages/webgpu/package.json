@@ -57,6 +57,8 @@
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
+    "react-native-reanimated": "^3.16.0",
+    "react-native-worklets": "^1.0.0",
     "@types/lodash": "^4.17.5",
     "@types/node": "^20.14.7",
     "@types/pixelmatch": "5.2.4",
@@ -95,7 +97,17 @@
   },
   "peerDependencies": {
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "react-native-reanimated": ">=3.16.0",
+    "react-native-worklets": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react-native-reanimated": {
+      "optional": true
+    },
+    "react-native-worklets": {
+      "optional": true
+    }
   },
   "react-native-builder-bob": {
     "source": "src",
