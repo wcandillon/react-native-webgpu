@@ -1,24 +1,22 @@
 import React, { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import type { CanvasRef, RNCanvasContext } from "react-native-wgpu";
-import { Canvas, registerWebGPUSerializable } from "react-native-wgpu";
+import { Canvas, registerWebGPUForReanimated } from "react-native-wgpu";
 import type { SharedValue } from "react-native-reanimated";
 import { runOnUI, useSharedValue } from "react-native-reanimated";
 
 import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
 
-// Register WebGPU objects for Worklets serialization at module load time
-// This allows GPUDevice, GPUCanvasContext, etc. to be passed to worklets
-registerWebGPUSerializable();
+// Register WebGPU objects for Worklets serialization
+registerWebGPUForReanimated();
 
 const webGPUDemo = (
   runAnimation: SharedValue<boolean>,
   device: GPUDevice,
   context: RNCanvasContext,
+  presentationFormat: GPUTextureFormat,
 ) => {
   "worklet";
-  const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-
   if (!context) {
     throw new Error("No context");
   }
@@ -112,8 +110,9 @@ export function Reanimated() {
         console.error("Failed to get GPU canvas context");
         return;
       }
+      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
       // TODO: stop the animation on unmount
-      runOnUI(webGPUDemo)(runAnimation, device, ctx);
+      runOnUI(webGPUDemo)(runAnimation, device, ctx, presentationFormat);
     };
     initWebGPU();
     return () => {
