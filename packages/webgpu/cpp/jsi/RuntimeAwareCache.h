@@ -56,6 +56,8 @@ class RuntimeAwareCache : public BaseRuntimeAwareCache,
                           public RuntimeLifecycleListener {
 
 public:
+  RuntimeAwareCache() : _primaryCache(new T()) {}
+
   void onRuntimeDestroyed(jsi::Runtime *rt) override {
     if (getMainJsRuntime() != rt) {
       // We are removing a secondary runtime
@@ -68,6 +70,10 @@ public:
       RuntimeLifecycleMonitor::removeListener(
           *static_cast<jsi::Runtime *>(cache.first), this);
     }
+    // Note: we intentionally don't delete _primaryCache here.
+    // If the runtime is still alive, we could delete it, but tracking
+    // that adds complexity. The cache is typically static and lives
+    // for the app's lifetime anyway.
   }
 
   T &get(jsi::Runtime &rt) {
@@ -75,7 +81,16 @@ public:
     // to avoid us having to lookup by runtime for caches that only has a single
     // runtime
     if (getMainJsRuntime() == &rt) {
-      return _primaryCache;
+      // Check if the main runtime has changed (e.g., during hot reload).
+      // If so, we need to invalidate the primary cache since it contains
+      // JSI objects from the old runtime that are now invalid.
+      // We intentionally leak the old cache - we cannot safely destroy
+      // JSI objects after their runtime is gone.
+      if (_primaryCacheRuntime != &rt) {
+        _primaryCache = new T();
+        _primaryCacheRuntime = &rt;
+      }
+      return *_primaryCache;
     } else {
       if (_secondaryRuntimeCaches.count(&rt) == 0) {
         // We only add listener when the secondary runtime is used, this assumes
@@ -96,7 +111,8 @@ public:
 
 private:
   std::unordered_map<void *, T> _secondaryRuntimeCaches;
-  T _primaryCache;
+  T *_primaryCache;
+  jsi::Runtime *_primaryCacheRuntime = nullptr;
 };
 
 } // namespace rnwgpu
