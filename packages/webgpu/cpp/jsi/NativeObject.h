@@ -77,6 +77,36 @@ struct PrototypeCacheEntry {
 };
 
 /**
+ * Wrapper for static RuntimeAwareCache that handles hot reload.
+ *
+ * When used with static storage (like prototype caches), the cache persists
+ * across hot reloads. But the JSI objects inside become invalid when the
+ * runtime is destroyed. This wrapper tracks which runtime the cache was
+ * created for and allocates a new cache when the runtime changes.
+ *
+ * The old cache is intentionally leaked - we cannot safely destroy JSI
+ * objects after their runtime is gone.
+ */
+template <typename T> struct StaticRuntimeAwareCache {
+  RuntimeAwareCache<T> *cache = nullptr;
+  jsi::Runtime *cacheRuntime = nullptr;
+
+  RuntimeAwareCache<T> &get(jsi::Runtime &rt) {
+    auto mainRuntime = BaseRuntimeAwareCache::getMainJsRuntime();
+    if (&rt == mainRuntime && cacheRuntime != mainRuntime) {
+      // Main runtime changed (hot reload) - allocate new cache, leak old one
+      cache = new RuntimeAwareCache<T>();
+      cacheRuntime = mainRuntime;
+    }
+    if (cache == nullptr) {
+      cache = new RuntimeAwareCache<T>();
+      cacheRuntime = mainRuntime;
+    }
+    return *cache;
+  }
+};
+
+/**
  * BoxedWebGPUObject is a HostObject wrapper that holds a reference to ANY
  * WebGPU NativeObject. This is used for Reanimated/Worklets serialization.
  *
@@ -203,11 +233,13 @@ public:
   /**
    * Get the prototype cache for this type.
    * Each NativeObject<Derived> type has its own static cache.
-   * Uses RuntimeAwareCache to properly handle runtime lifecycle.
+   * Uses StaticRuntimeAwareCache to properly handle runtime lifecycle
+   * and hot reload (where the main runtime is destroyed and recreated).
    */
-  static RuntimeAwareCache<PrototypeCacheEntry> &getPrototypeCache() {
-    static RuntimeAwareCache<PrototypeCacheEntry> cache;
-    return cache;
+  static RuntimeAwareCache<PrototypeCacheEntry> &
+  getPrototypeCache(jsi::Runtime &runtime) {
+    static StaticRuntimeAwareCache<PrototypeCacheEntry> cache;
+    return cache.get(runtime);
   }
 
   /**
@@ -215,7 +247,7 @@ public:
    * Called automatically by create(), but can be called manually.
    */
   static void installPrototype(jsi::Runtime &runtime) {
-    auto &entry = getPrototypeCache().get(runtime);
+    auto &entry = getPrototypeCache(runtime).get(runtime);
     if (entry.prototype.has_value()) {
       return; // Already installed
     }
@@ -271,7 +303,7 @@ public:
 
     installPrototype(runtime);
 
-    auto &entry = getPrototypeCache().get(runtime);
+    auto &entry = getPrototypeCache(runtime).get(runtime);
     if (!entry.prototype.has_value()) {
       return;
     }
@@ -314,7 +346,7 @@ public:
     obj.setNativeState(runtime, instance);
 
     // Set prototype
-    auto &entry = getPrototypeCache().get(runtime);
+    auto &entry = getPrototypeCache(runtime).get(runtime);
     if (entry.prototype.has_value()) {
       // Use Object.setPrototypeOf to set the prototype
       auto objectCtor =

@@ -16,8 +16,6 @@ namespace jsi = facebook::jsi;
 class BaseRuntimeAwareCache {
 public:
   static void setMainJsRuntime(jsi::Runtime *rt) { _mainRuntime = rt; }
-
-protected:
   static jsi::Runtime *getMainJsRuntime() {
     assert(_mainRuntime != nullptr &&
            "Expected main Javascript runtime to be set in the "
@@ -56,8 +54,6 @@ class RuntimeAwareCache : public BaseRuntimeAwareCache,
                           public RuntimeLifecycleListener {
 
 public:
-  RuntimeAwareCache() : _primaryCache(new T()) {}
-
   void onRuntimeDestroyed(jsi::Runtime *rt) override {
     if (getMainJsRuntime() != rt) {
       // We are removing a secondary runtime
@@ -70,10 +66,6 @@ public:
       RuntimeLifecycleMonitor::removeListener(
           *static_cast<jsi::Runtime *>(cache.first), this);
     }
-    // Note: we intentionally don't delete _primaryCache here.
-    // If the runtime is still alive, we could delete it, but tracking
-    // that adds complexity. The cache is typically static and lives
-    // for the app's lifetime anyway.
   }
 
   T &get(jsi::Runtime &rt) {
@@ -81,22 +73,13 @@ public:
     // to avoid us having to lookup by runtime for caches that only has a single
     // runtime
     if (getMainJsRuntime() == &rt) {
-      // Check if the main runtime has changed (e.g., during hot reload).
-      // If so, we need to invalidate the primary cache since it contains
-      // JSI objects from the old runtime that are now invalid.
-      // We intentionally leak the old cache - we cannot safely destroy
-      // JSI objects after their runtime is gone.
-      if (_primaryCacheRuntime != &rt) {
-        _primaryCache = new T();
-        _primaryCacheRuntime = &rt;
-      }
-      return *_primaryCache;
+      return _primaryCache;
     } else {
       if (_secondaryRuntimeCaches.count(&rt) == 0) {
-        // We only add listener when the secondary runtime is used, this assumes
+        // we only add listener when the secondary runtime is used, this assumes
         // that the secondary runtime is terminated first. This lets us avoid
         // additional complexity for the majority of cases when objects are not
-        // shared between runtimes. Otherwise we'd have to register all objects
+        // shared between runtimes. Otherwise we'd have to register all objecrts
         // with the RuntimeMonitor as opposed to only registering ones that are
         // used in secondary runtime. Note that we can't register listener here
         // with the primary runtime as it may run on a separate thread.
@@ -111,8 +94,7 @@ public:
 
 private:
   std::unordered_map<void *, T> _secondaryRuntimeCaches;
-  T *_primaryCache;
-  jsi::Runtime *_primaryCacheRuntime = nullptr;
+  T _primaryCache;
 };
 
 } // namespace rnwgpu
