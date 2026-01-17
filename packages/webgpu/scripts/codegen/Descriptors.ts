@@ -269,16 +269,14 @@ ${Array.from(dependencies)
 #include "webgpu/webgpu_cpp.h"
 
 #include "WGPULogger.h"
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 
-#include "RNFHybridObject.h"
 ${Array.from(dependencies)
   .filter((dep) => dep[0] !== dep[0].toLowerCase())
   .map((dep) => `#include "${dep}.h"`)
   .join("\n")}
 
 namespace jsi = facebook::jsi;
-namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -291,17 +289,11 @@ struct ${name} {
     .join("\n  ")}
 };
 
-} // namespace rnwgpu
- 
-namespace margelo {
-
-using namespace rnwgpu; // NOLINT(build/namespaces)
-
 template <>
-struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
-  static std::shared_ptr<rnwgpu::${name}>
+struct JSIConverter<std::shared_ptr<${name}>> {
+  static std::shared_ptr<${name}>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::${name}>();
+    auto result = std::make_unique<${name}>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       ${props.map((prop) => (prop.name === "layout" && (prop.type === "std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>" || prop.type === "std::optional<std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>>") ? layoutProp : jsiProp(prop))).join("\n")}
@@ -311,10 +303,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
   }
   static jsi::Value
   toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<rnwgpu::${name}> arg) {
+        std::shared_ptr<${name}> arg) {
     throw std::runtime_error("Invalid ${name}::toJSI()");
   }
 };
 
-} // namespace margelo`;
+} // namespace rnwgpu`;
 };

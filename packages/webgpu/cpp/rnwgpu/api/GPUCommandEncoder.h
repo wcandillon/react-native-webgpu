@@ -5,7 +5,7 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "NativeObject.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -23,15 +23,17 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUCommandEncoder : public m::HybridObject {
+class GPUCommandEncoder : public NativeObject<GPUCommandEncoder> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUCommandEncoder";
+
   explicit GPUCommandEncoder(wgpu::CommandEncoder instance, std::string label)
-      : HybridObject("GPUCommandEncoder"), _instance(instance), _label(label) {}
+      : NativeObject(CLASS_NAME), _instance(instance), _label(label) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   std::shared_ptr<GPURenderPassEncoder>
   beginRenderPass(std::shared_ptr<GPURenderPassDescriptor> descriptor);
@@ -69,33 +71,34 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUCommandEncoder::getBrand, this);
-    registerHybridMethod("beginRenderPass", &GPUCommandEncoder::beginRenderPass,
-                         this);
-    registerHybridMethod("beginComputePass",
-                         &GPUCommandEncoder::beginComputePass, this);
-    registerHybridMethod("copyBufferToBuffer",
-                         &GPUCommandEncoder::copyBufferToBuffer, this);
-    registerHybridMethod("copyBufferToTexture",
-                         &GPUCommandEncoder::copyBufferToTexture, this);
-    registerHybridMethod("copyTextureToBuffer",
-                         &GPUCommandEncoder::copyTextureToBuffer, this);
-    registerHybridMethod("copyTextureToTexture",
-                         &GPUCommandEncoder::copyTextureToTexture, this);
-    registerHybridMethod("clearBuffer", &GPUCommandEncoder::clearBuffer, this);
-    registerHybridMethod("resolveQuerySet", &GPUCommandEncoder::resolveQuerySet,
-                         this);
-    registerHybridMethod("finish", &GPUCommandEncoder::finish, this);
-    registerHybridMethod("pushDebugGroup", &GPUCommandEncoder::pushDebugGroup,
-                         this);
-    registerHybridMethod("popDebugGroup", &GPUCommandEncoder::popDebugGroup,
-                         this);
-    registerHybridMethod("insertDebugMarker",
-                         &GPUCommandEncoder::insertDebugMarker, this);
-
-    registerHybridGetter("label", &GPUCommandEncoder::getLabel, this);
-    registerHybridSetter("label", &GPUCommandEncoder::setLabel, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUCommandEncoder::getBrand);
+    installMethod(runtime, prototype, "beginRenderPass",
+                  &GPUCommandEncoder::beginRenderPass);
+    installMethod(runtime, prototype, "beginComputePass",
+                  &GPUCommandEncoder::beginComputePass);
+    installMethod(runtime, prototype, "copyBufferToBuffer",
+                  &GPUCommandEncoder::copyBufferToBuffer);
+    installMethod(runtime, prototype, "copyBufferToTexture",
+                  &GPUCommandEncoder::copyBufferToTexture);
+    installMethod(runtime, prototype, "copyTextureToBuffer",
+                  &GPUCommandEncoder::copyTextureToBuffer);
+    installMethod(runtime, prototype, "copyTextureToTexture",
+                  &GPUCommandEncoder::copyTextureToTexture);
+    installMethod(runtime, prototype, "clearBuffer",
+                  &GPUCommandEncoder::clearBuffer);
+    installMethod(runtime, prototype, "resolveQuerySet",
+                  &GPUCommandEncoder::resolveQuerySet);
+    installMethod(runtime, prototype, "finish", &GPUCommandEncoder::finish);
+    installMethod(runtime, prototype, "pushDebugGroup",
+                  &GPUCommandEncoder::pushDebugGroup);
+    installMethod(runtime, prototype, "popDebugGroup",
+                  &GPUCommandEncoder::popDebugGroup);
+    installMethod(runtime, prototype, "insertDebugMarker",
+                  &GPUCommandEncoder::insertDebugMarker);
+    installGetterSetter(runtime, prototype, "label",
+                        &GPUCommandEncoder::getLabel,
+                        &GPUCommandEncoder::setLabel);
   }
 
   inline const wgpu::CommandEncoder get() { return _instance; }

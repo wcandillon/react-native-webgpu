@@ -3,13 +3,13 @@
 #include <string>
 #include <utility>
 
-#include "RNFPromise.h"
+#include "Promise.h"
 
 #include "AsyncRunner.h"
 
 namespace rnwgpu::async {
 
-using Action = std::function<void(jsi::Runtime &, margelo::Promise &)>;
+using Action = std::function<void(jsi::Runtime &, rnwgpu::Promise &)>;
 
 struct AsyncTaskHandle::State
     : public std::enable_shared_from_this<AsyncTaskHandle::State> {
@@ -17,17 +17,17 @@ struct AsyncTaskHandle::State
       : runner(std::move(runner)), keepPumping(keepPumping) {}
 
   void settle(Action action);
-  void attachPromise(const std::shared_ptr<margelo::Promise> &promise);
+  void attachPromise(const std::shared_ptr<rnwgpu::Promise> &promise);
   void schedule(Action action);
 
   ResolveFunction createResolveFunction();
   RejectFunction createRejectFunction();
 
-  std::shared_ptr<margelo::Promise> currentPromise();
+  std::shared_ptr<rnwgpu::Promise> currentPromise();
 
   std::mutex mutex;
   std::weak_ptr<AsyncRunner> runner;
-  std::shared_ptr<margelo::Promise> promise;
+  std::shared_ptr<rnwgpu::Promise> promise;
   std::optional<Action> pendingAction;
   bool settled = false;
   std::shared_ptr<State> keepAlive;
@@ -59,7 +59,7 @@ void AsyncTaskHandle::State::settle(Action action) {
 }
 
 void AsyncTaskHandle::State::attachPromise(
-    const std::shared_ptr<margelo::Promise> &newPromise) {
+    const std::shared_ptr<rnwgpu::Promise> &newPromise) {
   std::optional<Action> actionToSchedule;
   {
     std::lock_guard<std::mutex> lock(mutex);
@@ -114,7 +114,7 @@ AsyncTaskHandle::State::createResolveFunction() {
           };
       self->settle(
           [factory = std::move(resolvedFactory)](
-              jsi::Runtime &runtime, margelo::Promise &promise) mutable {
+              jsi::Runtime &runtime, rnwgpu::Promise &promise) mutable {
             auto value = factory(runtime);
             promise.resolve(std::move(value));
           });
@@ -127,14 +127,14 @@ AsyncTaskHandle::RejectFunction AsyncTaskHandle::State::createRejectFunction() {
   return [weakSelf](std::string reason) {
     if (auto self = weakSelf.lock()) {
       self->settle([reason = std::move(reason)](jsi::Runtime & /*runtime*/,
-                                                margelo::Promise &promise) {
+                                                rnwgpu::Promise &promise) {
         promise.reject(reason);
       });
     }
   };
 }
 
-std::shared_ptr<margelo::Promise> AsyncTaskHandle::State::currentPromise() {
+std::shared_ptr<rnwgpu::Promise> AsyncTaskHandle::State::currentPromise() {
   std::lock_guard<std::mutex> lock(mutex);
   return promise;
 }
@@ -172,7 +172,7 @@ AsyncTaskHandle::RejectFunction AsyncTaskHandle::createRejectFunction() const {
 }
 
 void AsyncTaskHandle::attachPromise(
-    const std::shared_ptr<margelo::Promise> &promise) const {
+    const std::shared_ptr<rnwgpu::Promise> &promise) const {
   if (_state) {
     _state->attachPromise(promise);
   }

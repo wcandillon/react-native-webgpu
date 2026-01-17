@@ -5,7 +5,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 #include "GPUDepthStencilState.h"
@@ -14,10 +14,8 @@
 #include "GPUPipelineLayout.h"
 #include "GPUPrimitiveState.h"
 #include "GPUVertexState.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
-namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -37,9 +35,7 @@ struct GPURenderPipelineDescriptor {
 
 } // namespace rnwgpu
 
-namespace margelo {
-
-using namespace rnwgpu; // NOLINT(build/namespaces)
+namespace rnwgpu {
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
@@ -105,4 +101,4 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURenderPipelineDescriptor>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

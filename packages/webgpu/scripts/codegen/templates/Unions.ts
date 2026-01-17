@@ -14,9 +14,9 @@ export const Unions = (unions: Union[]) => {
 
 #include "webgpu/webgpu_cpp.h"
 #include "External.h"
-#include "RNFEnumMapper.h"
+#include "EnumMapper.h"
 
-namespace margelo {
+namespace rnwgpu {
 namespace EnumMapper {
 
 ${unions
@@ -28,7 +28,7 @@ ${unions
   .map((union) => Union(union))
   .join("\n")}
 } // namespace EnumMapper
-} // namespace margelo
+} // namespace rnwgpu
 `;
 };
 

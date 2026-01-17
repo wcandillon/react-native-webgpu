@@ -1,43 +1,39 @@
 #pragma once
-#include <string>
 
-#include <RNFHybridObject.h>
+#include <jsi/jsi.h>
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
-namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUBufferUsage : public m::HybridObject {
+class GPUBufferUsage {
 public:
-  GPUBufferUsage() : HybridObject("GPUBufferUsage") {}
-
-public:
-  double MapRead() { return static_cast<double>(wgpu::BufferUsage::MapRead); }
-  double MapWrite() { return static_cast<double>(wgpu::BufferUsage::MapWrite); }
-  double CopySrc() { return static_cast<double>(wgpu::BufferUsage::CopySrc); }
-  double CopyDst() { return static_cast<double>(wgpu::BufferUsage::CopyDst); }
-  double Index() { return static_cast<double>(wgpu::BufferUsage::Index); }
-  double Vertex() { return static_cast<double>(wgpu::BufferUsage::Vertex); }
-  double Uniform() { return static_cast<double>(wgpu::BufferUsage::Uniform); }
-  double Storage() { return static_cast<double>(wgpu::BufferUsage::Storage); }
-  double Indirect() { return static_cast<double>(wgpu::BufferUsage::Indirect); }
-  double QueryResolve() {
-    return static_cast<double>(wgpu::BufferUsage::QueryResolve);
-  }
-
-  void loadHybridMethods() override {
-    registerHybridGetter("MAP_READ", &GPUBufferUsage::MapRead, this);
-    registerHybridGetter("MAP_WRITE", &GPUBufferUsage::MapWrite, this);
-    registerHybridGetter("COPY_SRC", &GPUBufferUsage::CopySrc, this);
-    registerHybridGetter("COPY_DST", &GPUBufferUsage::CopyDst, this);
-    registerHybridGetter("INDEX", &GPUBufferUsage::Index, this);
-    registerHybridGetter("VERTEX", &GPUBufferUsage::Vertex, this);
-    registerHybridGetter("UNIFORM", &GPUBufferUsage::Uniform, this);
-    registerHybridGetter("STORAGE", &GPUBufferUsage::Storage, this);
-    registerHybridGetter("INDIRECT", &GPUBufferUsage::Indirect, this);
-    registerHybridGetter("QUERY_RESOLVE", &GPUBufferUsage::QueryResolve, this);
+  static jsi::Object create(jsi::Runtime &runtime) {
+    jsi::Object obj(runtime);
+    obj.setProperty(runtime, "MAP_READ",
+                    static_cast<double>(wgpu::BufferUsage::MapRead));
+    obj.setProperty(runtime, "MAP_WRITE",
+                    static_cast<double>(wgpu::BufferUsage::MapWrite));
+    obj.setProperty(runtime, "COPY_SRC",
+                    static_cast<double>(wgpu::BufferUsage::CopySrc));
+    obj.setProperty(runtime, "COPY_DST",
+                    static_cast<double>(wgpu::BufferUsage::CopyDst));
+    obj.setProperty(runtime, "INDEX",
+                    static_cast<double>(wgpu::BufferUsage::Index));
+    obj.setProperty(runtime, "VERTEX",
+                    static_cast<double>(wgpu::BufferUsage::Vertex));
+    obj.setProperty(runtime, "UNIFORM",
+                    static_cast<double>(wgpu::BufferUsage::Uniform));
+    obj.setProperty(runtime, "STORAGE",
+                    static_cast<double>(wgpu::BufferUsage::Storage));
+    obj.setProperty(runtime, "INDIRECT",
+                    static_cast<double>(wgpu::BufferUsage::Indirect));
+    obj.setProperty(runtime, "QUERY_RESOLVE",
+                    static_cast<double>(wgpu::BufferUsage::QueryResolve));
+    return obj;
   }
 };
+
 } // namespace rnwgpu

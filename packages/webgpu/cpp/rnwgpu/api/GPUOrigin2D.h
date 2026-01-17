@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -13,14 +13,10 @@ struct GPUOrigin2D {
   double y = 0;
 };
 
-} // namespace rnwgpu
-
-namespace margelo {
-
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin2D>> {
-  static std::shared_ptr<rnwgpu::GPUOrigin2D>
+template <> struct JSIConverter<std::shared_ptr<GPUOrigin2D>> {
+  static std::shared_ptr<GPUOrigin2D>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUOrigin2D>();
+    auto result = std::make_unique<GPUOrigin2D>();
     if (!outOfBounds && arg.isObject()) {
       if (arg.getObject(runtime).isArray(runtime)) {
         auto array = arg.getObject(runtime).asArray(runtime);
@@ -50,10 +46,10 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUOrigin2D>> {
     return result;
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUOrigin2D> arg) {
+                          std::shared_ptr<GPUOrigin2D> arg) {
     // No conversions here
     return jsi::Value::null();
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

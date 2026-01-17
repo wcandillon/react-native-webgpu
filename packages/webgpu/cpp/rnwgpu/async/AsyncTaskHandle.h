@@ -10,7 +10,7 @@
 
 #include "AsyncDispatcher.h"
 
-namespace margelo {
+namespace rnwgpu {
 class Promise;
 }
 
@@ -43,7 +43,7 @@ public:
   ResolveFunction createResolveFunction() const;
   RejectFunction createRejectFunction() const;
 
-  void attachPromise(const std::shared_ptr<margelo::Promise> &promise) const;
+  void attachPromise(const std::shared_ptr<rnwgpu::Promise> &promise) const;
 
   static AsyncTaskHandle create(const std::shared_ptr<AsyncRunner> &runner,
                                 bool keepPumping);

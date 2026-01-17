@@ -4,14 +4,12 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 #include "GPUBlendComponent.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
-namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -22,9 +20,7 @@ struct GPUBlendState {
 
 } // namespace rnwgpu
 
-namespace margelo {
-
-using namespace rnwgpu; // NOLINT(build/namespaces)
+namespace rnwgpu {
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
   static std::shared_ptr<rnwgpu::GPUBlendState>
@@ -54,4 +50,4 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBlendState>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

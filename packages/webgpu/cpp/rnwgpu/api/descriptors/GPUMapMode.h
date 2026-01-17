@@ -1,25 +1,22 @@
 #pragma once
-#include <string>
 
-#include <RNFHybridObject.h>
+#include <jsi/jsi.h>
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
-namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUMapMode : public m::HybridObject {
+class GPUMapMode {
 public:
-  GPUMapMode() : HybridObject("GPUMapMode") {}
-
-public:
-  double Read() { return static_cast<double>(wgpu::MapMode::Read); }
-  double Write() { return static_cast<double>(wgpu::MapMode::Write); }
-
-  void loadHybridMethods() override {
-    registerHybridGetter("READ", &GPUMapMode::Read, this);
-    registerHybridGetter("WRITE", &GPUMapMode::Write, this);
+  static jsi::Object create(jsi::Runtime &runtime) {
+    jsi::Object obj(runtime);
+    obj.setProperty(runtime, "READ", static_cast<double>(wgpu::MapMode::Read));
+    obj.setProperty(runtime, "WRITE",
+                    static_cast<double>(wgpu::MapMode::Write));
+    return obj;
   }
 };
+
 } // namespace rnwgpu

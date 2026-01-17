@@ -3,7 +3,7 @@
 #include <memory>
 #include <utility>
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 
 namespace rnwgpu {
 
@@ -28,7 +28,7 @@ async::AsyncTaskHandle GPUShaderModule::getCompilationInfo() {
               result->_messages.reserve(compilationInfo->messageCount);
               for (size_t i = 0; i < compilationInfo->messageCount; ++i) {
                 const auto &wgpuMessage = compilationInfo->messages[i];
-                GPUCompilationMessage message;
+                GPUCompilationMessageData message;
                 message.message =
                     wgpuMessage.message.length ? wgpuMessage.message.data : "";
                 message.type = wgpuMessage.type;
@@ -39,12 +39,11 @@ async::AsyncTaskHandle GPUShaderModule::getCompilationInfo() {
                 result->_messages.push_back(std::move(message));
               }
 
-              resolve(
-                  [result = std::move(result)](jsi::Runtime &runtime) mutable {
-                    return margelo::JSIConverter<
-                        std::shared_ptr<GPUCompilationInfo>>::toJSI(runtime,
-                                                                    result);
-                  });
+              resolve([result =
+                           std::move(result)](jsi::Runtime &runtime) mutable {
+                return JSIConverter<std::shared_ptr<GPUCompilationInfo>>::toJSI(
+                    runtime, result);
+              });
             });
       });
 }

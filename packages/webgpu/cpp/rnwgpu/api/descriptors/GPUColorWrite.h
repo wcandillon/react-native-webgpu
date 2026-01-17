@@ -1,31 +1,29 @@
 #pragma once
-#include <string>
 
-#include <RNFHybridObject.h>
+#include <jsi/jsi.h>
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
-namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUColorWrite : public m::HybridObject {
+class GPUColorWrite {
 public:
-  GPUColorWrite() : HybridObject("GPUColorWrite") {}
-
-public:
-  double Red() { return static_cast<double>(wgpu::ColorWriteMask::Red); }
-  double Green() { return static_cast<double>(wgpu::ColorWriteMask::Green); }
-  double Blue() { return static_cast<double>(wgpu::ColorWriteMask::Blue); }
-  double Alpha() { return static_cast<double>(wgpu::ColorWriteMask::Alpha); }
-  double All() { return static_cast<double>(wgpu::ColorWriteMask::All); }
-
-  void loadHybridMethods() override {
-    registerHybridGetter("RED", &GPUColorWrite::Red, this);
-    registerHybridGetter("GREEN", &GPUColorWrite::Green, this);
-    registerHybridGetter("BLUE", &GPUColorWrite::Blue, this);
-    registerHybridGetter("ALPHA", &GPUColorWrite::Alpha, this);
-    registerHybridGetter("ALL", &GPUColorWrite::All, this);
+  static jsi::Object create(jsi::Runtime &runtime) {
+    jsi::Object obj(runtime);
+    obj.setProperty(runtime, "RED",
+                    static_cast<double>(wgpu::ColorWriteMask::Red));
+    obj.setProperty(runtime, "GREEN",
+                    static_cast<double>(wgpu::ColorWriteMask::Green));
+    obj.setProperty(runtime, "BLUE",
+                    static_cast<double>(wgpu::ColorWriteMask::Blue));
+    obj.setProperty(runtime, "ALPHA",
+                    static_cast<double>(wgpu::ColorWriteMask::Alpha));
+    obj.setProperty(runtime, "ALL",
+                    static_cast<double>(wgpu::ColorWriteMask::All));
+    return obj;
   }
 };
+
 } // namespace rnwgpu

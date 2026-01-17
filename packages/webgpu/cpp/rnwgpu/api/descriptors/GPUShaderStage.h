@@ -1,27 +1,25 @@
 #pragma once
-#include <string>
 
-#include <RNFHybridObject.h>
+#include <jsi/jsi.h>
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
-namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUShaderStage : public m::HybridObject {
+class GPUShaderStage {
 public:
-  GPUShaderStage() : HybridObject("GPUShaderStage") {}
-
-public:
-  double Vertex() { return static_cast<double>(wgpu::ShaderStage::Vertex); }
-  double Fragment() { return static_cast<double>(wgpu::ShaderStage::Fragment); }
-  double Compute() { return static_cast<double>(wgpu::ShaderStage::Compute); }
-
-  void loadHybridMethods() override {
-    registerHybridGetter("VERTEX", &GPUShaderStage::Vertex, this);
-    registerHybridGetter("FRAGMENT", &GPUShaderStage::Fragment, this);
-    registerHybridGetter("COMPUTE", &GPUShaderStage::Compute, this);
+  static jsi::Object create(jsi::Runtime &runtime) {
+    jsi::Object obj(runtime);
+    obj.setProperty(runtime, "VERTEX",
+                    static_cast<double>(wgpu::ShaderStage::Vertex));
+    obj.setProperty(runtime, "FRAGMENT",
+                    static_cast<double>(wgpu::ShaderStage::Fragment));
+    obj.setProperty(runtime, "COMPUTE",
+                    static_cast<double>(wgpu::ShaderStage::Compute));
+    return obj;
   }
 };
+
 } // namespace rnwgpu

@@ -6,7 +6,7 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "NativeObject.h"
 
 #include "rnwgpu/async/AsyncRunner.h"
 #include "rnwgpu/async/AsyncTaskHandle.h"
@@ -20,16 +20,18 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUAdapter : public m::HybridObject {
+class GPUAdapter : public NativeObject<GPUAdapter> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUAdapter";
+
   explicit GPUAdapter(wgpu::Adapter instance,
                       std::shared_ptr<async::AsyncRunner> async)
-      : HybridObject("GPUAdapter"), _instance(instance), _async(async) {}
+      : NativeObject(CLASS_NAME), _instance(instance), _async(async) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   async::AsyncTaskHandle
   requestDevice(std::optional<std::shared_ptr<GPUDeviceDescriptor>> descriptor);
@@ -38,12 +40,13 @@ public:
   std::shared_ptr<GPUSupportedLimits> getLimits();
   std::shared_ptr<GPUAdapterInfo> getInfo();
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUAdapter::getBrand, this);
-    registerHybridMethod("requestDevice", &GPUAdapter::requestDevice, this);
-    registerHybridGetter("features", &GPUAdapter::getFeatures, this);
-    registerHybridGetter("limits", &GPUAdapter::getLimits, this);
-    registerHybridGetter("info", &GPUAdapter::getInfo, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUAdapter::getBrand);
+    installMethod(runtime, prototype, "requestDevice",
+                  &GPUAdapter::requestDevice);
+    installGetter(runtime, prototype, "features", &GPUAdapter::getFeatures);
+    installGetter(runtime, prototype, "limits", &GPUAdapter::getLimits);
+    installGetter(runtime, prototype, "info", &GPUAdapter::getInfo);
   }
 
   inline const wgpu::Adapter get() { return _instance; }

@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+#include "NativeObject.h"
+
 #include "Canvas.h"
 #include "GPU.h"
 #include "GPUCanvasContext.h"
@@ -11,7 +13,7 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
+namespace jsi = facebook::jsi;
 
 struct Blob {
   std::string blobId;
@@ -21,11 +23,13 @@ struct Blob {
   std::string name;
 };
 
-class RNWebGPU : public m::HybridObject {
+class RNWebGPU : public NativeObject<RNWebGPU> {
 public:
+  static constexpr const char *CLASS_NAME = "RNWebGPU";
+
   explicit RNWebGPU(std::shared_ptr<GPU> gpu,
                     std::shared_ptr<PlatformContext> platformContext)
-      : HybridObject("RNWebGPU"), _gpu(gpu), _platformContext(platformContext) {
+      : NativeObject(CLASS_NAME), _gpu(gpu), _platformContext(platformContext) {
   }
 
   std::shared_ptr<GPU> getGPU() { return _gpu; }
@@ -57,14 +61,15 @@ public:
                                     nativeInfo.height);
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("fabric", &RNWebGPU::getFabric, this);
-    registerHybridGetter("gpu", &RNWebGPU::getGPU, this);
-    registerHybridMethod("createImageBitmap", &RNWebGPU::createImageBitmap,
-                         this);
-    registerHybridMethod("getNativeSurface", &RNWebGPU::getNativeSurface, this);
-    registerHybridMethod("MakeWebGPUCanvasContext",
-                         &RNWebGPU::MakeWebGPUCanvasContext, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "fabric", &RNWebGPU::getFabric);
+    installGetter(runtime, prototype, "gpu", &RNWebGPU::getGPU);
+    installMethod(runtime, prototype, "createImageBitmap",
+                  &RNWebGPU::createImageBitmap);
+    installMethod(runtime, prototype, "getNativeSurface",
+                  &RNWebGPU::getNativeSurface);
+    installMethod(runtime, prototype, "MakeWebGPUCanvasContext",
+                  &RNWebGPU::MakeWebGPUCanvasContext);
   }
 
 private:
@@ -72,15 +77,11 @@ private:
   std::shared_ptr<PlatformContext> _platformContext;
 };
 
-} // namespace rnwgpu
-
-namespace margelo {
-
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::Blob>> {
-  static std::shared_ptr<rnwgpu::Blob>
+template <> struct JSIConverter<std::shared_ptr<Blob>> {
+  static std::shared_ptr<Blob>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
     if (!outOfBounds && arg.isObject()) {
-      auto result = std::make_unique<rnwgpu::Blob>();
+      auto result = std::make_unique<Blob>();
       auto val = arg.asObject(runtime);
       if (val.hasProperty(runtime, "_data")) {
         auto value = val.getPropertyAsObject(runtime, "_data");
@@ -100,10 +101,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::Blob>> {
       throw std::runtime_error("Invalid Blob::fromJSI()");
     }
   }
-  static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::Blob> arg) {
+  static jsi::Value toJSI(jsi::Runtime &runtime, std::shared_ptr<Blob> arg) {
     throw std::runtime_error("Invalid Blob::toJSI()");
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

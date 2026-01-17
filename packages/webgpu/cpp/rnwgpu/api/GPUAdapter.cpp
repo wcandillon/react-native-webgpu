@@ -10,7 +10,7 @@
 #include "Convertors.h"
 
 #include "GPUFeatures.h"
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
 namespace rnwgpu {
@@ -82,16 +82,16 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
   auto creationRuntime = getCreationRuntime();
   return _async->postTask(
       [this, aDescriptor, descriptor, label = std::move(label),
-       deviceLostBinding, creationRuntime](
-          const async::AsyncTaskHandle::ResolveFunction &resolve,
-          const async::AsyncTaskHandle::RejectFunction &reject) {
+       deviceLostBinding,
+       creationRuntime](const async::AsyncTaskHandle::ResolveFunction &resolve,
+                        const async::AsyncTaskHandle::RejectFunction &reject) {
         (void)descriptor;
         _instance.RequestDevice(
             &aDescriptor, wgpu::CallbackMode::AllowProcessEvents,
-            [asyncRunner = _async, resolve, reject, label,
-             creationRuntime, deviceLostBinding](
-                wgpu::RequestDeviceStatus status, wgpu::Device device,
-                wgpu::StringView message) mutable {
+            [asyncRunner = _async, resolve, reject, label, creationRuntime,
+             deviceLostBinding](wgpu::RequestDeviceStatus status,
+                                wgpu::Device device,
+                                wgpu::StringView message) mutable {
               if (message.length) {
                 fprintf(stderr, "%s", message.data);
               }
@@ -140,7 +140,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
               *deviceLostBinding = deviceHost;
               resolve([deviceHost = std::move(deviceHost)](
                           jsi::Runtime &runtime) mutable {
-                return margelo::JSIConverter<std::shared_ptr<GPUDevice>>::toJSI(
+                return JSIConverter<std::shared_ptr<GPUDevice>>::toJSI(
                     runtime, deviceHost);
               });
             });

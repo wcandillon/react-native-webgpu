@@ -11,10 +11,9 @@ const webGPUDemo = (
   runAnimation: SharedValue<boolean>,
   device: GPUDevice,
   context: RNCanvasContext,
+  presentationFormat: GPUTextureFormat,
 ) => {
   "worklet";
-  const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-
   if (!context) {
     throw new Error("No context");
   }
@@ -108,8 +107,9 @@ export function Reanimated() {
         console.error("Failed to get GPU canvas context");
         return;
       }
+      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
       // TODO: stop the animation on unmount
-      runOnUI(webGPUDemo)(runAnimation, device, ctx);
+      runOnUI(webGPUDemo)(runAnimation, device, ctx, presentationFormat);
     };
     initWebGPU();
     return () => {

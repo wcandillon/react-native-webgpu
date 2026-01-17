@@ -1,6 +1,3 @@
-//
-// Created by Marc Rousavy on 22.02.24.
-//
 #pragma once
 
 #include <jsi/jsi.h>
@@ -9,7 +6,7 @@
 #include <string>
 #include <memory>
 
-namespace margelo {
+namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
 
@@ -35,4 +32,4 @@ public:
   static jsi::Value createPromise(jsi::Runtime& runtime, RunPromise run);
 };
 
-} // namespace margelo
+} // namespace rnwgpu

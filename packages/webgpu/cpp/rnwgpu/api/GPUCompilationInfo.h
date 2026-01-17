@@ -5,15 +5,15 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "NativeObject.h"
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
-namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-struct GPUCompilationMessage {
+struct GPUCompilationMessageData {
   std::string message;
   wgpu::CompilationMessageType type;
   uint64_t lineNum;
@@ -22,35 +22,35 @@ struct GPUCompilationMessage {
   uint64_t length;
 };
 
-class GPUCompilationInfo : public m::HybridObject {
+class GPUCompilationInfo : public NativeObject<GPUCompilationInfo> {
 public:
-  GPUCompilationInfo() : HybridObject("GPUCompilationInfo") {}
+  static constexpr const char *CLASS_NAME = "GPUCompilationInfo";
+
+  GPUCompilationInfo() : NativeObject(CLASS_NAME) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
-  std::vector<GPUCompilationMessage> getMessages() { return _messages; }
+  std::vector<GPUCompilationMessageData> getMessages() { return _messages; }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUCompilationInfo::getBrand, this);
-    registerHybridGetter("messages", &GPUCompilationInfo::getMessages, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUCompilationInfo::getBrand);
+    installGetter(runtime, prototype, "messages",
+                  &GPUCompilationInfo::getMessages);
   }
 
 private:
-  std::vector<GPUCompilationMessage> _messages;
+  std::vector<GPUCompilationMessageData> _messages;
   friend class GPUShaderModule;
 };
 
-} // namespace rnwgpu
-
-namespace margelo {
-template <> struct JSIConverter<std::vector<rnwgpu::GPUCompilationMessage>> {
-  static std::vector<rnwgpu::GPUCompilationMessage>
+template <> struct JSIConverter<std::vector<GPUCompilationMessageData>> {
+  static std::vector<GPUCompilationMessageData>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    throw std::runtime_error("Invalid GPUCompilationMessage::fromJSI()");
+    throw std::runtime_error("Invalid GPUCompilationMessageData::fromJSI()");
   }
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::vector<rnwgpu::GPUCompilationMessage> arg) {
+                          std::vector<GPUCompilationMessageData> arg) {
     jsi::Array result = jsi::Array(runtime, arg.size());
     for (size_t i = 0; i < arg.size(); i++) {
       const auto &message = arg[i];
@@ -76,4 +76,4 @@ template <> struct JSIConverter<std::vector<rnwgpu::GPUCompilationMessage>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

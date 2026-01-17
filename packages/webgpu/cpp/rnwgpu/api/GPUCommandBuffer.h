@@ -4,21 +4,23 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "NativeObject.h"
 
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
-namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUCommandBuffer : public m::HybridObject {
+class GPUCommandBuffer : public NativeObject<GPUCommandBuffer> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUCommandBuffer";
+
   explicit GPUCommandBuffer(wgpu::CommandBuffer instance, std::string label)
-      : HybridObject("GPUCommandBuffer"), _instance(instance), _label(label) {}
+      : NativeObject(CLASS_NAME), _instance(instance), _label(label) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
@@ -26,11 +28,11 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUCommandBuffer::getBrand, this);
-
-    registerHybridGetter("label", &GPUCommandBuffer::getLabel, this);
-    registerHybridSetter("label", &GPUCommandBuffer::setLabel, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUCommandBuffer::getBrand);
+    installGetterSetter(runtime, prototype, "label",
+                        &GPUCommandBuffer::getLabel,
+                        &GPUCommandBuffer::setLabel);
   }
 
   inline const wgpu::CommandBuffer get() { return _instance; }

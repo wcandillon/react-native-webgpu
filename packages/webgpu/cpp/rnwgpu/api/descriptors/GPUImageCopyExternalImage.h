@@ -8,14 +8,12 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "Convertors.h"
-#include "RNFHybridObject.h"
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 
 #include "GPUOrigin2D.h"
 #include "ImageBitmap.h"
 
 namespace jsi = facebook::jsi;
-namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -27,9 +25,7 @@ struct GPUImageCopyExternalImage {
 
 } // namespace rnwgpu
 
-namespace margelo {
-
-using namespace rnwgpu; // NOLINT(build/namespaces)
+namespace rnwgpu {
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
@@ -64,4 +60,4 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUImageCopyExternalImage>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

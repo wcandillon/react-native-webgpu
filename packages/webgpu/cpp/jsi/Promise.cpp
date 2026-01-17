@@ -1,7 +1,4 @@
-//
-// Created by Marc Rousavy on 22.02.24.
-//
-#include "RNFPromise.h"
+#include "Promise.h"
 #include <future>
 #include <jsi/jsi.h>
 #include <memory>
@@ -9,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-namespace margelo {
+namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
 
@@ -44,4 +41,4 @@ void Promise::reject(std::string message) {
   _rejecter.call(runtime, error.value());
 }
 
-} // namespace margelo
+} // namespace rnwgpu

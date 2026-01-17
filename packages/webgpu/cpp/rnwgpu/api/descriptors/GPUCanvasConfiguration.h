@@ -5,13 +5,11 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 
 #include "GPUDevice.h"
-#include "RNFHybridObject.h"
 
 namespace jsi = facebook::jsi;
-namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -26,9 +24,7 @@ struct GPUCanvasConfiguration {
 
 } // namespace rnwgpu
 
-namespace margelo {
-
-using namespace rnwgpu; // NOLINT(build/namespaces) // NOLINT(build/namespaces)
+namespace rnwgpu {
 
 template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
@@ -77,4 +73,4 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 
 namespace rnwgpu {
 
@@ -24,21 +24,17 @@ struct ArrayBuffer : jsi::MutableBuffer {
   size_t _bytesPerElement;
 };
 
-} // namespace rnwgpu
-
-namespace margelo {
-
-static std::shared_ptr<rnwgpu::ArrayBuffer>
+static std::shared_ptr<ArrayBuffer>
 createArrayBufferFromJSI(jsi::Runtime &runtime,
                          const jsi::ArrayBuffer &arrayBuffer,
                          size_t bytesPerElement) {
   auto size = arrayBuffer.size(runtime);
-  return std::make_shared<rnwgpu::ArrayBuffer>(arrayBuffer.data(runtime), size,
-                                               bytesPerElement);
+  return std::make_shared<ArrayBuffer>(arrayBuffer.data(runtime), size,
+                                       bytesPerElement);
 }
 
-template <> struct JSIConverter<std::shared_ptr<rnwgpu::ArrayBuffer>> {
-  static std::shared_ptr<rnwgpu::ArrayBuffer>
+template <> struct JSIConverter<std::shared_ptr<ArrayBuffer>> {
+  static std::shared_ptr<ArrayBuffer>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBound) {
     if (arg.isObject()) {
       auto obj = arg.getObject(runtime);
@@ -64,9 +60,9 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::ArrayBuffer>> {
   }
 
   static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::ArrayBuffer> arg) {
+                          std::shared_ptr<ArrayBuffer> arg) {
     return jsi::ArrayBuffer(runtime, arg);
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

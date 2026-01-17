@@ -4,13 +4,10 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "WGPULogger.h"
 
-#include "RNFHybridObject.h"
-
 namespace jsi = facebook::jsi;
-namespace m = margelo;
 
 namespace rnwgpu {
 
@@ -23,9 +20,7 @@ struct GPUColor {
 
 } // namespace rnwgpu
 
-namespace margelo {
-
-using namespace rnwgpu; // NOLINT(build/namespaces)
+namespace rnwgpu {
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColor>> {
   static std::shared_ptr<rnwgpu::GPUColor>
@@ -69,4 +64,4 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUColor>> {
   }
 };
 
-} // namespace margelo
+} // namespace rnwgpu

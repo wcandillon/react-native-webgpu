@@ -7,16 +7,18 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "RNFHybridObject.h"
+#include "NativeObject.h"
 
 namespace rnwgpu {
 
-namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class Canvas : public m::HybridObject {
+class Canvas : public NativeObject<Canvas> {
 public:
+  static constexpr const char *CLASS_NAME = "Canvas";
+
   explicit Canvas(void *surface, const int width, const int height)
-      : HybridObject("Canvas"), _surface(surface), _width(width),
+      : NativeObject(CLASS_NAME), _surface(surface), _width(width),
         _height(height), _clientWidth(width), _clientHeight(height) {}
 
   int getWidth() { return _width; }
@@ -34,14 +36,14 @@ public:
 
   void *getSurface() { return _surface; }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("surface", &Canvas::getSurface, this);
-    registerHybridGetter("width", &Canvas::getWidth, this);
-    registerHybridGetter("height", &Canvas::getHeight, this);
-    registerHybridGetter("clientWidth", &Canvas::getClientWidth, this);
-    registerHybridGetter("clientHeight", &Canvas::getClientHeight, this);
-    registerHybridSetter("width", &Canvas::setWidth, this);
-    registerHybridSetter("height", &Canvas::setHeight, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "surface", &Canvas::getSurface);
+    installGetterSetter(runtime, prototype, "width", &Canvas::getWidth,
+                        &Canvas::setWidth);
+    installGetterSetter(runtime, prototype, "height", &Canvas::getHeight,
+                        &Canvas::setHeight);
+    installGetter(runtime, prototype, "clientWidth", &Canvas::getClientWidth);
+    installGetter(runtime, prototype, "clientHeight", &Canvas::getClientHeight);
   }
 
 private:

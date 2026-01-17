@@ -9,7 +9,7 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "NativeObject.h"
 
 #include "rnwgpu/async/AsyncRunner.h"
 #include "rnwgpu/async/AsyncTaskHandle.h"
@@ -49,18 +49,20 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPUDevice : public m::HybridObject {
+class GPUDevice : public NativeObject<GPUDevice> {
 public:
+  static constexpr const char *CLASS_NAME = "GPUDevice";
+
   explicit GPUDevice(wgpu::Device instance,
                      std::shared_ptr<async::AsyncRunner> async,
                      std::string label)
-      : HybridObject("GPUDevice"), _instance(instance), _async(async),
+      : NativeObject(CLASS_NAME), _instance(instance), _async(async),
         _label(label) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   void destroy();
   std::shared_ptr<GPUBuffer>
@@ -109,44 +111,50 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPUDevice::getBrand, this);
-    registerHybridMethod("destroy", &GPUDevice::destroy, this);
-    registerHybridMethod("createBuffer", &GPUDevice::createBuffer, this);
-    registerHybridMethod("createTexture", &GPUDevice::createTexture, this);
-    registerHybridMethod("createSampler", &GPUDevice::createSampler, this);
-    registerHybridMethod("importExternalTexture",
-                         &GPUDevice::importExternalTexture, this);
-    registerHybridMethod("createBindGroupLayout",
-                         &GPUDevice::createBindGroupLayout, this);
-    registerHybridMethod("createPipelineLayout",
-                         &GPUDevice::createPipelineLayout, this);
-    registerHybridMethod("createBindGroup", &GPUDevice::createBindGroup, this);
-    registerHybridMethod("createShaderModule", &GPUDevice::createShaderModule,
-                         this);
-    registerHybridMethod("createComputePipeline",
-                         &GPUDevice::createComputePipeline, this);
-    registerHybridMethod("createRenderPipeline",
-                         &GPUDevice::createRenderPipeline, this);
-    registerHybridMethod("createComputePipelineAsync",
-                         &GPUDevice::createComputePipelineAsync, this);
-    registerHybridMethod("createRenderPipelineAsync",
-                         &GPUDevice::createRenderPipelineAsync, this);
-    registerHybridMethod("createCommandEncoder",
-                         &GPUDevice::createCommandEncoder, this);
-    registerHybridMethod("createRenderBundleEncoder",
-                         &GPUDevice::createRenderBundleEncoder, this);
-    registerHybridMethod("createQuerySet", &GPUDevice::createQuerySet, this);
-    registerHybridMethod("pushErrorScope", &GPUDevice::pushErrorScope, this);
-    registerHybridMethod("popErrorScope", &GPUDevice::popErrorScope, this);
-    registerHybridGetter("features", &GPUDevice::getFeatures, this);
-    registerHybridGetter("limits", &GPUDevice::getLimits, this);
-    registerHybridGetter("queue", &GPUDevice::getQueue, this);
-    registerHybridGetter("lost", &GPUDevice::getLost, this);
-    registerHybridGetter("label", &GPUDevice::getLabel, this);
-    registerHybridSetter("label", &GPUDevice::setLabel, this);
-    registerHybridMethod("forceLossForTesting", &GPUDevice::forceLossForTesting,
-                         this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand", &GPUDevice::getBrand);
+    installMethod(runtime, prototype, "destroy", &GPUDevice::destroy);
+    installMethod(runtime, prototype, "createBuffer", &GPUDevice::createBuffer);
+    installMethod(runtime, prototype, "createTexture",
+                  &GPUDevice::createTexture);
+    installMethod(runtime, prototype, "createSampler",
+                  &GPUDevice::createSampler);
+    installMethod(runtime, prototype, "importExternalTexture",
+                  &GPUDevice::importExternalTexture);
+    installMethod(runtime, prototype, "createBindGroupLayout",
+                  &GPUDevice::createBindGroupLayout);
+    installMethod(runtime, prototype, "createPipelineLayout",
+                  &GPUDevice::createPipelineLayout);
+    installMethod(runtime, prototype, "createBindGroup",
+                  &GPUDevice::createBindGroup);
+    installMethod(runtime, prototype, "createShaderModule",
+                  &GPUDevice::createShaderModule);
+    installMethod(runtime, prototype, "createComputePipeline",
+                  &GPUDevice::createComputePipeline);
+    installMethod(runtime, prototype, "createRenderPipeline",
+                  &GPUDevice::createRenderPipeline);
+    installMethod(runtime, prototype, "createComputePipelineAsync",
+                  &GPUDevice::createComputePipelineAsync);
+    installMethod(runtime, prototype, "createRenderPipelineAsync",
+                  &GPUDevice::createRenderPipelineAsync);
+    installMethod(runtime, prototype, "createCommandEncoder",
+                  &GPUDevice::createCommandEncoder);
+    installMethod(runtime, prototype, "createRenderBundleEncoder",
+                  &GPUDevice::createRenderBundleEncoder);
+    installMethod(runtime, prototype, "createQuerySet",
+                  &GPUDevice::createQuerySet);
+    installMethod(runtime, prototype, "pushErrorScope",
+                  &GPUDevice::pushErrorScope);
+    installMethod(runtime, prototype, "popErrorScope",
+                  &GPUDevice::popErrorScope);
+    installGetter(runtime, prototype, "features", &GPUDevice::getFeatures);
+    installGetter(runtime, prototype, "limits", &GPUDevice::getLimits);
+    installGetter(runtime, prototype, "queue", &GPUDevice::getQueue);
+    installGetter(runtime, prototype, "lost", &GPUDevice::getLost);
+    installGetterSetter(runtime, prototype, "label", &GPUDevice::getLabel,
+                        &GPUDevice::setLabel);
+    installMethod(runtime, prototype, "forceLossForTesting",
+                  &GPUDevice::forceLossForTesting);
   }
 
   inline const wgpu::Device get() { return _instance; }

@@ -8,12 +8,12 @@
 #include <vector>
 
 #include "Convertors.h"
-#include "RNFJSIConverter.h"
+#include "JSIConverter.h"
 #include "rnwgpu/async/JSIMicrotaskDispatcher.h"
 
 namespace rnwgpu {
 
-GPU::GPU(jsi::Runtime &runtime) : HybridObject("GPU") {
+GPU::GPU(jsi::Runtime &runtime) : NativeObject(CLASS_NAME) {
   static const auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
   wgpu::InstanceDescriptor instanceDesc{.requiredFeatureCount = 1,
                                         .requiredFeatures = &kTimedWaitAny};
@@ -59,8 +59,7 @@ async::AsyncTaskHandle GPU::requestAdapter(
                         adapterHost);
                 resolve([result =
                              std::move(result)](jsi::Runtime &runtime) mutable {
-                  return margelo::JSIConverter<decltype(result)>::toJSI(runtime,
-                                                                        result);
+                  return JSIConverter<decltype(result)>::toJSI(runtime, result);
                 });
               } else {
                 auto result =
@@ -68,8 +67,7 @@ async::AsyncTaskHandle GPU::requestAdapter(
                         nullptr);
                 resolve([result =
                              std::move(result)](jsi::Runtime &runtime) mutable {
-                  return margelo::JSIConverter<decltype(result)>::toJSI(runtime,
-                                                                        result);
+                  return JSIConverter<decltype(result)>::toJSI(runtime, result);
                 });
               }
             });

@@ -8,7 +8,7 @@
 
 #include "Unions.h"
 
-#include "RNFHybridObject.h"
+#include "NativeObject.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -20,17 +20,18 @@
 
 namespace rnwgpu {
 
-namespace m = margelo;
+namespace jsi = facebook::jsi;
 
-class GPURenderBundleEncoder : public m::HybridObject {
+class GPURenderBundleEncoder : public NativeObject<GPURenderBundleEncoder> {
 public:
+  static constexpr const char *CLASS_NAME = "GPURenderBundleEncoder";
+
   explicit GPURenderBundleEncoder(wgpu::RenderBundleEncoder instance,
                                   std::string label)
-      : HybridObject("GPURenderBundleEncoder"), _instance(instance),
-        _label(label) {}
+      : NativeObject(CLASS_NAME), _instance(instance), _label(label) {}
 
 public:
-  std::string getBrand() { return _name; }
+  std::string getBrand() { return CLASS_NAME; }
 
   std::shared_ptr<GPURenderBundle>
   finish(std::optional<std::shared_ptr<GPURenderBundleDescriptor>> descriptor);
@@ -68,33 +69,35 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
-  void loadHybridMethods() override {
-    registerHybridGetter("__brand", &GPURenderBundleEncoder::getBrand, this);
-    registerHybridMethod("finish", &GPURenderBundleEncoder::finish, this);
-    registerHybridMethod("pushDebugGroup",
-                         &GPURenderBundleEncoder::pushDebugGroup, this);
-    registerHybridMethod("popDebugGroup",
-                         &GPURenderBundleEncoder::popDebugGroup, this);
-    registerHybridMethod("insertDebugMarker",
-                         &GPURenderBundleEncoder::insertDebugMarker, this);
-    registerHybridMethod("setBindGroup", &GPURenderBundleEncoder::setBindGroup,
-                         this);
-    registerHybridMethod("setPipeline", &GPURenderBundleEncoder::setPipeline,
-                         this);
-    registerHybridMethod("setIndexBuffer",
-                         &GPURenderBundleEncoder::setIndexBuffer, this);
-    registerHybridMethod("setVertexBuffer",
-                         &GPURenderBundleEncoder::setVertexBuffer, this);
-    registerHybridMethod("draw", &GPURenderBundleEncoder::draw, this);
-    registerHybridMethod("drawIndexed", &GPURenderBundleEncoder::drawIndexed,
-                         this);
-    registerHybridMethod("drawIndirect", &GPURenderBundleEncoder::drawIndirect,
-                         this);
-    registerHybridMethod("drawIndexedIndirect",
-                         &GPURenderBundleEncoder::drawIndexedIndirect, this);
-
-    registerHybridGetter("label", &GPURenderBundleEncoder::getLabel, this);
-    registerHybridSetter("label", &GPURenderBundleEncoder::setLabel, this);
+  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installGetter(runtime, prototype, "__brand",
+                  &GPURenderBundleEncoder::getBrand);
+    installMethod(runtime, prototype, "finish",
+                  &GPURenderBundleEncoder::finish);
+    installMethod(runtime, prototype, "pushDebugGroup",
+                  &GPURenderBundleEncoder::pushDebugGroup);
+    installMethod(runtime, prototype, "popDebugGroup",
+                  &GPURenderBundleEncoder::popDebugGroup);
+    installMethod(runtime, prototype, "insertDebugMarker",
+                  &GPURenderBundleEncoder::insertDebugMarker);
+    installMethod(runtime, prototype, "setBindGroup",
+                  &GPURenderBundleEncoder::setBindGroup);
+    installMethod(runtime, prototype, "setPipeline",
+                  &GPURenderBundleEncoder::setPipeline);
+    installMethod(runtime, prototype, "setIndexBuffer",
+                  &GPURenderBundleEncoder::setIndexBuffer);
+    installMethod(runtime, prototype, "setVertexBuffer",
+                  &GPURenderBundleEncoder::setVertexBuffer);
+    installMethod(runtime, prototype, "draw", &GPURenderBundleEncoder::draw);
+    installMethod(runtime, prototype, "drawIndexed",
+                  &GPURenderBundleEncoder::drawIndexed);
+    installMethod(runtime, prototype, "drawIndirect",
+                  &GPURenderBundleEncoder::drawIndirect);
+    installMethod(runtime, prototype, "drawIndexedIndirect",
+                  &GPURenderBundleEncoder::drawIndexedIndirect);
+    installGetterSetter(runtime, prototype, "label",
+                        &GPURenderBundleEncoder::getLabel,
+                        &GPURenderBundleEncoder::setLabel);
   }
 
   inline const wgpu::RenderBundleEncoder get() { return _instance; }
