@@ -132,7 +132,8 @@ void RNWebGPUManager::installWebGPUWorkletHelpers(jsi::Runtime &runtime) {
           return jsi::Value(false);
         }
 
-        // Check if it has Symbol.toStringTag on its prototype (WebGPU objects do)
+        // Check if it has Symbol.toStringTag on its prototype (WebGPU objects
+        // do)
         auto objectCtor = rt.global().getPropertyAsObject(rt, "Object");
         auto getPrototypeOf =
             objectCtor.getPropertyAsFunction(rt, "getPrototypeOf");
@@ -163,14 +164,16 @@ void RNWebGPUManager::installWebGPUWorkletHelpers(jsi::Runtime &runtime) {
       [](jsi::Runtime &rt, const jsi::Value & /*thisVal*/,
          const jsi::Value *args, size_t count) -> jsi::Value {
         if (count < 1 || !args[0].isObject()) {
-          throw jsi::JSError(rt, "__webgpuBox() requires a WebGPU object argument");
+          throw jsi::JSError(rt,
+                             "__webgpuBox() requires a WebGPU object argument");
         }
 
         auto obj = args[0].getObject(rt);
 
         // Check if it has native state
         if (!obj.hasNativeState(rt)) {
-          throw jsi::JSError(rt, "Object has no native state - not a WebGPU object");
+          throw jsi::JSError(
+              rt, "Object has no native state - not a WebGPU object");
         }
 
         // Get the brand name from Symbol.toStringTag on the prototype
@@ -185,9 +188,10 @@ void RNWebGPUManager::installWebGPUWorkletHelpers(jsi::Runtime &runtime) {
           auto symbolCtor = rt.global().getPropertyAsObject(rt, "Symbol");
           auto toStringTag = symbolCtor.getProperty(rt, "toStringTag");
           if (!toStringTag.isUndefined()) {
-            auto getOwnPropertyDescriptor =
-                objectCtor.getPropertyAsFunction(rt, "getOwnPropertyDescriptor");
-            auto desc = getOwnPropertyDescriptor.call(rt, protoObj, toStringTag);
+            auto getOwnPropertyDescriptor = objectCtor.getPropertyAsFunction(
+                rt, "getOwnPropertyDescriptor");
+            auto desc =
+                getOwnPropertyDescriptor.call(rt, protoObj, toStringTag);
             if (desc.isObject()) {
               auto descObj = desc.getObject(rt);
               auto value = descObj.getProperty(rt, "value");
@@ -199,8 +203,8 @@ void RNWebGPUManager::installWebGPUWorkletHelpers(jsi::Runtime &runtime) {
         }
 
         if (brand.empty()) {
-          throw jsi::JSError(
-              rt, "Cannot determine WebGPU object type - no Symbol.toStringTag found");
+          throw jsi::JSError(rt, "Cannot determine WebGPU object type - no "
+                                 "Symbol.toStringTag found");
         }
 
         auto nativeState = obj.getNativeState(rt);
