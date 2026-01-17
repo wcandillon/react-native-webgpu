@@ -110,6 +110,104 @@ RNWebGPUManager::RNWebGPUManager(
                                    GPUShaderStage::create(*_jsRuntime));
   _jsRuntime->global().setProperty(*_jsRuntime, "GPUTextureUsage",
                                    GPUTextureUsage::create(*_jsRuntime));
+
+  // Install global helper functions for Worklets serialization
+  // These are standalone functions that don't require RNWebGPU instance
+  installWebGPUWorkletHelpers(*_jsRuntime);
+}
+
+void RNWebGPUManager::installWebGPUWorkletHelpers(jsi::Runtime &runtime) {
+  // __webgpuIsWebGPUObject - checks if a value is a WebGPU NativeObject
+  auto isWebGPUObjectFunc = jsi::Function::createFromHostFunction(
+      runtime, jsi::PropNameID::forUtf8(runtime, "__webgpuIsWebGPUObject"), 1,
+      [](jsi::Runtime &rt, const jsi::Value & /*thisVal*/,
+         const jsi::Value *args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isObject()) {
+          return jsi::Value(false);
+        }
+        auto obj = args[0].getObject(rt);
+
+        // Check if it has native state
+        if (!obj.hasNativeState(rt)) {
+          return jsi::Value(false);
+        }
+
+        // Check if it has Symbol.toStringTag on its prototype (WebGPU objects do)
+        auto objectCtor = rt.global().getPropertyAsObject(rt, "Object");
+        auto getPrototypeOf =
+            objectCtor.getPropertyAsFunction(rt, "getPrototypeOf");
+        auto proto = getPrototypeOf.call(rt, obj);
+
+        if (!proto.isObject()) {
+          return jsi::Value(false);
+        }
+
+        auto protoObj = proto.getObject(rt);
+        auto symbolCtor = rt.global().getPropertyAsObject(rt, "Symbol");
+        auto toStringTag = symbolCtor.getProperty(rt, "toStringTag");
+        if (toStringTag.isUndefined()) {
+          return jsi::Value(false);
+        }
+
+        auto getOwnPropertyDescriptor =
+            objectCtor.getPropertyAsFunction(rt, "getOwnPropertyDescriptor");
+        auto desc = getOwnPropertyDescriptor.call(rt, protoObj, toStringTag);
+        return jsi::Value(desc.isObject());
+      });
+  runtime.global().setProperty(runtime, "__webgpuIsWebGPUObject",
+                               std::move(isWebGPUObjectFunc));
+
+  // __webgpuBox - boxes a WebGPU object for Worklets serialization
+  auto boxFunc = jsi::Function::createFromHostFunction(
+      runtime, jsi::PropNameID::forUtf8(runtime, "__webgpuBox"), 1,
+      [](jsi::Runtime &rt, const jsi::Value & /*thisVal*/,
+         const jsi::Value *args, size_t count) -> jsi::Value {
+        if (count < 1 || !args[0].isObject()) {
+          throw jsi::JSError(rt, "__webgpuBox() requires a WebGPU object argument");
+        }
+
+        auto obj = args[0].getObject(rt);
+
+        // Check if it has native state
+        if (!obj.hasNativeState(rt)) {
+          throw jsi::JSError(rt, "Object has no native state - not a WebGPU object");
+        }
+
+        // Get the brand name from Symbol.toStringTag on the prototype
+        auto objectCtor = rt.global().getPropertyAsObject(rt, "Object");
+        auto getPrototypeOf =
+            objectCtor.getPropertyAsFunction(rt, "getPrototypeOf");
+        auto proto = getPrototypeOf.call(rt, obj);
+
+        std::string brand;
+        if (proto.isObject()) {
+          auto protoObj = proto.getObject(rt);
+          auto symbolCtor = rt.global().getPropertyAsObject(rt, "Symbol");
+          auto toStringTag = symbolCtor.getProperty(rt, "toStringTag");
+          if (!toStringTag.isUndefined()) {
+            auto getOwnPropertyDescriptor =
+                objectCtor.getPropertyAsFunction(rt, "getOwnPropertyDescriptor");
+            auto desc = getOwnPropertyDescriptor.call(rt, protoObj, toStringTag);
+            if (desc.isObject()) {
+              auto descObj = desc.getObject(rt);
+              auto value = descObj.getProperty(rt, "value");
+              if (value.isString()) {
+                brand = value.getString(rt).utf8(rt);
+              }
+            }
+          }
+        }
+
+        if (brand.empty()) {
+          throw jsi::JSError(
+              rt, "Cannot determine WebGPU object type - no Symbol.toStringTag found");
+        }
+
+        auto nativeState = obj.getNativeState(rt);
+        auto boxed = std::make_shared<BoxedWebGPUObject>(nativeState, brand);
+        return jsi::Object::createFromHostObject(rt, boxed);
+      });
+  runtime.global().setProperty(runtime, "__webgpuBox", std::move(boxFunc));
 }
 
 RNWebGPUManager::~RNWebGPUManager() {

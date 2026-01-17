@@ -30,6 +30,44 @@ namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
 
+// Forward declaration
+template <typename Derived> class NativeObject;
+
+/**
+ * Registry for NativeObject prototype installers.
+ * This allows BoxedWebGPUObject::unbox() to install prototypes on any runtime
+ * by looking up the brand name and calling the appropriate installer.
+ */
+class NativeObjectRegistry {
+public:
+  using InstallerFunc = std::function<void(jsi::Runtime &)>;
+
+  static NativeObjectRegistry &getInstance() {
+    static NativeObjectRegistry instance;
+    return instance;
+  }
+
+  void registerInstaller(const std::string &brand, InstallerFunc installer) {
+    std::lock_guard<std::mutex> lock(_mutex);
+    _installers[brand] = std::move(installer);
+  }
+
+  bool installPrototype(jsi::Runtime &runtime, const std::string &brand) {
+    std::lock_guard<std::mutex> lock(_mutex);
+    auto it = _installers.find(brand);
+    if (it != _installers.end()) {
+      it->second(runtime);
+      return true;
+    }
+    return false;
+  }
+
+private:
+  NativeObjectRegistry() = default;
+  std::mutex _mutex;
+  std::unordered_map<std::string, InstallerFunc> _installers;
+};
+
 /**
  * Per-runtime cache entry for a prototype object.
  * Uses std::optional<jsi::Object> so the prototype is stored directly
@@ -115,6 +153,95 @@ public:
 private:
   std::unordered_map<void *, T> _secondaryRuntimeCaches;
   T _primaryCache;
+};
+
+/**
+ * BoxedWebGPUObject is a HostObject wrapper that holds a reference to ANY
+ * WebGPU NativeObject. This is used for Reanimated/Worklets serialization.
+ *
+ * Since NativeObject uses NativeState (not HostObject), Worklets can't
+ * serialize them directly. But Worklets CAN serialize HostObjects.
+ *
+ * This class stores:
+ * - The NativeState from the original object
+ * - The brand name for prototype reconstruction
+ *
+ * Usage pattern with registerCustomSerializable:
+ * - pack(): Call WebGPU.box(obj) to create a BoxedWebGPUObject (HostObject)
+ * - The HostObject is serialized by Worklets and transferred to UI runtime
+ * - unpack(): Call boxed.unbox() to get back the original object with prototype
+ *
+ * This is similar to NitroModules.box()/unbox() pattern.
+ */
+class BoxedWebGPUObject : public jsi::HostObject {
+public:
+  BoxedWebGPUObject(std::shared_ptr<jsi::NativeState> nativeState,
+                    const std::string &brand)
+      : _nativeState(std::move(nativeState)), _brand(brand) {}
+
+  jsi::Value get(jsi::Runtime &runtime, const jsi::PropNameID &name) override {
+    auto propName = name.utf8(runtime);
+    if (propName == "unbox") {
+      return jsi::Function::createFromHostFunction(
+          runtime, jsi::PropNameID::forUtf8(runtime, "unbox"), 0,
+          [this](jsi::Runtime &rt, const jsi::Value & /*thisVal*/,
+                 const jsi::Value * /*args*/,
+                 size_t /*count*/) -> jsi::Value {
+            // Try to get the prototype from the global constructor
+            auto ctor = rt.global().getProperty(rt, _brand.c_str());
+            if (!ctor.isObject()) {
+              // Constructor doesn't exist on this runtime - install it
+              NativeObjectRegistry::getInstance().installPrototype(rt, _brand);
+              ctor = rt.global().getProperty(rt, _brand.c_str());
+            }
+
+            // Create a new object and attach the native state
+            jsi::Object obj(rt);
+            obj.setNativeState(rt, _nativeState);
+
+            // Set the prototype if constructor exists
+            if (ctor.isObject()) {
+              auto ctorObj = ctor.getObject(rt);
+              auto proto = ctorObj.getProperty(rt, "prototype");
+              if (proto.isObject()) {
+                auto objectCtor =
+                    rt.global().getPropertyAsObject(rt, "Object");
+                auto setPrototypeOf =
+                    objectCtor.getPropertyAsFunction(rt, "setPrototypeOf");
+                setPrototypeOf.call(rt, obj, proto);
+              }
+            }
+
+            return std::move(obj);
+          });
+    }
+    if (propName == "__boxedWebGPU") {
+      return jsi::Value(true);
+    }
+    if (propName == "__brand") {
+      return jsi::String::createFromUtf8(runtime, _brand);
+    }
+    return jsi::Value::undefined();
+  }
+
+  void set(jsi::Runtime &runtime, const jsi::PropNameID &name,
+           const jsi::Value &value) override {
+    throw jsi::JSError(runtime, "BoxedWebGPUObject is read-only");
+  }
+
+  std::vector<jsi::PropNameID>
+  getPropertyNames(jsi::Runtime &runtime) override {
+    std::vector<jsi::PropNameID> names;
+    names.reserve(3);
+    names.push_back(jsi::PropNameID::forUtf8(runtime, "unbox"));
+    names.push_back(jsi::PropNameID::forUtf8(runtime, "__boxedWebGPU"));
+    names.push_back(jsi::PropNameID::forUtf8(runtime, "__brand"));
+    return names;
+  }
+
+private:
+  std::shared_ptr<jsi::NativeState> _nativeState;
+  std::string _brand;
 };
 
 /**
@@ -209,11 +336,18 @@ public:
    * The constructor throws if called directly (these objects are only
    * created internally by the native code).
    *
-   * Since we don't use prototype chain inheritance (to support Reanimated),
-   * we implement `instanceof` via Symbol.hasInstance which checks the __brand
-   * property instead.
+   * Also registers this class with NativeObjectRegistry so that
+   * BoxedWebGPUObject::unbox() can install prototypes on secondary runtimes.
    */
   static void installConstructor(jsi::Runtime &runtime) {
+    // Register this class's installer in the registry (only needs to happen once)
+    static std::once_flag registryFlag;
+    std::call_once(registryFlag, []() {
+      NativeObjectRegistry::getInstance().registerInstaller(
+          Derived::CLASS_NAME,
+          [](jsi::Runtime &rt) { Derived::installConstructor(rt); });
+    });
+
     installPrototype(runtime);
 
     auto &entry = getPrototypeCache().get(runtime);
@@ -231,49 +365,12 @@ public:
                       " objects are created by the WebGPU API");
         });
 
-    // Set the prototype property on the constructor (for consistency)
+    // Set the prototype property on the constructor
+    // This is what makes `instanceof` work
     ctor.setProperty(runtime, "prototype", *entry.prototype);
 
     // Set constructor property on prototype pointing back to constructor
     entry.prototype->setProperty(runtime, "constructor", ctor);
-
-    // Implement Symbol.hasInstance for instanceof support
-    // Since we copy properties instead of using setPrototypeOf, we need
-    // custom instanceof behavior that checks the __brand property
-    auto symbolCtor = runtime.global().getPropertyAsObject(runtime, "Symbol");
-    auto hasInstance = symbolCtor.getProperty(runtime, "hasInstance");
-    if (!hasInstance.isUndefined()) {
-      auto hasInstanceFunc = jsi::Function::createFromHostFunction(
-          runtime,
-          jsi::PropNameID::forUtf8(runtime,
-                                   std::string("[Symbol.hasInstance]")),
-          1,
-          [](jsi::Runtime &rt, const jsi::Value & /*thisVal*/,
-             const jsi::Value *args, size_t count) -> jsi::Value {
-            if (count < 1 || !args[0].isObject()) {
-              return jsi::Value(false);
-            }
-            auto obj = args[0].getObject(rt);
-            auto brand = obj.getProperty(rt, "__brand");
-            if (!brand.isString()) {
-              return jsi::Value(false);
-            }
-            return jsi::Value(brand.getString(rt).utf8(rt) ==
-                              Derived::CLASS_NAME);
-          });
-
-      // Use Object.defineProperty to set the symbol property
-      auto objectCtor =
-          runtime.global().getPropertyAsObject(runtime, "Object");
-      auto defineProperty =
-          objectCtor.getPropertyAsFunction(runtime, "defineProperty");
-      jsi::Object descriptor(runtime);
-      descriptor.setProperty(runtime, "value", hasInstanceFunc);
-      descriptor.setProperty(runtime, "writable", false);
-      descriptor.setProperty(runtime, "enumerable", false);
-      descriptor.setProperty(runtime, "configurable", true);
-      defineProperty.call(runtime, ctor, hasInstance, descriptor);
-    }
 
     // Install on global
     runtime.global().setProperty(runtime, Derived::CLASS_NAME, std::move(ctor));
@@ -281,13 +378,6 @@ public:
 
   /**
    * Create a JS object with native state attached.
-   *
-   * Instead of using Object.setPrototypeOf (which would change the prototype
-   * chain and break Reanimated's isPlainJSObject check), we copy all properties
-   * from the cached prototype directly onto the new object. This ensures:
-   * 1. Object.getPrototypeOf(obj) === Object.prototype (passes isPlainJSObject)
-   * 2. The object still has all WebGPU methods and getters
-   * 3. The native state is preserved when serialized by Reanimated/Worklets
    */
   static jsi::Value create(jsi::Runtime &runtime,
                            std::shared_ptr<Derived> instance) {
@@ -302,41 +392,15 @@ public:
     // Attach native state
     obj.setNativeState(runtime, instance);
 
-    // Copy all properties from the prototype to the object
-    // This keeps Object.prototype as the prototype (important for Reanimated)
-    // while still giving the object all its methods and getters
+    // Set prototype
     auto &entry = getPrototypeCache().get(runtime);
     if (entry.prototype.has_value()) {
+      // Use Object.setPrototypeOf to set the prototype
       auto objectCtor =
           runtime.global().getPropertyAsObject(runtime, "Object");
-
-      // Get all property names from prototype (including non-enumerable)
-      auto getOwnPropertyNames =
-          objectCtor.getPropertyAsFunction(runtime, "getOwnPropertyNames");
-      auto getOwnPropertyDescriptor =
-          objectCtor.getPropertyAsFunction(runtime, "getOwnPropertyDescriptor");
-      auto defineProperty =
-          objectCtor.getPropertyAsFunction(runtime, "defineProperty");
-
-      auto names =
-          getOwnPropertyNames.call(runtime, *entry.prototype).asObject(runtime);
-      auto namesArray = names.asArray(runtime);
-      size_t length = namesArray.size(runtime);
-
-      for (size_t i = 0; i < length; i++) {
-        auto name = namesArray.getValueAtIndex(runtime, i);
-        // Skip 'constructor' property
-        if (name.isString() &&
-            name.getString(runtime).utf8(runtime) == "constructor") {
-          continue;
-        }
-        // Get the property descriptor and define it on the new object
-        auto descriptor =
-            getOwnPropertyDescriptor.call(runtime, *entry.prototype, name);
-        if (!descriptor.isUndefined()) {
-          defineProperty.call(runtime, obj, name, descriptor);
-        }
-      }
+      auto setPrototypeOf =
+          objectCtor.getPropertyAsFunction(runtime, "setPrototypeOf");
+      setPrototypeOf.call(runtime, obj, *entry.prototype);
     }
 
     // Set memory pressure hint for GC
@@ -366,6 +430,43 @@ public:
                                       " but got different type");
     }
     return obj.getNativeState<Derived>(runtime);
+  }
+
+  /**
+   * Box a NativeObject into a HostObject for Worklets serialization.
+   *
+   * This is used with registerCustomSerializable to transfer WebGPU objects
+   * between runtimes. The boxed object is a HostObject (which Worklets can
+   * serialize), and calling unbox() on it recreates the full NativeObject
+   * with its prototype.
+   *
+   * Usage:
+   *   pack: (value) => { 'worklet'; return RNWebGPU.box(value); }
+   *   unpack: (boxed) => { 'worklet'; return boxed.unbox(); }
+   */
+  static jsi::Value box(jsi::Runtime &runtime, const jsi::Value &value) {
+    if (!value.isObject()) {
+      throw jsi::JSError(runtime, "box() requires an object");
+    }
+    auto obj = value.getObject(runtime);
+    if (!obj.hasNativeState(runtime)) {
+      throw jsi::JSError(runtime, "Object has no native state");
+    }
+    auto nativeState = obj.getNativeState(runtime);
+    auto boxed =
+        std::make_shared<BoxedWebGPUObject>(nativeState, Derived::CLASS_NAME);
+    return jsi::Object::createFromHostObject(runtime, boxed);
+  }
+
+  /**
+   * Check if a value is a WebGPU NativeObject (has the right NativeState)
+   */
+  static bool isNativeObject(jsi::Runtime &runtime, const jsi::Value &value) {
+    if (!value.isObject()) {
+      return false;
+    }
+    jsi::Object obj = value.getObject(runtime);
+    return obj.hasNativeState<Derived>(runtime);
   }
 
   /**

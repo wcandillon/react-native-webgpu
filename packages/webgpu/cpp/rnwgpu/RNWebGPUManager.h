@@ -27,6 +27,13 @@ public:
                   std::shared_ptr<PlatformContext> platformContext);
   ~RNWebGPUManager();
 
+  /**
+   * Install global helper functions for Worklets serialization.
+   * This installs __webgpuIsWebGPUObject and __webgpuBox on the global object.
+   * Can be called on any runtime (main JS, UI, or custom worklet runtimes).
+   */
+  static void installWebGPUWorkletHelpers(jsi::Runtime &runtime);
+
 private:
   jsi::Runtime *_jsRuntime;
   std::shared_ptr<facebook::react::CallInvoker> _jsCallInvoker;
