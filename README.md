@@ -222,6 +222,40 @@ device.queue.copyExternalImageToTexture(
 );
 ```
 
+### Reanimated Integration
+
+React Native WebGPU supports running WebGPU rendering on the UI thread using [React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/) and [React Native Worklets](https://github.com/margelo/react-native-worklets).
+
+First, install the optional peer dependencies:
+
+```sh
+npm install react-native-reanimated react-native-worklets
+```
+
+Then, register WebGPU for Reanimated serialization by calling `registerWebGPUForReanimated()` at the top of your file, before defining any worklets:
+
+```tsx
+import { Canvas, registerWebGPUForReanimated } from "react-native-wgpu";
+import { runOnUI } from "react-native-reanimated";
+
+// Call this before defining worklets that use WebGPU objects
+registerWebGPUForReanimated();
+
+const renderFrame = (device: GPUDevice, context: GPUCanvasContext) => {
+  "worklet";
+  // WebGPU rendering code runs on the UI thread
+  const commandEncoder = device.createCommandEncoder();
+  // ... render ...
+  device.queue.submit([commandEncoder.finish()]);
+  context.present();
+};
+
+// Initialize WebGPU on main thread, then run on UI thread
+const device = await adapter.requestDevice();
+const context = canvasRef.current.getContext("webgpu");
+runOnUI(renderFrame)(device, context);
+```
+
 ## Troubleshooting
 
 ### iOS
