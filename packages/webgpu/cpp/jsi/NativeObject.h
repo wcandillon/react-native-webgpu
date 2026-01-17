@@ -433,43 +433,6 @@ public:
   }
 
   /**
-   * Box a NativeObject into a HostObject for Worklets serialization.
-   *
-   * This is used with registerCustomSerializable to transfer WebGPU objects
-   * between runtimes. The boxed object is a HostObject (which Worklets can
-   * serialize), and calling unbox() on it recreates the full NativeObject
-   * with its prototype.
-   *
-   * Usage:
-   *   pack: (value) => { 'worklet'; return RNWebGPU.box(value); }
-   *   unpack: (boxed) => { 'worklet'; return boxed.unbox(); }
-   */
-  static jsi::Value box(jsi::Runtime &runtime, const jsi::Value &value) {
-    if (!value.isObject()) {
-      throw jsi::JSError(runtime, "box() requires an object");
-    }
-    auto obj = value.getObject(runtime);
-    if (!obj.hasNativeState(runtime)) {
-      throw jsi::JSError(runtime, "Object has no native state");
-    }
-    auto nativeState = obj.getNativeState(runtime);
-    auto boxed =
-        std::make_shared<BoxedWebGPUObject>(nativeState, Derived::CLASS_NAME);
-    return jsi::Object::createFromHostObject(runtime, boxed);
-  }
-
-  /**
-   * Check if a value is a WebGPU NativeObject (has the right NativeState)
-   */
-  static bool isNativeObject(jsi::Runtime &runtime, const jsi::Value &value) {
-    if (!value.isObject()) {
-      return false;
-    }
-    jsi::Object obj = value.getObject(runtime);
-    return obj.hasNativeState<Derived>(runtime);
-  }
-
-  /**
    * Memory pressure for GC hints. Override in derived classes.
    */
   virtual size_t getMemoryPressure() { return 1024; }
