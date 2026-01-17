@@ -232,14 +232,11 @@ First, install the optional peer dependencies:
 npm install react-native-reanimated react-native-worklets
 ```
 
-Then, register WebGPU for Reanimated serialization by calling `registerWebGPUForReanimated()` at the top of your file, before defining any worklets:
+WebGPU objects are automatically registered for Worklets serialization when the module loads. You can pass WebGPU objects like `GPUDevice` and `GPUCanvasContext` directly to worklets:
 
 ```tsx
-import { Canvas, registerWebGPUForReanimated } from "react-native-wgpu";
+import { Canvas } from "react-native-wgpu";
 import { runOnUI } from "react-native-reanimated";
-
-// Call this before defining worklets that use WebGPU objects
-registerWebGPUForReanimated();
 
 const renderFrame = (device: GPUDevice, context: GPUCanvasContext) => {
   "worklet";

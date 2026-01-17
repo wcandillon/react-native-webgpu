@@ -2552,7 +2552,7 @@ PODS:
     - RNWorklets
     - SocketRocket
     - Yoga
-  - RNWorklets (0.7.1):
+  - RNWorklets (0.7.2):
     - boost
     - DoubleConversion
     - fast_float
@@ -2579,10 +2579,10 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNWorklets/worklets (= 0.7.1)
+    - RNWorklets/worklets (= 0.7.2)
     - SocketRocket
     - Yoga
-  - RNWorklets/worklets (0.7.1):
+  - RNWorklets/worklets (0.7.2):
     - boost
     - DoubleConversion
     - fast_float
@@ -2609,10 +2609,10 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNWorklets/worklets/apple (= 0.7.1)
+    - RNWorklets/worklets/apple (= 0.7.2)
     - SocketRocket
     - Yoga
-  - RNWorklets/worklets/apple (0.7.1):
+  - RNWorklets/worklets/apple (0.7.2):
     - boost
     - DoubleConversion
     - fast_float
@@ -2967,14 +2967,14 @@ SPEC CHECKSUMS:
   React-timing: 1e6a8acb66e2b7ac9d418956617fd1fdb19322fd
   React-utils: 52bbb03f130319ef82e4c3bc7a85eaacdb1fec87
   ReactAppDependencyProvider: 433ddfb4536948630aadd5bd925aff8a632d2fe3
-  ReactCodegen: 64dbbed4e9e0264d799578ea78492479a66fba4a
+  ReactCodegen: 7042ec4a7316b59e8f247b8fa312891179d24f5a
   ReactCommon: 394c6b92765cf6d211c2c3f7f6bc601dffb316a6
   ReactNativeHost: f5e054387e917216a2a021a3f7fdc4f9f158e7e4
   ReactTestApp-DevSupport: 9b7bbba5e8fed998e763809171d9906a1375f9d3
   ReactTestApp-Resources: 1bd9ff10e4c24f2ad87101a32023721ae923bccf
   RNGestureHandler: e37bdb684df1ac17c7e1d8f71a3311b2793c186b
   RNReanimated: 464375ff2caa801358547c44eca894ff0bf68e74
-  RNWorklets: 8068c8af4b241eb2c19221310729e4c440bee023
+  RNWorklets: ee58e869ea579800ec5f2f1cb6ae195fd3537546
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: a3ed390a19db0459bd6839823a6ac6d9c6db198d
 
