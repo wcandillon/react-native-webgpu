@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <cassert>
 #include <functional>
 #include <jsi/jsi.h>
 #include <memory>
@@ -15,7 +14,7 @@
 #include <unordered_map>
 #include <utility>
 
-#include "RuntimeLifecycleMonitor.h"
+#include "RuntimeAwareCache.h"
 #include "WGPULogger.h"
 
 // Forward declare to avoid circular dependency
@@ -75,84 +74,6 @@ private:
  */
 struct PrototypeCacheEntry {
   std::optional<jsi::Object> prototype;
-};
-
-/**
- * Base class for runtime-aware caches. Provides static storage for the
- * main runtime pointer, which must be set during initialization.
- */
-class BaseRuntimeAwareCache {
-public:
-  static void setMainJsRuntime(jsi::Runtime *rt) { _mainRuntime = rt; }
-
-protected:
-  static jsi::Runtime *getMainJsRuntime() {
-    assert(_mainRuntime != nullptr &&
-           "Expected main Javascript runtime to be set in the "
-           "BaseRuntimeAwareCache class.");
-    return _mainRuntime;
-  }
-
-private:
-  static jsi::Runtime *_mainRuntime;
-};
-
-/**
- * Runtime-aware cache that stores data per-runtime and automatically
- * cleans up when a runtime is destroyed.
- *
- * This follows the same pattern as React Native Skia's RuntimeAwareCache:
- * - For the primary/main runtime: uses a simple member variable (zero overhead)
- * - For secondary runtimes: tracks lifecycle and auto-cleans on destruction
- *
- * The assumption is that the main runtime outlives the cache itself,
- * so we don't need to register for its destruction events.
- */
-template <typename T>
-class RuntimeAwareCache : public BaseRuntimeAwareCache,
-                          public RuntimeLifecycleListener {
-public:
-  void onRuntimeDestroyed(jsi::Runtime *rt) override {
-    if (getMainJsRuntime() != rt) {
-      // We are removing a secondary runtime
-      _secondaryRuntimeCaches.erase(rt);
-    }
-  }
-
-  ~RuntimeAwareCache() {
-    for (auto &cache : _secondaryRuntimeCaches) {
-      RuntimeLifecycleMonitor::removeListener(
-          *static_cast<jsi::Runtime *>(cache.first), this);
-    }
-  }
-
-  T &get(jsi::Runtime &rt) {
-    // We check if we're accessing the main runtime - this is the happy path
-    // to avoid us having to lookup by runtime for caches that only has a single
-    // runtime
-    if (getMainJsRuntime() == &rt) {
-      return _primaryCache;
-    } else {
-      if (_secondaryRuntimeCaches.count(&rt) == 0) {
-        // We only add listener when the secondary runtime is used, this assumes
-        // that the secondary runtime is terminated first. This lets us avoid
-        // additional complexity for the majority of cases when objects are not
-        // shared between runtimes. Otherwise we'd have to register all objects
-        // with the RuntimeMonitor as opposed to only registering ones that are
-        // used in secondary runtime. Note that we can't register listener here
-        // with the primary runtime as it may run on a separate thread.
-        RuntimeLifecycleMonitor::addListener(rt, this);
-
-        T cache;
-        _secondaryRuntimeCaches.emplace(&rt, std::move(cache));
-      }
-    }
-    return _secondaryRuntimeCaches.at(&rt);
-  }
-
-private:
-  std::unordered_map<void *, T> _secondaryRuntimeCaches;
-  T _primaryCache;
 };
 
 /**

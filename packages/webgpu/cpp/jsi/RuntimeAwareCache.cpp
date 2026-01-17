@@ -1,4 +1,4 @@
-#include "NativeObject.h"
+#include "RuntimeAwareCache.h"
 
 namespace rnwgpu {
 
