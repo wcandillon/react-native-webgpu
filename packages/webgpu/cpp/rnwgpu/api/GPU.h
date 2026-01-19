@@ -3,7 +3,6 @@
 #include <memory>
 #include <string>
 #include <unordered_set>
-#include <variant>
 
 #include "Unions.h"
 
@@ -16,8 +15,6 @@
 
 #include "GPUAdapter.h"
 #include "GPURequestAdapterOptions.h"
-
-#include <webgpu/webgpu.h>
 
 namespace rnwgpu {
 

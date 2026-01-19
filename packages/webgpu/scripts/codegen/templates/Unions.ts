@@ -23,7 +23,8 @@ ${unions
   .filter(
     (union) =>
       union.name !== "GPUCanvasAlphaMode" &&
-      union.name !== "GPUPipelineErrorReason",
+      union.name !== "GPUPipelineErrorReason" &&
+      union.name !== "GPUCanvasToneMappingMode",
   )
   .map((union) => Union(union))
   .join("\n")}

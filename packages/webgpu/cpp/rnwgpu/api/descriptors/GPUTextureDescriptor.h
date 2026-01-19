@@ -23,7 +23,9 @@ struct GPUTextureDescriptor {
   wgpu::TextureFormat format;                      // GPUTextureFormat
   double usage;                                    // GPUTextureUsageFlags
   std::optional<std::vector<wgpu::TextureFormat>>
-      viewFormats;                  // Iterable<GPUTextureFormat>
+      viewFormats; // Iterable<GPUTextureFormat>
+  std::optional<wgpu::TextureViewDimension>
+      textureBindingViewDimension;  // GPUTextureViewDimension
   std::optional<std::string> label; // string
 };
 
@@ -73,6 +75,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureDescriptor>> {
             std::optional<std::vector<wgpu::TextureFormat>>>::fromJSI(runtime,
                                                                       prop,
                                                                       false);
+      }
+      if (value.hasProperty(runtime, "textureBindingViewDimension")) {
+        auto prop = value.getProperty(runtime, "textureBindingViewDimension");
+        result->textureBindingViewDimension =
+            JSIConverter<std::optional<wgpu::TextureViewDimension>>::fromJSI(
+                runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");

@@ -66,6 +66,7 @@ public:
     installMethod(runtime, prototype, "writeTexture", &GPUQueue::writeTexture);
     installMethod(runtime, prototype, "copyExternalImageToTexture",
                   &GPUQueue::copyExternalImageToTexture);
+
     installGetterSetter(runtime, prototype, "label", &GPUQueue::getLabel,
                         &GPUQueue::setLabel);
   }

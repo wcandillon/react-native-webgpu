@@ -410,16 +410,22 @@ inline void convertEnumToJSUnion(wgpu::ErrorFilter inEnum,
 
 inline void convertJSUnionToEnum(const std::string &inUnion,
                                  wgpu::FeatureName *outEnum) {
-  if (inUnion == "depth-clip-control") {
+  if (inUnion == "core-features-and-limits") {
+    *outEnum = wgpu::FeatureName::CoreFeaturesAndLimits;
+  } else if (inUnion == "depth-clip-control") {
     *outEnum = wgpu::FeatureName::DepthClipControl;
   } else if (inUnion == "depth32float-stencil8") {
     *outEnum = wgpu::FeatureName::Depth32FloatStencil8;
   } else if (inUnion == "texture-compression-bc") {
     *outEnum = wgpu::FeatureName::TextureCompressionBC;
+  } else if (inUnion == "texture-compression-bc-sliced-3d") {
+    *outEnum = wgpu::FeatureName::TextureCompressionBCSliced3D;
   } else if (inUnion == "texture-compression-etc2") {
     *outEnum = wgpu::FeatureName::TextureCompressionETC2;
   } else if (inUnion == "texture-compression-astc") {
     *outEnum = wgpu::FeatureName::TextureCompressionASTC;
+  } else if (inUnion == "texture-compression-astc-sliced-3d") {
+    *outEnum = wgpu::FeatureName::TextureCompressionASTCSliced3D;
   } else if (inUnion == "timestamp-query") {
     *outEnum = wgpu::FeatureName::TimestampQuery;
   } else if (inUnion == "indirect-first-instance") {
@@ -432,111 +438,22 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::FeatureName::BGRA8UnormStorage;
   } else if (inUnion == "float32-filterable") {
     *outEnum = wgpu::FeatureName::Float32Filterable;
-  } else if (inUnion == "subgroups") {
-    *outEnum = wgpu::FeatureName::Subgroups;
-  } else if (inUnion == "dawn-internal-usages") {
-    *outEnum = wgpu::FeatureName::DawnInternalUsages;
-  } else if (inUnion == "dawn-multi-planar-formats") {
-    *outEnum = wgpu::FeatureName::DawnMultiPlanarFormats;
-  } else if (inUnion == "dawn-native") {
-    *outEnum = wgpu::FeatureName::DawnNative;
-  } else if (inUnion == "chromium-experimental-timestamp-query-inside-passes") {
-    *outEnum =
-        wgpu::FeatureName::ChromiumExperimentalTimestampQueryInsidePasses;
-  } else if (inUnion == "implicit-device-synchronization") {
-    *outEnum = wgpu::FeatureName::ImplicitDeviceSynchronization;
-  } else if (inUnion == "transient-attachments") {
-    *outEnum = wgpu::FeatureName::TransientAttachments;
-  } else if (inUnion == "msaa-render-to-single-sampled") {
-    *outEnum = wgpu::FeatureName::MSAARenderToSingleSampled;
-  } else if (inUnion == "dual-source-blending") {
-    *outEnum = wgpu::FeatureName::DualSourceBlending;
-  } else if (inUnion == "d3d11-multithread-protected") {
-    *outEnum = wgpu::FeatureName::D3D11MultithreadProtected;
-  } else if (inUnion == "angle-texture-sharing") {
-    *outEnum = wgpu::FeatureName::ANGLETextureSharing;
-  } else if (inUnion == "chromium-experimental-subgroups-matrix") {
-    *outEnum = wgpu::FeatureName::ChromiumExperimentalSubgroupMatrix;
-  } else if (inUnion == "pixel-local-storage-coherent") {
-    *outEnum = wgpu::FeatureName::PixelLocalStorageCoherent;
-  } else if (inUnion == "pixel-local-storage-non-coherent") {
-    *outEnum = wgpu::FeatureName::PixelLocalStorageNonCoherent;
-  } else if (inUnion == "unorm16-texture-formats") {
-    *outEnum = wgpu::FeatureName::Unorm16TextureFormats;
-  } else if (inUnion == "snorm16-texture-formats") {
-    *outEnum = wgpu::FeatureName::Snorm16TextureFormats;
-  } else if (inUnion == "multi-planar-format-extended-usages") {
-    *outEnum = wgpu::FeatureName::MultiPlanarFormatExtendedUsages;
-  } else if (inUnion == "multi-planar-format-p010") {
-    *outEnum = wgpu::FeatureName::MultiPlanarFormatP010;
-  } else if (inUnion == "host-mapped-pointer") {
-    *outEnum = wgpu::FeatureName::HostMappedPointer;
-  } else if (inUnion == "multi-planar-render-targets") {
-    *outEnum = wgpu::FeatureName::MultiPlanarRenderTargets;
-  } else if (inUnion == "multi-planar-format-nv12a") {
-    *outEnum = wgpu::FeatureName::MultiPlanarFormatNv12a;
-  } else if (inUnion == "framebuffer-fetch") {
-    *outEnum = wgpu::FeatureName::FramebufferFetch;
-  } else if (inUnion == "buffer-map-extended-usages") {
-    *outEnum = wgpu::FeatureName::BufferMapExtendedUsages;
-  } else if (inUnion == "adapter-properties-memory-heaps") {
-    *outEnum = wgpu::FeatureName::AdapterPropertiesMemoryHeaps;
-  } else if (inUnion == "adapter-properties-d3d") {
-    *outEnum = wgpu::FeatureName::AdapterPropertiesD3D;
-  } else if (inUnion == "adapter-properties-vk") {
-    *outEnum = wgpu::FeatureName::AdapterPropertiesVk;
-  } else if (inUnion == "r8unorm-storage") {
-    *outEnum = wgpu::FeatureName::R8UnormStorage;
-  } else if (inUnion == "format-capabilities") {
-    *outEnum = wgpu::FeatureName::DawnFormatCapabilities;
-  } else if (inUnion == "norm16-texture-formats") {
-    *outEnum = wgpu::FeatureName::Norm16TextureFormats;
-  } else if (inUnion == "multi-planar-format-nv16") {
-    *outEnum = wgpu::FeatureName::MultiPlanarFormatNv16;
-  } else if (inUnion == "multi-planar-format-nv24") {
-    *outEnum = wgpu::FeatureName::MultiPlanarFormatNv24;
-  } else if (inUnion == "multi-planar-format-p210") {
-    *outEnum = wgpu::FeatureName::MultiPlanarFormatP210;
-  } else if (inUnion == "multi-planar-format-p410") {
-    *outEnum = wgpu::FeatureName::MultiPlanarFormatP410;
-  } else if (inUnion == "shared-texture-memory-vk-dedicated-allocation") {
-    *outEnum = wgpu::FeatureName::SharedTextureMemoryVkDedicatedAllocation;
-  } else if (inUnion == "shared-texture-memory-ahardware-buffer") {
-    *outEnum = wgpu::FeatureName::SharedTextureMemoryAHardwareBuffer;
-  } else if (inUnion == "shared-texture-memory-dma-buf") {
-    *outEnum = wgpu::FeatureName::SharedTextureMemoryDmaBuf;
-  } else if (inUnion == "shared-texture-memory-opaque-fd") {
-    *outEnum = wgpu::FeatureName::SharedTextureMemoryOpaqueFD;
-  } else if (inUnion == "shared-texture-memory-zircon-handle") {
-    *outEnum = wgpu::FeatureName::SharedTextureMemoryZirconHandle;
-  } else if (inUnion == "shared-texture-memory-dxgi-shared-handle") {
-    *outEnum = wgpu::FeatureName::SharedTextureMemoryDXGISharedHandle;
-  } else if (inUnion == "shared-texture-memory-d3d11-texture2d") {
-    *outEnum = wgpu::FeatureName::SharedTextureMemoryD3D11Texture2D;
-  } else if (inUnion == "shared-texture-memory-iosurface") {
-    *outEnum = wgpu::FeatureName::SharedTextureMemoryIOSurface;
-  } else if (inUnion == "shared-texture-memory-egl-image") {
-    *outEnum = wgpu::FeatureName::SharedTextureMemoryEGLImage;
-  } else if (inUnion == "shared-fence-vk-semaphore-opaque-fd") {
-    *outEnum = wgpu::FeatureName::SharedFenceVkSemaphoreOpaqueFD;
-  } else if (inUnion == "shared-fence-vk-semaphore-zircon-handle") {
-    *outEnum = wgpu::FeatureName::SharedFenceVkSemaphoreZirconHandle;
-  } else if (inUnion == "shared-fence-dxgi-shared-handle") {
-    *outEnum = wgpu::FeatureName::SharedFenceDXGISharedHandle;
-  } else if (inUnion == "shared-fence-mtl-shared-event") {
-    *outEnum = wgpu::FeatureName::SharedFenceMTLSharedEvent;
-  } else if (inUnion == "shared-buffer-memory-d3d12-resource") {
-    *outEnum = wgpu::FeatureName::SharedBufferMemoryD3D12Resource;
-  } else if (inUnion == "static-samplers") {
-    *outEnum = wgpu::FeatureName::StaticSamplers;
-  } else if (inUnion == "ycbcr-vulkan-samplers") {
-    *outEnum = wgpu::FeatureName::YCbCrVulkanSamplers;
-  } else if (inUnion == "shader-module-compilation-options") {
-    *outEnum = wgpu::FeatureName::ShaderModuleCompilationOptions;
-  } else if (inUnion == "dawn-load-resolve-texture") {
-    *outEnum = wgpu::FeatureName::DawnLoadResolveTexture;
+  } else if (inUnion == "float32-blendable") {
+    *outEnum = wgpu::FeatureName::Float32Blendable;
   } else if (inUnion == "clip-distances") {
     *outEnum = wgpu::FeatureName::ClipDistances;
+  } else if (inUnion == "dual-source-blending") {
+    *outEnum = wgpu::FeatureName::DualSourceBlending;
+  } else if (inUnion == "subgroups") {
+    *outEnum = wgpu::FeatureName::Subgroups;
+  } else if (inUnion == "texture-formats-tier1") {
+    *outEnum = wgpu::FeatureName::TextureFormatsTier1;
+  } else if (inUnion == "texture-formats-tier2") {
+    *outEnum = wgpu::FeatureName::TextureFormatsTier2;
+  } else if (inUnion == "primitive-index") {
+    *outEnum = wgpu::FeatureName::PrimitiveIndex;
+  } else if (inUnion == "texture-component-swizzle") {
+    *outEnum = wgpu::FeatureName::TextureComponentSwizzle;
   } else {
     throw invalidUnion(inUnion);
   }
@@ -545,6 +462,9 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
 inline void convertEnumToJSUnion(wgpu::FeatureName inEnum,
                                  std::string *outUnion) {
   switch (inEnum) {
+  case wgpu::FeatureName::CoreFeaturesAndLimits:
+    *outUnion = "core-features-and-limits";
+    break;
   case wgpu::FeatureName::DepthClipControl:
     *outUnion = "depth-clip-control";
     break;
@@ -554,11 +474,17 @@ inline void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::TextureCompressionBC:
     *outUnion = "texture-compression-bc";
     break;
+  case wgpu::FeatureName::TextureCompressionBCSliced3D:
+    *outUnion = "texture-compression-bc-sliced-3d";
+    break;
   case wgpu::FeatureName::TextureCompressionETC2:
     *outUnion = "texture-compression-etc2";
     break;
   case wgpu::FeatureName::TextureCompressionASTC:
     *outUnion = "texture-compression-astc";
+    break;
+  case wgpu::FeatureName::TextureCompressionASTCSliced3D:
+    *outUnion = "texture-compression-astc-sliced-3d";
     break;
   case wgpu::FeatureName::TimestampQuery:
     *outUnion = "timestamp-query";
@@ -578,164 +504,29 @@ inline void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::Float32Filterable:
     *outUnion = "float32-filterable";
     break;
-  case wgpu::FeatureName::Subgroups:
-    *outUnion = "subgroups";
+  case wgpu::FeatureName::Float32Blendable:
+    *outUnion = "float32-blendable";
     break;
-  case wgpu::FeatureName::DawnInternalUsages:
-    *outUnion = "dawn-internal-usages";
-    break;
-  case wgpu::FeatureName::DawnMultiPlanarFormats:
-    *outUnion = "dawn-multi-planar-formats";
-    break;
-  case wgpu::FeatureName::DawnNative:
-    *outUnion = "dawn-native";
-    break;
-  case wgpu::FeatureName::DawnFormatCapabilities:
-    *outUnion = "format-capabilities";
-    break;
-  case wgpu::FeatureName::ChromiumExperimentalTimestampQueryInsidePasses:
-    *outUnion = "chromium-experimental-timestamp-query-inside-passes";
-    break;
-  case wgpu::FeatureName::ImplicitDeviceSynchronization:
-    *outUnion = "implicit-device-synchronization";
-    break;
-    //  case wgpu::FeatureName::SurfaceCapabilities:
-    //    *outUnion = "surface-capabilities";
-    //    break;
-  case wgpu::FeatureName::TransientAttachments:
-    *outUnion = "transient-attachments";
-    break;
-  case wgpu::FeatureName::MSAARenderToSingleSampled:
-    *outUnion = "msaa-render-to-single-sampled";
+  case wgpu::FeatureName::ClipDistances:
+    *outUnion = "clip-distances";
     break;
   case wgpu::FeatureName::DualSourceBlending:
     *outUnion = "dual-source-blending";
     break;
-  case wgpu::FeatureName::D3D11MultithreadProtected:
-    *outUnion = "d3d11-multithread-protected";
+  case wgpu::FeatureName::Subgroups:
+    *outUnion = "subgroups";
     break;
-  case wgpu::FeatureName::ANGLETextureSharing:
-    *outUnion = "angle-texture-sharing";
+  case wgpu::FeatureName::TextureFormatsTier1:
+    *outUnion = "texture-formats-tier1";
     break;
-  case wgpu::FeatureName::ChromiumExperimentalSubgroupMatrix:
-    *outUnion = "chromium-experimental-subgroups-matrix";
+  case wgpu::FeatureName::TextureFormatsTier2:
+    *outUnion = "texture-formats-tier2";
     break;
-  case wgpu::FeatureName::PixelLocalStorageCoherent:
-    *outUnion = "pixel-local-storage-coherent";
+  case wgpu::FeatureName::PrimitiveIndex:
+    *outUnion = "primitive-index";
     break;
-  case wgpu::FeatureName::PixelLocalStorageNonCoherent:
-    *outUnion = "pixel-local-storage-non-coherent";
-    break;
-  case wgpu::FeatureName::Unorm16TextureFormats:
-    *outUnion = "unorm16-texture-formats";
-    break;
-  case wgpu::FeatureName::Snorm16TextureFormats:
-    *outUnion = "snorm16-texture-formats";
-    break;
-  case wgpu::FeatureName::MultiPlanarFormatExtendedUsages:
-    *outUnion = "multi-planar-format-extended-usages";
-    break;
-  case wgpu::FeatureName::MultiPlanarFormatP010:
-    *outUnion = "multi-planar-format-p010";
-    break;
-  case wgpu::FeatureName::HostMappedPointer:
-    *outUnion = "host-mapped-pointer";
-    break;
-  case wgpu::FeatureName::MultiPlanarRenderTargets:
-    *outUnion = "multi-planar-render-targets";
-    break;
-  case wgpu::FeatureName::MultiPlanarFormatNv12a:
-    *outUnion = "multi-planar-format-nv12a";
-    break;
-  case wgpu::FeatureName::FramebufferFetch:
-    *outUnion = "framebuffer-fetch";
-    break;
-  case wgpu::FeatureName::BufferMapExtendedUsages:
-    *outUnion = "buffer-map-extended-usages";
-    break;
-  case wgpu::FeatureName::AdapterPropertiesMemoryHeaps:
-    *outUnion = "adapter-properties-memory-heaps";
-    break;
-  case wgpu::FeatureName::AdapterPropertiesD3D:
-    *outUnion = "adapter-properties-d3d";
-    break;
-  case wgpu::FeatureName::AdapterPropertiesVk:
-    *outUnion = "adapter-properties-vk";
-    break;
-  case wgpu::FeatureName::R8UnormStorage:
-    *outUnion = "r8unorm-storage";
-    break;
-  case wgpu::FeatureName::Norm16TextureFormats:
-    *outUnion = "norm16-texture-formats";
-    break;
-  case wgpu::FeatureName::MultiPlanarFormatNv16:
-    *outUnion = "multi-planar-format-nv16";
-    break;
-  case wgpu::FeatureName::MultiPlanarFormatNv24:
-    *outUnion = "multi-planar-format-nv24";
-    break;
-  case wgpu::FeatureName::MultiPlanarFormatP210:
-    *outUnion = "multi-planar-format-p210";
-    break;
-  case wgpu::FeatureName::MultiPlanarFormatP410:
-    *outUnion = "multi-planar-format-p410";
-    break;
-  case wgpu::FeatureName::SharedTextureMemoryVkDedicatedAllocation:
-    *outUnion = "shared-texture-memory-vk-dedicated-allocation";
-    break;
-  case wgpu::FeatureName::SharedTextureMemoryAHardwareBuffer:
-    *outUnion = "shared-texture-memory-ahardware-buffer";
-    break;
-  case wgpu::FeatureName::SharedTextureMemoryDmaBuf:
-    *outUnion = "shared-texture-memory-dma-buf";
-    break;
-  case wgpu::FeatureName::SharedTextureMemoryOpaqueFD:
-    *outUnion = "shared-texture-memory-opaque-fd";
-    break;
-  case wgpu::FeatureName::SharedTextureMemoryZirconHandle:
-    *outUnion = "shared-texture-memory-zircon-handle";
-    break;
-  case wgpu::FeatureName::SharedTextureMemoryDXGISharedHandle:
-    *outUnion = "shared-texture-memory-dxgi-shared-handle";
-    break;
-  case wgpu::FeatureName::SharedTextureMemoryD3D11Texture2D:
-    *outUnion = "shared-texture-memory-d3d11-texture2d";
-    break;
-  case wgpu::FeatureName::SharedTextureMemoryIOSurface:
-    *outUnion = "shared-texture-memory-iosurface";
-    break;
-  case wgpu::FeatureName::SharedTextureMemoryEGLImage:
-    *outUnion = "shared-texture-memory-egl-image";
-    break;
-  case wgpu::FeatureName::SharedFenceVkSemaphoreOpaqueFD:
-    *outUnion = "shared-fence-vk-semaphore-opaque-fd";
-    break;
-  case wgpu::FeatureName::SharedFenceVkSemaphoreZirconHandle:
-    *outUnion = "shared-fence-vk-semaphore-zircon-handle";
-    break;
-  case wgpu::FeatureName::SharedFenceDXGISharedHandle:
-    *outUnion = "shared-fence-dxgi-shared-handle";
-    break;
-  case wgpu::FeatureName::SharedFenceMTLSharedEvent:
-    *outUnion = "shared-fence-mtl-shared-event";
-    break;
-  case wgpu::FeatureName::SharedBufferMemoryD3D12Resource:
-    *outUnion = "shared-buffer-memory-d3d12-resource";
-    break;
-  case wgpu::FeatureName::StaticSamplers:
-    *outUnion = "static-samplers";
-    break;
-  case wgpu::FeatureName::YCbCrVulkanSamplers:
-    *outUnion = "ycbcr-vulkan-samplers";
-    break;
-  case wgpu::FeatureName::ShaderModuleCompilationOptions:
-    *outUnion = "shader-module-compilation-options";
-    break;
-  case wgpu::FeatureName::DawnLoadResolveTexture:
-    *outUnion = "dawn-load-resolve-texture";
-    break;
-  case wgpu::FeatureName::ClipDistances:
-    *outUnion = "clip-distances";
+  case wgpu::FeatureName::TextureComponentSwizzle:
+    *outUnion = "texture-component-swizzle";
     break;
   default:
     throw invalidEnum(inEnum);
@@ -1167,6 +958,10 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::TextureFormat::R8Uint;
   } else if (inUnion == "r8sint") {
     *outEnum = wgpu::TextureFormat::R8Sint;
+  } else if (inUnion == "r16unorm") {
+    *outEnum = wgpu::TextureFormat::R16Unorm;
+  } else if (inUnion == "r16snorm") {
+    *outEnum = wgpu::TextureFormat::R16Snorm;
   } else if (inUnion == "r16uint") {
     *outEnum = wgpu::TextureFormat::R16Uint;
   } else if (inUnion == "r16sint") {
@@ -1187,6 +982,10 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::TextureFormat::R32Sint;
   } else if (inUnion == "r32float") {
     *outEnum = wgpu::TextureFormat::R32Float;
+  } else if (inUnion == "rg16unorm") {
+    *outEnum = wgpu::TextureFormat::RG16Unorm;
+  } else if (inUnion == "rg16snorm") {
+    *outEnum = wgpu::TextureFormat::RG16Snorm;
   } else if (inUnion == "rg16uint") {
     *outEnum = wgpu::TextureFormat::RG16Uint;
   } else if (inUnion == "rg16sint") {
@@ -1221,6 +1020,10 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::TextureFormat::RG32Sint;
   } else if (inUnion == "rg32float") {
     *outEnum = wgpu::TextureFormat::RG32Float;
+  } else if (inUnion == "rgba16unorm") {
+    *outEnum = wgpu::TextureFormat::RGBA16Unorm;
+  } else if (inUnion == "rgba16snorm") {
+    *outEnum = wgpu::TextureFormat::RGBA16Snorm;
   } else if (inUnion == "rgba16uint") {
     *outEnum = wgpu::TextureFormat::RGBA16Uint;
   } else if (inUnion == "rgba16sint") {
@@ -1370,6 +1173,12 @@ inline void convertEnumToJSUnion(wgpu::TextureFormat inEnum,
   case wgpu::TextureFormat::R8Sint:
     *outUnion = "r8sint";
     break;
+  case wgpu::TextureFormat::R16Unorm:
+    *outUnion = "r16unorm";
+    break;
+  case wgpu::TextureFormat::R16Snorm:
+    *outUnion = "r16snorm";
+    break;
   case wgpu::TextureFormat::R16Uint:
     *outUnion = "r16uint";
     break;
@@ -1399,6 +1208,12 @@ inline void convertEnumToJSUnion(wgpu::TextureFormat inEnum,
     break;
   case wgpu::TextureFormat::R32Float:
     *outUnion = "r32float";
+    break;
+  case wgpu::TextureFormat::RG16Unorm:
+    *outUnion = "rg16unorm";
+    break;
+  case wgpu::TextureFormat::RG16Snorm:
+    *outUnion = "rg16snorm";
     break;
   case wgpu::TextureFormat::RG16Uint:
     *outUnion = "rg16uint";
@@ -1450,6 +1265,12 @@ inline void convertEnumToJSUnion(wgpu::TextureFormat inEnum,
     break;
   case wgpu::TextureFormat::RG32Float:
     *outUnion = "rg32float";
+    break;
+  case wgpu::TextureFormat::RGBA16Unorm:
+    *outUnion = "rgba16unorm";
+    break;
+  case wgpu::TextureFormat::RGBA16Snorm:
+    *outUnion = "rgba16snorm";
     break;
   case wgpu::TextureFormat::RGBA16Uint:
     *outUnion = "rgba16uint";
@@ -1732,20 +1553,30 @@ inline void convertEnumToJSUnion(wgpu::TextureViewDimension inEnum,
 
 inline void convertJSUnionToEnum(const std::string &inUnion,
                                  wgpu::VertexFormat *outEnum) {
-  if (inUnion == "uint32") {
+  if (inUnion == "uint16") {
+    *outEnum = wgpu::VertexFormat::Uint16;
+  } else if (inUnion == "uint32") {
     *outEnum = wgpu::VertexFormat::Uint32;
+  } else if (inUnion == "uint8") {
+    *outEnum = wgpu::VertexFormat::Uint8;
   } else if (inUnion == "uint8x2") {
     *outEnum = wgpu::VertexFormat::Uint8x2;
   } else if (inUnion == "uint8x4") {
     *outEnum = wgpu::VertexFormat::Uint8x4;
+  } else if (inUnion == "sint8") {
+    *outEnum = wgpu::VertexFormat::Sint8;
   } else if (inUnion == "sint8x2") {
     *outEnum = wgpu::VertexFormat::Sint8x2;
   } else if (inUnion == "sint8x4") {
     *outEnum = wgpu::VertexFormat::Sint8x4;
+  } else if (inUnion == "unorm8") {
+    *outEnum = wgpu::VertexFormat::Unorm8;
   } else if (inUnion == "unorm8x2") {
     *outEnum = wgpu::VertexFormat::Unorm8x2;
   } else if (inUnion == "unorm8x4") {
     *outEnum = wgpu::VertexFormat::Unorm8x4;
+  } else if (inUnion == "snorm8") {
+    *outEnum = wgpu::VertexFormat::Snorm8;
   } else if (inUnion == "snorm8x2") {
     *outEnum = wgpu::VertexFormat::Snorm8x2;
   } else if (inUnion == "snorm8x4") {
@@ -1754,18 +1585,26 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::VertexFormat::Uint16x2;
   } else if (inUnion == "uint16x4") {
     *outEnum = wgpu::VertexFormat::Uint16x4;
+  } else if (inUnion == "sint16") {
+    *outEnum = wgpu::VertexFormat::Sint16;
   } else if (inUnion == "sint16x2") {
     *outEnum = wgpu::VertexFormat::Sint16x2;
   } else if (inUnion == "sint16x4") {
     *outEnum = wgpu::VertexFormat::Sint16x4;
+  } else if (inUnion == "unorm16") {
+    *outEnum = wgpu::VertexFormat::Unorm16;
   } else if (inUnion == "unorm16x2") {
     *outEnum = wgpu::VertexFormat::Unorm16x2;
   } else if (inUnion == "unorm16x4") {
     *outEnum = wgpu::VertexFormat::Unorm16x4;
+  } else if (inUnion == "snorm16") {
+    *outEnum = wgpu::VertexFormat::Snorm16;
   } else if (inUnion == "snorm16x2") {
     *outEnum = wgpu::VertexFormat::Snorm16x2;
   } else if (inUnion == "snorm16x4") {
     *outEnum = wgpu::VertexFormat::Snorm16x4;
+  } else if (inUnion == "float16") {
+    *outEnum = wgpu::VertexFormat::Float16;
   } else if (inUnion == "float16x2") {
     *outEnum = wgpu::VertexFormat::Float16x2;
   } else if (inUnion == "float16x4") {
@@ -1794,6 +1633,8 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::VertexFormat::Sint32x4;
   } else if (inUnion == "unorm10-10-10-2") {
     *outEnum = wgpu::VertexFormat::Unorm10_10_10_2;
+  } else if (inUnion == "unorm8x4-bgra") {
+    *outEnum = wgpu::VertexFormat::Unorm8x4BGRA;
   } else {
     throw invalidUnion(inUnion);
   }
@@ -1802,8 +1643,14 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
 inline void convertEnumToJSUnion(wgpu::VertexFormat inEnum,
                                  std::string *outUnion) {
   switch (inEnum) {
+  case wgpu::VertexFormat::Uint16:
+    *outUnion = "uint16";
+    break;
   case wgpu::VertexFormat::Uint32:
     *outUnion = "uint32";
+    break;
+  case wgpu::VertexFormat::Uint8:
+    *outUnion = "uint8";
     break;
   case wgpu::VertexFormat::Uint8x2:
     *outUnion = "uint8x2";
@@ -1811,17 +1658,26 @@ inline void convertEnumToJSUnion(wgpu::VertexFormat inEnum,
   case wgpu::VertexFormat::Uint8x4:
     *outUnion = "uint8x4";
     break;
+  case wgpu::VertexFormat::Sint8:
+    *outUnion = "sint8";
+    break;
   case wgpu::VertexFormat::Sint8x2:
     *outUnion = "sint8x2";
     break;
   case wgpu::VertexFormat::Sint8x4:
     *outUnion = "sint8x4";
     break;
+  case wgpu::VertexFormat::Unorm8:
+    *outUnion = "unorm8";
+    break;
   case wgpu::VertexFormat::Unorm8x2:
     *outUnion = "unorm8x2";
     break;
   case wgpu::VertexFormat::Unorm8x4:
     *outUnion = "unorm8x4";
+    break;
+  case wgpu::VertexFormat::Snorm8:
+    *outUnion = "snorm8";
     break;
   case wgpu::VertexFormat::Snorm8x2:
     *outUnion = "snorm8x2";
@@ -1835,11 +1691,17 @@ inline void convertEnumToJSUnion(wgpu::VertexFormat inEnum,
   case wgpu::VertexFormat::Uint16x4:
     *outUnion = "uint16x4";
     break;
+  case wgpu::VertexFormat::Sint16:
+    *outUnion = "sint16";
+    break;
   case wgpu::VertexFormat::Sint16x2:
     *outUnion = "sint16x2";
     break;
   case wgpu::VertexFormat::Sint16x4:
     *outUnion = "sint16x4";
+    break;
+  case wgpu::VertexFormat::Unorm16:
+    *outUnion = "unorm16";
     break;
   case wgpu::VertexFormat::Unorm16x2:
     *outUnion = "unorm16x2";
@@ -1847,11 +1709,17 @@ inline void convertEnumToJSUnion(wgpu::VertexFormat inEnum,
   case wgpu::VertexFormat::Unorm16x4:
     *outUnion = "unorm16x4";
     break;
+  case wgpu::VertexFormat::Snorm16:
+    *outUnion = "snorm16";
+    break;
   case wgpu::VertexFormat::Snorm16x2:
     *outUnion = "snorm16x2";
     break;
   case wgpu::VertexFormat::Snorm16x4:
     *outUnion = "snorm16x4";
+    break;
+  case wgpu::VertexFormat::Float16:
+    *outUnion = "float16";
     break;
   case wgpu::VertexFormat::Float16x2:
     *outUnion = "float16x2";
@@ -1894,6 +1762,9 @@ inline void convertEnumToJSUnion(wgpu::VertexFormat inEnum,
     break;
   case wgpu::VertexFormat::Unorm10_10_10_2:
     *outUnion = "unorm10-10-10-2";
+    break;
+  case wgpu::VertexFormat::Unorm8x4BGRA:
+    *outUnion = "unorm8x4-bgra";
     break;
   default:
     throw invalidEnum(inEnum);

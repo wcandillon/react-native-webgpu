@@ -20,7 +20,7 @@ struct GPUDeviceDescriptor {
   std::optional<std::vector<wgpu::FeatureName>>
       requiredFeatures; // Iterable<GPUFeatureName>
   std::optional<std::map<std::string, double>>
-      requiredLimits; // Record< string, GPUSize64 >
+      requiredLimits; // Record< string, | GPUSize64 | undefined >
   std::optional<std::shared_ptr<GPUQueueDescriptor>>
       defaultQueue;                 // GPUQueueDescriptor
   std::optional<std::string> label; // string
@@ -29,33 +29,6 @@ struct GPUDeviceDescriptor {
 } // namespace rnwgpu
 
 namespace rnwgpu {
-
-// We add this extra convertor because we found so library that are sending
-// invalid feature elements
-template <> struct JSIConverter<std::vector<wgpu::FeatureName>> {
-
-  static std::vector<wgpu::FeatureName>
-  fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    jsi::Array array = arg.asObject(runtime).asArray(runtime);
-    size_t length = array.size(runtime);
-
-    std::vector<wgpu::FeatureName> vector;
-    vector.reserve(length);
-    for (size_t i = 0; i < length; ++i) {
-      jsi::Value elementValue = array.getValueAtIndex(runtime, i);
-      if (elementValue.isString()) {
-        vector.emplace_back(JSIConverter<wgpu::FeatureName>::fromJSI(
-            runtime, elementValue, outOfBounds));
-      }
-    }
-    return vector;
-  }
-  static jsi::Value toJSI(jsi::Runtime &runtime,
-                          std::shared_ptr<rnwgpu::GPUDeviceDescriptor> arg) {
-    throw std::runtime_error(
-        "Invalid JSIConverter<std::vector<wgpu::FeatureName>>::toJSI()");
-  }
-};
 
 template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUDeviceDescriptor>

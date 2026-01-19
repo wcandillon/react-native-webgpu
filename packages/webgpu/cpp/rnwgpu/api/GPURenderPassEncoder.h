@@ -115,6 +115,7 @@ public:
                   &GPURenderPassEncoder::drawIndirect);
     installMethod(runtime, prototype, "drawIndexedIndirect",
                   &GPURenderPassEncoder::drawIndexedIndirect);
+
     installGetterSetter(runtime, prototype, "label",
                         &GPURenderPassEncoder::getLabel,
                         &GPURenderPassEncoder::setLabel);

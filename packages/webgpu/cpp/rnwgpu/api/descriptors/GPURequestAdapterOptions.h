@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -12,8 +13,10 @@ namespace jsi = facebook::jsi;
 namespace rnwgpu {
 
 struct GPURequestAdapterOptions {
+  std::optional<std::string> featureLevel;              // string
   std::optional<wgpu::PowerPreference> powerPreference; // GPUPowerPreference
   std::optional<bool> forceFallbackAdapter;             // boolean
+  std::optional<bool> xrCompatible;                     // boolean
 };
 
 } // namespace rnwgpu
@@ -27,6 +30,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
     auto result = std::make_unique<rnwgpu::GPURequestAdapterOptions>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "featureLevel")) {
+        auto prop = value.getProperty(runtime, "featureLevel");
+        result->featureLevel =
+            JSIConverter<std::optional<std::string>>::fromJSI(runtime, prop,
+                                                              false);
+      }
       if (value.hasProperty(runtime, "powerPreference")) {
         auto prop = value.getProperty(runtime, "powerPreference");
         result->powerPreference =
@@ -36,6 +45,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPURequestAdapterOptions>> {
       if (value.hasProperty(runtime, "forceFallbackAdapter")) {
         auto prop = value.getProperty(runtime, "forceFallbackAdapter");
         result->forceFallbackAdapter =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "xrCompatible")) {
+        auto prop = value.getProperty(runtime, "xrCompatible");
+        result->xrCompatible =
             JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
     }

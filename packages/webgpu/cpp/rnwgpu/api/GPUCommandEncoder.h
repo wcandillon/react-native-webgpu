@@ -96,6 +96,7 @@ public:
                   &GPUCommandEncoder::popDebugGroup);
     installMethod(runtime, prototype, "insertDebugMarker",
                   &GPUCommandEncoder::insertDebugMarker);
+
     installGetterSetter(runtime, prototype, "label",
                         &GPUCommandEncoder::getLabel,
                         &GPUCommandEncoder::setLabel);

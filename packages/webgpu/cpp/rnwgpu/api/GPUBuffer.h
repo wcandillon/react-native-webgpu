@@ -69,10 +69,6 @@ public:
 
   size_t getMemoryPressure() override { return static_cast<size_t>(getSize()); }
 
-private:
-  wgpu::Buffer _instance;
-  std::shared_ptr<async::AsyncRunner> _async;
-  std::string _label;
   struct Mapping {
     uint64_t start;
     uint64_t end;
@@ -82,6 +78,11 @@ private:
     std::shared_ptr<ArrayBuffer> buffer;
   };
   std::vector<Mapping> mappings;
+
+private:
+  wgpu::Buffer _instance;
+  std::shared_ptr<async::AsyncRunner> _async;
+  std::string _label;
 };
 
 } // namespace rnwgpu

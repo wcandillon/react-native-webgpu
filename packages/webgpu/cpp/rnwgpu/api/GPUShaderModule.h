@@ -43,6 +43,7 @@ public:
     installGetter(runtime, prototype, "__brand", &GPUShaderModule::getBrand);
     installMethod(runtime, prototype, "getCompilationInfo",
                   &GPUShaderModule::getCompilationInfo);
+
     installGetterSetter(runtime, prototype, "label", &GPUShaderModule::getLabel,
                         &GPUShaderModule::setLabel);
   }

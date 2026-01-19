@@ -244,6 +244,9 @@ const toSkip = [
   "GPUTexelCopyBufferInfo",
   "GPUTexelCopyBufferLayout",
   "GPUTexelCopyTextureInfo",
+  // Descriptors with view type changes (GPUTexture | GPUTextureView)
+  "GPURenderPassColorAttachment",
+  "GPURenderPassDepthStencilAttachment",
 ];
 
 sourceFile

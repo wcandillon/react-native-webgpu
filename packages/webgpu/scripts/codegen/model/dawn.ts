@@ -47,6 +47,10 @@ export const resolved: Record<
 > = {
   GPU: {
     ctor: `explicit GPU(jsi::Runtime &runtime);`,
+    extraDeps: ["GPUAdapter"],
+  },
+  GPUAdapter: {
+    extraDeps: ["GPUDevice"],
   },
   // GPUDevice is skipped from codegen - maintained manually
   GPUBuffer: {
@@ -82,6 +86,17 @@ export const resolved: Record<
   },
   GPUCommandEncoder: {
     methods: {
+      copyBufferToBuffer: {
+        deps: ["memory", "GPUBuffer"],
+        returnType: "void",
+        args: [
+          { name: "source", type: "std::shared_ptr<GPUBuffer>" },
+          { name: "sourceOffset", type: "uint64_t" },
+          { name: "destination", type: "std::shared_ptr<GPUBuffer>" },
+          { name: "destinationOffset", type: "uint64_t" },
+          { name: "size", type: "uint64_t" },
+        ],
+      },
       copyTextureToBuffer: {
         deps: [
           "memory",
@@ -240,6 +255,7 @@ export const resolved: Record<
   }`,
   },
   GPUShaderModule: {
+    extraDeps: ["GPUCompilationInfo"],
     extra: `size_t getMemoryPressure() override {
     // Estimate memory usage for compiled shader module
     // Shaders can vary widely, but a reasonable estimate is 8-16KB for typical shaders

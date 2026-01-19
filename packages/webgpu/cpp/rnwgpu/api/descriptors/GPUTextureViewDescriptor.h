@@ -16,11 +16,13 @@ struct GPUTextureViewDescriptor {
   std::optional<wgpu::TextureFormat> format; // GPUTextureFormat
   std::optional<wgpu::TextureViewDimension>
       dimension;                             // GPUTextureViewDimension
+  std::optional<double> usage;               // GPUTextureUsageFlags
   std::optional<wgpu::TextureAspect> aspect; // GPUTextureAspect
   std::optional<double> baseMipLevel;        // GPUIntegerCoordinate
   std::optional<double> mipLevelCount;       // GPUIntegerCoordinate
   std::optional<double> baseArrayLayer;      // GPUIntegerCoordinate
   std::optional<double> arrayLayerCount;     // GPUIntegerCoordinate
+  std::optional<std::string> swizzle;        // string
   std::optional<std::string> label;          // string
 };
 
@@ -47,6 +49,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
             JSIConverter<std::optional<wgpu::TextureViewDimension>>::fromJSI(
                 runtime, prop, false);
       }
+      if (value.hasProperty(runtime, "usage")) {
+        auto prop = value.getProperty(runtime, "usage");
+        result->usage =
+            JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
+      }
       if (value.hasProperty(runtime, "aspect")) {
         auto prop = value.getProperty(runtime, "aspect");
         result->aspect =
@@ -72,6 +79,11 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUTextureViewDescriptor>> {
         auto prop = value.getProperty(runtime, "arrayLayerCount");
         result->arrayLayerCount =
             JSIConverter<std::optional<double>>::fromJSI(runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "swizzle")) {
+        auto prop = value.getProperty(runtime, "swizzle");
+        result->swizzle = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
       }
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");

@@ -56,6 +56,7 @@ public:
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "__brand", &GPUSupportedLimits::getBrand);
+
     installGetter(runtime, prototype, "maxTextureDimension1D",
                   &GPUSupportedLimits::getMaxTextureDimension1D);
     installGetter(runtime, prototype, "maxTextureDimension2D",
