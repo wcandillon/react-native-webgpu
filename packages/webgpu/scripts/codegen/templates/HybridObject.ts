@@ -15,10 +15,27 @@ import { mergeParentInterfaces } from "./common";
 const instanceAliases: Record<string, string> = {
   GPU: "Instance",
   GPUDeviceLostInfo: "DeviceLostReason",
+  GPUSupportedLimits: "Limits",
 };
 
-const deprecatedMethods = ["requestAdapterInfo"];
-const propblackList = ["onuncapturederror", "label", "prototype"];
+const deprecatedMethods = [
+  "requestAdapterInfo",
+  // New methods not yet implemented
+  "setImmediates",
+];
+const propblackList = [
+  "onuncapturederror",
+  "label",
+  "prototype",
+  // New properties not yet implemented
+  "maxStorageBuffersInVertexStage",
+  "maxStorageBuffersInFragmentStage",
+  "maxStorageTexturesInVertexStage",
+  "maxStorageTexturesInFragmentStage",
+  "maxImmediateSize",
+  "textureBindingViewDimension",
+  "adapterInfo",
+];
 
 // const propWhiteList: string[] = [
 //   //"info"
@@ -112,12 +129,20 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     { name: "instance", type: instanceName },
   ];
   if (needsAsync) {
-    ctorParams.push({ name: "async", type: "std::shared_ptr<AsyncRunner>" });
+    ctorParams.push({
+      name: "async",
+      type: "std::shared_ptr<async::AsyncRunner>",
+    });
     dependencies.add("memory");
   }
   if (hasLabel) {
     ctorParams.push({ name: "label", type: "std::string" });
   }
+  const asyncIncludes = needsAsync
+    ? `
+#include "rnwgpu/async/AsyncRunner.h"
+#include "rnwgpu/async/AsyncTaskHandle.h"`
+    : "";
   return `#pragma once
 
 ${Array.from(dependencies)
@@ -128,8 +153,7 @@ ${Array.from(dependencies)
 #include "Unions.h"
 
 #include "NativeObject.h"
-
-#include "rnwgpu/async/AsyncRunner.h"
+${asyncIncludes}
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -192,14 +216,14 @@ public:
     }
   }
 
-  inline const ${instanceName} get() {
-    return _instance;
-  }
+  inline const ${instanceName} get() { return _instance; }
 
- private:
-  ${ctorParams.map((param) => `${param.type} _${param.name};`).join("\n  ")}
   ${resolveExtra(className)}
+
+private:
+  ${ctorParams.map((param) => `${param.type} _${param.name};`).join("\n  ")}
 };
 
-} // namespace rnwgpu`;
+} // namespace rnwgpu
+`;
 };

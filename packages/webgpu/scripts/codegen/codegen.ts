@@ -152,22 +152,10 @@ sourceFile
 
 writeFile("union", "Unions", Unions(unions));
 
-// Enums
+// Enums - skipped, manually maintained
 console.log("===");
-console.log("Enums");
+console.log("Enums (skipped - manually maintained)");
 console.log("===");
-sourceFile
-  .getVariableDeclarations()
-  .filter(
-    (decl) =>
-      decl.getName().startsWith("GPU") &&
-      !decl.getName().endsWith("Error") &&
-      !hasConstructor(decl) &&
-      !hasProptotype(decl),
-  )
-  .forEach((varDecl) => {
-    writeFile("enum", varDecl.getName(), getEnum(varDecl));
-  });
 
 // Errors
 console.log("===");
@@ -196,6 +184,7 @@ const objectsToSkip = [
   "GPUCompilationInfo",
   "GPUCompilationMessage",
   "GPUDeviceLostInfo",
+  "GPUDevice", // has custom methods (forceLossForTesting, notifyDeviceLost)
 ];
 const hybridObject = sourceFile
   .getInterfaces()
@@ -231,6 +220,21 @@ const toSkip = [
   "GPUCanvasConfiguration",
   "GPUPipelineErrorInit",
   "GPUUncapturedErrorEvent",
+  // Enum-like interfaces (manually maintained)
+  "GPUBufferUsage",
+  "GPUColorWrite",
+  "GPUMapMode",
+  "GPUShaderStage",
+  "GPUTextureUsage",
+  // New descriptors not yet implemented
+  "GPUDevice", // conflicts with object
+  "GPUCanvasConfigurationOut",
+  "GPUCanvasToneMapping",
+  "GPUCopyExternalImageDestInfo",
+  "GPUCopyExternalImageSourceInfo",
+  "GPUTexelCopyBufferInfo",
+  "GPUTexelCopyBufferLayout",
+  "GPUTexelCopyTextureInfo",
 ];
 
 sourceFile

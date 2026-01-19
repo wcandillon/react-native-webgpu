@@ -77,31 +77,32 @@ const Union = (union: Union) => {
     ? `rnwgpu::${name}`
     : `wgpu::${name.substring(3)}`;
   return `
-static void convertJSUnionToEnum(const std::string& inUnion, ${wgpuName}* outEnum) { 
-    ${union.values
-      .map((val, index) => {
-        return `${index > 0 ? "else" : ""} if (inUnion == "${val}") {
-      *outEnum = ${wgpuName}::${enumName(val)};
-    }`;
-      })
-      .join("\n")}
-    else {
-      throw invalidUnion(inUnion);
-    }
+inline void convertJSUnionToEnum(const std::string &inUnion,
+                                 ${wgpuName} *outEnum) {
+  ${union.values
+    .map((val, index) => {
+      return `${index > 0 ? "} else " : ""}if (inUnion == "${val}") {
+    *outEnum = ${wgpuName}::${enumName(val)};`;
+    })
+    .join("\n  ")}
+  } else {
+    throw invalidUnion(inUnion);
   }
+}
 
-  static void convertEnumToJSUnion(${wgpuName} inEnum, std::string* outUnion) {
-    switch (inEnum) {
-      ${union.values
-        .map((val) => {
-          return `case ${wgpuName}::${enumName(val)}:
-          *outUnion = "${val}";
-          break;`;
-        })
-        .join("\n")}
-      default:
-        throw invalidEnum(inEnum);
-    }
+inline void convertEnumToJSUnion(${wgpuName} inEnum,
+                                 std::string *outUnion) {
+  switch (inEnum) {
+  ${union.values
+    .map((val) => {
+      return `case ${wgpuName}::${enumName(val)}:
+    *outUnion = "${val}";
+    break;`;
+    })
+    .join("\n  ")}
+  default:
+    throw invalidEnum(inEnum);
   }
+}
 `;
 };

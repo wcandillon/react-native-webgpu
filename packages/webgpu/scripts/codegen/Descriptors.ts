@@ -196,11 +196,8 @@ export const resolveType = (type: Type, state: ResolveTypeState): string => {
     dependencies.add("vector");
     return `std::vector<${args.length === 1 ? args[0] : `std::variant<${args.join(", ")}>`}>`;
   } else if (symbol && symbol.getName() === "Promise") {
-    const arg = (type.getTypeArguments() ?? []).map((a) =>
-      resolveType(a, state),
-    )[0];
-    dependencies.add("future");
-    return `std::future<${arg}>`;
+    // Promise types use async::AsyncTaskHandle
+    return `async::AsyncTaskHandle`;
   } else if (
     type.getAliasSymbol() &&
     stringSetNames.includes(type.getAliasSymbol()!.getName())
@@ -289,11 +286,15 @@ struct ${name} {
     .join("\n  ")}
 };
 
+} // namespace rnwgpu
+
+namespace rnwgpu {
+
 template <>
-struct JSIConverter<std::shared_ptr<${name}>> {
-  static std::shared_ptr<${name}>
+struct JSIConverter<std::shared_ptr<rnwgpu::${name}>> {
+  static std::shared_ptr<rnwgpu::${name}>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<${name}>();
+    auto result = std::make_unique<rnwgpu::${name}>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       ${props.map((prop) => (prop.name === "layout" && (prop.type === "std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>" || prop.type === "std::optional<std::variant<std::nullptr_t, std::shared_ptr<GPUPipelineLayout>>>") ? layoutProp : jsiProp(prop))).join("\n")}
@@ -301,12 +302,12 @@ struct JSIConverter<std::shared_ptr<${name}>> {
 
     return result;
   }
-  static jsi::Value
-  toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<${name}> arg) {
+  static jsi::Value toJSI(jsi::Runtime &runtime,
+                          std::shared_ptr<rnwgpu::${name}> arg) {
     throw std::runtime_error("Invalid ${name}::toJSI()");
   }
 };
 
-} // namespace rnwgpu`;
+} // namespace rnwgpu
+`;
 };
