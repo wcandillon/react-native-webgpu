@@ -152,10 +152,23 @@ sourceFile
 
 writeFile("union", "Unions", Unions(unions));
 
-// Enums - skipped, manually maintained
+// Enums (enum-like interfaces with static constants)
 console.log("===");
-console.log("Enums (skipped - manually maintained)");
+console.log("Enums");
 console.log("===");
+const enumInterfaces = [
+  "GPUBufferUsage",
+  "GPUColorWrite",
+  "GPUMapMode",
+  "GPUShaderStage",
+  "GPUTextureUsage",
+];
+sourceFile
+  .getInterfaces()
+  .filter((decl) => enumInterfaces.includes(decl.getName()))
+  .forEach((decl) => {
+    writeFile("enum", decl.getName(), getEnum(decl));
+  });
 
 // Errors
 console.log("===");
@@ -220,12 +233,8 @@ const toSkip = [
   "GPUCanvasConfiguration",
   "GPUPipelineErrorInit",
   "GPUUncapturedErrorEvent",
-  // Enum-like interfaces (manually maintained)
-  "GPUBufferUsage",
-  "GPUColorWrite",
-  "GPUMapMode",
-  "GPUShaderStage",
-  "GPUTextureUsage",
+  // Enum-like interfaces (handled by enum generation)
+  ...enumInterfaces,
   // New descriptors not yet implemented
   "GPUDevice", // conflicts with object
   "GPUCanvasConfigurationOut",

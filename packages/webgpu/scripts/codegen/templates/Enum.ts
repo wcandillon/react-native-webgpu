@@ -1,6 +1,5 @@
 import _ from "lodash";
-import type { PropertySignature, VariableDeclaration } from "ts-morph";
-import { Node } from "ts-morph";
+import type { InterfaceDeclaration, PropertySignature } from "ts-morph";
 
 const enumAliases: Record<string, string> = {
   ColorWrite: "ColorWriteMask",
@@ -11,14 +10,13 @@ const getPropName = (prop: PropertySignature) => {
   return name;
 };
 
-export const getEnum = (decl: VariableDeclaration) => {
+export const getEnum = (decl: InterfaceDeclaration) => {
   const name = decl.getName();
   const wname = enumAliases[name.substring(3)] || name.substring(3);
-  const properties = decl.getDescendants().filter(Node.isPropertySignature);
+  const properties = decl.getProperties();
   return `#pragma once
-#include <string>
 
-#include <NativeObject.h>
+#include <jsi/jsi.h>
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -26,30 +24,21 @@ namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
 
-class ${name} : public NativeObject<${name}> {
+class ${name} {
 public:
-  static constexpr const char *CLASS_NAME = "${name}";
-
-  ${name}() : NativeObject(CLASS_NAME) {}
-
-public:
-  ${properties
-    .map((property) => {
-      const prop = getPropName(property);
-      return `double ${prop}() {
-      return static_cast<double>(wgpu::${wname}::${prop});
-    }`;
-    })
-    .join("\n    ")}
-
-  static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+  static jsi::Object create(jsi::Runtime &runtime) {
+    jsi::Object obj(runtime);
     ${properties
       .map((property) => {
         const prop = getPropName(property);
-        return `installGetter(runtime, prototype, "${property.getName()}", &${name}::${prop});`;
+        return `obj.setProperty(runtime, "${property.getName()}",
+                    static_cast<double>(wgpu::${wname}::${prop}));`;
       })
       .join("\n    ")}
+    return obj;
   }
 };
-} // namespace rnwgpu`;
+
+} // namespace rnwgpu
+`;
 };
