@@ -1,5 +1,6 @@
 export type Routes = {
   Home: undefined;
+  CTS: undefined;
   HelloTriangle: undefined;
   HelloTriangleMSAA: undefined;
   Cube: undefined;

@@ -12,6 +12,7 @@ const customConfig = {
   watchFolders: [root],
   resolver: {
     ...defaultConfig.resolver,
+    sourceExts: [...defaultConfig.resolver.sourceExts, 'cjs'],
     extraNodeModules: {
       'three': threePackagePath,
     },

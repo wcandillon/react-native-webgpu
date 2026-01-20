@@ -35,6 +35,7 @@ import { ComputeToys } from "./ComputeToys";
 import { Reanimated } from "./Reanimated";
 import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
+import { CTS } from "./CTSScreen";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -55,6 +56,7 @@ function App() {
           screenOptions={{ cardStyle: { flex: 1 } }}
         >
           <Stack.Screen name="Home" component={Home} />
+          <Stack.Screen name="CTS" component={CTS} />
           <Stack.Screen name="HelloTriangle" component={HelloTriangle} />
           <Stack.Screen
             name="HelloTriangleMSAA"
