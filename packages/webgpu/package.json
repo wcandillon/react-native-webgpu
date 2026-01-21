@@ -131,7 +131,7 @@
       "javaPackageName": "com.webgpu"
     },
     "ios": {
-      "componentProviders": {
+      "componentProvider": {
         "WebGPUView": "WebGPUView"
       }
     }
