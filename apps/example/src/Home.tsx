@@ -123,6 +123,10 @@ export const examples = [
     screen: "DeviceLostHang",
     title: "⚠️ Device Lost Hang",
   },
+  {
+    screen: "ViewTransform",
+    title: "🔄 View Transform",
+  },
 ];
 
 const styles = StyleSheet.create({

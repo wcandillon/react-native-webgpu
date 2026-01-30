@@ -35,6 +35,7 @@ import { ComputeToys } from "./ComputeToys";
 import { Reanimated } from "./Reanimated";
 import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
+import { ViewTransform } from "./ViewTransform";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -91,6 +92,7 @@ function App() {
           <Stack.Screen name="Reanimated" component={Reanimated} />
           <Stack.Screen name="AsyncStarvation" component={AsyncStarvation} />
           <Stack.Screen name="DeviceLostHang" component={DeviceLostHang} />
+          <Stack.Screen name="ViewTransform" component={ViewTransform} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
