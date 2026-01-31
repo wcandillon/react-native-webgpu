@@ -70,6 +70,7 @@ public:
                   &GPUComputePassEncoder::insertDebugMarker);
     installMethod(runtime, prototype, "setBindGroup",
                   &GPUComputePassEncoder::setBindGroup);
+
     installGetterSetter(runtime, prototype, "label",
                         &GPUComputePassEncoder::getLabel,
                         &GPUComputePassEncoder::setLabel);

@@ -17,7 +17,7 @@ struct GPURenderBundleEncoderDescriptor {
   std::optional<bool> depthReadOnly;   // boolean
   std::optional<bool> stencilReadOnly; // boolean
   std::vector<std::variant<std::nullptr_t, wgpu::TextureFormat>>
-      colorFormats; // Iterable<GPUTextureFormat | null>
+      colorFormats; // Iterable< | GPUTextureFormat | null | undefined >
   std::optional<wgpu::TextureFormat> depthStencilFormat; // GPUTextureFormat
   std::optional<double> sampleCount;                     // GPUSize32
   std::optional<std::string> label;                      // string

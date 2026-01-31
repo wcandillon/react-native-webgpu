@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import { execSync } from "child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "fs";
 import { join } from "path";
 
 import { checkBuildArtifacts } from "./build/dawn-configuration";
@@ -210,6 +210,27 @@ for (const [index, asset] of assets.entries()) {
     console.error(error);
     process.exit(1);
   }
+}
+
+// Copy dawn.json to libs
+log.subheader("Copying Dawn Configuration");
+const dawnJsonSource = join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "externals",
+  "dawn",
+  "src",
+  "dawn",
+  "dawn.json",
+);
+const dawnJsonDest = join(libsDir, "dawn.json");
+if (existsSync(dawnJsonSource)) {
+  copyFileSync(dawnJsonSource, dawnJsonDest);
+  log.success("dawn.json copied to libs/");
+} else {
+  log.warning(`dawn.json not found at ${dawnJsonSource}`);
 }
 
 // Verify build artifacts

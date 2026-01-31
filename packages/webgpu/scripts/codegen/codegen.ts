@@ -152,21 +152,22 @@ sourceFile
 
 writeFile("union", "Unions", Unions(unions));
 
-// Enums
+// Enums (enum-like interfaces with static constants)
 console.log("===");
 console.log("Enums");
 console.log("===");
+const enumInterfaces = [
+  "GPUBufferUsage",
+  "GPUColorWrite",
+  "GPUMapMode",
+  "GPUShaderStage",
+  "GPUTextureUsage",
+];
 sourceFile
-  .getVariableDeclarations()
-  .filter(
-    (decl) =>
-      decl.getName().startsWith("GPU") &&
-      !decl.getName().endsWith("Error") &&
-      !hasConstructor(decl) &&
-      !hasProptotype(decl),
-  )
-  .forEach((varDecl) => {
-    writeFile("enum", varDecl.getName(), getEnum(varDecl));
+  .getInterfaces()
+  .filter((decl) => enumInterfaces.includes(decl.getName()))
+  .forEach((decl) => {
+    writeFile("enum", decl.getName(), getEnum(decl));
   });
 
 // Errors
@@ -196,6 +197,7 @@ const objectsToSkip = [
   "GPUCompilationInfo",
   "GPUCompilationMessage",
   "GPUDeviceLostInfo",
+  "GPUDevice", // has custom methods (forceLossForTesting, notifyDeviceLost)
 ];
 const hybridObject = sourceFile
   .getInterfaces()
@@ -231,6 +233,20 @@ const toSkip = [
   "GPUCanvasConfiguration",
   "GPUPipelineErrorInit",
   "GPUUncapturedErrorEvent",
+  // Enum-like interfaces (handled by enum generation)
+  ...enumInterfaces,
+  // New descriptors not yet implemented
+  "GPUDevice", // conflicts with object
+  "GPUCanvasConfigurationOut",
+  "GPUCanvasToneMapping",
+  "GPUCopyExternalImageDestInfo",
+  "GPUCopyExternalImageSourceInfo",
+  "GPUTexelCopyBufferInfo",
+  "GPUTexelCopyBufferLayout",
+  "GPUTexelCopyTextureInfo",
+  // Descriptors with view type changes (GPUTexture | GPUTextureView)
+  "GPURenderPassColorAttachment",
+  "GPURenderPassDepthStencilAttachment",
 ];
 
 sourceFile

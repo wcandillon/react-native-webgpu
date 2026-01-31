@@ -37,6 +37,7 @@ public:
     installGetter(runtime, prototype, "__brand", &GPURenderPipeline::getBrand);
     installMethod(runtime, prototype, "getBindGroupLayout",
                   &GPURenderPipeline::getBindGroupLayout);
+
     installGetterSetter(runtime, prototype, "label",
                         &GPURenderPipeline::getLabel,
                         &GPURenderPipeline::setLabel);
@@ -52,10 +53,11 @@ public:
     return 24 * 1024;
   }
 
+  friend class GPUDevice;
+
 private:
   wgpu::RenderPipeline _instance;
   std::string _label;
-  friend class GPUDevice;
 };
 
 } // namespace rnwgpu

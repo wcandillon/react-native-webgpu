@@ -22,7 +22,8 @@ namespace rnwgpu {
 struct GPURenderPassDescriptor {
   std::vector<std::variant<std::nullptr_t,
                            std::shared_ptr<GPURenderPassColorAttachment>>>
-      colorAttachments; // Iterable<GPURenderPassColorAttachment | null>
+      colorAttachments; // Iterable< | GPURenderPassColorAttachment | null |
+                        // undefined >
   std::optional<std::shared_ptr<GPURenderPassDepthStencilAttachment>>
       depthStencilAttachment; // GPURenderPassDepthStencilAttachment
   std::optional<std::shared_ptr<GPUQuerySet>> occlusionQuerySet; // GPUQuerySet

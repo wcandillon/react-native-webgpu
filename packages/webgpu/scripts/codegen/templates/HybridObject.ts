@@ -15,10 +15,27 @@ import { mergeParentInterfaces } from "./common";
 const instanceAliases: Record<string, string> = {
   GPU: "Instance",
   GPUDeviceLostInfo: "DeviceLostReason",
+  GPUSupportedLimits: "Limits",
 };
 
-const deprecatedMethods = ["requestAdapterInfo"];
-const propblackList = ["onuncapturederror", "label", "prototype"];
+const deprecatedMethods = [
+  "requestAdapterInfo",
+  // New methods not yet implemented
+  "setImmediates",
+];
+const propblackList = [
+  "onuncapturederror",
+  "label",
+  "prototype",
+  // New properties not yet implemented
+  "maxStorageBuffersInVertexStage",
+  "maxStorageBuffersInFragmentStage",
+  "maxStorageTexturesInVertexStage",
+  "maxStorageTexturesInFragmentStage",
+  "maxImmediateSize",
+  "textureBindingViewDimension",
+  "adapterInfo",
+];
 
 // const propWhiteList: string[] = [
 //   //"info"
@@ -54,21 +71,29 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
       });
       return { type, name: signature.getName() };
     });
+  const seenMethods = new Set<string>();
   const methods = decl
     .getMethods()
     .filter((m) => !deprecatedMethods.includes(m.getName()))
     .map((signature) => {
-      const resolved = resolveMethod(className, signature.getName());
+      const methodName = signature.getName();
+      // Skip if we've already processed this method (handles overloads)
+      if (seenMethods.has(methodName)) {
+        return null;
+      }
+      seenMethods.add(methodName);
+
+      const resolved = resolveMethod(className, methodName);
       if (resolved) {
         resolved.deps.forEach((dep) => {
           dependencies.add(dep);
         });
         return {
-          name: signature.getName(),
+          name: methodName,
           ...resolved,
         };
       }
-      const nativeMethod = resolveNative(className, signature.getName());
+      const nativeMethod = resolveNative(className, methodName);
 
       const params = signature.getParameters();
       const returnType = resolveType(signature.getReturnType(), {
@@ -76,12 +101,12 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
         dependencies,
         typeNode: signature.getReturnTypeNode(),
         className,
-        name: signature.getName(),
-        debug: `Return value of ${className}.${signature.getName()}`,
+        name: methodName,
+        debug: `Return value of ${className}.${methodName}`,
         native: nativeMethod ? nativeMethod?.returns : undefined,
       });
       return {
-        name: signature.getName(),
+        name: methodName,
         returnType,
         args: params.map((param, i) => ({
           name: param.getName(),
@@ -91,7 +116,7 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
             typeNode: param.getTypeNode(),
             className,
             name: param.getName(),
-            debug: `Parameter ${param.getName()} of ${className}.${signature.getName()}`,
+            debug: `Parameter ${param.getName()} of ${className}.${methodName}`,
             native:
               nativeMethod && nativeMethod?.args && nativeMethod?.args[i]
                 ? nativeMethod?.args?.[i].type
@@ -99,7 +124,8 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
           }),
         })),
       };
-    });
+    })
+    .filter((m) => m !== null);
   const hasLabel = decl.getProperty("label") !== undefined;
   const instanceName = `wgpu::${instanceAliases[className] || className.substring(3)}`;
   const ctor = resolveCtor(className);
@@ -112,12 +138,20 @@ export const getHybridObject = (decl: InterfaceDeclaration) => {
     { name: "instance", type: instanceName },
   ];
   if (needsAsync) {
-    ctorParams.push({ name: "async", type: "std::shared_ptr<AsyncRunner>" });
+    ctorParams.push({
+      name: "async",
+      type: "std::shared_ptr<async::AsyncRunner>",
+    });
     dependencies.add("memory");
   }
   if (hasLabel) {
     ctorParams.push({ name: "label", type: "std::string" });
   }
+  const asyncIncludes = needsAsync
+    ? `
+#include "rnwgpu/async/AsyncRunner.h"
+#include "rnwgpu/async/AsyncTaskHandle.h"`
+    : "";
   return `#pragma once
 
 ${Array.from(dependencies)
@@ -128,8 +162,7 @@ ${Array.from(dependencies)
 #include "Unions.h"
 
 #include "NativeObject.h"
-
-#include "rnwgpu/async/AsyncRunner.h"
+${asyncIncludes}
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -192,14 +225,14 @@ public:
     }
   }
 
-  inline const ${instanceName} get() {
-    return _instance;
-  }
+  inline const ${instanceName} get() { return _instance; }
 
- private:
-  ${ctorParams.map((param) => `${param.type} _${param.name};`).join("\n  ")}
   ${resolveExtra(className)}
+
+private:
+  ${ctorParams.map((param) => `${param.type} _${param.name};`).join("\n  ")}
 };
 
-} // namespace rnwgpu`;
+} // namespace rnwgpu
+`;
 };

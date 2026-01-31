@@ -30,6 +30,7 @@ public:
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "__brand", &GPURenderBundle::getBrand);
+
     installGetterSetter(runtime, prototype, "label", &GPURenderBundle::getLabel,
                         &GPURenderBundle::setLabel);
   }

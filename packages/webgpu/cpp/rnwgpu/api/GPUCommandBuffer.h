@@ -30,6 +30,7 @@ public:
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "__brand", &GPUCommandBuffer::getBrand);
+
     installGetterSetter(runtime, prototype, "label",
                         &GPUCommandBuffer::getLabel,
                         &GPUCommandBuffer::setLabel);

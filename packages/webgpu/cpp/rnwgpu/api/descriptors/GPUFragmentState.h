@@ -21,7 +21,7 @@ namespace rnwgpu {
 struct GPUFragmentState {
   std::vector<
       std::variant<std::nullptr_t, std::shared_ptr<GPUColorTargetState>>>
-      targets; // Iterable<GPUColorTargetState | null>
+      targets; // Iterable< | GPUColorTargetState | null | undefined >
   std::shared_ptr<GPUShaderModule> module; // GPUShaderModule
   std::optional<std::string> entryPoint;   // string
   std::optional<std::map<std::string, double>>

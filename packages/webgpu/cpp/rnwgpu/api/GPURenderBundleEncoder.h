@@ -95,6 +95,7 @@ public:
                   &GPURenderBundleEncoder::drawIndirect);
     installMethod(runtime, prototype, "drawIndexedIndirect",
                   &GPURenderBundleEncoder::drawIndexedIndirect);
+
     installGetterSetter(runtime, prototype, "label",
                         &GPURenderBundleEncoder::getLabel,
                         &GPURenderBundleEncoder::setLabel);

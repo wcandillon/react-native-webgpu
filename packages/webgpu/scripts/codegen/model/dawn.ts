@@ -46,36 +46,23 @@ export const resolved: Record<
   }
 > = {
   GPU: {
-    ctor: `GPU()
-      : NativeObject(CLASS_NAME)  {
-          wgpu::InstanceDescriptor instanceDesc;
-          instanceDesc.features.timedWaitAnyEnable = true;
-          instanceDesc.features.timedWaitAnyMaxCount = 64;
-          _instance = wgpu::CreateInstance(&instanceDesc);
-          auto instance = &_instance;
-          _async = std::make_shared<AsyncRunner>(instance);
-      }`,
+    ctor: `explicit GPU(jsi::Runtime &runtime);`,
+    extraDeps: ["GPUAdapter"],
   },
-  GPUDevice: {
-    ctor: `explicit GPUDevice(wgpu::Device instance, std::shared_ptr<AsyncRunner> async,
-                     std::string label)
-      : NativeObject(CLASS_NAME), _instance(instance), _async(async),
-        _label(label) {
-          m_lostPromise = std::make_shared<std::promise<std::shared_ptr<GPUDeviceLostInfo>>>();
-        }`,
-    extra:
-      "std::shared_ptr<std::promise<std::shared_ptr<GPUDeviceLostInfo>>>  m_lostPromise;",
+  GPUAdapter: {
+    extraDeps: ["GPUDevice"],
   },
+  // GPUDevice is skipped from codegen - maintained manually
   GPUBuffer: {
     methods: {
       mapAsync: {
-        returnType: "std::future<void>",
+        returnType: "async::AsyncTaskHandle",
         args: [
           { name: "modeIn", type: "uint64_t" },
           { name: "offset", type: "std::optional<uint64_t>" },
           { name: "size", type: "std::optional<uint64_t>" },
         ],
-        deps: ["future"],
+        deps: [],
       },
       getMappedRange: {
         returnType: "std::shared_ptr<ArrayBuffer>",
@@ -86,18 +73,30 @@ export const resolved: Record<
         deps: ["memory", "optional", "ArrayBuffer"],
       },
     },
-    extra: `struct Mapping {
-      uint64_t start;
-      uint64_t end;
-      inline bool Intersects(uint64_t s, uint64_t e) const { return s < end && e > start; }
-      std::shared_ptr<ArrayBuffer> buffer;
+    extra: `size_t getMemoryPressure() override { return static_cast<size_t>(getSize()); }
+
+  struct Mapping {
+    uint64_t start;
+    uint64_t end;
+    inline bool Intersects(uint64_t s, uint64_t e) const { return s < end && e > start; }
+    std::shared_ptr<ArrayBuffer> buffer;
   };
-  std::vector<Mapping> mappings;
-  `,
+  std::vector<Mapping> mappings;`,
     extraDeps: ["vector"],
   },
   GPUCommandEncoder: {
     methods: {
+      copyBufferToBuffer: {
+        deps: ["memory", "GPUBuffer"],
+        returnType: "void",
+        args: [
+          { name: "source", type: "std::shared_ptr<GPUBuffer>" },
+          { name: "sourceOffset", type: "uint64_t" },
+          { name: "destination", type: "std::shared_ptr<GPUBuffer>" },
+          { name: "destinationOffset", type: "uint64_t" },
+          { name: "size", type: "uint64_t" },
+        ],
+      },
       copyTextureToBuffer: {
         deps: [
           "memory",
@@ -198,10 +197,147 @@ export const resolved: Record<
     },
   },
   GPUComputePipeline: {
-    extra: "friend class GPUDevice;",
+    extra: `size_t getMemoryPressure() override {
+    // Compute pipelines contain compiled compute shader state and
+    // driver-specific optimized code
+    // Estimate: 16KB for a typical compute pipeline (single compute shader)
+    return 16 * 1024;
+  }
+
+  friend class GPUDevice;`,
   },
   GPURenderPipeline: {
-    extra: "friend class GPUDevice;",
+    extra: `size_t getMemoryPressure() override {
+    // Render pipelines contain compiled shader state, vertex/fragment shaders,
+    // render state, and driver-specific optimized code
+    // Estimate: 24KB for a typical render pipeline with vertex + fragment shaders
+    return 24 * 1024;
+  }
+
+  friend class GPUDevice;`,
+  },
+  GPUBindGroup: {
+    extra: `size_t getMemoryPressure() override {
+    // Bind groups store resource bindings and descriptor state
+    // They reference buffers, textures, samplers, etc.
+    // Estimate: 1KB per bind group (descriptor tables and binding state)
+    return 1024;
+  }`,
+  },
+  GPUBindGroupLayout: {
+    extra: `size_t getMemoryPressure() override {
+    // Bind group layouts define the structure/schema for bind groups
+    // They store binding descriptors, types, and validation info
+    // Estimate: 512 bytes per layout (smaller than actual bind groups)
+    return 512;
+  }`,
+  },
+  GPUQuerySet: {
+    extra: `size_t getMemoryPressure() override {
+    uint32_t count = getCount();
+    wgpu::QueryType type = getType();
+
+    // Estimate bytes per query based on type
+    size_t bytesPerQuery = 8; // Default estimate
+    switch (type) {
+    case wgpu::QueryType::Occlusion:
+      bytesPerQuery = 8; // 64-bit counter
+      break;
+    case wgpu::QueryType::Timestamp:
+      bytesPerQuery = 8; // 64-bit timestamp
+      break;
+    default:
+      bytesPerQuery = 8; // Safe default
+      break;
+    }
+
+    return static_cast<size_t>(count) * bytesPerQuery;
+  }`,
+  },
+  GPUShaderModule: {
+    extraDeps: ["GPUCompilationInfo"],
+    extra: `size_t getMemoryPressure() override {
+    // Estimate memory usage for compiled shader module
+    // Shaders can vary widely, but a reasonable estimate is 8-16KB for typical shaders
+    // Complex shaders (with many uniforms, textures, or computations) can be much larger
+    return 12 * 1024; // 12KB estimate for average shader
+  }`,
+  },
+  GPUTexture: {
+    extraDeps: ["algorithm"],
+    extra: `size_t getMemoryPressure() override {
+    // Calculate approximate memory usage based on texture properties
+    uint32_t width = getWidth();
+    uint32_t height = getHeight();
+    uint32_t depthOrArrayLayers = getDepthOrArrayLayers();
+    uint32_t mipLevelCount = getMipLevelCount();
+    uint32_t sampleCount = getSampleCount();
+
+    // Estimate bytes per pixel based on format
+    // This is a simplified estimate - actual values depend on the specific format
+    size_t bytesPerPixel = 4; // Default to RGBA8 format
+    wgpu::TextureFormat format = getFormat();
+    switch (format) {
+    case wgpu::TextureFormat::R8Unorm:
+    case wgpu::TextureFormat::R8Snorm:
+    case wgpu::TextureFormat::R8Uint:
+    case wgpu::TextureFormat::R8Sint:
+      bytesPerPixel = 1;
+      break;
+    case wgpu::TextureFormat::R16Uint:
+    case wgpu::TextureFormat::R16Sint:
+    case wgpu::TextureFormat::R16Float:
+    case wgpu::TextureFormat::RG8Unorm:
+    case wgpu::TextureFormat::RG8Snorm:
+    case wgpu::TextureFormat::RG8Uint:
+    case wgpu::TextureFormat::RG8Sint:
+      bytesPerPixel = 2;
+      break;
+    case wgpu::TextureFormat::RGBA8Unorm:
+    case wgpu::TextureFormat::RGBA8UnormSrgb:
+    case wgpu::TextureFormat::RGBA8Snorm:
+    case wgpu::TextureFormat::RGBA8Uint:
+    case wgpu::TextureFormat::RGBA8Sint:
+    case wgpu::TextureFormat::BGRA8Unorm:
+    case wgpu::TextureFormat::BGRA8UnormSrgb:
+    case wgpu::TextureFormat::RGB10A2Unorm:
+    case wgpu::TextureFormat::R32Float:
+    case wgpu::TextureFormat::R32Uint:
+    case wgpu::TextureFormat::R32Sint:
+    case wgpu::TextureFormat::RG16Uint:
+    case wgpu::TextureFormat::RG16Sint:
+    case wgpu::TextureFormat::RG16Float:
+      bytesPerPixel = 4;
+      break;
+    case wgpu::TextureFormat::RG32Float:
+    case wgpu::TextureFormat::RG32Uint:
+    case wgpu::TextureFormat::RG32Sint:
+    case wgpu::TextureFormat::RGBA16Uint:
+    case wgpu::TextureFormat::RGBA16Sint:
+    case wgpu::TextureFormat::RGBA16Float:
+      bytesPerPixel = 8;
+      break;
+    case wgpu::TextureFormat::RGBA32Float:
+    case wgpu::TextureFormat::RGBA32Uint:
+    case wgpu::TextureFormat::RGBA32Sint:
+      bytesPerPixel = 16;
+      break;
+    default:
+      bytesPerPixel = 4; // Safe default
+      break;
+    }
+
+    // Calculate total memory for all mip levels
+    size_t totalMemory = 0;
+    for (uint32_t mip = 0; mip < mipLevelCount; ++mip) {
+      uint32_t mipWidth = std::max(1u, width >> mip);
+      uint32_t mipHeight = std::max(1u, height >> mip);
+      totalMemory += static_cast<size_t>(mipWidth) * mipHeight *
+                     depthOrArrayLayers * bytesPerPixel * sampleCount;
+    }
+
+    return totalMemory;
+  }`,
   },
 };
 
