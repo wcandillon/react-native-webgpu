@@ -15,6 +15,11 @@ public:
 
   ImageData createImageBitmap(std::string blobId, double offset,
                               double size) override;
+
+  void createImageBitmapAsync(
+      std::string blobId, double offset, double size,
+      std::function<void(ImageData)> onSuccess,
+      std::function<void(std::string)> onError) override;
 };
 
 } // namespace rnwgpu

@@ -3,8 +3,10 @@
 #include <android/bitmap.h>
 #include <jni.h>
 
+#include <functional>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "webgpu/webgpu_cpp.h"
@@ -127,6 +129,112 @@ public:
     result.height = static_cast<int>(bitmapInfo.height);
     result.data = imageData;
     return result;
+  }
+
+  void createImageBitmapAsync(
+      std::string blobId, double offset, double size,
+      std::function<void(ImageData)> onSuccess,
+      std::function<void(std::string)> onError) override {
+    // Capture blobModule for the background thread
+    jobject blobModule = _blobModule;
+
+    // Dispatch to a background thread
+    std::thread([blobModule, blobId = std::move(blobId), offset, size,
+                 onSuccess = std::move(onSuccess),
+                 onError = std::move(onError)]() {
+      jni::Environment::ensureCurrentThreadIsAttached();
+
+      JNIEnv *env = facebook::jni::Environment::current();
+      if (!env) {
+        onError("Couldn't get JNI environment");
+        return;
+      }
+
+      if (!blobModule) {
+        onError("BlobModule instance is null");
+        return;
+      }
+
+      // Get the resolve method ID
+      jclass blobModuleClass = env->GetObjectClass(blobModule);
+      if (!blobModuleClass) {
+        onError("Couldn't find BlobModule class");
+        return;
+      }
+
+      jmethodID resolveMethod = env->GetMethodID(blobModuleClass, "resolve",
+                                                 "(Ljava/lang/String;II)[B");
+      if (!resolveMethod) {
+        onError("Couldn't find resolve method in BlobModule");
+        return;
+      }
+
+      // Resolve the blob data
+      jstring jBlobId = env->NewStringUTF(blobId.c_str());
+      jbyteArray blobData = (jbyteArray)env->CallObjectMethod(
+          blobModule, resolveMethod, jBlobId, static_cast<jint>(offset),
+          static_cast<jint>(size));
+      env->DeleteLocalRef(jBlobId);
+
+      if (!blobData) {
+        onError("Couldn't retrieve blob data");
+        return;
+      }
+
+      // Create a Bitmap from the blob data
+      jclass bitmapFactoryClass =
+          env->FindClass("android/graphics/BitmapFactory");
+      jmethodID decodeByteArrayMethod =
+          env->GetStaticMethodID(bitmapFactoryClass, "decodeByteArray",
+                                 "([BII)Landroid/graphics/Bitmap;");
+      jint blobLength = env->GetArrayLength(blobData);
+      jobject bitmap = env->CallStaticObjectMethod(
+          bitmapFactoryClass, decodeByteArrayMethod, blobData, 0, blobLength);
+
+      if (!bitmap) {
+        env->DeleteLocalRef(blobData);
+        onError("Couldn't decode image");
+        return;
+      }
+
+      // Get bitmap info
+      AndroidBitmapInfo bitmapInfo;
+      if (AndroidBitmap_getInfo(env, bitmap, &bitmapInfo) !=
+          ANDROID_BITMAP_RESULT_SUCCESS) {
+        env->DeleteLocalRef(blobData);
+        env->DeleteLocalRef(bitmap);
+        onError("Couldn't get bitmap info");
+        return;
+      }
+
+      // Lock the bitmap pixels
+      void *bitmapPixels;
+      if (AndroidBitmap_lockPixels(env, bitmap, &bitmapPixels) !=
+          ANDROID_BITMAP_RESULT_SUCCESS) {
+        env->DeleteLocalRef(blobData);
+        env->DeleteLocalRef(bitmap);
+        onError("Couldn't lock bitmap pixels");
+        return;
+      }
+
+      // Copy the bitmap data
+      std::vector<uint8_t> imageData(bitmapInfo.height * bitmapInfo.stride);
+      memcpy(imageData.data(), bitmapPixels, imageData.size());
+
+      // Unlock the bitmap pixels
+      AndroidBitmap_unlockPixels(env, bitmap);
+
+      // Clean up JNI references
+      env->DeleteLocalRef(blobData);
+      env->DeleteLocalRef(bitmap);
+
+      ImageData result;
+      result.width = static_cast<int>(bitmapInfo.width);
+      result.height = static_cast<int>(bitmapInfo.height);
+      result.data = std::move(imageData);
+
+      onSuccess(std::move(result));
+    }).detach();
   }
 };
 

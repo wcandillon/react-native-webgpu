@@ -48,6 +48,7 @@ public:
   }
 
   inline const wgpu::Instance get() { return _instance; }
+  inline std::shared_ptr<async::AsyncRunner> getAsyncRunner() { return _async; }
 
 private:
   wgpu::Instance _instance;
