@@ -32,6 +32,4 @@ if (!navigator) {
 }
 
 global.createImageBitmap =
-  global.createImageBitmap ??
-  ((...params: Parameters<typeof createImageBitmap>) =>
-    new Promise((resolve) => resolve(RNWebGPU.createImageBitmap(...params))));
+  global.createImageBitmap ?? RNWebGPU.createImageBitmap.bind(RNWebGPU);

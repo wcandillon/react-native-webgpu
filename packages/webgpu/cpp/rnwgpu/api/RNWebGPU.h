@@ -11,6 +11,10 @@
 #include "ImageBitmap.h"
 #include "PlatformContext.h"
 
+#include "JSIConverter.h"
+#include "rnwgpu/async/AsyncRunner.h"
+#include "rnwgpu/async/AsyncTaskHandle.h"
+
 namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
@@ -28,9 +32,10 @@ public:
   static constexpr const char *CLASS_NAME = "RNWebGPU";
 
   explicit RNWebGPU(std::shared_ptr<GPU> gpu,
-                    std::shared_ptr<PlatformContext> platformContext)
-      : NativeObject(CLASS_NAME), _gpu(gpu), _platformContext(platformContext) {
-  }
+                    std::shared_ptr<PlatformContext> platformContext,
+                    std::shared_ptr<async::AsyncRunner> asyncRunner)
+      : NativeObject(CLASS_NAME), _gpu(gpu), _platformContext(platformContext),
+        _async(asyncRunner) {}
 
   std::shared_ptr<GPU> getGPU() { return _gpu; }
 
@@ -43,11 +48,29 @@ public:
     return ctx;
   }
 
-  std::shared_ptr<ImageBitmap> createImageBitmap(std::shared_ptr<Blob> blob) {
-    auto imageData = _platformContext->createImageBitmap(
-        blob->blobId, blob->offset, blob->size);
-    auto imageBitmap = std::make_shared<ImageBitmap>(imageData);
-    return imageBitmap;
+  async::AsyncTaskHandle createImageBitmap(std::shared_ptr<Blob> blob) {
+    auto platformContext = _platformContext;
+    std::string blobId = blob->blobId;
+    double offset = blob->offset;
+    double size = blob->size;
+
+    return _async->postTask(
+        [platformContext, blobId, offset,
+         size](const async::AsyncTaskHandle::ResolveFunction &resolve,
+               const async::AsyncTaskHandle::RejectFunction &reject) {
+          platformContext->createImageBitmapAsync(
+              blobId, offset, size,
+              [resolve](ImageData imageData) {
+                auto imageBitmap = std::make_shared<ImageBitmap>(imageData);
+                resolve([imageBitmap](jsi::Runtime &runtime) {
+                  return JSIConverter<std::shared_ptr<ImageBitmap>>::toJSI(
+                      runtime, imageBitmap);
+                });
+              },
+              [reject](std::string error) { reject(error); });
+        },
+        false // Don't keep pumping - this is a one-shot async operation
+    );
   }
 
   std::shared_ptr<Canvas> getNativeSurface(int contextId) {
@@ -75,6 +98,7 @@ public:
 private:
   std::shared_ptr<GPU> _gpu;
   std::shared_ptr<PlatformContext> _platformContext;
+  std::shared_ptr<async::AsyncRunner> _async;
 };
 
 template <> struct JSIConverter<std::shared_ptr<Blob>> {
