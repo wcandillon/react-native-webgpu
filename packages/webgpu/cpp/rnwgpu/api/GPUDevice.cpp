@@ -431,4 +431,62 @@ async::AsyncTaskHandle GPUDevice::getLost() {
   _lostHandle = handle;
   return handle;
 }
+void GPUDevice::addEventListener(std::string type, jsi::Function callback) {
+  auto funcPtr = std::make_shared<jsi::Function>(std::move(callback));
+  _eventListeners[type].push_back(funcPtr);
+}
+
+void GPUDevice::removeEventListener(std::string type, jsi::Function callback) {
+  // Note: Since jsi::Function doesn't support equality comparison,
+  // we cannot reliably remove a specific listener. This is a no-op.
+  // Most use cases (like BabylonJS) only need addEventListener to work.
+  (void)type;
+  (void)callback;
+}
+
+void GPUDevice::notifyUncapturedError(wgpu::ErrorType type,
+                                      std::string message) {
+  auto it = _eventListeners.find("uncapturederror");
+  if (it == _eventListeners.end() || it->second.empty()) {
+    return;
+  }
+
+  auto runtime = getCreationRuntime();
+  if (runtime == nullptr) {
+    return;
+  }
+
+  // Create the appropriate error object based on type
+  GPUErrorVariant error;
+  switch (type) {
+  case wgpu::ErrorType::Validation:
+    error = std::make_shared<GPUValidationError>(message);
+    break;
+  case wgpu::ErrorType::OutOfMemory:
+    error = std::make_shared<GPUOutOfMemoryError>(message);
+    break;
+  case wgpu::ErrorType::Internal:
+  case wgpu::ErrorType::Unknown:
+  default:
+    error = std::make_shared<GPUInternalError>(message);
+    break;
+  }
+
+  // Create the event object
+  auto event = std::make_shared<GPUUncapturedErrorEvent>(std::move(error));
+  auto eventValue =
+      JSIConverter<std::shared_ptr<GPUUncapturedErrorEvent>>::toJSI(*runtime,
+                                                                    event);
+
+  // Call all registered listeners
+  for (const auto &listener : it->second) {
+    try {
+      listener->call(*runtime, eventValue);
+    } catch (const std::exception &e) {
+      // Log but don't throw - we don't want one listener to break others
+      fprintf(stderr, "Error in uncapturederror listener: %s\n", e.what());
+    }
+  }
+}
+
 } // namespace rnwgpu
