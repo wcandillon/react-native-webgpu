@@ -81,4 +81,93 @@ describe("Device", () => {
 
     expect(["unknown", "destroyed"].includes(result.reason)).toBeTruthy();
   });
+
+  it("should have addEventListener method", async () => {
+    const result = await client.eval(({ device }) => {
+      return typeof device.addEventListener === "function";
+    });
+    expect(result).toBe(true);
+  });
+
+  it("should have removeEventListener method", async () => {
+    const result = await client.eval(({ device }) => {
+      return typeof device.removeEventListener === "function";
+    });
+    expect(result).toBe(true);
+  });
+
+  it("should call addEventListener without throwing", async () => {
+    const result = await client.eval(({ device }) => {
+      try {
+        device.addEventListener("uncapturederror", () => {});
+        return true;
+      } catch {
+        return false;
+      }
+    });
+    expect(result).toBe(true);
+  });
+
+  it("should call removeEventListener without throwing", async () => {
+    const result = await client.eval(({ device }) => {
+      try {
+        const listener = () => {};
+        device.addEventListener("uncapturederror", listener);
+        device.removeEventListener("uncapturederror", listener);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+    expect(result).toBe(true);
+  });
+
+  it("should receive uncapturederror event when validation error occurs", async () => {
+    const result = await client.eval(({ gpu }) =>
+      gpu.requestAdapter().then((adapter) =>
+        adapter!.requestDevice().then((device) => {
+          return new Promise<{
+            received: boolean;
+            eventType: string;
+            hasError: boolean;
+            errorMessage: string;
+          }>((resolve) => {
+            // Set a timeout in case the event never fires
+            const timeout = setTimeout(() => {
+              resolve({
+                received: false,
+                eventType: "",
+                hasError: false,
+                errorMessage: "",
+              });
+            }, 1000);
+
+            device.addEventListener(
+              "uncapturederror",
+              (event: GPUUncapturedErrorEvent) => {
+                clearTimeout(timeout);
+                resolve({
+                  received: true,
+                  eventType: event.type,
+                  hasError: event.error !== null && event.error !== undefined,
+                  errorMessage: event.error?.message ?? "",
+                });
+              },
+            );
+
+            // Create an uncaptured validation error by using invalid parameters
+            // Without pushErrorScope, this error becomes uncaptured
+            device.createSampler({
+              maxAnisotropy: 0, // Invalid: must be at least 1
+            });
+          });
+        }),
+      ),
+    );
+
+    expect(result.received).toBe(true);
+    expect(result.eventType).toBe("uncapturederror");
+    expect(result.hasError).toBe(true);
+    expect(result.errorMessage.length).toBeGreaterThan(0);
+  });
 });

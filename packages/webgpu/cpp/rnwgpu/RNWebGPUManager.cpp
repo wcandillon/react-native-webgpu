@@ -35,6 +35,7 @@
 #include "GPUSupportedLimits.h"
 #include "GPUTexture.h"
 #include "GPUTextureView.h"
+#include "GPUUncapturedErrorEvent.h"
 #include "GPUValidationError.h"
 
 // Enums
@@ -60,7 +61,8 @@ RNWebGPUManager::RNWebGPUManager(
   BaseRuntimeAwareCache::setMainJsRuntime(_jsRuntime);
 
   auto gpu = std::make_shared<GPU>(*_jsRuntime);
-  auto rnWebGPU = std::make_shared<RNWebGPU>(gpu, _platformContext, _jsCallInvoker);
+  auto rnWebGPU =
+      std::make_shared<RNWebGPU>(gpu, _platformContext, _jsCallInvoker);
   _gpu = gpu->get();
   _jsRuntime->global().setProperty(*_jsRuntime, "RNWebGPU",
                                    RNWebGPU::create(*_jsRuntime, rnWebGPU));
@@ -86,6 +88,7 @@ RNWebGPUManager::RNWebGPUManager(
   GPUInternalError::installConstructor(*_jsRuntime);
   GPUOutOfMemoryError::installConstructor(*_jsRuntime);
   GPUValidationError::installConstructor(*_jsRuntime);
+  GPUUncapturedErrorEvent::installConstructor(*_jsRuntime);
   GPUPipelineLayout::installConstructor(*_jsRuntime);
   GPUQuerySet::installConstructor(*_jsRuntime);
   GPUQueue::installConstructor(*_jsRuntime);

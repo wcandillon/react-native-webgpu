@@ -1,11 +1,15 @@
 #pragma once
 
+#include <functional>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <variant>
+#include <vector>
 
 #include "Unions.h"
 
@@ -46,6 +50,7 @@
 #include "GPUSupportedLimits.h"
 #include "GPUTexture.h"
 #include "GPUTextureDescriptor.h"
+#include "GPUUncapturedErrorEvent.h"
 
 namespace rnwgpu {
 
@@ -60,6 +65,44 @@ public:
                      std::string label)
       : NativeObject(CLASS_NAME), _instance(instance), _async(async),
         _label(label) {}
+
+  ~GPUDevice() override {
+    // Unregister from the static registry
+    unregisterDevice(_instance.Get());
+  }
+
+  // Static registry for looking up GPUDevice from wgpu::Device in callbacks
+  static void registerDevice(WGPUDevice handle,
+                             std::weak_ptr<GPUDevice> device) {
+    std::lock_guard<std::mutex> lock(getRegistryMutex());
+    getRegistry()[handle] = device;
+  }
+
+  static void unregisterDevice(WGPUDevice handle) {
+    std::lock_guard<std::mutex> lock(getRegistryMutex());
+    getRegistry().erase(handle);
+  }
+
+  static std::shared_ptr<GPUDevice> lookupDevice(WGPUDevice handle) {
+    std::lock_guard<std::mutex> lock(getRegistryMutex());
+    auto it = getRegistry().find(handle);
+    if (it != getRegistry().end()) {
+      return it->second.lock();
+    }
+    return nullptr;
+  }
+
+private:
+  static std::unordered_map<WGPUDevice, std::weak_ptr<GPUDevice>> &
+  getRegistry() {
+    static std::unordered_map<WGPUDevice, std::weak_ptr<GPUDevice>> registry;
+    return registry;
+  }
+
+  static std::mutex &getRegistryMutex() {
+    static std::mutex mutex;
+    return mutex;
+  }
 
 public:
   std::string getBrand() { return CLASS_NAME; }
@@ -103,7 +146,12 @@ public:
   std::shared_ptr<GPUQueue> getQueue();
   async::AsyncTaskHandle getLost();
   void notifyDeviceLost(wgpu::DeviceLostReason reason, std::string message);
+  void notifyUncapturedError(wgpu::ErrorType type, std::string message);
   void forceLossForTesting();
+
+  // EventTarget methods
+  void addEventListener(std::string type, jsi::Function callback);
+  void removeEventListener(std::string type, jsi::Function callback);
 
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
@@ -155,6 +203,38 @@ public:
                         &GPUDevice::setLabel);
     installMethod(runtime, prototype, "forceLossForTesting",
                   &GPUDevice::forceLossForTesting);
+
+    // EventTarget methods - installed manually since they take jsi::Function
+    auto addEventListenerFunc = jsi::Function::createFromHostFunction(
+        runtime, jsi::PropNameID::forUtf8(runtime, "addEventListener"), 2,
+        [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args,
+           size_t count) -> jsi::Value {
+          if (count < 2 || !args[0].isString() || !args[1].isObject() ||
+              !args[1].getObject(rt).isFunction(rt)) {
+            return jsi::Value::undefined();
+          }
+          auto native = GPUDevice::fromValue(rt, thisVal);
+          native->addEventListener(args[0].getString(rt).utf8(rt),
+                                   args[1].getObject(rt).getFunction(rt));
+          return jsi::Value::undefined();
+        });
+    prototype.setProperty(runtime, "addEventListener", addEventListenerFunc);
+
+    auto removeEventListenerFunc = jsi::Function::createFromHostFunction(
+        runtime, jsi::PropNameID::forUtf8(runtime, "removeEventListener"), 2,
+        [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args,
+           size_t count) -> jsi::Value {
+          if (count < 2 || !args[0].isString() || !args[1].isObject() ||
+              !args[1].getObject(rt).isFunction(rt)) {
+            return jsi::Value::undefined();
+          }
+          auto native = GPUDevice::fromValue(rt, thisVal);
+          native->removeEventListener(args[0].getString(rt).utf8(rt),
+                                      args[1].getObject(rt).getFunction(rt));
+          return jsi::Value::undefined();
+        });
+    prototype.setProperty(runtime, "removeEventListener",
+                          removeEventListenerFunc);
   }
 
   inline const wgpu::Device get() { return _instance; }
@@ -169,6 +249,11 @@ private:
   std::shared_ptr<GPUDeviceLostInfo> _lostInfo;
   bool _lostSettled = false;
   std::optional<async::AsyncTaskHandle::ResolveFunction> _lostResolve;
+
+  // Event listeners storage - keyed by event type
+  // Each entry contains a vector of shared_ptr to functions
+  std::unordered_map<std::string, std::vector<std::shared_ptr<jsi::Function>>>
+      _eventListeners;
 };
 
 } // namespace rnwgpu

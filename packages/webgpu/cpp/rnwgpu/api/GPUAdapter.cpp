@@ -50,6 +50,8 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
       });
 
   // Set uncaptured error callback using new template API
+  // Note: This callback cannot capture variables, so we use a static registry
+  // to look up the GPUDevice from the wgpu::Device handle.
   aDescriptor.SetUncapturedErrorCallback([](const wgpu::Device &device,
                                             wgpu::ErrorType type,
                                             wgpu::StringView message) {
@@ -70,11 +72,16 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
     default:
       errorType = "Unknown";
     }
+    std::string msg =
+        message.length > 0 ? std::string(message.data, message.length) : "";
     std::string fullMessage =
-        message.length > 0 ? std::string(errorType) + ": " +
-                                 std::string(message.data, message.length)
-                           : "no message";
-    fprintf(stderr, "%s", fullMessage.c_str());
+        msg.length() > 0 ? std::string(errorType) + ": " + msg : "no message";
+    fprintf(stderr, "%s\n", fullMessage.c_str());
+
+    // Look up the GPUDevice from the registry and notify it
+    if (auto gpuDevice = GPUDevice::lookupDevice(device.Get())) {
+      gpuDevice->notifyUncapturedError(type, std::move(msg));
+    }
   });
   std::string label =
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "";
@@ -138,6 +145,11 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
               auto deviceHost = std::make_shared<GPUDevice>(std::move(device),
                                                             asyncRunner, label);
               *deviceLostBinding = deviceHost;
+
+              // Register the device in the static registry so the uncaptured
+              // error callback can find it
+              GPUDevice::registerDevice(deviceHost->get().Get(), deviceHost);
+
               resolve([deviceHost = std::move(deviceHost)](
                           jsi::Runtime &runtime) mutable {
                 return JSIConverter<std::shared_ptr<GPUDevice>>::toJSI(
