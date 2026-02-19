@@ -92,14 +92,12 @@ public:
     if (args[0].isObject()) {
       auto obj = args[0].getObject(runtime);
 
-      const uint8_t *dataPtr = nullptr;
-      size_t dataSize = 0;
+      std::span<const uint8_t> data;
 
       if (obj.isArrayBuffer(runtime)) {
         // Plain ArrayBuffer — use the full buffer
         auto &ab = obj.getArrayBuffer(runtime);
-        dataPtr = ab.data(runtime);
-        dataSize = ab.size(runtime);
+        data = {ab.data(runtime), ab.size(runtime)};
       } else if (obj.hasProperty(runtime, "buffer")) {
         // TypedArray or DataView — respect byteOffset/byteLength
         auto bufferVal = obj.getProperty(runtime, "buffer");
@@ -111,15 +109,14 @@ public:
               obj.getProperty(runtime, "byteOffset").asNumber());
           auto byteLength = static_cast<size_t>(
               obj.getProperty(runtime, "byteLength").asNumber());
-          dataPtr = ab.data(runtime) + byteOffset;
-          dataSize = byteLength;
+          data = {ab.data(runtime) + byteOffset, byteLength};
         }
       }
 
-      if (dataPtr != nullptr) {
+      if (!data.empty()) {
         // Copy bytes on the JS thread — the ArrayBuffer pointer is into
         // JS-owned memory that can be GC'd
-        std::vector<uint8_t> dataCopy(dataPtr, dataPtr + dataSize);
+        std::vector<uint8_t> dataCopy(data.begin(), data.end());
 
         return Promise::createPromise(
             runtime,
