@@ -34,10 +34,10 @@ public:
       std::function<void(std::string)> onError) = 0;
 
   // Create ImageBitmap from raw encoded image bytes (PNG/JPEG/etc.)
-  virtual ImageData createImageBitmapFromData(std::span<uint8_t> data) = 0;
+  virtual ImageData createImageBitmapFromData(std::span<const uint8_t> data) = 0;
 
   virtual void createImageBitmapFromDataAsync(
-      std::span<uint8_t> data, std::function<void(ImageData)> onSuccess,
+      std::span<const uint8_t> data, std::function<void(ImageData)> onSuccess,
       std::function<void(std::string)> onError) = 0;
 };
 

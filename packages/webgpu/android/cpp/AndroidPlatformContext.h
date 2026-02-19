@@ -36,6 +36,8 @@ private:
 
     jmethodID resolveMethod = env->GetMethodID(blobModuleClass, "resolve",
                                                "(Ljava/lang/String;II)[B");
+    env->DeleteLocalRef(blobModuleClass);
+
     if (!resolveMethod) {
       throw std::runtime_error("Couldn't find resolve method in BlobModule");
     }
@@ -113,7 +115,7 @@ public:
     }).detach();
   }
 
-  ImageData createImageBitmapFromData(std::span<uint8_t> data) override {
+  ImageData createImageBitmapFromData(std::span<const uint8_t> data) override {
     jni::Environment::ensureCurrentThreadIsAttached();
 
     JNIEnv *env = facebook::jni::Environment::current();
@@ -132,12 +134,22 @@ public:
     // Decode via BitmapFactory
     jclass bitmapFactoryClass =
         env->FindClass("android/graphics/BitmapFactory");
+    if (!bitmapFactoryClass) {
+      env->DeleteLocalRef(byteArray);
+      throw std::runtime_error("Couldn't find BitmapFactory class");
+    }
     jmethodID decodeByteArrayMethod =
         env->GetStaticMethodID(bitmapFactoryClass, "decodeByteArray",
                                "([BII)Landroid/graphics/Bitmap;");
+    if (!decodeByteArrayMethod) {
+      env->DeleteLocalRef(byteArray);
+      env->DeleteLocalRef(bitmapFactoryClass);
+      throw std::runtime_error("Couldn't find decodeByteArray method");
+    }
     jint length = static_cast<jint>(data.size());
     jobject bitmap = env->CallStaticObjectMethod(
         bitmapFactoryClass, decodeByteArrayMethod, byteArray, 0, length);
+    env->DeleteLocalRef(bitmapFactoryClass);
 
     if (!bitmap) {
       env->DeleteLocalRef(byteArray);
@@ -175,7 +187,7 @@ public:
   }
 
   void createImageBitmapFromDataAsync(
-      std::span<uint8_t> data, std::function<void(ImageData)> onSuccess,
+      std::span<const uint8_t> data, std::function<void(ImageData)> onSuccess,
       std::function<void(std::string)> onError) override {
     std::thread([this, ownedData = std::vector<uint8_t>(data.begin(), data.end()),
                  onSuccess = std::move(onSuccess),

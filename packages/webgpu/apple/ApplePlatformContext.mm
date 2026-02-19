@@ -39,8 +39,8 @@ wgpu::Surface ApplePlatformContext::makeSurface(wgpu::Instance instance,
   return instance.CreateSurface(&surfaceDescriptor);
 }
 
-static std::span<uint8_t> nsDataToSpan(NSData *data) {
-  return {static_cast<uint8_t *>(const_cast<void *>(data.bytes)), data.length};
+static std::span<const uint8_t> nsDataToSpan(NSData *data) {
+  return {static_cast<const uint8_t *>(data.bytes), data.length};
 }
 
 ImageData ApplePlatformContext::createImageBitmap(std::string blobId,
@@ -83,7 +83,7 @@ void ApplePlatformContext::createImageBitmapAsync(
 }
 
 ImageData ApplePlatformContext::createImageBitmapFromData(
-    std::span<uint8_t> data) {
+    std::span<const uint8_t> data) {
   NSData *nsData = [NSData dataWithBytes:data.data()
                                   length:data.size()];
 
@@ -128,7 +128,7 @@ ImageData ApplePlatformContext::createImageBitmapFromData(
 }
 
 void ApplePlatformContext::createImageBitmapFromDataAsync(
-    std::span<uint8_t> data, std::function<void(ImageData)> onSuccess,
+    std::span<const uint8_t> data, std::function<void(ImageData)> onSuccess,
     std::function<void(std::string)> onError) {
   // Copy span data into shared_ptr so the dispatch_async block owns the memory
   auto ownedData =

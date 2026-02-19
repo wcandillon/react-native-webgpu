@@ -121,6 +121,7 @@ export const TexturedCube = () => {
         );
       } catch (err) {
         console.error("Failed to fetch asset", err);
+        throw err;
       }
 
       // Create a sampler with linear filtering for smooth interpolation.

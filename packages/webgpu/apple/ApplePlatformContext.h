@@ -21,10 +21,10 @@ public:
       std::function<void(ImageData)> onSuccess,
       std::function<void(std::string)> onError) override;
 
-  ImageData createImageBitmapFromData(std::span<uint8_t> data) override;
+  ImageData createImageBitmapFromData(std::span<const uint8_t> data) override;
 
   void createImageBitmapFromDataAsync(
-      std::span<uint8_t> data, std::function<void(ImageData)> onSuccess,
+      std::span<const uint8_t> data, std::function<void(ImageData)> onSuccess,
       std::function<void(std::string)> onError) override;
 };
 
