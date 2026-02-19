@@ -96,14 +96,14 @@ public:
 
       if (obj.isArrayBuffer(runtime)) {
         // Plain ArrayBuffer — use the full buffer
-        auto &ab = obj.getArrayBuffer(runtime);
+        const auto &ab = obj.getArrayBuffer(runtime);
         data = {ab.data(runtime), ab.size(runtime)};
       } else if (obj.hasProperty(runtime, "buffer")) {
         // TypedArray or DataView — respect byteOffset/byteLength
         auto bufferVal = obj.getProperty(runtime, "buffer");
         if (bufferVal.isObject() &&
             bufferVal.getObject(runtime).isArrayBuffer(runtime)) {
-          auto &ab =
+          const auto &ab =
               bufferVal.getObject(runtime).getArrayBuffer(runtime);
           auto byteOffset = static_cast<size_t>(
               obj.getProperty(runtime, "byteOffset").asNumber());
