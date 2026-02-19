@@ -5,7 +5,6 @@
 
 #include "NativeObject.h"
 
-#include "ArrayBuffer.h"
 #include "Canvas.h"
 #include "GPU.h"
 #include "GPUCanvasContext.h"
@@ -88,17 +87,39 @@ public:
     auto platformContext = _platformContext;
     auto callInvoker = _callInvoker;
 
-    // Check if the argument is an ArrayBuffer or TypedArray
+    // Check if the argument is an ArrayBuffer or ArrayBufferView
+    // (TypedArray / DataView)
     if (args[0].isObject()) {
       auto obj = args[0].getObject(runtime);
-      if (obj.isArrayBuffer(runtime) || obj.hasProperty(runtime, "buffer")) {
-        auto arrayBuffer =
-            JSIConverter<std::shared_ptr<ArrayBuffer>>::fromJSI(
-                runtime, args[0], false);
+
+      const uint8_t *dataPtr = nullptr;
+      size_t dataSize = 0;
+
+      if (obj.isArrayBuffer(runtime)) {
+        // Plain ArrayBuffer — use the full buffer
+        auto &ab = obj.getArrayBuffer(runtime);
+        dataPtr = ab.data(runtime);
+        dataSize = ab.size(runtime);
+      } else if (obj.hasProperty(runtime, "buffer")) {
+        // TypedArray or DataView — respect byteOffset/byteLength
+        auto bufferVal = obj.getProperty(runtime, "buffer");
+        if (bufferVal.isObject() &&
+            bufferVal.getObject(runtime).isArrayBuffer(runtime)) {
+          auto &ab =
+              bufferVal.getObject(runtime).getArrayBuffer(runtime);
+          auto byteOffset = static_cast<size_t>(
+              obj.getProperty(runtime, "byteOffset").asNumber());
+          auto byteLength = static_cast<size_t>(
+              obj.getProperty(runtime, "byteLength").asNumber());
+          dataPtr = ab.data(runtime) + byteOffset;
+          dataSize = byteLength;
+        }
+      }
+
+      if (dataPtr != nullptr) {
         // Copy bytes on the JS thread — the ArrayBuffer pointer is into
         // JS-owned memory that can be GC'd
-        std::vector<uint8_t> dataCopy(arrayBuffer->data(),
-                                      arrayBuffer->data() + arrayBuffer->size());
+        std::vector<uint8_t> dataCopy(dataPtr, dataPtr + dataSize);
 
         return Promise::createPromise(
             runtime,
