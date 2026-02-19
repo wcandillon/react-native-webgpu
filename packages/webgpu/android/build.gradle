@@ -71,7 +71,7 @@ android {
     buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", "true"
     externalNativeBuild {
       cmake {
-        cppFlags "-fexceptions", "-frtti", "-std=c++1y", "-DONANDROID"
+        cppFlags "-fexceptions", "-frtti", "-DONANDROID"
         abiFilters (*reactNativeArchitectures())
         arguments '-DANDROID_STL=c++_shared',
           "-DNODE_MODULES_DIR=${nodeModules}",

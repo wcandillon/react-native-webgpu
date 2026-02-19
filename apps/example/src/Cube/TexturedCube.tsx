@@ -102,9 +102,10 @@ export const TexturedCube = () => {
 
       // Fetch the image and upload it into a GPUTexture.
       let cubeTexture: GPUTexture;
-      {
-        const response = await fetchAsset(require("../assets/Di-3d.png"));
-        const imageBitmap = await createImageBitmap(await response.blob());
+      try {
+        const asset = await fetchAsset(require("../assets/Di-3d.png"));
+        const arrayBuffer = await asset.arrayBuffer();
+        const imageBitmap = await createImageBitmap(arrayBuffer);
         cubeTexture = device.createTexture({
           size: [imageBitmap.width, imageBitmap.height, 1],
           format: "rgba8unorm",
@@ -116,8 +117,10 @@ export const TexturedCube = () => {
         device.queue.copyExternalImageToTexture(
           { source: imageBitmap },
           { texture: cubeTexture },
-          [imageBitmap.width, imageBitmap.height],
+          [imageBitmap.width, imageBitmap.height]
         );
+      } catch (err) {
+        console.error("Failed to fetch asset", err);
       }
 
       // Create a sampler with linear filtering for smooth interpolation.

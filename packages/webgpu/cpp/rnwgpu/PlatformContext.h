@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <memory>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -30,6 +31,13 @@ public:
   virtual void createImageBitmapAsync(
       std::string blobId, double offset, double size,
       std::function<void(ImageData)> onSuccess,
+      std::function<void(std::string)> onError) = 0;
+
+  // Create ImageBitmap from raw encoded image bytes (PNG/JPEG/etc.)
+  virtual ImageData createImageBitmapFromData(std::span<uint8_t> data) = 0;
+
+  virtual void createImageBitmapFromDataAsync(
+      std::span<uint8_t> data, std::function<void(ImageData)> onSuccess,
       std::function<void(std::string)> onError) = 0;
 };
 

@@ -35,7 +35,7 @@ Pod::Spec.new do |s|
     s.pod_target_xcconfig    = {
         "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\" \"$(PODS_TARGET_SRCROOT)/cpp\"",
         "OTHER_CPLUSPLUSFLAGS" => "-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1",
-        "CLANG_CXX_LANGUAGE_STANDARD" => "c++17"
+        "CLANG_CXX_LANGUAGE_STANDARD" => "c++20"
     }
     s.dependency "React-RCTFabric"
     s.dependency "React-Codegen"
