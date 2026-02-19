@@ -84,8 +84,15 @@ void ApplePlatformContext::createImageBitmapAsync(
 
 ImageData ApplePlatformContext::createImageBitmapFromData(
     std::span<const uint8_t> data) {
-  NSData *nsData = [NSData dataWithBytes:data.data()
-                                  length:data.size()];
+  // This avoids a copy by assuming the UIImage/NSImage constructors
+  // decode `nsData` eagerly before the memory for the wrapped `data`
+  // is freed.
+  //
+  // Since we get the `CGImageRef` from `image` and then throw
+  // it away, that's a fairly safe assumption.
+  NSData *nsData = [NSData dataWithBytesNoCopy:const_cast<uint8_t *>(data.data())
+                                        length:data.size()
+                                  freeWhenDone:NO];
 
 #if !TARGET_OS_OSX
   UIImage *image = [UIImage imageWithData:nsData];
