@@ -123,6 +123,10 @@ export const examples = [
     screen: "DeviceLostHang",
     title: "⚠️ Device Lost Hang",
   },
+  {
+    screen: "StorageBufferVertices",
+    title: "💾 Storage Buffer Vertices",
+  },
 ];
 
 const styles = StyleSheet.create({
