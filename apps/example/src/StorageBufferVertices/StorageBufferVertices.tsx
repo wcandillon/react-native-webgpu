@@ -147,9 +147,9 @@ export function StorageBufferVertices() {
       label: "bind group for objects",
       layout: pipeline.getBindGroupLayout(0),
       entries: [
-        { binding: 0, resource: { buffer: staticStorageBuffer } },
-        { binding: 1, resource: { buffer: changingStorageBuffer } },
-        { binding: 2, resource: { buffer: vertexStorageBuffer } },
+        { binding: 0, resource: staticStorageBuffer },
+        { binding: 1, resource: changingStorageBuffer },
+        { binding: 2, resource: vertexStorageBuffer },
       ],
     });
 
