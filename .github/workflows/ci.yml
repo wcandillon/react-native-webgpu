@@ -90,7 +90,7 @@ jobs:
 
   build-android:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_android == 'true'
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     env:
       TURBO_CACHE_DIR: .turbo/android
     steps:
@@ -102,6 +102,17 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       - name: Cache turborepo for Android
         uses: actions/cache@v4
         with:
@@ -110,16 +121,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-turborepo-android
 
-      - name: Check turborepo cache for Android
-        run: |
-          TURBO_CACHE_STATUS=$(node -p "($(yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}" --dry=json)).tasks.find(t => t.task === 'build:android').cache.status")
-
-          if [[ $TURBO_CACHE_STATUS == "HIT" ]]; then
-            echo "turbo_cache_hit=1" >> $GITHUB_ENV
-          fi
-
       - name: Install JDK
-        if: env.turbo_cache_hit != 1
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
@@ -135,7 +137,6 @@ jobs:
         run: echo "ANDROID_NDK=$ANDROID_HOME/ndk-bundle" >> $GITHUB_ENV
 
       - name: Finalize Android SDK
-        if: env.turbo_cache_hit != 1
         run: |
           /bin/bash -c "yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null"
 
@@ -143,7 +144,6 @@ jobs:
         run: echo "sdk.dir=$ANDROID_HOME" > $GITHUB_WORKSPACE/apps/example/android/local.properties
 
       - name: Cache Gradle
-        if: env.turbo_cache_hit != 1
         uses: actions/cache@v4
         with:
           path: |
@@ -157,9 +157,93 @@ jobs:
         env:
           JAVA_OPTS: "-XX:MaxHeapSize=6g"
         run: |
-          yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}" --force
+          yarn turbo run build:android --concurrency 1
 
-  build-ios:
+      - name: Cache apk
+        uses: actions/cache/save@v4
+        env:
+          cache-name: cache-apk
+        with:
+          path: apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+          key: apk-${{ github.sha }}
+
+      - name: Upload Android APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-example-apk
+          path: apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+
+  test-android:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_android == 'true'
+    needs: build-android
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      TURBO_CACHE_DIR: .turbo/android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK tools
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/emulator" >> $GITHUB_PATH
+
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Restore APK
+        id: cache-apk
+        uses: actions/cache/restore@v4
+        with:
+          path: apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+          key: apk-${{ github.sha }}
+
+      - name: Start Package Manager
+        working-directory: apps/example
+        run: E2E=true yarn start &
+
+      - name: Run Android Emulator Tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          profile: Nexus 5X
+          force-avd-creation: true
+          emulator-options: -no-snapshot-save -no-window -gpu swangle_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            # Wait for Metro bundler
+            sleep 10
+
+            # Install and launch app
+            adb install -r apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+            adb shell monkey -p com.microsoft.reacttestapp 1
+
+            # Run tests
+            cd packages/webgpu && CI=true yarn test
+
+      - name: Upload test snapshots on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          path: packages/webgpu/src/__tests__/snapshots/
+          name: tests-snapshots-android
+
+  build-test-ios:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_ios == 'true'
     runs-on: macos-latest
     env:
@@ -189,9 +273,28 @@ jobs:
             echo "turbo_cache_hit=1" >> $GITHUB_ENV
           fi
 
+      - name: Install CocoaPods
+        working-directory: apps/example/ios
+        run: pod install
+
+      - name: Start Package Manager
+        working-directory: apps/example
+        run: E2E=true yarn start &
+
       - name: Build example for iOS
-        run: |
-          yarn turbo run build:ios --cache-dir="${{ env.TURBO_CACHE_DIR }}"
+        working-directory: apps/example
+        run: yarn ios --simulator 'iPhone 16 Pro'
+
+      - name: Run e2e tests
+        working-directory: packages/webgpu
+        run: CI=true E2E=true yarn test
+
+      - name: Upload test snapshots on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          path: packages/webgpu/src/__tests__/snapshots/
+          name: tests-snapshots-ios
 
   # Note: This job is disabled by default until RNTA supports 0.81
   # Enable it manually via workflow_dispatch when needed
