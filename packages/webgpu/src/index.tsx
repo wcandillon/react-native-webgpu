@@ -23,4 +23,9 @@ declare global {
     DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
     createImageBitmap: typeof createImageBitmap;
   };
+
+  // Extend createImageBitmap to accept ArrayBuffer/TypedArray (encoded image bytes)
+  function createImageBitmap(
+    image: ArrayBuffer | ArrayBufferView,
+  ): Promise<ImageBitmap>;
 }

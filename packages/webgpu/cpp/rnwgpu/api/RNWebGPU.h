@@ -79,13 +79,73 @@ public:
                                const jsi::Value & /*thisVal*/,
                                const jsi::Value *args, size_t count) {
     if (count < 1) {
-      throw jsi::JSError(runtime, "createImageBitmap requires a Blob argument");
+      throw jsi::JSError(runtime,
+                         "createImageBitmap requires a Blob or ArrayBuffer "
+                         "argument");
     }
 
-    auto blob =
-        JSIConverter<std::shared_ptr<Blob>>::fromJSI(runtime, args[0], false);
     auto platformContext = _platformContext;
     auto callInvoker = _callInvoker;
+
+    // Check if the argument is an ArrayBuffer or ArrayBufferView
+    // (TypedArray / DataView)
+    if (args[0].isObject()) {
+      auto obj = args[0].getObject(runtime);
+
+      std::span<const uint8_t> data;
+
+      if (obj.isArrayBuffer(runtime)) {
+        // Plain ArrayBuffer — use the full buffer
+        const auto &ab = obj.getArrayBuffer(runtime);
+        data = {ab.data(runtime), ab.size(runtime)};
+      } else if (obj.hasProperty(runtime, "buffer")) {
+        // TypedArray or DataView — respect byteOffset/byteLength
+        auto bufferVal = obj.getProperty(runtime, "buffer");
+        if (bufferVal.isObject() &&
+            bufferVal.getObject(runtime).isArrayBuffer(runtime)) {
+          const auto &ab =
+              bufferVal.getObject(runtime).getArrayBuffer(runtime);
+          auto byteOffset = static_cast<size_t>(
+              obj.getProperty(runtime, "byteOffset").asNumber());
+          auto byteLength = static_cast<size_t>(
+              obj.getProperty(runtime, "byteLength").asNumber());
+          data = {ab.data(runtime) + byteOffset, byteLength};
+        }
+      }
+
+      if (!data.empty()) {
+        // Copy bytes on the JS thread — the ArrayBuffer pointer is into
+        // JS-owned memory that can be GC'd
+        std::vector<uint8_t> dataCopy(data.begin(), data.end());
+
+        return Promise::createPromise(
+            runtime,
+            [platformContext, callInvoker,
+             dataCopy = std::move(dataCopy)](
+                jsi::Runtime & /*runtime*/,
+                std::shared_ptr<Promise> promise) mutable {
+              platformContext->createImageBitmapFromDataAsync(
+                  dataCopy,
+                  [callInvoker, promise](ImageData imageData) {
+                    auto imageBitmap =
+                        std::make_shared<ImageBitmap>(imageData);
+                    callInvoker->invokeAsync([promise, imageBitmap]() {
+                      promise->resolve(
+                          JSIConverter<std::shared_ptr<ImageBitmap>>::toJSI(
+                              promise->runtime, imageBitmap));
+                    });
+                  },
+                  [callInvoker, promise](std::string error) {
+                    callInvoker->invokeAsync(
+                        [promise, error]() { promise->reject(error); });
+                  });
+            });
+      }
+    }
+
+    // Fall through to existing Blob path
+    auto blob =
+        JSIConverter<std::shared_ptr<Blob>>::fromJSI(runtime, args[0], false);
     std::string blobId = blob->blobId;
     double offset = blob->offset;
     double size = blob->size;

@@ -407,6 +407,18 @@ export const checkImage = (
   return 0;
 };
 
+export const itSkipsOnWeb = (
+  name: string,
+  fn: () => Promise<void>,
+) => {
+  it(name, async () => {
+    if (client.OS === "web") {
+      return;
+    }
+    await fn();
+  });
+};
+
 export const decodeImage = (relPath: string): BitmapData => {
   const p = path.resolve(__dirname, relPath);
   const data = fs.readFileSync(p);
