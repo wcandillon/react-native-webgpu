@@ -1,5 +1,74 @@
 import { client } from "./setup";
 
+describe("createBindGroup", () => {
+  it("should accept GPUBuffer directly as resource (without wrapper)", async () => {
+    const result = await client.eval(({ device }) => {
+      // Create a simple compute shader that uses a storage buffer
+      const module = device.createShaderModule({
+        code: `
+          @group(0) @binding(0) var<storage, read> data: array<f32>;
+          @compute @workgroup_size(1)
+          fn main() {
+            let _ = data[0];
+          }
+        `,
+      });
+
+      const pipeline = device.createComputePipeline({
+        layout: "auto",
+        compute: { module },
+      });
+
+      const buffer = device.createBuffer({
+        size: 16,
+        usage: GPUBufferUsage.STORAGE,
+      });
+
+      // Pass GPUBuffer directly as resource (without { buffer: ... } wrapper)
+      const bindGroup = device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(0),
+        entries: [{ binding: 0, resource: buffer }],
+      });
+
+      return bindGroup !== null && bindGroup !== undefined;
+    });
+    expect(result).toBe(true);
+  });
+
+  it("should accept GPUBufferBinding object as resource (with wrapper)", async () => {
+    const result = await client.eval(({ device }) => {
+      const module = device.createShaderModule({
+        code: `
+          @group(0) @binding(0) var<storage, read> data: array<f32>;
+          @compute @workgroup_size(1)
+          fn main() {
+            let _ = data[0];
+          }
+        `,
+      });
+
+      const pipeline = device.createComputePipeline({
+        layout: "auto",
+        compute: { module },
+      });
+
+      const buffer = device.createBuffer({
+        size: 16,
+        usage: GPUBufferUsage.STORAGE,
+      });
+
+      // Pass GPUBufferBinding object as resource (with { buffer: ... } wrapper)
+      const bindGroup = device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(0),
+        entries: [{ binding: 0, resource: { buffer } }],
+      });
+
+      return bindGroup !== null && bindGroup !== undefined;
+    });
+    expect(result).toBe(true);
+  });
+});
+
 describe("Device", () => {
   it("request device (1)", async () => {
     const result = await client.eval(({ gpu }) =>

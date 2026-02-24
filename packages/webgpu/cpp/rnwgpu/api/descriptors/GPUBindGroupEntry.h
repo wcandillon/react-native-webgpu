@@ -46,6 +46,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUBindGroupEntry>> {
           } else if (obj.hasNativeState<rnwgpu::GPUTextureView>(runtime)) {
             result->textureView =
                 obj.getNativeState<rnwgpu::GPUTextureView>(runtime);
+          } else if (obj.hasNativeState<rnwgpu::GPUBuffer>(runtime)) {
+            // Support passing GPUBuffer directly as resource (auto-wrap in
+            // GPUBufferBinding)
+            auto binding = std::make_shared<rnwgpu::GPUBufferBinding>();
+            binding->buffer = obj.getNativeState<rnwgpu::GPUBuffer>(runtime);
+            result->buffer = binding;
           } else {
             result->buffer = JSIConverter<
                 std::shared_ptr<rnwgpu::GPUBufferBinding>>::fromJSI(runtime,
