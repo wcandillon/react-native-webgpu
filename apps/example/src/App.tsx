@@ -52,7 +52,7 @@ function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
         <Stack.Navigator
-          initialRouteName="Home"
+          initialRouteName="Tests"
           screenOptions={{ cardStyle: { flex: 1 } }}
         >
           <Stack.Screen name="Home" component={Home} />
