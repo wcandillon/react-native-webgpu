@@ -11,11 +11,19 @@
 namespace jsi = facebook::jsi;
 namespace react = facebook::react;
 
-@implementation WebGPUModule
+@implementation WebGPUModule {
+  std::shared_ptr<react::CallInvoker> _callInvoker;
+}
 
 RCT_EXPORT_MODULE(WebGPUModule)
 
 static std::shared_ptr<rnwgpu::RNWebGPUManager> webgpuManager;
+
+#pragma mark - RCTCallInvokerModule
+
+- (void)setCallInvoker:(std::shared_ptr<react::CallInvoker>)callInvoker {
+  _callInvoker = callInvoker;
+}
 
 + (std::shared_ptr<rnwgpu::RNWebGPUManager>)getManager {
   return webgpuManager;
@@ -43,28 +51,32 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
     // Already initialized, ignore call.
     return @true;
   }
-  RCTCxxBridge *cxxBridge = (RCTCxxBridge *)[RCTBridge currentBridge];
-  if (!cxxBridge.runtime) {
-    NSLog(@"Failed to install react-native-wgpu: RCTBridge is not a "
-          @"RCTCxxBridge!");
+
+  RCTBridge *bridge = self.bridge;
+  if (!bridge) {
+    NSLog(@"Failed to install react-native-wgpu: RCTBridge was nil!");
     return [NSNumber numberWithBool:NO];
   }
 
-  jsi::Runtime *runtime = (jsi::Runtime *)cxxBridge.runtime;
+  jsi::Runtime *runtime = (jsi::Runtime *)bridge.runtime;
   if (!runtime) {
     NSLog(@"Failed to install react-native-wgpu: jsi::Runtime* was null!");
     return [NSNumber numberWithBool:NO];
   }
-  std::shared_ptr<react::CallInvoker> jsInvoker = cxxBridge.jsCallInvoker;
+
+  // In Bridgeless mode, CallInvoker is injected via setCallInvoker:
+  // In Bridge mode, fall back to jsCallInvoker from the bridge
+  std::shared_ptr<react::CallInvoker> jsInvoker = _callInvoker;
+  if (!jsInvoker) {
+    RCTCxxBridge *cxxBridge = (RCTCxxBridge *)bridge;
+    jsInvoker = cxxBridge.jsCallInvoker;
+  }
   if (!jsInvoker) {
     NSLog(@"Failed to install react-native-wgpu: react::CallInvoker was "
           @"null!");
     return [NSNumber numberWithBool:NO];
   }
 
-  if (!jsInvoker) {
-    jsInvoker = cxxBridge.jsCallInvoker;
-  }
   std::shared_ptr<rnwgpu::PlatformContext> platformContext =
       std::make_shared<rnwgpu::ApplePlatformContext>();
   // TODO: remove allocation here
