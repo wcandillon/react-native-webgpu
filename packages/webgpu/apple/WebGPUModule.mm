@@ -3,6 +3,7 @@
 #import "GPUCanvasContext.h"
 
 #import <React/RCTBridge+Private.h>
+#import <React/RCTCallInvoker.h>
 #import <React/RCTLog.h>
 #import <ReactCommon/RCTTurboModule.h>
 #import <jsi/jsi.h>
@@ -11,11 +12,24 @@
 namespace jsi = facebook::jsi;
 namespace react = facebook::react;
 
+// Category to declare the runtime property on RCTBridge/RCTBridgeProxy.
+// In Bridgeless mode, self.bridge is an RCTBridgeProxy which implements
+// -(void *)runtime. In Legacy mode, self.bridge is the real RCTBridge
+// (backed by RCTCxxBridge) which also implements it.
+@interface RCTBridge (JSIRuntime)
+- (void *)runtime;
+@end
+
 @implementation WebGPUModule
 
 RCT_EXPORT_MODULE(WebGPUModule)
 
 static std::shared_ptr<rnwgpu::RNWebGPUManager> webgpuManager;
+
+// Synthesize callInvoker so RCTTurboModuleManager injects the JS CallInvoker.
+// When the module conforms to RCTCallInvokerModule, the TurboModule infra
+// calls setCallInvoker: during module initialization.
+@synthesize callInvoker = _callInvoker;
 
 + (std::shared_ptr<rnwgpu::RNWebGPUManager>)getManager {
   return webgpuManager;
@@ -28,10 +42,14 @@ static std::shared_ptr<rnwgpu::RNWebGPUManager> webgpuManager;
 }
 
 - (void)invalidate {
-  // if (_webgpuManager != nil) {
-  //   [_webgpuManager invalidate];
-  // }
   webgpuManager = nil;
+}
+
+// In Bridgeless mode, RCTTurboModuleManager calls setBridge: with an
+// RCTBridgeProxy that has a valid .runtime property.
+// In Legacy mode, it's the real RCTBridge.
+- (void)setBridge:(RCTBridge *)bridge {
+  [super setBridge:bridge];
 }
 
 - (std::shared_ptr<rnwgpu::RNWebGPUManager>)getManager {
@@ -43,31 +61,26 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
     // Already initialized, ignore call.
     return @true;
   }
-  RCTCxxBridge *cxxBridge = (RCTCxxBridge *)[RCTBridge currentBridge];
-  if (!cxxBridge.runtime) {
-    NSLog(@"Failed to install react-native-wgpu: RCTBridge is not a "
-          @"RCTCxxBridge!");
+
+  // self.bridge works in both Legacy (RCTBridge) and Bridgeless (RCTBridgeProxy).
+  jsi::Runtime *runtime = (jsi::Runtime *)self.bridge.runtime;
+  if (!runtime) {
+    NSLog(@"Failed to install react-native-wgpu: jsi::Runtime* was null! "
+          @"(self.bridge=%@)", self.bridge);
     return [NSNumber numberWithBool:NO];
   }
 
-  jsi::Runtime *runtime = (jsi::Runtime *)cxxBridge.runtime;
-  if (!runtime) {
-    NSLog(@"Failed to install react-native-wgpu: jsi::Runtime* was null!");
-    return [NSNumber numberWithBool:NO];
-  }
-  std::shared_ptr<react::CallInvoker> jsInvoker = cxxBridge.jsCallInvoker;
+  // _callInvoker is injected by RCTTurboModuleManager because we conform to
+  // RCTCallInvokerModule. Works in both Legacy and Bridgeless.
+  std::shared_ptr<react::CallInvoker> jsInvoker = _callInvoker.callInvoker;
   if (!jsInvoker) {
     NSLog(@"Failed to install react-native-wgpu: react::CallInvoker was "
           @"null!");
     return [NSNumber numberWithBool:NO];
   }
 
-  if (!jsInvoker) {
-    jsInvoker = cxxBridge.jsCallInvoker;
-  }
   std::shared_ptr<rnwgpu::PlatformContext> platformContext =
       std::make_shared<rnwgpu::ApplePlatformContext>();
-  // TODO: remove allocation here
   webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker,
                                                             platformContext);
   return @true;
