@@ -45,13 +45,6 @@ static std::shared_ptr<rnwgpu::RNWebGPUManager> webgpuManager;
   webgpuManager = nil;
 }
 
-// In Bridgeless mode, RCTTurboModuleManager calls setBridge: with an
-// RCTBridgeProxy that has a valid .runtime property.
-// In Legacy mode, it's the real RCTBridge.
-- (void)setBridge:(RCTBridge *)bridge {
-  [super setBridge:bridge];
-}
-
 - (std::shared_ptr<rnwgpu::RNWebGPUManager>)getManager {
   return webgpuManager;
 }
