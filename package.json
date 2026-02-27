@@ -6,9 +6,13 @@
     "apps/*"
   ],
   "resolutions": {
-    "@types/react": "^18.2.44",
+    "@types/react": "^19.2.0",
     "@webgpu/types": "^0.1.42",
-    "@react-three/fiber@^9.4.0": "patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch"
+    "@react-three/fiber@^9.4.0": "patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch",
+    "react-native-reanimated@^4.2.1": "patch:react-native-reanimated@npm%3A4.2.1#./.yarn/patches/react-native-reanimated-npm-4.2.1-8be3b216b9.patch",
+    "react-native-reanimated@4.2.1": "patch:react-native-reanimated@npm%3A4.2.1#./.yarn/patches/react-native-reanimated-npm-4.2.1-8be3b216b9.patch",
+    "react-native-worklets@^0.7.0": "patch:react-native-worklets@npm%3A0.7.2#./.yarn/patches/react-native-worklets-npm-0.7.2-dd0e6c2e74.patch",
+    "react-native-worklets@0.7.2": "patch:react-native-worklets@npm%3A0.7.2#./.yarn/patches/react-native-worklets-npm-0.7.2-dd0e6c2e74.patch"
   },
   "packageManager": "yarn@3.6.1",
   "scripts": {

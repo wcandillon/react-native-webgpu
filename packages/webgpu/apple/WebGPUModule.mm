@@ -58,20 +58,15 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
     return [NSNumber numberWithBool:NO];
   }
 
-  jsi::Runtime *runtime = (jsi::Runtime *)bridge.runtime;
+  // In Bridgeless mode, self.bridge is an RCTBridgeProxy which exposes runtime
+  RCTCxxBridge *cxxBridge = (RCTCxxBridge *)bridge;
+  jsi::Runtime *runtime = (jsi::Runtime *)cxxBridge.runtime;
   if (!runtime) {
     NSLog(@"Failed to install react-native-wgpu: jsi::Runtime* was null!");
     return [NSNumber numberWithBool:NO];
   }
 
-  // In Bridgeless mode, CallInvoker is injected via setCallInvoker:
-  // In Bridge mode, fall back to jsCallInvoker from the bridge
-  std::shared_ptr<react::CallInvoker> jsInvoker = _callInvoker;
-  if (!jsInvoker) {
-    RCTCxxBridge *cxxBridge = (RCTCxxBridge *)bridge;
-    jsInvoker = cxxBridge.jsCallInvoker;
-  }
-  if (!jsInvoker) {
+  if (!_callInvoker) {
     NSLog(@"Failed to install react-native-wgpu: react::CallInvoker was "
           @"null!");
     return [NSNumber numberWithBool:NO];
@@ -79,14 +74,14 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
 
   std::shared_ptr<rnwgpu::PlatformContext> platformContext =
       std::make_shared<rnwgpu::ApplePlatformContext>();
-  // TODO: remove allocation here
-  webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker,
-                                                            platformContext);
+  webgpuManager =
+      std::make_shared<rnwgpu::RNWebGPUManager>(runtime, _callInvoker, platformContext);
   return @true;
 }
 
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
     (const facebook::react::ObjCTurboModule::InitParams &)params {
+  _callInvoker = params.jsInvoker;
   return std::make_shared<facebook::react::NativeWebGPUModuleSpecJSI>(params);
 }
 

@@ -185,8 +185,9 @@ export function Particules() {
     let numMipLevels = 1;
     let texture: GPUTexture;
     {
+      // TODO: use response.blob() once RN 0.84 blob bug is fixed
       const response = await fetchAsset(require("../assets/react.png"));
-      const imageBitmap = await createImageBitmap(await response.blob());
+      const imageBitmap = await createImageBitmap(await response.arrayBuffer());
 
       // Calculate number of mip levels required to generate the probability map
       while (

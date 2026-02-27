@@ -10,8 +10,9 @@ export const fetchAsset = async (mod: number) => {
 export const decodeImage = async (mod: number) => {
   const { uri } = Image.resolveAssetSource(mod);
   const response = await fetch(uri);
-  const blob = await response.blob();
-  const image = await createImageBitmap(blob);
+  // TODO: use response.blob() once RN 0.84 blob bug is fixed
+  const arrayBuffer = await response.arrayBuffer();
+  const image = await createImageBitmap(arrayBuffer);
   return image;
 };
 

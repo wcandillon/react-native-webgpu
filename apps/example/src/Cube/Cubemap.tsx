@@ -108,9 +108,10 @@ export const Cubemap = () => {
           require("../assets/cubemap/posz.jpg"),
           require("../assets/cubemap/negz.jpg"),
         ];
+        // TODO: use response.blob() once RN 0.84 blob bug is fixed
         const promises = imgSrcs.map(async (src) => {
           const response = await fetchAsset(src);
-          return createImageBitmap(await response.blob());
+          return createImageBitmap(await response.arrayBuffer());
         });
         const imageBitmaps = await Promise.all(promises);
 

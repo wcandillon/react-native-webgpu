@@ -97,10 +97,11 @@ export const RenderBundles = () => {
 
       // Fetch the images and upload them into a GPUTexture.
       // Fetch the images and upload them into a GPUTexture.
+      // TODO: use response.blob() once RN 0.84 blob bug is fixed
       let planetTexture: GPUTexture;
       {
         const response = await fetchAsset(require("../assets/saturn.png"));
-        const imageBitmap = await createImageBitmap(await response.blob());
+        const imageBitmap = await createImageBitmap(await response.arrayBuffer());
 
         planetTexture = device.createTexture({
           size: [imageBitmap.width, imageBitmap.height, 1],
@@ -120,7 +121,7 @@ export const RenderBundles = () => {
       let moonTexture: GPUTexture;
       {
         const response = await fetchAsset(require("../assets/moon.png"));
-        const imageBitmap = await createImageBitmap(await response.blob());
+        const imageBitmap = await createImageBitmap(await response.arrayBuffer());
 
         moonTexture = device.createTexture({
           size: [imageBitmap.width, imageBitmap.height, 1],
