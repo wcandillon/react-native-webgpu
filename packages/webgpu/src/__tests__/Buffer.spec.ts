@@ -341,9 +341,9 @@ describe("Buffer", () => {
 
       return gpuBuffer.mapAsync(GPUMapMode.READ).then(() => {
         const data = new Uint32Array(gpuBuffer.getMappedRange());
-        const result = Array.from(data);
+        const result2 = Array.from(data);
         gpuBuffer.unmap();
-        return result;
+        return result2;
       });
     });
     // Should be [333, 444] (from offset 8), not [111, 222] (from offset 0)

@@ -407,10 +407,7 @@ export const checkImage = (
   return 0;
 };
 
-export const itSkipsOnWeb = (
-  name: string,
-  fn: () => Promise<void>,
-) => {
+export const itSkipsOnWeb = (name: string, fn: () => Promise<void>) => {
   it(name, async () => {
     if (client.OS === "web") {
       return;

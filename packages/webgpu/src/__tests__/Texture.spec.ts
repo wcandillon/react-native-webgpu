@@ -237,7 +237,7 @@ describe("Texture", () => {
         { texture },
         layer1View, // This view has byteOffset=256
         { bytesPerRow },
-        { width, height }
+        { width, height },
       );
 
       // Read back the texture
@@ -250,7 +250,7 @@ describe("Texture", () => {
       commandEncoder.copyTextureToBuffer(
         { texture },
         { buffer: outputBuffer, bytesPerRow },
-        [width, height]
+        [width, height],
       );
       device.queue.submit([commandEncoder.finish()]);
 
