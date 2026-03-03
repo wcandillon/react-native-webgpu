@@ -194,4 +194,75 @@ describe("Texture", () => {
     const image = encodeImage(result);
     checkImage(image, "snapshots/texture.png");
   });
+  it("writeTexture respects TypedArray byteOffset (issue #328)", async () => {
+    const result = await client.eval(({ device }) => {
+      const width = 64; // Use 64 so bytesPerRow (256) is aligned
+      const height = 1;
+      const bytesPerPixel = 4; // rgba8unorm
+      const bytesPerRow = width * bytesPerPixel; // 256 bytes (aligned)
+      const layerSize = bytesPerRow * height; // 256 bytes per layer
+
+      // Create a buffer with 2 layers of data
+      const bigBuffer = new ArrayBuffer(layerSize * 2); // 512 bytes total
+      const fullView = new Uint8Array(bigBuffer);
+
+      // Fill layer 0 (offset 0) with red pixels (255, 0, 0, 255)
+      for (let i = 0; i < layerSize; i += 4) {
+        fullView[i] = 255; // R
+        fullView[i + 1] = 0; // G
+        fullView[i + 2] = 0; // B
+        fullView[i + 3] = 255; // A
+      }
+
+      // Fill layer 1 (offset 256) with green pixels (0, 255, 0, 255)
+      for (let i = layerSize; i < layerSize * 2; i += 4) {
+        fullView[i] = 0; // R
+        fullView[i + 1] = 255; // G
+        fullView[i + 2] = 0; // B
+        fullView[i + 3] = 255; // A
+      }
+
+      // Create a view starting at layer 1 (byteOffset = 256)
+      const layer1View = new Uint8Array(bigBuffer, layerSize, layerSize);
+
+      // Create texture
+      const texture = device.createTexture({
+        size: [width, height],
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
+      });
+
+      // Write using the view with byteOffset - should write green pixels
+      device.queue.writeTexture(
+        { texture },
+        layer1View, // This view has byteOffset=256
+        { bytesPerRow },
+        { width, height }
+      );
+
+      // Read back the texture
+      const outputBuffer = device.createBuffer({
+        size: layerSize,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+      });
+
+      const commandEncoder = device.createCommandEncoder();
+      commandEncoder.copyTextureToBuffer(
+        { texture },
+        { buffer: outputBuffer, bytesPerRow },
+        [width, height]
+      );
+      device.queue.submit([commandEncoder.finish()]);
+
+      return outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
+        const data = new Uint8Array(outputBuffer.getMappedRange());
+        // Check the first pixel - should be green (0, 255, 0, 255)
+        const pixel = [data[0], data[1], data[2], data[3]];
+        outputBuffer.unmap();
+        return pixel;
+      });
+    });
+    // Should be green (from layer 1), not red (from layer 0)
+    expect(result).toEqual([0, 255, 0, 255]);
+  });
 });
