@@ -1,8 +1,9 @@
 // Declare global WebGPU worklet helper functions (installed by native module)
 declare function __webgpuIsWebGPUObject(obj: unknown): boolean;
-declare function __webgpuBox(
-  obj: object
-): { unbox: () => object; __boxedWebGPU: true };
+declare function __webgpuBox(obj: object): {
+  unbox: () => object;
+  __boxedWebGPU: true;
+};
 
 let isRegistered = false;
 
@@ -19,7 +20,6 @@ export const registerWebGPUForReanimated = () => {
   isRegistered = true;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { registerCustomSerializable } = require("react-native-worklets");
 
     registerCustomSerializable({

@@ -6,7 +6,7 @@ type ImportType = ReturnType<typeof require>;
  * This is useful for lazily requiring optional dependencies.
  */
 export const createModuleProxy = <TModule>(
-  getModule: () => ImportType
+  getModule: () => ImportType,
 ): TModule => {
   const holder: { module: TModule | undefined } = { module: undefined };
 

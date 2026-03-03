@@ -317,6 +317,38 @@ describe("Buffer", () => {
     });
     checkImage(png, "snapshots/buffer.png");
   });
+  it("writeBuffer respects TypedArray byteOffset (issue #328)", async () => {
+    const result = await client.eval(({ device }) => {
+      // Create a source buffer with distinct values at different offsets
+      const sourceBuffer = new ArrayBuffer(16); // 4 x 4 bytes
+      const fullView = new Uint32Array(sourceBuffer);
+      fullView[0] = 111; // offset 0
+      fullView[1] = 222; // offset 4
+      fullView[2] = 333; // offset 8
+      fullView[3] = 444; // offset 12
+
+      // Create a view starting at offset 8 (2 uint32 values)
+      const partialView = new Uint32Array(sourceBuffer, 8, 2);
+
+      // Create GPU buffer
+      const gpuBuffer = device.createBuffer({
+        size: 8, // 2 uint32 values
+        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+      });
+
+      // Write using the view with byteOffset - should write [333, 444]
+      device.queue.writeBuffer(gpuBuffer, 0, partialView);
+
+      return gpuBuffer.mapAsync(GPUMapMode.READ).then(() => {
+        const data = new Uint32Array(gpuBuffer.getMappedRange());
+        const result2 = Array.from(data);
+        gpuBuffer.unmap();
+        return result2;
+      });
+    });
+    // Should be [333, 444] (from offset 8), not [111, 222] (from offset 0)
+    expect(result).toEqual([333, 444]);
+  });
   it("writes an image into a buffer and reads it back", async () => {
     const imageData = await client.eval(({ device }) => {
       const data = new Uint8Array(256 * 256 * 4);

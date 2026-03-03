@@ -35,6 +35,6 @@ if (typeof RNWebGPU !== "undefined") {
     global.createImageBitmap ?? RNWebGPU.createImageBitmap.bind(RNWebGPU);
 } else {
   console.warn(
-    `[react-native-wgpu] install() returned ${_installOk} but RNWebGPU global is not available`
+    `[react-native-wgpu] install() returned ${_installOk} but RNWebGPU global is not available`,
   );
 }
