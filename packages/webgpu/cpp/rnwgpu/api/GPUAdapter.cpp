@@ -110,12 +110,12 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
           if (td.enable.has_value() && !td.enable->empty()) {
             for (const auto &s : *td.enable) enablePtrs.push_back(s.c_str());
             togglesDesc.enabledToggles = enablePtrs.data();
-            togglesDesc.enabledTogglesCount = enablePtrs.size();
+            togglesDesc.enabledToggleCount = enablePtrs.size();
           }
           if (td.disable.has_value() && !td.disable->empty()) {
             for (const auto &s : *td.disable) disablePtrs.push_back(s.c_str());
             togglesDesc.disabledToggles = disablePtrs.data();
-            togglesDesc.disabledTogglesCount = disablePtrs.size();
+            togglesDesc.disabledToggleCount = disablePtrs.size();
           }
           if (!enablePtrs.empty() || !disablePtrs.empty()) {
             togglesDesc.nextInChain = localDescriptor.nextInChain;
