@@ -191,61 +191,6 @@ describe("Device", () => {
     expect(result).toBe(true);
   });
 
-  describe("dawnToggles", () => {
-    it("should request device with enable toggles", async () => {
-      const result = await client.eval(({ gpu }) =>
-        gpu.requestAdapter().then((adapter) =>
-          adapter!
-            .requestDevice({
-              dawnToggles: { enable: ["use_user_defined_labels_in_backend"] },
-            })
-            .then((device) => device !== null),
-        ),
-      );
-      expect(result).toBe(true);
-    });
-
-    it("should request device with disable toggles", async () => {
-      const result = await client.eval(({ gpu }) =>
-        gpu.requestAdapter().then((adapter) =>
-          adapter!
-            .requestDevice({
-              dawnToggles: { disable: ["use_user_defined_labels_in_backend"] },
-            })
-            .then((device) => device !== null),
-        ),
-      );
-      expect(result).toBe(true);
-    });
-
-    it("should request device with both enable and disable toggles", async () => {
-      const result = await client.eval(({ gpu }) =>
-        gpu.requestAdapter().then((adapter) =>
-          adapter!
-            .requestDevice({
-              dawnToggles: {
-                enable: ["use_user_defined_labels_in_backend"],
-                disable: ["disable_symbol_renaming"],
-              },
-            })
-            .then((device) => device !== null),
-        ),
-      );
-      expect(result).toBe(true);
-    });
-
-    it("should request device with empty dawnToggles", async () => {
-      const result = await client.eval(({ gpu }) =>
-        gpu.requestAdapter().then((adapter) =>
-          adapter!
-            .requestDevice({ dawnToggles: {} })
-            .then((device) => device !== null),
-        ),
-      );
-      expect(result).toBe(true);
-    });
-  });
-
   it("should receive uncapturederror event when validation error occurs", async () => {
     const result = await client.eval(({ gpu }) =>
       gpu.requestAdapter().then((adapter) =>

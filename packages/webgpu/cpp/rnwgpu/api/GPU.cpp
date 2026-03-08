@@ -13,13 +13,33 @@
 
 namespace rnwgpu {
 
-GPU::GPU(jsi::Runtime &runtime) : NativeObject(CLASS_NAME) {
+GPU::GPU(jsi::Runtime &runtime,
+         std::vector<std::string> enableToggles,
+         std::vector<std::string> disableToggles)
+    : NativeObject(CLASS_NAME),
+      _enableToggles(std::move(enableToggles)),
+      _disableToggles(std::move(disableToggles)) {
   static const auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
   wgpu::InstanceDescriptor instanceDesc{.requiredFeatureCount = 1,
                                         .requiredFeatures = &kTimedWaitAny};
 
   wgpu::InstanceLimits limits{.timedWaitAnyMaxCount = 64};
   instanceDesc.requiredLimits = &limits;
+
+  // Build Dawn toggles descriptor and chain it if any toggles are specified
+  std::vector<const char *> enablePtrs, disablePtrs;
+  wgpu::DawnTogglesDescriptor togglesDesc;
+  if (!_enableToggles.empty() || !_disableToggles.empty()) {
+    for (const auto &s : _enableToggles) enablePtrs.push_back(s.c_str());
+    for (const auto &s : _disableToggles) disablePtrs.push_back(s.c_str());
+    togglesDesc.enabledToggles = enablePtrs.empty() ? nullptr : enablePtrs.data();
+    togglesDesc.enabledToggleCount = enablePtrs.size();
+    togglesDesc.disabledToggles = disablePtrs.empty() ? nullptr : disablePtrs.data();
+    togglesDesc.disabledToggleCount = disablePtrs.size();
+    togglesDesc.nextInChain = instanceDesc.nextInChain;
+    instanceDesc.nextInChain = &togglesDesc;
+  }
+
   _instance = wgpu::CreateInstance(&instanceDesc);
 
   auto dispatcher = std::make_shared<async::JSIMicrotaskDispatcher>(runtime);
@@ -39,11 +59,32 @@ async::AsyncTaskHandle GPU::requestAdapter(
   constexpr auto kDefaultBackendType = wgpu::BackendType::Vulkan;
 #endif
   aOptions.backendType = kDefaultBackendType;
+
+  // Capture toggle strings by value so the lambda owns them
+  auto enableToggles = _enableToggles;
+  auto disableToggles = _disableToggles;
+
   return _async->postTask(
-      [this, aOptions](const async::AsyncTaskHandle::ResolveFunction &resolve,
-                       const async::AsyncTaskHandle::RejectFunction &reject) {
+      [this, aOptions, enableToggles = std::move(enableToggles),
+       disableToggles = std::move(disableToggles)](
+          const async::AsyncTaskHandle::ResolveFunction &resolve,
+          const async::AsyncTaskHandle::RejectFunction &reject) {
+        // Build Dawn toggles chain inside the task so pointers remain valid
+        std::vector<const char *> enablePtrs, disablePtrs;
+        wgpu::DawnTogglesDescriptor togglesDesc;
+        auto localOptions = aOptions;
+        if (!enableToggles.empty() || !disableToggles.empty()) {
+          for (const auto &s : enableToggles) enablePtrs.push_back(s.c_str());
+          for (const auto &s : disableToggles) disablePtrs.push_back(s.c_str());
+          togglesDesc.enabledToggles = enablePtrs.empty() ? nullptr : enablePtrs.data();
+          togglesDesc.enabledToggleCount = enablePtrs.size();
+          togglesDesc.disabledToggles = disablePtrs.empty() ? nullptr : disablePtrs.data();
+          togglesDesc.disabledToggleCount = disablePtrs.size();
+          togglesDesc.nextInChain = localOptions.nextInChain;
+          localOptions.nextInChain = &togglesDesc;
+        }
         _instance.RequestAdapter(
-            &aOptions, wgpu::CallbackMode::AllowProcessEvents,
+            &localOptions, wgpu::CallbackMode::AllowProcessEvents,
             [asyncRunner = _async, resolve,
              reject](wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,
                      wgpu::StringView message) {

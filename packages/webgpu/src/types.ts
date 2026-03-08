@@ -12,11 +12,10 @@ export interface DawnTogglesDescriptor {
   disable?: string[];
 }
 
-declare global {
-  interface GPUDeviceDescriptor {
-    /** Dawn-specific toggles. Ignored in non-Dawn environments. */
-    dawnToggles?: DawnTogglesDescriptor;
-  }
+/** Options for installWebGPU() - React Native WebGPU specific */
+export interface RNWebGPUInstallOptions {
+  /** Dawn-specific toggles applied at the Instance level (ignored on web) */
+  dawnToggles?: DawnTogglesDescriptor;
 }
 
 export interface NativeCanvas {

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <vector>
 
 #include "GPU.h"
 #include "PlatformContext.h"
@@ -24,7 +26,9 @@ class RNWebGPUManager {
 public:
   RNWebGPUManager(jsi::Runtime *jsRuntime,
                   std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker,
-                  std::shared_ptr<PlatformContext> platformContext);
+                  std::shared_ptr<PlatformContext> platformContext,
+                  std::vector<std::string> enableToggles = {},
+                  std::vector<std::string> disableToggles = {});
   ~RNWebGPUManager();
 
   /**

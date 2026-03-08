@@ -53,14 +53,18 @@ namespace rnwgpu {
 RNWebGPUManager::RNWebGPUManager(
     jsi::Runtime *jsRuntime,
     std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker,
-    std::shared_ptr<PlatformContext> platformContext)
+    std::shared_ptr<PlatformContext> platformContext,
+    std::vector<std::string> enableToggles,
+    std::vector<std::string> disableToggles)
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker),
       _platformContext(platformContext) {
 
   // Register main runtime for RuntimeAwareCache
   BaseRuntimeAwareCache::setMainJsRuntime(_jsRuntime);
 
-  auto gpu = std::make_shared<GPU>(*_jsRuntime);
+  auto gpu = std::make_shared<GPU>(*_jsRuntime,
+                                   std::move(enableToggles),
+                                   std::move(disableToggles));
   auto rnWebGPU =
       std::make_shared<RNWebGPU>(gpu, _platformContext, _jsCallInvoker);
   _gpu = gpu->get();

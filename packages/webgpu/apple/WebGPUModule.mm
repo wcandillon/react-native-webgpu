@@ -49,7 +49,7 @@ static std::shared_ptr<rnwgpu::RNWebGPUManager> webgpuManager;
   return webgpuManager;
 }
 
-RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
+RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install:(NSDictionary* __nullable)options) {
   if (webgpuManager != nil) {
     // Already initialized, ignore call.
     return @true;
@@ -72,10 +72,36 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
     return [NSNumber numberWithBool:NO];
   }
 
+  // Extract dawnToggles from options
+  std::vector<std::string> enableToggles;
+  std::vector<std::string> disableToggles;
+  if (options != nil) {
+    NSDictionary *dawnToggles = options[@"dawnToggles"];
+    if ([dawnToggles isKindOfClass:[NSDictionary class]]) {
+      NSArray *enable = dawnToggles[@"enable"];
+      if ([enable isKindOfClass:[NSArray class]]) {
+        for (NSString *toggle in enable) {
+          if ([toggle isKindOfClass:[NSString class]]) {
+            enableToggles.push_back(toggle.UTF8String);
+          }
+        }
+      }
+      NSArray *disable = dawnToggles[@"disable"];
+      if ([disable isKindOfClass:[NSArray class]]) {
+        for (NSString *toggle in disable) {
+          if ([toggle isKindOfClass:[NSString class]]) {
+            disableToggles.push_back(toggle.UTF8String);
+          }
+        }
+      }
+    }
+  }
+
   std::shared_ptr<rnwgpu::PlatformContext> platformContext =
       std::make_shared<rnwgpu::ApplePlatformContext>();
-  webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker,
-                                                            platformContext);
+  webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(
+      runtime, jsInvoker, platformContext,
+      std::move(enableToggles), std::move(disableToggles));
   return @true;
 }
 

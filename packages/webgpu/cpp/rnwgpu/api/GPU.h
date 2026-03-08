@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_set>
 #include <variant>
+#include <vector>
 
 #include "Unions.h"
 
@@ -27,7 +28,9 @@ class GPU : public NativeObject<GPU> {
 public:
   static constexpr const char *CLASS_NAME = "GPU";
 
-  explicit GPU(jsi::Runtime &runtime);
+  explicit GPU(jsi::Runtime &runtime,
+               std::vector<std::string> enableToggles = {},
+               std::vector<std::string> disableToggles = {});
 
 public:
   std::string getBrand() { return CLASS_NAME; }
@@ -53,6 +56,8 @@ public:
 private:
   wgpu::Instance _instance;
   std::shared_ptr<async::AsyncRunner> _async;
+  std::vector<std::string> _enableToggles;
+  std::vector<std::string> _disableToggles;
 };
 
 } // namespace rnwgpu

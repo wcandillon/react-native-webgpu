@@ -11,7 +11,6 @@
 #include "WGPULogger.h"
 
 #include "GPUQueueDescriptor.h"
-#include "GPUDawnTogglesDescriptor.h"
 
 namespace jsi = facebook::jsi;
 
@@ -25,7 +24,6 @@ struct GPUDeviceDescriptor {
   std::optional<std::shared_ptr<GPUQueueDescriptor>>
       defaultQueue;                 // GPUQueueDescriptor
   std::optional<std::string> label; // string
-  std::optional<std::shared_ptr<GPUDawnTogglesDescriptor>> dawnToggles;
 };
 
 } // namespace rnwgpu
@@ -88,12 +86,6 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
         auto prop = value.getProperty(runtime, "label");
         result->label = JSIConverter<std::optional<std::string>>::fromJSI(
             runtime, prop, false);
-      }
-      if (value.hasProperty(runtime, "dawnToggles")) {
-        auto prop = value.getProperty(runtime, "dawnToggles");
-        result->dawnToggles =
-            JSIConverter<std::optional<std::shared_ptr<GPUDawnTogglesDescriptor>>>::
-                fromJSI(runtime, prop, false);
       }
     }
 

@@ -86,45 +86,16 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
   std::string label =
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "";
 
-  // Extract Dawn toggle data by value before the async lambda captures it
-  std::optional<rnwgpu::GPUDawnTogglesDescriptor> dawnTogglesData;
-  if (descriptor.has_value() && descriptor.value()->dawnToggles.has_value()) {
-    dawnTogglesData = *descriptor.value()->dawnToggles.value();
-  }
-
   auto creationRuntime = getCreationRuntime();
   return _async->postTask(
       [this, aDescriptor, descriptor, label = std::move(label),
-       deviceLostBinding, dawnTogglesData = std::move(dawnTogglesData),
+       deviceLostBinding,
        creationRuntime](const async::AsyncTaskHandle::ResolveFunction &resolve,
                         const async::AsyncTaskHandle::RejectFunction &reject) {
         (void)descriptor;
 
-        // Build Dawn toggles chain if provided
-        wgpu::DawnTogglesDescriptor togglesDesc;
-        std::vector<const char *> enablePtrs, disablePtrs;
-        auto localDescriptor = aDescriptor;
-
-        if (dawnTogglesData.has_value()) {
-          const auto &td = *dawnTogglesData;
-          if (td.enable.has_value() && !td.enable->empty()) {
-            for (const auto &s : *td.enable) enablePtrs.push_back(s.c_str());
-            togglesDesc.enabledToggles = enablePtrs.data();
-            togglesDesc.enabledToggleCount = enablePtrs.size();
-          }
-          if (td.disable.has_value() && !td.disable->empty()) {
-            for (const auto &s : *td.disable) disablePtrs.push_back(s.c_str());
-            togglesDesc.disabledToggles = disablePtrs.data();
-            togglesDesc.disabledToggleCount = disablePtrs.size();
-          }
-          if (!enablePtrs.empty() || !disablePtrs.empty()) {
-            togglesDesc.nextInChain = localDescriptor.nextInChain;
-            localDescriptor.nextInChain = &togglesDesc;
-          }
-        }
-
         _instance.RequestDevice(
-            &localDescriptor, wgpu::CallbackMode::AllowProcessEvents,
+            &aDescriptor, wgpu::CallbackMode::AllowProcessEvents,
             [asyncRunner = _async, resolve, reject, label, creationRuntime,
              deviceLostBinding](wgpu::RequestDeviceStatus status,
                                 wgpu::Device device,
