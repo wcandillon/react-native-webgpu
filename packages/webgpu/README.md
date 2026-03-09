@@ -151,6 +151,41 @@ const style = StyleSheet.create({
 });
 ```
 
+## Dawn Debug Toggles
+
+Dawn instance toggles are configured natively before WebGPU is installed.
+This keeps initialization order deterministic and avoids JS import-order issues.
+
+On iOS, add the following keys to your app's `Info.plist`:
+
+```xml
+<key>RNWebGPUEnableToggles</key>
+<array>
+  <string>allow_unsafe_apis</string>
+</array>
+<key>RNWebGPUDisableToggles</key>
+<array>
+  <string>disallow_spirv</string>
+</array>
+```
+
+On Android, add `meta-data` entries to your app's `AndroidManifest.xml`:
+
+```xml
+<application>
+  <meta-data
+    android:name="com.webgpu.enable_toggles"
+    android:value="allow_unsafe_apis" />
+  <meta-data
+    android:name="com.webgpu.disable_toggles"
+    android:value="disallow_spirv" />
+</application>
+```
+
+Android toggle lists are comma-separated strings. Empty entries are ignored.
+If you inject these values from build-time environment variables or config plugins,
+emit them into `Info.plist` and `AndroidManifest.xml`.
+
 ## Example App
 
 To run the example app you first need to [install Dawn](#installing-dawn).

@@ -20,6 +20,30 @@ namespace react = facebook::react;
 - (void *)runtime;
 @end
 
+static std::vector<std::string> ReadToggleArray(NSDictionary *infoDictionary,
+                                                NSString *key) {
+  std::vector<std::string> toggles;
+  id value = infoDictionary[key];
+  if (![value isKindOfClass:[NSArray class]]) {
+    return toggles;
+  }
+
+  for (id item in (NSArray *)value) {
+    if (![item isKindOfClass:[NSString class]]) {
+      continue;
+    }
+    NSString *toggle = [(NSString *)item
+        stringByTrimmingCharactersInSet:
+            [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (toggle.length == 0) {
+      continue;
+    }
+    toggles.push_back(toggle.UTF8String);
+  }
+
+  return toggles;
+}
+
 @implementation WebGPUModule
 
 RCT_EXPORT_MODULE(WebGPUModule)
@@ -49,7 +73,7 @@ static std::shared_ptr<rnwgpu::RNWebGPUManager> webgpuManager;
   return webgpuManager;
 }
 
-RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install:(NSDictionary* __nullable)options) {
+RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   if (webgpuManager != nil) {
     // Already initialized, ignore call.
     return @true;
@@ -72,30 +96,11 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install:(NSDictionary* __nullable)options
     return [NSNumber numberWithBool:NO];
   }
 
-  // Extract dawnToggles from options
-  std::vector<std::string> enableToggles;
-  std::vector<std::string> disableToggles;
-  if (options != nil) {
-    NSDictionary *dawnToggles = options[@"dawnToggles"];
-    if ([dawnToggles isKindOfClass:[NSDictionary class]]) {
-      NSArray *enable = dawnToggles[@"enable"];
-      if ([enable isKindOfClass:[NSArray class]]) {
-        for (NSString *toggle in enable) {
-          if ([toggle isKindOfClass:[NSString class]]) {
-            enableToggles.push_back(toggle.UTF8String);
-          }
-        }
-      }
-      NSArray *disable = dawnToggles[@"disable"];
-      if ([disable isKindOfClass:[NSArray class]]) {
-        for (NSString *toggle in disable) {
-          if ([toggle isKindOfClass:[NSString class]]) {
-            disableToggles.push_back(toggle.UTF8String);
-          }
-        }
-      }
-    }
-  }
+  NSDictionary *infoDictionary = NSBundle.mainBundle.infoDictionary ?: @{};
+  auto enableToggles =
+      ReadToggleArray(infoDictionary, @"RNWebGPUEnableToggles");
+  auto disableToggles =
+      ReadToggleArray(infoDictionary, @"RNWebGPUDisableToggles");
 
   std::shared_ptr<rnwgpu::PlatformContext> platformContext =
       std::make_shared<rnwgpu::ApplePlatformContext>();

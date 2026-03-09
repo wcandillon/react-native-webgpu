@@ -38,7 +38,14 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     jsize len = env->GetArrayLength(enableToggles);
     for (jsize i = 0; i < len; i++) {
       auto jstr = (jstring)env->GetObjectArrayElement(enableToggles, i);
+      if (jstr == nullptr) {
+        continue;
+      }
       const char *cstr = env->GetStringUTFChars(jstr, nullptr);
+      if (cstr == nullptr) {
+        env->DeleteLocalRef(jstr);
+        continue;
+      }
       enableVec.emplace_back(cstr);
       env->ReleaseStringUTFChars(jstr, cstr);
       env->DeleteLocalRef(jstr);
@@ -48,7 +55,14 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     jsize len = env->GetArrayLength(disableToggles);
     for (jsize i = 0; i < len; i++) {
       auto jstr = (jstring)env->GetObjectArrayElement(disableToggles, i);
+      if (jstr == nullptr) {
+        continue;
+      }
       const char *cstr = env->GetStringUTFChars(jstr, nullptr);
+      if (cstr == nullptr) {
+        env->DeleteLocalRef(jstr);
+        continue;
+      }
       disableVec.emplace_back(cstr);
       env->ReleaseStringUTFChars(jstr, cstr);
       env->DeleteLocalRef(jstr);
