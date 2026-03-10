@@ -7,9 +7,14 @@
   "types": "lib/typescript/src/index.d.ts",
   "react-native": "src/index",
   "source": "src/index",
+  "expo": {
+    "plugin": "./app.plugin"
+  },
   "files": [
     "src/**",
     "lib/**",
+    "app.plugin.js",
+    "plugin/src/**",
     "!**/__tests__/**",
     "android/build.gradle",
     "android/CMakeLists.txt",
@@ -26,6 +31,7 @@
     "test:ref": "REFERENCE=true NODE_OPTIONS='--experimental-require-module' jest -i",
     "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
     "tsc": "tsc --noEmit",
+    "build:plugin": "tsc -p plugin/tsconfig.json",
     "build": "bob build",
     "build-dawn": "tsx scripts/build/dawn.ts",
     "clean-dawn": "rimraf ./libs && rimraf ../../externals/dawn/out",
@@ -56,6 +62,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
+    "@expo/config-plugins": "^9.0.0",
     "@types/jest": "^29.5.12",
     "@types/lodash": "^4.17.5",
     "@types/node": "^20.14.7",
