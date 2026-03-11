@@ -4,6 +4,7 @@
 
 #include "GPU.h"
 #include "PlatformContext.h"
+#include "Promise.h"
 #include "SurfaceRegistry.h"
 
 namespace facebook {
@@ -37,6 +38,7 @@ public:
 private:
   jsi::Runtime *_jsRuntime;
   std::shared_ptr<facebook::react::CallInvoker> _jsCallInvoker;
+  std::shared_ptr<RuntimeContext> _runtimeContext;
 
 public:
   wgpu::Instance _gpu;
