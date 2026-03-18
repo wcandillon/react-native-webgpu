@@ -38,7 +38,7 @@ function debounce<T extends (...args: any[]) => void>(
   };
 }
 
-function resizeCanvas(canvas?: HTMLCanvasElement) {
+function resizeCanvas(canvas: HTMLCanvasElement | null) {
   if (!canvas) {
     return;
   }
