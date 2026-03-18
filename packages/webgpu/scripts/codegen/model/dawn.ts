@@ -1,7 +1,6 @@
 import _ from "lodash";
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
+// @ts-ingore
 import dawn from "../../../libs/dawn.json";
 
 export const mapKeys = <T extends object>(obj: T) =>

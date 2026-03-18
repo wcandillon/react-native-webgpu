@@ -117,7 +117,7 @@ export const TexturedCube = () => {
         device.queue.copyExternalImageToTexture(
           { source: imageBitmap },
           { texture: cubeTexture },
-          [imageBitmap.width, imageBitmap.height]
+          [imageBitmap.width, imageBitmap.height],
         );
       } catch (err) {
         console.error("Failed to fetch asset", err);

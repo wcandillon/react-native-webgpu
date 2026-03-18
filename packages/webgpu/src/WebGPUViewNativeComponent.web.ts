@@ -14,7 +14,7 @@ export interface NativeProps extends ViewProps {
 function debounce<T extends (...args: any[]) => void>(
   func: T,
   wait: number,
-  immediate = false
+  immediate = false,
 ) {
   let timeout: ReturnType<typeof setTimeout> | undefined;
   return function debounced(
@@ -51,13 +51,18 @@ function resizeCanvas(canvas: HTMLCanvasElement | null) {
 }
 
 // eslint-disable-next-line import/no-default-export
-export default function WebGPUViewNativeComponent(props: NativeProps): React.JSX.Element {
+export default function WebGPUViewNativeComponent(
+  props: NativeProps,
+): React.JSX.Element {
   const { contextId, style, transparent, ...rest } = props;
 
-  const canvasElm = useRef<HTMLCanvasElement>(null);
+  const canvasElm = useRef<HTMLCanvasElement>();
 
   useEffect(() => {
-    const onResize = debounce(() => resizeCanvas(canvasElm.current), 100);
+    const onResize = debounce(
+      () => resizeCanvas(canvasElm.current ?? null),
+      100,
+    );
     window.addEventListener("resize", onResize);
     return () => {
       window.removeEventListener("resize", onResize);
@@ -89,6 +94,8 @@ const styles = StyleSheet.create({
   view: {
     alignItems: "stretch",
     backgroundColor: "transparent",
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
     border: "0 solid black",
     boxSizing: "border-box",
     display: "flex",
