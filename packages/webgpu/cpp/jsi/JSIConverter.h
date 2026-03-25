@@ -205,15 +205,21 @@ template <> struct JSIConverter<rnwgpu::async::AsyncTaskHandle> {
   }
 
   static jsi::Value toJSI(jsi::Runtime& runtime, rnwgpu::async::AsyncTaskHandle&& handle) {
-    return rnwgpu::Promise::createPromise(runtime, [handle = std::move(handle)](jsi::Runtime& runtime,
-                                                                        std::shared_ptr<rnwgpu::Promise> promise) mutable {
-      if (!handle.valid()) {
-        promise->resolve(jsi::Value::undefined());
-        return;
-      }
+    auto context = rnwgpu::RuntimeContext::getMainContext();
+    if (!context) {
+      throw std::runtime_error("RuntimeContext not set - cannot create Promise");
+    }
+    return rnwgpu::Promise::createPromise(
+        context,
+        [handle = std::move(handle)](jsi::Runtime& runtime,
+                                     std::shared_ptr<rnwgpu::Promise> promise) mutable {
+          if (!handle.valid()) {
+            promise->resolve(jsi::Value::undefined());
+            return;
+          }
 
-      handle.attachPromise(promise);
-    });
+          handle.attachPromise(promise);
+        });
   }
 };
 

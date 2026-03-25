@@ -55,14 +55,18 @@ RNWebGPUManager::RNWebGPUManager(
     std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker,
     std::shared_ptr<PlatformContext> platformContext)
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker),
-      _platformContext(platformContext) {
+      _platformContext(platformContext),
+      _runtimeContext(std::make_shared<RuntimeContext>(*jsRuntime)) {
 
   // Register main runtime for RuntimeAwareCache
   BaseRuntimeAwareCache::setMainJsRuntime(_jsRuntime);
 
+  // Set the main runtime context for Promise creation
+  RuntimeContext::setMainContext(_runtimeContext);
+
   auto gpu = std::make_shared<GPU>(*_jsRuntime);
-  auto rnWebGPU =
-      std::make_shared<RNWebGPU>(gpu, _platformContext, _jsCallInvoker);
+  auto rnWebGPU = std::make_shared<RNWebGPU>(gpu, _platformContext,
+                                             _jsCallInvoker, _runtimeContext);
   _gpu = gpu->get();
   _jsRuntime->global().setProperty(*_jsRuntime, "RNWebGPU",
                                    RNWebGPU::create(*_jsRuntime, rnWebGPU));
@@ -218,6 +222,13 @@ void RNWebGPUManager::installWebGPUWorkletHelpers(jsi::Runtime &runtime) {
 }
 
 RNWebGPUManager::~RNWebGPUManager() {
+  // Invalidate the runtime context first to prevent any pending promises
+  // from accessing the torn-down runtime (e.g., during hot reload)
+  if (_runtimeContext) {
+    _runtimeContext->invalidate();
+  }
+  // Clear the global context reference
+  RuntimeContext::setMainContext(nullptr);
   _jsRuntime = nullptr;
   _jsCallInvoker = nullptr;
 }

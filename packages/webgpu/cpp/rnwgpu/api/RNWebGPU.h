@@ -60,9 +60,10 @@ public:
 
   explicit RNWebGPU(std::shared_ptr<GPU> gpu,
                     std::shared_ptr<PlatformContext> platformContext,
-                    std::shared_ptr<facebook::react::CallInvoker> callInvoker)
+                    std::shared_ptr<facebook::react::CallInvoker> callInvoker,
+                    std::shared_ptr<RuntimeContext> runtimeContext)
       : NativeObject(CLASS_NAME), _gpu(gpu), _platformContext(platformContext),
-        _callInvoker(callInvoker) {}
+        _callInvoker(callInvoker), _runtimeContext(runtimeContext) {}
 
   std::shared_ptr<GPU> getGPU() { return _gpu; }
 
@@ -117,9 +118,10 @@ public:
         // Copy bytes on the JS thread — the ArrayBuffer pointer is into
         // JS-owned memory that can be GC'd
         std::vector<uint8_t> dataCopy(data.begin(), data.end());
+        auto runtimeContext = _runtimeContext;
 
         return Promise::createPromise(
-            runtime,
+            runtimeContext,
             [platformContext, callInvoker,
              dataCopy = std::move(dataCopy)](
                 jsi::Runtime & /*runtime*/,
@@ -130,9 +132,10 @@ public:
                     auto imageBitmap =
                         std::make_shared<ImageBitmap>(imageData);
                     callInvoker->invokeAsync([promise, imageBitmap]() {
-                      promise->resolve(
-                          JSIConverter<std::shared_ptr<ImageBitmap>>::toJSI(
-                              promise->runtime, imageBitmap));
+                      promise->resolveWith([&](jsi::Runtime &rt) {
+                        return JSIConverter<std::shared_ptr<ImageBitmap>>::toJSI(
+                            rt, imageBitmap);
+                      });
                     });
                   },
                   [callInvoker, promise](std::string error) {
@@ -149,21 +152,22 @@ public:
     std::string blobId = blob->blobId;
     double offset = blob->offset;
     double size = blob->size;
+    auto runtimeContext = _runtimeContext;
 
     return Promise::createPromise(
-        runtime,
+        runtimeContext,
         [platformContext, callInvoker, blobId, offset,
          size](jsi::Runtime & /*runtime*/, std::shared_ptr<Promise> promise) {
           platformContext->createImageBitmapAsync(
               blobId, offset, size,
               [callInvoker, promise](ImageData imageData) {
                 auto imageBitmap = std::make_shared<ImageBitmap>(imageData);
-                callInvoker->invokeAsync(
-                    [promise, imageBitmap]() {
-                      promise->resolve(
-                          JSIConverter<std::shared_ptr<ImageBitmap>>::toJSI(
-                              promise->runtime, imageBitmap));
-                    });
+                callInvoker->invokeAsync([promise, imageBitmap]() {
+                  promise->resolveWith([&](jsi::Runtime &rt) {
+                    return JSIConverter<std::shared_ptr<ImageBitmap>>::toJSI(
+                        rt, imageBitmap);
+                  });
+                });
               },
               [callInvoker, promise](std::string error) {
                 callInvoker->invokeAsync(
@@ -198,6 +202,7 @@ private:
   std::shared_ptr<GPU> _gpu;
   std::shared_ptr<PlatformContext> _platformContext;
   std::shared_ptr<facebook::react::CallInvoker> _callInvoker;
+  std::shared_ptr<RuntimeContext> _runtimeContext;
 };
 
 } // namespace rnwgpu
