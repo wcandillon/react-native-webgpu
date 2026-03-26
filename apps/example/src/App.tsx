@@ -36,6 +36,7 @@ import { Reanimated } from "./Reanimated";
 import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
 import { StorageBufferVertices } from "./StorageBufferVertices";
+import { MultiContext } from "./MultiContext";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -96,6 +97,7 @@ function App() {
             name="StorageBufferVertices"
             component={StorageBufferVertices}
           />
+          <Stack.Screen name="MultiContext" component={MultiContext} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
