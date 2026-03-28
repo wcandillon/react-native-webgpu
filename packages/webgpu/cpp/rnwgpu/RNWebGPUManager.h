@@ -2,9 +2,8 @@
 
 #include <memory>
 
-#include "GPU.h"
 #include "PlatformContext.h"
-#include "SurfaceRegistry.h"
+#include "GPULockInfo.h"
 
 namespace facebook {
 namespace jsi {
@@ -39,7 +38,7 @@ private:
   std::shared_ptr<facebook::react::CallInvoker> _jsCallInvoker;
 
 public:
-  wgpu::Instance _gpu;
+  GPUWithLock _gpu;
   std::shared_ptr<PlatformContext> _platformContext;
 };
 

@@ -16,13 +16,13 @@ Pod::Spec.new do |s|
 
   s.source_files = [
     "apple/**/*.{h,c,cc,cpp,m,mm,swift}",  
-    "cpp/**/*.{h,cpp}"
+    "cpp/**/*.{h,cpp,mm}"
   ]
 
   s.vendored_frameworks = 'libs/apple/libwebgpu_dawn.xcframework'
 
   s.pod_target_xcconfig = {
-    'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',
+    'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp $(PODS_TARGET_SRCROOT)/apple',
   }
 
   # Use install_modules_dependencies helper to install the dependencies if React Native version >=0.71.0.

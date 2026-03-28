@@ -1,12 +1,10 @@
 import React, { useEffect, useRef } from "react";
-import { PixelRatio, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Canvas } from "react-native-wgpu";
 import type { CanvasRef } from "react-native-wgpu";
 import { mat4, vec3 } from "wgpu-matrix";
 
-import {
-  cubeVertexCount,
-} from "../components/cube";
+import { cubeVertexCount } from "../components/cube";
 
 const NUM_ITEMS = 50;
 
@@ -31,17 +29,29 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
     g = 0,
     b = 0;
   if (h < 60) {
-    r = c; g = x; b = 0;
+    r = c;
+    g = x;
+    b = 0;
   } else if (h < 120) {
-    r = x; g = c; b = 0;
+    r = x;
+    g = c;
+    b = 0;
   } else if (h < 180) {
-    r = 0; g = c; b = x;
+    r = 0;
+    g = c;
+    b = x;
   } else if (h < 240) {
-    r = 0; g = x; b = c;
+    r = 0;
+    g = x;
+    b = c;
   } else if (h < 300) {
-    r = x; g = 0; b = c;
+    r = x;
+    g = 0;
+    b = c;
   } else {
-    r = c; g = 0; b = x;
+    r = c;
+    g = 0;
+    b = x;
   }
   return [r + m, g + m, b + m];
 }
@@ -67,8 +77,6 @@ export function CubeItem({
 
     const { pipeline, verticesBuffer, presentationFormat } = sharedResources;
     const canvas = context.canvas as HTMLCanvasElement;
-    canvas.width = canvas.clientWidth * PixelRatio.get();
-    canvas.height = canvas.clientHeight * PixelRatio.get();
 
     context.configure({
       device,

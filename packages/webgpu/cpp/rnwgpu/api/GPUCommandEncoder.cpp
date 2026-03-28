@@ -32,9 +32,11 @@ std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(
         "GPUCommandEncoder::finish(): error with GPUCommandBufferDescriptor");
   }
   auto commandBuffer = _instance.Finish(&desc);
-  return std::make_shared<GPUCommandBuffer>(
+  auto result = std::make_shared<GPUCommandBuffer>(
       commandBuffer,
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
+  result->setGPULock(getGPULock());
+  return result;
 }
 
 std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
@@ -57,8 +59,10 @@ std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
                              "get GPURenderPassDescriptor");
   }
   auto renderPass = _instance.BeginRenderPass(&desc);
-  return std::make_shared<GPURenderPassEncoder>(renderPass,
-                                                descriptor->label.value_or(""));
+  auto result = std::make_shared<GPURenderPassEncoder>(renderPass,
+                                                       descriptor->label.value_or(""));
+  result->setGPULock(getGPULock());
+  return result;
 }
 
 void GPUCommandEncoder::copyTextureToBuffer(
@@ -104,9 +108,11 @@ std::shared_ptr<GPUComputePassEncoder> GPUCommandEncoder::beginComputePass(
                              "access GPUComputePassDescriptor.");
   }
   auto computePass = _instance.BeginComputePass(&desc);
-  return std::make_shared<GPUComputePassEncoder>(
+  auto result = std::make_shared<GPUComputePassEncoder>(
       computePass,
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
+  result->setGPULock(getGPULock());
+  return result;
 }
 
 void GPUCommandEncoder::resolveQuerySet(std::shared_ptr<GPUQuerySet> querySet,

@@ -69,9 +69,10 @@ public:
   bool getFabric() { return true; }
 
   std::shared_ptr<GPUCanvasContext>
-  MakeWebGPUCanvasContext(int contextId, float width, float height) {
+    MakeWebGPUCanvasContext(int contextId, float width, float height, float pixelRatio) {
     auto ctx =
-        std::make_shared<GPUCanvasContext>(_gpu, contextId, width, height);
+        std::make_shared<GPUCanvasContext>(_gpu, contextId, width, height, pixelRatio);
+    ctx->setGPULock(_gpu->getGPULock());
     return ctx;
   }
 
@@ -176,11 +177,11 @@ public:
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     auto info = registry.getSurfaceInfo(contextId);
     if (info == nullptr) {
-      return std::make_shared<Canvas>(nullptr, 0, 0);
+      return std::make_shared<Canvas>(nullptr, 0, 0, 0);
     }
     auto nativeInfo = info->getNativeInfo();
     return std::make_shared<Canvas>(nativeInfo.nativeSurface, nativeInfo.width,
-                                    nativeInfo.height);
+                                    nativeInfo.height, 1.f);
   }
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {

@@ -17,9 +17,11 @@ std::shared_ptr<GPUTextureView> GPUTexture::createView(
                              "GPUTextureViewDescriptor");
   }
   auto view = _instance.CreateView(&desc);
-  return std::make_shared<GPUTextureView>(
+  auto result = std::make_shared<GPUTextureView>(
       view,
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
+  result->setGPULock(getGPULock());
+  return result;
 }
 
 uint32_t GPUTexture::getWidth() { return _instance.GetWidth(); }

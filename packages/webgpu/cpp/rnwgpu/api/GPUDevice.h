@@ -239,6 +239,16 @@ public:
 
   inline const wgpu::Device get() { return _instance; }
 
+  /**
+   * Create a child NativeObject and propagate the GPU lock to it.
+   */
+  template <typename T, typename... Args>
+  std::shared_ptr<T> makeChild(Args&&... args) {
+    auto child = std::make_shared<T>(std::forward<Args>(args)...);
+    child->setGPULock(getGPULock());
+    return child;
+  }
+
 private:
   friend class GPUAdapter;
 

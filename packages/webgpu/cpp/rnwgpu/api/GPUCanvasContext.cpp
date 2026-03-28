@@ -3,18 +3,18 @@
 #include "RNWebGPUManager.h"
 #include <memory>
 
-#ifdef __APPLE__
-namespace dawn::native::metal {
-
-void WaitForCommandsToBeScheduled(WGPUDevice device);
-
-}
-#endif
-
 namespace rnwgpu {
 
-void GPUCanvasContext::configure(
-    std::shared_ptr<GPUCanvasConfiguration> configuration) {
+GPUCanvasContext::GPUCanvasContext(std::shared_ptr<GPU> gpu, int contextId,
+  float width, float height, float pixelRatio)
+    : NativeObject(CLASS_NAME), _gpu(std::move(gpu)), _contextId(contextId) {
+
+  _canvas = std::make_shared<Canvas>(nullptr, width, height, pixelRatio);
+  auto &registry = SurfaceRegistry::getInstance();
+  _bridge = registry.getSurfaceInfoOrCreate(contextId, _gpu->get());
+}
+
+void GPUCanvasContext::configure(std::shared_ptr<GPUCanvasConfiguration> configuration) {
   Convertor conv;
   wgpu::SurfaceConfiguration surfaceConfiguration;
   surfaceConfiguration.device = configuration->device->get();
@@ -34,32 +34,27 @@ void GPUCanvasContext::configure(
   surfaceConfiguration.alphaMode = configuration->alphaMode;
 #endif
   surfaceConfiguration.presentMode = wgpu::PresentMode::Fifo;
-  _surfaceInfo->configure(surfaceConfiguration);
+  _bridge->configure(surfaceConfiguration);
 }
 
 void GPUCanvasContext::unconfigure() {}
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
-  auto prevSize = _surfaceInfo->getConfig();
-  auto width = _canvas->getWidth();
-  auto height = _canvas->getHeight();
-  auto sizeHasChanged = prevSize.width != width || prevSize.height != height;
-  if (sizeHasChanged) {
-    _surfaceInfo->reconfigure(width, height);
+  auto texture = _bridge->getCurrentTexture(_canvas->getWidth(), _canvas->getHeight());
+  if (!texture) {
+    return nullptr;
   }
-  auto texture = _surfaceInfo->getCurrentTexture();
-  return std::make_shared<GPUTexture>(texture, "");
+  auto result = std::make_shared<GPUTexture>(texture, "");
+  result->setGPULock(getGPULock());
+  _startedFrame = true;
+  return result;
 }
 
 void GPUCanvasContext::present() {
-#ifdef __APPLE__
-  dawn::native::metal::WaitForCommandsToBeScheduled(
-      _surfaceInfo->getDevice().Get());
-#endif
-  auto size = _surfaceInfo->getSize();
-  _canvas->setClientWidth(size.width);
-  _canvas->setClientHeight(size.height);
-  _surfaceInfo->present();
+  if (_startedFrame) {
+    _bridge->present();
+  }
+  _startedFrame = false;
 }
 
 } // namespace rnwgpu

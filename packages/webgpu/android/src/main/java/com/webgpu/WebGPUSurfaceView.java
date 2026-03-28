@@ -19,12 +19,6 @@ public class WebGPUSurfaceView extends SurfaceView implements SurfaceHolder.Call
   }
 
   @Override
-  protected void onDetachedFromWindow() {
-    super.onDetachedFromWindow();
-    mApi.surfaceDestroyed();
-  }
-
-  @Override
   public void surfaceCreated(@NonNull SurfaceHolder holder) {
     mApi.surfaceCreated(holder.getSurface());
   }

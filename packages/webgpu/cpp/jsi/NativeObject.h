@@ -16,6 +16,7 @@
 
 #include "RuntimeAwareCache.h"
 #include "WGPULogger.h"
+#include "rnwgpu/GPULockInfo.h"
 
 // Forward declare to avoid circular dependency
 namespace rnwgpu {
@@ -401,6 +402,17 @@ public:
    */
   jsi::Runtime *getCreationRuntime() const { return _creationRuntime; }
 
+  /**
+   * Set the GPU lock for this object. All JS→native method calls will
+   * acquire this lock before invoking the native method.
+   */
+  void setGPULock(std::shared_ptr<GPULockInfo> lock) { _gpuLock = std::move(lock); }
+
+  /**
+   * Get the GPU lock (for propagation to child objects).
+   */
+  std::shared_ptr<GPULockInfo> getGPULock() const { return _gpuLock; }
+
 protected:
   explicit NativeObject(const char *name) : _name(name) {
 #if DEBUG && RNF_ENABLE_LOGS
@@ -416,6 +428,19 @@ protected:
 
   const char *_name;
   jsi::Runtime *_creationRuntime = nullptr;
+  std::shared_ptr<GPULockInfo> _gpuLock;
+
+  /**
+   * Acquire the GPU lock if one is set. Returns a unique_lock that
+   * releases automatically when it goes out of scope. If no lock is
+   * set, returns a no-op lock (not owning any mutex).
+   */
+  std::unique_lock<std::recursive_mutex> acquireGPULock() {
+    if (_gpuLock) {
+      return std::unique_lock<std::recursive_mutex>(_gpuLock->mutex);
+    }
+    return std::unique_lock<std::recursive_mutex>(); // no-op
+  }
 
   // ============================================================
   // Helper methods for definePrototype() implementations
@@ -433,6 +458,7 @@ protected:
         [method](jsi::Runtime &rt, const jsi::Value &thisVal,
                  const jsi::Value *args, size_t count) -> jsi::Value {
           auto native = Derived::fromValue(rt, thisVal);
+          auto lockGuard = native->acquireGPULock();
           return callMethod(native.get(), method, rt, args,
                             std::index_sequence_for<Args...>{}, count);
         });
@@ -452,6 +478,7 @@ protected:
         [getter](jsi::Runtime &rt, const jsi::Value &thisVal,
                  const jsi::Value *args, size_t count) -> jsi::Value {
           auto native = Derived::fromValue(rt, thisVal);
+          auto lockGuard = native->acquireGPULock();
           if constexpr (std::is_same_v<ReturnType, void>) {
             (native.get()->*getter)();
             return jsi::Value::undefined();
@@ -492,6 +519,7 @@ protected:
             throw jsi::JSError(rt, "Setter requires a value argument");
           }
           auto native = Derived::fromValue(rt, thisVal);
+          auto lockGuard = native->acquireGPULock();
           auto value =
               rnwgpu::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
           (native.get()->*setter)(std::move(value));
@@ -539,6 +567,7 @@ protected:
         [getter](jsi::Runtime &rt, const jsi::Value &thisVal,
                  const jsi::Value *args, size_t count) -> jsi::Value {
           auto native = Derived::fromValue(rt, thisVal);
+          auto lockGuard = native->acquireGPULock();
           ReturnType result = (native.get()->*getter)();
           return rnwgpu::JSIConverter<std::decay_t<ReturnType>>::toJSI(rt,
                                                                std::move(result));
@@ -553,6 +582,7 @@ protected:
             throw jsi::JSError(rt, "Setter requires a value argument");
           }
           auto native = Derived::fromValue(rt, thisVal);
+          auto lockGuard = native->acquireGPULock();
           auto value =
               rnwgpu::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
           (native.get()->*setter)(std::move(value));

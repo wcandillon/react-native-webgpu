@@ -74,13 +74,13 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   @Override
-  public void surfaceDestroyed() {
-    onSurfaceDestroy(mContextId);
-  }
-
-  @Override
   public void surfaceOffscreen() {
     switchToOffscreenSurface(mContextId);
+  }
+
+  public void destroy() {
+    // Permanent cleanup — called from onDropViewInstance
+    onViewDetached(mContextId);
   }
 
   @DoNotStrip
@@ -100,9 +100,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   );
 
   @DoNotStrip
-  private native void onSurfaceDestroy(int contextId);
+  private native void switchToOffscreenSurface(int contextId);
 
   @DoNotStrip
-  private native void switchToOffscreenSurface(int contextId);
+  private native void onViewDetached(int contextId);
 
 }

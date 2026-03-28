@@ -52,8 +52,8 @@ GPUDevice::createBuffer(std::shared_ptr<GPUBufferDescriptor> descriptor) {
         "GPUDevice::createBuffer(): Error with GPUBufferDescriptor");
   }
   auto result = _instance.CreateBuffer(&desc);
-  return std::make_shared<GPUBuffer>(result, _async,
-                                     descriptor->label.value_or(""));
+  return makeChild<GPUBuffer>(result, _async,
+                              descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPUSupportedLimits> GPUDevice::getLimits() {
@@ -66,7 +66,7 @@ std::shared_ptr<GPUSupportedLimits> GPUDevice::getLimits() {
 
 std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
   auto result = _instance.GetQueue();
-  return std::make_shared<GPUQueue>(result, _async, _label);
+  return makeChild<GPUQueue>(result, _async, _label);
 }
 
 std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
@@ -77,7 +77,7 @@ std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
     throw std::runtime_error("Error with GPUCommandEncoderDescriptor");
   }
   auto result = _instance.CreateCommandEncoder(&desc);
-  return std::make_shared<GPUCommandEncoder>(
+  return makeChild<GPUCommandEncoder>(
       result,
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
 }
@@ -95,7 +95,7 @@ GPUDevice::createTexture(std::shared_ptr<GPUTextureDescriptor> descriptor) {
     throw std::runtime_error("Error with GPUTextureDescriptor");
   }
   auto texture = _instance.CreateTexture(&desc);
-  return std::make_shared<GPUTexture>(texture, descriptor->label.value_or(""));
+  return makeChild<GPUTexture>(texture, descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
@@ -111,11 +111,11 @@ std::shared_ptr<GPUShaderModule> GPUDevice::createShaderModule(
   if (descriptor->code.find('\0') != std::string::npos) {
     auto mod = _instance.CreateErrorShaderModule(
         &sm_desc, "The WGSL shader contains an illegal character '\\0'");
-    return std::make_shared<GPUShaderModule>(mod, _async, sm_desc.label.data);
+    return makeChild<GPUShaderModule>(mod, _async, sm_desc.label.data);
   }
   auto module = _instance.CreateShaderModule(&sm_desc);
-  return std::make_shared<GPUShaderModule>(module, _async,
-                                           descriptor->label.value_or(""));
+  return makeChild<GPUShaderModule>(module, _async,
+                                    descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(
@@ -127,8 +127,8 @@ std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(
   }
   // assert(desc.fragment != nullptr && "Fragment state must not be null");
   auto renderPipeline = _instance.CreateRenderPipeline(&desc);
-  return std::make_shared<GPURenderPipeline>(renderPipeline,
-                                             descriptor->label.value_or(""));
+  return makeChild<GPURenderPipeline>(renderPipeline,
+                                      descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPUBindGroup>
@@ -142,8 +142,8 @@ GPUDevice::createBindGroup(std::shared_ptr<GPUBindGroupDescriptor> descriptor) {
         "GPUBindGroup::createBindGroup(): Error with GPUBindGroupDescriptor");
   }
   auto bindGroup = _instance.CreateBindGroup(&desc);
-  return std::make_shared<GPUBindGroup>(bindGroup,
-                                        descriptor->label.value_or(""));
+  return makeChild<GPUBindGroup>(bindGroup,
+                                 descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPUSampler> GPUDevice::createSampler(
@@ -155,7 +155,7 @@ std::shared_ptr<GPUSampler> GPUDevice::createSampler(
                              "GPUSamplerDescriptor");
   }
   auto sampler = _instance.CreateSampler(&desc);
-  return std::make_shared<GPUSampler>(
+  return makeChild<GPUSampler>(
       sampler,
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
 }
@@ -169,8 +169,8 @@ std::shared_ptr<GPUComputePipeline> GPUDevice::createComputePipeline(
                              "GPUComputePipelineDescriptor");
   }
   auto computePipeline = _instance.CreateComputePipeline(&desc);
-  return std::make_shared<GPUComputePipeline>(computePipeline,
-                                              descriptor->label.value_or(""));
+  return makeChild<GPUComputePipeline>(computePipeline,
+                                       descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPUQuerySet>
@@ -182,8 +182,8 @@ GPUDevice::createQuerySet(std::shared_ptr<GPUQuerySetDescriptor> descriptor) {
                              "GPUQuerySetDescriptor");
   }
   auto querySet = _instance.CreateQuerySet(&desc);
-  return std::make_shared<GPUQuerySet>(querySet,
-                                       descriptor->label.value_or(""));
+  return makeChild<GPUQuerySet>(querySet,
+                                descriptor->label.value_or(""));
 }
 
 std::shared_ptr<GPURenderBundleEncoder> GPUDevice::createRenderBundleEncoder(
@@ -200,7 +200,7 @@ std::shared_ptr<GPURenderBundleEncoder> GPUDevice::createRenderBundleEncoder(
       !conv(desc.stencilReadOnly, descriptor->stencilReadOnly)) {
     return {};
   }
-  return std::make_shared<GPURenderBundleEncoder>(
+  return makeChild<GPURenderBundleEncoder>(
       _instance.CreateRenderBundleEncoder(&desc),
       descriptor->label.value_or(""));
 }
@@ -214,7 +214,7 @@ std::shared_ptr<GPUBindGroupLayout> GPUDevice::createBindGroupLayout(
       !conv(desc.entries, desc.entryCount, descriptor->entries)) {
     return {};
   }
-  return std::make_shared<GPUBindGroupLayout>(
+  return makeChild<GPUBindGroupLayout>(
       _instance.CreateBindGroupLayout(&desc), descriptor->label.value_or(""));
 }
 
@@ -228,7 +228,7 @@ std::shared_ptr<GPUPipelineLayout> GPUDevice::createPipelineLayout(
             descriptor->bindGroupLayouts)) {
     return {};
   }
-  return std::make_shared<GPUPipelineLayout>(
+  return makeChild<GPUPipelineLayout>(
       _instance.CreatePipelineLayout(&desc), descriptor->label.value_or(""));
 }
 
@@ -249,7 +249,7 @@ async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
 
   auto label = std::string(
       descriptor->label.has_value() ? descriptor->label.value() : "");
-  auto pipelineHolder = std::make_shared<GPUComputePipeline>(nullptr, label);
+  auto pipelineHolder = makeChild<GPUComputePipeline>(nullptr, label);
 
   return _async->postTask([device = _instance, desc, descriptor,
                            pipelineHolder](
@@ -290,7 +290,7 @@ async::AsyncTaskHandle GPUDevice::createRenderPipelineAsync(
 
   auto label = std::string(
       descriptor->label.has_value() ? descriptor->label.value() : "");
-  auto pipelineHolder = std::make_shared<GPURenderPipeline>(nullptr, label);
+  auto pipelineHolder = makeChild<GPURenderPipeline>(nullptr, label);
 
   return _async->postTask([device = _instance, desc, descriptor,
                            pipelineHolder](
