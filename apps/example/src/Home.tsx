@@ -2,6 +2,7 @@ import * as React from "react";
 import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { RectButton } from "react-native-gesture-handler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { StackNavigationProp } from "@react-navigation/stack";
 
 import type { Routes } from "./Route";
@@ -127,14 +128,15 @@ export const examples = [
     screen: "StorageBufferVertices",
     title: "💾 Storage Buffer Vertices",
   },
+  {
+    screen: "MultiContext",
+    title: "🔲 Multi Context",
+  },
 ];
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  content: {
-    marginBottom: 32,
   },
   thumbnail: {
     backgroundColor: "white",
@@ -146,8 +148,12 @@ const styles = StyleSheet.create({
 
 export const Home = () => {
   const { navigate } = useNavigation<StackNavigationProp<Routes, "Home">>();
+  const insets = useSafeAreaInsets();
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+    >
       {examples.map((thumbnail) => (
         <RectButton
           key={thumbnail.screen}

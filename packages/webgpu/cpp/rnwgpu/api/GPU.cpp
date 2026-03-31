@@ -24,6 +24,9 @@ GPU::GPU(jsi::Runtime &runtime) : NativeObject(CLASS_NAME) {
 
   auto dispatcher = std::make_shared<async::JSIMicrotaskDispatcher>(runtime);
   _async = async::AsyncRunner::getOrCreate(runtime, _instance, dispatcher);
+
+  // Create the GPU-level lock that serializes all Dawn API calls
+  setGPULock(std::make_shared<GPULockInfo>());
 }
 
 async::AsyncTaskHandle GPU::requestAdapter(
@@ -40,11 +43,12 @@ async::AsyncTaskHandle GPU::requestAdapter(
 #endif
   aOptions.backendType = kDefaultBackendType;
   return _async->postTask(
-      [this, aOptions](const async::AsyncTaskHandle::ResolveFunction &resolve,
-                       const async::AsyncTaskHandle::RejectFunction &reject) {
+      [this, aOptions, gpuLock = getGPULock()](
+          const async::AsyncTaskHandle::ResolveFunction &resolve,
+          const async::AsyncTaskHandle::RejectFunction &reject) {
         _instance.RequestAdapter(
             &aOptions, wgpu::CallbackMode::AllowProcessEvents,
-            [asyncRunner = _async, resolve,
+            [asyncRunner = _async, gpuLock, resolve,
              reject](wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,
                      wgpu::StringView message) {
               if (message.length) {
@@ -54,6 +58,7 @@ async::AsyncTaskHandle GPU::requestAdapter(
               if (status == wgpu::RequestAdapterStatus::Success && adapter) {
                 auto adapterHost = std::make_shared<GPUAdapter>(
                     std::move(adapter), asyncRunner);
+                adapterHost->setGPULock(gpuLock);
                 auto result =
                     std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>(
                         adapterHost);

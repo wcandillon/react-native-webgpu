@@ -47,7 +47,7 @@ public:
                   &GPU::getWgslLanguageFeatures);
   }
 
-  inline const wgpu::Instance get() { return _instance; }
+  inline const GPUWithLock get() { return GPUWithLock{ .gpu = _instance, .lock = _gpuLock }; }
   inline std::shared_ptr<async::AsyncRunner> getAsyncRunner() { return _async; }
 
 private:

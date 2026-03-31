@@ -29,4 +29,5 @@ export type Routes = {
   AsyncStarvation: undefined;
   DeviceLostHang: undefined;
   StorageBufferVertices: undefined;
+  MultiContext: undefined;
 };

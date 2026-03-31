@@ -26,6 +26,7 @@ find_package(fbjni REQUIRED CONFIG)
 
 add_library(${PACKAGE_NAME} SHARED
     ./cpp/cpp-adapter.cpp
+    ./cpp/AndroidSurfaceBridge.cpp
     ../cpp/rnwgpu/api/GPU.cpp
     ../cpp/rnwgpu/api/GPUAdapter.cpp
     ../cpp/rnwgpu/api/GPUSupportedLimits.cpp
@@ -66,6 +67,7 @@ target_include_directories(
         "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/java/com/facebook/react/turbomodule/core/jni"
         "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/jni/react/turbomodule"
 
+        ./cpp
         ../cpp
         ../cpp/rnwgpu
         ../cpp/rnwgpu/api

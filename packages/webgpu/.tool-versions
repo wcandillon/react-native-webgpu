@@ -1,0 +1,9 @@
+golang 1.23.2
+nodejs 22.4.1
+terraform 1.9.6
+grpcurl 1.9.1
+java openjdk-17.0.2
+ruby 3.3.4
+direnv 2.34.0
+bundler 2.6.6
+

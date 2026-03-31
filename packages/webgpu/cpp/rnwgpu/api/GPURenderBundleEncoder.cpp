@@ -16,9 +16,11 @@ std::shared_ptr<GPURenderBundle> GPURenderBundleEncoder::finish(
                              "GPURenderBundleDescriptor");
   }
   auto bundle = _instance.Finish(&desc);
-  return std::make_shared<GPURenderBundle>(
+  auto result = std::make_shared<GPURenderBundle>(
       bundle,
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
+  result->setGPULock(getGPULock());
+  return result;
 }
 
 void GPURenderBundleEncoder::setPipeline(

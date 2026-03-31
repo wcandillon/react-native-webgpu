@@ -14,7 +14,5 @@ public interface WebGPUAPI {
     Surface surface
   );
 
-  void surfaceDestroyed();
-
   void surfaceOffscreen();
 }

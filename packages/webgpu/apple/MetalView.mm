@@ -1,8 +1,12 @@
 #import "MetalView.h"
 #import "webgpu/webgpu_cpp.h"
 
+#include "AppleSurfaceBridge.h"
+#include "SurfaceRegistry.h"
+
 @implementation MetalView {
   BOOL _isConfigured;
+  BOOL _isAttached;
 }
 
 #if !TARGET_OS_OSX
@@ -21,29 +25,37 @@
 #endif // !TARGET_OS_OSX
 
 - (void)configure {
-  auto size = self.frame.size;
+  // Delay the configuration until we have a valid size
   std::shared_ptr<rnwgpu::RNWebGPUManager> manager = [WebGPUModule getManager];
-  void *nativeSurface = (__bridge void *)self.layer;
+  auto gpuWithLock = manager->_gpu;
+
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  auto gpu = manager->_gpu;
-  auto surface = manager->_platformContext->makeSurface(
-      gpu, nativeSurface, size.width, size.height);
-  registry
-      .getSurfaceInfoOrCreate([_contextId intValue], gpu, size.width,
-                              size.height)
-      ->switchToOnscreen(nativeSurface, surface);
+
+  wgpu::SurfaceSourceMetalLayer metalSurfaceDesc;
+  metalSurfaceDesc.layer = (__bridge void *)self.layer;
+  wgpu::SurfaceDescriptor surfaceDescriptor;
+  surfaceDescriptor.nextInChain = &metalSurfaceDesc;
+  // This is safe to call without holding a GPU lock
+  wgpu::Surface surface = gpuWithLock.gpu.CreateSurface(&surfaceDescriptor);
+
+  // Get or create the bridge.
+  int ctxId = [_contextId intValue];
+
+  // Create the bridge and attach the surface.
+  // Safe to take the GPU lock here: prepareToDisplay runs on the UI thread
+  // and never dispatch_sync's back to it, so no deadlock.
+  auto bridge = std::static_pointer_cast<rnwgpu::AppleSurfaceBridge>(
+      registry.getSurfaceInfoOrCreate(ctxId, gpuWithLock));
+
+  void *nativeSurface = (__bridge void *)self.layer;
+  bridge->prepareToDisplay(nativeSurface, surface);
 }
 
 - (void)update {
-  auto size = self.frame.size;
-  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  registry.getSurfaceInfo([_contextId intValue])
-      ->resize(size.width, size.height);
 }
 
 - (void)dealloc {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  // Remove the surface info from the registry
   registry.removeSurfaceInfo([_contextId intValue]);
 }
 

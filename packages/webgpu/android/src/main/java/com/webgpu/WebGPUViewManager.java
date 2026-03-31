@@ -35,4 +35,10 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
   public void setContextId(WebGPUView view, int value) {
     view.setContextId(value);
   }
+
+  @Override
+  public void onDropViewInstance(@NonNull WebGPUView view) {
+    view.destroy();
+    super.onDropViewInstance(view);
+  }
 }

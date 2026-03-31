@@ -29,16 +29,6 @@ ApplePlatformContext::ApplePlatformContext() {
   checkIfUsingSimulatorWithAPIValidation();
 }
 
-wgpu::Surface ApplePlatformContext::makeSurface(wgpu::Instance instance,
-                                                void *surface, int width,
-                                                int height) {
-  wgpu::SurfaceSourceMetalLayer metalSurfaceDesc;
-  metalSurfaceDesc.layer = surface;
-  wgpu::SurfaceDescriptor surfaceDescriptor;
-  surfaceDescriptor.nextInChain = &metalSurfaceDesc;
-  return instance.CreateSurface(&surfaceDescriptor);
-}
-
 static std::span<const uint8_t> nsDataToSpan(NSData *data) {
   return {static_cast<const uint8_t *>(data.bytes), data.length};
 }

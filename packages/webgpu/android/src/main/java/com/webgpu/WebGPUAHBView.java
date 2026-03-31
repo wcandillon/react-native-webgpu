@@ -256,7 +256,7 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
 
     // Notify WebGPU that surface is being destroyed
     if (mSurfaceCreated) {
-      mApi.surfaceDestroyed();
+      mApi.surfaceOffscreen();
       mSurfaceCreated = false;
     }
 
