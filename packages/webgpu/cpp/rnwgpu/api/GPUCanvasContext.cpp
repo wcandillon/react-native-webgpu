@@ -48,7 +48,10 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
     _surfaceInfo->reconfigure(width, height);
   }
   auto texture = _surfaceInfo->getCurrentTexture();
-  return std::make_shared<GPUTexture>(texture, "");
+  // The canvas texture doesn't own the rendering buffer memory, so we pass
+  // false to avoid reporting large memory pressure that triggers spurious
+  // Hermes GC cycles every frame.
+  return std::make_shared<GPUTexture>(texture, "", false);
 }
 
 void GPUCanvasContext::present() {
