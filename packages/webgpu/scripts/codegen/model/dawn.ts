@@ -1,8 +1,5 @@
 import _ from "lodash";
 
-// @ts-ingore
-import dawn from "../../../libs/dawn.json";
-
 export const mapKeys = <T extends object>(obj: T) =>
   Object.keys(obj) as (keyof T)[];
 
@@ -213,6 +210,8 @@ export const resolveNative = (
   methodName: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dawn = {} as any;
   const key = Object.keys(dawn).find(
     (k) => toNativeName(k) === className.substring(3),
   );

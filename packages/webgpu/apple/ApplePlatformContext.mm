@@ -82,17 +82,18 @@ void ApplePlatformContext::createImageBitmapAsync(
                                  std::move(onError));
 }
 
-ImageData ApplePlatformContext::createImageBitmapFromData(
-    std::span<const uint8_t> data) {
+ImageData
+ApplePlatformContext::createImageBitmapFromData(std::span<const uint8_t> data) {
   // This avoids a copy by assuming the UIImage/NSImage constructors
   // decode `nsData` eagerly before the memory for the wrapped `data`
   // is freed.
   //
   // Since we get the `CGImageRef` from `image` and then throw
   // it away, that's a fairly safe assumption.
-  NSData *nsData = [NSData dataWithBytesNoCopy:const_cast<uint8_t *>(data.data())
-                                        length:data.size()
-                                  freeWhenDone:NO];
+  NSData *nsData =
+      [NSData dataWithBytesNoCopy:const_cast<uint8_t *>(data.data())
+                           length:data.size()
+                     freeWhenDone:NO];
 
 #if !TARGET_OS_OSX
   UIImage *image = [UIImage imageWithData:nsData];
@@ -141,17 +142,16 @@ void ApplePlatformContext::createImageBitmapFromDataAsync(
   auto ownedData =
       std::make_shared<std::vector<uint8_t>>(data.begin(), data.end());
 
-  dispatch_async(
-      dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-        @autoreleasepool {
-          try {
-            auto result = createImageBitmapFromData(*ownedData);
-            onSuccess(std::move(result));
-          } catch (const std::exception &e) {
-            onError(e.what());
-          }
-        }
-      });
+  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+    @autoreleasepool {
+      try {
+        auto result = createImageBitmapFromData(*ownedData);
+        onSuccess(std::move(result));
+      } catch (const std::exception &e) {
+        onError(e.what());
+      }
+    }
+  });
 }
 
 } // namespace rnwgpu

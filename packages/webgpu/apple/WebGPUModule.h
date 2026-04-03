@@ -5,7 +5,8 @@
 #import <React/RCTCallInvokerModule.h>
 #import <React/RCTEventEmitter.h>
 
-@interface WebGPUModule : RCTEventEmitter <NativeWebGPUModuleSpec, RCTCallInvokerModule>
+@interface WebGPUModule
+    : RCTEventEmitter <NativeWebGPUModuleSpec, RCTCallInvokerModule>
 
 + (std::shared_ptr<rnwgpu::RNWebGPUManager>)getManager;
 

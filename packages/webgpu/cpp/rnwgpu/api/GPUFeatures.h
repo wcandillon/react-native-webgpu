@@ -2,9 +2,9 @@
 
 #include <string>
 
-#include "webgpu/webgpu_cpp.h"
+#include <cstdio>
 
-#include "WGPULogger.h"
+#include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
 
@@ -89,9 +89,6 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::Unorm16TextureFormats:
     *outUnion = "unorm16-texture-formats";
     break;
-  case wgpu::FeatureName::Snorm16TextureFormats:
-    *outUnion = "snorm16-texture-formats";
-    break;
   case wgpu::FeatureName::MultiPlanarFormatExtendedUsages:
     *outUnion = "multi-planar-format-extended-usages";
     break;
@@ -122,17 +119,11 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::AdapterPropertiesVk:
     *outUnion = "adapter-properties-vk";
     break;
-  case wgpu::FeatureName::R8UnormStorage:
-    *outUnion = "r8unorm-storage";
-    break;
   case wgpu::FeatureName::DawnFormatCapabilities:
     *outUnion = "format-capabilities";
     break;
   case wgpu::FeatureName::DawnDrmFormatCapabilities:
     *outUnion = "drm-format-capabilities";
-    break;
-  case wgpu::FeatureName::Norm16TextureFormats:
-    *outUnion = "norm16-texture-formats";
     break;
   case wgpu::FeatureName::MultiPlanarFormatNv16:
     *outUnion = "multi-planar-format-nv16";
@@ -204,7 +195,7 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
     *outUnion = "dawn-load-resolve-texture";
     break;
   default:
-    Logger::logToConsole("Unknown feature name %d", inEnum);
+    fprintf(stderr, "Unknown feature name %d\n", static_cast<int>(inEnum));
     *outUnion = "";
   }
 }

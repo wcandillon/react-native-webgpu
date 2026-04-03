@@ -93,10 +93,10 @@ public:
     return createImageBitmapFromData(data);
   }
 
-  void createImageBitmapAsync(
-      std::string blobId, double offset, double size,
-      std::function<void(ImageData)> onSuccess,
-      std::function<void(std::string)> onError) override {
+  void
+  createImageBitmapAsync(std::string blobId, double offset, double size,
+                         std::function<void(ImageData)> onSuccess,
+                         std::function<void(std::string)> onError) override {
     std::thread([this, blobId = std::move(blobId), offset, size,
                  onSuccess = std::move(onSuccess),
                  onError = std::move(onError)]() {
@@ -189,7 +189,8 @@ public:
   void createImageBitmapFromDataAsync(
       std::span<const uint8_t> data, std::function<void(ImageData)> onSuccess,
       std::function<void(std::string)> onError) override {
-    std::thread([this, ownedData = std::vector<uint8_t>(data.begin(), data.end()),
+    std::thread([this,
+                 ownedData = std::vector<uint8_t>(data.begin(), data.end()),
                  onSuccess = std::move(onSuccess),
                  onError = std::move(onError)]() mutable {
       jni::Environment::ensureCurrentThreadIsAttached();

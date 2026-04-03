@@ -1,6 +1,6 @@
 {
   "name": "react-native-wgpu",
-  "version": "0.5.10",
+  "version": "0.5.11",
   "description": "React Native WebGPU",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -20,7 +20,7 @@
     "libs/**",
     "*.podspec"
   ],
-  "dawn": "chromium/7472",
+  "dawn": "chromium/7770",
   "scripts": {
     "test": "NODE_OPTIONS='--experimental-require-module' jest -i",
     "test:ref": "REFERENCE=true NODE_OPTIONS='--experimental-require-module' jest -i",

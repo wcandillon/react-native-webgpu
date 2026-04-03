@@ -103,8 +103,7 @@ public:
         auto bufferVal = obj.getProperty(runtime, "buffer");
         if (bufferVal.isObject() &&
             bufferVal.getObject(runtime).isArrayBuffer(runtime)) {
-          const auto &ab =
-              bufferVal.getObject(runtime).getArrayBuffer(runtime);
+          const auto &ab = bufferVal.getObject(runtime).getArrayBuffer(runtime);
           auto byteOffset = static_cast<size_t>(
               obj.getProperty(runtime, "byteOffset").asNumber());
           auto byteLength = static_cast<size_t>(
@@ -120,15 +119,13 @@ public:
 
         return Promise::createPromise(
             runtime,
-            [platformContext, callInvoker,
-             dataCopy = std::move(dataCopy)](
+            [platformContext, callInvoker, dataCopy = std::move(dataCopy)](
                 jsi::Runtime & /*runtime*/,
                 std::shared_ptr<Promise> promise) mutable {
               platformContext->createImageBitmapFromDataAsync(
                   dataCopy,
                   [callInvoker, promise](ImageData imageData) {
-                    auto imageBitmap =
-                        std::make_shared<ImageBitmap>(imageData);
+                    auto imageBitmap = std::make_shared<ImageBitmap>(imageData);
                     callInvoker->invokeAsync([promise, imageBitmap]() {
                       promise->resolve(
                           JSIConverter<std::shared_ptr<ImageBitmap>>::toJSI(
@@ -158,12 +155,11 @@ public:
               blobId, offset, size,
               [callInvoker, promise](ImageData imageData) {
                 auto imageBitmap = std::make_shared<ImageBitmap>(imageData);
-                callInvoker->invokeAsync(
-                    [promise, imageBitmap]() {
-                      promise->resolve(
-                          JSIConverter<std::shared_ptr<ImageBitmap>>::toJSI(
-                              promise->runtime, imageBitmap));
-                    });
+                callInvoker->invokeAsync([promise, imageBitmap]() {
+                  promise->resolve(
+                      JSIConverter<std::shared_ptr<ImageBitmap>>::toJSI(
+                          promise->runtime, imageBitmap));
+                });
               },
               [callInvoker, promise](std::string error) {
                 callInvoker->invokeAsync(

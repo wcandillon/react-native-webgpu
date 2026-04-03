@@ -55,11 +55,13 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
     return @true;
   }
 
-  // self.bridge works in both Legacy (RCTBridge) and Bridgeless (RCTBridgeProxy).
+  // self.bridge works in both Legacy (RCTBridge) and Bridgeless
+  // (RCTBridgeProxy).
   jsi::Runtime *runtime = (jsi::Runtime *)self.bridge.runtime;
   if (!runtime) {
     NSLog(@"Failed to install react-native-wgpu: jsi::Runtime* was null! "
-          @"(self.bridge=%@)", self.bridge);
+          @"(self.bridge=%@)",
+          self.bridge);
     return [NSNumber numberWithBool:NO];
   }
 
