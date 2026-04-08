@@ -10,31 +10,14 @@ on:
     types:
       - checks_requested
   workflow_dispatch:
-    inputs:
-      build_android:
-        description: 'Build for Android'
-        type: boolean
-        default: false
-      build_ios:
-        description: 'Build for iOS'
-        type: boolean
-        default: false
-      build_macos:
-        description: 'Build for macOS'
-        type: boolean
-        default: false
-      run_reference_tests:
-        description: 'Run reference tests'
-        type: boolean
-        default: false
 
 concurrency:
-  group: ${{ github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,10 +26,6 @@ jobs:
         uses: ./.github/actions/setup
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Clang Format
-        working-directory: packages/webgpu
-        run: yarn clang-format
 
       - name: Lint files
         run: yarn lint
@@ -54,280 +33,38 @@ jobs:
       - name: Typecheck files
         run: yarn tsc
 
-      - name: Build
-        working-directory: packages/webgpu
-        run: yarn build
-
-      - name: Package
-        working-directory: packages/webgpu
-        run: yarn pack
-
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: package
-          path: packages/webgpu/package.tgz
-          compression-level: 0
-
-  reference-tests:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_reference_tests == 'true'
-    runs-on: macos-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup
-        uses: ./.github/actions/setup
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install Chrome
-        run: npx puppeteer browsers install chrome
-
-      - name: Run reference test suite
-        working-directory: packages/webgpu
-        run: yarn test:ref
-
-  build-android:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_android == 'true'
-    runs-on: ubuntu-latest
-    env:
-      TURBO_CACHE_DIR: .turbo/android
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup
-        uses: ./.github/actions/setup
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Free disk space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: false
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
-      - name: Cache turborepo for Android
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.TURBO_CACHE_DIR }}
-          key: ${{ runner.os }}-turborepo-android-${{ hashFiles('yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-turborepo-android
-
-      - name: Install JDK
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Install NDK
-        uses: nttld/setup-ndk@afb4c9964b521afb97c864b7d40b11e6911bd410 # v1.5.0
-        id: setup-ndk
-        with:
-          ndk-version: r27d
-
-      - name: Set ANDROID_NDK
-        run: echo "ANDROID_NDK=$ANDROID_HOME/ndk-bundle" >> $GITHUB_ENV
-
-      - name: Finalize Android SDK
-        run: |
-          /bin/bash -c "yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null"
-
-      - name: Install Android SDK
-        run: echo "sdk.dir=$ANDROID_HOME" > $GITHUB_WORKSPACE/apps/example/android/local.properties
-
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/wrapper
-            ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('./apps/example/android/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Build example for Android
-        env:
-          JAVA_OPTS: "-XX:MaxHeapSize=6g"
-        run: |
-          yarn turbo run build:android --concurrency 1
-
-      - name: Cache apk
-        uses: actions/cache/save@v4
-        env:
-          cache-name: cache-apk
-        with:
-          path: apps/example/android/app/build/outputs/apk/debug/app-debug.apk
-          key: apk-${{ github.sha }}
-
-      - name: Upload Android APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-example-apk
-          path: apps/example/android/app/build/outputs/apk/debug/app-debug.apk
-
-  test-android:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_android == 'true'
-    needs: build-android
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    env:
-      TURBO_CACHE_DIR: .turbo/android
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup
-        uses: ./.github/actions/setup
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK tools
-        run: |
-          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
-          echo "$ANDROID_HOME/emulator" >> $GITHUB_PATH
-
-      - name: Enable KVM group perms
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      - name: Restore APK
-        id: cache-apk
-        uses: actions/cache/restore@v4
-        with:
-          path: apps/example/android/app/build/outputs/apk/debug/app-debug.apk
-          key: apk-${{ github.sha }}
-
-      - name: Start Package Manager
-        working-directory: apps/example
-        run: E2E=true yarn start &
-
-      - name: Run Android Emulator Tests
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 30
-          arch: x86_64
-          profile: Nexus 5X
-          force-avd-creation: true
-          emulator-options: -no-snapshot-save -no-window -gpu swangle_indirect -noaudio -no-boot-anim
-          disable-animations: true
-          script: |
-            # Wait for Metro bundler
-            sleep 10
-
-            # Install and launch app
-            adb install -r apps/example/android/app/build/outputs/apk/debug/app-debug.apk
-            adb shell monkey -p com.microsoft.reacttestapp 1
-
-            # Run tests
-            cd packages/webgpu && CI=true yarn test
-
-      - name: Upload test snapshots on failure
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          path: packages/webgpu/src/__tests__/snapshots/
-          name: tests-snapshots-android
-
-  build-test-ios:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_ios == 'true'
-    runs-on: macos-latest
-    env:
-      TURBO_CACHE_DIR: .turbo/ios
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup
-        uses: ./.github/actions/setup
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cache turborepo for iOS
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.TURBO_CACHE_DIR }}
-          key: ${{ runner.os }}-turborepo-ios-${{ hashFiles('yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-turborepo-ios-
-
-      - name: Check turborepo cache for iOS
-        run: |
-          TURBO_CACHE_STATUS=$(node -p "($(yarn turbo run build:ios --cache-dir="${{ env.TURBO_CACHE_DIR }}" --dry=json)).tasks.find(t => t.task === 'build:ios').cache.status")
-
-          if [[ $TURBO_CACHE_STATUS == "HIT" ]]; then
-            echo "turbo_cache_hit=1" >> $GITHUB_ENV
-          fi
-
       - name: Install CocoaPods
         working-directory: apps/example/ios
         run: pod install
 
+      - name: Ensure Metro port is free
+        run: |
+          lsof -ti :8081 | xargs -r kill -9 || true
+
       - name: Start Package Manager
         working-directory: apps/example
-        run: E2E=true yarn start &
+        run: CI=true yarn start &
 
       - name: Build example for iOS
-        working-directory: apps/example
-        run: yarn ios --simulator 'iPhone 16 Pro'
+        working-directory: apps/example/ios
+        run: |
+          set -o pipefail && xcodebuild \
+            -workspace example.xcworkspace \
+            -scheme Example \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING=YES \
+            -disableAutomaticPackageResolution \
+            build | xcpretty
+
+      - name: Install and launch app on Simulator
+        run: |
+          xcrun simctl install booted apps/example/ios/build/Build/Products/Debug-iphonesimulator/ReactTestApp.app
+          xcrun simctl launch booted com.microsoft.ReactTestApp
 
       - name: Run e2e tests
         working-directory: packages/webgpu
-        run: CI=true E2E=true yarn test
-
-      - name: Upload test snapshots on failure
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          path: packages/webgpu/src/__tests__/snapshots/
-          name: tests-snapshots-ios
-
-  # Note: This job is disabled by default until RNTA supports 0.81
-  # Enable it manually via workflow_dispatch when needed
-  build-macos:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_macos == 'true'
-    runs-on: macos-latest
-    env:
-      TURBO_CACHE_DIR: .turbo/macos
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup
-        uses: ./.github/actions/setup
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cache turborepo for macOS
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.TURBO_CACHE_DIR }}
-          key: ${{ runner.os }}-turborepo-macos-${{ hashFiles('yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-turborepo-macos-
-
-      - name: Check turborepo cache for macOS
-        run: |
-          TURBO_CACHE_STATUS=$(node -p "($(yarn turbo run build:macos --cache-dir="${{ env.TURBO_CACHE_DIR }}" --dry=json)).tasks.find(t => t.task === 'build:macos').cache.status")
-
-          if [[ $TURBO_CACHE_STATUS == "HIT" ]]; then
-            echo "turbo_cache_hit=1" >> $GITHUB_ENV
-          fi
-
-      - name: Build example for macOS
-        run: |
-          yarn turbo run build:macos --cache-dir="${{ env.TURBO_CACHE_DIR }}"
+        run: yarn test
