@@ -47,7 +47,18 @@ jobs:
 
       - name: Build example for iOS
         working-directory: apps/example
-        run: yarn ios --simulator 'iPhone 16 Pro'
+        run: |
+          cd ios
+          xcodebuild \
+            -workspace example.xcworkspace \
+            -scheme example \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING=YES \
+            -disableAutomaticPackageResolution \
+            build
 
       - name: Run e2e tests
         working-directory: packages/webgpu
