@@ -33,19 +33,18 @@ jobs:
       - name: Typecheck files
         run: yarn tsc
 
-      - name: Build iOS
+      - name: Install CocoaPods
+        working-directory: apps/example/ios
+        run: pod install
+
+      - name: Start Package Manager
         working-directory: apps/example
-        run: |
-          cd ios
-          rm -rf Pods Podfile.lock ~/Library/Developer/Xcode/DerivedData/*
-          pod repo update
-          pod install --verbose
-          cd ..
-          RCT_NO_LAUNCH_PACKAGER=1 \
-          xcodebuild -workspace ios/Example.xcworkspace \
-            -scheme Example \
-            -configuration Debug \
-            -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,name=iPhone 16 Pro" \
-            -UseModernBuildSystem=YES \
-            build
+        run: E2E=true yarn start &
+
+      - name: Build example for iOS
+        working-directory: apps/example
+        run: yarn ios --simulator 'iPhone 16 Pro'
+
+      - name: Run e2e tests
+        working-directory: packages/webgpu
+        run: CI=true E2E=true yarn test
