@@ -43,13 +43,12 @@ jobs:
 
       - name: Start Package Manager
         working-directory: apps/example
-        run: E2E=true yarn start &
+        run: CI=true yarn start &
 
       - name: Build example for iOS
-        working-directory: apps/example
+        working-directory: apps/example/ios
         run: |
-          cd ios
-          xcodebuild \
+          set -o pipefail && xcodebuild \
             -workspace example.xcworkspace \
             -scheme Example \
             -configuration Debug \
@@ -58,8 +57,8 @@ jobs:
             COMPILER_INDEX_STORE_ENABLE=NO \
             DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING=YES \
             -disableAutomaticPackageResolution \
-            build
+            build | xcpretty
 
       - name: Run e2e tests
         working-directory: packages/webgpu
-        run: CI=true E2E=true yarn test
+        run: yarn test

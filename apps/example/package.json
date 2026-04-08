@@ -26,6 +26,7 @@
     "@tensorflow/tfjs-backend-webgpu": "^4.22.0",
     "@tensorflow/tfjs-vis": "^1.5.1",
     "async-mutex": "^0.5.0",
+    "babel-plugin-transform-inline-environment-variables": "^0.4.4",
     "fast-text-encoding": "^1.0.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",

@@ -40,6 +40,7 @@ import { StorageBufferVertices } from "./StorageBufferVertices";
 // The two lines below are needed by three.js
 import "fast-text-encoding";
 window.parent = window;
+const CI = process.env.CI === "true";
 
 const Stack = createStackNavigator<Routes>();
 
@@ -52,7 +53,7 @@ function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
         <Stack.Navigator
-          initialRouteName="Home"
+          initialRouteName={CI ? "Tests" : "Home"}
           screenOptions={{ cardStyle: { flex: 1 } }}
         >
           <Stack.Screen name="Home" component={Home} />
