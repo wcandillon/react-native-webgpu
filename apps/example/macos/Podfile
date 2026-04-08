@@ -4,6 +4,12 @@ ws_dir = ws_dir.parent until
   ws_dir.expand_path.to_s == '/'
 require "#{ws_dir}/node_modules/react-native-test-app/test_app.rb"
 
+# Override fmt to 12.1.0 for Xcode 16.4+ compatibility
+# See: https://github.com/facebook/react-native/pull/56099
+rn_podspecs = File.join(ws_dir, 'node_modules/react-native/third-party-podspecs')
+FileUtils.cp(File.join(__dir__, 'fmt.podspec'), File.join(rn_podspecs, 'fmt.podspec'))
+FileUtils.cp(File.join(__dir__, 'RCT-Folly.podspec'), File.join(rn_podspecs, 'RCT-Folly.podspec'))
+
 workspace 'Example.xcworkspace'
 
 options = {
