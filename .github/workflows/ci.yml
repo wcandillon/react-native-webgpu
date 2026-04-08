@@ -54,10 +54,16 @@ jobs:
             -configuration Debug \
             -sdk iphonesimulator \
             -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build \
             COMPILER_INDEX_STORE_ENABLE=NO \
             DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING=YES \
             -disableAutomaticPackageResolution \
             build | xcpretty
+
+      - name: Install and launch app on Simulator
+        run: |
+          xcrun simctl install booted apps/example/ios/build/Build/Products/Debug-iphonesimulator/ReactTestApp.app
+          xcrun simctl launch booted com.microsoft.ReactTestApp
 
       - name: Run e2e tests
         working-directory: packages/webgpu
