@@ -51,7 +51,7 @@ jobs:
           cd ios
           xcodebuild \
             -workspace example.xcworkspace \
-            -scheme example \
+            -scheme Example \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination "generic/platform=iOS Simulator" \
