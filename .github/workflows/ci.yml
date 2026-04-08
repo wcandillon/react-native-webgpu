@@ -126,8 +126,10 @@ jobs:
         run: |
           if [ -n "$ANDROID_HOME" ] && [ -d "$ANDROID_HOME" ]; then
             echo "ANDROID_HOME already set: $ANDROID_HOME"
+            echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           else
             for candidate in \
+              "$HOME/android-sdk" \
               "$HOME/Library/Android/sdk" \
               "/usr/local/share/android-commandlinetools" \
               "/opt/android/sdk"; do
