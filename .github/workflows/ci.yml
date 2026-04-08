@@ -33,7 +33,15 @@ jobs:
       - name: Typecheck files
         run: yarn tsc
 
+      - name: Cache CocoaPods
+        id: pods-cache
+        uses: actions/cache@v3
+        with:
+          path: apps/example/ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('apps/example/ios/Podfile.lock') }}
+
       - name: Install CocoaPods
+        if: steps.pods-cache.outputs.cache-hit != 'true'
         working-directory: apps/example/ios
         run: pod install
 
@@ -44,6 +52,14 @@ jobs:
       - name: Start Package Manager
         working-directory: apps/example
         run: CI=true yarn start &
+
+      - name: Cache Xcode DerivedData
+        uses: actions/cache@v3
+        with:
+          path: apps/example/ios/build
+          key: ${{ runner.os }}-xcode-${{ hashFiles('apps/example/ios/Podfile.lock', 'packages/*/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-
 
       - name: Build example for iOS
         working-directory: apps/example/ios
