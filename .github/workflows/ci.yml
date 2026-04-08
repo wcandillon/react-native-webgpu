@@ -18,8 +18,6 @@ concurrency:
 jobs:
   build:
     runs-on: self-hosted
-    env:
-      CCACHE_DIR: /tmp/ccache
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,18 +34,6 @@ jobs:
 
       - name: Typecheck files
         run: yarn tsc
-
-      - name: Setup ccache
-        run: |
-          if ! command -v ccache &> /dev/null; then
-            echo "ccache not found — skipping"
-            echo "CCACHE_AVAILABLE=false" >> $GITHUB_ENV
-          else
-            ccache --set-config=max_size=5G
-            ccache --set-config=compression=true
-            ccache -z
-            echo "CCACHE_AVAILABLE=true" >> $GITHUB_ENV
-          fi
 
       - name: Install CocoaPods
         working-directory: apps/example/ios
@@ -72,10 +58,6 @@ jobs:
       - name: Build example for iOS
         working-directory: apps/example/ios
         run: |
-          if [ "$CCACHE_AVAILABLE" = "true" ]; then
-            export CC="ccache clang"
-            export CXX="ccache clang++"
-          fi
           set -o pipefail && xcodebuild \
             -workspace example.xcworkspace \
             -scheme Example \
@@ -118,10 +100,6 @@ jobs:
         working-directory: packages/webgpu
         run: yarn test
 
-      - name: ccache stats (iOS)
-        if: env.CCACHE_AVAILABLE == 'true'
-        run: ccache -s
-
       - name: Detect ANDROID_HOME
         run: |
           if [ -n "$ANDROID_HOME" ] && [ -d "$ANDROID_HOME" ]; then
@@ -161,13 +139,4 @@ jobs:
         working-directory: apps/example/android
         env:
           JAVA_OPTS: "-XX:MaxHeapSize=6g"
-        run: |
-          if [ "$CCACHE_AVAILABLE" = "true" ]; then
-            export CC="ccache clang"
-            export CXX="ccache clang++"
-          fi
-          ./gradlew assembleDebug --build-cache --warning-mode all
-
-      - name: ccache stats (Android)
-        if: env.CCACHE_AVAILABLE == 'true'
-        run: ccache -s
+        run: ./gradlew assembleDebug --build-cache --warning-mode all
