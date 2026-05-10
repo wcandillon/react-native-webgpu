@@ -44,7 +44,7 @@
     "react-native-worklets": "0.7.2",
     "teapot": "^1.0.0",
     "three": "0.172.0",
-    "typegpu": "^0.11.4",
+    "typegpu": "^0.11.6",
     "wgpu-matrix": "^3.0.2"
   },
   "devDependencies": {
@@ -71,7 +71,7 @@
     "react-native-test-app": "4.4.10",
     "react-test-renderer": "18.2.0",
     "typescript": "5.0.4",
-    "unplugin-typegpu": "https://pkg.pr.new/unplugin-typegpu@bbce6b7.tgz"
+    "unplugin-typegpu": "^0.11.4"
   },
   "engines": {
     "node": ">=18"

@@ -2,7 +2,12 @@ import { useMemo, useState } from "react";
 import { Button, StyleSheet, Text, View } from "react-native";
 import { Canvas } from "react-native-wgpu";
 import { common, d, std } from "typegpu";
-import { useConfigureContext, useFrame, useMirroredUniform, useRoot } from "@typegpu/react";
+import {
+  useConfigureContext,
+  useFrame,
+  useMirroredUniform,
+  useRoot,
+} from "@typegpu/react";
 
 export function GradientTiles() {
   const root = useRoot();
@@ -44,14 +49,26 @@ export function GradientTiles() {
       <View style={style.controls}>
         <View style={style.buttonRow}>
           <Text style={style.spanText}>span x: </Text>
-          <Button title="➖" onPress={() => setSpanX((prev) => Math.max(1, prev - 1))} />
-          <Button title="➕" onPress={() => setSpanX((prev) => Math.min(prev + 1, 10))} />
+          <Button
+            title="➖"
+            onPress={() => setSpanX((prev) => Math.max(1, prev - 1))}
+          />
+          <Button
+            title="➕"
+            onPress={() => setSpanX((prev) => Math.min(prev + 1, 10))}
+          />
         </View>
 
         <View style={style.buttonRow}>
           <Text style={style.spanText}>span y: </Text>
-          <Button title="➖" onPress={() => setSpanY((prev) => Math.max(1, prev - 1))} />
-          <Button title="➕" onPress={() => setSpanY((prev) => Math.min(prev + 1, 10))} />
+          <Button
+            title="➖"
+            onPress={() => setSpanY((prev) => Math.max(1, prev - 1))}
+          />
+          <Button
+            title="➕"
+            onPress={() => setSpanY((prev) => Math.min(prev + 1, 10))}
+          />
         </View>
       </View>
     </View>

@@ -5055,9 +5055,9 @@ __metadata:
     react-test-renderer: 18.2.0
     teapot: ^1.0.0
     three: 0.172.0
-    typegpu: ^0.11.4
+    typegpu: ^0.11.6
     typescript: 5.0.4
-    unplugin-typegpu: "https://pkg.pr.new/unplugin-typegpu@bbce6b7.tgz"
+    unplugin-typegpu: ^0.11.4
     wgpu-matrix: ^3.0.2
   languageName: unknown
   linkType: soft
@@ -14944,14 +14944,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typegpu@npm:^0.11.4":
-  version: 0.11.4
-  resolution: "typegpu@npm:0.11.4"
+"typegpu@npm:^0.11.6":
+  version: 0.11.6
+  resolution: "typegpu@npm:0.11.6"
   dependencies:
     tinyest: ~0.3.1
     tsover-runtime: ^0.0.6
     typed-binary: ^4.3.3
-  checksum: 08971845cdac92b6e9894b539699162092eeca2106328498795b1c9e54b62b94517b4655c52ad8932100af2266fb489ae8e689ea4cb26f1d9d27d12a3e0a0fba
+  checksum: 32ed07c2b5a8e3fd8c6dd0e99ca44cccd107bbd0f82950d09bcf5d68ba16af9b202ab0596218232d70bd99869b1479b7766e505960b706bcdf1c55161ad01a0e
   languageName: node
   linkType: hard
 
@@ -15123,9 +15123,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"unplugin-typegpu@https://pkg.pr.new/unplugin-typegpu@bbce6b7.tgz":
-  version: 0.11.3
-  resolution: "unplugin-typegpu@https://pkg.pr.new/unplugin-typegpu@bbce6b7.tgz"
+"unplugin-typegpu@npm:^0.11.4":
+  version: 0.11.4
+  resolution: "unplugin-typegpu@npm:0.11.4"
   dependencies:
     "@babel/parser": ^7.29.0
     "@babel/traverse": ^7.29.0
@@ -15139,8 +15139,8 @@ __metadata:
     tinyest-for-wgsl: ~0.3.2
     unplugin: ^3.0.0
   peerDependencies:
-    typegpu: ^0.11.4
-  checksum: 4bdf98821cc206e8ded55bb15c463a346d55eef2cd8dcaeb66863fbdb379cafcc64270b30f35da6ba3eec2a57da8638690cbe2f49f0e1f7d6535a74864289cf8
+    typegpu: ^0.11.5
+  checksum: 4dc0144b470a9ebac2436221283d5e78a91dba58f1cd330a801d4444da6359cd6090a878c8a01dd5495f13fb1969697d07a07b68af7ecfeb89cd7f2618be9984
   languageName: node
   linkType: hard
 
