@@ -2,7 +2,7 @@ import React, { useCallback, useRef } from "react";
 import tgpu from "typegpu";
 import * as d from "typegpu/data";
 import { StyleSheet, View, Text, Button } from "react-native";
-import { Canvas } from "react-native-wgpu";
+import { Canvas } from "react-native-webgpu";
 
 import { useWebGPU } from "../components/useWebGPU";
 import { toBeAssignedLater } from "../components/utils";

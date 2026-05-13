@@ -1,6 +1,6 @@
 import React from "react";
 import { View } from "react-native";
-import { Canvas } from "react-native-wgpu";
+import { Canvas } from "react-native-webgpu";
 import { mat4 } from "wgpu-matrix";
 
 import { useWebGPU } from "../components/useWebGPU";

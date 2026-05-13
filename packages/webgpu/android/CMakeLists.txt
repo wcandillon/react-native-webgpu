@@ -5,7 +5,7 @@ set (CMAKE_VERBOSE_MAKEFILE ON)
 set (CMAKE_CXX_STANDARD 20)
 set (CMAKE_CXX_STANDARD_REQUIRED True)
 
-set (PACKAGE_NAME "react-native-wgpu")
+set (PACKAGE_NAME "react-native-webgpu")
 
 #link_directories(../libs/android/${ANDROID_ABI}/)
 

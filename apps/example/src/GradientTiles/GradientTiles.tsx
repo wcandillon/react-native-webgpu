@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, PixelRatio, StyleSheet, Text, View } from "react-native";
-import type { CanvasRef } from "react-native-wgpu";
-import { Canvas, useDevice } from "react-native-wgpu";
+import type { CanvasRef } from "react-native-webgpu";
+import { Canvas, useDevice } from "react-native-webgpu";
 import * as d from "typegpu/data";
 import tgpu, { type TgpuBindGroup, type TgpuBuffer } from "typegpu";
 

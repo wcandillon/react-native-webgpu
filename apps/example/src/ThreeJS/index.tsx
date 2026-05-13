@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { createStackNavigator } from "@react-navigation/stack";
-import { warnIfNotHardwareAccelerated } from "react-native-wgpu";
+import { warnIfNotHardwareAccelerated } from "react-native-webgpu";
 
 import { Cube } from "./Cube";
 import type { Routes } from "./Routes";

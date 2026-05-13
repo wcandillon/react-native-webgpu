@@ -3657,9 +3657,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-three/fiber@patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch::locator=react-native-webgpu%40workspace%3A.":
+"@react-three/fiber@patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch::locator=react-native-webgpu-monorepo%40workspace%3A.":
   version: 9.4.0
-  resolution: "@react-three/fiber@patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch::version=9.4.0&hash=7de131&locator=react-native-webgpu%40workspace%3A."
+  resolution: "@react-three/fiber@patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch::version=9.4.0&hash=7de131&locator=react-native-webgpu-monorepo%40workspace%3A."
   dependencies:
     "@babel/runtime": ^7.17.8
     "@types/react-reconciler": ^0.32.0
@@ -4969,7 +4969,7 @@ __metadata:
     react-native-safe-area-context: ^5.4.0
     react-native-test-app: 4.4.10
     react-native-web: ^0.21.2
-    react-native-wgpu: "*"
+    react-native-webgpu: "*"
     react-native-worklets: 0.7.2
     react-test-renderer: 18.2.0
     teapot: ^1.0.0
@@ -12877,18 +12877,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-webgpu@workspace:.":
+"react-native-webgpu-monorepo@workspace:.":
   version: 0.0.0-use.local
-  resolution: "react-native-webgpu@workspace:."
+  resolution: "react-native-webgpu-monorepo@workspace:."
   dependencies:
     "@types/react-native-web": ^0.19.2
     turbo: ^2.1.0
   languageName: unknown
   linkType: soft
 
-"react-native-wgpu@*, react-native-wgpu@workspace:packages/webgpu":
+"react-native-webgpu@*, react-native-webgpu@workspace:packages/webgpu":
   version: 0.0.0-use.local
-  resolution: "react-native-wgpu@workspace:packages/webgpu"
+  resolution: "react-native-webgpu@workspace:packages/webgpu"
   dependencies:
     "@types/jest": ^29.5.12
     "@types/lodash": ^4.17.5
@@ -12938,6 +12938,25 @@ __metadata:
       optional: true
     react-native-worklets:
       optional: true
+  languageName: unknown
+  linkType: soft
+
+"react-native-wgpu@workspace:packages/webgpu-shim":
+  version: 0.0.0-use.local
+  resolution: "react-native-wgpu@workspace:packages/webgpu-shim"
+  dependencies:
+    "@types/node": ^20.14.7
+    "@types/react": ^18.2.44
+    "@webgpu/types": 0.1.65
+    eslint: 9.35.0
+    eslint-config-react-native-wcandillon: 4.0.1
+    prettier: ^3.0.3
+    react-native-builder-bob: ^0.23.2
+    react-native-webgpu: "*"
+    typescript: ^5.2.2
+  peerDependencies:
+    react: "*"
+    react-native: ">=0.81.0"
   languageName: unknown
   linkType: soft
 

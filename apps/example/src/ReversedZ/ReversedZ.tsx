@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-shadow */
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { Canvas } from "react-native-wgpu";
+import { Canvas } from "react-native-webgpu";
 import type { Mat4 } from "wgpu-matrix";
 import { mat4, vec3 } from "wgpu-matrix";
 

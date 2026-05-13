@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import * as THREE from "three";
-import type { CanvasRef } from "react-native-wgpu";
-import { Canvas } from "react-native-wgpu";
+import type { CanvasRef } from "react-native-webgpu";
+import { Canvas } from "react-native-webgpu";
 import { View } from "react-native";
 import { useEffect, useRef } from "react";
 import { time, oscSine, mix, range, normalWorld } from "three/tsl";

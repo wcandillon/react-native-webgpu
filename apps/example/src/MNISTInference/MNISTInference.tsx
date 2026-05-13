@@ -16,7 +16,7 @@ import {
 } from "@shopify/react-native-skia";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS, runOnUI, useSharedValue } from "react-native-reanimated";
-import { useDevice } from "react-native-wgpu";
+import { useDevice } from "react-native-webgpu";
 
 import type { Network } from "./Lib";
 import { createDemo, centerData, SIZE } from "./Lib";
