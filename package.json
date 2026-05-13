@@ -1,5 +1,5 @@
 {
-  "name": "react-native-webgpu",
+  "name": "react-native-webgpu-monorepo",
   "private": true,
   "workspaces": [
     "packages/*",

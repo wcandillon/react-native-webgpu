@@ -3657,9 +3657,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-three/fiber@patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch::locator=react-native-webgpu%40workspace%3A.":
+"@react-three/fiber@patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch::locator=react-native-webgpu-monorepo%40workspace%3A.":
   version: 9.4.0
-  resolution: "@react-three/fiber@patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch::version=9.4.0&hash=7de131&locator=react-native-webgpu%40workspace%3A."
+  resolution: "@react-three/fiber@patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch::version=9.4.0&hash=7de131&locator=react-native-webgpu-monorepo%40workspace%3A."
   dependencies:
     "@babel/runtime": ^7.17.8
     "@types/react-reconciler": ^0.32.0
@@ -12877,18 +12877,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-webgpu@workspace:.":
+"react-native-webgpu-monorepo@workspace:.":
   version: 0.0.0-use.local
-  resolution: "react-native-webgpu@workspace:."
+  resolution: "react-native-webgpu-monorepo@workspace:."
   dependencies:
     "@types/react-native-web": ^0.19.2
     turbo: ^2.1.0
   languageName: unknown
   linkType: soft
 
-"react-native-wgpu@*, react-native-wgpu@workspace:packages/webgpu":
+"react-native-webgpu@workspace:packages/webgpu":
   version: 0.0.0-use.local
-  resolution: "react-native-wgpu@workspace:packages/webgpu"
+  resolution: "react-native-webgpu@workspace:packages/webgpu"
   dependencies:
     "@types/jest": ^29.5.12
     "@types/lodash": ^4.17.5
@@ -12940,6 +12940,23 @@ __metadata:
       optional: true
   languageName: unknown
   linkType: soft
+
+"react-native-wgpu@npm:*":
+  version: 0.5.11
+  resolution: "react-native-wgpu@npm:0.5.11"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+    react-native-reanimated: ">=4.2.1"
+    react-native-worklets: ">=0.7.2"
+  peerDependenciesMeta:
+    react-native-reanimated:
+      optional: true
+    react-native-worklets:
+      optional: true
+  checksum: f6b7775831163038899d38c41ddb4b4fd7de5c56a8ecc881482c145a6ccbabd97d4e5c7ecacdd1dbd8dced8aa6b9b70a6edc63acf726ce331855f4d30f803634
+  languageName: node
+  linkType: hard
 
 "react-native-worklets@npm:0.7.2, react-native-worklets@npm:^0.7.0":
   version: 0.7.2
