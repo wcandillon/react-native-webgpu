@@ -28,10 +28,17 @@
   auto gpu = manager->_gpu;
   auto surface = manager->_platformContext->makeSurface(
       gpu, nativeSurface, size.width, size.height);
-  registry
-      .getSurfaceInfoOrCreate([_contextId intValue], gpu, size.width,
-                              size.height)
-      ->switchToOnscreen(nativeSurface, surface);
+  auto info = registry.getSurfaceInfoOrCreate([_contextId intValue], gpu,
+                                              size.width, size.height);
+  info->switchToOnscreen(nativeSurface, surface);
+  // If a previous configure() call from JS already requested an HDR / color
+  // config for this surface, replay it onto the freshly attached layer. This
+  // covers the race where JS calls context.configure() before this MetalView
+  // mounts (e.g., on a key-driven Canvas remount).
+  if (auto colorConfig = info->getColorConfig()) {
+    manager->_platformContext->configureSurfaceColor(nativeSurface,
+                                                     *colorConfig);
+  }
 }
 
 - (void)update {

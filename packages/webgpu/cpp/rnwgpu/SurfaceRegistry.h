@@ -1,10 +1,12 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <shared_mutex>
 #include <unordered_map>
 #include <utility>
 
+#include "PlatformContext.h"
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
@@ -151,6 +153,16 @@ public:
     return config.device;
   }
 
+  void setColorConfig(const SurfaceColorConfig &cfg) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    _colorConfig = cfg;
+  }
+
+  std::optional<SurfaceColorConfig> getColorConfig() {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    return _colorConfig;
+  }
+
 private:
   void _configure() {
     if (surface) {
@@ -175,6 +187,7 @@ private:
   wgpu::SurfaceConfiguration config;
   int width;
   int height;
+  std::optional<SurfaceColorConfig> _colorConfig;
 };
 
 class SurfaceRegistry {

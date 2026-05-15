@@ -35,6 +35,22 @@ void GPUCanvasContext::configure(
 #endif
   surfaceConfiguration.presentMode = wgpu::PresentMode::Fifo;
   _surfaceInfo->configure(surfaceConfiguration);
+
+  if (_platformContext) {
+    SurfaceColorConfig colorConfig;
+    colorConfig.format = surfaceConfiguration.format;
+    colorConfig.extendedDynamicRange =
+        configuration->toneMappingMode == GPUCanvasToneMappingMode::Extended;
+    // Stash so a (re)attaching native layer can replay this config — see
+    // MetalView::configure on Apple. This avoids a race where configure()
+    // fires from JS before the MetalView has called switchToOnscreen.
+    _surfaceInfo->setColorConfig(colorConfig);
+    auto nativeInfo = _surfaceInfo->getNativeInfo();
+    if (nativeInfo.nativeSurface) {
+      _platformContext->configureSurfaceColor(nativeInfo.nativeSurface,
+                                              colorConfig);
+    }
+  }
 }
 
 void GPUCanvasContext::unconfigure() {}

@@ -2,6 +2,7 @@
 
 #include <TargetConditionals.h>
 
+#import <QuartzCore/CAMetalLayer.h>
 #import <React/RCTBlobManager.h>
 #import <React/RCTBridge+Private.h>
 #import <ReactCommon/RCTTurboModule.h>
@@ -37,6 +38,70 @@ wgpu::Surface ApplePlatformContext::makeSurface(wgpu::Instance instance,
   wgpu::SurfaceDescriptor surfaceDescriptor;
   surfaceDescriptor.nextInChain = &metalSurfaceDesc;
   return instance.CreateSurface(&surfaceDescriptor);
+}
+
+void ApplePlatformContext::configureSurfaceColor(
+    void *nativeSurface, const SurfaceColorConfig &config) {
+  if (!nativeSurface) {
+    NSLog(@"[RNWebGPU] configureSurfaceColor: nativeSurface is null");
+    return;
+  }
+  CAMetalLayer *layer = (__bridge CAMetalLayer *)nativeSurface;
+
+  // CAMetalLayer property setters are documented as thread-safe, and we need
+  // these changes to land before the caller renders / presents the next
+  // frame, so apply synchronously here instead of bouncing to the main queue.
+  [CATransaction begin];
+  [CATransaction setDisableActions:YES];
+
+  CGColorSpaceRef colorSpace = nullptr;
+  if (config.extendedDynamicRange) {
+#if !TARGET_OS_OSX
+    if (@available(iOS 16.0, *)) {
+      layer.wantsExtendedDynamicRangeContent = YES;
+    }
+#else
+    layer.wantsExtendedDynamicRangeContent = YES;
+#endif
+    // Extended linear sRGB allows shader values >1 to map into the display's
+    // EDR headroom on supporting hardware.
+    colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearSRGB);
+  } else {
+#if !TARGET_OS_OSX
+    if (@available(iOS 16.0, *)) {
+      layer.wantsExtendedDynamicRangeContent = NO;
+    }
+#else
+    layer.wantsExtendedDynamicRangeContent = NO;
+#endif
+    // Non-extended sRGB clamps float values >1 to SDR. Linear variants
+    // ("kCGColorSpaceLinearSRGB") still pass values >1 through on iOS, so we
+    // use gamma-encoded sRGB for the standard tone-mapping mode.
+    colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+  }
+  if (colorSpace) {
+    layer.colorspace = colorSpace;
+    CGColorSpaceRelease(colorSpace);
+  }
+
+  [CATransaction commit];
+
+#if !TARGET_OS_OSX
+  CGFloat headroom = 1.0;
+  if (@available(iOS 16.0, *)) {
+    headroom = UIScreen.mainScreen.currentEDRHeadroom;
+  }
+  NSLog(@"[RNWebGPU] HDR configure: extended=%d format=%u "
+        @"layer.wantsEDR=%d layer.colorspace=%@ EDRHeadroom=%.2f",
+        (int)config.extendedDynamicRange, (unsigned)config.format,
+        (int)layer.wantsExtendedDynamicRangeContent, layer.colorspace,
+        (double)headroom);
+#else
+  NSLog(@"[RNWebGPU] HDR configure: extended=%d format=%u "
+        @"layer.wantsEDR=%d layer.colorspace=%@",
+        (int)config.extendedDynamicRange, (unsigned)config.format,
+        (int)layer.wantsExtendedDynamicRangeContent, layer.colorspace);
+#endif
 }
 
 static std::span<const uint8_t> nsDataToSpan(NSData *data) {

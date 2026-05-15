@@ -13,6 +13,9 @@ public:
   wgpu::Surface makeSurface(wgpu::Instance instance, void *surface, int width,
                             int height) override;
 
+  void configureSurfaceColor(void *nativeSurface,
+                             const SurfaceColorConfig &config) override;
+
   ImageData createImageBitmap(std::string blobId, double offset,
                               double size) override;
 

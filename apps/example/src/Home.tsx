@@ -127,6 +127,10 @@ export const examples = [
     screen: "StorageBufferVertices",
     title: "💾 Storage Buffer Vertices",
   },
+  {
+    screen: "HDR",
+    title: "🌞 HDR Canvas",
+  },
 ];
 
 const styles = StyleSheet.create({

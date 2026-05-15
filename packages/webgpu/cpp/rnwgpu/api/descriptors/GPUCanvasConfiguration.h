@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "webgpu/webgpu_cpp.h"
@@ -13,6 +14,11 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
+enum class GPUCanvasToneMappingMode {
+  Standard,
+  Extended,
+};
+
 struct GPUCanvasConfiguration {
   std::shared_ptr<GPUDevice> device; // GPUDevice
   wgpu::TextureFormat format;        // GPUTextureFormat
@@ -20,6 +26,7 @@ struct GPUCanvasConfiguration {
   std::optional<std::vector<wgpu::TextureFormat>>
       viewFormats; // Iterable<GPUTextureFormat>
   wgpu::CompositeAlphaMode alphaMode = wgpu::CompositeAlphaMode::Opaque;
+  GPUCanvasToneMappingMode toneMappingMode = GPUCanvasToneMappingMode::Standard;
 };
 
 } // namespace rnwgpu
@@ -61,6 +68,20 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
                         .utf8(runtime);
         if (prop == "premultiplied") {
           result->alphaMode = wgpu::CompositeAlphaMode::Premultiplied;
+        }
+      }
+      if (value.hasProperty(runtime, "toneMapping")) {
+        auto toneMapping = value.getProperty(runtime, "toneMapping");
+        if (toneMapping.isObject()) {
+          auto tmObj = toneMapping.getObject(runtime);
+          if (tmObj.hasProperty(runtime, "mode")) {
+            auto mode = tmObj.getProperty(runtime, "mode")
+                            .asString(runtime)
+                            .utf8(runtime);
+            if (mode == "extended") {
+              result->toneMappingMode = GPUCanvasToneMappingMode::Extended;
+            }
+          }
         }
       }
     }

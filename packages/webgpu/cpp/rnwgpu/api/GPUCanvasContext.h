@@ -14,6 +14,7 @@
 #include "GPU.h"
 #include "GPUCanvasConfiguration.h"
 #include "GPUTexture.h"
+#include "PlatformContext.h"
 #include "SurfaceRegistry.h"
 
 namespace rnwgpu {
@@ -24,9 +25,11 @@ class GPUCanvasContext : public NativeObject<GPUCanvasContext> {
 public:
   static constexpr const char *CLASS_NAME = "GPUCanvasContext";
 
-  GPUCanvasContext(std::shared_ptr<GPU> gpu, int contextId, int width,
-                   int height)
-      : NativeObject(CLASS_NAME), _gpu(std::move(gpu)) {
+  GPUCanvasContext(std::shared_ptr<GPU> gpu,
+                   std::shared_ptr<PlatformContext> platformContext,
+                   int contextId, int width, int height)
+      : NativeObject(CLASS_NAME), _gpu(std::move(gpu)),
+        _platformContext(std::move(platformContext)) {
     _canvas = std::make_shared<Canvas>(nullptr, width, height);
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     _surfaceInfo =
@@ -61,6 +64,7 @@ private:
   std::shared_ptr<Canvas> _canvas;
   std::shared_ptr<SurfaceInfo> _surfaceInfo;
   std::shared_ptr<GPU> _gpu;
+  std::shared_ptr<PlatformContext> _platformContext;
 };
 
 } // namespace rnwgpu
