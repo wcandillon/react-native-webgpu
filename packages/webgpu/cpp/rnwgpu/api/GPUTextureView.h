@@ -1,6 +1,8 @@
 #pragma once
 
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "Unions.h"
 
@@ -12,12 +14,16 @@ namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
 
+class SurfaceInfo;
+
 class GPUTextureView : public NativeObject<GPUTextureView> {
 public:
   static constexpr const char *CLASS_NAME = "GPUTextureView";
 
-  explicit GPUTextureView(wgpu::TextureView instance, std::string label)
-      : NativeObject(CLASS_NAME), _instance(instance), _label(label) {}
+  explicit GPUTextureView(wgpu::TextureView instance, std::string label,
+                          std::weak_ptr<SurfaceInfo> surfaceInfo = {})
+      : NativeObject(CLASS_NAME), _instance(instance), _label(label),
+        _surfaceInfo(std::move(surfaceInfo)) {}
 
 public:
   std::string getBrand() { return CLASS_NAME; }
@@ -35,10 +41,12 @@ public:
   }
 
   inline const wgpu::TextureView get() { return _instance; }
+  std::weak_ptr<SurfaceInfo> getSurfaceInfo() { return _surfaceInfo; }
 
 private:
   wgpu::TextureView _instance;
   std::string _label;
+  std::weak_ptr<SurfaceInfo> _surfaceInfo;
 };
 
 } // namespace rnwgpu

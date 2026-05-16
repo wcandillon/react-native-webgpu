@@ -2,9 +2,12 @@
 
 #include <limits>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "Convertors.h"
+#include "SurfaceRegistry.h"
 
 namespace rnwgpu {
 
@@ -26,6 +29,28 @@ void GPUQueue::submit(
     return;
   }
   _instance.Submit(bufs_size, bufs.data());
+  std::vector<std::shared_ptr<SurfaceInfo>> presentableSurfaces;
+  for (const auto &commandBuffer : commandBuffers) {
+    for (const auto &weakSurface : commandBuffer->getPresentableSurfaces()) {
+      auto surface = weakSurface.lock();
+      if (!surface) {
+        continue;
+      }
+      bool alreadyTracked = false;
+      for (const auto &presentableSurface : presentableSurfaces) {
+        if (presentableSurface == surface) {
+          alreadyTracked = true;
+          break;
+        }
+      }
+      if (!alreadyTracked) {
+        presentableSurfaces.push_back(surface);
+      }
+    }
+  }
+  for (const auto &surface : presentableSurfaces) {
+    surface->markSubmittedForPresentation();
+  }
 }
 
 void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,

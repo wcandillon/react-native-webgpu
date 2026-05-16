@@ -1,11 +1,23 @@
 #pragma once
 
+#include <atomic>
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <shared_mutex>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
+
+#ifdef __APPLE__
+namespace dawn::native::metal {
+
+void WaitForCommandsToBeScheduled(WGPUDevice device);
+
+}
+#endif
 
 namespace rnwgpu {
 
@@ -29,6 +41,7 @@ public:
 
   void reconfigure(int newWidth, int newHeight) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    _resetPresentationStateLocked();
     config.width = newWidth;
     config.height = newHeight;
     _configure();
@@ -36,6 +49,7 @@ public:
 
   void configure(wgpu::SurfaceConfiguration &newConfig) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    _resetPresentationStateLocked();
     config = newConfig;
     config.width = width;
     config.height = height;
@@ -45,6 +59,7 @@ public:
 
   void unconfigure() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    _resetPresentationStateLocked();
     if (surface) {
       surface.Unconfigure();
     } else {
@@ -54,6 +69,7 @@ public:
 
   void *switchToOffscreen() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    _resetPresentationStateLocked();
     // We only do this if the onscreen surface is configured.
     auto isConfigured = config.device != nullptr;
     if (isConfigured) {
@@ -72,6 +88,7 @@ public:
 
   void switchToOnscreen(void *newNativeSurface, wgpu::Surface newSurface) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    _resetPresentationStateLocked();
     nativeSurface = newNativeSurface;
     surface = std::move(newSurface);
     // If we are comming from an offscreen context, we need to configure the new
@@ -103,6 +120,7 @@ public:
       wgpu::Queue queue = device.GetQueue();
       queue.Submit(1, &commands);
       surface.Present();
+      _resetPresentationStateLocked();
       texture = nullptr;
     }
   }
@@ -115,16 +133,35 @@ public:
 
   void present() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    if (surface) {
-      surface.Present();
+    _presentLocked();
+  }
+
+  // Called by the display-link tick. Presents only after the app has submitted
+  // work for an acquired texture and at least one tick has passed since
+  // acquire.
+  void maybePresentForFrame(uint64_t currentFrame) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (_readyToPresent && _acquiredAtFrame &&
+        *_acquiredAtFrame < currentFrame) {
+      _presentLocked();
     }
   }
 
-  wgpu::Texture getCurrentTexture() {
-    std::shared_lock<std::shared_mutex> lock(_mutex);
+  void markSubmittedForPresentation() {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (_textureAcquired) {
+      _readyToPresent = true;
+    }
+  }
+
+  wgpu::Texture getCurrentTexture(uint64_t currentFrame) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
     if (surface) {
       wgpu::SurfaceTexture surfaceTexture;
       surface.GetCurrentTexture(&surfaceTexture);
+      _textureAcquired = true;
+      _readyToPresent = false;
+      _acquiredAtFrame = currentFrame;
       return surfaceTexture.texture;
     } else {
       return texture;
@@ -167,6 +204,28 @@ private:
     }
   }
 
+  // Caller must hold _mutex as unique_lock.
+  void _presentLocked() {
+    if (surface && _textureAcquired) {
+#ifdef __APPLE__
+      if (config.device) {
+        dawn::native::metal::WaitForCommandsToBeScheduled(config.device.Get());
+      }
+#endif
+      surface.Present();
+      _textureAcquired = false;
+      _readyToPresent = false;
+      _acquiredAtFrame.reset();
+    }
+  }
+
+  // Caller must hold _mutex as unique_lock.
+  void _resetPresentationStateLocked() {
+    _textureAcquired = false;
+    _readyToPresent = false;
+    _acquiredAtFrame.reset();
+  }
+
   mutable std::shared_mutex _mutex;
   void *nativeSurface = nullptr;
   wgpu::Surface surface = nullptr;
@@ -175,6 +234,9 @@ private:
   wgpu::SurfaceConfiguration config;
   int width;
   int height;
+  bool _textureAcquired = false;
+  bool _readyToPresent = false;
+  std::optional<uint64_t> _acquiredAtFrame;
 };
 
 class SurfaceRegistry {
@@ -221,10 +283,46 @@ public:
     return info;
   }
 
+  // Monotonically increasing tick counter. getCurrentTexture stamps the
+  // surface with the value seen at acquisition time; tickAll() presents
+  // surfaces whose stamp is strictly less than the current counter, which
+  // guarantees the JS render code between two vsyncs has finished.
+  uint64_t getCurrentFrame() const { return _frameCounter.load(); }
+
+  void tickAll() {
+    auto current = _frameCounter.fetch_add(1, std::memory_order_acq_rel) + 1;
+    std::vector<std::shared_ptr<SurfaceInfo>> snapshot;
+    {
+      std::shared_lock<std::shared_mutex> lock(_mutex);
+      snapshot.reserve(_registry.size());
+      for (auto &entry : _registry) {
+        snapshot.push_back(entry.second);
+      }
+    }
+    for (auto &info : snapshot) {
+      info->maybePresentForFrame(current);
+    }
+  }
+
+  void markSubmittedSurfacesForPresentation() {
+    std::vector<std::shared_ptr<SurfaceInfo>> snapshot;
+    {
+      std::shared_lock<std::shared_mutex> lock(_mutex);
+      snapshot.reserve(_registry.size());
+      for (auto &entry : _registry) {
+        snapshot.push_back(entry.second);
+      }
+    }
+    for (auto &info : snapshot) {
+      info->markSubmittedForPresentation();
+    }
+  }
+
 private:
   SurfaceRegistry() = default;
   mutable std::shared_mutex _mutex;
   std::unordered_map<int, std::shared_ptr<SurfaceInfo>> _registry;
+  std::atomic<uint64_t> _frameCounter{0};
 };
 
 } // namespace rnwgpu

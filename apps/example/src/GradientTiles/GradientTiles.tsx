@@ -125,7 +125,6 @@ export function GradientTiles() {
     passEncoder.end();
 
     device.queue.submit([commandEncoder.finish()]);
-    context.present();
   }, [ref, device, root, spanX, spanY, state]);
 
   return (

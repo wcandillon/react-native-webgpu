@@ -19,7 +19,8 @@ std::shared_ptr<GPUTextureView> GPUTexture::createView(
   auto view = _instance.CreateView(&desc);
   return std::make_shared<GPUTextureView>(
       view,
-      descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
+      descriptor.has_value() ? descriptor.value()->label.value_or("") : "",
+      _surfaceInfo);
 }
 
 uint32_t GPUTexture::getWidth() { return _instance.GetWidth(); }

@@ -128,8 +128,6 @@ export function HelloTriangle() {
       passEncoder.end();
 
       device.queue.submit([commandEncoder.finish()]);
-
-      context.present();
     };
     helloTriangle();
   }, [ref]);
@@ -174,16 +172,7 @@ ctx.canvas.height = ctx.canvas.clientHeight * PixelRatio.get();
 
 ### Frame Scheduling
 
-In React Native, we want to keep frame presentation as a manual operation as we plan to provide more advanced rendering options that are React Native specific.  
-This means that when you are ready to present a frame, you need to call `present` on the context.
-
-```tsx
-// draw
-// submit to the queue
-device.queue.submit([commandEncoder.finish()]);
-// This method is React Native only
-context.present();
-```
+Frame presentation is automatic, matching the behavior of `GPUCanvasContext` on the Web. A native display link (CADisplayLink on iOS, Choreographer on Android) ticks once per vsync and presents any surface whose texture was acquired during a previous vsync interval, which gives your render code the full frame between two vsyncs to encode and submit.
 
 ### Canvas Transparency
 
@@ -244,7 +233,6 @@ const renderFrame = (device: GPUDevice, context: GPUCanvasContext) => {
   const commandEncoder = device.createCommandEncoder();
   // ... render ...
   device.queue.submit([commandEncoder.finish()]);
-  context.present();
 };
 
 // Initialize WebGPU on main thread, then run on UI thread

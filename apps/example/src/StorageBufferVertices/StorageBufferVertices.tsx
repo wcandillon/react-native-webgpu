@@ -185,8 +185,6 @@ export function StorageBufferVertices() {
 
     const commandBuffer = encoder.finish();
     device.queue.submit([commandBuffer]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (context as any).present();
   });
 
   return (

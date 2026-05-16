@@ -1,6 +1,7 @@
 package com.webgpu;
 
 import android.util.Log;
+import android.view.Choreographer;
 
 import androidx.annotation.OptIn;
 
@@ -24,6 +25,19 @@ public class WebGPUModule extends NativeWebGPUModuleSpec {
       System.loadLibrary("react-native-wgpu"); // Load the C++ library
   }
 
+  private volatile boolean mTickActive = false;
+
+  private final Choreographer.FrameCallback mFrameCallback = new Choreographer.FrameCallback() {
+    @Override
+    public void doFrame(long frameTimeNanos) {
+      if (!mTickActive) {
+        return;
+      }
+      nativeTick();
+      Choreographer.getInstance().postFrameCallback(this);
+    }
+  };
+
   public WebGPUModule(ReactApplicationContext reactContext) {
     super(reactContext);
     // Initialize the C++ module
@@ -41,10 +55,46 @@ public class WebGPUModule extends NativeWebGPUModuleSpec {
       throw new RuntimeException("React Native's BlobModule was not found!");
     }
     initializeNative(jsContext.get(), (CallInvokerHolderImpl) callInvokerHolder, blobModule);
+    startVsyncTicks();
     return true;
+  }
+
+  @Override
+  public void invalidate() {
+    stopVsyncTicks();
+    super.invalidate();
+  }
+
+  private void startVsyncTicks() {
+    if (mTickActive) {
+      return;
+    }
+    mTickActive = true;
+    // Choreographer instances are per-thread; the FrameCallback fires on the
+    // thread that posted it. Posting from the UI thread keeps the callback
+    // there, which is required for Vulkan/Surface ops on Android.
+    getReactApplicationContext().runOnUiQueueThread(new Runnable() {
+      @Override
+      public void run() {
+        Choreographer.getInstance().postFrameCallback(mFrameCallback);
+      }
+    });
+  }
+
+  private void stopVsyncTicks() {
+    mTickActive = false;
+    getReactApplicationContext().runOnUiQueueThread(new Runnable() {
+      @Override
+      public void run() {
+        Choreographer.getInstance().removeFrameCallback(mFrameCallback);
+      }
+    });
   }
 
   @OptIn(markerClass = FrameworkAPI.class)
   @DoNotStrip
   private native void initializeNative(long jsRuntime, CallInvokerHolderImpl jsInvoker, BlobModule blobModule);
+
+  @DoNotStrip
+  private native void nativeTick();
 }

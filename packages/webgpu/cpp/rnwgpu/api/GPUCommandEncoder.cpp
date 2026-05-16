@@ -34,7 +34,8 @@ std::shared_ptr<GPUCommandBuffer> GPUCommandEncoder::finish(
   auto commandBuffer = _instance.Finish(&desc);
   return std::make_shared<GPUCommandBuffer>(
       commandBuffer,
-      descriptor.has_value() ? descriptor.value()->label.value_or("") : "");
+      descriptor.has_value() ? descriptor.value()->label.value_or("") : "",
+      _presentableSurfaces);
 }
 
 std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
@@ -55,6 +56,23 @@ std::shared_ptr<GPURenderPassEncoder> GPUCommandEncoder::beginRenderPass(
       !conv(maxDrawCountDesc.maxDrawCount, descriptor->maxDrawCount)) {
     throw std::runtime_error("PUCommandEncoder::beginRenderPass(): couldn't "
                              "get GPURenderPassDescriptor");
+  }
+  for (const auto &attachment : descriptor->colorAttachments) {
+    if (std::holds_alternative<std::shared_ptr<GPURenderPassColorAttachment>>(
+            attachment)) {
+      auto colorAttachment =
+          std::get<std::shared_ptr<GPURenderPassColorAttachment>>(attachment);
+      if (colorAttachment) {
+        if (colorAttachment->view) {
+          addPresentableSurface(colorAttachment->view->getSurfaceInfo());
+        }
+        if (colorAttachment->resolveTarget.has_value() &&
+            colorAttachment->resolveTarget.value()) {
+          addPresentableSurface(
+              colorAttachment->resolveTarget.value()->getSurfaceInfo());
+        }
+      }
+    }
   }
   auto renderPass = _instance.BeginRenderPass(&desc);
   return std::make_shared<GPURenderPassEncoder>(renderPass,
@@ -91,6 +109,7 @@ void GPUCommandEncoder::copyTextureToTexture(
       !conv(size, copySize)) {
     return;
   }
+  addPresentableSurface(destination->texture->getSurfaceInfo());
 
   _instance.CopyTextureToTexture(&src, &dst, &size);
 }
@@ -148,6 +167,7 @@ void GPUCommandEncoder::copyBufferToTexture(
     return;
   }
 
+  addPresentableSurface(destination->texture->getSurfaceInfo());
   _instance.CopyBufferToTexture(&src, &dst, &size);
 }
 
@@ -174,6 +194,20 @@ void GPUCommandEncoder::popDebugGroup() { _instance.PopDebugGroup(); }
 
 void GPUCommandEncoder::insertDebugMarker(std::string markerLabel) {
   _instance.InsertDebugMarker(markerLabel.c_str());
+}
+
+void GPUCommandEncoder::addPresentableSurface(
+    std::weak_ptr<SurfaceInfo> surfaceInfo) {
+  auto surface = surfaceInfo.lock();
+  if (!surface) {
+    return;
+  }
+  for (const auto &existing : _presentableSurfaces) {
+    if (existing.lock() == surface) {
+      return;
+    }
+  }
+  _presentableSurfaces.push_back(surface);
 }
 
 } // namespace rnwgpu

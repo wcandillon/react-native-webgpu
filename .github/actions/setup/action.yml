@@ -18,8 +18,8 @@ runs:
       run: |
         HASH_FILE="/tmp/.yarn-lock-hash"
         CURRENT_HASH=$(shasum yarn.lock | cut -d' ' -f1)
-        if [ -f "$HASH_FILE" ] && [ "$(cat "$HASH_FILE")" = "$CURRENT_HASH" ] && [ -d "node_modules" ]; then
-          echo "yarn.lock unchanged and node_modules exists — skipping install"
+        if [ -f "$HASH_FILE" ] && [ "$(cat "$HASH_FILE")" = "$CURRENT_HASH" ] && [ -d "node_modules" ] && [ -d "apps/example/node_modules" ] && [ -d "packages/webgpu/node_modules" ]; then
+          echo "yarn.lock unchanged and workspace node_modules present, skipping install"
         else
           yarn install --immutable
           echo "$CURRENT_HASH" > "$HASH_FILE"

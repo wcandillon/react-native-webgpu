@@ -124,6 +124,14 @@ export const examples = [
     title: "⚠️ Device Lost Hang",
   },
   {
+    screen: "PresentRace",
+    title: "⚠️ Present Race (await before submit)",
+  },
+  {
+    screen: "MultiCanvasSubmit",
+    title: "🖼️ Multi-Canvas Submit Tracking",
+  },
+  {
     screen: "StorageBufferVertices",
     title: "💾 Storage Buffer Vertices",
   },

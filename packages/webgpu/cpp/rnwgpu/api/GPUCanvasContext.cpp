@@ -3,14 +3,6 @@
 #include "RNWebGPUManager.h"
 #include <memory>
 
-#ifdef __APPLE__
-namespace dawn::native::metal {
-
-void WaitForCommandsToBeScheduled(WGPUDevice device);
-
-}
-#endif
-
 namespace rnwgpu {
 
 void GPUCanvasContext::configure(
@@ -37,7 +29,7 @@ void GPUCanvasContext::configure(
   _surfaceInfo->configure(surfaceConfiguration);
 }
 
-void GPUCanvasContext::unconfigure() {}
+void GPUCanvasContext::unconfigure() { _surfaceInfo->unconfigure(); }
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   auto prevSize = _surfaceInfo->getConfig();
@@ -47,21 +39,14 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   if (sizeHasChanged) {
     _surfaceInfo->reconfigure(width, height);
   }
-  auto texture = _surfaceInfo->getCurrentTexture();
-  // Pass reportsMemoryPressure=false to avoid triggering spurious Hermes GC
-  // cycles every frame since the canvas texture doesn't own the buffer.
-  return std::make_shared<GPUTexture>(texture, "", false);
-}
-
-void GPUCanvasContext::present() {
-#ifdef __APPLE__
-  dawn::native::metal::WaitForCommandsToBeScheduled(
-      _surfaceInfo->getDevice().Get());
-#endif
   auto size = _surfaceInfo->getSize();
   _canvas->setClientWidth(size.width);
   _canvas->setClientHeight(size.height);
-  _surfaceInfo->present();
+  auto currentFrame = SurfaceRegistry::getInstance().getCurrentFrame();
+  auto texture = _surfaceInfo->getCurrentTexture(currentFrame);
+  // Pass reportsMemoryPressure=false to avoid triggering spurious Hermes GC
+  // cycles every frame since the canvas texture doesn't own the buffer.
+  return std::make_shared<GPUTexture>(texture, "", false, _surfaceInfo);
 }
 
 } // namespace rnwgpu

@@ -61,7 +61,6 @@ export const InstancedMesh = () => {
 
     function animate() {
       render();
-      context!.present();
     }
 
     function render() {

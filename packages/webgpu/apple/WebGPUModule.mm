@@ -1,7 +1,9 @@
 #import "WebGPUModule.h"
 #include "ApplePlatformContext.h"
 #import "GPUCanvasContext.h"
+#include "SurfaceRegistry.h"
 
+#import <QuartzCore/CADisplayLink.h>
 #import <React/RCTBridge+Private.h>
 #import <React/RCTCallInvoker.h>
 #import <React/RCTLog.h>
@@ -20,7 +22,10 @@ namespace react = facebook::react;
 - (void *)runtime;
 @end
 
-@implementation WebGPUModule
+@implementation WebGPUModule {
+  CADisplayLink *_displayLink;
+  BOOL _displayLinkActive;
+}
 
 RCT_EXPORT_MODULE(WebGPUModule)
 
@@ -42,7 +47,47 @@ static std::shared_ptr<rnwgpu::RNWebGPUManager> webgpuManager;
 }
 
 - (void)invalidate {
+  [self stopDisplayLink];
   webgpuManager = nil;
+  [super invalidate];
+}
+
+- (void)startDisplayLink {
+  _displayLinkActive = YES;
+  if (_displayLink != nil) {
+    return;
+  }
+  // CADisplayLink callbacks must be scheduled on a run loop. The main run
+  // loop is the safest choice: CAMetalLayer ops are main-thread-only, and
+  // SurfaceInfo's mutex serialises access with the JS thread.
+  dispatch_async(dispatch_get_main_queue(), ^{
+    if (!self->_displayLinkActive) {
+      return;
+    }
+    if (self->_displayLink != nil) {
+      return;
+    }
+    self->_displayLink =
+        [CADisplayLink displayLinkWithTarget:self selector:@selector(onVsync:)];
+    [self->_displayLink addToRunLoop:[NSRunLoop mainRunLoop]
+                             forMode:NSRunLoopCommonModes];
+  });
+}
+
+- (void)stopDisplayLink {
+  _displayLinkActive = NO;
+  CADisplayLink *link = _displayLink;
+  _displayLink = nil;
+  if (link == nil) {
+    return;
+  }
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [link invalidate];
+  });
+}
+
+- (void)onVsync:(CADisplayLink *)__unused link {
+  rnwgpu::SurfaceRegistry::getInstance().tickAll();
 }
 
 - (std::shared_ptr<rnwgpu::RNWebGPUManager>)getManager {
@@ -78,6 +123,7 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
       std::make_shared<rnwgpu::ApplePlatformContext>();
   webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker,
                                                             platformContext);
+  [self startDisplayLink];
   return @true;
 }
 

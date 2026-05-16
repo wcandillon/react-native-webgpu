@@ -12,6 +12,7 @@
 #include "AndroidPlatformContext.h"
 #include "GPUCanvasContext.h"
 #include "RNWebGPUManager.h"
+#include "SurfaceRegistry.h"
 
 #define LOG_TAG "WebGPUModule"
 
@@ -68,4 +69,9 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
     JNIEnv *env, jobject thiz, jint contextId) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   registry.removeSurfaceInfo(contextId);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUModule_nativeTick(JNIEnv * /*env*/, jobject /*thiz*/) {
+  rnwgpu::SurfaceRegistry::getInstance().tickAll();
 }

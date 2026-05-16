@@ -47,7 +47,6 @@ public:
                   &GPUCanvasContext::unconfigure);
     installMethod(runtime, prototype, "getCurrentTexture",
                   &GPUCanvasContext::getCurrentTexture);
-    installMethod(runtime, prototype, "present", &GPUCanvasContext::present);
   }
 
   // TODO: is this ok?
@@ -55,7 +54,6 @@ public:
   void configure(std::shared_ptr<GPUCanvasConfiguration> configuration);
   void unconfigure();
   std::shared_ptr<GPUTexture> getCurrentTexture();
-  void present();
 
 private:
   std::shared_ptr<Canvas> _canvas;

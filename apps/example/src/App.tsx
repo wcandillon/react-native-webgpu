@@ -35,6 +35,8 @@ import { ComputeToys } from "./ComputeToys";
 import { Reanimated } from "./Reanimated";
 import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
+import { PresentRace } from "./Diagnostics/PresentRace";
+import { MultiCanvasSubmit } from "./Diagnostics/MultiCanvasSubmit";
 import { StorageBufferVertices } from "./StorageBufferVertices";
 
 // The two lines below are needed by three.js
@@ -93,6 +95,11 @@ function App() {
           <Stack.Screen name="Reanimated" component={Reanimated} />
           <Stack.Screen name="AsyncStarvation" component={AsyncStarvation} />
           <Stack.Screen name="DeviceLostHang" component={DeviceLostHang} />
+          <Stack.Screen name="PresentRace" component={PresentRace} />
+          <Stack.Screen
+            name="MultiCanvasSubmit"
+            component={MultiCanvasSubmit}
+          />
           <Stack.Screen
             name="StorageBufferVertices"
             component={StorageBufferVertices}
