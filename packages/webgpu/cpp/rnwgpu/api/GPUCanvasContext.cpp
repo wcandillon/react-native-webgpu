@@ -55,28 +55,20 @@ jsi::Value GPUCanvasContext::getCurrentTexture(jsi::Runtime &runtime,
     surfaceInfo->present();
     return jsi::Value::undefined();
   };
-  auto makeFn = [&]() {
-    return jsi::Function::createFromHostFunction(
-        runtime, jsi::PropNameID::forAscii(runtime, "WebGPUPresent"), 0,
-        presentCb);
-  };
-  // Try queueMicrotask first (Hermes JS thread). If the runtime disables
-  // microtasks (e.g. Worklets), fall back to setImmediate, then setTimeout —
-  // both have end-of-current-task semantics with no display latency.
-  try {
-    runtime.queueMicrotask(makeFn());
-    return JSIConverter<std::shared_ptr<GPUTexture>>::toJSI(
-        runtime, std::make_shared<GPUTexture>(texture, "", false));
-  } catch (...) {
-    // fall through
-  }
-  auto global = runtime.global();
-  if (global.hasProperty(runtime, "setImmediate")) {
-    auto setImmediate = global.getPropertyAsFunction(runtime, "setImmediate");
-    setImmediate.call(runtime, makeFn());
-  } else if (global.hasProperty(runtime, "setTimeout")) {
-    auto setTimeout = global.getPropertyAsFunction(runtime, "setTimeout");
-    setTimeout.call(runtime, makeFn(), jsi::Value(0));
+  auto fn = jsi::Function::createFromHostFunction(
+      runtime, jsi::PropNameID::forAscii(runtime, "WebGPUPresent"), 0,
+      presentCb);
+
+  // On the main JS runtime (Hermes), schedule the present as a microtask —
+  // it runs at end of current task with no display latency.
+  // On other runtimes (Worklets), microtasks are disabled, so use
+  // setTimeout(fn, 0) which gives the same end-of-task semantics.
+  if (&runtime == RNWebGPUManager::getMainJSRuntime()) {
+    runtime.queueMicrotask(std::move(fn));
+  } else {
+    auto setTimeout =
+        runtime.global().getPropertyAsFunction(runtime, "setTimeout");
+    setTimeout.call(runtime, fn, jsi::Value(0));
   }
 
   // Pass reportsMemoryPressure=false to avoid triggering spurious Hermes GC
