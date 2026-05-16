@@ -50,20 +50,12 @@
 
 namespace rnwgpu {
 
-namespace {
-jsi::Runtime *sMainJSRuntime = nullptr;
-} // namespace
-
-jsi::Runtime *RNWebGPUManager::getMainJSRuntime() { return sMainJSRuntime; }
-
 RNWebGPUManager::RNWebGPUManager(
     jsi::Runtime *jsRuntime,
     std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker,
     std::shared_ptr<PlatformContext> platformContext)
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker),
       _platformContext(platformContext) {
-
-  sMainJSRuntime = jsRuntime;
 
   // Register main runtime for RuntimeAwareCache
   BaseRuntimeAwareCache::setMainJsRuntime(_jsRuntime);

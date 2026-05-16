@@ -34,12 +34,6 @@ public:
    */
   static void installWebGPUWorkletHelpers(jsi::Runtime &runtime);
 
-  /**
-   * Returns the main JS runtime registered when the module was initialized.
-   * Used to distinguish the JS thread (Hermes) from worklet runtimes.
-   */
-  static jsi::Runtime *getMainJSRuntime();
-
 private:
   jsi::Runtime *_jsRuntime;
   std::shared_ptr<facebook::react::CallInvoker> _jsCallInvoker;

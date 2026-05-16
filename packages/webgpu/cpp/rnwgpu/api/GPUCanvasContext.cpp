@@ -59,15 +59,17 @@ jsi::Value GPUCanvasContext::getCurrentTexture(jsi::Runtime &runtime,
       runtime, jsi::PropNameID::forAscii(runtime, "WebGPUPresent"), 0,
       presentCb);
 
-  // On the main JS runtime (Hermes), schedule the present as a microtask —
-  // it runs at end of current task with no display latency.
-  // On other runtimes (Worklets), microtasks are disabled, so use
-  // setTimeout(fn, 0) which gives the same end-of-task semantics.
-  if (&runtime == RNWebGPUManager::getMainJSRuntime()) {
-    runtime.queueMicrotask(std::move(fn));
+  // If the runtime exposes queueMicrotask as a global (Hermes JS thread),
+  // schedule the present as a microtask — runs at end of current task with no
+  // display latency. Otherwise (Worklets, which disables microtasks), fall
+  // back to setTimeout(fn, 0) which gives the same end-of-task semantics.
+  auto global = runtime.global();
+  if (global.hasProperty(runtime, "queueMicrotask")) {
+    auto queueMicrotask =
+        global.getPropertyAsFunction(runtime, "queueMicrotask");
+    queueMicrotask.call(runtime, fn);
   } else {
-    auto setTimeout =
-        runtime.global().getPropertyAsFunction(runtime, "setTimeout");
+    auto setTimeout = global.getPropertyAsFunction(runtime, "setTimeout");
     setTimeout.call(runtime, fn, jsi::Value(0));
   }
 
