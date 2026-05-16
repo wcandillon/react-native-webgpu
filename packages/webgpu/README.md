@@ -172,7 +172,7 @@ ctx.canvas.height = ctx.canvas.clientHeight * PixelRatio.get();
 
 ### Frame Scheduling
 
-Frame presentation is automatic, matching the behavior of `GPUCanvasContext` on the Web. A native display link (CADisplayLink on iOS, Choreographer on Android) ticks once per vsync and presents any surface whose texture was acquired during a previous vsync interval, which gives your render code the full frame between two vsyncs to encode and submit. Short `await`s between `getCurrentTexture()` and `device.queue.submit(...)` are safe (microtasks drain before the next vsync); however, if your render code takes longer than one frame to submit, the present will fire before submit and you will see a stale frame.
+Frame presentation is automatic, matching the behavior of `GPUCanvasContext` on the Web. A native display link (CADisplayLink on iOS, Choreographer on Android) ticks once per vsync and presents any surface whose texture was acquired during a previous vsync interval, which gives your render code the full frame between two vsyncs to encode and submit.
 
 ### Canvas Transparency
 
