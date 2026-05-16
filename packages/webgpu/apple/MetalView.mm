@@ -1,8 +1,15 @@
 #import "MetalView.h"
 #import "webgpu/webgpu_cpp.h"
 
+namespace dawn::native::metal {
+
+void WaitForCommandsToBeScheduled(WGPUDevice device);
+
+}
+
 @implementation MetalView {
   BOOL _isConfigured;
+  CADisplayLink *_displayLink;
 }
 
 #if !TARGET_OS_OSX
@@ -32,6 +39,7 @@
       .getSurfaceInfoOrCreate([_contextId intValue], gpu, size.width,
                               size.height)
       ->switchToOnscreen(nativeSurface, surface);
+  [self startPresentLoop];
 }
 
 - (void)update {
@@ -41,7 +49,47 @@
       ->resize(size.width, size.height);
 }
 
+#if !TARGET_OS_OSX
+- (void)didMoveToWindow {
+  [super didMoveToWindow];
+  if (self.window == nil) {
+    [self stopPresentLoop];
+  }
+}
+#endif
+
+- (void)startPresentLoop {
+  if (_displayLink) {
+    return;
+  }
+#if !TARGET_OS_OSX
+  _displayLink = [CADisplayLink displayLinkWithTarget:self
+                                             selector:@selector(presentTick:)];
+  [_displayLink addToRunLoop:[NSRunLoop mainRunLoop]
+                     forMode:NSRunLoopCommonModes];
+#endif
+}
+
+- (void)stopPresentLoop {
+  [_displayLink invalidate];
+  _displayLink = nil;
+}
+
+- (void)presentTick:(CADisplayLink *)link {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo([_contextId intValue]);
+  if (!info) {
+    return;
+  }
+  auto device = info->getDevice();
+  if (device) {
+    dawn::native::metal::WaitForCommandsToBeScheduled(device.Get());
+  }
+  info->present();
+}
+
 - (void)dealloc {
+  [self stopPresentLoop];
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   // Remove the surface info from the registry
   registry.removeSurfaceInfo([_contextId intValue]);

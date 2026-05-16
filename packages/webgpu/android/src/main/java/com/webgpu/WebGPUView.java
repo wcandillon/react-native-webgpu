@@ -2,6 +2,7 @@ package com.webgpu;
 
 import android.content.Context;
 import android.os.Build;
+import android.view.Choreographer;
 import android.view.Surface;
 import android.view.View;
 
@@ -16,9 +17,36 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   private boolean mTransparent = false;
   private WebGPUModule mModule;
   private View mView = null;
+  private boolean mPresentLoopRunning = false;
+  private final Choreographer.FrameCallback mPresentCallback = new Choreographer.FrameCallback() {
+    @Override
+    public void doFrame(long frameTimeNanos) {
+      if (!mPresentLoopRunning) {
+        return;
+      }
+      nativePresent(mContextId);
+      Choreographer.getInstance().postFrameCallback(this);
+    }
+  };
 
   WebGPUView(Context context) {
     super(context);
+  }
+
+  private void startPresentLoop() {
+    if (mPresentLoopRunning) {
+      return;
+    }
+    mPresentLoopRunning = true;
+    Choreographer.getInstance().postFrameCallback(mPresentCallback);
+  }
+
+  private void stopPresentLoop() {
+    if (!mPresentLoopRunning) {
+      return;
+    }
+    mPresentLoopRunning = false;
+    Choreographer.getInstance().removeFrameCallback(mPresentCallback);
   }
 
   public void setContextId(int contextId) {
@@ -63,6 +91,7 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     float width = getWidth() / density;
     float height = getHeight() / density;
     onSurfaceCreate(surface, mContextId, width, height);
+    startPresentLoop();
   }
 
   @Override
@@ -75,12 +104,20 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   @Override
   public void surfaceDestroyed() {
+    stopPresentLoop();
     onSurfaceDestroy(mContextId);
   }
 
   @Override
   public void surfaceOffscreen() {
+    stopPresentLoop();
     switchToOffscreenSurface(mContextId);
+  }
+
+  @Override
+  protected void onDetachedFromWindow() {
+    stopPresentLoop();
+    super.onDetachedFromWindow();
   }
 
   @DoNotStrip
@@ -104,5 +141,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   @DoNotStrip
   private native void switchToOffscreenSurface(int contextId);
+
+  @DoNotStrip
+  private native void nativePresent(int contextId);
 
 }

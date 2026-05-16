@@ -115,16 +115,18 @@ public:
 
   void present() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    if (surface) {
+    if (surface && _textureAcquired) {
       surface.Present();
+      _textureAcquired = false;
     }
   }
 
   wgpu::Texture getCurrentTexture() {
-    std::shared_lock<std::shared_mutex> lock(_mutex);
+    std::unique_lock<std::shared_mutex> lock(_mutex);
     if (surface) {
       wgpu::SurfaceTexture surfaceTexture;
       surface.GetCurrentTexture(&surfaceTexture);
+      _textureAcquired = true;
       return surfaceTexture.texture;
     } else {
       return texture;
@@ -175,6 +177,7 @@ private:
   wgpu::SurfaceConfiguration config;
   int width;
   int height;
+  bool _textureAcquired = false;
 };
 
 class SurfaceRegistry {

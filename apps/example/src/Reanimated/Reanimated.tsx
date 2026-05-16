@@ -48,18 +48,15 @@ const webGPUDemo = (
     },
   });
   const frame = () => {
-    console.log(Date.now());
     const commandEncoder = device.createCommandEncoder();
 
     const textureView = context.getCurrentTexture().createView();
 
-    // Animate the clearValue color based on Date.now()
-    const time = Date.now() / 1000; // Convert to seconds for smoother animation
+    const time = Date.now() / 1000;
 
-    // Create animated RGB values using sine waves with different frequencies
-    const r = (Math.sin(time * 2) + 1) / 2; // Red channel oscillates faster
-    const g = (Math.sin(time * 1.5 + Math.PI / 3) + 1) / 2; // Green with phase offset
-    const b = (Math.sin(time * 1 + Math.PI / 2) + 1) / 2; // Blue with different phase
+    const r = (Math.sin(time * 2) + 1) / 2;
+    const g = (Math.sin(time * 1.5 + Math.PI / 3) + 1) / 2;
+    const b = (Math.sin(time * 1 + Math.PI / 2) + 1) / 2;
 
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [
@@ -79,7 +76,6 @@ const webGPUDemo = (
 
     device.queue.submit([commandEncoder.finish()]);
 
-    context.present();
     if (runAnimation.value) {
       requestAnimationFrame(frame);
     }
