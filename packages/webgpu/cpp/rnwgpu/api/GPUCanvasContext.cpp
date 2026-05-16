@@ -3,14 +3,6 @@
 #include "RNWebGPUManager.h"
 #include <memory>
 
-#ifdef __APPLE__
-namespace dawn::native::metal {
-
-void WaitForCommandsToBeScheduled(WGPUDevice device);
-
-}
-#endif
-
 namespace rnwgpu {
 
 void GPUCanvasContext::configure(
@@ -47,21 +39,13 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   if (sizeHasChanged) {
     _surfaceInfo->reconfigure(width, height);
   }
+  auto size = _surfaceInfo->getSize();
+  _canvas->setClientWidth(size.width);
+  _canvas->setClientHeight(size.height);
   auto texture = _surfaceInfo->getCurrentTexture();
   // Pass reportsMemoryPressure=false to avoid triggering spurious Hermes GC
   // cycles every frame since the canvas texture doesn't own the buffer.
   return std::make_shared<GPUTexture>(texture, "", false);
-}
-
-void GPUCanvasContext::present() {
-#ifdef __APPLE__
-  dawn::native::metal::WaitForCommandsToBeScheduled(
-      _surfaceInfo->getDevice().Get());
-#endif
-  auto size = _surfaceInfo->getSize();
-  _canvas->setClientWidth(size.width);
-  _canvas->setClientHeight(size.height);
-  _surfaceInfo->present();
 }
 
 } // namespace rnwgpu

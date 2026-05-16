@@ -87,7 +87,6 @@ export function HelloTriangleMSAA() {
       }
 
       frame();
-      context.present();
     })();
   }, [ref]);
 

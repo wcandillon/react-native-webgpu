@@ -8,9 +8,7 @@ export interface NativeCanvas {
   clientHeight: number;
 }
 
-export type RNCanvasContext = GPUCanvasContext & {
-  present: () => void;
-};
+export type RNCanvasContext = GPUCanvasContext;
 
 export interface CanvasRef {
   getContextId: () => number;

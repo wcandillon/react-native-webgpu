@@ -64,10 +64,6 @@ class GPUOffscreenCanvasContext implements GPUCanvasContext {
     throw new Error("Method not implemented.");
   }
 
-  present() {
-    // Do nothing
-  }
-
   getDevice() {
     if (!this.device) {
       throw new Error("Device is not configured.");

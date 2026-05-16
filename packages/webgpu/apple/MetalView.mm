@@ -1,12 +1,6 @@
 #import "MetalView.h"
 #import "webgpu/webgpu_cpp.h"
 
-namespace dawn::native::metal {
-
-void WaitForCommandsToBeScheduled(WGPUDevice device);
-
-}
-
 @implementation MetalView {
   BOOL _isConfigured;
   CADisplayLink *_displayLink;
@@ -78,14 +72,9 @@ void WaitForCommandsToBeScheduled(WGPUDevice device);
 - (void)presentTick:(CADisplayLink *)link {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurfaceInfo([_contextId intValue]);
-  if (!info) {
-    return;
+  if (info) {
+    info->present();
   }
-  auto device = info->getDevice();
-  if (device) {
-    dawn::native::metal::WaitForCommandsToBeScheduled(device.Get());
-  }
-  info->present();
 }
 
 - (void)dealloc {
