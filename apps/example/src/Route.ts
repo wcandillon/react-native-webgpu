@@ -28,5 +28,6 @@ export type Routes = {
   Reanimated: undefined;
   AsyncStarvation: undefined;
   DeviceLostHang: undefined;
+  PresentRace: undefined;
   StorageBufferVertices: undefined;
 };

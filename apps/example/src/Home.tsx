@@ -124,6 +124,10 @@ export const examples = [
     title: "⚠️ Device Lost Hang",
   },
   {
+    screen: "PresentRace",
+    title: "⚠️ Present Race (await before submit)",
+  },
+  {
     screen: "StorageBufferVertices",
     title: "💾 Storage Buffer Vertices",
   },

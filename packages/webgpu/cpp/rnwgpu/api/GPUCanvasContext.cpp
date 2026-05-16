@@ -31,10 +31,7 @@ void GPUCanvasContext::configure(
 
 void GPUCanvasContext::unconfigure() {}
 
-jsi::Value GPUCanvasContext::getCurrentTexture(jsi::Runtime &runtime,
-                                               const jsi::Value & /*thisVal*/,
-                                               const jsi::Value * /*args*/,
-                                               size_t /*count*/) {
+std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   auto prevSize = _surfaceInfo->getConfig();
   auto width = _canvas->getWidth();
   auto height = _canvas->getHeight();
@@ -45,38 +42,11 @@ jsi::Value GPUCanvasContext::getCurrentTexture(jsi::Runtime &runtime,
   auto size = _surfaceInfo->getSize();
   _canvas->setClientWidth(size.width);
   _canvas->setClientHeight(size.height);
-  auto texture = _surfaceInfo->getCurrentTexture();
-
-  auto surfaceInfo = _surfaceInfo;
-  auto presentCb = [surfaceInfo](jsi::Runtime & /*rt*/,
-                                 const jsi::Value & /*thisValue*/,
-                                 const jsi::Value * /*args*/,
-                                 size_t /*count*/) -> jsi::Value {
-    surfaceInfo->present();
-    return jsi::Value::undefined();
-  };
-  auto fn = jsi::Function::createFromHostFunction(
-      runtime, jsi::PropNameID::forAscii(runtime, "WebGPUPresent"), 0,
-      presentCb);
-
-  // If the runtime exposes queueMicrotask as a global (Hermes JS thread),
-  // schedule the present as a microtask — runs at end of current task with no
-  // display latency. Otherwise (Worklets, which disables microtasks), fall
-  // back to setTimeout(fn, 0) which gives the same end-of-task semantics.
-  auto global = runtime.global();
-  if (global.hasProperty(runtime, "queueMicrotask")) {
-    auto queueMicrotask =
-        global.getPropertyAsFunction(runtime, "queueMicrotask");
-    queueMicrotask.call(runtime, fn);
-  } else {
-    auto setTimeout = global.getPropertyAsFunction(runtime, "setTimeout");
-    setTimeout.call(runtime, fn, jsi::Value(0));
-  }
-
+  auto currentFrame = SurfaceRegistry::getInstance().getCurrentFrame();
+  auto texture = _surfaceInfo->getCurrentTexture(currentFrame);
   // Pass reportsMemoryPressure=false to avoid triggering spurious Hermes GC
   // cycles every frame since the canvas texture doesn't own the buffer.
-  auto gpuTexture = std::make_shared<GPUTexture>(texture, "", false);
-  return JSIConverter<std::shared_ptr<GPUTexture>>::toJSI(runtime, gpuTexture);
+  return std::make_shared<GPUTexture>(texture, "", false);
 }
 
 } // namespace rnwgpu

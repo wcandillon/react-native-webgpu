@@ -53,9 +53,7 @@ public:
   inline const wgpu::Surface get() { return nullptr; }
   void configure(std::shared_ptr<GPUCanvasConfiguration> configuration);
   void unconfigure();
-  jsi::Value getCurrentTexture(jsi::Runtime &runtime,
-                               const jsi::Value &thisVal,
-                               const jsi::Value *args, size_t count);
+  std::shared_ptr<GPUTexture> getCurrentTexture();
 
 private:
   std::shared_ptr<Canvas> _canvas;
