@@ -3,7 +3,6 @@
 
 @implementation MetalView {
   BOOL _isConfigured;
-  CADisplayLink *_displayLink;
 }
 
 #if !TARGET_OS_OSX
@@ -33,7 +32,6 @@
       .getSurfaceInfoOrCreate([_contextId intValue], gpu, size.width,
                               size.height)
       ->switchToOnscreen(nativeSurface, surface);
-  [self startPresentLoop];
 }
 
 - (void)update {
@@ -43,42 +41,7 @@
       ->resize(size.width, size.height);
 }
 
-#if !TARGET_OS_OSX
-- (void)didMoveToWindow {
-  [super didMoveToWindow];
-  if (self.window == nil) {
-    [self stopPresentLoop];
-  }
-}
-#endif
-
-- (void)startPresentLoop {
-  if (_displayLink) {
-    return;
-  }
-#if !TARGET_OS_OSX
-  _displayLink = [CADisplayLink displayLinkWithTarget:self
-                                             selector:@selector(presentTick:)];
-  [_displayLink addToRunLoop:[NSRunLoop mainRunLoop]
-                     forMode:NSRunLoopCommonModes];
-#endif
-}
-
-- (void)stopPresentLoop {
-  [_displayLink invalidate];
-  _displayLink = nil;
-}
-
-- (void)presentTick:(CADisplayLink *)link {
-  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  auto info = registry.getSurfaceInfo([_contextId intValue]);
-  if (info) {
-    info->present();
-  }
-}
-
 - (void)dealloc {
-  [self stopPresentLoop];
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   // Remove the surface info from the registry
   registry.removeSurfaceInfo([_contextId intValue]);

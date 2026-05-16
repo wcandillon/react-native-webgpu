@@ -9,7 +9,5 @@
 
 - (void)configure;
 - (void)update;
-- (void)startPresentLoop;
-- (void)stopPresentLoop;
 
 @end

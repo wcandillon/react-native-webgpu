@@ -123,7 +123,7 @@ public:
 
   void present() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    if (surface && _textureAcquired && _readyToPresent) {
+    if (surface && _textureAcquired) {
 #ifdef __APPLE__
       if (config.device) {
         dawn::native::metal::WaitForCommandsToBeScheduled(config.device.Get());
@@ -131,14 +131,6 @@ public:
 #endif
       surface.Present();
       _textureAcquired = false;
-      _readyToPresent = false;
-    }
-  }
-
-  void markReadyToPresent() {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    if (_textureAcquired) {
-      _readyToPresent = true;
     }
   }
 
@@ -148,7 +140,6 @@ public:
       wgpu::SurfaceTexture surfaceTexture;
       surface.GetCurrentTexture(&surfaceTexture);
       _textureAcquired = true;
-      _readyToPresent = false;
       return surfaceTexture.texture;
     } else {
       return texture;
@@ -200,7 +191,6 @@ private:
   int width;
   int height;
   bool _textureAcquired = false;
-  bool _readyToPresent = false;
 };
 
 class SurfaceRegistry {
@@ -245,13 +235,6 @@ public:
     auto info = std::make_shared<SurfaceInfo>(gpu, width, height);
     _registry[id] = info;
     return info;
-  }
-
-  void markAllReadyToPresent() {
-    std::shared_lock<std::shared_mutex> lock(_mutex);
-    for (auto &pair : _registry) {
-      pair.second->markReadyToPresent();
-    }
   }
 
 private:

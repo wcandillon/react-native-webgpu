@@ -69,12 +69,3 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   registry.removeSurfaceInfo(contextId);
 }
-
-extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_nativePresent(
-    JNIEnv *env, jobject thiz, jint contextId) {
-  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  auto info = registry.getSurfaceInfo(contextId);
-  if (info) {
-    info->present();
-  }
-}

@@ -31,7 +31,10 @@ void GPUCanvasContext::configure(
 
 void GPUCanvasContext::unconfigure() {}
 
-std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
+jsi::Value GPUCanvasContext::getCurrentTexture(jsi::Runtime &runtime,
+                                               const jsi::Value & /*thisVal*/,
+                                               const jsi::Value * /*args*/,
+                                               size_t /*count*/) {
   auto prevSize = _surfaceInfo->getConfig();
   auto width = _canvas->getWidth();
   auto height = _canvas->getHeight();
@@ -43,9 +46,22 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   _canvas->setClientWidth(size.width);
   _canvas->setClientHeight(size.height);
   auto texture = _surfaceInfo->getCurrentTexture();
+
+  auto surfaceInfo = _surfaceInfo;
+  auto present = jsi::Function::createFromHostFunction(
+      runtime, jsi::PropNameID::forAscii(runtime, "WebGPUPresent"), 0,
+      [surfaceInfo](jsi::Runtime & /*rt*/, const jsi::Value & /*thisValue*/,
+                    const jsi::Value * /*args*/,
+                    size_t /*count*/) -> jsi::Value {
+        surfaceInfo->present();
+        return jsi::Value::undefined();
+      });
+  runtime.queueMicrotask(std::move(present));
+
   // Pass reportsMemoryPressure=false to avoid triggering spurious Hermes GC
   // cycles every frame since the canvas texture doesn't own the buffer.
-  return std::make_shared<GPUTexture>(texture, "", false);
+  auto gpuTexture = std::make_shared<GPUTexture>(texture, "", false);
+  return JSIConverter<std::shared_ptr<GPUTexture>>::toJSI(runtime, gpuTexture);
 }
 
 } // namespace rnwgpu
