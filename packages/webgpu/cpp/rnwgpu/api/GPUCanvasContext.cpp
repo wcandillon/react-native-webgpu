@@ -29,7 +29,7 @@ void GPUCanvasContext::configure(
   _surfaceInfo->configure(surfaceConfiguration);
 }
 
-void GPUCanvasContext::unconfigure() {}
+void GPUCanvasContext::unconfigure() { _surfaceInfo->unconfigure(); }
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   auto prevSize = _surfaceInfo->getConfig();
