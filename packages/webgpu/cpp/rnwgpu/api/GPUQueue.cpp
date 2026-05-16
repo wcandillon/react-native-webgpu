@@ -2,9 +2,12 @@
 
 #include <limits>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "Convertors.h"
+#include "SurfaceRegistry.h"
 
 namespace rnwgpu {
 
@@ -26,6 +29,7 @@ void GPUQueue::submit(
     return;
   }
   _instance.Submit(bufs_size, bufs.data());
+  SurfaceRegistry::getInstance().markSubmittedSurfacesForPresentation();
 }
 
 void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,

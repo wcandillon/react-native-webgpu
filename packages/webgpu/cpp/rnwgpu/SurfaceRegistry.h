@@ -130,13 +130,21 @@ public:
     _presentLocked();
   }
 
-  // Called by the display-link tick. Presents only if the texture was acquired
-  // in a strictly earlier frame, so the user's render code (which runs between
-  // vsyncs) has finished encoding and submitting before we present.
+  // Called by the display-link tick. Presents only after the app has submitted
+  // work for an acquired texture and at least one tick has passed since
+  // acquire.
   void maybePresentForFrame(uint64_t currentFrame) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    if (_acquiredAtFrame && *_acquiredAtFrame < currentFrame) {
+    if (_readyToPresent && _acquiredAtFrame &&
+        *_acquiredAtFrame < currentFrame) {
       _presentLocked();
+    }
+  }
+
+  void markSubmittedForPresentation() {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (_textureAcquired) {
+      _readyToPresent = true;
     }
   }
 
@@ -146,6 +154,7 @@ public:
       wgpu::SurfaceTexture surfaceTexture;
       surface.GetCurrentTexture(&surfaceTexture);
       _textureAcquired = true;
+      _readyToPresent = false;
       _acquiredAtFrame = currentFrame;
       return surfaceTexture.texture;
     } else {
@@ -199,6 +208,7 @@ private:
 #endif
       surface.Present();
       _textureAcquired = false;
+      _readyToPresent = false;
       _acquiredAtFrame.reset();
     }
   }
@@ -212,6 +222,7 @@ private:
   int width;
   int height;
   bool _textureAcquired = false;
+  bool _readyToPresent = false;
   std::optional<uint64_t> _acquiredAtFrame;
 };
 
@@ -277,6 +288,20 @@ public:
     }
     for (auto &info : snapshot) {
       info->maybePresentForFrame(current);
+    }
+  }
+
+  void markSubmittedSurfacesForPresentation() {
+    std::vector<std::shared_ptr<SurfaceInfo>> snapshot;
+    {
+      std::shared_lock<std::shared_mutex> lock(_mutex);
+      snapshot.reserve(_registry.size());
+      for (auto &entry : _registry) {
+        snapshot.push_back(entry.second);
+      }
+    }
+    for (auto &info : snapshot) {
+      info->markSubmittedForPresentation();
     }
   }
 

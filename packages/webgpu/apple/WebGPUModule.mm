@@ -24,6 +24,7 @@ namespace react = facebook::react;
 
 @implementation WebGPUModule {
   CADisplayLink *_displayLink;
+  BOOL _displayLinkActive;
 }
 
 RCT_EXPORT_MODULE(WebGPUModule)
@@ -52,6 +53,7 @@ static std::shared_ptr<rnwgpu::RNWebGPUManager> webgpuManager;
 }
 
 - (void)startDisplayLink {
+  _displayLinkActive = YES;
   if (_displayLink != nil) {
     return;
   }
@@ -59,17 +61,21 @@ static std::shared_ptr<rnwgpu::RNWebGPUManager> webgpuManager;
   // loop is the safest choice: CAMetalLayer ops are main-thread-only, and
   // SurfaceInfo's mutex serialises access with the JS thread.
   dispatch_async(dispatch_get_main_queue(), ^{
+    if (!self->_displayLinkActive) {
+      return;
+    }
     if (self->_displayLink != nil) {
       return;
     }
-    self->_displayLink = [CADisplayLink displayLinkWithTarget:self
-                                                     selector:@selector(onVsync:)];
+    self->_displayLink =
+        [CADisplayLink displayLinkWithTarget:self selector:@selector(onVsync:)];
     [self->_displayLink addToRunLoop:[NSRunLoop mainRunLoop]
                              forMode:NSRunLoopCommonModes];
   });
 }
 
 - (void)stopDisplayLink {
+  _displayLinkActive = NO;
   CADisplayLink *link = _displayLink;
   _displayLink = nil;
   if (link == nil) {
