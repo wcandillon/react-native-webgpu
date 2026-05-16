@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Platform } from "react-native";
 
-const ANDROID_WS_HOST = "192.168.1.6";
+const ANDROID_WS_HOST = "10.0.2.2";
 const IOS_WS_HOST = "localhost";
 const HOST = Platform.OS === "android" ? ANDROID_WS_HOST : IOS_WS_HOST;
 const PORT = 4242;
