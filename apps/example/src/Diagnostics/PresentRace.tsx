@@ -1,13 +1,13 @@
 import React, { useEffect, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import type { CanvasRef, RNCanvasContext } from "react-native-wgpu";
+import type { CanvasRef } from "react-native-wgpu";
 import { Canvas } from "react-native-wgpu";
 
 type Mode = "sync" | "microtask" | "longAwait";
 
 const runAnimatedClear = (
   device: GPUDevice,
-  context: RNCanvasContext,
+  context: GPUCanvasContext,
   format: GPUTextureFormat,
   mode: Mode,
   shouldStop: () => boolean,

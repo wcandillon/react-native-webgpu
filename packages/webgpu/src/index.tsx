@@ -1,6 +1,6 @@
 /// <reference types="@webgpu/types" />
 
-import type { NativeCanvas, RNCanvasContext } from "./types";
+import type { NativeCanvas } from "./types";
 
 export * from "./main";
 
@@ -19,7 +19,7 @@ declare global {
       contextId: number,
       width: number,
       height: number,
-    ) => RNCanvasContext;
+    ) => GPUCanvasContext;
     DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
     createImageBitmap: typeof createImageBitmap;
   };

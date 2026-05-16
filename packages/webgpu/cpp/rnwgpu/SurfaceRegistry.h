@@ -57,6 +57,7 @@ public:
 
   void unconfigure() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    _resetPresentationStateLocked();
     if (surface) {
       surface.Unconfigure();
     } else {
@@ -66,6 +67,7 @@ public:
 
   void *switchToOffscreen() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    _resetPresentationStateLocked();
     // We only do this if the onscreen surface is configured.
     auto isConfigured = config.device != nullptr;
     if (isConfigured) {
@@ -84,6 +86,7 @@ public:
 
   void switchToOnscreen(void *newNativeSurface, wgpu::Surface newSurface) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    _resetPresentationStateLocked();
     nativeSurface = newNativeSurface;
     surface = std::move(newSurface);
     // If we are comming from an offscreen context, we need to configure the new
@@ -115,6 +118,7 @@ public:
       wgpu::Queue queue = device.GetQueue();
       queue.Submit(1, &commands);
       surface.Present();
+      _resetPresentationStateLocked();
       texture = nullptr;
     }
   }
@@ -211,6 +215,13 @@ private:
       _readyToPresent = false;
       _acquiredAtFrame.reset();
     }
+  }
+
+  // Caller must hold _mutex as unique_lock.
+  void _resetPresentationStateLocked() {
+    _textureAcquired = false;
+    _readyToPresent = false;
+    _acquiredAtFrame.reset();
   }
 
   mutable std::shared_mutex _mutex;

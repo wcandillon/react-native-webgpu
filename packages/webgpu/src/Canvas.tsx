@@ -18,7 +18,7 @@ declare global {
       contextId: number,
       width: number,
       height: number,
-    ) => RNCanvasContext;
+    ) => GPUCanvasContext;
     DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
     createImageBitmap: typeof createImageBitmap;
   };
@@ -34,11 +34,9 @@ export interface NativeCanvas {
   clientHeight: number;
 }
 
-export type RNCanvasContext = GPUCanvasContext;
-
 export interface CanvasRef {
   getContextId: () => number;
-  getContext(contextName: "webgpu"): RNCanvasContext | null;
+  getContext(contextName: "webgpu"): GPUCanvasContext | null;
   getNativeSurface: () => NativeCanvas;
 }
 
@@ -55,7 +53,7 @@ export const Canvas = ({ transparent, ref, ...props }: CanvasProps) => {
     getNativeSurface: () => {
       return RNWebGPU.getNativeSurface(contextId);
     },
-    getContext(contextName: "webgpu"): RNCanvasContext | null {
+    getContext(contextName: "webgpu"): GPUCanvasContext | null {
       if (contextName !== "webgpu") {
         throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
       }

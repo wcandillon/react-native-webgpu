@@ -111,6 +111,9 @@ private:
 
   wgpu::CommandEncoder _instance;
   std::string _label;
+  // Any encoder operation that can write to a canvas texture must register the
+  // texture's SurfaceInfo here so queue.submit() can make only those surfaces
+  // eligible for display-link presentation.
   std::vector<std::weak_ptr<SurfaceInfo>> _presentableSurfaces;
 };
 
