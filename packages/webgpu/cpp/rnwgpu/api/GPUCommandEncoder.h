@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "Unions.h"
 
@@ -24,6 +25,8 @@
 namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
+
+class SurfaceInfo;
 
 class GPUCommandEncoder : public NativeObject<GPUCommandEncoder> {
 public:
@@ -104,8 +107,11 @@ public:
   inline const wgpu::CommandEncoder get() { return _instance; }
 
 private:
+  void addPresentableSurface(std::weak_ptr<SurfaceInfo> surfaceInfo);
+
   wgpu::CommandEncoder _instance;
   std::string _label;
+  std::vector<std::weak_ptr<SurfaceInfo>> _presentableSurfaces;
 };
 
 } // namespace rnwgpu

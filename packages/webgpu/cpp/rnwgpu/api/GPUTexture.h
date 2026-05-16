@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "Unions.h"
 
@@ -17,14 +18,18 @@ namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
 
+class SurfaceInfo;
+
 class GPUTexture : public NativeObject<GPUTexture> {
 public:
   static constexpr const char *CLASS_NAME = "GPUTexture";
 
   explicit GPUTexture(wgpu::Texture instance, std::string label,
-                      bool reportsMemoryPressure = true)
+                      bool reportsMemoryPressure = true,
+                      std::weak_ptr<SurfaceInfo> surfaceInfo = {})
       : NativeObject(CLASS_NAME), _instance(instance), _label(label),
-        _reportsMemoryPressure(reportsMemoryPressure) {}
+        _reportsMemoryPressure(reportsMemoryPressure),
+        _surfaceInfo(std::move(surfaceInfo)) {}
 
 public:
   std::string getBrand() { return CLASS_NAME; }
@@ -68,6 +73,7 @@ public:
   }
 
   inline const wgpu::Texture get() { return _instance; }
+  std::weak_ptr<SurfaceInfo> getSurfaceInfo() { return _surfaceInfo; }
 
   size_t getMemoryPressure() override {
     if (!_reportsMemoryPressure) {
@@ -157,6 +163,7 @@ private:
   wgpu::Texture _instance;
   std::string _label;
   bool _reportsMemoryPressure = true;
+  std::weak_ptr<SurfaceInfo> _surfaceInfo;
 };
 
 } // namespace rnwgpu
