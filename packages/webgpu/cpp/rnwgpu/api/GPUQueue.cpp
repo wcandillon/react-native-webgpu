@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "Convertors.h"
+#include "JSIConverter.h"
 #include "SurfaceRegistry.h"
 
 namespace rnwgpu {
@@ -15,8 +16,16 @@ struct BufferSource {
   size_t bytesPerElement; // 1 for ArrayBuffers
 };
 
-void GPUQueue::submit(
-    std::vector<std::shared_ptr<GPUCommandBuffer>> commandBuffers) {
+jsi::Value GPUQueue::submit(jsi::Runtime &runtime,
+                            const jsi::Value & /*thisVal*/,
+                            const jsi::Value *args, size_t count) {
+  if (count < 1) {
+    return jsi::Value::undefined();
+  }
+  auto commandBuffers =
+      JSIConverter<std::vector<std::shared_ptr<GPUCommandBuffer>>>::fromJSI(
+          runtime, args[0], /*outOfBound=*/false);
+
   std::vector<wgpu::CommandBuffer> bufs(commandBuffers.size());
   for (size_t i = 0; i < commandBuffers.size(); i++) {
     bufs[i] = commandBuffers[i]->get();
@@ -24,10 +33,29 @@ void GPUQueue::submit(
   Convertor conv;
   uint32_t bufs_size;
   if (!conv(bufs_size, bufs.size())) {
-    return;
+    return jsi::Value::undefined();
   }
   _instance.Submit(bufs_size, bufs.data());
-  SurfaceRegistry::getInstance().markAllReadyToPresent();
+
+  // Defer marking surfaces "ready to present" until the current JS task
+  // completes. The microtask drains after all synchronous JS work returns,
+  // so a sequence like `submit(compute) -> submit(render)` inside one task is
+  // batched: the display link only ever observes either the pre-submit state
+  // or the post-final-submit state, never an intermediate one. The atomic
+  // reservation ensures we only enqueue one microtask per batch even if many
+  // submits happen.
+  auto &registry = SurfaceRegistry::getInstance();
+  if (registry.tryReservePresentMark()) {
+    auto callback = jsi::Function::createFromHostFunction(
+        runtime, jsi::PropNameID::forAscii(runtime, "GPUQueuePresentMark"), 0,
+        [](jsi::Runtime & /*rt*/, const jsi::Value & /*thisVal*/,
+           const jsi::Value * /*args*/, size_t /*count*/) -> jsi::Value {
+          SurfaceRegistry::getInstance().completePresentMark();
+          return jsi::Value::undefined();
+        });
+    runtime.queueMicrotask(std::move(callback));
+  }
+  return jsi::Value::undefined();
 }
 
 void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,

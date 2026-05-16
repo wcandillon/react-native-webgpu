@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <shared_mutex>
 #include <unordered_map>
@@ -254,10 +255,28 @@ public:
     }
   }
 
+  // Reserves the right to schedule a deferred present-mark. Returns true
+  // exactly once per "batch", so the caller can dedupe multiple submits
+  // happening inside the same JS task into a single microtask.
+  bool tryReservePresentMark() {
+    bool expected = false;
+    return _presentMarkPending.compare_exchange_strong(
+        expected, true, std::memory_order_acq_rel);
+  }
+
+  // Releases the reservation and marks all surfaces ready to present.
+  // The reset happens first so a submit racing inside this microtask still
+  // gets a chance to schedule the next one.
+  void completePresentMark() {
+    _presentMarkPending.store(false, std::memory_order_release);
+    markAllReadyToPresent();
+  }
+
 private:
   SurfaceRegistry() = default;
   mutable std::shared_mutex _mutex;
   std::unordered_map<int, std::shared_ptr<SurfaceInfo>> _registry;
+  std::atomic<bool> _presentMarkPending{false};
 };
 
 } // namespace rnwgpu

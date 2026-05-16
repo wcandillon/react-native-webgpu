@@ -36,7 +36,12 @@ public:
 public:
   std::string getBrand() { return CLASS_NAME; }
 
-  void submit(std::vector<std::shared_ptr<GPUCommandBuffer>> commandBuffers);
+  // Host-function-style signature so we can access the calling jsi::Runtime
+  // and schedule a microtask that defers the present-mark until the current
+  // JS task ends. This matches the WebGPU spec, where presentation happens at
+  // the next "Update the Rendering" step (i.e., after JS yields).
+  jsi::Value submit(jsi::Runtime &runtime, const jsi::Value &thisVal,
+                    const jsi::Value *args, size_t count);
   async::AsyncTaskHandle onSubmittedWorkDone();
   void writeBuffer(std::shared_ptr<GPUBuffer> buffer, uint64_t bufferOffset,
                    std::shared_ptr<ArrayBuffer> data,
