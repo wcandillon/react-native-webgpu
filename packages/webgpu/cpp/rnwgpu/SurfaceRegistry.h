@@ -41,6 +41,7 @@ public:
 
   void reconfigure(int newWidth, int newHeight) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    _resetPresentationStateLocked();
     config.width = newWidth;
     config.height = newHeight;
     _configure();
@@ -48,6 +49,7 @@ public:
 
   void configure(wgpu::SurfaceConfiguration &newConfig) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    _resetPresentationStateLocked();
     config = newConfig;
     config.width = width;
     config.height = height;

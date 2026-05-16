@@ -29,5 +29,6 @@ export type Routes = {
   AsyncStarvation: undefined;
   DeviceLostHang: undefined;
   PresentRace: undefined;
+  MultiCanvasSubmit: undefined;
   StorageBufferVertices: undefined;
 };

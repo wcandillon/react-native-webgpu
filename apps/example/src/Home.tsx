@@ -128,6 +128,10 @@ export const examples = [
     title: "⚠️ Present Race (await before submit)",
   },
   {
+    screen: "MultiCanvasSubmit",
+    title: "🖼️ Multi-Canvas Submit Tracking",
+  },
+  {
     screen: "StorageBufferVertices",
     title: "💾 Storage Buffer Vertices",
   },
