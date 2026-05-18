@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <shared_mutex>
 #include <unordered_map>
 #include <utility>
@@ -40,6 +41,7 @@ public:
     config.width = width;
     config.height = height;
     config.presentMode = wgpu::PresentMode::Fifo;
+    _rebindColorChain();
     _configure();
   }
 
@@ -151,7 +153,21 @@ public:
     return config.device;
   }
 
+  void setColorManagement(std::optional<wgpu::SurfaceColorManagement> mgmt) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    _colorManagement = std::move(mgmt);
+    _rebindColorChain();
+    if (surface) {
+      surface.Configure(&config);
+    }
+  }
+
 private:
+  void _rebindColorChain() {
+    config.nextInChain =
+        _colorManagement ? &_colorManagement.value() : nullptr;
+  }
+
   void _configure() {
     if (surface) {
       surface.Configure(&config);
@@ -175,6 +191,7 @@ private:
   wgpu::SurfaceConfiguration config;
   int width;
   int height;
+  std::optional<wgpu::SurfaceColorManagement> _colorManagement;
 };
 
 class SurfaceRegistry {

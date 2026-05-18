@@ -35,6 +35,14 @@ void GPUCanvasContext::configure(
 #endif
   surfaceConfiguration.presentMode = wgpu::PresentMode::Fifo;
   _surfaceInfo->configure(surfaceConfiguration);
+
+  wgpu::SurfaceColorManagement colorManagement;
+  colorManagement.colorSpace = wgpu::PredefinedColorSpace::SRGB;
+  colorManagement.toneMappingMode =
+      configuration->toneMappingMode == GPUCanvasToneMappingMode::Extended
+          ? wgpu::ToneMappingMode::Extended
+          : wgpu::ToneMappingMode::Standard;
+  _surfaceInfo->setColorManagement(colorManagement);
 }
 
 void GPUCanvasContext::unconfigure() {}
