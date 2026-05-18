@@ -6,7 +6,6 @@
 #include <unordered_map>
 #include <utility>
 
-#include "PlatformContext.h"
 #include "webgpu/webgpu_cpp.h"
 
 namespace rnwgpu {
@@ -42,6 +41,7 @@ public:
     config.width = width;
     config.height = height;
     config.presentMode = wgpu::PresentMode::Fifo;
+    _rebindColorChain();
     _configure();
   }
 
@@ -153,17 +153,21 @@ public:
     return config.device;
   }
 
-  void setColorConfig(const SurfaceColorConfig &cfg) {
+  void setColorManagement(std::optional<wgpu::SurfaceColorManagement> mgmt) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    _colorConfig = cfg;
-  }
-
-  std::optional<SurfaceColorConfig> getColorConfig() {
-    std::shared_lock<std::shared_mutex> lock(_mutex);
-    return _colorConfig;
+    _colorManagement = std::move(mgmt);
+    _rebindColorChain();
+    if (surface) {
+      surface.Configure(&config);
+    }
   }
 
 private:
+  void _rebindColorChain() {
+    config.nextInChain =
+        _colorManagement ? &_colorManagement.value() : nullptr;
+  }
+
   void _configure() {
     if (surface) {
       surface.Configure(&config);
@@ -187,7 +191,7 @@ private:
   wgpu::SurfaceConfiguration config;
   int width;
   int height;
-  std::optional<SurfaceColorConfig> _colorConfig;
+  std::optional<wgpu::SurfaceColorManagement> _colorManagement;
 };
 
 class SurfaceRegistry {

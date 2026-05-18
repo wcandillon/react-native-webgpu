@@ -17,11 +17,6 @@ struct ImageData {
   wgpu::TextureFormat format;
 };
 
-struct SurfaceColorConfig {
-  wgpu::TextureFormat format = wgpu::TextureFormat::Undefined;
-  bool extendedDynamicRange = false;
-};
-
 class PlatformContext {
 public:
   PlatformContext() = default;
@@ -29,12 +24,6 @@ public:
 
   virtual wgpu::Surface makeSurface(wgpu::Instance instance, void *surface,
                                     int width, int height) = 0;
-
-  // Apply extra platform-specific color configuration on the native surface
-  // (e.g. CAMetalLayer wantsExtendedDynamicRangeContent / colorspace on
-  // Apple). Default is a no-op for platforms without HDR support.
-  virtual void configureSurfaceColor(void * /*nativeSurface*/,
-                                     const SurfaceColorConfig & /*config*/) {}
   virtual ImageData createImageBitmap(std::string blobId, double offset,
                                       double size) = 0;
 
