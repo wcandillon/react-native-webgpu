@@ -103,8 +103,8 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
 
     } catch (Exception e) {
       e.printStackTrace();
-      // Fallback to offscreen if ImageReader creation fails
-      mApi.surfaceOffscreen();
+      // Fallback to destroying the surface if ImageReader creation fails
+      mApi.surfaceDestroyed();
     }
   }
 

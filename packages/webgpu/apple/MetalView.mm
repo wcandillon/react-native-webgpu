@@ -31,7 +31,7 @@
   registry
       .getSurfaceInfoOrCreate([_contextId intValue], gpu, size.width,
                               size.height)
-      ->switchToOnscreen(nativeSurface, surface);
+      ->setSurface(nativeSurface, surface);
 }
 
 - (void)update {

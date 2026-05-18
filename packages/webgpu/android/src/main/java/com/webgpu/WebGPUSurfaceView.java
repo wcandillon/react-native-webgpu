@@ -36,6 +36,6 @@ public class WebGPUSurfaceView extends SurfaceView implements SurfaceHolder.Call
 
   @Override
   public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
-    mApi.surfaceOffscreen();
+    mApi.surfaceDestroyed();
   }
 }

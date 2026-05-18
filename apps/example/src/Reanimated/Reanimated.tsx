@@ -79,7 +79,6 @@ const webGPUDemo = (
 
     device.queue.submit([commandEncoder.finish()]);
 
-    context.present();
     if (runAnimation.value) {
       requestAnimationFrame(frame);
     }
@@ -102,6 +101,7 @@ export function Reanimated() {
         console.error("Failed to get GPU device");
         return;
       }
+      await ref.current!.whenReady();
       const ctx = ref.current!.getContext("webgpu");
       if (!ctx) {
         console.error("Failed to get GPU canvas context");

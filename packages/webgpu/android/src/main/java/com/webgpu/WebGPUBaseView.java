@@ -55,7 +55,4 @@ public abstract class WebGPUBaseView extends View {
 
   @DoNotStrip
   private native void onSurfaceDestroy(int contextId);
-
-  @DoNotStrip
-  protected native void switchToOffscreenSurface(int contextId);
 }

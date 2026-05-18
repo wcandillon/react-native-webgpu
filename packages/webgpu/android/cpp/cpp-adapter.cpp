@@ -45,7 +45,6 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     JNIEnv *env, jobject thiz, jobject jSurface, jint contextId, jfloat width,
     jfloat height) {
   auto window = ANativeWindow_fromSurface(env, jSurface);
-  // ANativeWindow_acquire(window);
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto gpu = manager->_gpu;
   auto surface = manager->_platformContext->makeSurface(
@@ -53,15 +52,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
   registry
       .getSurfaceInfoOrCreate(contextId, gpu, static_cast<int>(width),
                               static_cast<int>(height))
-      ->switchToOnscreen(window, surface);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_webgpu_WebGPUView_switchToOffscreenSurface(JNIEnv *env, jobject thiz,
-                                                    jint contextId) {
-  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  auto nativeSurface = registry.getSurfaceInfo(contextId)->switchToOffscreen();
-  // ANativeWindow_release(reinterpret_cast<ANativeWindow *>(nativeSurface));
+      ->setSurface(window, surface);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(

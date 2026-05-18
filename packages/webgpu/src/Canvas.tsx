@@ -2,46 +2,14 @@ import React, { useImperativeHandle, useRef, useState } from "react";
 import type { ViewProps } from "react-native";
 import { View } from "react-native";
 
+import type { CanvasRef, NativeCanvas, RNCanvasContext } from "./types";
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
+
+export type { CanvasRef, NativeCanvas, RNCanvasContext };
 
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
   return CONTEXT_COUNTER++;
-}
-
-declare global {
-  var RNWebGPU: {
-    gpu: GPU;
-    fabric: boolean;
-    getNativeSurface: (contextId: number) => NativeCanvas;
-    MakeWebGPUCanvasContext: (
-      contextId: number,
-      width: number,
-      height: number,
-    ) => RNCanvasContext;
-    DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
-    createImageBitmap: typeof createImageBitmap;
-  };
-}
-
-type SurfacePointer = bigint;
-
-export interface NativeCanvas {
-  surface: SurfacePointer;
-  width: number;
-  height: number;
-  clientWidth: number;
-  clientHeight: number;
-}
-
-export type RNCanvasContext = GPUCanvasContext & {
-  present: () => void;
-};
-
-export interface CanvasRef {
-  getContextId: () => number;
-  getContext(contextName: "webgpu"): RNCanvasContext | null;
-  getNativeSurface: () => NativeCanvas;
 }
 
 interface CanvasProps extends ViewProps {
@@ -57,6 +25,17 @@ export const Canvas = ({ transparent, ref, ...props }: CanvasProps) => {
     getNativeSurface: () => {
       return RNWebGPU.getNativeSurface(contextId);
     },
+    whenReady: () =>
+      new Promise<void>((resolve) => {
+        const check = () => {
+          if (RNWebGPU.getNativeSurface(contextId).surface !== 0n) {
+            resolve();
+            return;
+          }
+          requestAnimationFrame(check);
+        };
+        check();
+      }),
     getContext(contextName: "webgpu"): RNCanvasContext | null {
       if (contextName !== "webgpu") {
         throw new Error(`[WebGPU] Unsupported context: ${contextName}`);

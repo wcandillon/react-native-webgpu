@@ -77,8 +77,6 @@ export function HelloTriangle() {
       passEncoder.end();
 
       device.queue.submit([commandEncoder.finish()]);
-
-      context.present();
     })();
   }, [ref]);
 

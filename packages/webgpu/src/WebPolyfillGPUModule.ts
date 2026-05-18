@@ -40,9 +40,7 @@ function makeWebGPUCanvasContext(
   }
 
   const context = canvas.getContext("webgpu")!;
-  return Object.assign(context, {
-    present: () => {},
-  });
+  return context;
 }
 
 // @ts-expect-error - polyfill for RNWebGPU native module

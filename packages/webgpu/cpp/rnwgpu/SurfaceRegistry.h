@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdio>
 #include <memory>
 #include <shared_mutex>
 #include <unordered_map>
@@ -47,64 +48,27 @@ public:
     std::unique_lock<std::shared_mutex> lock(_mutex);
     if (surface) {
       surface.Unconfigure();
-    } else {
-      texture = nullptr;
     }
   }
 
-  void *switchToOffscreen() {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    // We only do this if the onscreen surface is configured.
-    auto isConfigured = config.device != nullptr;
-    if (isConfigured) {
-      wgpu::TextureDescriptor textureDesc;
-      textureDesc.usage = wgpu::TextureUsage::RenderAttachment |
-                          wgpu::TextureUsage::CopySrc |
-                          wgpu::TextureUsage::TextureBinding;
-      textureDesc.format = config.format;
-      textureDesc.size.width = config.width;
-      textureDesc.size.height = config.height;
-      texture = config.device.CreateTexture(&textureDesc);
-    }
-    surface = nullptr;
-    return nativeSurface;
-  }
-
-  void switchToOnscreen(void *newNativeSurface, wgpu::Surface newSurface) {
+  void setSurface(void *newNativeSurface, wgpu::Surface newSurface) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     nativeSurface = newNativeSurface;
     surface = std::move(newSurface);
-    // If we are comming from an offscreen context, we need to configure the new
-    // surface
-    if (texture != nullptr) {
-      config.usage = config.usage | wgpu::TextureUsage::CopyDst;
+    fprintf(stderr,
+            "[react-native-wgpu] setSurface(width=%d, height=%d, "
+            "deviceConfigured=%s, surfaceValid=%s)\n",
+            width, height, config.device != nullptr ? "yes" : "no",
+            surface ? "yes" : "no");
+    if (config.device != nullptr) {
       _configure();
-      // We flush the offscreen texture to the onscreen one
-      // TODO: there is a faster way to do this without validation?
-      wgpu::CommandEncoderDescriptor encoderDesc;
-      auto device = config.device;
-      wgpu::CommandEncoder encoder = device.CreateCommandEncoder(&encoderDesc);
-
-      wgpu::TexelCopyTextureInfo sourceTexture = {};
-      sourceTexture.texture = texture;
-
-      wgpu::TexelCopyTextureInfo destinationTexture = {};
-      wgpu::SurfaceTexture surfaceTexture;
-      surface.GetCurrentTexture(&surfaceTexture);
-      destinationTexture.texture = surfaceTexture.texture;
-
-      wgpu::Extent3D size = {sourceTexture.texture.GetWidth(),
-                             sourceTexture.texture.GetHeight(),
-                             sourceTexture.texture.GetDepthOrArrayLayers()};
-
-      encoder.CopyTextureToTexture(&sourceTexture, &destinationTexture, &size);
-
-      wgpu::CommandBuffer commands = encoder.Finish();
-      wgpu::Queue queue = device.GetQueue();
-      queue.Submit(1, &commands);
-      surface.Present();
-      texture = nullptr;
     }
+  }
+
+  void clearSurface() {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    surface = nullptr;
+    nativeSurface = nullptr;
   }
 
   void resize(int newWidth, int newHeight) {
@@ -122,13 +86,33 @@ public:
 
   wgpu::Texture getCurrentTexture() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
-    if (surface) {
-      wgpu::SurfaceTexture surfaceTexture;
-      surface.GetCurrentTexture(&surfaceTexture);
-      return surfaceTexture.texture;
-    } else {
-      return texture;
+    if (!surface) {
+      fprintf(stderr, "[react-native-wgpu] getCurrentTexture: surface is "
+                      "NULL (setSurface never called)\n");
+      _lastTextureStatus = wgpu::SurfaceGetCurrentTextureStatus::Error;
+      _lastErrorWasNullSurface = true;
+      return nullptr;
     }
+    _lastErrorWasNullSurface = false;
+    wgpu::SurfaceTexture surfaceTexture;
+    surface.GetCurrentTexture(&surfaceTexture);
+    _lastTextureStatus = surfaceTexture.status;
+    fprintf(stderr,
+            "[react-native-wgpu] getCurrentTexture: status=%d, "
+            "textureValid=%s\n",
+            static_cast<int>(surfaceTexture.status),
+            surfaceTexture.texture ? "yes" : "no");
+    return surfaceTexture.texture;
+  }
+
+  bool wasLastErrorNullSurface() {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    return _lastErrorWasNullSurface;
+  }
+
+  wgpu::SurfaceGetCurrentTextureStatus getLastTextureStatus() {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    return _lastTextureStatus;
   }
 
   NativeInfo getNativeInfo() {
@@ -153,28 +137,26 @@ public:
 
 private:
   void _configure() {
+    fprintf(stderr,
+            "[react-native-wgpu] _configure(width=%d, height=%d, "
+            "surfaceValid=%s, deviceValid=%s)\n",
+            config.width, config.height, surface ? "yes" : "no",
+            config.device != nullptr ? "yes" : "no");
     if (surface) {
       surface.Configure(&config);
-    } else {
-      wgpu::TextureDescriptor textureDesc;
-      textureDesc.format = config.format;
-      textureDesc.size.width = config.width;
-      textureDesc.size.height = config.height;
-      textureDesc.usage = wgpu::TextureUsage::RenderAttachment |
-                          wgpu::TextureUsage::CopySrc |
-                          wgpu::TextureUsage::TextureBinding;
-      texture = config.device.CreateTexture(&textureDesc);
     }
   }
 
   mutable std::shared_mutex _mutex;
   void *nativeSurface = nullptr;
   wgpu::Surface surface = nullptr;
-  wgpu::Texture texture = nullptr;
   wgpu::Instance gpu;
   wgpu::SurfaceConfiguration config;
   int width;
   int height;
+  wgpu::SurfaceGetCurrentTextureStatus _lastTextureStatus =
+      wgpu::SurfaceGetCurrentTextureStatus::Error;
+  bool _lastErrorWasNullSurface = false;
 };
 
 class SurfaceRegistry {
