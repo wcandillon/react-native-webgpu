@@ -23,6 +23,10 @@ export const examples = [
     screen: "Reanimated",
     title: "🐎 Reanimated",
   },
+  {
+    screen: "ReanimatedOffscreen",
+    title: "🪞 Reanimated Offscreen (pool)",
+  },
   // {
   //   screen: "ComputeToys",
   //   title: "🧮 Compute Toys",

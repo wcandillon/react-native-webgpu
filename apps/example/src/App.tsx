@@ -33,6 +33,7 @@ import { CanvasAPI } from "./CanvasAPI";
 import { Tensorflow } from "./Tensorflow";
 import { ComputeToys } from "./ComputeToys";
 import { Reanimated } from "./Reanimated";
+import { ReanimatedOffscreen } from "./ReanimatedOffscreen";
 import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
 import { StorageBufferVertices } from "./StorageBufferVertices";
@@ -91,6 +92,10 @@ function App() {
           </Stack.Screen>
           <Stack.Screen name="GradientTiles" component={GradientTiles} />
           <Stack.Screen name="Reanimated" component={Reanimated} />
+          <Stack.Screen
+            name="ReanimatedOffscreen"
+            component={ReanimatedOffscreen}
+          />
           <Stack.Screen name="AsyncStarvation" component={AsyncStarvation} />
           <Stack.Screen name="DeviceLostHang" component={DeviceLostHang} />
           <Stack.Screen

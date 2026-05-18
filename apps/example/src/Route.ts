@@ -26,6 +26,7 @@ export type Routes = {
   CanvasAPI: undefined;
   ComputeToys: undefined;
   Reanimated: undefined;
+  ReanimatedOffscreen: undefined;
   AsyncStarvation: undefined;
   DeviceLostHang: undefined;
   StorageBufferVertices: undefined;
