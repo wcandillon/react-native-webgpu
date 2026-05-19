@@ -8,6 +8,8 @@
 #import <React/RCTBridge+Private.h>
 #import <ReactCommon/RCTTurboModule.h>
 
+#include "AppleVideoPlayer.h"
+
 #include "RNWebGPUManager.h"
 #include "WebGPUModule.h"
 
@@ -232,6 +234,15 @@ ApplePlatformContext::loadVideoFrame(const std::string &path) {
   [reader cancelReading];
 
   return handle;
+}
+
+std::unique_ptr<IVideoPlayer>
+ApplePlatformContext::createVideoPlayer(const std::string &path) {
+  return createAppleVideoPlayer(path);
+}
+
+std::string ApplePlatformContext::writeTestVideoFile() {
+  return writeAppleTestVideoFile();
 }
 
 VideoFrameHandle

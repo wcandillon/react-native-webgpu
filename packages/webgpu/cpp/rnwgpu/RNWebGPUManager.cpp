@@ -39,6 +39,7 @@
 #include "GPUUncapturedErrorEvent.h"
 #include "GPUValidationError.h"
 #include "VideoFrame.h"
+#include "VideoPlayer.h"
 
 // Enums
 #include "GPUBufferUsage.h"
@@ -105,6 +106,7 @@ RNWebGPUManager::RNWebGPUManager(
   GPUTexture::installConstructor(*_jsRuntime);
   GPUTextureView::installConstructor(*_jsRuntime);
   VideoFrame::installConstructor(*_jsRuntime);
+  VideoPlayer::installConstructor(*_jsRuntime);
 
   // Install constant objects as plain JS objects with own properties
   _jsRuntime->global().setProperty(*_jsRuntime, "GPUBufferUsage",

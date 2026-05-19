@@ -4,6 +4,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "webgpu/webgpu_cpp.h"
@@ -31,6 +32,21 @@ struct VideoFrameHandle {
   uint32_t width = 0;
   uint32_t height = 0;
   std::function<void()> deleter;
+};
+
+// Platform-implemented video source that hands out fresh IOSurface /
+// AHardwareBuffer-backed frames as a video plays.
+class IVideoPlayer {
+public:
+  virtual ~IVideoPlayer() = default;
+
+  // Returns the latest decoded frame, or an empty handle (handle == nullptr)
+  // when no new frame is ready yet. Each non-empty return retains its backing
+  // surface; the VideoFrame wrapper releases it on destruction.
+  virtual VideoFrameHandle copyLatestFrame() = 0;
+
+  virtual void play() = 0;
+  virtual void pause() = 0;
 };
 
 class PlatformContext {
@@ -68,6 +84,16 @@ public:
   // SharedTextureMemory example.
   virtual VideoFrameHandle createTestVideoFrame(uint32_t width,
                                                 uint32_t height) = 0;
+
+  // Open a video file at `path` for playback. The returned player yields
+  // IOSurface / AHardwareBuffer-backed frames via copyLatestFrame().
+  virtual std::unique_ptr<IVideoPlayer>
+  createVideoPlayer(const std::string &path) = 0;
+
+  // Write a small procedurally-generated test video to a temporary location
+  // and return its absolute path. Lets the SharedTextureMemory example play
+  // a real decoded video without bundling an asset.
+  virtual std::string writeTestVideoFile() = 0;
 };
 
 } // namespace rnwgpu

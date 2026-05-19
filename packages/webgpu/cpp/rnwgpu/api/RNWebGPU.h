@@ -11,6 +11,7 @@
 #include "ImageBitmap.h"
 #include "PlatformContext.h"
 #include "VideoFrame.h"
+#include "VideoPlayer.h"
 
 #include <ReactCommon/CallInvoker.h>
 
@@ -182,6 +183,15 @@ public:
                                         std::move(frame.deleter));
   }
 
+  std::shared_ptr<VideoPlayer> createVideoPlayer(std::string path) {
+    auto impl = _platformContext->createVideoPlayer(path);
+    return std::make_shared<VideoPlayer>(std::move(impl));
+  }
+
+  std::string writeTestVideoFile() {
+    return _platformContext->writeTestVideoFile();
+  }
+
   std::shared_ptr<Canvas> getNativeSurface(int contextId) {
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     auto info = registry.getSurfaceInfo(contextId);
@@ -206,6 +216,10 @@ public:
                   &RNWebGPU::loadVideoFrame);
     installMethod(runtime, prototype, "createTestVideoFrame",
                   &RNWebGPU::createTestVideoFrame);
+    installMethod(runtime, prototype, "createVideoPlayer",
+                  &RNWebGPU::createVideoPlayer);
+    installMethod(runtime, prototype, "writeTestVideoFile",
+                  &RNWebGPU::writeTestVideoFile);
   }
 
 private:

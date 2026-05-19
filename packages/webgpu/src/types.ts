@@ -34,6 +34,16 @@ export interface VideoFrame {
   release(): void;
 }
 
+// A handle to a decoded video stream. Poll copyLatestFrame() each render tick
+// to obtain the most recently decoded frame as an IOSurface/AHardwareBuffer
+// (returns null between frames so callers can skip the import work).
+export interface VideoPlayer {
+  copyLatestFrame(): VideoFrame | null;
+  play(): void;
+  pause(): void;
+  release(): void;
+}
+
 export interface GPUSharedTextureMemoryDescriptor {
   // Raw native handle (IOSurfaceRef on Apple, AHardwareBuffer* on Android),
   // encoded as a BigInt. The caller is responsible for keeping the underlying

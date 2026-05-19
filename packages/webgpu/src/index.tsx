@@ -5,6 +5,7 @@ import type { NativeCanvas, RNCanvasContext } from "./types";
 export * from "./main";
 export type {
   VideoFrame,
+  VideoPlayer,
   GPUSharedTextureMemory,
   GPUSharedTextureMemoryDescriptor,
 } from "./types";
@@ -32,6 +33,8 @@ declare global {
       width: number,
       height: number,
     ) => import("./types").VideoFrame;
+    createVideoPlayer: (path: string) => import("./types").VideoPlayer;
+    writeTestVideoFile: () => string;
   };
 
   interface GPUDevice {

@@ -219,6 +219,19 @@ public:
     throw std::runtime_error(
         "createTestVideoFrame is not yet implemented on Android.");
   }
+
+  std::unique_ptr<IVideoPlayer>
+  createVideoPlayer(const std::string & /*path*/) override {
+    // TODO: implement using MediaCodec -> ImageReader (AHardwareBuffer mode).
+    throw std::runtime_error(
+        "createVideoPlayer is not yet implemented on Android.");
+  }
+
+  std::string writeTestVideoFile() override {
+    // TODO: implement using MediaCodec (H.264 encoder) or MediaMuxer.
+    throw std::runtime_error(
+        "writeTestVideoFile is not yet implemented on Android.");
+  }
 };
 
 } // namespace rnwgpu

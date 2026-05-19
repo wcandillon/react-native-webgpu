@@ -26,6 +26,8 @@ declare global {
       width: number,
       height: number,
     ) => import("./types").VideoFrame;
+    createVideoPlayer: (path: string) => import("./types").VideoPlayer;
+    writeTestVideoFile: () => string;
   };
 }
 
