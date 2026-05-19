@@ -31,4 +31,5 @@ export type Routes = {
   StorageBufferVertices: undefined;
   SharedTextureMemory: undefined;
   ExternalTexture: undefined;
+  VisionCamera: undefined;
 };

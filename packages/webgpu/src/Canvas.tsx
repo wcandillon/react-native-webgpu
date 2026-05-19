@@ -26,6 +26,9 @@ declare global {
       width: number,
       height: number,
     ) => import("./types").VideoFrame;
+    createVideoFrameFromNativeBuffer: (
+      pointer: bigint,
+    ) => import("./types").VideoFrame;
     createVideoPlayer: (
       path: string,
       pixelFormat?: import("./types").VideoPixelFormat,

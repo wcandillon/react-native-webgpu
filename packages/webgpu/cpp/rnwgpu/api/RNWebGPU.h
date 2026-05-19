@@ -181,6 +181,14 @@ public:
     return std::make_shared<VideoFrame>(std::move(frame));
   }
 
+  // Wrap a CVPixelBufferRef / AHardwareBuffer* pointer (typed as void* via
+  // BigInt on the JS side) into one of our VideoFrames. The native side
+  // CFRetains / acquires so the caller can release immediately.
+  std::shared_ptr<VideoFrame> createVideoFrameFromNativeBuffer(void *pointer) {
+    auto handle = _platformContext->wrapNativeBuffer(pointer);
+    return std::make_shared<VideoFrame>(std::move(handle));
+  }
+
   std::shared_ptr<VideoPlayer>
   createVideoPlayer(std::string path, std::optional<std::string> pixelFormat) {
     auto format = (pixelFormat && pixelFormat.value() == "nv12")
@@ -218,6 +226,8 @@ public:
                   &RNWebGPU::loadVideoFrame);
     installMethod(runtime, prototype, "createTestVideoFrame",
                   &RNWebGPU::createTestVideoFrame);
+    installMethod(runtime, prototype, "createVideoFrameFromNativeBuffer",
+                  &RNWebGPU::createVideoFrameFromNativeBuffer);
     installMethod(runtime, prototype, "createVideoPlayer",
                   &RNWebGPU::createVideoPlayer);
     installMethod(runtime, prototype, "writeTestVideoFile",

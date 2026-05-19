@@ -135,6 +135,10 @@ export const examples = [
     screen: "ExternalTexture",
     title: "🟨 External Texture (YUV)",
   },
+  {
+    screen: "VisionCamera",
+    title: "📷 VisionCamera integration",
+  },
 ];
 
 const styles = StyleSheet.create({

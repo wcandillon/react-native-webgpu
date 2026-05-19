@@ -37,6 +37,8 @@ public:
                     VideoPixelFormat format) override;
 
   std::string writeTestVideoFile() override;
+
+  VideoFrameHandle wrapNativeBuffer(void *pointer) override;
 };
 
 } // namespace rnwgpu

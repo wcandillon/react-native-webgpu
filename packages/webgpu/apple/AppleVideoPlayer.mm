@@ -49,12 +49,24 @@ static void fillYuvMatrix(CVPixelBufferRef pixelBuffer, float out[12]) {
   }
 }
 
+// Map a CVPixelBuffer's pixel format to our VideoPixelFormat enum.
+static VideoPixelFormat pixelFormatFromCVPixelBuffer(
+    CVPixelBufferRef pixelBuffer) {
+  OSType type = CVPixelBufferGetPixelFormatType(pixelBuffer);
+  switch (type) {
+    case kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange:
+    case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange:
+      return VideoPixelFormat::NV12;
+    default:
+      return VideoPixelFormat::BGRA8;
+  }
+}
+
 class AppleVideoPlayer : public IVideoPlayer {
 public:
   AppleVideoPlayer(AVPlayer *player, AVPlayerItemVideoOutput *output,
-                   id loopObserver, VideoPixelFormat pixelFormat)
-      : _player(player), _output(output), _loopObserver(loopObserver),
-        _pixelFormat(pixelFormat) {}
+                   id loopObserver)
+      : _player(player), _output(output), _loopObserver(loopObserver) {}
 
   ~AppleVideoPlayer() override {
     if (_loopObserver) {
@@ -71,29 +83,23 @@ public:
     if (![_output hasNewPixelBufferForItemTime:currentTime]) {
       return {};
     }
+    // copyPixelBufferForItemTime returns a +1 retained CVPixelBuffer; we then
+    // hand it to wrapCVPixelBuffer which adds another retain. Balance with a
+    // CFRelease here so we don't leak.
     CVPixelBufferRef pixelBuffer =
         [_output copyPixelBufferForItemTime:currentTime
                          itemTimeForDisplay:nullptr];
     if (!pixelBuffer) {
       return {};
     }
-
-    IOSurfaceRef ioSurface = CVPixelBufferGetIOSurface(pixelBuffer);
-    if (!ioSurface) {
+    try {
+      auto handle = wrapCVPixelBuffer(pixelBuffer);
       CFRelease(pixelBuffer);
-      return {};
+      return handle;
+    } catch (...) {
+      CFRelease(pixelBuffer);
+      throw;
     }
-
-    VideoFrameHandle handle;
-    handle.handle = (void *)ioSurface;
-    handle.width = static_cast<uint32_t>(CVPixelBufferGetWidth(pixelBuffer));
-    handle.height = static_cast<uint32_t>(CVPixelBufferGetHeight(pixelBuffer));
-    handle.pixelFormat = _pixelFormat;
-    if (_pixelFormat == VideoPixelFormat::NV12) {
-      fillYuvMatrix(pixelBuffer, handle.yuvToRgbMatrix);
-    }
-    handle.deleter = [pixelBuffer]() { CFRelease(pixelBuffer); };
-    return handle;
   }
 
   void play() override { [_player play]; }
@@ -103,10 +109,35 @@ private:
   AVPlayer *_player;
   AVPlayerItemVideoOutput *_output;
   id _loopObserver;
-  VideoPixelFormat _pixelFormat;
 };
 
 } // namespace
+
+VideoFrameHandle wrapCVPixelBuffer(CVPixelBufferRef pixelBuffer) {
+  if (!pixelBuffer) {
+    throw std::runtime_error("wrapCVPixelBuffer: pointer is null");
+  }
+  IOSurfaceRef ioSurface = CVPixelBufferGetIOSurface(pixelBuffer);
+  if (!ioSurface) {
+    throw std::runtime_error(
+        "wrapCVPixelBuffer: pixel buffer is not IOSurface-backed (was the "
+        "camera/video pipeline configured for Metal/IOSurface output?)");
+  }
+
+  // Retain the pixel buffer so the caller can release theirs immediately.
+  CFRetain(pixelBuffer);
+
+  VideoFrameHandle handle;
+  handle.handle = (void *)ioSurface;
+  handle.width = static_cast<uint32_t>(CVPixelBufferGetWidth(pixelBuffer));
+  handle.height = static_cast<uint32_t>(CVPixelBufferGetHeight(pixelBuffer));
+  handle.pixelFormat = pixelFormatFromCVPixelBuffer(pixelBuffer);
+  if (handle.pixelFormat == VideoPixelFormat::NV12) {
+    fillYuvMatrix(pixelBuffer, handle.yuvToRgbMatrix);
+  }
+  handle.deleter = [pixelBuffer]() { CFRelease(pixelBuffer); };
+  return handle;
+}
 
 std::unique_ptr<IVideoPlayer>
 createAppleVideoPlayer(const std::string &path, VideoPixelFormat format) {
@@ -155,8 +186,7 @@ createAppleVideoPlayer(const std::string &path, VideoPixelFormat format) {
                 [weakPlayer play];
               }];
 
-  return std::make_unique<AppleVideoPlayer>(player, output, loopObserver,
-                                            format);
+  return std::make_unique<AppleVideoPlayer>(player, output, loopObserver);
 }
 
 std::string writeAppleTestVideoFile() {

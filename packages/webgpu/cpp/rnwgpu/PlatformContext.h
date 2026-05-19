@@ -70,6 +70,14 @@ public:
   PlatformContext() = default;
   virtual ~PlatformContext() = default;
 
+  // Singleton-style accessor so leaf classes (e.g. GPUDevice) can reach the
+  // platform context without threading it through every constructor. Set by
+  // RNWebGPUManager at startup.
+  static std::shared_ptr<PlatformContext> &global() {
+    static std::shared_ptr<PlatformContext> instance;
+    return instance;
+  }
+
   virtual wgpu::Surface makeSurface(wgpu::Instance instance, void *surface,
                                     int width, int height) = 0;
   virtual ImageData createImageBitmap(std::string blobId, double offset,
@@ -109,6 +117,14 @@ public:
   // importExternalTexture path (zero-copy biplanar YUV).
   virtual std::unique_ptr<IVideoPlayer>
   createVideoPlayer(const std::string &path, VideoPixelFormat format) = 0;
+
+  // Wrap a CVPixelBufferRef (Apple) or AHardwareBuffer* (Android) pointer
+  // obtained from another library (typically VisionCamera's
+  // Frame.getNativeBuffer().pointer) as one of our VideoFrame handles.
+  //
+  // We CFRetain / AHardwareBuffer_acquire on the way in, so callers can
+  // safely release their own reference immediately after.
+  virtual VideoFrameHandle wrapNativeBuffer(void *pointer) = 0;
 
   // Write a small procedurally-generated test video to a temporary location
   // and return its absolute path. Lets the SharedTextureMemory example play

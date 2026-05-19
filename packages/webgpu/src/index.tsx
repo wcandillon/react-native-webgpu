@@ -35,6 +35,12 @@ declare global {
       width: number,
       height: number,
     ) => import("./types").VideoFrame;
+    // Wrap a NativeBuffer.pointer (CVPixelBufferRef on iOS / AHardwareBuffer*
+    // on Android) into a VideoFrame. Matches the shape used by libraries that
+    // emit NativeBuffer (e.g. react-native-vision-camera).
+    createVideoFrameFromNativeBuffer: (
+      pointer: bigint,
+    ) => import("./types").VideoFrame;
     createVideoPlayer: (
       path: string,
       pixelFormat?: import("./types").VideoPixelFormat,
@@ -46,6 +52,12 @@ declare global {
     importSharedTextureMemory(
       descriptor: import("./types").GPUSharedTextureMemoryDescriptor,
     ): import("./types").GPUSharedTextureMemory;
+    // Wrap a NativeBuffer.pointer into a VideoFrame. Reachable from worklet
+    // runtimes (e.g. Vision Camera frame processors) because GPUDevice is
+    // serialized across worklet boundaries via the WebGPU custom serializer.
+    createVideoFrameFromNativeBuffer(
+      pointer: bigint,
+    ): import("./types").VideoFrame;
   }
 
   // Extend createImageBitmap to accept ArrayBuffer/TypedArray (encoded image bytes)

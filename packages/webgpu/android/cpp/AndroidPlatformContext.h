@@ -233,6 +233,13 @@ public:
     throw std::runtime_error(
         "writeTestVideoFile is not yet implemented on Android.");
   }
+
+  VideoFrameHandle wrapNativeBuffer(void * /*pointer*/) override {
+    // TODO: AHardwareBuffer_acquire + extract dimensions, format, color
+    // metadata.
+    throw std::runtime_error(
+        "wrapNativeBuffer is not yet implemented on Android.");
+  }
 };
 
 } // namespace rnwgpu

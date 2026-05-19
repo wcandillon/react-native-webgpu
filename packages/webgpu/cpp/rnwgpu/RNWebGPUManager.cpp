@@ -63,10 +63,21 @@ RNWebGPUManager::RNWebGPUManager(
   // Register main runtime for RuntimeAwareCache
   BaseRuntimeAwareCache::setMainJsRuntime(_jsRuntime);
 
+  // Expose the platform context for leaf classes that need it (e.g.
+  // GPUDevice::createVideoFrameFromNativeBuffer) without threading it through
+  // every constructor.
+  PlatformContext::global() = _platformContext;
+
   auto gpu = std::make_shared<GPU>(*_jsRuntime);
   auto rnWebGPU =
       std::make_shared<RNWebGPU>(gpu, _platformContext, _jsCallInvoker);
   _gpu = gpu->get();
+
+  // RNWebGPU needs its brand registered in NativeObjectRegistry so the boxing
+  // path can install the prototype on worklet runtimes. installConstructor
+  // does that registration but also sets globalThis.RNWebGPU = ctor, so we
+  // call it FIRST and then overwrite the global with the actual instance.
+  RNWebGPU::installConstructor(*_jsRuntime);
   _jsRuntime->global().setProperty(*_jsRuntime, "RNWebGPU",
                                    RNWebGPU::create(*_jsRuntime, rnWebGPU));
 

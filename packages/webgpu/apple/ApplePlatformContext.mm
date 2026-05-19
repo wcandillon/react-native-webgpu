@@ -246,6 +246,10 @@ std::string ApplePlatformContext::writeTestVideoFile() {
   return writeAppleTestVideoFile();
 }
 
+VideoFrameHandle ApplePlatformContext::wrapNativeBuffer(void *pointer) {
+  return wrapCVPixelBuffer(static_cast<CVPixelBufferRef>(pointer));
+}
+
 VideoFrameHandle
 ApplePlatformContext::createTestVideoFrame(uint32_t width, uint32_t height) {
   NSDictionary *attrs = @{

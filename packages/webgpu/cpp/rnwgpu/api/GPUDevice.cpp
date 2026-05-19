@@ -8,6 +8,7 @@
 
 #include "Convertors.h"
 #include "JSIConverter.h"
+#include "PlatformContext.h"
 
 #include "GPUFeatures.h"
 #include "GPUInternalError.h"
@@ -369,6 +370,19 @@ std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
       "GPUDevice::importExternalTexture(): not yet implemented on this "
       "platform");
 #endif
+}
+
+std::shared_ptr<VideoFrame>
+GPUDevice::createVideoFrameFromNativeBuffer(uint64_t pointer) {
+  auto platformContext = PlatformContext::global();
+  if (!platformContext) {
+    throw std::runtime_error(
+        "GPUDevice::createVideoFrameFromNativeBuffer(): PlatformContext is "
+        "not initialized");
+  }
+  auto handle =
+      platformContext->wrapNativeBuffer(reinterpret_cast<void *>(pointer));
+  return std::make_shared<VideoFrame>(std::move(handle));
 }
 
 std::shared_ptr<GPUSharedTextureMemory> GPUDevice::importSharedTextureMemory(
