@@ -221,7 +221,8 @@ public:
   }
 
   std::unique_ptr<IVideoPlayer>
-  createVideoPlayer(const std::string & /*path*/) override {
+  createVideoPlayer(const std::string & /*path*/,
+                    VideoPixelFormat /*format*/) override {
     // TODO: implement using MediaCodec -> ImageReader (AHardwareBuffer mode).
     throw std::runtime_error(
         "createVideoPlayer is not yet implemented on Android.");

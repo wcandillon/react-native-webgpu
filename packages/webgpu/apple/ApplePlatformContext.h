@@ -33,7 +33,8 @@ public:
                                         uint32_t height) override;
 
   std::unique_ptr<IVideoPlayer>
-  createVideoPlayer(const std::string &path) override;
+  createVideoPlayer(const std::string &path,
+                    VideoPixelFormat format) override;
 
   std::string writeTestVideoFile() override;
 };

@@ -37,6 +37,7 @@ import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
 import { StorageBufferVertices } from "./StorageBufferVertices";
 import { SharedTextureMemory } from "./SharedTextureMemory";
+import { ExternalTexture } from "./ExternalTexture";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -102,6 +103,7 @@ function App() {
             name="SharedTextureMemory"
             component={SharedTextureMemory}
           />
+          <Stack.Screen name="ExternalTexture" component={ExternalTexture} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

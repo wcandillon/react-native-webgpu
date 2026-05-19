@@ -232,10 +232,143 @@ std::shared_ptr<GPUPipelineLayout> GPUDevice::createPipelineLayout(
       _instance.CreatePipelineLayout(&desc), descriptor->label.value_or(""));
 }
 
+// Identity gamut (BT.709 -> sRGB, same primaries) as a 3x3 column-major matrix.
+static const float kIdentityGamutMatrix[9] = {
+    1.0f, 0.0f, 0.0f, //
+    0.0f, 1.0f, 0.0f, //
+    0.0f, 0.0f, 1.0f, //
+};
+
+// Piecewise gamma transfer-function parameters Dawn expects:
+// for |x| < D: y = sign(x) * (C * |x| + F)
+// else        : y = sign(x) * (pow(A * |x| + B, G) + E)
+// sRGB decode (encoded -> linear).
+static const float kSrgbDecodeParams[7] = {
+    2.4f,                  // G
+    1.0f / 1.055f,         // A
+    0.055f / 1.055f,       // B
+    1.0f / 12.92f,         // C
+    0.04045f,              // D
+    0.0f,                  // E
+    0.0f,                  // F
+};
+// sRGB encode (linear -> encoded).
+static const float kSrgbEncodeParams[7] = {
+    1.0f / 2.4f,           // G
+    1.055f,                // A
+    0.0f,                  // B
+    12.92f,                // C
+    0.0031308f,            // D
+    -0.055f,               // E
+    0.0f,                  // F
+};
+
 std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
     std::shared_ptr<GPUExternalTextureDescriptor> descriptor) {
+  if (!descriptor || !descriptor->source) {
+    throw std::runtime_error(
+        "GPUDevice::importExternalTexture(): descriptor.source (VideoFrame) "
+        "is required");
+  }
+  const auto &source = descriptor->source;
+  const auto &frame = source->handle();
+  if (frame.handle == nullptr) {
+    throw std::runtime_error(
+        "GPUDevice::importExternalTexture(): VideoFrame has been released");
+  }
+
+#if defined(__APPLE__)
+  // 1. Import the IOSurface as SharedTextureMemory. For NV12 surfaces this
+  //    yields a biplanar texture; for BGRA, a single-plane one.
+  wgpu::SharedTextureMemoryDescriptor memDesc{};
+  std::string label = descriptor->label.value_or("external-texture");
+  if (!label.empty()) {
+    memDesc.label = wgpu::StringView(label.c_str(), label.size());
+  }
+  wgpu::SharedTextureMemoryIOSurfaceDescriptor platformDesc{};
+  platformDesc.ioSurface = frame.handle;
+  // ExternalTexture views are sampled-only; storage binding isn't needed and
+  // for biplanar formats it would fail validation.
+  platformDesc.allowStorageBinding = false;
+  memDesc.nextInChain = &platformDesc;
+  auto memory = _instance.ImportSharedTextureMemory(&memDesc);
+  if (memory == nullptr) {
+    throw std::runtime_error(
+        "GPUDevice::importExternalTexture(): ImportSharedTextureMemory "
+        "returned null. Is 'shared-texture-memory-iosurface' enabled?");
+  }
+
+  // 2. Create the texture from the surface. We pass the right format
+  //    explicitly so Dawn picks the multi-planar variant on NV12.
+  bool isYuv = frame.pixelFormat == VideoPixelFormat::NV12;
+  auto texture = memory.CreateTexture();
+  if (texture == nullptr) {
+    throw std::runtime_error(
+        "GPUDevice::importExternalTexture(): CreateTexture returned null");
+  }
+
+  // 3. Begin access on the underlying memory. The matching EndAccess runs in
+  //    the GPUExternalTexture destructor.
+  wgpu::SharedTextureMemoryBeginAccessDescriptor begin{};
+  begin.initialized = true;
+  begin.concurrentRead = false;
+  if (!memory.BeginAccess(texture, &begin)) {
+    throw std::runtime_error(
+        "GPUDevice::importExternalTexture(): BeginAccess failed");
+  }
+
+  // 4. Build plane views. For NV12 we need plane0 = R8 luma and plane1 = RG8
+  //    chroma; for BGRA we only set plane0.
+  wgpu::TextureView plane0;
+  wgpu::TextureView plane1;
+  {
+    wgpu::TextureViewDescriptor v{};
+    v.aspect = isYuv ? wgpu::TextureAspect::Plane0Only
+                     : wgpu::TextureAspect::All;
+    plane0 = texture.CreateView(&v);
+  }
+  if (isYuv) {
+    wgpu::TextureViewDescriptor v{};
+    v.aspect = wgpu::TextureAspect::Plane1Only;
+    plane1 = texture.CreateView(&v);
+  }
+
+  // 5. Build the ExternalTextureDescriptor. We hand Dawn explicit YUV→RGB and
+  //    sRGB transfer-function parameters so the sampler does the full color
+  //    conversion in hardware.
+  wgpu::ExternalTextureDescriptor extDesc{};
+  if (!label.empty()) {
+    extDesc.label = wgpu::StringView(label.c_str(), label.size());
+  }
+  extDesc.plane0 = plane0;
+  if (isYuv) {
+    extDesc.plane1 = plane1;
+    extDesc.yuvToRgbConversionMatrix = frame.yuvToRgbMatrix;
+    extDesc.srcTransferFunctionParameters = kSrgbDecodeParams;
+    extDesc.dstTransferFunctionParameters = kSrgbEncodeParams;
+    extDesc.gamutConversionMatrix = kIdentityGamutMatrix;
+  }
+  extDesc.cropOrigin = {0, 0};
+  extDesc.cropSize = {frame.width, frame.height};
+  extDesc.apparentSize = {frame.width, frame.height};
+
+  auto external = _instance.CreateExternalTexture(&extDesc);
+  if (external == nullptr) {
+    wgpu::SharedTextureMemoryEndAccessState state{};
+    (void)memory.EndAccess(texture, &state);
+    throw std::runtime_error(
+        "GPUDevice::importExternalTexture(): CreateExternalTexture returned "
+        "null");
+  }
+
+  return std::make_shared<GPUExternalTexture>(
+      std::move(external), std::move(memory), std::move(texture),
+      std::move(descriptor->source), std::move(label));
+#else
   throw std::runtime_error(
-      "GPUDevice::importExternalTexture(): Not implemented");
+      "GPUDevice::importExternalTexture(): not yet implemented on this "
+      "platform");
+#endif
 }
 
 std::shared_ptr<GPUSharedTextureMemory> GPUDevice::importSharedTextureMemory(

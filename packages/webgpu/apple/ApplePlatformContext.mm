@@ -237,8 +237,9 @@ ApplePlatformContext::loadVideoFrame(const std::string &path) {
 }
 
 std::unique_ptr<IVideoPlayer>
-ApplePlatformContext::createVideoPlayer(const std::string &path) {
-  return createAppleVideoPlayer(path);
+ApplePlatformContext::createVideoPlayer(const std::string &path,
+                                         VideoPixelFormat format) {
+  return createAppleVideoPlayer(path, format);
 }
 
 std::string ApplePlatformContext::writeTestVideoFile() {

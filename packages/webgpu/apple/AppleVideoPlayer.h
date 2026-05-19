@@ -8,9 +8,9 @@
 namespace rnwgpu {
 
 // Factory: creates a new IVideoPlayer backed by AVPlayer +
-// AVPlayerItemVideoOutput.
+// AVPlayerItemVideoOutput. `format` selects the surface layout.
 std::unique_ptr<IVideoPlayer>
-createAppleVideoPlayer(const std::string &path);
+createAppleVideoPlayer(const std::string &path, VideoPixelFormat format);
 
 // Generate a small procedurally-animated test video and write it to a
 // temporary file. Returns the absolute path. Used by the SharedTextureMemory

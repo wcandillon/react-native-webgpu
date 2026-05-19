@@ -7,6 +7,7 @@
 
 #include "JSIConverter.h"
 #include "NativeObject.h"
+#include "PlatformContext.h"
 
 namespace rnwgpu {
 
@@ -21,10 +22,8 @@ class VideoFrame : public NativeObject<VideoFrame> {
 public:
   static constexpr const char *CLASS_NAME = "VideoFrame";
 
-  VideoFrame(void *handle, uint32_t width, uint32_t height,
-             std::function<void()> deleter)
-      : NativeObject(CLASS_NAME), _handle(handle), _width(width),
-        _height(height), _deleter(std::move(deleter)) {}
+  explicit VideoFrame(VideoFrameHandle handle)
+      : NativeObject(CLASS_NAME), _handle(std::move(handle)) {}
 
   ~VideoFrame() override { release(); }
 
@@ -32,16 +31,25 @@ public:
 
   // The native handle (IOSurfaceRef / AHardwareBuffer*) as a uintptr_t value.
   // Exposed as a BigInt on the JS side.
-  void *getHandle() { return _handle; }
-  uint32_t getWidth() { return _width; }
-  uint32_t getHeight() { return _height; }
+  void *getHandle() { return _handle.handle; }
+  uint32_t getWidth() { return _handle.width; }
+  uint32_t getHeight() { return _handle.height; }
+
+  // Pixel format as a JS-visible string: "bgra8" | "nv12".
+  std::string getPixelFormat() {
+    return _handle.pixelFormat == VideoPixelFormat::NV12 ? "nv12" : "bgra8";
+  }
+
+  // Direct access to the underlying handle, for use by importExternalTexture /
+  // importSharedTextureMemory inside the C++ layer (not exposed to JS).
+  const VideoFrameHandle &handle() const { return _handle; }
 
   void release() {
-    if (_deleter) {
-      _deleter();
-      _deleter = nullptr;
+    if (_handle.deleter) {
+      _handle.deleter();
+      _handle.deleter = nullptr;
     }
-    _handle = nullptr;
+    _handle.handle = nullptr;
   }
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
@@ -49,14 +57,13 @@ public:
     installGetter(runtime, prototype, "handle", &VideoFrame::getHandle);
     installGetter(runtime, prototype, "width", &VideoFrame::getWidth);
     installGetter(runtime, prototype, "height", &VideoFrame::getHeight);
+    installGetter(runtime, prototype, "pixelFormat",
+                  &VideoFrame::getPixelFormat);
     installMethod(runtime, prototype, "release", &VideoFrame::release);
   }
 
 private:
-  void *_handle;
-  uint32_t _width;
-  uint32_t _height;
-  std::function<void()> _deleter;
+  VideoFrameHandle _handle;
 };
 
 } // namespace rnwgpu

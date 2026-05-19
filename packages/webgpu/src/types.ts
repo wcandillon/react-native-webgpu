@@ -19,11 +19,16 @@ export interface CanvasRef {
   whenReady: (callback: () => void) => void;
 }
 
+export type VideoPixelFormat = "bgra8" | "nv12";
+
 // A native, GPU-shareable handle to a single video frame.
 //
 //   - handle is the raw pointer (IOSurfaceRef on Apple, AHardwareBuffer* on
 //     Android) encoded as a BigInt. Pass it to
 //     GPUDevice.importSharedTextureMemory.
+//   - pixelFormat describes the surface layout: 'bgra8' for a sampled
+//     GPUTexture; 'nv12' (biplanar Y + CbCr) for the importExternalTexture
+//     path.
 //   - release() drops the underlying backing object (a CVPixelBuffer on Apple).
 //     The frame is also released when the JS wrapper is garbage-collected; call
 //     release() eagerly when you know you're done.
@@ -31,6 +36,7 @@ export interface VideoFrame {
   readonly handle: bigint;
   readonly width: number;
   readonly height: number;
+  readonly pixelFormat: VideoPixelFormat;
   release(): void;
 }
 
@@ -42,6 +48,14 @@ export interface VideoPlayer {
   play(): void;
   pause(): void;
   release(): void;
+}
+
+export interface CreateVideoPlayerOptions {
+  // 'bgra8' (default): emit a single-plane BGRA surface, suitable for
+  // SharedTextureMemory and a regular sampled GPUTexture.
+  // 'nv12': emit biplanar Y + CbCr surfaces, suitable for
+  // GPUDevice.importExternalTexture.
+  pixelFormat?: VideoPixelFormat;
 }
 
 export interface GPUSharedTextureMemoryDescriptor {

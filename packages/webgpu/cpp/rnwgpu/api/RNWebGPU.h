@@ -172,19 +172,21 @@ public:
 
   std::shared_ptr<VideoFrame> loadVideoFrame(std::string path) {
     auto frame = _platformContext->loadVideoFrame(path);
-    return std::make_shared<VideoFrame>(frame.handle, frame.width, frame.height,
-                                        std::move(frame.deleter));
+    return std::make_shared<VideoFrame>(std::move(frame));
   }
 
   std::shared_ptr<VideoFrame> createTestVideoFrame(double width, double height) {
     auto frame = _platformContext->createTestVideoFrame(
         static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-    return std::make_shared<VideoFrame>(frame.handle, frame.width, frame.height,
-                                        std::move(frame.deleter));
+    return std::make_shared<VideoFrame>(std::move(frame));
   }
 
-  std::shared_ptr<VideoPlayer> createVideoPlayer(std::string path) {
-    auto impl = _platformContext->createVideoPlayer(path);
+  std::shared_ptr<VideoPlayer>
+  createVideoPlayer(std::string path, std::optional<std::string> pixelFormat) {
+    auto format = (pixelFormat && pixelFormat.value() == "nv12")
+                      ? VideoPixelFormat::NV12
+                      : VideoPixelFormat::BGRA8;
+    auto impl = _platformContext->createVideoPlayer(path, format);
     return std::make_shared<VideoPlayer>(std::move(impl));
   }
 

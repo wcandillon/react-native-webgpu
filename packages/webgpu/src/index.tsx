@@ -6,6 +6,8 @@ export * from "./main";
 export type {
   VideoFrame,
   VideoPlayer,
+  VideoPixelFormat,
+  CreateVideoPlayerOptions,
   GPUSharedTextureMemory,
   GPUSharedTextureMemoryDescriptor,
 } from "./types";
@@ -33,7 +35,10 @@ declare global {
       width: number,
       height: number,
     ) => import("./types").VideoFrame;
-    createVideoPlayer: (path: string) => import("./types").VideoPlayer;
+    createVideoPlayer: (
+      path: string,
+      pixelFormat?: import("./types").VideoPixelFormat,
+    ) => import("./types").VideoPlayer;
     writeTestVideoFile: () => string;
   };
 

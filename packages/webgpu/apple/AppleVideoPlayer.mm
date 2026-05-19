@@ -9,11 +9,52 @@ namespace rnwgpu {
 
 namespace {
 
+// 3x4 row-major matrices mapping [Y, U, V, 1] to linear RGB.
+// Limited-range (video range) means luma is 16..235, chroma is 16..240 (8-bit).
+// Reference: https://en.wikipedia.org/wiki/YCbCr (BT.601 / BT.709).
+static constexpr float kBT709LimitedToLinearRGB[12] = {
+    1.164383f, 0.000000f, 1.792741f, -0.972945f, //
+    1.164383f, -0.213249f, -0.532909f, 0.301517f, //
+    1.164383f, 2.112402f, 0.000000f, -1.133402f, //
+};
+static constexpr float kBT601LimitedToLinearRGB[12] = {
+    1.164383f, 0.000000f, 1.596027f, -0.874202f, //
+    1.164383f, -0.391762f, -0.812968f, 0.531668f, //
+    1.164383f, 2.017232f, 0.000000f, -1.085631f, //
+};
+static constexpr float kBT2020LimitedToLinearRGB[12] = {
+    1.164383f, 0.000000f, 1.678674f, -0.915688f, //
+    1.164383f, -0.187326f, -0.650424f, 0.347459f, //
+    1.164383f, 2.141772f, 0.000000f, -1.148145f, //
+};
+
+// Pick the right YUV→RGB matrix from the pixel buffer's color attachments.
+// Falls back to BT.709 limited range (the right call for ≥720p H.264, which
+// is what AVPlayer hands us for Big Buck Bunny and most streamed media).
+static void fillYuvMatrix(CVPixelBufferRef pixelBuffer, float out[12]) {
+  CFTypeRef matrixKey = CVBufferGetAttachment(
+      pixelBuffer, kCVImageBufferYCbCrMatrixKey, nullptr);
+  const float *src = kBT709LimitedToLinearRGB;
+  if (matrixKey) {
+    auto matrix = (CFStringRef)matrixKey;
+    if (CFEqual(matrix, kCVImageBufferYCbCrMatrix_ITU_R_601_4) ||
+        CFEqual(matrix, kCVImageBufferYCbCrMatrix_SMPTE_240M_1995)) {
+      src = kBT601LimitedToLinearRGB;
+    } else if (CFEqual(matrix, kCVImageBufferYCbCrMatrix_ITU_R_2020)) {
+      src = kBT2020LimitedToLinearRGB;
+    }
+  }
+  for (int i = 0; i < 12; ++i) {
+    out[i] = src[i];
+  }
+}
+
 class AppleVideoPlayer : public IVideoPlayer {
 public:
   AppleVideoPlayer(AVPlayer *player, AVPlayerItemVideoOutput *output,
-                   id loopObserver)
-      : _player(player), _output(output), _loopObserver(loopObserver) {}
+                   id loopObserver, VideoPixelFormat pixelFormat)
+      : _player(player), _output(output), _loopObserver(loopObserver),
+        _pixelFormat(pixelFormat) {}
 
   ~AppleVideoPlayer() override {
     if (_loopObserver) {
@@ -47,6 +88,10 @@ public:
     handle.handle = (void *)ioSurface;
     handle.width = static_cast<uint32_t>(CVPixelBufferGetWidth(pixelBuffer));
     handle.height = static_cast<uint32_t>(CVPixelBufferGetHeight(pixelBuffer));
+    handle.pixelFormat = _pixelFormat;
+    if (_pixelFormat == VideoPixelFormat::NV12) {
+      fillYuvMatrix(pixelBuffer, handle.yuvToRgbMatrix);
+    }
     handle.deleter = [pixelBuffer]() { CFRelease(pixelBuffer); };
     return handle;
   }
@@ -58,12 +103,13 @@ private:
   AVPlayer *_player;
   AVPlayerItemVideoOutput *_output;
   id _loopObserver;
+  VideoPixelFormat _pixelFormat;
 };
 
 } // namespace
 
 std::unique_ptr<IVideoPlayer>
-createAppleVideoPlayer(const std::string &path) {
+createAppleVideoPlayer(const std::string &path, VideoPixelFormat format) {
   NSString *nsPath = [NSString stringWithUTF8String:path.c_str()];
   NSURL *url;
   if ([nsPath hasPrefix:@"http://"] || [nsPath hasPrefix:@"https://"] ||
@@ -79,9 +125,15 @@ createAppleVideoPlayer(const std::string &path) {
                              "AVPlayerItem");
   }
 
+  // NV12 (kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange) lets us hand the
+  // IOSurface straight to Dawn as a multi-planar texture for
+  // importExternalTexture. BGRA is the "decode + convert" path for the
+  // single-plane SharedTextureMemory demo.
+  OSType pixelFormat = format == VideoPixelFormat::NV12
+                          ? kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+                          : kCVPixelFormatType_32BGRA;
   NSDictionary *outputSettings = @{
-    (NSString *)kCVPixelBufferPixelFormatTypeKey :
-        @(kCVPixelFormatType_32BGRA),
+    (NSString *)kCVPixelBufferPixelFormatTypeKey : @(pixelFormat),
     (NSString *)kCVPixelBufferIOSurfacePropertiesKey : @{},
     (NSString *)kCVPixelBufferMetalCompatibilityKey : @YES,
   };
@@ -103,7 +155,8 @@ createAppleVideoPlayer(const std::string &path) {
                 [weakPlayer play];
               }];
 
-  return std::make_unique<AppleVideoPlayer>(player, output, loopObserver);
+  return std::make_unique<AppleVideoPlayer>(player, output, loopObserver,
+                                            format);
 }
 
 std::string writeAppleTestVideoFile() {

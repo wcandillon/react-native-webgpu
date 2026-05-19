@@ -131,6 +131,10 @@ export const examples = [
     screen: "SharedTextureMemory",
     title: "🎞️ Shared Texture Memory",
   },
+  {
+    screen: "ExternalTexture",
+    title: "🟨 External Texture (YUV)",
+  },
 ];
 
 const styles = StyleSheet.create({
