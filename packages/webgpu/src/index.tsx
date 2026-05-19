@@ -1,11 +1,11 @@
 /// <reference types="@webgpu/types" />
-
 import type {
   GPUSharedTextureMemory,
   GPUSharedTextureMemoryDescriptor,
   NativeCanvas,
   RNCanvasContext,
   VideoPlayer,
+  VideoFrame,
 } from "./types";
 
 export * from "./main";

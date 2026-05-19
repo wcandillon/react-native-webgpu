@@ -3,30 +3,10 @@ import type { ViewProps } from "react-native";
 import { View } from "react-native";
 
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
-import type { VideoPlayer } from "./types";
 
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
   return CONTEXT_COUNTER++;
-}
-
-declare global {
-  var RNWebGPU: {
-    gpu: GPU;
-    fabric: boolean;
-    getNativeSurface: (contextId: number) => NativeCanvas;
-    MakeWebGPUCanvasContext: (
-      contextId: number,
-      width: number,
-      height: number,
-    ) => RNCanvasContext;
-    DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
-    createImageBitmap: typeof createImageBitmap;
-    loadVideoFrame: (path: string) => VideoFrame;
-    createTestVideoFrame: (width: number, height: number) => VideoFrame;
-    createVideoPlayer: (path: string) => VideoPlayer;
-    writeTestVideoFile: () => string;
-  };
 }
 
 type SurfacePointer = bigint;
