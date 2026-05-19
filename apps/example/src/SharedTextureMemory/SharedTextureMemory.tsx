@@ -15,6 +15,18 @@ struct VsOut {
   @location(0) uv: vec2f,
 };
 
+struct Uniforms {
+  // Per-axis scale applied to UVs *around the center* so that the canvas
+  // samples a sub-rectangle of the texture matching the canvas aspect ratio.
+  // 'cover' fit: one axis is 1.0, the other is canvasAR / textureAR (or its
+  // reciprocal), whichever is < 1 — i.e. we crop on the longer axis.
+  uvScale: vec2f,
+};
+
+@group(0) @binding(0) var srcTex: texture_2d<f32>;
+@group(0) @binding(1) var srcSampler: sampler;
+@group(0) @binding(2) var<uniform> u: Uniforms;
+
 @vertex
 fn vs_main(@builtin(vertex_index) vid: u32) -> VsOut {
   // Full-screen triangle.
@@ -34,12 +46,10 @@ fn vs_main(@builtin(vertex_index) vid: u32) -> VsOut {
   return out;
 }
 
-@group(0) @binding(0) var srcTex: texture_2d<f32>;
-@group(0) @binding(1) var srcSampler: sampler;
-
 @fragment
 fn fs_main(in: VsOut) -> @location(0) vec4f {
-  return textureSample(srcTex, srcSampler, in.uv);
+  let uv = vec2f(0.5) + (in.uv - vec2f(0.5)) * u.uvScale;
+  return textureSample(srcTex, srcSampler, uv);
 }
 `;
 
@@ -144,8 +154,23 @@ export const SharedTextureMemory = () => {
       memory: GPUSharedTextureMemory;
       texture: GPUTexture;
       bindGroup: GPUBindGroup;
+      uniformBuffer: GPUBuffer;
     };
     let current: Bound | null = null;
+
+    // 'cover' fit: scale UVs around their center so the longer axis of the
+    // texture is cropped to match the canvas aspect ratio.
+    const computeUvScale = (texW: number, texH: number): [number, number] => {
+      const canvasAR = canvas.width / canvas.height;
+      const texAR = texW / texH;
+      if (texAR > canvasAR) {
+        // Texture is wider than the canvas: crop horizontally.
+        return [canvasAR / texAR, 1];
+      } else {
+        // Texture is taller than (or equal to) the canvas: crop vertically.
+        return [1, texAR / canvasAR];
+      }
+    };
 
     const bindFrame = (frame: VideoFrame): Bound | null => {
       try {
@@ -159,14 +184,21 @@ export const SharedTextureMemory = () => {
           frame.release();
           return null;
         }
+        const uniformBuffer = device.createBuffer({
+          size: 16, // vec2<f32> padded to 16-byte uniform alignment
+          usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+        const [sx, sy] = computeUvScale(frame.width, frame.height);
+        device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([sx, sy]));
         const bindGroup = device.createBindGroup({
           layout: pipeline.getBindGroupLayout(0),
           entries: [
             { binding: 0, resource: texture.createView() },
             { binding: 1, resource: sampler },
+            { binding: 2, resource: { buffer: uniformBuffer } },
           ],
         });
-        return { frame, memory, texture, bindGroup };
+        return { frame, memory, texture, bindGroup, uniformBuffer };
       } catch (e) {
         console.warn("[SharedTextureMemory] bindFrame failed:", e);
         frame.release();
@@ -177,6 +209,7 @@ export const SharedTextureMemory = () => {
     const releaseBound = (b: Bound) => {
       b.memory.endAccess(b.texture);
       b.texture.destroy();
+      b.uniformBuffer.destroy();
       b.frame.release();
     };
 
