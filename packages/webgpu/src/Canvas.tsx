@@ -3,6 +3,7 @@ import type { ViewProps } from "react-native";
 import { View } from "react-native";
 
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
+import type { VideoPlayer } from "./types";
 
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
@@ -21,12 +22,9 @@ declare global {
     ) => RNCanvasContext;
     DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
     createImageBitmap: typeof createImageBitmap;
-    loadVideoFrame: (path: string) => import("./types").VideoFrame;
-    createTestVideoFrame: (
-      width: number,
-      height: number,
-    ) => import("./types").VideoFrame;
-    createVideoPlayer: (path: string) => import("./types").VideoPlayer;
+    loadVideoFrame: (path: string) => VideoFrame;
+    createTestVideoFrame: (width: number, height: number) => VideoFrame;
+    createVideoPlayer: (path: string) => VideoPlayer;
     writeTestVideoFile: () => string;
   };
 }

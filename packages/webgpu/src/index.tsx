@@ -1,6 +1,12 @@
 /// <reference types="@webgpu/types" />
 
-import type { NativeCanvas, RNCanvasContext } from "./types";
+import type {
+  GPUSharedTextureMemory,
+  GPUSharedTextureMemoryDescriptor,
+  NativeCanvas,
+  RNCanvasContext,
+  VideoPlayer,
+} from "./types";
 
 export * from "./main";
 export type {
@@ -28,19 +34,16 @@ declare global {
     ) => RNCanvasContext;
     DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
     createImageBitmap: typeof createImageBitmap;
-    loadVideoFrame: (path: string) => import("./types").VideoFrame;
-    createTestVideoFrame: (
-      width: number,
-      height: number,
-    ) => import("./types").VideoFrame;
-    createVideoPlayer: (path: string) => import("./types").VideoPlayer;
+    loadVideoFrame: (path: string) => VideoFrame;
+    createTestVideoFrame: (width: number, height: number) => VideoFrame;
+    createVideoPlayer: (path: string) => VideoPlayer;
     writeTestVideoFile: () => string;
   };
 
   interface GPUDevice {
     importSharedTextureMemory(
-      descriptor: import("./types").GPUSharedTextureMemoryDescriptor,
-    ): import("./types").GPUSharedTextureMemory;
+      descriptor: GPUSharedTextureMemoryDescriptor,
+    ): GPUSharedTextureMemory;
   }
 
   // Extend createImageBitmap to accept ArrayBuffer/TypedArray (encoded image bytes)

@@ -16,7 +16,6 @@ export interface CanvasRef {
   getContextId: () => number;
   getContext(contextName: "webgpu"): RNCanvasContext | null;
   getNativeSurface: () => NativeCanvas;
-  whenReady: (callback: () => void) => void;
 }
 
 // A native, GPU-shareable handle to a single video frame.
