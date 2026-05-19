@@ -10,6 +10,7 @@
 #include "GPUCanvasContext.h"
 #include "ImageBitmap.h"
 #include "PlatformContext.h"
+#include "VideoFrame.h"
 
 #include <ReactCommon/CallInvoker.h>
 
@@ -168,6 +169,19 @@ public:
         });
   }
 
+  std::shared_ptr<VideoFrame> loadVideoFrame(std::string path) {
+    auto frame = _platformContext->loadVideoFrame(path);
+    return std::make_shared<VideoFrame>(frame.handle, frame.width, frame.height,
+                                        std::move(frame.deleter));
+  }
+
+  std::shared_ptr<VideoFrame> createTestVideoFrame(double width, double height) {
+    auto frame = _platformContext->createTestVideoFrame(
+        static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+    return std::make_shared<VideoFrame>(frame.handle, frame.width, frame.height,
+                                        std::move(frame.deleter));
+  }
+
   std::shared_ptr<Canvas> getNativeSurface(int contextId) {
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     auto info = registry.getSurfaceInfo(contextId);
@@ -188,6 +202,10 @@ public:
                   &RNWebGPU::getNativeSurface);
     installMethod(runtime, prototype, "MakeWebGPUCanvasContext",
                   &RNWebGPU::MakeWebGPUCanvasContext);
+    installMethod(runtime, prototype, "loadVideoFrame",
+                  &RNWebGPU::loadVideoFrame);
+    installMethod(runtime, prototype, "createTestVideoFrame",
+                  &RNWebGPU::createTestVideoFrame);
   }
 
 private:

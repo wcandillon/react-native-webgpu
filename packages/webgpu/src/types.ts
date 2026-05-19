@@ -18,3 +18,42 @@ export interface CanvasRef {
   getNativeSurface: () => NativeCanvas;
   whenReady: (callback: () => void) => void;
 }
+
+// A native, GPU-shareable handle to a single video frame.
+//
+//   - handle is the raw pointer (IOSurfaceRef on Apple, AHardwareBuffer* on
+//     Android) encoded as a BigInt. Pass it to
+//     GPUDevice.importSharedTextureMemory.
+//   - release() drops the underlying backing object (a CVPixelBuffer on Apple).
+//     The frame is also released when the JS wrapper is garbage-collected; call
+//     release() eagerly when you know you're done.
+export interface VideoFrame {
+  readonly handle: bigint;
+  readonly width: number;
+  readonly height: number;
+  release(): void;
+}
+
+export interface GPUSharedTextureMemoryDescriptor {
+  // Raw native handle (IOSurfaceRef on Apple, AHardwareBuffer* on Android),
+  // encoded as a BigInt. The caller is responsible for keeping the underlying
+  // object alive for as long as the shared memory (and any textures derived
+  // from it) are in use. Using VideoFrame.handle handles this automatically.
+  handle: bigint;
+  label?: string;
+}
+
+// A piece of shared GPU memory backed by a native surface. Use createTexture()
+// to obtain a regular GPUTexture that aliases the surface's pixels. The
+// returned texture must be bracketed by beginAccess/endAccess around any
+// command-buffer submission that uses it.
+export interface GPUSharedTextureMemory {
+  readonly __brand: "GPUSharedTextureMemory";
+  label: string;
+  createTexture(descriptor?: GPUTextureDescriptor): GPUTexture;
+  // `initialized` declares whether the surface already holds meaningful pixels
+  // (true for an incoming video/camera frame, false if the next pass will fully
+  // overwrite it).
+  beginAccess(texture: GPUTexture, initialized: boolean): boolean;
+  endAccess(texture: GPUTexture): boolean;
+}

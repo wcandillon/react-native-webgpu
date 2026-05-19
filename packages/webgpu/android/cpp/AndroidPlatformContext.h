@@ -202,6 +202,23 @@ public:
       }
     }).detach();
   }
+
+  VideoFrameHandle loadVideoFrame(const std::string & /*path*/) override {
+    // TODO: implement using MediaExtractor + MediaCodec to decode the first
+    // frame into an AHardwareBuffer-backed Image (Android API 26+).
+    throw std::runtime_error(
+        "loadVideoFrame is not yet implemented on Android. Pass an "
+        "AHardwareBuffer pointer obtained elsewhere (e.g. from "
+        "react-native-vision-camera) directly to "
+        "device.importSharedTextureMemory.");
+  }
+
+  VideoFrameHandle createTestVideoFrame(uint32_t /*width*/,
+                                        uint32_t /*height*/) override {
+    // TODO: implement using AHardwareBuffer_allocate (Android API 26+).
+    throw std::runtime_error(
+        "createTestVideoFrame is not yet implemented on Android.");
+  }
 };
 
 } // namespace rnwgpu

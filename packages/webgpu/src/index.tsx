@@ -3,6 +3,11 @@
 import type { NativeCanvas, RNCanvasContext } from "./types";
 
 export * from "./main";
+export type {
+  VideoFrame,
+  GPUSharedTextureMemory,
+  GPUSharedTextureMemoryDescriptor,
+} from "./types";
 
 declare global {
   interface Navigator {
@@ -22,7 +27,18 @@ declare global {
     ) => RNCanvasContext;
     DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
     createImageBitmap: typeof createImageBitmap;
+    loadVideoFrame: (path: string) => import("./types").VideoFrame;
+    createTestVideoFrame: (
+      width: number,
+      height: number,
+    ) => import("./types").VideoFrame;
   };
+
+  interface GPUDevice {
+    importSharedTextureMemory(
+      descriptor: import("./types").GPUSharedTextureMemoryDescriptor,
+    ): import("./types").GPUSharedTextureMemory;
+  }
 
   // Extend createImageBitmap to accept ArrayBuffer/TypedArray (encoded image bytes)
   function createImageBitmap(

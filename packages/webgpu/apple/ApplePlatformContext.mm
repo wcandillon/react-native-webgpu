@@ -2,6 +2,8 @@
 
 #include <TargetConditionals.h>
 
+#import <AVFoundation/AVFoundation.h>
+#import <CoreVideo/CoreVideo.h>
 #import <React/RCTBlobManager.h>
 #import <React/RCTBridge+Private.h>
 #import <ReactCommon/RCTTurboModule.h>
@@ -152,6 +154,133 @@ void ApplePlatformContext::createImageBitmapFromDataAsync(
       }
     }
   });
+}
+
+VideoFrameHandle
+ApplePlatformContext::loadVideoFrame(const std::string &path) {
+  NSString *nsPath = [NSString stringWithUTF8String:path.c_str()];
+  NSURL *url = [nsPath hasPrefix:@"file://"]
+                   ? [NSURL URLWithString:nsPath]
+                   : [NSURL fileURLWithPath:nsPath];
+  AVURLAsset *asset = [AVURLAsset assetWithURL:url];
+
+  NSArray<AVAssetTrack *> *videoTracks =
+      [asset tracksWithMediaType:AVMediaTypeVideo];
+  if (videoTracks.count == 0) {
+    throw std::runtime_error("loadVideoFrame: no video track in file");
+  }
+  AVAssetTrack *videoTrack = videoTracks.firstObject;
+
+  NSError *error = nil;
+  AVAssetReader *reader = [AVAssetReader assetReaderWithAsset:asset
+                                                        error:&error];
+  if (error || !reader) {
+    throw std::runtime_error(
+        std::string("loadVideoFrame: AVAssetReader init failed: ") +
+        [[error localizedDescription] UTF8String]);
+  }
+
+  NSDictionary *outputSettings = @{
+    (NSString *)kCVPixelBufferPixelFormatTypeKey :
+        @(kCVPixelFormatType_32BGRA),
+    (NSString *)kCVPixelBufferIOSurfacePropertiesKey : @{},
+    (NSString *)kCVPixelBufferMetalCompatibilityKey : @YES,
+  };
+  AVAssetReaderTrackOutput *output =
+      [AVAssetReaderTrackOutput assetReaderTrackOutputWithTrack:videoTrack
+                                                 outputSettings:outputSettings];
+  output.alwaysCopiesSampleData = NO;
+  if (![reader canAddOutput:output]) {
+    throw std::runtime_error("loadVideoFrame: cannot add output");
+  }
+  [reader addOutput:output];
+
+  if (![reader startReading]) {
+    throw std::runtime_error(
+        std::string("loadVideoFrame: startReading failed: ") +
+        [[reader.error localizedDescription] UTF8String]);
+  }
+
+  CMSampleBufferRef sampleBuffer = [output copyNextSampleBuffer];
+  if (!sampleBuffer) {
+    throw std::runtime_error("loadVideoFrame: no sample buffer");
+  }
+
+  CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+  if (!pixelBuffer) {
+    CFRelease(sampleBuffer);
+    throw std::runtime_error("loadVideoFrame: no pixel buffer");
+  }
+
+  IOSurfaceRef ioSurface = CVPixelBufferGetIOSurface(pixelBuffer);
+  if (!ioSurface) {
+    CFRelease(sampleBuffer);
+    throw std::runtime_error(
+        "loadVideoFrame: pixel buffer is not IOSurface-backed");
+  }
+
+  // Retain the IOSurface so it survives past the sample buffer's lifetime.
+  CFRetain(ioSurface);
+
+  VideoFrameHandle handle;
+  handle.handle = (void *)ioSurface;
+  handle.width = static_cast<uint32_t>(CVPixelBufferGetWidth(pixelBuffer));
+  handle.height = static_cast<uint32_t>(CVPixelBufferGetHeight(pixelBuffer));
+  handle.deleter = [ioSurface]() { CFRelease(ioSurface); };
+
+  CFRelease(sampleBuffer);
+  [reader cancelReading];
+
+  return handle;
+}
+
+VideoFrameHandle
+ApplePlatformContext::createTestVideoFrame(uint32_t width, uint32_t height) {
+  NSDictionary *attrs = @{
+    (NSString *)kCVPixelBufferIOSurfacePropertiesKey : @{},
+    (NSString *)kCVPixelBufferMetalCompatibilityKey : @YES,
+  };
+  CVPixelBufferRef pixelBuffer = NULL;
+  CVReturn err = CVPixelBufferCreate(
+      kCFAllocatorDefault, width, height, kCVPixelFormatType_32BGRA,
+      (__bridge CFDictionaryRef)attrs, &pixelBuffer);
+  if (err != kCVReturnSuccess || !pixelBuffer) {
+    throw std::runtime_error("createTestVideoFrame: CVPixelBufferCreate "
+                             "failed");
+  }
+
+  CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+  uint8_t *base =
+      static_cast<uint8_t *>(CVPixelBufferGetBaseAddress(pixelBuffer));
+  size_t rowBytes = CVPixelBufferGetBytesPerRow(pixelBuffer);
+  for (uint32_t y = 0; y < height; ++y) {
+    uint8_t *row = base + y * rowBytes;
+    for (uint32_t x = 0; x < width; ++x) {
+      // RGB gradient + diagonal stripes, in BGRA byte order.
+      uint8_t r = static_cast<uint8_t>((x * 255) / std::max(width - 1, 1u));
+      uint8_t g = static_cast<uint8_t>((y * 255) / std::max(height - 1, 1u));
+      uint8_t b = static_cast<uint8_t>(((x + y) & 0x20) ? 220 : 30);
+      row[x * 4 + 0] = b;
+      row[x * 4 + 1] = g;
+      row[x * 4 + 2] = r;
+      row[x * 4 + 3] = 0xFF;
+    }
+  }
+  CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+
+  IOSurfaceRef ioSurface = CVPixelBufferGetIOSurface(pixelBuffer);
+  if (!ioSurface) {
+    CFRelease(pixelBuffer);
+    throw std::runtime_error(
+        "createTestVideoFrame: pixel buffer is not IOSurface-backed");
+  }
+
+  VideoFrameHandle handle;
+  handle.handle = (void *)ioSurface;
+  handle.width = width;
+  handle.height = height;
+  handle.deleter = [pixelBuffer]() { CFRelease(pixelBuffer); };
+  return handle;
 }
 
 } // namespace rnwgpu

@@ -45,6 +45,8 @@
 #include "GPURenderPipelineDescriptor.h"
 #include "GPUSampler.h"
 #include "GPUSamplerDescriptor.h"
+#include "GPUSharedTextureMemory.h"
+#include "GPUSharedTextureMemoryDescriptor.h"
 #include "GPUShaderModule.h"
 #include "GPUShaderModuleDescriptor.h"
 #include "GPUSupportedLimits.h"
@@ -116,6 +118,8 @@ public:
       std::optional<std::shared_ptr<GPUSamplerDescriptor>> descriptor);
   std::shared_ptr<GPUExternalTexture> importExternalTexture(
       std::shared_ptr<GPUExternalTextureDescriptor> descriptor);
+  std::shared_ptr<GPUSharedTextureMemory> importSharedTextureMemory(
+      std::shared_ptr<GPUSharedTextureMemoryDescriptor> descriptor);
   std::shared_ptr<GPUBindGroupLayout> createBindGroupLayout(
       std::shared_ptr<GPUBindGroupLayoutDescriptor> descriptor);
   std::shared_ptr<GPUPipelineLayout>
@@ -169,6 +173,8 @@ public:
                   &GPUDevice::createSampler);
     installMethod(runtime, prototype, "importExternalTexture",
                   &GPUDevice::importExternalTexture);
+    installMethod(runtime, prototype, "importSharedTextureMemory",
+                  &GPUDevice::importSharedTextureMemory);
     installMethod(runtime, prototype, "createBindGroupLayout",
                   &GPUDevice::createBindGroupLayout);
     installMethod(runtime, prototype, "createPipelineLayout",

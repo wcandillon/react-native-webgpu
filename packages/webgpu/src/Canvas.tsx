@@ -21,6 +21,11 @@ declare global {
     ) => RNCanvasContext;
     DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
     createImageBitmap: typeof createImageBitmap;
+    loadVideoFrame: (path: string) => import("./types").VideoFrame;
+    createTestVideoFrame: (
+      width: number,
+      height: number,
+    ) => import("./types").VideoFrame;
   };
 }
 

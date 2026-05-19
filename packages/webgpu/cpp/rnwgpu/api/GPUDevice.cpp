@@ -238,6 +238,45 @@ std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
       "GPUDevice::importExternalTexture(): Not implemented");
 }
 
+std::shared_ptr<GPUSharedTextureMemory> GPUDevice::importSharedTextureMemory(
+    std::shared_ptr<GPUSharedTextureMemoryDescriptor> descriptor) {
+  if (!descriptor || descriptor->handle == nullptr) {
+    throw std::runtime_error("GPUDevice::importSharedTextureMemory(): handle "
+                             "must be a non-null native pointer");
+  }
+
+  wgpu::SharedTextureMemoryDescriptor desc{};
+  std::string label = descriptor->label.value_or("");
+  if (!label.empty()) {
+    desc.label = wgpu::StringView(label.c_str(), label.size());
+  }
+
+#if defined(__APPLE__)
+  wgpu::SharedTextureMemoryIOSurfaceDescriptor platformDesc{};
+  platformDesc.ioSurface = descriptor->handle;
+  platformDesc.allowStorageBinding = true;
+  desc.nextInChain = &platformDesc;
+#elif defined(__ANDROID__)
+  wgpu::SharedTextureMemoryAHardwareBufferDescriptor platformDesc{};
+  platformDesc.handle = descriptor->handle;
+  desc.nextInChain = &platformDesc;
+#else
+  throw std::runtime_error(
+      "GPUDevice::importSharedTextureMemory(): unsupported platform");
+#endif
+
+  auto memory = _instance.ImportSharedTextureMemory(&desc);
+  if (memory == nullptr) {
+    throw std::runtime_error("GPUDevice::importSharedTextureMemory(): "
+                             "ImportSharedTextureMemory returned null - is the "
+                             "'shared-texture-memory-iosurface' (Apple) or "
+                             "'shared-texture-memory-ahardware-buffer' "
+                             "(Android) feature enabled on the device?");
+  }
+  return std::make_shared<GPUSharedTextureMemory>(std::move(memory),
+                                                  std::move(label));
+}
+
 async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
     std::shared_ptr<GPUComputePipelineDescriptor> descriptor) {
   wgpu::ComputePipelineDescriptor desc{};
