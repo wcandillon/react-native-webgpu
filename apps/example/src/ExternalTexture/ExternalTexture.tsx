@@ -5,6 +5,7 @@ import {
   useCanvasRef,
   useDevice,
   type NativeCanvas,
+  type VideoFrame,
 } from "react-native-wgpu";
 
 // importExternalTexture is the spec-mandated path for "I have a YUV-encoded
@@ -159,25 +160,50 @@ export const ExternalTexture = () => {
       }
     };
 
+    // The video plays at ~24fps but we tick at the display's 60Hz, so most rAF
+    // ticks have no new frame from AVPlayer. Hold the latest VideoFrame across
+    // ticks and re-import an ExternalTexture from it on the "no new frame"
+    // ticks — this is what stops the canvas from flashing black ~2/3 of the
+    // time. AVPlayer's pool is several buffers deep so holding one back like
+    // this doesn't stall decoding.
+    let currentFrame: VideoFrame | null = null;
+
     const render = () => {
-      const frame = player.copyLatestFrame();
-      if (frame) {
-        // GPUExternalTexture is one-shot: it's valid for the submission that
-        // immediately follows. We rebuild it from each new frame, render, and
-        // let GC drop the wrapper (which runs EndAccess for us).
+      const newFrame = player.copyLatestFrame();
+      if (newFrame) {
+        if (currentFrame) {
+          currentFrame.release();
+        }
+        currentFrame = newFrame;
+      }
+
+      const encoder = device.createCommandEncoder();
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [
+          {
+            view: context.getCurrentTexture().createView(),
+            clearValue: { r: 0, g: 0, b: 0, a: 1 },
+            loadOp: "clear",
+            storeOp: "store",
+          },
+        ],
+      });
+
+      if (currentFrame) {
+        // GPUExternalTexture expires after each submit, so we rebuild one
+        // every tick — even when sampling the same VideoFrame as last tick.
         let externalTex: GPUExternalTexture | null = null;
         try {
           externalTex = device.importExternalTexture({
-            source: frame,
+            source: currentFrame,
             label: "video-external",
           });
         } catch (e) {
           console.warn("[ExternalTexture] importExternalTexture failed:", e);
-          frame.release();
         }
 
         if (externalTex) {
-          writeUvScale(frame.width, frame.height);
+          writeUvScale(currentFrame.width, currentFrame.height);
           const bindGroup = device.createBindGroup({
             layout: pipeline.getBindGroupLayout(0),
             entries: [
@@ -186,45 +212,15 @@ export const ExternalTexture = () => {
               { binding: 2, resource: { buffer: uniformBuffer } },
             ],
           });
-
-          const encoder = device.createCommandEncoder();
-          const pass = encoder.beginRenderPass({
-            colorAttachments: [
-              {
-                view: context.getCurrentTexture().createView(),
-                clearValue: { r: 0, g: 0, b: 0, a: 1 },
-                loadOp: "clear",
-                storeOp: "store",
-              },
-            ],
-          });
           pass.setPipeline(pipeline);
           pass.setBindGroup(0, bindGroup);
           pass.draw(3);
-          pass.end();
-          device.queue.submit([encoder.finish()]);
-          context.present();
-          // externalTex and frame both fall out of scope here; the underlying
-          // SharedTextureMemory + IOSurface release on the next GC cycle.
         }
-      } else {
-        // No new frame yet (still buffering). Present a clear pass so the
-        // canvas doesn't show whatever was in the previous swapchain image.
-        const encoder = device.createCommandEncoder();
-        const pass = encoder.beginRenderPass({
-          colorAttachments: [
-            {
-              view: context.getCurrentTexture().createView(),
-              clearValue: { r: 0, g: 0, b: 0, a: 1 },
-              loadOp: "clear",
-              storeOp: "store",
-            },
-          ],
-        });
-        pass.end();
-        device.queue.submit([encoder.finish()]);
-        context.present();
       }
+
+      pass.end();
+      device.queue.submit([encoder.finish()]);
+      context.present();
       rafRef.current = requestAnimationFrame(render);
     };
     rafRef.current = requestAnimationFrame(render);
@@ -232,6 +228,10 @@ export const ExternalTexture = () => {
     return () => {
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
+      }
+      if (currentFrame) {
+        currentFrame.release();
+        currentFrame = null;
       }
       uniformBuffer.destroy();
       player.release();
