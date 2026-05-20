@@ -35,6 +35,7 @@
   },
   "android": {
     "permissions": [
+      { "android:name": "android.permission.INTERNET" },
       { "android:name": "android.permission.CAMERA" },
       { "android:name": "android.permission.RECORD_AUDIO" }
     ]
