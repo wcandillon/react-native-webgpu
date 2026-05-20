@@ -38,7 +38,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - NitroModules (0.35.6):
+  - NitroModules (0.35.7):
     - boost
     - DoubleConversion
     - fast_float
@@ -2519,7 +2519,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - RNReanimated (4.3.1):
+  - RNReanimated (4.2.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -2546,12 +2546,42 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNReanimated/apple (= 4.3.1)
-    - RNReanimated/common (= 4.3.1)
+    - RNReanimated/reanimated (= 4.2.1)
     - RNWorklets
     - SocketRocket
     - Yoga
-  - RNReanimated/apple (4.3.1):
+  - RNReanimated/reanimated (4.2.1):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - RNReanimated/reanimated/apple (= 4.2.1)
+    - RNWorklets
+    - SocketRocket
+    - Yoga
+  - RNReanimated/reanimated/apple (4.2.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -2581,7 +2611,7 @@ PODS:
     - RNWorklets
     - SocketRocket
     - Yoga
-  - RNReanimated/common (4.3.1):
+  - RNWorklets (0.7.2):
     - boost
     - DoubleConversion
     - fast_float
@@ -2608,10 +2638,10 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNWorklets
+    - RNWorklets/worklets (= 0.7.2)
     - SocketRocket
     - Yoga
-  - RNWorklets (0.8.3):
+  - RNWorklets/worklets (0.7.2):
     - boost
     - DoubleConversion
     - fast_float
@@ -2638,40 +2668,10 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNWorklets/apple (= 0.8.3)
-    - RNWorklets/common (= 0.8.3)
+    - RNWorklets/worklets/apple (= 0.7.2)
     - SocketRocket
     - Yoga
-  - RNWorklets/apple (0.8.3):
-    - boost
-    - DoubleConversion
-    - fast_float
-    - fmt
-    - glog
-    - hermes-engine
-    - RCT-Folly
-    - RCT-Folly/Fabric
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-hermes
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - SocketRocket
-    - Yoga
-  - RNWorklets/common (0.8.3):
+  - RNWorklets/worklets/apple (0.7.2):
     - boost
     - DoubleConversion
     - fast_float
@@ -2701,7 +2701,7 @@ PODS:
     - SocketRocket
     - Yoga
   - SocketRocket (0.7.1)
-  - VisionCamera (5.0.9):
+  - VisionCamera (5.0.10):
     - boost
     - DoubleConversion
     - fast_float
@@ -2731,38 +2731,6 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - SocketRocket
-    - Yoga
-  - VisionCameraWorklets (5.0.9):
-    - boost
-    - DoubleConversion
-    - fast_float
-    - fmt
-    - glog
-    - hermes-engine
-    - NitroModules
-    - RCT-Folly
-    - RCT-Folly/Fabric
-    - RCTRequired
-    - RCTTypeSafety
-    - React-callinvoker
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - RNWorklets
-    - SocketRocket
-    - VisionCamera
     - Yoga
   - Yoga (0.0.0)
 
@@ -2851,7 +2819,6 @@ DEPENDENCIES:
   - RNWorklets (from `../../../node_modules/react-native-worklets`)
   - SocketRocket (~> 0.7.1)
   - VisionCamera (from `../../../node_modules/react-native-vision-camera`)
-  - VisionCameraWorklets (from `../../../node_modules/react-native-vision-camera-worklets`)
   - Yoga (from `../../../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -3024,8 +2991,6 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native-worklets"
   VisionCamera:
     :path: "../../../node_modules/react-native-vision-camera"
-  VisionCameraWorklets:
-    :path: "../../../node_modules/react-native-vision-camera-worklets"
   Yoga:
     :path: "../../../node_modules/react-native/ReactCommon/yoga"
 
@@ -3038,7 +3003,7 @@ SPEC CHECKSUMS:
   glog: 5683914934d5b6e4240e497e0f4a3b42d1854183
   hermes-engine: 35c763d57c9832d0eef764316ca1c4d043581394
   NitroImage: 4ffcf183d975de179ae1662b7c3b4b3b37747c7e
-  NitroModules: 70e2ff77a0b718e47d5bccd837fefe8a9aa20f50
+  NitroModules: 9ec4a2e0b9af22ba1f1f550e1dd9be94143afd18
   RCT-Folly: b29feb752b08042c62badaef7d453f3bb5e6ae23
   RCTDeprecation: c0ed3249a97243002615517dff789bf4666cf585
   RCTRequired: 58719f5124f9267b5f9649c08bf23d9aea845b23
@@ -3109,11 +3074,10 @@ SPEC CHECKSUMS:
   ReactTestApp-DevSupport: 9b7bbba5e8fed998e763809171d9906a1375f9d3
   ReactTestApp-Resources: 1bd9ff10e4c24f2ad87101a32023721ae923bccf
   RNGestureHandler: e37bdb684df1ac17c7e1d8f71a3311b2793c186b
-  RNReanimated: 9d012d4031abc9df896f8a82f9928eb2b9eae417
-  RNWorklets: 0da2552f9ff5d17506918a692304110cfebb9f0a
+  RNReanimated: 464375ff2caa801358547c44eca894ff0bf68e74
+  RNWorklets: ee58e869ea579800ec5f2f1cb6ae195fd3537546
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
-  VisionCamera: 433061777a7a2f4436be5369ccaba0f24e0ff7b3
-  VisionCameraWorklets: 29d29366e8216700971ecead05136cbf5400f010
+  VisionCamera: 8c913d0cb2c868f779035fb69a1e0ab69e10f1c3
   Yoga: a3ed390a19db0459bd6839823a6ac6d9c6db198d
 
 PODFILE CHECKSUM: 22a8651333bf096f67ca333598bd33455d994c1f
