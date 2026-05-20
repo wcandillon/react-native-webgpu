@@ -54,6 +54,17 @@ template <> struct JSIConverter<std::shared_ptr<ArrayBuffer>> {
               obj.getProperty(runtime, "byteOffset").asNumber());
           auto byteLength = static_cast<size_t>(
               obj.getProperty(runtime, "byteLength").asNumber());
+          if (bytesPerElements <= 0 || bytesPerElements > 8) {
+            throw std::runtime_error(
+                "ArrayBuffer::fromJSI: BYTES_PER_ELEMENT must be a positive "
+                "integer between 1 and 8");
+          }
+          auto bufferSize = arrayBuffer.size(runtime);
+          if (byteOffset > bufferSize || byteLength > bufferSize - byteOffset) {
+            throw std::runtime_error(
+                "ArrayBuffer::fromJSI: byteOffset + byteLength exceeds buffer "
+                "size");
+          }
           return std::make_shared<ArrayBuffer>(
               arrayBuffer.data(runtime) + byteOffset, byteLength,
               static_cast<size_t>(bytesPerElements));
