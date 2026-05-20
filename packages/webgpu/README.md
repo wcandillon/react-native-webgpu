@@ -226,7 +226,7 @@ device.queue.copyExternalImageToTexture(
 
 React Native WebGPU exposes Dawn's `SharedTextureMemory` so you can import a native pixel surface (an `IOSurface`-backed `CVPixelBuffer` on iOS, an `AHardwareBuffer` on Android) as a sampleable `GPUTexture` without copying pixels through the CPU. This is the path you want for camera frames, video frames, or anything coming out of a hardware producer.
 
-We exposes a single umbrella feature name, `"rnwebgpu/shared-texture-memory"`. Request it at device creation.
+We expose a single umbrella feature name, `"rnwebgpu/shared-texture-memory"`. Request it at device creation.
 
 ```tsx
 import type { VideoFrame } from "react-native-wgpu";

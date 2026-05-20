@@ -113,7 +113,7 @@ export const SharedTextureMemory = () => {
       const player = RNWebGPU.createVideoPlayer(VIDEO_URL);
       player.play();
       source = {
-        copyLatestFrame: () => source.copyLatestFrame(),
+        copyLatestFrame: () => player.copyLatestFrame(),
         release: () => player.release(),
       };
     } else {
