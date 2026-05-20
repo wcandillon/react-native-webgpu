@@ -9,34 +9,6 @@ function generateContextId() {
   return CONTEXT_COUNTER++;
 }
 
-declare global {
-  var RNWebGPU: {
-    gpu: GPU;
-    fabric: boolean;
-    getNativeSurface: (contextId: number) => NativeCanvas;
-    MakeWebGPUCanvasContext: (
-      contextId: number,
-      width: number,
-      height: number,
-    ) => RNCanvasContext;
-    DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
-    createImageBitmap: typeof createImageBitmap;
-    loadVideoFrame: (path: string) => import("./types").VideoFrame;
-    createTestVideoFrame: (
-      width: number,
-      height: number,
-    ) => import("./types").VideoFrame;
-    createVideoFrameFromNativeBuffer: (
-      pointer: bigint,
-    ) => import("./types").VideoFrame;
-    createVideoPlayer: (
-      path: string,
-      pixelFormat?: import("./types").VideoPixelFormat,
-    ) => import("./types").VideoPlayer;
-    writeTestVideoFile: () => string;
-  };
-}
-
 type SurfacePointer = bigint;
 
 export interface NativeCanvas {

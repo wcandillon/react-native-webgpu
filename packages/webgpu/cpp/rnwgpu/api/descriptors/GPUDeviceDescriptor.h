@@ -8,6 +8,7 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "JSIConverter.h"
+#include "RnFeatures.h"
 #include "WGPULogger.h"
 
 #include "GPUQueueDescriptor.h"
@@ -43,10 +44,20 @@ template <> struct JSIConverter<std::vector<wgpu::FeatureName>> {
     vector.reserve(length);
     for (size_t i = 0; i < length; ++i) {
       jsi::Value elementValue = array.getValueAtIndex(runtime, i);
-      if (elementValue.isString()) {
-        vector.emplace_back(JSIConverter<wgpu::FeatureName>::fromJSI(
-            runtime, elementValue, outOfBounds));
+      if (!elementValue.isString()) {
+        continue;
       }
+      auto str = elementValue.asString(runtime).utf8(runtime);
+      // Expand react-native-wgpu's umbrella feature into the platform's
+      // backing Dawn features before they reach RequestDevice.
+      if (str == kRnSharedTextureMemoryFeature) {
+        for (auto f : rnSharedTextureMemoryBackingFeatures()) {
+          vector.emplace_back(f);
+        }
+        continue;
+      }
+      vector.emplace_back(JSIConverter<wgpu::FeatureName>::fromJSI(
+          runtime, elementValue, outOfBounds));
     }
     return vector;
   }

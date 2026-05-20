@@ -14,6 +14,7 @@
 #include "GPUInternalError.h"
 #include "GPUOutOfMemoryError.h"
 #include "GPUValidationError.h"
+#include "RnFeatures.h"
 
 namespace rnwgpu {
 
@@ -401,7 +402,13 @@ std::shared_ptr<GPUSharedTextureMemory> GPUDevice::importSharedTextureMemory(
 #if defined(__APPLE__)
   wgpu::SharedTextureMemoryIOSurfaceDescriptor platformDesc{};
   platformDesc.ioSurface = descriptor->handle;
-  platformDesc.allowStorageBinding = true;
+  // Default off: enabling it propagates StorageBinding into properties.usage,
+  // which then forces memory.createTexture() (no-descriptor form) to validate
+  // the format against storage capabilities. bgra8unorm (the standard
+  // CVPixelBuffer format) only supports storage when the device opts into the
+  // bgra8unorm-storage feature, so unconditionally setting this here breaks
+  // the common sample-only case.
+  platformDesc.allowStorageBinding = false;
   desc.nextInChain = &platformDesc;
 #elif defined(__ANDROID__)
   wgpu::SharedTextureMemoryAHardwareBufferDescriptor platformDesc{};
@@ -572,12 +579,15 @@ std::unordered_set<std::string> GPUDevice::getFeatures() {
   wgpu::SupportedFeatures supportedFeatures;
   _instance.GetFeatures(&supportedFeatures);
   std::unordered_set<std::string> result;
+  std::unordered_set<wgpu::FeatureName> enabled;
   for (size_t i = 0; i < supportedFeatures.featureCount; ++i) {
     auto feature = supportedFeatures.features[i];
+    enabled.insert(feature);
     std::string name;
     convertEnumToJSUnion(feature, &name);
     result.insert(name);
   }
+  maybeSynthesizeRnSharedTextureMemoryFeature(enabled, result);
   return result;
 }
 

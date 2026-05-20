@@ -53,18 +53,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
 }
 `;
 
-// On Metal, EndAccess on an IOSurface-backed SharedTextureMemory always
-// produces an MTLSharedEvent fence (so the producer can wait on the GPU). Even
-// though we don't currently expose the fence to JS, Dawn validates that the
-// fence feature is enabled before letting EndAccess succeed. Android has the
-// equivalent pairing with sync fds.
-const REQUIRED_FEATURES =
-  Platform.OS === "ios"
-    ? ["shared-texture-memory-iosurface", "shared-fence-mtl-shared-event"]
-    : [
-        "shared-texture-memory-ahardware-buffer",
-        "shared-fence-vk-semaphore-sync-fd",
-      ];
+const REQUIRED_FEATURES = ["rnwebgpu/shared-texture-memory" as GPUFeatureName];
 
 export const SharedTextureMemory = () => {
   const ref = useCanvasRef();
@@ -72,9 +61,7 @@ export const SharedTextureMemory = () => {
   const rafRef = useRef<number | null>(null);
 
   const { device, adapter } = useDevice(undefined, {
-    // Cast: GPUFeatureName in @webgpu/types doesn't include the Dawn-specific
-    // extension names yet, but Dawn accepts them.
-    requiredFeatures: REQUIRED_FEATURES as unknown as GPUFeatureName[],
+    requiredFeatures: REQUIRED_FEATURES,
   });
 
   useEffect(() => {
@@ -109,14 +96,45 @@ export const SharedTextureMemory = () => {
       alphaMode: "premultiplied",
     });
 
-    // 1. Open the video and start playback. AVPlayer accepts local file paths
-    //    as well as http(s):// URLs and keeps the IOSurface pool up to date
-    //    in the background. For a fully offline demo, swap this URL for
-    //    RNWebGPU.writeTestVideoFile() which generates a tiny mp4 on disk.
-    const VIDEO_URL =
-      "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4";
-    const player = RNWebGPU.createVideoPlayer(VIDEO_URL);
-    player.play();
+    // Pick a frame source per platform. On iOS we use AVPlayer to stream a
+    // real video; on Android we don't have a video pipeline yet, so we fall
+    // back to a single synthetic IOSurface/AHardwareBuffer frame produced by
+    // RNWebGPU.createTestVideoFrame. The rAF loop below treats a null return
+    // from copyLatestFrame() as "keep showing the previous frame", which means
+    // a one-shot source renders correctly without any other change.
+    interface FrameSource {
+      copyLatestFrame(): VideoFrame | null;
+      release(): void;
+    }
+    let source: FrameSource;
+    if (Platform.OS === "ios") {
+      const VIDEO_URL =
+        "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4";
+      const player = RNWebGPU.createVideoPlayer(VIDEO_URL);
+      player.play();
+      source = {
+        copyLatestFrame: () => player.copyLatestFrame(),
+        release: () => player.release(),
+      };
+    } else {
+      let pending: VideoFrame | null = RNWebGPU.createTestVideoFrame(
+        1024,
+        1024,
+      );
+      source = {
+        copyLatestFrame: () => {
+          const f = pending;
+          pending = null;
+          return f;
+        },
+        release: () => {
+          if (pending) {
+            pending.release();
+            pending = null;
+          }
+        },
+      };
+    }
 
     const module = device.createShaderModule({ code: SHADER });
     const pipeline = device.createRenderPipeline({
@@ -216,7 +234,7 @@ export const SharedTextureMemory = () => {
     const render = () => {
       // Pull the latest frame from the player. Null means "no new frame since
       // we last asked", in which case we keep using the existing one.
-      const newFrame = player.copyLatestFrame();
+      const newFrame = source.copyLatestFrame();
       if (newFrame) {
         const next = bindFrame(newFrame);
         if (next) {
@@ -258,7 +276,7 @@ export const SharedTextureMemory = () => {
         releaseBound(current);
         current = null;
       }
-      player.release();
+      source.release();
     };
   }, [device, adapter, ref]);
 

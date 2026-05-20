@@ -16,7 +16,6 @@ export interface CanvasRef {
   getContextId: () => number;
   getContext(contextName: "webgpu"): RNCanvasContext | null;
   getNativeSurface: () => NativeCanvas;
-  whenReady: (callback: () => void) => void;
 }
 
 export type VideoPixelFormat = "bgra8" | "nv12";

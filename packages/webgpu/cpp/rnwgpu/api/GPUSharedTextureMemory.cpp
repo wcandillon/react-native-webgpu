@@ -39,6 +39,21 @@ bool GPUSharedTextureMemory::beginAccess(std::shared_ptr<GPUTexture> texture,
   desc.fenceCount = 0;
   desc.fences = nullptr;
   desc.signaledValues = nullptr;
+
+#if defined(__ANDROID__)
+  // Dawn's Vulkan backend (AHardwareBuffer) validates that the begin-access
+  // descriptor chains a SharedTextureMemoryVkImageLayoutBeginState specifying
+  // the VkImageLayout to acquire the image into. UNDEFINED (= 0) on both ends
+  // is the canonical "no prior GPU producer" pattern: Dawn performs an
+  // external-queue acquire from VK_QUEUE_FAMILY_EXTERNAL which preserves the
+  // AHB contents, then transitions to whatever layout the texture's actual
+  // usage requires.
+  wgpu::SharedTextureMemoryVkImageLayoutBeginState vkLayout{};
+  vkLayout.oldLayout = 0;
+  vkLayout.newLayout = 0;
+  desc.nextInChain = &vkLayout;
+#endif
+
   auto status = _instance.BeginAccess(texture->get(), &desc);
   return static_cast<bool>(status);
 }
@@ -49,6 +64,15 @@ bool GPUSharedTextureMemory::endAccess(std::shared_ptr<GPUTexture> texture) {
         "GPUSharedTextureMemory::endAccess(): texture is null");
   }
   wgpu::SharedTextureMemoryEndAccessState state{};
+
+#if defined(__ANDROID__)
+  // Dawn's Vulkan backend writes the released old/new VkImageLayouts back into
+  // a chained SharedTextureMemoryVkImageLayoutEndState; validation requires
+  // the chain even when the caller doesn't read the values.
+  wgpu::SharedTextureMemoryVkImageLayoutEndState vkLayout{};
+  state.nextInChain = &vkLayout;
+#endif
+
   auto status = _instance.EndAccess(texture->get(), &state);
   return static_cast<bool>(status);
 }
