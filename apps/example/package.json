@@ -38,6 +38,7 @@
     "react-native-reanimated": "4.3.1",
     "react-native-safe-area-context": "^5.4.0",
     "react-native-vision-camera": "5.0.10",
+    "react-native-vision-camera-worklets": "5.0.10",
     "react-native-web": "^0.21.2",
     "react-native-wgpu": "*",
     "react-native-worklets": "0.8.3",

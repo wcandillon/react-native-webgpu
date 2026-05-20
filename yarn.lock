@@ -4905,6 +4905,7 @@ __metadata:
     react-native-safe-area-context: ^5.4.0
     react-native-test-app: 4.4.10
     react-native-vision-camera: 5.0.10
+    react-native-vision-camera-worklets: 5.0.10
     react-native-web: ^0.21.2
     react-native-wgpu: "*"
     react-native-worklets: 0.8.3
@@ -12837,6 +12838,19 @@ __metadata:
     init-test-app: scripts/init.mjs
     install-windows-test-app: windows/app.mjs
   checksum: 1f9d8bb910252f064abb94c4bae414743a21c764aac7913848de94ae1bf4c028997bd78932034f608669b301583ca8136de24dde7638d8faa14aea3bf0ef4e31
+  languageName: node
+  linkType: hard
+
+"react-native-vision-camera-worklets@npm:5.0.10":
+  version: 5.0.10
+  resolution: "react-native-vision-camera-worklets@npm:5.0.10"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+    react-native-nitro-modules: "*"
+    react-native-vision-camera: "*"
+    react-native-worklets: "*"
+  checksum: 0e864993c90593d8ce0ec1a3eac990b29e75b58be556a1c113cb303e3ca9c25f072fd202369109fdabf3562d23c3edb1f05405b8934b2515ef09aa35a85378a9
   languageName: node
   linkType: hard
 
