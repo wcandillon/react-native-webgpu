@@ -40,7 +40,10 @@ if (typeof RNWebGPU !== "undefined" && RNWebGPU != null) {
       }
     }
   }
-  if (!global.createImageBitmap && typeof RNWebGPU.createImageBitmap === "function") {
+  if (
+    !global.createImageBitmap &&
+    typeof RNWebGPU.createImageBitmap === "function"
+  ) {
     global.createImageBitmap = RNWebGPU.createImageBitmap.bind(RNWebGPU);
   }
 } else {

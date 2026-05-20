@@ -6,7 +6,6 @@ declare function __webgpuBox(obj: object): {
   __boxedWebGPU: true;
 };
 
-// eslint-disable-next-line no-console
 console.log("[WebGPU] registerWebGPUForReanimated module loaded");
 
 let isRegistered = false;
@@ -26,7 +25,6 @@ export const registerWebGPUForReanimated = () => {
   try {
     const { registerCustomSerializable } = require("react-native-worklets");
 
-    // eslint-disable-next-line no-console
     console.log(
       "[WebGPU] registering custom serializer (v2: __brand-getter check)",
     );
@@ -46,7 +44,6 @@ export const registerWebGPUForReanimated = () => {
           return false;
         }
         if ((value as { __boxedWebGPU?: boolean }).__boxedWebGPU === true) {
-          // eslint-disable-next-line no-console
           console.log("[WebGPU determine] matched boxed object");
           return true;
         }
@@ -65,7 +62,7 @@ export const registerWebGPUForReanimated = () => {
           } catch {
             brand = "<threw>";
           }
-          // eslint-disable-next-line no-console
+
           console.log(
             "[WebGPU determine] matched=" +
               String(matched) +
@@ -91,12 +88,9 @@ export const registerWebGPUForReanimated = () => {
         return boxed.unbox();
       },
     });
-    // eslint-disable-next-line no-console
+
     console.log("[WebGPU] registerCustomSerializable call returned OK");
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      "[WebGPU] registerCustomSerializable threw: " + String(e),
-    );
+    console.warn("[WebGPU] registerCustomSerializable threw: " + String(e));
   }
 };

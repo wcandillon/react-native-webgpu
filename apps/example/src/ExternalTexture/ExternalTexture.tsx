@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { PixelRatio, Platform, StyleSheet, Text, View } from "react-native";
+import { PixelRatio, StyleSheet, Text, View } from "react-native";
 import {
   Canvas,
   useCanvasRef,
@@ -55,22 +55,15 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
 }
 `;
 
-// We need the same shared-memory + shared-fence pair as the BGRA demo (the
-// IOSurface still flows through SharedTextureMemory under the hood), plus
+// rnwebgpu/shared-texture-memory is our umbrella that expands to the
+// platform's shared-memory + shared-fence pair (the IOSurface / AHB still
+// flows through SharedTextureMemory under the hood). Plus
 // dawn-multi-planar-formats so Dawn can interpret the NV12 surface as a
 // biplanar texture.
-const REQUIRED_FEATURES =
-  Platform.OS === "ios"
-    ? [
-        "shared-texture-memory-iosurface",
-        "shared-fence-mtl-shared-event",
-        "dawn-multi-planar-formats",
-      ]
-    : [
-        "shared-texture-memory-ahardware-buffer",
-        "shared-fence-vk-semaphore-sync-fd",
-        "dawn-multi-planar-formats",
-      ];
+const REQUIRED_FEATURES: GPUFeatureName[] = [
+  "rnwebgpu/shared-texture-memory" as GPUFeatureName,
+  "dawn-multi-planar-formats" as GPUFeatureName,
+];
 
 const VIDEO_URL =
   "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4";
@@ -81,7 +74,7 @@ export const ExternalTexture = () => {
   const rafRef = useRef<number | null>(null);
 
   const { device, adapter } = useDevice(undefined, {
-    requiredFeatures: REQUIRED_FEATURES as unknown as GPUFeatureName[],
+    requiredFeatures: REQUIRED_FEATURES,
   });
 
   useEffect(() => {

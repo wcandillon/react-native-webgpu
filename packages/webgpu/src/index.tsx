@@ -44,7 +44,7 @@ declare global {
     createVideoFrameFromNativeBuffer: (pointer: bigint) => VideoFrame;
     createVideoPlayer: (
       path: string,
-      pixelFormat?: import("./types").VideoPixelFormat,
+      pixelFormat?: VideoPixelFormat,
     ) => VideoPlayer;
     writeTestVideoFile: () => string;
   };
