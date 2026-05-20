@@ -53,18 +53,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
 }
 `;
 
-// On Metal, EndAccess on an IOSurface-backed SharedTextureMemory always
-// produces an MTLSharedEvent fence (so the producer can wait on the GPU). Even
-// though we don't currently expose the fence to JS, Dawn validates that the
-// fence feature is enabled before letting EndAccess succeed. Android has the
-// equivalent pairing with sync fds.
-const REQUIRED_FEATURES =
-  Platform.OS === "ios"
-    ? ["shared-texture-memory-iosurface", "shared-fence-mtl-shared-event"]
-    : [
-        "shared-texture-memory-ahardware-buffer",
-        "shared-fence-sync-fd",
-      ];
+const REQUIRED_FEATURES = ["rnwebgpu/shared-texture-memory" as GPUFeatureName];
 
 export const SharedTextureMemory = () => {
   const ref = useCanvasRef();
@@ -72,9 +61,7 @@ export const SharedTextureMemory = () => {
   const rafRef = useRef<number | null>(null);
 
   const { device, adapter } = useDevice(undefined, {
-    // Cast: GPUFeatureName in @webgpu/types doesn't include the Dawn-specific
-    // extension names yet, but Dawn accepts them.
-    requiredFeatures: REQUIRED_FEATURES as unknown as GPUFeatureName[],
+    requiredFeatures: REQUIRED_FEATURES,
   });
 
   useEffect(() => {

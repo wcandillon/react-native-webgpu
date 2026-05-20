@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Dimensions, Platform, Text, View, Image } from "react-native";
+import { Dimensions, Text, View, Image } from "react-native";
 import { GPUOffscreenCanvas } from "react-native-wgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
@@ -14,26 +14,11 @@ export const CI = process.env.CI === "true";
 const { width } = Dimensions.get("window");
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
-// Platform-specific Dawn features that back importSharedTextureMemory. The
-// fence feature is paired with the memory feature because Dawn validates it
-// is enabled before letting BeginAccess/EndAccess succeed on the matching
-// backend, even when callers pass zero fences.
-const sharedTextureMemoryFeatures = (): GPUFeatureName[] => {
-  if (Platform.OS === "ios") {
-    return [
-      "shared-texture-memory-iosurface",
-      "shared-fence-mtl-shared-event",
-    ] as unknown as GPUFeatureName[];
-  }
-  if (Platform.OS === "android") {
-    return [
-      "shared-texture-memory-ahardware-buffer",
-      "shared-fence-sync-fd",
-    ] as unknown as GPUFeatureName[];
-  }
-  return [];
-};
-const OPTIONAL_SHARED_TEXTURE_MEMORY_FEATURES = sharedTextureMemoryFeatures();
+// Umbrella feature owned by react-native-wgpu: expands to the platform's
+// Dawn feature pair natively and appears on adapter.features when supported.
+const OPTIONAL_SHARED_TEXTURE_MEMORY_FEATURES = [
+  "rnwebgpu/shared-texture-memory" as GPUFeatureName,
+];
 
 export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   const [texture, setTexture] = useState<GPUTexture | null>(null);
@@ -50,14 +35,6 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
         }
         const requiredFeatures = OPTIONAL_SHARED_TEXTURE_MEMORY_FEATURES.filter(
           (f) => a.features.has(f),
-        );
-        console.log(
-          `[Tests] adapter features (shared-*): ${[...a.features]
-            .filter((f) => f.toString().startsWith("shared-"))
-            .join(", ")}`,
-        );
-        console.log(
-          `[Tests] requestDevice with requiredFeatures: ${JSON.stringify(requiredFeatures)}`,
         );
         const d = await a.requestDevice({ requiredFeatures });
         if (!d) {

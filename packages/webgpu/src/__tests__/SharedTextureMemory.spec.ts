@@ -16,21 +16,15 @@ describe("SharedTextureMemory", () => {
   it("imports a test frame and samples it through a textured quad", async () => {
     const result = await client.eval<Record<string, never>, EvalResult>(
       ({ device, gpu, ctx, canvas }) => {
-        // The Dawn-specific feature is the *only* legitimate reason to skip:
-        // the Chrome reference run, older Android adapters, or fallback
-        // adapters won't have it. Anything else past this point is a real
-        // failure and must surface as a test failure, not a silent skip.
-        const candidates = [
-          "shared-texture-memory-iosurface",
-          "shared-texture-memory-ahardware-buffer",
-        ];
-        const supported = candidates.find((f) =>
-          device.features.has(f as GPUFeatureName),
-        );
-        if (!supported) {
+        // The umbrella is the *only* legitimate reason to skip: the Chrome
+        // reference run and fallback adapters won't advertise it. Anything
+        // else past this point is a real failure and must surface as a test
+        // failure, not a silent skip.
+        const FEATURE = "rnwebgpu/shared-texture-memory";
+        if (!device.features.has(FEATURE as GPUFeatureName)) {
           return {
             kind: "skip",
-            reason: "no shared-texture-memory feature on this adapter",
+            reason: `${FEATURE} not enabled on this device`,
           };
         }
         if (typeof RNWebGPU?.createTestVideoFrame !== "function") {
@@ -51,7 +45,7 @@ describe("SharedTextureMemory", () => {
             frame.release();
             return {
               kind: "fail",
-              reason: `beginAccess returned false (feature: ${supported})`,
+              reason: `beginAccess returned false`,
             };
           }
 

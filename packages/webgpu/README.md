@@ -222,6 +222,41 @@ device.queue.copyExternalImageToTexture(
 );
 ```
 
+### Shared Texture Memory
+
+React Native WebGPU exposes Dawn's `SharedTextureMemory` so you can import a native pixel surface (an `IOSurface`-backed `CVPixelBuffer` on iOS, an `AHardwareBuffer` on Android) as a sampleable `GPUTexture` without copying pixels through the CPU. This is the path you want for camera frames, video frames, or anything coming out of a hardware producer.
+
+We exposes a single umbrella feature name, `"rnwebgpu/shared-texture-memory"`. Request it at device creation.
+
+```tsx
+import type { VideoFrame } from "react-native-wgpu";
+
+const FEATURE = "rnwebgpu/shared-texture-memory" as GPUFeatureName;
+
+const adapter = await navigator.gpu.requestAdapter();
+const requiredFeatures = adapter!.features.has(FEATURE) ? [FEATURE] : [];
+const device = await adapter!.requestDevice({ requiredFeatures });
+
+// `frame` here is a VideoFrame whose .handle is the native surface
+// (IOSurfaceRef / AHardwareBuffer*). VideoFrames are produced by helpers
+// like RNWebGPU.createVideoPlayer or RNWebGPU.createTestVideoFrame, or by
+// any third-party module that hands you a compatible native pointer.
+const memory = device.importSharedTextureMemory({
+  handle: frame.handle,
+  label: "video-frame",
+});
+const texture = memory.createTexture();
+
+memory.beginAccess(texture, /* initialized */ true);
+// ... bind `texture` into a sampler and render normally ...
+memory.endAccess(texture);
+
+texture.destroy();
+frame.release();
+```
+
+`beginAccess`/`endAccess` bracket the GPU's read window on the shared surface. Pass `initialized: true` when the producer has already written meaningful pixels (the typical video/camera case) and `false` when the next pass will fully overwrite the texture.
+
 ### Reanimated Integration
 
 React Native WebGPU supports running WebGPU rendering on the UI thread using [React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/) and [React Native Worklets](https://github.com/margelo/react-native-worklets).
