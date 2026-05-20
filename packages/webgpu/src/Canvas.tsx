@@ -9,21 +9,6 @@ function generateContextId() {
   return CONTEXT_COUNTER++;
 }
 
-declare global {
-  var RNWebGPU: {
-    gpu: GPU;
-    fabric: boolean;
-    getNativeSurface: (contextId: number) => NativeCanvas;
-    MakeWebGPUCanvasContext: (
-      contextId: number,
-      width: number,
-      height: number,
-    ) => RNCanvasContext;
-    DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
-    createImageBitmap: typeof createImageBitmap;
-  };
-}
-
 type SurfacePointer = bigint;
 
 export interface NativeCanvas {

@@ -168,7 +168,7 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
     *outUnion = "shared-fence-vk-semaphore-opaque-fd";
     break;
   case wgpu::FeatureName::SharedFenceSyncFD:
-    *outUnion = "shared-fence-vk-semaphore-sync-fd";
+    *outUnion = "shared-fence-sync-fd";
     break;
   case wgpu::FeatureName::SharedFenceVkSemaphoreZirconHandle:
     *outUnion = "shared-fence-vk-semaphore-zircon-handle";

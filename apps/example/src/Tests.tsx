@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Dimensions, Text, View, Image } from "react-native";
-import { GPUOffscreenCanvas, useDevice } from "react-native-wgpu";
+import { GPUOffscreenCanvas } from "react-native-wgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
 import { useClient } from "./useClient";
@@ -14,9 +14,49 @@ export const CI = process.env.CI === "true";
 const { width } = Dimensions.get("window");
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
+// Umbrella feature owned by react-native-wgpu: expands to the platform's
+// Dawn feature pair natively and appears on adapter.features when supported.
+const OPTIONAL_SHARED_TEXTURE_MEMORY_FEATURES = [
+  "rnwebgpu/shared-texture-memory" as GPUFeatureName,
+];
+
 export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   const [texture, setTexture] = useState<GPUTexture | null>(null);
-  const { adapter, device } = useDevice();
+  const [adapter, setAdapter] = useState<GPUAdapter | null>(null);
+  const [device, setDevice] = useState<GPUDevice | null>(null);
+  const [setupError, setSetupError] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const a = await navigator.gpu.requestAdapter();
+        if (!a) {
+          throw new Error("No appropriate GPUAdapter found.");
+        }
+        const requiredFeatures = OPTIONAL_SHARED_TEXTURE_MEMORY_FEATURES.filter(
+          (f) => a.features.has(f),
+        );
+        const d = await a.requestDevice({ requiredFeatures });
+        if (!d) {
+          throw new Error("No appropriate GPUDevice found.");
+        }
+        if (cancelled) {
+          return;
+        }
+        setAdapter(a);
+        setDevice(d);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.warn(`[Tests] device setup failed: ${msg}`);
+        if (!cancelled) {
+          setSetupError(msg);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [client, hostname] = useClient();
   useEffect(() => {
     if (client !== null && adapter !== null && device !== null) {
@@ -78,8 +118,21 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
     }
     return;
   }, [adapter, client, device, di3D, moon, saturn]);
+  if (setupError) {
+    return (
+      <View style={{ flex: 1, padding: 16, backgroundColor: "white" }}>
+        <Text style={{ color: "red" }}>
+          🔴 Test device setup failed: {setupError}
+        </Text>
+      </View>
+    );
+  }
   if (!device) {
-    return null;
+    return (
+      <View style={{ flex: 1, padding: 16, backgroundColor: "white" }}>
+        <Text style={{ color: "black" }}>⏳ Initializing GPU device…</Text>
+      </View>
+    );
   }
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
