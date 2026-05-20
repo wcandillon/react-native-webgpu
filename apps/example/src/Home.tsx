@@ -131,6 +131,10 @@ export const examples = [
     screen: "SharedTextureMemory",
     title: "🎞️ Shared Texture Memory",
   },
+  {
+    screen: "Camera",
+    title: "📷 Camera",
+  },
 ];
 
 const styles = StyleSheet.create({
