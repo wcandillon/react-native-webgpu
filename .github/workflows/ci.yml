@@ -37,15 +37,7 @@ jobs:
 
       - name: Install CocoaPods
         working-directory: apps/example/ios
-        run: |
-          HASH_FILE="/tmp/.podfile-lock-hash"
-          CURRENT_HASH=$(shasum Podfile.lock | cut -d' ' -f1)
-          if [ -f "$HASH_FILE" ] && [ "$(cat "$HASH_FILE")" = "$CURRENT_HASH" ] && [ -d "Pods" ]; then
-            echo "Podfile.lock unchanged and Pods exists — skipping pod install"
-          else
-            pod install
-            echo "$CURRENT_HASH" > "$HASH_FILE"
-          fi
+        run: pod install
 
       - name: Ensure Metro port is free
         run: |
