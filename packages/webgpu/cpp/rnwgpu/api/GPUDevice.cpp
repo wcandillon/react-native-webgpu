@@ -366,6 +366,74 @@ std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
   return std::make_shared<GPUExternalTexture>(
       std::move(external), std::move(memory), std::move(texture),
       std::move(descriptor->source), std::move(label));
+#elif defined(__ANDROID__)
+  // 1. Import the AHardwareBuffer as SharedTextureMemory. For YUV AHBs this
+  //    yields a Dawn texture in the implementation-defined OpaqueYCbCrAndroid
+  //    format; for RGBA AHBs, a regular single-plane texture.
+  wgpu::SharedTextureMemoryDescriptor memDesc{};
+  std::string label = descriptor->label.value_or("external-texture");
+  if (!label.empty()) {
+    memDesc.label = wgpu::StringView(label.c_str(), label.size());
+  }
+  wgpu::SharedTextureMemoryAHardwareBufferDescriptor platformDesc{};
+  platformDesc.handle = frame.handle;
+  memDesc.nextInChain = &platformDesc;
+  auto memory = _instance.ImportSharedTextureMemory(&memDesc);
+  if (memory == nullptr) {
+    throw std::runtime_error(
+        "GPUDevice::importExternalTexture(): ImportSharedTextureMemory "
+        "returned null. Is 'shared-texture-memory-ahardware-buffer' enabled?");
+  }
+
+  // 2. Create the texture. No descriptor: Dawn picks the right format
+  //    (OpaqueYCbCrAndroid for YUV, R8 / RGBA8 / ... for color AHBs).
+  auto texture = memory.CreateTexture();
+  if (texture == nullptr) {
+    throw std::runtime_error(
+        "GPUDevice::importExternalTexture(): CreateTexture returned null");
+  }
+
+  // 3. Begin access. Vulkan requires us to advertise the incoming VkImage
+  //    layout (UNDEFINED is fine for the first acquisition of an AHB whose
+  //    contents we expect Dawn to read as-is).
+  wgpu::SharedTextureMemoryBeginAccessDescriptor begin{};
+  begin.initialized = true;
+  begin.concurrentRead = false;
+  wgpu::SharedTextureMemoryVkImageLayoutBeginState beginLayout{};
+  begin.nextInChain = &beginLayout;
+  if (!memory.BeginAccess(texture, &begin)) {
+    throw std::runtime_error(
+        "GPUDevice::importExternalTexture(): BeginAccess failed");
+  }
+
+  // 4. Build the ExternalTextureDescriptor. Unlike iOS we do *not* split
+  //    planes or pass an explicit YUV→RGB matrix: when the underlying texture
+  //    is OpaqueYCbCrAndroid, Dawn routes sampling through a Vulkan
+  //    SamplerYcbcrConversion that does the conversion implicitly, driven by
+  //    the AHB's own format metadata. This is the "passthrough external
+  //    texture" pattern from Dawn's tests
+  //    (utils::MakePassthroughExternalTexture).
+  wgpu::ExternalTextureDescriptor extDesc{};
+  if (!label.empty()) {
+    extDesc.label = wgpu::StringView(label.c_str(), label.size());
+  }
+  extDesc.plane0 = texture.CreateView();
+  extDesc.cropOrigin = {0, 0};
+  extDesc.cropSize = {frame.width, frame.height};
+  extDesc.apparentSize = {frame.width, frame.height};
+
+  auto external = _instance.CreateExternalTexture(&extDesc);
+  if (external == nullptr) {
+    wgpu::SharedTextureMemoryEndAccessState state{};
+    (void)memory.EndAccess(texture, &state);
+    throw std::runtime_error(
+        "GPUDevice::importExternalTexture(): CreateExternalTexture returned "
+        "null");
+  }
+
+  return std::make_shared<GPUExternalTexture>(
+      std::move(external), std::move(memory), std::move(texture),
+      std::move(descriptor->source), std::move(label));
 #else
   throw std::runtime_error(
       "GPUDevice::importExternalTexture(): not yet implemented on this "

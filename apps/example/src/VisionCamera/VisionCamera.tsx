@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import {
   Linking,
   PixelRatio,
-  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -80,18 +79,10 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
 }
 `;
 
-const REQUIRED_FEATURES =
-  Platform.OS === "ios"
-    ? [
-        "shared-texture-memory-iosurface",
-        "shared-fence-mtl-shared-event",
-        "dawn-multi-planar-formats",
-      ]
-    : [
-        "shared-texture-memory-ahardware-buffer",
-        "shared-fence-vk-semaphore-sync-fd",
-        "dawn-multi-planar-formats",
-      ];
+const REQUIRED_FEATURES: GPUFeatureName[] = [
+  "rnwebgpu/shared-texture-memory" as GPUFeatureName,
+  "dawn-multi-planar-formats" as GPUFeatureName,
+];
 
 const ABERRATION_STRENGTH = 0.006;
 
@@ -124,7 +115,7 @@ export const VisionCamera = () => {
 const CameraView = () => {
   const ref = useCanvasRef();
   const { device, adapter } = useDevice(undefined, {
-    requiredFeatures: REQUIRED_FEATURES as unknown as GPUFeatureName[],
+    requiredFeatures: REQUIRED_FEATURES,
   });
   const devices = useCameraDevices();
   // Pick back camera if available, otherwise front, otherwise anything. The

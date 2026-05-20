@@ -293,11 +293,35 @@ public:
         "writeTestVideoFile is not yet implemented on Android.");
   }
 
-  VideoFrameHandle wrapNativeBuffer(void * /*pointer*/) override {
-    // TODO: AHardwareBuffer_acquire + extract dimensions, format, color
-    // metadata.
-    throw std::runtime_error(
-        "wrapNativeBuffer is not yet implemented on Android.");
+  VideoFrameHandle wrapNativeBuffer(void *pointer) override {
+    if (!pointer) {
+      throw std::runtime_error("wrapNativeBuffer: pointer is null");
+    }
+    auto *buffer = static_cast<AHardwareBuffer *>(pointer);
+
+    AHardwareBuffer_Desc desc = {};
+    AHardwareBuffer_describe(buffer, &desc);
+
+    AHardwareBuffer_acquire(buffer);
+
+    VideoFrameHandle handle;
+    handle.handle = static_cast<void *>(buffer);
+    handle.width = desc.width;
+    handle.height = desc.height;
+    // YUV / opaque formats route through Vulkan's SamplerYcbcrConversion via
+    // Dawn's OpaqueYCbCrAndroidForExternalTexture path. Single-plane RGBA AHBs
+    // take the plain BGRA8 path (sampled as a regular 2D texture).
+    switch (desc.format) {
+      case AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420:
+      case AHARDWAREBUFFER_FORMAT_YCbCr_P010:
+        handle.pixelFormat = VideoPixelFormat::NV12;
+        break;
+      default:
+        handle.pixelFormat = VideoPixelFormat::BGRA8;
+        break;
+    }
+    handle.deleter = [buffer]() { AHardwareBuffer_release(buffer); };
+    return handle;
   }
 };
 
