@@ -20,6 +20,22 @@ GPU::GPU(jsi::Runtime &runtime) : NativeObject(CLASS_NAME) {
 
   wgpu::InstanceLimits limits{.timedWaitAnyMaxCount = 64};
   instanceDesc.requiredLimits = &limits;
+
+  // Expose Dawn's experimental adapter features. Several features needed by
+  // our Android external-texture path (YCbCrVulkanSamplers, StaticSamplers,
+  // and eventually OpaqueYCbCrAndroidForExternalTexture once it's wired up in
+  // the Vulkan backend) are tagged Experimental in Dawn's feature table and
+  // are otherwise hidden from adapter.features. The toggle only unhides
+  // features; application code still has to list each one in
+  // requiredFeatures.
+  static const char *const kEnabledToggles[] = {
+      "expose_wgsl_experimental_features",
+  };
+  wgpu::DawnTogglesDescriptor toggles;
+  toggles.enabledToggleCount = std::size(kEnabledToggles);
+  toggles.enabledToggles = kEnabledToggles;
+  instanceDesc.nextInChain = &toggles;
+
   _instance = wgpu::CreateInstance(&instanceDesc);
 
   auto dispatcher = std::make_shared<async::JSIMicrotaskDispatcher>(runtime);

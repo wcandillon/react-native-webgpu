@@ -24,13 +24,8 @@ inline std::vector<wgpu::FeatureName> rnSharedTextureMemoryBackingFeatures() {
   return {wgpu::FeatureName::SharedTextureMemoryIOSurface,
           wgpu::FeatureName::SharedFenceMTLSharedEvent};
 #elif defined(__ANDROID__)
-  // OpaqueYCbCrAndroidForExternalTexture is the Vulkan-side equivalent of what
-  // we get "for free" through IOSurface biplanar textures on Metal: it lets
-  // CreateExternalTexture wrap an AHB-backed YCbCr texture and have sampling
-  // route through a SamplerYcbcrConversion implicitly.
   return {wgpu::FeatureName::SharedTextureMemoryAHardwareBuffer,
-          wgpu::FeatureName::SharedFenceSyncFD,
-          wgpu::FeatureName::OpaqueYCbCrAndroidForExternalTexture};
+          wgpu::FeatureName::SharedFenceSyncFD};
 #else
   return {};
 #endif

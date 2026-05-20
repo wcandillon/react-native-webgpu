@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import {
   Linking,
   PixelRatio,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -10,7 +11,6 @@ import {
 import {
   Canvas,
   useCanvasRef,
-  useDevice,
   type NativeCanvas,
   type RNCanvasContext,
 } from "react-native-wgpu";
@@ -84,6 +84,15 @@ const REQUIRED_FEATURES: GPUFeatureName[] = [
   "dawn-multi-planar-formats" as GPUFeatureName,
 ];
 
+// Android-only feature, gates Dawn's "wrap a YCbCr AHB as a GPUExternalTexture
+// with implicit SamplerYcbcrConversion" path. Without it our native
+// `importExternalTexture` flow on Android can't produce a usable external
+// texture from a camera frame. We probe the adapter for it and surface a
+// clear error if the device's Vulkan driver doesn't advertise it (e.g. some
+// Android-Desktop / Chromebook configurations).
+const OPAQUE_YCBCR_EXT =
+  "opaque-ycbcr-android-for-external-texture" as GPUFeatureName;
+
 const ABERRATION_STRENGTH = 0.006;
 
 export const VisionCamera = () => {
@@ -114,9 +123,69 @@ export const VisionCamera = () => {
 
 const CameraView = () => {
   const ref = useCanvasRef();
-  const { device, adapter } = useDevice(undefined, {
-    requiredFeatures: REQUIRED_FEATURES,
-  });
+  const [gpu, setGpu] = React.useState<{
+    adapter: GPUAdapter;
+    device: GPUDevice;
+  } | null>(null);
+  const [deviceError, setDeviceError] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) {
+          throw new Error("requestAdapter returned null");
+        }
+        const adapterFeatures = [...adapter.features].sort();
+        console.log(
+          "[VisionCamera] adapter features (" +
+            adapterFeatures.length +
+            "): " +
+            adapterFeatures.join(", "),
+        );
+        const hasOpaqueYCbCrExt =
+          Platform.OS !== "android" || adapter.features.has(OPAQUE_YCBCR_EXT);
+        if (Platform.OS === "android" && !hasOpaqueYCbCrExt) {
+          throw new Error(
+            "This Android device's Vulkan driver doesn't advertise " +
+              "opaque-ycbcr-android-for-external-texture. Camera-frame import " +
+              "as a GPUExternalTexture isn't supported here. (This is a " +
+              "device/driver limitation, not a code issue.)",
+          );
+        }
+        const featuresToRequest: GPUFeatureName[] = [
+          ...REQUIRED_FEATURES,
+          ...(Platform.OS === "android" ? [OPAQUE_YCBCR_EXT] : []),
+        ];
+        console.log(
+          "[VisionCamera] requesting device with features: " +
+            featuresToRequest.join(", "),
+        );
+        const device = await adapter.requestDevice({
+          requiredFeatures: featuresToRequest,
+        });
+        if (cancelled) {
+          return;
+        }
+        console.log(
+          "[VisionCamera] device created, features: " +
+            [...device.features].sort().join(", "),
+        );
+        setGpu({ adapter, device });
+      } catch (e) {
+        if (cancelled) {
+          return;
+        }
+        console.warn("[VisionCamera] device creation failed: " + String(e));
+        setDeviceError(String(e));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const device = gpu?.device ?? null;
+  const adapter = gpu?.adapter ?? null;
   const devices = useCameraDevices();
   // Pick back camera if available, otherwise front, otherwise anything. The
   // iOS simulator returns an empty list since there are no cameras, in which
@@ -274,10 +343,18 @@ const CameraView = () => {
             new Float32Array([sx, sy, ABERRATION_STRENGTH, 0]),
           );
 
-          const externalTex = device.importExternalTexture({
-            source: videoFrame,
-            label: "camera-frame",
-          });
+          let externalTex;
+          try {
+            externalTex = device.importExternalTexture({
+              source: videoFrame,
+              label: "camera-frame",
+            });
+          } catch (e) {
+            console.warn(
+              "[VisionCamera] importExternalTexture threw: " + String(e),
+            );
+            throw e;
+          }
           const bindGroup = device.createBindGroup({
             layout: pipeline.getBindGroupLayout(0),
             entries: [
@@ -323,10 +400,26 @@ const CameraView = () => {
     outputs: [frameOutput],
   });
 
+  if (deviceError) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>
+          Device creation failed: {deviceError}
+        </Text>
+      </View>
+    );
+  }
   if (error) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
+  if (!device) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Waiting for GPU device...</Text>
       </View>
     );
   }
