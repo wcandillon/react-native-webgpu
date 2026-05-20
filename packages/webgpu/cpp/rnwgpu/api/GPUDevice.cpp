@@ -254,7 +254,13 @@ std::shared_ptr<GPUSharedTextureMemory> GPUDevice::importSharedTextureMemory(
 #if defined(__APPLE__)
   wgpu::SharedTextureMemoryIOSurfaceDescriptor platformDesc{};
   platformDesc.ioSurface = descriptor->handle;
-  platformDesc.allowStorageBinding = true;
+  // Default off: enabling it propagates StorageBinding into properties.usage,
+  // which then forces memory.createTexture() (no-descriptor form) to validate
+  // the format against storage capabilities. bgra8unorm (the standard
+  // CVPixelBuffer format) only supports storage when the device opts into the
+  // bgra8unorm-storage feature, so unconditionally setting this here breaks
+  // the common sample-only case.
+  platformDesc.allowStorageBinding = false;
   desc.nextInChain = &platformDesc;
 #elif defined(__ANDROID__)
   wgpu::SharedTextureMemoryAHardwareBufferDescriptor platformDesc{};
