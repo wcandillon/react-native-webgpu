@@ -28,7 +28,7 @@ const sharedTextureMemoryFeatures = (): GPUFeatureName[] => {
   if (Platform.OS === "android") {
     return [
       "shared-texture-memory-ahardware-buffer",
-      "shared-fence-vk-semaphore-sync-fd",
+      "shared-fence-sync-fd",
     ] as unknown as GPUFeatureName[];
   }
   return [];

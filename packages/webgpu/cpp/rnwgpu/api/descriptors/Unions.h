@@ -513,7 +513,7 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::FeatureName::SharedTextureMemoryEGLImage;
   } else if (inUnion == "shared-fence-vk-semaphore-opaque-fd") {
     *outEnum = wgpu::FeatureName::SharedFenceVkSemaphoreOpaqueFD;
-  } else if (inUnion == "shared-fence-vk-semaphore-sync-fd") {
+  } else if (inUnion == "shared-fence-sync-fd") {
     *outEnum = wgpu::FeatureName::SharedFenceSyncFD;
   } else if (inUnion == "shared-fence-vk-semaphore-zircon-handle") {
     *outEnum = wgpu::FeatureName::SharedFenceVkSemaphoreZirconHandle;
@@ -698,7 +698,7 @@ inline void convertEnumToJSUnion(wgpu::FeatureName inEnum,
     *outUnion = "shared-fence-vk-semaphore-opaque-fd";
     break;
   case wgpu::FeatureName::SharedFenceSyncFD:
-    *outUnion = "shared-fence-vk-semaphore-sync-fd";
+    *outUnion = "shared-fence-sync-fd";
     break;
   case wgpu::FeatureName::SharedFenceVkSemaphoreZirconHandle:
     *outUnion = "shared-fence-vk-semaphore-zircon-handle";

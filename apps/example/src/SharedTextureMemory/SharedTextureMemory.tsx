@@ -63,7 +63,7 @@ const REQUIRED_FEATURES =
     ? ["shared-texture-memory-iosurface", "shared-fence-mtl-shared-event"]
     : [
         "shared-texture-memory-ahardware-buffer",
-        "shared-fence-vk-semaphore-sync-fd",
+        "shared-fence-sync-fd",
       ];
 
 export const SharedTextureMemory = () => {
