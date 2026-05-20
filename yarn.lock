@@ -4965,9 +4965,12 @@ __metadata:
     react-native: 0.81.4
     react-native-gesture-handler: ^2.28.0
     react-native-macos: ^0.79.0
+    react-native-nitro-image: 0.14.0
+    react-native-nitro-modules: 0.35.7
     react-native-reanimated: 4.2.1
     react-native-safe-area-context: ^5.4.0
     react-native-test-app: 4.4.10
+    react-native-vision-camera: 5.0.10
     react-native-web: ^0.21.2
     react-native-wgpu: "*"
     react-native-worklets: 0.7.2
@@ -12769,6 +12772,27 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-native-nitro-image@npm:0.14.0":
+  version: 0.14.0
+  resolution: "react-native-nitro-image@npm:0.14.0"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+    react-native-nitro-modules: "*"
+  checksum: ea5d19665bdffc8bb38fd5fef78a7d9c5f3f033cf0e0b6c224a39f718b863f3de74d776765eb7f5440743e985e2ea6c9ab210a1545947b0dcf02570408af5877
+  languageName: node
+  linkType: hard
+
+"react-native-nitro-modules@npm:0.35.7":
+  version: 0.35.7
+  resolution: "react-native-nitro-modules@npm:0.35.7"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 61f10d28b1e207361abef39b522259b1cee829ad4b0e44b07586119e3503e0aa460e2c7a514702a6cec7cc575db9614a5469d204865e23bb296c149dff0e8b95
+  languageName: node
+  linkType: hard
+
 "react-native-reanimated@npm:4.2.1, react-native-reanimated@npm:^4.2.1":
   version: 4.2.1
   resolution: "react-native-reanimated@npm:4.2.1"
@@ -12855,6 +12879,18 @@ __metadata:
     init-test-app: scripts/init.mjs
     install-windows-test-app: windows/app.mjs
   checksum: 1f9d8bb910252f064abb94c4bae414743a21c764aac7913848de94ae1bf4c028997bd78932034f608669b301583ca8136de24dde7638d8faa14aea3bf0ef4e31
+  languageName: node
+  linkType: hard
+
+"react-native-vision-camera@npm:5.0.10":
+  version: 5.0.10
+  resolution: "react-native-vision-camera@npm:5.0.10"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+    react-native-nitro-image: "*"
+    react-native-nitro-modules: "*"
+  checksum: 52ffda9cbf8ec06e2156f86f48cabe5fd83e76d6fd6c939b85fe50814e26d8af1796ddb22ceb58fd21017c615f40e5e559a74034b8b5224a05b790650f8f4d95
   languageName: node
   linkType: hard
 
