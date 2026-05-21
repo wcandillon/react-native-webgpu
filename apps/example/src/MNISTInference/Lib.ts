@@ -1,25 +1,27 @@
-import tgpu, { type TgpuBuffer, type Storage } from "typegpu";
-import * as d from "typegpu/data";
+import type { TgpuBuffer, StorageFlag, TgpuRoot } from "typegpu";
+import tgpu, { d, std } from "typegpu";
 
 export const SIZE = 28;
 
 // Definitions for the network
 
+type FloatsStorageBuffer = TgpuBuffer<d.WgslArray<d.F32>> & StorageFlag;
+
 interface LayerData {
   shape: readonly [number] | readonly [number, number];
-  buffer: TgpuBuffer<d.TgpuArray<d.F32>> & Storage;
+  buffer: FloatsStorageBuffer;
 }
 
 interface Layer {
-  weights: TgpuBuffer<d.TgpuArray<d.F32>> & Storage;
-  biases: TgpuBuffer<d.TgpuArray<d.F32>> & Storage;
-  state: TgpuBuffer<d.TgpuArray<d.F32>> & Storage;
+  weights: FloatsStorageBuffer;
+  biases: FloatsStorageBuffer;
+  state: FloatsStorageBuffer;
 }
 
 export interface Network {
   layers: Layer[];
-  input: TgpuBuffer<d.TgpuArray<d.F32>> & Storage;
-  output: TgpuBuffer<d.TgpuArray<d.F32>> & Storage;
+  input: FloatsStorageBuffer;
+  output: FloatsStorageBuffer;
 
   inference(data: number[]): Promise<number[]>;
 }
@@ -35,7 +37,7 @@ export const centerData = (data: Uint8Array) => {
   const offsetX = Math.round(SIZE / 2 - x);
   const offsetY = Math.round(SIZE / 2 - y);
 
-  const newData = new Array(SIZE * SIZE).fill(0);
+  const newData = Array.from({ length: SIZE * SIZE }, () => 0);
   for (let i = 0; i < SIZE; i++) {
     for (let j = 0; j < SIZE; j++) {
       const index = i * SIZE + j;
@@ -49,16 +51,13 @@ export const centerData = (data: Uint8Array) => {
   return newData;
 };
 
-export const createDemo = async (device: GPUDevice) => {
-  const root = tgpu.initFromDevice({ device });
-
+export const createDemo = async (root: TgpuRoot) => {
   const ReadonlyFloats = {
-    storage: (n: number) => d.arrayOf(d.f32, n),
+    storage: d.arrayOf(d.f32),
     access: "readonly",
   } as const;
-
   const MutableFloats = {
-    storage: (n: number) => d.arrayOf(d.f32, n),
+    storage: d.arrayOf(d.f32),
     access: "mutable",
   } as const;
 
@@ -72,51 +71,24 @@ export const createDemo = async (device: GPUDevice) => {
     biases: ReadonlyFloats,
   });
 
-  // Shader code
-  const layerShader = tgpu.resolve({
-    template: /* wgsl */ `
-
-  fn relu(x: f32) -> f32 {
-    return max(0.0, x);
+  function relu(x: number): number {
+    "use gpu";
+    return std.max(0, x);
   }
 
-  @compute @workgroup_size(1)
-  fn main(@builtin(global_invocation_id) gid: vec3u) {
-    let inputSize = arrayLength( &_EXT_.input );
+  const pipeline = root.createGuardedComputePipeline((i: number) => {
+    "use gpu";
+    const inputSize = ioLayout.$.input.length;
+    const weightsOffset = i * inputSize;
+    let sum = d.f32(0);
 
-    let i = gid.x;
-
-    let weightsOffset = i * inputSize;
-    var sum = 0.0;
-
-    for (var j = 0u; j < inputSize; j = j + 1) {
-      sum = sum + _EXT_.input[j] * _EXT_.weights[weightsOffset + j];
+    for (let j = 0; j < inputSize; j++) {
+      sum +=
+        ioLayout.$.input[j] * weightsBiasesLayout.$.weights[weightsOffset + j];
     }
 
-    sum = sum + _EXT_.biases[i];
-    _EXT_.output[i] = relu(sum);
-  }
-`,
-    externals: {
-      _EXT_: {
-        ...ioLayout.bound,
-        ...weightsBiasesLayout.bound,
-      },
-    },
-  });
-
-  const pipeline = device.createComputePipeline({
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [
-        root.unwrap(ioLayout),
-        root.unwrap(weightsBiasesLayout),
-      ],
-    }),
-    compute: {
-      module: device.createShaderModule({
-        code: layerShader,
-      }),
-    },
+    sum += weightsBiasesLayout.$.biases[i];
+    ioLayout.$.output[i] = relu(sum);
   });
 
   /**
@@ -168,20 +140,16 @@ export const createDemo = async (device: GPUDevice) => {
           `Data length ${data.length} does not match input shape ${layers[0][0].shape[0]}`,
         );
       }
+
       input.write(data);
 
       // Run the network
-      const encoder = device.createCommandEncoder();
       for (let i = 0; i < buffers.length; i++) {
-        const pass = encoder.beginComputePass();
-        pass.setPipeline(pipeline);
-        pass.setBindGroup(0, root.unwrap(ioBindGroups[i]));
-        pass.setBindGroup(1, root.unwrap(weightsBindGroups[i]));
-        pass.dispatchWorkgroups(buffers[i].biases.dataType.elementCount); //.length
-        pass.end();
+        pipeline
+          .with(ioBindGroups[i])
+          .with(weightsBindGroups[i])
+          .dispatchThreads(buffers[i].biases.dataType.elementCount);
       }
-      device.queue.submit([encoder.finish()]);
-      await device.queue.onSubmittedWorkDone();
 
       // Read the output
       return await output.read();
@@ -235,7 +203,7 @@ export const createDemo = async (device: GPUDevice) => {
     }
 
     const buffer = root
-      .createBuffer(d.arrayOf(d.f32, data.length), [...data])
+      .createBuffer(d.arrayOf(d.f32, data.length), data)
       .$usage("storage");
 
     return {
@@ -265,15 +233,5 @@ export const createDemo = async (device: GPUDevice) => {
 
   // #endregion
 
-  // #region User Interface
-
-  // #endregion
-
-  // #region Resource cleanup
-
-  function onCleanup() {
-    root.destroy();
-  }
-  return { network, onCleanup };
-  // #endregion
+  return { network };
 };

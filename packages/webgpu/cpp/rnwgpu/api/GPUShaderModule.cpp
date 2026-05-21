@@ -18,7 +18,7 @@ async::AsyncTaskHandle GPUShaderModule::getCompilationInfo() {
             wgpu::CallbackMode::AllowProcessEvents,
             [result, resolve,
              reject](wgpu::CompilationInfoRequestStatus status,
-                     const wgpu::CompilationInfo *compilationInfo) mutable {
+                     const wgpu::CompilationInfo *compilationInfo) {
               if (status != wgpu::CompilationInfoRequestStatus::Success ||
                   compilationInfo == nullptr) {
                 reject("Failed to get compilation info");
@@ -39,8 +39,7 @@ async::AsyncTaskHandle GPUShaderModule::getCompilationInfo() {
                 result->_messages.push_back(std::move(message));
               }
 
-              resolve([result =
-                           std::move(result)](jsi::Runtime &runtime) mutable {
+              resolve([result](jsi::Runtime &runtime) mutable {
                 return JSIConverter<std::shared_ptr<GPUCompilationInfo>>::toJSI(
                     runtime, result);
               });
