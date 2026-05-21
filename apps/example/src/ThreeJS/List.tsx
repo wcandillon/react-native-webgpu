@@ -31,6 +31,10 @@ export const examples = [
     screen: "Fiber",
     title: "👕 Fiber",
   },
+  {
+    screen: "Retargeting",
+    title: "🕺 Animation Retargeting",
+  },
 ] as const;
 
 const styles = StyleSheet.create({

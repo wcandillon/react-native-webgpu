@@ -42,7 +42,7 @@
     "react-native-wgpu": "*",
     "react-native-worklets": "0.7.2",
     "teapot": "^1.0.0",
-    "three": "0.172.0",
+    "three": "0.184.0",
     "typegpu": "^0.3.2",
     "wgpu-matrix": "^3.0.2"
   },
@@ -59,7 +59,7 @@
     "@types/react": "19.1.0",
     "@types/react-dom": "19.1.0",
     "@types/react-test-renderer": "^18.0.0",
-    "@types/three": "0.172.0",
+    "@types/three": "0.184.1",
     "@webgpu/types": "0.1.65",
     "babel-jest": "^29.6.3",
     "eslint": "9.35.0",
