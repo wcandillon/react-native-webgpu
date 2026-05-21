@@ -162,6 +162,9 @@ jobs:
     name: Build-${{ matrix.platform }}-${{ matrix.arch }}
     runs-on: self-hosted
     steps:
+      - name: Clean previous Dawn workspace
+        run: rm -rf externals/dawn
+
       - name: Checkout main repository
         uses: actions/checkout@v6.0.2
         with:
