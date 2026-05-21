@@ -125,31 +125,41 @@ fn applyColorSpace(rgb: vec3f, mode: u32) -> vec3f {
 }
 
 fn ambientSample(ndc: vec2f) -> vec3f {
-  // Same frame, "cover" projection, blurred via Poisson-disk taps so the
-  // contain-mode bars show the dominant edge color of the video.
+  // YouTube-style ambient glow: huge gaussian blur of the frame so the
+  // contain-mode bars feel like they're lit by the video.
+  //
+  // Sample on a 32-tap golden-angle (Vogel) spiral around the cover-projected
+  // position — equal-area spacing means the kernel covers a large disk with
+  // few taps and no banding. Weights follow a 2D gaussian in uv space; the
+  // wide sigma makes this read as a low-pass of the dominant tones rather
+  // than a recognizable copy of the frame. Clamp the sample uvs to [0,1] so
+  // the kernel doesn't bleed into the sampler's edge-clamp halo and dim the
+  // result near the rim.
   let scale = computeUvScale(0u);
   let baseUv = vec2f(0.5) + (ndc - vec2f(0.5)) * scale;
-  let r = 0.07;
-  var offsets = array<vec2f, 13>(
-    vec2f( 0.000,  0.000),
-    vec2f( 0.535,  0.180),
-    vec2f( 0.495, -0.366),
-    vec2f( 0.220,  0.527),
-    vec2f(-0.366, -0.220),
-    vec2f(-0.527,  0.495),
-    vec2f(-0.180,  0.535),
-    vec2f( 0.366,  0.220),
-    vec2f(-0.495,  0.366),
-    vec2f(-0.220, -0.535),
-    vec2f( 0.180, -0.495),
-    vec2f(-0.535, -0.180),
-    vec2f( 0.000,  0.700),
-  );
-  var col = vec3f(0.0);
-  for (var i = 0u; i < 13u; i = i + 1u) {
-    col = col + sampleTex(baseUv + offsets[i] * r);
+
+  let maxR = 0.45;
+  let sigma = 0.22;
+  let invTwoSigmaSq = 1.0 / (2.0 * sigma * sigma);
+  let goldenAngle = 2.3999632;
+
+  var col = sampleTex(clamp(baseUv, vec2f(0.0), vec2f(1.0)));
+  var wSum = 1.0;
+  for (var i = 0u; i < 32u; i = i + 1u) {
+    let t = (f32(i) + 0.5) / 32.0;
+    let r = maxR * sqrt(t);
+    let angle = f32(i) * goldenAngle;
+    let offset = vec2f(cos(angle), sin(angle)) * r;
+    let w = exp(-r * r * invTwoSigmaSq);
+    col = col + sampleTex(clamp(baseUv + offset, vec2f(0.0), vec2f(1.0))) * w;
+    wSum = wSum + w;
   }
-  return col / 13.0 * 0.78;
+  let blurred = col / wSum;
+
+  // Lift saturation a touch. YouTube's ambient mode reads as more vivid
+  // than the source so the glow tints the surround rather than greying it.
+  let luma = dot(blurred, vec3f(0.2126, 0.7152, 0.0722));
+  return clamp(mix(vec3f(luma), blurred, 1.25), vec3f(0.0), vec3f(1.0));
 }
 
 fn glassSample(ndc: vec2f) -> vec3f {
