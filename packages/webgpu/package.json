@@ -20,7 +20,7 @@
     "libs/**",
     "*.podspec"
   ],
-  "dawn": "chromium/7770",
+  "dawn": "chromium/7849",
   "scripts": {
     "test": "NODE_OPTIONS='--experimental-require-module' jest -i",
     "test:ref": "REFERENCE=true NODE_OPTIONS='--experimental-require-module' jest -i",
