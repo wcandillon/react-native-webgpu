@@ -82,10 +82,8 @@ jobs:
     steps:
       - name: Checkout main repository
         uses: actions/checkout@v6.0.2
-
-      - name: Checkout Dawn repository
-        run: |
-          git clone --depth 1 --branch ${{ needs.prepare-release.outputs.dawn_branch }} https://dawn.googlesource.com/dawn externals/dawn
+        with:
+          submodules: true
 
       - name: Setup Android NDK
         id: setup-ndk
@@ -137,6 +135,7 @@ jobs:
     needs: prepare-release
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         include:
           - platform: ios
@@ -165,10 +164,8 @@ jobs:
     steps:
       - name: Checkout main repository
         uses: actions/checkout@v6.0.2
-
-      - name: Checkout Dawn repository
-        run: |
-          git clone --depth 1 --branch ${{ needs.prepare-release.outputs.dawn_branch }} https://dawn.googlesource.com/dawn externals/dawn
+        with:
+          submodules: true
 
       - name: Build ${{ matrix.platform }} ${{ matrix.arch }}
         run: |
