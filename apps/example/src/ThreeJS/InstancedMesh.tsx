@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import * as THREE from "three";
 import type { CanvasRef } from "react-native-wgpu";
 import { Canvas } from "react-native-wgpu";
@@ -39,7 +38,6 @@ export const InstancedMesh = () => {
       new THREE.Color(0xffffff),
     );
 
-    // @ts-expect-error
     material.colorNode = mix(normalWorld, randomColors, oscSine(time.mul(0.1)));
 
     console.log("geometry loaded");
