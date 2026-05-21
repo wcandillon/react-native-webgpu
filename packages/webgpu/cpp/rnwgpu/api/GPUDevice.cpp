@@ -410,9 +410,21 @@ std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
   //    planes or pass an explicit YUV→RGB matrix: when the underlying texture
   //    is OpaqueYCbCrAndroid, Dawn routes sampling through a Vulkan
   //    SamplerYcbcrConversion that does the conversion implicitly, driven by
-  //    the AHB's own format metadata. This is the "passthrough external
-  //    texture" pattern from Dawn's tests
-  //    (utils::MakePassthroughExternalTexture).
+  //    the AHB's own format metadata. We still must pass noop gamut/transfer
+  //    arrays: Dawn's ComputeExternalTextureParams unconditionally dereferences
+  //    gamutConversionMatrix / src/dstTransferFunctionParameters (see
+  //    externals/dawn/.../ExternalTexture.cpp), so leaving them null produces a
+  //    silent black sample. Identity transfer = TransferFunctionToArray of
+  //    kEOTF_Identity ({g=1,a=1,rest=0}); identity gamut = 3x3 identity.
+  static const float kIdentityTransferParams[7] = {
+      1.0f, // G
+      1.0f, // A
+      0.0f, // B
+      0.0f, // C
+      0.0f, // D
+      0.0f, // E
+      0.0f, // F
+  };
   wgpu::ExternalTextureDescriptor extDesc{};
   if (!label.empty()) {
     extDesc.label = wgpu::StringView(label.c_str(), label.size());
@@ -421,6 +433,9 @@ std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
   extDesc.cropOrigin = {0, 0};
   extDesc.cropSize = {frame.width, frame.height};
   extDesc.apparentSize = {frame.width, frame.height};
+  extDesc.gamutConversionMatrix = kIdentityGamutMatrix;
+  extDesc.srcTransferFunctionParameters = kIdentityTransferParams;
+  extDesc.dstTransferFunctionParameters = kIdentityTransferParams;
 
   auto external = _instance.CreateExternalTexture(&extDesc);
   if (external == nullptr) {

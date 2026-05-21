@@ -22,13 +22,15 @@ GPU::GPU(jsi::Runtime &runtime) : NativeObject(CLASS_NAME) {
   instanceDesc.requiredLimits = &limits;
 
   // Expose Dawn's experimental adapter features. Several features needed by
-  // our Android external-texture path (YCbCrVulkanSamplers, StaticSamplers,
-  // and eventually OpaqueYCbCrAndroidForExternalTexture once it's wired up in
-  // the Vulkan backend) are tagged Experimental in Dawn's feature table and
-  // are otherwise hidden from adapter.features. The toggle only unhides
-  // features; application code still has to list each one in
-  // requiredFeatures.
+  // our Android external-texture path (YCbCrVulkanSamplers,
+  // OpaqueYCbCrAndroidForExternalTexture) are tagged Experimental in Dawn's
+  // feature table and are otherwise filtered out of adapter.features by
+  // PhysicalDeviceBase::GetSupportedFeatures. The allow_unsafe_apis toggle
+  // disables that filter so the features become visible; application code
+  // still has to list each one in requiredFeatures. expose_wgsl_experimental_features
+  // is the parallel toggle for WGSL language features.
   static const char *const kEnabledToggles[] = {
+      "allow_unsafe_apis",
       "expose_wgsl_experimental_features",
   };
   wgpu::DawnTogglesDescriptor toggles;
