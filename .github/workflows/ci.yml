@@ -22,7 +22,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          clean: false
+          clean: true
 
       - name: Setup
         uses: ./.github/actions/setup

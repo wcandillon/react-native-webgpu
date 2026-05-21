@@ -99,7 +99,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
             [asyncRunner = _async, resolve, reject, label, creationRuntime,
              deviceLostBinding](wgpu::RequestDeviceStatus status,
                                 wgpu::Device device,
-                                wgpu::StringView message) mutable {
+                                wgpu::StringView message) {
               if (message.length) {
                 fprintf(stderr, "%s", message.data);
               }
@@ -112,36 +112,40 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
                 return;
               }
 
-              device.SetLoggingCallback([creationRuntime](
-                                            wgpu::LoggingType type,
-                                            wgpu::StringView msg) {
-                if (creationRuntime == nullptr) {
-                  return;
-                }
-                const char *logLevel = "";
-                switch (type) {
-                case wgpu::LoggingType::Warning:
-                  logLevel = "Warning";
-                  Logger::warnToJavascriptConsole(
-                      *creationRuntime, std::string(msg.data, msg.length));
-                  break;
-                case wgpu::LoggingType::Error:
-                  logLevel = "Error";
-                  Logger::errorToJavascriptConsole(
-                      *creationRuntime, std::string(msg.data, msg.length));
-                  break;
-                case wgpu::LoggingType::Verbose:
-                  logLevel = "Verbose";
-                  break;
-                case wgpu::LoggingType::Info:
-                  logLevel = "Info";
-                  break;
-                default:
-                  logLevel = "Unknown";
-                  Logger::logToConsole("%s: %.*s", logLevel,
-                                       static_cast<int>(msg.length), msg.data);
-                }
-              });
+              device.SetLoggingCallback(
+                  [](wgpu::LoggingType type, wgpu::StringView msg,
+                     jsi::Runtime *creationRuntime) {
+                    if (creationRuntime == nullptr) {
+                      return;
+                    }
+                    const char *logLevel = "";
+                    switch (type) {
+                    case wgpu::LoggingType::Warning:
+                      logLevel = "Warning";
+                      Logger::warnToJavascriptConsole(
+                          *creationRuntime,
+                          std::string(msg.data, msg.length));
+                      break;
+                    case wgpu::LoggingType::Error:
+                      logLevel = "Error";
+                      Logger::errorToJavascriptConsole(
+                          *creationRuntime,
+                          std::string(msg.data, msg.length));
+                      break;
+                    case wgpu::LoggingType::Verbose:
+                      logLevel = "Verbose";
+                      break;
+                    case wgpu::LoggingType::Info:
+                      logLevel = "Info";
+                      break;
+                    default:
+                      logLevel = "Unknown";
+                      Logger::logToConsole("%s: %.*s", logLevel,
+                                           static_cast<int>(msg.length),
+                                           msg.data);
+                    }
+                  },
+                  creationRuntime);
 
               auto deviceHost = std::make_shared<GPUDevice>(std::move(device),
                                                             asyncRunner, label);
