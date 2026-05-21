@@ -104,6 +104,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_SHARED_LIBS=OFF \
             -DDAWN_BUILD_MONOLITHIC_LIBRARY=SHARED \
+            -DDAWN_BUILD_PROTOBUF=OFF \
             -DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON \
             -DCMAKE_EXE_LINKER_FLAGS="-llog" \
             -DCMAKE_SHARED_LINKER_FLAGS="-llog -Wl,-z,max-page-size=16384"
@@ -162,6 +163,11 @@ jobs:
     name: Build-${{ matrix.platform }}-${{ matrix.arch }}
     runs-on: self-hosted
     steps:
+      - name: Clean previous Dawn workspace
+        run: |
+          git submodule deinit -f externals/dawn 2>/dev/null || true
+          rm -rf externals/dawn
+
       - name: Checkout main repository
         uses: actions/checkout@v6.0.2
         with:
@@ -174,7 +180,8 @@ jobs:
             -C externals/dawn/.github/workflows/dawn-ci.cmake \
             -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/packages/webgpu/scripts/build/apple.toolchain.cmake \
             ${{ matrix.cmake_args }} \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DDAWN_BUILD_PROTOBUF=OFF
           ninja -C ${{ matrix.output_dir }}
 
       - name: Upload build artifacts
@@ -188,6 +195,11 @@ jobs:
     runs-on: self-hosted
     needs: [prepare-release, mobile-android, mobile-apple]
     steps:
+      - name: Clean previous Dawn workspace
+        run: |
+          git submodule deinit -f externals/dawn 2>/dev/null || true
+          rm -rf externals/dawn
+
       - name: Checkout main repository
         uses: actions/checkout@v6.0.2
 
