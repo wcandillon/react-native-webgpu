@@ -16,6 +16,45 @@
 //    into shared memory, then 32 threads write filterDim-averaged outputs.
 //    A `flip` uniform swaps x/y so the same shader does both axes.
 
+// Downsample render pass used for the heavier "On" ambient mode. Reads the
+// 1/4-res prepass output and renders it into a 1/16-res target; the linear
+// sampler does the bilinear average for free. Sampling the resulting tiny
+// texture in the main fragment gives 4x the effective blur radius per
+// low-res blur iteration, so we get a much heavier ambient glow without
+// piling on iterations at 1/4 res.
+export const DOWNSAMPLE_SHADER = /* wgsl */ `
+@group(0) @binding(0) var srcTex: texture_2d<f32>;
+@group(0) @binding(1) var srcSampler: sampler;
+
+struct VsOut {
+  @builtin(position) position: vec4f,
+  @location(0) uv: vec2f,
+};
+
+@vertex
+fn vs_main(@builtin(vertex_index) vid: u32) -> VsOut {
+  var positions = array<vec2f, 3>(
+    vec2f(-1.0, -3.0),
+    vec2f(-1.0,  1.0),
+    vec2f( 3.0,  1.0),
+  );
+  var uvs = array<vec2f, 3>(
+    vec2f(0.0, 2.0),
+    vec2f(0.0, 0.0),
+    vec2f(2.0, 0.0),
+  );
+  var out: VsOut;
+  out.position = vec4f(positions[vid], 0.0, 1.0);
+  out.uv = uvs[vid];
+  return out;
+}
+
+@fragment
+fn fs_main(in: VsOut) -> @location(0) vec4f {
+  return textureSampleLevel(srcTex, srcSampler, in.uv, 0.0);
+}
+`;
+
 export const PREPASS_SHADER = /* wgsl */ `
 struct PrepassUniforms {
   texSize: vec2f,

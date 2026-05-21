@@ -8,7 +8,11 @@ import {
   type VideoFrame,
 } from "react-native-wgpu";
 
-import { BLUR_SHADER, PREPASS_SHADER } from "./blurShaders";
+import {
+  BLUR_SHADER,
+  DOWNSAMPLE_SHADER,
+  PREPASS_SHADER,
+} from "./blurShaders";
 import { EffectToolbar } from "./EffectToolbar";
 import { INITIAL_MODES, type Modes } from "./features";
 import { SHADER } from "./shader";
@@ -27,15 +31,25 @@ const VIDEO_URL =
   "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4";
 
 // Ambient-blur tuning. Filter size must be odd; blockDim = TILE_DIM - filterSize
-// is how many output rows of useful work each tile produces. Two iterations of
-// separable H+V at 1/4 res, plus linear upsample on read, gives the YouTube-
-// ambient look without per-fragment loops in the main fragment.
+// is how many output rows of useful work each tile produces. Iterating
+// box-blurs approximates a gaussian (variance adds), so the perceived sigma
+// grows as filterSize * sqrt(iterations).
+//
+// Two chains:
+//   * "Blur" mode renders the prepass at 1/4 res and blurs there.
+//   * "On" mode reuses the same prepass, then downsamples 1/4 -> 1/16 with a
+//     bilinear blit and blurs the tiny texture. Sigma in screen pixels is
+//     sigma-low-res * scale, so each iteration at 1/16 covers 4x more screen
+//     than at 1/4. Net: heavier blur for *less* GPU work than piling
+//     iterations onto the 1/4 chain would cost.
 const BLUR_SCALE = 4;
+const SMALL_BLUR_SCALE = 16;
 const BLUR_FILTER_SIZE = 31;
-const BLUR_ITERATIONS = 2;
 const BLUR_TILE_DIM = 128;
 const BLUR_BATCH = 4;
 const BLUR_BLOCK_DIM = BLUR_TILE_DIM - BLUR_FILTER_SIZE;
+const BLUR_ITERATIONS = 2;
+const SMALL_BLUR_ITERATIONS = 4;
 
 export const ExternalTexture = () => {
   const ref = useCanvasRef();
@@ -237,6 +251,72 @@ export const ExternalTexture = () => {
       ],
     });
     const blurredView = blurPing[1].createView();
+
+    // ----- "On" mode: downsample 1/4 -> 1/16 then blur the tiny texture --
+    const smallWidth = Math.ceil(canvas.width / SMALL_BLUR_SCALE);
+    const smallHeight = Math.ceil(canvas.height / SMALL_BLUR_SCALE);
+
+    const smallBlurSrcTexture = device.createTexture({
+      size: [smallWidth, smallHeight],
+      format: "rgba8unorm",
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    const smallPing = [0, 1].map(() =>
+      device.createTexture({
+        size: [smallWidth, smallHeight],
+        format: "rgba8unorm",
+        usage:
+          GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+      }),
+    );
+
+    const downsampleModule = device.createShaderModule({
+      code: DOWNSAMPLE_SHADER,
+    });
+    const downsamplePipeline = device.createRenderPipeline({
+      layout: "auto",
+      vertex: { module: downsampleModule, entryPoint: "vs_main" },
+      fragment: {
+        module: downsampleModule,
+        entryPoint: "fs_main",
+        targets: [{ format: "rgba8unorm" }],
+      },
+      primitive: { topology: "triangle-list" },
+    });
+    const downsampleBindGroup = device.createBindGroup({
+      layout: downsamplePipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: blurSrcTexture.createView() },
+        { binding: 1, resource: sampler },
+      ],
+    });
+
+    const smallBlurBindGroup0 = device.createBindGroup({
+      layout: blurPipeline.getBindGroupLayout(1),
+      entries: [
+        { binding: 1, resource: smallBlurSrcTexture.createView() },
+        { binding: 2, resource: smallPing[0].createView() },
+        { binding: 3, resource: { buffer: flip0Buffer } },
+      ],
+    });
+    const smallBlurBindGroup1 = device.createBindGroup({
+      layout: blurPipeline.getBindGroupLayout(1),
+      entries: [
+        { binding: 1, resource: smallPing[0].createView() },
+        { binding: 2, resource: smallPing[1].createView() },
+        { binding: 3, resource: { buffer: flip1Buffer } },
+      ],
+    });
+    const smallBlurBindGroup2 = device.createBindGroup({
+      layout: blurPipeline.getBindGroupLayout(1),
+      entries: [
+        { binding: 1, resource: smallPing[1].createView() },
+        { binding: 2, resource: smallPing[0].createView() },
+        { binding: 3, resource: { buffer: flip0Buffer } },
+      ],
+    });
+    const smallBlurredView = smallPing[1].createView();
     // ----- end ambient-blur infrastructure -------------------------------
 
     // The video plays at ~24fps but we tick at the display's 60Hz, so most rAF
@@ -275,11 +355,11 @@ export const ExternalTexture = () => {
       }
 
       const m = modesRef.current;
-      const runBlur = externalTex !== null && m.ambient === 1;
 
-      // Prepass + blur. Skipped when ambient is off; blurredView keeps its
-      // previous contents but the main fragment won't sample it.
-      if (runBlur && externalTex !== null && currentFrame) {
+      // Prepass is shared by both ambient modes. Skipped when ambient is off;
+      // the bound blurred texture keeps its previous contents but the main
+      // fragment won't sample it.
+      if (m.ambient > 0 && externalTex !== null && currentFrame) {
         prepassUniformData[0] = currentFrame.width;
         prepassUniformData[1] = currentFrame.height;
         prepassUniformData[2] = canvas.width;
@@ -309,21 +389,12 @@ export const ExternalTexture = () => {
         prepass.draw(3);
         prepass.end();
 
-        const compute = encoder.beginComputePass();
-        compute.setPipeline(blurPipeline);
-        compute.setBindGroup(0, blurConstants);
-        compute.setBindGroup(1, blurBindGroup0);
-        compute.dispatchWorkgroups(
-          Math.ceil(blurWidth / BLUR_BLOCK_DIM),
-          Math.ceil(blurHeight / BLUR_BATCH),
-        );
-        compute.setBindGroup(1, blurBindGroup1);
-        compute.dispatchWorkgroups(
-          Math.ceil(blurHeight / BLUR_BLOCK_DIM),
-          Math.ceil(blurWidth / BLUR_BATCH),
-        );
-        for (let i = 0; i < BLUR_ITERATIONS - 1; i++) {
-          compute.setBindGroup(1, blurBindGroup2);
+        if (m.ambient === 1) {
+          // "Blur" mode: separable blur on the 1/4-res prepass output.
+          const compute = encoder.beginComputePass();
+          compute.setPipeline(blurPipeline);
+          compute.setBindGroup(0, blurConstants);
+          compute.setBindGroup(1, blurBindGroup0);
           compute.dispatchWorkgroups(
             Math.ceil(blurWidth / BLUR_BLOCK_DIM),
             Math.ceil(blurHeight / BLUR_BATCH),
@@ -333,8 +404,65 @@ export const ExternalTexture = () => {
             Math.ceil(blurHeight / BLUR_BLOCK_DIM),
             Math.ceil(blurWidth / BLUR_BATCH),
           );
+          for (let i = 0; i < BLUR_ITERATIONS - 1; i++) {
+            compute.setBindGroup(1, blurBindGroup2);
+            compute.dispatchWorkgroups(
+              Math.ceil(blurWidth / BLUR_BLOCK_DIM),
+              Math.ceil(blurHeight / BLUR_BATCH),
+            );
+            compute.setBindGroup(1, blurBindGroup1);
+            compute.dispatchWorkgroups(
+              Math.ceil(blurHeight / BLUR_BLOCK_DIM),
+              Math.ceil(blurWidth / BLUR_BATCH),
+            );
+          }
+          compute.end();
+        } else {
+          // "On" mode: skip the 1/4 blur. Downsample 1/4 -> 1/16 and blur
+          // the tiny texture; 4x scale buys ~4x more screen-space sigma per
+          // iteration, with 16x fewer pixels per pass.
+          const downsamplePass = encoder.beginRenderPass({
+            colorAttachments: [
+              {
+                view: smallBlurSrcTexture.createView(),
+                clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                loadOp: "clear",
+                storeOp: "store",
+              },
+            ],
+          });
+          downsamplePass.setPipeline(downsamplePipeline);
+          downsamplePass.setBindGroup(0, downsampleBindGroup);
+          downsamplePass.draw(3);
+          downsamplePass.end();
+
+          const compute = encoder.beginComputePass();
+          compute.setPipeline(blurPipeline);
+          compute.setBindGroup(0, blurConstants);
+          compute.setBindGroup(1, smallBlurBindGroup0);
+          compute.dispatchWorkgroups(
+            Math.ceil(smallWidth / BLUR_BLOCK_DIM),
+            Math.ceil(smallHeight / BLUR_BATCH),
+          );
+          compute.setBindGroup(1, smallBlurBindGroup1);
+          compute.dispatchWorkgroups(
+            Math.ceil(smallHeight / BLUR_BLOCK_DIM),
+            Math.ceil(smallWidth / BLUR_BATCH),
+          );
+          for (let i = 0; i < SMALL_BLUR_ITERATIONS - 1; i++) {
+            compute.setBindGroup(1, smallBlurBindGroup2);
+            compute.dispatchWorkgroups(
+              Math.ceil(smallWidth / BLUR_BLOCK_DIM),
+              Math.ceil(smallHeight / BLUR_BATCH),
+            );
+            compute.setBindGroup(1, smallBlurBindGroup1);
+            compute.dispatchWorkgroups(
+              Math.ceil(smallHeight / BLUR_BLOCK_DIM),
+              Math.ceil(smallWidth / BLUR_BATCH),
+            );
+          }
+          compute.end();
         }
-        compute.end();
       }
 
       const pass = encoder.beginRenderPass({
@@ -369,7 +497,10 @@ export const ExternalTexture = () => {
             { binding: 0, resource: externalTex },
             { binding: 1, resource: sampler },
             { binding: 2, resource: { buffer: uniformBuffer } },
-            { binding: 3, resource: blurredView },
+            {
+              binding: 3,
+              resource: m.ambient === 2 ? smallBlurredView : blurredView,
+            },
           ],
         });
         pass.setPipeline(pipeline);
@@ -400,6 +531,9 @@ export const ExternalTexture = () => {
       blurSrcTexture.destroy();
       blurPing[0].destroy();
       blurPing[1].destroy();
+      smallBlurSrcTexture.destroy();
+      smallPing[0].destroy();
+      smallPing[1].destroy();
       player.release();
     };
   }, [device, adapter, ref]);

@@ -194,7 +194,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
     color = vec3f(0.0);
   }
 
-  if (u.ambient == 1u && !inside) {
+  if (u.ambient != 0u && !inside) {
     color = ambientSample(ndc);
   }
 
