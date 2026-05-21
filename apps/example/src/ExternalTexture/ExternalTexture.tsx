@@ -1,5 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
-import { PixelRatio, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  PixelRatio,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import {
   Canvas,
   useCanvasRef,
@@ -14,8 +21,17 @@ import {
 // textureSampleBaseClampToEdge; the driver does the planar fetch, YUV→RGB
 // matrix multiply, sRGB transfer, and gamut conversion in the sampler.
 //
-// Bind groups for texture_external use auto layout slots like any other
-// resource. WGSL doesn't expose the underlying plane textures directly.
+// This example layers five toggleable effects on top of the basic
+// external-texture sample to showcase what you can do once the YUV frame is
+// in WebGPU's hands:
+//   * Resize modes (cover / contain / stretch / center 1:1) computed in WGSL
+//     from the texture vs canvas aspect ratios.
+//   * Color filters (grayscale / sepia / invert / vibrant) as 3x3 matrices.
+//   * Color "grade" (warm / cool / wide-gamut-ish boost) layered on top.
+//   * Ambient mode: fills the contain-mode bars with a Poisson-disk blur of
+//     the same frame — same external texture, sampled many times per pixel.
+//   * Liquid-glass control buttons drawn inside WGSL: rounded SDF lenses that
+//     refract the underlying video by sampling texture_external at offset uvs.
 const SHADER = /* wgsl */ `
 struct VsOut {
   @builtin(position) position: vec4f,
@@ -23,7 +39,15 @@ struct VsOut {
 };
 
 struct Uniforms {
-  uvScale: vec2f,
+  texSize: vec2f,
+  canvasSize: vec2f,
+  resizeMode: u32,
+  shaderEffect: u32,
+  colorSpace: u32,
+  ambient: u32,
+  liquidGlass: u32,
+  time: f32,
+  _pad: vec2f,
 };
 
 @group(0) @binding(0) var srcTex: texture_external;
@@ -48,10 +72,180 @@ fn vs_main(@builtin(vertex_index) vid: u32) -> VsOut {
   return out;
 }
 
+fn computeUvScale(mode: u32) -> vec2f {
+  let canvasAR = u.canvasSize.x / u.canvasSize.y;
+  let texAR = u.texSize.x / u.texSize.y;
+  // 0 = cover, 1 = contain, 2 = stretch, 3 = center (1:1 pixel)
+  if (mode == 0u) {
+    if (texAR > canvasAR) {
+      return vec2f(canvasAR / texAR, 1.0);
+    }
+    return vec2f(1.0, texAR / canvasAR);
+  }
+  if (mode == 1u) {
+    if (texAR > canvasAR) {
+      return vec2f(1.0, texAR / canvasAR);
+    }
+    return vec2f(canvasAR / texAR, 1.0);
+  }
+  if (mode == 3u) {
+    return vec2f(u.canvasSize.x / u.texSize.x, u.canvasSize.y / u.texSize.y);
+  }
+  return vec2f(1.0, 1.0);
+}
+
+fn sampleTex(uv: vec2f) -> vec3f {
+  return textureSampleBaseClampToEdge(srcTex, srcSampler, uv).rgb;
+}
+
+fn applyShaderEffect(rgb: vec3f, mode: u32) -> vec3f {
+  if (mode == 1u) {
+    let l = dot(rgb, vec3f(0.2126, 0.7152, 0.0722));
+    return vec3f(l);
+  }
+  if (mode == 2u) {
+    return vec3f(
+      dot(rgb, vec3f(0.393, 0.769, 0.189)),
+      dot(rgb, vec3f(0.349, 0.686, 0.168)),
+      dot(rgb, vec3f(0.272, 0.534, 0.131))
+    );
+  }
+  if (mode == 3u) {
+    return vec3f(1.0) - rgb;
+  }
+  if (mode == 4u) {
+    let l = dot(rgb, vec3f(0.2126, 0.7152, 0.0722));
+    let sat = mix(vec3f(l), rgb, 1.55);
+    return clamp((sat - 0.5) * 1.18 + 0.5, vec3f(0.0), vec3f(1.0));
+  }
+  return rgb;
+}
+
+fn applyColorSpace(rgb: vec3f, mode: u32) -> vec3f {
+  if (mode == 1u) {
+    return clamp(rgb * vec3f(1.10, 1.02, 0.86), vec3f(0.0), vec3f(1.0));
+  }
+  if (mode == 2u) {
+    return clamp(rgb * vec3f(0.86, 0.98, 1.16), vec3f(0.0), vec3f(1.0));
+  }
+  if (mode == 3u) {
+    // Rec.709 -> Display P3 (approximate, clamped). Demonstrates a
+    // primaries-conversion matrix on the GPU side after the YUV pipeline.
+    let m = mat3x3f(
+      vec3f( 1.2249, -0.2247,  0.0000),
+      vec3f(-0.0420,  1.0419,  0.0000),
+      vec3f(-0.0197, -0.0786,  1.0979),
+    );
+    return clamp(m * rgb, vec3f(0.0), vec3f(1.0));
+  }
+  return rgb;
+}
+
+fn ambientSample(ndc: vec2f) -> vec3f {
+  // Same frame, "cover" projection, blurred via Poisson-disk taps so the
+  // contain-mode bars show the dominant edge color of the video.
+  let scale = computeUvScale(0u);
+  let baseUv = vec2f(0.5) + (ndc - vec2f(0.5)) * scale;
+  let r = 0.07;
+  var offsets = array<vec2f, 13>(
+    vec2f( 0.000,  0.000),
+    vec2f( 0.535,  0.180),
+    vec2f( 0.495, -0.366),
+    vec2f( 0.220,  0.527),
+    vec2f(-0.366, -0.220),
+    vec2f(-0.527,  0.495),
+    vec2f(-0.180,  0.535),
+    vec2f( 0.366,  0.220),
+    vec2f(-0.495,  0.366),
+    vec2f(-0.220, -0.535),
+    vec2f( 0.180, -0.495),
+    vec2f(-0.535, -0.180),
+    vec2f( 0.000,  0.700),
+  );
+  var col = vec3f(0.0);
+  for (var i = 0u; i < 13u; i = i + 1u) {
+    col = col + sampleTex(baseUv + offsets[i] * r);
+  }
+  return col / 13.0 * 0.78;
+}
+
+fn glassSample(ndc: vec2f) -> vec3f {
+  let scale = computeUvScale(u.resizeMode);
+  let uv = vec2f(0.5) + (ndc - vec2f(0.5)) * scale;
+  var c = sampleTex(uv);
+  c = applyShaderEffect(c, u.shaderEffect);
+  c = applyColorSpace(c, u.colorSpace);
+  return c;
+}
+
+fn liquidGlassButton(pixel: vec2f, center: vec2f, radius: f32, tint: vec3f) -> vec4f {
+  let dv = pixel - center;
+  let d = length(dv);
+  if (d > radius + 1.5) {
+    return vec4f(0.0);
+  }
+  let edgeT = clamp(1.0 - d / radius, 0.0, 1.0);
+  let nrm = dv / max(d, 0.0001);
+  // Bend more strongly near the rim, then taper to zero exactly at the rim.
+  let refractStrength = pow(1.0 - edgeT, 1.8) * (1.0 - smoothstep(0.92, 1.0, d / radius)) * 22.0;
+  let offset = -nrm * refractStrength / u.canvasSize;
+  let baseNdc = pixel / u.canvasSize;
+  let refracted = glassSample(baseNdc + offset);
+  // Frosted glass: also pick up a slightly displaced 4-tap blur and mix.
+  var frost = vec3f(0.0);
+  let f = 4.0 / u.canvasSize;
+  frost = frost + glassSample(baseNdc + vec2f( f.x,  f.y));
+  frost = frost + glassSample(baseNdc + vec2f(-f.x,  f.y));
+  frost = frost + glassSample(baseNdc + vec2f( f.x, -f.y));
+  frost = frost + glassSample(baseNdc + vec2f(-f.x, -f.y));
+  frost = frost * 0.25;
+  var col = mix(refracted, frost, 0.35);
+  // Tint and top-down specular.
+  let topHi = smoothstep(0.55, 1.0, edgeT) * smoothstep(0.4, -0.6, nrm.y);
+  let rim = smoothstep(0.96, 1.0, d / radius) * (1.0 - smoothstep(1.0, 1.05, d / radius));
+  col = mix(col, tint, 0.12);
+  col = col + vec3f(0.55) * topHi;
+  col = col + vec3f(0.9) * rim * 0.6;
+  let aa = 1.0 - smoothstep(radius - 1.0, radius + 0.5, d);
+  return vec4f(col, aa);
+}
+
 @fragment
 fn fs_main(in: VsOut) -> @location(0) vec4f {
-  let uv = vec2f(0.5) + (in.uv - vec2f(0.5)) * u.uvScale;
-  return textureSampleBaseClampToEdge(srcTex, srcSampler, uv);
+  let ndc = in.uv;
+  let scale = computeUvScale(u.resizeMode);
+  let uv = vec2f(0.5) + (ndc - vec2f(0.5)) * scale;
+  let inside = uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0;
+
+  var color: vec3f;
+  if (inside) {
+    color = sampleTex(uv);
+  } else {
+    color = vec3f(0.0);
+  }
+
+  if (u.ambient == 1u && !inside) {
+    color = ambientSample(ndc);
+  }
+
+  color = applyShaderEffect(color, u.shaderEffect);
+  color = applyColorSpace(color, u.colorSpace);
+
+  if (u.liquidGlass == 1u) {
+    let pixel = ndc * u.canvasSize;
+    let cx = u.canvasSize.x * 0.5;
+    let cy = u.canvasSize.y * 0.78;
+    let r = min(u.canvasSize.x, u.canvasSize.y) * 0.075;
+    let sp = r * 2.7;
+    let b1 = liquidGlassButton(pixel, vec2f(cx - sp, cy), r, vec3f(1.00, 0.55, 0.30));
+    let b2 = liquidGlassButton(pixel, vec2f(cx,      cy), r * 1.15, vec3f(0.45, 0.85, 1.00));
+    let b3 = liquidGlassButton(pixel, vec2f(cx + sp, cy), r, vec3f(1.00, 0.42, 0.65));
+    color = mix(color, b1.rgb, b1.a);
+    color = mix(color, b2.rgb, b2.a);
+    color = mix(color, b3.rgb, b3.a);
+  }
+
+  return vec4f(color, 1.0);
 }
 `;
 
@@ -68,6 +262,27 @@ const REQUIRED_FEATURES: GPUFeatureName[] = [
 const VIDEO_URL =
   "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4";
 
+const RESIZE_LABELS = ["Cover", "Contain", "Stretch", "Center"] as const;
+const EFFECT_LABELS = ["Off", "Gray", "Sepia", "Invert", "Vibrant"] as const;
+const COLOR_LABELS = ["Normal", "Warm", "Cool", "P3"] as const;
+const TOGGLE_LABELS = ["Off", "On"] as const;
+
+type Modes = {
+  resize: number;
+  effect: number;
+  color: number;
+  ambient: number;
+  glass: number;
+};
+
+const INITIAL_MODES: Modes = {
+  resize: 0,
+  effect: 0,
+  color: 0,
+  ambient: 0,
+  glass: 0,
+};
+
 export const ExternalTexture = () => {
   const ref = useCanvasRef();
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +291,19 @@ export const ExternalTexture = () => {
   const { device, adapter } = useDevice(undefined, {
     requiredFeatures: REQUIRED_FEATURES,
   });
+
+  // Refs let the render loop pick up new mode values without re-running the
+  // useEffect (which would tear down and rebuild the pipeline + player).
+  const modesRef = useRef<Modes>(INITIAL_MODES);
+  const [modes, setModes] = useState<Modes>(INITIAL_MODES);
+  const cycle = (key: keyof Modes, max: number) => {
+    const next = {
+      ...modesRef.current,
+      [key]: (modesRef.current[key] + 1) % max,
+    };
+    modesRef.current = next;
+    setModes(next);
+  };
 
   useEffect(() => {
     if (!device) {
@@ -131,27 +359,16 @@ export const ExternalTexture = () => {
       minFilter: "linear",
     });
 
-    // One persistent uniform buffer; we rewrite its uvScale whenever a new
-    // frame's dimensions differ from the last one.
+    // 48-byte uniform: vec2 texSize, vec2 canvasSize, 5 u32 mode flags,
+    // f32 time, vec2 padding. Built on a single ArrayBuffer so we can pack
+    // mixed f32/u32 fields in one writeBuffer call per frame.
     const uniformBuffer = device.createBuffer({
-      size: 16,
+      size: 48,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
-    let lastUvScale: [number, number] | null = null;
-    const writeUvScale = (texW: number, texH: number) => {
-      const canvasAR = canvas.width / canvas.height;
-      const texAR = texW / texH;
-      const next: [number, number] =
-        texAR > canvasAR ? [canvasAR / texAR, 1] : [1, texAR / canvasAR];
-      if (
-        !lastUvScale ||
-        lastUvScale[0] !== next[0] ||
-        lastUvScale[1] !== next[1]
-      ) {
-        device.queue.writeBuffer(uniformBuffer, 0, new Float32Array(next));
-        lastUvScale = next;
-      }
-    };
+    const uniformData = new ArrayBuffer(48);
+    const uniformF32 = new Float32Array(uniformData);
+    const uniformU32 = new Uint32Array(uniformData);
 
     // The video plays at ~24fps but we tick at the display's 60Hz, so most rAF
     // ticks have no new frame from AVPlayer. Hold the latest VideoFrame across
@@ -160,6 +377,8 @@ export const ExternalTexture = () => {
     // time. AVPlayer's pool is several buffers deep so holding one back like
     // this doesn't stall decoding.
     let currentFrame: VideoFrame | null = null;
+
+    const startTime = performance.now();
 
     const render = () => {
       const newFrame = player.copyLatestFrame();
@@ -196,7 +415,21 @@ export const ExternalTexture = () => {
         }
 
         if (externalTex) {
-          writeUvScale(currentFrame.width, currentFrame.height);
+          const m = modesRef.current;
+          uniformF32[0] = currentFrame.width;
+          uniformF32[1] = currentFrame.height;
+          uniformF32[2] = canvas.width;
+          uniformF32[3] = canvas.height;
+          uniformU32[4] = m.resize;
+          uniformU32[5] = m.effect;
+          uniformU32[6] = m.color;
+          uniformU32[7] = m.ambient;
+          uniformU32[8] = m.glass;
+          uniformF32[9] = (performance.now() - startTime) / 1000;
+          uniformF32[10] = 0;
+          uniformF32[11] = 0;
+          device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+
           const bindGroup = device.createBindGroup({
             layout: pipeline.getBindGroupLayout(0),
             entries: [
@@ -231,6 +464,37 @@ export const ExternalTexture = () => {
     };
   }, [device, adapter, ref]);
 
+  const buttons = useMemo(
+    () => [
+      {
+        title: "Fit",
+        value: RESIZE_LABELS[modes.resize],
+        onPress: () => cycle("resize", RESIZE_LABELS.length),
+      },
+      {
+        title: "Effect",
+        value: EFFECT_LABELS[modes.effect],
+        onPress: () => cycle("effect", EFFECT_LABELS.length),
+      },
+      {
+        title: "Color",
+        value: COLOR_LABELS[modes.color],
+        onPress: () => cycle("color", COLOR_LABELS.length),
+      },
+      {
+        title: "Ambient",
+        value: TOGGLE_LABELS[modes.ambient],
+        onPress: () => cycle("ambient", TOGGLE_LABELS.length),
+      },
+      {
+        title: "Glass",
+        value: TOGGLE_LABELS[modes.glass],
+        onPress: () => cycle("glass", TOGGLE_LABELS.length),
+      },
+    ],
+    [modes],
+  );
+
   if (error) {
     return (
       <View style={styles.errorContainer}>
@@ -239,13 +503,71 @@ export const ExternalTexture = () => {
     );
   }
   return (
-    <View style={{ flex: 1 }}>
-      <Canvas ref={ref} style={{ flex: 1 }} />
+    <View style={styles.root}>
+      <Canvas ref={ref} style={styles.canvas} />
+      <View style={styles.toolbar} pointerEvents="box-none">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.toolbarContent}
+        >
+          {buttons.map((b) => (
+            <Pressable
+              key={b.title}
+              onPress={b.onPress}
+              style={({ pressed }) => [
+                styles.button,
+                pressed && styles.buttonPressed,
+              ]}
+            >
+              <Text style={styles.buttonTitle}>{b.title}</Text>
+              <Text style={styles.buttonValue}>{b.value}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: "black" },
+  canvas: { flex: 1 },
   errorContainer: { flex: 1, padding: 16, justifyContent: "center" },
   errorText: { color: "red", fontSize: 14 },
+  toolbar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 12,
+  },
+  toolbarContent: {
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  button: {
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderColor: "rgba(255,255,255,0.18)",
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minWidth: 84,
+  },
+  buttonPressed: {
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+  buttonTitle: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 11,
+    fontWeight: "500",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+  buttonValue: {
+    color: "white",
+    fontSize: 15,
+    fontWeight: "600",
+    marginTop: 2,
+  },
 });
