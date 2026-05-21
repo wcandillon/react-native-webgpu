@@ -16,6 +16,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@babel/code-frame@npm:^7.29.0":
+  version: 7.29.0
+  resolution: "@babel/code-frame@npm:7.29.0"
+  dependencies:
+    "@babel/helper-validator-identifier": ^7.28.5
+    js-tokens: ^4.0.0
+    picocolors: ^1.1.1
+  checksum: 39f5b303757e4d63bbff8133e251094cd4f952b46e3fa9febc7368d907583911d6a1eded6090876dc1feeff5cf6e134fb19b706f8d58d26c5402cd50e5e1aeb2
+  languageName: node
+  linkType: hard
+
 "@babel/compat-data@npm:^7.20.5, @babel/compat-data@npm:^7.27.7, @babel/compat-data@npm:^7.28.6":
   version: 7.28.6
   resolution: "@babel/compat-data@npm:7.28.6"
@@ -70,6 +81,19 @@ __metadata:
     "@jridgewell/trace-mapping": ^0.3.28
     jsesc: ^3.0.2
   checksum: 74f62f140e301c8c21652f7db3bc275008708272c0395f178ba6953297af50c4ea484874a44b3f292d242ce8a977fd3f31d9d3a3501c3aaca9cd46e3b1cded01
+  languageName: node
+  linkType: hard
+
+"@babel/generator@npm:^7.29.0":
+  version: 7.29.1
+  resolution: "@babel/generator@npm:7.29.1"
+  dependencies:
+    "@babel/parser": ^7.29.0
+    "@babel/types": ^7.29.0
+    "@jridgewell/gen-mapping": ^0.3.12
+    "@jridgewell/trace-mapping": ^0.3.28
+    jsesc: ^3.0.2
+  checksum: d8e6863b2d04f684e65ad72731049ac7d754d3a3d1a67cdfc20807b109ba3180ed90d7ccef58ce5d38ded2eaeb71983a76c711eecb9b6266118262378f6c7226
   languageName: node
   linkType: hard
 
@@ -291,6 +315,17 @@ __metadata:
   bin:
     parser: ./bin/babel-parser.js
   checksum: 2a35319792ceef9bc918f0ff854449bef0120707798fe147ef988b0606de226e2fbc3a562ba687148bfe5336c6c67358fb27e71a94e425b28482dcaf0b172fd6
+  languageName: node
+  linkType: hard
+
+"@babel/parser@npm:^7.28.5, @babel/parser@npm:^7.29.0":
+  version: 7.29.3
+  resolution: "@babel/parser@npm:7.29.3"
+  dependencies:
+    "@babel/types": ^7.29.0
+  bin:
+    parser: ./bin/babel-parser.js
+  checksum: 046f46996bf4053b6e29f8a7f420f9e0a2878593c1c9a9914a36faca23fc544a307c78a0101ba3ae98936ade68bdde686a83e1ab2b74c2ebb80dc4a9df48476d
   languageName: node
   linkType: hard
 
@@ -1684,6 +1719,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@babel/traverse@npm:^7.29.0":
+  version: 7.29.0
+  resolution: "@babel/traverse@npm:7.29.0"
+  dependencies:
+    "@babel/code-frame": ^7.29.0
+    "@babel/generator": ^7.29.0
+    "@babel/helper-globals": ^7.28.0
+    "@babel/parser": ^7.29.0
+    "@babel/template": ^7.28.6
+    "@babel/types": ^7.29.0
+    debug: ^4.3.1
+  checksum: fbb5085aa525b5d4ecd9fe2f5885d88413fff6ad9c0fac244c37f96069b6d3af9ce825750cd16af1d97d26fa3d354b38dbbdb5f31430e0d99ed89660ab65430e
+  languageName: node
+  linkType: hard
+
 "@babel/types@npm:^7.0.0, @babel/types@npm:^7.20.0, @babel/types@npm:^7.20.7, @babel/types@npm:^7.24.7, @babel/types@npm:^7.25.2, @babel/types@npm:^7.27.1, @babel/types@npm:^7.27.3, @babel/types@npm:^7.28.2, @babel/types@npm:^7.28.5, @babel/types@npm:^7.28.6, @babel/types@npm:^7.3.3, @babel/types@npm:^7.4.4":
   version: 7.28.6
   resolution: "@babel/types@npm:7.28.6"
@@ -1691,6 +1741,16 @@ __metadata:
     "@babel/helper-string-parser": ^7.27.1
     "@babel/helper-validator-identifier": ^7.28.5
   checksum: f76556cda59be337cc10dc68b2a9a947c10de018998bab41076e7b7e4489b28dd53299f98f22eec0774264c989515e6fdc56de91c73e3aa396367bb953200a6a
+  languageName: node
+  linkType: hard
+
+"@babel/types@npm:^7.29.0":
+  version: 7.29.0
+  resolution: "@babel/types@npm:7.29.0"
+  dependencies:
+    "@babel/helper-string-parser": ^7.27.1
+    "@babel/helper-validator-identifier": ^7.28.5
+  checksum: 83f190438e94c22b2574aaeef7501830311ef266eaabfb06523409f64e2fe855e522951607085d71cad286719adef14e1ba37b671f334a7cd25b0f8506a01e0b
   languageName: node
   linkType: hard
 
@@ -2469,7 +2529,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jridgewell/sourcemap-codec@npm:^1.4.14, @jridgewell/sourcemap-codec@npm:^1.5.0":
+"@jridgewell/sourcemap-codec@npm:^1.4.14, @jridgewell/sourcemap-codec@npm:^1.5.0, @jridgewell/sourcemap-codec@npm:^1.5.5":
   version: 1.5.5
   resolution: "@jridgewell/sourcemap-codec@npm:1.5.5"
   checksum: c2e36e67971f719a8a3a85ef5a5f580622437cc723c35d03ebd0c9c0b06418700ef006f58af742791f71f6a4fc68fcfaf1f6a74ec2f9a3332860e9373459dae7
@@ -4014,6 +4074,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@typegpu/react@npm:^0.11.0":
+  version: 0.11.0
+  resolution: "@typegpu/react@npm:0.11.0"
+  peerDependencies:
+    react: ^19.0.0
+    react-native: "*"
+    react-native-wgpu: "*"
+    typegpu: ^0.11.3
+  peerDependenciesMeta:
+    react-native:
+      optional: true
+    react-native-wgpu:
+      optional: true
+  checksum: b30080da12409be8a9ba4cb01afd5da436747d12abd136c44aaae8482ab425ba3f6c9c6091b6adcb8b108ab3fbbe3aeb40ad00e125e24dbff6170fce09fead80
+  languageName: node
+  linkType: hard
+
 "@types/babel__core@npm:^7.1.14":
   version: 7.20.5
   resolution: "@types/babel__core@npm:7.20.5"
@@ -4952,6 +5029,7 @@ __metadata:
     "@tensorflow/tfjs": ^4.22.0
     "@tensorflow/tfjs-backend-webgpu": ^4.22.0
     "@tensorflow/tfjs-vis": ^1.5.1
+    "@typegpu/react": ^0.11.0
     "@types/node": ^20.14.7
     "@types/react": 19.1.0
     "@types/react-dom": 19.1.0
@@ -4984,8 +5062,9 @@ __metadata:
     react-test-renderer: 18.2.0
     teapot: ^1.0.0
     three: 0.184.0
-    typegpu: ^0.3.2
+    typegpu: ^0.11.6
     typescript: 5.0.4
+    unplugin-typegpu: ^0.11.4
     wgpu-matrix: ^3.0.2
   languageName: unknown
   linkType: soft
@@ -5330,6 +5409,16 @@ __metadata:
   version: 2.0.6
   resolution: "asap@npm:2.0.6"
   checksum: b296c92c4b969e973260e47523207cd5769abd27c245a68c26dc7a0fe8053c55bb04360237cb51cab1df52be939da77150ace99ad331fb7fb13b3423ed73ff3d
+  languageName: node
+  linkType: hard
+
+"ast-kit@npm:^2.2.0":
+  version: 2.2.0
+  resolution: "ast-kit@npm:2.2.0"
+  dependencies:
+    "@babel/parser": ^7.28.5
+    pathe: ^2.0.3
+  checksum: 501d92fb4076c1e9b3b1c8cd487b33ddbfe568d15a76de43d6461d5d540536f34b16e5deccd30537b2e02ddaa115a45648c9ba1d095f0cd862dcc60af3f1fba6
   languageName: node
   linkType: hard
 
@@ -6928,6 +7017,13 @@ __metadata:
     has-property-descriptors: ^1.0.0
     object-keys: ^1.1.1
   checksum: b4ccd00597dd46cb2d4a379398f5b19fca84a16f3374e2249201992f36b30f6835949a9429669ee6b41b6e837205a163eadd745e472069e70dfc10f03e5fcc12
+  languageName: node
+  linkType: hard
+
+"defu@npm:^6.1.4":
+  version: 6.1.7
+  resolution: "defu@npm:6.1.7"
+  checksum: aeca3fc4a1e9f5a99c8b2cd3efa478dbbda1b344e3facfbe750e8b10d8ec48ede08560108f58363e9b8b8687d9ccb68faf0ba24833e267a0f1c0518c89fdabfe
   languageName: node
   linkType: hard
 
@@ -10557,6 +10653,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"magic-string@npm:^0.30.21":
+  version: 0.30.21
+  resolution: "magic-string@npm:0.30.21"
+  dependencies:
+    "@jridgewell/sourcemap-codec": ^1.5.5
+  checksum: 4ff76a4e8d439431cf49f039658751ed351962d044e5955adc257489569bd676019c906b631f86319217689d04815d7d064ee3ff08ab82ae65b7655a7e82a414
+  languageName: node
+  linkType: hard
+
 "make-dir@npm:^2.0.0, make-dir@npm:^2.1.0":
   version: 2.1.0
   resolution: "make-dir@npm:2.1.0"
@@ -12259,6 +12364,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"pathe@npm:^2.0.3":
+  version: 2.0.3
+  resolution: "pathe@npm:2.0.3"
+  checksum: 0602bdd4acb54d91044e0c56f1fb63467ae7d44ab3afea1f797947b0eb2b4d1d91cf0d58d065fdb0a8ab0c4acbbd8d3a5b424983eaf10dd5285d37a16f6e3ee9
+  languageName: node
+  linkType: hard
+
 "pend@npm:~1.2.0":
   version: 1.2.0
   resolution: "pend@npm:1.2.0"
@@ -12284,6 +12396,13 @@ __metadata:
   version: 4.0.3
   resolution: "picomatch@npm:4.0.3"
   checksum: 6817fb74eb745a71445debe1029768de55fd59a42b75606f478ee1d0dc1aa6e78b711d041a7c9d5550e042642029b7f373dc1a43b224c4b7f12d23436735dba0
+  languageName: node
+  linkType: hard
+
+"picomatch@npm:^4.0.4":
+  version: 4.0.4
+  resolution: "picomatch@npm:4.0.4"
+  checksum: 76b387b5157951422fa6049a96bdd1695e39dd126cd99df34d343638dc5cdb8bcdc83fff288c23eddcf7c26657c35e3173d4d5f488c4f28b889b314472e0a662
   languageName: node
   linkType: hard
 
@@ -14486,10 +14605,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tinyest@npm:~0.1.0-alpha.1":
-  version: 0.1.2
-  resolution: "tinyest@npm:0.1.2"
-  checksum: b40e8d444a5801ae813694a35cb843549d45afc26c3302c741ef2b95fbe9f393eb25403a5c6eed2ea05a25118ccbf372e3d996c87b3c5da363399afe60763302
+"tinyest-for-wgsl@npm:~0.3.2":
+  version: 0.3.2
+  resolution: "tinyest-for-wgsl@npm:0.3.2"
+  dependencies:
+    tinyest: ~0.3.1
+  checksum: 7548ec7dbb149c74e23ec8eed4278c929c554c08eacde9bfd560f657651db159fc367f809624b3164a70e5a847739a862fb9b87b26d046f7bd63e6f32453be3e
+  languageName: node
+  linkType: hard
+
+"tinyest@npm:~0.3.1":
+  version: 0.3.1
+  resolution: "tinyest@npm:0.3.1"
+  checksum: 8b66e4dc93efd81b0a1e8f034ed134342846e8741864865b361d54d50e5c101492f27f34319677164934ce555c639650d8a8571a139c7c245d866855c5362bb9
   languageName: node
   linkType: hard
 
@@ -14611,6 +14739,13 @@ __metadata:
   version: 2.0.3
   resolution: "tslib@npm:2.0.3"
   checksum: 00fcdd1f9995c9f8eb6a4a1ad03f55bc95946321b7f55434182dddac259d4e095fedf78a84f73b6e32dd3f881d9281f09cb583123d3159ed4bdac9ad7393ef8b
+  languageName: node
+  linkType: hard
+
+"tsover-runtime@npm:^0.0.6":
+  version: 0.0.6
+  resolution: "tsover-runtime@npm:0.0.6"
+  checksum: 6199d1ea2d59fc1b5f33ddad808037f430a15aac4ce7c4c0ff9b151b46b7ec9aa8cc4c3553a12bbaed9207c387f90c1022b484e7a17190890b2351477087b21c
   languageName: node
   linkType: hard
 
@@ -14802,10 +14937,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typed-binary@npm:^4.3.1":
-  version: 4.3.2
-  resolution: "typed-binary@npm:4.3.2"
-  checksum: 7418fbb24f9f7afc1037be05dd6fd898e8ab807ad1d3561e8616dc96c822b0603ea86c8ee8a33c7347b58a4067558e194f16f793c43da708e1319bb9999090d9
+"typed-binary@npm:^4.3.3":
+  version: 4.3.3
+  resolution: "typed-binary@npm:4.3.3"
+  checksum: 26b9ff7e77a14edb91609f79b3a9e67f4d3ad86e46ad929ff87ded758e7cff3a782a3055187170bb38434e2c77b2c4ce0bfada19e9c70cb4f43ad23c4518a293
   languageName: node
   linkType: hard
 
@@ -14816,13 +14951,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typegpu@npm:^0.3.2":
-  version: 0.3.4
-  resolution: "typegpu@npm:0.3.4"
+"typegpu@npm:^0.11.6":
+  version: 0.11.6
+  resolution: "typegpu@npm:0.11.6"
   dependencies:
-    tinyest: ~0.1.0-alpha.1
-    typed-binary: ^4.3.1
-  checksum: 83466e9b8f7937ddf16e733fa27e9109a0b90ed28a793af75c8f9ab7e217b277c4a6683eb690bb4ae465135c6615f14870fcb463ac2a57e22ad0c3474b6918a5
+    tinyest: ~0.3.1
+    tsover-runtime: ^0.0.6
+    typed-binary: ^4.3.3
+  checksum: 32ed07c2b5a8e3fd8c6dd0e99ca44cccd107bbd0f82950d09bcf5d68ba16af9b202ab0596218232d70bd99869b1479b7766e505960b706bcdf1c55161ad01a0e
   languageName: node
   linkType: hard
 
@@ -14991,6 +15127,38 @@ __metadata:
   version: 1.0.0
   resolution: "unpipe@npm:1.0.0"
   checksum: 4fa18d8d8d977c55cb09715385c203197105e10a6d220087ec819f50cb68870f02942244f1017565484237f1f8c5d3cd413631b1ae104d3096f24fdfde1b4aa2
+  languageName: node
+  linkType: hard
+
+"unplugin-typegpu@npm:^0.11.4":
+  version: 0.11.4
+  resolution: "unplugin-typegpu@npm:0.11.4"
+  dependencies:
+    "@babel/parser": ^7.29.0
+    "@babel/traverse": ^7.29.0
+    "@babel/types": ^7.29.0
+    ast-kit: ^2.2.0
+    defu: ^6.1.4
+    magic-string: ^0.30.21
+    pathe: ^2.0.3
+    picomatch: ^4.0.4
+    tinyest: ~0.3.1
+    tinyest-for-wgsl: ~0.3.2
+    unplugin: ^3.0.0
+  peerDependencies:
+    typegpu: ^0.11.5
+  checksum: 4dc0144b470a9ebac2436221283d5e78a91dba58f1cd330a801d4444da6359cd6090a878c8a01dd5495f13fb1969697d07a07b68af7ecfeb89cd7f2618be9984
+  languageName: node
+  linkType: hard
+
+"unplugin@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "unplugin@npm:3.0.0"
+  dependencies:
+    "@jridgewell/remapping": ^2.3.5
+    picomatch: ^4.0.3
+    webpack-virtual-modules: ^0.6.2
+  checksum: b25ad7d7f69848f5ad8094429eb50a5ecd5c038eeb04571658ad4fe1001159b7899c5a7f913af15ccd00108c47824ff9eb815dcb10b1c4e714d22084eaaa0f89
   languageName: node
   linkType: hard
 
@@ -15791,6 +15959,13 @@ __metadata:
   version: 3.0.1
   resolution: "webidl-conversions@npm:3.0.1"
   checksum: c92a0a6ab95314bde9c32e1d0a6dfac83b578f8fa5f21e675bc2706ed6981bc26b7eb7e6a1fab158e5ce4adf9caa4a0aee49a52505d4d13c7be545f15021b17c
+  languageName: node
+  linkType: hard
+
+"webpack-virtual-modules@npm:^0.6.2":
+  version: 0.6.2
+  resolution: "webpack-virtual-modules@npm:0.6.2"
+  checksum: 7e8e1d63f35864c815420cc2f27da8561a1e028255040698a352717de0ba46d3b3faf16f06c1a1965217054c4c2894eb9af53a85451870e919b5707ce9c5822d
   languageName: node
   linkType: hard
 
