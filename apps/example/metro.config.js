@@ -45,7 +45,7 @@ const customConfig = {
       // Let Metro handle other modules
       return context.resolveRequest(context, moduleName, platform);
     },
-    assetExts: [...defaultConfig.resolver.assetExts, 'glb', 'gltf', 'jpg', 'bin', 'hdr'],
+    assetExts: [...defaultConfig.resolver.assetExts, 'glb', 'gltf', 'jpg', 'bin', 'hdr', 'mp4'],
   },
 
   transformer: {

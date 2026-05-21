@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { PixelRatio, StyleSheet, Text, View } from "react-native";
+import { Image, PixelRatio, StyleSheet, Text, View } from "react-native";
 import {
   Canvas,
   useCanvasRef,
@@ -8,11 +8,7 @@ import {
   type VideoFrame,
 } from "react-native-wgpu";
 
-import {
-  BLUR_SHADER,
-  DOWNSAMPLE_SHADER,
-  PREPASS_SHADER,
-} from "./blurShaders";
+import { BLUR_SHADER, DOWNSAMPLE_SHADER, PREPASS_SHADER } from "./blurShaders";
 import { EffectToolbar } from "./EffectToolbar";
 import { INITIAL_MODES, type Modes } from "./features";
 import { SHADER } from "./shader";
@@ -27,8 +23,9 @@ const REQUIRED_FEATURES: GPUFeatureName[] = [
   "dawn-multi-planar-formats" as GPUFeatureName,
 ];
 
-const VIDEO_URL =
-  "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4";
+const VIDEO_URL = Image.resolveAssetSource(
+  require("../assets/trailer.mp4"),
+).uri;
 
 // Ambient-blur tuning. Filter size must be odd; blockDim = TILE_DIM - filterSize
 // is how many output rows of useful work each tile produces. Iterating
@@ -139,8 +136,14 @@ export const ExternalTexture = () => {
     const uniformU32 = new Uint32Array(uniformData);
 
     // ----- Ambient-blur infrastructure -----------------------------------
-    const blurWidth = Math.max(BLUR_TILE_DIM, Math.ceil(canvas.width / BLUR_SCALE));
-    const blurHeight = Math.max(BLUR_TILE_DIM, Math.ceil(canvas.height / BLUR_SCALE));
+    const blurWidth = Math.max(
+      BLUR_TILE_DIM,
+      Math.ceil(canvas.width / BLUR_SCALE),
+    );
+    const blurHeight = Math.max(
+      BLUR_TILE_DIM,
+      Math.ceil(canvas.height / BLUR_SCALE),
+    );
 
     // Prepass: external (YUV) -> rgba8unorm at 1/4 canvas, cover-projected.
     const prepassModule = device.createShaderModule({ code: PREPASS_SHADER });
@@ -164,7 +167,8 @@ export const ExternalTexture = () => {
     const blurSrcTexture = device.createTexture({
       size: [blurWidth, blurHeight],
       format: "rgba8unorm",
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
     });
     // Ping-pong pair for the separable blur. Final result lives in blurPing[1].
     const blurPing = [0, 1].map(() =>

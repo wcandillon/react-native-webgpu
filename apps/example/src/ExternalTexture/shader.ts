@@ -122,6 +122,98 @@ fn applyColorSpace(rgb: vec3f, mode: u32) -> vec3f {
     );
     return clamp(m * rgb, vec3f(0.0), vec3f(1.0));
   }
+  // Tone-mapping operators 4..7. None of these "fix" the 10->8 NV12
+  // downconvert colorimetrically; they're perceptual rescues that reshape the
+  // S-curve and re-saturate the result. Useful for A/B comparison on the
+  // Andor-style HDR-decoded-flat source.
+  if (mode == 4u) {
+    // ACES filmic (Krzysztof Narkowicz fit). Punchy contrast, warm shadows.
+    let toned = (rgb * (2.51 * rgb + 0.03)) /
+                (rgb * (2.43 * rgb + 0.59) + 0.14);
+    let c = clamp(toned, vec3f(0.0), vec3f(1.0));
+    let l = dot(c, vec3f(0.2126, 0.7152, 0.0722));
+    return clamp(mix(vec3f(l), c, 1.4), vec3f(0.0), vec3f(1.0));
+  }
+  if (mode == 5u) {
+    // Reinhard x/(1+x): soft, no clipping. Always slightly desaturating,
+    // so a sat lift comes after.
+    let toned = rgb / (vec3f(1.0) + rgb);
+    let l = dot(toned, vec3f(0.2126, 0.7152, 0.0722));
+    return clamp(mix(vec3f(l), toned, 1.35), vec3f(0.0), vec3f(1.0));
+  }
+  if (mode == 6u) {
+    // Hable "Uncharted 2" filmic. Strong toe + shoulder, very contrasty.
+    let A = 0.15; let B = 0.50; let C = 0.10;
+    let D = 0.20; let E = 0.02; let F = 0.30;
+    let exposed = rgb * 2.0;
+    let curr = ((exposed * (A * exposed + C * B) + D * E) /
+                (exposed * (A * exposed + B) + D * F)) - E / F;
+    let W = vec3f(11.2);
+    let whiteScale = vec3f(1.0) /
+                     (((W * (A * W + C * B) + D * E) /
+                       (W * (A * W + B) + D * F)) - E / F);
+    let toned = clamp(curr * whiteScale, vec3f(0.0), vec3f(1.0));
+    let l = dot(toned, vec3f(0.2126, 0.7152, 0.0722));
+    return clamp(mix(vec3f(l), toned, 1.3), vec3f(0.0), vec3f(1.0));
+  }
+  if (mode == 8u) {
+    // HDR decode for BT.2020 + SMPTE ST 2084 (PQ) sources like the Andor
+    // clip (code points 9-16-9). importExternalTexture used the BT.2020
+    // YCbCr matrix when converting YUV->RGB but the resulting RGB values
+    // still carry the PQ non-linear encoding. The chain:
+    //   1. PQ EOTF -> linear scene light, 1.0 = 10000 nits
+    //   2. scale so SDR reference white (100 nits) sits at 1.0
+    //   3. BT.2020 -> BT.709 primaries
+    //   4. ACES tone-map to fit HDR range into [0,1]
+    //   5. sRGB OETF so the bgra8unorm canvas displays the right values.
+    let m1 = 0.1593017578125;
+    let m2 = 78.84375;
+    let c1 = 0.8359375;
+    let c2 = 18.8515625;
+    let c3 = 18.6875;
+    let cp = pow(max(rgb, vec3f(0.0)), vec3f(1.0 / m2));
+    let num = max(cp - vec3f(c1), vec3f(0.0));
+    let den = vec3f(c2) - vec3f(c3) * cp;
+    let linearPq = pow(num / den, vec3f(1.0 / m1));
+    let scene = linearPq * 100.0;
+
+    // BT.2020 -> BT.709 (column-major; each vec3f is one column).
+    let m709 = mat3x3f(
+      vec3f( 1.6605, -0.1246, -0.0182),
+      vec3f(-0.5876,  1.1329, -0.1006),
+      vec3f(-0.0728, -0.0083,  1.1187),
+    );
+    let in709 = max(m709 * scene, vec3f(0.0));
+
+    let toned = (in709 * (2.51 * in709 + 0.03)) /
+                (in709 * (2.43 * in709 + 0.59) + 0.14);
+    let sdr = clamp(toned, vec3f(0.0), vec3f(1.0));
+
+    let cutoff = vec3f(0.0031308);
+    let high = vec3f(1.055) * pow(sdr, vec3f(1.0 / 2.4)) - vec3f(0.055);
+    let low = vec3f(12.92) * sdr;
+    return select(low, high, sdr > cutoff);
+  }
+  if (mode == 7u) {
+    // AgX (Troy Sobotka), three.js's polynomial-sigmoid fit. Modern look,
+    // preserves saturation better than ACES on bright primaries.
+    let agx_mat = mat3x3f(
+      vec3f(0.842479062253094, 0.0423282422610123, 0.0423756549057051),
+      vec3f(0.0784335999999992, 0.878468636469772, 0.0784336),
+      vec3f(0.0792237451477643, 0.0791661274605434, 0.879142973793104),
+    );
+    var c = agx_mat * rgb;
+    c = clamp(log2(max(c, vec3f(1e-6))), vec3f(-10.0), vec3f(6.5));
+    c = (c + vec3f(10.0)) / 16.5;
+    c = vec3f(0.5) + vec3f(0.5) *
+        sin(((vec3f(-3.11) * c + vec3f(6.42)) * c - vec3f(0.378)) * c - vec3f(1.44));
+    let agx_inv = mat3x3f(
+      vec3f( 1.19687900512017, -0.0528968517574562, -0.0529716355144438),
+      vec3f(-0.0980208811401368, 1.15190312990417,  -0.0980434501171241),
+      vec3f(-0.0990297440797205, -0.0989611768448433, 1.15107367264116),
+    );
+    return clamp(agx_inv * c, vec3f(0.0), vec3f(1.0));
+  }
   return rgb;
 }
 
@@ -196,6 +288,11 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
 
   if (u.ambient != 0u && !inside) {
     color = ambientSample(ndc);
+    // "On" mode reads as a glow rather than a backdrop: blend toward black
+    // so the surround stays subdued next to the video.
+    if (u.ambient == 2u) {
+      color = color * 0.75;
+    }
   }
 
   color = applyShaderEffect(color, u.shaderEffect);
