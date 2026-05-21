@@ -82,8 +82,10 @@ jobs:
     steps:
       - name: Checkout main repository
         uses: actions/checkout@v6.0.2
-        with:
-          submodules: recursive
+
+      - name: Checkout Dawn repository
+        run: |
+          git clone --depth 1 --branch ${{ needs.prepare-release.outputs.dawn_branch }} https://dawn.googlesource.com/dawn externals/dawn
 
       - name: Setup Android NDK
         id: setup-ndk
@@ -163,8 +165,10 @@ jobs:
     steps:
       - name: Checkout main repository
         uses: actions/checkout@v6.0.2
-        with:
-          submodules: recursive
+
+      - name: Checkout Dawn repository
+        run: |
+          git clone --depth 1 --branch ${{ needs.prepare-release.outputs.dawn_branch }} https://dawn.googlesource.com/dawn externals/dawn
 
       - name: Build ${{ matrix.platform }} ${{ matrix.arch }}
         run: |
