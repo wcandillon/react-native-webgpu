@@ -1,4 +1,41 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
+// Port of https://threejs.org/examples/?q=retarget#webgpu_animation_retargeting
+//
+// Notes on differences from the upstream example, useful if/when this repo
+// bumps three.js past r172:
+//
+//   * `normalWorldGeometry` (used in the original background shader) was added
+//     to TSL in r173. We fall back to `normalWorld`, which resolves to the
+//     same value for the renderer's background sphere. After upgrading, swap
+//     the import and the two `normalWorld` references back to
+//     `normalWorldGeometry` to match the upstream look exactly.
+//   * The upstream demo uses `new THREE.Timer().connect(document)`. Timer is
+//     not re-exported from the `three` entry in r172, so we use `THREE.Clock`
+//     here. After upgrading, you can import `Timer` from `three/addons/misc/
+//     Timer.js` (skip `connect(document)` since there is no DOM in RN).
+//   * `Inspector`, `OrbitControls`, helpers, `window.onresize` and the GUI
+//     are intentionally omitted (no DOM / no GUI host in RN).
+//   * Soldier.glb embeds its two JPEG textures in the binary chunk. The RN
+//     GLTFLoader can't `new Blob([ArrayBuffer])` so embedded images fail to
+//     decode. We ship `assets/soldier/` as a split `.gltf` + `.bin` + two
+//     `.jpg` files instead (same trick Michelle uses). If a future RN/Hermes
+//     gains ArrayBuffer-Blob support, the original `Soldier.glb` would work
+//     unchanged.
+//   * `targetScene.children[0].children[0]` assumes the GLTFLoader keeps the
+//     `Character -> SkinnedMesh` order from the source file. If an upgrade
+//     ever changes that, switch to a search:
+//       let targetSkin: THREE.SkinnedMesh;
+//       targetScene.traverse((o) => {
+//         if ((o as THREE.SkinnedMesh).isSkinnedMesh && !targetSkin) {
+//           targetSkin = o as THREE.SkinnedMesh;
+//         }
+//       });
+//   * `frustumCulled = false` on the SkinnedMeshes works around bind-pose
+//     bounding boxes culling the retargeted target. Newer three.js versions
+//     recompute the SkinnedMesh bounds (`computeBoundingBox`/`Sphere`) when
+//     `boundingBox`/`boundingSphere` are set on the mesh; once that lands
+//     widely, you can remove the override and call `computeBoundingBox()`
+//     after retargeting instead.
 import * as THREE from "three";
 import type { CanvasRef } from "react-native-wgpu";
 import { Canvas } from "react-native-wgpu";
@@ -162,7 +199,7 @@ function retargetModel(source: Source, targetScene: THREE.Object3D) {
 
 export const Retargeting = () => {
   const sourceGltf = useGLTF(require("./assets/michelle/model.gltf"));
-  const targetGltf = useGLTF(require("./assets/soldier/Soldier.glb"));
+  const targetGltf = useGLTF(require("./assets/soldier/Soldier.gltf"));
   const ref = useRef<CanvasRef>(null);
 
   useEffect(() => {
