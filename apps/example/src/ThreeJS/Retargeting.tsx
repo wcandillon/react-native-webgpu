@@ -1,41 +1,30 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 // Port of https://threejs.org/examples/?q=retarget#webgpu_animation_retargeting
 //
-// Notes on differences from the upstream example, useful if/when this repo
-// bumps three.js past r172:
+// Notes on differences from the upstream demo, plus things to revisit on the
+// next three.js bump (currently pinned to r184):
 //
-//   * `normalWorldGeometry` (used in the original background shader) was added
-//     to TSL in r173. We fall back to `normalWorld`, which resolves to the
-//     same value for the renderer's background sphere. After upgrading, swap
-//     the import and the two `normalWorld` references back to
-//     `normalWorldGeometry` to match the upstream look exactly.
-//   * The upstream demo uses `new THREE.Timer().connect(document)`. Timer is
-//     not re-exported from the `three` entry in r172, so we use `THREE.Clock`
-//     here. After upgrading, you can import `Timer` from `three/addons/misc/
-//     Timer.js` (skip `connect(document)` since there is no DOM in RN).
 //   * `Inspector`, `OrbitControls`, helpers, `window.onresize` and the GUI
 //     are intentionally omitted (no DOM / no GUI host in RN).
+//   * Upstream skips `timer.connect(document)` to use the Page Visibility API;
+//     we skip it because there is no `document` in RN. Page-hidden behaviour
+//     is handled by Metro/RN lifecycle, not Timer.
 //   * Soldier.glb embeds its two JPEG textures in the binary chunk. The RN
 //     GLTFLoader can't `new Blob([ArrayBuffer])` so embedded images fail to
 //     decode. We ship `assets/soldier/` as a split `.gltf` + `.bin` + two
-//     `.jpg` files instead (same trick Michelle uses). If a future RN/Hermes
-//     gains ArrayBuffer-Blob support, the original `Soldier.glb` would work
+//     `.jpg` files (same trick Michelle uses). If a future RN/Hermes gains
+//     ArrayBuffer-Blob support, the original `Soldier.glb` would work
 //     unchanged.
+//   * `lightSpeed` is declared `vec2 -> vec3`; in r172 the example silently
+//     passed `normalWorldGeometry` (a vec3) and TSL coerced it. The current
+//     TS types require an explicit `.xy` swizzle - keep it on any future
+//     bumps unless TSL adds implicit vec3->vec2 truncation back.
 //   * `targetScene.children[0].children[0]` assumes the GLTFLoader keeps the
 //     `Character -> SkinnedMesh` order from the source file. If an upgrade
-//     ever changes that, switch to a search:
-//       let targetSkin: THREE.SkinnedMesh;
-//       targetScene.traverse((o) => {
-//         if ((o as THREE.SkinnedMesh).isSkinnedMesh && !targetSkin) {
-//           targetSkin = o as THREE.SkinnedMesh;
-//         }
-//       });
-//   * `frustumCulled = false` on the SkinnedMeshes works around bind-pose
-//     bounding boxes culling the retargeted target. Newer three.js versions
-//     recompute the SkinnedMesh bounds (`computeBoundingBox`/`Sphere`) when
-//     `boundingBox`/`boundingSphere` are set on the mesh; once that lands
-//     widely, you can remove the override and call `computeBoundingBox()`
-//     after retargeting instead.
+//     ever changes that, switch to a `traverse` lookup with `.isSkinnedMesh`.
+//   * `frustumCulled = false` on the SkinnedMeshes works around the
+//     bind-pose bounding box culling the retargeted target. If a future
+//     three.js update recomputes SkinnedMesh bounds after retargeting, this
+//     override can go.
 import * as THREE from "three";
 import type { CanvasRef } from "react-native-wgpu";
 import { Canvas } from "react-native-wgpu";
@@ -51,7 +40,7 @@ import {
   hue,
   length,
   mul,
-  normalWorld,
+  normalWorldGeometry,
   pow,
   reflector,
   screenUV,
@@ -67,8 +56,8 @@ import { useGLTF } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 
 // forked from https://www.shadertoy.com/view/7ly3D1
-const lightSpeed = Fn(([suv_immutable]: [unknown]) => {
-  const suv = vec2(suv_immutable);
+const lightSpeed = Fn(([suvImmutable]: [THREE.Node<"vec2">]) => {
+  const suv = vec2(suvImmutable);
   const uv = vec2(length(suv), atan(suv.y, suv.x));
   const offset = float(
     float(0.1)
@@ -78,8 +67,20 @@ const lightSpeed = Fn(([suv_immutable]: [unknown]) => {
   );
   const rays = vec3(
     vec3(sin(uv.y.mul(150).add(time)).mul(0.5).add(0.5))
-      .mul(vec3(sin(uv.y.mul(80).sub(time.mul(0.6))).mul(0.5).add(0.5)))
-      .mul(vec3(sin(uv.y.mul(45).add(time.mul(0.8))).mul(0.5).add(0.5)))
+      .mul(
+        vec3(
+          sin(uv.y.mul(80).sub(time.mul(0.6)))
+            .mul(0.5)
+            .add(0.5),
+        ),
+      )
+      .mul(
+        vec3(
+          sin(uv.y.mul(45).add(time.mul(0.8)))
+            .mul(0.5)
+            .add(0.5),
+        ),
+      )
       .mul(
         vec3(
           sub(
@@ -225,8 +226,8 @@ export const Retargeting = () => {
         hue(color(0x0175ad), time.mul(0.1)),
         hue(color(0x02274f), time.mul(0.5)),
       );
-    const lightSpeedEffect = lightSpeed(normalWorld).clamp();
-    const lightSpeedSky = normalWorld.y
+    const lightSpeedEffect = lightSpeed(normalWorldGeometry.xy).clamp();
+    const lightSpeedSky = normalWorldGeometry.y
       .remapClamp(-0.1, 1)
       .mix(0, lightSpeedEffect);
     const composedBackground = blendDodge(coloredVignette, lightSpeedSky);
@@ -293,10 +294,11 @@ export const Retargeting = () => {
     const renderer = makeWebGPURenderer(context, { antialias: true });
     renderer.toneMapping = THREE.NeutralToneMapping;
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
 
     renderer.setAnimationLoop(() => {
-      const delta = clock.getDelta();
+      timer.update();
+      const delta = timer.getDelta();
       source.mixer.update(delta);
       mixer.update(delta);
       renderer.render(scene, camera);
