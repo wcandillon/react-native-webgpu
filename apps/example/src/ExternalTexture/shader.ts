@@ -242,16 +242,21 @@ fn liquidGlassButton(pixel: vec2f, center: vec2f, radius: f32, iconKind: u32) ->
     glassSample(uvB).b,
   );
 
-  // Light frost: 4-tap blur centered on the G-channel refraction position.
-  // Cheap way to add the milky-glass haze without a real Gaussian pass.
+  // 5-tap frost with a heavier center weight gives a softer Gaussian-ish
+  // blur. Larger radius + heavier mix makes the underlying video read as
+  // pre-blurred behind the glass.
   var frost = vec3f(0.0);
-  let f = 5.0 * pxToUv;
+  let f = 12.0 * pxToUv;
+  frost = frost + glassSample(uvG) * 2.0;
   frost = frost + glassSample(uvG + vec2f( f.x,  f.y));
   frost = frost + glassSample(uvG + vec2f(-f.x,  f.y));
   frost = frost + glassSample(uvG + vec2f( f.x, -f.y));
   frost = frost + glassSample(uvG + vec2f(-f.x, -f.y));
-  frost = frost * 0.25;
-  var col = mix(refracted, frost, 0.18);
+  frost = frost / 6.0;
+  var col = mix(refracted, frost, 0.55);
+
+  // Subtle cool-ish darken so the glass reads as denser than empty air.
+  col = col * vec3f(0.90, 0.91, 0.94);
 
   // Blinn-Phong specular from an above-front-left light. Tight exponent
   // gives a sharp highlight typical of glass.
