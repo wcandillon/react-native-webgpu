@@ -60,7 +60,10 @@ export class ReactNativeCanvas {
 
 export const makeWebGPURenderer = (
   context: GPUCanvasContext,
-  { antialias = true }: { antialias?: boolean } = {},
+  {
+    antialias = true,
+    device,
+  }: { antialias?: boolean; device?: GPUDevice } = {},
 ) =>
   new THREE.WebGPURenderer({
     antialias,
@@ -68,4 +71,9 @@ export const makeWebGPURenderer = (
     // @ts-expect-error
     canvas: new ReactNativeCanvas(context.canvas),
     context,
+    // When supplied, three.js skips its own adapter/device acquisition and
+    // uses this device. Lets callers request custom features (e.g. Dawn's
+    // shared-texture-memory) that three.js doesn't include in its default
+    // GPUFeatureName enum walk.
+    ...(device ? { device } : {}),
   });
