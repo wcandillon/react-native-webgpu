@@ -32,4 +32,5 @@ export type Routes = {
   SharedTextureMemory: undefined;
   ExternalTexture: undefined;
   VisionCamera: undefined;
+  FaceDetection: undefined;
 };

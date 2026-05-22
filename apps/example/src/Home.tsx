@@ -139,6 +139,10 @@ export const examples = [
     screen: "VisionCamera",
     title: "📷 VisionCamera integration",
   },
+  {
+    screen: "FaceDetection",
+    title: "🙂 Face Detection (BlazeFace + WGSL)",
+  },
 ];
 
 const styles = StyleSheet.create({

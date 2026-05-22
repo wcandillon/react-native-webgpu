@@ -39,6 +39,7 @@ import { StorageBufferVertices } from "./StorageBufferVertices";
 import { SharedTextureMemory } from "./SharedTextureMemory";
 import { ExternalTexture } from "./ExternalTexture";
 import { VisionCamera } from "./VisionCamera";
+import { FaceDetection } from "./FaceDetection";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -110,6 +111,11 @@ function App() {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="VisionCamera" component={VisionCamera} />
+          <Stack.Screen
+            name="FaceDetection"
+            component={FaceDetection}
+            options={{ headerShown: false }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
