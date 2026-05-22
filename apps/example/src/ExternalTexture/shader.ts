@@ -197,48 +197,82 @@ fn iconSdf(p: vec2f, s: f32, kind: u32) -> f32 {
 fn liquidGlassButton(pixel: vec2f, center: vec2f, radius: f32, iconKind: u32) -> vec4f {
   let dv = pixel - center;
   let d = length(dv);
-  if (d > radius + 2.0) {
+  let sd = d - radius;
+  if (sd > 1.0) {
     return vec4f(0.0);
   }
-  let edgeT = clamp(1.0 - d / radius, 0.0, 1.0);
-  let nrm = dv / max(d, 0.0001);
-  let rimT = d / radius;
 
-  // Refraction: bend the underlying video sample stronger near the rim,
-  // taper to zero at the edge so the glass reads as a smooth dome.
-  let refractStrength = pow(1.0 - edgeT, 2.0) *
-                        (1.0 - smoothstep(0.94, 1.0, rimT)) * 30.0;
-  let offset = -nrm * refractStrength / u.canvasSize;
-  let baseNdc = pixel / u.canvasSize;
-  let refracted = glassSample(baseNdc + offset);
+  // Glass geometry: a puck with a beveled rim. The dome only curves over
+  // the outer "thickness" ring of the disc, leaving the center near-flat
+  // for clear see-through. Adapted from the Shadertoy liquid-glass formula.
+  let thickness = radius * 0.35;
+  let baseHeight = thickness * 5.0;
+  let sd_safe = min(sd, 0.0);
+  let grad = dv / max(d, 0.0001);
 
-  // Light frost so the glass stays mostly transparent.
+  // Reconstruct a 3D normal as if the surface were a spherical dome over
+  // the bevel ring: n_cos goes from 0 (flat top) to 1 (vertical at rim).
+  let n_cos = clamp((thickness + sd_safe) / thickness, 0.0, 1.0);
+  let n_sin = sqrt(max(1.0 - n_cos * n_cos, 0.0));
+  let normal = normalize(vec3f(grad.x * n_cos, grad.y * n_cos, n_sin));
+
+  // Dome height z(sd), used as the start z of the refracted ray.
+  let h_x = thickness + sd_safe;
+  let h = sqrt(max(thickness * thickness - h_x * h_x, 0.0));
+
+  // Snell's-law refraction with per-channel IOR so the rim shows visible
+  // chromatic dispersion. The refracted ray starts at z = h, ends at the
+  // virtual background plane at z = -baseHeight, then we sample where it
+  // lands in screen-space.
+  let incident = vec3f(0.0, 0.0, -1.0);
+  let pxToUv = vec2f(1.0) / u.canvasSize;
+  let rR = refract(incident, normal, 1.0 / 1.46);
+  let rG = refract(incident, normal, 1.0 / 1.50);
+  let rB = refract(incident, normal, 1.0 / 1.54);
+  let totalDepth = h + baseHeight;
+  let lenR = totalDepth / max(-rR.z, 0.001);
+  let lenG = totalDepth / max(-rG.z, 0.001);
+  let lenB = totalDepth / max(-rB.z, 0.001);
+  let uvR = (pixel + rR.xy * lenR) * pxToUv;
+  let uvG = (pixel + rG.xy * lenG) * pxToUv;
+  let uvB = (pixel + rB.xy * lenB) * pxToUv;
+  let refracted = vec3f(
+    glassSample(uvR).r,
+    glassSample(uvG).g,
+    glassSample(uvB).b,
+  );
+
+  // Light frost: 4-tap blur centered on the G-channel refraction position.
+  // Cheap way to add the milky-glass haze without a real Gaussian pass.
   var frost = vec3f(0.0);
-  let f = 5.0 / u.canvasSize;
-  frost = frost + glassSample(baseNdc + vec2f( f.x,  f.y));
-  frost = frost + glassSample(baseNdc + vec2f(-f.x,  f.y));
-  frost = frost + glassSample(baseNdc + vec2f( f.x, -f.y));
-  frost = frost + glassSample(baseNdc + vec2f(-f.x, -f.y));
+  let f = 5.0 * pxToUv;
+  frost = frost + glassSample(uvG + vec2f( f.x,  f.y));
+  frost = frost + glassSample(uvG + vec2f(-f.x,  f.y));
+  frost = frost + glassSample(uvG + vec2f( f.x, -f.y));
+  frost = frost + glassSample(uvG + vec2f(-f.x, -f.y));
   frost = frost * 0.25;
-  var col = mix(refracted, frost, 0.25);
+  var col = mix(refracted, frost, 0.18);
 
-  // Light from above: bright top arc, mild bottom inner shadow.
-  let topHi = smoothstep(0.55, 1.0, edgeT) * smoothstep(0.4, -0.6, nrm.y);
-  let botShad = smoothstep(0.0, 0.6, edgeT) *
-                smoothstep(-0.4, 0.6, nrm.y) * 0.12;
-  // Bright rim around the disc edge.
-  let rim = smoothstep(0.93, 1.0, rimT) * (1.0 - smoothstep(1.0, 1.04, rimT));
-  col = col * (1.0 - botShad);
-  col = col + vec3f(0.6) * topHi;
-  col = col + vec3f(1.0) * rim;
+  // Blinn-Phong specular from an above-front-left light. Tight exponent
+  // gives a sharp highlight typical of glass.
+  let lightDir = normalize(vec3f(-0.45, -0.65, 1.0));
+  let viewDir = vec3f(0.0, 0.0, 1.0);
+  let H = normalize(lightDir + viewDir);
+  let NdotH = max(dot(normal, H), 0.0);
+  let spec = pow(NdotH, 48.0) * 1.1;
+  col = col + vec3f(1.0) * spec;
 
-  // White icon composited on top of the glass material.
+  // Schlick-Fresnel rim. Brightens grazing angles where (1 - n.z) -> 1.
+  let fresnel = pow(max(1.0 - normal.z, 0.0), 3.5);
+  col = col + vec3f(0.55) * fresnel;
+
+  // White icon SDF overlay.
   let iconScale = radius * 0.5;
   let iconD = iconSdf(dv, iconScale, iconKind);
   let iconA = 1.0 - smoothstep(-0.7, 0.7, iconD);
   col = mix(col, vec3f(1.0), iconA);
 
-  let aa = 1.0 - smoothstep(radius - 1.0, radius + 0.5, d);
+  let aa = 1.0 - smoothstep(-1.0, 0.5, sd);
   return vec4f(col, aa);
 }
 
