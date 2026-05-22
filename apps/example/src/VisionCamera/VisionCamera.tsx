@@ -21,9 +21,11 @@ import {
   useFrameOutput,
 } from "react-native-vision-camera";
 
+import { BLUR_SHADER, PREPASS_SHADER } from "./blurShaders";
 import { EffectToolbar } from "./EffectToolbar";
 import {
   ABERRATION_STRENGTHS,
+  BLUR_ITERATIONS,
   INITIAL_MODES,
   PIXELATE_BLOCKS,
   type Modes,
@@ -50,15 +52,18 @@ struct Uniforms {
   // z:    chromatic aberration offset in UV units (0 disables).
   // w:    pixelate block size in UV units (0 disables).
   params: vec4f,
-  // x: effect (0 off, 1 gray, 2 sepia, 3 invert, 4 vibrant)
-  // y: tint   (0 off, 1 warm, 2 cool)
+  // x: effect   (0 off, 1 gray, 2 sepia, 3 invert, 4 vibrant)
+  // y: tint     (0 off, 1 warm, 2 cool)
   // z: vignette (0 off, 1 on)
+  // w: blurMode (0 off, 1 strong - blurred everywhere (prepass bakes
+  //              cover-fit), 2 overlay - blurred backdrop + sharp card)
   modes: vec4u,
 };
 
 @group(0) @binding(0) var srcTex: texture_external;
 @group(0) @binding(1) var srcSampler: sampler;
 @group(0) @binding(2) var<uniform> u: Uniforms;
+@group(0) @binding(3) var blurredTex: texture_2d<f32>;
 
 @vertex
 fn vs_main(@builtin(vertex_index) vid: u32) -> VsOut {
@@ -78,14 +83,40 @@ fn vs_main(@builtin(vertex_index) vid: u32) -> VsOut {
   return out;
 }
 
-fn sampleAt(uv: vec2f, block: f32) -> vec4f {
-  var sampleUv = uv;
-  if (block > 0.0) {
-    // Snap to a grid in cover-fit UV space; the linear sampler still gives a
-    // crisp blocky look because the snap collapses neighborhoods.
-    sampleUv = (floor(uv / block) + vec2f(0.5)) * block;
+fn snap(uv: vec2f, block: f32) -> vec2f {
+  if (block <= 0.0) {
+    return uv;
   }
-  return textureSampleBaseClampToEdge(srcTex, srcSampler, sampleUv);
+  return (floor(uv / block) + vec2f(0.5)) * block;
+}
+
+fn sampleExternal(uv: vec2f, block: f32) -> vec4f {
+  return textureSampleBaseClampToEdge(srcTex, srcSampler, snap(uv, block));
+}
+
+fn sampleBlurred(uv: vec2f, block: f32) -> vec4f {
+  return textureSampleLevel(
+    blurredTex,
+    srcSampler,
+    clamp(snap(uv, block), vec2f(0.0), vec2f(1.0)),
+    0.0,
+  );
+}
+
+// RGB-split sample of the external camera with cover-fit + optional pixelate.
+fn rgbSplitExternal(uv: vec2f, aberration: f32, block: f32) -> vec3f {
+  let r = sampleExternal(uv + vec2f( aberration, 0.0), block).r;
+  let g = sampleExternal(uv, block).g;
+  let b = sampleExternal(uv + vec2f(-aberration, 0.0), block).b;
+  return vec3f(r, g, b);
+}
+
+// RGB-split sample of the pre-blurred 2D texture (cover-fit baked in).
+fn rgbSplitBlurred(uv: vec2f, aberration: f32, block: f32) -> vec3f {
+  let r = sampleBlurred(uv + vec2f( aberration, 0.0), block).r;
+  let g = sampleBlurred(uv, block).g;
+  let b = sampleBlurred(uv + vec2f(-aberration, 0.0), block).b;
+  return vec3f(r, g, b);
 }
 
 fn applyEffect(rgb: vec3f, mode: u32) -> vec3f {
@@ -129,13 +160,38 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
   let effect = u.modes.x;
   let tint = u.modes.y;
   let vignette = u.modes.z;
+  let blurMode = u.modes.w;
 
-  let uv = vec2f(0.5) + (in.uv - vec2f(0.5)) * uvScale;
-  // RGB split: sample red shifted right, blue shifted left, green centered.
-  let r = sampleAt(uv + vec2f( aberration, 0.0), pixelate).r;
-  let g = sampleAt(uv, pixelate).g;
-  let b = sampleAt(uv + vec2f(-aberration, 0.0), pixelate).b;
-  var color = vec3f(r, g, b);
+  // Overlay card geometry. NDC-space rect, the camera image is cover-fit
+  // inside the card (same uvScale as the off path), the blurred backdrop
+  // fills outside.
+  let overlayPadding = 0.08;
+  let edgeAA = 0.004;
+
+  var color: vec3f;
+  if (blurMode == 1u) {
+    // Strong: prepass already baked cover-fit, so feed in.uv straight in.
+    color = rgbSplitBlurred(in.uv, aberration, pixelate);
+  } else if (blurMode == 2u) {
+    // Overlay: per-fragment edge factor 0 strictly inside the card,
+    // 1 strictly outside, smoothstep band for AA. Uniform within the branch
+    // (blurMode came from the uniform buffer), so calling
+    // textureSampleBaseClampToEdge on the external texture is allowed.
+    let cardHalf = vec2f(0.5 - overlayPadding);
+    let p = abs(in.uv - vec2f(0.5));
+    let edgeDist = max(p.x - cardHalf.x, p.y - cardHalf.y);
+    let outside = smoothstep(-edgeAA, edgeAA, edgeDist);
+
+    let cardUv = (in.uv - vec2f(overlayPadding)) /
+                 (1.0 - 2.0 * overlayPadding);
+    let sharpUv = vec2f(0.5) + (cardUv - vec2f(0.5)) * uvScale;
+    let sharp = rgbSplitExternal(sharpUv, aberration, pixelate);
+    let backdrop = rgbSplitBlurred(in.uv, aberration, pixelate);
+    color = mix(sharp, backdrop, outside);
+  } else {
+    let uv = vec2f(0.5) + (in.uv - vec2f(0.5)) * uvScale;
+    color = rgbSplitExternal(uv, aberration, pixelate);
+  }
 
   color = applyEffect(color, effect);
   color = applyTint(color, tint);
@@ -163,6 +219,17 @@ const REQUIRED_FEATURES: GPUFeatureName[] = [
 // Android-Desktop / Chromebook configurations).
 const OPAQUE_YCBCR_EXT =
   "opaque-ycbcr-android-for-external-texture" as GPUFeatureName;
+
+// Blur infrastructure. Mirrors the ExternalTexture demo: prepass writes the
+// cover-fit camera image into a 1/4-res rgba8unorm, the separable box-blur
+// compute pings between two storage textures, and the main pass linearly
+// upsamples the final result so the effective sigma is ~4x the per-iteration
+// kernel.
+const BLUR_SCALE = 4;
+const BLUR_FILTER_SIZE = 31;
+const BLUR_TILE_DIM = 128;
+const BLUR_BATCH = 4;
+const BLUR_BLOCK_DIM = BLUR_TILE_DIM - BLUR_FILTER_SIZE;
 
 export const VisionCamera = () => {
   const { hasPermission, requestPermission } = useCameraPermission();
@@ -274,6 +341,17 @@ const CameraView = () => {
     context: RNCanvasContext;
     canvasWidth: number;
     canvasHeight: number;
+    prepassPipeline: GPURenderPipeline;
+    prepassUniformBuffer: GPUBuffer;
+    blurPipeline: GPUComputePipeline;
+    blurConstants: GPUBindGroup;
+    blurBindGroup0: GPUBindGroup;
+    blurBindGroup1: GPUBindGroup;
+    blurBindGroup2: GPUBindGroup;
+    blurSrcTexture: GPUTexture;
+    blurredView: GPUTextureView;
+    blurWidth: number;
+    blurHeight: number;
   } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [modes, setModes] = React.useState<Modes>(INITIAL_MODES);
@@ -332,6 +410,118 @@ const CameraView = () => {
       size: 32,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
+
+    // ----- Blur infrastructure (matches ExternalTexture's "Blur" chain) ----
+    const blurWidth = Math.max(
+      BLUR_TILE_DIM,
+      Math.ceil(canvas.width / BLUR_SCALE),
+    );
+    const blurHeight = Math.max(
+      BLUR_TILE_DIM,
+      Math.ceil(canvas.height / BLUR_SCALE),
+    );
+
+    const prepassModule = device.createShaderModule({ code: PREPASS_SHADER });
+    const prepassPipeline = device.createRenderPipeline({
+      layout: "auto",
+      vertex: { module: prepassModule, entryPoint: "vs_main" },
+      fragment: {
+        module: prepassModule,
+        entryPoint: "fs_main",
+        targets: [{ format: "rgba8unorm" }],
+      },
+      primitive: { topology: "triangle-list" },
+    });
+    const prepassUniformBuffer = device.createBuffer({
+      size: 16,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    const blurSrcTexture = device.createTexture({
+      size: [blurWidth, blurHeight],
+      format: "rgba8unorm",
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    const blurPing = [0, 1].map(() =>
+      device.createTexture({
+        size: [blurWidth, blurHeight],
+        format: "rgba8unorm",
+        usage:
+          GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+      }),
+    );
+
+    const blurPipeline = device.createComputePipeline({
+      layout: "auto",
+      compute: {
+        module: device.createShaderModule({ code: BLUR_SHADER }),
+        entryPoint: "main",
+      },
+    });
+
+    const flip0Buffer = device.createBuffer({
+      size: 4,
+      mappedAtCreation: true,
+      usage: GPUBufferUsage.UNIFORM,
+    });
+    new Uint32Array(flip0Buffer.getMappedRange())[0] = 0;
+    flip0Buffer.unmap();
+    const flip1Buffer = device.createBuffer({
+      size: 4,
+      mappedAtCreation: true,
+      usage: GPUBufferUsage.UNIFORM,
+    });
+    new Uint32Array(flip1Buffer.getMappedRange())[0] = 1;
+    flip1Buffer.unmap();
+
+    const blurParamsBuffer = device.createBuffer({
+      size: 8,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(
+      blurParamsBuffer,
+      0,
+      new Uint32Array([BLUR_FILTER_SIZE + 1, BLUR_BLOCK_DIM]),
+    );
+
+    const blurConstants = device.createBindGroup({
+      layout: blurPipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: sampler },
+        { binding: 1, resource: { buffer: blurParamsBuffer } },
+      ],
+    });
+    // H: blurSrcTexture -> blurPing[0]
+    const blurBindGroup0 = device.createBindGroup({
+      layout: blurPipeline.getBindGroupLayout(1),
+      entries: [
+        { binding: 1, resource: blurSrcTexture.createView() },
+        { binding: 2, resource: blurPing[0].createView() },
+        { binding: 3, resource: { buffer: flip0Buffer } },
+      ],
+    });
+    // V: blurPing[0] -> blurPing[1]
+    const blurBindGroup1 = device.createBindGroup({
+      layout: blurPipeline.getBindGroupLayout(1),
+      entries: [
+        { binding: 1, resource: blurPing[0].createView() },
+        { binding: 2, resource: blurPing[1].createView() },
+        { binding: 3, resource: { buffer: flip1Buffer } },
+      ],
+    });
+    // H (iteration N>=2): blurPing[1] -> blurPing[0]
+    const blurBindGroup2 = device.createBindGroup({
+      layout: blurPipeline.getBindGroupLayout(1),
+      entries: [
+        { binding: 1, resource: blurPing[1].createView() },
+        { binding: 2, resource: blurPing[0].createView() },
+        { binding: 3, resource: { buffer: flip0Buffer } },
+      ],
+    });
+    // Final iteration's V pass always lands in blurPing[1].
+    const blurredView = blurPing[1].createView();
+
     setPipelineState({
       pipeline,
       sampler,
@@ -339,6 +529,17 @@ const CameraView = () => {
       context,
       canvasWidth: canvas.width,
       canvasHeight: canvas.height,
+      prepassPipeline,
+      prepassUniformBuffer,
+      blurPipeline,
+      blurConstants,
+      blurBindGroup0,
+      blurBindGroup1,
+      blurBindGroup2,
+      blurSrcTexture,
+      blurredView,
+      blurWidth,
+      blurHeight,
     });
   }, [device, adapter, ref, pipelineState]);
 
@@ -378,7 +579,20 @@ const CameraView = () => {
         context,
         canvasWidth,
         canvasHeight,
+        prepassPipeline,
+        prepassUniformBuffer,
+        blurPipeline,
+        blurConstants,
+        blurBindGroup0,
+        blurBindGroup1,
+        blurBindGroup2,
+        blurSrcTexture,
+        blurredView,
+        blurWidth,
+        blurHeight,
       } = pipelineState;
+      const blurIterations = BLUR_ITERATIONS[modes.blur] ?? 0;
+      const blurMode = blurIterations > 0 ? modes.blur : 0;
       const nativeBuffer = frame.getNativeBuffer();
       try {
         let videoFrame;
@@ -422,7 +636,7 @@ const CameraView = () => {
           uniformU32[4] = modes.effect;
           uniformU32[5] = modes.tint;
           uniformU32[6] = modes.vignette;
-          uniformU32[7] = 0;
+          uniformU32[7] = blurMode;
           device.queue.writeBuffer(uniformBuffer, 0, uniformData);
 
           let externalTex;
@@ -443,10 +657,78 @@ const CameraView = () => {
               { binding: 0, resource: externalTex },
               { binding: 1, resource: sampler },
               { binding: 2, resource: { buffer: uniformBuffer } },
+              { binding: 3, resource: blurredView },
             ],
           });
 
           const encoder = device.createCommandEncoder();
+
+          if (blurIterations > 0) {
+            // Prepass: cover-fit external (YUV) -> rgba8unorm at 1/4 res.
+            device.queue.writeBuffer(
+              prepassUniformBuffer,
+              0,
+              new Float32Array([
+                videoFrame.width,
+                videoFrame.height,
+                canvasWidth,
+                canvasHeight,
+              ]),
+            );
+            const prepassBindGroup = device.createBindGroup({
+              layout: prepassPipeline.getBindGroupLayout(0),
+              entries: [
+                { binding: 0, resource: externalTex },
+                { binding: 1, resource: sampler },
+                { binding: 2, resource: { buffer: prepassUniformBuffer } },
+              ],
+            });
+            const prepass = encoder.beginRenderPass({
+              colorAttachments: [
+                {
+                  view: blurSrcTexture.createView(),
+                  clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                  loadOp: "clear",
+                  storeOp: "store",
+                },
+              ],
+            });
+            prepass.setPipeline(prepassPipeline);
+            prepass.setBindGroup(0, prepassBindGroup);
+            prepass.draw(3);
+            prepass.end();
+
+            // Separable box-blur compute. Iteration 1 reads from
+            // blurSrcTexture; subsequent iterations ping-pong between
+            // blurPing[1] -> blurPing[0] -> blurPing[1].
+            const compute = encoder.beginComputePass();
+            compute.setPipeline(blurPipeline);
+            compute.setBindGroup(0, blurConstants);
+            compute.setBindGroup(1, blurBindGroup0);
+            compute.dispatchWorkgroups(
+              Math.ceil(blurWidth / BLUR_BLOCK_DIM),
+              Math.ceil(blurHeight / BLUR_BATCH),
+            );
+            compute.setBindGroup(1, blurBindGroup1);
+            compute.dispatchWorkgroups(
+              Math.ceil(blurHeight / BLUR_BLOCK_DIM),
+              Math.ceil(blurWidth / BLUR_BATCH),
+            );
+            for (let i = 0; i < blurIterations - 1; i++) {
+              compute.setBindGroup(1, blurBindGroup2);
+              compute.dispatchWorkgroups(
+                Math.ceil(blurWidth / BLUR_BLOCK_DIM),
+                Math.ceil(blurHeight / BLUR_BATCH),
+              );
+              compute.setBindGroup(1, blurBindGroup1);
+              compute.dispatchWorkgroups(
+                Math.ceil(blurHeight / BLUR_BLOCK_DIM),
+                Math.ceil(blurWidth / BLUR_BATCH),
+              );
+            }
+            compute.end();
+          }
+
           const pass = encoder.beginRenderPass({
             colorAttachments: [
               {
