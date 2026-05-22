@@ -30,7 +30,8 @@ struct Uniforms {
   ambient: u32,
   liquidGlass: u32,
   time: f32,
-  _pad: vec2f,
+  glassAnim: f32,
+  _pad: f32,
 };
 
 @group(0) @binding(0) var srcTex: texture_external;
@@ -194,36 +195,30 @@ fn iconSdf(p: vec2f, s: f32, kind: u32) -> f32 {
   return min(bar, tri);
 }
 
-fn liquidGlassButton(pixel: vec2f, center: vec2f, radius: f32, iconKind: u32) -> vec4f {
-  let dv = pixel - center;
-  let d = length(dv);
-  let sd = d - radius;
-  if (sd > 1.0) {
-    return vec4f(0.0);
-  }
+// IQ's polynomial smooth-min. Used to merge the three button SDFs into a
+// single blob so that during the spread animation the discs share necks
+// like metaballs instead of just overlapping.
+fn smin(a: f32, b: f32, k: f32) -> f32 {
+  let h = max(k - abs(a - b), 0.0) / k;
+  return min(a, b) - h * h * k * 0.25;
+}
 
-  // Glass geometry: a puck with a beveled rim. The dome only curves over
-  // the outer "thickness" ring of the disc, leaving the center near-flat
-  // for clear see-through. Adapted from the Shadertoy liquid-glass formula.
-  let thickness = radius * 0.35;
+// Glass shading from a unified SDF + screen-space gradient. R is the larger
+// (center) button's radius; the dome thickness and refraction depth scale
+// off it so the look stays consistent regardless of which sub-disc you're
+// standing on.
+fn glassMaterial(pixel: vec2f, sd: f32, grad: vec2f, R: f32) -> vec3f {
+  let thickness = R * 0.35;
   let baseHeight = thickness * 5.0;
   let sd_safe = min(sd, 0.0);
-  let grad = dv / max(d, 0.0001);
 
-  // Reconstruct a 3D normal as if the surface were a spherical dome over
-  // the bevel ring: n_cos goes from 0 (flat top) to 1 (vertical at rim).
   let n_cos = clamp((thickness + sd_safe) / thickness, 0.0, 1.0);
   let n_sin = sqrt(max(1.0 - n_cos * n_cos, 0.0));
   let normal = normalize(vec3f(grad.x * n_cos, grad.y * n_cos, n_sin));
 
-  // Dome height z(sd), used as the start z of the refracted ray.
   let h_x = thickness + sd_safe;
   let h = sqrt(max(thickness * thickness - h_x * h_x, 0.0));
 
-  // Snell's-law refraction with per-channel IOR so the rim shows visible
-  // chromatic dispersion. The refracted ray starts at z = h, ends at the
-  // virtual background plane at z = -baseHeight, then we sample where it
-  // lands in screen-space.
   let incident = vec3f(0.0, 0.0, -1.0);
   let pxToUv = vec2f(1.0) / u.canvasSize;
   let rR = refract(incident, normal, 1.0 / 1.46);
@@ -242,9 +237,6 @@ fn liquidGlassButton(pixel: vec2f, center: vec2f, radius: f32, iconKind: u32) ->
     glassSample(uvB).b,
   );
 
-  // 5-tap frost with a heavier center weight gives a softer Gaussian-ish
-  // blur. Larger radius + heavier mix makes the underlying video read as
-  // pre-blurred behind the glass.
   var frost = vec3f(0.0);
   let f = 12.0 * pxToUv;
   frost = frost + glassSample(uvG) * 2.0;
@@ -254,12 +246,8 @@ fn liquidGlassButton(pixel: vec2f, center: vec2f, radius: f32, iconKind: u32) ->
   frost = frost + glassSample(uvG + vec2f(-f.x, -f.y));
   frost = frost / 6.0;
   var col = mix(refracted, frost, 0.55);
-
-  // Subtle cool-ish darken so the glass reads as denser than empty air.
   col = col * vec3f(0.90, 0.91, 0.94);
 
-  // Blinn-Phong specular from an above-front-left light. Tight exponent
-  // gives a sharp highlight typical of glass.
   let lightDir = normalize(vec3f(-0.45, -0.65, 1.0));
   let viewDir = vec3f(0.0, 0.0, 1.0);
   let H = normalize(lightDir + viewDir);
@@ -267,18 +255,15 @@ fn liquidGlassButton(pixel: vec2f, center: vec2f, radius: f32, iconKind: u32) ->
   let spec = pow(NdotH, 48.0) * 1.1;
   col = col + vec3f(1.0) * spec;
 
-  // Schlick-Fresnel rim. Brightens grazing angles where (1 - n.z) -> 1.
   let fresnel = pow(max(1.0 - normal.z, 0.0), 3.5);
   col = col + vec3f(0.55) * fresnel;
 
-  // White icon SDF overlay.
-  let iconScale = radius * 0.5;
-  let iconD = iconSdf(dv, iconScale, iconKind);
-  let iconA = 1.0 - smoothstep(-0.7, 0.7, iconD);
-  col = mix(col, vec3f(1.0), iconA);
+  return col;
+}
 
-  let aa = 1.0 - smoothstep(-1.0, 0.5, sd);
-  return vec4f(col, aa);
+fn iconAlphaAt(pixel: vec2f, center: vec2f, scale: f32, kind: u32) -> f32 {
+  let d = iconSdf(pixel - center, scale, kind);
+  return 1.0 - smoothstep(-0.7, 0.7, d);
 }
 
 @fragment
@@ -307,21 +292,50 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
   color = applyShaderEffect(color, u.shaderEffect);
   color = applyColorSpace(color, u.colorSpace);
 
-  if (u.liquidGlass == 1u) {
+  if (u.glassAnim > 0.001) {
     // Centered on screen for landscape playback. Center button is the play
-    // control and noticeably larger than the two skip controls.
+    // control and noticeably larger than the two skip controls. During the
+    // turn-on/off animation, all three buttons interpolate between the
+    // center (t=0) and their final positions (t=1), and the whole composite
+    // fades in/out via the AA alpha so the blob also disappears at t=0.
     let pixel = ndc * u.canvasSize;
     let cx = u.canvasSize.x * 0.5;
     let cy = u.canvasSize.y * 0.5;
-    let R = min(u.canvasSize.x, u.canvasSize.y) * 0.13;  // center (play)
-    let r = R * 0.65;                                    // skip back/forward
-    let sp = R + r + R * 0.45;                           // center-to-center spacing
-    let b1 = liquidGlassButton(pixel, vec2f(cx - sp, cy), r, 1u);
-    let b2 = liquidGlassButton(pixel, vec2f(cx,      cy), R, 0u);
-    let b3 = liquidGlassButton(pixel, vec2f(cx + sp, cy), r, 2u);
-    color = mix(color, b1.rgb, b1.a);
-    color = mix(color, b2.rgb, b2.a);
-    color = mix(color, b3.rgb, b3.a);
+    let R = min(u.canvasSize.x, u.canvasSize.y) * 0.13;
+    let r = R * 0.65;
+    let sp = R + r + R * 0.45;
+    let t = u.glassAnim;
+    let c1 = vec2f(cx - sp * t, cy);
+    let c2 = vec2f(cx, cy);
+    let c3 = vec2f(cx + sp * t, cy);
+
+    // Smooth-union the three discs so the in-between frames look like a
+    // single blob with thinning necks, not three overlapping circles.
+    let sd1 = length(pixel - c1) - r;
+    let sd2 = length(pixel - c2) - R;
+    let sd3 = length(pixel - c3) - r;
+    let k = R * 0.4;
+    let sd = smin(smin(sd1, sd2, k), sd3, k);
+
+    // Use screen-space derivatives of the unified SDF as the gradient so
+    // junction zones get the right (smooth) normal instead of one of the
+    // three analytic circle gradients.
+    let dx = dpdx(sd);
+    let dy = dpdy(sd);
+    let grad = vec2f(dx, dy) / max(length(vec2f(dx, dy)), 0.0001);
+
+    let glassCol = glassMaterial(pixel, sd, grad, R);
+
+    // Per-button icons fade in with the animation. Max-composite the three
+    // alpha masks since they only overlap at t -> 0 (when alpha is also 0).
+    let iA1 = iconAlphaAt(pixel, c1, r * 0.5, 1u);
+    let iA2 = iconAlphaAt(pixel, c2, R * 0.5, 0u);
+    let iA3 = iconAlphaAt(pixel, c3, r * 0.5, 2u);
+    let iconA = max(max(iA1, iA2), iA3);
+    let withIcons = mix(glassCol, vec3f(1.0), iconA);
+
+    let aa = (1.0 - smoothstep(-1.0, 0.5, sd)) * t;
+    color = mix(color, withIcons, aa);
   }
 
   return vec4f(color, 1.0);

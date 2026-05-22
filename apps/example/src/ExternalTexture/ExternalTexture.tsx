@@ -83,13 +83,32 @@ export const ExternalTexture = () => {
   // useEffect (which would tear down and rebuild the pipeline + player).
   const modesRef = useRef<Modes>(INITIAL_MODES);
   const [modes, setModes] = useState<Modes>(INITIAL_MODES);
+  // Glass-spread animation state. We always lerp from the current animated
+  // value to the new target on toggle, so partway-through animations get a
+  // smooth continuation instead of snapping.
+  const GLASS_ANIM_MS = 500;
+  const glassAnimStartRef = useRef<number>(performance.now());
+  const glassAnimFromRef = useRef<number>(0);
+  const glassAnimTargetRef = useRef<number>(0);
+  const computeGlassAnim = () => {
+    const elapsed =
+      (performance.now() - glassAnimStartRef.current) / GLASS_ANIM_MS;
+    const tNorm = Math.min(Math.max(elapsed, 0), 1);
+    return (
+      glassAnimFromRef.current +
+      (glassAnimTargetRef.current - glassAnimFromRef.current) * tNorm
+    );
+  };
   const cycle = (key: keyof Modes, max: number) => {
-    const next = {
-      ...modesRef.current,
-      [key]: (modesRef.current[key] + 1) % max,
-    };
+    const newVal = (modesRef.current[key] + 1) % max;
+    const next = { ...modesRef.current, [key]: newVal };
     modesRef.current = next;
     setModes(next);
+    if (key === "glass") {
+      glassAnimFromRef.current = computeGlassAnim();
+      glassAnimTargetRef.current = newVal;
+      glassAnimStartRef.current = performance.now();
+    }
   };
 
   useEffect(() => {
@@ -513,7 +532,7 @@ export const ExternalTexture = () => {
         uniformU32[7] = m.ambient;
         uniformU32[8] = m.glass;
         uniformF32[9] = (performance.now() - startTime) / 1000;
-        uniformF32[10] = 0;
+        uniformF32[10] = computeGlassAnim();
         uniformF32[11] = 0;
         device.queue.writeBuffer(uniformBuffer, 0, uniformData);
 
