@@ -2413,6 +2413,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mediapipe/face_detection@npm:^0.4.1646425229":
+  version: 0.4.1646425229
+  resolution: "@mediapipe/face_detection@npm:0.4.1646425229"
+  checksum: 2312f9e7019542c895723c135c1005e9d445e51fba1759d57e2fa28e2541874e1b7298cbdc07a1dcdee79e93714d89935418ea22d092014bfc58166ff34bfd8d
+  languageName: node
+  linkType: hard
+
 "@napi-rs/wasm-runtime@npm:^0.2.11":
   version: 0.2.12
   resolution: "@napi-rs/wasm-runtime@npm:0.2.12"
@@ -3784,6 +3791,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tensorflow-models/face-detection@npm:^1.0.3":
+  version: 1.0.3
+  resolution: "@tensorflow-models/face-detection@npm:1.0.3"
+  dependencies:
+    rimraf: ^3.0.2
+    tslib: 2.4.0
+  peerDependencies:
+    "@mediapipe/face_detection": ~0.4.0
+    "@tensorflow/tfjs-backend-webgl": ^4.21.0
+    "@tensorflow/tfjs-converter": ^4.21.0
+    "@tensorflow/tfjs-core": ^4.21.0
+  checksum: 7d514d1030fc80d8730bfbed6dbb84851aebd0329d69a10a313c924f838d32b8d5c384166f04ad77daf5d421d1e9f01b30173ed3bb6f33cee1ab10218e0a3844
+  languageName: node
+  linkType: hard
+
 "@tensorflow/tfjs-backend-cpu@npm:4.22.0":
   version: 4.22.0
   resolution: "@tensorflow/tfjs-backend-cpu@npm:4.22.0"
@@ -4867,6 +4889,7 @@ __metadata:
     "@babel/preset-env": ^7.25.0
     "@babel/runtime": ^7.25.0
     "@callstack/react-native-visionos": ^0.74.0
+    "@mediapipe/face_detection": ^0.4.1646425229
     "@react-native/babel-preset": 0.81.0
     "@react-native/eslint-config": 0.81.0
     "@react-native/metro-config": 0.81.0
@@ -4876,6 +4899,7 @@ __metadata:
     "@react-three/fiber": ^9.4.0
     "@rnx-kit/metro-config": ^2.0.0
     "@shopify/react-native-skia": 2.6.2
+    "@tensorflow-models/face-detection": ^1.0.3
     "@tensorflow/tfjs": ^4.22.0
     "@tensorflow/tfjs-backend-webgpu": ^4.22.0
     "@tensorflow/tfjs-vis": ^1.5.1
@@ -14556,6 +14580,13 @@ __metadata:
     minimist: ^1.2.6
     strip-bom: ^3.0.0
   checksum: 59f35407a390d9482b320451f52a411a256a130ff0e7543d18c6f20afab29ac19fbe55c360a93d6476213cc335a4d76ce90f67df54c4e9037f7d240920832201
+  languageName: node
+  linkType: hard
+
+"tslib@npm:2.4.0":
+  version: 2.4.0
+  resolution: "tslib@npm:2.4.0"
+  checksum: 8c4aa6a3c5a754bf76aefc38026134180c053b7bd2f81338cb5e5ebf96fefa0f417bff221592bf801077f5bf990562f6264fecbc42cd3309b33872cb6fc3b113
   languageName: node
   linkType: hard
 

@@ -1,6 +1,13 @@
 /* eslint-disable @typescript-eslint/no-shadow */
 import React, { useEffect, useRef, useState } from "react";
-import { PixelRatio, Platform, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  PixelRatio,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import {
   Canvas,
   useCanvasRef,
@@ -28,10 +35,12 @@ const REQUIRED_FEATURES: GPUFeatureName[] = [
   "dawn-multi-planar-formats" as GPUFeatureName,
 ];
 
-// Public Google sample with several human faces. Swap to a bundled asset or
-// the VisionCamera live feed once you're ready to graduate off file playback.
-const VIDEO_URL =
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4";
+// Bundled clip that ships with the example app (same asset as the
+// ExternalTexture demo). Swap to the VisionCamera live feed when you're
+// ready to graduate off file playback.
+const VIDEO_URL = Image.resolveAssetSource(
+  require("../assets/clip.mov"),
+).uri;
 
 // BlazeFace's "short" variant accepts a 128x128 input but we feed it at
 // 192x192 to keep some headroom for the bounding box regression. 192 * 4 =
