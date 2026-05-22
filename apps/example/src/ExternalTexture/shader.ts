@@ -138,34 +138,106 @@ fn glassSample(ndc: vec2f) -> vec3f {
   return c;
 }
 
-fn liquidGlassButton(pixel: vec2f, center: vec2f, radius: f32, tint: vec3f) -> vec4f {
+// 2D SDF utilities for the glass-button icons. Distances are in pixel units
+// (the caller passes p in pixel-space relative to the button center).
+fn sdTriangle(p: vec2f, a: vec2f, b: vec2f, c: vec2f) -> f32 {
+  let e0 = b - a;
+  let e1 = c - b;
+  let e2 = a - c;
+  let v0 = p - a;
+  let v1 = p - b;
+  let v2 = p - c;
+  let pq0 = v0 - e0 * clamp(dot(v0, e0) / dot(e0, e0), 0.0, 1.0);
+  let pq1 = v1 - e1 * clamp(dot(v1, e1) / dot(e1, e1), 0.0, 1.0);
+  let pq2 = v2 - e2 * clamp(dot(v2, e2) / dot(e2, e2), 0.0, 1.0);
+  let s = sign(e0.x * e2.y - e0.y * e2.x);
+  let d0 = vec2f(dot(pq0, pq0), s * (v0.x * e0.y - v0.y * e0.x));
+  let d1 = vec2f(dot(pq1, pq1), s * (v1.x * e1.y - v1.y * e1.x));
+  let d2 = vec2f(dot(pq2, pq2), s * (v2.x * e2.y - v2.y * e2.x));
+  let d = min(min(d0, d1), d2);
+  return -sqrt(d.x) * sign(d.y);
+}
+
+fn sdRoundedBox(p: vec2f, b: vec2f, r: f32) -> f32 {
+  let q = abs(p) - b + vec2f(r);
+  return length(max(q, vec2f(0.0))) + min(max(q.x, q.y), 0.0) - r;
+}
+
+// kind: 0 = play, 1 = skip-back, 2 = skip-forward.
+// s scales the normalized [-1, 1] icon coords into pixel units.
+fn iconSdf(p: vec2f, s: f32, kind: u32) -> f32 {
+  if (kind == 0u) {
+    return sdTriangle(p,
+      vec2f(-0.42, -0.55) * s,
+      vec2f(-0.42,  0.55) * s,
+      vec2f( 0.55,  0.00) * s);
+  }
+  if (kind == 1u) {
+    let bar = sdRoundedBox(
+      p - vec2f(-0.55, 0.0) * s,
+      vec2f(0.07, 0.55) * s,
+      0.04 * s);
+    let tri = sdTriangle(p,
+      vec2f( 0.50, -0.55) * s,
+      vec2f( 0.50,  0.55) * s,
+      vec2f(-0.40,  0.00) * s);
+    return min(bar, tri);
+  }
+  let bar = sdRoundedBox(
+    p - vec2f(0.55, 0.0) * s,
+    vec2f(0.07, 0.55) * s,
+    0.04 * s);
+  let tri = sdTriangle(p,
+    vec2f(-0.50, -0.55) * s,
+    vec2f(-0.50,  0.55) * s,
+    vec2f( 0.40,  0.00) * s);
+  return min(bar, tri);
+}
+
+fn liquidGlassButton(pixel: vec2f, center: vec2f, radius: f32, iconKind: u32) -> vec4f {
   let dv = pixel - center;
   let d = length(dv);
-  if (d > radius + 1.5) {
+  if (d > radius + 2.0) {
     return vec4f(0.0);
   }
   let edgeT = clamp(1.0 - d / radius, 0.0, 1.0);
   let nrm = dv / max(d, 0.0001);
-  // Bend more strongly near the rim, then taper to zero exactly at the rim.
-  let refractStrength = pow(1.0 - edgeT, 1.8) * (1.0 - smoothstep(0.92, 1.0, d / radius)) * 22.0;
+  let rimT = d / radius;
+
+  // Refraction: bend the underlying video sample stronger near the rim,
+  // taper to zero at the edge so the glass reads as a smooth dome.
+  let refractStrength = pow(1.0 - edgeT, 2.0) *
+                        (1.0 - smoothstep(0.94, 1.0, rimT)) * 30.0;
   let offset = -nrm * refractStrength / u.canvasSize;
   let baseNdc = pixel / u.canvasSize;
   let refracted = glassSample(baseNdc + offset);
-  // Frosted glass: also pick up a slightly displaced 4-tap blur and mix.
+
+  // Light frost so the glass stays mostly transparent.
   var frost = vec3f(0.0);
-  let f = 4.0 / u.canvasSize;
+  let f = 5.0 / u.canvasSize;
   frost = frost + glassSample(baseNdc + vec2f( f.x,  f.y));
   frost = frost + glassSample(baseNdc + vec2f(-f.x,  f.y));
   frost = frost + glassSample(baseNdc + vec2f( f.x, -f.y));
   frost = frost + glassSample(baseNdc + vec2f(-f.x, -f.y));
   frost = frost * 0.25;
-  var col = mix(refracted, frost, 0.35);
-  // Tint and top-down specular.
+  var col = mix(refracted, frost, 0.25);
+
+  // Light from above: bright top arc, mild bottom inner shadow.
   let topHi = smoothstep(0.55, 1.0, edgeT) * smoothstep(0.4, -0.6, nrm.y);
-  let rim = smoothstep(0.96, 1.0, d / radius) * (1.0 - smoothstep(1.0, 1.05, d / radius));
-  col = mix(col, tint, 0.12);
-  col = col + vec3f(0.55) * topHi;
-  col = col + vec3f(0.9) * rim * 0.6;
+  let botShad = smoothstep(0.0, 0.6, edgeT) *
+                smoothstep(-0.4, 0.6, nrm.y) * 0.12;
+  // Bright rim around the disc edge.
+  let rim = smoothstep(0.93, 1.0, rimT) * (1.0 - smoothstep(1.0, 1.04, rimT));
+  col = col * (1.0 - botShad);
+  col = col + vec3f(0.6) * topHi;
+  col = col + vec3f(1.0) * rim;
+
+  // White icon composited on top of the glass material.
+  let iconScale = radius * 0.5;
+  let iconD = iconSdf(dv, iconScale, iconKind);
+  let iconA = 1.0 - smoothstep(-0.7, 0.7, iconD);
+  col = mix(col, vec3f(1.0), iconA);
+
   let aa = 1.0 - smoothstep(radius - 1.0, radius + 0.5, d);
   return vec4f(col, aa);
 }
@@ -197,14 +269,17 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
   color = applyColorSpace(color, u.colorSpace);
 
   if (u.liquidGlass == 1u) {
+    // Centered on screen for landscape playback. Center button is the play
+    // control and noticeably larger than the two skip controls.
     let pixel = ndc * u.canvasSize;
     let cx = u.canvasSize.x * 0.5;
-    let cy = u.canvasSize.y * 0.78;
-    let r = min(u.canvasSize.x, u.canvasSize.y) * 0.075;
-    let sp = r * 2.7;
-    let b1 = liquidGlassButton(pixel, vec2f(cx - sp, cy), r, vec3f(1.00, 0.55, 0.30));
-    let b2 = liquidGlassButton(pixel, vec2f(cx,      cy), r * 1.15, vec3f(0.45, 0.85, 1.00));
-    let b3 = liquidGlassButton(pixel, vec2f(cx + sp, cy), r, vec3f(1.00, 0.42, 0.65));
+    let cy = u.canvasSize.y * 0.5;
+    let R = min(u.canvasSize.x, u.canvasSize.y) * 0.13;  // center (play)
+    let r = R * 0.65;                                    // skip back/forward
+    let sp = R + r + R * 0.45;                           // center-to-center spacing
+    let b1 = liquidGlassButton(pixel, vec2f(cx - sp, cy), r, 1u);
+    let b2 = liquidGlassButton(pixel, vec2f(cx,      cy), R, 0u);
+    let b3 = liquidGlassButton(pixel, vec2f(cx + sp, cy), r, 2u);
     color = mix(color, b1.rgb, b1.a);
     color = mix(color, b2.rgb, b2.a);
     color = mix(color, b3.rgb, b3.a);
