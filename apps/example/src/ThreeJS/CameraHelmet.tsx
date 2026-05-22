@@ -12,11 +12,15 @@ import { Canvas } from "react-native-wgpu";
 import {
   CommonResolutions,
   NativePreviewView,
-  useCamera,
   useCameraDevices,
   useCameraPermission,
   useFrameOutput,
   usePreviewOutput,
+  VisionCamera as VisionCameraFactory,
+} from "react-native-vision-camera";
+import type {
+  CameraController,
+  CameraSession,
 } from "react-native-vision-camera";
 import * as THREE from "three";
 
@@ -87,12 +91,17 @@ const Scene = () => {
   // preview — no detour through equirect/cubemap, no quality loss.
   const previewOutput = usePreviewOutput();
 
+  // Two cameras at once: the back camera feeds the native preview backdrop,
+  // the front camera feeds the helmet's environment map (so you see yourself
+  // reflected in the chrome). Requires multi-cam capable hardware (iPhone
+  // XS+ / most modern Android flagships).
   const devices = useCameraDevices();
-  const cameraDevice = React.useMemo(
-    () =>
-      devices.find((d) => d.position === "back") ??
-      devices.find((d) => d.position === "front") ??
-      devices[0],
+  const backDevice = React.useMemo(
+    () => devices.find((d) => d.position === "back"),
+    [devices],
+  );
+  const frontDevice = React.useMemo(
+    () => devices.find((d) => d.position === "front"),
     [devices],
   );
 
@@ -354,10 +363,10 @@ const Scene = () => {
   const logBox = React.useMemo(() => ({ count: 0 }), []);
   const frameOutput = useFrameOutput({
     pixelFormat: "native",
-    // Request 4K (UHD). Source resolution is the hard ceiling on backdrop
-    // sharpness; UHD ~9x the pixel count of the default 720p. The worklet's
-    // copy pass is cheap so this is mostly a memory-bandwidth bump.
-    targetResolution: CommonResolutions.UHD_16_9,
+    // 720p front-cam frames are plenty for the helmet's reflection — it's a
+    // small on-screen area. Keeping this low matters more in a multi-cam
+    // session, where both cameras share AVFoundation's bandwidth budget.
+    targetResolution: CommonResolutions.HD_16_9,
     onFrame: (frame) => {
       "worklet";
       logBox.count += 1;
@@ -424,11 +433,93 @@ const Scene = () => {
     },
   });
 
-  useCamera({
-    isActive: pipelineState != null && cameraDevice != null,
-    device: cameraDevice as NonNullable<typeof cameraDevice>,
-    outputs: [frameOutput, previewOutput],
-  });
+  // ---- Multi-cam session ------------------------------------------------
+  // useCamera always sets enableMultiCamSupport=false, so we drop down to
+  // the imperative API to drive two camera connections from a single
+  // session: front → frameOutput (helmet env), back → previewOutput
+  // (backdrop View).
+  const [session, setSession] = useState<CameraSession | null>(null);
+  useEffect(() => {
+    if (!VisionCameraFactory.supportsMultiCamSessions) {
+      setError(
+        "This device doesn't support multi-cam sessions. Need an iPhone XS " +
+          "or newer / a comparable Android flagship.",
+      );
+      return;
+    }
+    let cancelled = false;
+    let created: CameraSession | null = null;
+    (async () => {
+      const s = await VisionCameraFactory.createCameraSession(true);
+      if (cancelled) {
+        s.dispose();
+        return;
+      }
+      created = s;
+      setSession(s);
+    })();
+    return () => {
+      cancelled = true;
+      created?.stop();
+      created?.dispose();
+    };
+  }, []);
+
+  // Configure the session with two connections once everything is ready.
+  // We wait on pipelineState too because the worklet (which receives the
+  // front cam frames) only has somewhere to write once the env texture +
+  // camera-copy pipeline exist.
+  useEffect(() => {
+    if (!session || !backDevice || !frontDevice || !pipelineState) {
+      return;
+    }
+    console.log("[CameraHelmet] configuring multi-cam session");
+    let cancelled = false;
+    let controllers: CameraController[] = [];
+    (async () => {
+      try {
+        controllers = await session.configure(
+          [
+            {
+              input: backDevice,
+              outputs: [{ output: previewOutput, mirrorMode: "auto" }],
+              constraints: [],
+            },
+            {
+              input: frontDevice,
+              outputs: [{ output: frameOutput, mirrorMode: "auto" }],
+              constraints: [],
+            },
+          ],
+          {},
+        );
+        if (cancelled) {
+          controllers.forEach((c) => c.dispose());
+          return;
+        }
+        console.log("[CameraHelmet] session configured, starting");
+        session.start();
+      } catch (e) {
+        if (cancelled) {
+          return;
+        }
+        console.warn("[CameraHelmet] session configure failed: " + String(e));
+        setError(String(e));
+      }
+    })();
+    return () => {
+      cancelled = true;
+      session.stop();
+      controllers.forEach((c) => c.dispose());
+    };
+  }, [
+    session,
+    backDevice,
+    frontDevice,
+    previewOutput,
+    frameOutput,
+    pipelineState,
+  ]);
 
   if (error) {
     return (
@@ -437,12 +528,12 @@ const Scene = () => {
       </View>
     );
   }
-  if (cameraDevice == null) {
+  if (backDevice == null || frontDevice == null) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>
-          No camera available. This screen needs a physical device with a camera
-          (the iOS Simulator doesn't have one).
+          Need both a back and a front camera. The iOS Simulator has none, and
+          some devices expose only one.
         </Text>
       </View>
     );

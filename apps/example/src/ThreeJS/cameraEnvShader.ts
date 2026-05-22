@@ -35,10 +35,13 @@ fn vs_main(@builtin(vertex_index) vid: u32) -> VsOut {
 
 @fragment
 fn fs_main(in: VsOut) -> @location(0) vec4f {
-  // Rotate the camera 90° CW so VisionCamera's landscape sensor frame is
-  // upright when the device is held in portrait. (Vertical/horizontal flips
-  // of this are easy to swap in if a particular device needs them.)
-  let rotatedUv = vec2f(in.uv.y, 1.0 - in.uv.x);
+  // Front camera: iOS delivers landscape-orientation frames with the
+  // horizontal axis already mirrored (selfie convention). To bring those
+  // upright in the equirect we (a) compensate for the horizontal mirror
+  // by sampling at (1-x) and (b) rotate 90° CCW with V flipped, giving
+  // (1-v, 1-u). Equivalent to the 90° CW back-cam mapping (v, 1-u) with
+  // its U axis pre-flipped to undo the mirror.
+  let rotatedUv = vec2f(1.0 - in.uv.y, 1.0 - in.uv.x);
   let c = textureSampleBaseClampToEdge(srcTex, srcSampler, rotatedUv);
   return vec4f(c.rgb, 1.0);
 }
