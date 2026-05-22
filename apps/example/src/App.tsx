@@ -39,6 +39,7 @@ import { StorageBufferVertices } from "./StorageBufferVertices";
 import { SharedTextureMemory } from "./SharedTextureMemory";
 import { ExternalTexture } from "./ExternalTexture";
 import { VisionCamera } from "./VisionCamera";
+import { ChromeSphere } from "./ChromeSphere";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -106,6 +107,7 @@ function App() {
           />
           <Stack.Screen name="ExternalTexture" component={ExternalTexture} />
           <Stack.Screen name="VisionCamera" component={VisionCamera} />
+          <Stack.Screen name="ChromeSphere" component={ChromeSphere} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

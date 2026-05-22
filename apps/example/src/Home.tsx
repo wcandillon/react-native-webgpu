@@ -139,6 +139,10 @@ export const examples = [
     screen: "VisionCamera",
     title: "📷 VisionCamera integration",
   },
+  {
+    screen: "ChromeSphere",
+    title: "🪩 Chrome Sphere (camera env map)",
+  },
 ];
 
 const styles = StyleSheet.create({
