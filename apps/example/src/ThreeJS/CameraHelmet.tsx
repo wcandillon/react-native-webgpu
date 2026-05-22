@@ -256,13 +256,11 @@ const Scene = () => {
         });
 
         // THREE.ExternalTexture bridges our GPUTexture into three.js as a
-        // sampleable 2D equirect. We never set scene.background or
-        // material.envMap to this directly: three.js' CubeMapNode would only
-        // run the equirect→cubemap conversion once and cache it, which means
-        // we'd be stuck sampling whatever was in our env texture on frame 1
-        // (= black, before the worklet ever wrote).
+        // sampleable 2D texture. SphereGeometry's default UVs already lay
+        // out 0..1 the same way an equirect does (u around, v pole-to-pole),
+        // so plain UV mapping wraps the panorama correctly when we use this
+        // as a regular .map on the inside-out sky sphere below.
         const envExternalTexture = new THREE.ExternalTexture(envTexture);
-        envExternalTexture.mapping = THREE.EquirectangularReflectionMapping;
         envExternalTexture.colorSpace = THREE.SRGBColorSpace;
         (envExternalTexture as unknown as { image: unknown }).image = {
           width: ENV_WIDTH,
@@ -270,11 +268,11 @@ const Scene = () => {
         };
         envExternalTexture.needsUpdate = true;
 
-        // Allocate the cubemap once. Each frame we'll call
-        // cubeRT.fromEquirectangularTexture(renderer, envExternalTexture) to
-        // refresh the cube faces from the equirect's *current* contents.
-        // That's the same code path CubeMapNode uses internally, but we
-        // drive it on every tick instead of letting three.js cache it.
+        // The cubemap is rendered each frame by THREE.CubeCamera (six
+        // perspective passes into the six faces) instead of being blitted
+        // from an equirect. CubeCamera renders the actual scene, so the
+        // reflection picks up any other geometry we add — not just the sky
+        // sphere that carries the camera feed.
         const cubeRT = new THREE.CubeRenderTarget(ENV_HEIGHT);
         cubeRT.texture.mapping = THREE.CubeReflectionMapping;
         cubeRT.texture.colorSpace = THREE.SRGBColorSpace;
@@ -291,6 +289,24 @@ const Scene = () => {
         const scene = new THREE.Scene();
         // No scene.background — the canvas is alpha-cleared and the native
         // camera preview View sits behind it (see JSX below).
+
+        // Layer split: main camera sees layer 0 (helmet only) so the native
+        // preview View remains visible everywhere else; CubeCamera sees
+        // layer 1 (the sky sphere) so the helmet never reflects itself.
+        const ENV_LAYER = 1;
+        const sky = new THREE.Mesh(
+          new THREE.SphereGeometry(50, 64, 32),
+          new THREE.MeshBasicMaterial({
+            map: envExternalTexture,
+            side: THREE.BackSide,
+          }),
+        );
+        sky.layers.set(ENV_LAYER);
+        scene.add(sky);
+
+        const cubeCamera = new THREE.CubeCamera(0.1, 100, cubeRT);
+        cubeCamera.layers.set(ENV_LAYER);
+        scene.add(cubeCamera);
         if (USE_PBR) {
           // Keep the GLTF's MeshStandardMaterial intact (albedo / normal /
           // metalRoughness / AO from the original textures) and just plug
@@ -357,10 +373,12 @@ const Scene = () => {
           camera.position.y = 0;
           camera.lookAt(0, 0, 0);
 
-          // Refresh the cubemap from the (worklet-updated) equirect before
-          // rendering the scene. The conversion does 6 fullscreen draws into
-          // the cube faces; pipelines are reused across calls.
-          cubeRT.fromEquirectangularTexture(renderer!, envExternalTexture);
+          // Refresh the cubemap by rendering the env-layer of the scene
+          // (= the sky sphere wearing the worklet-updated camera feed) from
+          // six perspectives. Costlier than a equirect blit but captures
+          // every layer-1 object, so adding scene props would also show up
+          // in the reflection.
+          cubeCamera.update(renderer!, scene);
           renderer!.render(scene, camera);
           context.present();
           frameCount++;
