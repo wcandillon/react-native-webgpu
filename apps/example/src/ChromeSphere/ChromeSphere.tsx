@@ -22,15 +22,15 @@ import {
   useFrameOutput,
 } from "react-native-vision-camera";
 
+import { BLUR_SHADER, PREPASS_SHADER } from "../VisionCamera/blurShaders";
+
 import {
-  generateCube,
   generateSphere,
-  generateTorus,
   NORMAL_OFFSET,
   POSITION_OFFSET,
   VERTEX_STRIDE_BYTES,
 } from "./geometry";
-import { SHADER } from "./shader";
+import { BACKDROP_SHADER, SHADER } from "./shader";
 
 // All matrix math runs inside the Vision Camera frame-processor worklet, so it
 // has to be implemented with worklet-friendly helpers. wgpu-matrix calls
@@ -57,40 +57,6 @@ const setIdentity = (out: Float32Array) => {
   out[13] = 0;
   out[14] = 0;
   out[15] = 1;
-};
-
-// dst = m * Rx(angle). Safe with dst === m: only columns 1 and 2 change, and
-// we snapshot them into locals before writing.
-const applyRotateX = (m: Float32Array, angle: number, dst: Float32Array) => {
-  "worklet";
-  const c = Math.cos(angle);
-  const s = Math.sin(angle);
-  const m01 = m[4],
-    m11 = m[5],
-    m21 = m[6],
-    m31 = m[7];
-  const m02 = m[8],
-    m12 = m[9],
-    m22 = m[10],
-    m32 = m[11];
-  if (dst !== m) {
-    dst[0] = m[0];
-    dst[1] = m[1];
-    dst[2] = m[2];
-    dst[3] = m[3];
-    dst[12] = m[12];
-    dst[13] = m[13];
-    dst[14] = m[14];
-    dst[15] = m[15];
-  }
-  dst[4] = c * m01 + s * m02;
-  dst[5] = c * m11 + s * m12;
-  dst[6] = c * m21 + s * m22;
-  dst[7] = c * m31 + s * m32;
-  dst[8] = -s * m01 + c * m02;
-  dst[9] = -s * m11 + c * m12;
-  dst[10] = -s * m21 + c * m22;
-  dst[11] = -s * m31 + c * m32;
 };
 
 // dst = m * Ry(angle). Safe with dst === m.
@@ -124,85 +90,6 @@ const applyRotateY = (m: Float32Array, angle: number, dst: Float32Array) => {
   dst[9] = s * m10 + c * m12;
   dst[10] = s * m20 + c * m22;
   dst[11] = s * m30 + c * m32;
-};
-
-// dst = m * Rz(angle). Safe with dst === m.
-const applyRotateZ = (m: Float32Array, angle: number, dst: Float32Array) => {
-  "worklet";
-  const c = Math.cos(angle);
-  const s = Math.sin(angle);
-  const m00 = m[0],
-    m10 = m[1],
-    m20 = m[2],
-    m30 = m[3];
-  const m01 = m[4],
-    m11 = m[5],
-    m21 = m[6],
-    m31 = m[7];
-  if (dst !== m) {
-    dst[8] = m[8];
-    dst[9] = m[9];
-    dst[10] = m[10];
-    dst[11] = m[11];
-    dst[12] = m[12];
-    dst[13] = m[13];
-    dst[14] = m[14];
-    dst[15] = m[15];
-  }
-  dst[0] = c * m00 + s * m01;
-  dst[1] = c * m10 + s * m11;
-  dst[2] = c * m20 + s * m21;
-  dst[3] = c * m30 + s * m31;
-  dst[4] = -s * m00 + c * m01;
-  dst[5] = -s * m10 + c * m11;
-  dst[6] = -s * m20 + c * m21;
-  dst[7] = -s * m30 + c * m31;
-};
-
-// dst = m * translate(tx, ty, tz). Only column 3 changes; safe with dst === m
-// because we read the old col0/1/2 entries and the old col3 first.
-const applyTranslate = (
-  m: Float32Array,
-  tx: number,
-  ty: number,
-  tz: number,
-  dst: Float32Array,
-) => {
-  "worklet";
-  const c0r0 = m[0],
-    c0r1 = m[1],
-    c0r2 = m[2],
-    c0r3 = m[3];
-  const c1r0 = m[4],
-    c1r1 = m[5],
-    c1r2 = m[6],
-    c1r3 = m[7];
-  const c2r0 = m[8],
-    c2r1 = m[9],
-    c2r2 = m[10],
-    c2r3 = m[11];
-  const c3r0 = m[12],
-    c3r1 = m[13],
-    c3r2 = m[14],
-    c3r3 = m[15];
-  if (dst !== m) {
-    dst[0] = c0r0;
-    dst[1] = c0r1;
-    dst[2] = c0r2;
-    dst[3] = c0r3;
-    dst[4] = c1r0;
-    dst[5] = c1r1;
-    dst[6] = c1r2;
-    dst[7] = c1r3;
-    dst[8] = c2r0;
-    dst[9] = c2r1;
-    dst[10] = c2r2;
-    dst[11] = c2r3;
-  }
-  dst[12] = c0r0 * tx + c1r0 * ty + c2r0 * tz + c3r0;
-  dst[13] = c0r1 * tx + c1r1 * ty + c2r1 * tz + c3r1;
-  dst[14] = c0r2 * tx + c1r2 * ty + c2r2 * tz + c3r2;
-  dst[15] = c0r3 * tx + c1r3 * ty + c2r3 * tz + c3r3;
 };
 
 // WebGPU-style perspective: right-handed, output z mapped to [0, 1]. fovy is
@@ -360,6 +247,16 @@ const OPAQUE_YCBCR_EXT =
 
 const DEPTH_FORMAT: GPUTextureFormat = "depth24plus";
 
+// Backdrop blur tuning. Matches VisionCamera's "Strong" preset: prepass to a
+// 1/4-res rgba8unorm, then 3 H-V iterations of the tile-based box blur. The
+// final result is sampled by BACKDROP_SHADER as a fullscreen backdrop.
+const BLUR_SCALE = 4;
+const BLUR_FILTER_SIZE = 31;
+const BLUR_TILE_DIM = 128;
+const BLUR_BATCH = 4;
+const BLUR_BLOCK_DIM = BLUR_TILE_DIM - BLUR_FILTER_SIZE;
+const BLUR_ITERATIONS = 3;
+
 // Scene UBO layout. mat4(64) + vec4(16) + vec4(16) = 96 bytes; pad to 16-byte
 // alignment for safety.
 const SCENE_UBO_SIZE = 96;
@@ -475,6 +372,19 @@ const SceneView = () => {
     viewProj: Float32Array;
     sceneData: Float32Array;
     modelScratch: Float32Array;
+    // Blurred-camera backdrop infrastructure.
+    backdropPipeline: GPURenderPipeline;
+    backdropBindGroup: GPUBindGroup;
+    prepassPipeline: GPURenderPipeline;
+    prepassUniformBuffer: GPUBuffer;
+    blurPipeline: GPUComputePipeline;
+    blurConstants: GPUBindGroup;
+    blurBindGroup0: GPUBindGroup;
+    blurBindGroup1: GPUBindGroup;
+    blurBindGroup2: GPUBindGroup;
+    blurSrcTexture: GPUTexture;
+    blurWidth: number;
+    blurHeight: number;
   } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -560,8 +470,6 @@ const SceneView = () => {
     });
 
     const sphereMesh = generateSphere(1.0, 48, 64);
-    const cubeMesh = generateCube(0.9);
-    const torusMesh = generateTorus(0.55, 0.18, 48, 24);
 
     const buildShape = (
       mesh: { vertices: Float32Array; indices: Uint16Array },
@@ -596,32 +504,155 @@ const SceneView = () => {
       };
     };
 
-    // Layout: sphere center stage, cube and torus orbiting on a tilted ring
-    // 1.9 units out. All three counter-rotate so motion reads as a clear
-    // composition rather than a swirl. These run inside the frame worklet.
+    // Single chrome sphere center stage with a slow Y-rotation so the
+    // reflection drifts even when the orbit camera is between key positions.
+    // Runs inside the frame worklet.
     const shapes: Shape[] = [
       buildShape(sphereMesh, (t, out) => {
         "worklet";
         setIdentity(out);
         applyRotateY(out, t * 0.25, out);
       }),
-      buildShape(cubeMesh, (t, out) => {
-        "worklet";
-        setIdentity(out);
-        applyRotateY(out, t * 0.35, out);
-        applyTranslate(out, 1.9, 0.4, 0.0, out);
-        applyRotateY(out, t * -0.9, out);
-        applyRotateX(out, t * 0.6, out);
-      }),
-      buildShape(torusMesh, (t, out) => {
-        "worklet";
-        setIdentity(out);
-        applyRotateY(out, t * 0.35 + Math.PI, out);
-        applyTranslate(out, 1.9, -0.3, 0.0, out);
-        applyRotateX(out, t * 0.5, out);
-        applyRotateZ(out, t * 0.3, out);
-      }),
     ];
+
+    // ----- Backdrop blur infrastructure (same as VisionCamera "Strong") ---
+    const blurWidth = Math.max(
+      BLUR_TILE_DIM,
+      Math.ceil(canvas.width / BLUR_SCALE),
+    );
+    const blurHeight = Math.max(
+      BLUR_TILE_DIM,
+      Math.ceil(canvas.height / BLUR_SCALE),
+    );
+
+    const prepassModule = device.createShaderModule({ code: PREPASS_SHADER });
+    const prepassPipeline = device.createRenderPipeline({
+      layout: "auto",
+      vertex: { module: prepassModule, entryPoint: "vs_main" },
+      fragment: {
+        module: prepassModule,
+        entryPoint: "fs_main",
+        targets: [{ format: "rgba8unorm" }],
+      },
+      primitive: { topology: "triangle-list" },
+    });
+    const prepassUniformBuffer = device.createBuffer({
+      size: 16,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    const blurSrcTexture = device.createTexture({
+      size: [blurWidth, blurHeight],
+      format: "rgba8unorm",
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    const blurPing = [0, 1].map(() =>
+      device.createTexture({
+        size: [blurWidth, blurHeight],
+        format: "rgba8unorm",
+        usage:
+          GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+      }),
+    );
+
+    const blurPipeline = device.createComputePipeline({
+      layout: "auto",
+      compute: {
+        module: device.createShaderModule({ code: BLUR_SHADER }),
+        entryPoint: "main",
+      },
+    });
+
+    const flip0Buffer = device.createBuffer({
+      size: 4,
+      mappedAtCreation: true,
+      usage: GPUBufferUsage.UNIFORM,
+    });
+    new Uint32Array(flip0Buffer.getMappedRange())[0] = 0;
+    flip0Buffer.unmap();
+    const flip1Buffer = device.createBuffer({
+      size: 4,
+      mappedAtCreation: true,
+      usage: GPUBufferUsage.UNIFORM,
+    });
+    new Uint32Array(flip1Buffer.getMappedRange())[0] = 1;
+    flip1Buffer.unmap();
+
+    const blurParamsBuffer = device.createBuffer({
+      size: 8,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(
+      blurParamsBuffer,
+      0,
+      new Uint32Array([BLUR_FILTER_SIZE + 1, BLUR_BLOCK_DIM]),
+    );
+
+    const blurConstants = device.createBindGroup({
+      layout: blurPipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: sampler },
+        { binding: 1, resource: { buffer: blurParamsBuffer } },
+      ],
+    });
+    // H: blurSrcTexture -> blurPing[0]
+    const blurBindGroup0 = device.createBindGroup({
+      layout: blurPipeline.getBindGroupLayout(1),
+      entries: [
+        { binding: 1, resource: blurSrcTexture.createView() },
+        { binding: 2, resource: blurPing[0].createView() },
+        { binding: 3, resource: { buffer: flip0Buffer } },
+      ],
+    });
+    // V: blurPing[0] -> blurPing[1]
+    const blurBindGroup1 = device.createBindGroup({
+      layout: blurPipeline.getBindGroupLayout(1),
+      entries: [
+        { binding: 1, resource: blurPing[0].createView() },
+        { binding: 2, resource: blurPing[1].createView() },
+        { binding: 3, resource: { buffer: flip1Buffer } },
+      ],
+    });
+    // H (iteration N>=2): blurPing[1] -> blurPing[0]
+    const blurBindGroup2 = device.createBindGroup({
+      layout: blurPipeline.getBindGroupLayout(1),
+      entries: [
+        { binding: 1, resource: blurPing[1].createView() },
+        { binding: 2, resource: blurPing[0].createView() },
+        { binding: 3, resource: { buffer: flip0Buffer } },
+      ],
+    });
+    // Final iteration's V pass always lands in blurPing[1].
+    const blurredView = blurPing[1].createView();
+
+    // Backdrop pipeline: shares the render pass with the chrome sphere, so
+    // it must declare a matching depth-stencil layout. depthCompare always /
+    // depthWriteEnabled false means it draws unconditionally and never
+    // disturbs depth for the subsequent sphere draw.
+    const backdropModule = device.createShaderModule({ code: BACKDROP_SHADER });
+    const backdropPipeline = device.createRenderPipeline({
+      layout: "auto",
+      vertex: { module: backdropModule, entryPoint: "vs_main" },
+      fragment: {
+        module: backdropModule,
+        entryPoint: "fs_main",
+        targets: [{ format: presentationFormat }],
+      },
+      primitive: { topology: "triangle-list" },
+      depthStencil: {
+        depthCompare: "always",
+        depthWriteEnabled: false,
+        format: DEPTH_FORMAT,
+      },
+    });
+    const backdropBindGroup = device.createBindGroup({
+      layout: backdropPipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: blurredView },
+        { binding: 1, resource: sampler },
+      ],
+    });
 
     setPipelineState({
       pipeline,
@@ -637,6 +668,18 @@ const SceneView = () => {
       viewProj: new Float32Array(16),
       sceneData: new Float32Array(SCENE_UBO_FLOATS),
       modelScratch: new Float32Array(16),
+      backdropPipeline,
+      backdropBindGroup,
+      prepassPipeline,
+      prepassUniformBuffer,
+      blurPipeline,
+      blurConstants,
+      blurBindGroup0,
+      blurBindGroup1,
+      blurBindGroup2,
+      blurSrcTexture,
+      blurWidth,
+      blurHeight,
     });
   }, [device, adapter, ref, pipelineState]);
 
@@ -676,6 +719,18 @@ const SceneView = () => {
         viewProj,
         sceneData,
         modelScratch,
+        backdropPipeline,
+        backdropBindGroup,
+        prepassPipeline,
+        prepassUniformBuffer,
+        blurPipeline,
+        blurConstants,
+        blurBindGroup0,
+        blurBindGroup1,
+        blurBindGroup2,
+        blurSrcTexture,
+        blurWidth,
+        blurHeight,
       } = pipelineState;
       const nativeBuffer = frame.getNativeBuffer();
       try {
@@ -691,9 +746,7 @@ const SceneView = () => {
           const ex = Math.cos(t * 0.15) * orbitR;
           const ey = 1.2 + Math.sin(t * 0.2) * 0.4;
           const ez = Math.sin(t * 0.15) * orbitR;
-          // Bias the look target toward the orbiters so they read as the
-          // composition's center of attention.
-          setLookAt(view, ex, ey, ez, 0.6, 0.0, 0.0, 0, 1, 0);
+          setLookAt(view, ex, ey, ez, 0.0, 0.0, 0.0, 0, 1, 0);
           setPerspective(
             proj,
             Math.PI / 4,
@@ -739,11 +792,74 @@ const SceneView = () => {
           }
 
           const encoder = device.createCommandEncoder();
+
+          // ---- Backdrop blur (prepass + 3 H-V iterations at 1/4 res) ----
+          device.queue.writeBuffer(
+            prepassUniformBuffer,
+            0,
+            new Float32Array([
+              videoFrame.width,
+              videoFrame.height,
+              canvasWidth,
+              canvasHeight,
+            ]),
+          );
+          const prepassBindGroup = device.createBindGroup({
+            layout: prepassPipeline.getBindGroupLayout(0),
+            entries: [
+              { binding: 0, resource: externalTex },
+              { binding: 1, resource: sampler },
+              { binding: 2, resource: { buffer: prepassUniformBuffer } },
+            ],
+          });
+          const prepass = encoder.beginRenderPass({
+            colorAttachments: [
+              {
+                view: blurSrcTexture.createView(),
+                clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                loadOp: "clear",
+                storeOp: "store",
+              },
+            ],
+          });
+          prepass.setPipeline(prepassPipeline);
+          prepass.setBindGroup(0, prepassBindGroup);
+          prepass.draw(3);
+          prepass.end();
+
+          const compute = encoder.beginComputePass();
+          compute.setPipeline(blurPipeline);
+          compute.setBindGroup(0, blurConstants);
+          compute.setBindGroup(1, blurBindGroup0);
+          compute.dispatchWorkgroups(
+            Math.ceil(blurWidth / BLUR_BLOCK_DIM),
+            Math.ceil(blurHeight / BLUR_BATCH),
+          );
+          compute.setBindGroup(1, blurBindGroup1);
+          compute.dispatchWorkgroups(
+            Math.ceil(blurHeight / BLUR_BLOCK_DIM),
+            Math.ceil(blurWidth / BLUR_BATCH),
+          );
+          for (let i = 0; i < BLUR_ITERATIONS - 1; i++) {
+            compute.setBindGroup(1, blurBindGroup2);
+            compute.dispatchWorkgroups(
+              Math.ceil(blurWidth / BLUR_BLOCK_DIM),
+              Math.ceil(blurHeight / BLUR_BATCH),
+            );
+            compute.setBindGroup(1, blurBindGroup1);
+            compute.dispatchWorkgroups(
+              Math.ceil(blurHeight / BLUR_BLOCK_DIM),
+              Math.ceil(blurWidth / BLUR_BATCH),
+            );
+          }
+          compute.end();
+
+          // ---- Main scene pass: backdrop first (no depth write), then sphere
           const pass = encoder.beginRenderPass({
             colorAttachments: [
               {
                 view: context.getCurrentTexture().createView(),
-                clearValue: { r: 0.02, g: 0.02, b: 0.03, a: 1 },
+                clearValue: { r: 0, g: 0, b: 0, a: 1 },
                 loadOp: "clear",
                 storeOp: "store",
               },
@@ -755,6 +871,14 @@ const SceneView = () => {
               depthStoreOp: "store",
             },
           });
+
+          // Backdrop pipeline has depthCompare: "always" and writes nothing
+          // to depth, so the subsequent sphere draw still sees a clean depth
+          // buffer with the canvas-clear far value.
+          pass.setPipeline(backdropPipeline);
+          pass.setBindGroup(0, backdropBindGroup);
+          pass.draw(3);
+
           pass.setPipeline(pipeline);
           for (const shape of shapes) {
             // The external texture is bound per-shape (one bind group per

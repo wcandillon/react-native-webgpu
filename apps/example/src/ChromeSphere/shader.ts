@@ -1,3 +1,46 @@
+// Backdrop shader. Fullscreen triangle that samples the pre-blurred camera
+// image (cover-fit baked in by the prepass), dims it ~50%, and adds a soft
+// vignette so the chrome sphere stays the focal point of the scene.
+export const BACKDROP_SHADER = /* wgsl */ `
+@group(0) @binding(0) var src: texture_2d<f32>;
+@group(0) @binding(1) var samp: sampler;
+
+struct VsOut {
+  @builtin(position) position: vec4f,
+  @location(0) uv: vec2f,
+};
+
+@vertex
+fn vs_main(@builtin(vertex_index) vid: u32) -> VsOut {
+  var positions = array<vec2f, 3>(
+    vec2f(-1.0, -3.0),
+    vec2f(-1.0,  1.0),
+    vec2f( 3.0,  1.0),
+  );
+  var uvs = array<vec2f, 3>(
+    vec2f(0.0, 2.0),
+    vec2f(0.0, 0.0),
+    vec2f(2.0, 0.0),
+  );
+  var out: VsOut;
+  out.position = vec4f(positions[vid], 0.0, 1.0);
+  out.uv = uvs[vid];
+  return out;
+}
+
+@fragment
+fn fs_main(in: VsOut) -> @location(0) vec4f {
+  var c = textureSampleLevel(src, samp, in.uv, 0.0).rgb;
+  // Subdue the room: half-brightness + soft vignette darkening the edges by
+  // another ~40%. Keeps a sense of ambient lighting without competing with
+  // the chrome reflection.
+  c = c * 0.55;
+  let d = distance(in.uv, vec2f(0.5));
+  let v = 1.0 - smoothstep(0.4, 0.95, d) * 0.45;
+  return vec4f(c * v, 1.0);
+}
+`;
+
 // Chrome-style env-map reflection driven by the live camera feed.
 //
 // For each fragment we compute the reflection vector around the world-space
