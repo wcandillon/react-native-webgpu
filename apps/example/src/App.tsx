@@ -104,7 +104,11 @@ function App() {
             name="SharedTextureMemory"
             component={SharedTextureMemory}
           />
-          <Stack.Screen name="ExternalTexture" component={ExternalTexture} />
+          <Stack.Screen
+            name="ExternalTexture"
+            component={ExternalTexture}
+            options={{ headerShown: false }}
+          />
           <Stack.Screen name="VisionCamera" component={VisionCamera} />
         </Stack.Navigator>
       </NavigationContainer>

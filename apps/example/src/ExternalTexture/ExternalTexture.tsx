@@ -1,5 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Image, PixelRatio, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  type LayoutChangeEvent,
+  PixelRatio,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import {
   Canvas,
   useCanvasRef,
@@ -24,7 +31,7 @@ const REQUIRED_FEATURES: GPUFeatureName[] = [
 ];
 
 const VIDEO_URL = Image.resolveAssetSource(
-  require("../assets/trailer.mp4"),
+  require("../assets/clip.mov"),
 ).uri;
 
 // Ambient-blur tuning. Filter size must be odd; blockDim = TILE_DIM - filterSize
@@ -52,6 +59,21 @@ export const ExternalTexture = () => {
   const ref = useCanvasRef();
   const [error, setError] = useState<string | null>(null);
   const rafRef = useRef<number | null>(null);
+  // Track the Canvas's actual view size so we can rebuild the pipeline on
+  // orientation change. Without this, the swap chain stays at its initial
+  // dimensions and iOS rotates the buffer to fit the new view, which swaps
+  // the X/Y axes the shader sees.
+  const [layout, setLayout] = useState<{ width: number; height: number } | null>(
+    null,
+  );
+  const onCanvasLayout = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    setLayout((prev) =>
+      prev && prev.width === width && prev.height === height
+        ? prev
+        : { width, height },
+    );
+  };
 
   const { device, adapter } = useDevice(undefined, {
     requiredFeatures: REQUIRED_FEATURES,
@@ -71,7 +93,7 @@ export const ExternalTexture = () => {
   };
 
   useEffect(() => {
-    if (!device) {
+    if (!device || !layout) {
       return;
     }
     const missing = REQUIRED_FEATURES.filter((f) => !device.features.has(f));
@@ -93,8 +115,8 @@ export const ExternalTexture = () => {
       return;
     }
     const canvas = context.canvas as unknown as NativeCanvas;
-    canvas.width = canvas.clientWidth * PixelRatio.get();
-    canvas.height = canvas.clientHeight * PixelRatio.get();
+    canvas.width = layout.width * PixelRatio.get();
+    canvas.height = layout.height * PixelRatio.get();
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
     context.configure({
       device,
@@ -540,7 +562,7 @@ export const ExternalTexture = () => {
       smallPing[1].destroy();
       player.release();
     };
-  }, [device, adapter, ref]);
+  }, [device, adapter, ref, layout]);
 
   if (error) {
     return (
@@ -551,7 +573,7 @@ export const ExternalTexture = () => {
   }
   return (
     <View style={styles.root}>
-      <Canvas ref={ref} style={styles.canvas} />
+      <Canvas ref={ref} style={styles.canvas} onLayout={onCanvasLayout} />
       <EffectToolbar modes={modes} onCycle={cycle} />
     </View>
   );
