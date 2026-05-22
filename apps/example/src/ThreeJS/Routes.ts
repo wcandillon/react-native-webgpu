@@ -3,6 +3,7 @@ export type Routes = {
   Cube: undefined;
   Helmet: undefined;
   CameraHelmet: undefined;
+  CameraSpheres: undefined;
   Backdrop: undefined;
   InstancedMesh: undefined;
   Fiber: undefined;

@@ -7,6 +7,7 @@ import type { Routes } from "./Routes";
 import { List } from "./List";
 import { Helmet } from "./Helmet";
 import { CameraHelmet } from "./CameraHelmet";
+import { CameraSpheres } from "./CameraSpheres";
 import { Backdrop } from "./Backdrop";
 import { InstancedMesh } from "./InstancedMesh";
 import { Fiber } from "./Fiber";
@@ -79,6 +80,13 @@ export const ThreeJS = () => {
         component={CameraHelmet}
         options={{
           title: "📷 Camera Env Sphere",
+        }}
+      />
+      <Stack.Screen
+        name="CameraSpheres"
+        component={CameraSpheres}
+        options={{
+          title: "📷 Camera Env Spheres",
         }}
       />
       <Stack.Screen

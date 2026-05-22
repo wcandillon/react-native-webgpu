@@ -24,35 +24,18 @@ import type {
 } from "react-native-vision-camera";
 import * as THREE from "three";
 
-import { useGLTF } from "./assets/AssetManager";
 import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
 import { CAMERA_ENV_SHADER } from "./cameraEnvShader";
 
-// Live camera as a three.js environment map. The GLTF helmet renders with
-// three.js' WebGPURenderer; its env map is a THREE.ExternalTexture wrapping a
-// GPUTexture we own. A Vision Camera frame-processor worklet writes each
-// camera frame into that GPUTexture via its own render pass. Three.js and the
-// worklet share a single GPUDevice (the one three.js creates internally), so
-// the queue ordering between "write env" and "sample env" is automatic.
+// Sibling of CameraHelmet but with three procedural chrome spheres in place
+// of the GLTF helmet. Multi-cam setup: back camera renders behind the canvas
+// as a native preview view, front camera feeds the cubemap that the spheres
+// reflect. No PBR (no GLTF assets), so we skip mipmap generation entirely —
+// the chrome look stays sharp on all surfaces.
 
-// Equirectangular panorama aspect (2:1). Front cam delivers 720p so the
-// env texture doesn't gain anything from going much larger than that.
-// Cube face dimension matches ENV_HEIGHT. Each frame we do (env write + 6
-// cube faces + optional mipmap chain), so this knob drives most of the
-// per-frame GPU cost.
 const ENV_WIDTH = 1024;
 const ENV_HEIGHT = 512;
 
-// PBR helmet (uses the GLTF's MeshStandardMaterial textures + cubemap
-// reflection via per-material envMap, with the cubemap mipmapped each
-// frame so rough surfaces sample blurrier mips). Set to `false` to fall
-// back to a flat MeshBasicMaterial chrome shell — drops the PBR fragment
-// cost and the every-frame mipmap regeneration of the cubemap, which is
-// the bulk of the perf cost on phone GPUs.
-const USE_PBR = false;
-
-// Vision Camera + react-native-wgpu both want these features for the external
-// texture path. dawn-multi-planar-formats lets Dawn interpret NV12 buffers.
 const REQUIRED_FEATURES: GPUFeatureName[] = [
   "rnwebgpu/shared-texture-memory" as GPUFeatureName,
   "dawn-multi-planar-formats" as GPUFeatureName,
@@ -61,7 +44,16 @@ const REQUIRED_FEATURES: GPUFeatureName[] = [
 const OPAQUE_YCBCR_EXT =
   "opaque-ycbcr-android-for-external-texture" as GPUFeatureName;
 
-export const CameraHelmet = () => {
+// Three big chrome spheres swirling around the origin, inspired by three.js'
+// stereo-effects demo (which uses InstancedMesh + per-frame matrix updates).
+// Even at 3 instances the InstancedMesh path is still nice because all
+// three render in a single draw call.
+const BEAD_COUNT = 3;
+const BEAD_RADIUS = 0.55;
+// XY radius of the swirl. Spheres orbit evenly spaced around the origin.
+const SWIRL_RADIUS = 1.8;
+
+export const CameraSpheres = () => {
   const { hasPermission, requestPermission } = useCameraPermission();
   useEffect(() => {
     if (!hasPermission) {
@@ -89,21 +81,12 @@ export const CameraHelmet = () => {
 
 const Scene = () => {
   useEffect(() => {
-    console.log("[CameraHelmet] Scene mounted");
-    return () => console.log("[CameraHelmet] Scene unmounted");
+    console.log("[CameraSpheres] Scene mounted");
+    return () => console.log("[CameraSpheres] Scene unmounted");
   }, []);
   const ref = useRef<CanvasRef>(null);
-  const gltf = useGLTF(require("./assets/helmet/DamagedHelmet.gltf"));
-  // Live camera preview, rendered as a native view behind the WebGPU canvas.
-  // The worklet still writes the camera into our env texture for the helmet
-  // reflection, but the *backdrop* now comes straight from this native
-  // preview — no detour through equirect/cubemap, no quality loss.
   const previewOutput = usePreviewOutput();
 
-  // Two cameras at once: the back camera feeds the native preview backdrop,
-  // the front camera feeds the helmet's environment map (so you see yourself
-  // reflected in the chrome). Requires multi-cam capable hardware (iPhone
-  // XS+ / most modern Android flagships).
   const devices = useCameraDevices();
   const backDevice = React.useMemo(
     () => devices.find((d) => d.position === "back"),
@@ -124,13 +107,7 @@ const Scene = () => {
   const [error, setError] = useState<string | null>(null);
   const [device, setDevice] = useState<GPUDevice | null>(null);
 
-  // Acquire the GPU device on its own effect. By the time the async adapter +
-  // device requests resolve, the Canvas component has been rendered and its
-  // ref populated, so the main setup effect (gated on `device`) can grab the
-  // GPUCanvasContext synchronously. Same two-effect pattern as
-  // VisionCamera.tsx / ChromeSphere.tsx.
   useEffect(() => {
-    console.log("[CameraHelmet] device-acquisition effect fired");
     let cancelled = false;
     (async () => {
       try {
@@ -154,10 +131,6 @@ const Scene = () => {
           );
         }
         const d = await adapter.requestDevice({ requiredFeatures });
-        console.log(
-          "[CameraHelmet] device acquired, features: " +
-            [...d.features].sort().join(", "),
-        );
         if (cancelled) {
           d.destroy();
           return;
@@ -167,7 +140,7 @@ const Scene = () => {
         if (cancelled) {
           return;
         }
-        console.warn("[CameraHelmet] device acquisition failed: " + String(e));
+        console.warn("[CameraSpheres] device acquisition failed: " + String(e));
         setError(String(e));
       }
     })();
@@ -176,60 +149,29 @@ const Scene = () => {
     };
   }, []);
 
-  // Note: pipelineState is intentionally not in the deps array. Including it
-  // would re-run the effect when we call setPipelineState below — React would
-  // run the cleanup (which calls setAnimationLoop(null)) and then the effect
-  // would bail on the pipelineState guard, leaving us with no render loop.
-  // The effect only needs to fire once, when `device` transitions to set.
-
   useEffect(() => {
-    console.log(
-      "[CameraHelmet] setup effect fired, device=" +
-        String(device != null) +
-        " gltf=" +
-        String(gltf != null),
-    );
-    if (!device || !gltf) {
+    if (!device) {
       return;
     }
     const context = ref.current?.getContext("webgpu");
     if (!context) {
-      console.log(
-        "[CameraHelmet] no webgpu context yet (ref.current=" +
-          String(ref.current != null) +
-          ") — bailing this effect run",
-      );
       return;
     }
     let cancelled = false;
     let renderer: THREE.WebGPURenderer | null = null;
 
-    console.log("[CameraHelmet] context acquired, building three.js scene");
     (async () => {
       try {
         const { width, height } = context.canvas;
-        console.log(
-          "[CameraHelmet] canvas size = " +
-            String(width) +
-            "x" +
-            String(height),
-        );
 
-        // alpha:true configures the canvas with premultiplied alpha mode, so
-        // pixels outside the helmet stay transparent and the native camera
-        // preview behind the canvas shows through.
         renderer = makeWebGPURenderer(context, { device, alpha: true });
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.setClearColor(0x000000, 0);
         await renderer.init();
-        console.log("[CameraHelmet] three.js renderer init complete");
         if (cancelled) {
           return;
         }
 
-        // Env GPUTexture: render target on our side, sampleable on three's
-        // side. rgba8unorm + RENDER_ATTACHMENT|TEXTURE_BINDING lets the
-        // single resource pivot between the two roles via implicit barriers.
         const envTexture = device.createTexture({
           size: [ENV_WIDTH, ENV_HEIGHT],
           format: "rgba8unorm",
@@ -237,8 +179,6 @@ const Scene = () => {
             GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
         });
 
-        // Camera prepass pipeline. Output format matches the env texture so
-        // it can be the render target.
         const module = device.createShaderModule({ code: CAMERA_ENV_SHADER });
         const cameraPipeline = device.createRenderPipeline({
           layout: "auto",
@@ -255,12 +195,6 @@ const Scene = () => {
           minFilter: "linear",
         });
 
-        // THREE.ExternalTexture bridges our GPUTexture into three.js as a
-        // sampleable 2D equirect. We never set scene.background or
-        // material.envMap to this directly: three.js' CubeMapNode would only
-        // run the equirect→cubemap conversion once and cache it, which means
-        // we'd be stuck sampling whatever was in our env texture on frame 1
-        // (= black, before the worklet ever wrote).
         const envExternalTexture = new THREE.ExternalTexture(envTexture);
         envExternalTexture.mapping = THREE.EquirectangularReflectionMapping;
         envExternalTexture.colorSpace = THREE.SRGBColorSpace;
@@ -270,72 +204,38 @@ const Scene = () => {
         };
         envExternalTexture.needsUpdate = true;
 
-        // Allocate the cubemap once. Each frame we'll call
-        // cubeRT.fromEquirectangularTexture(renderer, envExternalTexture) to
-        // refresh the cube faces from the equirect's *current* contents.
-        // That's the same code path CubeMapNode uses internally, but we
-        // drive it on every tick instead of letting three.js cache it.
+        // Cube target refreshed per frame from the equirect — same dynamic
+        // env trick as CameraHelmet. No mipmap chain: the spheres use
+        // MeshBasicMaterial which samples mip 0 unconditionally, so the
+        // auto-mipmap regeneration would be pure waste.
         const cubeRT = new THREE.CubeRenderTarget(ENV_HEIGHT);
         cubeRT.texture.mapping = THREE.CubeReflectionMapping;
         cubeRT.texture.colorSpace = THREE.SRGBColorSpace;
-        if (USE_PBR) {
-          // PBR mode: generate mipmaps so MeshStandardMaterial's
-          // roughness-aware envMap sample picks softer mips for rough
-          // surfaces. Not true PMREM (no GGX importance sampling) but a
-          // cheap approximation; adds an auto-mipmap regen per frame.
-          cubeRT.texture.generateMipmaps = true;
-          cubeRT.texture.minFilter = THREE.LinearMipmapLinearFilter;
-          cubeRT.texture.magFilter = THREE.LinearFilter;
-        }
 
         const scene = new THREE.Scene();
-        // No scene.background — the canvas is alpha-cleared and the native
-        // camera preview View sits behind it (see JSX below).
-        if (USE_PBR) {
-          // Keep the GLTF's MeshStandardMaterial intact (albedo / normal /
-          // metalRoughness / AO from the original textures) and just plug
-          // our cubemap into each material's envMap. The PBR shader then
-          // combines the helmet's surface detail with the live front-camera
-          // reflection.
-          gltf.scene.traverse((child) => {
-            const mesh = child as THREE.Mesh;
-            if (!mesh.isMesh) {
-              return;
-            }
-            const mats = Array.isArray(mesh.material)
-              ? mesh.material
-              : [mesh.material];
-            for (const m of mats) {
-              const std = m as THREE.MeshStandardMaterial;
-              std.envMap = cubeRT.texture;
-              std.envMapIntensity = 1.0;
-              std.needsUpdate = true;
-            }
-          });
-        } else {
-          // Non-PBR mode: swap every mesh's material for a single
-          // MeshBasicMaterial that just samples the cubemap. Loses surface
-          // detail (no albedo / normal / roughness) but gives a fast
-          // chrome-shell look that's a good 5–10x cheaper on fragments.
-          const chrome = new THREE.MeshBasicMaterial({
-            envMap: cubeRT.texture,
-          });
-          gltf.scene.traverse((child) => {
-            const mesh = child as THREE.Mesh;
-            if (mesh.isMesh) {
-              mesh.material = chrome;
-            }
-          });
-        }
-        scene.add(gltf.scene);
+        // Single InstancedMesh: all three spheres in one draw call. Mesh
+        // tessellation matters more here than in the swarm version because
+        // each sphere is bigger on screen, so 48x32 segments instead of
+        // 16x8 — smoother silhouettes against the panorama backdrop.
+        const chrome = new THREE.MeshBasicMaterial({ envMap: cubeRT.texture });
+        const geometry = new THREE.SphereGeometry(BEAD_RADIUS, 48, 32);
+        const beads = new THREE.InstancedMesh(geometry, chrome, BEAD_COUNT);
+        beads.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        scene.add(beads);
 
-        // Drive the perspective from min(width, height) so the helmet keeps
-        // a consistent on-screen size in both orientations. three.js'
-        // PerspectiveCamera takes a *vertical* FOV; on portrait canvases we
-        // derive vFov from a fixed horizontal FOV so the wider dimension
-        // never under-frames the helmet.
+        // Seed each instance's matrix to identity. The animate loop
+        // overwrites the translation column each frame; scale and rotation
+        // stay as identity (= sphere radius set by BEAD_RADIUS above).
+        const dummy = new THREE.Object3D();
+        for (let i = 0; i < BEAD_COUNT; i++) {
+          dummy.updateMatrix();
+          beads.setMatrixAt(i, dummy.matrix);
+        }
+        beads.instanceMatrix.needsUpdate = true;
+        const beadPos = new THREE.Vector3();
+
         const aspect = width / height;
-        const baseFov = 45;
+        const baseFov = 60;
         let vFov = baseFov;
         if (aspect < 1) {
           const hFovRad = (baseFov * Math.PI) / 180;
@@ -343,33 +243,32 @@ const Scene = () => {
           vFov = (vFovRad * 180) / Math.PI;
         }
         const camera = new THREE.PerspectiveCamera(vFov, aspect, 0.25, 20);
-        camera.position.set(0, 0, 3);
+        camera.position.set(0, 0, 4);
 
         const clock = new THREE.Clock();
-        const distance = 3;
-        let frameCount = 0;
         const animate = () => {
-          // Slow time-based orbit around the helmet, matching the three.js
-          // env-map reference demo.
-          const elapsed = clock.getElapsedTime();
-          camera.position.x = Math.sin(elapsed * 0.4) * distance;
-          camera.position.z = Math.cos(elapsed * 0.4) * distance;
-          camera.position.y = 0;
-          camera.lookAt(0, 0, 0);
+          // Slow rotation of the three spheres around the origin in the XY
+          // plane. Phase offsets are evenly spaced (2π/3 apart) so the
+          // spheres form a rotating equilateral triangle, never overlapping.
+          const elapsed = clock.getElapsedTime() * 0.4;
+          for (let i = 0; i < BEAD_COUNT; i++) {
+            const angle = elapsed + (i * 2 * Math.PI) / BEAD_COUNT;
+            beadPos.set(
+              SWIRL_RADIUS * Math.cos(angle),
+              SWIRL_RADIUS * Math.sin(angle),
+              0,
+            );
+            beads.getMatrixAt(i, dummy.matrix);
+            dummy.matrix.setPosition(beadPos);
+            beads.setMatrixAt(i, dummy.matrix);
+          }
+          beads.instanceMatrix.needsUpdate = true;
 
-          // Refresh the cubemap from the (worklet-updated) equirect before
-          // rendering the scene. The conversion does 6 fullscreen draws into
-          // the cube faces; pipelines are reused across calls.
           cubeRT.fromEquirectangularTexture(renderer!, envExternalTexture);
           renderer!.render(scene, camera);
           context.present();
-          frameCount++;
-          if (frameCount === 1) {
-            console.log("[CameraHelmet] first three.js frame rendered");
-          }
         };
         renderer.setAnimationLoop(animate);
-        console.log("[CameraHelmet] animation loop started");
 
         setPipelineState({
           device,
@@ -378,43 +277,33 @@ const Scene = () => {
           envTexture,
           envTextureView: envTexture.createView(),
         });
-        console.log("[CameraHelmet] pipelineState set, camera will activate");
       } catch (e) {
         if (cancelled) {
           return;
         }
-        console.warn("[CameraHelmet] setup failed: " + String(e));
+        console.warn("[CameraSpheres] setup failed: " + String(e));
         setError(String(e));
       }
     })();
 
     return () => {
-      console.log("[CameraHelmet] setup-effect cleanup");
       cancelled = true;
       if (renderer) {
         renderer.setAnimationLoop(null);
       }
     };
-  }, [device, gltf]);
+  }, [device]);
 
-  // Frame processor worklet: copy the camera frame into envTexture each tick.
-  // The single device.queue is shared with three.js, so the helmet pass on
-  // the next rAF tick samples this frame's write.
   const logBox = React.useMemo(() => ({ count: 0 }), []);
   const frameOutput = useFrameOutput({
     pixelFormat: "native",
-    // 720p front-cam frames are plenty for the helmet's reflection — it's a
-    // small on-screen area. Keeping this low matters more in a multi-cam
-    // session, where both cameras share AVFoundation's bandwidth budget.
     targetResolution: CommonResolutions.HD_16_9,
     onFrame: (frame) => {
       "worklet";
       logBox.count += 1;
       if (logBox.count === 1) {
         console.log(
-          "[CameraHelmet] worklet first frame, hasPipeline=" +
-            String(pipelineState != null) +
-            " frame=" +
+          "[CameraSpheres] worklet first frame, frame=" +
             String(frame.width) +
             "x" +
             String(frame.height),
@@ -438,7 +327,7 @@ const Scene = () => {
         try {
           const externalTex = gpuDevice.importExternalTexture({
             source: videoFrame,
-            label: "camera-helmet-env",
+            label: "camera-spheres-env",
           });
           const bindGroup = gpuDevice.createBindGroup({
             layout: cameraPipeline.getBindGroupLayout(0),
@@ -473,11 +362,6 @@ const Scene = () => {
     },
   });
 
-  // ---- Multi-cam session ------------------------------------------------
-  // useCamera always sets enableMultiCamSupport=false, so we drop down to
-  // the imperative API to drive two camera connections from a single
-  // session: front → frameOutput (helmet env), back → previewOutput
-  // (backdrop View).
   const [session, setSession] = useState<CameraSession | null>(null);
   useEffect(() => {
     if (!VisionCameraFactory.supportsMultiCamSessions) {
@@ -505,15 +389,10 @@ const Scene = () => {
     };
   }, []);
 
-  // Configure the session with two connections once everything is ready.
-  // We wait on pipelineState too because the worklet (which receives the
-  // front cam frames) only has somewhere to write once the env texture +
-  // camera-copy pipeline exist.
   useEffect(() => {
     if (!session || !backDevice || !frontDevice || !pipelineState) {
       return;
     }
-    console.log("[CameraHelmet] configuring multi-cam session");
     let cancelled = false;
     let controllers: CameraController[] = [];
     (async () => {
@@ -537,13 +416,12 @@ const Scene = () => {
           controllers.forEach((c) => c.dispose());
           return;
         }
-        console.log("[CameraHelmet] session configured, starting");
         session.start();
       } catch (e) {
         if (cancelled) {
           return;
         }
-        console.warn("[CameraHelmet] session configure failed: " + String(e));
+        console.warn("[CameraSpheres] session configure failed: " + String(e));
         setError(String(e));
       }
     })();
@@ -591,7 +469,6 @@ const Scene = () => {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "black" },
-  // Transparent canvas overlaid on the native camera preview view.
   canvas: { ...StyleSheet.absoluteFillObject, backgroundColor: "transparent" },
   errorContainer: { flex: 1, padding: 16, justifyContent: "center" },
   errorText: { color: "red", fontSize: 14 },

@@ -28,6 +28,10 @@ export const examples = [
     title: "📷 Camera Env Sphere",
   },
   {
+    screen: "CameraSpheres",
+    title: "📷 Camera Env Spheres",
+  },
+  {
     screen: "PostProcessing",
     title: "🪄 Post Processing Effects",
   },
