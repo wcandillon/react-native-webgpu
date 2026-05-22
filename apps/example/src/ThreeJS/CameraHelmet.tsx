@@ -10,10 +10,13 @@ import {
 import type { CanvasRef } from "react-native-wgpu";
 import { Canvas } from "react-native-wgpu";
 import {
+  CommonResolutions,
+  NativePreviewView,
   useCamera,
   useCameraDevices,
   useCameraPermission,
   useFrameOutput,
+  usePreviewOutput,
 } from "react-native-vision-camera";
 import * as THREE from "three";
 
@@ -78,6 +81,11 @@ const Scene = () => {
   }, []);
   const ref = useRef<CanvasRef>(null);
   const gltf = useGLTF(require("./assets/helmet/DamagedHelmet.gltf"));
+  // Live camera preview, rendered as a native view behind the WebGPU canvas.
+  // The worklet still writes the camera into our env texture for the helmet
+  // reflection, but the *backdrop* now comes straight from this native
+  // preview — no detour through equirect/cubemap, no quality loss.
+  const previewOutput = usePreviewOutput();
 
   const devices = useCameraDevices();
   const cameraDevice = React.useMemo(
@@ -189,8 +197,12 @@ const Scene = () => {
             String(height),
         );
 
-        renderer = makeWebGPURenderer(context, { device });
+        // alpha:true configures the canvas with premultiplied alpha mode, so
+        // pixels outside the helmet stay transparent and the native camera
+        // preview behind the canvas shows through.
+        renderer = makeWebGPURenderer(context, { device, alpha: true });
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.setClearColor(0x000000, 0);
         await renderer.init();
         console.log("[CameraHelmet] three.js renderer init complete");
         if (cancelled) {
@@ -250,7 +262,8 @@ const Scene = () => {
         cubeRT.texture.colorSpace = THREE.SRGBColorSpace;
 
         const scene = new THREE.Scene();
-        scene.background = cubeRT.texture;
+        // No scene.background — the canvas is alpha-cleared and the native
+        // camera preview View sits behind it (see JSX below).
         // Swap the GLTF helmet's PBR materials for MeshBasicMaterial backed
         // by our cubemap. Same env path that already works for the sphere —
         // no PMREM, no per-frame regeneration headaches — and the helmet's
@@ -281,17 +294,20 @@ const Scene = () => {
           vFov = (vFovRad * 180) / Math.PI;
         }
         const camera = new THREE.PerspectiveCamera(vFov, aspect, 0.25, 20);
-        camera.position.set(0, 0.5, 3);
+        camera.position.set(0, 0, 3);
 
         const clock = new THREE.Clock();
+        const distance = 3;
         let frameCount = 0;
         const animate = () => {
+          // Slow time-based orbit around the helmet, matching the three.js
+          // env-map reference demo.
           const elapsed = clock.getElapsedTime();
-          const distance = 3;
           camera.position.x = Math.sin(elapsed * 0.4) * distance;
           camera.position.z = Math.cos(elapsed * 0.4) * distance;
-          camera.position.y = 0.5;
+          camera.position.y = 0;
           camera.lookAt(0, 0, 0);
+
           // Refresh the cubemap from the (worklet-updated) equirect before
           // rendering the scene. The conversion does 6 fullscreen draws into
           // the cube faces; pipelines are reused across calls.
@@ -338,6 +354,10 @@ const Scene = () => {
   const logBox = React.useMemo(() => ({ count: 0 }), []);
   const frameOutput = useFrameOutput({
     pixelFormat: "native",
+    // Request 4K (UHD). Source resolution is the hard ceiling on backdrop
+    // sharpness; UHD ~9x the pixel count of the default 720p. The worklet's
+    // copy pass is cheap so this is mostly a memory-bandwidth bump.
+    targetResolution: CommonResolutions.UHD_16_9,
     onFrame: (frame) => {
       "worklet";
       logBox.count += 1;
@@ -407,7 +427,7 @@ const Scene = () => {
   useCamera({
     isActive: pipelineState != null && cameraDevice != null,
     device: cameraDevice as NonNullable<typeof cameraDevice>,
-    outputs: [frameOutput],
+    outputs: [frameOutput, previewOutput],
   });
 
   if (error) {
@@ -429,14 +449,19 @@ const Scene = () => {
   }
   return (
     <View style={styles.root}>
-      <Canvas ref={ref} style={styles.canvas} />
+      <NativePreviewView
+        previewOutput={previewOutput}
+        style={StyleSheet.absoluteFill}
+      />
+      <Canvas ref={ref} style={styles.canvas} transparent />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "black" },
-  canvas: { flex: 1 },
+  // Transparent canvas overlaid on the native camera preview view.
+  canvas: { ...StyleSheet.absoluteFillObject, backgroundColor: "transparent" },
   errorContainer: { flex: 1, padding: 16, justifyContent: "center" },
   errorText: { color: "red", fontSize: 14 },
   permissionContainer: {

@@ -35,7 +35,11 @@ fn vs_main(@builtin(vertex_index) vid: u32) -> VsOut {
 
 @fragment
 fn fs_main(in: VsOut) -> @location(0) vec4f {
-  let c = textureSampleBaseClampToEdge(srcTex, srcSampler, in.uv);
+  // Rotate the camera 90° CW so VisionCamera's landscape sensor frame is
+  // upright when the device is held in portrait. (Vertical/horizontal flips
+  // of this are easy to swap in if a particular device needs them.)
+  let rotatedUv = vec2f(in.uv.y, 1.0 - in.uv.x);
+  let c = textureSampleBaseClampToEdge(srcTex, srcSampler, rotatedUv);
   return vec4f(c.rgb, 1.0);
 }
 `;

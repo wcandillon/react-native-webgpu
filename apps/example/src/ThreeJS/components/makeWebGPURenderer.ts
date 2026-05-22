@@ -63,10 +63,12 @@ export const makeWebGPURenderer = (
   {
     antialias = true,
     device,
-  }: { antialias?: boolean; device?: GPUDevice } = {},
+    alpha = false,
+  }: { antialias?: boolean; device?: GPUDevice; alpha?: boolean } = {},
 ) =>
   new THREE.WebGPURenderer({
     antialias,
+    alpha,
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     canvas: new ReactNativeCanvas(context.canvas),
