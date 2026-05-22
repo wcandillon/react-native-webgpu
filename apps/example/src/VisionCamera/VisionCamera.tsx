@@ -21,6 +21,14 @@ import {
   useFrameOutput,
 } from "react-native-vision-camera";
 
+import { EffectToolbar } from "./EffectToolbar";
+import {
+  ABERRATION_STRENGTHS,
+  INITIAL_MODES,
+  PIXELATE_BLOCKS,
+  type Modes,
+} from "./features";
+
 // Camera frame → SharedTextureMemory (NV12 biplanar) → GPUExternalTexture →
 // textureSampleBaseClampToEdge with hardware YUV/sRGB conversion → chromatic
 // aberration in WGSL.
@@ -39,9 +47,13 @@ struct VsOut {
 
 struct Uniforms {
   // x, y: 'cover'-fit UV scale around (0.5, 0.5).
-  // z:    chromatic aberration offset in UV units.
-  // w:    unused, padding.
-  scaleAndAberration: vec4f,
+  // z:    chromatic aberration offset in UV units (0 disables).
+  // w:    pixelate block size in UV units (0 disables).
+  params: vec4f,
+  // x: effect (0 off, 1 gray, 2 sepia, 3 invert, 4 vibrant)
+  // y: tint   (0 off, 1 warm, 2 cool)
+  // z: vignette (0 off, 1 on)
+  modes: vec4u,
 };
 
 @group(0) @binding(0) var srcTex: texture_external;
@@ -66,16 +78,75 @@ fn vs_main(@builtin(vertex_index) vid: u32) -> VsOut {
   return out;
 }
 
+fn sampleAt(uv: vec2f, block: f32) -> vec4f {
+  var sampleUv = uv;
+  if (block > 0.0) {
+    // Snap to a grid in cover-fit UV space; the linear sampler still gives a
+    // crisp blocky look because the snap collapses neighborhoods.
+    sampleUv = (floor(uv / block) + vec2f(0.5)) * block;
+  }
+  return textureSampleBaseClampToEdge(srcTex, srcSampler, sampleUv);
+}
+
+fn applyEffect(rgb: vec3f, mode: u32) -> vec3f {
+  if (mode == 1u) {
+    let l = dot(rgb, vec3f(0.2126, 0.7152, 0.0722));
+    return vec3f(l);
+  }
+  if (mode == 2u) {
+    return vec3f(
+      dot(rgb, vec3f(0.393, 0.769, 0.189)),
+      dot(rgb, vec3f(0.349, 0.686, 0.168)),
+      dot(rgb, vec3f(0.272, 0.534, 0.131))
+    );
+  }
+  if (mode == 3u) {
+    return vec3f(1.0) - rgb;
+  }
+  if (mode == 4u) {
+    let l = dot(rgb, vec3f(0.2126, 0.7152, 0.0722));
+    let sat = mix(vec3f(l), rgb, 1.55);
+    return clamp((sat - 0.5) * 1.18 + 0.5, vec3f(0.0), vec3f(1.0));
+  }
+  return rgb;
+}
+
+fn applyTint(rgb: vec3f, mode: u32) -> vec3f {
+  if (mode == 1u) {
+    return clamp(rgb * vec3f(1.10, 1.02, 0.86), vec3f(0.0), vec3f(1.0));
+  }
+  if (mode == 2u) {
+    return clamp(rgb * vec3f(0.86, 0.98, 1.16), vec3f(0.0), vec3f(1.0));
+  }
+  return rgb;
+}
+
 @fragment
 fn fs_main(in: VsOut) -> @location(0) vec4f {
-  let uvScale = u.scaleAndAberration.xy;
-  let aberration = u.scaleAndAberration.z;
+  let uvScale = u.params.xy;
+  let aberration = u.params.z;
+  let pixelate = u.params.w;
+  let effect = u.modes.x;
+  let tint = u.modes.y;
+  let vignette = u.modes.z;
+
   let uv = vec2f(0.5) + (in.uv - vec2f(0.5)) * uvScale;
   // RGB split: sample red shifted right, blue shifted left, green centered.
-  let r = textureSampleBaseClampToEdge(srcTex, srcSampler, uv + vec2f( aberration, 0.0)).r;
-  let g = textureSampleBaseClampToEdge(srcTex, srcSampler, uv).g;
-  let b = textureSampleBaseClampToEdge(srcTex, srcSampler, uv + vec2f(-aberration, 0.0)).b;
-  return vec4f(r, g, b, 1.0);
+  let r = sampleAt(uv + vec2f( aberration, 0.0), pixelate).r;
+  let g = sampleAt(uv, pixelate).g;
+  let b = sampleAt(uv + vec2f(-aberration, 0.0), pixelate).b;
+  var color = vec3f(r, g, b);
+
+  color = applyEffect(color, effect);
+  color = applyTint(color, tint);
+
+  if (vignette == 1u) {
+    let d = distance(in.uv, vec2f(0.5));
+    let v = 1.0 - smoothstep(0.35, 0.85, d);
+    color = color * v;
+  }
+
+  return vec4f(color, 1.0);
 }
 `;
 
@@ -92,8 +163,6 @@ const REQUIRED_FEATURES: GPUFeatureName[] = [
 // Android-Desktop / Chromebook configurations).
 const OPAQUE_YCBCR_EXT =
   "opaque-ycbcr-android-for-external-texture" as GPUFeatureName;
-
-const ABERRATION_STRENGTH = 0.006;
 
 export const VisionCamera = () => {
   const { hasPermission, requestPermission } = useCameraPermission();
@@ -207,6 +276,10 @@ const CameraView = () => {
     canvasHeight: number;
   } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [modes, setModes] = React.useState<Modes>(INITIAL_MODES);
+  const cycle = React.useCallback((key: keyof Modes, optionsCount: number) => {
+    setModes((prev) => ({ ...prev, [key]: (prev[key] + 1) % optionsCount }));
+  }, []);
 
   // Initialize pipeline once device + canvas are both ready.
   useEffect(() => {
@@ -256,7 +329,7 @@ const CameraView = () => {
       minFilter: "linear",
     });
     const uniformBuffer = device.createBuffer({
-      size: 16,
+      size: 32,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     setPipelineState({
@@ -337,11 +410,20 @@ const CameraView = () => {
           } else {
             sy = frameAR / canvasAR;
           }
-          device.queue.writeBuffer(
-            uniformBuffer,
-            0,
-            new Float32Array([sx, sy, ABERRATION_STRENGTH, 0]),
-          );
+          // 32-byte uniform: vec4f params + vec4u modes. Built on a single
+          // ArrayBuffer so the f32/u32 halves go up in one writeBuffer call.
+          const uniformData = new ArrayBuffer(32);
+          const uniformF32 = new Float32Array(uniformData);
+          const uniformU32 = new Uint32Array(uniformData);
+          uniformF32[0] = sx;
+          uniformF32[1] = sy;
+          uniformF32[2] = ABERRATION_STRENGTHS[modes.aberration] ?? 0;
+          uniformF32[3] = PIXELATE_BLOCKS[modes.pixelate] ?? 0;
+          uniformU32[4] = modes.effect;
+          uniformU32[5] = modes.tint;
+          uniformU32[6] = modes.vignette;
+          uniformU32[7] = 0;
+          device.queue.writeBuffer(uniformBuffer, 0, uniformData);
 
           let externalTex;
           try {
@@ -434,13 +516,16 @@ const CameraView = () => {
     );
   }
   return (
-    <View style={{ flex: 1, backgroundColor: "black" }}>
-      <Canvas ref={ref} style={{ flex: 1 }} />
+    <View style={styles.root}>
+      <Canvas ref={ref} style={styles.canvas} />
+      <EffectToolbar modes={modes} onCycle={cycle} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: "black" },
+  canvas: { flex: 1 },
   errorContainer: { flex: 1, padding: 16, justifyContent: "center" },
   errorText: { color: "red", fontSize: 14 },
   permissionContainer: {
