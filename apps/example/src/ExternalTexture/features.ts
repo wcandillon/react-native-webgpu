@@ -1,16 +1,6 @@
 const RESIZE_LABELS = ["Cover", "Contain", "Stretch", "Center"] as const;
 const EFFECT_LABELS = ["Off", "Gray", "Sepia", "Invert", "Vibrant"] as const;
-const COLOR_LABELS = [
-  "Normal",
-  "Warm",
-  "Cool",
-  "P3",
-  "ACES",
-  "Reinhard",
-  "Filmic",
-  "AgX",
-  "HDR",
-] as const;
+const COLOR_LABELS = ["Off", "Warm", "Cool"] as const;
 const AMBIENT_LABELS = ["Off", "Blur", "On"] as const;
 const TOGGLE_LABELS = ["Off", "On"] as const;
 
