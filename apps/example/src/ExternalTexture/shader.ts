@@ -301,7 +301,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
     let pixel = ndc * u.canvasSize;
     let cx = u.canvasSize.x * 0.5;
     let cy = u.canvasSize.y * 0.5;
-    let R = min(u.canvasSize.x, u.canvasSize.y) * 0.13;
+    let R = min(u.canvasSize.x, u.canvasSize.y) * 0.18;
     let r = R * 0.65;
     let sp = R + r + R * 0.45;
     let t = u.glassAnim;
