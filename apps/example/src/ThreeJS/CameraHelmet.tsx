@@ -43,13 +43,12 @@ import { CAMERA_ENV_SHADER } from "./cameraEnvShader";
 const ENV_WIDTH = 1024;
 const ENV_HEIGHT = 512;
 
-// PBR helmet (uses the GLTF's MeshStandardMaterial textures + cubemap
-// reflection via per-material envMap, with the cubemap mipmapped each
-// frame so rough surfaces sample blurrier mips). Set to `false` to fall
-// back to a flat MeshBasicMaterial chrome shell — drops the PBR fragment
-// cost and the every-frame mipmap regeneration of the cubemap, which is
-// the bulk of the perf cost on phone GPUs.
-const USE_PBR = false;
+// PBR mode is runtime-toggleable from a button in the JSX below. PBR uses
+// the GLTF's MeshStandardMaterial textures (albedo / normal / metalRoughness
+// / AO) plus a cubemap envMap for the live reflection; "chrome" mode swaps
+// every mesh for a single MeshBasicMaterial that just samples the cubemap.
+// Chrome is roughly 5-10x cheaper on fragments and also skips the per-frame
+// cubemap mipmap regen the PBR roughness lookup needs.
 
 // Vision Camera + react-native-wgpu both want these features for the external
 // texture path. dawn-multi-planar-formats lets Dawn interpret NV12 buffers.
@@ -123,6 +122,21 @@ const Scene = () => {
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [device, setDevice] = useState<GPUDevice | null>(null);
+
+  // PBR is the default. Toggling to chrome swaps every helmet material for
+  // a single MeshBasicMaterial that just samples the cubemap. usePBRRef
+  // shadows the state so the (one-shot) setup effect can read the *current*
+  // value when it first applies materials, even if the user has already
+  // toggled before three.js finished initializing.
+  const [usePBR, setUsePBR] = useState(true);
+  const usePBRRef = useRef(true);
+  const applyPBRFnRef = useRef<((pbr: boolean) => void) | null>(null);
+  const togglePBR = () => {
+    const next = !usePBRRef.current;
+    usePBRRef.current = next;
+    setUsePBR(next);
+    applyPBRFnRef.current?.(next);
+  };
 
   // Acquire the GPU device on its own effect. By the time the async adapter +
   // device requests resolve, the Canvas component has been rendered and its
@@ -276,15 +290,14 @@ const Scene = () => {
         const cubeRT = new THREE.CubeRenderTarget(ENV_HEIGHT);
         cubeRT.texture.mapping = THREE.CubeReflectionMapping;
         cubeRT.texture.colorSpace = THREE.SRGBColorSpace;
-        if (USE_PBR) {
-          // PBR mode: generate mipmaps so MeshStandardMaterial's
-          // roughness-aware envMap sample picks softer mips for rough
-          // surfaces. Not true PMREM (no GGX importance sampling) but a
-          // cheap approximation; adds an auto-mipmap regen per frame.
-          cubeRT.texture.generateMipmaps = true;
-          cubeRT.texture.minFilter = THREE.LinearMipmapLinearFilter;
-          cubeRT.texture.magFilter = THREE.LinearFilter;
-        }
+        // Always-on mipmaps: MeshStandardMaterial's roughness-aware envMap
+        // sample picks softer mips for rough surfaces (not true PMREM since
+        // there's no GGX importance sampling, but a cheap approximation).
+        // Chrome mode pays the regen cost too, but doesn't suffer from it
+        // since it samples mip 0 only.
+        cubeRT.texture.generateMipmaps = true;
+        cubeRT.texture.minFilter = THREE.LinearMipmapLinearFilter;
+        cubeRT.texture.magFilter = THREE.LinearFilter;
 
         const scene = new THREE.Scene();
         // No scene.background — the canvas is alpha-cleared and the native
@@ -307,42 +320,48 @@ const Scene = () => {
         const cubeCamera = new THREE.CubeCamera(0.1, 100, cubeRT);
         cubeCamera.layers.set(ENV_LAYER);
         scene.add(cubeCamera);
-        if (USE_PBR) {
-          // Keep the GLTF's MeshStandardMaterial intact (albedo / normal /
-          // metalRoughness / AO from the original textures) and just plug
-          // our cubemap into each material's envMap. The PBR shader then
-          // combines the helmet's surface detail with the live front-camera
-          // reflection.
-          gltf.scene.traverse((child) => {
-            const mesh = child as THREE.Mesh;
-            if (!mesh.isMesh) {
-              return;
-            }
-            const mats = Array.isArray(mesh.material)
-              ? mesh.material
-              : [mesh.material];
-            for (const m of mats) {
-              const std = m as THREE.MeshStandardMaterial;
-              std.envMap = cubeRT.texture;
-              std.envMapIntensity = 1.0;
-              std.needsUpdate = true;
-            }
-          });
-        } else {
-          // Non-PBR mode: swap every mesh's material for a single
-          // MeshBasicMaterial that just samples the cubemap. Loses surface
-          // detail (no albedo / normal / roughness) but gives a fast
-          // chrome-shell look that's a good 5–10x cheaper on fragments.
-          const chrome = new THREE.MeshBasicMaterial({
-            envMap: cubeRT.texture,
-          });
-          gltf.scene.traverse((child) => {
-            const mesh = child as THREE.Mesh;
-            if (mesh.isMesh) {
-              mesh.material = chrome;
-            }
-          });
-        }
+
+        // PBR path: keep the GLTF's MeshStandardMaterial intact (albedo /
+        // normal / metalRoughness / AO from the original textures) and plug
+        // our live cubemap into each material's envMap. We capture the
+        // originals so the chrome toggle can swap back and forth without
+        // losing them.
+        const pbrMaterials = new Map<
+          THREE.Mesh,
+          THREE.Material | THREE.Material[]
+        >();
+        gltf.scene.traverse((child) => {
+          const mesh = child as THREE.Mesh;
+          if (!mesh.isMesh) {
+            return;
+          }
+          pbrMaterials.set(mesh, mesh.material);
+          const mats = Array.isArray(mesh.material)
+            ? mesh.material
+            : [mesh.material];
+          for (const m of mats) {
+            const std = m as THREE.MeshStandardMaterial;
+            std.envMap = cubeRT.texture;
+            std.envMapIntensity = 1.0;
+            std.needsUpdate = true;
+          }
+        });
+
+        // Chrome path: every mesh shares a single MeshBasicMaterial that
+        // just samples the cubemap. No surface detail, but ~5-10x cheaper
+        // fragment cost, a useful A/B against PBR on the same scene.
+        const chromeMaterial = new THREE.MeshBasicMaterial({
+          envMap: cubeRT.texture,
+        });
+
+        const applyPBR = (pbr: boolean) => {
+          for (const [mesh, original] of pbrMaterials) {
+            mesh.material = pbr ? original : chromeMaterial;
+          }
+        };
+        applyPBR(usePBRRef.current);
+        applyPBRFnRef.current = applyPBR;
+
         scene.add(gltf.scene);
 
         // Drive the perspective from min(width, height) so the helmet keeps
@@ -409,6 +428,7 @@ const Scene = () => {
     return () => {
       console.log("[CameraHelmet] setup-effect cleanup");
       cancelled = true;
+      applyPBRFnRef.current = null;
       if (renderer) {
         renderer.setAnimationLoop(null);
       }
@@ -603,6 +623,15 @@ const Scene = () => {
         style={StyleSheet.absoluteFill}
       />
       <Canvas ref={ref} style={styles.canvas} transparent />
+      <TouchableOpacity
+        onPress={togglePBR}
+        style={styles.toggleButton}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.toggleButtonText}>
+          {usePBR ? "PBR" : "Chrome"}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -627,4 +656,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   permissionButtonText: { color: "white", fontSize: 16, fontWeight: "600" },
+  toggleButton: {
+    position: "absolute",
+    top: 60,
+    right: 16,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    minWidth: 88,
+    alignItems: "center",
+  },
+  toggleButtonText: { color: "white", fontSize: 14, fontWeight: "600" },
 });
