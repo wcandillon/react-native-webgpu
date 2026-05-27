@@ -383,8 +383,15 @@ const Scene = () => {
         // Chrome path: every mesh shares a single MeshBasicMaterial that
         // just samples the cubemap. No surface detail, but ~5-10x cheaper
         // fragment cost, a useful A/B against PBR on the same scene.
+        // MeshBasicMaterial samples the envMap at full intensity (no Fresnel
+        // / roughness attenuation like PBR), then ACES tone-maps the result.
+        // Bright camera regions land in ACES's compressed range and read as
+        // washed-out. Dimming the base color multiplies the env sample down
+        // before tone mapping; ~70% matches a real chrome surface's
+        // reflectance and brings the brightness back in line with PBR.
         const chromeMaterial = new THREE.MeshBasicMaterial({
           envMap: cubeRTChrome.texture,
+          color: 0xb0b0b0,
         });
 
         const applyPBR = (pbr: boolean) => {
