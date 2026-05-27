@@ -1,10 +1,11 @@
 // Tiny "copy camera frame into an rgba8unorm texture" shader. The output
-// texture is then wrapped in a THREE.ExternalTexture and used as an
-// equirectangular environment map by three.js' WebGPURenderer.
-//
-// The camera image is stretched to fill the 2:1 env texture, which when
-// sampled equirectangularly produces a panorama wrap of the camera view
-// around the helmet — your face becomes the world.
+// texture is then wrapped in a THREE.ExternalTexture and mapped onto a
+// billboarded plane that three.js' CubeCamera bakes into the helmet's
+// envMap — i.e. it acts as a virtual screen at the viewer's location
+// rather than a 360° panorama. The destination texture's aspect (9:16) is
+// chosen to match the camera frame's post-rotation aspect so no stretching
+// happens here; the fullscreen triangle just rotates+mirrors the source to
+// selfie-upright.
 
 export const CAMERA_ENV_SHADER = /* wgsl */ `
 struct VsOut {

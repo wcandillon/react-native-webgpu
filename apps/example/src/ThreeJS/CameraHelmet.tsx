@@ -34,18 +34,26 @@ import { CAMERA_ENV_SHADER } from "./cameraEnvShader";
 // camera frame into that GPUTexture via its own render pass. Three.js and the
 // worklet share a single GPUDevice (the one three.js creates internally), so
 // the queue ordering between "write env" and "sample env" is automatic.
+//
+// The front-camera frame is wrapped around the inside of a large back-side
+// sphere centered on the helmet, so the CubeCamera at the helmet's middle
+// samples camera content in every direction. The helmet's reflections
+// therefore fully cover the helmet and never reveal the frame's edges. The
+// trade-off is the obvious "face wrapped around the world" look on grazing
+// reflections; that's chosen deliberately, since full coverage matters more
+// than the seam artifact for this demo.
 
-// Equirectangular panorama aspect (2:1). Front cam delivers 720p so the
-// env texture doesn't gain anything from going much larger than that.
-// Cube face dimension matches ENV_HEIGHT. Each frame we do (env write + 6
-// cube faces + optional mipmap chain), so this knob drives most of the
-// per-frame GPU cost.
-const ENV_WIDTH = 1024;
-const ENV_HEIGHT = 512;
+// 9:16 portrait — front cam delivers 16:9 landscape and the shader rotates it
+// 90° to selfie-upright, so this aspect lets the rotated frame fill the env
+// texture with no stretching. Cube face dimension matches ENV_HEIGHT. Each
+// frame we do (env write + 6 cube faces + optional mipmap chain), so this
+// knob drives most of the per-frame GPU cost.
+const ENV_WIDTH = 540;
+const ENV_HEIGHT = 960;
 
 // Cube face size is mode-dependent. Chrome is a pure mirror reflection, so it
-// wants the equirect's full resolution. PBR samples roughness-selected mips
-// (helmet's metal-roughness keeps most surfaces in the 0.3-0.6 range, i.e.
+// wants the env's full resolution. PBR samples roughness-selected mips (the
+// helmet's metal-roughness keeps most surfaces in the 0.3-0.6 range, i.e.
 // mip 2-3), so a 128 cube + its short mip chain is visually indistinguishable
 // from 512 while cutting cubemap fill rate ~16x and mip-regen cost with it.
 const CUBE_SIZE_PBR = 128;
@@ -278,10 +286,8 @@ const Scene = () => {
         });
 
         // THREE.ExternalTexture bridges our GPUTexture into three.js as a
-        // sampleable 2D texture. SphereGeometry's default UVs already lay
-        // out 0..1 the same way an equirect does (u around, v pole-to-pole),
-        // so plain UV mapping wraps the panorama correctly when we use this
-        // as a regular .map on the inside-out sky sphere below.
+        // sampleable 2D texture. Used below as the .map of a billboarded
+        // plane that represents the viewer's screen inside the env layer.
         const envExternalTexture = new THREE.ExternalTexture(envTexture);
         envExternalTexture.colorSpace = THREE.SRGBColorSpace;
         (envExternalTexture as unknown as { image: unknown }).image = {
@@ -325,17 +331,24 @@ const Scene = () => {
 
         // Layer split: main camera sees layer 0 (helmet only) so the native
         // preview View remains visible everywhere else; CubeCamera sees
-        // layer 1 (the sky sphere) so the helmet never reflects itself.
+        // layer 1 (the reflection screen + gradient backdrop) so the helmet
+        // never reflects itself.
         const ENV_LAYER = 1;
-        const sky = new THREE.Mesh(
+
+        // Live camera frame wrapped around the inside of a large back-side
+        // sphere. The CubeCamera at the helmet's center sees the camera in
+        // every direction, so reflections fully cover the helmet without
+        // any visible frame edges.
+        const envSphere = new THREE.Mesh(
           new THREE.SphereGeometry(50, 64, 32),
           new THREE.MeshBasicMaterial({
             map: envExternalTexture,
             side: THREE.BackSide,
+            toneMapped: false,
           }),
         );
-        sky.layers.set(ENV_LAYER);
-        scene.add(sky);
+        envSphere.layers.set(ENV_LAYER);
+        scene.add(envSphere);
 
         const cubeCamera = new THREE.CubeCamera(0.1, 100, activeCubeRT());
         cubeCamera.layers.set(ENV_LAYER);
@@ -370,8 +383,15 @@ const Scene = () => {
         // Chrome path: every mesh shares a single MeshBasicMaterial that
         // just samples the cubemap. No surface detail, but ~5-10x cheaper
         // fragment cost, a useful A/B against PBR on the same scene.
+        // MeshBasicMaterial samples the envMap at full intensity (no Fresnel
+        // / roughness attenuation like PBR), then ACES tone-maps the result.
+        // Bright camera regions land in ACES's compressed range and read as
+        // washed-out. Dimming the base color multiplies the env sample down
+        // before tone mapping; ~70% matches a real chrome surface's
+        // reflectance and brings the brightness back in line with PBR.
         const chromeMaterial = new THREE.MeshBasicMaterial({
           envMap: cubeRTChrome.texture,
+          color: 0xb0b0b0,
         });
 
         const applyPBR = (pbr: boolean) => {
@@ -414,11 +434,10 @@ const Scene = () => {
           camera.position.y = 0;
           camera.lookAt(0, 0, 0);
 
-          // Refresh the cubemap by rendering the env-layer of the scene
-          // (= the sky sphere wearing the worklet-updated camera feed) from
-          // six perspectives. Costlier than a equirect blit but captures
-          // every layer-1 object, so adding scene props would also show up
-          // in the reflection.
+          // Refresh the cubemap by rendering the env-layer (camera sphere)
+          // from six perspectives. Costlier than an equirect blit but lets
+          // us add other layer-1 props later that would also show up in
+          // reflections.
           cubeCamera.update(renderer!, scene);
           renderer!.render(scene, camera);
           context.present();
