@@ -35,14 +35,13 @@ import { CAMERA_ENV_SHADER } from "./cameraEnvShader";
 // worklet share a single GPUDevice (the one three.js creates internally), so
 // the queue ordering between "write env" and "sample env" is automatic.
 //
-// The front camera is *not* a panorama — it's a narrow-FOV planar image. So
-// rather than stretching it across a full equirect (which produces an
-// obviously fake "your face wrapped around the world" look), we treat the
-// frame as a virtual screen sitting at the viewer's location. The CubeCamera
-// at the helmet's center bakes that screen into the cube faces, so reflective
-// surfaces facing the viewer pick up the camera content (as a real chrome
-// object would), while grazing / back-facing reflections fall to a soft
-// hemisphere gradient.
+// The front-camera frame is wrapped around the inside of a large back-side
+// sphere centered on the helmet, so the CubeCamera at the helmet's middle
+// samples camera content in every direction. The helmet's reflections
+// therefore fully cover the helmet and never reveal the frame's edges. The
+// trade-off is the obvious "face wrapped around the world" look on grazing
+// reflections; that's chosen deliberately, since full coverage matters more
+// than the seam artifact for this demo.
 
 // 9:16 portrait — front cam delivers 16:9 landscape and the shader rotates it
 // 90° to selfie-upright, so this aspect lets the rotated frame fill the env
@@ -51,6 +50,14 @@ import { CAMERA_ENV_SHADER } from "./cameraEnvShader";
 // knob drives most of the per-frame GPU cost.
 const ENV_WIDTH = 540;
 const ENV_HEIGHT = 960;
+
+// Cube face size is mode-dependent. Chrome is a pure mirror reflection, so it
+// wants the env's full resolution. PBR samples roughness-selected mips (the
+// helmet's metal-roughness keeps most surfaces in the 0.3-0.6 range, i.e.
+// mip 2-3), so a 128 cube + its short mip chain is visually indistinguishable
+// from 512 while cutting cubemap fill rate ~16x and mip-regen cost with it.
+const CUBE_SIZE_PBR = 128;
+const CUBE_SIZE_CHROME = 512;
 
 // PBR mode is runtime-toggleable from a button in the JSX below. PBR uses
 // the GLTF's MeshStandardMaterial textures (albedo / normal / metalRoughness
@@ -294,17 +301,29 @@ const Scene = () => {
         // from an equirect. CubeCamera renders the actual scene, so the
         // reflection picks up any other geometry we add — not just the sky
         // sphere that carries the camera feed.
-        const cubeRT = new THREE.CubeRenderTarget(ENV_HEIGHT);
-        cubeRT.texture.mapping = THREE.CubeReflectionMapping;
-        cubeRT.texture.colorSpace = THREE.SRGBColorSpace;
-        // Always-on mipmaps: MeshStandardMaterial's roughness-aware envMap
-        // sample picks softer mips for rough surfaces (not true PMREM since
-        // there's no GGX importance sampling, but a cheap approximation).
-        // Chrome mode pays the regen cost too, but doesn't suffer from it
-        // since it samples mip 0 only.
-        cubeRT.texture.generateMipmaps = true;
-        cubeRT.texture.minFilter = THREE.LinearMipmapLinearFilter;
-        cubeRT.texture.magFilter = THREE.LinearFilter;
+        // Two cube targets, one per mode. We swap which one CubeCamera writes
+        // into on toggle (resizing a single target via setSize doesn't fully
+        // reallocate cleanly on the WebGPU path, the reflection comes back
+        // blurry). Only the active one gets updated each frame so the cost
+        // stays paid for one mode at a time.
+        const makeCubeRT = (size: number) => {
+          const rt = new THREE.CubeRenderTarget(size);
+          rt.texture.mapping = THREE.CubeReflectionMapping;
+          rt.texture.colorSpace = THREE.SRGBColorSpace;
+          // Mipmaps only matter for PBR (roughness-aware sample). Chrome
+          // samples mip 0 only, so we skip the regen cost on the 512 target.
+          const wantsMips = size <= CUBE_SIZE_PBR;
+          rt.texture.generateMipmaps = wantsMips;
+          rt.texture.minFilter = wantsMips
+            ? THREE.LinearMipmapLinearFilter
+            : THREE.LinearFilter;
+          rt.texture.magFilter = THREE.LinearFilter;
+          return rt;
+        };
+        const cubeRTPbr = makeCubeRT(CUBE_SIZE_PBR);
+        const cubeRTChrome = makeCubeRT(CUBE_SIZE_CHROME);
+        const activeCubeRT = () =>
+          usePBRRef.current ? cubeRTPbr : cubeRTChrome;
 
         const scene = new THREE.Scene();
         // No scene.background — the canvas is alpha-cleared and the native
@@ -316,59 +335,22 @@ const Scene = () => {
         // never reflects itself.
         const ENV_LAYER = 1;
 
-        // Soft hemisphere gradient (cool top, warm-dark bottom) baked into a
-        // 1×64 DataTexture and wrapped on a back-side sphere. Without it the
-        // cube faces that the reflection screen doesn't cover would be the
-        // renderer's transparent-black clear, leaving the helmet pitch black
-        // anywhere it isn't reflecting the user.
-        const gradientHeight = 64;
-        const gradientPixels = new Uint8Array(gradientHeight * 4);
-        for (let i = 0; i < gradientHeight; i++) {
-          const t = i / (gradientHeight - 1);
-          gradientPixels[i * 4 + 0] = Math.round(THREE.MathUtils.lerp(48, 110, t));
-          gradientPixels[i * 4 + 1] = Math.round(THREE.MathUtils.lerp(38, 130, t));
-          gradientPixels[i * 4 + 2] = Math.round(THREE.MathUtils.lerp(40, 170, t));
-          gradientPixels[i * 4 + 3] = 255;
-        }
-        const gradientTex = new THREE.DataTexture(
-          gradientPixels,
-          1,
-          gradientHeight,
-          THREE.RGBAFormat,
-        );
-        gradientTex.colorSpace = THREE.SRGBColorSpace;
-        gradientTex.needsUpdate = true;
-        const skyDome = new THREE.Mesh(
-          new THREE.SphereGeometry(50, 32, 16),
-          new THREE.MeshBasicMaterial({
-            map: gradientTex,
-            side: THREE.BackSide,
-          }),
-        );
-        skyDome.layers.set(ENV_LAYER);
-        scene.add(skyDome);
-
-        // Virtual "screen" carrying the live camera frame. Sized at the env
-        // texture's natural 9:16 aspect; positioned each frame along the
-        // orbit camera's view ray (behind the camera so the screen subtends
-        // a sensible solid angle from the helmet's POV). The CubeCamera at
-        // the helmet's center bakes this plane into the cube faces, so the
-        // helmet's surfaces facing the viewer reflect the user's face.
-        const screenAspect = ENV_WIDTH / ENV_HEIGHT;
-        const screenHeight = 4;
-        const screenWidth = screenHeight * screenAspect;
-        const reflectionScreen = new THREE.Mesh(
-          new THREE.PlaneGeometry(screenWidth, screenHeight),
+        // Live camera frame wrapped around the inside of a large back-side
+        // sphere. The CubeCamera at the helmet's center sees the camera in
+        // every direction, so reflections fully cover the helmet without
+        // any visible frame edges.
+        const envSphere = new THREE.Mesh(
+          new THREE.SphereGeometry(50, 64, 32),
           new THREE.MeshBasicMaterial({
             map: envExternalTexture,
-            side: THREE.DoubleSide,
+            side: THREE.BackSide,
             toneMapped: false,
           }),
         );
-        reflectionScreen.layers.set(ENV_LAYER);
-        scene.add(reflectionScreen);
+        envSphere.layers.set(ENV_LAYER);
+        scene.add(envSphere);
 
-        const cubeCamera = new THREE.CubeCamera(0.1, 100, cubeRT);
+        const cubeCamera = new THREE.CubeCamera(0.1, 100, activeCubeRT());
         cubeCamera.layers.set(ENV_LAYER);
         scene.add(cubeCamera);
 
@@ -392,7 +374,7 @@ const Scene = () => {
             : [mesh.material];
           for (const m of mats) {
             const std = m as THREE.MeshStandardMaterial;
-            std.envMap = cubeRT.texture;
+            std.envMap = cubeRTPbr.texture;
             std.envMapIntensity = 1.0;
             std.needsUpdate = true;
           }
@@ -402,10 +384,12 @@ const Scene = () => {
         // just samples the cubemap. No surface detail, but ~5-10x cheaper
         // fragment cost, a useful A/B against PBR on the same scene.
         const chromeMaterial = new THREE.MeshBasicMaterial({
-          envMap: cubeRT.texture,
+          envMap: cubeRTChrome.texture,
         });
 
         const applyPBR = (pbr: boolean) => {
+          (cubeCamera as unknown as { renderTarget: THREE.CubeRenderTarget })
+            .renderTarget = pbr ? cubeRTPbr : cubeRTChrome;
           for (const [mesh, original] of pbrMaterials) {
             mesh.material = pbr ? original : chromeMaterial;
           }
@@ -433,7 +417,6 @@ const Scene = () => {
 
         const clock = new THREE.Clock();
         const distance = 3;
-        const screenDistance = 4.5;
         let frameCount = 0;
         const animate = () => {
           // Slow time-based orbit around the helmet, matching the three.js
@@ -444,19 +427,10 @@ const Scene = () => {
           camera.position.y = 0;
           camera.lookAt(0, 0, 0);
 
-          // Park the reflection screen along the view ray, slightly behind
-          // the orbit camera, facing the helmet. Doing this each frame keeps
-          // the user's face on the helmet surface that's currently visible
-          // to the viewer, no matter where the orbit lands.
-          reflectionScreen.position
-            .copy(camera.position)
-            .setLength(screenDistance);
-          reflectionScreen.lookAt(0, 0, 0);
-
-          // Refresh the cubemap by rendering the env-layer of the scene
-          // (reflection screen + gradient dome) from six perspectives.
-          // Costlier than an equirect blit but captures every layer-1
-          // object, so adding scene props would also show up in reflections.
+          // Refresh the cubemap by rendering the env-layer (camera sphere)
+          // from six perspectives. Costlier than an equirect blit but lets
+          // us add other layer-1 props later that would also show up in
+          // reflections.
           cubeCamera.update(renderer!, scene);
           renderer!.render(scene, camera);
           context.present();
