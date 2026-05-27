@@ -34,14 +34,23 @@ import { CAMERA_ENV_SHADER } from "./cameraEnvShader";
 // camera frame into that GPUTexture via its own render pass. Three.js and the
 // worklet share a single GPUDevice (the one three.js creates internally), so
 // the queue ordering between "write env" and "sample env" is automatic.
+//
+// The front camera is *not* a panorama — it's a narrow-FOV planar image. So
+// rather than stretching it across a full equirect (which produces an
+// obviously fake "your face wrapped around the world" look), we treat the
+// frame as a virtual screen sitting at the viewer's location. The CubeCamera
+// at the helmet's center bakes that screen into the cube faces, so reflective
+// surfaces facing the viewer pick up the camera content (as a real chrome
+// object would), while grazing / back-facing reflections fall to a soft
+// hemisphere gradient.
 
-// Equirectangular panorama aspect (2:1). Front cam delivers 720p so the
-// env texture doesn't gain anything from going much larger than that.
-// Cube face dimension matches ENV_HEIGHT. Each frame we do (env write + 6
-// cube faces + optional mipmap chain), so this knob drives most of the
-// per-frame GPU cost.
-const ENV_WIDTH = 1024;
-const ENV_HEIGHT = 512;
+// 9:16 portrait — front cam delivers 16:9 landscape and the shader rotates it
+// 90° to selfie-upright, so this aspect lets the rotated frame fill the env
+// texture with no stretching. Cube face dimension matches ENV_HEIGHT. Each
+// frame we do (env write + 6 cube faces + optional mipmap chain), so this
+// knob drives most of the per-frame GPU cost.
+const ENV_WIDTH = 540;
+const ENV_HEIGHT = 960;
 
 // PBR mode is runtime-toggleable from a button in the JSX below. PBR uses
 // the GLTF's MeshStandardMaterial textures (albedo / normal / metalRoughness
@@ -270,10 +279,8 @@ const Scene = () => {
         });
 
         // THREE.ExternalTexture bridges our GPUTexture into three.js as a
-        // sampleable 2D texture. SphereGeometry's default UVs already lay
-        // out 0..1 the same way an equirect does (u around, v pole-to-pole),
-        // so plain UV mapping wraps the panorama correctly when we use this
-        // as a regular .map on the inside-out sky sphere below.
+        // sampleable 2D texture. Used below as the .map of a billboarded
+        // plane that represents the viewer's screen inside the env layer.
         const envExternalTexture = new THREE.ExternalTexture(envTexture);
         envExternalTexture.colorSpace = THREE.SRGBColorSpace;
         (envExternalTexture as unknown as { image: unknown }).image = {
@@ -305,17 +312,61 @@ const Scene = () => {
 
         // Layer split: main camera sees layer 0 (helmet only) so the native
         // preview View remains visible everywhere else; CubeCamera sees
-        // layer 1 (the sky sphere) so the helmet never reflects itself.
+        // layer 1 (the reflection screen + gradient backdrop) so the helmet
+        // never reflects itself.
         const ENV_LAYER = 1;
-        const sky = new THREE.Mesh(
-          new THREE.SphereGeometry(50, 64, 32),
+
+        // Soft hemisphere gradient (cool top, warm-dark bottom) baked into a
+        // 1×64 DataTexture and wrapped on a back-side sphere. Without it the
+        // cube faces that the reflection screen doesn't cover would be the
+        // renderer's transparent-black clear, leaving the helmet pitch black
+        // anywhere it isn't reflecting the user.
+        const gradientHeight = 64;
+        const gradientPixels = new Uint8Array(gradientHeight * 4);
+        for (let i = 0; i < gradientHeight; i++) {
+          const t = i / (gradientHeight - 1);
+          gradientPixels[i * 4 + 0] = Math.round(THREE.MathUtils.lerp(48, 110, t));
+          gradientPixels[i * 4 + 1] = Math.round(THREE.MathUtils.lerp(38, 130, t));
+          gradientPixels[i * 4 + 2] = Math.round(THREE.MathUtils.lerp(40, 170, t));
+          gradientPixels[i * 4 + 3] = 255;
+        }
+        const gradientTex = new THREE.DataTexture(
+          gradientPixels,
+          1,
+          gradientHeight,
+          THREE.RGBAFormat,
+        );
+        gradientTex.colorSpace = THREE.SRGBColorSpace;
+        gradientTex.needsUpdate = true;
+        const skyDome = new THREE.Mesh(
+          new THREE.SphereGeometry(50, 32, 16),
           new THREE.MeshBasicMaterial({
-            map: envExternalTexture,
+            map: gradientTex,
             side: THREE.BackSide,
           }),
         );
-        sky.layers.set(ENV_LAYER);
-        scene.add(sky);
+        skyDome.layers.set(ENV_LAYER);
+        scene.add(skyDome);
+
+        // Virtual "screen" carrying the live camera frame. Sized at the env
+        // texture's natural 9:16 aspect; positioned each frame along the
+        // orbit camera's view ray (behind the camera so the screen subtends
+        // a sensible solid angle from the helmet's POV). The CubeCamera at
+        // the helmet's center bakes this plane into the cube faces, so the
+        // helmet's surfaces facing the viewer reflect the user's face.
+        const screenAspect = ENV_WIDTH / ENV_HEIGHT;
+        const screenHeight = 4;
+        const screenWidth = screenHeight * screenAspect;
+        const reflectionScreen = new THREE.Mesh(
+          new THREE.PlaneGeometry(screenWidth, screenHeight),
+          new THREE.MeshBasicMaterial({
+            map: envExternalTexture,
+            side: THREE.DoubleSide,
+            toneMapped: false,
+          }),
+        );
+        reflectionScreen.layers.set(ENV_LAYER);
+        scene.add(reflectionScreen);
 
         const cubeCamera = new THREE.CubeCamera(0.1, 100, cubeRT);
         cubeCamera.layers.set(ENV_LAYER);
@@ -382,6 +433,7 @@ const Scene = () => {
 
         const clock = new THREE.Clock();
         const distance = 3;
+        const screenDistance = 4.5;
         let frameCount = 0;
         const animate = () => {
           // Slow time-based orbit around the helmet, matching the three.js
@@ -392,11 +444,19 @@ const Scene = () => {
           camera.position.y = 0;
           camera.lookAt(0, 0, 0);
 
+          // Park the reflection screen along the view ray, slightly behind
+          // the orbit camera, facing the helmet. Doing this each frame keeps
+          // the user's face on the helmet surface that's currently visible
+          // to the viewer, no matter where the orbit lands.
+          reflectionScreen.position
+            .copy(camera.position)
+            .setLength(screenDistance);
+          reflectionScreen.lookAt(0, 0, 0);
+
           // Refresh the cubemap by rendering the env-layer of the scene
-          // (= the sky sphere wearing the worklet-updated camera feed) from
-          // six perspectives. Costlier than a equirect blit but captures
-          // every layer-1 object, so adding scene props would also show up
-          // in the reflection.
+          // (reflection screen + gradient dome) from six perspectives.
+          // Costlier than an equirect blit but captures every layer-1
+          // object, so adding scene props would also show up in reflections.
           cubeCamera.update(renderer!, scene);
           renderer!.render(scene, camera);
           context.present();
