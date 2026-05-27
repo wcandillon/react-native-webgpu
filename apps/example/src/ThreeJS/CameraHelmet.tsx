@@ -43,6 +43,14 @@ import { CAMERA_ENV_SHADER } from "./cameraEnvShader";
 const ENV_WIDTH = 1024;
 const ENV_HEIGHT = 512;
 
+// Cube face size is mode-dependent. Chrome is a pure mirror reflection, so it
+// wants the equirect's full resolution. PBR samples roughness-selected mips
+// (helmet's metal-roughness keeps most surfaces in the 0.3-0.6 range, i.e.
+// mip 2-3), so a 128 cube + its short mip chain is visually indistinguishable
+// from 512 while cutting cubemap fill rate ~16x and mip-regen cost with it.
+const CUBE_SIZE_PBR = 128;
+const CUBE_SIZE_CHROME = 512;
+
 // PBR mode is runtime-toggleable from a button in the JSX below. PBR uses
 // the GLTF's MeshStandardMaterial textures (albedo / normal / metalRoughness
 // / AO) plus a cubemap envMap for the live reflection; "chrome" mode swaps
@@ -287,17 +295,29 @@ const Scene = () => {
         // from an equirect. CubeCamera renders the actual scene, so the
         // reflection picks up any other geometry we add — not just the sky
         // sphere that carries the camera feed.
-        const cubeRT = new THREE.CubeRenderTarget(ENV_HEIGHT);
-        cubeRT.texture.mapping = THREE.CubeReflectionMapping;
-        cubeRT.texture.colorSpace = THREE.SRGBColorSpace;
-        // Always-on mipmaps: MeshStandardMaterial's roughness-aware envMap
-        // sample picks softer mips for rough surfaces (not true PMREM since
-        // there's no GGX importance sampling, but a cheap approximation).
-        // Chrome mode pays the regen cost too, but doesn't suffer from it
-        // since it samples mip 0 only.
-        cubeRT.texture.generateMipmaps = true;
-        cubeRT.texture.minFilter = THREE.LinearMipmapLinearFilter;
-        cubeRT.texture.magFilter = THREE.LinearFilter;
+        // Two cube targets, one per mode. We swap which one CubeCamera writes
+        // into on toggle (resizing a single target via setSize doesn't fully
+        // reallocate cleanly on the WebGPU path, the reflection comes back
+        // blurry). Only the active one gets updated each frame so the cost
+        // stays paid for one mode at a time.
+        const makeCubeRT = (size: number) => {
+          const rt = new THREE.CubeRenderTarget(size);
+          rt.texture.mapping = THREE.CubeReflectionMapping;
+          rt.texture.colorSpace = THREE.SRGBColorSpace;
+          // Mipmaps only matter for PBR (roughness-aware sample). Chrome
+          // samples mip 0 only, so we skip the regen cost on the 512 target.
+          const wantsMips = size <= CUBE_SIZE_PBR;
+          rt.texture.generateMipmaps = wantsMips;
+          rt.texture.minFilter = wantsMips
+            ? THREE.LinearMipmapLinearFilter
+            : THREE.LinearFilter;
+          rt.texture.magFilter = THREE.LinearFilter;
+          return rt;
+        };
+        const cubeRTPbr = makeCubeRT(CUBE_SIZE_PBR);
+        const cubeRTChrome = makeCubeRT(CUBE_SIZE_CHROME);
+        const activeCubeRT = () =>
+          usePBRRef.current ? cubeRTPbr : cubeRTChrome;
 
         const scene = new THREE.Scene();
         // No scene.background — the canvas is alpha-cleared and the native
@@ -317,7 +337,7 @@ const Scene = () => {
         sky.layers.set(ENV_LAYER);
         scene.add(sky);
 
-        const cubeCamera = new THREE.CubeCamera(0.1, 100, cubeRT);
+        const cubeCamera = new THREE.CubeCamera(0.1, 100, activeCubeRT());
         cubeCamera.layers.set(ENV_LAYER);
         scene.add(cubeCamera);
 
@@ -341,7 +361,7 @@ const Scene = () => {
             : [mesh.material];
           for (const m of mats) {
             const std = m as THREE.MeshStandardMaterial;
-            std.envMap = cubeRT.texture;
+            std.envMap = cubeRTPbr.texture;
             std.envMapIntensity = 1.0;
             std.needsUpdate = true;
           }
@@ -351,10 +371,12 @@ const Scene = () => {
         // just samples the cubemap. No surface detail, but ~5-10x cheaper
         // fragment cost, a useful A/B against PBR on the same scene.
         const chromeMaterial = new THREE.MeshBasicMaterial({
-          envMap: cubeRT.texture,
+          envMap: cubeRTChrome.texture,
         });
 
         const applyPBR = (pbr: boolean) => {
+          (cubeCamera as unknown as { renderTarget: THREE.CubeRenderTarget })
+            .renderTarget = pbr ? cubeRTPbr : cubeRTChrome;
           for (const [mesh, original] of pbrMaterials) {
             mesh.material = pbr ? original : chromeMaterial;
           }
