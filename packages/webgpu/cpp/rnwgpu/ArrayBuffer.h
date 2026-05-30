@@ -84,12 +84,17 @@ template <> struct JSIConverter<std::shared_ptr<ArrayBuffer>> {
                 "byteLength) exceed the backing ArrayBuffer size");
           }
 
-          // BYTES_PER_ELEMENT is absent on a DataView; default to 1.
+          // BYTES_PER_ELEMENT is absent on a DataView; default to 1. A spoofed
+          // object could report 0 (or a negative/NaN value), so clamp to a
+          // minimum of 1 to avoid a later division by zero in writeBuffer.
           size_t bytesPerElements = 1;
           if (obj.hasProperty(runtime, "BYTES_PER_ELEMENT")) {
             auto bpe = obj.getProperty(runtime, "BYTES_PER_ELEMENT");
             if (bpe.isNumber()) {
-              bytesPerElements = static_cast<size_t>(bpe.asNumber());
+              const double value = bpe.asNumber();
+              if (std::isfinite(value) && value >= 1.0) {
+                bytesPerElements = static_cast<size_t>(value);
+              }
             }
           }
 
