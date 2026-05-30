@@ -76,31 +76,31 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
               return (${tree.code})(this.ctx);
             })`,
             ).call({
-            ctx: {
-              gpu: navigator.gpu,
-              device,
-              urls: {
-                fTexture: Image.resolveAssetSource(require("./assets/f.png"))
-                  .uri,
+              ctx: {
+                gpu: navigator.gpu,
+                device,
+                urls: {
+                  fTexture: Image.resolveAssetSource(require("./assets/f.png"))
+                    .uri,
+                },
+                assets: {
+                  cubeVertexArray,
+                  di3D,
+                  saturn,
+                  moon,
+                },
+                shaders: {
+                  triangleVertWGSL,
+                  redFragWGSL,
+                },
+                ctx,
+                canvas: ctx.canvas,
+                mat4,
+                vec3,
+                mat3,
+                ...tree.ctx,
               },
-              assets: {
-                cubeVertexArray,
-                di3D,
-                saturn,
-                moon,
-              },
-              shaders: {
-                triangleVertWGSL,
-                redFragWGSL,
-              },
-              ctx,
-              canvas: ctx.canvas,
-              mat4,
-              vec3,
-              mat3,
-              ...tree.ctx,
-            },
-          });
+            });
           const onError = (error: unknown) => {
             // Report a thrown error back to the host so the matching test can
             // `.rejects` instead of hanging, and so the throw is not surfaced

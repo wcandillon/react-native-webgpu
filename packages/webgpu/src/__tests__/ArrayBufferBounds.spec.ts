@@ -15,11 +15,6 @@ import { client } from "./setup";
 // from the engine's typed-array view object (Napi), whose invariants the JS
 // engine guarantees. Since JSI exposes these only as user-readable properties,
 // we must validate them ourselves: byteOffset + byteLength <= buffer size.
-
-const readBackFloat32 = async () => {
-  // helper kept inline in each eval; see usages below
-};
-
 describe("ArrayBuffer bounds", () => {
   // -- Correctness of the legitimate offset path -------------------------------
 
@@ -43,11 +38,15 @@ describe("ArrayBuffer bounds", () => {
       const encoder = device.createCommandEncoder();
       encoder.copyBufferToBuffer(src, 0, readBuffer, 0, size);
       device.queue.submit([encoder.finish()]);
-      return device.queue.onSubmittedWorkDone().then(() =>
-        readBuffer.mapAsync(GPUMapMode.READ).then(() =>
-          Array.from(new Float32Array(readBuffer.getMappedRange())),
-        ),
-      );
+      return device.queue
+        .onSubmittedWorkDone()
+        .then(() =>
+          readBuffer
+            .mapAsync(GPUMapMode.READ)
+            .then(() =>
+              Array.from(new Float32Array(readBuffer.getMappedRange())),
+            ),
+        );
     });
     // Must read the SLICE, not the whole backing buffer.
     expect(result).toEqual([20, 30]);
@@ -72,11 +71,15 @@ describe("ArrayBuffer bounds", () => {
       const encoder = device.createCommandEncoder();
       encoder.copyBufferToBuffer(src, 0, readBuffer, 0, size);
       device.queue.submit([encoder.finish()]);
-      return device.queue.onSubmittedWorkDone().then(() =>
-        readBuffer.mapAsync(GPUMapMode.READ).then(() =>
-          Array.from(new Uint32Array(readBuffer.getMappedRange())),
-        ),
-      );
+      return device.queue
+        .onSubmittedWorkDone()
+        .then(() =>
+          readBuffer
+            .mapAsync(GPUMapMode.READ)
+            .then(() =>
+              Array.from(new Uint32Array(readBuffer.getMappedRange())),
+            ),
+        );
     });
     expect(result).toEqual([2, 3]);
   });
@@ -99,11 +102,15 @@ describe("ArrayBuffer bounds", () => {
       const encoder = device.createCommandEncoder();
       encoder.copyBufferToBuffer(src, 0, readBuffer, 0, size);
       device.queue.submit([encoder.finish()]);
-      return device.queue.onSubmittedWorkDone().then(() =>
-        readBuffer.mapAsync(GPUMapMode.READ).then(() =>
-          Array.from(new Uint8Array(readBuffer.getMappedRange())),
-        ),
-      );
+      return device.queue
+        .onSubmittedWorkDone()
+        .then(() =>
+          readBuffer
+            .mapAsync(GPUMapMode.READ)
+            .then(() =>
+              Array.from(new Uint8Array(readBuffer.getMappedRange())),
+            ),
+        );
     });
     expect(result).toEqual([5, 6, 7, 8]);
   });
