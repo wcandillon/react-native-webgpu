@@ -5,7 +5,7 @@ import {
   useCanvasRef,
   useDevice,
   type NativeCanvas,
-  type VideoFrame,
+  type NativeVideoFrame,
 } from "react-native-wgpu";
 
 // importExternalTexture is the spec-mandated path for "I have a YUV-encoded
@@ -159,7 +159,7 @@ export const ExternalTexture = () => {
     // ticks — this is what stops the canvas from flashing black ~2/3 of the
     // time. AVPlayer's pool is several buffers deep so holding one back like
     // this doesn't stall decoding.
-    let currentFrame: VideoFrame | null = null;
+    let currentFrame: NativeVideoFrame | null = null;
 
     const render = () => {
       const newFrame = player.copyLatestFrame();

@@ -6,7 +6,7 @@ import {
   useDevice,
   type GPUSharedTextureMemory,
   type NativeCanvas,
-  type VideoFrame,
+  type NativeVideoFrame,
 } from "react-native-wgpu";
 
 const SHADER = /* wgsl */ `
@@ -103,7 +103,7 @@ export const SharedTextureMemory = () => {
     // from copyLatestFrame() as "keep showing the previous frame", which means
     // a one-shot source renders correctly without any other change.
     interface FrameSource {
-      copyLatestFrame(): VideoFrame | null;
+      copyLatestFrame(): NativeVideoFrame | null;
       release(): void;
     }
     let source: FrameSource;
@@ -117,7 +117,7 @@ export const SharedTextureMemory = () => {
         release: () => player.release(),
       };
     } else {
-      let pending: VideoFrame | null = RNWebGPU.createTestVideoFrame(
+      let pending: NativeVideoFrame | null = RNWebGPU.createTestVideoFrame(
         1024,
         1024,
       );
@@ -168,7 +168,7 @@ export const SharedTextureMemory = () => {
     // demo we rely on AVPlayer recycling its IOSurface pool, which is safe as
     // long as we end-access before letting the player reclaim the buffer.
     type Bound = {
-      frame: VideoFrame;
+      frame: NativeVideoFrame;
       memory: GPUSharedTextureMemory;
       texture: GPUTexture;
       bindGroup: GPUBindGroup;
@@ -190,7 +190,7 @@ export const SharedTextureMemory = () => {
       }
     };
 
-    const bindFrame = (frame: VideoFrame): Bound | null => {
+    const bindFrame = (frame: NativeVideoFrame): Bound | null => {
       try {
         const memory = device.importSharedTextureMemory({
           handle: frame.handle,
