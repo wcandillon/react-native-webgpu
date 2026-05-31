@@ -38,6 +38,7 @@ import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
 import { StorageBufferVertices } from "./StorageBufferVertices";
 import { SharedTextureMemory } from "./SharedTextureMemory";
 import { Camera } from "./Camera";
+import { VisionCameraRepro } from "./VisionCameraRepro";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -104,6 +105,10 @@ function App() {
             component={SharedTextureMemory}
           />
           <Stack.Screen name="Camera" component={Camera} />
+          <Stack.Screen
+            name="VisionCameraRepro"
+            component={VisionCameraRepro}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
