@@ -66,6 +66,61 @@ describe("Image Bitmap", () => {
     expect(result.width).toBe(expected.width);
     expect(result.height).toBe(expected.height);
   });
+  itSkipsOnWeb("ImageBitmap.close() zeroes width and height", async () => {
+    const pngBytes = Array.from(
+      fs.readFileSync(path.join(__dirname, "./assets/Di-3d.png")),
+    );
+    const expected = decodeImage(path.join(__dirname, "./assets/Di-3d.png"));
+    const result = await client.eval(
+      ({ pngData }) => {
+        const bytes = new Uint8Array(pngData);
+        return createImageBitmap(bytes.buffer).then((bmp) => {
+          const before = { width: bmp.width, height: bmp.height };
+          bmp.close();
+          const after = { width: bmp.width, height: bmp.height };
+          return { before, after };
+        });
+      },
+      { pngData: pngBytes },
+    );
+    expect(result.before.width).toBe(expected.width);
+    expect(result.before.height).toBe(expected.height);
+    expect(result.after.width).toBe(0);
+    expect(result.after.height).toBe(0);
+  });
+  itSkipsOnWeb("ImageBitmap.close() is idempotent", async () => {
+    const pngBytes = Array.from(
+      fs.readFileSync(path.join(__dirname, "./assets/Di-3d.png")),
+    );
+    const result = await client.eval(
+      ({ pngData }) => {
+        const bytes = new Uint8Array(pngData);
+        return createImageBitmap(bytes.buffer).then((bmp) => {
+          bmp.close();
+          bmp.close();
+          return { width: bmp.width, height: bmp.height };
+        });
+      },
+      { pngData: pngBytes },
+    );
+    expect(result.width).toBe(0);
+    expect(result.height).toBe(0);
+  });
+  itSkipsOnWeb("ImageBitmap exposes close as a function", async () => {
+    const pngBytes = Array.from(
+      fs.readFileSync(path.join(__dirname, "./assets/Di-3d.png")),
+    );
+    const result = await client.eval(
+      ({ pngData }) => {
+        const bytes = new Uint8Array(pngData);
+        return createImageBitmap(bytes.buffer).then((bmp) => {
+          return typeof bmp.close;
+        });
+      },
+      { pngData: pngBytes },
+    );
+    expect(result).toBe("function");
+  });
   itSkipsOnWeb(
     "createImageBitmap from Uint8Array subarray (byteOffset/byteLength)",
     async () => {
