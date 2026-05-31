@@ -96,10 +96,35 @@ class RemoteTestingClient implements TestingClient {
   }
 
   private handleResponse<R>(body: string): Promise<R> {
-    return new Promise((resolve) => {
-      this.client.once("message", (raw: Buffer) => {
-        resolve(JSON.parse(raw.toString()));
-      });
+    // Guard against an eval that never replies (e.g. the device threw and could
+    // not post a result back). Without this the host would await forever and a
+    // single failing case would stall the whole serial suite.
+    const EVAL_TIMEOUT_MS = 30 * 1000;
+    return new Promise((resolve, reject) => {
+      const onMessage = (raw: Buffer) => {
+        clearTimeout(timeout);
+        const response = JSON.parse(raw.toString());
+        // The device reports a thrown error as { $$error: message } so the
+        // matching test can `.rejects` instead of hanging on a missing reply.
+        if (
+          response !== null &&
+          typeof response === "object" &&
+          "$$error" in response
+        ) {
+          reject(new Error(String((response as { $$error: unknown }).$$error)));
+        } else {
+          resolve(response);
+        }
+      };
+      const timeout = setTimeout(() => {
+        this.client.off("message", onMessage);
+        reject(
+          new Error(
+            `eval timed out after ${EVAL_TIMEOUT_MS}ms without a response from the device`,
+          ),
+        );
+      }, EVAL_TIMEOUT_MS);
+      this.client.once("message", onMessage);
       this.client.send(body);
     });
   }
