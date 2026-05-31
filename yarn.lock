@@ -3658,9 +3658,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-three/fiber@patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch::locator=react-native-webgpu%40workspace%3A.":
+"@react-three/fiber@patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch::locator=react-native-webgpu-monorepo%40workspace%3A.":
   version: 9.4.0
-  resolution: "@react-three/fiber@patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch::version=9.4.0&hash=7de131&locator=react-native-webgpu%40workspace%3A."
+  resolution: "@react-three/fiber@patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch::version=9.4.0&hash=7de131&locator=react-native-webgpu-monorepo%40workspace%3A."
   dependencies:
     "@babel/runtime": ^7.17.8
     "@types/react-reconciler": ^0.32.0
@@ -13011,9 +13011,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-webgpu@workspace:.":
+"react-native-webgpu-monorepo@workspace:.":
   version: 0.0.0-use.local
-  resolution: "react-native-webgpu@workspace:."
+  resolution: "react-native-webgpu-monorepo@workspace:."
   dependencies:
     "@types/react-native-web": ^0.19.2
     turbo: ^2.1.0
