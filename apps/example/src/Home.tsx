@@ -127,6 +127,14 @@ export const examples = [
     screen: "StorageBufferVertices",
     title: "💾 Storage Buffer Vertices",
   },
+  {
+    screen: "SharedTextureMemory",
+    title: "🎞️ Shared Texture Memory",
+  },
+  {
+    screen: "Camera",
+    title: "📷 Camera",
+  },
 ];
 
 const styles = StyleSheet.create({

@@ -27,7 +27,18 @@
     ]
   },
   "ios": {
-    "metalAPIValidation": false
+    "metalAPIValidation": false,
+    "infoPlist": {
+      "NSCameraUsageDescription": "$(PRODUCT_NAME) needs access to your Camera.",
+      "NSMicrophoneUsageDescription": "$(PRODUCT_NAME) needs access to your Microphone."
+    }
+  },
+  "android": {
+    "permissions": [
+      { "android:name": "android.permission.INTERNET" },
+      { "android:name": "android.permission.CAMERA" },
+      { "android:name": "android.permission.RECORD_AUDIO" }
+    ]
   },
   "macos": {
     "metalAPIValidation": false

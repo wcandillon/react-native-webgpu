@@ -36,6 +36,8 @@ import { Reanimated } from "./Reanimated";
 import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
 import { StorageBufferVertices } from "./StorageBufferVertices";
+import { SharedTextureMemory } from "./SharedTextureMemory";
+import { Camera } from "./Camera";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -97,6 +99,11 @@ function App() {
             name="StorageBufferVertices"
             component={StorageBufferVertices}
           />
+          <Stack.Screen
+            name="SharedTextureMemory"
+            component={SharedTextureMemory}
+          />
+          <Stack.Screen name="Camera" component={Camera} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

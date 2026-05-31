@@ -29,4 +29,6 @@ export type Routes = {
   AsyncStarvation: undefined;
   DeviceLostHang: undefined;
   StorageBufferVertices: undefined;
+  SharedTextureMemory: undefined;
+  Camera: undefined;
 };

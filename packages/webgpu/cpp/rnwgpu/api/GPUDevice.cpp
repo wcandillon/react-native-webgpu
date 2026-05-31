@@ -13,6 +13,7 @@
 #include "GPUInternalError.h"
 #include "GPUOutOfMemoryError.h"
 #include "GPUValidationError.h"
+#include "RnFeatures.h"
 
 namespace rnwgpu {
 
@@ -238,6 +239,51 @@ std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
       "GPUDevice::importExternalTexture(): Not implemented");
 }
 
+std::shared_ptr<GPUSharedTextureMemory> GPUDevice::importSharedTextureMemory(
+    std::shared_ptr<GPUSharedTextureMemoryDescriptor> descriptor) {
+  if (!descriptor || descriptor->handle == nullptr) {
+    throw std::runtime_error("GPUDevice::importSharedTextureMemory(): handle "
+                             "must be a non-null native pointer");
+  }
+
+  wgpu::SharedTextureMemoryDescriptor desc{};
+  std::string label = descriptor->label.value_or("");
+  if (!label.empty()) {
+    desc.label = wgpu::StringView(label.c_str(), label.size());
+  }
+
+#if defined(__APPLE__)
+  wgpu::SharedTextureMemoryIOSurfaceDescriptor platformDesc{};
+  platformDesc.ioSurface = descriptor->handle;
+  // Default off: enabling it propagates StorageBinding into properties.usage,
+  // which then forces memory.createTexture() (no-descriptor form) to validate
+  // the format against storage capabilities. bgra8unorm (the standard
+  // CVPixelBuffer format) only supports storage when the device opts into the
+  // bgra8unorm-storage feature, so unconditionally setting this here breaks
+  // the common sample-only case.
+  platformDesc.allowStorageBinding = false;
+  desc.nextInChain = &platformDesc;
+#elif defined(__ANDROID__)
+  wgpu::SharedTextureMemoryAHardwareBufferDescriptor platformDesc{};
+  platformDesc.handle = descriptor->handle;
+  desc.nextInChain = &platformDesc;
+#else
+  throw std::runtime_error(
+      "GPUDevice::importSharedTextureMemory(): unsupported platform");
+#endif
+
+  auto memory = _instance.ImportSharedTextureMemory(&desc);
+  if (memory == nullptr) {
+    throw std::runtime_error("GPUDevice::importSharedTextureMemory(): "
+                             "ImportSharedTextureMemory returned null - is the "
+                             "'shared-texture-memory-iosurface' (Apple) or "
+                             "'shared-texture-memory-ahardware-buffer' "
+                             "(Android) feature enabled on the device?");
+  }
+  return std::make_shared<GPUSharedTextureMemory>(std::move(memory),
+                                                  std::move(label));
+}
+
 async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
     std::shared_ptr<GPUComputePipelineDescriptor> descriptor) {
   wgpu::ComputePipelineDescriptor desc{};
@@ -262,7 +308,7 @@ async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
         &desc, wgpu::CallbackMode::AllowProcessEvents,
         [pipelineHolder, resolve,
          reject](wgpu::CreatePipelineAsyncStatus status,
-                 wgpu::ComputePipeline pipeline, const char *msg) mutable {
+                 wgpu::ComputePipeline pipeline, wgpu::StringView msg) {
           if (status == wgpu::CreatePipelineAsyncStatus::Success && pipeline) {
             pipelineHolder->_instance = pipeline;
             resolve([pipelineHolder](jsi::Runtime &runtime) mutable {
@@ -271,7 +317,8 @@ async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
             });
           } else {
             std::string error =
-                msg ? std::string(msg) : "Failed to create compute pipeline";
+                msg.length ? std::string(msg.data, msg.length)
+                           : "Failed to create compute pipeline";
             reject(std::move(error));
           }
         });
@@ -303,7 +350,7 @@ async::AsyncTaskHandle GPUDevice::createRenderPipelineAsync(
         &desc, wgpu::CallbackMode::AllowProcessEvents,
         [pipelineHolder, resolve,
          reject](wgpu::CreatePipelineAsyncStatus status,
-                 wgpu::RenderPipeline pipeline, const char *msg) mutable {
+                 wgpu::RenderPipeline pipeline, wgpu::StringView msg) {
           if (status == wgpu::CreatePipelineAsyncStatus::Success && pipeline) {
             pipelineHolder->_instance = pipeline;
             resolve([pipelineHolder](jsi::Runtime &runtime) mutable {
@@ -312,7 +359,8 @@ async::AsyncTaskHandle GPUDevice::createRenderPipelineAsync(
             });
           } else {
             std::string error =
-                msg ? std::string(msg) : "Failed to create render pipeline";
+                msg.length ? std::string(msg.data, msg.length)
+                           : "Failed to create render pipeline";
             reject(std::move(error));
           }
         });
@@ -386,12 +434,15 @@ std::unordered_set<std::string> GPUDevice::getFeatures() {
   wgpu::SupportedFeatures supportedFeatures;
   _instance.GetFeatures(&supportedFeatures);
   std::unordered_set<std::string> result;
+  std::unordered_set<wgpu::FeatureName> enabled;
   for (size_t i = 0; i < supportedFeatures.featureCount; ++i) {
     auto feature = supportedFeatures.features[i];
+    enabled.insert(feature);
     std::string name;
     convertEnumToJSUnion(feature, &name);
     result.insert(name);
   }
+  maybeSynthesizeRnSharedTextureMemoryFeature(enabled, result);
   return result;
 }
 
