@@ -18,9 +18,17 @@ export interface CanvasRef {
   getNativeSurface: () => NativeCanvas;
 }
 
-export type VideoPixelFormat = "bgra8" | "nv12";
+// Pixel layout of a NativeVideoFrame. NOT the WebCodecs `VideoPixelFormat`
+// enum — these are the two native surface layouts we support, lower-cased to
+// avoid being mistaken for the spec values ("NV12", "BGRA", …).
+export type NativeVideoPixelFormat = "bgra8" | "nv12";
 
 // A native, GPU-shareable handle to a single video frame.
+//
+// NOT the WebCodecs `VideoFrame`: there is no `close()`/`format`/`timestamp`,
+// the surface is referenced by a raw native pointer, and disposal is
+// `release()`. Named with a `Native` prefix so it doesn't shadow the global
+// WebCodecs type or imply spec semantics it doesn't have.
 //
 //   - handle is the raw pointer (IOSurfaceRef on Apple, AHardwareBuffer* on
 //     Android) encoded as a BigInt. Pass it to
@@ -31,11 +39,11 @@ export type VideoPixelFormat = "bgra8" | "nv12";
 //   - release() drops the underlying backing object (a CVPixelBuffer on Apple).
 //     The frame is also released when the JS wrapper is garbage-collected; call
 //     release() eagerly when you know you're done.
-export interface VideoFrame {
+export interface NativeVideoFrame {
   readonly handle: bigint;
   readonly width: number;
   readonly height: number;
-  readonly pixelFormat: VideoPixelFormat;
+  readonly pixelFormat: NativeVideoPixelFormat;
   release(): void;
 }
 
@@ -43,7 +51,7 @@ export interface VideoFrame {
 // to obtain the most recently decoded frame as an IOSurface/AHardwareBuffer
 // (returns null between frames so callers can skip the import work).
 export interface VideoPlayer {
-  copyLatestFrame(): VideoFrame | null;
+  copyLatestFrame(): NativeVideoFrame | null;
   play(): void;
   pause(): void;
   release(): void;
@@ -54,14 +62,15 @@ export interface CreateVideoPlayerOptions {
   // SharedTextureMemory and a regular sampled GPUTexture.
   // 'nv12': emit biplanar Y + CbCr surfaces, suitable for
   // GPUDevice.importExternalTexture.
-  pixelFormat?: VideoPixelFormat;
+  pixelFormat?: NativeVideoPixelFormat;
 }
 
 export interface GPUSharedTextureMemoryDescriptor {
   // Raw native handle (IOSurfaceRef on Apple, AHardwareBuffer* on Android),
   // encoded as a BigInt. The caller is responsible for keeping the underlying
   // object alive for as long as the shared memory (and any textures derived
-  // from it) are in use. Using VideoFrame.handle handles this automatically.
+  // from it) are in use. Using NativeVideoFrame.handle handles this
+  // automatically.
   handle: bigint;
   label?: string;
 }

@@ -5,14 +5,15 @@ import type {
   NativeCanvas,
   RNCanvasContext,
   VideoPlayer,
-  VideoFrame,
+  NativeVideoFrame,
+  NativeVideoPixelFormat,
 } from "./types";
 
 export * from "./main";
 export type {
-  VideoFrame,
+  NativeVideoFrame,
   VideoPlayer,
-  VideoPixelFormat,
+  NativeVideoPixelFormat,
   CreateVideoPlayerOptions,
   GPUSharedTextureMemory,
   GPUSharedTextureMemoryDescriptor,
@@ -36,15 +37,15 @@ declare global {
     ) => RNCanvasContext;
     DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
     createImageBitmap: typeof createImageBitmap;
-    loadVideoFrame: (path: string) => VideoFrame;
-    createTestVideoFrame: (width: number, height: number) => VideoFrame;
+    loadVideoFrame: (path: string) => NativeVideoFrame;
+    createTestVideoFrame: (width: number, height: number) => NativeVideoFrame;
     // Wrap a NativeBuffer.pointer (CVPixelBufferRef on iOS / AHardwareBuffer*
-    // on Android) into a VideoFrame. Matches the shape used by libraries that
-    // emit NativeBuffer (e.g. react-native-vision-camera).
-    createVideoFrameFromNativeBuffer: (pointer: bigint) => VideoFrame;
+    // on Android) into a NativeVideoFrame. Matches the shape used by libraries
+    // that emit NativeBuffer (e.g. react-native-vision-camera).
+    createVideoFrameFromNativeBuffer: (pointer: bigint) => NativeVideoFrame;
     createVideoPlayer: (
       path: string,
-      pixelFormat?: VideoPixelFormat,
+      pixelFormat?: NativeVideoPixelFormat,
     ) => VideoPlayer;
     writeTestVideoFile: () => string;
   };
@@ -53,10 +54,10 @@ declare global {
     importSharedTextureMemory(
       descriptor: GPUSharedTextureMemoryDescriptor,
     ): GPUSharedTextureMemory;
-    // Wrap a NativeBuffer.pointer into a VideoFrame. Reachable from worklet
-    // runtimes (e.g. Vision Camera frame processors) because GPUDevice is
-    // serialized across worklet boundaries via the WebGPU custom serializer.
-    createVideoFrameFromNativeBuffer(pointer: bigint): VideoFrame;
+    // Wrap a NativeBuffer.pointer into a NativeVideoFrame. Reachable from
+    // worklet runtimes (e.g. Vision Camera frame processors) because GPUDevice
+    // is serialized across worklet boundaries via the WebGPU custom serializer.
+    createVideoFrameFromNativeBuffer(pointer: bigint): NativeVideoFrame;
   }
 
   // Extend createImageBitmap to accept ArrayBuffer/TypedArray (encoded image bytes)

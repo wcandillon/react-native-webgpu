@@ -395,8 +395,9 @@ const Scene = () => {
         });
 
         const applyPBR = (pbr: boolean) => {
-          (cubeCamera as unknown as { renderTarget: THREE.CubeRenderTarget })
-            .renderTarget = pbr ? cubeRTPbr : cubeRTChrome;
+          (
+            cubeCamera as unknown as { renderTarget: THREE.CubeRenderTarget }
+          ).renderTarget = pbr ? cubeRTPbr : cubeRTChrome;
           for (const [mesh, original] of pbrMaterials) {
             mesh.material = pbr ? original : chromeMaterial;
           }
@@ -669,9 +670,7 @@ const Scene = () => {
         style={styles.toggleButton}
         activeOpacity={0.8}
       >
-        <Text style={styles.toggleButtonText}>
-          {usePBR ? "PBR" : "Chrome"}
-        </Text>
+        <Text style={styles.toggleButtonText}>{usePBR ? "PBR" : "Chrome"}</Text>
       </TouchableOpacity>
     </View>
   );

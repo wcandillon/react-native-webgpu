@@ -70,45 +70,62 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
             format: presentationFormat,
             alphaMode: "premultiplied",
           });
-          const result = eval(
-            `(function Main() {
+          const runEval = () =>
+            eval(
+              `(function Main() {
               return (${tree.code})(this.ctx);
             })`,
-          ).call({
-            ctx: {
-              gpu: navigator.gpu,
-              device,
-              urls: {
-                fTexture: Image.resolveAssetSource(require("./assets/f.png"))
-                  .uri,
+            ).call({
+              ctx: {
+                gpu: navigator.gpu,
+                device,
+                urls: {
+                  fTexture: Image.resolveAssetSource(require("./assets/f.png"))
+                    .uri,
+                },
+                assets: {
+                  cubeVertexArray,
+                  di3D,
+                  saturn,
+                  moon,
+                },
+                shaders: {
+                  triangleVertWGSL,
+                  redFragWGSL,
+                },
+                ctx,
+                canvas: ctx.canvas,
+                mat4,
+                vec3,
+                mat3,
+                ...tree.ctx,
               },
-              assets: {
-                cubeVertexArray,
-                di3D,
-                saturn,
-                moon,
-              },
-              shaders: {
-                triangleVertWGSL,
-                redFragWGSL,
-              },
-              ctx,
-              canvas: ctx.canvas,
-              mat4,
-              vec3,
-              mat3,
-              ...tree.ctx,
-            },
-          });
-          if (result instanceof Promise) {
-            result.then((r) => {
-              if (r.data && r.width && r.height) {
-                setTexture(ctx.getCurrentTexture());
-              }
-              client.send(JSON.stringify(r));
             });
-          } else {
-            client.send(JSON.stringify(result));
+          const onError = (error: unknown) => {
+            // Report a thrown error back to the host so the matching test can
+            // `.rejects` instead of hanging, and so the throw is not surfaced
+            // as an unhandled rejection (which logs console.error and could
+            // break the socket for subsequent tests).
+            const message =
+              error instanceof Error ? error.message : String(error);
+            client.send(JSON.stringify({ $$error: message }));
+          };
+          try {
+            const result = runEval();
+            if (result instanceof Promise) {
+              result
+                .then((r) => {
+                  if (r.data && r.width && r.height) {
+                    setTexture(ctx.getCurrentTexture());
+                  }
+                  client.send(JSON.stringify(r));
+                })
+                .catch(onError);
+            } else {
+              client.send(JSON.stringify(result));
+            }
+          } catch (error) {
+            onError(error);
           }
         }
       };
