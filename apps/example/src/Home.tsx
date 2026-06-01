@@ -135,10 +135,6 @@ export const examples = [
     screen: "Camera",
     title: "📷 Camera",
   },
-  {
-    screen: "VisionCameraRepro",
-    title: "🐛 VisionCamera + WebGPU repro",
-  },
 ];
 
 const styles = StyleSheet.create({

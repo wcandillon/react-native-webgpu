@@ -15,6 +15,10 @@ export const examples = [
     screen: "DedicatedThread",
     title: "🔀 Dedicated Thread",
   },
+  {
+    screen: "FrameProcessor",
+    title: "📷 Frame Processor",
+  },
 ] as const;
 
 const styles = StyleSheet.create({

@@ -5,6 +5,7 @@ import type { Routes } from "./Routes";
 import { List } from "./List";
 import { UIThread } from "./UIThread";
 import { DedicatedThread } from "./DedicatedThread";
+import { FrameProcessor } from "./FrameProcessor";
 
 const Stack = createStackNavigator<Routes>();
 export const Reanimated = () => {
@@ -30,6 +31,13 @@ export const Reanimated = () => {
         component={DedicatedThread}
         options={{
           title: "🔀 Dedicated Thread",
+        }}
+      />
+      <Stack.Screen
+        name="FrameProcessor"
+        component={FrameProcessor}
+        options={{
+          title: "📷 Frame Processor",
         }}
       />
     </Stack.Navigator>

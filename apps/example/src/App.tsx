@@ -3,7 +3,6 @@ import "./resolveAssetSourcePolyfill";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Alert } from "react-native";
 
 import type { Routes } from "./Route";
 import { Home } from "./Home";
@@ -39,7 +38,6 @@ import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
 import { StorageBufferVertices } from "./StorageBufferVertices";
 import { SharedTextureMemory } from "./SharedTextureMemory";
 import { Camera } from "./Camera";
-import { VisionCameraRepro } from "./VisionCameraRepro";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -106,10 +104,6 @@ function App() {
             component={SharedTextureMemory}
           />
           <Stack.Screen name="Camera" component={Camera} />
-          <Stack.Screen
-            name="VisionCameraRepro"
-            component={VisionCameraRepro}
-          />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
