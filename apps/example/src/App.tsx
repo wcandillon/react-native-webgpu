@@ -37,9 +37,7 @@ import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
 import { StorageBufferVertices } from "./StorageBufferVertices";
 import { SharedTextureMemory } from "./SharedTextureMemory";
-import { ExternalTexture } from "./ExternalTexture";
 import { VisionCamera } from "./VisionCamera";
-import { ChromeSphere } from "./ChromeSphere";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -50,9 +48,9 @@ const Stack = createStackNavigator<Routes>();
 
 function App() {
   const assets = useAssets();
-  // if (assets === null) {
-  //   return null;
-  // }
+  if (assets === null) {
+    return null;
+  }
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
@@ -91,7 +89,7 @@ function App() {
           <Stack.Screen name="Particles" component={Particules} />
           <Stack.Screen name="Resize" component={Resize} />
           <Stack.Screen name="Tests">
-            {(props) => (assets ? <Tests {...props} assets={assets} /> : null)}
+            {(props) => <Tests {...props} assets={assets} />}
           </Stack.Screen>
           <Stack.Screen name="GradientTiles" component={GradientTiles} />
           <Stack.Screen name="Reanimated" component={Reanimated} />
@@ -105,9 +103,7 @@ function App() {
             name="SharedTextureMemory"
             component={SharedTextureMemory}
           />
-          <Stack.Screen name="ExternalTexture" component={ExternalTexture} />
           <Stack.Screen name="VisionCamera" component={VisionCamera} />
-          <Stack.Screen name="ChromeSphere" component={ChromeSphere} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

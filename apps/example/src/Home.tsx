@@ -132,16 +132,8 @@ export const examples = [
     title: "🎞️ Shared Texture Memory",
   },
   {
-    screen: "ExternalTexture",
-    title: "🟨 External Texture (YUV)",
-  },
-  {
     screen: "VisionCamera",
     title: "📷 VisionCamera integration",
-  },
-  {
-    screen: "ChromeSphere",
-    title: "🪩 Chrome Sphere (camera env map)",
   },
 ];
 

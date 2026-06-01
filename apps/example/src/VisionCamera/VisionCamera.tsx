@@ -220,7 +220,7 @@ const REQUIRED_FEATURES: GPUFeatureName[] = [
 const OPAQUE_YCBCR_EXT =
   "opaque-ycbcr-android-for-external-texture" as GPUFeatureName;
 
-// Blur infrastructure. Mirrors the ExternalTexture demo: prepass writes the
+// Blur infrastructure: prepass writes the
 // cover-fit camera image into a 1/4-res rgba8unorm, the separable box-blur
 // compute pings between two storage textures, and the main pass linearly
 // upsamples the final result so the effective sigma is ~4x the per-iteration
@@ -411,7 +411,7 @@ const CameraView = () => {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    // ----- Blur infrastructure (matches ExternalTexture's "Blur" chain) ----
+    // ----- Blur infrastructure -----
     const blurWidth = Math.max(
       BLUR_TILE_DIM,
       Math.ceil(canvas.width / BLUR_SCALE),

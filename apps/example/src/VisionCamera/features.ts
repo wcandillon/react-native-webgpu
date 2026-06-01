@@ -16,7 +16,7 @@ export type Modes = {
 export const INITIAL_MODES: Modes = {
   effect: 0,
   tint: 0,
-  aberration: 1,
+  aberration: 0,
   blur: 0,
   vignette: 0,
   pixelate: 0,

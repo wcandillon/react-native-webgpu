@@ -30,7 +30,5 @@ export type Routes = {
   DeviceLostHang: undefined;
   StorageBufferVertices: undefined;
   SharedTextureMemory: undefined;
-  ExternalTexture: undefined;
   VisionCamera: undefined;
-  ChromeSphere: undefined;
 };
