@@ -226,19 +226,19 @@ device.queue.copyExternalImageToTexture(
 
 React Native WebGPU exposes Dawn's `SharedTextureMemory` so you can import a native pixel surface (an `IOSurface`-backed `CVPixelBuffer` on iOS, an `AHardwareBuffer` on Android) as a sampleable `GPUTexture` without copying pixels through the CPU. This is the path you want for camera frames, video frames, or anything coming out of a hardware producer.
 
-We expose a single umbrella feature name, `"rnwebgpu/shared-texture-memory"`. Request it at device creation.
+We expose a single umbrella feature name, `"rnwebgpu/native-texture"`. Request it at device creation.
 
 ```tsx
-import type { VideoFrame } from "react-native-wgpu";
+import type { NativeVideoFrame } from "react-native-wgpu";
 
-const FEATURE = "rnwebgpu/shared-texture-memory" as GPUFeatureName;
+const FEATURE = "rnwebgpu/native-texture" as GPUFeatureName;
 
 const adapter = await navigator.gpu.requestAdapter();
 const requiredFeatures = adapter!.features.has(FEATURE) ? [FEATURE] : [];
 const device = await adapter!.requestDevice({ requiredFeatures });
 
-// `frame` here is a VideoFrame whose .handle is the native surface
-// (IOSurfaceRef / AHardwareBuffer*). VideoFrames are produced by helpers
+// `frame` here is a NativeVideoFrame whose .handle is the native surface
+// (IOSurfaceRef / AHardwareBuffer*). NativeVideoFrames are produced by helpers
 // like RNWebGPU.createVideoPlayer or RNWebGPU.createTestVideoFrame, or by
 // any third-party module that hands you a compatible native pointer.
 const memory = device.importSharedTextureMemory({

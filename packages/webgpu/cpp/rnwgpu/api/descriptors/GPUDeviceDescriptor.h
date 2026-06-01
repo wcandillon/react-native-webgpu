@@ -50,8 +50,8 @@ template <> struct JSIConverter<std::vector<wgpu::FeatureName>> {
       auto str = elementValue.asString(runtime).utf8(runtime);
       // Expand react-native-wgpu's umbrella feature into the platform's
       // backing Dawn features before they reach RequestDevice.
-      if (str == kRnSharedTextureMemoryFeature) {
-        for (auto f : rnSharedTextureMemoryBackingFeatures()) {
+      if (str == kRnNativeTextureFeature) {
+        for (auto f : rnNativeTextureBackingFeatures()) {
           vector.emplace_back(f);
         }
         continue;

@@ -17,7 +17,7 @@ const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 // Umbrella feature owned by react-native-wgpu: expands to the platform's
 // Dawn feature pair natively and appears on adapter.features when supported.
 const OPTIONAL_SHARED_TEXTURE_MEMORY_FEATURES = [
-  "rnwebgpu/shared-texture-memory" as GPUFeatureName,
+  "rnwebgpu/native-texture" as GPUFeatureName,
 ];
 
 export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {

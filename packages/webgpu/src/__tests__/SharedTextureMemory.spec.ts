@@ -20,7 +20,7 @@ describe("SharedTextureMemory", () => {
         // reference run and fallback adapters won't advertise it. Anything
         // else past this point is a real failure and must surface as a test
         // failure, not a silent skip.
-        const FEATURE = "rnwebgpu/shared-texture-memory";
+        const FEATURE = "rnwebgpu/native-texture";
         if (!device.features.has(FEATURE as GPUFeatureName)) {
           return {
             kind: "skip",

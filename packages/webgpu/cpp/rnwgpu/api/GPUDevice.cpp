@@ -772,7 +772,7 @@ std::unordered_set<std::string> GPUDevice::getFeatures() {
     convertEnumToJSUnion(feature, &name);
     result.insert(name);
   }
-  maybeSynthesizeRnSharedTextureMemoryFeature(enabled, result);
+  maybeSynthesizeRnNativeTextureFeature(enabled, result);
   return result;
 }
 

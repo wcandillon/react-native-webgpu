@@ -178,7 +178,7 @@ std::unordered_set<std::string> GPUAdapter::getFeatures() {
       result.insert(name);
     }
   }
-  maybeSynthesizeRnSharedTextureMemoryFeature(enabled, result);
+  maybeSynthesizeRnNativeTextureFeature(enabled, result);
   return result;
 }
 

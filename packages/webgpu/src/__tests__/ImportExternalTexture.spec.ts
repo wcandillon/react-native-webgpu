@@ -20,7 +20,7 @@ describe("ImportExternalTexture", () => {
         // AHardwareBuffer import. The Chrome reference run and fallback adapters
         // won't advertise it, so that's the *only* legitimate skip. Anything
         // past this point is a real failure.
-        const FEATURE = "rnwebgpu/shared-texture-memory";
+        const FEATURE = "rnwebgpu/native-texture";
         if (!device.features.has(FEATURE as GPUFeatureName)) {
           return {
             kind: "skip",

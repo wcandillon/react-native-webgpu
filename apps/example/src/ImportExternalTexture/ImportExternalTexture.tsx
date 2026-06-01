@@ -6,6 +6,7 @@ import {
   useDevice,
   type NativeCanvas,
   type NativeVideoFrame,
+  type VideoPlayer,
 } from "react-native-wgpu";
 
 // This is the SharedTextureMemory demo, rewritten to use
@@ -62,7 +63,12 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
 }
 `;
 
-const REQUIRED_FEATURES = ["rnwebgpu/shared-texture-memory" as GPUFeatureName];
+// We never call importSharedTextureMemory directly here, but
+// importExternalTexture is implemented on top of it natively (it imports the
+// frame's IOSurface / AHardwareBuffer as shared texture memory, then wraps that
+// as an external texture). So the device must enable this umbrella feature, or
+// the import throws "ImportSharedTextureMemory returned null".
+const REQUIRED_FEATURES = ["rnwebgpu/native-texture" as GPUFeatureName];
 
 export const ImportExternalTexture = () => {
   const ref = useCanvasRef();
@@ -105,44 +111,20 @@ export const ImportExternalTexture = () => {
       alphaMode: "premultiplied",
     });
 
-    // Pick a frame source per platform. On iOS we use AVPlayer to stream a
-    // real video; on Android we don't have a video pipeline yet, so we fall
-    // back to a single synthetic IOSurface/AHardwareBuffer frame produced by
-    // RNWebGPU.createTestVideoFrame. The rAF loop below treats a null return
-    // from copyLatestFrame() as "keep showing the previous frame", which means
-    // a one-shot source renders correctly without any other change.
-    interface FrameSource {
-      copyLatestFrame(): NativeVideoFrame | null;
-      release(): void;
-    }
-    let source: FrameSource;
+    // Pick a frame source per platform. On iOS we stream a real video via
+    // AVPlayer; elsewhere we don't have a video pipeline yet, so we use a
+    // single synthetic IOSurface/AHardwareBuffer frame. A VideoPlayer exposes
+    // copyLatestFrame() (a fresh frame each tick) while a NativeVideoFrame does
+    // not — the render loop tells them apart with that property.
+    let source: VideoPlayer | NativeVideoFrame;
     if (Platform.OS === "ios") {
       const VIDEO_URL =
         "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4";
       const player = RNWebGPU.createVideoPlayer(VIDEO_URL);
       player.play();
-      source = {
-        copyLatestFrame: () => player.copyLatestFrame(),
-        release: () => player.release(),
-      };
+      source = player;
     } else {
-      let pending: NativeVideoFrame | null = RNWebGPU.createTestVideoFrame(
-        1024,
-        1024,
-      );
-      source = {
-        copyLatestFrame: () => {
-          const f = pending;
-          pending = null;
-          return f;
-        },
-        release: () => {
-          if (pending) {
-            pending.release();
-            pending = null;
-          }
-        },
-      };
+      source = RNWebGPU.createTestVideoFrame(1024, 1024);
     }
 
     const module = device.createShaderModule({ code: SHADER });
@@ -181,19 +163,23 @@ export const ImportExternalTexture = () => {
       }
     };
 
-    // Hold the current frame across rAF ticks so that when the video hasn't
-    // produced a new frame yet (between decoder timestamps), we keep rendering
-    // the last one rather than dropping to a black screen.
-    let currentFrame: NativeVideoFrame | null = null;
+    // Hold the current frame across rAF ticks. For a VideoPlayer we pull the
+    // latest frame each tick (keeping the previous one when the decoder hasn't
+    // produced a new one yet, to avoid a black flash); for a one-shot
+    // NativeVideoFrame we just keep re-importing the same frame.
+    let currentFrame: NativeVideoFrame | null =
+      "copyLatestFrame" in source ? null : source;
     let lastDims: [number, number] | null = null;
 
     const render = () => {
-      const newFrame = source.copyLatestFrame();
-      if (newFrame) {
-        if (currentFrame) {
-          currentFrame.release();
+      if ("copyLatestFrame" in source) {
+        const newFrame = source.copyLatestFrame();
+        if (newFrame) {
+          if (currentFrame) {
+            currentFrame.release();
+          }
+          currentFrame = newFrame;
         }
-        currentFrame = newFrame;
       }
 
       const encoder = device.createCommandEncoder();
@@ -269,7 +255,11 @@ export const ImportExternalTexture = () => {
         currentFrame = null;
       }
       uniformBuffer.destroy();
-      source.release();
+      // For the player, release it; the one-shot frame was released above as
+      // currentFrame (same object), so don't double-release it here.
+      if ("copyLatestFrame" in source) {
+        source.release();
+      }
     };
   }, [device, adapter, ref]);
 

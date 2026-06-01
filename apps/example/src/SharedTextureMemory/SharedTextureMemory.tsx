@@ -53,7 +53,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
 }
 `;
 
-const REQUIRED_FEATURES = ["rnwebgpu/shared-texture-memory" as GPUFeatureName];
+const REQUIRED_FEATURES = ["rnwebgpu/native-texture" as GPUFeatureName];
 
 export const SharedTextureMemory = () => {
   const ref = useCanvasRef();

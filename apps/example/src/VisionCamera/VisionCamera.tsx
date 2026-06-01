@@ -45,7 +45,7 @@ import { CAMERA_PRELUDE, SHADER } from "./shaders";
 // The WGSL (SHADER + CAMERA_PRELUDE) lives in ./shaders.
 
 const REQUIRED_FEATURES: GPUFeatureName[] = [
-  "rnwebgpu/shared-texture-memory" as GPUFeatureName,
+  "rnwebgpu/native-texture" as GPUFeatureName,
   "dawn-multi-planar-formats" as GPUFeatureName,
 ];
 
