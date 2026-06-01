@@ -63,11 +63,14 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
     scale = vec2f(1.0, texAR / canvasAR);
   }
   let uv = vec2f(0.5) + (in.uv - vec2f(0.5)) * scale;
-  let c = textureSampleBaseClampToEdge(
+  // cameraCoord (vertical flip) + cameraDecode (YUV->RGB) come from
+  // CAMERA_PRELUDE, prepended when this module is compiled. They are no-ops on
+  // iOS and handle the Android opaque-YUV case.
+  let c = cameraDecode(textureSampleBaseClampToEdge(
     srcTex,
     srcSampler,
-    clamp(uv, vec2f(0.0), vec2f(1.0)),
-  );
+    cameraCoord(clamp(uv, vec2f(0.0), vec2f(1.0))),
+  ));
   return vec4f(c.rgb, 1.0);
 }
 `;

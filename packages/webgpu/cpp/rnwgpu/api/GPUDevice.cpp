@@ -1,5 +1,6 @@
 #include "GPUDevice.h"
 
+#include <cmath>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -265,6 +266,55 @@ static const float kSrgbEncodeParams[7] = {
     0.0f,                  // F
 };
 
+// BT.709 limited-range YUV -> R'G'B' as a 3x4 row-major matrix mapping
+// [Y, Cb, Cr, 1]. Same values the Apple NV12 path computes from the
+// CVPixelBuffer; used for Android buffers that arrive as a *defined* biplanar
+// format (where we split the planes and convert ourselves) rather than an
+// opaque external-format AHB. Camera streams are limited-range BT.709 in the
+// overwhelming majority of cases; full-range / BT.601 would need different
+// coefficients (refine from the buffer's suggested range if it matters).
+[[maybe_unused]] static const float kBT709LimitedToRgb[12] = {
+    1.164383f, 0.000000f, 1.792741f, -0.972945f, //
+    1.164383f, -0.213249f, -0.532909f, 0.301517f, //
+    1.164383f, 2.112402f, 0.000000f, -1.133402f, //
+};
+
+// True for the multi-planar Y + CbCr formats whose planes we can view as
+// Plane0Only (luma) / Plane1Only (chroma) and convert with an explicit matrix.
+// Excludes OpaqueYCbCrAndroid (external format, no plane views) and triplanar
+// formats (would need a third plane). Only referenced on Android.
+[[maybe_unused]] static bool isBiplanarYuvFormat(wgpu::TextureFormat format) {
+  switch (format) {
+  case wgpu::TextureFormat::R8BG8Biplanar420Unorm:
+  case wgpu::TextureFormat::R8BG8Biplanar422Unorm:
+  case wgpu::TextureFormat::R8BG8Biplanar444Unorm:
+  case wgpu::TextureFormat::R10X6BG10X6Biplanar420Unorm:
+  case wgpu::TextureFormat::R10X6BG10X6Biplanar422Unorm:
+  case wgpu::TextureFormat::R10X6BG10X6Biplanar444Unorm:
+    return true;
+  default:
+    return false;
+  }
+}
+
+// Map a rotation in degrees (0 / 90 / 180 / 270) to Dawn's enum. Anything that
+// isn't a clean multiple of 90 snaps to the nearest quadrant; Dawn only
+// supports those four steps for external textures.
+static wgpu::ExternalTextureRotation
+toExternalTextureRotation(double degrees) {
+  int quadrant = static_cast<int>(std::lround(degrees / 90.0)) & 3;
+  switch (quadrant) {
+  case 1:
+    return wgpu::ExternalTextureRotation::Rotate90Degrees;
+  case 2:
+    return wgpu::ExternalTextureRotation::Rotate180Degrees;
+  case 3:
+    return wgpu::ExternalTextureRotation::Rotate270Degrees;
+  default:
+    return wgpu::ExternalTextureRotation::Rotate0Degrees;
+  }
+}
+
 std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
     std::shared_ptr<GPUExternalTextureDescriptor> descriptor) {
   if (!descriptor || !descriptor->source) {
@@ -353,6 +403,9 @@ std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
   extDesc.cropOrigin = {0, 0};
   extDesc.cropSize = {frame.width, frame.height};
   extDesc.apparentSize = {frame.width, frame.height};
+  extDesc.mirrored = descriptor->mirrored.value_or(false);
+  extDesc.rotation =
+      toExternalTextureRotation(descriptor->rotation.value_or(0));
 
   auto external = _instance.CreateExternalTexture(&extDesc);
   if (external == nullptr) {
@@ -406,16 +459,26 @@ std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
         "GPUDevice::importExternalTexture(): BeginAccess failed");
   }
 
-  // 4. Build the ExternalTextureDescriptor. Unlike iOS we do *not* split
-  //    planes or pass an explicit YUV→RGB matrix: when the underlying texture
-  //    is OpaqueYCbCrAndroid, Dawn routes sampling through a Vulkan
-  //    SamplerYcbcrConversion that does the conversion implicitly, driven by
-  //    the AHB's own format metadata. We still must pass noop gamut/transfer
-  //    arrays: Dawn's ComputeExternalTextureParams unconditionally dereferences
-  //    gamutConversionMatrix / src/dstTransferFunctionParameters (see
-  //    externals/dawn/.../ExternalTexture.cpp), so leaving them null produces a
-  //    silent black sample. Identity transfer = TransferFunctionToArray of
-  //    kEOTF_Identity ({g=1,a=1,rest=0}); identity gamut = 3x3 identity.
+  // 4. Build the ExternalTextureDescriptor. There are two cases depending on
+  //    how Dawn imported the AHB (see SharedTextureMemoryVk.cpp):
+  //
+  //    a. *External* format (camera buffers whose layout has no Vulkan
+  //       equivalent) -> OpaqueYCbCrAndroid, a single opaque plane. Sampling
+  //       routes through a Vulkan SamplerYcbcrConversion whose model Dawn
+  //       copies verbatim from the AHB's suggestedYcbcrModel. We pass a single
+  //       plane + identity transfer and let that conversion (if any) run. NOTE:
+  //       when the driver reports RGB_IDENTITY the sample comes back as raw
+  //       Y/Cb/Cr; there is no public hook to override the model on this path.
+  //
+  //    b. *Defined* biplanar format (e.g. R8BG8Biplanar420Unorm, exposed by the
+  //       dawn-multi-planar-formats feature) -> we split Plane0Only (luma) /
+  //       Plane1Only (chroma) and hand Dawn an explicit BT.709 matrix + sRGB
+  //       transfer, exactly like the iOS NV12 path. This makes numPlanes == 2
+  //       so the matrix is actually applied (the single-plane branch in Dawn's
+  //       Tint transform ignores yuvToRgbConversionMatrix).
+  //
+  //    Either way we must pass non-null gamut/transfer arrays:
+  //    ComputeExternalTextureParams dereferences them unconditionally.
   static const float kIdentityTransferParams[7] = {
       1.0f, // G
       1.0f, // A
@@ -425,17 +488,41 @@ std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
       0.0f, // E
       0.0f, // F
   };
+  const bool isBiplanar =
+      frame.pixelFormat == VideoPixelFormat::NV12 &&
+      isBiplanarYuvFormat(texture.GetFormat());
+
+  wgpu::TextureView plane0;
+  wgpu::TextureView plane1;
   wgpu::ExternalTextureDescriptor extDesc{};
   if (!label.empty()) {
     extDesc.label = wgpu::StringView(label.c_str(), label.size());
   }
-  extDesc.plane0 = texture.CreateView();
   extDesc.cropOrigin = {0, 0};
   extDesc.cropSize = {frame.width, frame.height};
   extDesc.apparentSize = {frame.width, frame.height};
   extDesc.gamutConversionMatrix = kIdentityGamutMatrix;
-  extDesc.srcTransferFunctionParameters = kIdentityTransferParams;
-  extDesc.dstTransferFunctionParameters = kIdentityTransferParams;
+  if (isBiplanar) {
+    wgpu::TextureViewDescriptor v0{};
+    v0.aspect = wgpu::TextureAspect::Plane0Only;
+    plane0 = texture.CreateView(&v0);
+    wgpu::TextureViewDescriptor v1{};
+    v1.aspect = wgpu::TextureAspect::Plane1Only;
+    plane1 = texture.CreateView(&v1);
+    extDesc.plane0 = plane0;
+    extDesc.plane1 = plane1;
+    extDesc.yuvToRgbConversionMatrix = kBT709LimitedToRgb;
+    extDesc.srcTransferFunctionParameters = kSrgbDecodeParams;
+    extDesc.dstTransferFunctionParameters = kSrgbEncodeParams;
+  } else {
+    plane0 = texture.CreateView();
+    extDesc.plane0 = plane0;
+    extDesc.srcTransferFunctionParameters = kIdentityTransferParams;
+    extDesc.dstTransferFunctionParameters = kIdentityTransferParams;
+  }
+  extDesc.mirrored = descriptor->mirrored.value_or(false);
+  extDesc.rotation =
+      toExternalTextureRotation(descriptor->rotation.value_or(0));
 
   auto external = _instance.CreateExternalTexture(&extDesc);
   if (external == nullptr) {

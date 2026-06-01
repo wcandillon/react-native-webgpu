@@ -91,7 +91,9 @@ fn snap(uv: vec2f, block: f32) -> vec2f {
 }
 
 fn sampleExternal(uv: vec2f, block: f32) -> vec4f {
-  return textureSampleBaseClampToEdge(srcTex, srcSampler, snap(uv, block));
+  return cameraDecode(
+    textureSampleBaseClampToEdge(srcTex, srcSampler, cameraCoord(snap(uv, block))),
+  );
 }
 
 fn sampleBlurred(uv: vec2f, block: f32) -> vec4f {
@@ -203,6 +205,47 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
   }
 
   return vec4f(color, 1.0);
+}
+`;
+
+// Android delivers camera frames as an external-format (opaque) YUV buffer.
+// Dawn copies the AHardwareBuffer's suggested YCbCr model verbatim, and on the
+// devices we've seen that resolves to identity, so the external sample comes
+// back as raw [Y, Cb, Cr]. After Dawn's rotation the frame is also mirrored on
+// both axes relative to the canvas (Android buffer origin), so we flip X and Y
+// here. iOS goes through the native two-plane path, which already converts and
+// orients, so this correction is Android-only. The prelude is prepended to
+// every shader module that samples the camera (main pass + blur prepass).
+const CAMERA_PRELUDE = /* wgsl */ `
+const CAMERA_IS_YUV: bool = ${Platform.OS === "android"};
+const CAMERA_FLIP_X: bool = ${Platform.OS === "android"};
+const CAMERA_FLIP_Y: bool = ${Platform.OS === "android"};
+
+fn cameraCoord(uv: vec2f) -> vec2f {
+  var c = uv;
+  if (CAMERA_FLIP_X) {
+    c.x = 1.0 - c.x;
+  }
+  if (CAMERA_FLIP_Y) {
+    c.y = 1.0 - c.y;
+  }
+  return c;
+}
+
+// BT.709 limited-range YUV -> RGB. The sampled channels are [Y, Cb, Cr] when
+// the driver's YCbCr conversion is identity (the Android opaque path); a no-op
+// passthrough otherwise.
+fn cameraDecode(c: vec4f) -> vec4f {
+  if (!CAMERA_IS_YUV) {
+    return c;
+  }
+  let y = c.r - 0.0627451;
+  let cb = c.g - 0.5;
+  let cr = c.b - 0.5;
+  let r = 1.164384 * y + 1.792741 * cr;
+  let g = 1.164384 * y - 0.213249 * cb - 0.532909 * cr;
+  let b = 1.164384 * y + 2.112402 * cb;
+  return vec4f(clamp(vec3f(r, g, b), vec3f(0.0), vec3f(1.0)), 1.0);
 }
 `;
 
@@ -391,7 +434,9 @@ const CameraView = () => {
       alphaMode: "premultiplied",
     });
 
-    const module = device.createShaderModule({ code: SHADER });
+    const module = device.createShaderModule({
+      code: CAMERA_PRELUDE + SHADER,
+    });
     const pipeline = device.createRenderPipeline({
       layout: "auto",
       vertex: { module, entryPoint: "vs_main" },
@@ -421,7 +466,9 @@ const CameraView = () => {
       Math.ceil(canvas.height / BLUR_SCALE),
     );
 
-    const prepassModule = device.createShaderModule({ code: PREPASS_SHADER });
+    const prepassModule = device.createShaderModule({
+      code: CAMERA_PRELUDE + PREPASS_SHADER,
+    });
     const prepassPipeline = device.createRenderPipeline({
       layout: "auto",
       vertex: { module: prepassModule, entryPoint: "vs_main" },
@@ -565,7 +612,11 @@ const CameraView = () => {
             " frame=" +
             String(frame.width) +
             "x" +
-            String(frame.height),
+            String(frame.height) +
+            " orientation=" +
+            String(frame.orientation) +
+            " isMirrored=" +
+            String(frame.isMirrored),
         );
       }
       if (!pipelineState || !device) {
@@ -612,11 +663,29 @@ const CameraView = () => {
           throw e;
         }
         try {
+          // Orientation. The sensor buffer is landscape; frame.orientation is
+          // the rotation needed to bring it upright. We hand that to Dawn via
+          // importExternalTexture's `rotation`, which de-rotates the frame into
+          // the portrait canvas. The residual vertical flip (Android buffer
+          // Y-origin) and YUV->RGB are corrected in the shader (CAMERA_PRELUDE).
+          let rotationDeg: 0 | 90 | 180 | 270 = 0;
+          if (frame.orientation === "right") {
+            rotationDeg = 90;
+          } else if (frame.orientation === "down") {
+            rotationDeg = 180;
+          } else if (frame.orientation === "left") {
+            rotationDeg = 270;
+          }
+          // A 90/270 rotation swaps the displayed width & height, so cover-fit
+          // uses the post-rotation dimensions.
+          const rotated = rotationDeg === 90 || rotationDeg === 270;
+          const dispW = rotated ? videoFrame.height : videoFrame.width;
+          const dispH = rotated ? videoFrame.width : videoFrame.height;
           // Compute cover-fit uvScale based on frame & canvas aspect ratios.
           // On most phones the back camera is landscape (e.g. 1920x1080) and
           // the canvas is portrait, so the y-axis gets cropped.
           const canvasAR = canvasWidth / canvasHeight;
-          const frameAR = videoFrame.width / videoFrame.height;
+          const frameAR = dispW / dispH;
           let sx = 1;
           let sy = 1;
           if (frameAR > canvasAR) {
@@ -644,6 +713,8 @@ const CameraView = () => {
             externalTex = device.importExternalTexture({
               source: videoFrame,
               label: "camera-frame",
+              rotation: rotationDeg,
+              mirrored: frame.isMirrored,
             });
           } catch (e) {
             console.warn(
@@ -668,12 +739,7 @@ const CameraView = () => {
             device.queue.writeBuffer(
               prepassUniformBuffer,
               0,
-              new Float32Array([
-                videoFrame.width,
-                videoFrame.height,
-                canvasWidth,
-                canvasHeight,
-              ]),
+              new Float32Array([dispW, dispH, canvasWidth, canvasHeight]),
             );
             const prepassBindGroup = device.createBindGroup({
               layout: prepassPipeline.getBindGroupLayout(0),

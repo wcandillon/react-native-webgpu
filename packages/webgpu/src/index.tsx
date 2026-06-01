@@ -60,6 +60,16 @@ declare global {
     createVideoFrameFromNativeBuffer(pointer: bigint): NativeVideoFrame;
   }
 
+  // Non-spec extension: camera frames arrive in the sensor's native
+  // orientation, which differs between iOS and Android. `rotation` (degrees,
+  // one of 0/90/180/270) and `mirrored` (horizontal flip) are baked into the
+  // sampling transform by Dawn, so the shader sees an upright frame. Maps
+  // directly onto VisionCamera's `frame.orientation` / `frame.isMirrored`.
+  interface GPUExternalTextureDescriptor {
+    rotation?: 0 | 90 | 180 | 270;
+    mirrored?: boolean;
+  }
+
   // Extend createImageBitmap to accept ArrayBuffer/TypedArray (encoded image bytes)
   function createImageBitmap(
     image: ArrayBuffer | ArrayBufferView,
