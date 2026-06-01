@@ -29,6 +29,20 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
+      # `git clean` (checkout clean: true) wipes node_modules/Pods/build so the
+      # native side rebuilds fresh, but Metro's Haste/transform cache lives
+      # outside the repo (in $TMPDIR) and survives between runs. After a
+      # reanimated/worklets bump that stale cache serves JS built by the old
+      # Babel transform, which shows up as "mismatch between native worklet
+      # version and JS one". Clear it so the freshly-installed worklets aren't
+      # shadowed by stale transforms.
+      - name: Reset React Native caches
+        run: |
+          watchman watch-del-all 2>/dev/null || true
+          TMP="$(node -e 'console.log(require("os").tmpdir())')"
+          rm -rf "$TMP"/metro-* "$TMP"/haste-map-* 2>/dev/null || true
+          rm -rf /tmp/metro-* /tmp/haste-map-* 2>/dev/null || true
+
       - name: Lint files
         run: yarn lint
 
@@ -45,7 +59,10 @@ jobs:
 
       - name: Start Package Manager
         working-directory: apps/example
-        run: CI=true yarn start &
+        # --reset-cache: force Metro to re-transform from the freshly-installed
+        # node_modules instead of reusing the cache that survives `git clean`.
+        # This is the key guard against the native/JS worklet version mismatch.
+        run: CI=true yarn start --reset-cache &
 
       - name: Build example for iOS
         working-directory: apps/example/ios
@@ -85,6 +102,9 @@ jobs:
 
       - name: Install and launch app on Simulator
         run: |
+          # Remove any previous build so a stale binary never lingers on the
+          # persistent self-hosted simulator.
+          xcrun simctl uninstall booted com.microsoft.ReactTestApp || true
           xcrun simctl install booted apps/example/ios/build/Build/Products/Debug-iphonesimulator/ReactTestApp.app
           xcrun simctl launch booted com.microsoft.ReactTestApp
 
