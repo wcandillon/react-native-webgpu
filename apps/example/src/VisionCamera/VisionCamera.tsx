@@ -209,13 +209,18 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
 `;
 
 // Android delivers camera frames as an external-format (opaque) YUV buffer.
-// Dawn copies the AHardwareBuffer's suggested YCbCr model verbatim, and on the
-// devices we've seen that resolves to identity, so the external sample comes
-// back as raw [Y, Cb, Cr]. After Dawn's rotation the frame is also mirrored on
-// both axes relative to the canvas (Android buffer origin), so we flip X and Y
-// here. iOS goes through the native two-plane path, which already converts and
-// orients, so this correction is Android-only. The prelude is prepended to
-// every shader module that samples the camera (main pass + blur prepass).
+// Dawn's OpaqueYCbCrAndroidForExternalTexture path samples it through a Vulkan
+// YCbCr conversion that is hard-coded to RGB_IDENTITY (Dawn's
+// SamplerVk.cpp::GetYCbCrForTextureView; see crbug.com/497675620), so the
+// external sample comes back as raw [Y, Cb, Cr] on *every* device — this is by
+// design, not a driver quirk — and we do the BT.709 YUV->RGB ourselves below.
+// (Dawn's own SharedTextureMemoryOpaqueYCbCrAndroidForExternalTexture
+// .NoopSampleY8Cb8Cr8AHB test asserts the same raw passthrough.) The frame also
+// comes out mirrored on both axes relative to the canvas (Android buffer
+// origin), so we flip X and Y. iOS goes through the native two-plane path,
+// which already converts and orients, so this correction is Android-only. The
+// prelude is prepended to every shader module that samples the camera (main
+// pass + blur prepass).
 const CAMERA_PRELUDE = /* wgsl */ `
 const CAMERA_IS_YUV: bool = ${Platform.OS === "android"};
 const CAMERA_FLIP_X: bool = ${Platform.OS === "android"};
@@ -232,9 +237,9 @@ fn cameraCoord(uv: vec2f) -> vec2f {
   return c;
 }
 
-// BT.709 limited-range YUV -> RGB. The sampled channels are [Y, Cb, Cr] when
-// the driver's YCbCr conversion is identity (the Android opaque path); a no-op
-// passthrough otherwise.
+// BT.709 limited-range YUV -> RGB. On the Android opaque path the sampled
+// channels are always raw [Y, Cb, Cr] (Dawn forces an RGB_IDENTITY Vulkan
+// conversion); a no-op passthrough on every other platform.
 fn cameraDecode(c: vec4f) -> vec4f {
   if (!CAMERA_IS_YUV) {
     return c;
