@@ -87,7 +87,7 @@ const webGPUDemo = (
   frame();
 };
 
-export function Reanimated() {
+export function UIThread() {
   const runAnimation = useSharedValue(true);
   const ref = useRef<CanvasRef>(null);
   useEffect(() => {
