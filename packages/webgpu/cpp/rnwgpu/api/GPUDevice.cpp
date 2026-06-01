@@ -266,6 +266,22 @@ static const float kSrgbEncodeParams[7] = {
     0.0f,                  // F
 };
 
+// Identity transfer (y = x). Used when the sampled surface is already in the
+// render target's color space: a single-plane BGRA IOSurface, or the Android
+// opaque-YCbCr path where the Vulkan sampler already produced RGB. Dawn
+// dereferences the transfer-function arrays unconditionally
+// (ComputeExternalTextureParams), so these must be non-null even when no
+// conversion is wanted.
+static const float kIdentityTransferParams[7] = {
+    1.0f, // G
+    1.0f, // A
+    0.0f, // B
+    0.0f, // C
+    0.0f, // D
+    0.0f, // E
+    0.0f, // F
+};
+
 // BT.709 limited-range YUV -> R'G'B' as a 3x4 row-major matrix mapping
 // [Y, Cb, Cr, 1]. Same values the Apple NV12 path computes from the
 // CVPixelBuffer; used for Android buffers that arrive as a *defined* biplanar
@@ -393,12 +409,17 @@ std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
     extDesc.label = wgpu::StringView(label.c_str(), label.size());
   }
   extDesc.plane0 = plane0;
+  extDesc.gamutConversionMatrix = kIdentityGamutMatrix;
   if (isYuv) {
     extDesc.plane1 = plane1;
     extDesc.yuvToRgbConversionMatrix = frame.yuvToRgbMatrix;
     extDesc.srcTransferFunctionParameters = kSrgbDecodeParams;
     extDesc.dstTransferFunctionParameters = kSrgbEncodeParams;
-    extDesc.gamutConversionMatrix = kIdentityGamutMatrix;
+  } else {
+    // BGRA is already RGB in the target color space; pass it through. Dawn
+    // dereferences these arrays unconditionally, so they must be non-null.
+    extDesc.srcTransferFunctionParameters = kIdentityTransferParams;
+    extDesc.dstTransferFunctionParameters = kIdentityTransferParams;
   }
   extDesc.cropOrigin = {0, 0};
   extDesc.cropSize = {frame.width, frame.height};
@@ -478,16 +499,8 @@ std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
   //       Tint transform ignores yuvToRgbConversionMatrix).
   //
   //    Either way we must pass non-null gamut/transfer arrays:
-  //    ComputeExternalTextureParams dereferences them unconditionally.
-  static const float kIdentityTransferParams[7] = {
-      1.0f, // G
-      1.0f, // A
-      0.0f, // B
-      0.0f, // C
-      0.0f, // D
-      0.0f, // E
-      0.0f, // F
-  };
+  //    ComputeExternalTextureParams dereferences them unconditionally
+  //    (kIdentityTransferParams is defined at file scope).
   const bool isBiplanar =
       frame.pixelFormat == VideoPixelFormat::NV12 &&
       isBiplanarYuvFormat(texture.GetFormat());

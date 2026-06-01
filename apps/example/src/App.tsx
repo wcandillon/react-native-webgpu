@@ -37,6 +37,7 @@ import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
 import { StorageBufferVertices } from "./StorageBufferVertices";
 import { SharedTextureMemory } from "./SharedTextureMemory";
+import { ImportExternalTexture } from "./ImportExternalTexture";
 import { VisionCamera } from "./VisionCamera";
 
 // The two lines below are needed by three.js
@@ -102,6 +103,10 @@ function App() {
           <Stack.Screen
             name="SharedTextureMemory"
             component={SharedTextureMemory}
+          />
+          <Stack.Screen
+            name="ImportExternalTexture"
+            component={ImportExternalTexture}
           />
           <Stack.Screen name="VisionCamera" component={VisionCamera} />
         </Stack.Navigator>

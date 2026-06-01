@@ -30,7 +30,9 @@
     "metalAPIValidation": false,
     "infoPlist": {
       "NSCameraUsageDescription": "$(PRODUCT_NAME) needs access to your Camera.",
-      "NSMicrophoneUsageDescription": "$(PRODUCT_NAME) needs access to your Microphone."
+      "NSMicrophoneUsageDescription": "$(PRODUCT_NAME) needs access to your Microphone.",
+      "NSLocalNetworkUsageDescription": "$(PRODUCT_NAME) needs local network access to connect to the Metro dev server.",
+      "NSBonjourServices": ["_http._tcp."]
     }
   },
   "android": {
