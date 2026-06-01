@@ -15,9 +15,20 @@ namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
 
+struct GPUExternalTextureDescriptor;
+
 class GPUExternalTexture : public NativeObject<GPUExternalTexture> {
 public:
   static constexpr const char *CLASS_NAME = "GPUExternalTexture";
+
+  // Import a VideoFrame (via descriptor.source) as a GPUExternalTexture on
+  // `device`: imports the native surface as SharedTextureMemory, begins access,
+  // and wraps the resulting wgpu::ExternalTexture together with the resources
+  // whose lifetime it owns. The matching EndAccess runs in destroy() / the
+  // destructor. Defined in GPUExternalTexture.cpp.
+  static std::shared_ptr<GPUExternalTexture>
+  Create(wgpu::Device device,
+         std::shared_ptr<GPUExternalTextureDescriptor> descriptor);
 
   // Construct from an already-built wgpu::ExternalTexture plus the underlying
   // shared-memory resources we need to keep alive. The wrapper takes ownership
@@ -30,15 +41,27 @@ public:
         _memory(std::move(memory)), _texture(std::move(texture)),
         _source(std::move(source)), _label(std::move(label)) {}
 
-  ~GPUExternalTexture() override {
+  ~GPUExternalTexture() override { destroy(); }
+
+public:
+  std::string getBrand() { return CLASS_NAME; }
+
+  // End the shared-memory access window and release the underlying resources.
+  // Idempotent: safe to call more than once, and the destructor calls it as a
+  // garbage-collection fallback. Call it right after the queue.submit() that
+  // sampled this texture (never before): a GPUExternalTexture's access window
+  // is owned by this wrapper's lifetime, not by submit, so without an explicit
+  // destroy() the producer's surface (e.g. an AVPlayer IOSurface) stays claimed
+  // until GC runs. EndAccess is the designed post-submit call: Dawn keeps the
+  // texture alive for in-flight GPU work via the fences it returns.
+  void destroy() {
     if (_memory && _texture) {
       wgpu::SharedTextureMemoryEndAccessState state{};
       (void)_memory.EndAccess(_texture, &state);
     }
+    _texture = nullptr;
+    _memory = nullptr;
   }
-
-public:
-  std::string getBrand() { return CLASS_NAME; }
 
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
@@ -51,6 +74,7 @@ public:
     installGetterSetter(runtime, prototype, "label",
                         &GPUExternalTexture::getLabel,
                         &GPUExternalTexture::setLabel);
+    installMethod(runtime, prototype, "destroy", &GPUExternalTexture::destroy);
   }
 
   inline const wgpu::ExternalTexture get() { return _instance; }

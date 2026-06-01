@@ -70,6 +70,17 @@ declare global {
     mirrored?: boolean;
   }
 
+  // Non-spec extension: a GPUExternalTexture imported from a native surface
+  // holds an open shared-memory access window on that surface until this
+  // wrapper is destroyed. Call destroy() right after the queue.submit() that
+  // sampled it (never before) to release the surface back to its producer
+  // immediately, instead of waiting for garbage collection. Forgetting to call
+  // it is not fatal (GC still cleans up), but it can starve a producer's buffer
+  // pool (e.g. a camera/video player) and pile up GPU resources.
+  interface GPUExternalTexture {
+    destroy(): void;
+  }
+
   // Extend createImageBitmap to accept ArrayBuffer/TypedArray (encoded image bytes)
   function createImageBitmap(
     image: ArrayBuffer | ArrayBufferView,

@@ -194,11 +194,13 @@ export const ImportExternalTexture = () => {
         ],
       });
 
+      // A GPUExternalTexture expires after each submit, so re-import one every
+      // tick, even when sampling the same frame as last tick. Unlike on the
+      // web, the shared-memory begin/end-access window is tied to this
+      // wrapper's lifetime, so we destroy() it right after submit (below) to
+      // release the surface promptly instead of waiting for GC.
+      let externalTex: GPUExternalTexture | null = null;
       if (currentFrame) {
-        // A GPUExternalTexture expires after each submit, so re-import one
-        // every tick — even when sampling the same frame as last tick. Dawn
-        // owns the shared-memory begin/end-access window internally.
-        let externalTex: GPUExternalTexture | null = null;
         try {
           externalTex = device.importExternalTexture({
             source: currentFrame,
@@ -241,6 +243,9 @@ export const ImportExternalTexture = () => {
 
       pass.end();
       device.queue.submit([encoder.finish()]);
+      // Now that the work sampling it has been submitted, end the external
+      // texture's access window so the frame's surface is released promptly.
+      externalTex?.destroy();
       context.present();
       rafRef.current = requestAnimationFrame(render);
     };

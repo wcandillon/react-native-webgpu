@@ -257,6 +257,47 @@ frame.release();
 
 `beginAccess`/`endAccess` bracket the GPU's read window on the shared surface. Pass `initialized: true` when the producer has already written meaningful pixels (the typical video/camera case) and `false` when the next pass will fully overwrite the texture.
 
+### Importing External Textures
+
+`GPUDevice.importExternalTexture` is the higher-level path for sampling a native surface. Instead of managing `SharedTextureMemory` + `createTexture` + `beginAccess`/`endAccess` yourself, you hand it a `NativeVideoFrame` and get back a `GPUExternalTexture` you bind as a `texture_external` and read with `textureSampleBaseClampToEdge`. Dawn does the YUV→RGB conversion in hardware for biplanar (NV12) surfaces, so this is the path you want for camera and video frames. It uses the same `"rnwebgpu/native-texture"` feature.
+
+```tsx
+const FEATURE = "rnwebgpu/native-texture" as GPUFeatureName;
+const adapter = await navigator.gpu.requestAdapter();
+const requiredFeatures = adapter!.features.has(FEATURE) ? [FEATURE] : [];
+const device = await adapter!.requestDevice({ requiredFeatures });
+
+const render = () => {
+  // A GPUExternalTexture expires once the queue work that used it is submitted,
+  // so re-import one every frame.
+  const externalTexture = device.importExternalTexture({
+    source: frame, // a NativeVideoFrame
+    label: "video-frame",
+  });
+
+  const bindGroup = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: externalTexture },
+      { binding: 1, resource: sampler },
+    ],
+  });
+
+  // ... encode a pass that samples `externalTexture`, then:
+  device.queue.submit([encoder.finish()]);
+
+  // Release the surface's access window right after the submit that sampled it.
+  externalTexture.destroy();
+  context.present();
+};
+```
+
+Camera frames arrive in the sensor's native orientation, so `importExternalTexture` also accepts non-spec `rotation` (`0` | `90` | `180` | `270`, in degrees) and `mirrored` (horizontal flip) options. Dawn bakes them into the sampling transform, so the shader sees an upright frame. They map directly onto VisionCamera's `frame.orientation` / `frame.isMirrored`.
+
+#### Calling `destroy()`
+
+A `GPUExternalTexture` keeps an open access window on the underlying native surface until the wrapper is destroyed. On the Web `importExternalTexture` is core and the lifetime is handled for you; here the window is tied to the JavaScript object's lifetime. Call `externalTexture.destroy()` right after the `queue.submit()` that sampled it (never before) to release the surface back to its producer immediately. `destroy()` is idempotent, and the surface is also released when the object is garbage-collected, but relying on GC can starve a producer's buffer pool (e.g. an `AVPlayer`'s recycled `IOSurface`s) and pile up GPU resources, so prefer the explicit call in a render loop.
+
 ### Reanimated Integration
 
 React Native WebGPU supports running WebGPU rendering on the UI thread using [React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/) and [React Native Worklets](https://github.com/margelo/react-native-worklets).

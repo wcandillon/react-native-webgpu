@@ -117,6 +117,9 @@ describe("ImportExternalTexture", () => {
           pass.draw(3);
           pass.end();
           device.queue.submit([encoder.finish()]);
+          // End the external texture's shared-memory access window now that the
+          // work sampling it is submitted, rather than waiting for GC.
+          externalTexture.destroy();
 
           return canvas.getImageData().then((image: BitmapData) => {
             // Safe to release now: all GPU work referencing the frame is

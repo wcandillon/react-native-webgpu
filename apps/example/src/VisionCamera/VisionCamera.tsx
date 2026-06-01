@@ -605,6 +605,10 @@ const CameraView = () => {
           pass.draw(3);
           pass.end();
           device.queue.submit([encoder.finish()]);
+          // The work sampling it is submitted, so end the external texture's
+          // access window now to release the camera frame's surface promptly
+          // (don't wait for GC, which would starve the frame buffer pool).
+          externalTex.destroy();
           context.present();
         } finally {
           videoFrame.release();
