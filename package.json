@@ -19,7 +19,7 @@
     "build:android": "turbo run build:android",
     "build": "turbo run build",
     "pod:install": "turbo run pod:install",
-    "reset": "rm -rf node_modules && find apps packages -maxdepth 2 -type d -name node_modules -prune -exec rm -rf {} + && yarn install && rm -rf apps/example/ios/Pods apps/example/ios/Podfile.lock && pod install --project-directory=apps/example/ios"
+    "reset": "rm -rf node_modules && find apps packages -maxdepth 2 -type d -name node_modules -prune -exec rm -rf '{}' ';' && yarn install && rm -rf apps/example/ios/Pods apps/example/ios/Podfile.lock && pod install --project-directory=apps/example/ios"
   },
   "devDependencies": {
     "@types/react-native-web": "^0.19.2",
