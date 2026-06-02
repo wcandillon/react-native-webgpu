@@ -259,7 +259,14 @@ frame.release();
 
 ### Importing External Textures
 
-`GPUDevice.importExternalTexture` is the higher-level path for sampling a native surface. Instead of managing `SharedTextureMemory` + `createTexture` + `beginAccess`/`endAccess` yourself, you hand it a `NativeVideoFrame` and get back a `GPUExternalTexture` you bind as a `texture_external` and read with `textureSampleBaseClampToEdge`. Dawn does the YUV→RGB conversion in hardware for biplanar (NV12) surfaces, so this is the path you want for camera and video frames. It uses the same `"rnwebgpu/native-texture"` feature.
+`GPUDevice.importExternalTexture` is the higher-level path for sampling a native surface. You hand it a `NativeVideoFrame` and get back a `GPUExternalTexture` that you bind as a `texture_external` and read with `textureSampleBaseClampToEdge`. It does two things for you on top of `SharedTextureMemory`:
+
+- **Color conversion.** Camera and video surfaces are usually biplanar YUV (NV12), not RGB. An external texture carries the YUV→RGB matrix and the source/destination color-space transfer functions, so on the supported paths the sampler returns ready-to-use RGB in hardware. With raw `SharedTextureMemory` you would sample the luma/chroma planes and do that conversion by hand in WGSL. This is the main reason to prefer it for camera and video frames.
+- **Lifecycle.** It owns the `SharedTextureMemory` + `createTexture` + `beginAccess`/`endAccess` sequence internally, so you just import the frame and `destroy()` the result.
+
+It uses the same `"rnwebgpu/native-texture"` feature.
+
+> **Android note:** the hardware YUV→RGB conversion is fully automatic on iOS (NV12 `IOSurface`). On Android, camera frames arrive as an _opaque_ YCbCr `AHardwareBuffer`, and Dawn's Vulkan path forces an identity (`RGB_IDENTITY`) sampler conversion, so the external sample comes back as raw `[Y, Cb, Cr]`. You still get the zero-copy import and the rotation/mirror transform, but you need to apply the YUV→RGB matrix yourself in the shader. See the `CAMERA_PRELUDE` in the [VisionCamera example](/apps/example/src/VisionCamera/shaders.ts) for a ready-made BT.709 decode.
 
 ```tsx
 const FEATURE = "rnwebgpu/native-texture" as GPUFeatureName;
