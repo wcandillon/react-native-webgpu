@@ -63,11 +63,6 @@ RNWebGPUManager::RNWebGPUManager(
   // Register main runtime for RuntimeAwareCache
   BaseRuntimeAwareCache::setMainJsRuntime(_jsRuntime);
 
-  // Expose the platform context for leaf classes that need it (e.g.
-  // GPUDevice::createVideoFrameFromNativeBuffer) without threading it through
-  // every constructor.
-  PlatformContext::global() = _platformContext;
-
   auto gpu = std::make_shared<GPU>(*_jsRuntime);
   auto rnWebGPU =
       std::make_shared<RNWebGPU>(gpu, _platformContext, _jsCallInvoker);

@@ -54,10 +54,6 @@ declare global {
     importSharedTextureMemory(
       descriptor: GPUSharedTextureMemoryDescriptor,
     ): GPUSharedTextureMemory;
-    // Wrap a NativeBuffer.pointer into a NativeVideoFrame. Reachable from
-    // worklet runtimes (e.g. Vision Camera frame processors) because GPUDevice
-    // is serialized across worklet boundaries via the WebGPU custom serializer.
-    createVideoFrameFromNativeBuffer(pointer: bigint): NativeVideoFrame;
   }
 
   // Non-spec extension: camera frames arrive in the sensor's native
