@@ -20,7 +20,14 @@ namespace jsi = facebook::jsi;
 // object stays alive until the JS object is GC'd (or release() is called).
 class VideoFrame : public NativeObject<VideoFrame> {
 public:
-  static constexpr const char *CLASS_NAME = "VideoFrame";
+  // JS-facing brand. installConstructor() exposes this as globalThis[CLASS_NAME]
+  // and keys the NativeObjectRegistry / worklet serializer off it, so it must
+  // NOT be "VideoFrame": that would install our constructor over the WebCodecs
+  // `VideoFrame` global and shadow it at runtime. "NativeVideoFrame" matches the
+  // public TypeScript type (see src/types.ts) and keeps the two namespaces
+  // distinct. The C++ class stays `VideoFrame` for brevity; only the brand is
+  // namespaced.
+  static constexpr const char *CLASS_NAME = "NativeVideoFrame";
 
   explicit VideoFrame(VideoFrameHandle handle)
       : NativeObject(CLASS_NAME), _handle(std::move(handle)) {}
