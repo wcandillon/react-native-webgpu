@@ -63,30 +63,31 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
 }
 `;
 
-// We never call importSharedTextureMemory directly here, but
-// importExternalTexture is implemented on top of it natively (it imports the
-// frame's IOSurface / AHardwareBuffer as shared texture memory, then wraps that
-// as an external texture). So the device must enable this umbrella feature, or
-// the import throws "ImportSharedTextureMemory returned null".
-const REQUIRED_FEATURES = ["rnwebgpu/native-texture" as GPUFeatureName];
+// importExternalTexture is backed by the "rnwebgpu/native-texture" umbrella
+// feature (it imports the frame's IOSurface / AHardwareBuffer as shared texture
+// memory, then wraps that as an external texture). Like importExternalTexture on
+// the web, that capability is now enabled by default: requestDevice / useDevice
+// turns it on automatically whenever the adapter supports it, so we don't pass
+// anything in requiredFeatures. We keep the name only to feature-detect and
+// degrade gracefully on hardware that doesn't support it.
+const FEATURE = "rnwebgpu/native-texture" as GPUFeatureName;
 
 export const ImportExternalTexture = () => {
   const ref = useCanvasRef();
   const [error, setError] = useState<string | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  const { device, adapter } = useDevice(undefined, {
-    requiredFeatures: REQUIRED_FEATURES,
-  });
+  const { device, adapter } = useDevice();
 
   useEffect(() => {
     if (!device) {
       return;
     }
-    const missing = REQUIRED_FEATURES.filter((f) => !device.features.has(f));
-    if (missing.length > 0) {
+    // native-texture is auto-enabled when supported; if it is still missing,
+    // this hardware/driver can't back importExternalTexture.
+    if (!device.features.has(FEATURE)) {
       setError(
-        `Device is missing required features [${missing.join(", ")}]. Adapter supports: ${
+        `This device doesn't support ${FEATURE} (importExternalTexture). Adapter supports: ${
           adapter
             ? [...adapter.features]
                 .filter((f) => f.toString().startsWith("shared-"))

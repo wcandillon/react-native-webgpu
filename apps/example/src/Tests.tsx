@@ -14,12 +14,6 @@ export const CI = process.env.CI === "true";
 const { width } = Dimensions.get("window");
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
-// Umbrella feature owned by react-native-wgpu: expands to the platform's
-// Dawn feature pair natively and appears on adapter.features when supported.
-const OPTIONAL_SHARED_TEXTURE_MEMORY_FEATURES = [
-  "rnwebgpu/native-texture" as GPUFeatureName,
-];
-
 export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   const [texture, setTexture] = useState<GPUTexture | null>(null);
   const [adapter, setAdapter] = useState<GPUAdapter | null>(null);
@@ -33,10 +27,11 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
         if (!a) {
           throw new Error("No appropriate GPUAdapter found.");
         }
-        const requiredFeatures = OPTIONAL_SHARED_TEXTURE_MEMORY_FEATURES.filter(
-          (f) => a.features.has(f),
-        );
-        const d = await a.requestDevice({ requiredFeatures });
+        // "rnwebgpu/native-texture" is enabled by default whenever the adapter
+        // supports it, so the shared-texture / importExternalTexture specs get
+        // the capability without requesting it here. Specs that need it still
+        // gate on device.features.has(...) and skip where it is unavailable.
+        const d = await a.requestDevice();
         if (!d) {
           throw new Error("No appropriate GPUDevice found.");
         }

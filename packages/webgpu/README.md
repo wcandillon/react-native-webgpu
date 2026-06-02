@@ -226,16 +226,18 @@ device.queue.copyExternalImageToTexture(
 
 React Native WebGPU exposes Dawn's `SharedTextureMemory` so you can import a native pixel surface (an `IOSurface`-backed `CVPixelBuffer` on iOS, an `AHardwareBuffer` on Android) as a sampleable `GPUTexture` without copying pixels through the CPU. This is the path you want for camera frames, video frames, or anything coming out of a hardware producer.
 
-We expose a single umbrella feature name, `"rnwebgpu/native-texture"`. Request it at device creation.
+Like `importExternalTexture` on the web, this is **enabled by default**, there is nothing to request at device creation. The only thing to check is that the device supports it before importing. It always does on iOS/macOS; it can be missing on some Android drivers and emulators.
 
 ```tsx
 import type { NativeVideoFrame } from "react-native-wgpu";
 
-const FEATURE = "rnwebgpu/native-texture" as GPUFeatureName;
-
 const adapter = await navigator.gpu.requestAdapter();
-const requiredFeatures = adapter!.features.has(FEATURE) ? [FEATURE] : [];
-const device = await adapter!.requestDevice({ requiredFeatures });
+const device = await adapter!.requestDevice();
+
+// On by default when supported; this is the only check you need.
+if (!device.features.has("rnwebgpu/native-texture" as GPUFeatureName)) {
+  return; // rare: some Android drivers/emulators can't import native surfaces
+}
 
 // `frame` here is a NativeVideoFrame whose .handle is the native surface
 // (IOSurfaceRef / AHardwareBuffer*). NativeVideoFrames are produced by helpers
@@ -264,15 +266,14 @@ frame.release();
 - **Color conversion.** Camera and video surfaces are usually biplanar YUV (NV12), not RGB. An external texture carries the YUV→RGB matrix and the source/destination color-space transfer functions, so on the supported paths the sampler returns ready-to-use RGB in hardware. With raw `SharedTextureMemory` you would sample the luma/chroma planes and do that conversion by hand in WGSL. This is the main reason to prefer it for camera and video frames.
 - **Lifecycle.** It owns the `SharedTextureMemory` + `createTexture` + `beginAccess`/`endAccess` sequence internally, so you just import the frame and `destroy()` the result.
 
-It uses the same `"rnwebgpu/native-texture"` feature.
+It builds on the same default-on capability as Shared Texture Memory above, so feature-detect the device the same way before importing.
 
 > **Android note:** the hardware YUV→RGB conversion is fully automatic on iOS (NV12 `IOSurface`). On Android, camera frames arrive as an _opaque_ YCbCr `AHardwareBuffer`, and Dawn's Vulkan path forces an identity (`RGB_IDENTITY`) sampler conversion, so the external sample comes back as raw `[Y, Cb, Cr]`. You still get the zero-copy import and the rotation/mirror transform, but you need to apply the YUV→RGB matrix yourself in the shader. See the `CAMERA_PRELUDE` in the [VisionCamera example](/apps/example/src/VisionCamera/shaders.ts) for a ready-made BT.709 decode.
 
 ```tsx
-const FEATURE = "rnwebgpu/native-texture" as GPUFeatureName;
 const adapter = await navigator.gpu.requestAdapter();
-const requiredFeatures = adapter!.features.has(FEATURE) ? [FEATURE] : [];
-const device = await adapter!.requestDevice({ requiredFeatures });
+const device = await adapter!.requestDevice();
+// Feature-detect as shown above before importing on unsupported hardware.
 
 const render = () => {
   // A GPUExternalTexture expires once the queue work that used it is submitted,

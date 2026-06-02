@@ -53,6 +53,11 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
 }
 `;
 
+// This screen keeps the explicit feature request for documentation. As of the
+// default-on change, "rnwebgpu/native-texture" is enabled automatically by
+// requestDevice / useDevice whenever the adapter supports it (like
+// importExternalTexture on the web), so passing it in requiredFeatures is
+// optional. We still list it here to show how to gate on the capability.
 const REQUIRED_FEATURES = ["rnwebgpu/native-texture" as GPUFeatureName];
 
 export const SharedTextureMemory = () => {
