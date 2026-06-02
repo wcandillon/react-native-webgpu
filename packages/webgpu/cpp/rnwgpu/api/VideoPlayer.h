@@ -36,9 +36,7 @@ public:
     if (handle.handle == nullptr) {
       return nullptr;
     }
-    return std::make_shared<VideoFrame>(handle.handle, handle.width,
-                                        handle.height,
-                                        std::move(handle.deleter));
+    return std::make_shared<VideoFrame>(std::move(handle));
   }
 
   void play() {
