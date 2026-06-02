@@ -1,6 +1,6 @@
 # Refactor: event-driven async + auto-present
 
-Status: **Phase 0 complete — all spikes GREEN, ready for Phase 1**
+Status: **Phases 1–3 complete (local build/lint green). Phase 4 (SurfaceRegistry rework) proposed; Phase 5 = on-device validation.**
 Branch: `claude/keen-darwin-xeywa`
 
 This document is the handoff for moving the async + present refactor forward. Phase 0
@@ -296,12 +296,80 @@ and `yarn lint` pass for both `packages/webgpu` and `apps/example`. iOS `.mm` an
 driver are not compiled locally (no iOS/gradle build run here) — review-only; needs a device
 build. On-device frame pacing / zero-idle-CPU verification is Phase 4.
 
-**Phase 3 — First-class worklet runtimes**
+**Phase 3 — First-class worklet runtimes** — **DONE**
 - Worklet-runtime `RuntimeScheduler` impl (per Spike 1); verify auto-present dispatch on UI +
   dedicated runtimes; update `apps/example/src/Reanimated/Reanimated.tsx` (drop `present()`,
   keep its own rAF loop).
 
-**Phase 4 — Validation**
+### Phase 3 — what shipped (branch `claude/keen-darwin-xeywa`)
+Observed after Phase 2: the **UI-runtime** Reanimated example worked (the Reanimated UI runtime
+executes on the **main thread**, so dispatching its present to the main runtime's scheduler
+happened to land on the right thread), but the **dedicated `createWorkletRuntime`** example
+(`Reanimated/DedicatedThread.tsx`, `runOnRuntime`) crashed — its render thread is its own, so a
+main-thread present violated Dawn surface thread-affinity.
+
+**Decision (confirmed with the user): self-scheduled present, no native worklets dependency.**
+Rather than link `react-native-worklets` natively and have the FrameDriver dispatch via
+`WorkletRuntime::schedule` (the original plan / Spike 1 primary), worklet runtimes now schedule
+their own present on their own event loop. This avoids a new native build dependency entirely
+and is fully buildable/validatable locally (it is Spike 1's documented "JS-scheduling"
+contingency).
+
+Implementation (native only; no JS/build-system changes):
+- `GPUCanvasContext::getCurrentTexture` switched to the full-control HostFunction signature
+  (`jsi::Value(rt, thisVal, args, count)`, same pattern as `RNWebGPU::createImageBitmap`) so it
+  learns the **calling** runtime. New `schedulePresent(runtime)`:
+  - **Main runtime** (`RuntimeContext::get(runtime)` is non-null): unchanged — register with the
+    global vsync `FrameDriver` using that runtime's scheduler.
+  - **Any worklet runtime** (no `RuntimeContext` — Reanimated UI/dedicated, Vision Camera frame
+    processors, …): **present-on-next-acquire**. `getCurrentTexture` presents the *previous*
+    frame synchronously (inline, on the calling thread) just before acquiring the next texture;
+    by then the previous frame's submit has happened, and present runs on the same thread that
+    rendered it. This is the natural swapchain boundary and needs no scheduler.
+
+    Why not schedule onto the runtime's own loop: two earlier attempts failed. (1)
+    `queueMicrotask` is **disabled** on worklet runtimes (throws "microtasks are disabled in this
+    runtime"). (2) `setImmediate`/`setTimeout` exist but route through the runtime's `EventLoop`
+    `AsyncQueue`, which for **Vision Camera** is a custom `NativeThreadAsyncQueue` that hops back
+    through JNI (`fbjni Environment::current()`) and **crashes** when pushed from a
+    non-JVM-attached thread. Present-on-next-acquire avoids the runtime's task queue entirely.
+    Trade-off: one frame of latency, and a worklet that renders exactly once would not present
+    its single frame (continuous loops — rAF, camera frames — are unaffected; the main runtime's
+    one-shot case is covered by the FrameDriver).
+- `Reanimated.tsx` already had `present()` removed in Phase 2; `DedicatedThread.tsx` /
+  `UIThread.tsx` need no changes.
+
+Known limitation (out of scope, examples don't hit it): **async ops** (`mapAsync`,
+`onSubmittedWorkDone`, …) invoked *on a worklet runtime* still settle their Promise via the
+object's creation-runtime context (main), not the calling worklet runtime — the example worklets
+only do synchronous rendering + present (device/adapter are created on the main runtime). Routing
+async settlement to the calling runtime would need the same calling-runtime detection applied to
+the 7 async sites; deferred until a use case needs it.
+
+Validation (local): native lib **compiles + links** for `arm64-v8a`; `cpplint` clean;
+`clang-format` applied; `yarn tsc`/`yarn lint` unaffected (no JS changed). On-device
+verification of the dedicated-worklet example is for the maintainer.
+
+**Phase 4 — `SurfaceRegistry` / surface-model rework** (proposed)
+The `SurfaceInfo` / `SurfaceRegistry` model (`cpp/rnwgpu/SurfaceRegistry.h`) predates the
+event-driven + auto-present work and is now the rough edge. Candidate improvements to scope:
+- **Surface thread-affinity.** Surface lifecycle (`configure`/`switchToOnscreen`/
+  `switchToOffscreen`/`resize`) runs on the **UI thread** (native view callbacks) while
+  `getCurrentTexture`/`presentFrame` run on the **owning runtime's render thread**. A single
+  `shared_mutex` serializes them but they're still cross-thread against a Dawn surface that
+  prefers single-thread access. Consider routing all surface ops through the owning runtime
+  (e.g. via the `RuntimeScheduler`), making affinity structural rather than lock-guarded.
+- **State clarity.** The on-screen-`surface` vs offscreen-`texture` duality is encoded as
+  `if (surface) … else …` branches throughout; a small explicit state (Offscreen / Onscreen)
+  would remove the implicit coupling and the `switchToOnscreen` flush path's validation cost
+  (its existing `// TODO: faster way without validation?`).
+- **Dead/again-evaluated fields.** e.g. the stored `wgpu::Instance gpu` member appears unused;
+  audit members now that present/`hasSurface` were added.
+- **Lifetime vs `contextId`.** Registry keyed by a JS-side incrementing `int`; `FrameDriver`
+  now also keys pending presents by `contextId`. Confirm teardown ordering (view dealloc →
+  `cancelPresent` + `removeSurfaceInfo`) is race-free under the new threading.
+
+**Phase 5 — Validation**
 ```bash
 yarn tsc && yarn lint
 yarn workspace react-native-wgpu test         # offscreen readback + demo specs

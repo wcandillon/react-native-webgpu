@@ -53,13 +53,21 @@ public:
   inline const wgpu::Surface get() { return nullptr; }
   void configure(std::shared_ptr<GPUCanvasConfiguration> configuration);
   void unconfigure();
-  std::shared_ptr<GPUTexture> getCurrentTexture();
+  // Full-control signature so we can learn the *calling* runtime and route the
+  // auto-present onto its own thread (main runtime → FrameDriver vsync; worklet
+  // runtime → presented inline at the next getCurrentTexture).
+  jsi::Value getCurrentTexture(jsi::Runtime &runtime,
+                               const jsi::Value &thisValue,
+                               const jsi::Value *args, size_t count);
 
 private:
   int _contextId;
   std::shared_ptr<Canvas> _canvas;
   std::shared_ptr<SurfaceInfo> _surfaceInfo;
   std::shared_ptr<GPU> _gpu;
+  // For worklet-runtime auto-present: true when a frame was acquired on a
+  // worklet runtime and not yet presented (presented at the next acquire).
+  bool _hasUnpresentedFrame = false;
 };
 
 } // namespace rnwgpu
