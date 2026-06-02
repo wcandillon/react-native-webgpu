@@ -197,11 +197,7 @@ export const SharedTextureMemory = () => {
           label: "video-frame",
         });
         const texture = memory.createTexture();
-        if (!memory.beginAccess(texture, true)) {
-          texture.destroy();
-          frame.release();
-          return null;
-        }
+        memory.beginAccess(texture, true);
         const uniformBuffer = device.createBuffer({
           size: 16, // vec2<f32> padded to 16-byte uniform alignment
           usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -225,7 +221,11 @@ export const SharedTextureMemory = () => {
     };
 
     const releaseBound = (b: Bound) => {
-      b.memory.endAccess(b.texture);
+      try {
+        b.memory.endAccess(b.texture);
+      } catch (e) {
+        console.warn("[SharedTextureMemory] endAccess failed:", e);
+      }
       b.texture.destroy();
       b.uniformBuffer.destroy();
       b.frame.release();

@@ -1,13 +1,17 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "NativeObject.h"
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "GPUSharedFence.h"
+#include "GPUSharedFenceState.h"
 #include "GPUTexture.h"
 #include "GPUTextureDescriptor.h"
 
@@ -30,16 +34,16 @@ public:
   std::shared_ptr<GPUTexture>
   createTexture(std::optional<std::shared_ptr<GPUTextureDescriptor>> descriptor);
 
-  // Returns true on success. Marks the shared memory as initialized so the
-  // texture's content is preserved (or not). Callers that want fence-based
-  // synchronization should pass fences via beginAccess descriptor (not yet
-  // exposed - we currently take the implicit/no-fence path that matches the
-  // most common RN use cases: still images, single-producer video frames).
-  bool beginAccess(std::shared_ptr<GPUTexture> texture, bool initialized);
+  // Optional `fences` are wait fences: Dawn waits for each to reach its
+  // signaledValue before writing the surface. Throws on failure.
+  void beginAccess(
+      std::shared_ptr<GPUTexture> texture, bool initialized,
+      std::optional<std::vector<std::shared_ptr<GPUSharedFenceState>>> fences);
 
-  // Returns true on success. Drops any fences produced by end-access (we do
-  // not yet surface them to JS).
-  bool endAccess(std::shared_ptr<GPUTexture> texture);
+  // endAccess(texture) -> { initialized, fences: { fence, signaledValue }[] }
+  // Surfaces the fences Dawn produced for the access. Throws on failure.
+  jsi::Value endAccess(jsi::Runtime &runtime, const jsi::Value &thisVal,
+                       const jsi::Value *args, size_t count);
 
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {

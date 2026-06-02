@@ -41,13 +41,7 @@ describe("SharedTextureMemory", () => {
             label: "test-frame",
           });
           const texture = memory.createTexture();
-          if (!memory.beginAccess(texture, true)) {
-            frame.release();
-            return {
-              kind: "fail",
-              reason: `beginAccess returned false`,
-            };
-          }
+          memory.beginAccess(texture, true);
 
           const module = device.createShaderModule({
             code: /* wgsl */ `

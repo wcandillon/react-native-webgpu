@@ -1,5 +1,7 @@
 /// <reference types="@webgpu/types" />
 import type {
+  GPUSharedFence,
+  GPUSharedFenceDescriptor,
   GPUSharedTextureMemory,
   GPUSharedTextureMemoryDescriptor,
   NativeCanvas,
@@ -12,8 +14,14 @@ export * from "./main";
 export type {
   VideoFrame,
   VideoPlayer,
+  GPUSharedFence,
+  GPUSharedFenceDescriptor,
+  GPUSharedFenceExportInfo,
+  GPUSharedFenceState,
+  GPUSharedFenceType,
   GPUSharedTextureMemory,
   GPUSharedTextureMemoryDescriptor,
+  GPUSharedTextureMemoryEndAccessState,
 } from "./types";
 
 declare global {
@@ -44,6 +52,7 @@ declare global {
     importSharedTextureMemory(
       descriptor: GPUSharedTextureMemoryDescriptor,
     ): GPUSharedTextureMemory;
+    importSharedFence(descriptor: GPUSharedFenceDescriptor): GPUSharedFence;
   }
 
   // Extend createImageBitmap to accept ArrayBuffer/TypedArray (encoded image bytes)
