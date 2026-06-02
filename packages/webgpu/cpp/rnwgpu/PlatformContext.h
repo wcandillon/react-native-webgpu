@@ -18,6 +18,16 @@ struct ImageData {
   wgpu::TextureFormat format;
 };
 
+// Pixel layout of a VideoFrame. Determines whether the underlying surface is
+// a single RGBA plane or a biplanar Y / CbCr pair.
+enum class VideoPixelFormat {
+  // Single-plane 8-bit BGRA (default; what RGBA-style sampling expects).
+  BGRA8,
+  // Biplanar 4:2:0 8-bit Y + interleaved CbCr (NV12). Used for the
+  // importExternalTexture path; needs the YUV→RGB conversion matrix below.
+  NV12,
+};
+
 // A native handle to a video frame that can be imported into a
 // GPUSharedTextureMemory.
 //
@@ -31,6 +41,12 @@ struct VideoFrameHandle {
   void *handle = nullptr;
   uint32_t width = 0;
   uint32_t height = 0;
+  VideoPixelFormat pixelFormat = VideoPixelFormat::BGRA8;
+  // 3x4 row-major matrix mapping [Y, U, V, 1] → linear [R, G, B]. Pre-computed
+  // at decode time from CVPixelBuffer attachments (kCVImageBufferYCbCrMatrixKey
+  // + range), with a BT.709 limited-range default. Only meaningful when
+  // pixelFormat == NV12.
+  float yuvToRgbMatrix[12] = {};
   std::function<void()> deleter;
 };
 
@@ -87,8 +103,20 @@ public:
 
   // Open a video file at `path` for playback. The returned player yields
   // IOSurface / AHardwareBuffer-backed frames via copyLatestFrame().
+  //
+  // `format` selects the requested pixel layout. BGRA8 is the easiest target
+  // for a regular sampled GPUTexture; NV12 is the right shape for the
+  // importExternalTexture path (zero-copy biplanar YUV).
   virtual std::unique_ptr<IVideoPlayer>
-  createVideoPlayer(const std::string &path) = 0;
+  createVideoPlayer(const std::string &path, VideoPixelFormat format) = 0;
+
+  // Wrap a CVPixelBufferRef (Apple) or AHardwareBuffer* (Android) pointer
+  // obtained from another library (typically VisionCamera's
+  // Frame.getNativeBuffer().pointer) as one of our VideoFrame handles.
+  //
+  // We CFRetain / AHardwareBuffer_acquire on the way in, so callers can
+  // safely release their own reference immediately after.
+  virtual VideoFrameHandle wrapNativeBuffer(void *pointer) = 0;
 
   // Write a small procedurally-generated test video to a temporary location
   // and return its absolute path. Lets the SharedTextureMemory example play

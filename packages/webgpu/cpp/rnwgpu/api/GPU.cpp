@@ -20,6 +20,33 @@ GPU::GPU(jsi::Runtime &runtime) : NativeObject(CLASS_NAME) {
 
   wgpu::InstanceLimits limits{.timedWaitAnyMaxCount = 64};
   instanceDesc.requiredLimits = &limits;
+
+  // Expose Dawn's experimental adapter features. Several features needed by
+  // our Android external-texture path (YCbCrVulkanSamplers,
+  // OpaqueYCbCrAndroidForExternalTexture) are tagged Experimental in Dawn's
+  // feature table and are otherwise filtered out of adapter.features by
+  // PhysicalDeviceBase::GetSupportedFeatures. The allow_unsafe_apis toggle
+  // disables that filter so the features become visible;
+  // expose_wgsl_experimental_features is the parallel toggle for WGSL language
+  // features.
+  //
+  // Trade-off: these are instance-level Dawn toggles, so they apply to every
+  // adapter/device created from this instance, not just the external-texture
+  // path. There is no finer-grained, per-feature mechanism to surface these.
+  // The exposure is acceptable because the toggle only *un-hides* experimental
+  // features in adapter.features; it does not enable any of them. Nothing
+  // experimental becomes active unless application code explicitly lists that
+  // feature in requiredFeatures at device creation, so the default behavior of
+  // a device that asks for no experimental features is unchanged.
+  static const char *const kEnabledToggles[] = {
+      "allow_unsafe_apis",
+      "expose_wgsl_experimental_features",
+  };
+  wgpu::DawnTogglesDescriptor toggles;
+  toggles.enabledToggleCount = std::size(kEnabledToggles);
+  toggles.enabledToggles = kEnabledToggles;
+  instanceDesc.nextInChain = &toggles;
+
   _instance = wgpu::CreateInstance(&instanceDesc);
 
   auto dispatcher = std::make_shared<async::JSIMicrotaskDispatcher>(runtime);

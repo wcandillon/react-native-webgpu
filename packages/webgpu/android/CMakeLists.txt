@@ -38,6 +38,7 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/rnwgpu/api/GPUQuerySet.cpp
     ../cpp/rnwgpu/api/GPUTexture.cpp
     ../cpp/rnwgpu/api/GPUSharedTextureMemory.cpp
+    ../cpp/rnwgpu/api/GPUExternalTexture.cpp
     ../cpp/rnwgpu/api/GPURenderBundleEncoder.cpp
     ../cpp/rnwgpu/api/GPURenderPassEncoder.cpp
     ../cpp/rnwgpu/api/GPURenderPipeline.cpp

@@ -188,6 +188,9 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::YCbCrVulkanSamplers:
     *outUnion = "ycbcr-vulkan-samplers";
     break;
+  case wgpu::FeatureName::OpaqueYCbCrAndroidForExternalTexture:
+    *outUnion = "opaque-ycbcr-android-for-external-texture";
+    break;
   case wgpu::FeatureName::ShaderModuleCompilationOptions:
     *outUnion = "shader-module-compilation-options";
     break;
