@@ -247,7 +247,6 @@ export const ImportExternalTexture = () => {
       // Now that the work sampling it has been submitted, end the external
       // texture's access window so the frame's surface is released promptly.
       externalTex?.destroy();
-      context.present();
       rafRef.current = requestAnimationFrame(render);
     };
     rafRef.current = requestAnimationFrame(render);

@@ -39,10 +39,7 @@ function makeWebGPUCanvasContext(
     canvas.setAttribute("height", pixelHeight);
   }
 
-  const context = canvas.getContext("webgpu")!;
-  return Object.assign(context, {
-    present: () => {},
-  });
+  return canvas.getContext("webgpu")!;
 }
 
 // @ts-expect-error - polyfill for RNWebGPU native module

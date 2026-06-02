@@ -244,13 +244,57 @@ the full `react-native-wgpu` native lib **compiles and links** for `arm64-v8a` (
 `cpplint` clean (project filters); `clang-format` (pinned 15.0.0) applied; `yarn tsc` passes
 (no TS changed). On-device runtime behaviour (frame pacing, zero idle CPU) is Phase 4.
 
-**Phase 2 — Auto-present + remove `present()`**
+**Phase 2 — Auto-present + remove `present()`** — **DONE**
 - Add `FrameDriver` (iOS `CADisplayLink`, Android `AChoreographer`); wire
   `getCurrentTexture` → register; vsync → dispatch present to owning runtime.
 - Remove `GPUCanvasContext::present` (`api/GPUCanvasContext.h:50,58`, `.cpp:56-65`) and
   `SurfaceInfo::present` (`SurfaceRegistry.h:116-121`).
 - JS: drop `present` from `RNCanvasContext` (`src/Canvas.tsx:22-24`, `src/types.ts`).
 - Migrate all 16 example / `useWebGPU` call sites + `README.md` + `packages/webgpu/README.md`.
+
+### Phase 2 — what shipped (branch `claude/keen-darwin-xeywa`)
+New files:
+- `cpp/rnwgpu/FrameDriver.{h,cpp}` — global vsync auto-present coordinator. `requestPresent`
+  (from `getCurrentTexture`, JS thread) coalesces per `contextId`; `onVSync` (UI thread)
+  dispatches each pending surface's present onto its owning runtime's `RuntimeScheduler`
+  (`surface->presentFrame()`). Request-driven: starts the platform vsync on first request,
+  stops after `kMaxIdleFrames` (3) idle frames → zero idle CPU.
+- `apple/WebGPUFrameDriver.{h,mm}` — iOS/tvOS `CADisplayLink` on the main run loop (paused
+  toggled by start/stop). macOS uses `NSScreen.displayLinkWithTarget:` on 14+, else an
+  `NSTimer` fallback. Selector → `FrameDriver::onVSync()`.
+- `android/.../com/webgpu/WebGPUFrameDriver.java` — main-thread `Choreographer` driver;
+  `doFrame` → static `nativeOnVSync()` JNI → `FrameDriver::onVSync()`, reposts while running.
+
+Wiring:
+- `SurfaceInfo::present()` → `presentFrame()` (Apple `WaitForCommandsToBeScheduled` + Present,
+  no-op offscreen); added `SurfaceInfo::hasSurface()`. Metal extern moved to `SurfaceRegistry.h`.
+- `GPU::getContext()` re-exposes the per-runtime `RuntimeContext` (so the canvas can reach its
+  scheduler). `GPUCanvasContext` stores `_contextId`, registers the present in
+  `getCurrentTexture` (and now sets the canvas client size there), and dropped `present()` +
+  its JS binding.
+- iOS `WebGPUModule install` and Android `initializeNative` register `setPlatformVSync`. View
+  teardown (`MetalView dealloc`, Android `onSurfaceDestroy`) calls `FrameDriver::cancelPresent`.
+- JS: `RNCanvasContext` is now just `GPUCanvasContext` (`src/Canvas.tsx`, `src/types.ts`);
+  removed the no-op `present` from `Offscreen.ts` and `WebPolyfillGPUModule.ts`. 18 example
+  call sites (the plan's 16 + `VisionCamera`, `ImportExternalTexture`) and both READMEs migrated.
+
+Decisions / deviations:
+1. **Android vsync = Java `Choreographer` + JNI** (not pure NDK `AChoreographer`), chosen for
+   robustness — pure NDK needs a JNI hop to a Looper thread to bootstrap anyway. Confirmed with
+   the user.
+2. **`present()` hard-removed** (breaking), confirmed with the user.
+3. **Owning-runtime caveat (→ Phase 3):** `getCurrentTexture` currently dispatches present via
+   the **main** runtime's scheduler (`_gpu->getContext()`). Correct for main-JS rendering. The
+   Reanimated example renders on the **UI (worklet) runtime**, so its present is migrated (call
+   removed) but auto-present won't target the correct thread until Phase 3 tags the present with
+   the *calling* runtime and gives worklet runtimes their own `RuntimeScheduler`. Expect the
+   Reanimated/Dedicated examples to be visually broken between Phase 2 and Phase 3.
+
+Validation (local): `react-native-wgpu` native lib **compiles and links** for `arm64-v8a`
+(ninja, CMake picked up `FrameDriver.cpp`); `cpplint` clean; `clang-format` applied; `yarn tsc`
+and `yarn lint` pass for both `packages/webgpu` and `apps/example`. iOS `.mm` and the Java
+driver are not compiled locally (no iOS/gradle build run here) — review-only; needs a device
+build. On-device frame pacing / zero-idle-CPU verification is Phase 4.
 
 **Phase 3 — First-class worklet runtimes**
 - Worklet-runtime `RuntimeScheduler` impl (per Spike 1); verify auto-present dispatch on UI +

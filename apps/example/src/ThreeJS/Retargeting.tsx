@@ -302,7 +302,6 @@ export const Retargeting = () => {
       source.mixer.update(delta);
       mixer.update(delta);
       renderer.render(scene, camera);
-      context.present();
     });
 
     return () => {

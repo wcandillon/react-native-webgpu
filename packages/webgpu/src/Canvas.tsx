@@ -19,9 +19,9 @@ export interface NativeCanvas {
   clientHeight: number;
 }
 
-export type RNCanvasContext = GPUCanvasContext & {
-  present: () => void;
-};
+// Auto-present (a global vsync FrameDriver) replaces the old manual present();
+// the native context is now just a spec GPUCanvasContext.
+export type RNCanvasContext = GPUCanvasContext;
 
 export interface CanvasRef {
   getContextId: () => number;

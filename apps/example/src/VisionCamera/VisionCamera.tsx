@@ -617,7 +617,6 @@ const CameraView = () => {
           // access window now to release the camera frame's surface promptly
           // (don't wait for GC, which would starve the frame buffer pool).
           externalTex.destroy();
-          context.present();
         } finally {
           videoFrame.release();
         }

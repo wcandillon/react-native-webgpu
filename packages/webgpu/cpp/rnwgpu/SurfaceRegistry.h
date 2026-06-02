@@ -7,6 +7,12 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#ifdef __APPLE__
+namespace dawn::native::metal {
+void WaitForCommandsToBeScheduled(WGPUDevice device);
+} // namespace dawn::native::metal
+#endif
+
 namespace rnwgpu {
 
 struct NativeInfo {
@@ -113,7 +119,22 @@ public:
     height = newHeight;
   }
 
-  void present() {
+  // Present the current surface texture. Called at the frame boundary from the
+  // owning runtime's JS thread (via FrameDriver), replacing the old manual
+  // present(). No-op when offscreen / unconfigured (no surface).
+  void presentFrame() {
+#ifdef __APPLE__
+    // Ensure command buffers are scheduled before presenting. Read the device
+    // under a shared lock, then wait without holding it (the wait can block).
+    wgpu::Device device;
+    {
+      std::shared_lock<std::shared_mutex> lock(_mutex);
+      device = config.device;
+    }
+    if (device) {
+      dawn::native::metal::WaitForCommandsToBeScheduled(device.Get());
+    }
+#endif
     std::unique_lock<std::shared_mutex> lock(_mutex);
     if (surface) {
       surface.Present();
@@ -129,6 +150,12 @@ public:
     } else {
       return texture;
     }
+  }
+
+  // True when an on-screen wgpu::Surface is attached (vs offscreen texture).
+  bool hasSurface() {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    return surface != nullptr;
   }
 
   NativeInfo getNativeInfo() {

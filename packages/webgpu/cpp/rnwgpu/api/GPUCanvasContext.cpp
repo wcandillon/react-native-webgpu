@@ -1,15 +1,8 @@
 #include "GPUCanvasContext.h"
 #include "Convertors.h"
+#include "FrameDriver.h"
 #include "RNWebGPUManager.h"
 #include <memory>
-
-#ifdef __APPLE__
-namespace dawn::native::metal {
-
-void WaitForCommandsToBeScheduled(WGPUDevice device);
-
-}
-#endif
 
 namespace rnwgpu {
 
@@ -48,20 +41,26 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
     _surfaceInfo->reconfigure(width, height);
   }
   auto texture = _surfaceInfo->getCurrentTexture();
-  // Pass reportsMemoryPressure=false to avoid triggering spurious Hermes GC
-  // cycles every frame since the canvas texture doesn't own the buffer.
-  return std::make_shared<GPUTexture>(texture, "", false);
-}
 
-void GPUCanvasContext::present() {
-#ifdef __APPLE__
-  dawn::native::metal::WaitForCommandsToBeScheduled(
-      _surfaceInfo->getDevice().Get());
-#endif
+  // Auto-present: acquiring the current texture schedules a present for this
+  // surface at the next vsync (spec-aligned "update the rendering" after the
+  // frame). Replaces the old explicit context.present(). Offscreen surfaces
+  // have no wgpu::Surface, so skip them (their texture is read back directly).
   auto size = _surfaceInfo->getSize();
   _canvas->setClientWidth(size.width);
   _canvas->setClientHeight(size.height);
-  _surfaceInfo->present();
+  if (_surfaceInfo->hasSurface()) {
+    // Phase 2: dispatch the present on the main runtime (the only runtime that
+    // owns WebGPU rendering today). Phase 3 will tag this with the *calling*
+    // runtime so worklet-runtime rendering (e.g. the Reanimated example)
+    // presents on its own JS thread, preserving Dawn surface thread-affinity.
+    FrameDriver::getInstance().requestPresent(_contextId, _surfaceInfo,
+                                              _gpu->getContext()->scheduler());
+  }
+
+  // Pass reportsMemoryPressure=false to avoid triggering spurious Hermes GC
+  // cycles every frame since the canvas texture doesn't own the buffer.
+  return std::make_shared<GPUTexture>(texture, "", false);
 }
 
 } // namespace rnwgpu

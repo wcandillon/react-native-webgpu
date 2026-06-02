@@ -1,6 +1,8 @@
 #import "MetalView.h"
 #import "webgpu/webgpu_cpp.h"
 
+#include "FrameDriver.h"
+
 @implementation MetalView {
   BOOL _isConfigured;
 }
@@ -42,6 +44,8 @@
 }
 
 - (void)dealloc {
+  // Stop any pending auto-present for this surface before it goes away.
+  rnwgpu::FrameDriver::getInstance().cancelPresent([_contextId intValue]);
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   // Remove the surface info from the registry
   registry.removeSurfaceInfo([_contextId intValue]);

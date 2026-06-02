@@ -26,7 +26,7 @@ public:
 
   GPUCanvasContext(std::shared_ptr<GPU> gpu, int contextId, int width,
                    int height)
-      : NativeObject(CLASS_NAME), _gpu(std::move(gpu)) {
+      : NativeObject(CLASS_NAME), _contextId(contextId), _gpu(std::move(gpu)) {
     _canvas = std::make_shared<Canvas>(nullptr, width, height);
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     _surfaceInfo =
@@ -47,7 +47,6 @@ public:
                   &GPUCanvasContext::unconfigure);
     installMethod(runtime, prototype, "getCurrentTexture",
                   &GPUCanvasContext::getCurrentTexture);
-    installMethod(runtime, prototype, "present", &GPUCanvasContext::present);
   }
 
   // TODO: is this ok?
@@ -55,9 +54,9 @@ public:
   void configure(std::shared_ptr<GPUCanvasConfiguration> configuration);
   void unconfigure();
   std::shared_ptr<GPUTexture> getCurrentTexture();
-  void present();
 
 private:
+  int _contextId;
   std::shared_ptr<Canvas> _canvas;
   std::shared_ptr<SurfaceInfo> _surfaceInfo;
   std::shared_ptr<GPU> _gpu;

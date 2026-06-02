@@ -66,7 +66,6 @@ export const FiberCanvas = ({
         const renderFrame = state.gl.render.bind(state.gl);
         state.gl.render = (s: THREE.Scene, c: THREE.Camera) => {
           renderFrame(s, c);
-          context?.present();
         };
       },
     });

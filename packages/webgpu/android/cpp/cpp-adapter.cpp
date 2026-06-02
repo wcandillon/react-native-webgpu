@@ -10,12 +10,44 @@
 #include <webgpu/webgpu_cpp.h>
 
 #include "AndroidPlatformContext.h"
+#include "FrameDriver.h"
 #include "GPUCanvasContext.h"
 #include "RNWebGPUManager.h"
 
 #define LOG_TAG "WebGPUModule"
 
 std::shared_ptr<rnwgpu::RNWebGPUManager> manager;
+
+// JNI handles for driving the vsync source (com.webgpu.WebGPUFrameDriver),
+// cached on the JNI thread in initializeNative (which has the app classloader).
+static JavaVM *gJavaVM = nullptr;
+static jclass gFrameDriverClass = nullptr;
+static jmethodID gFrameDriverStart = nullptr;
+static jmethodID gFrameDriverStop = nullptr;
+
+static void callFrameDriver(jmethodID method) {
+  if (gJavaVM == nullptr || gFrameDriverClass == nullptr || method == nullptr) {
+    return;
+  }
+  JNIEnv *env = nullptr;
+  bool attached = false;
+  jint res = gJavaVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
+  if (res == JNI_EDETACHED) {
+    if (gJavaVM->AttachCurrentThread(&env, nullptr) != JNI_OK) {
+      return;
+    }
+    attached = true;
+  } else if (res != JNI_OK) {
+    return;
+  }
+  env->CallStaticVoidMethod(gFrameDriverClass, method);
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+  }
+  if (attached) {
+    gJavaVM->DetachCurrentThread();
+  }
+}
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     JNIEnv *env, jobject /* this */, jlong jsRuntime,
@@ -31,6 +63,27 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
       std::make_shared<rnwgpu::AndroidPlatformContext>(globalBlobModule);
   manager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsCallInvoker,
                                                       platformContext);
+
+  // Cache JNI handles for the Choreographer-based vsync source and register it
+  // with the FrameDriver to drive auto-present (replaces context.present()).
+  env->GetJavaVM(&gJavaVM);
+  jclass localCls = env->FindClass("com/webgpu/WebGPUFrameDriver");
+  if (localCls != nullptr) {
+    gFrameDriverClass = reinterpret_cast<jclass>(env->NewGlobalRef(localCls));
+    gFrameDriverStart =
+        env->GetStaticMethodID(gFrameDriverClass, "start", "()V");
+    gFrameDriverStop = env->GetStaticMethodID(gFrameDriverClass, "stop", "()V");
+    env->DeleteLocalRef(localCls);
+  }
+  rnwgpu::FrameDriver::getInstance().setPlatformVSync(
+      [] { callFrameDriver(gFrameDriverStart); },
+      [] { callFrameDriver(gFrameDriverStop); });
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUFrameDriver_nativeOnVSync(JNIEnv * /*env*/,
+                                                jclass /*clazz*/) {
+  rnwgpu::FrameDriver::getInstance().onVSync();
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceChanged(
@@ -66,6 +119,7 @@ Java_com_webgpu_WebGPUView_switchToOffscreenSurface(JNIEnv *env, jobject thiz,
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
     JNIEnv *env, jobject thiz, jint contextId) {
+  rnwgpu::FrameDriver::getInstance().cancelPresent(contextId);
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   registry.removeSurfaceInfo(contextId);
 }

@@ -79,7 +79,6 @@ export const webGPUDemo = (
 
     device.queue.submit([commandEncoder.finish()]);
 
-    context.present();
     if (runAnimation.value) {
       requestAnimationFrame(frame);
     }
