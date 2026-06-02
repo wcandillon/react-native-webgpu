@@ -102,6 +102,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
         result->label = JSIConverter<std::optional<std::string>>::fromJSI(
             runtime, prop, false);
       }
+      if (value.hasProperty(runtime, "dawnToggles")) {
+        auto prop = value.getProperty(runtime, "dawnToggles");
+        result->dawnToggles = JSIConverter<
+            std::optional<std::shared_ptr<GPUDawnTogglesDescriptor>>>::fromJSI(
+            runtime, prop, false);
+      }
     }
 
     return result;
