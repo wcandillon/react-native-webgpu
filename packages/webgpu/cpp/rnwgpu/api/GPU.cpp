@@ -9,11 +9,14 @@
 
 #include "Convertors.h"
 #include "JSIConverter.h"
-#include "rnwgpu/async/JSIMicrotaskDispatcher.h"
+#include "rnwgpu/async/CallInvokerScheduler.h"
+#include "rnwgpu/async/GpuEventLoop.h"
 
 namespace rnwgpu {
 
-GPU::GPU(jsi::Runtime &runtime) : NativeObject(CLASS_NAME) {
+GPU::GPU(jsi::Runtime &runtime,
+         std::shared_ptr<facebook::react::CallInvoker> callInvoker)
+    : NativeObject(CLASS_NAME) {
   static const auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
   wgpu::InstanceDescriptor instanceDesc{.requiredFeatureCount = 1,
                                         .requiredFeatures = &kTimedWaitAny};
@@ -22,8 +25,11 @@ GPU::GPU(jsi::Runtime &runtime) : NativeObject(CLASS_NAME) {
   instanceDesc.requiredLimits = &limits;
   _instance = wgpu::CreateInstance(&instanceDesc);
 
-  auto dispatcher = std::make_shared<async::JSIMicrotaskDispatcher>(runtime);
-  _async = async::AsyncRunner::getOrCreate(runtime, _instance, dispatcher);
+  auto scheduler =
+      std::make_shared<async::CallInvokerScheduler>(std::move(callInvoker));
+  auto eventLoop = std::make_shared<async::GpuEventLoop>(_instance);
+  _async = async::AsyncRunner::getOrCreate(runtime, std::move(scheduler),
+                                           std::move(eventLoop));
 }
 
 async::AsyncTaskHandle GPU::requestAdapter(
@@ -41,9 +47,10 @@ async::AsyncTaskHandle GPU::requestAdapter(
   aOptions.backendType = kDefaultBackendType;
   return _async->postTask(
       [this, aOptions](const async::AsyncTaskHandle::ResolveFunction &resolve,
-                       const async::AsyncTaskHandle::RejectFunction &reject) {
-        _instance.RequestAdapter(
-            &aOptions, wgpu::CallbackMode::AllowProcessEvents,
+                       const async::AsyncTaskHandle::RejectFunction &reject)
+          -> wgpu::Future {
+        return _instance.RequestAdapter(
+            &aOptions, wgpu::CallbackMode::WaitAnyOnly,
             [asyncRunner = _async, resolve,
              reject](wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,
                      wgpu::StringView message) {

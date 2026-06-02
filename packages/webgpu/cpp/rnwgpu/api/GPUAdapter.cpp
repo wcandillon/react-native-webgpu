@@ -92,14 +92,14 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
       [this, aDescriptor, descriptor, label = std::move(label),
        deviceLostBinding,
        creationRuntime](const async::AsyncTaskHandle::ResolveFunction &resolve,
-                        const async::AsyncTaskHandle::RejectFunction &reject) {
+                        const async::AsyncTaskHandle::RejectFunction &reject)
+          -> wgpu::Future {
         (void)descriptor;
-        _instance.RequestDevice(
-            &aDescriptor, wgpu::CallbackMode::AllowProcessEvents,
+        return _instance.RequestDevice(
+            &aDescriptor, wgpu::CallbackMode::WaitAnyOnly,
             [asyncRunner = _async, resolve, reject, label, creationRuntime,
              deviceLostBinding](wgpu::RequestDeviceStatus status,
-                                wgpu::Device device,
-                                wgpu::StringView message) {
+                                wgpu::Device device, wgpu::StringView message) {
               if (message.length) {
                 fprintf(stderr, "%s", message.data);
               }
@@ -123,14 +123,12 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
                     case wgpu::LoggingType::Warning:
                       logLevel = "Warning";
                       Logger::warnToJavascriptConsole(
-                          *creationRuntime,
-                          std::string(msg.data, msg.length));
+                          *creationRuntime, std::string(msg.data, msg.length));
                       break;
                     case wgpu::LoggingType::Error:
                       logLevel = "Error";
                       Logger::errorToJavascriptConsole(
-                          *creationRuntime,
-                          std::string(msg.data, msg.length));
+                          *creationRuntime, std::string(msg.data, msg.length));
                       break;
                     case wgpu::LoggingType::Verbose:
                       logLevel = "Verbose";

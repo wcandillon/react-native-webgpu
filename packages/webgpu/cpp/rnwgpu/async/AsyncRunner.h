@@ -1,14 +1,13 @@
 #pragma once
 
-#include <atomic>
-#include <cstdint>
 #include <functional>
 #include <memory>
 
 #include <jsi/jsi.h>
 
-#include "AsyncDispatcher.h"
 #include "AsyncTaskHandle.h"
+#include "GpuEventLoop.h"
+#include "RuntimeScheduler.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -16,38 +15,43 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu::async {
 
+/**
+ * Per-runtime coordinator for asynchronous WebGPU operations.
+ *
+ * Bundles the runtime's RuntimeScheduler (how to settle Promises back on the
+ * owning JS thread) with the GpuEventLoop (how to wait on Dawn futures off the
+ * JS thread). This replaces the previous ProcessEvents polling design: there is
+ * no tick loop and no idle CPU usage.
+ *
+ * A task callback registers a Dawn async op with CallbackMode::WaitAnyOnly and
+ * returns the resulting wgpu::Future, which is handed to the GpuEventLoop. A
+ * returned future with id == 0 means "no event to wait on" (deferred/immediate
+ * resolution, e.g. GPUDevice::getLost).
+ */
 class AsyncRunner : public std::enable_shared_from_this<AsyncRunner> {
 public:
   using TaskCallback =
-      std::function<void(const AsyncTaskHandle::ResolveFunction &,
-                         const AsyncTaskHandle::RejectFunction &)>;
+      std::function<wgpu::Future(const AsyncTaskHandle::ResolveFunction &,
+                                 const AsyncTaskHandle::RejectFunction &)>;
 
-  AsyncRunner(wgpu::Instance instance,
-              std::shared_ptr<AsyncDispatcher> dispatcher);
+  AsyncRunner(std::shared_ptr<RuntimeScheduler> scheduler,
+              std::shared_ptr<GpuEventLoop> eventLoop);
 
   static std::shared_ptr<AsyncRunner> get(jsi::Runtime &runtime);
   static std::shared_ptr<AsyncRunner>
-  getOrCreate(jsi::Runtime &runtime, wgpu::Instance instance,
-              std::shared_ptr<AsyncDispatcher> dispatcher);
+  getOrCreate(jsi::Runtime &runtime,
+              std::shared_ptr<RuntimeScheduler> scheduler,
+              std::shared_ptr<GpuEventLoop> eventLoop);
 
-  AsyncTaskHandle postTask(const TaskCallback &callback,
-                           bool keepPumping = true);
+  AsyncTaskHandle postTask(const TaskCallback &callback);
 
-  void requestTick();
-  void tick(jsi::Runtime &runtime);
-  void onTaskSettled(bool keepPumping);
-
-  std::shared_ptr<AsyncDispatcher> dispatcher() const;
+  std::shared_ptr<RuntimeScheduler> scheduler() const;
 
 private:
   static jsi::UUID runtimeDataUUID();
 
-  wgpu::Instance _instance;
-  std::shared_ptr<AsyncDispatcher> _dispatcher;
-  std::atomic<size_t> _pendingTasks;
-  std::atomic<size_t> _pumpTasks;
-  std::atomic<bool> _tickScheduled;
-  std::atomic<int64_t> _lastTickTimeNs;
+  std::shared_ptr<RuntimeScheduler> _scheduler;
+  std::shared_ptr<GpuEventLoop> _eventLoop;
 };
 
 } // namespace rnwgpu::async

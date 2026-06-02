@@ -31,8 +31,8 @@
 #include "GPURenderPassEncoder.h"
 #include "GPURenderPipeline.h"
 #include "GPUSampler.h"
-#include "GPUSharedTextureMemory.h"
 #include "GPUShaderModule.h"
+#include "GPUSharedTextureMemory.h"
 #include "GPUSupportedLimits.h"
 #include "GPUTexture.h"
 #include "GPUTextureView.h"
@@ -63,7 +63,7 @@ RNWebGPUManager::RNWebGPUManager(
   // Register main runtime for RuntimeAwareCache
   BaseRuntimeAwareCache::setMainJsRuntime(_jsRuntime);
 
-  auto gpu = std::make_shared<GPU>(*_jsRuntime);
+  auto gpu = std::make_shared<GPU>(*_jsRuntime, _jsCallInvoker);
   auto rnWebGPU =
       std::make_shared<RNWebGPU>(gpu, _platformContext, _jsCallInvoker);
   _gpu = gpu->get();

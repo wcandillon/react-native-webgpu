@@ -12,10 +12,11 @@ async::AsyncTaskHandle GPUShaderModule::getCompilationInfo() {
 
   return _async->postTask(
       [module](const async::AsyncTaskHandle::ResolveFunction &resolve,
-               const async::AsyncTaskHandle::RejectFunction &reject) {
+               const async::AsyncTaskHandle::RejectFunction &reject)
+          -> wgpu::Future {
         auto result = std::make_shared<GPUCompilationInfo>();
-        module.GetCompilationInfo(
-            wgpu::CallbackMode::AllowProcessEvents,
+        return module.GetCompilationInfo(
+            wgpu::CallbackMode::WaitAnyOnly,
             [result, resolve,
              reject](wgpu::CompilationInfoRequestStatus status,
                      const wgpu::CompilationInfo *compilationInfo) {

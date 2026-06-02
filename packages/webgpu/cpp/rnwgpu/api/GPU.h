@@ -19,6 +19,10 @@
 
 #include <webgpu/webgpu.h>
 
+namespace facebook::react {
+class CallInvoker;
+} // namespace facebook::react
+
 namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
@@ -27,7 +31,8 @@ class GPU : public NativeObject<GPU> {
 public:
   static constexpr const char *CLASS_NAME = "GPU";
 
-  explicit GPU(jsi::Runtime &runtime);
+  GPU(jsi::Runtime &runtime,
+      std::shared_ptr<facebook::react::CallInvoker> callInvoker);
 
 public:
   std::string getBrand() { return CLASS_NAME; }

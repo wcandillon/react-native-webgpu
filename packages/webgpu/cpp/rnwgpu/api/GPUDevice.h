@@ -45,10 +45,10 @@
 #include "GPURenderPipelineDescriptor.h"
 #include "GPUSampler.h"
 #include "GPUSamplerDescriptor.h"
-#include "GPUSharedTextureMemory.h"
-#include "GPUSharedTextureMemoryDescriptor.h"
 #include "GPUShaderModule.h"
 #include "GPUShaderModuleDescriptor.h"
+#include "GPUSharedTextureMemory.h"
+#include "GPUSharedTextureMemoryDescriptor.h"
 #include "GPUSupportedLimits.h"
 #include "GPUTexture.h"
 #include "GPUTextureDescriptor.h"
@@ -251,6 +251,10 @@ private:
   wgpu::Device _instance;
   std::shared_ptr<async::AsyncRunner> _async;
   std::string _label;
+  // Guards the device-lost state below. notifyDeviceLost() may run on a
+  // GpuEventLoop worker thread (the device-lost callback is Spontaneous), while
+  // getLost() runs on the JS thread, so these fields need synchronization.
+  std::mutex _lostMutex;
   std::optional<async::AsyncTaskHandle> _lostHandle;
   std::shared_ptr<GPUDeviceLostInfo> _lostInfo;
   bool _lostSettled = false;

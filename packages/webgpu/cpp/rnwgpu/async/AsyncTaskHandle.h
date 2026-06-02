@@ -8,7 +8,7 @@
 
 #include <jsi/jsi.h>
 
-#include "AsyncDispatcher.h"
+#include "RuntimeScheduler.h"
 
 namespace rnwgpu {
 class Promise;
@@ -16,11 +16,13 @@ class Promise;
 
 namespace rnwgpu::async {
 
-class AsyncRunner;
-
 /**
  * Represents a pending asynchronous WebGPU operation that can be converted into
  * a JavaScript Promise.
+ *
+ * The native callback (resolve/reject) may be invoked from any thread (e.g. a
+ * GpuEventLoop worker); the actual Promise settlement is marshalled onto the
+ * owning runtime's JS thread via a RuntimeScheduler.
  */
 class AsyncTaskHandle {
 public:
@@ -45,8 +47,8 @@ public:
 
   void attachPromise(const std::shared_ptr<rnwgpu::Promise> &promise) const;
 
-  static AsyncTaskHandle create(const std::shared_ptr<AsyncRunner> &runner,
-                                bool keepPumping);
+  static AsyncTaskHandle
+  create(const std::shared_ptr<RuntimeScheduler> &scheduler);
 
 private:
   std::shared_ptr<State> _state;

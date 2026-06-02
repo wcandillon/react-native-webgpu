@@ -1,11 +1,10 @@
 #include "AsyncTaskHandle.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 
 #include "Promise.h"
-
-#include "AsyncRunner.h"
 
 namespace rnwgpu::async {
 
@@ -13,8 +12,8 @@ using Action = std::function<void(jsi::Runtime &, rnwgpu::Promise &)>;
 
 struct AsyncTaskHandle::State
     : public std::enable_shared_from_this<AsyncTaskHandle::State> {
-  State(std::shared_ptr<AsyncRunner> runner, bool keepPumping)
-      : runner(std::move(runner)), keepPumping(keepPumping) {}
+  explicit State(std::shared_ptr<RuntimeScheduler> scheduler)
+      : scheduler(std::move(scheduler)) {}
 
   void settle(Action action);
   void attachPromise(const std::shared_ptr<rnwgpu::Promise> &promise);
@@ -26,12 +25,11 @@ struct AsyncTaskHandle::State
   std::shared_ptr<rnwgpu::Promise> currentPromise();
 
   std::mutex mutex;
-  std::weak_ptr<AsyncRunner> runner;
+  std::shared_ptr<RuntimeScheduler> scheduler;
   std::shared_ptr<rnwgpu::Promise> promise;
   std::optional<Action> pendingAction;
   bool settled = false;
   std::shared_ptr<State> keepAlive;
-  bool keepPumping;
 };
 
 // MARK: - State helpers
@@ -77,26 +75,18 @@ void AsyncTaskHandle::State::attachPromise(
 }
 
 void AsyncTaskHandle::State::schedule(Action action) {
-  auto runnerRef = runner.lock();
-  if (!runnerRef) {
+  if (!scheduler) {
     return;
   }
 
   auto promiseRef = currentPromise();
   if (!promiseRef) {
-    runnerRef->onTaskSettled(keepPumping);
     return;
   }
 
-  auto dispatcherRef = runnerRef->dispatcher();
-  if (!dispatcherRef) {
-    runnerRef->onTaskSettled(keepPumping);
-    return;
-  }
-
-  dispatcherRef->post([self = shared_from_this(), action = std::move(action),
-                       runnerRef, promiseRef](jsi::Runtime &runtime) mutable {
-    runnerRef->onTaskSettled(self->keepPumping);
+  scheduler->scheduleOnJS([self = shared_from_this(),
+                           action = std::move(action),
+                           promiseRef](jsi::Runtime &runtime) mutable {
     action(runtime, *promiseRef);
     std::lock_guard<std::mutex> lock(self->mutex);
     self->keepAlive.reset();
@@ -149,9 +139,8 @@ AsyncTaskHandle::AsyncTaskHandle(std::shared_ptr<State> state)
 bool AsyncTaskHandle::valid() const { return _state != nullptr; }
 
 AsyncTaskHandle
-AsyncTaskHandle::create(const std::shared_ptr<AsyncRunner> &runner,
-                        bool keepPumping) {
-  auto state = std::make_shared<State>(runner, keepPumping);
+AsyncTaskHandle::create(const std::shared_ptr<RuntimeScheduler> &scheduler) {
+  auto state = std::make_shared<State>(scheduler);
   state->keepAlive = state;
   return AsyncTaskHandle(std::move(state));
 }
