@@ -95,7 +95,18 @@ void GpuEventLoop::worker(std::shared_ptr<State> state) {
     // CPU cost until the GPU work completes, at which point Dawn invokes the
     // future's callback on this thread (it then marshals back to the owning
     // runtime via its RuntimeScheduler).
-    state->instance.WaitAny(future, UINT64_MAX);
+    auto status = state->instance.WaitAny(future, UINT64_MAX);
+    if (status != wgpu::WaitStatus::Success) {
+      // With an infinite timeout on a single future this is not expected. If it
+      // happens, Dawn did not invoke the future's callback, so the associated
+      // JS Promise will never settle. Log it so the otherwise-silent hang is at
+      // least observable.
+      Logger::logToConsole(
+          "[%s] WaitAny returned non-success status %u for future %llu; its "
+          "Promise will not settle.",
+          TAG, static_cast<unsigned int>(status),
+          static_cast<unsigned long long>(future.id));
+    }
   }
 }
 
