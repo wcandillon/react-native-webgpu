@@ -70,14 +70,6 @@ public:
   PlatformContext() = default;
   virtual ~PlatformContext() = default;
 
-  // Singleton-style accessor so leaf classes (e.g. GPUDevice) can reach the
-  // platform context without threading it through every constructor. Set by
-  // RNWebGPUManager at startup.
-  static std::shared_ptr<PlatformContext> &global() {
-    static std::shared_ptr<PlatformContext> instance;
-    return instance;
-  }
-
   virtual wgpu::Surface makeSurface(wgpu::Instance instance, void *surface,
                                     int width, int height) = 0;
   virtual ImageData createImageBitmap(std::string blobId, double offset,

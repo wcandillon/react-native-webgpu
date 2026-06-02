@@ -160,6 +160,13 @@ const CameraView = () => {
   }, []);
   const device = gpu?.device ?? null;
   const adapter = gpu?.adapter ?? null;
+  // Capture the RNWebGPU singleton into a local so the frame-processor worklet
+  // closes over it. RNWebGPU is a registered, boxable WebGPU NativeObject, so
+  // the Worklets custom serializer ships it across the worklet boundary the same
+  // way it does `device` (it is NOT installed as a global on worklet runtimes).
+  // This is what lets us call the interop factory off RNWebGPU, where the native
+  // platform context already lives, instead of off `device`.
+  const rnwgpu = RNWebGPU;
   const devices = useCameraDevices();
   // Pick back camera if available, otherwise front, otherwise anything. The
   // iOS simulator returns an empty list since there are no cameras, in which
@@ -443,11 +450,12 @@ const CameraView = () => {
       try {
         let videoFrame;
         try {
-          // Call createVideoFrameFromNativeBuffer on the device, not on the
-          // RNWebGPU global — `device` is already box-able across worklet
-          // runtimes via the WebGPU custom serializer (proven by the
-          // Reanimated demo); RNWebGPU is a main-runtime-only global.
-          videoFrame = device.createVideoFrameFromNativeBuffer(
+          // Call createVideoFrameFromNativeBuffer on the captured RNWebGPU
+          // singleton (see `rnwgpu` above). It rides into this worklet via the
+          // WebGPU custom serializer, same as `device`, so the factory can live
+          // on RNWebGPU where the native platform context already is — no
+          // GPUDevice-level workaround and no PlatformContext global singleton.
+          videoFrame = rnwgpu.createVideoFrameFromNativeBuffer(
             nativeBuffer.pointer,
           );
         } catch (e) {
