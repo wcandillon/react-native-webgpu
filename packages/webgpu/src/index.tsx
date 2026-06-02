@@ -1,5 +1,6 @@
 /// <reference types="@webgpu/types" />
 import type {
+  GPUDawnTogglesDescriptor,
   GPUSharedTextureMemory,
   GPUSharedTextureMemoryDescriptor,
   NativeCanvas,
@@ -14,6 +15,7 @@ export type {
   VideoPlayer,
   GPUSharedTextureMemory,
   GPUSharedTextureMemoryDescriptor,
+  GPUDawnTogglesDescriptor,
 } from "./types";
 
 declare global {
@@ -44,6 +46,12 @@ declare global {
     importSharedTextureMemory(
       descriptor: GPUSharedTextureMemoryDescriptor,
     ): GPUSharedTextureMemory;
+  }
+
+  // Non-standard, Dawn-only. Lets callers set Dawn device-stage toggles at
+  // device creation: adapter.requestDevice({ dawnToggles: { ... } }).
+  interface GPUDeviceDescriptor {
+    dawnToggles?: GPUDawnTogglesDescriptor;
   }
 
   // Extend createImageBitmap to accept ArrayBuffer/TypedArray (encoded image bytes)
