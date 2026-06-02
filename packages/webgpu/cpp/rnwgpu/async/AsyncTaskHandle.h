@@ -36,7 +36,7 @@ public:
   AsyncTaskHandle();
 
   /**
-   * Internal constructor used by AsyncRunner.
+   * Internal constructor used by RuntimeContext.
    */
   explicit AsyncTaskHandle(std::shared_ptr<State> state);
 

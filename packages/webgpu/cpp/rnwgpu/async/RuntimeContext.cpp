@@ -1,4 +1,4 @@
-#include "AsyncRunner.h"
+#include "RuntimeContext.h"
 
 #include <memory>
 #include <stdexcept>
@@ -11,25 +11,26 @@ namespace rnwgpu::async {
 
 namespace {
 struct RuntimeData {
-  std::shared_ptr<AsyncRunner> runner;
+  std::shared_ptr<RuntimeContext> runner;
 };
-constexpr const char *TAG = "AsyncRunner";
+constexpr const char *TAG = "RuntimeContext";
 } // namespace
 
-AsyncRunner::AsyncRunner(std::shared_ptr<RuntimeScheduler> scheduler,
-                         std::shared_ptr<GpuEventLoop> eventLoop)
+RuntimeContext::RuntimeContext(std::shared_ptr<RuntimeScheduler> scheduler,
+                               std::shared_ptr<GpuEventLoop> eventLoop)
     : _scheduler(std::move(scheduler)), _eventLoop(std::move(eventLoop)) {
   if (!_scheduler) {
-    throw std::runtime_error("AsyncRunner requires a valid RuntimeScheduler.");
+    throw std::runtime_error(
+        "RuntimeContext requires a valid RuntimeScheduler.");
   }
   if (!_eventLoop) {
-    throw std::runtime_error("AsyncRunner requires a valid GpuEventLoop.");
+    throw std::runtime_error("RuntimeContext requires a valid GpuEventLoop.");
   }
   Logger::logToConsole("[%s] Created runner (scheduler=%p, eventLoop=%p)", TAG,
                        _scheduler.get(), _eventLoop.get());
 }
 
-std::shared_ptr<AsyncRunner> AsyncRunner::get(jsi::Runtime &runtime) {
+std::shared_ptr<RuntimeContext> RuntimeContext::get(jsi::Runtime &runtime) {
   auto data = runtime.getRuntimeData(runtimeDataUUID());
   if (!data) {
     return nullptr;
@@ -38,24 +39,24 @@ std::shared_ptr<AsyncRunner> AsyncRunner::get(jsi::Runtime &runtime) {
   return stored->runner;
 }
 
-std::shared_ptr<AsyncRunner>
-AsyncRunner::getOrCreate(jsi::Runtime &runtime,
-                         std::shared_ptr<RuntimeScheduler> scheduler,
-                         std::shared_ptr<GpuEventLoop> eventLoop) {
+std::shared_ptr<RuntimeContext>
+RuntimeContext::getOrCreate(jsi::Runtime &runtime,
+                            std::shared_ptr<RuntimeScheduler> scheduler,
+                            std::shared_ptr<GpuEventLoop> eventLoop) {
   auto existing = get(runtime);
   if (existing) {
     return existing;
   }
 
-  auto runner =
-      std::make_shared<AsyncRunner>(std::move(scheduler), std::move(eventLoop));
+  auto runner = std::make_shared<RuntimeContext>(std::move(scheduler),
+                                                 std::move(eventLoop));
   auto data = std::make_shared<RuntimeData>();
   data->runner = runner;
   runtime.setRuntimeData(runtimeDataUUID(), data);
   return runner;
 }
 
-AsyncTaskHandle AsyncRunner::postTask(const TaskCallback &callback) {
+AsyncTaskHandle RuntimeContext::postTask(const TaskCallback &callback) {
   auto handle = AsyncTaskHandle::create(_scheduler);
   if (!handle.valid()) {
     throw std::runtime_error("Failed to create AsyncTaskHandle.");
@@ -71,7 +72,7 @@ AsyncTaskHandle AsyncRunner::postTask(const TaskCallback &callback) {
     reject(exception.what());
     return handle;
   } catch (...) {
-    reject("Unknown native error in AsyncRunner::postTask.");
+    reject("Unknown native error in RuntimeContext::postTask.");
     return handle;
   }
 
@@ -79,11 +80,11 @@ AsyncTaskHandle AsyncRunner::postTask(const TaskCallback &callback) {
   return handle;
 }
 
-std::shared_ptr<RuntimeScheduler> AsyncRunner::scheduler() const {
+std::shared_ptr<RuntimeScheduler> RuntimeContext::scheduler() const {
   return _scheduler;
 }
 
-jsi::UUID AsyncRunner::runtimeDataUUID() {
+jsi::UUID RuntimeContext::runtimeDataUUID() {
   static const auto uuid = jsi::UUID();
   return uuid;
 }

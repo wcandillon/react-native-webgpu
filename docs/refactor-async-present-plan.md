@@ -1,6 +1,6 @@
 # Refactor: event-driven async + auto-present
 
-Status: **planning / Phase 0 (local spikes)**
+Status: **Phase 0 complete — all spikes GREEN, ready for Phase 1**
 Branch: `claude/keen-darwin-xeywa`
 
 This document is the handoff for moving the async + present refactor forward. Phase 0
@@ -128,15 +128,121 @@ Goal: confirm NDK `AChoreographer_postFrameCallback` is usable at the project `m
 
 ---
 
+## Phase 0 — Findings (completed 2026-06-02, branch `claude/keen-darwin-xeywa`)
+
+Environment verified: `node_modules` installed, `externals/dawn` present, RN **0.81.4**,
+`react-native-worklets` **0.8.3**, Android `minSdk` **26**, NDK 26/27 available.
+
+### Spike 1 — worklet-runtime scheduler → **GREEN (symbol exists, thread-safe)**
+`worklets/WorkletRuntime/WorkletRuntime.h` exposes exactly what we need:
+- `WorkletRuntime::schedule(std::function<void(jsi::Runtime &)> job)` — posts `job` onto the
+  runtime's own `AsyncQueue` (`WorkletRuntime.cpp:211-227`). It is **callable from any thread**
+  (the underlying `AsyncQueueImpl` is a mutex+condvar queue; `AsyncQueueUI` forwards to the
+  `UIScheduler`). The job runs on the runtime's event-loop thread, under `runtimeMutex_`, and
+  uses `weak_from_this()` so it is a **safe no-op if the runtime was torn down**. This is a
+  drop-in for `RuntimeScheduler::scheduleOnJS` for worklet runtimes.
+- `WorkletRuntime::getWeakRuntimeFromJSIRuntime(jsi::Runtime &rt)` (RN ≥ 0.81, we have 0.81.4)
+  maps a bare `jsi::Runtime&` → `weak_ptr<WorkletRuntime>`, so the per-runtime
+  `RuntimeContext` can recover the scheduler from any worklet runtime (UI + dedicated
+  `createWorkletRuntime`) with no JS shim.
+
+**Caveat (build wiring, not API):** webgpu does **not** currently link worklets natively
+(no worklets entry in `packages/webgpu/*.podspec` or `android/CMakeLists.txt`; only JS-level
+serialization helpers exist). Phase 3 must add the native dependency:
+- iOS: depend on `RNWorklets` pod (it ships public headers under `worklets/`,
+  `header_dir = "worklets"`).
+- Android: import the worklets **prefab** module `worklets` (`prefabPublishing` is on in
+  `react-native-worklets/android/build.gradle`).
+Worklets is already a `peerDependency`, so this adds no new install. Phase 3 stays cheap; no
+worklets PR or JS shim needed.
+
+### Spike 2 — concurrent `WaitAny` on one instance → **GREEN (designed for it)**
+Dawn's native `EventManager` (`externals/dawn/src/dawn/native/EventManager.{h,cpp}`) is built
+for multi-threaded waits:
+- State is `MutexProtected<EventState>`; `mNextFutureID` is atomic; a code comment
+  (`EventManager.h:78-82`) explicitly notes "another thread can race to complete the event …
+  via a WaitAny call".
+- Each `WaitAny` call with a non-zero timeout creates a **stack-local `Waiter`** with its **own**
+  `MutexCondVarProtected<bool>` (`EventManager.cpp:338`, `:106`), registers it per-FutureID in
+  the shared map, then blocks on its own condvar. `SetFutureReady` signals the registered
+  waiters. → **N threads can each block in `WaitAny` on the same instance concurrently, each
+  owning its own future.** This is exactly the plan's primary "one future per pool thread" model.
+
+**Hard constraint discovered (`EventManager.cpp:341-354`):** within a *single* `WaitAny` call
+with a non-zero timeout, you may **not** mix events from multiple queues, nor a queue event
+together with a non-queue event — it returns `WaitStatus::Error` ("Mixed source waits with
+timeouts are not currently supported"). Note `mapAsync`/`onSubmittedWorkDone` are *queue*
+events while `requestAdapter`/`requestDevice`/`createPipelineAsync`/`popErrorScope` are
+*non-queue* events.
+→ **Implication:** adopt the **per-future-per-thread** design (each pool thread waits on exactly
+one future) — it is single-source and always legal. The plan's stated fallback ("single worker
+waiting on the batched future set") is **not viable** as written, because batching mixed sources
+hits this restriction. If a bounded pool is undesirable, the correct fallback is one
+worker-thread *per future* (still single-source), not one worker for a batched set.
+
+### Spike 3 — Android frame callback → **GREEN (no JNI bridge needed)**
+In `android/choreographer.h`, `AChoreographer_getInstance()` and
+`AChoreographer_postFrameCallback()` are both `__INTRODUCED_IN(24)`; `minSdk` is **26**, so the
+pure-NDK path works with no Java `Choreographer`/JNI bridge.
+- `postFrameCallback` is `__DEPRECATED_IN(29)` in favor of `postFrameCallback64` (API 29) /
+  `postVsyncCallback` (API 33). Recommendation: call `postFrameCallback64` when
+  `android_get_device_api_level() >= 29`, else `postFrameCallback` (works on 26-28). Both are
+  acceptable; the 64-bit variant just avoids the deprecation warning and 32-bit time wrap.
+- `AChoreographer_getInstance()` must be called on a thread with a `Looper` (the main/UI
+  thread) — `FrameDriver` already lives on the UI thread, so this is satisfied.
+
+### Net go/no-go
+All three risks clear. Proceed to Phase 1. Two plan amendments: (1) Phase 3 must add the
+worklets native build dependency (podspec + prefab); (2) `GpuEventLoop` must use
+per-future-per-thread waits (drop the batched-future fallback).
+
 ## Implementation phases (after Phase 0)
 
-**Phase 1 — Event-driven async** (no public API change; `present()` untouched)
+**Phase 1 — Event-driven async** (no public API change; `present()` untouched) — **DONE**
 - Add `RuntimeScheduler` (+ main-runtime CallInvoker impl) and `GpuEventLoop`.
 - Switch all 7 async sites to `WaitAnyOnly` + `GpuEventLoop.addFuture(...)`:
   `api/GPU.cpp`, `api/GPUAdapter.cpp`, `api/GPUDevice.cpp` (×3), `api/GPUBuffer.cpp`,
   `api/GPUQueue.cpp`, `api/GPUShaderModule.cpp`.
 - Delete `async/AsyncRunner.*` polling + `async/JSIMicrotaskDispatcher.*`; keep
   `AsyncTaskHandle` / `Promise` settle path on the new scheduler.
+
+### Phase 1 — what shipped (branch `claude/keen-darwin-xeywa`)
+New files (`cpp/rnwgpu/async/`):
+- `RuntimeScheduler.h` — interface `scheduleOnJS(std::function<void(jsi::Runtime&)>)`,
+  callable from any thread.
+- `CallInvokerScheduler.{h,cpp}` — main-runtime impl wrapping
+  `react::CallInvoker::invokeAsync(CallFunc&&)` (RN 0.81 delivers the job on the JS thread
+  with the runtime).
+- `GpuEventLoop.{h,cpp}` — background `WaitAny` driver. Lazily-grown bounded worker pool
+  (cap = `clamp(hardware_concurrency, 2, 8)`); each worker does a single-future
+  `instance.WaitAny(future, UINT64_MAX)` (always a legal single-source wait, per Phase 0
+  spike 2). Shared state held behind a `shared_ptr` so detached workers (and the
+  `wgpu::Instance` ref they need) outlive the object safely; teardown sets `running=false`
+  and notifies idle workers without joining in-flight GPU waits.
+
+Deviations from the original plan (intentional):
+1. **`AsyncRunner` was replaced by `RuntimeContext`** (`async/RuntimeContext.{h,cpp}`), the
+   per-runtime coordinator the plan's Target-architecture §A already named. It bundles
+   `{RuntimeScheduler, GpuEventLoop}` and exposes `postTask`; all polling internals
+   (`tick`/`requestTick`/`ProcessEvents`/pump counters) are gone. `AsyncTaskHandle` depends
+   only on `RuntimeScheduler`. The old `AsyncRunner` name/files no longer exist anywhere
+   (the 6 `api/*` classes now hold `std::shared_ptr<async::RuntimeContext> _async`); the dead
+   `GPU::getAsyncRunner()` accessor was deleted.
+2. **`postTask`'s callback now returns a `wgpu::Future`** (the value returned by the Dawn
+   `WaitAnyOnly` call), which `AsyncRunner` hands to `GpuEventLoop.addFuture`. A returned
+   future with `id == 0` means "no event to wait on" and is ignored — used by
+   `GPUDevice::getLost` (resolved synchronously or later via `notifyDeviceLost`). This
+   replaced the old `keepPumping` bool argument, which is gone.
+
+`GPU`'s constructor now takes the `CallInvoker` (threaded through from `RNWebGPUManager`,
+which already held it) to build the `CallInvokerScheduler`. `AsyncDispatcher.h` and
+`JSIMicrotaskDispatcher.{h,cpp}` deleted; `android/CMakeLists.txt` updated (iOS podspec
+globs `cpp/**` so it needs no change).
+
+Validation run locally: all changed + new TUs syntax-check under the Android NDK toolchain;
+the full `react-native-wgpu` native lib **compiles and links** for `arm64-v8a` (ninja);
+`cpplint` clean (project filters); `clang-format` (pinned 15.0.0) applied; `yarn tsc` passes
+(no TS changed). On-device runtime behaviour (frame pacing, zero idle CPU) is Phase 4.
 
 **Phase 2 — Auto-present + remove `present()`**
 - Add `FrameDriver` (iOS `CADisplayLink`, Android `AChoreographer`); wire

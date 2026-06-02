@@ -28,17 +28,17 @@ namespace rnwgpu::async {
  * returned future with id == 0 means "no event to wait on" (deferred/immediate
  * resolution, e.g. GPUDevice::getLost).
  */
-class AsyncRunner : public std::enable_shared_from_this<AsyncRunner> {
+class RuntimeContext : public std::enable_shared_from_this<RuntimeContext> {
 public:
   using TaskCallback =
       std::function<wgpu::Future(const AsyncTaskHandle::ResolveFunction &,
                                  const AsyncTaskHandle::RejectFunction &)>;
 
-  AsyncRunner(std::shared_ptr<RuntimeScheduler> scheduler,
-              std::shared_ptr<GpuEventLoop> eventLoop);
+  RuntimeContext(std::shared_ptr<RuntimeScheduler> scheduler,
+                 std::shared_ptr<GpuEventLoop> eventLoop);
 
-  static std::shared_ptr<AsyncRunner> get(jsi::Runtime &runtime);
-  static std::shared_ptr<AsyncRunner>
+  static std::shared_ptr<RuntimeContext> get(jsi::Runtime &runtime);
+  static std::shared_ptr<RuntimeContext>
   getOrCreate(jsi::Runtime &runtime,
               std::shared_ptr<RuntimeScheduler> scheduler,
               std::shared_ptr<GpuEventLoop> eventLoop);
