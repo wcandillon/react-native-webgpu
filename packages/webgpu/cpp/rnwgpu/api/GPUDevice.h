@@ -53,7 +53,6 @@
 #include "GPUTexture.h"
 #include "GPUTextureDescriptor.h"
 #include "GPUUncapturedErrorEvent.h"
-#include "VideoFrame.h"
 
 namespace rnwgpu {
 
@@ -121,12 +120,6 @@ public:
       std::shared_ptr<GPUExternalTextureDescriptor> descriptor);
   std::shared_ptr<GPUSharedTextureMemory> importSharedTextureMemory(
       std::shared_ptr<GPUSharedTextureMemoryDescriptor> descriptor);
-  // Wrap a CVPixelBufferRef / AHardwareBuffer* pointer (as a BigInt) into a
-  // VideoFrame. Mirrors RNWebGPU.createVideoFrameFromNativeBuffer but is
-  // reachable from worklet runtimes since GPUDevice is already serialized
-  // across the worklet boundary via the WebGPU custom serializer.
-  std::shared_ptr<VideoFrame>
-  createVideoFrameFromNativeBuffer(uint64_t pointer);
   std::shared_ptr<GPUBindGroupLayout> createBindGroupLayout(
       std::shared_ptr<GPUBindGroupLayoutDescriptor> descriptor);
   std::shared_ptr<GPUPipelineLayout>
@@ -182,8 +175,6 @@ public:
                   &GPUDevice::importExternalTexture);
     installMethod(runtime, prototype, "importSharedTextureMemory",
                   &GPUDevice::importSharedTextureMemory);
-    installMethod(runtime, prototype, "createVideoFrameFromNativeBuffer",
-                  &GPUDevice::createVideoFrameFromNativeBuffer);
     installMethod(runtime, prototype, "createBindGroupLayout",
                   &GPUDevice::createBindGroupLayout);
     installMethod(runtime, prototype, "createPipelineLayout",
