@@ -1,5 +1,6 @@
 /// <reference types="@webgpu/types" />
 import type {
+  GPUDawnTogglesDescriptor,
   GPUSharedTextureMemory,
   GPUSharedTextureMemoryDescriptor,
   NativeCanvas,
@@ -17,6 +18,7 @@ export type {
   CreateVideoPlayerOptions,
   GPUSharedTextureMemory,
   GPUSharedTextureMemoryDescriptor,
+  GPUDawnTogglesDescriptor,
 } from "./types";
 
 declare global {
@@ -56,6 +58,11 @@ declare global {
     ): GPUSharedTextureMemory;
   }
 
+  // Non-standard, Dawn-only. Lets callers set Dawn device-stage toggles at
+  // device creation: adapter.requestDevice({ dawnToggles: { ... } }).
+  interface GPUDeviceDescriptor {
+    dawnToggles?: GPUDawnTogglesDescriptor;
+  }
   // Non-spec extension: camera frames arrive in the sensor's native
   // orientation, which differs between iOS and Android. `rotation` (degrees,
   // one of 0/90/180/270) and `mirrored` (horizontal flip) are baked into the

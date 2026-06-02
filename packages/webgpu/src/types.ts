@@ -75,6 +75,17 @@ export interface GPUSharedTextureMemoryDescriptor {
   label?: string;
 }
 
+// Non-standard, Dawn-only device toggles. Mirrors Dawn's DawnTogglesDescriptor
+// and is chained onto the native device descriptor at requestDevice time.
+// Pass it via the (augmented) GPUDeviceDescriptor: adapter.requestDevice({
+// dawnToggles: { enabledToggles: ["dump_shaders"] } }). Toggle names are open
+// strings (see Dawn's Toggles.cpp); these flags are Dawn-specific and
+// non-portable.
+export interface GPUDawnTogglesDescriptor {
+  enabledToggles?: string[];
+  disabledToggles?: string[];
+}
+
 // A piece of shared GPU memory backed by a native surface. Use createTexture()
 // to obtain a regular GPUTexture that aliases the surface's pixels. The
 // returned texture must be bracketed by beginAccess/endAccess around any
