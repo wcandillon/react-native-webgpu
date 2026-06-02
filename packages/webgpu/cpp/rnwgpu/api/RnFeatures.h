@@ -12,14 +12,14 @@ namespace rnwgpu {
 // platform-specific pair of Dawn features. The prefix is intentional: this
 // string is not part of the WebGPU spec, it is our API surface for the
 // "import a native surface as a sampleable texture" capability.
-inline constexpr const char *kRnSharedTextureMemoryFeature =
-    "rnwebgpu/shared-texture-memory";
+inline constexpr const char *kRnNativeTextureFeature =
+    "rnwebgpu/native-texture";
 
 // Dawn features that back the umbrella on the current platform. Empty on
 // platforms where the capability is not available, in which case the umbrella
 // behaves as a no-op (it won't appear in adapter.features and asking for it
 // in requiredFeatures expands to nothing).
-inline std::vector<wgpu::FeatureName> rnSharedTextureMemoryBackingFeatures() {
+inline std::vector<wgpu::FeatureName> rnNativeTextureBackingFeatures() {
 #if defined(__APPLE__)
   return {wgpu::FeatureName::SharedTextureMemoryIOSurface,
           wgpu::FeatureName::SharedFenceMTLSharedEvent};
@@ -35,10 +35,10 @@ inline std::vector<wgpu::FeatureName> rnSharedTextureMemoryBackingFeatures() {
 // umbrella name to `out`. Used by adapter.features / device.features so JS
 // callers can see (and call .has on) the same name they pass in.
 inline void
-maybeSynthesizeRnSharedTextureMemoryFeature(
+maybeSynthesizeRnNativeTextureFeature(
     const std::unordered_set<wgpu::FeatureName> &enabled,
     std::unordered_set<std::string> &out) {
-  auto backing = rnSharedTextureMemoryBackingFeatures();
+  auto backing = rnNativeTextureBackingFeatures();
   if (backing.empty()) {
     return;
   }
@@ -47,7 +47,7 @@ maybeSynthesizeRnSharedTextureMemoryFeature(
       return;
     }
   }
-  out.insert(kRnSharedTextureMemoryFeature);
+  out.insert(kRnNativeTextureFeature);
 }
 
 } // namespace rnwgpu

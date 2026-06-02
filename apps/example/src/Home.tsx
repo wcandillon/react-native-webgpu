@@ -132,8 +132,12 @@ export const examples = [
     title: "🎞️ Shared Texture Memory",
   },
   {
-    screen: "Camera",
-    title: "📷 Camera",
+    screen: "ImportExternalTexture",
+    title: "🎬 Import External Texture",
+  },
+  {
+    screen: "VisionCamera",
+    title: "📷 VisionCamera integration",
   },
 ];
 

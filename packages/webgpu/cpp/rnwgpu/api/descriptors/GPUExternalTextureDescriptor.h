@@ -3,35 +3,34 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <variant>
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "Convertors.h"
-
 #include "JSIConverter.h"
-#include "WGPULogger.h"
+#include "VideoFrame.h"
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
+// Mirror of GPUExternalTextureDescriptor from the WebGPU spec, but with our
+// VideoFrame as the (only) supported source. We don't expose colorSpace yet;
+// the C++ side picks dst-sRGB and identity gamut, which is the right default
+// for "render this video frame to a regular sRGB framebuffer".
+//
+// `rotation` / `mirrored` are a non-spec extension: camera frames (e.g. from
+// VisionCamera) arrive in the sensor's native orientation, which differs
+// between iOS (CVPixelBuffer) and Android (AHardwareBuffer). Dawn's
+// ExternalTextureDescriptor can bake a rotation + horizontal mirror into the
+// sampling transform, so the shader sees an upright frame without any extra
+// passes. `rotation` is in degrees and must be one of 0 / 90 / 180 / 270.
 struct GPUExternalTextureDescriptor {
-  // std::variant<std::shared_ptr<HTMLVideoElement>,
-  // std::shared_ptr<VideoFrame>>
-  //     source; // | HTMLVideoElement | VideoFrame
-  // std::optional<wgpu::DefinedColorSpace> colorSpace; // PredefinedColorSpace
-  std::optional<std::string> label; // string
+  std::shared_ptr<VideoFrame> source;
+  std::optional<std::string> label;
+  std::optional<double> rotation;
+  std::optional<bool> mirrored;
 };
 
-static bool conv(wgpu::ExternalTextureDescriptor &out,
-                 const std::shared_ptr<GPUExternalTextureDescriptor> &in) {
-  // TODO: implement
-  // return conv(out.source, in->source) && conv(out.colorSpace, in->colorSpace)
-  // &&
-  // return conv(out.label, in->label);
-  return false;
-}
 } // namespace rnwgpu
 
 namespace rnwgpu {
@@ -40,23 +39,15 @@ template <>
 struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
   static std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result = std::make_unique<rnwgpu::GPUExternalTextureDescriptor>();
+    auto result = std::make_shared<rnwgpu::GPUExternalTextureDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "source")) {
         auto prop = value.getProperty(runtime, "source");
-        // result->source = JSIConverter<
-        //     std::variant<std::shared_ptr<HTMLVideoElement>,
-        //                  std::shared_ptr<VideoFrame>>>::fromJSI(runtime,
-        //                  prop,
-        //                                                         false);
-      }
-      if (value.hasProperty(runtime, "colorSpace")) {
-        auto prop = value.getProperty(runtime, "colorSpace");
-        if (!prop.isUndefined()) {
-          // result->colorSpace =
-          //     JSIConverter<std::optional<wgpu::definedColorSpace>>::fromJSI(
-          //         runtime, prop, false);
+        if (!prop.isUndefined() && !prop.isNull()) {
+          result->source =
+              JSIConverter<std::shared_ptr<rnwgpu::VideoFrame>>::fromJSI(
+                  runtime, prop, false);
         }
       }
       if (value.hasProperty(runtime, "label")) {
@@ -66,13 +57,24 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
               runtime, prop, false);
         }
       }
+      if (value.hasProperty(runtime, "rotation")) {
+        auto prop = value.getProperty(runtime, "rotation");
+        if (prop.isNumber()) {
+          result->rotation = prop.asNumber();
+        }
+      }
+      if (value.hasProperty(runtime, "mirrored")) {
+        auto prop = value.getProperty(runtime, "mirrored");
+        if (prop.isBool()) {
+          result->mirrored = prop.getBool();
+        }
+      }
     }
-
     return result;
   }
   static jsi::Value
-  toJSI(jsi::Runtime &runtime,
-        std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor> arg) {
+  toJSI(jsi::Runtime & /*runtime*/,
+        std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor> /*arg*/) {
     throw std::runtime_error("Invalid GPUExternalTextureDescriptor::toJSI()");
   }
 };

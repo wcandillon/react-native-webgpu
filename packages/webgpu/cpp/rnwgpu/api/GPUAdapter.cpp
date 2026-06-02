@@ -1,5 +1,6 @@
 #include "GPUAdapter.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <memory>
 #include <string>
@@ -18,6 +19,47 @@ namespace rnwgpu {
 
 async::AsyncTaskHandle GPUAdapter::requestDevice(
     std::optional<std::shared_ptr<GPUDeviceDescriptor>> descriptor) {
+  // Enable the react-native-wgpu "native-texture" umbrella by default, mirroring
+  // the web where importExternalTexture is core and needs no feature request.
+  // We append the umbrella's backing Dawn features to requiredFeatures so the
+  // capability is on without the caller listing it. Two rules keep this safe:
+  //   - All-or-nothing: only inject when the adapter supports *every* backing
+  //     feature (same semantics as maybeSynthesizeRnNativeTextureFeature). On a
+  //     web/fallback adapter the backing set is empty or unsupported, so this is
+  //     a no-op and device creation is unaffected.
+  //   - Requesting a feature the adapter doesn't support makes RequestDevice
+  //     fail, hence the support check below.
+  // Callers can still pass "rnwebgpu/native-texture" explicitly; the dedupe
+  // keeps that idempotent.
+  {
+    auto backing = rnNativeTextureBackingFeatures();
+    if (!backing.empty()) {
+      wgpu::SupportedFeatures supported;
+      _instance.GetFeatures(&supported);
+      std::unordered_set<wgpu::FeatureName> supportedSet(
+          supported.features, supported.features + supported.featureCount);
+      bool allSupported = std::all_of(
+          backing.begin(), backing.end(),
+          [&](wgpu::FeatureName f) { return supportedSet.count(f) > 0; });
+      if (allSupported) {
+        if (!descriptor.has_value()) {
+          descriptor = std::make_shared<GPUDeviceDescriptor>();
+        }
+        auto &desc = descriptor.value();
+        if (!desc->requiredFeatures.has_value()) {
+          desc->requiredFeatures = std::vector<wgpu::FeatureName>{};
+        }
+        auto &features = desc->requiredFeatures.value();
+        for (auto f : backing) {
+          if (std::find(features.begin(), features.end(), f) ==
+              features.end()) {
+            features.push_back(f);
+          }
+        }
+      }
+    }
+  }
+
   wgpu::DeviceDescriptor aDescriptor;
   Convertor conv;
   if (!conv(aDescriptor, descriptor)) {
@@ -94,9 +136,35 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
        creationRuntime](const async::AsyncTaskHandle::ResolveFunction &resolve,
                         const async::AsyncTaskHandle::RejectFunction &reject)
           -> wgpu::Future {
-        (void)descriptor;
+        // Build a local mutable copy so we can chain Dawn's device toggles.
+        // The toggle name strings are owned by `descriptor` (captured above),
+        // and the const char* / DawnTogglesDescriptor locals live for the
+        // whole synchronous RequestDevice call below, which is when Dawn reads
+        // the chained struct.
+        wgpu::DeviceDescriptor deviceDesc = aDescriptor;
+        wgpu::DawnTogglesDescriptor toggles{};
+        std::vector<const char *> enabledToggles;
+        std::vector<const char *> disabledToggles;
+        if (descriptor.has_value() && descriptor.value()->dawnToggles) {
+          const auto &dawnToggles = descriptor.value()->dawnToggles.value();
+          if (dawnToggles->enabledToggles) {
+            for (const auto &t : dawnToggles->enabledToggles.value()) {
+              enabledToggles.push_back(t.c_str());
+            }
+            toggles.enabledToggleCount = enabledToggles.size();
+            toggles.enabledToggles = enabledToggles.data();
+          }
+          if (dawnToggles->disabledToggles) {
+            for (const auto &t : dawnToggles->disabledToggles.value()) {
+              disabledToggles.push_back(t.c_str());
+            }
+            toggles.disabledToggleCount = disabledToggles.size();
+            toggles.disabledToggles = disabledToggles.data();
+          }
+          deviceDesc.nextInChain = &toggles;
+        }
         return _instance.RequestDevice(
-            &aDescriptor, wgpu::CallbackMode::WaitAnyOnly,
+            &deviceDesc, wgpu::CallbackMode::WaitAnyOnly,
             [context = _async, resolve, reject, label, creationRuntime,
              deviceLostBinding](wgpu::RequestDeviceStatus status,
                                 wgpu::Device device, wgpu::StringView message) {
@@ -176,7 +244,7 @@ std::unordered_set<std::string> GPUAdapter::getFeatures() {
       result.insert(name);
     }
   }
-  maybeSynthesizeRnSharedTextureMemoryFeature(enabled, result);
+  maybeSynthesizeRnNativeTextureFeature(enabled, result);
   return result;
 }
 
