@@ -78,6 +78,9 @@ export const webGPUDemo = (
     passEncoder.end();
 
     device.queue.submit([commandEncoder.finish()]);
+    // Needed on a dedicated worklet runtime (DedicatedThread); a no-op on the
+    // UI runtime (UIThread), where present is automatic.
+    context.present();
 
     if (runAnimation.value) {
       requestAnimationFrame(frame);

@@ -39,7 +39,10 @@ function makeWebGPUCanvasContext(
     canvas.setAttribute("height", pixelHeight);
   }
 
-  return canvas.getContext("webgpu")!;
+  const context = canvas.getContext("webgpu")!;
+  // On web there is no manual present; expose a no-op so RNCanvasContext's
+  // present() (used on native dedicated worklet runtimes) is callable here too.
+  return Object.assign(context, { present: () => {} });
 }
 
 // @ts-expect-error - polyfill for RNWebGPU native module

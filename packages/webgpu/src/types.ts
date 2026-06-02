@@ -8,9 +8,18 @@ export interface NativeCanvas {
   clientHeight: number;
 }
 
-// Auto-present (a global vsync FrameDriver) replaces the old manual present();
-// the native context is now just a spec GPUCanvasContext.
-export type RNCanvasContext = GPUCanvasContext;
+export type RNCanvasContext = GPUCanvasContext & {
+  /**
+   * Present the current frame.
+   *
+   * Only needed when rendering from a **dedicated worklet runtime** (e.g.
+   * `createWorkletRuntime` / `runOnRuntime`, or a Vision Camera frame
+   * processor), which runs on its own thread. On the main JS runtime and the
+   * Reanimated UI runtime present is automatic (driven by a global vsync), so
+   * calling this there is a no-op. Call it after `queue.submit()`.
+   */
+  present: () => void;
+};
 
 export interface CanvasRef {
   getContextId: () => number;

@@ -308,36 +308,49 @@ happened to land on the right thread), but the **dedicated `createWorkletRuntime
 (`Reanimated/DedicatedThread.tsx`, `runOnRuntime`) crashed — its render thread is its own, so a
 main-thread present violated Dawn surface thread-affinity.
 
-**Decision (confirmed with the user): self-scheduled present, no native worklets dependency.**
-Rather than link `react-native-worklets` natively and have the FrameDriver dispatch via
-`WorkletRuntime::schedule` (the original plan / Spike 1 primary), worklet runtimes now schedule
-their own present on their own event loop. This avoids a new native build dependency entirely
-and is fully buildable/validatable locally (it is Spike 1's documented "JS-scheduling"
-contingency).
+**Decision (confirmed with the user): auto-present on the JS + UI runtimes, explicit
+`ctx.present()` on dedicated worklet runtimes. No native worklets dependency.** Rather than link
+`react-native-worklets` natively and dispatch via `WorkletRuntime::schedule` (the original plan /
+Spike 1 primary), the FrameDriver covers the JS and UI runtimes; dedicated runtimes — which run
+on their own thread with no safe scheduler/vsync hook — keep an explicit `present()`. (A
+scheduler-free auto path for dedicated runtimes was prototyped but rejected — see below — because
+it added one frame of latency and never presented a one-shot frame.) This needs no new native
+build dependency and is fully buildable/validatable locally.
 
-Implementation (native only; no JS/build-system changes):
+Implementation:
 - `GPUCanvasContext::getCurrentTexture` switched to the full-control HostFunction signature
   (`jsi::Value(rt, thisVal, args, count)`, same pattern as `RNWebGPU::createImageBitmap`) so it
-  learns the **calling** runtime. New `schedulePresent(runtime)`:
+  learns the **calling** runtime. Present routing:
   - **Main runtime** (`RuntimeContext::get(runtime)` is non-null): unchanged — register with the
     global vsync `FrameDriver` using that runtime's scheduler.
-  - **Any worklet runtime** (no `RuntimeContext` — Reanimated UI/dedicated, Vision Camera frame
-    processors, …): **present-on-next-acquire**. `getCurrentTexture` presents the *previous*
-    frame synchronously (inline, on the calling thread) just before acquiring the next texture;
-    by then the previous frame's submit has happened, and present runs on the same thread that
-    rendered it. This is the natural swapchain boundary and needs no scheduler.
+  - **Reanimated UI runtime** (`globalThis.__RUNTIME_KIND === 2`, worklets' `RuntimeKind::UI`):
+    also auto-present via the FrameDriver + main scheduler. The UI runtime is reached correctly
+    by this path (Phase 2 confirmed it), so no `present()` is needed.
+  - **Dedicated worklet runtimes** (`RuntimeKind::Worker`, or any untagged/unknown worklet
+    runtime — e.g. Vision Camera frame processors): **explicit `ctx.present()`**, kept in the
+    public API for exactly this case. They run on their own thread with no safe scheduler/vsync
+    hook, so present is called synchronously by the author after `submit`, on that thread
+    (preserving Dawn surface thread-affinity).
 
-    Why not schedule onto the runtime's own loop: two earlier attempts failed. (1)
-    `queueMicrotask` is **disabled** on worklet runtimes (throws "microtasks are disabled in this
-    runtime"). (2) `setImmediate`/`setTimeout` exist but route through the runtime's `EventLoop`
-    `AsyncQueue`, which for **Vision Camera** is a custom `NativeThreadAsyncQueue` that hops back
-    through JNI (`fbjni Environment::current()`) and **crashes** when pushed from a
-    non-JVM-attached thread. Present-on-next-acquire avoids the runtime's task queue entirely.
-    Trade-off: one frame of latency, and a worklet that renders exactly once would not present
-    its single frame (continuous loops — rAF, camera frames — are unaffected; the main runtime's
-    one-shot case is covered by the FrameDriver).
-- `Reanimated.tsx` already had `present()` removed in Phase 2; `DedicatedThread.tsx` /
-  `UIThread.tsx` need no changes.
+  `ctx.present()` is a **no-op on the JS / UI runtime** (they auto-present), which makes it safe
+  to call from a worklet shared between the UI and a dedicated runtime (the example's
+  `webGPUDemo`). Runtime classification uses `RuntimeContext::get(rt)` (main) and the stable
+  worklets global `__RUNTIME_KIND` (`ReactNative=1`, `UI=2`, `Worker=3`); no worklets headers
+  are linked.
+
+  Two scheduler-based approaches were tried and rejected before landing here: (1)
+  `queueMicrotask` is **disabled** on worklet runtimes (throws); (2) `setImmediate`/`setTimeout`
+  exist but route through the runtime's `EventLoop` `AsyncQueue`, which for **Vision Camera** is
+  a custom `NativeThreadAsyncQueue` that hops through JNI (`fbjni Environment::current()`) and
+  **crashes** when pushed from a non-JVM-attached thread. A scheduler-free
+  "present-on-next-acquire" fallback worked everywhere but added one frame of latency and never
+  presented a one-shot frame, so the explicit-`present()`-on-dedicated split was chosen instead.
+- JS surface: `present()` re-added to `RNCanvasContext` (`src/Canvas.tsx`, `src/types.ts`,
+  documented dedicated-only) and as a no-op on `Offscreen.ts` / `WebPolyfillGPUModule.ts`. Native
+  `GPUCanvasContext::present` re-added (full-control signature; no-op on auto-presented runtimes).
+- Examples: `present()` re-added to `Reanimated/Reanimated.tsx`'s shared `webGPUDemo` (no-op on
+  UIThread, real on DedicatedThread) and to `VisionCamera.tsx`'s frame processor. Both READMEs'
+  "Frame Scheduling" sections document the JS/UI-auto vs dedicated-manual split.
 
 Known limitation (out of scope, examples don't hit it): **async ops** (`mapAsync`,
 `onSubmittedWorkDone`, …) invoked *on a worklet runtime* still settle their Promise via the

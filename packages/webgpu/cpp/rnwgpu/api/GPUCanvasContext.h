@@ -47,27 +47,27 @@ public:
                   &GPUCanvasContext::unconfigure);
     installMethod(runtime, prototype, "getCurrentTexture",
                   &GPUCanvasContext::getCurrentTexture);
+    installMethod(runtime, prototype, "present", &GPUCanvasContext::present);
   }
 
   // TODO: is this ok?
   inline const wgpu::Surface get() { return nullptr; }
   void configure(std::shared_ptr<GPUCanvasConfiguration> configuration);
   void unconfigure();
-  // Full-control signature so we can learn the *calling* runtime and route the
-  // auto-present onto its own thread (main runtime → FrameDriver vsync; worklet
-  // runtime → presented inline at the next getCurrentTexture).
+  // Full-control signatures so we can learn the *calling* runtime and decide
+  // how this frame is presented (auto on the JS / UI runtime; explicit
+  // ctx.present() on a dedicated worklet runtime).
   jsi::Value getCurrentTexture(jsi::Runtime &runtime,
                                const jsi::Value &thisValue,
                                const jsi::Value *args, size_t count);
+  jsi::Value present(jsi::Runtime &runtime, const jsi::Value &thisValue,
+                     const jsi::Value *args, size_t count);
 
 private:
   int _contextId;
   std::shared_ptr<Canvas> _canvas;
   std::shared_ptr<SurfaceInfo> _surfaceInfo;
   std::shared_ptr<GPU> _gpu;
-  // For worklet-runtime auto-present: true when a frame was acquired on a
-  // worklet runtime and not yet presented (presented at the next acquire).
-  bool _hasUnpresentedFrame = false;
 };
 
 } // namespace rnwgpu

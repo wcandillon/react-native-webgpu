@@ -6,6 +6,29 @@
 
 namespace rnwgpu {
 
+namespace {
+// Runtimes whose present is automatic (no ctx.present() needed): the main JS
+// runtime and the Reanimated UI runtime. Both are reached correctly by the
+// global vsync FrameDriver dispatching through the main runtime's scheduler.
+// Dedicated worklet runtimes (createWorkletRuntime, Vision Camera frame
+// processors, …) run on their own thread with no safe scheduler hook, so they
+// present explicitly via ctx.present().
+bool isAutoPresentedRuntime(jsi::Runtime &runtime) {
+  if (async::RuntimeContext::get(runtime) != nullptr) {
+    return true; // main JS runtime
+  }
+  // Worklets tags every runtime with a numeric `__RUNTIME_KIND`
+  // (worklets::RuntimeKind: ReactNative=1, UI=2, Worker=3). Auto-present only
+  // the UI runtime; treat Worker / unknown / untagged as needing ctx.present().
+  auto kind = runtime.global().getProperty(runtime, "__RUNTIME_KIND");
+  if (kind.isNumber()) {
+    constexpr int kRuntimeKindUI = 2;
+    return static_cast<int>(kind.asNumber()) == kRuntimeKindUI;
+  }
+  return false;
+}
+} // namespace
+
 void GPUCanvasContext::configure(
     std::shared_ptr<GPUCanvasConfiguration> configuration) {
   Convertor conv;
@@ -36,11 +59,6 @@ jsi::Value GPUCanvasContext::getCurrentTexture(jsi::Runtime &runtime,
                                                const jsi::Value & /*thisValue*/,
                                                const jsi::Value * /*args*/,
                                                size_t /*count*/) {
-  // Main JS runtime owns a RuntimeContext; worklet runtimes (Reanimated UI /
-  // dedicated, Vision Camera frame processors, …) do not.
-  auto runtimeContext = async::RuntimeContext::get(runtime);
-  const bool isMainRuntime = runtimeContext != nullptr;
-
   auto prevSize = _surfaceInfo->getConfig();
   auto width = _canvas->getWidth();
   auto height = _canvas->getHeight();
@@ -49,45 +67,43 @@ jsi::Value GPUCanvasContext::getCurrentTexture(jsi::Runtime &runtime,
     _surfaceInfo->reconfigure(width, height);
   }
 
-  // Worklet-runtime auto-present: present the PREVIOUS frame synchronously on
-  // this thread, just before acquiring the next texture. By now that frame's
-  // submit has already happened (during the previous frame's work), and this
-  // runs on the same thread that did getCurrentTexture/submit — preserving Dawn
-  // surface thread-affinity. We can't use the UI-thread FrameDriver here, and
-  // scheduling onto the worklet runtime's own task queue is unsafe in general
-  // (e.g. Vision Camera's queue hops through JNI and crashes off the JS
-  // thread), so we present inline at the natural swapchain boundary instead.
-  if (!isMainRuntime && _hasUnpresentedFrame && _surfaceInfo->hasSurface()) {
-    _surfaceInfo->presentFrame();
-    _hasUnpresentedFrame = false;
-  }
-
   auto texture = _surfaceInfo->getCurrentTexture();
 
   auto size = _surfaceInfo->getSize();
   _canvas->setClientWidth(size.width);
   _canvas->setClientHeight(size.height);
 
-  // Auto-present: acquiring the current texture arranges for this frame to be
-  // presented (spec-aligned "update the rendering" after the frame). Replaces
-  // the old explicit context.present(). Offscreen surfaces have no
-  // wgpu::Surface, so skip them (their texture is read back directly).
-  if (_surfaceInfo->hasSurface()) {
-    if (isMainRuntime) {
-      // Main runtime: drive present from the global vsync FrameDriver (handles
-      // one-shot renders too, since it presents the current frame at vsync).
-      FrameDriver::getInstance().requestPresent(_contextId, _surfaceInfo,
-                                                runtimeContext->scheduler());
-    } else {
-      // Worklet runtime: present at the next acquire (see above).
-      _hasUnpresentedFrame = true;
-    }
+  // Auto-present on the JS / UI runtime: acquiring the current texture
+  // schedules a present for this surface at the next vsync (spec-aligned
+  // "update the rendering" after the frame), dispatched through the main
+  // runtime's scheduler. Dedicated worklet runtimes instead call ctx.present()
+  // explicitly on their own thread. Offscreen surfaces have no wgpu::Surface,
+  // so skip them (their texture is read back directly).
+  if (_surfaceInfo->hasSurface() && isAutoPresentedRuntime(runtime)) {
+    FrameDriver::getInstance().requestPresent(_contextId, _surfaceInfo,
+                                              _gpu->getContext()->scheduler());
   }
 
   // Pass reportsMemoryPressure=false to avoid triggering spurious Hermes GC
   // cycles every frame since the canvas texture doesn't own the buffer.
   auto gpuTexture = std::make_shared<GPUTexture>(texture, "", false);
   return JSIConverter<std::shared_ptr<GPUTexture>>::toJSI(runtime, gpuTexture);
+}
+
+jsi::Value GPUCanvasContext::present(jsi::Runtime &runtime,
+                                     const jsi::Value & /*thisValue*/,
+                                     const jsi::Value * /*args*/,
+                                     size_t /*count*/) {
+  // Only meaningful on a dedicated worklet runtime, where present can't be
+  // automated. On the JS / UI runtime present is automatic, so this is a no-op
+  // there — which makes it safe to call from a worklet shared between the UI
+  // runtime and a dedicated runtime. Presents synchronously on the calling
+  // thread (the one that did getCurrentTexture / submit), preserving Dawn
+  // surface thread-affinity.
+  if (!isAutoPresentedRuntime(runtime) && _surfaceInfo->hasSurface()) {
+    _surfaceInfo->presentFrame();
+  }
+  return jsi::Value::undefined();
 }
 
 } // namespace rnwgpu

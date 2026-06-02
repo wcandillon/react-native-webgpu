@@ -172,7 +172,7 @@ ctx.canvas.height = ctx.canvas.clientHeight * PixelRatio.get();
 
 ### Frame Scheduling
 
-Frame presentation is automatic. Once you acquire the frame's texture with `context.getCurrentTexture()` and submit your commands, the frame is presented on the next display refresh (driven by a global vsync source: `CADisplayLink` on iOS, `Choreographer` on Android). There is no `present()` call.
+On the **main JS runtime** and the **Reanimated UI runtime**, frame presentation is automatic: once you acquire the frame's texture with `context.getCurrentTexture()` and submit your commands, the frame is presented on the next display refresh (driven by a global vsync source: `CADisplayLink` on iOS, `Choreographer` on Android). There is no `present()` call.
 
 ```tsx
 // draw
@@ -180,6 +180,19 @@ Frame presentation is automatic. Once you acquire the frame's texture with `cont
 device.queue.submit([commandEncoder.finish()]);
 // The frame is presented automatically on the next vsync.
 ```
+
+When you render from a **dedicated worklet runtime** (e.g. `createWorkletRuntime` / `runOnRuntime`, or a Vision Camera frame processor), it runs on its own thread where present can't be driven automatically. Call `context.present()` yourself after submitting:
+
+```tsx
+const onFrame = () => {
+  "worklet";
+  // draw on the dedicated runtime's thread
+  device.queue.submit([commandEncoder.finish()]);
+  context.present(); // required on dedicated worklet runtimes; a no-op on JS/UI
+};
+```
+
+`present()` is safe to call from a worklet that runs on either the UI runtime or a dedicated runtime: it presents on the dedicated runtime and does nothing on the JS/UI runtime (which auto-present).
 
 ### Canvas Transparency
 
