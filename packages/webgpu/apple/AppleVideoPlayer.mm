@@ -9,6 +9,62 @@ namespace rnwgpu {
 
 namespace {
 
+// 3x4 row-major matrices mapping [Y, Cb, Cr, 1] to gamma-encoded R'G'B' (NOT
+// linear): YCbCr is derived from gamma-encoded RGB, so this conversion stays in
+// the encoded domain. The sRGB decode in srcTransferFunctionParameters
+// linearizes afterward (see GPUExternalTexture.cpp). Limited-range (video
+// range) means luma is 16..235, chroma is 16..240 (8-bit).
+// Reference: https://en.wikipedia.org/wiki/YCbCr (BT.601 / BT.709).
+static constexpr float kBT709LimitedToRgb[12] = {
+    1.164383f, 0.000000f, 1.792741f, -0.972945f, //
+    1.164383f, -0.213249f, -0.532909f, 0.301517f, //
+    1.164383f, 2.112402f, 0.000000f, -1.133402f, //
+};
+static constexpr float kBT601LimitedToRgb[12] = {
+    1.164383f, 0.000000f, 1.596027f, -0.874202f, //
+    1.164383f, -0.391762f, -0.812968f, 0.531668f, //
+    1.164383f, 2.017232f, 0.000000f, -1.085631f, //
+};
+static constexpr float kBT2020LimitedToRgb[12] = {
+    1.164383f, 0.000000f, 1.678674f, -0.915688f, //
+    1.164383f, -0.187326f, -0.650424f, 0.347459f, //
+    1.164383f, 2.141772f, 0.000000f, -1.148145f, //
+};
+
+// Pick the right YUV→RGB matrix from the pixel buffer's color attachments.
+// Falls back to BT.709 limited range (the right call for ≥720p H.264, which
+// is what AVPlayer hands us for Big Buck Bunny and most streamed media).
+static void fillYuvMatrix(CVPixelBufferRef pixelBuffer, float out[12]) {
+  CFTypeRef matrixKey = CVBufferGetAttachment(
+      pixelBuffer, kCVImageBufferYCbCrMatrixKey, nullptr);
+  const float *src = kBT709LimitedToRgb;
+  if (matrixKey) {
+    auto matrix = (CFStringRef)matrixKey;
+    if (CFEqual(matrix, kCVImageBufferYCbCrMatrix_ITU_R_601_4) ||
+        CFEqual(matrix, kCVImageBufferYCbCrMatrix_SMPTE_240M_1995)) {
+      src = kBT601LimitedToRgb;
+    } else if (CFEqual(matrix, kCVImageBufferYCbCrMatrix_ITU_R_2020)) {
+      src = kBT2020LimitedToRgb;
+    }
+  }
+  for (int i = 0; i < 12; ++i) {
+    out[i] = src[i];
+  }
+}
+
+// Map a CVPixelBuffer's pixel format to our VideoPixelFormat enum.
+static VideoPixelFormat pixelFormatFromCVPixelBuffer(
+    CVPixelBufferRef pixelBuffer) {
+  OSType type = CVPixelBufferGetPixelFormatType(pixelBuffer);
+  switch (type) {
+    case kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange:
+    case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange:
+      return VideoPixelFormat::NV12;
+    default:
+      return VideoPixelFormat::BGRA8;
+  }
+}
+
 class AppleVideoPlayer : public IVideoPlayer {
 public:
   AppleVideoPlayer(AVPlayer *player, AVPlayerItemVideoOutput *output,
@@ -30,25 +86,23 @@ public:
     if (![_output hasNewPixelBufferForItemTime:currentTime]) {
       return {};
     }
+    // copyPixelBufferForItemTime returns a +1 retained CVPixelBuffer; we then
+    // hand it to wrapCVPixelBuffer which adds another retain. Balance with a
+    // CFRelease here so we don't leak.
     CVPixelBufferRef pixelBuffer =
         [_output copyPixelBufferForItemTime:currentTime
                          itemTimeForDisplay:nullptr];
     if (!pixelBuffer) {
       return {};
     }
-
-    IOSurfaceRef ioSurface = CVPixelBufferGetIOSurface(pixelBuffer);
-    if (!ioSurface) {
+    try {
+      auto handle = wrapCVPixelBuffer(pixelBuffer);
       CFRelease(pixelBuffer);
-      return {};
+      return handle;
+    } catch (...) {
+      CFRelease(pixelBuffer);
+      throw;
     }
-
-    VideoFrameHandle handle;
-    handle.handle = (void *)ioSurface;
-    handle.width = static_cast<uint32_t>(CVPixelBufferGetWidth(pixelBuffer));
-    handle.height = static_cast<uint32_t>(CVPixelBufferGetHeight(pixelBuffer));
-    handle.deleter = [pixelBuffer]() { CFRelease(pixelBuffer); };
-    return handle;
   }
 
   void play() override { [_player play]; }
@@ -62,8 +116,34 @@ private:
 
 } // namespace
 
+VideoFrameHandle wrapCVPixelBuffer(CVPixelBufferRef pixelBuffer) {
+  if (!pixelBuffer) {
+    throw std::runtime_error("wrapCVPixelBuffer: pointer is null");
+  }
+  IOSurfaceRef ioSurface = CVPixelBufferGetIOSurface(pixelBuffer);
+  if (!ioSurface) {
+    throw std::runtime_error(
+        "wrapCVPixelBuffer: pixel buffer is not IOSurface-backed (was the "
+        "camera/video pipeline configured for Metal/IOSurface output?)");
+  }
+
+  // Retain the pixel buffer so the caller can release theirs immediately.
+  CFRetain(pixelBuffer);
+
+  VideoFrameHandle handle;
+  handle.handle = (void *)ioSurface;
+  handle.width = static_cast<uint32_t>(CVPixelBufferGetWidth(pixelBuffer));
+  handle.height = static_cast<uint32_t>(CVPixelBufferGetHeight(pixelBuffer));
+  handle.pixelFormat = pixelFormatFromCVPixelBuffer(pixelBuffer);
+  if (handle.pixelFormat == VideoPixelFormat::NV12) {
+    fillYuvMatrix(pixelBuffer, handle.yuvToRgbMatrix);
+  }
+  handle.deleter = [pixelBuffer]() { CFRelease(pixelBuffer); };
+  return handle;
+}
+
 std::unique_ptr<IVideoPlayer>
-createAppleVideoPlayer(const std::string &path) {
+createAppleVideoPlayer(const std::string &path, VideoPixelFormat format) {
   NSString *nsPath = [NSString stringWithUTF8String:path.c_str()];
   NSURL *url;
   if ([nsPath hasPrefix:@"http://"] || [nsPath hasPrefix:@"https://"] ||
@@ -79,9 +159,15 @@ createAppleVideoPlayer(const std::string &path) {
                              "AVPlayerItem");
   }
 
+  // NV12 (kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange) lets us hand the
+  // IOSurface straight to Dawn as a multi-planar texture for
+  // importExternalTexture. BGRA is the "decode + convert" path for the
+  // single-plane SharedTextureMemory demo.
+  OSType pixelFormat = format == VideoPixelFormat::NV12
+                          ? kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+                          : kCVPixelFormatType_32BGRA;
   NSDictionary *outputSettings = @{
-    (NSString *)kCVPixelBufferPixelFormatTypeKey :
-        @(kCVPixelFormatType_32BGRA),
+    (NSString *)kCVPixelBufferPixelFormatTypeKey : @(pixelFormat),
     (NSString *)kCVPixelBufferIOSurfacePropertiesKey : @{},
     (NSString *)kCVPixelBufferMetalCompatibilityKey : @YES,
   };
