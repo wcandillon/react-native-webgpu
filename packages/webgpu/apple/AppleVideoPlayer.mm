@@ -9,20 +9,23 @@ namespace rnwgpu {
 
 namespace {
 
-// 3x4 row-major matrices mapping [Y, U, V, 1] to linear RGB.
-// Limited-range (video range) means luma is 16..235, chroma is 16..240 (8-bit).
+// 3x4 row-major matrices mapping [Y, Cb, Cr, 1] to gamma-encoded R'G'B' (NOT
+// linear): YCbCr is derived from gamma-encoded RGB, so this conversion stays in
+// the encoded domain. The sRGB decode in srcTransferFunctionParameters
+// linearizes afterward (see GPUExternalTexture.cpp). Limited-range (video
+// range) means luma is 16..235, chroma is 16..240 (8-bit).
 // Reference: https://en.wikipedia.org/wiki/YCbCr (BT.601 / BT.709).
-static constexpr float kBT709LimitedToLinearRGB[12] = {
+static constexpr float kBT709LimitedToRgb[12] = {
     1.164383f, 0.000000f, 1.792741f, -0.972945f, //
     1.164383f, -0.213249f, -0.532909f, 0.301517f, //
     1.164383f, 2.112402f, 0.000000f, -1.133402f, //
 };
-static constexpr float kBT601LimitedToLinearRGB[12] = {
+static constexpr float kBT601LimitedToRgb[12] = {
     1.164383f, 0.000000f, 1.596027f, -0.874202f, //
     1.164383f, -0.391762f, -0.812968f, 0.531668f, //
     1.164383f, 2.017232f, 0.000000f, -1.085631f, //
 };
-static constexpr float kBT2020LimitedToLinearRGB[12] = {
+static constexpr float kBT2020LimitedToRgb[12] = {
     1.164383f, 0.000000f, 1.678674f, -0.915688f, //
     1.164383f, -0.187326f, -0.650424f, 0.347459f, //
     1.164383f, 2.141772f, 0.000000f, -1.148145f, //
@@ -34,14 +37,14 @@ static constexpr float kBT2020LimitedToLinearRGB[12] = {
 static void fillYuvMatrix(CVPixelBufferRef pixelBuffer, float out[12]) {
   CFTypeRef matrixKey = CVBufferGetAttachment(
       pixelBuffer, kCVImageBufferYCbCrMatrixKey, nullptr);
-  const float *src = kBT709LimitedToLinearRGB;
+  const float *src = kBT709LimitedToRgb;
   if (matrixKey) {
     auto matrix = (CFStringRef)matrixKey;
     if (CFEqual(matrix, kCVImageBufferYCbCrMatrix_ITU_R_601_4) ||
         CFEqual(matrix, kCVImageBufferYCbCrMatrix_SMPTE_240M_1995)) {
-      src = kBT601LimitedToLinearRGB;
+      src = kBT601LimitedToRgb;
     } else if (CFEqual(matrix, kCVImageBufferYCbCrMatrix_ITU_R_2020)) {
-      src = kBT2020LimitedToLinearRGB;
+      src = kBT2020LimitedToRgb;
     }
   }
   for (int i = 0; i < 12; ++i) {
