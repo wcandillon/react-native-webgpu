@@ -527,6 +527,8 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::FeatureName::StaticSamplers;
   } else if (inUnion == "ycbcr-vulkan-samplers") {
     *outEnum = wgpu::FeatureName::YCbCrVulkanSamplers;
+  } else if (inUnion == "opaque-ycbcr-android-for-external-texture") {
+    *outEnum = wgpu::FeatureName::OpaqueYCbCrAndroidForExternalTexture;
   } else if (inUnion == "shader-module-compilation-options") {
     *outEnum = wgpu::FeatureName::ShaderModuleCompilationOptions;
   } else if (inUnion == "dawn-load-resolve-texture") {
@@ -717,6 +719,9 @@ inline void convertEnumToJSUnion(wgpu::FeatureName inEnum,
     break;
   case wgpu::FeatureName::YCbCrVulkanSamplers:
     *outUnion = "ycbcr-vulkan-samplers";
+    break;
+  case wgpu::FeatureName::OpaqueYCbCrAndroidForExternalTexture:
+    *outUnion = "opaque-ycbcr-android-for-external-texture";
     break;
   case wgpu::FeatureName::ShaderModuleCompilationOptions:
     *outUnion = "shader-module-compilation-options";

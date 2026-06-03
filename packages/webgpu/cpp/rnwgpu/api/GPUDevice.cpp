@@ -235,8 +235,10 @@ std::shared_ptr<GPUPipelineLayout> GPUDevice::createPipelineLayout(
 
 std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
     std::shared_ptr<GPUExternalTextureDescriptor> descriptor) {
-  throw std::runtime_error(
-      "GPUDevice::importExternalTexture(): Not implemented");
+  // The import / begin-access / descriptor-build logic, plus the matching
+  // EndAccess, all live on GPUExternalTexture so the begin/end lifecycle stays
+  // in one translation unit (see GPUExternalTexture.cpp).
+  return GPUExternalTexture::Create(_instance, std::move(descriptor));
 }
 
 std::shared_ptr<GPUSharedTextureMemory> GPUDevice::importSharedTextureMemory(
@@ -491,7 +493,7 @@ std::unordered_set<std::string> GPUDevice::getFeatures() {
     convertEnumToJSUnion(feature, &name);
     result.insert(name);
   }
-  maybeSynthesizeRnSharedTextureMemoryFeature(enabled, result);
+  maybeSynthesizeRnNativeTextureFeature(enabled, result);
   return result;
 }
 

@@ -6,7 +6,7 @@ import {
   useDevice,
   type GPUSharedTextureMemory,
   type NativeCanvas,
-  type VideoFrame,
+  type NativeVideoFrame,
 } from "react-native-wgpu";
 
 const SHADER = /* wgsl */ `
@@ -53,7 +53,12 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
 }
 `;
 
-const REQUIRED_FEATURES = ["rnwebgpu/shared-texture-memory" as GPUFeatureName];
+// This screen keeps the explicit feature request for documentation. As of the
+// default-on change, "rnwebgpu/native-texture" is enabled automatically by
+// requestDevice / useDevice whenever the adapter supports it (like
+// importExternalTexture on the web), so passing it in requiredFeatures is
+// optional. We still list it here to show how to gate on the capability.
+const REQUIRED_FEATURES = ["rnwebgpu/native-texture" as GPUFeatureName];
 
 export const SharedTextureMemory = () => {
   const ref = useCanvasRef();
@@ -103,7 +108,7 @@ export const SharedTextureMemory = () => {
     // from copyLatestFrame() as "keep showing the previous frame", which means
     // a one-shot source renders correctly without any other change.
     interface FrameSource {
-      copyLatestFrame(): VideoFrame | null;
+      copyLatestFrame(): NativeVideoFrame | null;
       release(): void;
     }
     let source: FrameSource;
@@ -117,7 +122,7 @@ export const SharedTextureMemory = () => {
         release: () => player.release(),
       };
     } else {
-      let pending: VideoFrame | null = RNWebGPU.createTestVideoFrame(
+      let pending: NativeVideoFrame | null = RNWebGPU.createTestVideoFrame(
         1024,
         1024,
       );
@@ -168,7 +173,7 @@ export const SharedTextureMemory = () => {
     // demo we rely on AVPlayer recycling its IOSurface pool, which is safe as
     // long as we end-access before letting the player reclaim the buffer.
     type Bound = {
-      frame: VideoFrame;
+      frame: NativeVideoFrame;
       memory: GPUSharedTextureMemory;
       texture: GPUTexture;
       bindGroup: GPUBindGroup;
@@ -190,7 +195,7 @@ export const SharedTextureMemory = () => {
       }
     };
 
-    const bindFrame = (frame: VideoFrame): Bound | null => {
+    const bindFrame = (frame: NativeVideoFrame): Bound | null => {
       try {
         const memory = device.importSharedTextureMemory({
           handle: frame.handle,
