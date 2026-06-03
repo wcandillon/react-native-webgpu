@@ -3,6 +3,10 @@
 #include <cstdint>
 #include <string>
 
+#if defined(__ANDROID__)
+#include <fcntl.h>
+#endif
+
 namespace rnwgpu {
 
 namespace {
@@ -42,11 +46,16 @@ jsi::Value GPUSharedFence::exportInfo(jsi::Runtime &runtime, const jsi::Value &,
   _instance.ExportInfo(&info);
   handle = reinterpret_cast<uint64_t>(mtlInfo.sharedEvent);
 #elif defined(__ANDROID__)
-  // Android: the handle is an OS file descriptor (sync_fd).
+  // Android: the handle is an OS file descriptor (sync_fd). Dawn's ExportInfo returns a BORROWED fd — it is
+  // owned by the SharedFence and closed when the fence is destroyed. This exported handle is documented as
+  // caller-owned (the caller must close() it), so dup() it. Without the dup the same fd is closed twice —
+  // once by the caller and once by Dawn on fence destruction — tripping Android's fdsan (double-close abort).
   wgpu::SharedFenceSyncFDExportInfo fdInfo{};
   info.nextInChain = &fdInfo;
   _instance.ExportInfo(&info);
-  handle = static_cast<uint64_t>(static_cast<uint32_t>(fdInfo.handle));
+  int exportedFd =
+      fdInfo.handle >= 0 ? ::fcntl(fdInfo.handle, F_DUPFD_CLOEXEC, 0) : fdInfo.handle;
+  handle = static_cast<uint64_t>(static_cast<uint32_t>(exportedFd));
 #else
   _instance.ExportInfo(&info);
 #endif
