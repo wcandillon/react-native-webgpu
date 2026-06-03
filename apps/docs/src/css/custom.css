@@ -1,0 +1,26 @@
+/**
+ * Infima theme overrides for React Native WebGPU.
+ */
+
+:root {
+  --ifm-color-primary: #005bea;
+  --ifm-color-primary-dark: #0052d3;
+  --ifm-color-primary-darker: #004dc7;
+  --ifm-color-primary-darkest: #003fa4;
+  --ifm-color-primary-light: #0a68fb;
+  --ifm-color-primary-lighter: #1f74fb;
+  --ifm-color-primary-lightest: #4690fc;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] {
+  --ifm-color-primary: #4690fc;
+  --ifm-color-primary-dark: #2a7ffb;
+  --ifm-color-primary-darker: #1c77fb;
+  --ifm-color-primary-darkest: #0461e0;
+  --ifm-color-primary-light: #62a1fc;
+  --ifm-color-primary-lighter: #70a9fd;
+  --ifm-color-primary-lightest: #99c1fd;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
