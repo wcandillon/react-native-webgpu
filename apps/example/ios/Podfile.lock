@@ -1924,7 +1924,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-wgpu (0.5.12):
+  - react-native-wgpu (0.5.13):
     - boost
     - DoubleConversion
     - fast_float
@@ -3074,7 +3074,7 @@ SPEC CHECKSUMS:
   React-microtasksnativemodule: 75b6604b667d297292345302cc5bfb6b6aeccc1b
   react-native-safe-area-context: c00143b4823773bba23f2f19f85663ae89ceb460
   react-native-skia: fc73e9bdc46ebb420a98c9c2be29fee80f565e79
-  react-native-wgpu: 274ffec11ee3a082260d9f3d1fb54030a5ca0873
+  react-native-wgpu: 0496e9efeb4c3939ab56371005ede4e1468591d1
   React-NativeModulesApple: 879fbdc5dcff7136abceb7880fe8a2022a1bd7c3
   React-oscompat: 93b5535ea7f7dff46aaee4f78309a70979bdde9d
   React-perflogger: 5536d2df3d18fe0920263466f7b46a56351c0510
