@@ -66,14 +66,11 @@ function Hero() {
         <h1 className={styles.heroTitle}>{siteConfig.title}</h1>
         <p className={styles.heroSubtitle}>{siteConfig.tagline}</p>
         <div className={styles.buttons}>
-          <Link
-            className="button button--secondary button--lg"
-            to="/docs/intro"
-          >
+          <Link className="button button--primary button--lg" to="/docs/intro">
             Get Started
           </Link>
           <Link
-            className="button button--outline button--secondary button--lg"
+            className="button button--outline button--primary button--lg"
             to="/docs/installation"
           >
             Installation

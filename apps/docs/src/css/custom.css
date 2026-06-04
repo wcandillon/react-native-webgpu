@@ -1,7 +1,50 @@
 /**
- * Infima theme overrides for React Native WebGPU.
+ * React Native WebGPU docs theme.
+ *
+ * A Fumadocs-inspired restyle of the Docusaurus "classic" theme: neutral
+ * surfaces, soft borders, rounded corners, refined typography, and a near-black
+ * dark mode. Implemented entirely through Infima CSS variables plus a few
+ * targeted component overrides, so there is no change to the build pipeline.
  */
 
+/* ----------------------------------------------------------------------------
+ * Typography
+ * ------------------------------------------------------------------------- */
+:root {
+  --ifm-font-family-base:
+    "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  --ifm-font-family-monospace:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    monospace;
+  --ifm-font-size-base: 16px;
+  --ifm-line-height-base: 1.65;
+  --ifm-heading-font-weight: 700;
+  --ifm-global-radius: 0.6rem;
+  --ifm-code-font-size: 88%;
+  --ifm-code-border-radius: 0.4rem;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: -0.02em;
+}
+
+.markdown h1:first-child {
+  --ifm-h1-font-size: 2.4rem;
+}
+
+/* ----------------------------------------------------------------------------
+ * Light theme tokens
+ * ------------------------------------------------------------------------- */
 :root {
   --ifm-color-primary: #005bea;
   --ifm-color-primary-dark: #0052d3;
@@ -10,17 +53,224 @@
   --ifm-color-primary-light: #0a68fb;
   --ifm-color-primary-lighter: #1f74fb;
   --ifm-color-primary-lightest: #4690fc;
-  --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+  --ifm-background-color: #ffffff;
+  --ifm-background-surface-color: #fafafa;
+  --ifm-color-content: #1a1a1a;
+  --ifm-color-content-secondary: #5f6b7a;
+
+  --ifm-navbar-background-color: rgba(255, 255, 255, 0.8);
+  --ifm-navbar-shadow: none;
+  --ifm-toc-border-color: rgba(0, 0, 0, 0.08);
+  --ifm-table-border-color: rgba(0, 0, 0, 0.08);
+  --ifm-hr-border-color: rgba(0, 0, 0, 0.08);
+
+  --ifm-code-background: rgba(0, 0, 0, 0.05);
+  --ifm-pre-background: #f7f8fa;
+
+  --ifm-menu-color: #475467;
+  --ifm-menu-color-background-active: rgba(0, 91, 234, 0.08);
+  --ifm-menu-color-background-hover: rgba(0, 0, 0, 0.04);
+
+  --rnw-border: rgba(0, 0, 0, 0.08);
+  --rnw-border-strong: rgba(0, 0, 0, 0.12);
+  --rnw-card-bg: #ffffff;
+  --rnw-surface-2: #f4f5f7;
+
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.07);
 }
 
+/* ----------------------------------------------------------------------------
+ * Dark theme tokens (near-black, soft borders)
+ * ------------------------------------------------------------------------- */
 [data-theme="dark"] {
-  --ifm-color-primary: #4690fc;
-  --ifm-color-primary-dark: #2a7ffb;
-  --ifm-color-primary-darker: #1c77fb;
+  --ifm-color-primary: #6aa6fd;
+  --ifm-color-primary-dark: #4690fc;
+  --ifm-color-primary-darker: #2a7ffb;
   --ifm-color-primary-darkest: #0461e0;
-  --ifm-color-primary-light: #62a1fc;
-  --ifm-color-primary-lighter: #70a9fd;
-  --ifm-color-primary-lightest: #99c1fd;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  --ifm-color-primary-light: #8fbcfd;
+  --ifm-color-primary-lighter: #a3c8fe;
+  --ifm-color-primary-lightest: #c8defe;
+
+  --ifm-background-color: #0a0a0b;
+  --ifm-background-surface-color: #111113;
+  --ifm-color-content: #ededee;
+  --ifm-color-content-secondary: #9ba1a9;
+
+  --ifm-navbar-background-color: rgba(10, 10, 11, 0.75);
+  --ifm-navbar-shadow: none;
+  --ifm-toc-border-color: rgba(255, 255, 255, 0.08);
+  --ifm-table-border-color: rgba(255, 255, 255, 0.08);
+  --ifm-hr-border-color: rgba(255, 255, 255, 0.08);
+
+  --ifm-code-background: rgba(255, 255, 255, 0.08);
+  --ifm-pre-background: #131316;
+
+  --ifm-menu-color: #b6bcc4;
+  --ifm-menu-color-background-active: rgba(106, 166, 253, 0.12);
+  --ifm-menu-color-background-hover: rgba(255, 255, 255, 0.05);
+
+  --rnw-border: rgba(255, 255, 255, 0.08);
+  --rnw-border-strong: rgba(255, 255, 255, 0.14);
+  --rnw-card-bg: #131316;
+  --rnw-surface-2: #1a1a1e;
+
+  --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.08);
+}
+
+/* ----------------------------------------------------------------------------
+ * Navbar: translucent, sticky blur, hairline border instead of shadow
+ * ------------------------------------------------------------------------- */
+.navbar {
+  border-bottom: 1px solid var(--rnw-border);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+}
+
+.navbar__title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.navbar__link {
+  font-weight: 500;
+}
+
+/* ----------------------------------------------------------------------------
+ * Sidebar: rounded menu items, Fumadocs-style active pill
+ * ------------------------------------------------------------------------- */
+.menu {
+  padding: 0.75rem !important;
+  font-size: 0.92rem;
+}
+
+.menu__link {
+  border-radius: 0.5rem;
+  font-weight: 500;
+  line-height: 1.4;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.menu__link--active:not(.menu__link--sublist) {
+  font-weight: 600;
+}
+
+.menu__list-item-collapsible .menu__link {
+  font-weight: 600;
+}
+
+.menu__list .menu__list {
+  padding-left: 0.5rem;
+  margin-left: 0.35rem;
+  border-left: 1px solid var(--rnw-border);
+}
+
+.theme-doc-sidebar-container {
+  border-right: 1px solid var(--rnw-border) !important;
+}
+
+/* ----------------------------------------------------------------------------
+ * Code blocks and inline code
+ * ------------------------------------------------------------------------- */
+.theme-code-block,
+div[class^="codeBlockContainer"] {
+  border: 1px solid var(--rnw-border);
+  border-radius: 0.7rem;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+
+div[class^="codeBlockTitle"] {
+  border-bottom: 1px solid var(--rnw-border);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.78rem;
+}
+
+.markdown :not(pre) > code {
+  border: 1px solid var(--rnw-border);
+  border-radius: var(--ifm-code-border-radius);
+  padding: 0.1rem 0.35rem;
+  font-weight: 500;
+}
+
+/* ----------------------------------------------------------------------------
+ * Admonitions / callouts: flat surface, accent left border, rounded
+ * ------------------------------------------------------------------------- */
+.theme-admonition {
+  border: 1px solid var(--rnw-border);
+  border-radius: 0.7rem;
+  box-shadow: none;
+  background: var(--ifm-background-surface-color);
+}
+
+.alert a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+/* ----------------------------------------------------------------------------
+ * Tables, cards, misc surfaces
+ * ------------------------------------------------------------------------- */
+.markdown table {
+  display: table;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--rnw-border);
+  border-radius: 0.7rem;
+  overflow: hidden;
+}
+
+.markdown table thead {
+  background: var(--ifm-background-surface-color);
+}
+
+.markdown table thead tr {
+  border-bottom: 1px solid var(--rnw-border);
+}
+
+.markdown table th,
+.markdown table td {
+  border: none;
+  border-bottom: 1px solid var(--rnw-border);
+}
+
+.card {
+  border: 1px solid var(--rnw-border);
+  border-radius: 0.8rem;
+  background: var(--rnw-card-bg);
+  box-shadow: none;
+}
+
+/* Pagination buttons (prev / next) */
+.pagination-nav__link {
+  border: 1px solid var(--rnw-border);
+  border-radius: 0.7rem;
+  transition:
+    border-color 0.12s ease,
+    background-color 0.12s ease;
+}
+
+.pagination-nav__link:hover {
+  border-color: var(--ifm-color-primary);
+  background: var(--ifm-menu-color-background-hover);
+}
+
+/* Table of contents */
+.table-of-contents__link--active {
+  font-weight: 600;
+}
+
+/* Buttons */
+.button {
+  border-radius: 0.6rem;
+  font-weight: 600;
+}
+
+/* Links in prose */
+.markdown a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
 }

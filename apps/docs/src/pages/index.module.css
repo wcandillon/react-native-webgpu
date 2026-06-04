@@ -1,28 +1,62 @@
 .heroBanner {
-  padding: 5rem 0;
+  padding: 6rem 0 5rem;
   text-align: center;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #005bea 0%, #00c6fb 100%);
-  color: #ffffff;
+  background:
+    radial-gradient(
+      60% 120% at 50% -10%,
+      rgba(0, 91, 234, 0.18),
+      transparent 60%
+    ),
+    var(--ifm-background-color);
+  border-bottom: 1px solid var(--rnw-border);
+}
+
+.heroBanner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--rnw-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rnw-border) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(70% 70% at 50% 0%, black, transparent 75%);
+  -webkit-mask-image: radial-gradient(70% 70% at 50% 0%, black, transparent 75%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.heroBanner > .container {
+  position: relative;
+  z-index: 1;
 }
 
 .heroTitle {
-  font-size: 3rem;
+  font-size: 3.25rem;
   font-weight: 800;
-  margin-bottom: 0.5rem;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.75rem;
+  background: linear-gradient(
+    180deg,
+    var(--ifm-heading-color) 0%,
+    var(--ifm-color-content-secondary) 160%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .heroSubtitle {
-  font-size: 1.4rem;
-  opacity: 0.95;
-  max-width: 720px;
-  margin: 0 auto 2rem;
+  font-size: 1.3rem;
+  color: var(--ifm-color-content-secondary);
+  max-width: 680px;
+  margin: 0 auto 2.25rem;
 }
 
 .buttons {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
@@ -30,19 +64,23 @@
 
 @media screen and (max-width: 996px) {
   .heroBanner {
-    padding: 3rem 1rem;
+    padding: 4rem 1rem 3rem;
   }
 
   .heroTitle {
-    font-size: 2.2rem;
+    font-size: 2.3rem;
+  }
+
+  .heroSubtitle {
+    font-size: 1.1rem;
   }
 }
 
 .features {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  max-width: 1100px;
+  gap: 1rem;
+  max-width: 1080px;
   margin: 4rem auto;
   padding: 0 1rem;
 }
@@ -50,15 +88,16 @@
 @media screen and (max-width: 996px) {
   .features {
     grid-template-columns: 1fr;
-    margin: 2rem auto;
+    margin: 2.5rem auto;
   }
 }
 
 .card {
   display: block;
   padding: 1.5rem;
-  border: 1px solid var(--ifm-color-emphasis-200);
-  border-radius: 12px;
+  border: 1px solid var(--rnw-border);
+  border-radius: 0.9rem;
+  background: var(--rnw-card-bg);
   transition:
     transform 0.15s ease,
     box-shadow 0.15s ease,
@@ -69,20 +108,27 @@
 }
 
 .card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  border-color: var(--ifm-color-primary);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+  border-color: var(--rnw-border-strong);
   text-decoration: none;
   color: inherit;
 }
 
 .cardTitle {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.4rem;
 }
 
 .cardEmoji {
-  font-size: 1.6rem;
-  margin-right: 0.4rem;
+  font-size: 1.5rem;
+  margin-right: 0.5rem;
+}
+
+.card p {
+  color: var(--ifm-color-content-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 0;
 }
