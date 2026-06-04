@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Dimensions, PixelRatio, View } from "react-native";
-import { Canvas } from "react-native-wgpu";
+import { Canvas } from "react-native-webgpu";
 import Animated, {
   cancelAnimation,
   Easing,
