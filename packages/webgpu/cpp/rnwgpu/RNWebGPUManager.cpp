@@ -31,6 +31,7 @@
 #include "GPURenderPassEncoder.h"
 #include "GPURenderPipeline.h"
 #include "GPUSampler.h"
+#include "GPUSharedFence.h"
 #include "GPUSharedTextureMemory.h"
 #include "GPUShaderModule.h"
 #include "GPUSupportedLimits.h"
@@ -106,6 +107,7 @@ RNWebGPUManager::RNWebGPUManager(
   GPURenderPassEncoder::installConstructor(*_jsRuntime);
   GPURenderPipeline::installConstructor(*_jsRuntime);
   GPUSampler::installConstructor(*_jsRuntime);
+  GPUSharedFence::installConstructor(*_jsRuntime);
   GPUSharedTextureMemory::installConstructor(*_jsRuntime);
   GPUShaderModule::installConstructor(*_jsRuntime);
   GPUSupportedLimits::installConstructor(*_jsRuntime);
