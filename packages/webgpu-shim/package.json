@@ -4,7 +4,6 @@
   "description": "Shim that re-exports react-native-webgpu under its previous package name",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
-  "types": "lib/typescript/src/index.d.ts",
   "react-native": "src/index",
   "source": "src/index",
   "files": [
