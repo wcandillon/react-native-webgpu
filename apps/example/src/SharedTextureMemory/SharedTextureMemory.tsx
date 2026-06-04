@@ -7,7 +7,7 @@ import {
   type GPUSharedTextureMemory,
   type NativeCanvas,
   type NativeVideoFrame,
-} from "react-native-wgpu";
+} from "react-native-webgpu";
 
 const SHADER = /* wgsl */ `
 struct VsOut {

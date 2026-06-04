@@ -1,0 +1,70 @@
+{
+  "name": "react-native-wgpu",
+  "version": "0.5.14",
+  "description": "Shim that re-exports react-native-webgpu under its previous package name",
+  "main": "lib/commonjs/index",
+  "module": "lib/module/index",
+  "react-native": "src/index",
+  "source": "src/index",
+  "files": [
+    "src/**",
+    "lib/**",
+    "!**/__tests__/**"
+  ],
+  "scripts": {
+    "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
+    "tsc": "tsc --noEmit",
+    "build": "bob build"
+  },
+  "keywords": [
+    "react-native",
+    "ios",
+    "android",
+    "webgpu",
+    "shim"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wcandillon/react-native-webgpu.git"
+  },
+  "author": "William Candillon <wcandillon@gmail.com> (https://github.com/wcandillon)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wcandillon/react-native-webgpu/issues"
+  },
+  "homepage": "https://github.com/wcandillon/react-native-webgpu#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "dependencies": {
+    "react-native-webgpu": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.7",
+    "@types/react": "^18.2.44",
+    "@webgpu/types": "0.1.65",
+    "eslint": "9.35.0",
+    "eslint-config-react-native-wcandillon": "4.0.1",
+    "prettier": "^3.0.3",
+    "react-native-builder-bob": "^0.23.2",
+    "typescript": "^5.2.2"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": ">=0.81.0"
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      "commonjs",
+      "module",
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  }
+}

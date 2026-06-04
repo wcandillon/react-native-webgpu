@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import type { CanvasRef } from "react-native-wgpu";
-import { Canvas } from "react-native-wgpu";
+import type { CanvasRef } from "react-native-webgpu";
+import { Canvas } from "react-native-webgpu";
 import { PixelRatio, Text, View, StyleSheet } from "react-native";
 import { useEffect, useRef } from "react";
 import {

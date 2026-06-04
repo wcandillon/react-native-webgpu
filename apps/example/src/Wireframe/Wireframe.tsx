@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { Canvas } from "react-native-wgpu";
+import { Canvas } from "react-native-webgpu";
 import { mat3, mat4 } from "wgpu-matrix";
 
 import { useWebGPU } from "../components/useWebGPU";

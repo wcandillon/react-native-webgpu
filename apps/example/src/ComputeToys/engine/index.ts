@@ -4,7 +4,7 @@
  */
 
 import { Mutex } from "async-mutex";
-import type { CanvasRef, RNCanvasContext } from "react-native-wgpu";
+import type { CanvasRef, RNCanvasContext } from "react-native-webgpu";
 
 import { Bindings } from "./bind";
 import { Blitter, ColorSpace } from "./blit";

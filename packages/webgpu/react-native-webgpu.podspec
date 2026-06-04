@@ -4,7 +4,7 @@ package = JSON.parse(File.read(File.join(__dir__, "package.json")))
 folly_compiler_flags = '-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1 -Wno-comma -Wno-shorten-64-to-32'
 
 Pod::Spec.new do |s|
-  s.name         = "react-native-wgpu"
+  s.name         = "react-native-webgpu"
   s.version      = package["version"]
   s.summary      = package["description"]
   s.homepage     = package["homepage"]
@@ -58,6 +58,10 @@ Pod::Spec.new do |s|
   # host's Dawn proc table (the host's dawn_native build dispatches wgpu* calls
   # through a proc table; our bundled monolithic Dawn does not need this).
   external_dawn_defs = external_dawn ? ' RN_WEBGPU_EXTERNAL_DAWN=1' : ''
+
+  # The VideoPlayer API uses AVFoundation / CoreMedia, and shared-texture
+  # surfaces use CoreVideo (CVPixelBuffer). Link them so their symbols resolve.
+  s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo"
 
   s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => header_search_paths,
