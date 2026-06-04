@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Image } from "react-native";
-import "react-native-wgpu";
+import "react-native-webgpu";
 
 export const fetchAsset = async (mod: number) => {
   const response = await fetch(Image.resolveAssetSource(mod).uri);

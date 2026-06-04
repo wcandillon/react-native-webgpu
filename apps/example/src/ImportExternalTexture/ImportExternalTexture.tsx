@@ -7,7 +7,7 @@ import {
   type NativeCanvas,
   type NativeVideoFrame,
   type VideoPlayer,
-} from "react-native-wgpu";
+} from "react-native-webgpu";
 
 // This is the SharedTextureMemory demo, rewritten to use
 // GPUDevice.importExternalTexture instead of the manual

@@ -6,11 +6,11 @@ React Native WebGPU requires React Native 0.81 or newer. It doesn't support the 
 
 ## Installation
 
-Please note that the package name is `react-native-wgpu`.
+```
+npm install react-native-webgpu
+```
 
-```
-npm install react-native-wgpu
-```
+> The package was previously published as `react-native-wgpu`. A shim with that name is still available and simply re-exports `react-native-webgpu`.
 
 ## With Expo
 
@@ -53,7 +53,7 @@ Usage is identical to Web.
 ```tsx
 import React from "react";
 import { StyleSheet, View, PixelRatio } from "react-native";
-import { Canvas, CanvasRef } from "react-native-wgpu";
+import { Canvas, CanvasRef } from "react-native-webgpu";
 
 import { redFragWGSL, triangleVertWGSL } from "./triangle";
 
@@ -318,7 +318,7 @@ npm install react-native-reanimated react-native-worklets
 WebGPU objects are automatically registered for Worklets serialization when the module loads. You can pass WebGPU objects like `GPUDevice` and `GPUCanvasContext` directly to worklets:
 
 ```tsx
-import { Canvas } from "react-native-wgpu";
+import { Canvas } from "react-native-webgpu";
 import { runOnUI } from "react-native-reanimated";
 
 const renderFrame = (device: GPUDevice, context: GPUCanvasContext) => {

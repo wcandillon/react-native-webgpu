@@ -9,8 +9,8 @@ import {
 } from "@react-three/fiber";
 import type { ViewProps } from "react-native";
 import { PixelRatio } from "react-native";
-import type { CanvasRef } from "react-native-wgpu";
-import { Canvas } from "react-native-wgpu";
+import type { CanvasRef } from "react-native-webgpu";
+import { Canvas } from "react-native-webgpu";
 
 import { makeWebGPURenderer, ReactNativeCanvas } from "./makeWebGPURenderer";
 

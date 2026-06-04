@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Dimensions, Text, View, Image } from "react-native";
-import { GPUOffscreenCanvas } from "react-native-wgpu";
+import { GPUOffscreenCanvas } from "react-native-webgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
 import { useClient } from "./useClient";

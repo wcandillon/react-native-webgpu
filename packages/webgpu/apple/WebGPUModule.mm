@@ -59,7 +59,7 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   // (RCTBridgeProxy).
   jsi::Runtime *runtime = (jsi::Runtime *)self.bridge.runtime;
   if (!runtime) {
-    NSLog(@"Failed to install react-native-wgpu: jsi::Runtime* was null! "
+    NSLog(@"Failed to install react-native-webgpu: jsi::Runtime* was null! "
           @"(self.bridge=%@)",
           self.bridge);
     return [NSNumber numberWithBool:NO];
@@ -69,7 +69,7 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   // RCTCallInvokerModule. Works in both Legacy and Bridgeless.
   std::shared_ptr<react::CallInvoker> jsInvoker = _callInvoker.callInvoker;
   if (!jsInvoker) {
-    NSLog(@"Failed to install react-native-wgpu: react::CallInvoker was "
+    NSLog(@"Failed to install react-native-webgpu: react::CallInvoker was "
           @"null!");
     return [NSNumber numberWithBool:NO];
   }

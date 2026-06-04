@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PixelRatio } from "react-native";
-import type { CanvasRef } from "react-native-wgpu";
-import { Canvas } from "react-native-wgpu";
+import type { CanvasRef } from "react-native-webgpu";
+import { Canvas } from "react-native-webgpu";
 
 interface TextureState {
   pipeline: GPURenderPipeline;

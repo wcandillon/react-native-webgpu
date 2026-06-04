@@ -13,7 +13,7 @@ import {
   useCanvasRef,
   type NativeCanvas,
   type RNCanvasContext,
-} from "react-native-wgpu";
+} from "react-native-webgpu";
 import {
   useCamera,
   useCameraDevices,

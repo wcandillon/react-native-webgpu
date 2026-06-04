@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useRef } from "react";
 import type { TgpuBuffer } from "typegpu";
 import tgpu, { d, std } from "typegpu";
 import { StyleSheet, View, Text, Button } from "react-native";
-import { Canvas } from "react-native-wgpu";
+import { Canvas } from "react-native-webgpu";
 import {
   useBindGroup,
   useBuffer,
