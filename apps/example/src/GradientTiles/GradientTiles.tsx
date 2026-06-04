@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Button, StyleSheet, Text, View } from "react-native";
-import { Canvas } from "react-native-wgpu";
+import { Canvas } from "react-native-webgpu";
 import { common, d, std } from "typegpu";
 import {
   useConfigureContext,
