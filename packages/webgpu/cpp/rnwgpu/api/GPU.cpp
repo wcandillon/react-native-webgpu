@@ -11,14 +11,35 @@
 #include "JSIConverter.h"
 #include "rnwgpu/async/JSIMicrotaskDispatcher.h"
 
+#ifdef RN_WEBGPU_EXTERNAL_DAWN
+#include "dawn/dawn_proc.h"
+#include "dawn/native/DawnNative.h"
+#endif
+
 namespace rnwgpu {
 
 namespace {
+
+#ifdef RN_WEBGPU_EXTERNAL_DAWN
+// In "bring your own Dawn" mode we link against the host's dawn_native build
+// (e.g. Skia's libdawn_combined). There the wgpu* C entry points dispatch
+// through a proc table that must be installed before any wgpu call. (Our own
+// bundled Dawn is monolithic and wires these symbols directly, so it never
+// needs this.) Install the host's procs once; calling this again later from
+// the host is harmless because the table is identical.
+void ensureHostDawnProcs() {
+  static const DawnProcTable kProcs = dawn::native::GetProcs();
+  dawnProcSetProcs(&kProcs);
+}
+#endif
 
 // Creates the default Dawn instance used when react-native-webgpu owns the
 // WebGPU stack. When another module (e.g. Skia Graphite) already owns a
 // wgpu::Instance, that instance is passed to GPU directly and this is not used.
 wgpu::Instance createDefaultInstance() {
+#ifdef RN_WEBGPU_EXTERNAL_DAWN
+  ensureHostDawnProcs();
+#endif
   static const auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
   wgpu::InstanceDescriptor instanceDesc{.requiredFeatureCount = 1,
                                         .requiredFeatures = &kTimedWaitAny};

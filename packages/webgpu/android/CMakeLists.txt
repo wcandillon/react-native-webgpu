@@ -39,6 +39,7 @@ find_package(fbjni REQUIRED CONFIG)
 
 add_library(${PACKAGE_NAME} SHARED
     ./cpp/cpp-adapter.cpp
+    ../cpp/public/Embedding.cpp
     ../cpp/rnwgpu/api/GPU.cpp
     ../cpp/rnwgpu/api/GPUAdapter.cpp
     ../cpp/rnwgpu/api/GPUSupportedLimits.cpp
@@ -82,6 +83,7 @@ target_include_directories(
         "${NODE_MODULES_DIR}/react-native/ReactAndroid/src/main/jni/react/turbomodule"
 
         ../cpp
+        ../cpp/public
         ../cpp/rnwgpu
         ../cpp/rnwgpu/api
         ../cpp/rnwgpu/api/descriptors
@@ -94,6 +96,8 @@ target_include_directories(
 
 if(RN_WEBGPU_EXTERNAL_DAWN)
     message(STATUS "react-native-wgpu: external Dawn mode (not bundling libwebgpu_dawn)")
+    # Let the C++ install the host's Dawn proc table (see GPU.cpp).
+    target_compile_definitions(${PACKAGE_NAME} PRIVATE RN_WEBGPU_EXTERNAL_DAWN=1)
     if(RN_WEBGPU_DAWN_HEADERS)
         # Prepend so the host's <webgpu/webgpu.h> wins over our bundled copy.
         target_include_directories(${PACKAGE_NAME} BEFORE PRIVATE "${RN_WEBGPU_DAWN_HEADERS}")
