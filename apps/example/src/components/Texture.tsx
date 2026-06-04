@@ -145,6 +145,7 @@ export const Texture = ({ texture, style, device }: GPUTextureProps) => {
     renderPass.end();
 
     device.queue.submit([commandEncoder.finish()]);
+    context.present();
   }, [device, state, texture, ref]);
   return <Canvas ref={ref} style={style} />;
 };

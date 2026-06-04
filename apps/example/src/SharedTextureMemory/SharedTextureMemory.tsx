@@ -268,6 +268,7 @@ export const SharedTextureMemory = () => {
       }
       pass.end();
       device.queue.submit([encoder.finish()]);
+      context.present();
       rafRef.current = requestAnimationFrame(render);
     };
     rafRef.current = requestAnimationFrame(render);

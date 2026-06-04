@@ -398,6 +398,7 @@ fn passSampleLevelBilinearRepeat(pass_index: int, uv: float2, lod: float) -> flo
 
       // Submit command buffer
       this.device.queue.submit([encoder.finish()]);
+      this.surface!.present();
 
       // Update frame counter
       this.bindings!.time.host.frame += 1;

@@ -244,6 +244,7 @@ export const ImportExternalTexture = () => {
 
       pass.end();
       device.queue.submit([encoder.finish()]);
+      context.present();
       // Now that the work sampling it has been submitted, end the external
       // texture's access window so the frame's surface is released promptly.
       externalTex?.destroy();

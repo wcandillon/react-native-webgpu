@@ -72,6 +72,7 @@ export const PostProcessing = () => {
         mixer.update(delta);
       }
       postProcessing.render();
+      context.present();
     }
     return () => {
       renderer.setAnimationLoop(null);

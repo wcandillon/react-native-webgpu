@@ -89,6 +89,7 @@ export const CanvasAPI = () => {
             passEncoder.end();
 
             device.queue.submit([commandEncoder.finish()]);
+            context.present();
           })()
         }
         title="check surface"
