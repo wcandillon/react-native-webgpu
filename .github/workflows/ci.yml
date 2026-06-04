@@ -147,6 +147,12 @@ jobs:
       - name: Install Android SDK
         run: echo "sdk.dir=$ANDROID_HOME" > $GITHUB_WORKSPACE/apps/example/android/local.properties
 
+      - name: Clean Android build artifacts
+        working-directory: apps/example/android
+        run: |
+          ./gradlew clean || true
+          rm -rf app/build build .gradle
+
       - name: Build example for Android
         working-directory: apps/example/android
         env:
