@@ -43,7 +43,7 @@ public:
                         &GPUSharedFence::setLabel);
   }
 
-  inline const wgpu::SharedFence get() { return _instance; }
+  inline wgpu::SharedFence get() { return _instance; }
 
 private:
   wgpu::SharedFence _instance;

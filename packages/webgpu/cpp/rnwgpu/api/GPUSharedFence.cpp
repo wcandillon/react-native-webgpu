@@ -57,7 +57,12 @@ jsi::Value GPUSharedFence::exportInfo(jsi::Runtime &runtime, const jsi::Value &,
       fdInfo.handle >= 0 ? ::fcntl(fdInfo.handle, F_DUPFD_CLOEXEC, 0) : fdInfo.handle;
   handle = static_cast<uint64_t>(static_cast<uint32_t>(exportedFd));
 #else
-  _instance.ExportInfo(&info);
+// react-native-webgpu only targets Apple (Metal) and Android (Vulkan). On any
+// other platform there is no native handle convention to expose, so fail loudly
+// rather than handing back a meaningless handle of 0.
+throw jsi::JSError(runtime,
+                    "GPUSharedFence::export(): unsupported platform (only "
+                    "Apple/Metal and Android/Vulkan are supported)");
 #endif
 
   jsi::Object result(runtime);
