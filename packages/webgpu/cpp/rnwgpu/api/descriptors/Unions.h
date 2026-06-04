@@ -513,6 +513,8 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::FeatureName::SharedTextureMemoryEGLImage;
   } else if (inUnion == "shared-fence-vk-semaphore-opaque-fd") {
     *outEnum = wgpu::FeatureName::SharedFenceVkSemaphoreOpaqueFD;
+  } else if (inUnion == "shared-fence-sync-fd") {
+    *outEnum = wgpu::FeatureName::SharedFenceSyncFD;
   } else if (inUnion == "shared-fence-vk-semaphore-zircon-handle") {
     *outEnum = wgpu::FeatureName::SharedFenceVkSemaphoreZirconHandle;
   } else if (inUnion == "shared-fence-dxgi-shared-handle") {
@@ -525,6 +527,8 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::FeatureName::StaticSamplers;
   } else if (inUnion == "ycbcr-vulkan-samplers") {
     *outEnum = wgpu::FeatureName::YCbCrVulkanSamplers;
+  } else if (inUnion == "opaque-ycbcr-android-for-external-texture") {
+    *outEnum = wgpu::FeatureName::OpaqueYCbCrAndroidForExternalTexture;
   } else if (inUnion == "shader-module-compilation-options") {
     *outEnum = wgpu::FeatureName::ShaderModuleCompilationOptions;
   } else if (inUnion == "dawn-load-resolve-texture") {
@@ -695,6 +699,9 @@ inline void convertEnumToJSUnion(wgpu::FeatureName inEnum,
   case wgpu::FeatureName::SharedFenceVkSemaphoreOpaqueFD:
     *outUnion = "shared-fence-vk-semaphore-opaque-fd";
     break;
+  case wgpu::FeatureName::SharedFenceSyncFD:
+    *outUnion = "shared-fence-sync-fd";
+    break;
   case wgpu::FeatureName::SharedFenceVkSemaphoreZirconHandle:
     *outUnion = "shared-fence-vk-semaphore-zircon-handle";
     break;
@@ -712,6 +719,9 @@ inline void convertEnumToJSUnion(wgpu::FeatureName inEnum,
     break;
   case wgpu::FeatureName::YCbCrVulkanSamplers:
     *outUnion = "ycbcr-vulkan-samplers";
+    break;
+  case wgpu::FeatureName::OpaqueYCbCrAndroidForExternalTexture:
+    *outUnion = "opaque-ycbcr-android-for-external-texture";
     break;
   case wgpu::FeatureName::ShaderModuleCompilationOptions:
     *outUnion = "shader-module-compilation-options";

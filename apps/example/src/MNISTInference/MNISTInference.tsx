@@ -1,3 +1,4 @@
+import { useRoot } from "@typegpu/react";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Button, Dimensions, Platform, StyleSheet, View } from "react-native";
 import type { SkImage, SkSurface } from "@shopify/react-native-skia";
@@ -16,7 +17,6 @@ import {
 } from "@shopify/react-native-skia";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS, runOnUI, useSharedValue } from "react-native-reanimated";
-import { useDevice } from "react-native-webgpu";
 
 import type { Network } from "./Lib";
 import { createDemo, centerData, SIZE } from "./Lib";
@@ -55,7 +55,7 @@ for (let i = 0; i <= SIZE; i++) {
 const f = 1 / cellSize;
 
 export function MNISTInference() {
-  const { device } = useDevice();
+  const root = useRoot();
   const network = useRef<Network>();
   const text = useSharedValue("");
   const path = useSharedValue(Skia.Path.Make());
@@ -102,15 +102,13 @@ export function MNISTInference() {
 
   useEffect(() => {
     (async () => {
-      if (device) {
-        const demo = await createDemo(device);
-        network.current = demo.network;
-      }
+      const demo = await createDemo(root);
+      network.current = demo.network;
       runOnUI(() => {
         surface.value = Skia.Surface.MakeOffscreen(SIZE, SIZE)!;
       })();
     })();
-  }, [device, network, surface]);
+  }, [root, network, surface]);
   return (
     <View style={style.container}>
       <Button

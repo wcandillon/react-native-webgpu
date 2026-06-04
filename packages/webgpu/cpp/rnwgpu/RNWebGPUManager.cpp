@@ -31,12 +31,15 @@
 #include "GPURenderPassEncoder.h"
 #include "GPURenderPipeline.h"
 #include "GPUSampler.h"
+#include "GPUSharedTextureMemory.h"
 #include "GPUShaderModule.h"
 #include "GPUSupportedLimits.h"
 #include "GPUTexture.h"
 #include "GPUTextureView.h"
 #include "GPUUncapturedErrorEvent.h"
 #include "GPUValidationError.h"
+#include "VideoFrame.h"
+#include "VideoPlayer.h"
 
 // Enums
 #include "GPUBufferUsage.h"
@@ -64,6 +67,12 @@ RNWebGPUManager::RNWebGPUManager(
   auto rnWebGPU =
       std::make_shared<RNWebGPU>(gpu, _platformContext, _jsCallInvoker);
   _gpu = gpu->get();
+
+  // RNWebGPU needs its brand registered in NativeObjectRegistry so the boxing
+  // path can install the prototype on worklet runtimes. installConstructor
+  // does that registration but also sets globalThis.RNWebGPU = ctor, so we
+  // call it FIRST and then overwrite the global with the actual instance.
+  RNWebGPU::installConstructor(*_jsRuntime);
   _jsRuntime->global().setProperty(*_jsRuntime, "RNWebGPU",
                                    RNWebGPU::create(*_jsRuntime, rnWebGPU));
 
@@ -97,10 +106,13 @@ RNWebGPUManager::RNWebGPUManager(
   GPURenderPassEncoder::installConstructor(*_jsRuntime);
   GPURenderPipeline::installConstructor(*_jsRuntime);
   GPUSampler::installConstructor(*_jsRuntime);
+  GPUSharedTextureMemory::installConstructor(*_jsRuntime);
   GPUShaderModule::installConstructor(*_jsRuntime);
   GPUSupportedLimits::installConstructor(*_jsRuntime);
   GPUTexture::installConstructor(*_jsRuntime);
   GPUTextureView::installConstructor(*_jsRuntime);
+  VideoFrame::installConstructor(*_jsRuntime);
+  VideoPlayer::installConstructor(*_jsRuntime);
 
   // Install constant objects as plain JS objects with own properties
   _jsRuntime->global().setProperty(*_jsRuntime, "GPUBufferUsage",

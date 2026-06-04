@@ -5,11 +5,14 @@
 
 #include "NativeObject.h"
 
+#include "ArrayBuffer.h"
 #include "Canvas.h"
 #include "GPU.h"
 #include "GPUCanvasContext.h"
 #include "ImageBitmap.h"
 #include "PlatformContext.h"
+#include "VideoFrame.h"
+#include "VideoPlayer.h"
 
 #include <ReactCommon/CallInvoker.h>
 
@@ -88,32 +91,29 @@ public:
     auto callInvoker = _callInvoker;
 
     // Check if the argument is an ArrayBuffer or ArrayBufferView
-    // (TypedArray / DataView)
+    // (TypedArray / DataView). Only a real buffer source is run through the
+    // ArrayBuffer converter, which validates byteOffset/byteLength against the
+    // backing buffer and throws on an out-of-bounds (or spoofed) view. Anything
+    // else (e.g. a Blob) is left to the fall-through path below, so its errors
+    // are not misreported as bounds errors here.
     if (args[0].isObject()) {
       auto obj = args[0].getObject(runtime);
 
-      std::span<const uint8_t> data;
-
-      if (obj.isArrayBuffer(runtime)) {
-        // Plain ArrayBuffer — use the full buffer
-        const auto &ab = obj.getArrayBuffer(runtime);
-        data = {ab.data(runtime), ab.size(runtime)};
-      } else if (obj.hasProperty(runtime, "buffer")) {
-        // TypedArray or DataView — respect byteOffset/byteLength
-        auto bufferVal = obj.getProperty(runtime, "buffer");
-        if (bufferVal.isObject() &&
-            bufferVal.getObject(runtime).isArrayBuffer(runtime)) {
-          const auto &ab = bufferVal.getObject(runtime).getArrayBuffer(runtime);
-          auto byteOffset = static_cast<size_t>(
-              obj.getProperty(runtime, "byteOffset").asNumber());
-          auto byteLength = static_cast<size_t>(
-              obj.getProperty(runtime, "byteLength").asNumber());
-          data = {ab.data(runtime) + byteOffset, byteLength};
-        }
+      bool isBufferSource = obj.isArrayBuffer(runtime);
+      if (!isBufferSource && obj.hasProperty(runtime, "buffer")) {
+        auto bufferProp = obj.getProperty(runtime, "buffer");
+        isBufferSource = bufferProp.isObject() &&
+                         bufferProp.getObject(runtime).isArrayBuffer(runtime);
       }
 
-      if (!data.empty()) {
-        // Copy bytes on the JS thread — the ArrayBuffer pointer is into
+      if (isBufferSource) {
+        // Bounds violations propagate out of fromJSI so the call rejects
+        // rather than reading out of bounds below.
+        auto buffer = JSIConverter<std::shared_ptr<ArrayBuffer>>::fromJSI(
+            runtime, args[0], false);
+        std::span<const uint8_t> data{buffer->data(), buffer->size()};
+
+        // Copy bytes on the JS thread: the ArrayBuffer pointer is into
         // JS-owned memory that can be GC'd
         std::vector<uint8_t> dataCopy(data.begin(), data.end());
 
@@ -168,6 +168,38 @@ public:
         });
   }
 
+  std::shared_ptr<VideoFrame> loadVideoFrame(std::string path) {
+    auto frame = _platformContext->loadVideoFrame(path);
+    return std::make_shared<VideoFrame>(std::move(frame));
+  }
+
+  std::shared_ptr<VideoFrame> createTestVideoFrame(double width, double height) {
+    auto frame = _platformContext->createTestVideoFrame(
+        static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+    return std::make_shared<VideoFrame>(std::move(frame));
+  }
+
+  // Wrap a CVPixelBufferRef / AHardwareBuffer* pointer (typed as void* via
+  // BigInt on the JS side) into one of our VideoFrames. The native side
+  // CFRetains / acquires so the caller can release immediately.
+  std::shared_ptr<VideoFrame> createVideoFrameFromNativeBuffer(void *pointer) {
+    auto handle = _platformContext->wrapNativeBuffer(pointer);
+    return std::make_shared<VideoFrame>(std::move(handle));
+  }
+
+  std::shared_ptr<VideoPlayer>
+  createVideoPlayer(std::string path, std::optional<std::string> pixelFormat) {
+    auto format = (pixelFormat && pixelFormat.value() == "nv12")
+                      ? VideoPixelFormat::NV12
+                      : VideoPixelFormat::BGRA8;
+    auto impl = _platformContext->createVideoPlayer(path, format);
+    return std::make_shared<VideoPlayer>(std::move(impl));
+  }
+
+  std::string writeTestVideoFile() {
+    return _platformContext->writeTestVideoFile();
+  }
+
   std::shared_ptr<Canvas> getNativeSurface(int contextId) {
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     auto info = registry.getSurfaceInfo(contextId);
@@ -188,6 +220,16 @@ public:
                   &RNWebGPU::getNativeSurface);
     installMethod(runtime, prototype, "MakeWebGPUCanvasContext",
                   &RNWebGPU::MakeWebGPUCanvasContext);
+    installMethod(runtime, prototype, "loadVideoFrame",
+                  &RNWebGPU::loadVideoFrame);
+    installMethod(runtime, prototype, "createTestVideoFrame",
+                  &RNWebGPU::createTestVideoFrame);
+    installMethod(runtime, prototype, "createVideoFrameFromNativeBuffer",
+                  &RNWebGPU::createVideoFrameFromNativeBuffer);
+    installMethod(runtime, prototype, "createVideoPlayer",
+                  &RNWebGPU::createVideoPlayer);
+    installMethod(runtime, prototype, "writeTestVideoFile",
+                  &RNWebGPU::writeTestVideoFile);
   }
 
 private:

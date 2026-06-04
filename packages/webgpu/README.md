@@ -222,6 +222,90 @@ device.queue.copyExternalImageToTexture(
 );
 ```
 
+### Shared Texture Memory
+
+React Native WebGPU exposes Dawn's `SharedTextureMemory` so you can import a native pixel surface (an `IOSurface`-backed `CVPixelBuffer` on iOS, an `AHardwareBuffer` on Android) as a sampleable `GPUTexture` without copying pixels through the CPU. This is the path you want for camera frames, video frames, or anything coming out of a hardware producer.
+
+Like `importExternalTexture` on the web, this is **enabled by default**, there is nothing to request at device creation. The only thing to check is that the device supports it before importing. It always does on iOS/macOS; it can be missing on some Android drivers and emulators.
+
+```tsx
+import type { NativeVideoFrame } from "react-native-wgpu";
+
+const adapter = await navigator.gpu.requestAdapter();
+const device = await adapter!.requestDevice();
+
+// On by default when supported; this is the only check you need.
+if (!device.features.has("rnwebgpu/native-texture" as GPUFeatureName)) {
+  return; // rare: some Android drivers/emulators can't import native surfaces
+}
+
+// `frame` here is a NativeVideoFrame whose .handle is the native surface
+// (IOSurfaceRef / AHardwareBuffer*). NativeVideoFrames are produced by helpers
+// like RNWebGPU.createVideoPlayer or RNWebGPU.createTestVideoFrame, or by
+// any third-party module that hands you a compatible native pointer.
+const memory = device.importSharedTextureMemory({
+  handle: frame.handle,
+  label: "video-frame",
+});
+const texture = memory.createTexture();
+
+memory.beginAccess(texture, /* initialized */ true);
+// ... bind `texture` into a sampler and render normally ...
+memory.endAccess(texture);
+
+texture.destroy();
+frame.release();
+```
+
+`beginAccess`/`endAccess` bracket the GPU's read window on the shared surface. Pass `initialized: true` when the producer has already written meaningful pixels (the typical video/camera case) and `false` when the next pass will fully overwrite the texture.
+
+### Importing External Textures
+
+`GPUDevice.importExternalTexture` is the higher-level path for sampling a native surface. You hand it a `NativeVideoFrame` and get back a `GPUExternalTexture` that you bind as a `texture_external` and read with `textureSampleBaseClampToEdge`. It does two things for you on top of `SharedTextureMemory`:
+
+- **Color conversion.** Camera and video surfaces are usually biplanar YUV (NV12), not RGB. An external texture carries the YUV→RGB matrix and the source/destination color-space transfer functions, so on the supported paths the sampler returns ready-to-use RGB in hardware. With raw `SharedTextureMemory` you would sample the luma/chroma planes and do that conversion by hand in WGSL. This is the main reason to prefer it for camera and video frames.
+- **Lifecycle.** It owns the `SharedTextureMemory` + `createTexture` + `beginAccess`/`endAccess` sequence internally, so you just import the frame and `destroy()` the result.
+
+It builds on the same default-on capability as Shared Texture Memory above, so feature-detect the device the same way before importing.
+
+> **Android note:** the hardware YUV→RGB conversion is fully automatic on iOS (NV12 `IOSurface`). On Android, camera frames arrive as an _opaque_ YCbCr `AHardwareBuffer`, and Dawn's Vulkan path forces an identity (`RGB_IDENTITY`) sampler conversion, so the external sample comes back as raw `[Y, Cb, Cr]`. You still get the zero-copy import and the rotation/mirror transform, but you need to apply the YUV→RGB matrix yourself in the shader. See the `CAMERA_PRELUDE` in the [VisionCamera example](/apps/example/src/VisionCamera/shaders.ts) for a ready-made BT.709 decode.
+
+```tsx
+const adapter = await navigator.gpu.requestAdapter();
+const device = await adapter!.requestDevice();
+// Feature-detect as shown above before importing on unsupported hardware.
+
+const render = () => {
+  // A GPUExternalTexture expires once the queue work that used it is submitted,
+  // so re-import one every frame.
+  const externalTexture = device.importExternalTexture({
+    source: frame, // a NativeVideoFrame
+    label: "video-frame",
+  });
+
+  const bindGroup = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: externalTexture },
+      { binding: 1, resource: sampler },
+    ],
+  });
+
+  // ... encode a pass that samples `externalTexture`, then:
+  device.queue.submit([encoder.finish()]);
+
+  // Release the surface's access window right after the submit that sampled it.
+  externalTexture.destroy();
+  context.present();
+};
+```
+
+Camera frames arrive in the sensor's native orientation, so `importExternalTexture` also accepts non-spec `rotation` (`0` | `90` | `180` | `270`, in degrees) and `mirrored` (horizontal flip) options. Dawn bakes them into the sampling transform, so the shader sees an upright frame. They map directly onto VisionCamera's `frame.orientation` / `frame.isMirrored`.
+
+#### Calling `destroy()`
+
+A `GPUExternalTexture` keeps an open access window on the underlying native surface until the wrapper is destroyed. On the Web `importExternalTexture` is core and the lifetime is handled for you; here the window is tied to the JavaScript object's lifetime. Call `externalTexture.destroy()` right after the `queue.submit()` that sampled it (never before) to release the surface back to its producer immediately. `destroy()` is idempotent, and the surface is also released when the object is garbage-collected, but relying on GC can starve a producer's buffer pool (e.g. an `AVPlayer`'s recycled `IOSurface`s) and pile up GPU resources, so prefer the explicit call in a render loop.
+
 ### Reanimated Integration
 
 React Native WebGPU supports running WebGPU rendering on the UI thread using [React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/) and [React Native Worklets](https://github.com/margelo/react-native-worklets).

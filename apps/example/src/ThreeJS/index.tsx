@@ -10,6 +10,7 @@ import { Backdrop } from "./Backdrop";
 import { InstancedMesh } from "./InstancedMesh";
 import { Fiber } from "./Fiber";
 import { PostProcessing } from "./PostProcessing";
+import { Retargeting } from "./Retargeting";
 
 const Stack = createStackNavigator<Routes>();
 export const ThreeJS = () => {
@@ -70,6 +71,13 @@ export const ThreeJS = () => {
         component={Helmet}
         options={{
           title: "⛑️ Helmet",
+        }}
+      />
+      <Stack.Screen
+        name="Retargeting"
+        component={Retargeting}
+        options={{
+          title: "🕺 Animation Retargeting",
         }}
       />
     </Stack.Navigator>

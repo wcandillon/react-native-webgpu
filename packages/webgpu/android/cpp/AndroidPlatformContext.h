@@ -1,8 +1,10 @@
 #pragma once
 
 #include <android/bitmap.h>
+#include <android/hardware_buffer.h>
 #include <jni.h>
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <string>
@@ -201,6 +203,125 @@ public:
         onError(e.what());
       }
     }).detach();
+  }
+
+  VideoFrameHandle loadVideoFrame(const std::string & /*path*/) override {
+    // TODO: implement using MediaExtractor + MediaCodec to decode the first
+    // frame into an AHardwareBuffer-backed Image (Android API 26+).
+    throw std::runtime_error(
+        "loadVideoFrame is not yet implemented on Android. Pass an "
+        "AHardwareBuffer pointer obtained elsewhere (e.g. from "
+        "react-native-vision-camera) directly to "
+        "device.importSharedTextureMemory.");
+  }
+
+  VideoFrameHandle createTestVideoFrame(uint32_t width,
+                                        uint32_t height) override {
+    // Dawn's Android backend already requires API 26+, so AHardwareBuffer_*
+    // symbols are guaranteed to be available at link time on supported builds.
+    AHardwareBuffer_Desc desc = {};
+    desc.width = width;
+    desc.height = height;
+    desc.layers = 1;
+    desc.format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
+    desc.usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE |
+                 AHARDWAREBUFFER_USAGE_CPU_WRITE_RARELY |
+                 AHARDWAREBUFFER_USAGE_CPU_READ_RARELY;
+
+    AHardwareBuffer *buffer = nullptr;
+    int err = AHardwareBuffer_allocate(&desc, &buffer);
+    if (err != 0 || !buffer) {
+      throw std::runtime_error(
+          "createTestVideoFrame: AHardwareBuffer_allocate failed (" +
+          std::to_string(err) + ")");
+    }
+
+    AHardwareBuffer_Desc actualDesc = {};
+    AHardwareBuffer_describe(buffer, &actualDesc);
+    const uint32_t stridePixels = actualDesc.stride;
+
+    void *vaddr = nullptr;
+    int rc = AHardwareBuffer_lock(buffer, AHARDWAREBUFFER_USAGE_CPU_WRITE_RARELY,
+                                  -1, nullptr, &vaddr);
+    if (rc != 0 || !vaddr) {
+      AHardwareBuffer_release(buffer);
+      throw std::runtime_error(
+          "createTestVideoFrame: AHardwareBuffer_lock failed (" +
+          std::to_string(rc) + ")");
+    }
+
+    // Same procedural pattern as ApplePlatformContext::createTestVideoFrame so
+    // the shared snapshot matches on both platforms. Apple writes BGRA bytes
+    // (CVPixelBuffer is kCVPixelFormatType_32BGRA, sampled as bgra8unorm);
+    // here we write RGBA bytes (AHardwareBuffer is R8G8B8A8_UNORM, sampled as
+    // rgba8unorm). The fragment shader sees the same logical (r, g, b, a).
+    uint8_t *base = static_cast<uint8_t *>(vaddr);
+    const size_t rowBytes = stridePixels * 4;
+    for (uint32_t y = 0; y < height; ++y) {
+      uint8_t *row = base + y * rowBytes;
+      for (uint32_t x = 0; x < width; ++x) {
+        uint8_t r = static_cast<uint8_t>((x * 255) / std::max(width - 1, 1u));
+        uint8_t g = static_cast<uint8_t>((y * 255) / std::max(height - 1, 1u));
+        uint8_t b = static_cast<uint8_t>(((x + y) & 0x20) ? 220 : 30);
+        row[x * 4 + 0] = r;
+        row[x * 4 + 1] = g;
+        row[x * 4 + 2] = b;
+        row[x * 4 + 3] = 0xFF;
+      }
+    }
+    AHardwareBuffer_unlock(buffer, nullptr);
+
+    VideoFrameHandle handle;
+    handle.handle = static_cast<void *>(buffer);
+    handle.width = width;
+    handle.height = height;
+    handle.deleter = [buffer]() { AHardwareBuffer_release(buffer); };
+    return handle;
+  }
+
+  std::unique_ptr<IVideoPlayer>
+  createVideoPlayer(const std::string & /*path*/,
+                    VideoPixelFormat /*format*/) override {
+    // TODO: implement using MediaCodec -> ImageReader (AHardwareBuffer mode).
+    throw std::runtime_error(
+        "createVideoPlayer is not yet implemented on Android.");
+  }
+
+  std::string writeTestVideoFile() override {
+    // TODO: implement using MediaCodec (H.264 encoder) or MediaMuxer.
+    throw std::runtime_error(
+        "writeTestVideoFile is not yet implemented on Android.");
+  }
+
+  VideoFrameHandle wrapNativeBuffer(void *pointer) override {
+    if (!pointer) {
+      throw std::runtime_error("wrapNativeBuffer: pointer is null");
+    }
+    auto *buffer = static_cast<AHardwareBuffer *>(pointer);
+
+    AHardwareBuffer_Desc desc = {};
+    AHardwareBuffer_describe(buffer, &desc);
+
+    AHardwareBuffer_acquire(buffer);
+
+    VideoFrameHandle handle;
+    handle.handle = static_cast<void *>(buffer);
+    handle.width = desc.width;
+    handle.height = desc.height;
+    // YUV / opaque formats route through Vulkan's SamplerYcbcrConversion via
+    // Dawn's OpaqueYCbCrAndroidForExternalTexture path. Single-plane RGBA AHBs
+    // take the plain BGRA8 path (sampled as a regular 2D texture).
+    switch (desc.format) {
+      case AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420:
+      case AHARDWAREBUFFER_FORMAT_YCbCr_P010:
+        handle.pixelFormat = VideoPixelFormat::NV12;
+        break;
+      default:
+        handle.pixelFormat = VideoPixelFormat::BGRA8;
+        break;
+    }
+    handle.deleter = [buffer]() { AHardwareBuffer_release(buffer); };
+    return handle;
   }
 };
 

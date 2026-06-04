@@ -1,132 +1,47 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, PixelRatio, StyleSheet, Text, View } from "react-native";
-import type { CanvasRef } from "react-native-webgpu";
-import { Canvas, useDevice } from "react-native-webgpu";
-import * as d from "typegpu/data";
-import tgpu, { type TgpuBindGroup, type TgpuBuffer } from "typegpu";
-
-import { vertWGSL, fragWGSL } from "./gradientWgsl";
-
-const Span = d.struct({
-  x: d.u32,
-  y: d.u32,
-});
-
-const bindGroupLayout = tgpu.bindGroupLayout({
-  span: { uniform: Span },
-});
-
-interface RenderingState {
-  pipeline: GPURenderPipeline;
-  spanBuffer: TgpuBuffer<typeof Span>;
-  bindGroup: TgpuBindGroup<(typeof bindGroupLayout)["entries"]>;
-}
-
-function useRoot() {
-  const { device } = useDevice();
-
-  return useMemo(
-    () => (device ? tgpu.initFromDevice({ device }) : null),
-    [device],
-  );
-}
+import { useMemo, useState } from "react";
+import { Button, StyleSheet, Text, View } from "react-native";
+import { Canvas } from "react-native-webgpu";
+import { common, d, std } from "typegpu";
+import {
+  useConfigureContext,
+  useFrame,
+  useMirroredUniform,
+  useRoot,
+} from "@typegpu/react";
 
 export function GradientTiles() {
-  const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-  const [state, setState] = useState<null | RenderingState>(null);
+  const root = useRoot();
+
   const [spanX, setSpanX] = useState(4);
   const [spanY, setSpanY] = useState(4);
-  const root = useRoot();
-  const { device = null } = root ?? {};
-  const ref = useRef<CanvasRef>(null);
 
-  useEffect(() => {
-    if (!device || !root || state !== null) {
-      return;
-    }
-    const context = ref.current?.getContext("webgpu")!;
+  // Mirroring React state on the GPU as a uniform
+  const span = useMirroredUniform(d.vec2u, d.vec2u(spanX, spanY));
 
-    const canvas = context.canvas as HTMLCanvasElement;
-    canvas.width = canvas.clientWidth * PixelRatio.get();
-    canvas.height = canvas.clientHeight * PixelRatio.get();
-    context.configure({
-      device,
-      format: presentationFormat,
-    });
-
-    const spanBuffer = root
-      .createBuffer(Span, { x: 10, y: 10 })
-      .$usage("uniform");
-
-    const shader = device.createShaderModule({
-      code: tgpu.resolve({
-        template: `${vertWGSL} ${fragWGSL}`,
-        externals: {
-          _EXT_: {
-            span: bindGroupLayout.bound.span,
-          },
-        },
-      }),
-    });
-
-    const pipeline = device.createRenderPipeline({
-      layout: device.createPipelineLayout({
-        bindGroupLayouts: [root.unwrap(bindGroupLayout)],
-      }),
-      vertex: {
-        module: shader,
-      },
-      fragment: {
-        module: shader,
-        targets: [
-          {
-            format: presentationFormat,
-          },
-        ],
-      },
-      primitive: {
-        topology: "triangle-strip",
+  const pipeline = useMemo(() => {
+    // Defining a full-screen shader
+    return root.createRenderPipeline({
+      vertex: common.fullScreenTriangle,
+      fragment: ({ uv }) => {
+        "use gpu";
+        const red = std.floor(uv.x * d.f32(span.$.x)) / d.f32(span.$.x);
+        const green = std.floor(uv.y * d.f32(span.$.y)) / d.f32(span.$.y);
+        return d.vec4f(red, green, 0.5, 1.0);
       },
     });
+  }, [root, span]);
 
-    const bindGroup = root.createBindGroup(bindGroupLayout, {
-      span: spanBuffer,
-    });
+  const { ref, ctxRef } = useConfigureContext();
 
-    setState({ bindGroup, pipeline, spanBuffer });
-  }, [ref, device, root, presentationFormat, state]);
+  useFrame(() => {
+    const ctx = ctxRef.current;
+    if (!ctx) return;
 
-  useEffect(() => {
-    if (!device || !root || !state) {
-      return;
-    }
+    // Drawing to the canvas each frame
+    pipeline.withColorAttachment({ view: ctx }).draw(3);
 
-    const { bindGroup, pipeline, spanBuffer } = state;
-    const context = ref.current?.getContext("webgpu")!;
-    const textureView = context.getCurrentTexture().createView();
-    const renderPassDescriptor: GPURenderPassDescriptor = {
-      colorAttachments: [
-        {
-          view: textureView,
-          clearValue: [0, 0, 0, 0],
-          loadOp: "clear",
-          storeOp: "store",
-        },
-      ],
-    };
-
-    spanBuffer.write({ x: spanX, y: spanY });
-
-    const commandEncoder = device.createCommandEncoder();
-    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-    passEncoder.setPipeline(pipeline);
-    passEncoder.setBindGroup(0, root.unwrap(bindGroup));
-    passEncoder.draw(4);
-    passEncoder.end();
-
-    device.queue.submit([commandEncoder.finish()]);
-    context.present();
-  }, [ref, device, root, spanX, spanY, state]);
+    ctx.present?.();
+  });
 
   return (
     <View style={style.container}>

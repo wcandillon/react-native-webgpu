@@ -1,24 +1,32 @@
-import React, { useCallback, useRef } from "react";
-import tgpu from "typegpu";
-import * as d from "typegpu/data";
+import React, { useCallback, useMemo, useRef } from "react";
+import type { TgpuBuffer } from "typegpu";
+import tgpu, { d, std } from "typegpu";
 import { StyleSheet, View, Text, Button } from "react-native";
 import { Canvas } from "react-native-webgpu";
+import {
+  useBindGroup,
+  useBuffer,
+  useConfigureContext,
+  useFrame,
+  useRoot,
+  useUniform,
+} from "@typegpu/react";
 
-import { useWebGPU } from "../components/useWebGPU";
-import { toBeAssignedLater } from "../components/utils";
+function rotate(v: d.v2f, angle: number): d.v2f {
+  "use gpu";
+  let pos = d.vec2f(
+    v.x * std.cos(angle) - v.y * std.sin(angle),
+    v.x * std.sin(angle) + v.y * std.cos(angle),
+  );
+  return pos;
+}
 
-import { renderCode, computeCode } from "./Shaders";
+function getRotationFromVelocity(velocity: d.v2f): number {
+  "use gpu";
+  return -std.atan2(velocity.x, velocity.y);
+}
 
-type BoidsOptions = {
-  separationDistance: number;
-  separationStrength: number;
-  alignmentDistance: number;
-  alignmentStrength: number;
-  cohesionDistance: number;
-  cohesionStrength: number;
-};
-
-const Parameters = d.struct({
+const PhysicsParams = d.struct({
   separationDistance: d.f32,
   separationStrength: d.f32,
   alignmentDistance: d.f32,
@@ -26,23 +34,23 @@ const Parameters = d.struct({
   cohesionDistance: d.f32,
   cohesionStrength: d.f32,
 });
+type PhysicsParams = d.InferGPU<typeof PhysicsParams>;
 
-const TriangleData = d.struct({
+const BoidData = d.struct({
   position: d.vec2f,
   velocity: d.vec2f,
 });
 
-const TriangleDataArray = (n: number) => d.arrayOf(TriangleData, n);
+const BoidDataArray = d.arrayOf(BoidData);
 
-const renderBindGroupLayout = tgpu.bindGroupLayout({
-  trianglePos: { storage: TriangleDataArray },
-  colorPalette: { uniform: d.vec3f },
+const renderLayout = tgpu.bindGroupLayout({
+  boids: { storage: BoidDataArray },
 });
 
-const computeBindGroupLayout = tgpu.bindGroupLayout({
-  currentTrianglePos: { storage: TriangleDataArray },
-  nextTrianglePos: { storage: TriangleDataArray, access: "mutable" },
-  params: { uniform: Parameters },
+const computeLayout = tgpu.bindGroupLayout({
+  params: { uniform: PhysicsParams },
+  currentBoids: { storage: BoidDataArray },
+  nextBoids: { storage: BoidDataArray, access: "mutable" },
 });
 
 const colorPresets = {
@@ -51,7 +59,7 @@ const colorPresets = {
   greyscale: d.vec3f(0, 0, 0),
   hotcold: d.vec3f(0, 3.14, 3.14),
 } as const;
-type ColorPresets = keyof typeof colorPresets;
+type ColorPreset = keyof typeof colorPresets;
 
 const presets = {
   default: {
@@ -88,206 +96,179 @@ const presets = {
   },
 } as const;
 
+const triangleSize = 0.03;
+
+const triangleVertices = tgpu.const(d.arrayOf(d.vec2f), [
+  d.vec2f(0, triangleSize),
+  d.vec2f(-triangleSize / 2, -triangleSize / 2),
+  d.vec2f(triangleSize / 2, -triangleSize / 2),
+]);
+
+const boidCount = 1000;
+
+function randomizeBoids(buffer: TgpuBuffer<ReturnType<typeof BoidDataArray>>) {
+  const data = Array.from({ length: boidCount }, () => ({
+    position: d.vec2f(Math.random() * 2 - 1, Math.random() * 2 - 1),
+    velocity: d.vec2f(Math.random() * 0.1 - 0.05, Math.random() * 0.1 - 0.05),
+  }));
+
+  buffer.write(data);
+}
+
+function simulate(boidIdx: number) {
+  "use gpu";
+  // eslint-disable-next-line prefer-destructuring
+  const params = computeLayout.$.params;
+  // eslint-disable-next-line prefer-destructuring
+  const currentBoids = computeLayout.$.currentBoids;
+
+  const instanceInfo = BoidData(currentBoids[boidIdx]);
+  let separation = d.vec2f();
+  let alignment = d.vec2f();
+  let alignmentCount = d.u32(0);
+  let cohesion = d.vec2f();
+  let cohesionCount = d.u32(0);
+
+  for (let i = 0; i < currentBoids.length; i++) {
+    if (i === boidIdx) {
+      continue;
+    }
+    const other = currentBoids[i];
+    const dist = std.distance(instanceInfo.position, other.position);
+    if (dist < params.separationDistance) {
+      separation = separation.add(instanceInfo.position.sub(other.position));
+    }
+    if (dist < params.alignmentDistance) {
+      alignment = alignment.add(other.velocity);
+      alignmentCount++;
+    }
+    if (dist < params.cohesionDistance) {
+      cohesion = cohesion.add(other.position);
+      cohesionCount++;
+    }
+  }
+  if (alignmentCount > 0) {
+    alignment = alignment.div(alignmentCount);
+  }
+  if (cohesionCount > 0) {
+    cohesion = cohesion.div(cohesionCount).sub(instanceInfo.position);
+  }
+  instanceInfo.velocity = instanceInfo.velocity.add(
+    separation
+      .mul(params.separationStrength)
+      .add(alignment.mul(params.alignmentStrength))
+      .add(cohesion.mul(params.cohesionStrength)),
+  );
+  instanceInfo.velocity = std
+    .normalize(instanceInfo.velocity)
+    .mul(std.clamp(std.length(instanceInfo.velocity), 0.0, 0.01));
+
+  if (instanceInfo.position[0] > 1.0 + triangleSize) {
+    instanceInfo.position[0] = -1.0 - triangleSize;
+  }
+  if (instanceInfo.position[1] > 1.0 + triangleSize) {
+    instanceInfo.position[1] = -1.0 - triangleSize;
+  }
+  if (instanceInfo.position[0] < -1.0 - triangleSize) {
+    instanceInfo.position[0] = 1.0 + triangleSize;
+  }
+  if (instanceInfo.position[1] < -1.0 - triangleSize) {
+    instanceInfo.position[1] = 1.0 + triangleSize;
+  }
+  instanceInfo.position = instanceInfo.position.add(instanceInfo.velocity);
+  computeLayout.$.nextBoids[boidIdx] = BoidData(instanceInfo);
+}
+
 export function ComputeBoids() {
-  const randomizePositions = useRef<() => void>(() => {});
-  const updateParams = useRef<(newOptions: BoidsOptions) => void>(() => {});
-  const updateColorPreset = useRef<(newColorPreset: ColorPresets) => void>(
-    () => {},
+  const root = useRoot();
+
+  const colorPalette = useUniform(d.vec3f, { initial: colorPresets.jeans });
+  const physicsParams = useUniform(PhysicsParams, { initial: presets.default });
+
+  // Storing the state in two buffers, and swapping between which one is the input and which one is the output.
+  // Also known as "double-buffering"
+  const boidsA = useBuffer(BoidDataArray(boidCount), {
+    initial: randomizeBoids,
+  }).$usage("storage");
+  const boidsB = useBuffer(BoidDataArray(boidCount)).$usage("storage");
+
+  const computePipeline = useMemo(() => {
+    return root.createGuardedComputePipeline(simulate);
+  }, [root]);
+
+  const renderPipeline = useMemo(() => {
+    return root.createRenderPipeline({
+      vertex: ({ $instanceIndex: boidIdx, $vertexIndex: vi }) => {
+        "use gpu";
+        const boid = renderLayout.$.boids[boidIdx];
+
+        const angle = getRotationFromVelocity(boid.velocity);
+
+        const local = triangleVertices.$[vi];
+        const rotated = rotate(local, angle);
+        const pos = rotated.add(boid.position);
+
+        const color = std.sin(colorPalette.$.add(angle)).mul(0.45).add(0.45);
+
+        return {
+          $position: d.vec4f(pos, 0, 1),
+          color: color,
+        };
+      },
+      fragment: ({ color }) => {
+        "use gpu";
+        return d.vec4f(color, 1);
+      },
+    });
+  }, [root, colorPalette]);
+
+  const updateColorPreset = useCallback(
+    (preset: ColorPreset) => {
+      colorPalette.write(colorPresets[preset]);
+    },
+    [colorPalette],
   );
 
-  const ref = useWebGPU(({ context, device, presentationFormat }) => {
-    const root = tgpu.initFromDevice({ device });
+  const { ref, ctxRef } = useConfigureContext({ alphaMode: "premultiplied" });
 
-    context.configure({
-      device,
-      format: presentationFormat,
-      alphaMode: "premultiplied",
-    });
+  const renderGroupA = useBindGroup(renderLayout, { boids: boidsA });
+  const renderGroupB = useBindGroup(renderLayout, { boids: boidsB });
 
-    const paramsBuffer = root
-      .createBuffer(Parameters, presets.default)
-      .$usage("uniform");
-
-    const triangleSize = 0.03;
-    const triangleVertexBuffer = root
-      .createBuffer(d.arrayOf(d.f32, 6), [
-        0.0,
-        triangleSize,
-        -triangleSize / 2,
-        -triangleSize / 2,
-        triangleSize / 2,
-        -triangleSize / 2,
-      ])
-      .$usage("vertex");
-
-    const triangleAmount = 1000;
-    const trianglePosBuffers = Array.from({ length: 2 }, () =>
-      root.createBuffer(TriangleDataArray(triangleAmount)).$usage("storage"),
-    );
-
-    randomizePositions.current = () => {
-      const positions = Array.from({ length: triangleAmount }, () => ({
-        position: d.vec2f(Math.random() * 2 - 1, Math.random() * 2 - 1),
-        velocity: d.vec2f(
-          Math.random() * 0.1 - 0.05,
-          Math.random() * 0.1 - 0.05,
-        ),
-      }));
-      trianglePosBuffers[0].write(positions);
-      trianglePosBuffers[1].write(positions);
-    };
-    randomizePositions.current();
-
-    const colorPaletteBuffer = root
-      .createBuffer(d.vec3f, colorPresets.plumTree)
-      .$usage("uniform");
-
-    updateColorPreset.current = (newColorPreset: ColorPresets) => {
-      colorPaletteBuffer.write(colorPresets[newColorPreset]);
-    };
-
-    updateParams.current = (newOptions: BoidsOptions) => {
-      paramsBuffer.write(newOptions);
-    };
-
-    const renderModule = device.createShaderModule({
-      code: tgpu.resolve({
-        template: renderCode,
-        externals: {
-          _EXT_: {
-            ...renderBindGroupLayout.bound,
-          },
-        },
-      }),
-    });
-
-    const computeModule = device.createShaderModule({
-      code: tgpu.resolve({
-        template: computeCode,
-        externals: {
-          _EXT_: {
-            ...computeBindGroupLayout.bound,
-          },
-        },
-      }),
-    });
-
-    const pipeline = device.createRenderPipeline({
-      layout: device.createPipelineLayout({
-        bindGroupLayouts: [root.unwrap(renderBindGroupLayout)],
-      }),
-      vertex: {
-        module: renderModule,
-        buffers: [
-          {
-            arrayStride: 2 * 4,
-            attributes: [
-              {
-                shaderLocation: 0,
-                offset: 0,
-                format: "float32x2" as const,
-              },
-            ],
-          },
-        ],
-      },
-      fragment: {
-        module: renderModule,
-        targets: [
-          {
-            format: presentationFormat,
-          },
-        ],
-      },
-      primitive: {
-        topology: "triangle-list",
-      },
-    });
-
-    const computePipeline = device.createComputePipeline({
-      layout: device.createPipelineLayout({
-        bindGroupLayouts: [root.unwrap(computeBindGroupLayout)],
-      }),
-      compute: {
-        module: computeModule,
-      },
-    });
-
-    const renderBindGroups = [0, 1].map((idx) =>
-      root.createBindGroup(renderBindGroupLayout, {
-        trianglePos: trianglePosBuffers[idx],
-        colorPalette: colorPaletteBuffer,
-      }),
-    );
-
-    const computeBindGroups = [0, 1].map((idx) =>
-      root.createBindGroup(computeBindGroupLayout, {
-        currentTrianglePos: trianglePosBuffers[idx],
-        nextTrianglePos: trianglePosBuffers[1 - idx],
-        params: paramsBuffer,
-      }),
-    );
-
-    const renderPassDescriptor: GPURenderPassDescriptor = {
-      colorAttachments: [
-        {
-          view: toBeAssignedLater(),
-          clearValue: [1, 1, 1, 1],
-          loadOp: "clear" as const,
-          storeOp: "store" as const,
-        },
-      ],
-    };
-
-    let even = false;
-    function frame() {
-      even = !even;
-      (
-        renderPassDescriptor.colorAttachments as [GPURenderPassColorAttachment]
-      )[0].view = context.getCurrentTexture().createView();
-
-      const commandEncoder = device.createCommandEncoder();
-      const computePass = commandEncoder.beginComputePass();
-      computePass.setPipeline(computePipeline);
-      computePass.setBindGroup(
-        0,
-        root.unwrap(even ? computeBindGroups[0] : computeBindGroups[1]),
-      );
-      computePass.dispatchWorkgroups(triangleAmount);
-      computePass.end();
-
-      const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-      passEncoder.setPipeline(pipeline);
-      passEncoder.setVertexBuffer(0, triangleVertexBuffer.buffer);
-      passEncoder.setBindGroup(
-        0,
-        root.unwrap(even ? renderBindGroups[1] : renderBindGroups[0]),
-      );
-      passEncoder.draw(3, triangleAmount);
-      passEncoder.end();
-
-      device.queue.submit([commandEncoder.finish()]);
-    }
-    return frame;
+  const computeGroupA = useBindGroup(computeLayout, {
+    params: physicsParams.buffer,
+    currentBoids: boidsA,
+    nextBoids: boidsB,
+  });
+  const computeGroupB = useBindGroup(computeLayout, {
+    params: physicsParams.buffer,
+    currentBoids: boidsB,
+    nextBoids: boidsA,
   });
 
-  const randomizeHandler = useCallback(() => {
-    randomizePositions.current();
-  }, []);
+  // Used to swap between A and B variants of resources
+  const evenRef = useRef(false);
 
-  const handleChoosePreset = useCallback(
-    (params: BoidsOptions) => () => {
-      updateParams.current(params);
-    },
-    [],
-  );
+  const handleRandomize = useCallback(() => {
+    randomizeBoids(evenRef.current ? boidsB : boidsA);
+  }, [boidsA, boidsB]);
 
-  const colorPresetHandler = useCallback(
-    (preset: ColorPresets) => () => {
-      updateColorPreset.current(preset);
-    },
-    [],
-  );
+  useFrame(() => {
+    const ctx = ctxRef.current;
+    if (!ctx) return;
+
+    evenRef.current = !evenRef.current;
+
+    computePipeline
+      .with(evenRef.current ? computeGroupA : computeGroupB)
+      .dispatchThreads(boidCount);
+
+    renderPipeline
+      .with(evenRef.current ? renderGroupB : renderGroupA)
+      .withColorAttachment({ view: ctx })
+      .draw(3, boidCount);
+
+    ctx.present?.();
+  });
 
   return (
     <View style={style.container}>
@@ -295,21 +276,33 @@ export function ComputeBoids() {
       <View style={style.controls}>
         <View style={style.buttonRow}>
           <Text style={style.spanText}>randomize: </Text>
-          <Button title="🔀" onPress={randomizeHandler} />
+          <Button title="🔀" onPress={handleRandomize} />
         </View>
         <View style={style.buttonRow}>
           <Text style={style.spanText}>presets: </Text>
-          <Button title="🐦" onPress={handleChoosePreset(presets.default)} />
-          <Button title="🦟" onPress={handleChoosePreset(presets.mosquitos)} />
-          <Button title="💧" onPress={handleChoosePreset(presets.blobs)} />
-          <Button title="⚛️" onPress={handleChoosePreset(presets.particles)} />
+          <Button
+            title="🐦"
+            onPress={() => physicsParams.write(presets.default)}
+          />
+          <Button
+            title="🦟"
+            onPress={() => physicsParams.write(presets.mosquitos)}
+          />
+          <Button
+            title="💧"
+            onPress={() => physicsParams.write(presets.blobs)}
+          />
+          <Button
+            title="⚛️"
+            onPress={() => physicsParams.write(presets.particles)}
+          />
         </View>
         <View style={style.buttonRow}>
           <Text style={style.spanText}>colors: </Text>
-          <Button title="🟪🟩" onPress={colorPresetHandler("plumTree")} />
-          <Button title="🟦🟫" onPress={colorPresetHandler("jeans")} />
-          <Button title="⬛️⬜️" onPress={colorPresetHandler("greyscale")} />
-          <Button title="🟥🟦" onPress={colorPresetHandler("hotcold")} />
+          <Button title="🟪🟩" onPress={() => updateColorPreset("plumTree")} />
+          <Button title="🟦🟫" onPress={() => updateColorPreset("jeans")} />
+          <Button title="⬛️⬜️" onPress={() => updateColorPreset("greyscale")} />
+          <Button title="🟥🟦" onPress={() => updateColorPreset("hotcold")} />
         </View>
       </View>
     </View>

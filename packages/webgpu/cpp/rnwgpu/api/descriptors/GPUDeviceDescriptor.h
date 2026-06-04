@@ -8,8 +8,10 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "JSIConverter.h"
+#include "RnFeatures.h"
 #include "WGPULogger.h"
 
+#include "GPUDawnTogglesDescriptor.h"
 #include "GPUQueueDescriptor.h"
 
 namespace jsi = facebook::jsi;
@@ -24,6 +26,9 @@ struct GPUDeviceDescriptor {
   std::optional<std::shared_ptr<GPUQueueDescriptor>>
       defaultQueue;                 // GPUQueueDescriptor
   std::optional<std::string> label; // string
+  // Non-standard Dawn-only device toggles, chained onto the wgpu::Device
+  // descriptor in GPUAdapter::requestDevice.
+  std::optional<std::shared_ptr<GPUDawnTogglesDescriptor>> dawnToggles;
 };
 
 } // namespace rnwgpu
@@ -43,10 +48,20 @@ template <> struct JSIConverter<std::vector<wgpu::FeatureName>> {
     vector.reserve(length);
     for (size_t i = 0; i < length; ++i) {
       jsi::Value elementValue = array.getValueAtIndex(runtime, i);
-      if (elementValue.isString()) {
-        vector.emplace_back(JSIConverter<wgpu::FeatureName>::fromJSI(
-            runtime, elementValue, outOfBounds));
+      if (!elementValue.isString()) {
+        continue;
       }
+      auto str = elementValue.asString(runtime).utf8(runtime);
+      // Expand react-native-wgpu's umbrella feature into the platform's
+      // backing Dawn features before they reach RequestDevice.
+      if (str == kRnNativeTextureFeature) {
+        for (auto f : rnNativeTextureBackingFeatures()) {
+          vector.emplace_back(f);
+        }
+        continue;
+      }
+      vector.emplace_back(JSIConverter<wgpu::FeatureName>::fromJSI(
+          runtime, elementValue, outOfBounds));
     }
     return vector;
   }
@@ -85,6 +100,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
       if (value.hasProperty(runtime, "label")) {
         auto prop = value.getProperty(runtime, "label");
         result->label = JSIConverter<std::optional<std::string>>::fromJSI(
+            runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "dawnToggles")) {
+        auto prop = value.getProperty(runtime, "dawnToggles");
+        result->dawnToggles = JSIConverter<
+            std::optional<std::shared_ptr<GPUDawnTogglesDescriptor>>>::fromJSI(
             runtime, prop, false);
       }
     }

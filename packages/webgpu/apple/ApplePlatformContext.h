@@ -26,6 +26,19 @@ public:
   void createImageBitmapFromDataAsync(
       std::span<const uint8_t> data, std::function<void(ImageData)> onSuccess,
       std::function<void(std::string)> onError) override;
+
+  VideoFrameHandle loadVideoFrame(const std::string &path) override;
+
+  VideoFrameHandle createTestVideoFrame(uint32_t width,
+                                        uint32_t height) override;
+
+  std::unique_ptr<IVideoPlayer>
+  createVideoPlayer(const std::string &path,
+                    VideoPixelFormat format) override;
+
+  std::string writeTestVideoFile() override;
+
+  VideoFrameHandle wrapNativeBuffer(void *pointer) override;
 };
 
 } // namespace rnwgpu

@@ -168,7 +168,7 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
     *outUnion = "shared-fence-vk-semaphore-opaque-fd";
     break;
   case wgpu::FeatureName::SharedFenceSyncFD:
-    *outUnion = "shared-fence-vk-semaphore-sync-fd";
+    *outUnion = "shared-fence-sync-fd";
     break;
   case wgpu::FeatureName::SharedFenceVkSemaphoreZirconHandle:
     *outUnion = "shared-fence-vk-semaphore-zircon-handle";
@@ -187,6 +187,9 @@ static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
     break;
   case wgpu::FeatureName::YCbCrVulkanSamplers:
     *outUnion = "ycbcr-vulkan-samplers";
+    break;
+  case wgpu::FeatureName::OpaqueYCbCrAndroidForExternalTexture:
+    *outUnion = "opaque-ycbcr-android-for-external-texture";
     break;
   case wgpu::FeatureName::ShaderModuleCompilationOptions:
     *outUnion = "shader-module-compilation-options";

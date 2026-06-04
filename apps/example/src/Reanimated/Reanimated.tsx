@@ -3,11 +3,11 @@ import { StyleSheet, View } from "react-native";
 import type { CanvasRef, RNCanvasContext } from "react-native-webgpu";
 import { Canvas } from "react-native-webgpu";
 import type { SharedValue } from "react-native-reanimated";
-import { runOnUI, useSharedValue } from "react-native-reanimated";
+import { useSharedValue } from "react-native-reanimated";
 
 import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
 
-const webGPUDemo = (
+export const webGPUDemo = (
   runAnimation: SharedValue<boolean>,
   device: GPUDevice,
   context: RNCanvasContext,
@@ -87,7 +87,20 @@ const webGPUDemo = (
   frame();
 };
 
-export function Reanimated() {
+interface ReanimatedExampleProps {
+  // Schedules the worklet on a given runtime (e.g. runOnUI for the UI thread,
+  // or runOnRuntime(runtime, ...) for a dedicated worklet runtime).
+  run: (
+    worklet: typeof webGPUDemo,
+  ) => (
+    runAnimation: SharedValue<boolean>,
+    device: GPUDevice,
+    context: RNCanvasContext,
+    presentationFormat: GPUTextureFormat,
+  ) => void;
+}
+
+export function ReanimatedExample({ run }: ReanimatedExampleProps) {
   const runAnimation = useSharedValue(true);
   const ref = useRef<CanvasRef>(null);
   useEffect(() => {
@@ -109,7 +122,7 @@ export function Reanimated() {
       }
       const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
       // TODO: stop the animation on unmount
-      runOnUI(webGPUDemo)(runAnimation, device, ctx, presentationFormat);
+      run(webGPUDemo)(runAnimation, device, ctx, presentationFormat);
     };
     initWebGPU();
     return () => {

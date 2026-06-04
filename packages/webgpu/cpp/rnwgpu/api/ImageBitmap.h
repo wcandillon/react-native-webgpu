@@ -26,9 +26,17 @@ public:
 
   size_t getSize() { return _imageData.data.size(); }
 
+  void close() {
+    _imageData.data.clear();
+    _imageData.data.shrink_to_fit();
+    _imageData.width = 0;
+    _imageData.height = 0;
+  }
+
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "width", &ImageBitmap::getWidth);
     installGetter(runtime, prototype, "height", &ImageBitmap::getHeight);
+    installMethod(runtime, prototype, "close", &ImageBitmap::close);
   }
 
   size_t getMemoryPressure() override { return getSize(); }
