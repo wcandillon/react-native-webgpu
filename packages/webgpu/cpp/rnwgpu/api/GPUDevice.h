@@ -45,6 +45,9 @@
 #include "GPURenderPipelineDescriptor.h"
 #include "GPUSampler.h"
 #include "GPUSamplerDescriptor.h"
+#include "GPUSharedFenceDescriptor.h"
+#include "GPUSharedTextureMemory.h"
+#include "GPUSharedTextureMemoryDescriptor.h"
 #include "GPUShaderModule.h"
 #include "GPUShaderModuleDescriptor.h"
 #include "GPUSharedTextureMemory.h"
@@ -120,6 +123,8 @@ public:
       std::shared_ptr<GPUExternalTextureDescriptor> descriptor);
   std::shared_ptr<GPUSharedTextureMemory> importSharedTextureMemory(
       std::shared_ptr<GPUSharedTextureMemoryDescriptor> descriptor);
+  std::shared_ptr<GPUSharedFence> importSharedFence(
+      std::shared_ptr<GPUSharedFenceDescriptor> descriptor);
   std::shared_ptr<GPUBindGroupLayout> createBindGroupLayout(
       std::shared_ptr<GPUBindGroupLayoutDescriptor> descriptor);
   std::shared_ptr<GPUPipelineLayout>
@@ -175,6 +180,8 @@ public:
                   &GPUDevice::importExternalTexture);
     installMethod(runtime, prototype, "importSharedTextureMemory",
                   &GPUDevice::importSharedTextureMemory);
+    installMethod(runtime, prototype, "importSharedFence",
+                  &GPUDevice::importSharedFence);
     installMethod(runtime, prototype, "createBindGroupLayout",
                   &GPUDevice::createBindGroupLayout);
     installMethod(runtime, prototype, "createPipelineLayout",

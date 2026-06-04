@@ -1,5 +1,7 @@
 /// <reference types="@webgpu/types" />
 import type {
+  GPUSharedFence,
+  GPUSharedFenceDescriptor,
   GPUDawnTogglesDescriptor,
   GPUSharedTextureMemory,
   GPUSharedTextureMemoryDescriptor,
@@ -14,10 +16,16 @@ export * from "./main";
 export type {
   NativeVideoFrame,
   VideoPlayer,
-  NativeVideoPixelFormat,
-  CreateVideoPlayerOptions,
+  GPUSharedFence,
+  GPUSharedFenceDescriptor,
+  GPUSharedFenceExportInfo,
+  GPUSharedFenceState,
+  GPUSharedFenceType,
   GPUSharedTextureMemory,
   GPUSharedTextureMemoryDescriptor,
+  GPUSharedTextureMemoryEndAccessState,
+  NativeVideoPixelFormat,
+  CreateVideoPlayerOptions,
   GPUDawnTogglesDescriptor,
 } from "./types";
 
@@ -56,6 +64,7 @@ declare global {
     importSharedTextureMemory(
       descriptor: GPUSharedTextureMemoryDescriptor,
     ): GPUSharedTextureMemory;
+    importSharedFence(descriptor: GPUSharedFenceDescriptor): GPUSharedFence;
   }
 
   // Non-standard, Dawn-only. Lets callers set Dawn device-stage toggles at
