@@ -1,5 +1,5 @@
 {
-  "name": "react-native-wgpu",
+  "name": "react-native-webgpu",
   "version": "0.5.13",
   "description": "React Native WebGPU",
   "main": "lib/commonjs/index",

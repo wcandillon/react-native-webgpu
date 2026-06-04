@@ -26,8 +26,8 @@
 //     three.js update recomputes SkinnedMesh bounds after retargeting, this
 //     override can go.
 import * as THREE from "three";
-import type { CanvasRef } from "react-native-wgpu";
-import { Canvas } from "react-native-wgpu";
+import type { CanvasRef } from "react-native-webgpu";
+import { Canvas } from "react-native-webgpu";
 import { PixelRatio, StyleSheet, Text, View } from "react-native";
 import { useEffect, useRef } from "react";
 import {
