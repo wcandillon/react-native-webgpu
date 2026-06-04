@@ -21,6 +21,10 @@ Pod::Spec.new do |s|
 
   s.vendored_frameworks = 'libs/apple/libwebgpu_dawn.xcframework'
 
+  # The VideoPlayer API uses AVFoundation / CoreMedia, and shared-texture
+  # surfaces use CoreVideo (CVPixelBuffer). Link them so their symbols resolve.
+  s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo"
+
   s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',
   }
