@@ -128,6 +128,8 @@ export function HelloTriangle() {
       passEncoder.end();
 
       device.queue.submit([commandEncoder.finish()]);
+
+      context.present();
     };
     helloTriangle();
   }, [ref]);
@@ -172,27 +174,15 @@ ctx.canvas.height = ctx.canvas.clientHeight * PixelRatio.get();
 
 ### Frame Scheduling
 
-On the **main JS runtime** and the **Reanimated UI runtime**, frame presentation is automatic: once you acquire the frame's texture with `context.getCurrentTexture()` and submit your commands, the frame is presented on the next display refresh (driven by a global vsync source: `CADisplayLink` on iOS, `Choreographer` on Android). There is no `present()` call.
+In React Native, frame presentation is a manual operation: when you are ready to present a frame, call `present()` on the context after submitting your commands to the queue. This works the same on every runtime: the main JS runtime, the Reanimated UI runtime, and dedicated worklet runtimes (`createWorkletRuntime` / `runOnRuntime`, or a Vision Camera frame processor). `present()` runs synchronously on the calling thread, so the frame is presented from whichever thread did the rendering.
 
 ```tsx
 // draw
 // submit to the queue
 device.queue.submit([commandEncoder.finish()]);
-// The frame is presented automatically on the next vsync.
+// This method is React Native only
+context.present();
 ```
-
-When you render from a **dedicated worklet runtime** (e.g. `createWorkletRuntime` / `runOnRuntime`, or a Vision Camera frame processor), it runs on its own thread where present can't be driven automatically. Call `context.present()` yourself after submitting:
-
-```tsx
-const onFrame = () => {
-  "worklet";
-  // draw on the dedicated runtime's thread
-  device.queue.submit([commandEncoder.finish()]);
-  context.present(); // required on dedicated worklet runtimes; a no-op on JS/UI
-};
-```
-
-`present()` is safe to call from a worklet that runs on either the UI runtime or a dedicated runtime: it presents on the dedicated runtime and does nothing on the JS/UI runtime (which auto-present).
 
 ### Canvas Transparency
 
@@ -302,6 +292,7 @@ const render = () => {
 
   // ... encode a pass that samples `externalTexture`, then:
   device.queue.submit([encoder.finish()]);
+  context.present();
 
   // Release the surface's access window right after the submit that sampled it.
   externalTexture.destroy();
@@ -336,6 +327,7 @@ const renderFrame = (device: GPUDevice, context: GPUCanvasContext) => {
   const commandEncoder = device.createCommandEncoder();
   // ... render ...
   device.queue.submit([commandEncoder.finish()]);
+  context.present();
 };
 
 // Initialize WebGPU on main thread, then run on UI thread

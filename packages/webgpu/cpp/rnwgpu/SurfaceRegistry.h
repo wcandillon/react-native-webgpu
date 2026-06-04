@@ -119,9 +119,10 @@ public:
     height = newHeight;
   }
 
-  // Present the current surface texture. Called at the frame boundary from the
-  // owning runtime's JS thread (via FrameDriver), replacing the old manual
-  // present(). No-op when offscreen / unconfigured (no surface).
+  // Present the current surface texture. Called synchronously from the thread
+  // that did getCurrentTexture / submit (via GPUCanvasContext::present), so it
+  // preserves Dawn surface thread-affinity. No-op when offscreen / unconfigured
+  // (no surface).
   void presentFrame() {
 #ifdef __APPLE__
     // Ensure command buffers are scheduled before presenting. Read the device

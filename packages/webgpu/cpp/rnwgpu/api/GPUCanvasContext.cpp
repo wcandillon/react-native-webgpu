@@ -31,10 +31,7 @@ void GPUCanvasContext::configure(
 
 void GPUCanvasContext::unconfigure() {}
 
-jsi::Value GPUCanvasContext::getCurrentTexture(jsi::Runtime &runtime,
-                                               const jsi::Value & /*thisValue*/,
-                                               const jsi::Value * /*args*/,
-                                               size_t /*count*/) {
+std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   auto prevSize = _surfaceInfo->getConfig();
   auto width = _canvas->getWidth();
   auto height = _canvas->getHeight();
@@ -49,29 +46,19 @@ jsi::Value GPUCanvasContext::getCurrentTexture(jsi::Runtime &runtime,
   _canvas->setClientWidth(size.width);
   _canvas->setClientHeight(size.height);
 
-  // getCurrentTexture has no side effects: acquiring the texture must not
-  // schedule a present (that would be a surprising, spec-violating coupling).
-  // Callers present explicitly via ctx.present() after submit, on whichever
-  // thread did the rendering.
-
   // Pass reportsMemoryPressure=false to avoid triggering spurious Hermes GC
   // cycles every frame since the canvas texture doesn't own the buffer.
-  auto gpuTexture = std::make_shared<GPUTexture>(texture, "", false);
-  return JSIConverter<std::shared_ptr<GPUTexture>>::toJSI(runtime, gpuTexture);
+  return std::make_shared<GPUTexture>(texture, "", false);
 }
 
-jsi::Value GPUCanvasContext::present(jsi::Runtime & /*runtime*/,
-                                     const jsi::Value & /*thisValue*/,
-                                     const jsi::Value * /*args*/,
-                                     size_t /*count*/) {
-  // Present is always explicit. It runs synchronously on the calling thread
-  // (the one that did getCurrentTexture / submit), preserving Dawn surface
-  // thread-affinity. Required on every runtime (main JS, UI, dedicated
-  // worklet); offscreen surfaces have no wgpu::Surface so they no-op.
+void GPUCanvasContext::present() {
+  // Present runs synchronously on the calling thread (the one that did
+  // getCurrentTexture / submit), preserving Dawn surface thread-affinity.
+  // Required on every runtime (main JS, Reanimated UI, dedicated worklet);
+  // offscreen surfaces have no wgpu::Surface so they no-op.
   if (_surfaceInfo->hasSurface()) {
     _surfaceInfo->presentFrame();
   }
-  return jsi::Value::undefined();
 }
 
 } // namespace rnwgpu

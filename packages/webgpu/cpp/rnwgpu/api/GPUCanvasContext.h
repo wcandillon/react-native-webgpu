@@ -26,7 +26,7 @@ public:
 
   GPUCanvasContext(std::shared_ptr<GPU> gpu, int contextId, int width,
                    int height)
-      : NativeObject(CLASS_NAME), _contextId(contextId), _gpu(std::move(gpu)) {
+      : NativeObject(CLASS_NAME), _gpu(std::move(gpu)) {
     _canvas = std::make_shared<Canvas>(nullptr, width, height);
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     _surfaceInfo =
@@ -54,17 +54,13 @@ public:
   inline const wgpu::Surface get() { return nullptr; }
   void configure(std::shared_ptr<GPUCanvasConfiguration> configuration);
   void unconfigure();
-  // Full-control signatures so we can learn the *calling* runtime and decide
-  // how this frame is presented (auto on the JS / UI runtime; explicit
-  // ctx.present() on a dedicated worklet runtime).
-  jsi::Value getCurrentTexture(jsi::Runtime &runtime,
-                               const jsi::Value &thisValue,
-                               const jsi::Value *args, size_t count);
-  jsi::Value present(jsi::Runtime &runtime, const jsi::Value &thisValue,
-                     const jsi::Value *args, size_t count);
+  std::shared_ptr<GPUTexture> getCurrentTexture();
+  // Present is explicit on every runtime (main JS, Reanimated UI, and dedicated
+  // worklet runtimes). It runs synchronously on the calling thread, preserving
+  // Dawn surface thread-affinity; offscreen surfaces no-op.
+  void present();
 
 private:
-  int _contextId;
   std::shared_ptr<Canvas> _canvas;
   std::shared_ptr<SurfaceInfo> _surfaceInfo;
   std::shared_ptr<GPU> _gpu;

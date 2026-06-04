@@ -1,8 +1,6 @@
 #import "WebGPUModule.h"
 #include "ApplePlatformContext.h"
-#include "FrameDriver.h"
 #import "GPUCanvasContext.h"
-#import "WebGPUFrameDriver.h"
 
 #import <React/RCTBridge+Private.h>
 #import <React/RCTCallInvoker.h>
@@ -80,10 +78,6 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
       std::make_shared<rnwgpu::ApplePlatformContext>();
   webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker,
                                                             platformContext);
-
-  // Drive auto-present from the display's vsync (replaces context.present()).
-  rnwgpu::FrameDriver::getInstance().setPlatformVSync(
-      [] { [WebGPUFrameDriver start]; }, [] { [WebGPUFrameDriver stop]; });
 
   return @true;
 }

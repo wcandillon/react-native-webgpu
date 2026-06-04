@@ -53,7 +53,6 @@ public:
   }
 
   inline const wgpu::Instance get() { return _instance; }
-  inline std::shared_ptr<async::RuntimeContext> getContext() { return _async; }
 
 private:
   wgpu::Instance _instance;
