@@ -13,7 +13,12 @@
 
 namespace rnwgpu {
 
-GPU::GPU(jsi::Runtime &runtime) : NativeObject(CLASS_NAME) {
+namespace {
+
+// Creates the default Dawn instance used when react-native-webgpu owns the
+// WebGPU stack. When another module (e.g. Skia Graphite) already owns a
+// wgpu::Instance, that instance is passed to GPU directly and this is not used.
+wgpu::Instance createDefaultInstance() {
   static const auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
   wgpu::InstanceDescriptor instanceDesc{.requiredFeatureCount = 1,
                                         .requiredFeatures = &kTimedWaitAny};
@@ -47,8 +52,15 @@ GPU::GPU(jsi::Runtime &runtime) : NativeObject(CLASS_NAME) {
   toggles.enabledToggles = kEnabledToggles;
   instanceDesc.nextInChain = &toggles;
 
-  _instance = wgpu::CreateInstance(&instanceDesc);
+  return wgpu::CreateInstance(&instanceDesc);
+}
 
+} // namespace
+
+GPU::GPU(jsi::Runtime &runtime) : GPU(runtime, createDefaultInstance()) {}
+
+GPU::GPU(jsi::Runtime &runtime, wgpu::Instance instance)
+    : NativeObject(CLASS_NAME), _instance(instance) {
   auto dispatcher = std::make_shared<async::JSIMicrotaskDispatcher>(runtime);
   _async = async::AsyncRunner::getOrCreate(runtime, _instance, dispatcher);
 }

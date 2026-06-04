@@ -27,7 +27,13 @@ class GPU : public NativeObject<GPU> {
 public:
   static constexpr const char *CLASS_NAME = "GPU";
 
+  // Creates and owns a default Dawn instance.
   explicit GPU(jsi::Runtime &runtime);
+  // Uses an externally-owned Dawn instance (e.g. one provided by Skia
+  // Graphite), instead of creating its own. The caller keeps ownership of the
+  // instance and is responsible for keeping it alive for the lifetime of this
+  // GPU object.
+  GPU(jsi::Runtime &runtime, wgpu::Instance instance);
 
 public:
   std::string getBrand() { return CLASS_NAME; }
