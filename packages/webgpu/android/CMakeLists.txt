@@ -19,6 +19,19 @@ else()
     add_definitions(-DRNF_ENABLE_LOGS=0)
 endif()
 
+# "Bring your own Dawn" mode. When another module (e.g. Skia Graphite) already
+# links a Dawn build into the app, set RN_WEBGPU_EXTERNAL_DAWN=ON to skip
+# bundling our own libwebgpu_dawn.so. In that mode react-native-wgpu links
+# nothing Dawn-related of its own; its Dawn symbols come from the host.
+#   - RN_WEBGPU_DAWN_HEADERS: directory containing the `webgpu/` header folder
+#     (Dawn's include dir). Prepended so the host's headers win over our copy.
+#   - RN_WEBGPU_DAWN_LIB: path to the host's Dawn shared library to link
+#     against. If left empty, undefined Dawn symbols are allowed and resolved
+#     from the host at load time.
+option(RN_WEBGPU_EXTERNAL_DAWN "Use a host-provided Dawn instead of the bundled one" OFF)
+set(RN_WEBGPU_DAWN_HEADERS "" CACHE STRING "Path to host Dawn headers (dir containing webgpu/)")
+set(RN_WEBGPU_DAWN_LIB "" CACHE STRING "Path to host Dawn shared library (external mode)")
+
 set (WEBGPU_LIBS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../libs/android/${ANDROID_ABI}")
 
 find_package(ReactAndroid REQUIRED CONFIG)
@@ -79,8 +92,27 @@ target_include_directories(
         ${libfbjni_include_DIRS}
 )
 
-add_library(webgpu_dawn SHARED IMPORTED)
-set_property(TARGET webgpu_dawn PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.so")
+if(RN_WEBGPU_EXTERNAL_DAWN)
+    message(STATUS "react-native-wgpu: external Dawn mode (not bundling libwebgpu_dawn)")
+    if(RN_WEBGPU_DAWN_HEADERS)
+        # Prepend so the host's <webgpu/webgpu.h> wins over our bundled copy.
+        target_include_directories(${PACKAGE_NAME} BEFORE PRIVATE "${RN_WEBGPU_DAWN_HEADERS}")
+    endif()
+    if(RN_WEBGPU_DAWN_LIB)
+        add_library(webgpu_dawn SHARED IMPORTED)
+        set_property(TARGET webgpu_dawn PROPERTY IMPORTED_LOCATION "${RN_WEBGPU_DAWN_LIB}")
+        set(WEBGPU_DAWN_LINK webgpu_dawn)
+    else()
+        # No host library given at build time: leave Dawn symbols undefined and
+        # let the dynamic linker resolve them from the host at load time.
+        target_link_options(${PACKAGE_NAME} PRIVATE "-Wl,--allow-shlib-undefined")
+        set(WEBGPU_DAWN_LINK "")
+    endif()
+else()
+    add_library(webgpu_dawn SHARED IMPORTED)
+    set_property(TARGET webgpu_dawn PROPERTY IMPORTED_LOCATION "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.so")
+    set(WEBGPU_DAWN_LINK webgpu_dawn)
+endif()
 
 # Link
 if(ReactAndroid_VERSION_MINOR GREATER_EQUAL 76)
@@ -93,7 +125,7 @@ if(ReactAndroid_VERSION_MINOR GREATER_EQUAL 76)
             fbjni::fbjni
             ReactAndroid::jsi
             ReactAndroid::reactnative
-            webgpu_dawn
+            ${WEBGPU_DAWN_LINK}
         )
 else()
     target_link_libraries(
@@ -105,6 +137,6 @@ else()
         fbjni::fbjni
         ReactAndroid::jsi
         ReactAndroid::reactnativejni
-        webgpu_dawn
+        ${WEBGPU_DAWN_LINK}
     )
 endif()

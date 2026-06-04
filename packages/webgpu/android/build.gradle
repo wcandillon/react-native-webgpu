@@ -73,9 +73,25 @@ android {
       cmake {
         cppFlags "-fexceptions", "-frtti", "-DONANDROID"
         abiFilters (*reactNativeArchitectures())
-        arguments '-DANDROID_STL=c++_shared',
+        def cmakeArgs = ['-DANDROID_STL=c++_shared',
           "-DNODE_MODULES_DIR=${nodeModules}",
-          "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+          "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"]
+        // "Bring your own Dawn" mode: a host (e.g. Skia Graphite) that already
+        // ships Dawn can set these in gradle.properties to stop us bundling our
+        // own libwebgpu_dawn.so.
+        //   wgpuExternalDawn=true
+        //   wgpuDawnHeaders=/abs/path/to/dawn/include   (dir containing webgpu/)
+        //   wgpuDawnLib=/abs/path/to/libdawn.so         (optional)
+        if (project.properties["wgpuExternalDawn"]?.toString() == "true") {
+          cmakeArgs += "-DRN_WEBGPU_EXTERNAL_DAWN=ON"
+          if (project.properties["wgpuDawnHeaders"]) {
+            cmakeArgs += "-DRN_WEBGPU_DAWN_HEADERS=${project.properties['wgpuDawnHeaders']}"
+          }
+          if (project.properties["wgpuDawnLib"]) {
+            cmakeArgs += "-DRN_WEBGPU_DAWN_LIB=${project.properties['wgpuDawnLib']}"
+          }
+        }
+        arguments(*cmakeArgs)
       }
     }
   }

@@ -15,14 +15,34 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/wcandillon/react-native-webgpu.git", :tag => "#{s.version}" }
 
   s.source_files = [
-    "apple/**/*.{h,c,cc,cpp,m,mm,swift}",  
+    "apple/**/*.{h,c,cc,cpp,m,mm,swift}",
     "cpp/**/*.{h,cpp}"
   ]
 
-  s.vendored_frameworks = 'libs/apple/libwebgpu_dawn.xcframework'
+  # "Bring your own Dawn" mode. When another pod (e.g. Skia Graphite) already
+  # links a Dawn build into the app, set RN_WEBGPU_EXTERNAL_DAWN=1 to skip
+  # bundling our own libwebgpu_dawn.xcframework. In that mode react-native-wgpu
+  # is header-only-ish C++: it links nothing Dawn-related and its Dawn symbols
+  # are resolved from the host pod when the final app binary is linked.
+  # Optionally set RN_WEBGPU_DAWN_HEADERS to the directory that contains the
+  # `webgpu/` header folder (Dawn's include dir) so we compile against the
+  # host's exact Dawn version instead of our bundled copy.
+  external_dawn = ENV['RN_WEBGPU_EXTERNAL_DAWN'] == '1'
+  dawn_headers  = ENV['RN_WEBGPU_DAWN_HEADERS']
+
+  unless external_dawn
+    s.vendored_frameworks = 'libs/apple/libwebgpu_dawn.xcframework'
+  end
+
+  # Header search paths, with the host's Dawn headers prepended in external mode
+  # so the host's <webgpu/webgpu.h> wins over our bundled copy (ABI must match).
+  header_search_paths = '$(PODS_TARGET_SRCROOT)/cpp'
+  if external_dawn && dawn_headers && !dawn_headers.empty?
+    header_search_paths = "\"#{dawn_headers}\" #{header_search_paths}"
+  end
 
   s.pod_target_xcconfig = {
-    'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',
+    'HEADER_SEARCH_PATHS' => header_search_paths,
   }
 
   # Use install_modules_dependencies helper to install the dependencies if React Native version >=0.71.0.
@@ -33,7 +53,7 @@ Pod::Spec.new do |s|
     s.dependency "React-Core"
     s.compiler_flags = folly_compiler_flags
     s.pod_target_xcconfig    = {
-        "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\" \"$(PODS_TARGET_SRCROOT)/cpp\"",
+        "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\" #{header_search_paths}",
         "OTHER_CPLUSPLUSFLAGS" => "-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1",
         "CLANG_CXX_LANGUAGE_STANDARD" => "c++20"
     }
