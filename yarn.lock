@@ -13379,6 +13379,7 @@ __metadata:
     ts-morph: ^22.0.0
     tsx: ^4.20.5
     typescript: ^5.2.2
+    webidl2: ^24
     wgpu-matrix: ^3.0.2
     ws: ^8.18.0
     yargs: ^17.7.2
@@ -16252,6 +16253,13 @@ __metadata:
   version: 3.0.1
   resolution: "webidl-conversions@npm:3.0.1"
   checksum: c92a0a6ab95314bde9c32e1d0a6dfac83b578f8fa5f21e675bc2706ed6981bc26b7eb7e6a1fab158e5ce4adf9caa4a0aee49a52505d4d13c7be545f15021b17c
+  languageName: node
+  linkType: hard
+
+"webidl2@npm:^24":
+  version: 24.5.0
+  resolution: "webidl2@npm:24.5.0"
+  checksum: 83a47ea1976cfa7f5471efb4feca542182eabd23532f6f68e0cc638e4ab31104b0130c6ab5744faed0ed5035a5983d1c6bf6efa3fd1c911f395b02a1fcd5c724
   languageName: node
   linkType: hard
 
