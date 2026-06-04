@@ -41,7 +41,7 @@
     "react-native-vision-camera": "5.0.10",
     "react-native-vision-camera-worklets": "5.0.10",
     "react-native-web": "^0.21.2",
-    "react-native-wgpu": "*",
+    "react-native-webgpu": "*",
     "react-native-worklets": "0.8.3",
     "teapot": "^1.0.0",
     "three": "0.184.0",
