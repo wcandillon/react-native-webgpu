@@ -15,7 +15,7 @@ export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
   // Note: isFallbackAdapter was moved from GPUAdapter to GPUAdapterInfo in Chrome 140
   if (adapter.info && adapter.info.isFallbackAdapter) {
     console.warn(
-      "GPUAdapter is not hardware accelerated. This is common on Android emulators. Rendering will be slow. Some features may be unavailable.",
+      "GPUAdapter is not hardware accelerated. This is common on Android emulators, which default to the SwiftShader software renderer. Rendering will be slow and some features may be unavailable. On Apple Silicon you can run the emulator on the host GPU via MoltenVK: use a system image at API level 35 or lower and launch it with `ANDROID_EMU_VK_ICD=moltenvk emulator -avd <name> -gpu host`. See the \"Android Emulators\" section of the React Native WebGPU README for details.",
     );
   }
 };
