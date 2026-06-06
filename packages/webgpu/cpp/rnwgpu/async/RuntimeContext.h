@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <mutex>
+#include <vector>
 
 #include <jsi/jsi.h>
 
@@ -32,10 +34,19 @@ namespace rnwgpu::async {
  * their own (e.g. GPUDevice::getLost) are posted with keepPumping = false so
  * they do not keep the pump spinning forever.
  *
- * Threading contract: a RuntimeContext must only be used from the runtime it
- * was created for (postTask is expected to run on that runtime's thread). Create
- * and use a GPUDevice (and the buffers/queues derived from it) on the same
- * runtime that requested the adapter.
+ * Shared-instance safety (mailbox): multiple runtimes may share one
+ * wgpu::Instance. ProcessEvents() drains the whole instance queue and fires
+ * callbacks on the calling thread, which may NOT be the owning runtime's thread
+ * for a given promise. So a settled callback never touches JSI inline; it
+ * deposits a settle-action (a plain C++ closure, no JSI) into the OWNING
+ * context's thread-safe mailbox via postSettle(), and each context drains its
+ * own mailbox on its own thread during tick(). ProcessEvents() itself is
+ * serialized across runtimes by a process-wide mutex, since concurrent
+ * ProcessEvents on one instance is not guaranteed reentrant.
+ *
+ * Threading contract: a RuntimeContext must only be pumped from the runtime it
+ * was created for. Create and use a GPUDevice (and the buffers/queues derived
+ * from it) on the same runtime that requested the adapter.
  */
 class RuntimeContext : public std::enable_shared_from_this<RuntimeContext> {
 public:
@@ -55,8 +66,14 @@ public:
   AsyncTaskHandle postTask(const TaskCallback &callback,
                            bool keepPumping = true);
 
-  // Invoked by AsyncTaskHandle when a task settles. Runs on the owning runtime's
-  // thread.
+  // Deposit a settle-action to run on THIS context's runtime thread. Thread-safe
+  // (callable from any thread, e.g. another runtime that pumped ProcessEvents).
+  // The job must not touch JSI until it runs (it runs during drainMailbox on the
+  // owning thread).
+  void postSettle(std::function<void()> job);
+
+  // Invoked by a drained settle-action when its task settles. Runs on the owning
+  // runtime's thread.
   void onTaskSettled(bool keepPumping);
 
 private:
@@ -64,12 +81,16 @@ private:
 
   void requestTick();
   void tick();
+  void drainMailbox();
 
   jsi::Runtime &_runtime;
   wgpu::Instance _instance;
   std::atomic<std::size_t> _pendingTasks{0};
   std::atomic<std::size_t> _pumpTasks{0};
   std::atomic<bool> _tickScheduled{false};
+
+  std::mutex _mailboxMutex;
+  std::vector<std::function<void()>> _mailbox;
 };
 
 } // namespace rnwgpu::async

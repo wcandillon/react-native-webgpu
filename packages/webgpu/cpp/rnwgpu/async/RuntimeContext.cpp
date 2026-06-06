@@ -14,6 +14,14 @@ struct RuntimeData {
   std::shared_ptr<RuntimeContext> context;
 };
 constexpr const char *TAG = "RuntimeContext";
+
+// Serializes ProcessEvents() across all runtimes that share a wgpu::Instance.
+// Held only across the ProcessEvents call itself, never while running JS / mailbox
+// settle-actions, so it cannot deadlock against the per-context mailbox mutex.
+std::mutex &processEventsMutex() {
+  static std::mutex mutex;
+  return mutex;
+}
 } // namespace
 
 RuntimeContext::RuntimeContext(jsi::Runtime &runtime, wgpu::Instance instance)
@@ -73,6 +81,27 @@ void RuntimeContext::onTaskSettled(bool keepPumping) {
   }
 }
 
+void RuntimeContext::postSettle(std::function<void()> job) {
+  if (!job) {
+    return;
+  }
+  std::lock_guard<std::mutex> lock(_mailboxMutex);
+  _mailbox.push_back(std::move(job));
+}
+
+void RuntimeContext::drainMailbox() {
+  std::vector<std::function<void()>> jobs;
+  {
+    std::lock_guard<std::mutex> lock(_mailboxMutex);
+    jobs.swap(_mailbox);
+  }
+  // Run settle-actions on this (the owning) thread, NOT under the ProcessEvents
+  // mutex, so JS continuations never execute while the pump lock is held.
+  for (auto &job : jobs) {
+    job();
+  }
+}
+
 void RuntimeContext::requestTick() {
   bool expected = false;
   if (!_tickScheduled.compare_exchange_strong(expected, true,
@@ -116,7 +145,14 @@ void RuntimeContext::requestTick() {
 
 void RuntimeContext::tick() {
   _tickScheduled.store(false, std::memory_order_release);
-  _instance.ProcessEvents();
+  {
+    // Serialize ProcessEvents across runtimes sharing this instance. Callbacks
+    // fired here only deposit into mailboxes (postSettle), they do not run JS.
+    std::lock_guard<std::mutex> lock(processEventsMutex());
+    _instance.ProcessEvents();
+  }
+  // Settle this runtime's ready promises on this thread, outside the pump lock.
+  drainMailbox();
   if (_pumpTasks.load(std::memory_order_acquire) > 0) {
     requestTick();
   }

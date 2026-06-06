@@ -82,19 +82,33 @@ void AsyncTaskHandle::State::schedule(Action action) {
     return;
   }
 
-  // The resolve/reject callback is invoked on the owning runtime's own thread:
-  // either synchronously from instance.ProcessEvents() during the
-  // RuntimeContext tick, or synchronously from postTask (immediate
-  // resolution / exception path). So we settle the Promise directly here, with
-  // no cross-thread hop and no microtask trampoline.
-  action(promiseRef->runtime, *promiseRef);
-
-  if (context) {
-    context->onTaskSettled(keepPumping);
+  // The resolve/reject callback may fire on a thread that is NOT the owning
+  // runtime's thread: with a shared wgpu::Instance, another runtime's
+  // ProcessEvents() pump can consume this Dawn event. Touching the Promise's
+  // runtime off-thread would corrupt Hermes. So we deposit the actual settle
+  // (the only JSI-touching work) into the owning context's mailbox; the context
+  // drains it on its own thread during its next tick. The deposited closure
+  // captures only C++ state and runs no JSI until drained, so depositing from
+  // any thread is safe.
+  if (!context) {
+    // No context (shouldn't happen): best-effort inline settle.
+    action(promiseRef->runtime, *promiseRef);
+    std::lock_guard<std::mutex> lock(mutex);
+    keepAlive.reset();
+    return;
   }
 
-  std::lock_guard<std::mutex> lock(mutex);
-  keepAlive.reset();
+  auto self = shared_from_this();
+  const bool keep = keepPumping;
+  context->postSettle(
+      [self, action = std::move(action), promiseRef, keep]() mutable {
+        action(promiseRef->runtime, *promiseRef);
+        if (self->context) {
+          self->context->onTaskSettled(keep);
+        }
+        std::lock_guard<std::mutex> lock(self->mutex);
+        self->keepAlive.reset();
+      });
 }
 
 AsyncTaskHandle::ResolveFunction
