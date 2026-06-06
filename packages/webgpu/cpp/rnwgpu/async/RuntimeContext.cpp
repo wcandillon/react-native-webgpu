@@ -15,6 +15,11 @@ struct RuntimeData {
 };
 constexpr const char *TAG = "RuntimeContext";
 
+// Heartbeat interval (ms) used when there are pending tasks but none that demand
+// a fast pump (e.g. a long-lived device.lost watcher). Keeps delivering Dawn's
+// spontaneous callbacks without burning CPU at frame rate when idle.
+constexpr double kSlowTickMs = 100.0;
+
 // Serializes ProcessEvents() across all runtimes that share a wgpu::Instance.
 // Held only across the ProcessEvents call itself, never while running JS / mailbox
 // settle-actions, so it cannot deadlock against the per-context mailbox mutex.
@@ -109,6 +114,12 @@ void RuntimeContext::requestTick() {
     return;
   }
 
+  // Fast pump (delay 0) while there is active async work; otherwise a slow
+  // heartbeat so long-lived spontaneous callbacks (e.g. device.lost, uncaptured
+  // errors) are still delivered without burning CPU at frame rate when idle.
+  const double delayMs =
+      _pumpTasks.load(std::memory_order_acquire) > 0 ? 0.0 : kSlowTickMs;
+
   // postTask and tick both run on the owning runtime's thread, so we can
   // schedule the next tick directly via that runtime's own timer. setTimeout is
   // available on the main RN runtime and on worklet runtimes (backed by the
@@ -130,7 +141,7 @@ void RuntimeContext::requestTick() {
   if (setTimeoutValue.isObject() &&
       setTimeoutValue.asObject(rt).isFunction(rt)) {
     setTimeoutValue.asObject(rt).asFunction(rt).call(
-        rt, jsi::Value(rt, tickCallback), jsi::Value(0));
+        rt, jsi::Value(rt, tickCallback), jsi::Value(delayMs));
     return;
   }
   auto setImmediateValue = global.getProperty(rt, "setImmediate");
@@ -153,7 +164,9 @@ void RuntimeContext::tick() {
   }
   // Settle this runtime's ready promises on this thread, outside the pump lock.
   drainMailbox();
-  if (_pumpTasks.load(std::memory_order_acquire) > 0) {
+  // Keep pumping while any task is outstanding: fast for active work, slow
+  // heartbeat for lingering watchers like device.lost (see requestTick).
+  if (_pendingTasks.load(std::memory_order_acquire) > 0) {
     requestTick();
   }
 }
