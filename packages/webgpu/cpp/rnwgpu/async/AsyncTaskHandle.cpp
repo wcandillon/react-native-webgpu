@@ -84,12 +84,32 @@ void AsyncTaskHandle::State::schedule(Action action) {
     return;
   }
 
+  // The settle callback fires on a GpuEventLoop background worker thread. We
+  // must NOT touch the JS runtime from there: Hermes is single-threaded, so
+  // calling queueMicrotask (or any other JSI op, including Promise.resolve)
+  // off-thread corrupts the heap (crash in GCScope::_newChunkAndPHV). So we
+  // first hop onto the owning runtime's JS thread via the thread-safe
+  // RuntimeScheduler, and only THEN, now safely on that thread, queue the
+  // settlement as a microtask via that runtime's queueMicrotask.
   scheduler->scheduleOnJS([self = shared_from_this(),
                            action = std::move(action),
                            promiseRef](jsi::Runtime &runtime) mutable {
-    action(runtime, *promiseRef);
-    std::lock_guard<std::mutex> lock(self->mutex);
-    self->keepAlive.reset();
+    auto microtask = jsi::Function::createFromHostFunction(
+        runtime, jsi::PropNameID::forUtf8(runtime, "__rnwgpuSettleMicrotask"),
+        0,
+        [self = std::move(self), action = std::move(action), promiseRef](
+            jsi::Runtime &rt, const jsi::Value & /*thisVal*/,
+            const jsi::Value * /*args*/, size_t /*count*/) mutable
+        -> jsi::Value {
+          action(rt, *promiseRef);
+          std::lock_guard<std::mutex> lock(self->mutex);
+          self->keepAlive.reset();
+          return jsi::Value::undefined();
+        });
+
+    runtime.global()
+        .getPropertyAsFunction(runtime, "queueMicrotask")
+        .call(runtime, std::move(microtask));
   });
 }
 
