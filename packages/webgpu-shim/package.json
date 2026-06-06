@@ -1,6 +1,6 @@
 {
   "name": "react-native-wgpu",
-  "version": "0.5.14",
+  "version": "0.5.15",
   "description": "Shim that re-exports react-native-webgpu under its previous package name",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
