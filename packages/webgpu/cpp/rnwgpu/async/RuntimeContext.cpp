@@ -11,23 +11,14 @@ namespace rnwgpu::async {
 
 namespace {
 struct RuntimeData {
-  std::shared_ptr<RuntimeContext> runner;
+  std::shared_ptr<RuntimeContext> context;
 };
 constexpr const char *TAG = "RuntimeContext";
 } // namespace
 
-RuntimeContext::RuntimeContext(std::shared_ptr<RuntimeScheduler> scheduler,
-                               std::shared_ptr<GpuEventLoop> eventLoop)
-    : _scheduler(std::move(scheduler)), _eventLoop(std::move(eventLoop)) {
-  if (!_scheduler) {
-    throw std::runtime_error(
-        "RuntimeContext requires a valid RuntimeScheduler.");
-  }
-  if (!_eventLoop) {
-    throw std::runtime_error("RuntimeContext requires a valid GpuEventLoop.");
-  }
-  Logger::logToConsole("[%s] Created runner (scheduler=%p, eventLoop=%p)", TAG,
-                       _scheduler.get(), _eventLoop.get());
+RuntimeContext::RuntimeContext(jsi::Runtime &runtime, wgpu::Instance instance)
+    : _runtime(runtime), _instance(std::move(instance)) {
+  Logger::logToConsole("[%s] Created (runtime=%p)", TAG, &runtime);
 }
 
 std::shared_ptr<RuntimeContext> RuntimeContext::get(jsi::Runtime &runtime) {
@@ -35,53 +26,100 @@ std::shared_ptr<RuntimeContext> RuntimeContext::get(jsi::Runtime &runtime) {
   if (!data) {
     return nullptr;
   }
-  auto stored = std::static_pointer_cast<RuntimeData>(data);
-  return stored->runner;
+  return std::static_pointer_cast<RuntimeData>(data)->context;
 }
 
 std::shared_ptr<RuntimeContext>
-RuntimeContext::getOrCreate(jsi::Runtime &runtime,
-                            std::shared_ptr<RuntimeScheduler> scheduler,
-                            std::shared_ptr<GpuEventLoop> eventLoop) {
-  auto existing = get(runtime);
-  if (existing) {
+RuntimeContext::getOrCreate(jsi::Runtime &runtime, wgpu::Instance instance) {
+  if (auto existing = get(runtime)) {
     return existing;
   }
-
-  auto runner = std::make_shared<RuntimeContext>(std::move(scheduler),
-                                                 std::move(eventLoop));
+  auto context = std::make_shared<RuntimeContext>(runtime, std::move(instance));
   auto data = std::make_shared<RuntimeData>();
-  data->runner = runner;
+  data->context = context;
   runtime.setRuntimeData(runtimeDataUUID(), data);
-  return runner;
+  return context;
 }
 
-AsyncTaskHandle RuntimeContext::postTask(const TaskCallback &callback) {
-  auto handle = AsyncTaskHandle::create(_scheduler);
+AsyncTaskHandle RuntimeContext::postTask(const TaskCallback &callback,
+                                         bool keepPumping) {
+  auto handle = AsyncTaskHandle::create(shared_from_this(), keepPumping);
   if (!handle.valid()) {
     throw std::runtime_error("Failed to create AsyncTaskHandle.");
   }
 
+  _pendingTasks.fetch_add(1, std::memory_order_acq_rel);
+  if (keepPumping) {
+    _pumpTasks.fetch_add(1, std::memory_order_acq_rel);
+  }
+  requestTick();
+
   auto resolve = handle.createResolveFunction();
   auto reject = handle.createRejectFunction();
-
-  wgpu::Future future{};
   try {
-    future = callback(resolve, reject);
+    callback(resolve, reject);
   } catch (const std::exception &exception) {
     reject(exception.what());
-    return handle;
   } catch (...) {
     reject("Unknown native error in RuntimeContext::postTask.");
-    return handle;
   }
-
-  _eventLoop->addFuture(future);
   return handle;
 }
 
-std::shared_ptr<RuntimeScheduler> RuntimeContext::scheduler() const {
-  return _scheduler;
+void RuntimeContext::onTaskSettled(bool keepPumping) {
+  _pendingTasks.fetch_sub(1, std::memory_order_acq_rel);
+  if (keepPumping) {
+    _pumpTasks.fetch_sub(1, std::memory_order_acq_rel);
+  }
+}
+
+void RuntimeContext::requestTick() {
+  bool expected = false;
+  if (!_tickScheduled.compare_exchange_strong(expected, true,
+                                              std::memory_order_acq_rel)) {
+    return;
+  }
+
+  // postTask and tick both run on the owning runtime's thread, so we can
+  // schedule the next tick directly via that runtime's own timer. setTimeout is
+  // available on the main RN runtime and on worklet runtimes (backed by the
+  // worklets EventLoop); setImmediate / queueMicrotask are fallbacks. We do NOT
+  // use queueMicrotask as the primary mechanism: a self-rescheduling microtask
+  // never yields the microtask checkpoint, starving the runtime's task loop.
+  auto self = shared_from_this();
+  jsi::Runtime &rt = _runtime;
+  auto tickCallback = jsi::Function::createFromHostFunction(
+      rt, jsi::PropNameID::forAscii(rt, "RNWGPUAsyncTick"), 0,
+      [self](jsi::Runtime & /*runtime*/, const jsi::Value & /*thisVal*/,
+             const jsi::Value * /*args*/, size_t /*count*/) -> jsi::Value {
+        self->tick();
+        return jsi::Value::undefined();
+      });
+
+  auto global = rt.global();
+  auto setTimeoutValue = global.getProperty(rt, "setTimeout");
+  if (setTimeoutValue.isObject() &&
+      setTimeoutValue.asObject(rt).isFunction(rt)) {
+    setTimeoutValue.asObject(rt).asFunction(rt).call(
+        rt, jsi::Value(rt, tickCallback), jsi::Value(0));
+    return;
+  }
+  auto setImmediateValue = global.getProperty(rt, "setImmediate");
+  if (setImmediateValue.isObject() &&
+      setImmediateValue.asObject(rt).isFunction(rt)) {
+    setImmediateValue.asObject(rt).asFunction(rt).call(
+        rt, jsi::Value(rt, tickCallback));
+    return;
+  }
+  rt.queueMicrotask(std::move(tickCallback));
+}
+
+void RuntimeContext::tick() {
+  _tickScheduled.store(false, std::memory_order_release);
+  _instance.ProcessEvents();
+  if (_pumpTasks.load(std::memory_order_acquire) > 0) {
+    requestTick();
+  }
 }
 
 jsi::UUID RuntimeContext::runtimeDataUUID() {

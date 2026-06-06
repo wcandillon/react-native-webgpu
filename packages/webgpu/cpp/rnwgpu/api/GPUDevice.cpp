@@ -366,7 +366,7 @@ async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
                                   &reject) -> wgpu::Future {
     (void)descriptor;
     return device.CreateComputePipelineAsync(
-        &desc, wgpu::CallbackMode::WaitAnyOnly,
+        &desc, wgpu::CallbackMode::AllowProcessEvents,
         [pipelineHolder, resolve,
          reject](wgpu::CreatePipelineAsyncStatus status,
                  wgpu::ComputePipeline pipeline, wgpu::StringView msg) {
@@ -408,7 +408,7 @@ async::AsyncTaskHandle GPUDevice::createRenderPipelineAsync(
                                   &reject) -> wgpu::Future {
     (void)descriptor;
     return device.CreateRenderPipelineAsync(
-        &desc, wgpu::CallbackMode::WaitAnyOnly,
+        &desc, wgpu::CallbackMode::AllowProcessEvents,
         [pipelineHolder, resolve,
          reject](wgpu::CreatePipelineAsyncStatus status,
                  wgpu::RenderPipeline pipeline, wgpu::StringView msg) {
@@ -439,7 +439,7 @@ async::AsyncTaskHandle GPUDevice::popErrorScope() {
                                    const async::AsyncTaskHandle::RejectFunction
                                        &reject) -> wgpu::Future {
     return device.PopErrorScope(
-        wgpu::CallbackMode::WaitAnyOnly,
+        wgpu::CallbackMode::AllowProcessEvents,
         [resolve, reject](wgpu::PopErrorScopeStatus status,
                           wgpu::ErrorType type, wgpu::StringView message) {
           if (status == wgpu::PopErrorScopeStatus::Error ||
@@ -528,7 +528,8 @@ async::AsyncTaskHandle GPUDevice::getLost() {
           });
           // No Dawn event to wait on: resolved synchronously.
           return wgpu::Future{};
-        });
+        },
+        /*keepPumping=*/false);
   }
 
   auto handle = _async->postTask(
@@ -546,7 +547,8 @@ async::AsyncTaskHandle GPUDevice::getLost() {
         // Resolved later from notifyDeviceLost(); no Dawn event to wait on.
         _lostResolve = resolve;
         return wgpu::Future{};
-      });
+      },
+      /*keepPumping=*/false);
 
   _lostHandle = handle;
   return handle;

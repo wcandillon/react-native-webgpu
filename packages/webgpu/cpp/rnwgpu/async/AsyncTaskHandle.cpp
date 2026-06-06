@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "Promise.h"
+#include "RuntimeContext.h"
 
 namespace rnwgpu::async {
 
@@ -12,8 +13,8 @@ using Action = std::function<void(jsi::Runtime &, rnwgpu::Promise &)>;
 
 struct AsyncTaskHandle::State
     : public std::enable_shared_from_this<AsyncTaskHandle::State> {
-  explicit State(std::shared_ptr<RuntimeScheduler> scheduler)
-      : scheduler(std::move(scheduler)) {}
+  State(std::shared_ptr<RuntimeContext> context, bool keepPumping)
+      : context(std::move(context)), keepPumping(keepPumping) {}
 
   void settle(Action action);
   void attachPromise(const std::shared_ptr<rnwgpu::Promise> &promise);
@@ -25,7 +26,8 @@ struct AsyncTaskHandle::State
   std::shared_ptr<rnwgpu::Promise> currentPromise();
 
   std::mutex mutex;
-  std::shared_ptr<RuntimeScheduler> scheduler;
+  std::shared_ptr<RuntimeContext> context;
+  bool keepPumping;
   std::shared_ptr<rnwgpu::Promise> promise;
   std::optional<Action> pendingAction;
   bool settled = false;
@@ -75,42 +77,24 @@ void AsyncTaskHandle::State::attachPromise(
 }
 
 void AsyncTaskHandle::State::schedule(Action action) {
-  if (!scheduler) {
-    return;
-  }
-
   auto promiseRef = currentPromise();
   if (!promiseRef) {
     return;
   }
 
-  // The settle callback fires on a GpuEventLoop background worker thread. We
-  // must NOT touch the JS runtime from there: Hermes is single-threaded, so
-  // calling queueMicrotask (or any other JSI op, including Promise.resolve)
-  // off-thread corrupts the heap (crash in GCScope::_newChunkAndPHV). So we
-  // first hop onto the owning runtime's JS thread via the thread-safe
-  // RuntimeScheduler, and only THEN, now safely on that thread, queue the
-  // settlement as a microtask via that runtime's queueMicrotask.
-  scheduler->scheduleOnJS([self = shared_from_this(),
-                           action = std::move(action),
-                           promiseRef](jsi::Runtime &runtime) mutable {
-    auto microtask = jsi::Function::createFromHostFunction(
-        runtime, jsi::PropNameID::forUtf8(runtime, "__rnwgpuSettleMicrotask"),
-        0,
-        [self = std::move(self), action = std::move(action), promiseRef](
-            jsi::Runtime &rt, const jsi::Value & /*thisVal*/,
-            const jsi::Value * /*args*/, size_t /*count*/) mutable
-        -> jsi::Value {
-          action(rt, *promiseRef);
-          std::lock_guard<std::mutex> lock(self->mutex);
-          self->keepAlive.reset();
-          return jsi::Value::undefined();
-        });
+  // The resolve/reject callback is invoked on the owning runtime's own thread:
+  // either synchronously from instance.ProcessEvents() during the
+  // RuntimeContext tick, or synchronously from postTask (immediate
+  // resolution / exception path). So we settle the Promise directly here, with
+  // no cross-thread hop and no microtask trampoline.
+  action(promiseRef->runtime, *promiseRef);
 
-    runtime.global()
-        .getPropertyAsFunction(runtime, "queueMicrotask")
-        .call(runtime, std::move(microtask));
-  });
+  if (context) {
+    context->onTaskSettled(keepPumping);
+  }
+
+  std::lock_guard<std::mutex> lock(mutex);
+  keepAlive.reset();
 }
 
 AsyncTaskHandle::ResolveFunction
@@ -159,8 +143,9 @@ AsyncTaskHandle::AsyncTaskHandle(std::shared_ptr<State> state)
 bool AsyncTaskHandle::valid() const { return _state != nullptr; }
 
 AsyncTaskHandle
-AsyncTaskHandle::create(const std::shared_ptr<RuntimeScheduler> &scheduler) {
-  auto state = std::make_shared<State>(scheduler);
+AsyncTaskHandle::create(const std::shared_ptr<RuntimeContext> &context,
+                        bool keepPumping) {
+  auto state = std::make_shared<State>(context, keepPumping);
   state->keepAlive = state;
   return AsyncTaskHandle(std::move(state));
 }

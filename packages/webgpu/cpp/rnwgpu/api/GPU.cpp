@@ -9,14 +9,11 @@
 
 #include "Convertors.h"
 #include "JSIConverter.h"
-#include "rnwgpu/async/CallInvokerScheduler.h"
-#include "rnwgpu/async/GpuEventLoop.h"
+#include "rnwgpu/async/RuntimeContext.h"
 
 namespace rnwgpu {
 
-GPU::GPU(jsi::Runtime &runtime,
-         std::shared_ptr<facebook::react::CallInvoker> callInvoker)
-    : NativeObject(CLASS_NAME) {
+GPU::GPU(jsi::Runtime & /*runtime*/) : NativeObject(CLASS_NAME) {
   static const auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
   wgpu::InstanceDescriptor instanceDesc{.requiredFeatureCount = 1,
                                         .requiredFeatures = &kTimedWaitAny};
@@ -51,15 +48,10 @@ GPU::GPU(jsi::Runtime &runtime,
   instanceDesc.nextInChain = &toggles;
 
   _instance = wgpu::CreateInstance(&instanceDesc);
-
-  auto scheduler =
-      std::make_shared<async::CallInvokerScheduler>(std::move(callInvoker));
-  auto eventLoop = std::make_shared<async::GpuEventLoop>(_instance);
-  _async = async::RuntimeContext::getOrCreate(runtime, std::move(scheduler),
-                                              std::move(eventLoop));
 }
 
 async::AsyncTaskHandle GPU::requestAdapter(
+    jsi::Runtime &runtime,
     std::optional<std::shared_ptr<GPURequestAdapterOptions>> options) {
   wgpu::RequestAdapterOptions aOptions;
   Convertor conv;
@@ -72,13 +64,18 @@ async::AsyncTaskHandle GPU::requestAdapter(
   constexpr auto kDefaultBackendType = wgpu::BackendType::Vulkan;
 #endif
   aOptions.backendType = kDefaultBackendType;
-  return _async->postTask(
-      [this, aOptions](const async::AsyncTaskHandle::ResolveFunction &resolve,
-                       const async::AsyncTaskHandle::RejectFunction &reject)
+
+  // Per-runtime context: async ops requested on this runtime resolve on this
+  // runtime's own thread (via its ProcessEvents pump).
+  auto context = async::RuntimeContext::getOrCreate(runtime, _instance);
+  return context->postTask(
+      [this, aOptions,
+       context](const async::AsyncTaskHandle::ResolveFunction &resolve,
+                const async::AsyncTaskHandle::RejectFunction &reject)
           -> wgpu::Future {
         return _instance.RequestAdapter(
-            &aOptions, wgpu::CallbackMode::WaitAnyOnly,
-            [context = _async, resolve,
+            &aOptions, wgpu::CallbackMode::AllowProcessEvents,
+            [context, resolve,
              reject](wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,
                      wgpu::StringView message) {
               if (message.length) {

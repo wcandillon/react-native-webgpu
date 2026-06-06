@@ -53,8 +53,6 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/jsi/RuntimeAwareCache.cpp
     ../cpp/rnwgpu/async/RuntimeContext.cpp
     ../cpp/rnwgpu/async/AsyncTaskHandle.cpp
-    ../cpp/rnwgpu/async/CallInvokerScheduler.cpp
-    ../cpp/rnwgpu/async/GpuEventLoop.cpp
 )
 
 target_include_directories(

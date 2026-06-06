@@ -164,7 +164,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
           deviceDesc.nextInChain = &toggles;
         }
         return _instance.RequestDevice(
-            &deviceDesc, wgpu::CallbackMode::WaitAnyOnly,
+            &deviceDesc, wgpu::CallbackMode::AllowProcessEvents,
             [context = _async, resolve, reject, label, creationRuntime,
              deviceLostBinding](wgpu::RequestDeviceStatus status,
                                 wgpu::Device device, wgpu::StringView message) {

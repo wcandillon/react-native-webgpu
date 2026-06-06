@@ -8,21 +8,22 @@
 
 #include <jsi/jsi.h>
 
-#include "RuntimeScheduler.h"
-
 namespace rnwgpu {
 class Promise;
 }
 
 namespace rnwgpu::async {
 
+class RuntimeContext;
+
 /**
  * Represents a pending asynchronous WebGPU operation that can be converted into
  * a JavaScript Promise.
  *
- * The native callback (resolve/reject) may be invoked from any thread (e.g. a
- * GpuEventLoop worker); the actual Promise settlement is marshalled onto the
- * owning runtime's JS thread via a RuntimeScheduler.
+ * In the ProcessEvents model the resolve/reject callbacks are invoked on the
+ * owning runtime's own thread (synchronously from instance.ProcessEvents()
+ * during the RuntimeContext tick, or synchronously from postTask), so the
+ * Promise is settled directly without any thread marshalling.
  */
 class AsyncTaskHandle {
 public:
@@ -47,8 +48,8 @@ public:
 
   void attachPromise(const std::shared_ptr<rnwgpu::Promise> &promise) const;
 
-  static AsyncTaskHandle
-  create(const std::shared_ptr<RuntimeScheduler> &scheduler);
+  static AsyncTaskHandle create(const std::shared_ptr<RuntimeContext> &context,
+                                bool keepPumping);
 
 private:
   std::shared_ptr<State> _state;

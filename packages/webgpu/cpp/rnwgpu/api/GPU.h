@@ -19,10 +19,6 @@
 
 #include <webgpu/webgpu.h>
 
-namespace facebook::react {
-class CallInvoker;
-} // namespace facebook::react
-
 namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
@@ -31,13 +27,15 @@ class GPU : public NativeObject<GPU> {
 public:
   static constexpr const char *CLASS_NAME = "GPU";
 
-  GPU(jsi::Runtime &runtime,
-      std::shared_ptr<facebook::react::CallInvoker> callInvoker);
+  explicit GPU(jsi::Runtime &runtime);
 
 public:
   std::string getBrand() { return CLASS_NAME; }
 
+  // requestAdapter needs the calling runtime so each runtime gets its own
+  // RuntimeContext (and ProcessEvents pump on its own thread).
   async::AsyncTaskHandle requestAdapter(
+      jsi::Runtime &runtime,
       std::optional<std::shared_ptr<GPURequestAdapterOptions>> options);
   wgpu::TextureFormat getPreferredCanvasFormat();
 
@@ -45,7 +43,8 @@ public:
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "__brand", &GPU::getBrand);
-    installMethod(runtime, prototype, "requestAdapter", &GPU::requestAdapter);
+    installMethodWithRuntime(runtime, prototype, "requestAdapter",
+                             &GPU::requestAdapter);
     installMethod(runtime, prototype, "getPreferredCanvasFormat",
                   &GPU::getPreferredCanvasFormat);
     installGetter(runtime, prototype, "wgslLanguageFeatures",
@@ -56,7 +55,6 @@ public:
 
 private:
   wgpu::Instance _instance;
-  std::shared_ptr<async::RuntimeContext> _async;
 };
 
 } // namespace rnwgpu

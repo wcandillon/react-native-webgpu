@@ -16,7 +16,7 @@ async::AsyncTaskHandle GPUShaderModule::getCompilationInfo() {
           -> wgpu::Future {
         auto result = std::make_shared<GPUCompilationInfo>();
         return module.GetCompilationInfo(
-            wgpu::CallbackMode::WaitAnyOnly,
+            wgpu::CallbackMode::AllowProcessEvents,
             [result, resolve,
              reject](wgpu::CompilationInfoRequestStatus status,
                      const wgpu::CompilationInfo *compilationInfo) {

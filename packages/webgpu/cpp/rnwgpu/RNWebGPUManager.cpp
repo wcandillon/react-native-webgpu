@@ -65,7 +65,7 @@ RNWebGPUManager::RNWebGPUManager(
   // Register main runtime for RuntimeAwareCache
   BaseRuntimeAwareCache::setMainJsRuntime(_jsRuntime);
 
-  auto gpu = std::make_shared<GPU>(*_jsRuntime, _jsCallInvoker);
+  auto gpu = std::make_shared<GPU>(*_jsRuntime);
   auto rnWebGPU =
       std::make_shared<RNWebGPU>(gpu, _platformContext, _jsCallInvoker);
   _gpu = gpu->get();

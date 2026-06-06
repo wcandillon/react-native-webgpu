@@ -258,9 +258,10 @@ private:
   wgpu::Device _instance;
   std::shared_ptr<async::RuntimeContext> _async;
   std::string _label;
-  // Guards the device-lost state below. notifyDeviceLost() may run on a
-  // GpuEventLoop worker thread (the device-lost callback is Spontaneous), while
-  // getLost() runs on the JS thread, so these fields need synchronization.
+  // Guards the device-lost state below. In the ProcessEvents model both
+  // notifyDeviceLost() (fired by Dawn during ProcessEvents) and getLost() run on
+  // the owning runtime's own thread, but device destruction can also trigger
+  // notifyDeviceLost() synchronously, so the mutex keeps these fields safe.
   std::mutex _lostMutex;
   std::optional<async::AsyncTaskHandle> _lostHandle;
   std::shared_ptr<GPUDeviceLostInfo> _lostInfo;

@@ -85,7 +85,7 @@ async::AsyncTaskHandle GPUQueue::onSubmittedWorkDone() {
               const async::AsyncTaskHandle::RejectFunction &reject)
           -> wgpu::Future {
         return queue.OnSubmittedWorkDone(
-            wgpu::CallbackMode::WaitAnyOnly,
+            wgpu::CallbackMode::AllowProcessEvents,
             [resolve, reject](wgpu::QueueWorkDoneStatus status,
                               wgpu::StringView message) {
               if (status == wgpu::QueueWorkDoneStatus::Success) {
