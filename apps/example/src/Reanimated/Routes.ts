@@ -3,4 +3,6 @@ export type Routes = {
   UIThread: undefined;
   DedicatedThread: undefined;
   FrameProcessor: undefined;
+  AsyncBufferUIThread: undefined;
+  AsyncBufferDedicatedThread: undefined;
 };

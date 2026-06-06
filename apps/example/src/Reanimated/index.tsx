@@ -6,6 +6,8 @@ import { List } from "./List";
 import { UIThread } from "./UIThread";
 import { DedicatedThread } from "./DedicatedThread";
 import { FrameProcessor } from "./FrameProcessor";
+import { AsyncBufferUIThread } from "./AsyncBufferUIThread";
+import { AsyncBufferDedicatedThread } from "./AsyncBufferDedicatedThread";
 
 const Stack = createStackNavigator<Routes>();
 export const Reanimated = () => {
@@ -38,6 +40,20 @@ export const Reanimated = () => {
         component={FrameProcessor}
         options={{
           title: "📷 Frame Processor",
+        }}
+      />
+      <Stack.Screen
+        name="AsyncBufferUIThread"
+        component={AsyncBufferUIThread}
+        options={{
+          title: "🧵 Async Buffer (UI)",
+        }}
+      />
+      <Stack.Screen
+        name="AsyncBufferDedicatedThread"
+        component={AsyncBufferDedicatedThread}
+        options={{
+          title: "🔀 Async Buffer (Dedicated)",
         }}
       />
     </Stack.Navigator>
