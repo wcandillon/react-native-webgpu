@@ -46,19 +46,22 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   _canvas->setClientWidth(size.width);
   _canvas->setClientHeight(size.height);
 
+  // Auto-present: like the web, the user shouldn't have to call present().
+  // Acquiring the frame's texture enqueues this surface on the thread's present
+  // queue; queue.submit() drains it and presents on the same thread (correct
+  // Dawn thread-affinity), AFTER the frame's submit. No microtasks (disabled on
+  // worklet runtimes).
+  enqueueFramePresent(_surfaceInfo);
+
   // Pass reportsMemoryPressure=false to avoid triggering spurious Hermes GC
   // cycles every frame since the canvas texture doesn't own the buffer.
   return std::make_shared<GPUTexture>(texture, "", false);
 }
 
 void GPUCanvasContext::present() {
-  // Present runs synchronously on the calling thread (the one that did
-  // getCurrentTexture / submit), preserving Dawn surface thread-affinity.
-  // Required on every runtime (main JS, Reanimated UI, dedicated worklet);
-  // offscreen surfaces have no wgpu::Surface so they no-op.
-  if (_surfaceInfo->hasSurface()) {
-    _surfaceInfo->presentFrame();
-  }
+  // Auto-present: frames are presented automatically after queue.submit() (see
+  // getCurrentTexture / flushFramePresentQueue), so present() is a no-op and
+  // exists only for backwards-compatibility with code that still calls it.
 }
 
 } // namespace rnwgpu

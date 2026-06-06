@@ -54,6 +54,9 @@ public:
   inline const wgpu::Surface get() { return nullptr; }
   void configure(std::shared_ptr<GPUCanvasConfiguration> configuration);
   void unconfigure();
+  // Marks the surface acquired this frame and enqueues it on the thread-local
+  // present queue; queue.submit auto-presents it afterwards (like the web, where
+  // you never call present()). Idempotent with an explicit present().
   std::shared_ptr<GPUTexture> getCurrentTexture();
   // Present is explicit on every runtime (main JS, Reanimated UI, and dedicated
   // worklet runtimes). It runs synchronously on the calling thread, preserving

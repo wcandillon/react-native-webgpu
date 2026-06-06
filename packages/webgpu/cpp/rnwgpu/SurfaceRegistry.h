@@ -1,9 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <shared_mutex>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -254,5 +256,48 @@ private:
   mutable std::shared_mutex _mutex;
   std::unordered_map<int, std::shared_ptr<SurfaceInfo>> _registry;
 };
+
+// Auto-present support. A thread-local queue of surfaces whose frame texture was
+// acquired (getCurrentTexture) on the current thread but not yet presented.
+// queue.submit drains it and presents on the SAME thread, so frames are
+// presented automatically (like the web, where you never call present()) right
+// after submit, with correct Dawn surface thread-affinity and without relying on
+// microtasks (which are disabled on worklet runtimes). The thread-local storage
+// naturally partitions per render runtime, since each runs on its own thread.
+//
+// REVIEW NOTE (auto-present heuristic limitation): present happens after the
+// FIRST submit following getCurrentTexture. This is correct for the normal shape
+// (getCurrentTexture -> render -> submit). It would present too early for a frame
+// that issues a compute-only submit BETWEEN getCurrentTexture and the canvas
+// render submit. present() is currently a no-op so it cannot backstop that case;
+// if we need to support it, either gate the flush on a submit that actually
+// targets the surface, or restore present() as an explicit override (which needs
+// the per-surface needsPresent idempotency flag back).
+inline std::vector<std::shared_ptr<SurfaceInfo>> &framePresentQueue() {
+  thread_local std::vector<std::shared_ptr<SurfaceInfo>> queue;
+  return queue;
+}
+
+inline void enqueueFramePresent(const std::shared_ptr<SurfaceInfo> &surface) {
+  if (!surface) {
+    return;
+  }
+  auto &queue = framePresentQueue();
+  if (std::find(queue.begin(), queue.end(), surface) == queue.end()) {
+    queue.push_back(surface);
+  }
+}
+
+inline void flushFramePresentQueue() {
+  auto &queue = framePresentQueue();
+  for (auto &surface : queue) {
+    if (surface && surface->hasSurface()) {
+      surface->presentFrame();
+    }
+  }
+  // Clearing after presenting is what guarantees "present once per frame": a
+  // second submit in the same frame finds an empty queue.
+  queue.clear();
+}
 
 } // namespace rnwgpu
