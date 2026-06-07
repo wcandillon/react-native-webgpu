@@ -15,7 +15,7 @@ npm install react-native-webgpu
 ## With Expo
 
 Expo provides a React Native WebGPU template that works with React Three Fiber.
-The works on iOS, Android, and Web.
+This works on iOS, Android, and Web.
 
 ```
 npx create-expo-app@latest -e with-webgpu
@@ -186,12 +186,10 @@ context.present();
 
 ### Threading model
 
-react-native-webgpu can drive WebGPU from more than one JavaScript runtime: the main JS runtime, the Reanimated UI runtime, and dedicated worklet runtimes (`createWorkletRuntime` / `runOnRuntime`, or a Vision Camera frame processor). A few rules follow from how JSI and Dawn work:
+react-native-webgpu can drive WebGPU from more than one JavaScript runtime: the main JS runtime, the Reanimated UI runtime, and dedicated worklet runtimes (`createWorkletRuntime` / `runOnRuntime`, or a Vision Camera frame processor).
+This module also works well with [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/) and lets you run complex Three.js scenes on the UI thread or dedicated worklet threads.
 
-- **A device belongs to the runtime that created it.** Call `requestAdapter` / `requestDevice` on the runtime where you intend to render, and use the device (and the buffers, textures, pipelines, queue and canvas context derived from it) only on that runtime. JSI objects are not shared across runtimes.
-- **Async results resolve on the runtime that issued the call.** Every async method (`requestAdapter`, `requestDevice`, `mapAsync`, `queue.onSubmittedWorkDone`, `create*PipelineAsync`, `popErrorScope`, `getCompilationInfo`) settles its Promise on the runtime that called it, on that runtime's own thread. This holds even on a worklet runtime while the main JS thread is busy, so a per-frame `mapAsync` readback keeps resolving on the worklet.
-- **Synchronous frame ops run on the calling thread.** `getCurrentTexture`, `queue.submit`, `queue.writeBuffer` and `present()` execute synchronously on whichever thread calls them.
-- **Spontaneous device events are delivered on the main JS runtime only.** `device.lost`, `uncapturederror` and the device logging callback are only guaranteed for a device created on the main JS runtime. A device created on a worklet runtime renders and performs async readbacks normally, but its `device.lost` / `uncapturederror` may not fire. If you need reliable device-loss handling, create that device on the main JS runtime.
+There is a caveat with `device.lost` and `uncapturederror`: they are only delivered on the main JS runtime. This is usually fine because the GPU device is typically created on the main JS thread and then sent to the UI or a dedicated worklet thread. However, if for some reason you create the device outside the main JS thread, beware that `device.lost` and `uncapturederror` won't fire.
 
 ### Canvas Transparency
 
