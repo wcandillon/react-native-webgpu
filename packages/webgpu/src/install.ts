@@ -6,9 +6,10 @@ import {
   GPUTextureUsage,
 } from "./constants";
 
-// Globals that this function installs on the calling runtime. These are fixed
-// WebGPU spec values (matching the native `wgpu::*Usage` enums), so they are
-// safe to set on any runtime.
+// Globals that this function installs on the calling runtime. These are the
+// native-derived flag constants re-exported from `./constants` (a single source
+// of truth, matching the native `wgpu::*Usage` enums), so they are safe to set
+// on any runtime.
 const constants = {
   GPUBufferUsage,
   GPUTextureUsage,

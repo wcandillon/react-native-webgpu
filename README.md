@@ -332,7 +332,7 @@ import { runOnUI } from "react-native-reanimated";
 const renderFrame = (device: GPUDevice, context: GPUCanvasContext) => {
   "worklet";
   installWebGPU();
-  // WebGPU constants are no available on this worklet thread
+  // WebGPU constants are now available on this worklet thread
   const buffer = device.createBuffer({
     size,
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
