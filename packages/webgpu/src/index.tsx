@@ -13,6 +13,7 @@ import type {
 } from "./types";
 
 export * from "./main";
+export * from "./constants";
 export type {
   NativeVideoFrame,
   VideoPlayer,

@@ -1,23 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { CanvasRef, RNCanvasContext } from "react-native-webgpu";
-import { Canvas } from "react-native-webgpu";
+import { Canvas, GPUBufferUsage, GPUMapMode } from "react-native-webgpu";
 import type { SharedValue } from "react-native-reanimated";
 import { useSharedValue } from "react-native-reanimated";
 
 import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
-
-// The GPU usage / map-mode constants are plain numbers. We resolve them on the
-// JS thread (where the constants are guaranteed to be installed) and pass them
-// into the worklet, so the worklet does not depend on those globals being
-// present on the UI / dedicated runtime.
-interface GPUFlags {
-  COPY_SRC: number;
-  COPY_DST: number;
-  MAP_READ: number;
-  MAP_WRITE: number;
-  MAP_MODE_READ: number;
-}
 
 // A triangle demo that creates its adapter/device AND performs an async GPU
 // readback (buffer.mapAsync) every frame, all on the runtime this worklet runs
@@ -25,12 +13,15 @@ interface GPUFlags {
 // the same runtime, so requestAdapter/requestDevice happen here in the worklet
 // (the GPU object is passed in). The point: with the JS thread busy, the readback
 // keeps resolving on this runtime's own thread and the triangle keeps animating.
+//
+// GPUBufferUsage / GPUMapMode are imported from react-native-webgpu: the bare
+// globals are only installed on the main JS runtime, but importing them lets the
+// Worklets serializer capture them by closure, so they work on this runtime too.
 export const webGPUAsyncDemo = (
   runAnimation: SharedValue<boolean>,
   context: RNCanvasContext,
   gpu: GPU,
   presentationFormat: GPUTextureFormat,
-  flags: GPUFlags,
 ) => {
   "worklet";
   if (!context) {
@@ -84,7 +75,7 @@ export const webGPUAsyncDemo = (
     const SIZE = 16; // 4 x f32
     const readback = device.createBuffer({
       size: SIZE,
-      usage: flags.COPY_DST | flags.MAP_READ,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
     });
 
     let frameId = 0;
@@ -116,7 +107,7 @@ export const webGPUAsyncDemo = (
 
         const src = device.createBuffer({
           size: SIZE,
-          usage: flags.COPY_SRC | flags.MAP_WRITE,
+          usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.MAP_WRITE,
           mappedAtCreation: true,
         });
         new Float32Array(src.getMappedRange()).set([frameId, r, g, b]);
@@ -128,7 +119,7 @@ export const webGPUAsyncDemo = (
         // THE ASYNC OP. With the ProcessEvents model this Promise is pumped and
         // settled on THIS runtime's own thread, so it resolves even while the JS
         // thread is busy. Watch the logs against the "Make JS busy" button.
-        await readback.mapAsync(flags.MAP_MODE_READ);
+        await readback.mapAsync(GPUMapMode.READ);
         const data = Array.from(new Float32Array(readback.getMappedRange()));
         readback.unmap();
         src.destroy();
@@ -160,7 +151,6 @@ interface AsyncBufferExampleProps {
     context: RNCanvasContext,
     gpu: GPU,
     presentationFormat: GPUTextureFormat,
-    flags: GPUFlags,
   ) => void;
 }
 
@@ -195,14 +185,7 @@ export function AsyncBufferExample({ run }: AsyncBufferExampleProps) {
     // which calls requestAdapter/requestDevice on its OWN runtime.
     const { gpu } = navigator;
     const presentationFormat = gpu.getPreferredCanvasFormat();
-    const flags: GPUFlags = {
-      COPY_SRC: GPUBufferUsage.COPY_SRC,
-      COPY_DST: GPUBufferUsage.COPY_DST,
-      MAP_READ: GPUBufferUsage.MAP_READ,
-      MAP_WRITE: GPUBufferUsage.MAP_WRITE,
-      MAP_MODE_READ: GPUMapMode.READ,
-    };
-    run(webGPUAsyncDemo)(runAnimation, ctx, gpu, presentationFormat, flags);
+    run(webGPUAsyncDemo)(runAnimation, ctx, gpu, presentationFormat);
     return () => {
       runAnimation.value = false;
     };
