@@ -156,13 +156,6 @@ public:
   void notifyUncapturedError(wgpu::ErrorType type, std::string message);
   void forceLossForTesting();
 
-private:
-  // Runs the uncapturederror listeners on the creation runtime's JS thread.
-  // Invoked from notifyUncapturedError via the main CallInvoker.
-  void deliverUncapturedError(wgpu::ErrorType type, std::string message);
-
-public:
-
   // EventTarget methods
   void addEventListener(std::string type, jsi::Function callback);
   void removeEventListener(std::string type, jsi::Function callback);
@@ -259,6 +252,10 @@ public:
 
 private:
   friend class GPUAdapter;
+
+  // Runs the uncapturederror listeners on the creation runtime's JS thread.
+  // Invoked from notifyUncapturedError via the main CallInvoker.
+  void deliverUncapturedError(wgpu::ErrorType type, std::string message);
 
   wgpu::Device _instance;
   std::shared_ptr<async::RuntimeContext> _async;

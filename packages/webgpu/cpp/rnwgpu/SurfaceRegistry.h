@@ -127,6 +127,10 @@ public:
 #ifdef __APPLE__
     // Ensure command buffers are scheduled before presenting. Read the device
     // under a shared lock, then wait without holding it (the wait can block).
+    // The device may be reconfigured between the two locks; that is safe because
+    // present() is called on the rendering thread right after submit(), the wait
+    // just flushes that thread's already-submitted work, and the Present() below
+    // re-checks `surface` under the unique lock before touching it.
     wgpu::Device device;
     {
       std::shared_lock<std::shared_mutex> lock(_mutex);
