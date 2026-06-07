@@ -1,0 +1,101 @@
+---
+title: installWebGPU
+description: Install WebGPU flag constants on a worklet runtime.
+---
+
+Call once at the top of a worklet to install `GPUBufferUsage`, `GPUTextureUsage`, `GPUShaderStage`, `GPUColorWrite`, and `GPUMapMode` as globals on that runtime.
+
+On the main JS thread these are already installed when the native module loads — calling `installWebGPU()` there is a safe no-op.
+
+## Usage
+
+### Reanimated UI worklet
+
+```tsx
+import { installWebGPU } from "react-native-webgpu";
+import { runOnUI } from "react-native-reanimated";
+
+const renderOnUI = (
+  device: GPUDevice,
+  context: RNCanvasContext,
+  pipeline: GPURenderPipeline,
+) => {
+  "worklet";
+  installWebGPU();
+
+  const encoder = device.createCommandEncoder();
+  const pass = encoder.beginRenderPass({
+    colorAttachments: [{
+      view: context.getCurrentTexture().createView(),
+      clearValue: [0, 0, 0, 0, 1],
+      loadOp: "clear",
+      storeOp: "store",
+    }],
+  });
+  pass.setPipeline(pipeline);
+  pass.draw(3);
+  pass.end();
+
+  device.queue.submit([encoder.finish()]);
+  context.present();
+};
+
+// Create device on the main thread, pass handles to the worklet
+runOnUI(renderOnUI)(device, context, pipeline);
+```
+
+### Dedicated worklet runtime
+
+```tsx
+import { createWorkletRuntime, runOnRuntime } from "react-native-worklets";
+import { installWebGPU } from "react-native-webgpu";
+
+const runtime = createWorkletRuntime({ name: "gpu" });
+
+const gpuWork = (device: GPUDevice) => {
+  "worklet";
+  installWebGPU();
+
+  const buffer = device.createBuffer({
+    size: 256,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
+  // …
+};
+
+runOnRuntime(runtime, gpuWork)(device);
+```
+
+### Alternative: import constants directly
+
+You can import the constants from `react-native-webgpu` instead — the Worklets serializer captures them by closure:
+
+```tsx
+import { GPUBufferUsage } from "react-native-webgpu";
+
+const work = (device: GPUDevice) => {
+  "worklet";
+  device.createBuffer({
+    size: 256,
+    usage: GPUBufferUsage.COPY_DST,
+  });
+};
+```
+
+See [Reanimated](/docs/integrations/reanimated) for full UI-thread rendering patterns.
+
+<auto-type-table path="../../../../packages/webgpu/src/install.ts" name="installWebGPU" />
+
+## Exported constants
+
+These re-export the native-installed globals for use in worklets:
+
+| Export | Description |
+| ------ | ----------- |
+| `GPUBufferUsage` | Buffer usage flags |
+| `GPUTextureUsage` | Texture usage flags |
+| `GPUShaderStage` | Shader stage flags |
+| `GPUColorWrite` | Color write mask |
+| `GPUMapMode` | Buffer map modes |
+
+<auto-type-table path="../../../../packages/webgpu/src/constants.ts" />

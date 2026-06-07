@@ -1,0 +1,93 @@
+---
+title: CanvasRef
+description: Ref API for Canvas - getContext, getNativeSurface, getContextId.
+---
+
+The ref returned by [`useCanvasRef`](/api/use-canvas-ref) or passed to `Canvas` exposes the surface handle.
+
+<auto-type-table path="../../../../packages/webgpu/src/Canvas.tsx" name="CanvasRef" />
+
+## Usage
+
+### getContext("webgpu")
+
+Returns an [`RNCanvasContext`](/api/canvas-ref#rncanvascontext) — configure it once after layout, then draw each frame:
+
+```tsx
+import { useEffect, useRef } from "react";
+import { PixelRatio } from "react-native";
+import { Canvas, useDevice, type CanvasRef } from "react-native-webgpu";
+
+export function Scene() {
+  const ref = useRef<CanvasRef>(null);
+  const { device } = useDevice();
+
+  useEffect(() => {
+    if (!device) return;
+
+    const context = ref.current!.getContext("webgpu")!;
+    const canvas = context.canvas as HTMLCanvasElement;
+    const format = navigator.gpu.getPreferredCanvasFormat();
+
+    canvas.width = canvas.clientWidth * PixelRatio.get();
+    canvas.height = canvas.clientHeight * PixelRatio.get();
+    context.configure({ device, format, alphaMode: "premultiplied" });
+
+    const render = () => {
+      const encoder = device.createCommandEncoder();
+      // … beginRenderPass, draw …
+      device.queue.submit([encoder.finish()]);
+      context.present(); // required after every submit on React Native
+      requestAnimationFrame(render);
+    };
+
+    requestAnimationFrame(render);
+  }, [device]);
+
+  return <Canvas ref={ref} style={{ flex: 1 }} />;
+}
+```
+
+<Callout type="warn" title="API may be removed">
+`present()` may be removed in a future release — see [PR #357](https://github.com/wcandillon/react-native-webgpu/pull/357). Until then, call it after each `queue.submit()` on React Native.
+</Callout>
+
+### getNativeSurface()
+
+Returns native surface dimensions and handle for interop (Three.js, custom native code):
+
+```tsx
+const ref = useRef<CanvasRef>(null);
+
+// After the canvas has laid out:
+const native = ref.current!.getNativeSurface();
+
+// native.surface — bigint handle for native interop
+// native.width / native.height — backing store size in pixels
+// native.clientWidth / native.clientHeight — layout size in dp
+console.log(native);
+```
+
+<auto-type-table path="../../../../packages/webgpu/src/Canvas.tsx" name="NativeCanvas" />
+
+Prefer [`useSurface`](/api/use-surface) if you want the ref and surface bundled in one hook.
+
+### getContextId()
+
+Returns the internal context id used by the native view. Useful for debugging or calling [`RNWebGPU.getNativeSurface`](/api/rn-webgpu):
+
+```tsx
+const contextId = ref.current!.getContextId();
+const native = RNWebGPU.getNativeSurface(contextId);
+```
+
+## RNCanvasContext
+
+<auto-type-table path="../../../../packages/webgpu/src/Canvas.tsx" name="RNCanvasContext" />
+
+Always call `present()` after submitting commands each frame — on the main JS runtime, Reanimated UI runtime, or dedicated worklet runtimes. It runs synchronously on the calling thread.
+
+## See also
+
+- [Canvas](/api/canvas) - component props and layout
+- [Present](/docs/rendering/present) - when and why to call `present()`

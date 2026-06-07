@@ -1,0 +1,81 @@
+---
+title: Textures & Images
+description: Load image assets and sample them in WGSL.
+---
+
+Textures store image data on the GPU. You **upload** pixels once (or each frame for video), **bind** the texture and a sampler in a bind group, and **sample** in your fragment shader with `textureSample`.
+
+## Loading from React Native assets
+
+React Native WebGPU provides `createImageBitmap` for loading encoded image bytes:
+
+```tsx
+import { Image } from "react-native";
+
+const url = Image.resolveAssetSource(require("./assets/image.png")).uri;
+const response = await fetch(url);
+const imageBitmap = await createImageBitmap(await response.blob());
+
+const texture = device.createTexture({
+  size: [imageBitmap.width, imageBitmap.height, 1],
+  format: "rgba8unorm",
+  usage:
+    GPUTextureUsage.TEXTURE_BINDING |
+    GPUTextureUsage.COPY_DST |
+    GPUTextureUsage.RENDER_ATTACHMENT,
+});
+
+device.queue.copyExternalImageToTexture(
+  { source: imageBitmap },
+  { texture },
+  [imageBitmap.width, imageBitmap.height],
+);
+```
+
+Do this once at load time, not every frame.
+
+## Bind group
+
+```tsx
+const sampler = device.createSampler({ magFilter: "linear", minFilter: "linear" });
+
+const bindGroup = device.createBindGroup({
+  layout: pipeline.getBindGroupLayout(0),
+  entries: [
+    { binding: 0, resource: sampler },
+    { binding: 1, resource: texture.createView() },
+  ],
+});
+```
+
+## Sampling in WGSL
+
+```wgsl
+@group(0) @binding(0) var texSampler: sampler;
+@group(0) @binding(1) var tex: texture_2d<f32>;
+
+@fragment
+fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+  return textureSample(tex, texSampler, uv);
+}
+```
+
+Pass UV coordinates from the vertex shader. For 3D meshes, unwrap or generate UVs in your vertex data.
+
+## Native / video textures
+
+For camera and video frames, use [`importExternalTexture`](/docs/native-media/external-textures) with `texture_external` instead of uploading pixels manually - zero-copy from native producers.
+
+## Common pitfalls
+
+| Issue | Fix |
+| ----- | --- |
+| Blurry textures | Match `canvas.width` to `clientWidth * PixelRatio.get()` ([Sizing](/docs/rendering/sizing)) |
+| Upside-down UVs | Flip V coordinate in shader or fix vertex UVs |
+| Web GLTF loading | Polyfill `Image.resolveAssetSource` on web - see [Expo](/docs/getting-started/expo) |
+
+## Next
+
+- [Rotating Cube](/docs/rendering/rotating-cube) - 3D geometry with UVs (extend with a texture bind group)
+- [Depth & MSAA](/docs/rendering/depth-and-msaa)
+- [Native Textures](/docs/native-media/native-textures) - camera and video without CPU copy

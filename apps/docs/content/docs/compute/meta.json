@@ -1,0 +1,11 @@
+{
+  "title": "Compute",
+  "pages": [
+    "compute",
+    "storage-buffers",
+    "instancing",
+    "render-bundles",
+    "compute-boids",
+    "particles"
+  ]
+}

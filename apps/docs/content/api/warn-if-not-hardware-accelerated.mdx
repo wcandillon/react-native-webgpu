@@ -1,0 +1,51 @@
+---
+title: warnIfNotHardwareAccelerated
+description: Log a warning when the GPU adapter is a software fallback.
+---
+
+Checks `adapter.info.isFallbackAdapter` and logs a console warning. Common on Android emulators where rendering may be slow or missing features.
+
+## Usage
+
+Call once when the adapter becomes available — typically in a `useEffect`:
+
+```tsx
+import { useEffect } from "react";
+import { useDevice, warnIfNotHardwareAccelerated } from "react-native-webgpu";
+
+export function Scene() {
+  const { adapter, device } = useDevice();
+
+  useEffect(() => {
+    if (adapter) {
+      warnIfNotHardwareAccelerated(adapter);
+    }
+  }, [adapter]);
+
+  if (!device) return null;
+
+  // configure canvas, build pipelines…
+  return null;
+}
+```
+
+With [`GPUDeviceProvider`](/api/gpu-device-provider), read the adapter from [`useMainDevice`](/api/use-main-device) the same way:
+
+```tsx
+function Scene() {
+  const { adapter } = useMainDevice();
+
+  useEffect(() => {
+    if (adapter) warnIfNotHardwareAccelerated(adapter);
+  }, [adapter]);
+
+  return null;
+}
+```
+
+This does not block rendering — it only logs. Test camera, native textures, and performance-critical paths on **physical devices**.
+
+## See also
+
+- [Device](/docs/rendering/device) - emulator limitations and feature availability
+- [useDevice](/api/use-device) - adapter request hook

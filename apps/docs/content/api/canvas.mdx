@@ -1,0 +1,134 @@
+---
+title: Canvas
+description: The main WebGPU rendering surface for React Native.
+---
+
+`Canvas` is a React Native view that owns a GPU surface. Attach a ref, call `getContext("webgpu")`, configure the context with your `GPUDevice`, then encode render passes each frame.
+
+## Props
+
+| Prop | Type | Description |
+| ---- | ---- | ----------- |
+| `transparent` | `boolean` | When true, the canvas background is transparent for compositing over RN views |
+| `...ViewProps` | `ViewProps` | All standard React Native View props (`style`, `onLayout`, etc.) |
+
+## Usage
+
+Minimal on-screen rendering loop:
+
+```tsx
+import { useEffect, useRef } from "react";
+import { PixelRatio, StyleSheet, View } from "react-native";
+import { Canvas, useDevice, type CanvasRef } from "react-native-webgpu";
+
+const triangleVertWGSL = `
+@vertex fn main(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
+  var pos = array<vec2f, 3>(vec2(0, 0.5), vec2(-0.5, -0.5), vec2(0.5, -0.5));
+  return vec4f(pos[i], 0.0, 1.0);
+}`;
+
+const redFragWGSL = `@fragment fn main() -> @location(0) vec4f {
+  return vec4(1.0, 0.0, 0.0, 1.0);
+}`;
+
+export function TriangleScene() {
+  const ref = useRef<CanvasRef>(null);
+  const { device } = useDevice();
+
+  useEffect(() => {
+    if (!device) return;
+
+    let cancelled = false;
+    let animationFrameId = 0;
+
+    const start = () => {
+      const context = ref.current?.getContext("webgpu");
+      if (!context || cancelled) {
+        animationFrameId = requestAnimationFrame(start);
+        return;
+      }
+
+      const canvas = context.canvas as HTMLCanvasElement;
+      if (canvas.clientWidth === 0 || canvas.clientHeight === 0) {
+        animationFrameId = requestAnimationFrame(start);
+        return;
+      }
+
+      const format = navigator.gpu.getPreferredCanvasFormat();
+      canvas.width = canvas.clientWidth * PixelRatio.get();
+      canvas.height = canvas.clientHeight * PixelRatio.get();
+      context.configure({ device, format, alphaMode: "premultiplied" });
+
+      const pipeline = device.createRenderPipeline({
+        layout: "auto",
+        vertex: {
+          module: device.createShaderModule({ code: triangleVertWGSL }),
+          entryPoint: "main",
+        },
+        fragment: {
+          module: device.createShaderModule({ code: redFragWGSL }),
+          entryPoint: "main",
+          targets: [{ format }],
+        },
+        primitive: { topology: "triangle-list" },
+      });
+
+      const render = () => {
+        if (cancelled) return;
+
+        const encoder = device.createCommandEncoder();
+        const pass = encoder.beginRenderPass({
+          colorAttachments: [{
+            view: context.getCurrentTexture().createView(),
+            clearValue: [0, 0, 0, 0],
+            loadOp: "clear",
+            storeOp: "store",
+          }],
+        });
+        pass.setPipeline(pipeline);
+        pass.draw(3);
+        pass.end();
+
+        device.queue.submit([encoder.finish()]);
+        context.present();
+        animationFrameId = requestAnimationFrame(render);
+      };
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    animationFrameId = requestAnimationFrame(start);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [device]);
+
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: "#3498db" }} />
+      <Canvas ref={ref} style={StyleSheet.absoluteFill} transparent />
+    </View>
+  );
+}
+```
+
+Steps in order:
+
+1. Mount `<Canvas ref={ref} />` and wait for layout (non-zero `clientWidth` / `clientHeight`).
+2. Request a device with [`useDevice`](/api/use-device) or [`GPUDeviceProvider`](/api/gpu-device-provider).
+3. Call `ref.current.getContext("webgpu")` and `context.configure({ device, format, alphaMode })`.
+4. Each frame: encode passes → `device.queue.submit()` → **`context.present()`**.
+
+See [Hello Triangle](/docs/rendering/hello-triangle) for WGSL and a step-by-step walkthrough.
+
+## Transparent compositing
+
+Set `transparent` to render over React Native views beneath the canvas. Pair it with `alphaMode: "premultiplied"` when configuring the context and clear color alpha `0` in your render pass.
+
+## See also
+
+- [CanvasRef](/api/canvas-ref) - ref methods (`getContext`, `getNativeSurface`, `present`)
+- [useCanvasRef](/api/use-canvas-ref) - typed ref hook
+- [Hello Triangle](/docs/rendering/hello-triangle) - full rendering tutorial

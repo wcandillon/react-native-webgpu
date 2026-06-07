@@ -1,0 +1,109 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+@source "../src/lib/**/*.tsx";
+@source "../src/components/**/*.tsx";
+
+html {
+  scroll-behavior: smooth;
+}
+
+button[data-search-full] {
+  @apply mx-auto! rounded-xl! max-w-lg!;
+}
+
+article {
+  @apply pt-8;
+}
+
+@media (max-width: 767px) {
+  .rnwgpu-docs-shell #nd-nav {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) {
+  /* Make the HomeLayout wrapper transparent so its sticky #nd-nav child
+     becomes a direct layout participant of .rnwgpu-docs-shell. */
+  .rnwgpu-docs-shell > #nd-home-layout {
+    display: contents;
+  }
+
+  /* Nav bar height (h-14 = 3.5rem). Fumadocs uses this to offset
+     sticky sidebar/ToC below the nav. */
+  .rnwgpu-docs-shell {
+    --fd-banner-height: 3.5rem;
+  }
+
+  /* Short pages fill the viewport (nav + grid = 100dvh). */
+  .rnwgpu-docs-shell > #nd-docs-layout {
+    min-height: calc(100dvh - var(--fd-banner-height));
+  }
+
+  /* Sidebar: no duplicate title, search, or collapse - top nav owns search. */
+  .rnwgpu-docs-layout #nd-sidebar > div:first-child > div:first-child {
+    display: none !important;
+  }
+}
+
+@theme {
+  --spacing-fd-container: 1400px;
+  --fd-layout-width: 1400px;
+}
+
+body {
+  overscroll-behavior-y: none;
+  background-color: var(--color-fd-background);
+}
+
+/* Homepage: single viewport, no document scroll */
+.rnwgpu-home-shell {
+  --fd-banner-height: 3.5rem;
+}
+
+.rnwgpu-home-shell > div:last-child {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+@media (max-width: 767px) {
+  .rnwgpu-home-shell {
+    --fd-banner-height: 0px;
+  }
+}
+
+/* Interactive demos: square-play icon at the right of sidebar titles */
+#nd-sidebar a[href$="/hello-triangle"],
+#nd-sidebar a[href$="/rotating-cube"],
+#nd-sidebar a[href$="/compute-boids"],
+#nd-sidebar a[href$="/particles"],
+#nd-sidebar a[href$="/three-js"],
+#nd-sidebar a[href$="/react-three-fiber"],
+#nd-sidebar a[href$="/tensorflow"] {
+  display: flex !important;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+#nd-sidebar a[href$="/hello-triangle"]::after,
+#nd-sidebar a[href$="/rotating-cube"]::after,
+#nd-sidebar a[href$="/compute-boids"]::after,
+#nd-sidebar a[href$="/particles"]::after,
+#nd-sidebar a[href$="/three-js"]::after,
+#nd-sidebar a[href$="/react-three-fiber"]::after,
+#nd-sidebar a[href$="/tensorflow"]::after {
+  content: "";
+  margin-left: auto;
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+  opacity: 0.55;
+  background-color: var(--color-fd-primary);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='3' rx='2'/%3E%3Cpath d='m9 8 6 4-6 4Z'/%3E%3C/svg%3E");
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+}

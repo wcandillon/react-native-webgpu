@@ -1,0 +1,110 @@
+---
+title: useDevice
+description: Async hook that requests a GPUAdapter and GPUDevice.
+---
+
+`useDevice` requests an adapter and device on mount. Use it when you manage rendering yourself or need a dedicated device for a single scene.
+
+## Signature
+
+```tsx
+function useDevice(
+  adapterOptions?: GPURequestAdapterOptions,
+  deviceDescriptor?: GPUDeviceDescriptor,
+): { adapter: GPUAdapter | null; device: GPUDevice | null }
+```
+
+Both `adapter` and `device` are `null` until the async request completes. Guard on `device` before creating GPU resources.
+
+## Usage
+
+Request a device, warn on software fallback, then configure a canvas:
+
+```tsx
+import { useEffect } from "react";
+import { PixelRatio } from "react-native";
+import {
+  Canvas,
+  useCanvasRef,
+  useDevice,
+  warnIfNotHardwareAccelerated,
+} from "react-native-webgpu";
+
+export function RotatingCube() {
+  const ref = useCanvasRef();
+  const { adapter, device } = useDevice(
+    undefined,
+    { requiredFeatures: ["rnwebgpu/native-texture" as GPUFeatureName] },
+  );
+
+  useEffect(() => {
+    if (adapter) warnIfNotHardwareAccelerated(adapter);
+  }, [adapter]);
+
+  useEffect(() => {
+    if (!device) return;
+
+    const context = ref.current!.getContext("webgpu")!;
+    const canvas = context.canvas as HTMLCanvasElement;
+    const format = navigator.gpu.getPreferredCanvasFormat();
+
+    canvas.width = canvas.clientWidth * PixelRatio.get();
+    canvas.height = canvas.clientHeight * PixelRatio.get();
+    context.configure({ device, format, alphaMode: "premultiplied" });
+
+    // Build pipelines, buffers, etc. once here…
+
+    let frameId = 0;
+    const render = () => {
+      const encoder = device.createCommandEncoder();
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [{
+          view: context.getCurrentTexture().createView(),
+          clearValue: [0.1, 0.1, 0.1, 1],
+          loadOp: "clear",
+          storeOp: "store",
+        }],
+      });
+      // pass.setPipeline(pipeline); pass.draw(…);
+      pass.end();
+      device.queue.submit([encoder.finish()]);
+      context.present();
+      frameId = requestAnimationFrame(render);
+    };
+    frameId = requestAnimationFrame(render);
+
+    return () => cancelAnimationFrame(frameId);
+  }, [device, ref]);
+
+  if (!device) return null;
+
+  return <Canvas ref={ref} style={{ flex: 1 }} />;
+}
+```
+
+### Request options
+
+Pass adapter and device options as hook arguments:
+
+```tsx
+const { device } = useDevice(
+  { powerPreference: "high-performance" },
+  {
+    requiredFeatures: ["rnwebgpu/native-texture" as GPUFeatureName],
+    dawnToggles: { enabledToggles: ["…"], disabledToggles: ["…"] },
+  },
+);
+```
+
+## When to use something else
+
+| Situation | Use instead |
+| --------- | ----------- |
+| Multiple components share one device | [`GPUDeviceProvider`](/api/gpu-device-provider) + [`useMainDevice`](/api/use-main-device) |
+| Device already provided by a parent | [`useMainDevice`](/api/use-main-device) |
+
+## See also
+
+- [GPUDeviceProvider](/api/gpu-device-provider) - share one device via context
+- [Device](/docs/rendering/device) - adapter features, threading, `device.lost`
+- [Hello Triangle](/docs/rendering/hello-triangle) - end-to-end render loop

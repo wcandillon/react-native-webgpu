@@ -1,0 +1,67 @@
+---
+title: useSurface
+description: Hook that returns a Canvas ref and resolved NativeCanvas surface.
+---
+
+`useSurface` creates a typed ref, reads `getNativeSurface()` after the first layout, and exposes the native dimensions. Use it when you need the surface handle or pixel dimensions for native interop (Three.js, custom bridges).
+
+## Usage
+
+```tsx
+import { useEffect } from "react";
+import { PixelRatio } from "react-native";
+import {
+  Canvas,
+  GPUDeviceProvider,
+  useMainDevice,
+  useSurface,
+} from "react-native-webgpu";
+
+function ThreeScene() {
+  const { ref, surface } = useSurface();
+  const { device } = useMainDevice();
+
+  useEffect(() => {
+    if (!device || !surface) return;
+
+    const context = ref.current!.getContext("webgpu")!;
+    const format = navigator.gpu.getPreferredCanvasFormat();
+
+    // Size the backing store from native dimensions + device pixel ratio
+    const canvas = context.canvas as HTMLCanvasElement;
+    canvas.width = surface.clientWidth * PixelRatio.get();
+    canvas.height = surface.clientHeight * PixelRatio.get();
+
+    context.configure({ device, format, alphaMode: "premultiplied" });
+
+    // Pass `surface` to a Three.js ReactNativeCanvas adapter, or read
+    // surface.surface (bigint handle) for custom native code
+    console.log("Native handle:", surface.surface);
+  }, [device, surface, ref]);
+
+  return <Canvas ref={ref} style={{ flex: 1 }} />;
+}
+
+export function App() {
+  return (
+    <GPUDeviceProvider>
+      <ThreeScene />
+    </GPUDeviceProvider>
+  );
+}
+```
+
+`surface` is `null` on the first render and updates after layout via `useLayoutEffect`. Guard on `surface` before using dimensions or the native handle.
+
+## Return value
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `ref` | `RefObject<CanvasRef>` | Pass to `<Canvas ref={ref} />` |
+| `surface` | `NativeCanvas \| null` | Native handle and dimensions after layout |
+
+## See also
+
+- [CanvasRef#getNativeSurface](/api/canvas-ref#getnativesurface) - same data via ref methods
+- [Three.js](/docs/integrations/three-js) - WebGPURenderer integration
+- [NativeCanvas](/api/canvas-ref#nativecanvas) - field reference

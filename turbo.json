@@ -70,6 +70,18 @@
     },
     "lint": {},
     "tsc": {},
-    "build": {}
+    "build": {
+      "outputs": ["lib/**", ".next/**", "out/**"]
+    },
+    "build:docs": {
+      "env": ["GITHUB_PAGES", "NEXT_PUBLIC_BASE_PATH"],
+      "outputs": [".next/**", "out/**"],
+      "inputs": [
+        "**/*",
+        "../../packages/webgpu/src/**",
+        "!**/.next/**",
+        "!**/out/**"
+      ]
+    }
   }
 }

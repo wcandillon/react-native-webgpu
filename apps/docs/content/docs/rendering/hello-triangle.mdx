@@ -1,0 +1,108 @@
+---
+title: Hello Triangle
+description: Rendering capstone - the minimal React Native WebGPU loop.
+---
+
+This page ties together the **Rendering** chapters: [Canvas](/docs/rendering/canvas), [Device](/docs/rendering/device), [Present](/docs/rendering/present), [Transparency](/docs/rendering/transparency), and [Sizing](/docs/rendering/sizing). The playground below is the smallest program that uses all of them.
+
+<WebGPUPlayground demo="hello-triangle" height={280} transparent />
+
+## 1. Layout - canvas over React Native
+
+Stack a `Canvas` on top of a normal React Native view. Use `transparent` so cleared pixels show the view beneath ([Transparency](/docs/rendering/transparency)):
+
+```tsx
+<View style={{ flex: 1 }}>
+  <View style={{ flex: 1, backgroundColor: "#3498db" }} />
+  <Canvas ref={ref} style={StyleSheet.absoluteFill} transparent />
+</View>
+```
+
+## 2. WGSL - positions in the vertex shader, color in the fragment shader
+
+No vertex buffer yet - positions come from `@builtin(vertex_index)`:
+
+```wgsl title="vertex"
+@vertex
+fn main(@builtin(vertex_index) VertexIndex: u32) -> @builtin(position) vec4f {
+  var pos = array<vec2f, 3>(
+    vec2(0.0, 0.5),
+    vec2(-0.5, -0.5),
+    vec2(0.5, -0.5),
+  );
+  return vec4f(pos[VertexIndex], 0.0, 1.0);
+}
+```
+
+```wgsl title="fragment"
+@fragment
+fn main() -> @location(0) vec4f {
+  return vec4(1.0, 0.0, 0.0, 1.0);
+}
+```
+
+## 3. One-time GPU setup
+
+After the canvas mounts, request a device ([Device](/docs/rendering/device)) and configure the context:
+
+```tsx
+const adapter = await navigator.gpu.requestAdapter();
+const device = await adapter!.requestDevice();
+const format = navigator.gpu.getPreferredCanvasFormat();
+
+const context = ref.current!.getContext("webgpu")!;
+const canvas = context.canvas as HTMLCanvasElement;
+canvas.width = canvas.clientWidth * PixelRatio.get();
+canvas.height = canvas.clientHeight * PixelRatio.get();
+
+context.configure({
+  device,
+  format,
+  alphaMode: "premultiplied", // pairs with transparent Canvas
+});
+
+const pipeline = device.createRenderPipeline({
+  layout: "auto",
+  vertex: {
+    module: device.createShaderModule({ code: triangleVertWGSL }),
+    entryPoint: "main",
+  },
+  fragment: {
+    module: device.createShaderModule({ code: redFragWGSL }),
+    entryPoint: "main",
+    targets: [{ format }],
+  },
+  primitive: { topology: "triangle-list" },
+});
+```
+
+## 4. Encode, submit, present
+
+Each frame you encode a render pass, submit it, then call `present()` ([Present](/docs/rendering/present)):
+
+```tsx
+const encoder = device.createCommandEncoder();
+const pass = encoder.beginRenderPass({
+  colorAttachments: [{
+    view: context.getCurrentTexture().createView(),
+    clearValue: [0, 0, 0, 0], // alpha 0 → see RN view below
+    loadOp: "clear",
+    storeOp: "store",
+  }],
+});
+pass.setPipeline(pipeline);
+pass.draw(3);
+pass.end();
+device.queue.submit([encoder.finish()]);
+context.present();
+```
+
+## What this teaches
+
+| Step | Chapter |
+| ---- | ------- |
+| `PixelRatio.get()` | [Sizing](/docs/rendering/sizing) |
+| `alphaMode: "premultiplied"` + clear alpha `0` | [Transparency](/docs/rendering/transparency) |
+| `context.present()` after submit | [Present](/docs/rendering/present) |
+
+Next: vertex buffers, depth, and uniforms in [Rotating Cube](/docs/rendering/rotating-cube).

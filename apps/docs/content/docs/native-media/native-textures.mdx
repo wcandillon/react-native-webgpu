@@ -1,0 +1,51 @@
+---
+title: Native Textures
+description: Zero-copy import of camera frames, video, and native pixel buffers.
+---
+
+React Native WebGPU extends WebGPU with **native surface import** - the key differentiator from browser WebGPU. This section walks through the APIs in order of complexity, ending with a live camera pipeline.
+
+## Learning path
+
+| Step | Page | What you learn |
+| ---- | ---- | -------------- |
+| 1 | **Native Textures** (here) | Feature detection, two import paths, helpers |
+| 2 | [External Textures](/docs/native-media/external-textures) | `importExternalTexture` - recommended for video & camera |
+| 3 | [Shared Texture Memory](/docs/native-media/shared-texture-memory) | Manual `beginAccess` / `endAccess` when you need control |
+| 4 | [Video Player](/docs/native-media/video-player) | Stream MP4 frames with `createVideoPlayer` |
+| 5 | [Vision Camera](/docs/native-media/vision-camera) | Apply everything to live camera frames |
+
+## Two import paths
+
+| API | Best for |
+| --- | -------- |
+| [`importExternalTexture`](/docs/native-media/external-textures) | Camera/video frames - handles YUV→RGB and lifecycle |
+| [`importSharedTextureMemory`](/docs/native-media/shared-texture-memory) | Manual control over shared surfaces |
+
+Both require the `"rnwebgpu/native-texture"` feature (enabled by default when supported):
+
+```tsx
+if (!device.features.has("rnwebgpu/native-texture" as GPUFeatureName)) {
+  return; // rare on some Android emulators
+}
+```
+
+<Callout type="info" title="iOS">
+`importExternalTexture` and `importSharedTextureMemory` work on all supported iOS devices. YUV→RGB conversion is automatic for NV12 surfaces.
+</Callout>
+
+## RNWebGPU helpers
+
+[`RNWebGPU`](/api/rn-webgpu) bridges native producers to GPU import:
+
+| Helper | Use case |
+| ------ | -------- |
+| `createVideoPlayer(url, pixelFormat?)` | Decoded MP4 stream - [Video Player](/docs/native-media/video-player) |
+| `createVideoFrameFromNativeBuffer(pointer)` | Vision Camera [`NativeBuffer`](https://visioncamera.margelo.com/api/react-native-vision-camera/interfaces/NativeBuffer) |
+| `createTestVideoFrame(w, h)` | Synthetic frame for tests / emulators |
+
+## Next steps
+
+- [External Textures](/docs/native-media/external-textures) - recommended path for camera and video
+- [Video Player](/docs/native-media/video-player) - stream MP4 frames with `createVideoPlayer`
+- [Vision Camera](/docs/native-media/vision-camera) - live camera pipeline

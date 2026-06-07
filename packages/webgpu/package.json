@@ -51,7 +51,7 @@
   "bugs": {
     "url": "https://github.com/wcandillon/react-native-webgpu/issues"
   },
-  "homepage": "https://github.com/wcandillon/react-native-webgpu#readme",
+  "homepage": "https://wcandillon.github.io/react-native-webgpu/",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
