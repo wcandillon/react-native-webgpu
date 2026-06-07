@@ -1,0 +1,109 @@
+---
+title: Particles
+description: Compute demo - thousands of agents with additive blending.
+---
+
+Another **Compute** demo in the same family as [Compute Boids](/docs/compute/compute-boids): update state on GPU, draw instanced geometry, **`present()`**.
+
+<WebGPUPlayground demo="particles" height={280} />
+
+## 1. Dual-purpose storage buffer
+
+One buffer is written by compute and read as vertex input in the render pass:
+
+```tsx
+const particleBuffer = device.createBuffer({
+  size: PARTICLE_COUNT * 16,
+  usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+});
+```
+
+Each particle stores `pos: vec2f` and `vel: vec2f` - same struct layout as boids ([Storage Buffers](/docs/compute/storage-buffers)).
+
+## 2. Compute - physics + respawn
+
+```wgsl
+struct Particle {
+  pos: vec2f,
+  vel: vec2f,
+}
+
+@group(0) @binding(0) var<storage, read_write> particles: array<Particle>;
+@group(0) @binding(1) var<uniform> params: vec2f; // deltaTime, gravity
+
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) gid: vec3u) {
+  let i = gid.x;
+  if (i >= arrayLength(&particles)) { return; }
+
+  var p = particles[i];
+  p.pos += p.vel * params.x;
+  p.vel.y -= params.y;
+
+  // bounce off walls
+  if (p.pos.x < -1.0 || p.pos.x > 1.0) { p.vel.x *= -1.0; }
+
+  // respawn when falling off bottom
+  if (p.pos.y < -1.0) {
+    p.pos = vec2f(/* random x */, 1.0);
+    p.vel = vec2f(/* random velocity */);
+  }
+
+  particles[i] = p;
+}
+```
+
+Dispatch `ceil(PARTICLE_COUNT / 256)` workgroups - 2048 particles in this demo.
+
+## 3. Render - instanced quads
+
+The vertex shader reads particle position from the storage buffer (via vertex buffer binding) and expands each particle into a billboard quad:
+
+```tsx
+pass.draw(6, PARTICLE_COUNT); // 6 verts per quad, one instance per particle
+```
+
+Fragment shader outputs a soft circular falloff for a glow effect.
+
+## 4. Additive blending
+
+Bright particles accumulate without depth sorting ([Transparency](/docs/rendering/transparency)):
+
+```tsx
+fragment: {
+  targets: [{
+    format: presentationFormat,
+    blend: {
+      color: { srcFactor: "src-alpha", dstFactor: "one" },
+      alpha: { srcFactor: "one", dstFactor: "one" },
+    },
+  }],
+},
+```
+
+Clear the color attachment to black each frame so additive particles stack visually.
+
+## 5. Frame loop
+
+Identical architecture to boids - only the physics and blend mode differ:
+
+```tsx
+// 1. compute pass - update particles
+// 2. render pass - draw instanced quads with additive blend
+// 3. submit + present
+```
+
+## Tips
+
+| Topic | Detail |
+| ----- | ------ |
+| **Workgroup size** | Match `@workgroup_size` to dispatch: `ceil(n / 256)` |
+| **Performance** | Start with hundreds of particles on device before scaling to thousands |
+| **Buffer usage** | `STORAGE \| VERTEX` is the standard pattern for GPU-driven particles |
+| **Format** | `rgba16float` targets work well for HDR-style additive glow |
+
+## What you learned
+
+- Same **compute → render** split as boids, with in-place storage writes (no ping-pong needed when each thread only touches its own particle)
+- Instanced drawing from GPU-updated buffers
+- Additive compositing for particle effects

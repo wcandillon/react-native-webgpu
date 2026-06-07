@@ -1,0 +1,90 @@
+---
+title: GPUDeviceProvider
+description: Context provider that requests a device and gates children until ready.
+---
+
+`GPUDeviceProvider` calls [`useDevice`](/api/use-device) internally and renders children only when `device` is non-null. Wrap your scene root so every child can call [`useMainDevice`](/api/use-main-device) without requesting its own device.
+
+## Props
+
+```tsx
+interface DeviceProviderProps {
+  children?: ReactNode;
+  adapterOptions?: GPURequestAdapterOptions;
+  deviceDescriptor?: GPUDeviceDescriptor;
+}
+```
+
+## Usage
+
+```tsx
+import { useEffect } from "react";
+import { PixelRatio } from "react-native";
+import {
+  Canvas,
+  GPUDeviceProvider,
+  useCanvasRef,
+  useMainDevice,
+} from "react-native-webgpu";
+
+function VideoEffectScene() {
+  const ref = useCanvasRef();
+  const { device } = useMainDevice();
+
+  useEffect(() => {
+    if (!device) return;
+
+    const context = ref.current!.getContext("webgpu")!;
+    const canvas = context.canvas as HTMLCanvasElement;
+    const format = navigator.gpu.getPreferredCanvasFormat();
+
+    canvas.width = canvas.clientWidth * PixelRatio.get();
+    canvas.height = canvas.clientHeight * PixelRatio.get();
+    context.configure({ device, format, alphaMode: "premultiplied" });
+
+    const VIDEO_URL = "https://example.com/video.mp4";
+    const player = RNWebGPU.createVideoPlayer(VIDEO_URL, "nv12");
+    player.play();
+
+    // Render loop: copyLatestFrame → importExternalTexture → draw → present
+    // See [Video Player](/docs/native-media/video-player)
+  }, [device]);
+
+  return <Canvas ref={ref} style={{ flex: 1 }} />;
+}
+
+export function App() {
+  return (
+    <GPUDeviceProvider
+      deviceDescriptor={{
+        requiredFeatures: ["rnwebgpu/native-texture" as GPUFeatureName],
+      }}
+    >
+      <VideoEffectScene />
+    </GPUDeviceProvider>
+  );
+}
+```
+
+Request features (like `"rnwebgpu/native-texture"`) here — you cannot add features to an existing device later.
+
+While the device is loading, the provider returns `null` (nothing rendered). If you need a loading UI, wrap the provider:
+
+```tsx
+function AppShell() {
+  return (
+    <>
+      <GPUDeviceProvider>
+        <Scene />
+      </GPUDeviceProvider>
+      {/* Optional: show a spinner until Scene mounts */}
+    </>
+  );
+}
+```
+
+## See also
+
+- [useMainDevice](/api/use-main-device) - read the shared device in children
+- [Device](/docs/rendering/device) - feature flags, threading, `device.lost`
+- [Native Textures](/docs/native-media/native-textures) - camera and video import

@@ -1,0 +1,69 @@
+---
+title: Instancing
+description: Draw many objects in a single pass with per-instance data.
+---
+
+**Instancing** lets you draw the same geometry many times with different per-instance transforms - one draw call instead of hundreds. The GPU uses an **instance index** (`@builtin(instance_index)` in WGSL) to look up data for each copy.
+
+This is essential for particles, foliage, crowds, and any scene with repeated meshes.
+
+## draw() with instance count
+
+```tsx
+pass.draw(vertexCount, instanceCount);
+// e.g. pass.draw(36, 100) - 36 vertices (a cube), 100 instances
+```
+
+- First argument: vertices **per instance** (your mesh)
+- Second argument: number of **instances**
+
+## Per-instance data sources
+
+| Approach | When to use |
+| -------- | ----------- |
+| **Instanced vertex attributes** | Small fixed structs (transform matrix per instance) |
+| **Storage buffer + instance_index** | Large or dynamic data (boid positions, particle state) |
+| **Uniform buffer + loop** | Rare - prefer storage for many instances |
+
+In WGSL with a storage buffer:
+
+```wgsl
+@group(0) @binding(0) var<storage, read> instances: array<InstanceData>;
+
+@vertex
+fn vs_main(@builtin(instance_index) i: u32, @builtin(vertex_index) vi: u32) -> VsOut {
+  let data = instances[i];
+  // place vertex using data.transform…
+}
+```
+
+[Compute Boids](/docs/compute/compute-boids) uses this pattern - compute updates boid positions, render reads them via `instance_index`.
+
+## Instanced vertex attributes
+
+For static per-instance transforms, add an instance step rate to the vertex buffer layout:
+
+```tsx
+buffers: [
+  { arrayStride: vertexSize, stepMode: "vertex", attributes: [/* mesh */] },
+  { arrayStride: 64, stepMode: "instance", attributes: [
+      { shaderLocation: 2, offset: 0, format: "float32x4" },
+      // … matrix rows
+    ],
+  },
+],
+```
+
+Each instance advances the second buffer independently.
+
+## Performance notes
+
+- Instancing dramatically reduces CPU overhead vs one draw per object
+- Combine with [Render Bundles](/docs/compute/render-bundles) for static instanced geometry
+- Keep instance data in GPU memory (storage buffer) when updated by compute
+
+## Next
+
+- [Rotating Cube](/docs/rendering/rotating-cube) - single-object rendering before instancing
+- [Compute Boids](/docs/compute/compute-boids) - instanced triangles driven by compute
+- [Render Bundles](/docs/compute/render-bundles) - record instanced draws once

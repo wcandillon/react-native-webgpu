@@ -1,0 +1,81 @@
+---
+title: Expo
+description: Use the with-webgpu Expo template and configure Metro for Three.js.
+---
+
+Expo provides a React Native WebGPU template that works with React Three Fiber on iOS, Android, and web. This is the fastest path if you want a preconfigured project.
+
+## Create a project
+
+```npm
+npx create-expo-app@latest -e with-webgpu
+```
+
+The template includes `react-native-webgpu`, Reanimated, and Metro settings compatible with Three.js WebGPU builds.
+
+## Three.js on React Native
+
+Starting from Three.js r168, the WebGPU build runs on React Native. Metro must resolve `three` and `three/webgpu` to the WebGPU bundle (`build/three.webgpu.js`), not the default WebGL entry:
+
+```js
+// metro.config.js - resolveRequest excerpt
+const path = require("path");
+const threePackagePath = path.resolve(__dirname, "node_modules/three");
+
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName.startsWith("three/addons/")) {
+    return {
+      filePath: path.resolve(
+        threePackagePath,
+        "examples/jsm/" + moduleName.replace("three/addons/", "") + ".js",
+      ),
+      type: "sourceFile",
+    };
+  }
+  if (moduleName === "three" || moduleName === "three/webgpu") {
+    return {
+      filePath: path.resolve(threePackagePath, "build/three.webgpu.js"),
+      type: "sourceFile",
+    };
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
+```
+
+Import from `three/webgpu` in application code. Full walkthrough: [Three.js](/docs/integrations/three-js).
+
+### React Three Fiber
+
+Patch `@react-three/fiber` so Metro loads the WebGPU bundle instead of the stale OpenGL native entry:
+
+```diff
+-  "react-native": "native/dist/react-three-fiber-native.cjs.js",
++  "react-native": "dist/react-three-fiber.cjs.js",
+```
+
+Use [`patch-package`](https://github.com/ds300/patch-package) or Yarn Berry `resolutions`. Details: [React Three Fiber](/docs/integrations/react-three-fiber).
+
+### Model loading (GLTF)
+
+Three.js loaders call `Image.resolveAssetSource`, which react-native-web on web does not provide. Add a small polyfill at app startup:
+
+```js
+// resolveAssetSourcePolyfill.js - import before Three.js
+import { Image, PixelRatio, Platform } from "react-native";
+
+if (Platform.OS === "web") {
+  Image.resolveAssetSource = (source) => {
+    // resolve bundled asset ID to URI via AssetRegistry
+    // … see Three.js integration guide for full implementation
+    return { uri: resolvedUri };
+  };
+}
+```
+
+Also import `fast-text-encoding` if your target environment lacks `TextEncoder`.
+
+## Learn more
+
+- [Installation](/docs/getting-started/installation) - manual setup in bare React Native
+- [Three.js](/docs/integrations/three-js) - `WebGPURenderer` + `present()`
+- [React Three Fiber](/docs/integrations/react-three-fiber) - declarative 3D

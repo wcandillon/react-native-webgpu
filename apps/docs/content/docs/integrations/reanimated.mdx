@@ -1,0 +1,78 @@
+---
+title: Reanimated
+description: Run WebGPU rendering on the UI thread and dedicated worklet runtimes.
+---
+
+By default, WebGPU rendering runs on the JavaScript thread alongside React. For smooth 60fps scenes - especially with Three.js or heavy compute - you may want rendering on the **UI thread** or a **dedicated worklet runtime** so it is not blocked by React reconciliation or bridge traffic.
+
+React Native WebGPU supports this via [React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/) and [React Native Worklets](https://github.com/margelo/react-native-worklets).
+
+## Requirements
+
+```npm
+npm i react-native-reanimated react-native-worklets
+```
+
+Follow Reanimated's installation guide for babel plugin and native setup. WebGPU objects are automatically registered for Worklets serialization when the module loads - you can pass `GPUDevice` and `GPUCanvasContext` directly to worklets.
+
+## installWebGPU
+
+Worklet runtimes start without WebGPU flag globals (`GPUBufferUsage`, `GPUTextureUsage`, etc.). Call [`installWebGPU()`](/api/install-webgpu) once at the top of a worklet:
+
+```tsx
+import { Canvas, installWebGPU } from "react-native-webgpu";
+import { runOnUI } from "react-native-reanimated";
+
+const renderFrame = (device: GPUDevice, context: RNCanvasContext) => {
+  "worklet";
+  installWebGPU();
+
+  const buffer = device.createBuffer({
+    size,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
+
+  const commandEncoder = device.createCommandEncoder();
+  // … encode passes …
+  device.queue.submit([commandEncoder.finish()]);
+  context.present();
+};
+
+// Create device on main thread, then run render on UI thread:
+const device = await adapter.requestDevice();
+const context = canvasRef.current!.getContext("webgpu")!;
+runOnUI(renderFrame)(device, context);
+```
+
+Alternatively, import constants from the package - the Worklets serializer captures them by closure:
+
+```tsx
+import { GPUBufferUsage, GPUMapMode } from "react-native-webgpu";
+```
+
+## Threading model
+
+| Runtime | Typical use |
+| ------- | ----------- |
+| Main JS | React apps, simple demos, TF.js |
+| Reanimated UI (`runOnUI`) | 60fps render loops tied to gestures |
+| Dedicated worklet (`createWorkletRuntime`) | Heavy compute + render isolated from UI |
+| Vision Camera frame processor | Per-frame camera effects |
+
+`present()` works from any of these threads - it runs synchronously on whichever thread submits commands.
+
+## Async buffer readback
+
+Reading GPU data back to CPU (`mapAsync`) from a worklet requires careful scheduling - encode the copy on the worklet thread, await the map on the same runtime, and avoid blocking the UI thread with long waits. Pattern: compute on GPU → copy to staging buffer → map async → pass results to JS via `runOnJS`.
+
+The module also works with [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/) for complex Three.js scenes on dedicated threads.
+
+<Callout type="warn" title="device.lost and uncapturederror">
+These events are only delivered on the **main JS runtime**. Create the device on the main thread and pass it into worklets. If you create the device on a worklet runtime, `device.lost` and `uncapturederror` will not fire there.
+</Callout>
+
+## API
+
+- [`installWebGPU`](/api/install-webgpu)
+- [`GPUDeviceProvider`](/api/gpu-device-provider)
+- [Present](/docs/rendering/present)

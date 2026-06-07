@@ -1,0 +1,71 @@
+---
+title: useCanvasRef
+description: Returns a ref for Canvas with the CanvasRef type.
+---
+
+Convenience hook equivalent to `useRef<CanvasRef>(null)`. Pass the ref to `<Canvas>` and call [`CanvasRef`](/api/canvas-ref) methods after mount.
+
+## Usage
+
+```tsx
+import { useEffect } from "react";
+import { PixelRatio } from "react-native";
+import {
+  Canvas,
+  GPUDeviceProvider,
+  useCanvasRef,
+  useMainDevice,
+} from "react-native-webgpu";
+
+function Scene() {
+  const ref = useCanvasRef();
+  const { device } = useMainDevice();
+
+  useEffect(() => {
+    if (!device) return;
+
+    const context = ref.current!.getContext("webgpu");
+    if (!context) return;
+
+    const canvas = context.canvas as HTMLCanvasElement;
+    const format = navigator.gpu.getPreferredCanvasFormat();
+
+    canvas.width = canvas.clientWidth * PixelRatio.get();
+    canvas.height = canvas.clientHeight * PixelRatio.get();
+    context.configure({ device, format, alphaMode: "premultiplied" });
+
+    // ref.current is stable — capture context once, reuse in rAF
+    const render = () => {
+      const encoder = device.createCommandEncoder();
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [{
+          view: context.getCurrentTexture().createView(),
+          clearValue: [0, 0, 0, 0],
+          loadOp: "clear",
+          storeOp: "store",
+        }],
+      });
+      pass.end();
+      device.queue.submit([encoder.finish()]);
+      context.present();
+      requestAnimationFrame(render);
+    };
+    requestAnimationFrame(render);
+  }, [device]);
+
+  return <Canvas ref={ref} style={{ flex: 1 }} transparent />;
+}
+
+export function App() {
+  return (
+    <GPUDeviceProvider>
+      <Scene />
+    </GPUDeviceProvider>
+  );
+}
+```
+
+## See also
+
+- [CanvasRef](/api/canvas-ref) - `getContext`, `getNativeSurface`, `present`
+- [Canvas](/api/canvas) - component props

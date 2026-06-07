@@ -1,0 +1,42 @@
+{
+  "name": "docs",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3001",
+    "build": "next build",
+    "build:docs": "next build",
+    "start": "next start",
+    "lint": "eslint . --max-warnings 0",
+    "tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-backend-webgpu": "^4.22.0",
+    "flexsearch": "^0.8.205",
+    "fumadocs-core": "^16.9.3",
+    "fumadocs-mdx": "^15.0.11",
+    "fumadocs-ui": "^16.9.3",
+    "lucide-react": "^0.511.0",
+    "mermaid": "^11.15.0",
+    "next": "^16.2.7",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native-web": "^0.21.2",
+    "react-native-webgpu": "workspace:*",
+    "three": "0.184.0",
+    "wgpu-matrix": "^3.0.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.8",
+    "@types/mdx": "^2.0.13",
+    "@types/node": "^20.14.7",
+    "@types/react": "^18.2.44",
+    "@types/react-dom": "^19.1.0",
+    "@webgpu/types": "0.1.65",
+    "eslint": "9.35.0",
+    "fumadocs-typescript": "^4.0.4",
+    "tailwindcss": "^4.1.8",
+    "typescript": "^5.2.2"
+  }
+}

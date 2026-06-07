@@ -1,0 +1,67 @@
+---
+title: External Textures
+description: Sample native video and camera frames with importExternalTexture.
+---
+
+`device.importExternalTexture()` imports a `NativeVideoFrame` as a `GPUExternalTexture` for zero-copy sampling.
+
+## Per-frame import
+
+Re-import every frame - external textures expire after the submit that uses them:
+
+```tsx
+const externalTexture = device.importExternalTexture({
+  source: frame,
+  rotation: 90,   // sensor orientation
+  mirrored: true, // front camera
+});
+// bind, render, submit…
+device.queue.submit([encoder.finish()]);
+context.present();
+externalTexture.destroy(); // release immediately after submit
+```
+
+<Callout type="warn" title="Lifecycle">
+On the web, the browser manages external texture lifetime. On React Native **call `externalTexture.destroy()` right after the `queue.submit()` that sampled it** - never before. Call `present()` before `destroy()` in render loops. GC will eventually clean up, but waiting starves camera/video buffer pools. Re-import a fresh external texture every frame.
+</Callout>
+
+<Callout type="warn" title="Android YUV">
+On **iOS**, NV12 surfaces get hardware YUV→RGB conversion. On **Android**, camera frames arrive as opaque YCbCr - Dawn returns raw `[Y, Cb, Cr]` and you must decode in WGSL. Prepend a BT.709 limited-range decode helper to your shader module:
+
+```wgsl
+// Android: sampled channels are raw [Y, Cb, Cr]
+fn cameraDecode(c: vec4f) -> vec4f {
+  let y = c.r - 0.0627451;
+  let cb = c.g - 0.5;
+  let cr = c.b - 0.5;
+  let r = 1.164384 * y + 1.792741 * cr;
+  let g = 1.164384 * y - 0.213249 * cb - 0.532909 * cr;
+  let b = 1.164384 * y + 2.112402 * cb;
+  return vec4f(clamp(vec3f(r, g, b), vec3f(0.0), vec3f(1.0)), 1.0);
+}
+```
+
+On iOS, `cameraDecode` can be a passthrough - hardware already returns RGB. See [Vision Camera](/docs/native-media/vision-camera) for a full effect pipeline using this prelude.
+</Callout>
+
+<Callout type="info" title="Rotation & mirror">
+Pass `rotation` (0/90/180/270) and `mirrored` to match Vision Camera's [`frame.orientation`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#orientation) / [`frame.isMirrored`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#ismirrored). Dawn bakes these into the sampling transform. See also [Frame.getNativeBuffer() - WebGPU example](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#examples).
+</Callout>
+
+## WGSL
+
+```wgsl
+@group(0) @binding(0) var srcTex: texture_external;
+
+@fragment
+fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+  return textureSampleBaseClampToEdge(srcTex, srcSampler, uv);
+}
+```
+
+## API
+
+- [`GPUDevice` extensions](/api/gpu-device-extensions)
+- [Video Player](/docs/native-media/video-player) - `createVideoPlayer` + external texture loop
+- [Vision Camera](/docs/native-media/vision-camera) - live camera frames
+- [Vision Camera - Frame](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame) · [NativeBuffer](https://visioncamera.margelo.com/api/react-native-vision-camera/interfaces/NativeBuffer)
