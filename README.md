@@ -343,6 +343,24 @@ const context = canvasRef.current.getContext("webgpu");
 runOnUI(renderFrame)(device, context);
 ```
 
+#### WebGPU constants inside worklets
+
+The flag constants (`GPUBufferUsage`, `GPUTextureUsage`, `GPUShaderStage`, `GPUColorWrite`, `GPUMapMode`) are installed as globals only on the main JS runtime, so the bare global is `undefined` inside a worklet. Import them from `react-native-webgpu` instead: the values are then captured into the worklet by closure (the same way a shader string is), so they work on the UI runtime, dedicated worklet runtimes, and Vision Camera frame processors.
+
+```tsx
+import { GPUBufferUsage, GPUMapMode } from "react-native-webgpu";
+
+const work = (device: GPUDevice) => {
+  "worklet";
+  const buffer = device.createBuffer({
+    size,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
+  // ...
+  await buffer.mapAsync(GPUMapMode.READ);
+};
+```
+
 ## Troubleshooting
 
 ### iOS
