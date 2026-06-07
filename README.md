@@ -345,13 +345,14 @@ runOnUI(renderFrame)(device, context);
 
 #### WebGPU constants inside worklets
 
-The flag constants (`GPUBufferUsage`, `GPUTextureUsage`, `GPUShaderStage`, `GPUColorWrite`, `GPUMapMode`) are installed as globals only on the main JS runtime, so the bare global is `undefined` inside a worklet. Import them from `react-native-webgpu` instead: the values are then captured into the worklet by closure (the same way a shader string is), so they work on the UI runtime, dedicated worklet runtimes, and Vision Camera frame processors.
+The flag constants (`GPUBufferUsage`, `GPUTextureUsage`, `GPUShaderStage`, `GPUColorWrite`, `GPUMapMode`) are installed as globals only on the main JS runtime, so the bare global is `undefined` inside a worklet. Call `installWebGPU()` once at the top of the worklet to install them on the calling runtime, and then use the bare globals exactly as you would on the main thread:
 
 ```tsx
-import { GPUBufferUsage, GPUMapMode } from "react-native-webgpu";
+import { installWebGPU } from "react-native-webgpu";
 
 const work = (device: GPUDevice) => {
   "worklet";
+  installWebGPU();
   const buffer = device.createBuffer({
     size,
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
@@ -359,6 +360,14 @@ const work = (device: GPUDevice) => {
   // ...
   await buffer.mapAsync(GPUMapMode.READ);
 };
+```
+
+`installWebGPU` is captured into the worklet by closure (the same way a shader string is), so it works on the UI runtime, dedicated worklet runtimes, and Vision Camera frame processors. Calling it on a runtime that already has the globals (e.g. the main JS runtime) is a safe no-op. It is the explicit entry point for per-runtime WebGPU setup, so more runtime wiring may be added to it over time.
+
+If you prefer not to install globals, the constants are also exported as plain values you can import and capture directly:
+
+```tsx
+import { GPUBufferUsage, GPUMapMode } from "react-native-webgpu";
 ```
 
 ## Troubleshooting
