@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <utility>
 
+#include <ReactCommon/CallInvoker.h>
+
 #include "AsyncTaskHandle.h"
 #include "WGPULogger.h"
 
@@ -15,10 +17,12 @@ struct RuntimeData {
 };
 constexpr const char *TAG = "RuntimeContext";
 
-// Heartbeat interval (ms) used when there are pending tasks but none that demand
-// a fast pump (e.g. a long-lived device.lost watcher). Keeps delivering Dawn's
-// spontaneous callbacks without burning CPU at frame rate when idle.
-constexpr double kSlowTickMs = 100.0;
+// The main JS runtime and its CallInvoker, registered once on install. The
+// context created for sMainRuntime gets sMainInvoker; spontaneous events
+// (device.lost) on a main-runtime device are delivered through it without the
+// pump. Worklet runtimes have no invoker (best-effort, see the header doc).
+jsi::Runtime *sMainRuntime = nullptr;
+std::shared_ptr<facebook::react::CallInvoker> sMainInvoker;
 
 // Serializes ProcessEvents() across all runtimes that share a wgpu::Instance.
 // Held only across the ProcessEvents call itself, never while running JS / mailbox
@@ -28,6 +32,13 @@ std::mutex &processEventsMutex() {
   return mutex;
 }
 } // namespace
+
+void RuntimeContext::registerMainRuntime(
+    jsi::Runtime *runtime,
+    std::shared_ptr<facebook::react::CallInvoker> invoker) {
+  sMainRuntime = runtime;
+  sMainInvoker = std::move(invoker);
+}
 
 RuntimeContext::RuntimeContext(jsi::Runtime &runtime, wgpu::Instance instance)
     : _runtime(runtime), _instance(std::move(instance)) {
@@ -48,6 +59,11 @@ RuntimeContext::getOrCreate(jsi::Runtime &runtime, wgpu::Instance instance) {
     return existing;
   }
   auto context = std::make_shared<RuntimeContext>(runtime, std::move(instance));
+  // Only the main JS runtime's context carries the CallInvoker; it is used to
+  // deliver spontaneous events (device.lost) without the pump.
+  if (&runtime == sMainRuntime) {
+    context->_callInvoker = sMainInvoker;
+  }
   auto data = std::make_shared<RuntimeData>();
   data->context = context;
   runtime.setRuntimeData(runtimeDataUUID(), data);
@@ -61,11 +77,13 @@ AsyncTaskHandle RuntimeContext::postTask(const TaskCallback &callback,
     throw std::runtime_error("Failed to create AsyncTaskHandle.");
   }
 
-  _pendingTasks.fetch_add(1, std::memory_order_acq_rel);
+  // Only pumping tasks (request/response ops) drive the ProcessEvents pump.
+  // Spontaneous tasks (keepPumping == false, e.g. device.lost) never touch the
+  // pump: they settle via the CallInvoker (see AsyncTaskHandle::State::schedule).
   if (keepPumping) {
     _pumpTasks.fetch_add(1, std::memory_order_acq_rel);
+    requestTick();
   }
-  requestTick();
 
   auto resolve = handle.createResolveFunction();
   auto reject = handle.createRejectFunction();
@@ -80,7 +98,6 @@ AsyncTaskHandle RuntimeContext::postTask(const TaskCallback &callback,
 }
 
 void RuntimeContext::onTaskSettled(bool keepPumping) {
-  _pendingTasks.fetch_sub(1, std::memory_order_acq_rel);
   if (keepPumping) {
     _pumpTasks.fetch_sub(1, std::memory_order_acq_rel);
   }
@@ -114,18 +131,14 @@ void RuntimeContext::requestTick() {
     return;
   }
 
-  // Fast pump (delay 0) while there is active async work; otherwise a slow
-  // heartbeat so long-lived spontaneous callbacks (e.g. device.lost, uncaptured
-  // errors) are still delivered without burning CPU at frame rate when idle.
-  const double delayMs =
-      _pumpTasks.load(std::memory_order_acquire) > 0 ? 0.0 : kSlowTickMs;
-
-  // postTask and tick both run on the owning runtime's thread, so we can
-  // schedule the next tick directly via that runtime's own timer. setTimeout is
-  // available on the main RN runtime and on worklet runtimes (backed by the
-  // worklets EventLoop); setImmediate / queueMicrotask are fallbacks. We do NOT
-  // use queueMicrotask as the primary mechanism: a self-rescheduling microtask
-  // never yields the microtask checkpoint, starving the runtime's task loop.
+  // The pump only ever runs while a request/response op is outstanding, so it
+  // always schedules as soon as possible (delay 0). postTask and tick both run
+  // on the owning runtime's thread, so we schedule the next tick directly via
+  // that runtime's own timer. setTimeout is available on the main RN runtime and
+  // on worklet runtimes (backed by the worklets EventLoop); setImmediate /
+  // queueMicrotask are fallbacks. We do NOT use queueMicrotask as the primary
+  // mechanism: a self-rescheduling microtask never yields the microtask
+  // checkpoint, starving the runtime's task loop.
   auto self = shared_from_this();
   jsi::Runtime &rt = _runtime;
   auto tickCallback = jsi::Function::createFromHostFunction(
@@ -141,7 +154,7 @@ void RuntimeContext::requestTick() {
   if (setTimeoutValue.isObject() &&
       setTimeoutValue.asObject(rt).isFunction(rt)) {
     setTimeoutValue.asObject(rt).asFunction(rt).call(
-        rt, jsi::Value(rt, tickCallback), jsi::Value(delayMs));
+        rt, jsi::Value(rt, tickCallback), jsi::Value(0.0));
     return;
   }
   auto setImmediateValue = global.getProperty(rt, "setImmediate");
@@ -164,9 +177,10 @@ void RuntimeContext::tick() {
   }
   // Settle this runtime's ready promises on this thread, outside the pump lock.
   drainMailbox();
-  // Keep pumping while any task is outstanding: fast for active work, slow
-  // heartbeat for lingering watchers like device.lost (see requestTick).
-  if (_pendingTasks.load(std::memory_order_acquire) > 0) {
+  // Keep pumping only while a "pumping" task (active async work) is outstanding.
+  // Non-pumping tasks (e.g. device.lost) intentionally do NOT keep the pump
+  // alive: we prioritise battery over catching a device.lost fired while idle.
+  if (_pumpTasks.load(std::memory_order_acquire) > 0) {
     requestTick();
   }
 }

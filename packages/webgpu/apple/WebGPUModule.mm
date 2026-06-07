@@ -78,7 +78,6 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
       std::make_shared<rnwgpu::ApplePlatformContext>();
   webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker,
                                                             platformContext);
-
   return @true;
 }
 

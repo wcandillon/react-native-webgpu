@@ -6,6 +6,8 @@
 #include <utility>
 #include <vector>
 
+#include <ReactCommon/CallInvoker.h>
+
 #include "Convertors.h"
 #include "JSIConverter.h"
 
@@ -563,6 +565,24 @@ void GPUDevice::removeEventListener(std::string type, jsi::Function callback) {
 
 void GPUDevice::notifyUncapturedError(wgpu::ErrorType type,
                                       std::string message) {
+  // Dawn can surface an uncaptured error from any ProcessEvents pump (a worklet
+  // runtime sharing this instance may pump it on the wrong thread). Marshal to
+  // the owning runtime's JS thread via its CallInvoker before touching JSI. The
+  // invoker is wired only for the main JS runtime, so a device created on a
+  // worklet runtime does not deliver uncaptured errors to JS (best-effort; see
+  // README "Threading model").
+  auto invoker = _async ? _async->callInvoker() : nullptr;
+  if (!invoker) {
+    return;
+  }
+  auto self = shared_from_this();
+  invoker->invokeAsync([self, type, message = std::move(message)]() mutable {
+    self->deliverUncapturedError(type, std::move(message));
+  });
+}
+
+void GPUDevice::deliverUncapturedError(wgpu::ErrorType type,
+                                       std::string message) {
   auto it = _eventListeners.find("uncapturederror");
   if (it == _eventListeners.end() || it->second.empty()) {
     return;

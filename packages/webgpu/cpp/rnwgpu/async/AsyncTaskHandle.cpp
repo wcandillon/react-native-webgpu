@@ -4,6 +4,8 @@
 #include <string>
 #include <utility>
 
+#include <ReactCommon/CallInvoker.h>
+
 #include "Promise.h"
 #include "RuntimeContext.h"
 
@@ -82,14 +84,6 @@ void AsyncTaskHandle::State::schedule(Action action) {
     return;
   }
 
-  // The resolve/reject callback may fire on a thread that is NOT the owning
-  // runtime's thread: with a shared wgpu::Instance, another runtime's
-  // ProcessEvents() pump can consume this Dawn event. Touching the Promise's
-  // runtime off-thread would corrupt Hermes. So we deposit the actual settle
-  // (the only JSI-touching work) into the owning context's mailbox; the context
-  // drains it on its own thread during its next tick. The deposited closure
-  // captures only C++ state and runs no JSI until drained, so depositing from
-  // any thread is safe.
   if (!context) {
     // No context (shouldn't happen): best-effort inline settle.
     action(promiseRef->runtime, *promiseRef);
@@ -99,12 +93,42 @@ void AsyncTaskHandle::State::schedule(Action action) {
   }
 
   auto self = shared_from_this();
-  const bool keep = keepPumping;
+
+  if (!keepPumping) {
+    // Spontaneous task (e.g. device.lost): not driven by the ProcessEvents pump.
+    // Settle on the owning runtime's JS thread via its CallInvoker, which is
+    // wired only for the main JS runtime. A device created on a worklet runtime
+    // has no invoker, so its device.lost is dropped (best-effort; see the README
+    // "Threading model"). invokeAsync runs the closure on the main JS thread,
+    // where promiseRef->runtime lives for a main-runtime device.
+    auto invoker = context->callInvoker();
+    if (invoker) {
+      invoker->invokeAsync(
+          [self, action = std::move(action), promiseRef]() mutable {
+            action(promiseRef->runtime, *promiseRef);
+            std::lock_guard<std::mutex> lock(self->mutex);
+            self->keepAlive.reset();
+          });
+    } else {
+      std::lock_guard<std::mutex> lock(mutex);
+      keepAlive.reset();
+    }
+    return;
+  }
+
+  // Pumping task (request/response op). The resolve/reject callback may fire on
+  // a thread that is NOT the owning runtime's thread: with a shared
+  // wgpu::Instance, another runtime's ProcessEvents() pump can consume this Dawn
+  // event. Touching the Promise's runtime off-thread would corrupt Hermes. So we
+  // deposit the actual settle (the only JSI-touching work) into the owning
+  // context's mailbox; the context drains it on its own thread during its next
+  // tick. The deposited closure captures only C++ state and runs no JSI until
+  // drained, so depositing from any thread is safe.
   context->postSettle(
-      [self, action = std::move(action), promiseRef, keep]() mutable {
+      [self, action = std::move(action), promiseRef]() mutable {
         action(promiseRef->runtime, *promiseRef);
         if (self->context) {
-          self->context->onTaskSettled(keep);
+          self->context->onTaskSettled(/*keepPumping=*/true);
         }
         std::lock_guard<std::mutex> lock(self->mutex);
         self->keepAlive.reset();

@@ -91,56 +91,56 @@ export const webGPUAsyncDemo = (
 
     const frame = async () => {
       try {
-      frameId += 1;
-      const commandEncoder = device.createCommandEncoder();
-      const textureView = context.getCurrentTexture().createView();
+        frameId += 1;
+        const commandEncoder = device.createCommandEncoder();
+        const textureView = context.getCurrentTexture().createView();
 
-      const time = Date.now() / 1000;
-      const r = (Math.sin(time * 2) + 1) / 2;
-      const g = (Math.sin(time * 1.5 + Math.PI / 3) + 1) / 2;
-      const b = (Math.sin(time + Math.PI / 2) + 1) / 2;
+        const time = Date.now() / 1000;
+        const r = (Math.sin(time * 2) + 1) / 2;
+        const g = (Math.sin(time * 1.5 + Math.PI / 3) + 1) / 2;
+        const b = (Math.sin(time + Math.PI / 2) + 1) / 2;
 
-      const passEncoder = commandEncoder.beginRenderPass({
-        colorAttachments: [
-          {
-            view: textureView,
-            clearValue: [r, g, b, 1],
-            loadOp: "clear",
-            storeOp: "store",
-          },
-        ],
-      });
-      passEncoder.setPipeline(pipeline);
-      passEncoder.draw(3);
-      passEncoder.end();
+        const passEncoder = commandEncoder.beginRenderPass({
+          colorAttachments: [
+            {
+              view: textureView,
+              clearValue: [r, g, b, 1],
+              loadOp: "clear",
+              storeOp: "store",
+            },
+          ],
+        });
+        passEncoder.setPipeline(pipeline);
+        passEncoder.draw(3);
+        passEncoder.end();
 
-      const src = device.createBuffer({
-        size: SIZE,
-        usage: flags.COPY_SRC | flags.MAP_WRITE,
-        mappedAtCreation: true,
-      });
-      new Float32Array(src.getMappedRange()).set([frameId, r, g, b]);
-      src.unmap();
-      commandEncoder.copyBufferToBuffer(src, 0, readback, 0, SIZE);
+        const src = device.createBuffer({
+          size: SIZE,
+          usage: flags.COPY_SRC | flags.MAP_WRITE,
+          mappedAtCreation: true,
+        });
+        new Float32Array(src.getMappedRange()).set([frameId, r, g, b]);
+        src.unmap();
+        commandEncoder.copyBufferToBuffer(src, 0, readback, 0, SIZE);
 
-      device.queue.submit([commandEncoder.finish()]);
+        device.queue.submit([commandEncoder.finish()]);
 
-      // THE ASYNC OP. With the ProcessEvents model this Promise is pumped and
-      // settled on THIS runtime's own thread, so it resolves even while the JS
-      // thread is busy. Watch the logs against the "Make JS busy" button.
-      await readback.mapAsync(flags.MAP_MODE_READ);
-      const data = Array.from(new Float32Array(readback.getMappedRange()));
-      readback.unmap();
-      src.destroy();
-      if (frameId % 30 === 0) {
-        console.log(`[asyncBuffer] frame ${frameId} resolved ->`, data);
-      }
+        // THE ASYNC OP. With the ProcessEvents model this Promise is pumped and
+        // settled on THIS runtime's own thread, so it resolves even while the JS
+        // thread is busy. Watch the logs against the "Make JS busy" button.
+        await readback.mapAsync(flags.MAP_MODE_READ);
+        const data = Array.from(new Float32Array(readback.getMappedRange()));
+        readback.unmap();
+        src.destroy();
+        if (frameId % 30 === 0) {
+          console.log(`[asyncBuffer] frame ${frameId} resolved ->`, data);
+        }
 
-      context.present();
+        context.present();
 
-      if (runAnimation.value) {
-        requestAnimationFrame(frame);
-      }
+        if (runAnimation.value) {
+          requestAnimationFrame(frame);
+        }
       } catch (e) {
         logError("frame", e);
       }
@@ -193,7 +193,7 @@ export function AsyncBufferExample({ run }: AsyncBufferExampleProps) {
     }
     // The GPU object is created on the main runtime; we hand it to the worklet,
     // which calls requestAdapter/requestDevice on its OWN runtime.
-    const gpu = navigator.gpu;
+    const { gpu } = navigator;
     const presentationFormat = gpu.getPreferredCanvasFormat();
     const flags: GPUFlags = {
       COPY_SRC: GPUBufferUsage.COPY_SRC,

@@ -15,6 +15,10 @@
 
 namespace jsi = facebook::jsi;
 
+namespace facebook::react {
+class CallInvoker;
+} // namespace facebook::react
+
 namespace rnwgpu::async {
 
 /**
@@ -30,9 +34,16 @@ namespace rnwgpu::async {
  * thread and no cross-thread hop.
  *
  * The pump only runs while at least one "pumping" task is outstanding, so it
- * costs nothing when idle and stops cleanly. Tasks that may never settle on
- * their own (e.g. GPUDevice::getLost) are posted with keepPumping = false so
- * they do not keep the pump spinning forever.
+ * costs nothing when idle and stops cleanly.
+ *
+ * Spontaneous events (keepPumping = false): events that may fire at any time,
+ * independent of any request/response op (today only GPUDevice::getLost, whose
+ * Dawn callback is registered AllowSpontaneous). These are NOT driven by the
+ * pump. Instead their settle is marshalled onto the owning runtime's JS thread
+ * via that runtime's CallInvoker, which is wired only for the MAIN JS runtime
+ * (callInvoker()). A device created on a worklet runtime has no invoker, so its
+ * device.lost is best-effort and may never fire. See the README "Threading
+ * model" section.
  *
  * Shared-instance safety (mailbox): multiple runtimes may share one
  * wgpu::Instance. ProcessEvents() drains the whole instance queue and fires
@@ -60,6 +71,20 @@ public:
   static std::shared_ptr<RuntimeContext> getOrCreate(jsi::Runtime &runtime,
                                                      wgpu::Instance instance);
 
+  // Register the main JS runtime and its CallInvoker. The RuntimeContext created
+  // for this runtime gets the invoker (callInvoker() returns it); every other
+  // runtime's context returns null. Called once from RNWebGPUManager on install.
+  static void
+  registerMainRuntime(jsi::Runtime *runtime,
+                      std::shared_ptr<facebook::react::CallInvoker> invoker);
+
+  // CallInvoker for this runtime's JS thread, or null. Non-null only for the
+  // main JS runtime; used to deliver spontaneous events (device.lost) without
+  // the pump. See the class doc.
+  const std::shared_ptr<facebook::react::CallInvoker> &callInvoker() const {
+    return _callInvoker;
+  }
+
   // The wgpu::Instance bound to this runtime.
   wgpu::Instance instance() const { return _instance; }
 
@@ -85,7 +110,8 @@ private:
 
   jsi::Runtime &_runtime;
   wgpu::Instance _instance;
-  std::atomic<std::size_t> _pendingTasks{0};
+  // Non-null only for the main JS runtime's context (see registerMainRuntime).
+  std::shared_ptr<facebook::react::CallInvoker> _callInvoker;
   std::atomic<std::size_t> _pumpTasks{0};
   std::atomic<bool> _tickScheduled{false};
 
