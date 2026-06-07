@@ -40,9 +40,9 @@ function makeWebGPUCanvasContext(
   }
 
   const context = canvas.getContext("webgpu")!;
-  return Object.assign(context, {
-    present: () => {},
-  });
+  // On web there is no manual present; expose a no-op so RNCanvasContext's
+  // present() (called after queue.submit() on native) is callable here too.
+  return Object.assign(context, { present: () => {} });
 }
 
 // @ts-expect-error - polyfill for RNWebGPU native module

@@ -15,7 +15,7 @@ npm install react-native-webgpu
 ## With Expo
 
 Expo provides a React Native WebGPU template that works with React Three Fiber.
-The works on iOS, Android, and Web.
+This works on iOS, Android, and Web.
 
 ```
 npx create-expo-app@latest -e with-webgpu
@@ -174,8 +174,7 @@ ctx.canvas.height = ctx.canvas.clientHeight * PixelRatio.get();
 
 ### Frame Scheduling
 
-In React Native, we want to keep frame presentation as a manual operation as we plan to provide more advanced rendering options that are React Native specific.  
-This means that when you are ready to present a frame, you need to call `present` on the context.
+In React Native, frame presentation is a manual operation: when you are ready to present a frame, call `present()` on the context after submitting your commands to the queue. This works the same on every runtime: the main JS runtime, the Reanimated UI runtime, and dedicated worklet runtimes (`createWorkletRuntime` / `runOnRuntime`, or a Vision Camera frame processor). `present()` runs synchronously on the calling thread, so the frame is presented from whichever thread did the rendering.
 
 ```tsx
 // draw
@@ -184,6 +183,13 @@ device.queue.submit([commandEncoder.finish()]);
 // This method is React Native only
 context.present();
 ```
+
+### Threading model
+
+react-native-webgpu can drive WebGPU from more than one JavaScript runtime: the main JS runtime, the Reanimated UI runtime, and dedicated worklet runtimes (`createWorkletRuntime` / `runOnRuntime`, or a Vision Camera frame processor).
+This module also works well with [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/) and lets you run complex Three.js scenes on the UI thread or dedicated worklet threads.
+
+There is a caveat with `device.lost` and `uncapturederror`: they are only delivered on the main JS runtime. This is usually fine because the GPU device is typically created on the main JS thread and then sent to the UI or a dedicated worklet thread. However, if for some reason you create the device outside the main JS thread, beware that `device.lost` and `uncapturederror` won't fire.
 
 ### Canvas Transparency
 
@@ -293,10 +299,10 @@ const render = () => {
 
   // ... encode a pass that samples `externalTexture`, then:
   device.queue.submit([encoder.finish()]);
+  context.present();
 
   // Release the surface's access window right after the submit that sampled it.
   externalTexture.destroy();
-  context.present();
 };
 ```
 
@@ -316,14 +322,21 @@ First, install the optional peer dependencies:
 npm install react-native-reanimated react-native-worklets
 ```
 
-WebGPU objects are automatically registered for Worklets serialization when the module loads. You can pass WebGPU objects like `GPUDevice` and `GPUCanvasContext` directly to worklets:
+WebGPU objects are automatically registered for Worklets serialization when the module loads. You can pass WebGPU objects like `GPUDevice` and `GPUCanvasContext` directly to worklets.
+Call `installWebGPU()` once at the top of the worklet to install flag constants like `GPUBufferUsage`, `GPUTextureUsage`, and so on.
 
 ```tsx
-import { Canvas } from "react-native-webgpu";
+import { Canvas, installWebGPU } from "react-native-webgpu";
 import { runOnUI } from "react-native-reanimated";
 
 const renderFrame = (device: GPUDevice, context: GPUCanvasContext) => {
   "worklet";
+  installWebGPU();
+  // WebGPU constants are now available on this worklet thread
+  const buffer = device.createBuffer({
+    size,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
   // WebGPU rendering code runs on the UI thread
   const commandEncoder = device.createCommandEncoder();
   // ... render ...

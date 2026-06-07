@@ -19,6 +19,14 @@ export const examples = [
     screen: "FrameProcessor",
     title: "📷 Frame Processor",
   },
+  {
+    screen: "AsyncBufferUIThread",
+    title: "🧵 Async Buffer (UI)",
+  },
+  {
+    screen: "AsyncBufferDedicatedThread",
+    title: "🔀 Async Buffer (Dedicated)",
+  },
 ] as const;
 
 const styles = StyleSheet.create({

@@ -84,10 +84,10 @@ export function HelloTriangleMSAA() {
         passEncoder.end();
 
         device.queue.submit([commandEncoder.finish()]);
+        context.present();
       }
 
       frame();
-      context.present();
     })();
   }, [ref]);
 

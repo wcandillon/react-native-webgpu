@@ -49,7 +49,7 @@ export const Helmet = () => {
     function animate() {
       animateCamera();
       renderer.render(scene, camera);
-      context!.present();
+      context.present();
     }
 
     return () => {

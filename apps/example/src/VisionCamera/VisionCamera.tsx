@@ -613,11 +613,13 @@ const CameraView = () => {
           pass.draw(3);
           pass.end();
           device.queue.submit([encoder.finish()]);
+          // Vision Camera frame processors run on a dedicated worklet runtime;
+          // present runs on that thread, presenting the frame we just rendered.
+          context.present();
           // The work sampling it is submitted, so end the external texture's
           // access window now to release the camera frame's surface promptly
           // (don't wait for GC, which would starve the frame buffer pool).
           externalTex.destroy();
-          context.present();
         } finally {
           videoFrame.release();
         }

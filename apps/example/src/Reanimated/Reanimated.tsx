@@ -78,8 +78,11 @@ export const webGPUDemo = (
     passEncoder.end();
 
     device.queue.submit([commandEncoder.finish()]);
-
+    // Present runs on the calling thread, so it works the same whether this
+    // renders on the UI runtime (UIThread) or a dedicated worklet runtime
+    // (DedicatedThread).
     context.present();
+
     if (runAnimation.value) {
       requestAnimationFrame(frame);
     }

@@ -64,6 +64,12 @@ RNWebGPUManager::RNWebGPUManager(
   // Register main runtime for RuntimeAwareCache
   BaseRuntimeAwareCache::setMainJsRuntime(_jsRuntime);
 
+  // Register the main runtime + its CallInvoker so spontaneous events
+  // (device.lost / uncapturederror) on main-runtime devices can be delivered to
+  // the JS thread without the ProcessEvents pump. Worklet-runtime devices have
+  // no invoker (best-effort; see README "Threading model").
+  async::RuntimeContext::registerMainRuntime(_jsRuntime, _jsCallInvoker);
+
   auto gpu = std::make_shared<GPU>(*_jsRuntime);
   auto rnWebGPU =
       std::make_shared<RNWebGPU>(gpu, _platformContext, _jsCallInvoker);

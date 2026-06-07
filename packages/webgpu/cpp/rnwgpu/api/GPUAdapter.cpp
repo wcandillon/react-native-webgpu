@@ -164,10 +164,9 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
         }
         _instance.RequestDevice(
             &deviceDesc, wgpu::CallbackMode::AllowProcessEvents,
-            [asyncRunner = _async, resolve, reject, label, creationRuntime,
+            [context = _async, resolve, reject, label, creationRuntime,
              deviceLostBinding](wgpu::RequestDeviceStatus status,
-                                wgpu::Device device,
-                                wgpu::StringView message) {
+                                wgpu::Device device, wgpu::StringView message) {
               if (message.length) {
                 fprintf(stderr, "%s", message.data);
               }
@@ -191,14 +190,12 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
                     case wgpu::LoggingType::Warning:
                       logLevel = "Warning";
                       Logger::warnToJavascriptConsole(
-                          *creationRuntime,
-                          std::string(msg.data, msg.length));
+                          *creationRuntime, std::string(msg.data, msg.length));
                       break;
                     case wgpu::LoggingType::Error:
                       logLevel = "Error";
                       Logger::errorToJavascriptConsole(
-                          *creationRuntime,
-                          std::string(msg.data, msg.length));
+                          *creationRuntime, std::string(msg.data, msg.length));
                       break;
                     case wgpu::LoggingType::Verbose:
                       logLevel = "Verbose";
@@ -216,7 +213,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
                   creationRuntime);
 
               auto deviceHost = std::make_shared<GPUDevice>(std::move(device),
-                                                            asyncRunner, label);
+                                                            context, label);
               *deviceLostBinding = deviceHost;
 
               // Register the device in the static registry so the uncaptured

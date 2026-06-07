@@ -8,8 +8,8 @@
 
 #include "NativeObject.h"
 
-#include "rnwgpu/async/AsyncRunner.h"
 #include "rnwgpu/async/AsyncTaskHandle.h"
+#include "rnwgpu/async/RuntimeContext.h"
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -28,7 +28,7 @@ public:
   static constexpr const char *CLASS_NAME = "GPUQueue";
 
   explicit GPUQueue(wgpu::Queue instance,
-                    std::shared_ptr<async::AsyncRunner> async,
+                    std::shared_ptr<async::RuntimeContext> async,
                     std::string label)
       : NativeObject(CLASS_NAME), _instance(instance), _async(async),
         _label(label) {}
@@ -74,7 +74,7 @@ public:
 
 private:
   wgpu::Queue _instance;
-  std::shared_ptr<async::AsyncRunner> _async;
+  std::shared_ptr<async::RuntimeContext> _async;
   std::string _label;
 };
 

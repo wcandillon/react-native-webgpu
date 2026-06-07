@@ -65,7 +65,7 @@ class GPUOffscreenCanvasContext implements GPUCanvasContext {
   }
 
   present() {
-    // Do nothing
+    // Offscreen contexts have nothing to present; readback is via getImageData.
   }
 
   getDevice() {

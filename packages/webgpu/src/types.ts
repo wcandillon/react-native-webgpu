@@ -9,6 +9,15 @@ export interface NativeCanvas {
 }
 
 export type RNCanvasContext = GPUCanvasContext & {
+  /**
+   * Present the current frame.
+   *
+   * Call this after `queue.submit()` on every runtime: the main JS runtime, the
+   * Reanimated UI runtime, and dedicated worklet runtimes (e.g.
+   * `createWorkletRuntime` / `runOnRuntime`, or a Vision Camera frame
+   * processor). It runs synchronously on the calling thread, so the frame is
+   * presented from whichever thread did the rendering.
+   */
   present: () => void;
 };
 

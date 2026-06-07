@@ -6,6 +6,8 @@
 #include <utility>
 #include <vector>
 
+#include <ReactCommon/CallInvoker.h>
+
 #include "Convertors.h"
 #include "JSIConverter.h"
 
@@ -19,23 +21,33 @@ namespace rnwgpu {
 
 void GPUDevice::notifyDeviceLost(wgpu::DeviceLostReason reason,
                                  std::string message) {
-  if (_lostSettled) {
-    return;
+  std::optional<async::AsyncTaskHandle::ResolveFunction> resolveToCall;
+  std::shared_ptr<GPUDeviceLostInfo> info;
+  {
+    std::lock_guard<std::mutex> lock(_lostMutex);
+    if (_lostSettled) {
+      return;
+    }
+
+    _lostSettled = true;
+    _lostInfo = std::make_shared<GPUDeviceLostInfo>(reason, std::move(message));
+    info = _lostInfo;
+
+    if (_lostResolve.has_value()) {
+      resolveToCall = std::move(*_lostResolve);
+      _lostResolve.reset();
+    }
+
+    _lostHandle.reset();
   }
 
-  _lostSettled = true;
-  _lostInfo = std::make_shared<GPUDeviceLostInfo>(reason, std::move(message));
-
-  if (_lostResolve.has_value()) {
-    auto resolve = std::move(*_lostResolve);
-    _lostResolve.reset();
-    resolve([info = _lostInfo](jsi::Runtime &runtime) mutable {
+  // Settle outside the lock: resolve() only enqueues onto the JS thread.
+  if (resolveToCall.has_value()) {
+    (*resolveToCall)([info](jsi::Runtime &runtime) mutable {
       return JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(runtime,
                                                                      info);
     });
   }
-
-  _lostHandle.reset();
 }
 
 void GPUDevice::forceLossForTesting() {
@@ -367,9 +379,9 @@ async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
                   runtime, pipelineHolder);
             });
           } else {
-            std::string error =
-                msg.length ? std::string(msg.data, msg.length)
-                           : "Failed to create compute pipeline";
+            std::string error = msg.length
+                                    ? std::string(msg.data, msg.length)
+                                    : "Failed to create compute pipeline";
             reject(std::move(error));
           }
         });
@@ -409,9 +421,8 @@ async::AsyncTaskHandle GPUDevice::createRenderPipelineAsync(
                   runtime, pipelineHolder);
             });
           } else {
-            std::string error =
-                msg.length ? std::string(msg.data, msg.length)
-                           : "Failed to create render pipeline";
+            std::string error = msg.length ? std::string(msg.data, msg.length)
+                                           : "Failed to create render pipeline";
             reject(std::move(error));
           }
         });
@@ -498,6 +509,11 @@ std::unordered_set<std::string> GPUDevice::getFeatures() {
 }
 
 async::AsyncTaskHandle GPUDevice::getLost() {
+  // Held across the whole body: the postTask callback below runs synchronously
+  // on this (JS) thread and touches the same _lost* fields, so it must not
+  // re-lock. notifyDeviceLost() takes the same lock from its (possibly worker)
+  // thread.
+  std::lock_guard<std::mutex> lock(_lostMutex);
   if (_lostHandle.has_value()) {
     return *_lostHandle;
   }
@@ -512,7 +528,7 @@ async::AsyncTaskHandle GPUDevice::getLost() {
                 runtime, info);
           });
         },
-        false);
+        /*keepPumping=*/false);
   }
 
   auto handle = _async->postTask(
@@ -526,9 +542,10 @@ async::AsyncTaskHandle GPUDevice::getLost() {
           return;
         }
 
+        // Resolved later from notifyDeviceLost().
         _lostResolve = resolve;
       },
-      false);
+      /*keepPumping=*/false);
 
   _lostHandle = handle;
   return handle;
@@ -548,6 +565,24 @@ void GPUDevice::removeEventListener(std::string type, jsi::Function callback) {
 
 void GPUDevice::notifyUncapturedError(wgpu::ErrorType type,
                                       std::string message) {
+  // Dawn can surface an uncaptured error from any ProcessEvents pump (a worklet
+  // runtime sharing this instance may pump it on the wrong thread). Marshal to
+  // the owning runtime's JS thread via its CallInvoker before touching JSI. The
+  // invoker is wired only for the main JS runtime, so a device created on a
+  // worklet runtime does not deliver uncaptured errors to JS (best-effort; see
+  // README "Threading model").
+  auto invoker = _async ? _async->callInvoker() : nullptr;
+  if (!invoker) {
+    return;
+  }
+  auto self = shared_from_this();
+  invoker->invokeAsync([self, type, message = std::move(message)]() mutable {
+    self->deliverUncapturedError(type, std::move(message));
+  });
+}
+
+void GPUDevice::deliverUncapturedError(wgpu::ErrorType type,
+                                       std::string message) {
   auto it = _eventListeners.find("uncapturederror");
   if (it == _eventListeners.end() || it->second.empty()) {
     return;

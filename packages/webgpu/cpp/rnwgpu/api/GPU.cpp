@@ -9,11 +9,11 @@
 
 #include "Convertors.h"
 #include "JSIConverter.h"
-#include "rnwgpu/async/JSIMicrotaskDispatcher.h"
+#include "rnwgpu/async/RuntimeContext.h"
 
 namespace rnwgpu {
 
-GPU::GPU(jsi::Runtime &runtime) : NativeObject(CLASS_NAME) {
+GPU::GPU(jsi::Runtime & /*runtime*/) : NativeObject(CLASS_NAME) {
   static const auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
   wgpu::InstanceDescriptor instanceDesc{.requiredFeatureCount = 1,
                                         .requiredFeatures = &kTimedWaitAny};
@@ -48,12 +48,10 @@ GPU::GPU(jsi::Runtime &runtime) : NativeObject(CLASS_NAME) {
   instanceDesc.nextInChain = &toggles;
 
   _instance = wgpu::CreateInstance(&instanceDesc);
-
-  auto dispatcher = std::make_shared<async::JSIMicrotaskDispatcher>(runtime);
-  _async = async::AsyncRunner::getOrCreate(runtime, _instance, dispatcher);
 }
 
 async::AsyncTaskHandle GPU::requestAdapter(
+    jsi::Runtime &runtime,
     std::optional<std::shared_ptr<GPURequestAdapterOptions>> options) {
   wgpu::RequestAdapterOptions aOptions;
   Convertor conv;
@@ -66,12 +64,17 @@ async::AsyncTaskHandle GPU::requestAdapter(
   constexpr auto kDefaultBackendType = wgpu::BackendType::Vulkan;
 #endif
   aOptions.backendType = kDefaultBackendType;
-  return _async->postTask(
-      [this, aOptions](const async::AsyncTaskHandle::ResolveFunction &resolve,
-                       const async::AsyncTaskHandle::RejectFunction &reject) {
+
+  // Per-runtime context: async ops requested on this runtime resolve on this
+  // runtime's own thread (via its ProcessEvents pump).
+  auto context = async::RuntimeContext::getOrCreate(runtime, _instance);
+  return context->postTask(
+      [this, aOptions,
+       context](const async::AsyncTaskHandle::ResolveFunction &resolve,
+                const async::AsyncTaskHandle::RejectFunction &reject) {
         _instance.RequestAdapter(
             &aOptions, wgpu::CallbackMode::AllowProcessEvents,
-            [asyncRunner = _async, resolve,
+            [context, resolve,
              reject](wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,
                      wgpu::StringView message) {
               if (message.length) {
@@ -79,8 +82,8 @@ async::AsyncTaskHandle GPU::requestAdapter(
               }
 
               if (status == wgpu::RequestAdapterStatus::Success && adapter) {
-                auto adapterHost = std::make_shared<GPUAdapter>(
-                    std::move(adapter), asyncRunner);
+                auto adapterHost =
+                    std::make_shared<GPUAdapter>(std::move(adapter), context);
                 auto result =
                     std::variant<std::nullptr_t, std::shared_ptr<GPUAdapter>>(
                         adapterHost);

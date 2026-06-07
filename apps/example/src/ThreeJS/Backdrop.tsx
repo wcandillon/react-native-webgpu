@@ -150,7 +150,7 @@ export const Backdrop = () => {
       }
 
       renderer.render(scene, camera);
-      context!.present();
+      context.present();
     }
     return () => {
       renderer.setAnimationLoop(null);
