@@ -134,8 +134,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
       [this, aDescriptor, descriptor, label = std::move(label),
        deviceLostBinding,
        creationRuntime](const async::AsyncTaskHandle::ResolveFunction &resolve,
-                        const async::AsyncTaskHandle::RejectFunction &reject)
-          -> wgpu::Future {
+                        const async::AsyncTaskHandle::RejectFunction &reject) {
         // Build a local mutable copy so we can chain Dawn's device toggles.
         // The toggle name strings are owned by `descriptor` (captured above),
         // and the const char* / DawnTogglesDescriptor locals live for the
@@ -163,7 +162,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
           }
           deviceDesc.nextInChain = &toggles;
         }
-        return _instance.RequestDevice(
+        _instance.RequestDevice(
             &deviceDesc, wgpu::CallbackMode::AllowProcessEvents,
             [context = _async, resolve, reject, label, creationRuntime,
              deviceLostBinding](wgpu::RequestDeviceStatus status,

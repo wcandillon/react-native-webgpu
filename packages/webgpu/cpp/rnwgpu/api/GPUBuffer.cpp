@@ -54,9 +54,8 @@ async::AsyncTaskHandle GPUBuffer::mapAsync(uint64_t modeIn,
   return _async->postTask(
       [bufferHandle, mode, resolvedOffset,
        rangeSize](const async::AsyncTaskHandle::ResolveFunction &resolve,
-                  const async::AsyncTaskHandle::RejectFunction &reject)
-          -> wgpu::Future {
-        return bufferHandle.MapAsync(
+                  const async::AsyncTaskHandle::RejectFunction &reject) {
+        bufferHandle.MapAsync(
             mode, resolvedOffset, rangeSize, wgpu::CallbackMode::AllowProcessEvents,
             [resolve, reject](wgpu::MapAsyncStatus status,
                               wgpu::StringView message) {

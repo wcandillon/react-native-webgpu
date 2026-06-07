@@ -185,6 +185,7 @@ export function StorageBufferVertices() {
 
     const commandBuffer = encoder.finish();
     device.queue.submit([commandBuffer]);
+    context.present();
   });
 
   return (

@@ -4,10 +4,11 @@ import {
   useDevice,
   type CanvasRef,
   type NativeCanvas,
+  type RNCanvasContext,
 } from "react-native-webgpu";
 
 interface SceneProps {
-  context: GPUCanvasContext;
+  context: RNCanvasContext;
   device: GPUDevice;
   gpu: GPU;
   presentationFormat: GPUTextureFormat;

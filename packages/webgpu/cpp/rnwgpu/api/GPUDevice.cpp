@@ -363,9 +363,9 @@ async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
                               const async::AsyncTaskHandle::ResolveFunction
                                   &resolve,
                               const async::AsyncTaskHandle::RejectFunction
-                                  &reject) -> wgpu::Future {
+                                  &reject) {
     (void)descriptor;
-    return device.CreateComputePipelineAsync(
+    device.CreateComputePipelineAsync(
         &desc, wgpu::CallbackMode::AllowProcessEvents,
         [pipelineHolder, resolve,
          reject](wgpu::CreatePipelineAsyncStatus status,
@@ -405,9 +405,9 @@ async::AsyncTaskHandle GPUDevice::createRenderPipelineAsync(
                               const async::AsyncTaskHandle::ResolveFunction
                                   &resolve,
                               const async::AsyncTaskHandle::RejectFunction
-                                  &reject) -> wgpu::Future {
+                                  &reject) {
     (void)descriptor;
-    return device.CreateRenderPipelineAsync(
+    device.CreateRenderPipelineAsync(
         &desc, wgpu::CallbackMode::AllowProcessEvents,
         [pipelineHolder, resolve,
          reject](wgpu::CreatePipelineAsyncStatus status,
@@ -437,8 +437,8 @@ async::AsyncTaskHandle GPUDevice::popErrorScope() {
   return _async->postTask([device](const async::AsyncTaskHandle::ResolveFunction
                                        &resolve,
                                    const async::AsyncTaskHandle::RejectFunction
-                                       &reject) -> wgpu::Future {
-    return device.PopErrorScope(
+                                       &reject) {
+    device.PopErrorScope(
         wgpu::CallbackMode::AllowProcessEvents,
         [resolve, reject](wgpu::PopErrorScopeStatus status,
                           wgpu::ErrorType type, wgpu::StringView message) {
@@ -520,33 +520,28 @@ async::AsyncTaskHandle GPUDevice::getLost() {
     return _async->postTask(
         [info = _lostInfo](
             const async::AsyncTaskHandle::ResolveFunction &resolve,
-            const async::AsyncTaskHandle::RejectFunction & /*reject*/)
-            -> wgpu::Future {
+            const async::AsyncTaskHandle::RejectFunction & /*reject*/) {
           resolve([info](jsi::Runtime &runtime) mutable {
             return JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(
                 runtime, info);
           });
-          // No Dawn event to wait on: resolved synchronously.
-          return wgpu::Future{};
         },
         /*keepPumping=*/false);
   }
 
   auto handle = _async->postTask(
       [this](const async::AsyncTaskHandle::ResolveFunction &resolve,
-             const async::AsyncTaskHandle::RejectFunction & /*reject*/)
-          -> wgpu::Future {
+             const async::AsyncTaskHandle::RejectFunction & /*reject*/) {
         if (_lostSettled && _lostInfo) {
           resolve([info = _lostInfo](jsi::Runtime &runtime) mutable {
             return JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(
                 runtime, info);
           });
-          return wgpu::Future{};
+          return;
         }
 
-        // Resolved later from notifyDeviceLost(); no Dawn event to wait on.
+        // Resolved later from notifyDeviceLost().
         _lostResolve = resolve;
-        return wgpu::Future{};
       },
       /*keepPumping=*/false);
 

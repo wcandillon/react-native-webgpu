@@ -71,9 +71,8 @@ async::AsyncTaskHandle GPU::requestAdapter(
   return context->postTask(
       [this, aOptions,
        context](const async::AsyncTaskHandle::ResolveFunction &resolve,
-                const async::AsyncTaskHandle::RejectFunction &reject)
-          -> wgpu::Future {
-        return _instance.RequestAdapter(
+                const async::AsyncTaskHandle::RejectFunction &reject) {
+        _instance.RequestAdapter(
             &aOptions, wgpu::CallbackMode::AllowProcessEvents,
             [context, resolve,
              reject](wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,

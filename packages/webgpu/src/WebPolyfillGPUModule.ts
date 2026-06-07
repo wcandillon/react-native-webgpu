@@ -41,7 +41,7 @@ function makeWebGPUCanvasContext(
 
   const context = canvas.getContext("webgpu")!;
   // On web there is no manual present; expose a no-op so RNCanvasContext's
-  // present() (used on native dedicated worklet runtimes) is callable here too.
+  // present() (called after queue.submit() on native) is callable here too.
   return Object.assign(context, { present: () => {} });
 }
 

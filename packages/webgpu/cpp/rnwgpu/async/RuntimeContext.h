@@ -51,8 +51,8 @@ namespace rnwgpu::async {
 class RuntimeContext : public std::enable_shared_from_this<RuntimeContext> {
 public:
   using TaskCallback =
-      std::function<wgpu::Future(const AsyncTaskHandle::ResolveFunction &,
-                                 const AsyncTaskHandle::RejectFunction &)>;
+      std::function<void(const AsyncTaskHandle::ResolveFunction &,
+                         const AsyncTaskHandle::RejectFunction &)>;
 
   RuntimeContext(jsi::Runtime &runtime, wgpu::Instance instance);
 
