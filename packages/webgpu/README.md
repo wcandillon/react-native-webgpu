@@ -322,14 +322,21 @@ First, install the optional peer dependencies:
 npm install react-native-reanimated react-native-worklets
 ```
 
-WebGPU objects are automatically registered for Worklets serialization when the module loads. You can pass WebGPU objects like `GPUDevice` and `GPUCanvasContext` directly to worklets:
+WebGPU objects are automatically registered for Worklets serialization when the module loads. You can pass WebGPU objects like `GPUDevice` and `GPUCanvasContext` directly to worklets.
+Call `installWebGPU()` once at the top of the worklet to install flag constants like `GPUBufferUsage`, `GPUTextureUsage`, and so on.
 
 ```tsx
-import { Canvas } from "react-native-webgpu";
+import { Canvas, installWebGPU } from "react-native-webgpu";
 import { runOnUI } from "react-native-reanimated";
 
 const renderFrame = (device: GPUDevice, context: GPUCanvasContext) => {
   "worklet";
+  installWebGPU();
+  // WebGPU constants are no available on this worklet thread
+  const buffer = device.createBuffer({
+    size,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
   // WebGPU rendering code runs on the UI thread
   const commandEncoder = device.createCommandEncoder();
   // ... render ...
@@ -341,24 +348,6 @@ const renderFrame = (device: GPUDevice, context: GPUCanvasContext) => {
 const device = await adapter.requestDevice();
 const context = canvasRef.current.getContext("webgpu");
 runOnUI(renderFrame)(device, context);
-```
-
-#### WebGPU constants inside worklets
-
-The flag constants (`GPUBufferUsage`, `GPUTextureUsage`, `GPUShaderStage`, `GPUColorWrite`, `GPUMapMode`) are installed as globals only on the main JS runtime, so the bare global is `undefined` inside a worklet. Import them from `react-native-webgpu` instead: the values are then captured into the worklet by closure (the same way a shader string is), so they work on the UI runtime, dedicated worklet runtimes, and Vision Camera frame processors.
-
-```tsx
-import { GPUBufferUsage, GPUMapMode } from "react-native-webgpu";
-
-const work = (device: GPUDevice) => {
-  "worklet";
-  const buffer = device.createBuffer({
-    size,
-    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-  });
-  // ...
-  await buffer.mapAsync(GPUMapMode.READ);
-};
 ```
 
 ## Troubleshooting
