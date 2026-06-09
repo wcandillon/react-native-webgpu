@@ -359,6 +359,24 @@ In "Edit Scheme," uncheck "Metal Validation". Learn more [here](https://develope
 
 <img width="1052" alt="Uncheck 'Metal Validation'" src="https://github.com/user-attachments/assets/2676e5cc-e351-4a97-bdc8-22cbd7df2ef2">
 
+### Android Emulators
+
+By default, Android emulators expose Vulkan through SwiftShader, a software (CPU) renderer. React Native WebGPU runs on it, but rendering is slow and some features are unavailable. When the adapter is software, you will see a "GPUAdapter is not hardware accelerated" warning in the console.
+
+On Apple Silicon, you can instead get a hardware accelerated adapter that runs on the host GPU through MoltenVK (Vulkan on top of Metal):
+
+1. Use a system image at API level 35 or lower. The API 36 image forces software rendering: it reports "system image does not support guest rendering" and falls back to `swiftshader_indirect`.
+2. Enable hardware graphics on the AVD. In Android Studio's Device Manager set "Graphics acceleration" to "Hardware", or set `hw.gpu.enabled=yes` and `hw.gpu.mode=host` in the AVD `config.ini`.
+3. Launch the emulator with the host GPU and the MoltenVK ICD:
+
+```sh
+ANDROID_EMU_VK_ICD=moltenvk emulator -avd <name> -gpu host
+```
+
+When this works, the emulator log reports the host GPU instead of SwiftShader (for example `Selecting Vulkan device: Apple M... , MoltenVK is supported, enabling Vulkan portability`) and the warning above no longer appears.
+
+Note that even with MoltenVK, the emulator runs Vulkan through a translation stack: the guest driver forwards calls to MoltenVK, which maps Vulkan onto Metal. This is convenient for development, but it is not a faithful reference implementation. Some examples render differently, and some features are missing or behave differently than on a physical device. Always validate on a real Android device before relying on a given behavior.
+
 ## Library Development
 
 Make sure to check out the submodules:
