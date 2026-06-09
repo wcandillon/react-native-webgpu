@@ -158,3 +158,12 @@ jobs:
         env:
           JAVA_OPTS: "-XX:MaxHeapSize=6g"
         run: ./gradlew assembleDebug --build-cache --warning-mode all
+
+      # Housekeeping for the self-hosted runner: the start-of-run kill already
+      # guarantees a clean slate for the next build, so this is not needed for
+      # correctness. It just shrinks the window during which an idle Metro sits
+      # holding port 8081, file watchers, and memory between CI runs. `always()`
+      # so it runs even when an earlier step fails.
+      - name: Stop Metro
+        if: always()
+        run: lsof -ti :8081 | xargs -r kill -9 || true
