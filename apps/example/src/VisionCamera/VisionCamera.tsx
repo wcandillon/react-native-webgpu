@@ -167,6 +167,8 @@ const CameraView = () => {
   // This is what lets us call the interop factory off RNWebGPU, where the native
   // platform context already lives, instead of off `device`.
   const rnwgpu = RNWebGPU;
+  // Captured as a plain bool so the worklet doesn't reach for Platform.
+  const isAndroid = Platform.OS === "android";
   const devices = useCameraDevices();
   // Pick back camera if available, otherwise front, otherwise anything. The
   // iOS simulator returns an empty list since there are no cameras, in which
@@ -254,7 +256,8 @@ const CameraView = () => {
       minFilter: "linear",
     });
     const uniformBuffer = device.createBuffer({
-      size: 32,
+      // vec4f params + vec4u modes + 3x vec4f yuvToRgbMatrix rows.
+      size: 80,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -282,7 +285,8 @@ const CameraView = () => {
       primitive: { topology: "triangle-list" },
     });
     const prepassUniformBuffer = device.createBuffer({
-      size: 16,
+      // 2x vec2f sizes + 3x vec4f yuvToRgbMatrix rows.
+      size: 64,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -469,8 +473,11 @@ const CameraView = () => {
           // Orientation. The sensor buffer is landscape; frame.orientation is
           // the rotation needed to bring it upright. We hand that to Dawn via
           // importExternalTexture's `rotation`, which de-rotates the frame into
-          // the portrait canvas. The residual vertical flip (Android buffer
-          // Y-origin) and YUV->RGB are corrected in the shader (CAMERA_PRELUDE).
+          // the portrait canvas. On Android the buffer additionally arrives
+          // mirrored on both axes relative to the canvas (buffer Y-origin),
+          // which is the same as an extra 180° rotation, folded in below.
+          // YUV->RGB is applied in the shader via the
+          // GPUExternalTexture.yuvToRgbMatrix uniform (see CAMERA_PRELUDE).
           let rotationDeg: 0 | 90 | 180 | 270 = 0;
           if (frame.orientation === "right") {
             rotationDeg = 90;
@@ -478,6 +485,9 @@ const CameraView = () => {
             rotationDeg = 180;
           } else if (frame.orientation === "left") {
             rotationDeg = 270;
+          }
+          if (isAndroid) {
+            rotationDeg = ((rotationDeg + 180) % 360) as 0 | 90 | 180 | 270;
           }
           // A 90/270 rotation swaps the displayed width & height, so cover-fit
           // uses the post-rotation dimensions.
@@ -496,21 +506,6 @@ const CameraView = () => {
           } else {
             sy = frameAR / canvasAR;
           }
-          // 32-byte uniform: vec4f params + vec4u modes. Built on a single
-          // ArrayBuffer so the f32/u32 halves go up in one writeBuffer call.
-          const uniformData = new ArrayBuffer(32);
-          const uniformF32 = new Float32Array(uniformData);
-          const uniformU32 = new Uint32Array(uniformData);
-          uniformF32[0] = sx;
-          uniformF32[1] = sy;
-          uniformF32[2] = ABERRATION_STRENGTHS[modes.aberration] ?? 0;
-          uniformF32[3] = PIXELATE_BLOCKS[modes.pixelate] ?? 0;
-          uniformU32[4] = modes.effect;
-          uniformU32[5] = modes.tint;
-          uniformU32[6] = modes.vignette;
-          uniformU32[7] = blurMode;
-          device.queue.writeBuffer(uniformBuffer, 0, uniformData);
-
           let externalTex;
           try {
             externalTex = device.importExternalTexture({
@@ -525,6 +520,29 @@ const CameraView = () => {
             );
             throw e;
           }
+          // Per-buffer YUV->RGB conversion for the shader: the driver-derived
+          // matrix on the Android opaque-YCbCr path, an identity passthrough
+          // on iOS / RGBA surfaces (see CAMERA_PRELUDE).
+          const yuvMatrix = externalTex.yuvToRgbMatrix;
+
+          // 80-byte uniform: vec4f params + vec4u modes + the three vec4f
+          // yuvToRgbMatrix rows. Built on a single ArrayBuffer so the f32/u32
+          // halves go up in one writeBuffer call.
+          const uniformData = new ArrayBuffer(80);
+          const uniformF32 = new Float32Array(uniformData);
+          const uniformU32 = new Uint32Array(uniformData);
+          uniformF32[0] = sx;
+          uniformF32[1] = sy;
+          uniformF32[2] = ABERRATION_STRENGTHS[modes.aberration] ?? 0;
+          uniformF32[3] = PIXELATE_BLOCKS[modes.pixelate] ?? 0;
+          uniformU32[4] = modes.effect;
+          uniformU32[5] = modes.tint;
+          uniformU32[6] = modes.vignette;
+          uniformU32[7] = blurMode;
+          for (let i = 0; i < 12; i++) {
+            uniformF32[8 + i] = yuvMatrix[i] ?? 0;
+          }
+          device.queue.writeBuffer(uniformBuffer, 0, uniformData);
           const bindGroup = device.createBindGroup({
             layout: pipeline.getBindGroupLayout(0),
             entries: [
@@ -542,7 +560,13 @@ const CameraView = () => {
             device.queue.writeBuffer(
               prepassUniformBuffer,
               0,
-              new Float32Array([dispW, dispH, canvasWidth, canvasHeight]),
+              new Float32Array([
+                dispW,
+                dispH,
+                canvasWidth,
+                canvasHeight,
+                ...yuvMatrix,
+              ]),
             );
             const prepassBindGroup = device.createBindGroup({
               layout: prepassPipeline.getBindGroupLayout(0),
