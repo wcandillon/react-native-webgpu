@@ -1,8 +1,10 @@
 #pragma once
 
+#include <array>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "Unions.h"
 
@@ -36,10 +38,12 @@ public:
   // the producer (e.g. AVPlayer) can reclaim the IOSurface.
   GPUExternalTexture(wgpu::ExternalTexture instance,
                      wgpu::SharedTextureMemory memory, wgpu::Texture texture,
-                     std::shared_ptr<VideoFrame> source, std::string label)
+                     std::shared_ptr<VideoFrame> source, std::string label,
+                     std::array<float, 12> yuvToRgbMatrix)
       : NativeObject(CLASS_NAME), _instance(std::move(instance)),
         _memory(std::move(memory)), _texture(std::move(texture)),
-        _source(std::move(source)), _label(std::move(label)) {}
+        _source(std::move(source)), _label(std::move(label)),
+        _yuvToRgbMatrix(yuvToRgbMatrix) {}
 
   ~GPUExternalTexture() override { destroy(); }
 
@@ -69,11 +73,25 @@ public:
     _instance.SetLabel(_label.c_str());
   }
 
+  // Non-spec extension. A 3x4 row-major matrix mapping the *sampled* texel
+  // [c.r, c.g, c.b, 1] to gamma-encoded R'G'B'. When Dawn's sampler already
+  // produces RGB (Apple's biplanar path, RGBA surfaces), this is the identity
+  // passthrough; on the Android opaque-YCbCr path the sample comes back as raw
+  // [Y, Cb, Cr] (Dawn hard-codes an RGB_IDENTITY Vulkan conversion, see
+  // crbug.com/497675620) and this matrix is derived from the driver's
+  // suggested YCbCr model + range for the buffer. Shaders can therefore apply
+  // it unconditionally after textureSampleBaseClampToEdge.
+  std::vector<double> getYuvToRgbMatrix() {
+    return std::vector<double>(_yuvToRgbMatrix.begin(), _yuvToRgbMatrix.end());
+  }
+
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "__brand", &GPUExternalTexture::getBrand);
     installGetterSetter(runtime, prototype, "label",
                         &GPUExternalTexture::getLabel,
                         &GPUExternalTexture::setLabel);
+    installGetter(runtime, prototype, "yuvToRgbMatrix",
+                  &GPUExternalTexture::getYuvToRgbMatrix);
     installMethod(runtime, prototype, "destroy", &GPUExternalTexture::destroy);
   }
 
@@ -85,6 +103,7 @@ private:
   wgpu::Texture _texture;
   std::shared_ptr<VideoFrame> _source;
   std::string _label;
+  std::array<float, 12> _yuvToRgbMatrix;
 };
 
 } // namespace rnwgpu

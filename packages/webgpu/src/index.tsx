@@ -93,6 +93,15 @@ declare global {
   // pool (e.g. a camera/video player) and pile up GPU resources.
   interface GPUExternalTexture {
     destroy(): void;
+    // Non-spec extension: a 3x4 row-major matrix (12 numbers) mapping the
+    // sampled texel [r, g, b, 1] to gamma-encoded R'G'B'. On the Android
+    // opaque-YCbCr camera path, textureSampleBaseClampToEdge returns raw
+    // [Y, Cb, Cr] (Dawn hard-codes an RGB_IDENTITY Vulkan conversion); this
+    // matrix is derived per-buffer from the driver's suggested YCbCr model and
+    // range (BT.601/709/2020, full/narrow). Everywhere else (iOS, RGBA
+    // surfaces) it is the identity passthrough, so shaders can apply it
+    // unconditionally. Upload it as a uniform and multiply after sampling.
+    readonly yuvToRgbMatrix: number[];
   }
 
   // Extend createImageBitmap to accept ArrayBuffer/TypedArray (encoded image bytes)

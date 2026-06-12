@@ -1,10 +1,8 @@
-import { Platform } from "react-native";
-
 // Main camera-effects shader: samples the imported external texture (camera
 // frame) with cover-fit + optional chromatic aberration / pixelate, optionally
 // mixes in the pre-blurred backdrop, then applies effect / tint / vignette.
-// `cameraCoord` / `cameraDecode` come from CAMERA_PRELUDE, which is prepended
-// at shader-module creation time.
+// `cameraDecode` comes from CAMERA_PRELUDE, which is prepended at
+// shader-module creation time.
 export const SHADER = /* wgsl */ `
 struct VsOut {
   @builtin(position) position: vec4f,
@@ -22,6 +20,10 @@ struct Uniforms {
   // w: blurMode (0 off, 1 strong - blurred everywhere (prepass bakes
   //              cover-fit), 2 overlay - blurred backdrop + sharp card)
   modes: vec4u,
+  // The three rows of GPUExternalTexture.yuvToRgbMatrix (see CAMERA_PRELUDE).
+  yuv0: vec4f,
+  yuv1: vec4f,
+  yuv2: vec4f,
 };
 
 @group(0) @binding(0) var srcTex: texture_external;
@@ -56,7 +58,8 @@ fn snap(uv: vec2f, block: f32) -> vec2f {
 
 fn sampleExternal(uv: vec2f, block: f32) -> vec4f {
   return cameraDecode(
-    textureSampleBaseClampToEdge(srcTex, srcSampler, cameraCoord(snap(uv, block))),
+    textureSampleBaseClampToEdge(srcTex, srcSampler, snap(uv, block)),
+    u.yuv0, u.yuv1, u.yuv2,
   );
 }
 
@@ -177,43 +180,21 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
 // YCbCr conversion that is hard-coded to RGB_IDENTITY (Dawn's
 // SamplerVk.cpp::GetYCbCrForTextureView; see crbug.com/497675620), so the
 // external sample comes back as raw [Y, Cb, Cr] on *every* device — this is by
-// design, not a driver quirk — and we do the BT.709 YUV->RGB ourselves below.
-// (Dawn's own SharedTextureMemoryOpaqueYCbCrAndroidForExternalTexture
-// .NoopSampleY8Cb8Cr8AHB test asserts the same raw passthrough.) The frame also
-// comes out mirrored on both axes relative to the canvas (Android buffer
-// origin), so we flip X and Y. iOS goes through the native two-plane path,
-// which already converts and orients, so this correction is Android-only. The
-// prelude is prepended to every shader module that samples the camera (main
-// pass + blur prepass).
+// design, not a driver quirk. The correct conversion depends on the buffer:
+// react-native-webgpu derives it from the driver's suggested YCbCr model and
+// range (BT.601/709/2020, full/narrow) and exposes it as
+// GPUExternalTexture.yuvToRgbMatrix; the worklet uploads its three rows as
+// vec4f uniforms and cameraDecode applies them. On iOS (native two-plane path,
+// already converted by Dawn) and for RGBA surfaces the matrix is the identity
+// passthrough, so the decode is safe to apply unconditionally. The prelude is
+// prepended to every shader module that samples the camera (main pass + blur
+// prepass).
 export const CAMERA_PRELUDE = /* wgsl */ `
-const CAMERA_IS_YUV: bool = ${Platform.OS === "android"};
-const CAMERA_FLIP_X: bool = ${Platform.OS === "android"};
-const CAMERA_FLIP_Y: bool = ${Platform.OS === "android"};
-
-fn cameraCoord(uv: vec2f) -> vec2f {
-  var c = uv;
-  if (CAMERA_FLIP_X) {
-    c.x = 1.0 - c.x;
-  }
-  if (CAMERA_FLIP_Y) {
-    c.y = 1.0 - c.y;
-  }
-  return c;
-}
-
-// BT.709 limited-range YUV -> RGB. On the Android opaque path the sampled
-// channels are always raw [Y, Cb, Cr] (Dawn forces an RGB_IDENTITY Vulkan
-// conversion); a no-op passthrough on every other platform.
-fn cameraDecode(c: vec4f) -> vec4f {
-  if (!CAMERA_IS_YUV) {
-    return c;
-  }
-  let y = c.r - 0.0627451;
-  let cb = c.g - 0.5;
-  let cr = c.b - 0.5;
-  let r = 1.164384 * y + 1.792741 * cr;
-  let g = 1.164384 * y - 0.213249 * cb - 0.532909 * cr;
-  let b = 1.164384 * y + 2.112402 * cb;
-  return vec4f(clamp(vec3f(r, g, b), vec3f(0.0), vec3f(1.0)), 1.0);
+// Apply a 3x4 row-major [c.r, c.g, c.b, 1] -> R'G'B' matrix
+// (GPUExternalTexture.yuvToRgbMatrix, see above).
+fn cameraDecode(c: vec4f, m0: vec4f, m1: vec4f, m2: vec4f) -> vec4f {
+  let v = vec4f(c.rgb, 1.0);
+  let rgb = vec3f(dot(m0, v), dot(m1, v), dot(m2, v));
+  return vec4f(clamp(rgb, vec3f(0.0), vec3f(1.0)), 1.0);
 }
 `;
