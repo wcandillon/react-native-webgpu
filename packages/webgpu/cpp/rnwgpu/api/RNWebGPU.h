@@ -5,6 +5,8 @@
 
 #include "NativeObject.h"
 
+#include "ElementCaptureRegistry.h"
+
 #include "ArrayBuffer.h"
 #include "Canvas.h"
 #include "GPU.h"
@@ -18,6 +20,12 @@
 
 #include "JSIConverter.h"
 #include "Promise.h"
+
+#if defined(__ANDROID__)
+#include <android/hardware_buffer.h>
+#elif defined(__APPLE__)
+#include <CoreFoundation/CoreFoundation.h>
+#endif
 
 namespace rnwgpu {
 
@@ -200,6 +208,59 @@ public:
     return _platformContext->writeTestVideoFile();
   }
 
+  // "HTML in Canvas": retrieve (and remove) the off-screen capture produced by
+  // NativeWebGPUModule.captureElement(), keyed by the token that call resolved
+  // with. Returns { handle, width, height, fence, fenceType } where handle is
+  // the AHardwareBuffer*/IOSurface as a BigInt. The caller takes ownership of
+  // handle and must call releaseCapturedElement(handle) once the import has
+  // taken its own reference.
+  jsi::Value consumeCapturedElement(jsi::Runtime &runtime,
+                                    const jsi::Value & /*thisVal*/,
+                                    const jsi::Value *args, size_t count) {
+    if (count < 1 || !args[0].isNumber()) {
+      throw jsi::JSError(runtime,
+                         "consumeCapturedElement requires a numeric token");
+    }
+    int token = static_cast<int>(args[0].asNumber());
+    auto entry = ElementCaptureRegistry::getInstance().consume(token);
+    if (!entry.has_value()) {
+      throw jsi::JSError(runtime,
+                         "consumeCapturedElement: no capture for token " +
+                             std::to_string(token));
+    }
+    jsi::Object result(runtime);
+    result.setProperty(
+        runtime, "handle",
+        jsi::BigInt::fromUint64(runtime,
+                                reinterpret_cast<uint64_t>(entry->handle)));
+    result.setProperty(runtime, "width",
+                       jsi::Value(static_cast<double>(entry->width)));
+    result.setProperty(runtime, "height",
+                       jsi::Value(static_cast<double>(entry->height)));
+    // v1 waits for producer completion on the CPU, so there is no wait fence:
+    // report 0 and let the JS orchestration skip importSharedFence.
+    uint64_t fence =
+        entry->fenceFd < 0 ? 0u : static_cast<uint64_t>(entry->fenceFd);
+    result.setProperty(runtime, "fence",
+                       jsi::BigInt::fromUint64(runtime, fence));
+    result.setProperty(runtime, "fenceType",
+                       jsi::String::createFromUtf8(runtime, "sync-fd"));
+    return result;
+  }
+
+  // Release the native handle returned by consumeCapturedElement, after the
+  // SharedTextureMemory import has taken its own reference.
+  void releaseCapturedElement(void *handle) {
+    if (handle == nullptr) {
+      return;
+    }
+#if defined(__ANDROID__)
+    AHardwareBuffer_release(static_cast<AHardwareBuffer *>(handle));
+#elif defined(__APPLE__)
+    CFRelease(static_cast<CFTypeRef>(handle));
+#endif
+  }
+
   std::shared_ptr<Canvas> getNativeSurface(int contextId) {
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     auto info = registry.getSurfaceInfo(contextId);
@@ -230,6 +291,10 @@ public:
                   &RNWebGPU::createVideoPlayer);
     installMethod(runtime, prototype, "writeTestVideoFile",
                   &RNWebGPU::writeTestVideoFile);
+    installMethod(runtime, prototype, "consumeCapturedElement",
+                  &RNWebGPU::consumeCapturedElement);
+    installMethod(runtime, prototype, "releaseCapturedElement",
+                  &RNWebGPU::releaseCapturedElement);
   }
 
 private:

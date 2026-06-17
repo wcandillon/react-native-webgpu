@@ -166,3 +166,53 @@ export interface GPUSharedTextureMemory {
   // access could not be ended.
   endAccess(texture: GPUTexture): GPUSharedTextureMemoryEndAccessState;
 }
+
+// "HTML in Canvas" (WICG) for React Native.
+//
+// A native child view of a <Canvas layoutSubtree> can be painted into a
+// GPUTexture, mirroring the web GPUQueue.copyElementImageToTexture API. On the
+// web the source is a DOM `Element`; in React Native it is the host view's
+// native tag, obtained from a ref via React Native's `findNodeHandle`.
+export type ElementSource = number;
+
+// Mirrors the web GPUCopyElementImageSource. The optional sub-rectangle
+// (sx/sy/swidth/sheight, in element-local pixels) selects a region of the
+// element; omit it to capture the whole element.
+export interface GPUCopyElementImageSource {
+  source: ElementSource;
+  sx?: number;
+  sy?: number;
+  swidth?: number;
+  sheight?: number;
+}
+
+// Mirrors the web GPUCopyElementImageDestination. `width`/`height` default to
+// the captured element's pixel size.
+export interface GPUCopyElementImageDestination {
+  texture: GPUTexture;
+  width?: number;
+  height?: number;
+  origin?: GPUOrigin3D;
+  mipLevel?: number;
+}
+
+// Mirrors the web PaintEvent: dispatched when the rendering of one or more
+// <Canvas layoutSubtree> children has visually changed. `changedElements` holds
+// the native tags of those children. NOTE: v1 re-renders on demand and does not
+// yet emit this event; the prop is reserved for the damage-tracked follow-up.
+export interface PaintEvent {
+  changedElements: number[];
+}
+
+// Internal: the resolved native capture returned by
+// RNWebGPU.consumeCapturedElement(token). `handle` is the AHardwareBuffer*
+// (Android) / IOSurfaceRef (iOS, future) as a BigInt; `fence` is the producer's
+// GPU-completion fence (a sync-fd file descriptor on Android) as a BigInt, or 0n
+// when the producer completed synchronously and no wait fence is needed.
+export interface CapturedElement {
+  handle: bigint;
+  width: number;
+  height: number;
+  fence: bigint;
+  fenceType: GPUSharedFenceType;
+}

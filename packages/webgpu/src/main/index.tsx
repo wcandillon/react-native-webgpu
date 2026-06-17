@@ -1,10 +1,12 @@
 import { registerWebGPUForReanimated } from "../external";
 import WebGPUModule from "../NativeWebGPUModule";
+import { installElementCapture } from "../Element";
 
 export * from "../Canvas";
 export * from "../Offscreen";
 export * from "../WebGPUViewNativeComponent";
 export * from "../hooks";
+export { copyElementImageToTexture } from "../Element";
 
 export { default as WebGPUModule } from "../NativeWebGPUModule";
 
@@ -33,6 +35,7 @@ if (typeof RNWebGPU !== "undefined") {
   }
   global.createImageBitmap =
     global.createImageBitmap ?? RNWebGPU.createImageBitmap.bind(RNWebGPU);
+  installElementCapture();
 } else {
   console.warn(
     `[react-native-webgpu] install() returned ${_installOk} but RNWebGPU global is not available`,

@@ -139,6 +139,14 @@ export const examples = [
     screen: "VisionCamera",
     title: "📷 VisionCamera integration",
   },
+  ...(Platform.OS === "android"
+    ? ([
+        {
+          screen: "LayoutSubtree",
+          title: "🧱 HTML in Canvas (layoutSubtree)",
+        },
+      ] as const)
+    : []),
 ];
 
 const styles = StyleSheet.create({

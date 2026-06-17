@@ -1,8 +1,9 @@
 import React, { useImperativeHandle, useRef, useState } from "react";
 import type { ViewProps } from "react-native";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
+import type { PaintEvent } from "./types";
 
 let CONTEXT_COUNTER = 1;
 function generateContextId() {
@@ -41,9 +42,29 @@ export interface CanvasRef {
 interface CanvasProps extends ViewProps {
   transparent?: boolean;
   ref?: React.Ref<CanvasRef>;
+  /**
+   * "HTML in Canvas" opt-in. When set, the Canvas's child native views
+   * participate in layout (so they can be painted into a GPUTexture via
+   * `queue.copyElementImageToTexture`) but the canvas surface paints over them.
+   * v1 is paint-only: children do not yet receive touches or accessibility.
+   */
+  layoutSubtree?: boolean;
+  /**
+   * Dispatched when the rendering of a layoutSubtree child changes. Reserved:
+   * v1 re-renders on demand and does not emit this event yet.
+   */
+  onPaint?: (event: PaintEvent) => void;
 }
 
-export const Canvas = ({ transparent, ref, ...props }: CanvasProps) => {
+export const Canvas = ({
+  transparent,
+  ref,
+  layoutSubtree,
+  // onPaint is reserved for the damage-tracked follow-up; accepted but unused.
+  onPaint: _onPaint,
+  children,
+  ...props
+}: CanvasProps) => {
   const viewRef = useRef(null);
   const [contextId, _] = useState(() => generateContextId());
   useImperativeHandle(ref, () => ({
@@ -75,11 +96,30 @@ export const Canvas = ({ transparent, ref, ...props }: CanvasProps) => {
 
   return (
     <View collapsable={false} ref={viewRef} {...props}>
-      <WebGPUNativeView
-        style={{ flex: 1 }}
-        contextId={contextId}
-        transparent={!!transparent}
-      />
+      {layoutSubtree ? (
+        <>
+          {/* Children are laid out (and attached) so they can be captured by
+              their native tag, but sit behind the canvas, which paints over
+              them. pointerEvents="none" because v1 is paint-only. */}
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            {children}
+          </View>
+          <WebGPUNativeView
+            style={StyleSheet.absoluteFill}
+            contextId={contextId}
+            transparent={!!transparent}
+          />
+        </>
+      ) : (
+        <>
+          <WebGPUNativeView
+            style={{ flex: 1 }}
+            contextId={contextId}
+            transparent={!!transparent}
+          />
+          {children}
+        </>
+      )}
     </View>
   );
 };

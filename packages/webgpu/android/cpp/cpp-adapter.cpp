@@ -6,10 +6,12 @@
 #include <jsi/jsi.h>
 
 #include <ReactCommon/CallInvokerHolder.h>
+#include <android/hardware_buffer_jni.h>
 #include <android/native_window_jni.h>
 #include <webgpu/webgpu_cpp.h>
 
 #include "AndroidPlatformContext.h"
+#include "ElementCaptureRegistry.h"
 #include "GPUCanvasContext.h"
 #include "RNWebGPUManager.h"
 
@@ -68,4 +70,25 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
     JNIEnv *env, jobject thiz, jint contextId) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   registry.removeSurfaceInfo(contextId);
+}
+
+// "HTML in Canvas": stash the AHardwareBuffer that WebGPUModule.captureElement()
+// rendered a view into, keyed by token, for RNWebGPU.consumeCapturedElement().
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUModule_nativeStoreCapturedElement(
+    JNIEnv *env, jobject thiz, jint token, jobject hardwareBuffer, jint width,
+    jint height) {
+  AHardwareBuffer *ahb =
+      AHardwareBuffer_fromHardwareBuffer(env, hardwareBuffer);
+  // fromHardwareBuffer returns a borrowed pointer; take our own reference so it
+  // outlives the Java HardwareBuffer until the JS consumer imports it. The
+  // consumer releases this reference via RNWebGPU.releaseCapturedElement().
+  AHardwareBuffer_acquire(ahb);
+  rnwgpu::CapturedElementEntry entry;
+  entry.handle = static_cast<void *>(ahb);
+  entry.width = static_cast<uint32_t>(width);
+  entry.height = static_cast<uint32_t>(height);
+  entry.fenceFd = -1; // v1 waits for render completion on the CPU in Java.
+  rnwgpu::ElementCaptureRegistry::getInstance().store(static_cast<int>(token),
+                                                      entry);
 }

@@ -10,6 +10,9 @@ import type {
   VideoPlayer,
   NativeVideoFrame,
   NativeVideoPixelFormat,
+  CapturedElement,
+  GPUCopyElementImageSource,
+  GPUCopyElementImageDestination,
 } from "./types";
 
 export * from "./main";
@@ -29,6 +32,10 @@ export type {
   NativeVideoPixelFormat,
   CreateVideoPlayerOptions,
   GPUDawnTogglesDescriptor,
+  CapturedElement,
+  ElementSource,
+  GPUCopyElementImageSource,
+  GPUCopyElementImageDestination,
 } from "./types";
 
 declare global {
@@ -60,6 +67,14 @@ declare global {
       pixelFormat?: NativeVideoPixelFormat,
     ) => VideoPlayer;
     writeTestVideoFile: () => string;
+    // Retrieve (and remove) the native surface captured by
+    // NativeWebGPUModule.captureElement(), keyed by the token that call
+    // resolved with. Returns the AHardwareBuffer*/IOSurface handle and the
+    // producer completion fence as BigInts.
+    consumeCapturedElement: (token: number) => CapturedElement;
+    // Release the native handle returned by consumeCapturedElement, after the
+    // SharedTextureMemory import has taken its own reference.
+    releaseCapturedElement: (handle: bigint) => void;
   };
 
   interface GPUDevice {
@@ -67,6 +82,17 @@ declare global {
       descriptor: GPUSharedTextureMemoryDescriptor,
     ): GPUSharedTextureMemory;
     importSharedFence(descriptor: GPUSharedFenceDescriptor): GPUSharedFence;
+  }
+
+  // "HTML in Canvas" (WICG) extension: paint a native child view of a
+  // <Canvas layoutSubtree> into a GPUTexture. Async in React Native because the
+  // view is rendered on demand (see Element.ts). Resolve the element's native
+  // tag with React Native's findNodeHandle(ref) and pass it as `source.source`.
+  interface GPUQueue {
+    copyElementImageToTexture(
+      source: GPUCopyElementImageSource,
+      destination: GPUCopyElementImageDestination,
+    ): Promise<void>;
   }
 
   // Non-standard, Dawn-only. Lets callers set Dawn device-stage toggles at
