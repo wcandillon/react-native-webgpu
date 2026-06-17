@@ -98,17 +98,20 @@ export const Canvas = ({
     <View collapsable={false} ref={viewRef} {...props}>
       {layoutSubtree ? (
         <>
-          {/* Children are laid out (and attached) so they can be captured by
-              their native tag, but sit behind the canvas, which paints over
-              them. pointerEvents="none" because v1 is paint-only. */}
+          {/* Children stay mounted, laid out, and interactive so they can be
+              captured by their native tag. They sit behind the canvas, which
+              paints the captured copy on top. The canvas is wrapped in a
+              pointerEvents="none" view so touches fall through to the real
+              children below: a 1:1 hit-test for this direct overlay. A
+              transformed/3D placement would need explicit hit-test mapping. */}
+          <View style={StyleSheet.absoluteFill}>{children}</View>
           <View style={StyleSheet.absoluteFill} pointerEvents="none">
-            {children}
+            <WebGPUNativeView
+              style={StyleSheet.absoluteFill}
+              contextId={contextId}
+              transparent={!!transparent}
+            />
           </View>
-          <WebGPUNativeView
-            style={StyleSheet.absoluteFill}
-            contextId={contextId}
-            transparent={!!transparent}
-          />
         </>
       ) : (
         <>

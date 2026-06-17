@@ -4,6 +4,7 @@ import {
   PixelRatio,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import type { NativeCanvas } from "react-native-webgpu";
@@ -11,11 +12,17 @@ import { Canvas, useCanvasRef, useDevice } from "react-native-webgpu";
 
 // Samples the captured element texture onto a full-screen triangle. Sampling
 // (rather than a raw copy into the canvas) sidesteps the rgba8/bgra8 format
-// mismatch between the AHardwareBuffer and the swapchain.
+// mismatch between the AHardwareBuffer and the swapchain. A time-driven wave +
+// tint is applied so it's obvious this is a processed texture, not the live
+// native view sitting underneath.
 const shader = /* wgsl */ `
 struct VSOut {
   @builtin(position) pos: vec4f,
   @location(0) uv: vec2f,
+};
+
+struct Uniforms {
+  time: f32,
 };
 
 @vertex
@@ -29,10 +36,19 @@ fn vmain(@builtin(vertex_index) i: u32) -> VSOut {
 
 @group(0) @binding(0) var samp: sampler;
 @group(0) @binding(1) var tex: texture_2d<f32>;
+@group(0) @binding(2) var<uniform> u: Uniforms;
 
 @fragment
 fn fmain(in: VSOut) -> @location(0) vec4f {
-  return textureSample(tex, samp, in.uv);
+  // Wobble the sampling coordinates with a travelling sine wave.
+  var uv = in.uv;
+  uv.x += sin(in.uv.y * 24.0 + u.time * 2.0) * 0.012;
+  uv.y += sin(in.uv.x * 24.0 + u.time * 1.6) * 0.012;
+  var color = textureSample(tex, samp, uv);
+  // Sweep a tint across the image so the processing is unmistakable.
+  let tint = 0.5 + 0.5 * sin(u.time + in.uv.x * 3.0 + vec3f(0.0, 2.0, 4.0));
+  color = vec4f(mix(color.rgb, color.rgb * tint, 0.6), color.a);
+  return color;
 }`;
 
 // "HTML in Canvas" demo: a native <View> child of a <Canvas layoutSubtree> is
@@ -46,6 +62,7 @@ export function LayoutSubtree() {
   // sampled result keeps the view's aspect ratio.
   const contentSizeRef = useRef<{ w: number; h: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [text, setText] = useState("");
   const { device } = useDevice();
 
   useEffect(() => {
@@ -78,6 +95,11 @@ export function LayoutSubtree() {
       magFilter: "linear",
       minFilter: "linear",
     });
+    const uniformBuffer = device.createBuffer({
+      size: 16, // f32 time, padded to 16-byte uniform alignment
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    let time = 0;
 
     const tag = findNodeHandle(contentRef.current);
     if (tag == null) {
@@ -109,11 +131,14 @@ export function LayoutSubtree() {
           { source: tag },
           { texture: dst },
         );
+        time += 1 / 60;
+        device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([time]));
         const bindGroup = device.createBindGroup({
           layout: pipeline.getBindGroupLayout(0),
           entries: [
             { binding: 0, resource: sampler },
             { binding: 1, resource: dst.createView() },
+            { binding: 2, resource: { buffer: uniformBuffer } },
           ],
         });
         const encoder = device.createCommandEncoder();
@@ -172,10 +197,18 @@ export function LayoutSubtree() {
             };
           }}
         >
+          <TextInput
+            style={styles.input}
+            value={text}
+            onChangeText={setText}
+            placeholder="Tap and type…"
+            placeholderTextColor="#64748b"
+          />
           <Text style={styles.title}>Hello from a native View</Text>
           <View style={styles.swatch} />
           <Text style={styles.caption}>
-            Rendered off-screen and sampled as a WebGPU texture
+            A live TextInput, rendered off-screen and sampled as a WebGPU
+            texture with an animated shader. Tap the field above to edit it.
           </Text>
         </View>
       </Canvas>
@@ -204,6 +237,18 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     marginVertical: 24,
     backgroundColor: "#38bdf8",
+  },
+  input: {
+    width: "80%",
+    backgroundColor: "#0f172a",
+    color: "#f8fafc",
+    borderColor: "#334155",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 18,
+    marginBottom: 24,
   },
   caption: { color: "#94a3b8", fontSize: 14 },
   errorOverlay: {
