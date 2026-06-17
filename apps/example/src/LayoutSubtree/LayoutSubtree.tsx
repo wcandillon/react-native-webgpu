@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   findNodeHandle,
   PixelRatio,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -117,9 +118,15 @@ export function LayoutSubtree() {
         raf = requestAnimationFrame(frame);
         return;
       }
+      // The captured surface is RGBA on Android (AHardwareBuffer) and BGRA on
+      // iOS (IOSurface). copyTextureToTexture needs matching formats, so the
+      // destination mirrors the source. (A future blit-based implementation
+      // would remove this platform branch.)
+      const capturedFormat: GPUTextureFormat =
+        Platform.OS === "ios" ? "bgra8unorm" : "rgba8unorm";
       const dst = device.createTexture({
         size: [size.w, size.h],
-        format: "rgba8unorm",
+        format: capturedFormat,
         usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
       });
       try {

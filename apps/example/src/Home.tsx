@@ -139,7 +139,7 @@ export const examples = [
     screen: "VisionCamera",
     title: "📷 VisionCamera integration",
   },
-  ...(Platform.OS === "android"
+  ...(Platform.OS !== "web"
     ? ([
         {
           screen: "LayoutSubtree",
