@@ -34,4 +34,5 @@ export type Routes = {
   VisionCamera: undefined;
   LayoutSubtree: undefined;
   LayoutSubtreeScroll: undefined;
+  LayoutSubtreeBenchmark: undefined;
 };

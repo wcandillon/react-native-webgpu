@@ -149,6 +149,10 @@ export const examples = [
           screen: "LayoutSubtreeScroll",
           title: "📜 HTML in Canvas (scrolling)",
         },
+        {
+          screen: "LayoutSubtreeBenchmark",
+          title: "⏱️ HTML in Canvas (benchmark)",
+        },
       ] as const)
     : []),
 ];

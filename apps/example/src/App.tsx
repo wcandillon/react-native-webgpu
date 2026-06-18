@@ -41,6 +41,7 @@ import { ImportExternalTexture } from "./ImportExternalTexture";
 import { VisionCamera } from "./VisionCamera";
 import { LayoutSubtree } from "./LayoutSubtree/LayoutSubtree";
 import { LayoutSubtreeScroll } from "./LayoutSubtree/LayoutSubtreeScroll";
+import { LayoutSubtreeBenchmark } from "./LayoutSubtree/LayoutSubtreeBenchmark";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -115,6 +116,10 @@ function App() {
           <Stack.Screen
             name="LayoutSubtreeScroll"
             component={LayoutSubtreeScroll}
+          />
+          <Stack.Screen
+            name="LayoutSubtreeBenchmark"
+            component={LayoutSubtreeBenchmark}
           />
         </Stack.Navigator>
       </NavigationContainer>
