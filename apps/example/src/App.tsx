@@ -40,6 +40,7 @@ import { SharedTextureMemory } from "./SharedTextureMemory";
 import { ImportExternalTexture } from "./ImportExternalTexture";
 import { VisionCamera } from "./VisionCamera";
 import { LayoutSubtree } from "./LayoutSubtree/LayoutSubtree";
+import { LayoutSubtreeScroll } from "./LayoutSubtree/LayoutSubtreeScroll";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -111,6 +112,10 @@ function App() {
           />
           <Stack.Screen name="VisionCamera" component={VisionCamera} />
           <Stack.Screen name="LayoutSubtree" component={LayoutSubtree} />
+          <Stack.Screen
+            name="LayoutSubtreeScroll"
+            component={LayoutSubtreeScroll}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

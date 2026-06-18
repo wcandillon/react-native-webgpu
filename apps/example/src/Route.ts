@@ -33,4 +33,5 @@ export type Routes = {
   ImportExternalTexture: undefined;
   VisionCamera: undefined;
   LayoutSubtree: undefined;
+  LayoutSubtreeScroll: undefined;
 };
