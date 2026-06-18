@@ -20,6 +20,9 @@ public class WebGPUViewPackage extends TurboReactPackage {
     if (name.equals(WebGPUModule.NAME)) {
       return new WebGPUModule(reactContext);
     }
+    if (name.equals(RenderEffectModule.NAME)) {
+      return new RenderEffectModule(reactContext);
+    }
     return null;
   }
 
@@ -37,6 +40,18 @@ public class WebGPUViewPackage extends TurboReactPackage {
           false,
           false,
           true // isTurboModule
+        )
+      );
+      map.put(
+        RenderEffectModule.NAME,
+        new ReactModuleInfo(
+          RenderEffectModule.NAME,
+          RenderEffectModule.class.getName(),
+          false,
+          false,
+          false,
+          false,
+          false // legacy module (not codegen TurboModule)
         )
       );
       return map;

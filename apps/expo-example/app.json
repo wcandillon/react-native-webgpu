@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "RenderEffect PoC",
+    "slug": "render-effect-poc",
+    "scheme": "rendereffectpoc",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "dev.startreactnative.rendereffectpoc",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "dev.startreactnative.rendereffectpoc"
+    },
+    "plugins": [
+      "./plugins/withInternalExpoImport",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "17.0"
+          },
+          "android": {
+            "minSdkVersion": 26,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35
+          }
+        }
+      ]
+    ]
+  }
+}

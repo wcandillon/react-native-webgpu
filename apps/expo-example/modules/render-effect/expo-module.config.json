@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["RenderEffectModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.rendereffect.RenderEffectModule"]
+  }
+}

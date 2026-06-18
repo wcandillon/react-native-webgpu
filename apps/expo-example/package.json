@@ -1,0 +1,26 @@
+{
+  "name": "expo-example",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "prebuild": "expo prebuild",
+    "tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@expo/ui": "~56.0.18",
+    "expo": "~56.0.0",
+    "expo-build-properties": "~56.0.19",
+    "react": "19.2.3",
+    "react-native": "0.85.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.0",
+    "@types/react": "~19.2.0",
+    "babel-preset-expo": "~56.0.0",
+    "typescript": "~5.9.2"
+  }
+}

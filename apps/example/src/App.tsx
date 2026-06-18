@@ -42,6 +42,7 @@ import { VisionCamera } from "./VisionCamera";
 import { LayoutSubtree } from "./LayoutSubtree/LayoutSubtree";
 import { LayoutSubtreeScroll } from "./LayoutSubtree/LayoutSubtreeScroll";
 import { LayoutSubtreeBenchmark } from "./LayoutSubtree/LayoutSubtreeBenchmark";
+import { RenderEffect } from "./RenderEffect/RenderEffect";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -121,6 +122,7 @@ function App() {
             name="LayoutSubtreeBenchmark"
             component={LayoutSubtreeBenchmark}
           />
+          <Stack.Screen name="RenderEffect" component={RenderEffect} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

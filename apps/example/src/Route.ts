@@ -35,4 +35,5 @@ export type Routes = {
   LayoutSubtree: undefined;
   LayoutSubtreeScroll: undefined;
   LayoutSubtreeBenchmark: undefined;
+  RenderEffect: undefined;
 };

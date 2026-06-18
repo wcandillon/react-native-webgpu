@@ -1,0 +1,6 @@
+# Expo / RN generated
+/ios
+/android
+.expo
+node_modules
+*.log

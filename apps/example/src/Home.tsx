@@ -153,6 +153,10 @@ export const examples = [
           screen: "LayoutSubtreeBenchmark",
           title: "⏱️ HTML in Canvas (benchmark)",
         },
+        {
+          screen: "RenderEffect",
+          title: "✨ Native RenderEffect (Path B)",
+        },
       ] as const)
     : []),
 ];
