@@ -1,15 +1,20 @@
 ---
-title: GPUDevice Extensions
-description: Dawn-specific device methods and descriptors.
+title: Native Extensions
+description: Native interop extensions to GPUDevice and the WebGPU globals.
 ---
 
-React Native WebGPU extends `GPUDevice` and related types for native interop. Request `"rnwebgpu/native-texture"` when creating the device if you use camera or video import.
+React Native WebGPU adds a handful of native extensions on top of the WebGPU spec.
 
 ## importSharedTextureMemory
 
-Import a native surface (CVPixelBuffer / AHardwareBuffer) for zero-copy sampling:
+Imports a native buffer (IOSurface / AHardwareBuffer) for zero-copy sampling.
+Native texture import requires `"rnwebgpu/native-texture"` in `requiredFeatures`.
 
-```tsx
+```tsx twoslash
+import type { NativeVideoFrame } from "react-native-webgpu";
+declare const adapter: GPUAdapter;
+declare const frame: NativeVideoFrame;
+// ---cut---
 const device = await adapter.requestDevice({
   requiredFeatures: ["rnwebgpu/native-texture" as GPUFeatureName],
 });
@@ -59,7 +64,10 @@ See `packages/webgpu/src/__tests__/SharedFence.spec.ts` for a full producer/cons
 
 Non-standard Dawn device toggles at creation:
 
-```tsx
+```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
+declare const adapter: GPUAdapter;
+// ---cut---
 const device = await adapter.requestDevice({
   dawnToggles: {
     enabledToggles: ["allow_unsafe_apis"],
@@ -95,9 +103,14 @@ nativeVideoFrame.release();
 
 ## createImageBitmap
 
-Extended to accept encoded image bytes (via `RNWebGPU.createImageBitmap`):
+createImageBitmap mirrors its Web counterpart and also accepts a `Uint8Array` or `ArrayBuffer` as input.
 
-```tsx
+```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
+declare const url: string;
+declare const device: GPUDevice;
+declare const texture: GPUTexture;
+// ---cut---
 const bytes = await fetch(url).then((r) => r.arrayBuffer());
 const bitmap = await createImageBitmap(bytes);
 
@@ -108,23 +121,3 @@ device.queue.copyExternalImageToTexture(
 );
 bitmap.close();
 ```
-
-## Required feature
-
-Native texture import requires `"rnwebgpu/native-texture"` in `requiredFeatures`:
-
-```tsx
-const device = await adapter.requestDevice({
-  requiredFeatures: ["rnwebgpu/native-texture" as GPUFeatureName],
-});
-
-if (!device.features.has("rnwebgpu/native-texture" as GPUFeatureName)) {
-  // rare on some Android emulators
-}
-```
-
-## See also
-
-- [External Textures](/docs/native-media/external-textures) — `importExternalTexture` guide
-- [Shared Texture Memory](/docs/native-media/shared-texture-memory) — manual access windows
-- [Native Types](/api/native-types) — descriptor and frame types

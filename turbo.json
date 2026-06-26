@@ -74,7 +74,8 @@
       "outputs": ["lib/**", ".next/**", "out/**"]
     },
     "build:docs": {
-      "env": ["GITHUB_PAGES", "NEXT_PUBLIC_BASE_PATH"],
+      "env": ["GITHUB_PAGES"],
+      "dependsOn": ["react-native-webgpu#build"],
       "outputs": [".next/**", "out/**"],
       "inputs": [
         "**/*",

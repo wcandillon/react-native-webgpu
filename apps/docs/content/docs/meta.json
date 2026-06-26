@@ -3,12 +3,6 @@
   "pages": [
     "---Getting Started---",
     "...getting-started",
-    "---Rendering---",
-    "...rendering",
-    "---Compute---",
-    "...compute",
-    "---Native Media---",
-    "...native-media",
     "---Integrations---",
     "...integrations"
   ]

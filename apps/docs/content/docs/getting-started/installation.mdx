@@ -1,17 +1,18 @@
 ---
 title: Installation
-description: Install react-native-webgpu in your React Native project.
+description: Your first React Native WebGPU App
 ---
 
-React Native WebGPU brings the [WebGPU API](https://www.w3.org/TR/webgpu/) to iOS, Android, macOS, and visionOS using [Dawn](https://dawn.googlesource.com/dawn). If you have never used WebGPU before, think of it as a modern GPU API: you write **WGSL shaders**, build **pipelines**, encode **command buffers**, and submit work to a **queue**. React Native WebGPU keeps that model identical to the browser - the main differences are manual frame presentation and native texture import.
+React Native WebGPU brings the [WebGPU API](https://www.w3.org/TR/webgpu/) to iOS, Android, macOS, and visionOS using [Dawn](https://dawn.googlesource.com/dawn).
 
 ## Requirements
 
-| Requirement | Notes |
-| ----------- | ----- |
-| **React Native ≥ 0.81** | Required |
-| **New Architecture** | Legacy architecture is **not** supported |
-| **Physical device** | Recommended for camera, native textures, and realistic GPU performance |
+| Package | Version | Required |
+| ------- | ------- | -------- |
+| `react-native` | >= 0.81.0 | Yes |
+| `react-native-worklets` | >= 0.7.2 | Optional - off-js-thread rendering |
+
+Please note that this module does not work on the legacy architecture.
 
 ## Install the package
 
@@ -19,45 +20,11 @@ React Native WebGPU brings the [WebGPU API](https://www.w3.org/TR/webgpu/) to iO
 npm i react-native-webgpu
 ```
 
-<Callout type="info" title="Previously react-native-wgpu">
-The package was previously published as `react-native-wgpu`. A shim with that name still re-exports `react-native-webgpu` but logs a deprecation warning in development.
-</Callout>
-
-## Peer dependencies
-
-| Package | Version | Required |
-| ------- | ------- | -------- |
-| `react` | * | Yes |
-| `react-native` | >= 0.81.0 | Yes |
-| `react-native-reanimated` | >= 4.2.1 | Optional (UI-thread rendering) |
-| `react-native-worklets` | >= 0.7.2 | Optional (with Reanimated) |
-
-For UI-thread rendering with Reanimated:
-
-```npm
-npm i react-native-reanimated react-native-worklets
-```
-
-See [Reanimated](/docs/integrations/reanimated) for the full integration guide.
-
-## Native setup
-
-Prebuilt Dawn binaries are included for iOS, Android, macOS, and visionOS. After installing the npm package:
-
-```bash
-# iOS / macOS / visionOS
-cd ios && pod install
-
-# Android - rebuild the app (no extra steps beyond a normal RN build)
-```
-
-Restart Metro and rebuild the native app after the first install.
-
-## What you get
+## Setup
 
 Once installed, the global `navigator.gpu` API is available - the same entry point as in Chrome or Safari:
 
-```tsx
+```tsx twoslash
 const adapter = await navigator.gpu.requestAdapter();
 const device = await adapter!.requestDevice();
 ```
@@ -68,9 +35,9 @@ Rendering happens inside a [`Canvas`](/api/canvas) view. The typical loop is:
 2. Configure the context with your device
 3. Encode render (or compute) passes
 4. `device.queue.submit(...)`
-5. **`context.present()`** - required on React Native ([Present](/docs/rendering/present))
+5. **`context.present()`** - required on React Native ([Frame presentations](/docs/getting-started/canvas#frame-presentations))
 
-Start with [Hello Triangle](/docs/rendering/hello-triangle) once installation is done.
+Start with the [Canvas](/docs/getting-started/canvas) view once installation is done.
 
 ## Troubleshooting
 
@@ -91,5 +58,6 @@ Learn more in [Apple's documentation on validating Metal API usage](https://deve
 ## Next steps
 
 - [Expo](/docs/getting-started/expo) - scaffold with the `with-webgpu` template
-- [Canvas](/docs/rendering/canvas) - your rendering surface
-- [Hello Triangle](/docs/rendering/hello-triangle) - first complete render loop
+- [Canvas](/docs/getting-started/canvas) - your rendering surface
+- [Native APIs](/docs/getting-started/native-api) - the React Native specific differences
+- [Learn WebGPU](/docs/getting-started/learn-webgpu) - learn the low-level API

@@ -1,9 +1,7 @@
 import { createMDX } from "fumadocs-mdx/next";
 import type { NextConfig } from "next";
 
-const isGithubPages =
-  process.env.GITHUB_PAGES === "true" && process.env.NODE_ENV === "production";
-const basePath = isGithubPages ? "/react-native-webgpu" : "";
+import { basePath } from "./src/lib/base-path";
 
 const webgpuEntry = "./src/lib/react-native-webgpu.ts";
 

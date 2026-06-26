@@ -17,7 +17,7 @@ npm i @tensorflow/tfjs @tensorflow/tfjs-backend-webgpu react-native-webgpu
 
 Import the backend **before** calling `setBackend`:
 
-```tsx
+```tsx twoslash
 import "react-native-webgpu"; // installs navigator.gpu
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgpu";
@@ -27,7 +27,14 @@ import "@tensorflow/tfjs-backend-webgpu";
 
 TensorFlow.js expects a platform with `fetch`, text encode/decode, and typed-array checks. Provide a minimal React Native implementation:
 
-```tsx
+```tsx twoslash
+import * as tf from "@tensorflow/tfjs";
+type BufferEncoding = "utf-8" | "utf8" | "ascii" | "base64" | "hex";
+declare const Buffer: {
+  from(input: string, encoding?: BufferEncoding): Uint8Array;
+  from(input: Uint8Array): { toString(encoding?: BufferEncoding): string };
+};
+// ---cut---
 import type { Platform } from "@tensorflow/tfjs-core";
 
 export class PlatformReactNative implements Platform {
@@ -54,18 +61,24 @@ tf.setPlatform("react-native", new PlatformReactNative());
 
 ## 3. Select the WebGPU backend
 
-```tsx
+```tsx twoslash
+import * as tf from "@tensorflow/tfjs";
+// ---cut---
 await tf.setBackend("webgpu");
 console.log("Backend:", tf.getBackend()); // "webgpu"
 ```
 
-TF.js requests its own `GPUDevice` via global `navigator.gpu` ([Device](/docs/rendering/device)). You do not pass a device from `useDevice()` unless you build a custom integration.
+TF.js requests its own `GPUDevice` via global `navigator.gpu` ([Installation](/docs/getting-started/installation#setup)). You do not pass a device from `useDevice()` unless you build a custom integration.
 
 ## 4. Build and train a model
 
 Standard TF.js APIs work once the backend is ready:
 
-```tsx
+```tsx twoslash
+import * as tf from "@tensorflow/tfjs";
+declare const tokenizedTexts: number[][];
+declare const labels: number[];
+// ---cut---
 const model = tf.sequential();
 model.add(tf.layers.embedding({ inputDim: 5000, outputDim: 32, inputLength: 100 }));
 model.add(tf.layers.globalAveragePooling1d());
@@ -88,7 +101,14 @@ yTrain.dispose();
 
 ## 5. Inference
 
-```tsx
+```tsx twoslash
+import * as tf from "@tensorflow/tfjs";
+declare const model: { predict(t: tf.Tensor): tf.Tensor };
+declare const text: string;
+declare const MAX_LENGTH: number;
+declare function tokenize(t: string): number[];
+declare function padSequence(s: number[], len: number): number[];
+// ---cut---
 const inputTensor = tf.tensor2d([padSequence(tokenize(text), MAX_LENGTH)]);
 const prediction = await model.predict(inputTensor).data();
 inputTensor.dispose();
@@ -100,16 +120,16 @@ The UI is plain React Native (`TextInput`, `Button`) - no WebGPU canvas involved
 
 | Topic | Detail |
 | ----- | ------ |
-| **No present()** | Rendering chapters ([Canvas](/docs/rendering/canvas), [Present](/docs/rendering/present)) do not apply |
+| **No present()** | Rendering concepts ([Canvas](/docs/getting-started/canvas), [Frame presentations](/docs/getting-started/canvas#frame-presentations)) do not apply |
 | **Memory** | Call `tensor.dispose()` for tensors you allocate manually |
 | **Warm-up** | First `fit()` / `predict()` may JIT-compile shaders - expect latency |
 | **Devices** | Test on a **physical device**; emulators may fall back to CPU |
-| **Combined apps** | Use TF.js for inference and WebGPU canvas for overlays ([Native Media](/docs/native-media/native-textures)) |
+| **Combined apps** | Use TF.js for inference and WebGPU canvas for overlays ([Vision Camera](/docs/integrations/vision-camera)) |
 
 ## When to use which stack
 
 | Use case | Stack |
 | -------- | ----- |
-| Custom graphics | Canvas + WGSL ([Rendering](/docs/rendering/canvas)) |
+| Custom graphics | Canvas + WGSL ([Canvas](/docs/getting-started/canvas)) |
 | ML inference / training | TF.js WebGPU backend (this demo) |
 | Camera + ML + draw | TF.js + `importExternalTexture` |

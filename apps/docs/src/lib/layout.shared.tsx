@@ -51,16 +51,15 @@ export function homeOptions(): HomeLayoutProps {
   };
 }
 
+// Plain in-app paths. Do not prefix the GitHub Pages base path here: these are
+// consumed by Next's `<Link>` (see app/(home)/page.tsx), which applies
+// `basePath` from next.config automatically. Prefixing it manually would
+// double it (e.g. /react-native-webgpu/react-native-webgpu/docs) on the
+// Pages deploy.
 export function homeLinks() {
-  const basePath =
-    process.env.NEXT_PUBLIC_BASE_PATH ??
-    (process.env.GITHUB_PAGES === "true" &&
-    process.env.NODE_ENV === "production"
-      ? "/react-native-webgpu"
-      : "");
   return {
-    docs: `${basePath}/docs`,
-    gettingStarted: `${basePath}/docs`,
-    api: `${basePath}/api`,
+    docs: "/docs",
+    gettingStarted: "/docs",
+    api: "/api",
   };
 }

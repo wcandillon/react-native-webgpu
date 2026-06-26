@@ -1,8 +1,9 @@
 {
-  "title": "Integration",
+  "title": "Integrations",
   "pages": [
+    "introduction",
     "reanimated",
-    "offscreen-canvas",
+    "vision-camera",
     "three-js",
     "react-three-fiber",
     "tensorflow"

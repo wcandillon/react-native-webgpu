@@ -1,0 +1,30 @@
+---
+title: Introduction
+description: Libraries and frameworks that run on top of React Native WebGPU.
+---
+
+React Native WebGPU is a **low-level library**. It mirrors the browser [WebGPU API](https://www.w3.org/TR/webgpu/) almost exactly: you write WGSL, build pipelines, encode command buffers, and submit work to a queue. Because the API is symmetric with the Web, the libraries the web ecosystem built on top of WebGPU run here too, with only React Native specific glue (manual [`present()`](/docs/getting-started/canvas#frame-presentations), Metro resolution, worklet setup).
+
+This section collects those integrations and the recipes to wire them up.
+
+## Integrations
+
+| Integration | What it gives you |
+| ----------- | ----------------- |
+| [Reanimated](/docs/integrations/reanimated) | Run render loops on the UI thread or a dedicated worklet runtime, off the JS thread |
+| [Vision Camera](/docs/integrations/vision-camera) | Apply real-time WGSL effects to live camera frames via zero-copy `importExternalTexture` |
+| [Three.js](/docs/integrations/three-js) | The `WebGPURenderer` from `three/webgpu` (scenes, cameras, materials) |
+| [React Three Fiber](/docs/integrations/react-three-fiber) | Three.js as declarative JSX components |
+| [TensorFlow.js](/docs/integrations/tensorflow) | On-device ML through the WebGPU backend |
+
+## Which stack should I use?
+
+- **Custom graphics:** stay on the raw [Canvas](/docs/getting-started/canvas) + WGSL. See [Learn WebGPU](/docs/getting-started/learn-webgpu) for resources.
+- **3D scenes:** reach for [Three.js](/docs/integrations/three-js), or [React Three Fiber](/docs/integrations/react-three-fiber) for a declarative API.
+- **Smooth 60fps loops:** move rendering off the JS thread with [Reanimated](/docs/integrations/reanimated).
+- **Camera effects:** import frames with [Vision Camera](/docs/integrations/vision-camera).
+- **Machine learning:** run inference and training with [TensorFlow.js](/docs/integrations/tensorflow).
+
+<Callout type="info">
+All of these are independent of one another. You can combine them, for example using TensorFlow.js for inference and a WebGPU canvas for overlays in the same app.
+</Callout>

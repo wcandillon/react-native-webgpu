@@ -5411,6 +5411,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@shikijs/core@npm:4.3.0":
+  version: 4.3.0
+  resolution: "@shikijs/core@npm:4.3.0"
+  dependencies:
+    "@shikijs/primitive": 4.3.0
+    "@shikijs/types": 4.3.0
+    "@shikijs/vscode-textmate": ^10.0.2
+    "@types/hast": ^3.0.4
+    hast-util-to-html: ^9.0.5
+  checksum: aa589e90be9c258054e8ec2a2646458470ba2e8a8e8738c8957ab9b592a44afe5fc2cf2d7d6c7ff21fdf3c732cda5657f19797dffa7fc1ad9207aca76920ec7f
+  languageName: node
+  linkType: hard
+
 "@shikijs/engine-javascript@npm:4.2.0":
   version: 4.2.0
   resolution: "@shikijs/engine-javascript@npm:4.2.0"
@@ -5452,12 +5465,36 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@shikijs/primitive@npm:4.3.0":
+  version: 4.3.0
+  resolution: "@shikijs/primitive@npm:4.3.0"
+  dependencies:
+    "@shikijs/types": 4.3.0
+    "@shikijs/vscode-textmate": ^10.0.2
+    "@types/hast": ^3.0.4
+  checksum: 9f97342ce6e195349a0410cca78668d8c562d814970d88ad0de7a20f695f842a9384d392dac7a7aa70fd76cf50a803c57c62471f2176104ff1a5b9fc68d1fa55
+  languageName: node
+  linkType: hard
+
 "@shikijs/themes@npm:4.2.0":
   version: 4.2.0
   resolution: "@shikijs/themes@npm:4.2.0"
   dependencies:
     "@shikijs/types": 4.2.0
   checksum: 05c4bc125a598c3bed0aa1836f3a2f9f3cac0ba22b474bbbed0db2db09a9896d80e25340cc5345b5df3edcc591be7e0d63a0d56be2e775b7a97b3b9489a3910c
+  languageName: node
+  linkType: hard
+
+"@shikijs/twoslash@npm:^4.0.2":
+  version: 4.3.0
+  resolution: "@shikijs/twoslash@npm:4.3.0"
+  dependencies:
+    "@shikijs/core": 4.3.0
+    "@shikijs/types": 4.3.0
+    twoslash: ^0.3.9
+  peerDependencies:
+    typescript: ">=5.5.0"
+  checksum: ebe3f535a2ab1af458d9ce94cb1793b4491a2a4e81f37a6f4db2e85afc8b704ed976d02688b432e8fbf10db587a9b30b5054ad4491ec379577970f73f1b611d5
   languageName: node
   linkType: hard
 
@@ -5468,6 +5505,16 @@ __metadata:
     "@shikijs/vscode-textmate": ^10.0.2
     "@types/hast": ^3.0.4
   checksum: 95fbcf9e341d810725d5e69d1cce0ce8b7c6be72a89373ffd0c8bb75237de42b6740627d291f3e0947fb23cba49d840948d08714201a0fb8fd164fe02f15d9a7
+  languageName: node
+  linkType: hard
+
+"@shikijs/types@npm:4.3.0":
+  version: 4.3.0
+  resolution: "@shikijs/types@npm:4.3.0"
+  dependencies:
+    "@shikijs/vscode-textmate": ^10.0.2
+    "@types/hast": ^3.0.4
+  checksum: 462f3326db5b2a8c96921635cd162cbd1cfb4246f511d53969fc891f3f094c9acd84a6e01a2b1965f583df39de9d948cd59910e9be6acb5352d634e5f3a069c8
   languageName: node
   linkType: hard
 
@@ -7065,6 +7112,17 @@ __metadata:
     "@typescript-eslint/types": 8.53.0
     eslint-visitor-keys: ^4.2.1
   checksum: 1c509d6c783bdd914869a74f8c2979a48dc9c3baad658850fa897f90bc3c5475c53df6ff15f5a2e46571af84171bd2e81c6311b8b7e80ee57d89df247ed2b4b2
+  languageName: node
+  linkType: hard
+
+"@typescript/vfs@npm:^1.6.4":
+  version: 1.6.4
+  resolution: "@typescript/vfs@npm:1.6.4"
+  dependencies:
+    debug: ^4.4.3
+  peerDependencies:
+    typescript: "*"
+  checksum: c180c64f283d02d9848438b2d63fbd1c206057f66b36441ae12407cda3a0b91940bf61a5c754b9802ec6dab8760f735883e7faceddd88b9ade03ef11d590d2d9
   languageName: node
   linkType: hard
 
@@ -9886,6 +9944,7 @@ __metadata:
     flexsearch: ^0.8.205
     fumadocs-core: ^16.9.3
     fumadocs-mdx: ^15.0.11
+    fumadocs-twoslash: ^3.2.0
     fumadocs-typescript: ^4.0.4
     fumadocs-ui: ^16.9.3
     lucide-react: ^0.511.0
@@ -9897,6 +9956,7 @@ __metadata:
     react-native-webgpu: "workspace:*"
     tailwindcss: ^4.1.8
     three: 0.184.0
+    twoslash: ^0.3.9
     typescript: ^5.2.2
     wgpu-matrix: ^3.0.2
   languageName: unknown
@@ -11664,6 +11724,31 @@ __metadata:
   bin:
     fumadocs-mdx: ./bin.js
   checksum: 27788253335843e914d578c07a862ab18da33ffeb22c3dc39b28cdec26ccd9377d4e7a1852159373cf24d357d06fc9dd2e6b29aa91666da6c3144ff026b27438
+  languageName: node
+  linkType: hard
+
+"fumadocs-twoslash@npm:^3.2.0":
+  version: 3.2.0
+  resolution: "fumadocs-twoslash@npm:3.2.0"
+  dependencies:
+    "@radix-ui/react-popover": ^1.1.15
+    "@shikijs/twoslash": ^4.0.2
+    mdast-util-from-markdown: ^2.0.3
+    mdast-util-gfm: ^3.1.0
+    mdast-util-to-hast: ^13.2.1
+    tailwind-merge: ^3.5.0
+    twoslash: ^0.3.7
+  peerDependencies:
+    "@types/react": "*"
+    fumadocs-core: ^16.7.16
+    fumadocs-ui: ^16.7.16
+    react: ^19.2.0
+    react-dom: ^19.2.0
+    shiki: 4.x.x
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+  checksum: ea0d3ed697a9bb2e40a05efdc982412bfc85f5fcd0b4dd12934c9233c02189e0d9afb6d08e42467beee7fd8ed6e224a84f49d7b9647ddadd872defff225b4333
   languageName: node
   linkType: hard
 
@@ -14434,7 +14519,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mdast-util-from-markdown@npm:^2.0.0":
+"mdast-util-from-markdown@npm:^2.0.0, mdast-util-from-markdown@npm:^2.0.3":
   version: 2.0.3
   resolution: "mdast-util-from-markdown@npm:2.0.3"
   dependencies:
@@ -14516,7 +14601,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mdast-util-gfm@npm:^3.0.0":
+"mdast-util-gfm@npm:^3.0.0, mdast-util-gfm@npm:^3.1.0":
   version: 3.1.0
   resolution: "mdast-util-gfm@npm:3.1.0"
   dependencies:
@@ -14602,7 +14687,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mdast-util-to-hast@npm:^13.0.0":
+"mdast-util-to-hast@npm:^13.0.0, mdast-util-to-hast@npm:^13.2.1":
   version: 13.2.1
   resolution: "mdast-util-to-hast@npm:13.2.1"
   dependencies:
@@ -19554,7 +19639,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tailwind-merge@npm:^3.6.0":
+"tailwind-merge@npm:^3.5.0, tailwind-merge@npm:^3.6.0":
   version: 3.6.0
   resolution: "tailwind-merge@npm:3.6.0"
   checksum: 617e86a01d99f17e02706cc2219bd203d1910b95a05f41fe1e5548b58a7975043ce5b6ef86d4cdcf10fa3c8362b796b9822de2f62024c69d5479e96d6e5be63f
@@ -19991,6 +20076,25 @@ __metadata:
   bin:
     turbo: bin/turbo
   checksum: 1f06ff6b0d02e2dd572791fc4979fcfb941e0127a65aec9dceb61c725f86910779f353576f395e2a6cf7336b496b6bbf6f3f4a3ae785ef80622a0378dd96c7b3
+  languageName: node
+  linkType: hard
+
+"twoslash-protocol@npm:0.3.9":
+  version: 0.3.9
+  resolution: "twoslash-protocol@npm:0.3.9"
+  checksum: 09e11a29424a22d46277e4a218380bf0dbf72acba755d804e63af76c96ec1c0bd424846abf8d102b6a4c789e608340ed8c8af503ac858ceed5262cfa672fb912
+  languageName: node
+  linkType: hard
+
+"twoslash@npm:^0.3.7, twoslash@npm:^0.3.9":
+  version: 0.3.9
+  resolution: "twoslash@npm:0.3.9"
+  dependencies:
+    "@typescript/vfs": ^1.6.4
+    twoslash-protocol: 0.3.9
+  peerDependencies:
+    typescript: ^5.5.0 || ^6.0.0
+  checksum: 3a862118ee60e4109c80166c758517661243db4961bbce98be38f102163d34e405dfebe2837dec861e155d76a471e5290bc8cba6887375683a3f36a3580b2b1e
   languageName: node
   linkType: hard
 
