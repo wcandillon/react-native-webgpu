@@ -10,17 +10,17 @@ The most substantial differences live on the [Canvas](/docs/getting-started/canv
 
 ## Threading model
 
-react-native-webgpu can drive WebGPU from more than one JavaScript runtime: the main JS runtime, the Reanimated UI runtime, and dedicated worklet runtimes (`createWorkletRuntime` / `runOnRuntime`, or a Vision Camera frame processor). This lets you run complex scenes on the UI thread or dedicated worklet threads, and it works well with [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/).
+react-native-webgpu can drive WebGPU from more than one JavaScript runtime: the main JS runtime, the UI thread, and dedicated worklet runtimes (createWorkletRuntime / runOnRuntime, or a Vision Camera frame processor). Running off the JS thread is powered by [React Native Worklets](https://github.com/margelo/react-native-worklets); Reanimated is not required.
+This module also works well with [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/) and lets you run complex Three.js scenes on the UI thread or dedicated worklet threads.
+
+You can run WebGPU code on the main thread, on the [Worklets](/docs/integrations/worklets) UI thread, or on a dedicated worklet thread. The API is symmetric across all threads, so you can run your rendering loop wherever you want.
 
 <Callout type="warn" title="device.lost and uncapturederror">
 `device.lost` and `uncapturederror` are only delivered on the **main JS runtime**. This is usually fine because the GPU device is typically created on the main JS thread and then sent to the UI or a dedicated worklet thread. If you create the device outside the main JS thread, those events won't fire.
 </Callout>
 
-See [Reanimated](/docs/integrations/reanimated) for the full UI-thread integration guide.
-
-## WebGPU constants in worklets
-
-WebGPU objects such as `GPUDevice` and `GPUCanvasContext` are automatically registered for Worklets serialization when the module loads, so you can pass them straight into a worklet. The flag constants (`GPUBufferUsage`, `GPUTextureUsage`, and so on) are not, so call [`installWebGPU()`](/api/install-webgpu) once at the top of the worklet to install them.
+See [Worklets](/docs/integrations/worklets) for the full UI-thread integration guide.
+In a Worklet, call `installWebGPU()` to install the WebGPU API on that thread.
 
 ```tsx
 import { installWebGPU } from "react-native-webgpu";
@@ -39,7 +39,9 @@ const renderFrame = (device: GPUDevice, context: GPUCanvasContext) => {
 
 ## Loading images
 
-This module provides a `createImageBitmap` function you can use with `copyExternalImageToTexture`. Resolve a bundled asset to a URI, fetch it, and decode the blob:
+This module provides a `createImageBitmap` function you can use with `copyExternalImageToTexture`.
+Resolve a bundled asset to a URI, fetch it, and decode the blob.
+In React Native `createImageBitmap` also accepts an `ArrayBuffer` as input.
 
 ```tsx
 const url = Image.resolveAssetSource(require("./assets/image.png")).uri;
@@ -76,5 +78,5 @@ See [Vision Camera](/docs/integrations/vision-camera) for an end-to-end example 
 
 - [Canvas](/docs/getting-started/canvas) - the rendering surface and frame loop
 - [React APIs](/docs/getting-started/react-api) - hooks and the device provider
-- [Reanimated](/docs/integrations/reanimated) - UI-thread rendering
+- [Worklets](/docs/integrations/worklets) - UI-thread rendering
 - [Native Extensions](/api/gpu-device-extensions) - native interop on `GPUDevice`

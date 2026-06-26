@@ -2,7 +2,7 @@
   "title": "Integrations",
   "pages": [
     "introduction",
-    "reanimated",
+    "worklets",
     "vision-camera",
     "three-js",
     "react-three-fiber",

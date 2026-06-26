@@ -59,7 +59,7 @@ device.queue.submit([encoder.finish()]);
 context.present(); // React Native only
 ```
 
-`present()` is a React Native only method (it is not part of the Web WebGPU spec). It runs **synchronously** on the calling thread, so the frame is presented from whichever thread did the rendering. This works the same on every runtime: the main JS runtime, the Reanimated UI runtime, and dedicated worklet runtimes. Always call it after `submit()`, never before.
+`present()` is a React Native only method (it is not part of the Web WebGPU spec). It runs **synchronously** on the calling thread, so the frame is presented from whichever thread did the rendering. This works the same on every runtime: the main JS runtime, the UI thread, and dedicated worklet runtimes. Always call it after `submit()`, never before.
 
 ## Pixel density
 

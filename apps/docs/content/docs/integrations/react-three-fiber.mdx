@@ -116,7 +116,7 @@ export const Fiber = () => (
 | ----- | ------ |
 | **Presentation** | Same as raw Three.js - R3F never calls `present()` for you |
 | **Orbit controls** | Pointer events must attach to a wrapping `View`, not the Canvas - spread gesture handlers on the parent `View` that wraps `FiberCanvas` |
-| **Reanimated** | Keep `GPUDevice` on the main thread if combining with worklets ([Reanimated](/docs/integrations/reanimated)) |
+| **Worklets** | Keep `GPUDevice` on the main thread if combining with worklets ([Worklets](/docs/integrations/worklets)) |
 | **Model loading** | GLTF needs `resolveAssetSource` polyfill ([Expo setup](/docs/getting-started/expo)) |
 | **Effect deps** | `FiberCanvas` runs setup in `useEffect` without deps - remount the component to rebuild the GL context |
 

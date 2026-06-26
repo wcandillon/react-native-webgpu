@@ -10,7 +10,7 @@ On the main JS thread these are already installed when the native module loads â
 
 ## Usage
 
-### Reanimated UI worklet
+### UI thread worklet
 
 ```tsx twoslash
 import type { RNCanvasContext } from "react-native-webgpu";
@@ -19,7 +19,7 @@ declare const context: RNCanvasContext;
 declare const pipeline: GPURenderPipeline;
 // ---cut---
 import { installWebGPU } from "react-native-webgpu";
-import { runOnUI } from "react-native-reanimated";
+import { runOnUI } from "react-native-worklets";
 
 const renderOnUI = (
   device: GPUDevice,

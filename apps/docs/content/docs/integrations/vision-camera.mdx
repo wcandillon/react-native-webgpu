@@ -6,7 +6,7 @@ description: Real-time GPU effects on live camera frames.
 Run WGSL effects on live camera frames by importing each [Vision Camera `Frame`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame) as a `GPUExternalTexture`, sampling it in a shader, and presenting from the frame-output worklet.
 
 <Callout type="info" title="Prerequisites">
-This recipe builds on native texture import (`importExternalTexture`) and worklet runtimes. If those are new to you, read [Native APIs](/docs/getting-started/native-api) and [Reanimated](/docs/integrations/reanimated) first, and see [Native Extensions](/api/gpu-device-extensions) for the full import API.
+This recipe builds on native texture import (`importExternalTexture`) and worklet runtimes. If those are new to you, read [Native APIs](/docs/getting-started/native-api) and [Worklets](/docs/integrations/worklets) first, and see [Native Extensions](/api/gpu-device-extensions) for the full import API.
 </Callout>
 
 Vision Camera owns the camera pipeline and exposes each captured image as a **`Frame` hybrid object** - a short-lived handle to GPU-shareable pixel data. React Native WebGPU sits on the consumer side: you take the frame's [`NativeBuffer`](https://visioncamera.margelo.com/api/react-native-vision-camera/interfaces/NativeBuffer), wrap it for Dawn, and sample it with `importExternalTexture`.
@@ -57,7 +57,7 @@ flowchart TB
 ```
 
 <Callout type="info" title="Why two runtimes?">
-GPU setup (device, pipelines, canvas context) usually happens on the **main JS thread**. Frame delivery runs on Vision Camera's **worklet runtime** - the same pattern as [Reanimated](/docs/integrations/reanimated). WebGPU objects are registered for Worklets serialization automatically; pass `GPUDevice` and `RNCanvasContext` into the callback.
+GPU setup (device, pipelines, canvas context) usually happens on the **main JS thread**. Frame delivery runs on Vision Camera's **worklet runtime** - the same pattern as [Worklets](/docs/integrations/worklets). WebGPU objects are registered for Worklets serialization automatically; pass `GPUDevice` and `RNCanvasContext` into the callback.
 </Callout>
 
 ## Vision Camera concepts
@@ -128,7 +128,7 @@ if (Platform.OS === "android") {
 const device = await adapter!.requestDevice({ requiredFeatures: features });
 ```
 
-Create the device on the **main thread** and pass it into the worklet - `device.lost` only fires on the main JS runtime ([Reanimated](/docs/integrations/reanimated)).
+Create the device on the **main thread** and pass it into the worklet - `device.lost` only fires on the main JS runtime ([Worklets](/docs/integrations/worklets)).
 
 Feature-detect `"rnwebgpu/native-texture"` before importing - some emulators and Android drivers cannot import native surfaces. See [Native APIs](/docs/getting-started/native-api#native-textures).
 
@@ -254,7 +254,7 @@ Advanced pipelines run a **prepass** (external texture → rgba8 storage), then 
 - [Frame.getNativeBuffer() examples](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#examples) - Skia and **WebGPU** import snippets
 - [NativeBuffer](https://visioncamera.margelo.com/api/react-native-vision-camera/interfaces/NativeBuffer) - shared contract for zero-copy GPU buffers
 - [Native Extensions](/api/gpu-device-extensions) - `importExternalTexture` lifecycle on React Native
-- [Reanimated](/docs/integrations/reanimated) - worklet runtimes and `installWebGPU()`
+- [Worklets](/docs/integrations/worklets) - worklet runtimes and `installWebGPU()`
 
 <Callout type="warn" title="Physical device required">
 Camera access and native texture import require a real device - emulators are not sufficient for this recipe.
