@@ -1,19 +1,19 @@
 ---
-title: Reanimated
-description: Run WebGPU rendering on the UI thread and dedicated worklet runtimes.
+title: Worklets
+description: Run WebGPU rendering off the JS thread on worklet runtimes.
 ---
 
 By default, WebGPU rendering runs on the JavaScript thread alongside React. For smooth 60fps scenes - especially with Three.js or heavy compute - you may want rendering on the **UI thread** or a **dedicated worklet runtime** so it is not blocked by React reconciliation or bridge traffic.
 
-React Native WebGPU supports this via [React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/) and [React Native Worklets](https://github.com/margelo/react-native-worklets).
+This is powered by [React Native Worklets](https://github.com/margelo/react-native-worklets). It is the only dependency you need to run WebGPU off the JS thread. [Reanimated](https://docs.swmansion.com/react-native-reanimated/) is **not required**: it is one optional way to schedule worklets (via `runOnUI`), and you only need it if you are already using it for animations.
 
 ## Requirements
 
 ```npm
-npm i react-native-reanimated react-native-worklets
+npm i react-native-worklets
 ```
 
-Follow Reanimated's installation guide for babel plugin and native setup. WebGPU objects are automatically registered for Worklets serialization when the module loads - you can pass `GPUDevice` and `GPUCanvasContext` directly to worklets.
+Follow the Worklets installation guide for the babel plugin and native setup. WebGPU objects are automatically registered for Worklets serialization when the module loads - you can pass `GPUDevice` and `GPUCanvasContext` directly to worklets.
 
 ## installWebGPU
 
@@ -27,7 +27,7 @@ declare const adapter: GPUAdapter;
 declare const canvasRef: RefObject<CanvasRef>;
 // ---cut---
 import { Canvas, installWebGPU } from "react-native-webgpu";
-import { runOnUI } from "react-native-reanimated";
+import { runOnUI } from "react-native-worklets";
 
 const renderFrame = (device: GPUDevice, context: RNCanvasContext) => {
   "worklet";
@@ -44,7 +44,7 @@ const renderFrame = (device: GPUDevice, context: RNCanvasContext) => {
   context.present();
 };
 
-// Create device on main thread, then run render on UI thread:
+// Create device on main thread, then run render on the UI thread:
 const device = await adapter.requestDevice();
 const context = canvasRef.current!.getContext("webgpu")!;
 runOnUI(renderFrame)(device, context);
@@ -56,12 +56,16 @@ Alternatively, import constants from the package - the Worklets serializer captu
 import { GPUBufferUsage, GPUMapMode } from "react-native-webgpu";
 ```
 
+<Callout type="info">
+`runOnUI` is re-exported by Reanimated as well, so `import { runOnUI } from "react-native-reanimated"` works if you already depend on Reanimated. Either import resolves to the same Worklets primitive.
+</Callout>
+
 ## Threading model
 
 | Runtime | Typical use |
 | ------- | ----------- |
 | Main JS | React apps, simple demos, TF.js |
-| Reanimated UI (`runOnUI`) | 60fps render loops tied to gestures |
+| UI thread (`runOnUI`) | 60fps render loops tied to gestures |
 | Dedicated worklet (`createWorkletRuntime`) | Heavy compute + render isolated from UI |
 | Vision Camera frame processor | Per-frame camera effects |
 
