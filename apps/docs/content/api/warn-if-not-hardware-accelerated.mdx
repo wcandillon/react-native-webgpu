@@ -9,7 +9,7 @@ Checks `adapter.info.isFallbackAdapter` and logs a console warning. Common on An
 
 Call once when the adapter becomes available — typically in a `useEffect`:
 
-```tsx
+```tsx twoslash
 import { useEffect } from "react";
 import { useDevice, warnIfNotHardwareAccelerated } from "react-native-webgpu";
 
@@ -29,9 +29,12 @@ export function Scene() {
 }
 ```
 
-With [`GPUDeviceProvider`](/api/gpu-device-provider), read the adapter from [`useMainDevice`](/api/use-main-device) the same way:
+With [`GPUDeviceProvider`](/api/gpu-device-provider), read the adapter from [`useMainDevice`](/api/gpu-device-provider#usemaindevice) the same way:
 
-```tsx
+```tsx twoslash
+import { useEffect } from "react";
+import { useMainDevice, warnIfNotHardwareAccelerated } from "react-native-webgpu";
+// ---cut---
 function Scene() {
   const { adapter } = useMainDevice();
 
@@ -47,5 +50,6 @@ This does not block rendering — it only logs. Test camera, native textures, an
 
 ## See also
 
-- [Device](/docs/rendering/device) - emulator limitations and feature availability
-- [useDevice](/api/use-device) - adapter request hook
+- [useDevice](/docs/getting-started/react-api#usedevice) - requesting an adapter and device
+- [Native APIs](/docs/getting-started/native-api#native-textures) - feature availability and emulator limitations
+- [GPUDeviceProvider](/api/gpu-device-provider) - share one device and read it with `useMainDevice`

@@ -1,9 +1,9 @@
 ---
 title: Canvas
-description: The main WebGPU rendering surface for React Native.
+description: Rendering pixels on-screen
 ---
 
-`Canvas` is a React Native view that owns a GPU surface. Attach a ref, call `getContext("webgpu")`, configure the context with your `GPUDevice`, then encode render passes each frame.
+`Canvas` follows the semantics of the Web [`<canvas>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/canvas) element as closely as we can: call `getContext("webgpu")` to get the `GPUCanvasContext`, read its size synchronously, manage pixel density the same way, and resize through the same `clientWidth` / `clientHeight` model, so browser WebGPU code largely carries over. Where a platform forces a difference we re-surface it rather than hide it. The primary example is frame presentation: on the Web the browser swaps the rendered frame automatically, but on React Native you call [`present()`](#presenting-frames) yourself after submitting your commands. Compositing a transparent canvas over native views on Android (see [Transparent compositing](#transparent-compositing)) is another.
 
 ## Props
 
@@ -16,7 +16,7 @@ description: The main WebGPU rendering surface for React Native.
 
 Minimal on-screen rendering loop:
 
-```tsx
+```tsx twoslash
 import { useEffect, useRef } from "react";
 import { PixelRatio, StyleSheet, View } from "react-native";
 import { Canvas, useDevice, type CanvasRef } from "react-native-webgpu";
@@ -117,18 +117,68 @@ export function TriangleScene() {
 Steps in order:
 
 1. Mount `<Canvas ref={ref} />` and wait for layout (non-zero `clientWidth` / `clientHeight`).
-2. Request a device with [`useDevice`](/api/use-device) or [`GPUDeviceProvider`](/api/gpu-device-provider).
+2. Request a device with [`useDevice`](/docs/getting-started/react-api#usedevice) or [`GPUDeviceProvider`](/api/gpu-device-provider).
 3. Call `ref.current.getContext("webgpu")` and `context.configure({ device, format, alphaMode })`.
 4. Each frame: encode passes → `device.queue.submit()` → **`context.present()`**.
 
-See [Hello Triangle](/docs/rendering/hello-triangle) for WGSL and a step-by-step walkthrough.
+See [Canvas](/docs/getting-started/canvas) for the frame loop and [Learn WebGPU](/docs/getting-started/learn-webgpu) for a step-by-step walkthrough.
+
+## Presenting frames
+
+On the Web, the browser swaps your rendered frame to the screen automatically when you submit GPU commands. In React Native there is no automatic swap: presentation is a manual step. After you submit your commands to the queue, call `present()` on the context to display the frame.
+
+```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
+declare const device: GPUDevice;
+declare const encoder: GPUCommandEncoder;
+declare const context: RNCanvasContext;
+// ---cut---
+device.queue.submit([encoder.finish()]);
+context.present(); // React Native only
+```
+
+`present()` is a React Native only method (it is not part of the Web WebGPU spec). It runs **synchronously** on the calling thread, so the frame is presented from whichever thread did the rendering. This works the same on every runtime: the main JS runtime, the Reanimated UI runtime, and dedicated worklet runtimes (`createWorkletRuntime` / `runOnRuntime`, or a Vision Camera frame processor).
+
+Always call `present()` after `submit()`, never before. See [Frame presentations](/docs/getting-started/canvas#frame-presentations) for the full frame loop and [Native APIs](/docs/getting-started/native-api#threading-model) for threading details.
+
+## Pixel density
+
+Just like on the Web, a canvas has two independent sizes:
+
+- `clientWidth` / `clientHeight` are the on-screen (layout) size in logical points. They follow the view's layout and update automatically when it resizes.
+- `width` / `height` are the drawing-buffer size in physical pixels. This is the resolution WebGPU actually renders at.
+
+The drawing buffer is **not** scaled to the device pixel ratio by default, exactly as on the Web. To render crisply on high-density screens, set the buffer size to the layout size multiplied by the pixel ratio. `PixelRatio.get()` is the React Native equivalent of `window.devicePixelRatio`.
+
+```tsx twoslash
+import { PixelRatio } from "react-native";
+import type { RNCanvasContext } from "react-native-webgpu";
+declare const context: RNCanvasContext;
+// ---cut---
+const canvas = context.canvas as HTMLCanvasElement;
+canvas.width = canvas.clientWidth * PixelRatio.get();
+canvas.height = canvas.clientHeight * PixelRatio.get();
+```
+
+Because `clientWidth` / `clientHeight` track layout, recompute the buffer size whenever they change (for example on rotation or a resize). See [Pixel density](/docs/getting-started/canvas#pixel-density) for a resize-aware render loop.
 
 ## Transparent compositing
 
-Set `transparent` to render over React Native views beneath the canvas. Pair it with `alphaMode: "premultiplied"` when configuring the context and clear color alpha `0` in your render pass.
+To render the canvas over the React Native views beneath it, you control transparency from two places, and you normally set both:
+
+- The **`transparent` prop** on `<Canvas>` makes the underlying native surface transparent so the views behind it show through.
+- **`alphaMode: "premultiplied"`** on `context.configure`, together with a clear color whose alpha is `0`, makes WebGPU produce a transparent frame.
+
+```tsx
+<Canvas ref={ref} style={StyleSheet.absoluteFill} transparent />
+```
+
+The [Usage](#usage) example above wires up both: the `transparent` prop, `alphaMode: "premultiplied"`, and a `clearValue` of `[0, 0, 0, 0]`.
+
+**Platform note:** on Android the `alphaMode` passed to `configure()` is ignored, so the `transparent` prop is what actually gives you a transparent canvas there. On iOS the two work together. Setting the `transparent` prop together with `alphaMode: "premultiplied"` and an alpha-`0` clear color gives you the same result on both platforms.
 
 ## See also
 
-- [CanvasRef](/api/canvas-ref) - ref methods (`getContext`, `getNativeSurface`, `present`)
-- [useCanvasRef](/api/use-canvas-ref) - typed ref hook
-- [Hello Triangle](/docs/rendering/hello-triangle) - full rendering tutorial
+- [GPUDeviceProvider](/api/gpu-device-provider) - share one device across components
+- [Canvas](/docs/getting-started/canvas) - the rendering surface and frame loop
+- [Learn WebGPU](/docs/getting-started/learn-webgpu) - tutorials for the low-level API

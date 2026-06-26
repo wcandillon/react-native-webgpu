@@ -2,17 +2,9 @@
   "title": "API Reference",
   "pages": [
     "canvas",
-    "canvas-ref",
-    "use-device",
-    "use-main-device",
-    "use-canvas-ref",
-    "use-surface",
     "gpu-device-provider",
-    "install-webgpu",
     "warn-if-not-hardware-accelerated",
-    "gpu-offscreen-canvas",
-    "rn-webgpu",
-    "gpu-device-extensions",
-    "native-types"
+    "install-webgpu",
+    "gpu-device-extensions"
   ]
 }

@@ -1,0 +1,27 @@
+---
+title: Learn WebGPU
+description: Where to go to learn the low-level WebGPU API.
+---
+
+React Native WebGPU is a **low-level library**. It mirrors the browser [WebGPU API](https://www.w3.org/TR/webgpu/) almost exactly: you write WGSL shaders, build pipelines, encode command buffers, and submit work to a queue. There is no scene graph, no material system, and no batteries-included renderer. That power comes with a learning curve.
+
+## Use a library on top
+
+For most applications you will reach for a higher-level library built on top of WebGPU rather than writing pipelines by hand. These handle cameras, materials, geometry, and the render loop for you:
+
+- [Three.js](/docs/integrations/three-js) - the WebGPU renderer from `three/webgpu`
+- [React Three Fiber](/docs/integrations/react-three-fiber) - Three.js as declarative React components
+- [TensorFlow.js](/docs/integrations/tensorflow) - the WebGPU backend for on-device ML
+
+See the full [Integrations](/docs/integrations/introduction) section for everything that runs on top of react-native-webgpu.
+
+## Learn the low-level concepts
+
+If you do want to learn the raw API, we strongly recommend it. The low-level concepts are genuinely fun to learn, and they make everything built on top easier to reason about. Two resources we recommend:
+
+- [WebGPU Fundamentals](https://webgpufundamentals.org/) - the best ground-up introduction to WebGPU. Everything there applies directly to React Native WebGPU, with the [Native APIs](/docs/getting-started/native-api) page covering the handful of differences.
+- [React Native WebGPU tutorial](https://www.youtube.com/watch?v=vons_XypdQw) by Daniel - a fun, hands-on video walkthrough specific to React Native.
+
+<Callout type="info">
+Because the API is symmetric with the web, almost any WebGPU tutorial, sample, or article works here. Keep the [Native APIs](/docs/getting-started/native-api) page handy for the React Native specific differences such as manual `present()`.
+</Callout>

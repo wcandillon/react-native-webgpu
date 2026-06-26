@@ -3,7 +3,7 @@ title: Three.js
 description: Integrations demo - THREE.WebGPURenderer on React Native.
 ---
 
-Three.js r168+ ships a WebGPU renderer (`three/webgpu`). On React Native you bridge the library's canvas expectations to `react-native-webgpu`'s context, then call **`present()`** after each render - the same manual presentation as raw WebGPU ([Present](/docs/rendering/present)).
+Three.js r168+ ships a WebGPU renderer (`three/webgpu`). On React Native you bridge the library's canvas expectations to `react-native-webgpu`'s context, then call **`present()`** after each render - the same manual presentation as raw WebGPU ([Frame presentations](/docs/getting-started/canvas#frame-presentations)).
 
 <WebGPUPlayground demo="three-js" height={280} />
 
@@ -36,7 +36,9 @@ Import from `three/webgpu`, not `three` (which would pull the WebGL build).
 
 `WebGPURenderer` expects an object with `width`, `height`, `clientWidth`, and `clientHeight`. Wrap the native canvas from `getContext("webgpu")`:
 
-```tsx
+```tsx twoslash
+import type { NativeCanvas } from "react-native-webgpu";
+// ---cut---
 export class ReactNativeCanvas {
   constructor(private canvas: NativeCanvas) {}
 
@@ -60,7 +62,11 @@ export class ReactNativeCanvas {
 
 Pass the adapter and the **same** `GPUCanvasContext` you got from React Native WebGPU:
 
-```tsx
+```tsx twoslash
+import * as THREE from "three/webgpu";
+import type { NativeCanvas } from "react-native-webgpu";
+declare const ReactNativeCanvas: new (canvas: NativeCanvas) => unknown;
+// ---cut---
 export function makeWebGPURenderer(context: GPUCanvasContext) {
   return new THREE.WebGPURenderer({
     antialias: true,
@@ -78,9 +84,17 @@ export function makeWebGPURenderer(context: GPUCanvasContext) {
 
 ## 4. Render loop + present
 
-Configure the context once ([Device](/docs/rendering/device)), then animate:
+Configure the context once ([Canvas](/docs/getting-started/canvas)), then animate:
 
-```tsx
+```tsx twoslash
+import * as THREE from "three/webgpu";
+import { PixelRatio } from "react-native";
+import type { CanvasRef } from "react-native-webgpu";
+import type { RefObject } from "react";
+declare const ref: RefObject<CanvasRef>;
+declare const device: GPUDevice;
+declare function makeWebGPURenderer(context: GPUCanvasContext): THREE.WebGPURenderer;
+// ---cut---
 const context = ref.current!.getContext("webgpu")!;
 const canvas = context.canvas as HTMLCanvasElement;
 
@@ -121,7 +135,7 @@ requestAnimationFrame(render);
 | Topic | Detail |
 | ----- | ------ |
 | **Presentation** | Three.js does not know about RN swapchains - you must call `context.present()` every frame |
-| **Sizing** | Set `canvas.width/height` with `PixelRatio.get()` before `init()` ([Sizing](/docs/rendering/sizing)) |
+| **Sizing** | Set `canvas.width/height` with `PixelRatio.get()` before `init()` ([Pixel density](/docs/getting-started/canvas#pixel-density)) |
 | **Zero-size canvas** | If `clientWidth === 0`, defer setup with `requestAnimationFrame` until layout completes |
 | **Cleanup** | On unmount: `renderer.setAnimationLoop(null)` and `renderer.dispose()` |
 | **GLTF models** | Loading needs a `resolveAssetSource` polyfill - see [Expo setup](/docs/getting-started/expo) |

@@ -35,8 +35,10 @@
     "@types/react-dom": "^19.1.0",
     "@webgpu/types": "0.1.65",
     "eslint": "9.35.0",
+    "fumadocs-twoslash": "^3.2.0",
     "fumadocs-typescript": "^4.0.4",
     "tailwindcss": "^4.1.8",
+    "twoslash": "^0.3.9",
     "typescript": "^5.2.2"
   }
 }

@@ -118,7 +118,7 @@ fn imageDither(col: vec3f, px: vec2f) -> vec3f {
 }
 
 fn themeBg(theme: f32) -> vec3f {
-  return mix(vec3f(0.018, 0.018, 0.03), vec3f(0.965, 0.968, 0.982), theme);
+  return mix(vec3f(0.07, 0.07, 0.09), vec3f(0.90, 0.905, 0.925), theme);
 }
 
 fn faceTone(n: vec3f) -> f32 {
@@ -143,8 +143,8 @@ fn cubeSample(pixel: vec2f) -> vec4f {
   var uv = pixel / u.resolution * 2.0 - 1.0;
   uv.x *= aspect;
 
-  let ro = vec3f(0.0, 0.0, -3.4);
-  let rd = normalize(vec3f(uv * 0.92, 1.6));
+  let ro = vec3f(0.0, 0.0, -6.8);
+  let rd = normalize(vec3f(uv * 0.46, 1.6));
 
   let yaw = u.time * 0.38;
   let pitch = u.time * 0.14;

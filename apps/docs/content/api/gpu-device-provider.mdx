@@ -3,11 +3,13 @@ title: GPUDeviceProvider
 description: Context provider that requests a device and gates children until ready.
 ---
 
-`GPUDeviceProvider` calls [`useDevice`](/api/use-device) internally and renders children only when `device` is non-null. Wrap your scene root so every child can call [`useMainDevice`](/api/use-main-device) without requesting its own device.
+`GPUDeviceProvider` requests a `GPUDevice` once and shares it through React context, rendering children only when `device` is non-null. Wrap your scene root so every child can read the shared device with [`useMainDevice`](#usemaindevice) instead of requesting its own.
 
 ## Props
 
-```tsx
+```tsx twoslash
+import type { ReactNode } from "react";
+// ---cut---
 interface DeviceProviderProps {
   children?: ReactNode;
   adapterOptions?: GPURequestAdapterOptions;
@@ -17,7 +19,7 @@ interface DeviceProviderProps {
 
 ## Usage
 
-```tsx
+```tsx twoslash
 import { useEffect } from "react";
 import { PixelRatio } from "react-native";
 import {
@@ -47,7 +49,7 @@ function VideoEffectScene() {
     player.play();
 
     // Render loop: copyLatestFrame → importExternalTexture → draw → present
-    // See [Video Player](/docs/native-media/video-player)
+    // See [Native Extensions](/api/gpu-device-extensions)
   }, [device]);
 
   return <Canvas ref={ref} style={{ flex: 1 }} />;
@@ -70,7 +72,10 @@ Request features (like `"rnwebgpu/native-texture"`) here — you cannot add feat
 
 While the device is loading, the provider returns `null` (nothing rendered). If you need a loading UI, wrap the provider:
 
-```tsx
+```tsx twoslash
+import { GPUDeviceProvider } from "react-native-webgpu";
+declare const Scene: () => React.ReactNode;
+// ---cut---
 function AppShell() {
   return (
     <>
@@ -83,8 +88,26 @@ function AppShell() {
 }
 ```
 
+## useMainDevice
+
+`useMainDevice` is the hook that consumes this provider's context. It returns the same `{ adapter, device }` the provider created, so any descendant can share that one device instead of requesting its own. If you are not using a provider, [`useDevice`](/docs/getting-started/react-api#usedevice) requests a device directly instead.
+
+```tsx twoslash
+import { useMainDevice } from "react-native-webgpu";
+// ---cut---
+function DebugOverlay() {
+  const { adapter, device } = useMainDevice();
+  // Read adapter info / feature list, or pass `device` to Three.js, overlays, etc.
+  return null;
+}
+```
+
+<Callout type="warn" title="Must be inside the provider">
+`useMainDevice` throws `No DeviceContext found.` when called outside a `GPUDeviceProvider`. Because the provider renders `null` until the device is ready, any child that calls it only mounts once `device` is non-null.
+</Callout>
+
 ## See also
 
-- [useMainDevice](/api/use-main-device) - read the shared device in children
-- [Device](/docs/rendering/device) - feature flags, threading, `device.lost`
-- [Native Textures](/docs/native-media/native-textures) - camera and video import
+- [React APIs](/docs/getting-started/react-api) - hooks for requesting and sharing a device
+- [Native APIs](/docs/getting-started/native-api#threading-model) - threading and `device.lost`
+- [Native Extensions](/api/gpu-device-extensions) - camera and video import
