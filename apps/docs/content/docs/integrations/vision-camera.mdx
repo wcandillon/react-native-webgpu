@@ -5,60 +5,7 @@ description: Real-time GPU effects on live camera frames.
 
 Run WGSL effects on live camera frames by importing each [Vision Camera `Frame`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame) as a `GPUExternalTexture`, sampling it in a shader, and presenting from the frame-output worklet.
 
-<Callout type="info" title="Prerequisites">
-This recipe builds on native texture import (`importExternalTexture`) and worklet runtimes. If those are new to you, read [Native APIs](/docs/getting-started/native-api) and [Worklets](/docs/integrations/worklets) first, and see [Native Extensions](/api/gpu-device-extensions) for the full import API.
-</Callout>
-
-Vision Camera owns the camera pipeline and exposes each captured image as a **`Frame` hybrid object** - a short-lived handle to GPU-shareable pixel data. React Native WebGPU sits on the consumer side: you take the frame's [`NativeBuffer`](https://visioncamera.margelo.com/api/react-native-vision-camera/interfaces/NativeBuffer), wrap it for Dawn, and sample it with `importExternalTexture`.
-
-## Pipeline at a glance
-
-```mermaid
-flowchart TB
-  subgraph sensor["Camera hardware"]
-    CAM[("Image sensor")]
-    SURF["NV12 / YCbCr surface<br/>IOSurface · AHardwareBuffer"]
-    CAM --> SURF
-  end
-
-  subgraph vision["Vision Camera"]
-    FRAME["Frame hybrid object<br/>getNativeBuffer() · orientation · isMirrored"]
-    SURF --> FRAME
-  end
-
-  subgraph main["Main JS thread - setup once"]
-    ADAPTER["requestAdapter / requestDevice<br/>rnwebgpu/native-texture"]
-    PIPE["Pipelines · samplers · uniforms"]
-    CTX["Canvas → RNCanvasContext"]
-    ADAPTER --> PIPE
-    ADAPTER --> CTX
-  end
-
-  subgraph worklet["Frame output worklet - every frame"]
-    NB["frame.getNativeBuffer()"]
-    NVF["RNWebGPU.createVideoFrameFromNativeBuffer(pointer)"]
-    EXT["device.importExternalTexture({ source, rotation, mirrored })"]
-    WGSL["Render / compute pass<br/>texture_external in WGSL"]
-    SUBMIT["queue.submit()"]
-    PRES["context.present()"]
-    REL["externalTexture.destroy()<br/>videoFrame.release() · frame.dispose()"]
-
-    NB --> NVF --> EXT --> WGSL --> SUBMIT --> PRES --> REL
-  end
-
-  FRAME -->|"hasNativeBuffer"| NB
-  PIPE -.->|"Worklets serialization"| WGSL
-  CTX -.->|"Worklets serialization"| PRES
-
-  style sensor fill:#1a2332,stroke:#4a90d9,color:#e8eef7
-  style vision fill:#1f2a1a,stroke:#6ab04c,color:#e8eef7
-  style main fill:#2a1f2a,stroke:#9b59b6,color:#e8eef7
-  style worklet fill:#2a2218,stroke:#e67e22,color:#e8eef7
-```
-
-<Callout type="info" title="Why two runtimes?">
-GPU setup (device, pipelines, canvas context) usually happens on the **main JS thread**. Frame delivery runs on Vision Camera's **worklet runtime** - the same pattern as [Worklets](/docs/integrations/worklets). WebGPU objects are registered for Worklets serialization automatically; pass `GPUDevice` and `RNCanvasContext` into the callback.
-</Callout>
+Vision Camera owns the camera pipeline and exposes each captured image as a **`Frame` hybrid object**: a short-lived handle to GPU-shareable pixel data. React Native WebGPU sits on the consumer side: you take the frame's [`NativeBuffer`](https://visioncamera.margelo.com/api/react-native-vision-camera/interfaces/NativeBuffer), wrap it for Dawn, and sample it with `importExternalTexture`.
 
 ## Vision Camera concepts
 
@@ -105,7 +52,7 @@ if (frame.hasNativeBuffer) {
 }
 ```
 
-React Native WebGPU extends that snippet with **`rotation`** and **`mirrored`** on `importExternalTexture` so Dawn uprights the sensor image before your shader runs - see [Native Extensions](/api/gpu-device-extensions#gpuexternaltexture-extensions).
+React Native WebGPU extends `importExternalTexture` with **`rotation`** and **`mirrored`** options so Dawn uprights the sensor image before your shader runs - see [Native Extensions](/api/gpu-device-extensions#gpuexternaltexture-extensions).
 
 ## 1. Request the right device features
 
@@ -127,10 +74,6 @@ if (Platform.OS === "android") {
 
 const device = await adapter!.requestDevice({ requiredFeatures: features });
 ```
-
-Create the device on the **main thread** and pass it into the worklet - `device.lost` only fires on the main JS runtime ([Worklets](/docs/integrations/worklets)).
-
-Feature-detect `"rnwebgpu/native-texture"` before importing - some emulators and Android drivers cannot import native surfaces. See [Native APIs](/docs/getting-started/native-api#native-textures).
 
 ## 2. Canvas + frame output
 
@@ -158,14 +101,23 @@ const frameOutput = useFrameOutput({
 
 ## 3. Per-frame import and render
 
-Each frame is a new external texture - re-import every callback. Map Vision Camera metadata into Dawn's sampling transform:
+Each frame is a new external texture.
 
 ```tsx twoslash
-// @noImplicitAny: false
-import type {} from "react-native-webgpu";
+import type { RNCanvasContext } from "react-native-webgpu";
+import type { Frame } from "react-native-vision-camera";
+// importExternalTexture accepts our NativeVideoFrame as a frame source:
+declare module "react-native-webgpu" {
+  interface NativeVideoFrame extends VideoFrame {}
+}
 declare const encoder: GPUCommandEncoder;
 // ---cut---
-function renderCameraFrame(frame, device, context, pipeline) {
+function renderCameraFrame(
+  frame: Frame,
+  device: GPUDevice,
+  context: RNCanvasContext,
+  pipeline: GPURenderPipeline,
+) {
   "worklet";
 
   const nativeBuffer = frame.getNativeBuffer();
@@ -235,19 +187,6 @@ fn cameraDecode(c: vec4f) -> vec4f {
 
 Also flip UVs on Android if the buffer origin differs from iOS (`cameraCoord` helper).
 
-## Building effects
-
-Once you have a sampled RGB frame, effects are ordinary shader math:
-
-| Effect | Approach |
-| ------ | -------- |
-| Grayscale | Dot product with luminance weights |
-| Chromatic aberration | Sample R/G/B at offset UVs |
-| Blur | Downscale prepass → separable compute blur → composite |
-| Vignette | Multiply by radial falloff from center |
-
-Advanced pipelines run a **prepass** (external texture → rgba8 storage), then compute passes ping-pong between storage textures before the final full-screen draw.
-
 ## Further reading
 
 - [Vision Camera - Frame](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame) - hybrid object lifecycle and properties
@@ -255,11 +194,3 @@ Advanced pipelines run a **prepass** (external texture → rgba8 storage), then 
 - [NativeBuffer](https://visioncamera.margelo.com/api/react-native-vision-camera/interfaces/NativeBuffer) - shared contract for zero-copy GPU buffers
 - [Native Extensions](/api/gpu-device-extensions) - `importExternalTexture` lifecycle on React Native
 - [Worklets](/docs/integrations/worklets) - worklet runtimes and `installWebGPU()`
-
-<Callout type="warn" title="Physical device required">
-Camera access and native texture import require a real device - emulators are not sufficient for this recipe.
-</Callout>
-
-<Callout type="warn" title="Android YUV">
-On Android you must apply YUV→RGB in WGSL when hardware conversion is unavailable. See [Native Extensions](/api/gpu-device-extensions) for platform notes.
-</Callout>
