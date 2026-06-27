@@ -1,15 +1,16 @@
 ---
 title: Three.js
-description: Integrations demo - THREE.WebGPURenderer on React Native.
+description: Run Three.js on React Native WebGPU
 ---
 
-Three.js r168+ ships a WebGPU renderer (`three/webgpu`). On React Native you bridge the library's canvas expectations to `react-native-webgpu`'s context, then call **`present()`** after each render - the same manual presentation as raw WebGPU ([Frame presentations](/docs/getting-started/canvas#frame-presentations)).
+Using, Three.js WebGPU backend, you can run the library on top of React Native.
 
 <WebGPUPlayground demo="three-js" height={280} />
 
-## 1. Metro - resolve the WebGPU build
+## 1. Metro configuration
 
-Three.js publishes separate WebGL and WebGPU entry points. Metro must load `build/three.webgpu.js` when you import `three` or `three/webgpu`. See [Expo setup](/docs/getting-started/expo) for a complete Metro configuration:
+Three.js publishes separate WebGL and WebGPU entry points.
+Metro must load `build/three.webgpu.js` when you import `three` or `three/webgpu`. See [Expo setup](/docs/getting-started/expo) for a complete Metro configuration:
 
 ```js
 // metro.config.js - resolveRequest excerpt
@@ -129,17 +130,5 @@ function render(time: number) {
 }
 requestAnimationFrame(render);
 ```
-
-## Tips & quirks
-
-| Topic | Detail |
-| ----- | ------ |
-| **Presentation** | Three.js does not know about RN swapchains - you must call `context.present()` every frame |
-| **Sizing** | Set `canvas.width/height` with `PixelRatio.get()` before `init()` ([Pixel density](/docs/getting-started/canvas#pixel-density)) |
-| **Zero-size canvas** | If `clientWidth === 0`, defer setup with `requestAnimationFrame` until layout completes |
-| **Cleanup** | On unmount: `renderer.setAnimationLoop(null)` and `renderer.dispose()` |
-| **GLTF models** | Loading needs a `resolveAssetSource` polyfill - see [Expo setup](/docs/getting-started/expo) |
-
-Three.js owns WGSL internally - you do not write render pipelines yourself. The integration work is Metro resolution, the canvas adapter, async init, and presentation.
 
 Next: [React Three Fiber](/docs/integrations/react-three-fiber) for declarative JSX on top of the same renderer.

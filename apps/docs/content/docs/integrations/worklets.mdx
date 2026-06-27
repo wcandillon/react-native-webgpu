@@ -3,9 +3,10 @@ title: Worklets
 description: Run WebGPU rendering off the JS thread on worklet runtimes.
 ---
 
-By default, WebGPU rendering runs on the JavaScript thread alongside React. For smooth 60fps scenes - especially with Three.js or heavy compute - you may want rendering on the **UI thread** or a **dedicated worklet runtime** so it is not blocked by React reconciliation or bridge traffic.
-
-This is powered by [React Native Worklets](https://github.com/margelo/react-native-worklets). It is the only dependency you need to run WebGPU off the JS thread. [Reanimated](https://docs.swmansion.com/react-native-reanimated/) is **not required**: it is one optional way to schedule worklets (via `runOnUI`), and you only need it if you are already using it for animations.
+By default, WebGPU rendering runs on the JavaScript thread alongside React. 
+Using [React Native Worklets](https://github.com/margelo/react-native-worklets), you can run WebGPU rendering on the UI thread or on a dedicated worklet runtime.
+There is even a [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/) experimental that lets you run complex Three.js scenes on a dedicated thread.
+You can see an example of Bundle Mode working with Three.js [here](https://github.com/software-mansion-labs/Bundle-Mode-showcase-app).
 
 ## Requirements
 
@@ -49,40 +50,3 @@ const device = await adapter.requestDevice();
 const context = canvasRef.current!.getContext("webgpu")!;
 runOnUI(renderFrame)(device, context);
 ```
-
-Alternatively, import constants from the package - the Worklets serializer captures them by closure:
-
-```tsx twoslash
-import { GPUBufferUsage, GPUMapMode } from "react-native-webgpu";
-```
-
-<Callout type="info">
-`runOnUI` is re-exported by Reanimated as well, so `import { runOnUI } from "react-native-reanimated"` works if you already depend on Reanimated. Either import resolves to the same Worklets primitive.
-</Callout>
-
-## Threading model
-
-| Runtime | Typical use |
-| ------- | ----------- |
-| Main JS | React apps, simple demos, TF.js |
-| UI thread (`runOnUI`) | 60fps render loops tied to gestures |
-| Dedicated worklet (`createWorkletRuntime`) | Heavy compute + render isolated from UI |
-| Vision Camera frame processor | Per-frame camera effects |
-
-`present()` works from any of these threads - it runs synchronously on whichever thread submits commands.
-
-## Async buffer readback
-
-Reading GPU data back to CPU (`mapAsync`) from a worklet requires careful scheduling - encode the copy on the worklet thread, await the map on the same runtime, and avoid blocking the UI thread with long waits. Pattern: compute on GPU → copy to staging buffer → map async → pass results to JS via `runOnJS`.
-
-The module also works with [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/) for complex Three.js scenes on dedicated threads.
-
-<Callout type="warn" title="device.lost and uncapturederror">
-These events are only delivered on the **main JS runtime**. Create the device on the main thread and pass it into worklets. If you create the device on a worklet runtime, `device.lost` and `uncapturederror` will not fire there.
-</Callout>
-
-## API
-
-- [`installWebGPU`](/api/install-webgpu)
-- [`GPUDeviceProvider`](/api/gpu-device-provider)
-- [Frame presentations](/docs/getting-started/canvas#frame-presentations)

@@ -115,21 +115,3 @@ inputTensor.dispose();
 ```
 
 The UI is plain React Native (`TextInput`, `Button`) - no WebGPU canvas involved.
-
-## Tips & quirks
-
-| Topic | Detail |
-| ----- | ------ |
-| **No present()** | Rendering concepts ([Canvas](/docs/getting-started/canvas), [Frame presentations](/docs/getting-started/canvas#frame-presentations)) do not apply |
-| **Memory** | Call `tensor.dispose()` for tensors you allocate manually |
-| **Warm-up** | First `fit()` / `predict()` may JIT-compile shaders - expect latency |
-| **Devices** | Test on a **physical device**; emulators may fall back to CPU |
-| **Combined apps** | Use TF.js for inference and WebGPU canvas for overlays ([Vision Camera](/docs/integrations/vision-camera)) |
-
-## When to use which stack
-
-| Use case | Stack |
-| -------- | ----- |
-| Custom graphics | Canvas + WGSL ([Canvas](/docs/getting-started/canvas)) |
-| ML inference / training | TF.js WebGPU backend (this demo) |
-| Camera + ML + draw | TF.js + `importExternalTexture` |
