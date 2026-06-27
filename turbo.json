@@ -70,6 +70,19 @@
     },
     "lint": {},
     "tsc": {},
-    "build": {}
+    "build": {
+      "outputs": ["lib/**", ".next/**", "out/**"]
+    },
+    "build:docs": {
+      "env": ["GITHUB_PAGES"],
+      "dependsOn": ["react-native-webgpu#build"],
+      "outputs": [".next/**", "out/**"],
+      "inputs": [
+        "**/*",
+        "../../packages/webgpu/src/**",
+        "!**/.next/**",
+        "!**/out/**"
+      ]
+    }
   }
 }

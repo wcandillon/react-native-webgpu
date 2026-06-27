@@ -5,6 +5,7 @@ export * from "../Canvas";
 export * from "../Offscreen";
 export * from "../WebGPUViewNativeComponent";
 export * from "../hooks";
+export * from "../GPUDeviceProvider";
 
 export { default as WebGPUModule } from "../NativeWebGPUModule";
 

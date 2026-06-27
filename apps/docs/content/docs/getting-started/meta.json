@@ -1,0 +1,12 @@
+{
+  "title": "Getting Started",
+  "pages": [
+    "installation",
+    "expo",
+    "canvas",
+    "offscreen-canvas",
+    "native-api",
+    "react-api",
+    "learn-webgpu"
+  ]
+}

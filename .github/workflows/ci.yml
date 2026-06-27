@@ -49,6 +49,14 @@ jobs:
       - name: Typecheck files
         run: yarn tsc
 
+      # Build the docs site the same way the Pages deploy does (GITHUB_PAGES set,
+      # so the project base path is applied) to catch broken links / build
+      # regressions before they reach main.
+      - name: Build docs
+        env:
+          GITHUB_PAGES: "true"
+        run: yarn build:docs
+
       - name: Install CocoaPods
         working-directory: apps/example/ios
         run: pod install

@@ -1,0 +1,10 @@
+{
+  "title": "API Reference",
+  "pages": [
+    "canvas",
+    "gpu-device-provider",
+    "warn-if-not-hardware-accelerated",
+    "install-webgpu",
+    "gpu-device-extensions"
+  ]
+}

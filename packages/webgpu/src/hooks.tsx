@@ -1,12 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-import type { ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { CanvasRef, NativeCanvas } from "./Canvas";
 
@@ -20,32 +12,10 @@ export const warnIfNotHardwareAccelerated = (adapter: GPUAdapter) => {
   }
 };
 
-interface DeviceContext {
+interface DeviceState {
   device: GPUDevice | null;
   adapter: GPUAdapter | null;
 }
-
-const DeviceContext = createContext<DeviceContext | null>(null);
-
-interface DeviceProviderProps {
-  children?: ReactNode | ReactNode[];
-  adapterOptions?: GPURequestAdapterOptions;
-  deviceDescriptor?: GPUDeviceDescriptor;
-}
-
-export const GPUDeviceProvider = ({
-  children,
-  adapterOptions,
-  deviceDescriptor,
-}: DeviceProviderProps) => {
-  const state = useDevice(adapterOptions, deviceDescriptor);
-  if (!state.device) {
-    return null;
-  }
-  return (
-    <DeviceContext.Provider value={state}>{children}</DeviceContext.Provider>
-  );
-};
 
 export const useSurface = () => {
   const ref = useRef<CanvasRef>(null);
@@ -57,21 +27,13 @@ export const useSurface = () => {
   return { ref, surface };
 };
 
-export const useMainDevice = () => {
-  const ctx = useContext(DeviceContext);
-  if (!ctx) {
-    throw new Error("No DeviceContext found.");
-  }
-  return ctx;
-};
-
 export const useCanvasRef = () => useRef<CanvasRef>(null);
 
 export const useDevice = (
   adapterOptions?: GPURequestAdapterOptions,
   deviceDescriptor?: GPUDeviceDescriptor,
 ) => {
-  const [state, setState] = useState<DeviceContext | null>(null);
+  const [state, setState] = useState<DeviceState | null>(null);
   useEffect(() => {
     (async () => {
       if (!state) {

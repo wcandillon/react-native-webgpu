@@ -1,0 +1,82 @@
+---
+title: Native APIs
+description: Integrations with the native platforms
+---
+
+On Android and iOS, you will find platform differences from the Web.
+Where a platform forces a difference, we re-surface it rather than hide it.
+
+The most substantial differences live on the [Canvas](/docs/getting-started/canvas) API: namely the manual [frame presentation](/docs/getting-started/canvas#frame-presentations), and [transparency](/docs/getting-started/canvas#transparency) handling.
+
+## Threading model
+
+react-native-webgpu can drive WebGPU from more than one JavaScript runtime: the main JS runtime, the UI thread, and dedicated worklet runtimes (createWorkletRuntime / runOnRuntime, or a Vision Camera frame processor). Running off the JS thread is powered by [React Native Worklets](https://github.com/margelo/react-native-worklets); Reanimated is not required.
+This module also works well with [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/) and lets you run complex Three.js scenes on the UI thread or dedicated worklet threads.
+
+You can run WebGPU code on the main thread, on the [Worklets](/docs/integrations/worklets) UI thread, or on a dedicated worklet thread. The API is symmetric across all threads, so you can run your rendering loop wherever you want.
+
+<Callout type="warn" title="device.lost and uncapturederror">
+`device.lost` and `uncapturederror` are only delivered on the **main JS runtime**. This is usually fine because the GPU device is typically created on the main JS thread and then sent to the UI or a dedicated worklet thread. If you create the device outside the main JS thread, those events won't fire.
+</Callout>
+
+See [Worklets](/docs/integrations/worklets) for the full UI-thread integration guide.
+In a Worklet, call `installWebGPU()` to install the WebGPU API on that thread.
+
+```tsx
+import { installWebGPU } from "react-native-webgpu";
+
+const renderFrame = (device: GPUDevice, context: GPUCanvasContext) => {
+  "worklet";
+  installWebGPU();
+  // GPUBufferUsage, GPUTextureUsage, etc. are now available on this thread
+  const buffer = device.createBuffer({
+    size,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
+  // ... render and present on this thread ...
+};
+```
+
+## Loading images
+
+This module provides a `createImageBitmap` function you can use with `copyExternalImageToTexture`.
+Resolve a bundled asset to a URI, fetch it, and decode the blob.
+In React Native `createImageBitmap` also accepts an `ArrayBuffer` as input.
+
+```tsx
+const url = Image.resolveAssetSource(require("./assets/image.png")).uri;
+const response = await fetch(url);
+const imageBitmap = await createImageBitmap(await response.blob());
+
+device.queue.copyExternalImageToTexture(
+  { source: imageBitmap },
+  { texture },
+  [imageBitmap.width, imageBitmap.height],
+);
+```
+
+See [`copyExternalImageToTexture`](https://developer.mozilla.org/en-US/docs/Web/API/GPUQueue/copyExternalImageToTexture) on MDN.
+
+## Native textures
+
+Beyond the standard API, react-native-webgpu exposes Dawn's native surface interop so you can sample camera and video frames with zero copies through the CPU:
+
+- **[`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory)** imports a native pixel surface (an `IOSurface`-backed `CVPixelBuffer` on iOS, an `AHardwareBuffer` on Android) as a sampleable `GPUTexture` via `device.importSharedTextureMemory(...)`.
+- **[`importExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions)** is the higher-level path: `device.importExternalTexture(...)` hands you a `GPUExternalTexture` with hardware YUV→RGB color conversion and lifecycle management, plus non-spec `rotation` and `mirrored` options for camera orientation.
+
+Both build on a default-on capability. Feature-detect it before importing, since some Android drivers and emulators don't support it:
+
+```tsx
+if (!device.features.has("rnwebgpu/native-texture" as GPUFeatureName)) {
+  return; // rare: some Android drivers/emulators can't import native surfaces
+}
+```
+
+See [Vision Camera](/docs/integrations/vision-camera) for an end-to-end example applying WGSL effects to live camera frames, and [Native Extensions](/api/gpu-device-extensions) for the full API.
+
+## See also
+
+- [Canvas](/docs/getting-started/canvas) - the rendering surface and frame loop
+- [React APIs](/docs/getting-started/react-api) - hooks and the device provider
+- [Worklets](/docs/integrations/worklets) - UI-thread rendering
+- [Native Extensions](/api/gpu-device-extensions) - native interop on `GPUDevice`
