@@ -6,7 +6,7 @@ description: Install WebGPU flag constants on a worklet runtime.
 On a worklet runtime, the WebGPU constants are not available by default.
 Call `installWebGPU()` once at the top of a worklet to install the needed globals for that runtime.
 
-On the main JS thread these are already installed when the native module loads — calling `installWebGPU()` there is a safe no-op.
+On the main JS thread these are already installed when the native module loads; calling `installWebGPU()` there is a safe no-op.
 
 ## Usage
 
