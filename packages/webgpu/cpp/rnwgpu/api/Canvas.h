@@ -36,6 +36,15 @@ public:
 
   void *getSurface() { return _surface; }
 
+  // No-op DOM-compatibility stubs so that web renderers (Three.js,
+  // react-three-fiber) can treat the canvas like an HTMLCanvasElement without
+  // needing a JS wrapper. Extra JS arguments are ignored.
+  void addEventListener() {}
+  void removeEventListener() {}
+  void dispatchEvent() {}
+  void setPointerCapture() {}
+  void releasePointerCapture() {}
+
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "surface", &Canvas::getSurface);
     installGetterSetter(runtime, prototype, "width", &Canvas::getWidth,
@@ -44,6 +53,15 @@ public:
                         &Canvas::setHeight);
     installGetter(runtime, prototype, "clientWidth", &Canvas::getClientWidth);
     installGetter(runtime, prototype, "clientHeight", &Canvas::getClientHeight);
+    installMethod(runtime, prototype, "addEventListener",
+                  &Canvas::addEventListener);
+    installMethod(runtime, prototype, "removeEventListener",
+                  &Canvas::removeEventListener);
+    installMethod(runtime, prototype, "dispatchEvent", &Canvas::dispatchEvent);
+    installMethod(runtime, prototype, "setPointerCapture",
+                  &Canvas::setPointerCapture);
+    installMethod(runtime, prototype, "releasePointerCapture",
+                  &Canvas::releasePointerCapture);
   }
 
 private:

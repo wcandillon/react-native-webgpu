@@ -17,6 +17,13 @@ export interface NativeCanvas {
   height: number;
   clientWidth: number;
   clientHeight: number;
+  // No-op DOM-compatibility stubs so web renderers (Three.js,
+  // react-three-fiber) can treat the canvas like an HTMLCanvasElement.
+  addEventListener(type: string, listener: EventListener): void;
+  removeEventListener(type: string, listener: EventListener): void;
+  dispatchEvent(event: Event): void;
+  setPointerCapture(pointerId: number): void;
+  releasePointerCapture(pointerId: number): void;
 }
 
 export type RNCanvasContext = GPUCanvasContext & {
