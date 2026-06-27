@@ -26,12 +26,12 @@
 // re-exports `./main` before `./constants`, and `./main` installs the native
 // module synchronously, so the globals always exist by the time this runs.
 
-export const GPUBufferUsage = globalThis.GPUBufferUsage;
+export const { GPUBufferUsage } = globalThis;
 
-export const GPUTextureUsage = globalThis.GPUTextureUsage;
+export const { GPUTextureUsage } = globalThis;
 
-export const GPUShaderStage = globalThis.GPUShaderStage;
+export const { GPUShaderStage } = globalThis;
 
-export const GPUColorWrite = globalThis.GPUColorWrite;
+export const { GPUColorWrite } = globalThis;
 
-export const GPUMapMode = globalThis.GPUMapMode;
+export const { GPUMapMode } = globalThis;
