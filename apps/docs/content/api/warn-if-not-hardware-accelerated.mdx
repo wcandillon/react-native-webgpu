@@ -7,7 +7,7 @@ Checks `adapter.info.isFallbackAdapter` and logs a console warning. Common on An
 
 ## Usage
 
-Call once when the adapter becomes available — typically in a `useEffect`:
+Call once when the adapter becomes available, typically in a `useEffect`:
 
 ```tsx twoslash
 import { useEffect } from "react";
@@ -46,7 +46,7 @@ function Scene() {
 }
 ```
 
-This does not block rendering — it only logs. Test camera, native textures, and performance-critical paths on **physical devices**.
+This does not block rendering; it only logs. Test camera, native textures, and performance-critical paths on **physical devices**.
 
 ## See also
 
