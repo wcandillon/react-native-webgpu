@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3001",
-    "build": "next build",
-    "build:docs": "next build",
+    "build": "fumadocs-mdx && next build",
+    "build:docs": "fumadocs-mdx && next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "tsc": "fumadocs-mdx && next typegen && tsc --noEmit"
