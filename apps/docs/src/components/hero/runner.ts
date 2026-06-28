@@ -22,6 +22,10 @@ export interface Pass {
   encode: (encoder: GPUCommandEncoder, view: GPUTextureView) => void;
   resize: (width: number, height: number) => void;
   update: (frame: number, timeSeconds: number) => void;
+  // Pointer state for interactive shaders. nx/ny are normalized [0,1] over the
+  // canvas; down is whether the pointer is pressed. Optional: only the
+  // compute.toys runtime consumes it.
+  setPointer?: (nx: number, ny: number, down: boolean) => void;
   destroy: () => void;
 }
 

@@ -49,8 +49,10 @@ export interface ComputeToysShader {
   custom: Record<string, number>;
   // Whether pass buffers use rgba32float (compute.toys `float32Enabled`).
   passF32?: boolean;
-  // Seconds for a full slow camera orbit driven through `mouse.pos` (0 = static).
-  orbitPeriod?: number;
+  // Default normalized `mouse.pos` ([x, y] in [0,1]) before the user interacts.
+  // compute.toys camera shaders map mouse.pos to the view angle; this sets the
+  // resting angle. Drag rotates from here. Defaults to [0.5, 0.5].
+  initialView?: [number, number];
   // Cap the internal render resolution (longest side, device px) and upscale via
   // the blit. compute.toys shaders are tuned for a fixed modest resolution;
   // heavy per-pixel work at full DPR-scaled hero size can hang the GPU.

@@ -13,16 +13,17 @@
 import { ct202 } from "./shaders/generated";
 import type { ComputeToysShader, ShaderEntry } from "./types";
 
-// "Black Hole Particles Bokeh" by michael0884, tuned for the hero (slow orbit,
-// capped internal resolution to keep the per-pixel particle loop off the GPU
-// timeout path). A dark shader, so the overlay uses light text/buttons.
+// "Black Hole Particles Bokeh" by michael0884, tuned for the hero: drag to
+// rotate the camera (compute.toys gesture), static otherwise. Internal
+// resolution is capped to keep the per-pixel particle loop off the GPU timeout
+// path. A dark shader, so the overlay uses light text/buttons.
 const blackHole: ShaderEntry = {
   ...ct202,
   appearance: "dark",
   shader: {
     ...(ct202.shader as ComputeToysShader),
-    orbitPeriod: 90,
     maxDimension: 900,
+    initialView: [0.5, 0.75],
   },
 };
 

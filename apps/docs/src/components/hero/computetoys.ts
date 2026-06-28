@@ -505,9 +505,22 @@ export function createComputeToysPass(
     buildBindGroup();
   };
 
-  const orbitPeriod = shader.orbitPeriod ?? 0;
+  // Pointer state. compute.toys camera shaders read mouse.pos (in pixels) as the
+  // view angle and only update it while the button is held. We mirror that:
+  // ptrX/ptrY (normalized) freeze on release; the default is initialView.
+  const [iv0, iv1] = shader.initialView ?? [0.5, 0.5];
+  let ptrX = iv0;
+  let ptrY = iv1;
+  let ptrDown = false;
 
   return {
+    setPointer: (nx, ny, down) => {
+      ptrDown = down;
+      if (down) {
+        ptrX = Math.min(1, Math.max(0, nx));
+        ptrY = Math.min(1, Math.max(0, ny));
+      }
+    },
     update: (frame, timeSeconds) => {
       currentFrame = frame;
       const t = new ArrayBuffer(16);
@@ -519,10 +532,9 @@ export function createComputeToysPass(
 
       const m = new ArrayBuffer(16);
       const mv = new DataView(m);
-      const px = orbitPeriod > 0 ? Math.round(((timeSeconds / orbitPeriod) % 1) * width) : 0;
-      mv.setUint32(0, px >>> 0, true);
-      mv.setUint32(4, 0, true);
-      mv.setInt32(8, 0, true);
+      mv.setUint32(0, Math.round(ptrX * width) >>> 0, true);
+      mv.setUint32(4, Math.round(ptrY * height) >>> 0, true);
+      mv.setInt32(8, ptrDown ? 1 : 0, true);
       device.queue.writeBuffer(mouseBuf, 0, m);
     },
     encode: (encoder, targetView) => {

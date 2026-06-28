@@ -42,12 +42,12 @@ export default function HomePage() {
         <p
           className={`mt-5 max-w-xl text-base sm:text-lg ${
             dark
-              ? "text-white/60 drop-shadow-[0_1px_6px_rgba(0,0,0,1)]"
+              ? "text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,1)]"
               : "text-neutral-600"
           }`}
         >
-          WebGPU compliant bindings. Powered by Dawn.<br />
-          Runs on iOS, Android, macOS, and visionOS.
+          WebGPU compliant binding powered by Dawn.<br />
+          Runs on iOS, Android, macOS, visionOS, and Web.
         </p>
         <div className="pointer-events-auto mt-10 flex flex-wrap items-center justify-center gap-3">
           <Link
