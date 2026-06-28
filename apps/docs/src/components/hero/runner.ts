@@ -233,10 +233,11 @@ export function createPass(
   ctx: HeroContext,
   shader: FragmentShader | ComputeShader | ComputeToysShader,
   uniformBuffer: GPUBuffer,
+  opts: { isMobile?: boolean } = {},
 ): Pass {
   if (shader.kind === "computetoys") {
     // Imported lazily to avoid a cycle (computetoys.ts imports Pass from here).
-    return createComputeToysPass(ctx, shader);
+    return createComputeToysPass(ctx, shader, opts);
   }
   return shader.kind === "compute"
     ? createComputePass(ctx, shader, uniformBuffer)

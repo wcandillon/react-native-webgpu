@@ -135,7 +135,10 @@ interface Preprocessed {
   storageCount: number;
 }
 
-function preprocess(shader: ComputeToysShader): Preprocessed {
+function preprocess(
+  shader: ComputeToysShader,
+  overrides: Record<string, number> = {},
+): Preprocessed {
   const macros: Record<string, string> = {};
   const workgroupCounts: Record<string, [number, number, number]> = {};
   const dispatchOnce: Record<string, boolean> = {};
@@ -143,7 +146,17 @@ function preprocess(shader: ComputeToysShader): Preprocessed {
   let storageCount = 0;
   let extensions = "";
 
-  const lines = shader.code.split("\n");
+  // Numeric overrides for named `const`/`#define` symbols (e.g. lowering the
+  // particle-grid size on mobile). Applied to the raw source before parsing so
+  // both the `#define` value and the `const` initializer pick up the new value.
+  let source = shader.code;
+  for (const [name, value] of Object.entries(overrides)) {
+    source = source
+      .replace(new RegExp(`(#define\\s+${name}\\s+)\\d+`), `$1${value}`)
+      .replace(new RegExp(`(const\\s+${name}\\s*=\\s*)\\d+`), `$1${value}`);
+  }
+
+  const lines = source.split("\n");
   const kept: string[] = [];
 
   // First pass: collect #define values (needed to resolve directive args).
@@ -248,11 +261,16 @@ function preprocess(shader: ComputeToysShader): Preprocessed {
 export function createComputeToysPass(
   ctx: HeroContext,
   shader: ComputeToysShader,
+  opts: { isMobile?: boolean } = {},
 ): Pass {
   const { device, format } = ctx;
   const passF32 = shader.passF32 ?? false;
   const passFormat: GPUTextureFormat = passF32 ? "rgba32float" : "rgba16float";
-  const pre = preprocess(shader);
+  // On phones the per-pixel particle loop is the bottleneck, so we both cap the
+  // internal resolution lower and shrink the particle grid (via const overrides
+  // baked into the source at compile time).
+  const overrides = opts.isMobile ? shader.mobileConstOverrides ?? {} : {};
+  const pre = preprocess(shader, overrides);
 
   const prelude =
     pre.extensions +
@@ -427,7 +445,10 @@ export function createComputeToysPass(
   const blitSampler = device.createSampler({ magFilter: "linear", minFilter: "linear" });
 
   // Resolution-dependent resources.
-  const maxDim = shader.maxDimension ?? 1024;
+  const maxDim =
+    (opts.isMobile ? shader.mobileMaxDimension : undefined) ??
+    shader.maxDimension ??
+    1024;
   let width = 0;
   let height = 0;
   let screen: GPUTexture | null = null;
@@ -506,20 +527,36 @@ export function createComputeToysPass(
   };
 
   // Pointer state. compute.toys camera shaders read mouse.pos (in pixels) as the
-  // view angle and only update it while the button is held. We mirror that:
-  // ptrX/ptrY (normalized) freeze on release; the default is initialView.
+  // view angle. We drive it as a *relative* drag so the camera continues from
+  // wherever it was left instead of snapping to the absolute pointer position:
+  // on press we anchor at the current pointer, then offset the frozen base by
+  // the drag delta. base/ptr (normalized) freeze on release; default initialView.
   const [iv0, iv1] = shader.initialView ?? [0.5, 0.5];
+  let baseX = iv0;
+  let baseY = iv1;
   let ptrX = iv0;
   let ptrY = iv1;
   let ptrDown = false;
+  let anchorX = 0;
+  let anchorY = 0;
+  const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
   return {
     setPointer: (nx, ny, down) => {
-      ptrDown = down;
-      if (down) {
-        ptrX = Math.min(1, Math.max(0, nx));
-        ptrY = Math.min(1, Math.max(0, ny));
+      if (down && !ptrDown) {
+        // Drag start: anchor here, keep the accumulated base angle.
+        anchorX = nx;
+        anchorY = ny;
       }
+      if (down) {
+        ptrX = clamp01(baseX + (nx - anchorX));
+        ptrY = clamp01(baseY + (ny - anchorY));
+      } else if (ptrDown) {
+        // Drag release: freeze the accumulated angle for the next drag.
+        baseX = ptrX;
+        baseY = ptrY;
+      }
+      ptrDown = down;
     },
     update: (frame, timeSeconds) => {
       currentFrame = frame;

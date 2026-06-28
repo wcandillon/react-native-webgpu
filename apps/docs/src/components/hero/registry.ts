@@ -23,6 +23,11 @@ const blackHole: ShaderEntry = {
   shader: {
     ...(ct202.shader as ComputeToysShader),
     maxDimension: 900,
+    // Phones get a lower internal resolution and a 64x64 particle grid (4x fewer
+    // particles than the 128x128 desktop grid) to keep the per-pixel bokeh loop
+    // off the GPU timeout path. PARTICLE_COUNT_16 must stay PARTICLE_COUNT / 16.
+    mobileMaxDimension: 600,
+    mobileConstOverrides: { PARTICLE_COUNT: 64, PARTICLE_COUNT_16: 4 },
     initialView: [0.5, 0.75],
   },
 };

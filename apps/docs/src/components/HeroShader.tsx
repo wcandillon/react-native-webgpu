@@ -110,7 +110,13 @@ export function HeroShader({ entry, className }: HeroShaderProps) {
       window.addEventListener("resize", resize);
       resize();
 
-      pass = createPass(ctx, entry.shader, uniformBuffer);
+      // Coarse pointer or a small viewport ⇒ treat as mobile: lower internal
+      // resolution and a smaller particle grid (see the compute.toys runtime).
+      const isMobile =
+        (window.matchMedia?.("(pointer: coarse)").matches ?? false) ||
+        Math.min(window.innerWidth, window.innerHeight) < 600;
+
+      pass = createPass(ctx, entry.shader, uniformBuffer, { isMobile });
       pass.resize(canvas.width, canvas.height);
 
       const shaderStart = performance.now();
@@ -179,7 +185,14 @@ export function HeroShader({ entry, className }: HeroShaderProps) {
       onPointerCancel={interactive ? endPointer : undefined}
       style={
         interactive
-          ? { cursor: "grab", touchAction: "pan-y" }
+          ? // `touchAction: none` stops the browser from scrolling/zooming the
+            // page while you drag to rotate, so vertical drags reach the shader
+            // instead of being eaten by page scroll on mobile.
+            {
+              cursor: "grab",
+              touchAction: "none",
+              overscrollBehavior: "contain",
+            }
           : undefined
       }
     >
