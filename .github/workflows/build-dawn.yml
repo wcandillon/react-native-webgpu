@@ -136,7 +136,6 @@ jobs:
     needs: prepare-release
     strategy:
       fail-fast: false
-      max-parallel: 1
       matrix:
         include:
           - platform: ios
@@ -161,7 +160,7 @@ jobs:
             library_path: src/dawn/native/libwebgpu_dawn.a
 
     name: Build-${{ matrix.platform }}-${{ matrix.arch }}
-    runs-on: self-hosted
+    runs-on: macos-latest
     steps:
       - name: Clean previous Dawn workspace
         run: |
@@ -192,7 +191,7 @@ jobs:
 
   package-mobile:
     name: Package Mobile Artifacts
-    runs-on: self-hosted
+    runs-on: macos-latest
     needs: [prepare-release, mobile-android, mobile-apple]
     steps:
       - name: Clean previous Dawn workspace
