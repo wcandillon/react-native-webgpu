@@ -1,6 +1,7 @@
 module.exports = {
   preset: 'react-native',
   modulePathIgnorePatterns: [
+    '<rootDir>/lib/',
     '(meshes)|(setup)|(setup.(ts|tsx))',
     'components',
     'config.ts',
