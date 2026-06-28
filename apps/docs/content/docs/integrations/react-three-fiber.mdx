@@ -3,7 +3,7 @@ title: React Three Fiber
 description: Integrations demo - declarative 3D with @react-three/fiber.
 ---
 
-Builds on [Three.js](/docs/integrations/three-js): same `WebGPURenderer`, canvas adapter, and **`present()`** hook - but scenes are JSX reconciled by React Three Fiber.
+Builds on [Three.js](/docs/integrations/three-js): same `WebGPURenderer` and **`present()`** hook - but scenes are JSX reconciled by React Three Fiber.
 
 <WebGPUPlayground demo="three-js" height={280} />
 
@@ -38,7 +38,7 @@ export const FiberCanvas = ({ children, style, scene, camera }) => {
     const context = canvasRef.current!.getContext("webgpu")!;
     const renderer = makeWebGPURenderer(context);
 
-    const canvas = new ReactNativeCanvas(context.canvas) as HTMLCanvasElement;
+    const canvas = context.canvas as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();
     canvas.height = canvas.clientHeight * PixelRatio.get();
 

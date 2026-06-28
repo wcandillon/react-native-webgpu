@@ -33,47 +33,17 @@ if (moduleName.startsWith("three/addons/")) {
 
 Import from `three/webgpu`, not `three` (which would pull the WebGL build).
 
-## 2. Canvas adapter
+## 2. Create the renderer
 
-`WebGPURenderer` expects an object with `width`, `height`, `clientWidth`, and `clientHeight`. Wrap the native canvas from `getContext("webgpu")`:
-
-```tsx twoslash
-import type { NativeCanvas } from "react-native-webgpu";
-// ---cut---
-export class ReactNativeCanvas {
-  constructor(private canvas: NativeCanvas) {}
-
-  get width() { return this.canvas.width; }
-  set width(v: number) { this.canvas.width = v; }
-  get height() { return this.canvas.height; }
-  set height(v: number) { this.canvas.height = v; }
-  get clientWidth() { return this.canvas.clientWidth; }
-  get clientHeight() { return this.canvas.clientHeight; }
-
-  // Three.js may call these - no-ops are fine on RN
-  addEventListener() {}
-  removeEventListener() {}
-  dispatchEvent() { return false; }
-  setPointerCapture() {}
-  releasePointerCapture() {}
-}
-```
-
-## 3. Create the renderer
-
-Pass the adapter and the **same** `GPUCanvasContext` you got from React Native WebGPU:
+`WebGPURenderer` expects a DOM-like canvas with `width`, `height`, `clientWidth`, and `clientHeight`, plus a few event methods. The native canvas from `getContext("webgpu")` already satisfies this interface, so pass it directly along with the **same** `GPUCanvasContext`:
 
 ```tsx twoslash
 import * as THREE from "three/webgpu";
-import type { NativeCanvas } from "react-native-webgpu";
-declare const ReactNativeCanvas: new (canvas: NativeCanvas) => unknown;
 // ---cut---
 export function makeWebGPURenderer(context: GPUCanvasContext) {
   return new THREE.WebGPURenderer({
     antialias: true,
-    canvas: new ReactNativeCanvas(
-      context.canvas as unknown as NativeCanvas,
-    ) as unknown as HTMLCanvasElement,
+    canvas: context.canvas,
     context,
   });
 }
@@ -83,7 +53,7 @@ export function makeWebGPURenderer(context: GPUCanvasContext) {
 `WebGPURenderer.init()` is **async**. Do not call `render()` until it resolves - unlike raw WebGPU where pipeline creation is synchronous after `requestDevice`.
 </Callout>
 
-## 4. Render loop + present
+## 3. Render loop + present
 
 Configure the context once ([Canvas](/docs/getting-started/canvas)), then animate:
 
