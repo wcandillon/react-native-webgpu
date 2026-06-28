@@ -24,10 +24,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Tokenless trusted publishing needs npm >= 11.5.1. The repo's .nvmrc
-      # pins Node 22 (npm 10), and `npm install -g npm@latest` self-upgrade is
-      # broken on that npm (MODULE_NOT_FOUND 'promise-retry'). So switch the
-      # publish steps to Node 24, which already bundles npm 11.6+.
       - name: Use Node with npm 11+
         uses: actions/setup-node@v4
         with:
