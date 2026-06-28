@@ -1,0 +1,28 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "semantic-release-yarn",
+      {
+        "npmPublish": false,
+        "tarballDir": "dist"
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "publishCmd": "bash scripts/release/publish.sh ${nextRelease.version} ${nextRelease.channel || 'latest'}"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          { "path": "dist/*.tgz", "label": "Package tarball" }
+        ]
+      }
+    ]
+  ]
+}

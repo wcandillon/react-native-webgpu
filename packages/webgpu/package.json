@@ -1,6 +1,6 @@
 {
   "name": "react-native-webgpu",
-  "version": "0.5.15",
+  "version": "0.0.0-development",
   "description": "React Native WebGPU",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -27,6 +27,7 @@
     "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
     "tsc": "tsc --noEmit",
     "build": "bob build",
+    "release": "semantic-release",
     "build-dawn": "tsx scripts/build/dawn.ts",
     "clean-dawn": "rimraf ./libs && rimraf ../../externals/dawn/out",
     "clang-format": "yarn clang-format-ios && yarn clang-format-android && yarn clang-format-common",
@@ -53,9 +54,15 @@
   },
   "homepage": "https://wcandillon.github.io/react-native-webgpu/",
   "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public",
+    "provenance": true
   },
   "devDependencies": {
+    "@semantic-release/commit-analyzer": "^13.0.0",
+    "@semantic-release/exec": "^7.0.3",
+    "@semantic-release/github": "^10.3.3",
+    "@semantic-release/release-notes-generator": "^14.0.1",
     "@types/jest": "^29.5.12",
     "@types/lodash": "^4.17.5",
     "@types/node": "^20.14.7",
@@ -87,6 +94,8 @@
     "react-native-worklets": "0.8.3",
     "rimraf": "^5.0.7",
     "seedrandom": "^3.0.5",
+    "semantic-release": "^24.1.0",
+    "semantic-release-yarn": "^3.0.2",
     "teapot": "^1.0.0",
     "ts-morph": "^22.0.0",
     "tsx": "^4.20.5",

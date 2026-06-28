@@ -1,6 +1,6 @@
 {
   "name": "react-native-wgpu",
-  "version": "0.5.15",
+  "version": "0.0.0-development",
   "description": "Shim that re-exports react-native-webgpu under its previous package name",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -34,7 +34,9 @@
   },
   "homepage": "https://github.com/wcandillon/react-native-webgpu#readme",
   "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
     "react-native-webgpu": "*"
