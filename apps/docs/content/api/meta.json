@@ -1,6 +1,7 @@
 {
   "title": "API Reference",
   "pages": [
+    "index",
     "canvas",
     "gpu-device-provider",
     "warn-if-not-hardware-accelerated",
