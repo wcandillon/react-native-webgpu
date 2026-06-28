@@ -12,7 +12,7 @@ import { PixelRatio } from "react-native";
 import type { CanvasRef } from "react-native-webgpu";
 import { Canvas } from "react-native-webgpu";
 
-import { makeWebGPURenderer, ReactNativeCanvas } from "./makeWebGPURenderer";
+import { makeWebGPURenderer } from "./makeWebGPURenderer";
 
 //global.THREE = global.THREE || THREE;
 
@@ -38,9 +38,7 @@ export const FiberCanvas = ({
     const context = canvasRef.current!.getContext("webgpu")!;
     const renderer = makeWebGPURenderer(context);
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    const canvas = new ReactNativeCanvas(context.canvas) as HTMLCanvasElement;
+    const canvas = context.canvas as unknown as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();
     canvas.height = canvas.clientHeight * PixelRatio.get();
     const size = {
