@@ -1,153 +1,52 @@
 # Contributing
 
-Contributions are always welcome, no matter how large or small!
-
-We want this community to be friendly and respectful to each other. Please follow it in all your interactions with the project. Before contributing, please read the [code of conduct](./CODE_OF_CONDUCT.md).
-
 ## Development workflow
 
-This project is a monorepo managed using [Yarn workspaces](https://yarnpkg.com/features/workspaces). It contains the following packages:
-
-- The library package in the root directory.
-- An example app in the `example/` directory.
-
-To get started with the project, run `yarn` in the root directory to install the required dependencies for each package:
-
 ```sh
+git submodule update --init
 yarn
+cd packages/webgpu && yarn install-dawn   # prebuilt Dawn binaries
+# or: yarn build-dawn                     # build Dawn from source
 ```
 
-> Since the project relies on Yarn workspaces, you cannot use [`npm`](https://github.com/npm/cli) for development.
+Example app (from `apps/example/`): `yarn start` · `yarn ios` · `yarn android`
 
-The [example app](/example/) demonstrates usage of the library. You need to run it to test any changes you make.
+From the repo root: `yarn lint` · `yarn tsc` · `yarn build:docs`
 
-It is configured to use the local version of the library, so any changes you make to the library's source code will be reflected in the example app. Changes to the library's JavaScript code will be reflected in the example app without a rebuild, but native code changes will require a rebuild of the example app.
+Tests (from `packages/webgpu/`): `yarn test:ref` (Chrome reference) · `yarn test` (E2E — open the example app on the E2E screen)
 
-If you want to use Android Studio or XCode to edit the native code, you can open the `example/android` or `example/ios` directories respectively in those editors. To edit the Objective-C or Swift files, open `example/ios/WgpuExample.xcworkspace` in XCode and find the source files at `Pods > Development Pods > react-native-webgpu`.
+Other `packages/webgpu` scripts: `yarn codegen` · `yarn clean-dawn` · `yarn build-dawn`
 
-To edit the Java or Kotlin files, open `example/android` in Android studio and find the source files at `react-native-webgpu` under `Android`.
+## Upgrading Dawn
 
-You can use various commands from the root directory to work with the project.
+The Dawn version is pinned in two places that must stay in sync:
 
-To start the packager:
+- `.gitmodules` → `submodule.externals/dawn.branch` (e.g. `chromium/7849`)
+- `packages/webgpu/package.json` → the `"dawn"` field (same value, e.g. `chromium/7849`)
 
-```sh
-yarn example start
-```
+`yarn install-dawn` downloads **prebuilt** binaries from a GitHub release tagged `dawn-<branch-slug>` (e.g. `dawn-chromium-7849`); the release host is configured at the top of `scripts/install-dawn.ts`. `yarn build-dawn` builds the same binaries from the submodule source instead.
 
-To run the example app on Android:
+Steps to bump to a new Dawn version (`chromium/<N>`):
 
-```sh
-yarn example android
-```
-
-To run the example app on iOS:
-
-```sh
-yarn example ios
-```
-
-By default, the example is configured to build with the old architecture. To run the example with the new architecture, you can do the following:
-
-1. For Android, run:
+1. **Point the submodule at the new branch.** Update both `.gitmodules` and the `"dawn"` field in `package.json` to `chromium/<N>`, then move the submodule to the new tip:
 
    ```sh
-   ORG_GRADLE_PROJECT_newArchEnabled=true yarn example android
+   git submodule set-branch --branch chromium/<N> externals/dawn
+   git submodule update --remote externals/dawn
    ```
 
-2. For iOS, run:
+2. **Regenerate bindings.** Dawn's `src/dawn/dawn.json` drives our codegen, so re-run it after every bump:
 
    ```sh
-   cd example/ios
-   RCT_NEW_ARCH_ENABLED=1 pod install
-   cd -
-   yarn example ios
+   cd packages/webgpu && yarn codegen
    ```
 
-If you are building for a different architecture than your previous build, make sure to remove the build folders first. You can run the following command to cleanup all build folders:
+3. **Publish prebuilt binaries.** Trigger the **Build Dawn** workflow (`.github/workflows/build-dawn.yml`, `workflow_dispatch`). It reads the branch from `.gitmodules`, builds Android + Apple, and creates the `dawn-chromium-<N>` release with the headers, the Android `.so`s, and the Apple `.xcframework`. (To build locally instead, run `yarn build-dawn`; this requires the Android NDK and Xcode toolchains.)
 
-```sh
-yarn clean
-```
+4. **Pull the new binaries** once the release exists:
 
-To confirm that the app is running with the new architecture, you can check the Metro logs for a message like this:
+   ```sh
+   cd packages/webgpu && yarn install-dawn
+   ```
 
-```sh
-Running "WgpuExample" with {"fabric":true,"initialProps":{"concurrentRoot":true},"rootTag":1}
-```
-
-Note the `"fabric":true` and `"concurrentRoot":true` properties.
-
-Make sure your code passes TypeScript and ESLint. Run the following to verify:
-
-```sh
-yarn typecheck
-yarn lint
-```
-
-To fix formatting errors, run the following:
-
-```sh
-yarn lint --fix
-```
-
-Remember to add tests for your change if possible. Run the unit tests by:
-
-```sh
-yarn test
-```
-
-### Commit message convention
-
-We follow the [conventional commits specification](https://www.conventionalcommits.org/en) for our commit messages:
-
-- `fix`: bug fixes, e.g. fix crash due to deprecated method.
-- `feat`: new features, e.g. add new method to the module.
-- `refactor`: code refactor, e.g. migrate from class components to hooks.
-- `docs`: changes into documentation, e.g. add usage example for the module..
-- `test`: adding or updating tests, e.g. add integration tests using detox.
-- `chore`: tooling changes, e.g. change CI config.
-
-Our pre-commit hooks verify that your commit message matches this format when committing.
-
-### Linting and tests
-
-[ESLint](https://eslint.org/), [Prettier](https://prettier.io/), [TypeScript](https://www.typescriptlang.org/)
-
-We use [TypeScript](https://www.typescriptlang.org/) for type checking, [ESLint](https://eslint.org/) with [Prettier](https://prettier.io/) for linting and formatting the code, and [Jest](https://jestjs.io/) for testing.
-
-Our pre-commit hooks verify that the linter and tests pass when committing.
-
-### Publishing to npm
-
-We use [release-it](https://github.com/release-it/release-it) to make it easier to publish new versions. It handles common tasks like bumping version based on semver, creating tags and releases etc.
-
-To publish new versions, run the following:
-
-```sh
-yarn release
-```
-
-### Scripts
-
-The `package.json` file contains various scripts for common tasks:
-
-- `yarn`: setup project by installing dependencies.
-- `yarn typecheck`: type-check files with TypeScript.
-- `yarn lint`: lint files with ESLint.
-- `yarn test`: run unit tests with Jest.
-- `yarn example start`: start the Metro server for the example app.
-- `yarn example android`: run the example app on Android.
-- `yarn example ios`: run the example app on iOS.
-
-### Sending a pull request
-
-> **Working on your first pull request?** You can learn how from this _free_ series: [How to Contribute to an Open Source Project on GitHub](https://app.egghead.io/playlists/how-to-contribute-to-an-open-source-project-on-github).
-
-When you're sending a pull request:
-
-- Prefer small pull requests focused on one change.
-- Verify that linters and tests are passing.
-- Review the documentation to make sure it looks good.
-- Follow the pull request template when opening a pull request.
-- For pull requests that change the API or implementation, discuss with maintainers first by opening an issue.
+5. **Verify and commit.** Build and run the example app, then commit the submodule bump together with the updated `.gitmodules`, `package.json`, and any regenerated code under `src/` and `cpp/`.

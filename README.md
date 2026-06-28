@@ -1,16 +1,18 @@
 # React Native WebGPU
 
-WebGPU for React Native, powered by [Dawn](https://dawn.googlesource.com/dawn). React Native ≥ 0.81, New Architecture only.
+WebGPU for React Native, powered by [Dawn](https://dawn.googlesource.com/dawn).
 
-**Documentation:** [wcandillon.github.io/react-native-webgpu](https://wcandillon.github.io/react-native-webgpu/)
+[wcandillon.github.io/react-native-webgpu](https://wcandillon.github.io/react-native-webgpu/)
 
-```sh
-npm install react-native-webgpu
-```
+## Getting Started
 
-Expo: `npx create-expo-app@latest -e with-webgpu`
+[Installation instructions](https://wcandillon.github.io/react-native-webgpu/docs/getting-started/installation)
 
-Example app: [`apps/example/`](apps/example/)
+## Contributing
+
+For detailed information on library development, building, testing, and contributing guidelines, please see [CONTRIBUTING.md](packages/webgpu/CONTRIBUTING.md).
+
+
 
 ## Contributing
 
