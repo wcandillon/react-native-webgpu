@@ -5,7 +5,11 @@ const getWebMetroConfig = require('./getWebMetroConfig');
 const root = path.resolve(__dirname, '../..');
 const threePackagePath = path.resolve(root, 'node_modules/three');
 
-const r3fPath = path.resolve(root, "node_modules/@react-three/fiber");
+// @react-three/fiber may be hoisted to the monorepo root or kept in the app's
+// own node_modules, so resolve it instead of assuming a fixed location.
+const r3fPath = path.dirname(
+  require.resolve("@react-three/fiber/package.json"),
+);
 const defaultConfig = getDefaultConfig(__dirname);
 
 const customConfig = {
