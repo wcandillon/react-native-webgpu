@@ -1,0 +1,184 @@
+---
+title: Canvas
+description: Rendering pixels on-screen
+---
+
+`Canvas` follows the semantics of the Web [`<canvas>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/canvas) element as closely as we can: call `getContext("webgpu")` to get the `GPUCanvasContext`, read its size synchronously, manage pixel density the same way, and resize through the same `clientWidth` / `clientHeight` model, so browser WebGPU code largely carries over. Where a platform forces a difference we re-surface it rather than hide it. The primary example is frame presentation: on the Web the browser swaps the rendered frame automatically, but on React Native you call [`present()`](#presenting-frames) yourself after submitting your commands. Compositing a transparent canvas over native views on Android (see [Transparent compositing](#transparent-compositing)) is another.
+
+## Props
+
+| Prop | Type | Description |
+| ---- | ---- | ----------- |
+| `transparent` | `boolean` | When true, the canvas background is transparent for compositing over RN views |
+| `...ViewProps` | `ViewProps` | All standard React Native View props (`style`, `onLayout`, etc.) |
+
+## Usage
+
+Minimal on-screen rendering loop:
+
+```tsx twoslash
+import { useEffect, useRef } from "react";
+import { PixelRatio, StyleSheet, View } from "react-native";
+import { Canvas, useDevice, type CanvasRef } from "react-native-webgpu";
+
+const triangleVertWGSL = `
+@vertex fn main(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
+  var pos = array<vec2f, 3>(vec2(0, 0.5), vec2(-0.5, -0.5), vec2(0.5, -0.5));
+  return vec4f(pos[i], 0.0, 1.0);
+}`;
+
+const redFragWGSL = `@fragment fn main() -> @location(0) vec4f {
+  return vec4(1.0, 0.0, 0.0, 1.0);
+}`;
+
+export function TriangleScene() {
+  const ref = useRef<CanvasRef>(null);
+  const { device } = useDevice();
+
+  useEffect(() => {
+    if (!device) return;
+
+    let cancelled = false;
+    let animationFrameId = 0;
+
+    const start = () => {
+      const context = ref.current?.getContext("webgpu");
+      if (!context || cancelled) {
+        animationFrameId = requestAnimationFrame(start);
+        return;
+      }
+
+      const canvas = context.canvas as HTMLCanvasElement;
+      if (canvas.clientWidth === 0 || canvas.clientHeight === 0) {
+        animationFrameId = requestAnimationFrame(start);
+        return;
+      }
+
+      const format = navigator.gpu.getPreferredCanvasFormat();
+      canvas.width = canvas.clientWidth * PixelRatio.get();
+      canvas.height = canvas.clientHeight * PixelRatio.get();
+      context.configure({ device, format, alphaMode: "premultiplied" });
+
+      const pipeline = device.createRenderPipeline({
+        layout: "auto",
+        vertex: {
+          module: device.createShaderModule({ code: triangleVertWGSL }),
+          entryPoint: "main",
+        },
+        fragment: {
+          module: device.createShaderModule({ code: redFragWGSL }),
+          entryPoint: "main",
+          targets: [{ format }],
+        },
+        primitive: { topology: "triangle-list" },
+      });
+
+      const render = () => {
+        if (cancelled) return;
+
+        const encoder = device.createCommandEncoder();
+        const pass = encoder.beginRenderPass({
+          colorAttachments: [{
+            view: context.getCurrentTexture().createView(),
+            clearValue: [0, 0, 0, 0],
+            loadOp: "clear",
+            storeOp: "store",
+          }],
+        });
+        pass.setPipeline(pipeline);
+        pass.draw(3);
+        pass.end();
+
+        device.queue.submit([encoder.finish()]);
+        context.present();
+        animationFrameId = requestAnimationFrame(render);
+      };
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    animationFrameId = requestAnimationFrame(start);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [device]);
+
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: "#3498db" }} />
+      <Canvas ref={ref} style={StyleSheet.absoluteFill} transparent />
+    </View>
+  );
+}
+```
+
+Steps in order:
+
+1. Mount `<Canvas ref={ref} />` and wait for layout (non-zero `clientWidth` / `clientHeight`).
+2. Request a device with [`useDevice`](/docs/getting-started/react-api#usedevice) or [`GPUDeviceProvider`](/api/gpu-device-provider).
+3. Call `ref.current.getContext("webgpu")` and `context.configure({ device, format, alphaMode })`.
+4. Each frame: encode passes → `device.queue.submit()` → **`context.present()`**.
+
+See [Canvas](/docs/getting-started/canvas) for the frame loop and [Learn WebGPU](/docs/getting-started/learn-webgpu) for a step-by-step walkthrough.
+
+## Presenting frames
+
+On the Web, the browser swaps your rendered frame to the screen automatically when you submit GPU commands. In React Native there is no automatic swap: presentation is a manual step. After you submit your commands to the queue, call `present()` on the context to display the frame.
+
+```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
+declare const device: GPUDevice;
+declare const encoder: GPUCommandEncoder;
+declare const context: RNCanvasContext;
+// ---cut---
+device.queue.submit([encoder.finish()]);
+context.present(); // React Native only
+```
+
+`present()` is a React Native only method (it is not part of the Web WebGPU spec). It runs **synchronously** on the calling thread, so the frame is presented from whichever thread did the rendering. This works the same on every runtime: the main JS runtime, the UI thread, and dedicated worklet runtimes (`createWorkletRuntime` / `runOnRuntime`, or a Vision Camera frame processor).
+
+Always call `present()` after `submit()`, never before. See [Frame presentations](/docs/getting-started/canvas#frame-presentations) for the full frame loop and [Native APIs](/docs/getting-started/native-api#threading-model) for threading details.
+
+## Pixel density
+
+Just like on the Web, a canvas has two independent sizes:
+
+- `clientWidth` / `clientHeight` are the on-screen (layout) size in logical points. They follow the view's layout and update automatically when it resizes.
+- `width` / `height` are the drawing-buffer size in physical pixels. This is the resolution WebGPU actually renders at.
+
+The drawing buffer is **not** scaled to the device pixel ratio by default, exactly as on the Web. To render crisply on high-density screens, set the buffer size to the layout size multiplied by the pixel ratio. `PixelRatio.get()` is the React Native equivalent of `window.devicePixelRatio`.
+
+```tsx twoslash
+import { PixelRatio } from "react-native";
+import type { RNCanvasContext } from "react-native-webgpu";
+declare const context: RNCanvasContext;
+// ---cut---
+const canvas = context.canvas as HTMLCanvasElement;
+canvas.width = canvas.clientWidth * PixelRatio.get();
+canvas.height = canvas.clientHeight * PixelRatio.get();
+```
+
+Because `clientWidth` / `clientHeight` track layout, recompute the buffer size whenever they change (for example on rotation or a resize). See [Pixel density](/docs/getting-started/canvas#pixel-density) for a resize-aware render loop.
+
+## Transparent compositing
+
+To render the canvas over the React Native views beneath it, you control transparency from two places, and you normally set both:
+
+- The **`transparent` prop** on `<Canvas>` makes the underlying native surface transparent so the views behind it show through.
+- **`alphaMode: "premultiplied"`** on `context.configure`, together with a clear color whose alpha is `0`, makes WebGPU produce a transparent frame.
+
+```tsx
+<Canvas ref={ref} style={StyleSheet.absoluteFill} transparent />
+```
+
+The [Usage](#usage) example above wires up both: the `transparent` prop, `alphaMode: "premultiplied"`, and a `clearValue` of `[0, 0, 0, 0]`.
+
+**Platform note:** on Android the `alphaMode` passed to `configure()` is ignored, so the `transparent` prop is what actually gives you a transparent canvas there. On iOS the two work together. Setting the `transparent` prop together with `alphaMode: "premultiplied"` and an alpha-`0` clear color gives you the same result on both platforms.
+
+## See also
+
+- [GPUDeviceProvider](/api/gpu-device-provider) - share one device across components
+- [Canvas](/docs/getting-started/canvas) - the rendering surface and frame loop
+- [Learn WebGPU](/docs/getting-started/learn-webgpu) - tutorials for the low-level API

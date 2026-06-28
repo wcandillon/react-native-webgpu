@@ -1,0 +1,134 @@
+---
+title: Three.js
+description: Run Three.js on React Native WebGPU
+---
+
+Using the Three.js WebGPU backend, you can run the library on top of React Native.
+
+<WebGPUPlayground demo="three-js" height={280} />
+
+## 1. Metro configuration
+
+Three.js publishes separate WebGL and WebGPU entry points.
+Metro must load `build/three.webgpu.js` when you import `three` or `three/webgpu`. See [Expo setup](/docs/getting-started/expo) for a complete Metro configuration:
+
+```js
+// metro.config.js - resolveRequest excerpt
+if (moduleName === "three" || moduleName === "three/webgpu") {
+  return {
+    filePath: path.resolve(threePackagePath, "build/three.webgpu.js"),
+    type: "sourceFile",
+  };
+}
+if (moduleName.startsWith("three/addons/")) {
+  return {
+    filePath: path.resolve(
+      threePackagePath,
+      "examples/jsm/" + moduleName.replace("three/addons/", "") + ".js",
+    ),
+    type: "sourceFile",
+  };
+}
+```
+
+Import from `three/webgpu`, not `three` (which would pull the WebGL build).
+
+## 2. Canvas adapter
+
+`WebGPURenderer` expects an object with `width`, `height`, `clientWidth`, and `clientHeight`. Wrap the native canvas from `getContext("webgpu")`:
+
+```tsx twoslash
+import type { NativeCanvas } from "react-native-webgpu";
+// ---cut---
+export class ReactNativeCanvas {
+  constructor(private canvas: NativeCanvas) {}
+
+  get width() { return this.canvas.width; }
+  set width(v: number) { this.canvas.width = v; }
+  get height() { return this.canvas.height; }
+  set height(v: number) { this.canvas.height = v; }
+  get clientWidth() { return this.canvas.clientWidth; }
+  get clientHeight() { return this.canvas.clientHeight; }
+
+  // Three.js may call these - no-ops are fine on RN
+  addEventListener() {}
+  removeEventListener() {}
+  dispatchEvent() { return false; }
+  setPointerCapture() {}
+  releasePointerCapture() {}
+}
+```
+
+## 3. Create the renderer
+
+Pass the adapter and the **same** `GPUCanvasContext` you got from React Native WebGPU:
+
+```tsx twoslash
+import * as THREE from "three/webgpu";
+import type { NativeCanvas } from "react-native-webgpu";
+declare const ReactNativeCanvas: new (canvas: NativeCanvas) => unknown;
+// ---cut---
+export function makeWebGPURenderer(context: GPUCanvasContext) {
+  return new THREE.WebGPURenderer({
+    antialias: true,
+    canvas: new ReactNativeCanvas(
+      context.canvas as unknown as NativeCanvas,
+    ) as unknown as HTMLCanvasElement,
+    context,
+  });
+}
+```
+
+<Callout type="warn" title="Async init">
+`WebGPURenderer.init()` is **async**. Do not call `render()` until it resolves - unlike raw WebGPU where pipeline creation is synchronous after `requestDevice`.
+</Callout>
+
+## 4. Render loop + present
+
+Configure the context once ([Canvas](/docs/getting-started/canvas)), then animate:
+
+```tsx twoslash
+import * as THREE from "three/webgpu";
+import { PixelRatio } from "react-native";
+import type { CanvasRef } from "react-native-webgpu";
+import type { RefObject } from "react";
+declare const ref: RefObject<CanvasRef>;
+declare const device: GPUDevice;
+declare function makeWebGPURenderer(context: GPUCanvasContext): THREE.WebGPURenderer;
+// ---cut---
+const context = ref.current!.getContext("webgpu")!;
+const canvas = context.canvas as HTMLCanvasElement;
+
+canvas.width = canvas.clientWidth * PixelRatio.get();
+canvas.height = canvas.clientHeight * PixelRatio.get();
+
+context.configure({
+  device,
+  format: navigator.gpu.getPreferredCanvasFormat(),
+  alphaMode: "premultiplied",
+});
+
+const renderer = makeWebGPURenderer(context);
+await renderer.init();
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(70, canvas.clientWidth / canvas.clientHeight, 0.01, 10);
+camera.position.z = 1;
+
+const mesh = new THREE.Mesh(
+  new THREE.BoxGeometry(0.35, 0.35, 0.35),
+  new THREE.MeshNormalMaterial(),
+);
+scene.add(mesh);
+
+function render(time: number) {
+  mesh.rotation.x = time / 2000;
+  mesh.rotation.y = time / 1000;
+  renderer.render(scene, camera);
+  context.present(); // required on React Native
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+```
+
+Next: [React Three Fiber](/docs/integrations/react-three-fiber) for declarative JSX on top of the same renderer.

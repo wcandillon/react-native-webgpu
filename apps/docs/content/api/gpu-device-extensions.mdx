@@ -1,0 +1,123 @@
+---
+title: Native Extensions
+description: Native interop extensions to GPUDevice and the WebGPU globals.
+---
+
+React Native WebGPU adds a handful of native extensions on top of the WebGPU spec.
+
+## importSharedTextureMemory
+
+Imports a native buffer (IOSurface / AHardwareBuffer) for zero-copy sampling.
+Native texture import requires `"rnwebgpu/native-texture"` in `requiredFeatures`.
+
+```tsx twoslash
+import type { NativeVideoFrame } from "react-native-webgpu";
+declare const adapter: GPUAdapter;
+declare const frame: NativeVideoFrame;
+// ---cut---
+const device = await adapter.requestDevice({
+  requiredFeatures: ["rnwebgpu/native-texture" as GPUFeatureName],
+});
+
+// frame from createVideoPlayer(..., "bgra8") or Vision Camera
+const memory = device.importSharedTextureMemory({
+  handle: frame.handle,
+  label: "camera-frame",
+});
+
+const texture = memory.createTexture();
+
+memory.beginAccess(texture, /* initialized */ true);
+// sample texture in render pass…
+memory.endAccess(texture);
+
+texture.destroy();
+frame.release();
+```
+
+Use `beginAccess(texture, true)` when the producer has already written pixels (typical for video/camera).
+
+## importSharedFence
+
+Import native GPU sync fences for producer/consumer handoff:
+
+```tsx
+// Producer side: export a fence after GPU work
+const exported = sharedFence.export();
+
+// Consumer side: import on another device or queue
+const imported = device.importSharedFence({
+  handle: exported.handle,
+  label: "frame-ready",
+});
+
+// Wait for producer before sampling imported texture
+imported.wait(0);
+// … render using imported texture …
+imported.signal(0);
+imported.destroy();
+```
+
+See `packages/webgpu/src/__tests__/SharedFence.spec.ts` for a full producer/consumer test.
+
+## dawnToggles
+
+Non-standard Dawn device toggles at creation:
+
+```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
+declare const adapter: GPUAdapter;
+// ---cut---
+const device = await adapter.requestDevice({
+  dawnToggles: {
+    enabledToggles: ["allow_unsafe_apis"],
+    disabledToggles: ["use_dxc"],
+  },
+});
+```
+
+<auto-type-table path="../../../../packages/webgpu/src/types.ts" name="GPUDawnTogglesDescriptor" />
+
+## GPUExternalTexture extensions
+
+| Field / Method | Description |
+| -------------- | ----------- |
+| `rotation` | 0, 90, 180, or 270 degrees (camera orientation) |
+| `mirrored` | Horizontal flip for front camera |
+| `destroy()` | Release native surface access after the `queue.submit()` that sampled it |
+
+Usage with `importExternalTexture` (NV12 camera/video):
+
+```tsx
+const externalTexture = device.importExternalTexture({
+  source: nativeVideoFrame,
+});
+
+// Read orientation metadata in bind group / shader setup
+console.log(externalTexture.rotation, externalTexture.mirrored);
+
+// After submit that sampled the texture:
+externalTexture.destroy();
+nativeVideoFrame.release();
+```
+
+## createImageBitmap
+
+createImageBitmap mirrors its Web counterpart and also accepts a `Uint8Array` or `ArrayBuffer` as input.
+
+```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
+declare const url: string;
+declare const device: GPUDevice;
+declare const texture: GPUTexture;
+// ---cut---
+const bytes = await fetch(url).then((r) => r.arrayBuffer());
+const bitmap = await createImageBitmap(bytes);
+
+device.queue.copyExternalImageToTexture(
+  { source: bitmap },
+  { texture },
+  { width: bitmap.width, height: bitmap.height },
+);
+bitmap.close();
+```

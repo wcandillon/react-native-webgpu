@@ -1,0 +1,128 @@
+---
+title: React Three Fiber
+description: Integrations demo - declarative 3D with @react-three/fiber.
+---
+
+Builds on [Three.js](/docs/integrations/three-js): same `WebGPURenderer`, canvas adapter, and **`present()`** hook - but scenes are JSX reconciled by React Three Fiber.
+
+<WebGPUPlayground demo="three-js" height={280} />
+
+The preview uses `THREE.WebGPURenderer` directly. R3F wraps the same renderer and calls `present()` inside `onCreated`.
+
+## 1. Patch @react-three/fiber
+
+By default, `@react-three/fiber` resolves to the **OpenGL** React Native bundle (`native/dist/...`). That path is stale for WebGPU. Patch `node_modules/@react-three/fiber/package.json` (for example with [`patch-package`](https://github.com/ds300/patch-package)):
+
+```diff
+-  "react-native": "native/dist/react-three-fiber-native.cjs.js",
++  "react-native": "dist/react-three-fiber.cjs.js",
+```
+
+After editing, run `npx patch-package @react-three/fiber` and commit the generated patch under `patches/`.
+
+<Callout type="info" title="Why patch?">
+R3F's `"react-native"` export points at a separate OpenGL code path. WebGPU needs the same bundle the web build uses, plus the Three.js Metro aliases from [Three.js](/docs/integrations/three-js).
+</Callout>
+
+## 2. FiberCanvas - glue between R3F and RN WebGPU
+
+R3F expects a DOM-like canvas and a renderer. Reuse `makeWebGPURenderer` and wrap `gl.render` to present:
+
+```tsx
+export const FiberCanvas = ({ children, style, scene, camera }) => {
+  const root = useRef(null);
+  React.useMemo(() => extend(THREE), []);
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const context = canvasRef.current!.getContext("webgpu")!;
+    const renderer = makeWebGPURenderer(context);
+
+    const canvas = new ReactNativeCanvas(context.canvas) as HTMLCanvasElement;
+    canvas.width = canvas.clientWidth * PixelRatio.get();
+    canvas.height = canvas.clientHeight * PixelRatio.get();
+
+    const size = {
+      top: 0,
+      left: 0,
+      width: canvas.clientWidth,
+      height: canvas.clientHeight,
+    };
+
+    if (!root.current) {
+      root.current = createRoot(canvas);
+    }
+    root.current.configure({
+      size,
+      events,
+      scene,
+      camera,
+      gl: renderer,
+      frameloop: "always",
+      dpr: 1, // canvas already sized with PixelRatio
+      onCreated: async (state) => {
+        await state.gl.init();
+        const renderFrame = state.gl.render.bind(state.gl);
+        state.gl.render = (s, c) => {
+          renderFrame(s, c);
+          context.present();
+        };
+      },
+    });
+    root.current.render(children);
+
+    return () => unmountComponentAtNode(canvas);
+  });
+
+  return <Canvas ref={canvasRef} style={style} />;
+};
+```
+
+Key points:
+
+- **`extend(THREE)`** - registers Three.js classes so `<mesh>`, `<boxGeometry>`, etc. work as JSX
+- **`await state.gl.init()`** - WebGPURenderer must finish async init before the first draw
+- **`gl.render` wrapper** - R3F has no concept of RN `present()`; inject it here
+- **`dpr: 1`** - physical pixel sizing is handled on the native canvas, not doubled by R3F
+
+## 3. Write scenes as JSX
+
+Once `FiberCanvas` is wired, use normal R3F patterns:
+
+```tsx
+function Box({ position, color }) {
+  const ref = useRef(null);
+  useFrame((_state, delta) => (ref.current.rotation.x += delta));
+  return (
+    <mesh position={position} ref={ref}>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshStandardMaterial color={color} />
+    </mesh>
+  );
+}
+
+export const Fiber = () => (
+  <FiberCanvas style={{ flex: 1 }}>
+    <ambientLight intensity={Math.PI / 2} />
+    <spotLight position={[10, 10, 10]} intensity={Math.PI} />
+    <Box position={[0, 0, -4]} color="red" />
+  </FiberCanvas>
+);
+```
+
+## Tips & quirks
+
+| Topic | Detail |
+| ----- | ------ |
+| **Presentation** | Same as raw Three.js - R3F never calls `present()` for you |
+| **Orbit controls** | Pointer events must attach to a wrapping `View`, not the Canvas - spread gesture handlers on the parent `View` that wraps `FiberCanvas` |
+| **Worklets** | Keep `GPUDevice` on the main thread if combining with worklets ([Worklets](/docs/integrations/worklets)) |
+| **Model loading** | GLTF needs `resolveAssetSource` polyfill ([Expo setup](/docs/getting-started/expo)) |
+| **Effect deps** | `FiberCanvas` runs setup in `useEffect` without deps - remount the component to rebuild the GL context |
+
+## What you learned
+
+1. Patch or alias R3F to the WebGPU bundle
+2. Bridge RN canvas → R3F `createRoot`
+3. Hook `present()` in `onCreated`
+4. Write scenes declaratively with `useFrame`, lights, and geometry

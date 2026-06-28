@@ -1,0 +1,55 @@
+---
+title: warnIfNotHardwareAccelerated
+description: Log a warning when the GPU adapter is a software fallback.
+---
+
+Checks `adapter.info.isFallbackAdapter` and logs a console warning. Common on Android emulators where rendering may be slow or missing features.
+
+## Usage
+
+Call once when the adapter becomes available, typically in a `useEffect`:
+
+```tsx twoslash
+import { useEffect } from "react";
+import { useDevice, warnIfNotHardwareAccelerated } from "react-native-webgpu";
+
+export function Scene() {
+  const { adapter, device } = useDevice();
+
+  useEffect(() => {
+    if (adapter) {
+      warnIfNotHardwareAccelerated(adapter);
+    }
+  }, [adapter]);
+
+  if (!device) return null;
+
+  // configure canvas, build pipelines…
+  return null;
+}
+```
+
+With [`GPUDeviceProvider`](/api/gpu-device-provider), read the adapter from [`useMainDevice`](/api/gpu-device-provider#usemaindevice) the same way:
+
+```tsx twoslash
+import { useEffect } from "react";
+import { useMainDevice, warnIfNotHardwareAccelerated } from "react-native-webgpu";
+// ---cut---
+function Scene() {
+  const { adapter } = useMainDevice();
+
+  useEffect(() => {
+    if (adapter) warnIfNotHardwareAccelerated(adapter);
+  }, [adapter]);
+
+  return null;
+}
+```
+
+This does not block rendering; it only logs. Test camera, native textures, and performance-critical paths on **physical devices**.
+
+## See also
+
+- [useDevice](/docs/getting-started/react-api#usedevice) - requesting an adapter and device
+- [Native APIs](/docs/getting-started/native-api#native-textures) - feature availability and emulator limitations
+- [GPUDeviceProvider](/api/gpu-device-provider) - share one device and read it with `useMainDevice`

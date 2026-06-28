@@ -1,0 +1,117 @@
+---
+title: TensorFlow.js
+description: Integrations demo - ML on the WebGPU backend without a Canvas.
+---
+
+TensorFlow.js can use the same Dawn stack as rendering - but for **tensor math**, not swapchain output. There is no `<Canvas>`, render pass, or `present()`. The preview below trains a tiny sentiment model on the WebGPU backend and runs inference in the browser.
+
+<WebGPUPlayground demo="tensorflow" height={320} />
+
+Try phrases like *"this is great"* vs *"terrible service"* - the score bar shows how positive the model thinks the text is. The badge shows the active backend (`webgpu` when Dawn is available).
+
+## 1. Install the WebGPU backend
+
+```npm
+npm i @tensorflow/tfjs @tensorflow/tfjs-backend-webgpu react-native-webgpu
+```
+
+Import the backend **before** calling `setBackend`:
+
+```tsx twoslash
+import "react-native-webgpu"; // installs navigator.gpu
+import * as tf from "@tensorflow/tfjs";
+import "@tensorflow/tfjs-backend-webgpu";
+```
+
+## 2. Platform shim
+
+TensorFlow.js expects a platform with `fetch`, text encode/decode, and typed-array checks. Provide a minimal React Native implementation:
+
+```tsx twoslash
+import * as tf from "@tensorflow/tfjs";
+type BufferEncoding = "utf-8" | "utf8" | "ascii" | "base64" | "hex";
+declare const Buffer: {
+  from(input: string, encoding?: BufferEncoding): Uint8Array;
+  from(input: Uint8Array): { toString(encoding?: BufferEncoding): string };
+};
+// ---cut---
+import type { Platform } from "@tensorflow/tfjs-core";
+
+export class PlatformReactNative implements Platform {
+  fetch(path: string, init?: RequestInit) {
+    return fetch(path, init);
+  }
+  encode(text: string, encoding: BufferEncoding) {
+    return new Uint8Array(Buffer.from(text, encoding));
+  }
+  decode(bytes: Uint8Array, encoding: BufferEncoding) {
+    return Buffer.from(bytes).toString(encoding);
+  }
+  now() { return Date.now(); }
+  setTimeoutCustom() {
+    throw new Error("react native does not support setTimeoutCustom");
+  }
+  isTypedArray(a: unknown): a is Float32Array | Int32Array | Uint8Array {
+    return a instanceof Float32Array || a instanceof Int32Array || a instanceof Uint8Array;
+  }
+}
+
+tf.setPlatform("react-native", new PlatformReactNative());
+```
+
+## 3. Select the WebGPU backend
+
+```tsx twoslash
+import * as tf from "@tensorflow/tfjs";
+// ---cut---
+await tf.setBackend("webgpu");
+console.log("Backend:", tf.getBackend()); // "webgpu"
+```
+
+TF.js requests its own `GPUDevice` via global `navigator.gpu` ([Installation](/docs/getting-started/installation#setup)). You do not pass a device from `useDevice()` unless you build a custom integration.
+
+## 4. Build and train a model
+
+Standard TF.js APIs work once the backend is ready:
+
+```tsx twoslash
+import * as tf from "@tensorflow/tfjs";
+declare const tokenizedTexts: number[][];
+declare const labels: number[];
+// ---cut---
+const model = tf.sequential();
+model.add(tf.layers.embedding({ inputDim: 5000, outputDim: 32, inputLength: 100 }));
+model.add(tf.layers.globalAveragePooling1d());
+model.add(tf.layers.dense({ units: 16, activation: "relu" }));
+model.add(tf.layers.dense({ units: 1, activation: "sigmoid" }));
+
+model.compile({
+  optimizer: tf.train.adam(0.0005),
+  loss: "binaryCrossentropy",
+  metrics: ["accuracy"],
+});
+
+const xTrain = tf.tensor2d(tokenizedTexts);
+const yTrain = tf.tensor1d(labels);
+await model.fit(xTrain, yTrain, { epochs: 50 });
+
+xTrain.dispose();
+yTrain.dispose();
+```
+
+## 5. Inference
+
+```tsx twoslash
+import * as tf from "@tensorflow/tfjs";
+declare const model: { predict(t: tf.Tensor): tf.Tensor };
+declare const text: string;
+declare const MAX_LENGTH: number;
+declare function tokenize(t: string): number[];
+declare function padSequence(s: number[], len: number): number[];
+// ---cut---
+const inputTensor = tf.tensor2d([padSequence(tokenize(text), MAX_LENGTH)]);
+const prediction = await model.predict(inputTensor).data();
+inputTensor.dispose();
+```
+
+The UI is plain React Native (`TextInput`, `Button`) - no WebGPU canvas involved.

@@ -1,0 +1,75 @@
+---
+title: installWebGPU
+description: Install WebGPU flag constants on a worklet runtime.
+---
+
+On a worklet runtime, the WebGPU constants are not available by default.
+Call `installWebGPU()` once at the top of a worklet to install the needed globals for that runtime.
+
+On the main JS thread these are already installed when the native module loads; calling `installWebGPU()` there is a safe no-op.
+
+## Usage
+
+### UI thread worklet
+
+```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
+declare const device: GPUDevice;
+declare const context: RNCanvasContext;
+declare const pipeline: GPURenderPipeline;
+// ---cut---
+import { installWebGPU } from "react-native-webgpu";
+import { runOnUI } from "react-native-worklets";
+
+const renderOnUI = (
+  device: GPUDevice,
+  context: RNCanvasContext,
+  pipeline: GPURenderPipeline,
+) => {
+  "worklet";
+  installWebGPU();
+
+  const encoder = device.createCommandEncoder();
+  const pass = encoder.beginRenderPass({
+    colorAttachments: [{
+      view: context.getCurrentTexture().createView(),
+      clearValue: [0, 0, 0, 1],
+      loadOp: "clear",
+      storeOp: "store",
+    }],
+  });
+  pass.setPipeline(pipeline);
+  pass.draw(3);
+  pass.end();
+
+  device.queue.submit([encoder.finish()]);
+  context.present();
+};
+
+// Create device on the main thread, pass handles to the worklet
+runOnUI(renderOnUI)(device, context, pipeline);
+```
+
+### Dedicated worklet runtime
+
+```tsx twoslash
+declare const device: GPUDevice;
+// ---cut---
+import { createWorkletRuntime, runOnRuntime } from "react-native-worklets";
+import { installWebGPU } from "react-native-webgpu";
+
+const runtime = createWorkletRuntime({ name: "gpu" });
+
+const gpuWork = (device: GPUDevice) => {
+  "worklet";
+  installWebGPU();
+
+  const buffer = device.createBuffer({
+    size: 256,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
+  // …
+};
+
+runOnRuntime(runtime, gpuWork)(device);
+```
