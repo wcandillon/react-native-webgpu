@@ -11,6 +11,13 @@ const config: NextConfig = {
   output: "export",
   basePath,
   assetPrefix: basePath ? `${basePath}/` : undefined,
+  // Expose the base path to the client bundle. `basePath` itself is derived
+  // from GITHUB_PAGES, which is not inlined client-side, so the static search
+  // client needs this NEXT_PUBLIC_* mirror to build the correct index URL on
+  // the Pages subpath deploy.
+  env: {
+    NEXT_PUBLIC_BASE_PATH: basePath,
+  },
   images: { unoptimized: true },
   transpilePackages: [
     "react-native-webgpu",

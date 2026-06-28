@@ -21,7 +21,13 @@ export function HeroCredit({ entry, dark }: HeroCreditProps) {
   );
 
   return (
-    <div className="pointer-events-auto absolute bottom-3 right-4 z-20 select-none">
+    // Stop pointerdown from bubbling to the hero's gesture container: otherwise
+    // it would start a drag (and pointer-capture the gesture), swallowing the
+    // link's click. The credit then handles its own taps/clicks normally.
+    <div
+      className="pointer-events-auto absolute bottom-3 right-4 z-20 select-none"
+      onPointerDown={(e) => e.stopPropagation()}
+    >
       {entry.sourceUrl ? (
         <a
           href={entry.sourceUrl}

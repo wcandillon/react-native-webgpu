@@ -14,7 +14,7 @@ export function sideBarOptions(): BaseLayoutProps {
       enabled: false,
     },
     searchToggle: {
-      enabled: false,
+      enabled: true,
     },
     nav: {
       title: "React Native WebGPU",

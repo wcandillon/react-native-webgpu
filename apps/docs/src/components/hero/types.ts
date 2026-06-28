@@ -58,6 +58,15 @@ export interface ComputeToysShader {
   // heavy per-pixel work at full DPR-scaled hero size can hang the GPU.
   // Defaults to 1024.
   maxDimension?: number;
+  // Same as `maxDimension` but applied on phones/coarse pointers, where the
+  // per-pixel particle loop is the bottleneck. Falls back to `maxDimension`.
+  mobileMaxDimension?: number;
+  // Numeric overrides for named `const`/`#define` symbols in the source, applied
+  // on mobile only. Used to dramatically shrink the particle grid (e.g.
+  // `{ PARTICLE_COUNT: 64, PARTICLE_COUNT_16: 4 }`) so the simulation and the
+  // per-pixel render stay cheap. The author is responsible for keeping derived
+  // values consistent (here PARTICLE_COUNT_16 == PARTICLE_COUNT / 16).
+  mobileConstOverrides?: Record<string, number>;
 }
 
 export interface ShaderEntry {
