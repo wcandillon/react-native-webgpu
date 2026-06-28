@@ -1,0 +1,25 @@
+---
+title: Overview
+description: How this API Reference relates to the standard WebGPU API.
+---
+
+React Native WebGPU implements the standard [WebGPU API](https://www.w3.org/TR/webgpu/).
+Types such as `GPUDevice`, `GPUBuffer`, `GPUTexture`, and `GPURenderPipeline` behave exactly as they do on the web, so any code or tutorial written against the WebGPU specification works here unchanged.
+
+For that reason, this reference does **not** duplicate the standard WebGPU API.
+Re-documenting it would only drift out of date with the specification.
+To learn the core API, use the resources below:
+
+- [WebGPU Fundamentals](https://webgpufundamentals.org/): the best place to learn WebGPU from the ground up.
+- [MDN WebGPU reference](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API): per-type and per-method documentation.
+- [WebGPU specification](https://www.w3.org/TR/webgpu/): the authoritative source.
+
+## What this reference covers
+
+This section documents only the additions that are specific to React Native, the surface you will not find in the WebGPU specification:
+
+- [`Canvas`](/api/canvas): the React component that gives you a WebGPU rendering surface.
+- [`GPUDeviceProvider`](/api/gpu-device-provider): provides a `GPUDevice` to your component tree.
+- [`installWebGPU`](/api/install-webgpu): installs the WebGPU globals on a worklet runtime.
+- [`warnIfNotHardwareAccelerated`](/api/warn-if-not-hardware-accelerated): warns when the device falls back to software rendering.
+- [Native Extensions](/api/gpu-device-extensions): React Native specific helpers added to `GPUDevice`.

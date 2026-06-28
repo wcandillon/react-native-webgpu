@@ -6,17 +6,13 @@ import {
   DocsTitle,
 } from "fumadocs-ui/page";
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { getMDXComponents } from "@/components/mdx";
 import { apiSource } from "@/lib/api-source";
 
 export default async function Page(props: PageProps<"/api/[[...slug]]">) {
   const params = await props.params;
-  if (!params.slug?.length) {
-    redirect("/api/canvas");
-  }
-
   const page = apiSource.getPage(params.slug);
   if (!page) {
     notFound();
