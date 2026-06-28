@@ -34,11 +34,6 @@ jobs:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Verify npm supports trusted publishing
-        run: |
-          node -v
-          npm -v
-
       - name: Build packages
         run: yarn turbo run build --filter='./packages/*'
 
