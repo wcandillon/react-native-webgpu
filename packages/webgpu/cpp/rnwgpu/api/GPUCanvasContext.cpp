@@ -32,12 +32,19 @@ void GPUCanvasContext::configure(
 void GPUCanvasContext::unconfigure() {}
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
-  auto prevSize = _surfaceInfo->getConfig();
-  auto width = _canvas->getWidth();
-  auto height = _canvas->getHeight();
-  auto sizeHasChanged = prevSize.width != width || prevSize.height != height;
-  if (sizeHasChanged) {
-    _surfaceInfo->reconfigure(width, height);
+  if (_surfaceInfo->isPoolMode()) {
+    // The AHB pool is sized from the canvas drawing buffer (like the swapchain),
+    // so the canvas texture always matches the app's other attachments. This
+    // (re)allocates the pool when the canvas size changes.
+    _surfaceInfo->poolResize(_canvas->getWidth(), _canvas->getHeight());
+  } else {
+    auto prevSize = _surfaceInfo->getConfig();
+    auto width = _canvas->getWidth();
+    auto height = _canvas->getHeight();
+    auto sizeHasChanged = prevSize.width != width || prevSize.height != height;
+    if (sizeHasChanged) {
+      _surfaceInfo->reconfigure(width, height);
+    }
   }
 
   auto texture = _surfaceInfo->getCurrentTexture();
@@ -54,9 +61,10 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
 void GPUCanvasContext::present() {
   // Present runs synchronously on the calling thread (the one that did
   // getCurrentTexture / submit), preserving Dawn surface thread-affinity.
-  // Required on every runtime (main JS, Reanimated UI, dedicated worklet);
-  // offscreen surfaces have no wgpu::Surface so they no-op.
-  if (_surfaceInfo->hasSurface()) {
+  // Required on every runtime (main JS, Reanimated UI, dedicated worklet).
+  // Offscreen surfaces have no wgpu::Surface and no pool, so presentFrame() is a
+  // no-op there; the AHB pool path has no surface either but must still present.
+  if (_surfaceInfo->hasSurface() || _surfaceInfo->isPoolMode()) {
     _surfaceInfo->presentFrame();
   }
 }

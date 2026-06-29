@@ -5,277 +5,236 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.hardware.HardwareBuffer;
-import android.media.Image;
-import android.media.ImageReader;
 import android.os.Build;
-import android.os.Handler;
-import android.os.Looper;
-import android.view.Surface;
+import android.view.Choreographer;
 import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
-import java.nio.ByteBuffer;
+import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
+/**
+ * A "normal RN view" backend for the WebGPU canvas.
+ *
+ * <p>WebGPU renders into a native pool of AHardwareBuffers (sized from the canvas drawing buffer,
+ * like the swapchain) that Dawn imports as SharedTextureMemory; see SurfaceRegistry.h. Each finished
+ * buffer is drawn inline here via {@link Bitmap#wrapHardwareBuffer} + {@link Canvas#drawBitmap}, so
+ * this is a plain {@link View}: parent transforms, clipping, alpha, z-order and animations all
+ * apply, with no GL interop and no extra copy.
+ *
+ * <p>This view is a pure consumer: it enables pool mode, then each vsync asks native for the latest
+ * ready (gen, slot), wraps that buffer in a cached Bitmap, and draws it scaled to the current
+ * bounds. Acquire is rigorous (native blocks on Dawn's render-complete fence before a frame is
+ * ready); release is heuristic via a held-ring of {@link #HELD_MAX} frames.
+ */
 @RequiresApi(api = Build.VERSION_CODES.Q)
 @SuppressLint("ViewConstructor")
-public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableListener {
+public class WebGPUAHBView extends View implements Choreographer.FrameCallback {
 
-  private static final int MAX_IMAGES = 3;
-  private static final String TAG = "WebGPUAHBView";
+  private static final int HELD_MAX = 2; // displayed frames kept before release (release safety)
 
   private final WebGPUAPI mApi;
-  private ImageReader mImageReader;
-  private Surface mSurface;
-  private Image mCurrentImage;
-  private Bitmap mCachedBitmap;
   private final Paint mPaint;
-  private final Handler mHandler;
-  private final Object mImageLock = new Object();
-  private boolean mSurfaceCreated = false;
-  private int mConfiguredWidth = 0;
-  private int mConfiguredHeight = 0;
+  private final Rect mSrc = new Rect();
+  private final Rect mDst = new Rect();
+
+  // token (generation << 32 | slot) -> wrapped hardware Bitmap (one per slot per generation).
+  private final Map<Long, Bitmap> mBitmaps = new HashMap<>();
+  // Held-ring of displayed frame tokens (newest last). The newest is what onDraw shows.
+  private final ArrayDeque<Long> mHeld = new ArrayDeque<>();
+
+  private Bitmap mDisplayed;
+  private int mDisplayedW;
+  private int mDisplayedH;
+  private int mCurrentGen;
+
+  private boolean mAttached;
+  private boolean mEnabled;
 
   public WebGPUAHBView(Context context, WebGPUAPI api) {
     super(context);
     mApi = api;
     mPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
-    mHandler = new Handler(Looper.getMainLooper());
-
-    // Enable hardware acceleration for this view
-    setLayerType(LAYER_TYPE_HARDWARE, null);
-
-    // Make sure we get drawn
     setWillNotDraw(false);
   }
+
+  private int contextId() {
+    return mApi.getContextId();
+  }
+
+  private static int genOf(long token) {
+    return (int) (token >>> 32);
+  }
+
+  private static int slotOf(long token) {
+    return (int) (token & 0xffffffffL);
+  }
+
+  // --- Sizing ----------------------------------------------------------------
 
   @Override
   protected void onSizeChanged(int w, int h, int oldw, int oldh) {
     super.onSizeChanged(w, h, oldw, oldh);
-
-    if (w > 0 && h > 0) {
-      // Recreate ImageReader with new dimensions
-      setupImageReader(w, h);
-    }
-  }
-
-  private void setupImageReader(int width, int height) {
-    // Don't recreate if dimensions haven't changed
-    if (width == mConfiguredWidth && height == mConfiguredHeight && mImageReader != null) {
+    if (w <= 0 || h <= 0) {
       return;
     }
-
-    // Clean up previous ImageReader
-    cleanupImageReader();
-
-    try {
-      // Create ImageReader with HardwareBuffer support
-      mImageReader = ImageReader.newInstance(
-        width,
-        height,
-        PixelFormat.RGBA_8888,
-        MAX_IMAGES,
-        HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE |
-          HardwareBuffer.USAGE_GPU_COLOR_OUTPUT |
-          HardwareBuffer.USAGE_COMPOSER_OVERLAY |
-          HardwareBuffer.USAGE_CPU_READ_RARELY // For fallback to Bitmap if needed
-      );
-
-      mImageReader.setOnImageAvailableListener(this, mHandler);
-
-      // Get the Surface for WebGPU to render to
-      mSurface = mImageReader.getSurface();
-
-      mConfiguredWidth = width;
-      mConfiguredHeight = height;
-
-      // Notify WebGPU about the new surface
-      if (!mSurfaceCreated) {
-        mApi.surfaceCreated(mSurface);
-        mSurfaceCreated = true;
-      } else {
-        mApi.surfaceChanged(mSurface);
-      }
-
-    } catch (Exception e) {
-      e.printStackTrace();
-      // Fallback to offscreen if ImageReader creation fails
-      mApi.surfaceOffscreen();
+    final float density = getResources().getDisplayMetrics().density;
+    final int dpW = Math.max(1, Math.round(w / density));
+    final int dpH = Math.max(1, Math.round(h / density));
+    if (!mEnabled) {
+      nEnablePool(contextId(), dpW, dpH);
+      mEnabled = true;
+    } else {
+      // Native reallocates the pool from the canvas drawing buffer; we only keep the dp
+      // canvas-client size in sync so JS computes the right canvas.width/height.
+      nSetClientSize(contextId(), dpW, dpH);
     }
   }
 
+  // --- Consume (UI thread, vsync-driven) -------------------------------------
+
   @Override
-  public void onImageAvailable(ImageReader reader) {
-    synchronized (mImageLock) {
-      // Close previous image if exists
-      if (mCurrentImage != null) {
-        mCurrentImage.close();
-        mCurrentImage = null;
+  public void doFrame(long frameTimeNanos) {
+    if (!mAttached) {
+      return;
+    }
+    long token = nPollReady(contextId());
+    if (token >= 0) {
+      onFrameReady(token);
+    }
+    Choreographer.getInstance().postFrameCallback(this);
+  }
+
+  private void onFrameReady(long token) {
+    final int gen = genOf(token);
+    final int slot = slotOf(token);
+
+    if (gen > mCurrentGen) {
+      mCurrentGen = gen;
+      recycleStaleGenerations();
+    }
+
+    Bitmap bmp = mBitmaps.get(token);
+    if (bmp == null) {
+      HardwareBuffer hb = nGetHardwareBuffer(contextId(), gen, slot);
+      if (hb == null) {
+        return; // generation already retired; drop this stale frame
       }
+      // wrapHardwareBuffer takes its own ref, so the wrapper can be closed immediately.
+      bmp = Bitmap.wrapHardwareBuffer(hb, null);
+      hb.close();
+      if (bmp == null) {
+        return;
+      }
+      mBitmaps.put(token, bmp);
+    }
 
-      try {
-        // Get the latest image
-        mCurrentImage = reader.acquireLatestImage();
+    mDisplayed = bmp;
+    mDisplayedW = bmp.getWidth();
+    mDisplayedH = bmp.getHeight();
 
-        if (mCurrentImage != null) {
-          // Request a redraw on the UI thread
-          postInvalidateOnAnimation();
+    mHeld.addLast(token);
+    while (mHeld.size() > HELD_MAX) {
+      long old = mHeld.pollFirst();
+      if (genOf(old) == mCurrentGen) {
+        // Live generation reuses slots: hand it back once HWUI has had time to sample it.
+        nReleaseSlot(contextId(), mCurrentGen, slotOf(old));
+      } else {
+        // Old generation: its slot is never re-rendered, so just drop the Bitmap.
+        recycleToken(old);
+      }
+    }
+    invalidate();
+  }
+
+  private void recycleStaleGenerations() {
+    // Keep the current and previous generation (cross-fade); recycle older cached Bitmaps that are
+    // no longer held.
+    Iterator<Map.Entry<Long, Bitmap>> it = mBitmaps.entrySet().iterator();
+    while (it.hasNext()) {
+      Map.Entry<Long, Bitmap> e = it.next();
+      if (genOf(e.getKey()) < mCurrentGen - 1 && !mHeld.contains(e.getKey())) {
+        Bitmap b = e.getValue();
+        if (b != mDisplayed && !b.isRecycled()) {
+          b.recycle();
         }
-      } catch (Exception e) {
-        e.printStackTrace();
+        it.remove();
       }
+    }
+  }
+
+  private void recycleToken(long token) {
+    Bitmap b = mBitmaps.remove(token);
+    if (b != null && b != mDisplayed && !b.isRecycled()) {
+      b.recycle();
     }
   }
 
   @Override
   protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
-
-    synchronized (mImageLock) {
-      if (mCurrentImage == null) {
-        return;
-      }
-
-      try {
-        // Try to use HardwareBuffer directly (most efficient path)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-          HardwareBuffer hardwareBuffer = mCurrentImage.getHardwareBuffer();
-
-          if (hardwareBuffer != null) {
-            // Draw using HardwareBuffer
-            drawHardwareBuffer(canvas, hardwareBuffer);
-            return;
-          }
-        }
-
-        // Fallback: Convert Image to Bitmap
-        drawImageAsBitmap(canvas, mCurrentImage);
-
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-  }
-
-  private void drawHardwareBuffer(Canvas canvas, HardwareBuffer hardwareBuffer) {
-    // On Android Q+, we can create a Bitmap from HardwareBuffer
-    try {
-      // Create or reuse bitmap with matching dimensions
-      if (mCachedBitmap == null ||
-        mCachedBitmap.getWidth() != hardwareBuffer.getWidth() ||
-        mCachedBitmap.getHeight() != hardwareBuffer.getHeight()) {
-
-        if (mCachedBitmap != null) {
-          mCachedBitmap.recycle();
-        }
-
-        // Create a hardware-backed Bitmap from the HardwareBuffer
-        mCachedBitmap = Bitmap.wrapHardwareBuffer(hardwareBuffer, null);
-      } else {
-        // Reuse existing bitmap and update with new HardwareBuffer content
-        mCachedBitmap = Bitmap.wrapHardwareBuffer(hardwareBuffer, null);
-      }
-
-      if (mCachedBitmap != null) {
-        // Draw the bitmap to canvas
-        canvas.drawBitmap(mCachedBitmap, 0, 0, mPaint);
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-      // Fallback to Image-based rendering
-      drawImageAsBitmap(canvas, mCurrentImage);
-    }
-  }
-
-  private void drawImageAsBitmap(Canvas canvas, Image image) {
-    // Fallback method: manually convert Image to Bitmap
-    if (image.getFormat() != PixelFormat.RGBA_8888) {
+    Bitmap bmp = mDisplayed;
+    if (bmp == null || bmp.isRecycled()) {
       return;
     }
-
-    Image.Plane[] planes = image.getPlanes();
-    if (planes.length == 0) {
-      return;
-    }
-
-    ByteBuffer buffer = planes[0].getBuffer();
-    int pixelStride = planes[0].getPixelStride();
-    int rowStride = planes[0].getRowStride();
-    int rowPadding = rowStride - pixelStride * image.getWidth();
-
-    // Create or reuse bitmap
-    int bitmapWidth = image.getWidth() + rowPadding / pixelStride;
-    if (mCachedBitmap == null ||
-      mCachedBitmap.getWidth() != bitmapWidth ||
-      mCachedBitmap.getHeight() != image.getHeight()) {
-
-      if (mCachedBitmap != null) {
-        mCachedBitmap.recycle();
-      }
-      mCachedBitmap = Bitmap.createBitmap(
-        bitmapWidth,
-        image.getHeight(),
-        Bitmap.Config.ARGB_8888
-      );
-    }
-
-    mCachedBitmap.copyPixelsFromBuffer(buffer);
-
-    // Draw only the valid portion (without padding)
-    Rect src = new Rect(0, 0, image.getWidth(), image.getHeight());
-    Rect dst = new Rect(0, 0, getWidth(), getHeight());
-    canvas.drawBitmap(mCachedBitmap, src, dst, mPaint);
+    // Always scale the last good frame to the current bounds, so a buffer that lags the view size
+    // (mid-resize) is shown stretched rather than blank.
+    mSrc.set(0, 0, mDisplayedW, mDisplayedH);
+    mDst.set(0, 0, getWidth(), getHeight());
+    canvas.drawBitmap(bmp, mSrc, mDst, mPaint);
   }
 
-  private void cleanupImageReader() {
-    synchronized (mImageLock) {
-      if (mCurrentImage != null) {
-        mCurrentImage.close();
-        mCurrentImage = null;
-      }
+  // --- Lifecycle -------------------------------------------------------------
 
-      if (mImageReader != null) {
-        mImageReader.close();
-        mImageReader = null;
-      }
-
-      if (mSurface != null) {
-        mSurface.release();
-        mSurface = null;
-      }
+  @Override
+  protected void onAttachedToWindow() {
+    super.onAttachedToWindow();
+    mAttached = true;
+    if (!mEnabled && getWidth() > 0 && getHeight() > 0) {
+      final float density = getResources().getDisplayMetrics().density;
+      nEnablePool(contextId(), Math.max(1, Math.round(getWidth() / density)),
+          Math.max(1, Math.round(getHeight() / density)));
+      mEnabled = true;
     }
+    Choreographer.getInstance().postFrameCallback(this);
   }
 
   @Override
   protected void onDetachedFromWindow() {
     super.onDetachedFromWindow();
+    mAttached = false;
+    mEnabled = false;
+    Choreographer.getInstance().removeFrameCallback(this);
 
-    // Notify WebGPU that surface is being destroyed
-    if (mSurfaceCreated) {
-      mApi.surfaceDestroyed();
-      mSurfaceCreated = false;
+    // Keep the canvas alive offscreen, then drop all GPU resources.
+    nSwitchToOffscreen(contextId());
+
+    mDisplayed = null;
+    mHeld.clear();
+    for (Bitmap b : mBitmaps.values()) {
+      if (!b.isRecycled()) {
+        b.recycle();
+      }
     }
-
-    // Clean up resources
-    cleanupImageReader();
-
-    if (mCachedBitmap != null) {
-      mCachedBitmap.recycle();
-      mCachedBitmap = null;
-    }
+    mBitmaps.clear();
+    mCurrentGen = 0;
   }
 
   @Override
-  protected void onAttachedToWindow() {
-    super.onAttachedToWindow();
-
-    // Re-setup if we have valid dimensions
-    if (getWidth() > 0 && getHeight() > 0) {
-      setupImageReader(getWidth(), getHeight());
+  protected void onVisibilityChanged(@NonNull View changedView, int visibility) {
+    super.onVisibilityChanged(changedView, visibility);
+    if (visibility == VISIBLE && mAttached && !mEnabled
+        && getWidth() > 0 && getHeight() > 0) {
+      final float density = getResources().getDisplayMetrics().density;
+      nEnablePool(contextId(), Math.max(1, Math.round(getWidth() / density)),
+          Math.max(1, Math.round(getHeight() / density)));
+      mEnabled = true;
     }
   }
 
@@ -286,13 +245,17 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
     invalidate();
   }
 
-  @Override
-  protected void onVisibilityChanged(@NonNull View changedView, int visibility) {
-    super.onVisibilityChanged(changedView, visibility);
+  // --- Native (cpp-adapter.cpp) ----------------------------------------------
 
-    if (visibility == VISIBLE && mSurface == null && getWidth() > 0 && getHeight() > 0) {
-      // Re-create surface if needed when becoming visible
-      setupImageReader(getWidth(), getHeight());
-    }
-  }
+  private native void nEnablePool(int contextId, int dpW, int dpH);
+
+  private native void nSetClientSize(int contextId, int dpW, int dpH);
+
+  private native long nPollReady(int contextId);
+
+  private native HardwareBuffer nGetHardwareBuffer(int contextId, int generation, int slot);
+
+  private native void nReleaseSlot(int contextId, int generation, int slot);
+
+  private native void nSwitchToOffscreen(int contextId);
 }
