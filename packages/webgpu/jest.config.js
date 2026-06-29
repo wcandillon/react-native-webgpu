@@ -8,6 +8,10 @@ module.exports = {
     'globalSetup.ts',
     'globalTeardown.ts'
   ],
+  // modulePathIgnorePatterns only affects the module registry, not test
+  // discovery. Without this, the .d.ts files emitted into lib/ by `bob build`
+  // are picked up as test suites and fail with "must contain at least one test".
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/lib/'],
   globalSetup: './src/__tests__/globalSetup.ts',
   globalTeardown: './src/__tests__/globalTeardown.ts',
   transform: {
