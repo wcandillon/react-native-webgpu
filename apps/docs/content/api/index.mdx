@@ -3,16 +3,32 @@ title: Overview
 description: How this API Reference relates to the standard WebGPU API.
 ---
 
+## WebGPU API
+
 React Native WebGPU implements the standard [WebGPU API](https://www.w3.org/TR/webgpu/).
 Types such as `GPUDevice`, `GPUBuffer`, `GPUTexture`, and `GPURenderPipeline` behave exactly as they do on the web, so any code or tutorial written against the WebGPU specification works here unchanged.
 
-For that reason, this reference does **not** duplicate the standard WebGPU API.
-Re-documenting it would only drift out of date with the specification.
 To learn the core API, use the resources below:
 
 - [WebGPU Fundamentals](https://webgpufundamentals.org/): the best place to learn WebGPU from the ground up.
 - [MDN WebGPU reference](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API): per-type and per-method documentation.
 - [WebGPU specification](https://www.w3.org/TR/webgpu/): the authoritative source.
+
+## Core WebGPU concepts
+
+Understanding the foundational WebGPU objects and how they interact is essential to WebGPU development.
+Each concept below links to its reference on MDN.
+
+| Concept | Description |
+| ------- | ----------- |
+| [Instance](https://developer.mozilla.org/en-US/docs/Web/API/GPU) | The entry point to WebGPU, exposed as `navigator.gpu`, granting access to adapters |
+| [Adapter](https://developer.mozilla.org/en-US/docs/Web/API/GPUAdapter) | Represents a specific GPU on the device |
+| [Device](https://developer.mozilla.org/en-US/docs/Web/API/GPUDevice) | Your logical connection to the GPU where resources are created |
+| [Queue](https://developer.mozilla.org/en-US/docs/Web/API/GPUQueue) | The mechanism used to submit commands to the GPU |
+| [Shader Module](https://developer.mozilla.org/en-US/docs/Web/API/GPUShaderModule) | Your GPU code, written in the WebGPU Shading Language (WGSL) |
+| [Pipelines](https://developer.mozilla.org/en-US/docs/Web/API/GPURenderPipeline) | Objects describing the entire GPU state (shaders, blending) for a task |
+| [Bind Groups](https://developer.mozilla.org/en-US/docs/Web/API/GPUBindGroup) | Ties data buffers (ex: textures) to shaders |
+| [Command Encoder](https://developer.mozilla.org/en-US/docs/Web/API/GPUCommandEncoder) | An object used to build a sequence of GPU commands into a command buffer |
 
 ## What this reference covers
 
