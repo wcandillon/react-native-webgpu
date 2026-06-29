@@ -46,7 +46,7 @@ export default function HomePage() {
               : "text-neutral-600"
           }`}
         >
-          WebGPU compliant binding powered by Dawn.<br />
+          Powered by Dawn.<br />
           Runs on iOS, Android, macOS, visionOS, and Web.
         </p>
         <div className="pointer-events-auto mt-10 flex flex-wrap items-center justify-center gap-3">
