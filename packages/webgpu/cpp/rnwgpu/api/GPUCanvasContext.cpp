@@ -1,6 +1,7 @@
 #include "GPUCanvasContext.h"
 #include "Convertors.h"
 #include "RNWebGPUManager.h"
+#include <algorithm>
 #include <memory>
 
 namespace rnwgpu {
@@ -32,12 +33,16 @@ void GPUCanvasContext::configure(
 void GPUCanvasContext::unconfigure() {}
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
+#if defined(__ANDROID__)
   if (_surfaceInfo->isPoolMode()) {
     // The AHB pool is sized from the canvas drawing buffer (like the swapchain),
     // so the canvas texture always matches the app's other attachments. This
     // (re)allocates the pool when the canvas size changes.
     _surfaceInfo->poolResize(_canvas->getWidth(), _canvas->getHeight());
   } else {
+#else
+  {
+#endif
     auto prevSize = _surfaceInfo->getConfig();
     auto width = _canvas->getWidth();
     auto height = _canvas->getHeight();
@@ -48,6 +53,26 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   }
 
   auto texture = _surfaceInfo->getCurrentTexture();
+  if (texture == nullptr) {
+    // Pool mode can legitimately come up empty (pool not allocated yet, the
+    // view detached mid-frame, or a free-slot timeout). Hand JS a transient
+    // texture so the frame is skipped gracefully instead of crashing on a null
+    // handle in createView().
+    auto device = _surfaceInfo->getDevice();
+    if (device == nullptr) {
+      throw std::runtime_error(
+          "getCurrentTexture(): the canvas context is not configured");
+    }
+    auto config = _surfaceInfo->getConfig();
+    wgpu::TextureDescriptor textureDesc;
+    textureDesc.usage = wgpu::TextureUsage::RenderAttachment |
+                        wgpu::TextureUsage::CopySrc |
+                        wgpu::TextureUsage::TextureBinding;
+    textureDesc.format = config.format;
+    textureDesc.size.width = std::max(_canvas->getWidth(), 1);
+    textureDesc.size.height = std::max(_canvas->getHeight(), 1);
+    texture = device.CreateTexture(&textureDesc);
+  }
 
   auto size = _surfaceInfo->getSize();
   _canvas->setClientWidth(size.width);

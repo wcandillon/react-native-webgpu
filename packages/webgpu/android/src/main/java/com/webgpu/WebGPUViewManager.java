@@ -25,6 +25,15 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
   }
 
   @Override
+  public void onDropViewInstance(@NonNull WebGPUView view) {
+    super.onDropViewInstance(view);
+    // The view is gone for good (not a transient detach): release the native
+    // SurfaceInfo. The JS context keeps its own reference; once JS drops it,
+    // the remaining GPU resources (and the AHB fence waiter) are torn down.
+    view.surfaceDestroyed();
+  }
+
+  @Override
   @ReactProp(name = "transparent")
   public void setTransparent(WebGPUView view, boolean value) {
     view.setTransparent(value);

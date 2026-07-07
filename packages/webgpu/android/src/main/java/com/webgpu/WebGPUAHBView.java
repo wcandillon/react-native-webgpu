@@ -130,6 +130,9 @@ public class WebGPUAHBView extends View implements Choreographer.FrameCallback {
       bmp = Bitmap.wrapHardwareBuffer(hb, null);
       hb.close();
       if (bmp == null) {
+        // Cannot display this frame; hand the slot straight back so the pool
+        // does not drain (native marked it Displayed when we polled it).
+        nReleaseSlot(contextId(), gen, slot);
         return;
       }
       mBitmaps.put(token, bmp);
@@ -212,7 +215,10 @@ public class WebGPUAHBView extends View implements Choreographer.FrameCallback {
     mEnabled = false;
     Choreographer.getInstance().removeFrameCallback(this);
 
-    // Keep the canvas alive offscreen, then drop all GPU resources.
+    // Keep the canvas alive offscreen, then drop all GPU resources. The
+    // SurfaceInfo stays registered so a transient detach/re-attach keeps
+    // working; WebGPUViewManager.onDropViewInstance removes it when RN drops
+    // the view for good.
     nSwitchToOffscreen(contextId());
 
     mDisplayed = null;

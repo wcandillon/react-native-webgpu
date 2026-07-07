@@ -47,7 +47,7 @@ The Java side only reports the dp client size (`nEnablePool` / `nSetClientSize`)
 
 ## Threading model
 
-- **Producer (JS render thread).** `getCurrentTexture` pulls the next `Free` slot (blocking with backpressure if none), `BeginAccess`, returns its texture. `present` does `EndAccess`, collects the fence(s), queues `(slot, fences)` for the waiter, and returns immediately so the thread can race ahead to another slot.
+- **Producer (JS render thread).** `getCurrentTexture` returns the in-flight slot again if the frame has not been presented yet (per the WebGPU spec), otherwise pulls the next `Free` slot (blocking with backpressure, bounded to 1s so a wedged fence skips the frame instead of hanging JS), `BeginAccess`, returns its texture. `present` does `EndAccess`, collects the fence(s), queues `(slot, fences)` for the waiter, and returns immediately so the thread can race ahead to another slot.
 - **Waiter thread (native, not JVM-attached).** Pops a queued frame, blocks on each fence by exporting it to a sync-fd and `poll(POLLIN)` on it (bounded slices so teardown cannot hang), then publishes the slot as the latest "ready". A superseded, still-unclaimed ready frame returns to `Free`.
 - **Consumer (UI thread).** A `Choreographer.FrameCallback` runs each vsync: it calls `nPollReady` for the latest ready `(generation, slot)`, fetches that buffer via `nGetHardwareBuffer` (which returns a `HardwareBuffer` via `AHardwareBuffer_toHardwareBuffer`), wraps it in a `Bitmap` (cached per token), and draws it. The held-ring releases old slots back to the pool via `nReleaseSlot`.
 
@@ -68,7 +68,8 @@ On resize the native pool reallocates to the new canvas size (a new generation),
 ## Lifecycle
 
 - **Attach / size change.** `onSizeChanged` and `onAttachedToWindow` call `nEnablePool` (first time) or `nSetClientSize` (subsequently) with the dp size, and start the Choreographer callback.
-- **Detach.** `nSwitchToOffscreen` flips the context to an offscreen texture so JS keeps rendering safely (it does not block in `getCurrentTexture`), the Choreographer callback is removed, and all cached `Bitmap`s are recycled. The `SurfaceInfo` is intentionally not removed from the registry, so a temporary detach/re-attach (for example scrolling off screen) keeps working on the same context.
+- **Detach.** `nSwitchToOffscreen` flips the context to an offscreen texture so JS keeps rendering safely (it does not block in `getCurrentTexture`), the Choreographer callback is removed, and all cached `Bitmap`s are recycled. A frame caught between `getCurrentTexture` and `present` gets its `EndAccess` and is handed to the waiter, so its fences are drained before the retired generation is freed; the waiter discards frames that finish after teardown instead of publishing them. The `SurfaceInfo` is intentionally not removed from the registry, so a temporary detach/re-attach (for example scrolling off screen) keeps working on the same context.
+- **Drop.** When RN drops the view for good, `WebGPUViewManager.onDropViewInstance` removes the `SurfaceInfo` from the registry. The JS context keeps its own reference; once JS releases it, the destructor stops the fence waiter thread and frees the remaining GPU resources.
 
 ## Files
 
@@ -82,7 +83,7 @@ On resize the native pool reallocates to the new canvas size (a new generation),
 ## Prerequisites that already hold
 
 - Device features `SharedTextureMemoryAHardwareBuffer` and `SharedFenceSyncFD` are auto-injected into every device when the adapter supports them (`GPUAdapter::requestDevice`), so the canvas device supports the import and the sync-fd fence export with no app change.
-- Android's preferred canvas format is `RGBA8Unorm` (`GPU::getPreferredCanvasFormat`), which matches the AHB's natural `R8G8B8A8_UNORM` format, so the natural-format pool texture matches an app that uses `getPreferredCanvasFormat()`.
+- Android's preferred canvas format is `RGBA8Unorm` (`GPU::getPreferredCanvasFormat`), which matches the AHB's `R8G8B8A8_UNORM` format, so the pool texture matches an app that uses `getPreferredCanvasFormat()`. A different configured format is not supported by this backend (a warning is logged); the configured usage flags are honored as far as the imported memory allows.
 
 ## Building and testing
 
