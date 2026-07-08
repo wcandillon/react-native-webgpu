@@ -57,6 +57,25 @@ device.queue.copyExternalImageToTexture(
 
 See [`copyExternalImageToTexture`](https://developer.mozilla.org/en-US/docs/Web/API/GPUQueue/copyExternalImageToTexture) on MDN.
 
+## High bit depth
+
+By default a canvas is configured with an 8-bit format (`bgra8unorm` or `rgba8unorm`, the value returned by `navigator.gpu.getPreferredCanvasFormat()` depending on the platform).
+With only 256 levels per channel, subtle gradients quantize into visible bands, especially in dark tones and on OLED displays.
+
+To configure the canvas with a higher-precision format, use `getPreferredHighBitDepthCanvasFormat()` (currently it will return `rgba16float` on iOS and `rgb10a2unorm` on Android):
+
+```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
+import { getPreferredHighBitDepthCanvasFormat } from "react-native-webgpu";
+declare const context: RNCanvasContext;
+declare const device: GPUDevice;
+// ---cut---
+// "rgba16float" on iOS, "rgb10a2unorm" on Android
+const format = getPreferredHighBitDepthCanvasFormat();
+
+context.configure({ device, format, alphaMode: "opaque" });
+```
+
 ## Native textures
 
 Beyond the standard API, react-native-webgpu exposes Dawn's native surface interop so you can sample camera and video frames with zero copies through the CPU:
