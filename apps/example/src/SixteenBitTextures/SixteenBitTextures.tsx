@@ -1,14 +1,24 @@
 import React, { useEffect, useRef } from "react";
 import { PixelRatio, StyleSheet, Text, View } from "react-native";
 import type { CanvasRef } from "react-native-webgpu";
-import { Canvas } from "react-native-webgpu";
+import {
+  Canvas,
+  getPreferredHighBitDepthCanvasFormat,
+} from "react-native-webgpu";
 
-// A deep-blue vertical gradient (the classic "night sky" worst case for
-// banding) that slowly drifts up and down. Each channel has a different
-// slope, so the channels quantize at different positions and produce both
-// lightness and hue contours. On an 8-bit surface the bands crawl across the
-// screen; on a 16-bit float surface the gradient stays smooth. Both canvases
-// must show the same colors.
+// rgba16float on iOS (16-bit float to the glass via the extended sRGB layer
+// colorspace), rgb10a2unorm on Android (SurfaceFlinger quantizes SDR float16
+// layers, but 10-bit buffers pass through composition).
+const deepFormat = getPreferredHighBitDepthCanvasFormat();
+const deepLabel = deepFormat === "rgb10a2unorm" ? "10-bit" : "16-bit";
+
+// A dark-blue vertical gradient (the classic "night sky" worst case for
+// banding) that slowly drifts up and down. The endpoints are integer 8-bit
+// values with the same delta (+8/255) on every channel, so all three
+// channels quantize at the same height: each band edge is a simultaneous
+// r+g+b step, the strongest possible contour. On an 8-bit surface ~8 fat
+// bands crawl across the screen; on a 16-bit float surface the gradient
+// stays smooth. Both canvases must show the same colors.
 const gradientWGSL = /* wgsl */ `
 struct Uniforms {
   time: f32,
@@ -34,8 +44,8 @@ fn vs(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
   return out;
 }
 
-const colorA = vec3f(0.05, 0.08, 0.20);
-const colorB = vec3f(0.09, 0.14, 0.33);
+const colorA = vec3f(51.0, 56.0, 77.0) / 255.0;
+const colorB = vec3f(59.0, 64.0, 85.0) / 255.0;
 
 @fragment
 fn fs(in: VertexOutput) -> @location(0) vec4f {
@@ -131,7 +141,7 @@ export function SixteenBitTextures() {
       const draw16bit = makeRenderer(
         device,
         ref16bit,
-        "rgba16float",
+        deepFormat,
         uniformBuffer,
       );
 
@@ -159,7 +169,7 @@ export function SixteenBitTextures() {
       </View>
       <View style={style.column}>
         <Canvas ref={ref16bit} style={style.webgpu} transparent={false} />
-        <Text style={style.label}>16-bit</Text>
+        <Text style={style.label}>{deepLabel}</Text>
       </View>
     </View>
   );
