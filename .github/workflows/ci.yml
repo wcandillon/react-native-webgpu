@@ -52,6 +52,10 @@ jobs:
       - name: Build packages
         run: yarn turbo run build --filter='./packages/*'
 
+      - name: Test Expo config plugin
+        working-directory: packages/webgpu
+        run: yarn test:plugin
+
       # Validate the semantic-release config without publishing, so a broken
       # .releaserc or publish script is caught on PRs rather than at release time.
       - name: Release dry run

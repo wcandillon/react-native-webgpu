@@ -13,9 +13,13 @@ Example app (from `apps/example/`): `yarn start` · `yarn ios` · `yarn android`
 
 From the repo root: `yarn lint` · `yarn tsc` · `yarn build:docs`
 
-Tests (from `packages/webgpu/`): `yarn test:ref` (Chrome reference) · `yarn test` (E2E — open the example app on the E2E screen)
+Tests (from `packages/webgpu/`): `yarn test:ref` (Chrome reference) · `yarn test` (E2E — open the example app on the E2E screen) · `yarn test:plugin` (Expo config plugin unit tests)
 
 Other `packages/webgpu` scripts: `yarn codegen` · `yarn clean-dawn` · `yarn build-dawn`
+
+## Expo config plugin
+
+The Expo config plugin lives in `plugin/src` and is compiled to `plugin/build` by `yarn build:plugin` (also part of `yarn build`, so releases always ship it). `app.plugin.js` at the package root is the entry point Expo resolves when apps list `"react-native-webgpu"` in their `plugins`. The plugin disables Metal API validation in the generated iOS Xcode scheme (required on the iOS Simulator); it is released together with the package by the regular release workflow, so plugin and package versions are always aligned.
 
 ## Upgrading Dawn
 

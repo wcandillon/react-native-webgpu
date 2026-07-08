@@ -3,7 +3,7 @@ import wcandillon from "eslint-config-react-native-wcandillon";
 
 export default [
   {
-    ignores: ["**/*/components/meshes", "node_modules/**", "lib/**", "android/**", "ios/**", "*.config.js"]
+    ignores: ["**/*/components/meshes", "node_modules/**", "lib/**", "android/**", "ios/**", "*.config.js", "plugin/build/**", "plugin/jest.config.js", "app.plugin.js"]
   },
   ...wcandillon,
   {
