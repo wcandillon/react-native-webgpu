@@ -1,0 +1,52 @@
+---
+title: Worklets
+description: Run WebGPU rendering off the JS thread on worklet runtimes.
+---
+
+By default, WebGPU rendering runs on the JavaScript thread alongside React. 
+Using [React Native Worklets](https://github.com/margelo/react-native-worklets), you can run WebGPU rendering on the UI thread or on a dedicated worklet runtime.
+There is even an experimental [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/) that lets you run complex Three.js scenes on a dedicated thread.
+You can see an example of Bundle Mode working with Three.js [here](https://github.com/software-mansion-labs/Bundle-Mode-showcase-app).
+
+## Requirements
+
+```npm
+npm i react-native-worklets
+```
+
+Follow the Worklets installation guide for the babel plugin and native setup. WebGPU objects are automatically registered for Worklets serialization when the module loads - you can pass `GPUDevice` and `GPUCanvasContext` directly to worklets.
+
+## installWebGPU
+
+Worklet runtimes start without WebGPU flag globals (`GPUBufferUsage`, `GPUTextureUsage`, etc.). Call [`installWebGPU()`](/api/install-webgpu) once at the top of a worklet:
+
+```tsx twoslash
+import type { RNCanvasContext, CanvasRef } from "react-native-webgpu";
+import type { RefObject } from "react";
+declare const size: number;
+declare const adapter: GPUAdapter;
+declare const canvasRef: RefObject<CanvasRef>;
+// ---cut---
+import { Canvas, installWebGPU } from "react-native-webgpu";
+import { runOnUI } from "react-native-worklets";
+
+const renderFrame = (device: GPUDevice, context: RNCanvasContext) => {
+  "worklet";
+  installWebGPU();
+
+  const buffer = device.createBuffer({
+    size,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
+
+  const commandEncoder = device.createCommandEncoder();
+  // … encode passes …
+  device.queue.submit([commandEncoder.finish()]);
+  context.present();
+};
+
+// Create device on main thread, then run render on the UI thread:
+const device = await adapter.requestDevice();
+const context = canvasRef.current!.getContext("webgpu")!;
+runOnUI(renderFrame)(device, context);
+```

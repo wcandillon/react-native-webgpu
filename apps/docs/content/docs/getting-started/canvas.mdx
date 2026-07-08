@@ -1,0 +1,104 @@
+---
+title: Canvas
+description: Render your first pixels.
+---
+
+The [`Canvas`](/api/canvas) component is where you can access a WebGPU context and render pixels.
+The API is symmetric with its Web counterpart, with a few differences.
+For instance on React Native you must call `context.present()` after every `device.queue.submit()` to present the frame to the screen.
+
+On iOS, Canvas uses a `CAMetalLayer`, and on Android it uses a `SurfaceView`, or a `TextureView` if you need transparency.
+Both are backed by a native Metal or Vulkan swapchain.
+
+| Web concept | React Native WebGPU |
+| ----------- | --------------------- |
+| `<canvas>` in HTML | `<Canvas>` view |
+| `canvas.getContext("webgpu")` | `ref.current.getContext("webgpu")` |
+| Browser presents frames | You call `context.present()` after submit |
+
+## Basic usage
+
+Mount a `Canvas`, keep a ref, and read the WebGPU context once the view is laid out:
+
+```tsx twoslash
+import { useEffect, useRef } from "react";
+import { StyleSheet, View } from "react-native";
+import { Canvas, type CanvasRef } from "react-native-webgpu";
+
+export function Scene() {
+  const ref = useRef<CanvasRef>(null);
+
+  useEffect(() => {
+    const context = ref.current?.getContext("webgpu");
+    if (!context) return;
+
+    // request device, configure context, start render loop…
+  }, []);
+
+  return (
+    <View style={{ flex: 1 }}>
+      <Canvas ref={ref} style={StyleSheet.absoluteFill} />
+    </View>
+  );
+}
+```
+
+`getContext("webgpu")` is **synchronous**, like on the web. If the ref is not ready yet (zero layout size), retry on the next frame with `requestAnimationFrame`.
+
+## Frame presentations
+
+On the Web, the browser swaps your rendered frame to the screen automatically when you submit GPU commands. In React Native there is no automatic swap: presentation is a manual step. After you submit your commands to the queue, call `present()` on the context to display the frame.
+
+```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
+declare const device: GPUDevice;
+declare const encoder: GPUCommandEncoder;
+declare const context: RNCanvasContext;
+// ---cut---
+device.queue.submit([encoder.finish()]);
+context.present(); // React Native only
+```
+
+`present()` is a React Native only method (it is not part of the Web WebGPU spec). It runs **synchronously** on the calling thread, so the frame is presented from whichever thread did the rendering. This works the same on every runtime: the main JS runtime, the UI thread, and dedicated worklet runtimes. Always call it after `submit()`, never before.
+
+## Pixel density
+
+Just like on the Web, a canvas has two independent sizes:
+
+- `clientWidth` / `clientHeight` are the on-screen (layout) size in logical points. They follow the view's layout and update automatically when it resizes.
+- `width` / `height` are the drawing-buffer size in physical pixels. This is the resolution WebGPU actually renders at.
+
+The drawing buffer is **not** scaled to the device pixel ratio by default, exactly as on the Web. To render crisply on high-density screens, set the buffer size to the layout size multiplied by the pixel ratio. `PixelRatio.get()` is the React Native equivalent of `window.devicePixelRatio`.
+
+```tsx twoslash
+import { PixelRatio } from "react-native";
+import type { RNCanvasContext } from "react-native-webgpu";
+declare const context: RNCanvasContext;
+// ---cut---
+const canvas = context.canvas as HTMLCanvasElement;
+canvas.width = canvas.clientWidth * PixelRatio.get();
+canvas.height = canvas.clientHeight * PixelRatio.get();
+```
+
+Because `clientWidth` / `clientHeight` track layout, recompute the buffer size whenever they change (for example on rotation or a resize).
+
+## Transparency
+
+To render the canvas over the React Native views beneath it, you control transparency from two places, and you normally set both:
+
+- The **`transparent` prop** on `<Canvas>` makes the underlying native surface transparent so the views behind it show through.
+- **`alphaMode: "premultiplied"`** on `context.configure`, together with a clear color whose alpha is `0`, makes WebGPU produce a transparent frame.
+
+```tsx
+<Canvas ref={ref} style={StyleSheet.absoluteFill} transparent />
+```
+
+<Callout type="info" title="Platform note">
+On Android the `alphaMode` passed to `configure()` is ignored, so the `transparent` prop is what actually gives you a transparent canvas there. On iOS the two work together. Setting the `transparent` prop together with `alphaMode: "premultiplied"` and an alpha-`0` clear color gives you the same result on both platforms.
+</Callout>
+
+## See also
+
+- [Canvas](/api/canvas) - the component and ref reference
+- [Native APIs](/docs/getting-started/native-api) - the React Native specific differences
+- [React APIs](/docs/getting-started/react-api) - hooks and the device provider

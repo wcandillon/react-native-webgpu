@@ -1,0 +1,88 @@
+---
+title: React APIs
+description: Hooks and components for wiring WebGPU into React.
+---
+
+The WebGPU API itself is symmetric with the Web and has nothing React-specific about it.
+On top of that, react-native-webgpu ships a small set of React helpers, mainly for device creation.
+
+## GPUDeviceProvider
+
+When several components need the **same** device, request it once with `GPUDeviceProvider` and read it from any descendant with [`useMainDevice`](#usemaindevice). The provider renders `null` until the device is ready, so children only mount once `device` is non-null.
+
+```tsx twoslash
+import { GPUDeviceProvider, useMainDevice } from "react-native-webgpu";
+declare const Scene: () => React.ReactNode;
+// ---cut---
+function App() {
+  return (
+    <GPUDeviceProvider
+      deviceDescriptor={{
+        requiredFeatures: ["rnwebgpu/native-texture" as GPUFeatureName],
+      }}
+    >
+      <Scene />
+    </GPUDeviceProvider>
+  );
+}
+```
+
+See the [GPUDeviceProvider reference](/api/gpu-device-provider) for the full API.
+
+### useMainDevice
+
+Reads the shared `{ adapter, device }` from the nearest `GPUDeviceProvider`. It throws `No DeviceContext found.` when called outside a provider.
+
+```tsx twoslash
+import { useMainDevice } from "react-native-webgpu";
+// ---cut---
+function DebugOverlay() {
+  const { adapter, device } = useMainDevice();
+  return null;
+}
+```
+
+## useDevice
+
+Requests a `GPUAdapter` and `GPUDevice` for you and returns them once ready. Both are `null` until the async request resolves, so guard on `device` before rendering. It also calls [`warnIfNotHardwareAccelerated`](/api/warn-if-not-hardware-accelerated) for you.
+
+```tsx twoslash
+import { useDevice } from "react-native-webgpu";
+// ---cut---
+function Scene() {
+  const { adapter, device } = useDevice();
+  if (!device) {
+    return null; // still requesting
+  }
+  // render with device…
+  return null;
+}
+```
+
+Pass adapter options and a device descriptor to request features (you cannot add features to an existing device later):
+
+```tsx twoslash
+import { useDevice } from "react-native-webgpu";
+// ---cut---
+const { device } = useDevice(
+  { powerPreference: "high-performance" },
+  { requiredFeatures: ["rnwebgpu/native-texture" as GPUFeatureName] },
+);
+```
+
+## warnIfNotHardwareAccelerated
+
+Logs a console warning when the adapter is a software fallback, common on Android emulators. `useDevice` already calls it; use it directly when you request adapters yourself. See the [reference](/api/warn-if-not-hardware-accelerated).
+
+```tsx twoslash
+import { warnIfNotHardwareAccelerated } from "react-native-webgpu";
+declare const adapter: GPUAdapter;
+// ---cut---
+warnIfNotHardwareAccelerated(adapter);
+```
+
+## See also
+
+- [Canvas](/docs/getting-started/canvas) - the rendering surface and frame loop
+- [Native APIs](/docs/getting-started/native-api) - the React Native specific differences
+- [Worklets](/docs/integrations/worklets) - running these on the UI thread

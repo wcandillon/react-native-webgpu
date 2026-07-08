@@ -11,6 +11,7 @@ import { InstancedMesh } from "./InstancedMesh";
 import { Fiber } from "./Fiber";
 import { PostProcessing } from "./PostProcessing";
 import { Retargeting } from "./Retargeting";
+import { ToneMapping } from "./ToneMapping";
 
 const Stack = createStackNavigator<Routes>();
 export const ThreeJS = () => {
@@ -78,6 +79,13 @@ export const ThreeJS = () => {
         component={Retargeting}
         options={{
           title: "🕺 Animation Retargeting",
+        }}
+      />
+      <Stack.Screen
+        name="ToneMapping"
+        component={ToneMapping}
+        options={{
+          title: "🎭 Tone Mapping",
         }}
       />
     </Stack.Navigator>

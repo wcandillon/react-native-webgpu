@@ -139,6 +139,10 @@ export const examples = [
     screen: "VisionCamera",
     title: "📷 VisionCamera integration",
   },
+  {
+    screen: "SixteenBitTextures",
+    title: "🎨 16bits Textures",
+  },
 ];
 
 const styles = StyleSheet.create({

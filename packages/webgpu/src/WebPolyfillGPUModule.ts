@@ -15,6 +15,12 @@ function getNativeSurface(contextId: number) {
     width,
     clientHeight: height,
     clientWidth: width,
+    // On web the real DOM canvas handles events; delegate to it.
+    addEventListener: canvas.addEventListener.bind(canvas),
+    removeEventListener: canvas.removeEventListener.bind(canvas),
+    dispatchEvent: canvas.dispatchEvent.bind(canvas),
+    setPointerCapture: canvas.setPointerCapture.bind(canvas),
+    releasePointerCapture: canvas.releasePointerCapture.bind(canvas),
   };
 }
 

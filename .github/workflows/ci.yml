@@ -49,6 +49,27 @@ jobs:
       - name: Typecheck files
         run: yarn tsc
 
+      - name: Build packages
+        run: yarn turbo run build --filter='./packages/*'
+
+      # Validate the semantic-release config without publishing, so a broken
+      # .releaserc or publish script is caught on PRs rather than at release time.
+      - name: Release dry run
+        working-directory: packages/webgpu
+        run: yarn semantic-release --dry-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          YARN_NPM_AUTH_TOKEN: ''
+          NPM_TOKEN: ''
+
+      # Build the docs site the same way the Pages deploy does (GITHUB_PAGES set,
+      # so the project base path is applied) to catch broken links / build
+      # regressions before they reach main.
+      - name: Build docs
+        env:
+          GITHUB_PAGES: "true"
+        run: yarn build:docs
+
       - name: Install CocoaPods
         working-directory: apps/example/ios
         run: pod install

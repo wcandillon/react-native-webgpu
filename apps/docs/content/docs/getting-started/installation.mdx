@@ -1,0 +1,63 @@
+---
+title: Installation
+description: Your first React Native WebGPU App
+---
+
+React Native WebGPU brings the [WebGPU API](https://www.w3.org/TR/webgpu/) to iOS, Android, macOS, and visionOS using [Dawn](https://dawn.googlesource.com/dawn).
+
+## Install the package
+
+```npm
+npm i react-native-webgpu
+```
+
+## Requirements
+
+| Package | Version | Required |
+| ------- | ------- | -------- |
+| `react-native` | >= 0.81.0 | Yes |
+| `react-native-worklets` | >= 0.7.2 | Optional - off-js-thread rendering |
+
+Please note that this module does not work on the legacy architecture.
+
+## Setup
+
+Once installed, the global `navigator.gpu` API is available - the same entry point as in Chrome or Safari:
+
+```tsx twoslash
+const adapter = await navigator.gpu.requestAdapter();
+const device = await adapter!.requestDevice();
+```
+
+Rendering happens inside a [`Canvas`](/api/canvas) view. The typical loop is:
+
+1. Get a WebGPU context from the canvas ref
+2. Configure the context with your device
+3. Encode render (or compute) passes
+4. `device.queue.submit(...)`
+5. **`context.present()`** - required on React Native ([Frame presentations](/docs/getting-started/canvas#frame-presentations))
+
+Start with the [Canvas](/docs/getting-started/canvas) view once installation is done.
+
+## Troubleshooting
+
+<Callout type="warn" title="Android emulators">
+On Android emulators, WebGPU may fall back to a **software adapter**. Rendering is slow and some features (especially native textures) may be unavailable. Use [`warnIfNotHardwareAccelerated`](/api/warn-if-not-hardware-accelerated) to log a warning during development. Prefer physical devices for camera, video, and performance testing.
+</Callout>
+
+<Callout type="warn" title="iOS Simulator - Metal API Validation">
+When running on the **iOS Simulator**, disable **Metal API Validation** in Xcode or you may hit false-positive errors and crashes that do not occur on device.
+
+**Steps:** Product → Scheme → Edit Scheme → Run → Diagnostics → uncheck **Metal API Validation**.
+
+Metal API Validation is a debug mode that checks every Metal call against the API specification. The simulator's Metal stack is not identical to real hardware, and validation can flag legitimate Dawn/WebGPU usage as invalid. Disabling it for local development is standard practice; keep validation enabled when debugging raw Metal code on device if needed.
+
+Learn more in [Apple's documentation on validating Metal API usage](https://developer.apple.com/documentation/xcode/validating-your-apps-metal-api-usage/).
+</Callout>
+
+## Next steps
+
+- [Expo](/docs/getting-started/expo) - scaffold with the `with-webgpu` template
+- [Canvas](/docs/getting-started/canvas) - your rendering surface
+- [Native APIs](/docs/getting-started/native-api) - the React Native specific differences
+- [Learn WebGPU](/docs/getting-started/learn-webgpu) - learn the low-level API

@@ -1,0 +1,18 @@
+---
+title: Introduction
+description: Libraries and frameworks that run on top of React Native WebGPU.
+---
+
+Because React Native WebGPU is symmetric to its Web counterpart, the libraries the web ecosystem built on top of WebGPU run here too, with only React Native specific glue (manual [`present()`](/docs/getting-started/canvas#frame-presentations), Metro resolution, worklet setup).
+
+In this section we list the most popular integrations and give you a few recommendations on which stack to use for your project.
+
+## Integrations
+
+| Integration | What it gives you |
+| ----------- | ----------------- |
+| [Worklets](/docs/integrations/worklets) | Run render loops on the UI thread or a dedicated worklet runtime, off the JS thread |
+| [Vision Camera](/docs/integrations/vision-camera) | Apply real-time WGSL effects to live camera frames via zero-copy `importExternalTexture` |
+| [Three.js](/docs/integrations/three-js) | The `WebGPURenderer` from `three/webgpu` (scenes, cameras, materials) |
+| [React Three Fiber](/docs/integrations/react-three-fiber) | Three.js as declarative JSX components |
+| [TensorFlow.js](/docs/integrations/tensorflow) | On-device ML through the WebGPU backend |
