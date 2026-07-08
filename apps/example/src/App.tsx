@@ -39,6 +39,7 @@ import { StorageBufferVertices } from "./StorageBufferVertices";
 import { SharedTextureMemory } from "./SharedTextureMemory";
 import { ImportExternalTexture } from "./ImportExternalTexture";
 import { VisionCamera } from "./VisionCamera";
+import { SixteenBitTextures } from "./SixteenBitTextures";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -109,6 +110,10 @@ function App() {
             component={ImportExternalTexture}
           />
           <Stack.Screen name="VisionCamera" component={VisionCamera} />
+          <Stack.Screen
+            name="SixteenBitTextures"
+            component={SixteenBitTextures}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

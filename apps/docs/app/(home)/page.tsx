@@ -47,7 +47,7 @@ export default function HomePage() {
           }`}
         >
           Powered by Dawn.<br />
-          Runs on iOS, Android, macOS, visionOS, and Web.
+          Built for iOS, Android, macOS, visionOS, and Web.
         </p>
         <div className="pointer-events-auto mt-10 flex flex-wrap items-center justify-center gap-3">
           <Link

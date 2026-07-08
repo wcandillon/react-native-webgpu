@@ -14,6 +14,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     <DocsLayout
       tree={apiSource.getPageTree()}
       {...sideBarOptions()}
+      searchToggle={{ enabled: false }}
       sidebar={docsLayoutSidebarOptions()}
       containerProps={{
         className: `${docsLayoutContainerClassName} ${apiReferenceSidebarWidthClassName}`,
