@@ -59,10 +59,10 @@ See [`copyExternalImageToTexture`](https://developer.mozilla.org/en-US/docs/Web/
 
 ## High bit depth
 
-By default a canvas is configured with an 8-bit format (`bgra8unorm`, the value returned by `navigator.gpu.getPreferredCanvasFormat()`).
+By default a canvas is configured with an 8-bit format (`bgra8unorm` or `rgba8unorm`, the value returned by `navigator.gpu.getPreferredCanvasFormat()` depending on the platform).
 With only 256 levels per channel, subtle gradients quantize into visible bands, especially in dark tones and on OLED displays.
-Configuring the canvas with a deeper format removes the banding.
-The best format is platform specific, so the library exports a helper (this is not part of the WebGPU standard, so it is a regular function rather than a `navigator.gpu` method):
+
+To configure the canvas with a higher-precision format, use `getPreferredHighBitDepthCanvasFormat()` (currently it will return `rgba16float` on iOS and `rgb10a2unorm` on Android):
 
 ```tsx twoslash
 import type { RNCanvasContext } from "react-native-webgpu";
@@ -75,19 +75,6 @@ const format = getPreferredHighBitDepthCanvasFormat();
 
 context.configure({ device, format, alphaMode: "opaque" });
 ```
-
-It returns the format most likely to reach the display with more than 8 bits per channel. Note that this is about precision, not HDR: the values stay in the standard [0, 1] range.
-
-Remember to also use this format for the `targets` of your render pipelines. In both cases the values you write stay sRGB-encoded exactly like on an 8-bit canvas, so colors match across formats.
-
-- **iOS**: `rgba16float` gives you 16-bit float precision per channel. Core Animation would interpret an untagged float16 layer as extended *linear* sRGB (displaying the same values noticeably brighter), so react-native-webgpu automatically tags the underlying `CAMetalLayer` with the extended sRGB colorspace when you configure an `rgba16float` canvas.
-- **Android**: `rgba16float` renders correctly but does not reduce banding: SurfaceFlinger quantizes SDR layers to the display pipeline depth during composition. Use `rgb10a2unorm` instead: it keeps SDR sRGB semantics with 10 bits per channel, and Android can pass `RGBA_1010102` buffers through composition, including direct scanout on 10-bit panels.
-
-<Callout type="info" title="Device support on Android">
-The Vulkan surface must expose the 10-bit format (common on modern devices), and how much of the extra precision reaches the glass depends on the display pipeline and panel. You can inspect the layer's buffer format with `adb shell dumpsys SurfaceFlinger` while your app is on screen.
-</Callout>
-
-The [example app](https://github.com/wcandillon/react-native-webgpu/tree/main/apps/example/src/SixteenBitTextures) contains a `SixteenBitTextures` screen that renders the same slowly drifting gradient at 8 bits and at the platform's deeper format side by side, so you can compare banding on your device.
 
 ## Native textures
 
