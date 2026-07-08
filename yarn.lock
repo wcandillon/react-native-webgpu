@@ -20236,7 +20236,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"react-native-webgpu@*, react-native-webgpu@workspace:*, react-native-webgpu@workspace:packages/webgpu":
+"react-native-webgpu@workspace:*, react-native-webgpu@workspace:packages/webgpu":
   version: 0.0.0-use.local
   resolution: "react-native-webgpu@workspace:packages/webgpu"
   dependencies:
@@ -20294,25 +20294,6 @@ __metadata:
       optional: true
     react-native-worklets:
       optional: true
-  languageName: unknown
-  linkType: soft
-
-"react-native-wgpu@workspace:packages/webgpu-shim":
-  version: 0.0.0-use.local
-  resolution: "react-native-wgpu@workspace:packages/webgpu-shim"
-  dependencies:
-    "@types/node": ^20.14.7
-    "@types/react": ^18.2.44
-    "@webgpu/types": 0.1.65
-    eslint: 9.35.0
-    eslint-config-react-native-wcandillon: 4.0.1
-    prettier: ^3.0.3
-    react-native-builder-bob: ^0.23.2
-    react-native-webgpu: "*"
-    typescript: ^5.2.2
-  peerDependencies:
-    react: "*"
-    react-native: ">=0.81.0"
   languageName: unknown
   linkType: soft
 

@@ -13,7 +13,7 @@
     [
       "@semantic-release/exec",
       {
-        "publishCmd": "bash scripts/release/publish.sh ${nextRelease.version} ${nextRelease.channel || 'latest'}"
+        "publishCmd": "mkdir -p /tmp/npm-publish && cp dist/*.tgz /tmp/npm-publish/ && cd /tmp/npm-publish && npm publish *.tgz --provenance --access public --tag ${nextRelease.channel || 'latest'}"
       }
     ],
     [
