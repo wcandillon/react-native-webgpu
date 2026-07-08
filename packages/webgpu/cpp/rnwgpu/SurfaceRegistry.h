@@ -15,6 +15,13 @@ void WaitForCommandsToBeScheduled(WGPUDevice device);
 
 namespace rnwgpu {
 
+#ifdef __APPLE__
+// Tags the CAMetalLayer with the colorspace matching the configured texture
+// format. Implemented in apple/MetalLayerColorSpace.mm.
+void applyCAMetalLayerColorSpace(void *nativeSurface,
+                                 wgpu::TextureFormat format);
+#endif
+
 struct NativeInfo {
   void *nativeSurface;
   int width;
@@ -187,6 +194,9 @@ private:
   void _configure() {
     if (surface) {
       surface.Configure(&config);
+#ifdef __APPLE__
+      applyCAMetalLayerColorSpace(nativeSurface, config.format);
+#endif
     } else {
       wgpu::TextureDescriptor textureDesc;
       textureDesc.format = config.format;
