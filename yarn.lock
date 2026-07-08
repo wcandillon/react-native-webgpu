@@ -20236,24 +20236,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"react-native-webgpu@npm:*":
-  version: 0.5.15
-  resolution: "react-native-webgpu@npm:0.5.15"
-  peerDependencies:
-    react: "*"
-    react-native: ">=0.81.0"
-    react-native-reanimated: ">=4.2.1"
-    react-native-worklets: ">=0.7.2"
-  peerDependenciesMeta:
-    react-native-reanimated:
-      optional: true
-    react-native-worklets:
-      optional: true
-  checksum: d3c1c302775ce2545892cafceb04f3c140f4030fb9a26c8154a67940227d8a666feed35885b2389972edc185080b2193084cafa74fc376681c886f439c14e6cf
-  languageName: node
-  linkType: hard
-
-"react-native-webgpu@workspace:*, react-native-webgpu@workspace:packages/webgpu":
+"react-native-webgpu@*, react-native-webgpu@workspace:*, react-native-webgpu@workspace:packages/webgpu":
   version: 0.0.0-use.local
   resolution: "react-native-webgpu@workspace:packages/webgpu"
   dependencies:

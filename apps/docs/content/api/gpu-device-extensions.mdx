@@ -121,3 +121,21 @@ device.queue.copyExternalImageToTexture(
 );
 bitmap.close();
 ```
+
+## getPreferredHighBitDepthCanvasFormat
+
+Returns the canvas texture format most likely to reach the display with more than 8 bits per channel on the current platform: `"rgba16float"` on iOS, `"rgb10a2unorm"` on Android.
+Unlike `getPreferredCanvasFormat()`, this helper is not part of the WebGPU standard, so it is exported as a regular function instead of a `navigator.gpu` method.
+
+```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
+import { getPreferredHighBitDepthCanvasFormat } from "react-native-webgpu";
+declare const context: RNCanvasContext;
+declare const device: GPUDevice;
+// ---cut---
+const format = getPreferredHighBitDepthCanvasFormat();
+context.configure({ device, format, alphaMode: "opaque" });
+```
+
+The values you write stay sRGB-encoded exactly like on an 8-bit canvas: this is about precision, not HDR (no extended range).
+See [High bit depth](/docs/getting-started/native-api#high-bit-depth) for the platform details and banding comparison.
