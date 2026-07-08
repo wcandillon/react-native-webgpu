@@ -35,6 +35,10 @@ export const examples = [
     screen: "Retargeting",
     title: "🕺 Animation Retargeting",
   },
+  {
+    screen: "ToneMapping",
+    title: "🎭 Tone Mapping",
+  },
 ] as const;
 
 const styles = StyleSheet.create({
