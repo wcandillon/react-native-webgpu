@@ -6785,20 +6785,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typegpu/react@npm:^0.11.0":
-  version: 0.11.0
-  resolution: "@typegpu/react@npm:0.11.0"
+"@typegpu/react@npm:^0.11.2":
+  version: 0.11.2
+  resolution: "@typegpu/react@npm:0.11.2"
   peerDependencies:
     react: ^19.0.0
     react-native: "*"
-    react-native-wgpu: "*"
-    typegpu: ^0.11.3
+    react-native-webgpu: "*"
+    typegpu: ^0.11.9
   peerDependenciesMeta:
     react-native:
       optional: true
-    react-native-wgpu:
+    react-native-webgpu:
       optional: true
-  checksum: b30080da12409be8a9ba4cb01afd5da436747d12abd136c44aaae8482ab425ba3f6c9c6091b6adcb8b108ab3fbbe3aeb40ad00e125e24dbff6170fce09fead80
+  checksum: ca0c8d623c6c59ae355df3ac78c74dbd22386e35beb5453ead0c7f29ead13375ed5d4a8d52ce16d3c8a2a8fa4997b9f5e2213469c4022431e876dc6635ca54a6
   languageName: node
   linkType: hard
 
@@ -8153,7 +8153,7 @@ __metadata:
     "@tensorflow/tfjs": ^4.22.0
     "@tensorflow/tfjs-backend-webgpu": ^4.22.0
     "@tensorflow/tfjs-vis": ^1.5.1
-    "@typegpu/react": ^0.11.0
+    "@typegpu/react": ^0.11.2
     "@types/node": ^20.14.7
     "@types/react": 19.1.0
     "@types/react-dom": 19.1.0
@@ -8187,7 +8187,7 @@ __metadata:
     react-test-renderer: 18.2.0
     teapot: ^1.0.0
     three: 0.184.0
-    typegpu: ^0.11.6
+    typegpu: ^0.11.9
     typescript: 5.0.4
     unplugin-typegpu: ^0.11.4
     wgpu-matrix: ^3.0.2
@@ -22791,6 +22791,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"tinyest@npm:~0.3.2":
+  version: 0.3.2
+  resolution: "tinyest@npm:0.3.2"
+  checksum: b5c3bdec7f88c2d464998ec196f861cbeee2d7568e455d315d1e819b83437404b4ed0268e2af637da671828e6724f8cd258ddafde8d545b82b070dcfd39c4253
+  languageName: node
+  linkType: hard
+
 "tinyexec@npm:^1.0.1, tinyexec@npm:^1.2.4":
   version: 1.2.4
   resolution: "tinyexec@npm:1.2.4"
@@ -22974,10 +22981,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsover-runtime@npm:^0.0.6":
-  version: 0.0.6
-  resolution: "tsover-runtime@npm:0.0.6"
-  checksum: 6199d1ea2d59fc1b5f33ddad808037f430a15aac4ce7c4c0ff9b151b46b7ec9aa8cc4c3553a12bbaed9207c387f90c1022b484e7a17190890b2351477087b21c
+"tsover-runtime@npm:^0.0.7":
+  version: 0.0.7
+  resolution: "tsover-runtime@npm:0.0.7"
+  checksum: e768e6f6c3add5897ba7200328e646bcf26c05db6af21b94698c53ce5fed4cfec7e8e6ab9e652105c88edcfd502e2e8d2bc9d988e452d1be0eb72def1960f0a3
   languageName: node
   linkType: hard
 
@@ -23234,14 +23241,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typegpu@npm:^0.11.6":
-  version: 0.11.6
-  resolution: "typegpu@npm:0.11.6"
+"typegpu@npm:^0.11.9":
+  version: 0.11.9
+  resolution: "typegpu@npm:0.11.9"
   dependencies:
-    tinyest: ~0.3.1
-    tsover-runtime: ^0.0.6
+    tinyest: ~0.3.2
+    tsover-runtime: ^0.0.7
     typed-binary: ^4.3.3
-  checksum: 32ed07c2b5a8e3fd8c6dd0e99ca44cccd107bbd0f82950d09bcf5d68ba16af9b202ab0596218232d70bd99869b1479b7766e505960b706bcdf1c55161ad01a0e
+  bin:
+    typegpu: ./bin.mjs
+  checksum: c0ba3d37bdf1643cf1927484ae053702d270338899e6b20dabed9a19319147bcbdd3d15219978096c20223c9448603a1774af048d44b8beb499077548008dff1
   languageName: node
   linkType: hard
 
