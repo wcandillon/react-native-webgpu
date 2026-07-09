@@ -241,8 +241,8 @@ public:
     const uint32_t stridePixels = actualDesc.stride;
 
     void *vaddr = nullptr;
-    int rc = AHardwareBuffer_lock(buffer, AHARDWAREBUFFER_USAGE_CPU_WRITE_RARELY,
-                                  -1, nullptr, &vaddr);
+    int rc = AHardwareBuffer_lock(
+        buffer, AHARDWAREBUFFER_USAGE_CPU_WRITE_RARELY, -1, nullptr, &vaddr);
     if (rc != 0 || !vaddr) {
       AHardwareBuffer_release(buffer);
       throw std::runtime_error(
@@ -302,6 +302,21 @@ public:
     AHardwareBuffer_Desc desc = {};
     AHardwareBuffer_describe(buffer, &desc);
 
+    // Dawn derives the importable WebGPU usages from the AHB's usage bits;
+    // without GPU_SAMPLED_IMAGE the imported texture never gets
+    // TextureBinding and import fails deep inside Dawn with an opaque
+    // validation error. Surface the real cause here instead. (CameraX's
+    // default ImageReaders allocate CPU-only buffers; with
+    // react-native-vision-camera, use pixelFormat: 'native' which allocates
+    // GPU-sampleable buffers.)
+    if ((desc.usage & AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE) == 0) {
+      throw std::runtime_error(
+          "wrapNativeBuffer: this AHardwareBuffer was allocated without "
+          "AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE, so the GPU cannot sample "
+          "it. Camera/CPU pipelines must allocate frames with GPU usage (for "
+          "react-native-vision-camera, use pixelFormat: 'native').");
+    }
+
     AHardwareBuffer_acquire(buffer);
 
     VideoFrameHandle handle;
@@ -312,13 +327,13 @@ public:
     // Dawn's OpaqueYCbCrAndroidForExternalTexture path. Single-plane RGBA AHBs
     // take the plain BGRA8 path (sampled as a regular 2D texture).
     switch (desc.format) {
-      case AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420:
-      case AHARDWAREBUFFER_FORMAT_YCbCr_P010:
-        handle.pixelFormat = VideoPixelFormat::NV12;
-        break;
-      default:
-        handle.pixelFormat = VideoPixelFormat::BGRA8;
-        break;
+    case AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420:
+    case AHARDWAREBUFFER_FORMAT_YCbCr_P010:
+      handle.pixelFormat = VideoPixelFormat::NV12;
+      break;
+    default:
+      handle.pixelFormat = VideoPixelFormat::BGRA8;
+      break;
     }
     handle.deleter = [buffer]() { AHardwareBuffer_release(buffer); };
     return handle;

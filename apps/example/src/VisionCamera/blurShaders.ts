@@ -21,6 +21,10 @@ export const PREPASS_SHADER = /* wgsl */ `
 struct PrepassUniforms {
   texSize: vec2f,
   canvasSize: vec2f,
+  // The three rows of GPUExternalTexture.yuvToRgbMatrix (see CAMERA_PRELUDE).
+  yuv0: vec4f,
+  yuv1: vec4f,
+  yuv2: vec4f,
 };
 
 @group(0) @binding(0) var srcTex: texture_external;
@@ -63,14 +67,14 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
     scale = vec2f(1.0, texAR / canvasAR);
   }
   let uv = vec2f(0.5) + (in.uv - vec2f(0.5)) * scale;
-  // cameraCoord (vertical flip) + cameraDecode (YUV->RGB) come from
-  // CAMERA_PRELUDE, prepended when this module is compiled. They are no-ops on
-  // iOS and handle the Android opaque-YUV case.
+  // cameraDecode (from CAMERA_PRELUDE, prepended when this module is
+  // compiled) applies GPUExternalTexture.yuvToRgbMatrix: the real YUV->RGB
+  // conversion on the Android opaque-YUV path, an identity passthrough on iOS.
   let c = cameraDecode(textureSampleBaseClampToEdge(
     srcTex,
     srcSampler,
-    cameraCoord(clamp(uv, vec2f(0.0), vec2f(1.0))),
-  ));
+    clamp(uv, vec2f(0.0), vec2f(1.0)),
+  ), u.yuv0, u.yuv1, u.yuv2);
   return vec4f(c.rgb, 1.0);
 }
 `;
