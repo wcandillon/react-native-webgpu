@@ -18,15 +18,19 @@
     "cpp/**/*.{h,cpp}",
     "apple/**",
     "libs/**",
-    "*.podspec"
+    "*.podspec",
+    "app.plugin.js",
+    "plugin/build/**"
   ],
   "dawn": "chromium/7849",
   "scripts": {
     "test": "NODE_OPTIONS='--experimental-require-module' jest -i",
     "test:ref": "REFERENCE=true NODE_OPTIONS='--experimental-require-module' jest -i",
+    "test:plugin": "jest -c plugin/jest.config.js",
     "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
     "tsc": "tsc --noEmit",
-    "build": "bob build",
+    "build": "bob build && yarn build:plugin",
+    "build:plugin": "tsc -p plugin/tsconfig.build.json",
     "release": "semantic-release",
     "build-dawn": "tsx scripts/build/dawn.ts",
     "clean-dawn": "rimraf ./libs && rimraf ../../externals/dawn/out",
@@ -41,7 +45,9 @@
   "keywords": [
     "react-native",
     "ios",
-    "android"
+    "android",
+    "expo",
+    "expo-config-plugin"
   ],
   "repository": {
     "type": "git",
@@ -59,6 +65,7 @@
     "provenance": true
   },
   "devDependencies": {
+    "@expo/config-plugins": "^57.0.3",
     "@semantic-release/commit-analyzer": "^13.0.0",
     "@semantic-release/exec": "^7.0.3",
     "@semantic-release/github": "^10.3.3",

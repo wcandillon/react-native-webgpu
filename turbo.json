@@ -71,7 +71,7 @@
     "lint": {},
     "tsc": {},
     "build": {
-      "outputs": ["lib/**", ".next/**", "out/**"]
+      "outputs": ["lib/**", "plugin/build/**", ".next/**", "out/**"]
     },
     "build:docs": {
       "env": ["GITHUB_PAGES"],

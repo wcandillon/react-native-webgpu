@@ -48,7 +48,17 @@ On Android emulators, WebGPU may fall back to a **software adapter**. Rendering 
 <Callout type="warn" title="iOS Simulator - Metal API Validation">
 When running on the **iOS Simulator**, disable **Metal API Validation** in Xcode or you may hit false-positive errors and crashes that do not occur on device.
 
-**Steps:** Product → Scheme → Edit Scheme → Run → Diagnostics → uncheck **Metal API Validation**.
+**Expo:** add the [config plugin](/docs/getting-started/expo#config-plugin) that ships with `react-native-webgpu` to your app config - it disables the setting automatically on every prebuild:
+
+```json title="app.json"
+{
+  "expo": {
+    "plugins": ["react-native-webgpu"]
+  }
+}
+```
+
+**Bare React Native:** Product → Scheme → Edit Scheme → Run → Diagnostics → uncheck **Metal API Validation**.
 
 Metal API Validation is a debug mode that checks every Metal call against the API specification. The simulator's Metal stack is not identical to real hardware, and validation can flag legitimate Dawn/WebGPU usage as invalid. Disabling it for local development is standard practice; keep validation enabled when debugging raw Metal code on device if needed.
 
