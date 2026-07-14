@@ -480,6 +480,72 @@ class NodeTestingClient implements TestingClient {
       throw new Error("dawn.node returned no WebGPU adapter");
     }
     this.device = await adapter.requestDevice();
+    this.installWebPolyfills(this.device);
+  }
+
+  // dawn.node implements the core WebGPU API but none of the web-platform
+  // image machinery, so provide the minimal pieces the specs rely on.
+  private installWebPolyfills(device: GPUDevice) {
+    const decodePng = (bytes: Uint8Array) => {
+      const png = PNG.sync.read(
+        Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+      );
+      return {
+        data: new Uint8ClampedArray(png.data),
+        width: png.width,
+        height: png.height,
+        close() {},
+      };
+    };
+    (globalThis as Record<string, unknown>).createImageBitmap = async (
+      source: unknown,
+    ) => {
+      if (source instanceof ArrayBuffer) {
+        return decodePng(new Uint8Array(source));
+      }
+      if (ArrayBuffer.isView(source)) {
+        return decodePng(
+          new Uint8Array(source.buffer, source.byteOffset, source.byteLength),
+        );
+      }
+      if (typeof Blob !== "undefined" && source instanceof Blob) {
+        return decodePng(new Uint8Array(await source.arrayBuffer()));
+      }
+      if (
+        source !== null &&
+        typeof source === "object" &&
+        "data" in source &&
+        "width" in source
+      ) {
+        // Already an ImageData-like object (e.g. one of the test assets).
+        return source;
+      }
+      throw new Error("createImageBitmap polyfill: unsupported source");
+    };
+    // copyExternalImageToTexture expects an ImageBitmap; route the raw RGBA
+    // bytes of our ImageData-like sources through writeTexture instead.
+    Object.defineProperty(device.queue, "copyExternalImageToTexture", {
+      configurable: true,
+      value: (
+        source: {
+          source: { data: Uint8ClampedArray; width: number; height: number };
+        },
+        destination: GPUTexelCopyTextureInfo,
+        copySize: GPUExtent3DStrict,
+      ) => {
+        const { data, width } = source.source;
+        device.queue.writeTexture(
+          destination,
+          new Uint8Array(
+            data.buffer as ArrayBuffer,
+            data.byteOffset,
+            data.byteLength,
+          ),
+          { bytesPerRow: width * 4 },
+          copySize,
+        );
+      },
+    });
   }
 
   async dispose() {
