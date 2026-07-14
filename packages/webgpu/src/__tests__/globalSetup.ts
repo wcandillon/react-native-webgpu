@@ -1,6 +1,6 @@
 import { WebSocketServer } from "ws";
 
-import { REFERENCE } from "./config";
+import { NODE_WEBGPU, REFERENCE } from "./config";
 
 const isOS = (os: string): os is "android" | "ios" | "web" => {
   return ["ios", "android", "web"].indexOf(os) !== -1;
@@ -12,7 +12,9 @@ const isArch = (arc: string): arc is "paper" | "fabric" => {
 
 const globalSetup = () => {
   return new Promise<void>((resolve) => {
-    if (REFERENCE) {
+    // The reference (Chrome) and node (dawn.node) clients run in-process, so
+    // no device connection is needed.
+    if (REFERENCE || NODE_WEBGPU) {
       resolve();
       return;
     }

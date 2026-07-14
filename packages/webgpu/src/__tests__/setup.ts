@@ -6,7 +6,7 @@ import path from "path";
 import puppeteer from "puppeteer";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
-import type { mat4, vec3, mat3 } from "wgpu-matrix";
+import { mat4, vec3, mat3 } from "wgpu-matrix";
 import type { Server, WebSocket } from "ws";
 import type { Browser, Page } from "puppeteer";
 
@@ -14,7 +14,7 @@ import type { GPUOffscreenCanvas } from "../Offscreen";
 
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
-import { DEBUG, REFERENCE } from "./config";
+import { DEBUG, NODE_WEBGPU, REFERENCE } from "./config";
 
 jest.setTimeout(180 * 1000);
 
@@ -74,7 +74,13 @@ interface TestingClient {
 export let client: TestingClient;
 
 beforeAll(async () => {
-  client = REFERENCE ? new ReferenceTestingClient() : new RemoteTestingClient();
+  if (REFERENCE) {
+    client = new ReferenceTestingClient();
+  } else if (NODE_WEBGPU) {
+    client = new NodeTestingClient();
+  } else {
+    client = new RemoteTestingClient();
+  }
   await client.init();
 });
 
@@ -331,6 +337,156 @@ class ReferenceTestingClient implements TestingClient {
     if (this.browser && !DEBUG) {
       this.browser.close();
     }
+  }
+}
+
+// Offscreen render target mirroring the DrawingContext the reference client
+// injects into the Chrome page: getCurrentTexture() returns a plain texture
+// and getImageData() reads it back through a mapped buffer.
+class NodeDrawingContext {
+  private texture: GPUTexture;
+  private buffer: GPUBuffer;
+
+  constructor(
+    private device: GPUDevice,
+    private format: GPUTextureFormat,
+    readonly width: number,
+    readonly height: number,
+  ) {
+    this.texture = device.createTexture({
+      size: [width, height],
+      format,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+    });
+    this.buffer = device.createBuffer({
+      size: width * 4 * height,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+  }
+
+  get canvas() {
+    return { width: this.width, height: this.height };
+  }
+
+  getCurrentTexture() {
+    return this.texture;
+  }
+
+  async getImageData(): Promise<BitmapData> {
+    const commandEncoder = this.device.createCommandEncoder();
+    const bytesPerRow = this.width * 4;
+    commandEncoder.copyTextureToBuffer(
+      { texture: this.texture },
+      { buffer: this.buffer, bytesPerRow },
+      [this.width, this.height],
+    );
+    this.device.queue.submit([commandEncoder.finish()]);
+    await this.buffer.mapAsync(GPUMapMode.READ);
+    const data = Array.from(new Uint8Array(this.buffer.getMappedRange()));
+    this.buffer.unmap();
+    return {
+      data,
+      width: this.width,
+      height: this.height,
+      format: this.format,
+    };
+  }
+}
+
+class NodeTestingClient implements TestingClient {
+  readonly OS = "node" as const;
+  readonly arch = "paper" as const;
+
+  private gpu: GPU | null = null;
+  private device: GPUDevice | null = null;
+
+  async eval<C = Ctx, R = JSONValue>(
+    fn: (ctx: GPUTestingContext & C) => R | Promise<R>,
+    ctx?: C,
+  ): Promise<R> {
+    if (!this.gpu || !this.device) {
+      throw new Error("NodeTestingClient not initialized. Did you call init?");
+    }
+    const { gpu } = this;
+    const { device } = this;
+    const drawingContext = new NodeDrawingContext(
+      device,
+      gpu.getPreferredCanvasFormat(),
+      1024,
+      1024,
+    );
+    const fTexturePath = path.join(
+      __dirname,
+      "../../../../apps/example/src/assets/f.png",
+    );
+    const fTextureBase64 = `data:image/png;base64,${fs.readFileSync(fTexturePath).toString("base64")}`;
+    const toImageData = (relPath: string) => {
+      const bitmap = decodeImage(relPath);
+      // Node has no ImageData constructor; a structurally compatible object
+      // is enough for writeTexture-based tests.
+      return {
+        data: new Uint8ClampedArray(bitmap.data),
+        width: bitmap.width,
+        height: bitmap.height,
+        colorSpace: "srgb",
+      } as ImageData;
+    };
+    const base = {
+      gpu,
+      device,
+      shaders: { triangleVertWGSL, redFragWGSL },
+      urls: { fTexture: fTextureBase64 },
+      assets: {
+        cubeVertexArray,
+        di3D: toImageData("../../../../apps/example/src/assets/Di-3d.png"),
+        moon: toImageData("../../../../apps/example/src/assets/moon.png"),
+        saturn: toImageData("../../../../apps/example/src/assets/saturn.png"),
+      },
+      ctx: drawingContext as unknown as GPUCanvasContext,
+      canvas: {
+        width: drawingContext.width,
+        height: drawingContext.height,
+        getImageData: () => drawingContext.getImageData(),
+      } as unknown as GPUOffscreenCanvas,
+      mat4,
+      vec3,
+      mat3,
+    };
+    return fn(Object.assign(base, ctx) as GPUTestingContext & C);
+  }
+
+  async init() {
+    // Load the prebuilt dawn.node binary directly: the package's index.js is
+    // ESM-only (import.meta), which jest's CommonJS transform cannot load.
+    const arch = process.platform === "darwin" ? "universal" : process.arch;
+    const { create, globals } = require(
+      `webgpu/dist/${process.platform}-${arch}.dawn.node`,
+    ) as {
+      create: (flags: string[]) => GPU;
+      globals: Record<string, unknown>;
+    };
+    // Expose GPUBufferUsage, GPUTextureUsage, GPUMapMode, ... to test code.
+    Object.assign(globalThis, globals);
+    (globalThis as Record<string, unknown>).RNWebGPU = {
+      DecodeToUTF8: (data: NodeJS.ArrayBufferView) =>
+        new TextDecoder().decode(data),
+    };
+    // Same instance-level toggles as the native runtime (see GPU.cpp).
+    this.gpu = create([
+      "enable-dawn-features=allow_unsafe_apis,expose_wgsl_experimental_features",
+    ]);
+    const adapter = await this.gpu.requestAdapter();
+    if (!adapter) {
+      throw new Error("dawn.node returned no WebGPU adapter");
+    }
+    this.device = await adapter.requestDevice();
+  }
+
+  async dispose() {
+    this.device?.destroy();
+    // Drop the reference to the dawn.node instance so node can exit.
+    this.device = null;
+    this.gpu = null;
   }
 }
 
