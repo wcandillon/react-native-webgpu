@@ -456,25 +456,40 @@ class NodeTestingClient implements TestingClient {
   }
 
   async init() {
-    // Load the prebuilt dawn.node binary directly: the package's index.js is
-    // ESM-only (import.meta), which jest's CommonJS transform cannot load.
-    const arch = process.platform === "darwin" ? "universal" : process.arch;
-    const { create, globals } = require(
-      `webgpu/dist/${process.platform}-${arch}.dawn.node`,
-    ) as {
-      create: (flags: string[]) => GPU;
-      globals: Record<string, unknown>;
-    };
-    // Expose GPUBufferUsage, GPUTextureUsage, GPUMapMode, ... to test code.
-    Object.assign(globalThis, globals);
-    (globalThis as Record<string, unknown>).RNWebGPU = {
-      DecodeToUTF8: (data: NodeJS.ArrayBufferView) =>
-        new TextDecoder().decode(data),
-    };
-    // Same instance-level toggles as the native runtime (see GPU.cpp).
-    this.gpu = create([
-      "enable-dawn-features=allow_unsafe_apis,expose_wgsl_experimental_features",
-    ]);
+    // jest -i isolates the module registry per test file but shares the
+    // process, so beforeAll runs once per file. Creating a dawn.node
+    // instance per file leaks native threads until thread creation aborts
+    // the process; keep a single process-wide instance on globalThis and
+    // only request a fresh device per file.
+    const g = globalThis as Record<string, unknown>;
+    if (!g.__nodeWebGPU) {
+      // Load the prebuilt dawn.node binary directly: the package's index.js
+      // is ESM-only (import.meta), which jest's CommonJS transform cannot
+      // load.
+      const arch = process.platform === "darwin" ? "universal" : process.arch;
+      const { create, globals } = require(
+        `webgpu/dist/${process.platform}-${arch}.dawn.node`,
+      ) as {
+        create: (flags: string[]) => GPU;
+        globals: Record<string, unknown>;
+      };
+      // Expose GPUBufferUsage, GPUTextureUsage, GPUMapMode, ... to test code.
+      Object.assign(globalThis, globals);
+      g.RNWebGPU = {
+        DecodeToUTF8: (data: NodeJS.ArrayBufferView) =>
+          new TextDecoder().decode(data),
+      };
+      // Same instance-level toggles as the native runtime (see GPU.cpp).
+      g.__nodeWebGPU = create([
+        "enable-dawn-features=allow_unsafe_apis,expose_wgsl_experimental_features",
+      ]);
+      // Node's built-in navigator has no gpu member.
+      Object.defineProperty(globalThis, "navigator", {
+        configurable: true,
+        value: { gpu: g.__nodeWebGPU },
+      });
+    }
+    this.gpu = g.__nodeWebGPU as GPU;
     const adapter = await this.gpu.requestAdapter();
     if (!adapter) {
       throw new Error("dawn.node returned no WebGPU adapter");
@@ -529,18 +544,31 @@ class NodeTestingClient implements TestingClient {
       value: (
         source: {
           source: { data: Uint8ClampedArray; width: number; height: number };
+          flipY?: boolean;
         },
         destination: GPUTexelCopyTextureInfo,
         copySize: GPUExtent3DStrict,
       ) => {
-        const { data, width } = source.source;
+        const { data, width, height } = source.source;
+        let bytes = new Uint8Array(
+          data.buffer as ArrayBuffer,
+          data.byteOffset,
+          data.byteLength,
+        );
+        if (source.flipY) {
+          const bytesPerRow = width * 4;
+          const flipped = new Uint8Array(bytes.length);
+          for (let y = 0; y < height; y++) {
+            flipped.set(
+              bytes.subarray(y * bytesPerRow, (y + 1) * bytesPerRow),
+              (height - 1 - y) * bytesPerRow,
+            );
+          }
+          bytes = flipped;
+        }
         device.queue.writeTexture(
           destination,
-          new Uint8Array(
-            data.buffer as ArrayBuffer,
-            data.byteOffset,
-            data.byteLength,
-          ),
+          bytes,
           { bytesPerRow: width * 4 },
           copySize,
         );
