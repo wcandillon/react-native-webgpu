@@ -194,11 +194,24 @@ describe("DrawInstanced", () => {
         // rows of the grid (instances 3 to 8) are drawn.
         passEncoder.draw(3, 6, 0, 3);
         passEncoder.end();
+        device.pushErrorScope("validation");
         device.queue.submit([commandEncoder.finish()]);
-        return canvas.getImageData();
+        return device.popErrorScope().then((error) => {
+          if (error) {
+            throw new Error(
+              `firstInstance draw failed validation: ${error.message}`,
+            );
+          }
+          return canvas.getImageData();
+        });
       },
       { instancedTriangleWGSL: instancedTriangle },
     );
+    // The clear alone makes every pixel opaque black, so an all-zero readback
+    // means the whole submit was discarded — the iOS Simulator failure mode
+    // for base-instance draws — rather than a rendering difference. Guard
+    // before checkImage so a blank image is never written as the reference.
+    expect(result.data.some((value) => value !== 0)).toBe(true);
     const image = encodeImage(result);
     checkImage(image, "snapshots/draw-instanced-first-instance.png");
   });
