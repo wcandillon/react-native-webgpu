@@ -137,6 +137,17 @@ jobs:
         working-directory: packages/webgpu
         run: yarn test
 
+      # Upload the snapshot folder so reference images generated on this run
+      # (checkImage writes missing snapshots) and the *.test.png /
+      # *-diff-test.png images from failed comparisons can be inspected.
+      # `always()` so the artifact is available precisely when tests fail.
+      - name: Upload test snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webgpu-test-snapshots
+          path: packages/webgpu/src/__tests__/snapshots/
+
       - name: Detect ANDROID_HOME
         run: |
           if [ -n "$ANDROID_HOME" ] && [ -d "$ANDROID_HOME" ]; then
