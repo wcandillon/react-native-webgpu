@@ -14,24 +14,36 @@ export const useClient = (): UseClient => {
   useEffect(() => {
     const url = `ws://${HOST}:${PORT}`;
     let it: ReturnType<typeof setTimeout>;
+    let disposed = false;
     const ws = new WebSocket(url);
-    ws.onopen = () => {
-      setClient(ws);
-      ws.send(JSON.stringify({ OS: Platform.OS, arch: "paper" }));
-    };
-    ws.onclose = () => {
-      setClient(null);
-    };
-    ws.onerror = () => {
+    const scheduleRetry = () => {
+      if (disposed) {
+        return;
+      }
       it = setTimeout(() => {
-        ws.close();
         // incrementing retry to rerun the effect
         setRetry((r) => r + 1);
       }, 500);
     };
-    return () => {
+    ws.onopen = () => {
+      setClient(ws);
+      ws.send(JSON.stringify({ OS: Platform.OS, arch: "paper" }));
+    };
+    // Reconnect on every close, not only on error: the test server closes the
+    // socket cleanly at the end of each jest run, and without a retry here the
+    // app would need a manual reload before the next run.
+    ws.onclose = () => {
+      setClient(null);
+      scheduleRetry();
+    };
+    ws.onerror = () => {
+      // Triggers onclose, which schedules the retry.
       ws.close();
+    };
+    return () => {
+      disposed = true;
       clearTimeout(it);
+      ws.close();
     };
   }, [retry]);
   return [client, HOST];
