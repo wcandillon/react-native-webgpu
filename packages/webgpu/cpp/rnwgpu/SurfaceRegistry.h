@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <shared_mutex>
+#include <stdexcept>
 #include <unordered_map>
 #include <utility>
 
@@ -40,8 +41,22 @@ public:
 
   ~SurfaceInfo() { surface = nullptr; }
 
+  // Terminal invalidation, called when the native view backing this surface is
+  // destroyed (view unmount). Drops the wgpu::Surface under the lock — i.e.
+  // before the native layer/window is freed — so a configure() racing the
+  // unmount (e.g. an async renderer init) either completes against the
+  // still-alive layer or fails with a catchable JS error, never a segfault.
+  void destroy() {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    destroyed = true;
+    surface = nullptr;
+    texture = nullptr;
+    nativeSurface = nullptr;
+  }
+
   void reconfigure(int newWidth, int newHeight) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    throwIfDestroyed();
     config.width = newWidth;
     config.height = newHeight;
     _configure();
@@ -49,6 +64,7 @@ public:
 
   void configure(wgpu::SurfaceConfiguration &newConfig) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    throwIfDestroyed();
     config = newConfig;
     config.width = width;
     config.height = height;
@@ -134,10 +150,11 @@ public:
 #ifdef __APPLE__
     // Ensure command buffers are scheduled before presenting. Read the device
     // under a shared lock, then wait without holding it (the wait can block).
-    // The device may be reconfigured between the two locks; that is safe because
-    // present() is called on the rendering thread right after submit(), the wait
-    // just flushes that thread's already-submitted work, and the Present() below
-    // re-checks `surface` under the unique lock before touching it.
+    // The device may be reconfigured between the two locks; that is safe
+    // because present() is called on the rendering thread right after submit(),
+    // the wait just flushes that thread's already-submitted work, and the
+    // Present() below re-checks `surface` under the unique lock before touching
+    // it.
     wgpu::Device device;
     {
       std::shared_lock<std::shared_mutex> lock(_mutex);
@@ -155,6 +172,7 @@ public:
 
   wgpu::Texture getCurrentTexture() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
+    throwIfDestroyed();
     if (surface) {
       wgpu::SurfaceTexture surfaceTexture;
       surface.GetCurrentTexture(&surfaceTexture);
@@ -191,6 +209,21 @@ public:
   }
 
 private:
+  // Callers must hold _mutex. Surfaces are never revived after destroy() —
+  // a remounted <Canvas> gets a fresh contextId and a fresh SurfaceInfo — so
+  // this error is terminal for this context. It surfaces in JS as a regular
+  // exception (host functions convert std::exception), which is recoverable,
+  // unlike touching the freed native layer.
+  void throwIfDestroyed() const {
+    if (destroyed) {
+      throw std::runtime_error(
+          "The native surface for this canvas has been destroyed: its "
+          "<Canvas> view was unmounted (e.g. by Suspense or navigation) "
+          "before or during rendering. Obtain a new context from a mounted "
+          "canvas instead.");
+    }
+  }
+
   void _configure() {
     if (surface) {
       surface.Configure(&config);
@@ -217,6 +250,7 @@ private:
   wgpu::SurfaceConfiguration config;
   int width;
   int height;
+  bool destroyed = false;
 };
 
 class SurfaceRegistry {

@@ -43,6 +43,16 @@
 
 - (void)dealloc {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  // A GPUCanvasContext created from JS keeps its own shared_ptr to this
+  // SurfaceInfo, so removing it from the registry is not enough: a configure()
+  // racing the unmount (e.g. an async renderer init while Suspense hides the
+  // view) would still reach the wgpu::Surface wrapping our CAMetalLayer after
+  // the layer is freed and segfault. Destroy the surface first — under the
+  // SurfaceInfo lock and while the layer is still alive — so late calls get a
+  // catchable JS error instead.
+  if (auto surfaceInfo = registry.getSurfaceInfo([_contextId intValue])) {
+    surfaceInfo->destroy();
+  }
   // Remove the surface info from the registry
   registry.removeSurfaceInfo([_contextId intValue]);
 }
