@@ -20411,6 +20411,7 @@ __metadata:
     ts-morph: ^22.0.0
     tsx: ^4.20.5
     typescript: ^5.2.2
+    webgpu: 0.4.0
     wgpu-matrix: ^3.0.2
     ws: ^8.18.0
     yargs: ^17.7.2
@@ -24504,6 +24505,16 @@ __metadata:
   version: 0.3.7
   resolution: "webdriver-bidi-protocol@npm:0.3.7"
   checksum: e069eb14c4857656e13603e02c7cadd73c69af5d97b61389c47aad35cbe92fa59c54bf04ccdc81dea6fe3246b87d3e4a082732e4ed7ab27546cc613bc155729d
+  languageName: node
+  linkType: hard
+
+"webgpu@npm:0.4.0":
+  version: 0.4.0
+  resolution: "webgpu@npm:0.4.0"
+  dependencies:
+    "@webgpu/types": ^0.1.69
+    debug: ^4.4.0
+  checksum: e7cc0632a273fdcecbe9094048b43be060875e8f487d43c387fa7728abf22a759a4bbe48e0f7833c6b3f111f309aff5d59f78bffcc8be62bbd619671496f3b1a
   languageName: node
   linkType: hard
 

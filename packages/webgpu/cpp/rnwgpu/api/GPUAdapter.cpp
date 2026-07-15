@@ -2,11 +2,16 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#endif
 
 #include "Convertors.h"
 
@@ -150,16 +155,39 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
             for (const auto &t : dawnToggles->enabledToggles.value()) {
               enabledToggles.push_back(t.c_str());
             }
-            toggles.enabledToggleCount = enabledToggles.size();
-            toggles.enabledToggles = enabledToggles.data();
           }
           if (dawnToggles->disabledToggles) {
             for (const auto &t : dawnToggles->disabledToggles.value()) {
               disabledToggles.push_back(t.c_str());
             }
-            toggles.disabledToggleCount = disabledToggles.size();
-            toggles.disabledToggles = disabledToggles.data();
           }
+        }
+#if defined(TARGET_OS_SIMULATOR) && TARGET_OS_SIMULATOR
+        // The iOS Simulator only advertises MTLFeatureSet_iOS_GPUFamily2, so
+        // Dawn defaults disable_base_instance/disable_base_vertex on and then
+        // rejects every draw with a non-zero firstInstance or baseVertex,
+        // both core WebGPU. The simulator forwards Metal calls to the host
+        // GPU, which does support base vertex/instance drawing, so force the
+        // toggles off. Device builds are unaffected: WebGPU-capable iPhones
+        // and iPads are all GPUFamily3+. These are device-stage toggles, so
+        // they must be chained here rather than on the instance descriptor
+        // (instance-stage toggle parsing silently drops them).
+        static const char *const kSimulatorDisabledToggles[] = {
+            "disable_base_instance", "disable_base_vertex"};
+        for (const char *name : kSimulatorDisabledToggles) {
+          const bool explicitlyEnabled = std::any_of(
+              enabledToggles.begin(), enabledToggles.end(),
+              [name](const char *t) { return std::strcmp(t, name) == 0; });
+          if (!explicitlyEnabled) {
+            disabledToggles.push_back(name);
+          }
+        }
+#endif
+        if (!enabledToggles.empty() || !disabledToggles.empty()) {
+          toggles.enabledToggleCount = enabledToggles.size();
+          toggles.enabledToggles = enabledToggles.data();
+          toggles.disabledToggleCount = disabledToggles.size();
+          toggles.disabledToggles = disabledToggles.data();
           deviceDesc.nextInChain = &toggles;
         }
         _instance.RequestDevice(
