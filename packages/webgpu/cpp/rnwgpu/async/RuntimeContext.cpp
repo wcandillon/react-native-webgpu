@@ -7,14 +7,12 @@
 #include <ReactCommon/CallInvoker.h>
 
 #include "AsyncTaskHandle.h"
+#include "RuntimeRegistry.h"
 #include "WGPULogger.h"
 
 namespace rnwgpu::async {
 
 namespace {
-struct RuntimeData {
-  std::shared_ptr<RuntimeContext> context;
-};
 constexpr const char *TAG = "RuntimeContext";
 
 // The main JS runtime and its CallInvoker, registered once on install. The
@@ -31,6 +29,11 @@ std::mutex &processEventsMutex() {
   static std::mutex mutex;
   return mutex;
 }
+
+RuntimeRegistry<jsi::Runtime, RuntimeContext> &runtimeContexts() {
+  static RuntimeRegistry<jsi::Runtime, RuntimeContext> registry;
+  return registry;
+}
 } // namespace
 
 void RuntimeContext::registerMainRuntime(
@@ -46,28 +49,21 @@ RuntimeContext::RuntimeContext(jsi::Runtime &runtime, wgpu::Instance instance)
 }
 
 std::shared_ptr<RuntimeContext> RuntimeContext::get(jsi::Runtime &runtime) {
-  auto data = runtime.getRuntimeData(runtimeDataUUID());
-  if (!data) {
-    return nullptr;
-  }
-  return std::static_pointer_cast<RuntimeData>(data)->context;
+  return runtimeContexts().get(&runtime);
 }
 
 std::shared_ptr<RuntimeContext>
 RuntimeContext::getOrCreate(jsi::Runtime &runtime, wgpu::Instance instance) {
-  if (auto existing = get(runtime)) {
-    return existing;
-  }
-  auto context = std::make_shared<RuntimeContext>(runtime, std::move(instance));
-  // Only the main JS runtime's context carries the CallInvoker; it is used to
-  // deliver spontaneous events (device.lost) without the pump.
-  if (&runtime == sMainRuntime) {
-    context->_callInvoker = sMainInvoker;
-  }
-  auto data = std::make_shared<RuntimeData>();
-  data->context = context;
-  runtime.setRuntimeData(runtimeDataUUID(), data);
-  return context;
+  return runtimeContexts().getOrCreate(&runtime, [&runtime, &instance] {
+    auto context =
+        std::make_shared<RuntimeContext>(runtime, std::move(instance));
+    // Only the main JS runtime's context carries the CallInvoker; it is used
+    // to deliver spontaneous events (device.lost) without the pump.
+    if (&runtime == sMainRuntime) {
+      context->_callInvoker = sMainInvoker;
+    }
+    return context;
+  });
 }
 
 AsyncTaskHandle RuntimeContext::postTask(const TaskCallback &callback,
@@ -183,11 +179,6 @@ void RuntimeContext::tick() {
   if (_pumpTasks.load(std::memory_order_acquire) > 0) {
     requestTick();
   }
-}
-
-jsi::UUID RuntimeContext::runtimeDataUUID() {
-  static const auto uuid = jsi::UUID();
-  return uuid;
 }
 
 } // namespace rnwgpu::async

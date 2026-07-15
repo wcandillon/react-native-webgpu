@@ -24,8 +24,8 @@ namespace rnwgpu::async {
 /**
  * Per-runtime coordinator for asynchronous WebGPU operations.
  *
- * Each JS runtime that uses WebGPU gets its own RuntimeContext, stored in the
- * runtime's runtimeData. Async Dawn operations are registered with
+ * Each JS runtime that uses WebGPU gets its own RuntimeContext, cached by the
+ * stable runtime address. Async Dawn operations are registered with
  * CallbackMode::AllowProcessEvents and driven to completion by pumping
  * `instance.ProcessEvents()` on the runtime's OWN thread via a self-
  * rescheduling tick (scheduled through that runtime's setTimeout). Because
@@ -102,8 +102,6 @@ public:
   void onTaskSettled(bool keepPumping);
 
 private:
-  static jsi::UUID runtimeDataUUID();
-
   void requestTick();
   void tick();
   void drainMailbox();
