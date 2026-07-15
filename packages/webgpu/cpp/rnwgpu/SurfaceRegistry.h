@@ -219,8 +219,7 @@ private:
       throw std::runtime_error(
           "The native surface for this canvas has been destroyed: its "
           "<Canvas> view was unmounted (e.g. by Suspense or navigation) "
-          "before or during rendering. Obtain a new context from a mounted "
-          "canvas instead.");
+          "before or during rendering.");
     }
   }
 
