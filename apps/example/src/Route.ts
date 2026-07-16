@@ -28,6 +28,7 @@ export type Routes = {
   Reanimated: undefined;
   AsyncStarvation: undefined;
   DeviceLostHang: undefined;
+  WorkletRequestAdapter: undefined;
   StorageBufferVertices: undefined;
   SharedTextureMemory: undefined;
   ImportExternalTexture: undefined;

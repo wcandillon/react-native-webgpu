@@ -124,6 +124,10 @@ export const examples = [
     title: "⚠️ Device Lost Hang",
   },
   {
+    screen: "WorkletRequestAdapter",
+    title: "⚠️ Worklet requestAdapter",
+  },
+  {
     screen: "StorageBufferVertices",
     title: "💾 Storage Buffer Vertices",
   },
