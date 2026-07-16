@@ -162,6 +162,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
             }
           }
         }
+// TODO: in the latest version of Dawn, this won't be needed (https://issues.chromium.org/issues/42241591)
 #if defined(TARGET_OS_SIMULATOR) && TARGET_OS_SIMULATOR
         // The iOS Simulator only advertises MTLFeatureSet_iOS_GPUFamily2, so
         // Dawn defaults disable_base_instance/disable_base_vertex on and then
