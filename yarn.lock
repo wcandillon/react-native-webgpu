@@ -11156,6 +11156,7 @@ __metadata:
     "@tailwindcss/postcss": ^4.1.8
     "@tensorflow/tfjs": ^4.22.0
     "@tensorflow/tfjs-backend-webgpu": ^4.22.0
+    "@typegpu/react": ^0.11.2
     "@types/mdx": ^2.0.13
     "@types/node": ^20.14.7
     "@types/react": ^18.2.44
@@ -11178,6 +11179,7 @@ __metadata:
     tailwindcss: ^4.1.8
     three: 0.184.0
     twoslash: ^0.3.9
+    typegpu: ^0.11.9
     typescript: ^5.2.2
     wgpu-matrix: ^3.0.2
   languageName: unknown
