@@ -1,3 +1,4 @@
 .next/
 out/
 .source/
+tsconfig.tsbuildinfo
