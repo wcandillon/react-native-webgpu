@@ -35,6 +35,7 @@ import { ComputeToys } from "./ComputeToys";
 import { Reanimated } from "./Reanimated";
 import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
+import { WorkletRequestAdapter } from "./Diagnostics/WorkletRequestAdapter";
 import { StorageBufferVertices } from "./StorageBufferVertices";
 import { SharedTextureMemory } from "./SharedTextureMemory";
 import { ImportExternalTexture } from "./ImportExternalTexture";
@@ -97,6 +98,10 @@ function App() {
           <Stack.Screen name="Reanimated" component={Reanimated} />
           <Stack.Screen name="AsyncStarvation" component={AsyncStarvation} />
           <Stack.Screen name="DeviceLostHang" component={DeviceLostHang} />
+          <Stack.Screen
+            name="WorkletRequestAdapter"
+            component={WorkletRequestAdapter}
+          />
           <Stack.Screen
             name="StorageBufferVertices"
             component={StorageBufferVertices}
