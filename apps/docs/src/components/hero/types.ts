@@ -69,6 +69,16 @@ export interface ComputeToysShader {
   mobileConstOverrides?: Record<string, number>;
 }
 
+// Background color per shader appearance. Applied both to the canvas and to
+// the hero wrapper behind it, so the area already has the shader's background
+// (not the site theme's) while the client-only canvas chunk loads and the
+// first frame renders. Keeps light mode from flashing white before a dark
+// shader (and vice versa).
+export const HERO_BACKGROUND: Record<"dark" | "light", string> = {
+  dark: "#050508",
+  light: "#f6f6fa",
+};
+
 export interface ShaderEntry {
   id: string;
   title: string;

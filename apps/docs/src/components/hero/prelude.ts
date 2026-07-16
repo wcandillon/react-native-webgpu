@@ -47,6 +47,28 @@ export const COMPUTE_SCREEN_BINDING = /* wgsl */ `
 
 export const SCREEN_FORMAT: GPUTextureFormat = "rgba16float";
 
+// Fade-in overlay: a fullscreen quad in the hero background color, alpha-blended
+// over the finished frame. The runner drives the alpha from 1 to 0 over the
+// first second so the shader fades in from the background instead of popping.
+export const FADE_OVERLAY_SHADER = /* wgsl */ `
+@group(0) @binding(0) var<uniform> fadeColor: vec4f;
+
+@vertex
+fn vs_main(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
+  var pos = array(
+    vec2f(-1.0, -1.0),
+    vec2f(3.0, -1.0),
+    vec2f(-1.0, 3.0),
+  );
+  return vec4f(pos[vi], 0.0, 1.0);
+}
+
+@fragment
+fn fs_main() -> @location(0) vec4f {
+  return fadeColor;
+}
+`;
+
 // Blit pass: samples the compute output texture onto the swapchain. Uses a uv
 // varying from the vertex stage so it upscales correctly when the source texture
 // is smaller than the render target (compute shaders may render at a capped

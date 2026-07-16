@@ -6,6 +6,7 @@ import { createComputeToysPass } from "./computetoys";
 import {
   BLIT_SHADER,
   COMPUTE_SCREEN_BINDING,
+  FADE_OVERLAY_SHADER,
   FULLSCREEN_VERTEX,
   SCREEN_FORMAT,
   UNIFORM_STRUCT,
@@ -27,6 +28,73 @@ export interface Pass {
   // compute.toys runtime consumes it.
   setPointer?: (nx: number, ny: number, down: boolean) => void;
   destroy: () => void;
+}
+
+// Fades the shader in from the hero background color: a fullscreen quad
+// alpha-blended over the finished frame. The caller drives `alpha` from 1 to 0
+// (over the first second) and stops encoding it once it reaches 0.
+export interface FadeOverlay {
+  encode: (encoder: GPUCommandEncoder, view: GPUTextureView, alpha: number) => void;
+  destroy: () => void;
+}
+
+export function createFadeOverlay(
+  ctx: HeroContext,
+  color: [number, number, number],
+): FadeOverlay {
+  const { device, format } = ctx;
+  const module = device.createShaderModule({ code: FADE_OVERLAY_SHADER });
+  const layout = device.createBindGroupLayout({
+    entries: [
+      {
+        binding: 0,
+        visibility: GPUShaderStage.FRAGMENT,
+        buffer: { type: "uniform" },
+      },
+    ],
+  });
+  const pipeline = device.createRenderPipeline({
+    layout: device.createPipelineLayout({ bindGroupLayouts: [layout] }),
+    vertex: { module, entryPoint: "vs_main" },
+    fragment: {
+      module,
+      entryPoint: "fs_main",
+      targets: [
+        {
+          format,
+          blend: {
+            color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
+            alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+          },
+        },
+      ],
+    },
+    primitive: { topology: "triangle-list" },
+  });
+  const buffer = device.createBuffer({
+    size: 16,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  const bind = device.createBindGroup({
+    layout,
+    entries: [{ binding: 0, resource: { buffer } }],
+  });
+  const data = new Float32Array([...color, 1]);
+
+  return {
+    encode: (encoder, view, alpha) => {
+      data[3] = alpha;
+      device.queue.writeBuffer(buffer, 0, data);
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [{ view, loadOp: "load", storeOp: "store" }],
+      });
+      pass.setPipeline(pipeline);
+      pass.setBindGroup(0, bind);
+      pass.draw(3);
+      pass.end();
+    },
+    destroy: () => buffer.destroy(),
+  };
 }
 
 function createFragmentPass(
