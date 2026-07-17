@@ -25,6 +25,12 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
   }
 
   @Override
+  public void onDropViewInstance(@NonNull WebGPUView view) {
+    super.onDropViewInstance(view);
+    view.destroy();
+  }
+
+  @Override
   @ReactProp(name = "transparent")
   public void setTransparent(WebGPUView view, boolean value) {
     view.setTransparent(value);

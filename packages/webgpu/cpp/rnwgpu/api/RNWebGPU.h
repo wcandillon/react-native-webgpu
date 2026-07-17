@@ -173,7 +173,8 @@ public:
     return std::make_shared<VideoFrame>(std::move(frame));
   }
 
-  std::shared_ptr<VideoFrame> createTestVideoFrame(double width, double height) {
+  std::shared_ptr<VideoFrame> createTestVideoFrame(double width,
+                                                   double height) {
     auto frame = _platformContext->createTestVideoFrame(
         static_cast<uint32_t>(width), static_cast<uint32_t>(height));
     return std::make_shared<VideoFrame>(std::move(frame));
@@ -211,6 +212,25 @@ public:
                                     nativeInfo.height);
   }
 
+  // Retires a canvas context from the JS side (Canvas unmount cleanup).
+  // Registry entries have two owners, split by whether a native surface is
+  // attached:
+  // - A native view currently owns a surface (or one is pending): its own
+  //   teardown (MetalView dealloc / WebGPUViewManager.onDropViewInstance)
+  //   removes the entry. Skipping here keeps React StrictMode safe: its
+  //   simulated unmount re-runs JS effects without unmounting native views,
+  //   and removing the entry then would orphan the still-attached surface.
+  // - No native surface: the JS side is the last owner and removes the entry.
+  void destroyContext(int contextId) {
+    auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+    if (auto info = registry.getSurfaceInfo(contextId)) {
+      if (info->hasNativeSurface()) {
+        return;
+      }
+    }
+    registry.removeSurfaceInfo(contextId);
+  }
+
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "fabric", &RNWebGPU::getFabric);
     installGetter(runtime, prototype, "gpu", &RNWebGPU::getGPU);
@@ -218,6 +238,8 @@ public:
                   &RNWebGPU::createImageBitmap);
     installMethod(runtime, prototype, "getNativeSurface",
                   &RNWebGPU::getNativeSurface);
+    installMethod(runtime, prototype, "destroyContext",
+                  &RNWebGPU::destroyContext);
     installMethod(runtime, prototype, "MakeWebGPUCanvasContext",
                   &RNWebGPU::MakeWebGPUCanvasContext);
     installMethod(runtime, prototype, "loadVideoFrame",

@@ -254,9 +254,9 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
   protected void onDetachedFromWindow() {
     super.onDetachedFromWindow();
 
-    // Notify WebGPU that surface is being destroyed
+    // Detach: rendering falls back to the offscreen texture until reattach.
     if (mSurfaceCreated) {
-      mApi.surfaceDestroyed();
+      mApi.surfaceOffscreen();
       mSurfaceCreated = false;
     }
 
