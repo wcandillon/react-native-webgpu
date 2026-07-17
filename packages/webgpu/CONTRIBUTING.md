@@ -15,7 +15,7 @@ From the repo root: `yarn lint` · `yarn tsc` · `yarn build:docs`
 
 Tests (from `packages/webgpu/`): `yarn test:ref` (Chrome reference) · `yarn test` (E2E — open the example app on the E2E screen) · `yarn test:plugin` (Expo config plugin unit tests)
 
-Other `packages/webgpu` scripts: `yarn codegen` · `yarn clean-dawn` · `yarn build-dawn`
+Other `packages/webgpu` scripts: `yarn clean-dawn` · `yarn build-dawn`
 
 ## Expo config plugin
 
@@ -39,18 +39,12 @@ Steps to bump to a new Dawn version (`chromium/<N>`):
    git submodule update --remote externals/dawn
    ```
 
-2. **Regenerate bindings.** Dawn's `src/dawn/dawn.json` drives our codegen, so re-run it after every bump:
+2. **Publish prebuilt binaries.** Trigger the **Build Dawn** workflow (`.github/workflows/build-dawn.yml`, `workflow_dispatch`). It reads the branch from `.gitmodules`, builds Android + Apple, and creates the `dawn-chromium-<N>` release with the headers, the Android `.so`s, and the Apple `.xcframework`. (To build locally instead, run `yarn build-dawn`; this requires the Android NDK and Xcode toolchains.)
 
-   ```sh
-   cd packages/webgpu && yarn codegen
-   ```
-
-3. **Publish prebuilt binaries.** Trigger the **Build Dawn** workflow (`.github/workflows/build-dawn.yml`, `workflow_dispatch`). It reads the branch from `.gitmodules`, builds Android + Apple, and creates the `dawn-chromium-<N>` release with the headers, the Android `.so`s, and the Apple `.xcframework`. (To build locally instead, run `yarn build-dawn`; this requires the Android NDK and Xcode toolchains.)
-
-4. **Pull the new binaries** once the release exists:
+3. **Pull the new binaries** once the release exists:
 
    ```sh
    cd packages/webgpu && yarn install-dawn
    ```
 
-5. **Verify and commit.** Build and run the example app, then commit the submodule bump together with the updated `.gitmodules`, `package.json`, and any regenerated code under `src/` and `cpp/`.
+4. **Verify and commit.** Build and run the example app, then commit the submodule bump together with the updated `.gitmodules` and `package.json`.
