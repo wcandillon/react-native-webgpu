@@ -176,7 +176,9 @@ public:
       _pendingNativeSurface = nullptr;
       _frameEpoch++;
 
-      if (_config.device != nullptr) {
+      // _surface can be null here when Dawn surface creation failed for a
+      // valid native window; the context then just keeps rendering offscreen.
+      if (_config.device != nullptr && _surface) {
         bool blit = _texture != nullptr;
         // The blit needs CopyDst on the surface. Configure with a widened
         // copy while keeping _config at the usage the user asked for, so any
