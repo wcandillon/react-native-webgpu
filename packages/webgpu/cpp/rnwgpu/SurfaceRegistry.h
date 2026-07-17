@@ -40,8 +40,8 @@ struct Size {
 
 // Invoked with the platform's native surface pointer once SurfaceInfo is done
 // with it, so the platform can drop the reference it acquired on our behalf
-// (ANativeWindow_release on Android). Empty when the pointer is non-owning
-// (the CAMetalLayer on Apple platforms, owned by its view).
+// (ANativeWindow_release on Android, CFBridgingRelease of the retained
+// CAMetalLayer on Apple platforms). May run on any thread.
 using NativeSurfaceReleaser = std::function<void(void *)>;
 
 // Bridges the asynchronous native surface lifecycle (surfaces appear and
@@ -151,6 +151,7 @@ public:
   // swaps the surface under a frame that is genuinely in flight.
   void applyPendingAttach(bool supersedeInFlightFrame = false) {
     bool presentBlit = false;
+    uint64_t blitEpoch = 0;
     wgpu::Device device = nullptr;
     void *replacedSurface = nullptr;
     NativeSurfaceReleaser replacedReleaser;
@@ -173,6 +174,7 @@ public:
       _releaser = std::move(_pendingReleaser);
       _hasPendingAttach = false;
       _pendingNativeSurface = nullptr;
+      _frameEpoch++;
 
       if (_config.device != nullptr) {
         bool blit = _texture != nullptr;
@@ -192,6 +194,7 @@ public:
           device = _config.device;
           // Consumed either way; on failure the next frame renders fresh.
           _texture = nullptr;
+          blitEpoch = _frameEpoch;
         }
       }
     }
@@ -205,8 +208,13 @@ public:
       }
 #endif
       std::unique_lock<std::shared_mutex> lock(_mutex);
-      // A frame may have started while unlocked; it owns presentation now.
-      if (_surface && !_frameInFlight) {
+      // Present only if the blitted texture is still the surface's current
+      // one. The epoch changes on any acquire, present, configure, detach, or
+      // adoption, so a frame that started - even one that already completed -
+      // or any other transition while we were unlocked skips this present
+      // (their newer content stands; presenting here would be a Dawn
+      // present-without-acquire error).
+      if (_surface && !_frameInFlight && _frameEpoch == blitEpoch) {
         _surface.Present();
       }
     }
@@ -231,6 +239,7 @@ public:
     _config.height = std::max(1, _height);
     _config.presentMode = wgpu::PresentMode::Fifo;
     _texture = nullptr;
+    _frameEpoch++;
     _configureLocked();
   }
 
@@ -243,6 +252,7 @@ public:
     _config.width = std::max(1, newWidth);
     _config.height = std::max(1, newHeight);
     _texture = nullptr;
+    _frameEpoch++;
     _configureLocked();
   }
 
@@ -255,6 +265,7 @@ public:
     _config = {};
     _viewFormats.clear();
     _acquiredFromSurface = false;
+    _frameEpoch++;
   }
 
   bool isConfigured() {
@@ -286,6 +297,7 @@ public:
     }
     _frameInFlight = true;
     _acquiredFromSurface = false;
+    _frameEpoch++;
     if (_surface) {
       auto texture = acquireSurfaceTextureLocked();
       if (texture) {
@@ -328,6 +340,7 @@ public:
       }
       _acquiredFromSurface = false;
       _frameInFlight = false;
+      _frameEpoch++;
     }
     applyPendingAttach();
   }
@@ -373,6 +386,7 @@ private:
         // presentFrame() must not present it.
         _acquiredFromSurface = false;
       }
+      _frameEpoch++;
       // Window ownership is independent of the Dawn surface handle (which can
       // be null if surface creation failed): always return the window.
       releasedSurfaces[1] = _nativeSurface;
@@ -488,6 +502,11 @@ private:
   // Frame state: set by getCurrentTexture, cleared by presentFrame.
   bool _frameInFlight = false;
   bool _acquiredFromSurface = false;
+  // Bumped on every acquire, present, configure/reconfigure/unconfigure,
+  // adoption, and detach. The deferred blit-present in applyPendingAttach
+  // revalidates against it so it never presents a texture that stopped being
+  // the surface's current one while the lock was released.
+  uint64_t _frameEpoch = 0;
   // device == nullptr means "not configured". _viewFormats owns the storage
   // that _config.viewFormats points at.
   wgpu::SurfaceConfiguration _config;
@@ -527,13 +546,35 @@ public:
   std::shared_ptr<SurfaceInfo>
   getSurfaceInfoOrCreate(int id, wgpu::Instance gpu, int width, int height) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    auto it = _registry.find(id);
-    if (it != _registry.end()) {
-      return it->second;
-    }
-    auto info = std::make_shared<SurfaceInfo>(gpu, width, height);
-    _registry[id] = info;
+    return getSurfaceInfoOrCreateLocked(id, gpu, width, height);
+  }
+
+  // Find-or-create + attach as one atomic step under the registry lock, so it
+  // serializes with removeSurfaceInfoIfDetached: an attach can never land on
+  // an entry that a concurrent destroyContext is erasing (it either marks the
+  // entry attached before the check, or re-creates the entry after the
+  // erase). Lock order is registry -> SurfaceInfo, matching every other path.
+  std::shared_ptr<SurfaceInfo> attachSurface(int id, wgpu::Instance gpu,
+                                             int width, int height,
+                                             void *nativeSurface,
+                                             wgpu::Surface surface,
+                                             NativeSurfaceReleaser releaser) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    auto info = getSurfaceInfoOrCreateLocked(id, gpu, width, height);
+    info->attachSurface(nativeSurface, std::move(surface), std::move(releaser));
     return info;
+  }
+
+  // Erase the entry only if no native surface is attached or pending; the
+  // atomic counterpart of attachSurface above (see RNWebGPU::destroyContext
+  // for the ownership split this implements).
+  void removeSurfaceInfoIfDetached(int id) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    auto it = _registry.find(id);
+    if (it == _registry.end() || it->second->hasNativeSurface()) {
+      return;
+    }
+    _registry.erase(it);
   }
 
   // Drops all entries. Called when the RN instance tears down (dev reload):
@@ -546,6 +587,20 @@ public:
 
 private:
   SurfaceRegistry() = default;
+
+  std::shared_ptr<SurfaceInfo> getSurfaceInfoOrCreateLocked(int id,
+                                                            wgpu::Instance gpu,
+                                                            int width,
+                                                            int height) {
+    auto it = _registry.find(id);
+    if (it != _registry.end()) {
+      return it->second;
+    }
+    auto info = std::make_shared<SurfaceInfo>(gpu, width, height);
+    _registry[id] = info;
+    return info;
+  }
+
   mutable std::shared_mutex _mutex;
   std::unordered_map<int, std::shared_ptr<SurfaceInfo>> _registry;
 };

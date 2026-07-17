@@ -57,11 +57,13 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
   auto gpu = manager->_gpu;
   auto surface = manager->_platformContext->makeSurface(
       gpu, window, static_cast<int>(width), static_cast<int>(height));
-  auto info = registry.getSurfaceInfoOrCreate(
-      contextId, gpu, static_cast<int>(width), static_cast<int>(height));
-  info->attachSurface(window, surface, [](void *nativeSurface) {
-    ANativeWindow_release(static_cast<ANativeWindow *>(nativeSurface));
-  });
+  // Find-or-create + attach runs atomically under the registry lock so a
+  // concurrent destroyContext cannot orphan this surface.
+  auto info = registry.attachSurface(
+      contextId, gpu, static_cast<int>(width), static_cast<int>(height), window,
+      surface, [](void *nativeSurface) {
+        ANativeWindow_release(static_cast<ANativeWindow *>(nativeSurface));
+      });
   // The attach is adopted at the next frame boundary by the rendering thread;
   // schedule a flush so contexts that are not currently rendering still pick
   // it up (and present their last offscreen frame).

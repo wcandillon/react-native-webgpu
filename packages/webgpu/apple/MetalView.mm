@@ -26,15 +26,26 @@
   if (manager == nullptr) {
     return;
   }
-  void *nativeSurface = (__bridge void *)self.layer;
+  // Retain the layer for as long as SurfaceInfo holds the pointer: the
+  // latched attach (and the flush lambda that adopts it) can outlive this
+  // view, e.g. across a dev reload where the registry is cleared before
+  // dealloc runs. Balanced by the releaser below.
+  void *nativeSurface = (void *)CFBridgingRetain(self.layer);
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto gpu = manager->_gpu;
   auto surface = manager->_platformContext->makeSurface(
       gpu, nativeSurface, size.width, size.height);
-  auto info = registry.getSurfaceInfoOrCreate([_contextId intValue], gpu,
-                                              size.width, size.height);
-  // The layer pointer is unretained (the view owns the layer): no releaser.
-  info->attachSurface(nativeSurface, surface, nullptr);
+  // Find-or-create + attach runs atomically under the registry lock so a
+  // concurrent destroyContext cannot orphan this surface.
+  auto info = registry.attachSurface(
+      [_contextId intValue], gpu, size.width, size.height, nativeSurface,
+      surface, [](void *layer) {
+        // The releaser can run on the rendering thread; CALayer teardown
+        // belongs on the main thread.
+        dispatch_async(dispatch_get_main_queue(), ^{
+          CFBridgingRelease(layer);
+        });
+      });
   // The attach is adopted at the next frame boundary by the rendering thread;
   // schedule a flush so contexts that are not currently rendering still pick
   // it up (and present their last offscreen frame).

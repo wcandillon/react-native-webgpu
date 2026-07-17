@@ -221,14 +221,13 @@ public:
   //   simulated unmount re-runs JS effects without unmounting native views,
   //   and removing the entry then would orphan the still-attached surface.
   // - No native surface: the JS side is the last owner and removes the entry.
+  // The check-and-erase runs atomically under the registry lock
+  // (removeSurfaceInfoIfDetached), serialized against the UI thread's
+  // find-or-create + attach (SurfaceRegistry::attachSurface), so a concurrent
+  // attach can never be orphaned by this removal.
   void destroyContext(int contextId) {
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-    if (auto info = registry.getSurfaceInfo(contextId)) {
-      if (info->hasNativeSurface()) {
-        return;
-      }
-    }
-    registry.removeSurfaceInfo(contextId);
+    registry.removeSurfaceInfoIfDetached(contextId);
   }
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
