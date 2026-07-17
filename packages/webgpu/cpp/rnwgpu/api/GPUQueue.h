@@ -37,7 +37,7 @@ public:
   std::string getBrand() { return CLASS_NAME; }
 
   void submit(std::vector<std::shared_ptr<GPUCommandBuffer>> commandBuffers);
-  async::AsyncTaskHandle onSubmittedWorkDone();
+  async::AsyncTaskHandle onSubmittedWorkDone(jsi::Runtime &runtime);
   void writeBuffer(std::shared_ptr<GPUBuffer> buffer, uint64_t bufferOffset,
                    std::shared_ptr<ArrayBuffer> data,
                    std::optional<uint64_t> dataOffsetElements,
@@ -60,8 +60,8 @@ public:
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "__brand", &GPUQueue::getBrand);
     installMethod(runtime, prototype, "submit", &GPUQueue::submit);
-    installMethod(runtime, prototype, "onSubmittedWorkDone",
-                  &GPUQueue::onSubmittedWorkDone);
+    installMethodWithRuntime(runtime, prototype, "onSubmittedWorkDone",
+                             &GPUQueue::onSubmittedWorkDone);
     installMethod(runtime, prototype, "writeBuffer", &GPUQueue::writeBuffer);
     installMethod(runtime, prototype, "writeTexture", &GPUQueue::writeTexture);
     installMethod(runtime, prototype, "copyExternalImageToTexture",
