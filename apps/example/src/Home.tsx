@@ -116,16 +116,8 @@ export const examples = [
     title: "🌈 Gradient Tiles",
   },
   {
-    screen: "AsyncStarvation",
-    title: "⚠️ Async Runner Starvation",
-  },
-  {
-    screen: "DeviceLostHang",
-    title: "⚠️ Device Lost Hang",
-  },
-  {
-    screen: "WorkletRequestAdapter",
-    title: "⚠️ Worklet requestAdapter",
+    screen: "Diagnostics",
+    title: "⚠️ Tests",
   },
   {
     screen: "StorageBufferVertices",
