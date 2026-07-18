@@ -35,7 +35,13 @@ import { ComputeToys } from "./ComputeToys";
 import { Reanimated } from "./Reanimated";
 import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
+import { DiagnosticsList } from "./Diagnostics/DiagnosticsList";
 import { WorkletRequestAdapter } from "./Diagnostics/WorkletRequestAdapter";
+import { ContextEdgeCases } from "./Diagnostics/ContextEdgeCases";
+import { ViewFormatsUseAfterFree } from "./Diagnostics/ViewFormatsUseAfterFree";
+import { RenderAfterUnmount } from "./Diagnostics/RenderAfterUnmount";
+import { BackgroundDetach } from "./Diagnostics/BackgroundDetach";
+import { SurfaceChurn } from "./Diagnostics/SurfaceChurn";
 import { StorageBufferVertices } from "./StorageBufferVertices";
 import { SharedTextureMemory } from "./SharedTextureMemory";
 import { ImportExternalTexture } from "./ImportExternalTexture";
@@ -96,12 +102,28 @@ function App() {
           </Stack.Screen>
           <Stack.Screen name="GradientTiles" component={GradientTiles} />
           <Stack.Screen name="Reanimated" component={Reanimated} />
+          <Stack.Screen
+            name="Diagnostics"
+            component={DiagnosticsList}
+            options={{ title: "Tests" }}
+          />
           <Stack.Screen name="AsyncStarvation" component={AsyncStarvation} />
           <Stack.Screen name="DeviceLostHang" component={DeviceLostHang} />
           <Stack.Screen
             name="WorkletRequestAdapter"
             component={WorkletRequestAdapter}
           />
+          <Stack.Screen name="ContextEdgeCases" component={ContextEdgeCases} />
+          <Stack.Screen
+            name="ViewFormatsUseAfterFree"
+            component={ViewFormatsUseAfterFree}
+          />
+          <Stack.Screen
+            name="RenderAfterUnmount"
+            component={RenderAfterUnmount}
+          />
+          <Stack.Screen name="BackgroundDetach" component={BackgroundDetach} />
+          <Stack.Screen name="SurfaceChurn" component={SurfaceChurn} />
           <Stack.Screen
             name="StorageBufferVertices"
             component={StorageBufferVertices}
