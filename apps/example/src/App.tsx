@@ -35,6 +35,7 @@ import { ComputeToys } from "./ComputeToys";
 import { Reanimated } from "./Reanimated";
 import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
+import { DiagnosticsList } from "./Diagnostics/DiagnosticsList";
 import { WorkletRequestAdapter } from "./Diagnostics/WorkletRequestAdapter";
 import { ContextEdgeCases } from "./Diagnostics/ContextEdgeCases";
 import { ViewFormatsUseAfterFree } from "./Diagnostics/ViewFormatsUseAfterFree";
@@ -101,6 +102,11 @@ function App() {
           </Stack.Screen>
           <Stack.Screen name="GradientTiles" component={GradientTiles} />
           <Stack.Screen name="Reanimated" component={Reanimated} />
+          <Stack.Screen
+            name="Diagnostics"
+            component={DiagnosticsList}
+            options={{ title: "Tests" }}
+          />
           <Stack.Screen name="AsyncStarvation" component={AsyncStarvation} />
           <Stack.Screen name="DeviceLostHang" component={DeviceLostHang} />
           <Stack.Screen

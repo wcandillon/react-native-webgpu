@@ -116,36 +116,8 @@ export const examples = [
     title: "🌈 Gradient Tiles",
   },
   {
-    screen: "AsyncStarvation",
-    title: "⚠️ Async Runner Starvation",
-  },
-  {
-    screen: "DeviceLostHang",
-    title: "⚠️ Device Lost Hang",
-  },
-  {
-    screen: "WorkletRequestAdapter",
-    title: "⚠️ Worklet requestAdapter",
-  },
-  {
-    screen: "ContextEdgeCases",
-    title: "⚠️ Context Edge Cases",
-  },
-  {
-    screen: "ViewFormatsUseAfterFree",
-    title: "⚠️ viewFormats Use-After-Free",
-  },
-  {
-    screen: "RenderAfterUnmount",
-    title: "⚠️ Render After Unmount",
-  },
-  {
-    screen: "BackgroundDetach",
-    title: "⚠️ Background Detach",
-  },
-  {
-    screen: "SurfaceChurn",
-    title: "⚠️ Surface Churn",
+    screen: "Diagnostics",
+    title: "⚠️ Tests",
   },
   {
     screen: "StorageBufferVertices",
