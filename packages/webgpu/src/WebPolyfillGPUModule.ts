@@ -55,5 +55,7 @@ function makeWebGPUCanvasContext(
 window.RNWebGPU = {
   getNativeSurface,
   MakeWebGPUCanvasContext: makeWebGPUCanvasContext,
+  // On web the browser owns the canvas/context lifecycle; nothing to retire.
+  destroyContext: (_contextId: number) => {},
   fabric,
 };

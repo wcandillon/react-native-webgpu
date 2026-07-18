@@ -47,6 +47,9 @@ declare global {
       width: number,
       height: number,
     ) => RNCanvasContext;
+    // Retires a canvas context; called by Canvas on unmount (the Canvas owns
+    // the native registry entry for its contextId).
+    destroyContext: (contextId: number) => void;
     DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
     createImageBitmap: typeof createImageBitmap;
     loadVideoFrame: (path: string) => NativeVideoFrame;
