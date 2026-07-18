@@ -41,6 +41,7 @@ declare global {
   var RNWebGPU: {
     gpu: GPU;
     fabric: boolean;
+    sessionId: number;
     getNativeSurface: (contextId: number) => NativeCanvas;
     MakeWebGPUCanvasContext: (
       contextId: number,

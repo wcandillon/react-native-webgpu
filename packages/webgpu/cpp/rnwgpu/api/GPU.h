@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_set>
 #include <variant>
@@ -8,6 +9,7 @@
 #include "Unions.h"
 
 #include "NativeObject.h"
+#include "RNWebGPUSession.h"
 
 #include "rnwgpu/async/AsyncTaskHandle.h"
 #include "rnwgpu/async/RuntimeContext.h"
@@ -27,7 +29,7 @@ class GPU : public NativeObject<GPU> {
 public:
   static constexpr const char *CLASS_NAME = "GPU";
 
-  explicit GPU(jsi::Runtime &runtime);
+  explicit GPU(std::shared_ptr<RNWebGPUSessionState> sessionState);
 
 public:
   std::string getBrand() { return CLASS_NAME; }
@@ -54,6 +56,7 @@ public:
   inline const wgpu::Instance get() { return _instance; }
 
 private:
+  std::shared_ptr<RNWebGPUSessionState> _sessionState;
   wgpu::Instance _instance;
 };
 

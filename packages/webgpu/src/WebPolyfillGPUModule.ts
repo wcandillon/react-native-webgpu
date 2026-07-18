@@ -56,4 +56,5 @@ window.RNWebGPU = {
   getNativeSurface,
   MakeWebGPUCanvasContext: makeWebGPUCanvasContext,
   fabric,
+  sessionId: 0,
 };

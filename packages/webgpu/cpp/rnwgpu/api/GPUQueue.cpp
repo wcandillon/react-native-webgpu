@@ -1,7 +1,11 @@
 #include "GPUQueue.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "Convertors.h"
@@ -82,8 +86,8 @@ async::AsyncTaskHandle GPUQueue::onSubmittedWorkDone(jsi::Runtime &runtime) {
   auto queue = _instance;
   // Post to the CALLING runtime's context so the promise settles on the
   // thread that requested it (see GPUBuffer::mapAsync).
-  auto context =
-      async::RuntimeContext::getOrCreate(runtime, _async->instance());
+  auto context = async::RuntimeContext::getOrCreate(runtime, _async->instance(),
+                                                    _async->sessionState());
   return context->postTask(
       [queue](const async::AsyncTaskHandle::ResolveFunction &resolve,
               const async::AsyncTaskHandle::RejectFunction &reject) {

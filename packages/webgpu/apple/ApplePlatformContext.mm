@@ -86,8 +86,7 @@ void ApplePlatformContext::createImageBitmapAsync(
                                  std::move(onError));
 }
 
-ImageData
-ApplePlatformContext::createImageBitmapFromData(std::span<const uint8_t> data) {
+static ImageData decodeImageBitmapData(std::span<const uint8_t> data) {
   // This avoids a copy by assuming the UIImage/NSImage constructors
   // decode `nsData` eagerly before the memory for the wrapped `data`
   // is freed.
@@ -139,6 +138,11 @@ ApplePlatformContext::createImageBitmapFromData(std::span<const uint8_t> data) {
   return result;
 }
 
+ImageData
+ApplePlatformContext::createImageBitmapFromData(std::span<const uint8_t> data) {
+  return decodeImageBitmapData(data);
+}
+
 void ApplePlatformContext::createImageBitmapFromDataAsync(
     std::span<const uint8_t> data, std::function<void(ImageData)> onSuccess,
     std::function<void(std::string)> onError) {
@@ -149,7 +153,10 @@ void ApplePlatformContext::createImageBitmapFromDataAsync(
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     @autoreleasepool {
       try {
-        auto result = createImageBitmapFromData(*ownedData);
+        // Decoding is deliberately independent of ApplePlatformContext. The
+        // module can be destroyed by an Expo reload while this block remains
+        // queued, so retaining or dereferencing its raw `this` is unsafe.
+        auto result = decodeImageBitmapData(*ownedData);
         onSuccess(std::move(result));
       } catch (const std::exception &e) {
         onError(e.what());
@@ -158,12 +165,10 @@ void ApplePlatformContext::createImageBitmapFromDataAsync(
   });
 }
 
-VideoFrameHandle
-ApplePlatformContext::loadVideoFrame(const std::string &path) {
+VideoFrameHandle ApplePlatformContext::loadVideoFrame(const std::string &path) {
   NSString *nsPath = [NSString stringWithUTF8String:path.c_str()];
-  NSURL *url = [nsPath hasPrefix:@"file://"]
-                   ? [NSURL URLWithString:nsPath]
-                   : [NSURL fileURLWithPath:nsPath];
+  NSURL *url = [nsPath hasPrefix:@"file://"] ? [NSURL URLWithString:nsPath]
+                                             : [NSURL fileURLWithPath:nsPath];
   AVURLAsset *asset = [AVURLAsset assetWithURL:url];
 
   NSArray<AVAssetTrack *> *videoTracks =
@@ -183,8 +188,7 @@ ApplePlatformContext::loadVideoFrame(const std::string &path) {
   }
 
   NSDictionary *outputSettings = @{
-    (NSString *)kCVPixelBufferPixelFormatTypeKey :
-        @(kCVPixelFormatType_32BGRA),
+    (NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
     (NSString *)kCVPixelBufferIOSurfacePropertiesKey : @{},
     (NSString *)kCVPixelBufferMetalCompatibilityKey : @YES,
   };
@@ -238,7 +242,7 @@ ApplePlatformContext::loadVideoFrame(const std::string &path) {
 
 std::unique_ptr<IVideoPlayer>
 ApplePlatformContext::createVideoPlayer(const std::string &path,
-                                         VideoPixelFormat format) {
+                                        VideoPixelFormat format) {
   return createAppleVideoPlayer(path, format);
 }
 
@@ -250,8 +254,8 @@ VideoFrameHandle ApplePlatformContext::wrapNativeBuffer(void *pointer) {
   return wrapCVPixelBuffer(static_cast<CVPixelBufferRef>(pointer));
 }
 
-VideoFrameHandle
-ApplePlatformContext::createTestVideoFrame(uint32_t width, uint32_t height) {
+VideoFrameHandle ApplePlatformContext::createTestVideoFrame(uint32_t width,
+                                                            uint32_t height) {
   NSDictionary *attrs = @{
     (NSString *)kCVPixelBufferIOSurfacePropertiesKey : @{},
     (NSString *)kCVPixelBufferMetalCompatibilityKey : @YES,

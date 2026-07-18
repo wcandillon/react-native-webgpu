@@ -1,5 +1,6 @@
 #include "AsyncTaskHandle.h"
 
+#include <exception>
 #include <memory>
 #include <string>
 #include <utility>
@@ -11,151 +12,278 @@
 
 namespace rnwgpu::async {
 
+namespace {
+
 using Action = std::function<void(jsi::Runtime &, rnwgpu::Promise &)>;
 
-struct AsyncTaskHandle::State
+} // namespace
+
+struct AsyncTaskHandle::State final
     : public std::enable_shared_from_this<AsyncTaskHandle::State> {
-  State(std::shared_ptr<RuntimeContext> context, bool keepPumping)
+  State(std::weak_ptr<RuntimeContext> context, bool keepPumping) noexcept
       : context(std::move(context)), keepPumping(keepPumping) {}
 
-  void settle(Action action);
-  void attachPromise(const std::shared_ptr<rnwgpu::Promise> &promise);
-  void schedule(Action action);
+  void settle(Action action) noexcept;
+  void attachPromise(const std::shared_ptr<rnwgpu::Promise> &newPromise);
+  void schedule(Action action) noexcept;
+  void
+  runScheduled(Action &action,
+               const std::shared_ptr<rnwgpu::Promise> &promiseRef) noexcept;
+  void cancel() noexcept;
+  void finish() noexcept;
 
   ResolveFunction createResolveFunction();
   RejectFunction createRejectFunction();
 
-  std::shared_ptr<rnwgpu::Promise> currentPromise();
-
   std::mutex mutex;
-  std::shared_ptr<RuntimeContext> context;
-  bool keepPumping;
+  std::weak_ptr<RuntimeContext> context;
+  const bool keepPumping;
   std::shared_ptr<rnwgpu::Promise> promise;
   std::optional<Action> pendingAction;
-  bool settled = false;
-  std::shared_ptr<State> keepAlive;
+  bool settled{false};
+  bool finished{false};
+  bool cancelled{false};
+  bool pumpStarted{false};
 };
 
-// MARK: - State helpers
-
-void AsyncTaskHandle::State::settle(Action action) {
-  std::optional<Action> actionToSchedule;
-
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    if (settled) {
-      return;
-    }
-    settled = true;
-
-    if (promise) {
-      actionToSchedule = std::move(action);
-    } else {
-      pendingAction = std::move(action);
-    }
+void AsyncTaskHandle::State::settle(Action action) noexcept {
+  if (!action) {
+    return;
   }
 
-  if (actionToSchedule.has_value()) {
-    schedule(std::move(*actionToSchedule));
+  try {
+    std::optional<Action> actionToSchedule;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      if (settled || cancelled || finished) {
+        return;
+      }
+      settled = true;
+      if (promise) {
+        actionToSchedule = std::move(action);
+      } else {
+        pendingAction = std::move(action);
+      }
+    }
+
+    if (actionToSchedule.has_value()) {
+      schedule(std::move(*actionToSchedule));
+    }
+  } catch (...) {
+    // Dawn callbacks must never receive a C++ exception.
   }
 }
 
 void AsyncTaskHandle::State::attachPromise(
     const std::shared_ptr<rnwgpu::Promise> &newPromise) {
-  std::optional<Action> actionToSchedule;
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    promise = newPromise;
-    keepAlive = shared_from_this();
-    if (pendingAction.has_value()) {
-      actionToSchedule = std::move(pendingAction);
-      pendingAction.reset();
+  if (!newPromise) {
+    cancel();
+    return;
+  }
+
+  auto contextRef = context.lock();
+  if (!contextRef ||
+      !newPromise->belongsToRuntime(contextRef->runtimeIdentity())) {
+    newPromise->reject(
+        "Asynchronous WebGPU objects must be used on their calling runtime");
+    cancel();
+    return;
+  }
+
+  if (keepPumping) {
+    try {
+      if (!contextRef->beginPumping()) {
+        newPromise->reject("WebGPU runtime was invalidated");
+        cancel();
+        return;
+      }
+    } catch (const std::exception &exception) {
+      newPromise->reject(exception.what());
+      cancel();
+      return;
+    } catch (...) {
+      newPromise->reject("Failed to start the WebGPU event pump");
+      cancel();
+      return;
     }
   }
 
-  if (actionToSchedule.has_value()) {
-    schedule(std::move(*actionToSchedule));
+  std::optional<Action> actionToRun;
+  bool rollbackPump = false;
+  bool unavailable = false;
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (cancelled || finished) {
+      rollbackPump = keepPumping;
+      unavailable = true;
+    } else {
+      pumpStarted = keepPumping;
+      promise = newPromise;
+      if (pendingAction.has_value()) {
+        actionToRun = std::move(pendingAction);
+        pendingAction.reset();
+      }
+    }
+  }
+
+  if (rollbackPump) {
+    contextRef->onTaskSettled(/*keepPumping=*/true);
+  }
+  if (unavailable) {
+    newPromise->reject("WebGPU runtime was invalidated");
+    return;
+  }
+
+  if (actionToRun.has_value()) {
+    // The Promise executor runs on the owning runtime. A Dawn operation that
+    // completed synchronously before attachment can settle directly here.
+    runScheduled(*actionToRun, newPromise);
   }
 }
 
-void AsyncTaskHandle::State::schedule(Action action) {
-  auto promiseRef = currentPromise();
-  if (!promiseRef) {
-    return;
-  }
-
-  if (!context) {
-    // No context (shouldn't happen): best-effort inline settle.
-    action(promiseRef->runtime, *promiseRef);
-    std::lock_guard<std::mutex> lock(mutex);
-    keepAlive.reset();
-    return;
-  }
-
-  auto self = shared_from_this();
-
-  if (!keepPumping) {
-    // Spontaneous task (e.g. device.lost): not driven by the ProcessEvents pump.
-    // Settle on the owning runtime's JS thread via its CallInvoker, which is
-    // wired only for the main JS runtime. A device created on a worklet runtime
-    // has no invoker, so its device.lost is dropped (best-effort; see the README
-    // "Threading model"). invokeAsync runs the closure on the main JS thread,
-    // where promiseRef->runtime lives for a main-runtime device.
-    auto invoker = context->callInvoker();
-    if (invoker) {
-      invoker->invokeAsync(
-          [self, action = std::move(action), promiseRef]() mutable {
-            action(promiseRef->runtime, *promiseRef);
-            std::lock_guard<std::mutex> lock(self->mutex);
-            self->keepAlive.reset();
-          });
-    } else {
+void AsyncTaskHandle::State::schedule(Action action) noexcept {
+  try {
+    std::shared_ptr<rnwgpu::Promise> promiseRef;
+    {
       std::lock_guard<std::mutex> lock(mutex);
-      keepAlive.reset();
+      if (cancelled || finished || !promise) {
+        return;
+      }
+      promiseRef = promise;
     }
+
+    auto contextRef = context.lock();
+    if (!contextRef || !contextRef->isValid()) {
+      return;
+    }
+
+    auto self = shared_from_this();
+    if (!keepPumping) {
+      const auto invoker = contextRef->callInvoker();
+      if (invoker) {
+        invoker->invokeAsync(
+            [self, action = std::move(action), promiseRef]() mutable {
+              self->runScheduled(action, promiseRef);
+            });
+      }
+      // Worklet runtimes have no native dispatcher for spontaneous events.
+      // Keep the task runtime-owned so teardown can release it safely.
+      return;
+    }
+
+    contextRef->postSettle(
+        [self, action = std::move(action), promiseRef]() mutable {
+          self->runScheduled(action, promiseRef);
+        });
+  } catch (...) {
+    // Allocation/dispatcher failures must not unwind through a Dawn callback.
+  }
+}
+
+void AsyncTaskHandle::State::runScheduled(
+    Action &action,
+    const std::shared_ptr<rnwgpu::Promise> &promiseRef) noexcept {
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (cancelled || finished) {
+      return;
+    }
+  }
+
+  const auto contextRef = context.lock();
+  if (!contextRef) {
+    finish();
     return;
   }
 
-  // Pumping task (request/response op). The resolve/reject callback may fire on
-  // a thread that is NOT the owning runtime's thread: with a shared
-  // wgpu::Instance, another runtime's ProcessEvents() pump can consume this Dawn
-  // event. Touching the Promise's runtime off-thread would corrupt Hermes. So we
-  // deposit the actual settle (the only JSI-touching work) into the owning
-  // context's mailbox; the context drains it on its own thread during its next
-  // tick. The deposited closure captures only C++ state and runs no JSI until
-  // drained, so depositing from any thread is safe.
-  context->postSettle(
-      [self, action = std::move(action), promiseRef]() mutable {
-        action(promiseRef->runtime, *promiseRef);
-        if (self->context) {
-          self->context->onTaskSettled(/*keepPumping=*/true);
-        }
-        std::lock_guard<std::mutex> lock(self->mutex);
-        self->keepAlive.reset();
-      });
+  bool ranOnOwningRuntime = false;
+  try {
+    ranOnOwningRuntime = contextRef->withRuntime([&](jsi::Runtime &runtime) {
+      try {
+        action(runtime, *promiseRef);
+      } catch (const std::exception &exception) {
+        promiseRef->reject(exception.what());
+      } catch (...) {
+        promiseRef->reject(
+            "Unknown native error while settling WebGPU Promise");
+      }
+    });
+  } catch (...) {
+    // CallInvoker/timer callbacks must never propagate a native exception.
+  }
+
+  if (!ranOnOwningRuntime) {
+    // This callback is already executing on the task's owning runtime thread.
+    // If the session became inactive before the callback ran, release the JSI
+    // resolver/rejecter before unregistering the task. finish() alone would
+    // leave PromiseRuntimeContext as the sole owner until runtime destruction.
+    cancel();
+    return;
+  }
+  finish();
+}
+
+void AsyncTaskHandle::State::cancel() noexcept {
+  std::shared_ptr<rnwgpu::Promise> promiseToInvalidate;
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (cancelled || finished) {
+      return;
+    }
+    cancelled = true;
+    promiseToInvalidate = std::move(promise);
+    pendingAction.reset();
+  }
+
+  // cancel() is called by RuntimeContext's runtimeData teardown path, so this
+  // is the owning runtime thread and JSI function destruction is safe.
+  if (promiseToInvalidate) {
+    promiseToInvalidate->invalidate();
+  }
+  finish();
+}
+
+void AsyncTaskHandle::State::finish() noexcept {
+  std::shared_ptr<RuntimeContext> contextRef;
+  bool decrementPump = false;
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (finished) {
+      return;
+    }
+    finished = true;
+    decrementPump = keepPumping && pumpStarted;
+    promise.reset();
+    pendingAction.reset();
+    contextRef = context.lock();
+  }
+
+  if (contextRef) {
+    contextRef->onTaskSettled(decrementPump);
+    contextRef->unregisterTask(this);
+  }
 }
 
 AsyncTaskHandle::ResolveFunction
 AsyncTaskHandle::State::createResolveFunction() {
-  auto weakSelf = std::weak_ptr<State>(shared_from_this());
+  const auto weakSelf = std::weak_ptr<State>(shared_from_this());
   return [weakSelf](ValueFactory factory) {
     if (auto self = weakSelf.lock()) {
       ValueFactory resolvedFactory =
-          factory ? std::move(factory) : [](jsi::Runtime &runtime) {
+          factory ? std::move(factory) : [](jsi::Runtime & /*runtime*/) {
             return jsi::Value::undefined();
           };
       self->settle(
           [factory = std::move(resolvedFactory)](
               jsi::Runtime &runtime, rnwgpu::Promise &promise) mutable {
-            auto value = factory(runtime);
-            promise.resolve(std::move(value));
+            promise.resolve(jsi::Value(factory(runtime)));
           });
     }
   };
 }
 
 AsyncTaskHandle::RejectFunction AsyncTaskHandle::State::createRejectFunction() {
-  auto weakSelf = std::weak_ptr<State>(shared_from_this());
+  const auto weakSelf = std::weak_ptr<State>(shared_from_this());
   return [weakSelf](std::string reason) {
     if (auto self = weakSelf.lock()) {
       self->settle([reason = std::move(reason)](jsi::Runtime & /*runtime*/,
@@ -166,25 +294,29 @@ AsyncTaskHandle::RejectFunction AsyncTaskHandle::State::createRejectFunction() {
   };
 }
 
-std::shared_ptr<rnwgpu::Promise> AsyncTaskHandle::State::currentPromise() {
-  std::lock_guard<std::mutex> lock(mutex);
-  return promise;
-}
-
-// MARK: - AsyncTaskHandle
-
-AsyncTaskHandle::AsyncTaskHandle() = default;
-
 AsyncTaskHandle::AsyncTaskHandle(std::shared_ptr<State> state)
     : _state(std::move(state)) {}
 
-bool AsyncTaskHandle::valid() const { return _state != nullptr; }
+bool AsyncTaskHandle::valid() const noexcept { return _state != nullptr; }
 
 AsyncTaskHandle
 AsyncTaskHandle::create(const std::shared_ptr<RuntimeContext> &context,
                         bool keepPumping) {
+  if (!context) {
+    return {};
+  }
+
   auto state = std::make_shared<State>(context, keepPumping);
-  state->keepAlive = state;
+  const auto weakState = std::weak_ptr<State>(state);
+  const bool registered =
+      context->registerTask(state.get(), state, [weakState]() {
+        if (const auto task = weakState.lock()) {
+          task->cancel();
+        }
+      });
+  if (!registered) {
+    return {};
+  }
   return AsyncTaskHandle(std::move(state));
 }
 
@@ -207,6 +339,12 @@ void AsyncTaskHandle::attachPromise(
     const std::shared_ptr<rnwgpu::Promise> &promise) const {
   if (_state) {
     _state->attachPromise(promise);
+  }
+}
+
+void AsyncTaskHandle::cancel() const noexcept {
+  if (_state) {
+    _state->cancel();
   }
 }
 

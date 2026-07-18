@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -45,11 +46,11 @@
 #include "GPURenderPipelineDescriptor.h"
 #include "GPUSampler.h"
 #include "GPUSamplerDescriptor.h"
+#include "GPUShaderModule.h"
+#include "GPUShaderModuleDescriptor.h"
 #include "GPUSharedFenceDescriptor.h"
 #include "GPUSharedTextureMemory.h"
 #include "GPUSharedTextureMemoryDescriptor.h"
-#include "GPUShaderModule.h"
-#include "GPUShaderModuleDescriptor.h"
 #include "GPUSupportedLimits.h"
 #include "GPUTexture.h"
 #include "GPUTextureDescriptor.h"
@@ -60,6 +61,29 @@ namespace rnwgpu {
 namespace jsi = facebook::jsi;
 
 class GPUDevice : public NativeObject<GPUDevice> {
+private:
+  struct RuntimeEventListeners final {
+    void clear() {
+      std::lock_guard<std::mutex> lock(mutex);
+      listeners.clear();
+    }
+
+    std::mutex mutex;
+    std::unordered_map<std::string, std::vector<std::shared_ptr<jsi::Function>>>
+        listeners;
+  };
+
+  struct DeviceRegistry final {
+    std::mutex mutex;
+    std::unordered_map<WGPUDevice, std::weak_ptr<GPUDevice>> devices;
+  };
+
+  static DeviceRegistry &getRegistry() {
+    // Dawn callbacks can arrive during process-wide static teardown.
+    static auto *registry = new DeviceRegistry();
+    return *registry;
+  }
+
 public:
   static constexpr const char *CLASS_NAME = "GPUDevice";
 
@@ -67,44 +91,48 @@ public:
                      std::shared_ptr<async::RuntimeContext> async,
                      std::string label)
       : NativeObject(CLASS_NAME), _instance(instance), _async(async),
-        _label(label) {}
+        _label(std::move(label)),
+        _eventListeners(std::make_shared<RuntimeEventListeners>()) {}
 
   ~GPUDevice() override {
     // Unregister from the static registry
-    unregisterDevice(_instance.Get());
+    unregisterDevice(_instance.Get(), this);
+    // The callback retains listener state until the owning runtime thread has
+    // cleared its JSI functions (or runtime invalidation performs the cleanup).
+    if (_async && _listenerCleanupCallbackId != 0) {
+      _async->removeInvalidationCallback(_listenerCleanupCallbackId);
+    }
   }
 
   // Static registry for looking up GPUDevice from wgpu::Device in callbacks
   static void registerDevice(WGPUDevice handle,
                              std::weak_ptr<GPUDevice> device) {
-    std::lock_guard<std::mutex> lock(getRegistryMutex());
-    getRegistry()[handle] = device;
+    auto &registry = getRegistry();
+    std::lock_guard<std::mutex> lock(registry.mutex);
+    registry.devices.insert_or_assign(handle, std::move(device));
   }
 
-  static void unregisterDevice(WGPUDevice handle) {
-    std::lock_guard<std::mutex> lock(getRegistryMutex());
-    getRegistry().erase(handle);
+  static void unregisterDevice(WGPUDevice handle, const GPUDevice *expected) {
+    auto &registry = getRegistry();
+    std::lock_guard<std::mutex> lock(registry.mutex);
+    const auto it = registry.devices.find(handle);
+    if (it == registry.devices.end()) {
+      return;
+    }
+    const auto current = it->second.lock();
+    if (!current || current.get() == expected) {
+      registry.devices.erase(it);
+    }
   }
 
   static std::shared_ptr<GPUDevice> lookupDevice(WGPUDevice handle) {
-    std::lock_guard<std::mutex> lock(getRegistryMutex());
-    auto it = getRegistry().find(handle);
-    if (it != getRegistry().end()) {
+    auto &registry = getRegistry();
+    std::lock_guard<std::mutex> lock(registry.mutex);
+    const auto it = registry.devices.find(handle);
+    if (it != registry.devices.end()) {
       return it->second.lock();
     }
     return nullptr;
-  }
-
-private:
-  static std::unordered_map<WGPUDevice, std::weak_ptr<GPUDevice>> &
-  getRegistry() {
-    static std::unordered_map<WGPUDevice, std::weak_ptr<GPUDevice>> registry;
-    return registry;
-  }
-
-  static std::mutex &getRegistryMutex() {
-    static std::mutex mutex;
-    return mutex;
   }
 
 public:
@@ -121,8 +149,8 @@ public:
       std::shared_ptr<GPUExternalTextureDescriptor> descriptor);
   std::shared_ptr<GPUSharedTextureMemory> importSharedTextureMemory(
       std::shared_ptr<GPUSharedTextureMemoryDescriptor> descriptor);
-  std::shared_ptr<GPUSharedFence> importSharedFence(
-      std::shared_ptr<GPUSharedFenceDescriptor> descriptor);
+  std::shared_ptr<GPUSharedFence>
+  importSharedFence(std::shared_ptr<GPUSharedFenceDescriptor> descriptor);
   std::shared_ptr<GPUBindGroupLayout> createBindGroupLayout(
       std::shared_ptr<GPUBindGroupLayoutDescriptor> descriptor);
   std::shared_ptr<GPUPipelineLayout>
@@ -153,14 +181,16 @@ public:
   std::unordered_set<std::string> getFeatures();
   std::shared_ptr<GPUSupportedLimits> getLimits();
   std::shared_ptr<GPUQueue> getQueue();
-  async::AsyncTaskHandle getLost();
+  async::AsyncTaskHandle getLost(jsi::Runtime &runtime);
   void notifyDeviceLost(wgpu::DeviceLostReason reason, std::string message);
   void notifyUncapturedError(wgpu::ErrorType type, std::string message);
   void forceLossForTesting();
 
   // EventTarget methods
-  void addEventListener(std::string type, jsi::Function callback);
-  void removeEventListener(std::string type, jsi::Function callback);
+  void addEventListener(jsi::Runtime &runtime, std::string type,
+                        jsi::Function callback);
+  void removeEventListener(jsi::Runtime &runtime, std::string type,
+                           jsi::Function callback);
 
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
@@ -211,7 +241,7 @@ public:
     installGetter(runtime, prototype, "features", &GPUDevice::getFeatures);
     installGetter(runtime, prototype, "limits", &GPUDevice::getLimits);
     installGetter(runtime, prototype, "queue", &GPUDevice::getQueue);
-    installGetter(runtime, prototype, "lost", &GPUDevice::getLost);
+    installGetterWithRuntime(runtime, prototype, "lost", &GPUDevice::getLost);
     installGetterSetter(runtime, prototype, "label", &GPUDevice::getLabel,
                         &GPUDevice::setLabel);
     installMethod(runtime, prototype, "forceLossForTesting",
@@ -227,7 +257,7 @@ public:
             return jsi::Value::undefined();
           }
           auto native = GPUDevice::fromValue(rt, thisVal);
-          native->addEventListener(args[0].getString(rt).utf8(rt),
+          native->addEventListener(rt, args[0].getString(rt).utf8(rt),
                                    args[1].getObject(rt).getFunction(rt));
           return jsi::Value::undefined();
         });
@@ -242,7 +272,7 @@ public:
             return jsi::Value::undefined();
           }
           auto native = GPUDevice::fromValue(rt, thisVal);
-          native->removeEventListener(args[0].getString(rt).utf8(rt),
+          native->removeEventListener(rt, args[0].getString(rt).utf8(rt),
                                       args[1].getObject(rt).getFunction(rt));
           return jsi::Value::undefined();
         });
@@ -255,16 +285,15 @@ public:
 private:
   friend class GPUAdapter;
 
-  // Runs the uncapturederror listeners on the creation runtime's JS thread.
-  // Invoked from notifyUncapturedError via the main CallInvoker.
+  // Runs uncapturederror listeners on the owning runtime's JS thread.
   void deliverUncapturedError(wgpu::ErrorType type, std::string message);
 
   wgpu::Device _instance;
   std::shared_ptr<async::RuntimeContext> _async;
   std::string _label;
   // Guards the device-lost state below. In the ProcessEvents model both
-  // notifyDeviceLost() (fired by Dawn during ProcessEvents) and getLost() run on
-  // the owning runtime's own thread, but device destruction can also trigger
+  // notifyDeviceLost() (fired by Dawn during ProcessEvents) and getLost() run
+  // on the owning runtime's own thread, but device destruction can also trigger
   // notifyDeviceLost() synchronously, so the mutex keeps these fields safe.
   std::mutex _lostMutex;
   std::optional<async::AsyncTaskHandle> _lostHandle;
@@ -272,10 +301,11 @@ private:
   bool _lostSettled = false;
   std::optional<async::AsyncTaskHandle::ResolveFunction> _lostResolve;
 
-  // Event listeners storage - keyed by event type
-  // Each entry contains a vector of shared_ptr to functions
-  std::unordered_map<std::string, std::vector<std::shared_ptr<jsi::Function>>>
-      _eventListeners;
+  // RuntimeContext owns a removable cleanup callback for this shared state.
+  // Keeping its id prevents a foreign-thread GPUDevice destructor from being
+  // the last owner of any jsi::Function.
+  std::shared_ptr<RuntimeEventListeners> _eventListeners;
+  async::RuntimeContext::InvalidationCallbackId _listenerCleanupCallbackId{0};
 };
 
 } // namespace rnwgpu

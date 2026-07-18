@@ -2,15 +2,16 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
+#include <jsi/jsi.h>
 #include <memory>
 #include <mutex>
+#include <unordered_map>
 #include <vector>
 
-#include <jsi/jsi.h>
-
 #include "AsyncTaskHandle.h"
-
+#include "RNWebGPUSession.h"
 #include "webgpu/webgpu_cpp.h"
 
 namespace jsi = facebook::jsi;
@@ -22,108 +23,116 @@ class CallInvoker;
 namespace rnwgpu::async {
 
 /**
- * Per-runtime coordinator for asynchronous WebGPU operations.
+ * Runtime-owned coordinator for asynchronous WebGPU operations.
  *
- * Each JS runtime that uses WebGPU gets its own RuntimeContext, stored in the
- * runtime's runtimeData. Async Dawn operations are registered with
- * CallbackMode::AllowProcessEvents and driven to completion by pumping
- * `instance.ProcessEvents()` on the runtime's OWN thread via a self-
- * rescheduling tick (scheduled through that runtime's setTimeout). Because
- * ProcessEvents invokes the Dawn callbacks synchronously on the pumping thread,
- * the JS Promise is settled directly on the owning runtime, with no background
- * thread and no cross-thread hop.
+ * One context is stored in each JSI runtime's runtimeData. The runtimeData
+ * destructor invalidates the context before the runtime disappears, cancels
+ * every pending task, and clears all queued settle actions. Dawn callbacks
+ * retain only weak task/context references, so callbacks arriving later are
+ * harmless no-ops.
  *
- * The pump only runs while at least one "pumping" task is outstanding, so it
- * costs nothing when idle and stops cleanly.
- *
- * Spontaneous events (keepPumping = false): events that may fire at any time,
- * independent of any request/response op (today only GPUDevice::getLost, whose
- * Dawn callback is registered AllowSpontaneous). These are NOT driven by the
- * pump. Instead their settle is marshalled onto the owning runtime's JS thread
- * via that runtime's CallInvoker, which is wired only for the MAIN JS runtime
- * (callInvoker()). A device created on a worklet runtime has no invoker, so its
- * device.lost is best-effort and may never fire. See the README "Threading
- * model" section.
- *
- * Shared-instance safety (mailbox): multiple runtimes may share one
- * wgpu::Instance. ProcessEvents() drains the whole instance queue and fires
- * callbacks on the calling thread, which may NOT be the owning runtime's thread
- * for a given promise. So a settled callback never touches JSI inline; it
- * deposits a settle-action (a plain C++ closure, no JSI) into the OWNING
- * context's thread-safe mailbox via postSettle(), and each context drains its
- * own mailbox on its own thread during tick(). ProcessEvents() itself is
- * serialized across runtimes by a process-wide mutex, since concurrent
- * ProcessEvents on one instance is not guaranteed reentrant.
- *
- * Threading contract: a RuntimeContext must only be pumped from the runtime it
- * was created for. Request/response async entry points (mapAsync,
- * onSubmittedWorkDone, popErrorScope, createComputePipelineAsync,
- * createRenderPipelineAsync, getCompilationInfo, requestAdapter,
- * requestDevice) must NOT use a context captured when the object was created —
- * the object may have been boxed across to another runtime. They resolve the
- * CALLING runtime's context via getOrCreate(runtime, instance) so the promise
- * is settled on the thread it was created on. Spontaneous events (device.lost,
- * uncapturederror) remain bound to the device's own context (best-effort, main
- * runtime only; see the class doc above).
+ * Request/response operations always use the CALLING runtime's context. This
+ * preserves the cross-runtime/boxed-object contract: a Promise is settled on
+ * the same runtime that created it, not necessarily the runtime that created
+ * the WebGPU native object.
  */
-class RuntimeContext : public std::enable_shared_from_this<RuntimeContext> {
+class RuntimeContext final
+    : public std::enable_shared_from_this<RuntimeContext> {
 public:
   using TaskCallback =
       std::function<void(const AsyncTaskHandle::ResolveFunction &,
                          const AsyncTaskHandle::RejectFunction &)>;
 
-  RuntimeContext(jsi::Runtime &runtime, wgpu::Instance instance);
+  RuntimeContext(jsi::Runtime &runtime, wgpu::Instance instance,
+                 std::shared_ptr<RNWebGPUSessionState> sessionState);
+  ~RuntimeContext();
+
+  RuntimeContext(const RuntimeContext &) = delete;
+  RuntimeContext &operator=(const RuntimeContext &) = delete;
+  RuntimeContext(RuntimeContext &&) = delete;
+  RuntimeContext &operator=(RuntimeContext &&) = delete;
 
   static std::shared_ptr<RuntimeContext> get(jsi::Runtime &runtime);
-  static std::shared_ptr<RuntimeContext> getOrCreate(jsi::Runtime &runtime,
-                                                     wgpu::Instance instance);
+  static std::shared_ptr<RuntimeContext>
+  getOrCreate(jsi::Runtime &runtime, wgpu::Instance instance,
+              std::shared_ptr<RNWebGPUSessionState> sessionState);
 
-  // Register the main JS runtime and its CallInvoker. The RuntimeContext created
-  // for this runtime gets the invoker (callInvoker() returns it); every other
-  // runtime's context returns null. Called once from RNWebGPUManager on install.
   static void
-  registerMainRuntime(jsi::Runtime *runtime,
+  registerMainRuntime(RNWebGPUSessionId sessionId, jsi::Runtime *runtime,
                       std::shared_ptr<facebook::react::CallInvoker> invoker);
+  static void unregisterMainRuntime(RNWebGPUSessionId sessionId) noexcept;
 
-  // CallInvoker for this runtime's JS thread, or null. Non-null only for the
-  // main JS runtime; used to deliver spontaneous events (device.lost) without
-  // the pump. See the class doc.
-  const std::shared_ptr<facebook::react::CallInvoker> &callInvoker() const {
-    return _callInvoker;
-  }
+  void invalidate() noexcept;
+  bool isValid() const noexcept;
+  bool ownsRuntime(const jsi::Runtime &runtime) const noexcept;
+  const void *runtimeIdentity() const noexcept;
 
-  // The wgpu::Instance bound to this runtime.
-  wgpu::Instance instance() const { return _instance; }
+  /** Call only from this context's owning runtime thread. */
+  bool withRuntime(const std::function<void(jsi::Runtime &)> &action);
+
+  std::shared_ptr<facebook::react::CallInvoker> callInvoker() const noexcept;
+  wgpu::Instance instance() const;
+  std::shared_ptr<RNWebGPUSessionState> sessionState() const noexcept;
 
   AsyncTaskHandle postTask(const TaskCallback &callback,
                            bool keepPumping = true);
 
-  // Deposit a settle-action to run on THIS context's runtime thread. Thread-safe
-  // (callable from any thread, e.g. another runtime that pumped ProcessEvents).
-  // The job must not touch JSI until it runs (it runs during drainMailbox on the
-  // owning thread).
-  void postSettle(std::function<void()> job);
+  bool beginPumping();
+  bool postSettle(std::function<void()> job);
+  void onTaskSettled(bool keepPumping) noexcept;
 
-  // Invoked by a drained settle-action when its task settles. Runs on the owning
-  // runtime's thread.
-  void onTaskSettled(bool keepPumping);
+  /** RuntimeContext owns each task until it settles or runtimeData tears down.
+   */
+  bool registerTask(const void *id, std::shared_ptr<void> owner,
+                    std::function<void()> cancel);
+  void unregisterTask(const void *id) noexcept;
+
+  using InvalidationCallbackId = std::uint64_t;
+  InvalidationCallbackId
+  addInvalidationCallback(std::function<void()> callback);
+
+  /**
+   * Schedule removal and execution of an invalidation callback on this
+   * context's owning runtime thread. If dispatch is unavailable, the callback
+   * remains registered and invalidate() executes it during runtime teardown.
+   * Safe to call from any thread.
+   */
+  void removeInvalidationCallback(InvalidationCallbackId id) noexcept;
 
 private:
   static jsi::UUID runtimeDataUUID();
 
+  void invalidateForReplacement() noexcept;
+  void invalidateImpl(bool purgeRegistrations) noexcept;
   void requestTick();
-  void tick();
-  void drainMailbox();
+  void tick() noexcept;
+  void drainMailbox() noexcept;
+  void detachMainRuntime(RNWebGPUSessionId sessionId) noexcept;
+  void executeAndRemoveInvalidationCallback(InvalidationCallbackId id) noexcept;
 
-  jsi::Runtime &_runtime;
+  mutable std::recursive_mutex _lifecycleMutex;
+  jsi::Runtime *_runtime;
   wgpu::Instance _instance;
-  // Non-null only for the main JS runtime's context (see registerMainRuntime).
+  std::shared_ptr<RNWebGPUSessionState> _sessionState;
+  RNWebGPUSessionId _mainSessionId{kInvalidRNWebGPUSessionId};
   std::shared_ptr<facebook::react::CallInvoker> _callInvoker;
   std::atomic<std::size_t> _pumpTasks{0};
   std::atomic<bool> _tickScheduled{false};
 
   std::mutex _mailboxMutex;
   std::vector<std::function<void()>> _mailbox;
+
+  struct ActiveTask final {
+    std::shared_ptr<void> owner;
+    std::function<void()> cancel;
+  };
+  std::mutex _tasksMutex;
+  std::unordered_map<const void *, ActiveTask> _activeTasks;
+
+  std::mutex _invalidationCallbacksMutex;
+  std::unordered_map<InvalidationCallbackId, std::function<void()>>
+      _invalidationCallbacks;
+  InvalidationCallbackId _nextInvalidationCallbackId{1};
 };
 
 } // namespace rnwgpu::async

@@ -49,8 +49,6 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/rnwgpu/api/GPUCanvasContext.cpp
     ../cpp/rnwgpu/RNWebGPUManager.cpp
     ../cpp/jsi/Promise.cpp
-    ../cpp/jsi/RuntimeLifecycleMonitor.cpp
-    ../cpp/jsi/RuntimeAwareCache.cpp
     ../cpp/rnwgpu/async/RuntimeContext.cpp
     ../cpp/rnwgpu/async/AsyncTaskHandle.cpp
 )

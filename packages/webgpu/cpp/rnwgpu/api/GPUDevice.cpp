@@ -1,6 +1,10 @@
 #include "GPUDevice.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <cstdio>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -363,8 +367,8 @@ async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
 
   // Post to the CALLING runtime's context so the promise settles on the
   // thread that requested it (see GPUBuffer::mapAsync).
-  auto context =
-      async::RuntimeContext::getOrCreate(runtime, _async->instance());
+  auto context = async::RuntimeContext::getOrCreate(runtime, _async->instance(),
+                                                    _async->sessionState());
   return context->postTask([device = _instance, desc, descriptor,
                             pipelineHolder](
                                const async::AsyncTaskHandle::ResolveFunction
@@ -410,8 +414,8 @@ async::AsyncTaskHandle GPUDevice::createRenderPipelineAsync(
 
   // Post to the CALLING runtime's context so the promise settles on the
   // thread that requested it (see GPUBuffer::mapAsync).
-  auto context =
-      async::RuntimeContext::getOrCreate(runtime, _async->instance());
+  auto context = async::RuntimeContext::getOrCreate(runtime, _async->instance(),
+                                                    _async->sessionState());
   return context->postTask([device = _instance, desc, descriptor,
                             pipelineHolder](
                                const async::AsyncTaskHandle::ResolveFunction
@@ -448,8 +452,8 @@ async::AsyncTaskHandle GPUDevice::popErrorScope(jsi::Runtime &runtime) {
 
   // Post to the CALLING runtime's context so the promise settles on the
   // thread that requested it (see GPUBuffer::mapAsync).
-  auto context =
-      async::RuntimeContext::getOrCreate(runtime, _async->instance());
+  auto context = async::RuntimeContext::getOrCreate(runtime, _async->instance(),
+                                                    _async->sessionState());
   return context->postTask([device](
                                const async::AsyncTaskHandle::ResolveFunction
                                    &resolve,
@@ -523,7 +527,28 @@ std::unordered_set<std::string> GPUDevice::getFeatures() {
   return result;
 }
 
-async::AsyncTaskHandle GPUDevice::getLost() {
+async::AsyncTaskHandle GPUDevice::getLost(jsi::Runtime &runtime) {
+  if (!_async || !_async->ownsRuntime(runtime)) {
+    throw jsi::JSError(runtime,
+                       "GPUDevice.lost must use the device's owning runtime");
+  }
+  if (!_async->isValid()) {
+    throw jsi::JSError(
+        runtime, "Cannot access GPUDevice.lost after runtime invalidation");
+  }
+  if (!_async->callInvoker()) {
+    // Spontaneous device-loss callbacks need a native dispatcher. Worklet
+    // runtimes do not have one, so reject immediately instead of registering a
+    // non-pumping task that can never settle or be session-invalidated on its
+    // owning thread.
+    return _async->postTask(
+        [](const async::AsyncTaskHandle::ResolveFunction & /*resolve*/,
+           const async::AsyncTaskHandle::RejectFunction &reject) {
+          reject("GPUDevice.lost requires a runtime dispatcher");
+        },
+        /*keepPumping=*/false);
+  }
+
   // Held across the whole body: the postTask callback below runs synchronously
   // on this (JS) thread and touches the same _lost* fields, so it must not
   // re-lock. notifyDeviceLost() takes the same lock from its (possibly worker)
@@ -565,17 +590,93 @@ async::AsyncTaskHandle GPUDevice::getLost() {
   _lostHandle = handle;
   return handle;
 }
-void GPUDevice::addEventListener(std::string type, jsi::Function callback) {
-  auto funcPtr = std::make_shared<jsi::Function>(std::move(callback));
-  _eventListeners[type].push_back(funcPtr);
+void GPUDevice::addEventListener(jsi::Runtime &runtime, std::string type,
+                                 jsi::Function callback) {
+  if (!_async || !_async->ownsRuntime(runtime)) {
+    throw jsi::JSError(
+        runtime,
+        "GPUDevice event listeners must use the device's owning runtime");
+  }
+  if (!_async->callInvoker()) {
+    throw jsi::JSError(
+        runtime,
+        "GPUDevice uncapturederror listeners require a runtime dispatcher");
+  }
+
+  const auto eventListeners = _eventListeners;
+  const bool added = _async->withRuntime([this, &runtime, &type, &callback,
+                                          eventListeners](
+                                             jsi::Runtime &owningRuntime) {
+    if (&owningRuntime != &runtime) {
+      throw jsi::JSError(
+          runtime,
+          "GPUDevice event listener runtime changed during registration");
+    }
+
+    std::lock_guard<std::mutex> lock(eventListeners->mutex);
+    if (_listenerCleanupCallbackId == 0) {
+      const auto cleanupId = _async->addInvalidationCallback(
+          [eventListeners]() { eventListeners->clear(); });
+      if (cleanupId == 0) {
+        throw jsi::JSError(
+            runtime, "Cannot add an event listener during runtime teardown");
+      }
+      _listenerCleanupCallbackId = cleanupId;
+    }
+
+    auto &listeners = eventListeners->listeners[type];
+    for (const auto &existing : listeners) {
+      if (existing && jsi::Object::strictEquals(runtime, *existing, callback)) {
+        return;
+      }
+    }
+    listeners.push_back(std::make_shared<jsi::Function>(std::move(callback)));
+  });
+  if (!added) {
+    throw jsi::JSError(runtime,
+                       "Cannot add an event listener after runtime teardown");
+  }
 }
 
-void GPUDevice::removeEventListener(std::string type, jsi::Function callback) {
-  // Note: Since jsi::Function doesn't support equality comparison,
-  // we cannot reliably remove a specific listener. This is a no-op.
-  // Most use cases (like BabylonJS) only need addEventListener to work.
-  (void)type;
-  (void)callback;
+void GPUDevice::removeEventListener(jsi::Runtime &runtime, std::string type,
+                                    jsi::Function callback) {
+  if (!_async || !_async->ownsRuntime(runtime)) {
+    throw jsi::JSError(
+        runtime,
+        "GPUDevice event listeners must use the device's owning runtime");
+  }
+
+  const auto eventListeners = _eventListeners;
+  const bool removed =
+      _async->withRuntime([&runtime, &type, &callback,
+                           eventListeners](jsi::Runtime &owningRuntime) {
+        if (&owningRuntime != &runtime) {
+          throw jsi::JSError(
+              runtime,
+              "GPUDevice event listener runtime changed during removal");
+        }
+
+        std::lock_guard<std::mutex> lock(eventListeners->mutex);
+        const auto listenersIt = eventListeners->listeners.find(type);
+        if (listenersIt == eventListeners->listeners.end()) {
+          return;
+        }
+        auto &listeners = listenersIt->second;
+        listeners.erase(
+            std::remove_if(listeners.begin(), listeners.end(),
+                           [&](const std::shared_ptr<jsi::Function> &stored) {
+                             return stored && jsi::Object::strictEquals(
+                                                  runtime, *stored, callback);
+                           }),
+            listeners.end());
+        if (listeners.empty()) {
+          eventListeners->listeners.erase(listenersIt);
+        }
+      });
+  if (!removed) {
+    throw jsi::JSError(
+        runtime, "Cannot remove an event listener after runtime teardown");
+  }
 }
 
 void GPUDevice::notifyUncapturedError(wgpu::ErrorType type,
@@ -586,59 +687,75 @@ void GPUDevice::notifyUncapturedError(wgpu::ErrorType type,
   // invoker is wired only for the main JS runtime, so a device created on a
   // worklet runtime does not deliver uncaptured errors to JS (best-effort; see
   // README "Threading model").
-  auto invoker = _async ? _async->callInvoker() : nullptr;
+  const auto invoker = _async ? _async->callInvoker() : nullptr;
   if (!invoker) {
     return;
   }
-  auto self = shared_from_this();
-  invoker->invokeAsync([self, type, message = std::move(message)]() mutable {
-    self->deliverUncapturedError(type, std::move(message));
-  });
+  const auto weakSelf = std::weak_ptr<GPUDevice>(shared_from_this());
+  try {
+    invoker->invokeAsync(
+        [weakSelf, type, message = std::move(message)]() mutable {
+          if (const auto self = weakSelf.lock()) {
+            self->deliverUncapturedError(type, std::move(message));
+          }
+        });
+  } catch (...) {
+    // Never unwind through Dawn's uncaptured-error callback.
+  }
 }
 
 void GPUDevice::deliverUncapturedError(wgpu::ErrorType type,
                                        std::string message) {
-  auto it = _eventListeners.find("uncapturederror");
-  if (it == _eventListeners.end() || it->second.empty()) {
+  if (!_async) {
     return;
   }
 
-  auto runtime = getCreationRuntime();
-  if (runtime == nullptr) {
-    return;
-  }
-
-  // Create the appropriate error object based on type
-  GPUErrorVariant error;
-  switch (type) {
-  case wgpu::ErrorType::Validation:
-    error = std::make_shared<GPUValidationError>(message);
-    break;
-  case wgpu::ErrorType::OutOfMemory:
-    error = std::make_shared<GPUOutOfMemoryError>(message);
-    break;
-  case wgpu::ErrorType::Internal:
-  case wgpu::ErrorType::Unknown:
-  default:
-    error = std::make_shared<GPUInternalError>(message);
-    break;
-  }
-
-  // Create the event object
-  auto event = std::make_shared<GPUUncapturedErrorEvent>(std::move(error));
-  auto eventValue =
-      JSIConverter<std::shared_ptr<GPUUncapturedErrorEvent>>::toJSI(*runtime,
-                                                                    event);
-
-  // Call all registered listeners
-  for (const auto &listener : it->second) {
-    try {
-      listener->call(*runtime, eventValue);
-    } catch (const std::exception &e) {
-      // Log but don't throw - we don't want one listener to break others
-      fprintf(stderr, "Error in uncapturederror listener: %s\n", e.what());
+  const auto eventListeners = _eventListeners;
+  _async->withRuntime([type, message = std::move(message),
+                       eventListeners](jsi::Runtime &runtime) mutable {
+    std::vector<std::shared_ptr<jsi::Function>> listeners;
+    {
+      std::lock_guard<std::mutex> lock(eventListeners->mutex);
+      const auto it = eventListeners->listeners.find("uncapturederror");
+      if (it == eventListeners->listeners.end() || it->second.empty()) {
+        return;
+      }
+      listeners = it->second;
     }
-  }
+
+    GPUErrorVariant error;
+    switch (type) {
+    case wgpu::ErrorType::Validation:
+      error = std::make_shared<GPUValidationError>(message);
+      break;
+    case wgpu::ErrorType::OutOfMemory:
+      error = std::make_shared<GPUOutOfMemoryError>(message);
+      break;
+    case wgpu::ErrorType::Internal:
+    case wgpu::ErrorType::Unknown:
+    default:
+      error = std::make_shared<GPUInternalError>(message);
+      break;
+    }
+
+    auto event = std::make_shared<GPUUncapturedErrorEvent>(std::move(error));
+    auto eventValue =
+        JSIConverter<std::shared_ptr<GPUUncapturedErrorEvent>>::toJSI(runtime,
+                                                                      event);
+    for (const auto &listener : listeners) {
+      if (!listener) {
+        continue;
+      }
+      try {
+        listener->call(runtime, eventValue);
+      } catch (const std::exception &exception) {
+        std::fprintf(stderr, "Error in uncapturederror listener: %s\n",
+                     exception.what());
+      } catch (...) {
+        std::fprintf(stderr, "Unknown error in uncapturederror listener\n");
+      }
+    }
+  });
 }
 
 } // namespace rnwgpu

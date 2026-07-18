@@ -36,6 +36,7 @@ import { Reanimated } from "./Reanimated";
 import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
 import { WorkletRequestAdapter } from "./Diagnostics/WorkletRequestAdapter";
+import { ReloadLifecycle } from "./Diagnostics/ReloadLifecycle";
 import { StorageBufferVertices } from "./StorageBufferVertices";
 import { SharedTextureMemory } from "./SharedTextureMemory";
 import { ImportExternalTexture } from "./ImportExternalTexture";
@@ -102,6 +103,7 @@ function App() {
             name="WorkletRequestAdapter"
             component={WorkletRequestAdapter}
           />
+          <Stack.Screen name="ReloadLifecycle" component={ReloadLifecycle} />
           <Stack.Screen
             name="StorageBufferVertices"
             component={StorageBufferVertices}

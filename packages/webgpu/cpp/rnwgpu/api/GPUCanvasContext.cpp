@@ -5,8 +5,15 @@
 
 namespace rnwgpu {
 
+void GPUCanvasContext::throwIfSessionInactive() const {
+  if (!_sessionState || !_sessionState->isActive()) {
+    throw std::runtime_error("WebGPU runtime session is no longer active");
+  }
+}
+
 void GPUCanvasContext::configure(
     std::shared_ptr<GPUCanvasConfiguration> configuration) {
+  throwIfSessionInactive();
   Convertor conv;
   wgpu::SurfaceConfiguration surfaceConfiguration;
   surfaceConfiguration.device = configuration->device->get();
@@ -32,6 +39,7 @@ void GPUCanvasContext::configure(
 void GPUCanvasContext::unconfigure() {}
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
+  throwIfSessionInactive();
   auto prevSize = _surfaceInfo->getConfig();
   auto width = _canvas->getWidth();
   auto height = _canvas->getHeight();
@@ -41,6 +49,9 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   }
 
   auto texture = _surfaceInfo->getCurrentTexture();
+  if (!texture) {
+    throw std::runtime_error("WebGPU canvas surface is unavailable");
+  }
 
   auto size = _surfaceInfo->getSize();
   _canvas->setClientWidth(size.width);
@@ -56,7 +67,8 @@ void GPUCanvasContext::present() {
   // getCurrentTexture / submit), preserving Dawn surface thread-affinity.
   // Required on every runtime (main JS, Reanimated UI, dedicated worklet);
   // offscreen surfaces have no wgpu::Surface so they no-op.
-  if (_surfaceInfo->hasSurface()) {
+  if (_sessionState && _sessionState->isActive() &&
+      _surfaceInfo->hasSurface()) {
     _surfaceInfo->presentFrame();
   }
 }

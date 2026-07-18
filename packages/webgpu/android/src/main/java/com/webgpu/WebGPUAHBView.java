@@ -95,16 +95,16 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
 
       // Notify WebGPU about the new surface
       if (!mSurfaceCreated) {
-        mApi.surfaceCreated(mSurface);
+        mApi.surfaceCreated(this, mSurface);
         mSurfaceCreated = true;
       } else {
-        mApi.surfaceChanged(mSurface);
+        mApi.surfaceChanged(this, mSurface);
       }
 
     } catch (Exception e) {
       e.printStackTrace();
       // Fallback to offscreen if ImageReader creation fails
-      mApi.surfaceOffscreen();
+      mApi.surfaceOffscreen(this);
     }
   }
 
@@ -254,9 +254,10 @@ public class WebGPUAHBView extends View implements ImageReader.OnImageAvailableL
   protected void onDetachedFromWindow() {
     super.onDetachedFromWindow();
 
-    // Notify WebGPU that surface is being destroyed
+    // Detach is reversible; preserve the registered canvas offscreen so it
+    // can be republished when this view is attached again.
     if (mSurfaceCreated) {
-      mApi.surfaceDestroyed();
+      mApi.surfaceOffscreen(this);
       mSurfaceCreated = false;
     }
 

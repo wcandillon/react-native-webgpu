@@ -128,6 +128,10 @@ export const examples = [
     title: "⚠️ Worklet requestAdapter",
   },
   {
+    screen: "ReloadLifecycle",
+    title: "♻️ Runtime Reload Lifecycle",
+  },
+  {
     screen: "StorageBufferVertices",
     title: "💾 Storage Buffer Vertices",
   },
