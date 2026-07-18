@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { SHADERS } from "@/components/hero/registry";
+import { HERO_BACKGROUND } from "@/components/hero/types";
 import { homeLinks } from "@/lib/layout.shared";
 
 const HeroShader = dynamic(
@@ -26,7 +27,12 @@ export default function HomePage() {
   const dark = entry.appearance !== "light";
 
   return (
-    <main className="relative min-h-0 flex-1 w-full overflow-hidden">
+    <main
+      className="relative min-h-0 flex-1 w-full overflow-hidden"
+      // The shader's background, not the theme's: keeps the hero from flashing
+      // (e.g. white in light mode) before the client-only canvas loads.
+      style={{ background: HERO_BACKGROUND[dark ? "dark" : "light"] }}
+    >
       <HeroShader entry={entry} className="absolute inset-0 h-full w-full" />
 
       <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center px-6 text-center">
