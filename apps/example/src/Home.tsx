@@ -128,6 +128,26 @@ export const examples = [
     title: "⚠️ Worklet requestAdapter",
   },
   {
+    screen: "ContextEdgeCases",
+    title: "⚠️ Context Edge Cases",
+  },
+  {
+    screen: "ViewFormatsUseAfterFree",
+    title: "⚠️ viewFormats Use-After-Free",
+  },
+  {
+    screen: "RenderAfterUnmount",
+    title: "⚠️ Render After Unmount",
+  },
+  {
+    screen: "BackgroundDetach",
+    title: "⚠️ Background Detach",
+  },
+  {
+    screen: "SurfaceChurn",
+    title: "⚠️ Surface Churn",
+  },
+  {
     screen: "StorageBufferVertices",
     title: "💾 Storage Buffer Vertices",
   },
