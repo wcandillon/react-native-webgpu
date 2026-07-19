@@ -307,6 +307,15 @@ void RNWebGPUManager::invalidate() noexcept {
   }
 }
 
+void RNWebGPUManager::flushPendingSurfaceTransition(
+    std::shared_ptr<SurfaceInfo> info) {
+  if (info == nullptr || _jsCallInvoker == nullptr || !isActive()) {
+    return;
+  }
+  _jsCallInvoker->invokeAsync(
+      [info = std::move(info)] { info->applyPendingAttach(); });
+}
+
 RNWebGPUManager::~RNWebGPUManager() {
   invalidate();
   _jsRuntime = nullptr;

@@ -122,11 +122,6 @@ void detachSurface(rnwgpu::SurfaceOwnerId ownerId,
     void *nativeSurface = (__bridge void *)metalLayer;
     auto nativeSurfaceOwner = retainMetalLayer(metalLayer);
     auto gpu = manager->_gpu;
-    auto surface = manager->_platformContext->makeSurface(gpu, nativeSurface,
-                                                          width, height);
-    if (!manager->isActive()) {
-      return;
-    }
 
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     auto surfaceInfo = registry.claimSurfaceInfo(
@@ -138,14 +133,20 @@ void detachSurface(rnwgpu::SurfaceOwnerId ownerId,
     _configuredSessionId = sessionId;
     _configuredContextId = contextId;
     _surfaceInfo = std::move(surfaceInfo);
-    if (!_surfaceInfo->switchToOnscreenIfOwnedBy(
-            _surfaceOwnerId, nativeSurface, std::move(surface),
-            std::move(nativeSurfaceOwner)) ||
-        !manager->isActive()) {
+
+    auto surface = manager->_platformContext->makeSurface(gpu, nativeSurface,
+                                                          width, height);
+    if (!manager->isActive() ||
+        !_surfaceInfo->attachSurfaceIfOwnedBy(_surfaceOwnerId, nativeSurface,
+                                              std::move(surface),
+                                              std::move(nativeSurfaceOwner))) {
       detachSurface(_surfaceOwnerId, _configuredSessionId, _configuredContextId,
                     _surfaceInfo);
       return;
     }
+    // Surface adoption is latched to a frame boundary. Flush on the JS thread
+    // too so a context with static/offscreen content is republished promptly.
+    manager->flushPendingSurfaceTransition(_surfaceInfo);
   } catch (const std::exception &error) {
     detachSurface(_surfaceOwnerId, _configuredSessionId, _configuredContextId,
                   _surfaceInfo);

@@ -26,10 +26,16 @@ export type Routes = {
   CanvasAPI: undefined;
   ComputeToys: undefined;
   Reanimated: undefined;
+  Diagnostics: undefined;
   AsyncStarvation: undefined;
   DeviceLostHang: undefined;
   WorkletRequestAdapter: undefined;
   ReloadLifecycle: undefined;
+  ContextEdgeCases: undefined;
+  ViewFormatsUseAfterFree: undefined;
+  RenderAfterUnmount: undefined;
+  BackgroundDetach: undefined;
+  SurfaceChurn: undefined;
   StorageBufferVertices: undefined;
   SharedTextureMemory: undefined;
   ImportExternalTexture: undefined;

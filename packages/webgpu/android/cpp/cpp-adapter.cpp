@@ -217,15 +217,10 @@ extern "C" JNIEXPORT jint JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     auto &surfaceRegistry = rnwgpu::SurfaceRegistry::getInstance();
     const int nativeWidth = surfaceDimension(width);
     const int nativeHeight = surfaceDimension(height);
-    auto webGpuSurface = managerSnapshot.manager->_platformContext->makeSurface(
-        managerSnapshot.manager->_gpu, nativeWindow, nativeWidth, nativeHeight);
-    if (!webGpuSurface) {
-      throw std::runtime_error("WebGPU surface creation returned null");
-    }
-    if (!managerSnapshot.manager->isActive()) {
-      return kSurfacePublishFailed;
-    }
 
+    // Claim under the registry lock before doing Dawn work. A claimed entry
+    // counts as native-owned, so concurrent JS unmount cleanup cannot erase it
+    // between surface creation and the latched attach.
     surfaceInfo = surfaceRegistry.claimSurfaceInfo(
         sessionId, contextId, surfaceOwnerId, managerSnapshot.manager->_gpu,
         nativeWidth, nativeHeight);
@@ -233,9 +228,20 @@ extern "C" JNIEXPORT jint JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
       return kSurfacePublishFailed;
     }
 
-    const bool switched = surfaceInfo->switchToOnscreenIfOwnedBy(
+    auto webGpuSurface = managerSnapshot.manager->_platformContext->makeSurface(
+        managerSnapshot.manager->_gpu, nativeWindow, nativeWidth, nativeHeight);
+    if (!webGpuSurface) {
+      throw std::runtime_error("WebGPU surface creation returned null");
+    }
+    if (!managerSnapshot.manager->isActive()) {
+      (void)surfaceRegistry.removeSurfaceInfoIfOwnedBy(
+          sessionId, contextId, surfaceOwnerId, surfaceInfo);
+      return kSurfacePublishFailed;
+    }
+
+    const bool attached = surfaceInfo->attachSurfaceIfOwnedBy(
         surfaceOwnerId, nativeWindow, std::move(webGpuSurface), windowOwner);
-    if (!switched) {
+    if (!attached) {
       return kSurfacePublishFailed;
     }
     // The session can be invalidated while Dawn creates the surface. If that
@@ -246,6 +252,9 @@ extern "C" JNIEXPORT jint JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
           sessionId, contextId, surfaceOwnerId, surfaceInfo);
       return kSurfacePublishFailed;
     }
+    // Adoption happens at the next render frame boundary. Flush on the JS
+    // thread as well so static/offscreen content is republished immediately.
+    managerSnapshot.manager->flushPendingSurfaceTransition(surfaceInfo);
     return kSurfacePublishOnscreen;
   } catch (const std::exception &error) {
     const bool registeredOffscreen =
