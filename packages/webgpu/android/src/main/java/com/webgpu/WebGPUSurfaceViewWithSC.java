@@ -35,6 +35,15 @@ public class WebGPUSurfaceViewWithSC extends SurfaceView implements SurfaceHolde
 
   @Override
   protected void onDetachedFromWindow() {
+    mApi.surfaceOffscreen(this);
+    if (mSurface != null) {
+      mSurface.release();
+      mSurface = null;
+    }
+    if (mSurfaceControl != null) {
+      mSurfaceControl.release();
+      mSurfaceControl = null;
+    }
     super.onDetachedFromWindow();
   }
 
@@ -54,8 +63,10 @@ public class WebGPUSurfaceViewWithSC extends SurfaceView implements SurfaceHolde
       scb.setFormat(PixelFormat.RGBA_8888);
       mSurfaceControl = scb.build();
       mSurface = new Surface(mSurfaceControl);
-      mApi.surfaceCreated(mSurface);
     }
+    // surfaceDestroyed() moves the existing SurfaceControl offscreen without
+    // releasing it. Re-publish both new and reused surfaces here.
+    mApi.surfaceCreated(this, mSurface);
     SurfaceControl.Transaction tr = new SurfaceControl.Transaction();
     tr.setVisibility(mSurfaceControl, true);
     tr.apply();
@@ -63,7 +74,10 @@ public class WebGPUSurfaceViewWithSC extends SurfaceView implements SurfaceHolde
 
   @Override
   public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
-    mApi.surfaceChanged(mSurface);
+    if (mSurface == null || mSurfaceControl == null) {
+      return;
+    }
+    mApi.surfaceChanged(this, mSurface);
     SurfaceControl.Transaction tr = new SurfaceControl.Transaction();
     tr.setVisibility(mSurfaceControl, true);
     tr.setBufferSize(mSurfaceControl, getWidth(), getHeight());
@@ -72,6 +86,10 @@ public class WebGPUSurfaceViewWithSC extends SurfaceView implements SurfaceHolde
 
   @Override
   public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
+    mApi.surfaceOffscreen(this);
+    if (mSurfaceControl == null) {
+      return;
+    }
     SurfaceControl.Transaction tr = new SurfaceControl.Transaction();
     tr.reparent(mSurfaceControl, null);
     tr.apply();

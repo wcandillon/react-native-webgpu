@@ -5,71 +5,402 @@
 #include <jni.h>
 
 #include <algorithm>
+#include <atomic>
+#include <cmath>
+#include <condition_variable>
+#include <cstddef>
+#include <cstring>
+#include <deque>
 #include <functional>
+#include <limits>
 #include <memory>
+#include <mutex>
+#include <stdexcept>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
+
+#include <fbjni/fbjni.h>
 
 #include "webgpu/webgpu_cpp.h"
 
 #include "PlatformContext.h"
-#include "RNWebGPUManager.h"
 
 namespace rnwgpu {
 
-namespace jsi = facebook::jsi;
 namespace jni = facebook::jni;
+
+class AndroidWorkerPool final {
+public:
+  AndroidWorkerPool(std::size_t workerCount, std::size_t maxPendingTasks)
+      : _maxPendingTasks(maxPendingTasks) {
+    if (workerCount == 0 || maxPendingTasks == 0) {
+      throw std::invalid_argument(
+          "AndroidWorkerPool requires workers and queue capacity");
+    }
+
+    try {
+      _workers.reserve(workerCount);
+      for (std::size_t index = 0; index < workerCount; ++index) {
+        _workers.emplace_back([this]() { workerLoop(); });
+      }
+    } catch (...) {
+      shutdown();
+      throw;
+    }
+  }
+
+  ~AndroidWorkerPool() { shutdown(); }
+
+  AndroidWorkerPool(const AndroidWorkerPool &) = delete;
+  AndroidWorkerPool &operator=(const AndroidWorkerPool &) = delete;
+  AndroidWorkerPool(AndroidWorkerPool &&) = delete;
+  AndroidWorkerPool &operator=(AndroidWorkerPool &&) = delete;
+
+  bool submit(std::function<void()> task, std::function<void()> cancel) {
+    if (!task || !cancel) {
+      return false;
+    }
+
+    {
+      std::lock_guard<std::mutex> lock(_mutex);
+      if (_stopping || _tasks.size() >= _maxPendingTasks) {
+        return false;
+      }
+      _tasks.push_back(
+          PendingTask{.run = std::move(task), .cancel = std::move(cancel)});
+    }
+    _condition.notify_one();
+    return true;
+  }
+
+  void shutdown() noexcept {
+    std::deque<PendingTask> cancelledTasks;
+    {
+      std::lock_guard<std::mutex> lock(_mutex);
+      _stopping = true;
+      // Pool shutdown happens only at native-library/process teardown. Session
+      // reloads invalidate their ref-counted decode state without stopping the
+      // shared workers.
+      cancelledTasks.swap(_tasks);
+    }
+    _condition.notify_all();
+    cancelTasks(cancelledTasks);
+
+    for (auto &worker : _workers) {
+      if (worker.joinable()) {
+        worker.join();
+      }
+    }
+    _workers.clear();
+  }
+
+private:
+  struct PendingTask final {
+    std::function<void()> run;
+    std::function<void()> cancel;
+  };
+
+  static void cancelTasks(std::deque<PendingTask> &tasks) noexcept {
+    for (auto &task : tasks) {
+      if (!task.cancel) {
+        continue;
+      }
+      try {
+        task.cancel();
+      } catch (...) {
+        // Cancellation runs during reload/worker failure and must not escape.
+      }
+    }
+    tasks.clear();
+  }
+
+  void workerLoop() noexcept {
+    try {
+      // Pool threads are native-owned. Keep the JVM attachment scoped to the
+      // complete worker lifetime so fbjni detaches before std::thread exits.
+      jni::ThreadScope threadScope;
+      runWorkerLoop();
+    } catch (...) {
+      // ThreadScope construction can fail when fbjni/JVM initialization is no
+      // longer available. Stop accepting work without allowing an exception
+      // to escape the noexcept std::thread entry point.
+      stopAfterWorkerFailure();
+    }
+  }
+
+  void runWorkerLoop() noexcept {
+    for (;;) {
+      PendingTask task;
+      {
+        std::unique_lock<std::mutex> lock(_mutex);
+        _condition.wait(lock,
+                        [this]() { return _stopping || !_tasks.empty(); });
+        if (_stopping) {
+          return;
+        }
+        task = std::move(_tasks.front());
+        _tasks.pop_front();
+      }
+
+      try {
+        task.run();
+      } catch (...) {
+        // Individual tasks report their own failures. Never terminate a
+        // long-lived worker because an error callback threw.
+      }
+    }
+  }
+
+  void stopAfterWorkerFailure() noexcept {
+    std::deque<PendingTask> cancelledTasks;
+    try {
+      std::lock_guard<std::mutex> lock(_mutex);
+      _stopping = true;
+      cancelledTasks.swap(_tasks);
+    } catch (...) {
+      // There is no recovery path if mutex acquisition itself fails. Preserve
+      // the noexcept worker boundary and let pool destruction reclaim tasks.
+    }
+    _condition.notify_all();
+    cancelTasks(cancelledTasks);
+  }
+
+  const std::size_t _maxPendingTasks;
+  std::mutex _mutex;
+  std::condition_variable _condition;
+  std::deque<PendingTask> _tasks;
+  std::vector<std::thread> _workers;
+  bool _stopping{false};
+};
+
+class AndroidImageDecodeState final {
+public:
+  explicit AndroidImageDecodeState(jni::global_ref<jobject> blobModule)
+      : _blobModule(std::move(blobModule)) {
+    if (!_blobModule) {
+      throw std::invalid_argument(
+          "AndroidImageDecodeState requires a BlobModule");
+    }
+  }
+
+  AndroidImageDecodeState(const AndroidImageDecodeState &) = delete;
+  AndroidImageDecodeState &operator=(const AndroidImageDecodeState &) = delete;
+  AndroidImageDecodeState(AndroidImageDecodeState &&) = delete;
+  AndroidImageDecodeState &operator=(AndroidImageDecodeState &&) = delete;
+
+  [[nodiscard]] bool isActive() const noexcept {
+    return _active.load(std::memory_order_acquire);
+  }
+
+  void invalidate() noexcept {
+    _active.store(false, std::memory_order_release);
+  }
+
+  [[nodiscard]] jobject blobModule() const noexcept {
+    return _blobModule.get();
+  }
+
+private:
+  jni::global_ref<jobject> _blobModule;
+  std::atomic<bool> _active{true};
+};
+
+inline AndroidWorkerPool &androidImageWorkerPool() {
+  // Shared workers outlive individual React Native runtime generations. This
+  // lets module invalidation detach immediately while an already-running
+  // BitmapFactory decode safely finishes with its own ref-counted JNI state.
+  static AndroidWorkerPool pool{2, 32};
+  return pool;
+}
 
 class AndroidPlatformContext : public PlatformContext {
 private:
-  jobject _blobModule;
+  template <typename T> class LocalRef final {
+  public:
+    LocalRef(JNIEnv *env, T value) noexcept : _env(env), _value(value) {}
+    ~LocalRef() {
+      if (_value) {
+        _env->DeleteLocalRef(_value);
+      }
+    }
 
-  std::vector<uint8_t> resolveBlob(JNIEnv *env, const std::string &blobId,
-                                   double offset, double size) {
-    if (!_blobModule) {
+    LocalRef(const LocalRef &) = delete;
+    LocalRef &operator=(const LocalRef &) = delete;
+    LocalRef(LocalRef &&) = delete;
+    LocalRef &operator=(LocalRef &&) = delete;
+
+    [[nodiscard]] T get() const noexcept { return _value; }
+    [[nodiscard]] explicit operator bool() const noexcept {
+      return _value != nullptr;
+    }
+
+  private:
+    JNIEnv *_env;
+    T _value;
+  };
+
+  class LockedBitmapPixels final {
+  public:
+    LockedBitmapPixels(JNIEnv *env, jobject bitmap)
+        : _env(env), _bitmap(bitmap) {
+      const int status = AndroidBitmap_lockPixels(_env, _bitmap, &_pixels);
+      _locked = status == ANDROID_BITMAP_RESULT_SUCCESS && _pixels != nullptr;
+      if (_env->ExceptionCheck() == JNI_TRUE) {
+        _env->ExceptionClear();
+        if (_locked) {
+          AndroidBitmap_unlockPixels(_env, _bitmap);
+          _locked = false;
+          if (_env->ExceptionCheck() == JNI_TRUE) {
+            _env->ExceptionClear();
+          }
+        }
+        throw std::runtime_error(
+            "AndroidBitmap_lockPixels failed with a Java exception");
+      }
+      if (!_locked) {
+        throw std::runtime_error("Couldn't lock bitmap pixels");
+      }
+    }
+
+    ~LockedBitmapPixels() {
+      if (_locked) {
+        AndroidBitmap_unlockPixels(_env, _bitmap);
+        if (_env->ExceptionCheck() == JNI_TRUE) {
+          _env->ExceptionClear();
+        }
+      }
+    }
+
+    LockedBitmapPixels(const LockedBitmapPixels &) = delete;
+    LockedBitmapPixels &operator=(const LockedBitmapPixels &) = delete;
+    LockedBitmapPixels(LockedBitmapPixels &&) = delete;
+    LockedBitmapPixels &operator=(LockedBitmapPixels &&) = delete;
+
+    [[nodiscard]] const uint8_t *data() const noexcept {
+      return static_cast<const uint8_t *>(_pixels);
+    }
+
+    void unlock() {
+      if (!_locked) {
+        return;
+      }
+      _locked = false;
+      const int status = AndroidBitmap_unlockPixels(_env, _bitmap);
+      if (_env->ExceptionCheck() == JNI_TRUE) {
+        _env->ExceptionClear();
+        throw std::runtime_error(
+            "AndroidBitmap_unlockPixels failed with a Java exception");
+      }
+      if (status != ANDROID_BITMAP_RESULT_SUCCESS) {
+        throw std::runtime_error("Couldn't unlock bitmap pixels");
+      }
+    }
+
+  private:
+    JNIEnv *_env;
+    jobject _bitmap;
+    void *_pixels{nullptr};
+    bool _locked{false};
+  };
+
+  static void throwIfJavaException(JNIEnv *env, const char *operation) {
+    if (env->ExceptionCheck() != JNI_TRUE) {
+      return;
+    }
+    env->ExceptionClear();
+    throw std::runtime_error(std::string(operation) +
+                             " failed with a Java exception");
+  }
+
+  static jint checkedBlobRangeValue(double value, const char *name) {
+    constexpr double maxJint =
+        static_cast<double>(std::numeric_limits<jint>::max());
+    if (!std::isfinite(value) || value < 0.0 || std::trunc(value) != value ||
+        value > maxJint) {
+      throw std::invalid_argument(std::string("Blob ") + name +
+                                  " must be a non-negative 32-bit integer");
+    }
+    return static_cast<jint>(value);
+  }
+
+  static std::size_t checkedMultiply(std::size_t left, std::size_t right,
+                                     const char *message) {
+    if (left != 0 && right > std::numeric_limits<std::size_t>::max() / left) {
+      throw std::overflow_error(message);
+    }
+    return left * right;
+  }
+
+  static constexpr const char *kDecodeCancelledError =
+      "Android image decode was cancelled during session teardown";
+
+  std::shared_ptr<AndroidImageDecodeState> _decodeState;
+
+  static std::vector<uint8_t>
+  resolveBlob(const std::shared_ptr<AndroidImageDecodeState> &decodeState,
+              JNIEnv *env, const std::string &blobId, double offset,
+              double size) {
+    const auto blobModule = decodeState ? decodeState->blobModule() : nullptr;
+    if (blobModule == nullptr) {
       throw std::runtime_error("BlobModule instance is null");
     }
 
-    jclass blobModuleClass = env->GetObjectClass(_blobModule);
+    const jint checkedOffset = checkedBlobRangeValue(offset, "offset");
+    const jint checkedSize = checkedBlobRangeValue(size, "size");
+    if (checkedOffset > std::numeric_limits<jint>::max() - checkedSize) {
+      throw std::invalid_argument("Blob offset plus size exceeds 32-bit range");
+    }
+
+    LocalRef<jclass> blobModuleClass(env, env->GetObjectClass(blobModule));
+    throwIfJavaException(env, "GetObjectClass(BlobModule)");
     if (!blobModuleClass) {
       throw std::runtime_error("Couldn't find BlobModule class");
     }
 
-    jmethodID resolveMethod = env->GetMethodID(blobModuleClass, "resolve",
+    jmethodID resolveMethod = env->GetMethodID(blobModuleClass.get(), "resolve",
                                                "(Ljava/lang/String;II)[B");
-    env->DeleteLocalRef(blobModuleClass);
-
+    throwIfJavaException(env, "GetMethodID(BlobModule.resolve)");
     if (!resolveMethod) {
       throw std::runtime_error("Couldn't find resolve method in BlobModule");
     }
 
-    jstring jBlobId = env->NewStringUTF(blobId.c_str());
-    jbyteArray blobData = (jbyteArray)env->CallObjectMethod(
-        _blobModule, resolveMethod, jBlobId, static_cast<jint>(offset),
-        static_cast<jint>(size));
-    env->DeleteLocalRef(jBlobId);
+    LocalRef<jstring> jBlobId(env, env->NewStringUTF(blobId.c_str()));
+    throwIfJavaException(env, "NewStringUTF(blobId)");
+    if (!jBlobId) {
+      throw std::runtime_error("Couldn't allocate Blob identifier");
+    }
 
+    LocalRef<jbyteArray> blobData(
+        env, static_cast<jbyteArray>(env->CallObjectMethod(
+                 blobModule, resolveMethod, jBlobId.get(), checkedOffset,
+                 checkedSize)));
+    throwIfJavaException(env, "BlobModule.resolve");
     if (!blobData) {
       throw std::runtime_error("Couldn't retrieve blob data");
     }
 
-    jsize len = env->GetArrayLength(blobData);
-    std::vector<uint8_t> data(len);
-    env->GetByteArrayRegion(blobData, 0, len,
-                            reinterpret_cast<jbyte *>(data.data()));
-    env->DeleteLocalRef(blobData);
+    const jsize len = env->GetArrayLength(blobData.get());
+    throwIfJavaException(env, "GetArrayLength(Blob data)");
+    std::vector<uint8_t> data(static_cast<std::size_t>(len));
+    if (len > 0) {
+      env->GetByteArrayRegion(blobData.get(), 0, len,
+                              reinterpret_cast<jbyte *>(data.data()));
+      throwIfJavaException(env, "GetByteArrayRegion(Blob data)");
+    }
     return data;
   }
 
 public:
-  explicit AndroidPlatformContext(jobject blobModule)
-      : _blobModule(blobModule) {}
-  ~AndroidPlatformContext() {
-    if (_blobModule) {
-      JNIEnv *env = facebook::jni::Environment::current();
-      env->DeleteGlobalRef(_blobModule);
-      _blobModule = nullptr;
+  explicit AndroidPlatformContext(jni::global_ref<jobject> blobModule)
+      : _decodeState(std::make_shared<AndroidImageDecodeState>(
+            std::move(blobModule))) {}
+  ~AndroidPlatformContext() override {
+    // Running workers retain AndroidImageDecodeState, including BlobModule.
+    // Mark their results stale without waiting for BitmapFactory during reload.
+    if (_decodeState) {
+      _decodeState->invalidate();
     }
   }
 
@@ -84,6 +415,10 @@ public:
 
   ImageData createImageBitmap(std::string blobId, double offset,
                               double size) override {
+    const auto decodeState = _decodeState;
+    if (!decodeState || !decodeState->isActive()) {
+      throw std::runtime_error(kDecodeCancelledError);
+    }
     jni::Environment::ensureCurrentThreadIsAttached();
 
     JNIEnv *env = facebook::jni::Environment::current();
@@ -91,33 +426,54 @@ public:
       throw std::runtime_error("Couldn't get JNI environment");
     }
 
-    auto data = resolveBlob(env, blobId, offset, size);
-    return createImageBitmapFromData(data);
+    auto data = resolveBlob(decodeState, env, blobId, offset, size);
+    return decodeImageBitmapFromData(data);
   }
 
   void
   createImageBitmapAsync(std::string blobId, double offset, double size,
                          std::function<void(ImageData)> onSuccess,
                          std::function<void(std::string)> onError) override {
-    std::thread([this, blobId = std::move(blobId), offset, size,
-                 onSuccess = std::move(onSuccess),
-                 onError = std::move(onError)]() {
-      jni::Environment::ensureCurrentThreadIsAttached();
+    const auto decodeState = _decodeState;
+    auto task = [decodeState, blobId = std::move(blobId), offset, size,
+                 onSuccess = std::move(onSuccess), onError]() mutable {
+      if (!decodeState || !decodeState->isActive()) {
+        onError(kDecodeCancelledError);
+        return;
+      }
       try {
         JNIEnv *env = facebook::jni::Environment::current();
         if (!env) {
           throw std::runtime_error("Couldn't get JNI environment");
         }
-        auto data = resolveBlob(env, blobId, offset, size);
-        auto result = createImageBitmapFromData(data);
+        auto data = resolveBlob(decodeState, env, blobId, offset, size);
+        if (!decodeState->isActive()) {
+          onError(kDecodeCancelledError);
+          return;
+        }
+        auto result = decodeImageBitmapFromData(data);
+        if (!decodeState->isActive()) {
+          onError(kDecodeCancelledError);
+          return;
+        }
         onSuccess(std::move(result));
-      } catch (const std::exception &e) {
-        onError(e.what());
+      } catch (const std::exception &error) {
+        onError(error.what());
+      } catch (...) {
+        onError("Unknown error while decoding a Blob image");
       }
-    }).detach();
+    };
+
+    auto cancel = [onError]() {
+      onError("Android image worker pool is shutting down");
+    };
+    if (!androidImageWorkerPool().submit(std::move(task), std::move(cancel))) {
+      onError("Android image worker queue is full or shutting down");
+    }
   }
 
-  ImageData createImageBitmapFromData(std::span<const uint8_t> data) override {
+  static ImageData
+  decodeImageBitmapFromData(std::span<const uint8_t> data) {
     jni::Environment::ensureCurrentThreadIsAttached();
 
     JNIEnv *env = facebook::jni::Environment::current();
@@ -125,84 +481,127 @@ public:
       throw std::runtime_error("Couldn't get JNI environment");
     }
 
-    // Create jbyteArray from the raw bytes
-    jbyteArray byteArray = env->NewByteArray(static_cast<jsize>(data.size()));
+    if (data.size() >
+        static_cast<std::size_t>(std::numeric_limits<jsize>::max())) {
+      throw std::invalid_argument("Encoded image is too large for JNI");
+    }
+    const auto encodedSize = static_cast<jsize>(data.size());
+
+    LocalRef<jbyteArray> byteArray(env, env->NewByteArray(encodedSize));
+    throwIfJavaException(env, "NewByteArray(encoded image)");
     if (!byteArray) {
       throw std::runtime_error("Couldn't allocate byte array");
     }
-    env->SetByteArrayRegion(byteArray, 0, static_cast<jsize>(data.size()),
-                            reinterpret_cast<const jbyte *>(data.data()));
+    if (encodedSize > 0) {
+      env->SetByteArrayRegion(byteArray.get(), 0, encodedSize,
+                              reinterpret_cast<const jbyte *>(data.data()));
+      throwIfJavaException(env, "SetByteArrayRegion(encoded image)");
+    }
 
-    // Decode via BitmapFactory
-    jclass bitmapFactoryClass =
-        env->FindClass("android/graphics/BitmapFactory");
+    LocalRef<jclass> bitmapFactoryClass(
+        env, env->FindClass("android/graphics/BitmapFactory"));
+    throwIfJavaException(env, "FindClass(BitmapFactory)");
     if (!bitmapFactoryClass) {
-      env->DeleteLocalRef(byteArray);
       throw std::runtime_error("Couldn't find BitmapFactory class");
     }
     jmethodID decodeByteArrayMethod =
-        env->GetStaticMethodID(bitmapFactoryClass, "decodeByteArray",
+        env->GetStaticMethodID(bitmapFactoryClass.get(), "decodeByteArray",
                                "([BII)Landroid/graphics/Bitmap;");
+    throwIfJavaException(env,
+                         "GetStaticMethodID(BitmapFactory.decodeByteArray)");
     if (!decodeByteArrayMethod) {
-      env->DeleteLocalRef(byteArray);
-      env->DeleteLocalRef(bitmapFactoryClass);
       throw std::runtime_error("Couldn't find decodeByteArray method");
     }
-    jint length = static_cast<jint>(data.size());
-    jobject bitmap = env->CallStaticObjectMethod(
-        bitmapFactoryClass, decodeByteArrayMethod, byteArray, 0, length);
-    env->DeleteLocalRef(bitmapFactoryClass);
 
+    LocalRef<jobject> bitmap(
+        env, env->CallStaticObjectMethod(bitmapFactoryClass.get(),
+                                         decodeByteArrayMethod, byteArray.get(),
+                                         0, encodedSize));
+    throwIfJavaException(env, "BitmapFactory.decodeByteArray");
     if (!bitmap) {
-      env->DeleteLocalRef(byteArray);
       throw std::runtime_error("Couldn't decode image");
     }
 
-    AndroidBitmapInfo bitmapInfo;
-    if (AndroidBitmap_getInfo(env, bitmap, &bitmapInfo) !=
-        ANDROID_BITMAP_RESULT_SUCCESS) {
-      env->DeleteLocalRef(byteArray);
-      env->DeleteLocalRef(bitmap);
+    AndroidBitmapInfo bitmapInfo{};
+    const int bitmapInfoStatus =
+        AndroidBitmap_getInfo(env, bitmap.get(), &bitmapInfo);
+    throwIfJavaException(env, "AndroidBitmap_getInfo");
+    if (bitmapInfoStatus != ANDROID_BITMAP_RESULT_SUCCESS) {
       throw std::runtime_error("Couldn't get bitmap info");
     }
 
-    void *bitmapPixels;
-    if (AndroidBitmap_lockPixels(env, bitmap, &bitmapPixels) !=
-        ANDROID_BITMAP_RESULT_SUCCESS) {
-      env->DeleteLocalRef(byteArray);
-      env->DeleteLocalRef(bitmap);
-      throw std::runtime_error("Couldn't lock bitmap pixels");
+    if (bitmapInfo.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
+      throw std::runtime_error("Decoded bitmap is not RGBA_8888");
+    }
+    if (bitmapInfo.width == 0 || bitmapInfo.height == 0) {
+      throw std::runtime_error("Decoded bitmap has empty dimensions");
     }
 
-    ImageData result;
-    result.width = static_cast<int>(bitmapInfo.width);
-    result.height = static_cast<int>(bitmapInfo.height);
-    result.data.resize(bitmapInfo.height * bitmapInfo.stride);
-    memcpy(result.data.data(), bitmapPixels, result.data.size());
+    const std::size_t width = static_cast<std::size_t>(bitmapInfo.width);
+    const std::size_t height = static_cast<std::size_t>(bitmapInfo.height);
+    const std::size_t bytesPerRow =
+        checkedMultiply(width, 4, "Decoded bitmap row size overflow");
+    if (bitmapInfo.stride < bytesPerRow) {
+      throw std::runtime_error("Decoded bitmap stride is smaller than a row");
+    }
+    const std::size_t outputSize = checkedMultiply(
+        height, bytesPerRow, "Decoded bitmap buffer size overflow");
 
-    AndroidBitmap_unlockPixels(env, bitmap);
+    LockedBitmapPixels bitmapPixels(env, bitmap.get());
+    ImageData result{};
+    result.width = width;
+    result.height = height;
+    result.format = wgpu::TextureFormat::RGBA8Unorm;
+    if (outputSize > result.data.max_size()) {
+      throw std::length_error("Decoded bitmap exceeds native buffer capacity");
+    }
+    result.data.resize(outputSize);
+    for (std::size_t row = 0; row < height; ++row) {
+      std::memcpy(result.data.data() + row * bytesPerRow,
+                  bitmapPixels.data() + row * bitmapInfo.stride, bytesPerRow);
+    }
 
-    env->DeleteLocalRef(byteArray);
-    env->DeleteLocalRef(bitmap);
+    bitmapPixels.unlock();
 
     return result;
+  }
+
+  ImageData createImageBitmapFromData(
+      std::span<const uint8_t> data) override {
+    return decodeImageBitmapFromData(data);
   }
 
   void createImageBitmapFromDataAsync(
       std::span<const uint8_t> data, std::function<void(ImageData)> onSuccess,
       std::function<void(std::string)> onError) override {
-    std::thread([this,
+    const auto decodeState = _decodeState;
+    auto task = [decodeState,
                  ownedData = std::vector<uint8_t>(data.begin(), data.end()),
-                 onSuccess = std::move(onSuccess),
-                 onError = std::move(onError)]() mutable {
-      jni::Environment::ensureCurrentThreadIsAttached();
-      try {
-        auto result = createImageBitmapFromData(ownedData);
-        onSuccess(std::move(result));
-      } catch (const std::exception &e) {
-        onError(e.what());
+                 onSuccess = std::move(onSuccess), onError]() mutable {
+      if (!decodeState || !decodeState->isActive()) {
+        onError(kDecodeCancelledError);
+        return;
       }
-    }).detach();
+      try {
+        auto result = decodeImageBitmapFromData(ownedData);
+        if (!decodeState->isActive()) {
+          onError(kDecodeCancelledError);
+          return;
+        }
+        onSuccess(std::move(result));
+      } catch (const std::exception &error) {
+        onError(error.what());
+      } catch (...) {
+        onError("Unknown error while decoding image data");
+      }
+    };
+
+    auto cancel = [onError]() {
+      onError("Android image worker pool is shutting down");
+    };
+    if (!androidImageWorkerPool().submit(std::move(task), std::move(cancel))) {
+      onError("Android image worker queue is full or shutting down");
+    }
   }
 
   VideoFrameHandle loadVideoFrame(const std::string & /*path*/) override {

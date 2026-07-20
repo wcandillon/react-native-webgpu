@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <utility>
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -15,8 +16,8 @@ class ImageBitmap : public NativeObject<ImageBitmap> {
 public:
   static constexpr const char *CLASS_NAME = "ImageBitmap";
 
-  explicit ImageBitmap(ImageData &imageData)
-      : NativeObject(CLASS_NAME), _imageData(imageData) {}
+  explicit ImageBitmap(ImageData imageData)
+      : NativeObject(CLASS_NAME), _imageData(std::move(imageData)) {}
 
   size_t getWidth() { return _imageData.width; }
 

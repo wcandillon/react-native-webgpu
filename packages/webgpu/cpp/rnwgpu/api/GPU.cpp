@@ -1,7 +1,9 @@
 #include "GPU.h"
 
 #include <cstdio>
+#include <iterator>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -13,7 +15,12 @@
 
 namespace rnwgpu {
 
-GPU::GPU(jsi::Runtime & /*runtime*/) : NativeObject(CLASS_NAME) {
+GPU::GPU(std::shared_ptr<RNWebGPUSessionState> sessionState)
+    : NativeObject(CLASS_NAME), _sessionState(std::move(sessionState)) {
+  if (!_sessionState || !_sessionState->isActive()) {
+    throw std::invalid_argument("GPU requires an active WebGPU session");
+  }
+
   static const auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
   wgpu::InstanceDescriptor instanceDesc{.requiredFeatureCount = 1,
                                         .requiredFeatures = &kTimedWaitAny};
@@ -53,6 +60,10 @@ GPU::GPU(jsi::Runtime & /*runtime*/) : NativeObject(CLASS_NAME) {
 async::AsyncTaskHandle GPU::requestAdapter(
     jsi::Runtime &runtime,
     std::optional<std::shared_ptr<GPURequestAdapterOptions>> options) {
+  if (!_sessionState || !_sessionState->isActive()) {
+    throw jsi::JSError(runtime, "WebGPU runtime session is no longer active");
+  }
+
   wgpu::RequestAdapterOptions aOptions;
   Convertor conv;
   if (!conv(aOptions, options)) {
@@ -67,16 +78,17 @@ async::AsyncTaskHandle GPU::requestAdapter(
 
   // Per-runtime context: async ops requested on this runtime resolve on this
   // runtime's own thread (via its ProcessEvents pump).
-  auto context = async::RuntimeContext::getOrCreate(runtime, _instance);
+  auto context =
+      async::RuntimeContext::getOrCreate(runtime, _instance, _sessionState);
   return context->postTask(
       [this, aOptions,
        context](const async::AsyncTaskHandle::ResolveFunction &resolve,
                 const async::AsyncTaskHandle::RejectFunction &reject) {
         _instance.RequestAdapter(
             &aOptions, wgpu::CallbackMode::AllowProcessEvents,
-            [context, resolve,
-             reject](wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,
-                     wgpu::StringView message) {
+            [context, resolve, reject](wgpu::RequestAdapterStatus status,
+                                       wgpu::Adapter adapter,
+                                       wgpu::StringView message) {
               if (message.length) {
                 fprintf(stderr, "%s", message.data);
               }

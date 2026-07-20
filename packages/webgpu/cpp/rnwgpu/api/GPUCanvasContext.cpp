@@ -8,8 +8,15 @@
 
 namespace rnwgpu {
 
+void GPUCanvasContext::throwIfSessionInactive() const {
+  if (!_sessionState || !_sessionState->isActive()) {
+    throw std::runtime_error("WebGPU runtime session is no longer active");
+  }
+}
+
 void GPUCanvasContext::configure(
     std::shared_ptr<GPUCanvasConfiguration> configuration) {
+  throwIfSessionInactive();
   Convertor conv;
   wgpu::SurfaceConfiguration surfaceConfiguration;
   surfaceConfiguration.device = configuration->device->get();
@@ -34,6 +41,7 @@ void GPUCanvasContext::configure(
 void GPUCanvasContext::unconfigure() { _surfaceInfo->unconfigure(); }
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
+  throwIfSessionInactive();
   if (!_surfaceInfo->isConfigured()) {
     // Web parity: on the web this is an InvalidStateError, not a crash.
     throw std::runtime_error(
@@ -72,7 +80,9 @@ void GPUCanvasContext::present() {
   // texture was acquired from the on-screen surface (offscreen and dropped
   // frames are skipped), clears the frame state, and adopts any surface that
   // attached while the frame was in flight.
-  _surfaceInfo->presentFrame();
+  if (_sessionState && _sessionState->isActive()) {
+    _surfaceInfo->presentFrame();
+  }
 }
 
 } // namespace rnwgpu

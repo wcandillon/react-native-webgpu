@@ -41,13 +41,16 @@ using namespace facebook::react;
   const auto &newViewProps =
       *std::static_pointer_cast<const WebGPUViewProps>(props);
 
-  if (newViewProps.contextId != oldViewProps.contextId) {
+  if (self.contentView == nil ||
+      newViewProps.sessionId != oldViewProps.sessionId ||
+      newViewProps.contextId != oldViewProps.contextId) {
     /*
-      The context is set only once during mounting the component
-      and never changes because it isn't available for users to modify.
+      The session and context are set during mounting and change only when a
+      recycled component is attached to a new JavaScript runtime or canvas.
     */
     MetalView *metalView = [MetalView new];
     self.contentView = metalView;
+    [metalView setSessionId:@(newViewProps.sessionId)];
     [metalView setContextId:@(newViewProps.contextId)];
     [metalView configure];
   }
@@ -58,7 +61,9 @@ using namespace facebook::react;
 - (void)updateLayoutMetrics:(const LayoutMetrics &)layoutMetrics
            oldLayoutMetrics:(const LayoutMetrics &)oldLayoutMetrics {
   [super updateLayoutMetrics:layoutMetrics oldLayoutMetrics:oldLayoutMetrics];
-  [(MetalView *)self.contentView update];
+  if (self.contentView != nil) {
+    [(MetalView *)self.contentView update];
+  }
 }
 
 Class<RCTComponentViewProtocol> WebGPUViewCls(void) { return WebGPUView.class; }

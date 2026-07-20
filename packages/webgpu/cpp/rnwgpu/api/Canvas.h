@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "Unions.h"
 
@@ -17,9 +18,11 @@ class Canvas : public NativeObject<Canvas> {
 public:
   static constexpr const char *CLASS_NAME = "Canvas";
 
-  explicit Canvas(void *surface, const int width, const int height)
-      : NativeObject(CLASS_NAME), _surface(surface), _width(width),
-        _height(height), _clientWidth(width), _clientHeight(height) {}
+  explicit Canvas(void *surface, const int width, const int height,
+                  std::shared_ptr<void> surfaceOwner = {})
+      : NativeObject(CLASS_NAME), _surfaceOwner(std::move(surfaceOwner)),
+        _surface(surface), _width(width), _height(height), _clientWidth(width),
+        _clientHeight(height) {}
 
   int getWidth() { return _width; }
   int getHeight() { return _height; }
@@ -65,6 +68,9 @@ public:
   }
 
 private:
+  // Keeps platform-owned handles (for example ANativeWindow) alive for as
+  // long as JavaScript can observe the raw surface pointer.
+  std::shared_ptr<void> _surfaceOwner;
   void *_surface;
   int _width;
   int _height;

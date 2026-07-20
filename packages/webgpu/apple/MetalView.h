@@ -5,7 +5,8 @@
 
 @interface MetalView : RNWGPlatformView
 
-@property NSNumber *contextId;
+@property(nonatomic, strong) NSNumber *sessionId;
+@property(nonatomic, strong) NSNumber *contextId;
 
 - (void)configure;
 - (void)update;

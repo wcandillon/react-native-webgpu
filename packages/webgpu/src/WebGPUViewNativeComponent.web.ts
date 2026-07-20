@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from "react";
 import { StyleSheet } from "react-native";
-import type { Int32 } from "react-native/Libraries/Types/CodegenTypes";
+import type { Double, Int32 } from "react-native/Libraries/Types/CodegenTypes";
 import type { ViewProps } from "react-native";
 
 import { contextIdToId } from "./utils";
 
 export interface NativeProps extends ViewProps {
+  sessionId: Double;
   contextId: Int32;
   transparent: boolean;
 }
@@ -54,7 +55,13 @@ function resizeCanvas(canvas: HTMLCanvasElement | null) {
 export default function WebGPUViewNativeComponent(
   props: NativeProps,
 ): React.JSX.Element {
-  const { contextId, style, transparent, ...rest } = props;
+  const {
+    contextId,
+    sessionId: _sessionId,
+    style,
+    transparent,
+    ...rest
+  } = props;
 
   const canvasElm = useRef<HTMLCanvasElement>();
 

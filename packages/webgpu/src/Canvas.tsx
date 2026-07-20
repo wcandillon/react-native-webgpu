@@ -94,6 +94,7 @@ export const Canvas = ({ transparent, ref, ...props }: CanvasProps) => {
     <View collapsable={false} ref={viewRef} {...props}>
       <WebGPUNativeView
         style={{ flex: 1 }}
+        sessionId={RNWebGPU.sessionId}
         contextId={contextId}
         transparent={!!transparent}
       />

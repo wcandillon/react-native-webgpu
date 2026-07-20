@@ -22,17 +22,50 @@
 
 namespace rnwgpu {
 
+namespace {
+
+void handleDeviceLog(wgpu::LoggingType type, wgpu::StringView message) {
+  try {
+    const char *level = "Unknown";
+    switch (type) {
+    case wgpu::LoggingType::Warning:
+      level = "Warning";
+      break;
+    case wgpu::LoggingType::Error:
+      level = "Error";
+      break;
+    case wgpu::LoggingType::Verbose:
+      level = "Verbose";
+      break;
+    case wgpu::LoggingType::Info:
+      level = "Info";
+      break;
+    default:
+      break;
+    }
+
+    const std::string text =
+        message.length > 0 ? std::string(message.data, message.length) : "";
+    Logger::logToConsole("%s: %s", level, text.c_str());
+  } catch (...) {
+    // Never propagate an allocation/logging error through Dawn's callback.
+  }
+}
+
+} // namespace
+
 async::AsyncTaskHandle GPUAdapter::requestDevice(
     jsi::Runtime &runtime,
     std::optional<std::shared_ptr<GPUDeviceDescriptor>> descriptor) {
-  // Enable the react-native-wgpu "native-texture" umbrella by default, mirroring
-  // the web where importExternalTexture is core and needs no feature request.
-  // We append the umbrella's backing Dawn features to requiredFeatures so the
-  // capability is on without the caller listing it. Two rules keep this safe:
+  // Enable the react-native-wgpu "native-texture" umbrella by default,
+  // mirroring the web where importExternalTexture is core and needs no feature
+  // request. We append the umbrella's backing Dawn features to requiredFeatures
+  // so the capability is on without the caller listing it. Two rules keep this
+  // safe:
   //   - All-or-nothing: only inject when the adapter supports *every* backing
   //     feature (same semantics as maybeSynthesizeRnNativeTextureFeature). On a
-  //     web/fallback adapter the backing set is empty or unsupported, so this is
-  //     a no-op and device creation is unaffected.
+  //     web/fallback adapter the backing set is empty or unsupported, so this
+  //     is a no-op and device creation is unaffected.
   //   - Requesting a feature the adapter doesn't support makes RequestDevice
   //     fail, hence the support check below.
   // Callers can still pass "rnwebgpu/native-texture" explicitly; the dedupe
@@ -44,9 +77,10 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
       _instance.GetFeatures(&supported);
       std::unordered_set<wgpu::FeatureName> supportedSet(
           supported.features, supported.features + supported.featureCount);
-      bool allSupported = std::all_of(
-          backing.begin(), backing.end(),
-          [&](wgpu::FeatureName f) { return supportedSet.count(f) > 0; });
+      bool allSupported =
+          std::all_of(backing.begin(), backing.end(), [&](wgpu::FeatureName f) {
+            return supportedSet.count(f) > 0;
+          });
       if (allSupported) {
         if (!descriptor.has_value()) {
           descriptor = std::make_shared<GPUDeviceDescriptor>();
@@ -78,23 +112,27 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
       [deviceLostBinding](const wgpu::Device & /*device*/,
                           wgpu::DeviceLostReason reason,
                           wgpu::StringView message) {
-        const char *lostReason = "";
-        switch (reason) {
-        case wgpu::DeviceLostReason::Destroyed:
-          lostReason = "Destroyed";
-          break;
-        case wgpu::DeviceLostReason::Unknown:
-          lostReason = "Unknown";
-          break;
-        default:
-          lostReason = "Unknown";
-        }
-        std::string msg =
-            message.length ? std::string(message.data, message.length) : "";
-        Logger::logToConsole("GPU Device Lost (%s): %s", lostReason,
-                             msg.c_str());
-        if (auto deviceHost = deviceLostBinding->lock()) {
-          deviceHost->notifyDeviceLost(reason, std::move(msg));
+        try {
+          const char *lostReason = "";
+          switch (reason) {
+          case wgpu::DeviceLostReason::Destroyed:
+            lostReason = "Destroyed";
+            break;
+          case wgpu::DeviceLostReason::Unknown:
+            lostReason = "Unknown";
+            break;
+          default:
+            lostReason = "Unknown";
+          }
+          std::string msg =
+              message.length ? std::string(message.data, message.length) : "";
+          Logger::logToConsole("GPU Device Lost (%s): %s", lostReason,
+                               msg.c_str());
+          if (auto deviceHost = deviceLostBinding->lock()) {
+            deviceHost->notifyDeviceLost(reason, std::move(msg));
+          }
+        } catch (...) {
+          // A spontaneous Dawn callback must never unwind across its ABI.
         }
       });
 
@@ -104,49 +142,52 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
   aDescriptor.SetUncapturedErrorCallback([](const wgpu::Device &device,
                                             wgpu::ErrorType type,
                                             wgpu::StringView message) {
-    const char *errorType = "";
-    switch (type) {
-    case wgpu::ErrorType::Validation:
-      errorType = "Validation";
-      break;
-    case wgpu::ErrorType::OutOfMemory:
-      errorType = "Out of Memory";
-      break;
-    case wgpu::ErrorType::Internal:
-      errorType = "Internal";
-      break;
-    case wgpu::ErrorType::Unknown:
-      errorType = "Unknown";
-      break;
-    default:
-      errorType = "Unknown";
-    }
-    std::string msg =
-        message.length > 0 ? std::string(message.data, message.length) : "";
-    std::string fullMessage =
-        msg.length() > 0 ? std::string(errorType) + ": " + msg : "no message";
-    fprintf(stderr, "%s\n", fullMessage.c_str());
+    try {
+      const char *errorType = "";
+      switch (type) {
+      case wgpu::ErrorType::Validation:
+        errorType = "Validation";
+        break;
+      case wgpu::ErrorType::OutOfMemory:
+        errorType = "Out of Memory";
+        break;
+      case wgpu::ErrorType::Internal:
+        errorType = "Internal";
+        break;
+      case wgpu::ErrorType::Unknown:
+        errorType = "Unknown";
+        break;
+      default:
+        errorType = "Unknown";
+      }
+      std::string msg =
+          message.length > 0 ? std::string(message.data, message.length) : "";
+      std::string fullMessage =
+          msg.length() > 0 ? std::string(errorType) + ": " + msg : "no message";
+      fprintf(stderr, "%s\n", fullMessage.c_str());
 
-    // Look up the GPUDevice from the registry and notify it
-    if (auto gpuDevice = GPUDevice::lookupDevice(device.Get())) {
-      gpuDevice->notifyUncapturedError(type, std::move(msg));
+      // Look up the GPUDevice from the registry and notify it.
+      if (auto gpuDevice = GPUDevice::lookupDevice(device.Get())) {
+        gpuDevice->notifyUncapturedError(type, std::move(msg));
+      }
+    } catch (...) {
+      // A spontaneous Dawn callback must never unwind across its ABI.
     }
   });
   std::string label =
       descriptor.has_value() ? descriptor.value()->label.value_or("") : "";
 
-  auto creationRuntime = getCreationRuntime();
   // Post to the CALLING runtime's context so the promise settles on the
   // thread that requested it (see GPUBuffer::mapAsync). The GPUDevice is also
   // bound to this context, honoring the contract that a device belongs to the
   // runtime that requested it.
-  auto context =
-      async::RuntimeContext::getOrCreate(runtime, _async->instance());
+  auto context = async::RuntimeContext::getOrCreate(runtime, _async->instance(),
+                                                    _async->sessionState());
   return context->postTask(
       [this, aDescriptor, descriptor, label = std::move(label),
-       deviceLostBinding, context,
-       creationRuntime](const async::AsyncTaskHandle::ResolveFunction &resolve,
-                        const async::AsyncTaskHandle::RejectFunction &reject) {
+       deviceLostBinding,
+       context](const async::AsyncTaskHandle::ResolveFunction &resolve,
+                const async::AsyncTaskHandle::RejectFunction &reject) {
         // Build a local mutable copy so we can chain Dawn's device toggles.
         // The toggle name strings are owned by `descriptor` (captured above),
         // and the const char* / DawnTogglesDescriptor locals live for the
@@ -169,7 +210,8 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
             }
           }
         }
-// TODO: in the latest version of Dawn, this won't be needed (https://issues.chromium.org/issues/42241591)
+// TODO: in the latest version of Dawn, this won't be needed
+// (https://issues.chromium.org/issues/42241591)
 #if defined(TARGET_OS_SIMULATOR) && TARGET_OS_SIMULATOR
         // The iOS Simulator only advertises MTLFeatureSet_iOS_GPUFamily2, so
         // Dawn defaults disable_base_instance/disable_base_vertex on and then
@@ -200,7 +242,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
         }
         _instance.RequestDevice(
             &deviceDesc, wgpu::CallbackMode::AllowProcessEvents,
-            [context, resolve, reject, label, creationRuntime,
+            [context, resolve, reject, label,
              deviceLostBinding](wgpu::RequestDeviceStatus status,
                                 wgpu::Device device, wgpu::StringView message) {
               if (message.length) {
@@ -215,38 +257,10 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
                 return;
               }
 
-              device.SetLoggingCallback(
-                  [](wgpu::LoggingType type, wgpu::StringView msg,
-                     jsi::Runtime *creationRuntime) {
-                    if (creationRuntime == nullptr) {
-                      return;
-                    }
-                    const char *logLevel = "";
-                    switch (type) {
-                    case wgpu::LoggingType::Warning:
-                      logLevel = "Warning";
-                      Logger::warnToJavascriptConsole(
-                          *creationRuntime, std::string(msg.data, msg.length));
-                      break;
-                    case wgpu::LoggingType::Error:
-                      logLevel = "Error";
-                      Logger::errorToJavascriptConsole(
-                          *creationRuntime, std::string(msg.data, msg.length));
-                      break;
-                    case wgpu::LoggingType::Verbose:
-                      logLevel = "Verbose";
-                      break;
-                    case wgpu::LoggingType::Info:
-                      logLevel = "Info";
-                      break;
-                    default:
-                      logLevel = "Unknown";
-                      Logger::logToConsole("%s: %.*s", logLevel,
-                                           static_cast<int>(msg.length),
-                                           msg.data);
-                    }
-                  },
-                  creationRuntime);
+              // Dawn logging is spontaneous and may run after a JS runtime
+              // reload. Keep it native-only; never retain/dereference a raw
+              // jsi::Runtime from this callback.
+              device.SetLoggingCallback(handleDeviceLog);
 
               auto deviceHost = std::make_shared<GPUDevice>(std::move(device),
                                                             context, label);

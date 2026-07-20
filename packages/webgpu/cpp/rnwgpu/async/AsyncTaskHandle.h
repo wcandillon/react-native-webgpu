@@ -1,12 +1,11 @@
 #pragma once
 
 #include <functional>
+#include <jsi/jsi.h>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
-
-#include <jsi/jsi.h>
 
 namespace rnwgpu {
 class Promise;
@@ -17,15 +16,13 @@ namespace rnwgpu::async {
 class RuntimeContext;
 
 /**
- * Represents a pending asynchronous WebGPU operation that can be converted into
- * a JavaScript Promise.
+ * Native state for one asynchronous WebGPU operation.
  *
- * In the ProcessEvents model the resolve/reject callbacks are invoked on the
- * owning runtime's own thread (synchronously from instance.ProcessEvents()
- * during the RuntimeContext tick, or synchronously from postTask), so the
- * Promise is settled directly without any thread marshalling.
+ * RuntimeContext owns pending states. A State references its context weakly,
+ * so there is no ownership cycle; runtimeData teardown cancels every state and
+ * releases its Promise's JSI functions before the runtime disappears.
  */
-class AsyncTaskHandle {
+class AsyncTaskHandle final {
 public:
   struct State;
 
@@ -34,19 +31,14 @@ public:
   using ResolveFunction = std::function<void(ValueFactory)>;
   using RejectFunction = std::function<void(std::string)>;
 
-  AsyncTaskHandle();
-
-  /**
-   * Internal constructor used by RuntimeContext.
-   */
+  AsyncTaskHandle() = default;
   explicit AsyncTaskHandle(std::shared_ptr<State> state);
 
-  bool valid() const;
-
+  bool valid() const noexcept;
   ResolveFunction createResolveFunction() const;
   RejectFunction createRejectFunction() const;
-
   void attachPromise(const std::shared_ptr<rnwgpu::Promise> &promise) const;
+  void cancel() const noexcept;
 
   static AsyncTaskHandle create(const std::shared_ptr<RuntimeContext> &context,
                                 bool keepPumping);

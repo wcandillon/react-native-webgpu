@@ -1,15 +1,19 @@
 #pragma once
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
 #include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
+#include "RNWebGPUSession.h"
 #include "webgpu/webgpu_cpp.h"
 
 #ifdef __APPLE__
@@ -29,6 +33,7 @@ void applyCAMetalLayerColorSpace(void *nativeSurface,
 
 struct NativeInfo {
   void *nativeSurface;
+  std::shared_ptr<void> nativeSurfaceOwner;
   int width;
   int height;
 };
@@ -38,25 +43,35 @@ struct Size {
   int height;
 };
 
-// Invoked with the platform's native surface pointer once SurfaceInfo is done
-// with it, so the platform can drop the reference it acquired on our behalf
-// (ANativeWindow_release on Android, CFBridgingRelease of the retained
-// CAMetalLayer on Apple platforms). May run on any thread.
-using NativeSurfaceReleaser = std::function<void(void *)>;
+using SurfaceOwnerId = std::uint64_t;
+inline constexpr SurfaceOwnerId kInvalidSurfaceOwnerId = 0;
+
+struct SurfaceKey {
+  RNWebGPUSessionId sessionId;
+  int contextId;
+
+  bool operator==(const SurfaceKey &) const noexcept = default;
+};
+
+struct SurfaceKeyHash {
+  std::size_t operator()(const SurfaceKey &key) const noexcept {
+    const auto sessionHash = std::hash<RNWebGPUSessionId>{}(key.sessionId);
+    const auto contextHash = std::hash<int>{}(key.contextId);
+    return sessionHash ^ (contextHash + 0x9e3779b9U + (sessionHash << 6U) +
+                          (sessionHash >> 2U));
+  }
+};
 
 // Bridges the asynchronous native surface lifecycle (surfaces appear and
 // disappear on the platform UI thread) with the synchronous WebGPU canvas API
 // (the JS render loop must always be able to acquire a texture).
 //
 // Ownership & threading model:
-// - A registry entry is created on first use (by whichever of JS/native gets
-//   there first) and lives exactly as long as its JS Canvas: contextIds are
-//   never reused. It is removed by the native view's teardown (MetalView
-//   dealloc / WebGPUViewManager.onDropViewInstance) when a surface is
-//   attached, or by RNWebGPU.destroyContext (the Canvas unmount cleanup) when
-//   none ever was — see RNWebGPU::destroyContext for why the split. Surface
-//   destruction alone (backgrounding, TextureView teardown) never removes an
-//   entry; it only detaches the surface.
+// - A registry entry is keyed by runtime session + contextId. A native view
+//   claims it with a monotonically increasing ownerId, so callbacks from a
+//   recycled/stale view cannot detach a newer view's surface. Session teardown
+//   closes all of that runtime's entries without touching a replacement
+//   runtime whose contextId counter restarted from the same value.
 // - Attaching a surface is LATCHED: the UI thread stores it as pending
 //   (attachSurface) and it is adopted at the next frame boundary — start of
 //   getCurrentTexture or end of presentFrame — on whichever thread renders
@@ -78,17 +93,75 @@ public:
   SurfaceInfo(wgpu::Instance gpu, int width, int height)
       : _gpu(std::move(gpu)), _width(width), _height(height) {}
 
-  ~SurfaceInfo() {
-    // Drop the Dawn objects before releasing the native surfaces they borrow.
-    _surface = nullptr;
-    _pendingSurface = nullptr;
-    _texture = nullptr;
-    if (_pendingReleaser && _pendingNativeSurface) {
-      _pendingReleaser(_pendingNativeSurface);
+  ~SurfaceInfo() { close(); }
+
+  void close() noexcept {
+    std::shared_ptr<void> nativeSurfaceOwner;
+    std::shared_ptr<void> pendingNativeSurfaceOwner;
+    try {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      if (_closeCleanupComplete) {
+        return;
+      }
+      _closed = true;
+      _ownerId = kInvalidSurfaceOwnerId;
+      _surface = nullptr;
+      _pendingSurface = nullptr;
+      _texture = nullptr;
+      _hasPendingAttach = false;
+      _nativeSurface = nullptr;
+      _pendingNativeSurface = nullptr;
+      nativeSurfaceOwner = std::move(_nativeSurfaceOwner);
+      pendingNativeSurfaceOwner = std::move(_pendingNativeSurfaceOwner);
+      _config = {};
+      _viewFormats.clear();
+      _frameInFlight = false;
+      _acquiredFromSurface = false;
+      _closeCleanupComplete = true;
+    } catch (...) {
+      // Native teardown must never terminate the process.
     }
-    if (_releaser && _nativeSurface) {
-      _releaser(_nativeSurface);
+  }
+
+  void markClosed() noexcept {
+    try {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      _closed = true;
+      _ownerId = kInvalidSurfaceOwnerId;
+    } catch (...) {
+      // A terminal marker must never escape registry invalidation.
     }
+  }
+
+  bool markClosedIfOwnedBy(SurfaceOwnerId ownerId) noexcept {
+    try {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      if (_closed || ownerId == kInvalidSurfaceOwnerId || _ownerId != ownerId) {
+        return false;
+      }
+      _closed = true;
+      _ownerId = kInvalidSurfaceOwnerId;
+      return true;
+    } catch (...) {
+      return false;
+    }
+  }
+
+  bool claimOwner(SurfaceOwnerId ownerId) {
+    if (ownerId == kInvalidSurfaceOwnerId) {
+      return false;
+    }
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (_closed || (_ownerId != kInvalidSurfaceOwnerId && ownerId < _ownerId)) {
+      return false;
+    }
+    _ownerId = ownerId;
+    return true;
+  }
+
+  bool isOwnedBy(SurfaceOwnerId ownerId) const {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    return !_closed && ownerId != kInvalidSurfaceOwnerId && _ownerId == ownerId;
   }
 
   // --- Platform UI thread ---------------------------------------------------
@@ -97,42 +170,71 @@ public:
   // frame boundary (applyPendingAttach); callers should follow up with
   // RNWebGPUManager::flushPendingSurfaceTransition so contexts that are not
   // currently rendering also pick it up.
-  void attachSurface(void *nativeSurface, wgpu::Surface surface,
-                     NativeSurfaceReleaser releaser) {
-    void *replacedSurface = nullptr;
-    NativeSurfaceReleaser replacedReleaser;
-    {
-      std::unique_lock<std::shared_mutex> lock(_mutex);
-      if (_hasPendingAttach) {
-        // Replaced before it was ever adopted.
-        replacedSurface = _pendingNativeSurface;
-        replacedReleaser = std::move(_pendingReleaser);
-      }
-      _hasPendingAttach = true;
-      _pendingNativeSurface = nativeSurface;
-      _pendingSurface = std::move(surface);
-      _pendingReleaser = std::move(releaser);
+  bool attachSurfaceIfOwnedBy(SurfaceOwnerId ownerId, void *nativeSurface,
+                              wgpu::Surface surface,
+                              std::shared_ptr<void> nativeSurfaceOwner = {}) {
+    std::shared_ptr<void> replacedNativeSurfaceOwner;
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (_closed || ownerId == kInvalidSurfaceOwnerId || _ownerId != ownerId) {
+      return false;
     }
-    if (replacedReleaser && replacedSurface) {
-      replacedReleaser(replacedSurface);
+    if (_hasPendingAttach) {
+      replacedNativeSurfaceOwner = std::move(_pendingNativeSurfaceOwner);
     }
+    _hasPendingAttach = true;
+    _pendingNativeSurface = nativeSurface;
+    _pendingSurface = std::move(surface);
+    _pendingNativeSurfaceOwner = std::move(nativeSurfaceOwner);
+    return true;
   }
 
   // The platform surface is being destroyed: detach immediately. If the
   // context is configured, rendering continues into an offscreen texture whose
   // content is blitted to the next attached surface; present() no-ops until
   // then. Safe to call when already offscreen.
-  void switchToOffscreen() { detach(/* createFallbackTexture = */ true); }
+  bool switchToOffscreenIfOwnedBy(SurfaceOwnerId ownerId) noexcept {
+    try {
+      if (!isOwnedBy(ownerId)) {
+        return false;
+      }
+      detach(/* createFallbackTexture = */ true, ownerId);
+      return true;
+    } catch (...) {
+      return false;
+    }
+  }
 
   // Detach without creating the offscreen fallback: used when the context is
   // being destroyed and nothing will consume further frames.
-  void detachSurface() { detach(/* createFallbackTexture = */ false); }
+  void detachSurfaceIfOwnedBy(SurfaceOwnerId ownerId) noexcept {
+    try {
+      detach(/* createFallbackTexture = */ false, ownerId);
+    } catch (...) {
+      // View teardown must not escape into Java/Objective-C deallocation.
+    }
+  }
 
   // Reflects native view layout changes. Does not resize the drawing buffer:
   // that tracks canvas.width/height (like on the web), see
   // GPUCanvasContext::getCurrentTexture.
+  bool resizeIfOwnedBy(SurfaceOwnerId ownerId, int newWidth,
+                       int newHeight) noexcept {
+    try {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      if (_closed || ownerId == kInvalidSurfaceOwnerId || _ownerId != ownerId) {
+        return false;
+      }
+      _width = newWidth;
+      _height = newHeight;
+      return true;
+    } catch (...) {
+      return false;
+    }
+  }
+
   void resize(int newWidth, int newHeight) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    throwIfClosedLocked();
     _width = newWidth;
     _height = newHeight;
   }
@@ -151,12 +253,14 @@ public:
   // swaps the surface under a frame that is genuinely in flight.
   void applyPendingAttach(bool supersedeInFlightFrame = false) {
     bool presentBlit = false;
-    uint64_t blitEpoch = 0;
+    std::uint64_t blitEpoch = 0;
     wgpu::Device device = nullptr;
-    void *replacedSurface = nullptr;
-    NativeSurfaceReleaser replacedReleaser;
+    std::shared_ptr<void> replacedNativeSurfaceOwner;
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
+      if (_closed) {
+        return;
+      }
       if (supersedeInFlightFrame) {
         _frameInFlight = false;
         _acquiredFromSurface = false;
@@ -167,11 +271,10 @@ public:
       // Attach over attach without a detach in between: replace. Ownership
       // tracks the native window pointer, not the Dawn surface handle (which
       // can be null if surface creation failed).
-      replacedSurface = _nativeSurface;
-      replacedReleaser = std::move(_releaser);
+      replacedNativeSurfaceOwner = std::move(_nativeSurfaceOwner);
       _surface = std::move(_pendingSurface);
       _nativeSurface = _pendingNativeSurface;
-      _releaser = std::move(_pendingReleaser);
+      _nativeSurfaceOwner = std::move(_pendingNativeSurfaceOwner);
       _hasPendingAttach = false;
       _pendingNativeSurface = nullptr;
       _frameEpoch++;
@@ -200,9 +303,6 @@ public:
         }
       }
     }
-    if (replacedReleaser && replacedSurface) {
-      replacedReleaser(replacedSurface);
-    }
     if (presentBlit) {
 #ifdef __APPLE__
       if (device) {
@@ -216,7 +316,7 @@ public:
       // or any other transition while we were unlocked skips this present
       // (their newer content stands; presenting here would be a Dawn
       // present-without-acquire error).
-      if (_surface && !_frameInFlight && _frameEpoch == blitEpoch) {
+      if (!_closed && _surface && !_frameInFlight && _frameEpoch == blitEpoch) {
         _surface.Present();
       }
     }
@@ -229,6 +329,7 @@ public:
                  std::vector<wgpu::TextureFormat> viewFormats) {
     applyPendingAttach(/* supersedeInFlightFrame = */ true);
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    throwIfClosedLocked();
     _viewFormats = std::move(viewFormats);
     _config = newConfig;
     // The caller's viewFormats storage dies with the call; point the stored
@@ -248,6 +349,7 @@ public:
   // Resize the drawing buffer (canvas.width/height changed).
   void reconfigure(int newWidth, int newHeight) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    throwIfClosedLocked();
     if (_config.device == nullptr) {
       return;
     }
@@ -260,6 +362,9 @@ public:
 
   void unconfigure() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (_closed) {
+      return;
+    }
     if (_surface) {
       _surface.Unconfigure();
     }
@@ -270,9 +375,29 @@ public:
     _frameEpoch++;
   }
 
+  bool unconfigureIfOwnedBy(SurfaceOwnerId ownerId) noexcept {
+    try {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      if (_closed || ownerId == kInvalidSurfaceOwnerId || _ownerId != ownerId) {
+        return false;
+      }
+      if (_surface) {
+        _surface.Unconfigure();
+      }
+      _texture = nullptr;
+      _config = {};
+      _viewFormats.clear();
+      _acquiredFromSurface = false;
+      _frameEpoch++;
+      return true;
+    } catch (...) {
+      return false;
+    }
+  }
+
   bool isConfigured() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
-    return _config.device != nullptr;
+    return !_closed && _config.device != nullptr;
   }
 
   // True while a native view owns a surface for this context (attached or
@@ -281,7 +406,7 @@ public:
   // otherwise (see RNWebGPU::destroyContext).
   bool hasNativeSurface() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
-    return _nativeSurface != nullptr || _hasPendingAttach;
+    return !_closed && _ownerId != kInvalidSurfaceOwnerId;
   }
 
   // Returns the texture for the current frame: the surface's swapchain texture
@@ -292,6 +417,7 @@ public:
     // that never presented.
     applyPendingAttach(/* supersedeInFlightFrame = */ true);
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    throwIfClosedLocked();
     if (_config.device == nullptr) {
       throw std::runtime_error(
           "[WebGPU] getCurrentTexture() called on a canvas context that is "
@@ -329,6 +455,9 @@ public:
     wgpu::Device device;
     {
       std::shared_lock<std::shared_mutex> lock(_mutex);
+      if (_closed) {
+        return;
+      }
       device = _config.device;
     }
     if (device) {
@@ -337,6 +466,9 @@ public:
 #endif
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
+      if (_closed) {
+        return;
+      }
       if (_surface && _acquiredFromSurface) {
         _surface.Present();
       }
@@ -349,35 +481,51 @@ public:
 
   NativeInfo getNativeInfo() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
+    if (_closed) {
+      return {.nativeSurface = nullptr,
+              .nativeSurfaceOwner = {},
+              .width = 0,
+              .height = 0};
+    }
     // A surface that is still pending adoption is the one callers should see.
     void *native = _hasPendingAttach ? _pendingNativeSurface : _nativeSurface;
-    return {.nativeSurface = native, .width = _width, .height = _height};
+    auto nativeSurfaceOwner =
+        _hasPendingAttach ? _pendingNativeSurfaceOwner : _nativeSurfaceOwner;
+    return {.nativeSurface = native,
+            .nativeSurfaceOwner = std::move(nativeSurfaceOwner),
+            .width = _width,
+            .height = _height};
   }
 
   Size getSize() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
+    if (_closed) {
+      return {.width = 0, .height = 0};
+    }
     return {.width = _width, .height = _height};
   }
 
   wgpu::SurfaceConfiguration getConfig() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
-    return _config;
+    return _closed ? wgpu::SurfaceConfiguration{} : _config;
   }
 
 private:
-  void detach(bool createFallbackTexture) {
-    void *releasedSurfaces[2] = {nullptr, nullptr};
-    NativeSurfaceReleaser releasers[2];
+  void detach(bool createFallbackTexture, SurfaceOwnerId ownerId) {
+    std::shared_ptr<void> nativeSurfaceOwner;
+    std::shared_ptr<void> pendingNativeSurfaceOwner;
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
+      if (_closed || ownerId == kInvalidSurfaceOwnerId || _ownerId != ownerId) {
+        return;
+      }
       // The platform is tearing surfaces down; a not-yet-adopted attach is
       // stale, cancel it.
       if (_hasPendingAttach) {
         _hasPendingAttach = false;
         _pendingSurface = nullptr;
-        releasedSurfaces[0] = _pendingNativeSurface;
-        releasers[0] = std::move(_pendingReleaser);
         _pendingNativeSurface = nullptr;
+        pendingNativeSurfaceOwner = std::move(_pendingNativeSurfaceOwner);
       }
       if (_surface) {
         if (createFallbackTexture && _config.device != nullptr) {
@@ -389,21 +537,18 @@ private:
         _acquiredFromSurface = false;
       }
       _frameEpoch++;
-      // Window ownership is independent of the Dawn surface handle (which can
-      // be null if surface creation failed): always return the window.
-      releasedSurfaces[1] = _nativeSurface;
-      releasers[1] = std::move(_releaser);
       _nativeSurface = nullptr;
-    }
-    // Release outside the lock: the platform may do real work here.
-    for (int i = 0; i < 2; i++) {
-      if (releasers[i] && releasedSurfaces[i]) {
-        releasers[i](releasedSurfaces[i]);
-      }
+      nativeSurfaceOwner = std::move(_nativeSurfaceOwner);
     }
   }
 
   // All *Locked helpers below require _mutex to be held exclusively.
+
+  void throwIfClosedLocked() const {
+    if (_closed) {
+      throw std::runtime_error("WebGPU surface session is no longer active");
+    }
+  }
 
   wgpu::Texture createOffscreenTextureLocked() {
     wgpu::TextureDescriptor descriptor;
@@ -492,15 +637,15 @@ private:
   mutable std::shared_mutex _mutex;
   // Attached on-screen surface (null while offscreen).
   void *_nativeSurface = nullptr;
+  std::shared_ptr<void> _nativeSurfaceOwner;
   wgpu::Surface _surface = nullptr;
-  NativeSurfaceReleaser _releaser;
   // Offscreen fallback drawing buffer.
   wgpu::Texture _texture = nullptr;
   // Surface attached by the UI thread, awaiting adoption at a frame boundary.
   bool _hasPendingAttach = false;
   void *_pendingNativeSurface = nullptr;
+  std::shared_ptr<void> _pendingNativeSurfaceOwner;
   wgpu::Surface _pendingSurface = nullptr;
-  NativeSurfaceReleaser _pendingReleaser;
   // Frame state: set by getCurrentTexture, cleared by presentFrame.
   bool _frameInFlight = false;
   bool _acquiredFromSurface = false;
@@ -508,7 +653,7 @@ private:
   // adoption, and detach. The deferred blit-present in applyPendingAttach
   // revalidates against it so it never presents a texture that stopped being
   // the surface's current one while the lock was released.
-  uint64_t _frameEpoch = 0;
+  std::uint64_t _frameEpoch = 0;
   // device == nullptr means "not configured". _viewFormats owns the storage
   // that _config.viewFormats points at.
   wgpu::SurfaceConfiguration _config;
@@ -519,92 +664,172 @@ private:
   // canvas).
   int _width;
   int _height;
+  bool _closed = false;
+  bool _closeCleanupComplete = false;
+  SurfaceOwnerId _ownerId{kInvalidSurfaceOwnerId};
 };
 
 class SurfaceRegistry {
 public:
   static SurfaceRegistry &getInstance() {
-    static SurfaceRegistry instance;
-    return instance;
+    // Native views can be released during process-wide static teardown.
+    static auto *instance = new SurfaceRegistry();
+    return *instance;
   }
 
   SurfaceRegistry(const SurfaceRegistry &) = delete;
   SurfaceRegistry &operator=(const SurfaceRegistry &) = delete;
 
-  std::shared_ptr<SurfaceInfo> getSurfaceInfo(int id) {
-    std::shared_lock<std::shared_mutex> lock(_mutex);
-    auto it = _registry.find(id);
-    if (it != _registry.end()) {
-      return it->second;
+  void openSession(RNWebGPUSessionId sessionId) {
+    if (sessionId == kInvalidRNWebGPUSessionId) {
+      return;
     }
-    return nullptr;
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    _openSessions.insert(sessionId);
   }
 
-  void removeSurfaceInfo(int id) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    _registry.erase(id);
+  void closeSession(RNWebGPUSessionId sessionId) noexcept {
+    if (sessionId == kInvalidRNWebGPUSessionId) {
+      return;
+    }
+
+    {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      _openSessions.erase(sessionId);
+    }
+
+    // Release Dawn/platform resources without holding the registry lock.
+    for (;;) {
+      std::shared_ptr<SurfaceInfo> staleSurface;
+      {
+        std::unique_lock<std::shared_mutex> lock(_mutex);
+        auto stale = _registry.end();
+        for (auto it = _registry.begin(); it != _registry.end(); ++it) {
+          if (it->first.sessionId == sessionId) {
+            stale = it;
+            break;
+          }
+        }
+        if (stale == _registry.end()) {
+          return;
+        }
+        if (stale->second) {
+          stale->second->markClosed();
+          staleSurface = std::move(stale->second);
+        }
+        _registry.erase(stale);
+      }
+      if (staleSurface) {
+        staleSurface->close();
+      }
+    }
+  }
+
+  std::shared_ptr<SurfaceInfo> getSurfaceInfo(RNWebGPUSessionId sessionId,
+                                              int id) const {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    const auto it = _registry.find(SurfaceKey{sessionId, id});
+    return it == _registry.end() ? nullptr : it->second;
   }
 
   std::shared_ptr<SurfaceInfo>
-  getSurfaceInfoOrCreate(int id, wgpu::Instance gpu, int width, int height) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    return getSurfaceInfoOrCreateLocked(id, gpu, width, height);
+  getSurfaceInfoIfOwnedBy(RNWebGPUSessionId sessionId, int id,
+                          SurfaceOwnerId ownerId) const {
+    auto surfaceInfo = getSurfaceInfo(sessionId, id);
+    return surfaceInfo && surfaceInfo->isOwnedBy(ownerId) ? surfaceInfo
+                                                          : nullptr;
   }
 
-  // Find-or-create + attach as one atomic step under the registry lock, so it
-  // serializes with removeSurfaceInfoIfDetached: an attach can never land on
-  // an entry that a concurrent destroyContext is erasing (it either marks the
-  // entry attached before the check, or re-creates the entry after the
-  // erase). Lock order is registry -> SurfaceInfo, matching every other path.
-  std::shared_ptr<SurfaceInfo> attachSurface(int id, wgpu::Instance gpu,
-                                             int width, int height,
-                                             void *nativeSurface,
-                                             wgpu::Surface surface,
-                                             NativeSurfaceReleaser releaser) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    auto info = getSurfaceInfoOrCreateLocked(id, gpu, width, height);
-    info->attachSurface(nativeSurface, std::move(surface), std::move(releaser));
-    return info;
-  }
-
-  // Erase the entry only if no native surface is attached or pending; the
-  // atomic counterpart of attachSurface above (see RNWebGPU::destroyContext
-  // for the ownership split this implements).
-  void removeSurfaceInfoIfDetached(int id) {
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    auto it = _registry.find(id);
-    if (it == _registry.end() || it->second->hasNativeSurface()) {
-      return;
+  bool removeSurfaceInfoIfOwnedBy(
+      RNWebGPUSessionId sessionId, int id, SurfaceOwnerId ownerId,
+      const std::shared_ptr<SurfaceInfo> &expectedSurface) {
+    if (ownerId == kInvalidSurfaceOwnerId || !expectedSurface) {
+      return false;
     }
-    _registry.erase(it);
+
+    std::shared_ptr<SurfaceInfo> removedSurface;
+    {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      const auto it = _registry.find(SurfaceKey{sessionId, id});
+      if (it == _registry.end() || it->second != expectedSurface ||
+          !it->second->markClosedIfOwnedBy(ownerId)) {
+        return false;
+      }
+      removedSurface = std::move(it->second);
+      _registry.erase(it);
+    }
+    removedSurface->close();
+    return true;
   }
 
-  // Drops all entries. Called when the RN instance tears down (dev reload):
-  // JS context ids restart from scratch, so surviving entries would alias new
-  // canvases onto dead surfaces.
-  void clear() {
+  std::shared_ptr<SurfaceInfo>
+  getSurfaceInfoOrCreate(RNWebGPUSessionId sessionId, int id,
+                         wgpu::Instance gpu, int width, int height) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    _registry.clear();
-  }
-
-private:
-  SurfaceRegistry() = default;
-
-  std::shared_ptr<SurfaceInfo> getSurfaceInfoOrCreateLocked(int id,
-                                                            wgpu::Instance gpu,
-                                                            int width,
-                                                            int height) {
-    auto it = _registry.find(id);
+    if (_openSessions.find(sessionId) == _openSessions.end()) {
+      return nullptr;
+    }
+    const SurfaceKey key{sessionId, id};
+    const auto it = _registry.find(key);
     if (it != _registry.end()) {
       return it->second;
     }
     auto info = std::make_shared<SurfaceInfo>(gpu, width, height);
-    _registry[id] = info;
+    _registry.emplace(key, info);
     return info;
   }
 
+  // Claiming and find-or-create happen under one registry lock. Because a
+  // claimed entry counts as native-owned, destroyContext cannot erase it in
+  // the interval between the claim and the latched attach.
+  std::shared_ptr<SurfaceInfo> claimSurfaceInfo(RNWebGPUSessionId sessionId,
+                                                int id, SurfaceOwnerId ownerId,
+                                                wgpu::Instance gpu, int width,
+                                                int height) {
+    if (ownerId == kInvalidSurfaceOwnerId) {
+      return nullptr;
+    }
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (_openSessions.find(sessionId) == _openSessions.end()) {
+      return nullptr;
+    }
+    const SurfaceKey key{sessionId, id};
+    const auto it = _registry.find(key);
+    if (it != _registry.end()) {
+      return it->second && it->second->claimOwner(ownerId) ? it->second
+                                                           : nullptr;
+    }
+    auto info = std::make_shared<SurfaceInfo>(gpu, width, height);
+    if (!info->claimOwner(ownerId)) {
+      return nullptr;
+    }
+    _registry.emplace(key, info);
+    return info;
+  }
+
+  void removeSurfaceInfoIfDetached(RNWebGPUSessionId sessionId, int id) {
+    std::shared_ptr<SurfaceInfo> removedSurface;
+    {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      const auto it = _registry.find(SurfaceKey{sessionId, id});
+      if (it == _registry.end() || it->second->hasNativeSurface()) {
+        return;
+      }
+      it->second->markClosed();
+      removedSurface = std::move(it->second);
+      _registry.erase(it);
+    }
+    if (removedSurface) {
+      removedSurface->close();
+    }
+  }
+
+private:
+  SurfaceRegistry() = default;
   mutable std::shared_mutex _mutex;
-  std::unordered_map<int, std::shared_ptr<SurfaceInfo>> _registry;
+  std::unordered_map<SurfaceKey, std::shared_ptr<SurfaceInfo>, SurfaceKeyHash>
+      _registry;
+  std::unordered_set<RNWebGPUSessionId> _openSessions;
 };
 
 } // namespace rnwgpu

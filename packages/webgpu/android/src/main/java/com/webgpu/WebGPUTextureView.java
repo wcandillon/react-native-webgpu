@@ -10,7 +10,7 @@ import androidx.annotation.NonNull;
 @SuppressLint("ViewConstructor")
 public class WebGPUTextureView extends TextureView implements TextureView.SurfaceTextureListener {
 
-  WebGPUAPI mApi;
+  private final WebGPUAPI mApi;
   private Surface mSurface;
 
   public WebGPUTextureView(Context context, WebGPUAPI api) {
@@ -22,29 +22,42 @@ public class WebGPUTextureView extends TextureView implements TextureView.Surfac
 
   @Override
   public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surfaceTexture, int width, int height) {
+    releaseSurface();
     mSurface = new Surface(surfaceTexture);
-    mApi.surfaceCreated(mSurface);
+    mApi.surfaceCreated(this, mSurface);
   }
 
   @Override
   public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surfaceTexture, int width, int height) {
-    mApi.surfaceChanged(mSurface);
+    if (mSurface == null) {
+      mSurface = new Surface(surfaceTexture);
+    }
+    mApi.surfaceChanged(this, mSurface);
   }
 
   @Override
   public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surfaceTexture) {
-    // Detach first (synchronous through JNI) so the native side has dropped
-    // its window reference before we release ours.
-    mApi.surfaceOffscreen();
-    if (mSurface != null) {
-      mSurface.release();
-      mSurface = null;
-    }
+    mApi.surfaceOffscreen(this);
+    releaseSurface();
     return true;
   }
 
   @Override
   public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surfaceTexture) {
     // No implementation needed
+  }
+
+  @Override
+  protected void onDetachedFromWindow() {
+    mApi.surfaceOffscreen(this);
+    releaseSurface();
+    super.onDetachedFromWindow();
+  }
+
+  private void releaseSurface() {
+    if (mSurface != null) {
+      mSurface.release();
+      mSurface = null;
+    }
   }
 }

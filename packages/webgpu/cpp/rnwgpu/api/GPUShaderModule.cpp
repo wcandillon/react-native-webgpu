@@ -13,8 +13,8 @@ GPUShaderModule::getCompilationInfo(jsi::Runtime &runtime) {
 
   // Post to the CALLING runtime's context so the promise settles on the
   // thread that requested it (see GPUBuffer::mapAsync).
-  auto context =
-      async::RuntimeContext::getOrCreate(runtime, _async->instance());
+  auto context = async::RuntimeContext::getOrCreate(runtime, _async->instance(),
+                                                    _async->sessionState());
   return context->postTask(
       [module](const async::AsyncTaskHandle::ResolveFunction &resolve,
                const async::AsyncTaskHandle::RejectFunction &reject) {

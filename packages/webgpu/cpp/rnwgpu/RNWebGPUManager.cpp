@@ -3,6 +3,7 @@
 #include "GPU.h"
 #include "NativeObject.h"
 #include "RNWebGPU.h"
+#include "SurfaceRegistry.h"
 
 // GPU API classes (for instanceof support)
 #include "GPUAdapter.h"
@@ -50,29 +51,73 @@
 #include "GPUTextureUsage.h"
 
 #include <memory>
+#include <stdexcept>
+#include <string>
 #include <utility>
 
 namespace rnwgpu {
 
+namespace {
+
+struct RuntimeSessionData {
+  RNWebGPUSessionId sessionId{kInvalidRNWebGPUSessionId};
+};
+
+class SessionInstallationGuard final {
+public:
+  SessionInstallationGuard(
+      RNWebGPUSessionId sessionId,
+      std::shared_ptr<RNWebGPUSessionState> sessionState) noexcept
+      : _sessionId(sessionId), _sessionState(std::move(sessionState)) {}
+
+  ~SessionInstallationGuard() {
+    if (_committed) {
+      return;
+    }
+    if (_sessionState) {
+      _sessionState->invalidate();
+    }
+    async::RuntimeContext::unregisterMainRuntime(_sessionId);
+  }
+
+  SessionInstallationGuard(const SessionInstallationGuard &) = delete;
+  SessionInstallationGuard &
+  operator=(const SessionInstallationGuard &) = delete;
+
+  void commit() noexcept { _committed = true; }
+
+private:
+  RNWebGPUSessionId _sessionId;
+  std::shared_ptr<RNWebGPUSessionState> _sessionState;
+  bool _committed{false};
+};
+
+jsi::UUID runtimeSessionDataUUID() {
+  static constexpr jsi::UUID uuid(0x0C4D67A3, 0x944A, 0x4ECA, 0xB788,
+                                  0xB86CC728D9A1ULL);
+  return uuid;
+}
+
+} // namespace
+
 RNWebGPUManager::RNWebGPUManager(
-    jsi::Runtime *jsRuntime,
+    RNWebGPUSessionId sessionId, jsi::Runtime *jsRuntime,
     std::shared_ptr<facebook::react::CallInvoker> jsCallInvoker,
     std::shared_ptr<PlatformContext> platformContext)
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker),
+      _sessionState(std::make_shared<RNWebGPUSessionState>(sessionId)),
       _platformContext(platformContext) {
+  if (sessionId == kInvalidRNWebGPUSessionId || _jsRuntime == nullptr ||
+      !_jsCallInvoker || !_platformContext) {
+    throw std::invalid_argument(
+        "RNWebGPUManager requires a valid session, runtime, CallInvoker, and "
+        "PlatformContext");
+  }
+  SessionInstallationGuard installationGuard(sessionId, _sessionState);
 
-  // Register main runtime for RuntimeAwareCache
-  BaseRuntimeAwareCache::setMainJsRuntime(_jsRuntime);
-
-  // Register the main runtime + its CallInvoker so spontaneous events
-  // (device.lost / uncapturederror) on main-runtime devices can be delivered to
-  // the JS thread without the ProcessEvents pump. Worklet-runtime devices have
-  // no invoker (best-effort; see README "Threading model").
-  async::RuntimeContext::registerMainRuntime(_jsRuntime, _jsCallInvoker);
-
-  auto gpu = std::make_shared<GPU>(*_jsRuntime);
-  auto rnWebGPU =
-      std::make_shared<RNWebGPU>(gpu, _platformContext, _jsCallInvoker);
+  auto gpu = std::make_shared<GPU>(_sessionState);
+  auto rnWebGPU = std::make_shared<RNWebGPU>(
+      gpu, _platformContext, _jsCallInvoker, _sessionState, *_jsRuntime);
   _gpu = gpu->get();
 
   // RNWebGPU needs its brand registered in NativeObjectRegistry so the boxing
@@ -137,6 +182,24 @@ RNWebGPUManager::RNWebGPUManager(
   // Install global helper functions for Worklets serialization
   // These are standalone functions that don't require RNWebGPU instance
   installWebGPUWorkletHelpers(*_jsRuntime);
+
+  auto runtimeSessionData = std::make_shared<RuntimeSessionData>();
+  runtimeSessionData->sessionId = sessionId;
+  _jsRuntime->setRuntimeData(runtimeSessionDataUUID(), runtimeSessionData);
+
+  // Register only after every JSI operation has succeeded. A throwing
+  // constructor must not leave a process-global pointer to a partial session.
+  async::RuntimeContext::registerMainRuntime(sessionId, _jsRuntime,
+                                             _jsCallInvoker);
+  installationGuard.commit();
+}
+
+RNWebGPUSessionId RNWebGPUManager::sessionForRuntime(jsi::Runtime &runtime) {
+  const auto data = runtime.getRuntimeData(runtimeSessionDataUUID());
+  if (!data) {
+    return kInvalidRNWebGPUSessionId;
+  }
+  return std::static_pointer_cast<RuntimeSessionData>(data)->sessionId;
 }
 
 void RNWebGPUManager::installWebGPUWorkletHelpers(jsi::Runtime &runtime) {
@@ -237,9 +300,16 @@ void RNWebGPUManager::installWebGPUWorkletHelpers(jsi::Runtime &runtime) {
   runtime.global().setProperty(runtime, "__webgpuBox", std::move(boxFunc));
 }
 
+void RNWebGPUManager::invalidate() noexcept {
+  if (_sessionState) {
+    _sessionState->invalidate();
+    async::RuntimeContext::unregisterMainRuntime(_sessionState->id());
+  }
+}
+
 void RNWebGPUManager::flushPendingSurfaceTransition(
     std::shared_ptr<SurfaceInfo> info) {
-  if (info == nullptr || _jsCallInvoker == nullptr) {
+  if (info == nullptr || _jsCallInvoker == nullptr || !isActive()) {
     return;
   }
   _jsCallInvoker->invokeAsync(
@@ -247,12 +317,139 @@ void RNWebGPUManager::flushPendingSurfaceTransition(
 }
 
 RNWebGPUManager::~RNWebGPUManager() {
-  // Drop all canvas registry entries: after a reload the JS side restarts its
-  // contextId counter, and stale entries would alias new canvases onto dead
-  // surfaces.
-  SurfaceRegistry::getInstance().clear();
+  invalidate();
   _jsRuntime = nullptr;
-  _jsCallInvoker = nullptr;
+  _jsCallInvoker.reset();
+}
+
+RNWebGPUManagerRegistry &RNWebGPUManagerRegistry::getInstance() {
+  // Native views may be released during process-wide static teardown. Keep the
+  // registry alive until process exit so late view destructors never observe a
+  // destroyed mutex.
+  static auto *registry = new RNWebGPUManagerRegistry();
+  return *registry;
+}
+
+RNWebGPUSessionId RNWebGPUManagerRegistry::createSession() {
+  std::lock_guard<std::mutex> lock(_mutex);
+  for (;;) {
+    const auto candidate = _nextSessionId++;
+    if (_nextSessionId > kMaxRNWebGPUSessionId) {
+      _nextSessionId = 1;
+    }
+    if (candidate != kInvalidRNWebGPUSessionId &&
+        _entries.find(candidate) == _entries.end()) {
+      return candidate;
+    }
+  }
+}
+
+void RNWebGPUManagerRegistry::publish(
+    RNWebGPUSessionId sessionId, std::shared_ptr<RNWebGPUManager> manager) {
+  if (sessionId == kInvalidRNWebGPUSessionId || !manager ||
+      manager->sessionId() != sessionId) {
+    throw std::invalid_argument("Cannot publish an invalid WebGPU session");
+  }
+
+  std::unique_lock<std::mutex> lock(_mutex);
+  if (_entries.find(sessionId) != _entries.end()) {
+    throw std::logic_error("WebGPU session was already published");
+  }
+
+  const auto supersededSessionId = _activeSessionId;
+  std::shared_ptr<RNWebGPUManager> supersededManager;
+  if (supersededSessionId != kInvalidRNWebGPUSessionId &&
+      supersededSessionId != sessionId) {
+    const auto superseded = _entries.find(supersededSessionId);
+    if (superseded != _entries.end()) {
+      supersededManager = superseded->second.manager;
+    }
+  }
+
+  SurfaceRegistry::getInstance().openSession(sessionId);
+  try {
+    _entries.emplace(sessionId, Entry{std::move(manager), 1});
+    // Publication is the generation boundary. Invalidate the old token before
+    // exposing the new active id so a long-lived worklet cannot use a boxed GPU
+    // from the previous runtime to replace the new RuntimeContext.
+    if (supersededManager) {
+      supersededManager->invalidate();
+    }
+    _activeSessionId = sessionId;
+  } catch (...) {
+    lock.unlock();
+    SurfaceRegistry::getInstance().closeSession(sessionId);
+    throw;
+  }
+  lock.unlock();
+
+  if (supersededSessionId != kInvalidRNWebGPUSessionId &&
+      supersededSessionId != sessionId) {
+    // The old lease remains in _entries until its module owners release it,
+    // but its native surfaces become terminal at the generation boundary.
+    SurfaceRegistry::getInstance().closeSession(supersededSessionId);
+  }
+}
+
+RNWebGPUManagerSnapshot
+RNWebGPUManagerRegistry::acquire(RNWebGPUSessionId sessionId) {
+  std::lock_guard<std::mutex> lock(_mutex);
+  const auto it = _entries.find(sessionId);
+  if (it == _entries.end() || !it->second.manager ||
+      !it->second.manager->isActive()) {
+    return {};
+  }
+  ++it->second.owners;
+  return {sessionId, it->second.manager};
+}
+
+RNWebGPUManagerSnapshot RNWebGPUManagerRegistry::getActive() const {
+  std::lock_guard<std::mutex> lock(_mutex);
+  const auto it = _entries.find(_activeSessionId);
+  if (it == _entries.end() || !it->second.manager ||
+      !it->second.manager->isActive()) {
+    return {};
+  }
+  return {_activeSessionId, it->second.manager};
+}
+
+RNWebGPUManagerSnapshot
+RNWebGPUManagerRegistry::get(RNWebGPUSessionId sessionId) const {
+  std::lock_guard<std::mutex> lock(_mutex);
+  const auto it = _entries.find(sessionId);
+  if (it == _entries.end() || !it->second.manager ||
+      !it->second.manager->isActive()) {
+    return {};
+  }
+  return {sessionId, it->second.manager};
+}
+
+std::shared_ptr<RNWebGPUManager>
+RNWebGPUManagerRegistry::release(RNWebGPUSessionId sessionId) {
+  std::shared_ptr<RNWebGPUManager> releasedManager;
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    const auto it = _entries.find(sessionId);
+    if (it == _entries.end()) {
+      return nullptr;
+    }
+    if (it->second.owners > 1) {
+      --it->second.owners;
+      return nullptr;
+    }
+
+    releasedManager = std::move(it->second.manager);
+    _entries.erase(it);
+    if (_activeSessionId == sessionId) {
+      _activeSessionId = kInvalidRNWebGPUSessionId;
+    }
+  }
+
+  if (releasedManager) {
+    releasedManager->invalidate();
+  }
+  SurfaceRegistry::getInstance().closeSession(sessionId);
+  return releasedManager;
 }
 
 } // namespace rnwgpu
