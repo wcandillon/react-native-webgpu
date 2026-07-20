@@ -22,6 +22,10 @@ const tests = [
     title: "⚠️ Worklet requestAdapter",
   },
   {
+    screen: "ReloadLifecycle",
+    title: "⚠️ Runtime Reload Lifecycle",
+  },
+  {
     screen: "ContextEdgeCases",
     title: "⚠️ Context Edge Cases",
   },
