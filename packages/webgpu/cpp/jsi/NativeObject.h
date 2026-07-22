@@ -230,6 +230,7 @@ public:
   // Marker type for SFINAE detection in JSIConverter
   using IsNativeObject = std::true_type;
 
+private:
   /**
    * Get the prototype cache for this type.
    * Each NativeObject<Derived> type has its own static cache.
@@ -239,6 +240,7 @@ public:
    * Callers must hold getPrototypeCacheMutex(): the cache is reached
    * concurrently from the main JS thread (create()) and from worklet
    * runtime threads (BoxedWebGPUObject::unbox() -> installPrototype()).
+   * Private so the locking contract cannot be bypassed from outside.
    */
   static RuntimeAwareCache<PrototypeCacheEntry> &
   getPrototypeCache(jsi::Runtime &runtime) {
@@ -256,6 +258,7 @@ public:
     return mutex;
   }
 
+public:
   /**
    * Ensure the prototype is installed for this runtime.
    * Called automatically by create(), but can be called manually.
@@ -361,18 +364,23 @@ public:
     // Attach native state
     obj.setNativeState(runtime, instance);
 
-    // Set prototype
+    // Set prototype. Only the cache lookup needs the mutex: entry.prototype
+    // is written exactly once under the same mutex (installPrototype() above
+    // provides the happens-before), and the entry reference stays valid after
+    // the lock is released (see RuntimeAwareCache::get()). Keeping the JSI
+    // call outside the lock avoids serializing worklet-thread unboxing
+    // against main-thread creation.
+    PrototypeCacheEntry *entry;
     {
       std::lock_guard<std::mutex> lock(getPrototypeCacheMutex());
-      auto &entry = getPrototypeCache(runtime).get(runtime);
-      if (entry.prototype.has_value()) {
-        // Use Object.setPrototypeOf to set the prototype
-        auto objectCtor =
-            runtime.global().getPropertyAsObject(runtime, "Object");
-        auto setPrototypeOf =
-            objectCtor.getPropertyAsFunction(runtime, "setPrototypeOf");
-        setPrototypeOf.call(runtime, obj, *entry.prototype);
-      }
+      entry = &getPrototypeCache(runtime).get(runtime);
+    }
+    if (entry->prototype.has_value()) {
+      // Use Object.setPrototypeOf to set the prototype
+      auto objectCtor = runtime.global().getPropertyAsObject(runtime, "Object");
+      auto setPrototypeOf =
+          objectCtor.getPropertyAsFunction(runtime, "setPrototypeOf");
+      setPrototypeOf.call(runtime, obj, *entry->prototype);
     }
 
     // Set memory pressure hint for GC

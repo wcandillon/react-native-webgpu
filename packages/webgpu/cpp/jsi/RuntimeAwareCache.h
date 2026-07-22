@@ -20,6 +20,12 @@ public:
   static void setMainJsRuntime(jsi::Runtime *rt) {
     // Atomic: hot reload rewrites this from the JS thread while worklet
     // runtime threads read it concurrently.
+    //
+    // Invariant: this store and any subsequent WebGPU installation/creation
+    // on the new main runtime must be sequenced on the same (JS) thread.
+    // StaticRuntimeAwareCache detects a hot reload by comparing this pointer
+    // across two reads that are not one atomic transaction; the same-thread
+    // sequencing is what keeps that comparison consistent.
     _mainRuntime.store(rt, std::memory_order_release);
   }
   static jsi::Runtime *getMainJsRuntime() {
@@ -72,6 +78,10 @@ public:
   }
 
   ~RuntimeAwareCache() {
+    // Destruction requires exclusive ownership, but take the lock anyway so
+    // the map is never touched unguarded and a late onRuntimeDestroyed() on
+    // another thread cannot race the teardown.
+    std::lock_guard<std::mutex> lock(_secondaryCachesMutex);
     for (auto &cache : _secondaryRuntimeCaches) {
       RuntimeLifecycleMonitor::removeListener(
           *static_cast<jsi::Runtime *>(cache.first), this);
@@ -93,7 +103,8 @@ public:
       // insert/erase of other keys, and this runtime's entry can only be
       // erased from this runtime's own thread).
       std::lock_guard<std::mutex> lock(_secondaryCachesMutex);
-      if (_secondaryRuntimeCaches.count(&rt) == 0) {
+      auto it = _secondaryRuntimeCaches.find(&rt);
+      if (it == _secondaryRuntimeCaches.end()) {
         // we only add listener when the secondary runtime is used, this assumes
         // that the secondary runtime is terminated first. This lets us avoid
         // additional complexity for the majority of cases when objects are not
@@ -103,10 +114,9 @@ public:
         // with the primary runtime as it may run on a separate thread.
         RuntimeLifecycleMonitor::addListener(rt, this);
 
-        T cache;
-        _secondaryRuntimeCaches.emplace(&rt, std::move(cache));
+        it = _secondaryRuntimeCaches.try_emplace(&rt).first;
       }
-      return _secondaryRuntimeCaches.at(&rt);
+      return it->second;
     }
   }
 
