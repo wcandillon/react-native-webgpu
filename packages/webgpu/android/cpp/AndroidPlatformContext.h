@@ -179,6 +179,9 @@ public:
     result.height = static_cast<int>(bitmapInfo.height);
     result.data.resize(bitmapInfo.height * bitmapInfo.stride);
     memcpy(result.data.data(), bitmapPixels, result.data.size());
+    // BitmapFactory hands back premultiplied ARGB_8888 pixels; createImageBitmap
+    // converts to the representation requested by premultiplyAlpha.
+    result.premultiplied = true;
 
     AndroidBitmap_unlockPixels(env, bitmap);
 

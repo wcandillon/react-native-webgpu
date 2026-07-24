@@ -23,7 +23,9 @@ Pod::Spec.new do |s|
 
   # The VideoPlayer API uses AVFoundation / CoreMedia, and shared-texture
   # surfaces use CoreVideo (CVPixelBuffer). Link them so their symbols resolve.
-  s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo"
+  # Accelerate provides vImage, used to decode images to straight (non-
+  # premultiplied) RGBA for createImageBitmap.
+  s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo", "Accelerate"
 
   s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',

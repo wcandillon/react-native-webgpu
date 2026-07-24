@@ -2,6 +2,7 @@
 
 #include <TargetConditionals.h>
 
+#import <Accelerate/Accelerate.h>
 #import <AVFoundation/AVFoundation.h>
 #import <CoreVideo/CoreVideo.h>
 #import <React/RCTBlobManager.h>
@@ -117,7 +118,6 @@ ApplePlatformContext::createImageBitmapFromData(std::span<const uint8_t> data) {
 #endif
   size_t width = CGImageGetWidth(cgImage);
   size_t height = CGImageGetHeight(cgImage);
-  size_t bitsPerComponent = 8;
   size_t bytesPerRow = width * 4;
 
   ImageData result;
@@ -125,17 +125,48 @@ ApplePlatformContext::createImageBitmapFromData(std::span<const uint8_t> data) {
   result.height = static_cast<int>(height);
   result.data.resize(height * bytesPerRow);
   result.format = wgpu::TextureFormat::RGBA8Unorm;
+  // Straight (non-premultiplied) alpha: createImageBitmap converts to the
+  // representation requested by premultiplyAlpha, and premultiplyAlpha "none"
+  // must return the decoded bytes untouched. CGBitmapContext cannot target a
+  // non-premultiplied layout, so decode with vImage instead. Keeping the
+  // source's own color space avoids any color-managed conversion, so the RGBA
+  // samples match what the PNG stored.
+  CGColorSpaceRef sourceColorSpace = CGImageGetColorSpace(cgImage);
+  bool ownColorSpace = false;
+  if (sourceColorSpace == NULL) {
+    sourceColorSpace = CGColorSpaceCreateDeviceRGB();
+    ownColorSpace = true;
+  }
 
-  CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-  CGContextRef context = CGBitmapContextCreate(
-      result.data.data(), width, height, bitsPerComponent, bytesPerRow,
-      colorSpace, kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+  vImage_CGImageFormat format = {
+      .bitsPerComponent = 8,
+      .bitsPerPixel = 32,
+      .colorSpace = sourceColorSpace,
+      .bitmapInfo =
+          static_cast<CGBitmapInfo>(kCGImageAlphaLast | kCGBitmapByteOrder32Big),
+      .version = 0,
+      .decode = NULL,
+      .renderingIntent = kCGRenderingIntentDefault,
+  };
+  vImage_Buffer buffer = {
+      .data = result.data.data(),
+      .height = static_cast<vImagePixelCount>(height),
+      .width = static_cast<vImagePixelCount>(width),
+      .rowBytes = bytesPerRow,
+  };
+  vImage_Error err = vImageBuffer_InitWithCGImage(
+      &buffer, &format, NULL, cgImage, kvImageNoAllocate);
 
-  CGContextDrawImage(context, CGRectMake(0, 0, width, height), cgImage);
+  if (ownColorSpace) {
+    CGColorSpaceRelease(sourceColorSpace);
+  }
 
-  CGContextRelease(context);
-  CGColorSpaceRelease(colorSpace);
+  if (err != kvImageNoError) {
+    throw std::runtime_error("Couldn't decode image (vImage error " +
+                             std::to_string(err) + ")");
+  }
 
+  result.premultiplied = false;
   return result;
 }
 

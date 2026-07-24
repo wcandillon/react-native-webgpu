@@ -128,26 +128,40 @@ void GPUQueue::copyExternalImageToTexture(
     throw std::runtime_error("Invalid input for GPUQueue::writeTexture()");
   }
 
-  if (source->flipY.value_or(false)) {
-    // Calculate the row size and total size
+  const bool flipY = source->flipY.value_or(false);
+  // premultipliedAlpha defaults to false per the WebGPU spec: an untagged
+  // destination expects straight alpha. Convert only when the ImageBitmap's
+  // representation differs, using the same rounding as the reference client.
+  const bool sourcePremultiplied = source->source->getPremultiplied();
+  const bool destinationPremultiplied =
+      destination->premultipliedAlpha.value_or(false);
+  const bool needsAlphaConversion =
+      bytesPerPixel == 4 && sourcePremultiplied != destinationPremultiplied;
+
+  if (flipY || needsAlphaConversion) {
     uint32_t rowSize = bytesPerPixel * source->source->getWidth();
     uint32_t totalSize = source->source->getSize();
 
-    // Create a new buffer for the flipped data
-    std::vector<uint8_t> flippedData(totalSize);
-
-    // Flip the data vertically
-    for (uint32_t row = 0; row < source->source->getHeight(); ++row) {
-      std::memcpy(flippedData.data() +
-                      (source->source->getHeight() - 1 - row) * rowSize,
-                  static_cast<const uint8_t *>(source->source->getData()) +
-                      row * rowSize,
-                  rowSize);
+    // Stage a mutable copy so flipping and/or alpha conversion never touch the
+    // ImageBitmap's backing store.
+    std::vector<uint8_t> staged(totalSize);
+    const uint8_t *src =
+        static_cast<const uint8_t *>(source->source->getData());
+    if (flipY) {
+      for (uint32_t row = 0; row < source->source->getHeight(); ++row) {
+        std::memcpy(staged.data() +
+                        (source->source->getHeight() - 1 - row) * rowSize,
+                    src + row * rowSize, rowSize);
+      }
+    } else {
+      std::memcpy(staged.data(), src, totalSize);
     }
-    // Use the flipped data for writing to texture
-    _instance.WriteTexture(&dst, flippedData.data(), totalSize, &layout, &sz);
+    if (needsAlphaConversion) {
+      convertAlpha(staged.data(), totalSize, sourcePremultiplied,
+                   destinationPremultiplied);
+    }
+    _instance.WriteTexture(&dst, staged.data(), totalSize, &layout, &sz);
   } else {
-
     _instance.WriteTexture(&dst, source->source->getData(),
                            source->source->getSize(), &layout, &sz);
   }

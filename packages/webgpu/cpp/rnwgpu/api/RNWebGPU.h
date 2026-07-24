@@ -90,6 +90,41 @@ public:
     auto platformContext = _platformContext;
     auto callInvoker = _callInvoker;
 
+    // Resolve the requested alpha representation from the ImageBitmapOptions.
+    // The options bag is the second argument for createImageBitmap(source,
+    // options) and the sixth for the crop-rect overload createImageBitmap(
+    // source, sx, sy, sw, sh, options). premultiplyAlpha defaults to
+    // "default", which (like "premultiply") stores premultiplied pixels; only
+    // "none" keeps straight alpha. The other options (crop rect, resize,
+    // imageOrientation, colorSpaceConversion) are not yet implemented natively.
+    bool wantPremultiplied = true;
+    const jsi::Value *optionsArg = nullptr;
+    if (count >= 2 && args[1].isObject()) {
+      optionsArg = &args[1];
+    } else if (count >= 6 && args[5].isObject()) {
+      optionsArg = &args[5];
+    }
+    if (optionsArg != nullptr) {
+      auto options = optionsArg->getObject(runtime);
+      if (options.hasProperty(runtime, "premultiplyAlpha")) {
+        auto value = options.getProperty(runtime, "premultiplyAlpha");
+        if (value.isString() &&
+            value.getString(runtime).utf8(runtime) == "none") {
+          wantPremultiplied = false;
+        }
+      }
+    }
+
+    // Bring the decoded pixels into the representation requested via
+    // premultiplyAlpha before wrapping them in an ImageBitmap.
+    auto toRequestedAlpha = [wantPremultiplied](ImageData &imageData) {
+      if (imageData.premultiplied != wantPremultiplied) {
+        convertAlpha(imageData.data.data(), imageData.data.size(),
+                     imageData.premultiplied, wantPremultiplied);
+        imageData.premultiplied = wantPremultiplied;
+      }
+    };
+
     // Check if the argument is an ArrayBuffer or ArrayBufferView
     // (TypedArray / DataView). Only a real buffer source is run through the
     // ArrayBuffer converter, which validates byteOffset/byteLength against the
@@ -119,12 +154,14 @@ public:
 
         return Promise::createPromise(
             runtime,
-            [platformContext, callInvoker, dataCopy = std::move(dataCopy)](
+            [platformContext, callInvoker, toRequestedAlpha,
+             dataCopy = std::move(dataCopy)](
                 jsi::Runtime & /*runtime*/,
                 std::shared_ptr<Promise> promise) mutable {
               platformContext->createImageBitmapFromDataAsync(
                   dataCopy,
-                  [callInvoker, promise](ImageData imageData) {
+                  [callInvoker, promise, toRequestedAlpha](ImageData imageData) {
+                    toRequestedAlpha(imageData);
                     auto imageBitmap = std::make_shared<ImageBitmap>(imageData);
                     callInvoker->invokeAsync([promise, imageBitmap]() {
                       promise->resolve(
@@ -149,11 +186,12 @@ public:
 
     return Promise::createPromise(
         runtime,
-        [platformContext, callInvoker, blobId, offset,
+        [platformContext, callInvoker, toRequestedAlpha, blobId, offset,
          size](jsi::Runtime & /*runtime*/, std::shared_ptr<Promise> promise) {
           platformContext->createImageBitmapAsync(
               blobId, offset, size,
-              [callInvoker, promise](ImageData imageData) {
+              [callInvoker, promise, toRequestedAlpha](ImageData imageData) {
+                toRequestedAlpha(imageData);
                 auto imageBitmap = std::make_shared<ImageBitmap>(imageData);
                 callInvoker->invokeAsync([promise, imageBitmap]() {
                   promise->resolve(
