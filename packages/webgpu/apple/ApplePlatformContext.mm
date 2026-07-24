@@ -3,6 +3,7 @@
 #include <TargetConditionals.h>
 
 #import <AVFoundation/AVFoundation.h>
+#import <CoreImage/CoreImage.h>
 #import <CoreVideo/CoreVideo.h>
 #import <React/RCTBlobManager.h>
 #import <React/RCTBridge+Private.h>
@@ -48,7 +49,8 @@ static std::span<const uint8_t> nsDataToSpan(NSData *data) {
 }
 
 ImageData ApplePlatformContext::createImageBitmap(std::string blobId,
-                                                  double offset, double size) {
+                                                  double offset, double size,
+                                                  bool premultiplyAlpha) {
   RCTBlobManager *blobManager =
       [[RCTBridge currentBridge] moduleForClass:RCTBlobManager.class];
   NSData *blobData =
@@ -60,11 +62,11 @@ ImageData ApplePlatformContext::createImageBitmap(std::string blobId,
     throw std::runtime_error("Couldn't retrieve blob data");
   }
 
-  return createImageBitmapFromData(nsDataToSpan(blobData));
+  return createImageBitmapFromData(nsDataToSpan(blobData), premultiplyAlpha);
 }
 
 void ApplePlatformContext::createImageBitmapAsync(
-    std::string blobId, double offset, double size,
+    std::string blobId, double offset, double size, bool premultiplyAlpha,
     std::function<void(ImageData)> onSuccess,
     std::function<void(std::string)> onError) {
   // Resolve blob on current thread (requires RCTBridge access)
@@ -82,22 +84,47 @@ void ApplePlatformContext::createImageBitmapAsync(
 
   // blobData is alive during this synchronous call;
   // createImageBitmapFromDataAsync copies the span before dispatching
-  createImageBitmapFromDataAsync(nsDataToSpan(blobData), std::move(onSuccess),
-                                 std::move(onError));
+  createImageBitmapFromDataAsync(nsDataToSpan(blobData), premultiplyAlpha,
+                                 std::move(onSuccess), std::move(onError));
 }
 
 ImageData
-ApplePlatformContext::createImageBitmapFromData(std::span<const uint8_t> data) {
-  // This avoids a copy by assuming the UIImage/NSImage constructors
-  // decode `nsData` eagerly before the memory for the wrapped `data`
-  // is freed.
-  //
-  // Since we get the `CGImageRef` from `image` and then throw
-  // it away, that's a fairly safe assumption.
+ApplePlatformContext::createImageBitmapFromData(std::span<const uint8_t> data,
+                                                bool premultiplyAlpha) {
   NSData *nsData =
       [NSData dataWithBytesNoCopy:const_cast<uint8_t *>(data.data())
                            length:data.size()
                      freeWhenDone:NO];
+
+  if (!premultiplyAlpha) {
+    CIImage *ciImage =
+        [CIImage imageWithData:nsData
+                       options:@{kCIImageColorSpace : [NSNull null]}];
+    if (ciImage != nil) {
+      // Core Image retains higher precision until it writes straight RGBA8.
+      size_t width = static_cast<size_t>(CGRectGetWidth(ciImage.extent));
+      size_t height = static_cast<size_t>(CGRectGetHeight(ciImage.extent));
+      size_t bytesPerRow = width * 4;
+      ImageData result;
+      result.width = static_cast<int>(width);
+      result.height = static_cast<int>(height);
+      result.data.resize(height * bytesPerRow);
+      result.format = wgpu::TextureFormat::RGBA8Unorm;
+      result.premultipliedAlpha = false;
+
+      static CIContext *ciContext = [CIContext contextWithOptions:@{
+        kCIContextWorkingColorSpace : [NSNull null],
+        kCIContextOutputPremultiplied : @NO,
+      }];
+      [ciContext render:ciImage
+               toBitmap:result.data.data()
+               rowBytes:bytesPerRow
+                 bounds:ciImage.extent
+                 format:kCIFormatRGBA8
+             colorSpace:nil];
+      return result;
+    }
+  }
 
 #if !TARGET_OS_OSX
   UIImage *image = [UIImage imageWithData:nsData];
@@ -125,11 +152,17 @@ ApplePlatformContext::createImageBitmapFromData(std::span<const uint8_t> data) {
   result.height = static_cast<int>(height);
   result.data.resize(height * bytesPerRow);
   result.format = wgpu::TextureFormat::RGBA8Unorm;
+  result.premultipliedAlpha = true;
 
   CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
   CGContextRef context = CGBitmapContextCreate(
       result.data.data(), width, height, bitsPerComponent, bytesPerRow,
       colorSpace, kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+
+  if (context == nullptr) {
+    CGColorSpaceRelease(colorSpace);
+    throw std::runtime_error("Couldn't create image bitmap context");
+  }
 
   CGContextDrawImage(context, CGRectMake(0, 0, width, height), cgImage);
 
@@ -140,7 +173,8 @@ ApplePlatformContext::createImageBitmapFromData(std::span<const uint8_t> data) {
 }
 
 void ApplePlatformContext::createImageBitmapFromDataAsync(
-    std::span<const uint8_t> data, std::function<void(ImageData)> onSuccess,
+    std::span<const uint8_t> data, bool premultiplyAlpha,
+    std::function<void(ImageData)> onSuccess,
     std::function<void(std::string)> onError) {
   // Copy span data into shared_ptr so the dispatch_async block owns the memory
   auto ownedData =
@@ -149,7 +183,7 @@ void ApplePlatformContext::createImageBitmapFromDataAsync(
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     @autoreleasepool {
       try {
-        auto result = createImageBitmapFromData(*ownedData);
+        auto result = createImageBitmapFromData(*ownedData, premultiplyAlpha);
         onSuccess(std::move(result));
       } catch (const std::exception &e) {
         onError(e.what());

@@ -82,8 +82,8 @@ public:
     return instance.CreateSurface(&surfaceDescriptor);
   }
 
-  ImageData createImageBitmap(std::string blobId, double offset,
-                              double size) override {
+  ImageData createImageBitmap(std::string blobId, double offset, double size,
+                              bool premultiplyAlpha) override {
     jni::Environment::ensureCurrentThreadIsAttached();
 
     JNIEnv *env = facebook::jni::Environment::current();
@@ -92,15 +92,16 @@ public:
     }
 
     auto data = resolveBlob(env, blobId, offset, size);
-    return createImageBitmapFromData(data);
+    return createImageBitmapFromData(data, premultiplyAlpha);
   }
 
   void
   createImageBitmapAsync(std::string blobId, double offset, double size,
+                         bool premultiplyAlpha,
                          std::function<void(ImageData)> onSuccess,
                          std::function<void(std::string)> onError) override {
     std::thread([this, blobId = std::move(blobId), offset, size,
-                 onSuccess = std::move(onSuccess),
+                 premultiplyAlpha, onSuccess = std::move(onSuccess),
                  onError = std::move(onError)]() {
       jni::Environment::ensureCurrentThreadIsAttached();
       try {
@@ -109,7 +110,7 @@ public:
           throw std::runtime_error("Couldn't get JNI environment");
         }
         auto data = resolveBlob(env, blobId, offset, size);
-        auto result = createImageBitmapFromData(data);
+        auto result = createImageBitmapFromData(data, premultiplyAlpha);
         onSuccess(std::move(result));
       } catch (const std::exception &e) {
         onError(e.what());
@@ -117,7 +118,8 @@ public:
     }).detach();
   }
 
-  ImageData createImageBitmapFromData(std::span<const uint8_t> data) override {
+  ImageData createImageBitmapFromData(std::span<const uint8_t> data,
+                                      bool /*premultiplyAlpha*/) override {
     jni::Environment::ensureCurrentThreadIsAttached();
 
     JNIEnv *env = facebook::jni::Environment::current();
@@ -179,6 +181,9 @@ public:
     result.height = static_cast<int>(bitmapInfo.height);
     result.data.resize(bitmapInfo.height * bitmapInfo.stride);
     memcpy(result.data.data(), bitmapPixels, result.data.size());
+    result.premultipliedAlpha =
+        (bitmapInfo.flags & ANDROID_BITMAP_FLAGS_ALPHA_MASK) ==
+        ANDROID_BITMAP_FLAGS_ALPHA_PREMUL;
 
     AndroidBitmap_unlockPixels(env, bitmap);
 
@@ -189,15 +194,16 @@ public:
   }
 
   void createImageBitmapFromDataAsync(
-      std::span<const uint8_t> data, std::function<void(ImageData)> onSuccess,
+      std::span<const uint8_t> data, bool premultiplyAlpha,
+      std::function<void(ImageData)> onSuccess,
       std::function<void(std::string)> onError) override {
     std::thread([this,
                  ownedData = std::vector<uint8_t>(data.begin(), data.end()),
-                 onSuccess = std::move(onSuccess),
+                 premultiplyAlpha, onSuccess = std::move(onSuccess),
                  onError = std::move(onError)]() mutable {
       jni::Environment::ensureCurrentThreadIsAttached();
       try {
-        auto result = createImageBitmapFromData(ownedData);
+        auto result = createImageBitmapFromData(ownedData, premultiplyAlpha);
         onSuccess(std::move(result));
       } catch (const std::exception &e) {
         onError(e.what());

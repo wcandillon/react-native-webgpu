@@ -16,6 +16,7 @@ struct ImageData {
   size_t width;
   size_t height;
   wgpu::TextureFormat format;
+  bool premultipliedAlpha = true;
 };
 
 // Pixel layout of a VideoFrame. Determines whether the underlying surface is
@@ -73,20 +74,22 @@ public:
   virtual wgpu::Surface makeSurface(wgpu::Instance instance, void *surface,
                                     int width, int height) = 0;
   virtual ImageData createImageBitmap(std::string blobId, double offset,
-                                      double size) = 0;
+                                      double size, bool premultiplyAlpha) = 0;
 
   // Async version that performs image decoding on a background thread
   virtual void
   createImageBitmapAsync(std::string blobId, double offset, double size,
+                         bool premultiplyAlpha,
                          std::function<void(ImageData)> onSuccess,
                          std::function<void(std::string)> onError) = 0;
 
   // Create ImageBitmap from raw encoded image bytes (PNG/JPEG/etc.)
-  virtual ImageData
-  createImageBitmapFromData(std::span<const uint8_t> data) = 0;
+  virtual ImageData createImageBitmapFromData(std::span<const uint8_t> data,
+                                              bool premultiplyAlpha) = 0;
 
   virtual void
   createImageBitmapFromDataAsync(std::span<const uint8_t> data,
+                                 bool premultiplyAlpha,
                                  std::function<void(ImageData)> onSuccess,
                                  std::function<void(std::string)> onError) = 0;
 

@@ -89,6 +89,18 @@ public:
 
     auto platformContext = _platformContext;
     auto callInvoker = _callInvoker;
+    bool premultipliedAlpha = true;
+    if (count > 1 && args[1].isObject()) {
+      auto options = args[1].getObject(runtime);
+      if (options.hasProperty(runtime, "premultiplyAlpha")) {
+        auto value = options.getProperty(runtime, "premultiplyAlpha");
+        auto option = JSIConverter<std::optional<PremultiplyAlpha>>::fromJSI(
+            runtime, value, false);
+        if (option.has_value()) {
+          premultipliedAlpha = option.value() != PremultiplyAlpha::None;
+        }
+      }
+    }
 
     // Check if the argument is an ArrayBuffer or ArrayBufferView
     // (TypedArray / DataView). Only a real buffer source is run through the
@@ -118,14 +130,16 @@ public:
         std::vector<uint8_t> dataCopy(data.begin(), data.end());
 
         return Promise::createPromise(
-            runtime,
-            [platformContext, callInvoker, dataCopy = std::move(dataCopy)](
-                jsi::Runtime & /*runtime*/,
-                std::shared_ptr<Promise> promise) mutable {
+            runtime, [platformContext, callInvoker, premultipliedAlpha,
+                      dataCopy = std::move(dataCopy)](
+                         jsi::Runtime & /*runtime*/,
+                         std::shared_ptr<Promise> promise) mutable {
               platformContext->createImageBitmapFromDataAsync(
-                  dataCopy,
-                  [callInvoker, promise](ImageData imageData) {
-                    auto imageBitmap = std::make_shared<ImageBitmap>(imageData);
+                  dataCopy, premultipliedAlpha,
+                  [callInvoker, promise,
+                   premultipliedAlpha](ImageData imageData) {
+                    auto imageBitmap = std::make_shared<ImageBitmap>(
+                        imageData, premultipliedAlpha);
                     callInvoker->invokeAsync([promise, imageBitmap]() {
                       promise->resolve(
                           JSIConverter<std::shared_ptr<ImageBitmap>>::toJSI(
@@ -148,13 +162,14 @@ public:
     double size = blob->size;
 
     return Promise::createPromise(
-        runtime,
-        [platformContext, callInvoker, blobId, offset,
-         size](jsi::Runtime & /*runtime*/, std::shared_ptr<Promise> promise) {
+        runtime, [platformContext, callInvoker, blobId, offset, size,
+                  premultipliedAlpha](jsi::Runtime & /*runtime*/,
+                                      std::shared_ptr<Promise> promise) {
           platformContext->createImageBitmapAsync(
-              blobId, offset, size,
-              [callInvoker, promise](ImageData imageData) {
-                auto imageBitmap = std::make_shared<ImageBitmap>(imageData);
+              blobId, offset, size, premultipliedAlpha,
+              [callInvoker, promise, premultipliedAlpha](ImageData imageData) {
+                auto imageBitmap = std::make_shared<ImageBitmap>(
+                    imageData, premultipliedAlpha);
                 callInvoker->invokeAsync([promise, imageBitmap]() {
                   promise->resolve(
                       JSIConverter<std::shared_ptr<ImageBitmap>>::toJSI(

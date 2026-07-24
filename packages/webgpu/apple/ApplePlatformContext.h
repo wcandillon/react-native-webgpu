@@ -13,18 +13,21 @@ public:
   wgpu::Surface makeSurface(wgpu::Instance instance, void *surface, int width,
                             int height) override;
 
-  ImageData createImageBitmap(std::string blobId, double offset,
-                              double size) override;
+  ImageData createImageBitmap(std::string blobId, double offset, double size,
+                              bool premultiplyAlpha) override;
 
   void
   createImageBitmapAsync(std::string blobId, double offset, double size,
+                         bool premultiplyAlpha,
                          std::function<void(ImageData)> onSuccess,
                          std::function<void(std::string)> onError) override;
 
-  ImageData createImageBitmapFromData(std::span<const uint8_t> data) override;
+  ImageData createImageBitmapFromData(std::span<const uint8_t> data,
+                                      bool premultiplyAlpha) override;
 
   void createImageBitmapFromDataAsync(
-      std::span<const uint8_t> data, std::function<void(ImageData)> onSuccess,
+      std::span<const uint8_t> data, bool premultiplyAlpha,
+      std::function<void(ImageData)> onSuccess,
       std::function<void(std::string)> onError) override;
 
   VideoFrameHandle loadVideoFrame(const std::string &path) override;

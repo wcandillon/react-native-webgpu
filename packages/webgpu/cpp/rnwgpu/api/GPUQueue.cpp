@@ -1,5 +1,6 @@
 #include "GPUQueue.h"
 
+#include <cstring>
 #include <limits>
 #include <memory>
 #include <vector>
@@ -128,26 +129,32 @@ void GPUQueue::copyExternalImageToTexture(
     throw std::runtime_error("Invalid input for GPUQueue::writeTexture()");
   }
 
-  if (source->flipY.value_or(false)) {
-    // Calculate the row size and total size
-    uint32_t rowSize = bytesPerPixel * source->source->getWidth();
-    uint32_t totalSize = source->source->getSize();
+  bool flipY = source->flipY.value_or(false);
+  bool sourcePremultipliedAlpha = source->source->isPremultiplied();
+  bool destinationPremultipliedAlpha =
+      destination->premultipliedAlpha.value_or(false);
+  bool convertAlpha = sourcePremultipliedAlpha != destinationPremultipliedAlpha;
 
-    // Create a new buffer for the flipped data
-    std::vector<uint8_t> flippedData(totalSize);
+  if (flipY || convertAlpha) {
+    size_t rowSize = bytesPerPixel * source->source->getWidth();
+    size_t totalSize = source->source->getSize();
+    auto sourceData = static_cast<const uint8_t *>(source->source->getData());
+    std::vector<uint8_t> uploadData(totalSize);
 
-    // Flip the data vertically
-    for (uint32_t row = 0; row < source->source->getHeight(); ++row) {
-      std::memcpy(flippedData.data() +
-                      (source->source->getHeight() - 1 - row) * rowSize,
-                  static_cast<const uint8_t *>(source->source->getData()) +
-                      row * rowSize,
-                  rowSize);
+    if (flipY) {
+      for (size_t row = 0; row < source->source->getHeight(); ++row) {
+        std::memcpy(uploadData.data() +
+                        (source->source->getHeight() - 1 - row) * rowSize,
+                    sourceData + row * rowSize, rowSize);
+      }
+    } else {
+      std::memcpy(uploadData.data(), sourceData, totalSize);
     }
-    // Use the flipped data for writing to texture
-    _instance.WriteTexture(&dst, flippedData.data(), totalSize, &layout, &sz);
-  } else {
 
+    ImageBitmap::convertAlpha(uploadData, sourcePremultipliedAlpha,
+                              destinationPremultipliedAlpha);
+    _instance.WriteTexture(&dst, uploadData.data(), totalSize, &layout, &sz);
+  } else {
     _instance.WriteTexture(&dst, source->source->getData(),
                            source->source->getSize(), &layout, &sz);
   }
