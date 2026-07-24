@@ -10,7 +10,8 @@ import { checkImage, client, encodeImage } from "./setup";
 // vertical flips both produce large snapshot diffs. The baselines are computed
 // with the same integer arithmetic as ImageBitmap::convertAlpha; pixelmatch
 // tolerance absorbs the platform decoders' off-by-one rounding differences
-// (e.g. Android decodes premultiplied, so "none" is a lossy round trip there).
+// (iOS and Android both decode premultiplied, so "none" is a lossy round trip
+// there).
 const assetPath = path.resolve(__dirname, "./assets/alpha-gradient.png");
 const pngBase64 = fs.readFileSync(assetPath).toString("base64");
 
@@ -247,13 +248,12 @@ describe("ImageBitmap alpha representation", () => {
     },
   );
 
-  // Exact-value check for the lossless straight-alpha guarantee this feature
-  // adds on Apple: premultiplyAlpha "none" must preserve the decoded bytes
-  // bit-for-bit, and conversions must use round-to-nearest. Runs where
-  // exactness is guaranteed: iOS (Core Image decode) and the node client
-  // (whose polyfill mirrors the C++ integer math). Android decodes
-  // premultiplied, so "none" is lossy there; the reference browser's rounding
-  // may legitimately differ by one. Both are covered by the snapshot matrix.
+  // Exact-value check that conversions use round-to-nearest integer math.
+  // Runs only on the node client, whose polyfill mirrors the C++ convertAlpha
+  // arithmetic bit-for-bit. iOS and Android both decode premultiplied through
+  // the platform imaging stack, so premultiplyAlpha "none" is a lossy round
+  // trip on device; the reference browser's rounding may also differ by one.
+  // Those platforms are covered by the tolerance-based snapshot matrix above.
   const straightRows = [
     [128, 128, 128, 128],
     [17, 34, 51, 64],
@@ -272,7 +272,7 @@ describe("ImageBitmap alpha representation", () => {
   ] as const)(
     "preserves exact bytes for source=$sourceAlpha destination=$destinationAlpha",
     async ({ sourceAlpha, destinationAlpha, expected }) => {
-      if (client.OS !== "ios" && client.OS !== "node") {
+      if (client.OS !== "node") {
         return;
       }
       const png = new PNG({ width: 1, height: 2 });
