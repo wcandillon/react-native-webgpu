@@ -23,9 +23,13 @@ Pod::Spec.new do |s|
 
   # The VideoPlayer API uses AVFoundation / CoreMedia, and shared-texture
   # surfaces use CoreVideo (CVPixelBuffer). Link them so their symbols resolve.
-  # Accelerate provides vImage, used to decode images to straight (non-
-  # premultiplied) RGBA for createImageBitmap.
-  s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo", "Accelerate"
+  # ImageIO provides CGImageSource, the createImageBitmap fallback decoder for
+  # non-PNG formats.
+  s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo", "ImageIO"
+
+  # zlib inflates PNG IDAT streams in the straight-alpha PNG decoder used by
+  # createImageBitmap.
+  s.libraries = "z"
 
   s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',

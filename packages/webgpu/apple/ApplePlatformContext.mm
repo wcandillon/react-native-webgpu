@@ -2,9 +2,14 @@
 
 #include <TargetConditionals.h>
 
-#import <Accelerate/Accelerate.h>
+#include <cstdlib>
+#include <cstring>
+
+#include <zlib.h>
+
 #import <AVFoundation/AVFoundation.h>
 #import <CoreVideo/CoreVideo.h>
+#import <ImageIO/ImageIO.h>
 #import <React/RCTBlobManager.h>
 #import <React/RCTBridge+Private.h>
 #import <ReactCommon/RCTTurboModule.h>
@@ -87,35 +92,167 @@ void ApplePlatformContext::createImageBitmapAsync(
                                  std::move(onError));
 }
 
+// Decode an 8-bit, non-interlaced, truecolor (with or without alpha) PNG into
+// straight (non-premultiplied) RGBA. Returns false for any other PNG variant
+// or a non-PNG input, leaving `out` untouched so the caller can fall back to
+// ImageIO.
+//
+// Apple's imaging stack (UIImage, CGImageSource, CGBitmapContext, Core Image)
+// always premultiplies alpha at decode and quantizes to 8 bits, which destroys
+// the original straight samples for low-alpha pixels. createImageBitmap's
+// premultiplyAlpha "none" must return those samples intact, so PNGs (the only
+// format that carries alpha here) are decoded directly instead.
+static bool decodeStraightPng(const uint8_t *data, size_t size,
+                              ImageData &out) {
+  static const uint8_t kSignature[8] = {137, 80, 78, 71, 13, 10, 26, 10};
+  if (size < 8 || memcmp(data, kSignature, 8) != 0) {
+    return false;
+  }
+
+  auto readBE32 = [](const uint8_t *p) -> uint32_t {
+    return (static_cast<uint32_t>(p[0]) << 24) |
+           (static_cast<uint32_t>(p[1]) << 16) |
+           (static_cast<uint32_t>(p[2]) << 8) | static_cast<uint32_t>(p[3]);
+  };
+
+  uint32_t width = 0;
+  uint32_t height = 0;
+  uint8_t bitDepth = 0;
+  uint8_t colorType = 0;
+  uint8_t interlace = 0;
+  bool haveHeader = false;
+  std::vector<uint8_t> idat;
+
+  size_t pos = 8;
+  while (pos + 12 <= size) {
+    uint32_t chunkLen = readBE32(data + pos);
+    const uint8_t *type = data + pos + 4;
+    const uint8_t *chunk = data + pos + 8;
+    // Guard against a truncated / malformed chunk running past the buffer.
+    if (chunkLen > size - pos - 12) {
+      return false;
+    }
+    if (memcmp(type, "IHDR", 4) == 0 && chunkLen >= 13) {
+      width = readBE32(chunk);
+      height = readBE32(chunk + 4);
+      bitDepth = chunk[8];
+      colorType = chunk[9];
+      interlace = chunk[12];
+      haveHeader = true;
+    } else if (memcmp(type, "IDAT", 4) == 0) {
+      idat.insert(idat.end(), chunk, chunk + chunkLen);
+    } else if (memcmp(type, "IEND", 4) == 0) {
+      break;
+    }
+    pos += 12 + chunkLen;
+  }
+
+  int channels = 0;
+  if (colorType == 2) {
+    channels = 3; // truecolor RGB
+  } else if (colorType == 6) {
+    channels = 4; // truecolor RGBA
+  }
+  if (!haveHeader || bitDepth != 8 || interlace != 0 || channels == 0 ||
+      width == 0 || height == 0 || idat.empty()) {
+    return false;
+  }
+
+  const size_t rowBytes = static_cast<size_t>(width) * channels;
+  const uLongf inflatedSize = (rowBytes + 1) * height; // +1 filter byte per row
+  std::vector<uint8_t> inflated(inflatedSize);
+  uLongf actualSize = inflatedSize;
+  if (uncompress(inflated.data(), &actualSize, idat.data(),
+                 static_cast<uLong>(idat.size())) != Z_OK ||
+      actualSize != inflatedSize) {
+    return false;
+  }
+
+  // Reverse the per-scanline PNG filters in place.
+  std::vector<uint8_t> image(rowBytes * height);
+  for (uint32_t y = 0; y < height; y++) {
+    const uint8_t filter = inflated[y * (rowBytes + 1)];
+    const uint8_t *src = &inflated[y * (rowBytes + 1) + 1];
+    uint8_t *row = &image[y * rowBytes];
+    const uint8_t *prev = y > 0 ? &image[(y - 1) * rowBytes] : nullptr;
+    for (size_t i = 0; i < rowBytes; i++) {
+      const int a = i >= static_cast<size_t>(channels) ? row[i - channels] : 0;
+      const int b = prev ? prev[i] : 0;
+      const int c =
+          (prev && i >= static_cast<size_t>(channels)) ? prev[i - channels] : 0;
+      int value = src[i];
+      switch (filter) {
+      case 0: // None
+        break;
+      case 1: // Sub
+        value += a;
+        break;
+      case 2: // Up
+        value += b;
+        break;
+      case 3: // Average
+        value += (a + b) / 2;
+        break;
+      case 4: { // Paeth
+        const int p = a + b - c;
+        const int pa = std::abs(p - a);
+        const int pb = std::abs(p - b);
+        const int pc = std::abs(p - c);
+        value += (pa <= pb && pa <= pc) ? a : (pb <= pc ? b : c);
+        break;
+      }
+      default:
+        return false;
+      }
+      row[i] = static_cast<uint8_t>(value & 0xFF);
+    }
+  }
+
+  out.width = width;
+  out.height = height;
+  out.format = wgpu::TextureFormat::RGBA8Unorm;
+  out.premultiplied = false;
+  out.data.resize(static_cast<size_t>(width) * height * 4);
+  const size_t pixelCount = static_cast<size_t>(width) * height;
+  for (size_t p = 0; p < pixelCount; p++) {
+    const uint8_t *s = &image[p * channels];
+    uint8_t *d = &out.data[p * 4];
+    d[0] = s[0];
+    d[1] = s[1];
+    d[2] = s[2];
+    d[3] = channels == 4 ? s[3] : 255;
+  }
+  return true;
+}
+
 ImageData
 ApplePlatformContext::createImageBitmapFromData(std::span<const uint8_t> data) {
-  // This avoids a copy by assuming the UIImage/NSImage constructors
-  // decode `nsData` eagerly before the memory for the wrapped `data`
-  // is freed.
-  //
-  // Since we get the `CGImageRef` from `image` and then throw
-  // it away, that's a fairly safe assumption.
+  // PNGs carry alpha, and premultiplyAlpha "none" must preserve their straight
+  // samples exactly, so decode them directly (Apple's imaging APIs premultiply
+  // at decode). Everything else goes through ImageIO below.
+  ImageData pngResult;
+  if (decodeStraightPng(data.data(), data.size(), pngResult)) {
+    return pngResult;
+  }
+
   NSData *nsData =
       [NSData dataWithBytesNoCopy:const_cast<uint8_t *>(data.data())
                            length:data.size()
                      freeWhenDone:NO];
 
-#if !TARGET_OS_OSX
-  UIImage *image = [UIImage imageWithData:nsData];
-#else
-  NSImage *image = [[NSImage alloc] initWithData:nsData];
-#endif
-  if (!image) {
+  CGImageSourceRef imageSource =
+      CGImageSourceCreateWithData((__bridge CFDataRef)nsData, NULL);
+  if (imageSource == NULL) {
+    throw std::runtime_error("Couldn't create image source");
+  }
+  NSDictionary *decodeOptions = @{(id)kCGImageSourceShouldCache : @NO};
+  CGImageRef cgImage = CGImageSourceCreateImageAtIndex(
+      imageSource, 0, (__bridge CFDictionaryRef)decodeOptions);
+  CFRelease(imageSource);
+  if (cgImage == NULL) {
     throw std::runtime_error("Couldn't decode image");
   }
 
-#if !TARGET_OS_OSX
-  CGImageRef cgImage = image.CGImage;
-#else
-  CGImageRef cgImage = [image CGImageForProposedRect:NULL
-                                             context:NULL
-                                               hints:NULL];
-#endif
   size_t width = CGImageGetWidth(cgImage);
   size_t height = CGImageGetHeight(cgImage);
   size_t bytesPerRow = width * 4;
@@ -125,48 +262,20 @@ ApplePlatformContext::createImageBitmapFromData(std::span<const uint8_t> data) {
   result.height = static_cast<int>(height);
   result.data.resize(height * bytesPerRow);
   result.format = wgpu::TextureFormat::RGBA8Unorm;
-  // Straight (non-premultiplied) alpha: createImageBitmap converts to the
-  // representation requested by premultiplyAlpha, and premultiplyAlpha "none"
-  // must return the decoded bytes untouched. CGBitmapContext cannot target a
-  // non-premultiplied layout, so decode with vImage instead. Keeping the
-  // source's own color space avoids any color-managed conversion, so the RGBA
-  // samples match what the PNG stored.
-  CGColorSpaceRef sourceColorSpace = CGImageGetColorSpace(cgImage);
-  bool ownColorSpace = false;
-  if (sourceColorSpace == NULL) {
-    sourceColorSpace = CGColorSpaceCreateDeviceRGB();
-    ownColorSpace = true;
-  }
 
-  vImage_CGImageFormat format = {
-      .bitsPerComponent = 8,
-      .bitsPerPixel = 32,
-      .colorSpace = sourceColorSpace,
-      .bitmapInfo =
-          static_cast<CGBitmapInfo>(kCGImageAlphaLast | kCGBitmapByteOrder32Big),
-      .version = 0,
-      .decode = NULL,
-      .renderingIntent = kCGRenderingIntentDefault,
-  };
-  vImage_Buffer buffer = {
-      .data = result.data.data(),
-      .height = static_cast<vImagePixelCount>(height),
-      .width = static_cast<vImagePixelCount>(width),
-      .rowBytes = bytesPerRow,
-  };
-  vImage_Error err = vImageBuffer_InitWithCGImage(
-      &buffer, &format, NULL, cgImage, kvImageNoAllocate);
+  // Non-PNG sources (JPEG, ...) have no alpha channel, so the premultiplied
+  // draw is exact for them; flag the result premultiplied so createImageBitmap
+  // and copyExternalImageToTexture convert consistently.
+  CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+  CGContextRef context = CGBitmapContextCreate(
+      result.data.data(), width, height, 8, bytesPerRow, colorSpace,
+      kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+  CGContextDrawImage(context, CGRectMake(0, 0, width, height), cgImage);
+  CGContextRelease(context);
+  CGColorSpaceRelease(colorSpace);
+  CGImageRelease(cgImage);
 
-  if (ownColorSpace) {
-    CGColorSpaceRelease(sourceColorSpace);
-  }
-
-  if (err != kvImageNoError) {
-    throw std::runtime_error("Couldn't decode image (vImage error " +
-                             std::to_string(err) + ")");
-  }
-
-  result.premultiplied = false;
+  result.premultiplied = true;
   return result;
 }
 
