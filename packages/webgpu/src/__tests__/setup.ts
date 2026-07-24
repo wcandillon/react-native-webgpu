@@ -486,30 +486,74 @@ class NodeTestingClient implements TestingClient {
   // dawn.node implements the core WebGPU API but none of the web-platform
   // image machinery, so provide the minimal pieces the specs rely on.
   private installWebPolyfills(device: GPUDevice) {
-    const decodePng = (bytes: Uint8Array) => {
+    // Same integer arithmetic as ImageBitmap::convertAlpha (ImageBitmap.h),
+    // so this client is a bit-exact reference for the native conversion.
+    const convertAlpha = (
+      data: Uint8Array | Uint8ClampedArray,
+      sourcePremultiplied: boolean,
+      destinationPremultiplied: boolean,
+    ) => {
+      if (sourcePremultiplied === destinationPremultiplied) {
+        return;
+      }
+      for (let i = 0; i + 3 < data.length; i += 4) {
+        const alpha = data[i + 3];
+        for (let channel = 0; channel < 3; channel++) {
+          const value = data[i + channel];
+          if (destinationPremultiplied) {
+            data[i + channel] = Math.floor((value * alpha + 127) / 255);
+          } else if (alpha === 0) {
+            data[i + channel] = 0;
+          } else {
+            data[i + channel] = Math.min(
+              255,
+              Math.floor((value * 255 + (alpha >> 1)) / alpha),
+            );
+          }
+        }
+      }
+    };
+    const decodePng = (bytes: Uint8Array, premultiplied: boolean) => {
       const png = PNG.sync.read(
         Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
       );
-      return {
-        data: new Uint8ClampedArray(png.data),
+      const data = new Uint8ClampedArray(png.data);
+      convertAlpha(data, false, premultiplied);
+      const bitmap = {
+        data,
         width: png.width,
         height: png.height,
-        close() {},
+        premultiplied,
+        // Mirror the native ImageBitmap: close() releases the pixels and
+        // zeroes the dimensions.
+        close() {
+          bitmap.data = new Uint8ClampedArray(0);
+          bitmap.width = 0;
+          bitmap.height = 0;
+        },
       };
+      return bitmap;
     };
     (globalThis as Record<string, unknown>).createImageBitmap = async (
       source: unknown,
+      options?: { premultiplyAlpha?: string },
     ) => {
+      // Like the native implementation, "default" premultiplies.
+      const premultiplied = options?.premultiplyAlpha !== "none";
       if (source instanceof ArrayBuffer) {
-        return decodePng(new Uint8Array(source));
+        return decodePng(new Uint8Array(source), premultiplied);
       }
       if (ArrayBuffer.isView(source)) {
         return decodePng(
           new Uint8Array(source.buffer, source.byteOffset, source.byteLength),
+          premultiplied,
         );
       }
       if (typeof Blob !== "undefined" && source instanceof Blob) {
-        return decodePng(new Uint8Array(await source.arrayBuffer()));
+        return decodePng(
+          new Uint8Array(await source.arrayBuffer()),
+          premultiplied,
+        );
       }
       if (
         source !== null &&
@@ -518,30 +562,66 @@ class NodeTestingClient implements TestingClient {
         "width" in source
       ) {
         // Already an ImageData-like object (e.g. one of the test assets).
+        // Left untagged so the copy shim writes its bytes through unchanged.
         return source;
       }
       throw new Error("createImageBitmap polyfill: unsupported source");
     };
     // copyExternalImageToTexture expects an ImageBitmap; route the raw RGBA
-    // bytes of our ImageData-like sources through writeTexture instead.
+    // bytes of our ImageData-like sources through writeTexture instead,
+    // honoring flipY and the alpha representations on both sides.
     Object.defineProperty(device.queue, "copyExternalImageToTexture", {
       configurable: true,
       value: (
         source: {
-          source: { data: Uint8ClampedArray; width: number; height: number };
+          source: {
+            data: Uint8ClampedArray;
+            width: number;
+            height: number;
+            premultiplied?: boolean;
+          };
+          flipY?: boolean;
         },
-        destination: GPUTexelCopyTextureInfo,
+        destination: GPUTexelCopyTextureInfo & { premultipliedAlpha?: boolean },
         copySize: GPUExtent3DStrict,
       ) => {
-        const { data, width } = source.source;
+        const { data, width, height, premultiplied } = source.source;
+        const rowSize = width * 4;
+        let bytes = new Uint8Array(
+          data.buffer as ArrayBuffer,
+          data.byteOffset,
+          data.byteLength,
+        );
+        const flipY = source.flipY === true;
+        // Untagged sources (raw test assets) are copied through unchanged.
+        const needsConversion =
+          premultiplied !== undefined &&
+          premultiplied !== (destination.premultipliedAlpha === true);
+        if (flipY || needsConversion) {
+          const converted = new Uint8Array(bytes.length);
+          if (flipY) {
+            for (let row = 0; row < height; row++) {
+              converted.set(
+                bytes.subarray(row * rowSize, (row + 1) * rowSize),
+                (height - 1 - row) * rowSize,
+              );
+            }
+          } else {
+            converted.set(bytes);
+          }
+          if (needsConversion) {
+            convertAlpha(
+              converted,
+              premultiplied === true,
+              destination.premultipliedAlpha === true,
+            );
+          }
+          bytes = converted;
+        }
         device.queue.writeTexture(
           destination,
-          new Uint8Array(
-            data.buffer as ArrayBuffer,
-            data.byteOffset,
-            data.byteLength,
-          ),
-          { bytesPerRow: width * 4 },
+          bytes,
+          { bytesPerRow: rowSize },
           copySize,
         );
       },
