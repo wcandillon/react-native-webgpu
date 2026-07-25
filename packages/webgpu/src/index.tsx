@@ -110,5 +110,6 @@ declare global {
   // Extend createImageBitmap to accept ArrayBuffer/TypedArray (encoded image bytes)
   function createImageBitmap(
     image: ArrayBuffer | ArrayBufferView,
+    options?: ImageBitmapOptions,
   ): Promise<ImageBitmap>;
 }
