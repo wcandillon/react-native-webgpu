@@ -1,7 +1,4 @@
-import fs from "fs";
-import path from "path";
-
-import { checkImage, client, encodeImage } from "./setup";
+import { checkImage, client, encodeImage, fixtureUrl } from "./setup";
 
 // createImageBitmap options beyond premultiplyAlpha (which is covered by
 // ImageBitmapAlpha.spec.ts): the crop-rect overload, resizeWidth/resizeHeight,
@@ -17,11 +14,6 @@ import { checkImage, client, encodeImage } from "./setup";
 //   and the full, upright, unresized image comes through. When one of these
 //   options gets implemented natively, the corresponding case fails here and
 //   should be flipped over to the reference snapshot.
-const assetPath = path.resolve(__dirname, "./assets/opaque-gradient.png");
-const pngBase64 = fs.readFileSync(assetPath).toString("base64");
-const p3AssetPath = path.resolve(__dirname, "./assets/p3-gradient.png");
-const p3Base64 = fs.readFileSync(p3AssetPath).toString("base64");
-
 const identitySnapshot = "assets/opaque-gradient.png";
 
 interface OptionsCase {
@@ -67,13 +59,13 @@ const cases: OptionsCase[] = [
 ];
 
 const runCase = (
-  encodedPng: string,
+  fileName: string,
   cropRect: [number, number, number, number] | null,
   options: ImageBitmapOptions | null,
 ) =>
   client.eval(
-    ({ device, pngBase64: png, cropRect: rect, options: bitmapOptions }) => {
-      return fetch(`data:image/png;base64,${png}`)
+    ({ device, url, cropRect: rect, options: bitmapOptions }) => {
+      return fetch(url)
         .then((response) => response.blob())
         .then((blob) =>
           rect === null
@@ -133,7 +125,7 @@ const runCase = (
         });
     },
     {
-      pngBase64: encodedPng,
+      url: fixtureUrl(fileName),
       cropRect,
       options,
     },
@@ -141,7 +133,11 @@ const runCase = (
 
 describe("createImageBitmap options", () => {
   it.each(cases)("$name", async ({ cropRect, options, referenceSnapshot }) => {
-    const result = await runCase(pngBase64, cropRect ?? null, options ?? null);
+    const result = await runCase(
+      "opaque-gradient.png",
+      cropRect ?? null,
+      options ?? null,
+    );
     const isReference = client.OS === "web" || client.OS === "node";
     checkImage(
       encodeImage(result),
@@ -162,7 +158,7 @@ describe("createImageBitmap options", () => {
     if (client.OS !== "web" && client.OS !== "node") {
       return;
     }
-    const result = await runCase(p3Base64, null, {
+    const result = await runCase("p3-gradient.png", null, {
       colorSpaceConversion: "none",
     });
     checkImage(encodeImage(result), "assets/p3-gradient.png");
@@ -172,7 +168,7 @@ describe("createImageBitmap options", () => {
     if (client.OS !== "web") {
       return;
     }
-    const result = await runCase(p3Base64, null, {
+    const result = await runCase("p3-gradient.png", null, {
       colorSpaceConversion: "default",
     });
     checkImage(

@@ -2,6 +2,7 @@
 
 import fs from "fs";
 import path from "path";
+import type { Server as HTTPServer } from "http";
 
 import puppeteer from "puppeteer";
 import { PNG } from "pngjs";
@@ -14,7 +15,7 @@ import type { GPUOffscreenCanvas } from "../Offscreen";
 
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
-import { DEBUG, NODE_WEBGPU, REFERENCE } from "./config";
+import { DEBUG, NODE_WEBGPU, REFERENCE, TEST_SERVER_PORT } from "./config";
 
 jest.setTimeout(180 * 1000);
 
@@ -22,9 +23,11 @@ type TestOS = "ios" | "android" | "web" | "node";
 
 declare global {
   var testServer: Server;
+  var testFixtureServer: HTTPServer;
   var testClient: WebSocket;
   var testOS: TestOS;
   var testArch: "paper" | "fabric";
+  var testHost: string;
 }
 
 interface GPUTestingContext {
@@ -855,6 +858,24 @@ export const itSkipsOnWeb = (name: string, fn: () => Promise<void>) => {
     }
     await fn();
   });
+};
+
+// URL a test can `fetch(...).then(r => r.blob())` on the device to get one of
+// the fixtures in ./assets.
+//
+// React Native's Android networking stack (OkHttp) has no handler for the data:
+// scheme, so an inline `data:image/png;base64,...` URL rejects there with
+// "Network request failed" (iOS works, since NSURLSession decodes data: URLs
+// itself). Device clients therefore load fixtures over HTTP from the test
+// server started in globalSetup. Chrome and node both support data: URLs and
+// keep the inline form, which leaves the reference clients independent of that
+// server.
+export const fixtureUrl = (fileName: string): string => {
+  if (client.OS === "ios" || client.OS === "android") {
+    return `http://${global.testHost}:${TEST_SERVER_PORT}/${fileName}`;
+  }
+  const p = path.resolve(__dirname, "assets", fileName);
+  return `data:image/png;base64,${fs.readFileSync(p).toString("base64")}`;
 };
 
 export const decodeImage = (relPath: string): BitmapData => {

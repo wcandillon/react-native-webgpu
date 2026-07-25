@@ -3,7 +3,7 @@ import path from "path";
 
 import { PNG } from "pngjs";
 
-import { checkImage, client, encodeImage } from "./setup";
+import { checkImage, client, encodeImage, fixtureUrl } from "./setup";
 
 // A 32x32 gradient with a vertical alpha ramp (row 0 fully transparent, last
 // row fully opaque) and a horizontal color ramp, so alpha-mode mistakes and
@@ -13,7 +13,6 @@ import { checkImage, client, encodeImage } from "./setup";
 // (iOS and Android both decode premultiplied, so "none" is a lossy round trip
 // there).
 const assetPath = path.resolve(__dirname, "./assets/alpha-gradient.png");
-const pngBase64 = fs.readFileSync(assetPath).toString("base64");
 
 type SourceAlpha = "none" | "premultiply" | "default" | "omitted";
 type DestinationAlpha = boolean | "omitted";
@@ -80,12 +79,12 @@ describe("ImageBitmap alpha representation", () => {
       const result = await client.eval(
         ({
           device,
-          pngBase64: encodedPng,
+          url,
           sourceAlpha: sourceRepresentation,
           destinationAlpha: destinationRepresentation,
           flipY: shouldFlip,
         }) => {
-          return fetch(`data:image/png;base64,${encodedPng}`)
+          return fetch(url)
             .then((response) => response.blob())
             .then((blob) =>
               createImageBitmap(
@@ -144,7 +143,7 @@ describe("ImageBitmap alpha representation", () => {
             });
         },
         {
-          pngBase64,
+          url: fixtureUrl("alpha-gradient.png"),
           sourceAlpha,
           destinationAlpha,
           flipY,
@@ -254,6 +253,8 @@ describe("ImageBitmap alpha representation", () => {
   // the platform imaging stack, so premultiplyAlpha "none" is a lossy round
   // trip on device; the reference browser's rounding may also differ by one.
   // Those platforms are covered by the tolerance-based snapshot matrix above.
+  // Being node-only, this case can build its fixture at runtime and pass it as
+  // a data: URI rather than going through fixtureUrl.
   const straightRows = [
     [128, 128, 128, 128],
     [17, 34, 51, 64],
