@@ -39,8 +39,10 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceChanged(
     JNIEnv *env, jobject thiz, jobject surface, jint contextId, jfloat width,
     jfloat height) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  registry.getSurfaceInfo(contextId)->resize(static_cast<int>(width),
-                                             static_cast<int>(height));
+  auto info = registry.getSurfaceInfo(contextId);
+  if (info != nullptr) {
+    info->resize(static_cast<int>(width), static_cast<int>(height));
+  }
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
@@ -62,8 +64,12 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_webgpu_WebGPUView_switchToOffscreenSurface(JNIEnv *env, jobject thiz,
                                                     jint contextId) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  auto nativeSurface = registry.getSurfaceInfo(contextId)->switchToOffscreen();
-  // ANativeWindow_release(reinterpret_cast<ANativeWindow *>(nativeSurface));
+  // May be null if onDropViewInstance already removed the SurfaceInfo and this
+  // is a late SurfaceHolder callback from the child view.
+  auto info = registry.getSurfaceInfo(contextId);
+  if (info != nullptr) {
+    info->switchToOffscreen();
+  }
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(

@@ -132,6 +132,8 @@ public:
       _poolDevice = config.device;
       _poolFormat = config.format;
       _poolUsage = config.usage;
+      // A new device may support AHB sharing even if the previous one did not.
+      _poolUnsupported = false;
     }
     if (_poolMode.load()) {
       return;
@@ -375,6 +377,16 @@ public:
     if (_pool != nullptr && _pool->width == pxW && _pool->height == pxH) {
       return;
     }
+    if (_poolUnsupported) {
+      return;
+    }
+    if (!_poolDevice.HasFeature(
+            wgpu::FeatureName::SharedTextureMemoryAHardwareBuffer)) {
+      _poolUnsupported = true;
+      RNWGPU_POOL_LOG("device lacks SharedTextureMemoryAHardwareBuffer; the "
+                      "transparent canvas cannot present and stays blank");
+      return;
+    }
     auto pool = allocatePoolLocked(pxW, pxH);
     if (pool == nullptr) {
       return;
@@ -479,8 +491,11 @@ private:
       ahbDesc.handle = slot.ahb;
       memDesc.nextInChain = &ahbDesc;
       slot.memory = _poolDevice.ImportSharedTextureMemory(&memDesc);
-      if (slot.memory == nullptr) {
-        RNWGPU_POOL_LOG("ImportSharedTextureMemory returned null");
+      // A failed import yields a non-null Dawn error object, so probing the
+      // properties is the actual validity check.
+      wgpu::SharedTextureMemoryProperties props{};
+      if (slot.memory == nullptr || !slot.memory.GetProperties(&props)) {
+        RNWGPU_POOL_LOG("ImportSharedTextureMemory failed (%dx%d)", w, h);
         return nullptr;
       }
       // The AHB is rgba8unorm; the pool cannot honor another configured format.
@@ -494,8 +509,6 @@ private:
                         static_cast<int>(_poolFormat));
       }
       // Honor the configured usage flags as far as the imported memory allows.
-      wgpu::SharedTextureMemoryProperties props{};
-      slot.memory.GetProperties(&props);
       wgpu::TextureUsage wanted =
           _poolUsage | wgpu::TextureUsage::RenderAttachment;
       wgpu::TextureUsage usage = wanted & props.usage;
@@ -735,6 +748,7 @@ private:
   wgpu::Device _poolDevice = nullptr;
   wgpu::TextureFormat _poolFormat = wgpu::TextureFormat::Undefined;
   wgpu::TextureUsage _poolUsage = wgpu::TextureUsage::RenderAttachment;
+  bool _poolUnsupported = false; // device lacks AHB shared-texture support
   std::shared_ptr<AHBPool> _pool;       // current generation
   std::unordered_map<uint32_t, std::shared_ptr<AHBPool>> _pools; // gen -> pool
   std::shared_ptr<AHBPool> _renderPool; // generation of the in-flight render
