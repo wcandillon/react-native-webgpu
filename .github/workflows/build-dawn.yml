@@ -18,28 +18,39 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
 
-      - name: Determine Dawn branch metadata
+      - name: Determine Dawn version metadata
         id: dawn_meta
         run: |
           set -eo pipefail
-          branch=$(git config -f .gitmodules submodule.externals/dawn.branch)
-          if [ -z "$branch" ]; then
-            echo "Could not determine Dawn branch from .gitmodules" >&2
+          version=$(node -p "require('./packages/webgpu/package.json').dawn")
+          commit=$(node -p "require('./packages/webgpu/package.json').dawnCommit")
+          if [ -z "$version" ] || [ "$version" = "undefined" ]; then
+            echo "Could not determine Dawn version from package.json ('dawn' field)" >&2
             exit 1
           fi
-          slug=${branch//\//-}
-          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          if [ -z "$commit" ] || [ "$commit" = "undefined" ]; then
+            echo "Could not determine Dawn commit from package.json ('dawnCommit' field)" >&2
+            exit 1
+          fi
+          gitlink=$(git ls-tree HEAD externals/dawn | awk '{print $3}')
+          if [ "$gitlink" != "$commit" ]; then
+            echo "Submodule gitlink ($gitlink) does not match package.json dawnCommit ($commit)." >&2
+            echo "Update the externals/dawn submodule and the dawnCommit field together." >&2
+            exit 1
+          fi
+          slug=${version//\//-}
+          echo "branch=$version" >> "$GITHUB_OUTPUT"
           echo "branch_slug=$slug" >> "$GITHUB_OUTPUT"
 
       - name: Compute release metadata
         id: release_meta
         run: |
-          tag="dawn-${DAWN_BRANCH_SLUG}"
+          tag="dawn-${DAWN_VERSION_SLUG}"
           echo "tag_name=$tag" >> "$GITHUB_OUTPUT"
-          echo "release_name=Dawn ${DAWN_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "release_name=Dawn ${DAWN_VERSION}" >> "$GITHUB_OUTPUT"
         env:
-          DAWN_BRANCH: ${{ steps.dawn_meta.outputs.branch }}
-          DAWN_BRANCH_SLUG: ${{ steps.dawn_meta.outputs.branch_slug }}
+          DAWN_VERSION: ${{ steps.dawn_meta.outputs.branch }}
+          DAWN_VERSION_SLUG: ${{ steps.dawn_meta.outputs.branch_slug }}
 
       - name: Create GitHub release
         id: create_release
@@ -49,7 +60,7 @@ jobs:
         with:
           tag_name: ${{ steps.release_meta.outputs.tag_name }}
           name: ${{ steps.release_meta.outputs.release_name }}
-          body: "Dawn prebuilt binaries for version ${{ steps.dawn_meta.outputs.branch }}"
+          body: "Dawn prebuilt binaries for ${{ steps.dawn_meta.outputs.branch }} (Dawn commit pinned in package.json dawnCommit)"
           draft: false
           prerelease: true
           generate_release_notes: false
