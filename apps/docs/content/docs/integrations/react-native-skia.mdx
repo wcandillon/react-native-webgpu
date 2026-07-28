@@ -1,0 +1,49 @@
+---
+title: React Native Skia
+description: Share one Dawn and one GPU device with Skia's Graphite renderer.
+---
+
+react-native-webgpu and [`@shopify/react-native-skia`](https://shopify.github.io/react-native-skia/) work alongside each other nicely.
+
+With the default (Ganesh) releases of react-native-skia there is no coupling at all: any version of either package can be installed together, and they simply don't interact.
+
+Graphite builds of react-native-skia (the `@next` release channel) render through Dawn, the same WebGPU implementation react-native-webgpu is built on, and the two packages are designed to share it:
+
+- **One Dawn copy.** Both packages vendor the exact same prebuilt Dawn artifact, pinned to the Dawn revision of the Skia milestone (for example `dawn-chrome-m150`). When both are installed, react-native-skia detects react-native-webgpu at `pod install` time and defers to its copy, so the process contains exactly one Dawn. A build-time guard compares the two packages' Dawn tags and fails the native build on a mismatch instead of letting two incompatible copies coexist.
+- **One `wgpu::Instance`.** When a Graphite build of react-native-skia is present, react-native-webgpu adopts Skia's instance automatically at startup (discovered at runtime, independent of native-module initialization order). Graphite's device and every device you create through `navigator.gpu` live on the same instance.
+- **The WebGPU API lives here.** Graphite builds of react-native-skia do not install `navigator.gpu` or any WebGPU JS API; react-native-webgpu is the single WebGPU API surface. If you want to write WebGPU code in an app that uses Skia, install react-native-webgpu alongside it.
+
+<Callout type="info" title="Versions">
+Because a Graphite build links react-native-webgpu's Dawn copy, the two packages must be built against the same Dawn tag; this is what makes sharing an instance and importing devices sound. Releases are kept in lockstep, and the native build fails with an explicit message if the tags ever differ, so a mismatch surfaces at build time rather than as undefined behavior at runtime. Default (Ganesh) releases of react-native-skia have no such constraint.
+</Callout>
+
+## Rendering with Skia's device
+
+`Skia.getNativeDevice()` returns the raw pointer of Graphite's `wgpu::Device` as a `BigInt`, and [`importDevice()`](/docs/getting-started/native-api#importing-an-external-device) wraps it into a regular `GPUDevice`:
+
+```tsx
+import { Skia } from "@shopify/react-native-skia";
+import { Canvas, importDevice } from "react-native-webgpu";
+
+const device = importDevice(Skia.getNativeDevice());
+// Use it like any GPUDevice: create pipelines, submit work,
+// render to a react-native-webgpu <Canvas />.
+```
+
+Because the device is shared with Graphite, GPU resources you create with it live on the same device Skia renders with, which is the foundation for zero-copy interop between the two worlds.
+
+A few things to know:
+
+- **Lifetime.** The device is owned by Skia's Graphite context and is valid for the lifetime of the process. `importDevice` takes its own reference.
+- **Device loss.** Skia treats the loss of its device as fatal. Treat an imported device accordingly: there is no point requesting a replacement from `navigator.gpu` on loss.
+- **You can still create your own devices.** `navigator.gpu.requestAdapter()` and `requestDevice()` work as usual; devices you create are siblings of Graphite's device on the shared instance. Use a dedicated device when you want your GPU work isolated from Skia's command queue.
+- **Threading.** The imported device follows the same [threading model](/docs/getting-started/native-api#threading-model) as any other device. Note that Graphite records and submits its own work on the device concurrently; Dawn synchronizes device access internally.
+
+## Zero-copy texture sharing
+
+Sharing textures between Skia images and WebGPU textures on the shared device (the equivalent of Skia's previous `MakeTextureFromImage` / `MakeImageFromTexture`) is being rebuilt on top of this interop and will be documented here when it ships. In the meantime, platform surfaces (`CVPixelBuffer` / `AHardwareBuffer`) can cross the boundary through [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory).
+
+## See also
+
+- [Native APIs](/docs/getting-started/native-api) - `importDevice` and the threading model
+- [Native Extensions](/api/gpu-device-extensions) - native texture interop on `GPUDevice`
