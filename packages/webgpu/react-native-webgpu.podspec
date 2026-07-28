@@ -28,6 +28,11 @@ Pod::Spec.new do |s|
 
   s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',
+    # Xcode's all-target headermaps let same-named headers leak across pods
+    # (e.g. @shopify/react-native-skia keeps a jsi/ helper layer with
+    # identical relative header paths). Resolve includes strictly through our
+    # own search paths instead.
+    'USE_HEADERMAP' => 'NO',
   }
 
   # Use install_modules_dependencies helper to install the dependencies if React Native version >=0.71.0.

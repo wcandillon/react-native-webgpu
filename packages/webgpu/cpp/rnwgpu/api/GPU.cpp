@@ -1,5 +1,7 @@
 #include "GPU.h"
 
+#include <dlfcn.h>
+
 #include <cstdio>
 #include <memory>
 #include <string>
@@ -14,6 +16,25 @@
 namespace rnwgpu {
 
 GPU::GPU(jsi::Runtime & /*runtime*/) : NativeObject(CLASS_NAME) {
+  // If a Graphite build of @shopify/react-native-skia is loaded in this
+  // process, adopt its wgpu::Instance instead of creating our own, so
+  // Graphite's device and every JS-created device live on one instance. That
+  // makes pointer-based handoff (RNWebGPU.importDevice of Skia's device)
+  // sound: the async pump serves the shared instance, so callbacks on
+  // imported devices settle. Discovered at runtime via dlsym so there is no
+  // build-time coupling and native-module init order does not matter. Both
+  // packages must link the same single Dawn copy (they vendor the same
+  // artifact) for the handle to be meaningful.
+  using GetInstanceFn = WGPUInstance (*)();
+  if (auto getSkiaInstance = reinterpret_cast<GetInstanceFn>(
+          dlsym(RTLD_DEFAULT, "rnskia_getWGPUInstance"))) {
+    if (WGPUInstance external = getSkiaInstance()) {
+      wgpuInstanceAddRef(external);
+      _instance = wgpu::Instance::Acquire(external);
+      return;
+    }
+  }
+
   static const auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
   wgpu::InstanceDescriptor instanceDesc{.requiredFeatureCount = 1,
                                         .requiredFeatures = &kTimedWaitAny};

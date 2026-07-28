@@ -58,6 +58,10 @@ declare global {
     // on Android) into a NativeVideoFrame. Matches the shape used by libraries
     // that emit NativeBuffer (e.g. react-native-vision-camera).
     createVideoFrameFromNativeBuffer: (pointer: bigint) => NativeVideoFrame;
+    // Wrap an externally created WGPUDevice pointer (e.g. Skia's Graphite
+    // device from Skia.getNativeDevice()) into a GPUDevice. Requires the
+    // exporter to share this process's single Dawn instance.
+    importDevice: (pointer: bigint) => GPUDevice;
     createVideoPlayer: (
       path: string,
       pixelFormat?: NativeVideoPixelFormat,
