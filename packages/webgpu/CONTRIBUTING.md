@@ -23,28 +23,31 @@ The Expo config plugin lives in `plugin/src` and is compiled to `plugin/build` b
 
 ## Upgrading Dawn
 
-The Dawn version is pinned in two places that must stay in sync:
+The Dawn version tracks the one shipped by `@shopify/react-native-skia` Graphite builds: the pin is the exact Dawn commit from the Skia milestone's DEPS file (`third_party/externals/dawn` in Skia's DEPS). It is recorded in two places that must stay in sync:
 
-- `.gitmodules` → `submodule.externals/dawn.branch` (e.g. `chromium/7849`)
-- `packages/webgpu/package.json` → the `"dawn"` field (same value, e.g. `chromium/7849`)
+- the `externals/dawn` submodule gitlink (the commit the submodule points at)
+- `packages/webgpu/package.json` → `"dawn"` (a human-readable label, e.g. `skia-m150`) and `"dawnCommit"` (the exact commit hash)
 
-`yarn install-dawn` downloads **prebuilt** binaries from a GitHub release tagged `dawn-<branch-slug>` (e.g. `dawn-chromium-7849`); the release host is configured at the top of `scripts/install-dawn.ts`. `yarn build-dawn` builds the same binaries from the submodule source instead.
+The **Build Dawn** workflow verifies the gitlink matches `dawnCommit` and fails otherwise.
 
-Steps to bump to a new Dawn version (`chromium/<N>`):
+`yarn install-dawn` downloads **prebuilt** binaries from a GitHub release on this repo tagged `dawn-<version-slug>` (e.g. `dawn-skia-m150`). `yarn build-dawn` builds the same binaries from the submodule source instead.
 
-1. **Point the submodule at the new branch.** Update both `.gitmodules` and the `"dawn"` field in `package.json` to `chromium/<N>`, then move the submodule to the new tip:
+Steps to bump to a new Dawn version (new Skia milestone `m<N>`):
+
+1. **Find the Dawn commit** in the Skia milestone's `DEPS` file (`third_party/externals/dawn` entry).
+
+2. **Point the submodule at that commit** and update `package.json` (`"dawn": "skia-m<N>"`, `"dawnCommit": "<hash>"`):
 
    ```sh
-   git submodule set-branch --branch chromium/<N> externals/dawn
-   git submodule update --remote externals/dawn
+   cd externals/dawn && git fetch origin && git checkout <hash> && cd ../..
    ```
 
-2. **Publish prebuilt binaries.** Trigger the **Build Dawn** workflow (`.github/workflows/build-dawn.yml`, `workflow_dispatch`). It reads the branch from `.gitmodules`, builds Android + Apple, and creates the `dawn-chromium-<N>` release with the headers, the Android `.so`s, and the Apple `.xcframework`. (To build locally instead, run `yarn build-dawn`; this requires the Android NDK and Xcode toolchains.)
+3. **Publish prebuilt binaries.** Trigger the **Build Dawn** workflow (`.github/workflows/build-dawn.yml`, `workflow_dispatch`). It builds Android + Apple from the submodule and creates the `dawn-skia-m<N>` release with the headers, the Android `.so`s, and the Apple `.xcframework`. (To build locally instead, run `yarn build-dawn`; this requires the Android NDK and Xcode toolchains.)
 
-3. **Pull the new binaries** once the release exists:
+4. **Pull the new binaries** once the release exists:
 
    ```sh
    cd packages/webgpu && yarn install-dawn
    ```
 
-4. **Verify and commit.** Build and run the example app, then commit the submodule bump together with the updated `.gitmodules` and `package.json`.
+5. **Verify and commit.** Build and run the example app, then commit the submodule bump together with the updated `package.json`.

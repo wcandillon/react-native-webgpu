@@ -22,7 +22,8 @@
     "app.plugin.js",
     "plugin/build/**"
   ],
-  "dawn": "chromium/7849",
+  "dawn": "skia-m150",
+  "dawnCommit": "63f25feec51e9351fb25222b6d5de1af791d7c4f",
   "scripts": {
     "test": "NODE_OPTIONS='--experimental-require-module' jest -i",
     "test:ref": "REFERENCE=true NODE_OPTIONS='--experimental-require-module' jest -i",
