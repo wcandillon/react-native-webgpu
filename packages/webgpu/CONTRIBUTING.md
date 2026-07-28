@@ -26,23 +26,23 @@ The Expo config plugin lives in `plugin/src` and is compiled to `plugin/build` b
 The Dawn version tracks the one shipped by `@shopify/react-native-skia` Graphite builds: the pin is the exact Dawn commit from the Skia milestone's DEPS file (`third_party/externals/dawn` in Skia's DEPS). It is recorded in two places that must stay in sync:
 
 - the `externals/dawn` submodule gitlink (the commit the submodule points at)
-- `packages/webgpu/package.json` → `"dawn"` (a human-readable label, e.g. `skia-m150`) and `"dawnCommit"` (the exact commit hash)
+- `packages/webgpu/package.json` → `"dawn"` (a human-readable label, e.g. `chrome-m150`; Skia milestones mirror Chrome milestones) and `"dawnCommit"` (the exact commit hash)
 
 The **Build Dawn** workflow verifies the gitlink matches `dawnCommit` and fails otherwise.
 
-`yarn install-dawn` downloads **prebuilt** binaries from a GitHub release on this repo tagged `dawn-<version-slug>` (e.g. `dawn-skia-m150`). `yarn build-dawn` builds the same binaries from the submodule source instead.
+`yarn install-dawn` downloads **prebuilt** binaries from a GitHub release on this repo tagged `dawn-<version-slug>` (e.g. `dawn-chrome-m150`). `yarn build-dawn` builds the same binaries from the submodule source instead.
 
 Steps to bump to a new Dawn version (new Skia milestone `m<N>`):
 
 1. **Find the Dawn commit** in the Skia milestone's `DEPS` file (`third_party/externals/dawn` entry).
 
-2. **Point the submodule at that commit** and update `package.json` (`"dawn": "skia-m<N>"`, `"dawnCommit": "<hash>"`):
+2. **Point the submodule at that commit** and update `package.json` (`"dawn": "chrome-m<N>"`, `"dawnCommit": "<hash>"`):
 
    ```sh
    cd externals/dawn && git fetch origin && git checkout <hash> && cd ../..
    ```
 
-3. **Publish prebuilt binaries.** Trigger the **Build Dawn** workflow (`.github/workflows/build-dawn.yml`, `workflow_dispatch`). It builds Android + Apple from the submodule and creates the `dawn-skia-m<N>` release with the headers, the Android `.so`s, and the Apple `.xcframework`. (To build locally instead, run `yarn build-dawn`; this requires the Android NDK and Xcode toolchains.)
+3. **Publish prebuilt binaries.** Trigger the **Build Dawn** workflow (`.github/workflows/build-dawn.yml`, `workflow_dispatch`). It builds Android + Apple from the submodule and creates the `dawn-chrome-m<N>` release with the headers, the Android `.so`s, and the Apple `.xcframework`. (To build locally instead, run `yarn build-dawn`; this requires the Android NDK and Xcode toolchains.)
 
 4. **Pull the new binaries** once the release exists:
 
