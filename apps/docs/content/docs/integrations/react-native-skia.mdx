@@ -41,7 +41,28 @@ A few things to know:
 
 ## Zero-copy texture sharing
 
-Sharing textures between Skia images and WebGPU textures on the shared device (the equivalent of Skia's previous `MakeTextureFromImage` / `MakeImageFromTexture`) is being rebuilt on top of this interop and will be documented here when it ships. In the meantime, platform surfaces (`CVPixelBuffer` / `AHardwareBuffer`) can cross the boundary through [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory).
+Textures cross the package boundary the same way the device does: as raw pointers on the shared device.
+
+**WebGPU texture as a Skia image.** Every `GPUTexture` exposes a non-spec `nativePointer` (a `BigInt` of the `WGPUTexture` handle, borrowed: keep the `GPUTexture` alive while the pointer is in use). `Skia.Image.MakeImageFromNativeTexture` wraps it into an `SkImage` without copying:
+
+```tsx
+const texture = device.createTexture({ ... });
+// render into it with WebGPU, then draw it with Skia:
+const image = Skia.Image.MakeImageFromNativeTexture(texture.nativePointer);
+```
+
+**Skia image as a WebGPU texture.** `Skia.Image.MakeNativeTextureFromImage` uploads an `SkImage` into a texture on the shared device and returns a `+1` pointer; `adoptTexture()` wraps it into a `GPUTexture` that owns that reference:
+
+```tsx
+import { adoptTexture } from "react-native-webgpu";
+
+const texture = adoptTexture(Skia.Image.MakeNativeTextureFromImage(image));
+// sample it in a render pipeline via texture.createView()
+```
+
+Adopt each pointer exactly once: the returned `GPUTexture` releases the reference when destroyed.
+
+Platform surfaces (`CVPixelBuffer` / `AHardwareBuffer`) can also cross the boundary through [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory), or as external textures via `RNWebGPU.createVideoFrameFromNativeBuffer` + `importExternalTexture`.
 
 ## See also
 

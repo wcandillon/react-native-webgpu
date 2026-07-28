@@ -62,12 +62,23 @@ declare global {
     // device from Skia.getNativeDevice()) into a GPUDevice. Requires the
     // exporter to share this process's single Dawn instance.
     importDevice: (pointer: bigint) => GPUDevice;
+    // Wrap an externally created WGPUTexture pointer into a GPUTexture,
+    // taking ownership of one reference (pair with producers that return a
+    // +1 pointer, e.g. Skia.Image.MakeNativeTextureFromImage()).
+    adoptTexture: (pointer: bigint) => GPUTexture;
     createVideoPlayer: (
       path: string,
       pixelFormat?: NativeVideoPixelFormat,
     ) => VideoPlayer;
     writeTestVideoFile: () => string;
   };
+
+  interface GPUTexture {
+    // Non-spec RN extension: raw WGPUTexture handle as a BigInt for
+    // pointer-based interop (e.g. Skia.Image.MakeImageFromNativeTexture).
+    // Borrowed: keep this GPUTexture alive while the pointer is in use.
+    readonly nativePointer: bigint;
+  }
 
   interface GPUDevice {
     importSharedTextureMemory(

@@ -20,3 +20,23 @@ export const importDevice = (pointer: bigint): GPUDevice => {
   }
   return RNWebGPU.importDevice(pointer);
 };
+
+/**
+ * Wraps an externally created WGPUTexture pointer into a GPUTexture, taking
+ * ownership of one reference: the returned texture releases it when destroyed.
+ *
+ * Pair with producers that hand out a +1 reference, such as
+ * `Skia.Image.MakeNativeTextureFromImage()`:
+ *
+ * ```ts
+ * const texture = adoptTexture(Skia.Image.MakeNativeTextureFromImage(image));
+ * ```
+ */
+export const adoptTexture = (pointer: bigint): GPUTexture => {
+  if (typeof RNWebGPU === "undefined") {
+    throw new Error(
+      "react-native-webgpu is not installed natively; adoptTexture is unavailable",
+    );
+  }
+  return RNWebGPU.adoptTexture(pointer);
+};

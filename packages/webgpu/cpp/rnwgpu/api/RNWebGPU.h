@@ -10,6 +10,7 @@
 #include "GPU.h"
 #include "GPUCanvasContext.h"
 #include "GPUDevice.h"
+#include "GPUTexture.h"
 #include "rnwgpu/async/RuntimeContext.h"
 #include "ImageBitmap.h"
 #include "PlatformContext.h"
@@ -98,6 +99,20 @@ public:
     wgpu::Device device = wgpu::Device::Acquire(raw);
     auto ctx = async::RuntimeContext::getOrCreate(runtime, _gpu->get());
     return std::make_shared<GPUDevice>(device, ctx, "Imported Device");
+  }
+
+  // Wrap an externally created WGPUTexture in a GPUTexture, TAKING OWNERSHIP
+  // of one reference (unlike importDevice, which borrows): the returned
+  // GPUTexture releases it when destroyed. Pair with producers that return a
+  // +1 pointer, e.g. Skia.Image.MakeNativeTextureFromImage().
+  std::shared_ptr<GPUTexture> adoptTexture(void *pointer) {
+    if (pointer == nullptr) {
+      throw std::runtime_error(
+          "adoptTexture: expected a non-null WGPUTexture pointer (BigInt)");
+    }
+    wgpu::Texture texture =
+        wgpu::Texture::Acquire(reinterpret_cast<WGPUTexture>(pointer));
+    return std::make_shared<GPUTexture>(texture, "Adopted Texture");
   }
 
   jsi::Value createImageBitmap(jsi::Runtime &runtime,
@@ -309,6 +324,7 @@ public:
                   &RNWebGPU::createVideoFrameFromNativeBuffer);
     installMethodWithRuntime(runtime, prototype, "importDevice",
                              &RNWebGPU::importDevice);
+    installMethod(runtime, prototype, "adoptTexture", &RNWebGPU::adoptTexture);
     installMethod(runtime, prototype, "createVideoPlayer",
                   &RNWebGPU::createVideoPlayer);
     installMethod(runtime, prototype, "writeTestVideoFile",
