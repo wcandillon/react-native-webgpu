@@ -42,6 +42,12 @@ public:
   wgpu::TextureFormat getFormat();
   double getUsage();
 
+  // Non-spec RN extension: the raw WGPUTexture handle as a BigInt, for
+  // pointer-based interop (e.g. Skia's Image.MakeImageFromNativeTexture).
+  // Borrowed: this GPUTexture keeps ownership; the consumer must retain the
+  // JS object (or AddRef natively) for as long as it uses the pointer.
+  void *getNativePointer() { return _instance.Get(); }
+
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
     _label = label;
@@ -50,6 +56,8 @@ public:
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "__brand", &GPUTexture::getBrand);
+    installGetter(runtime, prototype, "nativePointer",
+                  &GPUTexture::getNativePointer);
     installMethod(runtime, prototype, "createView", &GPUTexture::createView);
     installMethod(runtime, prototype, "destroy", &GPUTexture::destroy);
     installGetter(runtime, prototype, "width", &GPUTexture::getWidth);
