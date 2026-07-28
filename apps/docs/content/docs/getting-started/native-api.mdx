@@ -93,6 +93,18 @@ if (!device.features.has("rnwebgpu/native-texture" as GPUFeatureName)) {
 
 See [Vision Camera](/docs/integrations/vision-camera) for an end-to-end example applying WGSL effects to live camera frames, and [Native Extensions](/api/gpu-device-extensions) for the full API.
 
+## Importing an external device
+
+`importDevice()` wraps a `WGPUDevice` created by another native library into a fully functional `GPUDevice`. The pointer is passed as a `BigInt`; the native side takes a reference, so the original owner keeps its own.
+
+```tsx
+import { importDevice } from "react-native-webgpu";
+
+const device = importDevice(pointer);
+```
+
+This is only sound when the exporting library links the exact same Dawn build as react-native-webgpu and shares its `wgpu::Instance`; otherwise the imported device's async callbacks would settle on an instance nobody pumps. The canonical exporter is a Graphite build of `@shopify/react-native-skia`, which satisfies both conditions automatically; see [React Native Skia](/docs/integrations/react-native-skia).
+
 ## See also
 
 - [Canvas](/docs/getting-started/canvas) - the rendering surface and frame loop

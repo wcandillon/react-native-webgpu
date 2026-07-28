@@ -9,6 +9,8 @@
 #include "Canvas.h"
 #include "GPU.h"
 #include "GPUCanvasContext.h"
+#include "GPUDevice.h"
+#include "rnwgpu/async/RuntimeContext.h"
 #include "ImageBitmap.h"
 #include "PlatformContext.h"
 #include "VideoFrame.h"
@@ -76,6 +78,26 @@ public:
     auto ctx =
         std::make_shared<GPUCanvasContext>(_gpu, contextId, width, height);
     return ctx;
+  }
+
+  // Wrap an externally created WGPUDevice (passed as a BigInt pointer, e.g.
+  // Skia's Graphite device from Skia.getNativeDevice()) in a GPUDevice.
+  // AddRefs the handle, so the original owner keeps its reference. Only sound
+  // because the process links a single Dawn copy and the GPU instance is
+  // shared with the exporter (see the GPU constructor): the calling runtime's
+  // pump serves the instance the device lives on, so its async callbacks
+  // settle normally.
+  std::shared_ptr<GPUDevice> importDevice(jsi::Runtime &runtime,
+                                          void *pointer) {
+    if (pointer == nullptr) {
+      throw std::runtime_error(
+          "importDevice: expected a non-null WGPUDevice pointer (BigInt)");
+    }
+    auto raw = reinterpret_cast<WGPUDevice>(pointer);
+    wgpuDeviceAddRef(raw);
+    wgpu::Device device = wgpu::Device::Acquire(raw);
+    auto ctx = async::RuntimeContext::getOrCreate(runtime, _gpu->get());
+    return std::make_shared<GPUDevice>(device, ctx, "Imported Device");
   }
 
   jsi::Value createImageBitmap(jsi::Runtime &runtime,
@@ -285,6 +307,8 @@ public:
                   &RNWebGPU::createTestVideoFrame);
     installMethod(runtime, prototype, "createVideoFrameFromNativeBuffer",
                   &RNWebGPU::createVideoFrameFromNativeBuffer);
+    installMethodWithRuntime(runtime, prototype, "importDevice",
+                             &RNWebGPU::importDevice);
     installMethod(runtime, prototype, "createVideoPlayer",
                   &RNWebGPU::createVideoPlayer);
     installMethod(runtime, prototype, "writeTestVideoFile",
