@@ -39,6 +39,22 @@ Rendering happens inside a [`Canvas`](/api/canvas) view. The typical loop is:
 
 Start with the [Canvas](/docs/getting-started/canvas) view once installation is done.
 
+## Testing with Jest
+
+`react-native-webgpu` wraps a native module, which isn't available under Jest. Add its mock to `setupFilesAfterEnv` in your `jest.config.js`:
+
+```js
+// jest.config.js
+module.exports = {
+  // Other values
+  setupFilesAfterEnv: [
+    "react-native-webgpu/jestSetup.js",
+  ],
+};
+```
+
+This replaces the package with a JS-only stand-in: `<Canvas>` renders as a plain `View` so screens built around it can still be rendered in tests, while GPU-dependent APIs (`importDevice`, `adoptTexture`, `useDevice`, a real canvas context) throw a clear error if a test actually exercises them.
+
 ## Troubleshooting
 
 <Callout type="warn" title="Android emulators">

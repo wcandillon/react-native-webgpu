@@ -6,8 +6,7 @@
 #import <react/renderer/components/RNWgpuViewSpec/RCTComponentViewHelpers.h>
 
 #import "MetalView.h"
-#import "RCTFabricComponentsPlugins.h"
-#import "Utils.h"
+#import <React/RCTFabricComponentsPlugins.h>
 
 using namespace facebook::react;
 
