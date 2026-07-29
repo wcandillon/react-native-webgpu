@@ -697,13 +697,42 @@ class NodeTestingClient implements TestingClient {
             height: number;
             premultiplied?: boolean;
           };
+          origin?: number[] | { x?: number; y?: number };
           flipY?: boolean;
         },
         destination: GPUTexelCopyTextureInfo & { premultipliedAlpha?: boolean },
         copySize: GPUExtent3DStrict,
       ) => {
         const { data, width, height, premultiplied } = source.source;
-        const rowSize = width * 4;
+        // Both origin and copySize accept the sequence and dictionary forms.
+        const origin = source.origin ?? {};
+        const originX = (Array.isArray(origin) ? origin[0] : origin.x) ?? 0;
+        const originY = (Array.isArray(origin) ? origin[1] : origin.y) ?? 0;
+        const extent = Array.isArray(copySize)
+          ? {
+              width: copySize[0],
+              height: copySize[1],
+              depthOrArrayLayers: copySize[2],
+            }
+          : (copySize as GPUExtent3DDictStrict);
+        const copyWidth = extent.width;
+        const copyHeight = extent.height ?? 1;
+        const copyDepth = extent.depthOrArrayLayers ?? 1;
+        if (originX < 0 || originY < 0) {
+          throw new Error(
+            "The source origin must be a non-negative integer coordinate.",
+          );
+        }
+        if (
+          originX + copyWidth > width ||
+          originY + copyHeight > height ||
+          copyDepth > 1
+        ) {
+          throw new Error("The source copy region is outside the ImageBitmap.");
+        }
+
+        const sourceRowSize = width * 4;
+        let rowSize = sourceRowSize;
         let bytes = new Uint8Array(
           data.buffer as ArrayBuffer,
           data.byteOffset,
@@ -714,26 +743,25 @@ class NodeTestingClient implements TestingClient {
         const needsConversion =
           premultiplied !== undefined &&
           premultiplied !== (destination.premultipliedAlpha === true);
-        if (flipY || needsConversion) {
-          const converted = new Uint8Array(bytes.length);
-          if (flipY) {
-            for (let row = 0; row < height; row++) {
-              converted.set(
-                bytes.subarray(row * rowSize, (row + 1) * rowSize),
-                (height - 1 - row) * rowSize,
-              );
-            }
-          } else {
-            converted.set(bytes);
+        if (originX !== 0 || originY !== 0 || flipY || needsConversion) {
+          rowSize = copyWidth * 4;
+          const staged = new Uint8Array(rowSize * copyHeight);
+          for (let row = 0; row < copyHeight; row++) {
+            const sourceRow = originY + (flipY ? copyHeight - 1 - row : row);
+            const sourceOffset = sourceRow * sourceRowSize + originX * 4;
+            staged.set(
+              bytes.subarray(sourceOffset, sourceOffset + rowSize),
+              row * rowSize,
+            );
           }
           if (needsConversion) {
             convertAlpha(
-              converted,
+              staged,
               premultiplied === true,
               destination.premultipliedAlpha === true,
             );
           }
-          bytes = converted;
+          bytes = staged;
         }
         device.queue.writeTexture(
           destination,
