@@ -129,8 +129,20 @@ void GPUQueue::copyExternalImageToTexture(
   }
 
   const auto origin = source->origin.value_or(nullptr);
-  const size_t sourceOriginX = origin ? origin->x : 0;
-  const size_t sourceOriginY = origin ? origin->y : 0;
+  // GPUOrigin2D coordinates are [EnforceRange] unsigned long: negative,
+  // NaN, or out-of-range doubles must be rejected here because casting
+  // them to an unsigned integer is undefined behavior.
+  constexpr double kMaxOrigin =
+      static_cast<double>(std::numeric_limits<uint32_t>::max());
+  if (origin && (!(origin->x >= 0) || !(origin->y >= 0) ||
+                 origin->x > kMaxOrigin || origin->y > kMaxOrigin)) {
+    throw std::runtime_error(
+        "The source origin must be a non-negative integer coordinate.");
+  }
+  const size_t sourceOriginX =
+      origin ? static_cast<size_t>(origin->x) : 0;
+  const size_t sourceOriginY =
+      origin ? static_cast<size_t>(origin->y) : 0;
   if (sourceOriginX > source->source->getWidth() ||
       sz.width > source->source->getWidth() - sourceOriginX ||
       sourceOriginY > source->source->getHeight() ||

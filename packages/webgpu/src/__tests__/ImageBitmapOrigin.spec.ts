@@ -178,6 +178,11 @@ describe("copyExternalImageToTexture source origin", () => {
       origin: [0, 17] as [number, number],
       copySize: [32, 16] as [number, number],
     },
+    {
+      name: "negative-origin",
+      origin: [-1, 0] as [number, number],
+      copySize: [16, 16] as [number, number],
+    },
   ])("rejects an out-of-bounds $name region", async (testCase) => {
     const didThrow = await client.eval(
       ({ device, url, origin, copySize }) => {

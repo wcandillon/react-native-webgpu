@@ -697,16 +697,32 @@ class NodeTestingClient implements TestingClient {
             height: number;
             premultiplied?: boolean;
           };
-          origin?: number[];
+          origin?: number[] | { x?: number; y?: number };
           flipY?: boolean;
         },
         destination: GPUTexelCopyTextureInfo & { premultipliedAlpha?: boolean },
         copySize: GPUExtent3DStrict,
       ) => {
         const { data, width, height, premultiplied } = source.source;
-        const [originX = 0, originY = 0] = source.origin ?? [];
-        const [copyWidth, copyHeight = 1, copyDepth = 1] =
-          copySize as Iterable<number>;
+        // Both origin and copySize accept the sequence and dictionary forms.
+        const origin = source.origin ?? {};
+        const originX = (Array.isArray(origin) ? origin[0] : origin.x) ?? 0;
+        const originY = (Array.isArray(origin) ? origin[1] : origin.y) ?? 0;
+        const extent = Array.isArray(copySize)
+          ? {
+              width: copySize[0],
+              height: copySize[1],
+              depthOrArrayLayers: copySize[2],
+            }
+          : (copySize as GPUExtent3DDictStrict);
+        const copyWidth = extent.width;
+        const copyHeight = extent.height ?? 1;
+        const copyDepth = extent.depthOrArrayLayers ?? 1;
+        if (originX < 0 || originY < 0) {
+          throw new Error(
+            "The source origin must be a non-negative integer coordinate.",
+          );
+        }
         if (
           originX + copyWidth > width ||
           originY + copyHeight > height ||
