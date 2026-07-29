@@ -11,6 +11,7 @@
     "src/**",
     "lib/**",
     "!**/__tests__/**",
+    "jestSetup.js",
     "android/build.gradle",
     "android/CMakeLists.txt",
     "android/cpp/**",
