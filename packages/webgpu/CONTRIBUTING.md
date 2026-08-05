@@ -26,11 +26,11 @@ The Expo config plugin lives in `plugin/src` and is compiled to `plugin/build` b
 The Dawn version tracks the one shipped by `@shopify/react-native-skia` Graphite builds: the pin is the exact Dawn commit from the Skia milestone's DEPS file (`third_party/externals/dawn` in Skia's DEPS). It is recorded in two places that must stay in sync:
 
 - the `externals/dawn` submodule gitlink (the commit the submodule points at)
-- `packages/webgpu/package.json` → `"dawn"` (a human-readable label, e.g. `chrome-m150`; Skia milestones mirror Chrome milestones) and `"dawnCommit"` (the exact commit hash)
+- `packages/webgpu/package.json` → `"dawn"` (a human-readable label, e.g. `chrome-m152`; Skia milestones mirror Chrome milestones) and `"dawnCommit"` (the exact commit hash)
 
 The **Build Dawn** workflow verifies the gitlink matches `dawnCommit` and fails otherwise.
 
-`yarn install-dawn` downloads **prebuilt** binaries from a GitHub release on this repo tagged `dawn-<version-slug>` (e.g. `dawn-chrome-m150`). `yarn build-dawn` builds the same binaries from the submodule source instead.
+`yarn install-dawn` downloads **prebuilt** binaries from a GitHub release on this repo tagged `dawn-<version-slug>` (e.g. `dawn-chrome-m152`). `yarn build-dawn` builds the same binaries from the submodule source instead.
 
 Steps to bump to a new Dawn version (new Skia milestone `m<N>`):
 
