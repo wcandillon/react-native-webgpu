@@ -23,8 +23,10 @@ Both packages follow Chrome/Skia milestones: react-native-webgpu pins the Dawn r
 
 | Milestone | react-native-webgpu | Dawn release tag | `@shopify/react-native-skia` (Graphite `@next`) |
 | --- | --- | --- | --- |
-| m152 | unreleased | `dawn-chrome-m152` | unreleased (Graphite `152.0.0`) |
+| m152 | 0.8.2 | `dawn-chrome-m152` | 2.12.0-next.1 (Graphite `152.0.0`) |
 | m150 | 0.7.0 – 0.8.1 | `dawn-chrome-m150` | 2.9.1-next.1 – 2.11.0-next.2 (Graphite `150.0.0`) |
+
+Default (Ganesh) releases of react-native-skia — 2.11.0 at the time of writing — are not part of this pairing: they do not link Dawn, so any version works alongside any version of react-native-webgpu.
 
 react-native-webgpu 0.6.4 and earlier predate the interop APIs (`importDevice` landed in 0.7.0); install them alongside a default (Ganesh) build of react-native-skia only.
 
