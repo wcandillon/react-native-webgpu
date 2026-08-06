@@ -75,7 +75,7 @@ if (!dawnVersion) {
 }
 
 // Parse the dawn version to construct the release tag
-// Format: "chrome-m150" -> "dawn-chrome-m150"
+// Format: "chrome-m152" -> "dawn-chrome-m152"
 const releaseTag = `dawn-${dawnVersion.replace("/", "-")}`;
 const releaseUrl = `https://github.com/wcandillon/react-native-webgpu/releases/tag/${releaseTag}`;
 

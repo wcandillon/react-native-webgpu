@@ -26,11 +26,11 @@ The Expo config plugin lives in `plugin/src` and is compiled to `plugin/build` b
 The Dawn version tracks the one shipped by `@shopify/react-native-skia` Graphite builds: the pin is the exact Dawn commit from the Skia milestone's DEPS file (`third_party/externals/dawn` in Skia's DEPS). It is recorded in two places that must stay in sync:
 
 - the `externals/dawn` submodule gitlink (the commit the submodule points at)
-- `packages/webgpu/package.json` → `"dawn"` (a human-readable label, e.g. `chrome-m150`; Skia milestones mirror Chrome milestones) and `"dawnCommit"` (the exact commit hash)
+- `packages/webgpu/package.json` → `"dawn"` (a human-readable label, e.g. `chrome-m152`; Skia milestones mirror Chrome milestones) and `"dawnCommit"` (the exact commit hash)
 
 The **Build Dawn** workflow verifies the gitlink matches `dawnCommit` and fails otherwise.
 
-`yarn install-dawn` downloads **prebuilt** binaries from a GitHub release on this repo tagged `dawn-<version-slug>` (e.g. `dawn-chrome-m150`). `yarn build-dawn` builds the same binaries from the submodule source instead.
+`yarn install-dawn` downloads **prebuilt** binaries from a GitHub release on this repo tagged `dawn-<version-slug>` (e.g. `dawn-chrome-m152`). `yarn build-dawn` builds the same binaries from the submodule source instead.
 
 Steps to bump to a new Dawn version (new Skia milestone `m<N>`):
 
@@ -50,4 +50,8 @@ Steps to bump to a new Dawn version (new Skia milestone `m<N>`):
    cd packages/webgpu && yarn install-dawn
    ```
 
-5. **Verify and commit.** Build and run the example app, then commit the submodule bump together with the updated `package.json`.
+5. **Map the new feature names.** A milestone usually adds `wgpu::FeatureName` values. Add them to `RNWGPU_FOR_EACH_FEATURE_NAME` in `cpp/rnwgpu/api/GPUFeatures.h`, which is the single list both conversion directions are generated from; `src/__tests__/FeatureNames.spec.ts` diffs it against the installed `webgpu_cpp.h` and fails when one is missing.
+
+6. **Update the compatibility table** in `apps/docs/content/docs/integrations/react-native-skia.mdx` with the new milestone row, so users can pair react-native-webgpu and `@shopify/react-native-skia` versions.
+
+7. **Verify and commit.** Build and run the example app, then commit the submodule bump together with the updated `package.json`.
