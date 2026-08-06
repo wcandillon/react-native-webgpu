@@ -50,4 +50,8 @@ Steps to bump to a new Dawn version (new Skia milestone `m<N>`):
    cd packages/webgpu && yarn install-dawn
    ```
 
-5. **Verify and commit.** Build and run the example app, then commit the submodule bump together with the updated `package.json`.
+5. **Map the new feature names.** A milestone usually adds `wgpu::FeatureName` values. Add them to `RNWGPU_FOR_EACH_FEATURE_NAME` in `cpp/rnwgpu/api/GPUFeatures.h`, which is the single list both conversion directions are generated from; `src/__tests__/FeatureNames.spec.ts` diffs it against the installed `webgpu_cpp.h` and fails when one is missing.
+
+6. **Update the compatibility table** in `apps/docs/content/docs/integrations/react-native-skia.mdx` with the new milestone row, so users can pair react-native-webgpu and `@shopify/react-native-skia` versions.
+
+7. **Verify and commit.** Build and run the example app, then commit the submodule bump together with the updated `package.json`.

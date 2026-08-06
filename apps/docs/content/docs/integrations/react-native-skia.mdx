@@ -17,6 +17,19 @@ Graphite builds of react-native-skia (the `@next` release channel) render throug
 Because a Graphite build links react-native-webgpu's Dawn copy, the two packages must be built against the same Dawn tag; this is what makes sharing an instance and importing devices sound. Releases are kept in lockstep, and the native build fails with an explicit message if the tags ever differ, so a mismatch surfaces at build time rather than as undefined behavior at runtime. Default (Ganesh) releases of react-native-skia have no such constraint.
 </Callout>
 
+## Compatibility
+
+Both packages follow Chrome/Skia milestones: react-native-webgpu pins the Dawn revision from the Skia milestone's `DEPS`, and react-native-skia ships that milestone's binaries as `react-native-skia-graphite-*` `<milestone>.0.0`. Pick one row and install versions from it.
+
+| Milestone | react-native-webgpu | Dawn release tag | `@shopify/react-native-skia` (Graphite `@next`) |
+| --- | --- | --- | --- |
+| m152 | unreleased | `dawn-chrome-m152` | unreleased (Graphite `152.0.0`) |
+| m150 | 0.7.0 – 0.8.1 | `dawn-chrome-m150` | 2.9.1-next.1 – 2.11.0-next.2 (Graphite `150.0.0`) |
+
+react-native-webgpu 0.6.4 and earlier predate the interop APIs (`importDevice` landed in 0.7.0); install them alongside a default (Ganesh) build of react-native-skia only.
+
+To check what an installed pair is built against, compare `node -p "require('react-native-webgpu/package.json').dawn"` with the `graphiteDependencies` in `@shopify/react-native-skia`'s `package.json`. They have to name the same milestone.
+
 ## Rendering with Skia's device
 
 `Skia.getNativeDevice()` returns the raw pointer of Graphite's `wgpu::Device` as a `BigInt`, and [`importDevice()`](/docs/getting-started/native-api#importing-an-external-device) wraps it into a regular `GPUDevice`:
