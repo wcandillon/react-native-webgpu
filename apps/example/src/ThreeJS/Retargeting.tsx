@@ -53,7 +53,10 @@ import {
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils";
 
 import { useGLTF } from "./assets/AssetManager";
-import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
+import {
+  makeWebGPURenderer,
+  disposeWebGPURenderer,
+} from "./components/makeWebGPURenderer";
 
 // forked from https://www.shadertoy.com/view/7ly3D1
 const lightSpeed = Fn(([suvImmutable]: [THREE.Node<"vec2">]) => {
@@ -306,7 +309,7 @@ export const Retargeting = () => {
     });
 
     return () => {
-      renderer.setAnimationLoop(null);
+      disposeWebGPURenderer(renderer);
     };
   }, [sourceGltf, targetGltf]);
 

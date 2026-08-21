@@ -45,11 +45,11 @@
 #include "GPURenderPipelineDescriptor.h"
 #include "GPUSampler.h"
 #include "GPUSamplerDescriptor.h"
+#include "GPUShaderModule.h"
+#include "GPUShaderModuleDescriptor.h"
 #include "GPUSharedFenceDescriptor.h"
 #include "GPUSharedTextureMemory.h"
 #include "GPUSharedTextureMemoryDescriptor.h"
-#include "GPUShaderModule.h"
-#include "GPUShaderModuleDescriptor.h"
 #include "GPUSupportedLimits.h"
 #include "GPUTexture.h"
 #include "GPUTextureDescriptor.h"
@@ -121,8 +121,8 @@ public:
       std::shared_ptr<GPUExternalTextureDescriptor> descriptor);
   std::shared_ptr<GPUSharedTextureMemory> importSharedTextureMemory(
       std::shared_ptr<GPUSharedTextureMemoryDescriptor> descriptor);
-  std::shared_ptr<GPUSharedFence> importSharedFence(
-      std::shared_ptr<GPUSharedFenceDescriptor> descriptor);
+  std::shared_ptr<GPUSharedFence>
+  importSharedFence(std::shared_ptr<GPUSharedFenceDescriptor> descriptor);
   std::shared_ptr<GPUBindGroupLayout> createBindGroupLayout(
       std::shared_ptr<GPUBindGroupLayoutDescriptor> descriptor);
   std::shared_ptr<GPUPipelineLayout>
@@ -153,7 +153,7 @@ public:
   std::unordered_set<std::string> getFeatures();
   std::shared_ptr<GPUSupportedLimits> getLimits();
   std::shared_ptr<GPUQueue> getQueue();
-  async::AsyncTaskHandle getLost();
+  jsi::Value getLost(jsi::Runtime &runtime, const jsi::Object &wrapper);
   void notifyDeviceLost(wgpu::DeviceLostReason reason, std::string message);
   void notifyUncapturedError(wgpu::ErrorType type, std::string message);
   void forceLossForTesting();
@@ -211,7 +211,30 @@ public:
     installGetter(runtime, prototype, "features", &GPUDevice::getFeatures);
     installGetter(runtime, prototype, "limits", &GPUDevice::getLimits);
     installGetter(runtime, prototype, "queue", &GPUDevice::getQueue);
-    installGetter(runtime, prototype, "lost", &GPUDevice::getLost);
+    // `lost` is installed manually: the getter needs the wrapper object
+    // itself, because the promise (and its resolve function) are cached as
+    // hidden properties on the JS side so the GC traces them as part of the
+    // device graph. Holding them strongly from C++ would root the promise's
+    // .then reactions forever (issue #445).
+    {
+      auto lostGetter = jsi::Function::createFromHostFunction(
+          runtime, jsi::PropNameID::forUtf8(runtime, "get_lost"), 0,
+          [](jsi::Runtime &rt, const jsi::Value &thisVal,
+             const jsi::Value * /*args*/, size_t /*count*/) -> jsi::Value {
+            auto native = GPUDevice::fromValue(rt, thisVal);
+            return native->getLost(rt, thisVal.getObject(rt));
+          });
+      auto objectCtor = runtime.global().getPropertyAsObject(runtime, "Object");
+      auto defineProperty =
+          objectCtor.getPropertyAsFunction(runtime, "defineProperty");
+      jsi::Object descriptor(runtime);
+      descriptor.setProperty(runtime, "get", lostGetter);
+      descriptor.setProperty(runtime, "enumerable", true);
+      descriptor.setProperty(runtime, "configurable", true);
+      defineProperty.call(runtime, prototype,
+                          jsi::String::createFromUtf8(runtime, "lost"),
+                          descriptor);
+    }
     installGetterSetter(runtime, prototype, "label", &GPUDevice::getLabel,
                         &GPUDevice::setLabel);
     installMethod(runtime, prototype, "forceLossForTesting",
@@ -262,15 +285,28 @@ private:
   wgpu::Device _instance;
   std::shared_ptr<async::RuntimeContext> _async;
   std::string _label;
-  // Guards the device-lost state below. In the ProcessEvents model both
-  // notifyDeviceLost() (fired by Dawn during ProcessEvents) and getLost() run on
-  // the owning runtime's own thread, but device destruction can also trigger
-  // notifyDeviceLost() synchronously, so the mutex keeps these fields safe.
+  // Guards the device-lost state below. getLost() runs on a JS thread, but
+  // Dawn's AllowSpontaneous device-lost callback (and device destruction) can
+  // fire notifyDeviceLost() from other threads, so the mutex keeps these
+  // fields safe.
   std::mutex _lostMutex;
-  std::optional<async::AsyncTaskHandle> _lostHandle;
   std::shared_ptr<GPUDeviceLostInfo> _lostInfo;
   bool _lostSettled = false;
-  std::optional<async::AsyncTaskHandle::ResolveFunction> _lostResolve;
+  // Pending `lost` promises, held WEAKLY. A strong native reference would be
+  // a GC root: the promise's .then reactions (three.js captures its whole
+  // renderer there) could never be collected, pinning every GPU wrapper of
+  // the scene and its reported external memory forever (issue #445). The
+  // resolve function lives as a hidden property on the promise object itself,
+  // so if the promise is still alive when the device is lost we can settle
+  // it; if it was collected, nobody could have observed the resolution.
+  // Entries are only added for the device's own runtime when a CallInvoker is
+  // available (main JS runtime), matching the best-effort contract for
+  // spontaneous events.
+  struct PendingLostPromise {
+    jsi::Runtime *runtime;
+    jsi::WeakObject promise;
+  };
+  std::vector<PendingLostPromise> _lostPromises;
 
   // Event listeners storage - keyed by event type
   // Each entry contains a vector of shared_ptr to functions

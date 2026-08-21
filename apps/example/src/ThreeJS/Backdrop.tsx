@@ -24,7 +24,10 @@ import {
 } from "three/tsl";
 
 import { useGLTF } from "./assets/AssetManager";
-import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
+import {
+  makeWebGPURenderer,
+  disposeWebGPURenderer,
+} from "./components/makeWebGPURenderer";
 
 export const Backdrop = () => {
   const gltf = useGLTF(require("./assets/michelle/model.gltf"));
@@ -153,7 +156,7 @@ export const Backdrop = () => {
       context.present();
     }
     return () => {
-      renderer.setAnimationLoop(null);
+      disposeWebGPURenderer(renderer);
     };
   }, [gltf, ref]);
   return (
