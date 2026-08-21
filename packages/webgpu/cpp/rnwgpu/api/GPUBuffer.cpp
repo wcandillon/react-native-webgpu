@@ -1,5 +1,6 @@
 #include "GPUBuffer.h"
 
+#include <cstring>
 #include <memory>
 #include <utility>
 
@@ -33,6 +34,69 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
   // mappings_.emplace_back(Mapping{start, end,
   // Napi::Persistent(array_buffer)});
   return array_buffer;
+}
+
+namespace {
+// readSync returns a copy that outlives the mapping, so it needs an
+// ArrayBuffer that owns (and frees) its backing store - the base class
+// wraps foreign memory and never frees.
+struct OwnedArrayBuffer : ArrayBuffer {
+  explicit OwnedArrayBuffer(size_t size)
+      : ArrayBuffer(malloc(size), size, 1) {}
+  ~OwnedArrayBuffer() override { free(_data); }
+};
+} // namespace
+
+std::shared_ptr<ArrayBuffer>
+GPUBuffer::readSync(std::optional<size_t> o, std::optional<size_t> sizeIn) {
+  // Synchronous small-buffer readback: blocks the calling thread until all
+  // previously submitted GPU work using this buffer completes, then returns
+  // a copy of the mapped bytes. Built for tiny compute results (landmarks,
+  // ranges, counters) that must be consumed in the SAME frame - the async
+  // mapAsync path forces at least one frame of staleness in render loops
+  // that cannot await. Requires MAP_READ usage (pair with COPY_DST and copy
+  // into this buffer from your storage buffer). The wait uses
+  // Instance::WaitAny, which this library's instance enables via the
+  // TimedWaitAny feature at creation; external (Skia-provided) instances
+  // without it fail the wait and throw rather than hang.
+  size_t offset = o.value_or(0);
+  size_t size = sizeIn.has_value()
+                    ? sizeIn.value()
+                    : static_cast<size_t>(_instance.GetSize() - offset);
+  constexpr size_t kMaxReadSyncBytes = 1 << 20;
+  if (size > kMaxReadSyncBytes) {
+    throw std::runtime_error(
+        "readSync is intended for small readbacks (<= 1 MiB); use mapAsync "
+        "for large buffers");
+  }
+  wgpu::MapAsyncStatus mapStatus = wgpu::MapAsyncStatus::Error;
+  std::string mapMessage = "callback never ran";
+  auto future = _instance.MapAsync(
+      wgpu::MapMode::Read, offset, size, wgpu::CallbackMode::WaitAnyOnly,
+      [&mapStatus, &mapMessage](wgpu::MapAsyncStatus status,
+                                wgpu::StringView message) {
+        mapStatus = status;
+        mapMessage = std::string(message);
+      });
+  constexpr uint64_t kTimeoutNs = 2'000'000'000; // 2s: a hung GPU, not a wait
+  auto waitStatus = _async->instance().WaitAny(future, kTimeoutNs);
+  if (waitStatus != wgpu::WaitStatus::Success) {
+    throw std::runtime_error(
+        "readSync: WaitAny did not complete (timeout, or the instance lacks "
+        "the TimedWaitAny feature)");
+  }
+  if (mapStatus != wgpu::MapAsyncStatus::Success) {
+    throw std::runtime_error("readSync: mapping failed: " + mapMessage);
+  }
+  const void *ptr = _instance.GetConstMappedRange(offset, size);
+  if (ptr == nullptr) {
+    _instance.Unmap();
+    throw std::runtime_error("readSync: GetConstMappedRange failed");
+  }
+  auto result = std::make_shared<OwnedArrayBuffer>(size);
+  memcpy(result->data(), ptr, size);
+  _instance.Unmap();
+  return result;
 }
 
 void GPUBuffer::destroy() { _instance.Destroy(); }

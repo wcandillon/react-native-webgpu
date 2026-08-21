@@ -38,6 +38,8 @@ public:
                                   std::optional<uint64_t> size);
   std::shared_ptr<ArrayBuffer> getMappedRange(std::optional<size_t> offset,
                                               std::optional<size_t> size);
+  std::shared_ptr<ArrayBuffer> readSync(std::optional<size_t> offset,
+                                        std::optional<size_t> size);
   void unmap();
   void destroy();
 
@@ -57,6 +59,7 @@ public:
                              &GPUBuffer::mapAsync);
     installMethod(runtime, prototype, "getMappedRange",
                   &GPUBuffer::getMappedRange);
+    installMethod(runtime, prototype, "readSync", &GPUBuffer::readSync);
     installMethod(runtime, prototype, "unmap", &GPUBuffer::unmap);
     installMethod(runtime, prototype, "destroy", &GPUBuffer::destroy);
     installGetter(runtime, prototype, "size", &GPUBuffer::getSize);

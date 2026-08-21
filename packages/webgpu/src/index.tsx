@@ -80,6 +80,21 @@ declare global {
     readonly nativePointer: bigint;
   }
 
+  // Non-spec RN extension: synchronous small-buffer readback. Blocks the
+  // calling thread until all previously submitted GPU work using this buffer
+  // completes, then returns an owned copy of the mapped bytes. Built for
+  // tiny compute results (landmarks, histogram ranges, counters, picking
+  // ids) that a render/worklet loop must consume in the SAME frame - such
+  // loops cannot await mapAsync without accepting a frame of staleness.
+  // Requires MAP_READ usage; the only valid companion is COPY_DST, so the
+  // pattern is: copy from your storage buffer into this staging buffer,
+  // submit, readSync(). Capped at 1 MiB (use mapAsync for bulk data); throws
+  // instead of hanging if the instance lacks TimedWaitAny (external/Skia
+  // instances) or the GPU hangs past 2s.
+  interface GPUBuffer {
+    readSync(offset?: number, size?: number): ArrayBuffer;
+  }
+
   interface GPUDevice {
     importSharedTextureMemory(
       descriptor: GPUSharedTextureMemoryDescriptor,
