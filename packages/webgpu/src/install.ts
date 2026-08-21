@@ -60,10 +60,18 @@ export const provideGPUForInstall = (gpu: GPU) => {
  * };
  * ```
  *
- * Note the `globalThis.` prefix: the Worklets Babel plugin does not treat a
- * bare `navigator` as a known global, so it would capture the main runtime's
- * `navigator` object by closure instead of reading the one this function
- * installed.
+ * Known limitations:
+ *
+ * - Read `navigator` through `globalThis.navigator`: the Worklets Babel
+ *   plugin does not treat a bare `navigator` as a known global, so it would
+ *   capture the main runtime's `navigator` object by closure instead of
+ *   reading the one this function installed. Fixed upstream in
+ *   react-native-reanimated#10364; the prefix becomes unnecessary on
+ *   react-native-worklets versions that include it.
+ * - Spontaneous events are main-runtime only: on a device created on a
+ *   worklet runtime, `device.lost` never settles (unless the device is
+ *   already lost when read) and `uncapturederror` listeners never fire.
+ *   Observe those on a device created on the main JS thread.
  *
  * Everything is captured into the worklet by closure: the constants like a
  * shader string would be, and the GPU object through the Worklets custom
@@ -72,9 +80,6 @@ export const provideGPUForInstall = (gpu: GPU) => {
  * the calling runtime (each runtime gets its own async pump). Calling it on a
  * runtime that already has the globals (e.g. the main JS runtime) is a safe
  * no-op.
- *
- * Limitation: spontaneous events (`device.lost`, `uncapturederror`) are only
- * delivered to devices created on the main JS runtime.
  */
 export const installWebGPU = () => {
   "worklet";
