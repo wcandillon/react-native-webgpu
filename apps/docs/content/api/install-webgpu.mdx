@@ -1,10 +1,10 @@
 ---
 title: installWebGPU
-description: Install WebGPU flag constants on a worklet runtime.
+description: Install navigator.gpu and the WebGPU flag constants on a worklet runtime.
 ---
 
-On a worklet runtime, the WebGPU constants are not available by default.
-Call `installWebGPU()` once at the top of a worklet to install the needed globals for that runtime.
+On a worklet runtime, neither `navigator.gpu` nor the WebGPU flag constants are available by default.
+Call `installWebGPU()` once at the top of a worklet to install the needed globals for that runtime: `navigator.gpu` plus `GPUBufferUsage`, `GPUTextureUsage`, `GPUShaderStage`, `GPUColorWrite`, and `GPUMapMode`.
 
 On the main JS thread these are already installed when the native module loads; calling `installWebGPU()` there is a safe no-op.
 
@@ -73,3 +73,24 @@ const gpuWork = (device: GPUDevice) => {
 
 runOnRuntime(runtime, gpuWork)(device);
 ```
+
+### navigator.gpu on a worklet runtime
+
+After `installWebGPU()`, a worklet can request its own adapter and device instead of receiving them from the main thread. The returned promises settle on the calling runtime.
+
+```tsx twoslash
+import { installWebGPU } from "react-native-webgpu";
+import { runOnUI } from "react-native-worklets";
+
+runOnUI(() => {
+  "worklet";
+  installWebGPU();
+  globalThis.navigator.gpu.requestAdapter().then((adapter) => {
+    // …
+  });
+})();
+```
+
+Use the `globalThis.` prefix inside worklets: the Worklets babel plugin does not treat a bare `navigator` as a known global, so without the prefix it would capture the main runtime's `navigator` object by closure instead of reading the one installed on the worklet runtime.
+
+Limitation: spontaneous events (`device.lost`, `uncapturederror`) are only delivered to devices created on the main JS runtime.
