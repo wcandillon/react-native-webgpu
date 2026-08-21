@@ -1,6 +1,6 @@
 import { client } from "./setup";
 
-describe("readSync", () => {
+describe("readbackSync", () => {
   it("reads back compute results synchronously, same tick", async () => {
     const result = await client.eval(({ device }) => {
       const storage = device.createBuffer({
@@ -39,7 +39,7 @@ fn main() {
       encoder.copyBufferToBuffer(storage, 0, staging, 0, 16);
       device.queue.submit([encoder.finish()]);
       // No await between submit and read: the readback is synchronous.
-      return Array.from(new Uint32Array(staging.readSync()));
+      return Array.from(new Uint32Array(staging.readbackSync()));
     });
     expect(result).toEqual([1, 2, 3, 42]);
   });
@@ -54,7 +54,7 @@ fn main() {
         0,
         new Uint32Array([10, 20, 30, 40]).buffer,
       );
-      return Array.from(new Uint32Array(staging.readSync(8, 8)));
+      return Array.from(new Uint32Array(staging.readbackSync(8, 8)));
     });
     expect(result).toEqual([30, 40]);
   });
@@ -67,7 +67,7 @@ fn main() {
       const reads: number[] = [];
       for (let i = 0; i < 3; i++) {
         device.queue.writeBuffer(staging, 0, new Uint32Array([i]).buffer);
-        reads.push(new Uint32Array(staging.readSync())[0]!);
+        reads.push(new Uint32Array(staging.readbackSync())[0]!);
       }
       return reads;
     });
@@ -80,7 +80,7 @@ fn main() {
         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
       });
       try {
-        staging.readSync();
+        staging.readbackSync();
         return "no error";
       } catch (e) {
         return e instanceof Error && e.message.includes("limited to 1 MiB")
@@ -97,7 +97,9 @@ fn main() {
         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
       });
       device.queue.writeBuffer(staging, 0, new Uint32Array([42]).buffer);
-      return new Uint32Array(staging.readSync(undefined, undefined, 5_000))[0];
+      return new Uint32Array(
+        staging.readbackSync(undefined, undefined, 5_000),
+      )[0];
     });
     expect(result).toBe(42);
   });
@@ -108,7 +110,7 @@ fn main() {
         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
       });
       try {
-        staging.readSync(undefined, undefined, -1);
+        staging.readbackSync(undefined, undefined, -1);
         return "no error";
       } catch (e) {
         return e instanceof Error && e.message.includes("timeoutMs")

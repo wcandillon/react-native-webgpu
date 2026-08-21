@@ -39,9 +39,9 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
 }
 
 std::shared_ptr<ArrayBuffer>
-GPUBuffer::readSync(jsi::Runtime &runtime, std::optional<double> offsetIn,
-                    std::optional<double> sizeIn,
-                    std::optional<double> timeoutMsIn) {
+GPUBuffer::readbackSync(jsi::Runtime &runtime, std::optional<double> offsetIn,
+                        std::optional<double> sizeIn,
+                        std::optional<double> timeoutMsIn) {
   // Synchronous small-buffer readback: blocks the calling thread until all
   // previously submitted GPU work using this buffer completes, then returns
   // a copy of the mapped bytes. Built for tiny compute results (landmarks,
@@ -57,7 +57,8 @@ GPUBuffer::readSync(jsi::Runtime &runtime, std::optional<double> offsetIn,
     if (!std::isfinite(value) || value < 0 || std::floor(value) != value ||
         value > kMaxSafeInteger ||
         value > static_cast<double>(std::numeric_limits<size_t>::max())) {
-      throw jsi::JSError(runtime, std::string("GPUBuffer.readSync ") + name +
+      throw jsi::JSError(runtime, std::string("GPUBuffer.readbackSync ") +
+                                      name +
                                       " must be a non-negative safe integer");
     }
     return static_cast<size_t>(value);
@@ -68,21 +69,21 @@ GPUBuffer::readSync(jsi::Runtime &runtime, std::optional<double> offsetIn,
   const uint64_t bufferSize = _instance.GetSize();
   if (offset > bufferSize) {
     throw jsi::JSError(runtime,
-                       "GPUBuffer.readSync offset exceeds the buffer size");
+                       "GPUBuffer.readbackSync offset exceeds the buffer size");
   }
   const size_t size = sizeIn.has_value()
                           ? toByteSize("size", *sizeIn)
                           : static_cast<size_t>(bufferSize - offset);
   if (size > bufferSize - offset) {
     throw jsi::JSError(runtime,
-                       "GPUBuffer.readSync range exceeds the buffer size");
+                       "GPUBuffer.readbackSync range exceeds the buffer size");
   }
 
-  constexpr size_t kMaxReadSyncBytes = 1 << 20;
-  if (size > kMaxReadSyncBytes) {
+  constexpr size_t kMaxReadbackSyncBytes = 1 << 20;
+  if (size > kMaxReadbackSyncBytes) {
     throw jsi::JSError(
         runtime,
-        "GPUBuffer.readSync is limited to 1 MiB; use mapAsync for larger "
+        "GPUBuffer.readbackSync is limited to 1 MiB; use mapAsync for larger "
         "readbacks");
   }
 
@@ -95,7 +96,8 @@ GPUBuffer::readSync(jsi::Runtime &runtime, std::optional<double> offsetIn,
   if (!std::isfinite(timeoutMs) || timeoutMs < 0 || timeoutMs > maxTimeoutMs) {
     throw jsi::JSError(
         runtime,
-        "GPUBuffer.readSync timeoutMs must be a finite, non-negative number");
+        "GPUBuffer.readbackSync timeoutMs must be a finite, non-negative "
+        "number");
   }
   const uint64_t timeoutNs =
       static_cast<uint64_t>(timeoutMs * kNanosecondsPerMillisecond);
@@ -118,18 +120,19 @@ GPUBuffer::readSync(jsi::Runtime &runtime, std::optional<double> offsetIn,
     _instance.Unmap();
     throw jsi::JSError(
         runtime,
-        "GPUBuffer.readSync did not complete before timeoutMs, or the Dawn "
+        "GPUBuffer.readbackSync did not complete before timeoutMs, or the Dawn "
         "instance does not support timed waits");
   }
   if (mapResult->status != wgpu::MapAsyncStatus::Success) {
-    throw jsi::JSError(runtime, "GPUBuffer.readSync mapping failed: " +
+    throw jsi::JSError(runtime, "GPUBuffer.readbackSync mapping failed: " +
                                     mapResult->message);
   }
   const void *ptr = _instance.GetConstMappedRange(offset, size);
   if (ptr == nullptr) {
     _instance.Unmap();
     throw jsi::JSError(runtime,
-                       "GPUBuffer.readSync could not access the mapped range");
+                       "GPUBuffer.readbackSync could not access the mapped "
+                       "range");
   }
   // Allocate owned native storage. The JSI converter wraps this memory without
   // copying it again and reports its external memory pressure to the runtime.

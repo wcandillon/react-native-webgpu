@@ -97,7 +97,11 @@ declare global {
      * @throws If the range is invalid, exceeds 1 MiB, mapping fails, the wait
      * times out, or the Dawn instance does not support timed waits.
      */
-    readSync(offset?: number, size?: number, timeoutMs?: number): ArrayBuffer;
+    readbackSync(
+      offset?: number,
+      size?: number,
+      timeoutMs?: number,
+    ): ArrayBuffer;
   }
 
   interface GPUDevice {
