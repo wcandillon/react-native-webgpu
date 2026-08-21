@@ -7,7 +7,10 @@ import { color, pass } from "three/tsl";
 import { bloom } from "three/addons/tsl/display/BloomNode";
 
 import { useGLTF } from "./assets/AssetManager";
-import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
+import {
+  makeWebGPURenderer,
+  disposeWebGPURenderer,
+} from "./components/makeWebGPURenderer";
 
 export const PostProcessing = () => {
   const gltf = useGLTF(require("./assets/PrimaryIonDrive.glb"));
@@ -75,7 +78,7 @@ export const PostProcessing = () => {
       context.present();
     }
     return () => {
-      renderer.setAnimationLoop(null);
+      disposeWebGPURenderer(renderer);
     };
   }, [gltf, ref]);
   return (

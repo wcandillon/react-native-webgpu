@@ -8,4 +8,5 @@ export type Routes = {
   PostProcessing: undefined;
   Retargeting: undefined;
   ToneMapping: undefined;
+  Memory: undefined;
 };

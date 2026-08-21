@@ -5,7 +5,10 @@ import { StyleSheet, Text, View } from "react-native";
 import { useEffect, useRef } from "react";
 
 import { useGLTF, useRGBE } from "./assets/AssetManager";
-import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
+import {
+  makeWebGPURenderer,
+  disposeWebGPURenderer,
+} from "./components/makeWebGPURenderer";
 
 export const Helmet = () => {
   const texture = useRGBE(require("./assets/helmet/royal_esplanade_1k.hdr"));
@@ -53,7 +56,7 @@ export const Helmet = () => {
     }
 
     return () => {
-      renderer.setAnimationLoop(null);
+      disposeWebGPURenderer(renderer);
     };
   }, [texture, gltf, ref]);
 
