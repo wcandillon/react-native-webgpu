@@ -83,11 +83,39 @@ fn main() {
         staging.readSync();
         return "no error";
       } catch (e) {
-        return e instanceof Error && e.message.includes("small readbacks")
+        return e instanceof Error && e.message.includes("limited to 1 MiB")
           ? "capped"
           : "wrong error";
       }
     });
     expect(result).toBe("capped");
+  });
+  it("accepts a configurable timeout", async () => {
+    const result = await client.eval(({ device }) => {
+      const staging = device.createBuffer({
+        size: 4,
+        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+      });
+      device.queue.writeBuffer(staging, 0, new Uint32Array([42]).buffer);
+      return new Uint32Array(staging.readSync(undefined, undefined, 5_000))[0];
+    });
+    expect(result).toBe(42);
+  });
+  it("rejects an invalid timeout", async () => {
+    const result = await client.eval(({ device }) => {
+      const staging = device.createBuffer({
+        size: 4,
+        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+      });
+      try {
+        staging.readSync(undefined, undefined, -1);
+        return "no error";
+      } catch (e) {
+        return e instanceof Error && e.message.includes("timeoutMs")
+          ? "invalid timeout"
+          : "wrong error";
+      }
+    });
+    expect(result).toBe("invalid timeout");
   });
 });

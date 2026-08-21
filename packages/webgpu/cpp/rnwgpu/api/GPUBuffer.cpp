@@ -1,6 +1,8 @@
 #include "GPUBuffer.h"
 
+#include <cmath>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <utility>
 
@@ -36,19 +38,10 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
   return array_buffer;
 }
 
-namespace {
-// readSync returns a copy that outlives the mapping, so it needs an
-// ArrayBuffer that owns (and frees) its backing store - the base class
-// wraps foreign memory and never frees.
-struct OwnedArrayBuffer : ArrayBuffer {
-  explicit OwnedArrayBuffer(size_t size)
-      : ArrayBuffer(malloc(size), size, 1) {}
-  ~OwnedArrayBuffer() override { free(_data); }
-};
-} // namespace
-
 std::shared_ptr<ArrayBuffer>
-GPUBuffer::readSync(std::optional<size_t> o, std::optional<size_t> sizeIn) {
+GPUBuffer::readSync(jsi::Runtime &runtime, std::optional<double> offsetIn,
+                    std::optional<double> sizeIn,
+                    std::optional<double> timeoutMsIn) {
   // Synchronous small-buffer readback: blocks the calling thread until all
   // previously submitted GPU work using this buffer completes, then returns
   // a copy of the mapped bytes. Built for tiny compute results (landmarks,
@@ -59,41 +52,88 @@ GPUBuffer::readSync(std::optional<size_t> o, std::optional<size_t> sizeIn) {
   // Instance::WaitAny, which this library's instance enables via the
   // TimedWaitAny feature at creation; external (Skia-provided) instances
   // without it fail the wait and throw rather than hang.
-  size_t offset = o.value_or(0);
-  size_t size = sizeIn.has_value()
-                    ? sizeIn.value()
-                    : static_cast<size_t>(_instance.GetSize() - offset);
+  auto toByteSize = [&runtime](const char *name, double value) -> size_t {
+    constexpr double kMaxSafeInteger = 9'007'199'254'740'991.0;
+    if (!std::isfinite(value) || value < 0 || std::floor(value) != value ||
+        value > kMaxSafeInteger ||
+        value > static_cast<double>(std::numeric_limits<size_t>::max())) {
+      throw jsi::JSError(runtime, std::string("GPUBuffer.readSync ") + name +
+                                      " must be a non-negative safe integer");
+    }
+    return static_cast<size_t>(value);
+  };
+
+  const size_t offset =
+      offsetIn.has_value() ? toByteSize("offset", *offsetIn) : 0;
+  const uint64_t bufferSize = _instance.GetSize();
+  if (offset > bufferSize) {
+    throw jsi::JSError(runtime,
+                       "GPUBuffer.readSync offset exceeds the buffer size");
+  }
+  const size_t size = sizeIn.has_value()
+                          ? toByteSize("size", *sizeIn)
+                          : static_cast<size_t>(bufferSize - offset);
+  if (size > bufferSize - offset) {
+    throw jsi::JSError(runtime,
+                       "GPUBuffer.readSync range exceeds the buffer size");
+  }
+
   constexpr size_t kMaxReadSyncBytes = 1 << 20;
   if (size > kMaxReadSyncBytes) {
-    throw std::runtime_error(
-        "readSync is intended for small readbacks (<= 1 MiB); use mapAsync "
-        "for large buffers");
+    throw jsi::JSError(
+        runtime,
+        "GPUBuffer.readSync is limited to 1 MiB; use mapAsync for larger "
+        "readbacks");
   }
-  wgpu::MapAsyncStatus mapStatus = wgpu::MapAsyncStatus::Error;
-  std::string mapMessage = "callback never ran";
+
+  constexpr double kDefaultTimeoutMs = 2'000.0;
+  constexpr double kNanosecondsPerMillisecond = 1'000'000.0;
+  const double timeoutMs = timeoutMsIn.value_or(kDefaultTimeoutMs);
+  const double maxTimeoutMs =
+      static_cast<double>(std::numeric_limits<uint64_t>::max()) /
+      kNanosecondsPerMillisecond;
+  if (!std::isfinite(timeoutMs) || timeoutMs < 0 || timeoutMs > maxTimeoutMs) {
+    throw jsi::JSError(
+        runtime,
+        "GPUBuffer.readSync timeoutMs must be a finite, non-negative number");
+  }
+  const uint64_t timeoutNs =
+      static_cast<uint64_t>(timeoutMs * kNanosecondsPerMillisecond);
+
+  struct MapResult {
+    wgpu::MapAsyncStatus status = wgpu::MapAsyncStatus::Error;
+    std::string message = "callback never ran";
+  };
+  auto mapResult = std::make_shared<MapResult>();
   auto future = _instance.MapAsync(
       wgpu::MapMode::Read, offset, size, wgpu::CallbackMode::WaitAnyOnly,
-      [&mapStatus, &mapMessage](wgpu::MapAsyncStatus status,
-                                wgpu::StringView message) {
-        mapStatus = status;
-        mapMessage = std::string(message);
+      [mapResult](wgpu::MapAsyncStatus status, wgpu::StringView message) {
+        mapResult->status = status;
+        mapResult->message = std::string(message);
       });
-  constexpr uint64_t kTimeoutNs = 2'000'000'000; // 2s: a hung GPU, not a wait
-  auto waitStatus = _async->instance().WaitAny(future, kTimeoutNs);
+  auto waitStatus = _async->instance().WaitAny(future, timeoutNs);
   if (waitStatus != wgpu::WaitStatus::Success) {
-    throw std::runtime_error(
-        "readSync: WaitAny did not complete (timeout, or the instance lacks "
-        "the TimedWaitAny feature)");
+    // Cancels the pending map request. The callback owns MapResult so a late
+    // completion cannot access stack memory after this method returns.
+    _instance.Unmap();
+    throw jsi::JSError(
+        runtime,
+        "GPUBuffer.readSync did not complete before timeoutMs, or the Dawn "
+        "instance does not support timed waits");
   }
-  if (mapStatus != wgpu::MapAsyncStatus::Success) {
-    throw std::runtime_error("readSync: mapping failed: " + mapMessage);
+  if (mapResult->status != wgpu::MapAsyncStatus::Success) {
+    throw jsi::JSError(runtime, "GPUBuffer.readSync mapping failed: " +
+                                    mapResult->message);
   }
   const void *ptr = _instance.GetConstMappedRange(offset, size);
   if (ptr == nullptr) {
     _instance.Unmap();
-    throw std::runtime_error("readSync: GetConstMappedRange failed");
+    throw jsi::JSError(runtime,
+                       "GPUBuffer.readSync could not access the mapped range");
   }
-  auto result = std::make_shared<OwnedArrayBuffer>(size);
+  // Allocate owned native storage. The JSI converter wraps this memory without
+  // copying it again and reports its external memory pressure to the runtime.
+  auto result = std::make_shared<ArrayBuffer>(size, 1);
   memcpy(result->data(), ptr, size);
   _instance.Unmap();
   return result;

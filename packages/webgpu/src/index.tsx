@@ -80,19 +80,24 @@ declare global {
     readonly nativePointer: bigint;
   }
 
-  // Non-spec RN extension: synchronous small-buffer readback. Blocks the
-  // calling thread until all previously submitted GPU work using this buffer
-  // completes, then returns an owned copy of the mapped bytes. Built for
-  // tiny compute results (landmarks, histogram ranges, counters, picking
-  // ids) that a render/worklet loop must consume in the SAME frame - such
-  // loops cannot await mapAsync without accepting a frame of staleness.
-  // Requires MAP_READ usage; the only valid companion is COPY_DST, so the
-  // pattern is: copy from your storage buffer into this staging buffer,
-  // submit, readSync(). Capped at 1 MiB (use mapAsync for bulk data); throws
-  // instead of hanging if the instance lacks TimedWaitAny (external/Skia
-  // instances) or the GPU hangs past 2s.
   interface GPUBuffer {
-    readSync(offset?: number, size?: number): ArrayBuffer;
+    /**
+     * Blocks the calling thread until pending GPU work completes, then returns
+     * a copy of this buffer's mapped bytes.
+     *
+     * This React Native extension is intended for results up to 1 MiB that
+     * must be consumed in the current JavaScript turn. Prefer `mapAsync()`
+     * whenever a later turn is acceptable because synchronous readback stalls
+     * the calling thread and reduces CPU/GPU parallelism.
+     *
+     * The buffer must have `GPUBufferUsage.MAP_READ` usage. The returned
+     * `ArrayBuffer` owns its storage and remains valid after this method
+     * unmaps the GPU buffer.
+     *
+     * @throws If the range is invalid, exceeds 1 MiB, mapping fails, the wait
+     * times out, or the Dawn instance does not support timed waits.
+     */
+    readSync(offset?: number, size?: number, timeoutMs?: number): ArrayBuffer;
   }
 
   interface GPUDevice {
