@@ -4,6 +4,7 @@
 #include <cstring>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <utility>
 
 #include "Convertors.h"
@@ -39,7 +40,7 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
 }
 
 std::shared_ptr<ArrayBuffer>
-GPUBuffer::readbackSync(jsi::Runtime &runtime, std::optional<double> offsetIn,
+GPUBuffer::readbackSync(std::optional<double> offsetIn,
                         std::optional<double> sizeIn,
                         std::optional<double> timeoutMsIn) {
   // Synchronous small-buffer readback: blocks the calling thread until all
@@ -52,14 +53,13 @@ GPUBuffer::readbackSync(jsi::Runtime &runtime, std::optional<double> offsetIn,
   // Instance::WaitAny, which this library's instance enables via the
   // TimedWaitAny feature at creation; external (Skia-provided) instances
   // without it fail the wait and throw rather than hang.
-  auto toByteSize = [&runtime](const char *name, double value) -> size_t {
+  auto toByteSize = [](const char *name, double value) -> size_t {
     constexpr double kMaxSafeInteger = 9'007'199'254'740'991.0;
     if (!std::isfinite(value) || value < 0 || std::floor(value) != value ||
         value > kMaxSafeInteger ||
         value > static_cast<double>(std::numeric_limits<size_t>::max())) {
-      throw jsi::JSError(runtime, std::string("GPUBuffer.readbackSync ") +
-                                      name +
-                                      " must be a non-negative safe integer");
+      throw std::runtime_error(std::string("GPUBuffer.readbackSync ") + name +
+                               " must be a non-negative safe integer");
     }
     return static_cast<size_t>(value);
   };
@@ -68,21 +68,20 @@ GPUBuffer::readbackSync(jsi::Runtime &runtime, std::optional<double> offsetIn,
       offsetIn.has_value() ? toByteSize("offset", *offsetIn) : 0;
   const uint64_t bufferSize = _instance.GetSize();
   if (offset > bufferSize) {
-    throw jsi::JSError(runtime,
-                       "GPUBuffer.readbackSync offset exceeds the buffer size");
+    throw std::runtime_error(
+        "GPUBuffer.readbackSync offset exceeds the buffer size");
   }
   const size_t size = sizeIn.has_value()
                           ? toByteSize("size", *sizeIn)
                           : static_cast<size_t>(bufferSize - offset);
   if (size > bufferSize - offset) {
-    throw jsi::JSError(runtime,
-                       "GPUBuffer.readbackSync range exceeds the buffer size");
+    throw std::runtime_error(
+        "GPUBuffer.readbackSync range exceeds the buffer size");
   }
 
   constexpr size_t kMaxReadbackSyncBytes = 1 << 20;
   if (size > kMaxReadbackSyncBytes) {
-    throw jsi::JSError(
-        runtime,
+    throw std::runtime_error(
         "GPUBuffer.readbackSync is limited to 1 MiB; use mapAsync for larger "
         "readbacks");
   }
@@ -94,8 +93,7 @@ GPUBuffer::readbackSync(jsi::Runtime &runtime, std::optional<double> offsetIn,
       static_cast<double>(std::numeric_limits<uint64_t>::max()) /
       kNanosecondsPerMillisecond;
   if (!std::isfinite(timeoutMs) || timeoutMs < 0 || timeoutMs > maxTimeoutMs) {
-    throw jsi::JSError(
-        runtime,
+    throw std::runtime_error(
         "GPUBuffer.readbackSync timeoutMs must be a finite, non-negative "
         "number");
   }
@@ -118,21 +116,19 @@ GPUBuffer::readbackSync(jsi::Runtime &runtime, std::optional<double> offsetIn,
     // Cancels the pending map request. The callback owns MapResult so a late
     // completion cannot access stack memory after this method returns.
     _instance.Unmap();
-    throw jsi::JSError(
-        runtime,
+    throw std::runtime_error(
         "GPUBuffer.readbackSync did not complete before timeoutMs, or the Dawn "
         "instance does not support timed waits");
   }
   if (mapResult->status != wgpu::MapAsyncStatus::Success) {
-    throw jsi::JSError(runtime, "GPUBuffer.readbackSync mapping failed: " +
-                                    mapResult->message);
+    throw std::runtime_error("GPUBuffer.readbackSync mapping failed: " +
+                             mapResult->message);
   }
   const void *ptr = _instance.GetConstMappedRange(offset, size);
   if (ptr == nullptr) {
     _instance.Unmap();
-    throw jsi::JSError(runtime,
-                       "GPUBuffer.readbackSync could not access the mapped "
-                       "range");
+    throw std::runtime_error(
+        "GPUBuffer.readbackSync could not access the mapped range");
   }
   // Allocate owned native storage. The JSI converter wraps this memory without
   // copying it again and reports its external memory pressure to the runtime.
