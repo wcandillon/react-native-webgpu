@@ -14,7 +14,7 @@ import type {
 
 export * from "./main";
 export * from "./constants";
-export { installWebGPU } from "./install";
+export * from "./install";
 export type {
   NativeVideoFrame,
   VideoPlayer,

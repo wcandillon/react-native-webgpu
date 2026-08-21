@@ -18,7 +18,7 @@ Follow the Worklets installation guide for the babel plugin and native setup. We
 
 ## installWebGPU
 
-Worklet runtimes start without the WebGPU globals (`navigator.gpu`, `GPUBufferUsage`, `GPUTextureUsage`, etc.). Call [`installWebGPU()`](/api/install-webgpu) once at the top of a worklet to install all of them for that runtime:
+Worklet runtimes start without WebGPU flag globals (`GPUBufferUsage`, `GPUTextureUsage`, etc.). Call [`installWebGPU()`](/api/install-webgpu) once at the top of a worklet:
 
 ```tsx twoslash
 import type { RNCanvasContext, CanvasRef } from "react-native-webgpu";

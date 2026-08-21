@@ -1,5 +1,4 @@
 import { registerWebGPUForReanimated } from "../external";
-import { provideGPUForInstall } from "../install";
 import WebGPUModule from "../NativeWebGPUModule";
 
 export * from "../Canvas";
@@ -37,8 +36,6 @@ if (typeof RNWebGPU !== "undefined") {
   }
   global.createImageBitmap =
     global.createImageBitmap ?? RNWebGPU.createImageBitmap.bind(RNWebGPU);
-  // Let installWebGPU() put navigator.gpu on other runtimes (see install.ts).
-  provideGPUForInstall(RNWebGPU.gpu);
 } else {
   console.warn(
     `[react-native-webgpu] install() returned ${_installOk} but RNWebGPU global is not available`,

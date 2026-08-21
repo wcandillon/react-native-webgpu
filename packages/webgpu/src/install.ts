@@ -1,4 +1,3 @@
-/// <reference types="@webgpu/types" />
 import {
   GPUBufferUsage,
   GPUColorWrite,
@@ -19,67 +18,37 @@ const constants = {
   GPUMapMode,
 };
 
-// The GPU instance destined for `navigator.gpu` on other runtimes, wrapped in
-// a holder object. It cannot be read at module evaluation: this module can be
-// evaluated before the native install has populated `RNWebGPU.gpu`, so
-// `main/index.tsx` fills the holder right after installing. The holder itself
-// is captured into the `installWebGPU` worklet closure; when a worklet is
-// serialized (always after startup, so after the holder is filled), the
-// Worklets custom serializer boxes the GPU object inside it, and unboxing on
-// the target runtime installs the GPU prototype there.
-const holder: { gpu?: GPU } = {};
-
-/**
- * @internal Called once by `main/index.tsx` after the native install, so
- * `installWebGPU()` can put `navigator.gpu` on other runtimes.
- */
-export const provideGPUForInstall = (gpu: GPU) => {
-  holder.gpu = gpu;
-};
-
 /**
  * Install WebGPU on the runtime that calls it.
  *
- * The native module sets up WebGPU on the main JS runtime, but worklet
- * runtimes (Reanimated UI, dedicated worklet runtimes, Vision Camera frame
- * processors) start without it: `navigator.gpu` and the flag constants
- * (`GPUBufferUsage`, `GPUTextureUsage`, `GPUShaderStage`, `GPUColorWrite`,
- * `GPUMapMode`) are all `undefined` there.
+ * The native module installs the WebGPU flag constants (`GPUBufferUsage`,
+ * `GPUTextureUsage`, `GPUShaderStage`, `GPUColorWrite`, `GPUMapMode`) as globals
+ * on the main JS runtime, but worklet runtimes (Reanimated UI, dedicated worklet
+ * runtimes, Vision Camera frame processors) start without them, so referencing
+ * the bare global inside a worklet yields `undefined`.
  *
- * Call `installWebGPU()` once at the top of a worklet to make them available:
+ * Call `installWebGPU()` once at the top of a worklet to make those globals
+ * available there, instead of importing each constant by hand:
  *
  * ```tsx
  * import { installWebGPU } from "react-native-webgpu";
  *
- * const work = () => {
+ * const work = (device: GPUDevice) => {
  *   "worklet";
  *   installWebGPU();
- *   globalThis.navigator.gpu.requestAdapter().then((adapter) => {
- *     // ...
+ *   device.createBuffer({
+ *     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
  *   });
  * };
  * ```
  *
- * Known limitations:
+ * The constants are captured into the worklet by closure (the same way a shader
+ * string is), so they work on every runtime. Calling it on a runtime that
+ * already has the globals (e.g. the main JS runtime) is a safe no-op.
  *
- * - Read `navigator` through `globalThis.navigator`: the Worklets Babel
- *   plugin does not treat a bare `navigator` as a known global, so it would
- *   capture the main runtime's `navigator` object by closure instead of
- *   reading the one this function installed. Fixed upstream in
- *   react-native-reanimated#10364; the prefix becomes unnecessary on
- *   react-native-worklets versions that include it.
- * - Spontaneous events are main-runtime only: on a device created on a
- *   worklet runtime, `device.lost` never settles (unless the device is
- *   already lost when read) and `uncapturederror` listeners never fire.
- *   Observe those on a device created on the main JS thread.
- *
- * Everything is captured into the worklet by closure: the constants like a
- * shader string would be, and the GPU object through the Worklets custom
- * serializer, which installs the native prototypes on the target runtime when
- * it crosses. Promises returned by `requestAdapter`/`requestDevice` settle on
- * the calling runtime (each runtime gets its own async pump). Calling it on a
- * runtime that already has the globals (e.g. the main JS runtime) is a safe
- * no-op.
+ * This is the explicit entry point for runtime setup; for now it only installs
+ * the flag constants, but it is the place where other per-runtime WebGPU setup
+ * (e.g. `navigator.gpu`) can be wired in later.
  */
 export const installWebGPU = () => {
   "worklet";
@@ -87,15 +56,6 @@ export const installWebGPU = () => {
   for (const [key, value] of Object.entries(constants)) {
     if (g[key] === undefined) {
       g[key] = value;
-    }
-  }
-  const { gpu } = holder;
-  if (gpu !== undefined) {
-    const nav = g.navigator as { gpu?: GPU; userAgent?: string } | undefined;
-    if (nav === undefined) {
-      g.navigator = { gpu, userAgent: "react-native" };
-    } else if (nav.gpu === undefined) {
-      nav.gpu = gpu;
     }
   }
 };

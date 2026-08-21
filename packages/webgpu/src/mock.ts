@@ -18,6 +18,7 @@ import type { NativeCanvas, RNCanvasContext } from "./Canvas";
 // `./importDevice.ts`).
 
 export * from "./constants";
+export * from "./install";
 export * from "./formats";
 
 const NOT_AVAILABLE_UNDER_JEST =
