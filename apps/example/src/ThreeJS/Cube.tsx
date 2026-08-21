@@ -4,7 +4,10 @@ import { Canvas } from "react-native-webgpu";
 import { View } from "react-native";
 import { useEffect, useRef } from "react";
 
-import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
+import {
+  makeWebGPURenderer,
+  disposeWebGPURenderer,
+} from "./components/makeWebGPURenderer";
 
 export const Cube = () => {
   const ref = useRef<CanvasRef>(null);
@@ -35,7 +38,7 @@ export const Cube = () => {
     }
     renderer.setAnimationLoop(animate);
     return () => {
-      renderer.setAnimationLoop(null);
+      disposeWebGPURenderer(renderer);
     };
   }, [ref]);
 

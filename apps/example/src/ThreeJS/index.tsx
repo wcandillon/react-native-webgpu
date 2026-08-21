@@ -12,6 +12,7 @@ import { Fiber } from "./Fiber";
 import { PostProcessing } from "./PostProcessing";
 import { Retargeting } from "./Retargeting";
 import { ToneMapping } from "./ToneMapping";
+import { Memory } from "./Memory";
 
 const Stack = createStackNavigator<Routes>();
 export const ThreeJS = () => {
@@ -86,6 +87,13 @@ export const ThreeJS = () => {
         component={ToneMapping}
         options={{
           title: "🎭 Tone Mapping",
+        }}
+      />
+      <Stack.Screen
+        name="Memory"
+        component={Memory}
+        options={{
+          title: "🧠 Memory",
         }}
       />
     </Stack.Navigator>

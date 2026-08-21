@@ -132,6 +132,61 @@ describe("Device", () => {
     expect(isDeviceLost).toBeFalsy();
   });
 
+  // Regression test for #445: a pending device.lost promise must not be a GC
+  // root. Before the fix, native code held the promise strongly, so a
+  // lost.then() reaction (three.js registers one capturing its whole
+  // renderer) pinned the device and every resource wrapper forever, and their
+  // external memory pressure accumulated until Hermes OOMed.
+  it("releases external memory of a dropped device with a pending lost.then (#445)", async () => {
+    const result = await client.eval(({ gpu }) => {
+      const getExternal = () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const hermes = (globalThis as any).HermesInternal;
+        return hermes?.getInstrumentedStats?.()?.js_externalBytes ?? 0;
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { gc } = globalThis as any;
+      if (typeof gc !== "function" || getExternal() === 0) {
+        // Not running on Hermes with GC instrumentation (e.g. web reference
+        // run): nothing to measure.
+        return Promise.resolve(null);
+      }
+      // Kept in a separate function so its locals (device, buffer) are not
+      // captured by the enclosing environment when we measure afterwards.
+      const allocate = () =>
+        gpu.requestAdapter().then((adapter) =>
+          adapter!.requestDevice().then((device) => {
+            const buffer = device.createBuffer({
+              size: 64 * 1024 * 1024,
+              usage: GPUBufferUsage.VERTEX,
+            });
+            device.lost.then(() => buffer);
+          }),
+        );
+      gc();
+      const baseline = getExternal();
+      return allocate().then(
+        () =>
+          new Promise((resolve) => {
+            const allocated = getExternal();
+            setTimeout(() => {
+              gc();
+              resolve({ baseline, allocated, after: getExternal() });
+            }, 100);
+          }),
+      );
+    });
+    if (result !== null) {
+      const { baseline, allocated, after } = result as {
+        baseline: number;
+        allocated: number;
+        after: number;
+      };
+      expect(allocated - baseline).toBeGreaterThanOrEqual(64 * 1024 * 1024);
+      expect(after - baseline).toBeLessThan(8 * 1024 * 1024);
+    }
+  });
+
   it("resolves an awaited device.lost when device.destroy is called", async () => {
     const result = await client.eval(({ gpu }) =>
       gpu.requestAdapter().then((adapter) =>
