@@ -7,10 +7,12 @@ Using the Three.js WebGPU backend, you can run the library on top of React Nativ
 
 <WebGPUPlayground demo="three-js" height={280} />
 
-## 1. Metro configuration
+## 1. Import the WebGPU entry point
 
 Three.js publishes separate WebGL and WebGPU entry points.
-Metro must load `build/three.webgpu.js` when you import `three` or `three/webgpu`. See [Expo setup](/docs/getting-started/expo) for a complete Metro configuration:
+With current Expo and Metro versions, importing `three/webgpu` resolves Three.js's WebGPU package export directly and does not require a custom Metro configuration.
+
+Add a resolver override only when your setup needs one—for example, an older Metro version cannot resolve the package export, a monorepo resolves a different copy of Three.js, or a dependency imports bare `three` and must be redirected to the WebGPU build. The example app uses the following fallback because it covers those cases and React Three Fiber:
 
 ```js
 // metro.config.js - resolveRequest excerpt
@@ -31,7 +33,7 @@ if (moduleName.startsWith("three/addons/")) {
 }
 ```
 
-Import from `three/webgpu`, not `three` (which would pull the WebGL build).
+Start with an explicit import from `three/webgpu`, not `three` (which would pull the WebGL build without the optional redirect above). If that import resolves in your project, keep the default Metro configuration.
 
 ## 2. Create the renderer
 

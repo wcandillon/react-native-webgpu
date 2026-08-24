@@ -13,6 +13,8 @@ npx create-expo-app@latest -e with-webgpu
 
 The template includes `react-native-webgpu`, Reanimated, and Metro settings compatible with Three.js WebGPU builds.
 
+For a raw Three.js integration that imports `three/webgpu` directly, recent Expo and Metro versions can resolve that package export without a custom resolver. The template keeps additional Metro settings because it also redirects bare `three` imports and selects the standard React Three Fiber build. See the [Three.js integration guide](/docs/integrations/three-js) before copying those settings into an existing app.
+
 For a walkthrough of the template, watch the video below.
 
 <Video src="/videos/expo-template.mp4" />
