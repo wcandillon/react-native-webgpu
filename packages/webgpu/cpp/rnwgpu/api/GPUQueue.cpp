@@ -128,26 +128,66 @@ void GPUQueue::copyExternalImageToTexture(
     throw std::runtime_error("Invalid input for GPUQueue::writeTexture()");
   }
 
-  if (source->flipY.value_or(false)) {
-    // Calculate the row size and total size
-    uint32_t rowSize = bytesPerPixel * source->source->getWidth();
-    uint32_t totalSize = source->source->getSize();
+  const auto origin = source->origin.value_or(nullptr);
+  // GPUOrigin2D coordinates are [EnforceRange] unsigned long: negative,
+  // NaN, or out-of-range doubles must be rejected here because casting
+  // them to an unsigned integer is undefined behavior.
+  constexpr double kMaxOrigin =
+      static_cast<double>(std::numeric_limits<uint32_t>::max());
+  if (origin && (!(origin->x >= 0) || !(origin->y >= 0) ||
+                 origin->x > kMaxOrigin || origin->y > kMaxOrigin)) {
+    throw std::runtime_error(
+        "The source origin must be a non-negative integer coordinate.");
+  }
+  const size_t sourceOriginX =
+      origin ? static_cast<size_t>(origin->x) : 0;
+  const size_t sourceOriginY =
+      origin ? static_cast<size_t>(origin->y) : 0;
+  if (sourceOriginX > source->source->getWidth() ||
+      sz.width > source->source->getWidth() - sourceOriginX ||
+      sourceOriginY > source->source->getHeight() ||
+      sz.height > source->source->getHeight() - sourceOriginY ||
+      sz.depthOrArrayLayers > 1) {
+    throw std::runtime_error(
+        "The source copy region is outside the ImageBitmap.");
+  }
 
-    // Create a new buffer for the flipped data
-    std::vector<uint8_t> flippedData(totalSize);
+  const bool flipY = source->flipY.value_or(false);
+  // premultipliedAlpha defaults to false per the WebGPU spec: an untagged
+  // destination expects straight alpha. Convert only when the ImageBitmap's
+  // representation differs, using the same rounding as the reference client.
+  const bool sourcePremultiplied = source->source->getPremultiplied();
+  const bool destinationPremultiplied =
+      destination->premultipliedAlpha.value_or(false);
+  const bool needsAlphaConversion =
+      bytesPerPixel == 4 && sourcePremultiplied != destinationPremultiplied;
 
-    // Flip the data vertically
-    for (uint32_t row = 0; row < source->source->getHeight(); ++row) {
-      std::memcpy(flippedData.data() +
-                      (source->source->getHeight() - 1 - row) * rowSize,
-                  static_cast<const uint8_t *>(source->source->getData()) +
-                      row * rowSize,
-                  rowSize);
+  if (sourceOriginX != 0 || sourceOriginY != 0 || flipY ||
+      needsAlphaConversion) {
+    uint32_t sourceRowSize = bytesPerPixel * source->source->getWidth();
+    uint32_t rowSize = bytesPerPixel * sz.width;
+    uint32_t totalSize = rowSize * sz.height;
+
+    // Stage only the selected subregion so transformations never touch the
+    // ImageBitmap's backing store or pixels outside the requested copy.
+    std::vector<uint8_t> staged(totalSize);
+    const uint8_t *src =
+        static_cast<const uint8_t *>(source->source->getData());
+    for (uint32_t row = 0; row < sz.height; ++row) {
+      const uint32_t sourceRow =
+          sourceOriginY + (flipY ? sz.height - 1 - row : row);
+      const uint32_t sourceOffset =
+          sourceRow * sourceRowSize + sourceOriginX * bytesPerPixel;
+      std::memcpy(staged.data() + row * rowSize, src + sourceOffset, rowSize);
     }
-    // Use the flipped data for writing to texture
-    _instance.WriteTexture(&dst, flippedData.data(), totalSize, &layout, &sz);
+    if (needsAlphaConversion) {
+      convertAlpha(staged.data(), totalSize, sourcePremultiplied,
+                   destinationPremultiplied);
+    }
+    layout.bytesPerRow = rowSize;
+    layout.rowsPerImage = sz.height;
+    _instance.WriteTexture(&dst, staged.data(), totalSize, &layout, &sz);
   } else {
-
     _instance.WriteTexture(&dst, source->source->getData(),
                            source->source->getSize(), &layout, &sz);
   }

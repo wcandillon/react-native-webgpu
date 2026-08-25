@@ -2,6 +2,7 @@
 
 import fs from "fs";
 import path from "path";
+import type { Server as HTTPServer } from "http";
 
 import puppeteer from "puppeteer";
 import { PNG } from "pngjs";
@@ -14,7 +15,7 @@ import type { GPUOffscreenCanvas } from "../Offscreen";
 
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
-import { DEBUG, NODE_WEBGPU, REFERENCE } from "./config";
+import { DEBUG, NODE_WEBGPU, REFERENCE, TEST_SERVER_PORT } from "./config";
 
 jest.setTimeout(180 * 1000);
 
@@ -22,9 +23,11 @@ type TestOS = "ios" | "android" | "web" | "node";
 
 declare global {
   var testServer: Server;
+  var testFixtureServer: HTTPServer;
   var testClient: WebSocket;
   var testOS: TestOS;
   var testArch: "paper" | "fabric";
+  var testHost: string;
 }
 
 interface GPUTestingContext {
@@ -486,30 +489,188 @@ class NodeTestingClient implements TestingClient {
   // dawn.node implements the core WebGPU API but none of the web-platform
   // image machinery, so provide the minimal pieces the specs rely on.
   private installWebPolyfills(device: GPUDevice) {
-    const decodePng = (bytes: Uint8Array) => {
+    // Same integer arithmetic as ImageBitmap::convertAlpha (ImageBitmap.h),
+    // so this client is a bit-exact reference for the native conversion.
+    const convertAlpha = (
+      data: Uint8Array | Uint8ClampedArray,
+      sourcePremultiplied: boolean,
+      destinationPremultiplied: boolean,
+    ) => {
+      if (sourcePremultiplied === destinationPremultiplied) {
+        return;
+      }
+      for (let i = 0; i + 3 < data.length; i += 4) {
+        const alpha = data[i + 3];
+        for (let channel = 0; channel < 3; channel++) {
+          const value = data[i + channel];
+          if (destinationPremultiplied) {
+            data[i + channel] = Math.floor((value * alpha + 127) / 255);
+          } else if (alpha === 0) {
+            data[i + channel] = 0;
+          } else {
+            data[i + channel] = Math.min(
+              255,
+              Math.floor((value * 255 + (alpha >> 1)) / alpha),
+            );
+          }
+        }
+      }
+    };
+    interface RawImage {
+      data: Uint8ClampedArray;
+      width: number;
+      height: number;
+    }
+    const crop = (
+      image: RawImage,
+      sx: number,
+      sy: number,
+      sw: number,
+      sh: number,
+    ): RawImage => {
+      const data = new Uint8ClampedArray(sw * sh * 4);
+      for (let y = 0; y < sh; y++) {
+        const from = ((sy + y) * image.width + sx) * 4;
+        data.set(image.data.subarray(from, from + sw * 4), y * sw * 4);
+      }
+      return { data, width: sw, height: sh };
+    };
+    // Bilinear resampling with edge clamp; browsers use comparable filtering
+    // for the default resizeQuality, and the specs compare with pixelmatch
+    // tolerance rather than bit-exactly.
+    const resize = (
+      image: RawImage,
+      width: number,
+      height: number,
+    ): RawImage => {
+      const data = new Uint8ClampedArray(width * height * 4);
+      for (let y = 0; y < height; y++) {
+        const srcY = Math.min(
+          image.height - 1,
+          Math.max(0, ((y + 0.5) * image.height) / height - 0.5),
+        );
+        const y0 = Math.floor(srcY);
+        const y1 = Math.min(image.height - 1, y0 + 1);
+        const fy = srcY - y0;
+        for (let x = 0; x < width; x++) {
+          const srcX = Math.min(
+            image.width - 1,
+            Math.max(0, ((x + 0.5) * image.width) / width - 0.5),
+          );
+          const x0 = Math.floor(srcX);
+          const x1 = Math.min(image.width - 1, x0 + 1);
+          const fx = srcX - x0;
+          for (let channel = 0; channel < 4; channel++) {
+            const top =
+              image.data[(y0 * image.width + x0) * 4 + channel] * (1 - fx) +
+              image.data[(y0 * image.width + x1) * 4 + channel] * fx;
+            const bottom =
+              image.data[(y1 * image.width + x0) * 4 + channel] * (1 - fx) +
+              image.data[(y1 * image.width + x1) * 4 + channel] * fx;
+            data[(y * width + x) * 4 + channel] = Math.round(
+              top * (1 - fy) + bottom * fy,
+            );
+          }
+        }
+      }
+      return { data, width, height };
+    };
+    const flipVertically = (image: RawImage): RawImage => {
+      const rowSize = image.width * 4;
+      const data = new Uint8ClampedArray(image.data.length);
+      for (let y = 0; y < image.height; y++) {
+        data.set(
+          image.data.subarray(y * rowSize, (y + 1) * rowSize),
+          (image.height - 1 - y) * rowSize,
+        );
+      }
+      return { ...image, data };
+    };
+    interface PolyfillImageBitmapOptions {
+      premultiplyAlpha?: string;
+      imageOrientation?: string;
+      resizeWidth?: number;
+      resizeHeight?: number;
+    }
+    const decodePng = (
+      bytes: Uint8Array,
+      cropRect: number[] | undefined,
+      options: PolyfillImageBitmapOptions | undefined,
+    ) => {
       const png = PNG.sync.read(
         Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
       );
-      return {
+      // Spec processing order: crop, then resize, then orientation, then
+      // the requested alpha representation. pngjs ignores embedded color
+      // profiles, so this decoder behaves like colorSpaceConversion "none".
+      let image: RawImage = {
         data: new Uint8ClampedArray(png.data),
         width: png.width,
         height: png.height,
-        close() {},
       };
+      if (cropRect !== undefined) {
+        image = crop(image, cropRect[0], cropRect[1], cropRect[2], cropRect[3]);
+      }
+      if (
+        options?.resizeWidth !== undefined ||
+        options?.resizeHeight !== undefined
+      ) {
+        image = resize(
+          image,
+          options.resizeWidth ?? image.width,
+          options.resizeHeight ?? image.height,
+        );
+      }
+      if (options?.imageOrientation === "flipY") {
+        image = flipVertically(image);
+      }
+      // Like the native implementation, "default" premultiplies.
+      const premultiplied = options?.premultiplyAlpha !== "none";
+      convertAlpha(image.data, false, premultiplied);
+      const bitmap = {
+        data: image.data,
+        width: image.width,
+        height: image.height,
+        premultiplied,
+        // Mirror the native ImageBitmap: close() releases the pixels and
+        // zeroes the dimensions.
+        close() {
+          bitmap.data = new Uint8ClampedArray(0);
+          bitmap.width = 0;
+          bitmap.height = 0;
+        },
+      };
+      return bitmap;
     };
     (globalThis as Record<string, unknown>).createImageBitmap = async (
       source: unknown,
+      ...rest: unknown[]
     ) => {
+      // Both overloads: (source, options?) and (source, sx, sy, sw, sh,
+      // options?).
+      const cropRect =
+        typeof rest[0] === "number"
+          ? (rest.slice(0, 4) as number[])
+          : undefined;
+      const options = (cropRect !== undefined ? rest[4] : rest[0]) as
+        | PolyfillImageBitmapOptions
+        | undefined;
       if (source instanceof ArrayBuffer) {
-        return decodePng(new Uint8Array(source));
+        return decodePng(new Uint8Array(source), cropRect, options);
       }
       if (ArrayBuffer.isView(source)) {
         return decodePng(
           new Uint8Array(source.buffer, source.byteOffset, source.byteLength),
+          cropRect,
+          options,
         );
       }
       if (typeof Blob !== "undefined" && source instanceof Blob) {
-        return decodePng(new Uint8Array(await source.arrayBuffer()));
+        return decodePng(
+          new Uint8Array(await source.arrayBuffer()),
+          cropRect,
+          options,
+        );
       }
       if (
         source !== null &&
@@ -518,30 +679,94 @@ class NodeTestingClient implements TestingClient {
         "width" in source
       ) {
         // Already an ImageData-like object (e.g. one of the test assets).
+        // Left untagged so the copy shim writes its bytes through unchanged.
         return source;
       }
       throw new Error("createImageBitmap polyfill: unsupported source");
     };
     // copyExternalImageToTexture expects an ImageBitmap; route the raw RGBA
-    // bytes of our ImageData-like sources through writeTexture instead.
+    // bytes of our ImageData-like sources through writeTexture instead,
+    // honoring flipY and the alpha representations on both sides.
     Object.defineProperty(device.queue, "copyExternalImageToTexture", {
       configurable: true,
       value: (
         source: {
-          source: { data: Uint8ClampedArray; width: number; height: number };
+          source: {
+            data: Uint8ClampedArray;
+            width: number;
+            height: number;
+            premultiplied?: boolean;
+          };
+          origin?: number[] | { x?: number; y?: number };
+          flipY?: boolean;
         },
-        destination: GPUTexelCopyTextureInfo,
+        destination: GPUTexelCopyTextureInfo & { premultipliedAlpha?: boolean },
         copySize: GPUExtent3DStrict,
       ) => {
-        const { data, width } = source.source;
+        const { data, width, height, premultiplied } = source.source;
+        // Both origin and copySize accept the sequence and dictionary forms.
+        const origin = source.origin ?? {};
+        const originX = (Array.isArray(origin) ? origin[0] : origin.x) ?? 0;
+        const originY = (Array.isArray(origin) ? origin[1] : origin.y) ?? 0;
+        const extent = Array.isArray(copySize)
+          ? {
+              width: copySize[0],
+              height: copySize[1],
+              depthOrArrayLayers: copySize[2],
+            }
+          : (copySize as GPUExtent3DDictStrict);
+        const copyWidth = extent.width;
+        const copyHeight = extent.height ?? 1;
+        const copyDepth = extent.depthOrArrayLayers ?? 1;
+        if (originX < 0 || originY < 0) {
+          throw new Error(
+            "The source origin must be a non-negative integer coordinate.",
+          );
+        }
+        if (
+          originX + copyWidth > width ||
+          originY + copyHeight > height ||
+          copyDepth > 1
+        ) {
+          throw new Error("The source copy region is outside the ImageBitmap.");
+        }
+
+        const sourceRowSize = width * 4;
+        let rowSize = sourceRowSize;
+        let bytes = new Uint8Array(
+          data.buffer as ArrayBuffer,
+          data.byteOffset,
+          data.byteLength,
+        );
+        const flipY = source.flipY === true;
+        // Untagged sources (raw test assets) are copied through unchanged.
+        const needsConversion =
+          premultiplied !== undefined &&
+          premultiplied !== (destination.premultipliedAlpha === true);
+        if (originX !== 0 || originY !== 0 || flipY || needsConversion) {
+          rowSize = copyWidth * 4;
+          const staged = new Uint8Array(rowSize * copyHeight);
+          for (let row = 0; row < copyHeight; row++) {
+            const sourceRow = originY + (flipY ? copyHeight - 1 - row : row);
+            const sourceOffset = sourceRow * sourceRowSize + originX * 4;
+            staged.set(
+              bytes.subarray(sourceOffset, sourceOffset + rowSize),
+              row * rowSize,
+            );
+          }
+          if (needsConversion) {
+            convertAlpha(
+              staged,
+              premultiplied === true,
+              destination.premultipliedAlpha === true,
+            );
+          }
+          bytes = staged;
+        }
         device.queue.writeTexture(
           destination,
-          new Uint8Array(
-            data.buffer as ArrayBuffer,
-            data.byteOffset,
-            data.byteLength,
-          ),
-          { bytesPerRow: width * 4 },
+          bytes,
+          { bytesPerRow: rowSize },
           copySize,
         );
       },
@@ -661,6 +886,24 @@ export const itSkipsOnWeb = (name: string, fn: () => Promise<void>) => {
     }
     await fn();
   });
+};
+
+// URL a test can `fetch(...).then(r => r.blob())` on the device to get one of
+// the fixtures in ./assets.
+//
+// React Native's Android networking stack (OkHttp) has no handler for the data:
+// scheme, so an inline `data:image/png;base64,...` URL rejects there with
+// "Network request failed" (iOS works, since NSURLSession decodes data: URLs
+// itself). Device clients therefore load fixtures over HTTP from the test
+// server started in globalSetup. Chrome and node both support data: URLs and
+// keep the inline form, which leaves the reference clients independent of that
+// server.
+export const fixtureUrl = (fileName: string): string => {
+  if (client.OS === "ios" || client.OS === "android") {
+    return `http://${global.testHost}:${TEST_SERVER_PORT}/${fileName}`;
+  }
+  const p = path.resolve(__dirname, "assets", fileName);
+  return `data:image/png;base64,${fs.readFileSync(p).toString("base64")}`;
 };
 
 export const decodeImage = (relPath: string): BitmapData => {

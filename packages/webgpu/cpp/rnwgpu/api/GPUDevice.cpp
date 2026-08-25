@@ -19,9 +19,35 @@
 
 namespace rnwgpu {
 
+namespace {
+
+// Hidden own properties used by device.lost. The promise cache lives on the
+// device wrapper (the spec requires `lost` to return a stable promise) and
+// the resolve function lives on the promise object itself, so both are traced
+// by the GC as part of the device's JS object graph instead of being rooted
+// from C++ (issue #445).
+constexpr const char *kLostPromiseProp = "__rnwgpuLostPromise";
+constexpr const char *kLostResolveProp = "__rnwgpuLostResolve";
+
+void defineHiddenProperty(jsi::Runtime &runtime, const jsi::Object &target,
+                          const char *name, const jsi::Value &value) {
+  auto objectCtor = runtime.global().getPropertyAsObject(runtime, "Object");
+  auto defineProperty =
+      objectCtor.getPropertyAsFunction(runtime, "defineProperty");
+  jsi::Object descriptor(runtime);
+  descriptor.setProperty(runtime, "value", value);
+  descriptor.setProperty(runtime, "enumerable", false);
+  descriptor.setProperty(runtime, "writable", false);
+  descriptor.setProperty(runtime, "configurable", false);
+  defineProperty.call(runtime, target,
+                      jsi::String::createFromUtf8(runtime, name), descriptor);
+}
+
+} // namespace
+
 void GPUDevice::notifyDeviceLost(wgpu::DeviceLostReason reason,
                                  std::string message) {
-  std::optional<async::AsyncTaskHandle::ResolveFunction> resolveToCall;
+  std::vector<PendingLostPromise> toResolve;
   std::shared_ptr<GPUDeviceLostInfo> info;
   {
     std::lock_guard<std::mutex> lock(_lostMutex);
@@ -32,22 +58,49 @@ void GPUDevice::notifyDeviceLost(wgpu::DeviceLostReason reason,
     _lostSettled = true;
     _lostInfo = std::make_shared<GPUDeviceLostInfo>(reason, std::move(message));
     info = _lostInfo;
+    toResolve = std::move(_lostPromises);
+    _lostPromises.clear();
+  }
 
-    if (_lostResolve.has_value()) {
-      resolveToCall = std::move(*_lostResolve);
-      _lostResolve.reset();
+  if (toResolve.empty()) {
+    return;
+  }
+
+  // getLost() only registers promises when the device's context has a
+  // CallInvoker (main JS runtime), so a non-empty list implies an invoker.
+  auto invoker = _async ? _async->callInvoker() : nullptr;
+  if (!invoker) {
+    return;
+  }
+
+  // Settle on the owning runtime's JS thread. The promises are held weakly:
+  // if the device graph was collected in the meantime there is nothing to do,
+  // since nobody could observe the resolution anyway. The shared_ptr is only
+  // there because jsi::WeakObject is move-only and std::function requires a
+  // copyable closure; it also ensures the WeakObjects are destroyed on the JS
+  // thread.
+  auto pending =
+      std::make_shared<std::vector<PendingLostPromise>>(std::move(toResolve));
+  invoker->invokeAsync([pending, info]() {
+    for (auto &entry : *pending) {
+      auto &runtime = *entry.runtime;
+      auto locked = entry.promise.lock(runtime);
+      if (!locked.isObject()) {
+        continue;
+      }
+      auto promiseObj = locked.getObject(runtime);
+      auto resolveProp = promiseObj.getProperty(runtime, kLostResolveProp);
+      if (!resolveProp.isObject() ||
+          !resolveProp.getObject(runtime).isFunction(runtime)) {
+        continue;
+      }
+      auto resolveFn = resolveProp.getObject(runtime).getFunction(runtime);
+      resolveFn.call(runtime,
+                     JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(
+                         runtime, info));
     }
-
-    _lostHandle.reset();
-  }
-
-  // Settle outside the lock: resolve() only enqueues onto the JS thread.
-  if (resolveToCall.has_value()) {
-    (*resolveToCall)([info](jsi::Runtime &runtime) mutable {
-      return JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(runtime,
-                                                                     info);
-    });
-  }
+    pending->clear();
+  });
 }
 
 void GPUDevice::forceLossForTesting() {
@@ -523,47 +576,84 @@ std::unordered_set<std::string> GPUDevice::getFeatures() {
   return result;
 }
 
-async::AsyncTaskHandle GPUDevice::getLost() {
-  // Held across the whole body: the postTask callback below runs synchronously
-  // on this (JS) thread and touches the same _lost* fields, so it must not
-  // re-lock. notifyDeviceLost() takes the same lock from its (possibly worker)
-  // thread.
-  std::lock_guard<std::mutex> lock(_lostMutex);
-  if (_lostHandle.has_value()) {
-    return *_lostHandle;
+jsi::Value GPUDevice::getLost(jsi::Runtime &runtime,
+                              const jsi::Object &wrapper) {
+  // The promise is cached on the wrapper, not natively: a strong native
+  // reference would be a GC root, keeping the promise's .then reactions (and
+  // anything they capture, e.g. a whole three.js renderer) alive forever
+  // (issue #445).
+  auto cached = wrapper.getProperty(runtime, kLostPromiseProp);
+  if (cached.isObject()) {
+    return cached;
   }
 
-  if (_lostSettled && _lostInfo) {
-    return _async->postTask(
-        [info = _lostInfo](
-            const async::AsyncTaskHandle::ResolveFunction &resolve,
-            const async::AsyncTaskHandle::RejectFunction & /*reject*/) {
-          resolve([info](jsi::Runtime &runtime) mutable {
-            return JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(
-                runtime, info);
-          });
-        },
-        /*keepPumping=*/false);
+  auto promiseCtor = runtime.global().getPropertyAsObject(runtime, "Promise");
+
+  std::shared_ptr<GPUDeviceLostInfo> settledInfo;
+  {
+    std::lock_guard<std::mutex> lock(_lostMutex);
+    if (_lostSettled) {
+      settledInfo = _lostInfo;
+    }
   }
 
-  auto handle = _async->postTask(
-      [this](const async::AsyncTaskHandle::ResolveFunction &resolve,
-             const async::AsyncTaskHandle::RejectFunction & /*reject*/) {
-        if (_lostSettled && _lostInfo) {
-          resolve([info = _lostInfo](jsi::Runtime &runtime) mutable {
-            return JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(
-                runtime, info);
-          });
-          return;
-        }
+  jsi::Value promiseValue;
+  if (settledInfo) {
+    auto info = JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(
+        runtime, settledInfo);
+    promiseValue = promiseCtor.getPropertyAsFunction(runtime, "resolve")
+                       .callWithThis(runtime, promiseCtor, info);
+  } else {
+    // new Promise(executor): the executor runs synchronously inside the
+    // constructor call, capturing the resolve function.
+    auto capturedResolve = std::make_shared<jsi::Value>();
+    auto executor = jsi::Function::createFromHostFunction(
+        runtime, jsi::PropNameID::forUtf8(runtime, "lostExecutor"), 2,
+        [capturedResolve](jsi::Runtime &rt, const jsi::Value & /*thisVal*/,
+                          const jsi::Value *args, size_t count) -> jsi::Value {
+          if (count > 0) {
+            *capturedResolve = jsi::Value(rt, args[0]);
+          }
+          return jsi::Value::undefined();
+        });
+    auto promiseObj = promiseCtor.asFunction(runtime)
+                          .callAsConstructor(runtime, executor)
+                          .getObject(runtime);
 
-        // Resolved later from notifyDeviceLost().
-        _lostResolve = resolve;
-      },
-      /*keepPumping=*/false);
+    // Stash the resolve function on the promise itself so the GC traces it as
+    // part of the promise graph.
+    defineHiddenProperty(runtime, promiseObj, kLostResolveProp,
+                         *capturedResolve);
 
-  _lostHandle = handle;
-  return handle;
+    // Register a WEAK reference so notifyDeviceLost() can settle the promise
+    // if it is still alive. Only wired for the device's own runtime when a
+    // CallInvoker exists (main JS runtime): spontaneous events are delivered
+    // through that invoker. A promise created on another runtime stays
+    // pending, matching the previous best-effort behavior.
+    bool settledMeanwhile = false;
+    if (_async && _async->callInvoker() && &runtime == &_async->runtime()) {
+      std::lock_guard<std::mutex> lock(_lostMutex);
+      if (_lostSettled) {
+        // The device was lost between the check above and now.
+        settledMeanwhile = true;
+        settledInfo = _lostInfo;
+      } else {
+        _lostPromises.push_back(
+            PendingLostPromise{&runtime, jsi::WeakObject(runtime, promiseObj)});
+      }
+    }
+    if (settledMeanwhile) {
+      auto resolveFn =
+          promiseObj.getPropertyAsFunction(runtime, kLostResolveProp);
+      resolveFn.call(runtime,
+                     JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(
+                         runtime, settledInfo));
+    }
+    promiseValue = jsi::Value(runtime, promiseObj);
+  }
+
+  defineHiddenProperty(runtime, wrapper, kLostPromiseProp, promiseValue);
+  return promiseValue;
 }
 void GPUDevice::addEventListener(std::string type, jsi::Function callback) {
   auto funcPtr = std::make_shared<jsi::Function>(std::move(callback));

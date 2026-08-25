@@ -11,7 +11,10 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { useGLTF, useRGBE } from "./assets/AssetManager";
-import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
+import {
+  makeWebGPURenderer,
+  disposeWebGPURenderer,
+} from "./components/makeWebGPURenderer";
 
 const toneMappingOptions = {
   None: THREE.NoToneMapping,
@@ -87,7 +90,7 @@ export const ToneMapping = () => {
     }
 
     return () => {
-      renderer.setAnimationLoop(null);
+      disposeWebGPURenderer(renderer);
       rendererRef.current = null;
     };
   }, [texture, gltf, ref]);

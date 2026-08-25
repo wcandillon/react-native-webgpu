@@ -12,7 +12,10 @@ import { PixelRatio } from "react-native";
 import type { CanvasRef } from "react-native-webgpu";
 import { Canvas } from "react-native-webgpu";
 
-import { makeWebGPURenderer } from "./makeWebGPURenderer";
+import {
+  makeWebGPURenderer,
+  disposeWebGPURenderer,
+} from "./makeWebGPURenderer";
 
 //global.THREE = global.THREE || THREE;
 
@@ -73,6 +76,11 @@ export const FiberCanvas = ({
       if (canvas != null) {
         unmountComponentAtNode(canvas!);
       }
+      // react-three-fiber's unmount only performs WebGL-era cleanup
+      // (renderLists.dispose, forceContextLoss), both of which are no-ops on
+      // a WebGPURenderer, so it never stops three's internal rAF loop. Tear
+      // the renderer down ourselves (issue #445).
+      disposeWebGPURenderer(renderer);
     };
   });
 

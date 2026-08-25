@@ -39,6 +39,10 @@ export const examples = [
     screen: "ToneMapping",
     title: "🎭 Tone Mapping",
   },
+  {
+    screen: "Memory",
+    title: "🧠 Memory",
+  },
 ] as const;
 
 const styles = StyleSheet.create({

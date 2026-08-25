@@ -75,7 +75,7 @@ if (!dawnVersion) {
 }
 
 // Parse the dawn version to construct the release tag
-// Format: "chromium/7472" -> "dawn-chromium-7472"
+// Format: "chrome-m152" -> "dawn-chrome-m152"
 const releaseTag = `dawn-${dawnVersion.replace("/", "-")}`;
 const releaseUrl = `https://github.com/wcandillon/react-native-webgpu/releases/tag/${releaseTag}`;
 
@@ -171,7 +171,7 @@ const assetNames: { [key: string]: string } = {
 };
 
 for (const [index, asset] of assets.entries()) {
-  const assetUrl = `https://github.com/Shopify/react-native-skia/releases/download/${releaseTag}/${asset.name}`;
+  const assetUrl = `https://github.com/wcandillon/react-native-webgpu/releases/download/${releaseTag}/${asset.name}`;
   const tarPath = join(libsDir, asset.name);
   const displayName = assetNames[asset.name] || asset.name;
 

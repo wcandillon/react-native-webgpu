@@ -9,6 +9,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -48,6 +49,12 @@ public:
 
   void registerInstaller(const std::string &brand, InstallerFunc installer) {
     std::lock_guard<std::mutex> lock(_mutex);
+    if (_installers.count(brand) != 0) {
+      // The brand is the key unbox() uses to rebuild objects on worklet
+      // runtimes - a duplicate would let one class hijack another's unboxing.
+      throw std::runtime_error("Duplicate native object brand registered: " +
+                               brand);
+    }
     _installers[brand] = std::move(installer);
   }
 
@@ -235,6 +242,10 @@ public:
    * Each NativeObject<Derived> type has its own static cache.
    * Uses StaticRuntimeAwareCache to properly handle runtime lifecycle
    * and hot reload (where the main runtime is destroyed and recreated).
+   *
+   * Callers must hold getPrototypeCacheMutex(): the cache is reached
+   * concurrently from the main JS thread (create()) and from worklet
+   * runtime threads (BoxedWebGPUObject::unbox() -> installPrototype()).
    */
   static RuntimeAwareCache<PrototypeCacheEntry> &
   getPrototypeCache(jsi::Runtime &runtime) {
@@ -243,10 +254,21 @@ public:
   }
 
   /**
+   * Per-class mutex guarding getPrototypeCache() and prototype
+   * installation. Serializes the StaticRuntimeAwareCache pointer swap
+   * (hot reload) and the per-runtime cache lookups.
+   */
+  static std::mutex &getPrototypeCacheMutex() {
+    static std::mutex mutex;
+    return mutex;
+  }
+
+  /**
    * Ensure the prototype is installed for this runtime.
    * Called automatically by create(), but can be called manually.
    */
   static void installPrototype(jsi::Runtime &runtime) {
+    std::lock_guard<std::mutex> lock(getPrototypeCacheMutex());
     auto &entry = getPrototypeCache(runtime).get(runtime);
     if (entry.prototype.has_value()) {
       return; // Already installed
@@ -278,6 +300,49 @@ public:
       defineProperty.call(runtime, prototype, toStringTag, descriptor);
     }
 
+    // Install a generic toJSON so JSON.stringify works: data properties live
+    // as getters on this shared prototype, and JSON.stringify only serializes
+    // own enumerable properties (so it would otherwise produce {}).
+    auto toJSON = jsi::Function::createFromHostFunction(
+        runtime, jsi::PropNameID::forUtf8(runtime, "toJSON"), 0,
+        [](jsi::Runtime &rt, const jsi::Value &thisVal,
+           const jsi::Value * /*args*/, size_t /*count*/) -> jsi::Value {
+          auto thisObj = thisVal.getObject(rt);
+          auto objectCtor = rt.global().getPropertyAsObject(rt, "Object");
+          auto getPrototypeOf =
+              objectCtor.getPropertyAsFunction(rt, "getPrototypeOf");
+          auto proto = getPrototypeOf.call(rt, thisObj);
+          jsi::Object result(rt);
+          if (!proto.isObject()) {
+            return std::move(result);
+          }
+          auto getOwnPropertyNames =
+              objectCtor.getPropertyAsFunction(rt, "getOwnPropertyNames");
+          auto names =
+              getOwnPropertyNames.call(rt, proto).getObject(rt).getArray(rt);
+          size_t length = names.size(rt);
+          for (size_t i = 0; i < length; i++) {
+            auto nameValue = names.getValueAtIndex(rt, i);
+            if (!nameValue.isString()) {
+              continue;
+            }
+            auto name = nameValue.getString(rt).utf8(rt);
+            if (name == "constructor" || name == "toJSON") {
+              continue;
+            }
+            // Read off `this` so prototype getters evaluate against the
+            // object's native state. Getters that throw keep throwing.
+            auto value = thisObj.getProperty(rt, name.c_str());
+            if (value.isObject() && value.getObject(rt).isFunction(rt)) {
+              // Skip methods - JSON.stringify would drop them anyway
+              continue;
+            }
+            result.setProperty(rt, name.c_str(), value);
+          }
+          return std::move(result);
+        });
+    prototype.setProperty(runtime, "toJSON", toJSON);
+
     // Cache the prototype
     entry.prototype = std::move(prototype);
   }
@@ -303,6 +368,7 @@ public:
 
     installPrototype(runtime);
 
+    std::lock_guard<std::mutex> lock(getPrototypeCacheMutex());
     auto &entry = getPrototypeCache(runtime).get(runtime);
     if (!entry.prototype.has_value()) {
       return;
@@ -346,14 +412,17 @@ public:
     obj.setNativeState(runtime, instance);
 
     // Set prototype
-    auto &entry = getPrototypeCache(runtime).get(runtime);
-    if (entry.prototype.has_value()) {
-      // Use Object.setPrototypeOf to set the prototype
-      auto objectCtor =
-          runtime.global().getPropertyAsObject(runtime, "Object");
-      auto setPrototypeOf =
-          objectCtor.getPropertyAsFunction(runtime, "setPrototypeOf");
-      setPrototypeOf.call(runtime, obj, *entry.prototype);
+    {
+      std::lock_guard<std::mutex> lock(getPrototypeCacheMutex());
+      auto &entry = getPrototypeCache(runtime).get(runtime);
+      if (entry.prototype.has_value()) {
+        // Use Object.setPrototypeOf to set the prototype
+        auto objectCtor =
+            runtime.global().getPropertyAsObject(runtime, "Object");
+        auto setPrototypeOf =
+            objectCtor.getPropertyAsFunction(runtime, "setPrototypeOf");
+        setPrototypeOf.call(runtime, obj, *entry.prototype);
+      }
     }
 
     // Set memory pressure hint for GC

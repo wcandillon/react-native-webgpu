@@ -36,14 +36,18 @@ namespace rnwgpu::async {
  * The pump only runs while at least one "pumping" task is outstanding, so it
  * costs nothing when idle and stops cleanly.
  *
- * Spontaneous events (keepPumping = false): events that may fire at any time,
- * independent of any request/response op (today only GPUDevice::getLost, whose
- * Dawn callback is registered AllowSpontaneous). These are NOT driven by the
- * pump. Instead their settle is marshalled onto the owning runtime's JS thread
- * via that runtime's CallInvoker, which is wired only for the MAIN JS runtime
- * (callInvoker()). A device created on a worklet runtime has no invoker, so its
- * device.lost is best-effort and may never fire. See the README "Threading
- * model" section.
+ * Spontaneous events: events that may fire at any time, independent of any
+ * request/response op (today only device.lost, whose Dawn callback is
+ * registered AllowSpontaneous). These are NOT driven by the pump and do NOT go
+ * through postTask: a task that may never settle must not hold the JS promise
+ * strongly from C++, or the promise (and everything reachable from its .then
+ * reactions) becomes a permanent GC root (issue #445). Instead GPUDevice keeps
+ * a jsi::WeakObject to the promise and settles it on the owning runtime's JS
+ * thread via that runtime's CallInvoker, which is wired only for the MAIN JS
+ * runtime (callInvoker()). A device created on a worklet runtime has no
+ * invoker, so its device.lost is best-effort and may never fire. See the
+ * README "Threading model" section. The keepPumping=false path in postTask is
+ * currently unused; it remains for tasks that settle without Dawn's pump.
  *
  * Shared-instance safety (mailbox): multiple runtimes may share one
  * wgpu::Instance. ProcessEvents() drains the whole instance queue and fires
@@ -78,9 +82,10 @@ public:
   static std::shared_ptr<RuntimeContext> getOrCreate(jsi::Runtime &runtime,
                                                      wgpu::Instance instance);
 
-  // Register the main JS runtime and its CallInvoker. The RuntimeContext created
-  // for this runtime gets the invoker (callInvoker() returns it); every other
-  // runtime's context returns null. Called once from RNWebGPUManager on install.
+  // Register the main JS runtime and its CallInvoker. The RuntimeContext
+  // created for this runtime gets the invoker (callInvoker() returns it); every
+  // other runtime's context returns null. Called once from RNWebGPUManager on
+  // install.
   static void
   registerMainRuntime(jsi::Runtime *runtime,
                       std::shared_ptr<facebook::react::CallInvoker> invoker);
@@ -95,17 +100,21 @@ public:
   // The wgpu::Instance bound to this runtime.
   wgpu::Instance instance() const { return _instance; }
 
+  // The runtime this context belongs to. Safe for pointer-identity checks from
+  // any thread; only touch JSI through it on the runtime's own thread.
+  jsi::Runtime &runtime() const { return _runtime; }
+
   AsyncTaskHandle postTask(const TaskCallback &callback,
                            bool keepPumping = true);
 
-  // Deposit a settle-action to run on THIS context's runtime thread. Thread-safe
-  // (callable from any thread, e.g. another runtime that pumped ProcessEvents).
-  // The job must not touch JSI until it runs (it runs during drainMailbox on the
-  // owning thread).
+  // Deposit a settle-action to run on THIS context's runtime thread.
+  // Thread-safe (callable from any thread, e.g. another runtime that pumped
+  // ProcessEvents). The job must not touch JSI until it runs (it runs during
+  // drainMailbox on the owning thread).
   void postSettle(std::function<void()> job);
 
-  // Invoked by a drained settle-action when its task settles. Runs on the owning
-  // runtime's thread.
+  // Invoked by a drained settle-action when its task settles. Runs on the
+  // owning runtime's thread.
   void onTaskSettled(bool keepPumping);
 
 private:

@@ -11,6 +11,7 @@
     "src/**",
     "lib/**",
     "!**/__tests__/**",
+    "jestSetup.js",
     "android/build.gradle",
     "android/CMakeLists.txt",
     "android/cpp/**",
@@ -22,7 +23,8 @@
     "app.plugin.js",
     "plugin/build/**"
   ],
-  "dawn": "chromium/7849",
+  "dawn": "chrome-m152",
+  "dawnCommit": "1e897275172a23f27b0022fa6beae3084ed54a9b",
   "scripts": {
     "test": "NODE_OPTIONS='--experimental-require-module' jest -i",
     "test:ref": "REFERENCE=true NODE_OPTIONS='--experimental-require-module' jest -i",

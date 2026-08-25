@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Button, StyleSheet, Text, View } from "react-native";
+import { installWebGPU } from "react-native-webgpu";
 import { runOnUI, scheduleOnRN } from "react-native-worklets";
 
 // Repro for a crash when the first WebGPU call happens on a worklet runtime
@@ -43,12 +44,34 @@ export const WorkletRequestAdapter = () => {
     })();
   };
 
+  const workletNavigator = () => {
+    // No WebGPU object crosses explicitly here: installWebGPU() carries the
+    // GPU instance in its own closure and installs it as navigator.gpu on the
+    // calling runtime (globalThis. prefix required, see install.ts).
+    runOnUI(() => {
+      "worklet";
+      installWebGPU();
+      globalThis.navigator.gpu.requestAdapter().then((adapter) => {
+        scheduleOnRN(
+          append,
+          `UI (worklet) runtime: installWebGPU() + navigator.gpu -> ${
+            adapter ? "GPUAdapter" : "null"
+          }`,
+        );
+      });
+    })();
+  };
+
   return (
     <View style={styles.container}>
       <Button title="requestAdapter on main JS runtime" onPress={mainRuntime} />
       <Button
         title="requestAdapter on UI worklet runtime"
         onPress={workletRuntime}
+      />
+      <Button
+        title="installWebGPU + navigator.gpu on UI runtime"
+        onPress={workletNavigator}
       />
       {log.map((line, i) => (
         <Text key={i} style={styles.log}>

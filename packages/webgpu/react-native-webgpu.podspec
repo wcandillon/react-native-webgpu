@@ -23,10 +23,16 @@ Pod::Spec.new do |s|
 
   # The VideoPlayer API uses AVFoundation / CoreMedia, and shared-texture
   # surfaces use CoreVideo (CVPixelBuffer). Link them so their symbols resolve.
-  s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo"
+  # ImageIO provides CGImageSource, the image decoder behind createImageBitmap.
+  s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo", "ImageIO"
 
   s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',
+    # Xcode's all-target headermaps let same-named headers leak across pods
+    # (e.g. @shopify/react-native-skia keeps a jsi/ helper layer with
+    # identical relative header paths). Resolve includes strictly through our
+    # own search paths instead.
+    'USE_HEADERMAP' => 'NO',
   }
 
   # Use install_modules_dependencies helper to install the dependencies if React Native version >=0.71.0.
