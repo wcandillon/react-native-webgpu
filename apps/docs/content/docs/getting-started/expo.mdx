@@ -1,21 +1,37 @@
 ---
 title: Expo
-description: The fastest way to get started with React Native WebGPU and React Three Fiber
+description: Start with raw WebGPU, Three.js, or React Three Fiber on Expo
 ---
 
-Expo provides a React Native WebGPU template that works with React Three Fiber on iOS, Android, and web. This is the fastest path if you want a preconfigured project.
+Expo provides three React Native WebGPU templates for iOS, Android, and web. Pick the smallest abstraction that fits your project.
 
-## Create a project
+## React Three Fiber
 
 ```npm
 npx create-expo-app@latest -e with-webgpu
 ```
 
-The template includes `react-native-webgpu`, Reanimated, and Metro settings compatible with Three.js WebGPU builds.
+The React Three Fiber template includes the Metro resolver required to select the standard Fiber build and redirect bare Three.js imports to WebGPU.
 
-For a raw Three.js integration that imports `three/webgpu` directly, recent Expo and Metro versions can resolve that package export without a custom resolver. The template keeps additional Metro settings because it also redirects bare `three` imports and selects the standard React Three Fiber build. See the [Three.js integration guide](/docs/integrations/three-js) before copying those settings into an existing app.
+## Three.js
 
-For a walkthrough of the template, watch the video below.
+```npm
+npx create-expo-app@latest -e with-webgpu-three
+```
+
+The imperative Three.js template imports `three/webgpu` directly. Current Expo and Metro versions resolve that package export without a custom resolver.
+
+## Raw WebGPU
+
+```npm
+npx create-expo-app@latest -e with-webgpu-raw
+```
+
+The raw template uses `react-native-webgpu` directly and renders a WGSL triangle without Three.js or React Three Fiber.
+
+All three templates install the required Reanimated and Worklets peers and enable the `react-native-webgpu` config plugin.
+
+For a walkthrough of the React Three Fiber template, watch the video below.
 
 <Video src="/videos/expo-template.mp4" />
 

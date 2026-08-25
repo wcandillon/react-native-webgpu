@@ -12,6 +12,8 @@ Using the Three.js WebGPU backend, you can run the library on top of React Nativ
 Three.js publishes separate WebGL and WebGPU entry points.
 With current Expo and Metro versions, importing `three/webgpu` resolves Three.js's WebGPU package export directly and does not require a custom Metro configuration.
 
+To start from a preconfigured Expo project, run `npx create-expo-app@latest -e with-webgpu-three`.
+
 Add a resolver override only when your setup needs one—for example, an older Metro version cannot resolve the package export, a monorepo resolves a different copy of Three.js, or a dependency imports bare `three` and must be redirected to the WebGPU build. The example app uses the following fallback because it covers those cases and React Three Fiber:
 
 ```js
