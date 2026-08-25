@@ -1,10 +1,10 @@
 ---
 title: installWebGPU
-description: Install WebGPU flag constants on a worklet runtime.
+description: Install navigator.gpu and the WebGPU flag constants on a worklet runtime.
 ---
 
-On a worklet runtime, the WebGPU constants are not available by default.
-Call `installWebGPU()` once at the top of a worklet to install the needed globals for that runtime.
+On a worklet runtime, neither `navigator.gpu` nor the WebGPU flag constants are available by default.
+Call `installWebGPU()` once at the top of a worklet to install the needed globals for that runtime: `navigator.gpu` plus `GPUBufferUsage`, `GPUTextureUsage`, `GPUShaderStage`, `GPUColorWrite`, and `GPUMapMode`.
 
 On the main JS thread these are already installed when the native module loads; calling `installWebGPU()` there is a safe no-op.
 
@@ -73,3 +73,27 @@ const gpuWork = (device: GPUDevice) => {
 
 runOnRuntime(runtime, gpuWork)(device);
 ```
+
+### navigator.gpu on a worklet runtime
+
+After `installWebGPU()`, read `navigator` through `globalThis.navigator` inside a worklet. The Worklets babel plugin does not currently treat a bare `navigator` as a known global, so without the prefix it captures the main runtime's `navigator` object by closure instead of reading the one installed on the worklet runtime. This is fixed upstream ([software-mansion/react-native-reanimated#10364](https://github.com/software-mansion/react-native-reanimated/pull/10364)); once you are on a version of `react-native-worklets` that includes it, a bare `navigator` works and the prefix is no longer needed.
+
+```tsx twoslash
+import { installWebGPU } from "react-native-webgpu";
+import { runOnUI } from "react-native-worklets";
+
+runOnUI(() => {
+  "worklet";
+  installWebGPU();
+  const format = globalThis.navigator.gpu.getPreferredCanvasFormat();
+  globalThis.navigator.gpu.requestAdapter().then((adapter) => {
+    // …
+  });
+})();
+```
+
+If you create a device on the worklet runtime, beware that spontaneous device events are only delivered for devices created on the main JS runtime:
+- `device.lost` read on a worklet runtime returns a promise that never settles, unless the device is already lost at that point, in which case it resolves normally.
+- `uncapturederror` listeners registered on a device created on a worklet runtime never fire.
+
+If you need to observe device loss or uncaptured errors, create the device on the main JS thread, attach the handlers there, and pass the device into the worklet.
