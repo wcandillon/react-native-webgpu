@@ -92,6 +92,14 @@ declare global {
   interface GPUDeviceDescriptor {
     dawnToggles?: GPUDawnTogglesDescriptor;
   }
+
+  // Non-spec extension: select Dawn's native surface presentation mode.
+  // FIFO remains the default and the selected mode must be supported by the
+  // platform surface.
+  interface GPUCanvasConfiguration {
+    presentMode?: "fifo" | "fifo-relaxed" | "immediate" | "mailbox";
+  }
+
   // Non-spec extension: camera frames arrive in the sensor's native
   // orientation, which differs between iOS and Android. `rotation` (degrees,
   // one of 0/90/180/270) and `mirrored` (horizontal flip) are baked into the

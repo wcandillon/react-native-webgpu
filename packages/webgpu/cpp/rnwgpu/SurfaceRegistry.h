@@ -239,7 +239,6 @@ public:
     // not been laid out yet (0x0) configures instead of erroring.
     _config.width = std::max(1, _width);
     _config.height = std::max(1, _height);
-    _config.presentMode = wgpu::PresentMode::Fifo;
     _texture = nullptr;
     _frameEpoch++;
     _configureLocked();

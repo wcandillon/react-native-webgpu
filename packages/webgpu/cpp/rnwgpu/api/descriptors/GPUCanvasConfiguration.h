@@ -20,6 +20,7 @@ struct GPUCanvasConfiguration {
   std::optional<std::vector<wgpu::TextureFormat>>
       viewFormats; // Iterable<GPUTextureFormat>
   wgpu::CompositeAlphaMode alphaMode = wgpu::CompositeAlphaMode::Opaque;
+  wgpu::PresentMode presentMode = wgpu::PresentMode::Fifo;
 };
 
 } // namespace rnwgpu
@@ -61,6 +62,23 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
                         .utf8(runtime);
         if (prop == "premultiplied") {
           result->alphaMode = wgpu::CompositeAlphaMode::Premultiplied;
+        }
+      }
+      if (value.hasProperty(runtime, "presentMode")) {
+        auto prop = value.getProperty(runtime, "presentMode")
+                        .asString(runtime)
+                        .utf8(runtime);
+        if (prop == "fifo") {
+          result->presentMode = wgpu::PresentMode::Fifo;
+        } else if (prop == "fifo-relaxed") {
+          result->presentMode = wgpu::PresentMode::FifoRelaxed;
+        } else if (prop == "immediate") {
+          result->presentMode = wgpu::PresentMode::Immediate;
+        } else if (prop == "mailbox") {
+          result->presentMode = wgpu::PresentMode::Mailbox;
+        } else {
+          throw std::runtime_error(
+              "Invalid GPUCanvasConfiguration.presentMode");
         }
       }
     }
