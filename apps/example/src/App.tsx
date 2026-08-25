@@ -16,6 +16,7 @@ import {
   Cubemap,
 } from "./Cube";
 import { HelloTriangle, HelloTriangleMSAA } from "./Triangle";
+import { ImageBlur } from "./ImageBlur";
 import { RenderBundles } from "./RenderBundles";
 import { ABuffer } from "./ABuffer";
 import { OcclusionQuery } from "./OcclusionQuery";
@@ -74,6 +75,7 @@ function App() {
             name="HelloTriangleMSAA"
             component={HelloTriangleMSAA}
           />
+          <Stack.Screen name="ImageBlur" component={ImageBlur} />
           <Stack.Screen name="ComputeToys" component={ComputeToys} />
           <Stack.Screen name="ThreeJS" component={ThreeJS} />
           <Stack.Screen name="Tensorflow" component={Tensorflow} />
