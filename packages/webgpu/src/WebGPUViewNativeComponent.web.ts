@@ -8,6 +8,7 @@ import { contextIdToId } from "./utils";
 export interface NativeProps extends ViewProps {
   contextId: Int32;
   transparent: boolean;
+  androidTransparencyMode?: "texture" | "surface-overlay";
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,7 +55,13 @@ function resizeCanvas(canvas: HTMLCanvasElement | null) {
 export default function WebGPUViewNativeComponent(
   props: NativeProps,
 ): React.JSX.Element {
-  const { contextId, style, transparent, ...rest } = props;
+  const {
+    contextId,
+    style,
+    transparent,
+    androidTransparencyMode: _androidTransparencyMode,
+    ...rest
+  } = props;
 
   const canvasElm = useRef<HTMLCanvasElement>();
 

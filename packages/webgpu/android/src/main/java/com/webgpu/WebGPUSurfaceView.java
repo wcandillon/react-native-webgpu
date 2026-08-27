@@ -2,6 +2,7 @@ package com.webgpu;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.PixelFormat;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
@@ -13,8 +14,18 @@ public class WebGPUSurfaceView extends SurfaceView implements SurfaceHolder.Call
   WebGPUAPI mApi;
 
   public WebGPUSurfaceView(Context context, WebGPUAPI api) {
+    this(context, api, false);
+  }
+
+  public WebGPUSurfaceView(Context context, WebGPUAPI api, boolean transparent) {
     super(context);
     mApi = api;
+    if (transparent) {
+      // Own SurfaceFlinger layer, so frames skip the app's HWUI renderer. The
+      // cost is that this layer sits above every other view in the window.
+      setZOrderOnTop(true);
+      getHolder().setFormat(PixelFormat.TRANSLUCENT);
+    }
     getHolder().addCallback(this);
   }
 

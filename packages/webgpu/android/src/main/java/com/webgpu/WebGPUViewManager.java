@@ -37,6 +37,12 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
   }
 
   @Override
+  @ReactProp(name = "androidTransparencyMode")
+  public void setAndroidTransparencyMode(WebGPUView view, String value) {
+    view.setTransparencyMode(value);
+  }
+
+  @Override
   @ReactProp(name = "contextId")
   public void setContextId(WebGPUView view, int value) {
     view.setContextId(value);
