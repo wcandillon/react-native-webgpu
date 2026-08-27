@@ -41,6 +41,10 @@ const tests = [
     screen: "SurfaceChurn",
     title: "⚠️ Surface Churn",
   },
+  {
+    screen: "CrossRuntimeDevice",
+    title: "⚠️ Cross-Runtime Device Stress",
+  },
 ] as const;
 
 export const DiagnosticsList = () => {

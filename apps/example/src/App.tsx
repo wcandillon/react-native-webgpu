@@ -48,6 +48,7 @@ import { SharedTextureMemory } from "./SharedTextureMemory";
 import { ImportExternalTexture } from "./ImportExternalTexture";
 import { VisionCamera } from "./VisionCamera";
 import { SixteenBitTextures } from "./SixteenBitTextures";
+import { CrossRuntimeDevice } from "./Diagnostics/CrossRuntimeDevice";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -126,6 +127,10 @@ function App() {
           />
           <Stack.Screen name="BackgroundDetach" component={BackgroundDetach} />
           <Stack.Screen name="SurfaceChurn" component={SurfaceChurn} />
+          <Stack.Screen
+            name="CrossRuntimeDevice"
+            component={CrossRuntimeDevice}
+          />
           <Stack.Screen
             name="StorageBufferVertices"
             component={StorageBufferVertices}
