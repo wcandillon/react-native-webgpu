@@ -162,6 +162,10 @@ public:
   void addEventListener(std::string type, jsi::Function callback);
   void removeEventListener(std::string type, jsi::Function callback);
 
+  // True when requestDevice() added ImplicitDeviceSynchronization itself; the
+  // caller never asked for it, so it stays out of device.features.
+  void setHidesImplicitSync(bool value) { _hidesImplicitSync = value; }
+
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
     _label = label;
@@ -285,6 +289,7 @@ private:
   wgpu::Device _instance;
   std::shared_ptr<async::RuntimeContext> _async;
   std::string _label;
+  bool _hidesImplicitSync = false;
   // Guards the device-lost state below. getLost() runs on a JS thread, but
   // Dawn's AllowSpontaneous device-lost callback (and device destruction) can
   // fire notifyDeviceLost() from other threads, so the mutex keeps these

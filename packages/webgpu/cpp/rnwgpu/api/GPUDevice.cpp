@@ -568,6 +568,10 @@ std::unordered_set<std::string> GPUDevice::getFeatures() {
   for (size_t i = 0; i < supportedFeatures.featureCount; ++i) {
     auto feature = supportedFeatures.features[i];
     enabled.insert(feature);
+    if (_hidesImplicitSync &&
+        feature == wgpu::FeatureName::ImplicitDeviceSynchronization) {
+      continue;
+    }
     std::string name;
     convertEnumToJSUnion(feature, &name);
     result.insert(name);

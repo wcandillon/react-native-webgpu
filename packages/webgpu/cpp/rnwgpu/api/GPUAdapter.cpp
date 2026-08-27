@@ -66,6 +66,33 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
     }
   }
 
+  // A GPUDevice is reachable from every JS runtime it is boxed into (main JS,
+  // Reanimated UI, worklet runtimes) and from SurfaceInfo, so Dawn's public
+  // methods must be safe to call from several threads at once. Without this
+  // feature DeviceBase::mMutex is null and every device->GetGuard() inside
+  // Dawn is a no-op.
+  bool injectedImplicitSync = false;
+  {
+    const auto sync = wgpu::FeatureName::ImplicitDeviceSynchronization;
+    wgpu::SupportedFeatures supported;
+    _instance.GetFeatures(&supported);
+    const auto *end = supported.features + supported.featureCount;
+    if (std::find(supported.features, end, sync) != end) {
+      if (!descriptor.has_value()) {
+        descriptor = std::make_shared<GPUDeviceDescriptor>();
+      }
+      auto &desc = descriptor.value();
+      if (!desc->requiredFeatures.has_value()) {
+        desc->requiredFeatures = std::vector<wgpu::FeatureName>{};
+      }
+      auto &features = desc->requiredFeatures.value();
+      if (std::find(features.begin(), features.end(), sync) == features.end()) {
+        features.push_back(sync);
+        injectedImplicitSync = true;
+      }
+    }
+  }
+
   wgpu::DeviceDescriptor aDescriptor;
   Convertor conv;
   if (!conv(aDescriptor, descriptor)) {
@@ -144,7 +171,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
       async::RuntimeContext::getOrCreate(runtime, _async->instance());
   return context->postTask(
       [this, aDescriptor, descriptor, label = std::move(label),
-       deviceLostBinding, context,
+       deviceLostBinding, context, injectedImplicitSync,
        creationRuntime](const async::AsyncTaskHandle::ResolveFunction &resolve,
                         const async::AsyncTaskHandle::RejectFunction &reject) {
         // Build a local mutable copy so we can chain Dawn's device toggles.
@@ -201,7 +228,8 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
         _instance.RequestDevice(
             &deviceDesc, wgpu::CallbackMode::AllowProcessEvents,
             [context, resolve, reject, label, creationRuntime,
-             deviceLostBinding](wgpu::RequestDeviceStatus status,
+             deviceLostBinding,
+             injectedImplicitSync](wgpu::RequestDeviceStatus status,
                                 wgpu::Device device, wgpu::StringView message) {
               if (message.length) {
                 fprintf(stderr, "%s", message.data);
@@ -250,6 +278,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
 
               auto deviceHost = std::make_shared<GPUDevice>(std::move(device),
                                                             context, label);
+              deviceHost->setHidesImplicitSync(injectedImplicitSync);
               *deviceLostBinding = deviceHost;
 
               // Register the device in the static registry so the uncaptured
