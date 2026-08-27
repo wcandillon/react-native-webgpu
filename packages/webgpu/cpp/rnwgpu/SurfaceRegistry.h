@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <exception>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -13,6 +14,8 @@
 #include "webgpu/webgpu_cpp.h"
 
 #ifdef __APPLE__
+#include <dispatch/dispatch.h>
+#include <pthread.h>
 namespace dawn::native::metal {
 void WaitForCommandsToBeScheduled(WGPUDevice device);
 } // namespace dawn::native::metal
@@ -21,6 +24,53 @@ void WaitForCommandsToBeScheduled(WGPUDevice device);
 namespace rnwgpu {
 
 #ifdef __APPLE__
+namespace detail {
+inline void InvokeMainThreadFunction(void *context) {
+  (*static_cast<std::function<void()> *>(context))();
+}
+} // namespace detail
+
+// Surface transitions are rare and synchronous WebGPU calls must observe the
+// configured surface before they return. Dispatch before taking SurfaceInfo's
+// mutex so the main thread can never wait on a lock held by the caller.
+inline void RunOnMainThreadSync(std::function<void()> function) {
+  if (pthread_main_np() != 0) {
+    function();
+    return;
+  }
+
+  std::exception_ptr error;
+  std::function<void()> guarded = [&]() {
+    try {
+      function();
+    } catch (...) {
+      error = std::current_exception();
+    }
+  };
+  dispatch_sync_f(dispatch_get_main_queue(), &guarded,
+                  detail::InvokeMainThreadFunction);
+  if (error) {
+    std::rethrow_exception(error);
+  }
+}
+
+inline void RunOnMainThreadAsync(std::function<void()> function) {
+  if (!function) {
+    return;
+  }
+  if (pthread_main_np() != 0) {
+    function();
+    return;
+  }
+
+  auto *ownedFunction = new std::function<void()>(std::move(function));
+  dispatch_async_f(dispatch_get_main_queue(), ownedFunction, [](void *context) {
+    std::unique_ptr<std::function<void()>> function(
+        static_cast<std::function<void()> *>(context));
+    (*function)();
+  });
+}
+
 // Tags the CAMetalLayer with the colorspace matching the configured texture
 // format. Implemented in apple/MetalLayerColorSpace.mm.
 void applyCAMetalLayerColorSpace(void *nativeSurface,
@@ -58,13 +108,11 @@ using NativeSurfaceReleaser = std::function<void(void *)>;
 //   destruction alone (backgrounding, TextureView teardown) never removes an
 //   entry; it only detaches the surface.
 // - Attaching a surface is LATCHED: the UI thread stores it as pending
-//   (attachSurface) and it is adopted at the next frame boundary — start of
-//   getCurrentTexture or end of presentFrame — on whichever thread renders
-//   (main JS, Reanimated UI, or a worklet runtime). This preserves Dawn
-//   surface thread-affinity and guarantees a surface is never swapped in the
-//   middle of a frame. For contexts that are not actively rendering,
-//   RNWebGPUManager::flushPendingSurfaceTransition applies the attach from the
-//   JS thread instead.
+//   (attachSurface) and it is adopted at a frame boundary, never in the middle
+//   of a frame. Apple adopts and configures on the main thread because Dawn
+//   mutates CAMetalLayer there. Other platforms adopt on the rendering
+//   runtime. RNWebGPUManager::flushPendingSurfaceTransition also covers
+//   contexts that are not actively rendering.
 // - Detaching (switchToOffscreen) is IMMEDIATE, because the platform destroys
 //   the surface as soon as its callback returns. A configured context falls
 //   back to rendering into an offscreen texture, so a running render loop
@@ -150,6 +198,22 @@ public:
   // block adoption. The flush path (other threads) leaves it false so it never
   // swaps the surface under a frame that is genuinely in flight.
   void applyPendingAttach(bool supersedeInFlightFrame = false) {
+#ifdef __APPLE__
+    if (pthread_main_np() == 0) {
+      {
+        std::unique_lock<std::shared_mutex> lock(_mutex);
+        if (supersedeInFlightFrame) {
+          _frameInFlight = false;
+          _acquiredFromSurface = false;
+        }
+        if (!_hasPendingAttach) {
+          return;
+        }
+      }
+      RunOnMainThreadSync([this]() { applyPendingAttach(); });
+      return;
+    }
+#endif
     bool presentBlit = false;
     uint64_t blitEpoch = 0;
     wgpu::Device device = nullptr;
@@ -227,6 +291,16 @@ public:
 
   void configure(wgpu::SurfaceConfiguration &newConfig,
                  std::vector<wgpu::TextureFormat> viewFormats) {
+#ifdef __APPLE__
+    if (pthread_main_np() == 0) {
+      auto config = newConfig;
+      RunOnMainThreadSync(
+          [this, config, viewFormats = std::move(viewFormats)]() mutable {
+            configure(config, std::move(viewFormats));
+          });
+      return;
+    }
+#endif
     applyPendingAttach(/* supersedeInFlightFrame = */ true);
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _viewFormats = std::move(viewFormats);
@@ -247,6 +321,13 @@ public:
 
   // Resize the drawing buffer (canvas.width/height changed).
   void reconfigure(int newWidth, int newHeight) {
+#ifdef __APPLE__
+    if (pthread_main_np() == 0) {
+      RunOnMainThreadSync(
+          [this, newWidth, newHeight]() { reconfigure(newWidth, newHeight); });
+      return;
+    }
+#endif
     std::unique_lock<std::shared_mutex> lock(_mutex);
     if (_config.device == nullptr) {
       return;
@@ -259,6 +340,12 @@ public:
   }
 
   void unconfigure() {
+#ifdef __APPLE__
+    if (pthread_main_np() == 0) {
+      RunOnMainThreadSync([this]() { unconfigure(); });
+      return;
+    }
+#endif
     std::unique_lock<std::shared_mutex> lock(_mutex);
     if (_surface) {
       _surface.Unconfigure();
@@ -291,29 +378,56 @@ public:
     // Start-of-frame boundary; a new acquire supersedes any previous frame
     // that never presented.
     applyPendingAttach(/* supersedeInFlightFrame = */ true);
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    if (_config.device == nullptr) {
-      throw std::runtime_error(
-          "[WebGPU] getCurrentTexture() called on a canvas context that is "
-          "not configured; call context.configure() first");
-    }
-    _frameInFlight = true;
-    _acquiredFromSurface = false;
-    _frameEpoch++;
-    if (_surface) {
-      auto texture = acquireSurfaceTextureLocked();
-      if (texture) {
-        _acquiredFromSurface = true;
-        return texture;
+    for (int attempt = 0; attempt < 2; attempt++) {
+#ifdef __APPLE__
+      uint64_t recoveryEpoch = 0;
+#endif
+      {
+        std::unique_lock<std::shared_mutex> lock(_mutex);
+        if (_config.device == nullptr) {
+          throw std::runtime_error(
+              "[WebGPU] getCurrentTexture() called on a canvas context that "
+              "is not configured; call context.configure() first");
+        }
+        _frameInFlight = true;
+        _acquiredFromSurface = false;
+        _frameEpoch++;
+        if (_surface) {
+          auto acquired = acquireSurfaceTextureLocked();
+          if (acquired.texture) {
+            _acquiredFromSurface = true;
+            return acquired.texture;
+          }
+#ifdef __APPLE__
+          if (acquired.needsReconfigure && attempt == 0) {
+            // Release the surface lock before synchronously dispatching to
+            // main. The epoch prevents a concurrent frame or lifecycle change
+            // from being overwritten by the recovery configure.
+            _frameInFlight = false;
+            _frameEpoch++;
+            recoveryEpoch = _frameEpoch;
+          } else
+#endif
+          {
+            // The surface is transiently unusable: render offscreen and drop
+            // this frame so the render loop survives the lifecycle change.
+            if (!_texture) {
+              _texture = createOffscreenTextureLocked();
+            }
+            return _texture;
+          }
+        } else {
+          if (!_texture) {
+            _texture = createOffscreenTextureLocked();
+          }
+          return _texture;
+        }
       }
-      // The surface is transiently unusable (e.g. mid-resize, lost while
-      // backgrounding): fall back to an offscreen texture so the render loop
-      // survives; this frame is simply not presented.
+#ifdef __APPLE__
+      reconfigureAfterAcquireFailure(recoveryEpoch);
+#endif
     }
-    if (!_texture) {
-      _texture = createOffscreenTextureLocked();
-    }
-    return _texture;
+    throw std::runtime_error("[WebGPU] surface recovery failed");
   }
 
   // Present the current frame. Runs synchronously on the thread that did
@@ -365,6 +479,21 @@ public:
   }
 
 private:
+#ifdef __APPLE__
+  void reconfigureAfterAcquireFailure(uint64_t expectedEpoch) {
+    RunOnMainThreadSync([this, expectedEpoch]() {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      if (!_surface || _config.device == nullptr || _frameInFlight ||
+          _frameEpoch != expectedEpoch) {
+        return;
+      }
+      _texture = nullptr;
+      _frameEpoch++;
+      _configureLocked();
+    });
+  }
+#endif
+
   void detach(bool createFallbackTexture) {
     void *releasedSurfaces[2] = {nullptr, nullptr};
     NativeSurfaceReleaser releasers[2];
@@ -424,21 +553,30 @@ private:
 
   // Acquire the surface's current texture, reconfiguring once when the surface
   // reports it is stale (rotation, resize, coming back from background).
-  wgpu::Texture acquireSurfaceTextureLocked() {
+  struct SurfaceTextureAcquireResult {
+    wgpu::Texture texture = nullptr;
+    bool needsReconfigure = false;
+  };
+
+  SurfaceTextureAcquireResult acquireSurfaceTextureLocked() {
     wgpu::SurfaceTexture surfaceTexture;
     _surface.GetCurrentTexture(&surfaceTexture);
     if (!isAcquireSuccess(surfaceTexture)) {
       if (surfaceTexture.status ==
           wgpu::SurfaceGetCurrentTextureStatus::Error) {
-        return nullptr;
+        return {};
       }
+#ifdef __APPLE__
+      return {.texture = nullptr, .needsReconfigure = true};
+#else
       _surface.Configure(&_config);
       _surface.GetCurrentTexture(&surfaceTexture);
       if (!isAcquireSuccess(surfaceTexture)) {
-        return nullptr;
+        return {};
       }
+#endif
     }
-    return surfaceTexture.texture;
+    return {.texture = surfaceTexture.texture, .needsReconfigure = false};
   }
 
   static bool isAcquireSuccess(const wgpu::SurfaceTexture &surfaceTexture) {

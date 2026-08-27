@@ -239,11 +239,19 @@ void RNWebGPUManager::installWebGPUWorkletHelpers(jsi::Runtime &runtime) {
 
 void RNWebGPUManager::flushPendingSurfaceTransition(
     std::shared_ptr<SurfaceInfo> info) {
-  if (info == nullptr || _jsCallInvoker == nullptr) {
+  if (info == nullptr) {
+    return;
+  }
+#ifdef __APPLE__
+  RunOnMainThreadAsync(
+      [info = std::move(info)] { info->applyPendingAttach(); });
+#else
+  if (_jsCallInvoker == nullptr) {
     return;
   }
   _jsCallInvoker->invokeAsync(
       [info = std::move(info)] { info->applyPendingAttach(); });
+#endif
 }
 
 RNWebGPUManager::~RNWebGPUManager() {
