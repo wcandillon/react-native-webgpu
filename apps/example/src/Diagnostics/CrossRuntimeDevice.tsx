@@ -209,7 +209,6 @@ export const CrossRuntimeDevice = () => {
 
   useEffect(() => {
     let live = true;
-    let created: Shared | null = null;
 
     (async () => {
       installWebGPU();
@@ -224,7 +223,7 @@ export const CrossRuntimeDevice = () => {
           size: 16,
           usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
         });
-      created = {
+      const created: Shared = {
         device,
         format: navigator.gpu.getPreferredCanvasFormat(),
         uiBuffer: makeBuffer("ui-runtime uniform"),
@@ -241,9 +240,11 @@ export const CrossRuntimeDevice = () => {
       console.error(`[cross-runtime] setup failed: ${error}`);
     });
 
+    // The device is deliberately left alive on mode change: destroying it here
+    // trips a separate teardown crash on Android (FencedDeleter null-deref in
+    // Surface::~Surface) that has nothing to do with the cross-runtime race.
     return () => {
       live = false;
-      created?.device.destroy();
     };
   }, [mode]);
 
