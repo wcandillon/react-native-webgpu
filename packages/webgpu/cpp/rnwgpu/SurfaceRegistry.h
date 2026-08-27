@@ -113,14 +113,15 @@ using NativeSurfaceReleaser = std::function<void(void *)>;
 //   mutates CAMetalLayer there. Other platforms adopt on the rendering
 //   runtime. RNWebGPUManager::flushPendingSurfaceTransition also covers
 //   contexts that are not actively rendering.
-// - Detaching (switchToOffscreen) is IMMEDIATE, because the platform destroys
-//   the surface as soon as its callback returns. A configured context falls
-//   back to rendering into an offscreen texture, so a running render loop
-//   keeps working; the in-flight frame, if any, is dropped at present(). When
-//   a new surface attaches, the latest offscreen frame is blitted onto it so
-//   content appears without waiting for the next render — the same mechanism
-//   that gives a fast time-to-first-frame when rendering starts before the
-//   native surface exists.
+// - Detaching (switchToOffscreen) is IMMEDIATE from the context's perspective.
+//   A configured context falls back to an offscreen texture, so a running
+//   render loop keeps working. If a frame already owns a surface texture, the
+//   old surface and native window stay retained until present() or the next
+//   frame boundary; destroying the swapchain earlier invalidates the texture
+//   before queue.submit(). When a new surface attaches, the latest offscreen
+//   frame is blitted onto it so content appears without waiting for the next
+//   render — the same mechanism that gives a fast time-to-first-frame when
+//   rendering starts before the native surface exists.
 class SurfaceInfo {
 public:
   SurfaceInfo(wgpu::Instance gpu, int width, int height)
@@ -130,12 +131,16 @@ public:
     // Drop the Dawn objects before releasing the native surfaces they borrow.
     _surface = nullptr;
     _pendingSurface = nullptr;
+    _retiredSurface = nullptr;
     _texture = nullptr;
     if (_pendingReleaser && _pendingNativeSurface) {
       _pendingReleaser(_pendingNativeSurface);
     }
     if (_releaser && _nativeSurface) {
       _releaser(_nativeSurface);
+    }
+    if (_retiredReleaser && _retiredNativeSurface) {
+      _retiredReleaser(_retiredNativeSurface);
     }
   }
 
@@ -291,6 +296,7 @@ public:
 
   void configure(wgpu::SurfaceConfiguration &newConfig,
                  std::vector<wgpu::TextureFormat> viewFormats) {
+    releaseRetiredSurface();
 #ifdef __APPLE__
     if (pthread_main_np() == 0) {
       auto config = newConfig;
@@ -340,6 +346,7 @@ public:
   }
 
   void unconfigure() {
+    releaseRetiredSurface();
 #ifdef __APPLE__
     if (pthread_main_np() == 0) {
       RunOnMainThreadSync([this]() { unconfigure(); });
@@ -368,7 +375,8 @@ public:
   // otherwise (see RNWebGPU::destroyContext).
   bool hasNativeSurface() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
-    return _nativeSurface != nullptr || _hasPendingAttach;
+    return _nativeSurface != nullptr || _hasPendingAttach ||
+           _retiredNativeSurface != nullptr;
   }
 
   // Returns the texture for the current frame: the surface's swapchain texture
@@ -377,6 +385,7 @@ public:
   wgpu::Texture getCurrentTexture() {
     // Start-of-frame boundary; a new acquire supersedes any previous frame
     // that never presented.
+    releaseRetiredSurface();
     applyPendingAttach(/* supersedeInFlightFrame = */ true);
     for (int attempt = 0; attempt < 2; attempt++) {
 #ifdef __APPLE__
@@ -449,6 +458,8 @@ public:
       dawn::native::metal::WaitForCommandsToBeScheduled(device.Get());
     }
 #endif
+    void *retiredNativeSurface = nullptr;
+    NativeSurfaceReleaser retiredReleaser;
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
       if (_surface && _acquiredFromSurface) {
@@ -457,6 +468,10 @@ public:
       _acquiredFromSurface = false;
       _frameInFlight = false;
       _frameEpoch++;
+      takeRetiredSurfaceLocked(retiredNativeSurface, retiredReleaser);
+    }
+    if (retiredReleaser && retiredNativeSurface) {
+      retiredReleaser(retiredNativeSurface);
     }
     applyPendingAttach();
   }
@@ -494,9 +509,33 @@ private:
   }
 #endif
 
+  // A native detach can race the synchronous JS frame sequence between
+  // getCurrentTexture() and queue.submit(). Keep that frame's Dawn surface and
+  // native window alive until submit has completed and present() reaches the
+  // next frame boundary. A second acquire also supersedes and releases it.
+  void releaseRetiredSurface() {
+    void *retiredNativeSurface = nullptr;
+    NativeSurfaceReleaser retiredReleaser;
+    {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      takeRetiredSurfaceLocked(retiredNativeSurface, retiredReleaser);
+    }
+    if (retiredReleaser && retiredNativeSurface) {
+      retiredReleaser(retiredNativeSurface);
+    }
+  }
+
+  void takeRetiredSurfaceLocked(void *&nativeSurface,
+                                NativeSurfaceReleaser &releaser) {
+    _retiredSurface = nullptr;
+    nativeSurface = _retiredNativeSurface;
+    releaser = std::move(_retiredReleaser);
+    _retiredNativeSurface = nullptr;
+  }
+
   void detach(bool createFallbackTexture) {
-    void *releasedSurfaces[2] = {nullptr, nullptr};
-    NativeSurfaceReleaser releasers[2];
+    void *releasedSurfaces[3] = {nullptr, nullptr, nullptr};
+    NativeSurfaceReleaser releasers[3];
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
       // The platform is tearing surfaces down; a not-yet-adopted attach is
@@ -508,24 +547,40 @@ private:
         releasers[0] = std::move(_pendingReleaser);
         _pendingNativeSurface = nullptr;
       }
+
+      // A retired surface can only belong to a frame already superseded by
+      // the active one being detached now.
+      takeRetiredSurfaceLocked(releasedSurfaces[1], releasers[1]);
+
       if (_surface) {
         if (createFallbackTexture && _config.device != nullptr) {
           _texture = createOffscreenTextureLocked();
         }
-        _surface = nullptr;
-        // The in-flight frame (if any) rendered into the destroyed surface;
-        // presentFrame() must not present it.
+        if (_frameInFlight && _acquiredFromSurface) {
+          _retiredSurface = std::move(_surface);
+          _retiredNativeSurface = _nativeSurface;
+          _retiredReleaser = std::move(_releaser);
+        } else {
+          _surface = nullptr;
+          releasedSurfaces[2] = _nativeSurface;
+          releasers[2] = std::move(_releaser);
+        }
+        // The detached frame may still submit against _retiredSurface, but it
+        // must never present into a native view that has gone away.
         _acquiredFromSurface = false;
+      } else if (_nativeSurface) {
+        // Surface creation may fail while the retained native window remains
+        // valid. It still needs a balanced release on detach.
+        releasedSurfaces[2] = _nativeSurface;
+        releasers[2] = std::move(_releaser);
       }
       _frameEpoch++;
       // Window ownership is independent of the Dawn surface handle (which can
       // be null if surface creation failed): always return the window.
-      releasedSurfaces[1] = _nativeSurface;
-      releasers[1] = std::move(_releaser);
       _nativeSurface = nullptr;
     }
     // Release outside the lock: the platform may do real work here.
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 3; i++) {
       if (releasers[i] && releasedSurfaces[i]) {
         releasers[i](releasedSurfaces[i]);
       }
@@ -632,6 +687,11 @@ private:
   void *_nativeSurface = nullptr;
   wgpu::Surface _surface = nullptr;
   NativeSurfaceReleaser _releaser;
+  // A detached surface retained until the frame that acquired from it has
+  // submitted, or until a new frame supersedes that unfinished frame.
+  void *_retiredNativeSurface = nullptr;
+  wgpu::Surface _retiredSurface = nullptr;
+  NativeSurfaceReleaser _retiredReleaser;
   // Offscreen fallback drawing buffer.
   wgpu::Texture _texture = nullptr;
   // Surface attached by the UI thread, awaiting adoption at a frame boundary.
