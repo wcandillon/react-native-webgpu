@@ -1,9 +1,10 @@
 const path = require("path");
-const root = path.resolve(__dirname, "../..");
-const rnwPath = path.resolve(root, "node_modules/react-native-web");
-const assetRegistryPath = path.resolve(
-  root,
-  "node_modules/react-native-web/dist/modules/AssetRegistry/index",
+const rnwPath = path.dirname(
+  require.resolve("react-native-web/package.json", { paths: [__dirname] }),
+);
+const assetRegistryPath = require.resolve(
+  "react-native-web/dist/modules/AssetRegistry/index",
+  { paths: [__dirname] },
 );
 
 module.exports = function (metroConfig) {
