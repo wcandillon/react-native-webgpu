@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { StyleSheet } from "react-native";
 import type { Int32 } from "react-native/Libraries/Types/CodegenTypes";
 import type { ViewProps } from "react-native";
@@ -10,65 +10,15 @@ export interface NativeProps extends ViewProps {
   transparent: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function debounce<T extends (...args: any[]) => void>(
-  func: T,
-  wait: number,
-  immediate = false,
-) {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  return function debounced(
-    this: ThisParameterType<T>,
-    ...args: Parameters<T>
-  ) {
-    const context = this;
-    const callNow = immediate && !timeout;
-    if (timeout) {
-      clearTimeout(timeout);
-    }
-    timeout = setTimeout(() => {
-      timeout = undefined;
-      if (!immediate) {
-        func.apply(context, args);
-      }
-    }, wait);
-    if (callNow) {
-      func.apply(context, args);
-    }
-  };
-}
-
-function resizeCanvas(canvas: HTMLCanvasElement | null) {
-  if (!canvas) {
-    return;
-  }
-
-  const dpr = window.devicePixelRatio || 1;
-
-  const { height, width } = canvas.getBoundingClientRect();
-  canvas.setAttribute("height", (height * dpr).toString());
-  canvas.setAttribute("width", (width * dpr).toString());
-}
-
 // eslint-disable-next-line import/no-default-export
 export default function WebGPUViewNativeComponent(
   props: NativeProps,
 ): React.JSX.Element {
   const { contextId, style, transparent, ...rest } = props;
 
-  const canvasElm = useRef<HTMLCanvasElement>();
-
-  useEffect(() => {
-    const onResize = debounce(
-      () => resizeCanvas(canvasElm.current ?? null),
-      100,
-    );
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-    };
-  }, []);
-
+  // MakeWebGPUCanvasContext sets the initial drawing-buffer size. Subsequent
+  // resizes belong to the renderer so it can recreate depth/MSAA attachments
+  // together; changing canvas.width/height here would invalidate its textures.
   return React.createElement("canvas", {
     ...rest,
     id: contextIdToId(contextId),
@@ -77,12 +27,6 @@ export default function WebGPUViewNativeComponent(
       ...styles.flex1,
       ...(transparent === false ? { backgroundColor: "white" } : {}),
       ...(typeof style === "object" ? style : {}),
-    },
-    ref: (ref: HTMLCanvasElement) => {
-      canvasElm.current = ref;
-      if (ref) {
-        resizeCanvas(ref);
-      }
     },
   });
 }
