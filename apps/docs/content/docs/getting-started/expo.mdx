@@ -3,35 +3,23 @@ title: Expo
 description: Start with raw WebGPU, Three.js, or React Three Fiber on Expo
 ---
 
-Expo provides three React Native WebGPU templates for iOS, Android, and web. Pick the smallest abstraction that fits your project.
+The React Native WebGPU Expo template includes raw WebGPU, Three.js, and React Three Fiber examples for iOS, Android, and web.
 
-## React Three Fiber
-
-```npm
-npx create-expo-app@latest -e with-webgpu
-```
-
-The React Three Fiber template includes the Metro resolver required to select the standard Fiber build and redirect bare Three.js imports to WebGPU.
-
-## Three.js
+## Create a project
 
 ```npm
-npx create-expo-app@latest -e with-webgpu-three
+npx create-expo-app@latest my-webgpu-app --template https://github.com/wcandillon/react-native-webgpu/tree/main/apps/expo-webgpu
 ```
 
-The imperative Three.js template imports `three/webgpu` directly. Current Expo and Metro versions resolve that package export without a custom resolver.
+Open the app and choose an example from the menu:
 
-## Raw WebGPU
+- **WebGPU triangle** uses `react-native-webgpu` directly and renders WGSL without a 3D framework.
+- **Three.js** imports `three/webgpu` and creates the scene imperatively.
+- **React Three Fiber** uses declarative JSX with the standard Fiber module build.
 
-```npm
-npx create-expo-app@latest -e with-webgpu-raw
-```
+The template installs the required Reanimated and Worklets peers, enables the `react-native-webgpu` config plugin, and includes the Metro resolver used by the React Three Fiber example.
 
-The raw template uses `react-native-webgpu` directly and renders a WGSL triangle without Three.js or React Three Fiber.
-
-All three templates install the required Reanimated and Worklets peers and enable the `react-native-webgpu` config plugin.
-
-For a walkthrough of the React Three Fiber template, watch the video below.
+For a walkthrough of the React Three Fiber example, watch the video below.
 
 <Video src="/videos/expo-template.mp4" />
 
