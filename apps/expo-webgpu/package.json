@@ -8,6 +8,11 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "prebuild": "expo prebuild",
+    "prebuild:clean": "expo prebuild --clean",
+    "expo": "expo",
+    "expo:install": "expo install",
+    "doctor": "npx expo-doctor",
     "build:web": "expo export --platform web",
     "typecheck": "tsc --noEmit"
   },
