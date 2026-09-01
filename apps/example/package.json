@@ -17,7 +17,7 @@
     "mkdist": "node -e \"require('node:fs').mkdirSync('dist', { recursive: true, mode: 0o755 })\""
   },
   "dependencies": {
-    "@callstack/react-native-visionos": "^0.74.0",
+    "@callstack/react-native-visionos": "^0.79.6",
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/stack": "^6.4.0",
     "@react-three/fiber": "^9.4.0",
