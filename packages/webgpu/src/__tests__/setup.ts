@@ -272,7 +272,7 @@ class ReferenceTestingClient implements TestingClient {
     const page = await browser.newPage();
     page.on("console", (msg) => console.log(msg.text()));
     page.on("pageerror", (error) => {
-      console.error(error.message);
+      console.error(error instanceof Error ? error.message : String(error));
     });
     await page
       .goto("chrome://gpu", {
