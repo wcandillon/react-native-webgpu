@@ -8,14 +8,13 @@
 #include <jsi/jsi.h>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
 
-#include "RuntimeAwareCache.h"
+#include "JSICache.h"
 #include "WGPULogger.h"
 
 // Forward declare to avoid circular dependency
@@ -72,50 +71,6 @@ private:
   NativeObjectRegistry() = default;
   std::mutex _mutex;
   std::unordered_map<std::string, InstallerFunc> _installers;
-};
-
-/**
- * Per-runtime cache entry for a prototype object.
- * Uses std::optional<jsi::Object> so the prototype is stored directly
- * without extra indirection.
- */
-struct PrototypeCacheEntry {
-  std::optional<jsi::Object> prototype;
-};
-
-/**
- * Wrapper for static RuntimeAwareCache that handles hot reload.
- *
- * When used with static storage (like prototype caches), the cache persists
- * across hot reloads. But the JSI objects inside become invalid when the
- * runtime is destroyed. This wrapper tracks which main-runtime generation the
- * cache was created for and allocates a new cache when the native module is
- * reinstalled (RNWebGPUManager construction bumps the generation).
- *
- * The generation is used instead of the runtime pointer on purpose: on an
- * in-process runtime recreate (expo-updates reloadAsync, DevSettings.reload)
- * Hermes frequently allocates the new runtime at the address of the freed
- * one. A pointer comparison then sees "same runtime", keeps the stale cache,
- * and installConstructor() ends up touching a jsi::Object owned by the dead
- * runtime (SIGSEGV in jsi::Value::~Value, see issue #461).
- *
- * The old cache is intentionally leaked - we cannot safely destroy JSI
- * objects after their runtime is gone.
- */
-template <typename T> struct StaticRuntimeAwareCache {
-  RuntimeAwareCache<T> *cache = nullptr;
-  uint64_t cacheGeneration = 0;
-
-  RuntimeAwareCache<T> &get(jsi::Runtime & /*rt*/) {
-    auto generation = BaseRuntimeAwareCache::getMainJsRuntimeGeneration();
-    if (cache == nullptr || cacheGeneration != generation) {
-      // First use, or the main runtime was reinstalled (hot reload / OTA):
-      // allocate a fresh cache and leak the old one.
-      cache = new RuntimeAwareCache<T>();
-      cacheGeneration = generation;
-    }
-    return *cache;
-  }
 };
 
 /**
@@ -243,29 +198,22 @@ public:
   using IsNativeObject = std::true_type;
 
   /**
-   * Get the prototype cache for this type.
-   * Each NativeObject<Derived> type has its own static cache.
-   * Uses StaticRuntimeAwareCache to properly handle runtime lifecycle
-   * and hot reload (where the main runtime is destroyed and recreated).
-   *
-   * Callers must hold getPrototypeCacheMutex(): the cache is reached
-   * concurrently from the main JS thread (create()) and from worklet
-   * runtime threads (BoxedWebGPUObject::unbox() -> installPrototype()).
+   * Key under which this class's prototype is stored in the per-runtime
+   * JSICache. The address of this per-instantiation static is unique per
+   * Derived, so no registry of class ids is needed.
    */
-  static RuntimeAwareCache<PrototypeCacheEntry> &
-  getPrototypeCache(jsi::Runtime &runtime) {
-    static StaticRuntimeAwareCache<PrototypeCacheEntry> cache;
-    return cache.get(runtime);
+  static JSICache::PrototypeKey prototypeKey() {
+    static constexpr char key = 0;
+    return &key;
   }
 
   /**
-   * Per-class mutex guarding getPrototypeCache() and prototype
-   * installation. Serializes the StaticRuntimeAwareCache pointer swap
-   * (hot reload) and the per-runtime cache lookups.
+   * Returns this class's prototype on `runtime`, or nullptr if it has not
+   * been installed there yet. The prototype is owned by the runtime (see
+   * JSICache), so the pointer is valid for as long as `runtime` is.
    */
-  static std::mutex &getPrototypeCacheMutex() {
-    static std::mutex mutex;
-    return mutex;
+  static jsi::Object *getCachedPrototype(jsi::Runtime &runtime) {
+    return JSICache::get(runtime).getPrototype(prototypeKey());
   }
 
   /**
@@ -273,10 +221,8 @@ public:
    * Called automatically by create(), but can be called manually.
    */
   static void installPrototype(jsi::Runtime &runtime) {
-    std::lock_guard<std::mutex> lock(getPrototypeCacheMutex());
-    auto &entry = getPrototypeCache(runtime).get(runtime);
-    if (entry.prototype.has_value()) {
-      return; // Already installed
+    if (getCachedPrototype(runtime) != nullptr) {
+      return; // Already installed on this runtime
     }
 
     // Create prototype object
@@ -348,8 +294,8 @@ public:
         });
     prototype.setProperty(runtime, "toJSON", toJSON);
 
-    // Cache the prototype
-    entry.prototype = std::move(prototype);
+    // Hand the prototype to the runtime-owned cache
+    JSICache::get(runtime).setPrototype(prototypeKey(), std::move(prototype));
   }
 
   /**
@@ -373,9 +319,8 @@ public:
 
     installPrototype(runtime);
 
-    std::lock_guard<std::mutex> lock(getPrototypeCacheMutex());
-    auto &entry = getPrototypeCache(runtime).get(runtime);
-    if (!entry.prototype.has_value()) {
+    auto *prototype = getCachedPrototype(runtime);
+    if (prototype == nullptr) {
       return;
     }
 
@@ -391,10 +336,10 @@ public:
 
     // Set the prototype property on the constructor
     // This is what makes `instanceof` work
-    ctor.setProperty(runtime, "prototype", *entry.prototype);
+    ctor.setProperty(runtime, "prototype", *prototype);
 
     // Set constructor property on prototype pointing back to constructor
-    entry.prototype->setProperty(runtime, "constructor", ctor);
+    prototype->setProperty(runtime, "constructor", ctor);
 
     // Install on global
     runtime.global().setProperty(runtime, Derived::CLASS_NAME, std::move(ctor));
@@ -417,17 +362,11 @@ public:
     obj.setNativeState(runtime, instance);
 
     // Set prototype
-    {
-      std::lock_guard<std::mutex> lock(getPrototypeCacheMutex());
-      auto &entry = getPrototypeCache(runtime).get(runtime);
-      if (entry.prototype.has_value()) {
-        // Use Object.setPrototypeOf to set the prototype
-        auto objectCtor =
-            runtime.global().getPropertyAsObject(runtime, "Object");
-        auto setPrototypeOf =
-            objectCtor.getPropertyAsFunction(runtime, "setPrototypeOf");
-        setPrototypeOf.call(runtime, obj, *entry.prototype);
-      }
+    if (auto *prototype = getCachedPrototype(runtime)) {
+      auto objectCtor = runtime.global().getPropertyAsObject(runtime, "Object");
+      auto setPrototypeOf =
+          objectCtor.getPropertyAsFunction(runtime, "setPrototypeOf");
+      setPrototypeOf.call(runtime, obj, *prototype);
     }
 
     // Set memory pressure hint for GC
