@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -21,6 +22,18 @@ public:
     // Atomic: hot reload rewrites this from the JS thread while worklet
     // runtime threads read it concurrently.
     _mainRuntime.store(rt, std::memory_order_release);
+    // Every (re)installation of the native module starts a new generation.
+    // Callers that hold process-wide state derived from the main runtime
+    // (see StaticRuntimeAwareCache) must key their invalidation on this
+    // counter and NOT on the runtime pointer: when the JS runtime is
+    // destroyed and recreated in-process (expo-updates OTA apply,
+    // DevSettings.reload) the new jsi::Runtime is frequently allocated at
+    // the exact address of the freed one, so a pointer comparison cannot
+    // tell a reload from the steady state.
+    _mainRuntimeGeneration.fetch_add(1, std::memory_order_acq_rel);
+  }
+  static uint64_t getMainJsRuntimeGeneration() {
+    return _mainRuntimeGeneration.load(std::memory_order_acquire);
   }
   static jsi::Runtime *getMainJsRuntime() {
     auto *rt = _mainRuntime.load(std::memory_order_acquire);
@@ -33,6 +46,7 @@ public:
 
 private:
   static std::atomic<jsi::Runtime *> _mainRuntime;
+  static std::atomic<uint64_t> _mainRuntimeGeneration;
 };
 
 /**

@@ -38,6 +38,7 @@ import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
 import { DiagnosticsList } from "./Diagnostics/DiagnosticsList";
 import { WorkletRequestAdapter } from "./Diagnostics/WorkletRequestAdapter";
+import { ReloadLifecycle } from "./Diagnostics/ReloadLifecycle";
 import { ContextEdgeCases } from "./Diagnostics/ContextEdgeCases";
 import { ViewFormatsUseAfterFree } from "./Diagnostics/ViewFormatsUseAfterFree";
 import { RenderAfterUnmount } from "./Diagnostics/RenderAfterUnmount";
@@ -115,6 +116,7 @@ function App() {
             name="WorkletRequestAdapter"
             component={WorkletRequestAdapter}
           />
+          <Stack.Screen name="ReloadLifecycle" component={ReloadLifecycle} />
           <Stack.Screen name="ContextEdgeCases" component={ContextEdgeCases} />
           <Stack.Screen
             name="ViewFormatsUseAfterFree"
