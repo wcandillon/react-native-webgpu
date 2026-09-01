@@ -91,9 +91,15 @@ const runChecks = (adapter: GPUAdapter, device: GPUDevice): Check[] => {
   });
   const checks: Check[] = [
     { label: "navigator.gpu instanceof GPU", ok: navigator.gpu instanceof GPU },
-    { label: "adapter instanceof GPUAdapter", ok: adapter instanceof GPUAdapter },
+    {
+      label: "adapter instanceof GPUAdapter",
+      ok: adapter instanceof GPUAdapter,
+    },
     { label: "device instanceof GPUDevice", ok: device instanceof GPUDevice },
-    { label: "queue instanceof GPUQueue", ok: device.queue instanceof GPUQueue },
+    {
+      label: "queue instanceof GPUQueue",
+      ok: device.queue instanceof GPUQueue,
+    },
     { label: "buffer instanceof GPUBuffer", ok: buffer instanceof GPUBuffer },
     {
       label: "Object.getPrototypeOf(device) === GPUDevice.prototype",
