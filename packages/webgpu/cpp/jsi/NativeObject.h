@@ -88,26 +88,31 @@ struct PrototypeCacheEntry {
  *
  * When used with static storage (like prototype caches), the cache persists
  * across hot reloads. But the JSI objects inside become invalid when the
- * runtime is destroyed. This wrapper tracks which runtime the cache was
- * created for and allocates a new cache when the runtime changes.
+ * runtime is destroyed. This wrapper tracks which main-runtime generation the
+ * cache was created for and allocates a new cache when the native module is
+ * reinstalled (RNWebGPUManager construction bumps the generation).
+ *
+ * The generation is used instead of the runtime pointer on purpose: on an
+ * in-process runtime recreate (expo-updates reloadAsync, DevSettings.reload)
+ * Hermes frequently allocates the new runtime at the address of the freed
+ * one. A pointer comparison then sees "same runtime", keeps the stale cache,
+ * and installConstructor() ends up touching a jsi::Object owned by the dead
+ * runtime (SIGSEGV in jsi::Value::~Value, see issue #461).
  *
  * The old cache is intentionally leaked - we cannot safely destroy JSI
  * objects after their runtime is gone.
  */
 template <typename T> struct StaticRuntimeAwareCache {
   RuntimeAwareCache<T> *cache = nullptr;
-  jsi::Runtime *cacheRuntime = nullptr;
+  uint64_t cacheGeneration = 0;
 
-  RuntimeAwareCache<T> &get(jsi::Runtime &rt) {
-    auto mainRuntime = BaseRuntimeAwareCache::getMainJsRuntime();
-    if (&rt == mainRuntime && cacheRuntime != mainRuntime) {
-      // Main runtime changed (hot reload) - allocate new cache, leak old one
+  RuntimeAwareCache<T> &get(jsi::Runtime & /*rt*/) {
+    auto generation = BaseRuntimeAwareCache::getMainJsRuntimeGeneration();
+    if (cache == nullptr || cacheGeneration != generation) {
+      // First use, or the main runtime was reinstalled (hot reload / OTA):
+      // allocate a fresh cache and leak the old one.
       cache = new RuntimeAwareCache<T>();
-      cacheRuntime = mainRuntime;
-    }
-    if (cache == nullptr) {
-      cache = new RuntimeAwareCache<T>();
-      cacheRuntime = mainRuntime;
+      cacheGeneration = generation;
     }
     return *cache;
   }

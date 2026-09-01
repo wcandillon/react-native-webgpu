@@ -31,6 +31,7 @@ export type Routes = {
   AsyncStarvation: undefined;
   DeviceLostHang: undefined;
   WorkletRequestAdapter: undefined;
+  ReloadLifecycle: undefined;
   ContextEdgeCases: undefined;
   ViewFormatsUseAfterFree: undefined;
   RenderAfterUnmount: undefined;
