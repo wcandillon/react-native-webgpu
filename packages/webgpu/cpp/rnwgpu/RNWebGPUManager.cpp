@@ -61,9 +61,6 @@ RNWebGPUManager::RNWebGPUManager(
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker),
       _platformContext(platformContext) {
 
-  // Register main runtime for RuntimeAwareCache
-  BaseRuntimeAwareCache::setMainJsRuntime(_jsRuntime);
-
   // Register the main runtime + its CallInvoker so spontaneous events
   // (device.lost / uncapturederror) on main-runtime devices can be delivered to
   // the JS thread without the ProcessEvents pump. Worklet-runtime devices have
