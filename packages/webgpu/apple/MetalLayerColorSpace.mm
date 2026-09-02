@@ -1,7 +1,6 @@
 #import <CoreGraphics/CoreGraphics.h>
 #import <Foundation/Foundation.h>
 #import <QuartzCore/CAMetalLayer.h>
-#import <QuartzCore/CATransaction.h>
 
 #include "webgpu/webgpu_cpp.h"
 
@@ -30,14 +29,6 @@ void applyCAMetalLayerColorSpace(void *nativeSurface,
     // Restore the default (no color matching) when reconfiguring back to an
     // 8-bit format.
     metalLayer.colorspace = nil;
-  }
-  // The change must be set synchronously so the first present already sees
-  // it, and it must reach the render server. On a non-main thread (RN JS or
-  // worklet runtime) the property lands in that thread's implicit
-  // CATransaction, which may never commit on threads without a spinning
-  // runloop, so flush it now. On the main thread the runloop commits it.
-  if (!NSThread.isMainThread) {
-    [CATransaction flush];
   }
 }
 
