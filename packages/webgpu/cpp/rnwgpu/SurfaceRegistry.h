@@ -270,6 +270,30 @@ public:
     _frameEpoch++;
   }
 
+  // Detach this surface's swapchain when it is bound to `device`, called from
+  // GPUDevice::destroy() before the device is torn down. Releasing the Dawn
+  // surface here runs ~Surface -> SwapChain::DetachFromSurface while the
+  // device still owns its FencedDeleter. Left to the native view teardown
+  // (SurfaceInfo::detach, one frame later) the device is already destroyed and
+  // Dawn dereferences a freed FencedDeleter -> SIGSEGV on the Vulkan backend.
+  // The native window pointer stays in _nativeSurface so detach() still
+  // returns it to the platform.
+  void unconfigureIfDevice(const wgpu::Device &device) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (_config.device == nullptr || _config.device.Get() != device.Get()) {
+      return;
+    }
+    if (_surface) {
+      _surface.Unconfigure();
+      _surface = nullptr;
+      _acquiredFromSurface = false;
+    }
+    _texture = nullptr;
+    _config = {};
+    _viewFormats.clear();
+    _frameEpoch++;
+  }
+
   bool isConfigured() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
     return _config.device != nullptr;
@@ -585,6 +609,15 @@ public:
   void clear() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _registry.clear();
+  }
+
+  // Detach every surface configured with `device` before it is destroyed.
+  // Lock order is registry -> SurfaceInfo, matching every other path.
+  void unconfigureDevice(const wgpu::Device &device) {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    for (auto &entry : _registry) {
+      entry.second->unconfigureIfDevice(device);
+    }
   }
 
 private:

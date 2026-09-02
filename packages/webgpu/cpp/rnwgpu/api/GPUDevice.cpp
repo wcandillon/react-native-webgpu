@@ -16,6 +16,7 @@
 #include "GPUOutOfMemoryError.h"
 #include "GPUValidationError.h"
 #include "RnFeatures.h"
+#include "SurfaceRegistry.h"
 
 namespace rnwgpu {
 
@@ -149,6 +150,10 @@ std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
 }
 
 void GPUDevice::destroy() {
+  // Detach every swapchain bound to this device before destroying it, so the
+  // native surface teardown does not dereference a freed FencedDeleter (a
+  // SIGSEGV on the Vulkan backend when a Canvas unmounts).
+  rnwgpu::SurfaceRegistry::getInstance().unconfigureDevice(_instance);
   _instance.Destroy();
   notifyDeviceLost(wgpu::DeviceLostReason::Destroyed, "device was destroyed");
 }
