@@ -47,10 +47,21 @@ export interface CanvasRef {
 
 interface CanvasProps extends ViewProps {
   transparent?: boolean;
+  // Android only, and ignored unless `transparent` is set. "texture"
+  // (default) draws through a TextureView and stacks like any other view.
+  // "surface-overlay" gives the canvas its own translucent SurfaceFlinger
+  // layer, which skips a composition pass but draws above every React Native
+  // view in the window, so nothing can be layered on top of it.
+  androidTransparencyMode?: "texture" | "surface-overlay";
   ref?: React.Ref<CanvasRef>;
 }
 
-export const Canvas = ({ transparent, ref, ...props }: CanvasProps) => {
+export const Canvas = ({
+  transparent,
+  androidTransparencyMode,
+  ref,
+  ...props
+}: CanvasProps) => {
   const viewRef = useRef(null);
   const [contextId, _] = useState(() => generateContextId());
   // Retire the native registry entry for this contextId on unmount. When a
@@ -96,6 +107,7 @@ export const Canvas = ({ transparent, ref, ...props }: CanvasProps) => {
         style={{ flex: 1 }}
         contextId={contextId}
         transparent={!!transparent}
+        androidTransparencyMode={androidTransparencyMode}
       />
     </View>
   );

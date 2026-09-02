@@ -8,13 +8,20 @@ import { contextIdToId } from "./utils";
 export interface NativeProps extends ViewProps {
   contextId: Int32;
   transparent: boolean;
+  androidTransparencyMode?: "texture" | "surface-overlay";
 }
 
 // eslint-disable-next-line import/no-default-export
 export default function WebGPUViewNativeComponent(
   props: NativeProps,
 ): React.JSX.Element {
-  const { contextId, style, transparent, ...rest } = props;
+  const {
+    contextId,
+    style,
+    transparent,
+    androidTransparencyMode: _androidTransparencyMode,
+    ...rest
+  } = props;
 
   // MakeWebGPUCanvasContext sets the initial drawing-buffer size. Subsequent
   // resizes belong to the renderer so it can recreate depth/MSAA attachments

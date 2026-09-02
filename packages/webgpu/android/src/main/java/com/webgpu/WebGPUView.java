@@ -14,6 +14,7 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   private int mContextId;
   private boolean mTransparent = false;
+  private boolean mTransparentSurfaceLayer = false;
   private WebGPUModule mModule;
   private View mView = null;
 
@@ -32,23 +33,37 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   public void setTransparent(boolean value) {
-    Context ctx = getContext();
-    if (value != mTransparent || mView == null) {
-      if (mView != null) {
-        removeView(mView);
-      }
-      mTransparent = value;
-      if (mTransparent) {
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-//          mView = new WebGPUAHBView(ctx, this);
-//        } else {
-          mView = new WebGPUTextureView(ctx, this);
-//        }
-      } else {
-        mView = new WebGPUSurfaceView(ctx, this);
-      }
-      addView(mView);
+    if (value == mTransparent && mView != null) {
+      return;
     }
+    mTransparent = value;
+    rebuildView();
+  }
+
+  // "surface-overlay" trades z-ordering for a cheaper composition path; see
+  // the androidTransparencyMode prop on Canvas. Ignored when not transparent.
+  public void setTransparencyMode(String mode) {
+    boolean surfaceLayer = "surface-overlay".equals(mode);
+    if (surfaceLayer == mTransparentSurfaceLayer && mView != null) {
+      return;
+    }
+    mTransparentSurfaceLayer = surfaceLayer;
+    rebuildView();
+  }
+
+  private void rebuildView() {
+    Context ctx = getContext();
+    if (mView != null) {
+      removeView(mView);
+    }
+    if (mTransparent) {
+      mView = mTransparentSurfaceLayer
+        ? new WebGPUSurfaceView(ctx, this, true)
+        : new WebGPUTextureView(ctx, this);
+    } else {
+      mView = new WebGPUSurfaceView(ctx, this);
+    }
+    addView(mView);
   }
 
   @Override

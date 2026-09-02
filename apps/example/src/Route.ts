@@ -37,6 +37,7 @@ export type Routes = {
   RenderAfterUnmount: undefined;
   BackgroundDetach: undefined;
   SurfaceChurn: undefined;
+  TransparencyMode: undefined;
   StorageBufferVertices: undefined;
   SharedTextureMemory: undefined;
   ImportExternalTexture: undefined;
