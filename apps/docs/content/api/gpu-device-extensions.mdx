@@ -85,6 +85,7 @@ Dawn's [`implicit-device-synchronization`](https://dawn.googlesource.com/dawn/+/
 Set `implicitDeviceSynchronization: false` on the device descriptor to opt out and skip the per-call locking. Only do this for a device that is never touched from another runtime. The flag is a non-standard extension and is ignored on the web.
 
 ```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
 declare const adapter: GPUAdapter;
 // ---cut---
 const device = await adapter.requestDevice({

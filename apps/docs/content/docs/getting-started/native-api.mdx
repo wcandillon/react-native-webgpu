@@ -30,6 +30,7 @@ This is coarse-grained locking, not a license for arbitrary concurrency. Command
 The feature is reported in `device.features`, and it can be disabled per device with the non-standard `implicitDeviceSynchronization` descriptor flag when the device is only ever used from one thread:
 
 ```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
 declare const adapter: GPUAdapter;
 // ---cut---
 // Single-thread only: never hand this device to a worklet runtime.
