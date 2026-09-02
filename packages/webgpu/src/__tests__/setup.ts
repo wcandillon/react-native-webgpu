@@ -48,6 +48,12 @@ interface GPUTestingContext {
   };
   ctx: GPUCanvasContext;
   canvas: GPUOffscreenCanvas;
+  // Native app harness only (undefined on web/node): hammers the given device
+  // from a dedicated worklet runtime while the caller uses it from JS, to
+  // exercise Dawn's implicit device synchronization across threads.
+  workletDeviceStress?: (
+    device: GPUDevice,
+  ) => Promise<{ jsOk: boolean; workletOk: boolean }>;
   mat4: typeof mat4;
   vec3: typeof vec3;
   mat3: typeof mat3;
