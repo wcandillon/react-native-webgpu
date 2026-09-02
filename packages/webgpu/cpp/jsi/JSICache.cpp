@@ -1,6 +1,8 @@
 #include "JSICache.h"
 
 #include <iterator>
+#include <stdexcept>
+#include <string>
 #include <utility>
 
 namespace rnwgpu {
@@ -50,6 +52,17 @@ std::shared_ptr<JSICache> JSICache::getOrCreateOnGlobal(jsi::Runtime &runtime) {
     if (obj.hasNativeState<JSICache>(runtime)) {
       return obj.getNativeState<JSICache>(runtime);
     }
+  }
+  if (!existing.isUndefined()) {
+    // Something else already claimed our global. The most likely cause is two
+    // copies of react-native-webgpu loaded in one process (each has its own
+    // JSICache type, so the NativeState check above fails). Say so instead of
+    // letting Object.defineProperty throw a bare TypeError on the
+    // non-configurable property.
+    throw std::runtime_error(
+        std::string("react-native-webgpu: global.") + kGlobalName +
+        " already exists but is not our JSICache. Is react-native-webgpu "
+        "linked twice, or is another module using this global?");
   }
   auto cache = std::make_shared<JSICache>();
   jsi::Object holder(runtime);

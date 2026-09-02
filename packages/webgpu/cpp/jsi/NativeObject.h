@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <typeindex>
 #include <unordered_map>
 #include <utility>
 
@@ -199,12 +200,10 @@ public:
 
   /**
    * Key under which this class's prototype is stored in the per-runtime
-   * JSICache. The address of this per-instantiation static is unique per
-   * Derived, so no registry of class ids is needed.
+   * JSICache: the C++ type of Derived.
    */
   static JSICache::PrototypeKey prototypeKey() {
-    static constexpr char key = 0;
-    return &key;
+    return std::type_index(typeid(Derived));
   }
 
   /**

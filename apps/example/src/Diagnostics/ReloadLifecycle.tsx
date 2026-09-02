@@ -6,11 +6,14 @@ import { DevSettings, Pressable, StyleSheet, Text, View } from "react-native";
 //
 // An OTA apply or DevSettings.reload() destroys the JS runtime and recreates
 // it in the same process, then WebGPUModule.install() runs again. The
-// per-class prototype caches are process-static; they used to detect the
+// per-class prototype caches used to be process-static and detected the
 // reload by comparing the new jsi::Runtime pointer with the cached one. When
 // Hermes hands the new runtime the address of the freed one (common), the
 // stale cache was kept and install() touched jsi::Objects owned by the dead
-// runtime. The caches are now invalidated per install generation instead.
+// runtime. Cached prototypes now live in a JSICache that the runtime itself
+// owns (NativeState on a hidden global, see cpp/jsi/JSICache.h): they are
+// destroyed with their runtime, so a recreated runtime, at the same address
+// or not, always starts with an empty cache.
 //
 // How to use: press the button (repeatedly). Each press starts pending async
 // GPU work and reloads the runtime. Every reload that comes back to a working

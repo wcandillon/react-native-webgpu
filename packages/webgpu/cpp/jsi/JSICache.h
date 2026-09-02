@@ -4,7 +4,7 @@
 
 #include <memory>
 #include <mutex>
-#include <optional>
+#include <typeindex>
 #include <unordered_map>
 
 namespace rnwgpu {
@@ -44,10 +44,11 @@ namespace jsi = facebook::jsi;
 class JSICache final : public jsi::NativeState {
 public:
   /**
-   * Key identifying one cached prototype. NativeObject<Derived> passes the
-   * address of a per-class static, which is unique per Derived.
+   * Key identifying one cached prototype: the C++ type of the NativeObject
+   * subclass (std::type_index(typeid(Derived))), as in Nitro. It prints as
+   * the class name in a debugger.
    */
-  using PrototypeKey = const void *;
+  using PrototypeKey = std::type_index;
 
   /**
    * Returns the cache owned by `runtime`, creating it on first use. Must be
@@ -57,6 +58,12 @@ public:
 
   /**
    * Returns the cached prototype for `key` or nullptr if none was stored.
+   *
+   * The pointer points into `_prototypes`. std::unordered_map never
+   * invalidates pointers/references to elements on insert or rehash (only on
+   * erase of that element, which we never do), so it stays valid for as long
+   * as the runtime does. Do not swap the container for one without that
+   * guarantee (std::vector, absl::flat_hash_map, ...).
    */
   jsi::Object *getPrototype(PrototypeKey key);
 
