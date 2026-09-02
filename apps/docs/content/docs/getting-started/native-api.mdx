@@ -22,6 +22,24 @@ You can run WebGPU code on the main thread, on the [Worklets](/docs/integrations
 See [Worklets](/docs/integrations/worklets) for the full UI-thread integration guide.
 In a Worklet, call `installWebGPU()` to install the WebGPU API on that thread.
 
+### Implicit device synchronization
+
+Dawn's native API is not thread-safe on its own. To make the "create the device on the JS thread, render from a worklet" pattern safe, `requestDevice()` enables Dawn's [`implicit-device-synchronization`](https://dawn.googlesource.com/dawn/+/refs/heads/main/docs/dawn/features/implicit_device_synchronization.md) feature by default. It guards the device and its child objects (buffers, textures, queue, pipelines) with a per-device mutex, so one device can be used from several runtimes.
+
+This is coarse-grained locking, not a license for arbitrary concurrency. Command encoding is excluded from the synchronization, so never share a `GPUCommandEncoder` across threads, and keep a given canvas context on a single runtime.
+The feature is reported in `device.features`, and it can be disabled per device with the non-standard `implicitDeviceSynchronization` descriptor flag when the device is only ever used from one thread:
+
+```tsx twoslash
+declare const adapter: GPUAdapter;
+// ---cut---
+// Single-thread only: never hand this device to a worklet runtime.
+const device = await adapter.requestDevice({
+  implicitDeviceSynchronization: false,
+});
+```
+
+See [Native Extensions](/api/gpu-device-extensions#implicitdevicesynchronization) for details.
+
 ```tsx
 import { installWebGPU } from "react-native-webgpu";
 
