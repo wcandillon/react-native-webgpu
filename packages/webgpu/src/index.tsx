@@ -91,6 +91,13 @@ declare global {
   // device creation: adapter.requestDevice({ dawnToggles: { ... } }).
   interface GPUDeviceDescriptor {
     dawnToggles?: GPUDawnTogglesDescriptor;
+    // Non-spec RN extension. Dawn's "implicit-device-synchronization" feature
+    // is requested by default so one device can be handed from the JS thread
+    // to a worklet runtime; it locks device and child-object calls with a
+    // per-device mutex (command encoding excluded: never share an encoder
+    // across threads). Setting this to false disables the locking; only do so
+    // for a device that will never be touched from a worklet runtime.
+    implicitDeviceSynchronization?: boolean;
   }
   // Non-spec extension: camera frames arrive in the sensor's native
   // orientation, which differs between iOS and Android. `rotation` (degrees,

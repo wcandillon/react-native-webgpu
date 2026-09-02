@@ -48,6 +48,12 @@ interface GPUTestingContext {
   };
   ctx: GPUCanvasContext;
   canvas: GPUOffscreenCanvas;
+  // Native app harness only (undefined on web/node): hammers the given device
+  // from a dedicated worklet runtime while the caller uses it from JS, to
+  // exercise Dawn's implicit device synchronization across threads.
+  workletDeviceStress?: (
+    device: GPUDevice,
+  ) => Promise<{ jsOk: boolean; workletOk: boolean }>;
   mat4: typeof mat4;
   vec3: typeof vec3;
   mat3: typeof mat3;
@@ -56,12 +62,7 @@ interface GPUTestingContext {
 type Ctx = Record<string, unknown>;
 
 type JSONValue =
-  | { [key: string]: JSONValue }
-  | JSONValue[]
-  | number
-  | string
-  | boolean
-  | null;
+  { [key: string]: JSONValue } | JSONValue[] | number | string | boolean | null;
 
 interface TestingClient {
   eval<C = Ctx, R = JSONValue>(
@@ -653,8 +654,7 @@ class NodeTestingClient implements TestingClient {
           ? (rest.slice(0, 4) as number[])
           : undefined;
       const options = (cropRect !== undefined ? rest[4] : rest[0]) as
-        | PolyfillImageBitmapOptions
-        | undefined;
+        PolyfillImageBitmapOptions | undefined;
       if (source instanceof ArrayBuffer) {
         return decodePng(new Uint8Array(source), cropRect, options);
       }
