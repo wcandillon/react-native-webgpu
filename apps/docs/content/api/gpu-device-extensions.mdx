@@ -78,6 +78,24 @@ const device = await adapter.requestDevice({
 
 <auto-type-table path="../../../../packages/webgpu/src/types.ts" name="GPUDawnTogglesDescriptor" />
 
+## implicitDeviceSynchronization
+
+Dawn's [`implicit-device-synchronization`](https://dawn.googlesource.com/dawn/+/refs/heads/main/docs/dawn/features/implicit_device_synchronization.md) feature is requested by default by `requestDevice()`, so a device created on the JS thread can be used from the UI thread or a dedicated worklet runtime (see [Threading model](/docs/getting-started/native-api#threading-model)). Dawn wraps the device and child-object entry points in a per-device mutex; command encoding is not covered, so a `GPUCommandEncoder` must stay on the thread that created it.
+
+Set `implicitDeviceSynchronization: false` on the device descriptor to opt out and skip the per-call locking. Only do this for a device that is never touched from another runtime. The flag is a non-standard extension and is ignored on the web.
+
+```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
+declare const adapter: GPUAdapter;
+// ---cut---
+const device = await adapter.requestDevice({
+  implicitDeviceSynchronization: false,
+});
+device.features.has("implicit-device-synchronization" as GPUFeatureName); // false
+```
+
+The flag only controls the default injection: listing `"implicit-device-synchronization"` in `requiredFeatures` still enables the feature.
+
 ## GPUExternalTexture extensions
 
 | Field / Method | Description |

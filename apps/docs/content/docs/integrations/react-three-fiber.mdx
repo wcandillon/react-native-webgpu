@@ -5,6 +5,8 @@ description: Integrations demo - declarative 3D with @react-three/fiber.
 
 Builds on [Three.js](/docs/integrations/three-js): same `WebGPURenderer` and **`present()`** hook - but scenes are JSX reconciled by React Three Fiber.
 
+To start from a preconfigured Expo project, create the [hosted WebGPU template](/docs/getting-started/expo) and choose **React Three Fiber** from its menu.
+
 <WebGPUPlayground demo="three-js" height={280} />
 
 The preview uses `THREE.WebGPURenderer` directly. R3F wraps the same renderer and calls `present()` inside `onCreated`.

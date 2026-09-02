@@ -29,6 +29,11 @@ struct GPUDeviceDescriptor {
   // Non-standard Dawn-only device toggles, chained onto the wgpu::Device
   // descriptor in GPUAdapter::requestDevice.
   std::optional<std::shared_ptr<GPUDawnTogglesDescriptor>> dawnToggles;
+  // Non-standard RN extension. Dawn's ImplicitDeviceSynchronization feature is
+  // requested by default so a single device can be used from several runtimes
+  // (JS thread + worklet runtimes). Set to false to opt out and get an
+  // unsynchronized (single-thread only) device.
+  std::optional<bool> implicitDeviceSynchronization;
 };
 
 } // namespace rnwgpu
@@ -107,6 +112,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
         result->dawnToggles = JSIConverter<
             std::optional<std::shared_ptr<GPUDawnTogglesDescriptor>>>::fromJSI(
             runtime, prop, false);
+      }
+      if (value.hasProperty(runtime, "implicitDeviceSynchronization")) {
+        auto prop =
+            value.getProperty(runtime, "implicitDeviceSynchronization");
+        result->implicitDeviceSynchronization =
+            JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }
     }
 
