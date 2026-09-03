@@ -13,17 +13,27 @@ namespace jsi = facebook::jsi;
 
 struct ArrayBuffer : jsi::MutableBuffer {
   ArrayBuffer(void *data, size_t size, size_t bytesPerElement)
-      : _data(data), _size(size), _bytesPerElement(bytesPerElement) {}
+      : _data(data), _size(size), _bytesPerElement(bytesPerElement),
+        _ownsData(false) {}
 
-  ~ArrayBuffer() override {}
+  ArrayBuffer(size_t size, size_t bytesPerElement)
+      : _ownedData(size == 0 ? nullptr : new uint8_t[size]),
+        _data(_ownedData.get()), _size(size), _bytesPerElement(bytesPerElement),
+        _ownsData(true) {}
+
+  ~ArrayBuffer() override = default;
 
   size_t size() const override { return _size; }
 
   uint8_t *data() override { return static_cast<uint8_t *>(_data); }
 
+  bool ownsData() const { return _ownsData; }
+
+  std::unique_ptr<uint8_t[]> _ownedData;
   void *_data;
   size_t _size;
   size_t _bytesPerElement;
+  bool _ownsData;
 };
 
 static std::shared_ptr<ArrayBuffer>
@@ -110,7 +120,11 @@ template <> struct JSIConverter<std::shared_ptr<ArrayBuffer>> {
 
   static jsi::Value toJSI(jsi::Runtime &runtime,
                           std::shared_ptr<ArrayBuffer> arg) {
-    return jsi::ArrayBuffer(runtime, arg);
+    jsi::ArrayBuffer arrayBuffer(runtime, arg);
+    if (arg->ownsData()) {
+      arrayBuffer.setExternalMemoryPressure(runtime, arg->size());
+    }
+    return jsi::Value(runtime, arrayBuffer);
   }
 };
 
