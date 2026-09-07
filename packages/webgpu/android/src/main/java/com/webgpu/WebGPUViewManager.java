@@ -36,9 +36,9 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
   }
 
   @Override
-  @ReactProp(name = "androidView")
-  public void setAndroidView(WebGPUView view, String value) {
-    view.setAndroidView(value);
+  @ReactProp(name = "androidSurfaceType")
+  public void setAndroidSurfaceType(WebGPUView view, String value) {
+    view.setAndroidSurfaceType(value);
   }
 
   @Override

@@ -13,7 +13,7 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   private int mContextId;
   private boolean mTransparent = false;
-  private String mAndroidView = "auto";
+  private String mAndroidSurfaceType = "auto";
   private boolean mZOrderOnTop = false;
   private boolean mTranslucent = false;
   private boolean mAppliedTextureView;
@@ -40,8 +40,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     mTransparent = value;
   }
 
-  public void setAndroidView(String value) {
-    mAndroidView = value;
+  public void setAndroidSurfaceType(String value) {
+    mAndroidSurfaceType = value;
   }
 
   public void setZOrderOnTop(boolean value) {
@@ -55,8 +55,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   // Apply the complete prop transaction once, after contextId and all rendering
   // options have arrived. Avoid replacing the surface for unrelated updates.
   public void updateView() {
-    boolean textureView = "TextureView".equals(mAndroidView)
-      || (!"SurfaceView".equals(mAndroidView) && mTransparent);
+    boolean textureView = "TextureView".equals(mAndroidSurfaceType)
+      || (!"SurfaceView".equals(mAndroidSurfaceType) && mTransparent);
     boolean zOrderOnTop = !textureView && mZOrderOnTop;
     boolean translucent = !textureView && mTranslucent;
     if (mView != null && textureView == mAppliedTextureView

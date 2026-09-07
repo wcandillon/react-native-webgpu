@@ -9,13 +9,23 @@ import { Canvas, useDevice } from "react-native-webgpu";
 
 const OPTIONS: { label: string; props?: AndroidViewProps }[] = [
   { label: "default" },
-  { label: "texture", props: { view: "TextureView" } },
-  { label: "surface", props: { view: "SurfaceView" } },
-  { label: "on top", props: { view: "SurfaceView", zOrderOnTop: true } },
-  { label: "translucent", props: { view: "SurfaceView", translucent: true } },
+  { label: "texture", props: { androidSurfaceType: "TextureView" } },
+  { label: "surface", props: { androidSurfaceType: "SurfaceView" } },
+  {
+    label: "on top",
+    props: { androidSurfaceType: "SurfaceView", zOrderOnTop: true },
+  },
+  {
+    label: "translucent",
+    props: { androidSurfaceType: "SurfaceView", translucent: true },
+  },
   {
     label: "overlay",
-    props: { view: "SurfaceView", zOrderOnTop: true, translucent: true },
+    props: {
+      androidSurfaceType: "SurfaceView",
+      zOrderOnTop: true,
+      translucent: true,
+    },
   },
 ];
 

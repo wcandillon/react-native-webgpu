@@ -8,7 +8,7 @@ import { contextIdToId } from "./utils";
 export interface NativeProps extends ViewProps {
   contextId: Int32;
   transparent: boolean;
-  androidView?: "auto" | "SurfaceView" | "TextureView";
+  androidSurfaceType?: "auto" | "SurfaceView" | "TextureView";
   androidZOrderOnTop?: boolean;
   androidTranslucent?: boolean;
 }
@@ -21,7 +21,7 @@ export default function WebGPUViewNativeComponent(
     contextId,
     style,
     transparent,
-    androidView: _androidView,
+    androidSurfaceType: _androidSurfaceType,
     androidZOrderOnTop: _androidZOrderOnTop,
     androidTranslucent: _androidTranslucent,
     ...rest
