@@ -13,7 +13,7 @@
   "packageManager": "yarn@3.6.1",
   "scripts": {
     "lint": "turbo run lint",
-    "tsc": "turbo run tsc",
+    "tsc": "turbo run tsc && yarn workspace expo-webgpu-template typecheck",
     "build:ios": "turbo run build:ios",
     "build:macos": "turbo run build:macos",
     "build:android": "turbo run build:android",

@@ -17,7 +17,7 @@
     "mkdist": "node -e \"require('node:fs').mkdirSync('dist', { recursive: true, mode: 0o755 })\""
   },
   "dependencies": {
-    "@callstack/react-native-visionos": "^0.74.0",
+    "@callstack/react-native-visionos": "^0.79.6",
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/stack": "^6.4.0",
     "@react-three/fiber": "^9.4.0",
@@ -52,6 +52,9 @@
     "@babel/core": "^7.25.0",
     "@babel/preset-env": "^7.25.0",
     "@babel/runtime": "^7.25.0",
+    "@react-native-community/cli": "^20.2.0",
+    "@react-native-community/cli-platform-android": "^20.2.0",
+    "@react-native-community/cli-platform-ios": "^20.2.0",
     "@react-native/babel-preset": "0.81.0",
     "@react-native/eslint-config": "0.81.0",
     "@react-native/metro-config": "0.81.0",

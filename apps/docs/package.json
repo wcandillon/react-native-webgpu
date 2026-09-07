@@ -25,6 +25,7 @@
     "react-dom": "19.1.0",
     "react-native-web": "^0.21.2",
     "react-native-webgpu": "workspace:*",
+    "react-native-worklets": "0.8.3",
     "three": "0.184.0",
     "wgpu-matrix": "^3.0.2"
   },

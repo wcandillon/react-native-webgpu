@@ -66,6 +66,48 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
     }
   }
 
+  // Request Dawn's ImplicitDeviceSynchronization feature by default. Dawn's
+  // native API is not thread-safe without it, and the react-native-wgpu model
+  // is "create the device on the JS thread, render from a worklet runtime",
+  // which uses one device from several threads. The feature wraps device and
+  // child-object entry points in a per-device mutex (command *encoding* stays
+  // unsynchronized: never share a GPUCommandEncoder across threads). Dawn
+  // exposes the feature on every physical device, but keep the support check
+  // so a hypothetical adapter without it still vends a device. Callers can opt
+  // out with `implicitDeviceSynchronization: false` on the device descriptor
+  // to skip the (small) per-call locking overhead when the device is only ever
+  // used from a single thread.
+  {
+    const bool optedOut = descriptor.has_value() &&
+                          descriptor.value()->implicitDeviceSynchronization ==
+                              std::optional<bool>(false);
+    if (!optedOut) {
+      wgpu::SupportedFeatures supported;
+      _instance.GetFeatures(&supported);
+      const bool isSupported =
+          std::find(supported.features,
+                    supported.features + supported.featureCount,
+                    wgpu::FeatureName::ImplicitDeviceSynchronization) !=
+          supported.features + supported.featureCount;
+      if (isSupported) {
+        if (!descriptor.has_value()) {
+          descriptor = std::make_shared<GPUDeviceDescriptor>();
+        }
+        auto &desc = descriptor.value();
+        if (!desc->requiredFeatures.has_value()) {
+          desc->requiredFeatures = std::vector<wgpu::FeatureName>{};
+        }
+        auto &features = desc->requiredFeatures.value();
+        if (std::find(features.begin(), features.end(),
+                      wgpu::FeatureName::ImplicitDeviceSynchronization) ==
+            features.end()) {
+          features.push_back(
+              wgpu::FeatureName::ImplicitDeviceSynchronization);
+        }
+      }
+    }
+  }
+
   wgpu::DeviceDescriptor aDescriptor;
   Convertor conv;
   if (!conv(aDescriptor, descriptor)) {

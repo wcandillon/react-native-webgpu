@@ -50,3 +50,15 @@ const device = await adapter.requestDevice();
 const context = canvasRef.current!.getContext("webgpu")!;
 runOnUI(renderFrame)(device, context);
 ```
+
+## Thread safety
+
+The pattern above (create the device on the JS thread, render from a worklet runtime) works because `requestDevice()` enables Dawn's [`implicit-device-synchronization`](https://dawn.googlesource.com/dawn/+/refs/heads/main/docs/dawn/features/implicit_device_synchronization.md) feature by default, which guards the device and its child objects (buffers, textures, queue, pipelines) with a per-device mutex.
+
+This makes the handoff safe, but it is coarse-grained locking, not a license for arbitrary concurrency. Prefer a clear ownership model: set resources up on one thread, render on another, and keep simultaneous use of the same device from several threads to a minimum. In particular:
+
+- **Never share a command encoder across threads.** Command encoding is explicitly excluded from the implicit synchronization; create the `GPUCommandEncoder` (and its pass encoders) on the thread that uses it.
+- **Don't drive the same canvas context from two threads.** Keep `configure()`, `getCurrentTexture()`, and `present()` for a given context on a single runtime.
+- Dawn describes this feature as heavy-handed and notes that some reentrancy cases may still deadlock, so treat heavy cross-thread churn on one device as unsupported territory.
+
+For completeness, the default can be disabled with `implicitDeviceSynchronization: false` on the device descriptor (a non-standard extension, ignored on the web). This is only for profiling or single-threaded setups; a device created this way must never be touched from a worklet runtime.

@@ -1,0 +1,43 @@
+{
+  "name": "expo-webgpu-template",
+  "version": "1.0.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "prebuild": "expo prebuild",
+    "prebuild:clean": "expo prebuild --clean",
+    "expo": "expo",
+    "expo:install": "expo install",
+    "doctor": "npx expo-doctor",
+    "build:web": "expo export --platform web",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-three/fiber": "^9.4.0",
+    "expo": "^57.0.1",
+    "expo-constants": "~57.0.2",
+    "expo-linking": "~57.0.1",
+    "expo-router": "~57.0.2",
+    "expo-splash-screen": "~57.0.1",
+    "expo-status-bar": "~57.0.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-web": "^0.21.0",
+    "react-native-webgpu": "~0.8.5",
+    "react-native-worklets": "0.10.1",
+    "three": "0.172.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.14",
+    "@types/three": "0.172.0",
+    "typescript": "~6.0.3"
+  }
+}

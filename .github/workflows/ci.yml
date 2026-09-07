@@ -52,6 +52,9 @@ jobs:
       - name: Build packages
         run: yarn turbo run build --filter='./packages/*'
 
+      - name: Build Expo WebGPU template for web
+        run: yarn workspace expo-webgpu-template build:web
+
       - name: Test Expo config plugin
         working-directory: packages/webgpu
         run: yarn test:plugin

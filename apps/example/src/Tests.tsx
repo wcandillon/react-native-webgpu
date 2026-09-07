@@ -8,6 +8,7 @@ import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
 import type { AssetProps } from "./components/useAssets";
 import { Texture } from "./components/Texture";
+import { workletDeviceStress } from "./components/workletDeviceStress";
 
 export const CI = process.env.CI === "true";
 
@@ -90,6 +91,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                 },
                 ctx,
                 canvas: ctx.canvas,
+                workletDeviceStress,
                 mat4,
                 vec3,
                 mat3,
