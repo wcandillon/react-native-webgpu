@@ -1,7 +1,6 @@
 package com.webgpu;
 
 import android.content.Context;
-import android.os.Build;
 import android.view.Surface;
 import android.view.View;
 
@@ -14,7 +13,12 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   private int mContextId;
   private boolean mTransparent = false;
-  private boolean mTransparentSurfaceLayer = false;
+  private String mAndroidView = "auto";
+  private boolean mZOrderOnTop = false;
+  private boolean mTranslucent = false;
+  private boolean mAppliedTextureView;
+  private boolean mAppliedZOrderOnTop;
+  private boolean mAppliedTranslucent;
   private WebGPUModule mModule;
   private View mView = null;
 
@@ -33,43 +37,53 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   public void setTransparent(boolean value) {
-    if (value == mTransparent && mView != null) {
-      return;
-    }
     mTransparent = value;
-    rebuildView();
   }
 
-  // "surface-overlay" trades z-ordering for a cheaper composition path; see
-  // the androidTransparencyMode prop on Canvas. Ignored when not transparent.
-  public void setTransparencyMode(String mode) {
-    boolean surfaceLayer = "surface-overlay".equals(mode);
-    if (surfaceLayer == mTransparentSurfaceLayer && mView != null) {
+  public void setAndroidView(String value) {
+    mAndroidView = value;
+  }
+
+  public void setZOrderOnTop(boolean value) {
+    mZOrderOnTop = value;
+  }
+
+  public void setTranslucent(boolean value) {
+    mTranslucent = value;
+  }
+
+  // Apply the complete prop transaction once, after contextId and all rendering
+  // options have arrived. Avoid replacing the surface for unrelated updates.
+  public void updateView() {
+    boolean textureView = "TextureView".equals(mAndroidView)
+      || (!"SurfaceView".equals(mAndroidView) && mTransparent);
+    boolean zOrderOnTop = !textureView && mZOrderOnTop;
+    boolean translucent = !textureView && mTranslucent;
+    if (mView != null && textureView == mAppliedTextureView
+        && zOrderOnTop == mAppliedZOrderOnTop && translucent == mAppliedTranslucent) {
       return;
     }
-    mTransparentSurfaceLayer = surfaceLayer;
-    rebuildView();
-  }
-
-  private void rebuildView() {
-    Context ctx = getContext();
     if (mView != null) {
       removeView(mView);
     }
-    if (mTransparent) {
-      mView = mTransparentSurfaceLayer
-        ? new WebGPUSurfaceView(ctx, this, true)
-        : new WebGPUTextureView(ctx, this);
-    } else {
-      mView = new WebGPUSurfaceView(ctx, this);
-    }
+    mAppliedTextureView = textureView;
+    mAppliedZOrderOnTop = zOrderOnTop;
+    mAppliedTranslucent = translucent;
+    Context ctx = getContext();
+    mView = textureView
+      ? new WebGPUTextureView(ctx, this)
+      : new WebGPUSurfaceView(ctx, this, zOrderOnTop, translucent);
     addView(mView);
+    // Fabric may not send another layout when only rendering props change.
+    mView.layout(0, 0, getMeasuredWidth(), getMeasuredHeight());
   }
 
   @Override
   protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
     super.onLayout(changed, left, top, right, bottom);
-    mView.layout(0, 0, this.getMeasuredWidth(), this.getMeasuredHeight());
+    if (mView != null) {
+      mView.layout(0, 0, getMeasuredWidth(), getMeasuredHeight());
+    }
   }
 
   @Override

@@ -43,7 +43,7 @@ const tests = [
   },
   {
     screen: "TransparencyMode",
-    title: "⚠️ Android Transparency Mode",
+    title: "⚠️ Android View Props",
   },
 ] as const;
 

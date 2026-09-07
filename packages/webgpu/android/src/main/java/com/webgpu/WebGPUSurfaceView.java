@@ -14,18 +14,14 @@ public class WebGPUSurfaceView extends SurfaceView implements SurfaceHolder.Call
   WebGPUAPI mApi;
 
   public WebGPUSurfaceView(Context context, WebGPUAPI api) {
-    this(context, api, false);
+    this(context, api, false, false);
   }
 
-  public WebGPUSurfaceView(Context context, WebGPUAPI api, boolean transparent) {
+  public WebGPUSurfaceView(Context context, WebGPUAPI api, boolean zOrderOnTop, boolean translucent) {
     super(context);
     mApi = api;
-    if (transparent) {
-      // Own SurfaceFlinger layer, so frames skip the app's HWUI renderer. The
-      // cost is that this layer sits above every other view in the window.
-      setZOrderOnTop(true);
-      getHolder().setFormat(PixelFormat.TRANSLUCENT);
-    }
+    setZOrderOnTop(zOrderOnTop);
+    getHolder().setFormat(translucent ? PixelFormat.TRANSLUCENT : PixelFormat.OPAQUE);
     getHolder().addCallback(this);
   }
 

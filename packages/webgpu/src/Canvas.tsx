@@ -45,20 +45,46 @@ export interface CanvasRef {
   getNativeSurface: () => NativeCanvas;
 }
 
-interface CanvasProps extends ViewProps {
+export interface SurfaceViewProps {
+  view: "SurfaceView";
+  /** Draw above all React Native views in the window. Defaults to false. */
+  zOrderOnTop?: boolean;
+  /** Use a translucent surface pixel format. Defaults to false. */
+  translucent?: boolean;
+}
+
+export interface TextureViewProps {
+  view: "TextureView";
+  zOrderOnTop?: never;
+  translucent?: never;
+}
+
+export type AndroidViewProps = SurfaceViewProps | TextureViewProps;
+
+interface DefaultViewProps {
+  view?: undefined;
+  zOrderOnTop?: never;
+  translucent?: never;
+}
+
+interface BaseCanvasProps extends ViewProps {
   transparent?: boolean;
-  // Android only, and ignored unless `transparent` is set. "texture"
-  // (default) draws through a TextureView and stacks like any other view.
-  // "surface-overlay" gives the canvas its own translucent SurfaceFlinger
-  // layer, which skips a composition pass but draws above every React Native
-  // view in the window, so nothing can be layered on top of it.
-  androidTransparencyMode?: "texture" | "surface-overlay";
   ref?: React.Ref<CanvasRef>;
 }
 
+/**
+ * Android view options are passed directly to Canvas. An explicit `view`
+ * overrides `transparent`; otherwise transparent canvases use TextureView
+ * and opaque canvases use SurfaceView. Ignored on iOS and web.
+ */
+export type CanvasProps = BaseCanvasProps &
+  (AndroidViewProps | DefaultViewProps);
+
 export const Canvas = ({
   transparent,
-  androidTransparencyMode,
+  view,
+  zOrderOnTop,
+  translucent,
   ref,
   ...props
 }: CanvasProps) => {
@@ -88,11 +114,11 @@ export const Canvas = ({
       }
       // getBoundingClientRect became stable in RN 0.83
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const view = viewRef.current as any;
+      const nativeView = viewRef.current as any;
       const size =
-        "getBoundingClientRect" in view
-          ? view.getBoundingClientRect()
-          : view.unstable_getBoundingClientRect();
+        "getBoundingClientRect" in nativeView
+          ? nativeView.getBoundingClientRect()
+          : nativeView.unstable_getBoundingClientRect();
       return RNWebGPU.MakeWebGPUCanvasContext(
         contextId,
         size.width,
@@ -107,7 +133,9 @@ export const Canvas = ({
         style={{ flex: 1 }}
         contextId={contextId}
         transparent={!!transparent}
-        androidTransparencyMode={androidTransparencyMode}
+        androidView={view ?? "auto"}
+        androidZOrderOnTop={view === "SurfaceView" && !!zOrderOnTop}
+        androidTranslucent={view === "SurfaceView" && !!translucent}
       />
     </View>
   );

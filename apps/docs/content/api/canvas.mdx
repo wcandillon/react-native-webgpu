@@ -10,6 +10,9 @@ description: Rendering pixels on-screen
 | Prop | Type | Description |
 | ---- | ---- | ----------- |
 | `transparent` | `boolean` | When true, the canvas background is transparent for compositing over RN views |
+| `view` | `"SurfaceView" \| "TextureView"` | Android backing view; overrides the selection made by `transparent` |
+| `zOrderOnTop` | `boolean` | SurfaceView only; draws above React Native views. Defaults to `false` |
+| `translucent` | `boolean` | SurfaceView only; enables pixel alpha. Defaults to `false` |
 | `...ViewProps` | `ViewProps` | All standard React Native View props (`style`, `onLayout`, etc.) |
 
 ## Usage
@@ -175,7 +178,47 @@ To render the canvas over the React Native views beneath it, you control transpa
 
 The [Usage](#usage) example above wires up both: the `transparent` prop, `alphaMode: "premultiplied"`, and a `clearValue` of `[0, 0, 0, 0]`.
 
-**Platform note:** on Android the `alphaMode` passed to `configure()` is ignored, so the `transparent` prop is what actually gives you a transparent canvas there. On iOS the two work together. Setting the `transparent` prop together with `alphaMode: "premultiplied"` and an alpha-`0` clear color gives you the same result on both platforms.
+**Platform note:** on Android the `alphaMode` passed to `configure()` is ignored, so the Android backing view controls surface transparency. By default, `transparent` selects a `TextureView`; an explicit `view` overrides this selection. On iOS the two work together. Setting the `transparent` prop together with `alphaMode: "premultiplied"` and an alpha-`0` clear color gives you the same result on both platforms.
+
+### Android rendering options
+
+Without `view`, an opaque canvas uses `SurfaceView`, and a canvas
+with `transparent` uses `TextureView`. `TextureView` participates in normal React
+Native view stacking, but adds a texture composition pass.
+
+`view` explicitly selects the backing view, overriding the choice
+made by `transparent`:
+
+```tsx
+<Canvas view="TextureView" />
+<Canvas view="SurfaceView" />
+```
+
+The exported `AndroidViewProps` type is a discriminated union of
+`SurfaceViewProps` and `TextureViewProps`, combined with the common Canvas props.
+Pass these props directly on `<Canvas>`. Only `view="SurfaceView"` accepts these
+optional settings, both defaulting to `false`:
+
+| Option | Android setting | Effect |
+| --- | --- | --- |
+| `zOrderOnTop` | `setZOrderOnTop` | Places the surface above all React Native views in its window |
+| `translucent` | `PixelFormat.TRANSLUCENT` instead of `PixelFormat.OPAQUE` | Allows the surface compositor to use pixel alpha |
+
+To render a transparent SurfaceView above React Native content without the
+TextureView composition pass, enable both `zOrderOnTop` and `translucent`:
+
+```tsx
+<Canvas
+  transparent
+  view="SurfaceView"
+  zOrderOnTop
+  translucent
+/>
+```
+
+This draws above all React Native views in the window, including navigation
+screens, regardless of `zIndex`. Use
+`TextureView` if the canvas needs to sit between React Native views.
 
 ## See also
 

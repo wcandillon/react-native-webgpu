@@ -1,7 +1,6 @@
 package com.webgpu;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.uimanager.ThemedReactContext;
@@ -37,9 +36,27 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
   }
 
   @Override
-  @ReactProp(name = "androidTransparencyMode")
-  public void setAndroidTransparencyMode(WebGPUView view, String value) {
-    view.setTransparencyMode(value);
+  @ReactProp(name = "androidView")
+  public void setAndroidView(WebGPUView view, String value) {
+    view.setAndroidView(value);
+  }
+
+  @Override
+  @ReactProp(name = "androidZOrderOnTop")
+  public void setAndroidZOrderOnTop(WebGPUView view, boolean value) {
+    view.setZOrderOnTop(value);
+  }
+
+  @Override
+  @ReactProp(name = "androidTranslucent")
+  public void setAndroidTranslucent(WebGPUView view, boolean value) {
+    view.setTranslucent(value);
+  }
+
+  @Override
+  protected void onAfterUpdateTransaction(@NonNull WebGPUView view) {
+    super.onAfterUpdateTransaction(view);
+    view.updateView();
   }
 
   @Override
