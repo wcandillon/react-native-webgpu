@@ -150,9 +150,8 @@ std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
 }
 
 void GPUDevice::destroy() {
-  // Detach every swapchain bound to this device before destroying it, so the
-  // native surface teardown does not dereference a freed FencedDeleter (a
-  // SIGSEGV on the Vulkan backend when a Canvas unmounts).
+  // Drop the swapchains bound to this device while it can still detach them;
+  // see SurfaceInfo::unconfigureIfDevice for the Dawn Vulkan bug behind it.
   rnwgpu::SurfaceRegistry::getInstance().unconfigureDevice(_instance);
   _instance.Destroy();
   notifyDeviceLost(wgpu::DeviceLostReason::Destroyed, "device was destroyed");

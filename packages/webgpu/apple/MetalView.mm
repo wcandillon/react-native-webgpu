@@ -33,13 +33,20 @@
   void *nativeSurface = (void *)CFBridgingRetain(self.layer);
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto gpu = manager->_gpu;
-  auto surface = manager->_platformContext->makeSurface(
-      gpu, nativeSurface, size.width, size.height);
+  // SurfaceInfo creates the Dawn surface now and keeps the factory so it can
+  // rebuild one for the same layer later (device destroyed, then the canvas
+  // reconfigured with a replacement device).
+  auto platformContext = manager->_platformContext;
+  int width = size.width;
+  int height = size.height;
+  auto makeSurface = [platformContext, gpu, width, height](void *layer) {
+    return platformContext->makeSurface(gpu, layer, width, height);
+  };
   // Find-or-create + attach runs atomically under the registry lock so a
   // concurrent destroyContext cannot orphan this surface.
   auto info = registry.attachSurface(
       [_contextId intValue], gpu, size.width, size.height, nativeSurface,
-      surface, [](void *layer) {
+      makeSurface, [](void *layer) {
         // The releaser can run on the rendering thread; CALayer teardown
         // belongs on the main thread.
         dispatch_async(dispatch_get_main_queue(), ^{
