@@ -34,6 +34,7 @@ export const drawClearFrame = (
   device: GPUDevice,
   context: RNCanvasContext,
   frame: number,
+  clearValue?: GPUColor,
 ) => {
   const texture = context.getCurrentTexture();
   const view = texture.createView();
@@ -43,7 +44,7 @@ export const drawClearFrame = (
     colorAttachments: [
       {
         view,
-        clearValue: [
+        clearValue: clearValue ?? [
           0.5 + 0.5 * Math.sin(t),
           0.5 + 0.5 * Math.sin(t + 2.1),
           0.5 + 0.5 * Math.sin(t + 4.2),

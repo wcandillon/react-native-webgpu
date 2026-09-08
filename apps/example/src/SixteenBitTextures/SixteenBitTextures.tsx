@@ -164,11 +164,11 @@ export function SixteenBitTextures() {
   return (
     <View style={style.container}>
       <View style={style.column}>
-        <Canvas ref={ref8bit} style={style.webgpu} transparent={false} />
+        <Canvas ref={ref8bit} style={style.webgpu} />
         <Text style={style.label}>8-bit</Text>
       </View>
       <View style={style.column}>
-        <Canvas ref={ref16bit} style={style.webgpu} transparent={false} />
+        <Canvas ref={ref16bit} style={style.webgpu} />
         <Text style={style.label}>{deepLabel}</Text>
       </View>
     </View>
