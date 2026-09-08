@@ -36,10 +36,9 @@ public:
 
   /**
    * Applies a surface attach latched by the platform UI thread (see
-   * SurfaceInfo::applyPendingAttach) from the JS thread. Surface attaches are
-   * normally adopted at the next frame boundary by whichever thread renders;
-   * this flush covers contexts that are not actively rendering (static
-   * content), so the last offscreen frame still makes it on screen.
+   * SurfaceInfo::applyPendingAttach). Apple runs the transition on main;
+   * other platforms use the JS CallInvoker. This covers contexts that are not
+   * actively rendering, so the last offscreen frame still reaches the screen.
    */
   void flushPendingSurfaceTransition(std::shared_ptr<SurfaceInfo> info);
 
