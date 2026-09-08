@@ -118,6 +118,39 @@ describe("Device", () => {
     expect(["unknown", "destroyed"].includes(result.reason)).toBe(true);
   });
 
+  it("keeps a canvas configured after its device is destroyed", async () => {
+    // Per spec, destroying the device does not unconfigure the canvas: a
+    // render loop that ticks once more gets an invalid texture, not an
+    // InvalidStateError, and configure() with another device recovers.
+    const result = await client.eval(({ gpu, device, ctx }) =>
+      gpu
+        .requestAdapter()
+        .then((adapter) => adapter!.requestDevice())
+        .then((doomed) => {
+          const format = navigator.gpu.getPreferredCanvasFormat();
+          ctx.configure({ device: doomed, format, alphaMode: "premultiplied" });
+          ctx.getCurrentTexture();
+          doomed.destroy();
+          let threwAfterDestroy = false;
+          try {
+            ctx.getCurrentTexture();
+          } catch {
+            threwAfterDestroy = true;
+          }
+          ctx.configure({ device, format, alphaMode: "premultiplied" });
+          const texture = ctx.getCurrentTexture();
+          return {
+            threwAfterDestroy,
+            width: texture.width,
+            height: texture.height,
+          };
+        }),
+    );
+    expect(result.threwAfterDestroy).toBe(false);
+    expect(result.width).toBe(1024);
+    expect(result.height).toBe(1024);
+  });
+
   it("times out device.lost if the device has not been destroyed", async () => {
     const isDeviceLost = await client.eval(({ device }) => {
       const timeout = new Promise((resolve) => {

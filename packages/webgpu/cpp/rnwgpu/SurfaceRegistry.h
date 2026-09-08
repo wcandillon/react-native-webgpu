@@ -44,6 +44,12 @@ struct Size {
 // CAMetalLayer on Apple platforms). May run on any thread.
 using NativeSurfaceReleaser = std::function<void(void *)>;
 
+// Creates a Dawn surface for the platform's native surface pointer. Kept for
+// as long as the native surface is attached so the Dawn surface can be
+// rebuilt after it had to be dropped (see unconfigureIfDevice). May run on
+// the UI thread (attach) or the rendering thread (configure).
+using SurfaceFactory = std::function<wgpu::Surface(void *)>;
+
 // Bridges the asynchronous native surface lifecycle (surfaces appear and
 // disappear on the platform UI thread) with the synchronous WebGPU canvas API
 // (the JS render loop must always be able to acquire a texture).
@@ -81,6 +87,7 @@ public:
   ~SurfaceInfo() {
     // Drop the Dawn objects before releasing the native surfaces they borrow.
     _surface = nullptr;
+    _surfaceDevice = nullptr;
     _pendingSurface = nullptr;
     _texture = nullptr;
     if (_pendingReleaser && _pendingNativeSurface) {
@@ -97,8 +104,11 @@ public:
   // frame boundary (applyPendingAttach); callers should follow up with
   // RNWebGPUManager::flushPendingSurfaceTransition so contexts that are not
   // currently rendering also pick it up.
-  void attachSurface(void *nativeSurface, wgpu::Surface surface,
+  void attachSurface(void *nativeSurface, SurfaceFactory makeSurface,
                      NativeSurfaceReleaser releaser) {
+    // Dawn surface creation only wraps the native handle (the swapchain is
+    // created at Configure), so it is cheap enough to do eagerly here.
+    wgpu::Surface surface = makeSurface ? makeSurface(nativeSurface) : nullptr;
     void *replacedSurface = nullptr;
     NativeSurfaceReleaser replacedReleaser;
     {
@@ -111,6 +121,7 @@ public:
       _hasPendingAttach = true;
       _pendingNativeSurface = nativeSurface;
       _pendingSurface = std::move(surface);
+      _pendingSurfaceFactory = std::move(makeSurface);
       _pendingReleaser = std::move(releaser);
     }
     if (replacedReleaser && replacedSurface) {
@@ -169,7 +180,11 @@ public:
       // can be null if surface creation failed).
       replacedSurface = _nativeSurface;
       replacedReleaser = std::move(_releaser);
+      // Dropping the previous Dawn surface (if any) detaches its swapchain;
+      // _surfaceDevice kept that device alive for exactly this.
       _surface = std::move(_pendingSurface);
+      _surfaceDevice = nullptr;
+      _surfaceFactory = std::move(_pendingSurfaceFactory);
       _nativeSurface = _pendingNativeSurface;
       _releaser = std::move(_pendingReleaser);
       _hasPendingAttach = false;
@@ -187,10 +202,7 @@ public:
         if (blit) {
           config.usage |= wgpu::TextureUsage::CopyDst;
         }
-        _surface.Configure(&config);
-#ifdef __APPLE__
-        applyCAMetalLayerColorSpace(_nativeSurface, _config.format);
-#endif
+        configureSurfaceLocked(config);
         if (blit) {
           presentBlit = blitOffscreenToSurfaceLocked();
           device = _config.device;
@@ -242,6 +254,14 @@ public:
     _config.presentMode = wgpu::PresentMode::Fifo;
     _texture = nullptr;
     _frameEpoch++;
+    // The Dawn surface is dropped when its device is destroyed
+    // (unconfigureIfDevice) while the native window stays attached; a
+    // configure() with a replacement device is the standard recovery, so
+    // rebuild it here rather than rendering offscreen until the next attach.
+    if (!_surface && _nativeSurface && _surfaceFactory) {
+      _surface = _surfaceFactory(_nativeSurface);
+      _surfaceDevice = nullptr;
+    }
     _configureLocked();
   }
 
@@ -270,27 +290,36 @@ public:
     _frameEpoch++;
   }
 
-  // Detach this surface's swapchain when it is bound to `device`, called from
-  // GPUDevice::destroy() before the device is torn down. Releasing the Dawn
-  // surface here runs ~Surface -> SwapChain::DetachFromSurface while the
-  // device still owns its FencedDeleter. Left to the native view teardown
-  // (SurfaceInfo::detach, one frame later) the device is already destroyed and
-  // Dawn dereferences a freed FencedDeleter -> SIGSEGV on the Vulkan backend.
-  // The native window pointer stays in _nativeSurface so detach() still
-  // returns it to the platform.
+  // Called by GPUDevice::destroy() for every canvas before the device is torn
+  // down. Workaround for a Dawn Vulkan bug: SwapChainVk::DetachFromSurfaceImpl
+  // (SwapChainVk.cpp) dereferences the device's FencedDeleter, which
+  // DeviceVk::DestroyImpl has already nulled, so a ~Surface that runs after
+  // the device was destroyed (the native view teardown in detach(), or the
+  // Canvas unmount one frame later) SIGSEGVs. Metal only destroys the
+  // drawable texture and tolerates the order. Invariant this maintains: no
+  // Dawn surface carries a swapchain bound to `device` once destroy() runs.
+  // Removable once Dawn guards DetachFromSurfaceImpl against a destroyed
+  // device.
+  //
+  // The match is on _surfaceDevice, not only on _config.device: unconfigure()
+  // does not detach the swapchain, Dawn parks it in the surface for reuse by
+  // the next Configure (Surface::Unconfigure), so the spec-idiomatic
+  // `context.unconfigure(); device.destroy();` order leaves a swapchain bound
+  // to the destroyed device behind an unconfigured canvas.
+  //
+  // _config is kept: per spec a canvas whose device was destroyed stays
+  // configured and hands out invalid textures, so a render loop that ticks
+  // once more after destroy() no-ops instead of throwing "not configured".
+  // The native window and its factory stay too, so configure() with a
+  // replacement device rebuilds the surface.
   void unconfigureIfDevice(const wgpu::Device &device) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    if (_config.device == nullptr || _config.device.Get() != device.Get()) {
+    if (!isDeviceLocked(_config.device, device) &&
+        !isDeviceLocked(_surfaceDevice, device)) {
       return;
     }
-    if (_surface) {
-      _surface.Unconfigure();
-      _surface = nullptr;
-      _acquiredFromSurface = false;
-    }
+    dropSurfaceLocked();
     _texture = nullptr;
-    _config = {};
-    _viewFormats.clear();
     _frameEpoch++;
   }
 
@@ -403,20 +432,16 @@ private:
         releasers[0] = std::move(_pendingReleaser);
         _pendingNativeSurface = nullptr;
       }
-      if (_surface) {
-        if (createFallbackTexture && _config.device != nullptr) {
-          _texture = createOffscreenTextureLocked();
-        }
-        _surface = nullptr;
-        // The in-flight frame (if any) rendered into the destroyed surface;
-        // presentFrame() must not present it.
-        _acquiredFromSurface = false;
+      if (_surface && createFallbackTexture && _config.device != nullptr) {
+        _texture = createOffscreenTextureLocked();
       }
+      dropSurfaceLocked();
       _frameEpoch++;
       // Window ownership is independent of the Dawn surface handle (which can
       // be null if surface creation failed): always return the window.
       releasedSurfaces[1] = _nativeSurface;
       releasers[1] = std::move(_releaser);
+      _surfaceFactory = nullptr;
       _nativeSurface = nullptr;
     }
     // Release outside the lock: the platform may do real work here.
@@ -428,6 +453,32 @@ private:
   }
 
   // All *Locked helpers below require _mutex to be held exclusively.
+
+  static bool isDeviceLocked(const wgpu::Device &held,
+                             const wgpu::Device &device) {
+    return held != nullptr && held.Get() == device.Get();
+  }
+
+  // Release the Dawn surface. ~Surface detaches its swapchain (live or
+  // recycled), which needs that swapchain's device alive: _surfaceDevice
+  // guarantees it and is released only afterwards.
+  void dropSurfaceLocked() {
+    _surface = nullptr;
+    _surfaceDevice = nullptr;
+    // The in-flight frame (if any) rendered into the dropped surface;
+    // presentFrame() must not present it.
+    _acquiredFromSurface = false;
+  }
+
+  // Every Surface::Configure goes through here so _surfaceDevice tracks the
+  // device whose swapchain the surface holds (see unconfigureIfDevice).
+  void configureSurfaceLocked(const wgpu::SurfaceConfiguration &config) {
+    _surfaceDevice = config.device;
+    _surface.Configure(&config);
+#ifdef __APPLE__
+    applyCAMetalLayerColorSpace(_nativeSurface, config.format);
+#endif
+  }
 
   wgpu::Texture createOffscreenTextureLocked() {
     wgpu::TextureDescriptor descriptor;
@@ -456,7 +507,7 @@ private:
           wgpu::SurfaceGetCurrentTextureStatus::Error) {
         return nullptr;
       }
-      _surface.Configure(&_config);
+      configureSurfaceLocked(_config);
       _surface.GetCurrentTexture(&surfaceTexture);
       if (!isAcquireSuccess(surfaceTexture)) {
         return nullptr;
@@ -504,10 +555,7 @@ private:
 
   void _configureLocked() {
     if (_surface) {
-      _surface.Configure(&_config);
-#ifdef __APPLE__
-      applyCAMetalLayerColorSpace(_nativeSurface, _config.format);
-#endif
+      configureSurfaceLocked(_config);
     } else {
       _texture = createOffscreenTextureLocked();
     }
@@ -517,6 +565,12 @@ private:
   // Attached on-screen surface (null while offscreen).
   void *_nativeSurface = nullptr;
   wgpu::Surface _surface = nullptr;
+  // The device passed to the most recent Configure of _surface: the one its
+  // swapchain (live, or recycled by Unconfigure) is bound to. Holding the ref
+  // also keeps that device from being auto-destroyed when JS drops its last
+  // reference while the swapchain still exists. Null when _surface is null.
+  wgpu::Device _surfaceDevice = nullptr;
+  SurfaceFactory _surfaceFactory;
   NativeSurfaceReleaser _releaser;
   // Offscreen fallback drawing buffer.
   wgpu::Texture _texture = nullptr;
@@ -524,6 +578,7 @@ private:
   bool _hasPendingAttach = false;
   void *_pendingNativeSurface = nullptr;
   wgpu::Surface _pendingSurface = nullptr;
+  SurfaceFactory _pendingSurfaceFactory;
   NativeSurfaceReleaser _pendingReleaser;
   // Frame state: set by getCurrentTexture, cleared by presentFrame.
   bool _frameInFlight = false;
@@ -583,11 +638,12 @@ public:
   std::shared_ptr<SurfaceInfo> attachSurface(int id, wgpu::Instance gpu,
                                              int width, int height,
                                              void *nativeSurface,
-                                             wgpu::Surface surface,
+                                             SurfaceFactory makeSurface,
                                              NativeSurfaceReleaser releaser) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     auto info = getSurfaceInfoOrCreateLocked(id, gpu, width, height);
-    info->attachSurface(nativeSurface, std::move(surface), std::move(releaser));
+    info->attachSurface(nativeSurface, std::move(makeSurface),
+                        std::move(releaser));
     return info;
   }
 
@@ -611,12 +667,23 @@ public:
     _registry.clear();
   }
 
-  // Detach every surface configured with `device` before it is destroyed.
-  // Lock order is registry -> SurfaceInfo, matching every other path.
+  // Drop every Dawn surface holding a swapchain bound to `device` before it
+  // is destroyed; see SurfaceInfo::unconfigureIfDevice for why. Entries are
+  // snapshotted under the registry lock and visited outside it: a
+  // SurfaceInfo lock can be held across a frame acquire/present on its
+  // rendering thread, and waiting on that must not stall the UI thread's
+  // attach/remove paths. Lock order stays registry -> SurfaceInfo.
   void unconfigureDevice(const wgpu::Device &device) {
-    std::shared_lock<std::shared_mutex> lock(_mutex);
-    for (auto &entry : _registry) {
-      entry.second->unconfigureIfDevice(device);
+    std::vector<std::shared_ptr<SurfaceInfo>> infos;
+    {
+      std::shared_lock<std::shared_mutex> lock(_mutex);
+      infos.reserve(_registry.size());
+      for (auto &entry : _registry) {
+        infos.push_back(entry.second);
+      }
+    }
+    for (auto &info : infos) {
+      info->unconfigureIfDevice(device);
     }
   }
 

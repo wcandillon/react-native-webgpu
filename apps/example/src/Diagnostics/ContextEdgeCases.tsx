@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { Button, ScrollView, Text, View } from "react-native";
 import type { CanvasRef } from "react-native-webgpu";
 import { Canvas } from "react-native-webgpu";
@@ -29,11 +29,57 @@ import {
 //    the context keeps handing out textures as if still configured, where the
 //    spec says the canvas should behave as if it was never configured.
 //
+// 4. device.destroy() on the device a mounted Canvas is configured with.
+//    Dawn's Vulkan backend cannot detach a swapchain after its device was
+//    destroyed, so the Canvas unmount crashed on Android. Per spec the canvas
+//    stays configured (getCurrentTexture() must not throw) and configure()
+//    with a replacement device must render on screen again; the unmount
+//    toggle then checks the swapchain teardown. "unconfigure() first" covers
+//    the idiomatic cleanup order, where Dawn parks the old swapchain in the
+//    surface for reuse instead of detaching it.
+//
 // Each button is an independent repro; on a broken build the first two
 // terminate the app, so relaunch between attempts.
 export const ContextEdgeCases = () => {
   const ref = useRef<CanvasRef>(null);
   const { log, append } = useDiagnosticLog();
+  const [mounted, setMounted] = useState(true);
+
+  const destroyDevice = async (unconfigureFirst: boolean) => {
+    try {
+      const { device, format } = await initGPU(append);
+      const ctx = ref.current!.getContext("webgpu")!;
+      ctx.configure({ device, format, alphaMode: "opaque" });
+      drawClearFrame(device, ctx, 0);
+      if (unconfigureFirst) {
+        append("rendered one frame, calling unconfigure()...");
+        ctx.unconfigure();
+      } else {
+        append("rendered one frame");
+      }
+      append("calling device.destroy()...");
+      device.destroy();
+      if (!unconfigureFirst) {
+        const texture = ctx.getCurrentTexture();
+        append(
+          `getCurrentTexture() after destroy() -> ${texture.width}x${texture.height} (spec: invalid texture, no throw)`,
+        );
+        ctx.present();
+      }
+      const replacement = await initGPU(append);
+      ctx.configure({
+        device: replacement.device,
+        format: replacement.format,
+        alphaMode: "opaque",
+      });
+      drawClearFrame(replacement.device, ctx, 30);
+      append(
+        "reconfigured with a new device and rendered: the canvas should show a new color. Now unmount the canvas.",
+      );
+    } catch (e) {
+      append(`threw: ${e}`);
+    }
+  };
 
   const getCurrentTextureUnconfigured = () => {
     try {
@@ -99,8 +145,20 @@ export const ContextEdgeCases = () => {
           title="unconfigure() then getCurrentTexture()"
           onPress={unconfigureStub}
         />
+        <Button
+          title="device.destroy() then reconfigure"
+          onPress={() => destroyDevice(false)}
+        />
+        <Button
+          title="unconfigure(), device.destroy(), reconfigure"
+          onPress={() => destroyDevice(true)}
+        />
+        <Button
+          title={mounted ? "unmount canvas" : "mount canvas"}
+          onPress={() => setMounted((m) => !m)}
+        />
       </View>
-      <Canvas ref={ref} style={diagnosticStyles.canvas} />
+      {mounted && <Canvas ref={ref} style={diagnosticStyles.canvas} />}
       <ScrollView style={diagnosticStyles.log}>
         {log.map((line, i) => (
           <Text key={i} style={diagnosticStyles.logLine}>

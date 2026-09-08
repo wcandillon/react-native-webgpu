@@ -25,7 +25,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
   auto jsCallInvoker{
       facebook::jni::alias_ref<facebook::react::CallInvokerHolder::javaobject>{
           reinterpret_cast<facebook::react::CallInvokerHolder::javaobject>(
-              jsCallInvokerHolder)} -> cthis()->getCallInvoker()};
+              jsCallInvokerHolder)} -> cthis()
+          ->getCallInvoker()};
   auto platformContext =
       std::make_shared<rnwgpu::AndroidPlatformContext>(globalBlobModule);
   manager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsCallInvoker,
@@ -55,13 +56,19 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
   }
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto gpu = manager->_gpu;
-  auto surface = manager->_platformContext->makeSurface(
-      gpu, window, static_cast<int>(width), static_cast<int>(height));
+  // SurfaceInfo creates the Dawn surface now and keeps the factory so it can
+  // rebuild one for the same window later (device destroyed, then the canvas
+  // reconfigured with a replacement device).
+  auto platformContext = manager->_platformContext;
+  int w = static_cast<int>(width);
+  int h = static_cast<int>(height);
+  auto makeSurface = [platformContext, gpu, w, h](void *nativeWindow) {
+    return platformContext->makeSurface(gpu, nativeWindow, w, h);
+  };
   // Find-or-create + attach runs atomically under the registry lock so a
   // concurrent destroyContext cannot orphan this surface.
   auto info = registry.attachSurface(
-      contextId, gpu, static_cast<int>(width), static_cast<int>(height), window,
-      surface, [](void *nativeSurface) {
+      contextId, gpu, w, h, window, makeSurface, [](void *nativeSurface) {
         ANativeWindow_release(static_cast<ANativeWindow *>(nativeSurface));
       });
   // The attach is adopted at the next frame boundary by the rendering thread;
