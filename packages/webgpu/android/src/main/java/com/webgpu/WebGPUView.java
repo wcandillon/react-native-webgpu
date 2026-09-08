@@ -12,13 +12,11 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
 
   private int mContextId;
-  private boolean mTransparent = false;
-  private String mAndroidSurfaceType = "auto";
+  private boolean mOpaque = true;
+  private String mSurfaceType = "auto";
   private boolean mZOrderOnTop = false;
-  private boolean mTranslucent = false;
   private boolean mAppliedTextureView;
   private boolean mAppliedZOrderOnTop;
-  private boolean mAppliedTranslucent;
   private WebGPUModule mModule;
   private View mView = null;
 
@@ -36,45 +34,50 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     mContextId = contextId;
   }
 
-  public void setTransparent(boolean value) {
-    mTransparent = value;
+  public void setOpaque(boolean value) {
+    mOpaque = value;
   }
 
-  public void setAndroidSurfaceType(String value) {
-    mAndroidSurfaceType = value;
+  public void setSurfaceType(String value) {
+    mSurfaceType = value;
   }
 
   public void setZOrderOnTop(boolean value) {
     mZOrderOnTop = value;
   }
 
-  public void setTranslucent(boolean value) {
-    mTranslucent = value;
+  // Apply the complete prop transaction once, after contextId and all rendering
+  // options have arrived. Only a change of backing view (or of zOrderOnTop,
+  // which a SurfaceView must know before it attaches) replaces the child;
+  // opacity is applied in place.
+  public void updateView() {
+    boolean textureView = "TextureView".equals(mSurfaceType)
+      || (!"SurfaceView".equals(mSurfaceType) && !mOpaque);
+    boolean zOrderOnTop = !textureView && mZOrderOnTop;
+    if (mView == null || textureView != mAppliedTextureView
+        || zOrderOnTop != mAppliedZOrderOnTop) {
+      if (mView != null) {
+        removeView(mView);
+      }
+      mAppliedTextureView = textureView;
+      mAppliedZOrderOnTop = zOrderOnTop;
+      Context ctx = getContext();
+      mView = textureView
+        ? new WebGPUTextureView(ctx, this, mOpaque)
+        : new WebGPUSurfaceView(ctx, this, zOrderOnTop, mOpaque);
+      addView(mView);
+      // ReactViewGroup.requestLayout() is a deliberate no-op, so addView outside
+      // the layout pass never lays the child out; do it by hand or the new view
+      // stays 0x0 and never gets a surface.
+      layoutChild();
+    } else if (textureView) {
+      ((WebGPUTextureView) mView).setOpaque(mOpaque);
+    } else {
+      ((WebGPUSurfaceView) mView).setOpaque(mOpaque);
+    }
   }
 
-  // Apply the complete prop transaction once, after contextId and all rendering
-  // options have arrived. Avoid replacing the surface for unrelated updates.
-  public void updateView() {
-    boolean textureView = "TextureView".equals(mAndroidSurfaceType)
-      || (!"SurfaceView".equals(mAndroidSurfaceType) && mTransparent);
-    boolean zOrderOnTop = !textureView && mZOrderOnTop;
-    boolean translucent = !textureView && mTranslucent;
-    if (mView != null && textureView == mAppliedTextureView
-        && zOrderOnTop == mAppliedZOrderOnTop && translucent == mAppliedTranslucent) {
-      return;
-    }
-    if (mView != null) {
-      removeView(mView);
-    }
-    mAppliedTextureView = textureView;
-    mAppliedZOrderOnTop = zOrderOnTop;
-    mAppliedTranslucent = translucent;
-    Context ctx = getContext();
-    mView = textureView
-      ? new WebGPUTextureView(ctx, this)
-      : new WebGPUSurfaceView(ctx, this, zOrderOnTop, translucent);
-    addView(mView);
-    // Fabric may not send another layout when only rendering props change.
+  private void layoutChild() {
     mView.layout(0, 0, getMeasuredWidth(), getMeasuredHeight());
   }
 
@@ -82,7 +85,7 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
     super.onLayout(changed, left, top, right, bottom);
     if (mView != null) {
-      mView.layout(0, 0, getMeasuredWidth(), getMeasuredHeight());
+      layoutChild();
     }
   }
 

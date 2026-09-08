@@ -16,7 +16,7 @@ import {
 // CAMetalLayer alive in the background).
 //
 // On a broken build the two Android view flavors fail differently:
-// - transparent (TextureView): onSurfaceTextureDestroyed removes the surface
+// - non-opaque (TextureView): onSurfaceTextureDestroyed removes the surface
 //   registry entry entirely. The resumed view registers a fresh entry the JS
 //   context has never seen, so the canvas stays black forever (and the
 //   context renders into the orphaned surface on a destroyed window).
@@ -31,7 +31,7 @@ import {
 export const BackgroundDetach = () => {
   const ref = useRef<CanvasRef>(null);
   const { log, append } = useDiagnosticLog();
-  const [transparent, setTransparent] = useState(true);
+  const [opaque, setOpaque] = useState(false);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
@@ -76,21 +76,17 @@ export const BackgroundDetach = () => {
       <View style={diagnosticStyles.controls}>
         <Text style={diagnosticStyles.description}>
           Background the app and return: the animated gradient must resume. On a
-          broken build the transparent canvas stays black forever (Android), and
+          broken build the non-opaque canvas stays black forever (Android), and
           the opaque one logs a validation error on resume.
         </Text>
         <View style={styles.row}>
           <Text style={diagnosticStyles.description}>
-            transparent (TextureView on Android)
+            opaque (SurfaceView on Android)
           </Text>
-          <Switch value={transparent} onValueChange={setTransparent} />
+          <Switch value={opaque} onValueChange={setOpaque} />
         </View>
       </View>
-      <Canvas
-        ref={ref}
-        style={diagnosticStyles.canvas}
-        transparent={transparent}
-      />
+      <Canvas ref={ref} style={diagnosticStyles.canvas} opaque={opaque} />
       <ScrollView style={diagnosticStyles.log}>
         {log.map((line, i) => (
           <Text key={i} style={diagnosticStyles.logLine}>

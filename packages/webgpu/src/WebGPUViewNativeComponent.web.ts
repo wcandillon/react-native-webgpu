@@ -7,10 +7,9 @@ import { contextIdToId } from "./utils";
 
 export interface NativeProps extends ViewProps {
   contextId: Int32;
-  transparent: boolean;
+  opaque?: boolean;
   androidSurfaceType?: "auto" | "SurfaceView" | "TextureView";
   androidZOrderOnTop?: boolean;
-  androidTranslucent?: boolean;
 }
 
 // eslint-disable-next-line import/no-default-export
@@ -20,10 +19,9 @@ export default function WebGPUViewNativeComponent(
   const {
     contextId,
     style,
-    transparent,
+    opaque = true,
     androidSurfaceType: _androidSurfaceType,
     androidZOrderOnTop: _androidZOrderOnTop,
-    androidTranslucent: _androidTranslucent,
     ...rest
   } = props;
 
@@ -36,7 +34,7 @@ export default function WebGPUViewNativeComponent(
     style: {
       ...styles.view,
       ...styles.flex1,
-      ...(transparent === false ? { backgroundColor: "white" } : {}),
+      ...(opaque ? { backgroundColor: "white" } : {}),
       ...(typeof style === "object" ? style : {}),
     },
   });

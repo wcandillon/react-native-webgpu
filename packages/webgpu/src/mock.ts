@@ -2,9 +2,8 @@
 import React from "react";
 import type { ReactNode } from "react";
 import { View } from "react-native";
-import type { ViewProps } from "react-native";
 
-import type { NativeCanvas, RNCanvasContext } from "./Canvas";
+import type { CanvasProps, NativeCanvas, RNCanvasContext } from "./Canvas";
 
 // Jest mock for `react-native-webgpu`.
 //
@@ -23,15 +22,19 @@ export * from "./formats";
 const NOT_AVAILABLE_UNDER_JEST =
   "is not available under Jest - react-native-webgpu has no native implementation in tests (see react-native-webgpu/jestSetup.js)";
 
-export type { CanvasRef, NativeCanvas, RNCanvasContext } from "./Canvas";
+export type {
+  AndroidCanvasProps,
+  AndroidSurfaceType,
+  CanvasProps,
+  CanvasRef,
+  NativeCanvas,
+  RNCanvasContext,
+} from "./Canvas";
 
-interface CanvasProps extends ViewProps {
-  transparent?: boolean;
-  ref?: React.Ref<unknown>;
-}
-
+// Strip the same props the real Canvas keeps off its outer View.
 export const Canvas = ({
-  transparent: _transparent,
+  opaque: _opaque,
+  android: _android,
   ref,
   ...props
 }: CanvasProps) => {

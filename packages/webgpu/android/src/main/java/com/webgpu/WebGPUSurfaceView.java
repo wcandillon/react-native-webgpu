@@ -13,16 +13,18 @@ public class WebGPUSurfaceView extends SurfaceView implements SurfaceHolder.Call
 
   WebGPUAPI mApi;
 
-  public WebGPUSurfaceView(Context context, WebGPUAPI api) {
-    this(context, api, false, false);
-  }
-
-  public WebGPUSurfaceView(Context context, WebGPUAPI api, boolean zOrderOnTop, boolean translucent) {
+  public WebGPUSurfaceView(Context context, WebGPUAPI api, boolean zOrderOnTop, boolean opaque) {
     super(context);
     mApi = api;
     setZOrderOnTop(zOrderOnTop);
-    getHolder().setFormat(translucent ? PixelFormat.TRANSLUCENT : PixelFormat.OPAQUE);
+    setOpaque(opaque);
     getHolder().addCallback(this);
+  }
+
+  // The format drives the compositor's opaque flag for this layer. It can
+  // change on a live surface: SurfaceView reports it through surfaceChanged.
+  public void setOpaque(boolean opaque) {
+    getHolder().setFormat(opaque ? PixelFormat.OPAQUE : PixelFormat.TRANSLUCENT);
   }
 
   @Override

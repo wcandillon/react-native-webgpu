@@ -1,125 +1,122 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Button, Pressable, StyleSheet, Text, View } from "react-native";
-import type {
-  AndroidViewProps,
-  CanvasProps,
-  CanvasRef,
-} from "react-native-webgpu";
-import { Canvas, useDevice } from "react-native-webgpu";
+import {
+  Button,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import type { AndroidCanvasProps, CanvasRef } from "react-native-webgpu";
+import { Canvas } from "react-native-webgpu";
 
-const OPTIONS: { label: string; props?: AndroidViewProps }[] = [
-  { label: "default" },
-  { label: "texture", props: { androidSurfaceType: "TextureView" } },
-  { label: "surface", props: { androidSurfaceType: "SurfaceView" } },
+import {
+  diagnosticStyles,
+  drawClearFrame,
+  initGPU,
+  useDiagnosticLog,
+} from "./surfaceLifecycle";
+
+// Exercises every Android backing-view combination on one mounted Canvas:
+// opaque toggles in place, surfaceType/zOrderOnTop replace the child view and
+// blit the last frame across. Half-transparent red is cleared over a blue
+// stage with a yellow RN overlay on top:
+// - opaque: solid red, overlay visible.
+// - non-opaque TextureView (default): pink, overlay visible.
+// - non-opaque SurfaceView: blends against the window background (black),
+//   overlay visible only with zOrderOnTop off (the surface sits below it).
+// - non-opaque SurfaceView + zOrderOnTop: pink, overlay hidden underneath.
+const OPTIONS: { label: string; android?: AndroidCanvasProps }[] = [
+  { label: "auto" },
+  { label: "texture", android: { surfaceType: "TextureView" } },
+  { label: "surface", android: { surfaceType: "SurfaceView" } },
   {
-    label: "on top",
-    props: { androidSurfaceType: "SurfaceView", zOrderOnTop: true },
-  },
-  {
-    label: "translucent",
-    props: { androidSurfaceType: "SurfaceView", translucent: true },
-  },
-  {
-    label: "overlay",
-    props: {
-      androidSurfaceType: "SurfaceView",
-      zOrderOnTop: true,
-      translucent: true,
-    },
+    label: "surface on top",
+    android: { surfaceType: "SurfaceView", zOrderOnTop: true },
   },
 ];
 
-const ClearCanvas = ({
-  device,
-  ...canvasProps
-}: CanvasProps & {
-  device: GPUDevice;
-}) => {
-  const ref = useRef<CanvasRef>(null);
-
-  useEffect(() => {
-    const context = ref.current?.getContext("webgpu");
-    if (!context) {
-      return;
-    }
-    context.configure({
-      device,
-      format: navigator.gpu.getPreferredCanvasFormat(),
-      alphaMode: "premultiplied",
-    });
-    const frame = () => {
-      const encoder = device.createCommandEncoder();
-      const pass = encoder.beginRenderPass({
-        colorAttachments: [
-          {
-            view: context.getCurrentTexture().createView(),
-            clearValue: [0.5, 0, 0, 0.5],
-            loadOp: "clear",
-            storeOp: "store",
-          },
-        ],
-      });
-      pass.end();
-      device.queue.submit([encoder.finish()]);
-      context.present();
-    };
-    frame();
-    const timer = setInterval(frame, 200);
-    return () => {
-      clearInterval(timer);
-      context.unconfigure();
-    };
-  }, [device]);
-
-  return <Canvas ref={ref} {...canvasProps} style={styles.canvas} />;
-};
+const CLEAR_COLOR: GPUColor = [0.5, 0, 0, 0.5];
 
 export const TransparencyMode = () => {
-  const { device } = useDevice();
+  const ref = useRef<CanvasRef>(null);
+  const { log, append } = useDiagnosticLog();
   const [option, setOption] = useState(OPTIONS[0]);
-  const [transparent, setTransparent] = useState(true);
+  const [opaque, setOpaque] = useState(false);
   const [mounted, setMounted] = useState(true);
   const [taps, setTaps] = useState(0);
 
+  useEffect(() => {
+    if (!mounted) {
+      return;
+    }
+    let running = true;
+    let frame = 0;
+    (async () => {
+      const { device, format } = await initGPU(append);
+      const ctx = ref.current!.getContext("webgpu")!;
+      ctx.configure({ device, format, alphaMode: "premultiplied" });
+      const tick = () => {
+        if (!running) {
+          return;
+        }
+        try {
+          drawClearFrame(device, ctx, frame++, CLEAR_COLOR);
+        } catch (e) {
+          append(`frame threw: ${(e as Error).message}`);
+          running = false;
+          return;
+        }
+        setTimeout(tick, 200);
+      };
+      tick();
+    })();
+    return () => {
+      running = false;
+    };
+  }, [append, mounted]);
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.copy}>
-        Half-transparent red over blue. TextureView preserves the yellow RN
-        overlay. A translucent SurfaceView on top blends over it. Options update
-        the same mounted Canvas; use hide/show to test a fresh mount.
-      </Text>
-      <View style={styles.buttons}>
-        {OPTIONS.map((value) => (
+    <View style={diagnosticStyles.container}>
+      <View style={diagnosticStyles.controls}>
+        <Text style={diagnosticStyles.description}>
+          Half-transparent red over blue. TextureView keeps the yellow RN
+          overlay visible. A SurfaceView on top blends over it. Options update
+          the same mounted Canvas; use hide/show to test a fresh mount.
+        </Text>
+        <View style={styles.buttons}>
+          {OPTIONS.map((value) => (
+            <Button
+              key={value.label}
+              testID={`view-${value.label.replace(/ /g, "-")}`}
+              title={value.label}
+              onPress={() => setOption(value)}
+            />
+          ))}
+        </View>
+        <View style={styles.buttons}>
           <Button
-            key={value.label}
-            testID={`view-${value.label.replace(" ", "-")}`}
-            title={value.label}
-            onPress={() => setOption(value)}
+            testID="toggle-opaque"
+            title={`opaque: ${opaque}`}
+            onPress={() => setOpaque((value) => !value)}
           />
-        ))}
+          <Button
+            testID="toggle-canvas"
+            title={mounted ? "hide canvas" : "show canvas"}
+            onPress={() => setMounted((value) => !value)}
+          />
+        </View>
+        <Text testID="view-status" style={diagnosticStyles.description}>
+          view: {option.label} opaque: {String(opaque)} overlay taps: {taps}
+        </Text>
       </View>
-      <View style={styles.buttons}>
-        <Button
-          testID="toggle-transparent"
-          title={`transparent: ${transparent}`}
-          onPress={() => setTransparent((value) => !value)}
-        />
-        <Button
-          testID="toggle-canvas"
-          title={mounted ? "hide canvas" : "show canvas"}
-          onPress={() => setMounted((value) => !value)}
-        />
-      </View>
-      <Text testID="view-status" style={styles.copy}>
-        view: {option.label} transparent: {String(transparent)} overlay taps:{" "}
-        {taps}
-      </Text>
       <View style={styles.stage}>
-        {mounted && device && (
-          <ClearCanvas
-            device={device}
-            {...option.props}
-            transparent={transparent}
+        {mounted && (
+          <Canvas
+            ref={ref}
+            style={diagnosticStyles.canvas}
+            opaque={opaque}
+            android={option.android}
           />
         )}
         <Pressable
@@ -130,16 +127,20 @@ export const TransparencyMode = () => {
           <Text>overlay (tap me)</Text>
         </Pressable>
       </View>
+      <ScrollView style={diagnosticStyles.log}>
+        {log.map((line, i) => (
+          <Text key={i} style={diagnosticStyles.logLine}>
+            {line}
+          </Text>
+        ))}
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 8, paddingTop: 64 },
-  copy: { fontSize: 13 },
   buttons: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   stage: { flex: 1, backgroundColor: "blue" },
-  canvas: { flex: 1 },
   overlay: {
     position: "absolute",
     left: 24,

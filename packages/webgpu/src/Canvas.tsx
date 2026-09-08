@@ -45,48 +45,46 @@ export interface CanvasRef {
   getNativeSurface: () => NativeCanvas;
 }
 
-export interface SurfaceViewProps {
-  androidSurfaceType: "SurfaceView";
-  /** Draw above all React Native views in the window. Defaults to false. */
+export type AndroidSurfaceType = "SurfaceView" | "TextureView";
+
+export interface AndroidCanvasProps {
+  /**
+   * Backing view. Defaults to `SurfaceView` when the canvas is opaque and
+   * `TextureView` otherwise, which is the only pairing that composites
+   * correctly in React Native stacking order without further flags.
+   */
+  surfaceType?: AndroidSurfaceType;
+  /**
+   * SurfaceView only: composite above every React Native view in the window,
+   * ignoring `zIndex`. Ignored for TextureView. Defaults to false.
+   */
   zOrderOnTop?: boolean;
-  /** Use a translucent surface pixel format. Defaults to false. */
-  translucent?: boolean;
 }
 
-export interface TextureViewProps {
-  androidSurfaceType: "TextureView";
-  zOrderOnTop?: never;
-  translucent?: never;
-}
-
-export interface DefaultViewProps {
-  androidSurfaceType?: undefined;
-  zOrderOnTop?: never;
-  translucent?: never;
-}
-
-export type AndroidViewProps =
-  | DefaultViewProps
-  | SurfaceViewProps
-  | TextureViewProps;
-
-interface BaseCanvasProps extends ViewProps {
-  transparent?: boolean;
+export interface CanvasProps extends ViewProps {
+  /**
+   * Defaults to true. Set to false to alpha-composite the canvas over the
+   * views behind it (pair it with `alphaMode: "premultiplied"` and an alpha-0
+   * clear color). Android and web only; on iOS `alphaMode` alone controls it.
+   */
+  opaque?: boolean;
+  /** Android-only rendering options. Ignored on iOS and web. */
+  android?: AndroidCanvasProps;
   ref?: React.Ref<CanvasRef>;
 }
 
-/**
- * Android view options are passed directly to Canvas. An explicit `androidSurfaceType`
- * overrides `transparent`; otherwise transparent canvases use TextureView
- * and opaque canvases use SurfaceView. Ignored on iOS and web.
- */
-export type CanvasProps = BaseCanvasProps & AndroidViewProps;
+// Anything else reaching the native component would hit the generated
+// string-enum parser, which aborts on unknown values.
+const resolveSurfaceType = (
+  surfaceType: AndroidSurfaceType | undefined,
+): "auto" | AndroidSurfaceType =>
+  surfaceType === "SurfaceView" || surfaceType === "TextureView"
+    ? surfaceType
+    : "auto";
 
 export const Canvas = ({
-  transparent,
-  androidSurfaceType,
-  zOrderOnTop,
-  translucent,
+  opaque = true,
+  android,
   ref,
   ...props
 }: CanvasProps) => {
@@ -134,14 +132,9 @@ export const Canvas = ({
       <WebGPUNativeView
         style={{ flex: 1 }}
         contextId={contextId}
-        transparent={!!transparent}
-        androidSurfaceType={androidSurfaceType ?? "auto"}
-        androidZOrderOnTop={
-          androidSurfaceType === "SurfaceView" && !!zOrderOnTop
-        }
-        androidTranslucent={
-          androidSurfaceType === "SurfaceView" && !!translucent
-        }
+        opaque={opaque}
+        androidSurfaceType={resolveSurfaceType(android?.surfaceType)}
+        androidZOrderOnTop={!!android?.zOrderOnTop}
       />
     </View>
   );

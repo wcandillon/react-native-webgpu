@@ -30,27 +30,21 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
   }
 
   @Override
-  @ReactProp(name = "transparent")
-  public void setTransparent(WebGPUView view, boolean value) {
-    view.setTransparent(value);
+  @ReactProp(name = "opaque", defaultBoolean = true)
+  public void setOpaque(WebGPUView view, boolean value) {
+    view.setOpaque(value);
   }
 
   @Override
   @ReactProp(name = "androidSurfaceType")
   public void setAndroidSurfaceType(WebGPUView view, String value) {
-    view.setAndroidSurfaceType(value);
+    view.setSurfaceType(value);
   }
 
   @Override
   @ReactProp(name = "androidZOrderOnTop")
   public void setAndroidZOrderOnTop(WebGPUView view, boolean value) {
     view.setZOrderOnTop(value);
-  }
-
-  @Override
-  @ReactProp(name = "androidTranslucent")
-  public void setAndroidTranslucent(WebGPUView view, boolean value) {
-    view.setTranslucent(value);
   }
 
   @Override
