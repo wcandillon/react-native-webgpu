@@ -86,15 +86,15 @@ Because `clientWidth` / `clientHeight` track layout, recompute the buffer size w
 
 To render the canvas over the React Native views beneath it, you control transparency from two places, and you normally set both:
 
-- The **`transparent` prop** on `<Canvas>` makes the underlying native surface transparent so the views behind it show through.
+- **`opaque={false}`** on `<Canvas>` makes the underlying native surface translucent so the views behind it show through.
 - **`alphaMode: "premultiplied"`** on `context.configure`, together with a clear color whose alpha is `0`, makes WebGPU produce a transparent frame.
 
 ```tsx
-<Canvas ref={ref} style={StyleSheet.absoluteFill} transparent />
+<Canvas ref={ref} style={StyleSheet.absoluteFill} opaque={false} />
 ```
 
 <Callout type="info" title="Platform note">
-On Android the `alphaMode` passed to `configure()` is ignored, so the `transparent` prop is what actually gives you a transparent canvas there. On iOS the two work together. Setting the `transparent` prop together with `alphaMode: "premultiplied"` and an alpha-`0` clear color gives you the same result on both platforms.
+On Android the `alphaMode` passed to `configure()` is ignored, so `opaque={false}` is what actually gives you a transparent canvas there. On iOS `alphaMode` alone controls it and `opaque` is ignored. Setting `opaque={false}` together with `alphaMode: "premultiplied"` and an alpha-`0` clear color gives you the same result on both platforms. See the [Android rendering options](/api/canvas#android-rendering-options) to pick the backing view explicitly.
 </Callout>
 
 ## See also

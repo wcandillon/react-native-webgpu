@@ -7,14 +7,23 @@ import { contextIdToId } from "./utils";
 
 export interface NativeProps extends ViewProps {
   contextId: Int32;
-  transparent: boolean;
+  opaque?: boolean;
+  androidSurfaceType?: "auto" | "SurfaceView" | "TextureView";
+  androidZOrderOnTop?: boolean;
 }
 
 // eslint-disable-next-line import/no-default-export
 export default function WebGPUViewNativeComponent(
   props: NativeProps,
 ): React.JSX.Element {
-  const { contextId, style, transparent, ...rest } = props;
+  const {
+    contextId,
+    style,
+    opaque = true,
+    androidSurfaceType: _androidSurfaceType,
+    androidZOrderOnTop: _androidZOrderOnTop,
+    ...rest
+  } = props;
 
   // MakeWebGPUCanvasContext sets the initial drawing-buffer size. Subsequent
   // resizes belong to the renderer so it can recreate depth/MSAA attachments
@@ -25,7 +34,7 @@ export default function WebGPUViewNativeComponent(
     style: {
       ...styles.view,
       ...styles.flex1,
-      ...(transparent === false ? { backgroundColor: "white" } : {}),
+      ...(opaque ? { backgroundColor: "white" } : {}),
       ...(typeof style === "object" ? style : {}),
     },
   });
