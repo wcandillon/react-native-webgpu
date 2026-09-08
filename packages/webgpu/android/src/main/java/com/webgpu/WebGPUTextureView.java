@@ -13,10 +13,10 @@ public class WebGPUTextureView extends TextureView implements TextureView.Surfac
   WebGPUAPI mApi;
   private Surface mSurface;
 
-  public WebGPUTextureView(Context context, WebGPUAPI api) {
+  public WebGPUTextureView(Context context, WebGPUAPI api, boolean opaque) {
     super(context);
     mApi = api;
-    setOpaque(false);
+    setOpaque(opaque);
     setSurfaceTextureListener(this);
   }
 

@@ -45,7 +45,7 @@ export function GradientTiles() {
 
   return (
     <View style={style.container}>
-      <Canvas ref={ref} style={style.webgpu} transparent />
+      <Canvas ref={ref} style={style.webgpu} opaque={false} />
       <View style={style.controls}>
         <View style={style.buttonRow}>
           <Text style={style.spanText}>span x: </Text>

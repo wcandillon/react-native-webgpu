@@ -45,6 +45,10 @@ const tests = [
     screen: "SurfaceChurn",
     title: "⚠️ Surface Churn",
   },
+  {
+    screen: "TransparencyMode",
+    title: "⚠️ Android View Props",
+  },
 ] as const;
 
 export const DiagnosticsList = () => {

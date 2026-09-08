@@ -45,12 +45,49 @@ export interface CanvasRef {
   getNativeSurface: () => NativeCanvas;
 }
 
-interface CanvasProps extends ViewProps {
-  transparent?: boolean;
+export type AndroidSurfaceType = "SurfaceView" | "TextureView";
+
+export interface AndroidCanvasProps {
+  /**
+   * Backing view. Defaults to `SurfaceView` when the canvas is opaque and
+   * `TextureView` otherwise, which is the only pairing that composites
+   * correctly in React Native stacking order without further flags.
+   */
+  surfaceType?: AndroidSurfaceType;
+  /**
+   * SurfaceView only: composite above every React Native view in the window,
+   * ignoring `zIndex`. Ignored for TextureView. Defaults to false.
+   */
+  zOrderOnTop?: boolean;
+}
+
+export interface CanvasProps extends ViewProps {
+  /**
+   * Defaults to true. Set to false to alpha-composite the canvas over the
+   * views behind it (pair it with `alphaMode: "premultiplied"` and an alpha-0
+   * clear color). Android and web only; on iOS `alphaMode` alone controls it.
+   */
+  opaque?: boolean;
+  /** Android-only rendering options. Ignored on iOS and web. */
+  android?: AndroidCanvasProps;
   ref?: React.Ref<CanvasRef>;
 }
 
-export const Canvas = ({ transparent, ref, ...props }: CanvasProps) => {
+// Anything else reaching the native component would hit the generated
+// string-enum parser, which aborts on unknown values.
+const resolveSurfaceType = (
+  surfaceType: AndroidSurfaceType | undefined,
+): "auto" | AndroidSurfaceType =>
+  surfaceType === "SurfaceView" || surfaceType === "TextureView"
+    ? surfaceType
+    : "auto";
+
+export const Canvas = ({
+  opaque = true,
+  android,
+  ref,
+  ...props
+}: CanvasProps) => {
   const viewRef = useRef(null);
   const [contextId, _] = useState(() => generateContextId());
   // Retire the native registry entry for this contextId on unmount. When a
@@ -95,7 +132,9 @@ export const Canvas = ({ transparent, ref, ...props }: CanvasProps) => {
       <WebGPUNativeView
         style={{ flex: 1 }}
         contextId={contextId}
-        transparent={!!transparent}
+        opaque={opaque}
+        androidSurfaceType={resolveSurfaceType(android?.surfaceType)}
+        androidZOrderOnTop={!!android?.zOrderOnTop}
       />
     </View>
   );

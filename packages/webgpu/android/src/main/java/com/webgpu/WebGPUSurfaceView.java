@@ -2,6 +2,7 @@ package com.webgpu;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.PixelFormat;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
@@ -12,10 +13,18 @@ public class WebGPUSurfaceView extends SurfaceView implements SurfaceHolder.Call
 
   WebGPUAPI mApi;
 
-  public WebGPUSurfaceView(Context context, WebGPUAPI api) {
+  public WebGPUSurfaceView(Context context, WebGPUAPI api, boolean zOrderOnTop, boolean opaque) {
     super(context);
     mApi = api;
+    setZOrderOnTop(zOrderOnTop);
+    setOpaque(opaque);
     getHolder().addCallback(this);
+  }
+
+  // The format drives the compositor's opaque flag for this layer. It can
+  // change on a live surface: SurfaceView reports it through surfaceChanged.
+  public void setOpaque(boolean opaque) {
+    getHolder().setFormat(opaque ? PixelFormat.OPAQUE : PixelFormat.TRANSLUCENT);
   }
 
   @Override
