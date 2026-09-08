@@ -19,6 +19,14 @@ export const examples = [
     screen: "HelloTriangleMSAA",
     title: "🔺 Hello Triangle MSAA",
   },
+  ...(Platform.OS === "android"
+    ? ([
+        {
+          screen: "PresentMode",
+          title: "📬 Present Modes",
+        },
+      ] as const)
+    : []),
   {
     screen: "ImageBlur",
     title: "🫧 Image Blur",
