@@ -46,6 +46,13 @@ import {
 // The "raw" mode reproduces the exact call order without three.js; the
 // three.js mode runs the reporter's scenario (renderer.dispose() in the
 // effect cleanup). Both crash the same way.
+//
+// Until the pinned Dawn carries the upstream fix, GPUDevice::destroy() works
+// around it on Android by dropping (and recreating) the Dawn surface of every
+// canvas configured with the device before destroying it, see
+// DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE in SurfaceRegistry.h.
+// This screen is the regression check for both the workaround and its
+// eventual removal.
 
 type Mode = "raw" | "three";
 
