@@ -81,8 +81,10 @@ public:
   ~SurfaceInfo() {
     // Drop the Dawn objects before releasing the native surfaces they borrow.
     _surface = nullptr;
+#if defined(__ANDROID__)
     // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
     _surfaceDevice = nullptr;
+#endif
     _pendingSurface = nullptr;
     _texture = nullptr;
     if (_pendingReleaser && _pendingNativeSurface) {
@@ -172,8 +174,10 @@ public:
       replacedSurface = _nativeSurface;
       replacedReleaser = std::move(_releaser);
       _surface = std::move(_pendingSurface);
+#if defined(__ANDROID__)
       // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
       _surfaceDevice = nullptr;
+#endif
       _nativeSurface = _pendingNativeSurface;
       _releaser = std::move(_pendingReleaser);
       _hasPendingAttach = false;
@@ -420,8 +424,10 @@ private:
           _texture = createOffscreenTextureLocked();
         }
         _surface = nullptr;
+#if defined(__ANDROID__)
         // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
         _surfaceDevice = nullptr;
+#endif
         // The in-flight frame (if any) rendered into the destroyed surface;
         // presentFrame() must not present it.
         _acquiredFromSurface = false;
@@ -533,7 +539,6 @@ private:
   }
 
   // Every Surface::Configure goes through here. Once the
-  // Every Surface::Configure goes through here. Once the
   // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE lines are gone, this
   // is a plain wrapper around _surface.Configure.
   void configureSurfaceLocked(const wgpu::SurfaceConfiguration &config) {
@@ -551,8 +556,10 @@ private:
     }
 #endif
     _surface.Configure(&config);
+#if defined(__ANDROID__)
     // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
     _surfaceDevice = config.device;
+#endif
   }
 
 #if defined(__ANDROID__)
@@ -577,6 +584,7 @@ private:
 #endif
 
   mutable std::shared_mutex _mutex;
+#if defined(__ANDROID__)
   // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
   // The device _surface was last configured with. Dawn keeps a swapchain for
   // that device inside the surface even after Unconfigure() (it is recycled
@@ -585,7 +593,12 @@ private:
   // destroys a device when its last external reference goes away, which
   // would leave the swapchain with a dead device just like an explicit
   // destroy(). Declared before _surface so it is released after it.
+  //
+  // Android only: this is an extra owning reference to the device, and on
+  // Metal (where the detach never touches the device) it would keep a
+  // device alive past its last JS reference for no reason.
   wgpu::Device _surfaceDevice = nullptr;
+#endif
   // Attached on-screen surface (null while offscreen).
   void *_nativeSurface = nullptr;
   wgpu::Surface _surface = nullptr;
@@ -681,10 +694,17 @@ public:
   void releaseSurfacesForDevice(const wgpu::Device &device) {
     std::vector<std::shared_ptr<SurfaceInfo>> infos;
     {
-      std::shared_lock<std::shared_mutex> lock(_mutex);
-      infos.reserve(_registry.size());
-      for (auto &entry : _registry) {
-        infos.push_back(entry.second);
+      // Walking _allSurfaces, not _registry: a GPUCanvasContext keeps its own
+      // shared_ptr, so an entry erased by clear() (dev reload) or by
+      // removeSurfaceInfo() can still be alive and still hold a swapchain for
+      // this device.
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      pruneAllSurfacesLocked();
+      infos.reserve(_allSurfaces.size());
+      for (auto &weak : _allSurfaces) {
+        if (auto info = weak.lock()) {
+          infos.push_back(std::move(info));
+        }
       }
     }
     for (auto &info : infos) {
@@ -713,11 +733,28 @@ private:
     }
     auto info = std::make_shared<SurfaceInfo>(gpu, width, height);
     _registry[id] = info;
+    // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
+    pruneAllSurfacesLocked();
+    _allSurfaces.push_back(info);
     return info;
+  }
+
+  // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
+  void pruneAllSurfacesLocked() {
+    _allSurfaces.erase(
+        std::remove_if(_allSurfaces.begin(), _allSurfaces.end(),
+                       [](const std::weak_ptr<SurfaceInfo> &weak) {
+                         return weak.expired();
+                       }),
+        _allSurfaces.end());
   }
 
   mutable std::shared_mutex _mutex;
   std::unordered_map<int, std::shared_ptr<SurfaceInfo>> _registry;
+  // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
+  // Every live SurfaceInfo, including the ones no longer in _registry.
+  // Non-owning; pruned on insert and on every device destroy.
+  std::vector<std::weak_ptr<SurfaceInfo>> _allSurfaces;
 };
 
 } // namespace rnwgpu
