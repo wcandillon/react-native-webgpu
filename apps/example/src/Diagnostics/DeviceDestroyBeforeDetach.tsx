@@ -142,6 +142,7 @@ const ThreeScene = ({ opaque, append }: SceneProps) => {
     scene.add(mesh);
 
     const renderer = makeWebGPURenderer(context);
+    let cancelled = false;
     renderer.init().then(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { device } = renderer.backend as any as {
@@ -150,6 +151,13 @@ const ThreeScene = ({ opaque, append }: SceneProps) => {
       device?.lost.then((info) => {
         append(`[device lost] ${info.reason}: ${info.message}`);
       });
+      if (cancelled) {
+        // Unmounted before init() resolved: dispose() was a no-op then, so
+        // the device created here would otherwise leak.
+        append("cleanup after late init: renderer.dispose()");
+        disposeWebGPURenderer(renderer);
+        return;
+      }
       append("three.js rendering, now unmount the canvas");
     });
 
@@ -166,6 +174,7 @@ const ThreeScene = ({ opaque, append }: SceneProps) => {
     return () => {
       // WebGPURenderer.dispose() -> WebGPUBackend.dispose() ->
       // device.destroy(), synchronously, before the native view is dropped.
+      cancelled = true;
       append("cleanup: renderer.dispose() (calls device.destroy())");
       disposeWebGPURenderer(renderer);
       append("cleanup done, the native view is dropped next frame");

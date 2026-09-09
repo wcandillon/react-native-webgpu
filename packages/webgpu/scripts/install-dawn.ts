@@ -94,12 +94,23 @@ const dawnWorkarounds = [
 
 for (const workaround of dawnWorkarounds) {
   const root = join(__dirname, "..");
-  const present = workaround.files.filter((file) =>
-    readFileSync(join(root, file), "utf-8").includes(workaround.marker),
-  );
+  const present = workaround.files.filter((file) => {
+    const path = join(root, file);
+    return (
+      existsSync(path) &&
+      readFileSync(path, "utf-8").includes(workaround.marker)
+    );
+  });
   if (present.length === 0) {
     log.error(
       `Workaround ${workaround.marker} is gone from the sources; remove its entry from scripts/install-dawn.ts`,
+    );
+    process.exit(1);
+  }
+  if (present.length !== workaround.files.length) {
+    const missing = workaround.files.filter((file) => !present.includes(file));
+    log.error(
+      `Workaround ${workaround.marker} is only partially applied: missing from ${missing.join(", ")}`,
     );
     process.exit(1);
   }
