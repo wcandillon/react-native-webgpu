@@ -14,17 +14,30 @@ Pod::Spec.new do |s|
   s.platforms    = { :ios => min_ios_version_supported, :osx => "10.15", :visionos => "1.0" }
   s.source       = { :git => "https://github.com/wcandillon/react-native-webgpu.git", :tag => "#{s.version}" }
 
-  s.source_files = [
-    "apple/**/*.{h,c,cc,cpp,m,mm,swift}",  
-    "cpp/**/*.{h,cpp}"
-  ]
+  # RN's autolinking and codegen both key off this podspec being present and
+  # supporting the platform (see react-native.config.js docs: there is no way
+  # to disable CocoaPods linking for a dependency without also disabling
+  # codegen for it). So when the app links react-native-webgpu via the local
+  # Swift Package (packages/webgpu/Package.swift) instead of CocoaPods, this
+  # pod still needs to exist to keep the RNWgpuViewSpec codegen output
+  # flowing — it just shouldn't compile or link anything itself, or the app
+  # would get the native module twice. Set RNWGPU_USE_SPM=1 before
+  # `pod install` for that case.
+  if ENV['RNWGPU_USE_SPM']
+    s.source_files = "apple/RNWGUIKit.h"
+  else
+    s.source_files = [
+      "apple/**/*.{h,c,cc,cpp,m,mm,swift}",
+      "cpp/**/*.{h,cpp}"
+    ]
 
-  s.vendored_frameworks = 'libs/apple/libwebgpu_dawn.xcframework'
+    s.vendored_frameworks = 'libs/apple/libwebgpu_dawn.xcframework'
 
-  # The VideoPlayer API uses AVFoundation / CoreMedia, and shared-texture
-  # surfaces use CoreVideo (CVPixelBuffer). Link them so their symbols resolve.
-  # ImageIO provides CGImageSource, the image decoder behind createImageBitmap.
-  s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo", "ImageIO"
+    # The VideoPlayer API uses AVFoundation / CoreMedia, and shared-texture
+    # surfaces use CoreVideo (CVPixelBuffer). Link them so their symbols resolve.
+    # ImageIO provides CGImageSource, the image decoder behind createImageBitmap.
+    s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo", "ImageIO"
+  end
 
   s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',

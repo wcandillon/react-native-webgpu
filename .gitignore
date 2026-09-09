@@ -79,4 +79,8 @@ apps/example/**/Pods
 # Ruby
 apps/vendor/
 
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
 .turbo
