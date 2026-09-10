@@ -49,6 +49,10 @@ const tests = [
     screen: "TransparencyMode",
     title: "⚠️ Android View Props",
   },
+  {
+    screen: "DeviceDestroyBeforeDetach",
+    title: "⚠️ Device Destroy Before Detach",
+  },
 ] as const;
 
 export const DiagnosticsList = () => {

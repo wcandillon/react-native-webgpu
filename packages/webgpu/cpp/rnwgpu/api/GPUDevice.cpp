@@ -16,6 +16,7 @@
 #include "GPUOutOfMemoryError.h"
 #include "GPUValidationError.h"
 #include "RnFeatures.h"
+#include "SurfaceRegistry.h"
 
 namespace rnwgpu {
 
@@ -149,6 +150,10 @@ std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
 }
 
 void GPUDevice::destroy() {
+  // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
+  // Any canvas surface holding a swapchain for this device must let go of it
+  // while the device is alive (see SurfaceInfo::releaseSurfaceForDevice).
+  SurfaceRegistry::getInstance().releaseSurfacesForDevice(_instance);
   _instance.Destroy();
   notifyDeviceLost(wgpu::DeviceLostReason::Destroyed, "device was destroyed");
 }
