@@ -236,9 +236,9 @@ jobs:
       - name: Create XCFramework
         run: |
           xcodebuild -create-xcframework \
-            -library libs/apple/iphonesimulator/libwebgpu_dawn.a \
-            -library artifacts/build-ios-arm64/libwebgpu_dawn.a \
-            -library artifacts/build-macos-universal/libwebgpu_dawn.a \
+            -library libs/apple/iphonesimulator/libwebgpu_dawn.a -headers dawn-headers/include \
+            -library artifacts/build-ios-arm64/libwebgpu_dawn.a -headers dawn-headers/include \
+            -library artifacts/build-macos-universal/libwebgpu_dawn.a -headers dawn-headers/include \
             -output dawn-apple.xcframework
 
       - name: Package Android libraries
@@ -256,8 +256,13 @@ jobs:
         run: |
           TAG="${{ needs.prepare-release.outputs.tag_name }}"
           tar -czf dawn-android-${TAG}.tar.gz dawn-android
-          tar -czf dawn-apple-${TAG}.xcframework.tar.gz dawn-apple.xcframework
           tar -czf dawn-headers-${TAG}.tar.gz dawn-headers
+          # Package.swift binaryTarget(url:checksum:) requires a zip archive, not a
+          # tarball, and `ditto` (unlike `zip`) preserves the xcframework's symlinks
+          # and resource forks losslessly.
+          ditto -c -k --sequesterRsrc --keepParent dawn-apple.xcframework dawn-apple-${TAG}.xcframework.zip
+          swift package compute-checksum dawn-apple-${TAG}.xcframework.zip > dawn-apple-${TAG}.xcframework.zip.checksum.txt
+          cat dawn-apple-${TAG}.xcframework.zip.checksum.txt
 
       - name: Upload to GitHub release
         uses: softprops/action-gh-release@v2
@@ -267,6 +272,7 @@ jobs:
           tag_name: ${{ needs.prepare-release.outputs.tag_name }}
           files: |
             dawn-android-${{ needs.prepare-release.outputs.tag_name }}.tar.gz
-            dawn-apple-${{ needs.prepare-release.outputs.tag_name }}.xcframework.tar.gz
+            dawn-apple-${{ needs.prepare-release.outputs.tag_name }}.xcframework.zip
+            dawn-apple-${{ needs.prepare-release.outputs.tag_name }}.xcframework.zip.checksum.txt
             dawn-headers-${{ needs.prepare-release.outputs.tag_name }}.tar.gz
           prerelease: true

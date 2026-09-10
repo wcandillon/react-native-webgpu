@@ -13,7 +13,9 @@ Example app (from `apps/example/`): `yarn start` · `yarn ios` · `yarn android`
 
 From the repo root: `yarn lint` · `yarn tsc` · `yarn build:docs`
 
-Tests (from `packages/webgpu/`): `yarn test:ref` (Chrome reference) · `yarn test` (E2E — open the example app on the E2E screen) · `yarn test:plugin` (Expo config plugin unit tests)
+Tests (from `packages/webgpu/`): `yarn test:ref` (Chrome reference) · `yarn test` (E2E) · `yarn test:plugin` (Expo config plugin unit tests)
+
+`yarn test` needs the example app open on its "Tests" screen and connected to Metro first: start Metro with `CI=true yarn start` (from `apps/example/`) — `initialRouteName` in `apps/example/src/App.tsx` is `"Tests"` when `process.env.CI === "true"`, inlined at bundle time via the `transform-inline-environment-variables` babel plugin — then launch the app (`yarn ios` / `yarn android`, or install+launch an existing build). The screen shows "Connecting to localhost..." once it's ready; `yarn test` then picks it up automatically. If a run fails mid-suite, reload the app (`curl -X POST http://localhost:8081/reload`) before the next run — a broken `GPUDevice` from the failed run makes unrelated later tests fail too.
 
 Other `packages/webgpu` scripts: `yarn clean-dawn` · `yarn build-dawn`
 
@@ -54,4 +56,6 @@ Steps to bump to a new Dawn version (new Skia milestone `m<N>`):
 
 6. **Update the compatibility table** in `apps/docs/content/docs/integrations/react-native-skia.mdx` with the new milestone row, so users can pair react-native-webgpu and `@shopify/react-native-skia` versions.
 
-7. **Verify and commit.** Build and run the example app, then commit the submodule bump together with the updated `package.json`.
+7. **Build both platforms.** A milestone can also change Dawn's C++ API surface, not just add features — e.g. `chrome-m154` turned `SharedTextureMemory::BeginAccess`/`EndAccess`, `Adapter::GetLimits`, `Device::GetLimits`, and `SharedTextureMemory::GetProperties` from a bool-ish return into `wgpu::Status` (no implicit bool conversion), breaking every `if (!result)` / `if (result)` call site in `cpp/rnwgpu/api/*.cpp`. Building iOS and Android is the way these surface; fix by comparing explicitly (`result == wgpu::Status::Success`).
+
+8. **Verify and commit.** Build and run the example app (see "Development workflow" above for reaching the Tests screen), then commit the submodule bump together with the updated `package.json`.

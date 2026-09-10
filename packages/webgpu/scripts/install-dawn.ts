@@ -82,7 +82,7 @@ if (!dawnVersion) {
 const dawnWorkarounds = [
   {
     marker: "DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE",
-    pin: "chrome-m152",
+    pin: "chrome-m154",
     files: ["cpp/rnwgpu/SurfaceRegistry.h", "cpp/rnwgpu/api/GPUDevice.cpp"],
     // Android: device.destroy() before the native view is dropped crashed in
     // SwapChain::DetachFromSurfaceImpl (Vulkan FencedDeleter of the dead
@@ -163,7 +163,7 @@ const assets = [
     },
   },
   {
-    name: `dawn-apple-${releaseTag}.xcframework.tar.gz`,
+    name: `dawn-apple-${releaseTag}.xcframework.zip`,
     extractTo: libsDir,
     postProcess: () => {
       // The extracted xcframework needs to be placed as libs/apple/libwebgpu_dawn.xcframework
@@ -217,7 +217,7 @@ log.subheader("Downloading Assets");
 // Add nice names for display
 const assetNames: { [key: string]: string } = {
   [`dawn-android-${releaseTag}.tar.gz`]: "Android Libraries",
-  [`dawn-apple-${releaseTag}.xcframework.tar.gz`]: "Apple Framework",
+  [`dawn-apple-${releaseTag}.xcframework.zip`]: "Apple Framework",
   [`dawn-headers-${releaseTag}.tar.gz`]: "C++ Headers",
 };
 
@@ -241,9 +241,15 @@ for (const [index, asset] of assets.entries()) {
     process.stdout.write(
       `   ${colors.dim}${symbols.extract} Extracting...${colors.reset}`,
     );
-    execSync(`tar -xzf "${tarPath}" -C "${asset.extractTo}"`, {
-      stdio: "pipe",
-    });
+    if (asset.name.endsWith(".zip")) {
+      execSync(`unzip -q -o "${tarPath}" -d "${asset.extractTo}"`, {
+        stdio: "pipe",
+      });
+    } else {
+      execSync(`tar -xzf "${tarPath}" -C "${asset.extractTo}"`, {
+        stdio: "pipe",
+      });
+    }
     process.stdout.write("\r\x1b[K"); // Clear the line
 
     // Remove the tar file after extraction

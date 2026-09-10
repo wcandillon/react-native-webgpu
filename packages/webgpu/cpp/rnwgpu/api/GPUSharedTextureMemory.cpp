@@ -75,7 +75,7 @@ void GPUSharedTextureMemory::beginAccess(
 #endif
 
   auto status = _instance.BeginAccess(texture->get(), &desc);
-  if (!status) {
+  if (status != wgpu::Status::Success) {
     throw std::runtime_error("GPUSharedTextureMemory::beginAccess() failed");
   }
 }
@@ -101,7 +101,7 @@ jsi::Value GPUSharedTextureMemory::endAccess(jsi::Runtime &runtime,
 #endif
 
   auto status = _instance.EndAccess(texture->get(), &state);
-  if (!status) {
+  if (status != wgpu::Status::Success) {
     throw jsi::JSError(runtime, "GPUSharedTextureMemory::endAccess() failed");
   }
 

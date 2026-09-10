@@ -20,11 +20,12 @@
     "apple/**",
     "libs/**",
     "*.podspec",
+    "Package.swift",
     "app.plugin.js",
     "plugin/build/**"
   ],
-  "dawn": "chrome-m152",
-  "dawnCommit": "1e897275172a23f27b0022fa6beae3084ed54a9b",
+  "dawn": "chrome-m154",
+  "dawnCommit": "3d786993a7ded64c4ebb4884b9b079db9ad0e580",
   "scripts": {
     "test": "NODE_OPTIONS='--experimental-require-module' jest -i",
     "test:ref": "REFERENCE=true NODE_OPTIONS='--experimental-require-module' jest -i",
@@ -42,7 +43,8 @@
     "clang-format-android": "find android/cpp/ -iname \"*.h\" -o -iname \"*.m\" -o -iname \"*.cpp\" | xargs clang-format -i",
     "clang-format-common": "find cpp/rnwgpu -iname \"*.h\" -o -iname \"*.m\" -o -iname \"*.cpp\" | xargs clang-format -i",
     "cpplint": "cpplint --linelength=230 --filter=-legal/copyright,-whitespace/indent,-whitespace/comments,-whitespace/ending_newline,-build/include_order,-runtime/references,-readability/todo,-whitespace/blank_line,-whitespace/todo,-runtime/int,-build/c++11,-whitespace/parens --exclude=example --exclude=android/.cxx --exclude=cpp/webgpu --exclude=cpp/dawn --exclude=ios --exclude=android/build --exclude=node_modules --recursive .",
-    "install-dawn": "tsx scripts/install-dawn.ts"
+    "install-dawn": "tsx scripts/install-dawn.ts",
+    "generate-package-swift": "tsx scripts/generate-package-swift.ts"
   },
   "keywords": [
     "react-native",

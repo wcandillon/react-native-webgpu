@@ -115,7 +115,8 @@ namespace rnwgpu {
   V(RenderPassRenderArea, "render-pass-render-area")                           \
   V(AdapterPropertiesDrm, "adapter-properties-drm")                            \
   V(TextureCompressionUnaligned, "texture-compression-unaligned")              \
-  V(DawnAllowUndefinedLoadStoreOp, "dawn-allow-undefined-load-store-op")
+  V(DawnAllowUndefinedLoadStoreOp, "dawn-allow-undefined-load-store-op")       \
+  V(BufferMapWriteExtendedUsages, "buffer-map-write-extended-usages")
 
 static void convertEnumToJSUnion(wgpu::FeatureName inEnum,
                                  std::string *outUnion) {
