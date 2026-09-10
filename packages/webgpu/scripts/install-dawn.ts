@@ -82,7 +82,7 @@ if (!dawnVersion) {
 const dawnWorkarounds = [
   {
     marker: "DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE",
-    pin: "chrome-m152",
+    pin: "chrome-m154",
     files: ["cpp/rnwgpu/SurfaceRegistry.h", "cpp/rnwgpu/api/GPUDevice.cpp"],
     // Android: device.destroy() before the native view is dropped crashed in
     // SwapChain::DetachFromSurfaceImpl (Vulkan FencedDeleter of the dead
