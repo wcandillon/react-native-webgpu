@@ -107,6 +107,49 @@ jobs:
             -disableAutomaticPackageResolution \
             build | xcpretty
 
+      - name: Install CocoaPods (spm-example)
+        working-directory: apps/spm-example/ios
+        env:
+          RNWGPU_USE_SPM: "1"
+        run: pod install
+
+      # xcodebuild (unlike Xcode.app) doesn't export SRCROOT/PODS_ROOT into the
+      # environment that SwiftPM uses to evaluate a local package's manifest, so
+      # Package.swift's `ProcessInfo.processInfo.environment["PODS_ROOT"]`
+      # lookup silently resolves to "" and every header search path becomes an
+      # absolute path rooted at "/" (e.g. "/Headers/Public/React-jsi"),
+      # producing "file not found" errors that look like flaky/random single-file
+      # failures (whichever file wasn't already cached from a working build).
+      # Exporting both here is the fix. Also: don't reuse "build" as
+      # -derivedDataPath for this app — React Native Codegen writes generated
+      # headers to apps/spm-example/ios/build/generated/ios, and CocoaPods
+      # symlinks them from Pods/Headers/Public/ReactCodegen/; deriving into the
+      # same "build" directory (as the example app step above does) deletes
+      # those symlink targets on a clean checkout.
+      #
+      # No -disableAutomaticPackageResolution here (unlike the example app
+      # build below): react-native-webgpu is a local Swift package added
+      # directly to the Xcode project (XCLocalSwiftPackageReference), not
+      # CocoaPods-vendored, and its WebGPUDawn binaryTarget resolves to a
+      # remote release zip + checksum with nothing cached ahead of time — this
+      # build's whole point is exercising that download-and-verify step.
+      - name: Build spm-example for iOS
+        working-directory: apps/spm-example/ios
+        env:
+          SRCROOT: ${{ github.workspace }}/apps/spm-example/ios
+          PODS_ROOT: ${{ github.workspace }}/apps/spm-example/ios/Pods
+        run: |
+          set -o pipefail && xcodebuild \
+            -workspace SpmExample.xcworkspace \
+            -scheme SpmExample \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath spm-build \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING=YES \
+            build | xcpretty
+
       - name: Boot iPhone Simulator
         run: |
           if xcrun simctl list devices booted | grep -q "iPhone"; then

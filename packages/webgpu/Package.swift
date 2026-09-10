@@ -99,7 +99,8 @@ let package = Package(
     // build-dawn.yml), so SPM exposes them to dependents automatically.
     .binaryTarget(
       name: "WebGPUDawn",
-      path: "libs/apple/libwebgpu_dawn.xcframework"
+      url: "https://github.com/wcandillon/react-native-webgpu/releases/download/dawn-chrome-m154/dawn-apple-dawn-chrome-m154.xcframework.zip",
+      checksum: "896575ffbc99610198a83d061f8c5a2789139b7f16c669fbf3a9f7a7ac9be123"
     ),
     .target(
       name: "react-native-webgpu",
