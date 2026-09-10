@@ -15,7 +15,10 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 
-import { renderPackageSwift, type WebGPUDawnBinaryTarget } from "./package-swift-template";
+import {
+  renderPackageSwift,
+  type WebGPUDawnBinaryTarget,
+} from "./package-swift-template";
 
 const packageJsonPath = join(__dirname, "..", "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
@@ -73,7 +76,10 @@ const target: WebGPUDawnBinaryTarget = useLocal
   : { kind: "remote", url: zipUrl, checksum: fetchChecksum() };
 
 const outputPath = join(__dirname, "..", "Package.swift");
-writeFileSync(outputPath, renderPackageSwift(target));
+writeFileSync(
+  outputPath,
+  renderPackageSwift({ target, dawnReleaseTag: releaseTag }),
+);
 
 console.log(`Wrote ${outputPath}`);
 if (target.kind === "remote") {

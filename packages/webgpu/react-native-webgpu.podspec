@@ -24,6 +24,17 @@ Pod::Spec.new do |s|
   # would get the native module twice. Set RNWGPU_USE_SPM=1 before
   # `pod install` for that case.
   if ENV['RNWGPU_USE_SPM']
+    # The Swift package resolves React Native's headers from the
+    # static-library Pods layout (Pods/Headers/Public). With `use_frameworks!`
+    # CocoaPods keeps headers inside each framework instead, so none of those
+    # paths exist and the package fails to compile with header-not-found
+    # errors that don't point back here. Refuse the combination up front.
+    # The React Native template drives `use_frameworks!` from USE_FRAMEWORKS.
+    if ENV['USE_FRAMEWORKS']
+      raise "react-native-webgpu: RNWGPU_USE_SPM needs the static-library Pods layout. " \
+            "Unset USE_FRAMEWORKS (or drop use_frameworks! from the Podfile) to link " \
+            "react-native-webgpu through its Swift package."
+    end
     s.source_files = "apple/RNWGUIKit.h"
   else
     s.source_files = [

@@ -113,19 +113,15 @@ jobs:
           RNWGPU_USE_SPM: "1"
         run: pod install
 
-      # xcodebuild (unlike Xcode.app) doesn't export SRCROOT/PODS_ROOT into the
-      # environment that SwiftPM uses to evaluate a local package's manifest, so
-      # Package.swift's `ProcessInfo.processInfo.environment["PODS_ROOT"]`
-      # lookup silently resolves to "" and every header search path becomes an
-      # absolute path rooted at "/" (e.g. "/Headers/Public/React-jsi"),
-      # producing "file not found" errors that look like flaky/random single-file
-      # failures (whichever file wasn't already cached from a working build).
-      # Exporting both here is the fix. Also: don't reuse "build" as
-      # -derivedDataPath for this app — React Native Codegen writes generated
-      # headers to apps/spm-example/ios/build/generated/ios, and CocoaPods
-      # symlinks them from Pods/Headers/Public/ReactCodegen/; deriving into the
-      # same "build" directory (as the example app step above does) deletes
-      # those symlink targets on a clean checkout.
+      # Don't reuse "build" as -derivedDataPath for this app: React Native
+      # Codegen writes generated headers to apps/spm-example/ios/build/generated/ios,
+      # and CocoaPods symlinks them from Pods/Headers/Public/ReactCodegen/;
+      # deriving into the same "build" directory (as the example app step above
+      # does) deletes those symlink targets on a clean checkout.
+      #
+      # PODS_ROOT is deliberately not exported: xcodebuild never sets it, and
+      # Package.swift has to find the Pods directory from its own location.
+      # This step is what verifies that fallback.
       #
       # No -disableAutomaticPackageResolution here (unlike the example app
       # build below): react-native-webgpu is a local Swift package added
@@ -135,9 +131,6 @@ jobs:
       # build's whole point is exercising that download-and-verify step.
       - name: Build spm-example for iOS
         working-directory: apps/spm-example/ios
-        env:
-          SRCROOT: ${{ github.workspace }}/apps/spm-example/ios
-          PODS_ROOT: ${{ github.workspace }}/apps/spm-example/ios/Pods
         run: |
           set -o pipefail && xcodebuild \
             -workspace SpmExample.xcworkspace \
