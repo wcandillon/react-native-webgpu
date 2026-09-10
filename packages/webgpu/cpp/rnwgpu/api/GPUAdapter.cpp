@@ -327,7 +327,7 @@ std::unordered_set<std::string> GPUAdapter::getFeatures() {
 
 std::shared_ptr<GPUSupportedLimits> GPUAdapter::getLimits() {
   wgpu::Limits limits{};
-  if (!_instance.GetLimits(&limits)) {
+  if (_instance.GetLimits(&limits) != wgpu::Status::Success) {
     throw std::runtime_error("Failed to get limits");
   }
   return std::make_shared<GPUSupportedLimits>(limits);

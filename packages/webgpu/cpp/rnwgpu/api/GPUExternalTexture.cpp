@@ -190,7 +190,7 @@ std::shared_ptr<GPUExternalTexture> GPUExternalTexture::Create(
   wgpu::SharedTextureMemoryBeginAccessDescriptor begin{};
   begin.initialized = true;
   begin.concurrentRead = false;
-  if (!memory.BeginAccess(texture, &begin)) {
+  if (memory.BeginAccess(texture, &begin) != wgpu::Status::Success) {
     throw std::runtime_error(
         "GPUExternalTexture::Create(): BeginAccess failed");
   }
@@ -289,7 +289,7 @@ std::shared_ptr<GPUExternalTexture> GPUExternalTexture::Create(
   begin.concurrentRead = false;
   wgpu::SharedTextureMemoryVkImageLayoutBeginState beginLayout{};
   begin.nextInChain = &beginLayout;
-  if (!memory.BeginAccess(texture, &begin)) {
+  if (memory.BeginAccess(texture, &begin) != wgpu::Status::Success) {
     throw std::runtime_error(
         "GPUExternalTexture::Create(): BeginAccess failed");
   }
@@ -310,7 +310,7 @@ std::shared_ptr<GPUExternalTexture> GPUExternalTexture::Create(
     wgpu::SharedTextureMemoryAHardwareBufferProperties ahbProps{};
     wgpu::SharedTextureMemoryProperties props{};
     props.nextInChain = &ahbProps;
-    if (memory.GetProperties(&props)) {
+    if (memory.GetProperties(&props) == wgpu::Status::Success) {
       yuvToRgbMatrix = makeYuvToRgbMatrix(ahbProps.yCbCrInfo.vkYCbCrModel,
                                           ahbProps.yCbCrInfo.vkYCbCrRange);
     } else {
