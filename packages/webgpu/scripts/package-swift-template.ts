@@ -35,26 +35,38 @@ export const renderPackageSwift = ({
 import Foundation
 import PackageDescription
 
-// Integration model: a local Swift package next to a CocoaPods install.
+// Integration model: this manifest self-detects which of two consumers it is
+// evaluated for, and builds different target wiring for each.
 //
-// This manifest targets React Native 0.81+ (the package's peer range), where
-// React Native's own headers and the RNWgpuViewSpec codegen output only exist
-// inside the consuming app's CocoaPods install. Add this package as a local
-// Swift Package dependency in place of the react-native-webgpu pod (export
-// RNWGPU_USE_SPM=1 for \`pod install\`) and keep running \`pod install\` for
-// everything else. The header search paths below point into that Pods
-// directory. They can only be expressed as \`unsafeFlags\`, and SwiftPM rejects
-// unsafeFlags in anything but a path dependency, so this package can only be
-// consumed locally, never by URL and version.
+// 1. React Native 0.81-0.86: a local Swift package added next to a CocoaPods
+//    install (export RNWGPU_USE_SPM=1 for \`pod install\`, keep running
+//    \`pod install\` for everything else). React Native's own headers and the
+//    RNWgpuViewSpec codegen output only exist inside the consuming app's
+//    CocoaPods install, so the header search paths below point into that Pods
+//    directory. They can only be expressed as \`unsafeFlags\`, and SwiftPM
+//    rejects unsafeFlags in anything but a path dependency, so in this mode
+//    the package can only be consumed locally, never by URL and version.
 //
-// React Native 0.87 added SwiftPM autolinking. There, a dependency shipping
-// its own Package.swift is treated as self-managed and referenced directly,
-// and it consumes React Native's headers as SwiftPM products (ReactHeaders,
-// ReactNativeHeaders, ReactNativeDependenciesHeaders, plus ReactAppHeaders
-// from the app's generated codegen package) with no CocoaPods at all. This
-// manifest does not implement that model yet: on a 0.87+ app that has opted
-// into SwiftPM autolinking it is picked up as self-managed but cannot find
-// React Native's headers. Keep CocoaPods for React Native on those apps.
+// 2. React Native 0.87+ native SwiftPM autolinking: a dependency shipping its
+//    own Package.swift (this one, with react-native.config.js pinning its
+//    \`spm.name\`) is picked up as "self-managed" and referenced directly, with
+//    no CocoaPods involved at all. Autolinking references it through a
+//    symlink at <app>/ios/build/generated/autolinking/libs/react-native-webgpu,
+//    and SwiftPM resolves this manifest's relative paths against that symlink
+//    rather than against this package's real location - the same mechanism
+//    Shopify/react-native-skia's Package.swift documents and uses (PR #4043).
+//    Because the symlink location is the same for every standard app, the two
+//    React Native package paths below are constant. In this mode React
+//    Native's headers and the app's generated codegen output arrive as
+//    typed SwiftPM products (ReactHeaders, ReactNativeHeaders,
+//    ReactNativeDependenciesHeaders from the generated ReactNative package,
+//    ReactAppHeaders from the generated React-GeneratedCode package) instead
+//    of raw header search paths, so none of the CocoaPods-derived
+//    unsafeFlags apply.
+//
+// Which mode applies is detected once below, from whether the native
+// autolinking packages exist at their fixed relative location - the same
+// existence-probing pattern the CocoaPods podsRoot lookup already used.
 
 // Absolute location of this package. Xcode may hand over a symlink (React
 // Native 0.87's autolinker does), so resolve it before deriving sibling paths.
@@ -63,6 +75,40 @@ let packageRoot = URL(fileURLWithPath: Context.packageDirectory)
 let sibling = { (relative: String) -> String in
   URL(fileURLWithPath: "\\(packageRoot)/\\(relative)").standardized.path
 }
+
+// The literal strings passed to \`.package(path:)\` below (further down) are
+// NOT the same paths this probe checks. SwiftPM resolves a dependency's
+// relative \`path:\` against wherever Xcode's own project graph says the
+// manifest lives - the symlink itself under a real Xcode build
+// (react-native-skia#4043 verified this: "resolves the manifest's relative
+// paths against that symlink rather than against packages/skia") - but
+// \`Context.packageDirectory\`, which manifest script code actually gets
+// handed, is already realpath()'d and never exposes that symlink (verified:
+// even \`swift package --package-path <symlink> dump-package\` reports the
+// resolved directory, not the symlink). So this probe can't check the
+// symlink-relative location the eventual \`.package(path:)\` call will use -
+// it instead checks the same real, non-symlinked location \`packageRoot\`
+// already reaches for the CocoaPods candidates below, just two levels
+// shallower (the app root, rather than its Pods/ or xcframeworks/ child).
+let nativeAutolinkingAppRootCandidates = [
+  sibling("../.."), // consumer: <app>/node_modules/react-native-webgpu
+  sibling("../../apps/spm-example"), // this monorepo
+]
+let nativeAutolinkingAppRoot = nativeAutolinkingAppRootCandidates.first {
+  FileManager.default.fileExists(atPath: "\\($0)/ios/build/generated/ios/Package.swift")
+    && FileManager.default.fileExists(atPath: "\\($0)/ios/build/xcframeworks/Package.swift")
+}
+let isNativeAutolinked = nativeAutolinkingAppRoot != nil
+// Passed to \`.package(path:)\` as literal strings (see the comment above) -
+// resolved by SwiftPM itself against the symlinked location react-native.config.js's
+// \`spm.name\` pins, not computed from \`packageRoot\`/\`sibling\`. Verified against
+// a real \`npx react-native spm scaffold\` run on 0.87.1: the self-managed symlink
+// lands at <app>/ios/build/generated/autolinking/libs/react-native-webgpu, and
+// React-GeneratedCode / ReactNative sit at <app>/ios/build/generated/ios and
+// <app>/ios/build/xcframeworks respectively - three and four levels up from
+// there.
+let reactGeneratedCodePath = "../../../ios"
+let reactNativeCorePath = "../../../../xcframeworks"
 
 // Where the consuming app's Pods live. PODS_ROOT is exported by Xcode.app for
 // a real build, but never by plain \`xcodebuild\`, and never while Xcode indexes
@@ -183,12 +229,63 @@ let internalHeaderDirs = [
   "cpp/rnwgpu/async",
 ]
 
+// Native-autolinking-only package dependencies: the generated packages that
+// vend React Native's headers and the app's codegen output as SwiftPM
+// products. Left empty under CocoaPods, where these paths don't exist and
+// nothing in this manifest references their products.
+// Passed as the same literal relative strings used for detection above -
+// SwiftPM resolves these itself, lexically, against the manifest's own
+// (possibly symlinked) location.
+let nativeAutolinkingDependencies: [Package.Dependency] =
+  isNativeAutolinked
+  ? [
+    .package(name: "React-GeneratedCode", path: reactGeneratedCodePath),
+    .package(name: "ReactNative", path: reactNativeCorePath),
+  ]
+  : []
+
+let webgpuDependencies: [Target.Dependency] =
+  isNativeAutolinked
+  ? [
+    "WebGPUDawn",
+    .product(name: "ReactHeaders", package: "ReactNative"),
+    .product(name: "ReactNativeHeaders", package: "ReactNative"),
+    .product(name: "ReactNativeDependenciesHeaders", package: "ReactNative"),
+    .product(name: "ReactAppHeaders", package: "React-GeneratedCode"),
+  ]
+  : ["WebGPUDawn"]
+
+let webgpuCSettings: [CSetting] =
+  internalHeaderDirs.map { CSetting.headerSearchPath($0) }
+  + follyDefines.map { CSetting.define($0.name, to: $0.value) }
+  + (isNativeAutolinked ? [] : [.unsafeFlags(cFamilyIncludeFlags)])
+
+let webgpuCxxSettings: [CXXSetting] =
+  internalHeaderDirs.map { CXXSetting.headerSearchPath($0) }
+  + follyDefines.map { CXXSetting.define($0.name, to: $0.value) }
+  + (isNativeAutolinked
+    ? [
+      // CocoaPods forces both project-wide; native autolinking defines
+      // neither. Cheap insurance against a silent -getTurboModule: drop
+      // (react-native-skia#4043 hit exactly this) - still verify with a
+      // runtime smoke test, not just a clean build, since that failure mode
+      // compiles fine and only breaks at runtime.
+      .define("RCT_NEW_ARCH_ENABLED", to: "1"),
+      .define("RCT_REMOVE_LEGACY_ARCH", to: "1"),
+    ]
+    : [.unsafeFlags(cFamilyIncludeFlags)])
+
 let package = Package(
   name: "react-native-webgpu",
   platforms: [.iOS("15.1"), .macOS("11.0")],
   products: [
-    .library(name: "react-native-webgpu", targets: ["react-native-webgpu"])
+    .library(name: "react-native-webgpu", targets: ["react-native-webgpu"]),
+    // Exposes the Dawn binaryTarget as its own product so a sibling package
+    // (e.g. a future react-native-skia Graphite SPM manifest) can depend on
+    // this package's Dawn build directly instead of vendoring a second copy.
+    .library(name: "WebGPUDawn", targets: ["WebGPUDawn"]),
   ],
+  dependencies: nativeAutolinkingDependencies,
   targets: [
     // Dawn's compiled WebGPU implementation. The xcframework embeds the
     // \`webgpu/\` and \`dawn/\` C headers per-slice (built via \`-headers\` in
@@ -196,16 +293,12 @@ let package = Package(
     ${renderBinaryTarget(target)},
     .target(
       name: "react-native-webgpu",
-      dependencies: ["WebGPUDawn"],
+      dependencies: webgpuDependencies,
       path: ".",
       sources: ["apple", "cpp/jsi", "cpp/rnwgpu"],
       publicHeadersPath: "apple",
-      cSettings: internalHeaderDirs.map { CSetting.headerSearchPath($0) }
-        + follyDefines.map { CSetting.define($0.name, to: $0.value) }
-        + [.unsafeFlags(cFamilyIncludeFlags)],
-      cxxSettings: internalHeaderDirs.map { CXXSetting.headerSearchPath($0) }
-        + follyDefines.map { CXXSetting.define($0.name, to: $0.value) }
-        + [.unsafeFlags(cFamilyIncludeFlags)],
+      cSettings: webgpuCSettings,
+      cxxSettings: webgpuCxxSettings,
       linkerSettings: [
         .linkedFramework("AVFoundation"),
         .linkedFramework("CoreMedia"),
