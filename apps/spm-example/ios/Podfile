@@ -6,7 +6,6 @@ require Pod::Executable.execute_command('node', ['-p',
   )', __dir__]).strip
 
 platform :ios, min_ios_version_supported
-prepare_react_native_project!
 
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
@@ -15,21 +14,8 @@ if linkage != nil
 end
 
 target 'SpmExample' do
-  config = use_native_modules!
-
-  use_react_native!(
-    :path => config[:reactNativePath],
-    # An absolute path to your application root.
-    :app_path => "#{Pod::Config.instance.installation_root}/.."
-  )
-
-  post_install do |installer|
-    # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
-    react_native_post_install(
-      installer,
-      config[:reactNativePath],
-      :mac_catalyst_enabled => false,
-      # :ccache_enabled => true
-    )
-  end
+  # react-native-webgpu links through native SwiftPM autolinking now (see
+  # packages/webgpu/Package.swift) - `npx react-native spm add --deintegrate`
+  # stripped the React Native CocoaPods integration this Podfile used to carry.
+  # `npx react-native spm deinit` followed by `pod install` restores it.
 end
