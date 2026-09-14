@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useEffect, useRef, useState } from "react";
 
-import { useGLTF, useRGBE } from "./assets/AssetManager";
+import { useGLTF, useHDR } from "./assets/AssetManager";
 import {
   makeWebGPURenderer,
   disposeWebGPURenderer,
@@ -29,7 +29,7 @@ const toneMappingOptions = {
 type ToneMappingOption = keyof typeof toneMappingOptions;
 
 export const ToneMapping = () => {
-  const texture = useRGBE(require("./assets/venice/venice_sunset_1k.hdr"));
+  const texture = useHDR(require("./assets/venice/venice_sunset_1k.hdr"));
   const gltf = useGLTF(require("./assets/venice/venice_mask.gltf"));
   const ref = useRef<CanvasRef>(null);
   const rendererRef = useRef<ReturnType<typeof makeWebGPURenderer> | null>(
@@ -44,7 +44,7 @@ export const ToneMapping = () => {
     const context = ref.current?.getContext("webgpu")!;
     const { width, height } = context.canvas;
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 10);
     camera.position.set(-0.02, 0.03, 0.05);
@@ -73,7 +73,8 @@ export const ToneMapping = () => {
     const distance = 0.055;
 
     function animateCamera() {
-      const elapsed = clock.getElapsedTime();
+      timer.update();
+      const elapsed = timer.getElapsed();
       const theta = Math.sin(elapsed * 0.4) * 0.8 - 0.35;
       camera.position.set(
         target.x + Math.sin(theta) * distance,

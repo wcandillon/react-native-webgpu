@@ -51,7 +51,7 @@ export const Backdrop = () => {
     scene.backgroundNode = screenUV.y.mix(color(0x66bbff), color(0x4466ff));
     camera.lookAt(0, 1, 0);
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
 
     //lights
 
@@ -142,7 +142,8 @@ export const Backdrop = () => {
     renderer.toneMappingExposure = 0.3;
 
     function animate() {
-      const delta = clock.getDelta();
+      timer.update();
+      const delta = timer.getDelta();
 
       if (mixer) {
         mixer.update(delta);

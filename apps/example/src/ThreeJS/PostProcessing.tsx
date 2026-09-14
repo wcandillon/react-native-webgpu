@@ -34,7 +34,7 @@ export const PostProcessing = () => {
     scene.backgroundNode = color(0);
     camera.lookAt(0, 1, 0);
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
 
     //lights
 
@@ -69,7 +69,8 @@ export const PostProcessing = () => {
     postProcessing.outputNode = scenePassColor.add(bloomPass);
 
     function animate() {
-      const delta = clock.getDelta();
+      timer.update();
+      const delta = timer.getDelta();
 
       if (mixer) {
         mixer.update(delta);
