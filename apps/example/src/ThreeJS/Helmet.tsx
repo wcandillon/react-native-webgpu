@@ -4,14 +4,14 @@ import { Canvas } from "react-native-webgpu";
 import { StyleSheet, Text, View } from "react-native";
 import { useEffect, useRef } from "react";
 
-import { useGLTF, useRGBE } from "./assets/AssetManager";
+import { useGLTF, useHDR } from "./assets/AssetManager";
 import {
   makeWebGPURenderer,
   disposeWebGPURenderer,
 } from "./components/makeWebGPURenderer";
 
 export const Helmet = () => {
-  const texture = useRGBE(require("./assets/helmet/royal_esplanade_1k.hdr"));
+  const texture = useHDR(require("./assets/helmet/royal_esplanade_1k.hdr"));
   const gltf = useGLTF(require("./assets/helmet/DamagedHelmet.gltf"));
   const ref = useRef<CanvasRef>(null);
   useEffect(() => {
@@ -21,7 +21,7 @@ export const Helmet = () => {
     const context = ref.current?.getContext("webgpu")!;
     const { width, height } = context.canvas;
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.25, 20);
     camera.position.set(-1.8, 0.6, 2.7);
@@ -42,7 +42,8 @@ export const Helmet = () => {
 
     //
     function animateCamera() {
-      const elapsed = clock.getElapsedTime();
+      timer.update();
+      const elapsed = timer.getElapsed();
       const distance = 5;
       camera.position.x = Math.sin(elapsed) * distance;
       camera.position.z = Math.cos(elapsed) * distance;
