@@ -11,6 +11,9 @@
  * This is only sound when the exporting library links the same single Dawn
  * copy as react-native-webgpu and shares its wgpu::Instance (react-native-skia
  * Graphite builds do both).
+ *
+ * Idempotent: importing the same pointer again on the same runtime returns
+ * the same GPUDevice object for as long as the previous one is alive.
  */
 export const importDevice = (pointer: bigint): GPUDevice => {
   if (typeof RNWebGPU === "undefined") {

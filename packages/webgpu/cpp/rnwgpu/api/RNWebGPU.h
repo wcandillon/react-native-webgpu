@@ -19,6 +19,7 @@
 
 #include <ReactCommon/CallInvoker.h>
 
+#include "JSICache.h"
 #include "JSIConverter.h"
 #include "Promise.h"
 
@@ -88,17 +89,39 @@ public:
   // shared with the exporter (see the GPU constructor): the calling runtime's
   // pump serves the instance the device lives on, so its async callbacks
   // settle normally.
-  std::shared_ptr<GPUDevice> importDevice(jsi::Runtime &runtime,
-                                          void *pointer) {
-    if (pointer == nullptr) {
-      throw std::runtime_error(
+  //
+  // Idempotent per runtime: importing the same pointer again returns the same
+  // GPUDevice object for as long as the previous one is alive (see
+  // JSICache::getImportedDevice). Two wrappers around one device would each
+  // carry their own event listeners, `lost` promise and `queue` identity, and
+  // would defeat JS-side caches keyed by device (three.js, WeakMaps).
+  jsi::Value importDevice(jsi::Runtime &runtime, const jsi::Value & /*thisVal*/,
+                          const jsi::Value *args, size_t count) {
+    if (count < 1 || !args[0].isBigInt()) {
+      throw jsi::JSError(
+          runtime,
           "importDevice: expected a non-null WGPUDevice pointer (BigInt)");
+    }
+    auto pointer = JSIConverter<void *>::fromJSI(runtime, args[0], false);
+    if (pointer == nullptr) {
+      throw jsi::JSError(
+          runtime,
+          "importDevice: expected a non-null WGPUDevice pointer (BigInt)");
+    }
+    auto &cache = JSICache::get(runtime);
+    if (auto existing = cache.getImportedDevice(runtime, pointer);
+        existing.isObject()) {
+      return existing;
     }
     auto raw = reinterpret_cast<WGPUDevice>(pointer);
     wgpuDeviceAddRef(raw);
     wgpu::Device device = wgpu::Device::Acquire(raw);
     auto ctx = async::RuntimeContext::getOrCreate(runtime, _gpu->get());
-    return std::make_shared<GPUDevice>(device, ctx, "Imported Device");
+    auto host = std::make_shared<GPUDevice>(device, ctx, "Imported Device");
+    auto wrapper =
+        JSIConverter<std::shared_ptr<GPUDevice>>::toJSI(runtime, host);
+    cache.setImportedDevice(runtime, pointer, wrapper.getObject(runtime));
+    return wrapper;
   }
 
   // Wrap an externally created WGPUTexture in a GPUTexture, TAKING OWNERSHIP
@@ -322,8 +345,7 @@ public:
                   &RNWebGPU::createTestVideoFrame);
     installMethod(runtime, prototype, "createVideoFrameFromNativeBuffer",
                   &RNWebGPU::createVideoFrameFromNativeBuffer);
-    installMethodWithRuntime(runtime, prototype, "importDevice",
-                             &RNWebGPU::importDevice);
+    installMethod(runtime, prototype, "importDevice", &RNWebGPU::importDevice);
     installMethod(runtime, prototype, "adoptTexture", &RNWebGPU::adoptTexture);
     installMethod(runtime, prototype, "createVideoPlayer",
                   &RNWebGPU::createVideoPlayer);

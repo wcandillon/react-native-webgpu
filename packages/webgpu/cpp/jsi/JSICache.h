@@ -72,6 +72,30 @@ public:
    */
   jsi::Object &setPrototype(PrototypeKey key, jsi::Object prototype);
 
+  /**
+   * Imported-device wrappers, keyed by the raw native handle (the WGPUDevice
+   * pointer). This is what makes RNWebGPU.importDevice() idempotent on a
+   * runtime: importing the same pointer twice returns the same JS object, so
+   * `device.queue`, event listeners, the `lost` promise and any JS-side
+   * per-device caches (WeakMaps keyed by device) all agree.
+   *
+   * Held WEAKLY: the JS wrapper stays alive only while user code references
+   * it. A dead entry is transparently replaced on the next import; nobody
+   * could observe the identity change, since the previous wrapper was already
+   * unreachable. Holding it strongly would instead pin the wrapper (and the
+   * device reference it owns) for the runtime's lifetime.
+   *
+   * Returns the live wrapper, or undefined when none was cached or the cached
+   * one has been collected.
+   */
+  jsi::Value getImportedDevice(jsi::Runtime &runtime, const void *handle);
+
+  /**
+   * Remembers `wrapper` as the wrapper of `handle` (see getImportedDevice).
+   */
+  void setImportedDevice(jsi::Runtime &runtime, const void *handle,
+                         const jsi::Object &wrapper);
+
   JSICache() = default;
   ~JSICache() override = default;
   JSICache(const JSICache &) = delete;
@@ -81,6 +105,7 @@ private:
   static std::shared_ptr<JSICache> getOrCreateOnGlobal(jsi::Runtime &runtime);
 
   std::unordered_map<PrototypeKey, jsi::Object> _prototypes;
+  std::unordered_map<const void *, jsi::WeakObject> _importedDevices;
 
   // Runtime -> cache. Weak on purpose: the runtime's global owns the cache.
   static std::mutex _registryMutex;

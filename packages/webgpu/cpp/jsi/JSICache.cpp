@@ -94,4 +94,25 @@ jsi::Object &JSICache::setPrototype(PrototypeKey key, jsi::Object prototype) {
   return it->second;
 }
 
+jsi::Value JSICache::getImportedDevice(jsi::Runtime &runtime,
+                                       const void *handle) {
+  auto it = _importedDevices.find(handle);
+  if (it == _importedDevices.end()) {
+    return jsi::Value::undefined();
+  }
+  auto value = it->second.lock(runtime);
+  if (!value.isObject()) {
+    // Collected: drop the stale entry so the map does not grow with every
+    // wrapper the GC reclaims.
+    _importedDevices.erase(it);
+    return jsi::Value::undefined();
+  }
+  return value;
+}
+
+void JSICache::setImportedDevice(jsi::Runtime &runtime, const void *handle,
+                                 const jsi::Object &wrapper) {
+  _importedDevices.insert_or_assign(handle, jsi::WeakObject(runtime, wrapper));
+}
+
 } // namespace rnwgpu

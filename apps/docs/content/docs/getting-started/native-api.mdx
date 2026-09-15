@@ -124,6 +124,8 @@ const device = importDevice(pointer);
 
 This is only sound when the exporting library links the exact same Dawn build as react-native-webgpu and shares its `wgpu::Instance`; otherwise the imported device's async callbacks would settle on an instance nobody pumps. The canonical exporter is a Graphite build of `@shopify/react-native-skia`, which satisfies both conditions automatically; see [React Native Skia](/docs/integrations/react-native-skia).
 
+`importDevice()` is idempotent: calling it again with the same pointer on the same runtime returns the same `GPUDevice` object, for as long as that object is alive. Its `queue`, event listeners, `lost` promise and any of your own caches keyed by device (a `WeakMap`, a three.js renderer) therefore all refer to one device. Each JS runtime (main, Reanimated UI, worklet runtimes) has its own wrapper for a given pointer, since JS objects cannot cross runtimes.
+
 ## See also
 
 - [Canvas](/docs/getting-started/canvas) - the rendering surface and frame loop

@@ -51,6 +51,7 @@ Because the device is shared with Graphite, GPU resources you create with it liv
 A few things to know:
 
 - **Lifetime.** The device is owned by Skia's Graphite context and is valid for the lifetime of the process. `importDevice` takes its own reference.
+- **Idempotent.** Calling `importDevice(Skia.getNativeDevice())` again returns the same `GPUDevice` object on that runtime, so components and hooks can call it freely instead of threading a single instance around.
 - **Device loss.** Skia treats the loss of its device as fatal. Treat an imported device accordingly: there is no point requesting a replacement from `navigator.gpu` on loss.
 - **You can still create your own devices.** `navigator.gpu.requestAdapter()` and `requestDevice()` work as usual; devices you create are siblings of Graphite's device on the shared instance. Use a dedicated device when you want your GPU work isolated from Skia's command queue.
 - **Threading.** The imported device follows the same [threading model](/docs/getting-started/native-api#threading-model) as any other device. Note that Graphite records and submits its own work on the device concurrently; Dawn synchronizes device access internally.
