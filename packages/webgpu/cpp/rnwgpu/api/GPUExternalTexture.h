@@ -58,19 +58,39 @@ public:
   // destroy() the producer's surface (e.g. an AVPlayer IOSurface) stays claimed
   // until GC runs. EndAccess is the designed post-submit call: Dawn keeps the
   // texture alive for in-flight GPU work via the fences it returns.
+  // Destroying the texture and the external texture is what actually frees
+  // the import: the ExternalTexture's views keep the imported VkImage /
+  // IOSurface texture alive until the object itself is destroyed, which
+  // otherwise only happens once the JS wrapper (and any bind group that
+  // sampled it) is garbage-collected.
   void destroy() {
     if (_memory && _texture) {
       wgpu::SharedTextureMemoryEndAccessState state{};
+#if defined(__ANDROID__)
+      // Required by the Vulkan backend, see GPUSharedTextureMemory::endAccess.
+      wgpu::SharedTextureMemoryVkImageLayoutEndState vkLayout{};
+      state.nextInChain = &vkLayout;
+#endif
       (void)_memory.EndAccess(_texture, &state);
+    }
+    if (_texture) {
+      _texture.Destroy();
+    }
+    if (_instance) {
+      _instance.Destroy();
     }
     _texture = nullptr;
     _memory = nullptr;
+    _instance = nullptr;
+    _source = nullptr;
   }
 
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
     _label = label;
-    _instance.SetLabel(_label.c_str());
+    if (_instance) {
+      _instance.SetLabel(_label.c_str());
+    }
   }
 
   // Non-spec extension. A 3x4 row-major matrix mapping the *sampled* texel
