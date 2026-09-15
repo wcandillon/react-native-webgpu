@@ -11,8 +11,7 @@ import {
 } from "./components/makeWebGPURenderer";
 
 declare const HermesInternal:
-  | { getInstrumentedStats?: () => Record<string, number> }
-  | undefined;
+  { getInstrumentedStats?: () => Record<string, number> } | undefined;
 
 const getExternalMB = () => {
   const stats =
@@ -266,7 +265,7 @@ const Scene = () => {
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
-    const renderer = makeWebGPURenderer(context);
+    const renderer = makeWebGPURenderer({ context });
     renderer.init();
 
     function animate(time: number) {

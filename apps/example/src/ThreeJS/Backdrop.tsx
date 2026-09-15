@@ -136,7 +136,7 @@ export const Backdrop = () => {
     addBackdropSphere(vec3(0, 0, viewportSharedTexture().b));
 
     //renderer
-    const renderer = makeWebGPURenderer(context, { antialias: false });
+    const renderer = makeWebGPURenderer({ context, antialias: false });
     renderer.setAnimationLoop(animate);
     renderer.toneMapping = THREE.NeutralToneMapping;
     renderer.toneMappingExposure = 0.3;

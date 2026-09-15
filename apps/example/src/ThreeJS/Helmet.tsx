@@ -28,7 +28,7 @@ export const Helmet = () => {
 
     const scene = new THREE.Scene();
 
-    const renderer = makeWebGPURenderer(context);
+    const renderer = makeWebGPURenderer({ context });
 
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
 

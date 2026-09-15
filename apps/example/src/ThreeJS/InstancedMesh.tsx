@@ -53,7 +53,7 @@ export const InstancedMesh = () => {
     scene.add(mesh);
 
     //
-    const renderer = makeWebGPURenderer(context);
+    const renderer = makeWebGPURenderer({ context });
 
     //renderer.setPixelRatio(window.devicePixelRatio);
     //renderer.setSize(window.innerWidth, window.innerHeight);
