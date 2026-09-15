@@ -22,22 +22,18 @@ Please note that this module does not work on the legacy architecture.
 
 ## iOS: Swift Package Manager
 
-By default, `react-native-webgpu` links on iOS/macOS through CocoaPods autolinking - no extra setup needed. As an alternative, the package also ships a `Package.swift` and can be linked through Swift Package Manager instead:
+By default, `react-native-webgpu` links on iOS/macOS through CocoaPods autolinking - no extra setup needed. As an alternative, the package also ships a `Package.swift` for React Native's SwiftPM autolinking, which needs no CocoaPods at all:
 
-1. Set `RNWGPU_USE_SPM=1` before running `pod install` (e.g. `RNWGPU_USE_SPM=1 pod install` from your app's `ios` directory, or export it in your shell). This tells the CocoaPods podspec to skip vendoring the native sources and Dawn binary itself, and only keep the small shim CocoaPods/Codegen still need - otherwise the app would link the native module twice.
-2. In Xcode, add a local Swift Package dependency pointing at `node_modules/react-native-webgpu` (where `Package.swift` lives), then add the `react-native-webgpu` product to your app target's "Frameworks, Libraries, and Embedded Content".
-3. Keep running `pod install` as usual for everything else - only `react-native-webgpu` itself moves to SPM.
+1. Use **React Native 0.87 or newer**. Earlier releases have no SwiftPM autolinking (`scripts/spm`), so keep CocoaPods there.
+2. From your app's `ios` directory, run `npx react-native spm add` once to inject the Swift packages into the `.xcodeproj`, then build the project (not a workspace) as usual. React Native's `Sync SPM Autolinking` build phase picks `react-native-webgpu` up as a self-managed package and links its `ReactNativeWebGPU` product.
+3. Do not run `pod install` in that app: it would re-integrate CocoaPods and break the Swift package graph.
 
-The Swift package reads React Native's headers from the static-library Pods layout (`Pods/Headers/Public`), so it cannot be combined with `use_frameworks!`; `pod install` refuses `RNWGPU_USE_SPM=1` when `USE_FRAMEWORKS` is set. If a Graphite build of `@shopify/react-native-skia` is installed alongside, the manifest also checks that both packages link the same Dawn release and fails package resolution on a mismatch (see [React Native Skia](/docs/integrations/react-native-skia)).
-
-<Callout type="info" title="React Native 0.87 SwiftPM autolinking">
-React Native 0.87 introduced SwiftPM autolinking, where a library shipping its own `Package.swift` is linked without CocoaPods and consumes React Native's headers as Swift package products. This manifest does not support that model yet: it still needs the CocoaPods install described above for React Native's headers, so keep CocoaPods for React Native on 0.87+ apps.
-</Callout>
+The manifest consumes React Native's headers as Swift package products (`ReactHeaders`, `ReactNativeHeaders`, `ReactNativeDependenciesHeaders`, plus the app's generated `ReactAppHeaders` for the `RNWgpuViewSpec` codegen output), so it works with either the static-library or `use_frameworks!` layout. If a Graphite build of `@shopify/react-native-skia` is installed alongside, the manifest also checks that both packages link the same Dawn release and fails package resolution on a mismatch (see [React Native Skia](/docs/integrations/react-native-skia)). It follows the same integration model as `@shopify/react-native-skia`'s own `Package.swift`, so the two libraries link the same way.
 
 `Package.swift`'s `WebGPUDawn` binary target resolves to a prebuilt Dawn `.xcframework` published on GitHub Releases; Xcode downloads and checksum-verifies it the first time it resolves packages.
 
 <Callout type="warn" title="Platform coverage">
-The Swift package targets iOS 15.1+ and macOS 11.0+ only - Android and visionOS still require the CocoaPods/Gradle autolinked path. See `apps/spm-example` in the [react-native-webgpu repo](https://github.com/wcandillon/react-native-webgpu) for a working reference project.
+The Swift package targets iOS only - macOS, Android and visionOS still require the CocoaPods/Gradle autolinked path. See `spm-example` at the root of the [react-native-webgpu repo](https://github.com/wcandillon/react-native-webgpu) for a working reference project, and its README for the gotchas (stale `Package.resolved`, the stub `Podfile`).
 </Callout>
 
 ## Setup

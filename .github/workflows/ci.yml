@@ -107,33 +107,31 @@ jobs:
             -disableAutomaticPackageResolution \
             build | xcpretty
 
-      - name: Install CocoaPods (spm-example)
-        working-directory: apps/spm-example/ios
-        env:
-          RNWGPU_USE_SPM: "1"
-        run: pod install
+      # spm-example sits outside the yarn workspace so its React Native can
+      # differ from the one apps/example pins: SwiftPM autolinking needs
+      # React Native 0.87+. It ships no lockfile; react and react-native are
+      # pinned exactly in its package.json.
+      - name: Install spm-example dependencies
+        working-directory: spm-example
+        run: npm install
 
-      # Don't reuse "build" as -derivedDataPath for this app: React Native
-      # Codegen writes generated headers to apps/spm-example/ios/build/generated/ios,
-      # and CocoaPods symlinks them from Pods/Headers/Public/ReactCodegen/;
-      # deriving into the same "build" directory (as the example app step above
-      # does) deletes those symlink targets on a clean checkout.
-      #
-      # PODS_ROOT is deliberately not exported: xcodebuild never sets it, and
-      # Package.swift has to find the Pods directory from its own location.
-      # This step is what verifies that fallback.
-      #
-      # No -disableAutomaticPackageResolution here (unlike the example app
-      # build below): react-native-webgpu is a local Swift package added
-      # directly to the Xcode project (XCLocalSwiftPackageReference), not
-      # CocoaPods-vendored, and its WebGPUDawn binaryTarget resolves to a
+      # The .xcodeproj is committed already injected, so this refreshes the
+      # injection, runs codegen and downloads the React Native artifacts. It
+      # exits 2 if a linked library ships no Package.swift.
+      - name: Set up Swift Package Manager (spm-example)
+        working-directory: spm-example/ios
+        run: npx react-native spm update
+
+      # No CocoaPods and no -disableAutomaticPackageResolution here (unlike
+      # the example app build above): react-native-webgpu is linked through
+      # its own Package.swift, and its WebGPUDawn binaryTarget resolves to a
       # remote release zip + checksum with nothing cached ahead of time — this
       # build's whole point is exercising that download-and-verify step.
       - name: Build spm-example for iOS
-        working-directory: apps/spm-example/ios
+        working-directory: spm-example/ios
         run: |
           set -o pipefail && xcodebuild \
-            -workspace SpmExample.xcworkspace \
+            -project SpmExample.xcodeproj \
             -scheme SpmExample \
             -configuration Debug \
             -sdk iphonesimulator \
@@ -141,6 +139,7 @@ jobs:
             -derivedDataPath spm-build \
             COMPILER_INDEX_STORE_ENABLE=NO \
             DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING=YES \
+            CODE_SIGNING_ALLOWED=NO \
             build | xcpretty
 
       - name: Boot iPhone Simulator

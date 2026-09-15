@@ -1,0 +1,124 @@
+{
+  "object" : {
+    "artifacts" : [
+      {
+        "kind" : {
+          "xcframework" : {
+
+          }
+        },
+        "packageRef" : {
+          "identity" : "reactnativewebgpu",
+          "kind" : "fileSystem",
+          "location" : "/Users/wcandillon/tmp/react-native-webgpu/spm-example/ios/build/generated/autolinking/libs/ReactNativeWebGPU",
+          "name" : "ReactNativeWebGPU"
+        },
+        "path" : "/Users/wcandillon/tmp/react-native-webgpu/spm-example/ios/spm-build/SourcePackages/artifacts/reactnativewebgpu/WebGPUDawn/dawn-apple.xcframework",
+        "source" : {
+          "checksum" : "896575ffbc99610198a83d061f8c5a2789139b7f16c669fbf3a9f7a7ac9be123",
+          "type" : "remote",
+          "url" : "https://github.com/wcandillon/react-native-webgpu/releases/download/dawn-chrome-m154/dawn-apple-dawn-chrome-m154.xcframework.zip"
+        },
+        "targetName" : "WebGPUDawn"
+      },
+      {
+        "kind" : {
+          "xcframework" : {
+
+          }
+        },
+        "packageRef" : {
+          "identity" : "xcframeworks",
+          "kind" : "fileSystem",
+          "location" : "/Users/wcandillon/tmp/react-native-webgpu/spm-example/ios/build/xcframeworks",
+          "name" : "ReactNative"
+        },
+        "path" : "/Users/wcandillon/tmp/react-native-webgpu/spm-example/ios/build/xcframeworks/ReactNativeDependenciesHeaders.xcframework",
+        "source" : {
+          "type" : "local"
+        },
+        "targetName" : "ReactNativeDependenciesHeaders"
+      },
+      {
+        "kind" : {
+          "xcframework" : {
+
+          }
+        },
+        "packageRef" : {
+          "identity" : "xcframeworks",
+          "kind" : "fileSystem",
+          "location" : "/Users/wcandillon/tmp/react-native-webgpu/spm-example/ios/build/xcframeworks",
+          "name" : "ReactNative"
+        },
+        "path" : "/Users/wcandillon/tmp/react-native-webgpu/spm-example/ios/build/xcframeworks/ReactNativeHeaders.xcframework",
+        "source" : {
+          "type" : "local"
+        },
+        "targetName" : "ReactNativeHeaders"
+      }
+    ],
+    "dependencies" : [
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "autolinking",
+          "kind" : "fileSystem",
+          "location" : "/Users/wcandillon/tmp/react-native-webgpu/spm-example/ios/build/generated/autolinking",
+          "name" : "Autolinked"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/wcandillon/tmp/react-native-webgpu/spm-example/ios/build/generated/autolinking"
+        },
+        "subpath" : "autolinking"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "ios",
+          "kind" : "fileSystem",
+          "location" : "/Users/wcandillon/tmp/react-native-webgpu/spm-example/ios/build/generated/ios",
+          "name" : "React-GeneratedCode"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/wcandillon/tmp/react-native-webgpu/spm-example/ios/build/generated/ios"
+        },
+        "subpath" : "ios"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "reactnativewebgpu",
+          "kind" : "fileSystem",
+          "location" : "/Users/wcandillon/tmp/react-native-webgpu/spm-example/ios/build/generated/autolinking/libs/ReactNativeWebGPU",
+          "name" : "ReactNativeWebGPU"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/wcandillon/tmp/react-native-webgpu/spm-example/ios/build/generated/autolinking/libs/ReactNativeWebGPU"
+        },
+        "subpath" : "reactnativewebgpu"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "xcframeworks",
+          "kind" : "fileSystem",
+          "location" : "/Users/wcandillon/tmp/react-native-webgpu/spm-example/ios/build/xcframeworks",
+          "name" : "ReactNative"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/wcandillon/tmp/react-native-webgpu/spm-example/ios/build/xcframeworks"
+        },
+        "subpath" : "xcframeworks"
+      }
+    ],
+    "prebuilts" : [
+
+    ]
+  },
+  "version" : 7
+}

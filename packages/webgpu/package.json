@@ -21,6 +21,7 @@
     "libs/**",
     "*.podspec",
     "Package.swift",
+    "react-native.config.js",
     "app.plugin.js",
     "plugin/build/**"
   ],
