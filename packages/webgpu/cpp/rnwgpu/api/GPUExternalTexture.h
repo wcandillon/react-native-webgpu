@@ -73,6 +73,12 @@ public:
     if (_instance) {
       _instance.Destroy();
     }
+    if (_texture) {
+      _texture.Destroy();
+    }
+    if (_instance) {
+      _instance.Destroy();
+    }
     _texture = nullptr;
     _memory = nullptr;
     _instance = nullptr;
