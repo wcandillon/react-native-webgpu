@@ -146,4 +146,59 @@ describe("ImportExternalTexture", () => {
     const image = encodeImage(result);
     checkImage(image, "snapshots/import-external-texture.png");
   });
+
+  it("destroy() is idempotent and the frame can be re-imported afterwards", async () => {
+    const result = await client.eval<
+      Record<string, never>,
+      | { kind: "skip"; reason: string }
+      | { kind: "fail"; reason: string }
+      | { kind: "ok"; label: string }
+    >(({ device }) => {
+      const FEATURE = "rnwebgpu/native-texture";
+      if (!device.features.has(FEATURE as GPUFeatureName)) {
+        return {
+          kind: "skip",
+          reason: `${FEATURE} not enabled on this device`,
+        };
+      }
+      if (typeof RNWebGPU?.createTestVideoFrame !== "function") {
+        return {
+          kind: "skip",
+          reason: "RNWebGPU.createTestVideoFrame is unavailable",
+        };
+      }
+      try {
+        const frame = RNWebGPU.createTestVideoFrame(64, 64);
+        // Same shape as a camera loop: re-import a pooled frame after destroy().
+        for (let i = 0; i < 3; i++) {
+          const externalTexture = device.importExternalTexture({
+            source: frame as unknown as VideoFrame,
+            label: `reimport-${i}`,
+          });
+          externalTexture.destroy();
+          externalTexture.destroy();
+          externalTexture.label = "destroyed";
+          if (externalTexture.label !== "destroyed") {
+            return {
+              kind: "fail",
+              reason: "label not updated after destroy()",
+            };
+          }
+        }
+        frame.release();
+        return { kind: "ok", label: "destroyed" };
+      } catch (e) {
+        return { kind: "fail", reason: `${(e as Error).message ?? e}` };
+      }
+    });
+
+    if (result.kind === "skip") {
+      console.log(`ImportExternalTexture: skipping (${result.reason})`);
+      return;
+    }
+    if (result.kind === "fail") {
+      throw new Error(`ImportExternalTexture: ${result.reason}`);
+    }
+    expect(result.label).toBe("destroyed");
+  });
 });
