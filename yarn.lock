@@ -6260,15 +6260,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@shopify/react-native-skia@file:/private/tmp/claude-501/-Users-wcandillon-tmp-tmp-react-native-webgpu/fc18064a-9a3a-435e-94be-ecbc3f2ead14/scratchpad/rnskia-graphite-m154.tgz::locator=Example%40workspace%3Aapps%2Fexample":
-  version: 0.0.0
-  resolution: "@shopify/react-native-skia@file:/private/tmp/claude-501/-Users-wcandillon-tmp-tmp-react-native-webgpu/fc18064a-9a3a-435e-94be-ecbc3f2ead14/scratchpad/rnskia-graphite-m154.tgz::locator=Example%40workspace%3Aapps%2Fexample"
+"@shopify/react-native-skia@npm:next":
+  version: 2.11.2-next.1
+  resolution: "@shopify/react-native-skia@npm:2.11.2-next.1"
   dependencies:
     canvaskit-wasm: 0.41.0
-    react-native-skia-android: 154.0.0
-    react-native-skia-apple-ios: 154.0.0
-    react-native-skia-apple-macos: 154.0.0
-    react-native-skia-apple-tvos: 154.0.0
+    react-native-skia-graphite-android: 152.0.0
+    react-native-skia-graphite-apple-ios: 152.0.0
+    react-native-skia-graphite-apple-macos: 152.0.0
     react-reconciler: 0.31.0
   peerDependencies:
     react: ">=19.0"
@@ -6284,7 +6283,7 @@ __metadata:
       optional: true
   bin:
     setup-skia-web: scripts/setup-canvaskit.js
-  checksum: 8666c52c9836a37bcd15442eae412809f03ab1cef4ca44224af51681d37ba3883ed9c9c1cf8db46e6732565e8ae6d48d387989c3dab266fcdd3de9c669ebd855
+  checksum: c0732db63e2a455c8dd24e3ba3fe0e1189d808668c0ce9441622b38916f71b261f73d145068b1ed16067ffa6d177b0c6789fbf9842bf8838a3666857334cb13a
   languageName: node
   linkType: hard
 
@@ -8305,7 +8304,7 @@ __metadata:
     "@react-navigation/stack": ^6.4.0
     "@react-three/fiber": ^9.4.0
     "@rnx-kit/metro-config": ^2.0.0
-    "@shopify/react-native-skia": "file:/private/tmp/claude-501/-Users-wcandillon-tmp-tmp-react-native-webgpu/fc18064a-9a3a-435e-94be-ecbc3f2ead14/scratchpad/rnskia-graphite-m154.tgz"
+    "@shopify/react-native-skia": next
     "@tensorflow/tfjs": ^4.22.0
     "@tensorflow/tfjs-backend-webgpu": ^4.22.0
     "@tensorflow/tfjs-vis": ^1.5.1
@@ -8334,8 +8333,6 @@ __metadata:
     react-native-nitro-modules: 0.35.7
     react-native-reanimated: 4.3.1
     react-native-safe-area-context: ^5.4.0
-    react-native-skia-graphite-apple-ios: 154.0.0
-    react-native-skia-graphite-apple-macos: 154.0.0
     react-native-test-app: 4.4.10
     react-native-vision-camera: 5.0.10
     react-native-vision-camera-worklets: 5.0.10
@@ -21313,45 +21310,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-skia-android@npm:154.0.0":
-  version: 154.0.0
-  resolution: "react-native-skia-android@npm:154.0.0"
-  checksum: 7428991fc10e5d489a17f5049579b3ac31e949a070ecbcd3b2bbcefdce43c137eb749ab5ecf08cd36c2f03828a893ab00499f994a1c6f2224f798a473471e818
+"react-native-skia-graphite-android@npm:152.0.0":
+  version: 152.0.0
+  resolution: "react-native-skia-graphite-android@npm:152.0.0"
+  checksum: 8728f001fb6c6bb98c07a10bac442f2a75c8227af21a85a7fc10cd08f7844599d3ecf74472f0dfa0bbfdd623b019f5cb2caf5072f0883c0259f8a3052c4d44a0
   languageName: node
   linkType: hard
 
-"react-native-skia-apple-ios@npm:154.0.0":
-  version: 154.0.0
-  resolution: "react-native-skia-apple-ios@npm:154.0.0"
-  checksum: b627209b8bcd747238cb39d605527ad46569988aab6e025ac2118455031c98cf7da30a3da5af1295ba824336a322a99f46baa6e870f9452e623f430619143baf
+"react-native-skia-graphite-apple-ios@npm:152.0.0":
+  version: 152.0.0
+  resolution: "react-native-skia-graphite-apple-ios@npm:152.0.0"
+  checksum: 0866825ecfdcfa61ea27735fac56cacb583a491d47ccd9503867b83ae743116ed8ef249175c0c6d41a9bba622729948569217becf632a7708a13467de7cf891f
   languageName: node
   linkType: hard
 
-"react-native-skia-apple-macos@npm:154.0.0":
-  version: 154.0.0
-  resolution: "react-native-skia-apple-macos@npm:154.0.0"
-  checksum: be282528ca301cc69e7d94505cd0e8dc051eb22e1b69c15c4b5721bca18b9330c6c06bbf548a3d309150e7dd41d3118bef7d318a6664a2c367587f6fc778d8d9
-  languageName: node
-  linkType: hard
-
-"react-native-skia-apple-tvos@npm:154.0.0":
-  version: 154.0.0
-  resolution: "react-native-skia-apple-tvos@npm:154.0.0"
-  checksum: 8dcee573d91be4ddfc47112d0098840854c1c21fc0e5190f1d8f4495d0c2c86b3168c2070a089c3072ed6a5e5fa2639de60b7772ddb8f9993e1e93007e1409c3
-  languageName: node
-  linkType: hard
-
-"react-native-skia-graphite-apple-ios@npm:154.0.0":
-  version: 154.0.0
-  resolution: "react-native-skia-graphite-apple-ios@npm:154.0.0"
-  checksum: c3e55380bc26511fbc4854fe120544c2994c24fba5494fb420d41c31ff07985d4ddd0e880e783e46c8c69fc00d9e139891f41c693645f10212c963859664f161
-  languageName: node
-  linkType: hard
-
-"react-native-skia-graphite-apple-macos@npm:154.0.0":
-  version: 154.0.0
-  resolution: "react-native-skia-graphite-apple-macos@npm:154.0.0"
-  checksum: 40240f0cf1ee638a851a9070c7d3a1a413f83b92a5276bfc6fccbfebb35347cf0fda234b962e9092c0668b4557d0cb1b385721f938b47dab39f4fa24a5cb5d3f
+"react-native-skia-graphite-apple-macos@npm:152.0.0":
+  version: 152.0.0
+  resolution: "react-native-skia-graphite-apple-macos@npm:152.0.0"
+  checksum: da6bf5e31de9f19693fe13f7ae525c10add812c4a7802ae287e78a17d29caf46ff096b0e3a161957a091be7d7b56c20ee0621204709893633c1b5c6715379a2e
   languageName: node
   linkType: hard
 
