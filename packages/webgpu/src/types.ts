@@ -96,9 +96,7 @@ export interface GPUSharedTextureMemoryDescriptor {
 // targets (iOS/Metal and Android/Vulkan); importSharedFence accepts these and
 // export() reports them.
 export type GPUSharedFenceType =
-  | "mtl-shared-event"
-  | "sync-fd"
-  | "vk-semaphore-opaque-fd";
+  "mtl-shared-event" | "sync-fd" | "vk-semaphore-opaque-fd";
 
 export interface GPUSharedFenceDescriptor {
   // The fence kind to import. Must match a shared-fence-* feature enabled on

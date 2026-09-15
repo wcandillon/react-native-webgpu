@@ -62,12 +62,7 @@ interface GPUTestingContext {
 type Ctx = Record<string, unknown>;
 
 type JSONValue =
-  | { [key: string]: JSONValue }
-  | JSONValue[]
-  | number
-  | string
-  | boolean
-  | null;
+  { [key: string]: JSONValue } | JSONValue[] | number | string | boolean | null;
 
 interface TestingClient {
   eval<C = Ctx, R = JSONValue>(
@@ -659,8 +654,7 @@ class NodeTestingClient implements TestingClient {
           ? (rest.slice(0, 4) as number[])
           : undefined;
       const options = (cropRect !== undefined ? rest[4] : rest[0]) as
-        | PolyfillImageBitmapOptions
-        | undefined;
+        PolyfillImageBitmapOptions | undefined;
       if (source instanceof ArrayBuffer) {
         return decodePng(new Uint8Array(source), cropRect, options);
       }
