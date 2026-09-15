@@ -147,50 +147,125 @@ describe("ImportExternalTexture", () => {
     checkImage(image, "snapshots/import-external-texture.png");
   });
 
-  it("destroy() is idempotent and the frame can be re-imported afterwards", async () => {
-    const result = await client.eval<
-      Record<string, never>,
-      | { kind: "skip"; reason: string }
-      | { kind: "fail"; reason: string }
-      | { kind: "ok"; label: string }
-    >(({ device }) => {
-      const FEATURE = "rnwebgpu/native-texture";
-      if (!device.features.has(FEATURE as GPUFeatureName)) {
-        return {
-          kind: "skip",
-          reason: `${FEATURE} not enabled on this device`,
-        };
-      }
-      if (typeof RNWebGPU?.createTestVideoFrame !== "function") {
-        return {
-          kind: "skip",
-          reason: "RNWebGPU.createTestVideoFrame is unavailable",
-        };
-      }
-      try {
-        const frame = RNWebGPU.createTestVideoFrame(64, 64);
-        // Same shape as a camera loop: re-import a pooled frame after destroy().
-        for (let i = 0; i < 3; i++) {
-          const externalTexture = device.importExternalTexture({
-            source: frame as unknown as VideoFrame,
-            label: `reimport-${i}`,
-          });
-          externalTexture.destroy();
-          externalTexture.destroy();
-          externalTexture.label = "destroyed";
-          if (externalTexture.label !== "destroyed") {
-            return {
-              kind: "fail",
-              reason: "label not updated after destroy()",
-            };
-          }
+  it("destroy() after submit releases the import and the frame can be re-imported", async () => {
+    const result = await client.eval<Record<string, never>, EvalResult>(
+      ({ device, gpu, ctx, canvas }) => {
+        const FEATURE = "rnwebgpu/native-texture";
+        if (!device.features.has(FEATURE as GPUFeatureName)) {
+          return {
+            kind: "skip",
+            reason: `${FEATURE} not enabled on this device`,
+          };
         }
-        frame.release();
-        return { kind: "ok", label: "destroyed" };
-      } catch (e) {
-        return { kind: "fail", reason: `${(e as Error).message ?? e}` };
-      }
-    });
+        if (typeof RNWebGPU?.createTestVideoFrame !== "function") {
+          return {
+            kind: "skip",
+            reason: "RNWebGPU.createTestVideoFrame is unavailable",
+          };
+        }
+        try {
+          const module = device.createShaderModule({
+            code: /* wgsl */ `
+              struct VsOut {
+                @builtin(position) position: vec4f,
+                @location(0) uv: vec2f,
+              };
+
+              @vertex fn vs(@builtin(vertex_index) vid: u32) -> VsOut {
+                var positions = array<vec2f, 3>(
+                  vec2f(-1.0, -3.0),
+                  vec2f(-1.0,  1.0),
+                  vec2f( 3.0,  1.0),
+                );
+                var uvs = array<vec2f, 3>(
+                  vec2f(0.0, 2.0),
+                  vec2f(0.0, 0.0),
+                  vec2f(2.0, 0.0),
+                );
+                var out: VsOut;
+                out.position = vec4f(positions[vid], 0.0, 1.0);
+                out.uv = uvs[vid];
+                return out;
+              }
+
+              @group(0) @binding(0) var srcTex: texture_external;
+              @group(0) @binding(1) var srcSampler: sampler;
+
+              @fragment fn fs(in: VsOut) -> @location(0) vec4f {
+                return textureSampleBaseClampToEdge(srcTex, srcSampler, in.uv);
+              }
+            `,
+          });
+          const pipeline = device.createRenderPipeline({
+            layout: "auto",
+            vertex: { module, entryPoint: "vs" },
+            fragment: {
+              module,
+              entryPoint: "fs",
+              targets: [{ format: gpu.getPreferredCanvasFormat() }],
+            },
+            primitive: { topology: "triangle-list" },
+          });
+          const sampler = device.createSampler({
+            magFilter: "linear",
+            minFilter: "linear",
+          });
+
+          // Same shape as a camera loop: a pooled frame is imported, sampled
+          // in a submitted pass, destroyed right after the submit, then
+          // imported again. destroy() must end the access window and release
+          // the imported surface while that submit may still be in flight,
+          // and the next import of the same frame must succeed.
+          const frame = RNWebGPU.createTestVideoFrame(256, 256);
+          for (let i = 0; i < 3; i++) {
+            const externalTexture = device.importExternalTexture({
+              source: frame as unknown as VideoFrame,
+              label: `reimport-${i}`,
+            });
+            const bindGroup = device.createBindGroup({
+              layout: pipeline.getBindGroupLayout(0),
+              entries: [
+                { binding: 0, resource: externalTexture },
+                { binding: 1, resource: sampler },
+              ],
+            });
+            const encoder = device.createCommandEncoder();
+            const pass = encoder.beginRenderPass({
+              colorAttachments: [
+                {
+                  view: ctx.getCurrentTexture().createView(),
+                  clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                  loadOp: "clear",
+                  storeOp: "store",
+                },
+              ],
+            });
+            pass.setPipeline(pipeline);
+            pass.setBindGroup(0, bindGroup);
+            pass.draw(3);
+            pass.end();
+            device.queue.submit([encoder.finish()]);
+            externalTexture.destroy();
+            // Idempotent, and the wrapper stays usable once destroyed.
+            externalTexture.destroy();
+            externalTexture.label = "destroyed";
+            if (externalTexture.label !== "destroyed") {
+              return {
+                kind: "fail",
+                reason: "label not updated after destroy()",
+              };
+            }
+          }
+
+          return canvas.getImageData().then((image: BitmapData) => {
+            frame.release();
+            return { kind: "ok" as const, ...image };
+          });
+        } catch (e) {
+          return { kind: "fail", reason: `${(e as Error).message ?? e}` };
+        }
+      },
+    );
 
     if (result.kind === "skip") {
       console.log(`ImportExternalTexture: skipping (${result.reason})`);
@@ -199,6 +274,8 @@ describe("ImportExternalTexture", () => {
     if (result.kind === "fail") {
       throw new Error(`ImportExternalTexture: ${result.reason}`);
     }
-    expect(result.label).toBe("destroyed");
+    // The last re-import must render exactly like the first import above.
+    const image = encodeImage(result);
+    checkImage(image, "snapshots/import-external-texture.png");
   });
 });
