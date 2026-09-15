@@ -65,13 +65,13 @@ public:
   // sampled it) is garbage-collected.
   void destroy() {
     if (_memory && _texture) {
-      wgpu::SharedTextureMemoryEndAccessState state{};
-#if defined(__ANDROID__)
-      // Required by the Vulkan backend, see GPUSharedTextureMemory::endAccess.
-      wgpu::SharedTextureMemoryVkImageLayoutEndState vkLayout{};
-      state.nextInChain = &vkLayout;
-#endif
-      (void)_memory.EndAccess(_texture, &state);
+      endAccess(_memory, _texture);
+    }
+    if (_texture) {
+      _texture.Destroy();
+    }
+    if (_instance) {
+      _instance.Destroy();
     }
     if (_texture) {
       _texture.Destroy();
@@ -116,6 +116,23 @@ public:
   }
 
   inline const wgpu::ExternalTexture get() { return _instance; }
+
+  // End the shared-memory access window on `texture`. Shared by destroy() and
+  // the Create() error paths so every EndAccess carries the same chain: Dawn's
+  // Vulkan backend rejects the call unless a
+  // SharedTextureMemoryVkImageLayoutEndState is chained (it writes the
+  // released VkImage layouts there), while the Metal backend only accepts its
+  // own optional end state. The returned fences are dropped: Dawn keeps the
+  // texture alive for in-flight GPU work on its own.
+  static void endAccess(const wgpu::SharedTextureMemory &memory,
+                        const wgpu::Texture &texture) {
+    wgpu::SharedTextureMemoryEndAccessState state{};
+#if defined(__ANDROID__)
+    wgpu::SharedTextureMemoryVkImageLayoutEndState vkLayout{};
+    state.nextInChain = &vkLayout;
+#endif
+    (void)memory.EndAccess(texture, &state);
+  }
 
 private:
   wgpu::ExternalTexture _instance;
