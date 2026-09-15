@@ -1,25 +1,12 @@
-/* eslint-disable @typescript-eslint/no-shadow */
-import React, { useEffect, useRef, useState } from "react";
-import {
-  Image,
-  PixelRatio,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import {
-  Canvas,
-  useCanvasRef,
-  useDevice,
-  type NativeCanvas,
-  type VideoFrame,
-} from "react-native-wgpu";
+import React, { useEffect, useMemo, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import { createSynchronizable } from "react-native-worklets";
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgpu";
 import * as faceDetection from "@tensorflow-models/face-detection";
 
 import { PlatformReactNative } from "../Tensorflow/Platform";
+import { useWebGPUCamera } from "../VisionCamera/useWebGPUCamera";
 
 import { DETECT_SHADER, SHADER } from "./shader";
 
@@ -27,283 +14,220 @@ import { DETECT_SHADER, SHADER } from "./shader";
 // environments. Same Platform impl as the Tensorflow demo.
 tf.setPlatform("react-native", new PlatformReactNative());
 
-// Same feature set as the YUV ExternalTexture demo: shared-texture-memory
-// + multi-planar formats so importExternalTexture can sample the NV12
-// surface AVPlayer hands us.
+// Threading model
+// ---------------
+// Camera frames arrive on Vision Camera's worklet runtime, where we draw the
+// live picture plus the ring overlay and blit a small upright copy of the
+// frame into an offscreen texture. BlazeFace (tfjs) only runs on the main
+// JS runtime, so a loop there copies that texture into a mappable buffer,
+// reads it back, runs the detector and publishes the boxes through a
+// worklets Synchronizable that the render worklet reads every frame.
+//
+// Both runtimes therefore drive the same GPUDevice concurrently. Dawn
+// devices are not thread-safe by default; this feature makes every device
+// call take Dawn's internal lock.
 const REQUIRED_FEATURES: GPUFeatureName[] = [
-  "rnwebgpu/shared-texture-memory" as GPUFeatureName,
-  "dawn-multi-planar-formats" as GPUFeatureName,
+  "implicit-device-synchronization" as GPUFeatureName,
 ];
-
-// Bundled clip that ships with the example app (same asset as the
-// ExternalTexture demo). Swap to the VisionCamera live feed when you're
-// ready to graduate off file playback.
-const VIDEO_URL = Image.resolveAssetSource(
-  require("../assets/clip.mov"),
-).uri;
 
 // BlazeFace's "short" variant accepts a 128x128 input but we feed it at
 // 192x192 to keep some headroom for the bounding box regression. 192 * 4 =
 // 768, a multiple of 256, so the copyTextureToBuffer bytesPerRow constraint
 // is satisfied without padding.
 const DETECT_SIZE = 192;
+const DETECT_BYTES_PER_ROW = DETECT_SIZE * 4;
 const MAX_FACES = 8;
 const UNIFORM_SIZE = 32 + 16 * MAX_FACES;
+const DETECT_UNIFORM_SIZE = 16;
+
+// frame.orientation -> the rotation index the shaders expect.
+const ORIENTATION_INDEX = { up: 0, right: 1, down: 2, left: 3 } as const;
+
+interface PipelineState {
+  pipeline: GPURenderPipeline;
+  sampler: GPUSampler;
+  uniformBuffer: GPUBuffer;
+  detectPipeline: GPURenderPipeline;
+  detectView: GPUTextureView;
+  detectUniformBuffer: GPUBuffer;
+  startTime: number;
+}
+
+// Face boxes in normalized upright-image UV space, packed as
+// (xMin, yMin, width, height) per face. Written by the main thread, read by
+// the camera worklet.
+interface FaceBoxes {
+  count: number;
+  boxes: number[];
+}
+
+interface DetectResources {
+  device: GPUDevice;
+  detectTex: GPUTexture;
+  readBuffer: GPUBuffer;
+}
 
 export const FaceDetection = () => {
-  const ref = useCanvasRef();
+  const [status, setStatus] = useState("Waiting for camera...");
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState("Initialising...");
-  const rafRef = useRef<number | null>(null);
-  const { device, adapter } = useDevice(undefined, {
+  const [detectResources, setDetectResources] =
+    useState<DetectResources | null>(null);
+
+  const faces = useMemo(
+    () =>
+      createSynchronizable<FaceBoxes>({
+        count: 0,
+        boxes: new Array<number>(MAX_FACES * 4).fill(0),
+      }),
+    [],
+  );
+
+  const { element } = useWebGPUCamera<PipelineState>({
     requiredFeatures: REQUIRED_FEATURES,
-  });
+    cameraPosition: "front",
+    setup: ({ device, presentationFormat }) => {
+      // ----- Display pipeline -------------------------------------------
+      const mainModule = device.createShaderModule({ code: SHADER });
+      const pipeline = device.createRenderPipeline({
+        layout: "auto",
+        vertex: { module: mainModule, entryPoint: "vs_main" },
+        fragment: {
+          module: mainModule,
+          entryPoint: "fs_main",
+          targets: [{ format: presentationFormat }],
+        },
+        primitive: { topology: "triangle-list" },
+      });
+      const sampler = device.createSampler({
+        magFilter: "linear",
+        minFilter: "linear",
+      });
+      const uniformBuffer = device.createBuffer({
+        size: UNIFORM_SIZE,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
 
-  useEffect(() => {
-    if (!device) {
-      return;
-    }
-    const missing = REQUIRED_FEATURES.filter((f) => !device.features.has(f));
-    if (missing.length > 0) {
-      setError(
-        `Device is missing required features [${missing.join(", ")}]. ` +
-          `Adapter supports: ${
-            adapter
-              ? [...adapter.features]
-                  .filter((f) => f.toString().startsWith("shared-"))
-                  .join(", ") || "none"
-              : "n/a"
-          }`,
-      );
-      return;
-    }
-    if (Platform.OS !== "ios" && Platform.OS !== "macos") {
-      setError(
-        "Face detection demo currently relies on createVideoPlayer, which " +
-          "is iOS/macOS-only today. Android support is pending.",
-      );
-      return;
-    }
+      // ----- Detection pipeline -----------------------------------------
+      // Blit the upright camera image into a 192x192 rgba8 texture every
+      // frame. The main thread copies it into a mappable buffer whenever it
+      // is ready for another inference.
+      const detectModule = device.createShaderModule({ code: DETECT_SHADER });
+      const detectPipeline = device.createRenderPipeline({
+        layout: "auto",
+        vertex: { module: detectModule, entryPoint: "vs_main" },
+        fragment: {
+          module: detectModule,
+          entryPoint: "fs_main",
+          targets: [{ format: "rgba8unorm" }],
+        },
+        primitive: { topology: "triangle-list" },
+      });
+      const detectTex = device.createTexture({
+        size: [DETECT_SIZE, DETECT_SIZE],
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+      });
+      const detectUniformBuffer = device.createBuffer({
+        size: DETECT_UNIFORM_SIZE,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+      const readBuffer = device.createBuffer({
+        size: DETECT_BYTES_PER_ROW * DETECT_SIZE,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+      });
+      setDetectResources({ device, detectTex, readBuffer });
 
-    const context = ref.current?.getContext("webgpu");
-    if (!context) {
-      return;
-    }
-    const canvas = context.canvas as unknown as NativeCanvas;
-    canvas.width = canvas.clientWidth * PixelRatio.get();
-    canvas.height = canvas.clientHeight * PixelRatio.get();
-    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-    context.configure({
+      return {
+        pipeline,
+        sampler,
+        uniformBuffer,
+        detectPipeline,
+        detectView: detectTex.createView(),
+        detectUniformBuffer,
+        startTime: Date.now(),
+      };
+    },
+    render: ({
       device,
-      format: presentationFormat,
-      alphaMode: "premultiplied",
-    });
+      context,
+      externalTexture,
+      canvasWidth,
+      canvasHeight,
+      frameWidth,
+      frameHeight,
+      orientation,
+      isMirrored,
+      pipelineState,
+    }) => {
+      "worklet";
+      const {
+        pipeline,
+        sampler,
+        uniformBuffer,
+        detectPipeline,
+        detectView,
+        detectUniformBuffer,
+        startTime,
+      } = pipelineState;
+      const rotation = ORIENTATION_INDEX[orientation];
+      const mirror = isMirrored ? 1 : 0;
+      const detected = faces.getDirty();
 
-    const player = RNWebGPU.createVideoPlayer(VIDEO_URL, "nv12");
-    player.play();
-
-    // ----- Display pipeline ---------------------------------------------
-    const mainModule = device.createShaderModule({ code: SHADER });
-    const pipeline = device.createRenderPipeline({
-      layout: "auto",
-      vertex: { module: mainModule, entryPoint: "vs_main" },
-      fragment: {
-        module: mainModule,
-        entryPoint: "fs_main",
-        targets: [{ format: presentationFormat }],
-      },
-      primitive: { topology: "triangle-list" },
-    });
-    const sampler = device.createSampler({
-      magFilter: "linear",
-      minFilter: "linear",
-    });
-    const uniformBuffer = device.createBuffer({
-      size: UNIFORM_SIZE,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-    const uniformData = new ArrayBuffer(UNIFORM_SIZE);
-    const uniformF32 = new Float32Array(uniformData);
-    const uniformU32 = new Uint32Array(uniformData);
-
-    // ----- Detection pipeline -------------------------------------------
-    // Render the video into a 192x192 rgba8 texture, copy it to a mappable
-    // buffer, build a tf.Tensor3D from the bytes, and ship that to BlazeFace.
-    const detectModule = device.createShaderModule({ code: DETECT_SHADER });
-    const detectPipeline = device.createRenderPipeline({
-      layout: "auto",
-      vertex: { module: detectModule, entryPoint: "vs_main" },
-      fragment: {
-        module: detectModule,
-        entryPoint: "fs_main",
-        targets: [{ format: "rgba8unorm" }],
-      },
-      primitive: { topology: "triangle-list" },
-    });
-    const detectTex = device.createTexture({
-      size: [DETECT_SIZE, DETECT_SIZE],
-      format: "rgba8unorm",
-      usage:
-        GPUTextureUsage.RENDER_ATTACHMENT |
-        GPUTextureUsage.TEXTURE_BINDING |
-        GPUTextureUsage.COPY_SRC,
-    });
-    const detectBytesPerRow = DETECT_SIZE * 4;
-    const detectReadBuffer = device.createBuffer({
-      size: detectBytesPerRow * DETECT_SIZE,
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-    });
-
-    // Video frames flow into here from the rAF loop. Detection reads the
-    // latest one whenever it's ready for another inference.
-    let currentFrame: VideoFrame | null = null;
-    let detector: faceDetection.FaceDetector | null = null;
-    let detectionBusy = false;
-    let disposed = false;
-
-    // Face boxes in normalized texture-UV space (xMin, yMin, width, height).
-    let faces = new Float32Array(MAX_FACES * 4);
-    let numFaces = 0;
-
-    (async () => {
-      try {
-        setStatus("Initialising tfjs WebGPU backend...");
-        await tf.setBackend("webgpu");
-        await tf.ready();
-        setStatus("Loading face detector model...");
-        detector = await faceDetection.createDetector(
-          faceDetection.SupportedModels.MediaPipeFaceDetector,
-          { runtime: "tfjs", modelType: "short" },
-        );
-        if (!disposed) {
-          setStatus("Detecting faces...");
-        }
-      } catch (e) {
-        if (!disposed) {
-          setError(`Failed to load detector: ${String(e)}`);
-        }
-      }
-    })();
-
-    const runDetection = async () => {
-      if (disposed || !detector || detectionBusy || !currentFrame) {
-        return;
-      }
-      detectionBusy = true;
-      try {
-        // The external texture is single-use per command encoder; build a
-        // fresh one for the detection pass so we don't fight the display
-        // pipeline for it.
-        const externalTex = device.importExternalTexture({
-          source: currentFrame,
-          label: "video-detect",
-        });
-        const bindGroup = device.createBindGroup({
-          layout: detectPipeline.getBindGroupLayout(0),
-          entries: [
-            { binding: 0, resource: externalTex },
-            { binding: 1, resource: sampler },
-          ],
-        });
-        const encoder = device.createCommandEncoder();
-        const pass = encoder.beginRenderPass({
-          colorAttachments: [
-            {
-              view: detectTex.createView(),
-              clearValue: { r: 0, g: 0, b: 0, a: 1 },
-              loadOp: "clear",
-              storeOp: "store",
-            },
-          ],
-        });
-        pass.setPipeline(detectPipeline);
-        pass.setBindGroup(0, bindGroup);
-        pass.draw(3);
-        pass.end();
-        encoder.copyTextureToBuffer(
-          { texture: detectTex },
-          { buffer: detectReadBuffer, bytesPerRow: detectBytesPerRow },
-          [DETECT_SIZE, DETECT_SIZE],
-        );
-        device.queue.submit([encoder.finish()]);
-
-        await detectReadBuffer.mapAsync(GPUMapMode.READ);
-        if (disposed) {
-          detectReadBuffer.unmap();
-          return;
-        }
-        const rgba = new Uint8Array(
-          detectReadBuffer.getMappedRange(),
-        ).slice();
-        detectReadBuffer.unmap();
-
-        // BlazeFace via tfjs expects HxWx3 float32 with values in [0, 255]
-        // — matches what tf.browser.fromPixels would have produced.
-        const rgb = new Float32Array(DETECT_SIZE * DETECT_SIZE * 3);
-        for (let i = 0, j = 0; i < rgba.length; i += 4, j += 3) {
-          rgb[j] = rgba[i];
-          rgb[j + 1] = rgba[i + 1];
-          rgb[j + 2] = rgba[i + 2];
-        }
-        const tensor = tf.tensor3d(rgb, [DETECT_SIZE, DETECT_SIZE, 3]);
-        const detected = await detector.estimateFaces(tensor, {
-          flipHorizontal: false,
-        });
-        tensor.dispose();
-
-        const next = new Float32Array(MAX_FACES * 4);
-        const nf = Math.min(detected.length, MAX_FACES);
-        for (let i = 0; i < nf; i++) {
-          const b = detected[i].box;
-          next[i * 4 + 0] = b.xMin / DETECT_SIZE;
-          next[i * 4 + 1] = b.yMin / DETECT_SIZE;
-          next[i * 4 + 2] = b.width / DETECT_SIZE;
-          next[i * 4 + 3] = b.height / DETECT_SIZE;
-        }
-        faces = next;
-        numFaces = nf;
-      } catch (e) {
-        console.warn("[FaceDetection] detection failed", e);
-      } finally {
-        detectionBusy = false;
-        if (!disposed) {
-          // Yield to the rAF loop, then queue up the next inference. The
-          // detector + readback together set the effective detection rate.
-          setTimeout(runDetection, 0);
-        }
-      }
-    };
-
-    const detectorStartTimer = setInterval(() => {
-      if (detector && !detectionBusy) {
-        clearInterval(detectorStartTimer);
-        runDetection();
-      }
-    }, 100);
-
-    const startTime = performance.now();
-    const render = () => {
-      const newFrame = player.copyLatestFrame();
-      if (newFrame) {
-        if (currentFrame) {
-          currentFrame.release();
-        }
-        currentFrame = newFrame;
-      }
+      const uniformData = new ArrayBuffer(UNIFORM_SIZE);
+      const uniformF32 = new Float32Array(uniformData);
+      const uniformU32 = new Uint32Array(uniformData);
+      uniformF32[0] = frameWidth;
+      uniformF32[1] = frameHeight;
+      uniformF32[2] = canvasWidth;
+      uniformF32[3] = canvasHeight;
+      uniformU32[4] = detected.count;
+      uniformF32[5] = (Date.now() - startTime) / 1000;
+      uniformU32[6] = rotation;
+      uniformU32[7] = mirror;
+      // The faces array starts at byte 32 (index 8 in the F32 view).
+      uniformF32.set(detected.boxes, 8);
+      device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+      device.queue.writeBuffer(
+        detectUniformBuffer,
+        0,
+        new Uint32Array([rotation, mirror, 0, 0]),
+      );
 
       const encoder = device.createCommandEncoder();
-      let externalTex: GPUExternalTexture | null = null;
-      if (currentFrame) {
-        try {
-          externalTex = device.importExternalTexture({
-            source: currentFrame,
-            label: "video-external",
-          });
-        } catch (e) {
-          console.warn("[FaceDetection] importExternalTexture failed:", e);
-        }
-      }
 
+      // 1. Upright blit for the detector.
+      const detectBindGroup = device.createBindGroup({
+        layout: detectPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: externalTexture },
+          { binding: 1, resource: sampler },
+          { binding: 2, resource: { buffer: detectUniformBuffer } },
+        ],
+      });
+      const detectPass = encoder.beginRenderPass({
+        colorAttachments: [
+          {
+            view: detectView,
+            clearValue: { r: 0, g: 0, b: 0, a: 1 },
+            loadOp: "clear",
+            storeOp: "store",
+          },
+        ],
+      });
+      detectPass.setPipeline(detectPipeline);
+      detectPass.setBindGroup(0, detectBindGroup);
+      detectPass.draw(3);
+      detectPass.end();
+
+      // 2. Live picture plus ring overlay.
+      const bindGroup = device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: externalTexture },
+          { binding: 1, resource: sampler },
+          { binding: 2, resource: { buffer: uniformBuffer } },
+        ],
+      });
       const pass = encoder.beginRenderPass({
         colorAttachments: [
           {
@@ -314,69 +238,106 @@ export const FaceDetection = () => {
           },
         ],
       });
-
-      if (externalTex && currentFrame) {
-        uniformF32[0] = currentFrame.width;
-        uniformF32[1] = currentFrame.height;
-        uniformF32[2] = canvas.width;
-        uniformF32[3] = canvas.height;
-        uniformU32[4] = numFaces;
-        uniformF32[5] = (performance.now() - startTime) / 1000;
-        uniformF32[6] = 0;
-        uniformF32[7] = 0;
-        // The faces array starts at byte 32 (index 8 in the F32 view).
-        uniformF32.set(faces, 8);
-        device.queue.writeBuffer(uniformBuffer, 0, uniformData);
-
-        const bindGroup = device.createBindGroup({
-          layout: pipeline.getBindGroupLayout(0),
-          entries: [
-            { binding: 0, resource: externalTex },
-            { binding: 1, resource: sampler },
-            { binding: 2, resource: { buffer: uniformBuffer } },
-          ],
-        });
-        pass.setPipeline(pipeline);
-        pass.setBindGroup(0, bindGroup);
-        pass.draw(3);
-      }
-
+      pass.setPipeline(pipeline);
+      pass.setBindGroup(0, bindGroup);
+      pass.draw(3);
       pass.end();
+
       device.queue.submit([encoder.finish()]);
       context.present();
-      rafRef.current = requestAnimationFrame(render);
-    };
-    rafRef.current = requestAnimationFrame(render);
+    },
+  });
+
+  // Main-thread detection loop: readback -> tensor -> BlazeFace -> publish.
+  useEffect(() => {
+    if (!detectResources) {
+      return;
+    }
+    const { device, detectTex, readBuffer } = detectResources;
+    let disposed = false;
+
+    (async () => {
+      try {
+        setStatus("Initialising tfjs WebGPU backend...");
+        await tf.setBackend("webgpu");
+        await tf.ready();
+        setStatus("Loading face detector model...");
+        const detector = await faceDetection.createDetector(
+          faceDetection.SupportedModels.MediaPipeFaceDetector,
+          { runtime: "tfjs", modelType: "short" },
+        );
+        if (disposed) {
+          return;
+        }
+        setStatus("Detecting faces...");
+
+        const rgb = new Uint8Array(DETECT_SIZE * DETECT_SIZE * 3);
+        while (!disposed) {
+          // The copy is a queue operation, so it lands after whatever blit
+          // passes the camera worklet has already submitted and always sees
+          // a complete frame. The read buffer is only ever touched here.
+          const encoder = device.createCommandEncoder();
+          encoder.copyTextureToBuffer(
+            { texture: detectTex },
+            { buffer: readBuffer, bytesPerRow: DETECT_BYTES_PER_ROW },
+            [DETECT_SIZE, DETECT_SIZE],
+          );
+          device.queue.submit([encoder.finish()]);
+          await readBuffer.mapAsync(GPUMapMode.READ);
+          const rgba = new Uint8Array(readBuffer.getMappedRange());
+          for (let i = 0, j = 0; i < rgba.length; i += 4, j += 3) {
+            rgb[j] = rgba[i];
+            rgb[j + 1] = rgba[i + 1];
+            rgb[j + 2] = rgba[i + 2];
+          }
+          readBuffer.unmap();
+          if (disposed) {
+            break;
+          }
+
+          const tensor = tf.tensor3d(rgb, [DETECT_SIZE, DETECT_SIZE, 3]);
+          const detected = await detector.estimateFaces(tensor, {
+            flipHorizontal: false,
+          });
+          tensor.dispose();
+          if (disposed) {
+            break;
+          }
+
+          const boxes = new Array<number>(MAX_FACES * 4).fill(0);
+          const count = Math.min(detected.length, MAX_FACES);
+          for (let i = 0; i < count; i++) {
+            const b = detected[i].box;
+            boxes[i * 4 + 0] = b.xMin / DETECT_SIZE;
+            boxes[i * 4 + 1] = b.yMin / DETECT_SIZE;
+            boxes[i * 4 + 2] = b.width / DETECT_SIZE;
+            boxes[i * 4 + 3] = b.height / DETECT_SIZE;
+          }
+          faces.setBlocking({ count, boxes });
+        }
+      } catch (e) {
+        if (!disposed) {
+          setError(`Face detection failed: ${String(e)}`);
+        }
+      } finally {
+        // Only reached once the loop is out of the buffer, so it is safe to
+        // release it here even if the unmount raced a pending map.
+        readBuffer.destroy();
+      }
+    })();
 
     return () => {
       disposed = true;
-      clearInterval(detectorStartTimer);
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
-      if (currentFrame) {
-        currentFrame.release();
-        currentFrame = null;
-      }
-      uniformBuffer.destroy();
-      detectTex.destroy();
-      detectReadBuffer.destroy();
-      player.release();
     };
-  }, [device, adapter, ref]);
+  }, [detectResources, faces]);
 
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-      </View>
-    );
-  }
   return (
     <View style={styles.root}>
-      <Canvas ref={ref} style={styles.canvas} />
+      {element}
       <View style={styles.statusBar}>
-        <Text style={styles.statusText}>{status}</Text>
+        <Text style={error ? styles.errorText : styles.statusText}>
+          {error ?? status}
+        </Text>
       </View>
     </View>
   );
@@ -384,17 +345,16 @@ export const FaceDetection = () => {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "black" },
-  canvas: { flex: 1 },
   statusBar: {
     position: "absolute",
     top: 16,
     left: 16,
+    right: 16,
     backgroundColor: "rgba(0,0,0,0.55)",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
   },
   statusText: { color: "white", fontSize: 12 },
-  errorContainer: { flex: 1, padding: 16, justifyContent: "center" },
-  errorText: { color: "red", fontSize: 14 },
+  errorText: { color: "#ff6b6b", fontSize: 12 },
 });

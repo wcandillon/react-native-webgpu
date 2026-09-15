@@ -19,6 +19,8 @@ import {
   useCameraDevices,
   useCameraPermission,
   useFrameOutput,
+  type CameraOrientation,
+  type CameraPosition,
 } from "react-native-vision-camera";
 
 // Camera frame -> SharedTextureMemory (NV12 biplanar) -> GPUExternalTexture
@@ -55,11 +57,19 @@ export interface WebGPUCameraFrameInfo<TPipelineState> {
   canvasHeight: number;
   frameWidth: number;
   frameHeight: number;
+  // Vision Camera hands us the sensor's native buffer without rotating or
+  // mirroring it. These two describe how the pixels relate to the upright
+  // image so the consumer can undo it in its shader.
+  orientation: CameraOrientation;
+  isMirrored: boolean;
   pipelineState: TPipelineState;
 }
 
 export interface UseWebGPUCameraOptions<TPipelineState> {
   requiredFeatures?: GPUFeatureName[];
+  // Preferred camera. Falls back to whatever is available (the back camera
+  // by default).
+  cameraPosition?: CameraPosition;
   // Build per-demo pipeline state on the main thread once device + canvas are
   // ready. The returned value is captured into the frame processor worklet
   // closure via the WebGPU custom serializer, so it should be composed of
@@ -82,7 +92,7 @@ export interface UseWebGPUCameraResult {
 export const useWebGPUCamera = <TPipelineState,>(
   options: UseWebGPUCameraOptions<TPipelineState>,
 ): UseWebGPUCameraResult => {
-  const { requiredFeatures, setup, render } = options;
+  const { requiredFeatures, cameraPosition = "back", setup, render } = options;
 
   const { hasPermission, requestPermission } = useCameraPermission();
   useEffect(() => {
@@ -151,10 +161,11 @@ export const useWebGPUCamera = <TPipelineState,>(
   const devices = useCameraDevices();
   const cameraDevice = React.useMemo(
     () =>
+      devices.find((d) => d.position === cameraPosition) ??
       devices.find((d) => d.position === "back") ??
       devices.find((d) => d.position === "front") ??
       devices[0],
-    [devices],
+    [devices, cameraPosition],
   );
 
   const [pipelineState, setPipelineState] = useState<{
@@ -273,6 +284,8 @@ export const useWebGPUCamera = <TPipelineState,>(
             canvasHeight,
             frameWidth: videoFrame.width,
             frameHeight: videoFrame.height,
+            orientation: frame.orientation,
+            isMirrored: frame.isMirrored,
             pipelineState: state,
           });
         } finally {
