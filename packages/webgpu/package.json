@@ -86,7 +86,7 @@
     "clang-format": "^1.8.0",
     "del-cli": "^5.1.0",
     "eslint": "9.35.0",
-    "eslint-config-react-native-wcandillon": "4.0.1",
+    "eslint-config-react-native-wcandillon": "5.0.0",
     "eslint-plugin-import": "2.32.0",
     "eslint-plugin-jest": "^28.8.2",
     "eslint-plugin-prettier": "^5.2.1",
