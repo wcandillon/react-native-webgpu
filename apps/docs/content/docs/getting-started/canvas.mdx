@@ -61,6 +61,24 @@ context.present(); // React Native only
 
 `present()` is a React Native only method (it is not part of the Web WebGPU spec). It runs **synchronously** on the calling thread, so the frame is presented from whichever thread did the rendering. This works the same on every runtime: the main JS runtime, the UI thread, and dedicated worklet runtimes. Always call it after `submit()`, never before.
 
+### Present mode
+
+Native canvases can opt into one of Dawn's surface presentation modes through the non-standard `presentMode` configuration field. The default is `"fifo"`, matching the browser canvas behavior.
+
+```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
+declare const device: GPUDevice;
+declare const context: RNCanvasContext;
+// ---cut---
+context.configure({
+  device,
+  format: navigator.gpu.getPreferredCanvasFormat(),
+  presentMode: "mailbox",
+});
+```
+
+The available modes are `"fifo"`, `"fifo-relaxed"`, `"immediate"`, and `"mailbox"`. Platform support varies; Dawn reports a validation error if the selected surface does not support the requested mode.
+
 ## Pixel density
 
 Just like on the Web, a canvas has two independent sizes:

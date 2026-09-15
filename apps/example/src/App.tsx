@@ -51,6 +51,7 @@ import { SharedTextureMemory } from "./SharedTextureMemory";
 import { ImportExternalTexture } from "./ImportExternalTexture";
 import { VisionCamera } from "./VisionCamera";
 import { SixteenBitTextures } from "./SixteenBitTextures";
+import { PresentModeExample } from "./PresentMode";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -76,6 +77,11 @@ function App() {
           <Stack.Screen
             name="HelloTriangleMSAA"
             component={HelloTriangleMSAA}
+          />
+          <Stack.Screen
+            name="PresentMode"
+            component={PresentModeExample}
+            options={{ title: "Present Modes" }}
           />
           <Stack.Screen name="ImageBlur" component={ImageBlur} />
           <Stack.Screen name="ComputeToys" component={ComputeToys} />
