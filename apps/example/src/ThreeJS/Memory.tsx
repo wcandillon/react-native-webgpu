@@ -11,8 +11,7 @@ import {
 } from "./components/makeWebGPURenderer";
 
 declare const HermesInternal:
-  | { getInstrumentedStats?: () => Record<string, number> }
-  | undefined;
+  { getInstrumentedStats?: () => Record<string, number> } | undefined;
 
 const getExternalMB = () => {
   const stats =
