@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Dimensions, Text, View, Image } from "react-native";
-import { GPUOffscreenCanvas } from "react-native-webgpu";
+import { GPUOffscreenCanvas, importDevice } from "react-native-webgpu";
+import { Skia } from "@shopify/react-native-skia";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
 import { useClient } from "./useClient";
@@ -92,6 +93,8 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                 ctx,
                 canvas: ctx.canvas,
                 workletDeviceStress,
+                importDevice,
+                Skia,
                 mat4,
                 vec3,
                 mat3,

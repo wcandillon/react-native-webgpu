@@ -54,6 +54,11 @@ interface GPUTestingContext {
   workletDeviceStress?: (
     device: GPUDevice,
   ) => Promise<{ jsOk: boolean; workletOk: boolean }>;
+  // Native app harness only: react-native-webgpu's importDevice and the Skia
+  // module of the installed @shopify/react-native-skia. Skia.getNativeDevice
+  // exists only on Graphite builds, so specs must feature-detect it.
+  importDevice?: (pointer: bigint) => GPUDevice;
+  Skia?: { getNativeDevice?: () => bigint };
   mat4: typeof mat4;
   vec3: typeof vec3;
   mat3: typeof mat3;
@@ -62,12 +67,7 @@ interface GPUTestingContext {
 type Ctx = Record<string, unknown>;
 
 type JSONValue =
-  | { [key: string]: JSONValue }
-  | JSONValue[]
-  | number
-  | string
-  | boolean
-  | null;
+  { [key: string]: JSONValue } | JSONValue[] | number | string | boolean | null;
 
 interface TestingClient {
   eval<C = Ctx, R = JSONValue>(
@@ -659,8 +659,7 @@ class NodeTestingClient implements TestingClient {
           ? (rest.slice(0, 4) as number[])
           : undefined;
       const options = (cropRect !== undefined ? rest[4] : rest[0]) as
-        | PolyfillImageBitmapOptions
-        | undefined;
+        PolyfillImageBitmapOptions | undefined;
       if (source instanceof ArrayBuffer) {
         return decodePng(new Uint8Array(source), cropRect, options);
       }
