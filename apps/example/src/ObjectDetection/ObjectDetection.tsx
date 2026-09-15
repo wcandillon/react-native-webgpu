@@ -2,18 +2,23 @@ import React, { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { createSynchronizable } from "react-native-worklets";
 import * as tf from "@tensorflow/tfjs";
-import * as faceDetection from "@tensorflow-models/face-detection";
 
 import { ensureTfjsWebGPU } from "../VisionCamera/tfjs";
 import { useCameraInference } from "../VisionCamera/useCameraInference";
 
+import { loadCocoSsd, type DetectedObject } from "./cocoSsd";
 import { SHADER } from "./shader";
 
-// BlazeFace's "short" variant accepts a 128x128 input but we feed it at
-// 192x192 to keep some headroom for the bounding box regression.
-const DETECT_SIZE = 192;
-const MAX_FACES = 8;
-const UNIFORM_SIZE = 32 + 16 * MAX_FACES;
+// COCO-SSD (lite MobileNet v2) resizes internally to 300x300, so a 320x320
+// input keeps full detail while satisfying the readback row alignment.
+const INPUT_SIZE = 320;
+const MAX_BOXES = 10;
+const MIN_SCORE = 0.45;
+// 32-byte header + 32 bytes (rect + meta) per box, see shader.ts.
+const UNIFORM_SIZE = 32 + 32 * MAX_BOXES;
+
+// COCO class -> the kind index the shader colors by.
+const KIND: Record<string, number> = { dog: 1, person: 2, cat: 3 };
 
 interface PipelineState {
   pipeline: GPURenderPipeline;
@@ -21,49 +26,39 @@ interface PipelineState {
   startTime: number;
 }
 
-// Face boxes in normalized upright-image UV space, packed as
-// (xMin, yMin, width, height) per face. Written by the main thread, read by
-// the camera worklet.
-interface FaceBoxes {
+// Written by the main thread, read by the camera worklet. Eight floats per
+// box, matching the Box struct: x, y, w, h, kind, score, 0, 0.
+interface Detections {
   count: number;
-  boxes: number[];
+  data: number[];
 }
 
-const loadDetector = async (setStatus: (s: string) => void) => {
-  setStatus("Initialising tfjs WebGPU backend...");
+const loadModel = async () => {
   await ensureTfjsWebGPU();
-  setStatus("Loading face detector model...");
-  const detector = await faceDetection.createDetector(
-    faceDetection.SupportedModels.MediaPipeFaceDetector,
-    { runtime: "tfjs", modelType: "short" },
-  );
-  setStatus("Detecting faces...");
-  return detector;
+  return loadCocoSsd();
 };
 
-export const FaceDetection = () => {
-  const [status, setStatus] = useState("Waiting for camera...");
+export const ObjectDetection = () => {
+  const [status, setStatus] = useState("Loading COCO-SSD...");
+  const [dogSeen, setDogSeen] = useState(false);
 
-  const faces = useMemo(
+  const detections = useMemo(
     () =>
-      createSynchronizable<FaceBoxes>({
+      createSynchronizable<Detections>({
         count: 0,
-        boxes: new Array<number>(MAX_FACES * 4).fill(0),
+        data: new Array<number>(MAX_BOXES * 8).fill(0),
       }),
     [],
   );
-  // Starts loading on mount. Failures surface through the inference loop,
-  // which awaits this promise; the extra catch only silences the unhandled
-  // rejection warning.
-  const detectorPromise = useMemo(() => {
-    const p = loadDetector(setStatus);
-    p.catch(() => {});
+  const modelPromise = useMemo(() => {
+    const p = loadModel();
+    p.then(() => setStatus("Looking for objects...")).catch(() => {});
     return p;
   }, []);
 
   const { element, error } = useCameraInference<PipelineState>({
-    inputSize: DETECT_SIZE,
-    cameraPosition: "front",
+    inputSize: INPUT_SIZE,
+    cameraPosition: "back",
     setup: ({ device, presentationFormat }) => {
       const module = device.createShaderModule({ code: SHADER });
       const pipeline = device.createRenderPipeline({
@@ -97,7 +92,7 @@ export const FaceDetection = () => {
     }) => {
       "worklet";
       const { pipeline, uniformBuffer, startTime } = pipelineState;
-      const detected = faces.getDirty();
+      const found = detections.getDirty();
 
       const uniformData = new ArrayBuffer(UNIFORM_SIZE);
       const uniformF32 = new Float32Array(uniformData);
@@ -106,12 +101,11 @@ export const FaceDetection = () => {
       uniformF32[1] = frameHeight;
       uniformF32[2] = canvasWidth;
       uniformF32[3] = canvasHeight;
-      uniformU32[4] = detected.count;
+      uniformU32[4] = found.count;
       uniformF32[5] = (Date.now() - startTime) / 1000;
       uniformU32[6] = rotation;
       uniformU32[7] = mirror;
-      // The faces array starts at byte 32 (index 8 in the F32 view).
-      uniformF32.set(detected.boxes, 8);
+      uniformF32.set(found.data, 8);
       device.queue.writeBuffer(uniformBuffer, 0, uniformData);
 
       const bindGroup = device.createBindGroup({
@@ -141,35 +135,49 @@ export const FaceDetection = () => {
       context.present();
     },
     inference: async (rgb, size) => {
-      const detector = await detectorPromise;
-      const tensor = tf.tensor3d(rgb, [size, size, 3]);
-      let detected: faceDetection.Face[];
+      const model = await modelPromise;
+      // The SSD graph takes a uint8 image tensor, so build it as int32.
+      const tensor = tf.tensor3d(rgb, [size, size, 3], "int32");
+      let found: DetectedObject[];
       try {
-        detected = await detector.estimateFaces(tensor, {
-          flipHorizontal: false,
-        });
+        found = await model.detect(tensor, MAX_BOXES, MIN_SCORE);
       } finally {
         tensor.dispose();
       }
-      const boxes = new Array<number>(MAX_FACES * 4).fill(0);
-      const count = Math.min(detected.length, MAX_FACES);
+      const count = Math.min(found.length, MAX_BOXES);
+      const data = new Array<number>(MAX_BOXES * 8).fill(0);
       for (let i = 0; i < count; i++) {
-        const b = detected[i].box;
-        boxes[i * 4 + 0] = b.xMin / size;
-        boxes[i * 4 + 1] = b.yMin / size;
-        boxes[i * 4 + 2] = b.width / size;
-        boxes[i * 4 + 3] = b.height / size;
+        const [x, y, w, h] = found[i].bbox;
+        data[i * 8 + 0] = x / size;
+        data[i * 8 + 1] = y / size;
+        data[i * 8 + 2] = w / size;
+        data[i * 8 + 3] = h / size;
+        data[i * 8 + 4] = KIND[found[i].class] ?? 0;
+        data[i * 8 + 5] = found[i].score;
       }
-      faces.setBlocking({ count, boxes });
+      detections.setBlocking({ count, data });
+
+      setDogSeen(found.some((d) => d.class === "dog"));
+      if (count > 0) {
+        console.log(
+          "[ObjectDetection] " +
+            found
+              .slice(0, count)
+              .map((d) => `${d.class} ${Math.round(d.score * 100)}%`)
+              .join(", "),
+        );
+      }
     },
   });
+
+  const headline = error ?? (dogSeen ? "🐶 Dog detected!" : status);
 
   return (
     <View style={styles.root}>
       {element}
       <View style={styles.statusBar}>
         <Text style={error ? styles.errorText : styles.statusText}>
-          {error ?? status}
+          {headline}
         </Text>
       </View>
     </View>

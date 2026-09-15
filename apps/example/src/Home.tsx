@@ -143,6 +143,18 @@ export const examples = [
     screen: "FaceDetection",
     title: "🙂 Face Detection (BlazeFace + WGSL)",
   },
+  {
+    screen: "ObjectDetection",
+    title: "🐶 Object Detection (COCO-SSD)",
+  },
+  {
+    screen: "FaceMesh",
+    title: "🎭 Face Mesh (three.js overlay)",
+  },
+  {
+    screen: "SelfieSegmentation",
+    title: "🪄 Selfie Segmentation (WGSL background)",
+  },
 ];
 
 const styles = StyleSheet.create({

@@ -33,4 +33,7 @@ export type Routes = {
   ExternalTexture: undefined;
   VisionCamera: undefined;
   FaceDetection: undefined;
+  ObjectDetection: undefined;
+  FaceMesh: undefined;
+  SelfieSegmentation: undefined;
 };

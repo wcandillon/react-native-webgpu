@@ -40,6 +40,9 @@ import { SharedTextureMemory } from "./SharedTextureMemory";
 import { ExternalTexture } from "./ExternalTexture";
 import { VisionCamera } from "./VisionCamera";
 import { FaceDetection } from "./FaceDetection";
+import { ObjectDetection } from "./ObjectDetection";
+import { FaceMesh } from "./FaceMesh";
+import { SelfieSegmentation } from "./SelfieSegmentation";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -114,6 +117,21 @@ function App() {
           <Stack.Screen
             name="FaceDetection"
             component={FaceDetection}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ObjectDetection"
+            component={ObjectDetection}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="FaceMesh"
+            component={FaceMesh}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="SelfieSegmentation"
+            component={SelfieSegmentation}
             options={{ headerShown: false }}
           />
         </Stack.Navigator>

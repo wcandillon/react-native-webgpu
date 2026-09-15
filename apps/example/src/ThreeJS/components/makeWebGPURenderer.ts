@@ -60,12 +60,21 @@ export class ReactNativeCanvas {
 
 export const makeWebGPURenderer = (
   context: GPUCanvasContext,
-  { antialias = true }: { antialias?: boolean } = {},
+  {
+    antialias = true,
+    device,
+    alpha = false,
+  }: { antialias?: boolean; device?: GPUDevice; alpha?: boolean } = {},
 ) =>
   new THREE.WebGPURenderer({
     antialias,
+    alpha,
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     canvas: new ReactNativeCanvas(context.canvas),
     context,
+    // When supplied, three.js skips its own adapter/device acquisition and
+    // uses this device. Lets callers share a device with other producers
+    // (the Vision Camera worklet writing into a texture three.js samples).
+    ...(device ? { device } : {}),
   });
