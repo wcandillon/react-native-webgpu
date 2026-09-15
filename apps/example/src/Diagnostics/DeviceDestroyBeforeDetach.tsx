@@ -141,7 +141,7 @@ const ThreeScene = ({ opaque, append }: SceneProps) => {
     );
     scene.add(mesh);
 
-    const renderer = makeWebGPURenderer(context);
+    const renderer = makeWebGPURenderer({ context });
     let cancelled = false;
     renderer.init().then(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

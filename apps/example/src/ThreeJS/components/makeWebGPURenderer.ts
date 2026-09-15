@@ -1,13 +1,26 @@
 import * as THREE from "three";
 
-export const makeWebGPURenderer = (
-  context: GPUCanvasContext,
-  { antialias = true }: { antialias?: boolean } = {},
-) =>
+export interface WebGPURendererOptions {
+  context: GPUCanvasContext;
+  // When given, three renders on this device instead of requesting its own
+  // (required when the context's texture lives on a shared device).
+  device?: GPUDevice;
+  antialias?: boolean;
+  requiredLimits?: Record<string, number>;
+}
+
+export const makeWebGPURenderer = ({
+  context,
+  device,
+  antialias = true,
+  requiredLimits,
+}: WebGPURendererOptions) =>
   new THREE.WebGPURenderer({
     antialias,
     canvas: context.canvas,
     context,
+    device,
+    requiredLimits,
   });
 
 // Tears a renderer down so the GC can reclaim it and its GPU resources

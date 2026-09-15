@@ -294,7 +294,7 @@ export const Retargeting = () => {
     floor.position.set(0, 0, 0);
     scene.add(floor);
 
-    const renderer = makeWebGPURenderer(context, { antialias: true });
+    const renderer = makeWebGPURenderer({ context, antialias: true });
     renderer.toneMapping = THREE.NeutralToneMapping;
 
     const timer = new THREE.Timer();
