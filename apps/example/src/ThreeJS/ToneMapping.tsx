@@ -57,7 +57,7 @@ export const ToneMapping = () => {
     light.position.set(1, 0.05, 0.7);
     scene.add(light);
 
-    const renderer = makeWebGPURenderer(context);
+    const renderer = makeWebGPURenderer({ context });
     renderer.toneMappingExposure = 1.0;
     rendererRef.current = renderer;
 

@@ -53,7 +53,7 @@ export const PostProcessing = () => {
 
     // portals
     //renderer
-    const renderer = makeWebGPURenderer(context, { antialias: false });
+    const renderer = makeWebGPURenderer({ context, antialias: false });
     renderer.setAnimationLoop(animate);
     renderer.toneMapping = THREE.NeutralToneMapping;
     renderer.toneMappingExposure = 0.3;
@@ -64,8 +64,6 @@ export const PostProcessing = () => {
 
     const bloomPass = bloom(scenePassColor);
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
     postProcessing.outputNode = scenePassColor.add(bloomPass);
 
     function animate() {

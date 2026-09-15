@@ -39,7 +39,7 @@ export const FiberCanvas = ({
   const canvasRef = useRef<CanvasRef>(null);
   useEffect(() => {
     const context = canvasRef.current!.getContext("webgpu")!;
-    const renderer = makeWebGPURenderer(context);
+    const renderer = makeWebGPURenderer({ context });
 
     const canvas = context.canvas as unknown as HTMLCanvasElement;
     canvas.width = canvas.clientWidth * PixelRatio.get();

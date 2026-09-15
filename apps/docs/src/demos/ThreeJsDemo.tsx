@@ -37,13 +37,8 @@ export function ThreeJsDemo() {
       canvas.width = canvas.clientWidth * dpr;
       canvas.height = canvas.clientHeight * dpr;
 
-      context.configure({
-        device,
-        format: navigator.gpu.getPreferredCanvasFormat(),
-        alphaMode: "premultiplied",
-      });
-
-      renderer = makeWebGPURenderer(context);
+      // The renderer configures the context itself during init().
+      renderer = makeWebGPURenderer(context, device);
       await renderer.init();
 
       const scene = new THREE.Scene();
