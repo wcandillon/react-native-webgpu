@@ -265,7 +265,7 @@ const Scene = () => {
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
-    const renderer = makeWebGPURenderer(context);
+    const renderer = makeWebGPURenderer({ context });
     renderer.init();
 
     function animate(time: number) {
