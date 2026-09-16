@@ -76,13 +76,17 @@ describe("importDevice", () => {
     if (!isNative()) {
       return;
     }
-    const result = await client.eval(async ({ importDevice, Skia }) => {
+    // Note: eval callbacks must not be `async`. Babel rewrites async arrows
+    // into a wrapper that references a hoisted helper (`_refN`), and
+    // fn.toString() only ships the wrapper to the device, so the eval fails
+    // with "Property '_refN' doesn't exist". Return a promise chain instead.
+    const result = await client.eval(({ importDevice, Skia }) => {
       if (
         !importDevice ||
         !Skia ||
         typeof Skia.getNativeDevice !== "function"
       ) {
-        return { skipped: true };
+        return { skipped: true, data: [] as number[] };
       }
       const device = importDevice(Skia.getNativeDevice());
       const src = device.createBuffer({
@@ -97,12 +101,13 @@ describe("importDevice", () => {
       const encoder = device.createCommandEncoder();
       encoder.copyBufferToBuffer(src, 0, dst, 0, 16);
       device.queue.submit([encoder.finish()]);
-      await dst.mapAsync(GPUMapMode.READ);
-      const data = Array.from(new Uint32Array(dst.getMappedRange()));
-      dst.unmap();
-      src.destroy();
-      dst.destroy();
-      return { skipped: false, data };
+      return dst.mapAsync(GPUMapMode.READ).then(() => {
+        const data = Array.from(new Uint32Array(dst.getMappedRange()));
+        dst.unmap();
+        src.destroy();
+        dst.destroy();
+        return { skipped: false, data };
+      });
     });
     if (result.skipped) {
       return;
