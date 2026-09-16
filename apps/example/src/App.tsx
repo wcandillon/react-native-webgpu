@@ -68,7 +68,7 @@ function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
         <Stack.Navigator
-          initialRouteName={CI ? "Tests" : "Tests"}
+          initialRouteName={CI ? "Tests" : "Home"}
           screenOptions={{ cardStyle: { flex: 1 } }}
         >
           <Stack.Screen name="Home" component={Home} />

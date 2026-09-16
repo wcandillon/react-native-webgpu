@@ -22,6 +22,7 @@
 #include "JSICache.h"
 #include "JSIConverter.h"
 #include "Promise.h"
+#include "WGPULogger.h"
 
 namespace rnwgpu {
 
@@ -85,10 +86,14 @@ public:
   // Wrap an externally created WGPUDevice (passed as a BigInt pointer, e.g.
   // Skia's Graphite device from Skia.getNativeDevice()) in a GPUDevice.
   // AddRefs the handle, so the original owner keeps its reference. Only sound
-  // because the process links a single Dawn copy and the GPU instance is
-  // shared with the exporter (see the GPU constructor): the calling runtime's
-  // pump serves the instance the device lives on, so its async callbacks
-  // settle normally.
+  // because the process links a single Dawn copy. Normally the GPU instance is
+  // also shared with the exporter (see the GPU constructor), so the calling
+  // runtime's pump serves the instance the device lives on and its async
+  // callbacks settle normally. If adoption did not happen (the exporter's
+  // discovery symbol was not linked into the app, or its library loaded after
+  // ours), the device lives on a foreign instance that no pump would serve and
+  // every mapAsync / onSubmittedWorkDone / popErrorScope on it would hang. We
+  // detect that here and register the device's own instance with the pump.
   //
   // Idempotent per runtime: importing the same pointer again returns the same
   // GPUDevice object for as long as the previous one is alive (see
@@ -117,6 +122,17 @@ public:
     wgpuDeviceAddRef(raw);
     wgpu::Device device = wgpu::Device::Acquire(raw);
     auto ctx = async::RuntimeContext::getOrCreate(runtime, _gpu->get());
+    if (auto deviceInstance = device.GetAdapter().GetInstance();
+        deviceInstance && deviceInstance.Get() != _gpu->get().Get()) {
+      Logger::logToConsole(
+          "[RNWebGPU] importDevice: the device lives on wgpu::Instance %p, not "
+          "on the instance react-native-webgpu adopted (%p). The exporter's "
+          "instance was not discoverable at startup (rnskia_getWGPUInstance "
+          "missing from the app binary, or loaded too late); pumping the "
+          "device's instance as well so its async work settles.",
+          deviceInstance.Get(), _gpu->get().Get());
+      async::RuntimeContext::registerExternalInstance(deviceInstance);
+    }
     auto host = std::make_shared<GPUDevice>(device, ctx, "Imported Device");
     auto wrapper =
         JSIConverter<std::shared_ptr<GPUDevice>>::toJSI(runtime, host);

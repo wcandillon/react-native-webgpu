@@ -31,7 +31,30 @@ std::mutex &processEventsMutex() {
   static std::mutex mutex;
   return mutex;
 }
+
+// Instances registered via registerExternalInstance (see the header). Read
+// under processEventsMutex() by every tick; written rarely.
+std::vector<wgpu::Instance> &externalInstances() {
+  static std::vector<wgpu::Instance> instances;
+  return instances;
+}
 } // namespace
+
+void RuntimeContext::registerExternalInstance(const wgpu::Instance &instance) {
+  if (!instance) {
+    return;
+  }
+  std::lock_guard<std::mutex> lock(processEventsMutex());
+  auto &instances = externalInstances();
+  for (const auto &existing : instances) {
+    if (existing.Get() == instance.Get()) {
+      return;
+    }
+  }
+  instances.push_back(instance);
+  Logger::logToConsole("[%s] Registered external instance %p for pumping", TAG,
+                       instance.Get());
+}
 
 void RuntimeContext::registerMainRuntime(
     jsi::Runtime *runtime,
@@ -174,6 +197,13 @@ void RuntimeContext::tick() {
     // fired here only deposit into mailboxes (postSettle), they do not run JS.
     std::lock_guard<std::mutex> lock(processEventsMutex());
     _instance.ProcessEvents();
+    // Devices imported from an instance we did not adopt (see
+    // registerExternalInstance) settle only if that instance is pumped too.
+    for (const auto &external : externalInstances()) {
+      if (external.Get() != _instance.Get()) {
+        external.ProcessEvents();
+      }
+    }
   }
   // Settle this runtime's ready promises on this thread, outside the pump lock.
   drainMailbox();

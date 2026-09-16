@@ -100,6 +100,16 @@ public:
   // The wgpu::Instance bound to this runtime.
   wgpu::Instance instance() const { return _instance; }
 
+  // Register an instance that is NOT the one the GPU object adopted but that
+  // hosts a device JS now drives (RNWebGPU.importDevice of a device whose
+  // exporter's instance could not be adopted at startup, e.g. because the
+  // exporter's discovery symbol was dropped by the linker). Every context's
+  // tick pumps these instances too, so request/response ops on such a device
+  // settle instead of hanging forever. Process-wide on purpose: the device may
+  // be boxed to any runtime, and each runtime pumps from its own thread.
+  // Idempotent; thread-safe.
+  static void registerExternalInstance(const wgpu::Instance &instance);
+
   // The runtime this context belongs to. Safe for pointer-identity checks from
   // any thread; only touch JSI through it on the runtime's own thread.
   jsi::Runtime &runtime() const { return _runtime; }
