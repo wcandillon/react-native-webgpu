@@ -58,19 +58,39 @@ public:
   // destroy() the producer's surface (e.g. an AVPlayer IOSurface) stays claimed
   // until GC runs. EndAccess is the designed post-submit call: Dawn keeps the
   // texture alive for in-flight GPU work via the fences it returns.
+  // Destroying the texture and the external texture is what actually frees
+  // the import: the ExternalTexture's views keep the imported VkImage /
+  // IOSurface texture alive until the object itself is destroyed, which
+  // otherwise only happens once the JS wrapper (and any bind group that
+  // sampled it) is garbage-collected.
   void destroy() {
     if (_memory && _texture) {
-      wgpu::SharedTextureMemoryEndAccessState state{};
-      (void)_memory.EndAccess(_texture, &state);
+      endAccess(_memory, _texture);
+    }
+    if (_texture) {
+      _texture.Destroy();
+    }
+    if (_instance) {
+      _instance.Destroy();
+    }
+    if (_texture) {
+      _texture.Destroy();
+    }
+    if (_instance) {
+      _instance.Destroy();
     }
     _texture = nullptr;
     _memory = nullptr;
+    _instance = nullptr;
+    _source = nullptr;
   }
 
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
     _label = label;
-    _instance.SetLabel(_label.c_str());
+    if (_instance) {
+      _instance.SetLabel(_label.c_str());
+    }
   }
 
   // Non-spec extension. A 3x4 row-major matrix mapping the *sampled* texel
@@ -96,6 +116,23 @@ public:
   }
 
   inline const wgpu::ExternalTexture get() { return _instance; }
+
+  // End the shared-memory access window on `texture`. Shared by destroy() and
+  // the Create() error paths so every EndAccess carries the same chain: Dawn's
+  // Vulkan backend rejects the call unless a
+  // SharedTextureMemoryVkImageLayoutEndState is chained (it writes the
+  // released VkImage layouts there), while the Metal backend only accepts its
+  // own optional end state. The returned fences are dropped: Dawn keeps the
+  // texture alive for in-flight GPU work on its own.
+  static void endAccess(const wgpu::SharedTextureMemory &memory,
+                        const wgpu::Texture &texture) {
+    wgpu::SharedTextureMemoryEndAccessState state{};
+#if defined(__ANDROID__)
+    wgpu::SharedTextureMemoryVkImageLayoutEndState vkLayout{};
+    state.nextInChain = &vkLayout;
+#endif
+    (void)memory.EndAccess(texture, &state);
+  }
 
 private:
   wgpu::ExternalTexture _instance;

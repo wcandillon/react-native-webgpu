@@ -240,8 +240,7 @@ std::shared_ptr<GPUExternalTexture> GPUExternalTexture::Create(
 
   auto external = device.CreateExternalTexture(&extDesc);
   if (external == nullptr) {
-    wgpu::SharedTextureMemoryEndAccessState state{};
-    (void)memory.EndAccess(texture, &state);
+    endAccess(memory, texture);
     throw std::runtime_error(
         "GPUExternalTexture::Create(): CreateExternalTexture returned "
         "null");
@@ -345,8 +344,7 @@ std::shared_ptr<GPUExternalTexture> GPUExternalTexture::Create(
 
   auto external = device.CreateExternalTexture(&extDesc);
   if (external == nullptr) {
-    wgpu::SharedTextureMemoryEndAccessState state{};
-    (void)memory.EndAccess(texture, &state);
+    endAccess(memory, texture);
     throw std::runtime_error(
         "GPUExternalTexture::Create(): CreateExternalTexture returned "
         "null");

@@ -9,7 +9,7 @@ With the default (Ganesh) releases of react-native-skia there is no coupling at 
 
 Graphite builds of react-native-skia (the `@next` release channel) render through Dawn, the same WebGPU implementation react-native-webgpu is built on, and the two packages are designed to share it:
 
-- **One Dawn copy.** Both packages vendor the exact same prebuilt Dawn artifact, pinned to the Dawn revision of the Skia milestone (for example `dawn-chrome-m152`). When both are installed, react-native-skia detects react-native-webgpu at `pod install` time and defers to its copy, so the process contains exactly one Dawn. A build-time guard compares the two packages' Dawn tags and fails the native build on a mismatch instead of letting two incompatible copies coexist.
+- **One Dawn copy.** Both packages vendor the exact same prebuilt Dawn artifact, pinned to the Dawn revision of the Skia milestone (for example `dawn-chrome-m154`). When both are installed, react-native-skia detects react-native-webgpu at `pod install` time and defers to its copy, so the process contains exactly one Dawn. A build-time guard compares the two packages' Dawn tags and fails the native build on a mismatch instead of letting two incompatible copies coexist.
 - **One `wgpu::Instance`.** When a Graphite build of react-native-skia is present, react-native-webgpu adopts Skia's instance automatically at startup (discovered at runtime, independent of native-module initialization order). Graphite's device and every device you create through `navigator.gpu` live on the same instance.
 - **The WebGPU API lives here.** Graphite builds of react-native-skia do not install `navigator.gpu` or any WebGPU JS API; react-native-webgpu is the single WebGPU API surface. If you want to write WebGPU code in an app that uses Skia, install react-native-webgpu alongside it.
 
@@ -23,9 +23,7 @@ Both packages follow Chrome/Skia milestones: react-native-webgpu pins the Dawn r
 
 | Milestone | react-native-webgpu | Dawn release tag | `@shopify/react-native-skia` (Graphite `@next`) |
 | --- | --- | --- | --- |
-| m154 | *unreleased* | `dawn-chrome-m154` | *unreleased* |
-| m152 | 0.8.2 – 0.9.0 | `dawn-chrome-m152` | 2.12.0-next.1 (Graphite `152.0.0`) |
-| m150 | 0.7.0 – 0.8.1 | `dawn-chrome-m150` | 2.9.1-next.1 – 2.11.0-next.2 (Graphite `150.0.0`) |
+| m154 | >= 0.10.0 | `dawn-chrome-m154` | 2.12.0-next.1 (Graphite `154.0.0`) |
 
 Default (Ganesh) releases of react-native-skia — 2.11.0 at the time of writing — are not part of this pairing: they do not link Dawn, so any version works alongside any version of react-native-webgpu.
 
