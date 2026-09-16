@@ -38,6 +38,9 @@ local.properties
 # node.js
 #
 node_modules/
+# Not committed: package.json pins react and react-native exactly, and CI
+# installs with `npm install`.
+package-lock.json
 npm-debug.log
 yarn-error.log
 
