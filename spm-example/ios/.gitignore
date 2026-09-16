@@ -1,0 +1,9 @@
+
+# SPM – auto-generated at build time (do not commit)
+Package.resolved
+build/generated/
+build/xcframeworks/
+.build/
+
+# Xcode derived data for the CI and local builds (-derivedDataPath spm-build)
+spm-build/
