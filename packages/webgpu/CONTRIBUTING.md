@@ -67,7 +67,7 @@ podspec, and CocoaPods ignores `Package.swift`. The manifest is generated from
 (`--local` points the Dawn binary target at `libs/apple/` instead of the
 release zip); edit the template, never the output.
 
-SwiftPM support requires **React Native 0.87 or newer** — earlier releases ship
+SwiftPM support requires **React Native 0.87 or newer**; earlier releases ship
 no `scripts/spm`. `apps/example` is on an older version, so it cannot exercise
 this path. The harness is `spm-example/` at the repo root, deliberately outside
 the yarn workspace so its React Native does not collide with the workspace's.
@@ -111,5 +111,5 @@ after changing either package's Dawn reset the package caches if the check does
 not re-run.
 
 After changing which binaries a checkout uses, delete
-`ios/<App>.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`
-— a stale pin silently keeps the previous source.
+`ios/<App>.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`:
+a stale pin silently keeps the previous source.

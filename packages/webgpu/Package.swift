@@ -79,7 +79,7 @@ let package = Package(
   // SwiftPM refuses to link a product whose floor is above the depending
   // target's. React Native's generated Autolinked aggregate hardcodes iOS 15.0
   // (react-native#58379 derives it from the app instead), so this must not
-  // exceed 15.0 — a lower floor is always accepted.
+  // exceed 15.0; a lower floor is always accepted.
   platforms: [.iOS(.v15)],
   products: [
     // Autolinking looks this name up verbatim; react-native.config.js pins it.

@@ -17,18 +17,37 @@ Pod::Spec.new do |s|
   # CocoaPods is the supported default. Package.swift (React Native 0.87+
   # SwiftPM autolinking) is additive: SwiftPM ignores this podspec, and
   # CocoaPods ignores Package.swift. An app links through one or the other,
-  # never both.
-  s.source_files = [
-    "apple/**/*.{h,c,cc,cpp,m,mm,swift}",
-    "cpp/**/*.{h,cpp}"
-  ]
+  # never both, so set RNWGPU_USE_SPM=1 before `pod install` when linking
+  # through the Swift package instead: RN's autolinking and codegen both key
+  # off this podspec being present, so it still needs to exist, but it must
+  # not compile or vendor anything itself or the app gets the native module
+  # twice.
+  if ENV['RNWGPU_USE_SPM']
+    # The Swift package resolves React Native's headers from the
+    # static-library Pods layout (Pods/Headers/Public). With `use_frameworks!`
+    # CocoaPods keeps headers inside each framework instead, so none of those
+    # paths exist and the package fails to compile with header-not-found
+    # errors that don't point back here. Refuse the combination up front.
+    # The React Native template drives `use_frameworks!` from USE_FRAMEWORKS.
+    if ENV['USE_FRAMEWORKS']
+      raise "react-native-webgpu: RNWGPU_USE_SPM needs the static-library Pods layout. " \
+            "Unset USE_FRAMEWORKS (or drop use_frameworks! from the Podfile) to link " \
+            "react-native-webgpu through its Swift package."
+    end
+    s.source_files = "apple/RNWGUIKit.h"
+  else
+    s.source_files = [
+      "apple/**/*.{h,c,cc,cpp,m,mm,swift}",
+      "cpp/**/*.{h,cpp}"
+    ]
 
-  s.vendored_frameworks = 'libs/apple/libwebgpu_dawn.xcframework'
+    s.vendored_frameworks = 'libs/apple/libwebgpu_dawn.xcframework'
 
-  # The VideoPlayer API uses AVFoundation / CoreMedia, and shared-texture
-  # surfaces use CoreVideo (CVPixelBuffer). Link them so their symbols resolve.
-  # ImageIO provides CGImageSource, the image decoder behind createImageBitmap.
-  s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo", "ImageIO"
+    # The VideoPlayer API uses AVFoundation / CoreMedia, and shared-texture
+    # surfaces use CoreVideo (CVPixelBuffer). Link them so their symbols resolve.
+    # ImageIO provides CGImageSource, the image decoder behind createImageBitmap.
+    s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo", "ImageIO"
+  end
 
   s.pod_target_xcconfig = {
     'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',

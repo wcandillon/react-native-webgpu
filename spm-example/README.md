@@ -14,7 +14,7 @@ same way.
 
 ## Why it sits outside the yarn workspace
 
-Swift Package Manager support requires **React Native 0.87 or newer** — earlier
+Swift Package Manager support requires **React Native 0.87 or newer**; earlier
 releases ship no `scripts/spm`. `apps/example` is pinned to an older version, so
 this app keeps its own `node_modules` and installs with npm. It ships no
 lockfile: `react` and `react-native` are pinned exactly in `package.json`.
