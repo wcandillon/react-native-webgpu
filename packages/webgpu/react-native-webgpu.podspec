@@ -14,15 +14,14 @@ Pod::Spec.new do |s|
   s.platforms    = { :ios => min_ios_version_supported, :osx => "10.15", :visionos => "1.0" }
   s.source       = { :git => "https://github.com/wcandillon/react-native-webgpu.git", :tag => "#{s.version}" }
 
-  # RN's autolinking and codegen both key off this podspec being present and
-  # supporting the platform (see react-native.config.js docs: there is no way
-  # to disable CocoaPods linking for a dependency without also disabling
-  # codegen for it). So when the app links react-native-webgpu via the local
-  # Swift Package (packages/webgpu/Package.swift) instead of CocoaPods, this
-  # pod still needs to exist to keep the RNWgpuViewSpec codegen output
-  # flowing — it just shouldn't compile or link anything itself, or the app
-  # would get the native module twice. Set RNWGPU_USE_SPM=1 before
-  # `pod install` for that case.
+  # CocoaPods is the supported default. Package.swift (React Native 0.87+
+  # SwiftPM autolinking) is additive: SwiftPM ignores this podspec, and
+  # CocoaPods ignores Package.swift. An app links through one or the other,
+  # never both, so set RNWGPU_USE_SPM=1 before `pod install` when linking
+  # through the Swift package instead: RN's autolinking and codegen both key
+  # off this podspec being present, so it still needs to exist, but it must
+  # not compile or vendor anything itself or the app gets the native module
+  # twice.
   if ENV['RNWGPU_USE_SPM']
     # The Swift package resolves React Native's headers from the
     # static-library Pods layout (Pods/Headers/Public). With `use_frameworks!`

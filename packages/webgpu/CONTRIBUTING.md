@@ -59,3 +59,57 @@ Steps to bump to a new Dawn version (new Skia milestone `m<N>`):
 7. **Build both platforms.** A milestone can also change Dawn's C++ API surface, not just add features — e.g. `chrome-m154` turned `SharedTextureMemory::BeginAccess`/`EndAccess`, `Adapter::GetLimits`, `Device::GetLimits`, and `SharedTextureMemory::GetProperties` from a bool-ish return into `wgpu::Status` (no implicit bool conversion), breaking every `if (!result)` / `if (result)` call site in `cpp/rnwgpu/api/*.cpp`. Building iOS and Android is the way these surface; fix by comparing explicitly (`result == wgpu::Status::Success`).
 
 8. **Verify and commit.** Build and run the example app (see "Development workflow" above for reaching the Tests screen), then commit the submodule bump together with the updated `package.json`.
+## Swift Package Manager (preview)
+
+CocoaPods stays the default. `Package.swift` is additive: SwiftPM ignores the
+podspec, and CocoaPods ignores `Package.swift`. The manifest is generated from
+`scripts/package-swift-template.ts` by `yarn generate-package-swift`
+(`--local` points the Dawn binary target at `libs/apple/` instead of the
+release zip); edit the template, never the output.
+
+SwiftPM support requires **React Native 0.87 or newer**; earlier releases ship
+no `scripts/spm`. `apps/example` is on an older version, so it cannot exercise
+this path. The harness is `spm-example/` at the repo root, deliberately outside
+the yarn workspace so its React Native does not collide with the workspace's.
+Its [README](../../spm-example/README.md) covers the details; the short form is:
+
+```sh
+cd spm-example && npm install
+cd ios && npx react-native spm update
+xcodebuild -project SpmExample.xcodeproj -scheme SpmExample \
+  -configuration Debug -sdk iphonesimulator \
+  -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+```
+
+The manifest mirrors `@shopify/react-native-skia`'s `packages/skia/Package.swift`
+on purpose: same relative paths to React Native's header products, same
+`.iOS(.v15)` floor, same `RCT_NEW_ARCH_ENABLED` / `RCT_REMOVE_LEGACY_ARCH` and
+`DEBUG` / `NDEBUG` defines. When one changes, change the other.
+
+Autolinking references the library through a symlink at
+`<app>/ios/build/generated/autolinking/libs/ReactNativeWebGPU`, and SwiftPM
+resolves the manifest's relative paths against that symlink rather than against
+`packages/webgpu`. The two React Native package paths are therefore identical
+for every standard app. The target name is pinned in `react-native.config.js`;
+without it a future React Native release would derive it from the podspec
+instead and change the header import prefix.
+
+The platform floor must not exceed the one in React Native's generated
+`Autolinked` aggregate, which is hardcoded to iOS 15.0 on 0.87.1: SwiftPM
+refuses to link a product whose floor is above the depending target's.
+react-native#58379 derives the aggregate's floor from the app instead; until it
+ships, `.iOS(.v15)` is the only value that links.
+
+#### Dawn
+
+The `WebGPUDawn` binary target downloads the release zip named by the `dawn`
+field in `package.json`; the checksum is fetched from the release's
+`.checksum.txt` at generation time. A Graphite build of react-native-skia
+installed alongside must link the same Dawn tag (`libs/.dawn-version`), which
+the manifest checks at evaluation time. SwiftPM caches manifest evaluations, so
+after changing either package's Dawn reset the package caches if the check does
+not re-run.
+
+After changing which binaries a checkout uses, delete
+`ios/<App>.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`:
+a stale pin silently keeps the previous source.

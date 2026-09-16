@@ -1,16 +1,16 @@
 /**
- * Minimal app used to validate react-native-webgpu linked via Swift Package
- * Manager (see packages/webgpu/Package.swift) instead of CocoaPods on iOS.
- * Renders a plain animated clear color: enough to exercise adapter/device
- * request, context configuration, command submission, and present() end to
- * end without pulling in the full example app's dependencies.
+ * Minimal app used to validate react-native-webgpu linked through React
+ * Native's SwiftPM autolinking (see packages/webgpu/Package.swift) instead of
+ * CocoaPods on iOS. Renders a plain animated clear color: enough to exercise
+ * adapter/device request, context configuration, command submission, and
+ * present() end to end without pulling in the full example app's dependencies.
  *
  * @format
  */
 
-import { useEffect, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Canvas, type CanvasRef } from 'react-native-webgpu';
+import {useEffect, useRef} from 'react';
+import {StyleSheet, View} from 'react-native';
+import {Canvas, type CanvasRef} from 'react-native-webgpu';
 
 function Scene() {
   const ref = useRef<CanvasRef>(null);
@@ -31,7 +31,7 @@ function Scene() {
         return;
       }
       const format = navigator.gpu.getPreferredCanvasFormat();
-      context.configure({ device, format, alphaMode: 'opaque' });
+      context.configure({device, format, alphaMode: 'opaque'});
 
       const render = (t: number) => {
         if (stopped) {
@@ -45,7 +45,7 @@ function Scene() {
               view: context.getCurrentTexture().createView(),
               loadOp: 'clear',
               storeOp: 'store',
-              clearValue: { r: hue, g: 1 - hue, b: 0.5, a: 1 },
+              clearValue: {r: hue, g: 1 - hue, b: 0.5, a: 1},
             },
           ],
         });
@@ -67,7 +67,7 @@ function Scene() {
   return <Canvas ref={ref} style={StyleSheet.absoluteFill} />;
 }
 
-function App() {
+export default function App() {
   return (
     <View style={styles.container}>
       <Scene />
@@ -76,9 +76,5 @@ function App() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: {flex: 1},
 });
-
-export default App;
