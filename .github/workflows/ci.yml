@@ -230,7 +230,7 @@ jobs:
       - name: Build example for Android
         working-directory: apps/example/android
         env:
-          JAVA_OPTS: "-XX:MaxHeapSize=6g"
+          JAVA_OPTS: "-XX:MaxHeapSize=16g"
         run: ./gradlew assembleDebug --build-cache --warning-mode all --stacktrace
 
       # Housekeeping for the self-hosted runner: the start-of-run kill already
