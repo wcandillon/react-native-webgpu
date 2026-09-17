@@ -44,7 +44,8 @@ struct Size {
 };
 
 #if defined(__ANDROID__)
-// --- AHB-pool presentation mode (WebGPUAHBView) -----------------------------
+// --- AHB-pool presentation mode (WebGPUHardwareBufferView)
+// -----------------------------
 //
 // A third presentation backend (besides the on-screen wgpu::Surface swapchain
 // and the offscreen texture). WebGPU renders into a small pool of native
@@ -55,7 +56,7 @@ struct Size {
 // like the swapchain, so the canvas texture always matches the app's other
 // attachments (e.g. its depth texture).
 
-#define RNWGPU_LOG_TAG "WebGPUAHBView"
+#define RNWGPU_LOG_TAG "WebGPUHardwareBufferView"
 // Failure / anomaly reporting only (never per-frame).
 #define RNWGPU_POOL_WARN(...)                                                  \
   __android_log_print(ANDROID_LOG_WARN, RNWGPU_LOG_TAG, __VA_ARGS__)

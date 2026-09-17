@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @RequiresApi(api = Build.VERSION_CODES.Q)
 @SuppressLint("ViewConstructor")
-public class WebGPUAHBView extends View {
+public class WebGPUHardwareBufferView extends View {
 
   private static final int HELD_MAX = 2; // displayed frames kept before release (release safety)
 
@@ -67,7 +67,7 @@ public class WebGPUAHBView extends View {
   private boolean mAttached;
   private boolean mEnabled;
 
-  public WebGPUAHBView(Context context, WebGPUAPI api) {
+  public WebGPUHardwareBufferView(Context context, WebGPUAPI api) {
     super(context);
     mApi = api;
     mPaint = new Paint(Paint.FILTER_BITMAP_FLAG);

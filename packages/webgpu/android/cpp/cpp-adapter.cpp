@@ -78,26 +78,27 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
   registry.removeSurfaceInfo(contextId);
 }
 
-// --- WebGPUAHBView (AHB-pool presentation) ---------------------------------
+// --- WebGPUHardwareBufferView (AHB-pool presentation)
+// ---------------------------------
 
 namespace {
 
-// Weak handle on a WebGPUAHBView used by the native fence waiter to wake the
-// UI thread when a frame is ready. Holding it weakly means a view that RN has
-// dropped is not kept alive by a SurfaceInfo that outlives it (the registry
-// keeps the SurfaceInfo until onDropViewInstance).
-struct AHBViewWaker {
+// Weak handle on a WebGPUHardwareBufferView used by the native fence waiter to
+// wake the UI thread when a frame is ready. Holding it weakly means a view that
+// RN has dropped is not kept alive by a SurfaceInfo that outlives it (the
+// registry keeps the SurfaceInfo until onDropViewInstance).
+struct HardwareBufferViewWaker {
   jweak view = nullptr;
   jmethodID onFrameReady = nullptr;
 
-  AHBViewWaker(JNIEnv *env, jobject thiz) {
+  HardwareBufferViewWaker(JNIEnv *env, jobject thiz) {
     view = env->NewWeakGlobalRef(thiz);
     jclass cls = env->GetObjectClass(thiz);
     onFrameReady = env->GetMethodID(cls, "onNativeFrameReady", "()V");
     env->DeleteLocalRef(cls);
   }
 
-  ~AHBViewWaker() {
+  ~HardwareBufferViewWaker() {
     // May run on the waiter or JS thread; ThreadScope attaches if needed.
     facebook::jni::ThreadScope scope;
     JNIEnv *env = facebook::jni::Environment::current();
@@ -129,19 +130,24 @@ struct AHBViewWaker {
 
 // Turn on pool mode for this context. dpW/dpH is the canvas-client (dp) size;
 // the native pool buffers are sized from the canvas drawing buffer lazily.
-extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUAHBView_nEnablePool(
-    JNIEnv *env, jobject thiz, jint contextId, jint dpW, jint dpH) {
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUHardwareBufferView_nEnablePool(JNIEnv *env, jobject thiz,
+                                                     jint contextId, jint dpW,
+                                                     jint dpH) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurfaceInfoOrCreate(
       contextId, manager->_gpu, static_cast<int>(dpW), static_cast<int>(dpH));
-  auto waker = std::make_shared<AHBViewWaker>(env, thiz);
+  auto waker = std::make_shared<HardwareBufferViewWaker>(env, thiz);
   info->setPoolFrameReadyCallback([waker]() { (*waker)(); });
   info->enablePool(static_cast<int>(dpW), static_cast<int>(dpH));
 }
 
 // Keep the canvas-client (dp) size in sync on resize.
-extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUAHBView_nSetClientSize(
-    JNIEnv *env, jobject thiz, jint contextId, jint dpW, jint dpH) {
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUHardwareBufferView_nSetClientSize(JNIEnv *env,
+                                                        jobject thiz,
+                                                        jint contextId,
+                                                        jint dpW, jint dpH) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurfaceInfo(contextId);
   if (info != nullptr) {
@@ -152,9 +158,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUAHBView_nSetClientSize(
 // The HardwareBuffer backing a (generation, slot), for the view to wrap in a
 // Bitmap. Returns null for a retired generation.
 extern "C" JNIEXPORT jobject JNICALL
-Java_com_webgpu_WebGPUAHBView_nGetHardwareBuffer(JNIEnv *env, jobject thiz,
-                                                 jint contextId,
-                                                 jint generation, jint slot) {
+Java_com_webgpu_WebGPUHardwareBufferView_nGetHardwareBuffer(
+    JNIEnv *env, jobject thiz, jint contextId, jint generation, jint slot) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurfaceInfo(contextId);
   if (info == nullptr) {
@@ -173,8 +178,9 @@ Java_com_webgpu_WebGPUAHBView_nGetHardwareBuffer(JNIEnv *env, jobject thiz,
 
 // Latest signaled frame ready to display, encoded (generation << 32 | slot), or
 // -1 when nothing is new. Called on the UI thread after onNativeFrameReady.
-extern "C" JNIEXPORT jlong JNICALL Java_com_webgpu_WebGPUAHBView_nPollReady(
-    JNIEnv *env, jobject thiz, jint contextId) {
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_webgpu_WebGPUHardwareBufferView_nPollReady(JNIEnv *env, jobject thiz,
+                                                    jint contextId) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurfaceInfo(contextId);
   if (info == nullptr) {
@@ -184,8 +190,11 @@ extern "C" JNIEXPORT jlong JNICALL Java_com_webgpu_WebGPUAHBView_nPollReady(
 }
 
 // The view is done displaying (and holding) a slot; return it to the pool.
-extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUAHBView_nReleaseSlot(
-    JNIEnv *env, jobject thiz, jint contextId, jint generation, jint slot) {
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUHardwareBufferView_nReleaseSlot(JNIEnv *env, jobject thiz,
+                                                      jint contextId,
+                                                      jint generation,
+                                                      jint slot) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurfaceInfo(contextId);
   if (info != nullptr) {
@@ -197,8 +206,9 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUAHBView_nReleaseSlot(
 // View detached / hidden: keep the canvas alive by falling back to an offscreen
 // texture (mirrors switchToOffscreenSurface for the surface path).
 extern "C" JNIEXPORT void JNICALL
-Java_com_webgpu_WebGPUAHBView_nSwitchToOffscreen(JNIEnv *env, jobject thiz,
-                                                 jint contextId) {
+Java_com_webgpu_WebGPUHardwareBufferView_nSwitchToOffscreen(JNIEnv *env,
+                                                            jobject thiz,
+                                                            jint contextId) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurfaceInfo(contextId);
   if (info != nullptr) {

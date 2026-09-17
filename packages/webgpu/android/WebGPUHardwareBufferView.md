@@ -1,4 +1,4 @@
-# WebGPUAHBView: a "normal RN view" WebGPU canvas on Android
+# WebGPUHardwareBufferView: a "normal RN view" WebGPU canvas on Android
 
 ## Why
 
@@ -7,9 +7,9 @@ Android offered two on-screen canvas backends, each with a real limitation:
 - **`WebGPUSurfaceView`** (opaque path). A dedicated SurfaceFlinger layer. Cheap and overlay-capable, but it is not view content: it hole-punches the window and fights RN parent transforms, clipping, rounded corners, and z-ordering with sibling views.
 - **`WebGPUTextureView`** (transparent path). Real view content, but it routes GPU output through a `SurfaceTexture` (an external GL texture) into HWUI. That adds GL interop, an extra copy, and a frame of latency, and it stalls during some animations.
 
-`WebGPUAHBView` is a third backend that aims to be strictly better than `TextureView` for the transparent case: GPU output lands in an `AHardwareBuffer`, drawn inline by HWUI via `Bitmap.wrapHardwareBuffer` + `Canvas.drawBitmap`. HWUI imports the buffer as a Skia texture and samples it zero-copy. The result is a plain `View`: any parent transform, clip, alpha, z-order, or animation applies, with no GL interop and no extra copy.
+`WebGPUHardwareBufferView` is a third backend that aims to be strictly better than `TextureView` for the transparent case: GPU output lands in an `AHardwareBuffer`, drawn inline by HWUI via `Bitmap.wrapHardwareBuffer` + `Canvas.drawBitmap`. HWUI imports the buffer as a Skia texture and samples it zero-copy. The result is a plain `View`: any parent transform, clip, alpha, z-order, or animation applies, with no GL interop and no extra copy.
 
-It is wired into `WebGPUView.setTransparent`: on API 29+ (`Q`) the transparent path uses `WebGPUAHBView`, otherwise it falls back to `WebGPUTextureView`. The opaque path is unchanged.
+It is wired into `WebGPUView.setTransparent`: on API 29+ (`Q`) the transparent path uses `WebGPUHardwareBufferView`, otherwise it falls back to `WebGPUTextureView`. The opaque path is unchanged.
 
 ## The two hard problems
 
@@ -48,7 +48,7 @@ The Java side only reports the dp client size (`nEnablePool` / `nSetClientSize`)
 ## Threading model
 
 - **Producer (JS render thread).** `getCurrentTexture` returns the in-flight slot again if the frame has not been presented yet (per the WebGPU spec), otherwise pulls the next `Free` slot (blocking with backpressure, bounded to 1s so a wedged fence skips the frame instead of hanging JS), `BeginAccess`, returns its texture. `present` does `EndAccess`, collects the fence(s), queues `(slot, fences)` for the waiter, and returns immediately so the thread can race ahead to another slot.
-- **Waiter thread (native).** Pops a queued frame, blocks on each fence by exporting it to a sync-fd and `poll(POLLIN)` on it (bounded slices so teardown cannot hang), then publishes the slot as the latest "ready" and wakes the consumer through the frame-ready callback (a JNI call to `WebGPUAHBView.onNativeFrameReady`, made outside the pool lock through a weak reference to the view; the thread attaches to the JVM for the duration of the call). A superseded, still-unclaimed ready frame returns to `Free`.
+- **Waiter thread (native).** Pops a queued frame, blocks on each fence by exporting it to a sync-fd and `poll(POLLIN)` on it (bounded slices so teardown cannot hang), then publishes the slot as the latest "ready" and wakes the consumer through the frame-ready callback (a JNI call to `WebGPUHardwareBufferView.onNativeFrameReady`, made outside the pool lock through a weak reference to the view; the thread attaches to the JVM for the duration of the call). A superseded, still-unclaimed ready frame returns to `Free`.
 - **Consumer (UI thread).** `onNativeFrameReady` coalesces wake-ups into a single `consume()` posted to the main looper. It calls `nPollReady` for the latest ready `(generation, slot)`, fetches that buffer via `nGetHardwareBuffer` (which returns a `HardwareBuffer` via `AHardwareBuffer_toHardwareBuffer`), wraps it in a `Bitmap` (cached per token), and `invalidate()`s so HWUI draws it at the next vsync. The held-ring releases old slots back to the pool via `nReleaseSlot`. There is no per-vsync polling: an idle canvas costs nothing on the UI thread.
 
 Why `poll()` instead of `sync_wait`: Android sync fences become readable (`POLLIN`) when signaled, and `poll` uses only libc, avoiding any `libsync` linkage concern.
@@ -75,9 +75,9 @@ On resize the native pool reallocates to the new canvas size (a new generation),
 
 - `cpp/rnwgpu/SurfaceRegistry.h` — the AHB-pool mode in `SurfaceInfo`: allocation/import, `BeginAccess`/`EndAccess`, the waiter thread and fence wait, the slot state machine, generations, and the public pool API (`enablePool`, `setPoolClientSize`, `poolResize`, `poolPollReady`, `poolBufferForDisplay`, `poolReleaseSlot`, `setPoolFrameReadyCallback`).
 - `cpp/rnwgpu/api/GPUCanvasContext.cpp` — `getCurrentTexture` drives `poolResize` in pool mode; `present` fires for pool mode (`hasSurface() || isPoolMode()`).
-- `android/cpp/cpp-adapter.cpp` — JNI: `nEnablePool`, `nSetClientSize`, `nGetHardwareBuffer`, `nPollReady`, `nReleaseSlot`, `nSwitchToOffscreen`, and `AHBViewWaker` (the waiter-to-UI wake-up).
-- `android/src/main/java/com/webgpu/WebGPUAHBView.java` — the view: enable pool mode, wake-up-driven consume, per-token Bitmap cache, held-ring, scaled `onDraw`, lifecycle. It is a pure consumer (about 250 lines); everything about buffers, fences and the swapchain lives in C++.
-- `android/src/main/java/com/webgpu/WebGPUView.java` — wires the transparent path to `WebGPUAHBView` on API Q+.
+- `android/cpp/cpp-adapter.cpp` — JNI: `nEnablePool`, `nSetClientSize`, `nGetHardwareBuffer`, `nPollReady`, `nReleaseSlot`, `nSwitchToOffscreen`, and `HardwareBufferViewWaker` (the waiter-to-UI wake-up).
+- `android/src/main/java/com/webgpu/WebGPUHardwareBufferView.java` — the view: enable pool mode, wake-up-driven consume, per-token Bitmap cache, held-ring, scaled `onDraw`, lifecycle. It is a pure consumer (about 250 lines); everything about buffers, fences and the swapchain lives in C++.
+- `android/src/main/java/com/webgpu/WebGPUView.java` — wires the transparent path to `WebGPUHardwareBufferView` on API Q+.
 - `android/src/main/java/com/webgpu/WebGPUAPI.java` — adds `getContextId()`.
 
 ## Prerequisites that already hold
@@ -104,7 +104,7 @@ Install and run on device:
 cd apps/example/android && ./gradlew :app:installDebug
 ```
 
-Logcat tag for the pool: `WebGPUAHBView`. It only logs failures and anomalies (allocation/import failure, unsupported device, format/usage narrowing, a free-slot timeout), never per-frame or per-resize.
+Logcat tag for the pool: `WebGPUHardwareBufferView`. It only logs failures and anomalies (allocation/import failure, unsupported device, format/usage narrowing, a free-slot timeout), never per-frame or per-resize.
 
 ## Status
 
