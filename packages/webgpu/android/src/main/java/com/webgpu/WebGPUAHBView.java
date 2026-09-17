@@ -8,9 +8,11 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.hardware.HardwareBuffer;
 import android.os.Build;
-import android.view.Choreographer;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
@@ -18,6 +20,7 @@ import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A "normal RN view" backend for the WebGPU canvas.
@@ -28,14 +31,15 @@ import java.util.Map;
  * this is a plain {@link View}: parent transforms, clipping, alpha, z-order and animations all
  * apply, with no GL interop and no extra copy.
  *
- * <p>This view is a pure consumer: it enables pool mode, then each vsync asks native for the latest
- * ready (gen, slot), wraps that buffer in a cached Bitmap, and draws it scaled to the current
- * bounds. Acquire is rigorous (native blocks on Dawn's render-complete fence before a frame is
- * ready); release is heuristic via a held-ring of {@link #HELD_MAX} frames.
+ * <p>This view is a pure consumer: it enables pool mode, and whenever the native fence waiter
+ * signals that a frame is ready it asks native for the latest ready (gen, slot), wraps that buffer
+ * in a cached Bitmap, and draws it scaled to the current bounds. Acquire is rigorous (native blocks
+ * on Dawn's render-complete fence before a frame is ready); release is heuristic via a held-ring of
+ * {@link #HELD_MAX} frames.
  */
 @RequiresApi(api = Build.VERSION_CODES.Q)
 @SuppressLint("ViewConstructor")
-public class WebGPUAHBView extends View implements Choreographer.FrameCallback {
+public class WebGPUAHBView extends View {
 
   private static final int HELD_MAX = 2; // displayed frames kept before release (release safety)
 
@@ -48,6 +52,12 @@ public class WebGPUAHBView extends View implements Choreographer.FrameCallback {
   private final Map<Long, Bitmap> mBitmaps = new HashMap<>();
   // Held-ring of displayed frame tokens (newest last). The newest is what onDraw shows.
   private final ArrayDeque<Long> mHeld = new ArrayDeque<>();
+
+  // Native -> UI thread wake-up. The fence waiter calls onNativeFrameReady() off the UI thread;
+  // we coalesce those into at most one pending consume() on the main looper.
+  private final Handler mMainHandler = new Handler(Looper.getMainLooper());
+  private final AtomicBoolean mConsumePosted = new AtomicBoolean(false);
+  private final Runnable mConsume = this::consume;
 
   private Bitmap mDisplayed;
   private int mDisplayedW;
@@ -78,29 +88,42 @@ public class WebGPUAHBView extends View implements Choreographer.FrameCallback {
 
   // --- Sizing ----------------------------------------------------------------
 
+  private void enablePool(int w, int h) {
+    final float density = getResources().getDisplayMetrics().density;
+    nEnablePool(contextId(), Math.max(1, Math.round(w / density)),
+        Math.max(1, Math.round(h / density)));
+    mEnabled = true;
+  }
+
   @Override
   protected void onSizeChanged(int w, int h, int oldw, int oldh) {
     super.onSizeChanged(w, h, oldw, oldh);
     if (w <= 0 || h <= 0) {
       return;
     }
-    final float density = getResources().getDisplayMetrics().density;
-    final int dpW = Math.max(1, Math.round(w / density));
-    final int dpH = Math.max(1, Math.round(h / density));
     if (!mEnabled) {
-      nEnablePool(contextId(), dpW, dpH);
-      mEnabled = true;
+      enablePool(w, h);
     } else {
       // Native reallocates the pool from the canvas drawing buffer; we only keep the dp
       // canvas-client size in sync so JS computes the right canvas.width/height.
-      nSetClientSize(contextId(), dpW, dpH);
+      final float density = getResources().getDisplayMetrics().density;
+      nSetClientSize(contextId(), Math.max(1, Math.round(w / density)),
+          Math.max(1, Math.round(h / density)));
     }
   }
 
-  // --- Consume (UI thread, vsync-driven) -------------------------------------
+  // --- Consume (UI thread, woken by the native fence waiter) -----------------
 
-  @Override
-  public void doFrame(long frameTimeNanos) {
+  /** Called from the native fence-waiter thread (see cpp-adapter.cpp) when a frame is ready. */
+  @Keep
+  private void onNativeFrameReady() {
+    if (mConsumePosted.compareAndSet(false, true)) {
+      mMainHandler.post(mConsume);
+    }
+  }
+
+  private void consume() {
+    mConsumePosted.set(false);
     if (!mAttached) {
       return;
     }
@@ -108,7 +131,6 @@ public class WebGPUAHBView extends View implements Choreographer.FrameCallback {
     if (token >= 0) {
       onFrameReady(token);
     }
-    Choreographer.getInstance().postFrameCallback(this);
   }
 
   private void onFrameReady(long token) {
@@ -200,12 +222,10 @@ public class WebGPUAHBView extends View implements Choreographer.FrameCallback {
     super.onAttachedToWindow();
     mAttached = true;
     if (!mEnabled && getWidth() > 0 && getHeight() > 0) {
-      final float density = getResources().getDisplayMetrics().density;
-      nEnablePool(contextId(), Math.max(1, Math.round(getWidth() / density)),
-          Math.max(1, Math.round(getHeight() / density)));
-      mEnabled = true;
+      enablePool(getWidth(), getHeight());
     }
-    Choreographer.getInstance().postFrameCallback(this);
+    // Pick up anything that became ready while we were detached.
+    onNativeFrameReady();
   }
 
   @Override
@@ -213,7 +233,8 @@ public class WebGPUAHBView extends View implements Choreographer.FrameCallback {
     super.onDetachedFromWindow();
     mAttached = false;
     mEnabled = false;
-    Choreographer.getInstance().removeFrameCallback(this);
+    mMainHandler.removeCallbacks(mConsume);
+    mConsumePosted.set(false);
 
     // Keep the canvas alive offscreen, then drop all GPU resources. The
     // SurfaceInfo stays registered so a transient detach/re-attach keeps
@@ -237,18 +258,8 @@ public class WebGPUAHBView extends View implements Choreographer.FrameCallback {
     super.onVisibilityChanged(changedView, visibility);
     if (visibility == VISIBLE && mAttached && !mEnabled
         && getWidth() > 0 && getHeight() > 0) {
-      final float density = getResources().getDisplayMetrics().density;
-      nEnablePool(contextId(), Math.max(1, Math.round(getWidth() / density)),
-          Math.max(1, Math.round(getHeight() / density)));
-      mEnabled = true;
+      enablePool(getWidth(), getHeight());
     }
-  }
-
-  @Override
-  public void setAlpha(float alpha) {
-    super.setAlpha(alpha);
-    mPaint.setAlpha((int) (alpha * 255));
-    invalidate();
   }
 
   // --- Native (cpp-adapter.cpp) ----------------------------------------------

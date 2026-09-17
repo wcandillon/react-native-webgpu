@@ -48,8 +48,8 @@ The Java side only reports the dp client size (`nEnablePool` / `nSetClientSize`)
 ## Threading model
 
 - **Producer (JS render thread).** `getCurrentTexture` returns the in-flight slot again if the frame has not been presented yet (per the WebGPU spec), otherwise pulls the next `Free` slot (blocking with backpressure, bounded to 1s so a wedged fence skips the frame instead of hanging JS), `BeginAccess`, returns its texture. `present` does `EndAccess`, collects the fence(s), queues `(slot, fences)` for the waiter, and returns immediately so the thread can race ahead to another slot.
-- **Waiter thread (native, not JVM-attached).** Pops a queued frame, blocks on each fence by exporting it to a sync-fd and `poll(POLLIN)` on it (bounded slices so teardown cannot hang), then publishes the slot as the latest "ready". A superseded, still-unclaimed ready frame returns to `Free`.
-- **Consumer (UI thread).** A `Choreographer.FrameCallback` runs each vsync: it calls `nPollReady` for the latest ready `(generation, slot)`, fetches that buffer via `nGetHardwareBuffer` (which returns a `HardwareBuffer` via `AHardwareBuffer_toHardwareBuffer`), wraps it in a `Bitmap` (cached per token), and draws it. The held-ring releases old slots back to the pool via `nReleaseSlot`.
+- **Waiter thread (native).** Pops a queued frame, blocks on each fence by exporting it to a sync-fd and `poll(POLLIN)` on it (bounded slices so teardown cannot hang), then publishes the slot as the latest "ready" and wakes the consumer through the frame-ready callback (a JNI call to `WebGPUAHBView.onNativeFrameReady`, made outside the pool lock through a weak reference to the view; the thread attaches to the JVM for the duration of the call). A superseded, still-unclaimed ready frame returns to `Free`.
+- **Consumer (UI thread).** `onNativeFrameReady` coalesces wake-ups into a single `consume()` posted to the main looper. It calls `nPollReady` for the latest ready `(generation, slot)`, fetches that buffer via `nGetHardwareBuffer` (which returns a `HardwareBuffer` via `AHardwareBuffer_toHardwareBuffer`), wraps it in a `Bitmap` (cached per token), and `invalidate()`s so HWUI draws it at the next vsync. The held-ring releases old slots back to the pool via `nReleaseSlot`. There is no per-vsync polling: an idle canvas costs nothing on the UI thread.
 
 Why `poll()` instead of `sync_wait`: Android sync fences become readable (`POLLIN`) when signaled, and `poll` uses only libc, avoiding any `libsync` linkage concern.
 
@@ -67,16 +67,16 @@ On resize the native pool reallocates to the new canvas size (a new generation),
 
 ## Lifecycle
 
-- **Attach / size change.** `onSizeChanged` and `onAttachedToWindow` call `nEnablePool` (first time) or `nSetClientSize` (subsequently) with the dp size, and start the Choreographer callback.
-- **Detach.** `nSwitchToOffscreen` flips the context to an offscreen texture so JS keeps rendering safely (it does not block in `getCurrentTexture`), the Choreographer callback is removed, and all cached `Bitmap`s are recycled. A frame caught between `getCurrentTexture` and `present` gets its `EndAccess` and is handed to the waiter, so its fences are drained before the retired generation is freed; the waiter discards frames that finish after teardown instead of publishing them. The `SurfaceInfo` is intentionally not removed from the registry, so a temporary detach/re-attach (for example scrolling off screen) keeps working on the same context.
+- **Attach / size change.** `onSizeChanged` and `onAttachedToWindow` call `nEnablePool` (first time, which also registers the frame-ready callback) or `nSetClientSize` (subsequently) with the dp size. Attach also posts one `consume()` to pick up a frame that became ready while detached.
+- **Detach.** The frame-ready callback is unregistered, `nSwitchToOffscreen` flips the context to an offscreen texture so JS keeps rendering safely (it does not block in `getCurrentTexture`), any pending `consume()` is cancelled, and all cached `Bitmap`s are recycled. A frame caught between `getCurrentTexture` and `present` gets its `EndAccess` and is handed to the waiter, so its fences are drained before the retired generation is freed; the waiter discards frames that finish after teardown instead of publishing them. The `SurfaceInfo` is intentionally not removed from the registry, so a temporary detach/re-attach (for example scrolling off screen) keeps working on the same context.
 - **Drop.** When RN drops the view for good, `WebGPUViewManager.onDropViewInstance` removes the `SurfaceInfo` from the registry. The JS context keeps its own reference; once JS releases it, the destructor stops the fence waiter thread and frees the remaining GPU resources.
 
 ## Files
 
-- `cpp/rnwgpu/SurfaceRegistry.h` — the AHB-pool mode in `SurfaceInfo`: allocation/import, `BeginAccess`/`EndAccess`, the waiter thread and fence wait, the slot state machine, generations, and the public pool API (`enablePool`, `setPoolClientSize`, `poolResize`, `poolPollReady`, `poolBufferForDisplay`, `poolReleaseSlot`).
+- `cpp/rnwgpu/SurfaceRegistry.h` — the AHB-pool mode in `SurfaceInfo`: allocation/import, `BeginAccess`/`EndAccess`, the waiter thread and fence wait, the slot state machine, generations, and the public pool API (`enablePool`, `setPoolClientSize`, `poolResize`, `poolPollReady`, `poolBufferForDisplay`, `poolReleaseSlot`, `setPoolFrameReadyCallback`).
 - `cpp/rnwgpu/api/GPUCanvasContext.cpp` — `getCurrentTexture` drives `poolResize` in pool mode; `present` fires for pool mode (`hasSurface() || isPoolMode()`).
-- `android/cpp/cpp-adapter.cpp` — JNI: `nEnablePool`, `nSetClientSize`, `nGetHardwareBuffer`, `nPollReady`, `nReleaseSlot`, `nSwitchToOffscreen`.
-- `android/src/main/java/com/webgpu/WebGPUAHBView.java` — the view: enable pool mode, Choreographer-driven consume, per-token Bitmap cache, held-ring, scaled `onDraw`, lifecycle.
+- `android/cpp/cpp-adapter.cpp` — JNI: `nEnablePool`, `nSetClientSize`, `nGetHardwareBuffer`, `nPollReady`, `nReleaseSlot`, `nSwitchToOffscreen`, and `AHBViewWaker` (the waiter-to-UI wake-up).
+- `android/src/main/java/com/webgpu/WebGPUAHBView.java` — the view: enable pool mode, wake-up-driven consume, per-token Bitmap cache, held-ring, scaled `onDraw`, lifecycle. It is a pure consumer (about 250 lines); everything about buffers, fences and the swapchain lives in C++.
 - `android/src/main/java/com/webgpu/WebGPUView.java` — wires the transparent path to `WebGPUAHBView` on API Q+.
 - `android/src/main/java/com/webgpu/WebGPUAPI.java` — adds `getContextId()`.
 
@@ -104,7 +104,7 @@ Install and run on device:
 cd apps/example/android && ./gradlew :app:installDebug
 ```
 
-Logcat tag for the pool: `WebGPUAHBView` (logs each `poolResize` and any allocation/import failure).
+Logcat tag for the pool: `WebGPUAHBView`. It only logs failures and anomalies (allocation/import failure, unsupported device, format/usage narrowing, a free-slot timeout), never per-frame or per-resize.
 
 ## Status
 
@@ -113,6 +113,4 @@ Verified on device:
 - `Cube.tsx` (a `transparent` canvas) renders the rotating cube over RN content, confirming allocation, import, fenced acquire, present, and inline draw end to end.
 - The `Resize` example renders correctly through resizing, confirming the cross-fade path: native pool reallocation to the new canvas size, the kept previous generation, and the scaled last-frame `onDraw`.
 
-Not yet measured: performance versus `TextureView`, and fdsan stability under sustained churn.
-
-The debug `RNWGPU_POOL_LOG` traces in `SurfaceRegistry.h` should be removed before shipping.
+Not yet measured: performance versus `TextureView` (the case to watch is a GPU-heavy scene, where waiting for the fence to *signal* before pickup can cost a frame that `TextureView`, which hands the fence to HWUI, does not pay), and fdsan stability under sustained churn.

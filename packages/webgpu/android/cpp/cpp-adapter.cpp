@@ -80,6 +80,53 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDestroy(
 
 // --- WebGPUAHBView (AHB-pool presentation) ---------------------------------
 
+namespace {
+
+// Weak handle on a WebGPUAHBView used by the native fence waiter to wake the
+// UI thread when a frame is ready. Holding it weakly means a view that RN has
+// dropped is not kept alive by a SurfaceInfo that outlives it (the registry
+// keeps the SurfaceInfo until onDropViewInstance).
+struct AHBViewWaker {
+  jweak view = nullptr;
+  jmethodID onFrameReady = nullptr;
+
+  AHBViewWaker(JNIEnv *env, jobject thiz) {
+    view = env->NewWeakGlobalRef(thiz);
+    jclass cls = env->GetObjectClass(thiz);
+    onFrameReady = env->GetMethodID(cls, "onNativeFrameReady", "()V");
+    env->DeleteLocalRef(cls);
+  }
+
+  ~AHBViewWaker() {
+    // May run on the waiter or JS thread; ThreadScope attaches if needed.
+    facebook::jni::ThreadScope scope;
+    JNIEnv *env = facebook::jni::Environment::current();
+    if (env != nullptr && view != nullptr) {
+      env->DeleteWeakGlobalRef(view);
+    }
+  }
+
+  // Called on the waiter thread, outside the pool lock.
+  void operator()() const {
+    facebook::jni::ThreadScope scope;
+    JNIEnv *env = facebook::jni::Environment::current();
+    if (env == nullptr || onFrameReady == nullptr) {
+      return;
+    }
+    jobject local = env->NewLocalRef(view);
+    if (local == nullptr) {
+      return; // the view was garbage collected
+    }
+    env->CallVoidMethod(local, onFrameReady);
+    if (env->ExceptionCheck()) {
+      env->ExceptionClear();
+    }
+    env->DeleteLocalRef(local);
+  }
+};
+
+} // namespace
+
 // Turn on pool mode for this context. dpW/dpH is the canvas-client (dp) size;
 // the native pool buffers are sized from the canvas drawing buffer lazily.
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUAHBView_nEnablePool(
@@ -87,6 +134,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUAHBView_nEnablePool(
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurfaceInfoOrCreate(
       contextId, manager->_gpu, static_cast<int>(dpW), static_cast<int>(dpH));
+  auto waker = std::make_shared<AHBViewWaker>(env, thiz);
+  info->setPoolFrameReadyCallback([waker]() { (*waker)(); });
   info->enablePool(static_cast<int>(dpW), static_cast<int>(dpH));
 }
 
@@ -104,8 +153,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUAHBView_nSetClientSize(
 // Bitmap. Returns null for a retired generation.
 extern "C" JNIEXPORT jobject JNICALL
 Java_com_webgpu_WebGPUAHBView_nGetHardwareBuffer(JNIEnv *env, jobject thiz,
-                                                 jint contextId, jint generation,
-                                                 jint slot) {
+                                                 jint contextId,
+                                                 jint generation, jint slot) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurfaceInfo(contextId);
   if (info == nullptr) {
@@ -118,12 +167,12 @@ Java_com_webgpu_WebGPUAHBView_nGetHardwareBuffer(JNIEnv *env, jobject thiz,
   }
   // toHardwareBuffer acquires its own ref for the returned jobject; the pool
   // keeps the underlying buffer alive independently.
-  return AHardwareBuffer_toHardwareBuffer(
-      env, static_cast<AHardwareBuffer *>(ahb));
+  return AHardwareBuffer_toHardwareBuffer(env,
+                                          static_cast<AHardwareBuffer *>(ahb));
 }
 
 // Latest signaled frame ready to display, encoded (generation << 32 | slot), or
-// -1 when nothing is new. Called from the view's Choreographer callback.
+// -1 when nothing is new. Called on the UI thread after onNativeFrameReady.
 extern "C" JNIEXPORT jlong JNICALL Java_com_webgpu_WebGPUAHBView_nPollReady(
     JNIEnv *env, jobject thiz, jint contextId) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
@@ -153,6 +202,7 @@ Java_com_webgpu_WebGPUAHBView_nSwitchToOffscreen(JNIEnv *env, jobject thiz,
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurfaceInfo(contextId);
   if (info != nullptr) {
+    info->setPoolFrameReadyCallback(nullptr);
     info->switchToOffscreen();
   }
 }

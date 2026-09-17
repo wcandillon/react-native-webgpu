@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <deque>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
@@ -55,8 +56,9 @@ struct Size {
 // attachments (e.g. its depth texture).
 
 #define RNWGPU_LOG_TAG "WebGPUAHBView"
-#define RNWGPU_POOL_LOG(...)                                                    \
-  __android_log_print(ANDROID_LOG_INFO, RNWGPU_LOG_TAG, __VA_ARGS__)
+// Failure / anomaly reporting only (never per-frame).
+#define RNWGPU_POOL_WARN(...)                                                  \
+  __android_log_print(ANDROID_LOG_WARN, RNWGPU_LOG_TAG, __VA_ARGS__)
 
 enum class SlotState : uint8_t {
   Free,      // available for poolGetCurrentTexture
@@ -76,9 +78,9 @@ struct PoolSlot {
 // One generation of the pool (one buffer size). Reference-counted (shared_ptr)
 // so an in-flight render / present / ready slot keeps the whole generation
 // alive across a resize. The destructor frees every AHB and tears down the Dawn
-// imports. The Java side keeps its own ref (via wrapHardwareBuffer) for anything
-// it is still drawing, so a generation can be freed here without disturbing a
-// frame still on screen.
+// imports. The Java side keeps its own ref (via wrapHardwareBuffer) for
+// anything it is still drawing, so a generation can be freed here without
+// disturbing a frame still on screen.
 struct AHBPool {
   std::vector<PoolSlot> slots;
   uint32_t generation = 0;
@@ -272,10 +274,11 @@ public:
 #ifdef __APPLE__
     // Ensure command buffers are scheduled before presenting. Read the device
     // under a shared lock, then wait without holding it (the wait can block).
-    // The device may be reconfigured between the two locks; that is safe because
-    // present() is called on the rendering thread right after submit(), the wait
-    // just flushes that thread's already-submitted work, and the Present() below
-    // re-checks `surface` under the unique lock before touching it.
+    // The device may be reconfigured between the two locks; that is safe
+    // because present() is called on the rendering thread right after submit(),
+    // the wait just flushes that thread's already-submitted work, and the
+    // Present() below re-checks `surface` under the unique lock before touching
+    // it.
     wgpu::Device device;
     {
       std::shared_lock<std::shared_mutex> lock(_mutex);
@@ -383,8 +386,8 @@ public:
     if (!_poolDevice.HasFeature(
             wgpu::FeatureName::SharedTextureMemoryAHardwareBuffer)) {
       _poolUnsupported = true;
-      RNWGPU_POOL_LOG("device lacks SharedTextureMemoryAHardwareBuffer; the "
-                      "transparent canvas cannot present and stays blank");
+      RNWGPU_POOL_WARN("device lacks SharedTextureMemoryAHardwareBuffer; the "
+                       "transparent canvas cannot present and stays blank");
       return;
     }
     auto pool = allocatePoolLocked(pxW, pxH);
@@ -402,14 +405,13 @@ public:
         ++it;
       }
     }
-    RNWGPU_POOL_LOG("poolResize: gen=%u size=%dx%d", pool->generation, pxW, pxH);
     _freeCv.notify_all();
   }
 
-  // Latest signaled frame awaiting display, encoded as (generation << 32 | slot).
-  // Returns -1 when there is nothing new. Marks the slot Displayed so the
-  // producer will not re-render into it until releaseSlot() is called. Called on
-  // the UI thread from the view's Choreographer callback.
+  // Latest signaled frame awaiting display, encoded as (generation << 32 |
+  // slot). Returns -1 when there is nothing new. Marks the slot Displayed so
+  // the producer will not re-render into it until releaseSlot() is called.
+  // Called on the UI thread from the view's Choreographer callback.
   int64_t poolPollReady() {
     std::lock_guard<std::mutex> poolLock(_poolMutex);
     if (_readySlot < 0 || _readyPool == nullptr) {
@@ -447,6 +449,14 @@ public:
       _freeCv.notify_one();
     }
   }
+
+  // Invoked from the waiter thread (never under _poolMutex) each time a new
+  // frame becomes ready, so the consumer can wake up instead of polling every
+  // vsync. Pass nullptr to unregister.
+  void setPoolFrameReadyCallback(std::function<void()> cb) {
+    std::lock_guard<std::mutex> poolLock(_poolMutex);
+    _poolFrameReady = std::move(cb);
+  }
 #endif
 
 private:
@@ -483,7 +493,8 @@ private:
                    AHARDWAREBUFFER_USAGE_GPU_COLOR_OUTPUT;
       int err = AHardwareBuffer_allocate(&desc, &slot.ahb);
       if (err != 0 || slot.ahb == nullptr) {
-        RNWGPU_POOL_LOG("AHardwareBuffer_allocate failed (%d) %dx%d", err, w, h);
+        RNWGPU_POOL_WARN("AHardwareBuffer_allocate failed (%d) %dx%d", err, w,
+                         h);
         return nullptr;
       }
       wgpu::SharedTextureMemoryDescriptor memDesc{};
@@ -495,7 +506,7 @@ private:
       // properties is the actual validity check.
       wgpu::SharedTextureMemoryProperties props{};
       if (slot.memory == nullptr || !slot.memory.GetProperties(&props)) {
-        RNWGPU_POOL_LOG("ImportSharedTextureMemory failed (%dx%d)", w, h);
+        RNWGPU_POOL_WARN("ImportSharedTextureMemory failed (%dx%d)", w, h);
         return nullptr;
       }
       // The AHB is rgba8unorm; the pool cannot honor another configured format.
@@ -503,20 +514,20 @@ private:
       // so this only fires for apps hardcoding e.g. bgra8unorm.
       if (_poolFormat != wgpu::TextureFormat::Undefined &&
           _poolFormat != wgpu::TextureFormat::RGBA8Unorm) {
-        RNWGPU_POOL_LOG("configured canvas format %d is not supported by the "
-                        "transparent canvas; using rgba8unorm (use "
-                        "navigator.gpu.getPreferredCanvasFormat())",
-                        static_cast<int>(_poolFormat));
+        RNWGPU_POOL_WARN("configured canvas format %d is not supported by the "
+                         "transparent canvas; using rgba8unorm (use "
+                         "navigator.gpu.getPreferredCanvasFormat())",
+                         static_cast<int>(_poolFormat));
       }
       // Honor the configured usage flags as far as the imported memory allows.
       wgpu::TextureUsage wanted =
           _poolUsage | wgpu::TextureUsage::RenderAttachment;
       wgpu::TextureUsage usage = wanted & props.usage;
       if (usage != wanted) {
-        RNWGPU_POOL_LOG("configured canvas usage 0x%llx narrowed to 0x%llx "
-                        "(unsupported by the transparent canvas buffers)",
-                        static_cast<unsigned long long>(wanted),
-                        static_cast<unsigned long long>(usage));
+        RNWGPU_POOL_WARN("configured canvas usage 0x%llx narrowed to 0x%llx "
+                         "(unsupported by the transparent canvas buffers)",
+                         static_cast<unsigned long long>(wanted),
+                         static_cast<unsigned long long>(usage));
       }
       wgpu::TextureDescriptor texDesc{};
       texDesc.format = props.format;
@@ -537,9 +548,7 @@ private:
       return _renderPool->slots[_currentRenderSlot].texture;
     }
     if (_pool == nullptr) {
-      RNWGPU_POOL_LOG("poolGetCurrentTexture: no pool (device ready=%d)",
-                      _poolDevice != nullptr);
-      return nullptr;
+      return nullptr; // allocation failed / unsupported (already reported)
     }
     auto pool = _pool;
     int idx = -1;
@@ -558,8 +567,8 @@ private:
       return false;
     });
     if (!ready) {
-      RNWGPU_POOL_LOG("poolGetCurrentTexture: timed out waiting for a free "
-                      "slot; skipping frame");
+      RNWGPU_POOL_WARN("poolGetCurrentTexture: timed out waiting for a free "
+                       "slot; skipping frame");
       return nullptr;
     }
     if (idx < 0 || _shutdown || pool != _pool) {
@@ -652,9 +661,8 @@ private:
       PendingPresent pending;
       {
         std::unique_lock<std::mutex> lock(_poolMutex);
-        _presentCv.wait(lock, [&]() {
-          return _shutdown || !_presentQueue.empty();
-        });
+        _presentCv.wait(lock,
+                        [&]() { return _shutdown || !_presentQueue.empty(); });
         if (_shutdown && _presentQueue.empty()) {
           return;
         }
@@ -664,7 +672,8 @@ private:
 
       // Wait outside the lock. Each fd is owned by its SharedFence and closed
       // when `pending.fences` is destroyed at the end of this iteration, so we
-      // never dup / double-close (avoids the fdsan abort, see GPUSharedFence.cpp).
+      // never dup / double-close (avoids the fdsan abort, see
+      // GPUSharedFence.cpp).
       for (auto &fence : pending.fences) {
         wgpu::SharedFenceExportInfo info{};
         wgpu::SharedFenceSyncFDExportInfo fdInfo{};
@@ -673,15 +682,15 @@ private:
         if (info.type != wgpu::SharedFenceType::SyncFD) {
           // fdInfo was not populated (its default handle 0 is NOT a fence fd);
           // we have no way to wait on this fence type.
-          RNWGPU_POOL_LOG("waiter: unexpected shared fence type %d, cannot "
-                          "wait for render completion",
-                          static_cast<int>(info.type));
+          RNWGPU_POOL_WARN("waiter: unexpected shared fence type %d, cannot "
+                           "wait for render completion",
+                           static_cast<int>(info.type));
           continue;
         }
         if (fdInfo.handle >= 0) {
-          // Sync-fence fds become readable (POLLIN) when signaled; poll() avoids
-          // any libsync linkage concern. Poll in bounded slices so teardown
-          // (which flips _shutdown) cannot hang here on a wedged GPU.
+          // Sync-fence fds become readable (POLLIN) when signaled; poll()
+          // avoids any libsync linkage concern. Poll in bounded slices so
+          // teardown (which flips _shutdown) cannot hang here on a wedged GPU.
           struct pollfd pfd;
           pfd.fd = fdInfo.handle;
           pfd.events = POLLIN;
@@ -698,6 +707,7 @@ private:
         }
       }
 
+      std::function<void()> frameReady;
       {
         std::lock_guard<std::mutex> lock(_poolMutex);
         // Pool torn down (switchToOffscreen) while this frame was in flight:
@@ -717,6 +727,10 @@ private:
         pending.pool->slots[pending.slot].state = SlotState::Ready;
         _readyPool = pending.pool;
         _readySlot = pending.slot;
+        frameReady = _poolFrameReady;
+      }
+      if (frameReady) {
+        frameReady(); // outside the lock: it calls into Java
       }
     }
   }
@@ -732,14 +746,16 @@ private:
   int height;
 
 #if defined(__ANDROID__)
-  // Pool state. Guarded by _poolMutex (never nested under _mutex while blocking).
+  // Pool state. Guarded by _poolMutex (never nested under _mutex while
+  // blocking).
   struct PendingPresent {
     std::shared_ptr<AHBPool> pool;
     int slot;
     std::vector<wgpu::SharedFence> fences;
   };
 
-  static constexpr int kPoolSize = 5; // 2 held + 1 rendering + 1 waiting + 1 ready
+  static constexpr int kPoolSize =
+      5; // 2 held + 1 rendering + 1 waiting + 1 ready
 
   std::atomic<bool> _poolMode{false};
   std::mutex _poolMutex;
@@ -748,8 +764,8 @@ private:
   wgpu::Device _poolDevice = nullptr;
   wgpu::TextureFormat _poolFormat = wgpu::TextureFormat::Undefined;
   wgpu::TextureUsage _poolUsage = wgpu::TextureUsage::RenderAttachment;
-  bool _poolUnsupported = false; // device lacks AHB shared-texture support
-  std::shared_ptr<AHBPool> _pool;       // current generation
+  bool _poolUnsupported = false;  // device lacks AHB shared-texture support
+  std::shared_ptr<AHBPool> _pool; // current generation
   std::unordered_map<uint32_t, std::shared_ptr<AHBPool>> _pools; // gen -> pool
   std::shared_ptr<AHBPool> _renderPool; // generation of the in-flight render
   int _currentRenderSlot = -1;
@@ -760,6 +776,7 @@ private:
   bool _waiterRunning = false;
   std::atomic<bool> _shutdown{false};
   uint32_t _genCounter = 0;
+  std::function<void()> _poolFrameReady; // consumer wake-up, see setter
 #endif
 };
 
