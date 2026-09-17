@@ -45,13 +45,16 @@ export interface CanvasRef {
   getNativeSurface: () => NativeCanvas;
 }
 
-export type AndroidSurfaceType = "SurfaceView" | "TextureView";
+export type AndroidSurfaceType =
+  "SurfaceView" | "TextureView" | "HardwareBufferView";
 
 export interface AndroidCanvasProps {
   /**
-   * Backing view. Defaults to `SurfaceView` when the canvas is opaque and
-   * `TextureView` otherwise, which is the only pairing that composites
-   * correctly in React Native stacking order without further flags.
+   * Backing view. Defaults to `SurfaceView` when the canvas is opaque and,
+   * otherwise, to `HardwareBufferView` on Android 10+ (a plain View that draws
+   * the frames inline with no extra composition pass) with `TextureView` as
+   * the fallback on older devices. These pairings composite correctly in
+   * React Native stacking order without further flags.
    */
   surfaceType?: AndroidSurfaceType;
   /**
@@ -78,7 +81,9 @@ export interface CanvasProps extends ViewProps {
 const resolveSurfaceType = (
   surfaceType: AndroidSurfaceType | undefined,
 ): "auto" | AndroidSurfaceType =>
-  surfaceType === "SurfaceView" || surfaceType === "TextureView"
+  surfaceType === "SurfaceView" ||
+  surfaceType === "TextureView" ||
+  surfaceType === "HardwareBufferView"
     ? surfaceType
     : "auto";
 

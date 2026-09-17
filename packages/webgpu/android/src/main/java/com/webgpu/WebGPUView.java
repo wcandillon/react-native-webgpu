@@ -1,6 +1,7 @@
 package com.webgpu;
 
 import android.content.Context;
+import android.os.Build;
 import android.view.Surface;
 import android.view.View;
 
@@ -10,12 +11,16 @@ import com.facebook.react.views.view.ReactViewGroup;
 
 public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
+  // Backing view kinds, see updateView().
+  private static final int KIND_SURFACE_VIEW = 0;
+  private static final int KIND_TEXTURE_VIEW = 1;
+  private static final int KIND_HARDWARE_BUFFER_VIEW = 2;
 
   private int mContextId;
   private boolean mOpaque = true;
   private String mSurfaceType = "auto";
   private boolean mZOrderOnTop = false;
-  private boolean mAppliedTextureView;
+  private int mAppliedKind = -1;
   private boolean mAppliedZOrderOnTop;
   private WebGPUModule mModule;
   private View mView = null;
@@ -46,35 +51,62 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     mZOrderOnTop = value;
   }
 
+  // Resolve the backing view from the props. "auto" picks SurfaceView for an
+  // opaque canvas and, for a non-opaque one, WebGPUHardwareBufferView (a plain
+  // View drawing AHardwareBuffers inline, API 29+) or TextureView below that.
+  private int resolveKind() {
+    if ("SurfaceView".equals(mSurfaceType)) {
+      return KIND_SURFACE_VIEW;
+    }
+    if ("TextureView".equals(mSurfaceType)) {
+      return KIND_TEXTURE_VIEW;
+    }
+    boolean hardwareBufferSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
+    if ("HardwareBufferView".equals(mSurfaceType)) {
+      return hardwareBufferSupported ? KIND_HARDWARE_BUFFER_VIEW : KIND_TEXTURE_VIEW;
+    }
+    if (mOpaque) {
+      return KIND_SURFACE_VIEW;
+    }
+    return hardwareBufferSupported ? KIND_HARDWARE_BUFFER_VIEW : KIND_TEXTURE_VIEW;
+  }
+
   // Apply the complete prop transaction once, after contextId and all rendering
   // options have arrived. Only a change of backing view (or of zOrderOnTop,
   // which a SurfaceView must know before it attaches) replaces the child;
   // opacity is applied in place.
   public void updateView() {
-    boolean textureView = "TextureView".equals(mSurfaceType)
-      || (!"SurfaceView".equals(mSurfaceType) && !mOpaque);
-    boolean zOrderOnTop = !textureView && mZOrderOnTop;
-    if (mView == null || textureView != mAppliedTextureView
-        || zOrderOnTop != mAppliedZOrderOnTop) {
+    int kind = resolveKind();
+    boolean zOrderOnTop = kind == KIND_SURFACE_VIEW && mZOrderOnTop;
+    if (mView == null || kind != mAppliedKind || zOrderOnTop != mAppliedZOrderOnTop) {
       if (mView != null) {
         removeView(mView);
       }
-      mAppliedTextureView = textureView;
+      mAppliedKind = kind;
       mAppliedZOrderOnTop = zOrderOnTop;
       Context ctx = getContext();
-      mView = textureView
-        ? new WebGPUTextureView(ctx, this, mOpaque)
-        : new WebGPUSurfaceView(ctx, this, zOrderOnTop, mOpaque);
+      switch (kind) {
+        case KIND_HARDWARE_BUFFER_VIEW:
+          mView = new WebGPUHardwareBufferView(ctx, this);
+          break;
+        case KIND_TEXTURE_VIEW:
+          mView = new WebGPUTextureView(ctx, this, mOpaque);
+          break;
+        default:
+          mView = new WebGPUSurfaceView(ctx, this, zOrderOnTop, mOpaque);
+          break;
+      }
       addView(mView);
       // ReactViewGroup.requestLayout() is a deliberate no-op, so addView outside
       // the layout pass never lays the child out; do it by hand or the new view
       // stays 0x0 and never gets a surface.
       layoutChild();
-    } else if (textureView) {
+    } else if (kind == KIND_TEXTURE_VIEW) {
       ((WebGPUTextureView) mView).setOpaque(mOpaque);
-    } else {
+    } else if (kind == KIND_SURFACE_VIEW) {
       ((WebGPUSurfaceView) mView).setOpaque(mOpaque);
     }
+    // WebGPUHardwareBufferView always composites with alpha; opacity is a no-op.
   }
 
   private void layoutChild() {
@@ -108,6 +140,11 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   @Override
   public void surfaceOffscreen() {
     switchToOffscreenSurface(mContextId);
+  }
+
+  @Override
+  public int getContextId() {
+    return mContextId;
   }
 
   /**

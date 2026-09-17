@@ -185,19 +185,23 @@ optional and it is ignored on iOS and web.
 
 | Option | Type | Effect |
 | --- | --- | --- |
-| `surfaceType` | `"SurfaceView" \| "TextureView"` | Backing view. Defaults to `SurfaceView` when `opaque` and `TextureView` otherwise |
+| `surfaceType` | `"SurfaceView" \| "TextureView" \| "HardwareBufferView"` | Backing view. Defaults to `SurfaceView` when `opaque`; otherwise to `HardwareBufferView` on Android 10+ and `TextureView` below |
 | `zOrderOnTop` | `boolean` | SurfaceView only: `setZOrderOnTop`, composites above every React Native view in the window. Defaults to `false` |
 
 `opaque` applies to whichever view is selected: on a `SurfaceView` it picks
 `PixelFormat.OPAQUE` or `PixelFormat.TRANSLUCENT`, on a `TextureView` it calls
-`setOpaque`. Changing `opaque` at runtime updates the view in place; changing
-`surfaceType` or `zOrderOnTop` replaces the backing view.
+`setOpaque`, and a `HardwareBufferView` always composites with alpha. Changing
+`opaque` at runtime updates the view in place; changing `surfaceType` or
+`zOrderOnTop` replaces the backing view.
 
-The default pairing is the only one that composites correctly in React Native
-stacking order without further flags: an opaque `SurfaceView` is the fastest
-path, and a non-opaque `TextureView` blends with the views around it (at the
-cost of an extra texture composition pass). Pick a view explicitly when you
-need the other trade-off:
+The default pairings composite correctly in React Native stacking order
+without further flags: an opaque `SurfaceView` is the fastest path, and a
+non-opaque `HardwareBufferView` is a plain Android `View` that draws each
+frame's `AHardwareBuffer` inline, so parent transforms, clipping, and z-order
+apply with no GL interop and no extra copy (it needs Android 10; older devices
+fall back to `TextureView`, which blends the same way at the cost of an extra
+texture composition pass). Pick a view explicitly when you need the other
+trade-off:
 
 ```tsx
 // Opaque TextureView: stays in stacking order, e.g. inside a ScrollView

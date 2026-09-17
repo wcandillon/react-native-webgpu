@@ -22,4 +22,6 @@ public interface WebGPUAPI {
   );
 
   void surfaceOffscreen();
+
+  int getContextId();
 }
