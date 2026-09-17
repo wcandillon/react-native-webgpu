@@ -4,7 +4,7 @@ import { Image } from "react-native";
 import { useEffect, useState } from "react";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader";
-import { RGBELoader } from "three/addons/loaders/RGBELoader";
+import { HDRLoader } from "three/addons/loaders/HDRLoader";
 
 export interface GLTF {
   animations: THREE.AnimationClip[];
@@ -68,11 +68,11 @@ export const useGeometry = (uri: string) => {
   return geometry;
 };
 
-export const useRGBE = (asset: ReturnType<typeof require>) => {
+export const useHDR = (asset: ReturnType<typeof require>) => {
   const url = resolveAsset(asset);
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
   useEffect(() => {
-    const loader = new RGBELoader();
+    const loader = new HDRLoader();
     loader.load(url, function (tex: THREE.Texture) {
       setTexture(tex);
     });

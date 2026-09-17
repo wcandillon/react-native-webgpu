@@ -74,8 +74,59 @@ if (!dawnVersion) {
   process.exit(1);
 }
 
+// Workarounds in our C++ for Dawn bugs that an upstream fix makes obsolete.
+// Each entry names the Dawn release it was validated against. Bumping the pin
+// past it fails the install until whoever does the bump checks whether the
+// upstream fix is included: if it is, delete the marked code and the entry;
+// if it is not, update `pin` here (and re-verify the diagnostic screen).
+const dawnWorkarounds = [
+  {
+    marker: "DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE",
+    pin: "chrome-m154",
+    files: ["cpp/rnwgpu/SurfaceRegistry.h", "cpp/rnwgpu/api/GPUDevice.cpp"],
+    // Android: device.destroy() before the native view is dropped crashed in
+    // SwapChain::DetachFromSurfaceImpl (Vulkan FencedDeleter of the dead
+    // device). Verify with the "Device Destroy Before Detach" diagnostic in
+    // the example app.
+    upstream: "Dawn CL pending (see the workaround comment in the files)",
+  },
+];
+
+for (const workaround of dawnWorkarounds) {
+  const root = join(__dirname, "..");
+  const present = workaround.files.filter((file) => {
+    const path = join(root, file);
+    return (
+      existsSync(path) &&
+      readFileSync(path, "utf-8").includes(workaround.marker)
+    );
+  });
+  if (present.length === 0) {
+    log.error(
+      `Workaround ${workaround.marker} is gone from the sources; remove its entry from scripts/install-dawn.ts`,
+    );
+    process.exit(1);
+  }
+  if (present.length !== workaround.files.length) {
+    const missing = workaround.files.filter((file) => !present.includes(file));
+    log.error(
+      `Workaround ${workaround.marker} is only partially applied: missing from ${missing.join(", ")}`,
+    );
+    process.exit(1);
+  }
+  if (dawnVersion !== workaround.pin) {
+    log.error(
+      `Dawn pin changed (${workaround.pin} -> ${dawnVersion}) but ${workaround.marker} is still in ${present.join(", ")}`,
+    );
+    log.error(
+      `Check whether this Dawn contains the upstream fix (${workaround.upstream}). If it does, remove the marked code and this entry; if not, update the pin in scripts/install-dawn.ts`,
+    );
+    process.exit(1);
+  }
+}
+
 // Parse the dawn version to construct the release tag
-// Format: "chromium/7472" -> "dawn-chromium-7472"
+// Format: "chrome-m152" -> "dawn-chrome-m152"
 const releaseTag = `dawn-${dawnVersion.replace("/", "-")}`;
 const releaseUrl = `https://github.com/wcandillon/react-native-webgpu/releases/tag/${releaseTag}`;
 
@@ -112,7 +163,7 @@ const assets = [
     },
   },
   {
-    name: `dawn-apple-${releaseTag}.xcframework.tar.gz`,
+    name: `dawn-apple-${releaseTag}.xcframework.zip`,
     extractTo: libsDir,
     postProcess: () => {
       // The extracted xcframework needs to be placed as libs/apple/libwebgpu_dawn.xcframework
@@ -166,12 +217,12 @@ log.subheader("Downloading Assets");
 // Add nice names for display
 const assetNames: { [key: string]: string } = {
   [`dawn-android-${releaseTag}.tar.gz`]: "Android Libraries",
-  [`dawn-apple-${releaseTag}.xcframework.tar.gz`]: "Apple Framework",
+  [`dawn-apple-${releaseTag}.xcframework.zip`]: "Apple Framework",
   [`dawn-headers-${releaseTag}.tar.gz`]: "C++ Headers",
 };
 
 for (const [index, asset] of assets.entries()) {
-  const assetUrl = `https://github.com/Shopify/react-native-skia/releases/download/${releaseTag}/${asset.name}`;
+  const assetUrl = `https://github.com/wcandillon/react-native-webgpu/releases/download/${releaseTag}/${asset.name}`;
   const tarPath = join(libsDir, asset.name);
   const displayName = assetNames[asset.name] || asset.name;
 
@@ -190,9 +241,15 @@ for (const [index, asset] of assets.entries()) {
     process.stdout.write(
       `   ${colors.dim}${symbols.extract} Extracting...${colors.reset}`,
     );
-    execSync(`tar -xzf "${tarPath}" -C "${asset.extractTo}"`, {
-      stdio: "pipe",
-    });
+    if (asset.name.endsWith(".zip")) {
+      execSync(`unzip -q -o "${tarPath}" -d "${asset.extractTo}"`, {
+        stdio: "pipe",
+      });
+    } else {
+      execSync(`tar -xzf "${tarPath}" -C "${asset.extractTo}"`, {
+        stdio: "pipe",
+      });
+    }
     process.stdout.write("\r\x1b[K"); // Clear the line
 
     // Remove the tar file after extraction

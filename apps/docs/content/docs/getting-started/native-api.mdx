@@ -22,6 +22,25 @@ You can run WebGPU code on the main thread, on the [Worklets](/docs/integrations
 See [Worklets](/docs/integrations/worklets) for the full UI-thread integration guide.
 In a Worklet, call `installWebGPU()` to install the WebGPU API on that thread.
 
+### Implicit device synchronization
+
+Dawn's native API is not thread-safe on its own. To make the "create the device on the JS thread, render from a worklet" pattern safe, `requestDevice()` enables Dawn's [`implicit-device-synchronization`](https://dawn.googlesource.com/dawn/+/refs/heads/main/docs/dawn/features/implicit_device_synchronization.md) feature by default. It guards the device and its child objects (buffers, textures, queue, pipelines) with a per-device mutex, so one device can be used from several runtimes.
+
+This is coarse-grained locking, not a license for arbitrary concurrency. Command encoding is excluded from the synchronization, so never share a `GPUCommandEncoder` across threads, and keep a given canvas context on a single runtime.
+The feature is reported in `device.features`, and it can be disabled per device with the non-standard `implicitDeviceSynchronization` descriptor flag when the device is only ever used from one thread:
+
+```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
+declare const adapter: GPUAdapter;
+// ---cut---
+// Single-thread only: never hand this device to a worklet runtime.
+const device = await adapter.requestDevice({
+  implicitDeviceSynchronization: false,
+});
+```
+
+See [Native Extensions](/api/gpu-device-extensions#implicitdevicesynchronization) for details.
+
 ```tsx
 import { installWebGPU } from "react-native-webgpu";
 
@@ -57,6 +76,25 @@ device.queue.copyExternalImageToTexture(
 
 See [`copyExternalImageToTexture`](https://developer.mozilla.org/en-US/docs/Web/API/GPUQueue/copyExternalImageToTexture) on MDN.
 
+## High bit depth
+
+By default a canvas is configured with an 8-bit format (`bgra8unorm` or `rgba8unorm`, the value returned by `navigator.gpu.getPreferredCanvasFormat()` depending on the platform).
+With only 256 levels per channel, subtle gradients quantize into visible bands, especially in dark tones and on OLED displays.
+
+To configure the canvas with a higher-precision format, use `getPreferredHighBitDepthCanvasFormat()` (currently it will return `rgba16float` on iOS and `rgb10a2unorm` on Android):
+
+```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
+import { getPreferredHighBitDepthCanvasFormat } from "react-native-webgpu";
+declare const context: RNCanvasContext;
+declare const device: GPUDevice;
+// ---cut---
+// "rgba16float" on iOS, "rgb10a2unorm" on Android
+const format = getPreferredHighBitDepthCanvasFormat();
+
+context.configure({ device, format, alphaMode: "opaque" });
+```
+
 ## Native textures
 
 Beyond the standard API, react-native-webgpu exposes Dawn's native surface interop so you can sample camera and video frames with zero copies through the CPU:
@@ -73,6 +111,18 @@ if (!device.features.has("rnwebgpu/native-texture" as GPUFeatureName)) {
 ```
 
 See [Vision Camera](/docs/integrations/vision-camera) for an end-to-end example applying WGSL effects to live camera frames, and [Native Extensions](/api/gpu-device-extensions) for the full API.
+
+## Importing an external device
+
+`importDevice()` wraps a `WGPUDevice` created by another native library into a fully functional `GPUDevice`. The pointer is passed as a `BigInt`; the native side takes a reference, so the original owner keeps its own.
+
+```tsx
+import { importDevice } from "react-native-webgpu";
+
+const device = importDevice(pointer);
+```
+
+This is only sound when the exporting library links the exact same Dawn build as react-native-webgpu and shares its `wgpu::Instance`; otherwise the imported device's async callbacks would settle on an instance nobody pumps. The canonical exporter is a Graphite build of `@shopify/react-native-skia`, which satisfies both conditions automatically; see [React Native Skia](/docs/integrations/react-native-skia).
 
 ## See also
 

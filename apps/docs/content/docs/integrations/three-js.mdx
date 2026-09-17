@@ -7,55 +7,124 @@ Using the Three.js WebGPU backend, you can run the library on top of React Nativ
 
 <WebGPUPlayground demo="three-js" height={280} />
 
-## 1. Metro configuration
+To start from a preconfigured Expo project, create the [hosted WebGPU template](/docs/getting-started/expo) and choose **Three.js** from its menu. The sections below explain what that template sets up, so you can apply the same configuration to an existing app.
 
-Three.js publishes separate WebGL and WebGPU entry points.
-Metro must load `build/three.webgpu.js` when you import `three` or `three/webgpu`. See [Expo setup](/docs/getting-started/expo) for a complete Metro configuration:
+## Project setup
 
-```js
-// metro.config.js - resolveRequest excerpt
-if (moduleName === "three" || moduleName === "three/webgpu") {
-  return {
-    filePath: path.resolve(threePackagePath, "build/three.webgpu.js"),
-    type: "sourceFile",
-  };
-}
-if (moduleName.startsWith("three/addons/")) {
-  return {
-    filePath: path.resolve(
-      threePackagePath,
-      "examples/jsm/" + moduleName.replace("three/addons/", "") + ".js",
-    ),
-    type: "sourceFile",
-  };
-}
-```
+### Import the WebGPU entry point
 
-Import from `three/webgpu`, not `three` (which would pull the WebGL build).
-
-## 2. Create the renderer
-
-`WebGPURenderer` expects a DOM-like canvas with `width`, `height`, `clientWidth`, and `clientHeight`, plus a few event methods. The native canvas from `getContext("webgpu")` already satisfies this interface, so pass it directly along with the **same** `GPUCanvasContext`:
+Always import from `three/webgpu`, not from `three`:
 
 ```tsx twoslash
 import * as THREE from "three/webgpu";
-// ---cut---
-export function makeWebGPURenderer(context: GPUCanvasContext) {
-  return new THREE.WebGPURenderer({
-    antialias: true,
-    canvas: context.canvas,
-    context,
-  });
+```
+
+Every React Native version react-native-webgpu supports ships Metro with package exports enabled, so this import (as well as `three/addons/*` and `three/tsl`) resolves without any custom configuration. For a self-contained scene, that is all you need.
+
+### Alias `three` when you use addons
+
+If your scene uses any addons from `three/addons/*`, you must ensure that bare `three` imports are redirected to the WebGPU build.
+
+```js
+// metro.config.js
+const path = require("path");
+
+const threePackagePath = path.dirname(require.resolve("three/package.json"));
+
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === "three" || moduleName === "three/webgpu") {
+    return {
+      filePath: path.resolve(threePackagePath, "build/three.webgpu.js"),
+      type: "sourceFile",
+    };
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
+```
+
+### Static class blocks
+
+Expo's `babel-preset-expo` already includes this transform.
+If you are not using this preset, you need to add the following plugin manually:
+
+```bash
+yarn add -D @babel/plugin-transform-class-static-block
+```
+
+```js
+// babel.config.js
+module.exports = {
+  presets: ["module:@react-native/babel-preset"],
+  plugins: ["@babel/plugin-transform-class-static-block"],
+};
+```
+
+### TextDecoder Polyfill
+
+Hermes provides `TextEncoder` but not `TextDecoder`, which Three.js uses in its core and in loaders such as `GLTFLoader`. Install a polyfill and import it once, before any Three.js code runs:
+
+```bash
+yarn add fast-text-encoding
+```
+
+```tsx
+// index.js or App.tsx, first import
+import "fast-text-encoding";
+```
+
+### Type checking
+
+`@types/three` publishes the `three/webgpu`, `three/tsl`, and `three/addons/*` typings only through its package `exports`. React Native's default `@react-native/typescript-config` uses `moduleResolution: "bundler"`, which honours `exports`, so nothing else is needed there. Import addons with their `.js` extension, as in `three/addons/loaders/GLTFLoader.js`: the `exports` map points at exact files, so the extension-less form does not resolve.
+
+If your `tsconfig.json` uses `moduleResolution: "node"`, TypeScript ignores `exports` and those imports fail with "Cannot find module". Map them explicitly, and map bare `three` to the WebGPU typings as well so the types mirror the Metro alias:
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "three": ["node_modules/@types/three/src/Three.WebGPU.d.ts"],
+      "three/webgpu": ["node_modules/@types/three/src/Three.WebGPU.d.ts"],
+      "three/tsl": ["node_modules/@types/three/src/Three.TSL.d.ts"],
+      "three/addons/*": ["node_modules/@types/three/examples/jsm/*"]
+    }
+  }
 }
 ```
 
-<Callout type="warn" title="Async init">
-`WebGPURenderer.init()` is **async**. Do not call `render()` until it resolves - unlike raw WebGPU where pipeline creation is synchronous after `requestDevice`.
+## Create the renderer
+
+`WebGPURenderer` expects a DOM-like canvas. The native canvas from `getContext("webgpu")` already satisfies this interface, so pass it directly along with the same `GPUCanvasContext`.
+Pass your `GPUDevice` as well. Left out, the renderer requests one of its own, which puts the device out of reach for teardown and for any WebGPU code of yours that needs to share it.
+
+```tsx twoslash
+import * as THREE from "three/webgpu";
+import type { CanvasRef } from "react-native-webgpu";
+import type { RefObject } from "react";
+declare const ref: RefObject<CanvasRef>;
+declare const device: GPUDevice;
+// ---cut---
+const context = ref.current!.getContext("webgpu")!;
+const renderer = new THREE.WebGPURenderer({
+  antialias: true,
+  canvas: context.canvas,
+  context,
+  device,
+});
+```
+
+The renderer configures the context itself (preferred canvas format, alpha mode), so do not call `context.configure()` yourself.
+Nothing else needs setting up: hand your frame callback to `setAnimationLoop()` and start rendering, as shown in the next section.
+
+<Callout type="info" title="Driving frames yourself">
+The renderer finishes its setup in `renderer.init()`, an async method that `setAnimationLoop()` calls for you.
+If you call `render()` from your own loop instead, for example from `requestAnimationFrame` or from react-three-fiber, `await renderer.init()` once before the first `render()`.
+Otherwise three logs a warning and turns that first frame into `renderAsync()`.
 </Callout>
 
-## 3. Render loop + present
+## Render loop + present
 
-Configure the context once ([Canvas](/docs/getting-started/canvas)), then animate:
+Size the drawing buffer for the device pixel ratio ([Canvas](/docs/getting-started/canvas#pixel-density)), build the scene, then hand the loop to `setAnimationLoop()`. Call `present()` after each `render()`: unlike the browser, React Native does not swap the frame to the screen for you.
 
 ```tsx twoslash
 import * as THREE from "three/webgpu";
@@ -64,7 +133,7 @@ import type { CanvasRef } from "react-native-webgpu";
 import type { RefObject } from "react";
 declare const ref: RefObject<CanvasRef>;
 declare const device: GPUDevice;
-declare function makeWebGPURenderer(context: GPUCanvasContext): THREE.WebGPURenderer;
+declare function makeWebGPURenderer(context: GPUCanvasContext, device: GPUDevice): THREE.WebGPURenderer;
 // ---cut---
 const context = ref.current!.getContext("webgpu")!;
 const canvas = context.canvas as HTMLCanvasElement;
@@ -72,14 +141,7 @@ const canvas = context.canvas as HTMLCanvasElement;
 canvas.width = canvas.clientWidth * PixelRatio.get();
 canvas.height = canvas.clientHeight * PixelRatio.get();
 
-context.configure({
-  device,
-  format: navigator.gpu.getPreferredCanvasFormat(),
-  alphaMode: "premultiplied",
-});
-
-const renderer = makeWebGPURenderer(context);
-await renderer.init();
+const renderer = makeWebGPURenderer(context, device);
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(70, canvas.clientWidth / canvas.clientHeight, 0.01, 10);
@@ -91,14 +153,93 @@ const mesh = new THREE.Mesh(
 );
 scene.add(mesh);
 
-function render(time: number) {
+renderer.setAnimationLoop((time) => {
   mesh.rotation.x = time / 2000;
   mesh.rotation.y = time / 1000;
   renderer.render(scene, camera);
   context.present(); // required on React Native
-  requestAnimationFrame(render);
-}
-requestAnimationFrame(render);
+});
 ```
+
+### Teardown
+
+Stop the loop and dispose the renderer when the component unmounts. `setAnimationLoop(null)` alone is not enough: `dispose()` is what stops the internal frame callback that keeps the whole renderer graph alive.
+
+```tsx twoslash
+import type * as THREE from "three/webgpu";
+declare const renderer: THREE.WebGPURenderer;
+// ---cut---
+renderer.setAnimationLoop(null);
+renderer.dispose();
+```
+
+<Callout type="warn" title="Known leak in three r184">
+Three's `RenderObjects.dispose()` leaves `dispose` listeners of the disposed renderer on a module-level shared `QuadMesh` geometry, which keeps the old backend alive across remounts. Until the upstream fix lands, the [example app](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/ThreeJS/components/makeWebGPURenderer.ts) clears those listeners after `dispose()`. See [issue #445](https://github.com/wcandillon/react-native-webgpu/issues/445).
+</Callout>
+
+## Loading assets
+
+Three's loaders fetch URLs, so give them one. Register the model formats you use as Metro assets, then resolve the bundled file to a URL with `Image.resolveAssetSource`:
+
+```js
+// metro.config.js
+config.resolver.assetExts = [...config.resolver.assetExts, "glb", "gltf", "bin", "hdr"];
+```
+
+```tsx twoslash
+import { Image } from "react-native";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+declare function require(path: string): number;
+// ---cut---
+const url = Image.resolveAssetSource(require("./assets/DamagedHelmet.glb")).uri;
+
+new GLTFLoader().load(url, (gltf) => {
+  // gltf.scene is ready to be added to your scene
+});
+```
+
+<Callout type="warn" title="Prefer self-contained files">
+In development, Metro serves the asset folder over HTTP, so a `.gltf` can reference sibling `.bin` and texture files by relative path. Release builds bundle each asset individually with a flattened name, and those relative references no longer resolve. Ship `.glb` (and embedded textures) unless you have verified your loader configuration in a release build.
+</Callout>
+
+## Rendering into a Skia canvas
+
+With a Graphite build of [React Native Skia](/docs/integrations/react-native-skia), Three.js can render into a texture that Skia draws as a regular image, so a 3D scene composes with everything else on a Skia `<Canvas />` (blurs, masks, text, gestures). Three renders on Skia's own device; the texture is wrapped into an `SkImage` without a copy.
+
+The renderer only needs a `GPUCanvasContext`-shaped object whose `getCurrentTexture()` returns a texture you allocated:
+
+```tsx
+import { Skia } from "@shopify/react-native-skia";
+import { importDevice } from "react-native-webgpu";
+
+const device = importDevice(Skia.getNativeDevice());
+const format = navigator.gpu.getPreferredCanvasFormat();
+const texture = device.createTexture({
+  size: [width, height],
+  format,
+  usage:
+    GPUTextureUsage.RENDER_ATTACHMENT |
+    GPUTextureUsage.TEXTURE_BINDING |
+    GPUTextureUsage.COPY_SRC,
+});
+
+// Minimal stand-in for a GPUCanvasContext: no swapchain, one persistent texture.
+const context = {
+  canvas: { width, height },
+  configure: () => undefined,
+  unconfigure: () => undefined,
+  getCurrentTexture: () => texture,
+} as unknown as GPUCanvasContext;
+
+const renderer = makeWebGPURenderer(context, device);
+
+renderer.setAnimationLoop(() => {
+  renderer.render(scene, camera);
+  // Wrap the texture into a fresh SkImage and hand it to a Skia <Image />.
+  image.value = Skia.Image.MakeImageFromNativeTexture(texture.nativePointer);
+});
+```
+
+No `present()` is needed here: Skia owns the screen and redraws when the image changes. See [Zero-copy texture sharing](/docs/integrations/react-native-skia#zero-copy-texture-sharing) for the interop rules, and the react-native-skia example app for a complete hook.
 
 Next: [React Three Fiber](/docs/integrations/react-three-fiber) for declarative JSX on top of the same renderer.

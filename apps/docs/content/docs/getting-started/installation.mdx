@@ -20,6 +20,22 @@ npm i react-native-webgpu
 
 Please note that this module does not work on the legacy architecture.
 
+## iOS: Swift Package Manager
+
+By default, `react-native-webgpu` links on iOS/macOS through CocoaPods autolinking - no extra setup needed. As an alternative, the package also ships a `Package.swift` for React Native's SwiftPM autolinking, which needs no CocoaPods at all:
+
+1. Use **React Native 0.87 or newer**. Earlier releases have no SwiftPM autolinking (`scripts/spm`), so keep CocoaPods there.
+2. From your app's `ios` directory, run `npx react-native spm add --deintegrate` once. It removes CocoaPods from the project and injects the Swift packages into the `.xcodeproj`. Then build the project (not a workspace) as usual: React Native's `Sync SPM Autolinking` build phase picks `react-native-webgpu` up as a self-managed package and links its `ReactNativeWebGPU` product.
+3. Do not run `pod install` in that app: it would re-integrate CocoaPods and break the Swift package graph.
+
+The manifest consumes React Native's headers as Swift package products (`ReactHeaders`, `ReactNativeHeaders`, `ReactNativeDependenciesHeaders`, plus the app's generated `ReactAppHeaders` for the `RNWgpuViewSpec` codegen output), so no CocoaPods install is involved. If a Graphite build of `@shopify/react-native-skia` is installed alongside, the manifest also checks that both packages link the same Dawn release and fails package resolution on a mismatch (see [React Native Skia](/docs/integrations/react-native-skia)). SwiftPM caches manifest evaluations, so after changing either package's Dawn version reset the package caches in Xcode (File > Packages > Reset Package Caches) if the check does not re-run. The manifest follows the same integration model as `@shopify/react-native-skia`'s own `Package.swift`, so the two libraries link the same way.
+
+`Package.swift`'s `WebGPUDawn` binary target resolves to a prebuilt Dawn `.xcframework` published on GitHub Releases; Xcode downloads and checksum-verifies it the first time it resolves packages.
+
+<Callout type="warn" title="Platform coverage">
+The Swift package targets iOS only - macOS, Android and visionOS still require the CocoaPods/Gradle autolinked path. See `spm-example` at the root of the [react-native-webgpu repo](https://github.com/wcandillon/react-native-webgpu) for a working reference project, and its README for the gotchas (stale `Package.resolved`, the stub `Podfile`).
+</Callout>
+
 ## Setup
 
 Once installed, the global `navigator.gpu` API is available - the same entry point as in Chrome or Safari:
@@ -39,6 +55,22 @@ Rendering happens inside a [`Canvas`](/api/canvas) view. The typical loop is:
 
 Start with the [Canvas](/docs/getting-started/canvas) view once installation is done.
 
+## Testing with Jest
+
+`react-native-webgpu` wraps a native module, which isn't available under Jest. Add its mock to `setupFilesAfterEnv` in your `jest.config.js`:
+
+```js
+// jest.config.js
+module.exports = {
+  // Other values
+  setupFilesAfterEnv: [
+    "react-native-webgpu/jestSetup.js",
+  ],
+};
+```
+
+This replaces the package with a JS-only stand-in: `<Canvas>` renders as a plain `View` so screens built around it can still be rendered in tests, while GPU-dependent APIs (`importDevice`, `adoptTexture`, `useDevice`, a real canvas context) throw a clear error if a test actually exercises them.
+
 ## Troubleshooting
 
 <Callout type="warn" title="Android emulators">
@@ -48,7 +80,17 @@ On Android emulators, WebGPU may fall back to a **software adapter**. Rendering 
 <Callout type="warn" title="iOS Simulator - Metal API Validation">
 When running on the **iOS Simulator**, disable **Metal API Validation** in Xcode or you may hit false-positive errors and crashes that do not occur on device.
 
-**Steps:** Product → Scheme → Edit Scheme → Run → Diagnostics → uncheck **Metal API Validation**.
+**Expo:** add the [config plugin](/docs/getting-started/expo#config-plugin) that ships with `react-native-webgpu` to your app config - it disables the setting automatically on every prebuild:
+
+```json title="app.json"
+{
+  "expo": {
+    "plugins": ["react-native-webgpu"]
+  }
+}
+```
+
+**Bare React Native:** Product → Scheme → Edit Scheme → Run → Diagnostics → uncheck **Metal API Validation**.
 
 Metal API Validation is a debug mode that checks every Metal call against the API specification. The simulator's Metal stack is not identical to real hardware, and validation can flag legitimate Dawn/WebGPU usage as invalid. Disabling it for local development is standard practice; keep validation enabled when debugging raw Metal code on device if needed.
 
@@ -57,7 +99,7 @@ Learn more in [Apple's documentation on validating Metal API usage](https://deve
 
 ## Next steps
 
-- [Expo](/docs/getting-started/expo) - scaffold with the `with-webgpu` template
+- [Expo](/docs/getting-started/expo) - scaffold the hosted WebGPU examples template
 - [Canvas](/docs/getting-started/canvas) - your rendering surface
 - [Native APIs](/docs/getting-started/native-api) - the React Native specific differences
 - [Learn WebGPU](/docs/getting-started/learn-webgpu) - learn the low-level API

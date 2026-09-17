@@ -7,4 +7,6 @@ export type Routes = {
   Fiber: undefined;
   PostProcessing: undefined;
   Retargeting: undefined;
+  ToneMapping: undefined;
+  Memory: undefined;
 };

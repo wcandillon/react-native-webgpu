@@ -1,7 +1,6 @@
 package com.webgpu;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.uimanager.ThemedReactContext;
@@ -27,16 +26,31 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
   @Override
   public void onDropViewInstance(@NonNull WebGPUView view) {
     super.onDropViewInstance(view);
-    // The view is gone for good (not a transient detach): release the native
-    // SurfaceInfo. The JS context keeps its own reference; once JS drops it,
-    // the remaining GPU resources (and the AHB fence waiter) are torn down.
-    view.surfaceDestroyed();
+    view.destroy();
   }
 
   @Override
-  @ReactProp(name = "transparent")
-  public void setTransparent(WebGPUView view, boolean value) {
-    view.setTransparent(value);
+  @ReactProp(name = "opaque", defaultBoolean = true)
+  public void setOpaque(WebGPUView view, boolean value) {
+    view.setOpaque(value);
+  }
+
+  @Override
+  @ReactProp(name = "androidSurfaceType")
+  public void setAndroidSurfaceType(WebGPUView view, String value) {
+    view.setSurfaceType(value);
+  }
+
+  @Override
+  @ReactProp(name = "androidZOrderOnTop")
+  public void setAndroidZOrderOnTop(WebGPUView view, boolean value) {
+    view.setZOrderOnTop(value);
+  }
+
+  @Override
+  protected void onAfterUpdateTransaction(@NonNull WebGPUView view) {
+    super.onAfterUpdateTransaction(view);
+    view.updateView();
   }
 
   @Override

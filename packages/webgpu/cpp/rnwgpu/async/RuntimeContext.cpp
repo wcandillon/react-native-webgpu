@@ -186,7 +186,14 @@ void RuntimeContext::tick() {
 }
 
 jsi::UUID RuntimeContext::runtimeDataUUID() {
-  static const auto uuid = jsi::UUID();
+  // Fixed random UUID identifying react-native-webgpu's runtimeData slot.
+  // Never use the default-constructed all-zero UUID here: Hermes backs
+  // runtimeData with a DenseMap that reserves the all-zero UUID as its
+  // empty-bucket marker (and the all-0xff UUID as its tombstone), so using
+  // either as a key is undefined behavior. It crashes on worklet runtimes,
+  // where react-native-worklets seeds runtimeData before we do.
+  static constexpr jsi::UUID uuid(0xC06D5D2D, 0xB19B, 0x431B, 0xA89E,
+                                  0x20F8A0B6E31BULL);
   return uuid;
 }
 

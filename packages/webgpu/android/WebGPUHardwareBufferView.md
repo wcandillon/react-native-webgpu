@@ -9,7 +9,7 @@ Android offered two on-screen canvas backends, each with a real limitation:
 
 `WebGPUHardwareBufferView` is a third backend that aims to be strictly better than `TextureView` for the transparent case: GPU output lands in an `AHardwareBuffer`, drawn inline by HWUI via `Bitmap.wrapHardwareBuffer` + `Canvas.drawBitmap`. HWUI imports the buffer as a Skia texture and samples it zero-copy. The result is a plain `View`: any parent transform, clip, alpha, z-order, or animation applies, with no GL interop and no extra copy.
 
-It is wired into `WebGPUView.setTransparent`: on API 29+ (`Q`) the transparent path uses `WebGPUHardwareBufferView`, otherwise it falls back to `WebGPUTextureView`. The opaque path is unchanged.
+It is wired into `WebGPUView.updateView`: with `android.surfaceType` left on `auto`, a non-opaque canvas (`opaque={false}`) uses `WebGPUHardwareBufferView` on API 29+ (`Q`) and falls back to `WebGPUTextureView` below; it can also be requested explicitly with `android={{ surfaceType: "HardwareBufferView" }}`. The opaque path is unchanged.
 
 ## The two hard problems
 
@@ -110,7 +110,7 @@ Logcat tag for the pool: `WebGPUHardwareBufferView`. It only logs failures and a
 
 Verified on device:
 
-- `Cube.tsx` (a `transparent` canvas) renders the rotating cube over RN content, confirming allocation, import, fenced acquire, present, and inline draw end to end.
+- `Cube.tsx` (an `opaque={false}` canvas) renders the rotating cube over RN content, confirming allocation, import, fenced acquire, present, and inline draw end to end.
 - The `Resize` example renders correctly through resizing, confirming the cross-fade path: native pool reallocation to the new canvas size, the kept previous generation, and the scaled last-frame `onDraw`.
 
 Not yet measured: performance versus `TextureView` (the case to watch is a GPU-heavy scene, where waiting for the fence to *signal* before pickup can cost a frame that `TextureView`, which hands the fence to HWUI, does not pay), and fdsan stability under sustained churn.

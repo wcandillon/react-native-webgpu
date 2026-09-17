@@ -14,7 +14,7 @@ import type {
 
 export * from "./main";
 export * from "./constants";
-export * from "./install";
+export { installWebGPU } from "./install";
 export type {
   NativeVideoFrame,
   VideoPlayer,
@@ -47,6 +47,9 @@ declare global {
       width: number,
       height: number,
     ) => RNCanvasContext;
+    // Retires a canvas context; called by Canvas on unmount (the Canvas owns
+    // the native registry entry for its contextId).
+    destroyContext: (contextId: number) => void;
     DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
     createImageBitmap: typeof createImageBitmap;
     loadVideoFrame: (path: string) => NativeVideoFrame;
@@ -55,12 +58,27 @@ declare global {
     // on Android) into a NativeVideoFrame. Matches the shape used by libraries
     // that emit NativeBuffer (e.g. react-native-vision-camera).
     createVideoFrameFromNativeBuffer: (pointer: bigint) => NativeVideoFrame;
+    // Wrap an externally created WGPUDevice pointer (e.g. Skia's Graphite
+    // device from Skia.getNativeDevice()) into a GPUDevice. Requires the
+    // exporter to share this process's single Dawn instance.
+    importDevice: (pointer: bigint) => GPUDevice;
+    // Wrap an externally created WGPUTexture pointer into a GPUTexture,
+    // taking ownership of one reference (pair with producers that return a
+    // +1 pointer, e.g. Skia.Image.MakeNativeTextureFromImage()).
+    adoptTexture: (pointer: bigint) => GPUTexture;
     createVideoPlayer: (
       path: string,
       pixelFormat?: NativeVideoPixelFormat,
     ) => VideoPlayer;
     writeTestVideoFile: () => string;
   };
+
+  interface GPUTexture {
+    // Non-spec RN extension: raw WGPUTexture handle as a BigInt for
+    // pointer-based interop (e.g. Skia.Image.MakeImageFromNativeTexture).
+    // Borrowed: keep this GPUTexture alive while the pointer is in use.
+    readonly nativePointer: bigint;
+  }
 
   interface GPUDevice {
     importSharedTextureMemory(
@@ -73,6 +91,13 @@ declare global {
   // device creation: adapter.requestDevice({ dawnToggles: { ... } }).
   interface GPUDeviceDescriptor {
     dawnToggles?: GPUDawnTogglesDescriptor;
+    // Non-spec RN extension. Dawn's "implicit-device-synchronization" feature
+    // is requested by default so one device can be handed from the JS thread
+    // to a worklet runtime; it locks device and child-object calls with a
+    // per-device mutex (command encoding excluded: never share an encoder
+    // across threads). Setting this to false disables the locking; only do so
+    // for a device that will never be touched from a worklet runtime.
+    implicitDeviceSynchronization?: boolean;
   }
   // Non-spec extension: camera frames arrive in the sensor's native
   // orientation, which differs between iOS and Android. `rotation` (degrees,
@@ -93,10 +118,20 @@ declare global {
   // pool (e.g. a camera/video player) and pile up GPU resources.
   interface GPUExternalTexture {
     destroy(): void;
+    // Non-spec extension: a 3x4 row-major matrix (12 numbers) mapping the
+    // sampled texel [r, g, b, 1] to gamma-encoded R'G'B'. On the Android
+    // opaque-YCbCr camera path, textureSampleBaseClampToEdge returns raw
+    // [Y, Cb, Cr] (Dawn hard-codes an RGB_IDENTITY Vulkan conversion); this
+    // matrix is derived per-buffer from the driver's suggested YCbCr model and
+    // range (BT.601/709/2020, full/narrow). Everywhere else (iOS, RGBA
+    // surfaces) it is the identity passthrough, so shaders can apply it
+    // unconditionally. Upload it as a uniform and multiply after sampling.
+    readonly yuvToRgbMatrix: number[];
   }
 
   // Extend createImageBitmap to accept ArrayBuffer/TypedArray (encoded image bytes)
   function createImageBitmap(
     image: ArrayBuffer | ArrayBufferView,
+    options?: ImageBitmapOptions,
   ): Promise<ImageBitmap>;
 }

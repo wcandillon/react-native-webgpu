@@ -16,6 +16,7 @@ import {
   Cubemap,
 } from "./Cube";
 import { HelloTriangle, HelloTriangleMSAA } from "./Triangle";
+import { ImageBlur } from "./ImageBlur";
 import { RenderBundles } from "./RenderBundles";
 import { ABuffer } from "./ABuffer";
 import { OcclusionQuery } from "./OcclusionQuery";
@@ -35,10 +36,21 @@ import { ComputeToys } from "./ComputeToys";
 import { Reanimated } from "./Reanimated";
 import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
+import { DiagnosticsList } from "./Diagnostics/DiagnosticsList";
+import { WorkletRequestAdapter } from "./Diagnostics/WorkletRequestAdapter";
+import { ReloadLifecycle } from "./Diagnostics/ReloadLifecycle";
+import { ContextEdgeCases } from "./Diagnostics/ContextEdgeCases";
+import { ViewFormatsUseAfterFree } from "./Diagnostics/ViewFormatsUseAfterFree";
+import { RenderAfterUnmount } from "./Diagnostics/RenderAfterUnmount";
+import { BackgroundDetach } from "./Diagnostics/BackgroundDetach";
+import { SurfaceChurn } from "./Diagnostics/SurfaceChurn";
+import { TransparencyMode } from "./Diagnostics/TransparencyMode";
+import { DeviceDestroyBeforeDetach } from "./Diagnostics/DeviceDestroyBeforeDetach";
 import { StorageBufferVertices } from "./StorageBufferVertices";
 import { SharedTextureMemory } from "./SharedTextureMemory";
 import { ImportExternalTexture } from "./ImportExternalTexture";
 import { VisionCamera } from "./VisionCamera";
+import { SixteenBitTextures } from "./SixteenBitTextures";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -65,6 +77,7 @@ function App() {
             name="HelloTriangleMSAA"
             component={HelloTriangleMSAA}
           />
+          <Stack.Screen name="ImageBlur" component={ImageBlur} />
           <Stack.Screen name="ComputeToys" component={ComputeToys} />
           <Stack.Screen name="ThreeJS" component={ThreeJS} />
           <Stack.Screen name="Tensorflow" component={Tensorflow} />
@@ -94,8 +107,34 @@ function App() {
           </Stack.Screen>
           <Stack.Screen name="GradientTiles" component={GradientTiles} />
           <Stack.Screen name="Reanimated" component={Reanimated} />
+          <Stack.Screen
+            name="Diagnostics"
+            component={DiagnosticsList}
+            options={{ title: "Tests" }}
+          />
           <Stack.Screen name="AsyncStarvation" component={AsyncStarvation} />
           <Stack.Screen name="DeviceLostHang" component={DeviceLostHang} />
+          <Stack.Screen
+            name="WorkletRequestAdapter"
+            component={WorkletRequestAdapter}
+          />
+          <Stack.Screen name="ReloadLifecycle" component={ReloadLifecycle} />
+          <Stack.Screen name="ContextEdgeCases" component={ContextEdgeCases} />
+          <Stack.Screen
+            name="ViewFormatsUseAfterFree"
+            component={ViewFormatsUseAfterFree}
+          />
+          <Stack.Screen
+            name="RenderAfterUnmount"
+            component={RenderAfterUnmount}
+          />
+          <Stack.Screen name="BackgroundDetach" component={BackgroundDetach} />
+          <Stack.Screen name="SurfaceChurn" component={SurfaceChurn} />
+          <Stack.Screen name="TransparencyMode" component={TransparencyMode} />
+          <Stack.Screen
+            name="DeviceDestroyBeforeDetach"
+            component={DeviceDestroyBeforeDetach}
+          />
           <Stack.Screen
             name="StorageBufferVertices"
             component={StorageBufferVertices}
@@ -109,6 +148,10 @@ function App() {
             component={ImportExternalTexture}
           />
           <Stack.Screen name="VisionCamera" component={VisionCamera} />
+          <Stack.Screen
+            name="SixteenBitTextures"
+            component={SixteenBitTextures}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

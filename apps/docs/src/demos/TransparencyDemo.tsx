@@ -146,7 +146,7 @@ export function TransparencyDemo() {
   return (
     <View style={styles.container}>
       <Background />
-      <Canvas ref={ref} style={StyleSheet.absoluteFill} transparent />
+      <Canvas ref={ref} style={StyleSheet.absoluteFill} opaque={false} />
     </View>
   );
 }

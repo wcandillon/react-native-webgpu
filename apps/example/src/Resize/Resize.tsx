@@ -133,7 +133,7 @@ export const Resize = () => {
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
       <AnimatedView style={style}>
-        <Canvas ref={ref} style={{ flex: 1 }} transparent />
+        <Canvas ref={ref} style={{ flex: 1 }} opaque={false} />
       </AnimatedView>
     </View>
   );

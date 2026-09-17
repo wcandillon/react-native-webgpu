@@ -1,9 +1,15 @@
 {
   "extends": "eslint-config-react-native-wcandillon/tsconfig.base",
   "compilerOptions": {
-    "module": "esnext",
-    "noUncheckedIndexedAccess": false,
     "jsx": "react",
     "types": ["@webgpu/types", "@types/node", "@types/jest"]
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "lib",
+    "**/Pods/**",
+    "babel.config.js",
+    "metro.config.js",
+    "jest.config.js"
+  ]
 }

@@ -7,35 +7,39 @@ import android.view.Surface;
 import android.view.TextureView;
 import androidx.annotation.NonNull;
 
-import org.w3c.dom.Text;
-
 @SuppressLint("ViewConstructor")
 public class WebGPUTextureView extends TextureView implements TextureView.SurfaceTextureListener {
 
   WebGPUAPI mApi;
+  private Surface mSurface;
 
-  public WebGPUTextureView(Context context, WebGPUAPI api) {
+  public WebGPUTextureView(Context context, WebGPUAPI api, boolean opaque) {
     super(context);
     mApi = api;
-    setOpaque(false);
+    setOpaque(opaque);
     setSurfaceTextureListener(this);
   }
 
   @Override
   public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surfaceTexture, int width, int height) {
-    Surface surface = new Surface(surfaceTexture);
-    mApi.surfaceCreated(surface);
+    mSurface = new Surface(surfaceTexture);
+    mApi.surfaceCreated(mSurface);
   }
 
   @Override
   public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surfaceTexture, int width, int height) {
-    Surface surface = new Surface(surfaceTexture);
-    mApi.surfaceChanged(surface);
+    mApi.surfaceChanged(mSurface);
   }
 
   @Override
   public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surfaceTexture) {
-    mApi.surfaceDestroyed();
+    // Detach first (synchronous through JNI) so the native side has dropped
+    // its window reference before we release ours.
+    mApi.surfaceOffscreen();
+    if (mSurface != null) {
+      mSurface.release();
+      mSurface = null;
+    }
     return true;
   }
 

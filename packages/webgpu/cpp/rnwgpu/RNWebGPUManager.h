@@ -34,6 +34,15 @@ public:
    */
   static void installWebGPUWorkletHelpers(jsi::Runtime &runtime);
 
+  /**
+   * Applies a surface attach latched by the platform UI thread (see
+   * SurfaceInfo::applyPendingAttach) from the JS thread. Surface attaches are
+   * normally adopted at the next frame boundary by whichever thread renders;
+   * this flush covers contexts that are not actively rendering (static
+   * content), so the last offscreen frame still makes it on screen.
+   */
+  void flushPendingSurfaceTransition(std::shared_ptr<SurfaceInfo> info);
+
 private:
   jsi::Runtime *_jsRuntime;
   std::shared_ptr<facebook::react::CallInvoker> _jsCallInvoker;

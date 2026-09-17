@@ -5,7 +5,10 @@ import { View } from "react-native";
 import { useEffect, useRef } from "react";
 import { time, oscSine, mix, range, normalWorld } from "three/tsl";
 
-import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
+import {
+  makeWebGPURenderer,
+  disposeWebGPURenderer,
+} from "./components/makeWebGPURenderer";
 import { useGeometry } from "./assets/AssetManager";
 
 export const InstancedMesh = () => {
@@ -50,7 +53,7 @@ export const InstancedMesh = () => {
     scene.add(mesh);
 
     //
-    const renderer = makeWebGPURenderer(context);
+    const renderer = makeWebGPURenderer({ context });
 
     //renderer.setPixelRatio(window.devicePixelRatio);
     //renderer.setSize(window.innerWidth, window.innerHeight);
@@ -90,7 +93,7 @@ export const InstancedMesh = () => {
       context.present();
     }
     return () => {
-      renderer.setAnimationLoop(null);
+      disposeWebGPURenderer(renderer);
     };
   }, [geometry, ref]);
 

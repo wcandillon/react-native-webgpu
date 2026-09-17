@@ -24,7 +24,10 @@ import {
 } from "three/tsl";
 
 import { useGLTF } from "./assets/AssetManager";
-import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
+import {
+  makeWebGPURenderer,
+  disposeWebGPURenderer,
+} from "./components/makeWebGPURenderer";
 
 export const Backdrop = () => {
   const gltf = useGLTF(require("./assets/michelle/model.gltf"));
@@ -48,7 +51,7 @@ export const Backdrop = () => {
     scene.backgroundNode = screenUV.y.mix(color(0x66bbff), color(0x4466ff));
     camera.lookAt(0, 1, 0);
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
 
     //lights
 
@@ -133,13 +136,14 @@ export const Backdrop = () => {
     addBackdropSphere(vec3(0, 0, viewportSharedTexture().b));
 
     //renderer
-    const renderer = makeWebGPURenderer(context, { antialias: false });
+    const renderer = makeWebGPURenderer({ context, antialias: false });
     renderer.setAnimationLoop(animate);
     renderer.toneMapping = THREE.NeutralToneMapping;
     renderer.toneMappingExposure = 0.3;
 
     function animate() {
-      const delta = clock.getDelta();
+      timer.update();
+      const delta = timer.getDelta();
 
       if (mixer) {
         mixer.update(delta);
@@ -153,7 +157,7 @@ export const Backdrop = () => {
       context.present();
     }
     return () => {
-      renderer.setAnimationLoop(null);
+      disposeWebGPURenderer(renderer);
     };
   }, [gltf, ref]);
   return (

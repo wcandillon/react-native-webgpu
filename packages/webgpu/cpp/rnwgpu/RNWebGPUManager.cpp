@@ -31,9 +31,9 @@
 #include "GPURenderPassEncoder.h"
 #include "GPURenderPipeline.h"
 #include "GPUSampler.h"
+#include "GPUShaderModule.h"
 #include "GPUSharedFence.h"
 #include "GPUSharedTextureMemory.h"
-#include "GPUShaderModule.h"
 #include "GPUSupportedLimits.h"
 #include "GPUTexture.h"
 #include "GPUTextureView.h"
@@ -60,9 +60,6 @@ RNWebGPUManager::RNWebGPUManager(
     std::shared_ptr<PlatformContext> platformContext)
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker),
       _platformContext(platformContext) {
-
-  // Register main runtime for RuntimeAwareCache
-  BaseRuntimeAwareCache::setMainJsRuntime(_jsRuntime);
 
   // Register the main runtime + its CallInvoker so spontaneous events
   // (device.lost / uncapturederror) on main-runtime devices can be delivered to
@@ -237,7 +234,20 @@ void RNWebGPUManager::installWebGPUWorkletHelpers(jsi::Runtime &runtime) {
   runtime.global().setProperty(runtime, "__webgpuBox", std::move(boxFunc));
 }
 
+void RNWebGPUManager::flushPendingSurfaceTransition(
+    std::shared_ptr<SurfaceInfo> info) {
+  if (info == nullptr || _jsCallInvoker == nullptr) {
+    return;
+  }
+  _jsCallInvoker->invokeAsync(
+      [info = std::move(info)] { info->applyPendingAttach(); });
+}
+
 RNWebGPUManager::~RNWebGPUManager() {
+  // Drop all canvas registry entries: after a reload the JS side restarts its
+  // contextId counter, and stale entries would alias new canvases onto dead
+  // surfaces.
+  SurfaceRegistry::getInstance().clear();
   _jsRuntime = nullptr;
   _jsCallInvoker = nullptr;
 }

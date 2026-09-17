@@ -252,6 +252,26 @@ describe("Adapter", () => {
     expect(result.maxTextureDimension2D).toBeGreaterThanOrEqual(2048);
     expect(result.maxTextureDimension3D).toBeGreaterThanOrEqual(256);
   });
+  it("serializes prototype getters via JSON.stringify (toJSON)", async () => {
+    const result = await client.eval(({ gpu }) => {
+      return gpu.requestAdapter().then((adapter) => {
+        const limits = JSON.parse(JSON.stringify(adapter!.limits));
+        const adapterJson = JSON.parse(JSON.stringify(adapter!));
+        return {
+          limits,
+          adapterKeys: Object.keys(adapterJson),
+        };
+      });
+    });
+    // Getters on the prototype must survive a JSON round-trip
+    expect(result.limits.maxBindGroups).toBeGreaterThan(0);
+    expect(result.limits.maxBufferSize).toBeGreaterThan(0);
+    expect(result.limits.maxTextureDimension2D).toBeGreaterThanOrEqual(2048);
+    // Nested NativeObjects serialize deeply (adapter.limits via adapter)
+    expect(result.adapterKeys).toContain("limits");
+    // Methods on the prototype must not appear in JSON output
+    expect(result.adapterKeys).not.toContain("requestDevice");
+  });
   it("getPreferredCanvasFormat", async () => {
     const result = await client.eval(({ gpu }) => {
       return gpu.getPreferredCanvasFormat();

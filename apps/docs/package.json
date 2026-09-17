@@ -9,7 +9,7 @@
     "start": "next start",
     "fetch:shaders": "node scripts/fetch-computetoys.mjs",
     "lint": "eslint . --max-warnings 0",
-    "tsc": "fumadocs-mdx && next typegen && tsc --noEmit"
+    "tsc": "next typegen && fumadocs-mdx && tsc --noEmit"
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",
@@ -25,11 +25,13 @@
     "react-dom": "19.1.0",
     "react-native-web": "^0.21.2",
     "react-native-webgpu": "workspace:*",
+    "react-native-worklets": "0.8.3",
     "three": "0.184.0",
     "wgpu-matrix": "^3.0.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.8",
+    "@typegpu/react": "^0.11.2",
     "@types/mdx": "^2.0.13",
     "@types/node": "^20.14.7",
     "@types/react": "^18.2.44",
@@ -40,6 +42,7 @@
     "fumadocs-typescript": "^4.0.4",
     "tailwindcss": "^4.1.8",
     "twoslash": "^0.3.9",
+    "typegpu": "^0.11.9",
     "typescript": "^5.2.2"
   }
 }

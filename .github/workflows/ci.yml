@@ -52,6 +52,13 @@ jobs:
       - name: Build packages
         run: yarn turbo run build --filter='./packages/*'
 
+      - name: Build Expo WebGPU template for web
+        run: yarn workspace expo-webgpu-template build:web
+
+      - name: Test Expo config plugin
+        working-directory: packages/webgpu
+        run: yarn test:plugin
+
       # Validate the semantic-release config without publishing, so a broken
       # .releaserc or publish script is caught on PRs rather than at release time.
       - name: Release dry run
@@ -100,6 +107,41 @@ jobs:
             -disableAutomaticPackageResolution \
             build | xcpretty
 
+      # spm-example sits outside the yarn workspace so its React Native can
+      # differ from the one apps/example pins: SwiftPM autolinking needs
+      # React Native 0.87+. It ships no lockfile; react and react-native are
+      # pinned exactly in its package.json.
+      - name: Install spm-example dependencies
+        working-directory: spm-example
+        run: npm install
+
+      # The .xcodeproj is committed already injected, so this refreshes the
+      # injection, runs codegen and downloads the React Native artifacts. It
+      # exits 2 if a linked library ships no Package.swift.
+      - name: Set up Swift Package Manager (spm-example)
+        working-directory: spm-example/ios
+        run: npx react-native spm update
+
+      # No CocoaPods and no -disableAutomaticPackageResolution here (unlike
+      # the example app build above): react-native-webgpu is linked through
+      # its own Package.swift, and its WebGPUDawn binaryTarget resolves to a
+      # remote release zip + checksum with nothing cached ahead of time — this
+      # build's whole point is exercising that download-and-verify step.
+      - name: Build spm-example for iOS
+        working-directory: spm-example/ios
+        run: |
+          set -o pipefail && xcodebuild \
+            -project SpmExample.xcodeproj \
+            -scheme SpmExample \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath spm-build \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING=YES \
+            CODE_SIGNING_ALLOWED=NO \
+            build | xcpretty
+
       - name: Boot iPhone Simulator
         run: |
           if xcrun simctl list devices booted | grep -q "iPhone"; then
@@ -132,6 +174,17 @@ jobs:
       - name: Run e2e tests
         working-directory: packages/webgpu
         run: yarn test
+
+      # Upload the snapshot folder so reference images generated on this run
+      # (checkImage writes missing snapshots) and the *.test.png /
+      # *-diff-test.png images from failed comparisons can be inspected.
+      # `always()` so the artifact is available precisely when tests fail.
+      - name: Upload test snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webgpu-test-snapshots
+          path: packages/webgpu/src/__tests__/snapshots/
 
       - name: Detect ANDROID_HOME
         run: |
@@ -177,8 +230,8 @@ jobs:
       - name: Build example for Android
         working-directory: apps/example/android
         env:
-          JAVA_OPTS: "-XX:MaxHeapSize=6g"
-        run: ./gradlew assembleDebug --build-cache --warning-mode all
+          JAVA_OPTS: "-XX:MaxHeapSize=16g"
+        run: ./gradlew assembleDebug --build-cache --warning-mode all --stacktrace
 
       # Housekeeping for the self-hosted runner: the start-of-run kill already
       # guarantees a clean slate for the next build, so this is not needed for

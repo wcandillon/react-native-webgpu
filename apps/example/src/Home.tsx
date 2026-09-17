@@ -20,6 +20,10 @@ export const examples = [
     title: "🔺 Hello Triangle MSAA",
   },
   {
+    screen: "ImageBlur",
+    title: "🫧 Image Blur",
+  },
+  {
     screen: "Reanimated",
     title: "🐎 Reanimated",
   },
@@ -116,12 +120,8 @@ export const examples = [
     title: "🌈 Gradient Tiles",
   },
   {
-    screen: "AsyncStarvation",
-    title: "⚠️ Async Runner Starvation",
-  },
-  {
-    screen: "DeviceLostHang",
-    title: "⚠️ Device Lost Hang",
+    screen: "Diagnostics",
+    title: "⚠️ Tests",
   },
   {
     screen: "StorageBufferVertices",
@@ -138,6 +138,10 @@ export const examples = [
   {
     screen: "VisionCamera",
     title: "📷 VisionCamera integration",
+  },
+  {
+    screen: "SixteenBitTextures",
+    title: "🎨 16bits Textures",
   },
 ];
 

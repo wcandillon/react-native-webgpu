@@ -5,13 +5,27 @@ import { useTheme } from "next-themes";
 
 import { HeroCredit } from "./hero/HeroCredit";
 import { HERO_UNIFORM_SIZE } from "./hero/prelude";
-import { createPass, type Pass } from "./hero/runner";
-import type { HeroContext, ShaderEntry } from "./hero/types";
+import {
+  createFadeOverlay,
+  createPass,
+  type FadeOverlay,
+  type Pass,
+} from "./hero/runner";
+import { HERO_BACKGROUND, type HeroContext, type ShaderEntry } from "./hero/types";
 
 interface HeroShaderProps {
   entry: ShaderEntry;
   className?: string;
 }
+
+// Seconds over which the shader fades in from the background color.
+const FADE_IN_SECONDS = 1;
+
+const hexToRgb = (hex: string): [number, number, number] => [
+  parseInt(hex.slice(1, 3), 16) / 255,
+  parseInt(hex.slice(3, 5), 16) / 255,
+  parseInt(hex.slice(5, 7), 16) / 255,
+];
 
 export function HeroShader({ entry, className }: HeroShaderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -65,6 +79,7 @@ export function HeroShader({ entry, className }: HeroShaderProps) {
     let device: GPUDevice | null = null;
     let uniformBuffer: GPUBuffer | null = null;
     let pass: Pass | null = null;
+    let fade: FadeOverlay | null = null;
 
     (async () => {
       const adapter = await navigator.gpu.requestAdapter();
@@ -119,6 +134,11 @@ export function HeroShader({ entry, className }: HeroShaderProps) {
       pass = createPass(ctx, entry.shader, uniformBuffer, { isMobile });
       pass.resize(canvas.width, canvas.height);
 
+      fade = createFadeOverlay(
+        ctx,
+        hexToRgb(HERO_BACKGROUND[entry.appearance !== "light" ? "dark" : "light"]),
+      );
+
       const shaderStart = performance.now();
       let frame = 0;
       const uniforms = new Float32Array(HERO_UNIFORM_SIZE / 4);
@@ -150,7 +170,13 @@ export function HeroShader({ entry, className }: HeroShaderProps) {
         pass?.update(frame, time);
 
         const encoder = device.createCommandEncoder();
-        pass?.encode(encoder, context.getCurrentTexture().createView());
+        const target = context.getCurrentTexture().createView();
+        pass?.encode(encoder, target);
+        // Fade in from the background color over the first second.
+        const fadeAlpha = 1 - Math.min(1, time / FADE_IN_SECONDS);
+        if (fadeAlpha > 0) {
+          fade?.encode(encoder, target, fadeAlpha);
+        }
         device.queue.submit([encoder.finish()]);
 
         frame += 1;
@@ -168,6 +194,7 @@ export function HeroShader({ entry, className }: HeroShaderProps) {
       disposed = true;
       cancelAnimationFrame(animationId);
       pass?.destroy();
+      fade?.destroy();
       uniformBuffer?.destroy();
       device?.destroy();
     };
@@ -199,7 +226,7 @@ export function HeroShader({ entry, className }: HeroShaderProps) {
       <canvas
         ref={canvasRef}
         className="block h-full w-full"
-        style={{ background: dark ? "#050508" : "#f6f6fa" }}
+        style={{ background: HERO_BACKGROUND[dark ? "dark" : "light"] }}
       />
       <HeroCredit entry={entry} dark={dark} />
     </div>

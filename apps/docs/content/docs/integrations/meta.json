@@ -4,6 +4,8 @@
     "introduction",
     "worklets",
     "vision-camera",
+    "react-native-skia",
+    "typegpu",
     "three-js",
     "react-three-fiber",
     "tensorflow"

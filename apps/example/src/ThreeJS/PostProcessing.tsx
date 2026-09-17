@@ -7,7 +7,10 @@ import { color, pass } from "three/tsl";
 import { bloom } from "three/addons/tsl/display/BloomNode";
 
 import { useGLTF } from "./assets/AssetManager";
-import { makeWebGPURenderer } from "./components/makeWebGPURenderer";
+import {
+  makeWebGPURenderer,
+  disposeWebGPURenderer,
+} from "./components/makeWebGPURenderer";
 
 export const PostProcessing = () => {
   const gltf = useGLTF(require("./assets/PrimaryIonDrive.glb"));
@@ -31,7 +34,7 @@ export const PostProcessing = () => {
     scene.backgroundNode = color(0);
     camera.lookAt(0, 1, 0);
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
 
     //lights
 
@@ -50,7 +53,7 @@ export const PostProcessing = () => {
 
     // portals
     //renderer
-    const renderer = makeWebGPURenderer(context, { antialias: false });
+    const renderer = makeWebGPURenderer({ context, antialias: false });
     renderer.setAnimationLoop(animate);
     renderer.toneMapping = THREE.NeutralToneMapping;
     renderer.toneMappingExposure = 0.3;
@@ -61,12 +64,11 @@ export const PostProcessing = () => {
 
     const bloomPass = bloom(scenePassColor);
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
     postProcessing.outputNode = scenePassColor.add(bloomPass);
 
     function animate() {
-      const delta = clock.getDelta();
+      timer.update();
+      const delta = timer.getDelta();
 
       if (mixer) {
         mixer.update(delta);
@@ -75,7 +77,7 @@ export const PostProcessing = () => {
       context.present();
     }
     return () => {
-      renderer.setAnimationLoop(null);
+      disposeWebGPURenderer(renderer);
     };
   }, [gltf, ref]);
   return (

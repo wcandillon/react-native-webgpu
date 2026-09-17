@@ -6,15 +6,31 @@
 #import <react/renderer/components/RNWgpuViewSpec/RCTComponentViewHelpers.h>
 
 #import "MetalView.h"
-#import "RCTFabricComponentsPlugins.h"
-#import "Utils.h"
+#import <React/RCTFabricComponentsPlugins.h>
 
 using namespace facebook::react;
+
+static const std::shared_ptr<const WebGPUViewProps> &defaultWebGPUViewProps() {
+  static const auto props = std::make_shared<const WebGPUViewProps>();
+  return props;
+}
 
 @implementation WebGPUView
 
 + (ComponentDescriptorProvider)componentDescriptorProvider {
   return concreteComponentDescriptorProvider<WebGPUViewComponentDescriptor>();
+}
+
+- (instancetype)initWithFrame:(CGRect)frame {
+  if (self = [super initWithFrame:frame]) {
+    /*
+      The base class initializes _props with a plain ViewProps instance;
+      updateProps: casts _props to WebGPUViewProps, so it must hold our
+      concrete props type from the start (RN 0.87+ asserts on this).
+    */
+    _props = defaultWebGPUViewProps();
+  }
+  return self;
 }
 
 - (void)prepareForRecycle {
@@ -25,6 +41,11 @@ using namespace facebook::react;
     the last usage in the new context.
   */
   self.contentView = nil;
+  /*
+    Reset to the default props (contextId == 0) so the next mount always
+    detects a contextId change and configures a fresh Metal layer.
+  */
+  _props = defaultWebGPUViewProps();
 }
 
 - (MetalView *)getContentView {

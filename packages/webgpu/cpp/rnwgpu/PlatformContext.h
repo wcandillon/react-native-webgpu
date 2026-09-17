@@ -16,6 +16,13 @@ struct ImageData {
   size_t width;
   size_t height;
   wgpu::TextureFormat format;
+  // Whether the RGB channels are premultiplied by alpha. Each platform decoder
+  // records the representation it produced; createImageBitmap then converts to
+  // the representation requested through premultiplyAlpha, and
+  // copyExternalImageToTexture converts again to match the destination's
+  // premultipliedAlpha. Defaults to true because most native decoders
+  // (CoreGraphics, Android Bitmap) hand back premultiplied pixels.
+  bool premultiplied = true;
 };
 
 // Pixel layout of a VideoFrame. Determines whether the underlying surface is

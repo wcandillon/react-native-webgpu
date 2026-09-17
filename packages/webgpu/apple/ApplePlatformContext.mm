@@ -4,6 +4,7 @@
 
 #import <AVFoundation/AVFoundation.h>
 #import <CoreVideo/CoreVideo.h>
+#import <ImageIO/ImageIO.h>
 #import <React/RCTBlobManager.h>
 #import <React/RCTBridge+Private.h>
 #import <ReactCommon/RCTTurboModule.h>
@@ -88,36 +89,32 @@ void ApplePlatformContext::createImageBitmapAsync(
 
 ImageData
 ApplePlatformContext::createImageBitmapFromData(std::span<const uint8_t> data) {
-  // This avoids a copy by assuming the UIImage/NSImage constructors
-  // decode `nsData` eagerly before the memory for the wrapped `data`
-  // is freed.
-  //
-  // Since we get the `CGImageRef` from `image` and then throw
-  // it away, that's a fairly safe assumption.
+  // All formats are decoded through ImageIO. Apple's imaging stack always
+  // premultiplies alpha at decode, so the result is flagged premultiplied and
+  // createImageBitmap / copyExternalImageToTexture convert from there. This
+  // means premultiplyAlpha "none" is a lossy round trip for low-alpha pixels
+  // (as it is on Android); the snapshot suites compare with pixelmatch
+  // tolerance to absorb it.
   NSData *nsData =
       [NSData dataWithBytesNoCopy:const_cast<uint8_t *>(data.data())
                            length:data.size()
                      freeWhenDone:NO];
 
-#if !TARGET_OS_OSX
-  UIImage *image = [UIImage imageWithData:nsData];
-#else
-  NSImage *image = [[NSImage alloc] initWithData:nsData];
-#endif
-  if (!image) {
+  CGImageSourceRef imageSource =
+      CGImageSourceCreateWithData((__bridge CFDataRef)nsData, NULL);
+  if (imageSource == NULL) {
+    throw std::runtime_error("Couldn't create image source");
+  }
+  NSDictionary *decodeOptions = @{(id)kCGImageSourceShouldCache : @NO};
+  CGImageRef cgImage = CGImageSourceCreateImageAtIndex(
+      imageSource, 0, (__bridge CFDictionaryRef)decodeOptions);
+  CFRelease(imageSource);
+  if (cgImage == NULL) {
     throw std::runtime_error("Couldn't decode image");
   }
 
-#if !TARGET_OS_OSX
-  CGImageRef cgImage = image.CGImage;
-#else
-  CGImageRef cgImage = [image CGImageForProposedRect:NULL
-                                             context:NULL
-                                               hints:NULL];
-#endif
   size_t width = CGImageGetWidth(cgImage);
   size_t height = CGImageGetHeight(cgImage);
-  size_t bitsPerComponent = 8;
   size_t bytesPerRow = width * 4;
 
   ImageData result;
@@ -126,16 +123,18 @@ ApplePlatformContext::createImageBitmapFromData(std::span<const uint8_t> data) {
   result.data.resize(height * bytesPerRow);
   result.format = wgpu::TextureFormat::RGBA8Unorm;
 
+  // The draw premultiplies alpha; flag the result premultiplied so
+  // createImageBitmap and copyExternalImageToTexture convert consistently.
   CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
   CGContextRef context = CGBitmapContextCreate(
-      result.data.data(), width, height, bitsPerComponent, bytesPerRow,
-      colorSpace, kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
-
+      result.data.data(), width, height, 8, bytesPerRow, colorSpace,
+      kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
   CGContextDrawImage(context, CGRectMake(0, 0, width, height), cgImage);
-
   CGContextRelease(context);
   CGColorSpaceRelease(colorSpace);
+  CGImageRelease(cgImage);
 
+  result.premultiplied = true;
   return result;
 }
 
