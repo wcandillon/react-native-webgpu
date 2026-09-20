@@ -9,7 +9,7 @@ Android offered two on-screen canvas backends, each with a real limitation:
 
 `WebGPUHardwareBufferView` is a third backend that aims to be strictly better than `TextureView` for the transparent case: GPU output lands in an `AHardwareBuffer`, drawn inline by HWUI via `Bitmap.wrapHardwareBuffer` + `Canvas.drawBitmap`. HWUI imports the buffer as a Skia texture and samples it zero-copy. The result is a plain `View`: any parent transform, clip, alpha, z-order, or animation applies, with no GL interop and no extra copy.
 
-It is wired into `WebGPUView.updateView`: with `android.surfaceType` left on `auto`, a non-opaque canvas (`opaque={false}`) uses `WebGPUHardwareBufferView` on API 29+ (`Q`) and falls back to `WebGPUTextureView` below; it can also be requested explicitly with `android={{ surfaceType: "HardwareBufferView" }}`. The opaque path is unchanged.
+It is wired into `WebGPUView.updateView` as an opt-in: `android={{ surfaceType: "HardwareBufferView" }}` selects it on API 29+ (`Q`) and falls back to `WebGPUTextureView` below. With `android.surfaceType` left on `auto`, a non-opaque canvas (`opaque={false}`) still uses `WebGPUTextureView`. It is meant to become the default for the transparent case once two things are in place: a runtime fallback to `TextureView` when `AHardwareBuffer_allocate` or the Dawn shared-texture import fails on a device (today the canvas silently renders to the offscreen fallback), and a measured latency comparison against `TextureView`. The opaque path is unchanged.
 
 ## The two hard problems
 
@@ -77,7 +77,7 @@ On resize the native pool reallocates to the new canvas size (a new generation),
 - `cpp/rnwgpu/api/GPUCanvasContext.cpp` — `getCurrentTexture` drives `poolResize` in pool mode; `present` fires for pool mode (`hasSurface() || isPoolMode()`).
 - `android/cpp/cpp-adapter.cpp` — JNI: `nEnablePool`, `nSetClientSize`, `nGetHardwareBuffer`, `nPollReady`, `nReleaseSlot`, `nSwitchToOffscreen`, and `HardwareBufferViewWaker` (the waiter-to-UI wake-up).
 - `android/src/main/java/com/webgpu/WebGPUHardwareBufferView.java` — the view: enable pool mode, wake-up-driven consume, per-token Bitmap cache, held-ring, scaled `onDraw`, lifecycle. It is a pure consumer (about 250 lines); everything about buffers, fences and the swapchain lives in C++.
-- `android/src/main/java/com/webgpu/WebGPUView.java` — wires the transparent path to `WebGPUHardwareBufferView` on API Q+.
+- `android/src/main/java/com/webgpu/WebGPUView.java` — selects `WebGPUHardwareBufferView` for `surfaceType: "HardwareBufferView"` on API Q+ (opt-in; `auto` stays on `WebGPUTextureView` for the transparent path).
 - `android/src/main/java/com/webgpu/WebGPUAPI.java` — adds `getContextId()`.
 
 ## Prerequisites that already hold

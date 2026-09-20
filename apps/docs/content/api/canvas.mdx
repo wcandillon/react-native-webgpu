@@ -186,7 +186,7 @@ regular view, so `Canvas` can be backed by one of three native views. The
 
 | Option | Type | Effect |
 | --- | --- | --- |
-| `surfaceType` | `"SurfaceView" \| "TextureView" \| "HardwareBufferView"` | Backing view. Defaults to `SurfaceView` when `opaque`; otherwise to `HardwareBufferView` on Android 10 (API 29) and above, and `TextureView` below |
+| `surfaceType` | `"SurfaceView" \| "TextureView" \| "HardwareBufferView"` | Backing view. Defaults to `SurfaceView` when `opaque` and to `TextureView` otherwise. `HardwareBufferView` is opt-in and needs Android 10 (API 29) |
 | `zOrderOnTop` | `boolean` | `SurfaceView` only: `setZOrderOnTop`, composites above every React Native view in the window. Defaults to `false` |
 
 **`SurfaceView`** is the default for an opaque canvas and the fastest path.
@@ -196,28 +196,30 @@ that it is not really view content: it punches a hole through the window, so
 parent transforms, clipping, rounded corners, and z-ordering with sibling views
 do not apply to it. Use it whenever the canvas is a plain opaque rectangle.
 
-**`TextureView`** is a regular Android view. Frames go through a
-`SurfaceTexture` that the UI toolkit samples as an external texture when it
-draws the view, so parent transforms, clipping, alpha, and z-order all apply
-and the canvas can be composited over other React Native views. That routing
-costs an extra texture copy and typically a frame of latency, and it can stall
-during some view animations. It works on every supported Android version.
+**`TextureView`** is the default for a non-opaque canvas. It is a regular
+Android view: frames go through a `SurfaceTexture` that the UI toolkit samples
+as an external texture when it draws the view, so parent transforms, clipping,
+alpha, and z-order all apply and the canvas can be composited over other React
+Native views. That routing costs an extra texture copy and typically a frame of
+latency, and it can stall during some view animations. It works on every
+supported Android version.
 
-**`HardwareBufferView`** is the default for a non-opaque canvas on Android 10
-(API 29) and above. It is also a regular view, so it composites exactly like
-`TextureView`, but WebGPU renders into an `AHardwareBuffer` that the UI toolkit
-draws inline, with no `SurfaceTexture` and no extra copy. It is designed to
-have lower latency than `TextureView` while keeping the same compositing
-behavior. It is not available before API 29: requesting it on an older device
-silently uses `TextureView` instead.
+**`HardwareBufferView`** is an opt-in, experimental alternative to
+`TextureView` for the non-opaque case, available on Android 10 (API 29) and
+above. It is also a regular view, so it composites exactly like `TextureView`,
+but WebGPU renders into an `AHardwareBuffer` that the UI toolkit draws inline,
+with no `SurfaceTexture` and no extra copy. It is designed to have lower
+latency than `TextureView` while keeping the same compositing behavior; that
+gain has not been measured yet, which is one reason it is not the default.
+Requesting it on a device below API 29 silently uses `TextureView`.
 
 | | `SurfaceView` | `TextureView` | `HardwareBufferView` |
 | --- | --- | --- | --- |
 | Minimum Android | any | any | 10 (API 29) |
 | Composited like a regular view | no | yes | yes |
 | Extra copy | none | one | none |
-| Expected latency | lowest | highest | between the two |
-| Default when | `opaque` (default) | `opaque={false}` below API 29 | `opaque={false}` on API 29+ |
+| Expected latency | lowest | highest | between the two (unmeasured) |
+| Selected when | `opaque` (default) | `opaque={false}` (default) | `surfaceType: "HardwareBufferView"` |
 
 `opaque` applies to whichever view is selected: on a `SurfaceView` it picks
 `PixelFormat.OPAQUE` or `PixelFormat.TRANSLUCENT`, on a `TextureView` it calls
@@ -235,21 +237,20 @@ further flags. Set `surfaceType` when you need a different trade-off:
 // Translucent SurfaceView above every React Native view, no composition pass
 <Canvas opaque={false} android={{ surfaceType: "SurfaceView", zOrderOnTop: true }} />
 
-// Translucent HardwareBufferView, requested explicitly
-// (uses TextureView before Android 10)
+// Translucent HardwareBufferView, opt-in (uses TextureView before Android 10)
 <Canvas opaque={false} android={{ surfaceType: "HardwareBufferView" }} />
-
-// Translucent TextureView on every Android version
-<Canvas opaque={false} android={{ surfaceType: "TextureView" }} />
 ```
 
-`HardwareBufferView` is the newest of the three. Because the UI toolkit exposes
-no "finished reading" signal for an inline buffer, it recycles its buffers with
-a small holding ring rather than a fence, so a device or driver quirk could
-show up as a stale or torn frame. If you hit one, pin
-`surfaceType: "TextureView"` as the safety fallback: it blends identically in
-React Native stacking order, at the cost of the extra copy and latency
-described above.
+Two things to know before opting into `HardwareBufferView`. If the device
+cannot allocate or import the `AHardwareBuffer`, the canvas currently keeps
+rendering to an offscreen texture and shows nothing, rather than falling back
+to `TextureView`; test on your target devices. And because the UI toolkit
+exposes no "finished reading" signal for an inline buffer, it recycles its
+buffers with a small holding ring rather than a fence, so a device or driver
+quirk could show up as a stale or torn frame. If either happens, drop the
+`surfaceType` to get `TextureView` back. The plan is to make
+`HardwareBufferView` the non-opaque default once it falls back to `TextureView`
+at runtime and its latency advantage is measured.
 
 A non-opaque `SurfaceView` without `zOrderOnTop` sits below the app window, so
 its alpha blends against the window background (usually black) and the React

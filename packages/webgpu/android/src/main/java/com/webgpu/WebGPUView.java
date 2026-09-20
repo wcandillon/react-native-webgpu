@@ -52,8 +52,11 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   // Resolve the backing view from the props. "auto" picks SurfaceView for an
-  // opaque canvas and, for a non-opaque one, WebGPUHardwareBufferView (a plain
-  // View drawing AHardwareBuffers inline, API 29+) or TextureView below that.
+  // opaque canvas and TextureView for a non-opaque one. WebGPUHardwareBufferView
+  // (a plain View drawing AHardwareBuffers inline, API 29+) is opt-in via
+  // surfaceType until it gets a runtime fallback to TextureView when the
+  // AHardwareBuffer import fails on a device; below API 29 the request itself
+  // falls back to TextureView.
   private int resolveKind() {
     if ("SurfaceView".equals(mSurfaceType)) {
       return KIND_SURFACE_VIEW;
@@ -61,14 +64,11 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     if ("TextureView".equals(mSurfaceType)) {
       return KIND_TEXTURE_VIEW;
     }
-    boolean hardwareBufferSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
     if ("HardwareBufferView".equals(mSurfaceType)) {
+      boolean hardwareBufferSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
       return hardwareBufferSupported ? KIND_HARDWARE_BUFFER_VIEW : KIND_TEXTURE_VIEW;
     }
-    if (mOpaque) {
-      return KIND_SURFACE_VIEW;
-    }
-    return hardwareBufferSupported ? KIND_HARDWARE_BUFFER_VIEW : KIND_TEXTURE_VIEW;
+    return mOpaque ? KIND_SURFACE_VIEW : KIND_TEXTURE_VIEW;
   }
 
   // Apply the complete prop transaction once, after contextId and all rendering

@@ -50,11 +50,11 @@ export type AndroidSurfaceType =
 
 export interface AndroidCanvasProps {
   /**
-   * Backing view. Defaults to `SurfaceView` when the canvas is opaque and,
-   * otherwise, to `HardwareBufferView` on Android 10+ (a plain View that draws
-   * the frames inline with no extra composition pass) with `TextureView` as
-   * the fallback on older devices. These pairings composite correctly in
-   * React Native stacking order without further flags.
+   * Backing view. Defaults to `SurfaceView` when the canvas is opaque and to
+   * `TextureView` otherwise; both composite correctly in React Native
+   * stacking order without further flags. `HardwareBufferView` (Android 10+,
+   * a plain View that draws each frame's AHardwareBuffer inline with no extra
+   * copy) is opt-in and experimental; on older devices it uses `TextureView`.
    */
   surfaceType?: AndroidSurfaceType;
   /**

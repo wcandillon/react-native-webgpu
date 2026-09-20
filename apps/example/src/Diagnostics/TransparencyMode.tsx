@@ -22,10 +22,9 @@ import {
 // blit the last frame across. Half-transparent red is cleared over a blue
 // stage with a yellow RN overlay on top:
 // - opaque: solid red, overlay visible.
-// - non-opaque HardwareBufferView (default on Android 10+): pink, overlay
-//   visible. Requesting it explicitly on an older device falls back to
-//   TextureView.
-// - non-opaque TextureView (default before Android 10): pink, overlay visible.
+// - non-opaque TextureView (default): pink, overlay visible.
+// - non-opaque HardwareBufferView (opt-in, Android 10+): pink, overlay
+//   visible. Requesting it on an older device falls back to TextureView.
 // - non-opaque SurfaceView: blends against the window background (black),
 //   overlay visible only with zOrderOnTop off (the surface sits below it).
 // - non-opaque SurfaceView + zOrderOnTop: pink, overlay hidden underneath.

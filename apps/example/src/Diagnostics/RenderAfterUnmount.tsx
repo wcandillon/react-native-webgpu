@@ -25,10 +25,10 @@ import {
 //   wgpu::Surface on a destroyed window: dead-window errors or a crash.
 //
 // surfaceType is pinned to TextureView: it is the path that crashes rather
-// than silently going black. It has to be explicit because a non-opaque
-// canvas now defaults to HardwareBufferView on Android 10+; its teardown
-// (freeing the AHardwareBuffer pool) is exercised by DeviceDestroyBeforeDetach
-// with opaque switched off.
+// than silently going black. A non-opaque canvas already defaults to it, but
+// pinning keeps this test on the SurfaceTexture teardown path if that default
+// ever changes. HardwareBufferView teardown (freeing the AHardwareBuffer pool)
+// is covered by TransparencyMode's "hardware buffer" option with hide/show.
 export const RenderAfterUnmount = () => {
   const ref = useRef<CanvasRef>(null);
   const { log, append } = useDiagnosticLog();
