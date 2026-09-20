@@ -67,6 +67,10 @@ RNWebGPUManager::RNWebGPUManager(
   // no invoker (best-effort; see README "Threading model").
   async::RuntimeContext::registerMainRuntime(_jsRuntime, _jsCallInvoker);
 
+  // Expose the platform context to API objects created later without a
+  // reference to it (GPUQueue::drawElementImageToTexture).
+  PlatformContext::setCurrent(_platformContext);
+
   auto gpu = std::make_shared<GPU>(*_jsRuntime);
   auto rnWebGPU =
       std::make_shared<RNWebGPU>(gpu, _platformContext, _jsCallInvoker);
@@ -248,6 +252,9 @@ RNWebGPUManager::~RNWebGPUManager() {
   // contextId counter, and stale entries would alias new canvases onto dead
   // surfaces.
   SurfaceRegistry::getInstance().clear();
+  if (PlatformContext::current() == _platformContext) {
+    PlatformContext::setCurrent(nullptr);
+  }
   _jsRuntime = nullptr;
   _jsCallInvoker = nullptr;
 }

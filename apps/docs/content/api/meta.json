@@ -6,6 +6,7 @@
     "gpu-device-provider",
     "warn-if-not-hardware-accelerated",
     "install-webgpu",
-    "gpu-device-extensions"
+    "gpu-device-extensions",
+    "draw-element-image-to-texture"
   ]
 }

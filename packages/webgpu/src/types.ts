@@ -81,6 +81,35 @@ export interface CreateVideoPlayerOptions {
   pixelFormat?: NativeVideoPixelFormat;
 }
 
+// A React Native view to draw with GPUQueue.drawElementImageToTexture: a host
+// component ref (`useRef` object), the host instance itself (`ref.current`),
+// or the numeric tag returned by findNodeHandle. On worklet runtimes (no
+// findNodeHandle) pass the instance or the tag.
+export type GPUDrawElementImageSourceView =
+  number | { current: unknown } | React.Component | object;
+
+// The source argument of drawElementImageToTexture, modeled on the
+// html-in-canvas proposal's GPUDrawElementImageSource. The optional rectangle
+// selects the part of the view to draw, in the view's own coordinate space
+// and in density-independent points (React Native layout units); it defaults
+// to the whole view.
+export interface GPUDrawElementImageSource {
+  source: GPUDrawElementImageSourceView;
+  sourceX?: number;
+  sourceY?: number;
+  sourceWidth?: number;
+  sourceHeight?: number;
+}
+
+// The destination argument of drawElementImageToTexture:
+// GPUCopyExternalImageDestInfo plus the pixel size of the region the view is
+// drawn into. `size` defaults to the source rectangle's natural pixel size
+// (points times the device pixel ratio); pass it explicitly to scale the view
+// to the destination region.
+export interface GPUDrawElementImageDestination extends GPUCopyExternalImageDestInfo {
+  size?: GPUExtent3DStrict;
+}
+
 export interface GPUSharedTextureMemoryDescriptor {
   // Raw native handle (IOSurfaceRef on Apple, AHardwareBuffer* on Android),
   // encoded as a BigInt. The caller is responsible for keeping the underlying

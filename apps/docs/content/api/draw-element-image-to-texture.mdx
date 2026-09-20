@@ -1,0 +1,79 @@
+---
+title: drawElementImageToTexture
+description: Copy the pixels of a native React Native view into a GPUTexture.
+---
+
+`queue.drawElementImageToTexture(source, destination)` rasterizes a native React Native view (the "element") and writes the result into a `GPUTexture`.
+It follows the shape of the [html-in-canvas](https://github.com/WICG/html-in-canvas) proposal for WebGPU, where the element is a DOM node; here it is any mounted React Native view.
+
+```tsx twoslash
+import type { RefObject } from "react";
+import { PixelRatio, View } from "react-native";
+import type { GPUDrawElementImageSource } from "react-native-webgpu";
+declare const device: GPUDevice;
+declare const cardRef: RefObject<View>;
+declare const unused: GPUDrawElementImageSource;
+// ---cut---
+const scale = PixelRatio.get();
+const texture = device.createTexture({
+  size: [Math.round(320 * scale), Math.round(200 * scale)],
+  format: "rgba8unorm",
+  usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+});
+
+// The view is rasterized on the UI thread, so the call is asynchronous.
+await device.queue.drawElementImageToTexture(
+  { source: cardRef },
+  { texture },
+);
+// Work submitted from here on samples the new contents.
+```
+
+The view must stay in the native hierarchy: render it with `collapsable={false}` so React Native does not optimize the host view away.
+
+```tsx
+<View ref={cardRef} collapsable={false} style={{ width: 320, height: 200 }}>
+  {/* any React Native content */}
+</View>
+```
+
+## Source
+
+```ts
+interface GPUDrawElementImageSource {
+  source: View ref | host instance | number;
+  sourceX?: number;
+  sourceY?: number;
+  sourceWidth?: number;
+  sourceHeight?: number;
+}
+```
+
+- `source` is a host component ref (the `useRef` object), the host instance itself (`ref.current`), or the tag returned by `findNodeHandle`. Worklet runtimes have no `findNodeHandle`; pass the instance or the tag there.
+- The optional rectangle selects the part of the view to draw. It is expressed in the view's own coordinate space, in layout points (density-independent), and defaults to the whole view.
+
+## Destination
+
+```ts
+interface GPUDrawElementImageDestination extends GPUCopyExternalImageDestInfo {
+  size?: GPUExtent3D;
+}
+```
+
+- `texture` must be `rgba8unorm`, `bgra8unorm` or one of their `-srgb` variants, with `GPUTextureUsage.COPY_DST`. `mipLevel`, `origin` and `aspect` work as in `writeTexture`.
+- `size` is the pixel size of the region the view is drawn into, and the view is scaled to fit it. It defaults to the natural pixel size of the source rectangle: its size in points times the device pixel ratio.
+- `premultipliedAlpha` defaults to `false`, as in `copyExternalImageToTexture`: the (premultiplied) snapshot is converted to straight alpha unless you ask for premultiplied pixels.
+
+The call rejects when the region does not fit in the texture, when the view is not mounted or has no size, or when the texture format is unsupported.
+
+## What gets captured
+
+The snapshot is what the platform renders for that view hierarchy:
+
+- iOS renders through `drawViewHierarchyInRect`, which includes Metal layers such as a WebGPU `Canvas`.
+- Android API 29 and above renders the views' existing display lists through `HardwareRenderer`, so the result matches the screen pixel for pixel, including elevation shadows and `TextureView` content. Older devices draw the view into a software canvas, which misses content that is only drawn hardware-accelerated.
+- On Android, `SurfaceView` content is composed outside the view hierarchy and comes out blank. A WebGPU `Canvas` uses a `SurfaceView` by default when opaque; give it `android={{ surfaceType: "TextureView" }}` if it must appear in a snapshot.
+
+## Threading
+
+Unlike the web API, the method returns a `Promise`. The view can only be rasterized on the platform UI thread, so the call hops there and back. The texture write is issued on the calling runtime's thread right before the promise resolves, which means command buffers submitted after `await` observe the new pixels. Calls made from a worklet runtime settle on that runtime.
