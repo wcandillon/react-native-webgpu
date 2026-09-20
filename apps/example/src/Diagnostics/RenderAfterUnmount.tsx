@@ -24,8 +24,11 @@ import {
 //   removes the registry entry without detaching, so the context keeps a
 //   wgpu::Surface on a destroyed window: dead-window errors or a crash.
 //
-// opaque is set to false so Android takes the TextureView path, which is
-// the one that crashes rather than silently going black.
+// surfaceType is pinned to TextureView: it is the path that crashes rather
+// than silently going black. It has to be explicit because a non-opaque
+// canvas now defaults to HardwareBufferView on Android 10+; its teardown
+// (freeing the AHardwareBuffer pool) is exercised by DeviceDestroyBeforeDetach
+// with opaque switched off.
 export const RenderAfterUnmount = () => {
   const ref = useRef<CanvasRef>(null);
   const { log, append } = useDiagnosticLog();
@@ -75,7 +78,12 @@ export const RenderAfterUnmount = () => {
         />
       </View>
       {mounted ? (
-        <Canvas ref={ref} style={diagnosticStyles.canvas} opaque={false} />
+        <Canvas
+          ref={ref}
+          style={diagnosticStyles.canvas}
+          opaque={false}
+          android={{ surfaceType: "TextureView" }}
+        />
       ) : (
         <View style={diagnosticStyles.canvas} />
       )}

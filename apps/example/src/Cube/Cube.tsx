@@ -176,7 +176,16 @@ export function Cube() {
 
   return (
     <View style={style.container}>
-      <Canvas ref={ref} style={style.webgpu} opaque={false} />
+      {/* HardwareBufferView is already the default for a non-opaque canvas on
+          Android 10+ (with TextureView below). It is requested explicitly here
+          to showcase it; drop the android prop to get the default, or set
+          surfaceType: "TextureView" as a safety fallback. */}
+      <Canvas
+        ref={ref}
+        style={style.webgpu}
+        opaque={false}
+        android={{ surfaceType: "HardwareBufferView" }}
+      />
     </View>
   );
 }

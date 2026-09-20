@@ -209,7 +209,24 @@ trade-off:
 
 // Translucent SurfaceView above every React Native view, no composition pass
 <Canvas opaque={false} android={{ surfaceType: "SurfaceView", zOrderOnTop: true }} />
+
+// Translucent HardwareBufferView, requested explicitly (falls back to
+// TextureView before Android 10)
+<Canvas opaque={false} android={{ surfaceType: "HardwareBufferView" }} />
+
+// Translucent TextureView on every Android version: the safety fallback if
+// HardwareBufferView misbehaves on a device
+<Canvas opaque={false} android={{ surfaceType: "TextureView" }} />
 ```
+
+`HardwareBufferView` is the newer of the two transparent backends. It draws
+inline through HWUI with no `SurfaceTexture` in between, but it also relies on
+a heuristic to recycle its buffers (HWUI exposes no "finished reading" fence),
+so a device or driver quirk could show up as a stale or torn frame. If you hit
+one, pin `surfaceType: "TextureView"`: it blends identically in React Native
+stacking order, at the cost of an extra texture composition pass and a frame of
+latency. Requesting `HardwareBufferView` explicitly on Android 9 or below is
+safe and silently uses `TextureView`.
 
 A non-opaque `SurfaceView` without `zOrderOnTop` sits below the app window, so
 its alpha blends against the window background (usually black) and the React
