@@ -6,6 +6,7 @@
 #include <jsi/jsi.h>
 
 #include <ReactCommon/CallInvokerHolder.h>
+#include <android/hardware_buffer_jni.h>
 #include <android/native_window_jni.h>
 #include <webgpu/webgpu_cpp.h>
 
@@ -25,7 +26,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
   auto jsCallInvoker{
       facebook::jni::alias_ref<facebook::react::CallInvokerHolder::javaobject>{
           reinterpret_cast<facebook::react::CallInvokerHolder::javaobject>(
-              jsCallInvokerHolder)} -> cthis()->getCallInvoker()};
+              jsCallInvokerHolder)} -> cthis()
+          ->getCallInvoker()};
   auto platformContext =
       std::make_shared<rnwgpu::AndroidPlatformContext>(globalBlobModule);
   manager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsCallInvoker,
@@ -90,4 +92,143 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onViewDestroyed(
     info->detachSurface();
   }
   registry.removeSurfaceInfo(contextId);
+}
+
+// --- WebGPUHardwareBufferView (AHB-pool presentation)
+// ---------------------------------
+
+namespace {
+
+// Weak handle on a WebGPUHardwareBufferView used by the native fence waiter to
+// wake the UI thread when a frame is ready. Holding it weakly means a view that
+// RN has dropped is not kept alive by a SurfaceInfo that outlives it (the
+// registry keeps the SurfaceInfo until onDropViewInstance).
+struct HardwareBufferViewWaker {
+  jweak view = nullptr;
+  jmethodID onFrameReady = nullptr;
+
+  HardwareBufferViewWaker(JNIEnv *env, jobject thiz) {
+    view = env->NewWeakGlobalRef(thiz);
+    jclass cls = env->GetObjectClass(thiz);
+    onFrameReady = env->GetMethodID(cls, "onNativeFrameReady", "()V");
+    env->DeleteLocalRef(cls);
+  }
+
+  ~HardwareBufferViewWaker() {
+    // May run on the waiter or JS thread; ThreadScope attaches if needed.
+    facebook::jni::ThreadScope scope;
+    JNIEnv *env = facebook::jni::Environment::current();
+    if (env != nullptr && view != nullptr) {
+      env->DeleteWeakGlobalRef(view);
+    }
+  }
+
+  // Called on the waiter thread, outside the pool lock.
+  void operator()() const {
+    facebook::jni::ThreadScope scope;
+    JNIEnv *env = facebook::jni::Environment::current();
+    if (env == nullptr || onFrameReady == nullptr) {
+      return;
+    }
+    jobject local = env->NewLocalRef(view);
+    if (local == nullptr) {
+      return; // the view was garbage collected
+    }
+    env->CallVoidMethod(local, onFrameReady);
+    if (env->ExceptionCheck()) {
+      env->ExceptionClear();
+    }
+    env->DeleteLocalRef(local);
+  }
+};
+
+} // namespace
+
+// Turn on pool mode for this context. dpW/dpH is the canvas-client (dp) size;
+// the native pool buffers are sized from the canvas drawing buffer lazily.
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUHardwareBufferView_nEnablePool(JNIEnv *env, jobject thiz,
+                                                     jint contextId, jint dpW,
+                                                     jint dpH) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfoOrCreate(
+      contextId, manager->_gpu, static_cast<int>(dpW), static_cast<int>(dpH));
+  auto waker = std::make_shared<HardwareBufferViewWaker>(env, thiz);
+  info->setPoolFrameReadyCallback([waker]() { (*waker)(); });
+  info->enablePool(static_cast<int>(dpW), static_cast<int>(dpH));
+}
+
+// Keep the canvas-client (dp) size in sync on resize.
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUHardwareBufferView_nSetClientSize(JNIEnv *env,
+                                                        jobject thiz,
+                                                        jint contextId,
+                                                        jint dpW, jint dpH) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo(contextId);
+  if (info != nullptr) {
+    info->setPoolClientSize(static_cast<int>(dpW), static_cast<int>(dpH));
+  }
+}
+
+// The HardwareBuffer backing a (generation, slot), for the view to wrap in a
+// Bitmap. Returns null for a retired generation.
+extern "C" JNIEXPORT jobject JNICALL
+Java_com_webgpu_WebGPUHardwareBufferView_nGetHardwareBuffer(
+    JNIEnv *env, jobject thiz, jint contextId, jint generation, jint slot) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo(contextId);
+  if (info == nullptr) {
+    return nullptr;
+  }
+  void *ahb = info->poolBufferForDisplay(static_cast<uint32_t>(generation),
+                                         static_cast<int>(slot));
+  if (ahb == nullptr) {
+    return nullptr;
+  }
+  // toHardwareBuffer acquires its own ref for the returned jobject; the pool
+  // keeps the underlying buffer alive independently.
+  return AHardwareBuffer_toHardwareBuffer(env,
+                                          static_cast<AHardwareBuffer *>(ahb));
+}
+
+// Latest signaled frame ready to display, encoded (generation << 32 | slot), or
+// -1 when nothing is new. Called on the UI thread after onNativeFrameReady.
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_webgpu_WebGPUHardwareBufferView_nPollReady(JNIEnv *env, jobject thiz,
+                                                    jint contextId) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo(contextId);
+  if (info == nullptr) {
+    return -1;
+  }
+  return info->poolPollReady();
+}
+
+// The view is done displaying (and holding) a slot; return it to the pool.
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUHardwareBufferView_nReleaseSlot(JNIEnv *env, jobject thiz,
+                                                      jint contextId,
+                                                      jint generation,
+                                                      jint slot) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo(contextId);
+  if (info != nullptr) {
+    info->poolReleaseSlot(static_cast<uint32_t>(generation),
+                          static_cast<int>(slot));
+  }
+}
+
+// View detached / hidden: keep the canvas alive by falling back to an offscreen
+// texture (mirrors switchToOffscreenSurface for the surface path).
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUHardwareBufferView_nSwitchToOffscreen(JNIEnv *env,
+                                                            jobject thiz,
+                                                            jint contextId) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo(contextId);
+  if (info != nullptr) {
+    info->setPoolFrameReadyCallback(nullptr);
+    info->switchToOffscreen();
+  }
 }

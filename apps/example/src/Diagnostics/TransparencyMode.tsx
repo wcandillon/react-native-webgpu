@@ -23,11 +23,14 @@ import {
 // stage with a yellow RN overlay on top:
 // - opaque: solid red, overlay visible.
 // - non-opaque TextureView (default): pink, overlay visible.
+// - non-opaque HardwareBufferView (opt-in, Android 10+): pink, overlay
+//   visible. Requesting it on an older device falls back to TextureView.
 // - non-opaque SurfaceView: blends against the window background (black),
 //   overlay visible only with zOrderOnTop off (the surface sits below it).
 // - non-opaque SurfaceView + zOrderOnTop: pink, overlay hidden underneath.
 const OPTIONS: { label: string; android?: AndroidCanvasProps }[] = [
   { label: "auto" },
+  { label: "hardware buffer", android: { surfaceType: "HardwareBufferView" } },
   { label: "texture", android: { surfaceType: "TextureView" } },
   { label: "surface", android: { surfaceType: "SurfaceView" } },
   {
@@ -80,9 +83,10 @@ export const TransparencyMode = () => {
     <View style={diagnosticStyles.container}>
       <View style={diagnosticStyles.controls}>
         <Text style={diagnosticStyles.description}>
-          Half-transparent red over blue. TextureView keeps the yellow RN
-          overlay visible. A SurfaceView on top blends over it. Options update
-          the same mounted Canvas; use hide/show to test a fresh mount.
+          Half-transparent red over blue. HardwareBufferView and TextureView
+          keep the yellow RN overlay visible. A SurfaceView on top blends over
+          it. Options update the same mounted Canvas; use hide/show to test a
+          fresh mount.
         </Text>
         <View style={styles.buttons}>
           {OPTIONS.map((value) => (
