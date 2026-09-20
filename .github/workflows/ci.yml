@@ -227,10 +227,11 @@ jobs:
           ./gradlew clean || true
           rm -rf app/build build .gradle
 
+      # Daemon heap is configured via org.gradle.jvmargs in
+      # apps/example/android/gradle.properties. JAVA_OPTS only affects the
+      # gradlew client JVM, not the daemon where packageDebug runs.
       - name: Build example for Android
         working-directory: apps/example/android
-        env:
-          JAVA_OPTS: "-XX:MaxHeapSize=16g"
         run: ./gradlew assembleDebug --build-cache --warning-mode all --stacktrace
 
       # Housekeeping for the self-hosted runner: the start-of-run kill already
