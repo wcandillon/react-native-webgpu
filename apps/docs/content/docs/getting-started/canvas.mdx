@@ -7,8 +7,7 @@ The [`Canvas`](/api/canvas) component is where you can access a WebGPU context a
 The API is symmetric with its Web counterpart, with a few differences.
 For instance on React Native you must call `context.present()` after every `device.queue.submit()` to present the frame to the screen.
 
-On iOS, Canvas uses a `CAMetalLayer`, and on Android it uses a `SurfaceView`, or a `HardwareBufferView` (`TextureView` before Android 10) if you need transparency.
-Both are backed by a native Metal or Vulkan swapchain.
+On iOS, Canvas uses a `CAMetalLayer`. On Android it picks one of three backing views: a `SurfaceView` for an opaque canvas, and for a transparent one a `HardwareBufferView` on Android 10 (API 29) and above or a `TextureView` below that. The [Canvas API page](/api/canvas#android-rendering-options) compares the three and explains how to pick one explicitly.
 
 | Web concept | React Native WebGPU |
 | ----------- | --------------------- |
