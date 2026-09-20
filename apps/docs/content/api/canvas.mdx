@@ -189,8 +189,6 @@ regular view, so `Canvas` can be backed by one of three native views. The
 | `surfaceType` | `"SurfaceView" \| "TextureView" \| "HardwareBufferView"` | Backing view. Defaults to `SurfaceView` when `opaque`; otherwise to `HardwareBufferView` on Android 10 (API 29) and above, and `TextureView` below |
 | `zOrderOnTop` | `boolean` | `SurfaceView` only: `setZOrderOnTop`, composites above every React Native view in the window. Defaults to `false` |
 
-#### The three backing views
-
 **`SurfaceView`** is the default for an opaque canvas and the fastest path.
 The frame goes straight to the system compositor as its own layer, with no
 extra copy and no involvement of the React Native view hierarchy. The price is
