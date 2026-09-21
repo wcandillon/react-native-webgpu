@@ -32,7 +32,6 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
       facebook::jni::alias_ref<facebook::react::CallInvokerHolder::javaobject>{
           reinterpret_cast<facebook::react::CallInvokerHolder::javaobject>(
               jsCallInvokerHolder)} -> cthis()->getCallInvoker()};
-              jsCallInvokerHolder)} -> cthis()->getCallInvoker()};
   auto platformContext = std::make_shared<rnwgpu::AndroidPlatformContext>(
       globalBlobModule, globalModule);
   manager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsCallInvoker,
