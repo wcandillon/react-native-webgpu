@@ -80,6 +80,30 @@ declare global {
     readonly nativePointer: bigint;
   }
 
+  interface GPUBuffer {
+    /**
+     * Blocks the calling thread until pending GPU work completes, then returns
+     * a copy of this buffer's mapped bytes.
+     *
+     * This React Native extension is intended for results up to 1 MiB that
+     * must be consumed in the current JavaScript turn. Prefer `mapAsync()`
+     * whenever a later turn is acceptable because synchronous readback stalls
+     * the calling thread and reduces CPU/GPU parallelism.
+     *
+     * The buffer must have `GPUBufferUsage.MAP_READ` usage. The returned
+     * `ArrayBuffer` owns its storage and remains valid after this method
+     * unmaps the GPU buffer.
+     *
+     * @throws If the range is invalid, exceeds 1 MiB, mapping fails, the wait
+     * times out, or the Dawn instance does not support timed waits.
+     */
+    readbackSync(
+      offset?: number,
+      size?: number,
+      timeoutMs?: number,
+    ): ArrayBuffer;
+  }
+
   interface GPUDevice {
     importSharedTextureMemory(
       descriptor: GPUSharedTextureMemoryDescriptor,
