@@ -176,7 +176,16 @@ export function Cube() {
 
   return (
     <View style={style.container}>
-      <Canvas ref={ref} style={style.webgpu} opaque={false} />
+      {/* HardwareBufferView is opt-in: on Android 10+ it draws each frame's
+          AHardwareBuffer inline as a plain view; below that it uses
+          TextureView, which is also what a non-opaque canvas gets by default.
+          Drop the android prop to get the default. */}
+      <Canvas
+        ref={ref}
+        style={style.webgpu}
+        opaque={false}
+        android={{ surfaceType: "HardwareBufferView" }}
+      />
     </View>
   );
 }
