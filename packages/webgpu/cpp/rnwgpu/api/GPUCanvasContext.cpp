@@ -27,7 +27,7 @@ void GPUCanvasContext::configure(
 #ifdef __APPLE__
   surfaceConfiguration.alphaMode = configuration->alphaMode;
 #endif
-  surfaceConfiguration.presentMode = wgpu::PresentMode::Fifo;
+  surfaceConfiguration.presentMode = configuration->presentMode;
   _surfaceInfo->configure(surfaceConfiguration, std::move(viewFormats));
 }
 
