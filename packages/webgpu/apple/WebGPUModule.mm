@@ -1,6 +1,7 @@
 #import "WebGPUModule.h"
 #include "ApplePlatformContext.h"
 #import "GPUCanvasContext.h"
+#import "RNWGUIKit.h"
 
 #import <React/RCTBridge+Private.h>
 #import <React/RCTCallInvoker.h>
@@ -30,6 +31,11 @@ static std::shared_ptr<rnwgpu::RNWebGPUManager> webgpuManager;
 // When the module conforms to RCTCallInvokerModule, the TurboModule infra
 // calls setCallInvoker: during module initialization.
 @synthesize callInvoker = _callInvoker;
+
+// Synthesize the view registry so the TurboModule infra injects it too. It
+// resolves React tags to native views in both Bridge and Bridgeless mode
+// (Fabric component views included), which drawElementImageToTexture needs.
+@synthesize viewRegistry_DEPRECATED = _viewRegistry_DEPRECATED;
 
 + (std::shared_ptr<rnwgpu::RNWebGPUManager>)getManager {
   return webgpuManager;
@@ -74,8 +80,21 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
     return [NSNumber numberWithBool:NO];
   }
 
+  // Main-thread only (see ApplePlatformContext::ViewLookup). Weak: the module
+  // is invalidated on reload, after which lookups simply fail.
+  __weak WebGPUModule *weakSelf = self;
+  rnwgpu::ApplePlatformContext::ViewLookup viewLookup =
+      [weakSelf](int tag) -> void * {
+    WebGPUModule *strongSelf = weakSelf;
+    if (strongSelf == nil) {
+      return nullptr;
+    }
+    RNWGPlatformView *view =
+        [strongSelf.viewRegistry_DEPRECATED viewForReactTag:@(tag)];
+    return (__bridge void *)view;
+  };
   std::shared_ptr<rnwgpu::PlatformContext> platformContext =
-      std::make_shared<rnwgpu::ApplePlatformContext>();
+      std::make_shared<rnwgpu::ApplePlatformContext>(std::move(viewLookup));
   webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker,
                                                             platformContext);
   return @true;

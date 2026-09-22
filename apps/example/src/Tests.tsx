@@ -1,5 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { Dimensions, Text, View, Image } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Dimensions,
+  Text,
+  View,
+  Image,
+  PixelRatio,
+  findNodeHandle,
+} from "react-native";
 import { GPUOffscreenCanvas } from "react-native-webgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
@@ -14,12 +21,17 @@ export const CI = process.env.CI === "true";
 
 const { width } = Dimensions.get("window");
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+const PROBE_SIZE = 64;
+const QUADRANT = PROBE_SIZE / 2;
 
 export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   const [texture, setTexture] = useState<GPUTexture | null>(null);
   const [adapter, setAdapter] = useState<GPUAdapter | null>(null);
   const [device, setDevice] = useState<GPUDevice | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
+  // A fixed native view the drawElementImageToTexture spec snapshots: four
+  // 32x32pt solid quadrants (red, lime, blue, white), 64x64pt in total.
+  const probeRef = useRef<View>(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -91,6 +103,11 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                 },
                 ctx,
                 canvas: ctx.canvas,
+                views: {
+                  probe: findNodeHandle(probeRef.current),
+                  probeSize: PROBE_SIZE,
+                  pixelRatio: PixelRatio.get(),
+                },
                 workletDeviceStress,
                 mat4,
                 vec3,
@@ -155,6 +172,33 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
           ? `⚪️ Connecting to ${hostname}. Use yarn e2e to run tests.`
           : "🟢 Waiting for the server to send tests"}
       </Text>
+      <View
+        ref={probeRef}
+        collapsable={false}
+        style={{
+          width: PROBE_SIZE,
+          height: PROBE_SIZE,
+          flexDirection: "row",
+          flexWrap: "wrap",
+        }}
+      >
+        <View
+          style={{ width: QUADRANT, height: QUADRANT, backgroundColor: "red" }}
+        />
+        <View
+          style={{ width: QUADRANT, height: QUADRANT, backgroundColor: "lime" }}
+        />
+        <View
+          style={{ width: QUADRANT, height: QUADRANT, backgroundColor: "blue" }}
+        />
+        <View
+          style={{
+            width: QUADRANT,
+            height: QUADRANT,
+            backgroundColor: "white",
+          }}
+        />
+      </View>
       <Texture
         texture={texture}
         device={device}

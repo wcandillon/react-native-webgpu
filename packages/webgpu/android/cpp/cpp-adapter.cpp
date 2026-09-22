@@ -1,11 +1,15 @@
+#include <cstring>
 #include <memory>
+#include <string>
 #include <unordered_map>
+#include <utility>
 
 #include <fbjni/fbjni.h>
 #include <jni.h>
 #include <jsi/jsi.h>
 
 #include <ReactCommon/CallInvokerHolder.h>
+#include <android/bitmap.h>
 #include <android/hardware_buffer_jni.h>
 #include <android/native_window_jni.h>
 #include <webgpu/webgpu_cpp.h>
@@ -19,19 +23,75 @@
 std::shared_ptr<rnwgpu::RNWebGPUManager> manager;
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
-    JNIEnv *env, jobject /* this */, jlong jsRuntime,
-    jobject jsCallInvokerHolder, jobject blobModule) {
+    JNIEnv *env, jobject thiz, jlong jsRuntime, jobject jsCallInvokerHolder,
+    jobject blobModule) {
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
   jobject globalBlobModule = env->NewGlobalRef(blobModule);
+  jobject globalModule = env->NewGlobalRef(thiz);
   auto jsCallInvoker{
       facebook::jni::alias_ref<facebook::react::CallInvokerHolder::javaobject>{
           reinterpret_cast<facebook::react::CallInvokerHolder::javaobject>(
-              jsCallInvokerHolder)} -> cthis()
-          ->getCallInvoker()};
-  auto platformContext =
-      std::make_shared<rnwgpu::AndroidPlatformContext>(globalBlobModule);
+              jsCallInvokerHolder)} -> cthis()->getCallInvoker()};
+  auto platformContext = std::make_shared<rnwgpu::AndroidPlatformContext>(
+      globalBlobModule, globalModule);
   manager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsCallInvoker,
                                                       platformContext);
+}
+
+// Completion of WebGPUModule.snapshotView (UI thread). Reclaims the callbacks
+// handed to Java and delivers either the bitmap's pixels or the error.
+extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_onViewSnapshot(
+    JNIEnv *env, jobject /* this */, jlong callbackPointer, jobject bitmap,
+    jstring error) {
+  std::unique_ptr<rnwgpu::ViewSnapshotCallbacks> callbacks(
+      reinterpret_cast<rnwgpu::ViewSnapshotCallbacks *>(callbackPointer));
+  if (!callbacks) {
+    return;
+  }
+  if (error != nullptr) {
+    const char *chars = env->GetStringUTFChars(error, nullptr);
+    std::string message(chars ? chars : "drawElementImageToTexture failed");
+    if (chars) {
+      env->ReleaseStringUTFChars(error, chars);
+    }
+    callbacks->onError(std::move(message));
+    return;
+  }
+  if (bitmap == nullptr) {
+    callbacks->onError("drawElementImageToTexture: no bitmap was produced");
+    return;
+  }
+  AndroidBitmapInfo info;
+  if (AndroidBitmap_getInfo(env, bitmap, &info) !=
+          ANDROID_BITMAP_RESULT_SUCCESS ||
+      info.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
+    callbacks->onError(
+        "drawElementImageToTexture: unexpected snapshot bitmap format");
+    return;
+  }
+  void *pixels = nullptr;
+  if (AndroidBitmap_lockPixels(env, bitmap, &pixels) !=
+          ANDROID_BITMAP_RESULT_SUCCESS ||
+      pixels == nullptr) {
+    callbacks->onError(
+        "drawElementImageToTexture: couldn't lock the snapshot bitmap");
+    return;
+  }
+  rnwgpu::ImageData image;
+  image.width = info.width;
+  image.height = info.height;
+  image.format = wgpu::TextureFormat::RGBA8Unorm;
+  // Bitmap.Config.ARGB_8888 stores premultiplied RGBA bytes.
+  image.premultiplied = true;
+  const size_t rowBytes = static_cast<size_t>(info.width) * 4;
+  image.data.resize(rowBytes * info.height);
+  const auto *src = static_cast<const uint8_t *>(pixels);
+  for (uint32_t row = 0; row < info.height; ++row) {
+    std::memcpy(image.data.data() + row * rowBytes, src + row * info.stride,
+                rowBytes);
+  }
+  AndroidBitmap_unlockPixels(env, bitmap);
+  callbacks->onSuccess(std::move(image));
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceChanged(

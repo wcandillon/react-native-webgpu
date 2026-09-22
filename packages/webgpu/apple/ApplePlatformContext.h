@@ -1,14 +1,24 @@
 #pragma once
 
 #include "PlatformContext.h"
+#include <functional>
 #include <string>
 
 namespace rnwgpu {
 
 class ApplePlatformContext : public PlatformContext {
 public:
-  ApplePlatformContext();
+  // Resolves a React tag to its native view (an unretained
+  // UIView* / NSView* bridged to void*, or nullptr). Called on the main thread
+  // only. Provided by WebGPUModule from React Native's view registry.
+  using ViewLookup = std::function<void *(int)>;
+
+  explicit ApplePlatformContext(ViewLookup viewLookup = nullptr);
   ~ApplePlatformContext() = default;
+
+  void snapshotView(const ViewSnapshotRequest &request,
+                    std::function<void(ImageData)> onSuccess,
+                    std::function<void(std::string)> onError) override;
 
   wgpu::Surface makeSurface(wgpu::Instance instance, void *surface, int width,
                             int height) override;
@@ -39,6 +49,9 @@ public:
   std::string writeTestVideoFile() override;
 
   VideoFrameHandle wrapNativeBuffer(void *pointer) override;
+
+private:
+  ViewLookup _viewLookup;
 };
 
 } // namespace rnwgpu

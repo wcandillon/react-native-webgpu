@@ -51,6 +51,7 @@ import { SharedTextureMemory } from "./SharedTextureMemory";
 import { ImportExternalTexture } from "./ImportExternalTexture";
 import { VisionCamera } from "./VisionCamera";
 import { SixteenBitTextures } from "./SixteenBitTextures";
+import { ViewSnapshot } from "./ViewSnapshot";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -152,6 +153,7 @@ function App() {
             name="SixteenBitTextures"
             component={SixteenBitTextures}
           />
+          <Stack.Screen name="ViewSnapshot" component={ViewSnapshot} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

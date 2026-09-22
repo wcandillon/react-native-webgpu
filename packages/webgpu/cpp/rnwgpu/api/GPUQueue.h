@@ -16,6 +16,8 @@
 #include "ArrayBuffer.h"
 #include "GPUBuffer.h"
 #include "GPUCommandBuffer.h"
+#include "GPUDrawElementImageDestination.h"
+#include "GPUDrawElementImageSource.h"
 #include "GPUImageCopyExternalImage.h"
 #include "GPUImageCopyTextureTagged.h"
 
@@ -51,6 +53,18 @@ public:
       std::shared_ptr<GPUImageCopyTextureTagged> destination,
       std::shared_ptr<GPUExtent3D> copySize);
 
+  // Non-spec React Native extension modeled on the html-in-canvas proposal's
+  // GPUQueue.drawElementImageToTexture: rasterizes a native view (the
+  // "element") and writes the pixels into `destination.texture`. Unlike the
+  // web API it returns a Promise, because the view can only be rasterized on
+  // the platform UI thread; the texture write is issued on the calling
+  // runtime's thread right before the promise resolves, so work submitted
+  // after `await` observes the new contents.
+  async::AsyncTaskHandle drawElementImageToTexture(
+      jsi::Runtime &runtime,
+      std::shared_ptr<GPUDrawElementImageSource> source,
+      std::shared_ptr<GPUDrawElementImageDestination> destination);
+
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
     _label = label;
@@ -66,6 +80,8 @@ public:
     installMethod(runtime, prototype, "writeTexture", &GPUQueue::writeTexture);
     installMethod(runtime, prototype, "copyExternalImageToTexture",
                   &GPUQueue::copyExternalImageToTexture);
+    installMethodWithRuntime(runtime, prototype, "drawElementImageToTexture",
+                             &GPUQueue::drawElementImageToTexture);
     installGetterSetter(runtime, prototype, "label", &GPUQueue::getLabel,
                         &GPUQueue::setLabel);
   }
