@@ -25,7 +25,8 @@
 std::shared_ptr<rnwgpu::RNWebGPUManager> manager;
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *) {
-  return margelo::nitro::webgpu::initialize(vm);
+  return facebook::jni::initialize(
+      vm, [] { margelo::nitro::webgpu::registerAllNatives(); });
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
