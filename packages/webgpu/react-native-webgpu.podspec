@@ -2,7 +2,6 @@ require "json"
 require "fileutils"
 
 package = JSON.parse(File.read(File.join(__dir__, "package.json")))
-folly_compiler_flags = '-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1 -Wno-comma -Wno-shorten-64-to-32'
 
 # Resolve a node package directory using Node's own module resolution
 # (mirrors `require.resolve(pkg/package.json)`). A lambda rather than a `def`:
@@ -74,8 +73,11 @@ Pod::Spec.new do |s|
   else
     s.source_files = [
       "apple/**/*.{h,c,cc,cpp,m,mm,swift}",
-      "cpp/**/*.{h,cpp}"
+      "cpp/**/*.{h,hpp,cpp}"
     ]
+    # add_nitrogen_files below sets public_header_files, which would make every
+    # header not listed private. Keep ours public, as they were before.
+    s.public_header_files = ["apple/**/*.h", "cpp/**/*.{h,hpp}"]
 
     s.vendored_frameworks = 'libs/apple/libwebgpu_dawn.xcframework'
 
@@ -86,7 +88,12 @@ Pod::Spec.new do |s|
   end
 
   s.pod_target_xcconfig = {
-    'HEADER_SEARCH_PATHS' => "$(PODS_TARGET_SRCROOT)/cpp \"#{dawn_include}\"",
+    'HEADER_SEARCH_PATHS' => [
+      '$(PODS_TARGET_SRCROOT)/cpp',
+      "\"#{dawn_include}\"",
+      '$(PODS_TARGET_SRCROOT)/nitrogen/generated/shared/c++',
+      '$(PODS_TARGET_SRCROOT)/nitrogen/generated/ios',
+    ].join(' '),
     # Xcode's all-target headermaps let same-named headers leak across pods
     # (e.g. @shopify/react-native-skia keeps a jsi/ helper layer with
     # identical relative header paths). Resolve includes strictly through our
@@ -94,23 +101,12 @@ Pod::Spec.new do |s|
     'USE_HEADERMAP' => 'NO',
   }
 
-  # Use install_modules_dependencies helper to install the dependencies if React Native version >=0.71.0.
-  # See https://github.com/facebook/react-native/blob/febf6b7f33fdb4904669f99d795eba4c0f95d7bf/scripts/cocoapods/new_architecture.rb#L79.
-  if respond_to?(:install_modules_dependencies, true)
-    install_modules_dependencies(s)
-  else
-    s.dependency "React-Core"
-    s.compiler_flags = folly_compiler_flags
-    s.pod_target_xcconfig    = {
-        "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\" \"$(PODS_TARGET_SRCROOT)/cpp\" \"#{dawn_include}\"",
-        "OTHER_CPLUSPLUSFLAGS" => "-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1",
-        "CLANG_CXX_LANGUAGE_STANDARD" => "c++20"
-    }
-    s.dependency "React-RCTFabric"
-    s.dependency "React-Codegen"
-    s.dependency "RCT-Folly"
-    s.dependency "RCTRequired"
-    s.dependency "RCTTypeSafety"
-    s.dependency "ReactCommon/turbomodule/core"
+  # Nitro HybridObjects generated from src/specs. Loaded after our xcconfig,
+  # which it merges into. The Swift package path compiles nothing here.
+  unless ENV['RNWGPU_USE_SPM']
+    load File.join(__dir__, 'nitrogen/generated/ios/ReactNativeWebGPU+autolinking.rb')
+    add_nitrogen_files(s)
   end
+
+  install_modules_dependencies(s)
 end
