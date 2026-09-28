@@ -18,6 +18,7 @@
 #include "GPUCanvasContext.h"
 #include "RNWebGPUManager.h"
 #include "ReactNativeWebGPUOnLoad.hpp"
+#include "WebGPURuntime.h"
 
 #define LOG_TAG "WebGPUModule"
 
@@ -121,9 +122,9 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     return;
   }
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  auto gpu = manager->_gpu;
-  auto surface = manager->_platformContext->makeSurface(
-      gpu, window, static_cast<int>(width), static_cast<int>(height));
+  auto &runtime = rnwgpu::WebGPURuntime::shared();
+  auto gpu = runtime.instance();
+  auto surface = runtime.makeSurface(window);
   // Find-or-create + attach runs atomically under the registry lock so a
   // concurrent destroyContext cannot orphan this surface.
   auto info = registry.attachSurface(
@@ -217,7 +218,8 @@ Java_com_webgpu_WebGPUHardwareBufferView_nEnablePool(JNIEnv *env, jobject thiz,
                                                      jint dpH) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurfaceInfoOrCreate(
-      contextId, manager->_gpu, static_cast<int>(dpW), static_cast<int>(dpH));
+      contextId, rnwgpu::WebGPURuntime::shared().instance(),
+      static_cast<int>(dpW), static_cast<int>(dpH));
   auto waker = std::make_shared<HardwareBufferViewWaker>(env, thiz);
   info->setPoolFrameReadyCallback([waker]() { (*waker)(); });
   info->enablePool(static_cast<int>(dpW), static_cast<int>(dpH));
