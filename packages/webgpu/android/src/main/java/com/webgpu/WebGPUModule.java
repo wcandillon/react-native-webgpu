@@ -22,11 +22,12 @@ import com.facebook.react.modules.blob.BlobModule;
 import com.facebook.react.modules.blob.BlobProvider;
 import com.facebook.react.turbomodule.core.CallInvokerHolderImpl;
 import com.facebook.react.turbomodule.core.interfaces.CallInvokerHolder;
+import com.margelo.nitro.webgpu.ReactNativeWebGPUOnLoad;
 
 @ReactModule(name = WebGPUModule.NAME)
 public class WebGPUModule extends NativeWebGPUModuleSpec {
   static {
-      System.loadLibrary("react-native-webgpu"); // Load the C++ library
+      ReactNativeWebGPUOnLoad.initializeNative();
   }
 
   public WebGPUModule(ReactApplicationContext reactContext) {

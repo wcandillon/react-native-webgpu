@@ -17,10 +17,15 @@
 #include "AndroidPlatformContext.h"
 #include "GPUCanvasContext.h"
 #include "RNWebGPUManager.h"
+#include "ReactNativeWebGPUOnLoad.hpp"
 
 #define LOG_TAG "WebGPUModule"
 
 std::shared_ptr<rnwgpu::RNWebGPUManager> manager;
+
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *) {
+  return margelo::nitro::webgpu::initialize(vm);
+}
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     JNIEnv *env, jobject thiz, jlong jsRuntime, jobject jsCallInvokerHolder,

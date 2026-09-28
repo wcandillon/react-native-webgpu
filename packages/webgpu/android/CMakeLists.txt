@@ -5,7 +5,7 @@ set (CMAKE_VERBOSE_MAKEFILE ON)
 set (CMAKE_CXX_STANDARD 20)
 set (CMAKE_CXX_STANDARD_REQUIRED True)
 
-set (PACKAGE_NAME "react-native-webgpu")
+set (PACKAGE_NAME "ReactNativeWebGPU")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DDEBUG=1)
@@ -59,6 +59,9 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/rnwgpu/async/RuntimeContext.cpp
     ../cpp/rnwgpu/async/AsyncTaskHandle.cpp
 )
+
+# Nitro HybridObjects generated from src/specs (sources, includes, NitroModules link).
+include(${CMAKE_CURRENT_SOURCE_DIR}/../nitrogen/generated/android/ReactNativeWebGPU+autolinking.cmake)
 
 target_include_directories(
         ${PACKAGE_NAME}

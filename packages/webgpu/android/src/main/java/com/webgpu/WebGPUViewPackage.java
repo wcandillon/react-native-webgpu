@@ -8,6 +8,7 @@ import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.module.model.ReactModuleInfo;
 import com.facebook.react.module.model.ReactModuleInfoProvider;
 import com.facebook.react.uimanager.ViewManager;
+import com.margelo.nitro.webgpu.ReactNativeWebGPUOnLoad;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -15,6 +16,11 @@ import java.util.List;
 import java.util.Map;
 
 public class WebGPUViewPackage extends TurboReactPackage {
+  static {
+    // Views call into the native library too, before any module is created.
+    ReactNativeWebGPUOnLoad.initializeNative();
+  }
+
   @Override
   public NativeModule getModule(String name, ReactApplicationContext reactContext) {
     if (name.equals(WebGPUModule.NAME)) {
