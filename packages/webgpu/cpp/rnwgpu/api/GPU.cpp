@@ -8,15 +8,14 @@
 #include <vector>
 
 #include "Convertors.h"
-#include "WebGPURuntime.h"
 #include "JSIConverter.h"
+#include "WebGPURuntime.h"
 #include "rnwgpu/async/RuntimeContext.h"
 
 namespace rnwgpu {
 
 GPU::GPU(jsi::Runtime & /*runtime*/)
-    : NativeObject(CLASS_NAME),
-      _instance(WebGPURuntime::shared().instance()) {}
+    : NativeObject(CLASS_NAME), _instance(WebGPURuntime::shared().instance()) {}
 
 async::AsyncTaskHandle GPU::requestAdapter(
     jsi::Runtime &runtime,
