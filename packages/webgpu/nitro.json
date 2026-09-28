@@ -1,0 +1,14 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": ["webgpu"],
+  "ios": {
+    "iosModuleName": "ReactNativeWebGPU"
+  },
+  "android": {
+    "androidNamespace": ["webgpu"],
+    "androidCxxLibName": "ReactNativeWebGPU"
+  },
+  "autolinking": {},
+  "ignorePaths": ["**/node_modules", "lib"],
+  "gitAttributesGeneratedFlag": true
+}

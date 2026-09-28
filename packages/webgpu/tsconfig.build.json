@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig",
-  "exclude": ["scripts", "plugin"],
+  "exclude": ["scripts", "plugin", "src/specs"],
   "compilerOptions": {
     "noEmit": false,
   }
