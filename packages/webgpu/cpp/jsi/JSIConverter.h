@@ -11,6 +11,9 @@
 #include <unordered_set>
 #include <jsi/jsi.h>
 
+#include <NitroModules/HybridObject.hpp>
+#include <NitroModules/JSIConverter.hpp>
+
 #include "WGPULogger.h"
 
 #include "EnumMapper.h"
@@ -271,7 +274,11 @@ template <typename ElementType> struct JSIConverter<std::vector<ElementType>> {
 // NativeState <> {}
 template <typename T> struct is_shared_ptr_to_native_state : std::false_type {};
 
-template <typename T> struct is_shared_ptr_to_native_state<std::shared_ptr<T>> : std::is_base_of<jsi::NativeState, T> {};
+// Nitro HybridObjects are NativeState too; they go through the shim below.
+template <typename T>
+struct is_shared_ptr_to_native_state<std::shared_ptr<T>>
+    : std::bool_constant<std::is_base_of_v<jsi::NativeState, T> &&
+                         !std::is_base_of_v<margelo::nitro::HybridObject, T>> {};
 
 template <typename T> struct JSIConverter<T, std::enable_if_t<is_shared_ptr_to_native_state<T>::value>> {
   using TPointee = typename T::element_type;
@@ -354,6 +361,20 @@ public:
   }
 };
 
+
+// Temporary shim while objects move to Nitro, deleted with the legacy layer:
+// legacy objects accept and return ported HybridObjects through Nitro's own
+// converter, which keeps the Nitro prototype and object identity.
+template <typename T>
+struct JSIConverter<std::shared_ptr<T>,
+                    std::enable_if_t<std::is_base_of_v<margelo::nitro::HybridObject, T>>> {
+  static std::shared_ptr<T> fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool /*outOfBound*/) {
+    return margelo::nitro::JSIConverter<std::shared_ptr<T>>::fromJSI(runtime, arg);
+  }
+  static jsi::Value toJSI(jsi::Runtime& runtime, const std::shared_ptr<T>& arg) {
+    return margelo::nitro::JSIConverter<std::shared_ptr<T>>::toJSI(runtime, arg);
+  }
+};
 
 template <typename O, typename T>
 struct JSIConverter<std::variant<std::vector<T>, std::shared_ptr<O>>> {
