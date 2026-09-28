@@ -7,6 +7,7 @@
   "exclude": [
     "node_modules",
     "lib",
+    "src/specs",
     "**/Pods/**",
     "babel.config.js",
     "metro.config.js",

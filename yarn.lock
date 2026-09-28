@@ -6359,6 +6359,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ts-morph/common@npm:~0.29.0":
+  version: 0.29.0
+  resolution: "@ts-morph/common@npm:0.29.0"
+  dependencies:
+    minimatch: ^10.0.1
+    path-browserify: ^1.0.1
+    tinyglobby: ^0.2.14
+  checksum: 00bdc26260272482a914dbf44a80d0f411c68cf2553e1616cdfd5997e353ac1026fa255e2e8fecec21458380ca1aff998f49d985d9c726bf92f22058b178a6a5
+  languageName: node
+  linkType: hard
+
 "@tufjs/canonical-json@npm:2.0.0":
   version: 2.0.0
   resolution: "@tufjs/canonical-json@npm:2.0.0"
@@ -7954,7 +7965,7 @@ __metadata:
     react-native-gesture-handler: ^2.28.0
     react-native-macos: ^0.79.0
     react-native-nitro-image: 0.14.0
-    react-native-nitro-modules: 0.35.7
+    react-native-nitro-modules: 0.37.1
     react-native-reanimated: 4.3.1
     react-native-safe-area-context: ^5.4.0
     react-native-skia: 3.0.8
@@ -9253,7 +9264,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chalk@npm:^5.4.1, chalk@npm:^5.6.2":
+"chalk@npm:^5.3.0, chalk@npm:^5.4.1, chalk@npm:^5.6.2":
   version: 5.6.2
   resolution: "chalk@npm:5.6.2"
   checksum: 4ee2d47a626d79ca27cb5299ecdcce840ef5755e287412536522344db0fc51ca0f6d6433202332c29e2288c6a90a2b31f3bd626bc8c14743b6b6ee28abd3b796
@@ -18816,6 +18827,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"nitrogen@npm:0.37.1":
+  version: 0.37.1
+  resolution: "nitrogen@npm:0.37.1"
+  dependencies:
+    chalk: ^5.3.0
+    react-native-nitro-modules: ^0.37.1
+    ts-morph: ^28.0.0
+    yargs: ^18.0.0
+    zod: ^4.4.3
+  bin:
+    nitrogen: lib/index.js
+  checksum: 9fbf573709418f0fd170ed078bf7fb836b435ff9a6f926434b073e0286d036f6f9e306c6bc4216e178a0a4d7164eb48a1adca09967ed650052fce967946e4546
+  languageName: node
+  linkType: hard
+
 "nocache@npm:^3.0.1":
   version: 3.0.4
   resolution: "nocache@npm:3.0.4"
@@ -20684,13 +20710,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-nitro-modules@npm:0.35.7":
-  version: 0.35.7
-  resolution: "react-native-nitro-modules@npm:0.35.7"
+"react-native-nitro-modules@npm:0.37.1":
+  version: 0.37.1
+  resolution: "react-native-nitro-modules@npm:0.37.1"
   peerDependencies:
     react: "*"
     react-native: "*"
-  checksum: 61f10d28b1e207361abef39b522259b1cee829ad4b0e44b07586119e3503e0aa460e2c7a514702a6cec7cc575db9614a5469d204865e23bb296c149dff0e8b95
+  checksum: ef8a3fbf9b66bc6e5ec9db3aa2f4566600777a5d95e3f897e09e50b2fd33860a1bda4bfa54887709a6fc2ce2cc80a26d9cbb6e77f8c33aea9537c788d089638b
   languageName: node
   linkType: hard
 
@@ -20970,6 +20996,7 @@ __metadata:
     eslint-plugin-jest: ^28.8.2
     eslint-plugin-prettier: ^5.2.1
     jest: ^29.7.0
+    nitrogen: 0.37.1
     pixelmatch: 5.3.0
     pngjs: ^7.0.0
     prettier: ^3.0.3
@@ -20977,6 +21004,7 @@ __metadata:
     react: 19.1.0
     react-native: 0.81.4
     react-native-builder-bob: ^0.23.2
+    react-native-nitro-modules: 0.37.1
     react-native-reanimated: ^4.2.1
     react-native-web: ^0.21.2
     react-native-webgpu-dawn: 154.3.0
@@ -20995,6 +21023,7 @@ __metadata:
   peerDependencies:
     react: "*"
     react-native: ">=0.81.0"
+    react-native-nitro-modules: ">=0.37.1"
     react-native-reanimated: ">=4.2.1"
     react-native-worklets: ">=0.7.2"
   peerDependenciesMeta:
@@ -23597,6 +23626,16 @@ __metadata:
     "@ts-morph/common": ~0.28.1
     code-block-writer: ^13.0.3
   checksum: 1ed2e89257d6f48fdce49bf51e1767787579220197efaa31ac25971c656c9a8a5a6bdd123042d16f83674eec119e4462a06f716187aec0b5e4740888ab5b73b7
+  languageName: node
+  linkType: hard
+
+"ts-morph@npm:^28.0.0":
+  version: 28.0.0
+  resolution: "ts-morph@npm:28.0.0"
+  dependencies:
+    "@ts-morph/common": ~0.29.0
+    code-block-writer: ^13.0.3
+  checksum: 0c63f7af39a694a0bc569c4e496dbd5a13e6320926d841aea32979fd53e0847ca90e11660e195bfd7b4e4fd04115659fbe1baf336d195f9185a006d3769d898e
   languageName: node
   linkType: hard
 

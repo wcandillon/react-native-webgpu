@@ -3,6 +3,7 @@ import { findNodeHandle } from "react-native";
 import { registerWebGPUForReanimated } from "../external";
 import { provideGPUForInstall } from "../install";
 import WebGPUModule from "../NativeWebGPUModule";
+import { assertNitroVersion } from "../nitro/assertNitroVersion";
 import type { GPUDrawElementImageSourceView } from "../types";
 
 // Resolve the `source` of drawElementImageToTexture to a React tag on the
@@ -60,6 +61,8 @@ export * from "../video";
 export * from "../formats";
 
 export { default as WebGPUModule } from "../NativeWebGPUModule";
+
+assertNitroVersion();
 
 const _installOk = WebGPUModule.install();
 

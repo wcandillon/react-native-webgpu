@@ -8,7 +8,9 @@
   "resolutions": {
     "@types/react": "^18.2.44",
     "@webgpu/types": "^0.1.42",
-    "@react-three/fiber@^9.4.0": "patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch"
+    "@react-three/fiber@^9.4.0": "patch:@react-three/fiber@npm%3A9.4.0#./.yarn/patches/@react-three-fiber-npm-9.4.0-77fe8ee9bd.patch",
+    "react-native-nitro-modules": "0.37.1",
+    "nitrogen": "0.37.1"
   },
   "packageManager": "yarn@3.6.1",
   "scripts": {

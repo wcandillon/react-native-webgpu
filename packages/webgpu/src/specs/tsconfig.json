@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    // No global @webgpu/types here: a spec must import every type it uses,
+    // otherwise nitrogen would silently see the DOM declaration instead.
+    "types": [],
+    "noEmit": true
+  },
+  "include": ["./**/*.ts"],
+  "exclude": []
+}
