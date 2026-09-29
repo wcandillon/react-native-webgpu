@@ -26,6 +26,8 @@ public:
   std::string toString() override { return "[object " + this->getName() + "]"; }
 
 protected:
+  size_t getExternalMemorySize() noexcept override { return 1024; }
+
   void loadHybridMethods() override {
     Spec::loadHybridMethods();
     this->registerHybrids(this, [](Prototype &prototype) {
