@@ -73,7 +73,8 @@ private:
   }
 
   static bool isSkipped(const std::string &name) {
-    return name == "constructor" || name == "toJSON" || name == "name";
+    return name == "constructor" || name == "toJSON" || name == "name" ||
+           name == "__type";
   }
 };
 
