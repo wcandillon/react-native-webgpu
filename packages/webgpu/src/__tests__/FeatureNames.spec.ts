@@ -67,6 +67,13 @@ describe("GPUFeatureName mapping", () => {
     expect(malformed).toEqual([]);
   });
 
+  it("uses the canonical Dawn name for subgroup matrices", () => {
+    const feature = mappingList().find(
+      ({ enumerator }) => enumerator === "ChromiumExperimentalSubgroupMatrix",
+    );
+    expect(feature?.name).toBe("chromium-experimental-subgroup-matrix");
+  });
+
   it("derives both EnumMapper conversions from the shared list", () => {
     // Guards against someone re-introducing a hand-written table that drifts
     // from GPUFeatures.h, which is how these mappings fell behind before.
