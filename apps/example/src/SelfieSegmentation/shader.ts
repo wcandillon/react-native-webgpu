@@ -3,13 +3,16 @@ import {
   ORIENT_WGSL,
 } from "../VisionCamera/orientation";
 
-// Display shader: the person mask (an r8 texture the main thread uploads
-// after every inference) decides, per pixel, between the live camera and a
-// background treatment computed right here in WGSL. Three modes:
+// Display shader: the person mask decides, per pixel, between the live
+// camera and a background treatment computed right here in WGSL. The mask
+// is the segmentation model's output buffer, copied on the GPU queue with no
+// CPU round trip: an [h, w, 4] float layout with the person probability in
+// the first channel, sampled here with manual bilinear filtering.
+// Three modes:
 //   0  blur       12-tap disc blur of the camera behind the person
 //   1  replace    animated gradient backdrop
 //   2  spotlight  darkened, desaturated background
-export const SHADER = /* wgsl */ `
+export const makeShader = (maskSize: number) => /* wgsl */ `
 struct Uniforms {
   texSize: vec2f,
   canvasSize: vec2f,
@@ -19,11 +22,12 @@ struct Uniforms {
   mirror: u32,
 };
 
+const MASK_SIZE: i32 = ${maskSize};
+
 @group(0) @binding(0) var srcTex: texture_external;
 @group(0) @binding(1) var srcSampler: sampler;
 @group(0) @binding(2) var<uniform> u: Uniforms;
-@group(0) @binding(3) var maskTex: texture_2d<f32>;
-@group(0) @binding(4) var maskSampler: sampler;
+@group(0) @binding(3) var<storage, read> mask: array<f32>;
 
 ${ORIENT_WGSL}
 ${FULLSCREEN_TRIANGLE_WGSL}
@@ -31,6 +35,24 @@ ${FULLSCREEN_TRIANGLE_WGSL}
 fn sampleCamera(uvUp: vec2f) -> vec3f {
   let uvTex = toTexUV(clamp(uvUp, vec2f(0.0), vec2f(1.0)), u.rotation, u.mirror);
   return textureSampleBaseClampToEdge(srcTex, srcSampler, uvTex).rgb;
+}
+
+fn maskTexel(x: i32, y: i32) -> f32 {
+  let cx = clamp(x, 0, MASK_SIZE - 1);
+  let cy = clamp(y, 0, MASK_SIZE - 1);
+  return mask[u32(cy * MASK_SIZE + cx) * 4u];
+}
+
+// Bilinear lookup of the person probability at an upright UV.
+fn personAt(uvUp: vec2f) -> f32 {
+  let p = uvUp * f32(MASK_SIZE) - vec2f(0.5);
+  let i = vec2i(floor(p));
+  let f = fract(p);
+  let a = maskTexel(i.x, i.y);
+  let b = maskTexel(i.x + 1, i.y);
+  let c = maskTexel(i.x, i.y + 1);
+  let d = maskTexel(i.x + 1, i.y + 1);
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 
 // Disc blur in upright space. The x offset is divided by the image aspect
@@ -67,8 +89,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
   let uvUp = vec2f(0.5) + (in.uv - vec2f(0.5)) * scale;
   let inside = all(uvUp >= vec2f(0.0)) && all(uvUp <= vec2f(1.0));
 
-  let person = textureSample(maskTex, maskSampler, uvUp).r;
-  let m = smoothstep(0.3, 0.7, person);
+  let m = smoothstep(0.3, 0.7, personAt(uvUp));
   let color = sampleCamera(uvUp);
 
   var background: vec3f;

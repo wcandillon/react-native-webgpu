@@ -2,8 +2,14 @@ import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CameraPosition } from "react-native-vision-camera";
 import { createSynchronizable } from "react-native-worklets";
+import * as tf from "@tensorflow/tfjs";
 
-import { CAMERA_BLIT_SHADER, ORIENTATION_INDEX } from "./orientation";
+import {
+  CAMERA_BLIT_SHADER,
+  inputPackShader,
+  ORIENTATION_INDEX,
+} from "./orientation";
+import { ensureTfjsWebGPU } from "./tfjs";
 import {
   useWebGPUCamera,
   type WebGPUCameraFrameInfo,
@@ -17,15 +23,20 @@ import {
 // Camera frames arrive on Vision Camera's worklet runtime. There we blit an
 // upright copy of the frame into a small square rgba8 texture (the model
 // input) and then hand control to the demo's own render worklet. tfjs only
-// runs on the main JS runtime, so a loop there copies the input texture into
-// a mappable buffer, reads it back and calls the demo's `inference` with the
-// RGB bytes. Demos publish their results to the render worklet however they
-// like (a worklets Synchronizable for boxes, queue.writeTexture for masks).
+// runs on the main JS runtime, so a loop there packs that texture into a
+// tensor-shaped storage buffer with a compute pass, wraps the buffer as a
+// zero-copy tf.Tensor and calls the demo's `inference` with it. Demos
+// publish their results to the render worklet however they like (a worklets
+// Synchronizable for boxes, a buffer copy for masks).
 //
-// Both runtimes therefore drive the same GPUDevice concurrently. Dawn
-// devices are not thread-safe by default; this feature makes every device
-// call take Dawn's internal lock.
+// tfjs runs on the same GPUDevice as everything else (see tfjs.ts), so no
+// pixels ever cross to the CPU. Both runtimes therefore drive one device
+// concurrently. Dawn devices are not thread-safe by default; this feature
+// makes every device call take Dawn's internal lock.
 const SYNC_FEATURE = "implicit-device-synchronization" as GPUFeatureName;
+const PACK_WORKGROUP = 8;
+
+export type InputDtype = "float32" | "int32";
 
 export interface UprightFrameInfo {
   width: number;
@@ -49,19 +60,21 @@ export interface CameraInferenceFrameInfo<
 }
 
 export interface UseCameraInferenceOptions<TState> {
-  // Side of the square model input texture. Must be a multiple of 64 so
-  // the readback rows satisfy the 256-byte bytesPerRow alignment.
+  // Side of the square model input texture.
   inputSize: number;
+  // Element type of the input tensor handed to `inference`.
+  inputDtype?: InputDtype;
   cameraPosition?: CameraPosition;
   requiredFeatures?: GPUFeatureName[];
-  // Build the demo's pipeline state on the main thread once the device and
-  // canvas are ready (see useWebGPUCamera for what may be returned).
+  // Build the demo's pipeline state on the main thread once the device,
+  // canvas and tfjs backend are ready. Start model loading here.
   setup: (info: WebGPUCameraSetupInfo) => TState | Promise<TState>;
   // Per-frame worklet, called after the model input blit.
   render?: (frame: CameraInferenceFrameInfo<TState>) => void;
-  // Main-thread inference, called with the latest model input as tightly
-  // packed RGB bytes. The next readback starts once the promise resolves.
-  inference: (rgb: Uint8Array, size: number) => Promise<void>;
+  // Main-thread inference, called with the latest model input as a
+  // [size, size, 3] tensor living on the GPU. The tensor is disposed after
+  // the promise resolves and the next frame is packed only then.
+  inference: (input: tf.Tensor3D, size: number) => Promise<void>;
 }
 
 export interface UseCameraInferenceResult {
@@ -81,40 +94,39 @@ interface HookState<TState> {
   inputView: GPUTextureView;
 }
 
-const nextFrame = () =>
-  new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-
-interface ReadbackResources {
+interface InferenceResources {
   device: GPUDevice;
   inputTex: GPUTexture;
-  readBuffer: GPUBuffer;
+  inputBuffer: GPUBuffer;
+  packPipeline: GPUComputePipeline;
+  packBindGroup: GPUBindGroup;
 }
+
+const nextFrame = () =>
+  new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
 export const useCameraInference = <TState,>(
   options: UseCameraInferenceOptions<TState>,
 ): UseCameraInferenceResult => {
   const {
     inputSize,
+    inputDtype = "float32",
     cameraPosition,
     requiredFeatures,
     setup,
     render,
     inference,
   } = options;
-  if ((inputSize * 4) % 256 !== 0) {
-    throw new Error("inputSize must be a multiple of 64");
-  }
-  const bytesPerRow = inputSize * 4;
 
   const frameInfo = useMemo(
     () => createSynchronizable<UprightFrameInfo>({ width: 0, height: 0 }),
     [],
   );
-  const [resources, setResources] = useState<ReadbackResources | null>(null);
+  const [resources, setResources] = useState<InferenceResources | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Inference is read through a ref so demos can close over React state
-  // without restarting the readback loop.
+  // without restarting the inference loop.
   const inferenceRef = useRef(inference);
   useEffect(() => {
     inferenceRef.current = inference;
@@ -129,13 +141,15 @@ export const useCameraInference = <TState,>(
     requiredFeatures: features,
     cameraPosition,
     setup: async (info) => {
-      const { device: gpu } = info;
-      const module = gpu.createShaderModule({ code: CAMERA_BLIT_SHADER });
+      const { device: gpu, adapter } = info;
+      await ensureTfjsWebGPU(gpu, adapter);
+
+      const blitModule = gpu.createShaderModule({ code: CAMERA_BLIT_SHADER });
       const blitPipeline = gpu.createRenderPipeline({
         layout: "auto",
-        vertex: { module, entryPoint: "vs_main" },
+        vertex: { module: blitModule, entryPoint: "vs_main" },
         fragment: {
-          module,
+          module: blitModule,
           entryPoint: "fs_main",
           targets: [{ format: "rgba8unorm" }],
         },
@@ -152,14 +166,42 @@ export const useCameraInference = <TState,>(
       const inputTex = gpu.createTexture({
         size: [inputSize, inputSize],
         format: "rgba8unorm",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+        usage:
+          GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
       });
-      const readBuffer = gpu.createBuffer({
-        size: bytesPerRow * inputSize,
-        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+
+      // Tensor-shaped copy of the input. STORAGE | COPY_SRC is what tfjs
+      // requires to wrap a buffer without copying it.
+      const inputBuffer = gpu.createBuffer({
+        size: inputSize * inputSize * 3 * 4,
+        usage:
+          GPUBufferUsage.STORAGE |
+          GPUBufferUsage.COPY_SRC |
+          GPUBufferUsage.COPY_DST,
       });
+      const packModule = gpu.createShaderModule({
+        code: inputPackShader(inputDtype),
+      });
+      const packPipeline = gpu.createComputePipeline({
+        layout: "auto",
+        compute: { module: packModule, entryPoint: "main" },
+      });
+      const packBindGroup = gpu.createBindGroup({
+        layout: packPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: inputTex.createView() },
+          { binding: 1, resource: { buffer: inputBuffer } },
+        ],
+      });
+
       const inner = await setup(info);
-      setResources({ device: gpu, inputTex, readBuffer });
+      setResources({
+        device: gpu,
+        inputTex,
+        inputBuffer,
+        packPipeline,
+        packBindGroup,
+      });
       return {
         inner,
         blitPipeline,
@@ -192,9 +234,9 @@ export const useCameraInference = <TState,>(
       }
 
       // Model input: upright blit into the square input texture. The main
-      // thread copies this texture out whenever it is ready for a new
-      // inference; the copy is a queue operation so it always lands after a
-      // complete blit.
+      // thread packs this texture into the tensor buffer whenever it is
+      // ready for a new inference; the pack is a queue operation so it
+      // always sees a complete blit.
       gpu.queue.writeBuffer(
         blitUniformBuffer,
         0,
@@ -241,43 +283,53 @@ export const useCameraInference = <TState,>(
     },
   });
 
-  // Main-thread readback loop: copy -> map -> RGB -> demo inference.
+  // Main-thread inference loop: pack -> zero-copy tensor -> demo inference.
   useEffect(() => {
     if (!resources) {
       return;
     }
-    const { device: gpu, inputTex, readBuffer } = resources;
+    const {
+      device: gpu,
+      inputTex,
+      inputBuffer,
+      packPipeline,
+      packBindGroup,
+    } = resources;
+    const groups = Math.ceil(inputSize / PACK_WORKGROUP);
     let disposed = false;
     (async () => {
       try {
-        const rgb = new Uint8Array(inputSize * inputSize * 3);
         while (!disposed) {
           const encoder = gpu.createCommandEncoder();
-          encoder.copyTextureToBuffer(
-            { texture: inputTex },
-            { buffer: readBuffer, bytesPerRow },
-            [inputSize, inputSize],
-          );
+          const pass = encoder.beginComputePass();
+          pass.setPipeline(packPipeline);
+          pass.setBindGroup(0, packBindGroup);
+          pass.dispatchWorkgroups(groups, groups);
+          pass.end();
           gpu.queue.submit([encoder.finish()]);
-          await readBuffer.mapAsync(GPUMapMode.READ);
-          const rgba = new Uint8Array(readBuffer.getMappedRange());
-          for (let i = 0, j = 0; i < rgba.length; i += 4, j += 3) {
-            rgb[j] = rgba[i];
-            rgb[j + 1] = rgba[i + 1];
-            rgb[j + 2] = rgba[i + 2];
+
+          // zeroCopy: the tensor binds our buffer directly and disposing it
+          // leaves the buffer alone. Nothing writes the buffer again until
+          // the demo is done with the tensor.
+          const input = tf.tensor(
+            { buffer: inputBuffer, zeroCopy: true },
+            [inputSize, inputSize, 3],
+            inputDtype,
+          ) as tf.Tensor3D;
+          try {
+            await inferenceRef.current(input, inputSize);
+          } finally {
+            input.dispose();
           }
-          readBuffer.unmap();
           if (disposed) {
             break;
           }
-          await inferenceRef.current(rgb, inputSize);
-          // Yield to a real frame before the next readback. On iOS
-          // react-native-wgpu resolves mapAsync by re-queueing a microtask
-          // until the GPU is done, and every await above resumes from a
-          // microtask too, so without this the JS thread never drains its
-          // microtask queue: requestAnimationFrame, timers and React updates
-          // all starve. Demos that present from the main thread (three.js)
-          // freeze without it.
+          // Yield to a real frame before the next inference. On iOS
+          // react-native-wgpu resolves mapAsync (which tfjs uses to read
+          // results) by re-queueing a microtask until the GPU is done, and
+          // every await above resumes from a microtask too, so without this
+          // the JS thread never drains its microtask queue:
+          // requestAnimationFrame, timers and React updates all starve.
           await nextFrame();
         }
       } catch (e) {
@@ -286,15 +338,15 @@ export const useCameraInference = <TState,>(
           setError(String(e));
         }
       } finally {
-        // Only reached once the loop is out of the buffer, so it is safe to
-        // release it here even if the unmount raced a pending map.
-        readBuffer.destroy();
+        // Only reached once no tensor references the buffer any more.
+        inputBuffer.destroy();
+        inputTex.destroy();
       }
     })();
     return () => {
       disposed = true;
     };
-  }, [resources, inputSize, bytesPerRow]);
+  }, [resources, inputSize, inputDtype]);
 
   const getFrameInfo = useCallback(() => frameInfo.getBlocking(), [frameInfo]);
 

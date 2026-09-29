@@ -3,7 +3,7 @@
 #include <string>
 #include <utility>
 
-#include "Promise.h"
+#include "../../jsi/Promise.h"
 
 #include "AsyncRunner.h"
 

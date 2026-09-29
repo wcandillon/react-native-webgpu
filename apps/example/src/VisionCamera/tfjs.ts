@@ -1,5 +1,5 @@
 import * as tf from "@tensorflow/tfjs";
-import "@tensorflow/tfjs-backend-webgpu";
+import { WebGPUBackend } from "@tensorflow/tfjs-backend-webgpu";
 
 import { PlatformReactNative } from "../Tensorflow/Platform";
 
@@ -7,20 +7,39 @@ import { PlatformReactNative } from "../Tensorflow/Platform";
 // environments. Same Platform impl as the Tensorflow demo.
 tf.setPlatform("react-native", new PlatformReactNative());
 
-let ready: Promise<void> | null = null;
+let current: { device: GPUDevice; ready: Promise<void> } | null = null;
 
-// Selects the tfjs WebGPU backend once for the app lifetime. The backend
-// owns its own GPUDevice, separate from the one the camera demos render
-// with, which is why model inputs travel through a CPU readback.
-export const ensureTfjsWebGPU = (): Promise<void> => {
-  if (!ready) {
-    ready = (async () => {
-      await tf.setBackend("webgpu");
-      await tf.ready();
-    })().catch((e) => {
-      ready = null;
-      throw e;
-    });
+// Runs tfjs's WebGPU backend on the given device instead of one it creates
+// itself, so tensors can wrap our buffers with zero copies and results can
+// stay on the GPU. Importing the backend package registered a "webgpu"
+// factory that would request its own device; it is replaced with one bound
+// to ours. Kernels stay registered (removeBackend only runs dispose hooks),
+// so binding to a different device later works too, as long as tensors from
+// the previous backend are never touched again.
+export const ensureTfjsWebGPU = (
+  device: GPUDevice,
+  adapter: GPUAdapter,
+): Promise<void> => {
+  if (current && current.device === device) {
+    return current.ready;
   }
+  const ready = (async () => {
+    if (tf.findBackendFactory("webgpu")) {
+      tf.removeBackend("webgpu");
+    }
+    tf.registerBackend(
+      "webgpu",
+      () => new WebGPUBackend(device, adapter.info),
+      2,
+    );
+    await tf.setBackend("webgpu");
+    await tf.ready();
+  })();
+  current = { device, ready };
+  ready.catch(() => {
+    if (current?.ready === ready) {
+      current = null;
+    }
+  });
   return ready;
 };

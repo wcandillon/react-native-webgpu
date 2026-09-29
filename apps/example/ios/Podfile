@@ -19,3 +19,13 @@ options = {
 }
 
 use_test_app! options
+
+# react-native-test-app ignores `ios.infoPlist` in app.json (it only applies it
+# through Expo config plugins), so merge it into the generated Info.plist here.
+# NSLocalNetworkUsageDescription/NSBonjourServices are needed for the Local
+# Network prompt on device, otherwise the app can't reach Metro.
+app_json = JSON.parse(File.read(File.join(__dir__, '..', 'app.json')))
+info_plist_path = File.join(__dir__, '..', 'node_modules', '.generated', 'ios', 'Info.plist')
+info_plist = Xcodeproj::Plist.read_from_path(info_plist_path)
+info_plist.merge!(app_json.dig('ios', 'infoPlist') || {})
+Xcodeproj::Plist.write_to_path(info_plist, info_plist_path)

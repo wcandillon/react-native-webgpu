@@ -43,6 +43,7 @@ const OPAQUE_YCBCR_EXT =
 
 export interface WebGPUCameraSetupInfo {
   device: GPUDevice;
+  adapter: GPUAdapter;
   context: RNCanvasContext;
   presentationFormat: GPUTextureFormat;
   canvasWidth: number;
@@ -64,6 +65,68 @@ export interface WebGPUCameraFrameInfo<TPipelineState> {
   isMirrored: boolean;
   pipelineState: TPipelineState;
 }
+
+// One device per feature set for the whole app. Sharing keeps GPU objects,
+// and the tfjs backend bound to the device, valid across screens.
+const sharedDevices = new Map<
+  string,
+  Promise<{ adapter: GPUAdapter; device: GPUDevice }>
+>();
+
+// Limits the tfjs WebGPU backend asks for when it creates its own device.
+// Requested here so tfjs can run on this device instead.
+const TFJS_LIMITS = [
+  "maxComputeWorkgroupStorageSize",
+  "maxComputeWorkgroupsPerDimension",
+  "maxStorageBufferBindingSize",
+  "maxBufferSize",
+  "maxComputeWorkgroupSizeX",
+  "maxComputeInvocationsPerWorkgroup",
+];
+
+const acquireDevice = (requiredFeatures: GPUFeatureName[]) => {
+  const key = [...requiredFeatures].sort().join(",");
+  let pending = sharedDevices.get(key);
+  if (!pending) {
+    pending = (async () => {
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        throw new Error("requestAdapter returned null");
+      }
+      if (
+        Platform.OS === "android" &&
+        !adapter.features.has(OPAQUE_YCBCR_EXT)
+      ) {
+        throw new Error(
+          "This Android device's Vulkan driver doesn't advertise " +
+            "opaque-ycbcr-android-for-external-texture. Camera-frame import " +
+            "as a GPUExternalTexture isn't supported here. (This is a " +
+            "device/driver limitation, not a code issue.)",
+        );
+      }
+      const featuresToRequest: GPUFeatureName[] = [
+        ...BASE_REQUIRED_FEATURES,
+        ...requiredFeatures,
+        ...(Platform.OS === "android" ? [OPAQUE_YCBCR_EXT] : []),
+      ];
+      const adapterLimits = adapter.limits as unknown as Record<string, number>;
+      const requiredLimits: Record<string, number> = {};
+      for (const name of TFJS_LIMITS) {
+        if (typeof adapterLimits[name] === "number") {
+          requiredLimits[name] = adapterLimits[name];
+        }
+      }
+      const device = await adapter.requestDevice({
+        requiredFeatures: featuresToRequest,
+        requiredLimits,
+      });
+      return { adapter, device };
+    })();
+    sharedDevices.set(key, pending);
+    pending.catch(() => sharedDevices.delete(key));
+  }
+  return pending;
+};
 
 export interface UseWebGPUCameraOptions<TPipelineState> {
   requiredFeatures?: GPUFeatureName[];
@@ -113,32 +176,11 @@ export const useWebGPUCamera = <TPipelineState,>(
     let cancelled = false;
     (async () => {
       try {
-        const adapter = await navigator.gpu.requestAdapter();
-        if (!adapter) {
-          throw new Error("requestAdapter returned null");
-        }
-        const hasOpaqueYCbCrExt =
-          Platform.OS !== "android" || adapter.features.has(OPAQUE_YCBCR_EXT);
-        if (Platform.OS === "android" && !hasOpaqueYCbCrExt) {
-          throw new Error(
-            "This Android device's Vulkan driver doesn't advertise " +
-              "opaque-ycbcr-android-for-external-texture. Camera-frame import " +
-              "as a GPUExternalTexture isn't supported here. (This is a " +
-              "device/driver limitation, not a code issue.)",
-          );
-        }
-        const featuresToRequest: GPUFeatureName[] = [
-          ...BASE_REQUIRED_FEATURES,
-          ...(requiredFeatures ?? []),
-          ...(Platform.OS === "android" ? [OPAQUE_YCBCR_EXT] : []),
-        ];
-        const device = await adapter.requestDevice({
-          requiredFeatures: featuresToRequest,
-        });
+        const shared = await acquireDevice(requiredFeatures ?? []);
         if (cancelled) {
           return;
         }
-        setGpu({ adapter, device });
+        setGpu(shared);
       } catch (e) {
         if (cancelled) {
           return;
@@ -223,6 +265,7 @@ export const useWebGPUCamera = <TPipelineState,>(
       try {
         const state = await setupRef.current({
           device,
+          adapter: adapter as GPUAdapter,
           context,
           presentationFormat,
           canvasWidth: canvas.width,

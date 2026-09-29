@@ -1,19 +1,20 @@
 import React, { useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { createSynchronizable } from "react-native-worklets";
-import * as tf from "@tensorflow/tfjs";
 import * as bodySegmentation from "@tensorflow-models/body-segmentation";
 
-import { ensureTfjsWebGPU } from "../VisionCamera/tfjs";
 import { useCameraInference } from "../VisionCamera/useCameraInference";
 
-import { SHADER } from "./shader";
+import { makeShader } from "./shader";
 
 // MediaPipe Selfie Segmentation's "general" model runs at 256x256 and hands
-// back a mask at the input size, so the mask texture matches the model
-// input one to one.
+// back a mask at the input size, so the mask buffer matches the model input
+// one to one. The whole pipeline stays on the GPU: camera frame, model,
+// mask, and the WGSL compositing all share one device.
 const INPUT_SIZE = 256;
 const UNIFORM_SIZE = 32;
+// [h, w, 4] float32, the layout the tfjs segmenter produces.
+const MASK_BYTES = INPUT_SIZE * INPUT_SIZE * 4 * 4;
 
 const MODES = [
   { id: 0, label: "Blur" },
@@ -24,42 +25,41 @@ const MODES = [
 interface PipelineState {
   pipeline: GPURenderPipeline;
   uniformBuffer: GPUBuffer;
-  maskView: GPUTextureView;
-  maskSampler: GPUSampler;
+  maskBuffer: GPUBuffer;
   startTime: number;
 }
 
-const loadSegmenter = async () => {
-  await ensureTfjsWebGPU();
-  return bodySegmentation.createSegmenter(
+type Segmenter = bodySegmentation.BodySegmenter;
+
+const loadSegmenter = () =>
+  bodySegmentation.createSegmenter(
     bodySegmentation.SupportedModels.MediaPipeSelfieSegmentation,
     { runtime: "tfjs", modelType: "general" },
   );
-};
 
 export const SelfieSegmentation = () => {
   const [status, setStatus] = useState("Loading selfie segmentation...");
   const [mode, setMode] = useState(0);
   // The worklet reads the mode every frame; the buttons write it.
   const modeSync = useMemo(() => createSynchronizable(0), []);
-  // Owned by the render device. The main thread uploads a fresh mask into
-  // it after every inference with queue.writeTexture, the worklet samples
-  // it. Queue ordering keeps the two consistent.
-  const maskRef = useRef<{ device: GPUDevice; texture: GPUTexture } | null>(
-    null,
-  );
-
-  const segmenterPromise = useMemo(() => {
-    const p = loadSegmenter();
-    p.then(() => setStatus("Segmenting...")).catch(() => {});
-    return p;
-  }, []);
+  // Model output lands in this buffer through a GPU copy after every
+  // inference; the worklet's shader reads it. Queue ordering keeps the two
+  // consistent.
+  const maskRef = useRef<{ device: GPUDevice; buffer: GPUBuffer } | null>(null);
+  const segmenterRef = useRef<Promise<Segmenter> | null>(null);
 
   const { element, error } = useCameraInference<PipelineState>({
     inputSize: INPUT_SIZE,
     cameraPosition: "front",
     setup: ({ device, presentationFormat }) => {
-      const module = device.createShaderModule({ code: SHADER });
+      // tfjs is bound to this device by now, so the model can load.
+      const segmenter = loadSegmenter();
+      segmenter.then(() => setStatus("Segmenting...")).catch(() => {});
+      segmenterRef.current = segmenter;
+
+      const module = device.createShaderModule({
+        code: makeShader(INPUT_SIZE),
+      });
       const pipeline = device.createRenderPipeline({
         layout: "auto",
         vertex: { module, entryPoint: "vs_main" },
@@ -74,25 +74,12 @@ export const SelfieSegmentation = () => {
         size: UNIFORM_SIZE,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
-      const maskTexture = device.createTexture({
-        size: [INPUT_SIZE, INPUT_SIZE],
-        format: "r8unorm",
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      const maskBuffer = device.createBuffer({
+        size: MASK_BYTES,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
       });
-      const maskSampler = device.createSampler({
-        magFilter: "linear",
-        minFilter: "linear",
-        addressModeU: "clamp-to-edge",
-        addressModeV: "clamp-to-edge",
-      });
-      maskRef.current = { device, texture: maskTexture };
-      return {
-        pipeline,
-        uniformBuffer,
-        maskView: maskTexture.createView(),
-        maskSampler,
-        startTime: Date.now(),
-      };
+      maskRef.current = { device, buffer: maskBuffer };
+      return { pipeline, uniformBuffer, maskBuffer, startTime: Date.now() };
     },
     render: ({
       device,
@@ -108,8 +95,7 @@ export const SelfieSegmentation = () => {
       pipelineState,
     }) => {
       "worklet";
-      const { pipeline, uniformBuffer, maskView, maskSampler, startTime } =
-        pipelineState;
+      const { pipeline, uniformBuffer, maskBuffer, startTime } = pipelineState;
 
       const uniformData = new ArrayBuffer(UNIFORM_SIZE);
       const uniformF32 = new Float32Array(uniformData);
@@ -130,8 +116,7 @@ export const SelfieSegmentation = () => {
           { binding: 0, resource: externalTexture },
           { binding: 1, resource: sampler },
           { binding: 2, resource: { buffer: uniformBuffer } },
-          { binding: 3, resource: maskView },
-          { binding: 4, resource: maskSampler },
+          { binding: 3, resource: { buffer: maskBuffer } },
         ],
       });
       const encoder = device.createCommandEncoder();
@@ -152,47 +137,50 @@ export const SelfieSegmentation = () => {
       device.queue.submit([encoder.finish()]);
       context.present();
     },
-    inference: async (rgb, size) => {
-      const segmenter = await segmenterPromise;
+    inference: async (input, size) => {
+      const segmenter = await segmenterRef.current;
       const mask = maskRef.current;
-      if (!mask) {
+      if (!segmenter || !mask) {
         return;
       }
-      const tensor = tf.tensor3d(rgb, [size, size, 3]);
-      const segmentations = await segmenter
-        .segmentPeople(tensor)
-        .finally(() => tensor.dispose());
+      const segmentations = await segmenter.segmentPeople(input);
       if (segmentations.length === 0) {
         return;
       }
       // The tfjs runtime returns an [h, w, 4] float tensor with the person
-      // probability in the first channel.
+      // probability in the first channel. dataToGPU hands back the tensor's
+      // buffer, which is copied into ours on the queue: no readback.
       const maskTensor = await segmentations[0].mask.toTensor();
-      const [height, width] = maskTensor.shape;
-      const channel = tf.slice(maskTensor, [0, 0, 0], [height, width, 1]);
-      let values: Float32Array | Int32Array | Uint8Array;
       try {
-        values = await channel.data();
+        const [height, width] = maskTensor.shape;
+        if (width !== size || height !== size) {
+          console.warn(
+            `[SelfieSegmentation] unexpected mask size ${width}x${height}`,
+          );
+          return;
+        }
+        const gpuData = maskTensor.dataToGPU();
+        try {
+          // The type is shared with the WebGL variant, hence the optional.
+          const source = gpuData.buffer;
+          if (!source) {
+            throw new Error("mask tensor is not on the GPU");
+          }
+          const encoder = mask.device.createCommandEncoder();
+          encoder.copyBufferToBuffer(
+            source,
+            0,
+            mask.buffer,
+            0,
+            Math.min(source.size, MASK_BYTES),
+          );
+          mask.device.queue.submit([encoder.finish()]);
+        } finally {
+          gpuData.tensorRef.dispose();
+        }
       } finally {
-        channel.dispose();
         maskTensor.dispose();
       }
-      if (width !== size || height !== size) {
-        console.warn(
-          `[SelfieSegmentation] unexpected mask size ${width}x${height}`,
-        );
-        return;
-      }
-      const bytes = new Uint8Array(size * size);
-      for (let i = 0; i < bytes.length; i++) {
-        bytes[i] = Math.round(Math.min(1, Math.max(0, values[i])) * 255);
-      }
-      mask.device.queue.writeTexture(
-        { texture: mask.texture },
-        bytes,
-        { bytesPerRow: size },
-        [size, size],
-      );
     },
   });
 

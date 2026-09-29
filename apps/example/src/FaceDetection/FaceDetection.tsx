@@ -1,10 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { createSynchronizable } from "react-native-worklets";
-import * as tf from "@tensorflow/tfjs";
 import * as faceDetection from "@tensorflow-models/face-detection";
 
-import { ensureTfjsWebGPU } from "../VisionCamera/tfjs";
 import { useCameraInference } from "../VisionCamera/useCameraInference";
 
 import { SHADER } from "./shader";
@@ -30,8 +28,6 @@ interface FaceBoxes {
 }
 
 const loadDetector = async (setStatus: (s: string) => void) => {
-  setStatus("Initialising tfjs WebGPU backend...");
-  await ensureTfjsWebGPU();
   setStatus("Loading face detector model...");
   const detector = await faceDetection.createDetector(
     faceDetection.SupportedModels.MediaPipeFaceDetector,
@@ -52,19 +48,19 @@ export const FaceDetection = () => {
       }),
     [],
   );
-  // Starts loading on mount. Failures surface through the inference loop,
-  // which awaits this promise; the extra catch only silences the unhandled
-  // rejection warning.
-  const detectorPromise = useMemo(() => {
-    const p = loadDetector(setStatus);
-    p.catch(() => {});
-    return p;
-  }, []);
+  // Loading starts in setup, once tfjs is bound to the camera device.
+  // Failures surface through the inference loop, which awaits this
+  // promise; the extra catch only silences the unhandled rejection warning.
+  const detectorRef = useRef<Promise<faceDetection.FaceDetector> | null>(null);
 
   const { element, error } = useCameraInference<PipelineState>({
     inputSize: DETECT_SIZE,
     cameraPosition: "front",
     setup: ({ device, presentationFormat }) => {
+      const detector = loadDetector(setStatus);
+      detector.catch(() => {});
+      detectorRef.current = detector;
+
       const module = device.createShaderModule({ code: SHADER });
       const pipeline = device.createRenderPipeline({
         layout: "auto",
@@ -140,17 +136,14 @@ export const FaceDetection = () => {
       device.queue.submit([encoder.finish()]);
       context.present();
     },
-    inference: async (rgb, size) => {
-      const detector = await detectorPromise;
-      const tensor = tf.tensor3d(rgb, [size, size, 3]);
-      let detected: faceDetection.Face[];
-      try {
-        detected = await detector.estimateFaces(tensor, {
-          flipHorizontal: false,
-        });
-      } finally {
-        tensor.dispose();
+    inference: async (input, size) => {
+      const detector = await detectorRef.current;
+      if (!detector) {
+        return;
       }
+      const detected = await detector.estimateFaces(input, {
+        flipHorizontal: false,
+      });
       const boxes = new Array<number>(MAX_FACES * 4).fill(0);
       const count = Math.min(detected.length, MAX_FACES);
       for (let i = 0; i < count; i++) {

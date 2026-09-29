@@ -107,6 +107,32 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
 }
 `;
 
+// Compute shader: packs the upright model-input texture into a tightly
+// packed [size, size, 3] tensor buffer (RGB, 0..255) so tfjs can wrap the
+// buffer directly with no copy. dtype picks the element type the model
+// expects (float32 for the MediaPipe models, int32 for the uint8 SSD graph).
+export const inputPackShader = (dtype: "float32" | "int32") => {
+  const elem = dtype === "float32" ? "f32" : "i32";
+  const pack = (v: string) => (dtype === "float32" ? v : `i32(round(${v}))`);
+  return /* wgsl */ `
+@group(0) @binding(0) var inputTex: texture_2d<f32>;
+@group(0) @binding(1) var<storage, read_write> out: array<${elem}>;
+
+@compute @workgroup_size(8, 8)
+fn main(@builtin(global_invocation_id) id: vec3u) {
+  let size = textureDimensions(inputTex);
+  if (id.x >= size.x || id.y >= size.y) {
+    return;
+  }
+  let c = textureLoad(inputTex, vec2i(id.xy), 0).rgb * 255.0;
+  let base = (id.y * size.x + id.x) * 3u;
+  out[base] = ${pack("c.r")};
+  out[base + 1u] = ${pack("c.g")};
+  out[base + 2u] = ${pack("c.b")};
+}
+`;
+};
+
 // JS twin of the WGSL coverScale, for laying out native overlays (labels,
 // three.js geometry) in the same space as the shaders.
 export const coverScale = (

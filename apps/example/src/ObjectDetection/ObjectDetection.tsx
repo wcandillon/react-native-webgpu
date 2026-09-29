@@ -1,12 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { createSynchronizable } from "react-native-worklets";
-import * as tf from "@tensorflow/tfjs";
 
-import { ensureTfjsWebGPU } from "../VisionCamera/tfjs";
 import { useCameraInference } from "../VisionCamera/useCameraInference";
 
-import { loadCocoSsd, type DetectedObject } from "./cocoSsd";
+import { loadCocoSsd, type CocoSsd } from "./cocoSsd";
 import { SHADER } from "./shader";
 
 // COCO-SSD (lite MobileNet v2) resizes internally to 300x300, so a 320x320
@@ -33,11 +31,6 @@ interface Detections {
   data: number[];
 }
 
-const loadModel = async () => {
-  await ensureTfjsWebGPU();
-  return loadCocoSsd();
-};
-
 export const ObjectDetection = () => {
   const [status, setStatus] = useState("Loading COCO-SSD...");
   const [dogSeen, setDogSeen] = useState(false);
@@ -50,16 +43,19 @@ export const ObjectDetection = () => {
       }),
     [],
   );
-  const modelPromise = useMemo(() => {
-    const p = loadModel();
-    p.then(() => setStatus("Looking for objects...")).catch(() => {});
-    return p;
-  }, []);
+  // Loading starts in setup, once tfjs is bound to the camera device.
+  const modelRef = useRef<Promise<CocoSsd> | null>(null);
 
   const { element, error } = useCameraInference<PipelineState>({
     inputSize: INPUT_SIZE,
     cameraPosition: "back",
+    // The SSD graph takes a uint8 image tensor, so pack the input as int32.
+    inputDtype: "int32",
     setup: ({ device, presentationFormat }) => {
+      const model = loadCocoSsd();
+      model.then(() => setStatus("Looking for objects...")).catch(() => {});
+      modelRef.current = model;
+
       const module = device.createShaderModule({ code: SHADER });
       const pipeline = device.createRenderPipeline({
         layout: "auto",
@@ -134,16 +130,12 @@ export const ObjectDetection = () => {
       device.queue.submit([encoder.finish()]);
       context.present();
     },
-    inference: async (rgb, size) => {
-      const model = await modelPromise;
-      // The SSD graph takes a uint8 image tensor, so build it as int32.
-      const tensor = tf.tensor3d(rgb, [size, size, 3], "int32");
-      let found: DetectedObject[];
-      try {
-        found = await model.detect(tensor, MAX_BOXES, MIN_SCORE);
-      } finally {
-        tensor.dispose();
+    inference: async (input, size) => {
+      const model = await modelRef.current;
+      if (!model) {
+        return;
       }
+      const found = await model.detect(input, MAX_BOXES, MIN_SCORE);
       const count = Math.min(found.length, MAX_BOXES);
       const data = new Array<number>(MAX_BOXES * 8).fill(0);
       for (let i = 0; i < count; i++) {

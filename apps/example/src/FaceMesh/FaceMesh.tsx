@@ -1,13 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as THREE from "three";
-import * as tf from "@tensorflow/tfjs";
 import * as faceLandmarks from "@tensorflow-models/face-landmarks-detection";
 
 import { fetchAsset } from "../components/useAssets";
 import { makeWebGPURenderer } from "../ThreeJS/components/makeWebGPURenderer";
 import { coverScale, uprightToCanvas } from "../VisionCamera/orientation";
-import { ensureTfjsWebGPU } from "../VisionCamera/tfjs";
 import {
   useCameraInference,
   type UprightFrameInfo,
@@ -88,13 +86,11 @@ interface SceneState {
   lastFrame: UprightFrameInfo;
 }
 
-const loadDetector = async () => {
-  await ensureTfjsWebGPU();
-  return faceLandmarks.createDetector(
+const loadDetector = () =>
+  faceLandmarks.createDetector(
     faceLandmarks.SupportedModels.MediaPipeFaceMesh,
     { runtime: "tfjs", refineLandmarks: false, maxFaces: 1 },
   );
-};
 
 // Decodes a bundled image straight into a GPUTexture on the render device.
 const uploadTexture = async (device: GPUDevice, mod: number) => {
@@ -257,16 +253,18 @@ export const FaceMesh = () => {
   const looksRef = useRef(looks);
   const sceneRef = useRef<SceneState | null>(null);
 
-  const detectorPromise = useMemo(() => {
-    const p = loadDetector();
-    p.then(() => setStatus("Tracking face...")).catch(() => {});
-    return p;
-  }, []);
+  // Loading starts in setup, once tfjs is bound to the camera device.
+  const detectorRef =
+    useRef<Promise<faceLandmarks.FaceLandmarksDetector> | null>(null);
 
   const { element, error, getFrameInfo } = useCameraInference<PipelineState>({
     inputSize: INPUT_SIZE,
     cameraPosition: "front",
     setup: async ({ device, context, canvasWidth, canvasHeight }) => {
+      const detector = loadDetector();
+      detector.then(() => setStatus("Tracking face...")).catch(() => {});
+      detectorRef.current = detector;
+
       // Upright camera copy written by the worklet, sampled by three.js.
       const cameraTexture = device.createTexture({
         size: [CAMERA_TEX_WIDTH, CAMERA_TEX_HEIGHT],
@@ -432,19 +430,15 @@ export const FaceMesh = () => {
       pass.end();
       device.queue.submit([encoder.finish()]);
     },
-    inference: async (rgb, size) => {
-      const detector = await detectorPromise;
+    inference: async (input, size) => {
+      const detector = await detectorRef.current;
       const s = sceneRef.current;
-      if (!s) {
+      if (!detector || !s) {
         return;
       }
-      const tensor = tf.tensor3d(rgb, [size, size, 3]);
-      let faces: faceLandmarks.Face[];
-      try {
-        faces = await detector.estimateFaces(tensor, { flipHorizontal: false });
-      } finally {
-        tensor.dispose();
-      }
+      const faces = await detector.estimateFaces(input, {
+        flipHorizontal: false,
+      });
       if (faces.length === 0) {
         s.tracking = false;
         applyVisibility(s, looksRef.current);
