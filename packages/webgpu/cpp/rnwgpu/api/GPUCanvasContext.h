@@ -66,6 +66,7 @@ private:
   std::shared_ptr<Canvas> _canvas;
   std::shared_ptr<SurfaceInfo> _surfaceInfo;
   std::shared_ptr<GPU> _gpu;
+  std::shared_ptr<GPUTexture> _currentTexture;
 };
 
 } // namespace rnwgpu

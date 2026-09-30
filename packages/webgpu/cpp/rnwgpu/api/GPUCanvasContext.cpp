@@ -29,9 +29,13 @@ void GPUCanvasContext::configure(
 #endif
   surfaceConfiguration.presentMode = wgpu::PresentMode::Fifo;
   _surfaceInfo->configure(surfaceConfiguration, std::move(viewFormats));
+  _currentTexture.reset();
 }
 
-void GPUCanvasContext::unconfigure() { _surfaceInfo->unconfigure(); }
+void GPUCanvasContext::unconfigure() {
+  _surfaceInfo->unconfigure();
+  _currentTexture.reset();
+}
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   if (!_surfaceInfo->isConfigured()) {
@@ -50,6 +54,13 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
                         prevSize.height != static_cast<uint32_t>(height);
   if (sizeHasChanged) {
     _surfaceInfo->reconfigure(width, height);
+    _currentTexture.reset();
+  }
+
+  // Keep both the native texture and its JS wrapper stable until the frame
+  // ends. NativeObject::create already caches JS wrappers by native identity.
+  if (_currentTexture) {
+    return _currentTexture;
   }
 
   auto texture = _surfaceInfo->getCurrentTexture();
@@ -64,7 +75,8 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
 
   // Pass reportsMemoryPressure=false to avoid triggering spurious Hermes GC
   // cycles every frame since the canvas texture doesn't own the buffer.
-  return std::make_shared<GPUTexture>(texture, "", false);
+  _currentTexture = std::make_shared<GPUTexture>(texture, "", false);
+  return _currentTexture;
 }
 
 void GPUCanvasContext::present() {
@@ -73,6 +85,7 @@ void GPUCanvasContext::present() {
   // frames are skipped), clears the frame state, and adopts any surface that
   // attached while the frame was in flight.
   _surfaceInfo->presentFrame();
+  _currentTexture.reset();
 }
 
 } // namespace rnwgpu
