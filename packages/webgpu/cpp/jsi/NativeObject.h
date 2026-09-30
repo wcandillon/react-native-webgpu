@@ -34,44 +34,51 @@ namespace jsi = facebook::jsi;
 template <typename Derived> class NativeObject;
 
 /**
- * Registry for NativeObject prototype installers.
- * This allows BoxedWebGPUObject::unbox() to install prototypes on any runtime
- * by looking up the brand name and calling the appropriate installer.
+ * Registry mapping a NativeObject class brand (CLASS_NAME) to a reconstructor
+ * that rebuilds a fully functional JS object (prototype + native state) on
+ * any runtime. This is what lets BoxedWebGPUObject::unbox() bring objects to
+ * worklet runtimes.
  */
 class NativeObjectRegistry {
 public:
-  using InstallerFunc = std::function<void(jsi::Runtime &)>;
+  using Reconstructor = std::function<jsi::Value(
+      jsi::Runtime &, std::shared_ptr<jsi::NativeState>)>;
 
   static NativeObjectRegistry &getInstance() {
     static NativeObjectRegistry instance;
     return instance;
   }
 
-  void registerInstaller(const std::string &brand, InstallerFunc installer) {
+  void registerClass(const std::string &brand, Reconstructor reconstructor) {
     std::lock_guard<std::mutex> lock(_mutex);
-    if (_installers.count(brand) != 0) {
+    if (_reconstructors.count(brand) != 0) {
       // The brand is the key unbox() uses to rebuild objects on worklet
       // runtimes - a duplicate would let one class hijack another's unboxing.
       throw std::runtime_error("Duplicate native object brand registered: " +
                                brand);
     }
-    _installers[brand] = std::move(installer);
+    _reconstructors[brand] = std::move(reconstructor);
   }
 
-  bool installPrototype(jsi::Runtime &runtime, const std::string &brand) {
-    std::lock_guard<std::mutex> lock(_mutex);
-    auto it = _installers.find(brand);
-    if (it != _installers.end()) {
-      it->second(runtime);
-      return true;
+  jsi::Value reconstruct(jsi::Runtime &runtime, const std::string &brand,
+                         std::shared_ptr<jsi::NativeState> state) {
+    Reconstructor reconstructor;
+    {
+      std::lock_guard<std::mutex> lock(_mutex);
+      auto it = _reconstructors.find(brand);
+      if (it == _reconstructors.end()) {
+        throw jsi::JSError(runtime,
+                           "No native class registered for brand: " + brand);
+      }
+      reconstructor = it->second;
     }
-    return false;
+    return reconstructor(runtime, std::move(state));
   }
 
 private:
   NativeObjectRegistry() = default;
   std::mutex _mutex;
-  std::unordered_map<std::string, InstallerFunc> _installers;
+  std::unordered_map<std::string, Reconstructor> _reconstructors;
 };
 
 /**
@@ -88,7 +95,8 @@ private:
  * Usage pattern with registerCustomSerializable:
  * - pack(): Call WebGPU.box(obj) to create a BoxedWebGPUObject (HostObject)
  * - The HostObject is serialized by Worklets and transferred to UI runtime
- * - unpack(): Call boxed.unbox() to get back the original object with prototype
+ * - unpack(): Call boxed.unbox() to get the object's wrapper on that runtime
+ *   (cached per runtime, see NativeObject::create), prototype included
  *
  * This is similar to NitroModules.box()/unbox() pattern.
  */
@@ -101,37 +109,15 @@ public:
   jsi::Value get(jsi::Runtime &runtime, const jsi::PropNameID &name) override {
     auto propName = name.utf8(runtime);
     if (propName == "unbox") {
+      auto state = _nativeState;
+      auto brand = _brand;
       return jsi::Function::createFromHostFunction(
           runtime, jsi::PropNameID::forUtf8(runtime, "unbox"), 0,
-          [this](jsi::Runtime &rt, const jsi::Value & /*thisVal*/,
-                 const jsi::Value * /*args*/,
-                 size_t /*count*/) -> jsi::Value {
-            // Try to get the prototype from the global constructor
-            auto ctor = rt.global().getProperty(rt, _brand.c_str());
-            if (!ctor.isObject()) {
-              // Constructor doesn't exist on this runtime - install it
-              NativeObjectRegistry::getInstance().installPrototype(rt, _brand);
-              ctor = rt.global().getProperty(rt, _brand.c_str());
-            }
-
-            // Create a new object and attach the native state
-            jsi::Object obj(rt);
-            obj.setNativeState(rt, _nativeState);
-
-            // Set the prototype if constructor exists
-            if (ctor.isObject()) {
-              auto ctorObj = ctor.getObject(rt);
-              auto proto = ctorObj.getProperty(rt, "prototype");
-              if (proto.isObject()) {
-                auto objectCtor =
-                    rt.global().getPropertyAsObject(rt, "Object");
-                auto setPrototypeOf =
-                    objectCtor.getPropertyAsFunction(rt, "setPrototypeOf");
-                setPrototypeOf.call(rt, obj, proto);
-              }
-            }
-
-            return std::move(obj);
+          [state, brand](jsi::Runtime &rt, const jsi::Value & /*thisVal*/,
+                         const jsi::Value * /*args*/,
+                         size_t /*count*/) -> jsi::Value {
+            return NativeObjectRegistry::getInstance().reconstruct(rt, brand,
+                                                                   state);
           });
     }
     if (propName == "__boxedWebGPU") {
@@ -305,15 +291,38 @@ public:
    * created internally by the native code).
    *
    * Also registers this class with NativeObjectRegistry so that
-   * BoxedWebGPUObject::unbox() can install prototypes on secondary runtimes.
+   * BoxedWebGPUObject::unbox() can rebuild its objects on secondary runtimes.
    */
   static void installConstructor(jsi::Runtime &runtime) {
-    // Register this class's installer in the registry (only needs to happen once)
+    // Register the reconstructor used by BoxedWebGPUObject::unbox() to
+    // rebuild this object (prototype + native state) on another runtime.
     static std::once_flag registryFlag;
     std::call_once(registryFlag, []() {
-      NativeObjectRegistry::getInstance().registerInstaller(
+      NativeObjectRegistry::getInstance().registerClass(
           Derived::CLASS_NAME,
-          [](jsi::Runtime &rt) { Derived::installConstructor(rt); });
+          [](jsi::Runtime &rt,
+             std::shared_ptr<jsi::NativeState> state) -> jsi::Value {
+            auto instance = std::dynamic_pointer_cast<Derived>(state);
+            if (instance == nullptr) {
+              throw jsi::JSError(rt, "Invalid boxed native object state");
+            }
+            // The constructor makes `instanceof` work on this runtime too.
+            if (!rt.global().hasProperty(rt, Derived::CLASS_NAME)) {
+              Derived::installConstructor(rt);
+            }
+            // Unboxing hands back the wrapper cached for the target runtime,
+            // creating it on first use. Keep the runtime the object was
+            // originally created on: async native code (GPUDevice error/lost
+            // events, GPUAdapter::requestDevice) delivers into the creation
+            // runtime, and rebinding it to a worklet runtime would invoke
+            // main-runtime jsi::Functions on the wrong runtime and thread.
+            auto *originalRuntime = instance->getCreationRuntime();
+            auto value = Derived::create(rt, instance);
+            if (originalRuntime != nullptr) {
+              instance->setCreationRuntime(originalRuntime);
+            }
+            return value;
+          });
     });
 
     installPrototype(runtime);
@@ -345,10 +354,36 @@ public:
   }
 
   /**
-   * Create a JS object with native state attached.
+   * Returns the JS wrapper of `instance` on `runtime`, creating it on first
+   * use.
+   *
+   * A native object has at most one live wrapper per runtime. The wrapper is
+   * cached (weakly, so it stays collectable) in the runtime's JSICache, and
+   * converting the same object again (returning it from another native
+   * call, unboxing it in a worklet on every frame, ...) hands back that
+   * wrapper instead of a new one. Each wrapper reports the native memory the
+   * object owns to the GC of its runtime through setExternalMemoryPressure,
+   * so the memory is charged exactly once per runtime that can reach the
+   * object, however often it is converted; charging every conversion would
+   * multiply the amount by the number of captures in a worklet until Hermes
+   * hit its max heap size. The hint is refreshed on every round trip for
+   * objects whose size changes after creation.
    */
   static jsi::Value create(jsi::Runtime &runtime,
                            std::shared_ptr<Derived> instance) {
+    auto &cache = JSICache::get(runtime);
+    const void *key = instance.get();
+
+    auto existing = cache.lockWrapper(runtime, key);
+    if (existing.isObject()) {
+      auto pressure = instance->getMemoryPressure();
+      if (pressure > 0) {
+        existing.getObject(runtime).setExternalMemoryPressure(runtime,
+                                                              pressure);
+      }
+      return existing;
+    }
+
     installPrototype(runtime);
 
     // Store creation runtime for logging etc.
@@ -374,6 +409,7 @@ public:
       obj.setExternalMemoryPressure(runtime, pressure);
     }
 
+    cache.setWrapper(runtime, key, obj);
     return std::move(obj);
   }
 

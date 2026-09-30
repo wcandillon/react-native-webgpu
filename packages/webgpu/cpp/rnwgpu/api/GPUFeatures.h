@@ -98,7 +98,7 @@ namespace rnwgpu {
   V(DawnTexelCopyBufferRowAlignment, "dawn-texel-copy-buffer-row-alignment")   \
   V(FlexibleTextureViews, "flexible-texture-views")                            \
   V(ChromiumExperimentalSubgroupMatrix,                                        \
-    "chromium-experimental-subgroups-matrix")                                  \
+    "chromium-experimental-subgroup-matrix")                                  \
   V(SharedFenceEGLSync, "shared-fence-egl-sync")                               \
   V(DawnDeviceAllocatorControl, "dawn-device-allocator-control")               \
   V(AdapterPropertiesWGPU, "adapter-properties-wgpu")                          \
