@@ -29,13 +29,13 @@ describe("Native canvas context", () => {
         return;
       }
       const result = await client.eval(
-        ({ device, gpu, operation }) => {
+        ({ device, gpu, operation: transition }) => {
           const ctx = RNWebGPU.MakeWebGPUCanvasContext(-1, 16, 16);
           const config = { device, format: gpu.getPreferredCanvasFormat() };
           ctx.configure(config);
           try {
             const previous = ctx.getCurrentTexture();
-            switch (operation) {
+            switch (transition) {
               case "present":
                 ctx.present();
                 break;
