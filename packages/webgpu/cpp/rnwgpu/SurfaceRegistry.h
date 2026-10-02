@@ -446,8 +446,10 @@ public:
 
   // Returns the texture for the current frame: the surface's swapchain texture
   // when a surface is attached and healthy, an offscreen texture otherwise.
-  // Never returns null; throws when called before configure().
-  wgpu::Texture getCurrentTexture() {
+  // Never returns null; throws when called before configure(). When frameEpoch
+  // is given, it receives the epoch identifying this frame (see
+  // isCurrentFrame).
+  wgpu::Texture getCurrentTexture(uint64_t *frameEpoch = nullptr) {
     // Start-of-frame boundary; a new acquire supersedes any previous frame
     // that never presented.
     applyPendingAttach(/* supersedeInFlightFrame = */ true);
@@ -471,6 +473,9 @@ public:
         _frameInFlight = true;
         _acquiredFromSurface = false;
         _frameEpoch++;
+        if (frameEpoch) {
+          *frameEpoch = _frameEpoch;
+        }
         return texture;
       }
       // No slot available (pool not allocated yet, unsupported device, view
@@ -488,6 +493,9 @@ public:
     _frameInFlight = true;
     _acquiredFromSurface = false;
     _frameEpoch++;
+    if (frameEpoch) {
+      *frameEpoch = _frameEpoch;
+    }
     if (_surface) {
       auto texture = acquireSurfaceTextureLocked();
       if (texture) {
@@ -502,6 +510,17 @@ public:
       _texture = createOffscreenTextureLocked();
     }
     return _texture;
+  }
+
+  // True while the frame started by the getCurrentTexture() call that
+  // returned frameEpoch is still the current one: nothing presented,
+  // configured, resized, unconfigured, detached, or adopted a surface since.
+  // A pending attach also ends it, so a frame that never presents cannot block
+  // adoption: the next getCurrentTexture() supersedes it, as an uncached call
+  // would.
+  bool isCurrentFrame(uint64_t frameEpoch) {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    return _frameInFlight && !_hasPendingAttach && _frameEpoch == frameEpoch;
   }
 
   // Present the current frame. Runs synchronously on the thread that did

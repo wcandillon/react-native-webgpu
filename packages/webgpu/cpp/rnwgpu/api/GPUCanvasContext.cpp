@@ -3,6 +3,7 @@
 #include "RNWebGPUManager.h"
 #include <algorithm>
 #include <memory>
+#include <mutex>
 #include <utility>
 #include <vector>
 
@@ -52,7 +53,17 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
     _surfaceInfo->reconfigure(width, height);
   }
 
-  auto texture = _surfaceInfo->getCurrentTexture();
+  // Keep both the native texture and its JS wrapper stable until the frame
+  // ends. NativeObject::create already caches JS wrappers by native identity.
+  // The frame ends on any SurfaceInfo transition (present, configure, resize,
+  // unconfigure, surface detach or adoption), tracked by its frame epoch.
+  std::lock_guard<std::mutex> lock(_currentTextureMutex);
+  if (_currentTexture && _surfaceInfo->isCurrentFrame(_currentTextureEpoch)) {
+    return _currentTexture;
+  }
+  _currentTexture.reset();
+
+  auto texture = _surfaceInfo->getCurrentTexture(&_currentTextureEpoch);
   if (texture == nullptr) {
     throw std::runtime_error(
         "[WebGPU] getCurrentTexture() failed to acquire a texture");
@@ -64,7 +75,8 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
 
   // Pass reportsMemoryPressure=false to avoid triggering spurious Hermes GC
   // cycles every frame since the canvas texture doesn't own the buffer.
-  return std::make_shared<GPUTexture>(texture, "", false);
+  _currentTexture = std::make_shared<GPUTexture>(texture, "", false);
+  return _currentTexture;
 }
 
 void GPUCanvasContext::present() {
