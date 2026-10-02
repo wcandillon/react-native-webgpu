@@ -3,6 +3,7 @@
 #include "RNWebGPUManager.h"
 #include <algorithm>
 #include <memory>
+#include <mutex>
 #include <utility>
 #include <vector>
 
@@ -29,13 +30,9 @@ void GPUCanvasContext::configure(
 #endif
   surfaceConfiguration.presentMode = wgpu::PresentMode::Fifo;
   _surfaceInfo->configure(surfaceConfiguration, std::move(viewFormats));
-  _currentTexture.reset();
 }
 
-void GPUCanvasContext::unconfigure() {
-  _surfaceInfo->unconfigure();
-  _currentTexture.reset();
-}
+void GPUCanvasContext::unconfigure() { _surfaceInfo->unconfigure(); }
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   if (!_surfaceInfo->isConfigured()) {
@@ -54,16 +51,19 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
                         prevSize.height != static_cast<uint32_t>(height);
   if (sizeHasChanged) {
     _surfaceInfo->reconfigure(width, height);
-    _currentTexture.reset();
   }
 
   // Keep both the native texture and its JS wrapper stable until the frame
   // ends. NativeObject::create already caches JS wrappers by native identity.
-  if (_currentTexture) {
+  // The frame ends on any SurfaceInfo transition (present, configure, resize,
+  // unconfigure, surface detach or adoption), tracked by its frame epoch.
+  std::lock_guard<std::mutex> lock(_currentTextureMutex);
+  if (_currentTexture && _surfaceInfo->isCurrentFrame(_currentTextureEpoch)) {
     return _currentTexture;
   }
+  _currentTexture.reset();
 
-  auto texture = _surfaceInfo->getCurrentTexture();
+  auto texture = _surfaceInfo->getCurrentTexture(&_currentTextureEpoch);
   if (texture == nullptr) {
     throw std::runtime_error(
         "[WebGPU] getCurrentTexture() failed to acquire a texture");
@@ -85,7 +85,6 @@ void GPUCanvasContext::present() {
   // frames are skipped), clears the frame state, and adopts any surface that
   // attached while the frame was in flight.
   _surfaceInfo->presentFrame();
-  _currentTexture.reset();
 }
 
 } // namespace rnwgpu

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <utility>
 
@@ -66,7 +68,12 @@ private:
   std::shared_ptr<Canvas> _canvas;
   std::shared_ptr<SurfaceInfo> _surfaceInfo;
   std::shared_ptr<GPU> _gpu;
+  // The current frame's texture, valid while
+  // _surfaceInfo->isCurrentFrame(_currentTextureEpoch). Guarded by
+  // _currentTextureMutex: contexts can be driven from worklet runtimes.
+  std::mutex _currentTextureMutex;
   std::shared_ptr<GPUTexture> _currentTexture;
+  uint64_t _currentTextureEpoch = 0;
 };
 
 } // namespace rnwgpu
