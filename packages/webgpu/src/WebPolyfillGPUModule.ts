@@ -45,7 +45,12 @@ function makeWebGPUCanvasContext(
     canvas.setAttribute("height", pixelHeight);
   }
 
-  const context = canvas.getContext("webgpu")!;
+  const context = canvas.getContext("webgpu");
+  // null when the browser has no WebGPU support (e.g. Safari with the WebGPU
+  // flag off).
+  if (!context) {
+    return null;
+  }
   // On web there is no manual present; expose a no-op so RNCanvasContext's
   // present() (called after queue.submit() on native) is callable here too.
   return Object.assign(context, { present: () => {} });
@@ -54,7 +59,10 @@ function makeWebGPUCanvasContext(
 // @ts-expect-error - polyfill for RNWebGPU native module
 window.RNWebGPU = {
   getNativeSurface,
-  MakeWebGPUCanvasContext: makeWebGPUCanvasContext,
+  // Unlike native, this can return null; Canvas.getContext() is typed
+  // `RNCanvasContext | null` and passes it through.
+  MakeWebGPUCanvasContext:
+    makeWebGPUCanvasContext as typeof RNWebGPU.MakeWebGPUCanvasContext,
   // On web the browser owns the canvas/context lifecycle; nothing to retire.
   destroyContext: (_contextId: number) => {},
   fabric,
