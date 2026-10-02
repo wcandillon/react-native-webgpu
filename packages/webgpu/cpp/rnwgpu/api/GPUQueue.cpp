@@ -1,10 +1,16 @@
 #include "GPUQueue.h"
 
+#include <algorithm>
+#include <cmath>
 #include <limits>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "Convertors.h"
+#include "ImageBitmap.h"
+#include "PlatformContext.h"
 
 namespace rnwgpu {
 
@@ -191,6 +197,187 @@ void GPUQueue::copyExternalImageToTexture(
     _instance.WriteTexture(&dst, source->source->getData(),
                            source->source->getSize(), &layout, &sz);
   }
+}
+
+async::AsyncTaskHandle GPUQueue::drawElementImageToTexture(
+    jsi::Runtime &runtime, std::shared_ptr<GPUDrawElementImageSource> source,
+    std::shared_ptr<GPUDrawElementImageDestination> destination) {
+  auto platform = PlatformContext::current();
+  if (!platform) {
+    throw std::runtime_error(
+        "drawElementImageToTexture: react-native-webgpu is not installed");
+  }
+  if (!destination || !destination->info || !destination->info->texture) {
+    throw std::runtime_error(
+        "drawElementImageToTexture: `destination.texture` is required");
+  }
+  const auto &info = destination->info;
+
+  // Destination texture: only the 8-bit RGBA/BGRA formats the platform
+  // rasterizers produce natively are accepted (with a byte swizzle between
+  // the two); anything else would need a GPU blit.
+  wgpu::TexelCopyTextureInfo dst{};
+  Convertor conv;
+  if (!conv(dst.aspect, info->aspect) || !conv(dst.mipLevel, info->mipLevel) ||
+      !conv(dst.origin, info->origin) || !conv(dst.texture, info->texture)) {
+    throw std::runtime_error(
+        "drawElementImageToTexture: invalid destination");
+  }
+  const wgpu::Texture texture = info->texture->get();
+  bool destinationIsBgra = false;
+  switch (texture.GetFormat()) {
+  case wgpu::TextureFormat::RGBA8Unorm:
+  case wgpu::TextureFormat::RGBA8UnormSrgb:
+    destinationIsBgra = false;
+    break;
+  case wgpu::TextureFormat::BGRA8Unorm:
+  case wgpu::TextureFormat::BGRA8UnormSrgb:
+    destinationIsBgra = true;
+    break;
+  default:
+    throw std::runtime_error(
+        "drawElementImageToTexture: the destination texture must be "
+        "rgba8unorm, rgba8unorm-srgb, bgra8unorm or bgra8unorm-srgb");
+  }
+  if (!(texture.GetUsage() & wgpu::TextureUsage::CopyDst)) {
+    throw std::runtime_error(
+        "drawElementImageToTexture: the destination texture must have "
+        "GPUTextureUsage.COPY_DST");
+  }
+  if (texture.GetDimension() != wgpu::TextureDimension::e2D ||
+      texture.GetSampleCount() != 1) {
+    throw std::runtime_error(
+        "drawElementImageToTexture: the destination must be a single-sampled "
+        "2D texture");
+  }
+  if (dst.mipLevel >= texture.GetMipLevelCount()) {
+    throw std::runtime_error(
+        "drawElementImageToTexture: destination.mipLevel is out of range");
+  }
+  const uint32_t mipWidth =
+      std::max<uint32_t>(1, texture.GetWidth() >> dst.mipLevel);
+  const uint32_t mipHeight =
+      std::max<uint32_t>(1, texture.GetHeight() >> dst.mipLevel);
+  if (dst.origin.z >= texture.GetDepthOrArrayLayers()) {
+    throw std::runtime_error(
+        "drawElementImageToTexture: destination.origin.z is out of range");
+  }
+
+  // Source rectangle (points, view space). Omitted width/height mean "the
+  // whole view", which only the platform knows.
+  ViewSnapshotRequest request{};
+  request.viewTag = source->viewTag;
+  request.sourceX = source->sourceX.value_or(0.0);
+  request.sourceY = source->sourceY.value_or(0.0);
+  request.sourceWidth = source->sourceWidth.value_or(0.0);
+  request.sourceHeight = source->sourceHeight.value_or(0.0);
+  if (!std::isfinite(request.sourceX) || !std::isfinite(request.sourceY) ||
+      !std::isfinite(request.sourceWidth) ||
+      !std::isfinite(request.sourceHeight) ||
+      (source->sourceWidth.has_value() && request.sourceWidth <= 0) ||
+      (source->sourceHeight.has_value() && request.sourceHeight <= 0)) {
+    throw std::runtime_error(
+        "drawElementImageToTexture: the source rectangle must be finite with "
+        "a positive width and height");
+  }
+
+  // Destination size (pixels). Omitted means the source rectangle's natural
+  // pixel size (points times the device pixel ratio), which the platform
+  // computes; the bounds check then happens once the pixels are back.
+  if (destination->size.has_value()) {
+    wgpu::Extent3D size{};
+    if (!conv(size, destination->size.value())) {
+      throw std::runtime_error(
+          "drawElementImageToTexture: invalid destination.size");
+    }
+    if (size.width == 0 || size.height == 0 || size.depthOrArrayLayers != 1) {
+      throw std::runtime_error(
+          "drawElementImageToTexture: destination.size must have a positive "
+          "width and height and a depthOrArrayLayers of 1");
+    }
+    if (size.width > mipWidth - std::min(dst.origin.x, mipWidth) ||
+        size.height > mipHeight - std::min(dst.origin.y, mipHeight)) {
+      throw std::runtime_error(
+          "drawElementImageToTexture: destination.origin + destination.size "
+          "exceeds the texture's extent at destination.mipLevel");
+    }
+    request.width = size.width;
+    request.height = size.height;
+  }
+
+  // premultipliedAlpha defaults to false, like copyExternalImageToTexture.
+  const bool destinationPremultiplied =
+      info->premultipliedAlpha.value_or(false);
+
+  // Settle on the CALLING runtime's context (see GPUBuffer::mapAsync): the
+  // snapshot completes on the UI thread and is deposited into that context's
+  // mailbox; the texture write and the resolve then run on the runtime's own
+  // thread during its next tick.
+  auto context =
+      async::RuntimeContext::getOrCreate(runtime, _async->instance());
+  auto queue = _instance;
+  // Keeps the destination texture alive until the write is issued.
+  auto gpuTexture = info->texture;
+  return context->postTask(
+      [platform, request, dst, mipWidth, mipHeight, destinationIsBgra,
+       destinationPremultiplied, queue,
+       gpuTexture](const async::AsyncTaskHandle::ResolveFunction &resolve,
+                   const async::AsyncTaskHandle::RejectFunction &reject) {
+        platform->snapshotView(
+            request,
+            [resolve, reject, dst, mipWidth, mipHeight, destinationIsBgra,
+             destinationPremultiplied, queue,
+             gpuTexture](ImageData image) mutable {
+              // Arbitrary (UI) thread: validate without touching JSI.
+              if (image.width == 0 || image.height == 0 ||
+                  image.data.size() < image.width * image.height * 4) {
+                reject("drawElementImageToTexture: the view produced no "
+                       "pixels (is it mounted with a non-zero size?)");
+                return;
+              }
+              if (image.width > mipWidth - std::min<uint32_t>(dst.origin.x,
+                                                              mipWidth) ||
+                  image.height > mipHeight - std::min<uint32_t>(dst.origin.y,
+                                                                mipHeight)) {
+                reject("drawElementImageToTexture: the view's natural pixel "
+                       "size (" +
+                       std::to_string(image.width) + "x" +
+                       std::to_string(image.height) +
+                       ") does not fit in the destination texture at "
+                       "destination.origin; pass destination.size to scale "
+                       "it, or create a larger texture");
+                return;
+              }
+              resolve([image = std::move(image), dst, destinationIsBgra,
+                       destinationPremultiplied, queue,
+                       gpuTexture](jsi::Runtime &) mutable -> jsi::Value {
+                // Owning runtime's thread. Bring the pixels into the
+                // destination's channel order and alpha representation, then
+                // issue the write.
+                const bool sourceIsBgra =
+                    image.format == wgpu::TextureFormat::BGRA8Unorm ||
+                    image.format == wgpu::TextureFormat::BGRA8UnormSrgb;
+                uint8_t *pixels = image.data.data();
+                const size_t byteLength = image.width * image.height * 4;
+                if (sourceIsBgra != destinationIsBgra) {
+                  for (size_t i = 0; i + 3 < byteLength; i += 4) {
+                    std::swap(pixels[i], pixels[i + 2]);
+                  }
+                }
+                convertAlpha(pixels, byteLength, image.premultiplied,
+                             destinationPremultiplied);
+                wgpu::TexelCopyBufferLayout layout{};
+                layout.offset = 0;
+                layout.bytesPerRow = static_cast<uint32_t>(image.width * 4);
+                layout.rowsPerImage = static_cast<uint32_t>(image.height);
+                wgpu::Extent3D extent{static_cast<uint32_t>(image.width),
+                                      static_cast<uint32_t>(image.height), 1};
+                queue.WriteTexture(&dst, pixels, byteLength, &layout, &extent);
+                return jsi::Value::undefined();
+              });
+            },
+            [reject](std::string error) { reject(std::move(error)); });
+      });
 }
 
 void GPUQueue::writeTexture(std::shared_ptr<GPUImageCopyTexture> destination,

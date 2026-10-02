@@ -21,9 +21,19 @@ namespace rnwgpu {
 namespace jsi = facebook::jsi;
 namespace jni = facebook::jni;
 
+// The completion callbacks of one snapshotView request, heap-allocated and
+// carried through Java as an opaque pointer (WebGPUModule.snapshotView ->
+// onViewSnapshot), which hands them back exactly once.
+struct ViewSnapshotCallbacks {
+  std::function<void(ImageData)> onSuccess;
+  std::function<void(std::string)> onError;
+};
+
 class AndroidPlatformContext : public PlatformContext {
 private:
   jobject _blobModule;
+  // Global ref to the com.webgpu.WebGPUModule instance (view snapshots).
+  jobject _module;
 
   std::vector<uint8_t> resolveBlob(JNIEnv *env, const std::string &blobId,
                                    double offset, double size) {
@@ -63,13 +73,60 @@ private:
   }
 
 public:
-  explicit AndroidPlatformContext(jobject blobModule)
-      : _blobModule(blobModule) {}
+  // Both arguments are global refs; the context releases them.
+  AndroidPlatformContext(jobject blobModule, jobject module)
+      : _blobModule(blobModule), _module(module) {}
   ~AndroidPlatformContext() {
+    JNIEnv *env = facebook::jni::Environment::current();
     if (_blobModule) {
-      JNIEnv *env = facebook::jni::Environment::current();
       env->DeleteGlobalRef(_blobModule);
       _blobModule = nullptr;
+    }
+    if (_module) {
+      env->DeleteGlobalRef(_module);
+      _module = nullptr;
+    }
+  }
+
+  void snapshotView(const ViewSnapshotRequest &request,
+                    std::function<void(ImageData)> onSuccess,
+                    std::function<void(std::string)> onError) override {
+    if (!_module) {
+      onError("drawElementImageToTexture: the WebGPU module is gone");
+      return;
+    }
+    jni::Environment::ensureCurrentThreadIsAttached();
+    JNIEnv *env = facebook::jni::Environment::current();
+    if (!env) {
+      onError("drawElementImageToTexture: couldn't get the JNI environment");
+      return;
+    }
+    jclass moduleClass = env->GetObjectClass(_module);
+    jmethodID method =
+        env->GetMethodID(moduleClass, "snapshotView", "(IDDDDIIJ)V");
+    env->DeleteLocalRef(moduleClass);
+    if (!method) {
+      env->ExceptionClear();
+      onError("drawElementImageToTexture: WebGPUModule.snapshotView not found");
+      return;
+    }
+    // Ownership passes to Java; Java_com_webgpu_WebGPUModule_onViewSnapshot
+    // (cpp-adapter.cpp) reclaims it.
+    auto *callbacks = new ViewSnapshotCallbacks{std::move(onSuccess),
+                                                std::move(onError)};
+    env->CallVoidMethod(_module, method, static_cast<jint>(request.viewTag),
+                        static_cast<jdouble>(request.sourceX),
+                        static_cast<jdouble>(request.sourceY),
+                        static_cast<jdouble>(request.sourceWidth),
+                        static_cast<jdouble>(request.sourceHeight),
+                        static_cast<jint>(request.width),
+                        static_cast<jint>(request.height),
+                        reinterpret_cast<jlong>(callbacks));
+    if (env->ExceptionCheck()) {
+      env->ExceptionClear();
+      auto fail = std::move(callbacks->onError);
+      delete callbacks;
+      fail("drawElementImageToTexture: WebGPUModule.snapshotView threw");
     }
   }
 

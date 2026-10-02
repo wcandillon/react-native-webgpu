@@ -44,4 +44,5 @@ export type Routes = {
   ImportExternalTexture: undefined;
   VisionCamera: undefined;
   SixteenBitTextures: undefined;
+  ViewSnapshot: undefined;
 };

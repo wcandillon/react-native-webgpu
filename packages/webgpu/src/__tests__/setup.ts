@@ -54,6 +54,14 @@ interface GPUTestingContext {
   workletDeviceStress?: (
     device: GPUDevice,
   ) => Promise<{ jsOk: boolean; workletOk: boolean }>;
+  // Native app harness only: a mounted probe view for the
+  // drawElementImageToTexture spec (its React tag, its size in points and the
+  // device pixel ratio). See apps/example/src/Tests.tsx.
+  views?: {
+    probe: number | null;
+    probeSize: number;
+    pixelRatio: number;
+  };
   mat4: typeof mat4;
   vec3: typeof vec3;
   mat3: typeof mat3;
