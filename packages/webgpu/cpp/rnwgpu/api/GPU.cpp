@@ -16,7 +16,7 @@
 namespace rnwgpu {
 
 GPU::GPU(jsi::Runtime & /*runtime*/) : NativeObject(CLASS_NAME) {
-  // If a Graphite build of @shopify/react-native-skia is loaded in this
+  // If a Graphite build of react-native-skia is loaded in this
   // process, adopt its wgpu::Instance instead of creating our own, so
   // Graphite's device and every JS-created device live on one instance. That
   // makes pointer-based handoff (RNWebGPU.importDevice of Skia's device)
