@@ -1,7 +1,7 @@
 import { useRoot } from "@typegpu/react";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Button, Dimensions, Platform, StyleSheet, View } from "react-native";
-import type { SkImage, SkSurface } from "@shopify/react-native-skia";
+import type { SkImage, SkSurface } from "react-native-skia";
 import {
   Canvas,
   Fill,
@@ -14,7 +14,7 @@ import {
   Text,
   Image,
   FilterMode,
-} from "@shopify/react-native-skia";
+} from "react-native-skia";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS, runOnUI, useSharedValue } from "react-native-reanimated";
 
@@ -35,22 +35,24 @@ paint.setColor(Skia.Color("black"));
 paint.setStyle(PaintStyle.Stroke);
 paint.setStrokeWidth(1);
 
-const grid = Skia.Path.Make();
+const gridBuilder = Skia.PathBuilder.Make();
 const cellSize = width / SIZE;
 
-grid.moveTo(0, 0);
+gridBuilder.moveTo(0, 0);
 
 // Draw vertical lines
 for (let i = 0; i <= SIZE; i++) {
-  grid.moveTo(i * cellSize, 0);
-  grid.lineTo(i * cellSize, width);
+  gridBuilder.moveTo(i * cellSize, 0);
+  gridBuilder.lineTo(i * cellSize, width);
 }
 
 // Draw horizontal lines
 for (let i = 0; i <= SIZE; i++) {
-  grid.moveTo(0, i * cellSize);
-  grid.lineTo(width, i * cellSize);
+  gridBuilder.moveTo(0, i * cellSize);
+  gridBuilder.lineTo(width, i * cellSize);
 }
+
+const grid = gridBuilder.detach();
 
 const f = 1 / cellSize;
 
@@ -58,7 +60,7 @@ export function MNISTInference() {
   const root = useRoot();
   const network = useRef<Network>();
   const text = useSharedValue("");
-  const path = useSharedValue(Skia.Path.Make());
+  const path = useSharedValue(Skia.PathBuilder.Make());
   const surface = useSharedValue<SkSurface | null>(null);
   const image = useSharedValue<SkImage | null>(null);
   const runInference = useCallback(
@@ -83,7 +85,7 @@ export function MNISTInference() {
         path.value.lineTo(e.x * f, e.y * f);
         if (surface.value) {
           const canvas = surface.value.getCanvas();
-          canvas.drawPath(path.value, paint);
+          canvas.drawPath(path.value.build(), paint);
           image.value = surface.value!.makeImageSnapshot();
           const pixels = image.value.readPixels(0, 0, {
             width: SIZE,
@@ -115,7 +117,7 @@ export function MNISTInference() {
         onPress={() => {
           surface.value?.getCanvas().clear(Skia.Color("transparent"));
           image.value = null;
-          path.value = Skia.Path.Make();
+          path.value = Skia.PathBuilder.Make();
           text.value = "";
         }}
         title="Reset"

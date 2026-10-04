@@ -204,12 +204,12 @@ In development, Metro serves the asset folder over HTTP, so a `.gltf` can refere
 
 ## Rendering into a Skia canvas
 
-With a Graphite build of [React Native Skia](/docs/integrations/react-native-skia), Three.js can render into a texture that Skia draws as a regular image, so a 3D scene composes with everything else on a Skia `<Canvas />` (blurs, masks, text, gestures). Three renders on Skia's own device; the texture is wrapped into an `SkImage` without a copy.
+With [React Native Skia](/docs/integrations/react-native-skia) v3 and above, Three.js can render into a texture that Skia draws as a regular image, so a 3D scene composes with everything else on a Skia `<Canvas />` (blurs, masks, text, gestures). Three renders on Skia's own device; the texture is wrapped into an `SkImage` without a copy.
 
 The renderer only needs a `GPUCanvasContext`-shaped object whose `getCurrentTexture()` returns a texture you allocated:
 
 ```tsx
-import { Skia } from "@shopify/react-native-skia";
+import { Skia } from "react-native-skia";
 import { importDevice } from "react-native-webgpu";
 
 const device = importDevice(Skia.getNativeDevice());
@@ -240,6 +240,6 @@ renderer.setAnimationLoop(() => {
 });
 ```
 
-No `present()` is needed here: Skia owns the screen and redraws when the image changes. See [Zero-copy texture sharing](/docs/integrations/react-native-skia#zero-copy-texture-sharing) for the interop rules, and the react-native-skia example app for a complete hook.
+No `present()` is needed here: Skia owns the screen and redraws when the image changes. See [Zero-copy texture sharing](/docs/integrations/react-native-skia#zero-copy-texture-sharing) for the interop rules, and the [React Native Skia documentation](https://wcandillon.github.io/react-native-skia/docs/webgpu#threejs) for a complete hook, as well as the other direction: a Skia drawing used as a Three.js texture.
 
 Next: [React Three Fiber](/docs/integrations/react-three-fiber) for declarative JSX on top of the same renderer.
