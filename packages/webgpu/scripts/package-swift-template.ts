@@ -13,7 +13,7 @@ export type WebGPUDawnBinaryTarget =
 export interface PackageSwiftInputs {
   target: WebGPUDawnBinaryTarget;
   // Dawn release tag, e.g. "dawn-chrome-m154". Same string that
-  // @shopify/react-native-skia's Graphite installer records in
+  // react-native-skia's Graphite binaries record in
   // libs/.dawn-version, which is what the manifest compares against.
   dawnReleaseTag: string;
 }
@@ -69,12 +69,26 @@ let sibling = { (relative: String) -> String in
 // after changing either package's Dawn version reset the package caches
 // (File > Packages > Reset Package Caches) if this does not re-run.
 let dawnReleaseTag = "${dawnReleaseTag}"
-let skiaCandidates = [
+// Each candidate is a package directory holding libs/.dawn-version.
+// react-native-skia v3 ships its Graphite binaries (and the marker) in
+// separate react-native-skia-graphite-apple-* packages, which are usually
+// hoisted next to this package but may be nested under react-native-skia.
+// The Graphite previews of v2 (@shopify/react-native-skia@next) keep the
+// marker in the main package.
+var skiaCandidates: [String] = []
+for graphite in ["react-native-skia-graphite-apple-ios", "react-native-skia-graphite-apple-macos"] {
+  skiaCandidates += [
+    sibling("../\\(graphite)"), // consumer: sibling in node_modules
+    sibling("../react-native-skia/node_modules/\\(graphite)"), // consumer: nested
+    sibling("../../node_modules/\\(graphite)"), // this monorepo
+  ]
+}
+skiaCandidates += [
   sibling("../@shopify/react-native-skia"), // consumer: sibling in node_modules
   sibling("../../node_modules/@shopify/react-native-skia"), // this monorepo
 ]
 for skia in skiaCandidates {
-  // Only Graphite builds of react-native-skia write this marker (Ganesh
+  // Only Graphite builds of react-native-skia write this marker (v2 Ganesh
   // builds do not link Dawn and impose no constraint).
   guard let data = FileManager.default.contents(atPath: "\\(skia)/libs/.dawn-version"),
     let skiaDawn = String(data: data, encoding: .utf8)?
@@ -84,11 +98,10 @@ for skia in skiaCandidates {
     fatalError(
       """
       react-native-webgpu: Dawn version mismatch. This package links \\(dawnReleaseTag) \\
-      but the @shopify/react-native-skia Graphite build at \\(skia) links \\(skiaDawn). \\
+      but the react-native-skia Graphite build at \\(skia) links \\(skiaDawn). \\
       Align the two packages so the app contains exactly one Dawn.
       """)
   }
-  break
 }
 
 // Unlike a native Xcode target, SwiftPM doesn't generate an implicit
