@@ -122,7 +122,7 @@ import { importDevice } from "react-native-webgpu";
 const device = importDevice(pointer);
 ```
 
-This is only sound when the exporting library links the exact same Dawn build as react-native-webgpu and shares its `wgpu::Instance`; otherwise the imported device's async callbacks would settle on an instance nobody pumps. The canonical exporter is a Graphite build of `@shopify/react-native-skia`, which satisfies both conditions automatically; see [React Native Skia](/docs/integrations/react-native-skia).
+This is only sound when the exporting library links the exact same Dawn build as react-native-webgpu and shares its `wgpu::Instance`; otherwise the imported device's async callbacks would settle on an instance nobody pumps. The canonical exporter is `react-native-skia` (v3 and above), which renders with Graphite and satisfies both conditions automatically; see [React Native Skia](/docs/integrations/react-native-skia).
 
 ## See also
 
