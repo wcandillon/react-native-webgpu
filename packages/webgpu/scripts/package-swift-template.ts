@@ -2,7 +2,7 @@
 // Kept in its own module so generate-package-swift.ts stays focused on
 // fetching the release metadata.
 //
-// The manifest mirrors @shopify/react-native-skia's packages/skia/Package.swift
+// The manifest mirrors react-native-skia's packages/skia/Package.swift
 // (same integration model, same relative paths, same platform floor, same
 // defines). Keep the two aligned when changing either.
 
@@ -13,7 +13,7 @@ export type WebGPUDawnBinaryTarget =
 export interface PackageSwiftInputs {
   target: WebGPUDawnBinaryTarget;
   // Dawn release tag, e.g. "dawn-chrome-m154". Same string that
-  // @shopify/react-native-skia's Graphite installer records in
+  // react-native-skia's Graphite installer records in
   // libs/.dawn-version, which is what the manifest compares against.
   dawnReleaseTag: string;
 }
@@ -69,14 +69,23 @@ let sibling = { (relative: String) -> String in
 // after changing either package's Dawn version reset the package caches
 // (File > Packages > Reset Package Caches) if this does not re-run.
 let dawnReleaseTag = "${dawnReleaseTag}"
-let skiaCandidates = [
-  sibling("../@shopify/react-native-skia"), // consumer: sibling in node_modules
-  sibling("../../node_modules/@shopify/react-native-skia"), // this monorepo
-]
-for skia in skiaCandidates {
-  // Only Graphite builds of react-native-skia write this marker (Ganesh
-  // builds do not link Dawn and impose no constraint).
-  guard let data = FileManager.default.contents(atPath: "\\(skia)/libs/.dawn-version"),
+// Only Graphite builds of react-native-skia carry this marker (Ganesh builds
+// do not link Dawn and impose no constraint). From v3 the Skia binaries ship
+// in react-native-skia-graphite-apple-ios, which records the tag at
+// libs/.dawn-version; react-native-skia's podspec copies it into its own
+// libs/ at \`pod install\`, which never runs here. The v2 Graphite previews
+// (e.g. @shopify/react-native-skia@2.12.0-next.1) keep it in their own libs/.
+let skiaDawnMarkers = [
+  "react-native-skia-graphite-apple-ios/libs/.dawn-version",
+  "@shopify/react-native-skia/libs/.dawn-version",
+].flatMap { marker in
+  [
+    sibling("../\\(marker)"), // consumer: sibling in node_modules
+    sibling("../../node_modules/\\(marker)"), // this monorepo
+  ]
+}
+for marker in skiaDawnMarkers {
+  guard let data = FileManager.default.contents(atPath: marker),
     let skiaDawn = String(data: data, encoding: .utf8)?
       .trimmingCharacters(in: .whitespacesAndNewlines)
   else { continue }
@@ -84,7 +93,7 @@ for skia in skiaCandidates {
     fatalError(
       """
       react-native-webgpu: Dawn version mismatch. This package links \\(dawnReleaseTag) \\
-      but the @shopify/react-native-skia Graphite build at \\(skia) links \\(skiaDawn). \\
+      but the react-native-skia Graphite binaries (\\(marker)) link \\(skiaDawn). \\
       Align the two packages so the app contains exactly one Dawn.
       """)
   }

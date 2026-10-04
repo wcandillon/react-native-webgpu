@@ -105,8 +105,10 @@ ships, `.iOS(.v15)` is the only value that links.
 The `WebGPUDawn` binary target downloads the release zip named by the `dawn`
 field in `package.json`; the checksum is fetched from the release's
 `.checksum.txt` at generation time. A Graphite build of react-native-skia
-installed alongside must link the same Dawn tag (`libs/.dawn-version`), which
-the manifest checks at evaluation time. SwiftPM caches manifest evaluations, so
+installed alongside must link the same Dawn tag, which the manifest checks at
+evaluation time. It reads the tag from
+`react-native-skia-graphite-apple-ios/libs/.dawn-version` (v3 and above) or
+`@shopify/react-native-skia/libs/.dawn-version` (the v2 Graphite previews). SwiftPM caches manifest evaluations, so
 after changing either package's Dawn reset the package caches if the check does
 not re-run.
 
