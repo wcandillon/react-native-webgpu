@@ -107,8 +107,11 @@ field in `package.json`; the checksum is fetched from the release's
 `.checksum.txt` at generation time. A Graphite build of react-native-skia
 installed alongside must link the same Dawn tag, which the manifest checks at
 evaluation time. It reads the tag from
-`react-native-skia-graphite-apple-ios/libs/.dawn-version` (v3 and above) or
-`@shopify/react-native-skia/libs/.dawn-version` (the v2 Graphite previews). SwiftPM caches manifest evaluations, so
+`react-native-skia-graphite-apple-ios/libs/.dawn-version` and
+`react-native-skia-graphite-apple-macos/libs/.dawn-version` (v3 and above,
+hoisted or nested under `react-native-skia/node_modules`) and from
+`@shopify/react-native-skia/libs/.dawn-version` (the v2 Graphite previews),
+and fails on any marker that differs. SwiftPM caches manifest evaluations, so
 after changing either package's Dawn reset the package caches if the check does
 not re-run.
 

@@ -36,8 +36,14 @@ let dawnReleaseTag = "dawn-chrome-m154"
 // libs/.dawn-version; react-native-skia's podspec copies it into its own
 // libs/ at `pod install`, which never runs here. The v2 Graphite previews
 // (e.g. @shopify/react-native-skia@2.12.0-next.1) keep it in their own libs/.
+// The graphite packages are normally hoisted next to this package, but may
+// be nested under react-native-skia when the package manager cannot hoist
+// them. Every marker found is checked.
 let skiaDawnMarkers = [
   "react-native-skia-graphite-apple-ios/libs/.dawn-version",
+  "react-native-skia-graphite-apple-macos/libs/.dawn-version",
+  "react-native-skia/node_modules/react-native-skia-graphite-apple-ios/libs/.dawn-version",
+  "react-native-skia/node_modules/react-native-skia-graphite-apple-macos/libs/.dawn-version",
   "@shopify/react-native-skia/libs/.dawn-version",
 ].flatMap { marker in
   [
@@ -58,7 +64,6 @@ for marker in skiaDawnMarkers {
       Align the two packages so the app contains exactly one Dawn.
       """)
   }
-  break
 }
 
 // Unlike a native Xcode target, SwiftPM doesn't generate an implicit
