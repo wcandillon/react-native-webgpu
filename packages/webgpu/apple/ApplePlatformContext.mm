@@ -118,10 +118,19 @@ ImageData snapshotViewOnMainThread(const ApplePlatformContext::ViewLookup &looku
   UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc]
       initWithSize:CGSizeMake(width, height)
             format:format];
+  // drawViewHierarchyInRect returns NO and draws nothing when the view is not
+  // in a window (e.g. a screen pushed under another one). The image would
+  // then be fully transparent, so treat it as a failure instead.
+  __block BOOL drawn = NO;
   UIImage *image = [renderer
       imageWithActions:^(UIGraphicsImageRendererContext *_Nonnull context) {
-        [view drawViewHierarchyInRect:drawRect afterScreenUpdates:YES];
+        drawn = [view drawViewHierarchyInRect:drawRect afterScreenUpdates:YES];
       }];
+  if (!drawn) {
+    throw std::runtime_error(
+        "drawElementImageToTexture: the view could not be rendered (is it "
+        "attached to a window?)");
+  }
   cgImage = image.CGImage;
   if (cgImage != NULL) {
     CGImageRetain(cgImage);
