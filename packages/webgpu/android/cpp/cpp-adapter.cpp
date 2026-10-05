@@ -154,7 +154,8 @@ Java_com_webgpu_WebGPUHardwareBufferView_nEnablePool(JNIEnv *env, jobject thiz,
   auto info = registry.getSurfaceInfoOrCreate(
       contextId, manager->_gpu, static_cast<int>(dpW), static_cast<int>(dpH));
   auto waker = std::make_shared<HardwareBufferViewWaker>(env, thiz);
-  info->setPoolFrameReadyCallback([waker]() { (*waker)(); });
+  info->hardwareBufferPresenter().setFrameReadyCallback(
+      [waker]() { (*waker)(); });
   info->enablePool(static_cast<int>(dpW), static_cast<int>(dpH));
 }
 
@@ -181,8 +182,8 @@ Java_com_webgpu_WebGPUHardwareBufferView_nGetHardwareBuffer(
   if (info == nullptr) {
     return nullptr;
   }
-  void *ahb = info->poolBufferForDisplay(static_cast<uint32_t>(generation),
-                                         static_cast<int>(slot));
+  void *ahb = info->hardwareBufferPresenter().bufferForDisplay(
+      static_cast<uint32_t>(generation), static_cast<int>(slot));
   if (ahb == nullptr) {
     return nullptr;
   }
@@ -202,7 +203,7 @@ Java_com_webgpu_WebGPUHardwareBufferView_nPollReady(JNIEnv *env, jobject thiz,
   if (info == nullptr) {
     return -1;
   }
-  return info->poolPollReady();
+  return info->hardwareBufferPresenter().pollReady();
 }
 
 // The view is done displaying (and holding) a slot; return it to the pool.
@@ -214,8 +215,8 @@ Java_com_webgpu_WebGPUHardwareBufferView_nReleaseSlot(JNIEnv *env, jobject thiz,
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurfaceInfo(contextId);
   if (info != nullptr) {
-    info->poolReleaseSlot(static_cast<uint32_t>(generation),
-                          static_cast<int>(slot));
+    info->hardwareBufferPresenter().releaseSlot(
+        static_cast<uint32_t>(generation), static_cast<int>(slot));
   }
 }
 
@@ -228,7 +229,7 @@ Java_com_webgpu_WebGPUHardwareBufferView_nSwitchToOffscreen(JNIEnv *env,
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurfaceInfo(contextId);
   if (info != nullptr) {
-    info->setPoolFrameReadyCallback(nullptr);
+    info->hardwareBufferPresenter().setFrameReadyCallback(nullptr);
     info->switchToOffscreen();
   }
 }

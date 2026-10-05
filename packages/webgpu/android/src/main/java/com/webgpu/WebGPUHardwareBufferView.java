@@ -26,8 +26,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * A "normal RN view" backend for the WebGPU canvas.
  *
  * <p>WebGPU renders into a native pool of AHardwareBuffers (sized from the canvas drawing buffer,
- * like the swapchain) that Dawn imports as SharedTextureMemory; see SurfaceRegistry.h. Each finished
- * buffer is drawn inline here via {@link Bitmap#wrapHardwareBuffer} + {@link Canvas#drawBitmap}, so
+ * like the swapchain) that Dawn imports as SharedTextureMemory; see HardwareBufferPresenter.h. Each
+ * finished buffer is drawn inline here via {@link Bitmap#wrapHardwareBuffer} + {@link Canvas#drawBitmap}, so
  * this is a plain {@link View}: parent transforms, clipping, alpha, z-order and animations all
  * apply, with no GL interop and no extra copy.
  *

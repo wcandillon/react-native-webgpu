@@ -27,7 +27,7 @@ HWUI exposes no "GPU finished reading this bitmap" fence. So a displayed buffer 
 
 ## Presentation model
 
-`SurfaceInfo` (in `cpp/rnwgpu/SurfaceRegistry.h`) gained a third mode beside the on-screen `wgpu::Surface` swapchain and the offscreen texture: the **AHB pool**.
+`SurfaceInfo` (in `cpp/rnwgpu/SurfaceRegistry.h`) has a third mode beside the on-screen `wgpu::Surface` swapchain and the offscreen texture: the **AHB pool**. The pool lives in its own class, `HardwareBufferPresenter` (in `cpp/rnwgpu/HardwareBufferPresenter.h`), which `SurfaceInfo` owns. `SurfaceInfo` only decides when pool mode is active and forwards the producer side to it; the view consumes finished frames from the presenter directly.
 
 A pool is one generation of `kPoolSize` (5) slots. Each slot holds an `AHardwareBuffer*`, a `wgpu::SharedTextureMemory`, a `wgpu::Texture`, and a state:
 
@@ -39,7 +39,7 @@ Generations are `shared_ptr`-counted so an in-flight render, present, or ready s
 
 ### Sizing (the part that matters most)
 
-The pool is **allocated natively and sized from the canvas drawing buffer**, not from the view. `GPUCanvasContext::getCurrentTexture` calls `poolResize(_canvas->getWidth(), _canvas->getHeight())` (the JS `canvas.width`/`canvas.height`) before acquiring a slot, reallocating the pool when that size changes. This mirrors exactly how the swapchain reconfigures its surface to `canvas.width`.
+The pool is **allocated natively and sized from the canvas drawing buffer**, not from the view. `SurfaceInfo::getCurrentTexture` calls `HardwareBufferPresenter::resize` with the drawing buffer size (the JS `canvas.width`/`canvas.height`, which `GPUCanvasContext::getCurrentTexture` keeps in sync through `reconfigure()`) before acquiring a slot, reallocating the pool when that size changes. This mirrors exactly how the swapchain reconfigures its surface to `canvas.width`.
 
 Why it must be this way: apps create their other attachments (for example a depth texture) at `canvas.width`/`canvas.height`. WebGPU requires every attachment in a render pass to have identical dimensions. If the canvas color texture is sized differently (even by 1px), every `beginRenderPass` fails validation, the render loop throws, and the screen is blank. `canvas.width` is derived in JS as `clientWidth * PixelRatio`, while a view's pixel size is `round(dp * density)`; on non-integer-density devices these differ. Sizing the pool from `canvas.width` keeps the canvas texture aligned with the app's attachments on every device.
 
@@ -73,12 +73,13 @@ On resize the native pool reallocates to the new canvas size (a new generation),
 
 ## Files
 
-- `cpp/rnwgpu/SurfaceRegistry.h` — the AHB-pool mode in `SurfaceInfo`: allocation/import, `BeginAccess`/`EndAccess`, the waiter thread and fence wait, the slot state machine, generations, and the public pool API (`enablePool`, `setPoolClientSize`, `poolResize`, `poolPollReady`, `poolBufferForDisplay`, `poolReleaseSlot`, `setPoolFrameReadyCallback`).
-- `cpp/rnwgpu/api/GPUCanvasContext.cpp` — `getCurrentTexture` drives `poolResize` in pool mode; `present` fires for pool mode (`hasSurface() || isPoolMode()`).
-- `android/cpp/cpp-adapter.cpp` — JNI: `nEnablePool`, `nSetClientSize`, `nGetHardwareBuffer`, `nPollReady`, `nReleaseSlot`, `nSwitchToOffscreen`, and `HardwareBufferViewWaker` (the waiter-to-UI wake-up).
-- `android/src/main/java/com/webgpu/WebGPUHardwareBufferView.java` — the view: enable pool mode, wake-up-driven consume, per-token Bitmap cache, held-ring, scaled `onDraw`, lifecycle. It is a pure consumer (about 250 lines); everything about buffers, fences and the swapchain lives in C++.
-- `android/src/main/java/com/webgpu/WebGPUView.java` — selects `WebGPUHardwareBufferView` for `surfaceType: "HardwareBufferView"` on API Q+ (opt-in; `auto` stays on `WebGPUTextureView` for the transparent path).
-- `android/src/main/java/com/webgpu/WebGPUAPI.java` — adds `getContextId()`.
+- `cpp/rnwgpu/HardwareBufferPresenter.h`: the pool itself. Allocation/import, `BeginAccess`/`EndAccess`, the waiter thread and fence wait, the slot state machine, generations, the producer API (`configure`, `resize`, `getCurrentTexture`, `present`) and the consumer API (`pollReady`, `bufferForDisplay`, `releaseSlot`, `setFrameReadyCallback`).
+- `cpp/rnwgpu/SurfaceRegistry.h`: pool mode in `SurfaceInfo`. It owns the presenter, turns the mode on and off (`enablePool`, and `detach` on the way out), reports the dp client size (`setPoolClientSize`), and routes `getCurrentTexture` / `presentFrame` to the presenter while the mode is on.
+- `cpp/rnwgpu/api/GPUCanvasContext.cpp`: keeps the drawing buffer size in sync with `canvas.width`/`canvas.height`, which is what the pool is sized from.
+- `android/cpp/cpp-adapter.cpp`: JNI: `nEnablePool`, `nSetClientSize`, `nGetHardwareBuffer`, `nPollReady`, `nReleaseSlot`, `nSwitchToOffscreen`, and `HardwareBufferViewWaker` (the waiter-to-UI wake-up).
+- `android/src/main/java/com/webgpu/WebGPUHardwareBufferView.java`: the view: enable pool mode, wake-up-driven consume, per-token Bitmap cache, held-ring, scaled `onDraw`, lifecycle. It is a pure consumer (about 250 lines); everything about buffers, fences and the swapchain lives in C++.
+- `android/src/main/java/com/webgpu/WebGPUView.java`: selects `WebGPUHardwareBufferView` for `surfaceType: "HardwareBufferView"` on API Q+ (opt-in; `auto` stays on `WebGPUTextureView` for the transparent path).
+- `android/src/main/java/com/webgpu/WebGPUAPI.java`: adds `getContextId()`.
 
 ## Prerequisites that already hold
 
@@ -87,7 +88,7 @@ On resize the native pool reallocates to the new canvas size (a new generation),
 
 ## Building and testing
 
-The example app resolves `react-native-webgpu` from `node_modules/react-native-webgpu`, which is a copy, not a symlink to `packages/webgpu`. Edits in `packages/webgpu` must be copied into `node_modules/react-native-webgpu/...` before a gradle build picks them up.
+The example app resolves `react-native-webgpu` from `node_modules/react-native-webgpu`, which `yarn install` symlinks to `packages/webgpu`, so a gradle build picks up edits in `packages/webgpu` directly.
 
 Compile-check native and Java for one ABI:
 
