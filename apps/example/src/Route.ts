@@ -2,6 +2,7 @@ export type Routes = {
   Home: undefined;
   HelloTriangle: undefined;
   HelloTriangleMSAA: undefined;
+  PresentMode: undefined;
   ImageBlur: undefined;
   Cube: undefined;
   ThreeJS: undefined;
