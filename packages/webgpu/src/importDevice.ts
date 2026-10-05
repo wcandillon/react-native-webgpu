@@ -1,8 +1,8 @@
 /**
  * Wraps an externally created WGPUDevice pointer into a GPUDevice.
  *
- * The canonical use case is adopting the Graphite device from a
- * @shopify/react-native-skia Graphite build:
+ * The canonical use case is adopting the Graphite device of react-native-skia
+ * (v3 and above):
  *
  * ```ts
  * const device = importDevice(Skia.getNativeDevice());
@@ -10,7 +10,7 @@
  *
  * This is only sound when the exporting library links the same single Dawn
  * copy as react-native-webgpu and shares its wgpu::Instance (react-native-skia
- * Graphite builds do both).
+ * does both).
  */
 export const importDevice = (pointer: bigint): GPUDevice => {
   if (typeof RNWebGPU === "undefined") {

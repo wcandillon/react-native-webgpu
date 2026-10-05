@@ -9,7 +9,7 @@ iOS only. CocoaPods remains the supported default for this library; see the
 Swift Package Manager section of
 [`packages/webgpu/CONTRIBUTING.md`](../packages/webgpu/CONTRIBUTING.md) for the
 design notes. The app and its manifest deliberately mirror
-`@shopify/react-native-skia`'s `spm-example`, so the two libraries link the
+`react-native-skia`'s `spm-example`, so the two libraries link the
 same way.
 
 ## Why it sits outside the yarn workspace

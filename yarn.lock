@@ -5912,32 +5912,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@shopify/react-native-skia@npm:2.6.2":
-  version: 2.6.2
-  resolution: "@shopify/react-native-skia@npm:2.6.2"
-  dependencies:
-    canvaskit-wasm: 0.41.0
-    react-native-skia-android: 147.1.0
-    react-native-skia-apple-ios: 147.1.0
-    react-native-skia-apple-macos: 147.1.0
-    react-native-skia-apple-tvos: 147.1.0
-    react-reconciler: 0.31.0
-  peerDependencies:
-    react: ">=19.0"
-    react-native: ">=0.78"
-    react-native-reanimated: ">=3.19.1"
-  peerDependenciesMeta:
-    react-native:
-      optional: true
-    react-native-reanimated:
-      optional: true
-  bin:
-    install-skia: scripts/install-libs.js
-    setup-skia-web: scripts/setup-canvaskit.js
-  checksum: 12fcd7eaf706fcd222498fa22ba73af2eda214931b7fdc7b16cf5e9713de04ca55639df7be5bb57f91c5a4808a0f3946e7ab56453840cb6436def00e8e125523
-  languageName: node
-  linkType: hard
-
 "@sideway/address@npm:^4.1.5":
   version: 4.1.5
   resolution: "@sideway/address@npm:4.1.5"
@@ -7955,7 +7929,6 @@ __metadata:
     "@react-navigation/stack": ^6.4.0
     "@react-three/fiber": ^9.4.0
     "@rnx-kit/metro-config": ^2.0.0
-    "@shopify/react-native-skia": 2.6.2
     "@tensorflow/tfjs": ^4.22.0
     "@tensorflow/tfjs-backend-webgpu": ^4.22.0
     "@tensorflow/tfjs-vis": ^1.5.1
@@ -7984,6 +7957,7 @@ __metadata:
     react-native-nitro-modules: 0.35.7
     react-native-reanimated: 4.3.1
     react-native-safe-area-context: ^5.4.0
+    react-native-skia: 3.0.2
     react-native-test-app: 4.4.10
     react-native-vision-camera: 5.0.10
     react-native-vision-camera-worklets: 5.0.10
@@ -20808,31 +20782,51 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-skia-android@npm:147.1.0":
-  version: 147.1.0
-  resolution: "react-native-skia-android@npm:147.1.0"
-  checksum: 1aca3e311db852a7cc3adce31169cf8dda3e68b3812453b86296d0c27e577438ac4344cd26d25c09329faff470bcdd04c16da547904164677e435ac770c00bc3
+"react-native-skia-graphite-android@npm:154.0.1":
+  version: 154.0.1
+  resolution: "react-native-skia-graphite-android@npm:154.0.1"
+  checksum: 2d61647f0f3ddf145f941993156f0157c63ef659a10665b60b6a563ebca4f3bc12968aa61b5ab1a38debccc925718ff66c8dda2b4c80a7ae3aa7f235c1be225f
   languageName: node
   linkType: hard
 
-"react-native-skia-apple-ios@npm:147.1.0":
-  version: 147.1.0
-  resolution: "react-native-skia-apple-ios@npm:147.1.0"
-  checksum: 704d86ebb038b472cc294267893bee1cc733695515dbe87d43edddbc89ccbef9f6a49d0dfe374849230637af304746f341ddce1c5c85e95f3d6d6b6d3520ce6e
+"react-native-skia-graphite-apple-ios@npm:154.0.1":
+  version: 154.0.1
+  resolution: "react-native-skia-graphite-apple-ios@npm:154.0.1"
+  checksum: a46f650407a798f9f01a969e712ced62567c53e6c0d47160ac9c4e0d2149373c92cd988f9580564be847275ae688635cf407c1ee0e2e82b3ae1525e69755fe43
   languageName: node
   linkType: hard
 
-"react-native-skia-apple-macos@npm:147.1.0":
-  version: 147.1.0
-  resolution: "react-native-skia-apple-macos@npm:147.1.0"
-  checksum: 4a6f3e1bcae8950de0cd94f9b5958f91c61e2ac41c178d66df2a933451be16bd4aa06191d70317dd07a4e095b775341532d2f7aefa424a8b4f01bf6fed88a503
+"react-native-skia-graphite-apple-macos@npm:154.0.1":
+  version: 154.0.1
+  resolution: "react-native-skia-graphite-apple-macos@npm:154.0.1"
+  checksum: af5df399fb7ef572d1f90c2419d042a11a36e5c8ae4ff7e5e019e7a70099f546777ac894a7fd38a57e15a74e4c43362a252a4f72dce4b7b166a11e279bd369dc
   languageName: node
   linkType: hard
 
-"react-native-skia-apple-tvos@npm:147.1.0":
-  version: 147.1.0
-  resolution: "react-native-skia-apple-tvos@npm:147.1.0"
-  checksum: 5af05fe914e641f2488ac719aa1763ae2850efaea785b12febdf67ee7594c7b340d2d2cd36870ceb056a249d72b40d34500c5da11dba9fdef26a5652c4ff04f8
+"react-native-skia@npm:3.0.2":
+  version: 3.0.2
+  resolution: "react-native-skia@npm:3.0.2"
+  dependencies:
+    canvaskit-wasm: 0.41.0
+    react-native-skia-graphite-android: 154.0.1
+    react-native-skia-graphite-apple-ios: 154.0.1
+    react-native-skia-graphite-apple-macos: 154.0.1
+    react-reconciler: 0.31.0
+  peerDependencies:
+    react: ">=19.0"
+    react-native: ">=0.78"
+    react-native-reanimated: ">=4.0.0"
+    react-native-worklets: ">=0.7.0"
+  peerDependenciesMeta:
+    react-native:
+      optional: true
+    react-native-reanimated:
+      optional: true
+    react-native-worklets:
+      optional: true
+  bin:
+    setup-skia-web: scripts/setup-canvaskit.js
+  checksum: 30f71e2e76af2cdac37f32fd7d60e7648e3b53c1e70a6a44fb3269e0ceaceee70129c06e1be8d74fd628718b7c2e1602c55fe6af3db7429bbd50fa25c02ef627
   languageName: node
   linkType: hard
 

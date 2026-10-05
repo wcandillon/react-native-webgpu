@@ -25,7 +25,7 @@ The Expo config plugin lives in `plugin/src` and is compiled to `plugin/build` b
 
 ## Upgrading Dawn
 
-The Dawn version tracks the one shipped by `@shopify/react-native-skia` Graphite builds: the pin is the exact Dawn commit from the Skia milestone's DEPS file (`third_party/externals/dawn` in Skia's DEPS). It is recorded in two places that must stay in sync:
+The Dawn version tracks the one shipped by `react-native-skia`: the pin is the exact Dawn commit from the Skia milestone's DEPS file (`third_party/externals/dawn` in Skia's DEPS). It is recorded in two places that must stay in sync:
 
 - the `externals/dawn` submodule gitlink (the commit the submodule points at)
 - `packages/webgpu/package.json` → `"dawn"` (a human-readable label, e.g. `chrome-m152`; Skia milestones mirror Chrome milestones) and `"dawnCommit"` (the exact commit hash)
@@ -54,7 +54,7 @@ Steps to bump to a new Dawn version (new Skia milestone `m<N>`):
 
 5. **Map the new feature names.** A milestone usually adds `wgpu::FeatureName` values. Add them to `RNWGPU_FOR_EACH_FEATURE_NAME` in `cpp/rnwgpu/api/GPUFeatures.h`, which is the single list both conversion directions are generated from; `src/__tests__/FeatureNames.spec.ts` diffs it against the installed `webgpu_cpp.h` and fails when one is missing.
 
-6. **Update the compatibility table** in `apps/docs/content/docs/integrations/react-native-skia.mdx` with the new milestone row, so users can pair react-native-webgpu and `@shopify/react-native-skia` versions.
+6. **Update the compatibility table** in `apps/docs/content/docs/integrations/react-native-skia.mdx` with the new milestone row, so users can pair react-native-webgpu and `react-native-skia` versions.
 
 7. **Build both platforms.** A milestone can also change Dawn's C++ API surface, not just add features — e.g. `chrome-m154` turned `SharedTextureMemory::BeginAccess`/`EndAccess`, `Adapter::GetLimits`, `Device::GetLimits`, and `SharedTextureMemory::GetProperties` from a bool-ish return into `wgpu::Status` (no implicit bool conversion), breaking every `if (!result)` / `if (result)` call site in `cpp/rnwgpu/api/*.cpp`. Building iOS and Android is the way these surface; fix by comparing explicitly (`result == wgpu::Status::Success`).
 
@@ -81,7 +81,7 @@ xcodebuild -project SpmExample.xcodeproj -scheme SpmExample \
   -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 ```
 
-The manifest mirrors `@shopify/react-native-skia`'s `packages/skia/Package.swift`
+The manifest mirrors `react-native-skia`'s `packages/skia/Package.swift`
 on purpose: same relative paths to React Native's header products, same
 `.iOS(.v15)` floor, same `RCT_NEW_ARCH_ENABLED` / `RCT_REMOVE_LEGACY_ARCH` and
 `DEBUG` / `NDEBUG` defines. When one changes, change the other.
@@ -105,8 +105,13 @@ ships, `.iOS(.v15)` is the only value that links.
 The `WebGPUDawn` binary target downloads the release zip named by the `dawn`
 field in `package.json`; the checksum is fetched from the release's
 `.checksum.txt` at generation time. A Graphite build of react-native-skia
-installed alongside must link the same Dawn tag (`libs/.dawn-version`), which
-the manifest checks at evaluation time. SwiftPM caches manifest evaluations, so
+installed alongside must link the same Dawn tag, which the manifest checks at
+evaluation time. It reads the tag from
+`react-native-skia-graphite-apple-ios/libs/.dawn-version` and
+`react-native-skia-graphite-apple-macos/libs/.dawn-version` (v3 and above,
+hoisted or nested under `react-native-skia/node_modules`) and from
+`@shopify/react-native-skia/libs/.dawn-version` (the v2 Graphite previews),
+and fails on any marker that differs. SwiftPM caches manifest evaluations, so
 after changing either package's Dawn reset the package caches if the check does
 not re-run.
 

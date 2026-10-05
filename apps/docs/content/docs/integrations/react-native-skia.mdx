@@ -3,40 +3,40 @@ title: React Native Skia
 description: Share one Dawn and one GPU device with Skia's Graphite renderer.
 ---
 
-react-native-webgpu and [`@shopify/react-native-skia`](https://shopify.github.io/react-native-skia/) work alongside each other nicely.
+react-native-webgpu and [`react-native-skia`](https://wcandillon.github.io/react-native-skia/) work alongside each other nicely.
 
-With the default (Ganesh) releases of react-native-skia there is no coupling at all: any version of either package can be installed together, and they simply don't interact.
-
-Graphite builds of react-native-skia (the `@next` release channel) render through Dawn, the same WebGPU implementation react-native-webgpu is built on, and the two packages are designed to share it:
+Starting with v3, react-native-skia renders with Graphite, on top of Dawn, the same WebGPU implementation react-native-webgpu is built on, and the two packages are designed to share it:
 
 - **One Dawn copy.** Both packages vendor the exact same prebuilt Dawn artifact, pinned to the Dawn revision of the Skia milestone (for example `dawn-chrome-m154`). When both are installed, react-native-skia detects react-native-webgpu at `pod install` time and defers to its copy, so the process contains exactly one Dawn. A build-time guard compares the two packages' Dawn tags and fails the native build on a mismatch instead of letting two incompatible copies coexist.
-- **One `wgpu::Instance`.** When a Graphite build of react-native-skia is present, react-native-webgpu adopts Skia's instance automatically at startup (discovered at runtime, independent of native-module initialization order). Graphite's device and every device you create through `navigator.gpu` live on the same instance.
-- **The WebGPU API lives here.** Graphite builds of react-native-skia do not install `navigator.gpu` or any WebGPU JS API; react-native-webgpu is the single WebGPU API surface. If you want to write WebGPU code in an app that uses Skia, install react-native-webgpu alongside it.
+- **One `wgpu::Instance`.** When react-native-skia is present, react-native-webgpu adopts Skia's instance automatically at startup (discovered at runtime, independent of native-module initialization order). Graphite's device and every device you create through `navigator.gpu` live on the same instance.
+- **The WebGPU API lives here.** react-native-skia does not install `navigator.gpu` or any WebGPU JS API; react-native-webgpu is the single WebGPU API surface. If you want to write WebGPU code in an app that uses Skia, install react-native-webgpu alongside it.
+
+With react-native-skia v2, which keeps the Ganesh backend (and was published as `@shopify/react-native-skia` up to 2.14), there is no coupling at all: any version of either package can be installed together, and they simply don't interact.
 
 <Callout type="info" title="Versions">
-Because a Graphite build links react-native-webgpu's Dawn copy, the two packages must be built against the same Dawn tag; this is what makes sharing an instance and importing devices sound. Releases are kept in lockstep, and the native build fails with an explicit message if the tags ever differ, so a mismatch surfaces at build time rather than as undefined behavior at runtime. Default (Ganesh) releases of react-native-skia have no such constraint.
+Because react-native-skia links react-native-webgpu's Dawn copy, the two packages must be built against the same Dawn tag; this is what makes sharing an instance and importing devices sound. Releases are kept in lockstep, and the native build fails with an explicit message if the tags ever differ, so a mismatch surfaces at build time rather than as undefined behavior at runtime. react-native-skia v2 has no such constraint.
 </Callout>
 
 ## Compatibility
 
-Both packages follow Chrome/Skia milestones: react-native-webgpu pins the Dawn revision from the Skia milestone's `DEPS`, and react-native-skia ships that milestone's binaries as `react-native-skia-graphite-*` `<milestone>.0.0`. Pick one row and install versions from it.
+Both packages follow Chrome/Skia milestones: react-native-webgpu pins the Dawn revision from the Skia milestone's `DEPS`, and react-native-skia depends on that milestone's binaries, published as `react-native-skia-graphite-*` `<milestone>.x.y`. Pick one row and install versions from it.
 
-| Milestone | react-native-webgpu | Dawn release tag | `@shopify/react-native-skia` (Graphite `@next`) |
+| Milestone | react-native-webgpu | Dawn release tag | react-native-skia |
 | --- | --- | --- | --- |
-| m154 | >= 0.10.0 | `dawn-chrome-m154` | 2.12.0-next.1 (Graphite `154.0.0`) |
+| m154 | >= 0.10.0 | `dawn-chrome-m154` | >= 3.0.0 (Graphite `154.x`) |
 
-Default (Ganesh) releases of react-native-skia — 2.11.0 at the time of writing — are not part of this pairing: they do not link Dawn, so any version works alongside any version of react-native-webgpu.
+The Graphite previews of v2 (`@shopify/react-native-skia@next`, for instance 2.12.0-next.1) pair with react-native-webgpu the same way. Regular v2 releases are not part of this pairing: they do not link Dawn, so any version works alongside any version of react-native-webgpu.
 
-react-native-webgpu 0.6.4 and earlier predate the interop APIs (`importDevice` landed in 0.7.0); install them alongside a default (Ganesh) build of react-native-skia only.
+react-native-webgpu 0.6.4 and earlier predate the interop APIs (`importDevice` landed in 0.7.0); install them alongside react-native-skia v2 only.
 
-To check what an installed pair is built against, compare `node -p "require('react-native-webgpu/package.json').dawn"` with the `graphiteDependencies` in `@shopify/react-native-skia`'s `package.json`. They have to name the same milestone.
+To check what an installed pair is built against, compare `node -p "require('react-native-webgpu/package.json').dawn"` with the Dawn tag recorded next to the Skia binaries, in `node_modules/react-native-skia-graphite-apple-ios/libs/.dawn-version` (or `react-native-skia-graphite-android`). They have to name the same milestone.
 
 ## Rendering with Skia's device
 
 `Skia.getNativeDevice()` returns the raw pointer of Graphite's `wgpu::Device` as a `BigInt`, and [`importDevice()`](/docs/getting-started/native-api#importing-an-external-device) wraps it into a regular `GPUDevice`:
 
 ```tsx
-import { Skia } from "@shopify/react-native-skia";
+import { Skia } from "react-native-skia";
 import { Canvas, importDevice } from "react-native-webgpu";
 
 const device = importDevice(Skia.getNativeDevice());
@@ -76,9 +76,21 @@ const texture = adoptTexture(Skia.Image.MakeNativeTextureFromImage(image));
 
 Adopt each pointer exactly once: the returned `GPUTexture` releases the reference when destroyed.
 
+**Skia drawing into a WebGPU texture.** `Skia.Surface.MakeFromNativeTexture` wraps a texture of the shared device into an `SkSurface` that draws straight into it. Create the texture with the `RENDER_ATTACHMENT` usage, plus `TEXTURE_BINDING` to sample the result:
+
+```tsx
+const surface = Skia.Surface.MakeFromNativeTexture(texture.nativePointer);
+surface.getCanvas().drawCircle(128, 128, 64, paint);
+// Submit Skia's commands ahead of the WebGPU pass that samples the texture
+surface.flush();
+```
+
+The surface holds its own reference to the texture. Dispose it before calling `texture.destroy()`.
+
 Platform surfaces (`CVPixelBuffer` / `AHardwareBuffer`) can also cross the boundary through [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory), or as external textures via `RNWebGPU.createVideoFrameFromNativeBuffer` + `importExternalTexture`.
 
 ## See also
 
+- [WebGPU in the React Native Skia documentation](https://wcandillon.github.io/react-native-skia/docs/webgpu) - complete examples, including Three.js in both directions
 - [Native APIs](/docs/getting-started/native-api) - `importDevice` and the threading model
 - [Native Extensions](/api/gpu-device-extensions) - native texture interop on `GPUDevice`
