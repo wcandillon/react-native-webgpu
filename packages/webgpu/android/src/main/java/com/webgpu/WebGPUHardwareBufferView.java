@@ -122,6 +122,21 @@ public class WebGPUHardwareBufferView extends View {
     }
   }
 
+  /**
+   * Called from the rendering thread (see cpp-adapter.cpp) when the hardware buffer pool cannot
+   * serve this canvas: a device without AHardwareBuffer sharing, a canvas format, view format or
+   * usage the buffers do not support, or a failed allocation. The parent replaces this view with
+   * one that presents with a copy.
+   */
+  @Keep
+  private void onNativeUnsupported() {
+    mMainHandler.post(() -> {
+      if (mAttached) {
+        mApi.hardwareBufferUnavailable();
+      }
+    });
+  }
+
   private void consume() {
     mConsumePosted.set(false);
     if (!mAttached) {

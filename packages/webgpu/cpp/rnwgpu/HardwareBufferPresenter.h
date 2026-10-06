@@ -18,6 +18,8 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "FramePresenter.h"
+
 #include <android/hardware_buffer.h>
 #include <android/log.h>
 #include <poll.h>
@@ -79,55 +81,58 @@ struct AHBPool {
 // texture always matches the app's other attachments (e.g. its depth texture).
 //
 // Owned by SurfaceInfo, which decides when the pool is the active presentation
-// mode and drives the producer side (configure, resize, getCurrentTexture,
-// present) from the rendering thread. The consumer side (pollReady,
-// bufferForDisplay, releaseSlot, setFrameReadyCallback) is called by the view
-// through the JNI layer, see cpp-adapter.cpp.
+// mode and drives the producer side (the FramePresenter interface) from the
+// rendering thread. The consumer side (pollReady, bufferForDisplay,
+// releaseSlot, setFrameReadyCallback) is called by the view through the JNI
+// layer, see cpp-adapter.cpp.
+//
+// The pool cannot serve every configuration: it needs a device with AHB
+// sharing, an rgba8unorm canvas without view formats, and usages the imported
+// buffers support. When it cannot, getCurrentTexture() returns null and the
+// unsupported callback tells the view, which switches to the BlitPresenter.
 //
 // Everything is guarded by _mutex. SurfaceInfo may call in while holding its
 // own mutex (lock order SurfaceInfo -> presenter), except for
 // getCurrentTexture(), which can block waiting for a free slot.
-class HardwareBufferPresenter {
+class HardwareBufferPresenter : public FramePresenter {
 public:
+  // The view's callbacks, handed back by disable() so the caller can destroy
+  // them outside its own lock: they release JNI references.
+  struct Callbacks {
+    std::function<void()> frameReady;
+    std::function<void()> unsupported;
+  };
+
   HardwareBufferPresenter() = default;
   HardwareBufferPresenter(const HardwareBufferPresenter &) = delete;
   HardwareBufferPresenter &operator=(const HardwareBufferPresenter &) = delete;
 
-  ~HardwareBufferPresenter() { shutdown(); }
+  ~HardwareBufferPresenter() override { shutdown(); }
 
   // --- Mode
   // -------------------------------------------------------------------
 
   // True while the pool is the context's presentation mode (a
   // WebGPUHardwareBufferView is attached).
-  bool isEnabled() const { return _enabled.load(); }
+  bool isEnabled() const override { return _enabled.load(); }
 
   // Turn on pool mode. The buffers are allocated lazily by resize().
   void enable() {
     std::lock_guard<std::mutex> lock(_mutex);
     _enabled.store(true);
     _shutdown = false;
+    // A view just attached: if the pool cannot serve the current
+    // configuration, resize() has to find out and tell this view too.
+    _unsupported = false;
   }
 
   // Leave pool mode (the WebGPUHardwareBufferView detached) and drop the pool.
-  // Returns the frame-ready callback so the caller can destroy it outside its
-  // own lock: it releases a JNI reference.
-  std::function<void()> disable() {
+  Callbacks disable() {
     _enabled.store(false);
     std::lock_guard<std::mutex> lock(_mutex);
-    // A frame between getCurrentTexture and present still has an open
-    // BeginAccess; end it and queue it so the waiter drains its fences before
-    // the generation is freed (present() is no longer called for it because
-    // pool mode is already off).
-    if (_renderPool != nullptr && _currentRenderSlot >= 0 &&
-        _renderPool->slots[_currentRenderSlot].state == SlotState::Rendering) {
-      queuePresentLocked();
-    }
-    // _presentQueue is intentionally left alone: the waiter still has to wait
-    // on the queued fences before the generations they pin can be released; it
-    // discards them on publish (no live pool).
-    resetLocked();
-    return std::exchange(_frameReady, nullptr);
+    dropPoolLocked();
+    return {std::exchange(_frameReady, nullptr),
+            std::exchange(_unsupportedCallback, nullptr)};
   }
 
   // Stop the fence waiter before any pool generation is freed, then free them
@@ -143,23 +148,24 @@ public:
   // --- Configuration (rendering thread)
   // ---------------------------------------
 
-  void configure(const wgpu::Device &device, wgpu::TextureFormat format,
-                 wgpu::TextureUsage usage) {
-    std::lock_guard<std::mutex> lock(_mutex);
-    if (_device.Get() != device.Get()) {
+  void configure(const wgpu::SurfaceConfiguration &config) override {
+    std::unique_lock<std::mutex> lock(_mutex);
+    if (_device.Get() != config.device.Get()) {
       // Buffers imported for another device cannot be reused.
-      resetLocked();
+      releaseDeviceObjectsLocked(lock);
     }
-    _device = device;
-    _format = format;
-    _usage = usage;
-    // A new device may support AHB sharing even if the previous one did not.
+    _device = config.device;
+    _format = config.format;
+    _usage = config.usage;
+    _hasViewFormats = config.viewFormatCount > 0;
+    // A new configuration may be one the pool supports even if the previous
+    // one was not.
     _unsupported = false;
   }
 
-  void unconfigure() {
-    std::lock_guard<std::mutex> lock(_mutex);
-    resetLocked();
+  void unconfigure() override {
+    std::unique_lock<std::mutex> lock(_mutex);
+    releaseDeviceObjectsLocked(lock);
     _device = nullptr;
   }
 
@@ -167,10 +173,10 @@ public:
   // imports belong to the device: drop them while it is alive. The next
   // getCurrentTexture() after a configure with a live device reallocates the
   // pool.
-  void releaseForDevice(const wgpu::Device &device) {
-    std::lock_guard<std::mutex> lock(_mutex);
+  void releaseForDevice(const wgpu::Device &device) override {
+    std::unique_lock<std::mutex> lock(_mutex);
     if (_device && _device.Get() == device.Get()) {
-      resetLocked();
+      releaseDeviceObjectsLocked(lock);
       _device = nullptr;
     }
   }
@@ -181,46 +187,57 @@ public:
   // (Re)allocate the pool to match the canvas drawing buffer (px). Called on
   // the rendering thread before acquiring a slot, so the canvas texture size
   // always tracks the app's other attachments.
-  void resize(int pxW, int pxH) {
-    std::lock_guard<std::mutex> lock(_mutex);
-    if (!_enabled.load() || _device == nullptr || pxW <= 0 || pxH <= 0) {
-      return;
-    }
-    if (_pool != nullptr && _pool->width == pxW && _pool->height == pxH) {
-      return;
-    }
-    if (_unsupported) {
-      return;
-    }
-    if (!_device.HasFeature(
-            wgpu::FeatureName::SharedTextureMemoryAHardwareBuffer)) {
-      _unsupported = true;
-      RNWGPU_POOL_WARN("device lacks SharedTextureMemoryAHardwareBuffer; the "
-                       "transparent canvas cannot present and stays blank");
-      return;
-    }
-    auto pool = allocatePoolLocked(pxW, pxH);
-    if (pool == nullptr) {
-      return;
-    }
-    _pool = pool;
-    _pools[pool->generation] = pool;
-    // Keep current + previous generation (in-flight frames of the previous size
-    // may still be on screen during the cross-fade); drop anything older.
-    for (auto it = _pools.begin(); it != _pools.end();) {
-      if (it->first + 1 < pool->generation) {
-        it = _pools.erase(it);
-      } else {
-        ++it;
+  void resize(int pxW, int pxH) override {
+    std::function<void()> unsupported;
+    {
+      std::lock_guard<std::mutex> lock(_mutex);
+      if (!_enabled.load() || _device == nullptr || pxW <= 0 || pxH <= 0) {
+        return;
       }
+      if (_pool != nullptr && _pool->width == pxW && _pool->height == pxH) {
+        return;
+      }
+      if (_unsupported) {
+        return;
+      }
+      std::shared_ptr<AHBPool> pool;
+      if (const char *reason = unsupportedReasonLocked()) {
+        RNWGPU_POOL_WARN("%s; presenting with a copy instead", reason);
+      } else {
+        pool = allocatePoolLocked(pxW, pxH); // reports its own failures
+      }
+      if (pool != nullptr) {
+        _pool = pool;
+        _pools[pool->generation] = pool;
+        // Keep current + previous generation (in-flight frames of the previous
+        // size may still be on screen during the cross-fade); drop anything
+        // older.
+        for (auto it = _pools.begin(); it != _pools.end();) {
+          if (it->first + 1 < pool->generation) {
+            it = _pools.erase(it);
+          } else {
+            ++it;
+          }
+        }
+        _freeCv.notify_all();
+        return;
+      }
+      // Sticky until the next configure(). A pool of another size must not
+      // keep handing out textures: they would not match the app's other
+      // attachments.
+      _unsupported = true;
+      dropPoolLocked();
+      unsupported = _unsupportedCallback;
     }
-    _freeCv.notify_all();
+    if (unsupported) {
+      unsupported(); // outside the lock: it calls into Java
+    }
   }
 
   // The texture to render the current frame into, or null when no slot is
   // available (pool not allocated yet, unsupported device, view detached
   // mid-frame, or a free-slot timeout).
-  wgpu::Texture getCurrentTexture() {
+  wgpu::Texture getCurrentTexture() override {
     std::unique_lock<std::mutex> lock(_mutex);
     // Per the WebGPU spec, getCurrentTexture returns the same texture until the
     // frame is presented; a repeat call must not consume another slot.
@@ -264,7 +281,7 @@ public:
 
   // Ends access on the in-flight slot and hands it to the fence waiter; the
   // view picks it up once its render-complete fence signals.
-  void present() {
+  void present() override {
     std::lock_guard<std::mutex> lock(_mutex);
     if (_currentRenderSlot < 0 || _renderPool == nullptr) {
       return;
@@ -325,6 +342,14 @@ public:
     _frameReady = std::move(cb);
   }
 
+  // Invoked from the rendering thread (never under _mutex) when the pool turns
+  // out to be unusable for the current configuration, so the view can switch
+  // to another way of presenting. Pass nullptr to unregister.
+  void setUnsupportedCallback(std::function<void()> cb) {
+    std::lock_guard<std::mutex> lock(_mutex);
+    _unsupportedCallback = std::move(cb);
+  }
+
 private:
   // All *Locked helpers below require _mutex to be held.
 
@@ -341,7 +366,62 @@ private:
     _freeCv.notify_all();
   }
 
-  // Allocate + import one generation of the pool.
+  // Let go of every Dawn object that belongs to _device, on the calling
+  // thread, before returning: the caller is about to drop or destroy the
+  // device. That includes the frames the waiter still holds. Left alone, the
+  // waiter would release their textures later from its own thread, possibly
+  // while the device is being destroyed, which Dawn does not survive.
+  // Releases `lock` while waiting for the waiter.
+  void releaseDeviceObjectsLocked(std::unique_lock<std::mutex> &lock) {
+    // Make the waiter give up its fence wait and discard whatever it takes.
+    _discardWaits = true;
+    do {
+      // Frames not picked up by the waiter yet: dropped here, fences included.
+      _presentQueue.clear();
+      // The frame the waiter is on, if any: wait until it let go of it.
+      _waiterIdleCv.wait(lock, [&]() { return !_waiterBusy; });
+      // Another thread may have presented while the lock was released.
+    } while (!_presentQueue.empty());
+    _discardWaits = false;
+    resetLocked();
+  }
+
+  // Drop the pool, first ending access on a frame that is still being
+  // rendered.
+  void dropPoolLocked() {
+    // A frame between getCurrentTexture and present still has an open
+    // BeginAccess; end it and queue it so the waiter drains its fences before
+    // the generation is freed (present() will not be called for it).
+    if (_renderPool != nullptr && _currentRenderSlot >= 0 &&
+        _renderPool->slots[_currentRenderSlot].state == SlotState::Rendering) {
+      queuePresentLocked();
+    }
+    // _presentQueue is intentionally left alone: the waiter still has to wait
+    // on the queued fences before the generations they pin can be released; it
+    // discards them on publish (no live pool).
+    resetLocked();
+  }
+
+  // Why the pool cannot serve the current configuration, as far as can be
+  // told before allocating; null when it can.
+  const char *unsupportedReasonLocked() {
+    if (!_device.HasFeature(
+            wgpu::FeatureName::SharedTextureMemoryAHardwareBuffer)) {
+      return "device lacks SharedTextureMemoryAHardwareBuffer";
+    }
+    // The buffers are rgba8unorm, the preferred canvas format on Android.
+    if (_format != wgpu::TextureFormat::RGBA8Unorm) {
+      return "hardware buffers cannot back a canvas format other than "
+             "rgba8unorm";
+    }
+    if (_hasViewFormats) {
+      return "hardware buffers cannot back a canvas with viewFormats";
+    }
+    return nullptr;
+  }
+
+  // Allocate + import one generation of the pool. Null when the buffers cannot
+  // be allocated, imported, or used the way the canvas is configured.
   std::shared_ptr<AHBPool> allocatePoolLocked(int w, int h) {
     auto pool = std::make_shared<AHBPool>();
     pool->generation = ++_genCounter;
@@ -358,8 +438,9 @@ private:
                    AHARDWAREBUFFER_USAGE_GPU_COLOR_OUTPUT;
       int err = AHardwareBuffer_allocate(&desc, &slot.ahb);
       if (err != 0 || slot.ahb == nullptr) {
-        RNWGPU_POOL_WARN("AHardwareBuffer_allocate failed (%d) %dx%d", err, w,
-                         h);
+        RNWGPU_POOL_WARN("AHardwareBuffer_allocate failed (%d) %dx%d; "
+                         "presenting with a copy instead",
+                         err, w, h);
         return nullptr;
       }
       wgpu::SharedTextureMemoryDescriptor memDesc{};
@@ -372,27 +453,19 @@ private:
       wgpu::SharedTextureMemoryProperties props{};
       if (slot.memory == nullptr ||
           slot.memory.GetProperties(&props) != wgpu::Status::Success) {
-        RNWGPU_POOL_WARN("ImportSharedTextureMemory failed (%dx%d)", w, h);
+        RNWGPU_POOL_WARN("ImportSharedTextureMemory failed (%dx%d); presenting "
+                         "with a copy instead",
+                         w, h);
         return nullptr;
       }
-      // The AHB is rgba8unorm; the pool cannot honor another configured format.
-      // The canvas is configured rgba8unorm on Android (the preferred format),
-      // so this only fires for apps hardcoding e.g. bgra8unorm.
-      if (_format != wgpu::TextureFormat::Undefined &&
-          _format != wgpu::TextureFormat::RGBA8Unorm) {
-        RNWGPU_POOL_WARN("configured canvas format %d is not supported by the "
-                         "transparent canvas; using rgba8unorm (use "
-                         "navigator.gpu.getPreferredCanvasFormat())",
-                         static_cast<int>(_format));
-      }
-      // Honor the configured usage flags as far as the imported memory allows.
-      wgpu::TextureUsage wanted = _usage | wgpu::TextureUsage::RenderAttachment;
-      wgpu::TextureUsage usage = wanted & props.usage;
-      if (usage != wanted) {
-        RNWGPU_POOL_WARN("configured canvas usage 0x%llx narrowed to 0x%llx "
-                         "(unsupported by the transparent canvas buffers)",
-                         static_cast<unsigned long long>(wanted),
+      // The texture must have every usage the canvas was configured with.
+      wgpu::TextureUsage usage = _usage | wgpu::TextureUsage::RenderAttachment;
+      if ((usage & props.usage) != usage) {
+        RNWGPU_POOL_WARN("hardware buffers support usage 0x%llx, not the "
+                         "configured 0x%llx; presenting with a copy instead",
+                         static_cast<unsigned long long>(props.usage),
                          static_cast<unsigned long long>(usage));
+        return nullptr;
       }
       wgpu::TextureDescriptor texDesc{};
       texDesc.format = props.format;
@@ -483,6 +556,7 @@ private:
         }
         pending = std::move(_presentQueue.front());
         _presentQueue.pop_front();
+        _waiterBusy = true;
       }
 
       // Wait outside the lock. Each fd is owned by its SharedFence and closed
@@ -505,11 +579,12 @@ private:
         if (fdInfo.handle >= 0) {
           // Sync-fence fds become readable (POLLIN) when signaled; poll()
           // avoids any libsync linkage concern. Poll in bounded slices so
-          // teardown (which flips _shutdown) cannot hang here on a wedged GPU.
+          // teardown (which flips _shutdown) cannot hang here on a wedged GPU,
+          // and so releaseDeviceObjectsLocked() gets the frame back promptly.
           struct pollfd pfd;
           pfd.fd = fdInfo.handle;
           pfd.events = POLLIN;
-          while (!_shutdown.load()) {
+          while (!_shutdown.load() && !_discardWaits.load()) {
             pfd.revents = 0;
             int r = poll(&pfd, 1, 100);
             if (r > 0) {
@@ -525,24 +600,32 @@ private:
       std::function<void()> frameReady;
       {
         std::lock_guard<std::mutex> lock(_mutex);
-        // Pool torn down (disable()) while this frame was in flight: discard it
-        // now that its fences have been drained. Publishing it would pin the
-        // retired generation forever (nothing polls anymore).
-        if (_pool == nullptr) {
-          continue;
-        }
-        // Supersede a still-unclaimed ready frame: drop it back to Free if it
-        // belongs to the live pool (a retired pool is simply discarded).
-        if (_readyPool != nullptr && _readySlot >= 0) {
-          if (_readyPool == _pool) {
-            _readyPool->slots[_readySlot].state = SlotState::Free;
-            _freeCv.notify_one();
+        // Pool torn down (disable(), or the device is going away) while this
+        // frame was in flight: discard it. Publishing it would pin the retired
+        // generation forever (nothing polls anymore).
+        if (_pool != nullptr && !_discardWaits) {
+          // Supersede a still-unclaimed ready frame: drop it back to Free if
+          // it belongs to the live pool (a retired pool is simply discarded).
+          if (_readyPool != nullptr && _readySlot >= 0) {
+            if (_readyPool == _pool) {
+              _readyPool->slots[_readySlot].state = SlotState::Free;
+              _freeCv.notify_one();
+            }
           }
+          pending.pool->slots[pending.slot].state = SlotState::Ready;
+          _readyPool = pending.pool;
+          _readySlot = pending.slot;
+          frameReady = _frameReady;
         }
-        pending.pool->slots[pending.slot].state = SlotState::Ready;
-        _readyPool = pending.pool;
-        _readySlot = pending.slot;
-        frameReady = _frameReady;
+      }
+      // Let go of the frame (its fences, and possibly the last reference to
+      // its generation) before reporting idle: releaseDeviceObjectsLocked()
+      // relies on the waiter holding nothing once it is idle.
+      pending = {};
+      {
+        std::lock_guard<std::mutex> lock(_mutex);
+        _waiterBusy = false;
+        _waiterIdleCv.notify_all();
       }
       if (frameReady) {
         frameReady(); // outside the lock: it calls into Java
@@ -563,10 +646,18 @@ private:
   std::mutex _mutex;
   std::condition_variable _freeCv;    // a slot returned to Free
   std::condition_variable _presentCv; // a frame was queued for the waiter
+  // The waiter holds a frame (between taking it from _presentQueue and letting
+  // go of it), see releaseDeviceObjectsLocked().
+  bool _waiterBusy = false;
+  std::condition_variable _waiterIdleCv; // the waiter let go of its frame
+  // The waiter must give up its fence wait and discard its frame.
+  std::atomic<bool> _discardWaits{false};
   wgpu::Device _device = nullptr;
   wgpu::TextureFormat _format = wgpu::TextureFormat::Undefined;
   wgpu::TextureUsage _usage = wgpu::TextureUsage::RenderAttachment;
-  bool _unsupported = false;      // device lacks AHB shared-texture support
+  bool _hasViewFormats = false;
+  // The pool cannot serve the current configuration (see resize()).
+  bool _unsupported = false;
   std::shared_ptr<AHBPool> _pool; // current generation
   std::unordered_map<uint32_t, std::shared_ptr<AHBPool>> _pools; // gen -> pool
   std::shared_ptr<AHBPool> _renderPool; // generation of the in-flight render
@@ -578,7 +669,8 @@ private:
   bool _waiterRunning = false;
   std::atomic<bool> _shutdown{false};
   uint32_t _genCounter = 0;
-  std::function<void()> _frameReady; // consumer wake-up, see setter
+  std::function<void()> _frameReady;          // consumer wake-up, see setter
+  std::function<void()> _unsupportedCallback; // see setter
 };
 
 } // namespace rnwgpu

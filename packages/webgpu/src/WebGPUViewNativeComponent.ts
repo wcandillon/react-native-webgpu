@@ -13,6 +13,7 @@ export interface NativeProps extends ViewProps {
     "auto"
   >;
   androidZOrderOnTop?: WithDefault<boolean, false>;
+  presentation?: WithDefault<"direct" | "copy", "direct">;
 }
 
 // eslint-disable-next-line import/no-default-export

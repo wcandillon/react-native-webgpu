@@ -11,6 +11,7 @@ description: Rendering pixels on-screen
 | ---- | ---- | ----------- |
 | `opaque` | `boolean` | Defaults to `true`. `false` alpha-composites the canvas over the views behind it (Android and web; iOS uses `alphaMode` alone) |
 | `android` | `AndroidCanvasProps` | Android-only rendering options: `surfaceType` and `zOrderOnTop`. Ignored on iOS and web |
+| `presentation` | `"direct" \| "copy"` | Experimental. `"direct"` (default): the thread that renders presents the native swapchain. `"copy"`: the canvas renders into textures it owns and the UI thread copies the latest one onto the native surface, at most once per display refresh. One extra copy per frame; the swapchain is only used from the UI thread. On Android it selects a `TextureView` and takes precedence over `android.surfaceType`. Ignored on macOS and web |
 | `...ViewProps` | `ViewProps` | All standard React Native View props (`style`, `onLayout`, etc.) |
 
 ## Usage
@@ -208,17 +209,19 @@ supported Android version.
 `TextureView` for the non-opaque case, available on Android 10 (API 29) and
 above. It is also a regular view, so it composites exactly like `TextureView`,
 but WebGPU renders into an `AHardwareBuffer` that the UI toolkit draws inline,
-with no `SurfaceTexture` and no extra copy. It is designed to have lower
-latency than `TextureView` while keeping the same compositing behavior; that
-gain has not been measured yet, which is one reason it is not the default.
-Requesting it on a device below API 29 silently uses `TextureView`.
+with no `SurfaceTexture` and no extra copy. It is not a latency win: measured
+on a Pixel 8, it matches `TextureView` when frames are cheap and is about one
+display refresh behind once a frame costs a few milliseconds of GPU time. What
+it buys is the rest of the UI staying smooth when the canvas is GPU-bound,
+where a `TextureView` makes the whole window drop frames. Requesting it on a
+device below API 29 silently uses `TextureView`.
 
 | | `SurfaceView` | `TextureView` | `HardwareBufferView` |
 | --- | --- | --- | --- |
 | Minimum Android | any | any | 10 (API 29) |
 | Composited like a regular view | no | yes | yes |
 | Extra copy | none | one | none |
-| Expected latency | lowest | highest | between the two (unmeasured) |
+| Latency | lowest | about one refresh | one to two refreshes |
 | Selected when | `opaque` (default) | `opaque={false}` (default) | `surfaceType: "HardwareBufferView"` |
 
 `opaque` applies to whichever view is selected: on a `SurfaceView` it picks
@@ -241,16 +244,17 @@ further flags. Set `surfaceType` when you need a different trade-off:
 <Canvas opaque={false} android={{ surfaceType: "HardwareBufferView" }} />
 ```
 
-Two things to know before opting into `HardwareBufferView`. If the device
-cannot allocate or import the `AHardwareBuffer`, the canvas currently keeps
-rendering to an offscreen texture and shows nothing, rather than falling back
-to `TextureView`; test on your target devices. And because the UI toolkit
+Two things to know before opting into `HardwareBufferView`. Hardware buffers
+cannot back every canvas: the device has to be able to allocate and import
+them, and the canvas has to use the preferred format, no `viewFormats`, and
+only usages the buffers support. When they cannot, the view is replaced at
+runtime by a `TextureView` that WebGPU presents to with one extra copy, so the
+canvas keeps working. And because the UI toolkit
 exposes no "finished reading" signal for an inline buffer, it recycles its
 buffers with a small holding ring rather than a fence, so a device or driver
-quirk could show up as a stale or torn frame. If either happens, drop the
-`surfaceType` to get `TextureView` back. The plan is to make
-`HardwareBufferView` the non-opaque default once it falls back to `TextureView`
-at runtime and its latency advantage is measured.
+quirk could show up as a stale or torn frame. If that happens, drop the
+`surfaceType` to get `TextureView` back. `HardwareBufferView` stays opt-in
+for now.
 
 A non-opaque `SurfaceView` without `zOrderOnTop` sits below the app window, so
 its alpha blends against the window background (usually black) and the React

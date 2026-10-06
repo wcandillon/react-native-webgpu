@@ -1,5 +1,6 @@
 #include <memory>
 #include <unordered_map>
+#include <utility>
 
 #include <fbjni/fbjni.h>
 #include <jni.h>
@@ -94,28 +95,29 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onViewDestroyed(
   registry.removeSurfaceInfo(contextId);
 }
 
-// --- WebGPUHardwareBufferView (AHB-pool presentation)
-// ---------------------------------
+// --- Views presenting through a FramePresenter
+// ----------------------------------------
 
 namespace {
 
-// Weak handle on a WebGPUHardwareBufferView used by the native fence waiter to
-// wake the UI thread when a frame is ready. Holding it weakly means a view that
-// RN has dropped is not kept alive by a SurfaceInfo that outlives it (the
-// registry keeps the SurfaceInfo until onDropViewInstance).
-struct HardwareBufferViewWaker {
+// Weak handle on a void, argument-less method of a view, for native code to
+// notify the view from another thread (the fence waiter, the rendering
+// thread). Holding the view weakly means a view that RN has dropped is not
+// kept alive by a SurfaceInfo that outlives it (the registry keeps the
+// SurfaceInfo until onDropViewInstance).
+struct JavaViewCallback {
   jweak view = nullptr;
-  jmethodID onFrameReady = nullptr;
+  jmethodID method = nullptr;
 
-  HardwareBufferViewWaker(JNIEnv *env, jobject thiz) {
+  JavaViewCallback(JNIEnv *env, jobject thiz, const char *name) {
     view = env->NewWeakGlobalRef(thiz);
     jclass cls = env->GetObjectClass(thiz);
-    onFrameReady = env->GetMethodID(cls, "onNativeFrameReady", "()V");
+    method = env->GetMethodID(cls, name, "()V");
     env->DeleteLocalRef(cls);
   }
 
-  ~HardwareBufferViewWaker() {
-    // May run on the waiter or JS thread; ThreadScope attaches if needed.
+  ~JavaViewCallback() {
+    // May run on any thread; ThreadScope attaches if needed.
     facebook::jni::ThreadScope scope;
     JNIEnv *env = facebook::jni::Environment::current();
     if (env != nullptr && view != nullptr) {
@@ -123,18 +125,18 @@ struct HardwareBufferViewWaker {
     }
   }
 
-  // Called on the waiter thread, outside the pool lock.
+  // Called off the UI thread, outside the presenter's lock.
   void operator()() const {
     facebook::jni::ThreadScope scope;
     JNIEnv *env = facebook::jni::Environment::current();
-    if (env == nullptr || onFrameReady == nullptr) {
+    if (env == nullptr || method == nullptr) {
       return;
     }
     jobject local = env->NewLocalRef(view);
     if (local == nullptr) {
       return; // the view was garbage collected
     }
-    env->CallVoidMethod(local, onFrameReady);
+    env->CallVoidMethod(local, method);
     if (env->ExceptionCheck()) {
       env->ExceptionClear();
     }
@@ -143,6 +145,9 @@ struct HardwareBufferViewWaker {
 };
 
 } // namespace
+
+// --- WebGPUHardwareBufferView (AHB-pool presentation)
+// ---------------------------------
 
 // Turn on pool mode for this context. dpW/dpH is the canvas-client (dp) size;
 // the native pool buffers are sized from the canvas drawing buffer lazily.
@@ -153,9 +158,13 @@ Java_com_webgpu_WebGPUHardwareBufferView_nEnablePool(JNIEnv *env, jobject thiz,
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurfaceInfoOrCreate(
       contextId, manager->_gpu, static_cast<int>(dpW), static_cast<int>(dpH));
-  auto waker = std::make_shared<HardwareBufferViewWaker>(env, thiz);
-  info->hardwareBufferPresenter().setFrameReadyCallback(
-      [waker]() { (*waker)(); });
+  auto frameReady =
+      std::make_shared<JavaViewCallback>(env, thiz, "onNativeFrameReady");
+  auto unsupported =
+      std::make_shared<JavaViewCallback>(env, thiz, "onNativeUnsupported");
+  auto &presenter = info->hardwareBufferPresenter();
+  presenter.setFrameReadyCallback([frameReady]() { (*frameReady)(); });
+  presenter.setUnsupportedCallback([unsupported]() { (*unsupported)(); });
   info->enablePool(static_cast<int>(dpW), static_cast<int>(dpH));
 }
 
@@ -230,6 +239,77 @@ Java_com_webgpu_WebGPUHardwareBufferView_nSwitchToOffscreen(JNIEnv *env,
   auto info = registry.getSurfaceInfo(contextId);
   if (info != nullptr) {
     info->hardwareBufferPresenter().setFrameReadyCallback(nullptr);
+    info->hardwareBufferPresenter().setUnsupportedCallback(nullptr);
+    info->switchToOffscreen();
+  }
+}
+
+// --- WebGPUBlitTextureView (copy onto the view's surface)
+// -----------------------------
+
+// The view has a surface: turn on blit mode and lend it the window. dpW/dpH is
+// the canvas-client (dp) size.
+extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUBlitTextureView_nAttach(
+    JNIEnv *env, jobject thiz, jobject jSurface, jint contextId, jint dpW,
+    jint dpH) {
+  if (manager == nullptr) {
+    return;
+  }
+  // ANativeWindow_fromSurface acquires a reference; the presenter releases it
+  // (via `release` below) once it is done with the window.
+  auto window = ANativeWindow_fromSurface(env, jSurface);
+  if (window == nullptr) {
+    return;
+  }
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto gpu = manager->_gpu;
+  auto platformContext = manager->_platformContext;
+  auto info = registry.getSurfaceInfoOrCreate(
+      contextId, gpu, static_cast<int>(dpW), static_cast<int>(dpH));
+  auto frameReady =
+      std::make_shared<JavaViewCallback>(env, thiz, "onNativeFrameReady");
+  info->blitPresenter().setFrameReadyCallback(
+      [frameReady]() { (*frameReady)(); });
+  rnwgpu::BlitPresenter::NativeSurface nativeSurface;
+  nativeSurface.create = [gpu, platformContext, window]() {
+    return platformContext->makeSurface(gpu, window, 0, 0);
+  };
+  nativeSurface.release = [window]() { ANativeWindow_release(window); };
+  info->enableBlit(static_cast<int>(dpW), static_cast<int>(dpH),
+                   std::move(nativeSurface));
+}
+
+// Keep the canvas-client (dp) size in sync on resize.
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUBlitTextureView_nSetClientSize(JNIEnv *env, jobject thiz,
+                                                     jint contextId, jint dpW,
+                                                     jint dpH) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  if (auto info = registry.getSurfaceInfo(contextId)) {
+    info->resize(static_cast<int>(dpW), static_cast<int>(dpH));
+  }
+}
+
+// Copy the latest finished frame onto the surface and present it. Returns
+// whether a buffer was queued. Called on the UI thread.
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_webgpu_WebGPUBlitTextureView_nPresentFrame(JNIEnv *env, jobject thiz,
+                                                    jint contextId) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo(contextId);
+  if (info == nullptr) {
+    return JNI_FALSE;
+  }
+  return info->blitPresenter().presentFrame() ? JNI_TRUE : JNI_FALSE;
+}
+
+// The surface is going away: leave blit mode. The latest frame stays available
+// offscreen (mirrors switchToOffscreenSurface for the surface path).
+extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUBlitTextureView_nDetach(
+    JNIEnv *env, jobject thiz, jint contextId) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  if (auto info = registry.getSurfaceInfo(contextId)) {
+    info->blitPresenter().setFrameReadyCallback(nullptr);
     info->switchToOffscreen();
   }
 }

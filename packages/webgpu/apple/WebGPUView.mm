@@ -70,7 +70,12 @@ static const std::shared_ptr<const WebGPUViewProps> &defaultWebGPUViewProps() {
     MetalView *metalView = [MetalView new];
     self.contentView = metalView;
     [metalView setContextId:@(newViewProps.contextId)];
+    metalView.presentsWithCopy =
+        newViewProps.presentation == WebGPUViewPresentation::Copy;
     [metalView configure];
+  } else if (newViewProps.presentation != oldViewProps.presentation) {
+    ((MetalView *)self.contentView).presentsWithCopy =
+        newViewProps.presentation == WebGPUViewPresentation::Copy;
   }
 
   [super updateProps:props oldProps:oldProps];

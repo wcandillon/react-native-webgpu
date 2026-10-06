@@ -9,19 +9,26 @@ import com.facebook.proguard.annotations.DoNotStrip;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.views.view.ReactViewGroup;
 
+import java.util.Objects;
+
 public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   // Backing view kinds, see updateView().
   private static final int KIND_SURFACE_VIEW = 0;
   private static final int KIND_TEXTURE_VIEW = 1;
   private static final int KIND_HARDWARE_BUFFER_VIEW = 2;
+  private static final int KIND_BLIT_TEXTURE_VIEW = 3;
 
   private int mContextId;
   private boolean mOpaque = true;
   private String mSurfaceType = "auto";
   private boolean mZOrderOnTop = false;
+  private boolean mPresentWithCopy = false;
   private int mAppliedKind = -1;
   private boolean mAppliedZOrderOnTop;
+  // The hardware buffer view reported that it cannot present this canvas (see
+  // hardwareBufferUnavailable()). Sticky until the surface type prop changes.
+  private boolean mHardwareBufferUnavailable;
   private WebGPUModule mModule;
   private View mView = null;
 
@@ -44,6 +51,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   public void setSurfaceType(String value) {
+    if (!Objects.equals(value, mSurfaceType)) {
+      mHardwareBufferUnavailable = false;
+    }
     mSurfaceType = value;
   }
 
@@ -51,13 +61,22 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     mZOrderOnTop = value;
   }
 
+  public void setPresentation(String value) {
+    mPresentWithCopy = "copy".equals(value);
+  }
+
   // Resolve the backing view from the props. "auto" picks SurfaceView for an
   // opaque canvas and TextureView for a non-opaque one. WebGPUHardwareBufferView
   // (a plain View drawing AHardwareBuffers inline, API 29+) is opt-in via
-  // surfaceType until it gets a runtime fallback to TextureView when the
-  // AHardwareBuffer import fails on a device; below API 29 the request itself
-  // falls back to TextureView.
+  // surfaceType. When hardware buffers turn out not to work for the canvas
+  // (device, format or usage), it is replaced at runtime by
+  // WebGPUBlitTextureView, which presents with a copy; below API 29 the request
+  // itself falls back to TextureView. presentation="copy" asks for that copy
+  // view directly, whatever the surface type.
   private int resolveKind() {
+    if (mPresentWithCopy) {
+      return KIND_BLIT_TEXTURE_VIEW;
+    }
     if ("SurfaceView".equals(mSurfaceType)) {
       return KIND_SURFACE_VIEW;
     }
@@ -65,8 +84,10 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
       return KIND_TEXTURE_VIEW;
     }
     if ("HardwareBufferView".equals(mSurfaceType)) {
-      boolean hardwareBufferSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
-      return hardwareBufferSupported ? KIND_HARDWARE_BUFFER_VIEW : KIND_TEXTURE_VIEW;
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+        return KIND_TEXTURE_VIEW;
+      }
+      return mHardwareBufferUnavailable ? KIND_BLIT_TEXTURE_VIEW : KIND_HARDWARE_BUFFER_VIEW;
     }
     return mOpaque ? KIND_SURFACE_VIEW : KIND_TEXTURE_VIEW;
   }
@@ -89,6 +110,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
         case KIND_HARDWARE_BUFFER_VIEW:
           mView = new WebGPUHardwareBufferView(ctx, this);
           break;
+        case KIND_BLIT_TEXTURE_VIEW:
+          mView = new WebGPUBlitTextureView(ctx, this, mOpaque);
+          break;
         case KIND_TEXTURE_VIEW:
           mView = new WebGPUTextureView(ctx, this, mOpaque);
           break;
@@ -103,6 +127,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
       layoutChild();
     } else if (kind == KIND_TEXTURE_VIEW) {
       ((WebGPUTextureView) mView).setOpaque(mOpaque);
+    } else if (kind == KIND_BLIT_TEXTURE_VIEW) {
+      ((WebGPUBlitTextureView) mView).setOpaque(mOpaque);
     } else if (kind == KIND_SURFACE_VIEW) {
       ((WebGPUSurfaceView) mView).setOpaque(mOpaque);
     }
@@ -140,6 +166,15 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   @Override
   public void surfaceOffscreen() {
     switchToOffscreenSurface(mContextId);
+  }
+
+  @Override
+  public void hardwareBufferUnavailable() {
+    if (mHardwareBufferUnavailable) {
+      return;
+    }
+    mHardwareBufferUnavailable = true;
+    updateView();
   }
 
   @Override

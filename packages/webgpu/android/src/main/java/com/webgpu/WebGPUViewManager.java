@@ -48,6 +48,12 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
   }
 
   @Override
+  @ReactProp(name = "presentation")
+  public void setPresentation(WebGPUView view, String value) {
+    view.setPresentation(value);
+  }
+
+  @Override
   protected void onAfterUpdateTransaction(@NonNull WebGPUView view) {
     super.onAfterUpdateTransaction(view);
     view.updateView();

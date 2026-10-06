@@ -13,6 +13,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "BlitPresenter.h"
+#include "FramePresenter.h"
+
 #if defined(__ANDROID__)
 #include "HardwareBufferPresenter.h"
 #endif
@@ -84,10 +87,12 @@ public:
       : _gpu(std::move(gpu)), _width(width), _height(height) {}
 
   ~SurfaceInfo() {
+    // Free the presenters' frames (and stop the fence waiter) before anything
+    // else goes away.
 #if defined(__ANDROID__)
-    // Stop the fence waiter and free the pool before anything else goes away.
     _hardwareBufferPresenter.shutdown();
 #endif
+    _blitPresenter.disable();
     // Drop the Dawn objects before releasing the native surfaces they borrow.
     _surface = nullptr;
 #if defined(__ANDROID__)
@@ -260,9 +265,9 @@ public:
     _texture = nullptr;
     _frameEpoch++;
 #if defined(__ANDROID__)
-    _hardwareBufferPresenter.configure(_config.device, _config.format,
-                                       _config.usage);
+    _hardwareBufferPresenter.configure(_config);
 #endif
+    _blitPresenter.configure(_config);
     _configureLocked();
   }
 
@@ -292,6 +297,7 @@ public:
 #if defined(__ANDROID__)
     _hardwareBufferPresenter.unconfigure();
 #endif
+    _blitPresenter.unconfigure();
   }
 
   bool isConfigured() {
@@ -317,10 +323,11 @@ public:
   // scripts/install-dawn.ts fails the install when the Dawn pin changes so
   // that decision is not forgotten.
   void releaseSurfaceForDevice(const wgpu::Device &device) {
-#if defined(__ANDROID__)
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    // The pool's SharedTextureMemory imports belong to the device too: drop
-    // them while it is alive.
+    // The presenters' frames (and the blit presenter's own swapchain) belong
+    // to the device too: drop them while it is alive.
+    _blitPresenter.releaseForDevice(device);
+#if defined(__ANDROID__)
     _hardwareBufferPresenter.releaseForDevice(device);
     if (!_surface || !_surfaceDevice || _surfaceDevice.Get() != device.Get()) {
       return;
@@ -329,8 +336,6 @@ public:
     // configuring against it would only raise a validation error. The next
     // configure() from JS (or a surface re-attach) configures it.
     recreateSurfaceLocked();
-#else
-    (void)device;
 #endif
   }
 
@@ -340,13 +345,12 @@ public:
   // otherwise (see RNWebGPU::destroyContext).
   bool hasNativeSurface() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
-#if defined(__ANDROID__)
-    // A WebGPUHardwareBufferView in pool mode owns presentation the same way a
-    // surface-backed view does, and retires the entry on its own teardown.
-    if (_hardwareBufferPresenter.isEnabled()) {
+    // A view presenting through a FramePresenter owns presentation the same
+    // way a surface-backed view does, and retires the entry on its own
+    // teardown.
+    if (activePresenter() != nullptr) {
       return true;
     }
-#endif
     return _nativeSurface != nullptr || _hasPendingAttach;
   }
 
@@ -359,23 +363,29 @@ public:
     // Start-of-frame boundary; a new acquire supersedes any previous frame
     // that never presented.
     applyPendingAttach(/* supersedeInFlightFrame = */ true);
-#if defined(__ANDROID__)
-    if (_hardwareBufferPresenter.isEnabled()) {
-      // The pool tracks the drawing buffer (_config.width/height, kept in sync
-      // with canvas.width/height by reconfigure()), like the swapchain, so the
-      // canvas texture always matches the app's other attachments.
-      int poolW = 0;
-      int poolH = 0;
+    if (FramePresenter *presenter = activePresenter()) {
+      // The presenter's frames track the drawing buffer (_config.width/height,
+      // kept in sync with canvas.width/height by reconfigure()), like the
+      // swapchain, so the canvas texture always matches the app's other
+      // attachments.
+      int width = 0;
+      int height = 0;
       {
         std::shared_lock<std::shared_mutex> lock(_mutex);
         if (_config.device != nullptr) {
-          poolW = static_cast<int>(_config.width);
-          poolH = static_cast<int>(_config.height);
+          width = static_cast<int>(_config.width);
+          height = static_cast<int>(_config.height);
         }
       }
-      _hardwareBufferPresenter.resize(poolW, poolH);
-      if (auto texture = _hardwareBufferPresenter.getCurrentTexture()) {
+      presenter->resize(width, height);
+      if (auto texture = presenter->getCurrentTexture()) {
         std::unique_lock<std::shared_mutex> lock(_mutex);
+        if (_adoptOffscreenFrame) {
+          // The offscreen frame that was in flight when the blit presenter
+          // took over never presented: it is superseded by this one.
+          _adoptOffscreenFrame = false;
+          _texture = nullptr;
+        }
         _frameInFlight = true;
         _acquiredFromSurface = false;
         _frameEpoch++;
@@ -384,12 +394,11 @@ public:
         }
         return texture;
       }
-      // No slot available (pool not allocated yet, unsupported device, view
-      // detached mid-frame, or a free-slot timeout): fall through to the
-      // offscreen fallback so the render loop survives; this frame is simply
-      // not shown.
+      // The presenter cannot take a frame (pool not allocated yet or
+      // unsupported, view detached mid-frame, a free-slot timeout): fall
+      // through to the offscreen fallback so the render loop survives; this
+      // frame is simply not shown.
     }
-#endif
     std::unique_lock<std::shared_mutex> lock(_mutex);
     if (_config.device == nullptr) {
       throw std::runtime_error(
@@ -436,18 +445,21 @@ public:
   // acquire failure) are dropped. This is also the end-of-frame boundary: it
   // adopts a surface that attached while the frame was in flight.
   void presentFrame() {
-#if defined(__ANDROID__)
-    if (_hardwareBufferPresenter.isEnabled()) {
-      // Ends access on the pool slot and hands it to the fence waiter; the
-      // view picks it up once its render-complete fence signals.
-      _hardwareBufferPresenter.present();
+    FramePresenter *presenter = activePresenter();
+    if (presenter != nullptr) {
+      // Hands the frame to the view, which puts it on screen from the UI
+      // thread. A no-op for a frame that was rendered offscreen.
+      presenter->present();
     }
-#endif
+    // An offscreen frame the blit presenter is waiting for, see enableBlit().
+    wgpu::Texture offscreenFrame;
 #ifdef __APPLE__
     // Ensure command buffers are scheduled before presenting. Read the device
     // under a shared lock, then wait without holding it (the wait can block).
+    // Not needed when a presenter took the frame: it presents later, from
+    // the UI thread, and does its own waiting.
     wgpu::Device device;
-    {
+    if (presenter == nullptr) {
       std::shared_lock<std::shared_mutex> lock(_mutex);
       device = _config.device;
     }
@@ -463,7 +475,14 @@ public:
       _acquiredFromSurface = false;
       _frameInFlight = false;
       _frameEpoch++;
+      if (_adoptOffscreenFrame) {
+        _adoptOffscreenFrame = false;
+        if (_blitPresenter.isEnabled()) {
+          offscreenFrame = std::exchange(_texture, nullptr);
+        }
+      }
     }
+    adoptOffscreenFrame(std::move(offscreenFrame));
     applyPendingAttach();
   }
 
@@ -484,8 +503,9 @@ public:
     return _config;
   }
 
+  // --- Presenter modes (called from the platform view glue) -----------------
+
 #if defined(__ANDROID__)
-  // --- AHB-pool mode (called from the JNI layer, see cpp-adapter.cpp) --------
 
   // Turn on pool mode for this context. dpW/dpH is the canvas-client (dp) size
   // reported to JS via getSize(); the actual buffers are sized in pool px from
@@ -513,13 +533,42 @@ public:
   }
 #endif
 
+  // Turn on blit mode for this context: frames are rendered into textures the
+  // BlitPresenter owns and copied onto the view's surface on the UI thread.
+  // dpW/dpH is the canvas-client (dp) size reported to JS via getSize(). The
+  // latest frame rendered offscreen before this point is handed over so it
+  // shows up without waiting for the next render.
+  void enableBlit(int dpW, int dpH,
+                  BlitPresenter::NativeSurface nativeSurface) {
+    wgpu::Texture offscreenFrame;
+    {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      _width = dpW;
+      _height = dpH;
+      _blitPresenter.enable(std::move(nativeSurface));
+      if (_frameInFlight) {
+        // A frame is being rendered offscreen right now. It keeps its texture
+        // (getCurrentTexture() must not change mid-frame) and is handed over
+        // once it is finished, in presentFrame().
+        _adoptOffscreenFrame = _texture != nullptr;
+      } else {
+        offscreenFrame = std::exchange(_texture, nullptr);
+      }
+    }
+    adoptOffscreenFrame(std::move(offscreenFrame));
+  }
+
+  // The blit presenter itself: the view presents finished frames through it.
+  BlitPresenter &blitPresenter() { return _blitPresenter; }
+
 private:
   void detach(bool createFallbackTexture) {
     void *releasedSurfaces[2] = {nullptr, nullptr};
     NativeSurfaceReleaser releasers[2];
+    // Destroyed outside the lock: they hold references to the view.
+    BlitPresenter::Disabled releasedBlit;
 #if defined(__ANDROID__)
-    // Destroyed outside the lock: it releases a JNI reference.
-    std::function<void()> releasedFrameReady;
+    HardwareBufferPresenter::Callbacks releasedPoolCallbacks;
 #endif
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
@@ -528,13 +577,32 @@ private:
       // pool. A configured context keeps rendering into the offscreen
       // fallback, exactly like the surface path.
       if (_hardwareBufferPresenter.isEnabled()) {
-        releasedFrameReady = _hardwareBufferPresenter.disable();
+        releasedPoolCallbacks = _hardwareBufferPresenter.disable();
         if (createFallbackTexture && _config.device != nullptr && !_texture) {
           _texture = createOffscreenTextureLocked();
         }
         _frameEpoch++;
       }
 #endif
+      // Leaving blit mode (the view's surface went away). The presenter's
+      // latest frame becomes the offscreen one, so the next surface or
+      // presenter shows it without waiting for a render.
+      if (_blitPresenter.isEnabled()) {
+        releasedBlit = _blitPresenter.disable();
+        _adoptOffscreenFrame = false;
+        if (createFallbackTexture && _config.device != nullptr) {
+          auto &frame = releasedBlit.lastFrame;
+          // Only a frame at the current drawing buffer size can be rendered
+          // into again.
+          if (frame && frame.GetWidth() == _config.width &&
+              frame.GetHeight() == _config.height) {
+            _texture = std::move(frame);
+          } else if (!_texture) {
+            _texture = createOffscreenTextureLocked();
+          }
+        }
+        _frameEpoch++;
+      }
       // The platform is tearing surfaces down; a not-yet-adopted attach is
       // stale, cancel it.
       if (_hasPendingAttach) {
@@ -569,6 +637,36 @@ private:
       if (releasers[i] && releasedSurfaces[i]) {
         releasers[i](releasedSurfaces[i]);
       }
+    }
+  }
+
+  // The presenter frames currently go to, or null in swapchain / offscreen
+  // mode. A view enables its own presenter and disables it on the way out, so
+  // at most one is enabled at a time.
+  FramePresenter *activePresenter() {
+#if defined(__ANDROID__)
+    if (_hardwareBufferPresenter.isEnabled()) {
+      return &_hardwareBufferPresenter;
+    }
+#endif
+    if (_blitPresenter.isEnabled()) {
+      return &_blitPresenter;
+    }
+    return nullptr;
+  }
+
+  // Hands a finished offscreen frame to the blit presenter. Must be called
+  // without _mutex: adopting wakes the view. If the presenter went away in the
+  // meantime, the frame goes back to being the offscreen one.
+  void adoptOffscreenFrame(wgpu::Texture frame) {
+    if (!frame || _blitPresenter.adoptFrame(frame)) {
+      return;
+    }
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (!_texture && _config.device != nullptr &&
+        frame.GetWidth() == _config.width &&
+        frame.GetHeight() == _config.height) {
+      _texture = std::move(frame);
     }
   }
 
@@ -754,11 +852,18 @@ private:
   int _width;
   int _height;
 
+  // The presentation modes that hand finished frames to the view instead of
+  // presenting a swapchain from the rendering thread: the copy onto the view's
+  // surface (BlitPresenter) and, on Android, the AHB pool
+  // (WebGPUHardwareBufferView). Each has its own mutex, taken after _mutex and
+  // never while blocking in getCurrentTexture().
+  BlitPresenter _blitPresenter;
 #if defined(__ANDROID__)
-  // The AHB-pool presentation mode (WebGPUHardwareBufferView). It has its own
-  // mutex, taken after _mutex and never while blocking for a free slot.
   HardwareBufferPresenter _hardwareBufferPresenter;
 #endif
+  // The frame in flight when blit mode was enabled is rendering into _texture;
+  // presentFrame() hands it to the blit presenter once it is finished.
+  bool _adoptOffscreenFrame = false;
 };
 
 class SurfaceRegistry {

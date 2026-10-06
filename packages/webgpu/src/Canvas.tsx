@@ -64,6 +64,8 @@ export interface AndroidCanvasProps {
   zOrderOnTop?: boolean;
 }
 
+export type CanvasPresentation = "direct" | "copy";
+
 export interface CanvasProps extends ViewProps {
   /**
    * Defaults to true. Set to false to alpha-composite the canvas over the
@@ -73,6 +75,18 @@ export interface CanvasProps extends ViewProps {
   opaque?: boolean;
   /** Android-only rendering options. Ignored on iOS and web. */
   android?: AndroidCanvasProps;
+  /**
+   * Experimental. How finished frames reach the screen. `"direct"` (the
+   * default) lets the thread that renders present the native swapchain.
+   * `"copy"` renders into textures the canvas owns and has the UI thread copy
+   * the latest one onto the native surface, at most once per display
+   * refresh: one extra copy per frame, and the swapchain is only ever used
+   * from the UI thread. On Android it selects a `TextureView` and takes
+   * precedence over `android.surfaceType`. Ignored on macOS and web. Best set
+   * when the canvas mounts: switching a mounted canvas to `"copy"` leaves it
+   * empty until the next frame is rendered.
+   */
+  presentation?: CanvasPresentation;
   ref?: React.Ref<CanvasRef>;
 }
 
@@ -90,6 +104,7 @@ const resolveSurfaceType = (
 export const Canvas = ({
   opaque = true,
   android,
+  presentation,
   ref,
   ...props
 }: CanvasProps) => {
@@ -140,6 +155,7 @@ export const Canvas = ({
         opaque={opaque}
         androidSurfaceType={resolveSurfaceType(android?.surfaceType)}
         androidZOrderOnTop={!!android?.zOrderOnTop}
+        presentation={presentation === "copy" ? "copy" : "direct"}
       />
     </View>
   );

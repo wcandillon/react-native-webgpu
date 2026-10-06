@@ -59,11 +59,20 @@ type Mode = "raw" | "three";
 interface SceneProps {
   mode: Mode;
   opaque: boolean;
+  view: AndroidView;
   unconfigureFirst: boolean;
   append: (line: string) => void;
 }
 
-const RawScene = ({ opaque, unconfigureFirst, append }: SceneProps) => {
+// Android backing views for the raw scene. "hardware buffer" presents through
+// the AHardwareBuffer pool; "copy" asks for the same view with an rgba16float
+// canvas, which hardware buffers cannot back, so it ends up on the view that
+// presents with a copy. Both keep frames that belong to the device (and the
+// copy one its own swapchain), which must be dropped before the device dies.
+const ANDROID_VIEWS = ["auto", "hardware buffer", "copy"] as const;
+type AndroidView = (typeof ANDROID_VIEWS)[number];
+
+const RawScene = ({ opaque, view, unconfigureFirst, append }: SceneProps) => {
   const ref = useRef<CanvasRef>(null);
 
   useEffect(() => {
@@ -84,7 +93,7 @@ const RawScene = ({ opaque, unconfigureFirst, append }: SceneProps) => {
       ctx = ref.current.getContext("webgpu")!;
       ctx.configure({
         device,
-        format: gpu.format,
+        format: view === "copy" ? "rgba16float" : gpu.format,
         alphaMode: "premultiplied",
       });
       append("rendering, now unmount the canvas");
@@ -120,9 +129,18 @@ const RawScene = ({ opaque, unconfigureFirst, append }: SceneProps) => {
       device.destroy();
       append("cleanup done, the native view is dropped next frame");
     };
-  }, [append, unconfigureFirst]);
+  }, [append, unconfigureFirst, view]);
 
-  return <Canvas ref={ref} style={diagnosticStyles.canvas} opaque={opaque} />;
+  return (
+    <Canvas
+      ref={ref}
+      style={diagnosticStyles.canvas}
+      opaque={opaque}
+      android={
+        view === "auto" ? undefined : { surfaceType: "HardwareBufferView" }
+      }
+    />
+  );
 };
 
 const ThreeScene = ({ opaque, append }: SceneProps) => {
@@ -189,6 +207,7 @@ export const DeviceDestroyBeforeDetach = () => {
   const [mounted, setMounted] = useState(true);
   const [mode, setMode] = useState<Mode>("raw");
   const [opaque, setOpaque] = useState(true);
+  const [view, setView] = useState<AndroidView>("auto");
   const [unconfigureFirst, setUnconfigureFirst] = useState(false);
   const Scene = mode === "raw" ? RawScene : ThreeScene;
 
@@ -222,6 +241,20 @@ export const DeviceDestroyBeforeDetach = () => {
           </Text>
         </View>
         {mode === "raw" ? (
+          <Button
+            title={`Android view: ${view}`}
+            disabled={mounted}
+            onPress={() =>
+              setView(
+                (v) =>
+                  ANDROID_VIEWS[
+                    (ANDROID_VIEWS.indexOf(v) + 1) % ANDROID_VIEWS.length
+                  ],
+              )
+            }
+          />
+        ) : null}
+        {mode === "raw" ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Switch
               value={unconfigureFirst}
@@ -238,6 +271,7 @@ export const DeviceDestroyBeforeDetach = () => {
         <Scene
           mode={mode}
           opaque={opaque}
+          view={view}
           unconfigureFirst={unconfigureFirst}
           append={append}
         />
