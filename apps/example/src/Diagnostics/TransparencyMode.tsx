@@ -7,7 +7,11 @@ import {
   Text,
   View,
 } from "react-native";
-import type { AndroidCanvasProps, CanvasRef } from "react-native-webgpu";
+import type {
+  AndroidCanvasProps,
+  CanvasMode,
+  CanvasRef,
+} from "react-native-webgpu";
 import { Canvas } from "react-native-webgpu";
 
 import {
@@ -18,17 +22,28 @@ import {
 } from "./surfaceLifecycle";
 
 // Exercises every Android backing-view combination on one mounted Canvas:
-// opaque toggles in place, surfaceType/zOrderOnTop replace the child view and
-// blit the last frame across. Half-transparent red is cleared over a blue
-// stage with a yellow RN overlay on top:
+// opaque toggles in place, surfaceType/zOrderOnTop/mode replace the child
+// view and carry the last frame across. Half-transparent red is cleared over
+// a blue stage with a yellow RN overlay on top:
 // - opaque: solid red, overlay visible.
 // - non-opaque TextureView (default): pink, overlay visible.
 // - non-opaque HardwareBufferView (opt-in, Android 10+): pink, overlay
 //   visible. Requesting it on an older device falls back to TextureView.
+//   Hardware buffers are rgba8unorm: with the format toggle on rgba16float,
+//   the view is replaced at runtime by the one that presents with a copy
+//   (WebGPUBlitTextureView) and looks the same. The replacement sticks until
+//   another view is selected.
 // - non-opaque SurfaceView: blends against the window background (black),
 //   overlay visible only with zOrderOnTop off (the surface sits below it).
 // - non-opaque SurfaceView + zOrderOnTop: pink, overlay hidden underneath.
-const OPTIONS: { label: string; android?: AndroidCanvasProps }[] = [
+// - swapchain (mode="swapchain", also on iOS): same look as "auto", but the
+//   rendering thread presents the view's swapchain itself instead of the UI
+//   thread copying each frame onto it.
+const OPTIONS: {
+  label: string;
+  android?: AndroidCanvasProps;
+  mode?: CanvasMode;
+}[] = [
   { label: "auto" },
   { label: "hardware buffer", android: { surfaceType: "HardwareBufferView" } },
   { label: "texture", android: { surfaceType: "TextureView" } },
@@ -37,6 +52,7 @@ const OPTIONS: { label: string; android?: AndroidCanvasProps }[] = [
     label: "surface on top",
     android: { surfaceType: "SurfaceView", zOrderOnTop: true },
   },
+  { label: "swapchain", mode: "swapchain" },
 ];
 
 const CLEAR_COLOR: GPUColor = [0.5, 0, 0, 0.5];
@@ -47,6 +63,10 @@ export const TransparencyMode = () => {
   const [option, setOption] = useState(OPTIONS[0]);
   const [opaque, setOpaque] = useState(false);
   const [mounted, setMounted] = useState(true);
+  const [float16, setFloat16] = useState(false);
+  // One device per mounted canvas: toggling the format reconfigures the same
+  // context with the same device.
+  const gpu = useRef<ReturnType<typeof initGPU> | null>(null);
   const [taps, setTaps] = useState(0);
 
   useEffect(() => {
@@ -56,9 +76,17 @@ export const TransparencyMode = () => {
     let running = true;
     let frame = 0;
     (async () => {
-      const { device, format } = await initGPU(append);
+      gpu.current ??= initGPU(append);
+      const { device, format } = await gpu.current;
+      if (!running) {
+        return;
+      }
       const ctx = ref.current!.getContext("webgpu")!;
-      ctx.configure({ device, format, alphaMode: "premultiplied" });
+      ctx.configure({
+        device,
+        format: float16 ? "rgba16float" : format,
+        alphaMode: "premultiplied",
+      });
       const tick = () => {
         if (!running) {
           return;
@@ -77,7 +105,13 @@ export const TransparencyMode = () => {
     return () => {
       running = false;
     };
-  }, [append, mounted]);
+  }, [append, mounted, float16]);
+
+  useEffect(() => {
+    if (!mounted) {
+      gpu.current = null;
+    }
+  }, [mounted]);
 
   return (
     <View style={diagnosticStyles.container}>
@@ -109,9 +143,15 @@ export const TransparencyMode = () => {
             title={mounted ? "hide canvas" : "show canvas"}
             onPress={() => setMounted((value) => !value)}
           />
+          <Button
+            testID="toggle-format"
+            title={`format: ${float16 ? "rgba16float" : "preferred"}`}
+            onPress={() => setFloat16((value) => !value)}
+          />
         </View>
         <Text testID="view-status" style={diagnosticStyles.description}>
-          view: {option.label} opaque: {String(opaque)} overlay taps: {taps}
+          view: {option.label} opaque: {String(opaque)} format:{" "}
+          {float16 ? "rgba16float" : "preferred"} overlay taps: {taps}
         </Text>
       </View>
       <View style={styles.stage}>
@@ -121,6 +161,7 @@ export const TransparencyMode = () => {
             style={diagnosticStyles.canvas}
             opaque={opaque}
             android={option.android}
+            mode={option.mode}
           />
         )}
         <Pressable

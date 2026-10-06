@@ -13,6 +13,7 @@ export interface NativeProps extends ViewProps {
     "auto"
   >;
   androidZOrderOnTop?: WithDefault<boolean, false>;
+  mode?: WithDefault<"canvas" | "swapchain", "canvas">;
 }
 
 // eslint-disable-next-line import/no-default-export

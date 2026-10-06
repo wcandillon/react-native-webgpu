@@ -135,4 +135,6 @@ dependencies {
   // For > 0.71, this will be replaced by `com.facebook.react:react-android:$version` by react gradle plugin
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
+  // FrameSchedulerTest (src/test), run with :react-native-webgpu:testDebugUnitTest.
+  testImplementation "junit:junit:4.13.2"
 }

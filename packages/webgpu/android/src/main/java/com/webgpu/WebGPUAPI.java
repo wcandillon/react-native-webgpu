@@ -23,5 +23,12 @@ public interface WebGPUAPI {
 
   void surfaceOffscreen();
 
+  /**
+   * The hardware buffer view cannot present this canvas (see
+   * WebGPUHardwareBufferView.onNativeUnsupported): replace it with a view that
+   * presents with a copy.
+   */
+  void hardwareBufferUnavailable();
+
   int getContextId();
 }

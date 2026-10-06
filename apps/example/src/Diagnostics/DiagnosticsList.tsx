@@ -53,6 +53,10 @@ const tests = [
     screen: "DeviceDestroyBeforeDetach",
     title: "⚠️ Device Destroy Before Detach",
   },
+  {
+    screen: "FramePacing",
+    title: "📈 Frame Pacing",
+  },
 ] as const;
 
 export const DiagnosticsList = () => {

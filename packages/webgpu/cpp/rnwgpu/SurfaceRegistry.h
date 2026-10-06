@@ -1,29 +1,23 @@
 #pragma once
 
 #include <algorithm>
-#include <atomic>
-#include <cerrno>
-#include <chrono>
-#include <condition_variable>
 #include <cstdint>
-#include <deque>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
 #include <stdexcept>
-#include <thread>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "BlitPresenter.h"
+#include "FramePresenter.h"
+
 #if defined(__ANDROID__)
-#include <android/hardware_buffer.h>
-#include <android/log.h>
-#include <poll.h>
-#include <unistd.h>
+#include "HardwareBufferPresenter.h"
 #endif
 
 #ifdef __APPLE__
@@ -57,64 +51,6 @@ struct Size {
 // (ANativeWindow_release on Android, CFBridgingRelease of the retained
 // CAMetalLayer on Apple platforms). May run on any thread.
 using NativeSurfaceReleaser = std::function<void(void *)>;
-
-#if defined(__ANDROID__)
-// --- AHB-pool presentation mode (WebGPUHardwareBufferView)
-// -----------------------------
-//
-// A third presentation backend (besides the on-screen wgpu::Surface swapchain
-// and the offscreen texture). WebGPU renders into a small pool of native
-// AHardwareBuffers imported as Dawn SharedTextureMemory; the view draws each
-// finished buffer inline via Bitmap.wrapHardwareBuffer so it behaves like a
-// normal RN view. The pool is sized from the JS canvas drawing buffer
-// (_canvas->getWidth()/Height()) and reallocated when that changes, exactly
-// like the swapchain, so the canvas texture always matches the app's other
-// attachments (e.g. its depth texture).
-
-#define RNWGPU_LOG_TAG "WebGPUHardwareBufferView"
-// Failure / anomaly reporting only (never per-frame).
-#define RNWGPU_POOL_WARN(...)                                                  \
-  __android_log_print(ANDROID_LOG_WARN, RNWGPU_LOG_TAG, __VA_ARGS__)
-
-enum class SlotState : uint8_t {
-  Free,      // available for poolGetCurrentTexture
-  Rendering, // BeginAccess done, JS rendering into it
-  Presented, // EndAccess done, fence(s) queued for the waiter
-  Ready,     // fence signaled, awaiting UI pickup
-  Displayed, // handed to the consumer, held until released (held-ring)
-};
-
-struct PoolSlot {
-  AHardwareBuffer *ahb = nullptr; // owned by the pool (allocated natively)
-  wgpu::SharedTextureMemory memory = nullptr;
-  wgpu::Texture texture = nullptr;
-  SlotState state = SlotState::Free;
-};
-
-// One generation of the pool (one buffer size). Reference-counted (shared_ptr)
-// so an in-flight render / present / ready slot keeps the whole generation
-// alive across a resize. The destructor frees every AHB and tears down the Dawn
-// imports. The Java side keeps its own ref (via wrapHardwareBuffer) for
-// anything it is still drawing, so a generation can be freed here without
-// disturbing a frame still on screen.
-struct AHBPool {
-  std::vector<PoolSlot> slots;
-  uint32_t generation = 0;
-  int width = 0;
-  int height = 0;
-
-  ~AHBPool() {
-    for (auto &slot : slots) {
-      slot.texture = nullptr;
-      slot.memory = nullptr;
-      if (slot.ahb != nullptr) {
-        AHardwareBuffer_release(slot.ahb);
-        slot.ahb = nullptr;
-      }
-    }
-  }
-};
-#endif
 
 // Bridges the asynchronous native surface lifecycle (surfaces appear and
 // disappear on the platform UI thread) with the synchronous WebGPU canvas API
@@ -151,16 +87,12 @@ public:
       : _gpu(std::move(gpu)), _width(width), _height(height) {}
 
   ~SurfaceInfo() {
+    // Free the presenters' frames (and stop the fence waiter) before anything
+    // else goes away.
 #if defined(__ANDROID__)
-    // Stop the fence waiter before any pool generation is freed.
-    stopWaiter();
-    {
-      std::lock_guard<std::mutex> poolLock(_poolMutex);
-      _presentQueue.clear();
-      poolResetLocked();
-      _poolDevice = nullptr;
-    }
+    _hardwareBufferPresenter.shutdown();
 #endif
+    _blitPresenter.disable();
     // Drop the Dawn objects before releasing the native surfaces they borrow.
     _surface = nullptr;
 #if defined(__ANDROID__)
@@ -333,19 +265,9 @@ public:
     _texture = nullptr;
     _frameEpoch++;
 #if defined(__ANDROID__)
-    {
-      std::lock_guard<std::mutex> poolLock(_poolMutex);
-      if (_poolDevice.Get() != _config.device.Get()) {
-        // Buffers imported for another device cannot be reused.
-        poolResetLocked();
-      }
-      _poolDevice = _config.device;
-      _poolFormat = _config.format;
-      _poolUsage = _config.usage;
-      // A new device may support AHB sharing even if the previous one did not.
-      _poolUnsupported = false;
-    }
+    _hardwareBufferPresenter.configure(_config);
 #endif
+    _blitPresenter.configure(_config);
     _configureLocked();
   }
 
@@ -373,12 +295,9 @@ public:
     _acquiredFromSurface = false;
     _frameEpoch++;
 #if defined(__ANDROID__)
-    {
-      std::lock_guard<std::mutex> poolLock(_poolMutex);
-      poolResetLocked();
-      _poolDevice = nullptr;
-    }
+    _hardwareBufferPresenter.unconfigure();
 #endif
+    _blitPresenter.unconfigure();
   }
 
   bool isConfigured() {
@@ -404,18 +323,12 @@ public:
   // scripts/install-dawn.ts fails the install when the Dawn pin changes so
   // that decision is not forgotten.
   void releaseSurfaceForDevice(const wgpu::Device &device) {
-#if defined(__ANDROID__)
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    {
-      // The pool's SharedTextureMemory imports belong to the device too: drop
-      // them while it is alive. The next getCurrentTexture() after a configure
-      // with a live device reallocates the pool.
-      std::lock_guard<std::mutex> poolLock(_poolMutex);
-      if (_poolDevice && _poolDevice.Get() == device.Get()) {
-        poolResetLocked();
-        _poolDevice = nullptr;
-      }
-    }
+    // The presenters' frames (and the blit presenter's own swapchain) belong
+    // to the device too: drop them while it is alive.
+    _blitPresenter.releaseForDevice(device);
+#if defined(__ANDROID__)
+    _hardwareBufferPresenter.releaseForDevice(device);
     if (!_surface || !_surfaceDevice || _surfaceDevice.Get() != device.Get()) {
       return;
     }
@@ -423,8 +336,6 @@ public:
     // configuring against it would only raise a validation error. The next
     // configure() from JS (or a surface re-attach) configures it.
     recreateSurfaceLocked();
-#else
-    (void)device;
 #endif
   }
 
@@ -434,13 +345,12 @@ public:
   // otherwise (see RNWebGPU::destroyContext).
   bool hasNativeSurface() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
-#if defined(__ANDROID__)
-    // A WebGPUHardwareBufferView in pool mode owns presentation the same way a
-    // surface-backed view does, and retires the entry on its own teardown.
-    if (_poolMode.load()) {
+    // A view presenting through a FramePresenter owns presentation the same
+    // way a surface-backed view does, and retires the entry on its own
+    // teardown.
+    if (activePresenter() != nullptr) {
       return true;
     }
-#endif
     return _nativeSurface != nullptr || _hasPendingAttach;
   }
 
@@ -453,23 +363,29 @@ public:
     // Start-of-frame boundary; a new acquire supersedes any previous frame
     // that never presented.
     applyPendingAttach(/* supersedeInFlightFrame = */ true);
-#if defined(__ANDROID__)
-    if (_poolMode.load()) {
-      // The pool tracks the drawing buffer (_config.width/height, kept in sync
-      // with canvas.width/height by reconfigure()), like the swapchain, so the
-      // canvas texture always matches the app's other attachments.
-      int poolW = 0;
-      int poolH = 0;
+    if (FramePresenter *presenter = activePresenter()) {
+      // The presenter's frames track the drawing buffer (_config.width/height,
+      // kept in sync with canvas.width/height by reconfigure()), like the
+      // swapchain, so the canvas texture always matches the app's other
+      // attachments.
+      int width = 0;
+      int height = 0;
       {
         std::shared_lock<std::shared_mutex> lock(_mutex);
         if (_config.device != nullptr) {
-          poolW = static_cast<int>(_config.width);
-          poolH = static_cast<int>(_config.height);
+          width = static_cast<int>(_config.width);
+          height = static_cast<int>(_config.height);
         }
       }
-      poolResize(poolW, poolH);
-      if (auto texture = poolGetCurrentTexture()) {
+      presenter->resize(width, height);
+      if (auto texture = presenter->getCurrentTexture()) {
         std::unique_lock<std::shared_mutex> lock(_mutex);
+        if (_adoptOffscreenFrame) {
+          // The offscreen frame that was in flight when the blit presenter
+          // took over never presented: it is superseded by this one.
+          _adoptOffscreenFrame = false;
+          _texture = nullptr;
+        }
         _frameInFlight = true;
         _acquiredFromSurface = false;
         _frameEpoch++;
@@ -478,12 +394,11 @@ public:
         }
         return texture;
       }
-      // No slot available (pool not allocated yet, unsupported device, view
-      // detached mid-frame, or a free-slot timeout): fall through to the
-      // offscreen fallback so the render loop survives; this frame is simply
-      // not shown.
+      // The presenter cannot take a frame (pool not allocated yet or
+      // unsupported, view detached mid-frame, a free-slot timeout): fall
+      // through to the offscreen fallback so the render loop survives; this
+      // frame is simply not shown.
     }
-#endif
     std::unique_lock<std::shared_mutex> lock(_mutex);
     if (_config.device == nullptr) {
       throw std::runtime_error(
@@ -530,18 +445,21 @@ public:
   // acquire failure) are dropped. This is also the end-of-frame boundary: it
   // adopts a surface that attached while the frame was in flight.
   void presentFrame() {
-#if defined(__ANDROID__)
-    if (_poolMode.load()) {
-      // Ends access on the pool slot and hands it to the fence waiter; the
-      // view picks it up once its render-complete fence signals.
-      poolPresent();
+    FramePresenter *presenter = activePresenter();
+    if (presenter != nullptr) {
+      // Hands the frame to the view, which puts it on screen from the UI
+      // thread. A no-op for a frame that was rendered offscreen.
+      presenter->present();
     }
-#endif
+    // An offscreen frame the blit presenter is waiting for, see enableBlit().
+    wgpu::Texture offscreenFrame;
 #ifdef __APPLE__
     // Ensure command buffers are scheduled before presenting. Read the device
     // under a shared lock, then wait without holding it (the wait can block).
+    // Not needed when a presenter took the frame: it presents later, from
+    // the UI thread, and does its own waiting.
     wgpu::Device device;
-    {
+    if (presenter == nullptr) {
       std::shared_lock<std::shared_mutex> lock(_mutex);
       device = _config.device;
     }
@@ -557,7 +475,14 @@ public:
       _acquiredFromSurface = false;
       _frameInFlight = false;
       _frameEpoch++;
+      if (_adoptOffscreenFrame) {
+        _adoptOffscreenFrame = false;
+        if (_blitPresenter.isEnabled()) {
+          offscreenFrame = std::exchange(_texture, nullptr);
+        }
+      }
     }
+    adoptOffscreenFrame(std::move(offscreenFrame));
     applyPendingAttach();
   }
 
@@ -578,21 +503,20 @@ public:
     return _config;
   }
 
+  // --- Presenter modes (called from the platform view glue) -----------------
+
 #if defined(__ANDROID__)
-  // --- AHB-pool API (called from the JNI layer, see cpp-adapter.cpp) ---------
 
   // Turn on pool mode for this context. dpW/dpH is the canvas-client (dp) size
   // reported to JS via getSize(); the actual buffers are sized in pool px from
-  // the canvas drawing buffer in poolResize().
+  // the canvas drawing buffer in HardwareBufferPresenter::resize().
   void enablePool(int dpW, int dpH) {
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
       _width = dpW;
       _height = dpH;
     }
-    std::lock_guard<std::mutex> poolLock(_poolMutex);
-    _poolMode.store(true);
-    _shutdown = false;
+    _hardwareBufferPresenter.enable();
   }
 
   // Set the canvas-client (dp) size without changing pool mode. Keeps getSize()
@@ -603,103 +527,48 @@ public:
     _height = dpH;
   }
 
-  // (Re)allocate the pool to match the canvas drawing buffer (px). Called from
-  // getCurrentTexture() on the rendering thread before acquiring a slot, so the
-  // canvas texture size always tracks the app's other attachments.
-  void poolResize(int pxW, int pxH) {
-    std::lock_guard<std::mutex> poolLock(_poolMutex);
-    if (!_poolMode.load() || _poolDevice == nullptr || pxW <= 0 || pxH <= 0) {
-      return;
-    }
-    if (_pool != nullptr && _pool->width == pxW && _pool->height == pxH) {
-      return;
-    }
-    if (_poolUnsupported) {
-      return;
-    }
-    if (!_poolDevice.HasFeature(
-            wgpu::FeatureName::SharedTextureMemoryAHardwareBuffer)) {
-      _poolUnsupported = true;
-      RNWGPU_POOL_WARN("device lacks SharedTextureMemoryAHardwareBuffer; the "
-                       "transparent canvas cannot present and stays blank");
-      return;
-    }
-    auto pool = allocatePoolLocked(pxW, pxH);
-    if (pool == nullptr) {
-      return;
-    }
-    _pool = pool;
-    _pools[pool->generation] = pool;
-    // Keep current + previous generation (in-flight frames of the previous size
-    // may still be on screen during the cross-fade); drop anything older.
-    for (auto it = _pools.begin(); it != _pools.end();) {
-      if (it->first + 1 < pool->generation) {
-        it = _pools.erase(it);
-      } else {
-        ++it;
-      }
-    }
-    _freeCv.notify_all();
-  }
-
-  // Latest signaled frame awaiting display, encoded as (generation << 32 |
-  // slot). Returns -1 when there is nothing new. Marks the slot Displayed so
-  // the producer will not re-render into it until releaseSlot() is called.
-  // Called on the UI thread after the frame-ready wake-up.
-  int64_t poolPollReady() {
-    std::lock_guard<std::mutex> poolLock(_poolMutex);
-    if (_readySlot < 0 || _readyPool == nullptr) {
-      return -1;
-    }
-    int idx = _readySlot;
-    uint32_t gen = _readyPool->generation;
-    _readyPool->slots[idx].state = SlotState::Displayed;
-    _readyPool = nullptr;
-    _readySlot = -1;
-    return (static_cast<int64_t>(gen) << 32) | static_cast<uint32_t>(idx);
-  }
-
-  // The AHardwareBuffer backing a (generation, slot), for the consumer to wrap
-  // in a Bitmap. Returns nullptr for a retired generation. Called on the UI
-  // thread; the JNI layer converts it to a HardwareBuffer jobject.
-  void *poolBufferForDisplay(uint32_t gen, int slot) {
-    std::lock_guard<std::mutex> poolLock(_poolMutex);
-    auto it = _pools.find(gen);
-    if (it == _pools.end() || slot < 0 ||
-        slot >= static_cast<int>(it->second->slots.size())) {
-      return nullptr;
-    }
-    return it->second->slots[slot].ahb;
-  }
-
-  // The consumer is done displaying (and holding) a slot: return it to the free
-  // list so the producer may render into it again. No-op for a retired
-  // generation (those buffers are never reused). Called on the UI thread.
-  void poolReleaseSlot(uint32_t gen, int idx) {
-    std::lock_guard<std::mutex> poolLock(_poolMutex);
-    if (_pool != nullptr && _pool->generation == gen && idx >= 0 &&
-        idx < static_cast<int>(_pool->slots.size())) {
-      _pool->slots[idx].state = SlotState::Free;
-      _freeCv.notify_one();
-    }
-  }
-
-  // Invoked from the waiter thread (never under _poolMutex) each time a new
-  // frame becomes ready, so the consumer can wake up instead of polling every
-  // vsync. Pass nullptr to unregister.
-  void setPoolFrameReadyCallback(std::function<void()> cb) {
-    std::lock_guard<std::mutex> poolLock(_poolMutex);
-    _poolFrameReady = std::move(cb);
+  // The pool itself: the view consumes finished frames from it directly.
+  HardwareBufferPresenter &hardwareBufferPresenter() {
+    return _hardwareBufferPresenter;
   }
 #endif
+
+  // Turn on blit mode for this context: frames are rendered into textures the
+  // BlitPresenter owns and copied onto the view's surface on the UI thread.
+  // dpW/dpH is the canvas-client (dp) size reported to JS via getSize(). The
+  // latest frame rendered offscreen before this point is handed over so it
+  // shows up without waiting for the next render.
+  void enableBlit(int dpW, int dpH,
+                  BlitPresenter::NativeSurface nativeSurface) {
+    wgpu::Texture offscreenFrame;
+    {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      _width = dpW;
+      _height = dpH;
+      _blitPresenter.enable(std::move(nativeSurface));
+      if (_frameInFlight) {
+        // A frame is being rendered offscreen right now. It keeps its texture
+        // (getCurrentTexture() must not change mid-frame) and is handed over
+        // once it is finished, in presentFrame().
+        _adoptOffscreenFrame = _texture != nullptr;
+      } else {
+        offscreenFrame = std::exchange(_texture, nullptr);
+      }
+    }
+    adoptOffscreenFrame(std::move(offscreenFrame));
+  }
+
+  // The blit presenter itself: the view presents finished frames through it.
+  BlitPresenter &blitPresenter() { return _blitPresenter; }
 
 private:
   void detach(bool createFallbackTexture) {
     void *releasedSurfaces[2] = {nullptr, nullptr};
     NativeSurfaceReleaser releasers[2];
+    // Destroyed outside the lock: they hold references to the view.
+    BlitPresenter::Disabled releasedBlit;
 #if defined(__ANDROID__)
-    // Destroyed outside the lock: it releases a JNI reference.
-    std::function<void()> releasedFrameReady;
+    HardwareBufferPresenter::Callbacks releasedPoolCallbacks;
 #endif
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
@@ -707,32 +576,33 @@ private:
       // Leaving pool mode (the WebGPUHardwareBufferView detached): drop the
       // pool. A configured context keeps rendering into the offscreen
       // fallback, exactly like the surface path.
-      if (_poolMode.load()) {
-        _poolMode.store(false);
-        {
-          std::lock_guard<std::mutex> poolLock(_poolMutex);
-          // A frame between getCurrentTexture and present still has an open
-          // BeginAccess; end it and queue it so the waiter drains its fences
-          // before the generation is freed (presentFrame() no-ops for it
-          // because pool mode is already off).
-          if (_renderPool != nullptr && _currentRenderSlot >= 0 &&
-              _renderPool->slots[_currentRenderSlot].state ==
-                  SlotState::Rendering) {
-            poolQueuePresentLocked();
-          }
-          // _presentQueue is intentionally left alone: the waiter still has
-          // to wait on the queued fences before the generations they pin can
-          // be released; it discards them on publish (no live pool).
-          poolResetLocked();
-          releasedFrameReady = std::move(_poolFrameReady);
-          _poolFrameReady = nullptr;
-        }
+      if (_hardwareBufferPresenter.isEnabled()) {
+        releasedPoolCallbacks = _hardwareBufferPresenter.disable();
         if (createFallbackTexture && _config.device != nullptr && !_texture) {
           _texture = createOffscreenTextureLocked();
         }
         _frameEpoch++;
       }
 #endif
+      // Leaving blit mode (the view's surface went away). The presenter's
+      // latest frame becomes the offscreen one, so the next surface or
+      // presenter shows it without waiting for a render.
+      if (_blitPresenter.isEnabled()) {
+        releasedBlit = _blitPresenter.disable();
+        _adoptOffscreenFrame = false;
+        if (createFallbackTexture && _config.device != nullptr) {
+          auto &frame = releasedBlit.lastFrame;
+          // Only a frame at the current drawing buffer size can be rendered
+          // into again.
+          if (frame && frame.GetWidth() == _config.width &&
+              frame.GetHeight() == _config.height) {
+            _texture = std::move(frame);
+          } else if (!_texture) {
+            _texture = createOffscreenTextureLocked();
+          }
+        }
+        _frameEpoch++;
+      }
       // The platform is tearing surfaces down; a not-yet-adopted attach is
       // stale, cancel it.
       if (_hasPendingAttach) {
@@ -767,6 +637,36 @@ private:
       if (releasers[i] && releasedSurfaces[i]) {
         releasers[i](releasedSurfaces[i]);
       }
+    }
+  }
+
+  // The presenter frames currently go to, or null in swapchain / offscreen
+  // mode. A view enables its own presenter and disables it on the way out, so
+  // at most one is enabled at a time.
+  FramePresenter *activePresenter() {
+#if defined(__ANDROID__)
+    if (_hardwareBufferPresenter.isEnabled()) {
+      return &_hardwareBufferPresenter;
+    }
+#endif
+    if (_blitPresenter.isEnabled()) {
+      return &_blitPresenter;
+    }
+    return nullptr;
+  }
+
+  // Hands a finished offscreen frame to the blit presenter. Must be called
+  // without _mutex: adopting wakes the view. If the presenter went away in the
+  // meantime, the frame goes back to being the offscreen one.
+  void adoptOffscreenFrame(wgpu::Texture frame) {
+    if (!frame || _blitPresenter.adoptFrame(frame)) {
+      return;
+    }
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (!_texture && _config.device != nullptr &&
+        frame.GetWidth() == _config.width &&
+        frame.GetHeight() == _config.height) {
+      _texture = std::move(frame);
     }
   }
 
@@ -906,281 +806,6 @@ private:
   }
 #endif
 
-#if defined(__ANDROID__)
-  // Drop every pool generation and the ready / in-flight slot bookkeeping.
-  // Caller holds _poolMutex. Generations pinned by a queued present survive
-  // through their PendingPresent until the waiter is done with them.
-  void poolResetLocked() {
-    _pool = nullptr;
-    _pools.clear();
-    _readyPool = nullptr;
-    _readySlot = -1;
-    _renderPool = nullptr;
-    _currentRenderSlot = -1;
-    _freeCv.notify_all();
-  }
-
-  // Allocate + import one generation of the pool. Caller holds _poolMutex.
-  std::shared_ptr<AHBPool> allocatePoolLocked(int w, int h) {
-    auto pool = std::make_shared<AHBPool>();
-    pool->generation = ++_genCounter;
-    pool->width = w;
-    pool->height = h;
-    pool->slots.resize(kPoolSize);
-    for (auto &slot : pool->slots) {
-      AHardwareBuffer_Desc desc = {};
-      desc.width = static_cast<uint32_t>(w);
-      desc.height = static_cast<uint32_t>(h);
-      desc.layers = 1;
-      desc.format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
-      desc.usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE |
-                   AHARDWAREBUFFER_USAGE_GPU_COLOR_OUTPUT;
-      int err = AHardwareBuffer_allocate(&desc, &slot.ahb);
-      if (err != 0 || slot.ahb == nullptr) {
-        RNWGPU_POOL_WARN("AHardwareBuffer_allocate failed (%d) %dx%d", err, w,
-                         h);
-        return nullptr;
-      }
-      wgpu::SharedTextureMemoryDescriptor memDesc{};
-      wgpu::SharedTextureMemoryAHardwareBufferDescriptor ahbDesc{};
-      ahbDesc.handle = slot.ahb;
-      memDesc.nextInChain = &ahbDesc;
-      slot.memory = _poolDevice.ImportSharedTextureMemory(&memDesc);
-      // A failed import yields a non-null Dawn error object, so probing the
-      // properties is the actual validity check.
-      wgpu::SharedTextureMemoryProperties props{};
-      if (slot.memory == nullptr ||
-          slot.memory.GetProperties(&props) != wgpu::Status::Success) {
-        RNWGPU_POOL_WARN("ImportSharedTextureMemory failed (%dx%d)", w, h);
-        return nullptr;
-      }
-      // The AHB is rgba8unorm; the pool cannot honor another configured format.
-      // The canvas is configured rgba8unorm on Android (the preferred format),
-      // so this only fires for apps hardcoding e.g. bgra8unorm.
-      if (_poolFormat != wgpu::TextureFormat::Undefined &&
-          _poolFormat != wgpu::TextureFormat::RGBA8Unorm) {
-        RNWGPU_POOL_WARN("configured canvas format %d is not supported by the "
-                         "transparent canvas; using rgba8unorm (use "
-                         "navigator.gpu.getPreferredCanvasFormat())",
-                         static_cast<int>(_poolFormat));
-      }
-      // Honor the configured usage flags as far as the imported memory allows.
-      wgpu::TextureUsage wanted =
-          _poolUsage | wgpu::TextureUsage::RenderAttachment;
-      wgpu::TextureUsage usage = wanted & props.usage;
-      if (usage != wanted) {
-        RNWGPU_POOL_WARN("configured canvas usage 0x%llx narrowed to 0x%llx "
-                         "(unsupported by the transparent canvas buffers)",
-                         static_cast<unsigned long long>(wanted),
-                         static_cast<unsigned long long>(usage));
-      }
-      wgpu::TextureDescriptor texDesc{};
-      texDesc.format = props.format;
-      texDesc.usage = usage;
-      texDesc.size.width = static_cast<uint32_t>(w);
-      texDesc.size.height = static_cast<uint32_t>(h);
-      slot.texture = slot.memory.CreateTexture(&texDesc);
-      slot.state = SlotState::Free;
-    }
-    return pool;
-  }
-
-  wgpu::Texture poolGetCurrentTexture() {
-    std::unique_lock<std::mutex> lock(_poolMutex);
-    // Per the WebGPU spec, getCurrentTexture returns the same texture until the
-    // frame is presented; a repeat call must not consume another slot.
-    if (_renderPool != nullptr && _currentRenderSlot >= 0) {
-      return _renderPool->slots[_currentRenderSlot].texture;
-    }
-    if (_pool == nullptr) {
-      return nullptr; // allocation failed / unsupported (already reported)
-    }
-    auto pool = _pool;
-    int idx = -1;
-    // Bounded wait: if no slot frees up (e.g. a wedged fence), skip the frame
-    // instead of parking the JS/worklet thread forever.
-    bool ready = _freeCv.wait_for(lock, std::chrono::seconds(1), [&]() {
-      if (_shutdown || pool != _pool) {
-        return true; // pool replaced or shutting down: bail out
-      }
-      for (size_t i = 0; i < pool->slots.size(); i++) {
-        if (pool->slots[i].state == SlotState::Free) {
-          idx = static_cast<int>(i);
-          return true;
-        }
-      }
-      return false;
-    });
-    if (!ready) {
-      RNWGPU_POOL_WARN("poolGetCurrentTexture: timed out waiting for a free "
-                       "slot; skipping frame");
-      return nullptr;
-    }
-    if (idx < 0 || _shutdown || pool != _pool) {
-      return nullptr;
-    }
-    auto &slot = pool->slots[idx];
-    slot.state = SlotState::Rendering;
-    _renderPool = pool;
-    _currentRenderSlot = idx;
-    poolBeginAccess(slot);
-    return slot.texture;
-  }
-
-  void poolPresent() {
-    std::lock_guard<std::mutex> lock(_poolMutex);
-    if (_currentRenderSlot < 0 || _renderPool == nullptr) {
-      return;
-    }
-    poolQueuePresentLocked();
-  }
-
-  // Ends access on the in-flight render slot and hands it (with its fences) to
-  // the waiter. Caller holds _poolMutex and guarantees _renderPool /
-  // _currentRenderSlot are valid.
-  void poolQueuePresentLocked() {
-    auto pool = _renderPool;
-    int idx = _currentRenderSlot;
-    auto &slot = pool->slots[idx];
-
-    wgpu::SharedTextureMemoryEndAccessState state{};
-    wgpu::SharedTextureMemoryVkImageLayoutEndState vkLayout{};
-    state.nextInChain = &vkLayout;
-    slot.memory.EndAccess(slot.texture, &state);
-
-    std::vector<wgpu::SharedFence> fences;
-    fences.reserve(state.fenceCount);
-    for (size_t i = 0; i < state.fenceCount; i++) {
-      fences.push_back(state.fences[i]);
-    }
-
-    slot.state = SlotState::Presented;
-    _presentQueue.push_back({pool, idx, std::move(fences)});
-    _renderPool = nullptr;
-    _currentRenderSlot = -1;
-    startWaiterLocked();
-    _presentCv.notify_one();
-  }
-
-  void poolBeginAccess(PoolSlot &slot) {
-    wgpu::SharedTextureMemoryBeginAccessDescriptor desc{};
-    desc.initialized = false; // canvas contents are fully redrawn each frame
-    desc.concurrentRead = false;
-    desc.fenceCount = 0;
-    desc.fences = nullptr;
-    desc.signaledValues = nullptr;
-    wgpu::SharedTextureMemoryVkImageLayoutBeginState vkLayout{};
-    vkLayout.oldLayout = 0;
-    vkLayout.newLayout = 0;
-    desc.nextInChain = &vkLayout;
-    slot.memory.BeginAccess(slot.texture, &desc);
-  }
-
-  void startWaiterLocked() {
-    if (_waiterRunning) {
-      return;
-    }
-    _waiterRunning = true;
-    _waiter = std::thread([this]() { waiterLoop(); });
-  }
-
-  void stopWaiter() {
-    {
-      std::lock_guard<std::mutex> lock(_poolMutex);
-      _shutdown = true;
-      _presentCv.notify_all();
-      _freeCv.notify_all();
-    }
-    if (_waiter.joinable()) {
-      _waiter.join();
-    }
-    _waiterRunning = false;
-  }
-
-  // Blocks on each presented frame's render-complete fence (off the UI and JS
-  // threads), then publishes it as the latest ready slot. This is the rigorous
-  // acquire-side wait: HWUI only samples a buffer after the UI thread picks it
-  // up via poolPollReady, which happens strictly after this wait returns.
-  void waiterLoop() {
-    while (true) {
-      PendingPresent pending;
-      {
-        std::unique_lock<std::mutex> lock(_poolMutex);
-        _presentCv.wait(lock,
-                        [&]() { return _shutdown || !_presentQueue.empty(); });
-        if (_shutdown && _presentQueue.empty()) {
-          return;
-        }
-        pending = std::move(_presentQueue.front());
-        _presentQueue.pop_front();
-      }
-
-      // Wait outside the lock. Each fd is owned by its SharedFence and closed
-      // when `pending.fences` is destroyed at the end of this iteration, so we
-      // never dup / double-close (avoids the fdsan abort, see
-      // GPUSharedFence.cpp).
-      for (auto &fence : pending.fences) {
-        wgpu::SharedFenceExportInfo info{};
-        wgpu::SharedFenceSyncFDExportInfo fdInfo{};
-        info.nextInChain = &fdInfo;
-        fence.ExportInfo(&info);
-        if (info.type != wgpu::SharedFenceType::SyncFD) {
-          // fdInfo was not populated (its default handle 0 is NOT a fence fd);
-          // we have no way to wait on this fence type.
-          RNWGPU_POOL_WARN("waiter: unexpected shared fence type %d, cannot "
-                           "wait for render completion",
-                           static_cast<int>(info.type));
-          continue;
-        }
-        if (fdInfo.handle >= 0) {
-          // Sync-fence fds become readable (POLLIN) when signaled; poll()
-          // avoids any libsync linkage concern. Poll in bounded slices so
-          // teardown (which flips _shutdown) cannot hang here on a wedged GPU.
-          struct pollfd pfd;
-          pfd.fd = fdInfo.handle;
-          pfd.events = POLLIN;
-          while (!_shutdown.load()) {
-            pfd.revents = 0;
-            int r = poll(&pfd, 1, 100);
-            if (r > 0) {
-              break; // signaled (or POLLERR): stop waiting
-            }
-            if (r < 0 && errno != EINTR) {
-              break; // real poll error; EINTR just retries
-            }
-          }
-        }
-      }
-
-      std::function<void()> frameReady;
-      {
-        std::lock_guard<std::mutex> lock(_poolMutex);
-        // Pool torn down (switchToOffscreen) while this frame was in flight:
-        // discard it now that its fences have been drained. Publishing it would
-        // pin the retired generation forever (nothing polls anymore).
-        if (_pool == nullptr) {
-          continue;
-        }
-        // Supersede a still-unclaimed ready frame: drop it back to Free if it
-        // belongs to the live pool (a retired pool is simply discarded).
-        if (_readyPool != nullptr && _readySlot >= 0) {
-          if (_readyPool == _pool) {
-            _readyPool->slots[_readySlot].state = SlotState::Free;
-            _freeCv.notify_one();
-          }
-        }
-        pending.pool->slots[pending.slot].state = SlotState::Ready;
-        _readyPool = pending.pool;
-        _readySlot = pending.slot;
-        frameReady = _poolFrameReady;
-      }
-      if (frameReady) {
-        frameReady(); // outside the lock: it calls into Java
-      }
-    }
-  }
-#endif
-
   mutable std::shared_mutex _mutex;
 #if defined(__ANDROID__)
   // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
@@ -1227,39 +852,18 @@ private:
   int _width;
   int _height;
 
+  // The presentation modes that hand finished frames to the view instead of
+  // presenting a swapchain from the rendering thread: the copy onto the view's
+  // surface (BlitPresenter) and, on Android, the AHB pool
+  // (WebGPUHardwareBufferView). Each has its own mutex, taken after _mutex and
+  // never while blocking in getCurrentTexture().
+  BlitPresenter _blitPresenter;
 #if defined(__ANDROID__)
-  // Pool state. Guarded by _poolMutex (never nested under _mutex while
-  // blocking).
-  struct PendingPresent {
-    std::shared_ptr<AHBPool> pool;
-    int slot;
-    std::vector<wgpu::SharedFence> fences;
-  };
-
-  static constexpr int kPoolSize =
-      5; // 2 held + 1 rendering + 1 waiting + 1 ready
-
-  std::atomic<bool> _poolMode{false};
-  std::mutex _poolMutex;
-  std::condition_variable _freeCv;    // a slot returned to Free
-  std::condition_variable _presentCv; // a frame was queued for the waiter
-  wgpu::Device _poolDevice = nullptr;
-  wgpu::TextureFormat _poolFormat = wgpu::TextureFormat::Undefined;
-  wgpu::TextureUsage _poolUsage = wgpu::TextureUsage::RenderAttachment;
-  bool _poolUnsupported = false;  // device lacks AHB shared-texture support
-  std::shared_ptr<AHBPool> _pool; // current generation
-  std::unordered_map<uint32_t, std::shared_ptr<AHBPool>> _pools; // gen -> pool
-  std::shared_ptr<AHBPool> _renderPool; // generation of the in-flight render
-  int _currentRenderSlot = -1;
-  std::shared_ptr<AHBPool> _readyPool; // generation of the latest ready frame
-  int _readySlot = -1;
-  std::deque<PendingPresent> _presentQueue;
-  std::thread _waiter;
-  bool _waiterRunning = false;
-  std::atomic<bool> _shutdown{false};
-  uint32_t _genCounter = 0;
-  std::function<void()> _poolFrameReady; // consumer wake-up, see setter
+  HardwareBufferPresenter _hardwareBufferPresenter;
 #endif
+  // The frame in flight when blit mode was enabled is rendering into _texture;
+  // presentFrame() hands it to the blit presenter once it is finished.
+  bool _adoptOffscreenFrame = false;
 };
 
 class SurfaceRegistry {

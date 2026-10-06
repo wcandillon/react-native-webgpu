@@ -11,6 +11,7 @@ description: Rendering pixels on-screen
 | ---- | ---- | ----------- |
 | `opaque` | `boolean` | Defaults to `true`. `false` alpha-composites the canvas over the views behind it (Android and web; iOS uses `alphaMode` alone) |
 | `android` | `AndroidCanvasProps` | Android-only rendering options: `surfaceType` and `zOrderOnTop`. Ignored on iOS and web |
+| `mode` | `"canvas" \| "swapchain"` | Who presents, see [Presentation modes](#presentation-modes). `"canvas"` (default): the native view shows each finished frame from the UI thread, like a browser. `"swapchain"`: the thread that renders presents the native swapchain itself. Ignored on macOS (always swapchain) and web |
 | `...ViewProps` | `ViewProps` | All standard React Native View props (`style`, `onLayout`, etc.) |
 
 ## Usage
@@ -142,6 +143,36 @@ context.present(); // React Native only
 
 Always call `present()` after `submit()`, never before. See [Frame presentations](/docs/getting-started/canvas#frame-presentations) for the full frame loop and [Native APIs](/docs/getting-started/native-api#threading-model) for threading details.
 
+## Presentation modes
+
+What `present()` does depends on the `mode` prop. Both modes use the same
+calls; they differ in who puts the frame on screen, and when.
+
+**`mode="canvas"`** (the default) works like a browser. The canvas renders
+into textures it owns, and `present()` hands the finished frame to the native
+view, which shows it from the UI thread when the platform can take a frame:
+on Android a `SurfaceView` frame goes out on the next vsync and a
+`TextureView` frame once the window has drawn the previous one; on iOS a
+display link copies frames onto the layer once per refresh. The rendering
+thread never touches the native swapchain, so there is nothing to
+synchronize with the platform creating and destroying surfaces, and the
+canvas composites like any other view. The price is one texture copy per
+frame and up to one display refresh of latency.
+
+**`mode="swapchain"`** lets the thread that renders present the native
+swapchain directly, with no copy and the lowest latency. It is the right
+choice when that refresh of latency matters more than the thread sharing it
+implies, for example a full-screen opaque game. On macOS it is the only mode.
+
+```tsx
+// Lowest latency: the rendering thread presents the swapchain itself.
+<Canvas ref={ref} style={{ flex: 1 }} mode="swapchain" />
+```
+
+Set `mode` when the canvas mounts. Changing it on a mounted canvas replaces
+the native view; the last frame carries over, so nothing flashes, but the
+swapchain is rebuilt.
+
 ## Pixel density
 
 Just like on the Web, a canvas has two independent sizes:
@@ -182,7 +213,10 @@ The [Usage](#usage) example above wires up both: `opaque={false}`, `alphaMode: "
 
 Android has no single view type that is both cheap and composited like a
 regular view, so `Canvas` can be backed by one of three native views. The
-`android` prop selects it; it is ignored on iOS and web.
+`android` prop selects it; it is ignored on iOS and web. The choice is
+independent of [`mode`](#presentation-modes): a `SurfaceView` or
+`TextureView` can be presented either way, while `HardwareBufferView` only
+exists in canvas mode.
 
 | Option | Type | Effect |
 | --- | --- | --- |
@@ -191,34 +225,36 @@ regular view, so `Canvas` can be backed by one of three native views. The
 
 **`SurfaceView`** is the default for an opaque canvas and the fastest path.
 The frame goes straight to the system compositor as its own layer, with no
-extra copy and no involvement of the React Native view hierarchy. The price is
-that it is not really view content: it punches a hole through the window, so
-parent transforms, clipping, rounded corners, and z-ordering with sibling views
-do not apply to it. Use it whenever the canvas is a plain opaque rectangle.
+involvement of the React Native view hierarchy. The price is that it is not
+really view content: it punches a hole through the window, so parent
+transforms, clipping, rounded corners, and z-ordering with sibling views do
+not apply to it. Use it whenever the canvas is a plain opaque rectangle.
 
 **`TextureView`** is the default for a non-opaque canvas. It is a regular
 Android view: frames go through a `SurfaceTexture` that the UI toolkit samples
 as an external texture when it draws the view, so parent transforms, clipping,
 alpha, and z-order all apply and the canvas can be composited over other React
-Native views. That routing costs an extra texture copy and typically a frame of
-latency, and it can stall during some view animations. It works on every
-supported Android version.
+Native views. That routing costs an extra texture copy and a frame of latency,
+and it can stall during some view animations. It works on every supported
+Android version.
 
 **`HardwareBufferView`** is an opt-in, experimental alternative to
 `TextureView` for the non-opaque case, available on Android 10 (API 29) and
 above. It is also a regular view, so it composites exactly like `TextureView`,
 but WebGPU renders into an `AHardwareBuffer` that the UI toolkit draws inline,
-with no `SurfaceTexture` and no extra copy. It is designed to have lower
-latency than `TextureView` while keeping the same compositing behavior; that
-gain has not been measured yet, which is one reason it is not the default.
-Requesting it on a device below API 29 silently uses `TextureView`.
+with no `SurfaceTexture` and no extra copy. It is not a latency win: measured
+on a Pixel 8, it matches `TextureView` when frames are cheap and is about one
+display refresh behind once a frame costs a few milliseconds of GPU time. What
+it buys is the rest of the UI staying smooth when the canvas is GPU-bound,
+where a `TextureView` makes the whole window drop frames. Requesting it on a
+device below API 29 silently uses `TextureView`.
 
 | | `SurfaceView` | `TextureView` | `HardwareBufferView` |
 | --- | --- | --- | --- |
 | Minimum Android | any | any | 10 (API 29) |
 | Composited like a regular view | no | yes | yes |
-| Extra copy | none | one | none |
-| Expected latency | lowest | highest | between the two (unmeasured) |
+| Extra copy | one in canvas mode, none in swapchain mode | one by the UI toolkit, plus one in canvas mode | none |
+| Latency | lowest in swapchain mode, up to one refresh more in canvas mode | about one refresh | one to two refreshes |
 | Selected when | `opaque` (default) | `opaque={false}` (default) | `surfaceType: "HardwareBufferView"` |
 
 `opaque` applies to whichever view is selected: on a `SurfaceView` it picks
@@ -241,16 +277,17 @@ further flags. Set `surfaceType` when you need a different trade-off:
 <Canvas opaque={false} android={{ surfaceType: "HardwareBufferView" }} />
 ```
 
-Two things to know before opting into `HardwareBufferView`. If the device
-cannot allocate or import the `AHardwareBuffer`, the canvas currently keeps
-rendering to an offscreen texture and shows nothing, rather than falling back
-to `TextureView`; test on your target devices. And because the UI toolkit
+Two things to know before opting into `HardwareBufferView`. Hardware buffers
+cannot back every canvas: the device has to be able to allocate and import
+them, and the canvas has to use the preferred format, no `viewFormats`, and
+only usages the buffers support. When they cannot, the view is replaced at
+runtime by the canvas-mode `TextureView`, so the canvas keeps working. And
+because the UI toolkit
 exposes no "finished reading" signal for an inline buffer, it recycles its
 buffers with a small holding ring rather than a fence, so a device or driver
-quirk could show up as a stale or torn frame. If either happens, drop the
-`surfaceType` to get `TextureView` back. The plan is to make
-`HardwareBufferView` the non-opaque default once it falls back to `TextureView`
-at runtime and its latency advantage is measured.
+quirk could show up as a stale or torn frame. If that happens, drop the
+`surfaceType` to get `TextureView` back. `HardwareBufferView` stays opt-in
+for now.
 
 A non-opaque `SurfaceView` without `zOrderOnTop` sits below the app window, so
 its alpha blends against the window background (usually black) and the React

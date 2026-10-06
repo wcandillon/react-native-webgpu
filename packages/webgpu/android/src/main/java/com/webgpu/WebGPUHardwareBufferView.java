@@ -26,8 +26,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * A "normal RN view" backend for the WebGPU canvas.
  *
  * <p>WebGPU renders into a native pool of AHardwareBuffers (sized from the canvas drawing buffer,
- * like the swapchain) that Dawn imports as SharedTextureMemory; see SurfaceRegistry.h. Each finished
- * buffer is drawn inline here via {@link Bitmap#wrapHardwareBuffer} + {@link Canvas#drawBitmap}, so
+ * like the swapchain) that Dawn imports as SharedTextureMemory; see HardwareBufferPresenter.h. Each
+ * finished buffer is drawn inline here via {@link Bitmap#wrapHardwareBuffer} + {@link Canvas#drawBitmap}, so
  * this is a plain {@link View}: parent transforms, clipping, alpha, z-order and animations all
  * apply, with no GL interop and no extra copy.
  *
@@ -120,6 +120,21 @@ public class WebGPUHardwareBufferView extends View {
     if (mConsumePosted.compareAndSet(false, true)) {
       mMainHandler.post(mConsume);
     }
+  }
+
+  /**
+   * Called from the rendering thread (see cpp-adapter.cpp) when the hardware buffer pool cannot
+   * serve this canvas: a device without AHardwareBuffer sharing, a canvas format, view format or
+   * usage the buffers do not support, or a failed allocation. The parent replaces this view with
+   * one that presents with a copy.
+   */
+  @Keep
+  private void onNativeUnsupported() {
+    mMainHandler.post(() -> {
+      if (mAttached) {
+        mApi.hardwareBufferUnavailable();
+      }
+    });
   }
 
   private void consume() {

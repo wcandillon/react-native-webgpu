@@ -48,6 +48,12 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
   }
 
   @Override
+  @ReactProp(name = "mode")
+  public void setMode(WebGPUView view, String value) {
+    view.setMode(value);
+  }
+
+  @Override
   protected void onAfterUpdateTransaction(@NonNull WebGPUView view) {
     super.onAfterUpdateTransaction(view);
     view.updateView();
