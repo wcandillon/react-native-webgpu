@@ -100,6 +100,7 @@ The flag only controls the default injection: listing `"implicit-device-synchron
 
 | Field / Method | Description |
 | -------------- | ----------- |
+| `source` | A [`NativeVideoFrame`](/api/video-player#nativevideoframe) (from a video player, a camera buffer or `createTestVideoFrame`) instead of the web's `HTMLVideoElement` / `VideoFrame` |
 | `rotation` | 0, 90, 180, or 270 degrees (camera orientation) |
 | `mirrored` | Horizontal flip for front camera |
 | `destroy()` | Release native surface access after the `queue.submit()` that sampled it |

@@ -5,6 +5,7 @@ import type {
   GPUSharedFence,
   GPUSharedFenceDescriptor,
   GPUDawnTogglesDescriptor,
+  GPUNativeExternalTextureDescriptor,
   GPUSharedTextureMemory,
   GPUSharedTextureMemoryDescriptor,
   NativeCanvas,
@@ -31,6 +32,7 @@ export type {
   NativeVideoPixelFormat,
   CreateVideoPlayerOptions,
   GPUDawnTogglesDescriptor,
+  GPUNativeExternalTextureDescriptor,
   GPUDrawElementImageDestination,
   GPUDrawElementImageSource,
   GPUDrawElementImageSourceView,
@@ -87,6 +89,14 @@ declare global {
   }
 
   interface GPUDevice {
+    // Non-spec RN extension: the source of an external texture is a
+    // NativeVideoFrame (from a VideoPlayer, createVideoFrameFromNativeBuffer
+    // or createTestVideoFrame) instead of the web's HTMLVideoElement /
+    // VideoFrame. Overloads the spec signature, which stays available for
+    // the web implementation.
+    importExternalTexture(
+      descriptor: GPUNativeExternalTextureDescriptor,
+    ): GPUExternalTexture;
     importSharedTextureMemory(
       descriptor: GPUSharedTextureMemoryDescriptor,
     ): GPUSharedTextureMemory;

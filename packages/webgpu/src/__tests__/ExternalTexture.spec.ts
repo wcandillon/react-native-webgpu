@@ -444,10 +444,7 @@ describe("External Textures", () => {
         try {
           const frame = RNWebGPU.createTestVideoFrame(256, 256);
           const externalTexture = device.importExternalTexture({
-            // createTestVideoFrame returns our NativeVideoFrame; the native
-            // binding accepts it, but the spec type wants a WebCodecs
-            // VideoFrame, so cast to satisfy the signature.
-            source: frame as unknown as VideoFrame,
+            source: frame,
             label: "test-frame",
           });
 

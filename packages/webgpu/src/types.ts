@@ -63,6 +63,17 @@ export interface NativeVideoFrame {
   release(): void;
 }
 
+// GPUExternalTextureDescriptor with a NativeVideoFrame as the source: what
+// GPUDevice.importExternalTexture() takes on React Native, where there is no
+// HTMLVideoElement or WebCodecs VideoFrame. The other members (label,
+// colorSpace, and the rotation / mirrored extensions) are the same.
+export interface GPUNativeExternalTextureDescriptor extends Omit<
+  GPUExternalTextureDescriptor,
+  "source"
+> {
+  source: NativeVideoFrame;
+}
+
 // A decoded video, modeled on HTMLMediaElement: play(), pause(), paused,
 // currentTime (in seconds, assign it to seek), duration, volume and loop work
 // as on the web. Frames are pulled instead of displayed: poll
