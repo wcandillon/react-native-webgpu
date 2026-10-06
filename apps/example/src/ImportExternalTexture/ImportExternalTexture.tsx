@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { PixelRatio, Platform, StyleSheet, Text, View } from "react-native";
+import { PixelRatio, StyleSheet, Text, View } from "react-native";
 import {
   Canvas,
+  createVideoPlayer,
   useCanvasRef,
   useDevice,
   type NativeCanvas,
   type NativeVideoFrame,
-  type VideoPlayer,
 } from "react-native-webgpu";
 
 // This is the SharedTextureMemory demo, rewritten to use
@@ -112,21 +112,13 @@ export const ImportExternalTexture = () => {
       alphaMode: "premultiplied",
     });
 
-    // Pick a frame source per platform. On iOS we stream a real video via
-    // AVPlayer; elsewhere we don't have a video pipeline yet, so we use a
-    // single synthetic IOSurface/AHardwareBuffer frame. A VideoPlayer exposes
-    // copyLatestFrame() (a fresh frame each tick) while a NativeVideoFrame does
-    // not — the render loop tells them apart with that property.
-    let source: VideoPlayer | NativeVideoFrame;
-    if (Platform.OS === "ios") {
-      const VIDEO_URL =
-        "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4";
-      const player = RNWebGPU.createVideoPlayer(VIDEO_URL);
-      player.play();
-      source = player;
-    } else {
-      source = RNWebGPU.createTestVideoFrame(1024, 1024);
-    }
+    // A real video on both platforms: AVPlayer decodes BGRA frames on iOS,
+    // MediaPlayer writes its native YUV layout on Android, and
+    // importExternalTexture samples either one.
+    const VIDEO_URL =
+      "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4";
+    const player = createVideoPlayer(VIDEO_URL);
+    player.play();
 
     const module = device.createShaderModule({ code: SHADER });
     const pipeline = device.createRenderPipeline({
@@ -164,23 +156,19 @@ export const ImportExternalTexture = () => {
       }
     };
 
-    // Hold the current frame across rAF ticks. For a VideoPlayer we pull the
-    // latest frame each tick (keeping the previous one when the decoder hasn't
-    // produced a new one yet, to avoid a black flash); for a one-shot
-    // NativeVideoFrame we just keep re-importing the same frame.
-    let currentFrame: NativeVideoFrame | null =
-      "copyLatestFrame" in source ? null : source;
+    // Hold the current frame across rAF ticks: pull the latest frame each
+    // tick, and keep the previous one when the decoder hasn't produced a new
+    // one yet, to avoid a black flash.
+    let currentFrame: NativeVideoFrame | null = null;
     let lastDims: [number, number] | null = null;
 
     const render = () => {
-      if ("copyLatestFrame" in source) {
-        const newFrame = source.copyLatestFrame();
-        if (newFrame) {
-          if (currentFrame) {
-            currentFrame.release();
-          }
-          currentFrame = newFrame;
+      const newFrame = player.copyLatestFrame();
+      if (newFrame) {
+        if (currentFrame) {
+          currentFrame.release();
         }
+        currentFrame = newFrame;
       }
 
       const encoder = device.createCommandEncoder();
@@ -206,6 +194,9 @@ export const ImportExternalTexture = () => {
           externalTex = device.importExternalTexture({
             source: currentFrame,
             label: "video-frame",
+            // A video recorded in portrait stores landscape frames with a
+            // rotation; Dawn bakes it into the sampling transform.
+            rotation: player.rotation,
           });
         } catch (e) {
           console.warn("[ImportExternalTexture] import failed:", e);
@@ -261,11 +252,7 @@ export const ImportExternalTexture = () => {
         currentFrame = null;
       }
       uniformBuffer.destroy();
-      // For the player, release it; the one-shot frame was released above as
-      // currentFrame (same object), so don't double-release it here.
-      if ("copyLatestFrame" in source) {
-        source.release();
-      }
+      player.release();
     };
   }, [device, adapter, ref]);
 

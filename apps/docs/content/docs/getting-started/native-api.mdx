@@ -101,6 +101,7 @@ Beyond the standard API, react-native-webgpu exposes Dawn's native surface inter
 
 - **[`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory)** imports a native pixel surface (an `IOSurface`-backed `CVPixelBuffer` on iOS, an `AHardwareBuffer` on Android) as a sampleable `GPUTexture` via `device.importSharedTextureMemory(...)`.
 - **[`importExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions)** is the higher-level path: `device.importExternalTexture(...)` hands you a `GPUExternalTexture` with hardware YUV→RGB color conversion and lifecycle management, plus non-spec `rotation` and `mirrored` options for camera orientation.
+- **[`createVideoPlayer`](/api/video-player)** decodes a video into such frames, with the playback controls of an `HTMLMediaElement`.
 
 Both build on a default-on capability. Feature-detect it before importing, since some Android drivers and emulators don't support it:
 

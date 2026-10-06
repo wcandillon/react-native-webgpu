@@ -6,5 +6,6 @@ export * from "../WebGPUViewNativeComponent";
 export * from "../hooks";
 export * from "../GPUDeviceProvider";
 export * from "../formats";
+export * from "../video";
 
 // We don't need to set all global properties on web, webgpu is already available globally

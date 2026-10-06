@@ -87,7 +87,28 @@ surface.flush();
 
 The surface holds its own reference to the texture. Dispose it before calling `texture.destroy()`.
 
-Platform surfaces (`CVPixelBuffer` / `AHardwareBuffer`) can also cross the boundary through [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory), or as external textures via `RNWebGPU.createVideoFrameFromNativeBuffer` + `importExternalTexture`.
+Platform surfaces (`CVPixelBuffer` / `AHardwareBuffer`) can also cross the boundary through [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory), or as external textures via `createVideoFrameFromNativeBuffer` + `importExternalTexture`.
+
+## Video and camera frames
+
+Starting with v3, react-native-skia has no video player and no native buffer API of its own: react-native-webgpu produces and owns the frames, and `Skia.Image.MakeImageFromNativeBuffer` wraps one into an `SkImage` without copying it.
+The pointer it takes is the `handle` of a [`NativeVideoFrame`](/api/video-player#nativevideoframe), or the `CVPixelBufferRef` / `AHardwareBuffer*` another library hands out:
+
+```tsx
+import { createVideoPlayer } from "react-native-webgpu";
+
+const player = createVideoPlayer(url);
+player.play();
+// on every frame:
+const frame = player.copyLatestFrame();
+if (frame) {
+  const image = Skia.Image.MakeImageFromNativeBuffer(frame.handle);
+  // draw the image, then dispose it before releasing the frame
+}
+```
+
+Skia samples BGRA and RGBA frames, which is what the [video player](/api/video-player) produces on iOS; Android's YUV frames are not supported by Skia yet.
+The complete example, with the lifetime rules, is in the [React Native Skia documentation](https://wcandillon.github.io/react-native-skia/docs/webgpu#native-buffers).
 
 ## See also
 

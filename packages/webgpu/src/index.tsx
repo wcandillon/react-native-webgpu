@@ -71,8 +71,9 @@ declare global {
     // taking ownership of one reference (pair with producers that return a
     // +1 pointer, e.g. Skia.Image.MakeNativeTextureFromImage()).
     adoptTexture: (pointer: bigint) => GPUTexture;
+    // Prefer the createVideoPlayer() export, which takes an options object.
     createVideoPlayer: (
-      path: string,
+      source: string,
       pixelFormat?: NativeVideoPixelFormat,
     ) => VideoPlayer;
     writeTestVideoFile: () => string;

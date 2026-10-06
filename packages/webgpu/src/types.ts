@@ -63,21 +63,49 @@ export interface NativeVideoFrame {
   release(): void;
 }
 
-// A handle to a decoded video stream. Poll copyLatestFrame() each render tick
-// to obtain the most recently decoded frame as an IOSurface/AHardwareBuffer
-// (returns null between frames so callers can skip the import work).
+// A decoded video, modeled on HTMLMediaElement: play(), pause(), paused,
+// currentTime (in seconds, assign it to seek), duration, volume and loop work
+// as on the web. Frames are pulled instead of displayed: poll
+// copyLatestFrame() on every render tick to obtain the most recently decoded
+// frame as an IOSurface/AHardwareBuffer-backed NativeVideoFrame (null between
+// frames, so callers can skip the import work).
 export interface VideoPlayer {
   copyLatestFrame(): NativeVideoFrame | null;
   play(): void;
   pause(): void;
+  // Stops playback and releases the decoder. Frames already copied stay
+  // valid until they are released.
   release(): void;
+  readonly paused: boolean;
+  // The playback position in seconds. Assign it to seek, also while paused:
+  // the next copyLatestFrame() then returns the frame at the new position.
+  currentTime: number;
+  // The length in seconds, 0 until the metadata has loaded.
+  readonly duration: number;
+  // 0 to 1.
+  volume: number;
+  // Restart from the beginning at the end of the stream. Unlike on the web,
+  // it defaults to true.
+  loop: boolean;
+  // The coded size of the frames in pixels, 0 until the metadata has loaded.
+  readonly videoWidth: number;
+  readonly videoHeight: number;
+  // The clockwise rotation to apply when displaying the frames: a video
+  // recorded in portrait stores landscape frames with a rotation. Pass it as
+  // the `rotation` of importExternalTexture().
+  readonly rotation: 0 | 90 | 180 | 270;
+  // The nominal frame rate of the video track, 0 if unknown.
+  readonly frameRate: number;
 }
 
 export interface CreateVideoPlayerOptions {
-  // 'bgra8' (default): emit a single-plane BGRA surface, suitable for
-  // SharedTextureMemory and a regular sampled GPUTexture.
-  // 'nv12': emit biplanar Y + CbCr surfaces, suitable for
-  // GPUDevice.importExternalTexture.
+  // The layout of the frames on Apple platforms:
+  // 'bgra8' (default): single-plane BGRA surfaces, for importSharedTextureMemory
+  // and a regular sampled GPUTexture (also what react-native-skia's
+  // MakeImageFromNativeBuffer accepts).
+  // 'nv12': biplanar Y + CbCr surfaces, for GPUDevice.importExternalTexture.
+  // On Android the decoder always writes its native YUV layout (reported as
+  // 'nv12'), which only importExternalTexture samples; the option is ignored.
   pixelFormat?: NativeVideoPixelFormat;
 }
 

@@ -13,6 +13,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "AndroidVideoPlayer.h"
 #include "PlatformContext.h"
 #include "RNWebGPUManager.h"
 
@@ -112,8 +113,8 @@ public:
     }
     // Ownership passes to Java; Java_com_webgpu_WebGPUModule_onViewSnapshot
     // (cpp-adapter.cpp) reclaims it.
-    auto *callbacks = new ViewSnapshotCallbacks{std::move(onSuccess),
-                                                std::move(onError)};
+    auto *callbacks =
+        new ViewSnapshotCallbacks{std::move(onSuccess), std::move(onError)};
     env->CallVoidMethod(_module, method, static_cast<jint>(request.viewTag),
                         static_cast<jdouble>(request.sourceX),
                         static_cast<jdouble>(request.sourceY),
@@ -236,8 +237,9 @@ public:
     result.height = static_cast<int>(bitmapInfo.height);
     result.data.resize(bitmapInfo.height * bitmapInfo.stride);
     memcpy(result.data.data(), bitmapPixels, result.data.size());
-    // BitmapFactory hands back premultiplied ARGB_8888 pixels; createImageBitmap
-    // converts to the representation requested by premultiplyAlpha.
+    // BitmapFactory hands back premultiplied ARGB_8888 pixels;
+    // createImageBitmap converts to the representation requested by
+    // premultiplyAlpha.
     result.premultiplied = true;
 
     AndroidBitmap_unlockPixels(env, bitmap);
@@ -339,12 +341,44 @@ public:
     return handle;
   }
 
+  // The decoder writes its native YUV layout whatever format is requested:
+  // the frames are sampled through importExternalTexture (see
+  // WebGPUVideoPlayer.java).
   std::unique_ptr<IVideoPlayer>
-  createVideoPlayer(const std::string & /*path*/,
+  createVideoPlayer(const std::string &path,
                     VideoPixelFormat /*format*/) override {
-    // TODO: implement using MediaCodec -> ImageReader (AHardwareBuffer mode).
-    throw std::runtime_error(
-        "createVideoPlayer is not yet implemented on Android.");
+    if (!_module) {
+      throw std::runtime_error("createVideoPlayer: the WebGPU module is gone");
+    }
+    jni::Environment::ensureCurrentThreadIsAttached();
+    JNIEnv *env = facebook::jni::Environment::current();
+    if (!env) {
+      throw std::runtime_error(
+          "createVideoPlayer: couldn't get the JNI environment");
+    }
+    jclass moduleClass = env->GetObjectClass(_module);
+    jmethodID method =
+        env->GetMethodID(moduleClass, "createVideoPlayer",
+                         "(Ljava/lang/String;)Lcom/webgpu/WebGPUVideoPlayer;");
+    env->DeleteLocalRef(moduleClass);
+    if (!method) {
+      env->ExceptionClear();
+      throw std::runtime_error(
+          "createVideoPlayer: WebGPUModule.createVideoPlayer not found");
+    }
+    jstring jPath = env->NewStringUTF(path.c_str());
+    jobject player = env->CallObjectMethod(_module, method, jPath);
+    env->DeleteLocalRef(jPath);
+    if (env->ExceptionCheck()) {
+      throw std::runtime_error("createVideoPlayer: " +
+                               describeAndClearJavaException(env));
+    }
+    if (player == nullptr) {
+      throw std::runtime_error("createVideoPlayer: no player was created");
+    }
+    auto result = std::make_unique<AndroidVideoPlayer>(env, player);
+    env->DeleteLocalRef(player);
+    return result;
   }
 
   std::string writeTestVideoFile() override {
