@@ -59,7 +59,8 @@ struct VideoFrameHandle {
 };
 
 // Platform-implemented video source that hands out fresh IOSurface /
-// AHardwareBuffer-backed frames as a video plays.
+// AHardwareBuffer-backed frames as a video plays, with the playback controls
+// of an HTMLMediaElement (times in seconds).
 class IVideoPlayer {
 public:
   virtual ~IVideoPlayer() = default;
@@ -71,6 +72,26 @@ public:
 
   virtual void play() = 0;
   virtual void pause() = 0;
+  virtual bool paused() = 0;
+
+  // Playback position and length, in seconds. The duration is 0 until the
+  // metadata of the media has loaded.
+  virtual double currentTime() = 0;
+  virtual void seek(double seconds) = 0;
+  virtual double duration() = 0;
+
+  virtual double volume() = 0;
+  virtual void setVolume(double volume) = 0;
+  virtual bool loop() = 0;
+  virtual void setLoop(bool loop) = 0;
+
+  // The geometry of the frames, 0 until the metadata has loaded: their coded
+  // size, the clockwise rotation (0, 90, 180 or 270) to apply when displaying
+  // them, and the nominal frame rate of the video track.
+  virtual uint32_t videoWidth() = 0;
+  virtual uint32_t videoHeight() = 0;
+  virtual int rotation() = 0;
+  virtual double frameRate() = 0;
 };
 
 // A request to rasterize a native React Native view (looked up by its React
@@ -117,10 +138,9 @@ public:
   // pixel, `format` is rgba8unorm or bgra8unorm depending on what the platform
   // rasterizer produces natively, and `premultiplied` reports its alpha
   // representation.
-  virtual void
-  snapshotView(const ViewSnapshotRequest &request,
-               std::function<void(ImageData)> onSuccess,
-               std::function<void(std::string)> onError) = 0;
+  virtual void snapshotView(const ViewSnapshotRequest &request,
+                            std::function<void(ImageData)> onSuccess,
+                            std::function<void(std::string)> onError) = 0;
 
   virtual wgpu::Surface makeSurface(wgpu::Instance instance, void *surface,
                                     int width, int height) = 0;

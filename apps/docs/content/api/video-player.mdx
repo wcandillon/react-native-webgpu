@@ -1,0 +1,94 @@
+---
+title: Video Player
+description: Decode a video into native frames the GPU samples without any copy.
+---
+
+`createVideoPlayer()` decodes a video into native frames: `IOSurface`-backed `CVPixelBuffer`s on Apple platforms, `AHardwareBuffer`s on Android.
+The frames are sampled by WebGPU without any copy through the CPU, with [`importExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions) or [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory), copied into a regular texture with [`copyExternalImageToTexture`](/api/gpu-device-extensions#copyexternalimagetotexture-with-a-native-frame), and drawn by [React Native Skia](/docs/integrations/react-native-skia#video-and-camera-frames).
+
+```tsx twoslash
+import { createVideoPlayer } from "react-native-webgpu";
+declare const device: GPUDevice;
+declare const url: string;
+// ---cut---
+const player = createVideoPlayer(url);
+player.play();
+
+const render = () => {
+  // The most recently decoded frame, or null when there is no new frame
+  const frame = player.copyLatestFrame();
+  if (frame) {
+    const texture = device.importExternalTexture({
+      source: frame,
+      rotation: player.rotation,
+    });
+    // ...sample the texture in a render pass and submit
+    texture.destroy();
+    frame.release();
+  }
+  requestAnimationFrame(render);
+};
+requestAnimationFrame(render);
+```
+
+## createVideoPlayer
+
+```ts
+createVideoPlayer(source: string, options?: CreateVideoPlayerOptions): VideoPlayer
+```
+
+`source` is a URL (`http`, `https`, `file`) or a file path.
+The player starts paused: call `play()` to start decoding.
+
+<auto-type-table path="../../../../packages/webgpu/src/types.ts" name="CreateVideoPlayerOptions" />
+
+## VideoPlayer
+
+Playback is controlled like an `HTMLMediaElement`; the difference is that frames are pulled with `copyLatestFrame()` instead of being displayed.
+
+| Member | Description |
+| --- | --- |
+| `copyLatestFrame()` | The most recently decoded frame as a [`NativeVideoFrame`](#nativevideoframe), or `null` when no new frame was decoded since the last call. Poll it on every render tick. |
+| `play()`, `pause()`, `paused` | Start and stop playback. |
+| `currentTime` | The playback position in seconds. Assign it to seek, also while paused: the next `copyLatestFrame()` then returns the frame at the new position. |
+| `duration` | The length in seconds, `0` until the metadata has loaded. |
+| `volume` | `0` to `1`. |
+| `loop` | Restart from the beginning at the end of the stream. Unlike on the web, it defaults to `true`. |
+| `videoWidth`, `videoHeight` | The coded size of the frames in pixels, `0` until the metadata has loaded. |
+| `rotation` | The clockwise rotation (`0`, `90`, `180` or `270`) to apply when displaying the frames: a video recorded in portrait stores landscape frames with a rotation. Pass it as the `rotation` of `importExternalTexture()`. |
+| `frameRate` | The nominal frame rate of the video track, `0` if unknown. |
+| `release()` | Stops playback and releases the decoder. Frames already copied stay valid until they are released. |
+
+The metadata of a remote video loads asynchronously, so `duration`, `videoWidth`, `videoHeight`, `rotation` and `frameRate` read `0` until it has.
+Frames carry their own `width` and `height`, which is what a render loop should use.
+
+## NativeVideoFrame
+
+A frame holds a native buffer and keeps it alive until `release()` is called (or until the object is garbage collected).
+A player can only keep a few frames in flight: release each frame once the GPU work that samples it has been submitted, or `copyLatestFrame()` stops returning new frames.
+
+<auto-type-table path="../../../../packages/webgpu/src/types.ts" name="NativeVideoFrame" />
+
+`handle` is the raw pointer of the buffer (an `IOSurfaceRef` or an `AHardwareBuffer*`) as a `BigInt`, which `importSharedTextureMemory({ handle })` takes.
+
+### Copying a frame into a texture
+
+`queue.copyExternalImageToTexture({ source: frame, rotation: player.rotation }, { texture }, size)` renders a frame into a regular texture, on both platforms and whatever the frame's layout, with the rotation applied.
+See [the native frame copy](/api/gpu-device-extensions#copyexternalimagetotexture-with-a-native-frame).
+
+## Pixel formats
+
+| Platform | Frames |
+| --- | --- |
+| iOS, macOS | BGRA (`"bgra8"`, the default), or biplanar YUV with `{ pixelFormat: "nv12" }`. Both import as external textures; BGRA frames also import as shared texture memory and as Skia images. |
+| Android | The native YUV layout of the decoder, reported as `"nv12"`. Sample them with `importExternalTexture()` or copy them with `copyExternalImageToTexture()`; the `pixelFormat` option is ignored. |
+
+## Other sources
+
+`createVideoFrameFromNativeBuffer(pointer)` wraps a buffer produced by another library (a `CVPixelBufferRef` on Apple platforms, an `AHardwareBuffer*` on Android, for instance VisionCamera's `frame.getNativeBuffer().pointer`) into a `NativeVideoFrame` that keeps it alive until released.
+
+## Examples
+
+- [ImportExternalTexture](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/ImportExternalTexture/ImportExternalTexture.tsx): a video drawn through `importExternalTexture` on both platforms
+- [SharedTextureMemory](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/SharedTextureMemory/SharedTextureMemory.tsx): BGRA frames bound as a regular sampled texture
+- [Video in a Skia canvas](https://wcandillon.github.io/react-native-skia/docs/webgpu#native-buffers): frames drawn with React Native Skia

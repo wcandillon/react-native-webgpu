@@ -115,4 +115,14 @@ public class WebGPUModule extends NativeWebGPUModuleSpec {
 
   @DoNotStrip
   private native void onViewSnapshot(long callback, Bitmap bitmap, String error);
+
+  /**
+   * Called from C++ (AndroidPlatformContext::createVideoPlayer) for
+   * RNWebGPU.createVideoPlayer. Throws when the source cannot be opened; the
+   * caller turns the exception into a JS error.
+   */
+  @DoNotStrip
+  WebGPUVideoPlayer createVideoPlayer(String source) {
+    return new WebGPUVideoPlayer(getReactApplicationContext(), source);
+  }
 }

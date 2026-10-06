@@ -3,6 +3,9 @@
 #import <AVFoundation/AVFoundation.h>
 #import <CoreVideo/CoreVideo.h>
 
+#include <algorithm>
+#include <atomic>
+#include <memory>
 #include <stdexcept>
 
 namespace rnwgpu {
@@ -16,27 +19,27 @@ namespace {
 // range) means luma is 16..235, chroma is 16..240 (8-bit).
 // Reference: https://en.wikipedia.org/wiki/YCbCr (BT.601 / BT.709).
 static constexpr float kBT709LimitedToRgb[12] = {
-    1.164383f, 0.000000f, 1.792741f, -0.972945f, //
-    1.164383f, -0.213249f, -0.532909f, 0.301517f, //
-    1.164383f, 2.112402f, 0.000000f, -1.133402f, //
+    1.164383f, 0.000000f,  1.792741f,  -0.972945f, //
+    1.164383f, -0.213249f, -0.532909f, 0.301517f,  //
+    1.164383f, 2.112402f,  0.000000f,  -1.133402f, //
 };
 static constexpr float kBT601LimitedToRgb[12] = {
-    1.164383f, 0.000000f, 1.596027f, -0.874202f, //
-    1.164383f, -0.391762f, -0.812968f, 0.531668f, //
-    1.164383f, 2.017232f, 0.000000f, -1.085631f, //
+    1.164383f, 0.000000f,  1.596027f,  -0.874202f, //
+    1.164383f, -0.391762f, -0.812968f, 0.531668f,  //
+    1.164383f, 2.017232f,  0.000000f,  -1.085631f, //
 };
 static constexpr float kBT2020LimitedToRgb[12] = {
-    1.164383f, 0.000000f, 1.678674f, -0.915688f, //
-    1.164383f, -0.187326f, -0.650424f, 0.347459f, //
-    1.164383f, 2.141772f, 0.000000f, -1.148145f, //
+    1.164383f, 0.000000f,  1.678674f,  -0.915688f, //
+    1.164383f, -0.187326f, -0.650424f, 0.347459f,  //
+    1.164383f, 2.141772f,  0.000000f,  -1.148145f, //
 };
 
 // Pick the right YUV→RGB matrix from the pixel buffer's color attachments.
 // Falls back to BT.709 limited range (the right call for ≥720p H.264, which
 // is what AVPlayer hands us for Big Buck Bunny and most streamed media).
 static void fillYuvMatrix(CVPixelBufferRef pixelBuffer, float out[12]) {
-  CFTypeRef matrixKey = CVBufferGetAttachment(
-      pixelBuffer, kCVImageBufferYCbCrMatrixKey, nullptr);
+  CFTypeRef matrixKey =
+      CVBufferGetAttachment(pixelBuffer, kCVImageBufferYCbCrMatrixKey, nullptr);
   const float *src = kBT709LimitedToRgb;
   if (matrixKey) {
     auto matrix = (CFStringRef)matrixKey;
@@ -53,28 +56,108 @@ static void fillYuvMatrix(CVPixelBufferRef pixelBuffer, float out[12]) {
 }
 
 // Map a CVPixelBuffer's pixel format to our VideoPixelFormat enum.
-static VideoPixelFormat pixelFormatFromCVPixelBuffer(
-    CVPixelBufferRef pixelBuffer) {
+static VideoPixelFormat
+pixelFormatFromCVPixelBuffer(CVPixelBufferRef pixelBuffer) {
   OSType type = CVPixelBufferGetPixelFormatType(pixelBuffer);
   switch (type) {
-    case kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange:
-    case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange:
-      return VideoPixelFormat::NV12;
-    default:
-      return VideoPixelFormat::BGRA8;
+  case kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange:
+  case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange:
+    return VideoPixelFormat::NV12;
+  default:
+    return VideoPixelFormat::BGRA8;
   }
 }
 
+// The clockwise rotation, in degrees, that a track's preferredTransform
+// applies to its frames: a video recorded in portrait stores landscape frames
+// with a 90 or 270 degree transform.
+static int rotationFromTransform(CGAffineTransform t) {
+  if (t.a == 0 && t.b == 1 && t.c == -1 && t.d == 0) {
+    return 90;
+  }
+  if (t.a == 0 && t.b == -1 && t.c == 1 && t.d == 0) {
+    return 270;
+  }
+  if (t.a == -1 && t.b == 0 && t.c == 0 && t.d == -1) {
+    return 180;
+  }
+  return 0;
+}
+
+// The state the AVFoundation callbacks update. It is shared with the blocks
+// observing the asset and the item, so a callback that fires after the player
+// was destroyed only touches memory that outlives it.
+struct AppleVideoPlayerState {
+  std::atomic<bool> playing{false};
+  std::atomic<bool> loop{true};
+  std::atomic<double> duration{0};
+  std::atomic<double> frameRate{0};
+  std::atomic<uint32_t> width{0};
+  std::atomic<uint32_t> height{0};
+  std::atomic<int> rotation{0};
+};
+
 class AppleVideoPlayer : public IVideoPlayer {
 public:
-  AppleVideoPlayer(AVPlayer *player, AVPlayerItemVideoOutput *output,
-                   id loopObserver)
-      : _player(player), _output(output), _loopObserver(loopObserver) {}
+  AppleVideoPlayer(AVPlayer *player, AVPlayerItem *item,
+                   AVPlayerItemVideoOutput *output)
+      : _player(player), _output(output),
+        _state(std::make_shared<AppleVideoPlayerState>()) {
+    auto state = _state;
+
+    // The metadata loads asynchronously, so that a remote asset never blocks
+    // the calling thread; the getters report 0 until it has.
+    AVAsset *asset = item.asset;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    [asset
+        loadValuesAsynchronouslyForKeys:@[ @"duration", @"tracks" ]
+                      completionHandler:^{
+                        if ([asset statusOfValueForKey:@"duration" error:nil] ==
+                            AVKeyValueStatusLoaded) {
+                          CMTime duration = asset.duration;
+                          if (CMTIME_IS_NUMERIC(duration)) {
+                            state->duration = CMTimeGetSeconds(duration);
+                          }
+                        }
+                        if ([asset statusOfValueForKey:@"tracks" error:nil] ==
+                            AVKeyValueStatusLoaded) {
+                          AVAssetTrack *track =
+                              [[asset tracksWithMediaType:AVMediaTypeVideo]
+                                  firstObject];
+                          if (track) {
+                            CGSize size = track.naturalSize;
+                            state->width = static_cast<uint32_t>(size.width);
+                            state->height = static_cast<uint32_t>(size.height);
+                            state->rotation =
+                                rotationFromTransform(track.preferredTransform);
+                            state->frameRate = track.nominalFrameRate;
+                          }
+                        }
+                      }];
+#pragma clang diagnostic pop
+
+    // At the end of the stream, either loop or stop. The player keeps showing
+    // the last frame either way (actionAtItemEnd is None).
+    __weak AVPlayer *weakPlayer = player;
+    _endObserver = [[NSNotificationCenter defaultCenter]
+        addObserverForName:AVPlayerItemDidPlayToEndTimeNotification
+                    object:item
+                     queue:[NSOperationQueue mainQueue]
+                usingBlock:^(NSNotification * /*note*/) {
+                  if (state->loop) {
+                    [weakPlayer seekToTime:kCMTimeZero];
+                    [weakPlayer play];
+                  } else {
+                    state->playing = false;
+                  }
+                }];
+  }
 
   ~AppleVideoPlayer() override {
-    if (_loopObserver) {
-      [[NSNotificationCenter defaultCenter] removeObserver:_loopObserver];
-      _loopObserver = nil;
+    if (_endObserver) {
+      [[NSNotificationCenter defaultCenter] removeObserver:_endObserver];
+      _endObserver = nil;
     }
     [_player pause];
     _player = nil;
@@ -105,13 +188,51 @@ public:
     }
   }
 
-  void play() override { [_player play]; }
-  void pause() override { [_player pause]; }
+  void play() override {
+    _state->playing = true;
+    [_player play];
+  }
+
+  void pause() override {
+    _state->playing = false;
+    [_player pause];
+  }
+
+  bool paused() override { return !_state->playing; }
+
+  double currentTime() override {
+    CMTime time = [_player currentTime];
+    return CMTIME_IS_NUMERIC(time) ? CMTimeGetSeconds(time) : 0;
+  }
+
+  // An exact seek: the output then holds the frame at that position, also
+  // while paused, so the next copyLatestFrame() returns it.
+  void seek(double seconds) override {
+    [_player seekToTime:CMTimeMakeWithSeconds(seconds, NSEC_PER_SEC)
+        toleranceBefore:kCMTimeZero
+         toleranceAfter:kCMTimeZero];
+  }
+
+  double duration() override { return _state->duration; }
+
+  double volume() override { return _player.volume; }
+  void setVolume(double volume) override {
+    _player.volume = static_cast<float>(std::clamp(volume, 0.0, 1.0));
+  }
+
+  bool loop() override { return _state->loop; }
+  void setLoop(bool loop) override { _state->loop = loop; }
+
+  uint32_t videoWidth() override { return _state->width; }
+  uint32_t videoHeight() override { return _state->height; }
+  int rotation() override { return _state->rotation; }
+  double frameRate() override { return _state->frameRate; }
 
 private:
   AVPlayer *_player;
   AVPlayerItemVideoOutput *_output;
-  id _loopObserver;
+  std::shared_ptr<AppleVideoPlayerState> _state;
+  id _endObserver = nil;
 };
 
 } // namespace
@@ -142,8 +263,8 @@ VideoFrameHandle wrapCVPixelBuffer(CVPixelBufferRef pixelBuffer) {
   return handle;
 }
 
-std::unique_ptr<IVideoPlayer>
-createAppleVideoPlayer(const std::string &path, VideoPixelFormat format) {
+std::unique_ptr<IVideoPlayer> createAppleVideoPlayer(const std::string &path,
+                                                     VideoPixelFormat format) {
   NSString *nsPath = [NSString stringWithUTF8String:path.c_str()];
   NSURL *url;
   if ([nsPath hasPrefix:@"http://"] || [nsPath hasPrefix:@"https://"] ||
@@ -164,8 +285,8 @@ createAppleVideoPlayer(const std::string &path, VideoPixelFormat format) {
   // importExternalTexture. BGRA is the "decode + convert" path for the
   // single-plane SharedTextureMemory demo.
   OSType pixelFormat = format == VideoPixelFormat::NV12
-                          ? kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
-                          : kCVPixelFormatType_32BGRA;
+                           ? kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+                           : kCVPixelFormatType_32BGRA;
   NSDictionary *outputSettings = @{
     (NSString *)kCVPixelBufferPixelFormatTypeKey : @(pixelFormat),
     (NSString *)kCVPixelBufferIOSurfacePropertiesKey : @{},
@@ -176,20 +297,11 @@ createAppleVideoPlayer(const std::string &path, VideoPixelFormat format) {
   [item addOutput:output];
 
   AVPlayer *player = [AVPlayer playerWithPlayerItem:item];
+  // Keep the last frame at the end of the stream; AppleVideoPlayer decides
+  // whether to loop.
   player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
 
-  // Loop on end-of-stream by seeking back to zero.
-  __weak AVPlayer *weakPlayer = player;
-  id loopObserver = [[NSNotificationCenter defaultCenter]
-      addObserverForName:AVPlayerItemDidPlayToEndTimeNotification
-                  object:item
-                   queue:[NSOperationQueue mainQueue]
-              usingBlock:^(NSNotification * /*note*/) {
-                [weakPlayer seekToTime:kCMTimeZero];
-                [weakPlayer play];
-              }];
-
-  return std::make_unique<AppleVideoPlayer>(player, output, loopObserver);
+  return std::make_unique<AppleVideoPlayer>(player, item, output);
 }
 
 std::string writeAppleTestVideoFile() {
@@ -231,8 +343,7 @@ std::string writeAppleTestVideoFile() {
   writerInput.expectsMediaDataInRealTime = NO;
 
   NSDictionary *bufferAttrs = @{
-    (NSString *)kCVPixelBufferPixelFormatTypeKey :
-        @(kCVPixelFormatType_32BGRA),
+    (NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
     (NSString *)kCVPixelBufferWidthKey : @(kWidth),
     (NSString *)kCVPixelBufferHeightKey : @(kHeight),
     (NSString *)kCVPixelBufferIOSurfacePropertiesKey : @{},
@@ -274,8 +385,7 @@ std::string writeAppleTestVideoFile() {
       for (int x = 0; x < kWidth; ++x) {
         uint8_t r = static_cast<uint8_t>((x + phase) & 0xFF);
         uint8_t g = static_cast<uint8_t>((y + phase * 2) & 0xFF);
-        uint8_t b =
-            static_cast<uint8_t>(((x + y + phase) & 0x40) ? 220 : 30);
+        uint8_t b = static_cast<uint8_t>(((x + y + phase) & 0x40) ? 220 : 30);
         row[x * 4 + 0] = b;
         row[x * 4 + 1] = g;
         row[x * 4 + 2] = r;

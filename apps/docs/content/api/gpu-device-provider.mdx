@@ -25,6 +25,7 @@ import { PixelRatio } from "react-native";
 import {
   Canvas,
   GPUDeviceProvider,
+  createVideoPlayer,
   useCanvasRef,
   useMainDevice,
 } from "react-native-webgpu";
@@ -45,11 +46,11 @@ function VideoEffectScene() {
     context.configure({ device, format, alphaMode: "premultiplied" });
 
     const VIDEO_URL = "https://example.com/video.mp4";
-    const player = RNWebGPU.createVideoPlayer(VIDEO_URL, "nv12");
+    const player = createVideoPlayer(VIDEO_URL, { pixelFormat: "nv12" });
     player.play();
 
     // Render loop: copyLatestFrame → importExternalTexture → draw → present
-    // See [Native Extensions](/api/gpu-device-extensions)
+    // See [Video Player](/api/video-player)
   }, [device]);
 
   return <Canvas ref={ref} style={{ flex: 1 }} />;

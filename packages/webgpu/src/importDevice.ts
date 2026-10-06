@@ -26,10 +26,10 @@ export const importDevice = (pointer: bigint): GPUDevice => {
  * ownership of one reference: the returned texture releases it when destroyed.
  *
  * Pair with producers that hand out a +1 reference, such as
- * `Skia.Image.MakeNativeTextureFromImage()`:
+ * `Skia.Image.MakeGPUTextureFromImage()`:
  *
  * ```ts
- * const texture = adoptTexture(Skia.Image.MakeNativeTextureFromImage(image));
+ * const texture = adoptTexture(Skia.Image.MakeGPUTextureFromImage(image));
  * ```
  */
 export const adoptTexture = (pointer: bigint): GPUTexture => {

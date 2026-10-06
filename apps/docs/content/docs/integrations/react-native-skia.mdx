@@ -57,29 +57,29 @@ A few things to know:
 
 Textures cross the package boundary the same way the device does: as raw pointers on the shared device.
 
-**WebGPU texture as a Skia image.** Every `GPUTexture` exposes a non-spec `nativePointer` (a `BigInt` of the `WGPUTexture` handle, borrowed: keep the `GPUTexture` alive while the pointer is in use). `Skia.Image.MakeImageFromNativeTexture` wraps it into an `SkImage` without copying:
+**WebGPU texture as a Skia image.** `Skia.Image.MakeImageFromGPUTexture` wraps a `GPUTexture` of the shared device into an `SkImage` without copying. It reads the texture's non-spec `nativePointer` (a `BigInt` of the `WGPUTexture` handle) and takes its own reference, so the `GPUTexture` may be garbage collected but must not be destroyed while the image is in use:
 
 ```tsx
 const texture = device.createTexture({ ... });
 // render into it with WebGPU, then draw it with Skia:
-const image = Skia.Image.MakeImageFromNativeTexture(texture.nativePointer);
+const image = Skia.Image.MakeImageFromGPUTexture(texture);
 ```
 
-**Skia image as a WebGPU texture.** `Skia.Image.MakeNativeTextureFromImage` uploads an `SkImage` into a texture on the shared device and returns a `+1` pointer; `adoptTexture()` wraps it into a `GPUTexture` that owns that reference:
+**Skia image as a WebGPU texture.** `Skia.Image.MakeGPUTextureFromImage` uploads an `SkImage` into a texture on the shared device and returns a `+1` pointer; `adoptTexture()` wraps it into a `GPUTexture` that owns that reference, the same way `importDevice()` builds the `GPUDevice`:
 
 ```tsx
 import { adoptTexture } from "react-native-webgpu";
 
-const texture = adoptTexture(Skia.Image.MakeNativeTextureFromImage(image));
+const texture = adoptTexture(Skia.Image.MakeGPUTextureFromImage(image));
 // sample it in a render pipeline via texture.createView()
 ```
 
 Adopt each pointer exactly once: the returned `GPUTexture` releases the reference when destroyed.
 
-**Skia drawing into a WebGPU texture.** `Skia.Surface.MakeFromNativeTexture` wraps a texture of the shared device into an `SkSurface` that draws straight into it. Create the texture with the `RENDER_ATTACHMENT` usage, plus `TEXTURE_BINDING` to sample the result:
+**Skia drawing into a WebGPU texture.** `Skia.Surface.MakeFromGPUTexture` wraps a texture of the shared device into an `SkSurface` that draws straight into it. Create the texture with the `RENDER_ATTACHMENT` usage, plus `TEXTURE_BINDING` to sample the result:
 
 ```tsx
-const surface = Skia.Surface.MakeFromNativeTexture(texture.nativePointer);
+const surface = Skia.Surface.MakeFromGPUTexture(texture);
 surface.getCanvas().drawCircle(128, 128, 64, paint);
 // Submit Skia's commands ahead of the WebGPU pass that samples the texture
 surface.flush();
@@ -87,7 +87,34 @@ surface.flush();
 
 The surface holds its own reference to the texture. Dispose it before calling `texture.destroy()`.
 
-Platform surfaces (`CVPixelBuffer` / `AHardwareBuffer`) can also cross the boundary through [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory), or as external textures via `RNWebGPU.createVideoFrameFromNativeBuffer` + `importExternalTexture`.
+Platform surfaces (`CVPixelBuffer` / `AHardwareBuffer`) stay on the WebGPU side: sample them through [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory) or `importExternalTexture`, or copy them into a texture for Skia as described below.
+
+## Video and camera frames
+
+Starting with v3, react-native-skia has no video player and no native buffer API of its own: react-native-webgpu produces and owns the frames.
+[`copyExternalImageToTexture`](/api/gpu-device-extensions#copyexternalimagetotexture-with-a-native-frame) renders a frame into a texture of the shared device, with the YUV conversion and the rotation done on the GPU, and `Skia.Image.MakeImageFromGPUTexture` wraps that texture into an `SkImage`:
+
+```tsx
+import { createVideoPlayer, importDevice } from "react-native-webgpu";
+
+const device = importDevice(Skia.getNativeDevice());
+const player = createVideoPlayer(url);
+player.play();
+// on every frame:
+const frame = player.copyLatestFrame();
+if (frame) {
+  device.queue.copyExternalImageToTexture(
+    { source: frame, rotation: player.rotation },
+    { texture },
+    [texture.width, texture.height],
+  );
+  frame.release();
+  const image = Skia.Image.MakeImageFromGPUTexture(texture);
+}
+```
+
+This is the one path for video and camera frames on both platforms: Skia has no native buffer import of its own.
+The complete example, with the lifetime rules, is in the [React Native Skia documentation](https://wcandillon.github.io/react-native-skia/docs/webgpu#native-buffers).
 
 ## See also
 

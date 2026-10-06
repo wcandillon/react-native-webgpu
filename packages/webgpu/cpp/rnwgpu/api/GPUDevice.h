@@ -54,6 +54,7 @@
 #include "GPUTexture.h"
 #include "GPUTextureDescriptor.h"
 #include "GPUUncapturedErrorEvent.h"
+#include "VideoFrameBlit.h"
 
 namespace rnwgpu {
 
@@ -285,6 +286,11 @@ private:
   wgpu::Device _instance;
   std::shared_ptr<async::RuntimeContext> _async;
   std::string _label;
+  // Renders native video frames into textures for
+  // GPUQueue.copyExternalImageToTexture; shared by every GPUQueue wrapper of
+  // this device so the pipelines are created once.
+  std::shared_ptr<VideoFrameBlit> _videoFrameBlit =
+      std::make_shared<VideoFrameBlit>();
   // Guards the device-lost state below. getLost() runs on a JS thread, but
   // Dawn's AllowSpontaneous device-lost callback (and device destruction) can
   // fire notifyDeviceLost() from other threads, so the mutex keeps these

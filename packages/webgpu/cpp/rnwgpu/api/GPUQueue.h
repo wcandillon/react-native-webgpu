@@ -20,6 +20,7 @@
 #include "GPUDrawElementImageSource.h"
 #include "GPUImageCopyExternalImage.h"
 #include "GPUImageCopyTextureTagged.h"
+#include "VideoFrameBlit.h"
 
 namespace rnwgpu {
 
@@ -29,10 +30,12 @@ class GPUQueue : public NativeObject<GPUQueue> {
 public:
   static constexpr const char *CLASS_NAME = "GPUQueue";
 
-  explicit GPUQueue(wgpu::Queue instance,
+  explicit GPUQueue(wgpu::Device device, wgpu::Queue instance,
                     std::shared_ptr<async::RuntimeContext> async,
+                    std::shared_ptr<VideoFrameBlit> videoFrameBlit,
                     std::string label)
-      : NativeObject(CLASS_NAME), _instance(instance), _async(async),
+      : NativeObject(CLASS_NAME), _device(device), _instance(instance),
+        _async(async), _videoFrameBlit(std::move(videoFrameBlit)),
         _label(label) {}
 
 public:
@@ -48,6 +51,9 @@ public:
                     std::shared_ptr<ArrayBuffer> data,
                     std::shared_ptr<GPUImageDataLayout> dataLayout,
                     std::shared_ptr<GPUExtent3D> size);
+  // The source is an ImageBitmap (uploaded from the CPU) or, as a React
+  // Native extension, a NativeVideoFrame rendered into the destination through
+  // an external texture (see VideoFrameBlit).
   void copyExternalImageToTexture(
       std::shared_ptr<GPUImageCopyExternalImage> source,
       std::shared_ptr<GPUImageCopyTextureTagged> destination,
@@ -61,8 +67,7 @@ public:
   // runtime's thread right before the promise resolves, so work submitted
   // after `await` observes the new contents.
   async::AsyncTaskHandle drawElementImageToTexture(
-      jsi::Runtime &runtime,
-      std::shared_ptr<GPUDrawElementImageSource> source,
+      jsi::Runtime &runtime, std::shared_ptr<GPUDrawElementImageSource> source,
       std::shared_ptr<GPUDrawElementImageDestination> destination);
 
   std::string getLabel() { return _label; }
@@ -89,8 +94,14 @@ public:
   inline const wgpu::Queue get() { return _instance; }
 
 private:
+  void copyVideoFrameToTexture(const GPUImageCopyExternalImage &source,
+                               const GPUImageCopyTextureTagged &destination,
+                               const wgpu::Extent3D &size);
+
+  wgpu::Device _device;
   wgpu::Queue _instance;
   std::shared_ptr<async::RuntimeContext> _async;
+  std::shared_ptr<VideoFrameBlit> _videoFrameBlit;
   std::string _label;
 };
 

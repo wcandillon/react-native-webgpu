@@ -100,6 +100,7 @@ The flag only controls the default injection: listing `"implicit-device-synchron
 
 | Field / Method | Description |
 | -------------- | ----------- |
+| `source` | A [`NativeVideoFrame`](/api/video-player#nativevideoframe) (from a video player, a camera buffer or `createTestVideoFrame`) instead of the web's `HTMLVideoElement` / `VideoFrame` |
 | `rotation` | 0, 90, 180, or 270 degrees (camera orientation) |
 | `mirrored` | Horizontal flip for front camera |
 | `destroy()` | Release native surface access after the `queue.submit()` that sampled it |
@@ -118,6 +119,36 @@ console.log(externalTexture.rotation, externalTexture.mirrored);
 externalTexture.destroy();
 nativeVideoFrame.release();
 ```
+
+## copyExternalImageToTexture with a native frame
+
+`queue.copyExternalImageToTexture()` also accepts a [`NativeVideoFrame`](/api/video-player#nativevideoframe) as its source, the way the web API accepts a `VideoFrame`.
+The frame is rendered into the destination on the GPU through an external texture, so YUV frames come out as RGB, and the non-spec `rotation` and `mirrored` options of `importExternalTexture` apply.
+The destination needs `GPUTextureUsage.RENDER_ATTACHMENT` and an `rgba8unorm`, `bgra8unorm` (or `-srgb`), `rgba16float` or `rgb10a2unorm` format; the frame can be released as soon as the call returns.
+
+```tsx twoslash
+import type { NativeVideoFrame } from "react-native-webgpu";
+declare const device: GPUDevice;
+declare const frame: NativeVideoFrame;
+declare const rotation: 0 | 90 | 180 | 270;
+// ---cut---
+const texture = device.createTexture({
+  size: [frame.width, frame.height],
+  format: "rgba8unorm",
+  usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+});
+device.queue.copyExternalImageToTexture(
+  { source: frame, rotation },
+  { texture },
+  [frame.width, frame.height],
+);
+frame.release();
+```
+
+`origin`, `flipY` and the copy size work as on the web, in the upright frame: a frame rotated by 90 or 270 degrees has its width and height swapped.
+This is the path to hand a video or camera frame to a library that samples regular textures, such as [React Native Skia](/docs/integrations/react-native-skia#video-and-camera-frames); a shader of your own can sample the frame directly with `importExternalTexture()` and skip the copy.
+
+<auto-type-table path="../../../../packages/webgpu/src/types.ts" name="GPUCopyExternalNativeFrameSourceInfo" />
 
 ## createImageBitmap
 

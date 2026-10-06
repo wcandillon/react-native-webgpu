@@ -236,7 +236,7 @@ const renderer = makeWebGPURenderer(context, device);
 renderer.setAnimationLoop(() => {
   renderer.render(scene, camera);
   // Wrap the texture into a fresh SkImage and hand it to a Skia <Image />.
-  image.value = Skia.Image.MakeImageFromNativeTexture(texture.nativePointer);
+  image.value = Skia.Image.MakeImageFromGPUTexture(texture);
 });
 ```
 

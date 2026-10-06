@@ -25,10 +25,6 @@ Vision Camera documents the WebGPU import path directly on [`Frame.getNativeBuff
 ```tsx twoslash
 import type { NativeVideoFrame } from "react-native-webgpu";
 import type { NativeBuffer } from "react-native-vision-camera";
-// importExternalTexture accepts our NativeVideoFrame as a frame source:
-declare module "react-native-webgpu" {
-  interface NativeVideoFrame extends VideoFrame {}
-}
 declare const device: GPUDevice;
 declare const frame: {
   hasNativeBuffer: boolean;
@@ -106,10 +102,6 @@ Each frame is a new external texture.
 ```tsx twoslash
 import type { RNCanvasContext } from "react-native-webgpu";
 import type { Frame } from "react-native-vision-camera";
-// importExternalTexture accepts our NativeVideoFrame as a frame source:
-declare module "react-native-webgpu" {
-  interface NativeVideoFrame extends VideoFrame {}
-}
 declare const encoder: GPUCommandEncoder;
 // ---cut---
 function renderCameraFrame(

@@ -133,7 +133,8 @@ std::shared_ptr<GPUSupportedLimits> GPUDevice::getLimits() {
 
 std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
   auto result = _instance.GetQueue();
-  return std::make_shared<GPUQueue>(result, _async, _label);
+  return std::make_shared<GPUQueue>(_instance, result, _async, _videoFrameBlit,
+                                    _label);
 }
 
 std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(

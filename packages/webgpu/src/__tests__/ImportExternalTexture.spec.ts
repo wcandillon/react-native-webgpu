@@ -40,10 +40,7 @@ describe("ImportExternalTexture", () => {
           // beginAccess / endAccess to manage: the GPUExternalTexture owns the
           // shared-memory access window and keeps the frame alive internally.
           const externalTexture = device.importExternalTexture({
-            // createTestVideoFrame returns our NativeVideoFrame; the native
-            // importExternalTexture binding accepts it, but the spec type wants
-            // a WebCodecs VideoFrame, so cast to satisfy the signature.
-            source: frame as unknown as VideoFrame,
+            source: frame,
             label: "test-frame",
           });
 
@@ -219,7 +216,7 @@ describe("ImportExternalTexture", () => {
           const frame = RNWebGPU.createTestVideoFrame(256, 256);
           for (let i = 0; i < 3; i++) {
             const externalTexture = device.importExternalTexture({
-              source: frame as unknown as VideoFrame,
+              source: frame,
               label: `reimport-${i}`,
             });
             const bindGroup = device.createBindGroup({

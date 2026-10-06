@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { PixelRatio, Platform, StyleSheet, Text, View } from "react-native";
 import {
   Canvas,
+  createTestVideoFrame,
+  createVideoPlayer,
   useCanvasRef,
   useDevice,
   type GPUSharedTextureMemory,
@@ -115,17 +117,17 @@ export const SharedTextureMemory = () => {
     if (Platform.OS === "ios") {
       const VIDEO_URL =
         "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4";
-      const player = RNWebGPU.createVideoPlayer(VIDEO_URL);
+      const player = createVideoPlayer(VIDEO_URL);
       player.play();
       source = {
         copyLatestFrame: () => player.copyLatestFrame(),
         release: () => player.release(),
       };
     } else {
-      let pending: NativeVideoFrame | null = RNWebGPU.createTestVideoFrame(
-        1024,
-        1024,
-      );
+      // Android decodes videos into YUV frames, which only
+      // importExternalTexture samples (see the ImportExternalTexture demo);
+      // this BGRA path shows a synthetic frame instead.
+      let pending: NativeVideoFrame | null = createTestVideoFrame(1024, 1024);
       source = {
         copyLatestFrame: () => {
           const f = pending;
