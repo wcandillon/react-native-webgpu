@@ -46,6 +46,7 @@ import { BackgroundDetach } from "./Diagnostics/BackgroundDetach";
 import { SurfaceChurn } from "./Diagnostics/SurfaceChurn";
 import { TransparencyMode } from "./Diagnostics/TransparencyMode";
 import { DeviceDestroyBeforeDetach } from "./Diagnostics/DeviceDestroyBeforeDetach";
+import { FramePacing } from "./Diagnostics/FramePacing";
 import { StorageBufferVertices } from "./StorageBufferVertices";
 import { SharedTextureMemory } from "./SharedTextureMemory";
 import { ImportExternalTexture } from "./ImportExternalTexture";
@@ -135,6 +136,7 @@ function App() {
             name="DeviceDestroyBeforeDetach"
             component={DeviceDestroyBeforeDetach}
           />
+          <Stack.Screen name="FramePacing" component={FramePacing} />
           <Stack.Screen
             name="StorageBufferVertices"
             component={StorageBufferVertices}

@@ -48,9 +48,9 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
   }
 
   @Override
-  @ReactProp(name = "presentation")
-  public void setPresentation(WebGPUView view, String value) {
-    view.setPresentation(value);
+  @ReactProp(name = "mode")
+  public void setMode(WebGPUView view, String value) {
+    view.setMode(value);
   }
 
   @Override

@@ -10,7 +10,7 @@ export interface NativeProps extends ViewProps {
   opaque?: boolean;
   androidSurfaceType?: "auto" | "SurfaceView" | "TextureView";
   androidZOrderOnTop?: boolean;
-  presentation?: "direct" | "copy";
+  mode?: "canvas" | "swapchain";
 }
 
 // eslint-disable-next-line import/no-default-export
@@ -23,7 +23,7 @@ export default function WebGPUViewNativeComponent(
     opaque = true,
     androidSurfaceType: _androidSurfaceType,
     androidZOrderOnTop: _androidZOrderOnTop,
-    presentation: _presentation,
+    mode: _mode,
     ...rest
   } = props;
 

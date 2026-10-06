@@ -235,21 +235,35 @@ public:
   // --- View (UI thread)
   // -------------------------------------------------------
 
+  // What presentFrame() did.
+  enum class PresentResult {
+    // Nothing new to show, or a frame the surface will never take.
+    Idle = 0,
+    // A buffer was queued for display.
+    Presented = 1,
+    // A frame is waiting but the surface could not take it right now (stale
+    // and not reconfigurable yet, e.g. mid-resize): try again on the next
+    // display refresh.
+    Retry = 2,
+  };
+
   // Copy the latest finished frame onto the native surface and present it, if
-  // it is not on screen yet. Returns true when a buffer was queued for
-  // display. The caller must not call this again before the platform has
-  // consumed that buffer, or acquiring the next one may block the UI thread.
-  bool presentFrame() {
+  // it is not on screen yet. After Presented, the caller must not call this
+  // again before the platform has consumed that buffer, or acquiring the next
+  // one may block the UI thread.
+  PresentResult presentFrame() {
     std::lock_guard<std::mutex> lock(_mutex);
     if (!_dirty || !_front.texture || _device == nullptr ||
         !_nativeSurface.create) {
-      return false;
+      return PresentResult::Idle;
     }
     const wgpu::Texture &frame = _front.texture;
-    wgpu::Texture target = acquireSurfaceTextureLocked(frame);
+    bool transient = false;
+    wgpu::Texture target = acquireSurfaceTextureLocked(frame, &transient);
     if (!target) {
-      // Still dirty: retried on the next wake-up.
-      return false;
+      // Still dirty: shown on the next wake-up, or on the next refresh when
+      // the failure is transient.
+      return transient ? PresentResult::Retry : PresentResult::Idle;
     }
 
     wgpu::TexelCopyTextureInfo source = {};
@@ -274,7 +288,7 @@ public:
 #endif
     _surface.Present();
     _dirty = false;
-    return true;
+    return PresentResult::Presented;
   }
 
   // Invoked from the rendering thread (never under _mutex) each time a new
@@ -339,8 +353,11 @@ private:
   }
 
   // The swapchain texture to copy `frame` into, with the surface (re)built and
-  // (re)configured for it as needed. Null when the surface cannot take it.
-  wgpu::Texture acquireSurfaceTextureLocked(const wgpu::Texture &frame) {
+  // (re)configured for it as needed. Null when the surface cannot take it;
+  // `transient` then says whether it may on the next refresh.
+  wgpu::Texture acquireSurfaceTextureLocked(const wgpu::Texture &frame,
+                                            bool *transient) {
+    *transient = false;
     if (!_surface) {
       _surface = _nativeSurface.create();
       _surfaceConfigured = false;
@@ -383,6 +400,8 @@ private:
       _surface.Configure(&config);
       _surface.GetCurrentTexture(&surfaceTexture);
       if (!isAcquireSuccess(surfaceTexture)) {
+        *transient = surfaceTexture.status !=
+                     wgpu::SurfaceGetCurrentTextureStatus::Error;
         return nullptr;
       }
     }

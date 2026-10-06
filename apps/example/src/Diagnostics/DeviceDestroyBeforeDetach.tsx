@@ -64,12 +64,15 @@ interface SceneProps {
   append: (line: string) => void;
 }
 
-// Android backing views for the raw scene. "hardware buffer" presents through
-// the AHardwareBuffer pool; "copy" asks for the same view with an rgba16float
-// canvas, which hardware buffers cannot back, so it ends up on the view that
-// presents with a copy. Both keep frames that belong to the device (and the
-// copy one its own swapchain), which must be dropped before the device dies.
-const ANDROID_VIEWS = ["auto", "hardware buffer", "copy"] as const;
+// Android backing views for the raw scene. "auto" is the canvas-mode default
+// (the UI thread copies frames onto a SurfaceView or TextureView); "swapchain"
+// is the swapchain mode this crash was reported on; "hardware buffer" presents
+// through the AHardwareBuffer pool; "copy" asks for that view with an
+// rgba16float canvas, which hardware buffers cannot back, so it ends up on
+// the TextureView that presents with a copy. All keep frames that belong to
+// the device (and the copying ones their own swapchain), which must be
+// dropped before the device dies.
+const ANDROID_VIEWS = ["auto", "swapchain", "hardware buffer", "copy"] as const;
 type AndroidView = (typeof ANDROID_VIEWS)[number];
 
 const RawScene = ({ opaque, view, unconfigureFirst, append }: SceneProps) => {
@@ -136,8 +139,11 @@ const RawScene = ({ opaque, view, unconfigureFirst, append }: SceneProps) => {
       ref={ref}
       style={diagnosticStyles.canvas}
       opaque={opaque}
+      mode={view === "swapchain" ? "swapchain" : undefined}
       android={
-        view === "auto" ? undefined : { surfaceType: "HardwareBufferView" }
+        view === "auto" || view === "swapchain"
+          ? undefined
+          : { surfaceType: "HardwareBufferView" }
       }
     />
   );

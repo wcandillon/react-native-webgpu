@@ -39,6 +39,7 @@ export type Routes = {
   SurfaceChurn: undefined;
   TransparencyMode: undefined;
   DeviceDestroyBeforeDetach: undefined;
+  FramePacing: undefined;
   StorageBufferVertices: undefined;
   SharedTextureMemory: undefined;
   ImportExternalTexture: undefined;

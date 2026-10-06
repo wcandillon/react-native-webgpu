@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import type {
   AndroidCanvasProps,
-  CanvasPresentation,
+  CanvasMode,
   CanvasRef,
 } from "react-native-webgpu";
 import { Canvas } from "react-native-webgpu";
@@ -22,9 +22,9 @@ import {
 } from "./surfaceLifecycle";
 
 // Exercises every Android backing-view combination on one mounted Canvas:
-// opaque toggles in place, surfaceType/zOrderOnTop replace the child view and
-// blit the last frame across. Half-transparent red is cleared over a blue
-// stage with a yellow RN overlay on top:
+// opaque toggles in place, surfaceType/zOrderOnTop/mode replace the child
+// view and carry the last frame across. Half-transparent red is cleared over
+// a blue stage with a yellow RN overlay on top:
 // - opaque: solid red, overlay visible.
 // - non-opaque TextureView (default): pink, overlay visible.
 // - non-opaque HardwareBufferView (opt-in, Android 10+): pink, overlay
@@ -36,13 +36,13 @@ import {
 // - non-opaque SurfaceView: blends against the window background (black),
 //   overlay visible only with zOrderOnTop off (the surface sits below it).
 // - non-opaque SurfaceView + zOrderOnTop: pink, overlay hidden underneath.
-// - copy (presentation="copy", also on iOS): pink, overlay visible. The UI
-//   thread copies each frame onto the surface instead of the rendering thread
-//   presenting it.
+// - swapchain (mode="swapchain", also on iOS): same look as "auto", but the
+//   rendering thread presents the view's swapchain itself instead of the UI
+//   thread copying each frame onto it.
 const OPTIONS: {
   label: string;
   android?: AndroidCanvasProps;
-  presentation?: CanvasPresentation;
+  mode?: CanvasMode;
 }[] = [
   { label: "auto" },
   { label: "hardware buffer", android: { surfaceType: "HardwareBufferView" } },
@@ -52,7 +52,7 @@ const OPTIONS: {
     label: "surface on top",
     android: { surfaceType: "SurfaceView", zOrderOnTop: true },
   },
-  { label: "copy", presentation: "copy" },
+  { label: "swapchain", mode: "swapchain" },
 ];
 
 const CLEAR_COLOR: GPUColor = [0.5, 0, 0, 0.5];
@@ -161,7 +161,7 @@ export const TransparencyMode = () => {
             style={diagnosticStyles.canvas}
             opaque={opaque}
             android={option.android}
-            presentation={option.presentation}
+            mode={option.mode}
           />
         )}
         <Pressable

@@ -244,12 +244,12 @@ Java_com_webgpu_WebGPUHardwareBufferView_nSwitchToOffscreen(JNIEnv *env,
   }
 }
 
-// --- WebGPUBlitTextureView (copy onto the view's surface)
-// -----------------------------
+// --- BlitPresenterClient (WebGPUBlitSurfaceView / WebGPUBlitTextureView:
+// copy onto the view's surface) ----------------------------------------------
 
 // The view has a surface: turn on blit mode and lend it the window. dpW/dpH is
 // the canvas-client (dp) size.
-extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUBlitTextureView_nAttach(
+extern "C" JNIEXPORT void JNICALL Java_com_webgpu_BlitPresenterClient_nAttach(
     JNIEnv *env, jobject thiz, jobject jSurface, jint contextId, jint dpW,
     jint dpH) {
   if (manager == nullptr) {
@@ -281,31 +281,32 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUBlitTextureView_nAttach(
 
 // Keep the canvas-client (dp) size in sync on resize.
 extern "C" JNIEXPORT void JNICALL
-Java_com_webgpu_WebGPUBlitTextureView_nSetClientSize(JNIEnv *env, jobject thiz,
-                                                     jint contextId, jint dpW,
-                                                     jint dpH) {
+Java_com_webgpu_BlitPresenterClient_nSetClientSize(JNIEnv *env, jobject thiz,
+                                                   jint contextId, jint dpW,
+                                                   jint dpH) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   if (auto info = registry.getSurfaceInfo(contextId)) {
     info->resize(static_cast<int>(dpW), static_cast<int>(dpH));
   }
 }
 
-// Copy the latest finished frame onto the surface and present it. Returns
-// whether a buffer was queued. Called on the UI thread.
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_webgpu_WebGPUBlitTextureView_nPresentFrame(JNIEnv *env, jobject thiz,
-                                                    jint contextId) {
+// Copy the latest finished frame onto the surface and present it. Returns a
+// BlitPresenter::PresentResult (mirrored by the PRESENT_* constants in
+// BlitPresenterClient.java). Called on the UI thread.
+extern "C" JNIEXPORT jint JNICALL
+Java_com_webgpu_BlitPresenterClient_nPresentFrame(JNIEnv *env, jobject thiz,
+                                                  jint contextId) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto info = registry.getSurfaceInfo(contextId);
   if (info == nullptr) {
-    return JNI_FALSE;
+    return static_cast<jint>(rnwgpu::BlitPresenter::PresentResult::Idle);
   }
-  return info->blitPresenter().presentFrame() ? JNI_TRUE : JNI_FALSE;
+  return static_cast<jint>(info->blitPresenter().presentFrame());
 }
 
 // The surface is going away: leave blit mode. The latest frame stays available
 // offscreen (mirrors switchToOffscreenSurface for the surface path).
-extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUBlitTextureView_nDetach(
+extern "C" JNIEXPORT void JNICALL Java_com_webgpu_BlitPresenterClient_nDetach(
     JNIEnv *env, jobject thiz, jint contextId) {
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   if (auto info = registry.getSurfaceInfo(contextId)) {

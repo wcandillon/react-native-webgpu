@@ -154,10 +154,19 @@ public:
       // Buffers imported for another device cannot be reused.
       releaseDeviceObjectsLocked(lock);
     }
+    bool hasViewFormats = config.viewFormatCount > 0;
+    if (_pool != nullptr &&
+        (_format != config.format || _usage != config.usage ||
+         _hasViewFormats != hasViewFormats)) {
+      // The pool was allocated for the previous configuration; whether it can
+      // serve this one is decided again by the next resize(), which only
+      // checks when there is no pool at the current size.
+      dropPoolLocked();
+    }
     _device = config.device;
     _format = config.format;
     _usage = config.usage;
-    _hasViewFormats = config.viewFormatCount > 0;
+    _hasViewFormats = hasViewFormats;
     // A new configuration may be one the pool supports even if the previous
     // one was not.
     _unsupported = false;

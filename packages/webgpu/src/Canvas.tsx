@@ -50,11 +50,13 @@ export type AndroidSurfaceType =
 
 export interface AndroidCanvasProps {
   /**
-   * Backing view. Defaults to `SurfaceView` when the canvas is opaque and to
-   * `TextureView` otherwise; both composite correctly in React Native
-   * stacking order without further flags. `HardwareBufferView` (Android 10+,
-   * a plain View that draws each frame's AHardwareBuffer inline with no extra
-   * copy) is opt-in and experimental; on older devices it uses `TextureView`.
+   * How the canvas composites. Defaults to `SurfaceView` (its own compositor
+   * layer) when the canvas is opaque and to `TextureView` (regular view
+   * content) otherwise; both composite correctly in React Native stacking
+   * order without further flags. `HardwareBufferView` (Android 10+, a plain
+   * View that draws each frame's AHardwareBuffer inline with no extra copy)
+   * is opt-in and experimental, and only exists in canvas mode; elsewhere it
+   * resolves to `TextureView`.
    */
   surfaceType?: AndroidSurfaceType;
   /**
@@ -64,7 +66,7 @@ export interface AndroidCanvasProps {
   zOrderOnTop?: boolean;
 }
 
-export type CanvasPresentation = "direct" | "copy";
+export type CanvasMode = "canvas" | "swapchain";
 
 export interface CanvasProps extends ViewProps {
   /**
@@ -76,17 +78,17 @@ export interface CanvasProps extends ViewProps {
   /** Android-only rendering options. Ignored on iOS and web. */
   android?: AndroidCanvasProps;
   /**
-   * Experimental. How finished frames reach the screen. `"direct"` (the
-   * default) lets the thread that renders present the native swapchain.
-   * `"copy"` renders into textures the canvas owns and has the UI thread copy
-   * the latest one onto the native surface, at most once per display
-   * refresh: one extra copy per frame, and the swapchain is only ever used
-   * from the UI thread. On Android it selects a `TextureView` and takes
-   * precedence over `android.surfaceType`. Ignored on macOS and web. Best set
-   * when the canvas mounts: switching a mounted canvas to `"copy"` leaves it
-   * empty until the next frame is rendered.
+   * How finished frames reach the screen. `"canvas"` (the default) follows
+   * the web: the canvas renders into textures it owns and the native view
+   * puts the latest finished frame on screen from the UI thread, at most once
+   * per display refresh. One extra copy per frame, and the rendering thread
+   * never touches the native swapchain. `"swapchain"` lets the thread that
+   * renders present the native swapchain directly: no copy and the lowest
+   * latency, but the swapchain is then shared between that thread and the UI
+   * thread. Ignored on macOS (always swapchain) and web. Best set when the
+   * canvas mounts: switching a mounted canvas replaces its native view.
    */
-  presentation?: CanvasPresentation;
+  mode?: CanvasMode;
   ref?: React.Ref<CanvasRef>;
 }
 
@@ -104,7 +106,7 @@ const resolveSurfaceType = (
 export const Canvas = ({
   opaque = true,
   android,
-  presentation,
+  mode,
   ref,
   ...props
 }: CanvasProps) => {
@@ -155,7 +157,7 @@ export const Canvas = ({
         opaque={opaque}
         androidSurfaceType={resolveSurfaceType(android?.surfaceType)}
         androidZOrderOnTop={!!android?.zOrderOnTop}
-        presentation={presentation === "copy" ? "copy" : "direct"}
+        mode={mode === "swapchain" ? "swapchain" : "canvas"}
       />
     </View>
   );

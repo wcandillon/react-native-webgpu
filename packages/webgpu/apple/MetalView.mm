@@ -28,8 +28,9 @@
 @implementation MetalView {
   BOOL _isConfigured;
 #if !TARGET_OS_OSX
-  // Copy mode: frames are put on the layer from the main thread, at most one
-  // per display refresh, by this link. It only ticks while frames keep coming.
+  // Canvas mode: frames are put on the layer from the main thread, at most
+  // one per display refresh, by this link. It only ticks while frames keep
+  // coming.
   CADisplayLink *_displayLink;
   // Whether the link is ticking. Shared with the frame-ready callback, which
   // runs on the rendering thread and must not touch the view there.
@@ -54,11 +55,11 @@
 }
 #endif // !TARGET_OS_OSX
 
-- (void)setPresentsWithCopy:(BOOL)presentsWithCopy {
-  if (_presentsWithCopy == presentsWithCopy) {
+- (void)setCanvasMode:(BOOL)canvasMode {
+  if (_canvasMode == canvasMode) {
     return;
   }
-  _presentsWithCopy = presentsWithCopy;
+  _canvasMode = canvasMode;
 #if !TARGET_OS_OSX
   if (!_isConfigured) {
     return; // -configure reads it
@@ -100,8 +101,8 @@
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   auto gpu = manager->_gpu;
 #if !TARGET_OS_OSX
-  if (_presentsWithCopy) {
-    [self configureCopyWithLayer:nativeSurface manager:manager];
+  if (_canvasMode) {
+    [self configureCanvasModeWithLayer:nativeSurface manager:manager];
     return;
   }
 #endif
@@ -125,12 +126,12 @@
 }
 
 #if !TARGET_OS_OSX
-// Copy mode: the canvas renders into textures the BlitPresenter owns, and this
-// view copies the latest one onto its layer from the main thread. The layer's
-// swapchain never leaves the main thread.
-- (void)configureCopyWithLayer:(void *)nativeSurface
-                       manager:
-                           (std::shared_ptr<rnwgpu::RNWebGPUManager>)manager {
+// Canvas mode: the canvas renders into textures the BlitPresenter owns, and
+// this view copies the latest one onto its layer from the main thread. The
+// layer's swapchain never leaves the main thread.
+- (void)configureCanvasModeWithLayer:(void *)nativeSurface
+                             manager:(std::shared_ptr<rnwgpu::RNWebGPUManager>)
+                                         manager {
   auto size = self.frame.size;
   auto gpu = manager->_gpu;
   auto platformContext = manager->_platformContext;
@@ -200,9 +201,11 @@
 // One present per display refresh at most: acquiring a drawable faster than
 // the display consumes them would block the main thread.
 - (void)displayLinkDidFire {
+  using PresentResult = rnwgpu::BlitPresenter::PresentResult;
   auto info = rnwgpu::SurfaceRegistry::getInstance().getSurfaceInfo(
       [_contextId intValue]);
-  if (info != nullptr && info->blitPresenter().presentFrame()) {
+  if (info != nullptr &&
+      info->blitPresenter().presentFrame() == PresentResult::Presented) {
     _idleTicks = 0;
     return;
   }
@@ -214,7 +217,8 @@
   _displayLinkActive->store(false);
   // A frame that finished just before the flag flipped found the link
   // ticking and did not wake it: look once more.
-  if (info != nullptr && info->blitPresenter().presentFrame()) {
+  if (info != nullptr &&
+      info->blitPresenter().presentFrame() == PresentResult::Presented) {
     [self startDisplayLink];
   }
 }

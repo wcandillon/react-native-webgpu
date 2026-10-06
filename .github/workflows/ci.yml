@@ -234,6 +234,10 @@ jobs:
         working-directory: apps/example/android
         run: ./gradlew assembleDebug --build-cache --warning-mode all --stacktrace
 
+      - name: Unit test the Android library
+        working-directory: apps/example/android
+        run: ./gradlew :react-native-webgpu:testDebugUnitTest --build-cache
+
       # Housekeeping for the self-hosted runner: the start-of-run kill already
       # guarantees a clean slate for the next build, so this is not needed for
       # correctness. It just shrinks the window during which an idle Metro sits
