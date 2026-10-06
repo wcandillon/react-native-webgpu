@@ -18,7 +18,7 @@ function App() {
   return (
     <GPUDeviceProvider
       deviceDescriptor={{
-        requiredFeatures: ["rnwebgpu/native-texture" as GPUFeatureName],
+        requiredFeatures: ["shader-f16"],
       }}
     >
       <Scene />
@@ -66,7 +66,7 @@ import { useDevice } from "react-native-webgpu";
 // ---cut---
 const { device } = useDevice(
   { powerPreference: "high-performance" },
-  { requiredFeatures: ["rnwebgpu/native-texture" as GPUFeatureName] },
+  { requiredFeatures: ["shader-f16"] },
 );
 ```
 

@@ -427,11 +427,19 @@ describe("External Textures", () => {
   it("samples a GPUExternalTexture through an explicit bind group layout", async () => {
     const result = await client.eval<Record<string, never>, EvalResult>(
       ({ device, gpu, ctx, canvas }) => {
-        const FEATURE = "rnwebgpu/native-texture";
-        if (!device.features.has(FEATURE as GPUFeatureName)) {
+        // Native frame import is on by default; the Chrome reference run and
+        // fallback adapters have no shared texture memory to import into, and
+        // that is the only legitimate reason to skip.
+        const NATIVE_IMPORT = [
+          "shared-texture-memory-iosurface",
+          "shared-texture-memory-ahardware-buffer",
+        ];
+        if (
+          !NATIVE_IMPORT.some((f) => device.features.has(f as GPUFeatureName))
+        ) {
           return {
             kind: "skip",
-            reason: `${FEATURE} not enabled on this device`,
+            reason: "native frame import is unavailable on this device",
           };
         }
         if (typeof RNWebGPU?.createTestVideoFrame !== "function") {

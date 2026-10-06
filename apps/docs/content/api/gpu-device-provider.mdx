@@ -58,18 +58,14 @@ function VideoEffectScene() {
 
 export function App() {
   return (
-    <GPUDeviceProvider
-      deviceDescriptor={{
-        requiredFeatures: ["rnwebgpu/native-texture" as GPUFeatureName],
-      }}
-    >
+    <GPUDeviceProvider>
       <VideoEffectScene />
     </GPUDeviceProvider>
   );
 }
 ```
 
-Request features (like `"rnwebgpu/native-texture"`) here: you cannot add features to an existing device later.
+Request features through `deviceDescriptor` (for instance `{ requiredFeatures: ["shader-f16"] }`): you cannot add features to an existing device later. Native frame import needs none, it is enabled by default.
 
 While the device is loading, the provider returns `null` (nothing rendered). If you need a loading UI, wrap the provider:
 

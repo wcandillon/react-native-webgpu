@@ -17,7 +17,7 @@
 
 #include "GPUFeatures.h"
 #include "JSIConverter.h"
-#include "RnFeatures.h"
+#include "NativeFrameFeatures.h"
 #include "WGPULogger.h"
 
 namespace rnwgpu {
@@ -25,36 +25,24 @@ namespace rnwgpu {
 async::AsyncTaskHandle GPUAdapter::requestDevice(
     jsi::Runtime &runtime,
     std::optional<std::shared_ptr<GPUDeviceDescriptor>> descriptor) {
-  // Enable the react-native-wgpu "native-texture" umbrella by default,
-  // mirroring the web where importExternalTexture is core and needs no feature
-  // request. We append the umbrella's backing Dawn features to requiredFeatures
-  // so the capability is on without the caller listing it. Two rules keep this
-  // safe:
-  //   - All-or-nothing: only inject when the adapter supports *every* backing
-  //     feature (same semantics as maybeSynthesizeRnNativeTextureFeature). On a
-  //     web/fallback adapter the backing set is empty or unsupported, so this
-  //     is a no-op and device creation is unaffected.
-  //   - Requesting a feature the adapter doesn't support makes RequestDevice
-  //     fail, hence the support check below.
-  // Callers can still pass "rnwebgpu/native-texture" explicitly; the dedupe
-  // keeps that idempotent.
-  // The optional features (rnNativeTextureOptionalFeatures) ride along one by
-  // one, each only when the adapter supports it: on Android the YUV frames of
-  // the decoder and of the camera cannot be imported without
-  // OpaqueYCbCrAndroidForExternalTexture, while RGBA buffers need nothing
-  // beyond the backing set.
+  // Native frame import (importSharedTextureMemory, importExternalTexture,
+  // copyExternalImageToTexture with a NativeVideoFrame) needs no feature
+  // request, like importExternalTexture on the web: the Dawn features behind
+  // it are added to requiredFeatures here, each one when the adapter supports
+  // it. Requesting a feature the adapter lacks would make RequestDevice fail,
+  // so a fallback adapter (emulators, the web) still gets a device, without
+  // the capability; the first import then reports what is missing.
   {
-    auto backing = rnNativeTextureBackingFeatures();
-    if (!backing.empty()) {
+    auto native = nativeFrameImportFeatures();
+    if (!native.empty()) {
       wgpu::SupportedFeatures supported;
       _instance.GetFeatures(&supported);
       std::unordered_set<wgpu::FeatureName> supportedSet(
           supported.features, supported.features + supported.featureCount);
-      bool allSupported =
-          std::all_of(backing.begin(), backing.end(), [&](wgpu::FeatureName f) {
-            return supportedSet.count(f) > 0;
-          });
-      if (allSupported) {
+      for (auto f : native) {
+        if (supportedSet.count(f) == 0) {
+          continue;
+        }
         if (!descriptor.has_value()) {
           descriptor = std::make_shared<GPUDeviceDescriptor>();
         }
@@ -63,18 +51,8 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
           desc->requiredFeatures = std::vector<wgpu::FeatureName>{};
         }
         auto &features = desc->requiredFeatures.value();
-        for (auto f : backing) {
-          if (std::find(features.begin(), features.end(), f) ==
-              features.end()) {
-            features.push_back(f);
-          }
-        }
-        for (auto f : rnNativeTextureOptionalFeatures()) {
-          if (supportedSet.count(f) > 0 &&
-              std::find(features.begin(), features.end(), f) ==
-                  features.end()) {
-            features.push_back(f);
-          }
+        if (std::find(features.begin(), features.end(), f) == features.end()) {
+          features.push_back(f);
         }
       }
     }
@@ -325,17 +303,13 @@ std::unordered_set<std::string> GPUAdapter::getFeatures() {
   wgpu::SupportedFeatures supportedFeatures;
   _instance.GetFeatures(&supportedFeatures);
   std::unordered_set<std::string> result;
-  std::unordered_set<wgpu::FeatureName> enabled;
   for (size_t i = 0; i < supportedFeatures.featureCount; ++i) {
-    auto feature = supportedFeatures.features[i];
-    enabled.insert(feature);
     std::string name;
-    convertEnumToJSUnion(feature, &name);
+    convertEnumToJSUnion(supportedFeatures.features[i], &name);
     if (name != "") {
       result.insert(name);
     }
   }
-  maybeSynthesizeRnNativeTextureFeature(enabled, result);
   return result;
 }
 

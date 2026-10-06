@@ -63,41 +63,24 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
 }
 `;
 
-// importExternalTexture is backed by the "rnwebgpu/native-texture" umbrella
-// feature (it imports the frame's IOSurface / AHardwareBuffer as shared texture
-// memory, then wraps that as an external texture). Like importExternalTexture on
-// the web, that capability is now enabled by default: requestDevice / useDevice
-// turns it on automatically whenever the adapter supports it, so we don't pass
-// anything in requiredFeatures. We keep the name only to feature-detect and
-// degrade gracefully on hardware that doesn't support it.
-const FEATURE = "rnwebgpu/native-texture" as GPUFeatureName;
+// importExternalTexture imports the frame's IOSurface / AHardwareBuffer as
+// shared texture memory and wraps it as an external texture. Like on the web,
+// nothing has to be requested: useDevice / requestDevice enable the Dawn
+// features behind it whenever the adapter supports them. On the rare hardware
+// that cannot import native surfaces the import throws, and the error names
+// what is missing.
 
 export const ImportExternalTexture = () => {
   const ref = useCanvasRef();
   const [error, setError] = useState<string | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  const { device, adapter } = useDevice();
+  const { device } = useDevice();
 
   useEffect(() => {
     if (!device) {
       return;
     }
-    // native-texture is auto-enabled when supported; if it is still missing,
-    // this hardware/driver can't back importExternalTexture.
-    if (!device.features.has(FEATURE)) {
-      setError(
-        `This device doesn't support ${FEATURE} (importExternalTexture). Adapter supports: ${
-          adapter
-            ? [...adapter.features]
-                .filter((f) => f.toString().startsWith("shared-"))
-                .join(", ") || "none"
-            : "n/a"
-        }`,
-      );
-      return;
-    }
-
     const context = ref.current?.getContext("webgpu");
     if (!context) {
       return;
@@ -171,18 +154,6 @@ export const ImportExternalTexture = () => {
         currentFrame = newFrame;
       }
 
-      const encoder = device.createCommandEncoder();
-      const pass = encoder.beginRenderPass({
-        colorAttachments: [
-          {
-            view: context.getCurrentTexture().createView(),
-            clearValue: { r: 0, g: 0, b: 0, a: 1 },
-            loadOp: "clear",
-            storeOp: "store",
-          },
-        ],
-      });
-
       // A GPUExternalTexture expires after each submit, so re-import one every
       // tick, even when sampling the same frame as last tick. Unlike on the
       // web, the shared-memory begin/end-access window is tied to this
@@ -199,38 +170,53 @@ export const ImportExternalTexture = () => {
             rotation: player.rotation,
           });
         } catch (e) {
-          console.warn("[ImportExternalTexture] import failed:", e);
+          // Rare: a driver or an emulator that cannot import native surfaces.
+          // The error names what is missing; show it and stop.
+          setError(e instanceof Error ? e.message : String(e));
+          return;
         }
+      }
 
-        if (externalTex) {
-          if (
-            !lastDims ||
-            lastDims[0] !== currentFrame.width ||
-            lastDims[1] !== currentFrame.height
-          ) {
-            const [sx, sy] = computeUvScale(
-              currentFrame.width,
-              currentFrame.height,
-            );
-            device.queue.writeBuffer(
-              uniformBuffer,
-              0,
-              new Float32Array([sx, sy]),
-            );
-            lastDims = [currentFrame.width, currentFrame.height];
-          }
-          const bindGroup = device.createBindGroup({
-            layout: pipeline.getBindGroupLayout(0),
-            entries: [
-              { binding: 0, resource: externalTex },
-              { binding: 1, resource: sampler },
-              { binding: 2, resource: { buffer: uniformBuffer } },
-            ],
-          });
-          pass.setPipeline(pipeline);
-          pass.setBindGroup(0, bindGroup);
-          pass.draw(3);
+      const encoder = device.createCommandEncoder();
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [
+          {
+            view: context.getCurrentTexture().createView(),
+            clearValue: { r: 0, g: 0, b: 0, a: 1 },
+            loadOp: "clear",
+            storeOp: "store",
+          },
+        ],
+      });
+
+      if (externalTex && currentFrame) {
+        if (
+          !lastDims ||
+          lastDims[0] !== currentFrame.width ||
+          lastDims[1] !== currentFrame.height
+        ) {
+          const [sx, sy] = computeUvScale(
+            currentFrame.width,
+            currentFrame.height,
+          );
+          device.queue.writeBuffer(
+            uniformBuffer,
+            0,
+            new Float32Array([sx, sy]),
+          );
+          lastDims = [currentFrame.width, currentFrame.height];
         }
+        const bindGroup = device.createBindGroup({
+          layout: pipeline.getBindGroupLayout(0),
+          entries: [
+            { binding: 0, resource: externalTex },
+            { binding: 1, resource: sampler },
+            { binding: 2, resource: { buffer: uniformBuffer } },
+          ],
+        });
+        pass.setPipeline(pipeline);
+        pass.setBindGroup(0, bindGroup);
+        pass.draw(3);
       }
 
       pass.end();
@@ -254,7 +240,7 @@ export const ImportExternalTexture = () => {
       uniformBuffer.destroy();
       player.release();
     };
-  }, [device, adapter, ref]);
+  }, [device, ref]);
 
   if (error) {
     return (
