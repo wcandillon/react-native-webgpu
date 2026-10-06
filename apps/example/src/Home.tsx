@@ -143,6 +143,10 @@ export const examples = [
     screen: "SixteenBitTextures",
     title: "🎨 16bits Textures",
   },
+  {
+    screen: "ViewSnapshot",
+    title: "📸 View Snapshot (drawElementImageToTexture)",
+  },
 ];
 
 const styles = StyleSheet.create({

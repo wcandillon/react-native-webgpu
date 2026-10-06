@@ -1,5 +1,7 @@
 /// <reference types="@webgpu/types" />
 import type {
+  GPUDrawElementImageDestination,
+  GPUDrawElementImageSource,
   GPUSharedFence,
   GPUSharedFenceDescriptor,
   GPUDawnTogglesDescriptor,
@@ -29,6 +31,9 @@ export type {
   NativeVideoPixelFormat,
   CreateVideoPlayerOptions,
   GPUDawnTogglesDescriptor,
+  GPUDrawElementImageDestination,
+  GPUDrawElementImageSource,
+  GPUDrawElementImageSourceView,
 } from "./types";
 
 declare global {
@@ -85,6 +90,30 @@ declare global {
       descriptor: GPUSharedTextureMemoryDescriptor,
     ): GPUSharedTextureMemory;
     importSharedFence(descriptor: GPUSharedFenceDescriptor): GPUSharedFence;
+  }
+
+  // Non-spec RN extension modeled on the html-in-canvas proposal's
+  // GPUQueue.drawElementImageToTexture: rasterizes a native React Native view
+  // (the "element") and writes the pixels into `destination.texture`, which
+  // must be rgba8unorm or bgra8unorm (or their -srgb variants) with
+  // GPUTextureUsage.COPY_DST. Unlike the web API it returns a Promise: the
+  // view is rasterized on the platform UI thread, and the texture write is
+  // issued right before the promise resolves, so submit work that samples the
+  // texture after awaiting it. Snapshot the view with `collapsable={false}`
+  // so React Native does not optimize the host view away.
+  //
+  // What is captured is what the platform renders for the view hierarchy
+  // (iOS: UIView.drawViewHierarchyInRect; Android API 29+: HardwareRenderer
+  // over the views' display lists, older: View.draw into a software canvas).
+  // On Android, SurfaceView content (a WebGPU Canvas with the default
+  // "SurfaceView" surfaceType, video players) is not part of the hierarchy and
+  // comes out blank; use `android={{ surfaceType: "TextureView" }}` for a
+  // canvas that must be captured.
+  interface GPUQueue {
+    drawElementImageToTexture(
+      source: GPUDrawElementImageSource,
+      destination: GPUDrawElementImageDestination,
+    ): Promise<void>;
   }
 
   // Non-standard, Dawn-only. Lets callers set Dawn device-stage toggles at

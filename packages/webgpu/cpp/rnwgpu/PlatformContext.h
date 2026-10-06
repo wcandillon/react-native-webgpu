@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <span>
 #include <string>
 #include <utility>
@@ -72,10 +73,54 @@ public:
   virtual void pause() = 0;
 };
 
+// A request to rasterize a native React Native view (looked up by its React
+// tag) for GPUQueue.drawElementImageToTexture.
+//
+// The source rectangle is expressed in the view's own coordinate space, in
+// density-independent points (the units of React Native layout). A
+// non-positive sourceWidth/sourceHeight means "the whole view". The
+// destination size is in pixels: the platform rasterizes the source rectangle
+// scaled to exactly width x height.
+struct ViewSnapshotRequest {
+  int viewTag = 0;
+  double sourceX = 0;
+  double sourceY = 0;
+  double sourceWidth = 0;
+  double sourceHeight = 0;
+  uint32_t width = 0;
+  uint32_t height = 0;
+};
+
 class PlatformContext {
 public:
   PlatformContext() = default;
   virtual ~PlatformContext() = default;
+
+  // The platform context of the currently installed RNWebGPUManager, for API
+  // objects (e.g. GPUQueue) that are created without a reference to it. Set on
+  // install, cleared on teardown; a dev reload replaces it.
+  static void setCurrent(std::shared_ptr<PlatformContext> context) {
+    std::lock_guard<std::mutex> lock(currentMutex());
+    currentSlot() = std::move(context);
+  }
+  static std::shared_ptr<PlatformContext> current() {
+    std::lock_guard<std::mutex> lock(currentMutex());
+    return currentSlot();
+  }
+
+  // Rasterize a native view into CPU pixels (see ViewSnapshotRequest). The
+  // implementation hops to the platform UI thread, so this is asynchronous:
+  // exactly one of onSuccess / onError is invoked, from an arbitrary thread
+  // (typically the UI thread). Callers must not touch JSI in the callbacks.
+  //
+  // The returned ImageData is tightly packed (no row padding), 4 bytes per
+  // pixel, `format` is rgba8unorm or bgra8unorm depending on what the platform
+  // rasterizer produces natively, and `premultiplied` reports its alpha
+  // representation.
+  virtual void
+  snapshotView(const ViewSnapshotRequest &request,
+               std::function<void(ImageData)> onSuccess,
+               std::function<void(std::string)> onError) = 0;
 
   virtual wgpu::Surface makeSurface(wgpu::Instance instance, void *surface,
                                     int width, int height) = 0;
@@ -129,6 +174,16 @@ public:
   // and return its absolute path. Lets the SharedTextureMemory example play
   // a real decoded video without bundling an asset.
   virtual std::string writeTestVideoFile() = 0;
+
+private:
+  static std::mutex &currentMutex() {
+    static std::mutex mutex;
+    return mutex;
+  }
+  static std::shared_ptr<PlatformContext> &currentSlot() {
+    static std::shared_ptr<PlatformContext> slot;
+    return slot;
+  }
 };
 
 } // namespace rnwgpu
