@@ -3,11 +3,16 @@ import { Platform } from "react-native";
 
 // Both platforms reach the test server on localhost: the iOS Simulator shares
 // the host network, and on Android the jest globalSetup runs
-// "adb reverse tcp:4242 tcp:4242" (as the RN CLI does for Metro on 8081), which
-// covers the emulator and a physical device alike. Only a device that cannot be
-// reached over adb needs this machine's LAN IP here instead.
+// "adb reverse tcp:<port> tcp:<port>" (as the RN CLI does for Metro on 8081),
+// which covers the emulator and a physical device alike. Only a device that
+// cannot be reached over adb needs this machine's LAN IP here instead.
 const HOST = "localhost";
-const PORT = 4242;
+// E2E_PORT is inlined at bundle time (transform-inline-environment-variables),
+// so CI can run the test server on another port than other projects sharing
+// the machine. Kept in sync with TEST_SERVER_PORT in the jest config, which
+// reads the same variable. Metro must be started with --reset-cache for a
+// change to apply.
+const PORT = Number(process.env.E2E_PORT ?? 4242);
 
 type UseClient = [client: WebSocket | null, hostname: string];
 export const useClient = (): UseClient => {
