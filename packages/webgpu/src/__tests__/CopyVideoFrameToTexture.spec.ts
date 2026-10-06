@@ -70,13 +70,14 @@ describe("copyExternalImageToTexture with a native frame", () => {
             Array.from(
               data.slice(y * bytesPerRow + x * 4, y * bytesPerRow + x * 4 + 4),
             );
-          const pixels = [
-            ...px(0, 0),
-            ...px(63, 0),
-            ...px(0, 63),
-            ...px(63, 63),
-            ...px(32, 0),
-          ];
+          // No array spread here: this function is shipped to the device as a
+          // string and Babel's _toConsumableArray helper is not available there.
+          const pixels = px(0, 0).concat(
+            px(63, 0),
+            px(0, 63),
+            px(63, 63),
+            px(32, 0),
+          );
           buffer.unmap();
           buffer.destroy();
           texture.destroy();
@@ -166,7 +167,8 @@ describe("copyExternalImageToTexture with a native frame", () => {
             const o = y * bytesPerRow + x * 4;
             return [data[o + 2], data[o + 1], data[o], data[o + 3]];
           };
-          const pixels = [...px(0, 0), ...px(31, 63), ...px(40, 10)];
+          // No array spread here (see the first test).
+          const pixels = px(0, 0).concat(px(31, 63), px(40, 10));
           buffer.unmap();
           buffer.destroy();
           texture.destroy();
