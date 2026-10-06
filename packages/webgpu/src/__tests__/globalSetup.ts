@@ -39,10 +39,11 @@ const createFixtureServer = () =>
     res.end(fs.readFileSync(file));
   });
 
-// Map the device's own localhost:4242 onto this machine, the same way the React
-// Native CLI does for Metro on 8081. With it, an Android emulator and a physical
-// device both reach the test server (WebSocket and fixtures alike) at
-// "localhost", so useClient needs no per-platform host and no LAN address.
+// Map the device's own localhost:<TEST_SERVER_PORT> onto this machine, the same
+// way the React Native CLI does for Metro on 8081. With it, an Android emulator
+// and a physical device both reach the test server (WebSocket and fixtures
+// alike) at "localhost", so useClient needs no per-platform host and no LAN
+// address.
 // Best effort: no adb, no device, or several devices attached just leaves the
 // connection to whatever host the app is configured with.
 const reversePort = (port: number) => {

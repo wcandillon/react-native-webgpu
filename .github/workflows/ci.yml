@@ -18,6 +18,15 @@ concurrency:
 jobs:
   build:
     runs-on: self-hosted
+    env:
+      # The other projects on this machine use Metro on 8081 and 8082 and a
+      # test server on 4242 and 4243 (react-native-skia, redraw), so this job
+      # runs on its own ports and can run concurrently with them.
+      # RCT_METRO_PORT is compiled into the app by xcodebuild; E2E_PORT is
+      # inlined into the JS bundle (useClient) and read by the jest
+      # globalSetup, so the app and the test server agree on the port.
+      METRO_PORT: 8083
+      E2E_PORT: 4244
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -81,17 +90,23 @@ jobs:
         working-directory: apps/example/ios
         run: pod install
 
-      - name: Ensure Metro port is free
+      # Clear anything a previous or cancelled run left on this job's ports.
+      - name: Ensure Metro and test server ports are free
         run: |
-          lsof -ti :8081 | xargs -r kill -9 || true
+          lsof -ti :$METRO_PORT | xargs -r kill -9 || true
+          lsof -ti :$E2E_PORT | xargs -r kill -9 || true
 
       - name: Start Package Manager
         working-directory: apps/example
         # --reset-cache: force Metro to re-transform from the freshly-installed
         # node_modules instead of reusing the cache that survives `git clean`.
-        # This is the key guard against the native/JS worklet version mismatch.
-        run: CI=true yarn start --reset-cache &
+        # This is the key guard against the native/JS worklet version mismatch,
+        # and it also guarantees the bundle carries this job's E2E_PORT rather
+        # than one inlined by a previous run.
+        run: CI=true yarn start --port $METRO_PORT --reset-cache &
 
+      # RCT_METRO_PORT feeds React-Core's GCC_PREPROCESSOR_DEFINITIONS, which
+      # is where RCTBundleURLProvider takes its default packager port from.
       - name: Build example for iOS
         working-directory: apps/example/ios
         run: |
@@ -104,6 +119,7 @@ jobs:
             -derivedDataPath build \
             COMPILER_INDEX_STORE_ENABLE=NO \
             DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING=YES \
+            RCT_METRO_PORT=$METRO_PORT \
             -disableAutomaticPackageResolution \
             build | xcpretty
 
@@ -189,11 +205,13 @@ jobs:
       # Housekeeping for the self-hosted runner: the start-of-run kill already
       # guarantees a clean slate for the next build, so this is not needed for
       # correctness. It just shrinks the window during which an idle Metro sits
-      # holding port 8081, file watchers, and memory between CI runs. `always()`
-      # so it runs even when an earlier step fails.
-      - name: Stop Metro
+      # holding this job's ports, file watchers, and memory between CI runs.
+      # `always()` so it runs even when an earlier step fails.
+      - name: Stop Metro and the test server
         if: always()
-        run: lsof -ti :8081 | xargs -r kill -9 || true
+        run: |
+          lsof -ti :$METRO_PORT | xargs -r kill -9 || true
+          lsof -ti :$E2E_PORT | xargs -r kill -9 || true
 
   # Android e2e on a GitHub-hosted emulator. The runner has no GPU, so the guest
   # sees a SwiftShader (software) Vulkan 1.3 device through gfxstream, which Dawn
