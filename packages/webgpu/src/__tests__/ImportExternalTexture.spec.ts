@@ -16,15 +16,19 @@ describe("ImportExternalTexture", () => {
   it("imports a test frame as an external texture and samples it", async () => {
     const result = await client.eval<Record<string, never>, EvalResult>(
       ({ device, gpu, ctx, canvas }) => {
-        // The umbrella feature backs importExternalTexture's IOSurface /
-        // AHardwareBuffer import. The Chrome reference run and fallback adapters
-        // won't advertise it, so that's the *only* legitimate skip. Anything
-        // past this point is a real failure.
-        const FEATURE = "rnwebgpu/native-texture";
-        if (!device.features.has(FEATURE as GPUFeatureName)) {
+        // Native frame import is on by default; the Chrome reference run and
+        // fallback adapters have no shared texture memory to import into, and
+        // that is the only legitimate reason to skip.
+        const NATIVE_IMPORT = [
+          "shared-texture-memory-iosurface",
+          "shared-texture-memory-ahardware-buffer",
+        ];
+        if (
+          !NATIVE_IMPORT.some((f) => device.features.has(f as GPUFeatureName))
+        ) {
           return {
             kind: "skip",
-            reason: `${FEATURE} not enabled on this device`,
+            reason: "native frame import is unavailable on this device",
           };
         }
         if (typeof RNWebGPU?.createTestVideoFrame !== "function") {
@@ -147,11 +151,19 @@ describe("ImportExternalTexture", () => {
   it("destroy() after submit releases the import and the frame can be re-imported", async () => {
     const result = await client.eval<Record<string, never>, EvalResult>(
       ({ device, gpu, ctx, canvas }) => {
-        const FEATURE = "rnwebgpu/native-texture";
-        if (!device.features.has(FEATURE as GPUFeatureName)) {
+        // Native frame import is on by default; the Chrome reference run and
+        // fallback adapters have no shared texture memory to import into, and
+        // that is the only legitimate reason to skip.
+        const NATIVE_IMPORT = [
+          "shared-texture-memory-iosurface",
+          "shared-texture-memory-ahardware-buffer",
+        ];
+        if (
+          !NATIVE_IMPORT.some((f) => device.features.has(f as GPUFeatureName))
+        ) {
           return {
             kind: "skip",
-            reason: `${FEATURE} not enabled on this device`,
+            reason: "native frame import is unavailable on this device",
           };
         }
         if (typeof RNWebGPU?.createTestVideoFrame !== "function") {

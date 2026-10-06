@@ -2,13 +2,13 @@
 
 #include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
 #include "JSIConverter.h"
-#include "RnFeatures.h"
 #include "WGPULogger.h"
 
 #include "GPUDawnTogglesDescriptor.h"
@@ -57,13 +57,14 @@ template <> struct JSIConverter<std::vector<wgpu::FeatureName>> {
         continue;
       }
       auto str = elementValue.asString(runtime).utf8(runtime);
-      // Expand react-native-wgpu's umbrella feature into the platform's
-      // backing Dawn features before they reach RequestDevice.
-      if (str == kRnNativeTextureFeature) {
-        for (auto f : rnNativeTextureBackingFeatures()) {
-          vector.emplace_back(f);
-        }
-        continue;
+      // The umbrella feature of earlier versions. Native frame import is on
+      // by default now and the name is gone; say so rather than reject it as
+      // an unknown feature.
+      if (str == "rnwebgpu/native-texture") {
+        throw std::runtime_error(
+            "requestDevice: the 'rnwebgpu/native-texture' feature has been "
+            "removed. Native frame import is enabled by default whenever the "
+            "adapter supports it; drop the name from requiredFeatures.");
       }
       vector.emplace_back(JSIConverter<wgpu::FeatureName>::fromJSI(
           runtime, elementValue, outOfBounds));
@@ -109,13 +110,12 @@ template <> struct JSIConverter<std::shared_ptr<rnwgpu::GPUDeviceDescriptor>> {
       }
       if (value.hasProperty(runtime, "dawnToggles")) {
         auto prop = value.getProperty(runtime, "dawnToggles");
-        result->dawnToggles = JSIConverter<
-            std::optional<std::shared_ptr<GPUDawnTogglesDescriptor>>>::fromJSI(
-            runtime, prop, false);
+        result->dawnToggles = JSIConverter<std::optional<
+            std::shared_ptr<GPUDawnTogglesDescriptor>>>::fromJSI(runtime, prop,
+                                                                 false);
       }
       if (value.hasProperty(runtime, "implicitDeviceSynchronization")) {
-        auto prop =
-            value.getProperty(runtime, "implicitDeviceSynchronization");
+        auto prop = value.getProperty(runtime, "implicitDeviceSynchronization");
         result->implicitDeviceSynchronization =
             JSIConverter<std::optional<bool>>::fromJSI(runtime, prop, false);
       }

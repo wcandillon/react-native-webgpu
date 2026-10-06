@@ -40,10 +40,10 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
         if (!a) {
           throw new Error("No appropriate GPUAdapter found.");
         }
-        // "rnwebgpu/native-texture" is enabled by default whenever the adapter
+        // Native frame import is enabled by default whenever the adapter
         // supports it, so the shared-texture / importExternalTexture specs get
-        // the capability without requesting it here. Specs that need it still
-        // gate on device.features.has(...) and skip where it is unavailable.
+        // the capability without requesting it here; they skip where the
+        // adapter has no shared texture memory.
         const d = await a.requestDevice();
         if (!d) {
           throw new Error("No appropriate GPUDevice found.");

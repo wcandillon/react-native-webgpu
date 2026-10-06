@@ -15,7 +15,6 @@
 #include "GPUInternalError.h"
 #include "GPUOutOfMemoryError.h"
 #include "GPUValidationError.h"
-#include "RnFeatures.h"
 #include "SurfaceRegistry.h"
 
 namespace rnwgpu {
@@ -570,15 +569,11 @@ std::unordered_set<std::string> GPUDevice::getFeatures() {
   wgpu::SupportedFeatures supportedFeatures;
   _instance.GetFeatures(&supportedFeatures);
   std::unordered_set<std::string> result;
-  std::unordered_set<wgpu::FeatureName> enabled;
   for (size_t i = 0; i < supportedFeatures.featureCount; ++i) {
-    auto feature = supportedFeatures.features[i];
-    enabled.insert(feature);
     std::string name;
-    convertEnumToJSUnion(feature, &name);
+    convertEnumToJSUnion(supportedFeatures.features[i], &name);
     result.insert(name);
   }
-  maybeSynthesizeRnNativeTextureFeature(enabled, result);
   return result;
 }
 

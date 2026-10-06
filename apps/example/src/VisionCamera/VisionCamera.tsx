@@ -44,17 +44,13 @@ import { CAMERA_PRELUDE, SHADER } from "./shaders";
 //
 // The WGSL (SHADER + CAMERA_PRELUDE) lives in ./shaders.
 
-const REQUIRED_FEATURES: GPUFeatureName[] = [
-  "rnwebgpu/native-texture" as GPUFeatureName,
-  "dawn-multi-planar-formats" as GPUFeatureName,
-];
-
-// Android-only feature, gates Dawn's "wrap a YCbCr AHB as a GPUExternalTexture
-// with implicit SamplerYcbcrConversion" path. Without it our native
-// `importExternalTexture` flow on Android can't produce a usable external
-// texture from a camera frame. We probe the adapter for it and surface a
-// clear error if the device's Vulkan driver doesn't advertise it (e.g. some
-// Android-Desktop / Chromebook configurations).
+// Camera frames import through the Dawn features requestDevice() enables by
+// default whenever the adapter supports them: IOSurface import and the NV12
+// multi-planar format on iOS, AHardwareBuffer import and Dawn's "wrap a YCbCr
+// AHB as a GPUExternalTexture with implicit SamplerYcbcrConversion" path on
+// Android. Some Android Vulkan drivers (e.g. some Android-Desktop / Chromebook
+// configurations) lack the latter; we check the device for it to surface a
+// clear error instead of failing on the first frame.
 const OPAQUE_YCBCR_EXT =
   "opaque-ycbcr-android-for-external-texture" as GPUFeatureName;
 
@@ -110,34 +106,7 @@ const CameraView = () => {
         if (!adapter) {
           throw new Error("requestAdapter returned null");
         }
-        const adapterFeatures = [...adapter.features].sort();
-        console.log(
-          "[VisionCamera] adapter features (" +
-            adapterFeatures.length +
-            "): " +
-            adapterFeatures.join(", "),
-        );
-        const hasOpaqueYCbCrExt =
-          Platform.OS !== "android" || adapter.features.has(OPAQUE_YCBCR_EXT);
-        if (Platform.OS === "android" && !hasOpaqueYCbCrExt) {
-          throw new Error(
-            "This Android device's Vulkan driver doesn't advertise " +
-              "opaque-ycbcr-android-for-external-texture. Camera-frame import " +
-              "as a GPUExternalTexture isn't supported here. (This is a " +
-              "device/driver limitation, not a code issue.)",
-          );
-        }
-        const featuresToRequest: GPUFeatureName[] = [
-          ...REQUIRED_FEATURES,
-          ...(Platform.OS === "android" ? [OPAQUE_YCBCR_EXT] : []),
-        ];
-        console.log(
-          "[VisionCamera] requesting device with features: " +
-            featuresToRequest.join(", "),
-        );
-        const device = await adapter.requestDevice({
-          requiredFeatures: featuresToRequest,
-        });
+        const device = await adapter.requestDevice();
         if (cancelled) {
           return;
         }
@@ -145,6 +114,17 @@ const CameraView = () => {
           "[VisionCamera] device created, features: " +
             [...device.features].sort().join(", "),
         );
+        if (
+          Platform.OS === "android" &&
+          !device.features.has(OPAQUE_YCBCR_EXT)
+        ) {
+          throw new Error(
+            "This Android device's Vulkan driver doesn't advertise " +
+              "opaque-ycbcr-android-for-external-texture. Camera-frame import " +
+              "as a GPUExternalTexture isn't supported here. (This is a " +
+              "device/driver limitation, not a code issue.)",
+          );
+        }
         setGpu({ adapter, device });
       } catch (e) {
         if (cancelled) {
@@ -159,7 +139,6 @@ const CameraView = () => {
     };
   }, []);
   const device = gpu?.device ?? null;
-  const adapter = gpu?.adapter ?? null;
   // Capture the RNWebGPU singleton into a local so the frame-processor worklet
   // closes over it. RNWebGPU is a registered, boxable WebGPU NativeObject, so
   // the Worklets custom serializer ships it across the worklet boundary the same
@@ -200,7 +179,6 @@ const CameraView = () => {
     blurWidth: number;
     blurHeight: number;
   } | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [modes, setModes] = useState<Modes>(INITIAL_MODES);
   const cycle = useCallback((key: keyof Modes, optionsCount: number) => {
     setModes((prev) => ({ ...prev, [key]: (prev[key] + 1) % optionsCount }));
@@ -209,19 +187,6 @@ const CameraView = () => {
   // Initialize pipeline once device + canvas are both ready.
   useEffect(() => {
     if (!device || pipelineState) {
-      return;
-    }
-    const missing = REQUIRED_FEATURES.filter((f) => !device.features.has(f));
-    if (missing.length > 0) {
-      setError(
-        `Device missing features [${missing.join(", ")}]. Adapter: ${
-          adapter
-            ? [...adapter.features]
-                .filter((f) => f.toString().startsWith("shared-"))
-                .join(", ") || "none"
-            : "n/a"
-        }`,
-      );
       return;
     }
     const context = ref.current?.getContext("webgpu");
@@ -394,7 +359,7 @@ const CameraView = () => {
       blurWidth,
       blurHeight,
     });
-  }, [device, adapter, ref, pipelineState]);
+  }, [device, ref, pipelineState]);
 
   // Build the frame processor worklet. Captured WebGPU objects flow into the
   // worklet runtime via the registerWebGPUForReanimated custom serializer.
@@ -669,13 +634,6 @@ const CameraView = () => {
         <Text style={styles.errorText}>
           Device creation failed: {deviceError}
         </Text>
-      </View>
-    );
-  }
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
       </View>
     );
   }

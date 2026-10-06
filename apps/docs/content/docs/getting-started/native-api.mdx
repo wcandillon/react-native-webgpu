@@ -104,13 +104,7 @@ Beyond the standard API, react-native-webgpu exposes Dawn's native surface inter
 - **[`importExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions)** is the higher-level path: `device.importExternalTexture(...)` hands you a `GPUExternalTexture` with hardware YUV→RGB color conversion and lifecycle management, plus non-spec `rotation` and `mirrored` options for camera orientation.
 - **[`createVideoPlayer`](/api/video-player)** decodes a video into such frames, with the playback controls of an `HTMLMediaElement`.
 
-Both build on a default-on capability: `requestDevice()` enables `rnwebgpu/native-texture` whenever the adapter supports it, and on Android `opaque-ycbcr-android-for-external-texture` along with it, which the YUV frames of the video decoder and of the camera need. Feature-detect it before importing, since some Android drivers and emulators don't support it:
-
-```tsx
-if (!device.features.has("rnwebgpu/native-texture" as GPUFeatureName)) {
-  return; // rare: some Android drivers/emulators can't import native surfaces
-}
-```
+Nothing has to be requested, as on the web: `requestDevice()` enables the Dawn features behind native frame import whenever the adapter supports them (`shared-texture-memory-iosurface`, `shared-fence-mtl-shared-event` and `dawn-multi-planar-formats` on Apple platforms; `shared-texture-memory-ahardware-buffer`, `shared-fence-sync-fd` and `opaque-ycbcr-android-for-external-texture` on Android). A device created by another library and wrapped with [`importDevice()`](#importing-an-external-device) has to request them itself. On the rare drivers and emulators that cannot import native surfaces, the import throws an error naming what is missing; catch it to degrade.
 
 See [Vision Camera](/docs/integrations/vision-camera) for an end-to-end example applying WGSL effects to live camera frames, and [Native Extensions](/api/gpu-device-extensions) for the full API.
 
