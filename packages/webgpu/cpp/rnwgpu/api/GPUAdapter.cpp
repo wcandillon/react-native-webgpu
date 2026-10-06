@@ -25,18 +25,24 @@ namespace rnwgpu {
 async::AsyncTaskHandle GPUAdapter::requestDevice(
     jsi::Runtime &runtime,
     std::optional<std::shared_ptr<GPUDeviceDescriptor>> descriptor) {
-  // Enable the react-native-wgpu "native-texture" umbrella by default, mirroring
-  // the web where importExternalTexture is core and needs no feature request.
-  // We append the umbrella's backing Dawn features to requiredFeatures so the
-  // capability is on without the caller listing it. Two rules keep this safe:
+  // Enable the react-native-wgpu "native-texture" umbrella by default,
+  // mirroring the web where importExternalTexture is core and needs no feature
+  // request. We append the umbrella's backing Dawn features to requiredFeatures
+  // so the capability is on without the caller listing it. Two rules keep this
+  // safe:
   //   - All-or-nothing: only inject when the adapter supports *every* backing
   //     feature (same semantics as maybeSynthesizeRnNativeTextureFeature). On a
-  //     web/fallback adapter the backing set is empty or unsupported, so this is
-  //     a no-op and device creation is unaffected.
+  //     web/fallback adapter the backing set is empty or unsupported, so this
+  //     is a no-op and device creation is unaffected.
   //   - Requesting a feature the adapter doesn't support makes RequestDevice
   //     fail, hence the support check below.
   // Callers can still pass "rnwebgpu/native-texture" explicitly; the dedupe
   // keeps that idempotent.
+  // The optional features (rnNativeTextureOptionalFeatures) ride along one by
+  // one, each only when the adapter supports it: on Android the YUV frames of
+  // the decoder and of the camera cannot be imported without
+  // OpaqueYCbCrAndroidForExternalTexture, while RGBA buffers need nothing
+  // beyond the backing set.
   {
     auto backing = rnNativeTextureBackingFeatures();
     if (!backing.empty()) {
@@ -44,9 +50,10 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
       _instance.GetFeatures(&supported);
       std::unordered_set<wgpu::FeatureName> supportedSet(
           supported.features, supported.features + supported.featureCount);
-      bool allSupported = std::all_of(
-          backing.begin(), backing.end(),
-          [&](wgpu::FeatureName f) { return supportedSet.count(f) > 0; });
+      bool allSupported =
+          std::all_of(backing.begin(), backing.end(), [&](wgpu::FeatureName f) {
+            return supportedSet.count(f) > 0;
+          });
       if (allSupported) {
         if (!descriptor.has_value()) {
           descriptor = std::make_shared<GPUDeviceDescriptor>();
@@ -59,6 +66,13 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
         for (auto f : backing) {
           if (std::find(features.begin(), features.end(), f) ==
               features.end()) {
+            features.push_back(f);
+          }
+        }
+        for (auto f : rnNativeTextureOptionalFeatures()) {
+          if (supportedSet.count(f) > 0 &&
+              std::find(features.begin(), features.end(), f) ==
+                  features.end()) {
             features.push_back(f);
           }
         }
@@ -101,8 +115,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
         if (std::find(features.begin(), features.end(),
                       wgpu::FeatureName::ImplicitDeviceSynchronization) ==
             features.end()) {
-          features.push_back(
-              wgpu::FeatureName::ImplicitDeviceSynchronization);
+          features.push_back(wgpu::FeatureName::ImplicitDeviceSynchronization);
         }
       }
     }
@@ -211,7 +224,8 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
             }
           }
         }
-// TODO: in the latest version of Dawn, this won't be needed (https://issues.chromium.org/issues/42241591)
+// TODO: in the latest version of Dawn, this won't be needed
+// (https://issues.chromium.org/issues/42241591)
 #if defined(TARGET_OS_SIMULATOR) && TARGET_OS_SIMULATOR
         // The iOS Simulator only advertises MTLFeatureSet_iOS_GPUFamily2, so
         // Dawn defaults disable_base_instance/disable_base_vertex on and then

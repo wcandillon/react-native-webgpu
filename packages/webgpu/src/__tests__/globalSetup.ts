@@ -56,8 +56,14 @@ const reversePort = (port: number) => {
   }
 };
 
+// How long the server waits for the example app before failing the run. Without
+// it, a crashed or never-launched app leaves jest waiting here until the CI job
+// timeout. Generous because on a cold CI runner the first connection also waits
+// for Metro to build the app's bundle.
+const CONNECT_TIMEOUT_MS = 10 * 60 * 1000;
+
 const globalSetup = () => {
-  return new Promise<void>((resolve) => {
+  return new Promise<void>((resolve, reject) => {
     // The reference (Chrome) and node (dawn.node) clients run in-process, so
     // no device connection is needed.
     if (REFERENCE || NODE_WEBGPU) {
@@ -74,9 +80,19 @@ const globalSetup = () => {
     console.log(
       `\n\nTest server listening on port ${port} (waiting for the example app to open on E2E tests screen)`,
     );
+    const timeout = setTimeout(() => {
+      global.testServer.close();
+      global.testFixtureServer.close();
+      reject(
+        new Error(
+          `No device connected to the test server on port ${port} within ${CONNECT_TIMEOUT_MS / 1000}s. Is the example app running on the Tests screen (CI=true)?`,
+        ),
+      );
+    }, CONNECT_TIMEOUT_MS);
     global.testServer.on("connection", (client) => {
       global.testClient = client;
       client.once("message", (msg) => {
+        clearTimeout(timeout);
         const obj = JSON.parse(msg.toString("utf8"));
         const { OS, arch, host } = obj;
         if (!isOS(OS)) {

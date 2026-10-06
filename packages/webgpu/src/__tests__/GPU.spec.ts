@@ -74,11 +74,23 @@ describe("Adapter", () => {
   });
   it("isFallback", async () => {
     const result = await client.eval(({ gpu }) => {
-      return gpu
-        .requestAdapter()
-        .then((adapter) => adapter && adapter.info.isFallbackAdapter);
+      return gpu.requestAdapter().then((adapter) =>
+        adapter
+          ? {
+              isFallbackAdapter: adapter.info.isFallbackAdapter,
+              architecture: adapter.info.architecture,
+              description: adapter.info.description,
+            }
+          : null,
+      );
     });
-    expect(result).toBe(false);
+    expect(result).not.toBeNull();
+    // A software rasterizer (SwiftShader on the Android emulator in CI) is the
+    // one legitimate fallback adapter; every hardware adapter must report false.
+    const software = /swiftshader|llvmpipe|lavapipe/i.test(
+      `${result!.architecture} ${result!.description}`,
+    );
+    expect(result!.isFallbackAdapter).toBe(software);
   });
   it("features", async () => {
     const result = await client.eval(({ gpu }) => {

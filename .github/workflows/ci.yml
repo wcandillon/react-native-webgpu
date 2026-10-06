@@ -186,54 +186,6 @@ jobs:
           name: webgpu-test-snapshots
           path: packages/webgpu/src/__tests__/snapshots/
 
-      - name: Detect ANDROID_HOME
-        run: |
-          if [ -n "$ANDROID_HOME" ] && [ -d "$ANDROID_HOME" ]; then
-            echo "ANDROID_HOME already set: $ANDROID_HOME"
-            echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-          else
-            for candidate in \
-              "$HOME/android-sdk" \
-              "$HOME/Library/Android/sdk" \
-              "/usr/local/share/android-commandlinetools" \
-              "/opt/android/sdk"; do
-              if [ -d "$candidate" ]; then
-                echo "ANDROID_HOME=$candidate" >> $GITHUB_ENV
-                echo "Found ANDROID_HOME: $candidate"
-                break
-              fi
-            done
-          fi
-
-      - name: Install NDK
-        uses: nttld/setup-ndk@afb4c9964b521afb97c864b7d40b11e6911bd410 # v1.5.0
-        id: setup-ndk
-        with:
-          ndk-version: r27d
-
-      - name: Set ANDROID_NDK
-        run: echo "ANDROID_NDK=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
-
-      - name: Finalize Android SDK
-        run: |
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
-
-      - name: Install Android SDK
-        run: echo "sdk.dir=$ANDROID_HOME" > $GITHUB_WORKSPACE/apps/example/android/local.properties
-
-      - name: Clean Android build artifacts
-        working-directory: apps/example/android
-        run: |
-          ./gradlew clean || true
-          rm -rf app/build build .gradle
-
-      # Daemon heap is configured via org.gradle.jvmargs in
-      # apps/example/android/gradle.properties. JAVA_OPTS only affects the
-      # gradlew client JVM, not the daemon where packageDebug runs.
-      - name: Build example for Android
-        working-directory: apps/example/android
-        run: ./gradlew assembleDebug --build-cache --warning-mode all --stacktrace
-
       # Housekeeping for the self-hosted runner: the start-of-run kill already
       # guarantees a clean slate for the next build, so this is not needed for
       # correctness. It just shrinks the window during which an idle Metro sits
@@ -242,3 +194,130 @@ jobs:
       - name: Stop Metro
         if: always()
         run: lsof -ti :8081 | xargs -r kill -9 || true
+
+  # Android e2e on a GitHub-hosted emulator. The runner has no GPU, so the guest
+  # sees a SwiftShader (software) Vulkan 1.3 device through gfxstream, which Dawn
+  # exposes as a fallback adapter. Specs that need hardware-only paths (hardware
+  # buffer import, video decoding, view snapshots) gate on device features and
+  # skip themselves where the emulator lacks them.
+  build-test-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # node_modules, the Gradle caches, the NDK and the emulator image add up to
+      # more than the runner's free disk, so drop the toolchains this job never
+      # uses. The swap file stays: Gradle, Metro and the emulator share 16 GB.
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install JDK
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install NDK
+        uses: nttld/setup-ndk@afb4c9964b521afb97c864b7d40b11e6911bd410 # v1.5.0
+        id: setup-ndk
+        with:
+          ndk-version: r27d
+
+      - name: Set ANDROID_NDK
+        run: echo "ANDROID_NDK=${{ steps.setup-ndk.outputs.ndk-path }}" >> "$GITHUB_ENV"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: platform-tools
+
+      - name: Finalize Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
+          echo "sdk.dir=$ANDROID_HOME" > apps/example/android/local.properties
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/wrapper
+            ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('apps/example/android/gradle/wrapper/gradle-wrapper.properties', 'yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build example for Android
+        working-directory: apps/example/android
+        env:
+          # Only the emulator ABI runs below, so skip the other three.
+          ORG_GRADLE_PROJECT_reactNativeArchitectures: x86_64
+        run: ./gradlew assembleDebug --warning-mode all --stacktrace
+
+      # Hardware acceleration for the emulator.
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # CI=true is inlined into the bundle and opens the app on the Tests screen.
+      # The background bundle request warms Metro's transform cache while the
+      # emulator boots, so the app's own first request is served in seconds
+      # instead of minutes.
+      - name: Start Package Manager
+        working-directory: apps/example
+        run: |
+          CI=true yarn start &
+          (sleep 10 && curl -sf --retry 12 --retry-connrefused --retry-delay 5 -o /dev/null "http://localhost:8081/index.bundle?platform=android&dev=true&minify=false") &
+
+      # The action runs each script line in its own shell, hence the detached
+      # logcat capture instead of a trap. Metro is reached through adb reverse
+      # as well as the emulator's 10.0.2.2 default; the test server on 4242 is
+      # reversed by the jest globalSetup itself.
+      - name: Run e2e tests on the emulator
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 30
+          arch: x86_64
+          profile: Nexus 5X
+          force-avd-creation: true
+          emulator-options: -no-snapshot-save -no-window -gpu swangle_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            adb reverse tcp:8081 tcp:8081
+            nohup adb logcat > logcat.txt 2>&1 &
+            adb install -r apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+            adb shell monkey -p com.microsoft.reacttestapp 1
+            cd packages/webgpu && yarn test
+
+      # Same purpose as the iOS upload above: missing snapshots written on this
+      # run and the *.test.png images from failed comparisons.
+      - name: Upload test snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webgpu-test-snapshots-android
+          path: packages/webgpu/src/__tests__/snapshots/
+
+      - name: Upload logcat
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-logcat
+          path: logcat.txt
+          if-no-files-found: ignore

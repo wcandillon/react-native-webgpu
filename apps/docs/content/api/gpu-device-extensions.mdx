@@ -120,6 +120,8 @@ externalTexture.destroy();
 nativeVideoFrame.release();
 ```
 
+On Android, a YUV frame (what the video decoder and the camera produce) needs the `opaque-ycbcr-android-for-external-texture` device feature. `requestDevice()` enables it whenever the adapter supports it; a device created by another library and wrapped with [`importDevice()`](/docs/getting-started/native-api#importing-an-external-device) has to request it itself, as react-native-skia's does. The same applies to `copyExternalImageToTexture()` with a native frame.
+
 ## copyExternalImageToTexture with a native frame
 
 `queue.copyExternalImageToTexture()` also accepts a [`NativeVideoFrame`](/api/video-player#nativevideoframe) as its source, the way the web API accepts a `VideoFrame`.

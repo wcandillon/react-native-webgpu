@@ -66,6 +66,18 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
     };
   }, []);
   const [client, hostname] = useClient();
+  // Without a device, answer every eval with the setup error right away. The
+  // host would otherwise wait out its 30 s eval timeout on every single test,
+  // turning one failure into an hour-long run.
+  useEffect(() => {
+    if (client !== null && setupError !== null) {
+      client.onmessage = () => {
+        client.send(
+          JSON.stringify({ $$error: `device setup failed: ${setupError}` }),
+        );
+      };
+    }
+  }, [client, setupError]);
   useEffect(() => {
     if (client !== null && adapter !== null && device !== null) {
       client.onmessage = (e) => {
