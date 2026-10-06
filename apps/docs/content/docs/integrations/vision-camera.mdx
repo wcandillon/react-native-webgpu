@@ -52,7 +52,7 @@ React Native WebGPU extends `importExternalTexture` with **`rotation`** and **`m
 
 ## 1. Request the right device features
 
-Camera frames need native surface import:
+Camera frames need native surface import. `requestDevice()` enables it by default whenever the adapter supports it, `opaque-ycbcr-android-for-external-texture` included on Android; listing the features keeps the requirement explicit and fails device creation early where they are missing:
 
 ```tsx twoslash
 import { Platform } from "react-native";

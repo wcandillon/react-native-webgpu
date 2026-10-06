@@ -31,11 +31,24 @@ inline std::vector<wgpu::FeatureName> rnNativeTextureBackingFeatures() {
 #endif
 }
 
+// Dawn features that complete the umbrella on the current platform. They are
+// requested by default when the adapter supports them, but they are not part
+// of the all-or-nothing backing set: on Android, Dawn imports the YUV buffers
+// of the video decoder and of the camera as OpaqueYCbCrAndroid textures, a
+// format it only accepts, and only samples as an external texture, with
+// OpaqueYCbCrAndroidForExternalTexture; RGBA buffers import without it.
+inline std::vector<wgpu::FeatureName> rnNativeTextureOptionalFeatures() {
+#if defined(__ANDROID__)
+  return {wgpu::FeatureName::OpaqueYCbCrAndroidForExternalTexture};
+#else
+  return {};
+#endif
+}
+
 // If every Dawn feature backing the umbrella is in `enabled`, add the
 // umbrella name to `out`. Used by adapter.features / device.features so JS
 // callers can see (and call .has on) the same name they pass in.
-inline void
-maybeSynthesizeRnNativeTextureFeature(
+inline void maybeSynthesizeRnNativeTextureFeature(
     const std::unordered_set<wgpu::FeatureName> &enabled,
     std::unordered_set<std::string> &out) {
   auto backing = rnNativeTextureBackingFeatures();

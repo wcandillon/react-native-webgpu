@@ -104,7 +104,7 @@ Beyond the standard API, react-native-webgpu exposes Dawn's native surface inter
 - **[`importExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions)** is the higher-level path: `device.importExternalTexture(...)` hands you a `GPUExternalTexture` with hardware YUV→RGB color conversion and lifecycle management, plus non-spec `rotation` and `mirrored` options for camera orientation.
 - **[`createVideoPlayer`](/api/video-player)** decodes a video into such frames, with the playback controls of an `HTMLMediaElement`.
 
-Both build on a default-on capability. Feature-detect it before importing, since some Android drivers and emulators don't support it:
+Both build on a default-on capability: `requestDevice()` enables `rnwebgpu/native-texture` whenever the adapter supports it, and on Android `opaque-ycbcr-android-for-external-texture` along with it, which the YUV frames of the video decoder and of the camera need. Feature-detect it before importing, since some Android drivers and emulators don't support it:
 
 ```tsx
 if (!device.features.has("rnwebgpu/native-texture" as GPUFeatureName)) {
