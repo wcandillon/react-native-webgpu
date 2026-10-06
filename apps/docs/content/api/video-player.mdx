@@ -87,8 +87,6 @@ See [the native frame copy](/api/gpu-device-extensions#copyexternalimagetotextur
 
 `createVideoFrameFromNativeBuffer(pointer)` wraps a buffer produced by another library (a `CVPixelBufferRef` on Apple platforms, an `AHardwareBuffer*` on Android, for instance VisionCamera's `frame.getNativeBuffer().pointer`) into a `NativeVideoFrame` that keeps it alive until released.
 
-`createTestVideoFrame(width, height)` allocates a frame filled with a test pattern, for examples and tests that need a frame without a camera or a video.
-
 ## Examples
 
 - [ImportExternalTexture](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/ImportExternalTexture/ImportExternalTexture.tsx): a video drawn through `importExternalTexture` on both platforms
