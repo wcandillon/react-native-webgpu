@@ -16,7 +16,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The build job runs on the self-hosted Mac that also serves the
+  # react-native-skia and redraw CI. It runs for pushes, manual dispatches and
+  # pull requests from this repo, and for fork PRs whose author already has a
+  # commit here (GitHub's CONTRIBUTOR association). A first-time contributor's
+  # fork PR skips it, so unknown code never reaches that machine; push the
+  # branch to this repo to run it. This mirrors the react-native-skia workflow.
   build:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository || contains(fromJSON('["OWNER", "COLLABORATOR", "CONTRIBUTOR"]'), github.event.pull_request.author_association) }}
     runs-on: self-hosted
     steps:
       - name: Checkout
