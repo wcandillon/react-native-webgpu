@@ -8,6 +8,7 @@ import type {
   GPUNativeExternalTextureDescriptor,
   GPUSharedTextureMemory,
   GPUSharedTextureMemoryDescriptor,
+  GPUCopyExternalNativeFrameSourceInfo,
   NativeCanvas,
   RNCanvasContext,
   VideoPlayer,
@@ -31,6 +32,7 @@ export type {
   GPUSharedTextureMemoryEndAccessState,
   NativeVideoPixelFormat,
   CreateVideoPlayerOptions,
+  GPUCopyExternalNativeFrameSourceInfo,
   GPUDawnTogglesDescriptor,
   GPUNativeExternalTextureDescriptor,
   GPUDrawElementImageDestination,
@@ -71,7 +73,7 @@ declare global {
     importDevice: (pointer: bigint) => GPUDevice;
     // Wrap an externally created WGPUTexture pointer into a GPUTexture,
     // taking ownership of one reference (pair with producers that return a
-    // +1 pointer, e.g. Skia.Image.MakeNativeTextureFromImage()).
+    // +1 pointer, e.g. Skia.Image.MakeGPUTextureFromImage()).
     adoptTexture: (pointer: bigint) => GPUTexture;
     // Prefer the createVideoPlayer() export, which takes an options object.
     createVideoPlayer: (
@@ -83,7 +85,7 @@ declare global {
 
   interface GPUTexture {
     // Non-spec RN extension: raw WGPUTexture handle as a BigInt for
-    // pointer-based interop (e.g. Skia.Image.MakeImageFromNativeTexture).
+    // pointer-based interop (Skia.Image.MakeImageFromGPUTexture reads it).
     // Borrowed: keep this GPUTexture alive while the pointer is in use.
     readonly nativePointer: bigint;
   }
@@ -125,6 +127,18 @@ declare global {
       source: GPUDrawElementImageSource,
       destination: GPUDrawElementImageDestination,
     ): Promise<void>;
+    // Non-spec extension: a NativeVideoFrame (from createVideoPlayer,
+    // createVideoFrameFromNativeBuffer or createTestVideoFrame) as the copy
+    // source. The frame is rendered into the destination on the GPU through
+    // an external texture, which converts YUV to RGB and applies `rotation`
+    // and `mirrored`; the destination needs GPUTextureUsage.RENDER_ATTACHMENT
+    // and an rgba8unorm, bgra8unorm (or -srgb), rgba16float or rgb10a2unorm
+    // format. The frame can be released as soon as the call returns.
+    copyExternalImageToTexture(
+      source: GPUCopyExternalNativeFrameSourceInfo,
+      destination: GPUCopyExternalImageDestInfo,
+      copySize: GPUExtent3DStrict,
+    ): undefined;
   }
 
   // Non-standard, Dawn-only. Lets callers set Dawn device-stage toggles at

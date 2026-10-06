@@ -109,6 +109,68 @@ async::AsyncTaskHandle GPUQueue::onSubmittedWorkDone(jsi::Runtime &runtime) {
       });
 }
 
+void GPUQueue::copyVideoFrameToTexture(
+    const GPUImageCopyExternalImage &source,
+    const GPUImageCopyTextureTagged &destination, const wgpu::Extent3D &size) {
+  if (!destination.texture) {
+    throw std::runtime_error(
+        "copyExternalImageToTexture: destination.texture is required");
+  }
+  if (destination.aspect.value_or(wgpu::TextureAspect::All) !=
+      wgpu::TextureAspect::All) {
+    throw std::runtime_error(
+        "copyExternalImageToTexture: a native frame can only be copied into "
+        "the color aspect");
+  }
+  if (size.depthOrArrayLayers > 1) {
+    throw std::runtime_error(
+        "copyExternalImageToTexture: a native frame is a single 2D image");
+  }
+  constexpr double kMaxCoordinate =
+      static_cast<double>(std::numeric_limits<uint32_t>::max());
+  auto coordinate = [&](double value, const char *name) {
+    if (!(value >= 0) || value > kMaxCoordinate) {
+      throw std::runtime_error(std::string("copyExternalImageToTexture: ") +
+                               name +
+                               " must be a non-negative integer coordinate");
+    }
+    return static_cast<uint32_t>(value);
+  };
+  const double rotation = source.rotation.value_or(0);
+  if (rotation != 0 && rotation != 90 && rotation != 180 && rotation != 270) {
+    throw std::runtime_error(
+        "copyExternalImageToTexture: rotation must be 0, 90, 180 or 270");
+  }
+
+  VideoFrameBlit::Request request;
+  request.frame = source.videoFrame;
+  if (const auto origin = source.origin.value_or(nullptr)) {
+    request.originX = coordinate(origin->x, "origin.x");
+    request.originY = coordinate(origin->y, "origin.y");
+  }
+  request.width = size.width;
+  request.height = size.height;
+  request.flipY = source.flipY.value_or(false);
+  request.rotation = rotation;
+  request.mirrored = source.mirrored.value_or(false);
+  request.texture = destination.texture->get();
+  request.mipLevel = coordinate(destination.mipLevel.value_or(0), "mipLevel");
+  wgpu::Origin3D dstOrigin{};
+  Convertor conv;
+  if (!conv(dstOrigin, destination.origin)) {
+    throw std::runtime_error(
+        "copyExternalImageToTexture: invalid destination origin");
+  }
+  if (dstOrigin.z != 0) {
+    throw std::runtime_error(
+        "copyExternalImageToTexture: a native frame can only be copied into "
+        "the first layer of the texture");
+  }
+  request.dstX = dstOrigin.x;
+  request.dstY = dstOrigin.y;
+  _videoFrameBlit->copy(_device, _instance, request);
+}
+
 void GPUQueue::copyExternalImageToTexture(
     std::shared_ptr<GPUImageCopyExternalImage> source,
     std::shared_ptr<GPUImageCopyTextureTagged> destination,
@@ -117,6 +179,17 @@ void GPUQueue::copyExternalImageToTexture(
   wgpu::TexelCopyBufferLayout layout{};
   wgpu::Extent3D sz{};
   Convertor conv;
+  if (source->videoFrame) {
+    if (!conv(sz, size)) {
+      throw std::runtime_error("copyExternalImageToTexture: invalid copy size");
+    }
+    copyVideoFrameToTexture(*source, *destination, sz);
+    return;
+  }
+  if (!source->source) {
+    throw std::runtime_error("copyExternalImageToTexture: the source must be "
+                             "an ImageBitmap or a NativeVideoFrame");
+  }
   uint32_t bytesPerPixel =
       source->source->getSize() /
       (source->source->getWidth() * source->source->getHeight());
@@ -145,10 +218,8 @@ void GPUQueue::copyExternalImageToTexture(
     throw std::runtime_error(
         "The source origin must be a non-negative integer coordinate.");
   }
-  const size_t sourceOriginX =
-      origin ? static_cast<size_t>(origin->x) : 0;
-  const size_t sourceOriginY =
-      origin ? static_cast<size_t>(origin->y) : 0;
+  const size_t sourceOriginX = origin ? static_cast<size_t>(origin->x) : 0;
+  const size_t sourceOriginY = origin ? static_cast<size_t>(origin->y) : 0;
   if (sourceOriginX > source->source->getWidth() ||
       sz.width > source->source->getWidth() - sourceOriginX ||
       sourceOriginY > source->source->getHeight() ||
@@ -220,8 +291,7 @@ async::AsyncTaskHandle GPUQueue::drawElementImageToTexture(
   Convertor conv;
   if (!conv(dst.aspect, info->aspect) || !conv(dst.mipLevel, info->mipLevel) ||
       !conv(dst.origin, info->origin) || !conv(dst.texture, info->texture)) {
-    throw std::runtime_error(
-        "drawElementImageToTexture: invalid destination");
+    throw std::runtime_error("drawElementImageToTexture: invalid destination");
   }
   const wgpu::Texture texture = info->texture->get();
   bool destinationIsBgra = false;
@@ -335,10 +405,10 @@ async::AsyncTaskHandle GPUQueue::drawElementImageToTexture(
                        "pixels (is it mounted with a non-zero size?)");
                 return;
               }
-              if (image.width > mipWidth - std::min<uint32_t>(dst.origin.x,
-                                                              mipWidth) ||
-                  image.height > mipHeight - std::min<uint32_t>(dst.origin.y,
-                                                                mipHeight)) {
+              if (image.width >
+                      mipWidth - std::min<uint32_t>(dst.origin.x, mipWidth) ||
+                  image.height >
+                      mipHeight - std::min<uint32_t>(dst.origin.y, mipHeight)) {
                 reject("drawElementImageToTexture: the view's natural pixel "
                        "size (" +
                        std::to_string(image.width) + "x" +

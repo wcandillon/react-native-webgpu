@@ -4,7 +4,7 @@ description: Decode a video into native frames the GPU samples without any copy.
 ---
 
 `createVideoPlayer()` decodes a video into native frames: `IOSurface`-backed `CVPixelBuffer`s on Apple platforms, `AHardwareBuffer`s on Android.
-The frames are sampled by WebGPU without any copy through the CPU, with [`importExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions) or [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory), and they can be drawn by [React Native Skia](/docs/integrations/react-native-skia#video-and-camera-frames).
+The frames are sampled by WebGPU without any copy through the CPU, with [`importExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions) or [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory), copied into a regular texture with [`copyExternalImageToTexture`](/api/gpu-device-extensions#copyexternalimagetotexture-with-a-native-frame), and drawn by [React Native Skia](/docs/integrations/react-native-skia#video-and-camera-frames).
 
 ```tsx twoslash
 import { createVideoPlayer } from "react-native-webgpu";
@@ -69,14 +69,19 @@ A player can only keep a few frames in flight: release each frame once the GPU w
 
 <auto-type-table path="../../../../packages/webgpu/src/types.ts" name="NativeVideoFrame" />
 
-`handle` is the raw pointer of the buffer (an `IOSurfaceRef` or an `AHardwareBuffer*`) as a `BigInt`, which crosses library boundaries: `importSharedTextureMemory({ handle })` and `Skia.Image.MakeImageFromNativeBuffer(handle)` take it.
+`handle` is the raw pointer of the buffer (an `IOSurfaceRef` or an `AHardwareBuffer*`) as a `BigInt`, which `importSharedTextureMemory({ handle })` takes.
+
+### Copying a frame into a texture
+
+`queue.copyExternalImageToTexture({ source: frame, rotation: player.rotation }, { texture }, size)` renders a frame into a regular texture, on both platforms and whatever the frame's layout, with the rotation applied.
+See [the native frame copy](/api/gpu-device-extensions#copyexternalimagetotexture-with-a-native-frame).
 
 ## Pixel formats
 
 | Platform | Frames |
 | --- | --- |
 | iOS, macOS | BGRA (`"bgra8"`, the default), or biplanar YUV with `{ pixelFormat: "nv12" }`. Both import as external textures; BGRA frames also import as shared texture memory and as Skia images. |
-| Android | The native YUV layout of the decoder, reported as `"nv12"`. Sample them with `importExternalTexture()`; the `pixelFormat` option is ignored. |
+| Android | The native YUV layout of the decoder, reported as `"nv12"`. Sample them with `importExternalTexture()` or copy them with `copyExternalImageToTexture()`; the `pixelFormat` option is ignored. |
 
 ## Other sources
 

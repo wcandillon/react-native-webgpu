@@ -109,11 +109,25 @@ export interface VideoPlayer {
   readonly frameRate: number;
 }
 
+// The source info of GPUQueue.copyExternalImageToTexture() for a native
+// frame (a React Native extension of GPUCopyExternalImageSourceInfo). The
+// frame is rendered into the destination through an external texture, which
+// converts YUV to RGB and applies `rotation` and `mirrored` (the extension of
+// importExternalTexture), so the destination needs
+// GPUTextureUsage.RENDER_ATTACHMENT. `origin` and the copy size are in the
+// upright frame, after rotation.
+export interface GPUCopyExternalNativeFrameSourceInfo {
+  source: NativeVideoFrame;
+  origin?: GPUOrigin2D;
+  flipY?: boolean;
+  rotation?: 0 | 90 | 180 | 270;
+  mirrored?: boolean;
+}
+
 export interface CreateVideoPlayerOptions {
   // The layout of the frames on Apple platforms:
   // 'bgra8' (default): single-plane BGRA surfaces, for importSharedTextureMemory
-  // and a regular sampled GPUTexture (also what react-native-skia's
-  // MakeImageFromNativeBuffer accepts).
+  // and a regular sampled GPUTexture.
   // 'nv12': biplanar Y + CbCr surfaces, for GPUDevice.importExternalTexture.
   // On Android the decoder always writes its native YUV layout (reported as
   // 'nv12'), which only importExternalTexture samples; the option is ignored.
