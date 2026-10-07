@@ -18,6 +18,9 @@ concurrency:
 jobs:
   build:
     runs-on: self-hosted
+    # Green runs take 8 to 11 minutes; a hung xcodebuild used to hold this
+    # runner for as long as nobody noticed.
+    timeout-minutes: 30
     env:
       # Three repositories share this self-hosted machine. Each job runs on its
       # own Metro port, test server port and simulator so they can run
@@ -128,41 +131,6 @@ jobs:
             -disableAutomaticPackageResolution \
             build | xcpretty
 
-      # spm-example sits outside the yarn workspace so its React Native can
-      # differ from the one apps/example pins: SwiftPM autolinking needs
-      # React Native 0.87+. It ships no lockfile; react and react-native are
-      # pinned exactly in its package.json.
-      - name: Install spm-example dependencies
-        working-directory: spm-example
-        run: npm install
-
-      # The .xcodeproj is committed already injected, so this refreshes the
-      # injection, runs codegen and downloads the React Native artifacts. It
-      # exits 2 if a linked library ships no Package.swift.
-      - name: Set up Swift Package Manager (spm-example)
-        working-directory: spm-example/ios
-        run: npx react-native spm update
-
-      # No CocoaPods and no -disableAutomaticPackageResolution here (unlike
-      # the example app build above): react-native-webgpu is linked through
-      # its own Package.swift, and its WebGPUDawn binaryTarget resolves to a
-      # remote release zip + checksum with nothing cached ahead of time — this
-      # build's whole point is exercising that download-and-verify step.
-      - name: Build spm-example for iOS
-        working-directory: spm-example/ios
-        run: |
-          set -o pipefail && xcodebuild \
-            -project SpmExample.xcodeproj \
-            -scheme SpmExample \
-            -configuration Debug \
-            -sdk iphonesimulator \
-            -destination "generic/platform=iOS Simulator" \
-            -derivedDataPath spm-build \
-            COMPILER_INDEX_STORE_ENABLE=NO \
-            DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING=YES \
-            CODE_SIGNING_ALLOWED=NO \
-            build | xcpretty
-
       # A dedicated simulator, created once on the newest iOS runtime, so this
       # job never shares a device with the other repositories on the machine:
       # `booted` is ambiguous as soon as another job has its own simulator up.
@@ -223,6 +191,73 @@ jobs:
           if [ -n "$IOS_SIMULATOR_UDID" ]; then
             xcrun simctl shutdown "$IOS_SIMULATOR_UDID" || true
           fi
+
+  # The SwiftPM example gets its own job on a GitHub-hosted Mac. It needs no
+  # Metro, simulator or CocoaPods, so nothing ties it to the self-hosted
+  # machine, and a fresh runner is the strictest check that the WebGPUDawn
+  # binaryTarget resolves from the release zip + checksum with nothing cached.
+  # It used to be a step of `build`: a hung xcodebuild there blocked the iOS
+  # e2e result and held the self-hosted runner, which has no slack for that.
+  build-spm-ios:
+    runs-on: macos-latest
+    # Cold run: yarn install, Dawn download, RN artifacts, then one xcodebuild.
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build packages
+        run: yarn turbo run build --filter='./packages/*'
+
+      # xcpretty is a gem, not part of the macOS runner image.
+      - name: Install xcpretty
+        run: command -v xcpretty >/dev/null || sudo gem install xcpretty --no-document
+
+      # spm-example sits outside the yarn workspace so its React Native can
+      # differ from the one apps/example pins: SwiftPM autolinking needs
+      # React Native 0.87+. It ships no lockfile; react and react-native are
+      # pinned exactly in its package.json.
+      - name: Install spm-example dependencies
+        working-directory: spm-example
+        run: npm install
+
+      # The .xcodeproj is committed already injected, so this refreshes the
+      # injection, runs codegen and downloads the React Native artifacts. It
+      # exits 2 if a linked library ships no Package.swift.
+      - name: Set up Swift Package Manager (spm-example)
+        working-directory: spm-example/ios
+        run: npx react-native spm update
+
+      # No CocoaPods and no -disableAutomaticPackageResolution here (unlike
+      # the example app build above): react-native-webgpu is linked through
+      # its own Package.swift, and its WebGPUDawn binaryTarget resolves to a
+      # remote release zip + checksum with nothing cached ahead of time: this
+      # build's whole point is exercising that download-and-verify step.
+      - name: Build spm-example for iOS
+        working-directory: spm-example/ios
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project SpmExample.xcodeproj \
+            -scheme SpmExample \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath spm-build \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING=YES \
+            CODE_SIGNING_ALLOWED=NO \
+            build | tee xcodebuild.log | xcpretty || {
+              echo "::group::xcodebuild errors"
+              grep -E "error:|fatal error" xcodebuild.log | sort -u | head -50
+              echo "::endgroup::"
+              exit 1
+            }
 
   # Android e2e on a GitHub-hosted emulator. The runner has no GPU, so the guest
   # sees a SwiftShader (software) Vulkan 1.3 device through gfxstream, which Dawn
