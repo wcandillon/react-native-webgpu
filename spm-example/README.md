@@ -42,9 +42,8 @@ Release embeds its own JS bundle, so it needs no Metro. For Debug, run
 
 - **Stale `Package.resolved`.** Xcode caches package pins in
   `ios/SpmExample.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`.
-  When switching the Dawn binary between the release zip and a local
-  `libs/apple/` build (`yarn generate-package-swift --local`), delete it first
-  or the old source is silently kept.
+  After changing the `react-native-webgpu-dawn` version, delete it first or the
+  old pin is silently kept.
 - **`spm update` re-adds an absolute `HERMES_CLI_PATH`.** On React Native
   0.87.1 the injector writes this machine's own path to `hermesc` into
   `project.pbxproj` and `.spm-injected.json`. The build does not need it, so it

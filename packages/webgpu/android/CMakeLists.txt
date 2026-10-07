@@ -7,8 +7,6 @@ set (CMAKE_CXX_STANDARD_REQUIRED True)
 
 set (PACKAGE_NAME "react-native-webgpu")
 
-#link_directories(../libs/android/${ANDROID_ABI}/)
-
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DDEBUG=1)
 endif()
@@ -19,7 +17,15 @@ else()
     add_definitions(-DRNF_ENABLE_LOGS=0)
 endif()
 
-set (WEBGPU_LIBS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../libs/android/${ANDROID_ABI}")
+# Dawn comes from the react-native-webgpu-dawn npm package (DAWN_DIR is passed
+# by build.gradle): the shared library per ABI and the headers.
+if(NOT DAWN_DIR)
+    message(FATAL_ERROR "react-native-webgpu: DAWN_DIR is not set (the react-native-webgpu-dawn package directory)")
+endif()
+set (WEBGPU_LIBS_PATH "${DAWN_DIR}/libs/android/${ANDROID_ABI}")
+if(NOT EXISTS "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.so")
+    message(FATAL_ERROR "react-native-webgpu: libwebgpu_dawn.so not found at ${WEBGPU_LIBS_PATH}. Reinstall dependencies (yarn install / npm install).")
+endif()
 
 find_package(ReactAndroid REQUIRED CONFIG)
 find_package(fbjni REQUIRED CONFIG)
@@ -72,8 +78,8 @@ target_include_directories(
         ../cpp/rnwgpu/api
         ../cpp/rnwgpu/api/descriptors
         ../cpp/jsi
-        ../cpp/webgpu
         ../cpp/platform
+        "${DAWN_DIR}/include"
 
         ${libfbjni_include_DIRS}
 )

@@ -1,7 +1,43 @@
 require "json"
+require "fileutils"
 
 package = JSON.parse(File.read(File.join(__dir__, "package.json")))
 folly_compiler_flags = '-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1 -Wno-comma -Wno-shorten-64-to-32'
+
+# Resolve a node package directory using Node's own module resolution
+# (mirrors `require.resolve(pkg/package.json)`). A lambda rather than a `def`:
+# CocoaPods evaluates the podspec inside the `Pod` module, where top-level
+# methods are not reachable at the call site.
+resolve_node_package = lambda do |name, base_dir|
+  script = "process.stdout.write(require('path').dirname(require.resolve('#{name}/package.json')))"
+  dir = Dir.chdir(base_dir) { `node -e "#{script}" 2>/dev/null`.strip }
+  dir.empty? ? nil : dir
+end
+
+# Dawn, the WebGPU implementation, ships in the react-native-webgpu-dawn npm
+# package this package depends on (react-native-skia's Graphite backend links
+# the same one, so an app installing both contains exactly one Dawn). Its
+# headers are used in place, but CocoaPods only vendors frameworks from inside
+# the pod, so the xcframework is copied into libs/apple at `pod install` time.
+# The copy is stamped with the package version and skipped when it already
+# matches, which keeps CocoaPods' cache intact across installs.
+dawn_dir = resolve_node_package.call('react-native-webgpu-dawn', __dir__)
+if dawn_dir.nil?
+  raise "react-native-webgpu: the react-native-webgpu-dawn package was not found. " \
+        "It ships the Dawn binaries this package links against; make sure " \
+        "dependencies are installed (yarn install / npm install), then run `pod install` again."
+end
+dawn_version = JSON.parse(File.read(File.join(dawn_dir, 'package.json')))['version'].to_s
+dawn_include = File.join(dawn_dir, 'include')
+dawn_libs = File.join(__dir__, 'libs', 'apple')
+dawn_marker = File.join(dawn_libs, '.version')
+unless File.exist?(dawn_marker) && File.read(dawn_marker).strip == dawn_version
+  Pod::UI.puts "react-native-webgpu: installing Dawn (react-native-webgpu-dawn #{dawn_version})"
+  FileUtils.rm_rf(dawn_libs)
+  FileUtils.mkdir_p(dawn_libs)
+  FileUtils.cp_r(File.join(dawn_dir, 'libs', 'apple', 'libwebgpu_dawn.xcframework'), dawn_libs)
+  File.write(dawn_marker, dawn_version)
+end
 
 Pod::Spec.new do |s|
   s.name         = "react-native-webgpu"
@@ -50,7 +86,7 @@ Pod::Spec.new do |s|
   end
 
   s.pod_target_xcconfig = {
-    'HEADER_SEARCH_PATHS' => '$(PODS_TARGET_SRCROOT)/cpp',
+    'HEADER_SEARCH_PATHS' => "$(PODS_TARGET_SRCROOT)/cpp \"#{dawn_include}\"",
     # Xcode's all-target headermaps let same-named headers leak across pods
     # (e.g. @shopify/react-native-skia keeps a jsi/ helper layer with
     # identical relative header paths). Resolve includes strictly through our
@@ -66,7 +102,7 @@ Pod::Spec.new do |s|
     s.dependency "React-Core"
     s.compiler_flags = folly_compiler_flags
     s.pod_target_xcconfig    = {
-        "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\" \"$(PODS_TARGET_SRCROOT)/cpp\"",
+        "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\" \"$(PODS_TARGET_SRCROOT)/cpp\" \"#{dawn_include}\"",
         "OTHER_CPLUSPLUSFLAGS" => "-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1",
         "CLANG_CXX_LANGUAGE_STANDARD" => "c++20"
     }

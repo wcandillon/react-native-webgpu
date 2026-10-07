@@ -45,6 +45,28 @@ static def findNodeModules(baseDir) {
 
 def nodeModules = findNodeModules(projectDir)
 
+// Resolve a node package directory using Node's own module resolution
+// (mirrors `require.resolve(pkg/package.json)`).
+static def resolveNodePackage(packageName, baseDir) {
+  def script = "process.stdout.write(require('path').dirname(require.resolve('${packageName}/package.json')))"
+  def proc = ["node", "-e", script].execute(null, baseDir)
+  proc.waitFor()
+  if (proc.exitValue() != 0) {
+    throw new GradleException(
+      "react-native-webgpu: Could not resolve the '${packageName}' package. " +
+      "Make sure dependencies are installed (yarn install / npm install).\n" + proc.err.text
+    )
+  }
+  return proc.text.trim()
+}
+
+// Dawn, the WebGPU implementation, ships in the react-native-webgpu-dawn npm
+// package this package depends on: libs/android/<abi>/libwebgpu_dawn.so and
+// the headers under include/. react-native-skia's Graphite backend links the
+// same package, so an app installing both contains exactly one Dawn.
+def dawnDir = resolveNodePackage('react-native-webgpu-dawn', projectDir)
+logger.warn("react-native-webgpu: Dawn from ${dawnDir}")
+
 def getExtOrDefault(name) {
   return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["Wgpu_" + name]
 }
@@ -75,6 +97,7 @@ android {
         abiFilters (*reactNativeArchitectures())
         arguments '-DANDROID_STL=c++_shared',
           "-DNODE_MODULES_DIR=${nodeModules}",
+          "-DDAWN_DIR=${dawnDir}",
           "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
       }
     }
