@@ -7,30 +7,33 @@ react-native-webgpu and [`react-native-skia`](https://wcandillon.github.io/react
 
 Starting with v3, react-native-skia renders with Graphite, on top of Dawn, the same WebGPU implementation react-native-webgpu is built on, and the two packages are designed to share it:
 
-- **One Dawn copy.** Both packages vendor the exact same prebuilt Dawn artifact, pinned to the Dawn revision of the Skia milestone (for example `dawn-chrome-m154`). When both are installed, react-native-skia detects react-native-webgpu at `pod install` time and defers to its copy, so the process contains exactly one Dawn. A build-time guard compares the two packages' Dawn tags and fails the native build on a mismatch instead of letting two incompatible copies coexist.
+- **One Dawn copy.** Dawn ships in the `react-native-webgpu-dawn` npm package, built by react-native-skia from the Dawn revision its Skia release pins, and react-native-webgpu depends on it. When both libraries are installed, react-native-skia detects react-native-webgpu at `pod install` time and defers to its copy, so the process contains exactly one Dawn. A build-time guard compares the two packages' Dawn and fails the native build on a mismatch instead of letting two incompatible copies coexist.
 - **One `wgpu::Instance`.** When react-native-skia is present, react-native-webgpu adopts Skia's instance automatically at startup (discovered at runtime, independent of native-module initialization order). Graphite's device and every device you create through `navigator.gpu` live on the same instance.
 - **The WebGPU API lives here.** react-native-skia does not install `navigator.gpu` or any WebGPU JS API; react-native-webgpu is the single WebGPU API surface. If you want to write WebGPU code in an app that uses Skia, install react-native-webgpu alongside it.
 
 With react-native-skia v2, which keeps the Ganesh backend (and was published as `@shopify/react-native-skia` up to 2.14), there is no coupling at all: any version of either package can be installed together, and they simply don't interact.
 
 <Callout type="info" title="Versions">
-Because react-native-skia links react-native-webgpu's Dawn copy, the two packages must be built against the same Dawn tag; this is what makes sharing an instance and importing devices sound. Releases are kept in lockstep, and the native build fails with an explicit message if the tags ever differ, so a mismatch surfaces at build time rather than as undefined behavior at runtime. react-native-skia v2 has no such constraint.
+Because react-native-skia links react-native-webgpu's Dawn copy, the two packages must be built against the same Dawn; this is what makes sharing an instance and importing devices sound. Releases are kept in lockstep, and the native build fails with an explicit `Dawn version mismatch` message if the two ever differ, so a mismatch surfaces at build time rather than as undefined behavior at runtime. react-native-skia v2 has no such constraint.
 </Callout>
 
 ## Compatibility
 
-Both packages follow Chrome/Skia milestones: react-native-webgpu pins the Dawn revision from the Skia milestone's `DEPS`, and react-native-skia depends on that milestone's binaries, published as `react-native-skia-graphite-*` `<milestone>.x.y`. Pick one row and install versions from it. A letter suffix on the Dawn tag (for instance `dawn-chrome-m154a`) is the same Dawn commit rebuilt with additional patches; it still counts as a different tag, so the two packages must agree on the suffix too.
+Both packages follow Chrome/Skia milestones. react-native-skia publishes its binaries as `react-native-skia-graphite-*` and the Dawn they were built with as `react-native-webgpu-dawn`, all at `<milestone>.x.y`, and both libraries depend on that Dawn package at the exact same version. Pick one row and install versions from it. A letter suffix on a Dawn tag (for instance `dawn-chrome-m154a`) is the same Dawn commit rebuilt with additional patches; it still counts as a different Dawn, so the two packages must agree on the suffix too.
 
-| Milestone | react-native-webgpu | Dawn release tag | react-native-skia |
+| Milestone | react-native-webgpu | Dawn | react-native-skia |
 | --- | --- | --- | --- |
-| m154a | >= 0.12.1 | `dawn-chrome-m154a` | >= 3.0.6 (Graphite `154.x`) |
-| m154 | 0.10.0 to 0.11.2 | `dawn-chrome-m154` | 3.0.0 to 3.0.5 (Graphite `154.x`) |
+| m154a | 0.13.0 and later | `react-native-webgpu-dawn` 154.2.0 | 3.1.0 and later, or 3.0.8 |
+| m154a | 0.12.1 | `dawn-chrome-m154a`, vendored | 3.0.6 to 3.0.8, or 3.1.0 and later |
+| m154 | 0.10.0 to 0.11.2 | `dawn-chrome-m154`, vendored | 3.0.0 to 3.0.5 |
+
+From react-native-webgpu 0.13.0 and react-native-skia 3.1.0 both libraries depend on `react-native-webgpu-dawn` and the native build checks that they resolve the same version of it. The rows mixing one of them with an older release work because the older release vendors the same Dawn commit: react-native-skia 3.0.8 defers to react-native-webgpu's Dawn, and react-native-skia 3.1.0 accepts a react-native-webgpu 0.12.1 whose `dawnCommit` matches. On Android, react-native-skia 3.0.6 and 3.0.7 cannot pair with react-native-webgpu 0.13.0 and later: they still package their own `libwebgpu_dawn.so` next to the one from the package and the build fails merging the two.
 
 The Graphite previews of v2 (`@shopify/react-native-skia@next`, for instance 2.12.0-next.1) pair with react-native-webgpu the same way. Regular v2 releases are not part of this pairing: they do not link Dawn, so any version works alongside any version of react-native-webgpu.
 
 react-native-webgpu 0.6.4 and earlier predate the interop APIs (`importDevice` landed in 0.7.0); install them alongside react-native-skia v2 only.
 
-To check what an installed pair is built against, compare `node -p "require('react-native-webgpu/package.json').dawn"` with the Dawn tag recorded next to the Skia binaries, in `node_modules/react-native-skia-graphite-apple-ios/libs/.dawn-version` (or `react-native-skia-graphite-android`). They have to name the same milestone.
+To check what an installed pair is built against, make sure a single version of `react-native-webgpu-dawn` is installed (`npm ls react-native-webgpu-dawn`, or `yarn why react-native-webgpu-dawn`); its `package.json` records the Dawn commit under `dawn.commit`. For a release that still vendors its Dawn, compare `node -p "require('react-native-webgpu/package.json').dawnCommit"` with that commit, or the `dawn` tag with the one recorded next to the Skia binaries in `node_modules/react-native-skia-graphite-apple-ios/libs/.dawn-version` (react-native-skia 3.0.x).
 
 ## Rendering with Skia's device
 

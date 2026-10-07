@@ -26,7 +26,9 @@ runs:
         fi
       shell: bash
 
-    - name: Install Dawn
+    # Dawn comes with the react-native-webgpu-dawn dependency; this only checks
+    # it against the C++ workarounds pinned to a Dawn commit.
+    - name: Check Dawn
       working-directory: packages/webgpu
       shell: bash
-      run: yarn install-dawn
+      run: yarn check-dawn

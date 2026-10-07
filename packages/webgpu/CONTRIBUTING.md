@@ -3,11 +3,10 @@
 ## Development workflow
 
 ```sh
-git submodule update --init
 yarn
-cd packages/webgpu && yarn install-dawn   # prebuilt Dawn binaries
-# or: yarn build-dawn                     # build Dawn from source
 ```
+
+Dawn, the WebGPU implementation, comes with the `react-native-webgpu-dawn` dependency of `packages/webgpu`: the Android shared libraries, the Apple xcframework and the headers. Nothing to download or build.
 
 Example app (from `apps/example/`): `yarn start` · `yarn ios` · `yarn android`
 
@@ -17,7 +16,7 @@ Tests (from `packages/webgpu/`): `yarn test:ref` (Chrome reference) · `yarn tes
 
 `yarn test` needs the example app open on its "Tests" screen and connected to Metro first: start Metro with `CI=true yarn start` (from `apps/example/`) — `initialRouteName` in `apps/example/src/App.tsx` is `"Tests"` when `process.env.CI === "true"`, inlined at bundle time via the `transform-inline-environment-variables` babel plugin — then launch the app (`yarn ios` / `yarn android`, or install+launch an existing build). The screen shows "Connecting to localhost..." once it's ready; `yarn test` then picks it up automatically. If a run fails mid-suite, reload the app (`curl -X POST http://localhost:8081/reload`) before the next run — a broken `GPUDevice` from the failed run makes unrelated later tests fail too. The app and the test server talk over port 4242 by default; set `E2E_PORT` for both Metro (it is inlined into the bundle, so start Metro with `--reset-cache` after changing it) and `yarn test` to use another one, as CI does to keep clear of the other projects sharing its runner.
 
-Other `packages/webgpu` scripts: `yarn clean-dawn` · `yarn build-dawn`
+Other `packages/webgpu` scripts: `yarn check-dawn` (checks the installed Dawn against the C++ workarounds pinned to a Dawn commit; CI runs it after `yarn install`)
 
 ## Expo config plugin
 
@@ -25,47 +24,29 @@ The Expo config plugin lives in `plugin/src` and is compiled to `plugin/build` b
 
 ## Upgrading Dawn
 
-The Dawn version tracks the one shipped by `react-native-skia`: the pin is the exact Dawn commit from the Skia milestone's DEPS file (`third_party/externals/dawn` in Skia's DEPS). It is recorded in two places that must stay in sync:
+Dawn ships in the `react-native-webgpu-dawn` npm package, which react-native-skia builds and publishes together with its own Skia Graphite binaries (the **Build and publish binaries** workflow of [wcandillon/react-native-skia](https://github.com/wcandillon/react-native-skia), see its `packages/skia/CONTRIBUTING.md`). It is built from the Dawn commit the Skia release pins in its DEPS, with the patches that release needs, so the two libraries always link the same Dawn. The package records that commit in its `package.json` (`dawn.commit`) and its version follows the Skia one (`154.2.0` for Skia `m154_8037_58b`).
 
-- the `externals/dawn` submodule gitlink (the commit the submodule points at)
-- `packages/webgpu/package.json` → `"dawn"` (a human-readable label, e.g. `chrome-m152`; Skia milestones mirror Chrome milestones) and `"dawnCommit"` (the exact commit hash)
+`packages/webgpu/package.json` pins it exactly (`dependencies`), and keeps the `dawn` label (`chrome-m154a`) that react-native-skia 3.0.x compares against its own Dawn at `pod install` time; it goes away once react-native-skia depends on the package too.
 
-The **Build Dawn** workflow verifies the gitlink matches `dawnCommit` and fails otherwise.
+Steps to bump to a new Dawn (new Skia milestone `m<N>`):
 
-`yarn install-dawn` downloads **prebuilt** binaries from a GitHub release on this repo tagged `dawn-<version-slug>` (e.g. `dawn-chrome-m152`). `yarn build-dawn` builds the same binaries from the submodule source instead.
+1. **Wait for the binaries.** react-native-skia publishes `react-native-webgpu-dawn` at the new version.
 
-Steps to bump to a new Dawn version (new Skia milestone `m<N>`):
+2. **Bump the dependency** in `packages/webgpu/package.json` and run `yarn`.
 
-1. **Find the Dawn commit** in the Skia milestone's `DEPS` file (`third_party/externals/dawn` entry).
+3. **Review the workarounds.** `yarn check-dawn` fails when the Dawn commit changed while a workaround in `scripts/check-dawn.ts` is still pinned to the previous one: check whether the new Dawn carries the upstream fix, then drop the workaround or move its pin.
 
-2. **Point the submodule at that commit** and update `package.json` (`"dawn": "chrome-m<N>"`, `"dawnCommit": "<hash>"`):
+4. **Map the new feature names.** A milestone usually adds `wgpu::FeatureName` values. Add them to `RNWGPU_FOR_EACH_FEATURE_NAME` in `cpp/rnwgpu/api/GPUFeatures.h`, which is the single list both conversion directions are generated from; `src/__tests__/FeatureNames.spec.ts` diffs it against the installed `webgpu_cpp.h` and fails when one is missing.
 
-   ```sh
-   cd externals/dawn && git fetch origin && git checkout <hash> && cd ../..
-   ```
+5. **Update the compatibility table** in `apps/docs/content/docs/integrations/react-native-skia.mdx` with the new milestone row, so users can pair react-native-webgpu and `react-native-skia` versions.
 
-3. **Publish prebuilt binaries.** Trigger the **Build Dawn** workflow (`.github/workflows/build-dawn.yml`, `workflow_dispatch`). It builds Android + Apple from the submodule and creates the `dawn-chrome-m<N>` release with the headers, the Android `.so`s, and the Apple `.xcframework`. (To build locally instead, run `yarn build-dawn`; this requires the Android NDK and Xcode toolchains.)
+6. **Build both platforms.** A milestone can also change Dawn's C++ API surface, not just add features — e.g. `chrome-m154` turned `SharedTextureMemory::BeginAccess`/`EndAccess`, `Adapter::GetLimits`, `Device::GetLimits`, and `SharedTextureMemory::GetProperties` from a bool-ish return into `wgpu::Status` (no implicit bool conversion), breaking every `if (!result)` / `if (result)` call site in `cpp/rnwgpu/api/*.cpp`. Building iOS and Android is the way these surface; fix by comparing explicitly (`result == wgpu::Status::Success`).
 
-4. **Pull the new binaries** once the release exists:
-
-   ```sh
-   cd packages/webgpu && yarn install-dawn
-   ```
-
-5. **Map the new feature names.** A milestone usually adds `wgpu::FeatureName` values. Add them to `RNWGPU_FOR_EACH_FEATURE_NAME` in `cpp/rnwgpu/api/GPUFeatures.h`, which is the single list both conversion directions are generated from; `src/__tests__/FeatureNames.spec.ts` diffs it against the installed `webgpu_cpp.h` and fails when one is missing.
-
-6. **Update the compatibility table** in `apps/docs/content/docs/integrations/react-native-skia.mdx` with the new milestone row, so users can pair react-native-webgpu and `react-native-skia` versions.
-
-7. **Build both platforms.** A milestone can also change Dawn's C++ API surface, not just add features — e.g. `chrome-m154` turned `SharedTextureMemory::BeginAccess`/`EndAccess`, `Adapter::GetLimits`, `Device::GetLimits`, and `SharedTextureMemory::GetProperties` from a bool-ish return into `wgpu::Status` (no implicit bool conversion), breaking every `if (!result)` / `if (result)` call site in `cpp/rnwgpu/api/*.cpp`. Building iOS and Android is the way these surface; fix by comparing explicitly (`result == wgpu::Status::Success`).
-
-8. **Verify and commit.** Build and run the example app (see "Development workflow" above for reaching the Tests screen), then commit the submodule bump together with the updated `package.json`.
+7. **Verify and commit.** Build and run the example app (see "Development workflow" above for reaching the Tests screen), then commit the dependency bump.
 ## Swift Package Manager (preview)
 
 CocoaPods stays the default. `Package.swift` is additive: SwiftPM ignores the
-podspec, and CocoaPods ignores `Package.swift`. The manifest is generated from
-`scripts/package-swift-template.ts` by `yarn generate-package-swift`
-(`--local` points the Dawn binary target at `libs/apple/` instead of the
-release zip); edit the template, never the output.
+podspec, and CocoaPods ignores `Package.swift`.
 
 SwiftPM support requires **React Native 0.87 or newer**; earlier releases ship
 no `scripts/spm`. `apps/example` is on an older version, so it cannot exercise
@@ -102,18 +83,19 @@ ships, `.iOS(.v15)` is the only value that links.
 
 #### Dawn
 
-The `WebGPUDawn` binary target downloads the release zip named by the `dawn`
-field in `package.json`; the checksum is fetched from the release's
-`.checksum.txt` at generation time. A Graphite build of react-native-skia
-installed alongside must link the same Dawn tag, which the manifest checks at
-evaluation time. It reads the tag from
-`react-native-skia-graphite-apple-ios/libs/.dawn-version` and
-`react-native-skia-graphite-apple-macos/libs/.dawn-version` (v3 and above,
-hoisted or nested under `react-native-skia/node_modules`) and from
-`@shopify/react-native-skia/libs/.dawn-version` (the v2 Graphite previews),
-and fails on any marker that differs. SwiftPM caches manifest evaluations, so
-after changing either package's Dawn reset the package caches if the check does
-not re-run.
+The manifest depends on the `react-native-webgpu-dawn` package by path (a
+sibling in `node_modules`, or this monorepo's root) and links its
+`libwebgpu_dawn.xcframework`, whose slices embed the `webgpu/` and `dawn/`
+headers, so no header search path is needed for them. A Graphite build of
+react-native-skia installed alongside must link the same Dawn, which the
+manifest checks at evaluation time: a react-native-skia that depends on
+`react-native-webgpu-dawn` must pin the same version, and the 3.0.x line, which
+vendors its own Dawn, must record this package's `dawn` tag at
+`react-native-skia-graphite-apple-ios/libs/.dawn-version` (hoisted or nested
+under `react-native-skia/node_modules`, also checked for macOS and for the v2
+Graphite previews at `@shopify/react-native-skia/libs/.dawn-version`). SwiftPM
+caches manifest evaluations, so after changing either package's Dawn reset the
+package caches if the check does not re-run.
 
 After changing which binaries a checkout uses, delete
 `ios/<App>.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`:

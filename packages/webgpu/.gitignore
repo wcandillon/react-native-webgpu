@@ -1,4 +1,3 @@
-!scripts/build
 # OSX
 #
 .DS_Store
@@ -74,3 +73,6 @@ lib/
 
 # compiled Expo config plugin
 plugin/build/
+
+# Dawn xcframework copied in from react-native-webgpu-dawn at pod install
+libs/

@@ -7957,7 +7957,7 @@ __metadata:
     react-native-nitro-modules: 0.35.7
     react-native-reanimated: 4.3.1
     react-native-safe-area-context: ^5.4.0
-    react-native-skia: 3.0.6
+    react-native-skia: 3.0.8
     react-native-test-app: 4.4.10
     react-native-vision-camera: 5.0.10
     react-native-vision-camera-worklets: 5.0.10
@@ -20803,9 +20803,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-skia@npm:3.0.6":
-  version: 3.0.6
-  resolution: "react-native-skia@npm:3.0.6"
+"react-native-skia@npm:3.0.8":
+  version: 3.0.8
+  resolution: "react-native-skia@npm:3.0.8"
   dependencies:
     canvaskit-wasm: 0.41.0
     react-native-skia-graphite-android: 154.1.0
@@ -20826,7 +20826,7 @@ __metadata:
       optional: true
   bin:
     setup-skia-web: scripts/setup-canvaskit.js
-  checksum: f8560a493501e087c01f1316fc52dea34c614713d7bb52e1c8556cd6f031ffeaf4bbc2274b0438006d312cae418da2991d4365a4a4802e4bf9d8733b21bc96f2
+  checksum: bbcc642bd99a3839124389ea229450c9993b04b804703e96d8c94647bbf954a171088bd4d2c5a1b529d3eb26c0b52809934cba17aa0ff5482d8242d34b640e24
   languageName: node
   linkType: hard
 
@@ -20911,6 +20911,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-native-webgpu-dawn@npm:154.2.0":
+  version: 154.2.0
+  resolution: "react-native-webgpu-dawn@npm:154.2.0"
+  checksum: e9798715a2f6402a3dd265b0daace8232e0245c118badba2a043c4696b7c34de5bc958267602cc0f9524c43d032efa8c3fcad40453dc1ca9c07c1a3cba60f995
+  languageName: node
+  linkType: hard
+
 "react-native-webgpu-monorepo@workspace:.":
   version: 0.0.0-use.local
   resolution: "react-native-webgpu-monorepo@workspace:."
@@ -20972,6 +20979,7 @@ __metadata:
     react-native-builder-bob: ^0.23.2
     react-native-reanimated: ^4.2.1
     react-native-web: ^0.21.2
+    react-native-webgpu-dawn: 154.2.0
     react-native-worklets: 0.8.3
     rimraf: ^5.0.7
     seedrandom: ^3.0.5

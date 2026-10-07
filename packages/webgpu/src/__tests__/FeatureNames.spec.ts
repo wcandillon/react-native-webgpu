@@ -7,10 +7,20 @@ const cppDir = path.resolve(__dirname, "..", "..", "cpp");
 const read = (...segments: string[]) =>
   fs.readFileSync(path.join(cppDir, ...segments), "utf-8");
 
-// Every value of wgpu::FeatureName, straight from the Dawn headers installed by
-// `yarn install-dawn`. A milestone upgrade grows this list.
+// The Dawn headers of the installed react-native-webgpu-dawn package.
+const dawnInclude = path.join(
+  path.dirname(require.resolve("react-native-webgpu-dawn/package.json")),
+  "include",
+);
+
+// Every value of wgpu::FeatureName, straight from the Dawn headers (the
+// webgpu/ header is a shim onto the generated dawn/ one). A milestone upgrade
+// grows this list.
 const dawnFeatureNames = () => {
-  const header = read("webgpu", "webgpu_cpp.h");
+  const header = fs.readFileSync(
+    path.join(dawnInclude, "dawn", "webgpu_cpp.h"),
+    "utf-8",
+  );
   const body = /enum class FeatureName[^{]*\{([\s\S]*?)\n\};/.exec(header);
   if (!body) {
     throw new Error("Could not find enum class FeatureName in webgpu_cpp.h");
