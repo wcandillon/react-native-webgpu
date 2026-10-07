@@ -1,0 +1,214 @@
+# Throwaway experiment: which emulator configuration lets Dawn map host-visible
+# memory on a GitHub-hosted runner? On the API 30 default x86_64 image with the
+# stable emulator (37.2.12) the guest Vulkan driver fails to mmap its 16 MB
+# host-visible block (goldfish-address-space errno 1) and the app SIGSEGVs on
+# the first mappedAtCreation buffer. Build the x86_64 APK once, then boot each
+# variant and probe with the ABuffer demo (its first eval creates such a
+# buffer) before spending time on the whole suite.
+name: Android emulator experiment
+on:
+  push:
+    branches:
+      - android-emulator-experiment
+  workflow_dispatch:
+
+concurrency:
+  group: android-emulator-experiment-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install JDK
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install NDK
+        uses: nttld/setup-ndk@afb4c9964b521afb97c864b7d40b11e6911bd410 # v1.5.0
+        id: setup-ndk
+        with:
+          ndk-version: r27d
+
+      - name: Set ANDROID_NDK
+        run: echo "ANDROID_NDK=${{ steps.setup-ndk.outputs.ndk-path }}" >> "$GITHUB_ENV"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: platform-tools
+
+      - name: Finalize Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
+          echo "sdk.dir=$ANDROID_HOME" > apps/example/android/local.properties
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/wrapper
+            ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('apps/example/android/gradle/wrapper/gradle-wrapper.properties', 'yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build example for Android
+        working-directory: apps/example/android
+        env:
+          ORG_GRADLE_PROJECT_reactNativeArchitectures: x86_64
+        run: ./gradlew assembleDebug --warning-mode all --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-apk
+          path: apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  emulator:
+    needs: build-apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Newer guest images talk to the host through virtio-gpu instead of
+          # the goldfish address-space device that fails on API 30.
+          - name: api34-default-stable
+            api-level: 34
+            target: default
+            channel: stable
+            extra-options: ""
+          - name: api35-default-stable
+            api-level: 35
+            target: default
+            channel: stable
+            extra-options: ""
+          # Same guest image as CI, newest emulator binary.
+          - name: api30-default-canary
+            api-level: 30
+            target: default
+            channel: canary
+            extra-options: ""
+          # Same guest image and emulator as CI, direct host memory mapping off.
+          - name: api30-default-no-directmem
+            api-level: 30
+            target: default
+            channel: stable
+            extra-options: "-feature -GLDirectMem"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: platform-tools
+
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: experiment-apk
+          path: apps/example/android/app/build/outputs/apk/debug
+
+      - name: Start Package Manager
+        working-directory: apps/example
+        run: |
+          CI=true yarn start &
+          (sleep 10 && curl -sf --retry 12 --retry-connrefused --retry-delay 5 -o /dev/null "http://localhost:8081/index.bundle?platform=android&dev=true&minify=false") &
+
+      # Probe first: ABuffer's first eval creates a mappedAtCreation buffer, so
+      # it either passes in seconds or reproduces the crash within one eval
+      # timeout. The full suite only runs once the probe passed.
+      - name: Probe mapping, then run e2e tests
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
+          channel: ${{ matrix.channel }}
+          arch: x86_64
+          profile: Nexus 5X
+          force-avd-creation: true
+          emulator-options: -no-snapshot-save -no-window -gpu swangle_indirect -noaudio -no-boot-anim ${{ matrix.extra-options }}
+          disable-animations: true
+          script: |
+            adb reverse tcp:8081 tcp:8081
+            nohup adb logcat > logcat.txt 2>&1 &
+            adb install -r apps/example/android/app/build/outputs/apk/debug/app-debug.apk
+            adb shell monkey -p com.microsoft.reacttestapp 1
+            cd packages/webgpu && yarn test -i ABuffer
+            cd packages/webgpu && yarn test
+
+      - name: Summarize
+        if: always()
+        run: |
+          {
+            echo "## ${{ matrix.name }}"
+            echo '```'
+            grep -hoE "Android emulator version [^ ]+|system-images;[^ \"']+" "$RUNNER_TEMP"/*.log 2>/dev/null | sort -u || true
+            grep -hE "goldfish-address-space: mmap|Fatal signal|host memory map failed" logcat.txt | head -5 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload logcat
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logcat-${{ matrix.name }}
+          path: logcat.txt
+          if-no-files-found: ignore
+
+      - name: Upload test snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshots-${{ matrix.name }}
+          path: packages/webgpu/src/__tests__/snapshots/
+          if-no-files-found: ignore
