@@ -23,11 +23,11 @@ Both packages follow Chrome/Skia milestones. react-native-skia publishes its bin
 
 | Milestone | react-native-webgpu | Dawn | react-native-skia |
 | --- | --- | --- | --- |
-| m154a | 0.12.2 and later | `react-native-webgpu-dawn` 154.2.0 | 3.0.9 and later, or 3.0.8 |
-| m154a | 0.12.1 | `dawn-chrome-m154a`, vendored | 3.0.6 to 3.0.8, or 3.0.9 and later |
+| m154a | 0.13.0 and later | `react-native-webgpu-dawn` 154.2.0 | 3.1.0 and later, or 3.0.8 |
+| m154a | 0.12.1 | `dawn-chrome-m154a`, vendored | 3.0.6 to 3.0.8, or 3.1.0 and later |
 | m154 | 0.10.0 to 0.11.2 | `dawn-chrome-m154`, vendored | 3.0.0 to 3.0.5 |
 
-From react-native-webgpu 0.12.2 and react-native-skia 3.0.9 both libraries depend on `react-native-webgpu-dawn` and the native build checks that they resolve the same version of it. The rows mixing one of them with an older release work because the older release vendors the same Dawn commit: react-native-skia 3.0.8 defers to react-native-webgpu's Dawn, and react-native-skia 3.0.9 accepts a react-native-webgpu 0.12.1 whose `dawnCommit` matches. On Android, react-native-skia 3.0.6 and 3.0.7 cannot pair with react-native-webgpu 0.12.2 and later: they still package their own `libwebgpu_dawn.so` next to the one from the package and the build fails merging the two.
+From react-native-webgpu 0.13.0 and react-native-skia 3.1.0 both libraries depend on `react-native-webgpu-dawn` and the native build checks that they resolve the same version of it. The rows mixing one of them with an older release work because the older release vendors the same Dawn commit: react-native-skia 3.0.8 defers to react-native-webgpu's Dawn, and react-native-skia 3.1.0 accepts a react-native-webgpu 0.12.1 whose `dawnCommit` matches. On Android, react-native-skia 3.0.6 and 3.0.7 cannot pair with react-native-webgpu 0.13.0 and later: they still package their own `libwebgpu_dawn.so` next to the one from the package and the build fails merging the two.
 
 The Graphite previews of v2 (`@shopify/react-native-skia@next`, for instance 2.12.0-next.1) pair with react-native-webgpu the same way. Regular v2 releases are not part of this pairing: they do not link Dawn, so any version works alongside any version of react-native-webgpu.
 
