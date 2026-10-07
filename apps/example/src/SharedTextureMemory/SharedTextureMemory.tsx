@@ -55,40 +55,23 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
 }
 `;
 
-// This screen keeps the explicit feature request for documentation. As of the
-// default-on change, "rnwebgpu/native-texture" is enabled automatically by
-// requestDevice / useDevice whenever the adapter supports it (like
-// importExternalTexture on the web), so passing it in requiredFeatures is
-// optional. We still list it here to show how to gate on the capability.
-const REQUIRED_FEATURES = ["rnwebgpu/native-texture" as GPUFeatureName];
+// Nothing has to be requested for importSharedTextureMemory: like
+// importExternalTexture on the web, useDevice / requestDevice enable the Dawn
+// features behind native frame import whenever the adapter supports them. On
+// the rare hardware that cannot import native surfaces the import throws, and
+// the error names what is missing.
 
 export const SharedTextureMemory = () => {
   const ref = useCanvasRef();
   const [error, setError] = useState<string | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  const { device, adapter } = useDevice(undefined, {
-    requiredFeatures: REQUIRED_FEATURES,
-  });
+  const { device } = useDevice();
 
   useEffect(() => {
     if (!device) {
       return;
     }
-    const missing = REQUIRED_FEATURES.filter((f) => !device.features.has(f));
-    if (missing.length > 0) {
-      setError(
-        `Device is missing required features [${missing.join(", ")}]. Adapter supports: ${
-          adapter
-            ? [...adapter.features]
-                .filter((f) => f.toString().startsWith("shared-"))
-                .join(", ") || "none"
-            : "n/a"
-        }`,
-      );
-      return;
-    }
-
     const context = ref.current?.getContext("webgpu");
     if (!context) {
       return;
@@ -221,7 +204,9 @@ export const SharedTextureMemory = () => {
         });
         return { frame, memory, texture, bindGroup, uniformBuffer };
       } catch (e) {
-        console.warn("[SharedTextureMemory] bindFrame failed:", e);
+        // Rare: a driver or an emulator that cannot import native surfaces.
+        // The error names what is missing; show it, the loop stops below.
+        setError(e instanceof Error ? e.message : String(e));
         frame.release();
         return null;
       }
@@ -244,12 +229,13 @@ export const SharedTextureMemory = () => {
       const newFrame = source.copyLatestFrame();
       if (newFrame) {
         const next = bindFrame(newFrame);
-        if (next) {
-          if (current) {
-            releaseBound(current);
-          }
-          current = next;
+        if (!next) {
+          return;
         }
+        if (current) {
+          releaseBound(current);
+        }
+        current = next;
       }
 
       const encoder = device.createCommandEncoder();
@@ -285,7 +271,7 @@ export const SharedTextureMemory = () => {
       }
       source.release();
     };
-  }, [device, adapter, ref]);
+  }, [device, ref]);
 
   if (error) {
     return (

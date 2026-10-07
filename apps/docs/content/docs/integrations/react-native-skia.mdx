@@ -114,6 +114,7 @@ if (frame) {
 ```
 
 This is the one path for video and camera frames on both platforms: Skia has no native buffer import of its own.
+On Android, importing the decoder's YUV frames needs Dawn's `opaque-ycbcr-android-for-external-texture` feature on the shared device; react-native-skia's Graphite device requests it (v3 and later).
 The complete example, with the lifetime rules, is in the [React Native Skia documentation](https://wcandillon.github.io/react-native-skia/docs/webgpu#native-buffers).
 
 ## See also

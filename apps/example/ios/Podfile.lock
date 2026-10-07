@@ -1894,7 +1894,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-skia (2.6.2):
+  - react-native-skia (3.0.2):
     - boost
     - DoubleConversion
     - fast_float
@@ -2811,7 +2811,7 @@ DEPENDENCIES:
   - React-Mapbuffer (from `../../../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../../../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - react-native-safe-area-context (from `../../../node_modules/react-native-safe-area-context`)
-  - "react-native-skia (from `../../../node_modules/@shopify/react-native-skia`)"
+  - react-native-skia (from `../../../node_modules/react-native-skia`)
   - react-native-webgpu (from `../../../node_modules/react-native-webgpu`)
   - React-NativeModulesApple (from `../../../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-oscompat (from `../../../node_modules/react-native/ReactCommon/oscompat`)
@@ -2947,7 +2947,7 @@ EXTERNAL SOURCES:
   react-native-safe-area-context:
     :path: "../../../node_modules/react-native-safe-area-context"
   react-native-skia:
-    :path: "../../../node_modules/@shopify/react-native-skia"
+    :path: "../../../node_modules/react-native-skia"
   react-native-webgpu:
     :path: "../../../node_modules/react-native-webgpu"
   React-NativeModulesApple:
@@ -3073,7 +3073,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 9d2434a42701d6144ca18f0ca1c4507808ca7696
   React-microtasksnativemodule: 75b6604b667d297292345302cc5bfb6b6aeccc1b
   react-native-safe-area-context: 6cf08f4151132f9cf2adb948dc6c4ac387f8d30f
-  react-native-skia: fc73e9bdc46ebb420a98c9c2be29fee80f565e79
+  react-native-skia: e8dd91d2d904d9b45bb0eedb977d89b40b3681c6
   react-native-webgpu: fcba69b760e8971acc7ebb04041a9a04694c049f
   React-NativeModulesApple: 879fbdc5dcff7136abceb7880fe8a2022a1bd7c3
   React-oscompat: 93b5535ea7f7dff46aaee4f78309a70979bdde9d

@@ -8,7 +8,46 @@
 
 #include "GPUExternalTextureDescriptor.h"
 
+#if defined(__ANDROID__)
+#include <android/hardware_buffer.h>
+#endif
+
 namespace rnwgpu {
+
+#if defined(__ANDROID__)
+// Whether Dawn imports an AHardwareBuffer of this format as an
+// OpaqueYCbCrAndroid texture. Mirrors FormatFromAHardwareBufferFormat
+// (dawn/native/AHBFunctions.cpp): the color and depth formats with a WebGPU
+// equivalent import as that format; the YUV formats and the formats outside
+// the public enum, which drivers use for the camera and the video decoder,
+// import as OpaqueYCbCrAndroid.
+static bool isOpaqueYCbCrFormat(uint32_t format) {
+  switch (format) {
+  case AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM:
+  case AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM:
+  case AHARDWAREBUFFER_FORMAT_R8G8B8_UNORM:
+  case AHARDWAREBUFFER_FORMAT_R5G6B5_UNORM:
+  case AHARDWAREBUFFER_FORMAT_R16G16B16A16_FLOAT:
+  case AHARDWAREBUFFER_FORMAT_R10G10B10A2_UNORM:
+  case AHARDWAREBUFFER_FORMAT_BLOB:
+  case AHARDWAREBUFFER_FORMAT_D16_UNORM:
+  case AHARDWAREBUFFER_FORMAT_D24_UNORM:
+  case AHARDWAREBUFFER_FORMAT_D24_UNORM_S8_UINT:
+  case AHARDWAREBUFFER_FORMAT_D32_FLOAT:
+  case AHARDWAREBUFFER_FORMAT_D32_FLOAT_S8_UINT:
+  case AHARDWAREBUFFER_FORMAT_S8_UINT:
+  // Single-channel formats of the API 33 and 34 headers, by value so that
+  // older NDKs compile.
+  case 0x38: // AHARDWAREBUFFER_FORMAT_R8_UNORM
+  case 0x39: // AHARDWAREBUFFER_FORMAT_R16_UINT
+  case 0x3a: // AHARDWAREBUFFER_FORMAT_R16G16_UINT
+  case 0x3b: // AHARDWAREBUFFER_FORMAT_R10G10B10A10_UNORM
+    return false;
+  default:
+    return true;
+  }
+}
+#endif
 
 // Identity gamut (BT.709 -> sRGB, same primaries) as a 3x3 column-major matrix.
 static const float kIdentityGamutMatrix[9] = {
@@ -254,6 +293,28 @@ std::shared_ptr<GPUExternalTexture> GPUExternalTexture::Create(
       // sampled texel is already RGB.
       kYuvPassthroughMatrix);
 #elif defined(__ANDROID__)
+  // 0. A YUV frame imports as an OpaqueYCbCrAndroid texture, which Dawn only
+  //    accepts on a device with OpaqueYCbCrAndroidForExternalTexture.
+  //    requestDevice() enables the feature whenever the adapter supports it;
+  //    a device created by another library (importDevice) has to request it
+  //    itself. Fail with the cause here: Dawn's own report is a bare
+  //    "Unsupported texture format TextureFormat::OpaqueYCbCrAndroid" device
+  //    error, followed by the failure of every call made with the result.
+  if (!device.HasFeature(
+          wgpu::FeatureName::OpaqueYCbCrAndroidForExternalTexture)) {
+    AHardwareBuffer_Desc ahbDesc{};
+    AHardwareBuffer_describe(static_cast<AHardwareBuffer *>(frame.handle),
+                             &ahbDesc);
+    if (isOpaqueYCbCrFormat(ahbDesc.format)) {
+      throw std::runtime_error(
+          "GPUExternalTexture::Create(): a YUV frame can only be imported on "
+          "a device with the 'opaque-ycbcr-android-for-external-texture' "
+          "feature. requestDevice() enables it whenever the adapter supports "
+          "it; a device imported from another library has to request it "
+          "itself.");
+    }
+  }
+
   // 1. Import the AHardwareBuffer as SharedTextureMemory. For YUV AHBs this
   //    yields a Dawn texture in the implementation-defined OpaqueYCbCrAndroid
   //    format; for RGBA AHBs, a regular single-plane texture.

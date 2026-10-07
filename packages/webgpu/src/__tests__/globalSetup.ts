@@ -39,10 +39,11 @@ const createFixtureServer = () =>
     res.end(fs.readFileSync(file));
   });
 
-// Map the device's own localhost:4242 onto this machine, the same way the React
-// Native CLI does for Metro on 8081. With it, an Android emulator and a physical
-// device both reach the test server (WebSocket and fixtures alike) at
-// "localhost", so useClient needs no per-platform host and no LAN address.
+// Map the device's own localhost:<TEST_SERVER_PORT> onto this machine, the same
+// way the React Native CLI does for Metro on 8081. With it, an Android emulator
+// and a physical device both reach the test server (WebSocket and fixtures
+// alike) at "localhost", so useClient needs no per-platform host and no LAN
+// address.
 // Best effort: no adb, no device, or several devices attached just leaves the
 // connection to whatever host the app is configured with.
 const reversePort = (port: number) => {
@@ -56,8 +57,14 @@ const reversePort = (port: number) => {
   }
 };
 
+// How long the server waits for the example app before failing the run. Without
+// it, a crashed or never-launched app leaves jest waiting here until the CI job
+// timeout. Generous because on a cold CI runner the first connection also waits
+// for Metro to build the app's bundle.
+const CONNECT_TIMEOUT_MS = 10 * 60 * 1000;
+
 const globalSetup = () => {
-  return new Promise<void>((resolve) => {
+  return new Promise<void>((resolve, reject) => {
     // The reference (Chrome) and node (dawn.node) clients run in-process, so
     // no device connection is needed.
     if (REFERENCE || NODE_WEBGPU) {
@@ -74,9 +81,19 @@ const globalSetup = () => {
     console.log(
       `\n\nTest server listening on port ${port} (waiting for the example app to open on E2E tests screen)`,
     );
+    const timeout = setTimeout(() => {
+      global.testServer.close();
+      global.testFixtureServer.close();
+      reject(
+        new Error(
+          `No device connected to the test server on port ${port} within ${CONNECT_TIMEOUT_MS / 1000}s. Is the example app running on the Tests screen (CI=true)?`,
+        ),
+      );
+    }, CONNECT_TIMEOUT_MS);
     global.testServer.on("connection", (client) => {
       global.testClient = client;
       client.once("message", (msg) => {
+        clearTimeout(timeout);
         const obj = JSON.parse(msg.toString("utf8"));
         const { OS, arch, host } = obj;
         if (!isOS(OS)) {

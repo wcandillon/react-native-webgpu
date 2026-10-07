@@ -50,26 +50,16 @@ if (frame.hasNativeBuffer) {
 
 React Native WebGPU extends `importExternalTexture` with **`rotation`** and **`mirrored`** options so Dawn uprights the sensor image before your shader runs - see [Native Extensions](/api/gpu-device-extensions#gpuexternaltexture-extensions).
 
-## 1. Request the right device features
+## 1. Request a device
 
-Camera frames need native surface import:
+Camera frames need native surface import, which `requestDevice()` enables by default whenever the adapter supports it: IOSurface import and the NV12 multi-planar format on iOS, AHardwareBuffer import and the opaque YCbCr external-texture path on Android. Nothing has to be listed:
 
 ```tsx twoslash
-import { Platform } from "react-native";
-// ---cut---
 const adapter = await navigator.gpu.requestAdapter();
-const features: GPUFeatureName[] = [
-  "rnwebgpu/native-texture" as GPUFeatureName,
-  "dawn-multi-planar-formats" as GPUFeatureName,
-];
-
-// Android: opaque YCbCr path for camera AHardwareBuffer
-if (Platform.OS === "android") {
-  features.push("opaque-ycbcr-android-for-external-texture" as GPUFeatureName);
-}
-
-const device = await adapter!.requestDevice({ requiredFeatures: features });
+const device = await adapter!.requestDevice();
 ```
+
+A few Android Vulkan drivers (some Android-Desktop and Chromebook configurations) lack the YCbCr path. `device.features.has("opaque-ycbcr-android-for-external-texture")` tells before the first frame; otherwise the first `importExternalTexture()` throws an error naming it.
 
 ## 2. Canvas + frame output
 
