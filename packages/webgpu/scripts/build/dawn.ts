@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 
-import { chdir } from "process";
+import { chdir, exit } from "process";
+import { execSync } from "child_process";
 
 import type { Platform } from "./dawn-configuration";
 import { $, checkDuplicateHeaders, mapKeys } from "./util";
@@ -92,6 +93,16 @@ export const copyHeaders = () => {
 
 (async () => {
   process.chdir("../..");
+
+  // Apply the upstream Dawn changes the pinned commit does not carry yet
+  // (scripts/dawn-patches, see scripts/apply-dawn-patches.sh)
+  try {
+    execSync(`${projectRoot}/scripts/apply-dawn-patches.sh`, {
+      stdio: "inherit",
+    });
+  } catch (e) {
+    exit(1);
+  }
 
   // Build Android
   for (const platform of android.platforms) {
