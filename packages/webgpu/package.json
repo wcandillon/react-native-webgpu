@@ -25,7 +25,7 @@
     "app.plugin.js",
     "plugin/build/**"
   ],
-  "dawn": "chrome-m154",
+  "dawn": "chrome-m154a",
   "dawnCommit": "3d786993a7ded64c4ebb4884b9b079db9ad0e580",
   "scripts": {
     "test": "NODE_OPTIONS='--experimental-require-module' jest -i",
