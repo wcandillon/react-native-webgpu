@@ -38,13 +38,26 @@ export const build = async (
   process.chdir("../../../..");
 };
 
-const androidNdkBin = "$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin";
+// The NDK keeps its host tools in one directory per host; the macOS one is
+// named after x86_64 and holds universal binaries.
+const ndkHostTags: Partial<Record<NodeJS.Platform, string>> = {
+  darwin: "darwin-x86_64",
+  linux: "linux-x86_64",
+};
+
+const androidNdkBin = () => {
+  const hostTag = ndkHostTags[process.platform];
+  if (hostTag === undefined) {
+    throw new Error(`No NDK host tools for ${process.platform}`);
+  }
+  return `$ANDROID_NDK/toolchains/llvm/prebuilt/${hostTag}/bin`;
+};
 
 // Exceptions from the libraries that link Dawn reach JS through Hermes, which
 // only matches them against the app's libc++_shared.so.
 const assertSharedCxxRuntime = (libPath: string) => {
   const runtimeSymbols = execSync(
-    `${androidNdkBin}/llvm-nm -D --defined-only ${libPath}`,
+    `${androidNdkBin()}/llvm-nm -D --defined-only ${libPath}`,
     { maxBuffer: Infinity },
   )
     .toString()
@@ -65,7 +78,7 @@ export const copyLib = (os: OS, platform: Platform, sdk?: string) => {
   $(`mkdir -p ${dstPath}`);
   if (os === "android") {
     console.log("Strip debug symbols from libwebgpu_dawn.so...");
-    $(`${androidNdkBin}/llvm-strip ${libPath}`);
+    $(`${androidNdkBin()}/llvm-strip ${libPath}`);
     assertSharedCxxRuntime(libPath);
   }
   console.log(`Copying ${libPath} to ${dstPath}`);
