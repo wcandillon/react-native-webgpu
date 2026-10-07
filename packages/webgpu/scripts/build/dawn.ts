@@ -41,6 +41,7 @@ const android = {
   args: {
     CMAKE_TOOLCHAIN_FILE: "$ANDROID_NDK/build/cmake/android.toolchain.cmake",
     ANDROID_PLATFORM: "android-26",
+    ANDROID_STL: "c++_shared",
     DAWN_BUILD_MONOLITHIC_LIBRARY: "SHARED",
     CMAKE_EXE_LINKER_FLAGS: "-llog",
     CMAKE_SHARED_LINKER_FLAGS: "-llog -Wl,-z,max-page-size=16384",
