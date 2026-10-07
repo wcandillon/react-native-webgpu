@@ -29,7 +29,7 @@ let sibling = { (relative: String) -> String in
 // check runs here, at manifest evaluation. SwiftPM caches evaluations, so
 // after changing either package's Dawn version reset the package caches
 // (File > Packages > Reset Package Caches) if this does not re-run.
-let dawnReleaseTag = "dawn-chrome-m154"
+let dawnReleaseTag = "dawn-chrome-m154a"
 // Only Graphite builds of react-native-skia carry this marker (Ganesh builds
 // do not link Dawn and impose no constraint). From v3 the Skia binaries ship
 // in react-native-skia-graphite-apple-ios, which records the tag at
@@ -109,8 +109,8 @@ let package = Package(
     // build-dawn.yml), so SPM exposes them to dependents automatically.
     .binaryTarget(
       name: "WebGPUDawn",
-      url: "https://github.com/wcandillon/react-native-webgpu/releases/download/dawn-chrome-m154/dawn-apple-dawn-chrome-m154.xcframework.zip",
-      checksum: "896575ffbc99610198a83d061f8c5a2789139b7f16c669fbf3a9f7a7ac9be123"
+      url: "https://github.com/wcandillon/react-native-webgpu/releases/download/dawn-chrome-m154a/dawn-apple-dawn-chrome-m154a.xcframework.zip",
+      checksum: "ec06936cca08bca5177e41d78a1b190a22d62980e11df8a4c4ca5868de17c36c"
     ),
     .target(
       name: "ReactNativeWebGPU",
