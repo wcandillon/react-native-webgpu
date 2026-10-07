@@ -132,24 +132,43 @@ describe("Adapter", () => {
     expect(result).toBe(true);
   });
   it("request device faulty input", async () => {
+    // The faulty part is the nested requiredFeatures array; the limits only
+    // need to be ones this adapter can grant, so clamp them to its own
+    // (SwiftShader on the CI emulator caps compute workgroups at 256).
     const result = await client.eval(({ gpu }) => {
-      return gpu.requestAdapter().then((adapter) =>
-        adapter!
+      return gpu.requestAdapter().then((adapter) => {
+        const { limits } = adapter!;
+        return adapter!
           .requestDevice({
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-expect-error
             requiredFeatures: [["bgra8unorm-storage"]],
             requiredLimits: {
-              maxComputeWorkgroupStorageSize: 16352,
-              maxComputeWorkgroupsPerDimension: 65535,
-              maxStorageBufferBindingSize: 268435456,
-              maxBufferSize: 268435456,
-              maxComputeWorkgroupSizeX: 512,
-              maxComputeInvocationsPerWorkgroup: 512,
+              maxComputeWorkgroupStorageSize: Math.min(
+                16352,
+                limits.maxComputeWorkgroupStorageSize,
+              ),
+              maxComputeWorkgroupsPerDimension: Math.min(
+                65535,
+                limits.maxComputeWorkgroupsPerDimension,
+              ),
+              maxStorageBufferBindingSize: Math.min(
+                268435456,
+                limits.maxStorageBufferBindingSize,
+              ),
+              maxBufferSize: Math.min(268435456, limits.maxBufferSize),
+              maxComputeWorkgroupSizeX: Math.min(
+                512,
+                limits.maxComputeWorkgroupSizeX,
+              ),
+              maxComputeInvocationsPerWorkgroup: Math.min(
+                512,
+                limits.maxComputeInvocationsPerWorkgroup,
+              ),
             },
           })
-          .then((device) => !!device),
-      );
+          .then((device) => !!device);
+      });
     });
     expect(result).toBe(true);
   });

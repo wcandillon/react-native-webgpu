@@ -264,9 +264,16 @@ jobs:
   # exposes as a fallback adapter. Specs that need hardware-only paths (hardware
   # buffer import, video decoding, view snapshots) gate on device features and
   # skip themselves where the emulator lacks them.
+  #
+  # The guest image has to be API 34 or newer. On the API 30 image the guest
+  # Vulkan driver fails to mmap its host-visible memory block
+  # (goldfish-address-space errno 1, with every emulator binary tried) and the
+  # app SIGSEGVs on the first mappedAtCreation buffer; API 35 runs the whole
+  # suite in two minutes. See #505 for the experiment.
   build-test-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Gradle build ~15 min, setup ~7, emulator boot ~1, suite ~2.
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -356,7 +363,7 @@ jobs:
       - name: Run e2e tests on the emulator
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
-          api-level: 30
+          api-level: 35
           arch: x86_64
           profile: Nexus 5X
           force-avd-creation: true
