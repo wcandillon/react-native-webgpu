@@ -172,22 +172,27 @@ jobs:
         include:
           - platform: ios
             arch: arm64
-            cmake_args: -DPLATFORM=OS64 -DDEPLOYMENT_TARGET=14.0 -DENABLE_BITCODE=OFF -DENABLE_ARC=OFF -DENABLE_VISIBILITY=OFF
+            cmake_args: -DPLATFORM=OS64 -DDEPLOYMENT_TARGET=15.1 -DENABLE_BITCODE=OFF -DENABLE_ARC=OFF -DENABLE_VISIBILITY=OFF
             output_dir: externals/dawn/out/ios_arm64
             library_path: src/dawn/native/libwebgpu_dawn.a
           - platform: ios
             arch: sim_arm64
-            cmake_args: -DPLATFORM=SIMULATORARM64 -DDEPLOYMENT_TARGET=14.0 -DENABLE_BITCODE=OFF -DENABLE_ARC=OFF -DENABLE_VISIBILITY=OFF
+            cmake_args: -DPLATFORM=SIMULATORARM64 -DDEPLOYMENT_TARGET=15.1 -DENABLE_BITCODE=OFF -DENABLE_ARC=OFF -DENABLE_VISIBILITY=OFF
             output_dir: externals/dawn/out/ios_sim_arm64
             library_path: src/dawn/native/libwebgpu_dawn.a
           - platform: ios
             arch: sim_x86_64
-            cmake_args: -DPLATFORM=SIMULATOR64 -DDEPLOYMENT_TARGET=14.0 -DENABLE_BITCODE=OFF -DENABLE_ARC=OFF -DENABLE_VISIBILITY=OFF
+            cmake_args: -DPLATFORM=SIMULATOR64 -DDEPLOYMENT_TARGET=15.1 -DENABLE_BITCODE=OFF -DENABLE_ARC=OFF -DENABLE_VISIBILITY=OFF
             output_dir: externals/dawn/out/ios_sim_x86_64
+            library_path: src/dawn/native/libwebgpu_dawn.a
+          - platform: maccatalyst
+            arch: universal
+            cmake_args: -DPLATFORM=MAC_CATALYST_UNIVERSAL -DDEPLOYMENT_TARGET=15.1 -DDAWN_TARGET_MACOS=OFF -DENABLE_BITCODE=OFF -DENABLE_ARC=OFF -DENABLE_VISIBILITY=OFF
+            output_dir: externals/dawn/out/maccatalyst_universal
             library_path: src/dawn/native/libwebgpu_dawn.a
           - platform: macos
             arch: universal
-            cmake_args: -DPLATFORM=MAC_UNIVERSAL -DDEPLOYMENT_TARGET=11.0 -DENABLE_BITCODE=OFF -DENABLE_ARC=OFF -DENABLE_VISIBILITY=OFF
+            cmake_args: -DPLATFORM=MAC_UNIVERSAL -DDEPLOYMENT_TARGET=12.0 -DENABLE_BITCODE=OFF -DENABLE_ARC=OFF -DENABLE_VISIBILITY=OFF
             output_dir: externals/dawn/out/macos_universal
             library_path: src/dawn/native/libwebgpu_dawn.a
 
@@ -263,6 +268,7 @@ jobs:
             -library libs/apple/iphonesimulator/libwebgpu_dawn.a -headers dawn-headers/include \
             -library artifacts/build-ios-arm64/libwebgpu_dawn.a -headers dawn-headers/include \
             -library artifacts/build-macos-universal/libwebgpu_dawn.a -headers dawn-headers/include \
+            -library artifacts/build-maccatalyst-universal/libwebgpu_dawn.a -headers dawn-headers/include \
             -output dawn-apple.xcframework
 
       - name: Package Android libraries

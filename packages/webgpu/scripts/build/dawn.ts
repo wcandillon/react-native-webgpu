@@ -20,6 +20,7 @@ const commonArgs = {
   TINT_BUILD_CMD_TOOLS: "OFF",
   TINT_BUILD_IR_BINARY: "OFF",
   DAWN_BUILD_SAMPLES: "OFF",
+  DAWN_BUILD_PROTOBUF: "OFF",
   DAWN_USE_GLFW: "OFF",
   DAWN_FETCH_DEPENDENCIES: "ON",
   DAWN_ENABLE_DESKTOP_GL: "OFF",
@@ -35,6 +36,7 @@ const PLATFORM_MAP: Record<string, string> = {
   arm64_xrsimulator: "SIMULATOR_VISIONOS",
   x86_64_xrsimulator: "SIMULATOR64_VISIONOS",
   universal_macosx: "MAC_UNIVERSAL",
+  universal_maccatalyst: "MAC_CATALYST_UNIVERSAL",
 };
 
 const android = {
@@ -55,7 +57,7 @@ const apple = {
   matrix: {
     arm64: ["iphoneos", "iphonesimulator", "xros", "xrsimulator"],
     x86_64: ["iphonesimulator"],
-    universal: ["macosx"],
+    universal: ["macosx", "maccatalyst"],
   },
   args: {
     CMAKE_TOOLCHAIN_FILE: `${__dirname}/apple.toolchain.cmake`,
@@ -94,7 +96,7 @@ export const copyHeaders = () => {
 (async () => {
   process.chdir("../..");
 
-  // Apply the upstream Dawn changes the pinned commit does not carry yet
+  // Apply the Dawn fixes the pinned commit does not carry yet
   // (scripts/dawn-patches, see scripts/apply-dawn-patches.sh)
   try {
     execSync(`${projectRoot}/scripts/apply-dawn-patches.sh`, {
@@ -127,6 +129,9 @@ export const copyHeaders = () => {
         {
           PLATFORM: PLATFORM_MAP[`${platform}_${sdk}`],
           ...apple.args,
+          // Prevents linking macOS-only components like Cocoa to
+          // Mac Catalyst, which uses macosx sdk to compile.
+          ...(sdk === "maccatalyst" ? { DAWN_TARGET_MACOS: "OFF" } : {}),
         },
         `🍏 ${platform} ${sdk}`,
       );
@@ -143,7 +148,9 @@ export const copyHeaders = () => {
   });
 
   libs.forEach((lib) => {
-    console.log(`📱 Building ${lib} (XCFramework) for iOS, visionOS and macOS`);
+    console.log(
+      `🍏 Building ${lib} (XCFramework) for iOS, visionOS, macOS and Mac Catalyst`,
+    );
 
     $(`rm -rf ${projectRoot}/libs/apple/${lib}.xcframework`);
     $(
@@ -153,17 +160,19 @@ export const copyHeaders = () => {
         `-library ${projectRoot}/libs/apple/arm64_xros/${lib}.a ` +
         `-library ${projectRoot}/libs/apple/arm64_xrsimulator/${lib}.a ` +
         `-library ${projectRoot}/libs/apple/universal_macosx/${lib}.a ` +
+        `-library ${projectRoot}/libs/apple/universal_maccatalyst/${lib}.a ` +
         ` -output ${projectRoot}/libs/apple/${lib}.xcframework `,
     );
 
     // Remove intermediate libraries
     $(
       "rm -rf " +
-        `${projectRoot}/libs/apple/iphonesimulator` +
-        `${projectRoot}/libs/apple/arm64_iphoneos` +
-        `${projectRoot}/libs/apple/arm64_xros` +
-        `${projectRoot}/libs/apple/arm64_xrsimulator` +
-        `${projectRoot}/libs/apple/universal_macosx`,
+        `${projectRoot}/libs/apple/iphonesimulator ` +
+        `${projectRoot}/libs/apple/arm64_iphoneos ` +
+        `${projectRoot}/libs/apple/arm64_xros ` +
+        `${projectRoot}/libs/apple/arm64_xrsimulator ` +
+        `${projectRoot}/libs/apple/universal_macosx ` +
+        `${projectRoot}/libs/apple/universal_maccatalyst`,
     );
   });
 
