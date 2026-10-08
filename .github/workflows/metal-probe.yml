@@ -29,10 +29,14 @@ jobs:
 
       - name: Boot an iOS simulator
         run: |
+          # Same selection as the e2e job in ci.yml: newest iOS runtime and the
+          # newest "iPhone N Pro" device type.
           RUNTIME=$(xcrun simctl list runtimes available --json | jq -r '
-            .runtimes | map(select(.platform == "iOS")) | sort_by(.version) | last | .identifier')
+            .runtimes | map(select(.platform == "iOS"))
+            | sort_by(.version | split(".") | map(tonumber)) | last | .identifier')
           DEVICE_TYPE=$(xcrun simctl list devicetypes --json | jq -r '
-            .devicetypes | map(select(.productFamily == "iPhone")) | last | .identifier')
+            .devicetypes | map(select(.name | test("^iPhone [0-9]+ Pro$")))
+            | sort_by(.name | capture("^iPhone (?<n>[0-9]+) Pro$").n | tonumber) | last | .identifier')
           echo "runtime=$RUNTIME device=$DEVICE_TYPE"
           UDID=$(xcrun simctl create metal-probe "$DEVICE_TYPE" "$RUNTIME")
           echo "UDID=$UDID" >> $GITHUB_ENV
