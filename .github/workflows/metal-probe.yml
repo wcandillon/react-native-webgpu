@@ -51,3 +51,81 @@ jobs:
             -target "arm64-apple-ios${SDK_VERSION}-simulator" -sdk "$SDK" \
             .github/runner/metal-probe.swift -o "$RUNNER_TEMP/metal-probe-sim"
           xcrun simctl spawn "$UDID" "$RUNNER_TEMP/metal-probe-sim"
+
+  # Second half of the experiment: the iOS e2e job from ci.yml, unchanged
+  # except for runs-on, on a fresh GitHub-hosted Mac. Lint, docs and the
+  # release dry run are left out: they are not what the self-hosted machine
+  # was assumed to be needed for.
+  e2e-hosted:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      METRO_PORT: 8083
+      E2E_PORT: 4244
+      IOS_SIMULATOR: webgpu-ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build packages
+        run: yarn turbo run build --filter='./packages/*'
+
+      - name: Install CocoaPods
+        working-directory: apps/example/ios
+        run: pod install
+
+      - name: Start Package Manager
+        working-directory: apps/example
+        run: CI=true yarn start --port $METRO_PORT --reset-cache &
+
+      - name: Build example for iOS
+        working-directory: apps/example/ios
+        run: |
+          which xcpretty >/dev/null || sudo gem install xcpretty
+          set -o pipefail && xcodebuild \
+            -workspace example.xcworkspace \
+            -scheme Example \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING=YES \
+            RCT_METRO_PORT=$METRO_PORT \
+            -disableAutomaticPackageResolution \
+            build | xcpretty
+
+      - name: Prepare iOS simulator
+        run: |
+          RUNTIME=$(xcrun simctl list runtimes available --json | jq -r '
+            .runtimes | map(select(.platform == "iOS"))
+            | sort_by(.version | split(".") | map(tonumber)) | last | .identifier')
+          DEVICE_TYPE=$(xcrun simctl list devicetypes --json | jq -r '
+            .devicetypes | map(select(.name | test("^iPhone [0-9]+ Pro$")))
+            | sort_by(.name | capture("^iPhone (?<n>[0-9]+) Pro$").n | tonumber) | last | .identifier')
+          echo "Creating $IOS_SIMULATOR ($DEVICE_TYPE, $RUNTIME)"
+          UDID=$(xcrun simctl create "$IOS_SIMULATOR" "$DEVICE_TYPE" "$RUNTIME")
+          echo "IOS_SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+
+      - name: Install and launch app on Simulator
+        run: |
+          xcrun simctl install "$IOS_SIMULATOR_UDID" apps/example/ios/build/Build/Products/Debug-iphonesimulator/ReactTestApp.app
+          xcrun simctl launch "$IOS_SIMULATOR_UDID" com.microsoft.ReactTestApp
+
+      - name: Run e2e tests
+        working-directory: packages/webgpu
+        run: yarn test
+
+      - name: Upload test snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webgpu-test-snapshots-hosted
+          path: packages/webgpu/src/__tests__/snapshots/
