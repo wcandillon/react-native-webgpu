@@ -87,8 +87,9 @@ if (typeof RNWebGPU !== "undefined") {
   global.createImageBitmap =
     global.createImageBitmap ?? RNWebGPU.createImageBitmap.bind(RNWebGPU);
   installDrawElementImageToTexture();
-  // Let installWebGPU() put navigator.gpu on other runtimes (see install.ts).
-  provideGPUForInstall(RNWebGPU.gpu);
+  // Let installWebGPU() put navigator.gpu and RNWebGPU on other runtimes (see
+  // install.ts).
+  provideGPUForInstall(RNWebGPU);
 } else {
   console.warn(
     `[react-native-webgpu] install() returned ${_installOk} but RNWebGPU global is not available`,

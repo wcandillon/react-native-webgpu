@@ -3,10 +3,12 @@ title: Worklets
 description: Run WebGPU rendering off the JS thread on worklet runtimes.
 ---
 
-By default, WebGPU rendering runs on the JavaScript thread alongside React. 
-Using [React Native Worklets](https://github.com/margelo/react-native-worklets), you can run WebGPU rendering on the UI thread or on a dedicated worklet runtime.
+By default, WebGPU rendering runs on the JS thread alongside React.
+Using [React Native Worklets](https://github.com/margelo/react-native-worklets), you can run WebGPU rendering on the UI runtime or on a dedicated worklet runtime instead. Reanimated is not required, but if you already use Reanimated 4 you already have Worklets.
 There is even an experimental [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/) that lets you run complex Three.js scenes on a dedicated thread.
 You can see an example of Bundle Mode working with Three.js [here](https://github.com/software-mansion-labs/Bundle-Mode-showcase-app).
+
+This page covers the setup. [Threading](/docs/getting-started/threading) explains the model: the three runtimes and when to pick each, what has to stay on the JS thread, how objects cross, where promises settle, and a complete render loop that stops on unmount.
 
 ## Requirements
 
@@ -14,11 +16,11 @@ You can see an example of Bundle Mode working with Three.js [here](https://githu
 npm i react-native-worklets
 ```
 
-Follow the Worklets installation guide for the babel plugin and native setup. WebGPU objects are automatically registered for Worklets serialization when the module loads - you can pass `GPUDevice` and `GPUCanvasContext` directly to worklets.
+Follow the Worklets installation guide for the babel plugin and native setup. WebGPU objects are automatically registered for Worklets serialization when the module loads: any WebGPU object (`GPUDevice`, `GPUCanvasContext`, pipelines, buffers, textures, ...) can be passed to a worklet as an argument or captured in its closure. They cross by reference, without a copy.
 
 ## installWebGPU
 
-Worklet runtimes start without the WebGPU globals (`navigator.gpu`, `GPUBufferUsage`, `GPUTextureUsage`, etc.). Call [`installWebGPU()`](/api/install-webgpu) once at the top of a worklet to install all of them for that runtime:
+Worklet runtimes start without the WebGPU globals (`navigator.gpu`, `RNWebGPU`, `GPUBufferUsage`, `GPUTextureUsage`, etc.). Call [`installWebGPU()`](/api/install-webgpu) once at the top of a worklet to install all of them for that runtime:
 
 ```tsx twoslash
 import type { RNCanvasContext, CanvasRef } from "react-native-webgpu";
@@ -45,20 +47,14 @@ const renderFrame = (device: GPUDevice, context: RNCanvasContext) => {
   context.present();
 };
 
-// Create device on main thread, then run render on the UI thread:
+// Create the device and get the context on the JS thread, then render on the UI runtime:
 const device = await adapter.requestDevice();
 const context = canvasRef.current!.getContext("webgpu")!;
 runOnUI(renderFrame)(device, context);
 ```
 
+This renders a single frame. For a continuous loop that stops on unmount, and for the dedicated-runtime variant, see [A render loop on a worklet](/docs/getting-started/threading#a-render-loop-on-a-worklet).
+
 ## Thread safety
 
-The pattern above (create the device on the JS thread, render from a worklet runtime) works because `requestDevice()` enables Dawn's [`implicit-device-synchronization`](https://dawn.googlesource.com/dawn/+/refs/heads/main/docs/dawn/features/implicit_device_synchronization.md) feature by default, which guards the device and its child objects (buffers, textures, queue, pipelines) with a per-device mutex.
-
-This makes the handoff safe, but it is coarse-grained locking, not a license for arbitrary concurrency. Prefer a clear ownership model: set resources up on one thread, render on another, and keep simultaneous use of the same device from several threads to a minimum. In particular:
-
-- **Never share a command encoder across threads.** Command encoding is explicitly excluded from the implicit synchronization; create the `GPUCommandEncoder` (and its pass encoders) on the thread that uses it.
-- **Don't drive the same canvas context from two threads.** Keep `configure()`, `getCurrentTexture()`, and `present()` for a given context on a single runtime.
-- Dawn describes this feature as heavy-handed and notes that some reentrancy cases may still deadlock, so treat heavy cross-thread churn on one device as unsupported territory.
-
-For completeness, the default can be disabled with `implicitDeviceSynchronization: false` on the device descriptor (a non-standard extension, ignored on the web). This is only for profiling or single-threaded setups; a device created this way must never be touched from a worklet runtime.
+The pattern above (create the device on the JS thread, render from a worklet runtime) is safe because `requestDevice()` enables Dawn's `implicit-device-synchronization` feature by default. It is coarse-grained locking, not a license for arbitrary concurrency: never share a command encoder across runtimes, and keep a given canvas context on one runtime. [Thread safety](/docs/getting-started/threading#thread-safety) has the details and the `implicitDeviceSynchronization` opt-out.

@@ -3,10 +3,10 @@ title: installWebGPU
 description: Install navigator.gpu and the WebGPU flag constants on a worklet runtime.
 ---
 
-On a worklet runtime, neither `navigator.gpu` nor the WebGPU flag constants are available by default.
-Call `installWebGPU()` once at the top of a worklet to install the needed globals for that runtime: `navigator.gpu` plus `GPUBufferUsage`, `GPUTextureUsage`, `GPUShaderStage`, `GPUColorWrite`, and `GPUMapMode`.
+On a worklet runtime, neither `navigator.gpu`, nor the `RNWebGPU` object, nor the WebGPU flag constants are available by default.
+Call `installWebGPU()` once at the top of a worklet to install the needed globals for that runtime: `navigator.gpu`, `RNWebGPU` (for the native helpers such as `createVideoFrameFromNativeBuffer`), plus `GPUBufferUsage`, `GPUTextureUsage`, `GPUShaderStage`, `GPUColorWrite`, and `GPUMapMode`.
 
-On the main JS thread these are already installed when the native module loads; calling `installWebGPU()` there is a safe no-op.
+On the JS thread these are already installed when the native module loads; calling `installWebGPU()` there is a safe no-op. See [Threading](/docs/getting-started/threading) for the rules on what runs where.
 
 ## Usage
 
@@ -46,7 +46,7 @@ const renderOnUI = (
   context.present();
 };
 
-// Create device on the main thread, pass handles to the worklet
+// Create the device on the JS thread, pass the handles to the worklet
 runOnUI(renderOnUI)(device, context, pipeline);
 ```
 
@@ -92,8 +92,8 @@ runOnUI(() => {
 })();
 ```
 
-If you create a device on the worklet runtime, beware that spontaneous device events are only delivered for devices created on the main JS runtime:
+Creating a device on a worklet runtime works, but it is not the recommended pattern: spontaneous device events are only delivered for devices created on the JS thread.
 - `device.lost` read on a worklet runtime returns a promise that never settles, unless the device is already lost at that point, in which case it resolves normally.
 - `uncapturederror` listeners registered on a device created on a worklet runtime never fire.
 
-If you need to observe device loss or uncaptured errors, create the device on the main JS thread, attach the handlers there, and pass the device into the worklet.
+Create the device on the JS thread, attach the handlers there, and pass the device into the worklet. Request-style promises (`requestAdapter`, `requestDevice`, `mapAsync`, ...) always settle on the runtime that called them.

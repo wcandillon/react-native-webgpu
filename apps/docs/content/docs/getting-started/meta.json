@@ -5,6 +5,7 @@
     "expo",
     "canvas",
     "offscreen-canvas",
+    "threading",
     "native-api",
     "react-api",
     "learn-webgpu"

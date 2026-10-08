@@ -70,7 +70,7 @@ import { Canvas, useCanvasRef } from "react-native-webgpu";
 import { useFrameOutput } from "react-native-vision-camera";
 
 const ref = useCanvasRef();
-// Build pipeline, sampler, uniform buffers once on main thread…
+// Build the device, pipeline, sampler and uniform buffers once on the JS thread…
 
 const frameOutput = useFrameOutput({
   pixelFormat: "native",
@@ -87,13 +87,15 @@ const frameOutput = useFrameOutput({
 
 ## 3. Per-frame import and render
 
-Each frame is a new external texture.
+Each frame is a new external texture. The frame-output worklet runs on its own runtime, so start it with [`installWebGPU()`](/api/install-webgpu): it installs `RNWebGPU` (needed below) and the other WebGPU globals there. The device, context and pipeline come from the JS thread, as described in [Threading](/docs/getting-started/threading).
 
 ```tsx twoslash
 import type { RNCanvasContext } from "react-native-webgpu";
 import type { Frame } from "react-native-vision-camera";
 declare const encoder: GPUCommandEncoder;
 // ---cut---
+import { installWebGPU } from "react-native-webgpu";
+
 function renderCameraFrame(
   frame: Frame,
   device: GPUDevice,
@@ -101,6 +103,7 @@ function renderCameraFrame(
   pipeline: GPURenderPipeline,
 ) {
   "worklet";
+  installWebGPU();
 
   const nativeBuffer = frame.getNativeBuffer();
   try {
@@ -175,4 +178,5 @@ Also flip UVs on Android if the buffer origin differs from iOS (`cameraCoord` he
 - [Frame.getNativeBuffer() examples](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#examples) - Skia and **WebGPU** import snippets
 - [NativeBuffer](https://visioncamera.margelo.com/api/react-native-vision-camera/interfaces/NativeBuffer) - shared contract for zero-copy GPU buffers
 - [Native Extensions](/api/gpu-device-extensions) - `importExternalTexture` lifecycle on React Native
+- [Threading](/docs/getting-started/threading) - what runs where, and how objects cross into the frame worklet
 - [Worklets](/docs/integrations/worklets) - worklet runtimes and `installWebGPU()`

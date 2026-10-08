@@ -9,10 +9,12 @@ import { redFragWGSL, triangleVertWGSL } from "../Triangle/triangle";
 
 // A triangle demo that creates its adapter/device AND performs an async GPU
 // readback (buffer.mapAsync) every frame, all on the runtime this worklet runs
-// on. With the ProcessEvents async model the device must be created and used on
-// the same runtime, so requestAdapter/requestDevice happen here in the worklet
-// (the GPU object is passed in). The point: with the JS thread busy, the readback
-// keeps resolving on this runtime's own thread and the triangle keeps animating.
+// on. Creating the device here is a deliberate stress test of the worklet
+// async path, not the recommended pattern (create the device on the JS thread
+// and hand it to the worklet; see the Threading docs page). Promises settle on
+// the runtime that called the async method, whichever runtime created the
+// device. The point: with the JS thread busy, the readback keeps resolving on
+// this runtime's own thread and the triangle keeps animating.
 //
 // GPUBufferUsage / GPUMapMode are imported from react-native-webgpu: the bare
 // globals are only installed on the main JS runtime, but importing them lets the
