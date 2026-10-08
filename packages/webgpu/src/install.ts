@@ -54,7 +54,7 @@ export const provideGPUForInstall = (gpu: GPU) => {
  * const work = () => {
  *   "worklet";
  *   installWebGPU();
- *   globalThis.navigator.gpu.requestAdapter().then((adapter) => {
+ *   navigator.gpu.requestAdapter().then((adapter) => {
  *     // ...
  *   });
  * };
@@ -62,12 +62,11 @@ export const provideGPUForInstall = (gpu: GPU) => {
  *
  * Known limitations:
  *
- * - Read `navigator` through `globalThis.navigator`: the Worklets Babel
- *   plugin does not treat a bare `navigator` as a known global, so it would
- *   capture the main runtime's `navigator` object by closure instead of
- *   reading the one this function installed. Fixed upstream in
- *   react-native-reanimated#10364; the prefix becomes unnecessary on
- *   react-native-worklets versions that include it.
+ * - On react-native-worklets < 0.13.0, read `navigator` through
+ *   `globalThis.navigator`: older versions of the Worklets Babel plugin do
+ *   not treat a bare `navigator` as a known global, so they capture the main
+ *   runtime's `navigator` object by closure instead of reading the one this
+ *   function installed.
  * - Spontaneous events are main-runtime only: on a device created on a
  *   worklet runtime, `device.lost` never settles (unless the device is
  *   already lost when read) and `uncapturederror` listeners never fire.
