@@ -19,22 +19,24 @@ const constants = {
   GPUMapMode,
 };
 
-// The GPU instance destined for `navigator.gpu` on other runtimes, wrapped in
-// a holder object. It cannot be read at module evaluation: this module can be
-// evaluated before the native install has populated `RNWebGPU.gpu`, so
-// `main/index.tsx` fills the holder right after installing. The holder itself
-// is captured into the `installWebGPU` worklet closure; when a worklet is
-// serialized (always after startup, so after the holder is filled), the
-// Worklets custom serializer boxes the GPU object inside it, and unboxing on
-// the target runtime installs the GPU prototype there.
-const holder: { gpu?: GPU } = {};
+// The native objects destined for other runtimes (`RNWebGPU` and its `gpu`,
+// which becomes `navigator.gpu`), wrapped in a holder object. They cannot be
+// read at module evaluation: this module can be evaluated before the native
+// install has populated the `RNWebGPU` global, so `main/index.tsx` fills the
+// holder right after installing. The holder itself is captured into the
+// `installWebGPU` worklet closure; when a worklet is serialized (always after
+// startup, so after the holder is filled), the Worklets custom serializer boxes
+// the two native objects inside it, and unboxing on the target runtime installs
+// their prototypes there.
+const holder: { gpu?: GPU; rnwebgpu?: typeof RNWebGPU } = {};
 
 /**
  * @internal Called once by `main/index.tsx` after the native install, so
- * `installWebGPU()` can put `navigator.gpu` on other runtimes.
+ * `installWebGPU()` can put `navigator.gpu` and `RNWebGPU` on other runtimes.
  */
-export const provideGPUForInstall = (gpu: GPU) => {
-  holder.gpu = gpu;
+export const provideGPUForInstall = (rnwebgpu: typeof RNWebGPU) => {
+  holder.rnwebgpu = rnwebgpu;
+  holder.gpu = rnwebgpu.gpu;
 };
 
 /**
@@ -42,9 +44,9 @@ export const provideGPUForInstall = (gpu: GPU) => {
  *
  * The native module sets up WebGPU on the main JS runtime, but worklet
  * runtimes (Reanimated UI, dedicated worklet runtimes, Vision Camera frame
- * processors) start without it: `navigator.gpu` and the flag constants
- * (`GPUBufferUsage`, `GPUTextureUsage`, `GPUShaderStage`, `GPUColorWrite`,
- * `GPUMapMode`) are all `undefined` there.
+ * processors) start without it: `navigator.gpu`, the `RNWebGPU` global and
+ * the flag constants (`GPUBufferUsage`, `GPUTextureUsage`, `GPUShaderStage`,
+ * `GPUColorWrite`, `GPUMapMode`) are all `undefined` there.
  *
  * Call `installWebGPU()` once at the top of a worklet to make them available:
  *
@@ -73,12 +75,12 @@ export const provideGPUForInstall = (gpu: GPU) => {
  *   Observe those on a device created on the main JS thread.
  *
  * Everything is captured into the worklet by closure: the constants like a
- * shader string would be, and the GPU object through the Worklets custom
- * serializer, which installs the native prototypes on the target runtime when
- * it crosses. Promises returned by `requestAdapter`/`requestDevice` settle on
- * the calling runtime (each runtime gets its own async pump). Calling it on a
- * runtime that already has the globals (e.g. the main JS runtime) is a safe
- * no-op.
+ * shader string would be, and the `RNWebGPU` and GPU objects through the
+ * Worklets custom serializer, which installs the native prototypes on the
+ * target runtime when they cross. Promises returned by
+ * `requestAdapter`/`requestDevice` settle on the calling runtime (each runtime
+ * gets its own async pump). Calling it on a runtime that already has the
+ * globals (e.g. the main JS runtime) is a safe no-op.
  */
 export const installWebGPU = () => {
   "worklet";
@@ -88,7 +90,10 @@ export const installWebGPU = () => {
       g[key] = value;
     }
   }
-  const { gpu } = holder;
+  const { gpu, rnwebgpu } = holder;
+  if (rnwebgpu !== undefined && g.RNWebGPU === undefined) {
+    g.RNWebGPU = rnwebgpu;
+  }
   if (gpu !== undefined) {
     const nav = g.navigator as { gpu?: GPU; userAgent?: string } | undefined;
     if (nav === undefined) {

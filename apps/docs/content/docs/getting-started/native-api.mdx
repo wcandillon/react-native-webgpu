@@ -10,51 +10,13 @@ The most substantial differences live on the [Canvas](/docs/getting-started/canv
 
 ## Threading model
 
-react-native-webgpu can drive WebGPU from more than one JavaScript runtime: the main JS runtime, the UI thread, and dedicated worklet runtimes (createWorkletRuntime / runOnRuntime, or a Vision Camera frame processor). Running off the JS thread is powered by [React Native Worklets](https://github.com/margelo/react-native-worklets); Reanimated is not required.
-This module also works well with [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/) and lets you run complex Three.js scenes on the UI thread or dedicated worklet threads.
+Your WebGPU code runs on the JS thread by default. With [React Native Worklets](https://github.com/margelo/react-native-worklets) the same code can run on the UI runtime or on a dedicated worklet runtime instead; Reanimated is not required. The API is identical on every runtime, so you write the frame once and choose where it runs.
 
-You can run WebGPU code on the main thread, on the [Worklets](/docs/integrations/worklets) UI thread, or on a dedicated worklet thread. The API is symmetric across all threads, so you can run your rendering loop wherever you want.
+The recommended pattern is to mount the `Canvas`, get its context and create the device on the JS thread, then hand them to a worklet that encodes, submits and presents. [Threading](/docs/getting-started/threading) covers the rules, a complete worklet render loop, thread safety, and which runtime to pick.
 
 <Callout type="warn" title="device.lost and uncapturederror">
-`device.lost` and `uncapturederror` are only delivered on the **main JS runtime**. This is usually fine because the GPU device is typically created on the main JS thread and then sent to the UI or a dedicated worklet thread. If you create the device outside the main JS thread, those events won't fire.
+`device.lost` and `uncapturederror` are only delivered for devices created on the JS thread. Create the device there and pass it to the worklet; a device created on a worklet runtime never reports these events.
 </Callout>
-
-See [Worklets](/docs/integrations/worklets) for the full UI-thread integration guide.
-In a Worklet, call `installWebGPU()` to install the WebGPU API on that thread.
-
-### Implicit device synchronization
-
-Dawn's native API is not thread-safe on its own. To make the "create the device on the JS thread, render from a worklet" pattern safe, `requestDevice()` enables Dawn's [`implicit-device-synchronization`](https://dawn.googlesource.com/dawn/+/refs/heads/main/docs/dawn/features/implicit_device_synchronization.md) feature by default. It guards the device and its child objects (buffers, textures, queue, pipelines) with a per-device mutex, so one device can be used from several runtimes.
-
-This is coarse-grained locking, not a license for arbitrary concurrency. Command encoding is excluded from the synchronization, so never share a `GPUCommandEncoder` across threads, and keep a given canvas context on a single runtime.
-The feature is reported in `device.features`, and it can be disabled per device with the non-standard `implicitDeviceSynchronization` descriptor flag when the device is only ever used from one thread:
-
-```tsx twoslash
-import type { RNCanvasContext } from "react-native-webgpu";
-declare const adapter: GPUAdapter;
-// ---cut---
-// Single-thread only: never hand this device to a worklet runtime.
-const device = await adapter.requestDevice({
-  implicitDeviceSynchronization: false,
-});
-```
-
-See [Native Extensions](/api/gpu-device-extensions#implicitdevicesynchronization) for details.
-
-```tsx
-import { installWebGPU } from "react-native-webgpu";
-
-const renderFrame = (device: GPUDevice, context: GPUCanvasContext) => {
-  "worklet";
-  installWebGPU();
-  // GPUBufferUsage, GPUTextureUsage, etc. are now available on this thread
-  const buffer = device.createBuffer({
-    size,
-    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-  });
-  // ... render and present on this thread ...
-};
-```
 
 ## Loading images
 
@@ -124,5 +86,5 @@ This is only sound when the exporting library links the exact same Dawn build as
 
 - [Canvas](/docs/getting-started/canvas) - the rendering surface and frame loop
 - [React APIs](/docs/getting-started/react-api) - hooks and the device provider
-- [Worklets](/docs/integrations/worklets) - UI-thread rendering
+- [Threading](/docs/getting-started/threading) - running WebGPU off the JS thread
 - [Native Extensions](/api/gpu-device-extensions) - native interop on `GPUDevice`
