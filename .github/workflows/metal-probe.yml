@@ -1,0 +1,49 @@
+# Experiment: does a GitHub-hosted macOS runner expose a usable Metal device,
+# on the host and inside the iOS simulator? That is the one thing the iOS e2e
+# job needs that a self-hosted Mac was assumed to be required for.
+name: Metal probe
+on:
+  push:
+    branches:
+      - claude/trusting-dirac-20bbq7
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Runner info
+        run: |
+          sw_vers
+          uname -m
+          sysctl -n hw.model machdep.cpu.brand_string hw.ncpu hw.memsize || true
+          xcodebuild -version
+          system_profiler SPDisplaysDataType
+
+      - name: Metal on the host
+        run: swift .github/runner/metal-probe.swift
+
+      - name: Boot an iOS simulator
+        run: |
+          RUNTIME=$(xcrun simctl list runtimes available --json | jq -r '
+            .runtimes | map(select(.platform == "iOS")) | sort_by(.version) | last | .identifier')
+          DEVICE_TYPE=$(xcrun simctl list devicetypes --json | jq -r '
+            .devicetypes | map(select(.productFamily == "iPhone")) | last | .identifier')
+          echo "runtime=$RUNTIME device=$DEVICE_TYPE"
+          UDID=$(xcrun simctl create metal-probe "$DEVICE_TYPE" "$RUNTIME")
+          echo "UDID=$UDID" >> $GITHUB_ENV
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+
+      - name: Metal in the iOS simulator
+        run: |
+          SDK=$(xcrun -sdk iphonesimulator --show-sdk-path)
+          SDK_VERSION=$(xcrun -sdk iphonesimulator --show-sdk-version)
+          xcrun -sdk iphonesimulator swiftc \
+            -target "arm64-apple-ios${SDK_VERSION}-simulator" -sdk "$SDK" \
+            .github/runner/metal-probe.swift -o "$RUNNER_TEMP/metal-probe-sim"
+          xcrun simctl spawn "$UDID" "$RUNNER_TEMP/metal-probe-sim"
