@@ -110,7 +110,7 @@
     "yargs": "^17.7.2"
   },
   "dependencies": {
-    "react-native-webgpu-dawn": "154.2.0"
+    "react-native-webgpu-dawn": "154.3.0"
   },
   "peerDependencies": {
     "react": "*",
