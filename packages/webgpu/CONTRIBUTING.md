@@ -24,7 +24,7 @@ The Expo config plugin lives in `plugin/src` and is compiled to `plugin/build` b
 
 ## Upgrading Dawn
 
-Dawn ships in the `react-native-webgpu-dawn` npm package, which react-native-skia builds and publishes together with its own Skia Graphite binaries (the **Build and publish binaries** workflow of [wcandillon/react-native-skia](https://github.com/wcandillon/react-native-skia), see its `packages/skia/CONTRIBUTING.md`). It is built from the Dawn commit the Skia release pins in its DEPS, with the patches that release needs, so the two libraries always link the same Dawn. The package records that commit in its `package.json` (`dawn.commit`) and its version follows the Skia one (`154.2.0` for Skia `m154_8037_58b`).
+Dawn ships in the `react-native-webgpu-dawn` npm package, which react-native-skia builds and publishes together with its own Skia Graphite binaries (the **Build and publish binaries** workflow of [wcandillon/react-native-skia](https://github.com/wcandillon/react-native-skia), see its `packages/skia/CONTRIBUTING.md`). It is built from the Dawn commit the Skia release pins in its DEPS, with the patches that release needs, so the two libraries always link the same Dawn. The package records that commit in its `package.json` (`dawn.commit`) and its version follows the Skia one (`154.3.0` for Skia `m154_8037_58c`).
 
 `packages/webgpu/package.json` pins it exactly (`dependencies`), and keeps the `dawn` label (`chrome-m154a`) that react-native-skia 3.0.x compares against its own Dawn at `pod install` time; it goes away once react-native-skia depends on the package too.
 
