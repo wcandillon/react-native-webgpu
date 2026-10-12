@@ -236,6 +236,17 @@ public:
       defineProperty.call(runtime, prototype, toStringTag, descriptor);
     }
 
+    // Worklets serializer marker; toStringTag alone also matches Skia objects.
+    auto box = jsi::Function::createFromHostFunction(
+        runtime, jsi::PropNameID::forUtf8(runtime, "__webgpuBox"), 0,
+        [](jsi::Runtime &rt, const jsi::Value &thisVal,
+           const jsi::Value * /*args*/, size_t /*count*/) -> jsi::Value {
+          return jsi::Object::createFromHostObject(
+              rt, std::make_shared<BoxedWebGPUObject>(
+                      Derived::fromValue(rt, thisVal), Derived::CLASS_NAME));
+        });
+    prototype.setProperty(runtime, "__webgpuBox", box);
+
     // Install a generic toJSON so JSON.stringify works: data properties live
     // as getters on this shared prototype, and JSON.stringify only serializes
     // own enumerable properties (so it would otherwise produce {}).

@@ -1,8 +1,6 @@
-// Declare global WebGPU worklet helper functions (installed by native module)
-declare function __webgpuIsWebGPUObject(obj: unknown): boolean;
-declare function __webgpuBox(obj: object): {
-  unbox: () => object;
-  __boxedWebGPU: true;
+// Installed on every WebGPU prototype by the native module
+type WebGPUObject = {
+  __webgpuBox: () => { unbox: () => object; __boxedWebGPU: true };
 };
 
 let isRegistered = false;
@@ -24,13 +22,15 @@ export const registerWebGPUForReanimated = () => {
 
     registerCustomSerializable({
       name: "WebGPU",
-      determine: (value: object): value is object => {
+      determine: (value: object): value is WebGPUObject => {
         "worklet";
-        return __webgpuIsWebGPUObject(value);
+        return (
+          typeof (value as Partial<WebGPUObject>).__webgpuBox === "function"
+        );
       },
-      pack: (value: object) => {
+      pack: (value: WebGPUObject) => {
         "worklet";
-        return __webgpuBox(value);
+        return value.__webgpuBox();
       },
       unpack: (boxed: { unbox: () => object }) => {
         "worklet";

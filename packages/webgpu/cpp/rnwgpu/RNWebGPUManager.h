@@ -29,7 +29,7 @@ public:
 
   /**
    * Install global helper functions for Worklets serialization.
-   * This installs __webgpuIsWebGPUObject and __webgpuBox on the global object.
+   * This installs __webgpuBox on the global object.
    * Can be called on any runtime (main JS, UI, or custom worklet runtimes).
    */
   static void installWebGPUWorkletHelpers(jsi::Runtime &runtime);
