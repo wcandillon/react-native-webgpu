@@ -36,6 +36,10 @@ std::string sharedFenceTypeToString(wgpu::SharedFenceType type) {
 
 jsi::Value GPUSharedFence::exportInfo(jsi::Runtime &runtime, const jsi::Value &,
                                       const jsi::Value *, size_t) {
+  if (!_instance) {
+    throw jsi::JSError(runtime,
+                       "GPUSharedFence::export(): the fence was destroyed");
+  }
   wgpu::SharedFenceExportInfo info{};
   uint64_t handle = 0;
 

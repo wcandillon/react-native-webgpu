@@ -10,6 +10,10 @@ namespace rnwgpu {
 
 std::shared_ptr<GPUTexture> GPUSharedTextureMemory::createTexture(
     std::optional<std::shared_ptr<GPUTextureDescriptor>> descriptor) {
+  if (!_instance) {
+    throw std::runtime_error(
+        "GPUSharedTextureMemory::createTexture(): the memory was destroyed");
+  }
   if (!descriptor.has_value() || descriptor.value() == nullptr) {
     auto texture = _instance.CreateTexture();
     return std::make_shared<GPUTexture>(texture, "");
@@ -34,6 +38,10 @@ void GPUSharedTextureMemory::beginAccess(
     throw std::runtime_error(
         "GPUSharedTextureMemory::beginAccess(): texture is null");
   }
+  if (!_instance) {
+    throw std::runtime_error(
+        "GPUSharedTextureMemory::beginAccess(): the memory was destroyed");
+  }
   wgpu::SharedTextureMemoryBeginAccessDescriptor desc{};
   desc.initialized = initialized;
   desc.concurrentRead = false;
@@ -45,7 +53,12 @@ void GPUSharedTextureMemory::beginAccess(
   if (fences.has_value()) {
     for (const auto &state : *fences) {
       if (state && state->fence) {
-        rawFences.push_back(state->fence->get());
+        auto fence = state->fence->get();
+        if (!fence) {
+          throw std::runtime_error(
+              "GPUSharedTextureMemory::beginAccess(): a fence was destroyed");
+        }
+        rawFences.push_back(std::move(fence));
         values.push_back(state->signaledValue);
       }
     }
@@ -87,6 +100,11 @@ jsi::Value GPUSharedTextureMemory::endAccess(jsi::Runtime &runtime,
   if (count < 1 || !args[0].isObject()) {
     throw jsi::JSError(
         runtime, "GPUSharedTextureMemory::endAccess(): expected (texture)");
+  }
+  if (!_instance) {
+    throw jsi::JSError(
+        runtime,
+        "GPUSharedTextureMemory::endAccess(): the memory was destroyed");
   }
   auto texture = GPUTexture::fromValue(runtime, args[0]);
 

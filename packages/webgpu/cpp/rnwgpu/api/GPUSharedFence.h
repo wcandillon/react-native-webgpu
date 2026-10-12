@@ -33,12 +33,21 @@ public:
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
     _label = label;
-    _instance.SetLabel(_label.c_str());
+    if (_instance) {
+      _instance.SetLabel(_label.c_str());
+    }
   }
+
+  // Non-spec RN extension: releases the fence now (closing its sync fd on
+  // Android) rather than when the JS object is garbage collected, which a
+  // runtime making fences every frame may not do for a while. Dawn keeps its
+  // own reference as long as it needs the fence (a beginAccess wait).
+  void destroy() { _instance = nullptr; }
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "__brand", &GPUSharedFence::getBrand);
     installMethod(runtime, prototype, "export", &GPUSharedFence::exportInfo);
+    installMethod(runtime, prototype, "destroy", &GPUSharedFence::destroy);
     installGetterSetter(runtime, prototype, "label", &GPUSharedFence::getLabel,
                         &GPUSharedFence::setLabel);
   }

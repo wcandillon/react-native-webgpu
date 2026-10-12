@@ -48,8 +48,16 @@ public:
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
     _label = label;
-    _instance.SetLabel(_label.c_str());
+    if (_instance) {
+      _instance.SetLabel(_label.c_str());
+    }
   }
+
+  // Non-spec RN extension: releases the memory now (the imported native
+  // buffer and Dawn's import of it) rather than when the JS object is
+  // garbage collected. The textures created from it should be destroyed
+  // first: they keep what they use until then.
+  void destroy() { _instance = nullptr; }
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "__brand",
@@ -60,6 +68,8 @@ public:
                   &GPUSharedTextureMemory::beginAccess);
     installMethod(runtime, prototype, "endAccess",
                   &GPUSharedTextureMemory::endAccess);
+    installMethod(runtime, prototype, "destroy",
+                  &GPUSharedTextureMemory::destroy);
     installGetterSetter(runtime, prototype, "label",
                         &GPUSharedTextureMemory::getLabel,
                         &GPUSharedTextureMemory::setLabel);
