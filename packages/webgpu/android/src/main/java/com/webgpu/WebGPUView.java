@@ -27,6 +27,14 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   WebGPUView(Context context) {
     super(context);
+    // ReactViewGroup disables clipChildren (RN overflow is handled with canvas
+    // clipping instead). Android copies the parent's clipChildren into each
+    // child's RenderNode.clipToBounds, and HWUI treats a damaged node without
+    // it as unbounded damage (RenderNode::damageSelf). The TextureView and
+    // HardwareBufferView children invalidate on every frame, so without this
+    // every non-opaque canvas frame repaints the whole window. Our only child
+    // exactly fills this view, so clipping it changes nothing visually.
+    setClipChildren(true);
   }
 
   public void setContextId(int contextId) {
