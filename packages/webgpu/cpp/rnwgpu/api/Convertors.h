@@ -10,6 +10,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "EnforceRange.h"
 #include "GPUBindGroupDescriptor.h"
 #include "GPUBindGroupEntry.h"
 #include "GPUBindGroupLayoutDescriptor.h"
@@ -161,11 +162,19 @@ public:
     return true;
   }
 
+  // JS numbers destined for an integer field are WebIDL [EnforceRange]
+  // integers in WebGPU, so an out-of-range value is a TypeError rather than a
+  // silent wrap (and an undefined cast). Flags are enums here and keep the
+  // plain cast, as GPUFlagsConstant is not [EnforceRange].
   template <typename T>
   [[nodiscard]] typename std::enable_if<
       (std::is_arithmetic<T>::value || std::is_enum<T>::value), bool>::type
   Convert(T &out, const double &in) {
-    out = static_cast<T>(in);
+    if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
+      out = enforceRange<T>(in);
+    } else {
+      out = static_cast<T>(in);
+    }
     return true;
   }
 
