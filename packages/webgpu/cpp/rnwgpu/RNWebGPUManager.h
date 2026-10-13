@@ -28,9 +28,10 @@ public:
   ~RNWebGPUManager();
 
   /**
-   * Install global helper functions for Worklets serialization.
-   * This installs __webgpuBox on the global object.
-   * Can be called on any runtime (main JS, UI, or custom worklet runtimes).
+   * Installs globalThis.__webgpuWorkletHelpers, the HostObject the worklet
+   * serializer (registerWebGPUForReanimated) captures to detect and box
+   * WebGPU objects. Only needed on the main runtime: the serializer worklets
+   * carry it to every other runtime by reference. See WebGPUWorkletHelpers.
    */
   static void installWebGPUWorkletHelpers(jsi::Runtime &runtime);
 

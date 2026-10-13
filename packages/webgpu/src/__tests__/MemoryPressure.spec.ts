@@ -47,8 +47,8 @@ describe("Native object memory pressure", () => {
       { sameObject: boolean; delta: number } | null
     >(({ device }) => {
       const hermes = (globalThis as any).HermesInternal;
-      const box = (globalThis as any).__webgpuBox;
-      if (!hermes?.getInstrumentedStats || typeof box !== "function") {
+      const helpers = (globalThis as any).__webgpuWorkletHelpers;
+      if (!hermes?.getInstrumentedStats || !helpers) {
         return null;
       }
       const externalBytes = (): number =>
@@ -57,10 +57,10 @@ describe("Native object memory pressure", () => {
         size: 1024 * 1024,
         usage: GPUBufferUsage.VERTEX,
       });
-      // __webgpuBox()/unbox() is how worklets move an object to another
-      // runtime. Unboxing on the runtime that already has a wrapper must
-      // resolve to that wrapper, and charge nothing more.
-      const boxed = box(buffer);
+      // box()/unbox() is how worklets move an object to another runtime.
+      // Unboxing on the runtime that already has a wrapper must resolve to
+      // that wrapper, and charge nothing more.
+      const boxed = helpers.box(buffer);
       const before = externalBytes();
       let sameObject = true;
       for (let i = 0; i < 100; i++) {

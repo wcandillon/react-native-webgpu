@@ -16,6 +16,7 @@ import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
 import type { AssetProps } from "./components/useAssets";
 import { Texture } from "./components/Texture";
 import { workletDeviceStress } from "./components/workletDeviceStress";
+import { workletSerialization } from "./components/workletSerialization";
 
 export const CI = process.env.CI === "true";
 
@@ -121,6 +122,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                   pixelRatio: PixelRatio.get(),
                 },
                 workletDeviceStress,
+                workletSerialization,
                 mat4,
                 vec3,
                 mat3,

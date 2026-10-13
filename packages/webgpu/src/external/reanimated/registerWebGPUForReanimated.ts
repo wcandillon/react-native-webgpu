@@ -1,7 +1,25 @@
-// Installed on every WebGPU prototype by the native module
-type WebGPUObject = {
-  __webgpuBox: () => { unbox: () => object; __boxedWebGPU: true };
-};
+// The native half of the serializer (WebGPUWorkletHelpers in
+// cpp/jsi/NativeObject.h), installed on the main runtime by the native module.
+// determine/pack capture it by closure, and worklets hands a HostObject to
+// every runtime by reference, so the serializer works wherever a WebGPU object
+// is captured (Reanimated UI runtime, createWorkletRuntime, Vision Camera frame
+// processors) without installing anything on those runtimes.
+interface WebGPUWorkletHelpers {
+  // True only for WebGPU objects (their NativeState is a WebGPU class). Other
+  // native-state objects, such as Skia's, and objects merely inheriting from a
+  // WebGPU prototype are rejected, and no JS property is ever read.
+  isNativeObject: (value: unknown) => boolean;
+  box: (value: object) => BoxedWebGPUObject;
+}
+
+interface BoxedWebGPUObject {
+  unbox: () => object;
+  __boxedWebGPU: true;
+}
+
+declare global {
+  var __webgpuWorkletHelpers: WebGPUWorkletHelpers | undefined;
+}
 
 let isRegistered = false;
 
@@ -17,22 +35,26 @@ export const registerWebGPUForReanimated = () => {
   }
   isRegistered = true;
 
+  const helpers = globalThis.__webgpuWorkletHelpers;
+  if (helpers === undefined) {
+    // The native module is not installed (web, node): nothing to serialize.
+    return;
+  }
+
   try {
     const { registerCustomSerializable } = require("react-native-worklets");
 
     registerCustomSerializable({
       name: "WebGPU",
-      determine: (value: object): value is WebGPUObject => {
+      determine: (value: object): value is object => {
         "worklet";
-        return (
-          typeof (value as Partial<WebGPUObject>).__webgpuBox === "function"
-        );
+        return helpers.isNativeObject(value);
       },
-      pack: (value: WebGPUObject) => {
+      pack: (value: object) => {
         "worklet";
-        return value.__webgpuBox();
+        return helpers.box(value);
       },
-      unpack: (boxed: { unbox: () => object }) => {
+      unpack: (boxed: BoxedWebGPUObject) => {
         "worklet";
         return boxed.unbox();
       },
