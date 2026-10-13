@@ -13,6 +13,7 @@
 
 #include "WGPULogger.h"
 
+#include "EnforceRange.h"
 #include "EnumMapper.h"
 #include "Promise.h"
 
@@ -49,7 +50,7 @@ private:
 // int <> number
 template <> struct JSIConverter<int> {
   static int fromJSI(jsi::Runtime&, const jsi::Value& arg, bool outOfBound) {
-    return static_cast<int>(arg.asNumber());
+    return enforceRange<int>(arg.asNumber());
   }
   static jsi::Value toJSI(jsi::Runtime&, int arg) {
     return jsi::Value(arg);
@@ -89,8 +90,7 @@ template <typename T>
 struct JSIConverter<T, std::enable_if_t<!std::is_same_v<T, uint64_t> && std::is_same_v<T, size_t>>> {
   static size_t fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
       if (arg.isNumber()) {
-          double value = arg.asNumber();
-          return static_cast<size_t>(value);
+          return enforceRange<size_t>(arg.asNumber());
       } else {
           return arg.asBigInt(runtime).asInt64(runtime);
       }
@@ -103,9 +103,8 @@ struct JSIConverter<T, std::enable_if_t<!std::is_same_v<T, uint64_t> && std::is_
 
 // uint32_t <> double
 template <> struct JSIConverter<uint32_t> {
-  static double fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
-      double value = arg.asNumber();
-      return static_cast<uint32_t>(value);
+  static uint32_t fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
+      return enforceRange<uint32_t>(arg.asNumber());
   }
   static jsi::Value toJSI(jsi::Runtime& runtime, uint32_t arg) {
       return jsi::Value(static_cast<double>(arg));
@@ -116,11 +115,7 @@ template <> struct JSIConverter<uint32_t> {
 template <> struct JSIConverter<uint64_t> {
   static uint64_t fromJSI(jsi::Runtime& runtime, const jsi::Value& arg, bool outOfBound) {
     if (arg.isNumber()) {
-      double value = arg.asNumber();
-      if (value < 0 || value > MAX_SAFE_INTEGER) {
-        throw jsi::JSError(runtime, "Number out of range for uint64_t");
-      }
-      return static_cast<uint64_t>(value);
+      return enforceRange<uint64_t>(arg.asNumber());
     } else {
       return arg.asBigInt(runtime).getUint64(runtime);
     }

@@ -104,6 +104,6 @@ describe("WebGPUConstants", () => {
         return [false, false, false, false];
       });
     });
-    expect(result).toEqual([false, true, false, false]);
+    expect(result).toEqual([true, true, false, false]);
   });
 });
