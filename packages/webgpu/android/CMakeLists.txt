@@ -54,6 +54,7 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/rnwgpu/api/GPUComputePipeline.cpp
     ../cpp/rnwgpu/api/GPUCanvasContext.cpp
     ../cpp/rnwgpu/RNWebGPUManager.cpp
+    ../cpp/rnwgpu/WebGPURuntime.cpp
     ../cpp/jsi/Promise.cpp
     ../cpp/jsi/JSICache.cpp
     ../cpp/rnwgpu/async/RuntimeContext.cpp
