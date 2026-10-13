@@ -20,9 +20,6 @@ public:
                     std::function<void(ImageData)> onSuccess,
                     std::function<void(std::string)> onError) override;
 
-  wgpu::Surface makeSurface(wgpu::Instance instance, void *surface, int width,
-                            int height) override;
-
   ImageData createImageBitmap(std::string blobId, double offset,
                               double size) override;
 

@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "EnforceRange.h"
 #include "JSICache.h"
 #include "WGPULogger.h"
 
@@ -555,6 +556,24 @@ protected:
   // ============================================================
 
   /**
+   * Runs a host function body, turning a RangeTypeError (a JS number outside
+   * its WebIDL [EnforceRange] integer range, see EnforceRange.h) into a JS
+   * TypeError, as browsers throw for the same input. Everything else
+   * propagates unchanged.
+   */
+  template <typename Body>
+  static jsi::Value withWebIDLConversions(jsi::Runtime &runtime, Body &&body) {
+    try {
+      return body();
+    } catch (const RangeTypeError &error) {
+      auto typeError = runtime.global().getPropertyAsFunction(runtime, "TypeError");
+      throw jsi::JSError(runtime,
+                         typeError.callAsConstructor(
+                             runtime, jsi::String::createFromUtf8(runtime, error.what())));
+    }
+  }
+
+  /**
    * Install a method on the prototype.
    */
   template <typename ReturnType, typename... Args>
@@ -566,8 +585,10 @@ protected:
         [method](jsi::Runtime &rt, const jsi::Value &thisVal,
                  const jsi::Value *args, size_t count) -> jsi::Value {
           auto native = Derived::fromValue(rt, thisVal);
-          return callMethod(native.get(), method, rt, args,
-                            std::index_sequence_for<Args...>{}, count);
+          return withWebIDLConversions(rt, [&] {
+            return callMethod(native.get(), method, rt, args,
+                              std::index_sequence_for<Args...>{}, count);
+          });
         });
     prototype.setProperty(runtime, name, func);
   }
@@ -588,9 +609,11 @@ protected:
         [method](jsi::Runtime &rt, const jsi::Value &thisVal,
                  const jsi::Value *args, size_t count) -> jsi::Value {
           auto native = Derived::fromValue(rt, thisVal);
-          return callMethodWithRuntime(native.get(), method, rt, args,
-                                       std::index_sequence_for<Args...>{},
-                                       count);
+          return withWebIDLConversions(rt, [&] {
+            return callMethodWithRuntime(native.get(), method, rt, args,
+                                         std::index_sequence_for<Args...>{},
+                                         count);
+          });
         });
     prototype.setProperty(runtime, name, func);
   }
@@ -648,10 +671,12 @@ protected:
             throw jsi::JSError(rt, "Setter requires a value argument");
           }
           auto native = Derived::fromValue(rt, thisVal);
-          auto value =
-              rnwgpu::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
-          (native.get()->*setter)(std::move(value));
-          return jsi::Value::undefined();
+          return withWebIDLConversions(rt, [&] {
+            auto value =
+                rnwgpu::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
+            (native.get()->*setter)(std::move(value));
+            return jsi::Value::undefined();
+          });
         });
 
     // Use Object.defineProperty to create a proper setter
@@ -709,10 +734,12 @@ protected:
             throw jsi::JSError(rt, "Setter requires a value argument");
           }
           auto native = Derived::fromValue(rt, thisVal);
-          auto value =
-              rnwgpu::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
-          (native.get()->*setter)(std::move(value));
-          return jsi::Value::undefined();
+          return withWebIDLConversions(rt, [&] {
+            auto value =
+                rnwgpu::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
+            (native.get()->*setter)(std::move(value));
+            return jsi::Value::undefined();
+          });
         });
 
     auto objectCtor = runtime.global().getPropertyAsObject(runtime, "Object");

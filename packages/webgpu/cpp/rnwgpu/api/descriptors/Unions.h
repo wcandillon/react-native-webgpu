@@ -866,6 +866,10 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::TextureFormat::R16Sint;
   } else if (inUnion == "r16float") {
     *outEnum = wgpu::TextureFormat::R16Float;
+  } else if (inUnion == "r16unorm") {
+    *outEnum = wgpu::TextureFormat::R16Unorm;
+  } else if (inUnion == "r16snorm") {
+    *outEnum = wgpu::TextureFormat::R16Snorm;
   } else if (inUnion == "rg8unorm") {
     *outEnum = wgpu::TextureFormat::RG8Unorm;
   } else if (inUnion == "rg8snorm") {
@@ -886,6 +890,10 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::TextureFormat::RG16Sint;
   } else if (inUnion == "rg16float") {
     *outEnum = wgpu::TextureFormat::RG16Float;
+  } else if (inUnion == "rg16unorm") {
+    *outEnum = wgpu::TextureFormat::RG16Unorm;
+  } else if (inUnion == "rg16snorm") {
+    *outEnum = wgpu::TextureFormat::RG16Snorm;
   } else if (inUnion == "rgba8unorm") {
     *outEnum = wgpu::TextureFormat::RGBA8Unorm;
   } else if (inUnion == "rgba8unorm-srgb") {
@@ -920,6 +928,10 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::TextureFormat::RGBA16Sint;
   } else if (inUnion == "rgba16float") {
     *outEnum = wgpu::TextureFormat::RGBA16Float;
+  } else if (inUnion == "rgba16unorm") {
+    *outEnum = wgpu::TextureFormat::RGBA16Unorm;
+  } else if (inUnion == "rgba16snorm") {
+    *outEnum = wgpu::TextureFormat::RGBA16Snorm;
   } else if (inUnion == "rgba32uint") {
     *outEnum = wgpu::TextureFormat::RGBA32Uint;
   } else if (inUnion == "rgba32sint") {
@@ -1072,6 +1084,12 @@ inline void convertEnumToJSUnion(wgpu::TextureFormat inEnum,
   case wgpu::TextureFormat::R16Float:
     *outUnion = "r16float";
     break;
+  case wgpu::TextureFormat::R16Unorm:
+    *outUnion = "r16unorm";
+    break;
+  case wgpu::TextureFormat::R16Snorm:
+    *outUnion = "r16snorm";
+    break;
   case wgpu::TextureFormat::RG8Unorm:
     *outUnion = "rg8unorm";
     break;
@@ -1101,6 +1119,12 @@ inline void convertEnumToJSUnion(wgpu::TextureFormat inEnum,
     break;
   case wgpu::TextureFormat::RG16Float:
     *outUnion = "rg16float";
+    break;
+  case wgpu::TextureFormat::RG16Unorm:
+    *outUnion = "rg16unorm";
+    break;
+  case wgpu::TextureFormat::RG16Snorm:
+    *outUnion = "rg16snorm";
     break;
   case wgpu::TextureFormat::RGBA8Unorm:
     *outUnion = "rgba8unorm";
@@ -1152,6 +1176,12 @@ inline void convertEnumToJSUnion(wgpu::TextureFormat inEnum,
     break;
   case wgpu::TextureFormat::RGBA16Float:
     *outUnion = "rgba16float";
+    break;
+  case wgpu::TextureFormat::RGBA16Unorm:
+    *outUnion = "rgba16unorm";
+    break;
+  case wgpu::TextureFormat::RGBA16Snorm:
+    *outUnion = "rgba16snorm";
     break;
   case wgpu::TextureFormat::RGBA32Uint:
     *outUnion = "rgba32uint";
@@ -1431,38 +1461,56 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::VertexFormat::Uint8x2;
   } else if (inUnion == "uint8x4") {
     *outEnum = wgpu::VertexFormat::Uint8x4;
+  } else if (inUnion == "uint8") {
+    *outEnum = wgpu::VertexFormat::Uint8;
   } else if (inUnion == "sint8x2") {
     *outEnum = wgpu::VertexFormat::Sint8x2;
   } else if (inUnion == "sint8x4") {
     *outEnum = wgpu::VertexFormat::Sint8x4;
+  } else if (inUnion == "sint8") {
+    *outEnum = wgpu::VertexFormat::Sint8;
   } else if (inUnion == "unorm8x2") {
     *outEnum = wgpu::VertexFormat::Unorm8x2;
   } else if (inUnion == "unorm8x4") {
     *outEnum = wgpu::VertexFormat::Unorm8x4;
+  } else if (inUnion == "unorm8") {
+    *outEnum = wgpu::VertexFormat::Unorm8;
   } else if (inUnion == "snorm8x2") {
     *outEnum = wgpu::VertexFormat::Snorm8x2;
   } else if (inUnion == "snorm8x4") {
     *outEnum = wgpu::VertexFormat::Snorm8x4;
+  } else if (inUnion == "snorm8") {
+    *outEnum = wgpu::VertexFormat::Snorm8;
   } else if (inUnion == "uint16x2") {
     *outEnum = wgpu::VertexFormat::Uint16x2;
   } else if (inUnion == "uint16x4") {
     *outEnum = wgpu::VertexFormat::Uint16x4;
+  } else if (inUnion == "uint16") {
+    *outEnum = wgpu::VertexFormat::Uint16;
   } else if (inUnion == "sint16x2") {
     *outEnum = wgpu::VertexFormat::Sint16x2;
   } else if (inUnion == "sint16x4") {
     *outEnum = wgpu::VertexFormat::Sint16x4;
+  } else if (inUnion == "sint16") {
+    *outEnum = wgpu::VertexFormat::Sint16;
   } else if (inUnion == "unorm16x2") {
     *outEnum = wgpu::VertexFormat::Unorm16x2;
   } else if (inUnion == "unorm16x4") {
     *outEnum = wgpu::VertexFormat::Unorm16x4;
+  } else if (inUnion == "unorm16") {
+    *outEnum = wgpu::VertexFormat::Unorm16;
   } else if (inUnion == "snorm16x2") {
     *outEnum = wgpu::VertexFormat::Snorm16x2;
   } else if (inUnion == "snorm16x4") {
     *outEnum = wgpu::VertexFormat::Snorm16x4;
+  } else if (inUnion == "snorm16") {
+    *outEnum = wgpu::VertexFormat::Snorm16;
   } else if (inUnion == "float16x2") {
     *outEnum = wgpu::VertexFormat::Float16x2;
   } else if (inUnion == "float16x4") {
     *outEnum = wgpu::VertexFormat::Float16x4;
+  } else if (inUnion == "float16") {
+    *outEnum = wgpu::VertexFormat::Float16;
   } else if (inUnion == "float32") {
     *outEnum = wgpu::VertexFormat::Float32;
   } else if (inUnion == "float32x2") {
@@ -1487,6 +1535,8 @@ inline void convertJSUnionToEnum(const std::string &inUnion,
     *outEnum = wgpu::VertexFormat::Sint32x4;
   } else if (inUnion == "unorm10-10-10-2") {
     *outEnum = wgpu::VertexFormat::Unorm10_10_10_2;
+  } else if (inUnion == "unorm8x4-bgra") {
+    *outEnum = wgpu::VertexFormat::Unorm8x4BGRA;
   } else {
     throw invalidUnion(inUnion);
   }
@@ -1504,11 +1554,17 @@ inline void convertEnumToJSUnion(wgpu::VertexFormat inEnum,
   case wgpu::VertexFormat::Uint8x4:
     *outUnion = "uint8x4";
     break;
+  case wgpu::VertexFormat::Uint8:
+    *outUnion = "uint8";
+    break;
   case wgpu::VertexFormat::Sint8x2:
     *outUnion = "sint8x2";
     break;
   case wgpu::VertexFormat::Sint8x4:
     *outUnion = "sint8x4";
+    break;
+  case wgpu::VertexFormat::Sint8:
+    *outUnion = "sint8";
     break;
   case wgpu::VertexFormat::Unorm8x2:
     *outUnion = "unorm8x2";
@@ -1516,11 +1572,17 @@ inline void convertEnumToJSUnion(wgpu::VertexFormat inEnum,
   case wgpu::VertexFormat::Unorm8x4:
     *outUnion = "unorm8x4";
     break;
+  case wgpu::VertexFormat::Unorm8:
+    *outUnion = "unorm8";
+    break;
   case wgpu::VertexFormat::Snorm8x2:
     *outUnion = "snorm8x2";
     break;
   case wgpu::VertexFormat::Snorm8x4:
     *outUnion = "snorm8x4";
+    break;
+  case wgpu::VertexFormat::Snorm8:
+    *outUnion = "snorm8";
     break;
   case wgpu::VertexFormat::Uint16x2:
     *outUnion = "uint16x2";
@@ -1528,11 +1590,17 @@ inline void convertEnumToJSUnion(wgpu::VertexFormat inEnum,
   case wgpu::VertexFormat::Uint16x4:
     *outUnion = "uint16x4";
     break;
+  case wgpu::VertexFormat::Uint16:
+    *outUnion = "uint16";
+    break;
   case wgpu::VertexFormat::Sint16x2:
     *outUnion = "sint16x2";
     break;
   case wgpu::VertexFormat::Sint16x4:
     *outUnion = "sint16x4";
+    break;
+  case wgpu::VertexFormat::Sint16:
+    *outUnion = "sint16";
     break;
   case wgpu::VertexFormat::Unorm16x2:
     *outUnion = "unorm16x2";
@@ -1540,17 +1608,26 @@ inline void convertEnumToJSUnion(wgpu::VertexFormat inEnum,
   case wgpu::VertexFormat::Unorm16x4:
     *outUnion = "unorm16x4";
     break;
+  case wgpu::VertexFormat::Unorm16:
+    *outUnion = "unorm16";
+    break;
   case wgpu::VertexFormat::Snorm16x2:
     *outUnion = "snorm16x2";
     break;
   case wgpu::VertexFormat::Snorm16x4:
     *outUnion = "snorm16x4";
     break;
+  case wgpu::VertexFormat::Snorm16:
+    *outUnion = "snorm16";
+    break;
   case wgpu::VertexFormat::Float16x2:
     *outUnion = "float16x2";
     break;
   case wgpu::VertexFormat::Float16x4:
     *outUnion = "float16x4";
+    break;
+  case wgpu::VertexFormat::Float16:
+    *outUnion = "float16";
     break;
   case wgpu::VertexFormat::Float32:
     *outUnion = "float32";
@@ -1587,6 +1664,9 @@ inline void convertEnumToJSUnion(wgpu::VertexFormat inEnum,
     break;
   case wgpu::VertexFormat::Unorm10_10_10_2:
     *outUnion = "unorm10-10-10-2";
+    break;
+  case wgpu::VertexFormat::Unorm8x4BGRA:
+    *outUnion = "unorm8x4-bgra";
     break;
   default:
     throw invalidEnum(inEnum);
