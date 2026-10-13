@@ -101,6 +101,8 @@ public:
     case wgpu::TextureFormat::Stencil8:
       bytesPerPixel = 1;
       break;
+    case wgpu::TextureFormat::R16Unorm:
+    case wgpu::TextureFormat::R16Snorm:
     case wgpu::TextureFormat::R16Uint:
     case wgpu::TextureFormat::R16Sint:
     case wgpu::TextureFormat::R16Float:
@@ -122,6 +124,8 @@ public:
     case wgpu::TextureFormat::R32Float:
     case wgpu::TextureFormat::R32Uint:
     case wgpu::TextureFormat::R32Sint:
+    case wgpu::TextureFormat::RG16Unorm:
+    case wgpu::TextureFormat::RG16Snorm:
     case wgpu::TextureFormat::RG16Uint:
     case wgpu::TextureFormat::RG16Sint:
     case wgpu::TextureFormat::RG16Float:
@@ -133,6 +137,8 @@ public:
     case wgpu::TextureFormat::RG32Float:
     case wgpu::TextureFormat::RG32Uint:
     case wgpu::TextureFormat::RG32Sint:
+    case wgpu::TextureFormat::RGBA16Unorm:
+    case wgpu::TextureFormat::RGBA16Snorm:
     case wgpu::TextureFormat::RGBA16Uint:
     case wgpu::TextureFormat::RGBA16Sint:
     case wgpu::TextureFormat::RGBA16Float:
