@@ -30,31 +30,46 @@ memory.beginAccess(texture, /* initialized */ true);
 memory.endAccess(texture);
 
 texture.destroy();
+memory.destroy();
 frame.release();
 ```
 
 Use `beginAccess(texture, true)` when the producer has already written pixels (typical for video/camera).
 
+`memory.destroy()` releases the import right away rather than when the object is garbage collected, which can take a while on a runtime importing a frame per vsync. End the access and destroy the textures created from it first: using the memory afterwards is a validation error.
+
 ## importSharedFence
 
 Import native GPU sync fences for producer/consumer handoff:
 
-```tsx
-// Producer side: export a fence after GPU work
-const exported = sharedFence.export();
+```tsx twoslash
+import type {
+  GPUSharedFenceExportInfo,
+  GPUSharedTextureMemory,
+} from "react-native-webgpu";
+declare const device: GPUDevice;
+declare const memory: GPUSharedTextureMemory;
+declare const texture: GPUTexture;
+declare const ready: GPUSharedFenceExportInfo;
+// ---cut---
+// Wait for the producer's GPU work before using the texture
+const fence = device.importSharedFence({ ...ready, label: "frame-ready" });
+// 1n for a sync fd, the event value for an MTLSharedEvent
+memory.beginAccess(texture, true, [{ fence, signaledValue: 1n }]);
+// beginAccess() keeps its own reference: release the fence right away
+fence.destroy();
 
-// Consumer side: import on another device or queue
-const imported = device.importSharedFence({
-  handle: exported.handle,
-  label: "frame-ready",
-});
+// … render using texture …
 
-// Wait for producer before sampling imported texture
-imported.wait(0);
-// … render using imported texture …
-imported.signal(0);
-imported.destroy();
+// Each fence signals once that GPU work is done
+const { fences } = memory.endAccess(texture);
+for (const { fence: done } of fences) {
+  const { type, handle } = done.export(); // the handle is yours to close
+  done.destroy();
+}
 ```
+
+`destroy()` releases a fence right away (on Android, the sync fd Dawn holds) rather than when the object is garbage collected. An exported handle is a duplicate, so it stays valid.
 
 See `packages/webgpu/src/__tests__/SharedFence.spec.ts` for a full producer/consumer test.
 
