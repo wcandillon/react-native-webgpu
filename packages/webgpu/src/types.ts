@@ -205,8 +205,9 @@ export interface GPUSharedFence {
   readonly __brand: "GPUSharedFence";
   label: string;
   export(): GPUSharedFenceExportInfo;
-  // Non-standard: releases the fence now (closing its sync fd on Android)
-  // rather than when the object is garbage collected. It can't be used after.
+  // Releases the fence now (closing its sync fd on Android) rather than when
+  // the object is garbage collected. A later use is a validation error:
+  // export() then returns an empty type.
   destroy(): void;
 }
 
@@ -256,8 +257,9 @@ export interface GPUSharedTextureMemory {
   // Ends the access and returns the fences Dawn produced for it. Throws if the
   // access could not be ended.
   endAccess(texture: GPUTexture): GPUSharedTextureMemoryEndAccessState;
-  // Non-standard: releases the memory (the imported native buffer) now rather
-  // than when the object is garbage collected. Destroy the textures created
-  // from it first. It can't be used after.
+  // Releases the memory (the imported native buffer) now rather than when the
+  // object is garbage collected. End the access and destroy the textures
+  // created from it first. A later use is a validation error: createTexture()
+  // then returns an invalid texture.
   destroy(): void;
 }

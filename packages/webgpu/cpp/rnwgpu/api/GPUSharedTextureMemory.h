@@ -23,10 +23,11 @@ class GPUSharedTextureMemory : public NativeObject<GPUSharedTextureMemory> {
 public:
   static constexpr const char *CLASS_NAME = "GPUSharedTextureMemory";
 
-  explicit GPUSharedTextureMemory(wgpu::SharedTextureMemory instance,
+  explicit GPUSharedTextureMemory(wgpu::Device device,
+                                  wgpu::SharedTextureMemory instance,
                                   std::string label)
-      : NativeObject(CLASS_NAME), _instance(std::move(instance)),
-        _label(std::move(label)) {}
+      : NativeObject(CLASS_NAME), _device(std::move(device)),
+        _instance(std::move(instance)), _label(std::move(label)) {}
 
 public:
   std::string getBrand() { return CLASS_NAME; }
@@ -53,11 +54,11 @@ public:
     }
   }
 
-  // Non-spec RN extension: releases the memory now (the imported native
-  // buffer and Dawn's import of it) rather than when the JS object is
-  // garbage collected. The textures created from it should be destroyed
-  // first: they keep what they use until then.
-  void destroy() { _instance = nullptr; }
+  // Releases the memory now (the imported native buffer and Dawn's import of
+  // it) rather than when the JS object is garbage collected. End the access
+  // first, and destroy the textures created from it: they keep what they use
+  // until then.
+  void destroy();
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "__brand",
@@ -78,7 +79,16 @@ public:
   inline const wgpu::SharedTextureMemory get() { return _instance; }
 
 private:
+  // Reports a use of the destroyed memory the way Dawn reports an invalid
+  // object: a validation error, caught by error scopes or else delivered to
+  // the device's uncapturederror event.
+  void injectDestroyedError(const char *method);
+
+  wgpu::Device _device;
   wgpu::SharedTextureMemory _instance;
+  // Kept by destroy(): like Dawn, createTexture() describes the error texture
+  // it then returns with them.
+  wgpu::SharedTextureMemoryProperties _properties;
   std::string _label;
 };
 

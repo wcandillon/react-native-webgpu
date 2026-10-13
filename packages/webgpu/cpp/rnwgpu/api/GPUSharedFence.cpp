@@ -34,11 +34,24 @@ std::string sharedFenceTypeToString(wgpu::SharedFenceType type) {
 
 } // namespace
 
+void GPUSharedFence::injectDestroyedError(const char *method) {
+  auto object = _label.empty() ? std::string("GPUSharedFence")
+                               : "GPUSharedFence \"" + _label + "\"";
+  auto message = "Destroyed " + object + " used in " + method + "().";
+  _device.InjectError(wgpu::ErrorType::Validation, message.c_str());
+}
+
 jsi::Value GPUSharedFence::exportInfo(jsi::Runtime &runtime, const jsi::Value &,
                                       const jsi::Value *, size_t) {
   if (!_instance) {
-    throw jsi::JSError(runtime,
-                       "GPUSharedFence::export(): the fence was destroyed");
+    // Like a fence Dawn can't export: the validation error says why, and the
+    // result has no type and no handle.
+    injectDestroyedError("export");
+    jsi::Object result(runtime);
+    result.setProperty(runtime, "type",
+                       jsi::String::createFromUtf8(runtime, ""));
+    result.setProperty(runtime, "handle", jsi::BigInt::fromUint64(runtime, 0));
+    return result;
   }
   wgpu::SharedFenceExportInfo info{};
   uint64_t handle = 0;

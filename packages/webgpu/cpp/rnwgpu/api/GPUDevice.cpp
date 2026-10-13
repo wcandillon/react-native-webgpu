@@ -352,7 +352,7 @@ std::shared_ptr<GPUSharedTextureMemory> GPUDevice::importSharedTextureMemory(
                              "'shared-texture-memory-ahardware-buffer' "
                              "(Android) feature enabled on the device?");
   }
-  return std::make_shared<GPUSharedTextureMemory>(std::move(memory),
+  return std::make_shared<GPUSharedTextureMemory>(_instance, std::move(memory),
                                                   std::move(label));
 }
 
@@ -402,7 +402,8 @@ std::shared_ptr<GPUSharedFence> GPUDevice::importSharedFence(
         "GPUDevice::importSharedFence(): ImportSharedFence returned null - is "
         "the matching 'shared-fence-*' feature enabled on the device?");
   }
-  return std::make_shared<GPUSharedFence>(std::move(fence), std::move(label));
+  return std::make_shared<GPUSharedFence>(_instance, std::move(fence),
+                                          std::move(label));
 }
 
 async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(

@@ -8,11 +8,32 @@
 
 namespace rnwgpu {
 
+void GPUSharedTextureMemory::destroy() {
+  if (_instance) {
+    (void)_instance.GetProperties(&_properties);
+    _instance = nullptr;
+  }
+}
+
+void GPUSharedTextureMemory::injectDestroyedError(const char *method) {
+  auto object = _label.empty() ? std::string("GPUSharedTextureMemory")
+                               : "GPUSharedTextureMemory \"" + _label + "\"";
+  auto message = "Destroyed " + object + " used in " + method + "().";
+  _device.InjectError(wgpu::ErrorType::Validation, message.c_str());
+}
+
 std::shared_ptr<GPUTexture> GPUSharedTextureMemory::createTexture(
     std::optional<std::shared_ptr<GPUTextureDescriptor>> descriptor) {
   if (!_instance) {
-    throw std::runtime_error(
-        "GPUSharedTextureMemory::createTexture(): the memory was destroyed");
+    // Like a texture Dawn can't create from the memory: the validation error
+    // says why, and the texture is an error texture with the memory's
+    // properties (an undefined format would make its getters throw).
+    injectDestroyedError("createTexture");
+    wgpu::TextureDescriptor desc{};
+    desc.usage = _properties.usage;
+    desc.size = _properties.size;
+    desc.format = _properties.format;
+    return std::make_shared<GPUTexture>(_device.CreateErrorTexture(&desc), "");
   }
   if (!descriptor.has_value() || descriptor.value() == nullptr) {
     auto texture = _instance.CreateTexture();
@@ -38,7 +59,9 @@ void GPUSharedTextureMemory::beginAccess(
     throw std::runtime_error(
         "GPUSharedTextureMemory::beginAccess(): texture is null");
   }
+  // Fails like an access Dawn rejects: a validation error, then the throw.
   if (!_instance) {
+    injectDestroyedError("beginAccess");
     throw std::runtime_error(
         "GPUSharedTextureMemory::beginAccess(): the memory was destroyed");
   }
@@ -55,6 +78,7 @@ void GPUSharedTextureMemory::beginAccess(
       if (state && state->fence) {
         auto fence = state->fence->get();
         if (!fence) {
+          state->fence->injectDestroyedError("beginAccess");
           throw std::runtime_error(
               "GPUSharedTextureMemory::beginAccess(): a fence was destroyed");
         }
@@ -102,6 +126,7 @@ jsi::Value GPUSharedTextureMemory::endAccess(jsi::Runtime &runtime,
         runtime, "GPUSharedTextureMemory::endAccess(): expected (texture)");
   }
   if (!_instance) {
+    injectDestroyedError("endAccess");
     throw jsi::JSError(
         runtime,
         "GPUSharedTextureMemory::endAccess(): the memory was destroyed");
@@ -128,7 +153,8 @@ jsi::Value GPUSharedTextureMemory::endAccess(jsi::Runtime &runtime,
   jsi::Array fences(runtime, state.fenceCount);
   for (size_t i = 0; i < state.fenceCount; i++) {
     wgpu::SharedFence fence = state.fences[i];
-    auto wrapper = std::make_shared<GPUSharedFence>(std::move(fence), "");
+    auto wrapper =
+        std::make_shared<GPUSharedFence>(_device, std::move(fence), "");
     jsi::Object entry(runtime);
     entry.setProperty(runtime, "fence",
                       GPUSharedFence::create(runtime, std::move(wrapper)));

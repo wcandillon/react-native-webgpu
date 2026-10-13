@@ -17,9 +17,10 @@ class GPUSharedFence : public NativeObject<GPUSharedFence> {
 public:
   static constexpr const char *CLASS_NAME = "GPUSharedFence";
 
-  explicit GPUSharedFence(wgpu::SharedFence instance, std::string label)
-      : NativeObject(CLASS_NAME), _instance(std::move(instance)),
-        _label(std::move(label)) {}
+  explicit GPUSharedFence(wgpu::Device device, wgpu::SharedFence instance,
+                          std::string label)
+      : NativeObject(CLASS_NAME), _device(std::move(device)),
+        _instance(std::move(instance)), _label(std::move(label)) {}
 
 public:
   std::string getBrand() { return CLASS_NAME; }
@@ -38,10 +39,10 @@ public:
     }
   }
 
-  // Non-spec RN extension: releases the fence now (closing its sync fd on
-  // Android) rather than when the JS object is garbage collected, which a
-  // runtime making fences every frame may not do for a while. Dawn keeps its
-  // own reference as long as it needs the fence (a beginAccess wait).
+  // Releases the fence now (closing its sync fd on Android) rather than when
+  // the JS object is garbage collected, which a runtime making fences every
+  // frame may not do for a while. Dawn keeps its own reference as long as it
+  // needs the fence (a beginAccess wait).
   void destroy() { _instance = nullptr; }
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
@@ -54,7 +55,13 @@ public:
 
   inline wgpu::SharedFence get() { return _instance; }
 
+  // Reports a use of the destroyed fence the way Dawn reports an invalid
+  // object: a validation error, caught by error scopes or else delivered to
+  // the device's uncapturederror event.
+  void injectDestroyedError(const char *method);
+
 private:
+  wgpu::Device _device;
   wgpu::SharedFence _instance;
   std::string _label;
 };
