@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "GPUError.h"
 #include "NativeObject.h"
 
 namespace rnwgpu {
@@ -20,6 +21,7 @@ public:
   std::string getMessage() { return _message; }
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    GPUError::inheritPrototype(runtime, prototype);
     installGetter(runtime, prototype, "__brand", &GPUValidationError::getBrand);
     installGetter(runtime, prototype, "message",
                   &GPUValidationError::getMessage);

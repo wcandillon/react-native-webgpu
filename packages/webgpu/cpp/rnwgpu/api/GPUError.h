@@ -24,6 +24,21 @@ public:
     installGetter(runtime, prototype, "message", &GPUError::getMessage);
   }
 
+  // GPUValidationError, GPUOutOfMemoryError and GPUInternalError extend
+  // GPUError in the spec: chain their prototype to GPUError.prototype so
+  // `error instanceof GPUError` holds.
+  static void inheritPrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
+    installPrototype(runtime);
+    auto *parent = getCachedPrototype(runtime);
+    if (parent == nullptr) {
+      return;
+    }
+    auto objectCtor = runtime.global().getPropertyAsObject(runtime, "Object");
+    auto setPrototypeOf =
+        objectCtor.getPropertyAsFunction(runtime, "setPrototypeOf");
+    setPrototypeOf.call(runtime, prototype, *parent);
+  }
+
 protected:
   // Protected constructor for subclasses
   GPUError(const char *className, std::string message)
