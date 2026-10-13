@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View, InteractionManager } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 const styles = StyleSheet.create({
   container: {
@@ -50,9 +50,9 @@ export const AsyncStarvation = () => {
   useEffect(() => {
     let cancelled = false;
     let rafFired = false;
-    let interactionCompleted = false;
+    let idleFired = false;
     let rafId: number | null = null;
-    let interactionHandle: { cancel: () => void } | null = null;
+    let idleId: number | null = null;
 
     const run = async () => {
       try {
@@ -82,9 +82,10 @@ export const AsyncStarvation = () => {
           }
         });
 
-        // Also test with InteractionManager which is React Native specific
-        interactionHandle = InteractionManager.runAfterInteractions(() => {
-          interactionCompleted = true;
+        // Also test with requestIdleCallback, which only fires once the JS
+        // thread is free
+        idleId = requestIdleCallback(() => {
+          idleFired = true;
         });
 
         const start = Date.now();
@@ -126,8 +127,8 @@ export const AsyncStarvation = () => {
           if (rafId !== null) {
             cancelAnimationFrame(rafId);
           }
-          if (interactionHandle) {
-            interactionHandle.cancel();
+          if (idleId !== null) {
+            cancelIdleCallback(idleId);
           }
         }
 
@@ -138,20 +139,20 @@ export const AsyncStarvation = () => {
         const elapsed = Date.now() - start;
 
         // Check if our callbacks fired during the async operation
-        if (rafFired && interactionCompleted) {
+        if (rafFired && idleFired) {
           setTestPassed(true);
           setResult(
-            `✅ Event loop remained responsive! Animation frame and interactions completed during async operation (${elapsed} ms).\n\nThis indicates the WebGPU async operations are properly non-blocking in React Native.`,
+            `✅ Event loop remained responsive! Animation frame and idle callback completed during async operation (${elapsed} ms).\n\nThis indicates the WebGPU async operations are properly non-blocking in React Native.`,
           );
-        } else if (rafFired && !interactionCompleted) {
+        } else if (rafFired && !idleFired) {
           setTestPassed(true);
           setResult(
-            `⚠️ Partial responsiveness: Animation frame fired but interactions were delayed (${elapsed} ms).\n\nThe render loop is working but interaction handling may be affected.`,
+            `⚠️ Partial responsiveness: Animation frame fired but the idle callback was delayed (${elapsed} ms).\n\nThe render loop is working but the JS thread never became idle.`,
           );
         } else {
           setTestPassed(false);
           setResult(
-            `❌ Event loop was blocked! Neither animation frames nor interactions could execute during the async operation (${elapsed} ms).\n\nThis indicates potential performance issues with WebGPU async operations in React Native.`,
+            `❌ Event loop was blocked! Neither animation frames nor idle callbacks could execute during the async operation (${elapsed} ms).\n\nThis indicates potential performance issues with WebGPU async operations in React Native.`,
           );
         }
       } catch (error) {
@@ -172,8 +173,8 @@ export const AsyncStarvation = () => {
       if (rafId !== null) {
         cancelAnimationFrame(rafId);
       }
-      if (interactionHandle) {
-        interactionHandle.cancel();
+      if (idleId !== null) {
+        cancelIdleCallback(idleId);
       }
     };
   }, []);
@@ -191,8 +192,8 @@ export const AsyncStarvation = () => {
         <Text style={styles.note}>
           This test verifies that WebGPU async operations don't block React
           Native's event loop. We test both requestAnimationFrame (rendering)
-          and InteractionManager (user interactions) to ensure the app remains
-          responsive during GPU operations.
+          and requestIdleCallback (JS thread idle time) to ensure the app
+          remains responsive during GPU operations.
         </Text>
       </View>
     </View>

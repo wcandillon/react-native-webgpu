@@ -1,8 +1,15 @@
 import React from "react";
-import { runOnUI } from "react-native-reanimated";
+import { scheduleOnUI } from "react-native-worklets";
 
 import { AsyncBufferExample } from "./AsyncBuffer";
 
 export const AsyncBufferUIThread = () => {
-  return <AsyncBufferExample run={runOnUI} />;
+  return (
+    <AsyncBufferExample
+      run={(worklet) =>
+        (...args) =>
+          scheduleOnUI(worklet, ...args)
+        }
+    />
+  );
 };

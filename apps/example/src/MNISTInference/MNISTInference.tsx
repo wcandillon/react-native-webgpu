@@ -16,7 +16,8 @@ import {
   FilterMode,
 } from "react-native-skia";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { runOnJS, runOnUI, useSharedValue } from "react-native-reanimated";
+import { useSharedValue } from "react-native-reanimated";
+import { scheduleOnRN, scheduleOnUI } from "react-native-worklets";
 
 import type { Network } from "./Lib";
 import { createDemo, centerData, SIZE } from "./Lib";
@@ -93,7 +94,8 @@ export function MNISTInference() {
             alphaType: AlphaType.Opaque,
             colorType: ColorType.Alpha_8,
           });
-          runOnJS(runInference)(
+          scheduleOnRN(
+            runInference,
             centerData(pixels as Uint8Array).map(
               (x) => (x / 255) * 3.24 - 0.42,
             ),
@@ -106,9 +108,9 @@ export function MNISTInference() {
     (async () => {
       const demo = await createDemo(root);
       network.current = demo.network;
-      runOnUI(() => {
+      scheduleOnUI(() => {
         surface.value = Skia.Surface.MakeOffscreen(SIZE, SIZE)!;
-      })();
+      });
     })();
   }, [root, network, surface]);
   return (
