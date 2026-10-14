@@ -10,6 +10,8 @@
 
 #if defined(__ANDROID__)
 #include <android/hardware_buffer.h>
+#include <android/log.h>
+#include <poll.h>
 #endif
 
 namespace rnwgpu {
@@ -344,11 +346,48 @@ std::shared_ptr<GPUExternalTexture> GPUExternalTexture::Create(
   // 3. Begin access. Vulkan requires us to advertise the incoming VkImage
   //    layout (UNDEFINED is fine for the first acquisition of an AHB whose
   //    contents we expect Dawn to read as-is).
+  //
+  //    The producer of the frame (the video decoder, the camera) may still be
+  //    writing it: ImageReader hands a buffer out as soon as it is queued, and
+  //    only waits on the producer's fence for CPU access. The fence travels
+  //    with the frame as a sync fd; imported as a shared fence, BeginAccess
+  //    makes the GPU wait on it before any work that samples the texture.
+  //    Dawn duplicates the descriptor on import; the frame keeps its own.
   wgpu::SharedTextureMemoryBeginAccessDescriptor begin{};
   begin.initialized = true;
   begin.concurrentRead = false;
   wgpu::SharedTextureMemoryVkImageLayoutBeginState beginLayout{};
   begin.nextInChain = &beginLayout;
+  wgpu::SharedFence acquireFence;
+  const uint64_t kBinaryFenceSignaled = 1;
+  if (frame.acquireFenceFd >= 0) {
+    if (device.HasFeature(wgpu::FeatureName::SharedFenceSyncFD)) {
+      wgpu::SharedFenceSyncFDDescriptor fdDesc{};
+      fdDesc.handle = frame.acquireFenceFd;
+      wgpu::SharedFenceDescriptor fenceDesc{};
+      fenceDesc.nextInChain = &fdDesc;
+      acquireFence = device.ImportSharedFence(&fenceDesc);
+      if (acquireFence) {
+        begin.fenceCount = 1;
+        begin.fences = &acquireFence;
+        begin.signaledValueCount = 1;
+        begin.signaledValues = &kBinaryFenceSignaled;
+      }
+    } else {
+      // A device without shared-fence-sync-fd (imported from another library
+      // that did not request it) cannot wait on the GPU: wait here instead. A
+      // sync fd becomes readable once it signals.
+      pollfd pfd{};
+      pfd.fd = frame.acquireFenceFd;
+      pfd.events = POLLIN;
+      int polled = poll(&pfd, 1, 3000);
+      if (polled <= 0) {
+        __android_log_print(ANDROID_LOG_WARN, "GPUExternalTexture",
+                            "the acquire fence of the frame did not signal "
+                            "within 3s; sampling it anyway");
+      }
+    }
+  }
   if (memory.BeginAccess(texture, &begin) != wgpu::Status::Success) {
     throw std::runtime_error(
         "GPUExternalTexture::Create(): BeginAccess failed");

@@ -273,6 +273,16 @@ public class WebGPUVideoPlayer {
     return image;
   }
 
+  /**
+   * The acquire fence of a frame returned by {@link #copyLatestFrame}, as a sync file descriptor
+   * the caller owns, or -1 when there is none. The decoder may still be writing the frame when it
+   * is acquired; the GPU work that samples it has to wait on this fence (see {@link SyncFences}).
+   */
+  @DoNotStrip
+  public static int acquireFenceFd(Image image) {
+    return SyncFences.acquireFenceFd(image);
+  }
+
   /** Hands the buffer of a frame returned by {@link #copyLatestFrame} back to the decoder. */
   @DoNotStrip
   public void closeImage(Image image) {
