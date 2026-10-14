@@ -15,13 +15,6 @@ name: Agent
 # allowlist in claude_args is the only guard, so keep it tight.
 on:
   workflow_dispatch:
-  # Nightly at 02:30 CET (03:30 CEST; GitHub's cron is UTC only): a quiet
-  # hour on the shared runner, half an hour after react-native-skia's agent
-  # so the two iOS builds don't start together, and the night's screenshots
-  # are the baseline the pull request runs compare against. GitHub only
-  # fires schedules from the default branch.
-  schedule:
-    - cron: "30 1 * * *"
 
 # One agent run at a time on the shared machine.
 concurrency:
