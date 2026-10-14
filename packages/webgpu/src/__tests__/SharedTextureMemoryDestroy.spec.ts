@@ -93,24 +93,24 @@ describe("SharedTextureMemoryDestroy", () => {
         }
         errors.push(device.popErrorScope());
 
-        return Promise.all(errors).then(
-          ([createError, beginError, endError]) => {
-            frame.release();
-            return {
-              kind: "ok" as const,
-              createTextureError: createError?.message ?? null,
-              beginAccessError: beginError?.message ?? null,
-              endAccessError: endError?.message ?? null,
-              beginAccessThrew,
-              endAccessThrew,
-              errorTexture: {
-                brand: errorTexture.__brand,
-                width: errorTexture.width,
-                height: errorTexture.height,
-              },
-            };
-          },
-        );
+        // No array destructuring in the function evaluated on the device:
+        // Babel's helper for it doesn't exist there.
+        return Promise.all(errors).then((popped) => {
+          frame.release();
+          return {
+            kind: "ok" as const,
+            createTextureError: popped[0]?.message ?? null,
+            beginAccessError: popped[1]?.message ?? null,
+            endAccessError: popped[2]?.message ?? null,
+            beginAccessThrew,
+            endAccessThrew,
+            errorTexture: {
+              brand: errorTexture.__brand,
+              width: errorTexture.width,
+              height: errorTexture.height,
+            },
+          };
+        });
       } catch (e) {
         frame.release();
         return { kind: "fail", reason: `${(e as Error).message ?? e}` };
@@ -241,7 +241,7 @@ describe("SharedTextureMemoryDestroy", () => {
 
         memory.beginAccess(texture, true);
         sample();
-        const { fences } = memory.endAccess(texture);
+        const fences = memory.endAccess(texture).fences;
         if (fences.length === 0) {
           release();
           return {
@@ -249,7 +249,9 @@ describe("SharedTextureMemoryDestroy", () => {
             reason: "endAccess produced no fence on this device",
           };
         }
-        const [{ fence, signaledValue }] = fences;
+        // No array destructuring, see above.
+        const fence = fences[0].fence;
+        const signaledValue = fences[0].signaledValue;
         fence.label = "end-access";
         const exported = fence.export();
 
@@ -288,16 +290,16 @@ describe("SharedTextureMemoryDestroy", () => {
         const beginAccessError = device.popErrorScope();
 
         return Promise.all([waitError, exportError, beginAccessError]).then(
-          ([waitErr, exportErr, beginErr]) => {
+          (popped) => {
             release();
             return {
               kind: "ok" as const,
               exportedType: exported.type,
               waitThrew,
-              waitError: waitErr?.message ?? null,
-              exportError: exportErr?.message ?? null,
+              waitError: popped[0]?.message ?? null,
+              exportError: popped[1]?.message ?? null,
               exportTypeAfterDestroy: afterDestroy.type,
-              beginAccessError: beginErr?.message ?? null,
+              beginAccessError: popped[2]?.message ?? null,
               beginAccessThrew,
             };
           },
