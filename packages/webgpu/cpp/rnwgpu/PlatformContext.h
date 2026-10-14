@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <span>
 #include <string>
 #include <utility>
@@ -36,6 +37,20 @@ enum class VideoPixelFormat {
   NV12,
 };
 
+// The color space of a YUV frame, as its producer reports it: the YCbCr matrix
+// and range that encode the samples, and the primaries and transfer function of
+// the RGB they encode. Each member is optional: what the producer does not know
+// (a camera buffer carries no color metadata, a container may record only some
+// of it) is resolved at import time (GPUExternalTexture::Create) from the
+// buffer and the platform's norm. Dawn converts the samples to RGB in the
+// destination color space while sampling the external texture.
+struct VideoFrameColorSpace {
+  std::optional<wgpu::ColorSpacePrimariesDawn> primaries;
+  std::optional<wgpu::ColorSpaceTransferDawn> transfer;
+  std::optional<wgpu::ColorSpaceYCbCrRangeDawn> range;
+  std::optional<wgpu::ColorSpaceYCbCrMatrixDawn> matrix;
+};
+
 // A native handle to a video frame that can be imported into a
 // GPUSharedTextureMemory.
 //
@@ -50,11 +65,10 @@ struct VideoFrameHandle {
   uint32_t width = 0;
   uint32_t height = 0;
   VideoPixelFormat pixelFormat = VideoPixelFormat::BGRA8;
-  // 3x4 row-major matrix mapping [Y, U, V, 1] → linear [R, G, B]. Pre-computed
-  // at decode time from CVPixelBuffer attachments (kCVImageBufferYCbCrMatrixKey
-  // + range), with a BT.709 limited-range default. Only meaningful when
-  // pixelFormat == NV12.
-  float yuvToRgbMatrix[12] = {};
+  // The color space of the samples. Only meaningful when pixelFormat == NV12:
+  // from the CVPixelBuffer attachments on Apple platforms, from the Image's
+  // data space (API 33) or the container's color info on Android.
+  VideoFrameColorSpace colorSpace;
   // Android: the acquire fence of the frame as a sync file descriptor, or -1.
   // The producer (video decoder, camera) may still be writing the buffer when
   // the consumer gets it; the GPU work that reads the frame waits on this fence
@@ -64,6 +78,19 @@ struct VideoFrameHandle {
   int acquireFenceFd = -1;
   std::function<void()> deleter;
 };
+
+// The samples of the NV12 test frame of createTestVideoFrame: pure red and
+// pure green in BT.709 limited range (Y 16..235, Cb/Cr 16..240), so the frame
+// converts back to exactly those colors in sRGB. Shared by both platforms so
+// the e2e spec sees the same frame on each.
+namespace test_yuv_frame {
+constexpr uint8_t kRedY = 63;
+constexpr uint8_t kRedCb = 102;
+constexpr uint8_t kRedCr = 240;
+constexpr uint8_t kGreenY = 173;
+constexpr uint8_t kGreenCb = 42;
+constexpr uint8_t kGreenCr = 26;
+} // namespace test_yuv_frame
 
 // Platform-implemented video source that hands out fresh IOSurface /
 // AHardwareBuffer-backed frames as a video plays, with the playback controls
@@ -174,9 +201,13 @@ public:
 
   // Create a synthetic, GPU-shareable IOSurface/AHardwareBuffer filled with a
   // generated test pattern. Avoids the need to bundle a video asset for the
-  // SharedTextureMemory example.
-  virtual VideoFrameHandle createTestVideoFrame(uint32_t width,
-                                                uint32_t height) = 0;
+  // SharedTextureMemory example. BGRA8 is an RGB gradient; NV12 is a biplanar
+  // YUV frame, BT.709 limited range, red on the left half and green on the
+  // right, which exercises the color conversion of importExternalTexture.
+  // Throws a message containing "unsupported" where the platform cannot
+  // allocate or fill the YUV layout (Android before API 29).
+  virtual VideoFrameHandle createTestVideoFrame(uint32_t width, uint32_t height,
+                                                VideoPixelFormat format) = 0;
 
   // Open a video file at `path` for playback. The returned player yields
   // IOSurface / AHardwareBuffer-backed frames via copyLatestFrame().

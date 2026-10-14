@@ -36,6 +36,16 @@ const dawnWorkarounds = [
     // the example app.
     upstream: "Dawn CL pending (see the workaround comment in the files)",
   },
+  {
+    // Not a workaround: a copy of a Dawn header the package does not ship.
+    // The functions it declares are exported by the Dawn binaries; the header
+    // has to match the Dawn the binaries were built from.
+    marker: "DAWN_VENDORED_EXTERNAL_TEXTURE_PARAMS",
+    commit: "3d786993a7ded64c4ebb4884b9b079db9ad0e580",
+    files: ["cpp/dawn/common/ExternalTextureParams.h"],
+    upstream:
+      "diff the copy against src/dawn/common/ExternalTextureParams.h at the new commit and re-sync it",
+  },
 ];
 
 const root = join(__dirname, "..");

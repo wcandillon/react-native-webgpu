@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstring>
 #include <memory>
@@ -123,17 +124,13 @@ public:
         static_cast<float>(request.originX) / static_cast<float>(frameWidth);
     const float offsetY =
         static_cast<float>(request.originY) / static_cast<float>(frameHeight);
-    std::array<float, 20> uniforms = {};
-    const std::vector<double> matrix = external->getYuvToRgbMatrix();
-    for (size_t i = 0; i < 12 && i < matrix.size(); i++) {
-      uniforms[i] = static_cast<float>(matrix[i]);
-    }
-    uniforms[12] = scaleX;
-    uniforms[13] = request.flipY ? -scaleY : scaleY;
-    uniforms[14] = offsetX;
-    uniforms[15] = request.flipY ? offsetY + scaleY : offsetY;
+    std::array<float, 8> uniforms = {};
+    uniforms[0] = scaleX;
+    uniforms[1] = request.flipY ? -scaleY : scaleY;
+    uniforms[2] = offsetX;
+    uniforms[3] = request.flipY ? offsetY + scaleY : offsetY;
     const uint32_t decodeSrgb = isSrgb(format) ? 1u : 0u;
-    std::memcpy(&uniforms[16], &decodeSrgb, sizeof(decodeSrgb));
+    std::memcpy(&uniforms[4], &decodeSrgb, sizeof(decodeSrgb));
 
     wgpu::BufferDescriptor bufferDesc = {};
     bufferDesc.label = "copyExternalImageToTexture uniforms";
@@ -225,11 +222,6 @@ private:
 
   static constexpr const char *kShader = R"(
 struct Uniforms {
-  // The rows of the 3x4 matrix mapping the sampled texel to R'G'B'
-  // (GPUExternalTexture.yuvToRgbMatrix; the identity outside Android YUV).
-  yuvToRgb0: vec4f,
-  yuvToRgb1: vec4f,
-  yuvToRgb2: vec4f,
   // uv = position01 * uvScale + uvOffset
   uvScale: vec2f,
   uvOffset: vec2f,
@@ -265,10 +257,9 @@ fn srgbToLinear(c: vec3f) -> vec3f {
 }
 
 @fragment fn fs(in: VsOut) -> @location(0) vec4f {
+  // The external texture converts YUV to RGB while sampling, on every platform.
   let sampled = textureSampleBaseClampToEdge(frame, frameSampler, in.uv);
-  let texel = vec4f(sampled.rgb, 1.0);
-  var rgb = vec3f(dot(u.yuvToRgb0, texel), dot(u.yuvToRgb1, texel), dot(u.yuvToRgb2, texel));
-  rgb = clamp(rgb, vec3f(0.0), vec3f(1.0));
+  var rgb = clamp(sampled.rgb, vec3f(0.0), vec3f(1.0));
   if (u.flags.x == 1u) {
     rgb = srgbToLinear(rgb);
   }
