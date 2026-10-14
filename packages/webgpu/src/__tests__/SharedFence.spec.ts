@@ -28,11 +28,18 @@ describe("SharedFence", () => {
   it("endAccess surfaces { fence, signaledValue } pairs that export, re-import, and feed beginAccess", async () => {
     const result = await client.eval<Record<string, never>, EvalResult>(
       ({ device }) => {
-        const FEATURE = "rnwebgpu/shared-texture-memory";
-        if (!device.features.has(FEATURE as GPUFeatureName)) {
+        // The Dawn features behind importSharedTextureMemory: requestDevice()
+        // enables them wherever the adapter has them.
+        const NATIVE_IMPORT = [
+          "shared-texture-memory-iosurface",
+          "shared-texture-memory-ahardware-buffer",
+        ];
+        if (
+          !NATIVE_IMPORT.some((f) => device.features.has(f as GPUFeatureName))
+        ) {
           return {
             kind: "skip",
-            reason: `${FEATURE} not enabled on this device`,
+            reason: "native frame import is unavailable on this device",
           };
         }
         if (typeof RNWebGPU?.createTestVideoFrame !== "function") {

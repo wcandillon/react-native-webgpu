@@ -90,10 +90,12 @@ void GPUSharedTextureMemory::beginAccess(
   if (!rawFences.empty()) {
     desc.fenceCount = rawFences.size();
     desc.fences = rawFences.data();
+    desc.signaledValueCount = values.size();
     desc.signaledValues = values.data();
   } else {
     desc.fenceCount = 0;
     desc.fences = nullptr;
+    desc.signaledValueCount = 0;
     desc.signaledValues = nullptr;
   }
 
