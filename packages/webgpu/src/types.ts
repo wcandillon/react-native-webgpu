@@ -204,10 +204,17 @@ export interface GPUSharedFenceExportInfo {
 export interface GPUSharedFence {
   readonly __brand: "GPUSharedFence";
   label: string;
+  // Throws, after a validation error says why, if the fence was destroyed or
+  // Dawn can't export it.
   export(): GPUSharedFenceExportInfo;
+  // Releases the fence now (closing its sync fd on Android) rather than when
+  // the object is garbage collected. A later use is a validation error, and
+  // export() and beginAccess() then throw.
+  destroy(): void;
 }
 
-// A fence and the timeline value to wait for (0n for binary sync-fd fences).
+// A fence and the timeline value to wait for. Binary fences (sync-fd on
+// Vulkan) must use 1n: Dawn rejects any other value.
 export interface GPUSharedFenceState {
   fence: GPUSharedFence;
   signaledValue: bigint;
@@ -252,4 +259,10 @@ export interface GPUSharedTextureMemory {
   // Ends the access and returns the fences Dawn produced for it. Throws if the
   // access could not be ended.
   endAccess(texture: GPUTexture): GPUSharedTextureMemoryEndAccessState;
+  // Releases the memory (the imported native buffer) now rather than when the
+  // object is garbage collected. End the access first (a destroy() during one
+  // is a validation error, and the access stays open) and destroy the textures
+  // created from it. A later use is a validation error: createTexture() then
+  // returns an invalid texture, beginAccess() and endAccess() throw.
+  destroy(): void;
 }

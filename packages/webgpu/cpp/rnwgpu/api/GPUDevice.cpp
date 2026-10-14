@@ -345,14 +345,21 @@ std::shared_ptr<GPUSharedTextureMemory> GPUDevice::importSharedTextureMemory(
 #endif
 
   auto memory = _instance.ImportSharedTextureMemory(&desc);
-  if (memory == nullptr) {
-    throw std::runtime_error("GPUDevice::importSharedTextureMemory(): "
-                             "ImportSharedTextureMemory returned null - is the "
-                             "'shared-texture-memory-iosurface' (Apple) or "
-                             "'shared-texture-memory-ahardware-buffer' "
-                             "(Android) feature enabled on the device?");
+  // Dawn reports a failed import (feature missing, unusable handle) as a
+  // validation error and returns an error object rather than null, with no
+  // format in its properties: the format getter of any texture created from
+  // it would throw. Fail the import instead.
+  wgpu::SharedTextureMemoryProperties properties{};
+  if (memory == nullptr ||
+      memory.GetProperties(&properties) != wgpu::Status::Success ||
+      properties.format == wgpu::TextureFormat::Undefined) {
+    throw std::runtime_error(
+        "GPUDevice::importSharedTextureMemory(): the import failed - is the "
+        "'shared-texture-memory-iosurface' (Apple) or "
+        "'shared-texture-memory-ahardware-buffer' (Android) feature enabled "
+        "on the device, and the handle a usable IOSurface / AHardwareBuffer?");
   }
-  return std::make_shared<GPUSharedTextureMemory>(std::move(memory),
+  return std::make_shared<GPUSharedTextureMemory>(_instance, std::move(memory),
                                                   std::move(label));
 }
 
@@ -402,7 +409,8 @@ std::shared_ptr<GPUSharedFence> GPUDevice::importSharedFence(
         "GPUDevice::importSharedFence(): ImportSharedFence returned null - is "
         "the matching 'shared-fence-*' feature enabled on the device?");
   }
-  return std::make_shared<GPUSharedFence>(std::move(fence), std::move(label));
+  return std::make_shared<GPUSharedFence>(_instance, std::move(fence),
+                                          std::move(label));
 }
 
 async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
