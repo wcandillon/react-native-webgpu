@@ -99,7 +99,10 @@ export const Canvas = ({
   // native surface is still attached, this is a no-op and the native view's
   // own teardown retires the entry instead — which keeps StrictMode's
   // simulated unmount (which re-runs effects without unmounting native views)
-  // from orphaning a live surface.
+  // from orphaning a live surface. When no surface is attached yet (StrictMode
+  // runs this cleanup right after mount, possibly before the UI thread got to
+  // it), a context kept from the first effect run keeps its surface entry,
+  // which the native view takes over when it attaches.
   useEffect(() => {
     return () => {
       RNWebGPU.destroyContext(contextId);
