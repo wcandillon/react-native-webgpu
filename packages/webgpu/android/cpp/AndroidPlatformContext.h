@@ -28,9 +28,10 @@ namespace jni = facebook::jni;
 
 // The completion callbacks of one snapshotView request, heap-allocated and
 // carried through Java as an opaque pointer (WebGPUModule.snapshotView ->
-// onViewSnapshot), which hands them back exactly once.
+// onViewSnapshot / onViewSnapshotBuffer), which hands them back exactly once.
 struct ViewSnapshotCallbacks {
-  std::function<void(ImageData)> onSuccess;
+  std::function<void(ImageData)> onPixels;
+  std::function<void(VideoFrameHandle)> onFrame;
   std::function<void(std::string)> onError;
 };
 
@@ -94,7 +95,8 @@ public:
   }
 
   void snapshotView(const ViewSnapshotRequest &request,
-                    std::function<void(ImageData)> onSuccess,
+                    std::function<void(ImageData)> onPixels,
+                    std::function<void(VideoFrameHandle)> onFrame,
                     std::function<void(std::string)> onError) override {
     if (!_module) {
       onError("drawElementImageToTexture: the WebGPU module is gone");
@@ -108,7 +110,7 @@ public:
     }
     jclass moduleClass = env->GetObjectClass(_module);
     jmethodID method =
-        env->GetMethodID(moduleClass, "snapshotView", "(IDDDDIIJ)V");
+        env->GetMethodID(moduleClass, "snapshotView", "(IDDDDIIZJ)V");
     env->DeleteLocalRef(moduleClass);
     if (!method) {
       env->ExceptionClear();
@@ -116,9 +118,9 @@ public:
       return;
     }
     // Ownership passes to Java; Java_com_webgpu_WebGPUModule_onViewSnapshot
-    // (cpp-adapter.cpp) reclaims it.
-    auto *callbacks =
-        new ViewSnapshotCallbacks{std::move(onSuccess), std::move(onError)};
+    // or onViewSnapshotBuffer (cpp-adapter.cpp) reclaims it.
+    auto *callbacks = new ViewSnapshotCallbacks{
+        std::move(onPixels), std::move(onFrame), std::move(onError)};
     env->CallVoidMethod(_module, method, static_cast<jint>(request.viewTag),
                         static_cast<jdouble>(request.sourceX),
                         static_cast<jdouble>(request.sourceY),
@@ -126,6 +128,7 @@ public:
                         static_cast<jdouble>(request.sourceHeight),
                         static_cast<jint>(request.width),
                         static_cast<jint>(request.height),
+                        static_cast<jboolean>(request.allowFrame),
                         reinterpret_cast<jlong>(callbacks));
     if (env->ExceptionCheck()) {
       env->ExceptionClear();

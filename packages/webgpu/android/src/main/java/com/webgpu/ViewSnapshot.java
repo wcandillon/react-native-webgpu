@@ -24,7 +24,10 @@ import androidx.annotation.RequiresApi;
  * On API 29+ the view is rendered through {@link HardwareRenderer}: the
  * recording reuses the children's existing display lists, so the result is
  * exactly what the window's own renderer draws (shadows, hardware layers,
- * TextureView content). Older devices, or a failed hardware render, fall back
+ * TextureView content). The renderer draws into a GPU-sampleable buffer,
+ * which {@link #renderHardware} hands to its caller as is: the WebGPU side
+ * imports it directly when it can, and {@link #snapshot} reads it back into
+ * a bitmap otherwise. Older devices, or a failed hardware render, fall back
  * to drawing the view into a software canvas, which misses anything that is
  * only drawn hardware-accelerated. SurfaceView content is composed outside
  * the view hierarchy and is captured by neither path.
@@ -33,6 +36,11 @@ final class ViewSnapshot {
   private static final String TAG = "WebGPUViewSnapshot";
 
   private ViewSnapshot() {}
+
+  /** What a caller does with the frame the hardware renderer drew, while it is acquired. */
+  interface FrameConsumer<T> {
+    T consume(@NonNull Image image) throws Exception;
+  }
 
   /**
    * @param sourceX/Y/Width/Height the source rectangle in the view's own
@@ -77,19 +85,27 @@ final class ViewSnapshot {
     return bitmap;
   }
 
+  /**
+   * Renders the view through {@link HardwareRenderer} into a GPU-sampleable
+   * RGBA_8888 buffer of exactly width x height pixels and hands the acquired
+   * frame to {@code consumer}; the reader and the renderer are torn down when
+   * it returns, so a consumer that keeps the buffer takes its own reference
+   * first. The renderer only submits the frame: the drawing may still be in
+   * flight on the GPU when the consumer runs. {@link Image#getFence()} (API 33)
+   * tells when it is done; a CPU readback of the buffer waits for it on its
+   * own.
+   */
   @RequiresApi(Build.VERSION_CODES.Q)
-  @NonNull
-  private static Bitmap snapshotHardware(
+  static <T> T renderHardware(
       @NonNull View view,
       float sourceX,
       float sourceY,
       float sourceWidth,
       float sourceHeight,
       int width,
-      int height) {
-    // The renderer draws into an ImageReader whose buffers are GPU-sampleable
-    // (a later zero-copy path can import them directly); for now the frame is
-    // read back into a software bitmap.
+      int height,
+      @NonNull FrameConsumer<T> consumer)
+      throws Exception {
     ImageReader reader =
         ImageReader.newInstance(
             width,
@@ -135,22 +151,7 @@ final class ViewSnapshot {
       if (image == null) {
         throw new IllegalStateException("HardwareRenderer produced no image");
       }
-      HardwareBuffer buffer = image.getHardwareBuffer();
-      if (buffer == null) {
-        throw new IllegalStateException("HardwareRenderer image has no HardwareBuffer");
-      }
-      Bitmap hardware =
-          Bitmap.wrapHardwareBuffer(buffer, ColorSpace.get(ColorSpace.Named.SRGB));
-      buffer.close();
-      if (hardware == null) {
-        throw new IllegalStateException("Bitmap.wrapHardwareBuffer failed");
-      }
-      Bitmap software = hardware.copy(Bitmap.Config.ARGB_8888, false);
-      hardware.recycle();
-      if (software == null) {
-        throw new IllegalStateException("could not read back the hardware bitmap");
-      }
-      return software;
+      return consumer.consume(image);
     } finally {
       if (image != null) {
         image.close();
@@ -158,5 +159,47 @@ final class ViewSnapshot {
       renderer.destroy();
       reader.close();
     }
+  }
+
+  @RequiresApi(Build.VERSION_CODES.Q)
+  @NonNull
+  private static Bitmap snapshotHardware(
+      @NonNull View view,
+      float sourceX,
+      float sourceY,
+      float sourceWidth,
+      float sourceHeight,
+      int width,
+      int height)
+      throws Exception {
+    return renderHardware(
+        view,
+        sourceX,
+        sourceY,
+        sourceWidth,
+        sourceHeight,
+        width,
+        height,
+        image -> {
+          HardwareBuffer buffer = image.getHardwareBuffer();
+          if (buffer == null) {
+            throw new IllegalStateException("HardwareRenderer image has no HardwareBuffer");
+          }
+          // wrapHardwareBuffer takes its own reference, so the wrapper can be
+          // closed immediately; the copy reads the pixels back into software
+          // memory, waiting for the renderer to finish drawing.
+          Bitmap hardware =
+              Bitmap.wrapHardwareBuffer(buffer, ColorSpace.get(ColorSpace.Named.SRGB));
+          buffer.close();
+          if (hardware == null) {
+            throw new IllegalStateException("Bitmap.wrapHardwareBuffer failed");
+          }
+          Bitmap software = hardware.copy(Bitmap.Config.ARGB_8888, false);
+          hardware.recycle();
+          if (software == null) {
+            throw new IllegalStateException("could not read back the hardware bitmap");
+          }
+          return software;
+        });
   }
 }

@@ -256,6 +256,26 @@ void GPUQueue::copyExternalImageToTexture(
   }
 }
 
+// Releases a frame the platform handed over that is not going to be drawn.
+static void releaseFrame(VideoFrameHandle &frame) {
+  if (frame.deleter) {
+    frame.deleter();
+    frame.deleter = nullptr;
+  }
+  frame.handle = nullptr;
+}
+
+// A rejected JS promise. A resolve factory cannot reject the task's promise
+// itself; resolving it with this value makes it adopt the rejection.
+static jsi::Value rejectedPromise(jsi::Runtime &runtime,
+                                  const std::string &message) {
+  auto promiseConstructor =
+      runtime.global().getPropertyAsObject(runtime, "Promise");
+  auto reject = promiseConstructor.getPropertyAsFunction(runtime, "reject");
+  jsi::JSError error(runtime, message);
+  return reject.callWithThis(runtime, promiseConstructor, error.value());
+}
+
 async::AsyncTaskHandle GPUQueue::drawElementImageToTexture(
     jsi::Runtime &runtime, std::shared_ptr<GPUDrawElementImageSource> source,
     std::shared_ptr<GPUDrawElementImageDestination> destination) {
@@ -337,6 +357,15 @@ async::AsyncTaskHandle GPUQueue::drawElementImageToTexture(
         "a positive width and height");
   }
 
+  // With RENDER_ATTACHMENT as well, a platform that renders the view into a
+  // GPU buffer (Android 13 and above, through HardwareRenderer) hands that
+  // buffer over instead of reading the pixels back, and the view is drawn into
+  // the destination on the GPU (VideoFrameBlit), which writes the color aspect
+  // of the first layer.
+  request.allowFrame =
+      (texture.GetUsage() & wgpu::TextureUsage::RenderAttachment) != 0 &&
+      dst.aspect == wgpu::TextureAspect::All && dst.origin.z == 0;
+
   // Destination size (pixels). Omitted means the source rectangle's natural
   // pixel size (points times the device pixel ratio), which the platform
   // computes; the bounds check then happens once the pixels are back.
@@ -372,13 +401,15 @@ async::AsyncTaskHandle GPUQueue::drawElementImageToTexture(
   auto context =
       async::RuntimeContext::getOrCreate(runtime, _async->instance());
   auto queue = _instance;
+  auto device = _device;
+  auto blit = _videoFrameBlit;
   // Keeps the destination texture alive until the write is issued.
   auto gpuTexture = info->texture;
   return context->postTask(
       [platform, request, dst, mipWidth, mipHeight, destinationIsBgra,
-       destinationPremultiplied, queue,
-       gpuTexture](const async::AsyncTaskHandle::ResolveFunction &resolve,
-                   const async::AsyncTaskHandle::RejectFunction &reject) {
+       destinationPremultiplied, device, queue, gpuTexture,
+       blit](const async::AsyncTaskHandle::ResolveFunction &resolve,
+             const async::AsyncTaskHandle::RejectFunction &reject) {
         platform->snapshotView(
             request,
             [resolve, reject, dst, mipWidth, mipHeight, destinationIsBgra,
@@ -429,6 +460,67 @@ async::AsyncTaskHandle GPUQueue::drawElementImageToTexture(
                 wgpu::Extent3D extent{static_cast<uint32_t>(image.width),
                                       static_cast<uint32_t>(image.height), 1};
                 queue.WriteTexture(&dst, pixels, byteLength, &layout, &extent);
+                return jsi::Value::undefined();
+              });
+            },
+            [resolve, reject, dst, mipWidth, mipHeight,
+             destinationPremultiplied, device, queue, gpuTexture,
+             blit](VideoFrameHandle frame) mutable {
+              // Arbitrary (UI) thread: validate without touching JSI. A frame
+              // that is not drawn is released here.
+              if (frame.handle == nullptr || frame.width == 0 ||
+                  frame.height == 0) {
+                releaseFrame(frame);
+                reject("drawElementImageToTexture: the view produced no "
+                       "pixels (is it mounted with a non-zero size?)");
+                return;
+              }
+              if (frame.width >
+                      mipWidth - std::min<uint32_t>(dst.origin.x, mipWidth) ||
+                  frame.height >
+                      mipHeight - std::min<uint32_t>(dst.origin.y, mipHeight)) {
+                auto message =
+                    "drawElementImageToTexture: the view's natural pixel "
+                    "size (" +
+                    std::to_string(frame.width) + "x" +
+                    std::to_string(frame.height) +
+                    ") does not fit in the destination texture at "
+                    "destination.origin; pass destination.size to scale "
+                    "it, or create a larger texture";
+                releaseFrame(frame);
+                reject(std::move(message));
+                return;
+              }
+              resolve([frame = std::move(frame), dst, destinationPremultiplied,
+                       device, queue, gpuTexture,
+                       blit](jsi::Runtime &runtime) mutable -> jsi::Value {
+                // Owning runtime's thread. Draw the buffer into the
+                // destination region on the GPU: importing it as an external
+                // texture makes the GPU wait on the renderer's fence first,
+                // and the blit converts the renderer's premultiplied pixels to
+                // straight alpha unless the destination asks for premultiplied
+                // ones. The frame is released once the draw is submitted (Dawn
+                // keeps its own reference to the buffer for in-flight work).
+                auto videoFrame =
+                    std::make_shared<VideoFrame>(std::move(frame));
+                VideoFrameBlit::Request blitRequest;
+                blitRequest.frame = videoFrame;
+                blitRequest.width = videoFrame->handle().width;
+                blitRequest.height = videoFrame->handle().height;
+                blitRequest.alpha = destinationPremultiplied
+                                        ? VideoFrameBlit::Alpha::Premultiplied
+                                        : VideoFrameBlit::Alpha::Straight;
+                blitRequest.texture = dst.texture;
+                blitRequest.mipLevel = dst.mipLevel;
+                blitRequest.dstX = dst.origin.x;
+                blitRequest.dstY = dst.origin.y;
+                try {
+                  blit->copy(device, queue, blitRequest);
+                } catch (const std::exception &error) {
+                  videoFrame->release();
+                  return rejectedPromise(runtime, error.what());
+                }
+                videoFrame->release();
                 return jsi::Value::undefined();
               });
             },

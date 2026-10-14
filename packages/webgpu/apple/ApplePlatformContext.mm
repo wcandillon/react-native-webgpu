@@ -189,9 +189,12 @@ ImageData snapshotViewOnMainThread(const ApplePlatformContext::ViewLookup &looku
 
 } // namespace
 
+// Always delivers pixels: the view is drawn into a CPU bitmap, so there is no
+// GPU frame to hand over (onFrame is unused).
 void ApplePlatformContext::snapshotView(
     const ViewSnapshotRequest &request,
-    std::function<void(ImageData)> onSuccess,
+    std::function<void(ImageData)> onPixels,
+    std::function<void(VideoFrameHandle)> /* onFrame */,
     std::function<void(std::string)> onError) {
   // Copies: the block outlives this call.
   ViewLookup lookup = _viewLookup;
@@ -199,7 +202,7 @@ void ApplePlatformContext::snapshotView(
   dispatch_async(dispatch_get_main_queue(), ^{
     @autoreleasepool {
       try {
-        onSuccess(snapshotViewOnMainThread(lookup, snapshotRequest));
+        onPixels(snapshotViewOnMainThread(lookup, snapshotRequest));
       } catch (const std::exception &error) {
         onError(error.what());
       } catch (...) {

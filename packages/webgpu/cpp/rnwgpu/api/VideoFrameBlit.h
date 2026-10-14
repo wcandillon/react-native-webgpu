@@ -19,17 +19,29 @@
 
 namespace rnwgpu {
 
-// Renders a native video frame into a region of a regular texture. The frame
-// is imported as an external texture, so Dawn does the YUV to RGB conversion
-// and applies the rotation and the mirroring; a full-screen triangle then
-// samples it into the destination. This is what backs
-// GPUQueue.copyExternalImageToTexture for NativeVideoFrame sources.
+// Renders a native frame into a region of a regular texture. The frame is
+// imported as an external texture, so Dawn does the YUV to RGB conversion and
+// applies the rotation and the mirroring; a full-screen triangle then samples
+// it into the destination. This is what backs
+// GPUQueue.copyExternalImageToTexture for NativeVideoFrame sources, and the
+// zero-copy path of GPUQueue.drawElementImageToTexture, which draws the
+// buffer the platform rendered a view into.
 //
 // One instance per device, shared by its GPUQueue wrappers (a new wrapper is
 // created on every `device.queue` access): it caches the shader, the layouts
 // and one pipeline per destination format.
 class VideoFrameBlit {
 public:
+  // What becomes of the frame's alpha channel.
+  enum class Alpha {
+    // The destination is opaque (a video frame): alpha is written as 1.
+    Opaque,
+    // The frame's premultiplied pixels are written as they are.
+    Premultiplied,
+    // The frame's premultiplied pixels are converted to straight alpha.
+    Straight,
+  };
+
   struct Request {
     std::shared_ptr<VideoFrame> frame;
     // The region of the upright frame (after rotation and mirroring) to copy.
@@ -40,6 +52,7 @@ public:
     bool flipY = false;
     double rotation = 0;
     bool mirrored = false;
+    Alpha alpha = Alpha::Opaque;
     // The destination region.
     wgpu::Texture texture;
     uint32_t mipLevel = 0;
@@ -131,6 +144,8 @@ public:
     uniforms[3] = request.flipY ? offsetY + scaleY : offsetY;
     const uint32_t decodeSrgb = isSrgb(format) ? 1u : 0u;
     std::memcpy(&uniforms[4], &decodeSrgb, sizeof(decodeSrgb));
+    const uint32_t alphaMode = static_cast<uint32_t>(request.alpha);
+    std::memcpy(&uniforms[5], &alphaMode, sizeof(alphaMode));
 
     wgpu::BufferDescriptor bufferDesc = {};
     bufferDesc.label = "copyExternalImageToTexture uniforms";
@@ -226,6 +241,7 @@ struct Uniforms {
   uvScale: vec2f,
   uvOffset: vec2f,
   // x: decode sRGB to linear, for an sRGB destination that re-encodes on write
+  // y: alpha, 0 opaque (written as 1), 1 premultiplied as sampled, 2 straight
   flags: vec4u,
 };
 
@@ -260,10 +276,18 @@ fn srgbToLinear(c: vec3f) -> vec3f {
   // The external texture converts YUV to RGB while sampling, on every platform.
   let sampled = textureSampleBaseClampToEdge(frame, frameSampler, in.uv);
   var rgb = clamp(sampled.rgb, vec3f(0.0), vec3f(1.0));
+  var alpha = 1.0;
+  if (u.flags.y != 0u) {
+    alpha = clamp(sampled.a, 0.0, 1.0);
+  }
+  // Unpremultiply in the encoded domain, as the CPU path does on the bytes.
+  if (u.flags.y == 2u && alpha > 0.0) {
+    rgb = clamp(rgb / alpha, vec3f(0.0), vec3f(1.0));
+  }
   if (u.flags.x == 1u) {
     rgb = srgbToLinear(rgb);
   }
-  return vec4f(rgb, 1.0);
+  return vec4f(rgb, alpha);
 }
 )";
 
