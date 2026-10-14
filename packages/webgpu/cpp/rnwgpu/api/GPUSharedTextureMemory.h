@@ -32,8 +32,8 @@ public:
 public:
   std::string getBrand() { return CLASS_NAME; }
 
-  std::shared_ptr<GPUTexture>
-  createTexture(std::optional<std::shared_ptr<GPUTextureDescriptor>> descriptor);
+  std::shared_ptr<GPUTexture> createTexture(
+      std::optional<std::shared_ptr<GPUTextureDescriptor>> descriptor);
 
   // Optional `fences` are wait fences: Dawn waits for each to reach its
   // signaledValue before writing the surface. Throws on failure.
@@ -56,8 +56,8 @@ public:
 
   // Releases the memory now (the imported native buffer and Dawn's import of
   // it) rather than when the JS object is garbage collected. End the access
-  // first, and destroy the textures created from it: they keep what they use
-  // until then.
+  // first (destroying during one is a validation error), and destroy the
+  // textures created from it: they keep what they use until then.
   void destroy();
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
@@ -89,6 +89,9 @@ private:
   // Kept by destroy(): like Dawn, createTexture() describes the error texture
   // it then returns with them.
   wgpu::SharedTextureMemoryProperties _properties;
+  // The textures with an access begun and not yet ended, so destroy() can
+  // report an access left open. Dawn doesn't track that across a release.
+  std::vector<wgpu::Texture> _accessed;
   std::string _label;
 };
 

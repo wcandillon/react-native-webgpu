@@ -42,7 +42,8 @@ public:
   // Releases the fence now (closing its sync fd on Android) rather than when
   // the JS object is garbage collected, which a runtime making fences every
   // frame may not do for a while. Dawn keeps its own reference as long as it
-  // needs the fence (a beginAccess wait).
+  // needs the fence (a beginAccess wait). A later use is a validation error
+  // and a throw.
   void destroy() { _instance = nullptr; }
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {

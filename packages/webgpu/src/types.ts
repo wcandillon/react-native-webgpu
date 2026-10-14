@@ -204,10 +204,12 @@ export interface GPUSharedFenceExportInfo {
 export interface GPUSharedFence {
   readonly __brand: "GPUSharedFence";
   label: string;
+  // Throws, after a validation error says why, if the fence was destroyed or
+  // Dawn can't export it.
   export(): GPUSharedFenceExportInfo;
   // Releases the fence now (closing its sync fd on Android) rather than when
-  // the object is garbage collected. A later use is a validation error:
-  // export() then returns an empty type.
+  // the object is garbage collected. A later use is a validation error, and
+  // export() and beginAccess() then throw.
   destroy(): void;
 }
 
@@ -258,8 +260,9 @@ export interface GPUSharedTextureMemory {
   // access could not be ended.
   endAccess(texture: GPUTexture): GPUSharedTextureMemoryEndAccessState;
   // Releases the memory (the imported native buffer) now rather than when the
-  // object is garbage collected. End the access and destroy the textures
-  // created from it first. A later use is a validation error: createTexture()
-  // then returns an invalid texture.
+  // object is garbage collected. End the access first (a destroy() during one
+  // is a validation error, and the access stays open) and destroy the textures
+  // created from it. A later use is a validation error: createTexture() then
+  // returns an invalid texture, beginAccess() and endAccess() throw.
   destroy(): void;
 }

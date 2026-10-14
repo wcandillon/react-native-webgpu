@@ -10,22 +10,37 @@ type EvalResult<R> =
   | ({ kind: "ok" } & R);
 
 interface MemoryProbe {
+  destroyError: string | null;
   createTextureError: string | null;
+  errorTextureViewError: string | null;
+  describedTextureError: string | null;
   beginAccessError: string | null;
   endAccessError: string | null;
   beginAccessThrew: boolean;
   endAccessThrew: boolean;
   errorTexture: { brand: string; width: number; height: number };
+  describedTexture: {
+    label: string;
+    mipLevelCount: number;
+    width: number;
+    height: number;
+  };
 }
 
 interface FenceProbe {
   exportedType: string;
   waitThrew: string | null;
   waitError: string | null;
+  exportThrew: boolean;
   exportError: string | null;
-  exportTypeAfterDestroy: string;
   beginAccessError: string | null;
   beginAccessThrew: boolean;
+}
+
+interface OpenAccessProbe {
+  destroyError: string | null;
+  endAccessThrew: boolean;
+  endAccessError: string | null;
 }
 
 const logSkip = (reason: string) =>
@@ -63,16 +78,38 @@ describe("SharedTextureMemoryDestroy", () => {
           label: "destroyed",
         });
         const texture = memory.createTexture();
+        const { format } = texture;
+        const { usage } = texture;
         memory.beginAccess(texture, true);
         memory.endAccess(texture);
         texture.destroy();
-        memory.destroy();
-        // A second call does nothing.
-        memory.destroy();
 
         const errors: Promise<GPUError | null>[] = [];
+        // Destroying after the access ended is fine, and a second call does
+        // nothing.
+        device.pushErrorScope("validation");
+        memory.destroy();
+        memory.destroy();
+        errors.push(device.popErrorScope());
+
         device.pushErrorScope("validation");
         const errorTexture = memory.createTexture();
+        errors.push(device.popErrorScope());
+
+        // An error texture: using it is a validation error too.
+        device.pushErrorScope("validation");
+        errorTexture.createView();
+        errors.push(device.popErrorScope());
+
+        // With a descriptor, the error texture is described by it, as Dawn's.
+        device.pushErrorScope("validation");
+        const describedTexture = memory.createTexture({
+          size: [64, 32],
+          format,
+          usage,
+          mipLevelCount: 2,
+          label: "after-destroy",
+        });
         errors.push(device.popErrorScope());
 
         device.pushErrorScope("validation");
@@ -99,15 +136,24 @@ describe("SharedTextureMemoryDestroy", () => {
           frame.release();
           return {
             kind: "ok" as const,
-            createTextureError: popped[0]?.message ?? null,
-            beginAccessError: popped[1]?.message ?? null,
-            endAccessError: popped[2]?.message ?? null,
+            destroyError: popped[0]?.message ?? null,
+            createTextureError: popped[1]?.message ?? null,
+            errorTextureViewError: popped[2]?.message ?? null,
+            describedTextureError: popped[3]?.message ?? null,
+            beginAccessError: popped[4]?.message ?? null,
+            endAccessError: popped[5]?.message ?? null,
             beginAccessThrew,
             endAccessThrew,
             errorTexture: {
               brand: errorTexture.__brand,
               width: errorTexture.width,
               height: errorTexture.height,
+            },
+            describedTexture: {
+              label: describedTexture.label,
+              mipLevelCount: describedTexture.mipLevelCount,
+              width: describedTexture.width,
+              height: describedTexture.height,
             },
           };
         });
@@ -124,7 +170,12 @@ describe("SharedTextureMemoryDestroy", () => {
     if (result.kind === "fail") {
       throw new Error(`SharedTextureMemoryDestroy: ${result.reason}`);
     }
+    expect(result.destroyError).toBeNull();
     expect(result.createTextureError).toContain(
+      'Destroyed GPUSharedTextureMemory "destroyed" used in createTexture().',
+    );
+    expect(result.errorTextureViewError).toContain("is invalid");
+    expect(result.describedTextureError).toContain(
       'Destroyed GPUSharedTextureMemory "destroyed" used in createTexture().',
     );
     expect(result.beginAccessError).toContain(
@@ -139,6 +190,13 @@ describe("SharedTextureMemoryDestroy", () => {
     // An error texture, described by the memory's properties as Dawn does.
     expect(result.errorTexture).toEqual({
       brand: "GPUTexture",
+      width: 64,
+      height: 32,
+    });
+    // Or by the descriptor when there is one.
+    expect(result.describedTexture).toEqual({
+      label: "after-destroy",
+      mipLevelCount: 2,
       width: 64,
       height: 32,
     });
@@ -159,6 +217,17 @@ describe("SharedTextureMemoryDestroy", () => {
         return {
           kind: "skip",
           reason: "native frame import is unavailable on this device",
+        };
+      }
+      // importSharedFence needs the matching shared-fence feature.
+      const FENCE_IMPORT = [
+        "shared-fence-mtl-shared-event",
+        "shared-fence-sync-fd",
+      ];
+      if (!FENCE_IMPORT.some((f) => device.features.has(f as GPUFeatureName))) {
+        return {
+          kind: "skip",
+          reason: "shared fence import is unavailable on this device",
         };
       }
       if (typeof RNWebGPU?.createTestVideoFrame !== "function") {
@@ -278,7 +347,12 @@ describe("SharedTextureMemoryDestroy", () => {
         // A second call does nothing.
         fence.destroy();
         device.pushErrorScope("validation");
-        const afterDestroy = fence.export();
+        let exportThrew = false;
+        try {
+          fence.export();
+        } catch {
+          exportThrew = true;
+        }
         const exportError = device.popErrorScope();
 
         device.pushErrorScope("validation");
@@ -298,8 +372,8 @@ describe("SharedTextureMemoryDestroy", () => {
               exportedType: exported.type,
               waitThrew,
               waitError: popped[0]?.message ?? null,
+              exportThrew,
               exportError: popped[1]?.message ?? null,
-              exportTypeAfterDestroy: afterDestroy.type,
               beginAccessError: popped[2]?.message ?? null,
               beginAccessThrew,
             };
@@ -321,14 +395,94 @@ describe("SharedTextureMemoryDestroy", () => {
     expect(["mtl-shared-event", "sync-fd"]).toContain(result.exportedType);
     expect(result.waitThrew).toBeNull();
     expect(result.waitError).toBeNull();
+    // Like a fence Dawn can't export: the validation error, then the throw.
     expect(result.exportError).toContain(
       'Destroyed GPUSharedFence "end-access" used in export().',
     );
-    // Like a fence Dawn can't export.
-    expect(result.exportTypeAfterDestroy).toBe("");
+    expect(result.exportThrew).toBe(true);
     expect(result.beginAccessError).toContain(
       'Destroyed GPUSharedFence "end-access" used in beginAccess().',
     );
     expect(result.beginAccessThrew).toBe(true);
+  });
+
+  it("reports a destroy() during an access as a validation error", async () => {
+    const result = await client.eval<
+      Record<string, never>,
+      EvalResult<OpenAccessProbe>
+    >(({ device }) => {
+      const NATIVE_IMPORT = [
+        "shared-texture-memory-iosurface",
+        "shared-texture-memory-ahardware-buffer",
+      ];
+      if (
+        !NATIVE_IMPORT.some((f) => device.features.has(f as GPUFeatureName))
+      ) {
+        return {
+          kind: "skip",
+          reason: "native frame import is unavailable on this device",
+        };
+      }
+      if (typeof RNWebGPU?.createTestVideoFrame !== "function") {
+        return {
+          kind: "skip",
+          reason: "RNWebGPU.createTestVideoFrame is unavailable",
+        };
+      }
+
+      const frame = RNWebGPU.createTestVideoFrame(64, 32);
+      try {
+        const memory = device.importSharedTextureMemory({
+          handle: frame.handle,
+          label: "open",
+        });
+        const texture = memory.createTexture();
+        memory.beginAccess(texture, true);
+
+        device.pushErrorScope("validation");
+        memory.destroy();
+        const destroyError = device.popErrorScope();
+
+        // The access stays open (Dawn doesn't end it either), but the memory
+        // is gone: ending it is now a use of a destroyed memory.
+        device.pushErrorScope("validation");
+        let endAccessThrew = false;
+        try {
+          memory.endAccess(texture);
+        } catch {
+          endAccessThrew = true;
+        }
+        const endAccessError = device.popErrorScope();
+
+        return Promise.all([destroyError, endAccessError]).then((popped) => {
+          texture.destroy();
+          frame.release();
+          return {
+            kind: "ok" as const,
+            destroyError: popped[0]?.message ?? null,
+            endAccessThrew,
+            endAccessError: popped[1]?.message ?? null,
+          };
+        });
+      } catch (e) {
+        frame.release();
+        return { kind: "fail", reason: `${(e as Error).message ?? e}` };
+      }
+    });
+
+    if (result.kind === "skip") {
+      logSkip(result.reason);
+      return;
+    }
+    if (result.kind === "fail") {
+      throw new Error(`SharedTextureMemoryDestroy: ${result.reason}`);
+    }
+    expect(result.destroyError).toContain(
+      'Destroyed GPUSharedTextureMemory "open" with an access still open: call endAccess() first.',
+    );
+    expect(result.endAccessThrew).toBe(true);
+    expect(result.endAccessError).toContain(
+      'Destroyed GPUSharedTextureMemory "open" used in endAccess().',
+    );
   });
 });

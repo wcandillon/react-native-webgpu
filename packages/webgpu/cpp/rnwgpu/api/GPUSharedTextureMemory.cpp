@@ -1,39 +1,61 @@
 #include "GPUSharedTextureMemory.h"
 
+#include <algorithm>
 #include <memory>
 #include <stdexcept>
 #include <string>
 
 #include "Convertors.h"
+#include "DestroyedError.h"
 
 namespace rnwgpu {
 
 void GPUSharedTextureMemory::destroy() {
-  if (_instance) {
-    (void)_instance.GetProperties(&_properties);
-    _instance = nullptr;
+  if (!_instance) {
+    return;
   }
+  (void)_instance.GetProperties(&_properties);
+  if (!_accessed.empty()) {
+    // Dawn's contract is an endAccess() for every beginAccess(), but Dawn
+    // doesn't check it when the memory goes away. Report the misuse; the
+    // access itself is left as is (ending it would hand its fences to no one).
+    auto message = "Destroyed " + describeDestroyed(CLASS_NAME, _label) +
+                   " with an access still open: call endAccess() first.";
+    _device.InjectError(wgpu::ErrorType::Validation, message.c_str());
+    _accessed.clear();
+  }
+  _instance = nullptr;
 }
 
 void GPUSharedTextureMemory::injectDestroyedError(const char *method) {
-  auto object = _label.empty() ? std::string("GPUSharedTextureMemory")
-                               : "GPUSharedTextureMemory \"" + _label + "\"";
-  auto message = "Destroyed " + object + " used in " + method + "().";
-  _device.InjectError(wgpu::ErrorType::Validation, message.c_str());
+  reportDestroyedUse(_device, CLASS_NAME, _label, method);
 }
 
 std::shared_ptr<GPUTexture> GPUSharedTextureMemory::createTexture(
     std::optional<std::shared_ptr<GPUTextureDescriptor>> descriptor) {
   if (!_instance) {
     // Like a texture Dawn can't create from the memory: the validation error
-    // says why, and the texture is an error texture with the memory's
-    // properties (an undefined format would make its getters throw).
+    // says why, and the texture is an error texture. As Dawn does, it is
+    // described by the caller's descriptor, or else by the memory's
+    // properties. It owns no GPU memory, so it reports no memory pressure.
     injectDestroyedError("createTexture");
     wgpu::TextureDescriptor desc{};
-    desc.usage = _properties.usage;
-    desc.size = _properties.size;
-    desc.format = _properties.format;
-    return std::make_shared<GPUTexture>(_device.CreateErrorTexture(&desc), "");
+    std::string label;
+    if (descriptor.has_value() && descriptor.value() != nullptr) {
+      Convertor conv;
+      if (!conv(desc, descriptor.value())) {
+        throw std::runtime_error(
+            "GPUSharedTextureMemory::createTexture(): Error with "
+            "GPUTextureDescriptor");
+      }
+      label = descriptor.value()->label.value_or("");
+    } else {
+      desc.usage = _properties.usage;
+      desc.size = _properties.size;
+      desc.format = _properties.format;
+    }
+    return std::make_shared<GPUTexture>(_device.CreateErrorTexture(&desc),
+                                        std::move(label), false);
   }
   if (!descriptor.has_value() || descriptor.value() == nullptr) {
     auto texture = _instance.CreateTexture();
@@ -117,6 +139,7 @@ void GPUSharedTextureMemory::beginAccess(
   if (status != wgpu::Status::Success) {
     throw std::runtime_error("GPUSharedTextureMemory::beginAccess() failed");
   }
+  _accessed.push_back(texture->get());
 }
 
 jsi::Value GPUSharedTextureMemory::endAccess(jsi::Runtime &runtime,
@@ -149,6 +172,12 @@ jsi::Value GPUSharedTextureMemory::endAccess(jsi::Runtime &runtime,
   if (status != wgpu::Status::Success) {
     throw jsi::JSError(runtime, "GPUSharedTextureMemory::endAccess() failed");
   }
+  auto ended = texture->get();
+  _accessed.erase(std::remove_if(_accessed.begin(), _accessed.end(),
+                                 [&](const wgpu::Texture &accessed) {
+                                   return accessed.Get() == ended.Get();
+                                 }),
+                  _accessed.end());
 
   // Copy each wgpu::SharedFence (ref-counted) into its own GPUSharedFence
   // wrapper before `state` is destroyed.
@@ -160,8 +189,9 @@ jsi::Value GPUSharedTextureMemory::endAccess(jsi::Runtime &runtime,
     jsi::Object entry(runtime);
     entry.setProperty(runtime, "fence",
                       GPUSharedFence::create(runtime, std::move(wrapper)));
-    entry.setProperty(runtime, "signaledValue",
-                      jsi::BigInt::fromUint64(runtime, state.signaledValues[i]));
+    entry.setProperty(
+        runtime, "signaledValue",
+        jsi::BigInt::fromUint64(runtime, state.signaledValues[i]));
     fences.setValueAtIndex(runtime, i, std::move(entry));
   }
 
