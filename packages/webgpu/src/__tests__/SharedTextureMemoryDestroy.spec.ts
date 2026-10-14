@@ -241,7 +241,7 @@ describe("SharedTextureMemoryDestroy", () => {
 
         memory.beginAccess(texture, true);
         sample();
-        const fences = memory.endAccess(texture).fences;
+        const { fences } = memory.endAccess(texture);
         if (fences.length === 0) {
           release();
           return {
@@ -249,9 +249,10 @@ describe("SharedTextureMemoryDestroy", () => {
             reason: "endAccess produced no fence on this device",
           };
         }
-        // No array destructuring, see above.
-        const fence = fences[0].fence;
-        const signaledValue = fences[0].signaledValue;
+        // No array destructuring, see above (object destructuring compiles
+        // to plain property reads).
+        // eslint-disable-next-line prefer-destructuring
+        const { fence, signaledValue } = fences[0];
         fence.label = "end-access";
         const exported = fence.export();
 
