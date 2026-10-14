@@ -70,6 +70,15 @@ interface GPUTestingContext {
       value: object,
     ) => Promise<{ threw: boolean; message: string; typeOnWorklet: string }>;
   };
+  // Native app harness only: the flags as the package exports them
+  // (src/constants.ts), next to the globals of the same name.
+  exportedFlags?: {
+    GPUBufferUsage: typeof GPUBufferUsage;
+    GPUColorWrite: typeof GPUColorWrite;
+    GPUMapMode: typeof GPUMapMode;
+    GPUShaderStage: typeof GPUShaderStage;
+    GPUTextureUsage: typeof GPUTextureUsage;
+  };
   // Native app harness only: a mounted probe view for the
   // drawElementImageToTexture spec (its React tag, its size in points and the
   // device pixel ratio). See apps/example/src/Tests.tsx.

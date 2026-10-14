@@ -1,8 +1,13 @@
+// Must stay the FIRST import, and a bare one: it installs the native module,
+// and the imports below read the globals it installs (`../install` imports
+// `../constants`, see ./installNative.ts). An import with bindings could be
+// deferred to its first use by `inlineRequires`; a bare import is not.
+import "./installNative";
+
 import { findNodeHandle } from "react-native";
 
 import { registerWebGPUForReanimated } from "../external";
 import { provideGPUForInstall } from "../install";
-import WebGPUModule from "../NativeWebGPUModule";
 import type { GPUDrawElementImageSourceView } from "../types";
 
 // Resolve the `source` of drawElementImageToTexture to a React tag on the
@@ -61,8 +66,6 @@ export * from "../formats";
 
 export { default as WebGPUModule } from "../NativeWebGPUModule";
 
-const _installOk = WebGPUModule.install();
-
 registerWebGPUForReanimated();
 
 if (typeof RNWebGPU !== "undefined") {
@@ -89,8 +92,4 @@ if (typeof RNWebGPU !== "undefined") {
   installDrawElementImageToTexture();
   // Let installWebGPU() put navigator.gpu on other runtimes (see install.ts).
   provideGPUForInstall(RNWebGPU.gpu);
-} else {
-  console.warn(
-    `[react-native-webgpu] install() returned ${_installOk} but RNWebGPU global is not available`,
-  );
 }

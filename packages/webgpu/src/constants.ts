@@ -22,9 +22,11 @@
 //     device.createBuffer({ usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
 //   };
 //
-// These are read at module evaluation time. The package entry (`index.tsx`)
-// re-exports `./main` before `./constants`, and `./main` installs the native
-// module synchronously, so the globals always exist by the time this runs.
+// These are read at module evaluation time, so the native module must be
+// installed first. `./main` installs it in its FIRST import
+// (`./main/installNative.ts`): its other imports reach this file through
+// `./install`, and an import is evaluated before the body of the module that
+// declares it — installing in the body of `./main` left every flag undefined.
 
 export const { GPUBufferUsage } = globalThis;
 
