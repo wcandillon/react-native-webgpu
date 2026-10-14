@@ -109,7 +109,7 @@ export const Canvas = ({
   ...props
 }: CanvasProps) => {
   const viewRef = useRef<View>(null);
-  const [contextId, _] = useState(() => generateContextId());
+  const [contextId] = useState(() => generateContextId());
   // Retire the native registry entry for this contextId on unmount. When a
   // native surface is still attached, this is a no-op and the native view's
   // own teardown retires the entry instead — which keeps StrictMode's
@@ -127,9 +127,7 @@ export const Canvas = ({
     ref,
     () => ({
       getContextId: () => contextId,
-      getNativeSurface: () => {
-        return RNWebGPU.getNativeSurface(contextId);
-      },
+      getNativeSurface: () => RNWebGPU.getNativeSurface(contextId),
       getContext(contextName: "webgpu"): RNCanvasContext | null {
         if (contextName !== "webgpu") {
           throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
