@@ -59,6 +59,14 @@ Slot accounting at steady state: up to 2 held (display + release safety) + 1 ren
 
 Each exported sync-fd is owned by its `wgpu::SharedFence` and closed when the fence is destroyed at the end of the waiter iteration. The code never `dup`s or closes the fd itself, which avoids the double-close that trips Android's fdsan.
 
+## The other consumer: `WebGPUSurfaceControlView`
+
+The same pool has a second consumer, selected with `surfaceType: "SurfaceControlView"`. It is a `SurfaceView` (own compositor layer, `zOrderOnTop` applies) with no swapchain: native code creates a child `ASurfaceControl` of the view's window (`android/cpp/SurfaceControlPresenter.h`, the NDK functions resolved with `dlsym` since they are API 29 and the library runs from API 26) and `present` posts each finished buffer to it in an `ASurfaceTransaction`, together with its render-complete fence as the acquire fence (the exported fences are `dup`ed and folded with `sync_merge`, so the transaction owns a descriptor of its own). No thread waits on the CPU and there is no UI-thread pickup: the waiter thread is never started in this mode.
+
+Release is exact instead of heuristic. When the compositor latches a transaction, its completion callback (a binder thread) reports `ASurfaceTransactionStats_getPreviousReleaseFenceFd`, the fence that signals once the compositor is done reading the buffer it just replaced. The pool stores it on the slot (`PoolSlot.releaseFenceFd`), marks the slot `Free`, and the next `BeginAccess` on that slot imports it as a `shared-fence-sync-fd` so the GPU waits before rendering into the buffer again. The slot state machine is therefore `Free -> Rendering -> Presented -> Free`.
+
+The presenter is owned by the `SurfaceInfo` (`enablePool(dpW, dpH, presenter)`) and dropped by `detach()` with the pool when the window goes away; its callbacks look the `SurfaceInfo` up through a weak pointer and close the fence when it is gone. On API 33 and above the buffers are allocated with `AHARDWAREBUFFER_USAGE_COMPOSER_OVERLAY`, so the compositor may scan them out from a hardware plane. When the child surface cannot be created, the view uses its own surface as a plain swapchain, through the regular surface callbacks.
+
 ## onDraw and resize
 
 `onDraw` always scales the last good frame to the current bounds (`src = bitmap bounds`, `dst = view bounds`, `FILTER_BITMAP`). So a buffer that momentarily lags the view size mid-resize is shown stretched rather than blank.

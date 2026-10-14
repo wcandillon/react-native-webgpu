@@ -20,8 +20,11 @@
 #include "webgpu/webgpu_cpp.h"
 
 #if defined(__ANDROID__)
+#include <android/api-level.h>
 #include <android/hardware_buffer.h>
 #include <android/log.h>
+#include <android/sync.h>
+#include <fcntl.h>
 #include <poll.h>
 #include <unistd.h>
 #endif
@@ -79,7 +82,8 @@ using NativeSurfaceReleaser = std::function<void(void *)>;
 enum class SlotState : uint8_t {
   Free,      // available for poolGetCurrentTexture
   Rendering, // BeginAccess done, JS rendering into it
-  Presented, // EndAccess done, fence(s) queued for the waiter
+  Presented, // EndAccess done: fence(s) queued for the waiter, or the buffer
+             // posted to the display by the presenter
   Ready,     // fence signaled, awaiting UI pickup
   Displayed, // handed to the consumer, held until released (held-ring)
 };
@@ -89,6 +93,26 @@ struct PoolSlot {
   wgpu::SharedTextureMemory memory = nullptr;
   wgpu::Texture texture = nullptr;
   SlotState state = SlotState::Free;
+  // Presenter mode: the fence the display signals once it is done reading the
+  // buffer, as a sync fd the slot owns. The next BeginAccess on the slot waits
+  // on it (on the GPU) and closes it.
+  int releaseFenceFd = -1;
+};
+
+// A consumer that takes the pool's finished buffers straight to the display
+// (WebGPUSurfaceControlView), so that no thread waits on a fence on the CPU.
+// The pool hands each presented buffer over with the sync fd of its
+// render-complete fence, which the presenter owns, and gets the slot back
+// through the release callback with the fence the display signals once it is
+// done reading the buffer (-1 when it already is), which the receiver owns.
+class PoolPresenter {
+public:
+  using ReleaseCallback =
+      std::function<void(uint64_t token, int releaseFenceFd)>;
+  virtual ~PoolPresenter() = default;
+  virtual void present(AHardwareBuffer *buffer, int acquireFenceFd,
+                       uint64_t token) = 0;
+  virtual void setReleaseCallback(ReleaseCallback callback) = 0;
 };
 
 // One generation of the pool (one buffer size). Reference-counted (shared_ptr)
@@ -110,6 +134,10 @@ struct AHBPool {
       if (slot.ahb != nullptr) {
         AHardwareBuffer_release(slot.ahb);
         slot.ahb = nullptr;
+      }
+      if (slot.releaseFenceFd >= 0) {
+        ::close(slot.releaseFenceFd);
+        slot.releaseFenceFd = -1;
       }
     }
   }
@@ -145,7 +173,7 @@ struct AHBPool {
 //   content appears without waiting for the next render — the same mechanism
 //   that gives a fast time-to-first-frame when rendering starts before the
 //   native surface exists.
-class SurfaceInfo {
+class SurfaceInfo : public std::enable_shared_from_this<SurfaceInfo> {
 public:
   SurfaceInfo(wgpu::Instance gpu, int width, int height)
       : _gpu(std::move(gpu)), _width(width), _height(height) {}
@@ -154,12 +182,17 @@ public:
 #if defined(__ANDROID__)
     // Stop the fence waiter before any pool generation is freed.
     stopWaiter();
+    std::shared_ptr<PoolPresenter> presenter;
     {
       std::lock_guard<std::mutex> poolLock(_poolMutex);
       _presentQueue.clear();
       poolResetLocked();
       _poolDevice = nullptr;
+      presenter = std::move(_poolPresenter);
     }
+    // Its completion callbacks look this object up weakly; released outside
+    // the lock, like in detach().
+    presenter = nullptr;
 #endif
     // Drop the Dawn objects before releasing the native surfaces they borrow.
     _surface = nullptr;
@@ -595,6 +628,77 @@ public:
     _shutdown = false;
   }
 
+  // Pool mode with a presenter (WebGPUSurfaceControlView): presented buffers
+  // go to the presenter with their render-complete fence instead of to the
+  // fence waiter, and come back through its release callback.
+  void enablePool(int dpW, int dpH, std::shared_ptr<PoolPresenter> presenter) {
+    std::weak_ptr<SurfaceInfo> weakSelf = weak_from_this();
+    presenter->setReleaseCallback(
+        [weakSelf](uint64_t token, int releaseFenceFd) {
+          if (auto self = weakSelf.lock()) {
+            self->poolSlotReleased(token, releaseFenceFd);
+          } else if (releaseFenceFd >= 0) {
+            ::close(releaseFenceFd);
+          }
+        });
+    std::shared_ptr<PoolPresenter> replaced;
+    {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      _width = dpW;
+      _height = dpH;
+    }
+    {
+      std::lock_guard<std::mutex> poolLock(_poolMutex);
+      replaced = std::move(_poolPresenter);
+      _poolPresenter = std::move(presenter);
+      // Attached over a live pool (no detach in between): end the access of a
+      // frame still being rendered, drop the pool, and start over, so that no
+      // buffer a previous presenter still shows is ever reused.
+      if (_renderPool != nullptr && _currentRenderSlot >= 0 &&
+          _renderPool->slots[_currentRenderSlot].state ==
+              SlotState::Rendering) {
+        auto job = poolQueuePresentLocked();
+        if (job.acquireFenceFd >= 0) {
+          ::close(job.acquireFenceFd);
+        }
+      }
+      poolResetLocked();
+      _poolMode.store(true);
+      _shutdown = false;
+    }
+    replaced = nullptr;
+  }
+
+  std::shared_ptr<PoolPresenter> poolPresenter() {
+    std::lock_guard<std::mutex> poolLock(_poolMutex);
+    return _poolPresenter;
+  }
+
+  // The presenter is done with a buffer (the display latched the next one):
+  // the slot is free again, after the display's release fence. Called from
+  // the presenter's callback thread.
+  void poolSlotReleased(uint64_t token, int releaseFenceFd) {
+    std::lock_guard<std::mutex> poolLock(_poolMutex);
+    auto gen = static_cast<uint32_t>(token >> 32);
+    auto idx = static_cast<int>(token & 0xffffffffu);
+    auto it = _pools.find(gen);
+    if (it == _pools.end() || idx < 0 ||
+        idx >= static_cast<int>(it->second->slots.size()) ||
+        it->second->slots[idx].state != SlotState::Presented) {
+      if (releaseFenceFd >= 0) {
+        ::close(releaseFenceFd);
+      }
+      return;
+    }
+    auto &slot = it->second->slots[idx];
+    if (slot.releaseFenceFd >= 0) {
+      ::close(slot.releaseFenceFd);
+    }
+    slot.releaseFenceFd = releaseFenceFd;
+    slot.state = SlotState::Free;
+    _freeCv.notify_one();
+  }
+
   // Set the canvas-client (dp) size without changing pool mode. Keeps getSize()
   // (and thus the JS canvas.clientWidth/Height) in sync on resize.
   void setPoolClientSize(int dpW, int dpH) {
@@ -700,6 +804,8 @@ private:
 #if defined(__ANDROID__)
     // Destroyed outside the lock: it releases a JNI reference.
     std::function<void()> releasedFrameReady;
+    // Destroyed outside the lock too: it tears down the display surface.
+    std::shared_ptr<PoolPresenter> releasedPresenter;
 #endif
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
@@ -714,11 +820,15 @@ private:
           // A frame between getCurrentTexture and present still has an open
           // BeginAccess; end it and queue it so the waiter drains its fences
           // before the generation is freed (presentFrame() no-ops for it
-          // because pool mode is already off).
+          // because pool mode is already off). With a presenter the frame is
+          // simply not shown: the view is going away.
           if (_renderPool != nullptr && _currentRenderSlot >= 0 &&
               _renderPool->slots[_currentRenderSlot].state ==
                   SlotState::Rendering) {
-            poolQueuePresentLocked();
+            auto job = poolQueuePresentLocked();
+            if (job.acquireFenceFd >= 0) {
+              ::close(job.acquireFenceFd);
+            }
           }
           // _presentQueue is intentionally left alone: the waiter still has
           // to wait on the queued fences before the generations they pin can
@@ -726,6 +836,7 @@ private:
           poolResetLocked();
           releasedFrameReady = std::move(_poolFrameReady);
           _poolFrameReady = nullptr;
+          releasedPresenter = std::move(_poolPresenter);
         }
         if (createFallbackTexture && _config.device != nullptr && !_texture) {
           _texture = createOffscreenTextureLocked();
@@ -935,6 +1046,12 @@ private:
       desc.format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
       desc.usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE |
                    AHARDWAREBUFFER_USAGE_GPU_COLOR_OUTPUT;
+      if (_poolPresenter != nullptr && android_get_device_api_level() >= 33) {
+        // Buffers the compositor shows as a layer of their own may go to a
+        // hardware overlay plane; the flag (API 33) lets the allocator pick a
+        // layout the display controller can scan out.
+        desc.usage |= kUsageComposerOverlay;
+      }
       int err = AHardwareBuffer_allocate(&desc, &slot.ahb);
       if (err != 0 || slot.ahb == nullptr) {
         RNWGPU_POOL_WARN("AHardwareBuffer_allocate failed (%d) %dx%d", err, w,
@@ -1028,17 +1145,37 @@ private:
   }
 
   void poolPresent() {
-    std::lock_guard<std::mutex> lock(_poolMutex);
-    if (_currentRenderSlot < 0 || _renderPool == nullptr) {
-      return;
+    PresentJob job;
+    {
+      std::lock_guard<std::mutex> lock(_poolMutex);
+      if (_currentRenderSlot < 0 || _renderPool == nullptr) {
+        return;
+      }
+      job = poolQueuePresentLocked();
     }
-    poolQueuePresentLocked();
+    // Outside the lock: the presenter talks to the compositor, and its
+    // completion callback takes the lock. The job keeps the pool generation,
+    // and so the buffer, alive until the compositor holds its own reference.
+    if (job.presenter != nullptr) {
+      job.presenter->present(job.buffer, job.acquireFenceFd, job.token);
+    }
   }
 
+  // What poolQueuePresentLocked hands to the presenter, when there is one.
+  struct PresentJob {
+    std::shared_ptr<PoolPresenter> presenter;
+    std::shared_ptr<AHBPool> pool;
+    AHardwareBuffer *buffer = nullptr;
+    int acquireFenceFd = -1; // owned by whoever receives the job
+    uint64_t token = 0;
+  };
+
   // Ends access on the in-flight render slot and hands it (with its fences) to
-  // the waiter. Caller holds _poolMutex and guarantees _renderPool /
+  // the waiter, or, with a presenter, returns it as a job for the presenter:
+  // the exported fences merged into one sync fd (see sync_merge), to post the
+  // buffer with. Caller holds _poolMutex and guarantees _renderPool /
   // _currentRenderSlot are valid.
-  void poolQueuePresentLocked() {
+  PresentJob poolQueuePresentLocked() {
     auto pool = _renderPool;
     int idx = _currentRenderSlot;
     auto &slot = pool->slots[idx];
@@ -1055,11 +1192,54 @@ private:
     }
 
     slot.state = SlotState::Presented;
-    _presentQueue.push_back({pool, idx, std::move(fences)});
     _renderPool = nullptr;
     _currentRenderSlot = -1;
+
+    PresentJob job;
+    if (_poolPresenter != nullptr) {
+      job.presenter = _poolPresenter;
+      job.pool = pool;
+      job.buffer = slot.ahb;
+      job.acquireFenceFd = mergeSyncFds(fences);
+      job.token = (static_cast<uint64_t>(pool->generation) << 32) |
+                  static_cast<uint32_t>(idx);
+      return job;
+    }
+    _presentQueue.push_back({pool, idx, std::move(fences)});
     startWaiterLocked();
     _presentCv.notify_one();
+    return job;
+  }
+
+  // One sync fd that signals once every fence has, or -1 when there is none.
+  // Dawn owns the exported descriptors (they close with the SharedFence), so
+  // each is duplicated first; sync_merge (libsync, API 26) folds them.
+  static int mergeSyncFds(const std::vector<wgpu::SharedFence> &fences) {
+    int merged = -1;
+    for (const auto &fence : fences) {
+      wgpu::SharedFenceExportInfo info{};
+      wgpu::SharedFenceSyncFDExportInfo fdInfo{};
+      info.nextInChain = &fdInfo;
+      fence.ExportInfo(&info);
+      if (info.type != wgpu::SharedFenceType::SyncFD || fdInfo.handle < 0) {
+        continue;
+      }
+      int duplicate = ::fcntl(fdInfo.handle, F_DUPFD_CLOEXEC, 0);
+      if (duplicate < 0) {
+        continue;
+      }
+      if (merged < 0) {
+        merged = duplicate;
+        continue;
+      }
+      int combined = sync_merge("rnwgpu-present", merged, duplicate);
+      ::close(duplicate);
+      if (combined >= 0) {
+        ::close(merged);
+        merged = combined;
+      }
+    }
+    return merged;
   }
 
   void poolBeginAccess(PoolSlot &slot) {
@@ -1073,6 +1253,34 @@ private:
     vkLayout.oldLayout = 0;
     vkLayout.newLayout = 0;
     desc.nextInChain = &vkLayout;
+    // Presenter mode: the display may still be reading the buffer. Its
+    // release fence makes the GPU wait before rendering into it again. Dawn
+    // duplicates the descriptor on import; the slot's copy is closed here. A
+    // device without the sync-fd fence feature waits on the CPU instead.
+    wgpu::SharedFence releaseFence;
+    const uint64_t kBinaryFenceSignaled = 1;
+    if (slot.releaseFenceFd >= 0) {
+      if (_poolDevice.HasFeature(wgpu::FeatureName::SharedFenceSyncFD)) {
+        wgpu::SharedFenceSyncFDDescriptor fdDesc{};
+        fdDesc.handle = slot.releaseFenceFd;
+        wgpu::SharedFenceDescriptor fenceDesc{};
+        fenceDesc.nextInChain = &fdDesc;
+        releaseFence = _poolDevice.ImportSharedFence(&fenceDesc);
+        if (releaseFence) {
+          desc.fenceCount = 1;
+          desc.fences = &releaseFence;
+          desc.signaledValueCount = 1;
+          desc.signaledValues = &kBinaryFenceSignaled;
+        }
+      } else {
+        pollfd pfd{};
+        pfd.fd = slot.releaseFenceFd;
+        pfd.events = POLLIN;
+        (void)poll(&pfd, 1, 1000);
+      }
+      ::close(slot.releaseFenceFd);
+      slot.releaseFenceFd = -1;
+    }
     slot.memory.BeginAccess(slot.texture, &desc);
   }
 
@@ -1238,8 +1446,14 @@ private:
 
   static constexpr int kPoolSize =
       5; // 2 held + 1 rendering + 1 waiting + 1 ready
+  // AHARDWAREBUFFER_USAGE_COMPOSER_OVERLAY (API 33), by value so that older
+  // NDKs compile.
+  static constexpr uint64_t kUsageComposerOverlay = 1ULL << 11;
 
   std::atomic<bool> _poolMode{false};
+  // Set with enablePool(dpW, dpH, presenter): the display consumer that
+  // replaces the fence waiter and the UI-thread pickup.
+  std::shared_ptr<PoolPresenter> _poolPresenter;
   std::mutex _poolMutex;
   std::condition_variable _freeCv;    // a slot returned to Free
   std::condition_variable _presentCv; // a frame was queued for the waiter

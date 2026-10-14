@@ -9,7 +9,11 @@ export interface NativeProps extends ViewProps {
   contextId: Int32;
   opaque?: WithDefault<boolean, true>;
   androidSurfaceType?: WithDefault<
-    "auto" | "SurfaceView" | "TextureView" | "HardwareBufferView",
+    | "auto"
+    | "SurfaceView"
+    | "TextureView"
+    | "HardwareBufferView"
+    | "SurfaceControlView",
     "auto"
   >;
   androidZOrderOnTop?: WithDefault<boolean, false>;
