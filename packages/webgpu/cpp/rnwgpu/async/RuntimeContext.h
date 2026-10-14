@@ -46,7 +46,7 @@ namespace rnwgpu::async {
  * thread via that runtime's CallInvoker, which is wired only for the MAIN JS
  * runtime (callInvoker()). A device created on a worklet runtime has no
  * invoker, so its device.lost is best-effort and may never fire. See the
- * README "Threading model" section. The keepPumping=false path in postTask is
+ * Threading page of the docs (apps/docs). The keepPumping=false path in postTask is
  * currently unused; it remains for tasks that settle without Dawn's pump.
  *
  * Shared-instance safety (mailbox): multiple runtimes may share one

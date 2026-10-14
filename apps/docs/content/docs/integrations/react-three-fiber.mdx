@@ -118,7 +118,7 @@ export const Fiber = () => (
 | ----- | ------ |
 | **Presentation** | Same as raw Three.js - R3F never calls `present()` for you |
 | **Orbit controls** | Pointer events must attach to a wrapping `View`, not the Canvas - spread gesture handlers on the parent `View` that wraps `FiberCanvas` |
-| **Worklets** | Keep `GPUDevice` on the main thread if combining with worklets ([Worklets](/docs/integrations/worklets)) |
+| **Threading** | R3F's render loop (`useFrame`) runs on the JS thread, so the renderer, the device and the context stay there. Running Three.js on a worklet runtime needs [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/) and a hand-written loop ([Threading](/docs/getting-started/threading#threejs-and-other-libraries)) |
 | **Model loading** | GLTF needs `resolveAssetSource` polyfill ([Expo setup](/docs/getting-started/expo)) |
 | **Effect deps** | `FiberCanvas` runs setup in `useEffect` without deps - remount the component to rebuild the GL context |
 

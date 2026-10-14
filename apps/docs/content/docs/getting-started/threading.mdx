@@ -1,0 +1,155 @@
+---
+title: Threading
+description: Where your WebGPU code runs, and how to move it off the JS thread.
+---
+
+By default, your WebGPU code runs on the **JS thread**, next to React. Nothing to set up: request a device, get a context from a [`Canvas`](/docs/getting-started/canvas), and drive your frame loop with `requestAnimationFrame`.
+
+When the JS thread is busy (React re-renders, navigation, data fetching), a frame loop that lives there stutters. With [React Native Worklets](https://github.com/margelo/react-native-worklets) you can move the rendering to the **UI runtime** or to a **dedicated worklet runtime** instead. The WebGPU API is the same on every runtime: you write the frame once and choose where it runs.
+
+## The three runtimes
+
+| | JS thread | UI runtime | Dedicated worklet runtime |
+| --- | --- | --- | --- |
+| How to run code there | the default | `runOnUI(fn)` | `runOnRuntime(createWorkletRuntime(), fn)` |
+| Shares the thread with | React, your app logic | Reanimated animations and gestures | nothing, you own it |
+| `requestAnimationFrame` | native frame callback | native frame callback | polyfill, polled every 16 ms |
+| Needs `installWebGPU()` | no | yes | yes |
+| `device.lost`, `uncapturederror` | delivered | not delivered | not delivered |
+| Blocked by a busy JS thread | yes | no | no |
+
+A [Vision Camera](/docs/integrations/vision-camera) frame processor is a dedicated worklet runtime too, except that the camera drives it: it calls your worklet once per frame, so you render and present inside it without a loop of your own.
+
+**Which one should I pick?**
+
+- **JS thread** when the scene is simple, when you use [Three.js](/docs/integrations/three-js) or [React Three Fiber](/docs/integrations/react-three-fiber) without [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/), or when you need `device.lost` and `uncapturederror`.
+- **UI runtime** when the frame reacts to gestures or Reanimated shared values: you read them synchronously, with no bridge hop, and the frame callback is driven by the display refresh. Keep frames short, since a slow frame also delays Reanimated's animations.
+- **Dedicated worklet runtime** for heavy or long-running work (simulations, compute passes, GPU readbacks, ML inference) that must not compete with React or with animations. `requestAnimationFrame` there is a timer polyfill rather than a vsync signal, so use it for loops that do not need to be frame accurate, or drive the loop yourself with `setTimeout`.
+
+## The rules
+
+1. **Mount the `Canvas` and call `getContext("webgpu")` on the JS thread.** Both need the React ref and the layout. Pass the resulting context into the worklet.
+2. **Create the device on the JS thread, then hand it over.** This is the recommended pattern. `device.lost` and `uncapturederror` are only delivered for devices created on the JS thread, and creating it there keeps the two spontaneous events observable. (`requestAdapter()` and `requestDevice()` do work on a worklet runtime, but a device created there has no device events.)
+3. **Any WebGPU object can cross into a worklet.** Devices, contexts, pipelines, buffers, textures, bind groups, the `RNWebGPU` object: the Worklets serializer passes them **by reference**, no copy, through function arguments or the worklet closure. Plain values follow the usual Worklets rules (copied when the worklet is created).
+4. **Call `installWebGPU()` at the top of the worklet.** Worklet runtimes start without `navigator.gpu`, `RNWebGPU` and the flag constants (`GPUBufferUsage`, `GPUTextureUsage`, ...). [`installWebGPU()`](/api/install-webgpu) adds them to the runtime that calls it, and is a no-op on the JS thread. Alternatively, import the constants from `react-native-webgpu` and let the closure capture them.
+5. **Encode, submit and present on the same runtime.** Create the `GPUCommandEncoder` on the runtime that uses it, and call `context.present()` right after `device.queue.submit()` on that runtime. A given canvas context belongs to one runtime: do not call `configure()`, `getCurrentTexture()` or `present()` on it from two places.
+6. **Promises settle where they were created.** `mapAsync()`, `onSubmittedWorkDone()`, `createRenderPipelineAsync()`, `popErrorScope()` and friends resolve on the runtime that called them, even for a device created on the JS thread. Each runtime pumps its own events, so a readback awaited on a worklet keeps resolving while the JS thread is busy.
+
+## A render loop on a worklet
+
+The full pattern: set up on the JS thread, render on the UI runtime, stop on unmount. A Reanimated shared value carries the stop flag across runtimes.
+
+```tsx
+import { useEffect, useRef } from "react";
+import { StyleSheet, View } from "react-native";
+import { runOnUI, useSharedValue } from "react-native-reanimated";
+import { Canvas, installWebGPU, useDevice, type CanvasRef, type RNCanvasContext } from "react-native-webgpu";
+import type { SharedValue } from "react-native-reanimated";
+
+const renderLoop = (
+  running: SharedValue<boolean>,
+  device: GPUDevice,
+  context: RNCanvasContext,
+  format: GPUTextureFormat,
+) => {
+  "worklet";
+  installWebGPU();
+
+  context.configure({ device, format, alphaMode: "opaque" });
+  const pipeline = device.createRenderPipeline({ /* ... */ });
+
+  const frame = () => {
+    if (!running.value) {
+      return;
+    }
+    const encoder = device.createCommandEncoder();
+    const pass = encoder.beginRenderPass({
+      colorAttachments: [{
+        view: context.getCurrentTexture().createView(),
+        clearValue: [0, 0, 0, 1],
+        loadOp: "clear",
+        storeOp: "store",
+      }],
+    });
+    pass.setPipeline(pipeline);
+    pass.draw(3);
+    pass.end();
+    device.queue.submit([encoder.finish()]);
+    context.present();
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+};
+
+export function Scene() {
+  const ref = useRef<CanvasRef>(null);
+  const { device } = useDevice();
+  const running = useSharedValue(true);
+
+  useEffect(() => {
+    if (!device) {
+      return;
+    }
+    const context = ref.current?.getContext("webgpu");
+    if (!context) {
+      return;
+    }
+    running.value = true;
+    const format = navigator.gpu.getPreferredCanvasFormat();
+    runOnUI(renderLoop)(running, device, context, format);
+    return () => {
+      running.value = false;
+    };
+  }, [device, running]);
+
+  return (
+    <View style={{ flex: 1 }}>
+      <Canvas ref={ref} style={StyleSheet.absoluteFill} />
+    </View>
+  );
+}
+```
+
+To run the same loop on a dedicated runtime, create one and replace `runOnUI`:
+
+```tsx
+import { createWorkletRuntime, runOnRuntime } from "react-native-worklets";
+
+const runtime = createWorkletRuntime({ name: "webgpu" });
+runOnRuntime(runtime, renderLoop)(running, device, context, format);
+```
+
+Keep the runtime in a `useMemo` or a module-level variable: each `createWorkletRuntime()` call starts a new thread.
+
+### Sending data in and out
+
+- **Into the frame:** Reanimated shared values are readable from any runtime and are the natural way to feed gestures, scroll positions or React state into a running loop. Values captured by the closure are copied once when the worklet crosses, so a captured number never updates.
+- **Out of the frame:** `scheduleOnRN()` (`runOnJS()` in Reanimated) schedules a function on the JS thread, for example to hand back the result of a readback or to report an error. Pass plain data rather than WebGPU objects or `Error` instances.
+- **Between the two runtimes, synchronously:** nothing. Each runtime has its own call stack; what crosses is scheduled, not called.
+
+## Thread safety
+
+Dawn's native API is not thread-safe on its own. To make "create the device on the JS thread, render from a worklet" safe, `requestDevice()` enables Dawn's [`implicit-device-synchronization`](https://dawn.googlesource.com/dawn/+/refs/heads/main/docs/dawn/features/implicit_device_synchronization.md) feature by default. It guards the device and its child objects (buffers, textures, queue, pipelines) with a per-device mutex, so one device can be used from several runtimes.
+
+This is coarse-grained locking, not a license for arbitrary concurrency. Prefer a clear ownership model: set resources up on one runtime, render on another, and keep simultaneous use of one device from several runtimes to a minimum. In particular:
+
+- **Never share a command encoder across runtimes.** Command encoding is excluded from the synchronization; create the `GPUCommandEncoder` and its pass encoders on the runtime that uses them.
+- **Keep a canvas context on one runtime** (rule 5 above).
+- Dawn describes the feature as heavy-handed and notes that some reentrancy cases may still deadlock, so treat heavy cross-runtime churn on one device as unsupported territory.
+
+The feature is reported in `device.features`. A device that only ever lives on one runtime can opt out with the non-standard `implicitDeviceSynchronization: false` descriptor flag, which skips the per-call locking; such a device must never be handed to a worklet. See [Native Extensions](/api/gpu-device-extensions#implicitdevicesynchronization).
+
+<Callout type="warn" title="device.lost and uncapturederror">
+These two spontaneous events are only delivered for devices created on the JS thread. On a device created on a worklet runtime, `device.lost` never settles (unless the device is already lost when you read it) and `uncapturederror` listeners never fire. Request-style errors are unaffected: a rejected `requestDevice()` or `mapAsync()` rejects on whichever runtime called it.
+</Callout>
+
+## Three.js and other libraries
+
+A worklet can only call code the Worklets Babel plugin compiled into it, so a library like Three.js cannot be used from a worklet out of the box. Worklets' [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/) lifts that restriction by loading the whole bundle on the worklet runtime; with it, complex Three.js scenes run on the UI runtime or on a dedicated thread (see the [Bundle Mode showcase](https://github.com/software-mansion-labs/Bundle-Mode-showcase-app)). React Three Fiber drives its own loop from React on the JS thread and stays there.
+
+## See also
+
+- [Worklets](/docs/integrations/worklets) - installing react-native-worklets and the minimal worklet example
+- [installWebGPU](/api/install-webgpu) - the globals a worklet runtime needs
+- [Vision Camera](/docs/integrations/vision-camera) - rendering from a frame processor
+- [Native Extensions](/api/gpu-device-extensions#implicitdevicesynchronization) - the `implicitDeviceSynchronization` flag
