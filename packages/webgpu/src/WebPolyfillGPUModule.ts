@@ -7,7 +7,8 @@ function getNativeSurface(contextId: number) {
     contextIdToId(contextId),
   ) as HTMLCanvasElement;
 
-  const { height, width } = canvas.getBoundingClientRect()!;
+  // The layout size; getBoundingClientRect() would include CSS transforms.
+  const { clientHeight: height, clientWidth: width } = canvas;
 
   return {
     surface: BigInt(contextId),
@@ -24,18 +25,16 @@ function getNativeSurface(contextId: number) {
   };
 }
 
-function makeWebGPUCanvasContext(
-  contextId: number,
-  width: number,
-  height: number,
-) {
+// Sized from the canvas element's own layout size (clientWidth/clientHeight,
+// which exclude CSS transforms), not from the size Canvas passes in.
+function makeWebGPUCanvasContext(contextId: number) {
   const canvas = document.getElementById(
     contextIdToId(contextId),
   ) as HTMLCanvasElement;
 
   const dpr = window.devicePixelRatio || 1;
-  const pixelWidth = (width * dpr).toString();
-  const pixelHeight = (height * dpr).toString();
+  const pixelWidth = (canvas.clientWidth * dpr).toString();
+  const pixelHeight = (canvas.clientHeight * dpr).toString();
 
   if (
     canvas.getAttribute("width") !== pixelWidth ||

@@ -7,7 +7,8 @@ import {
   PixelRatio,
   findNodeHandle,
 } from "react-native";
-import { GPUOffscreenCanvas } from "react-native-webgpu";
+import { Canvas, GPUOffscreenCanvas } from "react-native-webgpu";
+import type { CanvasRef } from "react-native-webgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
 import { useClient } from "./useClient";
@@ -24,6 +25,7 @@ const { width } = Dimensions.get("window");
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 const PROBE_SIZE = 64;
 const QUADRANT = PROBE_SIZE / 2;
+const SCALED_CANVAS_SIZE = { width: 64, height: 32 };
 
 export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   const [texture, setTexture] = useState<GPUTexture | null>(null);
@@ -33,6 +35,15 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   // A fixed native view the drawElementImageToTexture spec snapshots: four
   // 32x32pt solid quadrants (red, lime, blue, white), 64x64pt in total.
   const probeRef = useRef<View>(null);
+  // The Canvas spec measures this canvas, drawn at half its layout size, and
+  // re-renders the screen to check that it keeps its ref handle.
+  const scaledCanvasRef = useRef<CanvasRef>(null);
+  const [renderRequests, setRenderRequests] = useState(0);
+  const renderCommitted = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    renderCommitted.current?.();
+    renderCommitted.current = null;
+  }, [renderRequests]);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -120,6 +131,13 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                   probe: findNodeHandle(probeRef.current),
                   probeSize: PROBE_SIZE,
                   pixelRatio: PixelRatio.get(),
+                  scaledCanvas: () => scaledCanvasRef.current,
+                  scaledCanvasSize: SCALED_CANVAS_SIZE,
+                  rerender: () =>
+                    new Promise<void>((resolve) => {
+                      renderCommitted.current = resolve;
+                      setRenderRequests((requests) => requests + 1);
+                    }),
                 },
                 workletDeviceStress,
                 workletSerialization,
@@ -213,6 +231,10 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
           }}
         />
       </View>
+      <Canvas
+        ref={scaledCanvasRef}
+        style={{ ...SCALED_CANVAS_SIZE, transform: [{ scale: 0.5 }] }}
+      />
       <Texture
         texture={texture}
         device={device}

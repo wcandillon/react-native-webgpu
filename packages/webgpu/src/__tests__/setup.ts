@@ -11,6 +11,7 @@ import { mat4, vec3, mat3 } from "wgpu-matrix";
 import type { Server, WebSocket } from "ws";
 import type { Browser, Page } from "puppeteer";
 
+import type { CanvasRef } from "../Canvas";
 import type { GPUOffscreenCanvas } from "../Offscreen";
 
 import { cubeVertexArray } from "./components/cube";
@@ -72,11 +73,16 @@ interface GPUTestingContext {
   };
   // Native app harness only: a mounted probe view for the
   // drawElementImageToTexture spec (its React tag, its size in points and the
-  // device pixel ratio). See apps/example/src/Tests.tsx.
+  // device pixel ratio), and for the Canvas spec a canvas drawn at half its
+  // layout size, that layout size, and a re-render of the screen that
+  // resolves once committed. See apps/example/src/Tests.tsx.
   views?: {
     probe: number | null;
     probeSize: number;
     pixelRatio: number;
+    scaledCanvas: () => CanvasRef | null;
+    scaledCanvasSize: { width: number; height: number };
+    rerender: () => Promise<void>;
   };
   mat4: typeof mat4;
   vec3: typeof vec3;
