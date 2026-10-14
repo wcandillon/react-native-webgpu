@@ -54,6 +54,22 @@ interface GPUTestingContext {
   workletDeviceStress?: (
     device: GPUDevice,
   ) => Promise<{ jsOk: boolean; workletOk: boolean }>;
+  // Native app harness only: helpers for the worklet serializer spec
+  // (WorkletSerialization.spec.ts), see
+  // apps/example/src/components/workletSerialization.ts.
+  workletSerialization?: {
+    foreignNativeStateObject: () => object;
+    roundTripBuffer: (buffer: GPUBuffer) => Promise<{
+      size: number;
+      label: string;
+      isGPUBuffer: boolean;
+      sameObjectBack: boolean;
+      error?: string;
+    }>;
+    captureForeign: (
+      value: object,
+    ) => Promise<{ threw: boolean; message: string; typeOnWorklet: string }>;
+  };
   // Native app harness only: a mounted probe view for the
   // drawElementImageToTexture spec (its React tag, its size in points and the
   // device pixel ratio). See apps/example/src/Tests.tsx.

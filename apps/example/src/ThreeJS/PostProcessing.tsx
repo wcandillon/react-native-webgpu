@@ -57,14 +57,14 @@ export const PostProcessing = () => {
     renderer.setAnimationLoop(animate);
     renderer.toneMapping = THREE.NeutralToneMapping;
     renderer.toneMappingExposure = 0.3;
-    const postProcessing = new THREE.PostProcessing(renderer);
+    const renderPipeline = new THREE.RenderPipeline(renderer);
 
     const scenePass = pass(scene, camera);
     const scenePassColor = scenePass.getTextureNode("output");
 
     const bloomPass = bloom(scenePassColor);
 
-    postProcessing.outputNode = scenePassColor.add(bloomPass);
+    renderPipeline.outputNode = scenePassColor.add(bloomPass);
 
     function animate() {
       timer.update();
@@ -73,7 +73,7 @@ export const PostProcessing = () => {
       if (mixer) {
         mixer.update(delta);
       }
-      postProcessing.render();
+      renderPipeline.render();
       context.present();
     }
     return () => {

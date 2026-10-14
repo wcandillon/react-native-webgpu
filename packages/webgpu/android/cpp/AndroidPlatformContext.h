@@ -131,15 +131,6 @@ public:
     }
   }
 
-  wgpu::Surface makeSurface(wgpu::Instance instance, void *window, int width,
-                            int height) override {
-    wgpu::SurfaceSourceAndroidNativeWindow androidSurfaceDesc;
-    androidSurfaceDesc.window = reinterpret_cast<ANativeWindow *>(window);
-    wgpu::SurfaceDescriptor surfaceDescriptor;
-    surfaceDescriptor.nextInChain = &androidSurfaceDesc;
-    return instance.CreateSurface(&surfaceDescriptor);
-  }
-
   ImageData createImageBitmap(std::string blobId, double offset,
                               double size) override {
     jni::Environment::ensureCurrentThreadIsAttached();

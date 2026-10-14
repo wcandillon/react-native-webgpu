@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "EnforceRange.h"
 #include "JSICache.h"
 #include "WGPULogger.h"
 
@@ -32,6 +33,22 @@ namespace jsi = facebook::jsi;
 
 // Forward declaration
 template <typename Derived> class NativeObject;
+
+/**
+ * Non-template base of every NativeObject. It is what lets code that does not
+ * know the concrete class (the worklet serializer helper below) tell a WebGPU
+ * object from any other object carrying jsi::NativeState, and read its brand.
+ */
+class NativeObjectBase : public jsi::NativeState {
+public:
+  /** The class brand (Derived::CLASS_NAME), e.g. "GPUBuffer". */
+  const char *getClassName() const { return _name; }
+
+protected:
+  explicit NativeObjectBase(const char *name) : _name(name) {}
+
+  const char *_name;
+};
 
 /**
  * Registry mapping a NativeObject class brand (CLASS_NAME) to a reconstructor
@@ -92,8 +109,9 @@ private:
  * - The NativeState from the original object
  * - The brand name for prototype reconstruction
  *
- * Usage pattern with registerCustomSerializable:
- * - pack(): Call WebGPU.box(obj) to create a BoxedWebGPUObject (HostObject)
+ * Usage pattern with registerCustomSerializable (see
+ * src/external/reanimated/registerWebGPUForReanimated.ts):
+ * - pack(): WebGPUWorkletHelpers::box(obj) creates a BoxedWebGPUObject
  * - The HostObject is serialized by Worklets and transferred to UI runtime
  * - unpack(): Call boxed.unbox() to get the object's wrapper on that runtime
  *   (cached per runtime, see NativeObject::create), prototype included
@@ -150,6 +168,75 @@ private:
 };
 
 /**
+ * The native half of the worklet serializer registered in
+ * src/external/reanimated/registerWebGPUForReanimated.ts:
+ *
+ * - isNativeObject(value): true only for objects whose NativeState is a
+ *   NativeObjectBase. Other native-state objects (Skia objects, worklets' own
+ *   serializable refs) and objects that merely inherit from a WebGPU prototype
+ *   (Object.create(device)) are rejected, and no JS property is ever read, so
+ *   getters and Proxy traps of unrelated objects never run.
+ * - box(value): wraps the object into a BoxedWebGPUObject, branded with its
+ *   class name, for unbox() on the target runtime.
+ *
+ * One instance is installed on the main runtime as
+ * globalThis.__webgpuWorkletHelpers and captured by the serializer's
+ * determine/pack worklets. Worklets hands a HostObject to every runtime by
+ * reference, so the helper is available wherever a WebGPU object gets captured
+ * (Reanimated UI runtime, createWorkletRuntime, Vision Camera frame
+ * processors) without installing anything on those runtimes.
+ */
+class WebGPUWorkletHelpers : public jsi::HostObject {
+public:
+  jsi::Value get(jsi::Runtime &runtime, const jsi::PropNameID &name) override {
+    auto propName = name.utf8(runtime);
+    if (propName == "isNativeObject") {
+      return jsi::Function::createFromHostFunction(
+          runtime, name, 1,
+          [](jsi::Runtime &rt, const jsi::Value & /*thisVal*/,
+             const jsi::Value *args, size_t count) -> jsi::Value {
+            return jsi::Value(
+                count > 0 && args[0].isObject() &&
+                args[0].getObject(rt).hasNativeState<NativeObjectBase>(rt));
+          });
+    }
+    if (propName == "box") {
+      return jsi::Function::createFromHostFunction(
+          runtime, name, 1,
+          [](jsi::Runtime &rt, const jsi::Value & /*thisVal*/,
+             const jsi::Value *args, size_t count) -> jsi::Value {
+            if (count < 1 || !args[0].isObject()) {
+              throw jsi::JSError(rt, "box() expects a WebGPU object");
+            }
+            auto obj = args[0].getObject(rt);
+            if (!obj.hasNativeState<NativeObjectBase>(rt)) {
+              throw jsi::JSError(rt, "box() expects a WebGPU object");
+            }
+            auto state = obj.getNativeState<NativeObjectBase>(rt);
+            return jsi::Object::createFromHostObject(
+                rt, std::make_shared<BoxedWebGPUObject>(state,
+                                                        state->getClassName()));
+          });
+    }
+    return jsi::Value::undefined();
+  }
+
+  void set(jsi::Runtime &runtime, const jsi::PropNameID & /*name*/,
+           const jsi::Value & /*value*/) override {
+    throw jsi::JSError(runtime, "__webgpuWorkletHelpers is read-only");
+  }
+
+  std::vector<jsi::PropNameID>
+  getPropertyNames(jsi::Runtime &runtime) override {
+    std::vector<jsi::PropNameID> names;
+    names.reserve(2);
+    names.push_back(jsi::PropNameID::forUtf8(runtime, "isNativeObject"));
+    names.push_back(jsi::PropNameID::forUtf8(runtime, "box"));
+    return names;
+  }
+};
+
+/**
  * Base class for native objects using the NativeState pattern.
  *
  * Instead of using HostObject (which intercepts all property access),
@@ -178,7 +265,7 @@ private:
  * ```
  */
 template <typename Derived>
-class NativeObject : public jsi::NativeState,
+class NativeObject : public NativeObjectBase,
                      public std::enable_shared_from_this<Derived> {
 public:
   // Marker type for SFINAE detection in JSIConverter
@@ -450,7 +537,7 @@ public:
   jsi::Runtime *getCreationRuntime() const { return _creationRuntime; }
 
 protected:
-  explicit NativeObject(const char *name) : _name(name) {
+  explicit NativeObject(const char *name) : NativeObjectBase(name) {
 #if DEBUG && RNF_ENABLE_LOGS
     Logger::logToConsole("NativeObject", "(MEMORY) Creating %s... ✅", _name);
 #endif
@@ -462,12 +549,29 @@ protected:
 #endif
   }
 
-  const char *_name;
   jsi::Runtime *_creationRuntime = nullptr;
 
   // ============================================================
   // Helper methods for definePrototype() implementations
   // ============================================================
+
+  /**
+   * Runs a host function body, turning a RangeTypeError (a JS number outside
+   * its WebIDL [EnforceRange] integer range, see EnforceRange.h) into a JS
+   * TypeError, as browsers throw for the same input. Everything else
+   * propagates unchanged.
+   */
+  template <typename Body>
+  static jsi::Value withWebIDLConversions(jsi::Runtime &runtime, Body &&body) {
+    try {
+      return body();
+    } catch (const RangeTypeError &error) {
+      auto typeError = runtime.global().getPropertyAsFunction(runtime, "TypeError");
+      throw jsi::JSError(runtime,
+                         typeError.callAsConstructor(
+                             runtime, jsi::String::createFromUtf8(runtime, error.what())));
+    }
+  }
 
   /**
    * Install a method on the prototype.
@@ -481,8 +585,10 @@ protected:
         [method](jsi::Runtime &rt, const jsi::Value &thisVal,
                  const jsi::Value *args, size_t count) -> jsi::Value {
           auto native = Derived::fromValue(rt, thisVal);
-          return callMethod(native.get(), method, rt, args,
-                            std::index_sequence_for<Args...>{}, count);
+          return withWebIDLConversions(rt, [&] {
+            return callMethod(native.get(), method, rt, args,
+                              std::index_sequence_for<Args...>{}, count);
+          });
         });
     prototype.setProperty(runtime, name, func);
   }
@@ -503,9 +609,11 @@ protected:
         [method](jsi::Runtime &rt, const jsi::Value &thisVal,
                  const jsi::Value *args, size_t count) -> jsi::Value {
           auto native = Derived::fromValue(rt, thisVal);
-          return callMethodWithRuntime(native.get(), method, rt, args,
-                                       std::index_sequence_for<Args...>{},
-                                       count);
+          return withWebIDLConversions(rt, [&] {
+            return callMethodWithRuntime(native.get(), method, rt, args,
+                                         std::index_sequence_for<Args...>{},
+                                         count);
+          });
         });
     prototype.setProperty(runtime, name, func);
   }
@@ -563,10 +671,12 @@ protected:
             throw jsi::JSError(rt, "Setter requires a value argument");
           }
           auto native = Derived::fromValue(rt, thisVal);
-          auto value =
-              rnwgpu::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
-          (native.get()->*setter)(std::move(value));
-          return jsi::Value::undefined();
+          return withWebIDLConversions(rt, [&] {
+            auto value =
+                rnwgpu::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
+            (native.get()->*setter)(std::move(value));
+            return jsi::Value::undefined();
+          });
         });
 
     // Use Object.defineProperty to create a proper setter
@@ -624,10 +734,12 @@ protected:
             throw jsi::JSError(rt, "Setter requires a value argument");
           }
           auto native = Derived::fromValue(rt, thisVal);
-          auto value =
-              rnwgpu::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
-          (native.get()->*setter)(std::move(value));
-          return jsi::Value::undefined();
+          return withWebIDLConversions(rt, [&] {
+            auto value =
+                rnwgpu::JSIConverter<std::decay_t<ValueType>>::fromJSI(rt, args[0], false);
+            (native.get()->*setter)(std::move(value));
+            return jsi::Value::undefined();
+          });
         });
 
     auto objectCtor = runtime.global().getPropertyAsObject(runtime, "Object");

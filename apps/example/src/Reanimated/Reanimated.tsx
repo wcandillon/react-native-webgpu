@@ -91,7 +91,7 @@ export const webGPUDemo = (
 };
 
 interface ReanimatedExampleProps {
-  // Schedules the worklet on a given runtime (e.g. runOnUI for the UI thread,
+  // Schedules the worklet on a given runtime (e.g. scheduleOnUI for the UI thread,
   // or runOnRuntime(runtime, ...) for a dedicated worklet runtime).
   run: (
     worklet: typeof webGPUDemo,

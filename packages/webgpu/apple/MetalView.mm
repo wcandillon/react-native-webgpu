@@ -1,4 +1,5 @@
 #import "MetalView.h"
+#import "WebGPURuntime.h"
 #import "webgpu/webgpu_cpp.h"
 
 @implementation MetalView {
@@ -32,9 +33,9 @@
   // dealloc runs. Balanced by the releaser below.
   void *nativeSurface = (void *)CFBridgingRetain(self.layer);
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
-  auto gpu = manager->_gpu;
-  auto surface = manager->_platformContext->makeSurface(
-      gpu, nativeSurface, size.width, size.height);
+  auto &runtime = rnwgpu::WebGPURuntime::shared();
+  auto gpu = runtime.instance();
+  auto surface = runtime.makeSurface(nativeSurface);
   // Find-or-create + attach runs atomically under the registry lock so a
   // concurrent destroyContext cannot orphan this surface.
   auto info = registry.attachSurface(

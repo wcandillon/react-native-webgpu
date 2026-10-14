@@ -142,8 +142,6 @@ public:
                             std::function<void(ImageData)> onSuccess,
                             std::function<void(std::string)> onError) = 0;
 
-  virtual wgpu::Surface makeSurface(wgpu::Instance instance, void *surface,
-                                    int width, int height) = 0;
   virtual ImageData createImageBitmap(std::string blobId, double offset,
                                       double size) = 0;
 
