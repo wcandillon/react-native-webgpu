@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <string>
 
+#include "DestroyedError.h"
+
 #if defined(__ANDROID__)
 #include <fcntl.h>
 #endif
@@ -32,10 +34,30 @@ std::string sharedFenceTypeToString(wgpu::SharedFenceType type) {
   }
 }
 
+// Dawn reports a fence it can't export (an invalid one) as a validation error
+// and leaves the type at 0. Fail the call too, like a destroyed fence does,
+// rather than returning a record with no type and no handle.
+void throwIfNotExported(jsi::Runtime &runtime,
+                        const wgpu::SharedFenceExportInfo &info) {
+  if (info.type == wgpu::SharedFenceType(0)) {
+    throw jsi::JSError(runtime, "GPUSharedFence::export() failed");
+  }
+}
+
 } // namespace
+
+void GPUSharedFence::injectDestroyedError(const char *method) {
+  reportDestroyedUse(_device, CLASS_NAME, _label, method);
+}
 
 jsi::Value GPUSharedFence::exportInfo(jsi::Runtime &runtime, const jsi::Value &,
                                       const jsi::Value *, size_t) {
+  // Fails like an export Dawn rejects: a validation error, then the throw.
+  if (!_instance) {
+    injectDestroyedError("export");
+    throw jsi::JSError(runtime,
+                       "GPUSharedFence::export(): the fence was destroyed");
+  }
   wgpu::SharedFenceExportInfo info{};
   uint64_t handle = 0;
 
@@ -44,25 +66,30 @@ jsi::Value GPUSharedFence::exportInfo(jsi::Runtime &runtime, const jsi::Value &,
   wgpu::SharedFenceMTLSharedEventExportInfo mtlInfo{};
   info.nextInChain = &mtlInfo;
   _instance.ExportInfo(&info);
+  throwIfNotExported(runtime, info);
   handle = reinterpret_cast<uint64_t>(mtlInfo.sharedEvent);
 #elif defined(__ANDROID__)
-  // Android: the handle is an OS file descriptor (sync_fd). Dawn's ExportInfo returns a BORROWED fd — it is
-  // owned by the SharedFence and closed when the fence is destroyed. This exported handle is documented as
-  // caller-owned (the caller must close() it), so dup() it. Without the dup the same fd is closed twice —
-  // once by the caller and once by Dawn on fence destruction — tripping Android's fdsan (double-close abort).
+  // Android: the handle is an OS file descriptor (sync_fd). Dawn's ExportInfo
+  // returns a BORROWED fd — it is owned by the SharedFence and closed when the
+  // fence is destroyed. This exported handle is documented as caller-owned (the
+  // caller must close() it), so dup() it. Without the dup the same fd is closed
+  // twice — once by the caller and once by Dawn on fence destruction — tripping
+  // Android's fdsan (double-close abort).
   wgpu::SharedFenceSyncFDExportInfo fdInfo{};
   info.nextInChain = &fdInfo;
   _instance.ExportInfo(&info);
-  int exportedFd =
-      fdInfo.handle >= 0 ? ::fcntl(fdInfo.handle, F_DUPFD_CLOEXEC, 0) : fdInfo.handle;
+  throwIfNotExported(runtime, info);
+  int exportedFd = fdInfo.handle >= 0
+                       ? ::fcntl(fdInfo.handle, F_DUPFD_CLOEXEC, 0)
+                       : fdInfo.handle;
   handle = static_cast<uint64_t>(static_cast<uint32_t>(exportedFd));
 #else
-// react-native-webgpu only targets Apple (Metal) and Android (Vulkan). On any
-// other platform there is no native handle convention to expose, so fail loudly
-// rather than handing back a meaningless handle of 0.
-throw jsi::JSError(runtime,
-                    "GPUSharedFence::export(): unsupported platform (only "
-                    "Apple/Metal and Android/Vulkan are supported)");
+  // react-native-webgpu only targets Apple (Metal) and Android (Vulkan). On any
+  // other platform there is no native handle convention to expose, so fail
+  // loudly rather than handing back a meaningless handle of 0.
+  throw jsi::JSError(runtime,
+                     "GPUSharedFence::export(): unsupported platform (only "
+                     "Apple/Metal and Android/Vulkan are supported)");
 #endif
 
   jsi::Object result(runtime);

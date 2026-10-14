@@ -30,31 +30,60 @@ memory.beginAccess(texture, /* initialized */ true);
 memory.endAccess(texture);
 
 texture.destroy();
+memory.destroy();
 frame.release();
 ```
 
 Use `beginAccess(texture, true)` when the producer has already written pixels (typical for video/camera).
 
+`memory.destroy()` releases the import right away rather than when the object is garbage collected, which can take a while on a runtime importing a frame per vsync. End the access and destroy the textures created from it first: destroying during an access is a validation error, and so is using the memory afterwards.
+
 ## importSharedFence
 
 Import native GPU sync fences for producer/consumer handoff:
 
-```tsx
-// Producer side: export a fence after GPU work
-const exported = sharedFence.export();
+```tsx twoslash
+import type {
+  GPUSharedFenceExportInfo,
+  GPUSharedFenceType,
+  GPUSharedTextureMemory,
+  NativeVideoFrame,
+} from "react-native-webgpu";
+declare const device: GPUDevice;
+declare const memory: GPUSharedTextureMemory;
+declare const texture: GPUTexture;
+declare const frame: NativeVideoFrame;
+declare const ready: GPUSharedFenceExportInfo;
+// A native module of yours: waits for the fence, releases the frame and
+// closes the handle.
+declare function releaseFrameWhenSignaled(
+  frame: NativeVideoFrame,
+  type: GPUSharedFenceType,
+  handle: bigint,
+  signaledValue: bigint,
+): void;
+// ---cut---
+// Wait for the producer's GPU work before using the texture
+const fence = device.importSharedFence({ ...ready, label: "frame-ready" });
+// 1n for a sync fd, the event value for an MTLSharedEvent
+memory.beginAccess(texture, true, [{ fence, signaledValue: 1n }]);
+// beginAccess() keeps its own reference: release the fence right away
+fence.destroy();
 
-// Consumer side: import on another device or queue
-const imported = device.importSharedFence({
-  handle: exported.handle,
-  label: "frame-ready",
-});
+// … render using texture …
 
-// Wait for producer before sampling imported texture
-imported.wait(0);
-// … render using imported texture …
-imported.signal(0);
-imported.destroy();
+// Each fence signals once that GPU work is done. Export it only to hand it to
+// native code: the handle is a duplicate that code has to close, and there is
+// no JS API to close one. With no consumer, just destroy the fence.
+const { fences } = memory.endAccess(texture);
+for (const { fence: done, signaledValue } of fences) {
+  const { type, handle } = done.export();
+  releaseFrameWhenSignaled(frame, type, handle, signaledValue);
+  done.destroy();
+}
 ```
+
+`destroy()` releases a fence right away (on Android, the sync fd Dawn holds) rather than when the object is garbage collected. An exported handle is a duplicate, so it stays valid; using the fence afterwards is a validation error, and `export()` then throws.
 
 See `packages/webgpu/src/__tests__/SharedFence.spec.ts` for a full producer/consumer test.
 
