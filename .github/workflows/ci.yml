@@ -29,6 +29,8 @@ jobs:
       #   8081   4242         (React Native defaults, used by redraw)
       #   8082   4243         skia-ci     (react-native-skia)
       #   8083   4244         webgpu-ci   (this job)
+      #   8084   4245         skia-agent  (react-native-skia, agent.yml)
+      #   8085   4246         webgpu-agent (agent.yml)
       # RCT_METRO_PORT is compiled into the app by xcodebuild; E2E_PORT is
       # inlined into the JS bundle (useClient) and read by the jest
       # globalSetup, so the app and the test server agree on the port.
