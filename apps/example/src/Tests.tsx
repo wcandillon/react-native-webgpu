@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   Text,
@@ -8,6 +8,7 @@ import {
   findNodeHandle,
 } from "react-native";
 import {
+  Canvas,
   GPUOffscreenCanvas,
   // The flags as the package exports them, not the globals of the same name
   // (see the `exportedFlags` spec in Constants.spec.ts).
@@ -17,6 +18,7 @@ import {
   GPUShaderStage as exportedShaderStage,
   GPUTextureUsage as exportedTextureUsage,
 } from "react-native-webgpu";
+import type { CanvasRef } from "react-native-webgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
 import { useClient } from "./useClient";
@@ -33,6 +35,32 @@ const { width } = Dimensions.get("window");
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 const PROBE_SIZE = 64;
 const QUADRANT = PROBE_SIZE / 2;
+const SCALED_CANVAS_SIZE = { width: 64, height: 32 };
+
+// Re-renders the screen; each request resolves once a commit has rendered it,
+// so requests that share a commit all resolve.
+const useRerender = () => {
+  const [renderedRequest, setRenderedRequest] = useState(0);
+  const lastRequest = useRef(0);
+  const pendingRequests = useRef(new Map<number, () => void>());
+  useEffect(() => {
+    pendingRequests.current.forEach((resolve, request) => {
+      if (request <= renderedRequest) {
+        pendingRequests.current.delete(request);
+        resolve();
+      }
+    });
+  }, [renderedRequest]);
+  return useCallback(
+    () =>
+      new Promise<void>((resolve) => {
+        lastRequest.current += 1;
+        pendingRequests.current.set(lastRequest.current, resolve);
+        setRenderedRequest(lastRequest.current);
+      }),
+    [],
+  );
+};
 
 export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   const [texture, setTexture] = useState<GPUTexture | null>(null);
@@ -42,6 +70,10 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   // A fixed native view the drawElementImageToTexture spec snapshots: four
   // 32x32pt solid quadrants (red, lime, blue, white), 64x64pt in total.
   const probeRef = useRef<View>(null);
+  // The Canvas spec measures this canvas, drawn at half its layout size, and
+  // re-renders the screen to check that it keeps its ref handle.
+  const scaledCanvasRef = useRef<CanvasRef>(null);
+  const rerender = useRerender();
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -129,6 +161,9 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                   probe: findNodeHandle(probeRef.current),
                   probeSize: PROBE_SIZE,
                   pixelRatio: PixelRatio.get(),
+                  scaledCanvas: () => scaledCanvasRef.current,
+                  scaledCanvasSize: SCALED_CANVAS_SIZE,
+                  rerender,
                 },
                 workletDeviceStress,
                 workletSerialization,
@@ -178,7 +213,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
       };
     }
     return;
-  }, [adapter, client, device, di3D, moon, saturn]);
+  }, [adapter, client, device, di3D, moon, rerender, saturn]);
   if (setupError) {
     return (
       <View style={{ flex: 1, padding: 16, backgroundColor: "white" }}>
@@ -229,6 +264,10 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
           }}
         />
       </View>
+      <Canvas
+        ref={scaledCanvasRef}
+        style={{ ...SCALED_CANVAS_SIZE, transform: [{ scale: 0.5 }] }}
+      />
       <Texture
         texture={texture}
         device={device}

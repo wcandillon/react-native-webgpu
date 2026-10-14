@@ -11,6 +11,7 @@ import { mat4, vec3, mat3 } from "wgpu-matrix";
 import type { Server, WebSocket } from "ws";
 import type { Browser, Page } from "puppeteer";
 
+import type { CanvasRef } from "../Canvas";
 import type { GPUOffscreenCanvas } from "../Offscreen";
 
 import { cubeVertexArray } from "./components/cube";
@@ -81,11 +82,16 @@ interface GPUTestingContext {
   };
   // Native app harness only: a mounted probe view for the
   // drawElementImageToTexture spec (its React tag, its size in points and the
-  // device pixel ratio). See apps/example/src/Tests.tsx.
+  // device pixel ratio), and for the Canvas spec a canvas drawn at half its
+  // layout size, that layout size, and a re-render of the screen that
+  // resolves once a commit has rendered it. See apps/example/src/Tests.tsx.
   views?: {
     probe: number | null;
     probeSize: number;
     pixelRatio: number;
+    scaledCanvas: () => CanvasRef | null;
+    scaledCanvasSize: { width: number; height: number };
+    rerender: () => Promise<void>;
   };
   mat4: typeof mat4;
   vec3: typeof vec3;
@@ -912,6 +918,15 @@ export const checkImage = (
   return 0;
 };
 
+const NATIVE_APP: Record<TestOS, boolean> = {
+  ios: true,
+  android: true,
+  web: false,
+  node: false,
+};
+
+export const isNativeApp = () => NATIVE_APP[client.OS];
+
 export const itSkipsOnWeb = (name: string, fn: () => Promise<void>) => {
   it(name, async () => {
     if (client.OS === "web") {
@@ -932,7 +947,7 @@ export const itSkipsOnWeb = (name: string, fn: () => Promise<void>) => {
 // keep the inline form, which leaves the reference clients independent of that
 // server.
 export const fixtureUrl = (fileName: string): string => {
-  if (client.OS === "ios" || client.OS === "android") {
+  if (isNativeApp()) {
     return `http://${global.testHost}:${TEST_SERVER_PORT}/${fileName}`;
   }
   const p = path.resolve(__dirname, "assets", fileName);
