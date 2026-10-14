@@ -1284,6 +1284,7 @@ public:
   void removeSurfaceInfo(int id) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _registry.erase(id);
+    _retired.erase(id);
   }
 
   std::shared_ptr<SurfaceInfo>
@@ -1310,13 +1311,21 @@ public:
 
   // Erase the entry only if no native surface is attached or pending; the
   // atomic counterpart of attachSurface above (see RNWebGPU::destroyContext
-  // for the ownership split this implements).
+  // for the ownership split this implements). The SurfaceInfo is let go of,
+  // not forgotten: for as long as a GPUCanvasContext holds it, the next
+  // find-or-create for the id (the native view's attach, or another context)
+  // takes it over. React's StrictMode runs the Canvas cleanup once right after
+  // mount, before a lagging UI thread attached the surface, and the context
+  // the first effect run made stays in use; it would otherwise render into a
+  // SurfaceInfo no view ever attaches to.
   void removeSurfaceInfoIfDetached(int id) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     auto it = _registry.find(id);
     if (it == _registry.end() || it->second->hasNativeSurface()) {
       return;
     }
+    pruneRetiredLocked();
+    _retired[id] = it->second;
     _registry.erase(it);
   }
 
@@ -1350,6 +1359,7 @@ public:
   void clear() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _registry.clear();
+    _retired.clear();
   }
 
 private:
@@ -1363,12 +1373,28 @@ private:
     if (it != _registry.end()) {
       return it->second;
     }
-    auto info = std::make_shared<SurfaceInfo>(gpu, width, height);
+    // A retired entry whose GPUCanvasContext still holds the SurfaceInfo is
+    // owned again (see removeSurfaceInfoIfDetached).
+    std::shared_ptr<SurfaceInfo> info;
+    auto retired = _retired.find(id);
+    if (retired != _retired.end()) {
+      info = retired->second.lock();
+      _retired.erase(retired);
+    }
+    if (!info) {
+      info = std::make_shared<SurfaceInfo>(gpu, width, height);
+      // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
+      pruneAllSurfacesLocked();
+      _allSurfaces.push_back(info);
+    }
     _registry[id] = info;
-    // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
-    pruneAllSurfacesLocked();
-    _allSurfaces.push_back(info);
     return info;
+  }
+
+  void pruneRetiredLocked() {
+    for (auto it = _retired.begin(); it != _retired.end();) {
+      it = it->second.expired() ? _retired.erase(it) : ++it;
+    }
   }
 
   // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
@@ -1383,6 +1409,10 @@ private:
 
   mutable std::shared_mutex _mutex;
   std::unordered_map<int, std::shared_ptr<SurfaceInfo>> _registry;
+  // The entries JS retired while a GPUCanvasContext still held their
+  // SurfaceInfo (see removeSurfaceInfoIfDetached). Non-owning; pruned on
+  // every retire.
+  std::unordered_map<int, std::weak_ptr<SurfaceInfo>> _retired;
   // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
   // Every live SurfaceInfo, including the ones no longer in _registry.
   // Non-owning; pruned on insert and on every device destroy.

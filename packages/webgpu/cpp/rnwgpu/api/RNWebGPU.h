@@ -296,6 +296,9 @@ public:
   //   simulated unmount re-runs JS effects without unmounting native views,
   //   and removing the entry then would orphan the still-attached surface.
   // - No native surface: the JS side is the last owner and removes the entry.
+  //   The SurfaceInfo stays reachable by id for as long as a GPUCanvasContext
+  //   holds it, so a surface attaching after StrictMode's early cleanup still
+  //   lands in the context the first effect run made.
   // The check-and-erase runs atomically under the registry lock
   // (removeSurfaceInfoIfDetached), serialized against the UI thread's
   // find-or-create + attach (SurfaceRegistry::attachSurface), so a concurrent
