@@ -1325,7 +1325,11 @@ public:
       return;
     }
     pruneRetiredLocked();
-    _retired[id] = it->second;
+    if (it->second.use_count() > 1) {
+      // A GPUCanvasContext holds it: keep it reachable for the next
+      // find-or-create (see getSurfaceInfoOrCreateLocked).
+      _retired[id] = it->second;
+    }
     _registry.erase(it);
   }
 
