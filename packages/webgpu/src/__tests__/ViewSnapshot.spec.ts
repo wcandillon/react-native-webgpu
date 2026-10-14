@@ -1,4 +1,4 @@
-import { client } from "./setup";
+import { client, isNativeApp } from "./setup";
 
 // The harness mounts a 64x64pt probe view made of four solid quadrants
 // (apps/example/src/Tests.tsx): red top-left, lime top-right, blue
@@ -18,11 +18,9 @@ const expectColor = (actual: number[], expected: RGBA, tolerance = 3) => {
   });
 };
 
-const nativeOnly = () => client.OS === "ios" || client.OS === "android";
-
 describe("drawElementImageToTexture", () => {
   it("draws a native view at its natural pixel size", async () => {
-    if (!nativeOnly()) {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ device, views }) => {
@@ -75,7 +73,7 @@ describe("drawElementImageToTexture", () => {
   });
 
   it("scales the view to destination.size and honours origin", async () => {
-    if (!nativeOnly()) {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ device, views }) => {
@@ -143,7 +141,7 @@ describe("drawElementImageToTexture", () => {
   });
 
   it("crops to the source rectangle and swizzles into bgra8unorm", async () => {
-    if (!nativeOnly()) {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ device, views }) => {
@@ -205,7 +203,7 @@ describe("drawElementImageToTexture", () => {
   });
 
   it("rejects when the natural size does not fit the texture", async () => {
-    if (!nativeOnly()) {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ device, views }) => {
@@ -225,7 +223,7 @@ describe("drawElementImageToTexture", () => {
   });
 
   it("rejects an unknown view and an unsupported format", async () => {
-    if (!nativeOnly()) {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ device }) => {

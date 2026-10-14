@@ -1,13 +1,11 @@
-import { client } from "./setup";
+import { client, isNativeApp } from "./setup";
 
 // The harness mounts a canvas laid out at a known size and drawn at half that
 // size under a scale transform (apps/example/src/Tests.tsx).
 
-const nativeOnly = () => client.OS === "ios" || client.OS === "android";
-
 describe("Canvas", () => {
   it("sizes the context's canvas from its layout, not its transformed box", async () => {
-    if (!nativeOnly()) {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ views }) => {
@@ -27,7 +25,7 @@ describe("Canvas", () => {
   });
 
   it("keeps one ref handle across re-renders", async () => {
-    if (!nativeOnly()) {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ views }) => {
@@ -36,10 +34,12 @@ describe("Canvas", () => {
       }
       const { scaledCanvas, rerender } = views;
       const handle = scaledCanvas();
-      return rerender().then(() => ({
-        attached: handle !== null,
-        kept: scaledCanvas() === handle,
-      }));
+      return Promise.all([rerender(), rerender()])
+        .then(() => rerender())
+        .then(() => ({
+          attached: handle !== null,
+          kept: scaledCanvas() === handle,
+        }));
     });
     expect(result).toEqual({ attached: true, kept: true });
   });

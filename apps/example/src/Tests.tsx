@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   Text,
@@ -27,6 +27,31 @@ const PROBE_SIZE = 64;
 const QUADRANT = PROBE_SIZE / 2;
 const SCALED_CANVAS_SIZE = { width: 64, height: 32 };
 
+// Re-renders the screen; each request resolves once a commit has rendered it,
+// so requests that share a commit all resolve.
+const useRerender = () => {
+  const [renderedRequest, setRenderedRequest] = useState(0);
+  const lastRequest = useRef(0);
+  const pendingRequests = useRef(new Map<number, () => void>());
+  useEffect(() => {
+    pendingRequests.current.forEach((resolve, request) => {
+      if (request <= renderedRequest) {
+        pendingRequests.current.delete(request);
+        resolve();
+      }
+    });
+  }, [renderedRequest]);
+  return useCallback(
+    () =>
+      new Promise<void>((resolve) => {
+        lastRequest.current += 1;
+        pendingRequests.current.set(lastRequest.current, resolve);
+        setRenderedRequest(lastRequest.current);
+      }),
+    [],
+  );
+};
+
 export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   const [texture, setTexture] = useState<GPUTexture | null>(null);
   const [adapter, setAdapter] = useState<GPUAdapter | null>(null);
@@ -38,12 +63,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   // The Canvas spec measures this canvas, drawn at half its layout size, and
   // re-renders the screen to check that it keeps its ref handle.
   const scaledCanvasRef = useRef<CanvasRef>(null);
-  const [renderRequests, setRenderRequests] = useState(0);
-  const renderCommitted = useRef<(() => void) | null>(null);
-  useEffect(() => {
-    renderCommitted.current?.();
-    renderCommitted.current = null;
-  }, [renderRequests]);
+  const rerender = useRerender();
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -133,11 +153,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                   pixelRatio: PixelRatio.get(),
                   scaledCanvas: () => scaledCanvasRef.current,
                   scaledCanvasSize: SCALED_CANVAS_SIZE,
-                  rerender: () =>
-                    new Promise<void>((resolve) => {
-                      renderCommitted.current = resolve;
-                      setRenderRequests((requests) => requests + 1);
-                    }),
+                  rerender,
                 },
                 workletDeviceStress,
                 workletSerialization,
@@ -180,7 +196,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
       };
     }
     return;
-  }, [adapter, client, device, di3D, moon, saturn]);
+  }, [adapter, client, device, di3D, moon, rerender, saturn]);
   if (setupError) {
     return (
       <View style={{ flex: 1, padding: 16, backgroundColor: "white" }}>
