@@ -24,7 +24,8 @@ type TestOS = "ios" | "android" | "web" | "node";
 declare global {
   var testServer: Server;
   var testFixtureServer: HTTPServer;
-  var testClient: WebSocket;
+  // Each test file keeps a global's first value, so the client is a property.
+  var testConnection: { client: WebSocket | null };
   var testOS: TestOS;
   var testArch: "paper" | "fabric";
   var testHost: string;
@@ -125,7 +126,7 @@ afterAll(async () => {
   await client.dispose();
 });
 
-class RemoteTestingClient implements TestingClient {
+export class RemoteTestingClient implements TestingClient {
   readonly OS = global.testOS;
   readonly arch = global.testArch;
 
@@ -144,6 +145,7 @@ class RemoteTestingClient implements TestingClient {
     // single failing case would stall the whole serial suite.
     const EVAL_TIMEOUT_MS = 30 * 1000;
     return new Promise((resolve, reject) => {
+      const socket = this.client;
       const onMessage = (raw: Buffer) => {
         clearTimeout(timeout);
         const response = JSON.parse(raw.toString());
@@ -160,23 +162,24 @@ class RemoteTestingClient implements TestingClient {
         }
       };
       const timeout = setTimeout(() => {
-        this.client.off("message", onMessage);
+        socket.off("message", onMessage);
         reject(
           new Error(
             `eval timed out after ${EVAL_TIMEOUT_MS}ms without a response from the device`,
           ),
         );
       }, EVAL_TIMEOUT_MS);
-      this.client.once("message", onMessage);
-      this.client.send(body);
+      socket.once("message", onMessage);
+      socket.send(body);
     });
   }
 
   private get client() {
-    if (global.testClient === null) {
+    const socket = global.testConnection.client;
+    if (socket === null) {
       throw new Error("Client is not connected. Did you call init?");
     }
-    return global.testClient!;
+    return socket;
   }
 
   private prepareContext<C extends Ctx>(context?: C): C {

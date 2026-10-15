@@ -73,6 +73,7 @@ const globalSetup = () => {
     }
     const port = TEST_SERVER_PORT;
     reversePort(port);
+    global.testConnection = { client: null };
     global.testFixtureServer = createFixtureServer();
     global.testServer = new WebSocketServer({
       server: global.testFixtureServer,
@@ -91,7 +92,6 @@ const globalSetup = () => {
       );
     }, CONNECT_TIMEOUT_MS);
     global.testServer.on("connection", (client) => {
-      global.testClient = client;
       client.once("message", (msg) => {
         clearTimeout(timeout);
         const obj = JSON.parse(msg.toString("utf8"));
@@ -102,6 +102,8 @@ const globalSetup = () => {
         if (!isArch(arch)) {
           throw new Error("Unknown testing architecture: " + arch);
         }
+        // Only a socket that says hello is the app's, and the latest one wins.
+        global.testConnection.client = client;
         global.testOS = OS;
         global.testArch = arch;
         // The host the device reached us on (localhost for the simulator, a LAN
