@@ -61,6 +61,38 @@ describe("WebGPUConstants", () => {
       RENDER_ATTACHMENT: 16,
     });
   });
+  // The package exports the flags as importable values (src/constants.ts),
+  // read from the globals the native module installs. They used to be read
+  // before the install ran: every exported flag was undefined. Native app only:
+  // the web and node runners read the flags of the browser and of the `webgpu`
+  // package.
+  it("exports the flags installed by the native module", async () => {
+    if (client.OS !== "ios" && client.OS !== "android") {
+      return;
+    }
+    const result = await client.eval(({ exportedFlags }) => {
+      if (!exportedFlags) {
+        return null;
+      }
+      const globals = globalThis as unknown as Record<string, unknown>;
+      return {
+        GPUBufferUsage: exportedFlags.GPUBufferUsage === globals.GPUBufferUsage,
+        GPUColorWrite: exportedFlags.GPUColorWrite === globals.GPUColorWrite,
+        GPUMapMode: exportedFlags.GPUMapMode === globals.GPUMapMode,
+        GPUShaderStage: exportedFlags.GPUShaderStage === globals.GPUShaderStage,
+        GPUTextureUsage:
+          exportedFlags.GPUTextureUsage === globals.GPUTextureUsage &&
+          exportedFlags.GPUTextureUsage.RENDER_ATTACHMENT === 16,
+      };
+    });
+    expect(result).toEqual({
+      GPUBufferUsage: true,
+      GPUColorWrite: true,
+      GPUMapMode: true,
+      GPUShaderStage: true,
+      GPUTextureUsage: true,
+    });
+  });
   it("GPUAdapter", async () => {
     const result = await client.eval(({ device, gpu }) => {
       return [
