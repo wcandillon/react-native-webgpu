@@ -1,4 +1,13 @@
 /// <reference types="@webgpu/types" />
+// Must stay the FIRST import, and a bare one: it installs the native module
+// (`./main/installNative.ts`; the web variant loads the RNWebGPU polyfill),
+// and `./constants` reads the globals it installs while being evaluated.
+// Putting it here, rather than relying on `./main` being exported before
+// `./constants` below, makes the order of the `export *` lines irrelevant. A
+// bare import is never deferred by `inlineRequires`, and `import/order --fix`
+// never moves an import across one.
+import "./main/installNative";
+
 import type {
   GPUDrawElementImageDestination,
   GPUDrawElementImageSource,

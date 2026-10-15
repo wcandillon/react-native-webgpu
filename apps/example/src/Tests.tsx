@@ -7,7 +7,16 @@ import {
   PixelRatio,
   findNodeHandle,
 } from "react-native";
-import { GPUOffscreenCanvas } from "react-native-webgpu";
+import {
+  GPUOffscreenCanvas,
+  // The flags as the package exports them, not the globals of the same name
+  // (see the `exportedFlags` spec in Constants.spec.ts).
+  GPUBufferUsage as exportedBufferUsage,
+  GPUColorWrite as exportedColorWrite,
+  GPUMapMode as exportedMapMode,
+  GPUShaderStage as exportedShaderStage,
+  GPUTextureUsage as exportedTextureUsage,
+} from "react-native-webgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
 import { useClient } from "./useClient";
@@ -123,6 +132,13 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                 },
                 workletDeviceStress,
                 workletSerialization,
+                exportedFlags: {
+                  GPUBufferUsage: exportedBufferUsage,
+                  GPUColorWrite: exportedColorWrite,
+                  GPUMapMode: exportedMapMode,
+                  GPUShaderStage: exportedShaderStage,
+                  GPUTextureUsage: exportedTextureUsage,
+                },
                 mat4,
                 vec3,
                 mat3,
