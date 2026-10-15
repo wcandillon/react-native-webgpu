@@ -361,10 +361,13 @@ async::AsyncTaskHandle GPUQueue::drawElementImageToTexture(
   // GPU buffer (Android 13 and above, through HardwareRenderer) hands that
   // buffer over instead of reading the pixels back, and the view is drawn into
   // the destination on the GPU (VideoFrameBlit), which writes the color aspect
-  // of the first layer.
+  // of the first layer. An omitted aspect means "all" (dst.aspect itself stays
+  // at Dawn's Undefined default, which WriteTexture reads the same way).
   request.allowFrame =
       (texture.GetUsage() & wgpu::TextureUsage::RenderAttachment) != 0 &&
-      dst.aspect == wgpu::TextureAspect::All && dst.origin.z == 0;
+      info->aspect.value_or(wgpu::TextureAspect::All) ==
+          wgpu::TextureAspect::All &&
+      dst.origin.z == 0;
 
   // Destination size (pixels). Omitted means the source rectangle's natural
   // pixel size (points times the device pixel ratio), which the platform
