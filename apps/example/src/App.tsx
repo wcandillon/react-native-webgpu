@@ -1,5 +1,6 @@
 import "./resolveAssetSourcePolyfill";
 
+import type { LinkingOptions } from "@react-navigation/native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -60,6 +61,71 @@ const CI = process.env.CI === "true";
 
 const Stack = createStackNavigator<Routes>();
 
+// Deep links, one path per screen. The agent workflow's tour opens the
+// screens through them because its device is headless and it cannot tap
+// (see .github/scripts/agent-screen.sh).
+const linking: LinkingOptions<Routes> = {
+  config: {
+    screens: {
+      Home: "",
+      HelloTriangle: "hello-triangle",
+      HelloTriangleMSAA: "hello-triangle-msaa",
+      ImageBlur: "image-blur",
+      ComputeToys: "compute-toys",
+      ThreeJS: "three-js",
+      Tensorflow: "tensorflow",
+      CanvasAPI: "canvas-api",
+      Cube: "cube",
+      InstancedCube: "instanced-cube",
+      TexturedCube: "textured-cube",
+      FractalCube: "fractal-cube",
+      Cubemap: "cubemap",
+      SamplerParameters: "sampler-parameters",
+      RenderBundles: "render-bundles",
+      ReversedZ: "reversed-z",
+      ABuffer: "a-buffer",
+      OcclusionQuery: "occlusion-query",
+      MNISTInference: "mnist-inference",
+      ComputeBoids: "compute-boids",
+      ShadowMapping: "shadow-mapping",
+      DeferedRendering: "deferred-rendering",
+      Wireframe: "wireframe",
+      Particles: "particles",
+      Resize: "resize",
+      Tests: "tests",
+      GradientTiles: "gradient-tiles",
+      Reanimated: "reanimated",
+      Diagnostics: "diagnostics",
+      AsyncStarvation: "diagnostics/async-starvation",
+      DeviceLostHang: "diagnostics/device-lost-hang",
+      WorkletRequestAdapter: "diagnostics/worklet-request-adapter",
+      ReloadLifecycle: "diagnostics/reload-lifecycle",
+      ContextEdgeCases: "diagnostics/context-edge-cases",
+      ViewFormatsUseAfterFree: "diagnostics/view-formats-use-after-free",
+      RenderAfterUnmount: "diagnostics/render-after-unmount",
+      BackgroundDetach: "diagnostics/background-detach",
+      SurfaceChurn: "diagnostics/surface-churn",
+      TransparencyMode: "diagnostics/transparency-mode",
+      DeviceDestroyBeforeDetach: "diagnostics/device-destroy-before-detach",
+      StorageBufferVertices: "storage-buffer-vertices",
+      SharedTextureMemory: "shared-texture-memory",
+      ImportExternalTexture: "import-external-texture",
+      VisionCamera: "vision-camera",
+      SixteenBitTextures: "sixteen-bit-textures",
+      ViewSnapshot: "view-snapshot",
+    },
+  },
+  // react-native-test-app registers its bundle id as the iOS URL scheme, and
+  // iOS is the one platform where a URL is the only way to drive the app
+  // from outside: accept it next to rnwebgpu://. Prefixes match
+  // case-sensitively, so both spellings are listed.
+  prefixes: [
+    "rnwebgpu://",
+    "com.microsoft.ReactTestApp://",
+    "com.microsoft.reacttestapp://",
+  ],
+};
+
 function App() {
   const assets = useAssets();
   if (assets === null) {
@@ -67,7 +133,7 @@ function App() {
   }
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
+      <NavigationContainer linking={linking}>
         <Stack.Navigator
           initialRouteName={CI ? "Tests" : "Home"}
           screenOptions={{ cardStyle: { flex: 1 } }}

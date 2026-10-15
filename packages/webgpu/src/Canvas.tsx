@@ -1,6 +1,6 @@
 import React, { useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { ViewProps } from "react-native";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
 
@@ -87,13 +87,31 @@ const resolveSurfaceType = (
     ? surfaceType
     : "auto";
 
+// A view measured relative to itself gets its layout size, without the
+// transforms getBoundingClientRect() includes; measureLayout() calls back
+// synchronously on the new architecture. On the web react-native-web measures
+// asynchronously, so the DOM node is read directly: clientWidth/clientHeight
+// are layout values that ignore transforms too (unlike getBoundingClientRect)
+// and are what browser WebGPU code sizes a canvas from.
+const measureLayout = (view: View) => {
+  if (Platform.OS === "web") {
+    const { clientWidth, clientHeight } = view as unknown as HTMLElement;
+    return { width: clientWidth, height: clientHeight };
+  }
+  let size = { width: 0, height: 0 };
+  view.measureLayout(view, (_left, _top, width, height) => {
+    size = { width, height };
+  });
+  return size;
+};
+
 export const Canvas = ({
   opaque = true,
   android,
   ref,
   ...props
 }: CanvasProps) => {
-  const viewRef = useRef(null);
+  const viewRef = useRef<View>(null);
   const [contextId, _] = useState(() => generateContextId());
   // Retire the native registry entry for this contextId on unmount. When a
   // native surface is still attached, this is a no-op and the native view's
@@ -108,32 +126,30 @@ export const Canvas = ({
       RNWebGPU.destroyContext(contextId);
     };
   }, [contextId]);
-  useImperativeHandle(ref, () => ({
-    getContextId: () => contextId,
-    getNativeSurface: () => {
-      return RNWebGPU.getNativeSurface(contextId);
-    },
-    getContext(contextName: "webgpu"): RNCanvasContext | null {
-      if (contextName !== "webgpu") {
-        throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
-      }
-      if (!viewRef.current) {
-        throw new Error("[WebGPU] Cannot get context before mount");
-      }
-      // getBoundingClientRect became stable in RN 0.83
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const view = viewRef.current as any;
-      const size =
-        "getBoundingClientRect" in view
-          ? view.getBoundingClientRect()
-          : view.unstable_getBoundingClientRect();
-      return RNWebGPU.MakeWebGPUCanvasContext(
-        contextId,
-        size.width,
-        size.height,
-      );
-    },
-  }));
+  useImperativeHandle(
+    ref,
+    () => ({
+      getContextId: () => contextId,
+      getNativeSurface: () => {
+        return RNWebGPU.getNativeSurface(contextId);
+      },
+      getContext(contextName: "webgpu"): RNCanvasContext | null {
+        if (contextName !== "webgpu") {
+          throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
+        }
+        if (!viewRef.current) {
+          throw new Error("[WebGPU] Cannot get context before mount");
+        }
+        const size = measureLayout(viewRef.current);
+        return RNWebGPU.MakeWebGPUCanvasContext(
+          contextId,
+          size.width,
+          size.height,
+        );
+      },
+    }),
+    [contextId],
+  );
 
   return (
     <View collapsable={false} ref={viewRef} {...props}>
