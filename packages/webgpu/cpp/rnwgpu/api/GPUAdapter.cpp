@@ -12,6 +12,9 @@
 #ifdef __APPLE__
 #include <TargetConditionals.h>
 #endif
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
 
 #include "Convertors.h"
 
@@ -158,7 +161,14 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
         message.length > 0 ? std::string(message.data, message.length) : "";
     std::string fullMessage =
         msg.length() > 0 ? std::string(errorType) + ": " + msg : "no message";
+#ifdef __ANDROID__
+    // stderr goes nowhere in an Android app; logcat is where the message can
+    // be read (and where CI collects it).
+    __android_log_print(ANDROID_LOG_ERROR, "WebGPU", "Uncaptured error: %s",
+                        fullMessage.c_str());
+#else
     fprintf(stderr, "%s\n", fullMessage.c_str());
+#endif
 
     // Look up the GPUDevice from the registry and notify it
     if (auto gpuDevice = GPUDevice::lookupDevice(device.Get())) {
@@ -222,6 +232,31 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
               [name](const char *t) { return std::strcmp(t, name) == 0; });
           if (!explicitlyEnabled) {
             disabledToggles.push_back(name);
+          }
+        }
+#endif
+#if defined(__ANDROID__)
+        // Dawn checks the memory a VkImage needs for an imported
+        // AHardwareBuffer against the allocation size the driver reports for
+        // the buffer, and some drivers report it wrong: Dawn itself skips the
+        // check on Samsung, Qualcomm and Huawei drivers
+        // (https://crbug.com/333424893). The emulator (gfxstream) reports 0
+        // for the buffers HWUI draws into, which rejects every view snapshot
+        // and SurfaceControl import there, so skip it on all of Android unless
+        // the caller disables the toggle. Dawn drops unknown toggle names, so a
+        // build without this toggle is unaffected.
+        static const char *const kAndroidEnabledToggles[] = {
+            "ignore_imported_ahardwarebuffer_vulkan_image_size"};
+        for (const char *name : kAndroidEnabledToggles) {
+          const auto named = [name](const char *t) {
+            return std::strcmp(t, name) == 0;
+          };
+          const bool explicitlyDisabled = std::any_of(
+              disabledToggles.begin(), disabledToggles.end(), named);
+          const bool alreadyEnabled =
+              std::any_of(enabledToggles.begin(), enabledToggles.end(), named);
+          if (!explicitlyDisabled && !alreadyEnabled) {
+            enabledToggles.push_back(name);
           }
         }
 #endif
