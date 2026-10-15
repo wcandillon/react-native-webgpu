@@ -1,4 +1,4 @@
-import "../WebPolyfillGPUModule";
+import "./installNative";
 
 export * from "../Canvas";
 export * from "../Offscreen";
