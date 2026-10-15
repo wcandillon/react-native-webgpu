@@ -8,6 +8,30 @@
 
 namespace rnwgpu {
 
+// The data spaces that predate the standard / transfer / range bit fields
+// (HAL_DATASPACE_* in system/graphics.h, "legacy" since Android 6) as the
+// field form the NDK header documents for them. Decoders still report them:
+// a Pixel 8 on Android 17 tags every H.264 frame with the legacy BT.709
+// value. The modern header no longer defines these constants.
+inline int32_t canonicalDataSpace(int32_t dataSpace) {
+  switch (dataSpace) {
+  case 0x101: // HAL_DATASPACE_JFIF
+    return STANDARD_BT601_625 | TRANSFER_SMPTE_170M | RANGE_FULL;
+  case 0x102: // HAL_DATASPACE_BT601_625
+    return STANDARD_BT601_625 | TRANSFER_SMPTE_170M | RANGE_LIMITED;
+  case 0x103: // HAL_DATASPACE_BT601_525
+    return STANDARD_BT601_525 | TRANSFER_SMPTE_170M | RANGE_LIMITED;
+  case 0x104: // HAL_DATASPACE_BT709
+    return STANDARD_BT709 | TRANSFER_SMPTE_170M | RANGE_LIMITED;
+  case 0x200: // HAL_DATASPACE_SRGB_LINEAR
+    return STANDARD_BT709 | TRANSFER_LINEAR | RANGE_FULL;
+  case 0x201: // HAL_DATASPACE_SRGB
+    return STANDARD_BT709 | TRANSFER_SRGB | RANGE_FULL;
+  default:
+    return dataSpace;
+  }
+}
+
 // The color space a frame's data space declares (android/data_space.h, the
 // value of Image.getDataSpace() or of the container's color info packed the
 // same way). The standard gives the YCbCr matrix and the primaries; the
@@ -15,6 +39,7 @@ namespace rnwgpu {
 // space leaves unspecified stay unset, and ADATASPACE_UNKNOWN (0) sets nothing.
 inline VideoFrameColorSpace colorSpaceFromDataSpace(int32_t dataSpace) {
   VideoFrameColorSpace colorSpace;
+  dataSpace = canonicalDataSpace(dataSpace);
   switch (dataSpace & STANDARD_MASK) {
   case STANDARD_BT709:
     colorSpace.matrix = wgpu::ColorSpaceYCbCrMatrixDawn::Rec709;
