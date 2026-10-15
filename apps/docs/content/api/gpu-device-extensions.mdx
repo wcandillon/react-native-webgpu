@@ -87,6 +87,61 @@ for (const { fence: done, signaledValue } of fences) {
 
 See `packages/webgpu/src/__tests__/SharedFence.spec.ts` for a full producer/consumer test.
 
+## createHardwareBufferExternalTexture / createHardwareBufferTexture
+
+A decoder or a camera renders into the same few buffers in turn, but `importExternalTexture()` imports the buffer again on every frame (on a Qualcomm device, a few milliseconds per 1080p frame, plus the pipeline Dawn rebuilds behind a new external texture).
+These two methods are the counterparts of `createExternalTexture` and `createTexture` in `GPUAndroidHardwareBufferUtil`, Dawn's own Android layer: import a buffer once, and bracket each frame with `beginAccess()` / `endAccess()` on the wrapper.
+
+```tsx twoslash
+import type {
+  GPUHardwareBufferExternalTexture,
+  NativeVideoFrame,
+} from "react-native-webgpu";
+declare const device: GPUDevice;
+declare const frame: NativeVideoFrame;
+declare const wrappers: Map<bigint, GPUHardwareBufferExternalTexture>;
+declare function draw(externalTexture: GPUExternalTexture): void;
+// ---cut---
+// Once per buffer, keyed by the buffer: the import, the texture and the
+// external texture (color conversion included).
+let wrapper = wrappers.get(frame.handle);
+if (!wrapper) {
+  wrapper = device.createHardwareBufferExternalTexture(frame, {
+    label: "clip-1",
+  });
+  wrappers.set(frame.handle, wrapper);
+}
+
+// Per frame: wait for the producer's fence, draw, hand the fence of the
+// access back.
+const fences = [];
+if (frame.acquireFenceFd !== null) {
+  const ready = device.importSharedFence({
+    type: "sync-fd",
+    handle: frame.acquireFenceFd,
+  });
+  fences.push({ fence: ready, signaledValue: 1n });
+}
+wrapper.beginAccess(fences);
+fences.forEach(({ fence }) => fence.destroy());
+draw(wrapper.externalTexture); // ... queue.submit() ...
+const done = wrapper.endAccess();
+done?.fence.destroy(); // or export() it for the producer
+
+// When the producer drops the buffer
+wrapper.destroy();
+```
+
+`beginAccess(fences?)` takes the frame as initialized and waits for the fences on the GPU; `endAccess()` returns the one fence that signals once the GPU work of the access is done (on Android, the sync fds Dawn produced merged into one), or `null`.
+`destroy()` releases the import and the frame the wrapper was created from; an access left open is a validation error, and it is ended anyway so the producer gets its buffer back.
+The descriptor is that of `importExternalTexture()` without the source (`colorSpace`, `rotation`, `mirrored`, plus `sourceColorSpace`, `cropOrigin` and `cropSize`, see below); the same descriptor members apply to `importExternalTexture()`.
+
+`createHardwareBufferTexture(frame, { usage, label })` is the same wrapper over a color buffer (an RGBA `AHardwareBuffer`, a BGRA `IOSurface`) exposed as a regular `GPUTexture`; `usage` defaults to every usage the buffer allows.
+
+On Android, a buffer wrapped from another library's `ImageReader` (through `createVideoFrameFromNativeBuffer`) carries no color metadata: pass `sourceColorSpace` when you know it, or the conversion falls back to what the driver reports for the buffer, then to BT.601 limited range. On Vulkan, both wrappers and `importSharedTextureMemory()` acquire the image in the `GENERAL` layout, as Dawn's layer does: an `UNDEFINED` one lets the driver discard the frame.
+
+<auto-type-table path="../../../../packages/webgpu/src/types.ts" name="GPUHardwareBufferWrapper" />
+
 ## dawnToggles
 
 Non-standard Dawn device toggles at creation:
@@ -132,6 +187,8 @@ The flag only controls the default injection: listing `"implicit-device-synchron
 | `source` | A [`NativeVideoFrame`](/api/video-player#nativevideoframe) (from a video player, a camera buffer or `createTestVideoFrame`) instead of the web's `HTMLVideoElement` / `VideoFrame` |
 | `rotation` | 0, 90, 180, or 270 degrees (camera orientation) |
 | `mirrored` | Horizontal flip for front camera |
+| `sourceColorSpace` | Overrides the members of the frame's own color space (`matrix`, `range`, `primaries`, `transfer`), for a buffer that carries none |
+| `cropOrigin`, `cropSize` | The part of the frame the external texture shows, the whole frame by default |
 | `destroy()` | Release native surface access after the `queue.submit()` that sampled it |
 
 Usage with `importExternalTexture` (NV12 camera/video):

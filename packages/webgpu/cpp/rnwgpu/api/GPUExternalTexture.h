@@ -1,13 +1,10 @@
 #pragma once
 
-#include <array>
 #include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 
-#include "Unions.h"
-
+#include "NativeFrameImport.h"
 #include "NativeObject.h"
 #include "VideoFrame.h"
 
@@ -23,19 +20,20 @@ class GPUExternalTexture : public NativeObject<GPUExternalTexture> {
 public:
   static constexpr const char *CLASS_NAME = "GPUExternalTexture";
 
-  // Import a VideoFrame (via descriptor.source) as a GPUExternalTexture on
-  // `device`: imports the native surface as SharedTextureMemory, begins access,
-  // and wraps the resulting wgpu::ExternalTexture together with the resources
-  // whose lifetime it owns. The matching EndAccess runs in destroy() / the
-  // destructor. Defined in GPUExternalTexture.cpp.
+  // importExternalTexture(): imports the frame of descriptor.source as shared
+  // texture memory, begins an access to it, and wraps the wgpu::ExternalTexture
+  // that samples it together with the import it owns. The matching EndAccess
+  // runs in destroy() / the destructor. Defined in GPUExternalTexture.cpp.
   static std::shared_ptr<GPUExternalTexture>
   Create(wgpu::Device device,
          std::shared_ptr<GPUExternalTextureDescriptor> descriptor);
 
-  // Construct from an already-built wgpu::ExternalTexture plus the underlying
-  // shared-memory resources we need to keep alive. The wrapper takes ownership
-  // of the SharedTextureMemory + Texture and calls EndAccess on destruction so
-  // the producer (e.g. AVPlayer) can reclaim the IOSurface.
+  // `memory` and `texture` are the import this external texture owns:
+  // destroy() ends their access and releases them, so the producer (e.g. an
+  // AVPlayer) can reclaim the surface. A GPUHardwareBufferExternalTexture
+  // passes null for both: it owns the import itself and brackets each use with
+  // its own beginAccess() / endAccess(), so destroy() here only releases the
+  // external texture.
   GPUExternalTexture(wgpu::ExternalTexture instance,
                      wgpu::SharedTextureMemory memory, wgpu::Texture texture,
                      std::shared_ptr<VideoFrame> source, std::string label)
@@ -63,13 +61,7 @@ public:
   // sampled it) is garbage-collected.
   void destroy() {
     if (_memory && _texture) {
-      endAccess(_memory, _texture);
-    }
-    if (_texture) {
-      _texture.Destroy();
-    }
-    if (_instance) {
-      _instance.Destroy();
+      native_frame::endAccess(_memory, _texture);
     }
     if (_texture) {
       _texture.Destroy();
@@ -100,23 +92,6 @@ public:
   }
 
   inline const wgpu::ExternalTexture get() { return _instance; }
-
-  // End the shared-memory access window on `texture`. Shared by destroy() and
-  // the Create() error paths so every EndAccess carries the same chain: Dawn's
-  // Vulkan backend rejects the call unless a
-  // SharedTextureMemoryVkImageLayoutEndState is chained (it writes the
-  // released VkImage layouts there), while the Metal backend only accepts its
-  // own optional end state. The returned fences are dropped: Dawn keeps the
-  // texture alive for in-flight GPU work on its own.
-  static void endAccess(const wgpu::SharedTextureMemory &memory,
-                        const wgpu::Texture &texture) {
-    wgpu::SharedTextureMemoryEndAccessState state{};
-#if defined(__ANDROID__)
-    wgpu::SharedTextureMemoryVkImageLayoutEndState vkLayout{};
-    state.nextInChain = &vkLayout;
-#endif
-    (void)memory.EndAccess(texture, &state);
-  }
 
 private:
   wgpu::ExternalTexture _instance;

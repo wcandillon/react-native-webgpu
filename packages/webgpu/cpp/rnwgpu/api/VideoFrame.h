@@ -20,13 +20,13 @@ namespace jsi = facebook::jsi;
 // object stays alive until the JS object is GC'd (or release() is called).
 class VideoFrame : public NativeObject<VideoFrame> {
 public:
-  // JS-facing brand. installConstructor() exposes this as globalThis[CLASS_NAME]
-  // and keys the NativeObjectRegistry / worklet serializer off it, so it must
-  // NOT be "VideoFrame": that would install our constructor over the WebCodecs
-  // `VideoFrame` global and shadow it at runtime. "NativeVideoFrame" matches the
-  // public TypeScript type (see src/types.ts) and keeps the two namespaces
-  // distinct. The C++ class stays `VideoFrame` for brevity; only the brand is
-  // namespaced.
+  // JS-facing brand. installConstructor() exposes this as
+  // globalThis[CLASS_NAME] and keys the NativeObjectRegistry / worklet
+  // serializer off it, so it must NOT be "VideoFrame": that would install our
+  // constructor over the WebCodecs `VideoFrame` global and shadow it at
+  // runtime. "NativeVideoFrame" matches the public TypeScript type (see
+  // src/types.ts) and keeps the two namespaces distinct. The C++ class stays
+  // `VideoFrame` for brevity; only the brand is namespaced.
   static constexpr const char *CLASS_NAME = "NativeVideoFrame";
 
   explicit VideoFrame(VideoFrameHandle handle)
@@ -67,6 +67,35 @@ public:
     installGetter(runtime, prototype, "pixelFormat",
                   &VideoFrame::getPixelFormat);
     installMethod(runtime, prototype, "release", &VideoFrame::release);
+    // acquireFenceFd: the sync fd the producer of the frame signals once it
+    // has written the buffer (Android), as a BigInt, or null when the frame
+    // has none (Apple platforms, a released frame). Borrowed: the frame
+    // closes it on release(), and importSharedFence() duplicates it.
+    // Installed by hand: the typed getters have no null.
+    {
+      auto getter = jsi::Function::createFromHostFunction(
+          runtime, jsi::PropNameID::forUtf8(runtime, "get_acquireFenceFd"), 0,
+          [](jsi::Runtime &rt, const jsi::Value &thisVal,
+             const jsi::Value * /*args*/, size_t /*count*/) -> jsi::Value {
+            auto native = VideoFrame::fromValue(rt, thisVal);
+            const auto &handle = native->_handle;
+            if (handle.handle == nullptr || handle.acquireFenceFd < 0) {
+              return jsi::Value::null();
+            }
+            return jsi::BigInt::fromUint64(
+                rt, static_cast<uint64_t>(handle.acquireFenceFd));
+          });
+      auto objectCtor = runtime.global().getPropertyAsObject(runtime, "Object");
+      auto defineProperty =
+          objectCtor.getPropertyAsFunction(runtime, "defineProperty");
+      jsi::Object descriptor(runtime);
+      descriptor.setProperty(runtime, "get", getter);
+      descriptor.setProperty(runtime, "enumerable", true);
+      descriptor.setProperty(runtime, "configurable", true);
+      defineProperty.call(
+          runtime, prototype,
+          jsi::String::createFromUtf8(runtime, "acquireFenceFd"), descriptor);
+    }
   }
 
 private:

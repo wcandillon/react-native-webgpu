@@ -34,6 +34,9 @@
 #include "GPUError.h"
 #include "GPUExternalTexture.h"
 #include "GPUExternalTextureDescriptor.h"
+#include "GPUHardwareBufferExternalTexture.h"
+#include "GPUHardwareBufferTexture.h"
+#include "GPUHardwareBufferTextureDescriptor.h"
 #include "GPUPipelineLayout.h"
 #include "GPUPipelineLayoutDescriptor.h"
 #include "GPUQuerySet.h"
@@ -124,6 +127,17 @@ public:
       std::shared_ptr<GPUSharedTextureMemoryDescriptor> descriptor);
   std::shared_ptr<GPUSharedFence>
   importSharedFence(std::shared_ptr<GPUSharedFenceDescriptor> descriptor);
+  // Import a native buffer once and bracket each use with beginAccess /
+  // endAccess: the counterparts of createTexture / createExternalTexture in
+  // GPUAndroidHardwareBufferUtil of Dawn's Android layer.
+  std::shared_ptr<GPUHardwareBufferTexture> createHardwareBufferTexture(
+      std::shared_ptr<VideoFrame> source,
+      std::optional<std::shared_ptr<GPUHardwareBufferTextureDescriptor>>
+          descriptor);
+  std::shared_ptr<GPUHardwareBufferExternalTexture>
+  createHardwareBufferExternalTexture(
+      std::shared_ptr<VideoFrame> source,
+      std::optional<std::shared_ptr<GPUExternalTextureDescriptor>> descriptor);
   std::shared_ptr<GPUBindGroupLayout> createBindGroupLayout(
       std::shared_ptr<GPUBindGroupLayoutDescriptor> descriptor);
   std::shared_ptr<GPUPipelineLayout>
@@ -183,6 +197,10 @@ public:
                   &GPUDevice::importSharedTextureMemory);
     installMethod(runtime, prototype, "importSharedFence",
                   &GPUDevice::importSharedFence);
+    installMethod(runtime, prototype, "createHardwareBufferTexture",
+                  &GPUDevice::createHardwareBufferTexture);
+    installMethod(runtime, prototype, "createHardwareBufferExternalTexture",
+                  &GPUDevice::createHardwareBufferExternalTexture);
     installMethod(runtime, prototype, "createBindGroupLayout",
                   &GPUDevice::createBindGroupLayout);
     installMethod(runtime, prototype, "createPipelineLayout",

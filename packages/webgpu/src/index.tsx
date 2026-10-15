@@ -9,6 +9,10 @@
 import "./main/installNative";
 
 import type {
+  GPUHardwareBufferExternalTexture,
+  GPUHardwareBufferExternalTextureDescriptor,
+  GPUHardwareBufferTexture,
+  GPUHardwareBufferTextureDescriptor,
   GPUDrawElementImageDestination,
   GPUDrawElementImageSource,
   GPUSharedFence,
@@ -44,6 +48,13 @@ export type {
   GPUCopyExternalNativeFrameSourceInfo,
   GPUDawnTogglesDescriptor,
   GPUNativeExternalTextureDescriptor,
+  NativeVideoFrameColorSpace,
+  GPUExtent2D,
+  GPUHardwareBufferExternalTextureDescriptor,
+  GPUHardwareBufferTextureDescriptor,
+  GPUHardwareBufferWrapper,
+  GPUHardwareBufferTexture,
+  GPUHardwareBufferExternalTexture,
   GPUDrawElementImageDestination,
   GPUDrawElementImageSource,
   GPUDrawElementImageSourceView,
@@ -120,6 +131,19 @@ declare global {
       descriptor: GPUSharedTextureMemoryDescriptor,
     ): GPUSharedTextureMemory;
     importSharedFence(descriptor: GPUSharedFenceDescriptor): GPUSharedFence;
+    // Non-spec RN extensions, the counterparts of createTexture /
+    // createExternalTexture in GPUAndroidHardwareBufferUtil of Dawn's Android
+    // layer: import a native buffer once, as a regular texture or as an
+    // external texture, and bracket each use with beginAccess() / endAccess()
+    // on the wrapper instead of importing the buffer again per frame.
+    createHardwareBufferTexture(
+      source: NativeVideoFrame,
+      descriptor?: GPUHardwareBufferTextureDescriptor,
+    ): GPUHardwareBufferTexture;
+    createHardwareBufferExternalTexture(
+      source: NativeVideoFrame,
+      descriptor?: GPUHardwareBufferExternalTextureDescriptor,
+    ): GPUHardwareBufferExternalTexture;
   }
 
   // Non-spec RN extension modeled on the html-in-canvas proposal's

@@ -52,6 +52,13 @@ export type NativeVideoPixelFormat = "bgra8" | "nv12";
 //   - pixelFormat describes the surface layout: 'bgra8' for a sampled
 //     GPUTexture; 'nv12' (biplanar Y + CbCr) for the importExternalTexture
 //     path.
+//   - acquireFenceFd is the sync fd the producer of the frame (the decoder,
+//     the camera) signals once it has written the buffer, as a BigInt, on
+//     Android; null when the frame has none (Apple platforms, a released
+//     frame). importExternalTexture() waits for it on its own; a hardware
+//     buffer wrapper takes it through importSharedFence({ type: "sync-fd",
+//     handle }) in beginAccess(). The frame owns the descriptor: import it
+//     before release(), and never close it.
 //   - release() drops the underlying backing object (a CVPixelBuffer on Apple).
 //     The frame is also released when the JS wrapper is garbage-collected; call
 //     release() eagerly when you know you're done.
@@ -60,8 +67,30 @@ export interface NativeVideoFrame {
   readonly width: number;
   readonly height: number;
   readonly pixelFormat: NativeVideoPixelFormat;
+  readonly acquireFenceFd: bigint | null;
   release(): void;
 }
+
+// The color space of a YUV frame, the way its producer reports it: the YCbCr
+// matrix and range that encode the samples, and the primaries and transfer
+// function of the RGB they encode. Each member is optional; what is left out
+// comes from the frame, then from the platform's best guess for the buffer.
+export interface NativeVideoFrameColorSpace {
+  matrix?: "identity" | "rec601" | "rec709" | "rec2020";
+  range?: "identity" | "narrow" | "full";
+  primaries?: "srgb" | "rec709" | "rec601" | "rec2020" | "display-p3";
+  transfer?:
+    | "identity"
+    | "srgb"
+    | "display-p3"
+    | "smpte-170m"
+    | "hlg"
+    | "pq"
+    | "bt-1886";
+}
+
+// A 2D size, as { width, height } or [width, height].
+export type GPUExtent2D = { width: number; height: number } | [number, number];
 
 // GPUExternalTextureDescriptor with a NativeVideoFrame as the source: what
 // GPUDevice.importExternalTexture() takes on React Native, where there is no
@@ -72,6 +101,74 @@ export interface GPUNativeExternalTextureDescriptor extends Omit<
   "source"
 > {
   source: NativeVideoFrame;
+  // Overrides the members of the frame's own color space, for a buffer that
+  // carries none (one wrapped from another library) or reports it wrong.
+  sourceColorSpace?: NativeVideoFrameColorSpace;
+  // The part of the frame the external texture shows, the whole frame by
+  // default (Dawn's cropOrigin / cropSize).
+  cropOrigin?: GPUOrigin2D;
+  cropSize?: GPUExtent2D;
+}
+
+// The descriptor of GPUDevice.createHardwareBufferExternalTexture(): the same
+// options as importExternalTexture(), without the source (the frame is the
+// first argument).
+export type GPUHardwareBufferExternalTextureDescriptor = Omit<
+  GPUNativeExternalTextureDescriptor,
+  "source"
+>;
+
+// The options of GPUDevice.createHardwareBufferTexture(). `usage` defaults to
+// every usage the buffer allows, as GPUSharedTextureMemory.createTexture()
+// without a descriptor.
+export interface GPUHardwareBufferTextureDescriptor {
+  usage?: GPUTextureUsageFlags;
+  label?: string;
+}
+
+// A native buffer imported once, with the access window of each use explicit:
+// the counterpart of GPUHardwareBufferWrapper in Dawn's Android layer
+// (androidx.webgpu). A decoder or a camera renders into the same few buffers
+// in turn; keep one wrapper per buffer (keyed by NativeVideoFrame.handle), and
+// bracket each frame with beginAccess() / endAccess() instead of importing it
+// again. The wrapper keeps the frame it was created from alive until
+// destroy().
+export interface GPUHardwareBufferWrapper {
+  label: string;
+  // Begins an access to the buffer: the GPU waits for each fence to reach its
+  // signaledValue first (the producer's fence for the frame, e.g. the frame's
+  // acquireFenceFd imported with importSharedFence, 1n for a sync fd). Throws,
+  // after a validation error, on a destroyed wrapper or fence, and if Dawn
+  // rejects the access (one is already open).
+  beginAccess(fences?: GPUSharedFenceState[]): void;
+  // Ends the access, after the queue.submit() that used the buffer, and
+  // returns the one fence that signals once that GPU work is done (on Android,
+  // the sync fds of the access merged into one), or null when there is none.
+  // Hand it to the producer before it reuses the buffer, or destroy it.
+  endAccess(): GPUSharedFenceState | null;
+  // Releases the import (and the frame) now rather than when the object is
+  // garbage collected. An access still open is a validation error; it is
+  // ended, and its fence is lost. A later use is a validation error and a
+  // throw.
+  destroy(): void;
+}
+
+// A color buffer (an RGBA / R8 / ... AHardwareBuffer, a BGRA IOSurface)
+// imported once as a regular texture. Bind `texture` only between
+// beginAccess() and endAccess().
+export interface GPUHardwareBufferTexture extends GPUHardwareBufferWrapper {
+  readonly __brand: "GPUHardwareBufferTexture";
+  readonly texture: GPUTexture;
+}
+
+// A frame buffer (the YUV AHardwareBuffer of a decoder or a camera, an NV12 or
+// BGRA IOSurface) imported once as an external texture, color conversion
+// included. Bind `externalTexture` only between beginAccess() and endAccess();
+// destroying it on its own (externalTexture.destroy()) only releases the
+// external texture, the wrapper keeps the import.
+export interface GPUHardwareBufferExternalTexture extends GPUHardwareBufferWrapper {
+  readonly __brand: "GPUHardwareBufferExternalTexture";
+  readonly externalTexture: GPUExternalTexture;
 }
 
 // A decoded video, modeled on HTMLMediaElement: play(), pause(), paused,
