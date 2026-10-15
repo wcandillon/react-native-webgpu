@@ -108,32 +108,36 @@ export const Canvas = ({
       RNWebGPU.destroyContext(contextId);
     };
   }, [contextId]);
-  useImperativeHandle(ref, () => ({
-    getContextId: () => contextId,
-    getNativeSurface: () => {
-      return RNWebGPU.getNativeSurface(contextId);
-    },
-    getContext(contextName: "webgpu"): RNCanvasContext | null {
-      if (contextName !== "webgpu") {
-        throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
-      }
-      if (!viewRef.current) {
-        throw new Error("[WebGPU] Cannot get context before mount");
-      }
-      // getBoundingClientRect became stable in RN 0.83
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const view = viewRef.current as any;
-      const size =
-        "getBoundingClientRect" in view
-          ? view.getBoundingClientRect()
-          : view.unstable_getBoundingClientRect();
-      return RNWebGPU.MakeWebGPUCanvasContext(
-        contextId,
-        size.width,
-        size.height,
-      );
-    },
-  }));
+  useImperativeHandle(
+    ref,
+    () => ({
+      getContextId: () => contextId,
+      getNativeSurface: () => {
+        return RNWebGPU.getNativeSurface(contextId);
+      },
+      getContext(contextName: "webgpu"): RNCanvasContext | null {
+        if (contextName !== "webgpu") {
+          throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
+        }
+        if (!viewRef.current) {
+          throw new Error("[WebGPU] Cannot get context before mount");
+        }
+        // getBoundingClientRect became stable in RN 0.83
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const view = viewRef.current as any;
+        const size =
+          "getBoundingClientRect" in view
+            ? view.getBoundingClientRect()
+            : view.unstable_getBoundingClientRect();
+        return RNWebGPU.MakeWebGPUCanvasContext(
+          contextId,
+          size.width,
+          size.height,
+        );
+      },
+    }),
+    [contextId],
+  );
 
   return (
     <View collapsable={false} ref={viewRef} {...props}>
