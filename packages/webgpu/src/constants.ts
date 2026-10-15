@@ -23,10 +23,11 @@
 //   };
 //
 // These are read at module evaluation time, so the native module must be
-// installed first. `./main` installs it in its FIRST import
-// (`./main/installNative.ts`): its other imports reach this file through
-// `./install`, and an import is evaluated before the body of the module that
-// declares it — installing in the body of `./main` left every flag undefined.
+// installed first: the package entry (`./index.tsx`) starts with a bare
+// `import "./main/installNative"` (so does `./main`), which runs the install
+// before this file is reached, directly or through `./install`. An import is
+// evaluated before the body of the module that declares it, so installing in
+// the body of `./main` left every flag undefined.
 
 export const { GPUBufferUsage } = globalThis;
 
