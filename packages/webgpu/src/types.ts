@@ -152,6 +152,12 @@ export interface GPUDrawElementImageSource {
   sourceY?: number;
   sourceWidth?: number;
   sourceHeight?: number;
+  // iOS only (default true): flush pending layout and layer changes before
+  // drawing, so a snapshot taken right after a state change reflects it. Pass
+  // false to draw the last committed frame instead, which skips a round trip
+  // to the render server; the choice for repeated captures. Android renders
+  // the views' current display lists either way.
+  afterScreenUpdates?: boolean;
 }
 
 // The destination argument of drawElementImageToTexture:

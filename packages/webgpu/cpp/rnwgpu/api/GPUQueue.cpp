@@ -357,12 +357,15 @@ async::AsyncTaskHandle GPUQueue::drawElementImageToTexture(
         "a positive width and height");
   }
 
+  request.afterScreenUpdates = source->afterScreenUpdates.value_or(true);
+
   // With RENDER_ATTACHMENT as well, a platform that renders the view into a
-  // GPU buffer (Android 13 and above, through HardwareRenderer) hands that
-  // buffer over instead of reading the pixels back, and the view is drawn into
-  // the destination on the GPU (VideoFrameBlit), which writes the color aspect
-  // of the first layer. An omitted aspect means "all" (dst.aspect itself stays
-  // at Dawn's Undefined default, which WriteTexture reads the same way).
+  // GPU buffer (Android 13 and above through HardwareRenderer, iOS through an
+  // IOSurface) hands that buffer over instead of reading the pixels back, and
+  // the view is drawn into the destination on the GPU (VideoFrameBlit), which
+  // writes the color aspect of the first layer. An omitted aspect means "all"
+  // (dst.aspect itself stays at Dawn's Undefined default, which WriteTexture
+  // reads the same way).
   request.allowFrame =
       (texture.GetUsage() & wgpu::TextureUsage::RenderAttachment) != 0 &&
       info->aspect.value_or(wgpu::TextureAspect::All) ==
