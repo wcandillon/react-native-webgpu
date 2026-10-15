@@ -71,7 +71,15 @@ declare global {
     DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
     createImageBitmap: typeof createImageBitmap;
     loadVideoFrame: (path: string) => NativeVideoFrame;
-    createTestVideoFrame: (width: number, height: number) => NativeVideoFrame;
+    // A synthetic frame: an RGB gradient ('bgra8', the default) or a biplanar
+    // YUV frame ('nv12', BT.709 limited range, red on the left half and green
+    // on the right) that exercises the color conversion of
+    // importExternalTexture.
+    createTestVideoFrame: (
+      width: number,
+      height: number,
+      pixelFormat?: NativeVideoPixelFormat,
+    ) => NativeVideoFrame;
     // Wrap a NativeBuffer.pointer (CVPixelBufferRef on iOS / AHardwareBuffer*
     // on Android) into a NativeVideoFrame. Matches the shape used by libraries
     // that emit NativeBuffer (e.g. react-native-vision-camera).
@@ -181,15 +189,6 @@ declare global {
   // pool (e.g. a camera/video player) and pile up GPU resources.
   interface GPUExternalTexture {
     destroy(): void;
-    // Non-spec extension: a 3x4 row-major matrix (12 numbers) mapping the
-    // sampled texel [r, g, b, 1] to gamma-encoded R'G'B'. On the Android
-    // opaque-YCbCr camera path, textureSampleBaseClampToEdge returns raw
-    // [Y, Cb, Cr] (Dawn hard-codes an RGB_IDENTITY Vulkan conversion); this
-    // matrix is derived per-buffer from the driver's suggested YCbCr model and
-    // range (BT.601/709/2020, full/narrow). Everywhere else (iOS, RGBA
-    // surfaces) it is the identity passthrough, so shaders can apply it
-    // unconditionally. Upload it as a uniform and multiply after sampling.
-    readonly yuvToRgbMatrix: number[];
   }
 
   // Extend createImageBitmap to accept ArrayBuffer/TypedArray (encoded image bytes)

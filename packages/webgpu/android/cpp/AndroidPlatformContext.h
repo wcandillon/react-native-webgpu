@@ -1,7 +1,9 @@
 #pragma once
 
 #include <android/bitmap.h>
+#include <android/data_space.h>
 #include <android/hardware_buffer.h>
+#include <dlfcn.h>
 #include <jni.h>
 
 #include <algorithm>
@@ -9,10 +11,12 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "AndroidColorSpace.h"
 #include "AndroidVideoPlayer.h"
 #include "PlatformContext.h"
 #include "RNWebGPUManager.h"
@@ -268,8 +272,92 @@ public:
         "device.importSharedTextureMemory.");
   }
 
-  VideoFrameHandle createTestVideoFrame(uint32_t width,
-                                        uint32_t height) override {
+  // The NV12 variant of createTestVideoFrame: a Y8Cb8Cr8_420 buffer, the YUV
+  // layout every gralloc supports, BT.709 limited range, red on the left half
+  // and green on the right. Filling it needs AHardwareBuffer_lockPlanes
+  // (API 29), resolved at run time since the library runs from API 26.
+  VideoFrameHandle createTestYuvFrame(uint32_t width, uint32_t height) {
+    using LockPlanes = int (*)(AHardwareBuffer *, uint64_t, int32_t,
+                               const ARect *, AHardwareBuffer_Planes *);
+    static const auto lockPlanes = reinterpret_cast<LockPlanes>(
+        dlsym(RTLD_DEFAULT, "AHardwareBuffer_lockPlanes"));
+    if (lockPlanes == nullptr) {
+      throw std::runtime_error(
+          "createTestVideoFrame: unsupported: a YUV test frame needs "
+          "AHardwareBuffer_lockPlanes (API 29)");
+    }
+
+    AHardwareBuffer_Desc desc = {};
+    desc.width = width;
+    desc.height = height;
+    desc.layers = 1;
+    desc.format = AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420;
+    desc.usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE |
+                 AHARDWAREBUFFER_USAGE_CPU_WRITE_RARELY |
+                 AHARDWAREBUFFER_USAGE_CPU_READ_RARELY;
+    AHardwareBuffer *buffer = nullptr;
+    int err = AHardwareBuffer_allocate(&desc, &buffer);
+    if (err != 0 || !buffer) {
+      throw std::runtime_error(
+          "createTestVideoFrame: unsupported: AHardwareBuffer_allocate failed "
+          "for a Y8Cb8Cr8_420 buffer (" +
+          std::to_string(err) + ")");
+    }
+
+    AHardwareBuffer_Planes planes = {};
+    int rc = lockPlanes(buffer, AHARDWAREBUFFER_USAGE_CPU_WRITE_RARELY, -1,
+                        nullptr, &planes);
+    if (rc != 0 || planes.planeCount < 3) {
+      AHardwareBuffer_release(buffer);
+      throw std::runtime_error(
+          "createTestVideoFrame: unsupported: AHardwareBuffer_lockPlanes "
+          "failed (" +
+          std::to_string(rc) + ")");
+    }
+    // Plane 0 is Y, 1 is Cb, 2 is Cr; the chroma planes are subsampled by two
+    // on both axes and the strides say whether Cb and Cr interleave.
+    const auto &y = planes.planes[0];
+    const auto &cb = planes.planes[1];
+    const auto &cr = planes.planes[2];
+    for (uint32_t row = 0; row < height; ++row) {
+      auto *line = static_cast<uint8_t *>(y.data) + row * y.rowStride;
+      for (uint32_t col = 0; col < width; ++col) {
+        line[col * y.pixelStride] =
+            col < width / 2 ? test_yuv_frame::kRedY : test_yuv_frame::kGreenY;
+      }
+    }
+    const uint32_t chromaWidth = (width + 1) / 2;
+    const uint32_t chromaHeight = (height + 1) / 2;
+    for (uint32_t row = 0; row < chromaHeight; ++row) {
+      auto *cbLine = static_cast<uint8_t *>(cb.data) + row * cb.rowStride;
+      auto *crLine = static_cast<uint8_t *>(cr.data) + row * cr.rowStride;
+      for (uint32_t col = 0; col < chromaWidth; ++col) {
+        bool red = col < chromaWidth / 2;
+        cbLine[col * cb.pixelStride] =
+            red ? test_yuv_frame::kRedCb : test_yuv_frame::kGreenCb;
+        crLine[col * cr.pixelStride] =
+            red ? test_yuv_frame::kRedCr : test_yuv_frame::kGreenCr;
+      }
+    }
+    AHardwareBuffer_unlock(buffer, nullptr);
+
+    VideoFrameHandle handle;
+    handle.handle = static_cast<void *>(buffer);
+    handle.width = width;
+    handle.height = height;
+    handle.pixelFormat = VideoPixelFormat::NV12;
+    // What a BT.709 SDR video declares: ADATASPACE_BT709 is STANDARD_BT709 |
+    // TRANSFER_SMPTE_170M | RANGE_LIMITED.
+    handle.colorSpace = colorSpaceFromDataSpace(ADATASPACE_BT709);
+    handle.deleter = [buffer]() { AHardwareBuffer_release(buffer); };
+    return handle;
+  }
+
+  VideoFrameHandle createTestVideoFrame(uint32_t width, uint32_t height,
+                                        VideoPixelFormat format) override {
+    if (format == VideoPixelFormat::NV12) {
+      return createTestYuvFrame(width, height);
+    }
     // Dawn's Android backend already requires API 26+, so AHardwareBuffer_*
     // symbols are guaranteed to be available at link time on supported builds.
     AHardwareBuffer_Desc desc = {};

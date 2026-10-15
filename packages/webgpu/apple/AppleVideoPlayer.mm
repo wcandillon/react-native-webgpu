@@ -12,47 +12,80 @@ namespace rnwgpu {
 
 namespace {
 
-// 3x4 row-major matrices mapping [Y, Cb, Cr, 1] to gamma-encoded R'G'B' (NOT
-// linear): YCbCr is derived from gamma-encoded RGB, so this conversion stays in
-// the encoded domain. The sRGB decode in srcTransferFunctionParameters
-// linearizes afterward (see GPUExternalTexture.cpp). Limited-range (video
-// range) means luma is 16..235, chroma is 16..240 (8-bit).
-// Reference: https://en.wikipedia.org/wiki/YCbCr (BT.601 / BT.709).
-static constexpr float kBT709LimitedToRgb[12] = {
-    1.164383f, 0.000000f,  1.792741f,  -0.972945f, //
-    1.164383f, -0.213249f, -0.532909f, 0.301517f,  //
-    1.164383f, 2.112402f,  0.000000f,  -1.133402f, //
-};
-static constexpr float kBT601LimitedToRgb[12] = {
-    1.164383f, 0.000000f,  1.596027f,  -0.874202f, //
-    1.164383f, -0.391762f, -0.812968f, 0.531668f,  //
-    1.164383f, 2.017232f,  0.000000f,  -1.085631f, //
-};
-static constexpr float kBT2020LimitedToRgb[12] = {
-    1.164383f, 0.000000f,  1.678674f,  -0.915688f, //
-    1.164383f, -0.187326f, -0.650424f, 0.347459f,  //
-    1.164383f, 2.141772f,  0.000000f,  -1.148145f, //
-};
+// The string attachment of a pixel buffer, or null when absent or not a string.
+static CFStringRef stringAttachment(CVPixelBufferRef pixelBuffer,
+                                    CFStringRef key) {
+  CFTypeRef value = CVBufferGetAttachment(pixelBuffer, key, nullptr);
+  if (value == nullptr || CFGetTypeID(value) != CFStringGetTypeID()) {
+    return nullptr;
+  }
+  return static_cast<CFStringRef>(value);
+}
 
-// Pick the right YUV→RGB matrix from the pixel buffer's color attachments.
-// Falls back to BT.709 limited range (the right call for ≥720p H.264, which
-// is what AVPlayer hands us for Big Buck Bunny and most streamed media).
-static void fillYuvMatrix(CVPixelBufferRef pixelBuffer, float out[12]) {
-  CFTypeRef matrixKey =
-      CVBufferGetAttachment(pixelBuffer, kCVImageBufferYCbCrMatrixKey, nullptr);
-  const float *src = kBT709LimitedToRgb;
-  if (matrixKey) {
-    auto matrix = (CFStringRef)matrixKey;
+// The color space of a YUV pixel buffer, from its attachments: the YCbCr matrix
+// (kCVImageBufferYCbCrMatrixKey), the range (the full-range pixel formats),
+// the primaries and the transfer function. What the buffer does not declare
+// stays unset and resolves at import time to BT.709 limited range, the norm
+// for HD video (GPUExternalTexture.cpp).
+static VideoFrameColorSpace
+colorSpaceFromCVPixelBuffer(CVPixelBufferRef pixelBuffer) {
+  VideoFrameColorSpace colorSpace;
+  if (CFStringRef matrix =
+          stringAttachment(pixelBuffer, kCVImageBufferYCbCrMatrixKey)) {
     if (CFEqual(matrix, kCVImageBufferYCbCrMatrix_ITU_R_601_4) ||
         CFEqual(matrix, kCVImageBufferYCbCrMatrix_SMPTE_240M_1995)) {
-      src = kBT601LimitedToRgb;
+      colorSpace.matrix = wgpu::ColorSpaceYCbCrMatrixDawn::Rec601;
+    } else if (CFEqual(matrix, kCVImageBufferYCbCrMatrix_ITU_R_709_2)) {
+      colorSpace.matrix = wgpu::ColorSpaceYCbCrMatrixDawn::Rec709;
     } else if (CFEqual(matrix, kCVImageBufferYCbCrMatrix_ITU_R_2020)) {
-      src = kBT2020LimitedToRgb;
+      colorSpace.matrix = wgpu::ColorSpaceYCbCrMatrixDawn::Rec2020;
     }
   }
-  for (int i = 0; i < 12; ++i) {
-    out[i] = src[i];
+  switch (CVPixelBufferGetPixelFormatType(pixelBuffer)) {
+  case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange:
+    colorSpace.range = wgpu::ColorSpaceYCbCrRangeDawn::Full;
+    break;
+  case kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange:
+    colorSpace.range = wgpu::ColorSpaceYCbCrRangeDawn::Narrow;
+    break;
+  default:
+    break;
   }
+  if (CFStringRef primaries =
+          stringAttachment(pixelBuffer, kCVImageBufferColorPrimariesKey)) {
+    if (CFEqual(primaries, kCVImageBufferColorPrimaries_ITU_R_709_2)) {
+      // BT.709 shares the sRGB primaries (Dawn's helper only knows them under
+      // that name).
+      colorSpace.primaries = wgpu::ColorSpacePrimariesDawn::SRGB;
+    } else if (CFEqual(primaries, kCVImageBufferColorPrimaries_EBU_3213) ||
+               CFEqual(primaries, kCVImageBufferColorPrimaries_SMPTE_C)) {
+      colorSpace.primaries = wgpu::ColorSpacePrimariesDawn::Rec601;
+    } else if (CFEqual(primaries, kCVImageBufferColorPrimaries_ITU_R_2020)) {
+      colorSpace.primaries = wgpu::ColorSpacePrimariesDawn::Rec2020;
+    } else if (CFEqual(primaries, kCVImageBufferColorPrimaries_P3_D65)) {
+      colorSpace.primaries = wgpu::ColorSpacePrimariesDawn::DisplayP3;
+    }
+  }
+  if (CFStringRef transfer =
+          stringAttachment(pixelBuffer, kCVImageBufferTransferFunctionKey)) {
+    if (CFEqual(transfer, kCVImageBufferTransferFunction_ITU_R_709_2) ||
+        CFEqual(transfer, kCVImageBufferTransferFunction_SMPTE_240M_1995) ||
+        CFEqual(transfer, kCVImageBufferTransferFunction_ITU_R_2020)) {
+      // The SDR video OETF; SMPTE 170M is Dawn's name for its inverse.
+      colorSpace.transfer = wgpu::ColorSpaceTransferDawn::SMPTE_170M;
+    } else if (CFEqual(transfer, kCVImageBufferTransferFunction_sRGB)) {
+      colorSpace.transfer = wgpu::ColorSpaceTransferDawn::SRGB;
+    } else if (CFEqual(transfer, kCVImageBufferTransferFunction_Linear)) {
+      colorSpace.transfer = wgpu::ColorSpaceTransferDawn::Identity;
+    } else if (CFEqual(transfer,
+                       kCVImageBufferTransferFunction_SMPTE_ST_2084_PQ)) {
+      colorSpace.transfer = wgpu::ColorSpaceTransferDawn::PQ;
+    } else if (CFEqual(transfer,
+                       kCVImageBufferTransferFunction_ITU_R_2100_HLG)) {
+      colorSpace.transfer = wgpu::ColorSpaceTransferDawn::HLG;
+    }
+  }
+  return colorSpace;
 }
 
 // Map a CVPixelBuffer's pixel format to our VideoPixelFormat enum.
@@ -257,7 +290,7 @@ VideoFrameHandle wrapCVPixelBuffer(CVPixelBufferRef pixelBuffer) {
   handle.height = static_cast<uint32_t>(CVPixelBufferGetHeight(pixelBuffer));
   handle.pixelFormat = pixelFormatFromCVPixelBuffer(pixelBuffer);
   if (handle.pixelFormat == VideoPixelFormat::NV12) {
-    fillYuvMatrix(pixelBuffer, handle.yuvToRgbMatrix);
+    handle.colorSpace = colorSpaceFromCVPixelBuffer(pixelBuffer);
   }
   handle.deleter = [pixelBuffer]() { CFRelease(pixelBuffer); };
   return handle;

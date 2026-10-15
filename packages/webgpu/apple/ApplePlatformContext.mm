@@ -414,8 +414,77 @@ VideoFrameHandle ApplePlatformContext::wrapNativeBuffer(void *pointer) {
   return wrapCVPixelBuffer(static_cast<CVPixelBufferRef>(pointer));
 }
 
+// The NV12 variant of createTestVideoFrame: a biplanar BT.709 limited-range
+// frame, red on the left half and green on the right, whose attachments
+// declare its color space the way the decoder's frames do, so that the
+// conversion of importExternalTexture is fully determined.
+static VideoFrameHandle createTestYuvFrame(uint32_t width, uint32_t height) {
+  NSDictionary *attrs = @{
+    (NSString *)kCVPixelBufferIOSurfacePropertiesKey : @{},
+    (NSString *)kCVPixelBufferMetalCompatibilityKey : @YES,
+  };
+  CVPixelBufferRef pixelBuffer = NULL;
+  CVReturn err =
+      CVPixelBufferCreate(kCFAllocatorDefault, width, height,
+                          kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+                          (__bridge CFDictionaryRef)attrs, &pixelBuffer);
+  if (err != kCVReturnSuccess || !pixelBuffer) {
+    throw std::runtime_error("createTestVideoFrame: unsupported: "
+                             "CVPixelBufferCreate failed for a biplanar "
+                             "YUV buffer");
+  }
+  CVBufferSetAttachment(pixelBuffer, kCVImageBufferYCbCrMatrixKey,
+                        kCVImageBufferYCbCrMatrix_ITU_R_709_2,
+                        kCVAttachmentMode_ShouldPropagate);
+  CVBufferSetAttachment(pixelBuffer, kCVImageBufferColorPrimariesKey,
+                        kCVImageBufferColorPrimaries_ITU_R_709_2,
+                        kCVAttachmentMode_ShouldPropagate);
+  CVBufferSetAttachment(pixelBuffer, kCVImageBufferTransferFunctionKey,
+                        kCVImageBufferTransferFunction_ITU_R_709_2,
+                        kCVAttachmentMode_ShouldPropagate);
+
+  CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+  uint8_t *luma = static_cast<uint8_t *>(
+      CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0));
+  size_t lumaRowBytes = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0);
+  for (uint32_t y = 0; y < height; ++y) {
+    uint8_t *row = luma + y * lumaRowBytes;
+    for (uint32_t x = 0; x < width; ++x) {
+      row[x] = x < width / 2 ? test_yuv_frame::kRedY : test_yuv_frame::kGreenY;
+    }
+  }
+  // The chroma plane is subsampled by two on both axes and interleaves Cb, Cr.
+  uint8_t *chroma = static_cast<uint8_t *>(
+      CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 1));
+  size_t chromaRowBytes = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 1);
+  size_t chromaWidth = CVPixelBufferGetWidthOfPlane(pixelBuffer, 1);
+  size_t chromaHeight = CVPixelBufferGetHeightOfPlane(pixelBuffer, 1);
+  for (size_t y = 0; y < chromaHeight; ++y) {
+    uint8_t *row = chroma + y * chromaRowBytes;
+    for (size_t x = 0; x < chromaWidth; ++x) {
+      bool red = x < chromaWidth / 2;
+      row[x * 2 + 0] = red ? test_yuv_frame::kRedCb : test_yuv_frame::kGreenCb;
+      row[x * 2 + 1] = red ? test_yuv_frame::kRedCr : test_yuv_frame::kGreenCr;
+    }
+  }
+  CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+
+  try {
+    auto handle = wrapCVPixelBuffer(pixelBuffer);
+    CFRelease(pixelBuffer); // wrapCVPixelBuffer retained its own reference
+    return handle;
+  } catch (...) {
+    CFRelease(pixelBuffer);
+    throw;
+  }
+}
+
 VideoFrameHandle
-ApplePlatformContext::createTestVideoFrame(uint32_t width, uint32_t height) {
+ApplePlatformContext::createTestVideoFrame(uint32_t width, uint32_t height,
+                                           VideoPixelFormat format) {
+  if (format == VideoPixelFormat::NV12) {
+    return createTestYuvFrame(width, height);
+  }
   NSDictionary *attrs = @{
     (NSString *)kCVPixelBufferIOSurfacePropertiesKey : @{},
     (NSString *)kCVPixelBufferMetalCompatibilityKey : @YES,

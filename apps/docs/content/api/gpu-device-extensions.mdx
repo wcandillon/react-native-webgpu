@@ -149,6 +149,8 @@ nativeVideoFrame.release();
 
 On Android, a YUV frame (what the video decoder and the camera produce) needs the `opaque-ycbcr-android-for-external-texture` device feature. `requestDevice()` enables it whenever the adapter supports it; a device created by another library and wrapped with [`importDevice()`](/docs/getting-started/native-api#importing-an-external-device) has to request it itself, as react-native-skia's does. The same applies to `copyExternalImageToTexture()` with a native frame.
 
+`textureSampleBaseClampToEdge` returns RGB on both platforms, as on the web: the external texture converts a YUV frame while sampling, with the color space of the frame (its YCbCr matrix, range, primaries and transfer function). A video player's frames carry it: the pixel buffer attachments on Apple platforms, the frame's data space (API 33) or the container's color metadata on Android. A buffer without any (a camera frame) falls back to what the platform reports for it, then to BT.709 limited range on Apple platforms and BT.601 limited range on Android. The spec's `colorSpace` member selects the color space of the result, `"srgb"` (the default) or `"display-p3"`.
+
 ## copyExternalImageToTexture with a native frame
 
 `queue.copyExternalImageToTexture()` also accepts a [`NativeVideoFrame`](/api/video-player#nativevideoframe) as its source, the way the web API accepts a `VideoFrame`.
