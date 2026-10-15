@@ -55,6 +55,14 @@ export const TransparencyMode = () => {
   const [mounted, setMounted] = useState(true);
   const [everyFrame, setEveryFrame] = useState(false);
   const [taps, setTaps] = useState(0);
+  // The loop reads the cadence through a ref so that toggling it does not
+  // restart the effect: a second initGPU() would configure the context with a
+  // new device while the first still owns the window, and Vulkan refuses the
+  // surface (VK_ERROR_NATIVE_WINDOW_IN_USE_KHR, device lost).
+  const everyFrameRef = useRef(everyFrame);
+  useEffect(() => {
+    everyFrameRef.current = everyFrame;
+  }, [everyFrame]);
 
   useEffect(() => {
     if (!mounted) {
@@ -77,7 +85,7 @@ export const TransparencyMode = () => {
           running = false;
           return;
         }
-        if (everyFrame) {
+        if (everyFrameRef.current) {
           requestAnimationFrame(tick);
         } else {
           setTimeout(tick, 200);
@@ -88,7 +96,7 @@ export const TransparencyMode = () => {
     return () => {
       running = false;
     };
-  }, [append, mounted, everyFrame]);
+  }, [append, mounted]);
 
   return (
     <View style={diagnosticStyles.container}>
