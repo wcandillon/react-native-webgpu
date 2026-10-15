@@ -42,159 +42,279 @@ ApplePlatformContext::ApplePlatformContext(ViewLookup viewLookup)
 
 namespace {
 
-// Rasterize `request` on the main thread into tightly packed, premultiplied
-// BGRA8 pixels. Throws std::runtime_error with a user-facing message.
-ImageData snapshotViewOnMainThread(const ApplePlatformContext::ViewLookup &lookup,
-                                   const ViewSnapshotRequest &request) {
+// A view that UIKit declined to render (it is not in a window). The pixel
+// path would fail the same way, so there is no point falling back to it.
+struct ViewNotRenderable : std::runtime_error {
+  using std::runtime_error::runtime_error;
+};
+
+// The view, the output size and the rectangle to draw it in, resolved from a
+// request on the main thread. Throws std::runtime_error with a user-facing
+// message.
+struct ResolvedSnapshot {
+  RNWGPlatformView *view = nil;
+  CGRect bounds = CGRectZero;
+  // The source rectangle in points (view space).
+  double sourceX = 0;
+  double sourceY = 0;
+  double sourceWidth = 0;
+  double sourceHeight = 0;
+  // The output size in pixels.
+  uint32_t width = 0;
+  uint32_t height = 0;
+  CGFloat scaleX = 1;
+  CGFloat scaleY = 1;
+  // The view's bounds, scaled and offset so that the source rectangle covers
+  // the whole output, in pixels and with UIKit's top-left origin.
+  CGRect drawRect = CGRectZero;
+};
+
+ResolvedSnapshot resolveSnapshot(const ApplePlatformContext::ViewLookup &lookup,
+                                 const ViewSnapshotRequest &request) {
   if (!lookup) {
     throw std::runtime_error(
         "drawElementImageToTexture: no view registry is available");
   }
-  RNWGPlatformView *view = (__bridge RNWGPlatformView *)lookup(request.viewTag);
-  if (view == nil) {
+  ResolvedSnapshot snapshot;
+  snapshot.view = (__bridge RNWGPlatformView *)lookup(request.viewTag);
+  if (snapshot.view == nil) {
     throw std::runtime_error(
         "drawElementImageToTexture: no native view found for tag " +
         std::to_string(request.viewTag) +
         " (is the view mounted, and rendered with collapsable={false}?)");
   }
-  const CGRect bounds = view.bounds;
+  snapshot.bounds = snapshot.view.bounds;
+  const CGRect bounds = snapshot.bounds;
   if (bounds.size.width <= 0 || bounds.size.height <= 0) {
     throw std::runtime_error(
         "drawElementImageToTexture: the view has no size yet");
   }
 
   // Source rectangle in points (view space); the whole view by default.
-  const double sourceX = request.sourceX;
-  const double sourceY = request.sourceY;
-  const double sourceWidth =
+  snapshot.sourceX = request.sourceX;
+  snapshot.sourceY = request.sourceY;
+  snapshot.sourceWidth =
       request.sourceWidth > 0 ? request.sourceWidth : bounds.size.width;
-  const double sourceHeight =
+  snapshot.sourceHeight =
       request.sourceHeight > 0 ? request.sourceHeight : bounds.size.height;
 
   // Natural pixel size: points times the screen scale the view is shown at.
 #if !TARGET_OS_OSX
-  CGFloat scale = view.window.screen.scale;
+  CGFloat scale = snapshot.view.window.screen.scale;
   if (scale <= 0) {
     scale = UIScreen.mainScreen.scale;
   }
 #else
-  CGFloat scale = view.window.backingScaleFactor;
+  CGFloat scale = snapshot.view.window.backingScaleFactor;
   if (scale <= 0) {
     scale = NSScreen.mainScreen.backingScaleFactor;
   }
 #endif
-  const uint32_t width =
+  snapshot.width =
       request.width > 0
           ? request.width
-          : static_cast<uint32_t>(std::llround(sourceWidth * scale));
-  const uint32_t height =
+          : static_cast<uint32_t>(std::llround(snapshot.sourceWidth * scale));
+  snapshot.height =
       request.height > 0
           ? request.height
-          : static_cast<uint32_t>(std::llround(sourceHeight * scale));
-  if (width == 0 || height == 0) {
+          : static_cast<uint32_t>(std::llround(snapshot.sourceHeight * scale));
+  if (snapshot.width == 0 || snapshot.height == 0) {
     throw std::runtime_error(
         "drawElementImageToTexture: the source rectangle is empty");
   }
 
   // The view's bounds are drawn scaled so that the source rectangle covers
   // the whole output.
-  const CGFloat scaleX = static_cast<CGFloat>(width) / sourceWidth;
-  const CGFloat scaleY = static_cast<CGFloat>(height) / sourceHeight;
-  const CGRect drawRect =
-      CGRectMake(-sourceX * scaleX, -sourceY * scaleY,
-                 bounds.size.width * scaleX, bounds.size.height * scaleY);
+  snapshot.scaleX = static_cast<CGFloat>(snapshot.width) / snapshot.sourceWidth;
+  snapshot.scaleY =
+      static_cast<CGFloat>(snapshot.height) / snapshot.sourceHeight;
+  snapshot.drawRect = CGRectMake(-snapshot.sourceX * snapshot.scaleX,
+                                 -snapshot.sourceY * snapshot.scaleY,
+                                 bounds.size.width * snapshot.scaleX,
+                                 bounds.size.height * snapshot.scaleY);
+  return snapshot;
+}
 
-  CGImageRef cgImage = NULL;
+// A premultiplied BGRA8 Core Graphics context over `pixels`, the layout both
+// snapshot paths produce. Returns NULL when Core Graphics rejects it.
+CGContextRef createBgraContext(void *pixels, uint32_t width, uint32_t height,
+                               size_t bytesPerRow) {
+  CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+  CGContextRef context = CGBitmapContextCreate(
+      pixels, width, height, 8, bytesPerRow, colorSpace,
+      kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+  CGColorSpaceRelease(colorSpace);
+  return context;
+}
+
 #if !TARGET_OS_OSX
-  // drawViewHierarchyInRect renders what is on screen (including Metal /
-  // CAMetalLayer content), which is what "the element as displayed" means.
-  // afterScreenUpdates:YES flushes pending layout and layer changes first, so
-  // a snapshot taken right after a state change reflects that change.
-  UIGraphicsImageRendererFormat *format =
-      [UIGraphicsImageRendererFormat defaultFormat];
-  format.scale = 1.0;
-  format.opaque = NO;
-  format.preferredRange = UIGraphicsImageRendererFormatRangeStandard;
-  UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc]
-      initWithSize:CGSizeMake(width, height)
-            format:format];
-  // drawViewHierarchyInRect returns NO and draws nothing when the view is not
-  // in a window (e.g. a screen pushed under another one). The image would
-  // then be fully transparent, so treat it as a failure instead.
-  __block BOOL drawn = NO;
-  UIImage *image = [renderer
-      imageWithActions:^(UIGraphicsImageRendererContext *_Nonnull context) {
-        drawn = [view drawViewHierarchyInRect:drawRect afterScreenUpdates:YES];
-      }];
+// Draws the view hierarchy through `context`, a bitmap context of exactly
+// `snapshot.width` x `snapshot.height` pixels (Core Graphics orientation; the
+// flip to UIKit's top-left origin is applied here).
+//
+// drawViewHierarchyInRect renders what is on screen (including Metal /
+// CAMetalLayer content), which is what "the element as displayed" means.
+// afterScreenUpdates:YES flushes pending layout and layer changes first, so a
+// snapshot taken right after a state change reflects that change; NO draws
+// the last committed frame and skips that round trip to the render server.
+//
+// drawViewHierarchyInRect returns NO and draws nothing when the view is not
+// in a window (e.g. a screen pushed under another one). The output would then
+// be fully transparent, so that is reported as a failure instead.
+void drawViewHierarchy(const ResolvedSnapshot &snapshot, CGContextRef context,
+                       bool afterScreenUpdates) {
+  CGContextSaveGState(context);
+  CGContextTranslateCTM(context, 0, snapshot.height);
+  CGContextScaleCTM(context, 1, -1);
+  UIGraphicsPushContext(context);
+  const BOOL drawn =
+      [snapshot.view drawViewHierarchyInRect:snapshot.drawRect
+                          afterScreenUpdates:afterScreenUpdates ? YES : NO];
+  UIGraphicsPopContext();
+  CGContextRestoreGState(context);
   if (!drawn) {
-    throw std::runtime_error(
+    throw ViewNotRenderable(
         "drawElementImageToTexture: the view could not be rendered (is it "
         "attached to a window?)");
   }
-  cgImage = image.CGImage;
-  if (cgImage != NULL) {
-    CGImageRetain(cgImage);
+}
+
+// Releases a pixel buffer when it goes out of scope.
+struct PixelBufferRelease {
+  CVPixelBufferRef buffer;
+  ~PixelBufferRelease() {
+    if (buffer != NULL) {
+      CFRelease(buffer);
+    }
+  }
+};
+
+// The zero-copy path: renders the view into an IOSurface-backed BGRA pixel
+// buffer, which the caller imports as shared texture memory and draws into
+// the destination on the GPU (VideoFrameBlit, which also converts the
+// premultiplied pixels to straight alpha when asked). UIKit rasterizes
+// straight into the surface's memory through a Core Graphics context, so the
+// pixels are never copied or converted on the CPU. Throws on an allocation
+// failure, which the caller answers with the pixel path.
+VideoFrameHandle renderViewIntoSurface(const ResolvedSnapshot &snapshot,
+                                       bool afterScreenUpdates) {
+  NSDictionary *attributes = @{
+    (NSString *)kCVPixelBufferIOSurfacePropertiesKey : @{},
+    (NSString *)kCVPixelBufferMetalCompatibilityKey : @YES,
+  };
+  CVPixelBufferRef pixelBuffer = NULL;
+  const CVReturn created =
+      CVPixelBufferCreate(kCFAllocatorDefault, snapshot.width, snapshot.height,
+                          kCVPixelFormatType_32BGRA,
+                          (__bridge CFDictionaryRef)attributes, &pixelBuffer);
+  if (created != kCVReturnSuccess || pixelBuffer == NULL) {
+    throw std::runtime_error(
+        "drawElementImageToTexture: could not allocate an IOSurface for the "
+        "view (CVPixelBufferCreate returned " +
+        std::to_string(created) + ")");
+  }
+  // wrapCVPixelBuffer retains its own reference for the frame.
+  PixelBufferRelease release{pixelBuffer};
+
+  if (CVPixelBufferLockBaseAddress(pixelBuffer, 0) != kCVReturnSuccess) {
+    throw std::runtime_error(
+        "drawElementImageToTexture: could not lock the IOSurface");
+  }
+  CGContextRef context = createBgraContext(
+      CVPixelBufferGetBaseAddress(pixelBuffer), snapshot.width, snapshot.height,
+      CVPixelBufferGetBytesPerRow(pixelBuffer));
+  if (context == NULL) {
+    CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+    throw std::runtime_error(
+        "drawElementImageToTexture: could not draw into the IOSurface");
+  }
+  try {
+    // A fresh surface holds whatever was in that memory, and the view may be
+    // transparent.
+    CGContextClearRect(context,
+                       CGRectMake(0, 0, snapshot.width, snapshot.height));
+    drawViewHierarchy(snapshot, context, afterScreenUpdates);
+  } catch (...) {
+    CGContextRelease(context);
+    CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+    throw;
+  }
+  CGContextRelease(context);
+  // Unlocking publishes the CPU writes to the GPU.
+  CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+  return wrapCVPixelBuffer(pixelBuffer);
+}
+#endif
+
+// The pixel path: rasterizes the view into tightly packed, premultiplied
+// BGRA8 pixels that the caller uploads with writeTexture.
+ImageData renderViewIntoPixels(const ResolvedSnapshot &snapshot,
+                               bool afterScreenUpdates) {
+  ImageData result;
+  result.width = snapshot.width;
+  result.height = snapshot.height;
+  result.format = wgpu::TextureFormat::BGRA8Unorm;
+  result.premultiplied = true;
+  // Zeroed: the view may be transparent.
+  result.data.assign(static_cast<size_t>(snapshot.width) * snapshot.height * 4,
+                     0);
+  CGContextRef context =
+      createBgraContext(result.data.data(), snapshot.width, snapshot.height,
+                        static_cast<size_t>(snapshot.width) * 4);
+  if (context == NULL) {
+    throw std::runtime_error(
+        "drawElementImageToTexture: could not allocate the pixel buffer");
+  }
+#if !TARGET_OS_OSX
+  // UIKit draws straight into the vector; no intermediate image.
+  try {
+    drawViewHierarchy(snapshot, context, afterScreenUpdates);
+  } catch (...) {
+    CGContextRelease(context);
+    throw;
   }
 #else
-  NSBitmapImageRep *rep = [view bitmapImageRepForCachingDisplayInRect:bounds];
+  (void)afterScreenUpdates;
+  CGImageRef cgImage = NULL;
+  NSBitmapImageRep *rep =
+      [snapshot.view bitmapImageRepForCachingDisplayInRect:snapshot.bounds];
   if (rep != nil) {
-    [view cacheDisplayInRect:bounds toBitmapImageRep:rep];
+    [snapshot.view cacheDisplayInRect:snapshot.bounds toBitmapImageRep:rep];
     cgImage = rep.CGImage;
     if (cgImage != NULL) {
       CGImageRetain(cgImage);
     }
   }
-#endif
   if (cgImage == NULL) {
+    CGContextRelease(context);
     throw std::runtime_error(
         "drawElementImageToTexture: the view could not be rendered");
   }
-
-  // Normalize into premultiplied BGRA8 with no row padding, whatever the
-  // renderer produced.
-  ImageData result;
-  result.width = width;
-  result.height = height;
-  result.format = wgpu::TextureFormat::BGRA8Unorm;
-  result.premultiplied = true;
-  result.data.assign(static_cast<size_t>(width) * height * 4, 0);
-  CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-  CGContextRef context = CGBitmapContextCreate(
-      result.data.data(), width, height, 8, static_cast<size_t>(width) * 4,
-      colorSpace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
-  CGColorSpaceRelease(colorSpace);
-  if (context == NULL) {
-    CGImageRelease(cgImage);
-    throw std::runtime_error(
-        "drawElementImageToTexture: could not allocate the pixel buffer");
-  }
-#if !TARGET_OS_OSX
-  // The renderer already produced exactly width x height pixels.
-  const CGRect imageRect = CGRectMake(0, 0, width, height);
-#else
   // The cached display covers the whole view at the backing scale; draw it so
   // that the source rectangle fills the output. CoreGraphics' origin is the
   // bottom-left corner, hence the flipped vertical offset.
-  const CGRect imageRect = CGRectMake(
-      -sourceX * scaleX,
-      -(bounds.size.height - sourceY - sourceHeight) * scaleY,
-      bounds.size.width * scaleX, bounds.size.height * scaleY);
-#endif
+  const CGRect imageRect =
+      CGRectMake(-snapshot.sourceX * snapshot.scaleX,
+                 -(snapshot.bounds.size.height - snapshot.sourceY -
+                   snapshot.sourceHeight) *
+                     snapshot.scaleY,
+                 snapshot.bounds.size.width * snapshot.scaleX,
+                 snapshot.bounds.size.height * snapshot.scaleY);
   CGContextSetBlendMode(context, kCGBlendModeCopy);
   CGContextDrawImage(context, imageRect, cgImage);
-  CGContextRelease(context);
   CGImageRelease(cgImage);
+#endif
+  CGContextRelease(context);
   return result;
 }
 
 } // namespace
 
-// Always delivers pixels: the view is drawn into a CPU bitmap, so there is no
-// GPU frame to hand over (onFrame is unused).
+// On iOS a caller that can draw a GPU frame (allowFrame) gets the view
+// rendered into an IOSurface; everything else, and macOS, gets pixels.
 void ApplePlatformContext::snapshotView(
-    const ViewSnapshotRequest &request,
-    std::function<void(ImageData)> onPixels,
-    std::function<void(VideoFrameHandle)> /* onFrame */,
+    const ViewSnapshotRequest &request, std::function<void(ImageData)> onPixels,
+    std::function<void(VideoFrameHandle)> onFrame,
     std::function<void(std::string)> onError) {
   // Copies: the block outlives this call.
   ViewLookup lookup = _viewLookup;
@@ -202,7 +322,29 @@ void ApplePlatformContext::snapshotView(
   dispatch_async(dispatch_get_main_queue(), ^{
     @autoreleasepool {
       try {
-        onPixels(snapshotViewOnMainThread(lookup, snapshotRequest));
+        const ResolvedSnapshot snapshot =
+            resolveSnapshot(lookup, snapshotRequest);
+#if !TARGET_OS_OSX
+        if (snapshotRequest.allowFrame) {
+          try {
+            onFrame(renderViewIntoSurface(snapshot,
+                                          snapshotRequest.afterScreenUpdates));
+            return;
+          } catch (const ViewNotRenderable &) {
+            throw;
+          } catch (const std::exception &error) {
+            // An IOSurface could not be set up; the pixel path draws the
+            // same view.
+            NSLog(@"[WebGPU] drawElementImageToTexture: %s; reading the "
+                  @"pixels back instead",
+                  error.what());
+          }
+        }
+#else
+        (void)onFrame;
+#endif
+        onPixels(
+            renderViewIntoPixels(snapshot, snapshotRequest.afterScreenUpdates));
       } catch (const std::exception &error) {
         onError(error.what());
       } catch (...) {
@@ -325,12 +467,10 @@ void ApplePlatformContext::createImageBitmapFromDataAsync(
   });
 }
 
-VideoFrameHandle
-ApplePlatformContext::loadVideoFrame(const std::string &path) {
+VideoFrameHandle ApplePlatformContext::loadVideoFrame(const std::string &path) {
   NSString *nsPath = [NSString stringWithUTF8String:path.c_str()];
-  NSURL *url = [nsPath hasPrefix:@"file://"]
-                   ? [NSURL URLWithString:nsPath]
-                   : [NSURL fileURLWithPath:nsPath];
+  NSURL *url = [nsPath hasPrefix:@"file://"] ? [NSURL URLWithString:nsPath]
+                                             : [NSURL fileURLWithPath:nsPath];
   AVURLAsset *asset = [AVURLAsset assetWithURL:url];
 
   NSArray<AVAssetTrack *> *videoTracks =
@@ -350,8 +490,7 @@ ApplePlatformContext::loadVideoFrame(const std::string &path) {
   }
 
   NSDictionary *outputSettings = @{
-    (NSString *)kCVPixelBufferPixelFormatTypeKey :
-        @(kCVPixelFormatType_32BGRA),
+    (NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
     (NSString *)kCVPixelBufferIOSurfacePropertiesKey : @{},
     (NSString *)kCVPixelBufferMetalCompatibilityKey : @YES,
   };
@@ -405,7 +544,7 @@ ApplePlatformContext::loadVideoFrame(const std::string &path) {
 
 std::unique_ptr<IVideoPlayer>
 ApplePlatformContext::createVideoPlayer(const std::string &path,
-                                         VideoPixelFormat format) {
+                                        VideoPixelFormat format) {
   return createAppleVideoPlayer(path, format);
 }
 

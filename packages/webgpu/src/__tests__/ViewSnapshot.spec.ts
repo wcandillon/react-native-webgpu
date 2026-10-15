@@ -333,6 +333,67 @@ describe("drawElementImageToTexture", () => {
     expectColor(result.center, limeBGRA);
   });
 
+  // afterScreenUpdates: false draws the last committed frame on iOS (it is
+  // ignored on Android); the probe is static, so the pixels are the same.
+  it("draws the last committed frame when afterScreenUpdates is false", async () => {
+    if (!nativeOnly()) {
+      return;
+    }
+    const result = await client.eval(({ device, views }) => {
+      const size = Math.round(views!.probeSize * views!.pixelRatio);
+      const texture = device.createTexture({
+        size: [size, size],
+        format: "rgba8unorm",
+        usage:
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.COPY_SRC |
+          GPUTextureUsage.RENDER_ATTACHMENT,
+      });
+      const bytesPerRow = Math.ceil((size * 4) / 256) * 256;
+      const output = device.createBuffer({
+        size: bytesPerRow * size,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+      });
+      return device.queue
+        .drawElementImageToTexture(
+          { source: views!.probe!, afterScreenUpdates: false },
+          { texture },
+        )
+        .then(() => {
+          const encoder = device.createCommandEncoder();
+          encoder.copyTextureToBuffer(
+            { texture },
+            { buffer: output, bytesPerRow },
+            [size, size],
+          );
+          device.queue.submit([encoder.finish()]);
+          return output.mapAsync(GPUMapMode.READ);
+        })
+        .then(() => {
+          const data = new Uint8Array(output.getMappedRange());
+          const at = (x: number, y: number) =>
+            Array.from(
+              data.slice(y * bytesPerRow + x * 4, y * bytesPerRow + x * 4 + 4),
+            );
+          const q = size / 4;
+          const sample = {
+            size,
+            topLeft: at(q, q),
+            topRight: at(3 * q, q),
+            bottomLeft: at(q, 3 * q),
+            bottomRight: at(3 * q, 3 * q),
+          };
+          output.unmap();
+          return sample;
+        });
+    });
+    expect(result.size).toBeGreaterThan(0);
+    expectColor(result.topLeft, RED);
+    expectColor(result.topRight, LIME);
+    expectColor(result.bottomLeft, BLUE);
+    expectColor(result.bottomRight, WHITE);
+  });
+
   it("rejects when the natural size does not fit the texture", async () => {
     if (!nativeOnly()) {
       return;
