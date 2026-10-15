@@ -36,12 +36,11 @@ public:
 
   VideoFrameHandle loadVideoFrame(const std::string &path) override;
 
-  VideoFrameHandle createTestVideoFrame(uint32_t width,
-                                        uint32_t height) override;
+  VideoFrameHandle createTestVideoFrame(uint32_t width, uint32_t height,
+                                        VideoPixelFormat format) override;
 
   std::unique_ptr<IVideoPlayer>
-  createVideoPlayer(const std::string &path,
-                    VideoPixelFormat format) override;
+  createVideoPlayer(const std::string &path, VideoPixelFormat format) override;
 
   std::string writeTestVideoFile() override;
 

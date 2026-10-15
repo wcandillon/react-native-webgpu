@@ -1,8 +1,8 @@
 // Main camera-effects shader: samples the imported external texture (camera
 // frame) with cover-fit + optional chromatic aberration / pixelate, optionally
 // mixes in the pre-blurred backdrop, then applies effect / tint / vignette.
-// `cameraDecode` comes from CAMERA_PRELUDE, which is prepended at
-// shader-module creation time.
+// textureSampleBaseClampToEdge returns RGB on both platforms: the external
+// texture converts the camera's YUV while sampling.
 export const SHADER = /* wgsl */ `
 struct VsOut {
   @builtin(position) position: vec4f,
@@ -20,10 +20,6 @@ struct Uniforms {
   // w: blurMode (0 off, 1 strong - blurred everywhere (prepass bakes
   //              cover-fit), 2 overlay - blurred backdrop + sharp card)
   modes: vec4u,
-  // The three rows of GPUExternalTexture.yuvToRgbMatrix (see CAMERA_PRELUDE).
-  yuv0: vec4f,
-  yuv1: vec4f,
-  yuv2: vec4f,
 };
 
 @group(0) @binding(0) var srcTex: texture_external;
@@ -57,10 +53,7 @@ fn snap(uv: vec2f, block: f32) -> vec2f {
 }
 
 fn sampleExternal(uv: vec2f, block: f32) -> vec4f {
-  return cameraDecode(
-    textureSampleBaseClampToEdge(srcTex, srcSampler, snap(uv, block)),
-    u.yuv0, u.yuv1, u.yuv2,
-  );
+  return textureSampleBaseClampToEdge(srcTex, srcSampler, snap(uv, block));
 }
 
 fn sampleBlurred(uv: vec2f, block: f32) -> vec4f {
@@ -172,29 +165,5 @@ fn fs_main(in: VsOut) -> @location(0) vec4f {
   }
 
   return vec4f(color, 1.0);
-}
-`;
-
-// Android delivers camera frames as an external-format (opaque) YUV buffer.
-// Dawn's OpaqueYCbCrAndroidForExternalTexture path samples it through a Vulkan
-// YCbCr conversion that is hard-coded to RGB_IDENTITY (Dawn's
-// SamplerVk.cpp::GetYCbCrForTextureView; see crbug.com/497675620), so the
-// external sample comes back as raw [Y, Cb, Cr] on *every* device — this is by
-// design, not a driver quirk. The correct conversion depends on the buffer:
-// react-native-webgpu derives it from the driver's suggested YCbCr model and
-// range (BT.601/709/2020, full/narrow) and exposes it as
-// GPUExternalTexture.yuvToRgbMatrix; the worklet uploads its three rows as
-// vec4f uniforms and cameraDecode applies them. On iOS (native two-plane path,
-// already converted by Dawn) and for RGBA surfaces the matrix is the identity
-// passthrough, so the decode is safe to apply unconditionally. The prelude is
-// prepended to every shader module that samples the camera (main pass + blur
-// prepass).
-export const CAMERA_PRELUDE = /* wgsl */ `
-// Apply a 3x4 row-major [c.r, c.g, c.b, 1] -> R'G'B' matrix
-// (GPUExternalTexture.yuvToRgbMatrix, see above).
-fn cameraDecode(c: vec4f, m0: vec4f, m1: vec4f, m2: vec4f) -> vec4f {
-  let v = vec4f(c.rgb, 1.0);
-  let rgb = vec3f(dot(m0, v), dot(m1, v), dot(m2, v));
-  return vec4f(clamp(rgb, vec3f(0.0), vec3f(1.0)), 1.0);
 }
 `;

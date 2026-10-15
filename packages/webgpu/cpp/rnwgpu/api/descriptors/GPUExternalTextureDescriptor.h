@@ -14,9 +14,9 @@ namespace jsi = facebook::jsi;
 namespace rnwgpu {
 
 // Mirror of GPUExternalTextureDescriptor from the WebGPU spec, but with our
-// VideoFrame as the (only) supported source. We don't expose colorSpace yet;
-// the C++ side picks dst-sRGB and identity gamut, which is the right default
-// for "render this video frame to a regular sRGB framebuffer".
+// VideoFrame as the (only) supported source. `colorSpace` is the spec member:
+// the color space of the RGB the shader samples, "srgb" (the default) or
+// "display-p3"; the frame's own color space comes with the frame.
 //
 // `rotation` / `mirrored` are a non-spec extension: camera frames (e.g. from
 // VisionCamera) arrive in the sensor's native orientation, which differs
@@ -27,6 +27,7 @@ namespace rnwgpu {
 struct GPUExternalTextureDescriptor {
   std::shared_ptr<VideoFrame> source;
   std::optional<std::string> label;
+  std::optional<std::string> colorSpace;
   std::optional<double> rotation;
   std::optional<bool> mirrored;
 };
@@ -55,6 +56,12 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
         if (!prop.isUndefined()) {
           result->label = JSIConverter<std::optional<std::string>>::fromJSI(
               runtime, prop, false);
+        }
+      }
+      if (value.hasProperty(runtime, "colorSpace")) {
+        auto prop = value.getProperty(runtime, "colorSpace");
+        if (prop.isString()) {
+          result->colorSpace = prop.asString(runtime).utf8(runtime);
         }
       }
       if (value.hasProperty(runtime, "rotation")) {

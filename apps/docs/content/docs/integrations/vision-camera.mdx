@@ -135,7 +135,7 @@ Order matters: **submit → present → destroy → release**. Skipping [`releas
 
 ## 4. WGSL - sample the camera
 
-Bind the external texture and use `textureSampleBaseClampToEdge`:
+Bind the external texture and use `textureSampleBaseClampToEdge`, as on the web:
 
 ```wgsl
 @group(0) @binding(0) var srcTex: texture_external;
@@ -143,31 +143,15 @@ Bind the external texture and use `textureSampleBaseClampToEdge`:
 
 @fragment
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
-  return cameraDecode(
-    textureSampleBaseClampToEdge(srcTex, srcSampler, cameraCoord(uv)),
-  );
+  return textureSampleBaseClampToEdge(srcTex, srcSampler, uv);
 }
 ```
 
 Apply **cover-fit** scaling in uniforms so a landscape sensor fills a portrait canvas without stretching.
 
-## 5. Android YUV decode
+## 5. Color conversion
 
-On iOS, NV12 → RGB happens in hardware. On Android, Dawn returns raw `[Y, Cb, Cr]` - decode in WGSL:
-
-```wgsl
-fn cameraDecode(c: vec4f) -> vec4f {
-  let y  = c.r - 0.0627451;
-  let cb = c.g - 0.5;
-  let cr = c.b - 0.5;
-  let r = 1.164384 * y + 1.792741 * cr;
-  let g = 1.164384 * y - 0.213249 * cb - 0.532909 * cr;
-  let b = 1.164384 * y + 2.112402 * cb;
-  return vec4f(clamp(vec3f(r, g, b), vec3f(0.0), vec3f(1.0)), 1.0);
-}
-```
-
-Also flip UVs on Android if the buffer origin differs from iOS (`cameraCoord` helper).
+The sample is RGB on both platforms: the external texture converts the camera's YUV while sampling, with the color space of the frame. On iOS the pixel buffer's attachments declare it (BT.709 limited range when they are missing). On Android a camera buffer carries no color metadata, so the YCbCr matrix and range come from what the Vulkan driver reports for the buffer, BT.601 limited range when it has no opinion, which is what Android cameras produce. Pass `colorSpace: "display-p3"` to `importExternalTexture` to sample in Display P3 instead of sRGB.
 
 ## Further reading
 

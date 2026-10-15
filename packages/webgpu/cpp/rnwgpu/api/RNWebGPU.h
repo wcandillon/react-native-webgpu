@@ -2,6 +2,8 @@
 
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "NativeObject.h"
 
@@ -248,10 +250,14 @@ public:
     return std::make_shared<VideoFrame>(std::move(frame));
   }
 
-  std::shared_ptr<VideoFrame> createTestVideoFrame(double width,
-                                                   double height) {
+  std::shared_ptr<VideoFrame>
+  createTestVideoFrame(double width, double height,
+                       std::optional<std::string> pixelFormat) {
+    auto format = (pixelFormat && pixelFormat.value() == "nv12")
+                      ? VideoPixelFormat::NV12
+                      : VideoPixelFormat::BGRA8;
     auto frame = _platformContext->createTestVideoFrame(
-        static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+        static_cast<uint32_t>(width), static_cast<uint32_t>(height), format);
     return std::make_shared<VideoFrame>(std::move(frame));
   }
 

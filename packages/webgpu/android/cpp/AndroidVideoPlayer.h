@@ -11,6 +11,7 @@
 #include <string>
 #include <utility>
 
+#include "AndroidColorSpace.h"
 #include "PlatformContext.h"
 
 namespace rnwgpu {
@@ -95,6 +96,8 @@ public:
     _getRotation = method(env, playerClass, "getRotation", "()I");
     _getFrameRate = method(env, playerClass, "getFrameRate", "()D");
     _release = method(env, playerClass, "release", "()V");
+    _frameDataSpace =
+        method(env, playerClass, "frameDataSpace", "(Landroid/media/Image;)I");
     _acquireFenceFd = env->GetStaticMethodID(playerClass, "acquireFenceFd",
                                              "(Landroid/media/Image;)I");
     if (_acquireFenceFd == nullptr) {
@@ -168,6 +171,15 @@ public:
       acquireFenceFd = -1;
     }
 
+    // The color space of the samples: the frame's data space (API 33) or the
+    // container's color info. What it leaves unknown is resolved at import.
+    int32_t dataSpace =
+        env->CallIntMethod(_player->get(), _frameDataSpace, image);
+    if (env->ExceptionCheck()) {
+      env->ExceptionClear();
+      dataSpace = 0;
+    }
+
     // The frame owns a reference to the buffer and keeps the Image acquired
     // until it is released; closing the Image hands the buffer back to the
     // decoder.
@@ -182,6 +194,7 @@ public:
     handle.pixelFormat = isRgbFormat(desc.format) ? VideoPixelFormat::BGRA8
                                                   : VideoPixelFormat::NV12;
     handle.acquireFenceFd = acquireFenceFd;
+    handle.colorSpace = colorSpaceFromDataSpace(dataSpace);
     auto player = _player;
     jmethodID closeImageMethod = _closeImage;
     handle.deleter = [player, closeImageMethod, imageRef, buffer,
@@ -316,6 +329,7 @@ private:
   jclass _playerClass;
   jmethodID _copyLatestFrame;
   jmethodID _closeImage;
+  jmethodID _frameDataSpace;
   jmethodID _acquireFenceFd;
   jmethodID _play;
   jmethodID _pause;
