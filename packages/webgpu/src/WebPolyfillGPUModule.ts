@@ -7,7 +7,9 @@ function getNativeSurface(contextId: number) {
     contextIdToId(contextId),
   ) as HTMLCanvasElement;
 
-  const { height, width } = canvas.getBoundingClientRect()!;
+  // Layout size, like the native view size in dp: unlike
+  // getBoundingClientRect() it ignores CSS transforms.
+  const { clientHeight: height, clientWidth: width } = canvas;
 
   return {
     surface: BigInt(contextId),
