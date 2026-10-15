@@ -4,6 +4,7 @@
 #include <android/hardware_buffer_jni.h>
 #include <fbjni/fbjni.h>
 #include <jni.h>
+#include <unistd.h>
 
 #include <memory>
 #include <stdexcept>
@@ -94,6 +95,15 @@ public:
     _getRotation = method(env, playerClass, "getRotation", "()I");
     _getFrameRate = method(env, playerClass, "getFrameRate", "()D");
     _release = method(env, playerClass, "release", "()V");
+    _acquireFenceFd = env->GetStaticMethodID(playerClass, "acquireFenceFd",
+                                             "(Landroid/media/Image;)I");
+    if (_acquireFenceFd == nullptr) {
+      env->ExceptionClear();
+      env->DeleteLocalRef(playerClass);
+      throw std::runtime_error("VideoPlayer: method acquireFenceFd not found");
+    }
+    // The static call needs the class; keep it for the player's lifetime.
+    _playerClass = static_cast<jclass>(env->NewGlobalRef(playerClass));
     env->DeleteLocalRef(playerClass);
 
     jclass imageClass = env->FindClass("android/media/Image");
@@ -108,6 +118,7 @@ public:
     if (env->ExceptionCheck()) {
       env->ExceptionClear();
     }
+    env->DeleteGlobalRef(_playerClass);
   }
 
   VideoFrameHandle copyLatestFrame() override {
@@ -144,6 +155,19 @@ public:
           "them");
     }
 
+    // The decoder may still be writing the frame: ImageReader hands out the
+    // buffer as soon as it is queued and only waits on the producer's fence for
+    // CPU access (Image.getPlanes), not for Image.getHardwareBuffer. The GPU
+    // work that samples the frame waits on the fence instead (see
+    // GPUExternalTexture::Create). -1 when the platform cannot report it
+    // (before API 33) or the producer was already done.
+    int acquireFenceFd =
+        env->CallStaticIntMethod(_playerClass, _acquireFenceFd, image);
+    if (env->ExceptionCheck()) {
+      env->ExceptionClear();
+      acquireFenceFd = -1;
+    }
+
     // The frame owns a reference to the buffer and keeps the Image acquired
     // until it is released; closing the Image hands the buffer back to the
     // decoder.
@@ -157,9 +181,11 @@ public:
     handle.height = desc.height;
     handle.pixelFormat = isRgbFormat(desc.format) ? VideoPixelFormat::BGRA8
                                                   : VideoPixelFormat::NV12;
+    handle.acquireFenceFd = acquireFenceFd;
     auto player = _player;
     jmethodID closeImageMethod = _closeImage;
-    handle.deleter = [player, closeImageMethod, imageRef, buffer]() {
+    handle.deleter = [player, closeImageMethod, imageRef, buffer,
+                      acquireFenceFd]() {
       JNIEnv *env = attach();
       env->CallVoidMethod(player->get(), closeImageMethod, imageRef);
       if (env->ExceptionCheck()) {
@@ -167,6 +193,9 @@ public:
       }
       env->DeleteGlobalRef(imageRef);
       AHardwareBuffer_release(buffer);
+      if (acquireFenceFd >= 0) {
+        ::close(acquireFenceFd);
+      }
     };
     return handle;
   }
@@ -284,8 +313,10 @@ private:
   }
 
   std::shared_ptr<JavaVideoPlayerRef> _player;
+  jclass _playerClass;
   jmethodID _copyLatestFrame;
   jmethodID _closeImage;
+  jmethodID _acquireFenceFd;
   jmethodID _play;
   jmethodID _pause;
   jmethodID _getPaused;
