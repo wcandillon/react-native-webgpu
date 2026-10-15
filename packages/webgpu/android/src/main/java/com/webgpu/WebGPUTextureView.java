@@ -20,10 +20,27 @@ public class WebGPUTextureView extends TextureView implements TextureView.Surfac
     setSurfaceTextureListener(this);
   }
 
+  // Hands the view its texture before its first draw, which then shows the
+  // frame presented into it (BackingViewKind.receivesSurfaceBeforeFirstDraw).
+  // TextureView reports no onSurfaceTextureAvailable for a texture it was given.
+  void supplySurfaceTexture(int width, int height) {
+    SurfaceTexture surfaceTexture = new SurfaceTexture(false);
+    surfaceTexture.setDefaultBufferSize(width, height);
+    setSurfaceTexture(surfaceTexture);
+    mSurface = new Surface(surfaceTexture);
+    mApi.surfaceCreated(mSurface, 0, true);
+  }
+
+  // The canvas moved to another view: this one keeps its last frame on screen
+  // until it is removed, and reports nothing.
+  void detachFromRenderer() {
+    mApi = WebGPUAPI.DETACHED;
+  }
+
   @Override
   public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surfaceTexture, int width, int height) {
     mSurface = new Surface(surfaceTexture);
-    mApi.surfaceCreated(mSurface, 0);
+    mApi.surfaceCreated(mSurface, 0, false);
   }
 
   @Override

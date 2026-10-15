@@ -55,6 +55,20 @@ public class FirstFrameDrawGateTest {
   }
 
   @Test
+  public void hasSurfaceNamesOnlyTheSurfaceTheViewHasNow() {
+    assertEquals(false, mGate.hasSurface(FIRST_SURFACE));
+    mGate.onSurfaceCreated(FIRST_SURFACE);
+    assertEquals(true, mGate.hasSurface(FIRST_SURFACE));
+    mGate.onSurfaceReleased();
+    mGate.onSurfaceCreated(SECOND_SURFACE);
+    assertEquals(false, mGate.hasSurface(FIRST_SURFACE));
+    assertEquals(true, mGate.hasSurface(SECOND_SURFACE));
+    mGate.onSurfaceReleased();
+    assertEquals(false, mGate.hasSurface(SECOND_SURFACE));
+    assertEquals(false, mGate.hasSurface(0));
+  }
+
+  @Test
   public void drawRequestedBeforeTheFirstFrameIsReportedWithIt() {
     mGate.onSurfaceCreated(FIRST_SURFACE);
     mGate.onRedrawNeeded(draw("first"));

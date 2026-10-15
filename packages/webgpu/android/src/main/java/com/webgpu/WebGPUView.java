@@ -2,6 +2,7 @@ package com.webgpu;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -32,6 +33,37 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   // composited into the window, which votes for it.
   private final SurfaceFrameRateVote mFrameRateVote = new SurfaceFrameRateVote(
     this, idleAfterNanos -> releaseFrameRateVoteIfIdle(mContextId, idleAfterNanos));
+  // Attached and undrawn until the next swap, until the canvas leaves its
+  // window or the window hides: see BackingViewKind.retiresWhenReplaced.
+  private WebGPUSurfaceView mRetiredSurfaceView = null;
+  // Above mView until mView shows the canvas, see updateView().
+  private final OutgoingViewHold<WebGPUTextureView> mOutgoingView =
+    new OutgoingViewHold<>(new OutgoingViewHold.Host<WebGPUTextureView>() {
+      @Override
+      public void removeView(WebGPUTextureView view) {
+        WebGPUView.this.removeView(view);
+      }
+
+      @Override
+      public void runAfterWindowFrameCommits(Runnable action) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+          action.run();
+          return;
+        }
+        getViewTreeObserver().registerFrameCommitCallback(action);
+        invalidate();
+      }
+
+      @Override
+      public void postDelayed(Runnable action, long delayMillis) {
+        WebGPUView.this.postDelayed(action, delayMillis);
+      }
+
+      @Override
+      public void removeCallbacks(Runnable action) {
+        WebGPUView.this.removeCallbacks(action);
+      }
+    });
 
   WebGPUView(Context context) {
     super(context);
@@ -85,11 +117,21 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     BackingViewKind kind = resolveKind();
     boolean zOrderOnTop = kind == BackingViewKind.SURFACE_VIEW && mZOrderOnTop;
     if (mView == null || kind != mAppliedKind || zOrderOnTop != mAppliedZOrderOnTop) {
-      if (mView instanceof WebGPUTextureView) {
-        keepTextureViewFrame((WebGPUTextureView) mView);
-      }
+      mOutgoingView.release();
+      removeRetiredSurfaceView();
       if (mView != null) {
-        removeView(mView);
+        if (mAppliedKind.retiresWhenReplaced(Build.VERSION.SDK_INT, isShown(), getWidth(), getHeight())) {
+          retireSurfaceView((WebGPUSurfaceView) mView);
+        } else if (kind.keepsOutgoingOnScreen(mAppliedKind, isShown(), getWidth(), getHeight())) {
+          WebGPUTextureView outgoing = (WebGPUTextureView) mView;
+          outgoing.detachFromRenderer();
+          mOutgoingView.hold(outgoing, OutgoingViewHold.Arrival.ofSurfaceView(Build.VERSION.SDK_INT, zOrderOnTop));
+        } else {
+          if (mView instanceof WebGPUTextureView) {
+            keepTextureViewFrame((WebGPUTextureView) mView);
+          }
+          removeView(mView);
+        }
       }
       mAppliedKind = kind;
       mAppliedZOrderOnTop = zOrderOnTop;
@@ -106,17 +148,54 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
           mView = new WebGPUSurfaceView(ctx, this, zOrderOnTop, mOpaque);
           break;
       }
-      addView(mView);
+      // Beneath an outgoing view, which covers it until it shows the canvas.
+      addView(mView, 0);
       // ReactViewGroup.requestLayout() is a deliberate no-op, so addView outside
       // the layout pass never lays the child out; do it by hand or the new view
       // stays 0x0 and never gets a surface.
       layoutChild();
+      // Swapping a canvas on screen to a TextureView draws no empty frame: the
+      // new view gets its texture, and the latest frame, before its first draw
+      // rather than during it.
+      if (kind.receivesSurfaceBeforeFirstDraw(isShown(), getWidth(), getHeight())) {
+        ((WebGPUTextureView) mView).supplySurfaceTexture(getWidth(), getHeight());
+      }
     } else if (kind == BackingViewKind.TEXTURE_VIEW) {
       ((WebGPUTextureView) mView).setOpaque(mOpaque);
     } else if (kind == BackingViewKind.SURFACE_VIEW) {
       ((WebGPUSurfaceView) mView).setOpaque(mOpaque);
     }
     // WebGPUHardwareBufferView always composites with alpha; opacity is a no-op.
+  }
+
+  private void retireSurfaceView(WebGPUSurfaceView view) {
+    view.retire();
+    mRetiredSurfaceView = view;
+    // The window recomputes its transparent region only on a layout pass,
+    // which React Native's requestLayout never reaches.
+    requestTransparentRegion(view);
+  }
+
+  private void removeRetiredSurfaceView() {
+    WebGPUSurfaceView retired = mRetiredSurfaceView;
+    if (retired == null) {
+      return;
+    }
+    mRetiredSurfaceView = null;
+    removeView(retired);
+  }
+
+  @Override
+  protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+    return child != mRetiredSurfaceView && super.drawChild(canvas, child, drawingTime);
+  }
+
+  @Override
+  protected void onWindowVisibilityChanged(int visibility) {
+    super.onWindowVisibilityChanged(visibility);
+    if (visibility != VISIBLE) {
+      removeRetiredSurfaceView();
+    }
   }
 
   private void layoutChild() {
@@ -129,13 +208,41 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     if (mView != null) {
       layoutChild();
     }
+    WebGPUTextureView outgoing = mOutgoingView.held();
+    if (outgoing != null) {
+      outgoing.layout(0, 0, getMeasuredWidth(), getMeasuredHeight());
+    }
+  }
+
+  // A SurfaceView asks its parent for the window's transparent region as it
+  // attaches and, from Android 11, as it opens its hole
+  // (SurfaceView.performDrawFinished).
+  @Override
+  public void requestTransparentRegion(View child) {
+    super.requestTransparentRegion(child);
+    if (child == mView) {
+      mOutgoingView.onTransparentRegionRequested();
+    }
   }
 
   @Override
-  public void surfaceCreated(Surface surface, long firstFrameToken) {
+  protected void onDetachedFromWindow() {
+    mOutgoingView.release();
+    removeRetiredSurfaceView();
+    super.onDetachedFromWindow();
+  }
+
+  @Override
+  public void surfaceCreated(Surface surface, long firstFrameToken, boolean beforeFirstDraw) {
     float density = getResources().getDisplayMetrics().density;
     float width = getWidth() / density;
     float height = getHeight() / density;
+    // The outgoing view still shows the canvas while it is held: the new
+    // surface starts from the frame on screen now.
+    WebGPUTextureView outgoing = mOutgoingView.held();
+    if (outgoing != null) {
+      keepTextureViewFrame(outgoing);
+    }
     boolean votesFrameRate = mAppliedKind == BackingViewKind.SURFACE_VIEW;
     if (votesFrameRate) {
       mFrameRateVote.attach(surface);
@@ -148,7 +255,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
       mAppliedKind.presentsBehindPendingDraw(),
       mAppliedKind.acquiresAfterDraw(Build.VERSION.SDK_INT),
       votesFrameRate,
-      firstFrameToken);
+      firstFrameToken,
+      beforeFirstDraw);
   }
 
   /**
@@ -159,7 +267,13 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   public void onFirstFramePresented(long firstFrameToken) {
     post(() -> {
       if (mView instanceof WebGPUSurfaceView) {
-        ((WebGPUSurfaceView) mView).onFirstFramePresented(firstFrameToken);
+        WebGPUSurfaceView surfaceView = (WebGPUSurfaceView) mView;
+        // Before the SurfaceView reports its draw: a report made during a
+        // window relayout opens the hole at once, even on Android 13.
+        if (surfaceView.hasSurface(firstFrameToken)) {
+          mOutgoingView.onFirstFramePresented();
+        }
+        surfaceView.onFirstFramePresented(firstFrameToken);
       }
     });
   }
@@ -241,6 +355,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
    */
   public void destroy() {
     mFrameRateVote.detach();
+    mOutgoingView.release();
+    removeRetiredSurfaceView();
     onViewDestroyed(mContextId);
   }
 
@@ -258,7 +374,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     boolean presentsBehindPendingDraw,
     boolean acquiresAfterDraw,
     boolean reportAnimation,
-    long firstFrameToken
+    long firstFrameToken,
+    boolean adoptsBeforeFirstDraw
   );
 
   @DoNotStrip

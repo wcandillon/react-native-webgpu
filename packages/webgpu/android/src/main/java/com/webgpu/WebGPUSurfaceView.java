@@ -68,6 +68,16 @@ public class WebGPUSurfaceView extends SurfaceView implements SurfaceHolder.Call
     return !mDrawGate.hasFrame() || super.gatherTransparentRegion(region);
   }
 
+  // The canvas moved to another view while this one stays attached and
+  // undrawn (BackingViewKind.retiresWhenReplaced): its frame goes with the
+  // canvas, its surface leaves the renderer now, its draw reports are settled,
+  // and the view reports nothing more and, with no frame, punches no hole.
+  void retire() {
+    mApi.keepFrame(getHolder().getSurface());
+    releaseSurface();
+    mApi = WebGPUAPI.DETACHED;
+  }
+
   @Override
   protected void onDetachedFromWindow() {
     mDrawGate.onDetachedFromWindow();
@@ -81,7 +91,7 @@ public class WebGPUSurfaceView extends SurfaceView implements SurfaceHolder.Call
   public void surfaceCreated(@NonNull SurfaceHolder holder) {
     long surfaceToken = sNextSurfaceToken.incrementAndGet();
     mDrawGate.onSurfaceCreated(surfaceToken);
-    mApi.surfaceCreated(holder.getSurface(), surfaceToken);
+    mApi.surfaceCreated(holder.getSurface(), surfaceToken, false);
   }
 
   @Override
@@ -108,6 +118,11 @@ public class WebGPUSurfaceView extends SurfaceView implements SurfaceHolder.Call
   public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
     mApi.keepFrame(holder.getSurface());
     releaseSurface();
+  }
+
+  /** Whether surfaceToken names the surface this view has now. Main thread. */
+  boolean hasSurface(long surfaceToken) {
+    return mDrawGate.hasSurface(surfaceToken);
   }
 
   /** A frame was presented into the surface surfaceToken names. Main thread. */

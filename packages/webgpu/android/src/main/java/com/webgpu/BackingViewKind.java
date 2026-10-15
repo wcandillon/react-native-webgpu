@@ -73,4 +73,49 @@ enum BackingViewKind {
   boolean acquiresAfterDraw(int sdkInt) {
     return this == TEXTURE_VIEW && sdkInt == Build.VERSION_CODES.R;
   }
+
+  /**
+   * Whether a new view of this kind gets its surface, with the latest frame
+   * presented into it, before its first draw. A TextureView makes its
+   * SurfaceTexture in its first draw and shows a frame presented then only in
+   * the next one, so it would draw empty once. One that is not shown or not
+   * laid out keeps the lazy path: a texture handed to it would hold its
+   * buffers with no draw to show them.
+   */
+  boolean receivesSurfaceBeforeFirstDraw(boolean shown, int width, int height) {
+    return this == TEXTURE_VIEW && shown && width > 0 && height > 0;
+  }
+
+  /**
+   * Whether a new view of this kind, replacing an outgoing one on screen,
+   * keeps that view until the new one shows the canvas (OutgoingViewHold). A
+   * SurfaceView shows nothing before its first frame, while an outgoing
+   * TextureView leaves with the window frame that removes it, so the swap
+   * would show what lies under the canvas in between. An outgoing SurfaceView
+   * is not kept: a TextureView draws inside the window, so it reaches the
+   * screen with the window frame the SurfaceView leaves with.
+   */
+  boolean keepsOutgoingOnScreen(BackingViewKind outgoing, boolean shown, int width, int height) {
+    return this == SURFACE_VIEW && outgoing == TEXTURE_VIEW && shown && width > 0 && height > 0;
+  }
+
+  /**
+   * Whether a view of this kind, replaced on screen, stays attached and
+   * undrawn rather than being removed, so that it leaves the screen with the
+   * window frame that covers it. Android 10 to 12 remove a detached
+   * SurfaceView's layer ahead of that frame (10 in onDetachedFromWindow, 11
+   * and 12 in a positionLost that no longer has the view's root to defer to)
+   * and hide the layer of an attached one the window stops drawing in step
+   * with the frame. Android 12L removes a detached one with the window's next
+   * draw, and Android 9 and earlier hide nothing in positionLost. A view that
+   * is not shown or not laid out has nothing on screen to keep.
+   */
+  boolean retiresWhenReplaced(int sdkInt, boolean shown, int width, int height) {
+    return this == SURFACE_VIEW
+      && sdkInt >= Build.VERSION_CODES.Q
+      && sdkInt <= Build.VERSION_CODES.S
+      && shown
+      && width > 0
+      && height > 0;
+  }
 }

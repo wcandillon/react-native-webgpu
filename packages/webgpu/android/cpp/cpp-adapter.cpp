@@ -340,8 +340,8 @@ void setAnimationReporter(int contextId,
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     JNIEnv *env, jobject thiz, jobject jSurface, jint contextId, jfloat width,
     jfloat height, jboolean presentsBehindPendingDraw,
-    jboolean acquiresAfterDraw, jboolean reportAnimation,
-    jlong firstFrameToken) {
+    jboolean acquiresAfterDraw, jboolean reportAnimation, jlong firstFrameToken,
+    jboolean adoptsBeforeFirstDraw) {
   if (manager == nullptr) {
     return;
   }
@@ -391,6 +391,11 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
   } else {
     setAnimationReporter(contextId, nullptr);
     info->setFramePresentedCallback(nullptr);
+  }
+  // A TextureView given its surface before its first draw shows the latest
+  // frame in that draw only if it is presented into the surface first.
+  if (adoptsBeforeFirstDraw) {
+    info->applyPendingAttach();
   }
   // The attach is adopted at the next frame boundary by the rendering thread;
   // schedule a flush so contexts that are not currently rendering still pick

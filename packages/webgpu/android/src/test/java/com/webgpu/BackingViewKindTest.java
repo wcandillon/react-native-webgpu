@@ -30,6 +30,40 @@ public class BackingViewKindTest {
   };
 
   @Test
+  public void onlyAShownLaidOutSurfaceViewRetiresOnAndroid10To12() {
+    for (int sdkInt = Build.VERSION_CODES.N; sdkInt <= Build.VERSION_CODES.UPSIDE_DOWN_CAKE; sdkInt++) {
+      boolean retires = sdkInt >= Build.VERSION_CODES.Q && sdkInt <= Build.VERSION_CODES.S;
+      assertEquals("API " + sdkInt, retires, BackingViewKind.SURFACE_VIEW.retiresWhenReplaced(sdkInt, true, 100, 50));
+      assertEquals(false, BackingViewKind.SURFACE_VIEW.retiresWhenReplaced(sdkInt, false, 100, 50));
+      assertEquals(false, BackingViewKind.SURFACE_VIEW.retiresWhenReplaced(sdkInt, true, 0, 50));
+      assertEquals(false, BackingViewKind.TEXTURE_VIEW.retiresWhenReplaced(sdkInt, true, 100, 50));
+      assertEquals(false, BackingViewKind.HARDWARE_BUFFER_VIEW.retiresWhenReplaced(sdkInt, true, 100, 50));
+    }
+  }
+
+  @Test
+  public void onlyAShownLaidOutTextureViewGetsItsSurfaceBeforeItsFirstDraw() {
+    assertEquals(true, BackingViewKind.TEXTURE_VIEW.receivesSurfaceBeforeFirstDraw(true, 100, 50));
+    assertEquals(false, BackingViewKind.TEXTURE_VIEW.receivesSurfaceBeforeFirstDraw(false, 100, 50));
+    assertEquals(false, BackingViewKind.TEXTURE_VIEW.receivesSurfaceBeforeFirstDraw(true, 0, 50));
+    assertEquals(false, BackingViewKind.TEXTURE_VIEW.receivesSurfaceBeforeFirstDraw(true, 100, 0));
+    assertEquals(false, BackingViewKind.SURFACE_VIEW.receivesSurfaceBeforeFirstDraw(true, 100, 50));
+    assertEquals(false, BackingViewKind.HARDWARE_BUFFER_VIEW.receivesSurfaceBeforeFirstDraw(true, 100, 50));
+  }
+
+  @Test
+  public void onlyASurfaceViewReplacingAShownTextureViewKeepsItOnScreen() {
+    for (BackingViewKind incoming : BackingViewKind.values()) {
+      for (BackingViewKind outgoing : BackingViewKind.values()) {
+        boolean keeps = incoming == BackingViewKind.SURFACE_VIEW && outgoing == BackingViewKind.TEXTURE_VIEW;
+        assertEquals(incoming + " over " + outgoing, keeps, incoming.keepsOutgoingOnScreen(outgoing, true, 100, 50));
+        assertEquals(false, incoming.keepsOutgoingOnScreen(outgoing, false, 100, 50));
+        assertEquals(false, incoming.keepsOutgoingOnScreen(outgoing, true, 0, 0));
+      }
+    }
+  }
+
+  @Test
   public void translucentCanvasIsATextureView() {
     for (int sdkInt : BEFORE_ANDROID_12L) {
       assertEquals(BackingViewKind.TEXTURE_VIEW, BackingViewKind.forAutoSurfaceType(false, false, sdkInt));
