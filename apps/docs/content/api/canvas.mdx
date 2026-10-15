@@ -197,7 +197,7 @@ parent transforms, clipping, rounded corners, and z-ordering with sibling views
 do not apply to it. Use it whenever the canvas is a plain opaque rectangle.
 On an adaptive display (Android 11 and later) the canvas asks for the
 display's highest refresh rate while it animates, as the window does for
-regular views, and lets the rate drop again once it stops drawing.
+regular views, and lets the rate drop again once the animation stops.
 
 **`TextureView`** is the default for a non-opaque canvas. It is a regular
 Android view: frames go through a `SurfaceTexture` that the UI toolkit samples
