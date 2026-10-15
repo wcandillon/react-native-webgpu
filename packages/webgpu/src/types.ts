@@ -21,7 +21,7 @@ export type RNCanvasContext = GPUCanvasContext & {
    *
    * Call this after `queue.submit()` on every runtime: the main JS runtime, the
    * Reanimated UI runtime, and dedicated worklet runtimes (e.g.
-   * `createWorkletRuntime` / `runOnRuntime`, or a Vision Camera frame
+   * `createWorkletRuntime` / `scheduleOnRuntime`, or a Vision Camera frame
    * processor). It runs synchronously on the calling thread, so the frame is
    * presented from whichever thread did the rendering.
    */
