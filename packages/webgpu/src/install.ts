@@ -19,23 +19,15 @@ const constants = {
   GPUMapMode,
 };
 
-// The GPU instance destined for `navigator.gpu` on other runtimes, wrapped in
-// a holder object. It cannot be read at module evaluation: this module can be
-// evaluated before the native install has populated `RNWebGPU.gpu`, so
-// `main/index.tsx` fills the holder right after installing. The holder itself
-// is captured into the `installWebGPU` worklet closure; when a worklet is
-// serialized (always after startup, so after the holder is filled), the
-// Worklets custom serializer boxes the GPU object inside it, and unboxing on
-// the target runtime installs the GPU prototype there.
-const holder: { gpu?: GPU } = {};
-
-/**
- * @internal Called once by `main/index.tsx` after the native install, so
- * `installWebGPU()` can put `navigator.gpu` on other runtimes.
- */
-export const provideGPUForInstall = (gpu: GPU) => {
-  holder.gpu = gpu;
-};
+// The GPU instance destined for `navigator.gpu` on other runtimes, read from
+// the native install like the flags above (the package entry runs the install
+// before this module is evaluated). Undefined on web, where the RNWebGPU
+// polyfill has no gpu and the browser already provides navigator.gpu. Captured
+// into the `installWebGPU` worklet closure: when a worklet is serialized, the
+// Worklets custom serializer boxes the GPU object, and unboxing on the target
+// runtime installs the GPU prototype there.
+const gpu: GPU | undefined =
+  typeof RNWebGPU === "undefined" ? undefined : RNWebGPU.gpu;
 
 /**
  * Install WebGPU on the runtime that calls it.
@@ -88,7 +80,6 @@ export const installWebGPU = () => {
       g[key] = value;
     }
   }
-  const { gpu } = holder;
   if (gpu !== undefined) {
     const nav = g.navigator as { gpu?: GPU; userAgent?: string } | undefined;
     if (nav === undefined) {

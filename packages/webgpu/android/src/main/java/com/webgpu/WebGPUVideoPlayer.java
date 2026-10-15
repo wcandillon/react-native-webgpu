@@ -61,6 +61,23 @@ public class WebGPUVideoPlayer {
   private volatile int rotation = 0;
   private volatile double frameRate = 0;
   private volatile double durationSeconds = 0;
+  // The color space of the video track as the container declares it, packed
+  // like a data space (see dataSpaceFromContainer); 0 when it says nothing.
+  private volatile int containerDataSpace = 0;
+
+  // The layout of android.hardware.DataSpace (API 33), which is also the
+  // ADataSpace of the NDK: standard << 16, transfer << 22, range << 27. Spelled
+  // out so that the mapping compiles and runs on every supported API level.
+  private static final int DATASPACE_STANDARD_BT709 = 1 << 16;
+  private static final int DATASPACE_STANDARD_BT601_625 = 2 << 16;
+  private static final int DATASPACE_STANDARD_BT601_525 = 4 << 16;
+  private static final int DATASPACE_STANDARD_BT2020 = 6 << 16;
+  private static final int DATASPACE_TRANSFER_LINEAR = 1 << 22;
+  private static final int DATASPACE_TRANSFER_SMPTE_170M = 3 << 22;
+  private static final int DATASPACE_TRANSFER_ST2084 = 7 << 22;
+  private static final int DATASPACE_TRANSFER_HLG = 8 << 22;
+  private static final int DATASPACE_RANGE_FULL = 1 << 27;
+  private static final int DATASPACE_RANGE_LIMITED = 2 << 27;
 
   WebGPUVideoPlayer(Context context, String source) {
     Uri uri = parseSource(source);
@@ -160,6 +177,17 @@ public class WebGPUVideoPlayer {
                     if (format.containsKey(MediaFormat.KEY_FRAME_RATE)) {
                       frameRate = format.getInteger(MediaFormat.KEY_FRAME_RATE);
                     }
+                    containerDataSpace =
+                        dataSpaceFromContainer(
+                            format.containsKey(MediaFormat.KEY_COLOR_STANDARD)
+                                ? format.getInteger(MediaFormat.KEY_COLOR_STANDARD)
+                                : 0,
+                            format.containsKey(MediaFormat.KEY_COLOR_TRANSFER)
+                                ? format.getInteger(MediaFormat.KEY_COLOR_TRANSFER)
+                                : 0,
+                            format.containsKey(MediaFormat.KEY_COLOR_RANGE)
+                                ? format.getInteger(MediaFormat.KEY_COLOR_RANGE)
+                                : 0);
                     break;
                   }
                 }
@@ -183,6 +211,77 @@ public class WebGPUVideoPlayer {
     } catch (NumberFormatException e) {
       return 0;
     }
+  }
+
+  // The MediaFormat color keys of the video track (KEY_COLOR_STANDARD,
+  // KEY_COLOR_TRANSFER, KEY_COLOR_RANGE; 0 when absent) packed like a data
+  // space, so that the native side reads one representation whatever its
+  // source.
+  private static int dataSpaceFromContainer(int standard, int transfer, int range) {
+    int dataSpace = 0;
+    switch (standard) {
+      case MediaFormat.COLOR_STANDARD_BT709:
+        dataSpace |= DATASPACE_STANDARD_BT709;
+        break;
+      case MediaFormat.COLOR_STANDARD_BT601_PAL:
+        dataSpace |= DATASPACE_STANDARD_BT601_625;
+        break;
+      case MediaFormat.COLOR_STANDARD_BT601_NTSC:
+        dataSpace |= DATASPACE_STANDARD_BT601_525;
+        break;
+      case MediaFormat.COLOR_STANDARD_BT2020:
+        dataSpace |= DATASPACE_STANDARD_BT2020;
+        break;
+      default:
+        break;
+    }
+    switch (transfer) {
+      case MediaFormat.COLOR_TRANSFER_LINEAR:
+        dataSpace |= DATASPACE_TRANSFER_LINEAR;
+        break;
+      case MediaFormat.COLOR_TRANSFER_SDR_VIDEO:
+        dataSpace |= DATASPACE_TRANSFER_SMPTE_170M;
+        break;
+      case MediaFormat.COLOR_TRANSFER_ST2084:
+        dataSpace |= DATASPACE_TRANSFER_ST2084;
+        break;
+      case MediaFormat.COLOR_TRANSFER_HLG:
+        dataSpace |= DATASPACE_TRANSFER_HLG;
+        break;
+      default:
+        break;
+    }
+    switch (range) {
+      case MediaFormat.COLOR_RANGE_FULL:
+        dataSpace |= DATASPACE_RANGE_FULL;
+        break;
+      case MediaFormat.COLOR_RANGE_LIMITED:
+        dataSpace |= DATASPACE_RANGE_LIMITED;
+        break;
+      default:
+        break;
+    }
+    return dataSpace;
+  }
+
+  /**
+   * The color space of a frame returned by {@link #copyLatestFrame}, as a data space (the
+   * packing of {@code android.hardware.DataSpace}): the one the decoder stamps on the frame
+   * (API 33), or what the container declares for the video track. 0 when neither says anything.
+   */
+  @DoNotStrip
+  public int frameDataSpace(Image image) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      try {
+        int dataSpace = image.getDataSpace();
+        if (dataSpace != 0) {
+          return dataSpace;
+        }
+      } catch (IllegalStateException e) {
+        // The frame was closed under us; fall back to the container.
+      }
+    }
+    return containerDataSpace;
   }
 
   // The decoder reports the frame size (possibly more than once for adaptive
@@ -271,6 +370,16 @@ public class WebGPUVideoPlayer {
       acquired.add(image);
     }
     return image;
+  }
+
+  /**
+   * The acquire fence of a frame returned by {@link #copyLatestFrame}, as a sync file descriptor
+   * the caller owns, or -1 when there is none. The decoder may still be writing the frame when it
+   * is acquired; the GPU work that samples it has to wait on this fence (see {@link SyncFences}).
+   */
+  @DoNotStrip
+  public static int acquireFenceFd(Image image) {
+    return SyncFences.acquireFenceFd(image);
   }
 
   /** Hands the buffer of a frame returned by {@link #copyLatestFrame} back to the decoder. */

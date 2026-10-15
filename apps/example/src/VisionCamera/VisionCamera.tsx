@@ -30,7 +30,7 @@ import {
   PIXELATE_BLOCKS,
   type Modes,
 } from "./features";
-import { CAMERA_PRELUDE, SHADER } from "./shaders";
+import { SHADER } from "./shaders";
 
 // Camera frame → SharedTextureMemory (NV12 biplanar) → GPUExternalTexture →
 // textureSampleBaseClampToEdge with hardware YUV/sRGB conversion → chromatic
@@ -42,7 +42,7 @@ import { CAMERA_PRELUDE, SHADER } from "./shaders";
 // pipeline / sampler / buffer, so the closure references below auto-box on
 // the way into the worklet and auto-unbox on the way out.
 //
-// The WGSL (SHADER + CAMERA_PRELUDE) lives in ./shaders.
+// The WGSL (SHADER) lives in ./shaders.
 
 // Camera frames import through the Dawn features requestDevice() enables by
 // default whenever the adapter supports them: IOSurface import and the NV12
@@ -204,7 +204,7 @@ const CameraView = () => {
     });
 
     const module = device.createShaderModule({
-      code: CAMERA_PRELUDE + SHADER,
+      code: SHADER,
     });
     const pipeline = device.createRenderPipeline({
       layout: "auto",
@@ -221,8 +221,8 @@ const CameraView = () => {
       minFilter: "linear",
     });
     const uniformBuffer = device.createBuffer({
-      // vec4f params + vec4u modes + 3x vec4f yuvToRgbMatrix rows.
-      size: 80,
+      // vec4f params + vec4u modes.
+      size: 32,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -237,7 +237,7 @@ const CameraView = () => {
     );
 
     const prepassModule = device.createShaderModule({
-      code: CAMERA_PRELUDE + PREPASS_SHADER,
+      code: PREPASS_SHADER,
     });
     const prepassPipeline = device.createRenderPipeline({
       layout: "auto",
@@ -250,8 +250,8 @@ const CameraView = () => {
       primitive: { topology: "triangle-list" },
     });
     const prepassUniformBuffer = device.createBuffer({
-      // 2x vec2f sizes + 3x vec4f yuvToRgbMatrix rows.
-      size: 64,
+      // 2x vec2f sizes.
+      size: 16,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -441,8 +441,8 @@ const CameraView = () => {
           // the portrait canvas. On Android the buffer additionally arrives
           // mirrored on both axes relative to the canvas (buffer Y-origin),
           // which is the same as an extra 180° rotation, folded in below.
-          // YUV->RGB is applied in the shader via the
-          // GPUExternalTexture.yuvToRgbMatrix uniform (see CAMERA_PRELUDE).
+          // The external texture converts the camera's YUV to RGB while
+          // sampling, on both platforms.
           let rotationDeg: 0 | 90 | 180 | 270 = 0;
           if (frame.orientation === "right") {
             rotationDeg = 90;
@@ -485,15 +485,9 @@ const CameraView = () => {
             );
             throw e;
           }
-          // Per-buffer YUV->RGB conversion for the shader: the driver-derived
-          // matrix on the Android opaque-YCbCr path, an identity passthrough
-          // on iOS / RGBA surfaces (see CAMERA_PRELUDE).
-          const yuvMatrix = externalTex.yuvToRgbMatrix;
-
-          // 80-byte uniform: vec4f params + vec4u modes + the three vec4f
-          // yuvToRgbMatrix rows. Built on a single ArrayBuffer so the f32/u32
-          // halves go up in one writeBuffer call.
-          const uniformData = new ArrayBuffer(80);
+          // 32-byte uniform: vec4f params + vec4u modes. Built on a single
+          // ArrayBuffer so the f32/u32 halves go up in one writeBuffer call.
+          const uniformData = new ArrayBuffer(32);
           const uniformF32 = new Float32Array(uniformData);
           const uniformU32 = new Uint32Array(uniformData);
           uniformF32[0] = sx;
@@ -504,9 +498,6 @@ const CameraView = () => {
           uniformU32[5] = modes.tint;
           uniformU32[6] = modes.vignette;
           uniformU32[7] = blurMode;
-          for (let i = 0; i < 12; i++) {
-            uniformF32[8 + i] = yuvMatrix[i] ?? 0;
-          }
           device.queue.writeBuffer(uniformBuffer, 0, uniformData);
           const bindGroup = device.createBindGroup({
             layout: pipeline.getBindGroupLayout(0),
@@ -525,13 +516,7 @@ const CameraView = () => {
             device.queue.writeBuffer(
               prepassUniformBuffer,
               0,
-              new Float32Array([
-                dispW,
-                dispH,
-                canvasWidth,
-                canvasHeight,
-                ...yuvMatrix,
-              ]),
+              new Float32Array([dispW, dispH, canvasWidth, canvasHeight]),
             );
             const prepassBindGroup = device.createBindGroup({
               layout: prepassPipeline.getBindGroupLayout(0),

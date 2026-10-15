@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <span>
 #include <string>
 #include <utility>
@@ -36,6 +37,20 @@ enum class VideoPixelFormat {
   NV12,
 };
 
+// The color space of a YUV frame, as its producer reports it: the YCbCr matrix
+// and range that encode the samples, and the primaries and transfer function of
+// the RGB they encode. Each member is optional: what the producer does not know
+// (a camera buffer carries no color metadata, a container may record only some
+// of it) is resolved at import time (GPUExternalTexture::Create) from the
+// buffer and the platform's norm. Dawn converts the samples to RGB in the
+// destination color space while sampling the external texture.
+struct VideoFrameColorSpace {
+  std::optional<wgpu::ColorSpacePrimariesDawn> primaries;
+  std::optional<wgpu::ColorSpaceTransferDawn> transfer;
+  std::optional<wgpu::ColorSpaceYCbCrRangeDawn> range;
+  std::optional<wgpu::ColorSpaceYCbCrMatrixDawn> matrix;
+};
+
 // A native handle to a video frame that can be imported into a
 // GPUSharedTextureMemory.
 //
@@ -50,13 +65,32 @@ struct VideoFrameHandle {
   uint32_t width = 0;
   uint32_t height = 0;
   VideoPixelFormat pixelFormat = VideoPixelFormat::BGRA8;
-  // 3x4 row-major matrix mapping [Y, U, V, 1] → linear [R, G, B]. Pre-computed
-  // at decode time from CVPixelBuffer attachments (kCVImageBufferYCbCrMatrixKey
-  // + range), with a BT.709 limited-range default. Only meaningful when
-  // pixelFormat == NV12.
-  float yuvToRgbMatrix[12] = {};
+  // The color space of the samples. Only meaningful when pixelFormat == NV12:
+  // from the CVPixelBuffer attachments on Apple platforms, from the Image's
+  // data space (API 33) or the container's color info on Android.
+  VideoFrameColorSpace colorSpace;
+  // Android: the acquire fence of the frame as a sync file descriptor, or -1.
+  // The producer (video decoder, camera) may still be writing the buffer when
+  // the consumer gets it; the GPU work that reads the frame waits on this fence
+  // (imported as a shared-fence-sync-fd into BeginAccess). Owned by the handle:
+  // the deleter closes it. Importing it into Dawn duplicates it, so the frame
+  // can be imported more than once.
+  int acquireFenceFd = -1;
   std::function<void()> deleter;
 };
+
+// The samples of the NV12 test frame of createTestVideoFrame: pure red and
+// pure green in BT.709 limited range (Y 16..235, Cb/Cr 16..240), so the frame
+// converts back to exactly those colors in sRGB. Shared by both platforms so
+// the e2e spec sees the same frame on each.
+namespace test_yuv_frame {
+constexpr uint8_t kRedY = 63;
+constexpr uint8_t kRedCb = 102;
+constexpr uint8_t kRedCr = 240;
+constexpr uint8_t kGreenY = 173;
+constexpr uint8_t kGreenCb = 42;
+constexpr uint8_t kGreenCr = 26;
+} // namespace test_yuv_frame
 
 // Platform-implemented video source that hands out fresh IOSurface /
 // AHardwareBuffer-backed frames as a video plays, with the playback controls
@@ -110,6 +144,10 @@ struct ViewSnapshotRequest {
   double sourceHeight = 0;
   uint32_t width = 0;
   uint32_t height = 0;
+  // Whether the caller can draw a GPU frame (a VideoFrameHandle) into the
+  // destination itself. A platform that renders the view into a GPU buffer
+  // then hands that buffer over instead of reading the pixels back.
+  bool allowFrame = false;
 };
 
 class PlatformContext {
@@ -129,17 +167,24 @@ public:
     return currentSlot();
   }
 
-  // Rasterize a native view into CPU pixels (see ViewSnapshotRequest). The
-  // implementation hops to the platform UI thread, so this is asynchronous:
-  // exactly one of onSuccess / onError is invoked, from an arbitrary thread
+  // Rasterize a native view (see ViewSnapshotRequest). The implementation hops
+  // to the platform UI thread, so this is asynchronous: exactly one of
+  // onPixels / onFrame / onError is invoked, from an arbitrary thread
   // (typically the UI thread). Callers must not touch JSI in the callbacks.
   //
-  // The returned ImageData is tightly packed (no row padding), 4 bytes per
-  // pixel, `format` is rgba8unorm or bgra8unorm depending on what the platform
-  // rasterizer produces natively, and `premultiplied` reports its alpha
-  // representation.
+  // onPixels receives the view as CPU pixels: tightly packed (no row
+  // padding), 4 bytes per pixel, `format` rgba8unorm or bgra8unorm depending
+  // on what the platform rasterizer produces natively, and `premultiplied`
+  // reporting its alpha representation.
+  //
+  // onFrame, only when the request allows it, receives the GPU buffer the
+  // platform rendered the view into (Android 13 and above: the
+  // HardwareRenderer's AHardwareBuffer, with the fence that signals when the
+  // drawing is done), as an RGBA frame of premultiplied pixels. The receiver
+  // owns the frame and releases it through its deleter.
   virtual void snapshotView(const ViewSnapshotRequest &request,
-                            std::function<void(ImageData)> onSuccess,
+                            std::function<void(ImageData)> onPixels,
+                            std::function<void(VideoFrameHandle)> onFrame,
                             std::function<void(std::string)> onError) = 0;
 
   virtual ImageData createImageBitmap(std::string blobId, double offset,
@@ -167,9 +212,13 @@ public:
 
   // Create a synthetic, GPU-shareable IOSurface/AHardwareBuffer filled with a
   // generated test pattern. Avoids the need to bundle a video asset for the
-  // SharedTextureMemory example.
-  virtual VideoFrameHandle createTestVideoFrame(uint32_t width,
-                                                uint32_t height) = 0;
+  // SharedTextureMemory example. BGRA8 is an RGB gradient; NV12 is a biplanar
+  // YUV frame, BT.709 limited range, red on the left half and green on the
+  // right, which exercises the color conversion of importExternalTexture.
+  // Throws a message containing "unsupported" where the platform cannot
+  // allocate or fill the YUV layout (Android before API 29).
+  virtual VideoFrameHandle createTestVideoFrame(uint32_t width, uint32_t height,
+                                                VideoPixelFormat format) = 0;
 
   // Open a video file at `path` for playback. The returned player yields
   // IOSurface / AHardwareBuffer-backed frames via copyLatestFrame().

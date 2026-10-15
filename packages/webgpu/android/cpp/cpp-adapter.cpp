@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include <cstring>
 #include <memory>
 #include <string>
@@ -92,7 +94,57 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_onViewSnapshot(
                 rowBytes);
   }
   AndroidBitmap_unlockPixels(env, bitmap);
-  callbacks->onSuccess(std::move(image));
+  callbacks->onPixels(std::move(image));
+}
+
+// Completion of WebGPUModule.snapshotView through a hardware buffer (UI
+// thread, Android 13 and above): the buffer HardwareRenderer drew the view
+// into, and the fence that signals when the drawing is done, as a sync fd
+// this function takes ownership of. The GPU draws the buffer into the
+// destination itself (GPUQueue::drawElementImageToTexture); nothing is read
+// back through the CPU.
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUModule_onViewSnapshotBuffer(JNIEnv *env,
+                                                  jobject /* this */,
+                                                  jlong callbackPointer,
+                                                  jobject hardwareBuffer,
+                                                  jint fenceFd) {
+  std::unique_ptr<rnwgpu::ViewSnapshotCallbacks> callbacks(
+      reinterpret_cast<rnwgpu::ViewSnapshotCallbacks *>(callbackPointer));
+  AHardwareBuffer *buffer =
+      hardwareBuffer != nullptr
+          ? AHardwareBuffer_fromHardwareBuffer(env, hardwareBuffer)
+          : nullptr;
+  if (!callbacks || buffer == nullptr) {
+    if (fenceFd >= 0) {
+      ::close(fenceFd);
+    }
+    if (callbacks) {
+      callbacks->onError(
+          "drawElementImageToTexture: the renderer produced no buffer");
+    }
+    return;
+  }
+  AHardwareBuffer_Desc desc{};
+  AHardwareBuffer_describe(buffer, &desc);
+  // Java closes its Image and HardwareBuffer as soon as this returns; this
+  // reference keeps the memory alive until the frame is released.
+  AHardwareBuffer_acquire(buffer);
+
+  rnwgpu::VideoFrameHandle frame;
+  frame.handle = buffer;
+  frame.width = desc.width;
+  frame.height = desc.height;
+  // An RGBA_8888 buffer: sampled as a plain color texture.
+  frame.pixelFormat = rnwgpu::VideoPixelFormat::BGRA8;
+  frame.acquireFenceFd = fenceFd;
+  frame.deleter = [buffer, fenceFd]() {
+    AHardwareBuffer_release(buffer);
+    if (fenceFd >= 0) {
+      ::close(fenceFd);
+    }
+  };
+  callbacks->onFrame(std::move(frame));
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceChanged(

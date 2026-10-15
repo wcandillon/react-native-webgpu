@@ -204,6 +204,135 @@ describe("drawElementImageToTexture", () => {
     expectColor(result.last, limeBGRA);
   });
 
+  // With RENDER_ATTACHMENT, Android 13 and above draw the renderer's buffer
+  // into the texture on the GPU instead of reading the pixels back; the result
+  // must be the same.
+  it("draws into a renderable texture", async () => {
+    if (!nativeOnly()) {
+      return;
+    }
+    const result = await client.eval(({ device, views }) => {
+      const size = Math.round(views!.probeSize * views!.pixelRatio);
+      const texture = device.createTexture({
+        size: [size, size],
+        format: "rgba8unorm",
+        usage:
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.COPY_SRC |
+          GPUTextureUsage.RENDER_ATTACHMENT,
+      });
+      const bytesPerRow = Math.ceil((size * 4) / 256) * 256;
+      const output = device.createBuffer({
+        size: bytesPerRow * size,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+      });
+      return device.queue
+        .drawElementImageToTexture({ source: views!.probe! }, { texture })
+        .then(() => {
+          const encoder = device.createCommandEncoder();
+          encoder.copyTextureToBuffer(
+            { texture },
+            { buffer: output, bytesPerRow },
+            [size, size],
+          );
+          device.queue.submit([encoder.finish()]);
+          return output.mapAsync(GPUMapMode.READ);
+        })
+        .then(() => {
+          const data = new Uint8Array(output.getMappedRange());
+          const at = (x: number, y: number) =>
+            Array.from(
+              data.slice(y * bytesPerRow + x * 4, y * bytesPerRow + x * 4 + 4),
+            );
+          const q = size / 4;
+          const sample = {
+            size,
+            topLeft: at(q, q),
+            topRight: at(3 * q, q),
+            bottomLeft: at(q, 3 * q),
+            bottomRight: at(3 * q, 3 * q),
+          };
+          output.unmap();
+          return sample;
+        });
+    });
+    expect(result.size).toBeGreaterThan(0);
+    expectColor(result.topLeft, RED);
+    expectColor(result.topRight, LIME);
+    expectColor(result.bottomLeft, BLUE);
+    expectColor(result.bottomRight, WHITE);
+  });
+
+  it("draws a region of a renderable bgra8unorm texture and leaves the rest", async () => {
+    if (!nativeOnly()) {
+      return;
+    }
+    const result = await client.eval(({ device, views }) => {
+      // The lime quadrant into the bottom-right 16x16 of a 32x32 texture: the
+      // GPU path confines its render pass to that region, so the rest of the
+      // (zero-initialized) texture must stay untouched.
+      const half = views!.probeSize / 2;
+      const size = 32;
+      const region = 16;
+      const texture = device.createTexture({
+        size: [size, size],
+        format: "bgra8unorm",
+        usage:
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.COPY_SRC |
+          GPUTextureUsage.RENDER_ATTACHMENT,
+      });
+      const bytesPerRow = 256;
+      const output = device.createBuffer({
+        size: bytesPerRow * size,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+      });
+      return device.queue
+        .drawElementImageToTexture(
+          {
+            source: views!.probe!,
+            sourceX: half,
+            sourceY: 0,
+            sourceWidth: half,
+            sourceHeight: half,
+          },
+          { texture, origin: [region, region], size: [region, region] },
+        )
+        .then(() => {
+          const encoder = device.createCommandEncoder();
+          encoder.copyTextureToBuffer(
+            { texture },
+            { buffer: output, bytesPerRow },
+            [size, size],
+          );
+          device.queue.submit([encoder.finish()]);
+          return output.mapAsync(GPUMapMode.READ);
+        })
+        .then(() => {
+          const data = new Uint8Array(output.getMappedRange());
+          const at = (x: number, y: number) =>
+            Array.from(
+              data.slice(y * bytesPerRow + x * 4, y * bytesPerRow + x * 4 + 4),
+            );
+          const sample = {
+            outside: at(8, 8),
+            edge: at(region - 1, region - 1),
+            inside: at(region + 1, region + 1),
+            center: at(region + 8, region + 8),
+          };
+          output.unmap();
+          return sample;
+        });
+    });
+    // bgra8unorm read back: bytes are B, G, R, A.
+    const limeBGRA: RGBA = [0, 255, 0, 255];
+    const untouched: RGBA = [0, 0, 0, 0];
+    expectColor(result.outside, untouched);
+    expectColor(result.edge, untouched);
+    expectColor(result.inside, limeBGRA);
+    expectColor(result.center, limeBGRA);
+  });
+
   it("rejects when the natural size does not fit the texture", async () => {
     if (!nativeOnly()) {
       return;
