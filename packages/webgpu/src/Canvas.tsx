@@ -126,26 +126,30 @@ export const Canvas = ({
       RNWebGPU.destroyContext(contextId);
     };
   }, [contextId]);
-  useImperativeHandle(ref, () => ({
-    getContextId: () => contextId,
-    getNativeSurface: () => {
-      return RNWebGPU.getNativeSurface(contextId);
-    },
-    getContext(contextName: "webgpu"): RNCanvasContext | null {
-      if (contextName !== "webgpu") {
-        throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
-      }
-      if (!viewRef.current) {
-        throw new Error("[WebGPU] Cannot get context before mount");
-      }
-      const size = measureLayout(viewRef.current);
-      return RNWebGPU.MakeWebGPUCanvasContext(
-        contextId,
-        size.width,
-        size.height,
-      );
-    },
-  }));
+  useImperativeHandle(
+    ref,
+    () => ({
+      getContextId: () => contextId,
+      getNativeSurface: () => {
+        return RNWebGPU.getNativeSurface(contextId);
+      },
+      getContext(contextName: "webgpu"): RNCanvasContext | null {
+        if (contextName !== "webgpu") {
+          throw new Error(`[WebGPU] Unsupported context: ${contextName}`);
+        }
+        if (!viewRef.current) {
+          throw new Error("[WebGPU] Cannot get context before mount");
+        }
+        const size = measureLayout(viewRef.current);
+        return RNWebGPU.MakeWebGPUCanvasContext(
+          contextId,
+          size.width,
+          size.height,
+        );
+      },
+    }),
+    [contextId],
+  );
 
   return (
     <View collapsable={false} ref={viewRef} {...props}>

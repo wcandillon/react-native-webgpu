@@ -55,6 +55,13 @@ struct VideoFrameHandle {
   // + range), with a BT.709 limited-range default. Only meaningful when
   // pixelFormat == NV12.
   float yuvToRgbMatrix[12] = {};
+  // Android: the acquire fence of the frame as a sync file descriptor, or -1.
+  // The producer (video decoder, camera) may still be writing the buffer when
+  // the consumer gets it; the GPU work that reads the frame waits on this fence
+  // (imported as a shared-fence-sync-fd into BeginAccess). Owned by the handle:
+  // the deleter closes it. Importing it into Dawn duplicates it, so the frame
+  // can be imported more than once.
+  int acquireFenceFd = -1;
   std::function<void()> deleter;
 };
 
