@@ -144,6 +144,10 @@ struct ViewSnapshotRequest {
   double sourceHeight = 0;
   uint32_t width = 0;
   uint32_t height = 0;
+  // Whether the caller can draw a GPU frame (a VideoFrameHandle) into the
+  // destination itself. A platform that renders the view into a GPU buffer
+  // then hands that buffer over instead of reading the pixels back.
+  bool allowFrame = false;
 };
 
 class PlatformContext {
@@ -163,17 +167,24 @@ public:
     return currentSlot();
   }
 
-  // Rasterize a native view into CPU pixels (see ViewSnapshotRequest). The
-  // implementation hops to the platform UI thread, so this is asynchronous:
-  // exactly one of onSuccess / onError is invoked, from an arbitrary thread
+  // Rasterize a native view (see ViewSnapshotRequest). The implementation hops
+  // to the platform UI thread, so this is asynchronous: exactly one of
+  // onPixels / onFrame / onError is invoked, from an arbitrary thread
   // (typically the UI thread). Callers must not touch JSI in the callbacks.
   //
-  // The returned ImageData is tightly packed (no row padding), 4 bytes per
-  // pixel, `format` is rgba8unorm or bgra8unorm depending on what the platform
-  // rasterizer produces natively, and `premultiplied` reports its alpha
-  // representation.
+  // onPixels receives the view as CPU pixels: tightly packed (no row
+  // padding), 4 bytes per pixel, `format` rgba8unorm or bgra8unorm depending
+  // on what the platform rasterizer produces natively, and `premultiplied`
+  // reporting its alpha representation.
+  //
+  // onFrame, only when the request allows it, receives the GPU buffer the
+  // platform rendered the view into (Android 13 and above: the
+  // HardwareRenderer's AHardwareBuffer, with the fence that signals when the
+  // drawing is done), as an RGBA frame of premultiplied pixels. The receiver
+  // owns the frame and releases it through its deleter.
   virtual void snapshotView(const ViewSnapshotRequest &request,
-                            std::function<void(ImageData)> onSuccess,
+                            std::function<void(ImageData)> onPixels,
+                            std::function<void(VideoFrameHandle)> onFrame,
                             std::function<void(std::string)> onError) = 0;
 
   virtual ImageData createImageBitmap(std::string blobId, double offset,

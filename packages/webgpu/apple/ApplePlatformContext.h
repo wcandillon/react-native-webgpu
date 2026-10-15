@@ -17,7 +17,8 @@ public:
   ~ApplePlatformContext() = default;
 
   void snapshotView(const ViewSnapshotRequest &request,
-                    std::function<void(ImageData)> onSuccess,
+                    std::function<void(ImageData)> onPixels,
+                    std::function<void(VideoFrameHandle)> onFrame,
                     std::function<void(std::string)> onError) override;
 
   ImageData createImageBitmap(std::string blobId, double offset,

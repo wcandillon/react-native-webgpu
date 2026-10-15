@@ -61,6 +61,7 @@ interface GPUDrawElementImageDestination extends GPUCopyExternalImageDestInfo {
 ```
 
 - `texture` must be `rgba8unorm`, `bgra8unorm` or one of their `-srgb` variants, with `GPUTextureUsage.COPY_DST`. `mipLevel`, `origin` and `aspect` work as in `writeTexture`.
+- Add `GPUTextureUsage.RENDER_ATTACHMENT` to let the view be drawn into the texture on the GPU where the platform supports it (Android 13 and above, see below). Without it, or elsewhere, the pixels are read back through the CPU and written with `writeTexture`.
 - `size` is the pixel size of the region the view is drawn into, and the view is scaled to fit it. It defaults to the natural pixel size of the source rectangle: its size in points times the device pixel ratio.
 - `premultipliedAlpha` defaults to `false`, as in `copyExternalImageToTexture`: the (premultiplied) snapshot is converted to straight alpha unless you ask for premultiplied pixels.
 
@@ -72,8 +73,9 @@ The snapshot is what the platform renders for that view hierarchy:
 
 - iOS renders through `drawViewHierarchyInRect`, which includes Metal layers such as a WebGPU `Canvas`.
 - Android API 29 and above renders the views' existing display lists through `HardwareRenderer`, so the result matches the screen pixel for pixel, including elevation shadows and `TextureView` content. Older devices draw the view into a software canvas, which misses content that is only drawn hardware-accelerated.
+- Android 13 and above, when the texture has `RENDER_ATTACHMENT`: the buffer the renderer drew into is imported as shared texture memory and sampled straight into the destination region. The GPU waits on the renderer's fence before it samples; nothing is read back through the CPU. The same pixels come out either way.
 - On Android, `SurfaceView` content is composed outside the view hierarchy and comes out blank. A WebGPU `Canvas` uses a `SurfaceView` by default when opaque; give it `android={{ surfaceType: "TextureView" }}` if it must appear in a snapshot.
 
 ## Threading
 
-Unlike the web API, the method returns a `Promise`. The view can only be rasterized on the platform UI thread, so the call hops there and back. The texture write is issued on the calling runtime's thread right before the promise resolves, which means command buffers submitted after `await` observe the new pixels. Calls made from a worklet runtime settle on that runtime.
+Unlike the web API, the method returns a `Promise`. The view can only be rasterized on the platform UI thread, so the call hops there and back. The texture write (or, on the GPU path, the render pass that draws the buffer) is issued on the calling runtime's thread right before the promise resolves, which means command buffers submitted after `await` observe the new pixels. Calls made from a worklet runtime settle on that runtime.
