@@ -15,7 +15,7 @@ import type { GPUOffscreenCanvas } from "../Offscreen";
 
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
-import { DEBUG, NODE_WEBGPU, REFERENCE, TEST_SERVER_PORT } from "./config";
+import { CI, DEBUG, NODE_WEBGPU, REFERENCE, TEST_SERVER_PORT } from "./config";
 
 jest.setTimeout(180 * 1000);
 
@@ -908,6 +908,13 @@ export const checkImage = (
       }
     }
     return diffPixelsCount;
+  } else if (CI && !overwrite) {
+    // On CI a missing reference would let the check pass without comparing
+    // anything, so the image goes where the workflows upload failed checks.
+    fs.writeFileSync(`${p}.test.png`, PNG.sync.write(toTest));
+    throw new Error(
+      `${relPath} has no reference image; this run's image is ${relPath}.test.png`,
+    );
   } else {
     const buffer = PNG.sync.write(toTest);
     fs.writeFileSync(p, buffer);
