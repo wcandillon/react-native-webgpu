@@ -90,13 +90,13 @@ const resolveSurfaceType = (
 // A view measured relative to itself gets its layout size, without the
 // transforms getBoundingClientRect() includes; measureLayout() calls back
 // synchronously on the new architecture. On the web react-native-web measures
-// asynchronously, so the DOM node is measured directly.
+// asynchronously, so the DOM node is read directly: clientWidth/clientHeight
+// are layout values that ignore transforms too (unlike getBoundingClientRect)
+// and are what browser WebGPU code sizes a canvas from.
 const measureLayout = (view: View) => {
   if (Platform.OS === "web") {
-    const { width, height } = (
-      view as unknown as HTMLElement
-    ).getBoundingClientRect();
-    return { width, height };
+    const { clientWidth, clientHeight } = view as unknown as HTMLElement;
+    return { width: clientWidth, height: clientHeight };
   }
   let size = { width: 0, height: 0 };
   view.measureLayout(view, (_left, _top, width, height) => {
