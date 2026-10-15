@@ -28,6 +28,12 @@ import {
 // - non-opaque SurfaceView: blends against the window background (black),
 //   overlay visible only with zOrderOnTop off (the surface sits below it).
 // - non-opaque SurfaceView + zOrderOnTop: pink, overlay hidden underneath.
+// The loop draws 5 frames a second by default; "every frame" switches it to
+// requestAnimationFrame, which on an opaque SurfaceView (or "surface") is the
+// case where the canvas votes the display's refresh rate: on an adaptive
+// display, `dumpsys SurfaceFlinger` then lists the SurfaceView layer with a
+// requestedFrameRate while it draws, and without one a second after the loop
+// stops.
 const OPTIONS: { label: string; android?: AndroidCanvasProps }[] = [
   { label: "auto" },
   { label: "hardware buffer", android: { surfaceType: "HardwareBufferView" } },
@@ -47,6 +53,7 @@ export const TransparencyMode = () => {
   const [option, setOption] = useState(OPTIONS[0]);
   const [opaque, setOpaque] = useState(false);
   const [mounted, setMounted] = useState(true);
+  const [everyFrame, setEveryFrame] = useState(false);
   const [taps, setTaps] = useState(0);
 
   useEffect(() => {
@@ -70,14 +77,18 @@ export const TransparencyMode = () => {
           running = false;
           return;
         }
-        setTimeout(tick, 200);
+        if (everyFrame) {
+          requestAnimationFrame(tick);
+        } else {
+          setTimeout(tick, 200);
+        }
       };
       tick();
     })();
     return () => {
       running = false;
     };
-  }, [append, mounted]);
+  }, [append, mounted, everyFrame]);
 
   return (
     <View style={diagnosticStyles.container}>
@@ -108,6 +119,11 @@ export const TransparencyMode = () => {
             testID="toggle-canvas"
             title={mounted ? "hide canvas" : "show canvas"}
             onPress={() => setMounted((value) => !value)}
+          />
+          <Button
+            testID="toggle-loop"
+            title={everyFrame ? "loop: every frame" : "loop: 5 fps"}
+            onPress={() => setEveryFrame((value) => !value)}
           />
         </View>
         <Text testID="view-status" style={diagnosticStyles.description}>

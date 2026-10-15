@@ -24,6 +24,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   private boolean mAppliedZOrderOnTop;
   private WebGPUModule mModule;
   private View mView = null;
+  // Only a SurfaceView votes: a TextureView or HardwareBufferView is
+  // composited into the window, which votes for it.
+  private final SurfaceFrameRateVote mFrameRateVote = new SurfaceFrameRateVote(this);
 
   WebGPUView(Context context) {
     super(context);
@@ -134,7 +137,11 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     float density = getResources().getDisplayMetrics().density;
     float width = getWidth() / density;
     float height = getHeight() / density;
-    onSurfaceCreate(surface, mContextId, width, height);
+    boolean votesFrameRate = mAppliedKind == KIND_SURFACE_VIEW;
+    if (votesFrameRate) {
+      mFrameRateVote.attach(surface);
+    }
+    onSurfaceCreate(surface, mContextId, width, height, votesFrameRate);
   }
 
   @Override
@@ -147,7 +154,18 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   @Override
   public void surfaceOffscreen() {
+    // The surface is still valid here, so the vote can be taken back.
+    mFrameRateVote.detach();
     switchToOffscreenSurface(mContextId);
+  }
+
+  /**
+   * Called from native (SurfaceInfo::presentFrame) on the thread that
+   * presented a frame to the surface, only for a SurfaceView.
+   */
+  @DoNotStrip
+  void onFramePresented() {
+    mFrameRateVote.onFramePresented();
   }
 
   @Override
@@ -160,15 +178,19 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
    * view: the view dies with its Canvas, so it retires the registry entry.
    */
   public void destroy() {
+    mFrameRateVote.detach();
     onViewDestroyed(mContextId);
   }
 
+  // reportPresents asks native to call onFramePresented() for each frame
+  // presented to this surface.
   @DoNotStrip
   private native void onSurfaceCreate(
     Surface surface,
     int contextId,
     float width,
-    float height
+    float height,
+    boolean reportPresents
   );
 
   @DoNotStrip
