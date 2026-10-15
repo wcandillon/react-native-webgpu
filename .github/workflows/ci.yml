@@ -194,6 +194,53 @@ jobs:
             xcrun simctl shutdown "$IOS_SIMULATOR_UDID" || true
           fi
 
+  # Decides whether build-spm-ios runs. That job only proves that
+  # packages/webgpu/Package.swift resolves and compiles, so a pull request
+  # pays for it only when its diff touches what can change the outcome: the
+  # manifest and the autolinking config, the Apple and C++ sources it
+  # compiles, the scripts behind the Dawn check, the dependencies that pin
+  # react-native-webgpu-dawn, the example that links it, or CI itself. Pushes
+  # to main, the merge queue and manual runs build unconditionally, so a
+  # change this list misses still shows up on main.
+  spm-changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.diff.outputs.run }}
+    steps:
+      - name: Checkout
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+
+      # The checkout is the pull request's merge commit at depth 1. Fetching
+      # the base commit by hash gives git both trees, which is all a diff
+      # needs, without the history in between.
+      - name: Compare the pull request to its base
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git fetch --depth=1 origin "$BASE"
+          changed=$(git diff --name-only "$BASE" HEAD)
+          run=false
+          while IFS= read -r file; do
+            case "$file" in
+              packages/webgpu/Package.swift|packages/webgpu/package.json|packages/webgpu/react-native.config.js|\
+              packages/webgpu/apple/*|packages/webgpu/cpp/*|packages/webgpu/scripts/*|\
+              spm-example/*|package.json|yarn.lock|\
+              .github/workflows/ci.yml|.github/actions/setup/*)
+                echo "$file"
+                run=true
+                ;;
+            esac
+          done <<< "$changed"
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+
   # The SwiftPM example gets its own job on a GitHub-hosted Mac. It needs no
   # Metro, simulator or CocoaPods, so nothing ties it to the self-hosted
   # machine, and a fresh runner is the strictest check that the WebGPUDawn
@@ -201,6 +248,8 @@ jobs:
   # It used to be a step of `build`: a hung xcodebuild there blocked the iOS
   # e2e result and held the self-hosted runner, which has no slack for that.
   build-spm-ios:
+    needs: spm-changes
+    if: needs.spm-changes.outputs.run == 'true'
     runs-on: macos-latest
     # Cold run: yarn install, Dawn download, RN artifacts, then one xcodebuild.
     timeout-minutes: 25
