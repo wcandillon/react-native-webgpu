@@ -242,12 +242,10 @@ further flags. Set `surfaceType` when you need a different trade-off:
 ```
 
 Two things to know before opting into `HardwareBufferView`. If the device
-cannot allocate or import the `AHardwareBuffer`, the canvas currently keeps
-rendering to an offscreen texture and shows nothing, rather than falling back
-to `TextureView`; test on your target devices. And because the UI toolkit
-exposes no "finished reading" signal for an inline buffer, it recycles its
-buffers with a small holding ring rather than a fence, so a device or driver
-quirk could show up as a stale or torn frame. If either happens, drop the
+cannot allocate or import the buffer, the canvas shows nothing rather than
+falling back to `TextureView`; test on your target devices. And a stale or
+torn frame can show up on some devices, since the view has no signal for when
+the compositor is done reading a buffer. If either happens, drop the
 `surfaceType` to get `TextureView` back. The plan is to make
 `HardwareBufferView` the non-opaque default once it falls back to `TextureView`
 at runtime and its latency advantage is measured.
