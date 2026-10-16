@@ -15,6 +15,7 @@
 #include "GPUInternalError.h"
 #include "GPUOutOfMemoryError.h"
 #include "GPUValidationError.h"
+#include "NativeFrameImport.h"
 #include "SurfaceRegistry.h"
 
 namespace rnwgpu {
@@ -411,6 +412,92 @@ std::shared_ptr<GPUSharedFence> GPUDevice::importSharedFence(
   }
   return std::make_shared<GPUSharedFence>(_instance, std::move(fence),
                                           std::move(label));
+}
+
+std::shared_ptr<GPUNativeBufferTexture> GPUDevice::createNativeBufferTexture(
+    std::shared_ptr<VideoFrame> source,
+    std::optional<std::shared_ptr<GPUNativeBufferTextureDescriptor>>
+        descriptor) {
+  static constexpr const char *kCaller = "GPUDevice::createNativeBufferTexture";
+  if (!source) {
+    throw std::runtime_error("GPUDevice::createNativeBufferTexture(): "
+                             "source (NativeVideoFrame) is required");
+  }
+  std::string label;
+  std::optional<double> usage;
+  if (descriptor.has_value() && *descriptor) {
+    label = (*descriptor)->label.value_or("");
+    usage = (*descriptor)->usage;
+  }
+  auto memory =
+      native_frame::importMemory(_instance, source->handle(), label, kCaller);
+  wgpu::Texture texture;
+  if (usage.has_value()) {
+    // Dawn's layer describes the texture from the memory's properties, with
+    // the caller's usage. An unsupported usage is a validation error and an
+    // error texture, as with createTexture().
+    wgpu::SharedTextureMemoryProperties properties{};
+    (void)memory.GetProperties(&properties);
+    wgpu::TextureDescriptor desc{};
+    if (!label.empty()) {
+      desc.label = wgpu::StringView(label.c_str(), label.size());
+    }
+    desc.usage = static_cast<wgpu::TextureUsage>(static_cast<uint64_t>(*usage));
+    desc.dimension = wgpu::TextureDimension::e2D;
+    desc.size = properties.size;
+    desc.format = properties.format;
+    desc.mipLevelCount = 1;
+    desc.sampleCount = 1;
+    texture = memory.CreateTexture(&desc);
+  } else {
+    texture = memory.CreateTexture();
+  }
+  if (texture == nullptr) {
+    throw std::runtime_error("GPUDevice::createNativeBufferTexture(): "
+                             "CreateTexture returned null");
+  }
+  auto wrapped = std::make_shared<GPUTexture>(std::move(texture), label);
+  return std::make_shared<GPUNativeBufferTexture>(
+      _instance, std::move(memory), std::move(wrapped), std::move(source),
+      std::move(label));
+}
+
+std::shared_ptr<GPUNativeBufferExternalTexture>
+GPUDevice::createNativeBufferExternalTexture(
+    std::shared_ptr<VideoFrame> source,
+    std::optional<std::shared_ptr<GPUExternalTextureDescriptor>> descriptor) {
+  static constexpr const char *kCaller =
+      "GPUDevice::createNativeBufferExternalTexture";
+  if (!source) {
+    throw std::runtime_error(
+        "GPUDevice::createNativeBufferExternalTexture(): source "
+        "(NativeVideoFrame) is required");
+  }
+  std::shared_ptr<GPUExternalTextureDescriptor> options =
+      descriptor.has_value() && *descriptor
+          ? *descriptor
+          : std::make_shared<GPUExternalTextureDescriptor>();
+  const auto &frame = source->handle();
+  std::string label = options->label.value_or("external-texture");
+  // The import, the texture and the external texture, once per buffer. No
+  // access begins here: the wrapper's beginAccess() / endAccess() bracket
+  // each use.
+  auto memory = native_frame::importMemory(_instance, frame, label, kCaller);
+  auto texture = memory.CreateTexture();
+  if (texture == nullptr) {
+    throw std::runtime_error(
+        "GPUDevice::createNativeBufferExternalTexture(): CreateTexture "
+        "returned null");
+  }
+  auto external = native_frame::createExternalTexture(
+      _instance, memory, texture, frame, *options, label, kCaller);
+  // Non-owning: the wrapper owns the import (see GPUExternalTexture's
+  // constructor).
+  auto externalTexture = std::make_shared<GPUExternalTexture>(
+      std::move(external), nullptr, nullptr, nullptr, label);
+  return std::make_shared<GPUNativeBufferExternalTexture>(
+      _instance, std::move(memory), std::move(texture),
+      std::move(externalTexture), std::move(source), std::move(label));
 }
 
 async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
