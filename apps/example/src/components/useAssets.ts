@@ -39,14 +39,36 @@ export interface AssetProps {
   };
 }
 
+type ImageLoad =
+  | { readonly status: "loading" }
+  | { readonly status: "loaded"; readonly image: ImageBitmap }
+  | { readonly status: "failed"; readonly error: unknown };
+
 const useImageData = (mod: number) => {
-  const [imageData, setImageData] = useState<ImageBitmap | null>(null);
+  const [load, setLoad] = useState<ImageLoad>({ status: "loading" });
   useEffect(() => {
-    (async () => {
-      setImageData(await decodeImage(mod));
-    })();
+    let active = true;
+    decodeImage(mod).then(
+      (image) => {
+        if (active) {
+          setLoad({ status: "loaded", image });
+        }
+      },
+      (error: unknown) => {
+        if (active) {
+          setLoad({ status: "failed", error });
+        }
+      },
+    );
+    return () => {
+      active = false;
+    };
   }, [mod]);
-  return imageData;
+  // Thrown while rendering, so a failed load reaches the error screen instead of a blank one.
+  if (load.status === "failed") {
+    throw load.error;
+  }
+  return load.status === "loaded" ? load.image : null;
 };
 
 export const useAssets = () => {
