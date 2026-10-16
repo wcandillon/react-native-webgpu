@@ -15,6 +15,7 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   private static final int KIND_SURFACE_VIEW = 0;
   private static final int KIND_TEXTURE_VIEW = 1;
   private static final int KIND_HARDWARE_BUFFER_VIEW = 2;
+  private static final int KIND_SURFACE_CONTROL_VIEW = 3;
 
   private int mContextId;
   private boolean mOpaque = true;
@@ -64,7 +65,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   // (a plain View drawing AHardwareBuffers inline, API 29+) is opt-in via
   // surfaceType until it gets a runtime fallback to TextureView when the
   // AHardwareBuffer import fails on a device; below API 29 the request itself
-  // falls back to TextureView.
+  // falls back to TextureView. WebGPUSurfaceControlView (the same buffers,
+  // posted to a compositor surface with GPU fences, API 29+) is opt-in too;
+  // below API 29 it falls back to the SurfaceView it extends.
   private int resolveKind() {
     if ("SurfaceView".equals(mSurfaceType)) {
       return KIND_SURFACE_VIEW;
@@ -76,6 +79,10 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
       boolean hardwareBufferSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
       return hardwareBufferSupported ? KIND_HARDWARE_BUFFER_VIEW : KIND_TEXTURE_VIEW;
     }
+    if ("SurfaceControlView".equals(mSurfaceType)) {
+      boolean surfaceControlSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
+      return surfaceControlSupported ? KIND_SURFACE_CONTROL_VIEW : KIND_SURFACE_VIEW;
+    }
     return mOpaque ? KIND_SURFACE_VIEW : KIND_TEXTURE_VIEW;
   }
 
@@ -85,7 +92,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   // opacity is applied in place.
   public void updateView() {
     int kind = resolveKind();
-    boolean zOrderOnTop = kind == KIND_SURFACE_VIEW && mZOrderOnTop;
+    boolean zOrderOnTop =
+        (kind == KIND_SURFACE_VIEW || kind == KIND_SURFACE_CONTROL_VIEW) && mZOrderOnTop;
     if (mView == null || kind != mAppliedKind || zOrderOnTop != mAppliedZOrderOnTop) {
       if (mView != null) {
         removeView(mView);
@@ -96,6 +104,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
       switch (kind) {
         case KIND_HARDWARE_BUFFER_VIEW:
           mView = new WebGPUHardwareBufferView(ctx, this);
+          break;
+        case KIND_SURFACE_CONTROL_VIEW:
+          mView = new WebGPUSurfaceControlView(ctx, this, zOrderOnTop, mOpaque);
           break;
         case KIND_TEXTURE_VIEW:
           mView = new WebGPUTextureView(ctx, this, mOpaque);
@@ -113,6 +124,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
       ((WebGPUTextureView) mView).setOpaque(mOpaque);
     } else if (kind == KIND_SURFACE_VIEW) {
       ((WebGPUSurfaceView) mView).setOpaque(mOpaque);
+    } else if (kind == KIND_SURFACE_CONTROL_VIEW) {
+      ((WebGPUSurfaceControlView) mView).setOpaque(mOpaque);
     }
     // WebGPUHardwareBufferView always composites with alpha; opacity is a no-op.
   }

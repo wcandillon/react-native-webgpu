@@ -46,7 +46,7 @@ export interface CanvasRef {
 }
 
 export type AndroidSurfaceType =
-  "SurfaceView" | "TextureView" | "HardwareBufferView";
+  "SurfaceView" | "TextureView" | "HardwareBufferView" | "SurfaceControlView";
 
 export interface AndroidCanvasProps {
   /**
@@ -55,6 +55,10 @@ export interface AndroidCanvasProps {
    * stacking order without further flags. `HardwareBufferView` (Android 10+,
    * a plain View that draws each frame's AHardwareBuffer inline with no extra
    * copy) is opt-in and experimental; on older devices it uses `TextureView`.
+   * `SurfaceControlView` (Android 10+) is a SurfaceView whose frames are
+   * posted to the compositor with GPU fences in both directions, with no
+   * swapchain; opt-in and experimental, on older devices a plain
+   * `SurfaceView`.
    */
   surfaceType?: AndroidSurfaceType;
   /**
@@ -83,7 +87,8 @@ const resolveSurfaceType = (
 ): "auto" | AndroidSurfaceType =>
   surfaceType === "SurfaceView" ||
   surfaceType === "TextureView" ||
-  surfaceType === "HardwareBufferView"
+  surfaceType === "HardwareBufferView" ||
+  surfaceType === "SurfaceControlView"
     ? surfaceType
     : "auto";
 

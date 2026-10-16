@@ -96,6 +96,7 @@ if(ReactAndroid_VERSION_MINOR GREATER_EQUAL 76)
             log
             jnigraphics
             android
+            sync
             fbjni::fbjni
             ReactAndroid::jsi
             ReactAndroid::reactnative
@@ -108,6 +109,7 @@ else()
         log
         jnigraphics
         android
+        sync
         fbjni::fbjni
         ReactAndroid::jsi
         ReactAndroid::reactnativejni

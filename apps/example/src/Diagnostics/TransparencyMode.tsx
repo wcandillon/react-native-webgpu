@@ -28,6 +28,9 @@ import {
 // - non-opaque SurfaceView: blends against the window background (black),
 //   overlay visible only with zOrderOnTop off (the surface sits below it).
 // - non-opaque SurfaceView + zOrderOnTop: pink, overlay hidden underneath.
+// - non-opaque SurfaceControlView (opt-in, Android 10+): composited like a
+//   SurfaceView (so, against the window background), but presented through
+//   a child surface with GPU fences instead of a swapchain.
 const OPTIONS: { label: string; android?: AndroidCanvasProps }[] = [
   { label: "auto" },
   { label: "hardware buffer", android: { surfaceType: "HardwareBufferView" } },
@@ -36,6 +39,10 @@ const OPTIONS: { label: string; android?: AndroidCanvasProps }[] = [
   {
     label: "surface on top",
     android: { surfaceType: "SurfaceView", zOrderOnTop: true },
+  },
+  {
+    label: "surface control",
+    android: { surfaceType: "SurfaceControlView" },
   },
 ];
 

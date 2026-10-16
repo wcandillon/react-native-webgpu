@@ -186,8 +186,8 @@ regular view, so `Canvas` can be backed by one of three native views. The
 
 | Option | Type | Effect |
 | --- | --- | --- |
-| `surfaceType` | `"SurfaceView" \| "TextureView" \| "HardwareBufferView"` | Backing view. Defaults to `SurfaceView` when `opaque` and to `TextureView` otherwise. `HardwareBufferView` is opt-in and needs Android 10 (API 29) |
-| `zOrderOnTop` | `boolean` | `SurfaceView` only: `setZOrderOnTop`, composites above every React Native view in the window. Defaults to `false` |
+| `surfaceType` | `"SurfaceView" \| "TextureView" \| "HardwareBufferView" \| "SurfaceControlView"` | Backing view. Defaults to `SurfaceView` when `opaque` and to `TextureView` otherwise. `HardwareBufferView` and `SurfaceControlView` are opt-in and need Android 10 (API 29) |
+| `zOrderOnTop` | `boolean` | `SurfaceView` and `SurfaceControlView` only: `setZOrderOnTop`, composites above every React Native view in the window. Defaults to `false` |
 
 **`SurfaceView`** is the default for an opaque canvas and the fastest path.
 The frame goes straight to the system compositor as its own layer, with no
@@ -213,17 +213,31 @@ latency than `TextureView` while keeping the same compositing behavior; that
 gain has not been measured yet, which is one reason it is not the default.
 Requesting it on a device below API 29 silently uses `TextureView`.
 
-| | `SurfaceView` | `TextureView` | `HardwareBufferView` |
-| --- | --- | --- | --- |
-| Minimum Android | any | any | 10 (API 29) |
-| Composited like a regular view | no | yes | yes |
-| Extra copy | none | one | none |
-| Expected latency | lowest | highest | between the two (unmeasured) |
-| Selected when | `opaque` (default) | `opaque={false}` (default) | `surfaceType: "HardwareBufferView"` |
+**`SurfaceControlView`** is an opt-in, experimental alternative to
+`SurfaceView`, available on Android 10 (API 29) and above. It is a
+`SurfaceView` too, so it composites the same way (its own compositor layer,
+`zOrderOnTop` applies), but there is no swapchain: WebGPU renders into the
+same buffers as `HardwareBufferView`, and each finished buffer is posted to a
+child surface of the view together with its render-complete fence, so no
+thread waits for the GPU at present time. When the compositor shows the next
+frame it hands back the fence that signals once it is done reading the
+previous buffer, and the next render into that buffer waits on it on the GPU.
+Requesting it on a device below API 29 uses `SurfaceView`, and so does a device
+on which the child surface cannot be created.
+
+| | `SurfaceView` | `TextureView` | `HardwareBufferView` | `SurfaceControlView` |
+| --- | --- | --- | --- | --- |
+| Minimum Android | any | any | 10 (API 29) | 10 (API 29) |
+| Composited like a regular view | no | yes | yes | no |
+| Extra copy | none | one | none | none |
+| Present blocks on | the swapchain | nothing | nothing | nothing |
+| Expected latency | lowest | highest | between the two (unmeasured) | lowest (unmeasured) |
+| Selected when | `opaque` (default) | `opaque={false}` (default) | `surfaceType: "HardwareBufferView"` | `surfaceType: "SurfaceControlView"` |
 
 `opaque` applies to whichever view is selected: on a `SurfaceView` it picks
 `PixelFormat.OPAQUE` or `PixelFormat.TRANSLUCENT`, on a `TextureView` it calls
-`setOpaque`, and a `HardwareBufferView` always composites with alpha. Changing
+`setOpaque`, a `HardwareBufferView` always composites with alpha, and a
+`SurfaceControlView` marks its buffers opaque or translucent. Changing
 `opaque` at runtime updates the view in place; changing `surfaceType` or
 `zOrderOnTop` replaces the backing view.
 
@@ -239,6 +253,9 @@ further flags. Set `surfaceType` when you need a different trade-off:
 
 // Translucent HardwareBufferView, opt-in (uses TextureView before Android 10)
 <Canvas opaque={false} android={{ surfaceType: "HardwareBufferView" }} />
+
+// SurfaceView without a swapchain, fenced on the GPU (SurfaceView before Android 10)
+<Canvas android={{ surfaceType: "SurfaceControlView" }} />
 ```
 
 Two things to know before opting into `HardwareBufferView`. If the device

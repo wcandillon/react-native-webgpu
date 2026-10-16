@@ -19,6 +19,7 @@
 #include "AndroidPlatformContext.h"
 #include "GPUCanvasContext.h"
 #include "RNWebGPUManager.h"
+#include "SurfaceControlPresenter.h"
 #include "WebGPURuntime.h"
 
 #define LOG_TAG "WebGPUModule"
@@ -343,6 +344,84 @@ Java_com_webgpu_WebGPUHardwareBufferView_nSwitchToOffscreen(JNIEnv *env,
   auto info = registry.getSurfaceInfo(contextId);
   if (info != nullptr) {
     info->setPoolFrameReadyCallback(nullptr);
+    info->switchToOffscreen();
+  }
+}
+
+// --- WebGPUSurfaceControlView (AHB pool presented through SurfaceControl)
+// ---------------------------------
+
+// Turn on pool mode with a presenter that posts each finished buffer to a
+// child surface of the view's window, with its render-complete fence. Returns
+// false when the platform cannot do it (before API 29, or the surface could
+// not be created); the view then uses its own surface as a swapchain.
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_webgpu_WebGPUSurfaceControlView_nAttach(JNIEnv *env, jobject thiz,
+                                                 jint contextId,
+                                                 jobject jSurface, jint pxW,
+                                                 jint pxH, jint dpW, jint dpH,
+                                                 jboolean opaque) {
+  auto window = ANativeWindow_fromSurface(env, jSurface);
+  if (window == nullptr) {
+    return JNI_FALSE;
+  }
+  // Takes ownership of the window reference.
+  auto presenter = rnwgpu::SurfaceControlPresenter::create(
+      window, static_cast<int>(pxW), static_cast<int>(pxH), opaque == JNI_TRUE);
+  if (presenter == nullptr) {
+    return JNI_FALSE;
+  }
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfoOrCreate(
+      contextId, rnwgpu::WebGPURuntime::shared().instance(),
+      static_cast<int>(dpW), static_cast<int>(dpH));
+  info->enablePool(static_cast<int>(dpW), static_cast<int>(dpH),
+                   std::move(presenter));
+  return JNI_TRUE;
+}
+
+// The view was laid out: keep the canvas-client (dp) size in sync, and the
+// pixel size the buffers are scaled to.
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUSurfaceControlView_nResize(JNIEnv *env, jobject thiz,
+                                                 jint contextId, jint pxW,
+                                                 jint pxH, jint dpW, jint dpH) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo(contextId);
+  if (info == nullptr) {
+    return;
+  }
+  info->setPoolClientSize(static_cast<int>(dpW), static_cast<int>(dpH));
+  if (auto presenter =
+          std::dynamic_pointer_cast<rnwgpu::SurfaceControlPresenter>(
+              info->poolPresenter())) {
+    presenter->resize(static_cast<int>(pxW), static_cast<int>(pxH));
+  }
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUSurfaceControlView_nSetOpaque(JNIEnv *env, jobject thiz,
+                                                    jint contextId,
+                                                    jboolean opaque) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo(contextId);
+  if (info == nullptr) {
+    return;
+  }
+  if (auto presenter =
+          std::dynamic_pointer_cast<rnwgpu::SurfaceControlPresenter>(
+              info->poolPresenter())) {
+    presenter->setOpaque(opaque == JNI_TRUE);
+  }
+}
+
+// The window is going away: drop the presenter (and its surface) with the
+// pool, and keep the canvas alive offscreen, like the other backends.
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUSurfaceControlView_nDetach(JNIEnv *env, jobject thiz,
+                                                 jint contextId) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  if (auto info = registry.getSurfaceInfo(contextId)) {
     info->switchToOffscreen();
   }
 }
