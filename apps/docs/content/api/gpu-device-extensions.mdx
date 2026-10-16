@@ -83,9 +83,65 @@ for (const { fence: done, signaledValue } of fences) {
 }
 ```
 
-`destroy()` releases a fence right away (on Android, the sync fd Dawn holds) rather than when the object is garbage collected. An exported handle is a duplicate, so it stays valid; using the fence afterwards is a validation error, and `export()` then throws.
+`destroy()` releases a fence and its native handle right away rather than when the object is garbage collected. An exported handle is a duplicate, so it stays valid; using the fence afterwards is a validation error, and `export()` then throws.
 
-See `packages/webgpu/src/__tests__/SharedFence.spec.ts` for a full producer/consumer test.
+See [SharedFence.spec.ts](https://github.com/wcandillon/react-native-webgpu/blob/main/packages/webgpu/src/__tests__/SharedFence.spec.ts) for a full producer/consumer example.
+
+## createNativeBufferExternalTexture / createNativeBufferTexture
+
+A decoder or a camera cycles through the same few buffers, but `importExternalTexture()` imports the buffer again on every frame.
+These two methods import a buffer once; each frame is then bracketed with `beginAccess()` / `endAccess()` on the wrapper.
+
+```tsx twoslash
+import type {
+  GPUNativeBufferExternalTexture,
+  NativeVideoFrame,
+} from "react-native-webgpu";
+declare const device: GPUDevice;
+declare const frame: NativeVideoFrame;
+declare const wrappers: Map<bigint, GPUNativeBufferExternalTexture>;
+declare function draw(externalTexture: GPUExternalTexture): void;
+// ---cut---
+// Once per buffer, keyed by the buffer: the import, the texture and the
+// external texture (color conversion included).
+let wrapper = wrappers.get(frame.handle);
+if (!wrapper) {
+  wrapper = device.createNativeBufferExternalTexture(frame, {
+    label: "clip-1",
+  });
+  wrappers.set(frame.handle, wrapper);
+}
+
+// Per frame: wait for the producer's fence, draw, hand the fence of the
+// access back.
+const fences = [];
+if (frame.acquireFenceFd !== null) {
+  const ready = device.importSharedFence({
+    type: "sync-fd",
+    handle: frame.acquireFenceFd,
+  });
+  fences.push({ fence: ready, signaledValue: 1n });
+}
+wrapper.beginAccess(fences);
+fences.forEach(({ fence }) => fence.destroy());
+draw(wrapper.externalTexture); // ... queue.submit() ...
+const done = wrapper.endAccess();
+done?.fence.destroy(); // or export() it for the producer
+
+// When the producer drops the buffer
+wrapper.destroy();
+```
+
+`beginAccess(fences?)` makes the GPU wait for the fences before it reads the buffer; `endAccess()` returns one fence that signals once the GPU is done with it, or `null`.
+`destroy()` releases the import and the frame the wrapper was created from; an access left open is a validation error, and it is ended anyway so the producer gets its buffer back.
+The descriptor is that of `importExternalTexture()` without the source (`colorSpace`, `rotation`, `mirrored`, plus `sourceColorSpace`, `cropOrigin` and `cropSize`, see below); the same descriptor members apply to `importExternalTexture()`.
+
+`createNativeBufferTexture(frame, { usage, label })` is the same wrapper over a color buffer (an RGBA `AHardwareBuffer`, a BGRA `IOSurface`) exposed as a regular `GPUTexture`; `usage` defaults to every usage the buffer allows.
+The external texture is sample-only, as on the web, and the only way to read a YUV frame; the texture is for a color buffer you also write to or copy from.
+
+On Android, a buffer from another library (wrapped with `createVideoFrameFromNativeBuffer`) carries no color metadata: pass `sourceColorSpace` when you know it, or the conversion assumes what the platform reports for the buffer, BT.601 limited range by default.
+
+<auto-type-table path="../../../../packages/webgpu/src/types.ts" name="GPUNativeBufferWrapper" />
 
 ## dawnToggles
 
@@ -105,7 +161,7 @@ const device = await adapter.requestDevice({
 
 <auto-type-table path="../../../../packages/webgpu/src/types.ts" name="GPUDawnTogglesDescriptor" />
 
-On Android, `ignore_imported_ahardwarebuffer_vulkan_image_size` is enabled by default: Dawn otherwise checks the memory an imported `AHardwareBuffer` needs against the allocation size the driver reports, and some drivers report it wrong (Dawn itself skips the check on Samsung, Qualcomm and Huawei drivers; the emulator reports 0 for the buffers views are rendered into). Pass it in `disabledToggles` to restore the check.
+On Android, `ignore_imported_ahardwarebuffer_vulkan_image_size` is enabled by default: the size check it skips rejects valid buffers on some drivers and on the emulator. Pass it in `disabledToggles` to restore the check.
 
 ## implicitDeviceSynchronization
 
@@ -132,6 +188,8 @@ The flag only controls the default injection: listing `"implicit-device-synchron
 | `source` | A [`NativeVideoFrame`](/api/video-player#nativevideoframe) (from a video player, a camera buffer or `createTestVideoFrame`) instead of the web's `HTMLVideoElement` / `VideoFrame` |
 | `rotation` | 0, 90, 180, or 270 degrees (camera orientation) |
 | `mirrored` | Horizontal flip for front camera |
+| `sourceColorSpace` | Overrides the members of the frame's own color space (`matrix`, `range`, `primaries`, `transfer`), for a buffer that carries none |
+| `cropOrigin`, `cropSize` | The part of the frame the external texture shows, the whole frame by default |
 | `destroy()` | Release native surface access after the `queue.submit()` that sampled it |
 
 Usage with `importExternalTexture` (NV12 camera/video):
@@ -151,7 +209,7 @@ nativeVideoFrame.release();
 
 On Android, a YUV frame (what the video decoder and the camera produce) needs the `opaque-ycbcr-android-for-external-texture` device feature. `requestDevice()` enables it whenever the adapter supports it; a device created by another library and wrapped with [`importDevice()`](/docs/getting-started/native-api#importing-an-external-device) has to request it itself, as react-native-skia's does. The same applies to `copyExternalImageToTexture()` with a native frame.
 
-`textureSampleBaseClampToEdge` returns RGB on both platforms, as on the web: the external texture converts a YUV frame while sampling, with the color space of the frame (its YCbCr matrix, range, primaries and transfer function). A video player's frames carry it: the pixel buffer attachments on Apple platforms, the frame's data space (API 33) or the container's color metadata on Android. A buffer without any (a camera frame) falls back to what the platform reports for it, then to BT.709 limited range on Apple platforms and BT.601 limited range on Android. The spec's `colorSpace` member selects the color space of the result, `"srgb"` (the default) or `"display-p3"`.
+`textureSampleBaseClampToEdge` returns RGB on both platforms, as on the web: the external texture converts a YUV frame while sampling, with the color space of the frame (its YCbCr matrix, range, primaries and transfer function). A video player's frames carry it. A buffer without one (a camera frame) falls back to what the platform reports for it, then to BT.709 limited range on Apple platforms and BT.601 limited range on Android; `sourceColorSpace` overrides either. The spec's `colorSpace` member selects the color space of the result, `"srgb"` (the default) or `"display-p3"`.
 
 ## copyExternalImageToTexture with a native frame
 

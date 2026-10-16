@@ -10,7 +10,7 @@ The most substantial differences live on the [Canvas](/docs/getting-started/canv
 
 ## Threading model
 
-react-native-webgpu can drive WebGPU from more than one JavaScript runtime: the main JS runtime, the UI thread, and dedicated worklet runtimes (createWorkletRuntime / runOnRuntime, or a Vision Camera frame processor). Running off the JS thread is powered by [React Native Worklets](https://github.com/margelo/react-native-worklets); Reanimated is not required.
+react-native-webgpu can drive WebGPU from more than one JavaScript runtime: the main JS runtime, the UI thread, and dedicated worklet runtimes (createWorkletRuntime / scheduleOnRuntime, or a Vision Camera frame processor). Running off the JS thread is powered by [React Native Worklets](https://github.com/margelo/react-native-worklets); Reanimated is not required.
 This module also works well with [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/) and lets you run complex Three.js scenes on the UI thread or dedicated worklet threads.
 
 You can run WebGPU code on the main thread, on the [Worklets](/docs/integrations/worklets) UI thread, or on a dedicated worklet thread. The API is symmetric across all threads, so you can run your rendering loop wherever you want.
@@ -118,7 +118,7 @@ import { importDevice } from "react-native-webgpu";
 const device = importDevice(pointer);
 ```
 
-This is only sound when the exporting library links the exact same Dawn build as react-native-webgpu and shares its `wgpu::Instance`; otherwise the imported device's async callbacks would settle on an instance nobody pumps. The canonical exporter is `react-native-skia` (v3 and above), which renders with Graphite and satisfies both conditions automatically; see [React Native Skia](/docs/integrations/react-native-skia).
+This is only sound when the exporting library links the exact same Dawn build as react-native-webgpu and shares its instance. The canonical exporter is `react-native-skia` (v3 and above), which renders with Graphite and satisfies both conditions automatically; see [React Native Skia](/docs/integrations/react-native-skia).
 
 ## See also
 
