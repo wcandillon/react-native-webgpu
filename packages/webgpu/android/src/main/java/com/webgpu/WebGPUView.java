@@ -26,7 +26,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   private View mView = null;
   // Only a SurfaceView votes: a TextureView or HardwareBufferView is
   // composited into the window, which votes for it.
-  private final SurfaceFrameRateVote mFrameRateVote = new SurfaceFrameRateVote(this);
+  private final SurfaceFrameRateVote mFrameRateVote = new SurfaceFrameRateVote(
+    this, idleAfterNanos -> releaseFrameRateVoteIfIdle(mContextId, idleAfterNanos));
 
   WebGPUView(Context context) {
     super(context);
@@ -160,12 +161,12 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   /**
-   * Called from native (SurfaceInfo::presentFrame) on the thread that
-   * presented a frame to the surface, only for a SurfaceView.
+   * Called from native (AnimationReporter in cpp-adapter.cpp) on the thread
+   * that presents to the surface, once per animation, only for a SurfaceView.
    */
   @DoNotStrip
-  void onFramePresented() {
-    mFrameRateVote.onFramePresented();
+  void onAnimating() {
+    mFrameRateVote.onAnimating();
   }
 
   @Override
@@ -182,15 +183,15 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     onViewDestroyed(mContextId);
   }
 
-  // reportPresents asks native to call onFramePresented() for each frame
-  // presented to this surface.
+  // reportAnimation asks native to call onAnimating() when frames start being
+  // presented to this surface back to back.
   @DoNotStrip
   private native void onSurfaceCreate(
     Surface surface,
     int contextId,
     float width,
     float height,
-    boolean reportPresents
+    boolean reportAnimation
   );
 
   @DoNotStrip
@@ -206,5 +207,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   @DoNotStrip
   private native void onViewDestroyed(int contextId);
+
+  // See SurfaceFrameRateVote.AnimationSource.
+  @DoNotStrip
+  private native long releaseFrameRateVoteIfIdle(int contextId, long idleAfterNanos);
 
 }
