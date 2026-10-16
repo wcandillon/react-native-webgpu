@@ -244,6 +244,12 @@ selects a `SurfaceView` there.
 `opaque` at runtime updates the view in place; changing `surfaceType` or
 `zOrderOnTop` replaces the backing view.
 
+A canvas that stops drawing keeps showing its last frame. Android destroys a
+`SurfaceView`'s surface, with its buffers, when the app goes to the background
+or the view leaves its window, so the canvas reads that frame back once as the
+surface goes and shows it on the next one; a `TextureView` keeps its frame in
+the background, and a replaced `TextureView` hands its frame to the new view.
+
 The defaults composite correctly in React Native stacking order without
 further flags. Set `surfaceType` when you need a different trade-off:
 

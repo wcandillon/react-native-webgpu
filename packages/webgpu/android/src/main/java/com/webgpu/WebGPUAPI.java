@@ -28,6 +28,13 @@ public interface WebGPUAPI {
     Surface surface
   );
 
+  /**
+   * The surface is about to be destroyed together with the frame it shows: the
+   * canvas reads that frame back and shows it on its next surface. Main
+   * thread, before surfaceOffscreen, while the surface is still valid.
+   */
+  void keepFrame(Surface surface);
+
   void surfaceOffscreen();
 
   /** A TextureView's window is drawing the newest frame of its surface. */

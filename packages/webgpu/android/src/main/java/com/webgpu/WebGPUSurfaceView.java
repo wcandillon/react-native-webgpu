@@ -101,8 +101,12 @@ public class WebGPUSurfaceView extends SurfaceView implements SurfaceHolder.Call
     mDrawGate.onRedrawNeeded(drawingFinished);
   }
 
+  // The surface goes with its buffers (the app going to the background, the
+  // view leaving its window or being replaced): the canvas keeps its frame for
+  // the next surface.
   @Override
   public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
+    mApi.keepFrame(holder.getSurface());
     releaseSurface();
   }
 

@@ -1,11 +1,14 @@
 package com.webgpu;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Surface;
 import android.view.View;
+
+import androidx.annotation.Nullable;
 
 import com.facebook.proguard.annotations.DoNotStrip;
 import com.facebook.react.uimanager.ThemedReactContext;
@@ -82,6 +85,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     BackingViewKind kind = resolveKind();
     boolean zOrderOnTop = kind == BackingViewKind.SURFACE_VIEW && mZOrderOnTop;
     if (mView == null || kind != mAppliedKind || zOrderOnTop != mAppliedZOrderOnTop) {
+      if (mView instanceof WebGPUTextureView) {
+        keepTextureViewFrame((WebGPUTextureView) mView);
+      }
       if (mView != null) {
         removeView(mView);
       }
@@ -167,6 +173,31 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   @Override
+  public void keepFrame(Surface surface) {
+    long size = keepableFrameSize(mContextId);
+    Bitmap frame = SurfaceFrameCapture.capture(surface, (int) (size >>> 32), (int) size);
+    keepCapturedFrame(frame);
+  }
+
+  // A TextureView replaced by another backing view takes its frame with it;
+  // its layer, which getBitmap reads, is gone once it leaves the window.
+  private void keepTextureViewFrame(WebGPUTextureView view) {
+    long size = keepableFrameSize(mContextId);
+    int width = (int) (size >>> 32);
+    int height = (int) size;
+    if (width > 0 && height > 0 && view.isAvailable()) {
+      keepCapturedFrame(view.getBitmap(width, height));
+    }
+  }
+
+  private void keepCapturedFrame(@Nullable Bitmap frame) {
+    if (frame != null) {
+      keepBitmapFrame(mContextId, frame);
+      frame.recycle();
+    }
+  }
+
+  @Override
   public void surfaceOffscreen() {
     // The surface is still valid here, so the vote can be taken back.
     mFrameRateVote.detach();
@@ -249,6 +280,14 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   @DoNotStrip
   private native void switchToOffscreenSurface(int contextId);
+
+  // The drawing buffer's size a kept frame is read at, width << 32 | height;
+  // 0 when there is nothing to keep.
+  @DoNotStrip
+  private native long keepableFrameSize(int contextId);
+
+  @DoNotStrip
+  private native boolean keepBitmapFrame(int contextId, Bitmap frame);
 
   @DoNotStrip
   private native void onViewDestroyed(int contextId);
