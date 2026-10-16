@@ -1,5 +1,6 @@
 #include "GPUDevice.h"
 
+#include <cstdio>
 #include <memory>
 #include <string>
 #include <unordered_set>
