@@ -46,6 +46,8 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/rnwgpu/api/GPUSharedFence.cpp
     ../cpp/rnwgpu/api/GPUSharedTextureMemory.cpp
     ../cpp/rnwgpu/api/GPUExternalTexture.cpp
+    ../cpp/rnwgpu/api/GPUNativeBufferWrapper.cpp
+    ../cpp/rnwgpu/api/NativeFrameImport.cpp
     ../cpp/rnwgpu/api/GPURenderBundleEncoder.cpp
     ../cpp/rnwgpu/api/GPURenderPassEncoder.cpp
     ../cpp/rnwgpu/api/GPURenderPipeline.cpp
@@ -96,6 +98,8 @@ if(ReactAndroid_VERSION_MINOR GREATER_EQUAL 76)
             log
             jnigraphics
             android
+            # sync_merge, for the one fence endAccess() returns
+            sync
             fbjni::fbjni
             ReactAndroid::jsi
             ReactAndroid::reactnative
@@ -108,6 +112,7 @@ else()
         log
         jnigraphics
         android
+        sync
         fbjni::fbjni
         ReactAndroid::jsi
         ReactAndroid::reactnativejni
