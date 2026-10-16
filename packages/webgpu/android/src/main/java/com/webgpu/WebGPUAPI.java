@@ -13,8 +13,15 @@ import com.facebook.proguard.annotations.DoNotStrip;
  */
 public interface WebGPUAPI {
 
+  /**
+   * firstFrameToken is nonzero for a surface whose view waits for its first
+   * frame (a SurfaceView behind its window, see FirstFrameDrawGate): the
+   * native side reports that frame back with it, from the thread that
+   * presented it, through WebGPUView.onFirstFramePresented.
+   */
   void surfaceCreated(
-    Surface surface
+    Surface surface,
+    long firstFrameToken
   );
 
   void surfaceChanged(
@@ -22,6 +29,9 @@ public interface WebGPUAPI {
   );
 
   void surfaceOffscreen();
+
+  /** A TextureView's window is drawing the newest frame of its surface. */
+  void surfaceUpdated();
 
   int getContextId();
 }

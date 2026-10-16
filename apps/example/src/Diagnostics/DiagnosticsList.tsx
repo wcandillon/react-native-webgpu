@@ -53,6 +53,10 @@ const tests = [
     screen: "DeviceDestroyBeforeDetach",
     title: "⚠️ Device Destroy Before Detach",
   },
+  {
+    screen: "FirstFrameHole",
+    title: "⚠️ Opaque Canvas Mount and Unmount",
+  },
 ] as const;
 
 export const DiagnosticsList = () => {

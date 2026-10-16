@@ -19,9 +19,12 @@ export interface AndroidCanvasProps {
   /**
    * Backing view. Defaults to `SurfaceView` when the canvas is opaque and to
    * `TextureView` otherwise; both composite correctly in React Native
-   * stacking order without further flags. `HardwareBufferView` (Android 10+,
-   * a plain View that draws each frame's AHardwareBuffer inline with no extra
-   * copy) is opt-in and experimental; on older devices it uses `TextureView`.
+   * stacking order without further flags. Before Android 12L an opaque canvas
+   * defaults to `TextureView` too, unless it sets `zOrderOnTop`: those
+   * releases remove a `SurfaceView` as it leaves the window, a frame before
+   * the window stops showing it. `HardwareBufferView` (Android 10+, a plain
+   * View that draws each frame's AHardwareBuffer inline with no extra copy) is
+   * opt-in and experimental; on older devices it uses `TextureView`.
    */
   surfaceType?: AndroidSurfaceType;
   /**

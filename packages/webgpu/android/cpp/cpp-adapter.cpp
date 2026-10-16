@@ -162,20 +162,24 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceChanged(
 
 namespace {
 
-// Weak handle on a Java view and one of its no-argument methods, for native
-// threads to call into it: the fence waiter wakes a WebGPUHardwareBufferView
-// when a frame is ready, the presenting thread tells a SurfaceView it is
-// animating (AnimationReporter). Holding the view weakly means a view that RN
-// has dropped is not kept alive by a SurfaceInfo that outlives it (the
-// registry keeps the SurfaceInfo until onDropViewInstance).
+// Weak handle on a Java view and one of its void methods, for native threads
+// to call into it: the fence waiter wakes a WebGPUHardwareBufferView when a
+// frame is ready, the presenting thread tells a SurfaceView it is animating
+// (AnimationReporter) and that its first frame is presented
+// (FirstFrameDrawGate), and a TextureView canvas presenting on the main
+// thread posts its present behind the window's pending draw. Holding the view
+// weakly means a view that RN has dropped is not kept alive by a SurfaceInfo
+// that outlives it (the registry keeps the SurfaceInfo until
+// onDropViewInstance).
 struct WeakViewCall {
   jweak view = nullptr;
   jmethodID method = nullptr;
 
-  WeakViewCall(JNIEnv *env, jobject thiz, const char *methodName) {
+  WeakViewCall(JNIEnv *env, jobject thiz, const char *methodName,
+               const char *signature = "()V") {
     view = env->NewWeakGlobalRef(thiz);
     jclass cls = env->GetObjectClass(thiz);
-    method = env->GetMethodID(cls, methodName, "()V");
+    method = env->GetMethodID(cls, methodName, signature);
     env->DeleteLocalRef(cls);
   }
 
@@ -188,22 +192,25 @@ struct WeakViewCall {
     }
   }
 
-  // Called on a native thread, outside the SurfaceInfo locks.
-  void operator()() const {
+  // Returns whether the view was there to take the call. Called on a native
+  // thread, outside the SurfaceInfo locks.
+  template <typename... Args> bool operator()(Args... args) const {
     facebook::jni::ThreadScope scope;
     JNIEnv *env = facebook::jni::Environment::current();
     if (env == nullptr || method == nullptr) {
-      return;
+      return false;
     }
     jobject local = env->NewLocalRef(view);
     if (local == nullptr) {
-      return; // the view was garbage collected
+      return false; // the view was garbage collected
     }
-    env->CallVoidMethod(local, method);
-    if (env->ExceptionCheck()) {
+    env->CallVoidMethod(local, method, args...);
+    const bool called = !env->ExceptionCheck();
+    if (!called) {
       env->ExceptionClear();
     }
     env->DeleteLocalRef(local);
+    return called;
   }
 };
 
@@ -284,7 +291,9 @@ void setAnimationReporter(int contextId,
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     JNIEnv *env, jobject thiz, jobject jSurface, jint contextId, jfloat width,
-    jfloat height, jboolean reportAnimation) {
+    jfloat height, jboolean presentsBehindPendingDraw,
+    jboolean acquiresAfterDraw, jboolean reportAnimation,
+    jlong firstFrameToken) {
   if (manager == nullptr) {
     return;
   }
@@ -298,13 +307,32 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
   auto &runtime = rnwgpu::WebGPURuntime::shared();
   auto gpu = runtime.instance();
   auto surface = runtime.makeSurface(window);
+  // A SurfaceView behind its window holds its draw report until its first
+  // frame is presented (FirstFrameDrawGate): a frame, or the blit of the
+  // latest offscreen frame.
+  rnwgpu::NativeSurfaceFirstPresent firstPresent;
+  if (firstFrameToken != 0) {
+    auto onFirstFramePresented = std::make_shared<WeakViewCall>(
+        env, thiz, "onFirstFramePresented", "(J)V");
+    firstPresent = [onFirstFramePresented, firstFrameToken]() {
+      (*onFirstFramePresented)(firstFrameToken);
+    };
+  }
+  rnwgpu::NativeSurfacePresentPoster presentPoster;
+  if (presentsBehindPendingDraw) {
+    auto postPresent = std::make_shared<WeakViewCall>(
+        env, thiz, "postPresentBehindPendingDraw");
+    presentPoster = [postPresent]() { return (*postPresent)(); };
+  }
   // Find-or-create + attach runs atomically under the registry lock so a
   // concurrent destroyContext cannot orphan this surface.
   auto info = registry.attachSurface(
       contextId, gpu, static_cast<int>(width), static_cast<int>(height), window,
-      surface, [](void *nativeSurface) {
+      surface,
+      [](void *nativeSurface) {
         ANativeWindow_release(static_cast<ANativeWindow *>(nativeSurface));
-      });
+      },
+      std::move(firstPresent), std::move(presentPoster), acquiresAfterDraw);
   // A SurfaceView asks to hear when it animates, for its refresh rate vote
   // (WebGPUView.onAnimating).
   if (reportAnimation) {
@@ -322,6 +350,32 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
   manager->flushPendingSurfaceTransition(info);
 }
 
+// The present WebGPUView.postPresentBehindPendingDraw posted (UI thread).
+extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_presentPostedFrame(
+    JNIEnv *env, jobject thiz, jint contextId) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  if (auto info = registry.getSurfaceInfo(contextId)) {
+    info->presentPostedFrame();
+  }
+}
+
+// WebGPUView.surfaceUpdated, while the window draws (UI thread).
+extern "C" JNIEXPORT jlong JNICALL Java_com_webgpu_WebGPUView_onSurfaceDrawing(
+    JNIEnv *env, jobject thiz, jint contextId) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo(contextId);
+  return info ? static_cast<jlong>(info->presentCount()) : 0;
+}
+
+// Posted by WebGPUView.surfaceUpdated behind the window's draw (UI thread).
+extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDrawn(
+    JNIEnv *env, jobject thiz, jint contextId, jlong presentCount) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  if (auto info = registry.getSurfaceInfo(contextId)) {
+    info->surfaceDrawn(static_cast<uint64_t>(presentCount));
+  }
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_com_webgpu_WebGPUView_switchToOffscreenSurface(JNIEnv *env, jobject thiz,
                                                     jint contextId) {
@@ -329,7 +383,7 @@ Java_com_webgpu_WebGPUView_switchToOffscreenSurface(JNIEnv *env, jobject thiz,
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   if (auto info = registry.getSurfaceInfo(contextId)) {
     info->setFramePresentedCallback(nullptr);
-    info->switchToOffscreen();
+    info->detach();
   }
 }
 
@@ -360,7 +414,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onViewDestroyed(
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   if (auto info = registry.getSurfaceInfo(contextId)) {
     info->setFramePresentedCallback(nullptr);
-    info->detachSurface();
+    info->detach();
   }
   registry.removeSurfaceInfo(contextId);
 }
@@ -454,6 +508,6 @@ Java_com_webgpu_WebGPUHardwareBufferView_nSwitchToOffscreen(JNIEnv *env,
   auto info = registry.getSurfaceInfo(contextId);
   if (info != nullptr) {
     info->setPoolFrameReadyCallback(nullptr);
-    info->switchToOffscreen();
+    info->detach();
   }
 }

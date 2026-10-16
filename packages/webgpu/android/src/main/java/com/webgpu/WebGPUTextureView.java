@@ -23,7 +23,7 @@ public class WebGPUTextureView extends TextureView implements TextureView.Surfac
   @Override
   public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surfaceTexture, int width, int height) {
     mSurface = new Surface(surfaceTexture);
-    mApi.surfaceCreated(mSurface);
+    mApi.surfaceCreated(mSurface, 0);
   }
 
   @Override
@@ -45,6 +45,6 @@ public class WebGPUTextureView extends TextureView implements TextureView.Surfac
 
   @Override
   public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surfaceTexture) {
-    // No implementation needed
+    mApi.surfaceUpdated();
   }
 }

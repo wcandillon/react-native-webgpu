@@ -2,6 +2,8 @@ package com.webgpu;
 
 import android.content.Context;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Surface;
 import android.view.View;
 
@@ -11,19 +13,18 @@ import com.facebook.react.views.view.ReactViewGroup;
 
 public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
-  // Backing view kinds, see updateView().
-  private static final int KIND_SURFACE_VIEW = 0;
-  private static final int KIND_TEXTURE_VIEW = 1;
-  private static final int KIND_HARDWARE_BUFFER_VIEW = 2;
-
   private int mContextId;
   private boolean mOpaque = true;
   private String mSurfaceType = "auto";
   private boolean mZOrderOnTop = false;
-  private int mAppliedKind = -1;
+  private BackingViewKind mAppliedKind = null;
   private boolean mAppliedZOrderOnTop;
   private WebGPUModule mModule;
   private View mView = null;
+  // Native posts a frame presented on the main thread here, to present it
+  // behind the draw the window has pending (see SurfaceRegistry.h).
+  private final Handler mMainHandler = new Handler(Looper.getMainLooper());
+  private final Runnable mPostedPresent = () -> presentPostedFrame(mContextId);
   // Only a SurfaceView votes: a TextureView or HardwareBufferView is
   // composited into the window, which votes for it.
   private final SurfaceFrameRateVote mFrameRateVote = new SurfaceFrameRateVote(
@@ -63,24 +64,14 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     mZOrderOnTop = value;
   }
 
-  // Resolve the backing view from the props. "auto" picks SurfaceView for an
-  // opaque canvas and TextureView for a non-opaque one. WebGPUHardwareBufferView
-  // (a plain View drawing AHardwareBuffers inline, API 29+) is opt-in via
-  // surfaceType until it gets a runtime fallback to TextureView when the
-  // AHardwareBuffer import fails on a device; below API 29 the request itself
-  // falls back to TextureView.
-  private int resolveKind() {
-    if ("SurfaceView".equals(mSurfaceType)) {
-      return KIND_SURFACE_VIEW;
+  // Resolve the backing view from the props: see BackingViewKind for what each
+  // surfaceType, and "auto", picks.
+  private BackingViewKind resolveKind() {
+    BackingViewKind requested = BackingViewKind.fromSurfaceType(mSurfaceType, Build.VERSION.SDK_INT);
+    if (requested != null) {
+      return requested;
     }
-    if ("TextureView".equals(mSurfaceType)) {
-      return KIND_TEXTURE_VIEW;
-    }
-    if ("HardwareBufferView".equals(mSurfaceType)) {
-      boolean hardwareBufferSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
-      return hardwareBufferSupported ? KIND_HARDWARE_BUFFER_VIEW : KIND_TEXTURE_VIEW;
-    }
-    return mOpaque ? KIND_SURFACE_VIEW : KIND_TEXTURE_VIEW;
+    return BackingViewKind.forAutoSurfaceType(mOpaque, mZOrderOnTop, Build.VERSION.SDK_INT);
   }
 
   // Apply the complete prop transaction once, after contextId and all rendering
@@ -88,8 +79,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   // which a SurfaceView must know before it attaches) replaces the child;
   // opacity is applied in place.
   public void updateView() {
-    int kind = resolveKind();
-    boolean zOrderOnTop = kind == KIND_SURFACE_VIEW && mZOrderOnTop;
+    BackingViewKind kind = resolveKind();
+    boolean zOrderOnTop = kind == BackingViewKind.SURFACE_VIEW && mZOrderOnTop;
     if (mView == null || kind != mAppliedKind || zOrderOnTop != mAppliedZOrderOnTop) {
       if (mView != null) {
         removeView(mView);
@@ -98,12 +89,13 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
       mAppliedZOrderOnTop = zOrderOnTop;
       Context ctx = getContext();
       switch (kind) {
-        case KIND_HARDWARE_BUFFER_VIEW:
+        case HARDWARE_BUFFER_VIEW:
           mView = new WebGPUHardwareBufferView(ctx, this);
           break;
-        case KIND_TEXTURE_VIEW:
+        case TEXTURE_VIEW:
           mView = new WebGPUTextureView(ctx, this, mOpaque);
           break;
+        case SURFACE_VIEW:
         default:
           mView = new WebGPUSurfaceView(ctx, this, zOrderOnTop, mOpaque);
           break;
@@ -113,9 +105,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
       // the layout pass never lays the child out; do it by hand or the new view
       // stays 0x0 and never gets a surface.
       layoutChild();
-    } else if (kind == KIND_TEXTURE_VIEW) {
+    } else if (kind == BackingViewKind.TEXTURE_VIEW) {
       ((WebGPUTextureView) mView).setOpaque(mOpaque);
-    } else if (kind == KIND_SURFACE_VIEW) {
+    } else if (kind == BackingViewKind.SURFACE_VIEW) {
       ((WebGPUSurfaceView) mView).setOpaque(mOpaque);
     }
     // WebGPUHardwareBufferView always composites with alpha; opacity is a no-op.
@@ -134,15 +126,36 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   @Override
-  public void surfaceCreated(Surface surface) {
+  public void surfaceCreated(Surface surface, long firstFrameToken) {
     float density = getResources().getDisplayMetrics().density;
     float width = getWidth() / density;
     float height = getHeight() / density;
-    boolean votesFrameRate = mAppliedKind == KIND_SURFACE_VIEW;
+    boolean votesFrameRate = mAppliedKind == BackingViewKind.SURFACE_VIEW;
     if (votesFrameRate) {
       mFrameRateVote.attach(surface);
     }
-    onSurfaceCreate(surface, mContextId, width, height, votesFrameRate);
+    onSurfaceCreate(
+      surface,
+      mContextId,
+      width,
+      height,
+      mAppliedKind.presentsBehindPendingDraw(),
+      mAppliedKind.acquiresAfterDraw(Build.VERSION.SDK_INT),
+      votesFrameRate,
+      firstFrameToken);
+  }
+
+  /**
+   * The first frame was presented into the surface firstFrameToken names.
+   * Called from native on the thread that presented it.
+   */
+  @DoNotStrip
+  public void onFirstFramePresented(long firstFrameToken) {
+    post(() -> {
+      if (mView instanceof WebGPUSurfaceView) {
+        ((WebGPUSurfaceView) mView).onFirstFramePresented(firstFrameToken);
+      }
+    });
   }
 
   @Override
@@ -170,8 +183,25 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   @Override
+  public void surfaceUpdated() {
+    if (!mAppliedKind.acquiresAfterDraw(Build.VERSION.SDK_INT)) {
+      return;
+    }
+    long presentCount = onSurfaceDrawing(mContextId);
+    // The window takes the frame when this draw syncs with its render thread,
+    // and a message posted now runs after that sync.
+    mMainHandler.post(() -> onSurfaceDrawn(mContextId, presentCount));
+  }
+
+  @Override
   public int getContextId() {
     return mContextId;
+  }
+
+  /** Called by native on the main thread, see mPostedPresent. */
+  @DoNotStrip
+  private void postPresentBehindPendingDraw() {
+    mMainHandler.post(mPostedPresent);
   }
 
   /**
@@ -183,6 +213,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     onViewDestroyed(mContextId);
   }
 
+  // presentsBehindPendingDraw has native post a present made on the main
+  // thread through postPresentBehindPendingDraw(); acquiresAfterDraw has it
+  // acquire a frame only once the window drew the last one (surfaceUpdated);
   // reportAnimation asks native to call onAnimating() when frames start being
   // presented to this surface back to back.
   @DoNotStrip
@@ -191,7 +224,10 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     int contextId,
     float width,
     float height,
-    boolean reportAnimation
+    boolean presentsBehindPendingDraw,
+    boolean acquiresAfterDraw,
+    boolean reportAnimation,
+    long firstFrameToken
   );
 
   @DoNotStrip
@@ -201,6 +237,15 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     float width,
     float height
   );
+
+  @DoNotStrip
+  private native void presentPostedFrame(int contextId);
+
+  @DoNotStrip
+  private native long onSurfaceDrawing(int contextId);
+
+  @DoNotStrip
+  private native void onSurfaceDrawn(int contextId, long presentCount);
 
   @DoNotStrip
   private native void switchToOffscreenSurface(int contextId);
