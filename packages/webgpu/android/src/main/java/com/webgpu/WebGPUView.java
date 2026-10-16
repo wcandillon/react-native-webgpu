@@ -134,7 +134,7 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   @Override
-  public void surfaceCreated(Surface surface) {
+  public void surfaceCreated(Surface surface, long firstFrameToken) {
     float density = getResources().getDisplayMetrics().density;
     float width = getWidth() / density;
     float height = getHeight() / density;
@@ -142,7 +142,20 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     if (votesFrameRate) {
       mFrameRateVote.attach(surface);
     }
-    onSurfaceCreate(surface, mContextId, width, height, votesFrameRate);
+    onSurfaceCreate(surface, mContextId, width, height, votesFrameRate, firstFrameToken);
+  }
+
+  /**
+   * The first frame was presented into the surface firstFrameToken names.
+   * Called from native on the thread that presented it.
+   */
+  @DoNotStrip
+  public void onFirstFramePresented(long firstFrameToken) {
+    post(() -> {
+      if (mView instanceof WebGPUSurfaceView) {
+        ((WebGPUSurfaceView) mView).onFirstFramePresented(firstFrameToken);
+      }
+    });
   }
 
   @Override
@@ -191,7 +204,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     int contextId,
     float width,
     float height,
-    boolean reportAnimation
+    boolean reportAnimation,
+    long firstFrameToken
   );
 
   @DoNotStrip
