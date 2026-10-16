@@ -396,6 +396,28 @@ Java_com_webgpu_WebGPUView_switchToOffscreenSurface(JNIEnv *env, jobject thiz,
   }
 }
 
+extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_suspendSurface(
+    JNIEnv *env, jobject thiz, jint contextId) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  if (auto info = registry.getSurfaceInfo(contextId)) {
+    info->suspend();
+  }
+}
+
+extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_resumeSurface(
+    JNIEnv *env, jobject thiz, jint contextId) {
+  if (manager == nullptr) {
+    return;
+  }
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  if (auto info = registry.getSurfaceInfo(contextId)) {
+    info->resume();
+    // The resume is adopted at the next frame boundary; schedule a flush so a
+    // context that is not rendering presents its latest offscreen frame.
+    manager->flushPendingSurfaceTransition(info);
+  }
+}
+
 // See SurfaceInfo::keepableFrameSize; width << 32 | height, 0 when there is no
 // frame to keep.
 extern "C" JNIEXPORT jlong JNICALL Java_com_webgpu_WebGPUView_keepableFrameSize(
@@ -477,6 +499,11 @@ Java_com_webgpu_WebGPUHardwareBufferView_nEnablePool(JNIEnv *env, jobject thiz,
   auto waker = std::make_shared<WeakViewCall>(env, thiz, "onNativeFrameReady");
   info->setPoolFrameReadyCallback([waker]() { (*waker)(); });
   info->enablePool(static_cast<int>(dpW), static_cast<int>(dpH));
+  // A frame rendered offscreen while the view was away is presented at the
+  // next frame boundary; schedule a flush for a context that is not rendering.
+  if (manager != nullptr) {
+    manager->flushPendingSurfaceTransition(info);
+  }
 }
 
 // Keep the canvas-client (dp) size in sync on resize.

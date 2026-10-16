@@ -27,6 +27,10 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   private boolean mAppliedZOrderOnTop;
   private WebGPUModule mModule;
   private View mView = null;
+  // Once React drops the view its registry entry is retired: what its backing
+  // view reports afterwards, until it leaves the window, attaches no surface
+  // and replaces no view.
+  private boolean mDestroyed = false;
   // Only a SurfaceView votes: a TextureView or HardwareBufferView is
   // composited into the window, which votes for it.
   private final SurfaceFrameRateVote mFrameRateVote = new SurfaceFrameRateVote(
@@ -99,6 +103,7 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
       }
       if (mView != null) {
         removeView(mView);
+        retire(mView);
       }
       mAppliedKind = kind;
       mAppliedZOrderOnTop = zOrderOnTop;
@@ -141,6 +146,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   @Override
   public void surfaceCreated(Surface surface, long firstFrameToken) {
+    if (mDestroyed) {
+      return;
+    }
     float density = getResources().getDisplayMetrics().density;
     float width = getWidth() / density;
     float height = getHeight() / density;
@@ -204,6 +212,16 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     switchToOffscreenSurface(mContextId);
   }
 
+  @Override
+  public void surfaceSuspended() {
+    suspendSurface(mContextId);
+  }
+
+  @Override
+  public void surfaceResumed() {
+    resumeSurface(mContextId);
+  }
+
   /**
    * Called from native (AnimationReporter in cpp-adapter.cpp) on the thread
    * that presents to the surface, once per animation, only for a SurfaceView.
@@ -223,8 +241,18 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
    * view: the view dies with its Canvas, so it retires the registry entry.
    */
   public void destroy() {
+    mDestroyed = true;
+    if (mView != null) {
+      retire(mView);
+    }
     mFrameRateVote.detach();
     onViewDestroyed(mContextId);
+  }
+
+  private static void retire(View view) {
+    if (view instanceof FrameKeeper) {
+      ((FrameKeeper) view).retire();
+    }
   }
 
   // reportAnimation asks native to call onAnimating() when frames start being
@@ -249,6 +277,12 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   @DoNotStrip
   private native void switchToOffscreenSurface(int contextId);
+
+  @DoNotStrip
+  private native void suspendSurface(int contextId);
+
+  @DoNotStrip
+  private native void resumeSurface(int contextId);
 
   // The drawing buffer's size a kept frame is read at, width << 32 | height;
   // 0 when there is nothing to keep.
