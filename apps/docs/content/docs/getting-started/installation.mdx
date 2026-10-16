@@ -20,6 +20,8 @@ npm i react-native-webgpu
 
 Please note that this module does not work on the legacy architecture.
 
+On Android it needs Android 8 (API 26) or newer, the release that introduced the `AHardwareBuffer` API its native code calls. An app with a lower `minSdkVersion` fails at the manifest merger; the [config plugin](/docs/getting-started/expo#config-plugin) raises an Expo app's.
+
 ## iOS: Swift Package Manager
 
 By default, `react-native-webgpu` links on iOS/macOS through CocoaPods autolinking - no extra setup needed. As an alternative, the package also ships a `Package.swift` for React Native's SwiftPM autolinking, which needs no CocoaPods at all:
