@@ -20,6 +20,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "GPUAdapterInfo.h"
 #include "GPUBindGroup.h"
 #include "GPUBindGroupDescriptor.h"
 #include "GPUBindGroupLayout.h"
@@ -34,6 +35,9 @@
 #include "GPUError.h"
 #include "GPUExternalTexture.h"
 #include "GPUExternalTextureDescriptor.h"
+#include "GPUNativeBufferExternalTexture.h"
+#include "GPUNativeBufferTexture.h"
+#include "GPUNativeBufferTextureDescriptor.h"
 #include "GPUPipelineLayout.h"
 #include "GPUPipelineLayoutDescriptor.h"
 #include "GPUQuerySet.h"
@@ -124,6 +128,17 @@ public:
       std::shared_ptr<GPUSharedTextureMemoryDescriptor> descriptor);
   std::shared_ptr<GPUSharedFence>
   importSharedFence(std::shared_ptr<GPUSharedFenceDescriptor> descriptor);
+  // Import a native buffer once and bracket each use with beginAccess /
+  // endAccess: the counterparts of createTexture / createExternalTexture in
+  // GPUAndroidHardwareBufferUtil of Dawn's Android layer.
+  std::shared_ptr<GPUNativeBufferTexture> createNativeBufferTexture(
+      std::shared_ptr<VideoFrame> source,
+      std::optional<std::shared_ptr<GPUNativeBufferTextureDescriptor>>
+          descriptor);
+  std::shared_ptr<GPUNativeBufferExternalTexture>
+  createNativeBufferExternalTexture(
+      std::shared_ptr<VideoFrame> source,
+      std::optional<std::shared_ptr<GPUExternalTextureDescriptor>> descriptor);
   std::shared_ptr<GPUBindGroupLayout> createBindGroupLayout(
       std::shared_ptr<GPUBindGroupLayoutDescriptor> descriptor);
   std::shared_ptr<GPUPipelineLayout>
@@ -153,6 +168,7 @@ public:
 
   std::unordered_set<std::string> getFeatures();
   std::shared_ptr<GPUSupportedLimits> getLimits();
+  std::shared_ptr<GPUAdapterInfo> getAdapterInfo();
   std::shared_ptr<GPUQueue> getQueue();
   jsi::Value getLost(jsi::Runtime &runtime, const jsi::Object &wrapper);
   void notifyDeviceLost(wgpu::DeviceLostReason reason, std::string message);
@@ -183,6 +199,10 @@ public:
                   &GPUDevice::importSharedTextureMemory);
     installMethod(runtime, prototype, "importSharedFence",
                   &GPUDevice::importSharedFence);
+    installMethod(runtime, prototype, "createNativeBufferTexture",
+                  &GPUDevice::createNativeBufferTexture);
+    installMethod(runtime, prototype, "createNativeBufferExternalTexture",
+                  &GPUDevice::createNativeBufferExternalTexture);
     installMethod(runtime, prototype, "createBindGroupLayout",
                   &GPUDevice::createBindGroupLayout);
     installMethod(runtime, prototype, "createPipelineLayout",
@@ -211,6 +231,8 @@ public:
                              &GPUDevice::popErrorScope);
     installGetter(runtime, prototype, "features", &GPUDevice::getFeatures);
     installGetter(runtime, prototype, "limits", &GPUDevice::getLimits);
+    installGetter(runtime, prototype, "adapterInfo",
+                  &GPUDevice::getAdapterInfo);
     installGetter(runtime, prototype, "queue", &GPUDevice::getQueue);
     // `lost` is installed manually: the getter needs the wrapper object
     // itself, because the promise (and its resolve function) are cached as

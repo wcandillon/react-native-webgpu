@@ -48,7 +48,7 @@ if (frame.hasNativeBuffer) {
 }
 ```
 
-React Native WebGPU extends `importExternalTexture` with **`rotation`** and **`mirrored`** options so Dawn uprights the sensor image before your shader runs - see [Native Extensions](/api/gpu-device-extensions#gpuexternaltexture-extensions).
+React Native WebGPU extends `importExternalTexture` with **`rotation`** and **`mirrored`** options so the external texture uprights the sensor image before your shader runs - see [Native Extensions](/api/gpu-device-extensions#gpuexternaltexture-extensions).
 
 ## 1. Request a device
 
@@ -151,7 +151,7 @@ Apply **cover-fit** scaling in uniforms so a landscape sensor fills a portrait c
 
 ## 5. Color conversion
 
-The sample is RGB on both platforms: the external texture converts the camera's YUV while sampling, with the color space of the frame. On iOS the pixel buffer's attachments declare it (BT.709 limited range when they are missing). On Android a camera buffer carries no color metadata, so the YCbCr matrix and range come from what the Vulkan driver reports for the buffer, BT.601 limited range when it has no opinion, which is what Android cameras produce. Pass `colorSpace: "display-p3"` to `importExternalTexture` to sample in Display P3 instead of sRGB.
+The sample is RGB on both platforms: the external texture converts the camera's YUV while sampling, with the color space of the frame. On iOS the pixel buffer's attachments declare it (BT.709 limited range when they are missing). On Android a camera buffer carries no color metadata, so the conversion assumes what the platform reports for the buffer, BT.601 limited range by default, which is what Android cameras produce; `sourceColorSpace` overrides it. Pass `colorSpace: "display-p3"` to `importExternalTexture` to sample in Display P3 instead of sRGB.
 
 ## Further reading
 

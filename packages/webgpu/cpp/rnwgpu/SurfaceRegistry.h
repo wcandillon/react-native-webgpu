@@ -59,7 +59,7 @@ struct Size {
 using NativeSurfaceReleaser = std::function<void(void *)>;
 
 #if defined(__ANDROID__)
-// --- AHB-pool presentation mode (WebGPUHardwareBufferView)
+// --- AHB-pool presentation mode (WebGPUNativeBufferView)
 // -----------------------------
 //
 // A third presentation backend (besides the on-screen wgpu::Surface swapchain
@@ -71,7 +71,7 @@ using NativeSurfaceReleaser = std::function<void(void *)>;
 // like the swapchain, so the canvas texture always matches the app's other
 // attachments (e.g. its depth texture).
 
-#define RNWGPU_LOG_TAG "WebGPUHardwareBufferView"
+#define RNWGPU_LOG_TAG "WebGPUNativeBufferView"
 // Failure / anomaly reporting only (never per-frame).
 #define RNWGPU_POOL_WARN(...)                                                  \
   __android_log_print(ANDROID_LOG_WARN, RNWGPU_LOG_TAG, __VA_ARGS__)
@@ -435,7 +435,7 @@ public:
   bool hasNativeSurface() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
 #if defined(__ANDROID__)
-    // A WebGPUHardwareBufferView in pool mode owns presentation the same way a
+    // A WebGPUNativeBufferView in pool mode owns presentation the same way a
     // surface-backed view does, and retires the entry on its own teardown.
     if (_poolMode.load()) {
       return true;
@@ -725,7 +725,7 @@ private:
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
 #if defined(__ANDROID__)
-      // Leaving pool mode (the WebGPUHardwareBufferView detached): drop the
+      // Leaving pool mode (the WebGPUNativeBufferView detached): drop the
       // pool. A configured context keeps rendering into the offscreen
       // fallback, exactly like the surface path.
       if (_poolMode.load()) {
