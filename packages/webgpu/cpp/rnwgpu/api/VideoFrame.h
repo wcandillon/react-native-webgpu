@@ -20,13 +20,13 @@ namespace jsi = facebook::jsi;
 // object stays alive until the JS object is GC'd (or release() is called).
 class VideoFrame : public NativeObject<VideoFrame> {
 public:
-  // JS-facing brand. installConstructor() exposes this as globalThis[CLASS_NAME]
-  // and keys the NativeObjectRegistry / worklet serializer off it, so it must
-  // NOT be "VideoFrame": that would install our constructor over the WebCodecs
-  // `VideoFrame` global and shadow it at runtime. "NativeVideoFrame" matches the
-  // public TypeScript type (see src/types.ts) and keeps the two namespaces
-  // distinct. The C++ class stays `VideoFrame` for brevity; only the brand is
-  // namespaced.
+  // JS-facing brand. installConstructor() exposes this as
+  // globalThis[CLASS_NAME] and keys the NativeObjectRegistry / worklet
+  // serializer off it, so it must NOT be "VideoFrame": that would install our
+  // constructor over the WebCodecs `VideoFrame` global and shadow it at
+  // runtime. "NativeVideoFrame" matches the public TypeScript type (see
+  // src/types.ts) and keeps the two namespaces distinct. The C++ class stays
+  // `VideoFrame` for brevity; only the brand is namespaced.
   static constexpr const char *CLASS_NAME = "NativeVideoFrame";
 
   explicit VideoFrame(VideoFrameHandle handle)
@@ -45,6 +45,18 @@ public:
   // Pixel format as a JS-visible string: "bgra8" | "nv12".
   std::string getPixelFormat() {
     return _handle.pixelFormat == VideoPixelFormat::NV12 ? "nv12" : "bgra8";
+  }
+
+  // The sync fd the producer of the frame signals once it has written the
+  // buffer (Android), as a BigInt, or null when the frame has none (Apple
+  // platforms, a released frame). Borrowed: the frame closes it on release(),
+  // and importSharedFence() duplicates it.
+  jsi::Value getAcquireFenceFd(jsi::Runtime &runtime) {
+    if (_handle.handle == nullptr || _handle.acquireFenceFd < 0) {
+      return jsi::Value::null();
+    }
+    return jsi::BigInt::fromUint64(
+        runtime, static_cast<uint64_t>(_handle.acquireFenceFd));
   }
 
   // Direct access to the underlying handle, for use by importExternalTexture /
@@ -67,6 +79,8 @@ public:
     installGetter(runtime, prototype, "pixelFormat",
                   &VideoFrame::getPixelFormat);
     installMethod(runtime, prototype, "release", &VideoFrame::release);
+    installGetter(runtime, prototype, "acquireFenceFd",
+                  &VideoFrame::getAcquireFenceFd);
   }
 
 private:
