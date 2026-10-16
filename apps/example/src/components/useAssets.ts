@@ -1,15 +1,30 @@
 import { useEffect, useState } from "react";
-import { Image } from "react-native";
+import { Image, Platform } from "react-native";
 import "react-native-webgpu";
 
+import { android } from "../../app.json";
+
+// react-native-test-app's application id: app.json's android.package, else its default.
+const androidPackage =
+  "package" in android && typeof android.package === "string"
+    ? android.package
+    : "com.microsoft.reacttestapp";
+
+// Without Metro, an Android build names a bundled image by its drawable resource name, with no scheme.
+export const resolveImageUrl = (mod: number) => {
+  const { uri } = Image.resolveAssetSource(mod);
+  return Platform.OS === "android" && !uri.includes(":")
+    ? `android.resource://${androidPackage}/drawable/${uri}`
+    : uri;
+};
+
 export const fetchAsset = async (mod: number) => {
-  const response = await fetch(Image.resolveAssetSource(mod).uri);
+  const response = await fetch(resolveImageUrl(mod));
   return response;
 };
 
 export const decodeImage = async (mod: number) => {
-  const { uri } = Image.resolveAssetSource(mod);
-  const response = await fetch(uri);
+  const response = await fetch(resolveImageUrl(mod));
   const blob = await response.blob();
   const image = await createImageBitmap(blob);
   return image;
