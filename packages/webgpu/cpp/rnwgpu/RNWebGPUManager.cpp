@@ -21,9 +21,9 @@
 #include "GPUDeviceLostInfo.h"
 #include "GPUError.h"
 #include "GPUExternalTexture.h"
-#include "GPUHardwareBufferExternalTexture.h"
-#include "GPUHardwareBufferTexture.h"
 #include "GPUInternalError.h"
+#include "GPUNativeBufferExternalTexture.h"
+#include "GPUNativeBufferTexture.h"
 #include "GPUOutOfMemoryError.h"
 #include "GPUPipelineLayout.h"
 #include "GPUQuerySet.h"
@@ -104,8 +104,8 @@ RNWebGPUManager::RNWebGPUManager(
   GPUDeviceLostInfo::installConstructor(*_jsRuntime);
   GPUError::installConstructor(*_jsRuntime);
   GPUExternalTexture::installConstructor(*_jsRuntime);
-  GPUHardwareBufferExternalTexture::installConstructor(*_jsRuntime);
-  GPUHardwareBufferTexture::installConstructor(*_jsRuntime);
+  GPUNativeBufferExternalTexture::installConstructor(*_jsRuntime);
+  GPUNativeBufferTexture::installConstructor(*_jsRuntime);
   GPUInternalError::installConstructor(*_jsRuntime);
   GPUOutOfMemoryError::installConstructor(*_jsRuntime);
   GPUValidationError::installConstructor(*_jsRuntime);

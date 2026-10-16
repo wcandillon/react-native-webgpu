@@ -32,7 +32,7 @@ namespace rnwgpu {
 // `cropOrigin` / `cropSize` select the part of the frame the external texture
 // shows (Dawn's cropOrigin / cropSize), the whole frame by default.
 //
-// createHardwareBufferExternalTexture() takes the same descriptor without a
+// createNativeBufferExternalTexture() takes the same descriptor without a
 // source: the frame is its first argument.
 struct GPUExternalTextureDescriptor {
   std::shared_ptr<VideoFrame> source;

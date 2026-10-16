@@ -60,12 +60,12 @@ const expectColor = (actual: Rgb, expected: Rgb, tolerance: number) => {
   });
 };
 
-// The hardware buffer wrappers: a native buffer imported once, with the access
+// The native buffer wrappers: a native buffer imported once, with the access
 // window of each use explicit (beginAccess / endAccess), the recipe of Dawn's
 // Android layer. The specs below run the same frame through several accesses
 // of one import, where importExternalTexture() / importSharedTextureMemory()
 // would import the buffer each time.
-describe("HardwareBufferWrapper", () => {
+describe("NativeBufferWrapper", () => {
   it("samples a YUV buffer imported once as an external texture across several accesses", async () => {
     const result = await client.eval<Record<string, never>, YuvResult>(
       ({ device, gpu, ctx, canvas }) => {
@@ -112,7 +112,7 @@ describe("HardwareBufferWrapper", () => {
         }
         try {
           // Once per buffer: the import, the texture and the external texture.
-          const wrapper = device.createHardwareBufferExternalTexture(frame, {
+          const wrapper = device.createNativeBufferExternalTexture(frame, {
             label: "yuv-wrapper",
           });
           const module = device.createShaderModule({
@@ -284,13 +284,13 @@ describe("HardwareBufferWrapper", () => {
     );
 
     if (result.kind === "skip") {
-      console.log(`HardwareBufferWrapper: skipping (${result.reason})`);
+      console.log(`NativeBufferWrapper: skipping (${result.reason})`);
       return;
     }
     if (result.kind === "fail") {
-      throw new Error(`HardwareBufferWrapper: ${result.reason}`);
+      throw new Error(`NativeBufferWrapper: ${result.reason}`);
     }
-    expect(result.wrapperBrand).toBe("GPUHardwareBufferExternalTexture");
+    expect(result.wrapperBrand).toBe("GPUNativeBufferExternalTexture");
     expect(result.externalTextureBrand).toBe("GPUExternalTexture");
     expect(result.left).toHaveLength(3);
     expect(result.right).toHaveLength(3);
@@ -335,7 +335,7 @@ describe("HardwareBufferWrapper", () => {
         }
         try {
           const frame = RNWebGPU.createTestVideoFrame(256, 256);
-          const wrapper = device.createHardwareBufferTexture(frame, {
+          const wrapper = device.createNativeBufferTexture(frame, {
             usage: GPUTextureUsage.TEXTURE_BINDING,
             label: "rgb-wrapper",
           });
@@ -443,13 +443,13 @@ describe("HardwareBufferWrapper", () => {
     );
 
     if (result.kind === "skip") {
-      console.log(`HardwareBufferWrapper: skipping (${result.reason})`);
+      console.log(`NativeBufferWrapper: skipping (${result.reason})`);
       return;
     }
     if (result.kind === "fail") {
-      throw new Error(`HardwareBufferWrapper: ${result.reason}`);
+      throw new Error(`NativeBufferWrapper: ${result.reason}`);
     }
-    expect(result.wrapperBrand).toBe("GPUHardwareBufferTexture");
+    expect(result.wrapperBrand).toBe("GPUNativeBufferTexture");
     expect(result.textureBrand).toBe("GPUTexture");
     // The same frame and shader as the SharedTextureMemory spec: the same
     // image.
@@ -480,7 +480,7 @@ describe("HardwareBufferWrapper", () => {
         }
         try {
           const frame = RNWebGPU.createTestVideoFrame(32, 32);
-          const wrapper = device.createHardwareBufferTexture(frame, {
+          const wrapper = device.createNativeBufferTexture(frame, {
             label: "destroyed-wrapper",
           });
           const errors: Promise<GPUError | null>[] = [];
@@ -546,11 +546,11 @@ describe("HardwareBufferWrapper", () => {
     );
 
     if (result.kind === "skip") {
-      console.log(`HardwareBufferWrapper: skipping (${result.reason})`);
+      console.log(`NativeBufferWrapper: skipping (${result.reason})`);
       return;
     }
     if (result.kind === "fail") {
-      throw new Error(`HardwareBufferWrapper: ${result.reason}`);
+      throw new Error(`NativeBufferWrapper: ${result.reason}`);
     }
     expect(result.destroyWithOpenAccess).toContain("access still open");
     expect(result.destroyWithOpenAccess).toContain("destroyed-wrapper");

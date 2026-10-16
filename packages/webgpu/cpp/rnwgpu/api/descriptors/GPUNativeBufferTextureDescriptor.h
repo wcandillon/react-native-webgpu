@@ -13,21 +13,19 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// The options of GPUDevice.createHardwareBufferTexture(): the usage of the
+// The options of GPUDevice.createNativeBufferTexture(): the usage of the
 // texture (the usages the buffer allows by default, as
 // GPUSharedTextureMemory.createTexture() without a descriptor) and a label.
-struct GPUHardwareBufferTextureDescriptor {
+struct GPUNativeBufferTextureDescriptor {
   std::optional<double> usage;
   std::optional<std::string> label;
 };
 
 template <>
-struct JSIConverter<
-    std::shared_ptr<rnwgpu::GPUHardwareBufferTextureDescriptor>> {
-  static std::shared_ptr<rnwgpu::GPUHardwareBufferTextureDescriptor>
+struct JSIConverter<std::shared_ptr<rnwgpu::GPUNativeBufferTextureDescriptor>> {
+  static std::shared_ptr<rnwgpu::GPUNativeBufferTextureDescriptor>
   fromJSI(jsi::Runtime &runtime, const jsi::Value &arg, bool outOfBounds) {
-    auto result =
-        std::make_shared<rnwgpu::GPUHardwareBufferTextureDescriptor>();
+    auto result = std::make_shared<rnwgpu::GPUNativeBufferTextureDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "usage")) {
@@ -48,9 +46,9 @@ struct JSIConverter<
   }
   static jsi::Value
   toJSI(jsi::Runtime & /*runtime*/,
-        std::shared_ptr<rnwgpu::GPUHardwareBufferTextureDescriptor> /*arg*/) {
+        std::shared_ptr<rnwgpu::GPUNativeBufferTextureDescriptor> /*arg*/) {
     throw std::runtime_error(
-        "Invalid GPUHardwareBufferTextureDescriptor::toJSI()");
+        "Invalid GPUNativeBufferTextureDescriptor::toJSI()");
   }
 };
 

@@ -13,7 +13,7 @@ namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
 
-// What GPUHardwareBufferTexture and GPUHardwareBufferExternalTexture share:
+// What GPUNativeBufferTexture and GPUNativeBufferExternalTexture share:
 // the import of a native buffer, done once, the access window around each use
 // and the release. The counterpart of GPUHardwareBufferWrapper in Dawn's
 // Android layer (tools/android/webgpu), whose JNI side owns the same objects:
@@ -23,15 +23,15 @@ namespace jsi = facebook::jsi;
 // each one once and bracketing every frame with beginAccess() / endAccess()
 // is what Dawn's layer does, and saves the import (and the pipeline recreation
 // behind a new external texture) that importExternalTexture() pays per frame.
-class HardwareBufferAccess {
+class NativeBufferAccess {
 public:
-  HardwareBufferAccess(const char *className, wgpu::Device device,
-                       wgpu::SharedTextureMemory memory, wgpu::Texture texture,
-                       std::shared_ptr<VideoFrame> source, std::string label);
-  ~HardwareBufferAccess();
+  NativeBufferAccess(const char *className, wgpu::Device device,
+                     wgpu::SharedTextureMemory memory, wgpu::Texture texture,
+                     std::shared_ptr<VideoFrame> source, std::string label);
+  ~NativeBufferAccess();
 
-  HardwareBufferAccess(const HardwareBufferAccess &) = delete;
-  HardwareBufferAccess &operator=(const HardwareBufferAccess &) = delete;
+  NativeBufferAccess(const NativeBufferAccess &) = delete;
+  NativeBufferAccess &operator=(const NativeBufferAccess &) = delete;
 
   // beginAccess(fences?): begins an access to the buffer's texture, after the
   // GPU waited for the optional GPUSharedFenceState[] (the producer's fence

@@ -9,7 +9,7 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "GPUExternalTexture.h"
-#include "GPUHardwareBufferWrapper.h"
+#include "GPUNativeBufferWrapper.h"
 #include "VideoFrame.h"
 
 namespace rnwgpu {
@@ -20,16 +20,16 @@ namespace jsi = facebook::jsi;
 // NV12 or BGRA IOSurface) imported once as an external texture, with the
 // access window of each use explicit: GPUHardwareBufferExternalTexture of
 // Dawn's Android layer. Created by
-// GPUDevice.createHardwareBufferExternalTexture(). Unlike
+// GPUDevice.createNativeBufferExternalTexture(). Unlike
 // importExternalTexture(), which imports the buffer and begins the access on
 // every call, the external texture here is built once per buffer, color
 // conversion included, and only beginAccess() / endAccess() run per frame.
-class GPUHardwareBufferExternalTexture
-    : public NativeObject<GPUHardwareBufferExternalTexture> {
+class GPUNativeBufferExternalTexture
+    : public NativeObject<GPUNativeBufferExternalTexture> {
 public:
-  static constexpr const char *CLASS_NAME = "GPUHardwareBufferExternalTexture";
+  static constexpr const char *CLASS_NAME = "GPUNativeBufferExternalTexture";
 
-  GPUHardwareBufferExternalTexture(
+  GPUNativeBufferExternalTexture(
       wgpu::Device device, wgpu::SharedTextureMemory memory,
       wgpu::Texture texture,
       std::shared_ptr<GPUExternalTexture> externalTexture,
@@ -60,7 +60,7 @@ public:
   }
 
   // Releases the external texture and the import (see
-  // HardwareBufferAccess::destroy), the order of Dawn's layer.
+  // NativeBufferAccess::destroy), the order of Dawn's layer.
   void destroy() {
     _externalTexture->destroy();
     _access.destroy();
@@ -74,22 +74,22 @@ public:
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "__brand",
-                  &GPUHardwareBufferExternalTexture::getBrand);
+                  &GPUNativeBufferExternalTexture::getBrand);
     installGetter(runtime, prototype, "externalTexture",
-                  &GPUHardwareBufferExternalTexture::getExternalTexture);
+                  &GPUNativeBufferExternalTexture::getExternalTexture);
     installMethod(runtime, prototype, "beginAccess",
-                  &GPUHardwareBufferExternalTexture::beginAccess);
+                  &GPUNativeBufferExternalTexture::beginAccess);
     installMethod(runtime, prototype, "endAccess",
-                  &GPUHardwareBufferExternalTexture::endAccess);
+                  &GPUNativeBufferExternalTexture::endAccess);
     installMethod(runtime, prototype, "destroy",
-                  &GPUHardwareBufferExternalTexture::destroy);
+                  &GPUNativeBufferExternalTexture::destroy);
     installGetterSetter(runtime, prototype, "label",
-                        &GPUHardwareBufferExternalTexture::getLabel,
-                        &GPUHardwareBufferExternalTexture::setLabel);
+                        &GPUNativeBufferExternalTexture::getLabel,
+                        &GPUNativeBufferExternalTexture::setLabel);
   }
 
 private:
-  HardwareBufferAccess _access;
+  NativeBufferAccess _access;
   std::shared_ptr<GPUExternalTexture> _externalTexture;
 };
 

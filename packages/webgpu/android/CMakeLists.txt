@@ -46,7 +46,7 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/rnwgpu/api/GPUSharedFence.cpp
     ../cpp/rnwgpu/api/GPUSharedTextureMemory.cpp
     ../cpp/rnwgpu/api/GPUExternalTexture.cpp
-    ../cpp/rnwgpu/api/GPUHardwareBufferWrapper.cpp
+    ../cpp/rnwgpu/api/GPUNativeBufferWrapper.cpp
     ../cpp/rnwgpu/api/NativeFrameImport.cpp
     ../cpp/rnwgpu/api/GPURenderBundleEncoder.cpp
     ../cpp/rnwgpu/api/GPURenderPassEncoder.cpp

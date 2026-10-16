@@ -87,26 +87,26 @@ for (const { fence: done, signaledValue } of fences) {
 
 See [SharedFence.spec.ts](https://github.com/wcandillon/react-native-webgpu/blob/main/packages/webgpu/src/__tests__/SharedFence.spec.ts) for a full producer/consumer example.
 
-## createHardwareBufferExternalTexture / createHardwareBufferTexture
+## createNativeBufferExternalTexture / createNativeBufferTexture
 
 A decoder or a camera cycles through the same few buffers, but `importExternalTexture()` imports the buffer again on every frame.
 These two methods import a buffer once; each frame is then bracketed with `beginAccess()` / `endAccess()` on the wrapper.
 
 ```tsx twoslash
 import type {
-  GPUHardwareBufferExternalTexture,
+  GPUNativeBufferExternalTexture,
   NativeVideoFrame,
 } from "react-native-webgpu";
 declare const device: GPUDevice;
 declare const frame: NativeVideoFrame;
-declare const wrappers: Map<bigint, GPUHardwareBufferExternalTexture>;
+declare const wrappers: Map<bigint, GPUNativeBufferExternalTexture>;
 declare function draw(externalTexture: GPUExternalTexture): void;
 // ---cut---
 // Once per buffer, keyed by the buffer: the import, the texture and the
 // external texture (color conversion included).
 let wrapper = wrappers.get(frame.handle);
 if (!wrapper) {
-  wrapper = device.createHardwareBufferExternalTexture(frame, {
+  wrapper = device.createNativeBufferExternalTexture(frame, {
     label: "clip-1",
   });
   wrappers.set(frame.handle, wrapper);
@@ -136,12 +136,12 @@ wrapper.destroy();
 `destroy()` releases the import and the frame the wrapper was created from; an access left open is a validation error, and it is ended anyway so the producer gets its buffer back.
 The descriptor is that of `importExternalTexture()` without the source (`colorSpace`, `rotation`, `mirrored`, plus `sourceColorSpace`, `cropOrigin` and `cropSize`, see below); the same descriptor members apply to `importExternalTexture()`.
 
-`createHardwareBufferTexture(frame, { usage, label })` is the same wrapper over a color buffer (an RGBA `AHardwareBuffer`, a BGRA `IOSurface`) exposed as a regular `GPUTexture`; `usage` defaults to every usage the buffer allows.
+`createNativeBufferTexture(frame, { usage, label })` is the same wrapper over a color buffer (an RGBA `AHardwareBuffer`, a BGRA `IOSurface`) exposed as a regular `GPUTexture`; `usage` defaults to every usage the buffer allows.
 The external texture is sample-only, as on the web, and the only way to read a YUV frame; the texture is for a color buffer you also write to or copy from.
 
 On Android, a buffer from another library (wrapped with `createVideoFrameFromNativeBuffer`) carries no color metadata: pass `sourceColorSpace` when you know it, or the conversion assumes what the platform reports for the buffer, BT.601 limited range by default.
 
-<auto-type-table path="../../../../packages/webgpu/src/types.ts" name="GPUHardwareBufferWrapper" />
+<auto-type-table path="../../../../packages/webgpu/src/types.ts" name="GPUNativeBufferWrapper" />
 
 ## dawnToggles
 

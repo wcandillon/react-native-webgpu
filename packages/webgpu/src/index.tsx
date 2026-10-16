@@ -9,10 +9,10 @@
 import "./main/installNative";
 
 import type {
-  GPUHardwareBufferExternalTexture,
-  GPUHardwareBufferExternalTextureDescriptor,
-  GPUHardwareBufferTexture,
-  GPUHardwareBufferTextureDescriptor,
+  GPUNativeBufferExternalTexture,
+  GPUNativeBufferExternalTextureDescriptor,
+  GPUNativeBufferTexture,
+  GPUNativeBufferTextureDescriptor,
   GPUDrawElementImageDestination,
   GPUDrawElementImageSource,
   GPUSharedFence,
@@ -50,11 +50,11 @@ export type {
   GPUNativeExternalTextureDescriptor,
   NativeVideoFrameColorSpace,
   GPUExtent2D,
-  GPUHardwareBufferExternalTextureDescriptor,
-  GPUHardwareBufferTextureDescriptor,
-  GPUHardwareBufferWrapper,
-  GPUHardwareBufferTexture,
-  GPUHardwareBufferExternalTexture,
+  GPUNativeBufferExternalTextureDescriptor,
+  GPUNativeBufferTextureDescriptor,
+  GPUNativeBufferWrapper,
+  GPUNativeBufferTexture,
+  GPUNativeBufferExternalTexture,
   GPUDrawElementImageDestination,
   GPUDrawElementImageSource,
   GPUDrawElementImageSourceView,
@@ -136,14 +136,14 @@ declare global {
     // layer: import a native buffer once, as a regular texture or as an
     // external texture, and bracket each use with beginAccess() / endAccess()
     // on the wrapper instead of importing the buffer again per frame.
-    createHardwareBufferTexture(
+    createNativeBufferTexture(
       source: NativeVideoFrame,
-      descriptor?: GPUHardwareBufferTextureDescriptor,
-    ): GPUHardwareBufferTexture;
-    createHardwareBufferExternalTexture(
+      descriptor?: GPUNativeBufferTextureDescriptor,
+    ): GPUNativeBufferTexture;
+    createNativeBufferExternalTexture(
       source: NativeVideoFrame,
-      descriptor?: GPUHardwareBufferExternalTextureDescriptor,
-    ): GPUHardwareBufferExternalTexture;
+      descriptor?: GPUNativeBufferExternalTextureDescriptor,
+    ): GPUNativeBufferExternalTexture;
   }
 
   // Non-spec RN extension modeled on the html-in-canvas proposal's

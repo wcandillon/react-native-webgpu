@@ -110,18 +110,18 @@ export interface GPUNativeExternalTextureDescriptor extends Omit<
   cropSize?: GPUExtent2D;
 }
 
-// The descriptor of GPUDevice.createHardwareBufferExternalTexture(): the same
+// The descriptor of GPUDevice.createNativeBufferExternalTexture(): the same
 // options as importExternalTexture(), without the source (the frame is the
 // first argument).
-export type GPUHardwareBufferExternalTextureDescriptor = Omit<
+export type GPUNativeBufferExternalTextureDescriptor = Omit<
   GPUNativeExternalTextureDescriptor,
   "source"
 >;
 
-// The options of GPUDevice.createHardwareBufferTexture(). `usage` defaults to
+// The options of GPUDevice.createNativeBufferTexture(). `usage` defaults to
 // every usage the buffer allows, as GPUSharedTextureMemory.createTexture()
 // without a descriptor.
-export interface GPUHardwareBufferTextureDescriptor {
+export interface GPUNativeBufferTextureDescriptor {
   usage?: GPUTextureUsageFlags;
   label?: string;
 }
@@ -133,7 +133,7 @@ export interface GPUHardwareBufferTextureDescriptor {
 // bracket each frame with beginAccess() / endAccess() instead of importing it
 // again. The wrapper keeps the frame it was created from alive until
 // destroy().
-export interface GPUHardwareBufferWrapper {
+export interface GPUNativeBufferWrapper {
   label: string;
   // Begins an access to the buffer: the GPU waits for each fence to reach its
   // signaledValue first (the producer's fence for the frame, e.g. the frame's
@@ -156,8 +156,8 @@ export interface GPUHardwareBufferWrapper {
 // A color buffer (an RGBA / R8 / ... AHardwareBuffer, a BGRA IOSurface)
 // imported once as a regular texture. Bind `texture` only between
 // beginAccess() and endAccess().
-export interface GPUHardwareBufferTexture extends GPUHardwareBufferWrapper {
-  readonly __brand: "GPUHardwareBufferTexture";
+export interface GPUNativeBufferTexture extends GPUNativeBufferWrapper {
+  readonly __brand: "GPUNativeBufferTexture";
   readonly texture: GPUTexture;
 }
 
@@ -166,8 +166,8 @@ export interface GPUHardwareBufferTexture extends GPUHardwareBufferWrapper {
 // included. Bind `externalTexture` only between beginAccess() and endAccess();
 // destroying it on its own (externalTexture.destroy()) only releases the
 // external texture, the wrapper keeps the import.
-export interface GPUHardwareBufferExternalTexture extends GPUHardwareBufferWrapper {
-  readonly __brand: "GPUHardwareBufferExternalTexture";
+export interface GPUNativeBufferExternalTexture extends GPUNativeBufferWrapper {
+  readonly __brand: "GPUNativeBufferExternalTexture";
   readonly externalTexture: GPUExternalTexture;
 }
 

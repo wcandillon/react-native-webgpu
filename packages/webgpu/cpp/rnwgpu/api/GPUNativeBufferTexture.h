@@ -8,7 +8,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
-#include "GPUHardwareBufferWrapper.h"
+#include "GPUNativeBufferWrapper.h"
 #include "GPUTexture.h"
 #include "VideoFrame.h"
 
@@ -19,16 +19,14 @@ namespace jsi = facebook::jsi;
 // A native color buffer (an RGBA / R8 / ... AHardwareBuffer, a BGRA IOSurface)
 // imported once as a regular texture, with the access window of each use
 // explicit: GPUHardwareBufferTexture of Dawn's Android layer. Created by
-// GPUDevice.createHardwareBufferTexture().
-class GPUHardwareBufferTexture : public NativeObject<GPUHardwareBufferTexture> {
+// GPUDevice.createNativeBufferTexture().
+class GPUNativeBufferTexture : public NativeObject<GPUNativeBufferTexture> {
 public:
-  static constexpr const char *CLASS_NAME = "GPUHardwareBufferTexture";
+  static constexpr const char *CLASS_NAME = "GPUNativeBufferTexture";
 
-  GPUHardwareBufferTexture(wgpu::Device device,
-                           wgpu::SharedTextureMemory memory,
-                           std::shared_ptr<GPUTexture> texture,
-                           std::shared_ptr<VideoFrame> source,
-                           std::string label)
+  GPUNativeBufferTexture(wgpu::Device device, wgpu::SharedTextureMemory memory,
+                         std::shared_ptr<GPUTexture> texture,
+                         std::shared_ptr<VideoFrame> source, std::string label)
       : NativeObject(CLASS_NAME),
         _access(CLASS_NAME, std::move(device), std::move(memory),
                 texture->get(), std::move(source), std::move(label)),
@@ -52,7 +50,7 @@ public:
     return _access.endAccess(runtime);
   }
 
-  // Releases the texture and the import (see HardwareBufferAccess::destroy).
+  // Releases the texture and the import (see NativeBufferAccess::destroy).
   void destroy() {
     _access.destroy();
     _texture->destroy();
@@ -63,22 +61,22 @@ public:
 
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "__brand",
-                  &GPUHardwareBufferTexture::getBrand);
+                  &GPUNativeBufferTexture::getBrand);
     installGetter(runtime, prototype, "texture",
-                  &GPUHardwareBufferTexture::getTexture);
+                  &GPUNativeBufferTexture::getTexture);
     installMethod(runtime, prototype, "beginAccess",
-                  &GPUHardwareBufferTexture::beginAccess);
+                  &GPUNativeBufferTexture::beginAccess);
     installMethod(runtime, prototype, "endAccess",
-                  &GPUHardwareBufferTexture::endAccess);
+                  &GPUNativeBufferTexture::endAccess);
     installMethod(runtime, prototype, "destroy",
-                  &GPUHardwareBufferTexture::destroy);
+                  &GPUNativeBufferTexture::destroy);
     installGetterSetter(runtime, prototype, "label",
-                        &GPUHardwareBufferTexture::getLabel,
-                        &GPUHardwareBufferTexture::setLabel);
+                        &GPUNativeBufferTexture::getLabel,
+                        &GPUNativeBufferTexture::setLabel);
   }
 
 private:
-  HardwareBufferAccess _access;
+  NativeBufferAccess _access;
   std::shared_ptr<GPUTexture> _texture;
 };
 

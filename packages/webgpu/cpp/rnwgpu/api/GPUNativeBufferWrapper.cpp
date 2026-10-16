@@ -1,4 +1,4 @@
-#include "GPUHardwareBufferWrapper.h"
+#include "GPUNativeBufferWrapper.h"
 
 #include <cstdint>
 #include <memory>
@@ -14,33 +14,33 @@
 
 namespace rnwgpu {
 
-HardwareBufferAccess::HardwareBufferAccess(const char *className,
-                                           wgpu::Device device,
-                                           wgpu::SharedTextureMemory memory,
-                                           wgpu::Texture texture,
-                                           std::shared_ptr<VideoFrame> source,
-                                           std::string label)
+NativeBufferAccess::NativeBufferAccess(const char *className,
+                                       wgpu::Device device,
+                                       wgpu::SharedTextureMemory memory,
+                                       wgpu::Texture texture,
+                                       std::shared_ptr<VideoFrame> source,
+                                       std::string label)
     : _className(className), _device(std::move(device)),
       _memory(std::move(memory)), _texture(std::move(texture)),
       _source(std::move(source)), _label(std::move(label)) {}
 
 // The garbage-collection fallback: releases without reporting, there is no
 // one left to report to.
-HardwareBufferAccess::~HardwareBufferAccess() { release(false); }
+NativeBufferAccess::~NativeBufferAccess() { release(false); }
 
-void HardwareBufferAccess::setLabel(const std::string &label) {
+void NativeBufferAccess::setLabel(const std::string &label) {
   _label = label;
   if (_memory) {
     _memory.SetLabel(_label.c_str());
   }
 }
 
-void HardwareBufferAccess::injectDestroyedError(const char *method) {
+void NativeBufferAccess::injectDestroyedError(const char *method) {
   reportDestroyedUse(_device, _className, _label, method);
 }
 
-void HardwareBufferAccess::beginAccess(jsi::Runtime &runtime,
-                                       const jsi::Value *args, size_t count) {
+void NativeBufferAccess::beginAccess(jsi::Runtime &runtime,
+                                     const jsi::Value *args, size_t count) {
   const std::string caller = std::string(_className) + "::beginAccess";
   // Fails like an access Dawn rejects: a validation error, then the throw.
   if (!_memory) {
@@ -78,7 +78,7 @@ void HardwareBufferAccess::beginAccess(jsi::Runtime &runtime,
   _accessOpen = true;
 }
 
-jsi::Value HardwareBufferAccess::endAccess(jsi::Runtime &runtime) {
+jsi::Value NativeBufferAccess::endAccess(jsi::Runtime &runtime) {
   const std::string caller = std::string(_className) + "::endAccess";
   if (!_memory) {
     injectDestroyedError("endAccess");
@@ -114,9 +114,9 @@ jsi::Value HardwareBufferAccess::endAccess(jsi::Runtime &runtime) {
   return result;
 }
 
-void HardwareBufferAccess::destroy() { release(true); }
+void NativeBufferAccess::destroy() { release(true); }
 
-void HardwareBufferAccess::release(bool reportOpenAccess) {
+void NativeBufferAccess::release(bool reportOpenAccess) {
   if (!_memory) {
     return;
   }

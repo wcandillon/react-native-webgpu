@@ -14,8 +14,8 @@ struct GPUExternalTextureDescriptor;
 
 // The steps of importing a native frame (an IOSurface on Apple platforms, an
 // AHardwareBuffer on Android) into Dawn, shared by importExternalTexture(),
-// importSharedTextureMemory() and the hardware buffer wrappers of
-// createHardwareBufferTexture() / createHardwareBufferExternalTexture(): the
+// importSharedTextureMemory() and the native buffer wrappers of
+// createNativeBufferTexture() / createNativeBufferExternalTexture(): the
 // import, the access window around each use, and the external texture that
 // samples a YUV frame as RGB. The same steps as Dawn's own Android layer
 // (tools/android/webgpu, GPUImportedAHB.cpp), so a JS caller can follow its

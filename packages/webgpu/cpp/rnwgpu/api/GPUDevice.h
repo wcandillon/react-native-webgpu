@@ -34,9 +34,9 @@
 #include "GPUError.h"
 #include "GPUExternalTexture.h"
 #include "GPUExternalTextureDescriptor.h"
-#include "GPUHardwareBufferExternalTexture.h"
-#include "GPUHardwareBufferTexture.h"
-#include "GPUHardwareBufferTextureDescriptor.h"
+#include "GPUNativeBufferExternalTexture.h"
+#include "GPUNativeBufferTexture.h"
+#include "GPUNativeBufferTextureDescriptor.h"
 #include "GPUPipelineLayout.h"
 #include "GPUPipelineLayoutDescriptor.h"
 #include "GPUQuerySet.h"
@@ -130,12 +130,12 @@ public:
   // Import a native buffer once and bracket each use with beginAccess /
   // endAccess: the counterparts of createTexture / createExternalTexture in
   // GPUAndroidHardwareBufferUtil of Dawn's Android layer.
-  std::shared_ptr<GPUHardwareBufferTexture> createHardwareBufferTexture(
+  std::shared_ptr<GPUNativeBufferTexture> createNativeBufferTexture(
       std::shared_ptr<VideoFrame> source,
-      std::optional<std::shared_ptr<GPUHardwareBufferTextureDescriptor>>
+      std::optional<std::shared_ptr<GPUNativeBufferTextureDescriptor>>
           descriptor);
-  std::shared_ptr<GPUHardwareBufferExternalTexture>
-  createHardwareBufferExternalTexture(
+  std::shared_ptr<GPUNativeBufferExternalTexture>
+  createNativeBufferExternalTexture(
       std::shared_ptr<VideoFrame> source,
       std::optional<std::shared_ptr<GPUExternalTextureDescriptor>> descriptor);
   std::shared_ptr<GPUBindGroupLayout> createBindGroupLayout(
@@ -197,10 +197,10 @@ public:
                   &GPUDevice::importSharedTextureMemory);
     installMethod(runtime, prototype, "importSharedFence",
                   &GPUDevice::importSharedFence);
-    installMethod(runtime, prototype, "createHardwareBufferTexture",
-                  &GPUDevice::createHardwareBufferTexture);
-    installMethod(runtime, prototype, "createHardwareBufferExternalTexture",
-                  &GPUDevice::createHardwareBufferExternalTexture);
+    installMethod(runtime, prototype, "createNativeBufferTexture",
+                  &GPUDevice::createNativeBufferTexture);
+    installMethod(runtime, prototype, "createNativeBufferExternalTexture",
+                  &GPUDevice::createNativeBufferExternalTexture);
     installMethod(runtime, prototype, "createBindGroupLayout",
                   &GPUDevice::createBindGroupLayout);
     installMethod(runtime, prototype, "createPipelineLayout",

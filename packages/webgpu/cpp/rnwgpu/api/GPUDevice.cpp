@@ -414,15 +414,13 @@ std::shared_ptr<GPUSharedFence> GPUDevice::importSharedFence(
                                           std::move(label));
 }
 
-std::shared_ptr<GPUHardwareBufferTexture>
-GPUDevice::createHardwareBufferTexture(
+std::shared_ptr<GPUNativeBufferTexture> GPUDevice::createNativeBufferTexture(
     std::shared_ptr<VideoFrame> source,
-    std::optional<std::shared_ptr<GPUHardwareBufferTextureDescriptor>>
+    std::optional<std::shared_ptr<GPUNativeBufferTextureDescriptor>>
         descriptor) {
-  static constexpr const char *kCaller =
-      "GPUDevice::createHardwareBufferTexture";
+  static constexpr const char *kCaller = "GPUDevice::createNativeBufferTexture";
   if (!source) {
-    throw std::runtime_error("GPUDevice::createHardwareBufferTexture(): "
+    throw std::runtime_error("GPUDevice::createNativeBufferTexture(): "
                              "source (NativeVideoFrame) is required");
   }
   std::string label;
@@ -455,24 +453,24 @@ GPUDevice::createHardwareBufferTexture(
     texture = memory.CreateTexture();
   }
   if (texture == nullptr) {
-    throw std::runtime_error("GPUDevice::createHardwareBufferTexture(): "
+    throw std::runtime_error("GPUDevice::createNativeBufferTexture(): "
                              "CreateTexture returned null");
   }
   auto wrapped = std::make_shared<GPUTexture>(std::move(texture), label);
-  return std::make_shared<GPUHardwareBufferTexture>(
+  return std::make_shared<GPUNativeBufferTexture>(
       _instance, std::move(memory), std::move(wrapped), std::move(source),
       std::move(label));
 }
 
-std::shared_ptr<GPUHardwareBufferExternalTexture>
-GPUDevice::createHardwareBufferExternalTexture(
+std::shared_ptr<GPUNativeBufferExternalTexture>
+GPUDevice::createNativeBufferExternalTexture(
     std::shared_ptr<VideoFrame> source,
     std::optional<std::shared_ptr<GPUExternalTextureDescriptor>> descriptor) {
   static constexpr const char *kCaller =
-      "GPUDevice::createHardwareBufferExternalTexture";
+      "GPUDevice::createNativeBufferExternalTexture";
   if (!source) {
     throw std::runtime_error(
-        "GPUDevice::createHardwareBufferExternalTexture(): source "
+        "GPUDevice::createNativeBufferExternalTexture(): source "
         "(NativeVideoFrame) is required");
   }
   std::shared_ptr<GPUExternalTextureDescriptor> options =
@@ -488,7 +486,7 @@ GPUDevice::createHardwareBufferExternalTexture(
   auto texture = memory.CreateTexture();
   if (texture == nullptr) {
     throw std::runtime_error(
-        "GPUDevice::createHardwareBufferExternalTexture(): CreateTexture "
+        "GPUDevice::createNativeBufferExternalTexture(): CreateTexture "
         "returned null");
   }
   auto external = native_frame::createExternalTexture(
@@ -497,7 +495,7 @@ GPUDevice::createHardwareBufferExternalTexture(
   // constructor).
   auto externalTexture = std::make_shared<GPUExternalTexture>(
       std::move(external), nullptr, nullptr, nullptr, label);
-  return std::make_shared<GPUHardwareBufferExternalTexture>(
+  return std::make_shared<GPUNativeBufferExternalTexture>(
       _instance, std::move(memory), std::move(texture),
       std::move(externalTexture), std::move(source), std::move(label));
 }
