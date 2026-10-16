@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { createGenerator, remarkAutoTypeTable } from "fumadocs-typescript";
 import {
   rehypeCodeDefaultOptions,
@@ -33,6 +34,8 @@ export default defineConfig({
         ...(rehypeCodeDefaultOptions.transformers ?? []),
         transformerTwoslash({
           twoslashOptions: {
+            // fumadocs-mdx runs this file from .source/: samples resolve from this app.
+            vfsRoot: fileURLToPath(new URL("..", import.meta.url)),
             compilerOptions: {
               target: 99 /* ESNext */,
               jsx: 4 /* react-jsx */,
