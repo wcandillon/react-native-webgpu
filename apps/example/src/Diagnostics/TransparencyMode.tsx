@@ -33,7 +33,10 @@ import {
 // case where the canvas votes the display's refresh rate: on an adaptive
 // display, `dumpsys SurfaceFlinger` then lists the SurfaceView layer with a
 // requestedFrameRate while it draws, and without one a second after the loop
-// stops.
+// stops. "off" presents nothing, so a view switch must keep the last frame and
+// a fresh mount must show the stage until its first frame.
+// mounted mounts the Canvas afresh. shown hides it and mounts it again while
+// hidden, so it is configured before its surface exists, and reveals it.
 const OPTIONS: { label: string; android?: AndroidCanvasProps }[] = [
   { label: "auto" },
   { label: "hardware buffer", android: { surfaceType: "HardwareBufferView" } },
@@ -47,22 +50,38 @@ const OPTIONS: { label: string; android?: AndroidCanvasProps }[] = [
 
 const CLEAR_COLOR: GPUColor = [0.5, 0, 0, 0.5];
 
+type Loop = "5 fps" | "every frame" | "off";
+
+const nextLoop = (loop: Loop): Loop => {
+  switch (loop) {
+    case "5 fps":
+      return "every frame";
+    case "every frame":
+      return "off";
+    case "off":
+      return "5 fps";
+  }
+};
+
 export const TransparencyMode = () => {
   const ref = useRef<CanvasRef>(null);
   const { log, append } = useDiagnosticLog();
   const [option, setOption] = useState(OPTIONS[0]);
   const [opaque, setOpaque] = useState(false);
   const [mounted, setMounted] = useState(true);
-  const [everyFrame, setEveryFrame] = useState(false);
+  const [shown, setShown] = useState(true);
+  const [hiddenCount, setHiddenCount] = useState(0);
+  const [loop, setLoop] = useState<Loop>("5 fps");
+  const [framesPerSecond, setFramesPerSecond] = useState(0);
   const [taps, setTaps] = useState(0);
   // The loop reads the cadence through a ref so that toggling it does not
   // restart the effect: a second initGPU() would configure the context with a
   // new device while the first still owns the window, and Vulkan refuses the
   // surface (VK_ERROR_NATIVE_WINDOW_IN_USE_KHR, device lost).
-  const everyFrameRef = useRef(everyFrame);
+  const loopRef = useRef(loop);
   useEffect(() => {
-    everyFrameRef.current = everyFrame;
-  }, [everyFrame]);
+    loopRef.current = loop;
+  }, [loop]);
 
   useEffect(() => {
     if (!mounted) {
@@ -70,6 +89,8 @@ export const TransparencyMode = () => {
     }
     let running = true;
     let frame = 0;
+    let readoutStart = performance.now();
+    let framesSinceReadout = 0;
     (async () => {
       const { device, format } = await initGPU(append);
       const ctx = ref.current!.getContext("webgpu")!;
@@ -78,14 +99,25 @@ export const TransparencyMode = () => {
         if (!running) {
           return;
         }
-        try {
-          drawClearFrame(device, ctx, frame++, CLEAR_COLOR);
-        } catch (e) {
-          append(`frame threw: ${(e as Error).message}`);
-          running = false;
-          return;
+        if (loopRef.current !== "off") {
+          try {
+            drawClearFrame(device, ctx, frame++, CLEAR_COLOR);
+          } catch (e) {
+            append(`frame threw: ${(e as Error).message}`);
+            running = false;
+            return;
+          }
+          framesSinceReadout++;
         }
-        if (everyFrameRef.current) {
+        const now = performance.now();
+        if (now - readoutStart >= 1000) {
+          setFramesPerSecond(
+            Math.round((framesSinceReadout * 1000) / (now - readoutStart)),
+          );
+          framesSinceReadout = 0;
+          readoutStart = now;
+        }
+        if (loopRef.current === "every frame") {
           requestAnimationFrame(tick);
         } else {
           setTimeout(tick, 200);
@@ -96,7 +128,7 @@ export const TransparencyMode = () => {
     return () => {
       running = false;
     };
-  }, [append, mounted]);
+  }, [append, mounted, hiddenCount]);
 
   return (
     <View style={diagnosticStyles.container}>
@@ -104,8 +136,9 @@ export const TransparencyMode = () => {
         <Text style={diagnosticStyles.description}>
           Half-transparent red over blue. HardwareBufferView and TextureView
           keep the yellow RN overlay visible. A SurfaceView on top blends over
-          it. Options update the same mounted Canvas; use hide/show to test a
-          fresh mount.
+          it. Options update the same mounted Canvas; mounted remounts it, shown
+          remounts it hidden and reveals it, and with the loop off nothing is
+          presented.
         </Text>
         <View style={styles.buttons}>
           {OPTIONS.map((value) => (
@@ -125,24 +158,38 @@ export const TransparencyMode = () => {
           />
           <Button
             testID="toggle-canvas"
-            title={mounted ? "hide canvas" : "show canvas"}
+            title={`mounted: ${mounted}`}
             onPress={() => setMounted((value) => !value)}
           />
           <Button
+            testID="toggle-shown"
+            title={`shown: ${shown}`}
+            onPress={() => {
+              if (shown) {
+                setHiddenCount((count) => count + 1);
+              }
+              setShown(!shown);
+            }}
+          />
+          <Button
             testID="toggle-loop"
-            title={everyFrame ? "loop: every frame" : "loop: 5 fps"}
-            onPress={() => setEveryFrame((value) => !value)}
+            title={`loop: ${loop}`}
+            onPress={() => setLoop(nextLoop)}
           />
         </View>
         <Text testID="view-status" style={diagnosticStyles.description}>
           view: {option.label} opaque: {String(opaque)} overlay taps: {taps}
         </Text>
+        <Text testID="frame-rate" style={diagnosticStyles.description}>
+          presented: {framesPerSecond} fps
+        </Text>
       </View>
       <View style={styles.stage}>
         {mounted && (
           <Canvas
+            key={hiddenCount}
             ref={ref}
-            style={diagnosticStyles.canvas}
+            style={[diagnosticStyles.canvas, !shown && styles.hidden]}
             opaque={opaque}
             android={option.android}
           />
@@ -169,6 +216,7 @@ export const TransparencyMode = () => {
 const styles = StyleSheet.create({
   buttons: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   stage: { flex: 1, backgroundColor: "blue" },
+  hidden: { display: "none" },
   overlay: {
     position: "absolute",
     left: 24,
