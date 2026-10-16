@@ -29,6 +29,56 @@
 
 std::shared_ptr<rnwgpu::RNWebGPUManager> manager;
 
+namespace {
+
+// An ARGB_8888 bitmap's pixels (premultiplied RGBA bytes), locked for the
+// object's lifetime.
+class LockedRgbaBitmap {
+public:
+  enum class Failure { None, Format, Lock };
+
+  LockedRgbaBitmap(JNIEnv *env, jobject bitmap) : _env(env), _bitmap(bitmap) {
+    if (AndroidBitmap_getInfo(env, bitmap, &_info) !=
+            ANDROID_BITMAP_RESULT_SUCCESS ||
+        _info.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
+      _failure = Failure::Format;
+      return;
+    }
+    void *pixels = nullptr;
+    if (AndroidBitmap_lockPixels(env, bitmap, &pixels) !=
+            ANDROID_BITMAP_RESULT_SUCCESS ||
+        pixels == nullptr) {
+      _failure = Failure::Lock;
+      return;
+    }
+    _pixels = static_cast<const uint8_t *>(pixels);
+  }
+
+  ~LockedRgbaBitmap() {
+    if (_pixels != nullptr) {
+      AndroidBitmap_unlockPixels(_env, _bitmap);
+    }
+  }
+
+  LockedRgbaBitmap(const LockedRgbaBitmap &) = delete;
+  LockedRgbaBitmap &operator=(const LockedRgbaBitmap &) = delete;
+
+  Failure failure() const { return _failure; }
+  const uint8_t *pixels() const { return _pixels; }
+  uint32_t width() const { return _info.width; }
+  uint32_t height() const { return _info.height; }
+  uint32_t stride() const { return _info.stride; }
+
+private:
+  JNIEnv *_env;
+  jobject _bitmap;
+  AndroidBitmapInfo _info{};
+  const uint8_t *_pixels = nullptr;
+  Failure _failure = Failure::None;
+};
+
+} // namespace
+
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     JNIEnv *env, jobject thiz, jlong jsRuntime, jobject jsCallInvokerHolder,
     jobject blobModule) {
@@ -68,36 +118,34 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_onViewSnapshot(
     callbacks->onError("drawElementImageToTexture: no bitmap was produced");
     return;
   }
-  AndroidBitmapInfo info;
-  if (AndroidBitmap_getInfo(env, bitmap, &info) !=
-          ANDROID_BITMAP_RESULT_SUCCESS ||
-      info.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
-    callbacks->onError(
-        "drawElementImageToTexture: unexpected snapshot bitmap format");
-    return;
-  }
-  void *pixels = nullptr;
-  if (AndroidBitmap_lockPixels(env, bitmap, &pixels) !=
-          ANDROID_BITMAP_RESULT_SUCCESS ||
-      pixels == nullptr) {
-    callbacks->onError(
-        "drawElementImageToTexture: couldn't lock the snapshot bitmap");
-    return;
-  }
   rnwgpu::ImageData image;
-  image.width = info.width;
-  image.height = info.height;
-  image.format = wgpu::TextureFormat::RGBA8Unorm;
-  // Bitmap.Config.ARGB_8888 stores premultiplied RGBA bytes.
-  image.premultiplied = true;
-  const size_t rowBytes = static_cast<size_t>(info.width) * 4;
-  image.data.resize(rowBytes * info.height);
-  const auto *src = static_cast<const uint8_t *>(pixels);
-  for (uint32_t row = 0; row < info.height; ++row) {
-    std::memcpy(image.data.data() + row * rowBytes, src + row * info.stride,
-                rowBytes);
+  {
+    LockedRgbaBitmap locked(env, bitmap);
+    switch (locked.failure()) {
+    case LockedRgbaBitmap::Failure::None:
+      break;
+    case LockedRgbaBitmap::Failure::Format:
+      callbacks->onError(
+          "drawElementImageToTexture: unexpected snapshot bitmap format");
+      return;
+    case LockedRgbaBitmap::Failure::Lock:
+      callbacks->onError(
+          "drawElementImageToTexture: couldn't lock the snapshot bitmap");
+      return;
+    }
+    image.width = locked.width();
+    image.height = locked.height();
+    image.format = wgpu::TextureFormat::RGBA8Unorm;
+    // Bitmap.Config.ARGB_8888 stores premultiplied RGBA bytes.
+    image.premultiplied = true;
+    const size_t rowBytes = static_cast<size_t>(locked.width()) * 4;
+    image.data.resize(rowBytes * locked.height());
+    for (uint32_t row = 0; row < locked.height(); ++row) {
+      std::memcpy(image.data.data() + row * rowBytes,
+                  locked.pixels() + static_cast<size_t>(row) * locked.stride(),
+                  rowBytes);
+    }
   }
-  AndroidBitmap_unlockPixels(env, bitmap);
   callbacks->onPixels(std::move(image));
 }
 
@@ -346,6 +394,39 @@ Java_com_webgpu_WebGPUView_switchToOffscreenSurface(JNIEnv *env, jobject thiz,
     info->setFramePresentedCallback(nullptr);
     info->detach();
   }
+}
+
+// See SurfaceInfo::keepableFrameSize; width << 32 | height, 0 when there is no
+// frame to keep.
+extern "C" JNIEXPORT jlong JNICALL Java_com_webgpu_WebGPUView_keepableFrameSize(
+    JNIEnv *env, jobject thiz, jint contextId) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo(contextId);
+  if (!info) {
+    return 0;
+  }
+  const rnwgpu::Size size = info->keepableFrameSize();
+  return (static_cast<jlong>(size.width) << 32) |
+         static_cast<jlong>(static_cast<uint32_t>(size.height));
+}
+
+// See SurfaceInfo::keepFrame.
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_webgpu_WebGPUView_keepBitmapFrame(JNIEnv *env, jobject thiz,
+                                           jint contextId, jobject bitmap) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo(contextId);
+  if (!info) {
+    return JNI_FALSE;
+  }
+  LockedRgbaBitmap locked(env, bitmap);
+  if (locked.failure() != LockedRgbaBitmap::Failure::None) {
+    return JNI_FALSE;
+  }
+  return info->keepFrame(locked.pixels(), locked.width(), locked.height(),
+                         locked.stride())
+             ? JNI_TRUE
+             : JNI_FALSE;
 }
 
 // See AnimationReporter::releaseIfIdle; 0 when the surface reports nothing.
