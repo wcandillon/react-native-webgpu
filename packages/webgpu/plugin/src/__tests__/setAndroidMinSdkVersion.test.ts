@@ -34,6 +34,13 @@ describe("setAndroidMinSdkVersion", () => {
     expect(REQUIRED_MIN_SDK_VERSION).toBe(26);
   });
 
+  it("takes the floor from androidMinSdkVersion in package.json, as build.gradle does", () => {
+    const pkg = require("../../../package.json") as {
+      androidMinSdkVersion: number;
+    };
+    expect(REQUIRED_MIN_SDK_VERSION).toBe(pkg.androidMinSdkVersion);
+  });
+
   it("adds android.minSdkVersion when the app does not set it", () => {
     const result = apply(makeProperties());
     expect(getMinSdkVersion(result)).toEqual({

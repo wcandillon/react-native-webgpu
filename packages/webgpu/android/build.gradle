@@ -84,19 +84,18 @@ def supportsNamespace() {
   return (major == 7 && minor >= 3) || major >= 8
 }
 
-// The native code needs Android 8.0 (API 26): it is built on AHardwareBuffer,
-// which shared texture memory, external textures and view snapshots rely on,
-// and that API was introduced there. The app's minSdkVersion is used when it is
-// higher, never when it is lower: compiling against a lower one fails in the
-// middle of the C++ build, whereas declaring the floor here makes the manifest
-// merger tell the app to raise its own minSdkVersion to 26.
+// androidMinSdkVersion in package.json is the lowest API level the native code
+// builds for: it is built on AHardwareBuffer, which shared texture memory,
+// external textures and view snapshots rely on, and Android 8.0 (API 26)
+// introduced that API. The Expo config plugin reads the same field. The app's
+// minSdkVersion is used when it is higher, never when it is lower: compiling
+// against a lower one fails in the middle of the C++ build, whereas declaring
+// the floor here makes the manifest merger tell the app to raise its own
+// minSdkVersion, with Android's suggested fix.
 def resolveMinSdkVersion() {
-  def requiredMinSdkVersion = 26
-  def minSdkVersion = getExtOrIntegerDefault("minSdkVersion")
-  if (minSdkVersion == null) {
-    return requiredMinSdkVersion
-  }
-  return Math.max(requiredMinSdkVersion, minSdkVersion.toString().toInteger())
+  def floor = new groovy.json.JsonSlurper().parse(file("../package.json")).androidMinSdkVersion as Integer
+  def app = rootProject.ext.has("minSdkVersion") ? rootProject.ext.get("minSdkVersion").toString().toInteger() : floor
+  return Math.max(app, floor)
 }
 
 android {

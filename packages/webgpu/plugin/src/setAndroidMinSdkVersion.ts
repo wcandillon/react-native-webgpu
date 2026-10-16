@@ -2,13 +2,17 @@ import type { AndroidConfig } from "@expo/config-plugins";
 
 type PropertiesItem = AndroidConfig.Properties.PropertiesItem;
 
+const pkg = require("../../package.json") as {
+  androidMinSdkVersion: number;
+};
+
 /**
  * The lowest Android API level the native code compiles against: Android 8.0
  * (API 26) introduced AHardwareBuffer, which shared texture memory, external
- * textures and view snapshots are built on. Keep in sync with
- * `requiredMinSdkVersion` in android/build.gradle.
+ * textures and view snapshots are built on. Declared once, as
+ * `androidMinSdkVersion` in package.json, which android/build.gradle reads too.
  */
-export const REQUIRED_MIN_SDK_VERSION = 26;
+export const REQUIRED_MIN_SDK_VERSION: number = pkg.androidMinSdkVersion;
 
 /**
  * The gradle property Expo's android/build.gradle template reads its
