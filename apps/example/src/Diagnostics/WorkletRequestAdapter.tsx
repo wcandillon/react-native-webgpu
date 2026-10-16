@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button, StyleSheet, Text, View } from "react-native";
 import { installWebGPU } from "react-native-webgpu";
-import { runOnUI, scheduleOnRN } from "react-native-worklets";
+import { scheduleOnRN, scheduleOnUI } from "react-native-worklets";
 
 // Repro for a crash when the first WebGPU call happens on a worklet runtime
 // (Reanimated UI runtime, createWorkletRuntime, Vision Camera frame
@@ -30,7 +30,7 @@ export const WorkletRequestAdapter = () => {
     // `gpu` is a WebGPU native object; react-native-webgpu registers a custom
     // worklets serializer, so it legally crosses into the worklet runtime.
     const { gpu } = navigator;
-    runOnUI(() => {
+    scheduleOnUI(() => {
       "worklet";
       const promise = gpu.requestAdapter();
       promise.then((adapter) => {
@@ -41,14 +41,14 @@ export const WorkletRequestAdapter = () => {
           }`,
         );
       });
-    })();
+    });
   };
 
   const workletNavigator = () => {
     // No WebGPU object crosses explicitly here: installWebGPU() carries the
     // GPU instance in its own closure and installs it as navigator.gpu on the
     // calling runtime (globalThis. prefix required, see install.ts).
-    runOnUI(() => {
+    scheduleOnUI(() => {
       "worklet";
       installWebGPU();
       globalThis.navigator.gpu.requestAdapter().then((adapter) => {
@@ -59,7 +59,7 @@ export const WorkletRequestAdapter = () => {
           }`,
         );
       });
-    })();
+    });
   };
 
   return (
