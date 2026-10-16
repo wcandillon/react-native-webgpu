@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { createWorkletRuntime, runOnRuntime } from "react-native-worklets";
+import { createWorkletRuntime, scheduleOnRuntime } from "react-native-worklets";
 
 import { AsyncBufferExample } from "./AsyncBuffer";
 
@@ -9,6 +9,11 @@ export const AsyncBufferDedicatedThread = () => {
     [],
   );
   return (
-    <AsyncBufferExample run={(worklet) => runOnRuntime(runtime, worklet)} />
+    <AsyncBufferExample
+      run={(worklet) =>
+        (...args) =>
+          scheduleOnRuntime(runtime, worklet, ...args)
+        }
+    />
   );
 };
