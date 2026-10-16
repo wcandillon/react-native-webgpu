@@ -154,6 +154,37 @@ TEST_F(SurfaceInfoTest, DropsAFrameWhoseSurfaceIsDestroyedMidFrame) {
   info.presentFrame();
 }
 
+TEST_F(SurfaceInfoTest, KeepsTheTextureOfAFrameInFlightThroughADetach) {
+  auto device = fake_webgpu::createDevice();
+  NativeWindow window;
+  SurfaceInfo info(nullptr, kWidth, kHeight);
+  // The view hands the surface over, as the platform layers do.
+  info.attachSurface(&window, fake_webgpu::createSurface(),
+                     releaserFor(&window));
+  configure(&info, device);
+  auto texture = info.getCurrentTexture();
+
+  // The UI thread detaches while the frame is still rendering into the
+  // texture on another thread.
+  info.switchToOffscreen();
+  wgpu::TextureDescriptor descriptor;
+  descriptor.size = {kWidth, kHeight, 1};
+  descriptor.format = wgpu::TextureFormat::RGBA8Unorm;
+  descriptor.usage = wgpu::TextureUsage::CopySrc;
+  wgpu::TexelCopyTextureInfo source = {};
+  source.texture = device.CreateTexture(&descriptor);
+  wgpu::TexelCopyTextureInfo destination = {};
+  destination.texture = texture;
+  wgpu::Extent3D size = {kWidth, kHeight, 1};
+  wgpu::CommandEncoder encoder = device.CreateCommandEncoder();
+  encoder.CopyTextureToTexture(&source, &destination, &size);
+  wgpu::CommandBuffer commands = encoder.Finish();
+  device.GetQueue().Submit(1, &commands);
+  info.presentFrame();
+
+  EXPECT_EQ(window.releases, 1);
+}
+
 TEST_F(SurfaceInfoTest, ReleasesAPendingSurfaceThatIsReplacedBeforeAdoption) {
   auto device = fake_webgpu::createDevice();
   auto replaced = fake_webgpu::createSurface();

@@ -59,16 +59,16 @@ struct WGPUTextureImpl : RefCounted {
   uint32_t height = 0;
   // The surface whose swapchain made the texture; 0 for a device texture.
   int surfaceId = 0;
+  // A surface destroys the texture it hands out when it presents it, is
+  // configured again or is destroyed (Dawn's SwapChain.cpp).
+  bool destroyed = false;
 };
 
 struct WGPUSurfaceImpl : RefCounted {
-  ~WGPUSurfaceImpl() override {
-    if (current != nullptr) {
-      releaseReference(current);
-    }
-  }
+  ~WGPUSurfaceImpl() override { dropCurrentTexture(); }
   void dropCurrentTexture() {
     if (current != nullptr) {
+      current->destroyed = true;
       releaseReference(current);
       current = nullptr;
     }
@@ -82,12 +82,32 @@ struct WGPUSurfaceImpl : RefCounted {
   int presentCount = 0;
 };
 
+// The textures a command encoder or buffer uses, each referenced until the
+// commands are released.
+struct UsedTextures {
+  UsedTextures() = default;
+  UsedTextures(const UsedTextures &) = delete;
+  UsedTextures &operator=(const UsedTextures &) = delete;
+  ~UsedTextures() {
+    for (auto *texture : textures) {
+      releaseReference(texture);
+    }
+  }
+  void add(WGPUTextureImpl *texture) {
+    addReference(texture);
+    textures.push_back(texture);
+  }
+  std::vector<WGPUTextureImpl *> textures;
+};
+
 struct WGPUCommandEncoderImpl : RefCounted {
   std::vector<fake_webgpu::Copy> copies;
+  UsedTextures used;
 };
 
 struct WGPUCommandBufferImpl : RefCounted {
   std::vector<fake_webgpu::Copy> copies;
+  UsedTextures used;
 };
 
 extern "C" {
@@ -126,6 +146,8 @@ void wgpuCommandEncoderCopyTextureToTexture(
   encoder->copies.push_back({source->texture->id, destination->texture->id,
                              destination->texture->surfaceId, copySize->width,
                              copySize->height});
+  encoder->used.add(source->texture);
+  encoder->used.add(destination->texture);
 }
 
 WGPUCommandBuffer
@@ -133,6 +155,7 @@ wgpuCommandEncoderFinish(WGPUCommandEncoder encoder,
                          WGPUCommandBufferDescriptor const *) {
   auto *commands = new WGPUCommandBufferImpl();
   commands->copies = std::move(encoder->copies);
+  std::swap(commands->used.textures, encoder->used.textures);
   return commands;
 }
 
@@ -147,6 +170,11 @@ void wgpuCommandBufferRelease(WGPUCommandBuffer commands) {
 void wgpuQueueSubmit(WGPUQueue, size_t commandCount,
                      WGPUCommandBuffer const *commands) {
   for (size_t index = 0; index < commandCount; index++) {
+    for (const auto *texture : commands[index]->used.textures) {
+      if (texture->destroyed) {
+        reject("Queue.Submit with a destroyed texture");
+      }
+    }
     for (const auto &copy : commands[index]->copies) {
       ledger().copies.push_back(copy);
     }

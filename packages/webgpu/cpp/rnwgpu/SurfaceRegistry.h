@@ -246,6 +246,7 @@ public:
       if (supersedeInFlightFrame) {
         _frameInFlight = false;
         _acquiredFromSurface = false;
+        _surfaceOfFrameInFlight = nullptr;
       }
       if (!_hasPendingAttach || _frameInFlight) {
         return;
@@ -416,6 +417,9 @@ public:
         _poolDevice = nullptr;
       }
     }
+    // Its swapchain may belong to the device; the frame it was kept for loses
+    // its texture early instead.
+    _surfaceOfFrameInFlight = nullptr;
     if (!_surface || !_surfaceDevice || _surfaceDevice.Get() != device.Get()) {
       return;
     }
@@ -560,6 +564,7 @@ public:
         framePresented = _framePresented;
 #endif
       }
+      _surfaceOfFrameInFlight = nullptr;
       _acquiredFromSurface = false;
       _frameInFlight = false;
       _frameEpoch++;
@@ -766,6 +771,12 @@ private:
       if (_surface) {
         if (createFallbackTexture && _config.device != nullptr) {
           _texture = createOffscreenTextureLocked();
+        }
+        // Dawn destroys a surface's current texture with the surface, and a
+        // frame in flight still renders into it: the surface lives until that
+        // frame ends, unpresented.
+        if (_frameInFlight && _acquiredFromSurface) {
+          _surfaceOfFrameInFlight = _surface;
         }
         _surface = nullptr;
 #if defined(__ANDROID__)
@@ -1222,6 +1233,9 @@ private:
   void *_nativeSurface = nullptr;
   wgpu::Surface _surface = nullptr;
   NativeSurfaceReleaser _releaser;
+  // The surface a frame in flight acquired its texture from, kept past a
+  // detach until that frame ends (see detach).
+  wgpu::Surface _surfaceOfFrameInFlight = nullptr;
   // Offscreen fallback drawing buffer.
   wgpu::Texture _texture = nullptr;
   // Surface attached by the UI thread, awaiting adoption at a frame boundary.
