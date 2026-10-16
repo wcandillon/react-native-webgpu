@@ -640,19 +640,26 @@ protected:
                 rt, std::move(result));
           }
         });
+    defineGetter(runtime, prototype, name, getterFunc);
+  }
 
-    // Use Object.defineProperty to create a proper getter
-    auto objectCtor = runtime.global().getPropertyAsObject(runtime, "Object");
-    auto defineProperty =
-        objectCtor.getPropertyAsFunction(runtime, "defineProperty");
-
-    jsi::Object descriptor(runtime);
-    descriptor.setProperty(runtime, "get", getterFunc);
-    descriptor.setProperty(runtime, "enumerable", true);
-    descriptor.setProperty(runtime, "configurable", true);
-
-    defineProperty.call(runtime, prototype,
-                        jsi::String::createFromUtf8(runtime, name), descriptor);
+  /**
+   * Install a getter whose native implementation builds the JS value itself,
+   * from the calling jsi::Runtime: for values no JSIConverter produces (null
+   * or a BigInt, say).
+   */
+  static void installGetter(jsi::Runtime &runtime, jsi::Object &prototype,
+                            const char *name,
+                            jsi::Value (Derived::*getter)(jsi::Runtime &)) {
+    auto getterFunc = jsi::Function::createFromHostFunction(
+        runtime, jsi::PropNameID::forUtf8(runtime, std::string("get_") + name),
+        0,
+        [getter](jsi::Runtime &rt, const jsi::Value &thisVal,
+                 const jsi::Value *args, size_t count) -> jsi::Value {
+          auto native = Derived::fromValue(rt, thisVal);
+          return (native.get()->*getter)(rt);
+        });
+    defineGetter(runtime, prototype, name, getterFunc);
   }
 
   /**
@@ -757,6 +764,22 @@ protected:
   }
 
 private:
+  // Use Object.defineProperty to create a proper getter
+  static void defineGetter(jsi::Runtime &runtime, jsi::Object &prototype,
+                           const char *name, const jsi::Function &getterFunc) {
+    auto objectCtor = runtime.global().getPropertyAsObject(runtime, "Object");
+    auto defineProperty =
+        objectCtor.getPropertyAsFunction(runtime, "defineProperty");
+
+    jsi::Object descriptor(runtime);
+    descriptor.setProperty(runtime, "get", getterFunc);
+    descriptor.setProperty(runtime, "enumerable", true);
+    descriptor.setProperty(runtime, "configurable", true);
+
+    defineProperty.call(runtime, prototype,
+                        jsi::String::createFromUtf8(runtime, name), descriptor);
+  }
+
   // Helper to call a method that takes the calling jsi::Runtime as its first
   // parameter, with JSI argument conversion for the rest and JSI conversion of
   // the result.
