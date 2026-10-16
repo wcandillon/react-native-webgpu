@@ -2,6 +2,9 @@
   "name": "expo-webgpu-template",
   "version": "1.0.0",
   "private": true,
+  "installConfig": {
+    "hoistingLimits": "workspaces"
+  },
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
