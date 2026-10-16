@@ -20,6 +20,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "GPUAdapterInfo.h"
 #include "GPUBindGroup.h"
 #include "GPUBindGroupDescriptor.h"
 #include "GPUBindGroupLayout.h"
@@ -153,6 +154,7 @@ public:
 
   std::unordered_set<std::string> getFeatures();
   std::shared_ptr<GPUSupportedLimits> getLimits();
+  std::shared_ptr<GPUAdapterInfo> getAdapterInfo();
   std::shared_ptr<GPUQueue> getQueue();
   jsi::Value getLost(jsi::Runtime &runtime, const jsi::Object &wrapper);
   void notifyDeviceLost(wgpu::DeviceLostReason reason, std::string message);
@@ -211,6 +213,8 @@ public:
                              &GPUDevice::popErrorScope);
     installGetter(runtime, prototype, "features", &GPUDevice::getFeatures);
     installGetter(runtime, prototype, "limits", &GPUDevice::getLimits);
+    installGetter(runtime, prototype, "adapterInfo",
+                  &GPUDevice::getAdapterInfo);
     installGetter(runtime, prototype, "queue", &GPUDevice::getQueue);
     // `lost` is installed manually: the getter needs the wrapper object
     // itself, because the promise (and its resolve function) are cached as

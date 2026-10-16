@@ -92,6 +92,37 @@ describe("Adapter", () => {
     );
     expect(result!.isFallbackAdapter).toBe(software);
   });
+  it("device.adapterInfo", async () => {
+    const result = await client.eval(({ gpu }) => {
+      const describe = (info: GPUAdapterInfo | undefined) =>
+        info === undefined
+          ? null
+          : {
+              vendor: info.vendor,
+              architecture: info.architecture,
+              device: info.device,
+              description: info.description,
+              isFallbackAdapter: info.isFallbackAdapter,
+            };
+      return gpu.requestAdapter().then((adapter) => {
+        if (adapter === null) {
+          return null;
+        }
+        return adapter.requestDevice().then((device) => {
+          const infos = {
+            adapter: describe(adapter.info),
+            device: describe(device.adapterInfo),
+          };
+          device.destroy();
+          return infos;
+        });
+      });
+    });
+    if (result === null) {
+      throw new Error("no adapter");
+    }
+    expect(result.device).toEqual(result.adapter);
+  });
   it("features", async () => {
     const result = await client.eval(({ gpu }) => {
       return gpu
