@@ -3,8 +3,8 @@ import type { WorkletRuntime } from "react-native-worklets";
 import {
   createSerializable,
   createWorkletRuntime,
-  runOnRuntime,
   scheduleOnRN,
+  scheduleOnRuntime,
 } from "react-native-worklets";
 
 // Test-harness helpers for the worklet serializer (see packages/webgpu
@@ -60,24 +60,28 @@ export const workletSerialization = {
           error,
         });
       };
-      runOnRuntime(getRuntime(), (buf: GPUBuffer) => {
-        "worklet";
-        try {
-          installWebGPU();
-          // Unboxing installed the GPUBuffer constructor on this runtime.
-          // Read it through globalThis: the worklets babel plugin would
-          // otherwise capture the main runtime's constructor by closure.
-          const ctor = globalThis.GPUBuffer;
-          const onWorklet = {
-            size: buf.size,
-            label: buf.label,
-            isGPUBuffer: typeof ctor === "function" && buf instanceof ctor,
-          };
-          scheduleOnRN(done, onWorklet, buf);
-        } catch (e) {
-          scheduleOnRN(failed, String(e));
-        }
-      })(buffer);
+      scheduleOnRuntime(
+        getRuntime(),
+        (buf: GPUBuffer) => {
+          "worklet";
+          try {
+            installWebGPU();
+            // Unboxing installed the GPUBuffer constructor on this runtime.
+            // Read it through globalThis: the worklets babel plugin would
+            // otherwise capture the main runtime's constructor by closure.
+            const ctor = globalThis.GPUBuffer;
+            const onWorklet = {
+              size: buf.size,
+              label: buf.label,
+              isGPUBuffer: typeof ctor === "function" && buf instanceof ctor,
+            };
+            scheduleOnRN(done, onWorklet, buf);
+          } catch (e) {
+            scheduleOnRN(failed, String(e));
+          }
+        },
+        buffer,
+      );
     }),
 
   // Captures `value` in a worklet and reports whether serializing it threw and
@@ -89,10 +93,14 @@ export const workletSerialization = {
       const done = (typeOnWorklet: string) =>
         resolve({ threw: false, message: "", typeOnWorklet });
       try {
-        runOnRuntime(getRuntime(), (v: unknown) => {
-          "worklet";
-          scheduleOnRN(done, typeof v);
-        })(value);
+        scheduleOnRuntime(
+          getRuntime(),
+          (v: unknown) => {
+            "worklet";
+            scheduleOnRN(done, typeof v);
+          },
+          value,
+        );
       } catch (e) {
         resolve({
           threw: true,

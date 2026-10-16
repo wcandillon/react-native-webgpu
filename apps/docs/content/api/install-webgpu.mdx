@@ -19,7 +19,7 @@ declare const context: RNCanvasContext;
 declare const pipeline: GPURenderPipeline;
 // ---cut---
 import { installWebGPU } from "react-native-webgpu";
-import { runOnUI } from "react-native-worklets";
+import { scheduleOnUI } from "react-native-worklets";
 
 const renderOnUI = (
   device: GPUDevice,
@@ -47,7 +47,7 @@ const renderOnUI = (
 };
 
 // Create device on the main thread, pass handles to the worklet
-runOnUI(renderOnUI)(device, context, pipeline);
+scheduleOnUI(renderOnUI, device, context, pipeline);
 ```
 
 ### Dedicated worklet runtime
@@ -55,7 +55,7 @@ runOnUI(renderOnUI)(device, context, pipeline);
 ```tsx twoslash
 declare const device: GPUDevice;
 // ---cut---
-import { createWorkletRuntime, runOnRuntime } from "react-native-worklets";
+import { createWorkletRuntime, scheduleOnRuntime } from "react-native-worklets";
 import { installWebGPU } from "react-native-webgpu";
 
 const runtime = createWorkletRuntime({ name: "gpu" });
@@ -71,7 +71,7 @@ const gpuWork = (device: GPUDevice) => {
   // …
 };
 
-runOnRuntime(runtime, gpuWork)(device);
+scheduleOnRuntime(runtime, gpuWork, device);
 ```
 
 ### navigator.gpu on a worklet runtime
@@ -80,16 +80,16 @@ After `installWebGPU()`, `navigator.gpu` is available inside the worklet:
 
 ```tsx twoslash
 import { installWebGPU } from "react-native-webgpu";
-import { runOnUI } from "react-native-worklets";
+import { scheduleOnUI } from "react-native-worklets";
 
-runOnUI(() => {
+scheduleOnUI(() => {
   "worklet";
   installWebGPU();
   const format = navigator.gpu.getPreferredCanvasFormat();
   navigator.gpu.requestAdapter().then((adapter) => {
     // …
   });
-})();
+});
 ```
 
 <Callout type="warn">
