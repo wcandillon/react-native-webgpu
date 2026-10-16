@@ -84,11 +84,26 @@ def supportsNamespace() {
   return (major == 7 && minor >= 3) || major >= 8
 }
 
+// The native code needs Android 8.0 (API 26): it is built on AHardwareBuffer,
+// which shared texture memory, external textures and view snapshots rely on,
+// and that API was introduced there. The app's minSdkVersion is used when it is
+// higher, never when it is lower: compiling against a lower one fails in the
+// middle of the C++ build, whereas declaring the floor here makes the manifest
+// merger tell the app to raise its own minSdkVersion to 26.
+def resolveMinSdkVersion() {
+  def requiredMinSdkVersion = 26
+  def minSdkVersion = getExtOrIntegerDefault("minSdkVersion")
+  if (minSdkVersion == null) {
+    return requiredMinSdkVersion
+  }
+  return Math.max(requiredMinSdkVersion, minSdkVersion.toString().toInteger())
+}
+
 android {
   compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
 
   defaultConfig {
-    minSdkVersion getExtOrIntegerDefault("minSdkVersion")
+    minSdkVersion resolveMinSdkVersion()
     targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
     buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", "true"
     externalNativeBuild {

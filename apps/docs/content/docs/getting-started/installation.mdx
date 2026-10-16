@@ -20,6 +20,13 @@ npm i react-native-webgpu
 
 Please note that this module does not work on the legacy architecture.
 
+### Android: API level 26
+
+On Android the library requires **Android 8.0 (API level 26)** or newer: its native code is built on `AHardwareBuffer`, which that release introduced. The library declares this floor itself, so an app with a lower `minSdkVersion` fails at build time with the manifest merger asking you to raise it.
+
+- **Expo:** the [config plugin](/docs/getting-started/expo#config-plugin) that ships with `react-native-webgpu` raises `android.minSdkVersion` to 26 in the generated `gradle.properties` on every prebuild (Expo's default is 24). If you also use `expo-build-properties`, set its `android.minSdkVersion` to 26 or more.
+- **Bare React Native:** set `minSdkVersion = 26` (or more) in the `ext` block of your app's `android/build.gradle`.
+
 ## iOS: Swift Package Manager
 
 By default, `react-native-webgpu` links on iOS/macOS through CocoaPods autolinking - no extra setup needed. As an alternative, the package also ships a `Package.swift` for React Native's SwiftPM autolinking, which needs no CocoaPods at all:
