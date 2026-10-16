@@ -14,6 +14,7 @@
 #include <typeindex>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "EnforceRange.h"
 #include "JSICache.h"
