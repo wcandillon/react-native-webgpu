@@ -55,7 +55,7 @@ const tests = [
   },
   {
     screen: "FirstFrameHole",
-    title: "⚠️ SurfaceView First Frame",
+    title: "⚠️ Opaque Canvas Mount and Unmount",
   },
 ] as const;
 

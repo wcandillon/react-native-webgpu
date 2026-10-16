@@ -186,10 +186,11 @@ regular view, so `Canvas` can be backed by one of three native views. The
 
 | Option | Type | Effect |
 | --- | --- | --- |
-| `surfaceType` | `"SurfaceView" \| "TextureView" \| "HardwareBufferView"` | Backing view. Defaults to `SurfaceView` when `opaque` and to `TextureView` otherwise. `HardwareBufferView` is opt-in and needs Android 10 (API 29) |
+| `surfaceType` | `"SurfaceView" \| "TextureView" \| "HardwareBufferView"` | Backing view. Defaults to `SurfaceView` when `opaque` (from Android 12L, see below) and to `TextureView` otherwise. `HardwareBufferView` is opt-in and needs Android 10 (API 29) |
 | `zOrderOnTop` | `boolean` | `SurfaceView` only: `setZOrderOnTop`, composites above every React Native view in the window. Defaults to `false` |
 
-**`SurfaceView`** is the default for an opaque canvas and the fastest path.
+**`SurfaceView`** is the default for an opaque canvas from Android 12L and the
+fastest path.
 The frame goes straight to the system compositor as its own layer, with no
 extra copy and no involvement of the React Native view hierarchy. The price is
 that it is not really view content: it punches a hole through the window, so
@@ -224,7 +225,14 @@ Requesting it on a device below API 29 silently uses `TextureView`.
 | Composited like a regular view | no | yes | yes |
 | Extra copy | none | one | none |
 | Expected latency | lowest | highest | between the two (unmeasured) |
-| Selected when | `opaque` (default) | `opaque={false}` (default) | `surfaceType: "HardwareBufferView"` |
+| Selected when | `opaque`, from Android 12L (default) | `opaque={false}`, or `opaque` before Android 12L (default) | `surfaceType: "HardwareBufferView"` |
+
+Before Android 12L, a `SurfaceView` loses its layer as soon as it leaves the
+window, a frame before the window stops showing the hole it punched, so an
+opaque canvas leaving the screen flashes black. On those releases an opaque
+canvas is therefore backed by a `TextureView`, unless it sets `zOrderOnTop`,
+which only a `SurfaceView` provides. `surfaceType: "SurfaceView"` still
+selects a `SurfaceView` there.
 
 `opaque` applies to whichever view is selected: on a `SurfaceView` it picks
 `PixelFormat.OPAQUE` or `PixelFormat.TRANSLUCENT`, on a `TextureView` it calls
