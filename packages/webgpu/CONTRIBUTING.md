@@ -22,7 +22,7 @@ Other `packages/webgpu` scripts: `yarn check-dawn` (checks the installed Dawn ag
 
 ## Expo config plugin
 
-The Expo config plugin lives in `plugin/src` and is compiled to `plugin/build` by `yarn build:plugin` (also part of `yarn build`, so releases always ship it). `app.plugin.js` at the package root is the entry point Expo resolves when apps list `"react-native-webgpu"` in their `plugins`. The plugin disables Metal API validation in the generated iOS Xcode scheme (required on the iOS Simulator); it is released together with the package by the regular release workflow, so plugin and package versions are always aligned.
+The Expo config plugin lives in `plugin/src` and is compiled to `plugin/build` by `yarn build:plugin` (also part of `yarn build`, so releases always ship it). `app.plugin.js` at the package root is the entry point Expo resolves when apps list `"react-native-webgpu"` in their `plugins`. The plugin disables Metal API validation in the generated iOS Xcode scheme (required on the iOS Simulator) and raises the Android app's `minSdkVersion` to the library's floor, `androidMinSdkVersion` in `package.json`; it is released together with the package by the regular release workflow, so plugin and package versions are always aligned.
 
 ## Upgrading Dawn
 
