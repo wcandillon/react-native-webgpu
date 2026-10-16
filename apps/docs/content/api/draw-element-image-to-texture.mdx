@@ -52,7 +52,7 @@ interface GPUDrawElementImageSource {
 
 - `source` is a host component ref (the `useRef` object), the host instance itself (`ref.current`), or the tag returned by `findNodeHandle`. Worklet runtimes have no `findNodeHandle`; pass the instance or the tag there.
 - The optional rectangle selects the part of the view to draw. It is expressed in the view's own coordinate space, in layout points (density-independent), and defaults to the whole view.
-- `afterScreenUpdates` (iOS only, default `true`) flushes pending layout and layer changes before drawing, so a snapshot taken right after a state change reflects it. Pass `false` to draw the last committed frame instead; it skips a round trip to the render server, which matters when capturing repeatedly. Android renders the views' current display lists either way.
+- `afterScreenUpdates` (iOS only, default `true`) flushes pending layout and layer changes before drawing, so a snapshot taken right after a state change reflects it. Pass `false` to draw the last committed frame instead, which is cheaper when capturing repeatedly. Android renders the views' current display lists either way.
 
 ## Destination
 
@@ -73,11 +73,11 @@ The call rejects when the region does not fit in the texture, when the view is n
 
 The snapshot is what the platform renders for that view hierarchy:
 
-- iOS renders through `drawViewHierarchyInRect`, which includes Metal layers such as a WebGPU `Canvas`. When the texture has `RENDER_ATTACHMENT`, UIKit rasterizes straight into an IOSurface, which is imported as shared texture memory and sampled into the destination region: the pixels are never copied or converted on the CPU. Otherwise they are drawn into a CPU bitmap and uploaded.
-- Android API 29 and above renders the views' existing display lists through `HardwareRenderer`, so the result matches the screen pixel for pixel, including elevation shadows and `TextureView` content. Older devices draw the view into a software canvas, which misses content that is only drawn hardware-accelerated.
-- Android 13 and above, when the texture has `RENDER_ATTACHMENT`: the buffer the renderer drew into is imported as shared texture memory and sampled straight into the destination region. The GPU waits on the renderer's fence before it samples; nothing is read back through the CPU. The same pixels come out either way.
+- iOS renders through `drawViewHierarchyInRect`, which includes Metal layers such as a WebGPU `Canvas`. With `RENDER_ATTACHMENT`, the pixels reach the texture without a copy through the CPU; otherwise they are drawn into a bitmap and uploaded.
+- Android 10 (API 29) and above renders the views with the same renderer as the screen, so the result matches it pixel for pixel, including elevation shadows and `TextureView` content. Older versions draw the view into a software canvas, which misses content that is only drawn hardware-accelerated.
+- Android 13 and above, with `RENDER_ATTACHMENT`: the pixels reach the texture without a copy through the CPU, and come out the same.
 - On Android, `SurfaceView` content is composed outside the view hierarchy and comes out blank. A WebGPU `Canvas` uses a `SurfaceView` by default when opaque; give it `android={{ surfaceType: "TextureView" }}` if it must appear in a snapshot.
 
 ## Threading
 
-Unlike the web API, the method returns a `Promise`. The view can only be rasterized on the platform UI thread, so the call hops there and back. The texture write (or, on the GPU path, the render pass that draws the buffer) is issued on the calling runtime's thread right before the promise resolves, which means command buffers submitted after `await` observe the new pixels. Calls made from a worklet runtime settle on that runtime.
+Unlike the web API, the method returns a `Promise`. The view can only be rasterized on the platform UI thread, so the call hops there and back. The texture is written on the calling runtime's thread right before the promise resolves, so command buffers submitted after `await` observe the new pixels. Calls made from a worklet runtime settle on that runtime.

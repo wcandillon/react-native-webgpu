@@ -4,9 +4,12 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "Convertors.h"
 #include "DestroyedError.h"
+#include "NativeFrameImport.h"
 
 namespace rnwgpu {
 
@@ -87,9 +90,6 @@ void GPUSharedTextureMemory::beginAccess(
     throw std::runtime_error(
         "GPUSharedTextureMemory::beginAccess(): the memory was destroyed");
   }
-  wgpu::SharedTextureMemoryBeginAccessDescriptor desc{};
-  desc.initialized = initialized;
-  desc.concurrentRead = false;
 
   // Built in lockstep so fenceCount covers both arrays, and kept in locals so
   // the raw pointers outlive the synchronous BeginAccess() below.
@@ -109,36 +109,11 @@ void GPUSharedTextureMemory::beginAccess(
       }
     }
   }
-  if (!rawFences.empty()) {
-    desc.fenceCount = rawFences.size();
-    desc.fences = rawFences.data();
-    desc.signaledValueCount = values.size();
-    desc.signaledValues = values.data();
-  } else {
-    desc.fenceCount = 0;
-    desc.fences = nullptr;
-    desc.signaledValueCount = 0;
-    desc.signaledValues = nullptr;
-  }
 
-#if defined(__ANDROID__)
-  // Dawn's Vulkan backend (AHardwareBuffer) validates that the begin-access
-  // descriptor chains a SharedTextureMemoryVkImageLayoutBeginState specifying
-  // the VkImageLayout to acquire the image into. UNDEFINED (= 0) on both ends
-  // is the canonical "no prior GPU producer" pattern: Dawn performs an
-  // external-queue acquire from VK_QUEUE_FAMILY_EXTERNAL which preserves the
-  // AHB contents, then transitions to whatever layout the texture's actual
-  // usage requires.
-  wgpu::SharedTextureMemoryVkImageLayoutBeginState vkLayout{};
-  vkLayout.oldLayout = 0;
-  vkLayout.newLayout = 0;
-  desc.nextInChain = &vkLayout;
-#endif
-
-  auto status = _instance.BeginAccess(texture->get(), &desc);
-  if (status != wgpu::Status::Success) {
-    throw std::runtime_error("GPUSharedTextureMemory::beginAccess() failed");
-  }
+  // The access descriptor (and, on Vulkan, the layout the image is acquired
+  // in) is the one of every native frame import: see NativeFrameImport.cpp.
+  native_frame::beginAccess(_instance, texture->get(), initialized, rawFences,
+                            values, "GPUSharedTextureMemory::beginAccess");
   _accessed.push_back(texture->get());
 }
 
@@ -159,18 +134,11 @@ jsi::Value GPUSharedTextureMemory::endAccess(jsi::Runtime &runtime,
   auto texture = GPUTexture::fromValue(runtime, args[0]);
 
   wgpu::SharedTextureMemoryEndAccessState state{};
-
-#if defined(__ANDROID__)
-  // Dawn's Vulkan backend writes the released old/new VkImageLayouts back into
-  // a chained SharedTextureMemoryVkImageLayoutEndState; validation requires
-  // the chain even when the caller doesn't read the values.
-  wgpu::SharedTextureMemoryVkImageLayoutEndState vkLayout{};
-  state.nextInChain = &vkLayout;
-#endif
-
-  auto status = _instance.EndAccess(texture->get(), &state);
-  if (status != wgpu::Status::Success) {
-    throw jsi::JSError(runtime, "GPUSharedTextureMemory::endAccess() failed");
+  try {
+    native_frame::endAccess(_instance, texture->get(), &state,
+                            "GPUSharedTextureMemory::endAccess");
+  } catch (const std::exception &e) {
+    throw jsi::JSError(runtime, e.what());
   }
   auto ended = texture->get();
   _accessed.erase(std::remove_if(_accessed.begin(), _accessed.end(),
