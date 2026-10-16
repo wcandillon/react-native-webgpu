@@ -1,8 +1,8 @@
 import { installWebGPU } from "react-native-webgpu";
 import {
   createWorkletRuntime,
-  runOnRuntime,
   scheduleOnRN,
+  scheduleOnRuntime,
 } from "react-native-worklets";
 
 // Test-harness helper (see packages/webgpu ImplicitDeviceSync.spec.ts): uses
@@ -18,31 +18,35 @@ export const workletDeviceStress = (
 ): Promise<{ jsOk: boolean; workletOk: boolean }> => {
   const runtime = createWorkletRuntime({ name: "WebGPUSyncStressRuntime" });
   const workletDone = new Promise<boolean>((resolve) => {
-    runOnRuntime(runtime, (dev: GPUDevice) => {
-      "worklet";
-      installWebGPU();
-      let ok = true;
-      try {
-        for (let i = 0; i < 200; i++) {
-          const src = dev.createBuffer({
-            size: 256,
-            usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
-          });
-          const dst = dev.createBuffer({
-            size: 256,
-            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-          });
-          const encoder = dev.createCommandEncoder();
-          encoder.copyBufferToBuffer(src, 0, dst, 0, 256);
-          dev.queue.submit([encoder.finish()]);
-          src.destroy();
-          dst.destroy();
+    scheduleOnRuntime(
+      runtime,
+      (dev: GPUDevice) => {
+        "worklet";
+        installWebGPU();
+        let ok = true;
+        try {
+          for (let i = 0; i < 200; i++) {
+            const src = dev.createBuffer({
+              size: 256,
+              usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+            });
+            const dst = dev.createBuffer({
+              size: 256,
+              usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+            });
+            const encoder = dev.createCommandEncoder();
+            encoder.copyBufferToBuffer(src, 0, dst, 0, 256);
+            dev.queue.submit([encoder.finish()]);
+            src.destroy();
+            dst.destroy();
+          }
+        } catch {
+          ok = false;
         }
-      } catch {
-        ok = false;
-      }
-      scheduleOnRN(resolve, ok);
-    })(device);
+        scheduleOnRN(resolve, ok);
+      },
+      device,
+    );
   });
   // Hammer the same device from the JS runtime in parallel.
   let jsOk = true;
