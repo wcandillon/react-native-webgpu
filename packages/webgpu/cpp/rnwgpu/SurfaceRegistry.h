@@ -59,7 +59,7 @@ struct Size {
 using NativeSurfaceReleaser = std::function<void(void *)>;
 
 #if defined(__ANDROID__)
-// --- AHB-pool presentation mode (WebGPUHardwareBufferView)
+// --- AHB-pool presentation mode (WebGPUNativeBufferView)
 // -----------------------------
 //
 // A third presentation backend (besides the on-screen wgpu::Surface swapchain
@@ -71,7 +71,7 @@ using NativeSurfaceReleaser = std::function<void(void *)>;
 // like the swapchain, so the canvas texture always matches the app's other
 // attachments (e.g. its depth texture).
 
-#define RNWGPU_LOG_TAG "WebGPUHardwareBufferView"
+#define RNWGPU_LOG_TAG "WebGPUNativeBufferView"
 // Failure / anomaly reporting only (never per-frame).
 #define RNWGPU_POOL_WARN(...)                                                  \
   __android_log_print(ANDROID_LOG_WARN, RNWGPU_LOG_TAG, __VA_ARGS__)
@@ -435,7 +435,7 @@ public:
   bool hasNativeSurface() {
     std::shared_lock<std::shared_mutex> lock(_mutex);
 #if defined(__ANDROID__)
-    // A WebGPUHardwareBufferView in pool mode owns presentation the same way a
+    // A WebGPUNativeBufferView in pool mode owns presentation the same way a
     // surface-backed view does, and retires the entry on its own teardown.
     if (_poolMode.load()) {
       return true;
@@ -549,15 +549,26 @@ public:
       dawn::native::metal::WaitForCommandsToBeScheduled(device.Get());
     }
 #endif
+#if defined(__ANDROID__)
+    std::function<void()> framePresented;
+#endif
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
       if (_surface && _acquiredFromSurface) {
         _surface.Present();
+#if defined(__ANDROID__)
+        framePresented = _framePresented;
+#endif
       }
       _acquiredFromSurface = false;
       _frameInFlight = false;
       _frameEpoch++;
     }
+#if defined(__ANDROID__)
+    if (framePresented) {
+      framePresented();
+    }
+#endif
     applyPendingAttach();
   }
 
@@ -691,6 +702,16 @@ public:
     std::lock_guard<std::mutex> poolLock(_poolMutex);
     _poolFrameReady = std::move(cb);
   }
+
+  // Invoked from the presenting thread (never under _mutex) after each frame
+  // presentFrame() shows on the attached surface; the blit of the last
+  // offscreen frame onto a newly attached surface does not count. The view
+  // uses it to vote the display's refresh rate while the canvas animates
+  // (see SurfaceFrameRateVote.java). Pass nullptr to unregister.
+  void setFramePresentedCallback(std::function<void()> cb) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    _framePresented = std::move(cb);
+  }
 #endif
 
 private:
@@ -704,7 +725,7 @@ private:
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
 #if defined(__ANDROID__)
-      // Leaving pool mode (the WebGPUHardwareBufferView detached): drop the
+      // Leaving pool mode (the WebGPUNativeBufferView detached): drop the
       // pool. A configured context keeps rendering into the offscreen
       // fallback, exactly like the surface path.
       if (_poolMode.load()) {
@@ -1238,6 +1259,9 @@ private:
 
   static constexpr int kPoolSize =
       5; // 2 held + 1 rendering + 1 waiting + 1 ready
+
+  // See setFramePresentedCallback(); read under _mutex, called outside it.
+  std::function<void()> _framePresented;
 
   std::atomic<bool> _poolMode{false};
   std::mutex _poolMutex;

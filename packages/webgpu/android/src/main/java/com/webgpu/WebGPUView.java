@@ -24,6 +24,10 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   private boolean mAppliedZOrderOnTop;
   private WebGPUModule mModule;
   private View mView = null;
+  // Only a SurfaceView votes: a TextureView or HardwareBufferView is
+  // composited into the window, which votes for it.
+  private final SurfaceFrameRateVote mFrameRateVote = new SurfaceFrameRateVote(
+    this, idleAfterNanos -> releaseFrameRateVoteIfIdle(mContextId, idleAfterNanos));
 
   WebGPUView(Context context) {
     super(context);
@@ -134,7 +138,11 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     float density = getResources().getDisplayMetrics().density;
     float width = getWidth() / density;
     float height = getHeight() / density;
-    onSurfaceCreate(surface, mContextId, width, height);
+    boolean votesFrameRate = mAppliedKind == KIND_SURFACE_VIEW;
+    if (votesFrameRate) {
+      mFrameRateVote.attach(surface);
+    }
+    onSurfaceCreate(surface, mContextId, width, height, votesFrameRate);
   }
 
   @Override
@@ -147,7 +155,18 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   @Override
   public void surfaceOffscreen() {
+    // The surface is still valid here, so the vote can be taken back.
+    mFrameRateVote.detach();
     switchToOffscreenSurface(mContextId);
+  }
+
+  /**
+   * Called from native (AnimationReporter in cpp-adapter.cpp) on the thread
+   * that presents to the surface, once per animation, only for a SurfaceView.
+   */
+  @DoNotStrip
+  void onAnimating() {
+    mFrameRateVote.onAnimating();
   }
 
   @Override
@@ -160,15 +179,19 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
    * view: the view dies with its Canvas, so it retires the registry entry.
    */
   public void destroy() {
+    mFrameRateVote.detach();
     onViewDestroyed(mContextId);
   }
 
+  // reportAnimation asks native to call onAnimating() when frames start being
+  // presented to this surface back to back.
   @DoNotStrip
   private native void onSurfaceCreate(
     Surface surface,
     int contextId,
     float width,
-    float height
+    float height,
+    boolean reportAnimation
   );
 
   @DoNotStrip
@@ -184,5 +207,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   @DoNotStrip
   private native void onViewDestroyed(int contextId);
+
+  // See SurfaceFrameRateVote.AnimationSource.
+  @DoNotStrip
+  private native long releaseFrameRateVoteIfIdle(int contextId, long idleAfterNanos);
 
 }

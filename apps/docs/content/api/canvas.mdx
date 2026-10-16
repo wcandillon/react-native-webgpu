@@ -195,6 +195,9 @@ extra copy and no involvement of the React Native view hierarchy. The price is
 that it is not really view content: it punches a hole through the window, so
 parent transforms, clipping, rounded corners, and z-ordering with sibling views
 do not apply to it. Use it whenever the canvas is a plain opaque rectangle.
+On an adaptive display (Android 11 and later) the canvas asks for the
+display's highest refresh rate while it animates, as the window does for
+regular views, and lets the rate drop again once the animation stops.
 
 **`TextureView`** is the default for a non-opaque canvas. It is a regular
 Android view: frames go through a `SurfaceTexture` that the UI toolkit samples
@@ -242,12 +245,10 @@ further flags. Set `surfaceType` when you need a different trade-off:
 ```
 
 Two things to know before opting into `HardwareBufferView`. If the device
-cannot allocate or import the `AHardwareBuffer`, the canvas currently keeps
-rendering to an offscreen texture and shows nothing, rather than falling back
-to `TextureView`; test on your target devices. And because the UI toolkit
-exposes no "finished reading" signal for an inline buffer, it recycles its
-buffers with a small holding ring rather than a fence, so a device or driver
-quirk could show up as a stale or torn frame. If either happens, drop the
+cannot allocate or import the buffer, the canvas shows nothing rather than
+falling back to `TextureView`; test on your target devices. And a stale or
+torn frame can show up on some devices, since the view has no signal for when
+the compositor is done reading a buffer. If either happens, drop the
 `surfaceType` to get `TextureView` back. The plan is to make
 `HardwareBufferView` the non-opaque default once it falls back to `TextureView`
 at runtime and its latency advantage is measured.

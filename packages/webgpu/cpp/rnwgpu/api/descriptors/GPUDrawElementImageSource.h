@@ -22,6 +22,9 @@ struct GPUDrawElementImageSource {
   std::optional<double> sourceY;      // float
   std::optional<double> sourceWidth;  // float
   std::optional<double> sourceHeight; // float
+  // iOS: pass false to draw the last committed frame instead of waiting for
+  // pending layout and layer changes (default true). Ignored on Android.
+  std::optional<bool> afterScreenUpdates;
 };
 
 } // namespace rnwgpu
@@ -92,6 +95,10 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUDrawElementImageSource>> {
     if (obj.hasProperty(runtime, "sourceHeight")) {
       result->sourceHeight = JSIConverter<std::optional<double>>::fromJSI(
           runtime, obj.getProperty(runtime, "sourceHeight"), false);
+    }
+    if (obj.hasProperty(runtime, "afterScreenUpdates")) {
+      result->afterScreenUpdates = JSIConverter<std::optional<bool>>::fromJSI(
+          runtime, obj.getProperty(runtime, "afterScreenUpdates"), false);
     }
     return result;
   }

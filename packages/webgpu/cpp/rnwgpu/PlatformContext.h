@@ -148,6 +148,12 @@ struct ViewSnapshotRequest {
   // destination itself. A platform that renders the view into a GPU buffer
   // then hands that buffer over instead of reading the pixels back.
   bool allowFrame = false;
+  // iOS: whether to flush pending layout and layer changes before drawing
+  // (drawViewHierarchyInRect's afterScreenUpdates), so a snapshot taken right
+  // after a state change reflects it; false draws the last committed frame
+  // without that round trip. Android renders the views' current display
+  // lists either way.
+  bool afterScreenUpdates = true;
 };
 
 class PlatformContext {
