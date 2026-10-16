@@ -2,6 +2,7 @@ import { createRunOncePlugin } from "@expo/config-plugins";
 import type { ConfigPlugin } from "@expo/config-plugins";
 
 import { withMetalApiValidationDisabled } from "./withMetalApiValidation";
+import { withMinSdkVersion } from "./withMinSdkVersion";
 
 const pkg = require("../../package.json") as {
   name: string;
@@ -9,7 +10,7 @@ const pkg = require("../../package.json") as {
 };
 
 const withWebGPU: ConfigPlugin = (config) =>
-  withMetalApiValidationDisabled(config);
+  withMinSdkVersion(withMetalApiValidationDisabled(config));
 
 // Expo resolves config plugins through their default export (re-exported by
 // app.plugin.js at the package root).
