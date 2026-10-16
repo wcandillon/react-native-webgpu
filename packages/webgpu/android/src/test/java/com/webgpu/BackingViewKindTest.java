@@ -85,4 +85,23 @@ public class BackingViewKindTest {
     assertNull(BackingViewKind.fromSurfaceType("auto", Build.VERSION_CODES.Q));
     assertNull(BackingViewKind.fromSurfaceType(null, Build.VERSION_CODES.S_V2));
   }
+
+  @Test
+  public void onlyATextureViewPresentsBehindThePendingDraw() {
+    for (BackingViewKind kind : BackingViewKind.values()) {
+      assertEquals(kind == BackingViewKind.TEXTURE_VIEW, kind.presentsBehindPendingDraw());
+    }
+  }
+
+  @Test
+  public void onlyATextureViewOnAndroid11AcquiresAfterTheWindowDraws() {
+    for (int[] releases : new int[][] {BEFORE_ANDROID_12L, FROM_ANDROID_12L}) {
+      for (int sdkInt : releases) {
+        for (BackingViewKind kind : BackingViewKind.values()) {
+          boolean acquiresAfterDraw = kind == BackingViewKind.TEXTURE_VIEW && sdkInt == Build.VERSION_CODES.R;
+          assertEquals(kind + " on API " + sdkInt, acquiresAfterDraw, kind.acquiresAfterDraw(sdkInt));
+        }
+      }
+    }
+  }
 }

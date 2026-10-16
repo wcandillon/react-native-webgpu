@@ -2,6 +2,8 @@ package com.webgpu;
 
 import android.content.Context;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Surface;
 import android.view.View;
 
@@ -19,6 +21,10 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   private boolean mAppliedZOrderOnTop;
   private WebGPUModule mModule;
   private View mView = null;
+  // Native posts a frame presented on the main thread here, to present it
+  // behind the draw the window has pending (see SurfaceRegistry.h).
+  private final Handler mMainHandler = new Handler(Looper.getMainLooper());
+  private final Runnable mPostedPresent = () -> presentPostedFrame(mContextId);
   // Only a SurfaceView votes: a TextureView or HardwareBufferView is
   // composited into the window, which votes for it.
   private final SurfaceFrameRateVote mFrameRateVote = new SurfaceFrameRateVote(
@@ -128,7 +134,15 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     if (votesFrameRate) {
       mFrameRateVote.attach(surface);
     }
-    onSurfaceCreate(surface, mContextId, width, height, votesFrameRate, firstFrameToken);
+    onSurfaceCreate(
+      surface,
+      mContextId,
+      width,
+      height,
+      mAppliedKind.presentsBehindPendingDraw(),
+      mAppliedKind.acquiresAfterDraw(Build.VERSION.SDK_INT),
+      votesFrameRate,
+      firstFrameToken);
   }
 
   /**
@@ -169,8 +183,25 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   @Override
+  public void surfaceUpdated() {
+    if (!mAppliedKind.acquiresAfterDraw(Build.VERSION.SDK_INT)) {
+      return;
+    }
+    long presentCount = onSurfaceDrawing(mContextId);
+    // The window takes the frame when this draw syncs with its render thread,
+    // and a message posted now runs after that sync.
+    mMainHandler.post(() -> onSurfaceDrawn(mContextId, presentCount));
+  }
+
+  @Override
   public int getContextId() {
     return mContextId;
+  }
+
+  /** Called by native on the main thread, see mPostedPresent. */
+  @DoNotStrip
+  private void postPresentBehindPendingDraw() {
+    mMainHandler.post(mPostedPresent);
   }
 
   /**
@@ -182,6 +213,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     onViewDestroyed(mContextId);
   }
 
+  // presentsBehindPendingDraw has native post a present made on the main
+  // thread through postPresentBehindPendingDraw(); acquiresAfterDraw has it
+  // acquire a frame only once the window drew the last one (surfaceUpdated);
   // reportAnimation asks native to call onAnimating() when frames start being
   // presented to this surface back to back.
   @DoNotStrip
@@ -190,6 +224,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     int contextId,
     float width,
     float height,
+    boolean presentsBehindPendingDraw,
+    boolean acquiresAfterDraw,
     boolean reportAnimation,
     long firstFrameToken
   );
@@ -201,6 +237,15 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     float width,
     float height
   );
+
+  @DoNotStrip
+  private native void presentPostedFrame(int contextId);
+
+  @DoNotStrip
+  private native long onSurfaceDrawing(int contextId);
+
+  @DoNotStrip
+  private native void onSurfaceDrawn(int contextId, long presentCount);
 
   @DoNotStrip
   private native void switchToOffscreenSurface(int contextId);

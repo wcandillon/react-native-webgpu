@@ -52,4 +52,25 @@ enum BackingViewKind {
     }
     return SURFACE_VIEW;
   }
+
+  /**
+   * Whether a frame presented on the main thread waits for the draw its window
+   * has pending: a TextureView shows a new frame only when its window draws,
+   * and a frame presented inside a Choreographer frame, ahead of that draw,
+   * would replace the one the window has yet to take.
+   */
+  boolean presentsBehindPendingDraw() {
+    return this == TEXTURE_VIEW;
+  }
+
+  /**
+   * Whether a frame is acquired only once the window has drawn the one
+   * presented last. Android 11's Vulkan loader hands a TextureView's buffer
+   * queue its dequeue timeout as an int where the window reads an int64_t
+   * (frameworks/native android-11.0.0_r48, vulkan/libvulkan/swapchain.cpp), so
+   * the queue waits up to 4.3 s for a free buffer.
+   */
+  boolean acquiresAfterDraw(int sdkInt) {
+    return this == TEXTURE_VIEW && sdkInt == Build.VERSION_CODES.R;
+  }
 }

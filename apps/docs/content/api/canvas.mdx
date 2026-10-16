@@ -207,8 +207,12 @@ Android view: frames go through a `SurfaceTexture` that the UI toolkit samples
 as an external texture when it draws the view, so parent transforms, clipping,
 alpha, and z-order all apply and the canvas can be composited over other React
 Native views. That routing costs an extra texture copy and typically a frame of
-latency, and it can stall during some view animations. It works on every
-supported Android version.
+latency, and it can stall during some view animations. A frame presented on
+the UI thread, from a worklet, reaches the `TextureView` behind the draw its
+window has pending, so that the window draws every frame. On Android 11 a
+`TextureView` takes no new frame before its window has drawn the last one, so
+a frame that comes sooner renders offscreen and is copied in once the window
+has drawn. It works on every supported Android version.
 
 **`HardwareBufferView`** is an opt-in, experimental alternative to
 `TextureView` for the non-opaque case, available on Android 10 (API 29) and
@@ -223,7 +227,7 @@ Requesting it on a device below API 29 silently uses `TextureView`.
 | --- | --- | --- | --- |
 | Minimum Android | 8 (API 26) | 8 (API 26) | 10 (API 29) |
 | Composited like a regular view | no | yes | yes |
-| Extra copy | none | one | none |
+| Extra copy | none | one (two on Android 11, see above) | none |
 | Expected latency | lowest | highest | between the two (unmeasured) |
 | Selected when | `opaque`, from Android 12L (default) | `opaque={false}`, or `opaque` before Android 12L (default) | `surfaceType: "HardwareBufferView"` |
 
