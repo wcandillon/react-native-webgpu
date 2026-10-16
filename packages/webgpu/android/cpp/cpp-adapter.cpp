@@ -1,7 +1,11 @@
 #include <unistd.h>
 
+#include <atomic>
+#include <chrono>
+#include <cstdint>
 #include <cstring>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -160,10 +164,10 @@ namespace {
 
 // Weak handle on a Java view and one of its no-argument methods, for native
 // threads to call into it: the fence waiter wakes a WebGPUHardwareBufferView
-// when a frame is ready, the presenting thread reports each frame a
-// SurfaceView shows. Holding the view weakly means a view that RN has dropped
-// is not kept alive by a SurfaceInfo that outlives it (the registry keeps the
-// SurfaceInfo until onDropViewInstance).
+// when a frame is ready, the presenting thread tells a SurfaceView it is
+// animating (AnimationReporter). Holding the view weakly means a view that RN
+// has dropped is not kept alive by a SurfaceInfo that outlives it (the
+// registry keeps the SurfaceInfo until onDropViewInstance).
 struct WeakViewCall {
   jweak view = nullptr;
   jmethodID method = nullptr;
@@ -203,11 +207,84 @@ struct WeakViewCall {
   }
 };
 
+// Tells a SurfaceView it starts animating, for its refresh rate vote
+// (WebGPUView.onAnimating), from the frames presented to its surface. A call
+// into Java on the render path costs a JNI transition and attaches a presenting
+// thread the JVM doesn't know for the length of the call, so there is one call
+// per animation: the first frame presented right after its predecessor calls,
+// the frames after it only record the time. The view polls that time from the
+// main thread (releaseIfIdle) and, once the animation has stopped, takes its
+// vote back and re-arms the call for the next animation. Lock-free, since it
+// runs on every present.
+class AnimationReporter {
+public:
+  AnimationReporter(JNIEnv *env, jobject view)
+      : _onAnimating(env, view, "onAnimating") {}
+
+  void onFramePresented() {
+    const int64_t now = nowNanos();
+    const int64_t previous = _lastPresent.exchange(now);
+    if (now - previous > kAnimatingIntervalNanos) {
+      return;
+    }
+    _lastAnimating.store(now);
+    if (!_reported.exchange(true)) {
+      _onAnimating();
+    }
+  }
+
+  // Main thread. Returns how much longer the animation must stay stopped
+  // before it counts as idle, or 0 once it has: the next animating frame then
+  // calls into Java again.
+  int64_t releaseIfIdle(int64_t idleAfterNanos) {
+    const int64_t idle = nowNanos() - _lastAnimating.load();
+    if (idle < idleAfterNanos) {
+      return idleAfterNanos - idle;
+    }
+    _reported.store(false);
+    return 0;
+  }
+
+private:
+  // Presents this close together are an animation (faster than 40 fps).
+  static constexpr int64_t kAnimatingIntervalNanos = 25'000'000;
+
+  static int64_t nowNanos() {
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(
+               std::chrono::steady_clock::now().time_since_epoch())
+        .count();
+  }
+
+  WeakViewCall _onAnimating;
+  // INT64_MIN / 2 rather than a sentinel: the first present is never "right
+  // after" it, and the subtractions above don't overflow.
+  std::atomic<int64_t> _lastPresent{INT64_MIN / 2};
+  std::atomic<int64_t> _lastAnimating{INT64_MIN / 2};
+  // Java has been told about the current animation.
+  std::atomic<bool> _reported{false};
+};
+
+// The reporters by contextId, for WebGPUView.releaseFrameRateVoteIfIdle. The
+// surface callbacks and the idle check all run on the main thread; the lock
+// only guards against a caller that doesn't.
+std::mutex animationReportersMutex;
+std::unordered_map<int, std::shared_ptr<AnimationReporter>> animationReporters;
+
+void setAnimationReporter(int contextId,
+                          std::shared_ptr<AnimationReporter> reporter) {
+  std::lock_guard<std::mutex> lock(animationReportersMutex);
+  if (reporter) {
+    animationReporters[contextId] = std::move(reporter);
+  } else {
+    animationReporters.erase(contextId);
+  }
+}
+
 } // namespace
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     JNIEnv *env, jobject thiz, jobject jSurface, jint contextId, jfloat width,
-    jfloat height, jboolean reportPresents) {
+    jfloat height, jboolean reportAnimation) {
   if (manager == nullptr) {
     return;
   }
@@ -228,13 +305,15 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
       surface, [](void *nativeSurface) {
         ANativeWindow_release(static_cast<ANativeWindow *>(nativeSurface));
       });
-  // A SurfaceView asks to hear about each presented frame, for its refresh
-  // rate vote (WebGPUView.onFramePresented).
-  if (reportPresents) {
-    auto reporter =
-        std::make_shared<WeakViewCall>(env, thiz, "onFramePresented");
-    info->setFramePresentedCallback([reporter]() { (*reporter)(); });
+  // A SurfaceView asks to hear when it animates, for its refresh rate vote
+  // (WebGPUView.onAnimating).
+  if (reportAnimation) {
+    auto reporter = std::make_shared<AnimationReporter>(env, thiz);
+    setAnimationReporter(contextId, reporter);
+    info->setFramePresentedCallback(
+        [reporter]() { reporter->onFramePresented(); });
   } else {
+    setAnimationReporter(contextId, nullptr);
     info->setFramePresentedCallback(nullptr);
   }
   // The attach is adopted at the next frame boundary by the rendering thread;
@@ -246,11 +325,29 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
 extern "C" JNIEXPORT void JNICALL
 Java_com_webgpu_WebGPUView_switchToOffscreenSurface(JNIEnv *env, jobject thiz,
                                                     jint contextId) {
+  setAnimationReporter(contextId, nullptr);
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   if (auto info = registry.getSurfaceInfo(contextId)) {
     info->setFramePresentedCallback(nullptr);
     info->switchToOffscreen();
   }
+}
+
+// See AnimationReporter::releaseIfIdle; 0 when the surface reports nothing.
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_webgpu_WebGPUView_releaseFrameRateVoteIfIdle(JNIEnv *env, jobject thiz,
+                                                      jint contextId,
+                                                      jlong idleAfterNanos) {
+  std::shared_ptr<AnimationReporter> reporter;
+  {
+    std::lock_guard<std::mutex> lock(animationReportersMutex);
+    auto it = animationReporters.find(contextId);
+    if (it == animationReporters.end()) {
+      return 0;
+    }
+    reporter = it->second;
+  }
+  return static_cast<jlong>(reporter->releaseIfIdle(idleAfterNanos));
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onViewDestroyed(
@@ -259,6 +356,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onViewDestroyed(
   // teardown retires the registry entry. The JS-side cleanup
   // (RNWebGPU.destroyContext) only handles entries that never had a native
   // surface; see RNWebGPU::destroyContext for the ownership split.
+  setAnimationReporter(contextId, nullptr);
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   if (auto info = registry.getSurfaceInfo(contextId)) {
     info->setFramePresentedCallback(nullptr);
