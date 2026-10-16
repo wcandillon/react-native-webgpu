@@ -132,6 +132,14 @@ std::shared_ptr<GPUSupportedLimits> GPUDevice::getLimits() {
   return std::make_shared<GPUSupportedLimits>(limits);
 }
 
+std::shared_ptr<GPUAdapterInfo> GPUDevice::getAdapterInfo() {
+  wgpu::AdapterInfo info = {};
+  if (_instance.GetAdapterInfo(&info) != wgpu::Status::Success) {
+    throw std::runtime_error("failed to get the device's adapter info");
+  }
+  return std::make_shared<GPUAdapterInfo>(info);
+}
+
 std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
   auto result = _instance.GetQueue();
   return std::make_shared<GPUQueue>(_instance, result, _async, _videoFrameBlit,
