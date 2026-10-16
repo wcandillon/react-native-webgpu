@@ -143,7 +143,7 @@ export const webGPUAsyncDemo = (
 
 interface AsyncBufferExampleProps {
   // Schedules the worklet on a given runtime (e.g. scheduleOnUI for the UI thread,
-  // or runOnRuntime(runtime, ...) for a dedicated worklet runtime).
+  // or scheduleOnRuntime(runtime, ...) for a dedicated worklet runtime).
   run: (
     worklet: typeof webGPUAsyncDemo,
   ) => (
