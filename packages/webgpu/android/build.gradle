@@ -75,6 +75,16 @@ def getExtOrIntegerDefault(name) {
   return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["Wgpu_" + name]).toInteger()
 }
 
+// androidMinSdkVersion in package.json is the lowest API level the native code
+// builds for: it calls the AHardwareBuffer API, from Android 8 (API 26). An
+// app's lower minSdkVersion does not lower it, so such an app gets the
+// manifest merger's error, with its suggested fix, instead of the compiler's.
+def resolveMinSdkVersion() {
+  def floor = new groovy.json.JsonSlurper().parse(file("../package.json")).androidMinSdkVersion as Integer
+  def app = rootProject.ext.has("minSdkVersion") ? rootProject.ext.get("minSdkVersion").toString().toInteger() : floor
+  return Math.max(app, floor)
+}
+
 def supportsNamespace() {
   def parsed = com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION.tokenize('.')
   def major = parsed[0].toInteger()
@@ -88,7 +98,7 @@ android {
   compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
 
   defaultConfig {
-    minSdkVersion getExtOrIntegerDefault("minSdkVersion")
+    minSdkVersion resolveMinSdkVersion()
     targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
     buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", "true"
     externalNativeBuild {
