@@ -290,7 +290,7 @@ void setAnimationReporter(int contextId,
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     JNIEnv *env, jobject thiz, jobject jSurface, jint contextId, jfloat width,
     jfloat height, jboolean presentsBehindPendingDraw,
-    jboolean reportAnimation) {
+    jboolean acquiresAfterDraw, jboolean reportAnimation) {
   if (manager == nullptr) {
     return;
   }
@@ -318,7 +318,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
       [](void *nativeSurface) {
         ANativeWindow_release(static_cast<ANativeWindow *>(nativeSurface));
       },
-      std::move(presentPoster));
+      std::move(presentPoster), acquiresAfterDraw);
   // A SurfaceView asks to hear when it animates, for its refresh rate vote
   // (WebGPUView.onAnimating).
   if (reportAnimation) {
@@ -342,6 +342,23 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_presentPostedFrame(
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   if (auto info = registry.getSurfaceInfo(contextId)) {
     info->presentPostedFrame();
+  }
+}
+
+// WebGPUView.surfaceUpdated, while the window draws (UI thread).
+extern "C" JNIEXPORT jlong JNICALL Java_com_webgpu_WebGPUView_onSurfaceDrawing(
+    JNIEnv *env, jobject thiz, jint contextId) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo(contextId);
+  return info ? static_cast<jlong>(info->presentCount()) : 0;
+}
+
+// Posted by WebGPUView.surfaceUpdated behind the window's draw (UI thread).
+extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceDrawn(
+    JNIEnv *env, jobject thiz, jint contextId, jlong presentCount) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  if (auto info = registry.getSurfaceInfo(contextId)) {
+    info->surfaceDrawn(static_cast<uint64_t>(presentCount));
   }
 }
 

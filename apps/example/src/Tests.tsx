@@ -27,7 +27,7 @@ import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
 import type { AssetProps } from "./components/useAssets";
 import { Texture } from "./components/Texture";
 import { workletDeviceStress } from "./components/workletDeviceStress";
-import { workletPresentFrames } from "./components/workletPresentFrames";
+import { presentFrames } from "./components/presentFrames";
 import { workletSerialization } from "./components/workletSerialization";
 
 export const CI = process.env.CI === "true";
@@ -144,7 +144,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                   textureCanvasSize: TEXTURE_CANVAS_SIZE,
                 },
                 workletDeviceStress,
-                workletPresentFrames,
+                presentFrames,
                 workletSerialization,
                 exportedFlags: {
                   GPUBufferUsage: exportedBufferUsage,

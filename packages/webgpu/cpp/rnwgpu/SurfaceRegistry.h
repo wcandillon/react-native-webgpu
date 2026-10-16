@@ -152,6 +152,12 @@ struct AHBPool {
 //   content appears without waiting for the next render — the same mechanism
 //   that gives a fast time-to-first-frame when rendering starts before the
 //   native surface exists.
+// - A surface whose buffer queue makes an acquire wait until its window has
+//   drawn the frame presented last (an Android 11 TextureView, see
+//   WebGPUView.acquiresAfterDraw) defers a frame that comes sooner: it
+//   renders offscreen and is copied onto the surface once the window has
+//   drawn, by the frame boundary or the posted surfaceDrawn that sees it
+//   first.
 class SurfaceInfo {
 public:
   SurfaceInfo(wgpu::Instance gpu, int width, int height)
@@ -192,7 +198,8 @@ public:
   // currently rendering also pick it up.
   void attachSurface(void *nativeSurface, wgpu::Surface surface,
                      NativeSurfaceReleaser releaser,
-                     NativeSurfacePresentPoster presentPoster = nullptr) {
+                     NativeSurfacePresentPoster presentPoster = nullptr,
+                     bool acquiresAfterDraw = false) {
     void *replacedSurface = nullptr;
     NativeSurfaceReleaser replacedReleaser;
     NativeSurfacePresentPoster replacedPresentPoster;
@@ -209,6 +216,7 @@ public:
       _pendingSurface = std::move(surface);
       _pendingReleaser = std::move(releaser);
       _pendingPresentPoster = std::move(presentPoster);
+      _pendingAcquiresAfterDraw = acquiresAfterDraw;
     }
     if (replacedReleaser && replacedSurface) {
       replacedReleaser(replacedSurface);
@@ -224,6 +232,22 @@ public:
   // Detach without creating the offscreen fallback: used when the context is
   // being destroyed and nothing will consume further frames.
   void detachSurface() { detach(/* createFallbackTexture = */ false); }
+
+  // The frames presented so far, read while the window draws: that draw
+  // syncs with every one of them queued.
+  uint64_t presentCount() {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    return _presentCount;
+  }
+
+  // The window's draw that read presentCount() has synced, taking the
+  // frames presented by then: a deferred frame waiting for it is copied
+  // onto the surface.
+  void surfaceDrawn(uint64_t presentCount) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    _drawnPresentCount = std::max(_drawnPresentCount, presentCount);
+    deliverDeferredFrameLocked();
+  }
 
   // Reflects native view layout changes. Does not resize the drawing buffer:
   // that tracks canvas.width/height (like on the web), see
@@ -268,9 +292,10 @@ public:
       replacedSurface = _nativeSurface;
       replacedReleaser = std::move(_releaser);
       replacedPresentPoster = std::move(_presentPoster);
-      // A frame waiting for its posted present belongs to the replaced
-      // surface.
+      // A frame waiting for its posted present, or for the window's draw,
+      // belongs to the replaced surface; the blit below shows the latter.
       _presentPending = false;
+      _deferredFrame = DeferredFrame::None;
       _surface = std::move(_pendingSurface);
 #if defined(__ANDROID__)
       // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
@@ -279,6 +304,7 @@ public:
       _nativeSurface = _pendingNativeSurface;
       _releaser = std::move(_pendingReleaser);
       _presentPoster = std::move(_pendingPresentPoster);
+      _acquiresAfterDraw = _pendingAcquiresAfterDraw;
       _hasPendingAttach = false;
       _pendingNativeSurface = nullptr;
       _frameEpoch++;
@@ -324,7 +350,7 @@ public:
       // (their newer content stands; presenting here would be a Dawn
       // present-without-acquire error).
       if (_surface && !_frameInFlight && _frameEpoch == blitEpoch) {
-        _surface.Present();
+        presentSurfaceLocked();
       }
     }
   }
@@ -348,7 +374,7 @@ public:
     _config.width = std::max(1, _width);
     _config.height = std::max(1, _height);
     _config.presentMode = wgpu::PresentMode::Fifo;
-    _texture = nullptr;
+    dropOffscreenTextureLocked();
     _frameEpoch++;
 #if defined(__ANDROID__)
     {
@@ -376,7 +402,7 @@ public:
     presentPendingFrameLocked();
     _config.width = std::max(1, newWidth);
     _config.height = std::max(1, newHeight);
-    _texture = nullptr;
+    dropOffscreenTextureLocked();
     _frameEpoch++;
     _configureLocked();
   }
@@ -387,7 +413,7 @@ public:
     if (_surface) {
       _surface.Unconfigure();
     }
-    _texture = nullptr;
+    dropOffscreenTextureLocked();
     _config = {};
     _viewFormats.clear();
     _acquiredFromSurface = false;
@@ -513,11 +539,17 @@ public:
     presentPendingFrameLocked();
     _frameInFlight = true;
     _acquiredFromSurface = false;
+    // This frame supersedes one waiting for the window's draw.
+    _deferredFrame = DeferredFrame::None;
     _frameEpoch++;
     if (frameEpoch) {
       *frameEpoch = _frameEpoch;
     }
-    if (_surface) {
+    if (_surface && awaitsWindowDrawLocked()) {
+      // The acquire would wait for the window's draw, which runs on the main
+      // thread, maybe this one.
+      _deferredFrame = DeferredFrame::Rendering;
+    } else if (_surface) {
       auto texture = acquireSurfaceTextureLocked();
       if (texture) {
         _acquiredFromSurface = true;
@@ -549,7 +581,8 @@ public:
   // preserving Dawn surface thread-affinity, except on a surface with a
   // present poster (see presentsBehindPendingDrawLocked). Frames whose
   // texture was not acquired from the attached surface (offscreen, detached
-  // mid-frame, or acquire failure) are dropped. This is also the
+  // mid-frame, or acquire failure) are dropped, except a deferred frame,
+  // which reaches the surface once the window has drawn. This is also the
   // end-of-frame boundary: it adopts a surface that attached while the frame
   // was in flight.
   void presentFrame() {
@@ -586,11 +619,14 @@ public:
             presentPoster = _presentPoster;
           }
         } else {
-          _surface.Present();
+          presentSurfaceLocked();
 #if defined(__ANDROID__)
           framePresented = _framePresented;
 #endif
         }
+      } else if (_deferredFrame == DeferredFrame::Rendering) {
+        _deferredFrame = DeferredFrame::Waiting;
+        deliverDeferredFrameLocked();
       }
       _acquiredFromSurface = false;
       _frameInFlight = false;
@@ -824,6 +860,8 @@ private:
         // waiting for its posted present.
         _acquiredFromSurface = false;
         _presentPending = false;
+        _acquiresAfterDraw = false;
+        _deferredFrame = DeferredFrame::None;
       }
       _frameEpoch++;
       // Window ownership is independent of the Dawn surface handle (which can
@@ -862,8 +900,38 @@ private:
   void presentPendingFrameLocked() {
     if (_presentPending) {
       _presentPending = false;
-      _surface.Present();
+      presentSurfaceLocked();
     }
+  }
+
+  // Every present goes through here, counted for awaitsWindowDrawLocked.
+  void presentSurfaceLocked() {
+    _surface.Present();
+    _presentCount++;
+  }
+
+  // Whether the attached surface makes an acquire wait until its window has
+  // drawn the frame presented last, and the window has yet to draw it.
+  bool awaitsWindowDrawLocked() const {
+    return _acquiresAfterDraw && _drawnPresentCount != _presentCount;
+  }
+
+  // Copies a deferred frame waiting in the offscreen texture onto the surface
+  // once the window has drawn the frame presented last.
+  void deliverDeferredFrameLocked() {
+    if (_deferredFrame != DeferredFrame::Waiting || awaitsWindowDrawLocked()) {
+      return;
+    }
+    _deferredFrame = DeferredFrame::None;
+    if (blitOffscreenToSurfaceLocked()) {
+      presentSurfaceLocked();
+    }
+  }
+
+  // A deferred frame waiting in the offscreen texture goes with it.
+  void dropOffscreenTextureLocked() {
+    _texture = nullptr;
+    _deferredFrame = DeferredFrame::None;
   }
 
   wgpu::Texture createOffscreenTextureLocked() {
@@ -915,8 +983,9 @@ private:
            surfaceTexture.texture != nullptr;
   }
 
-  // Copy the last offscreen frame onto the freshly attached surface. Returns
-  // true when the copy was submitted and the surface should be presented.
+  // Copy the last offscreen frame onto the surface, freshly attached or
+  // deferred to. Returns true when the copy was submitted and the surface
+  // should be presented.
   bool blitOffscreenToSurfaceLocked() {
     wgpu::SurfaceTexture surfaceTexture;
     _surface.GetCurrentTexture(&surfaceTexture);
@@ -955,9 +1024,7 @@ private:
     }
   }
 
-  // Every Surface::Configure goes through here. Once the
-  // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE lines are gone, this
-  // is a plain wrapper around _surface.Configure.
+  // Every Surface::Configure goes through here.
   void configureSurfaceLocked(const wgpu::SurfaceConfiguration &config) {
 #if defined(__ANDROID__)
     // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
@@ -972,7 +1039,14 @@ private:
       }
     }
 #endif
-    _surface.Configure(&config);
+    wgpu::SurfaceConfiguration surfaceConfig = config;
+    if (_acquiresAfterDraw) {
+      // A deferred frame reaches the surface by a copy.
+      surfaceConfig.usage |= wgpu::TextureUsage::CopyDst;
+    }
+    _surface.Configure(&surfaceConfig);
+    // A new swapchain holds no frame for the window to draw.
+    _drawnPresentCount = _presentCount;
 #if defined(__ANDROID__)
     // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
     _surfaceDevice = config.device;
@@ -987,9 +1061,11 @@ private:
   void recreateSurfaceLocked() {
     _surface = nullptr;
     _surfaceDevice = nullptr;
-    // A frame acquired from the old surface can no longer be presented.
+    // A frame acquired from, or deferred for, the old surface can no longer
+    // be presented.
     _acquiredFromSurface = false;
     _presentPending = false;
+    _deferredFrame = DeferredFrame::None;
     _frameEpoch++;
     if (_nativeSurface) {
       wgpu::SurfaceSourceAndroidNativeWindow source;
@@ -1313,6 +1389,17 @@ private:
   NativeSurfacePresentPoster _presentPoster;
   bool _presentPending = false;
   bool _presentPosted = false;
+  // Whether the attached surface makes an acquire wait until its window has
+  // drawn the frame presented last, and the pending surface's flag.
+  bool _acquiresAfterDraw = false;
+  bool _pendingAcquiresAfterDraw = false;
+  // Frames presented, and the ones the attached surface's window has drawn.
+  uint64_t _presentCount = 0;
+  uint64_t _drawnPresentCount = 0;
+  // A frame rendering offscreen because the window had yet to draw the one
+  // presented last, or finished and waiting in the offscreen texture.
+  enum class DeferredFrame : uint8_t { None, Rendering, Waiting };
+  DeferredFrame _deferredFrame = DeferredFrame::None;
   // Bumped on every acquire, present, configure/reconfigure/unconfigure,
   // adoption, and detach. The deferred blit-present in applyPendingAttach
   // revalidates against it so it never presents a texture that stopped being
@@ -1407,11 +1494,12 @@ public:
   attachSurface(int id, wgpu::Instance gpu, int width, int height,
                 void *nativeSurface, wgpu::Surface surface,
                 NativeSurfaceReleaser releaser,
-                NativeSurfacePresentPoster presentPoster = nullptr) {
+                NativeSurfacePresentPoster presentPoster = nullptr,
+                bool acquiresAfterDraw = false) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     auto info = getSurfaceInfoOrCreateLocked(id, gpu, width, height);
     info->attachSurface(nativeSurface, std::move(surface), std::move(releaser),
-                        std::move(presentPoster));
+                        std::move(presentPoster), acquiresAfterDraw);
     return info;
   }
 
