@@ -31,9 +31,10 @@ wgpu::SharedTextureMemory importMemory(const wgpu::Device &device,
 
 // Begin an access to `texture`: Dawn's GPU work on it waits for each fence to
 // reach its signaled value first. `initialized` declares whether the buffer
-// holds pixels to keep (true for a frame a producer wrote). Exclusive access,
-// and on Vulkan the image is acquired in the GENERAL layout: an UNDEFINED one
-// lets the driver discard the frame on the transition.
+// holds pixels to keep (true for a frame a producer wrote). Exclusive access.
+// On Vulkan an initialized image is acquired in the GENERAL layout (an
+// UNDEFINED one lets the driver discard the frame on the transition), an
+// uninitialized one in UNDEFINED.
 void beginAccess(const wgpu::SharedTextureMemory &memory,
                  const wgpu::Texture &texture, bool initialized,
                  const std::vector<wgpu::SharedFence> &fences,
@@ -72,7 +73,9 @@ wgpu::ExternalTexture createExternalTexture(
 // The fences of an end-access state as one: on Android their sync fds are
 // merged into a single one (what Dawn's Android layer hands back from
 // endAccess), on Apple platforms the device's shared event at the largest
-// value. False when the state has no fence. Throws if the merge fails.
+// value. False when the state has no fence (or, on Android, only signaled
+// ones). Throws if the fences cannot be merged into one: Android fences that
+// are not sync fds, Apple fences on different shared events.
 bool mergeFences(const wgpu::Device &device,
                  const wgpu::SharedTextureMemoryEndAccessState &state,
                  wgpu::SharedFence *fence, uint64_t *signaledValue,

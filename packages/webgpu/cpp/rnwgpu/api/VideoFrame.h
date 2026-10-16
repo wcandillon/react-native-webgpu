@@ -47,6 +47,18 @@ public:
     return _handle.pixelFormat == VideoPixelFormat::NV12 ? "nv12" : "bgra8";
   }
 
+  // The sync fd the producer of the frame signals once it has written the
+  // buffer (Android), as a BigInt, or null when the frame has none (Apple
+  // platforms, a released frame). Borrowed: the frame closes it on release(),
+  // and importSharedFence() duplicates it.
+  jsi::Value getAcquireFenceFd(jsi::Runtime &runtime) {
+    if (_handle.handle == nullptr || _handle.acquireFenceFd < 0) {
+      return jsi::Value::null();
+    }
+    return jsi::BigInt::fromUint64(
+        runtime, static_cast<uint64_t>(_handle.acquireFenceFd));
+  }
+
   // Direct access to the underlying handle, for use by importExternalTexture /
   // importSharedTextureMemory inside the C++ layer (not exposed to JS).
   const VideoFrameHandle &handle() const { return _handle; }
@@ -67,35 +79,8 @@ public:
     installGetter(runtime, prototype, "pixelFormat",
                   &VideoFrame::getPixelFormat);
     installMethod(runtime, prototype, "release", &VideoFrame::release);
-    // acquireFenceFd: the sync fd the producer of the frame signals once it
-    // has written the buffer (Android), as a BigInt, or null when the frame
-    // has none (Apple platforms, a released frame). Borrowed: the frame
-    // closes it on release(), and importSharedFence() duplicates it.
-    // Installed by hand: the typed getters have no null.
-    {
-      auto getter = jsi::Function::createFromHostFunction(
-          runtime, jsi::PropNameID::forUtf8(runtime, "get_acquireFenceFd"), 0,
-          [](jsi::Runtime &rt, const jsi::Value &thisVal,
-             const jsi::Value * /*args*/, size_t /*count*/) -> jsi::Value {
-            auto native = VideoFrame::fromValue(rt, thisVal);
-            const auto &handle = native->_handle;
-            if (handle.handle == nullptr || handle.acquireFenceFd < 0) {
-              return jsi::Value::null();
-            }
-            return jsi::BigInt::fromUint64(
-                rt, static_cast<uint64_t>(handle.acquireFenceFd));
-          });
-      auto objectCtor = runtime.global().getPropertyAsObject(runtime, "Object");
-      auto defineProperty =
-          objectCtor.getPropertyAsFunction(runtime, "defineProperty");
-      jsi::Object descriptor(runtime);
-      descriptor.setProperty(runtime, "get", getter);
-      descriptor.setProperty(runtime, "enumerable", true);
-      descriptor.setProperty(runtime, "configurable", true);
-      defineProperty.call(
-          runtime, prototype,
-          jsi::String::createFromUtf8(runtime, "acquireFenceFd"), descriptor);
-    }
+    installGetter(runtime, prototype, "acquireFenceFd",
+                  &VideoFrame::getAcquireFenceFd);
   }
 
 private:

@@ -29,8 +29,9 @@ namespace {
 std::string prefix(const char *caller) { return std::string(caller) + "(): "; }
 
 #if defined(__ANDROID__)
-// VK_IMAGE_LAYOUT_GENERAL, inlined to keep this cross-platform file free of
-// Vulkan headers.
+// VK_IMAGE_LAYOUT_UNDEFINED / VK_IMAGE_LAYOUT_GENERAL, inlined to keep this
+// cross-platform file free of Vulkan headers.
+constexpr uint32_t kVkImageLayoutUndefined = 0;
 constexpr uint32_t kVkImageLayoutGeneral = 1;
 
 // Whether Dawn imports an AHardwareBuffer of this format as an
@@ -204,6 +205,21 @@ wgpu::ExternalTextureRotation toExternalTextureRotation(double degrees) {
   }
 }
 
+// A crop coordinate from JS, truncated like a GPUIntegerCoordinate. Throws
+// unless it is a number in [0, max]: a cast of a negative or out of range
+// double to uint32_t is undefined.
+uint32_t cropCoordinate(double value, uint32_t max, const char *name,
+                        const char *caller) {
+  double truncated = std::trunc(value);
+  if (!std::isfinite(truncated) || truncated < 0 ||
+      truncated > static_cast<double>(max)) {
+    throw std::runtime_error(prefix(caller) + name + " must be in [0, " +
+                             std::to_string(max) + "], got " +
+                             std::to_string(value));
+  }
+  return static_cast<uint32_t>(truncated);
+}
+
 } // namespace
 
 wgpu::SharedTextureMemory importMemory(const wgpu::Device &device,
@@ -287,14 +303,19 @@ void beginAccess(const wgpu::SharedTextureMemory &memory,
       signaledValues.empty() ? nullptr : signaledValues.data();
 #if defined(__ANDROID__)
   // Dawn's Vulkan backend validates that the descriptor chains the layout to
-  // acquire the image in. GENERAL on both ends, as Dawn's own Android layer
-  // passes: with UNDEFINED, Dawn's acquire barrier starts from UNDEFINED (see
-  // ImportedTextureBase::TransitionUsageForPass in TextureVk.cpp), which
-  // Vulkan defines as "the contents may be discarded", while the buffer holds
-  // the frame its producer just wrote.
+  // acquire the image in. For a buffer with pixels to keep, GENERAL on both
+  // ends, as Dawn's own Android layer passes: with UNDEFINED, Dawn's acquire
+  // barrier starts from UNDEFINED (see ImportedTextureBase::
+  // TransitionUsageForPass in TextureVk.cpp), which Vulkan defines as "the
+  // contents may be discarded", while the buffer holds the frame its producer
+  // just wrote. For a buffer whose contents the caller declares discardable
+  // (initialized: false), UNDEFINED is exactly that, and no prior producer
+  // put the image in GENERAL.
   wgpu::SharedTextureMemoryVkImageLayoutBeginState vkLayout{};
-  vkLayout.oldLayout = kVkImageLayoutGeneral;
-  vkLayout.newLayout = kVkImageLayoutGeneral;
+  vkLayout.oldLayout =
+      initialized ? kVkImageLayoutGeneral : kVkImageLayoutUndefined;
+  vkLayout.newLayout =
+      initialized ? kVkImageLayoutGeneral : kVkImageLayoutUndefined;
   desc.nextInChain = &vkLayout;
 #endif
   if (memory.BeginAccess(texture, &desc) != wgpu::Status::Success) {
@@ -476,20 +497,34 @@ wgpu::ExternalTexture createExternalTexture(
   applyColorSpaceParams(extDesc, params);
 
   // The crop, the whole frame by default (the size of the texture: the frame
-  // reports it too, but a buffer wrapped from another library may not).
+  // reports it too, but a buffer wrapped from another library may not). It
+  // must lie within the frame and not be empty.
   uint32_t width = texture.GetWidth();
   uint32_t height = texture.GetHeight();
   uint32_t cropX = 0;
   uint32_t cropY = 0;
   if (descriptor.cropOrigin.has_value() && *descriptor.cropOrigin) {
-    cropX = static_cast<uint32_t>((*descriptor.cropOrigin)->x);
-    cropY = static_cast<uint32_t>((*descriptor.cropOrigin)->y);
+    cropX = cropCoordinate((*descriptor.cropOrigin)->x, width, "cropOrigin.x",
+                           caller);
+    cropY = cropCoordinate((*descriptor.cropOrigin)->y, height, "cropOrigin.y",
+                           caller);
   }
-  uint32_t cropWidth = cropX < width ? width - cropX : 0;
-  uint32_t cropHeight = cropY < height ? height - cropY : 0;
+  if (cropX >= width || cropY >= height) {
+    throw std::runtime_error(
+        prefix(caller) + "cropOrigin (" + std::to_string(cropX) + ", " +
+        std::to_string(cropY) + ") is outside the " + std::to_string(width) +
+        "x" + std::to_string(height) + " frame");
+  }
+  uint32_t cropWidth = width - cropX;
+  uint32_t cropHeight = height - cropY;
   if (descriptor.cropSize.has_value() && *descriptor.cropSize) {
-    cropWidth = static_cast<uint32_t>((*descriptor.cropSize)->width);
-    cropHeight = static_cast<uint32_t>((*descriptor.cropSize)->height);
+    cropWidth = cropCoordinate((*descriptor.cropSize)->width, cropWidth,
+                               "cropSize.width", caller);
+    cropHeight = cropCoordinate((*descriptor.cropSize)->height, cropHeight,
+                                "cropSize.height", caller);
+    if (cropWidth == 0 || cropHeight == 0) {
+      throw std::runtime_error(prefix(caller) + "cropSize is empty");
+    }
   }
   extDesc.cropOrigin = {cropX, cropY};
   extDesc.cropSize = {cropWidth, cropHeight};
@@ -528,7 +563,16 @@ bool mergeFences(const wgpu::Device &device,
     wgpu::SharedFenceSyncFDExportInfo fdInfo{};
     info.nextInChain = &fdInfo;
     source.ExportInfo(&info);
-    if (info.type != wgpu::SharedFenceType::SyncFD || fdInfo.handle < 0) {
+    if (info.type != wgpu::SharedFenceType::SyncFD) {
+      // Dropping it would hand back a fence that signals before all the GPU
+      // work of the access is done, and the producer would reuse the buffer
+      // too early.
+      throw std::runtime_error(prefix(caller) +
+                               "a fence of the access is not a sync fd and "
+                               "cannot be merged with the others");
+    }
+    if (fdInfo.handle < 0) {
+      // A sync fd of -1 is a fence that has signaled already.
       continue;
     }
     if (merged.fd < 0) {
@@ -558,12 +602,28 @@ bool mergeFences(const wgpu::Device &device,
   *signaledValue = 1;
   return true;
 #else
-  // Metal: every fence is the device's shared event, whose timeline the
-  // largest value covers.
+  // Metal: the fences of one shared event are covered by its largest value.
+  // Dawn's fences are all the device's event, but a fence the caller passed to
+  // beginAccess() comes back unconsumed when the access did not use the
+  // texture, and it may be on another event: two events can't be merged into
+  // one fence, and dropping either would let the producer reuse the buffer
+  // too early.
   (void)device;
-  (void)caller;
+  void *event = nullptr;
   size_t last = 0;
-  for (size_t i = 1; i < state.fenceCount; i++) {
+  for (size_t i = 0; i < state.fenceCount; i++) {
+    wgpu::SharedFence source = state.fences[i];
+    wgpu::SharedFenceExportInfo info{};
+    wgpu::SharedFenceMTLSharedEventExportInfo eventInfo{};
+    info.nextInChain = &eventInfo;
+    source.ExportInfo(&info);
+    if (info.type != wgpu::SharedFenceType::MTLSharedEvent ||
+        (i > 0 && eventInfo.sharedEvent != event)) {
+      throw std::runtime_error(prefix(caller) +
+                               "the fences of the access are on different "
+                               "shared events and cannot be merged into one");
+    }
+    event = eventInfo.sharedEvent;
     if (state.signaledValues[i] > state.signaledValues[last]) {
       last = i;
     }

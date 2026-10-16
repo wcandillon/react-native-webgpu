@@ -1,4 +1,8 @@
-import type { GPUSharedFenceState } from "../types";
+import type {
+  GPUExtent2D,
+  GPUNativeBufferExternalTextureDescriptor,
+  GPUSharedFenceState,
+} from "../types";
 
 import { checkImage, client, encodeImage } from "./setup";
 
@@ -52,6 +56,23 @@ type DestroyResult =
       endAfterDestroy: string | null;
       endAfterDestroyThrew: boolean;
       frameHandleAfterDestroy: string;
+    };
+
+type DescriptorResult =
+  | { kind: "skip"; reason: string }
+  | { kind: "fail"; reason: string }
+  | {
+      kind: "ok";
+      // The error of each invalid descriptor, null when it was accepted.
+      negativeOrigin: string | null;
+      hugeSize: string | null;
+      originOutside: string | null;
+      sizeWithoutHeight: string | null;
+      emptySize: string | null;
+      validCrop: string | null;
+      textureLabel: string;
+      externalTextureLabel: string;
+      acquireFenceFdType: string;
     };
 
 const expectColor = (actual: Rgb, expected: Rgb, tolerance: number) => {
@@ -560,5 +581,105 @@ describe("NativeBufferWrapper", () => {
     expect(result.endAfterDestroy).toMatch(/destroyed/i);
     expect(result.endAfterDestroyThrew).toBe(true);
     expect(result.frameHandleAfterDestroy).not.toBe("0");
+  });
+
+  it("rejects a crop outside the frame and relabels the wrapped object", async () => {
+    const result = await client.eval<Record<string, never>, DescriptorResult>(
+      ({ device }) => {
+        const NATIVE_IMPORT = [
+          "shared-texture-memory-iosurface",
+          "shared-texture-memory-ahardware-buffer",
+        ];
+        if (
+          !NATIVE_IMPORT.some((f) => device.features.has(f as GPUFeatureName))
+        ) {
+          return {
+            kind: "skip",
+            reason: "native frame import is unavailable on this device",
+          };
+        }
+        if (typeof RNWebGPU?.createTestVideoFrame !== "function") {
+          return {
+            kind: "skip",
+            reason: "RNWebGPU.createTestVideoFrame is unavailable",
+          };
+        }
+        try {
+          const frame = RNWebGPU.createTestVideoFrame(32, 32);
+          const attempt = (
+            descriptor: GPUNativeBufferExternalTextureDescriptor,
+          ) => {
+            try {
+              device.createNativeBufferExternalTexture(frame, descriptor);
+              return null;
+            } catch (e) {
+              return `${(e as Error).message ?? e}`;
+            }
+          };
+          const negativeOrigin = attempt({ cropOrigin: { x: -10, y: 0 } });
+          const hugeSize = attempt({ cropSize: [1e12, 16] });
+          const originOutside = attempt({ cropOrigin: { x: 32, y: 0 } });
+          const sizeWithoutHeight = attempt({
+            // Not a GPUExtent2D: the native side still checks it.
+            cropSize: { width: 16 } as unknown as GPUExtent2D,
+          });
+          const emptySize = attempt({ cropSize: [0, 16] });
+          const validCrop = attempt({
+            cropOrigin: { x: 8, y: 8 },
+            cropSize: { width: 16, height: 16 },
+          });
+
+          const texture = device.createNativeBufferTexture(frame, {
+            label: "before",
+          });
+          texture.label = "after";
+          const external = device.createNativeBufferExternalTexture(frame, {
+            label: "before",
+          });
+          external.label = "after";
+          const probed = {
+            kind: "ok" as const,
+            negativeOrigin,
+            hugeSize,
+            originOutside,
+            sizeWithoutHeight,
+            emptySize,
+            validCrop,
+            textureLabel: texture.texture.label,
+            externalTextureLabel: external.externalTexture.label,
+            acquireFenceFdType:
+              frame.acquireFenceFd === null
+                ? "null"
+                : typeof frame.acquireFenceFd,
+          };
+          texture.destroy();
+          external.destroy();
+          frame.release();
+          return probed;
+        } catch (e) {
+          return {
+            kind: "fail",
+            reason: `${(e as Error).message ?? e}`,
+          };
+        }
+      },
+    );
+
+    if (result.kind === "skip") {
+      console.log(`NativeBufferWrapper: skipping (${result.reason})`);
+      return;
+    }
+    if (result.kind === "fail") {
+      throw new Error(`NativeBufferWrapper: ${result.reason}`);
+    }
+    expect(result.negativeOrigin).toContain("cropOrigin.x must be in [0, 32]");
+    expect(result.hugeSize).toContain("cropSize.width must be in [0, 32]");
+    expect(result.originOutside).toContain("is outside the 32x32 frame");
+    expect(result.sizeWithoutHeight).toContain("width and height");
+    expect(result.emptySize).toContain("cropSize is empty");
+    expect(result.validCrop).toBeNull();
+    expect(result.textureLabel).toBe("after");
+    expect(result.externalTextureLabel).toBe("after");
+    expect(["null", "bigint"]).toContain(result.acquireFenceFdType);
   });
 });

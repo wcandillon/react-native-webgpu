@@ -4,8 +4,6 @@
 #include <string>
 #include <utility>
 
-#include "NativeObject.h"
-
 #include "webgpu/webgpu_cpp.h"
 
 #include "GPUExternalTexture.h"
@@ -25,7 +23,8 @@ namespace jsi = facebook::jsi;
 // every call, the external texture here is built once per buffer, color
 // conversion included, and only beginAccess() / endAccess() run per frame.
 class GPUNativeBufferExternalTexture
-    : public NativeObject<GPUNativeBufferExternalTexture> {
+    : public GPUNativeBufferWrapper<GPUNativeBufferExternalTexture,
+                                    GPUExternalTexture> {
 public:
   static constexpr const char *CLASS_NAME = "GPUNativeBufferExternalTexture";
 
@@ -34,63 +33,28 @@ public:
       wgpu::Texture texture,
       std::shared_ptr<GPUExternalTexture> externalTexture,
       std::shared_ptr<VideoFrame> source, std::string label)
-      : NativeObject(CLASS_NAME),
-        _access(CLASS_NAME, std::move(device), std::move(memory),
-                std::move(texture), std::move(source), std::move(label)),
-        _externalTexture(std::move(externalTexture)) {}
-
-public:
-  std::string getBrand() { return CLASS_NAME; }
+      : GPUNativeBufferWrapper(std::move(device), std::move(memory),
+                               std::move(texture), std::move(externalTexture),
+                               std::move(source), std::move(label)) {}
 
   // The external texture to bind (a texture_external binding). Sample it only
   // between beginAccess() and endAccess().
-  std::shared_ptr<GPUExternalTexture> getExternalTexture() {
-    return _externalTexture;
-  }
-
-  jsi::Value beginAccess(jsi::Runtime &runtime, const jsi::Value &,
-                         const jsi::Value *args, size_t count) {
-    _access.beginAccess(runtime, args, count);
-    return jsi::Value::undefined();
-  }
-
-  jsi::Value endAccess(jsi::Runtime &runtime, const jsi::Value &,
-                       const jsi::Value *, size_t) {
-    return _access.endAccess(runtime);
-  }
+  std::shared_ptr<GPUExternalTexture> getExternalTexture() { return _wrapped; }
 
   // Releases the external texture and the import (see
   // NativeBufferAccess::destroy), the order of Dawn's layer.
   void destroy() {
-    _externalTexture->destroy();
+    _wrapped->destroy();
     _access.destroy();
   }
 
-  std::string getLabel() { return _access.label(); }
-  void setLabel(const std::string &label) {
-    _access.setLabel(label);
-    _externalTexture->setLabel(label);
-  }
-
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
-    installGetter(runtime, prototype, "__brand",
-                  &GPUNativeBufferExternalTexture::getBrand);
+    defineWrapperPrototype(runtime, prototype);
     installGetter(runtime, prototype, "externalTexture",
                   &GPUNativeBufferExternalTexture::getExternalTexture);
-    installMethod(runtime, prototype, "beginAccess",
-                  &GPUNativeBufferExternalTexture::beginAccess);
-    installMethod(runtime, prototype, "endAccess",
-                  &GPUNativeBufferExternalTexture::endAccess);
     installMethod(runtime, prototype, "destroy",
                   &GPUNativeBufferExternalTexture::destroy);
-    installGetterSetter(runtime, prototype, "label",
-                        &GPUNativeBufferExternalTexture::getLabel,
-                        &GPUNativeBufferExternalTexture::setLabel);
   }
-
-private:
-  NativeBufferAccess _access;
-  std::shared_ptr<GPUExternalTexture> _externalTexture;
 };
 
 } // namespace rnwgpu

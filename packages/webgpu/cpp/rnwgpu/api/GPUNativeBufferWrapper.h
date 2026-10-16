@@ -7,6 +7,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "NativeObject.h"
 #include "VideoFrame.h"
 
 namespace rnwgpu {
@@ -72,6 +73,70 @@ private:
   std::shared_ptr<VideoFrame> _source;
   std::string _label;
   bool _accessOpen = false;
+};
+
+// The JS side GPUNativeBufferTexture and GPUNativeBufferExternalTexture share:
+// beginAccess(), endAccess(), the label and the brand, around a
+// NativeBufferAccess and the object it wraps (a GPUTexture, a
+// GPUExternalTexture), which takes the label too. Each class installs the
+// getter of its wrapped object and its destroy(), whose order differs.
+template <typename Derived, typename Wrapped>
+class GPUNativeBufferWrapper : public NativeObject<Derived> {
+public:
+  GPUNativeBufferWrapper(wgpu::Device device, wgpu::SharedTextureMemory memory,
+                         wgpu::Texture texture,
+                         std::shared_ptr<Wrapped> wrapped,
+                         std::shared_ptr<VideoFrame> source, std::string label)
+      : NativeObject<Derived>(Derived::CLASS_NAME),
+        _access(Derived::CLASS_NAME, std::move(device), std::move(memory),
+                std::move(texture), std::move(source), std::move(label)),
+        _wrapped(std::move(wrapped)) {}
+
+  std::string getBrand() { return Derived::CLASS_NAME; }
+
+  jsi::Value beginAccess(jsi::Runtime &runtime, const jsi::Value &,
+                         const jsi::Value *args, size_t count) {
+    _access.beginAccess(runtime, args, count);
+    return jsi::Value::undefined();
+  }
+
+  jsi::Value endAccess(jsi::Runtime &runtime, const jsi::Value &,
+                       const jsi::Value *, size_t) {
+    return _access.endAccess(runtime);
+  }
+
+  std::string getLabel() { return _access.label(); }
+  void setLabel(const std::string &label) {
+    _access.setLabel(label);
+    _wrapped->setLabel(label);
+  }
+
+protected:
+  using HostMethod = jsi::Value (Derived::*)(jsi::Runtime &, const jsi::Value &,
+                                             const jsi::Value *, size_t);
+
+  static void defineWrapperPrototype(jsi::Runtime &runtime,
+                                     jsi::Object &prototype) {
+    using Base = NativeObject<Derived>;
+    Base::installGetter(runtime, prototype, "__brand",
+                        static_cast<std::string (Derived::*)()>(
+                            &GPUNativeBufferWrapper::getBrand));
+    Base::installMethod(
+        runtime, prototype, "beginAccess",
+        static_cast<HostMethod>(&GPUNativeBufferWrapper::beginAccess));
+    Base::installMethod(
+        runtime, prototype, "endAccess",
+        static_cast<HostMethod>(&GPUNativeBufferWrapper::endAccess));
+    Base::installGetterSetter(
+        runtime, prototype, "label",
+        static_cast<std::string (Derived::*)()>(
+            &GPUNativeBufferWrapper::getLabel),
+        static_cast<void (Derived::*)(const std::string &)>(
+            &GPUNativeBufferWrapper::setLabel));
+  }
+
+  NativeBufferAccess _access;
+  std::shared_ptr<Wrapped> _wrapped;
 };
 
 } // namespace rnwgpu
