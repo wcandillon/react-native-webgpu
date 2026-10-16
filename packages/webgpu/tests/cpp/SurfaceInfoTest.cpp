@@ -249,6 +249,52 @@ TEST_F(SurfaceInfoTest, ResizesTheDrawingBufferOnReconfigure) {
   EXPECT_EQ(fake_webgpu::lastConfiguration(surface).height, 10u);
 }
 
+// GPUCanvasContext.unconfigure() is valid on a context that is not configured.
+TEST_F(SurfaceInfoTest, UnconfiguresTwice) {
+  auto device = fake_webgpu::createDevice();
+  auto surface = fake_webgpu::createSurface();
+  NativeWindow window;
+  SurfaceInfo info(nullptr, kWidth, kHeight);
+  info.attachSurface(&window, surface, releaserFor(&window));
+  configure(&info, device);
+
+  info.unconfigure();
+  info.unconfigure();
+
+  EXPECT_FALSE(info.isConfigured());
+  EXPECT_FALSE(fake_webgpu::isConfigured(surface));
+}
+
+TEST_F(SurfaceInfoTest, UnconfiguresAContextThatWasNeverConfigured) {
+  auto surface = fake_webgpu::createSurface();
+  NativeWindow window;
+  SurfaceInfo info(nullptr, kWidth, kHeight);
+  info.attachSurface(&window, surface, releaserFor(&window));
+  info.applyPendingAttach();
+
+  info.unconfigure();
+
+  EXPECT_FALSE(fake_webgpu::isConfigured(surface));
+}
+
+TEST_F(SurfaceInfoTest,
+       PresentsOnTheSurfaceAgainOnceConfiguredAfterUnconfigure) {
+  auto device = fake_webgpu::createDevice();
+  auto surface = fake_webgpu::createSurface();
+  NativeWindow window;
+  SurfaceInfo info(nullptr, kWidth, kHeight);
+  info.attachSurface(&window, surface, releaserFor(&window));
+  configure(&info, device);
+  info.unconfigure();
+
+  configure(&info, device);
+  renderFrame(&info);
+  info.unconfigure();
+
+  EXPECT_EQ(fake_webgpu::presentCount(surface), 1);
+  EXPECT_FALSE(fake_webgpu::isConfigured(surface));
+}
+
 TEST_F(SurfaceInfoTest, AFrameIsCurrentUntilItEndsOrTheSurfaceChanges) {
   auto device = fake_webgpu::createDevice();
   NativeWindow window;
