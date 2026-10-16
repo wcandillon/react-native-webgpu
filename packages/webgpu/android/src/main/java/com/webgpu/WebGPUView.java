@@ -160,12 +160,13 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   /**
-   * Called from native (SurfaceInfo::presentFrame) on the thread that
-   * presented a frame to the surface, only for a SurfaceView.
+   * Called from native (AnimationReporter in cpp-adapter.cpp) on the thread
+   * that presents to the surface, while the canvas animates, only for a
+   * SurfaceView.
    */
   @DoNotStrip
-  void onFramePresented() {
-    mFrameRateVote.onFramePresented();
+  void onAnimating() {
+    mFrameRateVote.onAnimating();
   }
 
   @Override
@@ -182,15 +183,15 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     onViewDestroyed(mContextId);
   }
 
-  // reportPresents asks native to call onFramePresented() for each frame
-  // presented to this surface.
+  // reportAnimation asks native to call onAnimating() while frames are
+  // presented to this surface back to back.
   @DoNotStrip
   private native void onSurfaceCreate(
     Surface surface,
     int contextId,
     float width,
     float height,
-    boolean reportPresents
+    boolean reportAnimation
   );
 
   @DoNotStrip

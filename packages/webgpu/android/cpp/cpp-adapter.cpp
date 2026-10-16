@@ -1,7 +1,9 @@
 #include <unistd.h>
 
+#include <chrono>
 #include <cstring>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -160,10 +162,10 @@ namespace {
 
 // Weak handle on a Java view and one of its no-argument methods, for native
 // threads to call into it: the fence waiter wakes a WebGPUHardwareBufferView
-// when a frame is ready, the presenting thread reports each frame a
-// SurfaceView shows. Holding the view weakly means a view that RN has dropped
-// is not kept alive by a SurfaceInfo that outlives it (the registry keeps the
-// SurfaceInfo until onDropViewInstance).
+// when a frame is ready, the presenting thread tells a SurfaceView it is
+// animating (AnimationReporter). Holding the view weakly means a view that RN
+// has dropped is not kept alive by a SurfaceInfo that outlives it (the
+// registry keeps the SurfaceInfo until onDropViewInstance).
 struct WeakViewCall {
   jweak view = nullptr;
   jmethodID method = nullptr;
@@ -203,11 +205,52 @@ struct WeakViewCall {
   }
 };
 
+// Tells a SurfaceView it is animating, for its refresh rate vote
+// (WebGPUView.onAnimating), from the frames presented to its surface. A call
+// into Java on the render path costs a JNI transition and the vote's lock, and
+// attaches a presenting thread the JVM doesn't know for the length of the
+// call, so this doesn't call on every frame: only for a frame presented right
+// after its predecessor, and then at most every kReportInterval while the
+// animation goes on. The view takes its vote back once the reports stop.
+class AnimationReporter {
+public:
+  AnimationReporter(JNIEnv *env, jobject view)
+      : _onAnimating(env, view, "onAnimating") {}
+
+  void onFramePresented() {
+    const auto now = std::chrono::steady_clock::now();
+    {
+      std::lock_guard<std::mutex> lock(_mutex);
+      const bool animating = _lastPresent.time_since_epoch().count() != 0 &&
+                             now - _lastPresent <= kAnimatingInterval;
+      _lastPresent = now;
+      if (!animating || (_lastReport.time_since_epoch().count() != 0 &&
+                         now - _lastReport < kReportInterval)) {
+        return;
+      }
+      _lastReport = now;
+    }
+    _onAnimating();
+  }
+
+private:
+  // Presents this close together are an animation (faster than 40 fps).
+  static constexpr auto kAnimatingInterval = std::chrono::milliseconds(25);
+  // Well under SurfaceFrameRateVote.IDLE_AFTER_NANOS, so that the vote holds
+  // while the animation lasts.
+  static constexpr auto kReportInterval = std::chrono::milliseconds(100);
+
+  WeakViewCall _onAnimating;
+  std::mutex _mutex;
+  std::chrono::steady_clock::time_point _lastPresent;
+  std::chrono::steady_clock::time_point _lastReport;
+};
+
 } // namespace
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     JNIEnv *env, jobject thiz, jobject jSurface, jint contextId, jfloat width,
-    jfloat height, jboolean reportPresents) {
+    jfloat height, jboolean reportAnimation) {
   if (manager == nullptr) {
     return;
   }
@@ -228,12 +271,12 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
       surface, [](void *nativeSurface) {
         ANativeWindow_release(static_cast<ANativeWindow *>(nativeSurface));
       });
-  // A SurfaceView asks to hear about each presented frame, for its refresh
-  // rate vote (WebGPUView.onFramePresented).
-  if (reportPresents) {
-    auto reporter =
-        std::make_shared<WeakViewCall>(env, thiz, "onFramePresented");
-    info->setFramePresentedCallback([reporter]() { (*reporter)(); });
+  // A SurfaceView asks to hear when it animates, for its refresh rate vote
+  // (WebGPUView.onAnimating).
+  if (reportAnimation) {
+    auto reporter = std::make_shared<AnimationReporter>(env, thiz);
+    info->setFramePresentedCallback(
+        [reporter]() { reporter->onFramePresented(); });
   } else {
     info->setFramePresentedCallback(nullptr);
   }

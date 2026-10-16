@@ -24,39 +24,34 @@ import androidx.annotation.Nullable;
  * drops back to a few redraws a second: a layer with a vote counts as active
  * for SurfaceFlinger even when it no longer draws.
  *
- * attach() and detach() run on the main thread with the surface callbacks;
- * onFramePresented() runs on whichever thread presents (the JS thread, the
- * Reanimated UI runtime or a worklet runtime), so the state is locked.
+ * attach(), detach() and the vote itself run on the main thread, where the
+ * view's display can be read; onAnimating() runs on whichever thread presents
+ * (the JS thread, the Reanimated UI runtime or a worklet runtime), so the
+ * state is locked.
  */
 final class SurfaceFrameRateVote {
   private static final String TAG = "SurfaceFrameRateVote";
 
-  // Presents this close together are an animation (faster than 40 fps). The
-  // threshold is absolute rather than relative to the current refresh rate,
-  // so that a canvas that only manages 60 fps at 120 Hz keeps its vote rather
-  // than oscillating between the two rates. A canvas that redraws a few times
-  // a second never votes.
-  private static final long ANIMATING_INTERVAL_NANOS = 25_000_000L;
-
-  // The vote is taken back once the canvas has not animated (no two presents
-  // within ANIMATING_INTERVAL_NANOS) for this long. Measured from the last
-  // back-to-back present rather than the last present, so that a canvas that
-  // slows down to a few redraws a second lets the vote lapse like one that
-  // stops drawing.
+  // The vote is taken back once the canvas has not animated for this long,
+  // whether it stops drawing or drops back to a few redraws a second. Native
+  // code decides what animating means (presents faster than 40 fps, see
+  // AnimationReporter in cpp-adapter.cpp) and reports it at least every 100
+  // ms while it lasts. The threshold is absolute rather than relative to the
+  // current refresh rate, so that a canvas that only manages 60 fps at 120 Hz
+  // keeps its vote rather than oscillating between the two rates. A canvas
+  // that redraws a few times a second never votes.
   private static final long IDLE_AFTER_NANOS = 500_000_000L;
 
   private final View mView;
   private final Handler mHandler = new Handler(Looper.getMainLooper());
+  private final Runnable mVote = this::vote;
   private final Runnable mIdleCheck = this::checkIdle;
 
   @Nullable
   private Surface mSurface;
   private boolean mVoting = false;
-  private boolean mIdleCheckPending = false;
-  // 0 before the first present on the surface.
-  private long mLastPresentNanos = 0;
-  // The last present that followed its predecessor within
-  // ANIMATING_INTERVAL_NANOS; 0 until the first.
+  private boolean mVotePending = false;
+  // The last time native code reported the canvas animating; 0 until then.
   private long mLastAnimatingNanos = 0;
 
   /** The view the surface belongs to; its display decides the rate to ask for. */
@@ -73,22 +68,15 @@ final class SurfaceFrameRateVote {
     mSurface = surface;
   }
 
-  /** A frame was presented on the surface. Any thread. */
-  synchronized void onFramePresented() {
+  /** The canvas is animating (presenting frames back to back). Any thread. */
+  synchronized void onAnimating() {
     if (mSurface == null) {
       return;
     }
-    long now = System.nanoTime();
-    boolean animating = mLastPresentNanos != 0 && now - mLastPresentNanos <= ANIMATING_INTERVAL_NANOS;
-    mLastPresentNanos = now;
-    if (animating) {
-      mLastAnimatingNanos = now;
-      if (!mVoting) {
-        vote();
-      }
-    }
-    if (mVoting && !mIdleCheckPending) {
-      scheduleIdleCheck(IDLE_AFTER_NANOS);
+    mLastAnimatingNanos = System.nanoTime();
+    if (!mVoting && !mVotePending) {
+      mVotePending = true;
+      mHandler.post(mVote);
     }
   }
 
@@ -98,14 +86,18 @@ final class SurfaceFrameRateVote {
       return;
     }
     withdraw();
+    mHandler.removeCallbacks(mVote);
     mHandler.removeCallbacks(mIdleCheck);
-    mIdleCheckPending = false;
-    mLastPresentNanos = 0;
+    mVotePending = false;
     mLastAnimatingNanos = 0;
     mSurface = null;
   }
 
-  private void vote() {
+  private synchronized void vote() {
+    mVotePending = false;
+    if (mSurface == null || mVoting) {
+      return;
+    }
     float refreshRate = resolveMaxRefreshRate();
     if (refreshRate <= 0 || !mSurface.isValid()) {
       return;
@@ -113,9 +105,10 @@ final class SurfaceFrameRateVote {
     try {
       // This form only switches when the display can do so seamlessly, like
       // the vote the window casts for its own views: a canvas animation is
-      // not worth a blank screen. Surface.setFrameRate is thread-safe.
+      // not worth a blank screen.
       mSurface.setFrameRate(refreshRate, Surface.FRAME_RATE_COMPATIBILITY_DEFAULT);
       mVoting = true;
+      scheduleIdleCheck(IDLE_AFTER_NANOS);
     } catch (RuntimeException e) {
       Log.w(TAG, "Could not vote the refresh rate, leaving it to the display", e);
       detach();
@@ -138,12 +131,10 @@ final class SurfaceFrameRateVote {
   }
 
   private void scheduleIdleCheck(long delayNanos) {
-    mIdleCheckPending = true;
     mHandler.postDelayed(mIdleCheck, (delayNanos + 999_999) / 1_000_000);
   }
 
   private synchronized void checkIdle() {
-    mIdleCheckPending = false;
     if (!mVoting) {
       return;
     }
