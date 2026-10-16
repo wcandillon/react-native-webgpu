@@ -8,6 +8,9 @@ describe("Native canvas context", () => {
     const result = await client.eval(({ device, gpu }) => {
       // The harness uses a JS offscreen polyfill; exercise the native context.
       const ctx = RNWebGPU.MakeWebGPUCanvasContext(-1, 16, 16);
+      if (ctx === null) {
+        throw new Error("native returned no canvas context");
+      }
       ctx.configure({ device, format: gpu.getPreferredCanvasFormat() });
       try {
         const texture = ctx.getCurrentTexture();
@@ -37,9 +40,15 @@ describe("Native canvas context", () => {
     const result = await client.eval(({ device, gpu }) => {
       const config = { device, format: gpu.getPreferredCanvasFormat() };
       const kept = RNWebGPU.MakeWebGPUCanvasContext(-2, 16, 16);
+      if (kept === null) {
+        throw new Error("native returned no canvas context");
+      }
       kept.configure(config);
       RNWebGPU.destroyContext(-2);
       const next = RNWebGPU.MakeWebGPUCanvasContext(-2, 16, 16);
+      if (next === null) {
+        throw new Error("native returned no canvas context");
+      }
       next.configure(config);
       try {
         const texture = next.getCurrentTexture();
@@ -63,6 +72,9 @@ describe("Native canvas context", () => {
       const result = await client.eval(
         ({ device, gpu, operation: transition }) => {
           const ctx = RNWebGPU.MakeWebGPUCanvasContext(-1, 16, 16);
+          if (ctx === null) {
+            throw new Error("native returned no canvas context");
+          }
           const config = { device, format: gpu.getPreferredCanvasFormat() };
           ctx.configure(config);
           try {
