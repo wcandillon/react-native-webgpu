@@ -165,7 +165,7 @@ On Android, `ignore_imported_ahardwarebuffer_vulkan_image_size` is enabled by de
 
 ## implicitDeviceSynchronization
 
-By default, `requestDevice()` enables the `implicit-device-synchronization` feature, which lets a device created on the JS thread be used from the UI thread or a dedicated worklet runtime (see [Thread safety](/docs/integrations/worklets#thread-safety)).
+By default, `requestDevice()` enables Dawn's [`implicit-device-synchronization`](https://dawn.googlesource.com/dawn/+/refs/heads/main/docs/dawn/features/implicit_device_synchronization.md) feature, which lets a device created on the JS thread be used from the UI thread or a dedicated worklet runtime (see [Thread safety](/docs/integrations/worklets#thread-safety)).
 
 Set `implicitDeviceSynchronization: false` on the device descriptor to opt out and skip the locking. Only do this for a device that is never touched from another runtime. The flag is a non-standard extension and is ignored on the web.
 
