@@ -15,18 +15,25 @@ function generateContextId() {
 export type AndroidSurfaceType =
   "SurfaceView" | "TextureView" | "HardwareBufferView";
 
+/**
+ * Android-only rendering options. They select the backing view, which is
+ * chosen when the canvas mounts and kept: a later change is ignored (the
+ * native log says so). Remount the canvas, with a `key`, to change it.
+ */
 export interface AndroidCanvasProps {
   /**
-   * Backing view. Defaults to `SurfaceView` when the canvas is opaque and to
-   * `TextureView` otherwise; both composite correctly in React Native
+   * Backing view. Defaults to `SurfaceView` when the canvas mounts opaque and
+   * to `TextureView` otherwise; both composite correctly in React Native
    * stacking order without further flags. `HardwareBufferView` (Android 10+,
    * a plain View that draws each frame's AHardwareBuffer inline with no extra
    * copy) is opt-in and experimental; on older devices it uses `TextureView`.
+   * Read once, at mount.
    */
   surfaceType?: AndroidSurfaceType;
   /**
    * SurfaceView only: composite above every React Native view in the window,
-   * ignoring `zIndex`. Ignored for TextureView. Defaults to false.
+   * ignoring `zIndex`. Ignored for TextureView. Defaults to false. Read once,
+   * at mount.
    */
   zOrderOnTop?: boolean;
 }
@@ -36,9 +43,15 @@ export interface CanvasProps extends ViewProps {
    * Defaults to true. Set to false to alpha-composite the canvas over the
    * views behind it (pair it with `alphaMode: "premultiplied"` and an alpha-0
    * clear color). Android and web only; on iOS `alphaMode` alone controls it.
+   * On Android the backing view is chosen from it when the canvas mounts; a
+   * later change updates that view in place.
    */
   opaque?: boolean;
-  /** Android-only rendering options. Ignored on iOS and web. */
+  /**
+   * Android-only rendering options. They select the backing view, which is
+   * chosen when the canvas mounts and kept: a later change is ignored. Remount
+   * the canvas, with a `key`, to change it. Ignored on iOS and web.
+   */
   android?: AndroidCanvasProps;
   ref?: React.Ref<CanvasRef>;
 }

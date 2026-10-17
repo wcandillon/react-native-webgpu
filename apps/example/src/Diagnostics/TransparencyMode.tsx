@@ -17,10 +17,10 @@ import {
   useDiagnosticLog,
 } from "./surfaceLifecycle";
 
-// Exercises every Android backing-view combination on one mounted Canvas:
-// opaque toggles in place, surfaceType/zOrderOnTop replace the child view and
-// blit the last frame across. Half-transparent red is cleared over a blue
-// stage with a yellow RN overlay on top:
+// Exercises every Android backing-view combination: opaque toggles in place,
+// while the backing view is chosen when the Canvas mounts, so picking another
+// option remounts it (the option is its key). Half-transparent red is cleared
+// over a blue stage with a yellow RN overlay on top:
 // - opaque: solid red, overlay visible.
 // - non-opaque TextureView (default): pink, overlay visible.
 // - non-opaque HardwareBufferView (opt-in, Android 10+): pink, overlay
@@ -64,6 +64,8 @@ export const TransparencyMode = () => {
     everyFrameRef.current = everyFrame;
   }, [everyFrame]);
 
+  // Runs again for each mount of the Canvas: hide/show, and the remount that
+  // picking another option causes.
   useEffect(() => {
     if (!mounted) {
       return;
@@ -96,7 +98,7 @@ export const TransparencyMode = () => {
     return () => {
       running = false;
     };
-  }, [append, mounted]);
+  }, [append, mounted, option]);
 
   return (
     <View style={diagnosticStyles.container}>
@@ -104,8 +106,8 @@ export const TransparencyMode = () => {
         <Text style={diagnosticStyles.description}>
           Half-transparent red over blue. HardwareBufferView and TextureView
           keep the yellow RN overlay visible. A SurfaceView on top blends over
-          it. Options update the same mounted Canvas; use hide/show to test a
-          fresh mount.
+          it. Picking an option remounts the Canvas with that backing view;
+          opaque updates it in place. Use hide/show to test a fresh mount.
         </Text>
         <View style={styles.buttons}>
           {OPTIONS.map((value) => (
@@ -141,6 +143,7 @@ export const TransparencyMode = () => {
       <View style={styles.stage}>
         {mounted && (
           <Canvas
+            key={option.label}
             ref={ref}
             style={diagnosticStyles.canvas}
             opaque={opaque}

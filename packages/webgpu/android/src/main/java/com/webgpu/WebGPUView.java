@@ -2,6 +2,7 @@ package com.webgpu;
 
 import android.content.Context;
 import android.os.Build;
+import android.util.Log;
 import android.view.Surface;
 import android.view.View;
 
@@ -10,6 +11,7 @@ import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.views.view.ReactViewGroup;
 
 public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
+  private static final String TAG = "WebGPUView";
 
   // Backing view kinds, see updateView().
   private static final int KIND_SURFACE_VIEW = 0;
@@ -17,12 +19,15 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   private static final int KIND_HARDWARE_BUFFER_VIEW = 2;
 
   private int mContextId;
+  // Props. Only opaque is applied in place; the others are read once, when
+  // the backing view is created (see updateView()).
   private boolean mOpaque = true;
   private String mSurfaceType = "auto";
   private boolean mZOrderOnTop = false;
-  private int mAppliedKind = -1;
-  private boolean mAppliedZOrderOnTop;
+  // The kind the backing view was created with; -1 before it exists.
+  private int mKind = -1;
   private WebGPUModule mModule;
+  // The backing view, created by the first prop transaction and kept.
   private View mView = null;
   // Only a SurfaceView votes: a TextureView or HardwareBufferView is
   // composited into the window, which votes for it.
@@ -56,11 +61,31 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   public void setSurfaceType(String value) {
+    if (ignoredOnceMounted("android.surfaceType")) {
+      return;
+    }
     mSurfaceType = value;
   }
 
   public void setZOrderOnTop(boolean value) {
+    if (ignoredOnceMounted("android.zOrderOnTop")) {
+      return;
+    }
     mZOrderOnTop = value;
+  }
+
+  // The backing view is chosen from the props of the first transaction and
+  // kept (see updateView()). React calls a setter again only when its prop
+  // changed, so a call after that is a change, which is ignored: a canvas
+  // that needs another backing view is remounted (given a new key).
+  private boolean ignoredOnceMounted(String prop) {
+    if (mView == null) {
+      return false;
+    }
+    Log.w(TAG, prop + " changed on a mounted canvas and is ignored: the backing view"
+        + " is chosen when the canvas mounts. Remount the canvas (give it a new key)"
+        + " to change it.");
+    return true;
   }
 
   // Resolve the backing view from the props. "auto" picks SurfaceView for an
@@ -84,41 +109,43 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   // Apply the complete prop transaction once, after contextId and all rendering
-  // options have arrived. Only a change of backing view (or of zOrderOnTop,
-  // which a SurfaceView must know before it attaches) replaces the child;
-  // opacity is applied in place.
+  // options have arrived. The first one creates the backing view, which is
+  // then kept: a SurfaceView must know zOrderOnTop before it attaches, and
+  // replacing a backing view on screen hands the canvas from one view to
+  // another, which no release of Android does without a frame of nothing, or
+  // of black, in between (the two views are composited by different frames).
+  // A canvas that needs another backing view is remounted instead. Opacity is
+  // applied in place; WebGPUHardwareBufferView always composites with alpha,
+  // so there it is a no-op.
   public void updateView() {
+    if (mView != null) {
+      if (mKind == KIND_TEXTURE_VIEW) {
+        ((WebGPUTextureView) mView).setOpaque(mOpaque);
+      } else if (mKind == KIND_SURFACE_VIEW) {
+        ((WebGPUSurfaceView) mView).setOpaque(mOpaque);
+      }
+      return;
+    }
     int kind = resolveKind();
     boolean zOrderOnTop = kind == KIND_SURFACE_VIEW && mZOrderOnTop;
-    if (mView == null || kind != mAppliedKind || zOrderOnTop != mAppliedZOrderOnTop) {
-      if (mView != null) {
-        removeView(mView);
-      }
-      mAppliedKind = kind;
-      mAppliedZOrderOnTop = zOrderOnTop;
-      Context ctx = getContext();
-      switch (kind) {
-        case KIND_HARDWARE_BUFFER_VIEW:
-          mView = new WebGPUHardwareBufferView(ctx, this);
-          break;
-        case KIND_TEXTURE_VIEW:
-          mView = new WebGPUTextureView(ctx, this, mOpaque);
-          break;
-        default:
-          mView = new WebGPUSurfaceView(ctx, this, zOrderOnTop, mOpaque);
-          break;
-      }
-      addView(mView);
-      // ReactViewGroup.requestLayout() is a deliberate no-op, so addView outside
-      // the layout pass never lays the child out; do it by hand or the new view
-      // stays 0x0 and never gets a surface.
-      layoutChild();
-    } else if (kind == KIND_TEXTURE_VIEW) {
-      ((WebGPUTextureView) mView).setOpaque(mOpaque);
-    } else if (kind == KIND_SURFACE_VIEW) {
-      ((WebGPUSurfaceView) mView).setOpaque(mOpaque);
+    mKind = kind;
+    Context ctx = getContext();
+    switch (kind) {
+      case KIND_HARDWARE_BUFFER_VIEW:
+        mView = new WebGPUHardwareBufferView(ctx, this);
+        break;
+      case KIND_TEXTURE_VIEW:
+        mView = new WebGPUTextureView(ctx, this, mOpaque);
+        break;
+      default:
+        mView = new WebGPUSurfaceView(ctx, this, zOrderOnTop, mOpaque);
+        break;
     }
-    // WebGPUHardwareBufferView always composites with alpha; opacity is a no-op.
+    addView(mView);
+    // ReactViewGroup.requestLayout() is a deliberate no-op, so addView outside
+    // the layout pass never lays the child out; do it by hand or the new view
+    // stays 0x0 and never gets a surface.
+    layoutChild();
   }
 
   private void layoutChild() {
@@ -138,7 +165,7 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     float density = getResources().getDisplayMetrics().density;
     float width = getWidth() / density;
     float height = getHeight() / density;
-    boolean votesFrameRate = mAppliedKind == KIND_SURFACE_VIEW;
+    boolean votesFrameRate = mKind == KIND_SURFACE_VIEW;
     if (votesFrameRate) {
       mFrameRateVote.attach(surface);
     }

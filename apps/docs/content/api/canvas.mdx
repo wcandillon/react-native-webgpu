@@ -226,9 +226,22 @@ Requesting it on a device below API 29 silently uses `TextureView`.
 
 `opaque` applies to whichever view is selected: on a `SurfaceView` it picks
 `PixelFormat.OPAQUE` or `PixelFormat.TRANSLUCENT`, on a `TextureView` it calls
-`setOpaque`, and a `HardwareBufferView` always composites with alpha. Changing
-`opaque` at runtime updates the view in place; changing `surfaceType` or
-`zOrderOnTop` replaces the backing view.
+`setOpaque`, and a `HardwareBufferView` always composites with alpha.
+
+The backing view is chosen when the canvas mounts, from `opaque`,
+`surfaceType` and `zOrderOnTop` as they are then, and kept for as long as the
+canvas is mounted. Changing `opaque` afterwards updates the view in place (a
+canvas mounted opaque on the default `SurfaceView` stays on it, see the note
+below); a change of `surfaceType` or `zOrderOnTop` is ignored, and the native
+log says so. Android cannot hand a canvas from one backing view to another
+without a frame of nothing, or of black, in between, so a canvas that needs
+another backing view is remounted instead: give it a `key` that changes with
+these props.
+
+```tsx
+// The backing view is chosen at mount: a canvas that switches it remounts
+<Canvas key={surfaceType} android={{ surfaceType }} />
+```
 
 The defaults composite correctly in React Native stacking order without
 further flags. Set `surfaceType` when you need a different trade-off:
