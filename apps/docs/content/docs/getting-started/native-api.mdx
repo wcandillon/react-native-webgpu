@@ -10,36 +10,9 @@ The most substantial differences live on the [Canvas](/docs/getting-started/canv
 
 ## Threading model
 
-react-native-webgpu can drive WebGPU from more than one JavaScript runtime: the main JS runtime, the UI thread, and dedicated worklet runtimes (createWorkletRuntime / scheduleOnRuntime, or a Vision Camera frame processor). Running off the JS thread is powered by [React Native Worklets](https://github.com/margelo/react-native-worklets); Reanimated is not required.
-This module also works well with [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/) and lets you run complex Three.js scenes on the UI thread or dedicated worklet threads.
+You can run WebGPU code on the main JS thread, on the UI thread, or on a dedicated worklet runtime (`createWorkletRuntime`, or a Vision Camera frame processor). Running off the JS thread is powered by [React Native Worklets](https://github.com/margelo/react-native-worklets); Reanimated is not required. It also works with Worklets' [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/), which lets you run complex Three.js scenes off the JS thread.
 
-You can run WebGPU code on the main thread, on the [Worklets](/docs/integrations/worklets) UI thread, or on a dedicated worklet thread. The API is symmetric across all threads, so you can run your rendering loop wherever you want.
-
-<Callout type="warn" title="device.lost and uncapturederror">
-`device.lost` and `uncapturederror` are only delivered on the **main JS runtime**. This is usually fine because the GPU device is typically created on the main JS thread and then sent to the UI or a dedicated worklet thread. If you create the device outside the main JS thread, those events won't fire.
-</Callout>
-
-See [Worklets](/docs/integrations/worklets) for the full UI-thread integration guide.
-In a Worklet, call `installWebGPU()` to install the WebGPU API on that thread.
-
-### Implicit device synchronization
-
-Dawn's native API is not thread-safe on its own. To make the "create the device on the JS thread, render from a worklet" pattern safe, `requestDevice()` enables Dawn's [`implicit-device-synchronization`](https://dawn.googlesource.com/dawn/+/refs/heads/main/docs/dawn/features/implicit_device_synchronization.md) feature by default. It guards the device and its child objects (buffers, textures, queue, pipelines) with a per-device mutex, so one device can be used from several runtimes.
-
-This is coarse-grained locking, not a license for arbitrary concurrency. Command encoding is excluded from the synchronization, so never share a `GPUCommandEncoder` across threads, and keep a given canvas context on a single runtime.
-The feature is reported in `device.features`, and it can be disabled per device with the non-standard `implicitDeviceSynchronization` descriptor flag when the device is only ever used from one thread:
-
-```tsx twoslash
-import type { RNCanvasContext } from "react-native-webgpu";
-declare const adapter: GPUAdapter;
-// ---cut---
-// Single-thread only: never hand this device to a worklet runtime.
-const device = await adapter.requestDevice({
-  implicitDeviceSynchronization: false,
-});
-```
-
-See [Native Extensions](/api/gpu-device-extensions#implicitdevicesynchronization) for details.
+The API is the same on every thread. The typical pattern is to create the device on the main JS thread and hand it to a worklet, where you call [`installWebGPU()`](/api/install-webgpu) once to install the WebGPU globals on that runtime:
 
 ```tsx
 import { installWebGPU } from "react-native-webgpu";
@@ -55,6 +28,14 @@ const renderFrame = (device: GPUDevice, context: GPUCanvasContext) => {
   // ... render and present on this thread ...
 };
 ```
+
+A device can be used from several threads, with two rules: never share a command encoder across threads, and drive each canvas context from a single runtime. See [Thread safety](/docs/integrations/worklets#thread-safety).
+
+<Callout type="warn" title="device.lost and uncapturederror">
+`device.lost` and `uncapturederror` are only delivered on the **main JS runtime**. This is usually fine because the GPU device is typically created on the main JS thread and then sent to the UI or a dedicated worklet thread. If you create the device outside the main JS thread, those events won't fire.
+</Callout>
+
+See [Worklets](/docs/integrations/worklets) for the full integration guide.
 
 ## Loading images
 
