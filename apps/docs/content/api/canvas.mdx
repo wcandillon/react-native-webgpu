@@ -122,156 +122,63 @@ Steps in order:
 3. Call `ref.current.getContext("webgpu")` and `context.configure({ device, format, alphaMode })`.
 4. Each frame: encode passes → `device.queue.submit()` → **`context.present()`**.
 
-See [Canvas](/docs/getting-started/canvas) for the frame loop and [Learn WebGPU](/docs/getting-started/learn-webgpu) for a step-by-step walkthrough.
+See [Canvas](/docs/getting-started/canvas) for a walkthrough of the frame loop, pixel density and transparency.
 
 ## Presenting frames
 
-On the Web, the browser swaps your rendered frame to the screen automatically when you submit GPU commands. In React Native there is no automatic swap: presentation is a manual step. After you submit your commands to the queue, call `present()` on the context to display the frame.
-
-```tsx twoslash
-import type { RNCanvasContext } from "react-native-webgpu";
-declare const device: GPUDevice;
-declare const encoder: GPUCommandEncoder;
-declare const context: RNCanvasContext;
-// ---cut---
-device.queue.submit([encoder.finish()]);
-context.present(); // React Native only
-```
-
-`present()` is a React Native only method (it is not part of the Web WebGPU spec). It runs **synchronously** on the calling thread, so the frame is presented from whichever thread did the rendering. This works the same on every runtime: the main JS runtime, the UI thread, and dedicated worklet runtimes (`createWorkletRuntime` / `scheduleOnRuntime`, or a Vision Camera frame processor).
-
-Always call `present()` after `submit()`, never before. See [Frame presentations](/docs/getting-started/canvas#frame-presentations) for the full frame loop and [Native APIs](/docs/getting-started/native-api#threading-model) for threading details.
+Call `context.present()` after every `device.queue.submit()` to display the frame: unlike the Web, React Native does not swap the frame to the screen for you. `present()` is not part of the WebGPU spec. It runs synchronously on the calling thread, and works the same on the main JS runtime, the UI thread and dedicated worklet runtimes. See [Frame presentations](/docs/getting-started/canvas#frame-presentations).
 
 ## Pixel density
 
-Just like on the Web, a canvas has two independent sizes:
-
-- `clientWidth` / `clientHeight` are the on-screen (layout) size in logical points. They follow the view's layout and update automatically when it resizes.
-- `width` / `height` are the drawing-buffer size in physical pixels. This is the resolution WebGPU actually renders at.
-
-The drawing buffer is **not** scaled to the device pixel ratio by default, exactly as on the Web. To render crisply on high-density screens, set the buffer size to the layout size multiplied by the pixel ratio. `PixelRatio.get()` is the React Native equivalent of `window.devicePixelRatio`.
-
-```tsx twoslash
-import { PixelRatio } from "react-native";
-import type { RNCanvasContext } from "react-native-webgpu";
-declare const context: RNCanvasContext;
-// ---cut---
-const canvas = context.canvas as HTMLCanvasElement;
-canvas.width = canvas.clientWidth * PixelRatio.get();
-canvas.height = canvas.clientHeight * PixelRatio.get();
-```
-
-Because `clientWidth` / `clientHeight` track layout, recompute the buffer size whenever they change (for example on rotation or a resize). See [Pixel density](/docs/getting-started/canvas#pixel-density) for a resize-aware render loop.
+As on the Web, `clientWidth` / `clientHeight` are the layout size in points and track the view's layout, while `width` / `height` are the drawing-buffer size in pixels. The buffer is not scaled to the pixel ratio by default: set it to the layout size times `PixelRatio.get()`, and again whenever the layout changes. See [Pixel density](/docs/getting-started/canvas#pixel-density).
 
 ## Transparent compositing
 
-To render the canvas over the React Native views beneath it, you control transparency from two places, and you normally set both:
-
-- **`opaque={false}`** on `<Canvas>` makes the underlying native surface translucent so the views behind it show through.
-- **`alphaMode: "premultiplied"`** on `context.configure`, together with a clear color whose alpha is `0`, makes WebGPU produce a transparent frame.
-
-```tsx
-<Canvas ref={ref} style={StyleSheet.absoluteFill} opaque={false} />
-```
-
-The [Usage](#usage) example above wires up both: `opaque={false}`, `alphaMode: "premultiplied"`, and a `clearValue` of `[0, 0, 0, 0]`.
-
-**Platform note:** on Android the `alphaMode` passed to `configure()` is ignored, so the Android backing view controls surface transparency and `opaque` is what selects it. On iOS `alphaMode` alone controls it and `opaque` is ignored. Setting `opaque={false}` together with `alphaMode: "premultiplied"` and an alpha-`0` clear color gives you the same result on both platforms.
+To show the views behind the canvas, set `opaque={false}` on `<Canvas>`, configure the context with `alphaMode: "premultiplied"`, and clear with an alpha of `0`, as the [Usage](#usage) example does. On Android, `opaque` controls transparency and `alphaMode` is ignored; on iOS it is the other way around. Setting all three gives the same result on both platforms.
 
 ### Android rendering options
 
-Android has no single view type that is both cheap and composited like a
-regular view, so `Canvas` can be backed by one of three native views. The
-`android` prop selects it; it is ignored on iOS and web.
+On Android, `Canvas` can be backed by one of three native views, with different trade-offs between speed and how well the canvas composites with the views around it. The defaults are right for most apps; the `android` prop selects one explicitly. It is ignored on iOS and web.
 
 | Option | Type | Effect |
 | --- | --- | --- |
 | `surfaceType` | `"SurfaceView" \| "TextureView" \| "HardwareBufferView"` | Backing view. Defaults to `SurfaceView` when `opaque` and to `TextureView` otherwise. `HardwareBufferView` is opt-in and needs Android 10 (API 29) |
-| `zOrderOnTop` | `boolean` | `SurfaceView` only: `setZOrderOnTop`, composites above every React Native view in the window. Defaults to `false` |
-
-**`SurfaceView`** is the default for an opaque canvas and the fastest path.
-The frame goes straight to the system compositor as its own layer, with no
-extra copy and no involvement of the React Native view hierarchy. The price is
-that it is not really view content: it punches a hole through the window, so
-parent transforms, clipping, rounded corners, and z-ordering with sibling views
-do not apply to it. Use it whenever the canvas is a plain opaque rectangle.
-On an adaptive display (Android 11 and later) the canvas asks for the
-display's highest refresh rate while it animates, as the window does for
-regular views, and lets the rate drop again once the animation stops.
-
-**`TextureView`** is the default for a non-opaque canvas. It is a regular
-Android view: frames go through a `SurfaceTexture` that the UI toolkit samples
-as an external texture when it draws the view, so parent transforms, clipping,
-alpha, and z-order all apply and the canvas can be composited over other React
-Native views. That routing costs an extra texture copy and typically a frame of
-latency, and it can stall during some view animations. It works on every
-supported Android version.
-
-**`HardwareBufferView`** is an opt-in, experimental alternative to
-`TextureView` for the non-opaque case, available on Android 10 (API 29) and
-above. It is also a regular view, so it composites exactly like `TextureView`,
-but WebGPU renders into an `AHardwareBuffer` that the UI toolkit draws inline,
-with no `SurfaceTexture` and no extra copy. It is designed to have lower
-latency than `TextureView` while keeping the same compositing behavior; that
-gain has not been measured yet, which is one reason it is not the default.
-Requesting it on a device below API 29 silently uses `TextureView`.
+| `zOrderOnTop` | `boolean` | `SurfaceView` only: draws the canvas above every React Native view in the window. Defaults to `false` |
 
 | | `SurfaceView` | `TextureView` | `HardwareBufferView` |
 | --- | --- | --- | --- |
 | Minimum Android | 8 (API 26) | 8 (API 26) | 10 (API 29) |
-| Composited like a regular view | no | yes | yes |
-| Extra copy | none | one | none |
-| Expected latency | lowest | highest | between the two (unmeasured) |
-| Selected when | `opaque` (default) | `opaque={false}` (default) | `surfaceType: "HardwareBufferView"` |
+| Behaves like a regular view | no | yes | yes |
+| Latency | lowest | highest | in between |
+| Status | default when `opaque` | default when `opaque={false}` | experimental, opt-in |
 
-`opaque` applies to whichever view is selected: on a `SurfaceView` it picks
-`PixelFormat.OPAQUE` or `PixelFormat.TRANSLUCENT`, on a `TextureView` it calls
-`setOpaque`, and a `HardwareBufferView` always composites with alpha.
+**`SurfaceView`** is the fastest option, and the default for an opaque canvas. It is not regular view content, though: parent transforms, clipping, rounded corners and z-ordering with sibling views do not apply to it. Use it whenever the canvas is a plain opaque rectangle.
 
-The backing view is chosen when the canvas mounts, from `opaque`,
-`surfaceType` and `zOrderOnTop` as they are then, and kept for as long as the
-canvas is mounted. Changing `opaque` afterwards updates the view in place (a
-canvas mounted opaque on the default `SurfaceView` stays on it, see the note
-below), and so does changing `zOrderOnTop` on Android 11 and later; a change
-of `surfaceType` is ignored, and a warning says so in development. Android
-cannot hand a canvas from one backing view to another without a frame of
-nothing, or of black, in between, so a canvas that needs another backing view
-is remounted instead: give it a `key` that changes with these props.
+**`TextureView`** is a regular view, so transforms, clipping, alpha and z-order all apply, and the canvas can be composited over other React Native views. The cost is an extra copy, typically a frame of latency, and occasional stalls during some view animations.
+
+**`HardwareBufferView`** composites like a `TextureView`, with lower latency. It is experimental: if the device cannot allocate the buffers the canvas shows nothing instead of falling back, and some devices may show a stale or torn frame. Test it on your target devices, and drop the `surfaceType` to go back to `TextureView`. Below Android 10 it uses `TextureView`.
+
+The backing view is chosen when the canvas mounts and kept while it is mounted. Changing `opaque` (and `zOrderOnTop` on Android 11 and later) updates it in place, but a change of `surfaceType` is ignored, with a warning in development. To switch backing views, remount the canvas with a `key`:
 
 ```tsx
 // The backing view is chosen at mount: a canvas that switches it remounts
 <Canvas key={surfaceType} android={{ surfaceType }} />
 ```
 
-The defaults composite correctly in React Native stacking order without
-further flags. Set `surfaceType` when you need a different trade-off:
+Some combinations for other trade-offs:
 
 ```tsx
 // Opaque TextureView: stays in stacking order, e.g. inside a ScrollView
 <Canvas android={{ surfaceType: "TextureView" }} />
 
-// Translucent SurfaceView above every React Native view, no composition pass
+// Translucent SurfaceView above every React Native view
 <Canvas opaque={false} android={{ surfaceType: "SurfaceView", zOrderOnTop: true }} />
 
 // Translucent HardwareBufferView, opt-in (uses TextureView before Android 10)
 <Canvas opaque={false} android={{ surfaceType: "HardwareBufferView" }} />
 ```
 
-Two things to know before opting into `HardwareBufferView`. If the device
-cannot allocate or import the buffer, the canvas shows nothing rather than
-falling back to `TextureView`; test on your target devices. And a stale or
-torn frame can show up on some devices, since the view has no signal for when
-the compositor is done reading a buffer. If either happens, drop the
-`surfaceType` to get `TextureView` back. The plan is to make
-`HardwareBufferView` the non-opaque default once it falls back to `TextureView`
-at runtime and its latency advantage is measured.
-
-A non-opaque `SurfaceView` without `zOrderOnTop` sits below the app window, so
-its alpha blends against the window background (usually black) and the React
-Native views beneath it are punched out. Pair it with `zOrderOnTop` to
-composite over React Native content, or use one of the two view-based
-backends. `zOrderOnTop` draws above all React Native views in the window,
-including navigation screens, regardless of `zIndex`.
+A translucent `SurfaceView` without `zOrderOnTop` blends against the window background (usually black) instead of the React Native views beneath it. Pair it with `zOrderOnTop`, or use one of the two view-based options. Note that `zOrderOnTop` draws above all React Native views in the window, including navigation screens, regardless of `zIndex`.
 
 ## See also
 
