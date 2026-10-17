@@ -85,8 +85,6 @@ for (const { fence: done, signaledValue } of fences) {
 
 `destroy()` releases a fence and its native handle right away rather than when the object is garbage collected. An exported handle is a duplicate, so it stays valid; using the fence afterwards is a validation error, and `export()` then throws.
 
-See [SharedFence.spec.ts](https://github.com/wcandillon/react-native-webgpu/blob/main/packages/webgpu/src/__tests__/SharedFence.spec.ts) for a full producer/consumer example.
-
 ## createNativeBufferExternalTexture / createNativeBufferTexture
 
 A decoder or a camera cycles through the same few buffers, but `importExternalTexture()` imports the buffer again on every frame.
@@ -161,13 +159,13 @@ const device = await adapter.requestDevice({
 
 <auto-type-table path="../../../../packages/webgpu/src/types.ts" name="GPUDawnTogglesDescriptor" />
 
-On Android, `ignore_imported_ahardwarebuffer_vulkan_image_size` is enabled by default: the size check it skips rejects valid buffers on some drivers and on the emulator. Pass it in `disabledToggles` to restore the check.
+On Android, the `ignore_imported_ahardwarebuffer_vulkan_image_size` toggle is enabled by default, so native buffers import on every driver. Pass it in `disabledToggles` to turn it off.
 
 ## implicitDeviceSynchronization
 
-Dawn's [`implicit-device-synchronization`](https://dawn.googlesource.com/dawn/+/refs/heads/main/docs/dawn/features/implicit_device_synchronization.md) feature is requested by default by `requestDevice()`, so a device created on the JS thread can be used from the UI thread or a dedicated worklet runtime (see [Threading model](/docs/getting-started/native-api#threading-model)). Dawn wraps the device and child-object entry points in a per-device mutex; command encoding is not covered, so a `GPUCommandEncoder` must stay on the thread that created it.
+By default, `requestDevice()` enables Dawn's [`implicit-device-synchronization`](https://dawn.googlesource.com/dawn/+/refs/heads/main/docs/dawn/features/implicit_device_synchronization.md) feature, which lets a device created on the JS thread be used from the UI thread or a dedicated worklet runtime (see [Thread safety](/docs/integrations/worklets#thread-safety)).
 
-Set `implicitDeviceSynchronization: false` on the device descriptor to opt out and skip the per-call locking. Only do this for a device that is never touched from another runtime. The flag is a non-standard extension and is ignored on the web.
+Set `implicitDeviceSynchronization: false` on the device descriptor to opt out and skip the locking. Only do this for a device that is never touched from another runtime. The flag is a non-standard extension and is ignored on the web.
 
 ```tsx twoslash
 import type { RNCanvasContext } from "react-native-webgpu";
