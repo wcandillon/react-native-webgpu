@@ -29,14 +29,25 @@ const constants = {
 const gpu: GPU | undefined =
   typeof RNWebGPU === "undefined" ? undefined : RNWebGPU.gpu;
 
+// The native half of the worklet serializer (see registerWebGPUForReanimated),
+// read from the main runtime like `gpu` above and captured into the worklet
+// closure: worklets hands a HostObject to every runtime by reference, so it is
+// callable on the target runtime without installing anything there. Its
+// installConstructors() installs the WebGPU class constructors on the runtime
+// that calls it. Undefined on web and node, where the native module is not
+// installed.
+const helpers = globalThis.__webgpuWorkletHelpers;
+
 /**
  * Install WebGPU on the runtime that calls it.
  *
  * The native module sets up WebGPU on the main JS runtime, but worklet
  * runtimes (Reanimated UI, dedicated worklet runtimes, Vision Camera frame
- * processors) start without it: `navigator.gpu` and the flag constants
+ * processors) start without it: `navigator.gpu`, the flag constants
  * (`GPUBufferUsage`, `GPUTextureUsage`, `GPUShaderStage`, `GPUColorWrite`,
- * `GPUMapMode`) are all `undefined` there.
+ * `GPUMapMode`) and the class constructors (`GPUBuffer`, `GPUTexture`,
+ * `GPURenderBundleEncoder`, ...) are all `undefined` there. Without the
+ * constructors, `instanceof` against a WebGPU class throws a ReferenceError.
  *
  * Call `installWebGPU()` once at the top of a worklet to make them available:
  *
@@ -65,12 +76,13 @@ const gpu: GPU | undefined =
  *   Observe those on a device created on the main JS thread.
  *
  * Everything is captured into the worklet by closure: the constants like a
- * shader string would be, and the GPU object through the Worklets custom
+ * shader string would be, the GPU object through the Worklets custom
  * serializer, which installs the native prototypes on the target runtime when
- * it crosses. Promises returned by `requestAdapter`/`requestDevice` settle on
- * the calling runtime (each runtime gets its own async pump). Calling it on a
- * runtime that already has the globals (e.g. the main JS runtime) is a safe
- * no-op.
+ * it crosses, and the native helper that installs the class constructors,
+ * which worklets hands to every runtime by reference. Promises returned by
+ * `requestAdapter`/`requestDevice` settle on the calling runtime (each
+ * runtime gets its own async pump). Calling it on a runtime that already has
+ * the globals (e.g. the main JS runtime) is a safe no-op.
  */
 export const installWebGPU = () => {
   "worklet";
@@ -87,5 +99,12 @@ export const installWebGPU = () => {
     } else if (nav.gpu === undefined) {
       nav.gpu = gpu;
     }
+  }
+  // The class constructors, so `instanceof` works against any WebGPU class on
+  // this runtime (three.js checks `pass instanceof GPURenderBundleEncoder` on
+  // every render, for instance). Unboxing an object installs only its own
+  // class; this installs the rest and skips the ones already there.
+  if (helpers !== undefined) {
+    helpers.installConstructors();
   }
 };

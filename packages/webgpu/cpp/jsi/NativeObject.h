@@ -179,6 +179,14 @@ private:
  *   getters and Proxy traps of unrelated objects never run.
  * - box(value): wraps the object into a BoxedWebGPUObject, branded with its
  *   class name, for unbox() on the target runtime.
+ * - installConstructors(): installs the constructor of every WebGPU class on
+ *   the calling runtime, skipping the ones already there, so `instanceof`
+ *   works against any class on that runtime, including classes no object of
+ *   which was ever created there or crossed into it (unboxing installs only
+ *   the class of the object that crosses). installWebGPU() calls it. The
+ *   class list belongs to the API layer (RNWebGPUManager::installConstructors)
+ *   and is handed in at construction: every API class includes this header,
+ *   which therefore cannot include them back.
  *
  * One instance is installed on the main runtime as
  * globalThis.__webgpuWorkletHelpers and captured by the serializer's
@@ -189,8 +197,26 @@ private:
  */
 class WebGPUWorkletHelpers : public jsi::HostObject {
 public:
+  using InstallConstructors = void (*)(jsi::Runtime &);
+
+  explicit WebGPUWorkletHelpers(InstallConstructors installConstructors)
+      : _installConstructors(installConstructors) {}
+
   jsi::Value get(jsi::Runtime &runtime, const jsi::PropNameID &name) override {
     auto propName = name.utf8(runtime);
+    if (propName == "installConstructors") {
+      auto install = _installConstructors;
+      return jsi::Function::createFromHostFunction(
+          runtime, name, 0,
+          [install](jsi::Runtime &rt, const jsi::Value & /*thisVal*/,
+                    const jsi::Value * /*args*/,
+                    size_t /*count*/) -> jsi::Value {
+            if (install != nullptr) {
+              install(rt);
+            }
+            return jsi::Value::undefined();
+          });
+    }
     if (propName == "isNativeObject") {
       return jsi::Function::createFromHostFunction(
           runtime, name, 1,
@@ -230,11 +256,15 @@ public:
   std::vector<jsi::PropNameID>
   getPropertyNames(jsi::Runtime &runtime) override {
     std::vector<jsi::PropNameID> names;
-    names.reserve(2);
+    names.reserve(3);
     names.push_back(jsi::PropNameID::forUtf8(runtime, "isNativeObject"));
     names.push_back(jsi::PropNameID::forUtf8(runtime, "box"));
+    names.push_back(jsi::PropNameID::forUtf8(runtime, "installConstructors"));
     return names;
   }
+
+private:
+  InstallConstructors _installConstructors;
 };
 
 /**
@@ -378,6 +408,9 @@ public:
    * The constructor throws if called directly (these objects are only
    * created internally by the native code).
    *
+   * Idempotent per runtime: once the global exists there, later calls return
+   * without touching it, so the constructor object keeps its identity.
+   *
    * Also registers this class with NativeObjectRegistry so that
    * BoxedWebGPUObject::unbox() can rebuild its objects on secondary runtimes.
    */
@@ -394,10 +427,9 @@ public:
             if (instance == nullptr) {
               throw jsi::JSError(rt, "Invalid boxed native object state");
             }
-            // The constructor makes `instanceof` work on this runtime too.
-            if (!rt.global().hasProperty(rt, Derived::CLASS_NAME)) {
-              Derived::installConstructor(rt);
-            }
+            // The constructor makes `instanceof` work on this runtime too
+            // (a no-op once it is installed there).
+            Derived::installConstructor(rt);
             // Unboxing hands back the wrapper cached for the target runtime,
             // creating it on first use. Keep the runtime the object was
             // originally created on: async native code (GPUDevice error/lost
@@ -414,6 +446,14 @@ public:
     });
 
     installPrototype(runtime);
+
+    // Once per runtime. installWebGPU() runs this at the top of every worklet
+    // invocation, and reinstalling would replace the global with a new
+    // function object each time (`const C = GPUBuffer; C === GPUBuffer`
+    // would be false).
+    if (runtime.global().hasProperty(runtime, Derived::CLASS_NAME)) {
+      return;
+    }
 
     auto *prototype = getCachedPrototype(runtime);
     if (prototype == nullptr) {
