@@ -1,10 +1,10 @@
 ---
 title: installWebGPU
-description: Install navigator.gpu, the WebGPU flag constants and the WebGPU class constructors on a worklet runtime.
+description: Install the WebGPU globals on a worklet runtime.
 ---
 
-On a worklet runtime, `navigator.gpu`, the WebGPU flag constants and the WebGPU class constructors are not available by default.
-Call `installWebGPU()` once at the top of a worklet to install the needed globals for that runtime: `navigator.gpu`, the flags `GPUBufferUsage`, `GPUTextureUsage`, `GPUShaderStage`, `GPUColorWrite` and `GPUMapMode`, and the class constructors (`GPUBuffer`, `GPUTexture`, `GPURenderPassEncoder`, ...) so that `instanceof` checks work there, including the ones libraries such as three.js make on every frame.
+Worklet runtimes start without the WebGPU globals: `navigator.gpu`, the flag constants such as `GPUBufferUsage`, and the WebGPU classes used by `instanceof` checks.
+Call `installWebGPU()` once at the top of a worklet to install them for that runtime.
 
 On the main JS thread these are already installed when the native module loads; calling `installWebGPU()` there is a safe no-op.
 
