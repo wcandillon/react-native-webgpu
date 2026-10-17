@@ -1,4 +1,10 @@
-import { checkImage, client, encodeImage, fixtureUrl } from "./setup";
+import {
+  checkImage,
+  client,
+  encodeImage,
+  fixtureUrl,
+  isNativeApp,
+} from "./setup";
 
 // createImageBitmap options beyond premultiplyAlpha (which is covered by
 // ImageBitmapAlpha.spec.ts): the crop-rect overload, resizeWidth/resizeHeight,
@@ -138,10 +144,9 @@ describe("createImageBitmap options", () => {
       cropRect ?? null,
       options ?? null,
     );
-    const isReference = client.OS === "web" || client.OS === "node";
     checkImage(
       encodeImage(result),
-      isReference ? referenceSnapshot : identitySnapshot,
+      isNativeApp() ? identitySnapshot : referenceSnapshot,
     );
   });
 
@@ -155,7 +160,7 @@ describe("createImageBitmap options", () => {
   // (CoreGraphics, device RGB) decode paths; these cases are skipped there
   // until that behavior is measured on-device and pinned down.
   it("colorSpaceConversion none returns raw pixel values", async () => {
-    if (client.OS !== "web" && client.OS !== "node") {
+    if (isNativeApp()) {
       return;
     }
     const result = await runCase("p3-gradient.png", null, {

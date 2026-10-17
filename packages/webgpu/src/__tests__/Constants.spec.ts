@@ -1,4 +1,4 @@
-import { client } from "./setup";
+import { client, isNativeApp } from "./setup";
 
 describe("WebGPUConstants", () => {
   it("GPUBufferUsage", async () => {
@@ -67,7 +67,7 @@ describe("WebGPUConstants", () => {
   // the web and node runners read the flags of the browser and of the `webgpu`
   // package.
   it("exports the flags installed by the native module", async () => {
-    if (client.OS !== "ios" && client.OS !== "android") {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ exportedFlags }) => {

@@ -1,4 +1,4 @@
-import { client } from "./setup";
+import { client, isNativeApp } from "./setup";
 
 // The harness mounts a 64x64pt probe view made of four solid quadrants
 // (apps/example/src/Tests.tsx): red top-left, lime top-right, blue
@@ -18,11 +18,9 @@ const expectColor = (actual: number[], expected: RGBA, tolerance = 3) => {
   });
 };
 
-const nativeOnly = () => client.OS === "ios" || client.OS === "android";
-
 describe("drawElementImageToTexture", () => {
   it("draws a native view at its natural pixel size", async () => {
-    if (!nativeOnly()) {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ device, views }) => {
@@ -75,7 +73,7 @@ describe("drawElementImageToTexture", () => {
   });
 
   it("scales the view to destination.size and honours origin", async () => {
-    if (!nativeOnly()) {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ device, views }) => {
@@ -143,7 +141,7 @@ describe("drawElementImageToTexture", () => {
   });
 
   it("crops to the source rectangle and swizzles into bgra8unorm", async () => {
-    if (!nativeOnly()) {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ device, views }) => {
@@ -208,7 +206,7 @@ describe("drawElementImageToTexture", () => {
   // into the texture on the GPU instead of reading the pixels back; the result
   // must be the same.
   it("draws into a renderable texture", async () => {
-    if (!nativeOnly()) {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ device, views }) => {
@@ -264,7 +262,7 @@ describe("drawElementImageToTexture", () => {
   });
 
   it("draws a region of a renderable bgra8unorm texture and leaves the rest", async () => {
-    if (!nativeOnly()) {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ device, views }) => {
@@ -336,7 +334,7 @@ describe("drawElementImageToTexture", () => {
   // afterScreenUpdates: false draws the last committed frame on iOS (it is
   // ignored on Android); the probe is static, so the pixels are the same.
   it("draws the last committed frame when afterScreenUpdates is false", async () => {
-    if (!nativeOnly()) {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ device, views }) => {
@@ -395,7 +393,7 @@ describe("drawElementImageToTexture", () => {
   });
 
   it("rejects when the natural size does not fit the texture", async () => {
-    if (!nativeOnly()) {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ device, views }) => {
@@ -415,7 +413,7 @@ describe("drawElementImageToTexture", () => {
   });
 
   it("rejects an unknown view and an unsupported format", async () => {
-    if (!nativeOnly()) {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ device }) => {
