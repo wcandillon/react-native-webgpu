@@ -1,15 +1,30 @@
 import { useEffect, useState } from "react";
-import { Image } from "react-native";
+import { Image, Platform } from "react-native";
 import "react-native-webgpu";
 
+import { android } from "../../app.json";
+
+// react-native-test-app's application id: app.json's android.package, else its default.
+const androidPackage =
+  "package" in android && typeof android.package === "string"
+    ? android.package
+    : "com.microsoft.reacttestapp";
+
+// Without Metro, an Android build names a bundled image by its drawable resource name, with no scheme.
+export const resolveImageUrl = (mod: number) => {
+  const { uri } = Image.resolveAssetSource(mod);
+  return Platform.OS === "android" && !uri.includes(":")
+    ? `android.resource://${androidPackage}/drawable/${uri}`
+    : uri;
+};
+
 export const fetchAsset = async (mod: number) => {
-  const response = await fetch(Image.resolveAssetSource(mod).uri);
+  const response = await fetch(resolveImageUrl(mod));
   return response;
 };
 
 export const decodeImage = async (mod: number) => {
-  const { uri } = Image.resolveAssetSource(mod);
-  const response = await fetch(uri);
+  const response = await fetch(resolveImageUrl(mod));
   const blob = await response.blob();
   const image = await createImageBitmap(blob);
   return image;
@@ -24,14 +39,36 @@ export interface AssetProps {
   };
 }
 
+type ImageLoad =
+  | { readonly status: "loading" }
+  | { readonly status: "loaded"; readonly image: ImageBitmap }
+  | { readonly status: "failed"; readonly error: unknown };
+
 const useImageData = (mod: number) => {
-  const [imageData, setImageData] = useState<ImageBitmap | null>(null);
+  const [load, setLoad] = useState<ImageLoad>({ status: "loading" });
   useEffect(() => {
-    (async () => {
-      setImageData(await decodeImage(mod));
-    })();
+    let active = true;
+    decodeImage(mod).then(
+      (image) => {
+        if (active) {
+          setLoad({ status: "loaded", image });
+        }
+      },
+      (error: unknown) => {
+        if (active) {
+          setLoad({ status: "failed", error });
+        }
+      },
+    );
+    return () => {
+      active = false;
+    };
   }, [mod]);
-  return imageData;
+  // Thrown while rendering, so a failed load reaches the error screen instead of a blank one.
+  if (load.status === "failed") {
+    throw load.error;
+  }
+  return load.status === "loaded" ? load.image : null;
 };
 
 export const useAssets = () => {

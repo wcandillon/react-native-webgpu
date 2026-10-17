@@ -3,7 +3,6 @@ import {
   Dimensions,
   Text,
   View,
-  Image,
   PixelRatio,
   findNodeHandle,
 } from "react-native";
@@ -22,6 +21,7 @@ import { mat4, vec3, mat3 } from "wgpu-matrix";
 import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
+import { resolveImageUrl } from "./components/useAssets";
 import type { AssetProps } from "./components/useAssets";
 import { Texture } from "./components/Texture";
 import { workletDeviceStress } from "./components/workletDeviceStress";
@@ -110,8 +110,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                 gpu: navigator.gpu,
                 device,
                 urls: {
-                  fTexture: Image.resolveAssetSource(require("./assets/f.png"))
-                    .uri,
+                  fTexture: resolveImageUrl(require("./assets/f.png")),
                 },
                 assets: {
                   cubeVertexArray,
