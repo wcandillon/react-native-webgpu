@@ -53,12 +53,11 @@ scheduleOnUI(renderFrame, device, context);
 
 ## Thread safety
 
-The pattern above (create the device on the JS thread, render from a worklet runtime) works because `requestDevice()` enables Dawn's [`implicit-device-synchronization`](https://dawn.googlesource.com/dawn/+/refs/heads/main/docs/dawn/features/implicit_device_synchronization.md) feature by default, which guards the device and its child objects (buffers, textures, queue, pipelines) with a per-device mutex.
+The pattern above (create the device on the JS thread, render from a worklet runtime) is safe: `requestDevice()` enables Dawn's [`implicit-device-synchronization`](https://dawn.googlesource.com/dawn/+/refs/heads/main/docs/dawn/features/implicit_device_synchronization.md) feature by default, so a device and its resources (buffers, textures, pipelines, the queue) can be used from several threads. Prefer a clear ownership model all the same, setting resources up on one thread and rendering on another, and follow two rules:
 
-This makes the handoff safe, but it is coarse-grained locking, not a license for arbitrary concurrency. Prefer a clear ownership model: set resources up on one thread, render on another, and keep simultaneous use of the same device from several threads to a minimum. In particular:
-
-- **Never share a command encoder across threads.** Command encoding is explicitly excluded from the implicit synchronization; create the `GPUCommandEncoder` (and its pass encoders) on the thread that uses it.
+- **Never share a command encoder across threads.** Create the `GPUCommandEncoder` (and its pass encoders) on the thread that uses it.
 - **Don't drive the same canvas context from two threads.** Keep `configure()`, `getCurrentTexture()`, and `present()` for a given context on a single runtime.
-- Dawn describes this feature as heavy-handed and notes that some reentrancy cases may still deadlock, so treat heavy cross-thread churn on one device as unsupported territory.
 
-For completeness, the default can be disabled with `implicitDeviceSynchronization: false` on the device descriptor (a non-standard extension, ignored on the web). This is only for profiling or single-threaded setups; a device created this way must never be touched from a worklet runtime.
+Dawn's synchronization is coarse-grained, so heavy simultaneous use of one device from many threads is not a supported use case: keep cross-thread traffic to handoffs.
+
+A device that is only ever used from one thread can skip the synchronization with [`implicitDeviceSynchronization: false`](/api/gpu-device-extensions#implicitdevicesynchronization). Such a device must never be touched from a worklet runtime.
