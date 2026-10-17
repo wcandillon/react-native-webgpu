@@ -111,6 +111,37 @@ describe("Worklet serialization", () => {
     });
   });
 
+  it("installs every class constructor on a worklet runtime", async () => {
+    // Issue #564: three.js checks `pass instanceof GPURenderBundleEncoder` on
+    // every render. Unboxing installs only the classes of the objects that
+    // cross, so a class nothing ever instantiated on the runtime had no
+    // global there and the check threw a ReferenceError.
+    const result = await client.eval<
+      Record<string, unknown>,
+      {
+        renderBundleEncoder: string;
+        passIsComputePassEncoder: boolean;
+        passIsRenderBundleEncoder: boolean;
+        stableIdentity: boolean;
+        error?: string;
+      } | null
+    >(({ device, workletSerialization }) => {
+      if (!workletSerialization) {
+        return null;
+      }
+      return workletSerialization.installsConstructors(device);
+    });
+    if (result === null) {
+      return;
+    }
+    expect(result).toEqual({
+      renderBundleEncoder: "function",
+      passIsComputePassEncoder: true,
+      passIsRenderBundleEncoder: false,
+      stableIdentity: true,
+    });
+  });
+
   it("leaves an object inheriting from a WebGPU prototype to worklets", async () => {
     const result = await client.eval<
       Record<string, unknown>,

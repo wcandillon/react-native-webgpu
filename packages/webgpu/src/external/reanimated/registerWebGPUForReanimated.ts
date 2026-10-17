@@ -10,6 +10,10 @@ interface WebGPUWorkletHelpers {
   // WebGPU prototype are rejected, and no JS property is ever read.
   isNativeObject: (value: unknown) => boolean;
   box: (value: object) => BoxedWebGPUObject;
+  // Installs the constructor of every WebGPU class on the calling runtime,
+  // skipping the ones already there. installWebGPU() calls it so `instanceof`
+  // works on worklet runtimes.
+  installConstructors: () => void;
 }
 
 interface BoxedWebGPUObject {
