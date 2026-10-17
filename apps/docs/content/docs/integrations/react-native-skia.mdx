@@ -1,20 +1,20 @@
 ---
 title: React Native Skia
-description: Share the GPU device and textures with Skia's Graphite renderer.
+description: Share one Dawn, its GPU device and textures with Skia's Graphite renderer.
 ---
 
 react-native-webgpu and [`react-native-skia`](https://wcandillon.github.io/react-native-skia/) work alongside each other nicely.
 
-Starting with v3, react-native-skia renders with Graphite, on top of the same WebGPU implementation as react-native-webgpu, and the two packages share it:
+Starting with v3, react-native-skia renders with Graphite, on top of [Dawn](https://dawn.googlesource.com/dawn), the same WebGPU implementation react-native-webgpu is built on, and the two packages share it:
 
-- **One GPU, shared.** Skia's device and every device you create through `navigator.gpu` live side by side, so devices and textures can move between the two libraries without a copy.
+- **One Dawn, shared.** The app contains a single copy of Dawn. Skia's device and every device you create through `navigator.gpu` live side by side, so devices and textures can move between the two libraries without a copy.
 - **The WebGPU API lives here.** react-native-skia does not install `navigator.gpu` or any WebGPU JS API. If you want to write WebGPU code in an app that uses Skia, install react-native-webgpu alongside it.
 
 With react-native-skia v2 (published as `@shopify/react-native-skia` up to 2.14) there is no coupling at all: any version of either package can be installed together, and they simply don't interact.
 
 ## Compatibility
 
-Because the two packages share their GPU implementation, react-native-skia v3 and react-native-webgpu must be installed at matching versions. Pick one row and install versions from it:
+Because the two packages share Dawn, react-native-skia v3 and react-native-webgpu must be built against the same Dawn release, which means installing them at matching versions. Pick one row and install versions from it:
 
 | react-native-webgpu | react-native-skia |
 | --- | --- |
@@ -23,9 +23,9 @@ Because the two packages share their GPU implementation, react-native-skia v3 an
 | 0.12.1 | 3.0.6 to 3.0.8, or 3.1.0 and later |
 | 0.10.0 to 0.11.2 | 3.0.0 to 3.0.5 |
 
-If the versions don't match, the native build fails with a `Dawn version mismatch` error rather than misbehaving at runtime. Make sure a single version of `react-native-webgpu-dawn` is installed (`npm ls react-native-webgpu-dawn`, or `yarn why react-native-webgpu-dawn`): both packages depend on it.
+If the versions don't match, the native build fails with a `Dawn version mismatch` error rather than misbehaving at runtime. Both packages get Dawn from the `react-native-webgpu-dawn` npm package: make sure a single version of it is installed (`npm ls react-native-webgpu-dawn`, or `yarn why react-native-webgpu-dawn`).
 
-The Graphite previews of v2 (`@shopify/react-native-skia@next`) follow the same rule. Regular v2 releases work alongside any version of react-native-webgpu.
+The Graphite previews of v2 (`@shopify/react-native-skia@next`) follow the same rule. Regular v2 releases don't use Dawn, so they work alongside any version of react-native-webgpu.
 
 ## Rendering with Skia's device
 
@@ -47,7 +47,7 @@ A few things to know:
 - **Lifetime.** The device is owned by Skia's Graphite context and is valid for the lifetime of the process. `importDevice` takes its own reference.
 - **Device loss.** Skia treats the loss of its device as fatal. Treat an imported device accordingly: there is no point requesting a replacement from `navigator.gpu` on loss.
 - **You can still create your own devices.** `navigator.gpu.requestAdapter()` and `requestDevice()` work as usual; they coexist with Skia's device. Use a dedicated device when you want your GPU work isolated from Skia's command queue.
-- **Threading.** The imported device follows the same [threading model](/docs/getting-started/native-api#threading-model) as any other device. Skia submits its own work on the same device concurrently; access is synchronized for you.
+- **Threading.** The imported device follows the same [threading model](/docs/getting-started/native-api#threading-model) as any other device. Skia submits its own work on the same device concurrently; Dawn synchronizes device access for you.
 
 ## Zero-copy texture sharing
 
