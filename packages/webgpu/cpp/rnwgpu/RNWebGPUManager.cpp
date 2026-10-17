@@ -87,45 +87,7 @@ RNWebGPUManager::RNWebGPUManager(
                                    RNWebGPU::create(*_jsRuntime, rnWebGPU));
 
   // Install constructors for instanceof support
-  GPU::installConstructor(*_jsRuntime);
-  GPUAdapter::installConstructor(*_jsRuntime);
-  GPUAdapterInfo::installConstructor(*_jsRuntime);
-  GPUBindGroup::installConstructor(*_jsRuntime);
-  GPUBindGroupLayout::installConstructor(*_jsRuntime);
-  GPUBuffer::installConstructor(*_jsRuntime);
-  GPUCanvasContext::installConstructor(*_jsRuntime);
-  GPUCommandBuffer::installConstructor(*_jsRuntime);
-  GPUCommandEncoder::installConstructor(*_jsRuntime);
-  GPUCompilationInfo::installConstructor(*_jsRuntime);
-  GPUCompilationMessage::installConstructor(*_jsRuntime);
-  GPUComputePassEncoder::installConstructor(*_jsRuntime);
-  GPUComputePipeline::installConstructor(*_jsRuntime);
-  GPUDevice::installConstructor(*_jsRuntime);
-  GPUDeviceLostInfo::installConstructor(*_jsRuntime);
-  GPUError::installConstructor(*_jsRuntime);
-  GPUExternalTexture::installConstructor(*_jsRuntime);
-  GPUNativeBufferExternalTexture::installConstructor(*_jsRuntime);
-  GPUNativeBufferTexture::installConstructor(*_jsRuntime);
-  GPUInternalError::installConstructor(*_jsRuntime);
-  GPUOutOfMemoryError::installConstructor(*_jsRuntime);
-  GPUValidationError::installConstructor(*_jsRuntime);
-  GPUUncapturedErrorEvent::installConstructor(*_jsRuntime);
-  GPUPipelineLayout::installConstructor(*_jsRuntime);
-  GPUQuerySet::installConstructor(*_jsRuntime);
-  GPUQueue::installConstructor(*_jsRuntime);
-  GPURenderBundle::installConstructor(*_jsRuntime);
-  GPURenderBundleEncoder::installConstructor(*_jsRuntime);
-  GPURenderPassEncoder::installConstructor(*_jsRuntime);
-  GPURenderPipeline::installConstructor(*_jsRuntime);
-  GPUSampler::installConstructor(*_jsRuntime);
-  GPUSharedFence::installConstructor(*_jsRuntime);
-  GPUSharedTextureMemory::installConstructor(*_jsRuntime);
-  GPUShaderModule::installConstructor(*_jsRuntime);
-  GPUSupportedLimits::installConstructor(*_jsRuntime);
-  GPUTexture::installConstructor(*_jsRuntime);
-  GPUTextureView::installConstructor(*_jsRuntime);
-  VideoFrame::installConstructor(*_jsRuntime);
-  VideoPlayer::installConstructor(*_jsRuntime);
+  installConstructors(*_jsRuntime);
 
   // Install constant objects as plain JS objects with own properties
   _jsRuntime->global().setProperty(*_jsRuntime, "GPUBufferUsage",
@@ -144,14 +106,58 @@ RNWebGPUManager::RNWebGPUManager(
   installWebGPUWorkletHelpers(*_jsRuntime);
 }
 
+void RNWebGPUManager::installConstructors(jsi::Runtime &runtime) {
+  GPU::installConstructor(runtime);
+  GPUAdapter::installConstructor(runtime);
+  GPUAdapterInfo::installConstructor(runtime);
+  GPUBindGroup::installConstructor(runtime);
+  GPUBindGroupLayout::installConstructor(runtime);
+  GPUBuffer::installConstructor(runtime);
+  GPUCanvasContext::installConstructor(runtime);
+  GPUCommandBuffer::installConstructor(runtime);
+  GPUCommandEncoder::installConstructor(runtime);
+  GPUCompilationInfo::installConstructor(runtime);
+  GPUCompilationMessage::installConstructor(runtime);
+  GPUComputePassEncoder::installConstructor(runtime);
+  GPUComputePipeline::installConstructor(runtime);
+  GPUDevice::installConstructor(runtime);
+  GPUDeviceLostInfo::installConstructor(runtime);
+  GPUError::installConstructor(runtime);
+  GPUExternalTexture::installConstructor(runtime);
+  GPUNativeBufferExternalTexture::installConstructor(runtime);
+  GPUNativeBufferTexture::installConstructor(runtime);
+  GPUInternalError::installConstructor(runtime);
+  GPUOutOfMemoryError::installConstructor(runtime);
+  GPUValidationError::installConstructor(runtime);
+  GPUUncapturedErrorEvent::installConstructor(runtime);
+  GPUPipelineLayout::installConstructor(runtime);
+  GPUQuerySet::installConstructor(runtime);
+  GPUQueue::installConstructor(runtime);
+  GPURenderBundle::installConstructor(runtime);
+  GPURenderBundleEncoder::installConstructor(runtime);
+  GPURenderPassEncoder::installConstructor(runtime);
+  GPURenderPipeline::installConstructor(runtime);
+  GPUSampler::installConstructor(runtime);
+  GPUSharedFence::installConstructor(runtime);
+  GPUSharedTextureMemory::installConstructor(runtime);
+  GPUShaderModule::installConstructor(runtime);
+  GPUSupportedLimits::installConstructor(runtime);
+  GPUTexture::installConstructor(runtime);
+  GPUTextureView::installConstructor(runtime);
+  VideoFrame::installConstructor(runtime);
+  VideoPlayer::installConstructor(runtime);
+}
+
 void RNWebGPUManager::installWebGPUWorkletHelpers(jsi::Runtime &runtime) {
-  // The serializer worklets capture this object by closure; worklets passes a
-  // HostObject to every runtime by reference, so installing it here, on the
-  // main runtime, is enough (see WebGPUWorkletHelpers).
+  // The serializer worklets and installWebGPU() capture this object by
+  // closure; worklets passes a HostObject to every runtime by reference, so
+  // installing it here, on the main runtime, is enough (see
+  // WebGPUWorkletHelpers).
   runtime.global().setProperty(
       runtime, "__webgpuWorkletHelpers",
       jsi::Object::createFromHostObject(
-          runtime, std::make_shared<WebGPUWorkletHelpers>()));
+          runtime, std::make_shared<WebGPUWorkletHelpers>(
+                       &RNWebGPUManager::installConstructors)));
 }
 
 void RNWebGPUManager::flushPendingSurfaceTransition(

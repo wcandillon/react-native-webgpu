@@ -36,6 +36,16 @@ public:
   static void installWebGPUWorkletHelpers(jsi::Runtime &runtime);
 
   /**
+   * Installs the constructor of every WebGPU API class on `runtime` (see
+   * NativeObject::installConstructor), skipping the ones already there. Runs
+   * on the main runtime at startup and, through
+   * __webgpuWorkletHelpers.installConstructors(), on every runtime that calls
+   * installWebGPU(). RNWebGPU itself is not part of it: that global is the
+   * module instance, main runtime only.
+   */
+  static void installConstructors(jsi::Runtime &runtime);
+
+  /**
    * Applies a surface attach latched by the platform UI thread (see
    * SurfaceInfo::applyPendingAttach) from the JS thread. Surface attaches are
    * normally adopted at the next frame boundary by whichever thread renders;

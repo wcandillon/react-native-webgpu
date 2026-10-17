@@ -69,6 +69,13 @@ interface GPUTestingContext {
     captureForeign: (
       value: object,
     ) => Promise<{ threw: boolean; message: string; typeOnWorklet: string }>;
+    installsConstructors: (device: GPUDevice) => Promise<{
+      renderBundleEncoder: string;
+      passIsComputePassEncoder: boolean;
+      passIsRenderBundleEncoder: boolean;
+      stableIdentity: boolean;
+      error?: string;
+    }>;
   };
   // Native app harness only: the flags as the package exports them
   // (src/constants.ts), next to the globals of the same name.
