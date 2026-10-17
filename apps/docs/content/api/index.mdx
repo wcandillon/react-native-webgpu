@@ -36,6 +36,10 @@ This section documents only the additions that are specific to React Native, the
 
 - [`Canvas`](/api/canvas): the React component that gives you a WebGPU rendering surface.
 - [`GPUDeviceProvider`](/api/gpu-device-provider): provides a `GPUDevice` to your component tree.
-- [`installWebGPU`](/api/install-webgpu): installs the WebGPU globals on a worklet runtime.
 - [`warnIfNotHardwareAccelerated`](/api/warn-if-not-hardware-accelerated): warns when the device falls back to software rendering.
-- [Native Extensions](/api/gpu-device-extensions): React Native specific helpers added to `GPUDevice`.
+- [`installWebGPU`](/api/install-webgpu): installs the WebGPU globals on a worklet runtime.
+- [Native Extensions](/api/gpu-device-extensions): native buffer and frame import, `createImageBitmap`, high bit depth formats, and other additions to the WebGPU globals.
+- [Video Player](/api/video-player): decodes a video into frames the GPU samples without a copy.
+- [`drawElementImageToTexture`](/api/draw-element-image-to-texture): copies the pixels of a React Native view into a `GPUTexture`.
+
+Also covered in the guides: [`GPUOffscreenCanvas`](/docs/getting-started/offscreen-canvas) for headless rendering, and [`importDevice`](/docs/getting-started/native-api#importing-an-external-device) / [`adoptTexture`](/docs/integrations/react-native-skia#zero-copy-texture-sharing) for sharing devices and textures with other libraries.
