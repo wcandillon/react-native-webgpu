@@ -70,7 +70,7 @@ A player can only keep a few frames in flight: release each frame once the GPU w
 <auto-type-table path="../../../../packages/webgpu/src/types.ts" name="NativeVideoFrame" />
 
 `handle` is the raw pointer of the buffer (an `IOSurfaceRef` or an `AHardwareBuffer*`) as a `BigInt`, which `importSharedTextureMemory({ handle })` takes.
-`acquireFenceFd` is, on Android, the sync fd the decoder or the camera signals once it has written the buffer (`null` elsewhere): `importExternalTexture()` waits for it on its own, and a [native buffer wrapper](/api/gpu-device-extensions#createhardwarebufferexternaltexture--createhardwarebuffertexture) takes it through `importSharedFence({ type: "sync-fd", handle })`. The frame owns it: import it before `release()`.
+`acquireFenceFd` is, on Android, the sync fd the decoder or the camera signals once it has written the buffer (`null` elsewhere): `importExternalTexture()` waits for it on its own, and a [native buffer wrapper](/api/gpu-device-extensions#createnativebufferexternaltexture--createnativebuffertexture) takes it through `importSharedFence({ type: "sync-fd", handle })`. The frame owns it: import it before `release()`.
 
 ### Copying a frame into a texture
 
@@ -86,7 +86,7 @@ See [the native frame copy](/api/gpu-device-extensions#copyexternalimagetotextur
 
 ## Other sources
 
-`createVideoFrameFromNativeBuffer(pointer)` wraps a buffer produced by another library (a `CVPixelBufferRef` on Apple platforms, an `AHardwareBuffer*` on Android, for instance VisionCamera's `frame.getNativeBuffer().pointer`) into a `NativeVideoFrame` that keeps it alive until released.
+`createVideoFrameFromNativeBuffer(pointer)` wraps a buffer produced by another library (a `CVPixelBufferRef` on Apple platforms, an `AHardwareBuffer*` on Android, for instance VisionCamera's `frame.getNativeBuffer().pointer`) into a `NativeVideoFrame` that keeps it alive until released. It runs on the JS thread; on a worklet runtime, such as a frame processor, call `RNWebGPU.createVideoFrameFromNativeBuffer(pointer)` instead (see [Vision Camera](/docs/integrations/vision-camera)).
 
 ## Examples
 
