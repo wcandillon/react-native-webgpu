@@ -19,16 +19,18 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   private static final int KIND_HARDWARE_BUFFER_VIEW = 2;
 
   private int mContextId;
-  // Props. Only opaque is applied in place; the others are read once, when
-  // the backing view is created (see updateView()).
+  // Props. opaque is applied in place, and so is zOrderOnTop where Android
+  // allows it (see setZOrderOnTop); surfaceType is read once, when the
+  // backing view is created (see updateView()).
   private boolean mOpaque = true;
   private String mSurfaceType = "auto";
   private boolean mZOrderOnTop = false;
-  // The kind the backing view was created with; -1 before it exists.
-  private int mKind = -1;
   private WebGPUModule mModule;
-  // The backing view, created by the first prop transaction and kept.
+  // The backing view, created by the first prop transaction and kept, with
+  // the kind it was created with. The kind is -1 until then: it is what
+  // tells a mounted canvas apart.
   private View mView = null;
+  private int mKind = -1;
   // Only a SurfaceView votes: a TextureView or HardwareBufferView is
   // composited into the window, which votes for it.
   private final SurfaceFrameRateVote mFrameRateVote = new SurfaceFrameRateVote(
@@ -60,32 +62,52 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     mOpaque = value;
   }
 
+  // The backing view is chosen from the props of the first transaction and
+  // kept (see updateView()). React calls a setter again only when its prop
+  // changed, so a call on a mounted canvas is a change: the setters below
+  // apply it in place where the view can take it, else they ignore it and
+  // say so (a canvas that needs another backing view is remounted, with a
+  // new key). The JS side warns about the same changes in development (see
+  // Canvas.tsx), mirroring these rules.
+
   public void setSurfaceType(String value) {
-    if (ignoredOnceMounted("android.surfaceType")) {
+    if (mKind != -1) {
+      warnIgnoredOnceMounted("android.surfaceType");
       return;
     }
     mSurfaceType = value;
   }
 
   public void setZOrderOnTop(boolean value) {
-    if (ignoredOnceMounted("android.zOrderOnTop")) {
+    if (mKind == -1) {
+      mZOrderOnTop = value;
+      return;
+    }
+    // Only a SurfaceView has a z-order of its own: elsewhere the prop never
+    // applied, and the change is moot.
+    if (mKind != KIND_SURFACE_VIEW) {
+      return;
+    }
+    if (!zOrderChangesInPlace()) {
+      warnIgnoredOnceMounted("android.zOrderOnTop");
       return;
     }
     mZOrderOnTop = value;
+    ((WebGPUSurfaceView) mView).setZOrderOnTop(value);
   }
 
-  // The backing view is chosen from the props of the first transaction and
-  // kept (see updateView()). React calls a setter again only when its prop
-  // changed, so a call after that is a change, which is ignored: a canvas
-  // that needs another backing view is remounted (given a new key).
-  private boolean ignoredOnceMounted(String prop) {
-    if (mView == null) {
-      return false;
-    }
-    Log.w(TAG, prop + " changed on a mounted canvas and is ignored: the backing view"
+  private void warnIgnoredOnceMounted(String prop) {
+    Log.w(TAG, "Ignoring a change of " + prop + " on a mounted canvas: the backing view"
         + " is chosen when the canvas mounts. Remount the canvas (give it a new key)"
         + " to change it.");
-    return true;
+  }
+
+  // SurfaceView.setZOrderOnTop() moves a live surface since Android 11, for
+  // an app targeting it; before that, the surface reads it when it is
+  // created (see updateView()).
+  private boolean zOrderChangesInPlace() {
+    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+        && getContext().getApplicationInfo().targetSdkVersion >= Build.VERSION_CODES.R;
   }
 
   // Resolve the backing view from the props. "auto" picks SurfaceView for an
@@ -110,15 +132,16 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   // Apply the complete prop transaction once, after contextId and all rendering
   // options have arrived. The first one creates the backing view, which is
-  // then kept: a SurfaceView must know zOrderOnTop before it attaches, and
-  // replacing a backing view on screen hands the canvas from one view to
-  // another, which no release of Android does without a frame of nothing, or
-  // of black, in between (the two views are composited by different frames).
-  // A canvas that needs another backing view is remounted instead. Opacity is
-  // applied in place; WebGPUHardwareBufferView always composites with alpha,
-  // so there it is a no-op.
+  // then kept: a SurfaceView must know its z-order before it attaches (before
+  // Android 11), and replacing a backing view on screen hands the canvas from
+  // one view to another, which no release of Android does without a frame of
+  // nothing, or of black, in between (the two views are composited by
+  // different frames). A canvas that needs another backing view is remounted
+  // instead. Later transactions apply the opacity in place (the setters decide
+  // what else is taken); WebGPUHardwareBufferView always composites with
+  // alpha, so there it is a no-op.
   public void updateView() {
-    if (mView != null) {
+    if (mKind != -1) {
       if (mKind == KIND_TEXTURE_VIEW) {
         ((WebGPUTextureView) mView).setOpaque(mOpaque);
       } else if (mKind == KIND_SURFACE_VIEW) {

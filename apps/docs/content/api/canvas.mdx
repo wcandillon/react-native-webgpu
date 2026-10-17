@@ -232,11 +232,11 @@ The backing view is chosen when the canvas mounts, from `opaque`,
 `surfaceType` and `zOrderOnTop` as they are then, and kept for as long as the
 canvas is mounted. Changing `opaque` afterwards updates the view in place (a
 canvas mounted opaque on the default `SurfaceView` stays on it, see the note
-below); a change of `surfaceType` or `zOrderOnTop` is ignored, and the native
-log says so. Android cannot hand a canvas from one backing view to another
-without a frame of nothing, or of black, in between, so a canvas that needs
-another backing view is remounted instead: give it a `key` that changes with
-these props.
+below), and so does changing `zOrderOnTop` on Android 11 and later; a change
+of `surfaceType` is ignored, and a warning says so in development. Android
+cannot hand a canvas from one backing view to another without a frame of
+nothing, or of black, in between, so a canvas that needs another backing view
+is remounted instead: give it a `key` that changes with these props.
 
 ```tsx
 // The backing view is chosen at mount: a canvas that switches it remounts

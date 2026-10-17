@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Button,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,8 +20,10 @@ import {
 
 // Exercises every Android backing-view combination: opaque toggles in place,
 // while the backing view is chosen when the Canvas mounts, so picking another
-// option remounts it (the option is its key). Half-transparent red is cleared
-// over a blue stage with a yellow RN overlay on top:
+// kind of view remounts it (the kind is its key; zOrderOnTop moves a mounted
+// SurfaceView in place on Android 11 and later, and remounts it before).
+// Half-transparent red is cleared over a blue stage with a yellow RN overlay
+// on top:
 // - opaque: solid red, overlay visible.
 // - non-opaque TextureView (default): pink, overlay visible.
 // - non-opaque HardwareBufferView (opt-in, Android 10+): pink, overlay
@@ -64,8 +67,18 @@ export const TransparencyMode = () => {
     everyFrameRef.current = everyFrame;
   }, [everyFrame]);
 
+  // The kind of backing view the option selects, and the key of the Canvas:
+  // zOrderOnTop is part of it only where it is read at mount.
+  const kind =
+    option.android?.surfaceType ?? (opaque ? "SurfaceView" : "TextureView");
+  const zOrderOnTopAtMount =
+    kind === "SurfaceView" && Number(Platform.Version) < 30;
+  const backingKey = `${option.android?.surfaceType ?? "auto"}-${
+    option.android?.surfaceType ? "" : opaque
+  }-${zOrderOnTopAtMount ? !!option.android?.zOrderOnTop : ""}`;
+
   // Runs again for each mount of the Canvas: hide/show, and the remount that
-  // picking another option causes.
+  // picking another kind of view causes.
   useEffect(() => {
     if (!mounted) {
       return;
@@ -98,7 +111,7 @@ export const TransparencyMode = () => {
     return () => {
       running = false;
     };
-  }, [append, mounted, option]);
+  }, [append, mounted, backingKey]);
 
   return (
     <View style={diagnosticStyles.container}>
@@ -106,8 +119,9 @@ export const TransparencyMode = () => {
         <Text style={diagnosticStyles.description}>
           Half-transparent red over blue. HardwareBufferView and TextureView
           keep the yellow RN overlay visible. A SurfaceView on top blends over
-          it. Picking an option remounts the Canvas with that backing view;
-          opaque updates it in place. Use hide/show to test a fresh mount.
+          it. Picking another kind of view remounts the Canvas; opaque (and, on
+          Android 11 and later, zOrderOnTop) updates it in place. Use hide/show
+          to test a fresh mount.
         </Text>
         <View style={styles.buttons}>
           {OPTIONS.map((value) => (
@@ -143,7 +157,7 @@ export const TransparencyMode = () => {
       <View style={styles.stage}>
         {mounted && (
           <Canvas
-            key={option.label}
+            key={backingKey}
             ref={ref}
             style={diagnosticStyles.canvas}
             opaque={opaque}
