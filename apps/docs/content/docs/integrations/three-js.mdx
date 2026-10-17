@@ -174,7 +174,7 @@ renderer.dispose();
 ```
 
 <Callout type="warn" title="Known leak in three r184">
-Three's `RenderObjects.dispose()` leaves `dispose` listeners of the disposed renderer on a module-level shared `QuadMesh` geometry, which keeps the old backend alive across remounts. Until the upstream fix lands, the [example app](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/ThreeJS/components/makeWebGPURenderer.ts) clears those listeners after `dispose()`. See [issue #445](https://github.com/wcandillon/react-native-webgpu/issues/445).
+A disposed renderer stays in memory across remounts. Until the upstream fix lands, the [example app's `makeWebGPURenderer`](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/ThreeJS/components/makeWebGPURenderer.ts) works around it after `dispose()`. See [issue #445](https://github.com/wcandillon/react-native-webgpu/issues/445).
 </Callout>
 
 ## Loading assets

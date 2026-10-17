@@ -25,3 +25,7 @@ device.queue.submit([encoder.finish()]);
 const pixels = await canvas.getImageData(); // CPU readback
 ```
 
+`getImageData()` copies the canvas texture into a buffer, maps it, and resolves with `{ data, width, height, format }`, where `data` holds 4 bytes per pixel, row by row. Because WebGPU copies rows in multiples of 256 bytes, the canvas `width` must be a multiple of 64.
+
+It is meant for tests, snapshots and one-off exports; to read pixels repeatedly, copy the texture into a reusable `GPUBuffer` of your own with `copyTextureToBuffer`.
+

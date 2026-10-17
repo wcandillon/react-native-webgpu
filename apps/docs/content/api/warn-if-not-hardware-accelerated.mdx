@@ -7,42 +7,15 @@ Checks `adapter.info.isFallbackAdapter` and logs a console warning. Common on An
 
 ## Usage
 
-Call once when the adapter becomes available, typically in a `useEffect`:
+[`useDevice`](/docs/getting-started/react-api#usedevice) and [`GPUDeviceProvider`](/api/gpu-device-provider) already call it for you. Call it yourself when you request the adapter directly:
 
 ```tsx twoslash
-import { useEffect } from "react";
-import { useDevice, warnIfNotHardwareAccelerated } from "react-native-webgpu";
-
-export function Scene() {
-  const { adapter, device } = useDevice();
-
-  useEffect(() => {
-    if (adapter) {
-      warnIfNotHardwareAccelerated(adapter);
-    }
-  }, [adapter]);
-
-  if (!device) return null;
-
-  // configure canvas, build pipelines…
-  return null;
-}
-```
-
-With [`GPUDeviceProvider`](/api/gpu-device-provider), read the adapter from [`useMainDevice`](/api/gpu-device-provider#usemaindevice) the same way:
-
-```tsx twoslash
-import { useEffect } from "react";
-import { useMainDevice, warnIfNotHardwareAccelerated } from "react-native-webgpu";
+import { warnIfNotHardwareAccelerated } from "react-native-webgpu";
 // ---cut---
-function Scene() {
-  const { adapter } = useMainDevice();
-
-  useEffect(() => {
-    if (adapter) warnIfNotHardwareAccelerated(adapter);
-  }, [adapter]);
-
-  return null;
+const adapter = await navigator.gpu.requestAdapter();
+if (adapter) {
+  warnIfNotHardwareAccelerated(adapter);
+  const device = await adapter.requestDevice();
 }
 ```
 
