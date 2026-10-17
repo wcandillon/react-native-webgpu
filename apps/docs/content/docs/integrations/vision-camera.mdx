@@ -54,7 +54,7 @@ React Native WebGPU extends `importExternalTexture` with **`rotation`** and **`m
 
 ## 1. Request a device
 
-Camera frames need native frame import, which `requestDevice()` enables by default whenever the device supports it. Nothing has to be listed:
+Camera frames need Dawn's native frame import, which `requestDevice()` enables by default whenever the adapter supports it. Nothing has to be listed:
 
 ```tsx twoslash
 const adapter = await navigator.gpu.requestAdapter();

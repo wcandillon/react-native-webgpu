@@ -98,15 +98,15 @@ context.configure({ device, format, alphaMode: "opaque" });
 
 ## Native textures
 
-Beyond the standard API, react-native-webgpu can import native pixel buffers, so you can sample camera and video frames without a copy through the CPU:
+Beyond the standard API, react-native-webgpu exposes Dawn's native buffer import, so you can sample camera and video frames without a copy through the CPU:
 
 - **[`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory)** imports a native pixel surface (an `IOSurface`-backed `CVPixelBuffer` on iOS, an `AHardwareBuffer` on Android) as a sampleable `GPUTexture` via `device.importSharedTextureMemory(...)`.
 - **[`importExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions)** is the higher-level path: `device.importExternalTexture(...)` hands you a `GPUExternalTexture` with hardware YUV→RGB color conversion and lifecycle management, plus non-spec `rotation` and `mirrored` options for camera orientation.
 - **[`createVideoPlayer`](/api/video-player)** decodes a video into such frames, with the playback controls of an `HTMLMediaElement`.
 
-Nothing has to be requested: `requestDevice()` enables native frame import whenever the device supports it. On the rare drivers and emulators that cannot import native surfaces, the import throws an error naming what is missing; catch it to degrade.
+Nothing has to be requested: `requestDevice()` enables the Dawn features behind native frame import whenever the adapter supports them. On the rare drivers and emulators that cannot import native surfaces, the import throws an error naming what is missing; catch it to degrade.
 
-A device created by another library and wrapped with [`importDevice()`](#importing-an-external-device) has to request the features itself: `shared-texture-memory-iosurface`, `shared-fence-mtl-shared-event` and `dawn-multi-planar-formats` on Apple platforms; `shared-texture-memory-ahardware-buffer`, `shared-fence-sync-fd` and `opaque-ycbcr-android-for-external-texture` on Android.
+A device created by another library and wrapped with [`importDevice()`](#importing-an-external-device) has to request these Dawn features itself: `shared-texture-memory-iosurface`, `shared-fence-mtl-shared-event` and `dawn-multi-planar-formats` on Apple platforms; `shared-texture-memory-ahardware-buffer`, `shared-fence-sync-fd` and `opaque-ycbcr-android-for-external-texture` on Android.
 
 See [Vision Camera](/docs/integrations/vision-camera) for an end-to-end example applying WGSL effects to live camera frames, and [Native Extensions](/api/gpu-device-extensions) for the full API.
 
@@ -120,7 +120,7 @@ import { importDevice } from "react-native-webgpu";
 const device = importDevice(pointer);
 ```
 
-This only works with a library built against the same WebGPU implementation as react-native-webgpu. The main one is [React Native Skia](/docs/integrations/react-native-skia) (v3 and above).
+This only works with a library that links the same Dawn build as react-native-webgpu. The main one is [React Native Skia](/docs/integrations/react-native-skia) (v3 and above), which shares react-native-webgpu's Dawn.
 
 ## See also
 
