@@ -71,11 +71,12 @@ declare global {
     gpu: GPU;
     fabric: boolean;
     getNativeSurface: (contextId: number) => NativeCanvas;
+    // null on the web, without WebGPU support or once the canvas is gone.
     MakeWebGPUCanvasContext: (
       contextId: number,
       width: number,
       height: number,
-    ) => RNCanvasContext;
+    ) => RNCanvasContext | null;
     // Retires a canvas context; called by Canvas on unmount (the Canvas owns
     // the native registry entry for its contextId).
     destroyContext: (contextId: number) => void;

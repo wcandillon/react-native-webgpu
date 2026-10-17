@@ -1,11 +1,33 @@
+import type { NativeCanvas } from "./types";
 import { contextIdToId } from "./utils";
 
 const fabric = true;
 
-function getNativeSurface(contextId: number) {
-  const canvas = document.getElementById(
+function getCanvasElement(contextId: number) {
+  return document.getElementById(
     contextIdToId(contextId),
-  ) as HTMLCanvasElement;
+  ) as HTMLCanvasElement | null;
+}
+
+// Native's answer for a context it no longer knows (RNWebGPU::getNativeSurface).
+const makeRetiredSurface = (): NativeCanvas => ({
+  surface: BigInt(0),
+  height: 0,
+  width: 0,
+  clientHeight: 0,
+  clientWidth: 0,
+  addEventListener: () => {},
+  removeEventListener: () => {},
+  dispatchEvent: () => {},
+  setPointerCapture: () => {},
+  releasePointerCapture: () => {},
+});
+
+function getNativeSurface(contextId: number): NativeCanvas {
+  const canvas = getCanvasElement(contextId);
+  if (canvas === null) {
+    return makeRetiredSurface();
+  }
 
   // Layout size, like the native view size in dp: unlike
   // getBoundingClientRect() it ignores CSS transforms.
@@ -31,9 +53,10 @@ function makeWebGPUCanvasContext(
   width: number,
   height: number,
 ) {
-  const canvas = document.getElementById(
-    contextIdToId(contextId),
-  ) as HTMLCanvasElement;
+  const canvas = getCanvasElement(contextId);
+  if (canvas === null) {
+    return null;
+  }
 
   const dpr = window.devicePixelRatio || 1;
   const pixelWidth = (width * dpr).toString();
@@ -58,14 +81,16 @@ function makeWebGPUCanvasContext(
   return Object.assign(context, { present: () => {} });
 }
 
-// @ts-expect-error - polyfill for RNWebGPU native module
-window.RNWebGPU = {
+const polyfill: Pick<
+  typeof RNWebGPU,
+  "getNativeSurface" | "MakeWebGPUCanvasContext" | "destroyContext" | "fabric"
+> = {
   getNativeSurface,
-  // Unlike native, this can return null; Canvas.getContext() is typed
-  // `RNCanvasContext | null` and passes it through.
-  MakeWebGPUCanvasContext:
-    makeWebGPUCanvasContext as typeof RNWebGPU.MakeWebGPUCanvasContext,
+  MakeWebGPUCanvasContext: makeWebGPUCanvasContext,
   // On web the browser owns the canvas/context lifecycle; nothing to retire.
   destroyContext: (_contextId: number) => {},
   fabric,
 };
+
+// The web provides these members of the native module and no others.
+window.RNWebGPU = polyfill as typeof RNWebGPU;
