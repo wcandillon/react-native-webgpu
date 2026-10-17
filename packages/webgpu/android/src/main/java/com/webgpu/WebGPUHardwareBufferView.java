@@ -14,6 +14,7 @@ import android.view.View;
 
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import java.util.ArrayDeque;
@@ -39,7 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @RequiresApi(api = Build.VERSION_CODES.Q)
 @SuppressLint("ViewConstructor")
-public class WebGPUHardwareBufferView extends View {
+public class WebGPUHardwareBufferView extends View implements FrameKeeper {
 
   private static final int HELD_MAX = 2; // displayed frames kept before release (release safety)
 
@@ -63,9 +64,14 @@ public class WebGPUHardwareBufferView extends View {
   private int mDisplayedW;
   private int mDisplayedH;
   private int mCurrentGen;
+  // The frame displayed when the view left its window, displayed again once
+  // it is back until the next frame replaces it. Its pool is gone, so nothing
+  // else holds it.
+  @Nullable private Bitmap mKeptFrame;
 
   private boolean mAttached;
   private boolean mEnabled;
+  private boolean mRetired;
 
   public WebGPUHardwareBufferView(Context context, WebGPUAPI api) {
     super(context);
@@ -163,6 +169,7 @@ public class WebGPUHardwareBufferView extends View {
     mDisplayed = bmp;
     mDisplayedW = bmp.getWidth();
     mDisplayedH = bmp.getHeight();
+    releaseKeptFrame();
 
     mHeld.addLast(token);
     while (mHeld.size() > HELD_MAX) {
@@ -242,15 +249,44 @@ public class WebGPUHardwareBufferView extends View {
     // the view for good.
     nSwitchToOffscreen(contextId());
 
-    mDisplayed = null;
     mHeld.clear();
     for (Bitmap b : mBitmaps.values()) {
-      if (!b.isRecycled()) {
+      if (b != mDisplayed && !b.isRecycled()) {
         b.recycle();
       }
     }
     mBitmaps.clear();
     mCurrentGen = 0;
+
+    // Unless the view is retired, the displayed frame is kept, so the view
+    // shows it again when it comes back: its Bitmap holds the buffer, which
+    // the next pool does not reuse.
+    mKeptFrame = mDisplayed;
+    if (mRetired) {
+      releaseKeptFrame();
+    }
+  }
+
+  @Override
+  public void retire() {
+    mRetired = true;
+    if (!mAttached) {
+      releaseKeptFrame();
+    }
+  }
+
+  private void releaseKeptFrame() {
+    Bitmap kept = mKeptFrame;
+    if (kept == null) {
+      return;
+    }
+    mKeptFrame = null;
+    if (kept == mDisplayed) {
+      mDisplayed = null;
+    }
+    if (!kept.isRecycled()) {
+      kept.recycle();
+    }
   }
 
   @Override

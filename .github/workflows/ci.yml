@@ -390,6 +390,12 @@ jobs:
           ORG_GRADLE_PROJECT_reactNativeArchitectures: x86_64
         run: ./gradlew assembleDebug --warning-mode all --stacktrace
 
+      - name: Unit test the Android library
+        working-directory: apps/example/android
+        env:
+          ORG_GRADLE_PROJECT_reactNativeArchitectures: x86_64
+        run: ./gradlew :react-native-webgpu:testDebugUnitTest
+
       # Hardware acceleration for the emulator.
       - name: Enable KVM group perms
         run: |
