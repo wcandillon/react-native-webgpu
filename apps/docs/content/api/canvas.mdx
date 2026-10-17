@@ -194,10 +194,12 @@ The frame goes straight to the system compositor as its own layer, with no
 extra copy and no involvement of the React Native view hierarchy. The price is
 that it is not really view content: it punches a hole through the window, so
 parent transforms, clipping, rounded corners, and z-ordering with sibling views
-do not apply to it. Use it whenever the canvas is a plain opaque rectangle.
-On an adaptive display (Android 11 and later) the canvas asks for the
-display's highest refresh rate while it animates, as the window does for
-regular views, and lets the rate drop again once the animation stops.
+do not apply to it. When the `SurfaceView` gets a surface, the window opens the
+hole once the canvas has presented a frame on it, and shows the views behind
+the canvas until then. Use it whenever the canvas is a plain opaque rectangle.
+On an adaptive display (Android 11 and later) the canvas asks for the display's
+highest refresh rate while it animates, as the window does for regular views,
+and lets the rate drop again once the animation stops.
 
 **`TextureView`** is the default for a non-opaque canvas. It is a regular
 Android view: frames go through a `SurfaceTexture` that the UI toolkit samples
@@ -229,6 +231,12 @@ Requesting it on a device below API 29 silently uses `TextureView`.
 `setOpaque`, and a `HardwareBufferView` always composites with alpha. Changing
 `opaque` at runtime updates the view in place; changing `surfaceType` or
 `zOrderOnTop` replaces the backing view.
+
+A canvas that stops drawing keeps showing its last frame. Android destroys a
+`SurfaceView`'s surface, with its buffers, when the app goes to the background
+or the view leaves its window, so the canvas reads that frame back once as the
+surface goes and shows it on the next one; a `TextureView` keeps its frame in
+the background, and a replaced `TextureView` hands its frame to the new view.
 
 The defaults composite correctly in React Native stacking order without
 further flags. Set `surfaceType` when you need a different trade-off:
