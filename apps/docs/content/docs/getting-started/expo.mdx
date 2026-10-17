@@ -37,7 +37,7 @@ For a walkthrough of the React Three Fiber example, watch the video below.
 
 The plugin configures both native projects:
 
-**iOS:** it disables **Metal API Validation** in the Xcode scheme, which is required to run WebGPU on the **iOS Simulator** (see [Troubleshooting](/docs/getting-started/installation#troubleshooting)). It changes nothing for release builds.
+**iOS:** it disables **Metal API Validation** in the Xcode scheme, which is required to run WebGPU on the **iOS Simulator**, where validation flags false positives in Dawn (see [Troubleshooting](/docs/getting-started/installation#troubleshooting)). It changes nothing for release builds.
 
 **Android:** it raises the app's `minSdkVersion` to 26, the minimum the library supports (Expo's default is 24). A higher value is kept.
 
