@@ -47,7 +47,8 @@ const nativeProps = async (android?: AndroidCanvasProps) => {
 
 describe("AndroidCanvasProps", () => {
   // Without `backingView` the union cannot tell the views apart, so an
-  // option of another view on the default TextureView must not compile.
+  // option of another view on the default TextureView must not compile. Each
+  // constant's declared type is the check, which `yarn tsc` reads.
   it("takes each option on the views that honour it only", () => {
     const textureViewTakesZOrder: {
       opaque: false;
@@ -113,11 +114,15 @@ describe("Canvas's native props", () => {
   });
 
   // The generated string-enum parser aborts on a value it does not know.
-  it("give a value no view takes the default view", async () => {
-    const unknown = await nativeProps(
-      untyped({ backingView: "SurfaceControl" }),
-    );
-    expect(unknown).toEqual(await nativeProps());
+  it("give a value no view takes the default view, with the opacity it asks for", async () => {
+    expect(
+      await nativeProps(untyped({ backingView: "SurfaceControl" })),
+    ).toEqual(await nativeProps());
+    expect(
+      await nativeProps(
+        untyped({ backingView: "SurfaceControl", opaque: true }),
+      ),
+    ).toEqual(await nativeProps({ opaque: true }));
   });
 
   it("are the same on every render of the same props", async () => {
@@ -137,10 +142,29 @@ describe("Canvas's native props", () => {
 });
 
 describe("Canvas's warnings at mount", () => {
-  it("say when the z-order options reach a view that ignores them", async () => {
-    await render(<Canvas android={untyped({ zOrderOnTop: true })} />);
+  it.each<[string, object]>([
+    ["the default TextureView", { zOrderOnTop: true }],
+    [
+      "a HardwareBufferView",
+      { backingView: "HardwareBufferView", zOrderMediaOverlay: true },
+    ],
+  ])(
+    "say when the z-order options reach %s, which ignores them",
+    async (_view, android) => {
+      await render(<Canvas android={untyped(android)} />);
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0][0]).toContain("only apply to a SurfaceView");
+    },
+  );
+
+  it("say when backingView names a view the canvas does not know", async () => {
+    await render(
+      <Canvas android={untyped({ backingView: "SurfaceControl" })} />,
+    );
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0][0]).toContain("only apply to a SurfaceView");
+    expect(warn.mock.calls[0][0]).toContain(
+      'android.backingView: "SurfaceControl" is not a view',
+    );
   });
 
   it("say when a HardwareBufferView falls back below Android 10", async () => {
@@ -187,21 +211,21 @@ describe("Canvas's warnings about a change", () => {
   // SurfaceView moves a live surface on a changed zOrderOnTop from Android
   // 11, and on a changed zOrderMediaOverlay only from Android 14: up to
   // Android 13 the media overlay sublayer is read when the surface is created.
-  it.each<[number, boolean, boolean]>([
-    [29, true, true],
-    [30, false, true],
-    [33, false, true],
-    [34, false, false],
+  it.each<[number, boolean]>([
+    [29, true],
+    [30, false],
+    [33, false],
+    [34, false],
   ])(
-    "on API %i, say that zOrderOnTop is ignored: %s, zOrderMediaOverlay: %s",
-    async (version, onTopIgnored, mediaOverlayIgnored) => {
+    "on API %i, say that zOrderOnTop is ignored: %s",
+    async (version, ignored) => {
       runOn("android", version);
       await changeOnMountedSurfaceView({
         backingView: "SurfaceView",
         zOrderOnTop: true,
       });
       expect(warnings()).toEqual(
-        onTopIgnored
+        ignored
           ? [
               expect.stringContaining(
                 "Ignoring a change of android.zOrderOnTop",
@@ -209,13 +233,24 @@ describe("Canvas's warnings about a change", () => {
             ]
           : [],
       );
-      warn.mockClear();
+    },
+  );
+
+  it.each<[number, boolean]>([
+    [29, true],
+    [30, true],
+    [33, true],
+    [34, false],
+  ])(
+    "on API %i, say that zOrderMediaOverlay is ignored: %s",
+    async (version, ignored) => {
+      runOn("android", version);
       await changeOnMountedSurfaceView({
         backingView: "SurfaceView",
         zOrderMediaOverlay: true,
       });
       expect(warnings()).toEqual(
-        mediaOverlayIgnored
+        ignored
           ? [
               expect.stringContaining(
                 "Ignoring a change of android.zOrderMediaOverlay",

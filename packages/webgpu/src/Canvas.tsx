@@ -116,18 +116,25 @@ type AndroidNativeProps = {
   [Name in AndroidNativePropName]-?: NonNullable<NativeProps[Name]>;
 };
 
-const textureViewProps = (opaque: boolean): AndroidNativeProps => ({
-  androidBackingView: "TextureView",
-  androidOpaque: opaque,
+// The native props of a view without a z-order of its own.
+const viewProps = (
+  androidBackingView: AndroidBackingView,
+  androidOpaque: boolean,
+): AndroidNativeProps => ({
+  androidBackingView,
+  androidOpaque,
   androidZOrderOnTop: false,
   androidZOrderMediaOverlay: false,
 });
 
 // A value a JavaScript caller can pass that no view takes would hit the
 // generated string-enum parser, which aborts on unknown values: it gets the
-// default view, while TypeScript still reports a view the switch misses.
-const resolveUnknownBackingView = (_android: never): AndroidNativeProps =>
-  textureViewProps(false);
+// default view with the opacity asked for, while TypeScript still reports a
+// view the switch misses.
+const resolveUnknownBackingView = (
+  _android: never,
+  opaque: boolean,
+): AndroidNativeProps => viewProps("TextureView", opaque);
 
 // The native props the `android` prop resolves to, see BackingViewKind.java:
 // the view it names, the opacity it asks for with the default of that view (a
@@ -137,6 +144,7 @@ const resolveUnknownBackingView = (_android: never): AndroidNativeProps =>
 const androidNativeProps = (
   android?: AndroidCanvasProps,
 ): AndroidNativeProps => {
+  const askedOpaque = android?.opaque === true;
   switch (android?.backingView) {
     case "SurfaceView":
       return {
@@ -146,15 +154,12 @@ const androidNativeProps = (
         androidZOrderMediaOverlay: !!android.zOrderMediaOverlay,
       };
     case "HardwareBufferView":
-      return {
-        ...textureViewProps(false),
-        androidBackingView: "HardwareBufferView",
-      };
+      return viewProps("HardwareBufferView", false);
     case "TextureView":
     case undefined:
-      return textureViewProps(android?.opaque === true);
+      return viewProps("TextureView", askedOpaque);
     default:
-      return resolveUnknownBackingView(android);
+      return resolveUnknownBackingView(android, askedOpaque);
   }
 };
 
@@ -187,6 +192,15 @@ const useBackingViewWarning = (android?: AndroidCanvasProps) => {
     }
     const { current: mounted } = mount;
     const { androidBackingView } = androidNativeProps(mounted);
+    if (
+      mounted?.backingView !== undefined &&
+      mounted.backingView !== androidBackingView
+    ) {
+      console.warn(
+        `android.backingView: "${mounted.backingView}" is not a view the ` +
+          "canvas knows, the canvas uses a TextureView.",
+      );
+    }
     if (
       androidBackingView === "HardwareBufferView" &&
       Number(Platform.Version) < 29
