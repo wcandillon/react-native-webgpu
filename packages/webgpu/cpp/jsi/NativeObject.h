@@ -328,6 +328,11 @@ public:
       return; // Already installed on this runtime
     }
 
+    // Every wrapper is made by create(), which installs the prototype first,
+    // so the class is registered before any of its objects can be boxed,
+    // whether or not its constructor is ever installed as a global.
+    registerReconstructor();
+
     // Create prototype object
     jsi::Object prototype(runtime);
 
@@ -411,40 +416,10 @@ public:
    * Idempotent per runtime: once the global exists there, later calls return
    * without touching it, so the constructor object keeps its identity.
    *
-   * Also registers this class with NativeObjectRegistry so that
-   * BoxedWebGPUObject::unbox() can rebuild its objects on secondary runtimes.
+   * Not needed for objects to cross runtimes: installPrototype() registers
+   * the class with NativeObjectRegistry.
    */
   static void installConstructor(jsi::Runtime &runtime) {
-    // Register the reconstructor used by BoxedWebGPUObject::unbox() to
-    // rebuild this object (prototype + native state) on another runtime.
-    static std::once_flag registryFlag;
-    std::call_once(registryFlag, []() {
-      NativeObjectRegistry::getInstance().registerClass(
-          Derived::CLASS_NAME,
-          [](jsi::Runtime &rt,
-             std::shared_ptr<jsi::NativeState> state) -> jsi::Value {
-            auto instance = std::dynamic_pointer_cast<Derived>(state);
-            if (instance == nullptr) {
-              throw jsi::JSError(rt, "Invalid boxed native object state");
-            }
-            // The constructor makes `instanceof` work on this runtime too
-            // (a no-op once it is installed there).
-            Derived::installConstructor(rt);
-            // Unboxing hands back the wrapper cached for the target runtime,
-            // creating it on first use. Keep the runtime the object was
-            // originally created on: async native code (GPUDevice error/lost
-            // events, GPUAdapter::requestDevice) delivers into the creation
-            // runtime, and rebinding it to a worklet runtime would invoke
-            // main-runtime jsi::Functions on the wrong runtime and thread.
-            auto *originalRuntime = instance->getCreationRuntime();
-            auto value = Derived::create(rt, instance);
-            if (originalRuntime != nullptr) {
-              instance->setCreationRuntime(originalRuntime);
-            }
-            return value;
-          });
-    });
-
     installPrototype(runtime);
 
     // Once per runtime. installWebGPU() runs this at the top of every worklet
@@ -479,6 +454,41 @@ public:
 
     // Install on global
     runtime.global().setProperty(runtime, Derived::CLASS_NAME, std::move(ctor));
+  }
+
+  /**
+   * Registers the reconstructor BoxedWebGPUObject::unbox() uses to rebuild
+   * this class's objects (prototype + native state) on another runtime.
+   * Once per process: the registry outlives every runtime.
+   */
+  static void registerReconstructor() {
+    static std::once_flag registryFlag;
+    std::call_once(registryFlag, []() {
+      NativeObjectRegistry::getInstance().registerClass(
+          Derived::CLASS_NAME,
+          [](jsi::Runtime &rt,
+             std::shared_ptr<jsi::NativeState> state) -> jsi::Value {
+            auto instance = std::dynamic_pointer_cast<Derived>(state);
+            if (instance == nullptr) {
+              throw jsi::JSError(rt, "Invalid boxed native object state");
+            }
+            // The constructor makes `instanceof` work on this runtime too
+            // (a no-op once it is installed there).
+            Derived::installConstructor(rt);
+            // Unboxing hands back the wrapper cached for the target runtime,
+            // creating it on first use. Keep the runtime the object was
+            // originally created on: async native code (GPUDevice error/lost
+            // events, GPUAdapter::requestDevice) delivers into the creation
+            // runtime, and rebinding it to a worklet runtime would invoke
+            // main-runtime jsi::Functions on the wrong runtime and thread.
+            auto *originalRuntime = instance->getCreationRuntime();
+            auto value = Derived::create(rt, instance);
+            if (originalRuntime != nullptr) {
+              instance->setCreationRuntime(originalRuntime);
+            }
+            return value;
+          });
+    });
   }
 
   /**

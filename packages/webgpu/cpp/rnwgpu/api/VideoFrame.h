@@ -21,8 +21,8 @@ namespace jsi = facebook::jsi;
 class VideoFrame : public NativeObject<VideoFrame> {
 public:
   // JS-facing brand. installConstructor() exposes this as
-  // globalThis[CLASS_NAME] and keys the NativeObjectRegistry / worklet
-  // serializer off it, so it must NOT be "VideoFrame": that would install our
+  // globalThis[CLASS_NAME], and the NativeObjectRegistry / worklet serializer
+  // are keyed off it, so it must NOT be "VideoFrame": that would install our
   // constructor over the WebCodecs `VideoFrame` global and shadow it at
   // runtime. "NativeVideoFrame" matches the public TypeScript type (see
   // src/types.ts) and keeps the two namespaces distinct. The C++ class stays
