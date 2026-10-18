@@ -143,8 +143,8 @@ On Android, `Canvas` can be backed by one of three native views, with different 
 | --- | --- | --- |
 | `backingView` | `"TextureView" \| "SurfaceView" \| "HardwareBufferView"` | The native view behind the canvas. Defaults to `TextureView` |
 | `opaque` | `boolean` | Declares that the canvas covers every pixel of its bounds, so it is composited without blending. Defaults to `false` on a `TextureView` and to `true` on a `SurfaceView`; a `HardwareBufferView` always composites with alpha. Applied in place |
-| `zOrderOnTop` | `boolean` | `SurfaceView` only: draws the canvas above every React Native view in the window. Defaults to `false` |
-| `zOrderMediaOverlay` | `boolean` | `SurfaceView` only: draws the canvas above the other `SurfaceView`s below the window (video players, other canvases). Defaults to `false`; `zOrderOnTop` takes precedence |
+| `zOrderOnTop` | `boolean` | `SurfaceView` only: draws the canvas above every React Native view in the window. Defaults to `false`. Applied in place on Android 11 and later, on Android 13 only without `zOrderMediaOverlay` |
+| `zOrderMediaOverlay` | `boolean` | `SurfaceView` only: draws the canvas above the other `SurfaceView`s below the window (video players, other canvases). Defaults to `false`; `zOrderOnTop` takes precedence. Applied in place on Android 14 and later |
 
 | | `TextureView` | `SurfaceView` | `HardwareBufferView` |
 | --- | --- | --- | --- |
@@ -160,7 +160,7 @@ On Android, `Canvas` can be backed by one of three native views, with different 
 
 **`HardwareBufferView`** composites like a `TextureView`, with lower latency. It is experimental: if the device cannot allocate the buffers the canvas shows nothing instead of falling back, and some devices may show a stale or torn frame. Test it on your target devices, and drop the `backingView` to go back to `TextureView`. Below Android 10 it uses a `TextureView`, with a warning in development.
 
-The backing view is created when the canvas mounts and kept while it is mounted. `opaque` applies in place, and so do the z-order options on Android 11 and later; a change of `backingView` is ignored, with a warning in development. To switch backing views, remount the canvas with a `key`. The remount leaves the canvas off screen for a frame or two, showing what is behind it, or black, until the new view draws its first frame: the old view leaves and the new one arrives in different window frames. Keeping a canvas on screen through such a swap is possible, but takes hold-and-retire logic specific to each Android release ([#563](https://github.com/wcandillon/react-native-webgpu/pull/563)) that the library does not carry.
+The backing view is created when the canvas mounts and kept while it is mounted. `opaque` applies in place, and so do `zOrderOnTop` on Android 11 and later (on Android 13 only without `zOrderMediaOverlay`) and `zOrderMediaOverlay` on Android 14 and later; a change of `backingView` is ignored, with a warning in development. To switch backing views, remount the canvas with a `key`. The remount leaves the canvas off screen for a frame or two, showing what is behind it, or black, until the new view draws its first frame: the old view leaves and the new one arrives in different window frames. Keeping a canvas on screen through such a swap is possible, but takes hold-and-retire logic specific to each Android release ([#563](https://github.com/wcandillon/react-native-webgpu/pull/563)) that the library does not carry.
 
 ```tsx
 // The backing view is chosen at mount: a canvas that switches it remounts

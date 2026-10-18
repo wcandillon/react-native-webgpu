@@ -4,14 +4,21 @@ import type { Int32 } from "react-native/Libraries/Types/CodegenTypes";
 import type { ViewProps } from "react-native";
 
 import { contextIdToId } from "./utils";
+import type { NativeProps as NativeComponentProps } from "./WebGPUViewNativeComponent";
 
-export interface NativeProps extends ViewProps {
+// The `android` prop arrives resolved (see Canvas.tsx): Android-only, it never
+// reaches the DOM.
+export interface NativeProps
+  extends
+    ViewProps,
+    Pick<
+      NativeComponentProps,
+      | "androidBackingView"
+      | "androidOpaque"
+      | "androidZOrderOnTop"
+      | "androidZOrderMediaOverlay"
+    > {
   contextId: Int32;
-  // The `android` prop, resolved: Android-only, never reaches the DOM
-  androidBackingView?: "TextureView" | "SurfaceView" | "HardwareBufferView";
-  androidOpaque?: boolean;
-  androidZOrderOnTop?: boolean;
-  androidZOrderMediaOverlay?: boolean;
 }
 
 // eslint-disable-next-line import/no-default-export

@@ -66,10 +66,10 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   // The backing view is created from the props of the first transaction and
   // kept (see updateView()). React calls a setter again only when its prop
   // changed, so a call on a mounted canvas is a change: the setters below
-  // apply it in place where the view can take it, else they ignore it and
-  // say so (a canvas that needs another backing view is remounted, with a
-  // new key). The JS side warns about the same changes in development (see
-  // Canvas.tsx), mirroring these rules.
+  // take it where the view can apply it in place, which updateView() does,
+  // else they ignore it and say so (a canvas that needs another backing view
+  // is remounted, with a new key). The JS side warns about the same changes
+  // in development (see Canvas.tsx), mirroring these rules.
 
   public void setBackingView(@Nullable String value) {
     if (mKind != null) {
@@ -85,43 +85,39 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   public void setZOrderOnTop(boolean value) {
-    if (takesZOrder("android.zOrderOnTop")) {
+    boolean changesInPlace = BackingViewKind.zOrderOnTopChangesInPlace(Build.VERSION.SDK_INT,
+        getContext().getApplicationInfo().targetSdkVersion, mZOrderMediaOverlay);
+    if (takesZOrder("android.zOrderOnTop", changesInPlace)) {
       mZOrderOnTop = value;
-      applyZOrder();
     }
   }
 
   public void setZOrderMediaOverlay(boolean value) {
-    if (takesZOrder("android.zOrderMediaOverlay")) {
+    boolean changesInPlace =
+        BackingViewKind.zOrderMediaOverlayChangesInPlace(Build.VERSION.SDK_INT);
+    if (takesZOrder("android.zOrderMediaOverlay", changesInPlace)) {
       mZOrderMediaOverlay = value;
-      applyZOrder();
     }
   }
 
   // Whether a z-order prop is taken. Before the backing view exists it is
   // read when the view is created. After that only a SurfaceView has a
   // z-order of its own (elsewhere the prop never applied, and the change is
-  // moot), and SurfaceView moves a live surface since Android 11, for an app
-  // targeting it; before that, the surface reads it when it is created.
-  private boolean takesZOrder(String prop) {
+  // moot), and it moves its live surface only where Android allows it (see
+  // BackingViewKind); elsewhere, the surface keeps the z-order it was created
+  // with.
+  private boolean takesZOrder(String prop, boolean changesInPlace) {
     if (mKind == null) {
       return true;
     }
     if (mKind != BackingViewKind.SURFACE_VIEW) {
       return false;
     }
-    boolean inPlace = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-        && getContext().getApplicationInfo().targetSdkVersion >= Build.VERSION_CODES.R;
-    if (!inPlace) {
+    if (!changesInPlace) {
       warnIgnoredOnceMounted(prop);
+      return false;
     }
-    return inPlace;
-  }
-
-  private void applyZOrder() {
-    if (mKind == BackingViewKind.SURFACE_VIEW) {
-      ((WebGPUSurfaceView) mView).setZOrder(mZOrderOnTop, mZOrderMediaOverlay);
-    }
+    return true;
   }
 
   private void warnIgnoredOnceMounted(String prop) {
@@ -138,16 +134,19 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   // PR #563, and react-native-skia's #4189 and #4192), which this view does
   // not carry. A canvas that needs another backing view is remounted instead,
   // and is off screen for a frame or two until the new view draws its first
-  // frame. Later transactions apply the opacity in place (the setters decide
-  // what else is taken); WebGPUHardwareBufferView always composites with
-  // alpha, so there it is a no-op.
+  // frame. Later transactions apply the opacity in place, and a SurfaceView's
+  // z-order as its setters took it, once per transaction so that a change of
+  // both z-order props moves the surface once; WebGPUHardwareBufferView always
+  // composites with alpha, so there the opacity is a no-op.
   public void updateView() {
     if (mKind != null) {
       boolean opaque = BackingViewKind.resolveOpaque(mKind, mOpaque);
       if (mKind == BackingViewKind.TEXTURE_VIEW) {
         ((WebGPUTextureView) mView).setOpaque(opaque);
       } else if (mKind == BackingViewKind.SURFACE_VIEW) {
-        ((WebGPUSurfaceView) mView).setOpaque(opaque);
+        WebGPUSurfaceView surfaceView = (WebGPUSurfaceView) mView;
+        surfaceView.setOpaque(opaque);
+        surfaceView.setZOrder(mZOrderOnTop, mZOrderMediaOverlay);
       }
       return;
     }
