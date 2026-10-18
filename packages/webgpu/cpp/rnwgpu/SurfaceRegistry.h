@@ -6,6 +6,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
+#include <cstring>
 #include <deque>
 #include <functional>
 #include <memory>
@@ -213,6 +214,58 @@ public:
     if (replacedReleaser && replacedSurface) {
       replacedReleaser(replacedSurface);
     }
+  }
+
+  // The size keepFrame takes a frame at: the drawing buffer's, while a surface
+  // the context is configured for is attached and its format is one keepFrame
+  // writes; {0, 0} otherwise.
+  Size keepableFrameSize() {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    if (!_surface || _config.device == nullptr ||
+        !keepsFramesOfFormat(_config.format)) {
+      return {0, 0};
+    }
+    return {static_cast<int>(_config.width), static_cast<int>(_config.height)};
+  }
+
+  // Keep a frame read back from the attached surface as it is destroyed (on
+  // Android a SurfaceView's surface goes with its buffers when the app goes to
+  // the background or the view leaves its window): it becomes the offscreen
+  // frame, which the next attached surface shows (applyPendingAttach) unless a
+  // newer frame is rendered first. The pixels are premultiplied RGBA8, as an
+  // Android ARGB_8888 bitmap stores them.
+  bool keepFrame(const uint8_t *rgbaPixels, uint32_t width, uint32_t height,
+                 size_t bytesPerRow) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    if (_config.device == nullptr || !keepsFramesOfFormat(_config.format)) {
+      return false;
+    }
+    if (!_texture) {
+      _texture = createOffscreenTextureLocked();
+    }
+    const uint32_t copyWidth = std::min(width, _texture.GetWidth());
+    const uint32_t copyHeight = std::min(height, _texture.GetHeight());
+    const size_t rowSize = static_cast<size_t>(copyWidth) * 4;
+    std::vector<uint8_t> staged(rowSize * copyHeight);
+    for (uint32_t row = 0; row < copyHeight; ++row) {
+      std::memcpy(staged.data() + row * rowSize,
+                  rgbaPixels + static_cast<size_t>(row) * bytesPerRow, rowSize);
+    }
+    if (_config.format == wgpu::TextureFormat::BGRA8Unorm ||
+        _config.format == wgpu::TextureFormat::BGRA8UnormSrgb) {
+      for (size_t i = 0; i + 3 < staged.size(); i += 4) {
+        std::swap(staged[i], staged[i + 2]);
+      }
+    }
+    wgpu::TexelCopyTextureInfo destination{};
+    destination.texture = _texture;
+    wgpu::TexelCopyBufferLayout layout{};
+    layout.bytesPerRow = static_cast<uint32_t>(rowSize);
+    layout.rowsPerImage = copyHeight;
+    wgpu::Extent3D extent{copyWidth, copyHeight, 1};
+    _config.device.GetQueue().WriteTexture(&destination, staged.data(),
+                                           staged.size(), &layout, &extent);
+    return true;
   }
 
   // Reflects native view layout changes. Does not resize the drawing buffer:
@@ -809,14 +862,23 @@ public:
 private:
   // All *Locked helpers below require _mutex to be held exclusively.
 
+  // The formats keepFrame converts an RGBA8 frame into.
+  static bool keepsFramesOfFormat(wgpu::TextureFormat format) {
+    return format == wgpu::TextureFormat::RGBA8Unorm ||
+           format == wgpu::TextureFormat::RGBA8UnormSrgb ||
+           format == wgpu::TextureFormat::BGRA8Unorm ||
+           format == wgpu::TextureFormat::BGRA8UnormSrgb;
+  }
+
   wgpu::Texture createOffscreenTextureLocked() {
     wgpu::TextureDescriptor descriptor;
     // Union with the user's usage so offscreen frames stay compatible with
     // whatever they configured (e.g. CopySrc readbacks). RenderAttachment |
-    // CopySrc | TextureBinding is what the fallback itself needs (rendering,
-    // the attach blit, sampling).
+    // CopySrc | CopyDst | TextureBinding is what the fallback itself needs
+    // (rendering, the attach blit, a kept frame, sampling).
     descriptor.usage = _config.usage | wgpu::TextureUsage::RenderAttachment |
                        wgpu::TextureUsage::CopySrc |
+                       wgpu::TextureUsage::CopyDst |
                        wgpu::TextureUsage::TextureBinding;
     descriptor.format = _config.format;
     descriptor.size.width = std::max(1u, _config.width);
