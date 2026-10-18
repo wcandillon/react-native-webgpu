@@ -54,7 +54,7 @@ public class WebGPUSurfaceViewWithSC extends SurfaceView implements SurfaceHolde
       scb.setFormat(PixelFormat.RGBA_8888);
       mSurfaceControl = scb.build();
       mSurface = new Surface(mSurfaceControl);
-      mApi.surfaceCreated(mSurface);
+      mApi.surfaceCreated(mSurface, 0);
     }
     SurfaceControl.Transaction tr = new SurfaceControl.Transaction();
     tr.setVisibility(mSurfaceControl, true);
