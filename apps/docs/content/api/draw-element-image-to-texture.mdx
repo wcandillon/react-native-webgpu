@@ -76,7 +76,7 @@ The snapshot is what the platform renders for that view hierarchy:
 - iOS renders through `drawViewHierarchyInRect`, which includes Metal layers such as a WebGPU `Canvas`. With `RENDER_ATTACHMENT`, the pixels reach the texture without a copy through the CPU; otherwise they are drawn into a bitmap and uploaded.
 - Android 10 (API 29) and above renders the views with the same renderer as the screen, so the result matches it pixel for pixel, including elevation shadows and `TextureView` content. Older versions draw the view into a software canvas, which misses content that is only drawn hardware-accelerated.
 - Android 13 and above, with `RENDER_ATTACHMENT`: the pixels reach the texture without a copy through the CPU, and come out the same.
-- On Android, `SurfaceView` content is composed outside the view hierarchy and comes out blank. A WebGPU `Canvas` uses a `SurfaceView` by default when opaque; give it `android={{ surfaceType: "TextureView" }}` if it must appear in a snapshot.
+- On Android, `SurfaceView` content is composed outside the view hierarchy and comes out blank. A WebGPU `Canvas` with `android={{ backingView: "SurfaceView" }}` is not captured: keep the default `TextureView` for a canvas that must appear in a snapshot.
 
 ## Threading
 

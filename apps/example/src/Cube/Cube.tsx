@@ -183,8 +183,7 @@ export function Cube() {
       <Canvas
         ref={ref}
         style={style.webgpu}
-        opaque={false}
-        android={{ surfaceType: "HardwareBufferView" }}
+        android={{ backingView: "HardwareBufferView" }}
       />
     </View>
   );

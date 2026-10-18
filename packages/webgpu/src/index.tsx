@@ -159,9 +159,9 @@ declare global {
   // What is captured is what the platform renders for the view hierarchy
   // (iOS: UIView.drawViewHierarchyInRect; Android API 29+: HardwareRenderer
   // over the views' display lists, older: View.draw into a software canvas).
-  // On Android, SurfaceView content (a WebGPU Canvas with the default
-  // "SurfaceView" surfaceType, video players) is not part of the hierarchy and
-  // comes out blank; use `android={{ surfaceType: "TextureView" }}` for a
+  // On Android, SurfaceView content (a WebGPU Canvas with
+  // `android={{ backingView: "SurfaceView" }}`, video players) is not part of
+  // the hierarchy and comes out blank; keep the default TextureView for a
   // canvas that must be captured.
   interface GPUQueue {
     drawElementImageToTexture(

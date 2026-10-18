@@ -8,7 +8,11 @@ import {
   Text,
   View,
 } from "react-native";
-import type { AndroidCanvasProps, CanvasRef } from "react-native-webgpu";
+import type {
+  AndroidBackingView,
+  AndroidCanvasProps,
+  CanvasRef,
+} from "react-native-webgpu";
 import { Canvas } from "react-native-webgpu";
 
 import {
@@ -18,35 +22,63 @@ import {
   useDiagnosticLog,
 } from "./surfaceLifecycle";
 
-// Exercises every Android backing-view combination: opaque toggles in place,
-// while the backing view is chosen when the Canvas mounts, so picking another
-// kind of view remounts it (the kind is its key; zOrderOnTop moves a mounted
-// SurfaceView in place on Android 11 and later, and remounts it before).
-// Half-transparent red is cleared over a blue stage with a yellow RN overlay
-// on top:
+// Exercises every Android backing-view combination: opaque toggles in place
+// (on a SurfaceView or a TextureView; a HardwareBufferView always composites
+// with alpha), while the backing view is created when the Canvas mounts, so
+// picking another kind of view remounts it (the kind is its key; the z-order
+// options move a mounted SurfaceView in place on Android 11 and later, and
+// remount it before). Half-transparent red is cleared over a blue stage with
+// a yellow RN overlay on top:
 // - opaque: solid red, overlay visible.
-// - non-opaque TextureView (default): pink, overlay visible.
-// - non-opaque HardwareBufferView (opt-in, Android 10+): pink, overlay
+// - translucent TextureView (the default): pink, overlay visible.
+// - translucent HardwareBufferView (opt-in, Android 10+): pink, overlay
 //   visible. Requesting it on an older device falls back to TextureView.
-// - non-opaque SurfaceView: blends against the window background (black),
+// - translucent SurfaceView: blends against the window background (black),
 //   overlay visible only with zOrderOnTop off (the surface sits below it).
-// - non-opaque SurfaceView + zOrderOnTop: pink, overlay hidden underneath.
+// - translucent SurfaceView + zOrderOnTop: pink, overlay hidden underneath.
+// - SurfaceView + zOrderMediaOverlay: above the other SurfaceViews below the
+//   window; with a single one, no visible difference.
 // The loop draws 5 frames a second by default; "every frame" switches it to
-// requestAnimationFrame, which on an opaque SurfaceView (or "surface") is the
-// case where the canvas votes the display's refresh rate: on an adaptive
-// display, `dumpsys SurfaceFlinger` then lists the SurfaceView layer with a
-// requestedFrameRate while it draws, and without one a second after the loop
-// stops.
-const OPTIONS: { label: string; android?: AndroidCanvasProps }[] = [
-  { label: "auto" },
-  { label: "hardware buffer", android: { surfaceType: "HardwareBufferView" } },
-  { label: "texture", android: { surfaceType: "TextureView" } },
-  { label: "surface", android: { surfaceType: "SurfaceView" } },
+// requestAnimationFrame, which on an opaque SurfaceView is the case where the
+// canvas votes the display's refresh rate: on an adaptive display, `dumpsys
+// SurfaceFlinger` then lists the SurfaceView layer with a requestedFrameRate
+// while it draws, and without one a second after the loop stops.
+interface Option {
+  label: string;
+  backingView: AndroidBackingView;
+  zOrderOnTop?: boolean;
+  zOrderMediaOverlay?: boolean;
+}
+
+const OPTIONS: Option[] = [
+  { label: "texture", backingView: "TextureView" },
+  { label: "hardware buffer", backingView: "HardwareBufferView" },
+  { label: "surface", backingView: "SurfaceView" },
+  { label: "surface on top", backingView: "SurfaceView", zOrderOnTop: true },
   {
-    label: "surface on top",
-    android: { surfaceType: "SurfaceView", zOrderOnTop: true },
+    label: "surface media overlay",
+    backingView: "SurfaceView",
+    zOrderMediaOverlay: true,
   },
 ];
+
+// The `android` prop of an option, with the opacity the switch asks for (a
+// HardwareBufferView takes none).
+const androidProps = (option: Option, opaque: boolean): AndroidCanvasProps => {
+  switch (option.backingView) {
+    case "SurfaceView":
+      return {
+        backingView: "SurfaceView",
+        opaque,
+        zOrderOnTop: option.zOrderOnTop,
+        zOrderMediaOverlay: option.zOrderMediaOverlay,
+      };
+    case "TextureView":
+      return { backingView: "TextureView", opaque };
+    case "HardwareBufferView":
+      return { backingView: "HardwareBufferView" };
+  }
+};
 
 const CLEAR_COLOR: GPUColor = [0.5, 0, 0, 0.5];
 
@@ -67,15 +99,15 @@ export const TransparencyMode = () => {
     everyFrameRef.current = everyFrame;
   }, [everyFrame]);
 
-  // The kind of backing view the option selects, and the key of the Canvas:
-  // zOrderOnTop is part of it only where it is read at mount.
-  const kind =
-    option.android?.surfaceType ?? (opaque ? "SurfaceView" : "TextureView");
-  const zOrderOnTopAtMount =
-    kind === "SurfaceView" && Number(Platform.Version) < 30;
-  const backingKey = `${option.android?.surfaceType ?? "auto"}-${
-    option.android?.surfaceType ? "" : opaque
-  }-${zOrderOnTopAtMount ? !!option.android?.zOrderOnTop : ""}`;
+  // The key of the Canvas: the kind of backing view, plus its z-order where
+  // that is read at mount.
+  const zOrderAtMount =
+    option.backingView === "SurfaceView" && Number(Platform.Version) < 30;
+  const backingKey = `${option.backingView}-${
+    zOrderAtMount
+      ? `${!!option.zOrderOnTop}-${!!option.zOrderMediaOverlay}`
+      : ""
+  }`;
 
   // Runs again for each mount of the Canvas: hide/show, and the remount that
   // picking another kind of view causes.
@@ -120,8 +152,8 @@ export const TransparencyMode = () => {
           Half-transparent red over blue. HardwareBufferView and TextureView
           keep the yellow RN overlay visible. A SurfaceView on top blends over
           it. Picking another kind of view remounts the Canvas; opaque (and, on
-          Android 11 and later, zOrderOnTop) updates it in place. Use hide/show
-          to test a fresh mount.
+          Android 11 and later, the z-order options) updates it in place. Use
+          hide/show to test a fresh mount.
         </Text>
         <View style={styles.buttons}>
           {OPTIONS.map((value) => (
@@ -160,8 +192,7 @@ export const TransparencyMode = () => {
             key={backingKey}
             ref={ref}
             style={diagnosticStyles.canvas}
-            opaque={opaque}
-            android={option.android}
+            android={androidProps(option, opaque)}
           />
         )}
         <Pressable

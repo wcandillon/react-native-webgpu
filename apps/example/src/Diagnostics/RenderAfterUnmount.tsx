@@ -20,14 +20,14 @@ import {
 // - iOS: MetalView dealloc removes the registry entry while the stored
 //   wgpu::Surface still wraps the now-released CAMetalLayer. The next
 //   getCurrentTexture() asks the dead layer for a drawable: EXC_BAD_ACCESS.
-// - Android (non-opaque canvas / TextureView): onSurfaceTextureDestroyed
+// - Android (TextureView): onSurfaceTextureDestroyed
 //   removes the registry entry without detaching, so the context keeps a
 //   wgpu::Surface on a destroyed window: dead-window errors or a crash.
 //
-// surfaceType is pinned to TextureView: it is the path that crashes rather
-// than silently going black. A non-opaque canvas already defaults to it, but
-// pinning keeps this test on the SurfaceTexture teardown path if that default
-// ever changes. HardwareBufferView teardown (freeing the AHardwareBuffer pool)
+// backingView is pinned to TextureView: it is the path that crashes rather
+// than silently going black. It is the default, but pinning keeps this test
+// on the SurfaceTexture teardown path if that default ever changes.
+// HardwareBufferView teardown (freeing the AHardwareBuffer pool)
 // is covered by TransparencyMode's "hardware buffer" option with hide/show.
 export const RenderAfterUnmount = () => {
   const ref = useRef<CanvasRef>(null);
@@ -81,8 +81,7 @@ export const RenderAfterUnmount = () => {
         <Canvas
           ref={ref}
           style={diagnosticStyles.canvas}
-          opaque={false}
-          android={{ surfaceType: "TextureView" }}
+          android={{ backingView: "TextureView" }}
         />
       ) : (
         <View style={diagnosticStyles.canvas} />

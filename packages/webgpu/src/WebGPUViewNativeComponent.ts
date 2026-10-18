@@ -7,12 +7,14 @@ import type { ViewProps } from "react-native";
 
 export interface NativeProps extends ViewProps {
   contextId: Int32;
-  opaque?: WithDefault<boolean, true>;
-  androidSurfaceType?: WithDefault<
-    "auto" | "SurfaceView" | "TextureView" | "HardwareBufferView",
-    "auto"
+  // The `android` prop, resolved (see Canvas.tsx)
+  androidBackingView?: WithDefault<
+    "TextureView" | "SurfaceView" | "HardwareBufferView",
+    "TextureView"
   >;
+  androidOpaque?: WithDefault<boolean, false>;
   androidZOrderOnTop?: WithDefault<boolean, false>;
+  androidZOrderMediaOverlay?: WithDefault<boolean, false>;
 }
 
 // eslint-disable-next-line import/no-default-export

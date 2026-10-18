@@ -12,111 +12,194 @@ function generateContextId() {
   return CONTEXT_COUNTER++;
 }
 
-export type AndroidSurfaceType =
-  "SurfaceView" | "TextureView" | "HardwareBufferView";
+/** The Android view a canvas draws into, see {@link AndroidCanvasProps}. */
+export type AndroidBackingView =
+  "TextureView" | "SurfaceView" | "HardwareBufferView";
 
-/**
- * Android-only rendering options. They select the backing view, which is
- * chosen when the canvas mounts and kept: a later change is ignored, with a
- * warning in development. Remount the canvas, with a `key`, to change it.
- */
-export interface AndroidCanvasProps {
+/** The options of a canvas backed by a `TextureView`, the default. */
+export interface AndroidTextureViewProps {
   /**
-   * Backing view. Defaults to `SurfaceView` when the canvas mounts opaque and
-   * to `TextureView` otherwise; both composite correctly in React Native
-   * stacking order without further flags. `HardwareBufferView` (Android 10+,
-   * a plain View that draws each frame's AHardwareBuffer inline with no extra
-   * copy) is opt-in and experimental; on older devices it uses `TextureView`.
-   * Read once, at mount.
+   * A `TextureView`: a regular view, composited like any other (parent
+   * transforms, clipping, alpha and z-order apply), at the price of an extra
+   * texture copy and typically a frame of latency. The default.
    */
-  surfaceType?: AndroidSurfaceType;
+  backingView?: "TextureView";
   /**
-   * SurfaceView only: composite above every React Native view in the window,
-   * ignoring `zIndex`. Ignored for TextureView. Defaults to false. Applied in
-   * place on Android 11 and later; read once, at mount, before that.
+   * Declares that the canvas covers every pixel of its bounds, so the UI
+   * toolkit skips blending the view. Defaults to false. Applied in place.
    */
-  zOrderOnTop?: boolean;
+  opaque?: boolean;
 }
 
-export interface CanvasProps extends ViewProps {
+/** The options of a canvas backed by a `SurfaceView`. */
+export interface AndroidSurfaceViewProps {
   /**
-   * Defaults to true. Set to false to alpha-composite the canvas over the
-   * views behind it (pair it with `alphaMode: "premultiplied"` and an alpha-0
-   * clear color). Android and web only; on iOS `alphaMode` alone controls it.
-   * On Android the backing view is chosen from it when the canvas mounts; a
-   * later change updates that view in place.
+   * A `SurfaceView`: each frame goes to the system compositor as its own
+   * layer, the fastest path, with no extra copy. It is not view content:
+   * parent transforms, clipping, rounded corners and z-order with sibling
+   * views do not apply to it.
+   */
+  backingView: "SurfaceView";
+  /**
+   * Declares that the canvas covers every pixel of its bounds, so the
+   * compositor skips blending the layer and can show it through a hardware
+   * overlay. Defaults to true: a translucent `SurfaceView` blends against
+   * what is below the window, usually black, rather than the React Native
+   * views beneath it (pair it with `zOrderOnTop`). Applied in place.
    */
   opaque?: boolean;
   /**
-   * Android-only rendering options. They select the backing view, which is
-   * chosen when the canvas mounts and kept: a later change is ignored, with a
-   * warning in development. Remount the canvas, with a `key`, to change it.
-   * Ignored on iOS and web.
+   * Composite above every React Native view in the window, ignoring
+   * `zIndex`. Defaults to false. Applied in place on Android 11 and later;
+   * read once, at mount, before that.
+   */
+  zOrderOnTop?: boolean;
+  /**
+   * Composite above the other `SurfaceView`s below the window (video players,
+   * other canvases), while staying below the window itself. Defaults to
+   * false; `zOrderOnTop` takes precedence. Applied in place on Android 11 and
+   * later; read once, at mount, before that.
+   */
+  zOrderMediaOverlay?: boolean;
+}
+
+/** The options of a canvas backed by a `HardwareBufferView`. */
+export interface AndroidHardwareBufferViewProps {
+  /**
+   * A plain view drawing each frame's `AHardwareBuffer` inline: composited
+   * like a `TextureView`, without its extra copy. Opt-in and experimental,
+   * on Android 10 and later; below that the canvas uses a `TextureView`,
+   * with a warning in development. Always composites with alpha.
+   */
+  backingView: "HardwareBufferView";
+}
+
+/**
+ * Android-only rendering options: the native view behind the canvas and its
+ * options. The view is created when the canvas mounts and kept: a change of
+ * `backingView` is ignored, with a warning in development; remount the canvas
+ * (with a `key`) to change it. `opaque` applies in place, and so do the
+ * z-order options on Android 11 and later. Ignored on iOS and web.
+ */
+export type AndroidCanvasProps =
+  | AndroidTextureViewProps
+  | AndroidSurfaceViewProps
+  | AndroidHardwareBufferViewProps;
+
+export interface CanvasProps extends ViewProps {
+  /**
+   * Android-only rendering options: the native view behind the canvas and its
+   * options, see {@link AndroidCanvasProps}. Ignored on iOS and web.
    */
   android?: AndroidCanvasProps;
   ref?: React.Ref<CanvasRef>;
 }
 
+// The union read as one bag of options; which of them apply to the view is
+// decided below, as it is on the native side.
+type AndroidOptions = Partial<{
+  backingView: AndroidBackingView;
+  opaque: boolean;
+  zOrderOnTop: boolean;
+  zOrderMediaOverlay: boolean;
+}>;
+
+const options = (android?: AndroidCanvasProps): AndroidOptions =>
+  (android ?? {}) as AndroidOptions;
+
 // Anything else reaching the native component would hit the generated
 // string-enum parser, which aborts on unknown values.
-const resolveSurfaceType = (
-  surfaceType: AndroidSurfaceType | undefined,
-): "auto" | AndroidSurfaceType =>
-  surfaceType === "SurfaceView" ||
-  surfaceType === "TextureView" ||
-  surfaceType === "HardwareBufferView"
-    ? surfaceType
-    : "auto";
-
-// The props the Android backing view is chosen from when the canvas mounts.
-interface BackingViewProps {
-  opaque: boolean;
-  android?: AndroidCanvasProps;
-}
-
-// The backing view the props select, see WebGPUView.resolveKind().
-const resolveKind = ({ opaque, android }: BackingViewProps) => {
-  const surfaceType = resolveSurfaceType(android?.surfaceType);
-  if (surfaceType !== "auto") {
-    return surfaceType;
-  }
-  return opaque ? "SurfaceView" : "TextureView";
+const resolveBackingView = (
+  android?: AndroidCanvasProps,
+): AndroidBackingView => {
+  const { backingView } = options(android);
+  return backingView === "SurfaceView" || backingView === "HardwareBufferView"
+    ? backingView
+    : "TextureView";
 };
 
-const warnIgnored = (prop: string) =>
+// Whether the canvas composites as opaque, see BackingViewKind.resolveOpaque():
+// a SurfaceView is opaque unless asked otherwise, a TextureView is translucent
+// unless asked otherwise, and a HardwareBufferView always composites with
+// alpha.
+const resolveOpaque = (android?: AndroidCanvasProps): boolean => {
+  const { opaque } = options(android);
+  switch (resolveBackingView(android)) {
+    case "SurfaceView":
+      return opaque !== false;
+    case "TextureView":
+      return opaque === true;
+    case "HardwareBufferView":
+      return false;
+  }
+};
+
+// The native props the `android` prop resolves to.
+const androidNativeProps = (android?: AndroidCanvasProps) => {
+  const backingView = resolveBackingView(android);
+  const { zOrderOnTop, zOrderMediaOverlay } = options(android);
+  const surfaceView = backingView === "SurfaceView";
+  return {
+    androidBackingView: backingView,
+    androidOpaque: resolveOpaque(android),
+    androidZOrderOnTop: surfaceView && !!zOrderOnTop,
+    androidZOrderMediaOverlay: surfaceView && !!zOrderMediaOverlay,
+  };
+};
+
+const warnIgnoredChange = (prop: string) =>
   console.warn(
     `Ignoring a change of ${prop} on a mounted canvas: the backing view is ` +
       "chosen when the canvas mounts. Remount the canvas (give it a new key) " +
       "to change it.",
   );
 
-// Warns, in development on Android, about a change of these props that the
-// native view ignores: the backing view is chosen from them when the canvas
-// mounts (see WebGPUView.java, whose setters these rules mirror). The native
-// side only says so in logcat, which is not where a JS developer looks.
-const useBackingViewWarning = (props: BackingViewProps) => {
-  const mount = useRef(props);
-  const prev = useRef(props);
+// Warns, in development on Android, about an option a mounting canvas asks
+// for that the native view cannot honour, and about a change of these props
+// that the native view ignores: the backing view is created from them when
+// the canvas mounts (see WebGPUView.java, whose setters these rules mirror).
+// The native side only says so in logcat, which is not where a JS developer
+// looks.
+const useBackingViewWarning = (android?: AndroidCanvasProps) => {
+  const mount = useRef(android);
+  const prev = useRef(android);
+  useEffect(() => {
+    if (
+      __DEV__ &&
+      Platform.OS === "android" &&
+      resolveBackingView(mount.current) === "HardwareBufferView" &&
+      Number(Platform.Version) < 29
+    ) {
+      console.warn(
+        "android.backingView: HardwareBufferView needs Android 10, the " +
+          "canvas uses a TextureView.",
+      );
+    }
+  }, []);
   useEffect(() => {
     if (__DEV__ && Platform.OS === "android") {
       const { current: before } = prev;
-      if (
-        resolveSurfaceType(before.android?.surfaceType) !==
-        resolveSurfaceType(props.android?.surfaceType)
-      ) {
-        warnIgnored("android.surfaceType");
+      if (resolveBackingView(before) !== resolveBackingView(android)) {
+        warnIgnoredChange("android.backingView");
       }
       // Only a SurfaceView has a z-order of its own, which Android 11 and
       // later changes in place.
+      const zOrderAtMount =
+        resolveBackingView(mount.current) === "SurfaceView" &&
+        Number(Platform.Version) < 30;
+      const was = options(before);
+      const is = options(android);
+      if (zOrderAtMount && !!was.zOrderOnTop !== !!is.zOrderOnTop) {
+        warnIgnoredChange("android.zOrderOnTop");
+      }
       if (
-        !!before.android?.zOrderOnTop !== !!props.android?.zOrderOnTop &&
-        resolveKind(mount.current) === "SurfaceView" &&
-        Number(Platform.Version) < 30
+        zOrderAtMount &&
+        !!was.zOrderMediaOverlay !== !!is.zOrderMediaOverlay
       ) {
-        warnIgnored("android.zOrderOnTop");
+        warnIgnoredChange("android.zOrderMediaOverlay");
       }
     }
-    prev.current = props;
+    prev.current = android;
   });
 };
 
@@ -138,15 +221,10 @@ const measureLayout = (view: View) => {
   return size;
 };
 
-export const Canvas = ({
-  opaque = true,
-  android,
-  ref,
-  ...props
-}: CanvasProps) => {
+export const Canvas = ({ android, ref, ...props }: CanvasProps) => {
   const viewRef = useRef<View>(null);
   const [contextId, _] = useState(() => generateContextId());
-  useBackingViewWarning({ opaque, android });
+  useBackingViewWarning(android);
   // Retire the native registry entry for this contextId on unmount. When a
   // native surface is still attached, this is a no-op and the native view's
   // own teardown retires the entry instead — which keeps StrictMode's
@@ -190,9 +268,7 @@ export const Canvas = ({
       <WebGPUNativeView
         style={{ flex: 1 }}
         contextId={contextId}
-        opaque={opaque}
-        androidSurfaceType={resolveSurfaceType(android?.surfaceType)}
-        androidZOrderOnTop={!!android?.zOrderOnTop}
+        {...androidNativeProps(android)}
       />
     </View>
   );
