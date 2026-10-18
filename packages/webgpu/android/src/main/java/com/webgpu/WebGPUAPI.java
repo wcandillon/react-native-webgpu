@@ -23,5 +23,8 @@ public interface WebGPUAPI {
 
   void surfaceOffscreen();
 
+  /** A TextureView's window is drawing the newest frame of its surface. */
+  void surfaceUpdated();
+
   int getContextId();
 }

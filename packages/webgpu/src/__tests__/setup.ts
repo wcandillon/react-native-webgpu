@@ -88,13 +88,14 @@ interface GPUTestingContext {
     GPUTextureUsage: typeof GPUTextureUsage;
   };
   // Native app harness only: clears a canvas to each color in turn from
-  // Reanimated's UI thread, see
-  // apps/example/src/components/workletPresentFrames.ts.
-  workletPresentFrames?: (
+  // Reanimated's UI thread or the JS thread and resolves with the longest
+  // time between two frames, see apps/example/src/components/presentFrames.ts.
+  presentFrames?: (
     device: GPUDevice,
     context: RNCanvasContext,
     colors: GPUColor[],
-  ) => Promise<void>;
+    thread: "UI" | "JS",
+  ) => Promise<number>;
   // Native app harness only: a mounted probe view for the
   // drawElementImageToTexture spec (its React tag, its size in points and the
   // device pixel ratio), and for the TextureView present spec a canvas
