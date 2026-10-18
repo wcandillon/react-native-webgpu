@@ -28,7 +28,7 @@ if (!installedCommit) {
 const dawnWorkarounds = [
   {
     marker: "DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE",
-    commit: "3d786993a7ded64c4ebb4884b9b079db9ad0e580",
+    commit: "ada567700e13aecf7989d78b21f7d330b522ea80",
     files: ["cpp/rnwgpu/SurfaceRegistry.h", "cpp/rnwgpu/api/GPUDevice.cpp"],
     // Android: device.destroy() before the native view is dropped crashed in
     // SwapChain::DetachFromSurfaceImpl (Vulkan FencedDeleter of the dead
@@ -41,7 +41,7 @@ const dawnWorkarounds = [
     // The functions it declares are exported by the Dawn binaries; the header
     // has to match the Dawn the binaries were built from.
     marker: "DAWN_VENDORED_EXTERNAL_TEXTURE_PARAMS",
-    commit: "3d786993a7ded64c4ebb4884b9b079db9ad0e580",
+    commit: "ada567700e13aecf7989d78b21f7d330b522ea80",
     files: ["cpp/dawn/common/ExternalTextureParams.h"],
     upstream:
       "diff the copy against src/dawn/common/ExternalTextureParams.h at the new commit and re-sync it",
