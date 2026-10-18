@@ -167,7 +167,7 @@ The backing view is created when the canvas mounts and kept while it is mounted.
 <Canvas key={backingView} android={{ backingView }} />
 ```
 
-A canvas that stops drawing keeps showing its last frame. Android destroys a `SurfaceView`'s surface, with its buffers, when the app goes to the background or the view leaves its window, so the canvas reads that frame back once as the surface goes and shows it on the next one; a `TextureView` keeps its frame in the background.
+A canvas that stops drawing keeps showing its last frame, as it does on iOS and the web: when the app comes back from the background, and when its view comes back to the window (a native-stack screen covered and revealed again, a list with `removeClippedSubviews` scrolling it out and back). Android destroys a `SurfaceView`'s surface, with its buffers, in each case, so the canvas reads that frame back once as the surface goes and shows it on the next one. A `TextureView` keeps its `SurfaceTexture`, and a `HardwareBufferView` its last buffer, while the view is out of the window.
 
 Some combinations for other trade-offs:
 
