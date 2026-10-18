@@ -154,6 +154,37 @@ describe("Worklet serialization", () => {
     });
   });
 
+  it("round-trips a Canvas through a worklet runtime", async () => {
+    // Classes used to be registered for unboxing only by installConstructor,
+    // and Canvas, which has no global constructor, never was. The native
+    // surface of an unknown context is a 0x0 Canvas.
+    const result = await client.eval<
+      Record<string, unknown>,
+      {
+        width: number;
+        sameObjectBack: boolean;
+        widthOnMain: number;
+        error?: string;
+      } | null
+    >(({ workletSerialization }) => {
+      if (!workletSerialization) {
+        return null;
+      }
+      const canvas = RNWebGPU.getNativeSurface(-1);
+      return workletSerialization
+        .roundTripCanvas(canvas)
+        .then((r) => ({ ...r, widthOnMain: canvas.width }));
+    });
+    if (result === null) {
+      return;
+    }
+    expect(result).toEqual({
+      width: 0,
+      sameObjectBack: true,
+      widthOnMain: 1,
+    });
+  });
+
   it("installs every class constructor on a worklet runtime", async () => {
     // Issue #564: three.js checks `pass instanceof GPURenderBundleEncoder` on
     // every render. Unboxing installs only the classes of the objects that

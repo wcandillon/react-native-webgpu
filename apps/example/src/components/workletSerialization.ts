@@ -38,6 +38,14 @@ export interface BitmapRoundTripResult {
   error?: string;
 }
 
+export interface CanvasRoundTripResult {
+  // The width the worklet read, before setting it to width + 1.
+  width: number;
+  sameObjectBack: boolean;
+  // Set when the worklet threw, with the error message.
+  error?: string;
+}
+
 export interface CaptureResult {
   threw: boolean;
   message: string;
@@ -122,8 +130,7 @@ export const workletSerialization = {
     }),
 
   // Sends `bitmap` to a worklet runtime and back, as roundTripBuffer does
-  // for a buffer. Unboxing it there rebuilds it from its class brand, which
-  // only installConstructor registers.
+  // for a buffer. Unboxing it there rebuilds it from its class brand.
   roundTripImageBitmap: (bitmap: ImageBitmap): Promise<BitmapRoundTripResult> =>
     new Promise((resolve) => {
       const done = (
@@ -162,6 +169,37 @@ export const workletSerialization = {
           }
         },
         bitmap,
+      );
+    }),
+
+  // Sends a native Canvas (RNWebGPU.getNativeSurface(), GPUCanvasContext's
+  // `canvas`) to a worklet runtime and back. Canvas has no global constructor
+  // in installConstructors, so this checks that unboxing does not depend on
+  // that list. Sets `width` there, on the native object the main runtime
+  // also reads.
+  roundTripCanvas: (canvas: {
+    width: number;
+  }): Promise<CanvasRoundTripResult> =>
+    new Promise((resolve) => {
+      const done = (onWorklet: { width: number }, back: { width: number }) => {
+        resolve({ ...onWorklet, sameObjectBack: back === canvas });
+      };
+      const failed = (error: string) => {
+        resolve({ width: -1, sameObjectBack: false, error });
+      };
+      scheduleOnRuntime(
+        getRuntime(),
+        (c: { width: number }) => {
+          "worklet";
+          try {
+            const onWorklet = { width: c.width };
+            c.width = onWorklet.width + 1;
+            scheduleOnRN(done, onWorklet, c);
+          } catch (e) {
+            scheduleOnRN(failed, String(e));
+          }
+        },
+        canvas,
       );
     }),
 

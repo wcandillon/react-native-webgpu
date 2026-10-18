@@ -73,6 +73,11 @@ interface GPUTestingContext {
       sameObjectBack: boolean;
       error?: string;
     }>;
+    roundTripCanvas: (canvas: { width: number }) => Promise<{
+      width: number;
+      sameObjectBack: boolean;
+      error?: string;
+    }>;
     captureForeign: (
       value: object,
     ) => Promise<{ threw: boolean; message: string; typeOnWorklet: string }>;
