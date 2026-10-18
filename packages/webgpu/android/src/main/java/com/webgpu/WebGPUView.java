@@ -6,31 +6,36 @@ import android.util.Log;
 import android.view.Surface;
 import android.view.View;
 
+import androidx.annotation.Nullable;
+
 import com.facebook.proguard.annotations.DoNotStrip;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.views.view.ReactViewGroup;
 
+/**
+ * The Android view behind <Canvas>. It is backed by a TextureView, a
+ * SurfaceView or a HardwareBufferView, named by the androidBackingView prop
+ * and created once, from the props of the first transaction, for the life of
+ * the view (see updateView()).
+ */
 public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   private static final String TAG = "WebGPUView";
 
-  // Backing view kinds, see updateView().
-  private static final int KIND_SURFACE_VIEW = 0;
-  private static final int KIND_TEXTURE_VIEW = 1;
-  private static final int KIND_HARDWARE_BUFFER_VIEW = 2;
-
   private int mContextId;
-  // Props. opaque is applied in place, and so is zOrderOnTop where Android
-  // allows it (see setZOrderOnTop); surfaceType is read once, when the
+  // Props. opaque is applied in place, and so are the z-order props where
+  // Android allows it (see takesZOrder); backingView is read once, when the
   // backing view is created (see updateView()).
-  private boolean mOpaque = true;
-  private String mSurfaceType = "auto";
+  private BackingViewKind mBackingView = BackingViewKind.TEXTURE_VIEW;
+  private boolean mOpaque = false;
   private boolean mZOrderOnTop = false;
+  private boolean mZOrderMediaOverlay = false;
   private WebGPUModule mModule;
   // The backing view, created by the first prop transaction and kept, with
-  // the kind it was created with. The kind is -1 until then: it is what
+  // the kind it was created with. The kind is null until then: it is what
   // tells a mounted canvas apart.
   private View mView = null;
-  private int mKind = -1;
+  @Nullable
+  private BackingViewKind mKind = null;
   // Only a SurfaceView votes: a TextureView or HardwareBufferView is
   // composited into the window, which votes for it.
   private final SurfaceFrameRateVote mFrameRateVote = new SurfaceFrameRateVote(
@@ -58,11 +63,7 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     mContextId = contextId;
   }
 
-  public void setOpaque(boolean value) {
-    mOpaque = value;
-  }
-
-  // The backing view is chosen from the props of the first transaction and
+  // The backing view is created from the props of the first transaction and
   // kept (see updateView()). React calls a setter again only when its prop
   // changed, so a call on a mounted canvas is a change: the setters below
   // apply it in place where the view can take it, else they ignore it and
@@ -70,30 +71,57 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   // new key). The JS side warns about the same changes in development (see
   // Canvas.tsx), mirroring these rules.
 
-  public void setSurfaceType(String value) {
-    if (mKind != -1) {
-      warnIgnoredOnceMounted("android.surfaceType");
+  public void setBackingView(@Nullable String value) {
+    if (mKind != null) {
+      warnIgnoredOnceMounted("android.backingView");
       return;
     }
-    mSurfaceType = value;
+    boolean hardwareBufferSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
+    mBackingView = BackingViewKind.fromBackingView(value, hardwareBufferSupported);
+  }
+
+  public void setOpaque(boolean value) {
+    mOpaque = value;
   }
 
   public void setZOrderOnTop(boolean value) {
-    if (mKind == -1) {
+    if (takesZOrder("android.zOrderOnTop")) {
       mZOrderOnTop = value;
-      return;
+      applyZOrder();
     }
-    // Only a SurfaceView has a z-order of its own: elsewhere the prop never
-    // applied, and the change is moot.
-    if (mKind != KIND_SURFACE_VIEW) {
-      return;
+  }
+
+  public void setZOrderMediaOverlay(boolean value) {
+    if (takesZOrder("android.zOrderMediaOverlay")) {
+      mZOrderMediaOverlay = value;
+      applyZOrder();
     }
-    if (!zOrderChangesInPlace()) {
-      warnIgnoredOnceMounted("android.zOrderOnTop");
-      return;
+  }
+
+  // Whether a z-order prop is taken. Before the backing view exists it is
+  // read when the view is created. After that only a SurfaceView has a
+  // z-order of its own (elsewhere the prop never applied, and the change is
+  // moot), and SurfaceView moves a live surface since Android 11, for an app
+  // targeting it; before that, the surface reads it when it is created.
+  private boolean takesZOrder(String prop) {
+    if (mKind == null) {
+      return true;
     }
-    mZOrderOnTop = value;
-    ((WebGPUSurfaceView) mView).setZOrderOnTop(value);
+    if (mKind != BackingViewKind.SURFACE_VIEW) {
+      return false;
+    }
+    boolean inPlace = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+        && getContext().getApplicationInfo().targetSdkVersion >= Build.VERSION_CODES.R;
+    if (!inPlace) {
+      warnIgnoredOnceMounted(prop);
+    }
+    return inPlace;
+  }
+
+  private void applyZOrder() {
+    if (mKind == BackingViewKind.SURFACE_VIEW) {
+      ((WebGPUSurfaceView) mView).setZOrder(mZOrderOnTop, mZOrderMediaOverlay);
+    }
   }
 
   private void warnIgnoredOnceMounted(String prop) {
@@ -102,66 +130,40 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
         + " to change it.");
   }
 
-  // SurfaceView.setZOrderOnTop() moves a live surface since Android 11, for
-  // an app targeting it; before that, the surface reads it when it is
-  // created (see updateView()).
-  private boolean zOrderChangesInPlace() {
-    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-        && getContext().getApplicationInfo().targetSdkVersion >= Build.VERSION_CODES.R;
-  }
-
-  // Resolve the backing view from the props. "auto" picks SurfaceView for an
-  // opaque canvas and TextureView for a non-opaque one. WebGPUHardwareBufferView
-  // (a plain View drawing AHardwareBuffers inline, API 29+) is opt-in via
-  // surfaceType until it gets a runtime fallback to TextureView when the
-  // AHardwareBuffer import fails on a device; below API 29 the request itself
-  // falls back to TextureView.
-  private int resolveKind() {
-    if ("SurfaceView".equals(mSurfaceType)) {
-      return KIND_SURFACE_VIEW;
-    }
-    if ("TextureView".equals(mSurfaceType)) {
-      return KIND_TEXTURE_VIEW;
-    }
-    if ("HardwareBufferView".equals(mSurfaceType)) {
-      boolean hardwareBufferSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
-      return hardwareBufferSupported ? KIND_HARDWARE_BUFFER_VIEW : KIND_TEXTURE_VIEW;
-    }
-    return mOpaque ? KIND_SURFACE_VIEW : KIND_TEXTURE_VIEW;
-  }
-
   // Apply the complete prop transaction once, after contextId and all rendering
   // options have arrived. The first one creates the backing view, which is
   // then kept: a SurfaceView must know its z-order before it attaches (before
-  // Android 11), and replacing a backing view on screen hands the canvas from
-  // one view to another, which no release of Android does without a frame of
-  // nothing, or of black, in between (the two views are composited by
-  // different frames). A canvas that needs another backing view is remounted
-  // instead. Later transactions apply the opacity in place (the setters decide
+  // Android 11), and keeping a canvas on screen while its backing view is
+  // replaced takes hold-and-retire logic specific to each Android release (see
+  // PR #563, and react-native-skia's #4189 and #4192), which this view does
+  // not carry. A canvas that needs another backing view is remounted instead,
+  // and is off screen for a frame or two until the new view draws its first
+  // frame. Later transactions apply the opacity in place (the setters decide
   // what else is taken); WebGPUHardwareBufferView always composites with
   // alpha, so there it is a no-op.
   public void updateView() {
-    if (mKind != -1) {
-      if (mKind == KIND_TEXTURE_VIEW) {
-        ((WebGPUTextureView) mView).setOpaque(mOpaque);
-      } else if (mKind == KIND_SURFACE_VIEW) {
-        ((WebGPUSurfaceView) mView).setOpaque(mOpaque);
+    if (mKind != null) {
+      boolean opaque = BackingViewKind.resolveOpaque(mKind, mOpaque);
+      if (mKind == BackingViewKind.TEXTURE_VIEW) {
+        ((WebGPUTextureView) mView).setOpaque(opaque);
+      } else if (mKind == BackingViewKind.SURFACE_VIEW) {
+        ((WebGPUSurfaceView) mView).setOpaque(opaque);
       }
       return;
     }
-    int kind = resolveKind();
-    boolean zOrderOnTop = kind == KIND_SURFACE_VIEW && mZOrderOnTop;
+    BackingViewKind kind = mBackingView;
     mKind = kind;
+    boolean opaque = BackingViewKind.resolveOpaque(kind, mOpaque);
     Context ctx = getContext();
     switch (kind) {
-      case KIND_HARDWARE_BUFFER_VIEW:
+      case HARDWARE_BUFFER_VIEW:
         mView = new WebGPUHardwareBufferView(ctx, this);
         break;
-      case KIND_TEXTURE_VIEW:
-        mView = new WebGPUTextureView(ctx, this, mOpaque);
+      case TEXTURE_VIEW:
+        mView = new WebGPUTextureView(ctx, this, opaque);
         break;
       default:
-        mView = new WebGPUSurfaceView(ctx, this, zOrderOnTop, mOpaque);
+        mView = new WebGPUSurfaceView(ctx, this, mZOrderOnTop, mZOrderMediaOverlay, opaque);
         break;
     }
     addView(mView);
@@ -188,7 +190,7 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     float density = getResources().getDisplayMetrics().density;
     float width = getWidth() / density;
     float height = getHeight() / density;
-    boolean votesFrameRate = mKind == KIND_SURFACE_VIEW;
+    boolean votesFrameRate = mKind == BackingViewKind.SURFACE_VIEW;
     if (votesFrameRate) {
       mFrameRateVote.attach(surface);
     }

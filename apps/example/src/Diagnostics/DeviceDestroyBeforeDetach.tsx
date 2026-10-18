@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Button, ScrollView, Switch, Text, View } from "react-native";
-import type { CanvasRef } from "react-native-webgpu";
+import type { AndroidCanvasProps, CanvasRef } from "react-native-webgpu";
 import { Canvas } from "react-native-webgpu";
 import * as THREE from "three";
 
@@ -58,12 +58,17 @@ type Mode = "raw" | "three";
 
 interface SceneProps {
   mode: Mode;
-  opaque: boolean;
+  surfaceView: boolean;
   unconfigureFirst: boolean;
   append: (line: string) => void;
 }
 
-const RawScene = ({ opaque, unconfigureFirst, append }: SceneProps) => {
+// Either kind of Android backing view, to tear both down.
+const backingView = (surfaceView: boolean): AndroidCanvasProps => ({
+  backingView: surfaceView ? "SurfaceView" : "TextureView",
+});
+
+const RawScene = ({ surfaceView, unconfigureFirst, append }: SceneProps) => {
   const ref = useRef<CanvasRef>(null);
 
   useEffect(() => {
@@ -122,10 +127,16 @@ const RawScene = ({ opaque, unconfigureFirst, append }: SceneProps) => {
     };
   }, [append, unconfigureFirst]);
 
-  return <Canvas ref={ref} style={diagnosticStyles.canvas} opaque={opaque} />;
+  return (
+    <Canvas
+      ref={ref}
+      style={diagnosticStyles.canvas}
+      android={backingView(surfaceView)}
+    />
+  );
 };
 
-const ThreeScene = ({ opaque, append }: SceneProps) => {
+const ThreeScene = ({ surfaceView, append }: SceneProps) => {
   const ref = useRef<CanvasRef>(null);
 
   useEffect(() => {
@@ -181,14 +192,20 @@ const ThreeScene = ({ opaque, append }: SceneProps) => {
     };
   }, [append]);
 
-  return <Canvas ref={ref} style={diagnosticStyles.canvas} opaque={opaque} />;
+  return (
+    <Canvas
+      ref={ref}
+      style={diagnosticStyles.canvas}
+      android={backingView(surfaceView)}
+    />
+  );
 };
 
 export const DeviceDestroyBeforeDetach = () => {
   const { log, append } = useDiagnosticLog();
   const [mounted, setMounted] = useState(true);
   const [mode, setMode] = useState<Mode>("raw");
-  const [opaque, setOpaque] = useState(true);
+  const [surfaceView, setSurfaceView] = useState(true);
   const [unconfigureFirst, setUnconfigureFirst] = useState(false);
   const Scene = mode === "raw" ? RawScene : ThreeScene;
 
@@ -216,9 +233,13 @@ export const DeviceDestroyBeforeDetach = () => {
           />
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Switch value={opaque} onValueChange={setOpaque} disabled={mounted} />
+          <Switch
+            value={surfaceView}
+            onValueChange={setSurfaceView}
+            disabled={mounted}
+          />
           <Text style={diagnosticStyles.description}>
-            opaque (SurfaceView) / non-opaque (TextureView)
+            SurfaceView / TextureView
           </Text>
         </View>
         {mode === "raw" ? (
@@ -237,7 +258,7 @@ export const DeviceDestroyBeforeDetach = () => {
       {mounted ? (
         <Scene
           mode={mode}
-          opaque={opaque}
+          surfaceView={surfaceView}
           unconfigureFirst={unconfigureFirst}
           append={append}
         />

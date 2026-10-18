@@ -84,7 +84,7 @@ export function HelloTriangleDemo({ transparent = true }: HelloTriangleDemoProps
       <Canvas
         ref={ref}
         style={StyleSheet.absoluteFill}
-        opaque={!transparent}
+        android={{ opaque: !transparent }}
       />
     </View>
   );

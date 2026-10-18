@@ -15,12 +15,12 @@ import {
 // second, and come back. Primarily an Android repro (iOS keeps the
 // CAMetalLayer alive in the background).
 //
-// On a broken build the two Android view flavors fail differently:
-// - non-opaque (TextureView): onSurfaceTextureDestroyed removes the surface
+// On a broken build the two Android backing views fail differently:
+// - TextureView (the default): onSurfaceTextureDestroyed removes the surface
 //   registry entry entirely. The resumed view registers a fresh entry the JS
 //   context has never seen, so the canvas stays black forever (and the
 //   context renders into the orphaned surface on a destroyed window).
-// - opaque (SurfaceView): the surface detaches to offscreen and reattaches on
+// - SurfaceView: the surface detaches to offscreen and reattaches on
 //   resume, but the reattach blit presents a frame the context never
 //   acquired (watch for a present-without-acquire validation error in the
 //   log) and permanently widens the configured usage with CopyDst.
@@ -31,7 +31,7 @@ import {
 export const BackgroundDetach = () => {
   const ref = useRef<CanvasRef>(null);
   const { log, append } = useDiagnosticLog();
-  const [opaque, setOpaque] = useState(false);
+  const [surfaceView, setSurfaceView] = useState(false);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
@@ -76,17 +76,21 @@ export const BackgroundDetach = () => {
       <View style={diagnosticStyles.controls}>
         <Text style={diagnosticStyles.description}>
           Background the app and return: the animated gradient must resume. On a
-          broken build the non-opaque canvas stays black forever (Android), and
-          the opaque one logs a validation error on resume.
+          broken build the TextureView canvas stays black forever (Android), and
+          the SurfaceView one logs a validation error on resume.
         </Text>
         <View style={styles.row}>
           <Text style={diagnosticStyles.description}>
-            opaque (SurfaceView on Android)
+            SurfaceView (Android; the default is a TextureView)
           </Text>
-          <Switch value={opaque} onValueChange={setOpaque} />
+          <Switch value={surfaceView} onValueChange={setSurfaceView} />
         </View>
       </View>
-      <Canvas ref={ref} style={diagnosticStyles.canvas} opaque={opaque} />
+      <Canvas
+        ref={ref}
+        style={diagnosticStyles.canvas}
+        android={{ backingView: surfaceView ? "SurfaceView" : "TextureView" }}
+      />
       <ScrollView style={diagnosticStyles.log}>
         {log.map((line, i) => (
           <Text key={i} style={diagnosticStyles.logLine}>

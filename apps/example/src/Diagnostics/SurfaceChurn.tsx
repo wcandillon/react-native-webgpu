@@ -12,8 +12,8 @@ import {
 
 // Automated stress for the attach/detach transitions. While a frame loop
 // renders on the JS thread, the canvas is fully remounted every 400ms (every
-// third remount also flips the opaque prop, which swaps the Android view
-// flavor). Each epoch tears the previous native view down on the platform
+// third remount also flips the Android backing view between a TextureView
+// and a SurfaceView). Each epoch tears the previous native view down on the platform
 // thread while the previous frame may still be in flight, exercising:
 // - native teardown (MetalView dealloc / TextureView destroy) racing
 //   getCurrentTexture()/present() on the JS thread,
@@ -86,8 +86,8 @@ export const SurfaceChurn = () => {
       <View style={diagnosticStyles.controls}>
         <Text style={diagnosticStyles.description}>
           Remounts the canvas every 400ms while rendering every frame, flipping
-          the opaque flag every third remount. Expected: flicker, but no crash
-          and no validation errors. Leave it running for a minute.
+          the Android backing view every third remount. Expected: flicker, but
+          no crash and no validation errors. Leave it running for a minute.
         </Text>
         <Button
           title={running ? "Stop churn" : "Start churn"}
@@ -99,7 +99,10 @@ export const SurfaceChurn = () => {
           key={epoch}
           ref={ref}
           style={diagnosticStyles.canvas}
-          opaque={Math.floor(epoch / 3) % 2 !== 0}
+          android={{
+            backingView:
+              Math.floor(epoch / 3) % 2 !== 0 ? "SurfaceView" : "TextureView",
+          }}
         />
       ) : (
         <View style={diagnosticStyles.canvas} />

@@ -7,9 +7,11 @@ import { contextIdToId } from "./utils";
 
 export interface NativeProps extends ViewProps {
   contextId: Int32;
-  opaque?: boolean;
-  androidSurfaceType?: "auto" | "SurfaceView" | "TextureView";
+  // The `android` prop, resolved: Android-only, never reaches the DOM
+  androidBackingView?: "TextureView" | "SurfaceView" | "HardwareBufferView";
+  androidOpaque?: boolean;
   androidZOrderOnTop?: boolean;
+  androidZOrderMediaOverlay?: boolean;
 }
 
 // eslint-disable-next-line import/no-default-export
@@ -19,9 +21,10 @@ export default function WebGPUViewNativeComponent(
   const {
     contextId,
     style,
-    opaque = true,
-    androidSurfaceType: _androidSurfaceType,
+    androidBackingView: _androidBackingView,
+    androidOpaque: _androidOpaque,
     androidZOrderOnTop: _androidZOrderOnTop,
+    androidZOrderMediaOverlay: _androidZOrderMediaOverlay,
     ...rest
   } = props;
 
@@ -34,7 +37,6 @@ export default function WebGPUViewNativeComponent(
     style: {
       ...styles.view,
       ...styles.flex1,
-      ...(opaque ? { backgroundColor: "white" } : {}),
       ...(typeof style === "object" ? style : {}),
     },
   });

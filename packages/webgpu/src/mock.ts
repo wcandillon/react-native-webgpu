@@ -82,8 +82,11 @@ const NOT_AVAILABLE_UNDER_JEST =
   "is not available under Jest - react-native-webgpu has no native implementation in tests (see react-native-webgpu/jestSetup.js)";
 
 export type {
+  AndroidBackingView,
   AndroidCanvasProps,
-  AndroidSurfaceType,
+  AndroidHardwareBufferViewProps,
+  AndroidSurfaceViewProps,
+  AndroidTextureViewProps,
   CanvasProps,
   CanvasRef,
   NativeCanvas,
@@ -91,12 +94,7 @@ export type {
 } from "./Canvas";
 
 // Strip the same props the real Canvas keeps off its outer View.
-export const Canvas = ({
-  opaque: _opaque,
-  android: _android,
-  ref,
-  ...props
-}: CanvasProps) => {
+export const Canvas = ({ android: _android, ref, ...props }: CanvasProps) => {
   React.useImperativeHandle(ref, () => ({
     getContextId: () => -1,
     getContext: (_contextName: "webgpu"): RNCanvasContext | null => null,

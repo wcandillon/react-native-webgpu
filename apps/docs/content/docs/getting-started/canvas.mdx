@@ -7,7 +7,7 @@ The [`Canvas`](/api/canvas) component is where you can access a WebGPU context a
 The API is symmetric with its Web counterpart, with a few differences.
 For instance on React Native you must call `context.present()` after every `device.queue.submit()` to present the frame to the screen.
 
-On Android, the canvas picks the right native view for you depending on whether it is opaque. The [Android rendering options](/api/canvas#android-rendering-options) explain the trade-offs and how to pick one explicitly.
+On Android, the canvas is backed by a regular view by default. The [Android rendering options](/api/canvas#android-rendering-options) explain the trade-offs and how to pick a faster one.
 
 | Web concept | React Native WebGPU |
 | ----------- | --------------------- |
@@ -83,17 +83,14 @@ Because `clientWidth` / `clientHeight` track layout, recompute the buffer size w
 
 ## Transparency
 
-To render the canvas over the React Native views beneath it, you control transparency from two places, and you normally set both:
-
-- **`opaque={false}`** on `<Canvas>` makes the underlying native surface translucent so the views behind it show through.
-- **`alphaMode: "premultiplied"`** on `context.configure`, together with a clear color whose alpha is `0`, makes WebGPU produce a transparent frame.
+To render the canvas over the React Native views beneath it, configure the context with `alphaMode: "premultiplied"` and clear with a color whose alpha is `0`, so that WebGPU produces a transparent frame:
 
 ```tsx
-<Canvas ref={ref} style={StyleSheet.absoluteFill} opaque={false} />
+<Canvas ref={ref} style={StyleSheet.absoluteFill} />
 ```
 
 <Callout type="info" title="Platform note">
-On Android the `alphaMode` passed to `configure()` is ignored, so `opaque={false}` is what actually gives you a transparent canvas there. On iOS `alphaMode` alone controls it and `opaque` is ignored. Setting `opaque={false}` together with `alphaMode: "premultiplied"` and an alpha-`0` clear color gives you the same result on both platforms. See the [Android rendering options](/api/canvas#android-rendering-options) to pick the backing view explicitly.
+On iOS `alphaMode` alone controls it. On Android the `alphaMode` passed to `configure()` is ignored: the backing view decides, and the default `TextureView` composites with alpha unless `android={{ opaque: true }}` asks it not to, while a `SurfaceView` is opaque unless asked otherwise. See the [Android rendering options](/api/canvas#android-rendering-options).
 </Callout>
 
 ## See also
