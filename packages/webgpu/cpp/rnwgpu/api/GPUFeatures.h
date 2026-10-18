@@ -104,6 +104,7 @@ namespace rnwgpu {
   V(AdapterPropertiesWGPU, "adapter-properties-wgpu")                          \
   V(SharedBufferMemoryFromWindowsHandle,                                       \
     "shared-buffer-memory-from-windows-handle")                                \
+  V(SharedBufferMemoryHostPointer, "shared-buffer-memory-host-pointer")        \
   V(SharedTextureMemoryD3D12Resource, "shared-texture-memory-d3d12-resource")  \
   V(ChromiumExperimentalSamplingResourceTable,                                 \
     "chromium-experimental-sampling-resource-table")                           \

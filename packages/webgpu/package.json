@@ -24,7 +24,7 @@
     "app.plugin.js",
     "plugin/build/**"
   ],
-  "dawn": "chrome-m154a",
+  "dawn": "chrome-m157",
   "androidMinSdkVersion": 26,
   "scripts": {
     "test": "NODE_OPTIONS='--experimental-require-module' jest -i",
@@ -111,7 +111,7 @@
     "yargs": "^17.7.2"
   },
   "dependencies": {
-    "react-native-webgpu-dawn": "154.3.0"
+    "react-native-webgpu-dawn": "157.0.0"
   },
   "peerDependencies": {
     "react": "*",

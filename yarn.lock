@@ -20871,10 +20871,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-webgpu-dawn@npm:154.3.0":
-  version: 154.3.0
-  resolution: "react-native-webgpu-dawn@npm:154.3.0"
-  checksum: 29a03a1c88e046413395e1cca965dbcce10146387e24540c59b00e25d069402667ecbf8bf971a66bc69e8d1ae369ca3c63fa0d0af903ff01ee1b16f2aa0dfb65
+"react-native-webgpu-dawn@npm:157.0.0":
+  version: 157.0.0
+  resolution: "react-native-webgpu-dawn@npm:157.0.0"
+  checksum: 2fbebac05e083a4d0ecd258e459ddb6a41c1755f1720b9361a43af31c37d8e67aac60904f2731535b52e9fb19dfb0ced05d3011861635786a449e8a3835cbb20
   languageName: node
   linkType: hard
 
@@ -20939,7 +20939,7 @@ __metadata:
     react-native-builder-bob: ^0.23.2
     react-native-reanimated: 4.6.0
     react-native-web: ^0.21.2
-    react-native-webgpu-dawn: 154.3.0
+    react-native-webgpu-dawn: 157.0.0
     react-native-worklets: 0.12.2
     rimraf: ^5.0.7
     seedrandom: ^3.0.5
