@@ -424,7 +424,7 @@ jobs:
             adb reverse tcp:8081 tcp:8081
             nohup adb logcat > logcat.txt 2>&1 &
             adb install -r apps/example/android/app/build/outputs/apk/debug/app-debug.apk
-            adb shell monkey -p com.microsoft.reacttestapp 1
+            adb shell monkey -p com.reactnativewebgpu.example 1
             cd packages/webgpu && yarn test
 
       # Same purpose as the iOS upload above: missing snapshots written on this
