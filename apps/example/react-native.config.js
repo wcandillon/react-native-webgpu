@@ -4,6 +4,8 @@ const project = (() => {
     return configureProjects({
       android: {
         sourceDir: "android",
+        // The Java namespace of react-native-test-app's app module, where
+        // BuildConfig lives (the application id is set in app.json).
         packageName: "com.microsoft.reacttestapp"
       },
       ios: {
