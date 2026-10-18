@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import fs from "fs";
+import path from "path";
+
 import { client } from "./setup";
+
+// A 32x32 PNG, decoded on the main runtime for the ImageBitmap round trip.
+const assetPath = path.resolve(__dirname, "./assets/alpha-gradient.png");
 
 // WebGPU objects are plain JS objects with jsi::NativeState and a per-runtime
 // prototype, which worklets cannot copy by itself. registerWebGPUForReanimated
@@ -107,6 +113,43 @@ describe("Worklet serialization", () => {
       size: 512,
       label: "round-trip",
       isGPUBuffer: true,
+      sameObjectBack: true,
+    });
+  });
+
+  it("round-trips an ImageBitmap through a worklet runtime", async () => {
+    // ImageBitmap was missing from RNWebGPUManager::installConstructors, so
+    // its brand was never registered and unboxing it on a worklet runtime
+    // threw "No native class registered for brand: ImageBitmap".
+    const pngData = Array.from(fs.readFileSync(assetPath));
+    const result = await client.eval<
+      { pngData: number[] },
+      {
+        width: number;
+        height: number;
+        isImageBitmap: boolean;
+        sameObjectBack: boolean;
+        error?: string;
+      } | null
+    >(
+      ({ workletSerialization, pngData: encodedPng }) => {
+        if (!workletSerialization) {
+          return null;
+        }
+        const bytes = new Uint8Array(encodedPng);
+        return createImageBitmap(bytes.buffer).then((bitmap) =>
+          workletSerialization.roundTripImageBitmap(bitmap),
+        );
+      },
+      { pngData },
+    );
+    if (result === null) {
+      return;
+    }
+    expect(result).toEqual({
+      width: 32,
+      height: 32,
+      isImageBitmap: true,
       sameObjectBack: true,
     });
   });

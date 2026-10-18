@@ -29,6 +29,15 @@ export interface RoundTripResult {
   error?: string;
 }
 
+export interface BitmapRoundTripResult {
+  width: number;
+  height: number;
+  isImageBitmap: boolean;
+  sameObjectBack: boolean;
+  // Set when the worklet threw, with the error message.
+  error?: string;
+}
+
 export interface CaptureResult {
   threw: boolean;
   message: string;
@@ -109,6 +118,50 @@ export const workletSerialization = {
           }
         },
         buffer,
+      );
+    }),
+
+  // Sends `bitmap` to a worklet runtime and back, as roundTripBuffer does
+  // for a buffer. Unboxing it there rebuilds it from its class brand, which
+  // only installConstructor registers.
+  roundTripImageBitmap: (bitmap: ImageBitmap): Promise<BitmapRoundTripResult> =>
+    new Promise((resolve) => {
+      const done = (
+        onWorklet: { width: number; height: number; isImageBitmap: boolean },
+        back: ImageBitmap,
+      ) => {
+        resolve({ ...onWorklet, sameObjectBack: back === bitmap });
+      };
+      const failed = (error: string) => {
+        resolve({
+          width: -1,
+          height: -1,
+          isImageBitmap: false,
+          sameObjectBack: false,
+          error,
+        });
+      };
+      scheduleOnRuntime(
+        getRuntime(),
+        (image: ImageBitmap) => {
+          "worklet";
+          try {
+            installWebGPU();
+            // Read through globalThis: the worklets babel plugin would
+            // otherwise capture the main runtime's constructor by closure.
+            const ctor = globalThis.ImageBitmap;
+            const onWorklet = {
+              width: image.width,
+              height: image.height,
+              isImageBitmap:
+                typeof ctor === "function" && image instanceof ctor,
+            };
+            scheduleOnRN(done, onWorklet, image);
+          } catch (e) {
+            scheduleOnRN(failed, String(e));
+          }
+        },
+        bitmap,
       );
     }),
 

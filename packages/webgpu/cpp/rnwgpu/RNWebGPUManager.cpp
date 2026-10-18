@@ -41,6 +41,7 @@
 #include "GPUTextureView.h"
 #include "GPUUncapturedErrorEvent.h"
 #include "GPUValidationError.h"
+#include "ImageBitmap.h"
 #include "VideoFrame.h"
 #include "VideoPlayer.h"
 
@@ -144,6 +145,7 @@ void RNWebGPUManager::installConstructors(jsi::Runtime &runtime) {
   GPUSupportedLimits::installConstructor(runtime);
   GPUTexture::installConstructor(runtime);
   GPUTextureView::installConstructor(runtime);
+  ImageBitmap::installConstructor(runtime);
   VideoFrame::installConstructor(runtime);
   VideoPlayer::installConstructor(runtime);
 }

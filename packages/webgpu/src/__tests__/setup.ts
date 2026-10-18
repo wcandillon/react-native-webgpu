@@ -66,6 +66,13 @@ interface GPUTestingContext {
       sameObjectBack: boolean;
       error?: string;
     }>;
+    roundTripImageBitmap: (bitmap: ImageBitmap) => Promise<{
+      width: number;
+      height: number;
+      isImageBitmap: boolean;
+      sameObjectBack: boolean;
+      error?: string;
+    }>;
     captureForeign: (
       value: object,
     ) => Promise<{ threw: boolean; message: string; typeOnWorklet: string }>;
