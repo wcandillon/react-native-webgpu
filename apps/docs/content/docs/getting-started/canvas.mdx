@@ -60,6 +60,10 @@ context.present(); // React Native only
 
 `present()` is a React Native only method (it is not part of the Web WebGPU spec). It runs **synchronously** on the calling thread, so the frame is presented from whichever thread did the rendering. This works the same on every runtime: the main JS runtime, the UI thread, and dedicated worklet runtimes. Always call it after `submit()`, never before.
 
+Your loop sets the frame rate.
+A loop on the Reanimated UI runtime or on a worklet runtime (see [Worklets](/docs/integrations/worklets)) runs at the display's rate, 120 Hz on a ProMotion iPhone or iPad, while React Native's `requestAnimationFrame` on the JS thread runs at 60 Hz on iOS.
+An app created from an Expo or React Native template before React Native 0.82 may still carry iOS's 60 Hz cap for iPhone: [Reanimated's performance guide](https://docs.swmansion.com/react-native-reanimated/docs/guides/performance/#-enable-120-fps) covers the `Info.plist` opt-in.
+
 ## Pixel density
 
 Just like on the Web, a canvas has two independent sizes:

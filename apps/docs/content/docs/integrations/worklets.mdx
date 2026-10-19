@@ -5,6 +5,7 @@ description: Run WebGPU rendering off the JS thread on worklet runtimes.
 
 By default, WebGPU rendering runs on the JavaScript thread alongside React. 
 Using [React Native Worklets](https://github.com/margelo/react-native-worklets), you can run WebGPU rendering on the UI thread or on a dedicated worklet runtime.
+A worklet loop also runs at the display's rate, 120 Hz on a ProMotion iPhone or iPad, where the JS thread's `requestAnimationFrame` is capped at 60 Hz (see [Frame presentations](/docs/getting-started/canvas#frame-presentations)).
 There is even an experimental [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/) that lets you run complex Three.js scenes on a dedicated thread.
 You can see an example of Bundle Mode working with Three.js [here](https://github.com/software-mansion-labs/Bundle-Mode-showcase-app).
 
