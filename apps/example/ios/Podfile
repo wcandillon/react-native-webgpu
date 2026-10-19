@@ -6,10 +6,24 @@ require "#{ws_dir}/node_modules/react-native-test-app/test_app.rb"
 
 workspace 'Example.xcworkspace'
 
+# react-native-test-app generates the app's Info.plist from its own template
+# and takes no extra keys from app.json. Without this one iOS caps every
+# display link at 60 Hz on iPhone, so a ProMotion iPhone would never show a
+# canvas above 60 fps (see the docs, "Frame presentations").
+opt_in_promotion = ->(_installer) do
+  plist_path = File.expand_path('../node_modules/.generated/ios/Info.plist', __dir__)
+  return unless File.exist?(plist_path)
+
+  info = Xcodeproj::Plist.read_from_path(plist_path)
+  info['CADisableMinimumFrameDurationOnPhone'] = true
+  Xcodeproj::Plist.write_to_path(info, plist_path)
+end
+
 options = {
   :hermes_enabled => true,
   :fabric_enabled => true,
-  :new_arch_enabled => true
+  :new_arch_enabled => true,
+  :post_install => opt_in_promotion
 }
 
 use_test_app! options
