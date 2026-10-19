@@ -23,15 +23,12 @@ const makeCanvas = (context: object | null): FakeCanvas => ({
   },
 });
 
-type Polyfill = {
-  MakeWebGPUCanvasContext: (
-    contextId: number,
-    width: number,
-    height: number,
-  ) => (object & { present: () => void }) | null;
-};
+type Polyfill = Pick<
+  typeof RNWebGPU,
+  "getNativeSurface" | "MakeWebGPUCanvasContext"
+>;
 
-const loadPolyfill = (canvas: FakeCanvas): Polyfill => {
+const loadPolyfill = (canvas: FakeCanvas | null): Polyfill => {
   const g = globalThis as Record<string, unknown>;
   g.window = { devicePixelRatio: 2 };
   g.document = { getElementById: () => canvas };
@@ -63,5 +60,33 @@ describe("Web polyfill", () => {
     // (e.g. Safari with the WebGPU feature flag turned off).
     const RNWebGPU = loadPolyfill(makeCanvas(null));
     expect(RNWebGPU.MakeWebGPUCanvasContext(1, 100, 50)).toBeNull();
+  });
+
+  it("reports a 0 x 0 surface once the canvas element is gone, as native does", () => {
+    const surface = loadPolyfill(null).getNativeSurface(1);
+    expect({
+      surface: surface.surface,
+      width: surface.width,
+      height: surface.height,
+      clientWidth: surface.clientWidth,
+      clientHeight: surface.clientHeight,
+    }).toEqual({
+      surface: BigInt(0),
+      width: 0,
+      height: 0,
+      clientWidth: 0,
+      clientHeight: 0,
+    });
+    expect(() => {
+      surface.addEventListener("pointerdown", () => {});
+      surface.removeEventListener("pointerdown", () => {});
+      surface.dispatchEvent(new Event("pointerdown"));
+      surface.setPointerCapture(7);
+      surface.releasePointerCapture(7);
+    }).not.toThrow();
+  });
+
+  it("returns no context once the canvas element is gone", () => {
+    expect(loadPolyfill(null).MakeWebGPUCanvasContext(1, 100, 50)).toBeNull();
   });
 });
