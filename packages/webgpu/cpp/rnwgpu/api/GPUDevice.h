@@ -15,6 +15,7 @@
 
 #include "NativeObject.h"
 
+#include "rnwgpu/GpuWorkGate.h"
 #include "rnwgpu/async/AsyncTaskHandle.h"
 #include "rnwgpu/async/RuntimeContext.h"
 
@@ -72,9 +73,13 @@ public:
                      std::shared_ptr<async::RuntimeContext> async,
                      std::string label)
       : NativeObject(CLASS_NAME), _instance(instance), _async(async),
-        _label(label) {}
+        _label(label) {
+    // Drained when the app goes to the background (see GpuWorkGate).
+    GpuWorkGate::getInstance().trackDevice(_instance);
+  }
 
   ~GPUDevice() override {
+    GpuWorkGate::getInstance().untrackDevice(_instance.Get());
     // Unregister from the static registry
     unregisterDevice(_instance.Get());
   }
