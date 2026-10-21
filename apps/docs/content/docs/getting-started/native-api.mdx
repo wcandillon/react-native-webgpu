@@ -37,6 +37,14 @@ Dawn's implicit device synchronization, enabled by default, lets a device be use
 
 See [Worklets](/docs/integrations/worklets) for the full integration guide.
 
+## Background and foreground
+
+iOS refuses GPU work from an app in the background, including work still queued when the app got there, and Dawn loses the device over a refused command buffer.
+React Native WebGPU follows Apple's guidance for Metal apps so that this never happens: when the app goes to the background, every device is drained (what was submitted completes before the app is suspended), and from then on `queue.submit()`, `writeBuffer()`, `writeTexture()`, `copyExternalImageToTexture()` and `context.present()` are held, in order, and run when the app comes back to the foreground.
+Nothing changes for your code: a held `onSubmittedWorkDone()` or `mapAsync()` promise settles once the app is back.
+A render loop should still pause while the app is in the background (React Native's `AppState`), if only to spare the battery; what it submits meanwhile is kept in memory until the app returns.
+Android and macOS do not refuse GPU work from a background app, so nothing is held there.
+
 ## Loading images
 
 This module provides a `createImageBitmap` function you can use with `copyExternalImageToTexture`.

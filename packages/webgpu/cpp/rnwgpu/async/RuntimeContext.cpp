@@ -9,6 +9,7 @@
 
 #include "AsyncTaskHandle.h"
 #include "WGPULogger.h"
+#include "rnwgpu/GpuWorkGate.h"
 
 namespace rnwgpu::async {
 
@@ -17,6 +18,8 @@ struct RuntimeData {
   std::shared_ptr<RuntimeContext> context;
 };
 constexpr const char *TAG = "RuntimeContext";
+// How often the pump looks again while GPU work is held (see tick).
+constexpr double kSuspendedTickDelayMs = 50;
 
 // The main JS runtime and its CallInvoker, registered once on install. The
 // context created for sMainRuntime gets sMainInvoker; spontaneous events
@@ -26,8 +29,9 @@ jsi::Runtime *sMainRuntime = nullptr;
 std::shared_ptr<facebook::react::CallInvoker> sMainInvoker;
 
 // Serializes ProcessEvents() across all runtimes that share a wgpu::Instance.
-// Held only across the ProcessEvents call itself, never while running JS / mailbox
-// settle-actions, so it cannot deadlock against the per-context mailbox mutex.
+// Held only across the ProcessEvents call itself, never while running JS /
+// mailbox settle-actions, so it cannot deadlock against the per-context mailbox
+// mutex.
 std::mutex &processEventsMutex() {
   static std::mutex mutex;
   return mutex;
@@ -80,7 +84,8 @@ AsyncTaskHandle RuntimeContext::postTask(const TaskCallback &callback,
 
   // Only pumping tasks (request/response ops) drive the ProcessEvents pump.
   // Spontaneous tasks (keepPumping == false, e.g. device.lost) never touch the
-  // pump: they settle via the CallInvoker (see AsyncTaskHandle::State::schedule).
+  // pump: they settle via the CallInvoker (see
+  // AsyncTaskHandle::State::schedule).
   if (keepPumping) {
     _pumpTasks.fetch_add(1, std::memory_order_acq_rel);
     requestTick();
@@ -125,7 +130,7 @@ void RuntimeContext::drainMailbox() {
   }
 }
 
-void RuntimeContext::requestTick() {
+void RuntimeContext::requestTick(double delayMs) {
   bool expected = false;
   if (!_tickScheduled.compare_exchange_strong(expected, true,
                                               std::memory_order_acq_rel)) {
@@ -135,8 +140,8 @@ void RuntimeContext::requestTick() {
   // The pump only ever runs while a request/response op is outstanding, so it
   // always schedules as soon as possible (delay 0). postTask and tick both run
   // on the owning runtime's thread, so we schedule the next tick directly via
-  // that runtime's own timer. setTimeout is available on the main RN runtime and
-  // on worklet runtimes (backed by the worklets EventLoop); setImmediate /
+  // that runtime's own timer. setTimeout is available on the main RN runtime
+  // and on worklet runtimes (backed by the worklets EventLoop); setImmediate /
   // queueMicrotask are fallbacks. We do NOT use queueMicrotask as the primary
   // mechanism: a self-rescheduling microtask never yields the microtask
   // checkpoint, starving the runtime's task loop.
@@ -155,7 +160,7 @@ void RuntimeContext::requestTick() {
   if (setTimeoutValue.isObject() &&
       setTimeoutValue.asObject(rt).isFunction(rt)) {
     setTimeoutValue.asObject(rt).asFunction(rt).call(
-        rt, jsi::Value(rt, tickCallback), jsi::Value(0.0));
+        rt, jsi::Value(rt, tickCallback), jsi::Value(delayMs));
     return;
   }
   auto setImmediateValue = global.getProperty(rt, "setImmediate");
@@ -170,6 +175,18 @@ void RuntimeContext::requestTick() {
 
 void RuntimeContext::tick() {
   _tickScheduled.store(false, std::memory_order_release);
+  if (GpuWorkGate::getInstance().isSuspended()) {
+    // ProcessEvents ticks every device on the instance, which commits the
+    // commands Dawn staged: nothing may reach the GPU while the app is in the
+    // background (see GpuWorkGate). What already settled is still delivered;
+    // the rest waits for the app to come back, looked at again at a slow pace
+    // in case the runtime's timers keep running meanwhile.
+    drainMailbox();
+    if (_pumpTasks.load(std::memory_order_acquire) > 0) {
+      requestTick(kSuspendedTickDelayMs);
+    }
+    return;
+  }
   {
     // Serialize ProcessEvents across runtimes sharing this instance. Callbacks
     // fired here only deposit into mailboxes (postSettle), they do not run JS.
@@ -178,9 +195,10 @@ void RuntimeContext::tick() {
   }
   // Settle this runtime's ready promises on this thread, outside the pump lock.
   drainMailbox();
-  // Keep pumping only while a "pumping" task (active async work) is outstanding.
-  // Non-pumping tasks (e.g. device.lost) intentionally do NOT keep the pump
-  // alive: we prioritise battery over catching a device.lost fired while idle.
+  // Keep pumping only while a "pumping" task (active async work) is
+  // outstanding. Non-pumping tasks (e.g. device.lost) intentionally do NOT keep
+  // the pump alive: we prioritise battery over catching a device.lost fired
+  // while idle.
   if (_pumpTasks.load(std::memory_order_acquire) > 0) {
     requestTick();
   }

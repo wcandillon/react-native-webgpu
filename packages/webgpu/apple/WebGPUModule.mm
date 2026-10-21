@@ -2,6 +2,7 @@
 #include "ApplePlatformContext.h"
 #import "GPUCanvasContext.h"
 #import "RNWGUIKit.h"
+#include "rnwgpu/GpuWorkGate.h"
 
 #import <React/RCTBridge+Private.h>
 #import <React/RCTCallInvoker.h>
@@ -97,7 +98,44 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
       std::make_shared<rnwgpu::ApplePlatformContext>(std::move(viewLookup));
   webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker,
                                                             platformContext);
+  [WebGPUModule observeApplicationState];
   return @true;
+}
+
+// iOS refuses GPU work from an app in the background, and Dawn loses the
+// device over it: GPU work is drained when the app goes to the background and
+// held until it comes back (see GpuWorkGate). Observed once per process, the
+// gate being process-wide. The blocks run on the thread the notification is
+// posted on (the main thread), synchronously with it, so that the drain is
+// done before the app is suspended. macOS does not refuse GPU work from a
+// hidden app.
++ (void)observeApplicationState {
+#if !TARGET_OS_OSX
+  static dispatch_once_t once;
+  dispatch_once(&once, ^{
+    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+    [center addObserverForName:UIApplicationDidEnterBackgroundNotification
+                        object:nil
+                         queue:nil
+                    usingBlock:^(NSNotification *) {
+                      rnwgpu::GpuWorkGate::getInstance().suspend();
+                    }];
+    [center addObserverForName:UIApplicationWillEnterForegroundNotification
+                        object:nil
+                         queue:nil
+                    usingBlock:^(NSNotification *) {
+                      rnwgpu::GpuWorkGate::getInstance().resume();
+                    }];
+    // Installed while already in the background (a headless launch): hold
+    // from the start. The application state is main-thread only.
+    dispatch_async(dispatch_get_main_queue(), ^{
+      if (UIApplication.sharedApplication.applicationState ==
+          UIApplicationStateBackground) {
+        rnwgpu::GpuWorkGate::getInstance().suspend();
+      }
+    });
+  });
+#endif
 }
 
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:

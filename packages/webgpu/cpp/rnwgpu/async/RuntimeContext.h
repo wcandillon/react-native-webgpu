@@ -120,7 +120,9 @@ public:
 private:
   static jsi::UUID runtimeDataUUID();
 
-  void requestTick();
+  // Schedules tick() on this runtime, once. `delayMs` is 0 but while GPU
+  // work is held (see tick).
+  void requestTick(double delayMs = 0);
   void tick();
   void drainMailbox();
 
