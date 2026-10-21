@@ -40,7 +40,7 @@
     "eslint": "9.35.0",
     "fumadocs-twoslash": "^3.2.0",
     "fumadocs-typescript": "^4.0.4",
-    "react-native-skia": "3.0.8",
+    "react-native-skia": "3.7.0",
     "react-native-vision-camera": "5.0.10",
     "tailwindcss": "^4.1.8",
     "twoslash": "^0.3.9",
