@@ -19,8 +19,19 @@ wgpu::Instance createInstance() {
   // packages must link the same single Dawn copy (they vendor the same
   // artifact) for the handle to be meaningful.
   using GetInstanceFn = WGPUInstance (*)();
-  if (auto getSkiaInstance = reinterpret_cast<GetInstanceFn>(
-          dlsym(RTLD_DEFAULT, "rnskia_getWGPUInstance"))) {
+  void *getter = dlsym(RTLD_DEFAULT, "rnskia_getWGPUInstance");
+#ifdef __ANDROID__
+  // System.loadLibrary loads librnskia.so with RTLD_LOCAL, so RTLD_DEFAULT
+  // does not search it. RTLD_NOLOAD returns its handle only if it is already
+  // loaded, so this never loads Skia.
+  if (getter == nullptr) {
+    if (void *skia = dlopen("librnskia.so", RTLD_NOW | RTLD_NOLOAD)) {
+      getter = dlsym(skia, "rnskia_getWGPUInstance");
+      dlclose(skia);
+    }
+  }
+#endif
+  if (auto getSkiaInstance = reinterpret_cast<GetInstanceFn>(getter)) {
     if (WGPUInstance external = getSkiaInstance()) {
       wgpuInstanceAddRef(external);
       return wgpu::Instance::Acquire(external);
