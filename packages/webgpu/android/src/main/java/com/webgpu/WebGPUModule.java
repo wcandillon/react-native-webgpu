@@ -28,6 +28,19 @@ import com.facebook.react.turbomodule.core.interfaces.CallInvokerHolder;
 @ReactModule(name = WebGPUModule.NAME)
 public class WebGPUModule extends NativeWebGPUModuleSpec {
   static {
+      // react-native-skia, when installed, has to be loaded before this
+      // library: createInstance() (cpp/rnwgpu/WebGPURuntime.cpp) adopts Skia's
+      // Dawn instance so that work on a device imported from Skia settles, and
+      // it finds librnskia.so by name only once it is loaded. Loading it here
+      // makes that independent of which package JS imports first. The call is
+      // a no-op when Skia already loaded it, and Skia's own later call is a
+      // no-op in turn. Without react-native-skia there is no such library, and
+      // the error is the normal outcome.
+      try {
+          System.loadLibrary("rnskia");
+      } catch (UnsatisfiedLinkError e) {
+          // react-native-skia is not installed.
+      }
       System.loadLibrary("react-native-webgpu"); // Load the C++ library
   }
 

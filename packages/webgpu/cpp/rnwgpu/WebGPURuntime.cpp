@@ -23,7 +23,9 @@ wgpu::Instance createInstance() {
 #ifdef __ANDROID__
   // System.loadLibrary loads librnskia.so with RTLD_LOCAL, so RTLD_DEFAULT
   // does not search it. RTLD_NOLOAD returns its handle only if it is already
-  // loaded, so this never loads Skia.
+  // loaded, so this never loads Skia. WebGPUModule.java loads it before this
+  // library when react-native-skia is installed, so the handle is there
+  // whichever package JS imports first.
   if (getter == nullptr) {
     if (void *skia = dlopen("librnskia.so", RTLD_NOW | RTLD_NOLOAD)) {
       getter = dlsym(skia, "rnskia_getWGPUInstance");

@@ -18,6 +18,7 @@ import {
   GPUTextureUsage as exportedTextureUsage,
 } from "react-native-webgpu";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
+import { Skia } from "react-native-skia";
 
 import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
@@ -138,6 +139,9 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                   GPUMapMode: exportedMapMode,
                   GPUShaderStage: exportedShaderStage,
                   GPUTextureUsage: exportedTextureUsage,
+                },
+                skia: {
+                  getNativeDevice: () => Skia.getNativeDevice(),
                 },
                 mat4,
                 vec3,

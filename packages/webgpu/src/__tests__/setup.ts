@@ -106,6 +106,12 @@ interface GPUTestingContext {
     probeSize: number;
     pixelRatio: number;
   };
+  // Native app harness only: the react-native-skia API the shared-instance
+  // spec needs (SkiaSharedInstance.spec.ts). The device pointer never crosses
+  // the eval boundary (BigInt is not JSON serializable).
+  skia?: {
+    getNativeDevice: () => bigint;
+  };
   mat4: typeof mat4;
   vec3: typeof vec3;
   mat3: typeof mat3;
