@@ -18,6 +18,11 @@
 #include "PlatformContext.h"
 #include "VideoFrame.h"
 #include "VideoPlayer.h"
+#include "WebGPURuntime.h"
+
+#if defined(__ANDROID__)
+#include <android/native_window.h>
+#endif
 
 #include <ReactCommon/CallInvoker.h>
 
@@ -81,6 +86,46 @@ public:
     auto ctx =
         std::make_shared<GPUCanvasContext>(_gpu, contextId, width, height);
     return ctx;
+  }
+
+  // A canvas context presenting to a native window that is not a WebGPU
+  // view, e.g. the input Surface of a MediaCodec encoder: an ANativeWindow*
+  // passed as a BigInt. The context takes its own reference to the window
+  // and owns its registry entry, which no view retires (see
+  // GPUCanvasContext::ownRegistryEntry); unconfigure() releases the swapchain
+  // right away. Android only.
+  std::shared_ptr<GPUCanvasContext>
+  MakeWebGPUCanvasContextFromNativeWindow(void *window, float width,
+                                          float height) {
+#if defined(__ANDROID__)
+    if (window == nullptr) {
+      throw std::runtime_error(
+          "MakeWebGPUCanvasContextFromNativeWindow: expected a non-null "
+          "ANativeWindow pointer (BigInt)");
+    }
+    auto &registry = SurfaceRegistry::getInstance();
+    int contextId = registry.allocateContextId();
+    auto nativeWindow = static_cast<ANativeWindow *>(window);
+    ANativeWindow_acquire(nativeWindow);
+    auto &runtime = WebGPURuntime::shared();
+    // Adopted by the context's configure() (see SurfaceInfo::configure).
+    registry.attachSurface(
+        contextId, runtime.instance(), static_cast<int>(width),
+        static_cast<int>(height), nativeWindow,
+        runtime.makeSurface(nativeWindow), [](void *nativeSurface) {
+          ANativeWindow_release(static_cast<ANativeWindow *>(nativeSurface));
+        });
+    auto context =
+        std::make_shared<GPUCanvasContext>(_gpu, contextId, width, height);
+    context->ownRegistryEntry(contextId);
+    return context;
+#else
+    (void)window;
+    (void)width;
+    (void)height;
+    throw std::runtime_error(
+        "MakeWebGPUCanvasContextFromNativeWindow is only available on Android");
+#endif
   }
 
   // Wrap an externally created WGPUDevice (passed as a BigInt pointer, e.g.
@@ -333,6 +378,8 @@ public:
                   &RNWebGPU::destroyContext);
     installMethod(runtime, prototype, "MakeWebGPUCanvasContext",
                   &RNWebGPU::MakeWebGPUCanvasContext);
+    installMethod(runtime, prototype, "MakeWebGPUCanvasContextFromNativeWindow",
+                  &RNWebGPU::MakeWebGPUCanvasContextFromNativeWindow);
     installMethod(runtime, prototype, "loadVideoFrame",
                   &RNWebGPU::loadVideoFrame);
     installMethod(runtime, prototype, "createTestVideoFrame",

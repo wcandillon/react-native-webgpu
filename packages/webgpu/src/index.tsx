@@ -79,6 +79,14 @@ declare global {
       width: number,
       height: number,
     ) => RNCanvasContext;
+    // A canvas context presenting to a native window that is not a WebGPU
+    // view, e.g. a MediaCodec encoder's input Surface: an ANativeWindow*
+    // (Android only).
+    MakeWebGPUCanvasContextFromNativeWindow: (
+      window: bigint,
+      width: number,
+      height: number,
+    ) => RNCanvasContext;
     // Retires a canvas context; called by Canvas on unmount (the Canvas owns
     // the native registry entry for its contextId).
     destroyContext: (contextId: number) => void;

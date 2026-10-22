@@ -103,6 +103,30 @@ const device = importDevice(pointer);
 
 This only works with a library that links the same Dawn build as react-native-webgpu. The main one is [React Native Skia](/docs/integrations/react-native-skia) (v3 and above), which shares react-native-webgpu's Dawn.
 
+## Rendering to a native window
+
+On Android, `RNWebGPU.MakeWebGPUCanvasContextFromNativeWindow()` makes a canvas context that presents to a native window other than a `Canvas`, for instance the input `Surface` of a `MediaCodec` encoder. The window is an `ANativeWindow*` passed as a `BigInt`; the context keeps its own reference to it.
+
+```tsx
+const context = RNWebGPU.MakeWebGPUCanvasContextFromNativeWindow(
+  window,
+  width,
+  height,
+);
+context.configure({ device, format: "rgba8unorm" });
+
+// For each frame
+const texture = context.getCurrentTexture();
+// ...render into texture and submit...
+context.present();
+
+// Once done: releases the swapchain now rather than when the context is
+// garbage collected.
+context.unconfigure();
+```
+
+Each `present()` queues the frame to the window once the GPU is done rendering it. To give an encoder the presentation time of each frame, set it on the window right before `present()`, as `eglPresentationTimeANDROID` does with EGL: the window keeps it for the next frame queued.
+
 ## See also
 
 - [Canvas](/docs/getting-started/canvas) - the rendering surface and frame loop
