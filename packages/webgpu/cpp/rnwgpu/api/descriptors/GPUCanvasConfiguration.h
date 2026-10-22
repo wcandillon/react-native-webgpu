@@ -5,6 +5,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "CanvasColorSpace.h"
 #include "JSIConverter.h"
 
 #include "GPUDevice.h"
@@ -20,6 +21,7 @@ struct GPUCanvasConfiguration {
   std::optional<std::vector<wgpu::TextureFormat>>
       viewFormats; // Iterable<GPUTextureFormat>
   wgpu::CompositeAlphaMode alphaMode = wgpu::CompositeAlphaMode::Opaque;
+  CanvasColorSpace colorSpace = CanvasColorSpace::SRGB;
 };
 
 } // namespace rnwgpu
@@ -61,6 +63,22 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
                         .utf8(runtime);
         if (prop == "premultiplied") {
           result->alphaMode = wgpu::CompositeAlphaMode::Premultiplied;
+        }
+      }
+      if (value.hasProperty(runtime, "colorSpace")) {
+        auto prop = value.getProperty(runtime, "colorSpace");
+        if (!prop.isUndefined()) {
+          auto name = prop.asString(runtime).utf8(runtime);
+          if (name == "display-p3") {
+            result->colorSpace = CanvasColorSpace::DisplayP3;
+          } else if (name != "srgb") {
+            throw jsi::JSError(
+                runtime, "Failed to execute 'configure' on 'GPUCanvasContext': "
+                         "The provided value '" +
+                             name +
+                             "' is not a valid enum value of type "
+                             "PredefinedColorSpace.");
+          }
         }
       }
     }

@@ -54,6 +54,62 @@ describe("Native canvas context", () => {
     expect(result).toBe(true);
   });
 
+  it.each(["srgb", "display-p3"] as const)(
+    "configures a native canvas with colorSpace %s",
+    async (colorSpace) => {
+      if (client.OS !== "ios" && client.OS !== "android") {
+        return;
+      }
+      const result = await client.eval(
+        ({ device, gpu, colorSpace: space }) => {
+          const ctx = RNWebGPU.MakeWebGPUCanvasContext(-3, 16, 16);
+          try {
+            // Every canvas format the library offers, so the layer tagging
+            // runs for the 8-bit and the float path alike.
+            for (const format of [
+              gpu.getPreferredCanvasFormat(),
+              "rgba16float" as GPUTextureFormat,
+            ]) {
+              ctx.configure({ device, format, colorSpace: space });
+              if (ctx.getCurrentTexture().format !== format) {
+                return false;
+              }
+            }
+            return true;
+          } finally {
+            ctx.unconfigure();
+            RNWebGPU.destroyContext(-3);
+          }
+        },
+        { colorSpace },
+      );
+      expect(result).toBe(true);
+    },
+  );
+
+  it("rejects an unknown colorSpace", async () => {
+    if (client.OS !== "ios" && client.OS !== "android") {
+      return;
+    }
+    const result = await client.eval(({ device, gpu }) => {
+      const ctx = RNWebGPU.MakeWebGPUCanvasContext(-3, 16, 16);
+      try {
+        ctx.configure({
+          device,
+          format: gpu.getPreferredCanvasFormat(),
+          colorSpace: "rec2020" as PredefinedColorSpace,
+        });
+        return "configured";
+      } catch (e) {
+        return e instanceof Error ? e.message : String(e);
+      } finally {
+        ctx.unconfigure();
+        RNWebGPU.destroyContext(-3);
+      }
+    });
+    expect(result).toMatch(/PredefinedColorSpace/);
+  });
+
   it.each(["present", "configure", "unconfigure", "resize"] as const)(
     "returns a new texture after %s",
     async (operation) => {
