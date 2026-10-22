@@ -96,8 +96,8 @@ public:
   // (Android) or a CAMetalLayer* (Apple), passed as a BigInt. Unlike a view's,
   // the context owns its surface, outside of the SurfaceRegistry: the caller
   // keeps the window alive and drives the context from one thread at a time.
-  // The context still holds a reference to the window until it is destroyed;
-  // unconfigure() releases the swapchain right away.
+  // The context holds a reference to the window until unconfigure(), which
+  // releases the surface and the window: the context no longer presents.
   std::shared_ptr<GPUCanvasContext>
   MakeWebGPUCanvasContextFromNativeWindow(void *window, float width,
                                           float height) {
