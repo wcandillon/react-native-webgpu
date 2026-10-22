@@ -58,8 +58,11 @@ function makeWebGPUCanvasContext(
   return Object.assign(context, { present: () => {} });
 }
 
+let nextContextId = 1;
+
 // @ts-expect-error - polyfill for RNWebGPU native module
 window.RNWebGPU = {
+  allocateContextId: () => nextContextId++,
   getNativeSurface,
   // Unlike native, this can return null; Canvas.getContext() is typed
   // `RNCanvasContext | null` and passes it through.

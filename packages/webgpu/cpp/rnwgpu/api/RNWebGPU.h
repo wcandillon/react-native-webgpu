@@ -282,6 +282,12 @@ public:
     return _platformContext->writeTestVideoFile();
   }
 
+  // The id for a Canvas about to mount, unique for the life of the process
+  // (see SurfaceRegistry::allocateContextId).
+  int allocateContextId() {
+    return rnwgpu::SurfaceRegistry::getInstance().allocateContextId();
+  }
+
   std::shared_ptr<Canvas> getNativeSurface(int contextId) {
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     auto info = registry.getSurfaceInfo(contextId);
@@ -319,6 +325,8 @@ public:
     installGetter(runtime, prototype, "gpu", &RNWebGPU::getGPU);
     installMethod(runtime, prototype, "createImageBitmap",
                   &RNWebGPU::createImageBitmap);
+    installMethod(runtime, prototype, "allocateContextId",
+                  &RNWebGPU::allocateContextId);
     installMethod(runtime, prototype, "getNativeSurface",
                   &RNWebGPU::getNativeSurface);
     installMethod(runtime, prototype, "destroyContext",
