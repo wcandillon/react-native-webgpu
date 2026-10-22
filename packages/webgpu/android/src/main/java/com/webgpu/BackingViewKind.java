@@ -1,5 +1,7 @@
 package com.webgpu;
 
+import android.os.Build;
+
 import androidx.annotation.Nullable;
 
 /**
@@ -34,5 +36,31 @@ enum BackingViewKind {
    */
   static boolean resolveOpaque(BackingViewKind kind, boolean opaque) {
     return opaque && kind != HARDWARE_BUFFER_VIEW;
+  }
+
+  /**
+   * Whether a changed zOrderOnTop moves a mounted SurfaceView: SurfaceView
+   * applies it to its live surface from Android 11, for an app targeting it.
+   * Before that, the surface reads it when it is created, and so does a media
+   * overlay on Android 13, whose SurfaceView moves a surface leaving the top
+   * to the default sublayer at once, before setZOrderMediaOverlay() can ask
+   * for its own: it would come back among the other SurfaceViews below the
+   * window rather than above them.
+   */
+  static boolean zOrderOnTopChangesInPlace(int sdk, int targetSdk, boolean mediaOverlay) {
+    if (sdk < Build.VERSION_CODES.R || targetSdk < Build.VERSION_CODES.R) {
+      return false;
+    }
+    return !(mediaOverlay && sdk == Build.VERSION_CODES.TIRAMISU);
+  }
+
+  /**
+   * Whether a changed zOrderMediaOverlay moves a mounted SurfaceView: only
+   * from Android 14, whose SurfaceView compares the sublayer it is asked for
+   * with the one its surface has. Up to Android 13, setZOrderMediaOverlay()
+   * only sets the sublayer the next surface is created with.
+   */
+  static boolean zOrderMediaOverlayChangesInPlace(int sdk) {
+    return sdk >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE;
   }
 }

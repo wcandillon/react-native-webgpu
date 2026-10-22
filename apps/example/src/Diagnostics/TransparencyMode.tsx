@@ -25,10 +25,12 @@ import {
 // Exercises every Android backing-view combination: opaque toggles in place
 // (on a SurfaceView or a TextureView; a HardwareBufferView always composites
 // with alpha), while the backing view is created when the Canvas mounts, so
-// picking another kind of view remounts it (the kind is its key; the z-order
-// options move a mounted SurfaceView in place on Android 11 and later, and
-// remount it before). Half-transparent red is cleared over a blue stage with
-// a yellow RN overlay on top:
+// picking another kind of view remounts it (the kind is its key; zOrderOnTop
+// moves a mounted SurfaceView in place on Android 11 and later, on Android 13
+// only without zOrderMediaOverlay, and zOrderMediaOverlay on Android 14 and
+// later; each remounts it elsewhere).
+// Half-transparent red is cleared over a blue stage with a yellow RN overlay
+// on top:
 // - opaque: solid red, overlay visible.
 // - translucent TextureView (the default): pink, overlay visible.
 // - translucent HardwareBufferView (opt-in, Android 10+): pink, overlay
@@ -37,7 +39,8 @@ import {
 //   overlay visible only with zOrderOnTop off (the surface sits below it).
 // - translucent SurfaceView + zOrderOnTop: pink, overlay hidden underneath.
 // - SurfaceView + zOrderMediaOverlay: above the other SurfaceViews below the
-//   window; with a single one, no visible difference.
+//   window; with a single one, no visible difference. With zOrderOnTop as
+//   well, on top.
 // The loop draws 5 frames a second by default; "every frame" switches it to
 // requestAnimationFrame, which on an opaque SurfaceView is the case where the
 // canvas votes the display's refresh rate: on an adaptive display, `dumpsys
@@ -58,6 +61,12 @@ const OPTIONS: Option[] = [
   {
     label: "surface media overlay",
     backingView: "SurfaceView",
+    zOrderMediaOverlay: true,
+  },
+  {
+    label: "surface media overlay on top",
+    backingView: "SurfaceView",
+    zOrderOnTop: true,
     zOrderMediaOverlay: true,
   },
 ];
@@ -99,15 +108,17 @@ export const TransparencyMode = () => {
     everyFrameRef.current = everyFrame;
   }, [everyFrame]);
 
-  // The key of the Canvas: the kind of backing view, plus its z-order where
-  // that is read at mount.
-  const zOrderAtMount =
-    option.backingView === "SurfaceView" && Number(Platform.Version) < 30;
+  // The key of the Canvas: the kind of backing view, plus each z-order option
+  // on the releases that read it at mount.
+  const surfaceView = option.backingView === "SurfaceView";
+  const version = Number(Platform.Version);
+  const onTopAtMount =
+    surfaceView &&
+    (version < 30 || (version === 33 && !!option.zOrderMediaOverlay));
+  const mediaOverlayAtMount = surfaceView && version < 34;
   const backingKey = `${option.backingView}-${
-    zOrderAtMount
-      ? `${!!option.zOrderOnTop}-${!!option.zOrderMediaOverlay}`
-      : ""
-  }`;
+    onTopAtMount ? !!option.zOrderOnTop : ""
+  }-${mediaOverlayAtMount ? !!option.zOrderMediaOverlay : ""}`;
 
   // Runs again for each mount of the Canvas: hide/show, and the remount that
   // picking another kind of view causes.
@@ -151,9 +162,10 @@ export const TransparencyMode = () => {
         <Text style={diagnosticStyles.description}>
           Half-transparent red over blue. HardwareBufferView and TextureView
           keep the yellow RN overlay visible. A SurfaceView on top blends over
-          it. Picking another kind of view remounts the Canvas; opaque (and, on
-          Android 11 and later, the z-order options) updates it in place. Use
-          hide/show to test a fresh mount.
+          it. Picking another kind of view remounts the Canvas; opaque updates
+          it in place, and so do zOrderOnTop on Android 11 and later (on Android
+          13 only without zOrderMediaOverlay) and zOrderMediaOverlay on Android
+          14 and later. Use hide/show to test a fresh mount.
         </Text>
         <View style={styles.buttons}>
           {OPTIONS.map((value) => (

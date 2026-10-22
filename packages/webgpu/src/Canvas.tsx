@@ -4,6 +4,7 @@ import { Platform, View } from "react-native";
 
 import type { CanvasRef, RNCanvasContext } from "./types";
 import WebGPUNativeView from "./WebGPUViewNativeComponent";
+import type { NativeProps } from "./WebGPUViewNativeComponent";
 
 export type { CanvasRef, NativeCanvas, RNCanvasContext } from "./types";
 
@@ -12,8 +13,7 @@ export type { CanvasRef, NativeCanvas, RNCanvasContext } from "./types";
 const generateContextId = () => RNWebGPU.allocateContextId();
 
 /** The Android view a canvas draws into, see {@link AndroidCanvasProps}. */
-export type AndroidBackingView =
-  "TextureView" | "SurfaceView" | "HardwareBufferView";
+export type AndroidBackingView = NonNullable<NativeProps["androidBackingView"]>;
 
 /** The options of a canvas backed by a `TextureView`, the default. */
 export interface AndroidTextureViewProps {
@@ -28,6 +28,10 @@ export interface AndroidTextureViewProps {
    * toolkit skips blending the view. Defaults to false. Applied in place.
    */
   opaque?: boolean;
+  /** `SurfaceView` only: name it with `backingView: "SurfaceView"`. */
+  zOrderOnTop?: never;
+  /** `SurfaceView` only: name it with `backingView: "SurfaceView"`. */
+  zOrderMediaOverlay?: never;
 }
 
 /** The options of a canvas backed by a `SurfaceView`. */
@@ -49,14 +53,15 @@ export interface AndroidSurfaceViewProps {
   opaque?: boolean;
   /**
    * Composite above every React Native view in the window, ignoring
-   * `zIndex`. Defaults to false. Applied in place on Android 11 and later;
-   * read once, at mount, before that.
+   * `zIndex`. Defaults to false. Applied in place on Android 11 and later,
+   * on Android 13 only without `zOrderMediaOverlay`; read once, at mount,
+   * otherwise.
    */
   zOrderOnTop?: boolean;
   /**
    * Composite above the other `SurfaceView`s below the window (video players,
    * other canvases), while staying below the window itself. Defaults to
-   * false; `zOrderOnTop` takes precedence. Applied in place on Android 11 and
+   * false; `zOrderOnTop` takes precedence. Applied in place on Android 14 and
    * later; read once, at mount, before that.
    */
   zOrderMediaOverlay?: boolean;
@@ -71,14 +76,19 @@ export interface AndroidHardwareBufferViewProps {
    * with a warning in development. Always composites with alpha.
    */
   backingView: "HardwareBufferView";
+  opaque?: never;
+  zOrderOnTop?: never;
+  zOrderMediaOverlay?: never;
 }
 
 /**
  * Android-only rendering options: the native view behind the canvas and its
  * options. The view is created when the canvas mounts and kept: a change of
  * `backingView` is ignored, with a warning in development; remount the canvas
- * (with a `key`) to change it. `opaque` applies in place, and so do the
- * z-order options on Android 11 and later. Ignored on iOS and web.
+ * (with a `key`) to change it. `opaque` applies in place, and so do
+ * `zOrderOnTop` on Android 11 and later (on Android 13 only without
+ * `zOrderMediaOverlay`) and `zOrderMediaOverlay` on Android 14 and later.
+ * Ignored on iOS and web.
  */
 export type AndroidCanvasProps =
   | AndroidTextureViewProps
@@ -94,57 +104,70 @@ export interface CanvasProps extends ViewProps {
   ref?: React.Ref<CanvasRef>;
 }
 
-// The union read as one bag of options; which of them apply to the view is
-// decided below, as it is on the native side.
-type AndroidOptions = Partial<{
-  backingView: AndroidBackingView;
-  opaque: boolean;
-  zOrderOnTop: boolean;
-  zOrderMediaOverlay: boolean;
-}>;
+type AndroidNativePropName =
+  | "androidBackingView"
+  | "androidOpaque"
+  | "androidZOrderOnTop"
+  | "androidZOrderMediaOverlay";
 
-const options = (android?: AndroidCanvasProps): AndroidOptions =>
-  (android ?? {}) as AndroidOptions;
-
-// Anything else reaching the native component would hit the generated
-// string-enum parser, which aborts on unknown values.
-const resolveBackingView = (
-  android?: AndroidCanvasProps,
-): AndroidBackingView => {
-  const { backingView } = options(android);
-  return backingView === "SurfaceView" || backingView === "HardwareBufferView"
-    ? backingView
-    : "TextureView";
+// What the native component is handed for the `android` prop.
+type AndroidNativeProps = {
+  [Name in AndroidNativePropName]-?: NonNullable<NativeProps[Name]>;
 };
 
-// Whether the canvas composites as opaque, see BackingViewKind.resolveOpaque():
-// a SurfaceView is opaque unless asked otherwise, a TextureView is translucent
-// unless asked otherwise, and a HardwareBufferView always composites with
-// alpha.
-const resolveOpaque = (android?: AndroidCanvasProps): boolean => {
-  const { opaque } = options(android);
-  switch (resolveBackingView(android)) {
+// The native props of a view without a z-order of its own.
+const viewProps = (
+  androidBackingView: AndroidBackingView,
+  androidOpaque: boolean,
+): AndroidNativeProps => ({
+  androidBackingView,
+  androidOpaque,
+  androidZOrderOnTop: false,
+  androidZOrderMediaOverlay: false,
+});
+
+// A value a JavaScript caller can pass that no view takes would hit the
+// generated string-enum parser, which aborts on unknown values: it gets the
+// default view with the opacity asked for, while TypeScript still reports a
+// view the switch misses.
+const resolveUnknownBackingView = (
+  _android: never,
+  opaque: boolean,
+): AndroidNativeProps => viewProps("TextureView", opaque);
+
+// The native props the `android` prop resolves to, see BackingViewKind.java:
+// the view it names, the opacity it asks for with the default of that view (a
+// SurfaceView is opaque unless asked otherwise, a TextureView translucent
+// unless asked otherwise, a HardwareBufferView always composites with alpha),
+// and the z-order options of a SurfaceView.
+const androidNativeProps = (
+  android?: AndroidCanvasProps,
+): AndroidNativeProps => {
+  const askedOpaque = android?.opaque === true;
+  switch (android?.backingView) {
     case "SurfaceView":
-      return opaque !== false;
-    case "TextureView":
-      return opaque === true;
+      return {
+        androidBackingView: "SurfaceView",
+        androidOpaque: android.opaque !== false,
+        androidZOrderOnTop: !!android.zOrderOnTop,
+        androidZOrderMediaOverlay: !!android.zOrderMediaOverlay,
+      };
     case "HardwareBufferView":
-      return false;
+      return viewProps("HardwareBufferView", false);
+    case "TextureView":
+    case undefined:
+      return viewProps("TextureView", askedOpaque);
+    default:
+      return resolveUnknownBackingView(android, askedOpaque);
   }
 };
 
-// The native props the `android` prop resolves to.
-const androidNativeProps = (android?: AndroidCanvasProps) => {
-  const backingView = resolveBackingView(android);
-  const { zOrderOnTop, zOrderMediaOverlay } = options(android);
-  const surfaceView = backingView === "SurfaceView";
-  return {
-    androidBackingView: backingView,
-    androidOpaque: resolveOpaque(android),
-    androidZOrderOnTop: surfaceView && !!zOrderOnTop,
-    androidZOrderMediaOverlay: surfaceView && !!zOrderMediaOverlay,
-  };
-};
+// The releases whose SurfaceView moves a mounted surface's z-order, see
+// BackingViewKind.java, which also needs an app targeting Android 11 for
+// zOrderOnTop.
+const zOrderOnTopChangesInPlace = (version: number, mediaOverlay: boolean) =>
+  version >= 30 && !(mediaOverlay && version === 33);
+const zOrderMediaOverlayChangesInPlace = (version: number) => version >= 34;
 
 const warnIgnoredChange = (prop: string) =>
   console.warn(
@@ -163,10 +186,22 @@ const useBackingViewWarning = (android?: AndroidCanvasProps) => {
   const mount = useRef(android);
   const prev = useRef(android);
   useEffect(() => {
+    if (!__DEV__ || Platform.OS !== "android") {
+      return;
+    }
+    const { current: mounted } = mount;
+    const { androidBackingView } = androidNativeProps(mounted);
     if (
-      __DEV__ &&
-      Platform.OS === "android" &&
-      resolveBackingView(mount.current) === "HardwareBufferView" &&
+      mounted?.backingView !== undefined &&
+      mounted.backingView !== androidBackingView
+    ) {
+      console.warn(
+        `android.backingView: "${mounted.backingView}" is not a view the ` +
+          "canvas knows, the canvas uses a TextureView.",
+      );
+    }
+    if (
+      androidBackingView === "HardwareBufferView" &&
       Number(Platform.Version) < 29
     ) {
       console.warn(
@@ -174,28 +209,44 @@ const useBackingViewWarning = (android?: AndroidCanvasProps) => {
           "canvas uses a TextureView.",
       );
     }
+    if (
+      androidBackingView !== "SurfaceView" &&
+      (mounted?.zOrderOnTop || mounted?.zOrderMediaOverlay)
+    ) {
+      console.warn(
+        "android.zOrderOnTop and android.zOrderMediaOverlay only apply to a " +
+          'SurfaceView (android.backingView: "SurfaceView"), the canvas ' +
+          "ignores them.",
+      );
+    }
   }, []);
   useEffect(() => {
     if (__DEV__ && Platform.OS === "android") {
-      const { current: before } = prev;
-      if (resolveBackingView(before) !== resolveBackingView(android)) {
+      // Read as the native side receives them, so these rules see what its
+      // setters see.
+      const before = androidNativeProps(prev.current);
+      const after = androidNativeProps(android);
+      if (before.androidBackingView !== after.androidBackingView) {
         warnIgnoredChange("android.backingView");
       }
-      // Only a SurfaceView has a z-order of its own, which Android 11 and
-      // later changes in place.
-      const zOrderAtMount =
-        resolveBackingView(mount.current) === "SurfaceView" &&
-        Number(Platform.Version) < 30;
-      const was = options(before);
-      const is = options(android);
-      if (zOrderAtMount && !!was.zOrderOnTop !== !!is.zOrderOnTop) {
-        warnIgnoredChange("android.zOrderOnTop");
-      }
-      if (
-        zOrderAtMount &&
-        !!was.zOrderMediaOverlay !== !!is.zOrderMediaOverlay
-      ) {
-        warnIgnoredChange("android.zOrderMediaOverlay");
+      const mounted = androidNativeProps(mount.current);
+      if (mounted.androidBackingView === "SurfaceView") {
+        const version = Number(Platform.Version);
+        if (
+          !zOrderOnTopChangesInPlace(
+            version,
+            mounted.androidZOrderMediaOverlay,
+          ) &&
+          before.androidZOrderOnTop !== after.androidZOrderOnTop
+        ) {
+          warnIgnoredChange("android.zOrderOnTop");
+        }
+        if (
+          !zOrderMediaOverlayChangesInPlace(version) &&
+          before.androidZOrderMediaOverlay !== after.androidZOrderMediaOverlay
+        ) {
+          warnIgnoredChange("android.zOrderMediaOverlay");
+        }
       }
     }
     prev.current = android;

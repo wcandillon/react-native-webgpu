@@ -78,6 +78,10 @@ jobs:
         working-directory: packages/webgpu
         run: yarn test:plugin
 
+      - name: Run the component tests
+        working-directory: packages/webgpu
+        run: yarn test:unit
+
       # Validate the semantic-release config without publishing, so a broken
       # .releaserc or publish script is caught on PRs rather than at release time.
       - name: Release dry run
