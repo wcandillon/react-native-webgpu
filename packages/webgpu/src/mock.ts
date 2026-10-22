@@ -95,13 +95,19 @@ export type {
 
 // Strip the same props the real Canvas keeps off its outer View.
 export const Canvas = ({ android: _android, ref, ...props }: CanvasProps) => {
-  React.useImperativeHandle(ref, () => ({
-    getContextId: () => -1,
-    getContext: (_contextName: "webgpu"): RNCanvasContext | null => null,
-    getNativeSurface: (): NativeCanvas => {
-      throw new Error(`Canvas.getNativeSurface() ${NOT_AVAILABLE_UNDER_JEST}`);
-    },
-  }));
+  React.useImperativeHandle(
+    ref,
+    () => ({
+      getContextId: () => -1,
+      getContext: (_contextName: "webgpu"): RNCanvasContext | null => null,
+      getNativeSurface: (): NativeCanvas => {
+        throw new Error(
+          `Canvas.getNativeSurface() ${NOT_AVAILABLE_UNDER_JEST}`,
+        );
+      },
+    }),
+    [],
+  );
   return React.createElement(View, props);
 };
 

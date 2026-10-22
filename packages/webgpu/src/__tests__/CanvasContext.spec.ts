@@ -1,8 +1,8 @@
-import { client } from "./setup";
+import { client, isNativeApp } from "./setup";
 
 describe("Native canvas context", () => {
   it("returns the same texture within a frame, even after destroy", async () => {
-    if (client.OS !== "ios" && client.OS !== "android") {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ device, gpu }) => {
@@ -31,7 +31,7 @@ describe("Native canvas context", () => {
   // per SurfaceInfo, so presenting through one context ends the other's frame
   // only when they share it.
   it("keeps the surface of a destroyed context for its id while the context lives", async () => {
-    if (client.OS !== "ios" && client.OS !== "android") {
+    if (!isNativeApp()) {
       return;
     }
     const result = await client.eval(({ device, gpu }) => {
@@ -113,7 +113,7 @@ describe("Native canvas context", () => {
   it.each(["present", "configure", "unconfigure", "resize"] as const)(
     "returns a new texture after %s",
     async (operation) => {
-      if (client.OS !== "ios" && client.OS !== "android") {
+      if (!isNativeApp()) {
         return;
       }
       const result = await client.eval(
