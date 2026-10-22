@@ -97,6 +97,14 @@ To render the canvas over the React Native views beneath it, configure the conte
 On iOS `alphaMode` alone controls it. On Android the `alphaMode` passed to `configure()` is ignored: the backing view decides, and the default `TextureView` composites with alpha unless `android={{ opaque: true }}` asks it not to, while a `SurfaceView` is opaque unless asked otherwise. See the [Android rendering options](/api/canvas#android-rendering-options).
 </Callout>
 
+## Color space
+
+By default the canvas's values are sRGB. Pass `colorSpace: "display-p3"` to `configure()` to write Display P3 values instead, as you would in a browser. iOS tags the layer accordingly, so colors outside sRGB show on a wide-gamut display. Android ignores it for now.
+
+```tsx
+context.configure({ device, format, colorSpace: "display-p3" });
+```
+
 ## See also
 
 - [Canvas](/api/canvas) - the component and ref reference

@@ -19,6 +19,8 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "CanvasColorSpace.h"
+
 #if defined(__ANDROID__)
 #include <android/hardware_buffer.h>
 #include <android/log.h>
@@ -36,9 +38,11 @@ namespace rnwgpu {
 
 #ifdef __APPLE__
 // Tags the CAMetalLayer with the colorspace matching the configured texture
-// format. Implemented in apple/MetalLayerColorSpace.mm.
+// format and the canvas's colorSpace. Implemented in
+// apple/MetalLayerColorSpace.mm.
 void applyCAMetalLayerColorSpace(void *nativeSurface,
-                                 wgpu::TextureFormat format);
+                                 wgpu::TextureFormat format,
+                                 CanvasColorSpace colorSpace);
 #endif
 
 struct NativeInfo {
@@ -279,7 +283,7 @@ public:
         }
         configureSurfaceLocked(config);
 #ifdef __APPLE__
-        applyCAMetalLayerColorSpace(_nativeSurface, _config.format);
+        applyCAMetalLayerColorSpace(_nativeSurface, _config.format, _colorSpace);
 #endif
         if (blit) {
           presentBlit = blitOffscreenToSurfaceLocked();
@@ -316,10 +320,12 @@ public:
   // -------------------------------------------------------
 
   void configure(wgpu::SurfaceConfiguration &newConfig,
-                 std::vector<wgpu::TextureFormat> viewFormats) {
+                 std::vector<wgpu::TextureFormat> viewFormats,
+                 CanvasColorSpace colorSpace = CanvasColorSpace::SRGB) {
     applyPendingAttach(/* supersedeInFlightFrame = */ true);
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _viewFormats = std::move(viewFormats);
+    _colorSpace = colorSpace;
     _config = newConfig;
     // The caller's viewFormats storage dies with the call; point the stored
     // configuration at our own copy.
@@ -369,6 +375,7 @@ public:
     }
     _texture = nullptr;
     _config = {};
+    _colorSpace = CanvasColorSpace::SRGB;
     _viewFormats.clear();
     _acquiredFromSurface = false;
     _frameEpoch++;
@@ -875,7 +882,7 @@ private:
     if (_surface) {
       configureSurfaceLocked(_config);
 #ifdef __APPLE__
-      applyCAMetalLayerColorSpace(_nativeSurface, _config.format);
+      applyCAMetalLayerColorSpace(_nativeSurface, _config.format, _colorSpace);
 #endif
     } else {
       _texture = createOffscreenTextureLocked();
@@ -1241,6 +1248,7 @@ private:
   // that _config.viewFormats points at.
   wgpu::SurfaceConfiguration _config;
   std::vector<wgpu::TextureFormat> _viewFormats;
+  CanvasColorSpace _colorSpace = CanvasColorSpace::SRGB;
   // Keeps the Dawn instance alive for as long as any canvas exists.
   wgpu::Instance _gpu;
   // Native view size in dp (surfaced as clientWidth/clientHeight on the JS
