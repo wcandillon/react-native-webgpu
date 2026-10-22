@@ -81,7 +81,7 @@ declare global {
     ) => RNCanvasContext;
     // A canvas context presenting to a native window that is not a WebGPU
     // view, e.g. a MediaCodec encoder's input Surface: an ANativeWindow*
-    // (Android only).
+    // (Android) or a CAMetalLayer* (Apple).
     MakeWebGPUCanvasContextFromNativeWindow: (
       window: bigint,
       width: number,

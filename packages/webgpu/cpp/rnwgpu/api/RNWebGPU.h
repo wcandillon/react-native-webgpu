@@ -22,6 +22,9 @@
 
 #if defined(__ANDROID__)
 #include <android/native_window.h>
+#else
+#include <CoreFoundation/CoreFoundation.h>
+#include <dispatch/dispatch.h>
 #endif
 
 #include <ReactCommon/CallInvoker.h>
@@ -90,42 +93,41 @@ public:
 
   // A canvas context presenting to a native window that is not a WebGPU
   // view, e.g. the input Surface of a MediaCodec encoder: an ANativeWindow*
-  // passed as a BigInt. The context takes its own reference to the window
-  // and owns its registry entry, which no view retires (see
-  // GPUCanvasContext::ownRegistryEntry); unconfigure() releases the swapchain
-  // right away. Android only.
+  // (Android) or a CAMetalLayer* (Apple), passed as a BigInt. Unlike a view's,
+  // the context owns its surface, outside of the SurfaceRegistry: the caller
+  // keeps the window alive and drives the context from one thread at a time.
+  // The context still holds a reference to the window until it is destroyed;
+  // unconfigure() releases the swapchain right away.
   std::shared_ptr<GPUCanvasContext>
   MakeWebGPUCanvasContextFromNativeWindow(void *window, float width,
                                           float height) {
-#if defined(__ANDROID__)
     if (window == nullptr) {
       throw std::runtime_error(
           "MakeWebGPUCanvasContextFromNativeWindow: expected a non-null "
-          "ANativeWindow pointer (BigInt)");
+          "ANativeWindow (Android) or CAMetalLayer (Apple) pointer (BigInt)");
     }
-    auto &registry = SurfaceRegistry::getInstance();
-    int contextId = registry.allocateContextId();
-    auto nativeWindow = static_cast<ANativeWindow *>(window);
-    ANativeWindow_acquire(nativeWindow);
-    auto &runtime = WebGPURuntime::shared();
-    // Adopted by the context's configure() (see SurfaceInfo::configure).
-    registry.attachSurface(
-        contextId, runtime.instance(), static_cast<int>(width),
-        static_cast<int>(height), nativeWindow,
-        runtime.makeSurface(nativeWindow), [](void *nativeSurface) {
-          ANativeWindow_release(static_cast<ANativeWindow *>(nativeSurface));
-        });
-    auto context =
-        std::make_shared<GPUCanvasContext>(_gpu, contextId, width, height);
-    context->ownRegistryEntry(contextId);
-    return context;
+#if defined(__ANDROID__)
+    ANativeWindow_acquire(static_cast<ANativeWindow *>(window));
+    NativeSurfaceReleaser releaser = [](void *nativeSurface) {
+      ANativeWindow_release(static_cast<ANativeWindow *>(nativeSurface));
+    };
 #else
-    (void)window;
-    (void)width;
-    (void)height;
-    throw std::runtime_error(
-        "MakeWebGPUCanvasContextFromNativeWindow is only available on Android");
+    CFRetain(window);
+    NativeSurfaceReleaser releaser = [](void *layer) {
+      // As MetalView's: the releaser can run on the rendering thread, and
+      // CALayer teardown belongs on the main thread.
+      dispatch_async_f(dispatch_get_main_queue(), layer,
+                       [](void *retained) { CFRelease(retained); });
+    };
 #endif
+    auto &runtime = WebGPURuntime::shared();
+    auto info = SurfaceRegistry::getInstance().makeUnregisteredSurfaceInfo(
+        runtime.instance(), static_cast<int>(width), static_cast<int>(height));
+    // Adopted by the context's configure() (see SurfaceInfo::configure).
+    info->attachSurface(window, runtime.makeSurface(window),
+                        std::move(releaser));
+    return std::make_shared<GPUCanvasContext>(_gpu, std::move(info), width,
+                                              height);
   }
 
   // Wrap an externally created WGPUDevice (passed as a BigInt pointer, e.g.

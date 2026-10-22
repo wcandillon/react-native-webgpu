@@ -105,7 +105,7 @@ This only works with a library that links the same Dawn build as react-native-we
 
 ## Rendering to a native window
 
-On Android, `RNWebGPU.MakeWebGPUCanvasContextFromNativeWindow()` makes a canvas context that presents to a native window other than a `Canvas`, for instance the input `Surface` of a `MediaCodec` encoder. The window is an `ANativeWindow*` passed as a `BigInt`; the context keeps its own reference to it.
+`RNWebGPU.MakeWebGPUCanvasContextFromNativeWindow()` makes a canvas context that presents to a native window other than a `Canvas`, for instance the input `Surface` of a `MediaCodec` encoder on Android. The window is an `ANativeWindow*` on Android or a `CAMetalLayer*` on Apple platforms, passed as a `BigInt`. Unlike a `Canvas`, nothing manages the window for you: keep it alive while the context is in use (the context holds a reference to it until it is garbage collected), and drive the context from one thread at a time.
 
 ```tsx
 const context = RNWebGPU.MakeWebGPUCanvasContextFromNativeWindow(
@@ -125,7 +125,7 @@ context.present();
 context.unconfigure();
 ```
 
-Each `present()` queues the frame to the window once the GPU is done rendering it. To give an encoder the presentation time of each frame, set it on the window right before `present()`, as `eglPresentationTimeANDROID` does with EGL: the window keeps it for the next frame queued.
+Each `present()` queues the frame to the window once the GPU is done rendering it. On Android, to give an encoder the presentation time of each frame, set it on the window right before `present()`, as `eglPresentationTimeANDROID` does with EGL: the window keeps it for the next frame queued.
 
 ## See also
 

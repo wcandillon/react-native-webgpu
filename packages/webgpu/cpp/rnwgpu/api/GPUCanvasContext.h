@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <string>
 #include <utility>
 
@@ -36,16 +35,15 @@ public:
         registry.getSurfaceInfoOrCreate(contextId, _gpu->get(), width, height);
   }
 
-  ~GPUCanvasContext() {
-    if (_ownedContextId) {
-      SurfaceRegistry::getInstance().removeSurfaceInfo(*_ownedContextId);
-    }
+  // A context presenting to a surface of its own rather than a view's, outside
+  // of the registry (see RNWebGPU::MakeWebGPUCanvasContextFromNativeWindow).
+  GPUCanvasContext(std::shared_ptr<GPU> gpu,
+                   std::shared_ptr<SurfaceInfo> surfaceInfo, int width,
+                   int height)
+      : NativeObject(CLASS_NAME), _surfaceInfo(std::move(surfaceInfo)),
+        _gpu(std::move(gpu)) {
+    _canvas = std::make_shared<Canvas>(nullptr, width, height);
   }
-
-  // Makes the context retire the registry entry of contextId when it is
-  // destroyed: for a context made from a native window
-  // (RNWebGPU::MakeWebGPUCanvasContextFromNativeWindow), no view does.
-  void ownRegistryEntry(int contextId) { _ownedContextId = contextId; }
 
 public:
   std::string getBrand() { return CLASS_NAME; }
@@ -80,7 +78,6 @@ private:
   std::shared_ptr<Canvas> _canvas;
   std::shared_ptr<SurfaceInfo> _surfaceInfo;
   std::shared_ptr<GPU> _gpu;
-  std::optional<int> _ownedContextId;
   // The current frame's texture, valid while
   // _surfaceInfo->isCurrentFrame(_currentTextureEpoch). Guarded by
   // _currentTextureMutex: contexts can be driven from worklet runtimes.

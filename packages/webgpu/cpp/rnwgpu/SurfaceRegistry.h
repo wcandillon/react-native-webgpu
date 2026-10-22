@@ -1375,6 +1375,20 @@ public:
     _registry.erase(it);
   }
 
+  // A SurfaceInfo that is not in the registry, for a context presenting to a
+  // native window of the caller's (see
+  // RNWebGPU::MakeWebGPUCanvasContextFromNativeWindow): the context owns it,
+  // no view attaches to it. It is still tracked for releaseSurfacesForDevice.
+  std::shared_ptr<SurfaceInfo>
+  makeUnregisteredSurfaceInfo(wgpu::Instance gpu, int width, int height) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    auto info = std::make_shared<SurfaceInfo>(gpu, width, height);
+    // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
+    pruneAllSurfacesLocked();
+    _allSurfaces.push_back(info);
+    return info;
+  }
+
   // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
   // See SurfaceInfo::releaseSurfaceForDevice. Lock order is registry ->
   // SurfaceInfo, matching every other path.
