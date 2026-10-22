@@ -70,6 +70,9 @@ declare global {
   var RNWebGPU: {
     gpu: GPU;
     fabric: boolean;
+    // The id a Canvas about to mount registers under, unique for the life of
+    // the process (the native surface registry outlives a reload).
+    allocateContextId: () => number;
     getNativeSurface: (contextId: number) => NativeCanvas;
     MakeWebGPUCanvasContext: (
       contextId: number,

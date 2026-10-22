@@ -123,12 +123,13 @@ struct AHBPool {
 // Ownership & threading model:
 // - A registry entry is created on first use (by whichever of JS/native gets
 //   there first) and lives exactly as long as its JS Canvas: contextIds are
-//   never reused. It is removed by the native view's teardown (MetalView
-//   dealloc / WebGPUViewManager.onDropViewInstance) when a surface is
-//   attached, or by RNWebGPU.destroyContext (the Canvas unmount cleanup) when
-//   none ever was — see RNWebGPU::destroyContext for why the split. Surface
-//   destruction alone (backgrounding, TextureView teardown) never removes an
-//   entry; it only detaches the surface.
+//   never reused, not even across a reload (see allocateContextId). It is
+//   removed by the native view's teardown (MetalView dealloc /
+//   WebGPUViewManager.onDropViewInstance) when a surface is attached, or by
+//   RNWebGPU.destroyContext (the Canvas unmount cleanup) when none ever was —
+//   see RNWebGPU::destroyContext for why the split. Surface destruction alone
+//   (backgrounding, TextureView teardown) never removes an entry; it only
+//   detaches the surface.
 // - Attaching a surface is LATCHED: the UI thread stores it as pending
 //   (attachSurface) and it is adopted at the next frame boundary — start of
 //   getCurrentTexture or end of presentFrame — on whichever thread renders
@@ -1296,6 +1297,15 @@ public:
   SurfaceRegistry(const SurfaceRegistry &) = delete;
   SurfaceRegistry &operator=(const SurfaceRegistry &) = delete;
 
+  // The id of a Canvas about to mount. Ids are handed out here, once for the
+  // life of the process, rather than counted by each JS runtime from the
+  // same start: this registry outlives a reload, and the views of the bundle
+  // being replaced are torn down (removeSurfaceInfo) on the UI thread with
+  // no ordering against the new bundle's first canvases. An id counted from
+  // the same start as its predecessor would let the predecessor's teardown
+  // detach and erase the entry of a live canvas.
+  int allocateContextId() { return _nextContextId.fetch_add(1); }
+
   std::shared_ptr<SurfaceInfo> getSurfaceInfo(int id) {
     std::shared_lock<std::shared_mutex> lock(_mutex);
     auto it = _registry.find(id);
@@ -1382,8 +1392,9 @@ public:
   }
 
   // Drops all entries. Called when the RN instance tears down (dev reload):
-  // JS context ids restart from scratch, so surviving entries would alias new
-  // canvases onto dead surfaces.
+  // the canvases of the old bundle never run their JS cleanup, and nothing
+  // reaches their ids again (see allocateContextId), so the entries would
+  // otherwise stay for the life of the process.
   void clear() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _registry.clear();
@@ -1436,6 +1447,7 @@ private:
   }
 
   mutable std::shared_mutex _mutex;
+  std::atomic<int> _nextContextId{1};
   std::unordered_map<int, std::shared_ptr<SurfaceInfo>> _registry;
   // The entries JS retired while a GPUCanvasContext still held their
   // SurfaceInfo (see removeSurfaceInfoIfDetached). Non-owning; pruned on

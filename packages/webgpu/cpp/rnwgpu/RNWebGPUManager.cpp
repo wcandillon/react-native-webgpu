@@ -167,9 +167,9 @@ void RNWebGPUManager::flushPendingSurfaceTransition(
 }
 
 RNWebGPUManager::~RNWebGPUManager() {
-  // Drop all canvas registry entries: after a reload the JS side restarts its
-  // contextId counter, and stale entries would alias new canvases onto dead
-  // surfaces.
+  // Drop the canvas registry entries of this runtime's bundle: its canvases
+  // never run their JS cleanup, and their ids are not handed out again (see
+  // SurfaceRegistry::allocateContextId).
   SurfaceRegistry::getInstance().clear();
   if (PlatformContext::current() == _platformContext) {
     PlatformContext::setCurrent(nullptr);

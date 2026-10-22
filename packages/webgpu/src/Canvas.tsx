@@ -7,10 +7,9 @@ import WebGPUNativeView from "./WebGPUViewNativeComponent";
 
 export type { CanvasRef, NativeCanvas, RNCanvasContext } from "./types";
 
-let CONTEXT_COUNTER = 1;
-function generateContextId() {
-  return CONTEXT_COUNTER++;
-}
+// Native hands out the id: it must be unique for the life of the process,
+// not of the JS runtime, as the native surface registry outlives a reload.
+const generateContextId = () => RNWebGPU.allocateContextId();
 
 /** The Android view a canvas draws into, see {@link AndroidCanvasProps}. */
 export type AndroidBackingView =
