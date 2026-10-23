@@ -261,6 +261,7 @@ public:
       replacedSurface = _nativeSurface;
       replacedReleaser = std::move(_releaser);
       _surface = std::move(_pendingSurface);
+      _surfaceConfigured = false;
 #if defined(__ANDROID__)
       // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
       _surfaceDevice = nullptr;
@@ -371,8 +372,9 @@ public:
 
   void unconfigure() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    if (_surface) {
+    if (_surfaceConfigured) {
       _surface.Unconfigure();
+      _surfaceConfigured = false;
     }
     _texture = nullptr;
     _config = {};
@@ -776,6 +778,7 @@ private:
           _texture = createOffscreenTextureLocked();
         }
         _surface = nullptr;
+        _surfaceConfigured = false;
 #if defined(__ANDROID__)
         // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
         _surfaceDevice = nullptr;
@@ -908,6 +911,7 @@ private:
     }
 #endif
     _surface.Configure(&config);
+    _surfaceConfigured = true;
 #if defined(__ANDROID__)
     // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
     _surfaceDevice = config.device;
@@ -921,6 +925,7 @@ private:
   // active and the recycled swapchain against their still-alive device.
   void recreateSurfaceLocked() {
     _surface = nullptr;
+    _surfaceConfigured = false;
     _surfaceDevice = nullptr;
     // A frame acquired from the old surface can no longer be presented.
     _acquiredFromSurface = false;
@@ -1229,6 +1234,8 @@ private:
   // Attached on-screen surface (null while offscreen).
   void *_nativeSurface = nullptr;
   wgpu::Surface _surface = nullptr;
+  // Dawn rejects Unconfigure() on a surface that is not configured.
+  bool _surfaceConfigured = false;
   NativeSurfaceReleaser _releaser;
   // Offscreen fallback drawing buffer.
   wgpu::Texture _texture = nullptr;
