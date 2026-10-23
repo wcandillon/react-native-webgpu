@@ -68,7 +68,7 @@
   // surface; see RNWebGPU::destroyContext for the ownership split.
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   if (auto info = registry.getSurfaceInfo([_contextId intValue])) {
-    info->detachSurface();
+    info->detach();
   }
   registry.removeSurfaceInfo([_contextId intValue]);
 }
