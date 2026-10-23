@@ -158,7 +158,7 @@ On Android, `Canvas` can be backed by one of three native views, with different 
 | Opaque by default | no | yes | never |
 | Status | default | opt-in | experimental, opt-in |
 
-**`TextureView`** is the default: a regular view, so transforms, clipping, alpha and z-order all apply, and the canvas can be composited over other React Native views. The cost is an extra copy, typically a frame of latency, and occasional stalls during some view animations.
+**`TextureView`** is the default: a regular view, so transforms, clipping, alpha and z-order all apply, and the canvas can be composited over other React Native views. The cost is an extra copy, typically a frame of latency, and occasional stalls during some view animations. A frame presented on the UI thread, from a worklet, reaches the `TextureView` behind the draw its window has pending, so that the window draws every frame, except on Android 11.
 
 **`SurfaceView`** is the fastest option. It is not regular view content, though: parent transforms, clipping, rounded corners and z-ordering with sibling views do not apply to it. Use it for a canvas that is a plain rectangle: a full-screen scene or a game. It is opaque unless asked otherwise: a translucent `SurfaceView` blends against the window background (usually black) instead of the React Native views beneath it, which are punched out. Pair it with `zOrderOnTop` to composite over React Native content, and note that `zOrderOnTop` draws above all React Native views in the window, including navigation screens, regardless of `zIndex`.
 

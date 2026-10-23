@@ -2,6 +2,8 @@ package com.webgpu;
 
 import android.content.Context;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.Surface;
 import android.view.View;
@@ -36,6 +38,10 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   private View mView = null;
   @Nullable
   private BackingViewKind mKind = null;
+  // Native posts a frame presented on the main thread here, to present it
+  // behind the draw the window has pending (see SurfaceRegistry.h).
+  private final Handler mMainHandler = new Handler(Looper.getMainLooper());
+  private final Runnable mPostedPresent = () -> presentPostedFrame(mContextId);
   // Only a SurfaceView votes: a TextureView or HardwareBufferView is
   // composited into the window, which votes for it.
   private final SurfaceFrameRateVote mFrameRateVote = new SurfaceFrameRateVote(
@@ -194,7 +200,15 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     if (votesFrameRate) {
       mFrameRateVote.attach(surface);
     }
-    onSurfaceCreate(surface, mContextId, width, height, votesFrameRate);
+    onSurfaceCreate(surface, mContextId, width, height, presentsBehindPendingDraw(), votesFrameRate);
+  }
+
+  // A TextureView shows a new frame only when its window draws. Android 11's
+  // Vulkan loader gives a TextureView's buffer queue a 4.3 s dequeue timeout,
+  // and a present held behind the draw there stretches those waits into
+  // freezes long enough for an ANR.
+  private boolean presentsBehindPendingDraw() {
+    return mKind == BackingViewKind.TEXTURE_VIEW && Build.VERSION.SDK_INT != Build.VERSION_CODES.R;
   }
 
   @Override
@@ -226,6 +240,12 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     return mContextId;
   }
 
+  /** Called by native on the main thread, see mPostedPresent. */
+  @DoNotStrip
+  private void postPresentBehindPendingDraw() {
+    mMainHandler.post(mPostedPresent);
+  }
+
   /**
    * Called from WebGPUViewManager.onDropViewInstance when React removes this
    * view: the view dies with its Canvas, so it retires the registry entry.
@@ -235,14 +255,17 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     onViewDestroyed(mContextId);
   }
 
-  // reportAnimation asks native to call onAnimating() when frames start being
-  // presented to this surface back to back.
+  // presentsBehindPendingDraw has native post a present made on the main
+  // thread through postPresentBehindPendingDraw(); reportAnimation asks native
+  // to call onAnimating() when frames start being presented to this surface
+  // back to back.
   @DoNotStrip
   private native void onSurfaceCreate(
     Surface surface,
     int contextId,
     float width,
     float height,
+    boolean presentsBehindPendingDraw,
     boolean reportAnimation
   );
 
@@ -253,6 +276,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     float width,
     float height
   );
+
+  @DoNotStrip
+  private native void presentPostedFrame(int contextId);
 
   @DoNotStrip
   private native void switchToOffscreenSurface(int contextId);
