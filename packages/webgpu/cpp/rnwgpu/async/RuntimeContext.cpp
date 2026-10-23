@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -14,7 +15,7 @@ namespace rnwgpu::async {
 
 namespace {
 struct RuntimeData {
-  std::shared_ptr<RuntimeContext> context;
+  std::unordered_map<WGPUInstance, std::shared_ptr<RuntimeContext>> contexts;
 };
 constexpr const char *TAG = "RuntimeContext";
 
@@ -46,17 +47,20 @@ RuntimeContext::RuntimeContext(jsi::Runtime &runtime, wgpu::Instance instance)
   Logger::logToConsole("[%s] Created (runtime=%p)", TAG, &runtime);
 }
 
-std::shared_ptr<RuntimeContext> RuntimeContext::get(jsi::Runtime &runtime) {
+std::shared_ptr<RuntimeContext> RuntimeContext::get(jsi::Runtime &runtime,
+                                                    wgpu::Instance instance) {
   auto data = runtime.getRuntimeData(runtimeDataUUID());
   if (!data) {
     return nullptr;
   }
-  return std::static_pointer_cast<RuntimeData>(data)->context;
+  const auto &contexts = std::static_pointer_cast<RuntimeData>(data)->contexts;
+  auto existing = contexts.find(instance.Get());
+  return existing != contexts.end() ? existing->second : nullptr;
 }
 
 std::shared_ptr<RuntimeContext>
 RuntimeContext::getOrCreate(jsi::Runtime &runtime, wgpu::Instance instance) {
-  if (auto existing = get(runtime)) {
+  if (auto existing = get(runtime, instance)) {
     return existing;
   }
   auto context = std::make_shared<RuntimeContext>(runtime, std::move(instance));
@@ -65,9 +69,15 @@ RuntimeContext::getOrCreate(jsi::Runtime &runtime, wgpu::Instance instance) {
   if (&runtime == sMainRuntime) {
     context->_callInvoker = sMainInvoker;
   }
-  auto data = std::make_shared<RuntimeData>();
-  data->context = context;
-  runtime.setRuntimeData(runtimeDataUUID(), data);
+  auto data = std::static_pointer_cast<RuntimeData>(
+      runtime.getRuntimeData(runtimeDataUUID()));
+  if (!data) {
+    data = std::make_shared<RuntimeData>();
+    runtime.setRuntimeData(runtimeDataUUID(), data);
+  }
+  // The context retains its instance, keeping this handle stable for the
+  // runtime's lifetime. Each instance's callbacks reach the matching pump.
+  data->contexts.emplace(context->instance().Get(), context);
   return context;
 }
 

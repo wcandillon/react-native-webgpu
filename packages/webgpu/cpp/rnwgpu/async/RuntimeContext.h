@@ -22,11 +22,14 @@ class CallInvoker;
 namespace rnwgpu::async {
 
 /**
- * Per-runtime coordinator for asynchronous WebGPU operations.
+ * Per-runtime, per-instance coordinator for asynchronous WebGPU operations.
  *
- * Each JS runtime that uses WebGPU gets its own RuntimeContext, stored in the
- * runtime's runtimeData. Async Dawn operations are registered with
- * CallbackMode::AllowProcessEvents and driven to completion by pumping
+ * Each (JS runtime, Dawn instance) pair gets its own RuntimeContext, stored in
+ * the runtime's runtimeData. A runtime usually has a single one, for the
+ * shared WebGPURuntime instance; a device passed to importDevice() can live on
+ * another instance, which then gets its own context and pump. Async Dawn
+ * operations are registered with CallbackMode::AllowProcessEvents and driven
+ * to completion by pumping
  * `instance.ProcessEvents()` on the runtime's OWN thread via a self-
  * rescheduling tick (scheduled through that runtime's setTimeout). Because
  * ProcessEvents invokes the Dawn callbacks synchronously on the pumping thread,
@@ -78,7 +81,8 @@ public:
 
   RuntimeContext(jsi::Runtime &runtime, wgpu::Instance instance);
 
-  static std::shared_ptr<RuntimeContext> get(jsi::Runtime &runtime);
+  static std::shared_ptr<RuntimeContext> get(jsi::Runtime &runtime,
+                                             wgpu::Instance instance);
   static std::shared_ptr<RuntimeContext> getOrCreate(jsi::Runtime &runtime,
                                                      wgpu::Instance instance);
 
@@ -97,7 +101,7 @@ public:
     return _callInvoker;
   }
 
-  // The wgpu::Instance bound to this runtime.
+  // The wgpu::Instance served by this context on its owning runtime.
   wgpu::Instance instance() const { return _instance; }
 
   // The runtime this context belongs to. Safe for pointer-identity checks from
