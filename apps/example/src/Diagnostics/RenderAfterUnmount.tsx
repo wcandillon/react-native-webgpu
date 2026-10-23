@@ -28,7 +28,7 @@ import {
 // than silently going black. It is the default, but pinning keeps this test
 // on the SurfaceTexture teardown path if that default ever changes.
 // HardwareBufferView teardown (freeing the AHardwareBuffer pool)
-// is covered by TransparencyMode's "hardware buffer" option with hide/show.
+// is covered by TransparencyMode's "hardware buffer" option with mounted.
 export const RenderAfterUnmount = () => {
   const ref = useRef<CanvasRef>(null);
   const { log, append } = useDiagnosticLog();
