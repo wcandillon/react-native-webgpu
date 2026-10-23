@@ -22,11 +22,14 @@ class CallInvoker;
 namespace rnwgpu::async {
 
 /**
- * Per-runtime coordinator for asynchronous WebGPU operations.
+ * Per-runtime, per-instance coordinator for asynchronous WebGPU operations.
  *
- * Each JS runtime that uses WebGPU gets its own RuntimeContext, stored in the
- * runtime's runtimeData. Async Dawn operations are registered with
- * CallbackMode::AllowProcessEvents and driven to completion by pumping
+ * Each (JS runtime, Dawn instance) pair gets its own RuntimeContext, stored in
+ * the runtime's runtimeData. A runtime usually has a single one, for the
+ * shared WebGPURuntime instance; a device passed to importDevice() can live on
+ * another instance, which then gets its own context and pump. Async Dawn
+ * operations are registered with CallbackMode::AllowProcessEvents and driven
+ * to completion by pumping
  * `instance.ProcessEvents()` on the runtime's OWN thread via a self-
  * rescheduling tick (scheduled through that runtime's setTimeout). Because
  * ProcessEvents invokes the Dawn callbacks synchronously on the pumping thread,
@@ -56,8 +59,9 @@ namespace rnwgpu::async {
  * deposits a settle-action (a plain C++ closure, no JSI) into the OWNING
  * context's thread-safe mailbox via postSettle(), and each context drains its
  * own mailbox on its own thread during tick(). ProcessEvents() itself is
- * serialized across runtimes by a process-wide mutex, since concurrent
- * ProcessEvents on one instance is not guaranteed reentrant.
+ * serialized across the runtimes sharing an instance by a mutex per instance,
+ * since concurrent ProcessEvents on one instance is not guaranteed reentrant;
+ * pumps of different instances never wait on each other.
  *
  * Threading contract: a RuntimeContext must only be pumped from the runtime it
  * was created for. Request/response async entry points (mapAsync,
@@ -78,9 +82,10 @@ public:
 
   RuntimeContext(jsi::Runtime &runtime, wgpu::Instance instance);
 
-  static std::shared_ptr<RuntimeContext> get(jsi::Runtime &runtime);
-  static std::shared_ptr<RuntimeContext> getOrCreate(jsi::Runtime &runtime,
-                                                     wgpu::Instance instance);
+  // The calling runtime's context for `instance`, created on first use and
+  // kept in the runtime's runtimeData for the runtime's lifetime.
+  static std::shared_ptr<RuntimeContext>
+  getOrCreate(jsi::Runtime &runtime, const wgpu::Instance &instance);
 
   // Register the main JS runtime and its CallInvoker. The RuntimeContext
   // created for this runtime gets the invoker (callInvoker() returns it); every
@@ -97,8 +102,8 @@ public:
     return _callInvoker;
   }
 
-  // The wgpu::Instance bound to this runtime.
-  wgpu::Instance instance() const { return _instance; }
+  // The wgpu::Instance served by this context on its owning runtime.
+  const wgpu::Instance &instance() const { return _instance; }
 
   // The runtime this context belongs to. Safe for pointer-identity checks from
   // any thread; only touch JSI through it on the runtime's own thread.
@@ -126,6 +131,9 @@ private:
 
   jsi::Runtime &_runtime;
   wgpu::Instance _instance;
+  // Serializes ProcessEvents() on _instance across the runtimes that share it;
+  // every context of that instance holds the same mutex.
+  std::shared_ptr<std::mutex> _processEventsMutex;
   // Non-null only for the main JS runtime's context (see registerMainRuntime).
   std::shared_ptr<facebook::react::CallInvoker> _callInvoker;
   std::atomic<std::size_t> _pumpTasks{0};

@@ -86,10 +86,12 @@ public:
   // Wrap an externally created WGPUDevice (passed as a BigInt pointer, e.g.
   // Skia's Graphite device from Skia.getNativeDevice()) in a GPUDevice.
   // AddRefs the handle, so the original owner keeps its reference. Only sound
-  // because the process links a single Dawn copy and the GPU instance is
-  // shared with the exporter (see the GPU constructor): the calling runtime's
-  // pump serves the instance the device lives on, so its async callbacks
-  // settle normally.
+  // because the process links a single Dawn copy. The device's async
+  // callbacks are pumped on the instance that owns it (RuntimeContext is per
+  // runtime and per instance), which is not necessarily the shared one:
+  // WebGPURuntime adopts Skia's instance only when Skia's getter is reachable
+  // as the instance is first used (on Android, only once librnskia.so is
+  // loaded), and other exporters have their own.
   std::shared_ptr<GPUDevice> importDevice(jsi::Runtime &runtime,
                                           void *pointer) {
     if (pointer == nullptr) {
@@ -99,7 +101,8 @@ public:
     auto raw = reinterpret_cast<WGPUDevice>(pointer);
     wgpuDeviceAddRef(raw);
     wgpu::Device device = wgpu::Device::Acquire(raw);
-    auto ctx = async::RuntimeContext::getOrCreate(runtime, _gpu->get());
+    auto ctx = async::RuntimeContext::getOrCreate(
+        runtime, device.GetAdapter().GetInstance());
     return std::make_shared<GPUDevice>(device, ctx, "Imported Device");
   }
 
