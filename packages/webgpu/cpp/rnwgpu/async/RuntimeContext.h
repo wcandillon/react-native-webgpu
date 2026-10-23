@@ -59,8 +59,9 @@ namespace rnwgpu::async {
  * deposits a settle-action (a plain C++ closure, no JSI) into the OWNING
  * context's thread-safe mailbox via postSettle(), and each context drains its
  * own mailbox on its own thread during tick(). ProcessEvents() itself is
- * serialized across runtimes by a process-wide mutex, since concurrent
- * ProcessEvents on one instance is not guaranteed reentrant.
+ * serialized across the runtimes sharing an instance by a mutex per instance,
+ * since concurrent ProcessEvents on one instance is not guaranteed reentrant;
+ * pumps of different instances never wait on each other.
  *
  * Threading contract: a RuntimeContext must only be pumped from the runtime it
  * was created for. Request/response async entry points (mapAsync,
@@ -81,10 +82,10 @@ public:
 
   RuntimeContext(jsi::Runtime &runtime, wgpu::Instance instance);
 
-  static std::shared_ptr<RuntimeContext> get(jsi::Runtime &runtime,
-                                             wgpu::Instance instance);
-  static std::shared_ptr<RuntimeContext> getOrCreate(jsi::Runtime &runtime,
-                                                     wgpu::Instance instance);
+  // The calling runtime's context for `instance`, created on first use and
+  // kept in the runtime's runtimeData for the runtime's lifetime.
+  static std::shared_ptr<RuntimeContext>
+  getOrCreate(jsi::Runtime &runtime, const wgpu::Instance &instance);
 
   // Register the main JS runtime and its CallInvoker. The RuntimeContext
   // created for this runtime gets the invoker (callInvoker() returns it); every
@@ -102,7 +103,7 @@ public:
   }
 
   // The wgpu::Instance served by this context on its owning runtime.
-  wgpu::Instance instance() const { return _instance; }
+  const wgpu::Instance &instance() const { return _instance; }
 
   // The runtime this context belongs to. Safe for pointer-identity checks from
   // any thread; only touch JSI through it on the runtime's own thread.
@@ -130,6 +131,9 @@ private:
 
   jsi::Runtime &_runtime;
   wgpu::Instance _instance;
+  // Serializes ProcessEvents() on _instance across the runtimes that share it;
+  // every context of that instance holds the same mutex.
+  std::shared_ptr<std::mutex> _processEventsMutex;
   // Non-null only for the main JS runtime's context (see registerMainRuntime).
   std::shared_ptr<facebook::react::CallInvoker> _callInvoker;
   std::atomic<std::size_t> _pumpTasks{0};

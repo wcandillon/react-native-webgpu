@@ -100,7 +100,7 @@ declare global {
     createVideoFrameFromNativeBuffer: (pointer: bigint) => NativeVideoFrame;
     // Wrap an externally created WGPUDevice pointer (e.g. Skia's Graphite
     // device from Skia.getNativeDevice()) into a GPUDevice. Requires the
-    // exporter to share this process's single Dawn instance.
+    // exporter to link this process's single Dawn copy.
     importDevice: (pointer: bigint) => GPUDevice;
     // Wrap an externally created WGPUTexture pointer into a GPUTexture,
     // taking ownership of one reference (pair with producers that return a

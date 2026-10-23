@@ -26,12 +26,27 @@ constexpr const char *TAG = "RuntimeContext";
 jsi::Runtime *sMainRuntime = nullptr;
 std::shared_ptr<facebook::react::CallInvoker> sMainInvoker;
 
-// Serializes ProcessEvents() across all runtimes that share a wgpu::Instance.
-// Held only across the ProcessEvents call itself, never while running JS / mailbox
+// ProcessEvents() on one wgpu::Instance is serialized across the runtimes that
+// share it by a mutex per instance, which each context resolves once, on
+// creation. Pumping another library's instance (the one owning a device passed
+// to importDevice) can block on that library's device lock; with one mutex per
+// instance that never stalls the pumps of our own instance. A mutex is held
+// only across the ProcessEvents call itself, never while running JS / mailbox
 // settle-actions, so it cannot deadlock against the per-context mailbox mutex.
-std::mutex &processEventsMutex() {
-  static std::mutex mutex;
-  return mutex;
+std::shared_ptr<std::mutex> processEventsMutexFor(WGPUInstance instance) {
+  static std::mutex registryMutex;
+  static std::unordered_map<WGPUInstance, std::weak_ptr<std::mutex>> registry;
+  std::lock_guard<std::mutex> lock(registryMutex);
+  auto &slot = registry[instance];
+  if (auto existing = slot.lock()) {
+    return existing;
+  }
+  // Contexts retain their instance, so its handle cannot be reused while one
+  // of them is alive: an expired slot belonged to an instance whose runtimes
+  // are all gone, and an instance reusing that address starts afresh.
+  auto created = std::make_shared<std::mutex>();
+  slot = created;
+  return created;
 }
 } // namespace
 
@@ -43,41 +58,32 @@ void RuntimeContext::registerMainRuntime(
 }
 
 RuntimeContext::RuntimeContext(jsi::Runtime &runtime, wgpu::Instance instance)
-    : _runtime(runtime), _instance(std::move(instance)) {
+    : _runtime(runtime), _instance(std::move(instance)),
+      _processEventsMutex(processEventsMutexFor(_instance.Get())) {
   Logger::logToConsole("[%s] Created (runtime=%p)", TAG, &runtime);
 }
 
-std::shared_ptr<RuntimeContext> RuntimeContext::get(jsi::Runtime &runtime,
-                                                    wgpu::Instance instance) {
-  auto data = runtime.getRuntimeData(runtimeDataUUID());
-  if (!data) {
-    return nullptr;
-  }
-  const auto &contexts = std::static_pointer_cast<RuntimeData>(data)->contexts;
-  auto existing = contexts.find(instance.Get());
-  return existing != contexts.end() ? existing->second : nullptr;
-}
-
 std::shared_ptr<RuntimeContext>
-RuntimeContext::getOrCreate(jsi::Runtime &runtime, wgpu::Instance instance) {
-  if (auto existing = get(runtime, instance)) {
-    return existing;
-  }
-  auto context = std::make_shared<RuntimeContext>(runtime, std::move(instance));
-  // Only the main JS runtime's context carries the CallInvoker; it is used to
-  // deliver spontaneous events (device.lost) without the pump.
-  if (&runtime == sMainRuntime) {
-    context->_callInvoker = sMainInvoker;
-  }
+RuntimeContext::getOrCreate(jsi::Runtime &runtime,
+                            const wgpu::Instance &instance) {
   auto data = std::static_pointer_cast<RuntimeData>(
       runtime.getRuntimeData(runtimeDataUUID()));
   if (!data) {
     data = std::make_shared<RuntimeData>();
     runtime.setRuntimeData(runtimeDataUUID(), data);
   }
-  // The context retains its instance, keeping this handle stable for the
-  // runtime's lifetime. Each instance's callbacks reach the matching pump.
-  data->contexts.emplace(context->instance().Get(), context);
+  // Contexts retain their instance, so its handle is a stable key for the
+  // runtime's lifetime, and each instance's callbacks reach the matching pump.
+  // A slot left null by a throwing constructor is simply filled next time.
+  auto &context = data->contexts[instance.Get()];
+  if (!context) {
+    context = std::make_shared<RuntimeContext>(runtime, instance);
+    // Only the main JS runtime's context carries the CallInvoker; it is used to
+    // deliver spontaneous events (device.lost) without the pump.
+    if (&runtime == sMainRuntime) {
+      context->_callInvoker = sMainInvoker;
+    }
+  }
   return context;
 }
 
@@ -183,7 +189,7 @@ void RuntimeContext::tick() {
   {
     // Serialize ProcessEvents across runtimes sharing this instance. Callbacks
     // fired here only deposit into mailboxes (postSettle), they do not run JS.
-    std::lock_guard<std::mutex> lock(processEventsMutex());
+    std::lock_guard<std::mutex> lock(*_processEventsMutex);
     _instance.ProcessEvents();
   }
   // Settle this runtime's ready promises on this thread, outside the pump lock.
