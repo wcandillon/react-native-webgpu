@@ -106,6 +106,10 @@ interface GPUTestingContext {
     probeSize: number;
     pixelRatio: number;
   };
+  // Native app harness only: Skia's Graphite device wrapped with
+  // importDevice(), or null when Skia has no GPU. See ImportDevice.spec.ts
+  // and apps/example/src/Tests.tsx.
+  importSkiaDevice?: () => GPUDevice | null;
   mat4: typeof mat4;
   vec3: typeof vec3;
   mat3: typeof mat3;

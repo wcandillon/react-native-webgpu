@@ -9,15 +9,18 @@ namespace rnwgpu {
 namespace {
 
 wgpu::Instance createInstance() {
-  // If a Graphite build of react-native-skia is loaded in this
+  // If a Graphite build of react-native-skia is already loaded in this
   // process, adopt its wgpu::Instance instead of creating our own, so
-  // Graphite's device and every JS-created device live on one instance. That
-  // makes pointer-based handoff (RNWebGPU.importDevice of Skia's device)
-  // sound: the async pump serves the shared instance, so callbacks on
-  // imported devices settle. Discovered at runtime via dlsym so there is no
-  // build-time coupling and native-module init order does not matter. Both
-  // packages must link the same single Dawn copy (they vendor the same
-  // artifact) for the handle to be meaningful.
+  // Graphite's device and every JS-created device live on one instance.
+  // Discovered at runtime via dlsym so there is no build-time coupling. The
+  // adoption is best-effort and decided once, when the instance is first
+  // used: on Android it only succeeds when librnskia.so is loaded before
+  // react-native-webgpu installs (see the RTLD_NOLOAD lookup below), so the
+  // native-module init order decides whether the instance is shared.
+  // RNWebGPU.importDevice does not depend on it: an imported device's async
+  // work is pumped on the instance that owns it (see async::RuntimeContext).
+  // Both packages must link the same single Dawn copy (they vendor the same
+  // artifact) for the handles they exchange to be meaningful.
   using GetInstanceFn = WGPUInstance (*)();
   void *getter = dlsym(RTLD_DEFAULT, "rnskia_getWGPUInstance");
 #ifdef __ANDROID__
