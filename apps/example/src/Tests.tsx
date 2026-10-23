@@ -7,7 +7,9 @@ import {
   PixelRatio,
   findNodeHandle,
 } from "react-native";
+import type { CanvasRef } from "react-native-webgpu";
 import {
+  Canvas,
   GPUOffscreenCanvas,
   importDevice,
   // The flags as the package exports them, not the globals of the same name
@@ -32,6 +34,7 @@ import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
 import type { AssetProps } from "./components/useAssets";
 import { Texture } from "./components/Texture";
 import { workletDeviceStress } from "./components/workletDeviceStress";
+import { presentFrames } from "./components/presentFrames";
 import { workletSerialization } from "./components/workletSerialization";
 
 export const CI = process.env.CI === "true";
@@ -40,6 +43,7 @@ const { width } = Dimensions.get("window");
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 const PROBE_SIZE = 64;
 const QUADRANT = PROBE_SIZE / 2;
+const TEXTURE_CANVAS_SIZE = 32;
 
 export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   const [texture, setTexture] = useState<GPUTexture | null>(null);
@@ -49,6 +53,10 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   // A fixed native view the drawElementImageToTexture spec snapshots: four
   // 32x32pt solid quadrants (red, lime, blue, white), 64x64pt in total.
   const probeRef = useRef<View>(null);
+  // A canvas backed by a TextureView on Android, for the TextureView
+  // present spec, and the view around it, which that spec snapshots.
+  const textureCanvasRef = useRef<CanvasRef>(null);
+  const textureCanvasViewRef = useRef<View>(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -136,8 +144,14 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                   probe: findNodeHandle(probeRef.current),
                   probeSize: PROBE_SIZE,
                   pixelRatio: PixelRatio.get(),
+                  textureCanvas: () => textureCanvasRef.current,
+                  textureCanvasView: findNodeHandle(
+                    textureCanvasViewRef.current,
+                  ),
+                  textureCanvasSize: TEXTURE_CANVAS_SIZE,
                 },
                 workletDeviceStress,
+                presentFrames,
                 workletSerialization,
                 importSkiaDevice: () =>
                   Skia.gpu.isAvailable
@@ -238,6 +252,17 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
             height: QUADRANT,
             backgroundColor: "white",
           }}
+        />
+      </View>
+      <View
+        ref={textureCanvasViewRef}
+        collapsable={false}
+        style={{ width: TEXTURE_CANVAS_SIZE, height: TEXTURE_CANVAS_SIZE }}
+      >
+        <Canvas
+          ref={textureCanvasRef}
+          style={{ flex: 1 }}
+          android={{ backingView: "TextureView" }}
         />
       </View>
       <Texture

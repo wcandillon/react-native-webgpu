@@ -62,6 +62,13 @@ struct Size {
 // CAMetalLayer on Apple platforms). May run on any thread.
 using NativeSurfaceReleaser = std::function<void(void *)>;
 
+// Installed with a surface whose window shows a new frame only when the
+// window draws (Android's TextureView): has the main looper call
+// SurfaceInfo::presentPostedFrame() behind the draw the window has pending.
+// Returns false when it could not post. Called on the main thread, outside
+// SurfaceInfo's lock.
+using NativeSurfacePresentPoster = std::function<bool()>;
+
 #if defined(__ANDROID__)
 // --- AHB-pool presentation mode (WebGPUNativeBufferView)
 // -----------------------------
@@ -150,6 +157,12 @@ struct AHBPool {
 //   content appears without waiting for the next render — the same mechanism
 //   that gives a fast time-to-first-frame when rendering starts before the
 //   native surface exists.
+// - A surface whose buffer queue makes an acquire wait until its window has
+//   drawn the frame presented last (an Android 11 TextureView, see
+//   WebGPUView.acquiresAfterDraw) defers a frame that comes sooner: it
+//   renders offscreen and is copied onto the surface once the window has
+//   drawn, by the frame boundary or the posted surfaceDrawn that sees it
+//   first.
 class SurfaceInfo {
 public:
   SurfaceInfo(wgpu::Instance gpu, int width, int height)
@@ -189,20 +202,26 @@ public:
   // RNWebGPUManager::flushPendingSurfaceTransition so contexts that are not
   // currently rendering also pick it up.
   void attachSurface(void *nativeSurface, wgpu::Surface surface,
-                     NativeSurfaceReleaser releaser) {
+                     NativeSurfaceReleaser releaser,
+                     NativeSurfacePresentPoster presentPoster = nullptr,
+                     bool acquiresAfterDraw = false) {
     void *replacedSurface = nullptr;
     NativeSurfaceReleaser replacedReleaser;
+    NativeSurfacePresentPoster replacedPresentPoster;
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
       if (_hasPendingAttach) {
         // Replaced before it was ever adopted.
         replacedSurface = _pendingNativeSurface;
         replacedReleaser = std::move(_pendingReleaser);
+        replacedPresentPoster = std::move(_pendingPresentPoster);
       }
       _hasPendingAttach = true;
       _pendingNativeSurface = nativeSurface;
       _pendingSurface = std::move(surface);
       _pendingReleaser = std::move(releaser);
+      _pendingPresentPoster = std::move(presentPoster);
+      _pendingAcquiresAfterDraw = acquiresAfterDraw;
     }
     if (replacedReleaser && replacedSurface) {
       replacedReleaser(replacedSurface);
@@ -218,6 +237,22 @@ public:
   // Detach without creating the offscreen fallback: used when the context is
   // being destroyed and nothing will consume further frames.
   void detachSurface() { detach(/* createFallbackTexture = */ false); }
+
+  // The frames presented so far, read while the window draws: that draw
+  // syncs with every one of them queued.
+  uint64_t presentCount() {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    return _presentCount;
+  }
+
+  // The window's draw that read presentCount() has synced, taking the
+  // frames presented by then: a deferred frame waiting for it is copied
+  // onto the surface.
+  void surfaceDrawn(uint64_t presentCount) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    _drawnPresentCount = std::max(_drawnPresentCount, presentCount);
+    deliverDeferredFrameLocked();
+  }
 
   // Reflects native view layout changes. Does not resize the drawing buffer:
   // that tracks canvas.width/height (like on the web), see
@@ -246,6 +281,7 @@ public:
     wgpu::Device device = nullptr;
     void *replacedSurface = nullptr;
     NativeSurfaceReleaser replacedReleaser;
+    NativeSurfacePresentPoster replacedPresentPoster;
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
       if (supersedeInFlightFrame) {
@@ -260,6 +296,11 @@ public:
       // can be null if surface creation failed).
       replacedSurface = _nativeSurface;
       replacedReleaser = std::move(_releaser);
+      replacedPresentPoster = std::move(_presentPoster);
+      // A frame waiting for its posted present, or for the window's draw,
+      // belongs to the replaced surface; the blit below shows the latter.
+      _presentPending = false;
+      _deferredFrame = DeferredFrame::None;
       _surface = std::move(_pendingSurface);
 #if defined(__ANDROID__)
       // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
@@ -267,6 +308,8 @@ public:
 #endif
       _nativeSurface = _pendingNativeSurface;
       _releaser = std::move(_pendingReleaser);
+      _presentPoster = std::move(_pendingPresentPoster);
+      _acquiresAfterDraw = _pendingAcquiresAfterDraw;
       _hasPendingAttach = false;
       _pendingNativeSurface = nullptr;
       _frameEpoch++;
@@ -312,7 +355,7 @@ public:
       // (their newer content stands; presenting here would be a Dawn
       // present-without-acquire error).
       if (_surface && !_frameInFlight && _frameEpoch == blitEpoch) {
-        _surface.Present();
+        presentSurfaceLocked();
       }
     }
   }
@@ -325,6 +368,7 @@ public:
                  CanvasColorSpace colorSpace = CanvasColorSpace::SRGB) {
     applyPendingAttach(/* supersedeInFlightFrame = */ true);
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    presentPendingFrameLocked();
     _viewFormats = std::move(viewFormats);
     _colorSpace = colorSpace;
     _config = newConfig;
@@ -337,7 +381,7 @@ public:
     _config.width = std::max(1, _width);
     _config.height = std::max(1, _height);
     _config.presentMode = wgpu::PresentMode::Fifo;
-    _texture = nullptr;
+    dropOffscreenTextureLocked();
     _frameEpoch++;
 #if defined(__ANDROID__)
     {
@@ -362,19 +406,21 @@ public:
     if (_config.device == nullptr) {
       return;
     }
+    presentPendingFrameLocked();
     _config.width = std::max(1, newWidth);
     _config.height = std::max(1, newHeight);
-    _texture = nullptr;
+    dropOffscreenTextureLocked();
     _frameEpoch++;
     _configureLocked();
   }
 
   void unconfigure() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+    presentPendingFrameLocked();
     if (_surface) {
       _surface.Unconfigure();
     }
-    _texture = nullptr;
+    dropOffscreenTextureLocked();
     _config = {};
     _colorSpace = CanvasColorSpace::SRGB;
     _viewFormats.clear();
@@ -498,13 +544,20 @@ public:
           "[WebGPU] getCurrentTexture() called on a canvas context that is "
           "not configured; call context.configure() first");
     }
+    presentPendingFrameLocked();
     _frameInFlight = true;
     _acquiredFromSurface = false;
+    // This frame supersedes one waiting for the window's draw.
+    _deferredFrame = DeferredFrame::None;
     _frameEpoch++;
     if (frameEpoch) {
       *frameEpoch = _frameEpoch;
     }
-    if (_surface) {
+    if (_surface && awaitsWindowDrawLocked()) {
+      // The acquire would wait for the window's draw, which runs on the main
+      // thread, maybe this one.
+      _deferredFrame = DeferredFrame::Rendering;
+    } else if (_surface) {
       auto texture = acquireSurfaceTextureLocked();
       if (texture) {
         _acquiredFromSurface = true;
@@ -533,10 +586,13 @@ public:
 
   // Present the current frame. Runs synchronously on the thread that did
   // getCurrentTexture/submit (main JS, Reanimated UI, or a worklet runtime),
-  // preserving Dawn surface thread-affinity. Frames whose texture was not
-  // acquired from the attached surface (offscreen, detached mid-frame, or
-  // acquire failure) are dropped. This is also the end-of-frame boundary: it
-  // adopts a surface that attached while the frame was in flight.
+  // preserving Dawn surface thread-affinity, except on a surface with a
+  // present poster (see presentsBehindPendingDrawLocked). Frames whose
+  // texture was not acquired from the attached surface (offscreen, detached
+  // mid-frame, or acquire failure) are dropped, except a deferred frame,
+  // which reaches the surface once the window has drawn. This is also the
+  // end-of-frame boundary: it adopts a surface that attached while the frame
+  // was in flight.
   void presentFrame() {
 #if defined(__ANDROID__)
     if (_poolMode.load()) {
@@ -557,20 +613,35 @@ public:
       dawn::native::metal::WaitForCommandsToBeScheduled(device.Get());
     }
 #endif
+    NativeSurfacePresentPoster presentPoster;
 #if defined(__ANDROID__)
     std::function<void()> framePresented;
 #endif
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
       if (_surface && _acquiredFromSurface) {
-        _surface.Present();
+        if (presentsBehindPendingDrawLocked()) {
+          _presentPending = true;
+          if (!_presentPosted) {
+            _presentPosted = true;
+            presentPoster = _presentPoster;
+          }
+        } else {
+          presentSurfaceLocked();
 #if defined(__ANDROID__)
-        framePresented = _framePresented;
+          framePresented = _framePresented;
 #endif
+        }
+      } else if (_deferredFrame == DeferredFrame::Rendering) {
+        _deferredFrame = DeferredFrame::Waiting;
+        deliverDeferredFrameLocked();
       }
       _acquiredFromSurface = false;
       _frameInFlight = false;
       _frameEpoch++;
+    }
+    if (presentPoster && !presentPoster()) {
+      presentPostedFrame();
     }
 #if defined(__ANDROID__)
     if (framePresented) {
@@ -578,6 +649,15 @@ public:
     }
 #endif
     applyPendingAttach();
+  }
+
+  // Main thread, from the call a present poster posted: presents the frame
+  // presentFrame() left waiting, unless a frame boundary since has presented
+  // or dropped it.
+  void presentPostedFrame() {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    _presentPosted = false;
+    presentPendingFrameLocked();
   }
 
   NativeInfo getNativeInfo() {
@@ -726,6 +806,8 @@ private:
   void detach(bool createFallbackTexture) {
     void *releasedSurfaces[2] = {nullptr, nullptr};
     NativeSurfaceReleaser releasers[2];
+    // Destroyed outside the lock: they release JNI references.
+    NativeSurfacePresentPoster releasedPresentPosters[2];
 #if defined(__ANDROID__)
     // Destroyed outside the lock: it releases a JNI reference.
     std::function<void()> releasedFrameReady;
@@ -769,6 +851,7 @@ private:
         _pendingSurface = nullptr;
         releasedSurfaces[0] = _pendingNativeSurface;
         releasers[0] = std::move(_pendingReleaser);
+        releasedPresentPosters[0] = std::move(_pendingPresentPoster);
         _pendingNativeSurface = nullptr;
       }
       if (_surface) {
@@ -781,14 +864,19 @@ private:
         _surfaceDevice = nullptr;
 #endif
         // The in-flight frame (if any) rendered into the destroyed surface;
-        // presentFrame() must not present it.
+        // presentFrame() must not present it, nor presentPostedFrame() one
+        // waiting for its posted present.
         _acquiredFromSurface = false;
+        _presentPending = false;
+        _acquiresAfterDraw = false;
+        _deferredFrame = DeferredFrame::None;
       }
       _frameEpoch++;
       // Window ownership is independent of the Dawn surface handle (which can
       // be null if surface creation failed): always return the window.
       releasedSurfaces[1] = _nativeSurface;
       releasers[1] = std::move(_releaser);
+      releasedPresentPosters[1] = std::move(_presentPoster);
       _nativeSurface = nullptr;
     }
     // Release outside the lock: the platform may do real work here.
@@ -800,6 +888,59 @@ private:
   }
 
   // All *Locked helpers below require _mutex to be held exclusively.
+
+  // A frame presented on the main thread can be inside a Choreographer
+  // frame, ahead of the window's draw, and a TextureView's buffer queue
+  // replaces a frame its window has not drawn yet: every other frame would
+  // never show. Such a frame is presented behind the draw the window has
+  // pending instead. Frames presented on another thread land between the
+  // main thread's frames and are presented straight away.
+  bool presentsBehindPendingDrawLocked() const {
+#if defined(__ANDROID__)
+    return _presentPoster != nullptr && gettid() == getpid();
+#else
+    return false;
+#endif
+  }
+
+  // A frame waiting for its posted present is presented before the next
+  // frame boundary changes the surface, so no frame is acquired over it.
+  void presentPendingFrameLocked() {
+    if (_presentPending) {
+      _presentPending = false;
+      presentSurfaceLocked();
+    }
+  }
+
+  // Every present goes through here, counted for awaitsWindowDrawLocked.
+  void presentSurfaceLocked() {
+    _surface.Present();
+    _presentCount++;
+  }
+
+  // Whether the attached surface makes an acquire wait until its window has
+  // drawn the frame presented last, and the window has yet to draw it.
+  bool awaitsWindowDrawLocked() const {
+    return _acquiresAfterDraw && _drawnPresentCount != _presentCount;
+  }
+
+  // Copies a deferred frame waiting in the offscreen texture onto the surface
+  // once the window has drawn the frame presented last.
+  void deliverDeferredFrameLocked() {
+    if (_deferredFrame != DeferredFrame::Waiting || awaitsWindowDrawLocked()) {
+      return;
+    }
+    _deferredFrame = DeferredFrame::None;
+    if (blitOffscreenToSurfaceLocked()) {
+      presentSurfaceLocked();
+    }
+  }
+
+  // A deferred frame waiting in the offscreen texture goes with it.
+  void dropOffscreenTextureLocked() {
+    _texture = nullptr;
+    _deferredFrame = DeferredFrame::None;
+  }
 
   wgpu::Texture createOffscreenTextureLocked() {
     wgpu::TextureDescriptor descriptor;
@@ -850,8 +991,9 @@ private:
            surfaceTexture.texture != nullptr;
   }
 
-  // Copy the last offscreen frame onto the freshly attached surface. Returns
-  // true when the copy was submitted and the surface should be presented.
+  // Copy the last offscreen frame onto the surface, freshly attached or
+  // deferred to. Returns true when the copy was submitted and the surface
+  // should be presented.
   bool blitOffscreenToSurfaceLocked() {
     wgpu::SurfaceTexture surfaceTexture;
     _surface.GetCurrentTexture(&surfaceTexture);
@@ -890,9 +1032,7 @@ private:
     }
   }
 
-  // Every Surface::Configure goes through here. Once the
-  // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE lines are gone, this
-  // is a plain wrapper around _surface.Configure.
+  // Every Surface::Configure goes through here.
   void configureSurfaceLocked(const wgpu::SurfaceConfiguration &config) {
 #if defined(__ANDROID__)
     // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
@@ -907,7 +1047,14 @@ private:
       }
     }
 #endif
-    _surface.Configure(&config);
+    wgpu::SurfaceConfiguration surfaceConfig = config;
+    if (_acquiresAfterDraw) {
+      // A deferred frame reaches the surface by a copy.
+      surfaceConfig.usage |= wgpu::TextureUsage::CopyDst;
+    }
+    _surface.Configure(&surfaceConfig);
+    // A new swapchain holds no frame for the window to draw.
+    _drawnPresentCount = _presentCount;
 #if defined(__ANDROID__)
     // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
     _surfaceDevice = config.device;
@@ -922,8 +1069,11 @@ private:
   void recreateSurfaceLocked() {
     _surface = nullptr;
     _surfaceDevice = nullptr;
-    // A frame acquired from the old surface can no longer be presented.
+    // A frame acquired from, or deferred for, the old surface can no longer
+    // be presented.
     _acquiredFromSurface = false;
+    _presentPending = false;
+    _deferredFrame = DeferredFrame::None;
     _frameEpoch++;
     if (_nativeSurface) {
       wgpu::SurfaceSourceAndroidNativeWindow source;
@@ -1237,9 +1387,27 @@ private:
   void *_pendingNativeSurface = nullptr;
   wgpu::Surface _pendingSurface = nullptr;
   NativeSurfaceReleaser _pendingReleaser;
+  NativeSurfacePresentPoster _pendingPresentPoster;
   // Frame state: set by getCurrentTexture, cleared by presentFrame.
   bool _frameInFlight = false;
   bool _acquiredFromSurface = false;
+  // The attached surface's present poster (null when it presents straight
+  // away), whether its last frame waits for the posted present, and whether
+  // a posted present is on its way.
+  NativeSurfacePresentPoster _presentPoster;
+  bool _presentPending = false;
+  bool _presentPosted = false;
+  // Whether the attached surface makes an acquire wait until its window has
+  // drawn the frame presented last, and the pending surface's flag.
+  bool _acquiresAfterDraw = false;
+  bool _pendingAcquiresAfterDraw = false;
+  // Frames presented, and the ones the attached surface's window has drawn.
+  uint64_t _presentCount = 0;
+  uint64_t _drawnPresentCount = 0;
+  // A frame rendering offscreen because the window had yet to draw the one
+  // presented last, or finished and waiting in the offscreen texture.
+  enum class DeferredFrame : uint8_t { None, Rendering, Waiting };
+  DeferredFrame _deferredFrame = DeferredFrame::None;
   // Bumped on every acquire, present, configure/reconfigure/unconfigure,
   // adoption, and detach. The deferred blit-present in applyPendingAttach
   // revalidates against it so it never presents a texture that stopped being
@@ -1340,14 +1508,16 @@ public:
   // an entry that a concurrent destroyContext is erasing (it either marks the
   // entry attached before the check, or re-creates the entry after the
   // erase). Lock order is registry -> SurfaceInfo, matching every other path.
-  std::shared_ptr<SurfaceInfo> attachSurface(int id, wgpu::Instance gpu,
-                                             int width, int height,
-                                             void *nativeSurface,
-                                             wgpu::Surface surface,
-                                             NativeSurfaceReleaser releaser) {
+  std::shared_ptr<SurfaceInfo>
+  attachSurface(int id, wgpu::Instance gpu, int width, int height,
+                void *nativeSurface, wgpu::Surface surface,
+                NativeSurfaceReleaser releaser,
+                NativeSurfacePresentPoster presentPoster = nullptr,
+                bool acquiresAfterDraw = false) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     auto info = getSurfaceInfoOrCreateLocked(id, gpu, width, height);
-    info->attachSurface(nativeSurface, std::move(surface), std::move(releaser));
+    info->attachSurface(nativeSurface, std::move(surface), std::move(releaser),
+                        std::move(presentPoster), acquiresAfterDraw);
     return info;
   }
 

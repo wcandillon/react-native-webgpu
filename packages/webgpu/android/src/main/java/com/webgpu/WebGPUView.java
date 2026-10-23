@@ -2,6 +2,8 @@ package com.webgpu;
 
 import android.content.Context;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.Surface;
 import android.view.View;
@@ -36,6 +38,10 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   private View mView = null;
   @Nullable
   private BackingViewKind mKind = null;
+  // Native posts a frame presented on the main thread here, to present it
+  // behind the draw the window has pending (see SurfaceRegistry.h).
+  private final Handler mMainHandler = new Handler(Looper.getMainLooper());
+  private final Runnable mPostedPresent = () -> presentPostedFrame(mContextId);
   // Only a SurfaceView votes: a TextureView or HardwareBufferView is
   // composited into the window, which votes for it.
   private final SurfaceFrameRateVote mFrameRateVote = new SurfaceFrameRateVote(
@@ -194,7 +200,15 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     if (votesFrameRate) {
       mFrameRateVote.attach(surface);
     }
-    onSurfaceCreate(surface, mContextId, width, height, votesFrameRate);
+    onSurfaceCreate(surface, mContextId, width, height, presentsBehindPendingDraw(),
+        acquiresAfterDraw(), votesFrameRate);
+  }
+
+  // A TextureView shows a new frame only when its window draws. On Android 11
+  // the frame is acquired only after that draw (acquiresAfterDraw), which keeps
+  // the held present clear of the loader's 4.3 s dequeue timeout.
+  private boolean presentsBehindPendingDraw() {
+    return mKind == BackingViewKind.TEXTURE_VIEW;
   }
 
   @Override
@@ -222,8 +236,34 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   @Override
+  public void surfaceUpdated() {
+    if (!acquiresAfterDraw()) {
+      return;
+    }
+    long presentCount = onSurfaceDrawing(mContextId);
+    // The window takes the frame when this draw syncs with its render thread,
+    // and a message posted now runs after that sync.
+    mMainHandler.post(() -> onSurfaceDrawn(mContextId, presentCount));
+  }
+
+  // Android 11's Vulkan loader hands a TextureView's buffer queue its dequeue
+  // timeout as an int where the window reads an int64_t (frameworks/native
+  // android-11.0.0_r48, vulkan/libvulkan/swapchain.cpp), so the queue waits
+  // up to 4.3 s for a free buffer: a frame is acquired only once the window
+  // has drawn the one presented last.
+  private boolean acquiresAfterDraw() {
+    return mKind == BackingViewKind.TEXTURE_VIEW && Build.VERSION.SDK_INT == Build.VERSION_CODES.R;
+  }
+
+  @Override
   public int getContextId() {
     return mContextId;
+  }
+
+  /** Called by native on the main thread, see mPostedPresent. */
+  @DoNotStrip
+  private void postPresentBehindPendingDraw() {
+    mMainHandler.post(mPostedPresent);
   }
 
   /**
@@ -235,6 +275,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     onViewDestroyed(mContextId);
   }
 
+  // presentsBehindPendingDraw has native post a present made on the main
+  // thread through postPresentBehindPendingDraw(); acquiresAfterDraw has it
+  // acquire a frame only once the window drew the last one (surfaceUpdated);
   // reportAnimation asks native to call onAnimating() when frames start being
   // presented to this surface back to back.
   @DoNotStrip
@@ -243,6 +286,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     int contextId,
     float width,
     float height,
+    boolean presentsBehindPendingDraw,
+    boolean acquiresAfterDraw,
     boolean reportAnimation
   );
 
@@ -253,6 +298,15 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     float width,
     float height
   );
+
+  @DoNotStrip
+  private native void presentPostedFrame(int contextId);
+
+  @DoNotStrip
+  private native long onSurfaceDrawing(int contextId);
+
+  @DoNotStrip
+  private native void onSurfaceDrawn(int contextId, long presentCount);
 
   @DoNotStrip
   private native void switchToOffscreenSurface(int contextId);
