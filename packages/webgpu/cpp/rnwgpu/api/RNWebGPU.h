@@ -20,13 +20,6 @@
 #include "VideoPlayer.h"
 #include "WebGPURuntime.h"
 
-#if defined(__ANDROID__)
-#include <android/native_window.h>
-#else
-#include <CoreFoundation/CoreFoundation.h>
-#include <dispatch/dispatch.h>
-#endif
-
 #include <ReactCommon/CallInvoker.h>
 
 #include "JSIConverter.h"
@@ -106,20 +99,7 @@ public:
           "MakeWebGPUCanvasContextFromNativeWindow: expected a non-null "
           "ANativeWindow (Android) or CAMetalLayer (Apple) pointer (BigInt)");
     }
-#if defined(__ANDROID__)
-    ANativeWindow_acquire(static_cast<ANativeWindow *>(window));
-    NativeSurfaceReleaser releaser = [](void *nativeSurface) {
-      ANativeWindow_release(static_cast<ANativeWindow *>(nativeSurface));
-    };
-#else
-    CFRetain(window);
-    NativeSurfaceReleaser releaser = [](void *layer) {
-      // As MetalView's: the releaser can run on the rendering thread, and
-      // CALayer teardown belongs on the main thread.
-      dispatch_async_f(dispatch_get_main_queue(), layer,
-                       [](void *retained) { CFRelease(retained); });
-    };
-#endif
+    auto releaser = _platformContext->retainNativeWindow(window);
     auto &runtime = WebGPURuntime::shared();
     auto info = SurfaceRegistry::getInstance().makeUnregisteredSurfaceInfo(
         runtime.instance(), static_cast<int>(width), static_cast<int>(height));

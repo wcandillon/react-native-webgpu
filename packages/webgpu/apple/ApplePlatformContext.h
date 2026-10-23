@@ -48,6 +48,8 @@ public:
 
   VideoFrameHandle wrapNativeBuffer(void *pointer) override;
 
+  std::function<void(void *)> retainNativeWindow(void *window) override;
+
 private:
   ViewLookup _viewLookup;
 };
