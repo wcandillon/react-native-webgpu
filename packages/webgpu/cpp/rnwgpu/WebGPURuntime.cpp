@@ -90,6 +90,11 @@ wgpu::Instance WebGPURuntime::instance() {
 }
 
 wgpu::Surface WebGPURuntime::makeSurface(void *nativeSurface) {
+  return makeSurface(instance(), nativeSurface);
+}
+
+wgpu::Surface WebGPURuntime::makeSurface(const wgpu::Instance &gpu,
+                                         void *nativeSurface) {
 #if defined(__ANDROID__)
   wgpu::SurfaceSourceAndroidNativeWindow source;
   source.window = nativeSurface;
@@ -99,7 +104,7 @@ wgpu::Surface WebGPURuntime::makeSurface(void *nativeSurface) {
 #endif
   wgpu::SurfaceDescriptor descriptor;
   descriptor.nextInChain = &source;
-  return instance().CreateSurface(&descriptor);
+  return gpu.CreateSurface(&descriptor);
 }
 
 } // namespace rnwgpu

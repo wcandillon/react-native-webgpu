@@ -35,6 +35,16 @@ public:
         registry.getSurfaceInfoOrCreate(contextId, _gpu->get(), width, height);
   }
 
+  // A context presenting to a surface of its own rather than a view's, outside
+  // of the registry (see RNWebGPU::MakeWebGPUCanvasContextFromNativeWindow).
+  GPUCanvasContext(std::shared_ptr<GPU> gpu,
+                   std::shared_ptr<SurfaceInfo> surfaceInfo, int width,
+                   int height)
+      : NativeObject(CLASS_NAME), _surfaceInfo(std::move(surfaceInfo)),
+        _gpu(std::move(gpu)) {
+    _canvas = std::make_shared<Canvas>(nullptr, width, height);
+  }
+
 public:
   std::string getBrand() { return CLASS_NAME; }
 

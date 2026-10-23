@@ -23,6 +23,11 @@ public:
   // ANativeWindow (Android). Safe to call from any thread.
   wgpu::Surface makeSurface(void *nativeSurface);
 
+  // The same on a given instance: a SurfaceInfo recreates its surface on the
+  // instance it was made with.
+  static wgpu::Surface makeSurface(const wgpu::Instance &gpu,
+                                   void *nativeSurface);
+
   WebGPURuntime(const WebGPURuntime &) = delete;
   WebGPURuntime &operator=(const WebGPURuntime &) = delete;
 

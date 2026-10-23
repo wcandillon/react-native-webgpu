@@ -556,6 +556,18 @@ VideoFrameHandle ApplePlatformContext::wrapNativeBuffer(void *pointer) {
   return wrapCVPixelBuffer(static_cast<CVPixelBufferRef>(pointer));
 }
 
+std::function<void(void *)>
+ApplePlatformContext::retainNativeWindow(void *window) {
+  CFRetain(window);
+  return [](void *layer) {
+    // As MetalView's: the releaser can run on the rendering thread, and
+    // CALayer teardown belongs on the main thread.
+    dispatch_async(dispatch_get_main_queue(), ^{
+      CFRelease(layer);
+    });
+  };
+}
+
 // The NV12 variant of createTestVideoFrame: a biplanar BT.709 limited-range
 // frame, red on the left half and green on the right, whose attachments
 // declare its color space the way the decoder's frames do, so that the
