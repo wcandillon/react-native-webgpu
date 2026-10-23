@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <memory>
 #include <string>
 #include <utility>
@@ -87,10 +88,11 @@ public:
   // A canvas context presenting to a native window that is not a WebGPU
   // view, e.g. the input Surface of a MediaCodec encoder: an ANativeWindow*
   // (Android) or a CAMetalLayer* (Apple), passed as a BigInt. Unlike a view's,
-  // the context owns its surface, outside of the SurfaceRegistry: the caller
-  // keeps the window alive and drives the context from one thread at a time.
-  // The context holds a reference to the window until unconfigure(), which
-  // releases the surface and the window: the context no longer presents.
+  // the context owns its surface, outside of the SurfaceRegistry, and the
+  // caller drives it from one thread at a time. The context retains the
+  // window for as long as it lives; unconfigure() releases the surface (and
+  // on Android the buffers the window handed to it) and configure() makes a
+  // new one for the window, see the SurfaceInfo constructor.
   std::shared_ptr<GPUCanvasContext>
   MakeWebGPUCanvasContextFromNativeWindow(void *window, float width,
                                           float height) {
@@ -99,13 +101,29 @@ public:
           "MakeWebGPUCanvasContextFromNativeWindow: expected a non-null "
           "ANativeWindow (Android) or CAMetalLayer (Apple) pointer (BigInt)");
     }
-    auto releaser = _platformContext->retainNativeWindow(window);
+    if (!(std::isfinite(width) && std::isfinite(height) && width > 0 &&
+          height > 0)) {
+      throw std::runtime_error(
+          "MakeWebGPUCanvasContextFromNativeWindow: expected a positive "
+          "width and height");
+    }
     auto &runtime = WebGPURuntime::shared();
+    // Unlike a view's, this surface has no offscreen fallback worth having:
+    // nothing would ever show up, so fail here.
+    auto surface = runtime.makeSurface(window);
+    if (surface == nullptr) {
+      throw std::runtime_error(
+          "MakeWebGPUCanvasContextFromNativeWindow: could not create a surface "
+          "for the window; is it a valid ANativeWindow (Android) or "
+          "CAMetalLayer (Apple)?");
+    }
     auto info = SurfaceRegistry::getInstance().makeUnregisteredSurfaceInfo(
         runtime.instance(), static_cast<int>(width), static_cast<int>(height));
-    // Adopted by the context's configure() (see SurfaceInfo::configure).
-    info->attachSurface(window, runtime.makeSurface(window),
-                        std::move(releaser));
+    // The window is retained last, once nothing left here can throw: the
+    // SurfaceInfo owns the reference from here on. Adopted by the context's
+    // configure() (see SurfaceInfo::configure).
+    info->attachSurface(window, std::move(surface),
+                        _platformContext->retainNativeWindow(window));
     return std::make_shared<GPUCanvasContext>(_gpu, std::move(info), width,
                                               height);
   }

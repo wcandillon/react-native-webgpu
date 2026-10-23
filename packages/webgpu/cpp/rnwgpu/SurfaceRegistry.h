@@ -20,6 +20,7 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "CanvasColorSpace.h"
+#include "WebGPURuntime.h"
 
 #if defined(__ANDROID__)
 #include <android/hardware_buffer.h>
@@ -152,8 +153,20 @@ struct AHBPool {
 //   native surface exists.
 class SurfaceInfo {
 public:
-  SurfaceInfo(wgpu::Instance gpu, int width, int height)
-      : _gpu(std::move(gpu)), _width(width), _height(height) {}
+  // releaseSurfaceOnUnconfigure is for a surface on a window the caller
+  // handed in (see SurfaceRegistry::makeUnregisteredSurfaceInfo), which no
+  // view attaches or detaches: unconfigure() then destroys the Dawn surface
+  // rather than only unconfiguring it, and configure() makes a new one for
+  // the same window. On Android, a window keeps the buffers it handed to the
+  // swapchain until the VkSurfaceKHR is destroyed, which Surface::Unconfigure
+  // does not do (it parks the swapchain for the next Configure): a MediaCodec
+  // input surface would otherwise keep them until the context is garbage
+  // collected. The window itself is retained until the SurfaceInfo is
+  // destroyed.
+  SurfaceInfo(wgpu::Instance gpu, int width, int height,
+              bool releaseSurfaceOnUnconfigure = false)
+      : _gpu(std::move(gpu)), _width(width), _height(height),
+        _releaseSurfaceOnUnconfigure(releaseSurfaceOnUnconfigure) {}
 
   ~SurfaceInfo() {
 #if defined(__ANDROID__)
@@ -353,6 +366,10 @@ public:
       _poolUnsupported = false;
     }
 #endif
+    if (_releaseSurfaceOnUnconfigure && !_surface && _nativeSurface) {
+      // unconfigure() destroyed the surface; make a new one for the window.
+      recreateSurfaceLocked();
+    }
     _configureLocked();
   }
 
@@ -372,7 +389,18 @@ public:
   void unconfigure() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     if (_surface) {
-      _surface.Unconfigure();
+      if (_releaseSurfaceOnUnconfigure) {
+        // Destroy the surface, and so its swapchain, while their device is
+        // still alive. The window is kept: configure() makes a new surface
+        // for it (see the constructor).
+        _surface = nullptr;
+#if defined(__ANDROID__)
+        // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
+        _surfaceDevice = nullptr;
+#endif
+      } else {
+        _surface.Unconfigure();
+      }
     }
     _texture = nullptr;
     _config = {};
@@ -914,26 +942,24 @@ private:
 #endif
   }
 
-#if defined(__ANDROID__)
-  // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
   // Replace _surface with a new, unconfigured surface for the same native
-  // window. Dropping the old one runs ~Surface, which detaches both the
-  // active and the recycled swapchain against their still-alive device.
+  // window: after unconfigure() destroyed it (see the constructor), or on
+  // Android for DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE, where
+  // dropping the old one runs ~Surface, which detaches both the active and
+  // the recycled swapchain against their still-alive device.
   void recreateSurfaceLocked() {
     _surface = nullptr;
+#if defined(__ANDROID__)
+    // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
     _surfaceDevice = nullptr;
+#endif
     // A frame acquired from the old surface can no longer be presented.
     _acquiredFromSurface = false;
     _frameEpoch++;
     if (_nativeSurface) {
-      wgpu::SurfaceSourceAndroidNativeWindow source;
-      source.window = _nativeSurface;
-      wgpu::SurfaceDescriptor descriptor;
-      descriptor.nextInChain = &source;
-      _surface = _gpu.CreateSurface(&descriptor);
+      _surface = WebGPURuntime::makeSurface(_gpu, _nativeSurface);
     }
   }
-#endif
 
 #if defined(__ANDROID__)
   // Drop every pool generation and the ready / in-flight slot bookkeeping.
@@ -1256,6 +1282,8 @@ private:
   // canvas).
   int _width;
   int _height;
+  // See the constructor.
+  bool _releaseSurfaceOnUnconfigure = false;
 
 #if defined(__ANDROID__)
   // Pool state. Guarded by _poolMutex (never nested under _mutex while
@@ -1378,15 +1406,14 @@ public:
   // A SurfaceInfo that is not in the registry, for a context presenting to a
   // native window of the caller's (see
   // RNWebGPU::MakeWebGPUCanvasContextFromNativeWindow): the context owns it,
-  // no view attaches to it. It is still tracked for releaseSurfacesForDevice.
+  // no view attaches to it, and it releases its surface on unconfigure (see
+  // the SurfaceInfo constructor). It is still tracked for
+  // releaseSurfacesForDevice.
   std::shared_ptr<SurfaceInfo>
   makeUnregisteredSurfaceInfo(wgpu::Instance gpu, int width, int height) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
-    auto info = std::make_shared<SurfaceInfo>(gpu, width, height);
-    // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
-    pruneAllSurfacesLocked();
-    _allSurfaces.push_back(info);
-    return info;
+    return makeSurfaceInfoLocked(std::move(gpu), width, height,
+                                 /* releaseSurfaceOnUnconfigure = */ true);
   }
 
   // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
@@ -1443,12 +1470,22 @@ private:
       _retired.erase(retired);
     }
     if (!info) {
-      info = std::make_shared<SurfaceInfo>(gpu, width, height);
-      // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
-      pruneAllSurfacesLocked();
-      _allSurfaces.push_back(info);
+      info = makeSurfaceInfoLocked(std::move(gpu), width, height);
     }
     _registry[id] = info;
+    return info;
+  }
+
+  // Every SurfaceInfo is made here, so releaseSurfacesForDevice reaches it
+  // whether or not it is in _registry.
+  std::shared_ptr<SurfaceInfo>
+  makeSurfaceInfoLocked(wgpu::Instance gpu, int width, int height,
+                        bool releaseSurfaceOnUnconfigure = false) {
+    auto info = std::make_shared<SurfaceInfo>(std::move(gpu), width, height,
+                                              releaseSurfaceOnUnconfigure);
+    // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
+    pruneAllSurfacesLocked();
+    _allSurfaces.push_back(info);
     return info;
   }
 

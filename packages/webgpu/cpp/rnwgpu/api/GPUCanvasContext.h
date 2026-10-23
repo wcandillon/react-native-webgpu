@@ -41,7 +41,7 @@ public:
                    std::shared_ptr<SurfaceInfo> surfaceInfo, int width,
                    int height)
       : NativeObject(CLASS_NAME), _surfaceInfo(std::move(surfaceInfo)),
-        _gpu(std::move(gpu)), _ownsSurface(true) {
+        _gpu(std::move(gpu)) {
     _canvas = std::make_shared<Canvas>(nullptr, width, height);
   }
 
@@ -78,9 +78,6 @@ private:
   std::shared_ptr<Canvas> _canvas;
   std::shared_ptr<SurfaceInfo> _surfaceInfo;
   std::shared_ptr<GPU> _gpu;
-  // Whether the context owns its surface (made from a native window): see
-  // unconfigure().
-  bool _ownsSurface = false;
   // The current frame's texture, valid while
   // _surfaceInfo->isCurrentFrame(_currentTextureEpoch). Guarded by
   // _currentTextureMutex: contexts can be driven from worklet runtimes.

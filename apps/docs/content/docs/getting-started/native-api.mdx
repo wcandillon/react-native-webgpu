@@ -105,7 +105,7 @@ This only works with a library that links the same Dawn build as react-native-we
 
 ## Rendering to a native window
 
-`RNWebGPU.MakeWebGPUCanvasContextFromNativeWindow()` makes a canvas context that presents to a native window other than a `Canvas`, for instance the input `Surface` of a `MediaCodec` encoder on Android. The window is an `ANativeWindow*` on Android or a `CAMetalLayer*` on Apple platforms, passed as a `BigInt`. Unlike a `Canvas`, nothing manages the window for you: keep it alive while the context is in use, and drive the context from one thread at a time. The context holds a reference to the window until `unconfigure()`.
+`RNWebGPU.MakeWebGPUCanvasContextFromNativeWindow()` makes a canvas context that presents to a native window other than a `Canvas`, for instance the input `Surface` of a `MediaCodec` encoder on Android. The window is an `ANativeWindow*` on Android or a `CAMetalLayer*` on Apple platforms, passed as a `BigInt`; `width` and `height` size the drawing buffer, like `canvas.width` and `canvas.height`. The context retains the window for as long as it lives, so the pointer stays valid; whatever the window belongs to (the encoder, the layer's view) is yours to keep alive while you present to it. Unlike a `Canvas`, nothing drives the context for you: call it from one thread at a time.
 
 ```tsx
 const context = RNWebGPU.MakeWebGPUCanvasContextFromNativeWindow(
@@ -113,16 +113,20 @@ const context = RNWebGPU.MakeWebGPUCanvasContextFromNativeWindow(
   width,
   height,
 );
-context.configure({ device, format: "rgba8unorm" });
+context.configure({
+  device,
+  format: navigator.gpu.getPreferredCanvasFormat(),
+});
 
 // For each frame
 const texture = context.getCurrentTexture();
 // ...render into texture and submit...
 context.present();
 
-// Once done: releases the surface and the window now rather than when the
-// context is garbage collected (on Android, the window keeps the buffers of
-// the swapchain until then). The context no longer presents afterwards.
+// Once done. On Android, this also hands the window its buffers back right
+// away: a MediaCodec input surface keeps them until the surface is gone,
+// which would otherwise wait for the context to be garbage collected. The
+// context can be configured again.
 context.unconfigure();
 ```
 

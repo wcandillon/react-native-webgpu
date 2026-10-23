@@ -33,16 +33,7 @@ void GPUCanvasContext::configure(
                           configuration->colorSpace);
 }
 
-void GPUCanvasContext::unconfigure() {
-  _surfaceInfo->unconfigure();
-  // A context made from a native window releases its surface, and its
-  // reference to the window, now rather than when it is garbage collected: on
-  // Android, the window keeps the buffers it handed to the swapchain until
-  // the surface is destroyed. The context no longer presents.
-  if (_ownsSurface) {
-    _surfaceInfo->detachSurface();
-  }
-}
+void GPUCanvasContext::unconfigure() { _surfaceInfo->unconfigure(); }
 
 std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
   if (!_surfaceInfo->isConfigured()) {
