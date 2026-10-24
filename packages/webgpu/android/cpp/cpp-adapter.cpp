@@ -35,12 +35,14 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     jobject blobModule, jstring cacheDirectory) {
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
   if (cacheDirectory != nullptr) {
-    // Null only when the JVM could not allocate the copy; the cache then
-    // stays off.
-    if (const char *path = env->GetStringUTFChars(cacheDirectory, nullptr)) {
-      rnwgpu::DawnBlobCache::setDirectory(path);
-      env->ReleaseStringUTFChars(cacheDirectory, path);
+    const char *path = env->GetStringUTFChars(cacheDirectory, nullptr);
+    if (path == nullptr) {
+      // The JVM could not copy the string, and an OutOfMemoryError is pending:
+      // no further JNI call is allowed, so let it reach the caller.
+      return;
     }
+    rnwgpu::DawnBlobCache::setDirectory(path);
+    env->ReleaseStringUTFChars(cacheDirectory, path);
   }
   jobject globalBlobModule = env->NewGlobalRef(blobModule);
   jobject globalModule = env->NewGlobalRef(thiz);

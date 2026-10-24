@@ -22,10 +22,6 @@ namespace {
 // compiles next.
 constexpr off_t kMaxCacheBytes = 64 * 1024 * 1024;
 
-// Keeps this library's entries apart from any other user of the same Dawn
-// cache in the process.
-constexpr const char *kIsolationKey = "react-native-webgpu";
-
 // tidy() takes a temporary file this old for a write that will never finish
 // (its process was killed). A younger one may still be being written by
 // another process using the same cache, so it is left. The age is a best
@@ -148,6 +144,21 @@ bool endsWith(const std::string &name, const char *suffix) {
          name.compare(name.size() - length, length, suffix) == 0;
 }
 
+// Whether a file name starts like one of the cache's own: an entry's 16
+// lowercase hex digits, alone or followed by a dot (a temporary file).
+bool isOwnFile(const std::string &name) {
+  if (name.size() < 16 || (name.size() > 16 && name[16] != '.')) {
+    return false;
+  }
+  for (size_t i = 0; i < 16; i++) {
+    const char c = name[i];
+    if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // Removes the temporary files of writes a killed process left unfinished, and
 // clears the cache if it has outgrown kMaxCacheBytes. Runs when the cache is
 // set up (the module installing), so the limit is checked then rather than on
@@ -163,7 +174,8 @@ void tidy(const std::string &dir) {
   const time_t now = time(nullptr);
   while (dirent *entry = readdir(listing)) {
     const std::string name = entry->d_name;
-    if (name == "." || name == "..") {
+    // Anything else in the directory is not the cache's to delete.
+    if (!isOwnFile(name)) {
       continue;
     }
     const std::string path = dir + "/" + name;
@@ -191,12 +203,20 @@ void tidy(const std::string &dir) {
 } // namespace
 
 void DawnBlobCache::setDirectory(const std::string &dir) {
-  if (!dir.empty()) {
-    makeDirectories(dir);
-    tidy(dir);
+  std::string usable = dir;
+  if (!usable.empty()) {
+    makeDirectories(usable);
+    struct stat info{};
+    if (stat(usable.c_str(), &info) == 0 && S_ISDIR(info.st_mode)) {
+      tidy(usable);
+    } else {
+      // Nowhere to keep blobs: leave the cache off rather than fail every
+      // load and store.
+      usable.clear();
+    }
   }
   std::lock_guard<std::mutex> lock(directoryMutex());
-  directorySlot() = dir;
+  directorySlot() = usable;
 }
 
 void DawnBlobCache::chain(wgpu::DeviceDescriptor &descriptor,
@@ -204,7 +224,6 @@ void DawnBlobCache::chain(wgpu::DeviceDescriptor &descriptor,
   if (directory().empty()) {
     return;
   }
-  storage.isolationKey = {kIsolationKey, WGPU_STRLEN};
   storage.dawnLoadCacheDataCallbackInfo.callback = loadEntry;
   storage.dawnStoreCacheDataCallbackInfo.callback = storeEntry;
   storage.chain.next = reinterpret_cast<WGPUChainedStruct *>(

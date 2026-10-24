@@ -6,11 +6,15 @@
 
 namespace rnwgpu {
 
-// Dawn's blob cache, kept on disk so the pipelines a device compiles (and the
-// shaders Dawn translates for them) survive a relaunch. Dawn only caches when
-// the embedder gives it somewhere to put the blobs (Chrome hands it its disk
-// cache); without one, every launch compiles every pipeline again, which on
-// Android's Vulkan drivers costs tens to hundreds of milliseconds each.
+// Dawn's blob cache, kept on disk so what a device produces while building
+// shaders and pipelines (Vulkan pipeline data, translated MSL) survives a
+// relaunch. Dawn only reuses those blobs across launches when the embedder
+// gives it storage: load and store callbacks on the device descriptor, or a
+// caching interface on the platform the instance was created with (how Chrome
+// does it). The instance can be React Native Skia's, so the callbacks go on
+// each device. Without them every launch builds every pipeline from scratch,
+// which on Android's Vulkan drivers costs tens to hundreds of milliseconds
+// each.
 //
 // Each platform's module points the cache at the app's cache directory when it
 // installs, and requestDevice() chains it onto every device it creates. A
@@ -20,7 +24,9 @@ public:
   // The directory to keep the blobs in, created (with its parents) if
   // missing. Each platform's module calls this when it installs, which is
   // also when the cache is tidied: abandoned writes are removed, and a cache
-  // that has outgrown its limit is cleared. An empty path disables the cache.
+  // that has outgrown its limit is cleared. Only the cache's own files are
+  // removed. An empty path, or one where no directory can be made, leaves the
+  // cache off.
   static void setDirectory(const std::string &directory);
 
   // Chains the cache onto `descriptor`, in front of whatever it already
