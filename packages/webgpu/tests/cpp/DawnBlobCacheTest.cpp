@@ -229,8 +229,8 @@ TEST_F(DawnBlobCacheTest, MissesATruncatedEntry) {
   EXPECT_EQ(cache.size({1}), 0u);
 }
 
-// Two keys whose hashes collide share a file; the key stored in the file
-// decides which of them it holds.
+// Two keys whose hashes collide would share a file: the key stored in it
+// decides which of them it holds, so a stored key that differs reads as a miss.
 TEST_F(DawnBlobCacheTest, MissesAnEntryWhoseStoredKeyDiffers) {
   const auto cache = callbacks();
   cache.write({1, 2}, {4, 5, 6, 7});
@@ -308,16 +308,18 @@ TEST_F(DawnBlobCacheTest, CreatesMissingParentsWhenSetUp) {
   EXPECT_TRUE(isDirectory(nested));
 }
 
-TEST_F(DawnBlobCacheTest, StaysQuietWhenItsDirectoryCannotBeMade) {
+TEST_F(DawnBlobCacheTest, StaysOffWhereNoDirectoryCanBeMade) {
   // A directory can't be made under a regular file.
   const auto blocker = _root + "/file";
   writeFile(blocker, "x");
+
   DawnBlobCache::setDirectory(blocker + "/cache");
-  const auto cache = callbacks();
 
-  cache.write({1}, {2, 3});
-
-  EXPECT_EQ(cache.size({1}), 0u);
+  wgpu::DeviceDescriptor descriptor;
+  WGPUDawnCacheDeviceDescriptor storage =
+      WGPU_DAWN_CACHE_DEVICE_DESCRIPTOR_INIT;
+  DawnBlobCache::chain(descriptor, storage);
+  EXPECT_EQ(descriptor.nextInChain, nullptr);
 }
 
 TEST_F(DawnBlobCacheTest, RemovesAWriteAbandonedByAKilledProcess) {
@@ -351,7 +353,8 @@ TEST_F(DawnBlobCacheTest, KeepsACacheWithinItsLimit) {
 TEST_F(DawnBlobCacheTest, ClearsACacheThatOutgrewItsLimitAtTheNextSetup) {
   const auto cache = callbacks();
   cache.write({1}, {2, 3});
-  const auto large = _dir + "/large";
+  // An entry name, so it counts towards the limit.
+  const auto large = _dir + "/00000000000000ff";
   writeFile(large, "x");
   ASSERT_EQ(truncate(large.c_str(), 65 * 1024 * 1024), 0);
 
@@ -361,6 +364,25 @@ TEST_F(DawnBlobCacheTest, ClearsACacheThatOutgrewItsLimitAtTheNextSetup) {
   DawnBlobCache::setDirectory(_dir);
   EXPECT_TRUE(entries().empty());
   EXPECT_EQ(cache.size({1}), 0u);
+}
+
+// A wrong path must never turn clearing the cache into deleting someone's
+// files.
+TEST_F(DawnBlobCacheTest, LeavesFilesThatAreNotTheCachesAlone) {
+  const auto other = _dir + "/notes.txt";
+  const auto similar = _dir + "/0123456789abcdefg";
+  const auto large = _dir + "/00000000000000ff";
+  writeFile(other, "x");
+  writeFile(similar, "x");
+  writeFile(large, "x");
+  ASSERT_EQ(truncate(large.c_str(), 65 * 1024 * 1024), 0);
+  ASSERT_EQ(truncate(other.c_str(), 65 * 1024 * 1024), 0);
+
+  DawnBlobCache::setDirectory(_dir);
+
+  EXPECT_FALSE(exists(large));
+  EXPECT_TRUE(exists(other));
+  EXPECT_TRUE(exists(similar));
 }
 
 } // namespace
