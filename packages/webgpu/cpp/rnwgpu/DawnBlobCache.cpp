@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -24,6 +25,11 @@ constexpr off_t kMaxCacheBytes = 64 * 1024 * 1024;
 // Keeps this library's entries apart from any other user of the same Dawn
 // cache in the process.
 constexpr const char *kIsolationKey = "react-native-webgpu";
+
+// A temporary file this old belongs to a write that will never finish (its
+// process was killed); a younger one may still be being written by another
+// process using the same cache, so tidy() leaves it.
+constexpr time_t kAbandonedWriteSeconds = 60;
 
 std::mutex &directoryMutex() {
   static std::mutex mutex;
@@ -107,6 +113,11 @@ void storeEntry(size_t keySize, const uint8_t *key, size_t valueSize,
                                 std::to_string(writes.fetch_add(1)) + ".tmp";
   FILE *file = fopen(temporary.c_str(), "wb");
   if (file == nullptr) {
+    // The system or the app may have cleared the cache directory itself.
+    mkdir(dir.c_str(), 0700);
+    file = fopen(temporary.c_str(), "wb");
+  }
+  if (file == nullptr) {
     return;
   }
   const uint64_t sizes[2] = {keySize, valueSize};
@@ -126,7 +137,9 @@ bool endsWith(const std::string &name, const char *suffix) {
 }
 
 // Removes the temporary files of writes a killed process left unfinished, and
-// clears the cache once it has outgrown kMaxCacheBytes.
+// clears the cache if it has outgrown kMaxCacheBytes. Runs when the cache is
+// set up, so the limit is checked once per launch rather than on every store:
+// a session can take the cache past it, and the next launch clears it.
 void tidy(const std::string &dir) {
   DIR *listing = opendir(dir.c_str());
   if (listing == nullptr) {
@@ -134,20 +147,24 @@ void tidy(const std::string &dir) {
   }
   std::vector<std::string> entries;
   off_t total = 0;
+  const time_t now = time(nullptr);
   while (dirent *entry = readdir(listing)) {
     const std::string name = entry->d_name;
     if (name == "." || name == "..") {
       continue;
     }
     const std::string path = dir + "/" + name;
-    if (endsWith(name, ".tmp")) {
-      remove(path.c_str());
+    struct stat info{};
+    if (stat(path.c_str(), &info) != 0) {
       continue;
     }
-    struct stat info{};
-    if (stat(path.c_str(), &info) == 0) {
-      total += info.st_size;
+    if (endsWith(name, ".tmp")) {
+      if (now - info.st_mtime > kAbandonedWriteSeconds) {
+        remove(path.c_str());
+      }
+      continue;
     }
+    total += info.st_size;
     entries.push_back(path);
   }
   closedir(listing);

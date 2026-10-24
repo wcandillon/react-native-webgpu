@@ -18,8 +18,9 @@ namespace rnwgpu {
 class DawnBlobCache {
 public:
   // The directory to keep the blobs in, created if missing. Leftovers of
-  // interrupted writes are removed, and an outgrown cache is cleared. An empty
-  // path disables the cache.
+  // interrupted writes are removed, and a cache that has outgrown its limit
+  // is cleared (the limit is checked here, once per launch). An empty path
+  // disables the cache.
   static void setDirectory(const std::string &directory);
 
   // Chains the cache onto `descriptor`, in front of whatever it already
