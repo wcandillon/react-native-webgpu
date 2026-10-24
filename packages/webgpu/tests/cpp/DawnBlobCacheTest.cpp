@@ -287,6 +287,27 @@ TEST_F(DawnBlobCacheTest, RecreatesItsDirectoryIfItIsCleared) {
   EXPECT_EQ(cache.read({1}), (Bytes{2, 3}));
 }
 
+// On Apple platforms the cache sits inside a folder named after the app, which
+// a cache clear can remove too.
+TEST_F(DawnBlobCacheTest, RecreatesItsParentsIfTheyAreCleared) {
+  const auto parent = _root + "/app";
+  DawnBlobCache::setDirectory(parent + "/cache");
+  const auto cache = callbacks();
+  removeTree(parent);
+
+  cache.write({1}, {2, 3});
+
+  EXPECT_EQ(cache.read({1}), (Bytes{2, 3}));
+}
+
+TEST_F(DawnBlobCacheTest, CreatesMissingParentsWhenSetUp) {
+  const auto nested = _root + "/a/b/cache";
+
+  DawnBlobCache::setDirectory(nested);
+
+  EXPECT_TRUE(isDirectory(nested));
+}
+
 TEST_F(DawnBlobCacheTest, StaysQuietWhenItsDirectoryCannotBeMade) {
   // A directory can't be made under a regular file.
   const auto blocker = _root + "/file";
