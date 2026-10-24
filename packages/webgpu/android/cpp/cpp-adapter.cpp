@@ -35,9 +35,12 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     jobject blobModule, jstring cacheDirectory) {
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
   if (cacheDirectory != nullptr) {
-    const char *path = env->GetStringUTFChars(cacheDirectory, nullptr);
-    rnwgpu::DawnBlobCache::setDirectory(path);
-    env->ReleaseStringUTFChars(cacheDirectory, path);
+    // Null only when the JVM could not allocate the copy; the cache then
+    // stays off.
+    if (const char *path = env->GetStringUTFChars(cacheDirectory, nullptr)) {
+      rnwgpu::DawnBlobCache::setDirectory(path);
+      env->ReleaseStringUTFChars(cacheDirectory, path);
+    }
   }
   jobject globalBlobModule = env->NewGlobalRef(blobModule);
   jobject globalModule = env->NewGlobalRef(thiz);

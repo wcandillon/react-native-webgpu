@@ -26,9 +26,11 @@ constexpr off_t kMaxCacheBytes = 64 * 1024 * 1024;
 // cache in the process.
 constexpr const char *kIsolationKey = "react-native-webgpu";
 
-// A temporary file this old belongs to a write that will never finish (its
-// process was killed); a younger one may still be being written by another
-// process using the same cache, so tidy() leaves it.
+// tidy() takes a temporary file this old for a write that will never finish
+// (its process was killed). A younger one may still be being written by
+// another process using the same cache, so it is left. The age is a best
+// guess: a writer suspended for longer than this loses its entry when tidy()
+// removes its file (its rename then fails), which only costs a cache miss.
 constexpr time_t kAbandonedWriteSeconds = 60;
 
 std::mutex &directoryMutex() {
@@ -44,6 +46,15 @@ std::string &directorySlot() {
 std::string directory() {
   std::lock_guard<std::mutex> lock(directoryMutex());
   return directorySlot();
+}
+
+// Creates `dir` and any of its parents that are missing.
+void makeDirectories(const std::string &dir) {
+  for (size_t slash = dir.find('/', 1); slash != std::string::npos;
+       slash = dir.find('/', slash + 1)) {
+    mkdir(dir.substr(0, slash).c_str(), 0700);
+  }
+  mkdir(dir.c_str(), 0700);
 }
 
 // One file per entry, named by a 64-bit FNV-1a hash of its key.
@@ -113,8 +124,9 @@ void storeEntry(size_t keySize, const uint8_t *key, size_t valueSize,
                                 std::to_string(writes.fetch_add(1)) + ".tmp";
   FILE *file = fopen(temporary.c_str(), "wb");
   if (file == nullptr) {
-    // The system or the app may have cleared the cache directory itself.
-    mkdir(dir.c_str(), 0700);
+    // The system or the app may have cleared the cache directory, or its
+    // parent, during the session.
+    makeDirectories(dir);
     file = fopen(temporary.c_str(), "wb");
   }
   if (file == nullptr) {
@@ -138,8 +150,9 @@ bool endsWith(const std::string &name, const char *suffix) {
 
 // Removes the temporary files of writes a killed process left unfinished, and
 // clears the cache if it has outgrown kMaxCacheBytes. Runs when the cache is
-// set up, so the limit is checked once per launch rather than on every store:
-// a session can take the cache past it, and the next launch clears it.
+// set up (the module installing), so the limit is checked then rather than on
+// every store: a session can take the cache past it, and the next setup
+// clears it.
 void tidy(const std::string &dir) {
   DIR *listing = opendir(dir.c_str());
   if (listing == nullptr) {
@@ -179,7 +192,7 @@ void tidy(const std::string &dir) {
 
 void DawnBlobCache::setDirectory(const std::string &dir) {
   if (!dir.empty()) {
-    mkdir(dir.c_str(), 0700);
+    makeDirectories(dir);
     tidy(dir);
   }
   std::lock_guard<std::mutex> lock(directoryMutex());

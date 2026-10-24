@@ -106,10 +106,6 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   if (caches != nil) {
     if (bundle != nil) {
       caches = [caches stringByAppendingPathComponent:bundle];
-      [NSFileManager.defaultManager createDirectoryAtPath:caches
-                              withIntermediateDirectories:YES
-                                               attributes:nil
-                                                    error:nil];
     }
     rnwgpu::DawnBlobCache::setDirectory(
         [caches stringByAppendingPathComponent:@"webgpu-dawn"].UTF8String);

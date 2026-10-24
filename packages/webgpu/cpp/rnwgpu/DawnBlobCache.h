@@ -17,10 +17,10 @@ namespace rnwgpu {
 // device requested with the `disable_blob_cache` Dawn toggle does not use it.
 class DawnBlobCache {
 public:
-  // The directory to keep the blobs in, created if missing. Leftovers of
-  // interrupted writes are removed, and a cache that has outgrown its limit
-  // is cleared (the limit is checked here, once per launch). An empty path
-  // disables the cache.
+  // The directory to keep the blobs in, created (with its parents) if
+  // missing. Each platform's module calls this when it installs, which is
+  // also when the cache is tidied: abandoned writes are removed, and a cache
+  // that has outgrown its limit is cleared. An empty path disables the cache.
   static void setDirectory(const std::string &directory);
 
   // Chains the cache onto `descriptor`, in front of whatever it already
