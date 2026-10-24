@@ -8,6 +8,7 @@ import android.view.View;
 
 import androidx.annotation.OptIn;
 
+import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -47,13 +48,16 @@ public class WebGPUModule extends NativeWebGPUModuleSpec {
     if (blobModule == null) {
       throw new RuntimeException("React Native's BlobModule was not found!");
     }
-    initializeNative(jsContext.get(), (CallInvokerHolderImpl) callInvokerHolder, blobModule);
+    // Dawn keeps the pipelines it compiles here, so a relaunch does not
+    // compile them again (see DawnBlobCache).
+    String cacheDirectory = new File(context.getCacheDir(), "webgpu-dawn").getAbsolutePath();
+    initializeNative(jsContext.get(), (CallInvokerHolderImpl) callInvokerHolder, blobModule, cacheDirectory);
     return true;
   }
 
   @OptIn(markerClass = FrameworkAPI.class)
   @DoNotStrip
-  private native void initializeNative(long jsRuntime, CallInvokerHolderImpl jsInvoker, BlobModule blobModule);
+  private native void initializeNative(long jsRuntime, CallInvokerHolderImpl jsInvoker, BlobModule blobModule, String cacheDirectory);
 
   /**
    * Called from C++ (AndroidPlatformContext::snapshotView) on an arbitrary
