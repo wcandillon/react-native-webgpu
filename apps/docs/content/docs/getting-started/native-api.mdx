@@ -93,7 +93,9 @@ See [Vision Camera](/docs/integrations/vision-camera) for an end-to-end example 
 
 ## Pipeline cache
 
-Dawn keeps the render and compute pipelines it compiles, and the shaders it translates for them, on disk in the app's cache directory, so a relaunch loads them instead of compiling them again. Compiling is slowest on Android, where each pipeline can take tens to hundreds of milliseconds on Vulkan drivers; iOS also keeps its own Metal cache. Every device `requestDevice()` creates uses the cache. The cache is cleared when it grows past 64 MB, and the system may clear it as it does any app cache.
+Every device `requestDevice()` creates keeps what Dawn produces while it builds shaders and pipelines in a cache on disk, in the app's cache directory, so a relaunch can reuse it instead of redoing the work. On Vulkan (Android) that includes the driver's pipeline cache data, which saves the most: building a pipeline there can take tens to hundreds of milliseconds. On Metal (iOS) it is the shaders Dawn translates to MSL; Metal still builds the pipelines, with the help of its own system cache.
+
+The cache's size is checked when the app starts: past 64 MB, it is cleared and refills as the app builds pipelines again. The system may also clear it, as it does any app cache.
 
 To opt a device out, disable it with a Dawn toggle:
 
