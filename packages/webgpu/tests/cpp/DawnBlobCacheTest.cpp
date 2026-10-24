@@ -1,12 +1,13 @@
 #include <gtest/gtest.h>
 
+#include <dirent.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <utime.h>
 
 #include <cstdint>
 #include <cstdlib>
 #include <ctime>
-#include <filesystem>
 #include <fstream>
 #include <string>
 #include <thread>
@@ -16,9 +17,53 @@
 
 namespace {
 
-namespace fs = std::filesystem;
 using rnwgpu::DawnBlobCache;
 using Bytes = std::vector<uint8_t>;
+
+bool exists(const std::string &path) {
+  struct stat info{};
+  return stat(path.c_str(), &info) == 0;
+}
+
+bool isDirectory(const std::string &path) {
+  struct stat info{};
+  return stat(path.c_str(), &info) == 0 && S_ISDIR(info.st_mode);
+}
+
+off_t fileSize(const std::string &path) {
+  struct stat info{};
+  return stat(path.c_str(), &info) == 0 ? info.st_size : -1;
+}
+
+void writeFile(const std::string &path, const std::string &contents) {
+  std::ofstream(path, std::ios::binary) << contents;
+}
+
+// The names in a directory, leaving out "." and "..".
+std::vector<std::string> list(const std::string &dir) {
+  std::vector<std::string> names;
+  if (DIR *listing = opendir(dir.c_str())) {
+    while (dirent *entry = readdir(listing)) {
+      const std::string name = entry->d_name;
+      if (name != "." && name != "..") {
+        names.push_back(name);
+      }
+    }
+    closedir(listing);
+  }
+  return names;
+}
+
+void removeTree(const std::string &path) {
+  if (isDirectory(path)) {
+    for (const auto &name : list(path)) {
+      removeTree(path + "/" + name);
+    }
+    rmdir(path.c_str());
+  } else {
+    unlink(path.c_str());
+  }
+}
 
 // The cache as Dawn sees it: the callbacks chained onto a device descriptor.
 struct Callbacks {
@@ -52,17 +97,18 @@ struct Callbacks {
 class DawnBlobCacheTest : public ::testing::Test {
 protected:
   void SetUp() override {
+    const char *tmp = getenv("TMPDIR");
     std::string pattern =
-        (fs::temp_directory_path() / "dawn-blob-cache-XXXXXX").string();
+        std::string(tmp != nullptr ? tmp : "/tmp") + "/dawn-blob-cache-XXXXXX";
     ASSERT_NE(mkdtemp(pattern.data()), nullptr);
     _root = pattern;
-    _dir = _root / "cache";
-    DawnBlobCache::setDirectory(_dir.string());
+    _dir = _root + "/cache";
+    DawnBlobCache::setDirectory(_dir);
   }
 
   void TearDown() override {
     DawnBlobCache::setDirectory("");
-    fs::remove_all(_root);
+    removeTree(_root);
   }
 
   static Callbacks callbacks() {
@@ -75,24 +121,24 @@ protected:
   }
 
   // The cache's entries, leaving out temporary files.
-  std::vector<fs::path> entries() const {
-    std::vector<fs::path> paths;
-    for (const auto &entry : fs::directory_iterator(_dir)) {
-      if (entry.path().extension() != ".tmp") {
-        paths.push_back(entry.path());
+  std::vector<std::string> entries() const {
+    std::vector<std::string> paths;
+    for (const auto &name : list(_dir)) {
+      if (name.size() < 4 || name.compare(name.size() - 4, 4, ".tmp") != 0) {
+        paths.push_back(_dir + "/" + name);
       }
     }
     return paths;
   }
 
-  static void age(const fs::path &path, time_t seconds) {
+  static void age(const std::string &path, time_t seconds) {
     const time_t then = time(nullptr) - seconds;
     utimbuf times{then, then};
     ASSERT_EQ(utime(path.c_str(), &times), 0);
   }
 
-  fs::path _root;
-  fs::path _dir;
+  std::string _root;
+  std::string _dir;
 };
 
 TEST_F(DawnBlobCacheTest, ChainsItselfInFrontOfTheDescriptorsChain) {
@@ -125,7 +171,7 @@ TEST_F(DawnBlobCacheTest, ChainsNothingWithoutADirectory) {
 }
 
 TEST_F(DawnBlobCacheTest, CreatesItsDirectory) {
-  EXPECT_TRUE(fs::is_directory(_dir));
+  EXPECT_TRUE(isDirectory(_dir));
 }
 
 TEST_F(DawnBlobCacheTest, MissesAKeyNeverStored) {
@@ -146,7 +192,7 @@ TEST_F(DawnBlobCacheTest, ReturnsTheExactBytesStored) {
 TEST_F(DawnBlobCacheTest, KeepsEntriesAcrossASecondSetup) {
   callbacks().write({1}, {9, 8, 7});
 
-  DawnBlobCache::setDirectory(_dir.string());
+  DawnBlobCache::setDirectory(_dir);
 
   EXPECT_EQ(callbacks().read({1}), (Bytes{9, 8, 7}));
 }
@@ -178,7 +224,7 @@ TEST_F(DawnBlobCacheTest, MissesATruncatedEntry) {
   cache.write({1}, {4, 5, 6, 7});
   const auto entry = entries().at(0);
 
-  fs::resize_file(entry, fs::file_size(entry) - 1);
+  ASSERT_EQ(truncate(entry.c_str(), fileSize(entry) - 1), 0);
 
   EXPECT_EQ(cache.size({1}), 0u);
 }
@@ -234,7 +280,7 @@ TEST_F(DawnBlobCacheTest, NeverTearsAValueWrittenFromManyThreads) {
 
 TEST_F(DawnBlobCacheTest, RecreatesItsDirectoryIfItIsCleared) {
   const auto cache = callbacks();
-  fs::remove_all(_dir);
+  removeTree(_dir);
 
   cache.write({1}, {2, 3});
 
@@ -243,9 +289,9 @@ TEST_F(DawnBlobCacheTest, RecreatesItsDirectoryIfItIsCleared) {
 
 TEST_F(DawnBlobCacheTest, StaysQuietWhenItsDirectoryCannotBeMade) {
   // A directory can't be made under a regular file.
-  const auto blocker = _root / "file";
-  std::ofstream(blocker).put('x');
-  DawnBlobCache::setDirectory((blocker / "cache").string());
+  const auto blocker = _root + "/file";
+  writeFile(blocker, "x");
+  DawnBlobCache::setDirectory(blocker + "/cache");
   const auto cache = callbacks();
 
   cache.write({1}, {2, 3});
@@ -254,28 +300,28 @@ TEST_F(DawnBlobCacheTest, StaysQuietWhenItsDirectoryCannotBeMade) {
 }
 
 TEST_F(DawnBlobCacheTest, RemovesAWriteAbandonedByAKilledProcess) {
-  const auto abandoned = _dir / "0123456789abcdef.4242.0.tmp";
-  std::ofstream(abandoned).put('x');
+  const auto abandoned = _dir + "/0123456789abcdef.4242.0.tmp";
+  writeFile(abandoned, "x");
   age(abandoned, 120);
 
-  DawnBlobCache::setDirectory(_dir.string());
+  DawnBlobCache::setDirectory(_dir);
 
-  EXPECT_FALSE(fs::exists(abandoned));
+  EXPECT_FALSE(exists(abandoned));
 }
 
 TEST_F(DawnBlobCacheTest, LeavesAWriteAnotherProcessMayStillFinish) {
-  const auto writing = _dir / "0123456789abcdef.4242.0.tmp";
-  std::ofstream(writing).put('x');
+  const auto writing = _dir + "/0123456789abcdef.4242.0.tmp";
+  writeFile(writing, "x");
 
-  DawnBlobCache::setDirectory(_dir.string());
+  DawnBlobCache::setDirectory(_dir);
 
-  EXPECT_TRUE(fs::exists(writing));
+  EXPECT_TRUE(exists(writing));
 }
 
 TEST_F(DawnBlobCacheTest, KeepsACacheWithinItsLimit) {
   callbacks().write({1}, {2, 3});
 
-  DawnBlobCache::setDirectory(_dir.string());
+  DawnBlobCache::setDirectory(_dir);
 
   EXPECT_EQ(entries().size(), 1u);
 }
@@ -284,14 +330,14 @@ TEST_F(DawnBlobCacheTest, KeepsACacheWithinItsLimit) {
 TEST_F(DawnBlobCacheTest, ClearsACacheThatOutgrewItsLimitAtTheNextSetup) {
   const auto cache = callbacks();
   cache.write({1}, {2, 3});
-  const auto large = _dir / "large";
-  std::ofstream(large).put('x');
-  fs::resize_file(large, 65 * 1024 * 1024);
+  const auto large = _dir + "/large";
+  writeFile(large, "x");
+  ASSERT_EQ(truncate(large.c_str(), 65 * 1024 * 1024), 0);
 
   cache.write({2}, {4, 5});
   EXPECT_EQ(entries().size(), 3u);
 
-  DawnBlobCache::setDirectory(_dir.string());
+  DawnBlobCache::setDirectory(_dir);
   EXPECT_TRUE(entries().empty());
   EXPECT_EQ(cache.size({1}), 0u);
 }
