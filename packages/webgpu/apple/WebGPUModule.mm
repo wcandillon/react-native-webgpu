@@ -1,5 +1,6 @@
 #import "WebGPUModule.h"
 #include "ApplePlatformContext.h"
+#include "DawnBlobCache.h"
 #import "GPUCanvasContext.h"
 #import "RNWGUIKit.h"
 
@@ -95,6 +96,24 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   };
   std::shared_ptr<rnwgpu::PlatformContext> platformContext =
       std::make_shared<rnwgpu::ApplePlatformContext>(std::move(viewLookup));
+  // Dawn keeps the pipelines it compiles here, so a relaunch does not compile
+  // them again (see DawnBlobCache). The caches directory is per app on iOS but
+  // shared on macOS, hence the bundle identifier.
+  NSString *caches = NSSearchPathForDirectoriesInDomains(NSCachesDirectory,
+                                                         NSUserDomainMask, YES)
+                         .firstObject;
+  NSString *bundle = NSBundle.mainBundle.bundleIdentifier;
+  if (caches != nil) {
+    if (bundle != nil) {
+      caches = [caches stringByAppendingPathComponent:bundle];
+      [NSFileManager.defaultManager createDirectoryAtPath:caches
+                              withIntermediateDirectories:YES
+                                               attributes:nil
+                                                    error:nil];
+    }
+    rnwgpu::DawnBlobCache::setDirectory(
+        [caches stringByAppendingPathComponent:@"webgpu-dawn"].UTF8String);
+  }
   webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker,
                                                             platformContext);
   return @true;

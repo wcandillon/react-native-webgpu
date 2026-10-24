@@ -17,6 +17,7 @@
 #endif
 
 #include "Convertors.h"
+#include "DawnBlobCache.h"
 
 #include "GPUFeatures.h"
 #include "JSIConverter.h"
@@ -267,6 +268,12 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
           toggles.disabledToggles = disabledToggles.data();
           deviceDesc.nextInChain = &toggles;
         }
+        // Compiled pipelines are kept on disk across launches (see
+        // DawnBlobCache). Chained in front of the toggles, and alive for the
+        // synchronous RequestDevice call below, like them.
+        WGPUDawnCacheDeviceDescriptor blobCache =
+            WGPU_DAWN_CACHE_DEVICE_DESCRIPTOR_INIT;
+        DawnBlobCache::chain(deviceDesc, blobCache);
         _instance.RequestDevice(
             &deviceDesc, wgpu::CallbackMode::AllowProcessEvents,
             [context, resolve, reject, label, creationRuntime,

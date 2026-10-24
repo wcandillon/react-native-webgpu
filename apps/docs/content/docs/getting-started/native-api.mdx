@@ -91,6 +91,20 @@ A device created by another library and wrapped with [`importDevice()`](#importi
 
 See [Vision Camera](/docs/integrations/vision-camera) for an end-to-end example applying WGSL effects to live camera frames, and [Native Extensions](/api/gpu-device-extensions) for the full API.
 
+## Pipeline cache
+
+Dawn keeps the render and compute pipelines it compiles, and the shaders it translates for them, on disk in the app's cache directory, so a relaunch loads them instead of compiling them again. Compiling is slowest on Android, where each pipeline can take tens to hundreds of milliseconds on Vulkan drivers; iOS also keeps its own Metal cache. Every device `requestDevice()` creates uses the cache. The cache is cleared when it grows past 64 MB, and the system may clear it as it does any app cache.
+
+To opt a device out, disable it with a Dawn toggle:
+
+```tsx
+const device = await adapter.requestDevice({
+  dawnToggles: { enabledToggles: ["disable_blob_cache"] },
+});
+```
+
+A device wrapped with [`importDevice()`](#importing-an-external-device) is created by its own library and does not use this cache.
+
 ## Importing an external device
 
 `importDevice()` wraps a GPU device created by another native library into a regular `GPUDevice`. The device handle is passed as a `BigInt`, and the original owner keeps its own reference.
