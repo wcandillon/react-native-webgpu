@@ -23,10 +23,10 @@ class DawnBlobCache {
 public:
   // The directory to keep the blobs in, created (with its parents) if
   // missing. Each platform's module calls this when it installs, which is
-  // also when the cache is tidied: abandoned writes are removed, and a cache
-  // that has outgrown its limit is cleared. Only the cache's own files are
-  // removed. An empty path, or one where no directory can be made, leaves the
-  // cache off.
+  // also when the cache is tidied: abandoned writes are removed, and the
+  // oldest entries with them while the cache is over its limit (it is checked
+  // again as a session stores). Only the cache's own files are removed. An
+  // empty path, or one where no directory can be made, leaves the cache off.
   static void setDirectory(const std::string &directory);
 
   // Chains the cache onto `descriptor`, in front of whatever it already

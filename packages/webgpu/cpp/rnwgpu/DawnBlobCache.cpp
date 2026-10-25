@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <cstdio>
@@ -18,9 +19,12 @@ namespace rnwgpu {
 namespace {
 
 // Entries only accumulate as an app's shaders change from release to release,
-// so past this size the cache is cleared and refills with what the app
-// compiles next.
+// so past this size the oldest are removed until the cache fits again.
 constexpr off_t kMaxCacheBytes = 64 * 1024 * 1024;
+
+// A session checks the limit again each time it has stored this much, so a
+// long-running process cannot take the cache far past it.
+constexpr uint64_t kTidyAfterBytes = kMaxCacheBytes / 8;
 
 // tidy() takes a temporary file this old for a write that will never finish
 // (its process was killed). A younger one may still be being written by
@@ -43,6 +47,8 @@ std::string directory() {
   std::lock_guard<std::mutex> lock(directoryMutex());
   return directorySlot();
 }
+
+void tidy(const std::string &dir);
 
 // Creates `dir` and any of its parents that are missing.
 void makeDirectories(const std::string &dir) {
@@ -135,6 +141,13 @@ void storeEntry(size_t keySize, const uint8_t *key, size_t valueSize,
   written = fclose(file) == 0 && written;
   if (!written || rename(temporary.c_str(), path.c_str()) != 0) {
     remove(temporary.c_str());
+    return;
+  }
+  static std::atomic<uint64_t> stored{0};
+  if (stored.fetch_add(keySize + valueSize) + keySize + valueSize >=
+      kTidyAfterBytes) {
+    stored = 0;
+    tidy(dir);
   }
 }
 
@@ -160,16 +173,26 @@ bool isOwnFile(const std::string &name) {
 }
 
 // Removes the temporary files of writes a killed process left unfinished, and
-// clears the cache if it has outgrown kMaxCacheBytes. Runs when the cache is
-// set up (the module installing), so the limit is checked then rather than on
-// every store: a session can take the cache past it, and the next setup
-// clears it.
+// the oldest entries while the cache is over kMaxCacheBytes. Runs when the
+// cache is set up and after each kTidyAfterBytes stored. "Oldest" is by write
+// time: a load does not refresh an entry.
 void tidy(const std::string &dir) {
+  // Another thread tidying the same directory is enough.
+  static std::mutex tidying;
+  std::unique_lock<std::mutex> lock(tidying, std::try_to_lock);
+  if (!lock.owns_lock()) {
+    return;
+  }
   DIR *listing = opendir(dir.c_str());
   if (listing == nullptr) {
     return;
   }
-  std::vector<std::string> entries;
+  struct Entry {
+    std::string path;
+    time_t modified;
+    off_t size;
+  };
+  std::vector<Entry> entries;
   off_t total = 0;
   const time_t now = time(nullptr);
   while (dirent *entry = readdir(listing)) {
@@ -190,12 +213,21 @@ void tidy(const std::string &dir) {
       continue;
     }
     total += info.st_size;
-    entries.push_back(path);
+    entries.push_back({path, info.st_mtime, info.st_size});
   }
   closedir(listing);
-  if (total > kMaxCacheBytes) {
-    for (const auto &path : entries) {
-      remove(path.c_str());
+  if (total <= kMaxCacheBytes) {
+    return;
+  }
+  std::sort(entries.begin(), entries.end(), [](const Entry &a, const Entry &b) {
+    return a.modified != b.modified ? a.modified < b.modified : a.path < b.path;
+  });
+  for (const auto &entry : entries) {
+    if (total <= kMaxCacheBytes) {
+      break;
+    }
+    if (remove(entry.path.c_str()) == 0) {
+      total -= entry.size;
     }
   }
 }
