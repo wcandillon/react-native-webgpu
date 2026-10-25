@@ -349,21 +349,34 @@ TEST_F(DawnBlobCacheTest, KeepsACacheWithinItsLimit) {
   EXPECT_EQ(entries().size(), 1u);
 }
 
-// The limit is checked when the cache is set up, not on every store.
-TEST_F(DawnBlobCacheTest, ClearsACacheThatOutgrewItsLimitAtTheNextSetup) {
+// Only as much as the limit needs: the oldest entries go, the rest stay.
+TEST_F(DawnBlobCacheTest, TrimsACacheThatOutgrewItsLimitAtTheNextSetup) {
   const auto cache = callbacks();
   cache.write({1}, {2, 3});
   // An entry name, so it counts towards the limit.
   const auto large = _dir + "/00000000000000ff";
   writeFile(large, "x");
   ASSERT_EQ(truncate(large.c_str(), 65 * 1024 * 1024), 0);
-
-  cache.write({2}, {4, 5});
-  EXPECT_EQ(entries().size(), 3u);
+  age(large, 3600);
 
   DawnBlobCache::setDirectory(_dir);
-  EXPECT_TRUE(entries().empty());
-  EXPECT_EQ(cache.size({1}), 0u);
+
+  EXPECT_FALSE(exists(large));
+  EXPECT_EQ(cache.read({1}), (Bytes{2, 3}));
+}
+
+// A long-running process is held to the limit too.
+TEST_F(DawnBlobCacheTest, TrimsTheOldestEntriesAsASessionStoresMore) {
+  const auto cache = callbacks();
+  const auto large = _dir + "/00000000000000ff";
+  writeFile(large, "x");
+  ASSERT_EQ(truncate(large.c_str(), 65 * 1024 * 1024), 0);
+  age(large, 3600);
+
+  cache.write({1}, Bytes(9 * 1024 * 1024, 7));
+
+  EXPECT_FALSE(exists(large));
+  EXPECT_EQ(cache.size({1}), 9u * 1024 * 1024);
 }
 
 // A wrong path must never turn clearing the cache into deleting someone's
