@@ -245,8 +245,20 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
         // and SurfaceControl import there, so skip it on all of Android unless
         // the caller disables the toggle. Dawn drops unknown toggle names, so a
         // build without this toggle is unaffected.
+        //
+        // One VkPipelineCache per device, as Chrome configures Dawn on every
+        // Vulkan device. Without it Dawn creates a VkPipelineCache for each
+        // pipeline it compiles, serializes it (for a blob cache these devices
+        // do not have) and destroys it, on each of its worker threads at
+        // once: that destructor is where the Imagination PowerVR driver
+        // (MediaTek mt6855) segfaults while Skia Graphite compiles its
+        // pipelines (wcandillon/react-native-skia#4340). With one cache the
+        // only vkDestroyPipelineCache runs at device teardown, and pipelines
+        // that share binaries compile faster. PerformIdleTasks is not needed:
+        // nothing persists the cache.
         static const char *const kAndroidEnabledToggles[] = {
-            "ignore_imported_ahardwarebuffer_vulkan_image_size"};
+            "ignore_imported_ahardwarebuffer_vulkan_image_size",
+            "vulkan_monolithic_pipeline_cache"};
         for (const char *name : kAndroidEnabledToggles) {
           const auto named = [name](const char *t) {
             return std::strcmp(t, name) == 0;
