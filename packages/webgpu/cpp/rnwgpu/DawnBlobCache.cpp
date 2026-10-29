@@ -19,11 +19,23 @@ namespace rnwgpu {
 namespace {
 
 // Entries only accumulate as an app's shaders change from release to release,
-// so past this size the oldest are removed until the cache fits again.
+// so past this size the oldest are removed until the cache fits again. The
+// limit is a target, not a guarantee: stores that overlap tidying, or other
+// processes using the directory, can leave it a little over until the next
+// pass.
 constexpr off_t kMaxCacheBytes = 64 * 1024 * 1024;
 
-// A session checks the limit again each time it has stored this much, so a
-// long-running process cannot take the cache far past it.
+// An entry this large is not stored, so that one entry cannot take more than
+// half the cache from all the others. The entry already on disk under its key,
+// if any, is left as it is, and a blob that has outgrown this stops being
+// updated.
+constexpr uint64_t kMaxEntryBytes = kMaxCacheBytes / 2;
+
+// A session checks the limit again each time the cache has grown by about this
+// much through its stores (replacing an entry counts only what it adds), so a
+// long-running process cannot take the cache far past it. The count is
+// approximate: stores that overlap are measured against the file as it was
+// before either replaced it.
 constexpr uint64_t kTidyAfterBytes = kMaxCacheBytes / 8;
 
 // tidy() takes a temporary file this old for a write that will never finish
@@ -33,14 +45,16 @@ constexpr uint64_t kTidyAfterBytes = kMaxCacheBytes / 8;
 // removes its file (its rename then fails), which only costs a cache miss.
 constexpr time_t kAbandonedWriteSeconds = 60;
 
+// Never destroyed: a pipeline cache flush on another thread can still be
+// storing when the process starts to exit.
 std::mutex &directoryMutex() {
-  static std::mutex mutex;
-  return mutex;
+  static std::mutex *const mutex = new std::mutex;
+  return *mutex;
 }
 
 std::string &directorySlot() {
-  static std::string directory;
-  return directory;
+  static std::string *const directory = new std::string;
+  return *directory;
 }
 
 std::string directory() {
@@ -120,6 +134,10 @@ void storeEntry(size_t keySize, const uint8_t *key, size_t valueSize,
   if (dir.empty()) {
     return;
   }
+  const uint64_t entryBytes = 2 * sizeof(uint64_t) + keySize + valueSize;
+  if (entryBytes > kMaxEntryBytes) {
+    return;
+  }
   static std::atomic<uint64_t> writes{0};
   const std::string path = entryPath(dir, keySize, key);
   const std::string temporary = path + "." + std::to_string(getpid()) + "." +
@@ -139,15 +157,30 @@ void storeEntry(size_t keySize, const uint8_t *key, size_t valueSize,
                  fwrite(key, 1, keySize, file) == keySize &&
                  fwrite(value, 1, valueSize, file) == valueSize;
   written = fclose(file) == 0 && written;
+  struct stat replaced{};
+  const uint64_t previousBytes = stat(path.c_str(), &replaced) == 0
+                                     ? static_cast<uint64_t>(replaced.st_size)
+                                     : 0;
   if (!written || rename(temporary.c_str(), path.c_str()) != 0) {
     remove(temporary.c_str());
     return;
   }
-  static std::atomic<uint64_t> stored{0};
-  if (stored.fetch_add(keySize + valueSize) + keySize + valueSize >=
-      kTidyAfterBytes) {
-    stored = 0;
-    tidy(dir);
+  if (entryBytes <= previousBytes) {
+    return;
+  }
+  static std::atomic<uint64_t> grown{0};
+  const uint64_t growth = entryBytes - previousBytes;
+  // One thread takes the count when it is over the limit, and resets it only
+  // while it still is: growth that lands after another thread has taken the
+  // count stays in it for the next pass.
+  if (grown.fetch_add(growth) + growth >= kTidyAfterBytes) {
+    uint64_t seen = grown.load();
+    while (seen >= kTidyAfterBytes) {
+      if (grown.compare_exchange_weak(seen, 0)) {
+        tidy(dir);
+        break;
+      }
+    }
   }
 }
 
@@ -178,8 +211,8 @@ bool isOwnFile(const std::string &name) {
 // time: a load does not refresh an entry.
 void tidy(const std::string &dir) {
   // Another thread tidying the same directory is enough.
-  static std::mutex tidying;
-  std::unique_lock<std::mutex> lock(tidying, std::try_to_lock);
+  static std::mutex *const tidying = new std::mutex;
+  std::unique_lock<std::mutex> lock(*tidying, std::try_to_lock);
   if (!lock.owns_lock()) {
     return;
   }
@@ -191,6 +224,7 @@ void tidy(const std::string &dir) {
     std::string path;
     time_t modified;
     off_t size;
+    ino_t inode;
   };
   std::vector<Entry> entries;
   off_t total = 0;
@@ -213,7 +247,7 @@ void tidy(const std::string &dir) {
       continue;
     }
     total += info.st_size;
-    entries.push_back({path, info.st_mtime, info.st_size});
+    entries.push_back({path, info.st_mtime, info.st_size, info.st_ino});
   }
   closedir(listing);
   if (total <= kMaxCacheBytes) {
@@ -225,6 +259,16 @@ void tidy(const std::string &dir) {
   for (const auto &entry : entries) {
     if (total <= kMaxCacheBytes) {
       break;
+    }
+    // Another store may have replaced the entry since it was listed; the new
+    // one is not the old one this pass chose to remove. A replacement is a new
+    // file, so its inode tells it apart. Best effort: one landing between this
+    // check and the removal still goes, which only costs a cache miss.
+    struct stat current{};
+    if (stat(entry.path.c_str(), &current) != 0 ||
+        current.st_ino != entry.inode || current.st_mtime != entry.modified ||
+        current.st_size != entry.size) {
+      continue;
     }
     if (remove(entry.path.c_str()) == 0) {
       total -= entry.size;
@@ -251,16 +295,17 @@ void DawnBlobCache::setDirectory(const std::string &dir) {
   directorySlot() = usable;
 }
 
-void DawnBlobCache::chain(wgpu::DeviceDescriptor &descriptor,
+bool DawnBlobCache::chain(wgpu::DeviceDescriptor &descriptor,
                           WGPUDawnCacheDeviceDescriptor &storage) {
   if (directory().empty()) {
-    return;
+    return false;
   }
   storage.dawnLoadCacheDataCallbackInfo.callback = loadEntry;
   storage.dawnStoreCacheDataCallbackInfo.callback = storeEntry;
   storage.chain.next = reinterpret_cast<WGPUChainedStruct *>(
       const_cast<wgpu::ChainedStruct *>(descriptor.nextInChain));
   descriptor.nextInChain = reinterpret_cast<wgpu::ChainedStruct *>(&storage);
+  return true;
 }
 
 } // namespace rnwgpu

@@ -379,6 +379,50 @@ TEST_F(DawnBlobCacheTest, TrimsTheOldestEntriesAsASessionStoresMore) {
   EXPECT_EQ(cache.size({1}), 9u * 1024 * 1024);
 }
 
+TEST_F(DawnBlobCacheTest, SaysWhetherItChained) {
+  wgpu::DeviceDescriptor descriptor;
+  WGPUDawnCacheDeviceDescriptor storage =
+      WGPU_DAWN_CACHE_DEVICE_DESCRIPTOR_INIT;
+  EXPECT_TRUE(DawnBlobCache::chain(descriptor, storage));
+
+  DawnBlobCache::setDirectory("");
+  wgpu::DeviceDescriptor other;
+  WGPUDawnCacheDeviceDescriptor otherStorage =
+      WGPU_DAWN_CACHE_DEVICE_DESCRIPTOR_INIT;
+  EXPECT_FALSE(DawnBlobCache::chain(other, otherStorage));
+}
+
+// Tidying would remove every older entry, and then the new one.
+TEST_F(DawnBlobCacheTest, DoesNotStoreAnEntryTooLargeForTheCache) {
+  const auto cache = callbacks();
+  cache.write({1}, {2, 3});
+  cache.write({2}, {4});
+
+  cache.write({1}, Bytes(33 * 1024 * 1024, 7));
+
+  EXPECT_EQ(cache.read({1}), (Bytes{2, 3}));
+  EXPECT_EQ(cache.read({2}), (Bytes{4}));
+  EXPECT_EQ(entries().size(), 2u);
+}
+
+// Dawn's monolithic pipeline cache is one entry stored over and over: that is
+// not the cache growing.
+TEST_F(DawnBlobCacheTest, DoesNotCountAReplacementAsTheCacheGrowing) {
+  const auto cache = callbacks();
+  // The first store takes the cache past the point where it checks its limit.
+  cache.write({1}, Bytes(9 * 1024 * 1024, 7));
+  const auto large = _dir + "/00000000000000ff";
+  writeFile(large, "x");
+  ASSERT_EQ(truncate(large.c_str(), 65 * 1024 * 1024), 0);
+  age(large, 3600);
+
+  cache.write({1}, Bytes(9 * 1024 * 1024, 8));
+  cache.write({1}, Bytes(9 * 1024 * 1024, 9));
+
+  EXPECT_TRUE(exists(large));
+  EXPECT_EQ(cache.size({1}), 9u * 1024 * 1024);
+}
+
 // A wrong path must never turn clearing the cache into deleting someone's
 // files.
 TEST_F(DawnBlobCacheTest, LeavesFilesThatAreNotTheCachesAlone) {
