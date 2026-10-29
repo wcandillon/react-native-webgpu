@@ -93,9 +93,9 @@ See [Vision Camera](/docs/integrations/vision-camera) for an end-to-end example 
 
 ## Pipeline cache
 
-Every device `requestDevice()` creates keeps what Dawn produces while it builds shaders and pipelines in a cache on disk, in the app's cache directory, so a relaunch can reuse it instead of redoing the work. On Vulkan (Android) that includes the driver's pipeline cache data, which saves the most: building a pipeline there can take tens to hundreds of milliseconds. On Metal (iOS) it is the shaders Dawn translates to MSL; Metal still builds the pipelines, with the help of its own system cache.
+Every device `requestDevice()` creates keeps what Dawn produces while it builds shaders and pipelines in a cache on disk, in the app's cache directory, so a relaunch can reuse it instead of redoing the work. On Vulkan (Android) that includes the driver's pipeline cache data, which saves the most, since building pipelines is where Vulkan drivers spend their time. That data is written to the cache about a second after the app last created a pipeline (or about ten seconds into a long run of pipeline creation), and when `device.destroy()` is called. A device that opts out of implicit synchronization (`implicitDeviceSynchronization: false`) is written only on `device.destroy()`. An app that is killed before then keeps what was written until that point. On Metal (iOS) the cache holds the shaders Dawn translates to MSL; Metal still builds the pipelines, with the help of its own system cache.
 
-The cache's size is checked when the app starts: past 64 MB, it is cleared and refills as the app builds pipelines again. The system may also clear it, as it does any app cache.
+The cache is kept to about 64 MB: when the app starts, and again as it stores more, the entries written longest ago are removed until it fits. An entry larger than half of that is not stored, so the Vulkan pipeline cache data stops being updated if it ever grows past 32 MB. The system may also clear the cache, as it does any app cache.
 
 To opt a device out, disable it with a Dawn toggle:
 
