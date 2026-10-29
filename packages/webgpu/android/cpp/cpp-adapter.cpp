@@ -21,6 +21,7 @@
 #include <webgpu/webgpu_cpp.h>
 
 #include "AndroidPlatformContext.h"
+#include "DawnBlobCache.h"
 #include "GPUCanvasContext.h"
 #include "RNWebGPUManager.h"
 #include "WebGPURuntime.h"
@@ -31,8 +32,18 @@ std::shared_ptr<rnwgpu::RNWebGPUManager> manager;
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     JNIEnv *env, jobject thiz, jlong jsRuntime, jobject jsCallInvokerHolder,
-    jobject blobModule) {
+    jobject blobModule, jstring cacheDirectory) {
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
+  if (cacheDirectory != nullptr) {
+    const char *path = env->GetStringUTFChars(cacheDirectory, nullptr);
+    if (path == nullptr) {
+      // The JVM could not copy the string, and an OutOfMemoryError is pending:
+      // no further JNI call is allowed, so let it reach the caller.
+      return;
+    }
+    rnwgpu::DawnBlobCache::setDirectory(path);
+    env->ReleaseStringUTFChars(cacheDirectory, path);
+  }
   jobject globalBlobModule = env->NewGlobalRef(blobModule);
   jobject globalModule = env->NewGlobalRef(thiz);
   auto jsCallInvoker{

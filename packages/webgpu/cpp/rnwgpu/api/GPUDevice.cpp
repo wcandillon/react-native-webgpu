@@ -1,5 +1,6 @@
 #include "GPUDevice.h"
 
+#include <chrono>
 #include <cstdio>
 #include <memory>
 #include <string>
@@ -8,6 +9,8 @@
 #include <vector>
 
 #include <ReactCommon/CallInvoker.h>
+
+#include "dawn/native/DawnNative.h"
 
 #include "Convertors.h"
 #include "JSIConverter.h"
@@ -47,8 +50,29 @@ void defineHiddenProperty(jsi::Runtime &runtime, const jsi::Object &target,
 
 } // namespace
 
+void GPUDevice::enablePipelineCacheFlush(bool background) {
+  // Holds its own reference to the device, released once the flusher is
+  // cancelled and no flush is running.
+  wgpu::Device device = _instance;
+  _pipelineCacheFlusher = std::make_shared<IdleFlusher>(
+      [device] {
+        // Destroying or losing the device ends the flush: it has nothing left
+        // to serialize, and the backend may already be torn down.
+        if (!dawn::native::IsDeviceLost(device.Get())) {
+          dawn::native::PerformIdleTasks(device);
+        }
+      },
+      std::chrono::seconds(1), std::chrono::seconds(10), background);
+  _videoFrameBlit->setPipelineCreatedCallback(
+      [flusher = _pipelineCacheFlusher] { flusher->touch(); });
+}
+
 void GPUDevice::notifyDeviceLost(wgpu::DeviceLostReason reason,
                                  std::string message) {
+  if (_pipelineCacheFlusher) {
+    // Does not wait: this can run on a thread that is inside a flush.
+    _pipelineCacheFlusher->cancel();
+  }
   std::vector<PendingLostPromise> toResolve;
   std::shared_ptr<GPUDeviceLostInfo> info;
   {
@@ -160,6 +184,11 @@ std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
 }
 
 void GPUDevice::destroy() {
+  if (_pipelineCacheFlusher) {
+    // The last chance to persist what the pipelines added: flush what was not
+    // yet, and make sure no flush starts or is running once the device is gone.
+    _pipelineCacheFlusher->finish();
+  }
   // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
   // Any canvas surface holding a swapchain for this device must let go of it
   // while the device is alive (see SurfaceInfo::releaseSurfaceForDevice).
@@ -208,6 +237,7 @@ std::shared_ptr<GPURenderPipeline> GPUDevice::createRenderPipeline(
   }
   // assert(desc.fragment != nullptr && "Fragment state must not be null");
   auto renderPipeline = _instance.CreateRenderPipeline(&desc);
+  notePipelineCreated();
   return std::make_shared<GPURenderPipeline>(renderPipeline,
                                              descriptor->label.value_or(""));
 }
@@ -250,6 +280,7 @@ std::shared_ptr<GPUComputePipeline> GPUDevice::createComputePipeline(
                              "GPUComputePipelineDescriptor");
   }
   auto computePipeline = _instance.CreateComputePipeline(&desc);
+  notePipelineCreated();
   return std::make_shared<GPUComputePipeline>(computePipeline,
                                               descriptor->label.value_or(""));
 }
@@ -528,7 +559,7 @@ async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
   auto context =
       async::RuntimeContext::getOrCreate(runtime, _async->instance());
   return context->postTask([device = _instance, desc, descriptor,
-                            pipelineHolder](
+                            pipelineHolder, flusher = _pipelineCacheFlusher](
                                const async::AsyncTaskHandle::ResolveFunction
                                    &resolve,
                                const async::AsyncTaskHandle::RejectFunction
@@ -536,10 +567,13 @@ async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
     (void)descriptor;
     device.CreateComputePipelineAsync(
         &desc, wgpu::CallbackMode::AllowProcessEvents,
-        [pipelineHolder, resolve,
-         reject](wgpu::CreatePipelineAsyncStatus status,
-                 wgpu::ComputePipeline pipeline, wgpu::StringView msg) {
+        [pipelineHolder, resolve, reject,
+         flusher](wgpu::CreatePipelineAsyncStatus status,
+                  wgpu::ComputePipeline pipeline, wgpu::StringView msg) {
           if (status == wgpu::CreatePipelineAsyncStatus::Success && pipeline) {
+            if (flusher) {
+              flusher->touch();
+            }
             pipelineHolder->_instance = pipeline;
             resolve([pipelineHolder](jsi::Runtime &runtime) mutable {
               return JSIConverter<std::shared_ptr<GPUComputePipeline>>::toJSI(
@@ -575,7 +609,7 @@ async::AsyncTaskHandle GPUDevice::createRenderPipelineAsync(
   auto context =
       async::RuntimeContext::getOrCreate(runtime, _async->instance());
   return context->postTask([device = _instance, desc, descriptor,
-                            pipelineHolder](
+                            pipelineHolder, flusher = _pipelineCacheFlusher](
                                const async::AsyncTaskHandle::ResolveFunction
                                    &resolve,
                                const async::AsyncTaskHandle::RejectFunction
@@ -583,10 +617,13 @@ async::AsyncTaskHandle GPUDevice::createRenderPipelineAsync(
     (void)descriptor;
     device.CreateRenderPipelineAsync(
         &desc, wgpu::CallbackMode::AllowProcessEvents,
-        [pipelineHolder, resolve,
-         reject](wgpu::CreatePipelineAsyncStatus status,
-                 wgpu::RenderPipeline pipeline, wgpu::StringView msg) {
+        [pipelineHolder, resolve, reject,
+         flusher](wgpu::CreatePipelineAsyncStatus status,
+                  wgpu::RenderPipeline pipeline, wgpu::StringView msg) {
           if (status == wgpu::CreatePipelineAsyncStatus::Success && pipeline) {
+            if (flusher) {
+              flusher->touch();
+            }
             pipelineHolder->_instance = pipeline;
             resolve([pipelineHolder](jsi::Runtime &runtime) mutable {
               return JSIConverter<std::shared_ptr<GPURenderPipeline>>::toJSI(
