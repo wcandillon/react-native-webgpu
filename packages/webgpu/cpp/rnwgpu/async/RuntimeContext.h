@@ -5,6 +5,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <vector>
 
 #include <jsi/jsi.h>
@@ -22,63 +23,50 @@ class CallInvoker;
 namespace rnwgpu::async {
 
 /**
- * Per-runtime, per-instance coordinator for asynchronous WebGPU operations.
+ * How asynchronous WebGPU operations get back to the JS runtime that
+ * requested them. One per (JS runtime, Dawn instance), made on first use and
+ * kept in the runtime's runtimeData, so that it lives exactly as long as the
+ * runtime. A runtime usually has one, for the shared WebGPURuntime instance;
+ * a device passed to importDevice() can live on another instance, which then
+ * gets a context of its own.
  *
- * Each (JS runtime, Dawn instance) pair gets its own RuntimeContext, stored in
- * the runtime's runtimeData. A runtime usually has a single one, for the
- * shared WebGPURuntime instance; a device passed to importDevice() can live on
- * another instance, which then gets its own context and pump. Async Dawn
- * operations are registered with CallbackMode::AllowProcessEvents and driven
- * to completion by pumping
- * `instance.ProcessEvents()` on the runtime's OWN thread via a self-
- * rescheduling tick (scheduled through that runtime's setTimeout). Because
- * ProcessEvents invokes the Dawn callbacks synchronously on the pumping thread,
- * the JS Promise is settled directly on the owning runtime, with no background
- * thread and no cross-thread hop.
+ * Waiting: Dawn operations are registered with CallbackMode::WaitAnyOnly, and
+ * their futures handed to awaitFuture(). One already complete runs its
+ * callback right there; the others go to a thread per instance that sleeps
+ * in Instance::WaitAny until the GPU (or Dawn's worker) is done, then runs
+ * the callback. Nothing polls meanwhile: neither the JS thread nor anyone
+ * else calls ProcessEvents.
  *
- * The pump only runs while at least one "pumping" task is outstanding, so it
- * costs nothing when idle and stops cleanly.
+ * Settling: a callback runs on the waiter thread (or wherever a non-Dawn
+ * operation finishes, see GPUQueue::drawElementImageToTexture), so it never
+ * touches JSI; it hands a settle action to post(), which runs it on the
+ * runtime's own thread. How depends on the runtime:
  *
- * Spontaneous events: events that may fire at any time, independent of any
- * request/response op (today only device.lost, whose Dawn callback is
- * registered AllowSpontaneous). These are NOT driven by the pump and do NOT go
- * through postTask: a task that may never settle must not hold the JS promise
- * strongly from C++, or the promise (and everything reachable from its .then
- * reactions) becomes a permanent GC root (issue #445). Instead GPUDevice keeps
- * a jsi::WeakObject to the promise and settles it on the owning runtime's JS
- * thread via that runtime's CallInvoker, which is wired only for the MAIN JS
- * runtime (callInvoker()). A device created on a worklet runtime has no
- * invoker, so its device.lost is best-effort and may never fire. See the
- * README "Threading model" section. The keepPumping=false path in postTask is
- * currently unused; it remains for tasks that settle without Dawn's pump.
+ * - The main React Native runtime: its CallInvoker (registerMainRuntime).
+ * - The Reanimated UI runtime: through the main runtime, where
+ *   `__webgpuScheduleOnUI` (installed by registerWebGPUForReanimated) hands
+ *   a native function to worklets' scheduleOnUI, which runs it on the UI
+ *   runtime.
+ * - Any other worklet runtime (createWorkletRuntime, a Vision Camera frame
+ *   processor): worklets offers nothing to post to it from native, but the
+ *   runtime has a setTimeout. Actions go into a mailbox, and a timer armed
+ *   on the runtime itself when an operation starts (postTask runs on that
+ *   thread) drains the mailbox, re-arming itself while an operation is
+ *   outstanding. The runtime polls its mailbox meanwhile, which lasts only
+ *   as long as the operations do; a spontaneous event (device.lost, an
+ *   uncaptured error) posted while nothing is outstanding is delivered with
+ *   the next operation.
  *
- * Shared-instance safety (mailbox): multiple runtimes may share one
- * wgpu::Instance. ProcessEvents() drains the whole instance queue and fires
- * callbacks on the calling thread, which may NOT be the owning runtime's thread
- * for a given promise. So a settled callback never touches JSI inline; it
- * deposits a settle-action (a plain C++ closure, no JSI) into the OWNING
- * context's thread-safe mailbox via postSettle(), and each context drains its
- * own mailbox on its own thread during tick(). ProcessEvents() itself is
- * serialized across the runtimes sharing an instance by a mutex per instance,
- * since concurrent ProcessEvents on one instance is not guaranteed reentrant;
- * pumps of different instances never wait on each other.
- *
- * Threading contract: a RuntimeContext must only be pumped from the runtime it
- * was created for. Request/response async entry points (mapAsync,
- * onSubmittedWorkDone, popErrorScope, createComputePipelineAsync,
- * createRenderPipelineAsync, getCompilationInfo, requestAdapter,
- * requestDevice) must NOT use a context captured when the object was created —
- * the object may have been boxed across to another runtime. They resolve the
- * CALLING runtime's context via getOrCreate(runtime, instance) so the promise
- * is settled on the thread it was created on. Spontaneous events (device.lost,
- * uncapturederror) remain bound to the device's own context (best-effort, main
- * runtime only; see the class doc above).
+ * Threading contract: postTask() runs on the runtime's thread (it is the
+ * entry point of every async method, called with the calling runtime, see
+ * GPUBuffer::mapAsync); awaitFuture() and post() run on any thread.
  */
 class RuntimeContext : public std::enable_shared_from_this<RuntimeContext> {
 public:
-  using TaskCallback =
-      std::function<void(const AsyncTaskHandle::ResolveFunction &,
-                         const AsyncTaskHandle::RejectFunction &)>;
+  using TaskCallback = std::function<std::optional<wgpu::Future>(
+      const AsyncTaskHandle::ResolveFunction &,
+      const AsyncTaskHandle::RejectFunction &)>;
+  using Job = std::function<void(jsi::Runtime &)>;
 
   RuntimeContext(jsi::Runtime &runtime, wgpu::Instance instance);
 
@@ -87,20 +75,12 @@ public:
   static std::shared_ptr<RuntimeContext>
   getOrCreate(jsi::Runtime &runtime, const wgpu::Instance &instance);
 
-  // Register the main JS runtime and its CallInvoker. The RuntimeContext
-  // created for this runtime gets the invoker (callInvoker() returns it); every
-  // other runtime's context returns null. Called once from RNWebGPUManager on
-  // install.
+  // Register the main JS runtime and its CallInvoker: how the main runtime
+  // is reached, and the way to the UI runtime. Called once from
+  // RNWebGPUManager on install.
   static void
   registerMainRuntime(jsi::Runtime *runtime,
                       std::shared_ptr<facebook::react::CallInvoker> invoker);
-
-  // CallInvoker for this runtime's JS thread, or null. Non-null only for the
-  // main JS runtime; used to deliver spontaneous events (device.lost) without
-  // the pump. See the class doc.
-  const std::shared_ptr<facebook::react::CallInvoker> &callInvoker() const {
-    return _callInvoker;
-  }
 
   // The wgpu::Instance served by this context on its owning runtime.
   const wgpu::Instance &instance() const { return _instance; }
@@ -109,38 +89,39 @@ public:
   // any thread; only touch JSI through it on the runtime's own thread.
   jsi::Runtime &runtime() const { return _runtime; }
 
-  AsyncTaskHandle postTask(const TaskCallback &callback,
-                           bool keepPumping = true);
+  // Starts an asynchronous operation whose promise settles on this runtime:
+  // `callback` gets the resolve and reject functions, starts the work, and
+  // returns the Dawn future to wait for, if the work is Dawn's (it is awaited
+  // like awaitFuture does). Called on the runtime's thread.
+  AsyncTaskHandle postTask(const TaskCallback &callback);
 
-  // Deposit a settle-action to run on THIS context's runtime thread.
-  // Thread-safe (callable from any thread, e.g. another runtime that pumped
-  // ProcessEvents). The job must not touch JSI until it runs (it runs during
-  // drainMailbox on the owning thread).
-  void postSettle(std::function<void()> job);
+  // Has the callback of `future` run: now, when it is complete already, else
+  // on the instance's waiter thread once it is. Any thread.
+  void awaitFuture(wgpu::Future future);
 
-  // Invoked by a drained settle-action when its task settles. Runs on the
-  // owning runtime's thread.
-  void onTaskSettled(bool keepPumping);
+  // Runs `job` on this runtime's thread, later, with the runtime. Any thread.
+  void post(Job job);
+
+  // Invoked by a settle action once it has run, on the runtime's thread.
+  void onTaskSettled();
 
 private:
-  static jsi::UUID runtimeDataUUID();
+  enum class Kind { Main, UI, Mailbox };
 
-  void requestTick();
-  void tick();
-  void drainMailbox();
+  static jsi::UUID runtimeDataUUID();
+  static Kind kindOf(jsi::Runtime &runtime);
+
+  void armTick(jsi::Runtime &runtime);
+  void drainMailbox(jsi::Runtime &runtime);
 
   jsi::Runtime &_runtime;
   wgpu::Instance _instance;
-  // Serializes ProcessEvents() on _instance across the runtimes that share it;
-  // every context of that instance holds the same mutex.
-  std::shared_ptr<std::mutex> _processEventsMutex;
-  // Non-null only for the main JS runtime's context (see registerMainRuntime).
-  std::shared_ptr<facebook::react::CallInvoker> _callInvoker;
-  std::atomic<std::size_t> _pumpTasks{0};
-  std::atomic<bool> _tickScheduled{false};
-
+  const Kind _kind;
+  // The mailbox and its timer (Kind::Mailbox only).
+  std::atomic<std::size_t> _outstanding{0};
+  std::atomic<bool> _tickArmed{false};
   std::mutex _mailboxMutex;
-  std::vector<std::function<void()>> _mailbox;
+  std::vector<Job> _mailbox;
 };
 
 } // namespace rnwgpu::async

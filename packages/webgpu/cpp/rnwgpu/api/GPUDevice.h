@@ -302,7 +302,7 @@ private:
   friend class GPUAdapter;
 
   // Runs the uncapturederror listeners on the creation runtime's JS thread.
-  // Invoked from notifyUncapturedError via the main CallInvoker.
+  // Invoked from notifyUncapturedError through the runtime's context.
   void deliverUncapturedError(wgpu::ErrorType type, std::string message);
 
   wgpu::Device _instance;
@@ -327,12 +327,11 @@ private:
   // resolve function lives as a hidden property on the promise object itself,
   // so if the promise is still alive when the device is lost we can settle
   // it; if it was collected, nobody could have observed the resolution.
-  // Entries are only added for the device's own runtime when a CallInvoker is
-  // available (main JS runtime), matching the best-effort contract for
-  // spontaneous events.
+  // Each entry is settled on the thread of the runtime that read `lost`,
+  // through that runtime's context; a runtime gone since is skipped.
   struct PendingLostPromise {
-    jsi::Runtime *runtime;
     jsi::WeakObject promise;
+    std::weak_ptr<async::RuntimeContext> context;
   };
   std::vector<PendingLostPromise> _lostPromises;
 

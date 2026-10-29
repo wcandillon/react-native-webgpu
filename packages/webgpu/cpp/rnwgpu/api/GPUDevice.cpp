@@ -68,41 +68,35 @@ void GPUDevice::notifyDeviceLost(wgpu::DeviceLostReason reason,
     return;
   }
 
-  // getLost() only registers promises when the device's context has a
-  // CallInvoker (main JS runtime), so a non-empty list implies an invoker.
-  auto invoker = _async ? _async->callInvoker() : nullptr;
-  if (!invoker) {
-    return;
-  }
-
-  // Settle on the owning runtime's JS thread. The promises are held weakly:
-  // if the device graph was collected in the meantime there is nothing to do,
-  // since nobody could observe the resolution anyway. The shared_ptr is only
-  // there because jsi::WeakObject is move-only and std::function requires a
-  // copyable closure; it also ensures the WeakObjects are destroyed on the JS
-  // thread.
-  auto pending =
-      std::make_shared<std::vector<PendingLostPromise>>(std::move(toResolve));
-  invoker->invokeAsync([pending, info]() {
-    for (auto &entry : *pending) {
-      auto &runtime = *entry.runtime;
-      auto locked = entry.promise.lock(runtime);
+  // Settle each promise on the thread of the runtime that read it, through
+  // that runtime's context. The promises are held weakly: if the device graph
+  // was collected in the meantime there is nothing to do, since nobody could
+  // observe the resolution anyway. The shared_ptr is only there because
+  // jsi::WeakObject is move-only and std::function requires a copyable
+  // closure.
+  for (auto &entry : toResolve) {
+    auto context = entry.context.lock();
+    if (context == nullptr) {
+      continue;
+    }
+    auto pending = std::make_shared<jsi::WeakObject>(std::move(entry.promise));
+    context->post([pending, info](jsi::Runtime &runtime) {
+      auto locked = pending->lock(runtime);
       if (!locked.isObject()) {
-        continue;
+        return;
       }
       auto promiseObj = locked.getObject(runtime);
       auto resolveProp = promiseObj.getProperty(runtime, kLostResolveProp);
       if (!resolveProp.isObject() ||
           !resolveProp.getObject(runtime).isFunction(runtime)) {
-        continue;
+        return;
       }
       auto resolveFn = resolveProp.getObject(runtime).getFunction(runtime);
       resolveFn.call(runtime,
                      JSIConverter<std::shared_ptr<GPUDeviceLostInfo>>::toJSI(
                          runtime, info));
-    }
-    pending->clear();
-  });
+    });
+  }
 }
 
 void GPUDevice::forceLossForTesting() {
@@ -534,8 +528,8 @@ async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(
                                const async::AsyncTaskHandle::RejectFunction
                                    &reject) {
     (void)descriptor;
-    device.CreateComputePipelineAsync(
-        &desc, wgpu::CallbackMode::AllowProcessEvents,
+    return device.CreateComputePipelineAsync(
+        &desc, wgpu::CallbackMode::WaitAnyOnly,
         [pipelineHolder, resolve,
          reject](wgpu::CreatePipelineAsyncStatus status,
                  wgpu::ComputePipeline pipeline, wgpu::StringView msg) {
@@ -581,8 +575,8 @@ async::AsyncTaskHandle GPUDevice::createRenderPipelineAsync(
                                const async::AsyncTaskHandle::RejectFunction
                                    &reject) {
     (void)descriptor;
-    device.CreateRenderPipelineAsync(
-        &desc, wgpu::CallbackMode::AllowProcessEvents,
+    return device.CreateRenderPipelineAsync(
+        &desc, wgpu::CallbackMode::WaitAnyOnly,
         [pipelineHolder, resolve,
          reject](wgpu::CreatePipelineAsyncStatus status,
                  wgpu::RenderPipeline pipeline, wgpu::StringView msg) {
@@ -617,8 +611,8 @@ async::AsyncTaskHandle GPUDevice::popErrorScope(jsi::Runtime &runtime) {
                                    &resolve,
                                const async::AsyncTaskHandle::RejectFunction
                                    &reject) {
-    device.PopErrorScope(
-        wgpu::CallbackMode::AllowProcessEvents,
+    return device.PopErrorScope(
+        wgpu::CallbackMode::WaitAnyOnly,
         [resolve, reject](wgpu::PopErrorScopeStatus status,
                           wgpu::ErrorType type, wgpu::StringView message) {
           if (status == wgpu::PopErrorScopeStatus::Error ||
@@ -731,12 +725,12 @@ jsi::Value GPUDevice::getLost(jsi::Runtime &runtime,
                          *capturedResolve);
 
     // Register a WEAK reference so notifyDeviceLost() can settle the promise
-    // if it is still alive. Only wired for the device's own runtime when a
-    // CallInvoker exists (main JS runtime): spontaneous events are delivered
-    // through that invoker. A promise created on another runtime stays
-    // pending, matching the previous best-effort behavior.
+    // if it is still alive, on the thread of the runtime that read it,
+    // through that runtime's context (see RuntimeContext::post).
     bool settledMeanwhile = false;
-    if (_async && _async->callInvoker() && &runtime == &_async->runtime()) {
+    if (_async) {
+      auto context =
+          async::RuntimeContext::getOrCreate(runtime, _async->instance());
       std::lock_guard<std::mutex> lock(_lostMutex);
       if (_lostSettled) {
         // The device was lost between the check above and now.
@@ -744,7 +738,7 @@ jsi::Value GPUDevice::getLost(jsi::Runtime &runtime,
         settledInfo = _lostInfo;
       } else {
         _lostPromises.push_back(
-            PendingLostPromise{&runtime, jsi::WeakObject(runtime, promiseObj)});
+            PendingLostPromise{jsi::WeakObject(runtime, promiseObj), context});
       }
     }
     if (settledMeanwhile) {
@@ -775,20 +769,17 @@ void GPUDevice::removeEventListener(std::string type, jsi::Function callback) {
 
 void GPUDevice::notifyUncapturedError(wgpu::ErrorType type,
                                       std::string message) {
-  // Dawn can surface an uncaptured error from any ProcessEvents pump (a worklet
-  // runtime sharing this instance may pump it on the wrong thread). Marshal to
-  // the owning runtime's JS thread via its CallInvoker before touching JSI. The
-  // invoker is wired only for the main JS runtime, so a device created on a
-  // worklet runtime does not deliver uncaptured errors to JS (best-effort; see
-  // README "Threading model").
-  auto invoker = _async ? _async->callInvoker() : nullptr;
-  if (!invoker) {
+  // Dawn reports an uncaptured error from whichever thread detects it. The
+  // listeners run on the thread of the runtime the device was created on,
+  // through its context (see RuntimeContext::post).
+  if (!_async) {
     return;
   }
   auto self = shared_from_this();
-  invoker->invokeAsync([self, type, message = std::move(message)]() mutable {
-    self->deliverUncapturedError(type, std::move(message));
-  });
+  _async->post(
+      [self, type, message = std::move(message)](jsi::Runtime &) mutable {
+        self->deliverUncapturedError(type, std::move(message));
+      });
 }
 
 void GPUDevice::deliverUncapturedError(wgpu::ErrorType type,

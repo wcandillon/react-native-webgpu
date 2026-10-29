@@ -70,10 +70,11 @@ const helpers = globalThis.__webgpuWorkletHelpers;
  *   not treat a bare `navigator` as a known global, so they capture the main
  *   runtime's `navigator` object by closure instead of reading the one this
  *   function installed.
- * - Spontaneous events are main-runtime only: on a device created on a
- *   worklet runtime, `device.lost` never settles (unless the device is
- *   already lost when read) and `uncapturederror` listeners never fire.
- *   Observe those on a device created on the main JS thread.
+ * - On a worklet runtime of your own (`createWorkletRuntime`, a frame
+ *   processor), results are delivered while an operation is awaited there:
+ *   `device.lost` and `uncapturederror` arrive with the next awaited
+ *   operation on that runtime, not on their own. The main JS runtime and
+ *   the Reanimated UI runtime receive them right away.
  *
  * Everything is captured into the worklet by closure: the constants like a
  * shader string would be, the GPU object through the Worklets custom
@@ -81,7 +82,7 @@ const helpers = globalThis.__webgpuWorkletHelpers;
  * it crosses, and the native helper that installs the class constructors,
  * which worklets hands to every runtime by reference. Promises returned by
  * `requestAdapter`/`requestDevice` settle on the calling runtime (each
- * runtime gets its own async pump). Calling it on a runtime that already has
+ * runtime has its own way of being reached, see RuntimeContext). Calling it on a runtime that already has
  * the globals (e.g. the main JS runtime) is a safe no-op.
  */
 export const installWebGPU = () => {

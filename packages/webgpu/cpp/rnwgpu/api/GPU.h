@@ -33,7 +33,7 @@ public:
   std::string getBrand() { return CLASS_NAME; }
 
   // requestAdapter needs the calling runtime so each runtime gets its own
-  // RuntimeContext (and ProcessEvents pump on its own thread).
+  // RuntimeContext, which settles the promise on that runtime's thread.
   async::AsyncTaskHandle requestAdapter(
       jsi::Runtime &runtime,
       std::optional<std::shared_ptr<GPURequestAdapterOptions>> options);

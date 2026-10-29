@@ -18,7 +18,8 @@ wgpu::Instance createInstance() {
   // react-native-webgpu installs (see the RTLD_NOLOAD lookup below), so the
   // native-module init order decides whether the instance is shared.
   // RNWebGPU.importDevice does not depend on it: an imported device's async
-  // work is pumped on the instance that owns it (see async::RuntimeContext).
+  // work is waited for on the instance that owns it (see
+  // async::RuntimeContext).
   // Both packages must link the same single Dawn copy (they vendor the same
   // artifact) for the handles they exchange to be meaningful.
   using GetInstanceFn = WGPUInstance (*)();

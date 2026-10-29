@@ -23,6 +23,7 @@ interface BoxedWebGPUObject {
 
 declare global {
   var __webgpuWorkletHelpers: WebGPUWorkletHelpers | undefined;
+  var __webgpuScheduleOnUI: ((job: () => void) => void) | undefined;
 }
 
 let isRegistered = false;
@@ -46,7 +47,25 @@ export const registerWebGPUForReanimated = () => {
   }
 
   try {
-    const { registerCustomSerializable } = require("react-native-worklets");
+    const {
+      registerCustomSerializable,
+      scheduleOnUI,
+    } = require("react-native-worklets");
+
+    // A promise created on the UI runtime (requestDevice() in a worklet, a
+    // mapAsync() there) is settled on the UI runtime: native hands the
+    // settling function, a host function, to this hook on the main runtime,
+    // and worklets runs it on the UI runtime (see cpp/rnwgpu/async/
+    // RuntimeContext.h). device.lost and uncapturederror reach the UI
+    // runtime the same way.
+    if (typeof scheduleOnUI === "function") {
+      globalThis.__webgpuScheduleOnUI = (job: () => void) => {
+        scheduleOnUI(() => {
+          "worklet";
+          job();
+        });
+      };
+    }
 
     registerCustomSerializable({
       name: "WebGPU",
