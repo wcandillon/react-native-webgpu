@@ -105,6 +105,18 @@ By default the canvas's values are sRGB. Pass `colorSpace: "display-p3"` to `con
 context.configure({ device, format, colorSpace: "display-p3" });
 ```
 
+## HDR
+
+On an `rgba16float` canvas, values above 1.0 are clamped to the display's SDR range by default. Pass `toneMapping: { mode: "extended" }` to `configure()` to let them use the display's extended range (HDR) instead, as in a browser. iOS 16 and later opts the layer into extended dynamic range content. Android ignores it for now.
+
+```tsx
+context.configure({
+  device,
+  format: "rgba16float",
+  toneMapping: { mode: "extended" },
+});
+```
+
 ## See also
 
 - [Canvas](/api/canvas) - the component and ref reference

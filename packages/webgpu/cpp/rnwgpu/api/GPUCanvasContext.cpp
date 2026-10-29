@@ -30,7 +30,8 @@ void GPUCanvasContext::configure(
 #endif
   surfaceConfiguration.presentMode = wgpu::PresentMode::Fifo;
   _surfaceInfo->configure(surfaceConfiguration, std::move(viewFormats),
-                          configuration->colorSpace);
+                          configuration->colorSpace,
+                          configuration->toneMappingMode);
 }
 
 void GPUCanvasContext::unconfigure() { _surfaceInfo->unconfigure(); }
