@@ -30,6 +30,8 @@ constexpr const char *TAG = "RuntimeContext";
 // The main JS runtime and its CallInvoker, registered once on install.
 jsi::Runtime *sMainRuntime = nullptr;
 std::shared_ptr<facebook::react::CallInvoker> sMainInvoker;
+// Set once a job for the UI runtime found no way to run there.
+std::atomic<bool> sUIUnreachable{false};
 
 /**
  * The thread waiting on the futures of one instance: one future at a time,
@@ -107,10 +109,18 @@ RuntimeContext::Kind RuntimeContext::kindOf(jsi::Runtime &runtime) {
   // react-native-worklets' RuntimeKind: 1 for React Native, 2 for the UI
   // runtime, more for the runtimes of the app.
   auto kind = runtime.global().getProperty(runtime, "__RUNTIME_KIND");
-  if (!kind.isNumber() || kind.asNumber() == 1) {
+  if (kind.isNumber() && kind.asNumber() == 2) {
+    return Kind::UI;
+  }
+  if (sMainRuntime == nullptr && (!kind.isNumber() || kind.asNumber() == 1)) {
+    // No main runtime registered (yet): the React Native runtime, as far as
+    // anything can tell.
     return Kind::Main;
   }
-  return kind.asNumber() == 2 ? Kind::UI : Kind::Mailbox;
+  // Another runtime, marked or not: settling it through the main runtime's
+  // CallInvoker would settle it with the main runtime while its promise
+  // lives on this one. Its own setTimeout reaches it.
+  return Kind::Mailbox;
 }
 
 RuntimeContext::RuntimeContext(jsi::Runtime &runtime, wgpu::Instance instance)
@@ -138,7 +148,29 @@ RuntimeContext::getOrCreate(jsi::Runtime &runtime,
   return context;
 }
 
+bool RuntimeContext::canSettle() const {
+  switch (_kind) {
+  case Kind::Main:
+    return sMainInvoker != nullptr;
+  case Kind::UI:
+    return sMainInvoker != nullptr &&
+           !sUIUnreachable.load(std::memory_order_acquire);
+  case Kind::Mailbox:
+    return true;
+  }
+  return false;
+}
+
 AsyncTaskHandle RuntimeContext::postTask(const TaskCallback &callback) {
+  if (!canSettle()) {
+    throw std::runtime_error(
+        _kind == Kind::UI
+            ? "Nothing can settle a promise on the UI runtime: "
+              "react-native-worklets did not install __webgpuScheduleOnUI "
+              "(see registerWebGPUForReanimated)."
+            : "Nothing can settle a promise on this runtime: react-native-"
+              "webgpu is not installed on it.");
+  }
   auto handle = AsyncTaskHandle::create(shared_from_this());
   if (!handle.valid()) {
     throw std::runtime_error("Failed to create AsyncTaskHandle.");
@@ -199,11 +231,15 @@ void RuntimeContext::post(Job job) {
               mainRuntime, "__webgpuScheduleOnUI");
           if (!schedule.isObject() ||
               !schedule.asObject(mainRuntime).isFunction(mainRuntime)) {
-            Logger::logToConsole(
-                "[%s] Nothing can run on the UI runtime: react-native-worklets "
-                "did not install __webgpuScheduleOnUI (see "
-                "registerWebGPUForReanimated).",
-                TAG);
+            // This job is lost; the promises made on the UI runtime from
+            // now on are refused instead (see canSettle).
+            if (!sUIUnreachable.exchange(true, std::memory_order_acq_rel)) {
+              Logger::logToConsole(
+                  "[%s] Nothing can run on the UI runtime: "
+                  "react-native-worklets did not install "
+                  "__webgpuScheduleOnUI (see registerWebGPUForReanimated).",
+                  TAG);
+            }
             return;
           }
           auto function = jsi::Function::createFromHostFunction(
@@ -253,9 +289,14 @@ void RuntimeContext::armTick(jsi::Runtime &runtime) {
       [self](jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *,
              size_t) -> jsi::Value {
         self->_tickArmed.store(false, std::memory_order_release);
-        self->drainMailbox(runtime);
+        auto error = self->drainMailbox(runtime);
         if (self->_outstanding.load(std::memory_order_acquire) > 0) {
           self->armTick(runtime);
+        }
+        if (error != nullptr) {
+          // Thrown by a job, after the others ran and the next tick is
+          // armed: the runtime reports it as the timer's.
+          std::rethrow_exception(error);
         }
         return jsi::Value::undefined();
       });
@@ -263,15 +304,25 @@ void RuntimeContext::armTick(jsi::Runtime &runtime) {
       runtime, std::move(tick), jsi::Value(0.0));
 }
 
-void RuntimeContext::drainMailbox(jsi::Runtime &runtime) {
+// Runs the jobs posted so far, every one of them even when one throws: the
+// first exception is returned for the caller to rethrow once the rest ran.
+std::exception_ptr RuntimeContext::drainMailbox(jsi::Runtime &runtime) {
   std::vector<Job> jobs;
   {
     std::lock_guard<std::mutex> lock(_mailboxMutex);
     jobs.swap(_mailbox);
   }
+  std::exception_ptr first = nullptr;
   for (auto &job : jobs) {
-    job(runtime);
+    try {
+      job(runtime);
+    } catch (...) {
+      if (first == nullptr) {
+        first = std::current_exception();
+      }
+    }
   }
+  return first;
 }
 
 jsi::UUID RuntimeContext::runtimeDataUUID() {

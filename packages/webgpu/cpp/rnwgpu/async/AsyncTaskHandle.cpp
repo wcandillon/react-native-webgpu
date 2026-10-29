@@ -92,11 +92,22 @@ void AsyncTaskHandle::State::schedule(Action action) {
   }
 
   // Any thread here: the settle (the only JSI-touching work) runs on the
-  // owning runtime's thread, however the context reaches it.
+  // owning runtime's thread, however the context reaches it. A settle that
+  // throws (a value factory that cannot make its value, say) rejects the
+  // promise rather than leaving it pending, and ends the operation all the
+  // same, so that a runtime polling its mailbox stops.
   auto self = shared_from_this();
   context->post([self, action = std::move(action),
                  promiseRef](jsi::Runtime &runtime) mutable {
-    action(runtime, *promiseRef);
+    try {
+      action(runtime, *promiseRef);
+    } catch (const std::exception &error) {
+      try {
+        promiseRef->reject(error.what());
+      } catch (...) {
+        // Rejected already, or the runtime refused: nothing more to do.
+      }
+    }
     if (self->context) {
       self->context->onTaskSettled();
     }

@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <exception>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -47,15 +48,21 @@ namespace rnwgpu::async {
  *   `__webgpuScheduleOnUI` (installed by registerWebGPUForReanimated) hands
  *   a native function to worklets' scheduleOnUI, which runs it on the UI
  *   runtime.
- * - Any other worklet runtime (createWorkletRuntime, a Vision Camera frame
- *   processor): worklets offers nothing to post to it from native, but the
- *   runtime has a setTimeout. Actions go into a mailbox, and a timer armed
+ * - Any other runtime (createWorkletRuntime, a Vision Camera frame
+ *   processor, a runtime without worklets' `__RUNTIME_KIND` marker that is
+ *   not the main one): nothing posts to it from native, but the runtime has
+ *   a setTimeout. Actions go into a mailbox, and a timer armed
  *   on the runtime itself when an operation starts (postTask runs on that
  *   thread) drains the mailbox, re-arming itself while an operation is
  *   outstanding. The runtime polls its mailbox meanwhile, which lasts only
  *   as long as the operations do; a spontaneous event (device.lost, an
  *   uncaptured error) posted while nothing is outstanding is delivered with
  *   the next operation.
+ *
+ * A runtime nothing can settle on (the UI runtime once a job found
+ * `__webgpuScheduleOnUI` missing, a main runtime without its CallInvoker)
+ * gets no promise at all: postTask() throws, rather than handing out one
+ * that never settles (see canSettle).
  *
  * Threading contract: postTask() runs on the runtime's thread (it is the
  * entry point of every async method, called with the calling runtime, see
@@ -92,8 +99,15 @@ public:
   // Starts an asynchronous operation whose promise settles on this runtime:
   // `callback` gets the resolve and reject functions, starts the work, and
   // returns the Dawn future to wait for, if the work is Dawn's (it is awaited
-  // like awaitFuture does). Called on the runtime's thread.
+  // like awaitFuture does). Called on the runtime's thread. Throws when
+  // nothing could settle the promise (see canSettle).
   AsyncTaskHandle postTask(const TaskCallback &callback);
+
+  // Whether a job posted here reaches the runtime at all: false on the UI
+  // runtime once a job found that react-native-worklets did not install
+  // `__webgpuScheduleOnUI` (that job was lost, and said so), and on the main
+  // runtime before its CallInvoker is registered.
+  bool canSettle() const;
 
   // Has the callback of `future` run: now, when it is complete already, else
   // on the instance's waiter thread once it is. Any thread.
@@ -112,7 +126,7 @@ private:
   static Kind kindOf(jsi::Runtime &runtime);
 
   void armTick(jsi::Runtime &runtime);
-  void drainMailbox(jsi::Runtime &runtime);
+  std::exception_ptr drainMailbox(jsi::Runtime &runtime);
 
   jsi::Runtime &_runtime;
   wgpu::Instance _instance;
