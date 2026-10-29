@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
@@ -32,6 +33,13 @@ namespace rnwgpu {
 // and one pipeline per destination format.
 class VideoFrameBlit {
 public:
+  // Called after each pipeline this creates, so the device can tell its
+  // pipeline cache has something new to persist. Set once, before the first
+  // copy.
+  void setPipelineCreatedCallback(std::function<void()> callback) {
+    _onPipelineCreated = std::move(callback);
+  }
+
   // What becomes of the frame's alpha channel.
   enum class Alpha {
     // The destination is opaque (a video frame): alpha is written as 1.
@@ -354,12 +362,16 @@ fn srgbToLinear(c: vec3f) -> vec3f {
     resources.bindGroupLayout = _bindGroupLayout;
     resources.sampler = _sampler;
     resources.pipeline = device.CreateRenderPipeline(&pipelineDesc);
+    if (_onPipelineCreated) {
+      _onPipelineCreated();
+    }
     auto inserted = _resources.emplace(static_cast<WGPUTextureFormat>(format),
                                        std::move(resources));
     return inserted.first->second;
   }
 
   std::mutex _mutex;
+  std::function<void()> _onPipelineCreated;
   wgpu::ShaderModule _module;
   wgpu::BindGroupLayout _bindGroupLayout;
   wgpu::PipelineLayout _pipelineLayout;

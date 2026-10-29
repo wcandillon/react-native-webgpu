@@ -29,7 +29,9 @@ FetchContent_MakeAvailable(googletest)
 add_executable(
   cpp-tests
   DawnBlobCacheTest.cpp
+  IdleFlusherTest.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../../cpp/rnwgpu/DawnBlobCache.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cpp/rnwgpu/IdleFlusher.cpp
 )
 target_include_directories(
   cpp-tests
