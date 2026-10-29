@@ -139,6 +139,10 @@ To show the views behind the canvas, configure the context with `alphaMode: "pre
 
 `context.configure({ colorSpace })` says which primaries the canvas's values are in: `"srgb"` (the default) or `"display-p3"`. Both use the sRGB transfer function, as on the Web. On iOS the layer is tagged Display P3 (extended Display P3 for an `rgba16float` canvas), so a shader's output reaches a wide-gamut display unconverted and matches other Display P3 content, such as a Skia canvas. Android currently ignores `colorSpace`.
 
+## HDR (extended dynamic range)
+
+`context.configure({ toneMapping: { mode } })` says what happens to values above 1.0 on an `rgba16float` canvas: `"standard"` (the default) clamps them to the display's SDR range, `"extended"` lets them use the display's headroom, as in a browser. On iOS 16 and later the `CAMetalLayer` opts into extended dynamic range content for `"extended"`; the mode is accepted and has no effect on an 8-bit canvas, which cannot hold values above 1.0. Android currently ignores `toneMapping`.
+
 ### Android rendering options
 
 On Android, `Canvas` can be backed by one of three native views, with different trade-offs between speed and how well the canvas composites with the views around it. The `android` prop names it, along with its options; it is ignored on iOS and web.
