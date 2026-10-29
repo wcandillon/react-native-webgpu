@@ -30,7 +30,8 @@ constexpr const char *TAG = "RuntimeContext";
 // The main JS runtime and its CallInvoker, registered once on install.
 jsi::Runtime *sMainRuntime = nullptr;
 std::shared_ptr<facebook::react::CallInvoker> sMainInvoker;
-// Set once a job for the UI runtime found no way to run there.
+// Set once a wake for the UI runtime found no way to run there: the UI
+// runtime then settles its promises on its own timer alone.
 std::atomic<bool> sUIUnreachable{false};
 
 /**
@@ -153,8 +154,6 @@ bool RuntimeContext::canSettle() const {
   case Kind::Main:
     return sMainInvoker != nullptr;
   case Kind::UI:
-    return sMainInvoker != nullptr &&
-           !sUIUnreachable.load(std::memory_order_acquire);
   case Kind::Mailbox:
     return true;
   }
@@ -163,13 +162,8 @@ bool RuntimeContext::canSettle() const {
 
 AsyncTaskHandle RuntimeContext::postTask(const TaskCallback &callback) {
   if (!canSettle()) {
-    throw std::runtime_error(
-        _kind == Kind::UI
-            ? "Nothing can settle a promise on the UI runtime: "
-              "react-native-worklets did not install __webgpuScheduleOnUI "
-              "(see registerWebGPUForReanimated)."
-            : "Nothing can settle a promise on this runtime: react-native-"
-              "webgpu is not installed on it.");
+    throw std::runtime_error("Nothing can settle a promise on this runtime: "
+                             "react-native-webgpu is not installed on it.");
   }
   auto handle = AsyncTaskHandle::create(shared_from_this());
   if (!handle.valid()) {
@@ -178,7 +172,7 @@ AsyncTaskHandle RuntimeContext::postTask(const TaskCallback &callback) {
   // A runtime that polls its mailbox starts doing so now, on its own thread;
   // the settle action ends the operation (onTaskSettled).
   _outstanding.fetch_add(1, std::memory_order_acq_rel);
-  if (_kind == Kind::Mailbox) {
+  if (_kind != Kind::Main) {
     armTick(_runtime);
   }
 
@@ -219,49 +213,72 @@ void RuntimeContext::post(Job job) {
     sMainInvoker->invokeAsync(facebook::react::CallFunc(std::move(job)));
     return;
   case Kind::UI:
-    if (sMainInvoker == nullptr) {
-      return;
-    }
-    // On the main runtime: worklets runs the function handed to
-    // __webgpuScheduleOnUI on the UI runtime. It is a host function, which
-    // worklets passes by reference.
-    sMainInvoker->invokeAsync(facebook::react::CallFunc(
-        [job = std::move(job)](jsi::Runtime &mainRuntime) mutable {
-          auto schedule = mainRuntime.global().getProperty(
-              mainRuntime, "__webgpuScheduleOnUI");
-          if (!schedule.isObject() ||
-              !schedule.asObject(mainRuntime).isFunction(mainRuntime)) {
-            // This job is lost; the promises made on the UI runtime from
-            // now on are refused instead (see canSettle).
-            if (!sUIUnreachable.exchange(true, std::memory_order_acq_rel)) {
-              Logger::logToConsole(
-                  "[%s] Nothing can run on the UI runtime: "
-                  "react-native-worklets did not install "
-                  "__webgpuScheduleOnUI (see registerWebGPUForReanimated).",
-                  TAG);
-            }
-            return;
-          }
-          auto function = jsi::Function::createFromHostFunction(
-              mainRuntime, jsi::PropNameID::forAscii(mainRuntime, "webgpuJob"),
-              0,
-              [job = std::move(job)](jsi::Runtime &uiRuntime,
-                                     const jsi::Value &, const jsi::Value *,
-                                     size_t) -> jsi::Value {
-                job(uiRuntime);
-                return jsi::Value::undefined();
-              });
-          schedule.asObject(mainRuntime)
-              .asFunction(mainRuntime)
-              .call(mainRuntime, std::move(function));
-        }));
-    return;
   case Kind::Mailbox: {
-    std::lock_guard<std::mutex> lock(_mailboxMutex);
-    _mailbox.push_back(std::move(job));
+    {
+      std::lock_guard<std::mutex> lock(_mailboxMutex);
+      _mailbox.push_back(std::move(job));
+    }
+    if (_kind == Kind::UI) {
+      wakeUI();
+    }
     return;
   }
   }
+}
+
+// Best effort, and coalesced (one wake in flight at a time): on the main
+// runtime, worklets runs the function handed to __webgpuScheduleOnUI on the
+// UI runtime, where it drains the mailbox ahead of the next tick. The
+// function is a host function, which worklets passes by reference. Without
+// the hook the tick alone settles what is awaited, and a spontaneous event
+// waits for the next awaited operation.
+void RuntimeContext::wakeUI() {
+  if (sMainInvoker == nullptr ||
+      sUIUnreachable.load(std::memory_order_acquire)) {
+    return;
+  }
+  bool expected = false;
+  if (!_wakePending.compare_exchange_strong(expected, true,
+                                            std::memory_order_acq_rel)) {
+    return;
+  }
+  auto self = shared_from_this();
+  sMainInvoker->invokeAsync(
+      facebook::react::CallFunc([self](jsi::Runtime &mainRuntime) {
+        auto schedule = mainRuntime.global().getProperty(
+            mainRuntime, "__webgpuScheduleOnUI");
+        if (!schedule.isObject() ||
+            !schedule.asObject(mainRuntime).isFunction(mainRuntime)) {
+          self->_wakePending.store(false, std::memory_order_release);
+          if (!sUIUnreachable.exchange(true, std::memory_order_acq_rel)) {
+            Logger::logToConsole(
+                "[%s] react-native-worklets did not install "
+                "__webgpuScheduleOnUI (see registerWebGPUForReanimated): the "
+                "UI runtime settles its promises on its own timer, and "
+                "device.lost and uncapturederror reach it with its next "
+                "awaited operation only.",
+                TAG);
+          }
+          return;
+        }
+        auto wake = jsi::Function::createFromHostFunction(
+            mainRuntime, jsi::PropNameID::forAscii(mainRuntime, "webgpuWake"),
+            0,
+            [self](jsi::Runtime &uiRuntime, const jsi::Value &,
+                   const jsi::Value *, size_t) -> jsi::Value {
+              // Cleared before the drain: a job posted meanwhile is either
+              // in this drain or gets a wake of its own.
+              self->_wakePending.store(false, std::memory_order_release);
+              auto error = self->drainMailbox(uiRuntime);
+              if (error != nullptr) {
+                std::rethrow_exception(error);
+              }
+              return jsi::Value::undefined();
+            });
+        schedule.asObject(mainRuntime)
+            .asFunction(mainRuntime)
+            .call(mainRuntime, std::move(wake));
+      }));
 }
 
 void RuntimeContext::armTick(jsi::Runtime &runtime) {

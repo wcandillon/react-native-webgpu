@@ -44,25 +44,28 @@ namespace rnwgpu::async {
  * runtime's own thread. How depends on the runtime:
  *
  * - The main React Native runtime: its CallInvoker (registerMainRuntime).
- * - The Reanimated UI runtime: through the main runtime, where
- *   `__webgpuScheduleOnUI` (installed by registerWebGPUForReanimated) hands
- *   a native function to worklets' scheduleOnUI, which runs it on the UI
- *   runtime.
- * - Any other runtime (createWorkletRuntime, a Vision Camera frame
- *   processor, a runtime without worklets' `__RUNTIME_KIND` marker that is
- *   not the main one): nothing posts to it from native, but the runtime has
- *   a setTimeout. Actions go into a mailbox, and a timer armed
- *   on the runtime itself when an operation starts (postTask runs on that
- *   thread) drains the mailbox, re-arming itself while an operation is
- *   outstanding. The runtime polls its mailbox meanwhile, which lasts only
- *   as long as the operations do; a spontaneous event (device.lost, an
- *   uncaptured error) posted while nothing is outstanding is delivered with
- *   the next operation.
+ * - Any other runtime (the Reanimated UI runtime, createWorkletRuntime, a
+ *   Vision Camera frame processor, a runtime without worklets'
+ *   `__RUNTIME_KIND` marker that is not the main one): nothing posts to it
+ *   from native, but the runtime has a setTimeout. Actions go into a
+ *   mailbox, and a timer armed on the runtime itself when an operation
+ *   starts (postTask runs on that thread) drains the mailbox, re-arming
+ *   itself while an operation is outstanding. The runtime polls its mailbox
+ *   meanwhile, which lasts only as long as the operations do, and never
+ *   waits for the main JS thread: on the UI runtime the timer is one frame
+ *   of worklets' requestAnimationFrame. A spontaneous event (device.lost,
+ *   an uncaptured error) posted while nothing is outstanding is delivered
+ *   with the next operation.
+ * - The Reanimated UI runtime, ahead of its timer: through the main
+ *   runtime, where `__webgpuScheduleOnUI` (installed by
+ *   registerWebGPUForReanimated) hands a native function to worklets'
+ *   scheduleOnUI, which drains the mailbox on the UI runtime right away
+ *   (wakeUI). Best effort, and what delivers a spontaneous event there
+ *   while nothing is outstanding; a busy main JS thread only delays this
+ *   wake, never the timer.
  *
- * A runtime nothing can settle on (the UI runtime once a job found
- * `__webgpuScheduleOnUI` missing, a main runtime without its CallInvoker)
- * gets no promise at all: postTask() throws, rather than handing out one
- * that never settles (see canSettle).
+ * A main runtime without its CallInvoker gets no promise at all: postTask()
+ * throws, rather than handing out one that never settles (see canSettle).
  *
  * Threading contract: postTask() runs on the runtime's thread (it is the
  * entry point of every async method, called with the calling runtime, see
@@ -103,9 +106,7 @@ public:
   // nothing could settle the promise (see canSettle).
   AsyncTaskHandle postTask(const TaskCallback &callback);
 
-  // Whether a job posted here reaches the runtime at all: false on the UI
-  // runtime once a job found that react-native-worklets did not install
-  // `__webgpuScheduleOnUI` (that job was lost, and said so), and on the main
+  // Whether a job posted here reaches the runtime at all: false on the main
   // runtime before its CallInvoker is registered.
   bool canSettle() const;
 
@@ -127,15 +128,18 @@ private:
 
   void armTick(jsi::Runtime &runtime);
   std::exception_ptr drainMailbox(jsi::Runtime &runtime);
+  void wakeUI();
 
   jsi::Runtime &_runtime;
   wgpu::Instance _instance;
   const Kind _kind;
-  // The mailbox and its timer (Kind::Mailbox only).
+  // The mailbox and its timer (Kind::UI and Kind::Mailbox).
   std::atomic<std::size_t> _outstanding{0};
   std::atomic<bool> _tickArmed{false};
   std::mutex _mailboxMutex;
   std::vector<Job> _mailbox;
+  // A wake through __webgpuScheduleOnUI not run yet (Kind::UI).
+  std::atomic<bool> _wakePending{false};
 };
 
 } // namespace rnwgpu::async
