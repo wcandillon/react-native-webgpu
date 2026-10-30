@@ -18,6 +18,13 @@ const config: NextConfig = {
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath,
   },
+  // React Native code (the Canvas included) reads the `__DEV__` global that
+  // Metro defines; without it the client bundle throws a ReferenceError.
+  compiler: {
+    define: {
+      __DEV__: JSON.stringify(process.env.NODE_ENV !== "production"),
+    },
+  },
   images: { unoptimized: true },
   transpilePackages: [
     "react-native-webgpu",
