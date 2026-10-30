@@ -1,10 +1,18 @@
 #include "RuntimeContext.h"
 
+#include <condition_variable>
+#include <cstdint>
+#include <deque>
 #include <memory>
 #include <stdexcept>
+#include <thread>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#if defined(__APPLE__) || defined(__ANDROID__)
+#include <pthread.h>
+#endif
 
 #include <ReactCommon/CallInvoker.h>
 
@@ -19,47 +27,130 @@ struct RuntimeData {
 };
 constexpr const char *TAG = "RuntimeContext";
 
-// The main JS runtime and its CallInvoker, registered once on install. The
-// context created for sMainRuntime gets sMainInvoker; spontaneous events
-// (device.lost) on a main-runtime device are delivered through it without the
-// pump. Worklet runtimes have no invoker (best-effort, see the header doc).
+// The main JS runtime and its CallInvoker, registered on install (again
+// after a reload) on the JS thread, and read from any thread: the waiter
+// thread posts through them.
+std::mutex sMainMutex;
 jsi::Runtime *sMainRuntime = nullptr;
 std::shared_ptr<facebook::react::CallInvoker> sMainInvoker;
+// Whether a wake that could not run has been reported: once per process.
+std::atomic<bool> sWakeLogged{false};
 
-// ProcessEvents() on one wgpu::Instance is serialized across the runtimes that
-// share it by a mutex per instance, which each context resolves once, on
-// creation. Pumping another library's instance (the one owning a device passed
-// to importDevice) can block on that library's device lock; with one mutex per
-// instance that never stalls the pumps of our own instance. A mutex is held
-// only across the ProcessEvents call itself, never while running JS / mailbox
-// settle-actions, so it cannot deadlock against the per-context mailbox mutex.
-std::shared_ptr<std::mutex> processEventsMutexFor(WGPUInstance instance) {
-  static std::mutex registryMutex;
-  static std::unordered_map<WGPUInstance, std::weak_ptr<std::mutex>> registry;
-  std::lock_guard<std::mutex> lock(registryMutex);
-  auto &slot = registry[instance];
-  if (auto existing = slot.lock()) {
-    return existing;
-  }
-  // Contexts retain their instance, so its handle cannot be reused while one
-  // of them is alive: an expired slot belonged to an instance whose runtimes
-  // are all gone, and an instance reusing that address starts afresh.
-  auto created = std::make_shared<std::mutex>();
-  slot = created;
-  return created;
+jsi::Runtime *mainRuntime() {
+  std::lock_guard<std::mutex> lock(sMainMutex);
+  return sMainRuntime;
 }
+
+std::shared_ptr<facebook::react::CallInvoker> mainInvoker() {
+  std::lock_guard<std::mutex> lock(sMainMutex);
+  return sMainInvoker;
+}
+
+void logException(const char *what, const std::exception_ptr &error) {
+  try {
+    std::rethrow_exception(error);
+  } catch (const std::exception &exception) {
+    Logger::logToConsole("[%s] %s: %s", TAG, what, exception.what());
+  } catch (...) {
+    Logger::logToConsole("[%s] %s.", TAG, what);
+  }
+}
+
+/**
+ * The thread waiting on the futures of one instance: one future at a time,
+ * in the order they were handed over, in Instance::WaitAny, which sleeps
+ * until the GPU or Dawn's worker is done and then runs the callback. Never
+ * destroyed: the instance it retains is shared by every runtime, and a
+ * future may be outstanding during process teardown.
+ */
+class Waiter {
+public:
+  static Waiter &forInstance(const wgpu::Instance &instance) {
+    static std::mutex registryMutex;
+    static std::unordered_map<WGPUInstance, Waiter *> registry;
+    std::lock_guard<std::mutex> lock(registryMutex);
+    auto &slot = registry[instance.Get()];
+    if (slot == nullptr) {
+      slot = new Waiter(instance);
+    }
+    return *slot;
+  }
+
+  void enqueue(wgpu::Future future) {
+    {
+      std::lock_guard<std::mutex> lock(_mutex);
+      _futures.push_back(future);
+    }
+    _condition.notify_one();
+  }
+
+private:
+  explicit Waiter(wgpu::Instance instance) : _instance(std::move(instance)) {
+    std::thread([this]() { run(); }).detach();
+  }
+
+  void run() {
+#if defined(__APPLE__)
+    pthread_setname_np("RNWebGPU Waiter");
+#elif defined(__ANDROID__)
+    pthread_setname_np(pthread_self(), "RNWebGPU Waiter");
+#endif
+    for (;;) {
+      wgpu::Future future;
+      {
+        std::unique_lock<std::mutex> lock(_mutex);
+        _condition.wait(lock, [this]() { return !_futures.empty(); });
+        future = _futures.front();
+        _futures.pop_front();
+      }
+      auto status = _instance.WaitAny(future, UINT64_MAX);
+      if (status != wgpu::WaitStatus::Success) {
+        Logger::logToConsole("[%s] WaitAny failed with status %d", TAG,
+                             static_cast<int>(status));
+      }
+    }
+  }
+
+  wgpu::Instance _instance;
+  std::mutex _mutex;
+  std::condition_variable _condition;
+  std::deque<wgpu::Future> _futures;
+};
 } // namespace
 
 void RuntimeContext::registerMainRuntime(
     jsi::Runtime *runtime,
     std::shared_ptr<facebook::react::CallInvoker> invoker) {
+  std::lock_guard<std::mutex> lock(sMainMutex);
   sMainRuntime = runtime;
   sMainInvoker = std::move(invoker);
 }
 
+RuntimeContext::Kind RuntimeContext::kindOf(jsi::Runtime &runtime) {
+  auto main = mainRuntime();
+  if (&runtime == main) {
+    return Kind::Main;
+  }
+  // react-native-worklets' RuntimeKind: 1 for React Native, 2 for the UI
+  // runtime, more for the runtimes of the app.
+  auto kind = runtime.global().getProperty(runtime, "__RUNTIME_KIND");
+  if (kind.isNumber() && kind.asNumber() == 2) {
+    return Kind::UI;
+  }
+  if (main == nullptr && (!kind.isNumber() || kind.asNumber() == 1)) {
+    // No main runtime registered (yet): the React Native runtime, as far as
+    // anything can tell.
+    return Kind::Main;
+  }
+  // Another runtime, marked or not: settling it through the main runtime's
+  // CallInvoker would settle it with the main runtime while its promise
+  // lives on this one. Its own setTimeout reaches it.
+  return Kind::Mailbox;
+}
+
 RuntimeContext::RuntimeContext(jsi::Runtime &runtime, wgpu::Instance instance)
     : _runtime(runtime), _instance(std::move(instance)),
-      _processEventsMutex(processEventsMutexFor(_instance.Get())) {
+      _kind(kindOf(runtime)) {
   Logger::logToConsole("[%s] Created (runtime=%p)", TAG, &runtime);
 }
 
@@ -73,39 +164,51 @@ RuntimeContext::getOrCreate(jsi::Runtime &runtime,
     runtime.setRuntimeData(runtimeDataUUID(), data);
   }
   // Contexts retain their instance, so its handle is a stable key for the
-  // runtime's lifetime, and each instance's callbacks reach the matching pump.
-  // A slot left null by a throwing constructor is simply filled next time.
+  // runtime's lifetime. A slot left null by a throwing constructor is simply
+  // filled next time.
   auto &context = data->contexts[instance.Get()];
   if (!context) {
     context = std::make_shared<RuntimeContext>(runtime, instance);
-    // Only the main JS runtime's context carries the CallInvoker; it is used to
-    // deliver spontaneous events (device.lost) without the pump.
-    if (&runtime == sMainRuntime) {
-      context->_callInvoker = sMainInvoker;
-    }
   }
   return context;
 }
 
-AsyncTaskHandle RuntimeContext::postTask(const TaskCallback &callback,
-                                         bool keepPumping) {
-  auto handle = AsyncTaskHandle::create(shared_from_this(), keepPumping);
+bool RuntimeContext::canSettle() const {
+  switch (_kind) {
+  case Kind::Main:
+    return mainInvoker() != nullptr;
+  case Kind::UI:
+  case Kind::Mailbox:
+    return true;
+  }
+  return false;
+}
+
+AsyncTaskHandle RuntimeContext::postTask(const TaskCallback &callback) {
+  if (!canSettle()) {
+    throw std::runtime_error("Nothing can settle a promise on this runtime: "
+                             "react-native-webgpu is not installed on it.");
+  }
+  // A runtime that polls its mailbox starts doing so now, on its own thread;
+  // the settle action ends the operation (onTaskSettled). Without a timer
+  // nothing could ever settle the promise: none is handed out.
+  if (_kind != Kind::Main && !armTick(_runtime)) {
+    throw std::runtime_error("Nothing can settle a promise on this runtime: "
+                             "it has no setTimeout.");
+  }
+  auto handle = AsyncTaskHandle::create(shared_from_this());
   if (!handle.valid()) {
     throw std::runtime_error("Failed to create AsyncTaskHandle.");
   }
-
-  // Only pumping tasks (request/response ops) drive the ProcessEvents pump.
-  // Spontaneous tasks (keepPumping == false, e.g. device.lost) never touch the
-  // pump: they settle via the CallInvoker (see AsyncTaskHandle::State::schedule).
-  if (keepPumping) {
-    _pumpTasks.fetch_add(1, std::memory_order_acq_rel);
-    requestTick();
-  }
+  _outstanding.fetch_add(1, std::memory_order_acq_rel);
 
   auto resolve = handle.createResolveFunction();
   auto reject = handle.createRejectFunction();
   try {
-    callback(resolve, reject);
+    auto future = callback(resolve, reject);
+    if (future.has_value()) {
+      awaitFuture(*future);
+    }
   } catch (const std::exception &exception) {
     reject(exception.what());
   } catch (...) {
@@ -114,92 +217,198 @@ AsyncTaskHandle RuntimeContext::postTask(const TaskCallback &callback,
   return handle;
 }
 
-void RuntimeContext::onTaskSettled(bool keepPumping) {
-  if (keepPumping) {
-    _pumpTasks.fetch_sub(1, std::memory_order_acq_rel);
-  }
-}
-
-void RuntimeContext::postSettle(std::function<void()> job) {
-  if (!job) {
+void RuntimeContext::awaitFuture(wgpu::Future future) {
+  // Complete already (requestAdapter, popErrorScope, a lost device): the
+  // callback runs here, and nothing waits.
+  if (_instance.WaitAny(future, 0) == wgpu::WaitStatus::Success) {
     return;
   }
-  std::lock_guard<std::mutex> lock(_mailboxMutex);
-  _mailbox.push_back(std::move(job));
+  Waiter::forInstance(_instance).enqueue(future);
 }
 
-void RuntimeContext::drainMailbox() {
-  std::vector<std::function<void()>> jobs;
+void RuntimeContext::onTaskSettled() {
+  _outstanding.fetch_sub(1, std::memory_order_acq_rel);
+}
+
+void RuntimeContext::post(Job job) {
+  switch (_kind) {
+  case Kind::Main: {
+    auto invoker = mainInvoker();
+    if (invoker == nullptr) {
+      return;
+    }
+    invoker->invokeAsync(facebook::react::CallFunc(std::move(job)));
+    return;
+  }
+  case Kind::UI:
+  case Kind::Mailbox: {
+    {
+      std::lock_guard<std::mutex> lock(_mailboxMutex);
+      _mailbox.push_back(std::move(job));
+    }
+    if (_kind == Kind::UI) {
+      wakeUI();
+    }
+    return;
+  }
+  }
+}
+
+// Best effort, and coalesced (one wake in flight at a time): on the main
+// runtime, worklets runs the function handed to __webgpuScheduleOnUI on the
+// UI runtime, where it drains the mailbox ahead of the next tick. The
+// function is a host function, which worklets passes by reference. Without
+// the hook (registerWebGPUForReanimated has not run on this main runtime
+// yet, a reload evaluating its bundle, say) the tick alone settles what is
+// awaited, a spontaneous event waits for the next awaited operation, and
+// the next post tries again. Whatever goes wrong on the way, the wake is
+// given up, never the jobs.
+void RuntimeContext::wakeUI() {
+  auto invoker = mainInvoker();
+  if (invoker == nullptr) {
+    return;
+  }
+  bool expected = false;
+  if (!_wakePending.compare_exchange_strong(expected, true,
+                                            std::memory_order_acq_rel)) {
+    return;
+  }
+  std::weak_ptr<RuntimeContext> weak = weak_from_this();
+  invoker->invokeAsync(
+      facebook::react::CallFunc([weak](jsi::Runtime &mainRuntime) {
+        auto self = weak.lock();
+        if (self == nullptr) {
+          return;
+        }
+        try {
+          auto schedule = mainRuntime.global().getProperty(
+              mainRuntime, "__webgpuScheduleOnUI");
+          if (!schedule.isObject() ||
+              !schedule.asObject(mainRuntime).isFunction(mainRuntime)) {
+            self->_wakePending.store(false, std::memory_order_release);
+            if (!sWakeLogged.exchange(true, std::memory_order_acq_rel)) {
+              Logger::logToConsole(
+                  "[%s] __webgpuScheduleOnUI is not installed on the main "
+                  "runtime (see registerWebGPUForReanimated): the UI "
+                  "runtime settles its promises on its own timer for now, "
+                  "and device.lost and uncapturederror reach it with its "
+                  "next awaited operation.",
+                  TAG);
+            }
+            return;
+          }
+          auto wake = jsi::Function::createFromHostFunction(
+              mainRuntime, jsi::PropNameID::forAscii(mainRuntime, "webgpuWake"),
+              0,
+              [weak](jsi::Runtime &uiRuntime, const jsi::Value &,
+                     const jsi::Value *, size_t) -> jsi::Value {
+                auto self = weak.lock();
+                // The UI runtime of the moment: after a reload, not the one
+                // this mailbox belongs to.
+                if (self == nullptr || &uiRuntime != &self->_runtime) {
+                  return jsi::Value::undefined();
+                }
+                // Cleared before the drain: a job posted meanwhile is either
+                // in this drain or gets a wake of its own.
+                self->_wakePending.store(false, std::memory_order_release);
+                auto error = self->drainMailbox(uiRuntime);
+                if (error != nullptr) {
+                  // Reported, not rethrown: the wake runs among the other
+                  // jobs of worklets' scheduleOnUI batch, which the
+                  // exception would cut short. (The tick rethrows its own
+                  // as the timer's.)
+                  logException("A job run by the wake on the UI runtime threw",
+                               error);
+                }
+                return jsi::Value::undefined();
+              });
+          schedule.asObject(mainRuntime)
+              .asFunction(mainRuntime)
+              .call(mainRuntime, std::move(wake));
+        } catch (const std::exception &error) {
+          self->_wakePending.store(false, std::memory_order_release);
+          if (!sWakeLogged.exchange(true, std::memory_order_acq_rel)) {
+            Logger::logToConsole(
+                "[%s] Waking the UI runtime through __webgpuScheduleOnUI "
+                "failed, so it settles its promises on its own timer for "
+                "now: %s",
+                TAG, error.what());
+          }
+        }
+      }));
+}
+
+bool RuntimeContext::armTick(jsi::Runtime &runtime) {
+  bool expected = false;
+  if (!_tickArmed.compare_exchange_strong(expected, true,
+                                          std::memory_order_acq_rel)) {
+    return true;
+  }
+  // The runtime's own timer, on its own thread. Not queueMicrotask: a
+  // self-rescheduling microtask never yields the microtask checkpoint, which
+  // starves the runtime's task loop.
+  try {
+    auto setTimeout = runtime.global().getProperty(runtime, "setTimeout");
+    if (!setTimeout.isObject() ||
+        !setTimeout.asObject(runtime).isFunction(runtime)) {
+      _tickArmed.store(false, std::memory_order_release);
+      Logger::logToConsole("[%s] This runtime has no setTimeout: nothing "
+                           "asynchronous can settle on it.",
+                           TAG);
+      return false;
+    }
+    std::weak_ptr<RuntimeContext> weak = weak_from_this();
+    auto tick = jsi::Function::createFromHostFunction(
+        runtime, jsi::PropNameID::forAscii(runtime, "RNWGPUAsyncTick"), 0,
+        [weak](jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *,
+               size_t) -> jsi::Value {
+          auto self = weak.lock();
+          if (self == nullptr) {
+            return jsi::Value::undefined();
+          }
+          self->_tickArmed.store(false, std::memory_order_release);
+          auto error = self->drainMailbox(runtime);
+          if (self->_outstanding.load(std::memory_order_acquire) > 0) {
+            self->armTick(runtime);
+          }
+          if (error != nullptr) {
+            // Thrown by a job, after the others ran and the next tick is
+            // armed: the runtime reports it as the timer's.
+            std::rethrow_exception(error);
+          }
+          return jsi::Value::undefined();
+        });
+    setTimeout.asObject(runtime).asFunction(runtime).call(
+        runtime, std::move(tick), jsi::Value(0.0));
+    return true;
+  } catch (const std::exception &error) {
+    _tickArmed.store(false, std::memory_order_release);
+    Logger::logToConsole("[%s] This runtime's setTimeout threw, so nothing "
+                         "asynchronous can settle on it: %s",
+                         TAG, error.what());
+    return false;
+  }
+}
+
+// Runs the jobs posted so far, every one of them even when one throws: the
+// first exception is returned for the caller to rethrow once the rest ran.
+std::exception_ptr RuntimeContext::drainMailbox(jsi::Runtime &runtime) {
+  std::vector<Job> jobs;
   {
     std::lock_guard<std::mutex> lock(_mailboxMutex);
     jobs.swap(_mailbox);
   }
-  // Run settle-actions on this (the owning) thread, NOT under the ProcessEvents
-  // mutex, so JS continuations never execute while the pump lock is held.
+  std::exception_ptr first = nullptr;
   for (auto &job : jobs) {
-    job();
+    try {
+      job(runtime);
+    } catch (...) {
+      if (first == nullptr) {
+        first = std::current_exception();
+      }
+    }
   }
-}
-
-void RuntimeContext::requestTick() {
-  bool expected = false;
-  if (!_tickScheduled.compare_exchange_strong(expected, true,
-                                              std::memory_order_acq_rel)) {
-    return;
-  }
-
-  // The pump only ever runs while a request/response op is outstanding, so it
-  // always schedules as soon as possible (delay 0). postTask and tick both run
-  // on the owning runtime's thread, so we schedule the next tick directly via
-  // that runtime's own timer. setTimeout is available on the main RN runtime and
-  // on worklet runtimes (backed by the worklets EventLoop); setImmediate /
-  // queueMicrotask are fallbacks. We do NOT use queueMicrotask as the primary
-  // mechanism: a self-rescheduling microtask never yields the microtask
-  // checkpoint, starving the runtime's task loop.
-  auto self = shared_from_this();
-  jsi::Runtime &rt = _runtime;
-  auto tickCallback = jsi::Function::createFromHostFunction(
-      rt, jsi::PropNameID::forAscii(rt, "RNWGPUAsyncTick"), 0,
-      [self](jsi::Runtime & /*runtime*/, const jsi::Value & /*thisVal*/,
-             const jsi::Value * /*args*/, size_t /*count*/) -> jsi::Value {
-        self->tick();
-        return jsi::Value::undefined();
-      });
-
-  auto global = rt.global();
-  auto setTimeoutValue = global.getProperty(rt, "setTimeout");
-  if (setTimeoutValue.isObject() &&
-      setTimeoutValue.asObject(rt).isFunction(rt)) {
-    setTimeoutValue.asObject(rt).asFunction(rt).call(
-        rt, jsi::Value(rt, tickCallback), jsi::Value(0.0));
-    return;
-  }
-  auto setImmediateValue = global.getProperty(rt, "setImmediate");
-  if (setImmediateValue.isObject() &&
-      setImmediateValue.asObject(rt).isFunction(rt)) {
-    setImmediateValue.asObject(rt).asFunction(rt).call(
-        rt, jsi::Value(rt, tickCallback));
-    return;
-  }
-  rt.queueMicrotask(std::move(tickCallback));
-}
-
-void RuntimeContext::tick() {
-  _tickScheduled.store(false, std::memory_order_release);
-  {
-    // Serialize ProcessEvents across runtimes sharing this instance. Callbacks
-    // fired here only deposit into mailboxes (postSettle), they do not run JS.
-    std::lock_guard<std::mutex> lock(*_processEventsMutex);
-    _instance.ProcessEvents();
-  }
-  // Settle this runtime's ready promises on this thread, outside the pump lock.
-  drainMailbox();
-  // Keep pumping only while a "pumping" task (active async work) is outstanding.
-  // Non-pumping tasks (e.g. device.lost) intentionally do NOT keep the pump
-  // alive: we prioritise battery over catching a device.lost fired while idle.
-  if (_pumpTasks.load(std::memory_order_acquire) > 0) {
-    requestTick();
-  }
+  return first;
 }
 
 jsi::UUID RuntimeContext::runtimeDataUUID() {
