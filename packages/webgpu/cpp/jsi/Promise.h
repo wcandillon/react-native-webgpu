@@ -15,7 +15,10 @@ public:
   Promise(jsi::Runtime& runtime, jsi::Function&& resolver, jsi::Function&& rejecter);
 
   void resolve(jsi::Value&& result);
+  /** Rejects with a new Error carrying `error` as its message. */
   void reject(std::string error);
+  /** Rejects with the JS error `error` carries, as thrown. */
+  void reject(const jsi::JSError& error);
 
 public:
   jsi::Runtime& runtime;

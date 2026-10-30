@@ -64,8 +64,15 @@ namespace rnwgpu::async {
  *   while nothing is outstanding; a busy main JS thread only delays this
  *   wake, never the timer.
  *
- * A main runtime without its CallInvoker gets no promise at all: postTask()
- * throws, rather than handing out one that never settles (see canSettle).
+ * A runtime nothing can settle on gets no promise at all: postTask() throws,
+ * rather than handing out one that never settles. That is the main runtime
+ * without its CallInvoker (see canSettle), and any other runtime without a
+ * setTimeout (see armTick).
+ *
+ * The runtime owns its context; the functions handed to its setTimeout and
+ * to worklets only borrow it (weak_ptr), so that a wake or a tick left queued
+ * when the runtime goes away finds nothing to do, and a wake that worklets
+ * runs on a UI runtime created since (a reload) drains nothing there.
  *
  * Threading contract: postTask() runs on the runtime's thread (it is the
  * entry point of every async method, called with the calling runtime, see
@@ -126,7 +133,9 @@ private:
   static jsi::UUID runtimeDataUUID();
   static Kind kindOf(jsi::Runtime &runtime);
 
-  void armTick(jsi::Runtime &runtime);
+  // False when no tick can run on the runtime: it has no setTimeout, or
+  // calling it threw.
+  bool armTick(jsi::Runtime &runtime);
   std::exception_ptr drainMailbox(jsi::Runtime &runtime);
   void wakeUI();
 

@@ -41,4 +41,8 @@ void Promise::reject(std::string message) {
   _rejecter.call(runtime, error.value());
 }
 
+void Promise::reject(const jsi::JSError& error) {
+  _rejecter.call(runtime, error.value());
+}
+
 } // namespace rnwgpu

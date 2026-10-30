@@ -101,6 +101,14 @@ void AsyncTaskHandle::State::schedule(Action action) {
                  promiseRef](jsi::Runtime &runtime) mutable {
     try {
       action(runtime, *promiseRef);
+    } catch (const jsi::JSError &error) {
+      try {
+        // The JS error itself (a RangeError for a typed array too large,
+        // say), name and stack kept.
+        promiseRef->reject(error);
+      } catch (...) {
+        // Rejected already, or the runtime refused: nothing more to do.
+      }
     } catch (const std::exception &error) {
       try {
         promiseRef->reject(error.what());
