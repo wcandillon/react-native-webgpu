@@ -29,6 +29,56 @@
 
 std::shared_ptr<rnwgpu::RNWebGPUManager> manager;
 
+namespace {
+
+// An ARGB_8888 bitmap's pixels (premultiplied RGBA bytes), locked for the
+// object's lifetime.
+class LockedRgbaBitmap {
+public:
+  enum class Failure { None, Format, Lock };
+
+  LockedRgbaBitmap(JNIEnv *env, jobject bitmap) : _env(env), _bitmap(bitmap) {
+    if (AndroidBitmap_getInfo(env, bitmap, &_info) !=
+            ANDROID_BITMAP_RESULT_SUCCESS ||
+        _info.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
+      _failure = Failure::Format;
+      return;
+    }
+    void *pixels = nullptr;
+    if (AndroidBitmap_lockPixels(env, bitmap, &pixels) !=
+            ANDROID_BITMAP_RESULT_SUCCESS ||
+        pixels == nullptr) {
+      _failure = Failure::Lock;
+      return;
+    }
+    _pixels = static_cast<const uint8_t *>(pixels);
+  }
+
+  ~LockedRgbaBitmap() {
+    if (_pixels != nullptr) {
+      AndroidBitmap_unlockPixels(_env, _bitmap);
+    }
+  }
+
+  LockedRgbaBitmap(const LockedRgbaBitmap &) = delete;
+  LockedRgbaBitmap &operator=(const LockedRgbaBitmap &) = delete;
+
+  Failure failure() const { return _failure; }
+  const uint8_t *pixels() const { return _pixels; }
+  uint32_t width() const { return _info.width; }
+  uint32_t height() const { return _info.height; }
+  uint32_t stride() const { return _info.stride; }
+
+private:
+  JNIEnv *_env;
+  jobject _bitmap;
+  AndroidBitmapInfo _info{};
+  const uint8_t *_pixels = nullptr;
+  Failure _failure = Failure::None;
+};
+
+} // namespace
+
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     JNIEnv *env, jobject thiz, jlong jsRuntime, jobject jsCallInvokerHolder,
     jobject blobModule) {
@@ -68,36 +118,34 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_onViewSnapshot(
     callbacks->onError("drawElementImageToTexture: no bitmap was produced");
     return;
   }
-  AndroidBitmapInfo info;
-  if (AndroidBitmap_getInfo(env, bitmap, &info) !=
-          ANDROID_BITMAP_RESULT_SUCCESS ||
-      info.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
-    callbacks->onError(
-        "drawElementImageToTexture: unexpected snapshot bitmap format");
-    return;
-  }
-  void *pixels = nullptr;
-  if (AndroidBitmap_lockPixels(env, bitmap, &pixels) !=
-          ANDROID_BITMAP_RESULT_SUCCESS ||
-      pixels == nullptr) {
-    callbacks->onError(
-        "drawElementImageToTexture: couldn't lock the snapshot bitmap");
-    return;
-  }
   rnwgpu::ImageData image;
-  image.width = info.width;
-  image.height = info.height;
-  image.format = wgpu::TextureFormat::RGBA8Unorm;
-  // Bitmap.Config.ARGB_8888 stores premultiplied RGBA bytes.
-  image.premultiplied = true;
-  const size_t rowBytes = static_cast<size_t>(info.width) * 4;
-  image.data.resize(rowBytes * info.height);
-  const auto *src = static_cast<const uint8_t *>(pixels);
-  for (uint32_t row = 0; row < info.height; ++row) {
-    std::memcpy(image.data.data() + row * rowBytes, src + row * info.stride,
-                rowBytes);
+  {
+    LockedRgbaBitmap locked(env, bitmap);
+    switch (locked.failure()) {
+    case LockedRgbaBitmap::Failure::None:
+      break;
+    case LockedRgbaBitmap::Failure::Format:
+      callbacks->onError(
+          "drawElementImageToTexture: unexpected snapshot bitmap format");
+      return;
+    case LockedRgbaBitmap::Failure::Lock:
+      callbacks->onError(
+          "drawElementImageToTexture: couldn't lock the snapshot bitmap");
+      return;
+    }
+    image.width = locked.width();
+    image.height = locked.height();
+    image.format = wgpu::TextureFormat::RGBA8Unorm;
+    // Bitmap.Config.ARGB_8888 stores premultiplied RGBA bytes.
+    image.premultiplied = true;
+    const size_t rowBytes = static_cast<size_t>(locked.width()) * 4;
+    image.data.resize(rowBytes * locked.height());
+    for (uint32_t row = 0; row < locked.height(); ++row) {
+      std::memcpy(image.data.data() + row * rowBytes,
+                  locked.pixels() + static_cast<size_t>(row) * locked.stride(),
+                  rowBytes);
+    }
   }
-  AndroidBitmap_unlockPixels(env, bitmap);
   callbacks->onPixels(std::move(image));
 }
 
@@ -162,20 +210,22 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceChanged(
 
 namespace {
 
-// Weak handle on a Java view and one of its no-argument methods, for native
-// threads to call into it: the fence waiter wakes a WebGPUHardwareBufferView
-// when a frame is ready, the presenting thread tells a SurfaceView it is
-// animating (AnimationReporter). Holding the view weakly means a view that RN
+// Weak handle on a Java view and one of its void methods, for native threads
+// to call into it: the fence waiter wakes a WebGPUHardwareBufferView when a
+// frame is ready, the presenting thread tells a SurfaceView it is animating
+// (AnimationReporter) and that its first frame is presented
+// (FirstFrameDrawGate). Holding the view weakly means a view that RN
 // has dropped is not kept alive by a SurfaceInfo that outlives it (the
 // registry keeps the SurfaceInfo until onDropViewInstance).
 struct WeakViewCall {
   jweak view = nullptr;
   jmethodID method = nullptr;
 
-  WeakViewCall(JNIEnv *env, jobject thiz, const char *methodName) {
+  WeakViewCall(JNIEnv *env, jobject thiz, const char *methodName,
+               const char *signature = "()V") {
     view = env->NewWeakGlobalRef(thiz);
     jclass cls = env->GetObjectClass(thiz);
-    method = env->GetMethodID(cls, methodName, "()V");
+    method = env->GetMethodID(cls, methodName, signature);
     env->DeleteLocalRef(cls);
   }
 
@@ -189,7 +239,7 @@ struct WeakViewCall {
   }
 
   // Called on a native thread, outside the SurfaceInfo locks.
-  void operator()() const {
+  template <typename... Args> void operator()(Args... args) const {
     facebook::jni::ThreadScope scope;
     JNIEnv *env = facebook::jni::Environment::current();
     if (env == nullptr || method == nullptr) {
@@ -199,7 +249,7 @@ struct WeakViewCall {
     if (local == nullptr) {
       return; // the view was garbage collected
     }
-    env->CallVoidMethod(local, method);
+    env->CallVoidMethod(local, method, args...);
     if (env->ExceptionCheck()) {
       env->ExceptionClear();
     }
@@ -284,7 +334,7 @@ void setAnimationReporter(int contextId,
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     JNIEnv *env, jobject thiz, jobject jSurface, jint contextId, jfloat width,
-    jfloat height, jboolean reportAnimation) {
+    jfloat height, jboolean reportAnimation, jlong firstFrameToken) {
   if (manager == nullptr) {
     return;
   }
@@ -298,13 +348,26 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
   auto &runtime = rnwgpu::WebGPURuntime::shared();
   auto gpu = runtime.instance();
   auto surface = runtime.makeSurface(window);
+  // A SurfaceView behind its window holds its draw report until its first
+  // frame is presented (FirstFrameDrawGate): a frame, or the blit of the
+  // latest offscreen frame.
+  rnwgpu::NativeSurfaceFirstPresent firstPresent;
+  if (firstFrameToken != 0) {
+    auto onFirstFramePresented = std::make_shared<WeakViewCall>(
+        env, thiz, "onFirstFramePresented", "(J)V");
+    firstPresent = [onFirstFramePresented, firstFrameToken]() {
+      (*onFirstFramePresented)(firstFrameToken);
+    };
+  }
   // Find-or-create + attach runs atomically under the registry lock so a
   // concurrent destroyContext cannot orphan this surface.
   auto info = registry.attachSurface(
       contextId, gpu, static_cast<int>(width), static_cast<int>(height), window,
-      surface, [](void *nativeSurface) {
+      surface,
+      [](void *nativeSurface) {
         ANativeWindow_release(static_cast<ANativeWindow *>(nativeSurface));
-      });
+      },
+      std::move(firstPresent));
   // A SurfaceView asks to hear when it animates, for its refresh rate vote
   // (WebGPUView.onAnimating).
   if (reportAnimation) {
@@ -329,8 +392,41 @@ Java_com_webgpu_WebGPUView_switchToOffscreenSurface(JNIEnv *env, jobject thiz,
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   if (auto info = registry.getSurfaceInfo(contextId)) {
     info->setFramePresentedCallback(nullptr);
-    info->switchToOffscreen();
+    info->detach();
   }
+}
+
+// See SurfaceInfo::keepableFrameSize; width << 32 | height, 0 when there is no
+// frame to keep.
+extern "C" JNIEXPORT jlong JNICALL Java_com_webgpu_WebGPUView_keepableFrameSize(
+    JNIEnv *env, jobject thiz, jint contextId) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo(contextId);
+  if (!info) {
+    return 0;
+  }
+  const rnwgpu::Size size = info->keepableFrameSize();
+  return (static_cast<jlong>(size.width) << 32) |
+         static_cast<jlong>(static_cast<uint32_t>(size.height));
+}
+
+// See SurfaceInfo::keepFrame.
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_webgpu_WebGPUView_keepBitmapFrame(JNIEnv *env, jobject thiz,
+                                           jint contextId, jobject bitmap) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo(contextId);
+  if (!info) {
+    return JNI_FALSE;
+  }
+  LockedRgbaBitmap locked(env, bitmap);
+  if (locked.failure() != LockedRgbaBitmap::Failure::None) {
+    return JNI_FALSE;
+  }
+  return info->keepFrame(locked.pixels(), locked.width(), locked.height(),
+                         locked.stride())
+             ? JNI_TRUE
+             : JNI_FALSE;
 }
 
 // See AnimationReporter::releaseIfIdle; 0 when the surface reports nothing.
@@ -360,7 +456,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onViewDestroyed(
   auto &registry = rnwgpu::SurfaceRegistry::getInstance();
   if (auto info = registry.getSurfaceInfo(contextId)) {
     info->setFramePresentedCallback(nullptr);
-    info->detachSurface();
+    info->detach();
   }
   registry.removeSurfaceInfo(contextId);
 }
@@ -454,6 +550,6 @@ Java_com_webgpu_WebGPUHardwareBufferView_nSwitchToOffscreen(JNIEnv *env,
   auto info = registry.getSurfaceInfo(contextId);
   if (info != nullptr) {
     info->setPoolFrameReadyCallback(nullptr);
-    info->switchToOffscreen();
+    info->detach();
   }
 }
