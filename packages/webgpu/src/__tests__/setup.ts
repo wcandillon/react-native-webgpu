@@ -11,6 +11,7 @@ import { mat4, vec3, mat3 } from "wgpu-matrix";
 import type { Server, WebSocket } from "ws";
 import type { Browser, Page } from "puppeteer";
 
+import type { CanvasRef, RNCanvasContext } from "../Canvas";
 import type { GPUOffscreenCanvas } from "../Offscreen";
 
 import { cubeVertexArray } from "./components/cube";
@@ -98,13 +99,26 @@ interface GPUTestingContext {
     GPUShaderStage: typeof GPUShaderStage;
     GPUTextureUsage: typeof GPUTextureUsage;
   };
+  // Native app harness only: clears a canvas to each color in turn from
+  // Reanimated's UI thread, see
+  // apps/example/src/components/workletPresentFrames.ts.
+  workletPresentFrames?: (
+    device: GPUDevice,
+    context: RNCanvasContext,
+    colors: GPUColor[],
+  ) => Promise<void>;
   // Native app harness only: a mounted probe view for the
   // drawElementImageToTexture spec (its React tag, its size in points and the
-  // device pixel ratio). See apps/example/src/Tests.tsx.
+  // device pixel ratio), and for the TextureView present spec a canvas
+  // backed by a TextureView on Android, the React tag of the view around it
+  // and its size in points. See apps/example/src/Tests.tsx.
   views?: {
     probe: number | null;
     probeSize: number;
     pixelRatio: number;
+    textureCanvas: () => CanvasRef | null;
+    textureCanvasView: number | null;
+    textureCanvasSize: number;
   };
   // Native app harness only: Skia's Graphite device wrapped with
   // importDevice(), or null when Skia has no GPU. See ImportDevice.spec.ts
