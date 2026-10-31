@@ -6,7 +6,6 @@
 #import <CoreVideo/CoreVideo.h>
 #import <ImageIO/ImageIO.h>
 #import <React/RCTBlobManager.h>
-#import <React/RCTBridge+Private.h>
 #import <ReactCommon/RCTTurboModule.h>
 
 #include "AppleVideoPlayer.h"
@@ -35,8 +34,10 @@ void checkIfUsingSimulatorWithAPIValidation() {
 #endif
 }
 
-ApplePlatformContext::ApplePlatformContext(ViewLookup viewLookup)
-    : _viewLookup(std::move(viewLookup)) {
+ApplePlatformContext::ApplePlatformContext(ViewLookup viewLookup,
+                                           BlobManagerLookup blobManagerLookup)
+    : _viewLookup(std::move(viewLookup)),
+      _blobManagerLookup(std::move(blobManagerLookup)) {
   checkIfUsingSimulatorWithAPIValidation();
 }
 
@@ -360,8 +361,7 @@ static std::span<const uint8_t> nsDataToSpan(NSData *data) {
 
 ImageData ApplePlatformContext::createImageBitmap(std::string blobId,
                                                   double offset, double size) {
-  RCTBlobManager *blobManager =
-      [[RCTBridge currentBridge] moduleForClass:RCTBlobManager.class];
+  RCTBlobManager *blobManager = (__bridge RCTBlobManager *)_blobManagerLookup();
   NSData *blobData =
       [blobManager resolve:[NSString stringWithUTF8String:blobId.c_str()]
                     offset:(long)offset
@@ -378,9 +378,8 @@ void ApplePlatformContext::createImageBitmapAsync(
     std::string blobId, double offset, double size,
     std::function<void(ImageData)> onSuccess,
     std::function<void(std::string)> onError) {
-  // Resolve blob on current thread (requires RCTBridge access)
-  RCTBlobManager *blobManager =
-      [[RCTBridge currentBridge] moduleForClass:RCTBlobManager.class];
+  // Resolve blob on current thread
+  RCTBlobManager *blobManager = (__bridge RCTBlobManager *)_blobManagerLookup();
   NSData *blobData =
       [blobManager resolve:[NSString stringWithUTF8String:blobId.c_str()]
                     offset:(long)offset
