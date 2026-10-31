@@ -1,12 +1,11 @@
 import React from "react";
 import { StyleSheet } from "react-native";
-import type { Int32 } from "react-native/Libraries/Types/CodegenTypes";
-import type { ViewProps } from "react-native";
+import type { CodegenTypes, ViewProps } from "react-native";
 
 import { contextIdToId } from "./utils";
 
 export interface NativeProps extends ViewProps {
-  contextId: Int32;
+  contextId: CodegenTypes.Int32;
   // The `android` prop, resolved: Android-only, never reaches the DOM
   androidBackingView?: "TextureView" | "SurfaceView" | "HardwareBufferView";
   androidOpaque?: boolean;
