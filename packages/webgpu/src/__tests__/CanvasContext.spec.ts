@@ -87,6 +87,68 @@ describe("Native canvas context", () => {
     },
   );
 
+  it.each(["standard", "extended"] as const)(
+    "configures a native canvas with toneMapping mode %s",
+    async (mode) => {
+      if (client.OS !== "ios" && client.OS !== "android") {
+        return;
+      }
+      const result = await client.eval(
+        ({ device, gpu, mode: toneMappingMode }) => {
+          const ctx = RNWebGPU.MakeWebGPUCanvasContext(-3, 16, 16);
+          try {
+            // Both formats: the extended range only applies to the float
+            // one, the 8-bit one must accept the mode and ignore it.
+            for (const format of [
+              gpu.getPreferredCanvasFormat(),
+              "rgba16float" as GPUTextureFormat,
+            ]) {
+              ctx.configure({
+                device,
+                format,
+                toneMapping: { mode: toneMappingMode },
+              });
+              if (ctx.getCurrentTexture().format !== format) {
+                return false;
+              }
+            }
+            // Back to the default so the layer leaves the extended range.
+            ctx.configure({ device, format: "rgba16float" });
+            return ctx.getCurrentTexture().format === "rgba16float";
+          } finally {
+            ctx.unconfigure();
+            RNWebGPU.destroyContext(-3);
+          }
+        },
+        { mode },
+      );
+      expect(result).toBe(true);
+    },
+  );
+
+  it("rejects an unknown toneMapping mode", async () => {
+    if (client.OS !== "ios" && client.OS !== "android") {
+      return;
+    }
+    const result = await client.eval(({ device, gpu }) => {
+      const ctx = RNWebGPU.MakeWebGPUCanvasContext(-3, 16, 16);
+      try {
+        ctx.configure({
+          device,
+          format: gpu.getPreferredCanvasFormat(),
+          toneMapping: { mode: "hdr" as GPUCanvasToneMappingMode },
+        });
+        return "configured";
+      } catch (e) {
+        return e instanceof Error ? e.message : String(e);
+      } finally {
+        ctx.unconfigure();
+        RNWebGPU.destroyContext(-3);
+      }
+    });
+    expect(result).toMatch(/GPUCanvasToneMappingMode/);
+  });
+
   it("rejects an unknown colorSpace", async () => {
     if (client.OS !== "ios" && client.OS !== "android") {
       return;

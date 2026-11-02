@@ -294,8 +294,8 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
         _instance.GetInfo(&adapterInfo);
         const bool vulkan =
             adapterInfo.backendType == wgpu::BackendType::Vulkan;
-        _instance.RequestDevice(
-            &deviceDesc, wgpu::CallbackMode::AllowProcessEvents,
+        return _instance.RequestDevice(
+            &deviceDesc, wgpu::CallbackMode::WaitAnyOnly,
             [context, resolve, reject, label, creationRuntime,
              deviceLostBinding, blobCached,
              vulkan](wgpu::RequestDeviceStatus status, wgpu::Device device,

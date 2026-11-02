@@ -94,8 +94,8 @@ async::AsyncTaskHandle GPUQueue::onSubmittedWorkDone(jsi::Runtime &runtime) {
   return context->postTask(
       [queue](const async::AsyncTaskHandle::ResolveFunction &resolve,
               const async::AsyncTaskHandle::RejectFunction &reject) {
-        queue.OnSubmittedWorkDone(
-            wgpu::CallbackMode::AllowProcessEvents,
+        return queue.OnSubmittedWorkDone(
+            wgpu::CallbackMode::WaitAnyOnly,
             [resolve, reject](wgpu::QueueWorkDoneStatus status,
                               wgpu::StringView message) {
               if (status == wgpu::QueueWorkDoneStatus::Success) {
@@ -531,6 +531,8 @@ async::AsyncTaskHandle GPUQueue::drawElementImageToTexture(
               });
             },
             [reject](std::string error) { reject(std::move(error)); });
+        // Not Dawn's work: nothing to wait for, the snapshot calls back.
+        return std::nullopt;
       });
 }
 

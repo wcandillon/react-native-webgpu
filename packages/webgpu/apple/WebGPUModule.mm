@@ -38,6 +38,10 @@ static std::shared_ptr<rnwgpu::RNWebGPUManager> webgpuManager;
 // (Fabric component views included), which drawElementImageToTexture needs.
 @synthesize viewRegistry_DEPRECATED = _viewRegistry_DEPRECATED;
 
+// Synthesize the module registry so the TurboModule infra injects it too. It
+// reaches React Native's BlobModule in both Bridge and Bridgeless mode.
+@synthesize moduleRegistry = _moduleRegistry;
+
 + (std::shared_ptr<rnwgpu::RNWebGPUManager>)getManager {
   return webgpuManager;
 }
@@ -94,8 +98,18 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
         [strongSelf.viewRegistry_DEPRECATED viewForReactTag:@(tag)];
     return (__bridge void *)view;
   };
+  rnwgpu::ApplePlatformContext::BlobManagerLookup blobManagerLookup =
+      [weakSelf]() -> void * {
+    WebGPUModule *strongSelf = weakSelf;
+    if (strongSelf == nil) {
+      return nullptr;
+    }
+    return (__bridge void *)[strongSelf.moduleRegistry
+        moduleForName:"BlobModule"];
+  };
   std::shared_ptr<rnwgpu::PlatformContext> platformContext =
-      std::make_shared<rnwgpu::ApplePlatformContext>(std::move(viewLookup));
+      std::make_shared<rnwgpu::ApplePlatformContext>(
+          std::move(viewLookup), std::move(blobManagerLookup));
   // Dawn keeps the pipelines it compiles here, so a relaunch does not compile
   // them again (see DawnBlobCache). The caches directory is per app on iOS but
   // shared on macOS, hence the bundle identifier.

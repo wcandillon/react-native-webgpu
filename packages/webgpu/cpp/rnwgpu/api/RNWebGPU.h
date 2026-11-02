@@ -14,12 +14,12 @@
 #include "GPUCanvasContext.h"
 #include "GPUDevice.h"
 #include "GPUTexture.h"
-#include "rnwgpu/async/RuntimeContext.h"
 #include "ImageBitmap.h"
 #include "PlatformContext.h"
 #include "VideoFrame.h"
 #include "VideoPlayer.h"
 #include "WebGPURuntime.h"
+#include "rnwgpu/async/RuntimeContext.h"
 
 #include <ReactCommon/CallInvoker.h>
 
@@ -132,8 +132,8 @@ public:
   // Skia's Graphite device from Skia.getNativeDevice()) in a GPUDevice.
   // AddRefs the handle, so the original owner keeps its reference. Only sound
   // because the process links a single Dawn copy. The device's async
-  // callbacks are pumped on the instance that owns it (RuntimeContext is per
-  // runtime and per instance), which is not necessarily the shared one:
+  // callbacks are waited for on the instance that owns it (RuntimeContext is
+  // per runtime and per instance), which is not necessarily the shared one:
   // WebGPURuntime adopts Skia's instance only when Skia's getter is reachable
   // as the instance is first used (on Android, only once librnskia.so is
   // loaded), and other exporters have their own.
@@ -240,14 +240,14 @@ public:
         std::vector<uint8_t> dataCopy(data.begin(), data.end());
 
         return Promise::createPromise(
-            runtime,
-            [platformContext, callInvoker, toRequestedAlpha,
-             dataCopy = std::move(dataCopy)](
-                jsi::Runtime & /*runtime*/,
-                std::shared_ptr<Promise> promise) mutable {
+            runtime, [platformContext, callInvoker, toRequestedAlpha,
+                      dataCopy = std::move(dataCopy)](
+                         jsi::Runtime & /*runtime*/,
+                         std::shared_ptr<Promise> promise) mutable {
               platformContext->createImageBitmapFromDataAsync(
                   dataCopy,
-                  [callInvoker, promise, toRequestedAlpha](ImageData imageData) {
+                  [callInvoker, promise,
+                   toRequestedAlpha](ImageData imageData) {
                     toRequestedAlpha(imageData);
                     auto imageBitmap = std::make_shared<ImageBitmap>(imageData);
                     callInvoker->invokeAsync([promise, imageBitmap]() {

@@ -22,6 +22,7 @@ struct GPUCanvasConfiguration {
       viewFormats; // Iterable<GPUTextureFormat>
   wgpu::CompositeAlphaMode alphaMode = wgpu::CompositeAlphaMode::Opaque;
   CanvasColorSpace colorSpace = CanvasColorSpace::SRGB;
+  CanvasToneMappingMode toneMappingMode = CanvasToneMappingMode::Standard;
 };
 
 } // namespace rnwgpu
@@ -78,6 +79,29 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUCanvasConfiguration>> {
                              name +
                              "' is not a valid enum value of type "
                              "PredefinedColorSpace.");
+          }
+        }
+      }
+      if (value.hasProperty(runtime, "toneMapping")) {
+        auto prop = value.getProperty(runtime, "toneMapping");
+        if (prop.isObject()) {
+          auto toneMapping = prop.getObject(runtime);
+          if (toneMapping.hasProperty(runtime, "mode")) {
+            auto mode = toneMapping.getProperty(runtime, "mode");
+            if (!mode.isUndefined()) {
+              auto name = mode.asString(runtime).utf8(runtime);
+              if (name == "extended") {
+                result->toneMappingMode = CanvasToneMappingMode::Extended;
+              } else if (name != "standard") {
+                throw jsi::JSError(
+                    runtime,
+                    "Failed to execute 'configure' on 'GPUCanvasContext': "
+                    "The provided value '" +
+                        name +
+                        "' is not a valid enum value of type "
+                        "GPUCanvasToneMappingMode.");
+              }
+            }
           }
         }
       }

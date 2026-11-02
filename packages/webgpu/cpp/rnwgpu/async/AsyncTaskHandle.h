@@ -20,10 +20,10 @@ class RuntimeContext;
  * Represents a pending asynchronous WebGPU operation that can be converted into
  * a JavaScript Promise.
  *
- * In the ProcessEvents model the resolve/reject callbacks are invoked on the
- * owning runtime's own thread (synchronously from instance.ProcessEvents()
- * during the RuntimeContext tick, or synchronously from postTask), so the
- * Promise is settled directly without any thread marshalling.
+ * The resolve and reject functions run on any thread (the instance's waiter
+ * thread, usually) and never touch JSI: they hand the settling to the owning
+ * RuntimeContext, which runs it on its runtime's own thread (see
+ * RuntimeContext::post).
  */
 class AsyncTaskHandle {
 public:
@@ -48,8 +48,7 @@ public:
 
   void attachPromise(const std::shared_ptr<rnwgpu::Promise> &promise) const;
 
-  static AsyncTaskHandle create(const std::shared_ptr<RuntimeContext> &context,
-                                bool keepPumping);
+  static AsyncTaskHandle create(const std::shared_ptr<RuntimeContext> &context);
 
 private:
   std::shared_ptr<State> _state;

@@ -33,17 +33,17 @@ async::AsyncTaskHandle GPU::requestAdapter(
   aOptions.backendType = kDefaultBackendType;
 
   // Per-runtime context: async ops requested on this runtime resolve on this
-  // runtime's own thread (via its ProcessEvents pump).
+  // runtime's own thread (see RuntimeContext).
   auto context = async::RuntimeContext::getOrCreate(runtime, _instance);
   return context->postTask(
       [this, aOptions,
        context](const async::AsyncTaskHandle::ResolveFunction &resolve,
                 const async::AsyncTaskHandle::RejectFunction &reject) {
-        _instance.RequestAdapter(
-            &aOptions, wgpu::CallbackMode::AllowProcessEvents,
-            [context, resolve,
-             reject](wgpu::RequestAdapterStatus status, wgpu::Adapter adapter,
-                     wgpu::StringView message) {
+        return _instance.RequestAdapter(
+            &aOptions, wgpu::CallbackMode::WaitAnyOnly,
+            [context, resolve, reject](wgpu::RequestAdapterStatus status,
+                                       wgpu::Adapter adapter,
+                                       wgpu::StringView message) {
               if (message.length) {
                 fprintf(stderr, "%s", message.data);
               }
