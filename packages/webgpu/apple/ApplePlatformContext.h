@@ -13,8 +13,12 @@ public:
   // UIView* / NSView* bridged to void*, or nullptr). Called on the main thread
   // only. Provided by WebGPUModule from React Native's view registry.
   using ViewLookup = std::function<void *(int)>;
+  // Returns React Native's RCTBlobManager (unretained, bridged to void*), or
+  // nullptr. Provided by WebGPUModule from React Native's module registry.
+  using BlobManagerLookup = std::function<void *()>;
 
-  explicit ApplePlatformContext(ViewLookup viewLookup = nullptr);
+  explicit ApplePlatformContext(ViewLookup viewLookup,
+                                BlobManagerLookup blobManagerLookup);
   ~ApplePlatformContext() = default;
 
   void snapshotView(const ViewSnapshotRequest &request,
@@ -52,6 +56,7 @@ public:
 
 private:
   ViewLookup _viewLookup;
+  BlobManagerLookup _blobManagerLookup;
 };
 
 } // namespace rnwgpu
