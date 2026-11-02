@@ -20,6 +20,8 @@ namespace {
 using rnwgpu::DawnBlobCache;
 using Bytes = std::vector<uint8_t>;
 
+constexpr off_t kMegabyte = 1024 * 1024;
+
 bool exists(const std::string &path) {
   struct stat info{};
   return stat(path.c_str(), &info) == 0;
@@ -37,6 +39,13 @@ off_t fileSize(const std::string &path) {
 
 void writeFile(const std::string &path, const std::string &contents) {
   std::ofstream(path, std::ios::binary) << contents;
+}
+
+// A file of `bytes` that takes no disk: a hole, which counts towards the
+// cache's limit all the same.
+void writeSparseFile(const std::string &path, off_t bytes) {
+  writeFile(path, "x");
+  ASSERT_EQ(truncate(path.c_str(), bytes), 0);
 }
 
 // The names in a directory, leaving out "." and "..".
@@ -87,8 +96,15 @@ struct Callbacks {
     return value;
   }
 
-  void write(const Bytes &key, const Bytes &value) const {
+  // Stores, as Dawn does, without waiting for the write.
+  void storeOnly(const Bytes &key, const Bytes &value) const {
     store(key.size(), key.data(), value.size(), value.data(), nullptr, nullptr);
+  }
+
+  // Stores, and waits for the write.
+  void write(const Bytes &key, const Bytes &value) const {
+    storeOnly(key, value);
+    DawnBlobCache::waitForWrites();
   }
 };
 
@@ -103,12 +119,19 @@ protected:
     ASSERT_NE(mkdtemp(pattern.data()), nullptr);
     _root = pattern;
     _dir = _root + "/cache";
-    DawnBlobCache::setDirectory(_dir);
+    setUpDirectory(_dir);
   }
 
   void TearDown() override {
     DawnBlobCache::setDirectory("");
+    DawnBlobCache::waitForWrites();
     removeTree(_root);
+  }
+
+  // Sets the directory and waits for its tidying to be done.
+  static void setUpDirectory(const std::string &dir) {
+    DawnBlobCache::setDirectory(dir);
+    DawnBlobCache::waitForWrites();
   }
 
   static Callbacks callbacks() {
@@ -170,8 +193,43 @@ TEST_F(DawnBlobCacheTest, ChainsNothingWithoutADirectory) {
   EXPECT_EQ(descriptor.nextInChain, nullptr);
 }
 
+TEST_F(DawnBlobCacheTest, SaysWhetherItChained) {
+  wgpu::DeviceDescriptor descriptor;
+  WGPUDawnCacheDeviceDescriptor storage =
+      WGPU_DAWN_CACHE_DEVICE_DESCRIPTOR_INIT;
+  EXPECT_TRUE(DawnBlobCache::chain(descriptor, storage));
+
+  DawnBlobCache::setDirectory("");
+  wgpu::DeviceDescriptor other;
+  WGPUDawnCacheDeviceDescriptor otherStorage =
+      WGPU_DAWN_CACHE_DEVICE_DESCRIPTOR_INIT;
+  EXPECT_FALSE(DawnBlobCache::chain(other, otherStorage));
+}
+
 TEST_F(DawnBlobCacheTest, CreatesItsDirectory) {
   EXPECT_TRUE(isDirectory(_dir));
+}
+
+TEST_F(DawnBlobCacheTest, CreatesMissingParentsWhenSetUp) {
+  const auto nested = _root + "/a/b/cache";
+
+  setUpDirectory(nested);
+
+  EXPECT_TRUE(isDirectory(nested));
+}
+
+TEST_F(DawnBlobCacheTest, StaysOffWhereNoDirectoryCanBeMade) {
+  // A directory can't be made under a regular file.
+  const auto blocker = _root + "/file";
+  writeFile(blocker, "x");
+
+  setUpDirectory(blocker + "/cache");
+
+  wgpu::DeviceDescriptor descriptor;
+  WGPUDawnCacheDeviceDescriptor storage =
+      WGPU_DAWN_CACHE_DEVICE_DESCRIPTOR_INIT;
+  DawnBlobCache::chain(descriptor, storage);
+  EXPECT_EQ(descriptor.nextInChain, nullptr);
 }
 
 TEST_F(DawnBlobCacheTest, MissesAKeyNeverStored) {
@@ -189,10 +247,26 @@ TEST_F(DawnBlobCacheTest, ReturnsTheExactBytesStored) {
   EXPECT_EQ(cache.read(key), value);
 }
 
+// Dawn stores from the thread that compiles, and holds a device lock while it
+// stores its pipeline cache: the write must not keep it waiting.
+TEST_F(DawnBlobCacheTest, WritesWhatWasStoredOnceWaitedFor) {
+  const auto cache = callbacks();
+  for (uint8_t i = 0; i < 64; i++) {
+    cache.storeOnly({i}, Bytes(1024, i));
+  }
+
+  DawnBlobCache::waitForWrites();
+
+  EXPECT_EQ(entries().size(), 64u);
+  for (uint8_t i = 0; i < 64; i++) {
+    EXPECT_EQ(cache.read({i}), Bytes(1024, i));
+  }
+}
+
 TEST_F(DawnBlobCacheTest, KeepsEntriesAcrossASecondSetup) {
   callbacks().write({1}, {9, 8, 7});
 
-  DawnBlobCache::setDirectory(_dir);
+  setUpDirectory(_dir);
 
   EXPECT_EQ(callbacks().read({1}), (Bytes{9, 8, 7}));
 }
@@ -257,7 +331,7 @@ TEST_F(DawnBlobCacheTest, NeverTearsAValueWrittenFromManyThreads) {
       const Bytes ownKey{static_cast<uint8_t>(thread), 42};
       const Bytes value(4096, static_cast<uint8_t>(thread));
       for (int round = 0; round < 64; round++) {
-        cache.write(ownKey, value);
+        cache.storeOnly(ownKey, value);
         cache.write(sharedKey, value);
         if (cache.read(ownKey) != value) {
           failures[thread]++;
@@ -291,7 +365,7 @@ TEST_F(DawnBlobCacheTest, RecreatesItsDirectoryIfItIsCleared) {
 // a cache clear can remove too.
 TEST_F(DawnBlobCacheTest, RecreatesItsParentsIfTheyAreCleared) {
   const auto parent = _root + "/app";
-  DawnBlobCache::setDirectory(parent + "/cache");
+  setUpDirectory(parent + "/cache");
   const auto cache = callbacks();
   removeTree(parent);
 
@@ -300,43 +374,26 @@ TEST_F(DawnBlobCacheTest, RecreatesItsParentsIfTheyAreCleared) {
   EXPECT_EQ(cache.read({1}), (Bytes{2, 3}));
 }
 
-TEST_F(DawnBlobCacheTest, CreatesMissingParentsWhenSetUp) {
-  const auto nested = _root + "/a/b/cache";
-
-  DawnBlobCache::setDirectory(nested);
-
-  EXPECT_TRUE(isDirectory(nested));
-}
-
-TEST_F(DawnBlobCacheTest, StaysOffWhereNoDirectoryCanBeMade) {
-  // A directory can't be made under a regular file.
-  const auto blocker = _root + "/file";
-  writeFile(blocker, "x");
-
-  DawnBlobCache::setDirectory(blocker + "/cache");
-
-  wgpu::DeviceDescriptor descriptor;
-  WGPUDawnCacheDeviceDescriptor storage =
-      WGPU_DAWN_CACHE_DEVICE_DESCRIPTOR_INIT;
-  DawnBlobCache::chain(descriptor, storage);
-  EXPECT_EQ(descriptor.nextInChain, nullptr);
-}
-
-TEST_F(DawnBlobCacheTest, RemovesAWriteAbandonedByAKilledProcess) {
-  const auto abandoned = _dir + "/0123456789abcdef.4242.0.tmp";
+TEST_F(DawnBlobCacheTest, RemovesWritesAbandonedByAKilledProcess) {
+  const auto abandoned = _dir + "/0123456789abcdef.4242.tmp";
+  // The shape of an earlier version's temporary files.
+  const auto older = _dir + "/0123456789abcdef.4242.0.tmp";
   writeFile(abandoned, "x");
+  writeFile(older, "x");
   age(abandoned, 120);
+  age(older, 120);
 
-  DawnBlobCache::setDirectory(_dir);
+  setUpDirectory(_dir);
 
   EXPECT_FALSE(exists(abandoned));
+  EXPECT_FALSE(exists(older));
 }
 
 TEST_F(DawnBlobCacheTest, LeavesAWriteAnotherProcessMayStillFinish) {
-  const auto writing = _dir + "/0123456789abcdef.4242.0.tmp";
+  const auto writing = _dir + "/0123456789abcdef.4242.tmp";
   writeFile(writing, "x");
 
-  DawnBlobCache::setDirectory(_dir);
+  setUpDirectory(_dir);
 
   EXPECT_TRUE(exists(writing));
 }
@@ -344,102 +401,105 @@ TEST_F(DawnBlobCacheTest, LeavesAWriteAnotherProcessMayStillFinish) {
 TEST_F(DawnBlobCacheTest, KeepsACacheWithinItsLimit) {
   callbacks().write({1}, {2, 3});
 
-  DawnBlobCache::setDirectory(_dir);
+  setUpDirectory(_dir);
 
   EXPECT_EQ(entries().size(), 1u);
 }
 
-// Only as much as the limit needs: the oldest entries go, the rest stay.
-TEST_F(DawnBlobCacheTest, TrimsACacheThatOutgrewItsLimitAtTheNextSetup) {
+// A cache past its limit holds mostly what the app no longer uses, and which
+// entries those are cannot be told: it starts over.
+TEST_F(DawnBlobCacheTest, ClearsACacheThatOutgrewItsLimitAtTheNextSetup) {
   const auto cache = callbacks();
   cache.write({1}, {2, 3});
-  // An entry name, so it counts towards the limit.
-  const auto large = _dir + "/00000000000000ff";
-  writeFile(large, "x");
-  ASSERT_EQ(truncate(large.c_str(), 65 * 1024 * 1024), 0);
-  age(large, 3600);
+  writeSparseFile(_dir + "/00000000000000ff", 65 * kMegabyte);
 
-  DawnBlobCache::setDirectory(_dir);
+  setUpDirectory(_dir);
 
-  EXPECT_FALSE(exists(large));
-  EXPECT_EQ(cache.read({1}), (Bytes{2, 3}));
+  EXPECT_TRUE(entries().empty());
+  EXPECT_EQ(cache.size({1}), 0u);
 }
 
-// A long-running process is held to the limit too.
-TEST_F(DawnBlobCacheTest, TrimsTheOldestEntriesAsASessionStoresMore) {
+// A long-running session is held to the limit too, until the next setup
+// clears the cache.
+TEST_F(DawnBlobCacheTest, DropsStoresPastTheLimitUntilTheNextSetup) {
   const auto cache = callbacks();
   const auto large = _dir + "/00000000000000ff";
-  writeFile(large, "x");
-  ASSERT_EQ(truncate(large.c_str(), 65 * 1024 * 1024), 0);
-  age(large, 3600);
+  writeSparseFile(large, 60 * kMegabyte);
+  setUpDirectory(_dir);
 
-  cache.write({1}, Bytes(9 * 1024 * 1024, 7));
+  cache.write({1}, Bytes(9 * kMegabyte, 7));
+
+  EXPECT_EQ(cache.size({1}), 0u);
+  EXPECT_TRUE(exists(large));
+
+  writeSparseFile(_dir + "/00000000000000fe", 5 * kMegabyte);
+  setUpDirectory(_dir);
+  cache.write({1}, Bytes(9 * kMegabyte, 7));
 
   EXPECT_FALSE(exists(large));
-  EXPECT_EQ(cache.size({1}), 9u * 1024 * 1024);
-}
-
-TEST_F(DawnBlobCacheTest, SaysWhetherItChained) {
-  wgpu::DeviceDescriptor descriptor;
-  WGPUDawnCacheDeviceDescriptor storage =
-      WGPU_DAWN_CACHE_DEVICE_DESCRIPTOR_INIT;
-  EXPECT_TRUE(DawnBlobCache::chain(descriptor, storage));
-
-  DawnBlobCache::setDirectory("");
-  wgpu::DeviceDescriptor other;
-  WGPUDawnCacheDeviceDescriptor otherStorage =
-      WGPU_DAWN_CACHE_DEVICE_DESCRIPTOR_INIT;
-  EXPECT_FALSE(DawnBlobCache::chain(other, otherStorage));
-}
-
-// Tidying would remove every older entry, and then the new one.
-TEST_F(DawnBlobCacheTest, DoesNotStoreAnEntryTooLargeForTheCache) {
-  const auto cache = callbacks();
-  cache.write({1}, {2, 3});
-  cache.write({2}, {4});
-
-  cache.write({1}, Bytes(33 * 1024 * 1024, 7));
-
-  EXPECT_EQ(cache.read({1}), (Bytes{2, 3}));
-  EXPECT_EQ(cache.read({2}), (Bytes{4}));
-  EXPECT_EQ(entries().size(), 2u);
+  EXPECT_EQ(cache.size({1}), 9u * kMegabyte);
 }
 
 // Dawn's monolithic pipeline cache is one entry stored over and over: that is
 // not the cache growing.
 TEST_F(DawnBlobCacheTest, DoesNotCountAReplacementAsTheCacheGrowing) {
   const auto cache = callbacks();
-  // The first store takes the cache past the point where it checks its limit.
-  cache.write({1}, Bytes(9 * 1024 * 1024, 7));
-  const auto large = _dir + "/00000000000000ff";
-  writeFile(large, "x");
-  ASSERT_EQ(truncate(large.c_str(), 65 * 1024 * 1024), 0);
-  age(large, 3600);
+  writeSparseFile(_dir + "/00000000000000ff", 60 * kMegabyte);
+  setUpDirectory(_dir);
+  cache.write({1}, Bytes(3 * kMegabyte, 7));
 
-  cache.write({1}, Bytes(9 * 1024 * 1024, 8));
-  cache.write({1}, Bytes(9 * 1024 * 1024, 9));
+  cache.write({1}, Bytes(3 * kMegabyte, 8));
+  cache.write({2}, Bytes(3 * kMegabyte, 9));
 
-  EXPECT_TRUE(exists(large));
-  EXPECT_EQ(cache.size({1}), 9u * 1024 * 1024);
+  EXPECT_EQ(cache.read({1}), Bytes(3 * kMegabyte, 8));
+  EXPECT_EQ(cache.size({2}), 0u);
+}
+
+// What the system cleared mid-session is no longer in the cache, so it no
+// longer counts against the limit.
+TEST_F(DawnBlobCacheTest, StartsCountingAgainWhenItsDirectoryWasCleared) {
+  const auto cache = callbacks();
+  writeSparseFile(_dir + "/00000000000000ff", 60 * kMegabyte);
+  setUpDirectory(_dir);
+  removeTree(_dir);
+
+  cache.write({1}, Bytes(9 * kMegabyte, 7));
+
+  EXPECT_EQ(cache.size({1}), 9u * kMegabyte);
+}
+
+// Storing it would take most of the cache from all the other entries.
+TEST_F(DawnBlobCacheTest, DoesNotStoreAnEntryTooLargeForTheCache) {
+  const auto cache = callbacks();
+  cache.write({1}, {2, 3});
+  cache.write({2}, {4});
+
+  cache.write({1}, Bytes(33 * kMegabyte, 7));
+
+  EXPECT_EQ(cache.read({1}), (Bytes{2, 3}));
+  EXPECT_EQ(cache.read({2}), (Bytes{4}));
+  EXPECT_EQ(entries().size(), 2u);
 }
 
 // A wrong path must never turn clearing the cache into deleting someone's
-// files.
+// files: only names shaped like the cache's own are counted or removed.
 TEST_F(DawnBlobCacheTest, LeavesFilesThatAreNotTheCachesAlone) {
   const auto other = _dir + "/notes.txt";
   const auto similar = _dir + "/0123456789abcdefg";
+  const auto lookalike = _dir + "/0123456789abcdef.bak";
   const auto large = _dir + "/00000000000000ff";
-  writeFile(other, "x");
+  writeSparseFile(other, 65 * kMegabyte);
   writeFile(similar, "x");
-  writeFile(large, "x");
-  ASSERT_EQ(truncate(large.c_str(), 65 * 1024 * 1024), 0);
-  ASSERT_EQ(truncate(other.c_str(), 65 * 1024 * 1024), 0);
+  writeFile(lookalike, "x");
+  age(lookalike, 3600);
+  writeSparseFile(large, 65 * kMegabyte);
 
-  DawnBlobCache::setDirectory(_dir);
+  setUpDirectory(_dir);
 
   EXPECT_FALSE(exists(large));
   EXPECT_TRUE(exists(other));
   EXPECT_TRUE(exists(similar));
+  EXPECT_TRUE(exists(lookalike));
 }
 
 } // namespace

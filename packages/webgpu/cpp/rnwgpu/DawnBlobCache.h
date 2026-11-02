@@ -19,23 +19,29 @@ namespace rnwgpu {
 // installs, and requestDevice() chains it onto every device it creates. A
 // device requested with the `disable_blob_cache` Dawn toggle does not use it.
 //
+// Loads read the file on the calling thread, since Dawn needs the bytes
+// before it goes on. Stores copy the bytes and return: a thread of the cache's
+// own writes them, so neither the thread Dawn compiles on (a JS thread
+// included) nor a device lock Dawn holds while it stores waits for the disk.
+//
 // The cache is best effort. By default Dawn checks a hash of every blob it
 // loads, and an entry that is torn, truncated or for another key reads as a
-// miss. Entries are
-// replaced whole, so the writer that finishes last wins: devices or processes
-// that share a key (Dawn's monolithic Vulkan pipeline cache has one per
-// device) can replace a fuller blob with a smaller one, which only costs the
-// pipelines in it being built again.
+// miss. Entries are replaced whole, so the writer that finishes last wins:
+// devices or processes that share a key (Dawn's monolithic Vulkan pipeline
+// cache has one per device) can replace a fuller blob with a smaller one,
+// which only costs the pipelines in it being built again.
 class DawnBlobCache {
 public:
   // The directory to keep the blobs in, created (with its parents) if
-  // missing. Each platform's module calls this when it installs, which is
-  // also when the cache is tidied: abandoned writes are removed, and the
-  // oldest entries with them while the cache is over its limit (about 64 MB,
-  // checked again as a session stores). "Oldest" is by when an entry was
-  // written, not read. An entry larger than half the limit is not stored. Only
-  // the cache's own files are removed. An empty path, or one where no directory
-  // can be made, leaves the cache off.
+  // missing. Each platform's module calls this when it installs. The cache is
+  // then tidied on its own thread: abandoned writes are removed, and when the
+  // entries together are past the limit (about 64 MB) all of them are, so that
+  // a cache full of what the app no longer uses starts over, at the price of
+  // one launch that builds everything. A session whose stores would take the
+  // cache past the limit drops them (replacing an entry with one no larger is
+  // never dropped), and an entry larger than half the limit is not stored.
+  // Only the cache's own files are ever removed. An empty path, or one where
+  // no directory can be made, leaves the cache off.
   static void setDirectory(const std::string &directory);
 
   // Chains the cache onto `descriptor`, in front of whatever it already
@@ -44,6 +50,11 @@ public:
   // false, without a directory.
   static bool chain(wgpu::DeviceDescriptor &descriptor,
                     WGPUDawnCacheDeviceDescriptor &storage);
+
+  // Blocks until the cache's thread has done everything asked of it so far:
+  // the tidying of setDirectory() and the stores. Nothing in an app needs to
+  // wait for a write; tests do.
+  static void waitForWrites();
 };
 
 } // namespace rnwgpu

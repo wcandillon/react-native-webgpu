@@ -4,49 +4,43 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <algorithm>
-#include <atomic>
+#include <condition_variable>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <ctime>
+#include <deque>
+#include <functional>
 #include <mutex>
 #include <string>
+#include <system_error>
+#include <thread>
+#include <utility>
 #include <vector>
 
 namespace rnwgpu {
 
 namespace {
 
-// Entries only accumulate as an app's shaders change from release to release,
-// so past this size the oldest are removed until the cache fits again. The
-// limit is a target, not a guarantee: stores that overlap tidying, or other
-// processes using the directory, can leave it a little over until the next
-// pass.
+// Entries only accumulate as an app's shaders change from release to release.
+// A cache found past this size when it is set up is cleared, and a session
+// whose stores would take it past this size drops them until the next setup.
 constexpr off_t kMaxCacheBytes = 64 * 1024 * 1024;
 
 // An entry this large is not stored, so that one entry cannot take more than
 // half the cache from all the others. The entry already on disk under its key,
 // if any, is left as it is, and a blob that has outgrown this stops being
 // updated.
-constexpr uint64_t kMaxEntryBytes = kMaxCacheBytes / 2;
+constexpr off_t kMaxEntryBytes = kMaxCacheBytes / 2;
 
-// A session checks the limit again each time the cache has grown by about this
-// much through its stores (replacing an entry counts only what it adds), so a
-// long-running process cannot take the cache far past it. The count is
-// approximate: stores that overlap are measured against the file as it was
-// before either replaced it.
-constexpr uint64_t kTidyAfterBytes = kMaxCacheBytes / 8;
-
-// tidy() takes a temporary file this old for a write that will never finish
-// (its process was killed). A younger one may still be being written by
-// another process using the same cache, so it is left. The age is a best
-// guess: a writer suspended for longer than this loses its entry when tidy()
-// removes its file (its rename then fails), which only costs a cache miss.
+// A temporary file this old is taken for a write that will never finish (its
+// process was killed). A younger one may still be being written by another
+// process using the same cache, so it is left. A writer suspended for longer
+// than this loses its entry (its rename fails), which only costs a cache miss.
 constexpr time_t kAbandonedWriteSeconds = 60;
 
-// Never destroyed: a pipeline cache flush on another thread can still be
-// storing when the process starts to exit.
+// Never destroyed: a store can still be queued when the process starts to
+// exit.
 std::mutex &directoryMutex() {
   static std::mutex *const mutex = new std::mutex;
   return *mutex;
@@ -62,7 +56,77 @@ std::string directory() {
   return directorySlot();
 }
 
-void tidy(const std::string &dir);
+// Everything that changes the directory runs here, one job after another: the
+// tidying of setDirectory() and the stores. Dawn stores from the thread that
+// compiles, a JS thread included, and holds the device's lock while it stores
+// its pipeline cache, so none of them should wait for the disk. Never
+// destroyed, so a job queued as the process exits never runs into a destroyed
+// queue; a write cut short by the exit leaves a temporary file the next setup
+// removes.
+class Writer {
+public:
+  static Writer &shared() {
+    static Writer *const writer = new Writer;
+    return *writer;
+  }
+
+  void post(std::function<void()> job) {
+    std::unique_lock<std::mutex> lock(_mutex);
+    _queue.push_back(std::move(job));
+    if (!_started) {
+      try {
+        std::thread([this] { run(); }).detach();
+        _started = true;
+      } catch (const std::system_error &) {
+        // No thread to be had (a process at its limit): the work runs here,
+        // and the next post tries for a thread again.
+        std::deque<std::function<void()>> queued = std::move(_queue);
+        _queue.clear();
+        lock.unlock();
+        for (auto &queuedJob : queued) {
+          queuedJob();
+        }
+        return;
+      }
+    }
+    _wake.notify_one();
+  }
+
+  // Blocks until every job posted so far has run.
+  void wait() {
+    std::unique_lock<std::mutex> lock(_mutex);
+    _idle.wait(lock, [this] { return _queue.empty() && !_busy; });
+  }
+
+  // Bytes of entries in the directory: what tidying found, plus what this
+  // session stored since. Read and written by jobs only.
+  off_t total = 0;
+
+private:
+  void run() {
+    std::unique_lock<std::mutex> lock(_mutex);
+    for (;;) {
+      _wake.wait(lock, [this] { return !_queue.empty(); });
+      std::function<void()> job = std::move(_queue.front());
+      _queue.pop_front();
+      _busy = true;
+      lock.unlock();
+      job();
+      lock.lock();
+      _busy = false;
+      if (_queue.empty()) {
+        _idle.notify_all();
+      }
+    }
+  }
+
+  std::mutex _mutex;
+  std::condition_variable _wake;
+  std::condition_variable _idle;
+  std::deque<std::function<void()>> _queue;
+  bool _started = false;
+  bool _busy = false;
+};
 
 // Creates `dir` and any of its parents that are missing.
 void makeDirectories(const std::string &dir) {
@@ -85,6 +149,10 @@ std::string entryPath(const std::string &dir, size_t keySize,
   snprintf(name, sizeof(name), "/%016llx",
            static_cast<unsigned long long>(hash));
   return dir + name;
+}
+
+off_t entryBytes(size_t keySize, size_t valueSize) {
+  return static_cast<off_t>(2 * sizeof(uint64_t) + keySize + valueSize);
 }
 
 // An entry is the key's size, the value's size, the key and the value. The
@@ -125,114 +193,122 @@ size_t loadEntry(size_t keySize, const uint8_t *key, size_t valueSize,
   return result;
 }
 
-// Written aside and renamed into place, so a concurrent load never sees half
-// an entry. Dawn may store from several threads at once.
-void storeEntry(size_t keySize, const uint8_t *key, size_t valueSize,
-                const uint8_t *value, void * /* userdata1 */,
-                void * /* userdata2 */) {
-  const std::string dir = directory();
-  if (dir.empty()) {
+// Written aside and renamed into place, so a load on another thread never
+// sees half an entry. Runs on the writer.
+void writeEntry(const std::string &dir, const std::vector<uint8_t> &key,
+                const std::vector<uint8_t> &value) {
+  Writer &writer = Writer::shared();
+  const std::string path = entryPath(dir, key.size(), key.data());
+  const off_t bytes = entryBytes(key.size(), value.size());
+  struct stat replaced{};
+  const off_t previousBytes =
+      stat(path.c_str(), &replaced) == 0 ? replaced.st_size : 0;
+  if (previousBytes == 0) {
+    // A new entry, unless the system or the app cleared the cache directory,
+    // or its parent, during the session: then the entries counted so far are
+    // gone with it, and the directory has to be made again.
+    struct stat info{};
+    if (stat(dir.c_str(), &info) != 0) {
+      writer.total = 0;
+      makeDirectories(dir);
+    }
+  }
+  // Past the limit the cache stops growing until the next setup clears it.
+  // Replacing an entry with one no larger is not growth: Dawn's monolithic
+  // pipeline cache is one entry stored over and over.
+  if (bytes > previousBytes &&
+      writer.total + (bytes - previousBytes) > kMaxCacheBytes) {
     return;
   }
-  const uint64_t entryBytes = 2 * sizeof(uint64_t) + keySize + valueSize;
-  if (entryBytes > kMaxEntryBytes) {
-    return;
-  }
-  static std::atomic<uint64_t> writes{0};
-  const std::string path = entryPath(dir, keySize, key);
-  const std::string temporary = path + "." + std::to_string(getpid()) + "." +
-                                std::to_string(writes.fetch_add(1)) + ".tmp";
+  const std::string temporary = path + "." + std::to_string(getpid()) + ".tmp";
   FILE *file = fopen(temporary.c_str(), "wb");
   if (file == nullptr) {
-    // The system or the app may have cleared the cache directory, or its
-    // parent, during the session.
-    makeDirectories(dir);
-    file = fopen(temporary.c_str(), "wb");
-  }
-  if (file == nullptr) {
     return;
   }
-  const uint64_t sizes[2] = {keySize, valueSize};
+  const uint64_t sizes[2] = {key.size(), value.size()};
   bool written = fwrite(sizes, sizeof(sizes), 1, file) == 1 &&
-                 fwrite(key, 1, keySize, file) == keySize &&
-                 fwrite(value, 1, valueSize, file) == valueSize;
+                 fwrite(key.data(), 1, key.size(), file) == key.size() &&
+                 fwrite(value.data(), 1, value.size(), file) == value.size();
   written = fclose(file) == 0 && written;
-  struct stat replaced{};
-  const uint64_t previousBytes = stat(path.c_str(), &replaced) == 0
-                                     ? static_cast<uint64_t>(replaced.st_size)
-                                     : 0;
   if (!written || rename(temporary.c_str(), path.c_str()) != 0) {
     remove(temporary.c_str());
     return;
   }
-  if (entryBytes <= previousBytes) {
+  writer.total += bytes - previousBytes;
+}
+
+// Dawn's buffers last only for this call: the bytes are copied, and written
+// later on the writer.
+void storeEntry(size_t keySize, const uint8_t *key, size_t valueSize,
+                const uint8_t *value, void * /* userdata1 */,
+                void * /* userdata2 */) {
+  const std::string dir = directory();
+  if (dir.empty() || entryBytes(keySize, valueSize) > kMaxEntryBytes) {
     return;
   }
-  static std::atomic<uint64_t> grown{0};
-  const uint64_t growth = entryBytes - previousBytes;
-  // One thread takes the count when it is over the limit, and resets it only
-  // while it still is: growth that lands after another thread has taken the
-  // count stays in it for the next pass.
-  if (grown.fetch_add(growth) + growth >= kTidyAfterBytes) {
-    uint64_t seen = grown.load();
-    while (seen >= kTidyAfterBytes) {
-      if (grown.compare_exchange_weak(seen, 0)) {
-        tidy(dir);
-        break;
-      }
-    }
-  }
+  Writer::shared().post(
+      [dir, key = std::vector<uint8_t>(key, key + keySize),
+       value = std::vector<uint8_t>(value, value + valueSize)] {
+        writeEntry(dir, key, value);
+      });
 }
 
-bool endsWith(const std::string &name, const char *suffix) {
-  const size_t length = strlen(suffix);
-  return name.size() > length &&
-         name.compare(name.size() - length, length, suffix) == 0;
-}
+enum class Kind { Entry, Temporary, Other };
 
-// Whether a file name starts like one of the cache's own: an entry's 16
-// lowercase hex digits, alone or followed by a dot (a temporary file).
-bool isOwnFile(const std::string &name) {
-  if (name.size() < 16 || (name.size() > 16 && name[16] != '.')) {
-    return false;
+// An entry's name is 16 lowercase hex digits. A temporary file's is one
+// followed by dot-separated numbers and ".tmp": the writing process's id, and
+// in earlier versions a sequence number too. Anything else in the directory
+// is not the cache's to remove.
+Kind kindOf(const std::string &name) {
+  if (name.size() < 16) {
+    return Kind::Other;
   }
   for (size_t i = 0; i < 16; i++) {
     const char c = name[i];
     if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) {
-      return false;
+      return Kind::Other;
     }
   }
-  return true;
+  if (name.size() == 16) {
+    return Kind::Entry;
+  }
+  size_t i = 16;
+  bool numbers = false;
+  while (i < name.size() && name[i] == '.') {
+    size_t j = i + 1;
+    while (j < name.size() && name[j] >= '0' && name[j] <= '9') {
+      j++;
+    }
+    if (j == i + 1) {
+      break;
+    }
+    numbers = true;
+    i = j;
+  }
+  return numbers && name.compare(i, std::string::npos, ".tmp") == 0
+             ? Kind::Temporary
+             : Kind::Other;
 }
 
 // Removes the temporary files of writes a killed process left unfinished, and
-// the oldest entries while the cache is over kMaxCacheBytes. Runs when the
-// cache is set up and after each kTidyAfterBytes stored. "Oldest" is by write
-// time: a load does not refresh an entry.
+// every entry when together they are past kMaxCacheBytes: a cache that has
+// outgrown the limit holds mostly what the app no longer uses, and one launch
+// that builds everything is the price of starting over. Leaves the writer's
+// total at what the directory holds. Runs on the writer.
 void tidy(const std::string &dir) {
-  // Another thread tidying the same directory is enough.
-  static std::mutex *const tidying = new std::mutex;
-  std::unique_lock<std::mutex> lock(*tidying, std::try_to_lock);
-  if (!lock.owns_lock()) {
-    return;
-  }
+  Writer &writer = Writer::shared();
+  writer.total = 0;
   DIR *listing = opendir(dir.c_str());
   if (listing == nullptr) {
     return;
   }
-  struct Entry {
-    std::string path;
-    time_t modified;
-    off_t size;
-    ino_t inode;
-  };
-  std::vector<Entry> entries;
+  std::vector<std::string> entries;
   off_t total = 0;
   const time_t now = time(nullptr);
   while (dirent *entry = readdir(listing)) {
     const std::string name = entry->d_name;
-    // Anything else in the directory is not the cache's to delete.
-    if (!isOwnFile(name)) {
+    const Kind kind = kindOf(name);
+    if (kind == Kind::Other) {
       continue;
     }
     const std::string path = dir + "/" + name;
@@ -240,40 +316,23 @@ void tidy(const std::string &dir) {
     if (stat(path.c_str(), &info) != 0) {
       continue;
     }
-    if (endsWith(name, ".tmp")) {
+    if (kind == Kind::Temporary) {
       if (now - info.st_mtime > kAbandonedWriteSeconds) {
         remove(path.c_str());
       }
       continue;
     }
     total += info.st_size;
-    entries.push_back({path, info.st_mtime, info.st_size, info.st_ino});
+    entries.push_back(path);
   }
   closedir(listing);
-  if (total <= kMaxCacheBytes) {
-    return;
+  if (total > kMaxCacheBytes) {
+    for (const auto &path : entries) {
+      remove(path.c_str());
+    }
+    total = 0;
   }
-  std::sort(entries.begin(), entries.end(), [](const Entry &a, const Entry &b) {
-    return a.modified != b.modified ? a.modified < b.modified : a.path < b.path;
-  });
-  for (const auto &entry : entries) {
-    if (total <= kMaxCacheBytes) {
-      break;
-    }
-    // Another store may have replaced the entry since it was listed; the new
-    // one is not the old one this pass chose to remove. A replacement is a new
-    // file, so its inode tells it apart. Best effort: one landing between this
-    // check and the removal still goes, which only costs a cache miss.
-    struct stat current{};
-    if (stat(entry.path.c_str(), &current) != 0 ||
-        current.st_ino != entry.inode || current.st_mtime != entry.modified ||
-        current.st_size != entry.size) {
-      continue;
-    }
-    if (remove(entry.path.c_str()) == 0) {
-      total -= entry.size;
-    }
-  }
+  writer.total = total;
 }
 
 } // namespace
@@ -283,13 +342,14 @@ void DawnBlobCache::setDirectory(const std::string &dir) {
   if (!usable.empty()) {
     makeDirectories(usable);
     struct stat info{};
-    if (stat(usable.c_str(), &info) == 0 && S_ISDIR(info.st_mode)) {
-      tidy(usable);
-    } else {
+    if (stat(usable.c_str(), &info) != 0 || !S_ISDIR(info.st_mode)) {
       // Nowhere to keep blobs: leave the cache off rather than fail every
       // load and store.
       usable.clear();
     }
+  }
+  if (!usable.empty()) {
+    Writer::shared().post([usable] { tidy(usable); });
   }
   std::lock_guard<std::mutex> lock(directoryMutex());
   directorySlot() = usable;
@@ -307,5 +367,7 @@ bool DawnBlobCache::chain(wgpu::DeviceDescriptor &descriptor,
   descriptor.nextInChain = reinterpret_cast<wgpu::ChainedStruct *>(&storage);
   return true;
 }
+
+void DawnBlobCache::waitForWrites() { Writer::shared().wait(); }
 
 } // namespace rnwgpu
