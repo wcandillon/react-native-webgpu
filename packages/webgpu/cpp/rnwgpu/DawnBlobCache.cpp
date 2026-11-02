@@ -70,22 +70,20 @@ public:
     return *writer;
   }
 
+  // Queues `job` for the thread. Without a thread to be had (a process at its
+  // limit) the jobs queued so far are dropped, not run here: a store run on
+  // Dawn's thread would keep it waiting for the disk, and two run at once
+  // would write the same temporary file. The next post tries for a thread
+  // again.
   void post(std::function<void()> job) {
-    std::unique_lock<std::mutex> lock(_mutex);
+    std::lock_guard<std::mutex> lock(_mutex);
     _queue.push_back(std::move(job));
     if (!_started) {
       try {
         std::thread([this] { run(); }).detach();
         _started = true;
       } catch (const std::system_error &) {
-        // No thread to be had (a process at its limit): the work runs here,
-        // and the next post tries for a thread again.
-        std::deque<std::function<void()>> queued = std::move(_queue);
         _queue.clear();
-        lock.unlock();
-        for (auto &queuedJob : queued) {
-          queuedJob();
-        }
         return;
       }
     }
@@ -111,7 +109,15 @@ private:
       _queue.pop_front();
       _busy = true;
       lock.unlock();
-      job();
+      try {
+        job();
+      } catch (...) {
+        // Out of memory, most likely. The cache is best effort, and a write
+        // cut short leaves a temporary file the next setup removes; on a
+        // detached thread the exception would end the process instead.
+      }
+      // Frees the job's copy of the blob before the queue is locked again.
+      job = nullptr;
       lock.lock();
       _busy = false;
       if (_queue.empty()) {
@@ -154,6 +160,14 @@ std::string entryPath(const std::string &dir, size_t keySize,
 off_t entryBytes(size_t keySize, size_t valueSize) {
   return static_cast<off_t>(2 * sizeof(uint64_t) + keySize + valueSize);
 }
+
+// What measure() found in the directory.
+struct Contents {
+  std::vector<std::string> entries;
+  off_t bytes = 0;
+};
+
+Contents measure(const std::string &dir);
 
 // An entry is the key's size, the value's size, the key and the value. The
 // stored key is compared on load, so a hash collision reads as a miss, and so
@@ -205,20 +219,24 @@ void writeEntry(const std::string &dir, const std::vector<uint8_t> &key,
       stat(path.c_str(), &replaced) == 0 ? replaced.st_size : 0;
   if (previousBytes == 0) {
     // A new entry, unless the system or the app cleared the cache directory,
-    // or its parent, during the session: then the entries counted so far are
-    // gone with it, and the directory has to be made again.
+    // or its parent, during the session: then it has to be made again.
     struct stat info{};
     if (stat(dir.c_str(), &info) != 0) {
-      writer.total = 0;
       makeDirectories(dir);
     }
   }
   // Past the limit the cache stops growing until the next setup clears it.
   // Replacing an entry with one no larger is not growth: Dawn's monolithic
-  // pipeline cache is one entry stored over and over.
-  if (bytes > previousBytes &&
-      writer.total + (bytes - previousBytes) > kMaxCacheBytes) {
-    return;
+  // pipeline cache is one entry stored over and over. Before a store is
+  // dropped the directory is measured again, since the entries counted so
+  // far may be gone: the system clears app caches as it needs the space (iOS
+  // removes the files, not always the directory), and so may the app.
+  const off_t growth = bytes > previousBytes ? bytes - previousBytes : 0;
+  if (growth > 0 && writer.total + growth > kMaxCacheBytes) {
+    writer.total = measure(dir).bytes;
+    if (writer.total + growth > kMaxCacheBytes) {
+      return;
+    }
   }
   const std::string temporary = path + "." + std::to_string(getpid()) + ".tmp";
   FILE *file = fopen(temporary.c_str(), "wb");
@@ -256,9 +274,8 @@ void storeEntry(size_t keySize, const uint8_t *key, size_t valueSize,
 enum class Kind { Entry, Temporary, Other };
 
 // An entry's name is 16 lowercase hex digits. A temporary file's is one
-// followed by dot-separated numbers and ".tmp": the writing process's id, and
-// in earlier versions a sequence number too. Anything else in the directory
-// is not the cache's to remove.
+// followed by a dot, the writing process's id and ".tmp". Anything else in
+// the directory is not the cache's to remove.
 Kind kindOf(const std::string &name) {
   if (name.size() < 16) {
     return Kind::Other;
@@ -272,38 +289,27 @@ Kind kindOf(const std::string &name) {
   if (name.size() == 16) {
     return Kind::Entry;
   }
-  size_t i = 16;
-  bool numbers = false;
-  while (i < name.size() && name[i] == '.') {
-    size_t j = i + 1;
-    while (j < name.size() && name[j] >= '0' && name[j] <= '9') {
-      j++;
-    }
-    if (j == i + 1) {
-      break;
-    }
-    numbers = true;
-    i = j;
+  if (name[16] != '.') {
+    return Kind::Other;
   }
-  return numbers && name.compare(i, std::string::npos, ".tmp") == 0
+  size_t i = 17;
+  while (i < name.size() && name[i] >= '0' && name[i] <= '9') {
+    i++;
+  }
+  return i > 17 && name.compare(i, std::string::npos, ".tmp") == 0
              ? Kind::Temporary
              : Kind::Other;
 }
 
-// Removes the temporary files of writes a killed process left unfinished, and
-// every entry when together they are past kMaxCacheBytes: a cache that has
-// outgrown the limit holds mostly what the app no longer uses, and one launch
-// that builds everything is the price of starting over. Leaves the writer's
-// total at what the directory holds. Runs on the writer.
-void tidy(const std::string &dir) {
-  Writer &writer = Writer::shared();
-  writer.total = 0;
+// The entries in the directory and their bytes together: none when the
+// directory is gone. Removes the temporary files of writes a killed process
+// left unfinished on the way. Runs on the writer.
+Contents measure(const std::string &dir) {
+  Contents contents;
   DIR *listing = opendir(dir.c_str());
   if (listing == nullptr) {
-    return;
+    return contents;
   }
-  std::vector<std::string> entries;
-  off_t total = 0;
   const time_t now = time(nullptr);
   while (dirent *entry = readdir(listing)) {
     const std::string name = entry->d_name;
@@ -322,17 +328,27 @@ void tidy(const std::string &dir) {
       }
       continue;
     }
-    total += info.st_size;
-    entries.push_back(path);
+    contents.bytes += info.st_size;
+    contents.entries.push_back(path);
   }
   closedir(listing);
-  if (total > kMaxCacheBytes) {
-    for (const auto &path : entries) {
+  return contents;
+}
+
+// Measures the directory, and removes every entry when together they are past
+// kMaxCacheBytes: a cache that has outgrown the limit holds mostly what the
+// app no longer uses, and one launch that builds everything is the price of
+// starting over. Leaves the writer's total at what the directory holds. Runs
+// on the writer.
+void tidy(const std::string &dir) {
+  Contents contents = measure(dir);
+  if (contents.bytes > kMaxCacheBytes) {
+    for (const auto &path : contents.entries) {
       remove(path.c_str());
     }
-    total = 0;
+    contents.bytes = 0;
   }
-  writer.total = total;
+  Writer::shared().total = contents.bytes;
 }
 
 } // namespace

@@ -42,10 +42,11 @@ void writeFile(const std::string &path, const std::string &contents) {
 }
 
 // A file of `bytes` that takes no disk: a hole, which counts towards the
-// cache's limit all the same.
-void writeSparseFile(const std::string &path, off_t bytes) {
+// cache's limit all the same. False when the file system would not make one;
+// a helper's own assertion would only return from the helper.
+[[nodiscard]] bool writeSparseFile(const std::string &path, off_t bytes) {
   writeFile(path, "x");
-  ASSERT_EQ(truncate(path.c_str(), bytes), 0);
+  return truncate(path.c_str(), bytes) == 0;
 }
 
 // The names in a directory, leaving out "." and "..".
@@ -154,10 +155,10 @@ protected:
     return paths;
   }
 
-  static void age(const std::string &path, time_t seconds) {
+  [[nodiscard]] static bool age(const std::string &path, time_t seconds) {
     const time_t then = time(nullptr) - seconds;
     utimbuf times{then, then};
-    ASSERT_EQ(utime(path.c_str(), &times), 0);
+    return utime(path.c_str(), &times) == 0;
   }
 
   std::string _root;
@@ -376,17 +377,12 @@ TEST_F(DawnBlobCacheTest, RecreatesItsParentsIfTheyAreCleared) {
 
 TEST_F(DawnBlobCacheTest, RemovesWritesAbandonedByAKilledProcess) {
   const auto abandoned = _dir + "/0123456789abcdef.4242.tmp";
-  // The shape of an earlier version's temporary files.
-  const auto older = _dir + "/0123456789abcdef.4242.0.tmp";
   writeFile(abandoned, "x");
-  writeFile(older, "x");
-  age(abandoned, 120);
-  age(older, 120);
+  ASSERT_TRUE(age(abandoned, 120));
 
   setUpDirectory(_dir);
 
   EXPECT_FALSE(exists(abandoned));
-  EXPECT_FALSE(exists(older));
 }
 
 TEST_F(DawnBlobCacheTest, LeavesAWriteAnotherProcessMayStillFinish) {
@@ -411,7 +407,7 @@ TEST_F(DawnBlobCacheTest, KeepsACacheWithinItsLimit) {
 TEST_F(DawnBlobCacheTest, ClearsACacheThatOutgrewItsLimitAtTheNextSetup) {
   const auto cache = callbacks();
   cache.write({1}, {2, 3});
-  writeSparseFile(_dir + "/00000000000000ff", 65 * kMegabyte);
+  ASSERT_TRUE(writeSparseFile(_dir + "/00000000000000ff", 65 * kMegabyte));
 
   setUpDirectory(_dir);
 
@@ -424,7 +420,7 @@ TEST_F(DawnBlobCacheTest, ClearsACacheThatOutgrewItsLimitAtTheNextSetup) {
 TEST_F(DawnBlobCacheTest, DropsStoresPastTheLimitUntilTheNextSetup) {
   const auto cache = callbacks();
   const auto large = _dir + "/00000000000000ff";
-  writeSparseFile(large, 60 * kMegabyte);
+  ASSERT_TRUE(writeSparseFile(large, 60 * kMegabyte));
   setUpDirectory(_dir);
 
   cache.write({1}, Bytes(9 * kMegabyte, 7));
@@ -432,7 +428,7 @@ TEST_F(DawnBlobCacheTest, DropsStoresPastTheLimitUntilTheNextSetup) {
   EXPECT_EQ(cache.size({1}), 0u);
   EXPECT_TRUE(exists(large));
 
-  writeSparseFile(_dir + "/00000000000000fe", 5 * kMegabyte);
+  ASSERT_TRUE(writeSparseFile(_dir + "/00000000000000fe", 5 * kMegabyte));
   setUpDirectory(_dir);
   cache.write({1}, Bytes(9 * kMegabyte, 7));
 
@@ -444,7 +440,7 @@ TEST_F(DawnBlobCacheTest, DropsStoresPastTheLimitUntilTheNextSetup) {
 // not the cache growing.
 TEST_F(DawnBlobCacheTest, DoesNotCountAReplacementAsTheCacheGrowing) {
   const auto cache = callbacks();
-  writeSparseFile(_dir + "/00000000000000ff", 60 * kMegabyte);
+  ASSERT_TRUE(writeSparseFile(_dir + "/00000000000000ff", 60 * kMegabyte));
   setUpDirectory(_dir);
   cache.write({1}, Bytes(3 * kMegabyte, 7));
 
@@ -459,9 +455,23 @@ TEST_F(DawnBlobCacheTest, DoesNotCountAReplacementAsTheCacheGrowing) {
 // longer counts against the limit.
 TEST_F(DawnBlobCacheTest, StartsCountingAgainWhenItsDirectoryWasCleared) {
   const auto cache = callbacks();
-  writeSparseFile(_dir + "/00000000000000ff", 60 * kMegabyte);
+  ASSERT_TRUE(writeSparseFile(_dir + "/00000000000000ff", 60 * kMegabyte));
   setUpDirectory(_dir);
   removeTree(_dir);
+
+  cache.write({1}, Bytes(9 * kMegabyte, 7));
+
+  EXPECT_EQ(cache.size({1}), 9u * kMegabyte);
+}
+
+// The system may clear the entries and leave the directory, as iOS does when
+// it needs the space.
+TEST_F(DawnBlobCacheTest, StartsCountingAgainWhenItsEntriesWereCleared) {
+  const auto cache = callbacks();
+  const auto large = _dir + "/00000000000000ff";
+  ASSERT_TRUE(writeSparseFile(large, 60 * kMegabyte));
+  setUpDirectory(_dir);
+  ASSERT_EQ(unlink(large.c_str()), 0);
 
   cache.write({1}, Bytes(9 * kMegabyte, 7));
 
@@ -487,12 +497,16 @@ TEST_F(DawnBlobCacheTest, LeavesFilesThatAreNotTheCachesAlone) {
   const auto other = _dir + "/notes.txt";
   const auto similar = _dir + "/0123456789abcdefg";
   const auto lookalike = _dir + "/0123456789abcdef.bak";
+  // Nearly a temporary file's name, but not one.
+  const auto numbered = _dir + "/0123456789abcdef.4242.0.tmp";
   const auto large = _dir + "/00000000000000ff";
-  writeSparseFile(other, 65 * kMegabyte);
+  ASSERT_TRUE(writeSparseFile(other, 65 * kMegabyte));
   writeFile(similar, "x");
   writeFile(lookalike, "x");
-  age(lookalike, 3600);
-  writeSparseFile(large, 65 * kMegabyte);
+  writeFile(numbered, "x");
+  ASSERT_TRUE(age(lookalike, 3600));
+  ASSERT_TRUE(age(numbered, 3600));
+  ASSERT_TRUE(writeSparseFile(large, 65 * kMegabyte));
 
   setUpDirectory(_dir);
 
@@ -500,6 +514,7 @@ TEST_F(DawnBlobCacheTest, LeavesFilesThatAreNotTheCachesAlone) {
   EXPECT_TRUE(exists(other));
   EXPECT_TRUE(exists(similar));
   EXPECT_TRUE(exists(lookalike));
+  EXPECT_TRUE(exists(numbered));
 }
 
 } // namespace
