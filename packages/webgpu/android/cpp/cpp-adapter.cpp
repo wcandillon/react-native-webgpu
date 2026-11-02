@@ -21,7 +21,9 @@
 #include <webgpu/webgpu_cpp.h>
 
 #include "AndroidPlatformContext.h"
+#include "DawnBlobCache.h"
 #include "GPUCanvasContext.h"
+#include "GPUDevice.h"
 #include "RNWebGPUManager.h"
 #include "WebGPURuntime.h"
 
@@ -31,8 +33,18 @@ std::shared_ptr<rnwgpu::RNWebGPUManager> manager;
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     JNIEnv *env, jobject thiz, jlong jsRuntime, jobject jsCallInvokerHolder,
-    jobject blobModule) {
+    jobject blobModule, jstring cacheDirectory) {
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
+  if (cacheDirectory != nullptr) {
+    const char *path = env->GetStringUTFChars(cacheDirectory, nullptr);
+    if (path == nullptr) {
+      // The JVM could not copy the string, and an OutOfMemoryError is pending:
+      // no further JNI call is allowed, so let it reach the caller.
+      return;
+    }
+    rnwgpu::DawnBlobCache::setDirectory(path);
+    env->ReleaseStringUTFChars(cacheDirectory, path);
+  }
   jobject globalBlobModule = env->NewGlobalRef(blobModule);
   jobject globalModule = env->NewGlobalRef(thiz);
   auto jsCallInvoker{
@@ -43,6 +55,16 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
       globalBlobModule, globalModule);
   manager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsCallInvoker,
                                                       platformContext);
+}
+
+// WebGPUModule.onHostPause (UI thread): the app is going to the background,
+// the last moment to write what Dawn's pipeline caches hold before the process
+// may be killed. Each device flushes here, or on the thread of its own runtime
+// when it does not synchronize itself.
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUModule_flushPipelineCaches(JNIEnv * /* env */,
+                                                 jobject /* this */) {
+  rnwgpu::GPUDevice::flushPipelineCaches();
 }
 
 // Completion of WebGPUModule.snapshotView (UI thread). Reclaims the callbacks

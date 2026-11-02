@@ -310,6 +310,38 @@ jobs:
               exit 1
             }
 
+  # The C++ unit tests, built for the host (yarn test:cpp). A job of their
+  # own, so that a failing test is reported in a minute or two rather than
+  # after the Android job's setup, and so that a googletest download that
+  # fails does not fail the Android e2e run.
+  cpp-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      # FetchContent downloads googletest into the build directory; with the
+      # download, its stamps and the extracted source in place, a configure
+      # skips the download. Those only: the objects built from them belong to
+      # the runner image's compiler, which the key does not name.
+      - name: Cache googletest
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/webgpu/node_modules/.cache/cpp-tests/_deps/googletest-src
+            packages/webgpu/node_modules/.cache/cpp-tests/_deps/googletest-subbuild
+          key: ${{ runner.os }}-cpp-tests-googletest-${{ hashFiles('packages/webgpu/tests/cpp/CMakeLists.txt') }}
+
+      - name: Run the C++ unit tests
+        working-directory: packages/webgpu
+        run: yarn test:cpp
+
   # Android e2e on a GitHub-hosted emulator. The runner has no GPU, so the guest
   # sees a SwiftShader (software) Vulkan 1.3 device through gfxstream, which Dawn
   # exposes as a fallback adapter. Specs that need hardware-only paths (hardware
