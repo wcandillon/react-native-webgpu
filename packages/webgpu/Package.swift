@@ -56,21 +56,33 @@ let dawnVersion =
 // changing either package's Dawn reset the package caches (File > Packages >
 // Reset Package Caches) if this does not re-run.
 //
-// A react-native-skia that depends on react-native-webgpu-dawn itself must pin
-// the same version as this package. Older Graphite builds (react-native-skia
-// 3.0.x) vendor their own Dawn and record its release tag at
-// libs/.dawn-version in their binary packages; this package's `dawn` field
+// A react-native-skia that depends on react-native-webgpu-dawn itself must
+// resolve the same version as this package: the copy nested under it when the
+// package manager could not hoist it, else the one next to it (Node's
+// resolution, which react-native-skia's podspec compares too). A workspace
+// that resolves the package to one version for both (yarn `resolutions`, npm
+// `overrides`) passes while react-native-skia's own pin lags behind a Dawn
+// bump: the app then contains that one Dawn. Older Graphite builds
+// (react-native-skia 3.0.x) vendor their own Dawn and record its release tag
+// at libs/.dawn-version in their binary packages; this package's `dawn` field
 // names the release that Dawn is interchangeable with.
 if let skiaPath = nodePackage("react-native-skia"),
   let skiaPackage = readJSON("\(skiaPath)/package.json"),
-  let skiaDawn = (skiaPackage["dependencies"] as? [String: String])?["react-native-webgpu-dawn"]
+  let skiaDawnPin = (skiaPackage["dependencies"] as? [String: String])?["react-native-webgpu-dawn"]
 {
+  let skiaDawnPath = [
+    "\(skiaPath)/node_modules/react-native-webgpu-dawn",
+    "\(skiaPath)/../react-native-webgpu-dawn",
+  ].first { FileManager.default.fileExists(atPath: "\($0)/package.json") }
+  let skiaDawn =
+    skiaDawnPath.flatMap { readJSON("\($0)/package.json")?["version"] as? String } ?? skiaDawnPin
   if skiaDawn != dawnVersion {
     fatalError(
       """
       react-native-webgpu: Dawn version mismatch. This package links \
-      react-native-webgpu-dawn \(dawnVersion) but react-native-skia depends on \
-      \(skiaDawn). Align the two packages so the app contains exactly one Dawn.
+      react-native-webgpu-dawn \(dawnVersion) but react-native-skia resolves \
+      \(skiaDawn) (it depends on \(skiaDawnPin)). Align the two packages so the \
+      app contains exactly one Dawn.
       """)
   }
 } else {

@@ -93,7 +93,10 @@ sibling in `node_modules`, or this monorepo's root) and links its
 headers, so no header search path is needed for them. A Graphite build of
 react-native-skia installed alongside must link the same Dawn, which the
 manifest checks at evaluation time: a react-native-skia that depends on
-`react-native-webgpu-dawn` must pin the same version, and the 3.0.x line, which
+`react-native-webgpu-dawn` must resolve the same version (the copy nested under
+it, else the one next to it, as its podspec resolves it; a workspace that
+resolves the package to one version for both passes while react-native-skia's
+own pin lags behind a Dawn bump), and the 3.0.x line, which
 vendors its own Dawn, must record this package's `dawn` tag at
 `react-native-skia-graphite-apple-ios/libs/.dawn-version` (hoisted or nested
 under `react-native-skia/node_modules`, also checked for macOS and for the v2
