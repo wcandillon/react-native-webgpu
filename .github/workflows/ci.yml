@@ -348,6 +348,10 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Run the C++ unit tests
+        working-directory: packages/webgpu
+        run: yarn test:cpp
+
       - name: Install JDK
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:

@@ -21,6 +21,7 @@
 #include <webgpu/webgpu_cpp.h>
 
 #include "AndroidPlatformContext.h"
+#include "AnimationCadence.h"
 #include "GPUCanvasContext.h"
 #include "RNWebGPUManager.h"
 #include "WebGPURuntime.h"
@@ -212,23 +213,16 @@ struct WeakViewCall {
 // into Java on the render path costs a JNI transition and attaches a presenting
 // thread the JVM doesn't know for the length of the call, so there is one call
 // per animation: the first frame presented right after its predecessor calls,
-// the frames after it only record the time. The view polls that time from the
-// main thread (releaseIfIdle) and, once the animation has stopped, takes its
-// vote back and re-arms the call for the next animation. Lock-free, since it
-// runs on every present.
+// the frames after it only record the time (AnimationCadence). The view polls
+// that time from the main thread (releaseIfIdle) and, once the animation has
+// stopped, takes its vote back and re-arms the call for the next animation.
 class AnimationReporter {
 public:
   AnimationReporter(JNIEnv *env, jobject view)
       : _onAnimating(env, view, "onAnimating") {}
 
   void onFramePresented() {
-    const int64_t now = nowNanos();
-    const int64_t previous = _lastPresent.exchange(now);
-    if (now - previous > kAnimatingIntervalNanos) {
-      return;
-    }
-    _lastAnimating.store(now);
-    if (!_reported.exchange(true)) {
+    if (_cadence.onFramePresented(nowNanos())) {
       _onAnimating();
     }
   }
@@ -237,18 +231,10 @@ public:
   // before it counts as idle, or 0 once it has: the next animating frame then
   // calls into Java again.
   int64_t releaseIfIdle(int64_t idleAfterNanos) {
-    const int64_t idle = nowNanos() - _lastAnimating.load();
-    if (idle < idleAfterNanos) {
-      return idleAfterNanos - idle;
-    }
-    _reported.store(false);
-    return 0;
+    return _cadence.releaseIfIdle(nowNanos(), idleAfterNanos);
   }
 
 private:
-  // Presents this close together are an animation (faster than 40 fps).
-  static constexpr int64_t kAnimatingIntervalNanos = 25'000'000;
-
   static int64_t nowNanos() {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(
                std::chrono::steady_clock::now().time_since_epoch())
@@ -256,12 +242,7 @@ private:
   }
 
   WeakViewCall _onAnimating;
-  // INT64_MIN / 2 rather than a sentinel: the first present is never "right
-  // after" it, and the subtractions above don't overflow.
-  std::atomic<int64_t> _lastPresent{INT64_MIN / 2};
-  std::atomic<int64_t> _lastAnimating{INT64_MIN / 2};
-  // Java has been told about the current animation.
-  std::atomic<bool> _reported{false};
+  rnwgpu::AnimationCadence _cadence;
 };
 
 // The reporters by contextId, for WebGPUView.releaseFrameRateVoteIfIdle. The
