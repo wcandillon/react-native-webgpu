@@ -85,9 +85,13 @@ public:
     unregisterDevice(_instance.Get());
   }
 
-  // Static registry for looking up GPUDevice from wgpu::Device in callbacks
-  static void registerDevice(WGPUDevice handle,
-                             std::weak_ptr<GPUDevice> device) {
+  // Static registry for looking up GPUDevice from wgpu::Device in callbacks.
+  // Holds the wrapper by plain pointer: it unregisters itself in its
+  // destructor, under the registry's mutex, before any of its members go, so
+  // an entry's wrapper is alive for as long as the mutex is held, and its
+  // weak_from_this() tells whether it may still be shared (expired once it is
+  // being destroyed).
+  static void registerDevice(WGPUDevice handle, GPUDevice *device) {
     std::lock_guard<std::mutex> lock(getRegistryMutex());
     getRegistry()[handle] = device;
   }
@@ -101,15 +105,14 @@ public:
     std::lock_guard<std::mutex> lock(getRegistryMutex());
     auto it = getRegistry().find(handle);
     if (it != getRegistry().end()) {
-      return it->second.lock();
+      return it->second->weak_from_this().lock();
     }
     return nullptr;
   }
 
 private:
-  static std::unordered_map<WGPUDevice, std::weak_ptr<GPUDevice>> &
-  getRegistry() {
-    static std::unordered_map<WGPUDevice, std::weak_ptr<GPUDevice>> registry;
+  static std::unordered_map<WGPUDevice, GPUDevice *> &getRegistry() {
+    static std::unordered_map<WGPUDevice, GPUDevice *> registry;
     return registry;
   }
 
@@ -311,18 +314,24 @@ public:
   // relaunch would start with an empty one. Cheap when no pipeline was
   // compiled since the last call: Dawn keeps a flag, and skips a cache whose
   // size has not changed. Nothing to do on other backends, nor on an imported
-  // device, whose owner keeps its cache. Runs on the calling thread, which
-  // must be one that may use the device: the thread of its runtime, or any
-  // thread when the device synchronizes itself (ImplicitDeviceSynchronization).
-  // GPUQueue::submit calls it now and then (flushPipelineCacheIfDue), and
-  // destroy() does; the app going to the background does too, through
-  // flushPipelineCaches().
+  // device, whose owner keeps its cache, nor once the blob cache has refused
+  // the pipeline cache's data as too large (see DawnBlobCache::setDirectory):
+  // serializing it again would be for nothing. Runs on the calling thread,
+  // which must be one that may use the device: the thread of its runtime, or
+  // any thread when the device synchronizes itself
+  // (ImplicitDeviceSynchronization). destroy() calls it, and so do
+  // flushPipelineCacheIfDue() and flushPipelineCaches().
   void flushPipelineCache();
 
-  // flushPipelineCache(), at most once every few seconds. GPUQueue::submit
+  // flushPipelineCache(), at most once every ten seconds. GPUQueue::submit
   // calls it, so that a session that ends without destroy() or a pause (a
   // crash, the system killing the app in the foreground) loses at most those
-  // seconds of pipeline building. Any thread that may use the device.
+  // seconds of pipeline building. Serializing the pipeline cache would hold up
+  // the frame being submitted (Dawn copies the whole of it out of the driver,
+  // hashes it and copies it again), so a device that synchronizes itself (the
+  // default) is flushed on the blob cache's thread instead; a device only its
+  // runtime's thread may use is flushed here. Any thread that may use the
+  // device.
   void flushPipelineCacheIfDue();
 
   // Flushes every live device: here when the device synchronizes itself (the
@@ -343,6 +352,11 @@ private:
   std::shared_ptr<async::RuntimeContext> _async;
   std::string _label;
   const Origin _origin;
+  // Set once the blob cache refused the pipeline cache's data as too large
+  // (see flushPipelineCache). Shared with the flushes on the cache's thread,
+  // which hold the device by its Dawn handle and may outlive this wrapper.
+  std::shared_ptr<std::atomic<bool>> _pipelineCacheOutgrown =
+      std::make_shared<std::atomic<bool>>(false);
   // When flushPipelineCacheIfDue() last flushed, in steady_clock ticks. A
   // flush is claimed by swapping in the time, so that threads submitting at
   // once flush once.

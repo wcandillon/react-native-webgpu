@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <utime.h>
 
+#include <atomic>
 #include <cstdint>
 #include <cstdlib>
 #include <ctime>
@@ -452,10 +453,13 @@ TEST_F(DawnBlobCacheTest, DoesNotCountAReplacementAsTheCacheGrowing) {
 }
 
 // What the system cleared mid-session is no longer in the cache, so it no
-// longer counts against the limit.
+// longer counts against the limit. The cache tells a change by the
+// directory's modification time, which clocks keep coarsely: the directory is
+// aged, so that the clearing is never in the same tick as the setup.
 TEST_F(DawnBlobCacheTest, StartsCountingAgainWhenItsDirectoryWasCleared) {
   const auto cache = callbacks();
   ASSERT_TRUE(writeSparseFile(_dir + "/00000000000000ff", 60 * kMegabyte));
+  ASSERT_TRUE(age(_dir, 3600));
   setUpDirectory(_dir);
   removeTree(_dir);
 
@@ -470,6 +474,7 @@ TEST_F(DawnBlobCacheTest, StartsCountingAgainWhenItsEntriesWereCleared) {
   const auto cache = callbacks();
   const auto large = _dir + "/00000000000000ff";
   ASSERT_TRUE(writeSparseFile(large, 60 * kMegabyte));
+  ASSERT_TRUE(age(_dir, 3600));
   setUpDirectory(_dir);
   ASSERT_EQ(unlink(large.c_str()), 0);
 
@@ -489,6 +494,36 @@ TEST_F(DawnBlobCacheTest, DoesNotStoreAnEntryTooLargeForTheCache) {
   EXPECT_EQ(cache.read({1}), (Bytes{2, 3}));
   EXPECT_EQ(cache.read({2}), (Bytes{4}));
   EXPECT_EQ(entries().size(), 2u);
+}
+
+// How a device learns that its pipeline cache has outgrown the cache, and
+// stops serializing it: Dawn stores on the thread that flushes.
+TEST_F(DawnBlobCacheTest,
+       CountsTheStoresItRefusesAsTooLargeOnTheCallingThread) {
+  const auto cache = callbacks();
+  const uint64_t before = DawnBlobCache::refusedStoresOnThisThread();
+
+  cache.write({1}, {2, 3});
+  EXPECT_EQ(DawnBlobCache::refusedStoresOnThisThread(), before);
+
+  cache.write({2}, Bytes(33 * kMegabyte, 7));
+  EXPECT_EQ(DawnBlobCache::refusedStoresOnThisThread(), before + 1);
+
+  std::thread([&] { cache.storeOnly({3}, Bytes(33 * kMegabyte, 7)); }).join();
+  EXPECT_EQ(DawnBlobCache::refusedStoresOnThisThread(), before + 1);
+}
+
+// A device's pipeline cache is serialized on the cache's thread, behind the
+// stores queued before it.
+TEST_F(DawnBlobCacheTest, RunsAPostedJobAfterTheStoresQueuedBeforeIt) {
+  const auto cache = callbacks();
+  std::atomic<size_t> seen{0};
+
+  cache.storeOnly({1}, {2, 3});
+  DawnBlobCache::post([&] { seen = cache.size({1}); });
+  DawnBlobCache::waitForWrites();
+
+  EXPECT_EQ(seen, 2u);
 }
 
 // A wrong path must never turn clearing the cache into deleting someone's

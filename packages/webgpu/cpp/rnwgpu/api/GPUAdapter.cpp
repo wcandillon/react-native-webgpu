@@ -344,7 +344,8 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
 
               // Register the device in the static registry so the uncaptured
               // error callback can find it
-              GPUDevice::registerDevice(deviceHost->get().Get(), deviceHost);
+              GPUDevice::registerDevice(deviceHost->get().Get(),
+                                        deviceHost.get());
 
               resolve([deviceHost = std::move(deviceHost)](
                           jsi::Runtime &runtime) mutable {

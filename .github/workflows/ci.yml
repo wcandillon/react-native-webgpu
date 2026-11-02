@@ -326,13 +326,17 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      # FetchContent downloads googletest into the build directory; with its
-      # download and stamps in place, a configure skips the download.
+      # FetchContent downloads googletest into the build directory; with the
+      # download, its stamps and the extracted source in place, a configure
+      # skips the download. Those only: the objects built from them belong to
+      # the runner image's compiler, which the key does not name.
       - name: Cache googletest
         uses: actions/cache@v4
         with:
-          path: packages/webgpu/node_modules/.cache/cpp-tests/_deps
-          key: ${{ runner.os }}-cpp-tests-deps-${{ hashFiles('packages/webgpu/tests/cpp/CMakeLists.txt') }}
+          path: |
+            packages/webgpu/node_modules/.cache/cpp-tests/_deps/googletest-src
+            packages/webgpu/node_modules/.cache/cpp-tests/_deps/googletest-subbuild
+          key: ${{ runner.os }}-cpp-tests-googletest-${{ hashFiles('packages/webgpu/tests/cpp/CMakeLists.txt') }}
 
       - name: Run the C++ unit tests
         working-directory: packages/webgpu

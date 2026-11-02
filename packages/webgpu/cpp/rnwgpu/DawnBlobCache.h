@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+#include <functional>
 #include <string>
 
 #include "webgpu/webgpu_cpp.h"
@@ -51,9 +53,23 @@ public:
   static bool chain(wgpu::DeviceDescriptor &descriptor,
                     WGPUDawnCacheDeviceDescriptor &storage);
 
+  // Runs `job` on the cache's thread, after the jobs queued so far (the
+  // tidying, the stores), or not at all when no thread can be had. GPUDevice
+  // has Dawn write a device's pipeline cache there (flushPipelineCacheIfDue),
+  // so that the thread submitting a frame does not wait while Dawn serializes
+  // it.
+  static void post(std::function<void()> job);
+
+  // How many stores asked for on the calling thread the cache has refused
+  // because the entry was too large (see setDirectory). Dawn stores on the
+  // thread that has it write, so a flush (GPUDevice::flushPipelineCache) that
+  // sees this grow learns that the device's pipeline cache has outgrown what
+  // the cache keeps, and stops having Dawn serialize it.
+  static uint64_t refusedStoresOnThisThread();
+
   // Blocks until the cache's thread has done everything asked of it so far:
-  // the tidying of setDirectory() and the stores. Nothing in an app needs to
-  // wait for a write; tests do.
+  // the tidying of setDirectory(), the stores and the posted jobs. Nothing in
+  // an app needs to wait for a write; tests do.
   static void waitForWrites();
 };
 

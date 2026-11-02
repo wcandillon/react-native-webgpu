@@ -102,13 +102,13 @@ private:
                                const wgpu::Extent3D &size);
 
   wgpu::Device _device;
-  // The device's wrapper, which submit() has flush its pipeline cache now and
-  // then.
-  std::weak_ptr<GPUDevice> _deviceHost;
   wgpu::Queue _instance;
   std::shared_ptr<async::RuntimeContext> _async;
   std::shared_ptr<VideoFrameBlit> _videoFrameBlit;
   std::string _label;
+  // The device's wrapper, which submit() has flush its pipeline cache now and
+  // then.
+  std::weak_ptr<GPUDevice> _deviceHost;
 };
 
 } // namespace rnwgpu
