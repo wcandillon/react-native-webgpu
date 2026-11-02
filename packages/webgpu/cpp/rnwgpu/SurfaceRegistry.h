@@ -21,7 +21,6 @@
 
 #include "CanvasColorSpace.h"
 #include "WebGPURuntime.h"
-#include "rnwgpu/GpuWorkGate.h"
 
 #if defined(__ANDROID__)
 #include <android/hardware_buffer.h>
@@ -329,10 +328,7 @@ public:
       // (their newer content stands; presenting here would be a Dawn
       // present-without-acquire error).
       if (_surface && !_frameInFlight && _frameEpoch == blitEpoch) {
-        // Presenting commits Dawn's pending command buffer: held while the
-        // app is in the background, after the blit (see GpuWorkGate).
-        GpuWorkGate::getInstance().run(
-            [surface = _surface]() { surface.Present(); });
+        _surface.Present();
       }
     }
   }
@@ -602,13 +598,7 @@ public:
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
       if (_surface && _acquiredFromSurface) {
-        // Presenting commits Dawn's pending command buffer: held while the
-        // app is in the background, in order after the frame's submit (see
-        // GpuWorkGate). A held present runs on the thread the app comes back
-        // on, which Dawn's surface does not mind; the frame state below is
-        // settled now either way.
-        GpuWorkGate::getInstance().run(
-            [surface = _surface]() { surface.Present(); });
+        _surface.Present();
 #if defined(__ANDROID__)
         framePresented = _framePresented;
 #endif
@@ -920,11 +910,7 @@ private:
         _config.device.CreateCommandEncoder(&encoderDescriptor);
     encoder.CopyTextureToTexture(&source, &destination, &size);
     wgpu::CommandBuffer commands = encoder.Finish();
-    // Held while the app is in the background (see GpuWorkGate).
-    GpuWorkGate::getInstance().run(
-        [queue = _config.device.GetQueue(), commands]() {
-          queue.Submit(1, &commands);
-        });
+    _config.device.GetQueue().Submit(1, &commands);
     return true;
   }
 

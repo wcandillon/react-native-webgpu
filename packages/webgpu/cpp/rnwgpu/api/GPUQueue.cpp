@@ -12,7 +12,6 @@
 #include "EnforceRange.h"
 #include "ImageBitmap.h"
 #include "PlatformContext.h"
-#include "rnwgpu/GpuWorkGate.h"
 
 namespace rnwgpu {
 
@@ -33,11 +32,7 @@ void GPUQueue::submit(
   if (!conv(bufs_size, bufs.size())) {
     return;
   }
-  // Held while the app is in the background (see GpuWorkGate).
-  GpuWorkGate::getInstance().run(
-      [queue = _instance, bufs = std::move(bufs), bufs_size]() {
-        queue.Submit(bufs_size, bufs.data());
-      });
+  _instance.Submit(bufs_size, bufs.data());
 }
 
 void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,
@@ -86,19 +81,8 @@ void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,
   }
 
   assert(size64 <= std::numeric_limits<size_t>::max());
-  const auto size = static_cast<size_t>(size64);
-  const auto *bytes = static_cast<const uint8_t *>(src.data);
-  // Dawn commits its staging past 16 MB of writes: held while the app is in
-  // the background (see GpuWorkGate). WebGPU copies the bytes at the call,
-  // so the held write takes a copy of them, the ArrayBuffer may change.
-  GpuWorkGate::getInstance().runOrHold(
-      [&]() { _instance.WriteBuffer(buf, bufferOffset, bytes, size); },
-      [queue = _instance, buf, bufferOffset, bytes, size]() {
-        std::vector<uint8_t> copy(bytes, bytes + size);
-        return [queue, buf, bufferOffset, copy = std::move(copy)]() {
-          queue.WriteBuffer(buf, bufferOffset, copy.data(), copy.size());
-        };
-      });
+  _instance.WriteBuffer(buf, bufferOffset, src.data,
+                        static_cast<size_t>(size64));
 }
 
 async::AsyncTaskHandle GPUQueue::onSubmittedWorkDone(jsi::Runtime &runtime) {
@@ -179,12 +163,7 @@ void GPUQueue::copyVideoFrameToTexture(
   }
   request.dstX = dstOrigin.x;
   request.dstY = dstOrigin.y;
-  // The blit submits: held while the app is in the background (see
-  // GpuWorkGate), with the frame it copies.
-  GpuWorkGate::getInstance().run(
-      [blit = _videoFrameBlit, device = _device, queue = _instance, request]() {
-        blit->copy(device, queue, request);
-      });
+  _videoFrameBlit->copy(_device, _instance, request);
 }
 
 void GPUQueue::copyExternalImageToTexture(
@@ -270,33 +249,10 @@ void GPUQueue::copyExternalImageToTexture(
     }
     layout.bytesPerRow = rowSize;
     layout.rowsPerImage = sz.height;
-    // Held while the app is in the background (see GpuWorkGate), with the
-    // staged pixels.
-    GpuWorkGate::getInstance().runOrHold(
-        [&]() {
-          _instance.WriteTexture(&dst, staged.data(), totalSize, &layout, &sz);
-        },
-        [&]() {
-          return [queue = _instance, dst, layout, sz,
-                  staged = std::move(staged)]() {
-            queue.WriteTexture(&dst, staged.data(), staged.size(), &layout,
-                               &sz);
-          };
-        });
+    _instance.WriteTexture(&dst, staged.data(), totalSize, &layout, &sz);
   } else {
-    // Same, keeping the ImageBitmap alive for its pixels.
-    GpuWorkGate::getInstance().runOrHold(
-        [&]() {
-          _instance.WriteTexture(&dst, source->source->getData(),
-                                 source->source->getSize(), &layout, &sz);
-        },
-        [&]() {
-          return
-              [queue = _instance, dst, layout, sz, bitmap = source->source]() {
-                queue.WriteTexture(&dst, bitmap->getData(), bitmap->getSize(),
-                                   &layout, &sz);
-              };
-        });
+    _instance.WriteTexture(&dst, source->source->getData(),
+                           source->source->getSize(), &layout, &sz);
   }
 }
 
@@ -509,20 +465,7 @@ async::AsyncTaskHandle GPUQueue::drawElementImageToTexture(
                 layout.rowsPerImage = static_cast<uint32_t>(image.height);
                 wgpu::Extent3D extent{static_cast<uint32_t>(image.width),
                                       static_cast<uint32_t>(image.height), 1};
-                // Held while the app is in the background (see GpuWorkGate),
-                // with the pixels.
-                GpuWorkGate::getInstance().runOrHold(
-                    [&]() {
-                      queue.WriteTexture(&dst, pixels, byteLength, &layout,
-                                         &extent);
-                    },
-                    [&]() {
-                      return [queue, dst, layout, extent, byteLength,
-                              image = std::move(image)]() {
-                        queue.WriteTexture(&dst, image.data.data(), byteLength,
-                                           &layout, &extent);
-                      };
-                    });
+                queue.WriteTexture(&dst, pixels, byteLength, &layout, &extent);
                 return jsi::Value::undefined();
               });
             },
@@ -607,18 +550,7 @@ void GPUQueue::writeTexture(std::shared_ptr<GPUImageCopyTexture> destination,
     throw std::runtime_error("Invalid input for GPUQueue::writeTexture()");
   }
 
-  // Held while the app is in the background (see GpuWorkGate), with a copy
-  // of the bytes: WebGPU copies them at the call, the ArrayBuffer may change.
-  const auto *bytes = static_cast<const uint8_t *>(data->_data);
-  const size_t byteLength = data->_size;
-  GpuWorkGate::getInstance().runOrHold(
-      [&]() { _instance.WriteTexture(&dst, bytes, byteLength, &layout, &sz); },
-      [queue = _instance, dst, layout, sz, bytes, byteLength]() {
-        std::vector<uint8_t> copy(bytes, bytes + byteLength);
-        return [queue, dst, layout, sz, copy = std::move(copy)]() {
-          queue.WriteTexture(&dst, copy.data(), copy.size(), &layout, &sz);
-        };
-      });
+  _instance.WriteTexture(&dst, data->_data, data->_size, &layout, &sz);
 }
 
 } // namespace rnwgpu
