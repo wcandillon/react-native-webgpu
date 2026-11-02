@@ -16,11 +16,8 @@
 #include <android/log.h>
 #endif
 
-#include "dawn/native/DawnNative.h"
-
 #include "Convertors.h"
 #include "DawnBlobCache.h"
-#include "IdleFlusher.h"
 
 #include "GPUFeatures.h"
 #include "JSIConverter.h"
@@ -260,7 +257,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
         // only vkDestroyPipelineCache runs at device teardown, and pipelines
         // that share binaries compile faster. Dawn writes that cache to the
         // blob cache only when told the device is idle, which GPUDevice does
-        // (see enablePipelineCacheFlush).
+        // (see GPUDevice::flushPipelineCache).
         static const char *const kAndroidEnabledToggles[] = {
             "ignore_imported_ahardwarebuffer_vulkan_image_size",
             "vulkan_monolithic_pipeline_cache"};
@@ -289,17 +286,12 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
         // synchronous RequestDevice call below, like them.
         WGPUDawnCacheDeviceDescriptor blobCache =
             WGPU_DAWN_CACHE_DEVICE_DESCRIPTOR_INIT;
-        const bool blobCached = DawnBlobCache::chain(deviceDesc, blobCache);
-        wgpu::AdapterInfo adapterInfo{};
-        _instance.GetInfo(&adapterInfo);
-        const bool vulkan =
-            adapterInfo.backendType == wgpu::BackendType::Vulkan;
+        DawnBlobCache::chain(deviceDesc, blobCache);
         return _instance.RequestDevice(
             &deviceDesc, wgpu::CallbackMode::WaitAnyOnly,
             [context, resolve, reject, label, creationRuntime,
-             deviceLostBinding, blobCached,
-             vulkan](wgpu::RequestDeviceStatus status, wgpu::Device device,
-                     wgpu::StringView message) {
+             deviceLostBinding](wgpu::RequestDeviceStatus status,
+                                wgpu::Device device, wgpu::StringView message) {
               if (message.length) {
                 fprintf(stderr, "%s", message.data);
               }
@@ -316,19 +308,6 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
                   [](wgpu::LoggingType type, wgpu::StringView msg,
                      jsi::Runtime *creationRuntime) {
                     if (creationRuntime == nullptr) {
-                      return;
-                    }
-                    // Dawn logs on the thread that serializes its pipeline
-                    // cache, which must not enter the JS runtime.
-                    if (IdleFlusher::flushing()) {
-#ifdef __ANDROID__
-                      __android_log_print(
-                          ANDROID_LOG_WARN, "WebGPU", "Dawn: %.*s",
-                          static_cast<int>(msg.length), msg.data);
-#else
-                      fprintf(stderr, "Dawn: %.*s\n",
-                              static_cast<int>(msg.length), msg.data);
-#endif
                       return;
                     }
                     const char *logLevel = "";
@@ -360,34 +339,6 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
 
               auto deviceHost = std::make_shared<GPUDevice>(std::move(device),
                                                             context, label);
-
-              // Set up before the device is bound for the device lost callback
-              // below, so the flusher exists by the time that can cancel it.
-              if (blobCached && vulkan) {
-                // The monolithic Vulkan pipeline cache reaches the blob cache
-                // only when the device is told it is idle. Go by the toggles
-                // Dawn applied, not the ones asked for: the lists can disagree.
-                bool monolithic = false;
-                bool blobCacheOff = false;
-                for (const char *name :
-                     dawn::native::GetTogglesUsed(deviceHost->get().Get())) {
-                  monolithic =
-                      monolithic ||
-                      std::strcmp(name, "vulkan_monolithic_pipeline_cache") ==
-                          0;
-                  blobCacheOff = blobCacheOff ||
-                                 std::strcmp(name, "disable_blob_cache") == 0;
-                }
-                if (monolithic && !blobCacheOff) {
-                  // A thread of its own may flush only when Dawn guards the
-                  // device against it; otherwise the device is used from one
-                  // thread, and flushing waits for destroy().
-                  deviceHost->enablePipelineCacheFlush(
-                      deviceHost->get().HasFeature(
-                          wgpu::FeatureName::ImplicitDeviceSynchronization));
-                }
-              }
-
               *deviceLostBinding = deviceHost;
 
               // Register the device in the static registry so the uncaptured

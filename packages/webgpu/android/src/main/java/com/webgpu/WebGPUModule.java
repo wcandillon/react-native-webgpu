@@ -15,6 +15,7 @@ import java.util.Set;
 import com.facebook.proguard.annotations.DoNotStrip;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.JavaScriptContextHolder;
+import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.UIManager;
 import com.facebook.react.bridge.UiThreadUtil;
@@ -27,7 +28,7 @@ import com.facebook.react.turbomodule.core.CallInvokerHolderImpl;
 import com.facebook.react.turbomodule.core.interfaces.CallInvokerHolder;
 
 @ReactModule(name = WebGPUModule.NAME)
-public class WebGPUModule extends NativeWebGPUModuleSpec {
+public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEventListener {
   static {
       System.loadLibrary("react-native-webgpu"); // Load the C++ library
   }
@@ -36,7 +37,33 @@ public class WebGPUModule extends NativeWebGPUModuleSpec {
     super(reactContext);
     // Initialize the C++ module
     initialize();
+    reactContext.addLifecycleEventListener(this);
   }
+
+  @Override
+  public void invalidate() {
+    getReactApplicationContext().removeLifecycleEventListener(this);
+    super.invalidate();
+  }
+
+  @Override
+  public void onHostResume() {}
+
+  /**
+   * The app is going to the background: the last moment to write what Dawn's
+   * pipeline caches hold before the process may be killed (see
+   * GPUDevice::flushPipelineCaches).
+   */
+  @Override
+  public void onHostPause() {
+    flushPipelineCaches();
+  }
+
+  @Override
+  public void onHostDestroy() {}
+
+  @DoNotStrip
+  private native void flushPipelineCaches();
 
   @OptIn(markerClass = FrameworkAPI.class)
   @ReactMethod(isBlockingSynchronousMethod = true)

@@ -15,7 +15,6 @@
 
 #include "NativeObject.h"
 
-#include "IdleFlusher.h"
 #include "rnwgpu/async/AsyncTaskHandle.h"
 #include "rnwgpu/async/RuntimeContext.h"
 
@@ -78,11 +77,6 @@ public:
   ~GPUDevice() override {
     // Unregister from the static registry
     unregisterDevice(_instance.Get());
-    if (_pipelineCacheFlusher) {
-      // Not stop(): the last reference to a device can be dropped inside a
-      // Dawn callback, and a flush may be waiting for what that holds.
-      _pipelineCacheFlusher->cancel();
-    }
   }
 
   // Static registry for looking up GPUDevice from wgpu::Device in callbacks
@@ -304,25 +298,24 @@ public:
 
   inline const wgpu::Device get() { return _instance; }
 
-  // Has this device persist its monolithic Vulkan pipeline cache. Dawn keeps
-  // that cache in memory and writes it to the blob cache only when the
-  // embedder calls PerformIdleTasks() (the vulkan_monolithic_pipeline_cache
-  // toggle says so), so without this a relaunch starts with an empty one. The
-  // flush runs a while after the last pipeline was created, and when the
-  // device is destroyed. `background` lets it run on a thread of its own, which
-  // needs the device to guard itself (ImplicitDeviceSynchronization); without
-  // it only the flush at destroy() happens. Call before the device is shared.
-  void enablePipelineCacheFlush(bool background);
+  // Has Dawn write what its monolithic Vulkan pipeline cache holds to the blob
+  // cache (see DawnBlobCache). Dawn keeps that cache in memory and writes it
+  // only when the embedder says the device is idle (the
+  // vulkan_monolithic_pipeline_cache toggle says so), so without this a
+  // relaunch would start with an empty one. Nothing to do on other backends.
+  // Runs on the calling thread, which must be one that may use the device:
+  // the thread of its runtime, or any thread when the device synchronizes
+  // itself (ImplicitDeviceSynchronization). destroy() calls it; the app going
+  // to the background does too, through flushPipelineCaches().
+  void flushPipelineCache();
+
+  // Flushes every live device, each on the thread of the runtime it was
+  // created on. Any thread: the platform modules call it when the app goes to
+  // the background, the last moment to write before the process may be killed.
+  static void flushPipelineCaches();
 
 private:
   friend class GPUAdapter;
-
-  // Tells the flush that a pipeline was created; safe from any thread.
-  void notePipelineCreated() {
-    if (_pipelineCacheFlusher) {
-      _pipelineCacheFlusher->touch();
-    }
-  }
 
   // Runs the uncapturederror listeners on the creation runtime's JS thread.
   // Invoked from notifyUncapturedError through the runtime's context.
@@ -336,8 +329,6 @@ private:
   // this device so the pipelines are created once.
   std::shared_ptr<VideoFrameBlit> _videoFrameBlit =
       std::make_shared<VideoFrameBlit>();
-  // Null unless enablePipelineCacheFlush() was called.
-  std::shared_ptr<IdleFlusher> _pipelineCacheFlusher;
   // Guards the device-lost state below. getLost() runs on a JS thread, but
   // Dawn's AllowSpontaneous device-lost callback (and device destruction) can
   // fire notifyDeviceLost() from other threads, so the mutex keeps these

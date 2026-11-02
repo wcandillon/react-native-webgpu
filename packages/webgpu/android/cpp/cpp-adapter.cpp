@@ -23,6 +23,7 @@
 #include "AndroidPlatformContext.h"
 #include "DawnBlobCache.h"
 #include "GPUCanvasContext.h"
+#include "GPUDevice.h"
 #include "RNWebGPUManager.h"
 #include "WebGPURuntime.h"
 
@@ -54,6 +55,15 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
       globalBlobModule, globalModule);
   manager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsCallInvoker,
                                                       platformContext);
+}
+
+// WebGPUModule.onHostPause (UI thread): the app is going to the background,
+// the last moment to write what Dawn's pipeline caches hold before the process
+// may be killed. Each device flushes on the thread of its own runtime.
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUModule_flushPipelineCaches(JNIEnv * /* env */,
+                                                 jobject /* this */) {
+  rnwgpu::GPUDevice::flushPipelineCaches();
 }
 
 // Completion of WebGPUModule.snapshotView (UI thread). Reclaims the callbacks
