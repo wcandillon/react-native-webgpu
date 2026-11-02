@@ -274,6 +274,32 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
           }
         }
 #endif
+#if defined(__APPLE__)
+        // iOS refuses GPU work from an app in the background, and Dawn loses
+        // the device over a refused command buffer. With this toggle Dawn
+        // holds the commits while the app is in the background, from
+        // UIApplication's own notifications, and commits them when it comes
+        // back: nothing is lost, nothing is refused, and a promise on the
+        // held work settles once the app is back (the same toggle Skia
+        // requests on the device it shares, see react-native-skia's
+        // DawnUtils::requestDevice). Dawn applies it on iOS and tvOS only, and
+        // a Dawn without it (react-native-webgpu-dawn before 157.1.0) drops
+        // the name. The caller opts out through disabledToggles.
+        {
+          static const char *const kName =
+              "metal_suspend_submissions_in_background";
+          const auto named = [](const char *t) {
+            return std::strcmp(t, kName) == 0;
+          };
+          const bool explicitlyDisabled = std::any_of(
+              disabledToggles.begin(), disabledToggles.end(), named);
+          const bool alreadyEnabled =
+              std::any_of(enabledToggles.begin(), enabledToggles.end(), named);
+          if (!explicitlyDisabled && !alreadyEnabled) {
+            enabledToggles.push_back(kName);
+          }
+        }
+#endif
         if (!enabledToggles.empty() || !disabledToggles.empty()) {
           toggles.enabledToggleCount = enabledToggles.size();
           toggles.enabledToggles = enabledToggles.data();
