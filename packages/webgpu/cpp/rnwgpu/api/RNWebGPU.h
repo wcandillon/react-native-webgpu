@@ -148,7 +148,8 @@ public:
     wgpu::Device device = wgpu::Device::Acquire(raw);
     auto ctx = async::RuntimeContext::getOrCreate(
         runtime, device.GetAdapter().GetInstance());
-    return std::make_shared<GPUDevice>(device, ctx, "Imported Device");
+    return std::make_shared<GPUDevice>(device, ctx, "Imported Device",
+                                       GPUDevice::Origin::Imported);
   }
 
   // Wrap an externally created WGPUTexture in a GPUTexture, TAKING OWNERSHIP

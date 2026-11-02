@@ -17,6 +17,7 @@
 #endif
 
 #include "Convertors.h"
+#include "DawnBlobCache.h"
 
 #include "GPUFeatures.h"
 #include "JSIConverter.h"
@@ -254,8 +255,9 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
         // (MediaTek mt6855) segfaults while Skia Graphite compiles its
         // pipelines (wcandillon/react-native-skia#4340). With one cache the
         // only vkDestroyPipelineCache runs at device teardown, and pipelines
-        // that share binaries compile faster. PerformIdleTasks is not needed:
-        // nothing persists the cache.
+        // that share binaries compile faster. Dawn writes that cache to the
+        // blob cache only when told the device is idle, which GPUDevice does
+        // (see GPUDevice::flushPipelineCache).
         static const char *const kAndroidEnabledToggles[] = {
             "ignore_imported_ahardwarebuffer_vulkan_image_size",
             "vulkan_monolithic_pipeline_cache"};
@@ -305,6 +307,12 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
           toggles.disabledToggles = disabledToggles.data();
           deviceDesc.nextInChain = &toggles;
         }
+        // Compiled pipelines are kept on disk across launches (see
+        // DawnBlobCache). Chained in front of the toggles, and alive for the
+        // synchronous RequestDevice call below, like them.
+        WGPUDawnCacheDeviceDescriptor blobCache =
+            WGPU_DAWN_CACHE_DEVICE_DESCRIPTOR_INIT;
+        DawnBlobCache::chain(deviceDesc, blobCache);
         return _instance.RequestDevice(
             &deviceDesc, wgpu::CallbackMode::WaitAnyOnly,
             [context, resolve, reject, label, creationRuntime,
@@ -355,13 +363,15 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
                   },
                   creationRuntime);
 
-              auto deviceHost = std::make_shared<GPUDevice>(std::move(device),
-                                                            context, label);
+              auto deviceHost =
+                  std::make_shared<GPUDevice>(std::move(device), context, label,
+                                              GPUDevice::Origin::Requested);
               *deviceLostBinding = deviceHost;
 
               // Register the device in the static registry so the uncaptured
               // error callback can find it
-              GPUDevice::registerDevice(deviceHost->get().Get(), deviceHost);
+              GPUDevice::registerDevice(deviceHost->get().Get(),
+                                        deviceHost.get());
 
               resolve([deviceHost = std::move(deviceHost)](
                           jsi::Runtime &runtime) mutable {

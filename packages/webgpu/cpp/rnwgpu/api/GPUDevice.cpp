@@ -1,5 +1,8 @@
 #include "GPUDevice.h"
 
+#include <atomic>
+#include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <memory>
 #include <string>
@@ -9,7 +12,10 @@
 
 #include <ReactCommon/CallInvoker.h>
 
+#include "dawn/native/DawnNative.h"
+
 #include "Convertors.h"
+#include "DawnBlobCache.h"
 #include "JSIConverter.h"
 
 #include "GPUFeatures.h"
@@ -45,7 +51,124 @@ void defineHiddenProperty(jsi::Runtime &runtime, const jsi::Object &target,
                       jsi::String::createFromUtf8(runtime, name), descriptor);
 }
 
+// Has Dawn write what its pipeline cache holds to the blob cache. Nothing is
+// left to write once the device is lost or destroyed (Dawn drops the pipeline
+// cache with the backend), and nothing is written once the cache has refused
+// its data as too large. Any thread that may use the device.
+void flushDawnPipelineCache(const wgpu::Device &device,
+                            std::atomic<bool> &outgrown) {
+  if (outgrown.load(std::memory_order_relaxed) ||
+      dawn::native::IsDeviceLost(device.Get())) {
+    return;
+  }
+  // Dawn stores on this thread, before PerformIdleTasks returns, and stores
+  // nothing but the pipeline cache on idle: a store refused as too large on
+  // the way is the pipeline cache's, and from then on serializing it (Dawn
+  // copies the whole of it out of the driver, hashes it and copies it again)
+  // would be for nothing.
+  const uint64_t refused = DawnBlobCache::refusedStoresOnThisThread();
+  dawn::native::PerformIdleTasks(device);
+  if (DawnBlobCache::refusedStoresOnThisThread() != refused) {
+    outgrown.store(true, std::memory_order_relaxed);
+  }
+}
+
 } // namespace
+
+void GPUDevice::flushPipelineCache() {
+  // An imported device's cache is its owner's: nothing chained the blob cache
+  // onto it, and its owner's own threads may be using it.
+  if (_origin == Origin::Imported) {
+    return;
+  }
+  flushDawnPipelineCache(_instance, *_pipelineCacheOutgrown);
+}
+
+void GPUDevice::flushPipelineCacheIfDue() {
+  if (_origin == Origin::Imported ||
+      _pipelineCacheOutgrown->load(std::memory_order_relaxed)) {
+    return;
+  }
+  using Clock = std::chrono::steady_clock;
+  static constexpr auto kInterval =
+      std::chrono::duration_cast<Clock::duration>(std::chrono::seconds(10))
+          .count();
+  const auto now = Clock::now().time_since_epoch().count();
+  auto last = _lastPipelineCacheFlush.load(std::memory_order_relaxed);
+  if (now - last < kInterval) {
+    return;
+  }
+  // Threads submitting at once (ImplicitDeviceSynchronization) race for the
+  // flush, and the one that claims the time does it.
+  if (!_lastPipelineCacheFlush.compare_exchange_strong(
+          last, now, std::memory_order_relaxed)) {
+    return;
+  }
+  // Off the submitting thread when Dawn's lock lets any thread use the
+  // device. The job holds the device by its Dawn handle, not this wrapper: it
+  // may outlive the wrapper, which must only go on its runtime's thread (see
+  // flushPipelineCaches).
+  if (_instance.HasFeature(wgpu::FeatureName::ImplicitDeviceSynchronization)) {
+    DawnBlobCache::post(
+        [device = _instance, outgrown = _pipelineCacheOutgrown] {
+          flushDawnPipelineCache(device, *outgrown);
+        });
+    return;
+  }
+  flushPipelineCache();
+}
+
+void GPUDevice::flushPipelineCaches() {
+  // What flushing a device takes, copied out of its wrapper under the
+  // registry's mutex, rather than the wrapper itself: a strong reference to
+  // the wrapper released on this thread (the platform's UI thread) could be
+  // its last, and a wrapper, with its JSI members, must only go on its
+  // runtime's thread.
+  struct Flush {
+    wgpu::Device device;
+    std::shared_ptr<std::atomic<bool>> outgrown;
+    std::shared_ptr<async::RuntimeContext> async;
+    std::weak_ptr<GPUDevice> wrapper;
+  };
+  std::vector<Flush> flushes;
+  {
+    std::lock_guard<std::mutex> lock(getRegistryMutex());
+    for (const auto &entry : getRegistry()) {
+      GPUDevice *device = entry.second;
+      // A wrapper on its way out (its last reference gone, its destructor
+      // about to unregister it) has nothing left to flush; nor has an
+      // imported device, whose owner keeps its cache.
+      if (device->_origin == Origin::Imported ||
+          device->weak_from_this().expired()) {
+        continue;
+      }
+      flushes.push_back({device->_instance, device->_pipelineCacheOutgrown,
+                         device->_async, device->weak_from_this()});
+    }
+  }
+  for (const auto &flush : flushes) {
+    // Dawn locks a device that synchronizes itself around the flush, so this
+    // thread can do it, and does: the runtime's thread may be busy, and a
+    // runtime that polls its mailbox would hold the job until its next
+    // operation, which may never come before the process is killed.
+    if (flush.device.HasFeature(
+            wgpu::FeatureName::ImplicitDeviceSynchronization)) {
+      flushDawnPipelineCache(flush.device, *flush.outgrown);
+      continue;
+    }
+    if (!flush.async) {
+      continue;
+    }
+    // A device used from its runtime's thread only is flushed there. Held
+    // weakly: a device collected before its runtime gets to the job has
+    // nothing left to flush, and the job must not keep it alive.
+    flush.async->post([weak = flush.wrapper](jsi::Runtime &) {
+      if (auto device = weak.lock()) {
+        device->flushPipelineCache();
+      }
+    });
+  }
+}
 
 void GPUDevice::notifyDeviceLost(wgpu::DeviceLostReason reason,
                                  std::string message) {
@@ -137,7 +260,7 @@ std::shared_ptr<GPUAdapterInfo> GPUDevice::getAdapterInfo() {
 std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
   auto result = _instance.GetQueue();
   return std::make_shared<GPUQueue>(_instance, result, _async, _videoFrameBlit,
-                                    _label);
+                                    _label, weak_from_this());
 }
 
 std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
@@ -154,6 +277,9 @@ std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
 }
 
 void GPUDevice::destroy() {
+  // The last chance to write what the pipelines added to Dawn's pipeline
+  // cache: once destroyed, the device has nothing left to serialize.
+  flushPipelineCache();
   // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
   // Any canvas surface holding a swapchain for this device must let go of it
   // while the device is alive (see SurfaceInfo::releaseSurfaceForDevice).

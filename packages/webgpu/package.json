@@ -31,6 +31,7 @@
     "test:ref": "REFERENCE=true NODE_OPTIONS='--experimental-require-module' jest -i",
     "test:node": "NODE_WEBGPU=true NODE_OPTIONS='--experimental-require-module' jest -i",
     "test:plugin": "jest -c plugin/jest.config.js",
+    "test:cpp": "cmake -S tests/cpp -B node_modules/.cache/cpp-tests && cmake --build node_modules/.cache/cpp-tests --parallel && ctest --test-dir node_modules/.cache/cpp-tests --output-on-failure",
     "lint": "eslint . --ext .ts,.tsx  --max-warnings 0 --cache --fix",
     "tsc": "tsc --noEmit",
     "build": "bob build && yarn build:plugin",

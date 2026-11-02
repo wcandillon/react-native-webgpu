@@ -8,12 +8,14 @@ import android.view.View;
 
 import androidx.annotation.OptIn;
 
+import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
 
 import com.facebook.proguard.annotations.DoNotStrip;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.JavaScriptContextHolder;
+import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.UIManager;
 import com.facebook.react.bridge.UiThreadUtil;
@@ -26,7 +28,7 @@ import com.facebook.react.turbomodule.core.CallInvokerHolderImpl;
 import com.facebook.react.turbomodule.core.interfaces.CallInvokerHolder;
 
 @ReactModule(name = WebGPUModule.NAME)
-public class WebGPUModule extends NativeWebGPUModuleSpec {
+public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEventListener {
   static {
       System.loadLibrary("react-native-webgpu"); // Load the C++ library
   }
@@ -35,7 +37,33 @@ public class WebGPUModule extends NativeWebGPUModuleSpec {
     super(reactContext);
     // Initialize the C++ module
     initialize();
+    reactContext.addLifecycleEventListener(this);
   }
+
+  @Override
+  public void invalidate() {
+    getReactApplicationContext().removeLifecycleEventListener(this);
+    super.invalidate();
+  }
+
+  @Override
+  public void onHostResume() {}
+
+  /**
+   * The app is going to the background: the last moment to write what Dawn's
+   * pipeline caches hold before the process may be killed (see
+   * GPUDevice::flushPipelineCaches).
+   */
+  @Override
+  public void onHostPause() {
+    flushPipelineCaches();
+  }
+
+  @Override
+  public void onHostDestroy() {}
+
+  @DoNotStrip
+  private native void flushPipelineCaches();
 
   @OptIn(markerClass = FrameworkAPI.class)
   @ReactMethod(isBlockingSynchronousMethod = true)
@@ -47,13 +75,16 @@ public class WebGPUModule extends NativeWebGPUModuleSpec {
     if (blobModule == null) {
       throw new RuntimeException("React Native's BlobModule was not found!");
     }
-    initializeNative(jsContext.get(), (CallInvokerHolderImpl) callInvokerHolder, blobModule);
+    // Dawn keeps the pipelines it compiles here, so a relaunch does not
+    // compile them again (see DawnBlobCache).
+    String cacheDirectory = new File(context.getCacheDir(), "webgpu-dawn").getAbsolutePath();
+    initializeNative(jsContext.get(), (CallInvokerHolderImpl) callInvokerHolder, blobModule, cacheDirectory);
     return true;
   }
 
   @OptIn(markerClass = FrameworkAPI.class)
   @DoNotStrip
-  private native void initializeNative(long jsRuntime, CallInvokerHolderImpl jsInvoker, BlobModule blobModule);
+  private native void initializeNative(long jsRuntime, CallInvokerHolderImpl jsInvoker, BlobModule blobModule, String cacheDirectory);
 
   /**
    * Called from C++ (AndroidPlatformContext::snapshotView) on an arbitrary
