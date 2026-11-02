@@ -59,7 +59,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
 
 // WebGPUModule.onHostPause (UI thread): the app is going to the background,
 // the last moment to write what Dawn's pipeline caches hold before the process
-// may be killed. Each device flushes on the thread of its own runtime.
+// may be killed. Each device flushes here, or on the thread of its own runtime
+// when it does not synchronize itself.
 extern "C" JNIEXPORT void JNICALL
 Java_com_webgpu_WebGPUModule_flushPipelineCaches(JNIEnv * /* env */,
                                                  jobject /* this */) {

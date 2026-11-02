@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -68,11 +70,15 @@ class GPUDevice : public NativeObject<GPUDevice> {
 public:
   static constexpr const char *CLASS_NAME = "GPUDevice";
 
+  // Where the device came from: requestDevice(), or another library through
+  // importDevice(). An imported device's pipeline cache is its owner's.
+  enum class Origin { Requested, Imported };
+
   explicit GPUDevice(wgpu::Device instance,
                      std::shared_ptr<async::RuntimeContext> async,
-                     std::string label)
+                     std::string label, Origin origin)
       : NativeObject(CLASS_NAME), _instance(instance), _async(async),
-        _label(label) {}
+        _label(label), _origin(origin) {}
 
   ~GPUDevice() override {
     // Unregister from the static registry
@@ -302,16 +308,28 @@ public:
   // cache (see DawnBlobCache). Dawn keeps that cache in memory and writes it
   // only when the embedder says the device is idle (the
   // vulkan_monolithic_pipeline_cache toggle says so), so without this a
-  // relaunch would start with an empty one. Nothing to do on other backends.
-  // Runs on the calling thread, which must be one that may use the device:
-  // the thread of its runtime, or any thread when the device synchronizes
-  // itself (ImplicitDeviceSynchronization). destroy() calls it; the app going
-  // to the background does too, through flushPipelineCaches().
+  // relaunch would start with an empty one. Cheap when no pipeline was
+  // compiled since the last call: Dawn keeps a flag, and skips a cache whose
+  // size has not changed. Nothing to do on other backends, nor on an imported
+  // device, whose owner keeps its cache. Runs on the calling thread, which
+  // must be one that may use the device: the thread of its runtime, or any
+  // thread when the device synchronizes itself (ImplicitDeviceSynchronization).
+  // GPUQueue::submit calls it now and then (flushPipelineCacheIfDue), and
+  // destroy() does; the app going to the background does too, through
+  // flushPipelineCaches().
   void flushPipelineCache();
 
-  // Flushes every live device, each on the thread of the runtime it was
-  // created on. Any thread: the platform modules call it when the app goes to
-  // the background, the last moment to write before the process may be killed.
+  // flushPipelineCache(), at most once every few seconds. GPUQueue::submit
+  // calls it, so that a session that ends without destroy() or a pause (a
+  // crash, the system killing the app in the foreground) loses at most those
+  // seconds of pipeline building. Any thread that may use the device.
+  void flushPipelineCacheIfDue();
+
+  // Flushes every live device: here when the device synchronizes itself (the
+  // default), else on the thread of its runtime, which a runtime that polls
+  // its mailbox (a worklet runtime's) reaches with its next operation. Any
+  // thread: the platform modules call it when the app goes to the background,
+  // the last moment to write before the process may be killed.
   static void flushPipelineCaches();
 
 private:
@@ -324,6 +342,12 @@ private:
   wgpu::Device _instance;
   std::shared_ptr<async::RuntimeContext> _async;
   std::string _label;
+  const Origin _origin;
+  // When flushPipelineCacheIfDue() last flushed, in steady_clock ticks. A
+  // flush is claimed by swapping in the time, so that threads submitting at
+  // once flush once.
+  std::atomic<std::chrono::steady_clock::rep> _lastPipelineCacheFlush{
+      std::chrono::steady_clock::now().time_since_epoch().count()};
   // Renders native video frames into textures for
   // GPUQueue.copyExternalImageToTexture; shared by every GPUQueue wrapper of
   // this device so the pipelines are created once.

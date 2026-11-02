@@ -1,5 +1,6 @@
 #include "GPUDevice.h"
 
+#include <chrono>
 #include <cstdio>
 #include <memory>
 #include <string>
@@ -50,11 +51,34 @@ void defineHiddenProperty(jsi::Runtime &runtime, const jsi::Object &target,
 } // namespace
 
 void GPUDevice::flushPipelineCache() {
-  // Nothing is left to write once the device is lost or destroyed, and the
-  // backend may already be torn down.
-  if (!dawn::native::IsDeviceLost(_instance.Get())) {
-    dawn::native::PerformIdleTasks(_instance);
+  // An imported device's cache is its owner's: nothing chained the blob cache
+  // onto it, and its owner's own threads may be using it. Nothing is left to
+  // write once the device is lost or destroyed either: Dawn drops the
+  // pipeline cache with the backend.
+  if (_origin == Origin::Imported ||
+      dawn::native::IsDeviceLost(_instance.Get())) {
+    return;
   }
+  dawn::native::PerformIdleTasks(_instance);
+}
+
+void GPUDevice::flushPipelineCacheIfDue() {
+  using Clock = std::chrono::steady_clock;
+  static constexpr auto kInterval =
+      std::chrono::duration_cast<Clock::duration>(std::chrono::seconds(10))
+          .count();
+  const auto now = Clock::now().time_since_epoch().count();
+  auto last = _lastPipelineCacheFlush.load(std::memory_order_relaxed);
+  if (now - last < kInterval) {
+    return;
+  }
+  // Threads submitting at once (ImplicitDeviceSynchronization) race for the
+  // flush, and the one that claims the time does it.
+  if (!_lastPipelineCacheFlush.compare_exchange_strong(
+          last, now, std::memory_order_relaxed)) {
+    return;
+  }
+  flushPipelineCache();
 }
 
 void GPUDevice::flushPipelineCaches() {
@@ -68,10 +92,20 @@ void GPUDevice::flushPipelineCaches() {
     }
   }
   for (const auto &device : devices) {
+    // Dawn locks a device that synchronizes itself around the flush, so this
+    // thread can do it, and does: the runtime's thread may be busy, and a
+    // runtime that polls its mailbox would hold the job until its next
+    // operation, which may never come before the process is killed.
+    if (device->_instance.HasFeature(
+            wgpu::FeatureName::ImplicitDeviceSynchronization)) {
+      device->flushPipelineCache();
+      continue;
+    }
     if (!device->_async) {
       continue;
     }
-    // Held weakly: a device collected before its runtime gets to the job has
+    // A device used from its runtime's thread only is flushed there. Held
+    // weakly: a device collected before its runtime gets to the job has
     // nothing left to flush, and the job must not keep it alive.
     device->_async->post(
         [weak = std::weak_ptr<GPUDevice>(device)](jsi::Runtime &) {
@@ -172,7 +206,7 @@ std::shared_ptr<GPUAdapterInfo> GPUDevice::getAdapterInfo() {
 std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
   auto result = _instance.GetQueue();
   return std::make_shared<GPUQueue>(_instance, result, _async, _videoFrameBlit,
-                                    _label);
+                                    _label, weak_from_this());
 }
 
 std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(

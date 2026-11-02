@@ -27,6 +27,8 @@ namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
 
+class GPUDevice;
+
 class GPUQueue : public NativeObject<GPUQueue> {
 public:
   static constexpr const char *CLASS_NAME = "GPUQueue";
@@ -34,10 +36,10 @@ public:
   explicit GPUQueue(wgpu::Device device, wgpu::Queue instance,
                     std::shared_ptr<async::RuntimeContext> async,
                     std::shared_ptr<VideoFrameBlit> videoFrameBlit,
-                    std::string label)
+                    std::string label, std::weak_ptr<GPUDevice> deviceHost)
       : NativeObject(CLASS_NAME), _device(device), _instance(instance),
         _async(async), _videoFrameBlit(std::move(videoFrameBlit)),
-        _label(label) {}
+        _label(label), _deviceHost(std::move(deviceHost)) {}
 
 public:
   std::string getBrand() { return CLASS_NAME; }
@@ -100,6 +102,9 @@ private:
                                const wgpu::Extent3D &size);
 
   wgpu::Device _device;
+  // The device's wrapper, which submit() has flush its pipeline cache now and
+  // then.
+  std::weak_ptr<GPUDevice> _deviceHost;
   wgpu::Queue _instance;
   std::shared_ptr<async::RuntimeContext> _async;
   std::shared_ptr<VideoFrameBlit> _videoFrameBlit;

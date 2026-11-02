@@ -10,6 +10,7 @@
 
 #include "Convertors.h"
 #include "EnforceRange.h"
+#include "GPUDevice.h"
 #include "ImageBitmap.h"
 #include "PlatformContext.h"
 
@@ -33,6 +34,12 @@ void GPUQueue::submit(
     return;
   }
   _instance.Submit(bufs_size, bufs.data());
+  // Now and then, what the pipelines compiled since the last flush added to
+  // Dawn's pipeline cache goes to the disk (see
+  // GPUDevice::flushPipelineCacheIfDue).
+  if (auto device = _deviceHost.lock()) {
+    device->flushPipelineCacheIfDue();
+  }
 }
 
 void GPUQueue::writeBuffer(std::shared_ptr<GPUBuffer> buffer,

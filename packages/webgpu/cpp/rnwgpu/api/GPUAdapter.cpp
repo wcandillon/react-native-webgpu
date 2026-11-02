@@ -337,8 +337,9 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
                   },
                   creationRuntime);
 
-              auto deviceHost = std::make_shared<GPUDevice>(std::move(device),
-                                                            context, label);
+              auto deviceHost =
+                  std::make_shared<GPUDevice>(std::move(device), context, label,
+                                              GPUDevice::Origin::Requested);
               *deviceLostBinding = deviceHost;
 
               // Register the device in the static registry so the uncaptured
