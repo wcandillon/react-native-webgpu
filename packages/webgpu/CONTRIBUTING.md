@@ -1,5 +1,9 @@
 # Contributing
 
+## Contributing with coding agents
+
+We happily accept contributions made with coding agents. Our ask is simple: if you send us agent-written content, start with a few sentences in your own words. It will speed things up. A partial understanding is fine; any attempt at owning the change goes a long way. Agent-written content after that is welcome. We will deeply appreciate the effort.
+
 ## Development workflow
 
 ```sh
