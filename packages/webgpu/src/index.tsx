@@ -70,9 +70,20 @@ declare global {
   var RNWebGPU: {
     gpu: GPU;
     fabric: boolean;
+    // The id a Canvas about to mount registers under, unique for the life of
+    // the process (the native surface registry outlives a reload).
+    allocateContextId: () => number;
     getNativeSurface: (contextId: number) => NativeCanvas;
     MakeWebGPUCanvasContext: (
       contextId: number,
+      width: number,
+      height: number,
+    ) => RNCanvasContext;
+    // A canvas context presenting to a native window that is not a WebGPU
+    // view, e.g. a MediaCodec encoder's input Surface: an ANativeWindow*
+    // (Android) or a CAMetalLayer* (Apple).
+    MakeWebGPUCanvasContextFromNativeWindow: (
+      window: bigint,
       width: number,
       height: number,
     ) => RNCanvasContext;
@@ -97,7 +108,7 @@ declare global {
     createVideoFrameFromNativeBuffer: (pointer: bigint) => NativeVideoFrame;
     // Wrap an externally created WGPUDevice pointer (e.g. Skia's Graphite
     // device from Skia.getNativeDevice()) into a GPUDevice. Requires the
-    // exporter to share this process's single Dawn instance.
+    // exporter to link this process's single Dawn copy.
     importDevice: (pointer: bigint) => GPUDevice;
     // Wrap an externally created WGPUTexture pointer into a GPUTexture,
     // taking ownership of one reference (pair with producers that return a

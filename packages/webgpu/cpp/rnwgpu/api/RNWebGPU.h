@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <memory>
 #include <string>
 #include <utility>
@@ -13,11 +14,12 @@
 #include "GPUCanvasContext.h"
 #include "GPUDevice.h"
 #include "GPUTexture.h"
-#include "rnwgpu/async/RuntimeContext.h"
 #include "ImageBitmap.h"
 #include "PlatformContext.h"
 #include "VideoFrame.h"
 #include "VideoPlayer.h"
+#include "WebGPURuntime.h"
+#include "rnwgpu/async/RuntimeContext.h"
 
 #include <ReactCommon/CallInvoker.h>
 
@@ -83,13 +85,58 @@ public:
     return ctx;
   }
 
+  // A canvas context presenting to a native window that is not a WebGPU
+  // view, e.g. the input Surface of a MediaCodec encoder: an ANativeWindow*
+  // (Android) or a CAMetalLayer* (Apple), passed as a BigInt. Unlike a view's,
+  // the context owns its surface, outside of the SurfaceRegistry, and the
+  // caller drives it from one thread at a time. The context retains the
+  // window for as long as it lives; unconfigure() releases the surface (and
+  // on Android the buffers the window handed to it) and configure() makes a
+  // new one for the window, see the SurfaceInfo constructor.
+  std::shared_ptr<GPUCanvasContext>
+  MakeWebGPUCanvasContextFromNativeWindow(void *window, float width,
+                                          float height) {
+    if (window == nullptr) {
+      throw std::runtime_error(
+          "MakeWebGPUCanvasContextFromNativeWindow: expected a non-null "
+          "ANativeWindow (Android) or CAMetalLayer (Apple) pointer (BigInt)");
+    }
+    if (!(std::isfinite(width) && std::isfinite(height) && width > 0 &&
+          height > 0)) {
+      throw std::runtime_error(
+          "MakeWebGPUCanvasContextFromNativeWindow: expected a positive "
+          "width and height");
+    }
+    auto &runtime = WebGPURuntime::shared();
+    // Unlike a view's, this surface has no offscreen fallback worth having:
+    // nothing would ever show up, so fail here.
+    auto surface = runtime.makeSurface(window);
+    if (surface == nullptr) {
+      throw std::runtime_error(
+          "MakeWebGPUCanvasContextFromNativeWindow: could not create a surface "
+          "for the window; is it a valid ANativeWindow (Android) or "
+          "CAMetalLayer (Apple)?");
+    }
+    auto info = SurfaceRegistry::getInstance().makeUnregisteredSurfaceInfo(
+        runtime.instance(), static_cast<int>(width), static_cast<int>(height));
+    // The window is retained last, once nothing left here can throw: the
+    // SurfaceInfo owns the reference from here on. Adopted by the context's
+    // configure() (see SurfaceInfo::configure).
+    info->attachSurface(window, std::move(surface),
+                        _platformContext->retainNativeWindow(window));
+    return std::make_shared<GPUCanvasContext>(_gpu, std::move(info), width,
+                                              height);
+  }
+
   // Wrap an externally created WGPUDevice (passed as a BigInt pointer, e.g.
   // Skia's Graphite device from Skia.getNativeDevice()) in a GPUDevice.
   // AddRefs the handle, so the original owner keeps its reference. Only sound
-  // because the process links a single Dawn copy and the GPU instance is
-  // shared with the exporter (see the GPU constructor): the calling runtime's
-  // pump serves the instance the device lives on, so its async callbacks
-  // settle normally.
+  // because the process links a single Dawn copy. The device's async
+  // callbacks are waited for on the instance that owns it (RuntimeContext is
+  // per runtime and per instance), which is not necessarily the shared one:
+  // WebGPURuntime adopts Skia's instance only when Skia's getter is reachable
+  // as the instance is first used (on Android, only once librnskia.so is
+  // loaded), and other exporters have their own.
   std::shared_ptr<GPUDevice> importDevice(jsi::Runtime &runtime,
                                           void *pointer) {
     if (pointer == nullptr) {
@@ -99,7 +146,8 @@ public:
     auto raw = reinterpret_cast<WGPUDevice>(pointer);
     wgpuDeviceAddRef(raw);
     wgpu::Device device = wgpu::Device::Acquire(raw);
-    auto ctx = async::RuntimeContext::getOrCreate(runtime, _gpu->get());
+    auto ctx = async::RuntimeContext::getOrCreate(
+        runtime, device.GetAdapter().GetInstance());
     return std::make_shared<GPUDevice>(device, ctx, "Imported Device");
   }
 
@@ -192,14 +240,14 @@ public:
         std::vector<uint8_t> dataCopy(data.begin(), data.end());
 
         return Promise::createPromise(
-            runtime,
-            [platformContext, callInvoker, toRequestedAlpha,
-             dataCopy = std::move(dataCopy)](
-                jsi::Runtime & /*runtime*/,
-                std::shared_ptr<Promise> promise) mutable {
+            runtime, [platformContext, callInvoker, toRequestedAlpha,
+                      dataCopy = std::move(dataCopy)](
+                         jsi::Runtime & /*runtime*/,
+                         std::shared_ptr<Promise> promise) mutable {
               platformContext->createImageBitmapFromDataAsync(
                   dataCopy,
-                  [callInvoker, promise, toRequestedAlpha](ImageData imageData) {
+                  [callInvoker, promise,
+                   toRequestedAlpha](ImageData imageData) {
                     toRequestedAlpha(imageData);
                     auto imageBitmap = std::make_shared<ImageBitmap>(imageData);
                     callInvoker->invokeAsync([promise, imageBitmap]() {
@@ -282,6 +330,12 @@ public:
     return _platformContext->writeTestVideoFile();
   }
 
+  // The id for a Canvas about to mount, unique for the life of the process
+  // (see SurfaceRegistry::allocateContextId).
+  int allocateContextId() {
+    return rnwgpu::SurfaceRegistry::getInstance().allocateContextId();
+  }
+
   std::shared_ptr<Canvas> getNativeSurface(int contextId) {
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     auto info = registry.getSurfaceInfo(contextId);
@@ -319,12 +373,16 @@ public:
     installGetter(runtime, prototype, "gpu", &RNWebGPU::getGPU);
     installMethod(runtime, prototype, "createImageBitmap",
                   &RNWebGPU::createImageBitmap);
+    installMethod(runtime, prototype, "allocateContextId",
+                  &RNWebGPU::allocateContextId);
     installMethod(runtime, prototype, "getNativeSurface",
                   &RNWebGPU::getNativeSurface);
     installMethod(runtime, prototype, "destroyContext",
                   &RNWebGPU::destroyContext);
     installMethod(runtime, prototype, "MakeWebGPUCanvasContext",
                   &RNWebGPU::MakeWebGPUCanvasContext);
+    installMethod(runtime, prototype, "MakeWebGPUCanvasContextFromNativeWindow",
+                  &RNWebGPU::MakeWebGPUCanvasContextFromNativeWindow);
     installMethod(runtime, prototype, "loadVideoFrame",
                   &RNWebGPU::loadVideoFrame);
     installMethod(runtime, prototype, "createTestVideoFrame",

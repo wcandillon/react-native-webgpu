@@ -110,25 +110,19 @@ async::AsyncTaskHandle GPUQueue::onSubmittedWorkDone(jsi::Runtime &runtime) {
   return context->postTask(
       [queue](const async::AsyncTaskHandle::ResolveFunction &resolve,
               const async::AsyncTaskHandle::RejectFunction &reject) {
-        // Registered in order with the submits: one held while the app is in
-        // the background (see GpuWorkGate) waits for the held submits before
-        // it rather than settling on the idle queue.
-        GpuWorkGate::getInstance().run([queue, resolve, reject]() {
-          queue.OnSubmittedWorkDone(
-              wgpu::CallbackMode::AllowProcessEvents,
-              [resolve, reject](wgpu::QueueWorkDoneStatus status,
-                                wgpu::StringView message) {
-                if (status == wgpu::QueueWorkDoneStatus::Success) {
-                  resolve(nullptr);
-                } else {
-                  std::string error =
-                      message.length
-                          ? std::string(message.data, message.length)
-                          : "Queue work did not complete successfully";
-                  reject(std::move(error));
-                }
-              });
-        });
+        return queue.OnSubmittedWorkDone(
+            wgpu::CallbackMode::WaitAnyOnly,
+            [resolve, reject](wgpu::QueueWorkDoneStatus status,
+                              wgpu::StringView message) {
+              if (status == wgpu::QueueWorkDoneStatus::Success) {
+                resolve(nullptr);
+              } else {
+                std::string error =
+                    message.length ? std::string(message.data, message.length)
+                                   : "Queue work did not complete successfully";
+                reject(std::move(error));
+              }
+            });
       });
 }
 
@@ -594,6 +588,8 @@ async::AsyncTaskHandle GPUQueue::drawElementImageToTexture(
               });
             },
             [reject](std::string error) { reject(std::move(error)); });
+        // Not Dawn's work: nothing to wait for, the snapshot calls back.
+        return std::nullopt;
       });
 }
 

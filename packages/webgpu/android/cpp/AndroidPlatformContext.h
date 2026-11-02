@@ -3,6 +3,7 @@
 #include <android/bitmap.h>
 #include <android/data_space.h>
 #include <android/hardware_buffer.h>
+#include <android/native_window.h>
 #include <dlfcn.h>
 #include <jni.h>
 
@@ -467,6 +468,13 @@ public:
     // TODO: implement using MediaCodec (H.264 encoder) or MediaMuxer.
     throw std::runtime_error(
         "writeTestVideoFile is not yet implemented on Android.");
+  }
+
+  std::function<void(void *)> retainNativeWindow(void *window) override {
+    ANativeWindow_acquire(static_cast<ANativeWindow *>(window));
+    return [](void *nativeWindow) {
+      ANativeWindow_release(static_cast<ANativeWindow *>(nativeWindow));
+    };
   }
 
   VideoFrameHandle wrapNativeBuffer(void *pointer) override {

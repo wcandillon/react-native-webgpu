@@ -64,10 +64,8 @@ RNWebGPUManager::RNWebGPUManager(
     : _jsRuntime(jsRuntime), _jsCallInvoker(jsCallInvoker),
       _platformContext(platformContext) {
 
-  // Register the main runtime + its CallInvoker so spontaneous events
-  // (device.lost / uncapturederror) on main-runtime devices can be delivered to
-  // the JS thread without the ProcessEvents pump. Worklet-runtime devices have
-  // no invoker (best-effort; see README "Threading model").
+  // Register the main runtime + its CallInvoker: how async results reach the
+  // main runtime, and the way to the UI runtime (see async::RuntimeContext).
   async::RuntimeContext::registerMainRuntime(_jsRuntime, _jsCallInvoker);
 
   // Expose the platform context to API objects created later without a
@@ -167,9 +165,9 @@ void RNWebGPUManager::flushPendingSurfaceTransition(
 }
 
 RNWebGPUManager::~RNWebGPUManager() {
-  // Drop all canvas registry entries: after a reload the JS side restarts its
-  // contextId counter, and stale entries would alias new canvases onto dead
-  // surfaces.
+  // Drop the canvas registry entries of this runtime's bundle: its canvases
+  // never run their JS cleanup, and their ids are not handed out again (see
+  // SurfaceRegistry::allocateContextId).
   SurfaceRegistry::getInstance().clear();
   if (PlatformContext::current() == _platformContext) {
     PlatformContext::setCurrent(nullptr);

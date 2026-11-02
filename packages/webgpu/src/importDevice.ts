@@ -9,8 +9,9 @@
  * ```
  *
  * This is only sound when the exporting library links the same single Dawn
- * copy as react-native-webgpu and shares its wgpu::Instance (react-native-skia
- * does both).
+ * copy as react-native-webgpu (react-native-skia does). The device stays on
+ * its owner's Dawn instance and its async operations are pumped there, so the
+ * two libraries do not have to share an instance.
  */
 export const importDevice = (pointer: bigint): GPUDevice => {
   if (typeof RNWebGPU === "undefined") {

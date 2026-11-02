@@ -116,6 +116,9 @@ final class ViewSnapshot {
     HardwareRenderer renderer = new HardwareRenderer();
     Image image = null;
     try {
+      // HardwareRenderer is opaque by default and doesn't clear the buffer, so
+      // transparent pixels keep whatever was in it (garbage on Mali GPUs).
+      renderer.setOpaque(false);
       renderer.setSurface(reader.getSurface());
       // Match the framework's default light so elevation shadows come out
       // like on screen (ThreadedRenderer reads these from the theme; the

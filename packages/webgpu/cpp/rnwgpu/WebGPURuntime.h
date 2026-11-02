@@ -15,13 +15,18 @@ class WebGPURuntime {
 public:
   static WebGPURuntime &shared();
 
-  // The process-wide instance: Skia Graphite's when that is loaded, otherwise
-  // our own. Created on first use. Safe to call from any thread.
+  // The process-wide instance: Skia Graphite's when that is already loaded on
+  // first use, otherwise our own. Safe to call from any thread.
   wgpu::Instance instance();
 
   // Creates a surface on the shared instance for a CAMetalLayer (Apple) or an
   // ANativeWindow (Android). Safe to call from any thread.
   wgpu::Surface makeSurface(void *nativeSurface);
+
+  // The same on a given instance: a SurfaceInfo recreates its surface on the
+  // instance it was made with.
+  static wgpu::Surface makeSurface(const wgpu::Instance &gpu,
+                                   void *nativeSurface);
 
   WebGPURuntime(const WebGPURuntime &) = delete;
   WebGPURuntime &operator=(const WebGPURuntime &) = delete;

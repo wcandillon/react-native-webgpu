@@ -9,18 +9,33 @@ namespace rnwgpu {
 namespace {
 
 wgpu::Instance createInstance() {
-  // If a Graphite build of react-native-skia is loaded in this
+  // If a Graphite build of react-native-skia is already loaded in this
   // process, adopt its wgpu::Instance instead of creating our own, so
-  // Graphite's device and every JS-created device live on one instance. That
-  // makes pointer-based handoff (RNWebGPU.importDevice of Skia's device)
-  // sound: the async pump serves the shared instance, so callbacks on
-  // imported devices settle. Discovered at runtime via dlsym so there is no
-  // build-time coupling and native-module init order does not matter. Both
-  // packages must link the same single Dawn copy (they vendor the same
-  // artifact) for the handle to be meaningful.
+  // Graphite's device and every JS-created device live on one instance.
+  // Discovered at runtime via dlsym so there is no build-time coupling. The
+  // adoption is best-effort and decided once, when the instance is first
+  // used: on Android it only succeeds when librnskia.so is loaded before
+  // react-native-webgpu installs (see the RTLD_NOLOAD lookup below), so the
+  // native-module init order decides whether the instance is shared.
+  // RNWebGPU.importDevice does not depend on it: an imported device's async
+  // work is waited for on the instance that owns it (see
+  // async::RuntimeContext).
+  // Both packages must link the same single Dawn copy (they vendor the same
+  // artifact) for the handles they exchange to be meaningful.
   using GetInstanceFn = WGPUInstance (*)();
-  if (auto getSkiaInstance = reinterpret_cast<GetInstanceFn>(
-          dlsym(RTLD_DEFAULT, "rnskia_getWGPUInstance"))) {
+  void *getter = dlsym(RTLD_DEFAULT, "rnskia_getWGPUInstance");
+#ifdef __ANDROID__
+  // System.loadLibrary loads librnskia.so with RTLD_LOCAL, so RTLD_DEFAULT
+  // does not search it. RTLD_NOLOAD returns its handle only if it is already
+  // loaded, so this never loads Skia.
+  if (getter == nullptr) {
+    if (void *skia = dlopen("librnskia.so", RTLD_NOW | RTLD_NOLOAD)) {
+      getter = dlsym(skia, "rnskia_getWGPUInstance");
+      dlclose(skia);
+    }
+  }
+#endif
+  if (auto getSkiaInstance = reinterpret_cast<GetInstanceFn>(getter)) {
     if (WGPUInstance external = getSkiaInstance()) {
       wgpuInstanceAddRef(external);
       return wgpu::Instance::Acquire(external);
@@ -76,6 +91,11 @@ wgpu::Instance WebGPURuntime::instance() {
 }
 
 wgpu::Surface WebGPURuntime::makeSurface(void *nativeSurface) {
+  return makeSurface(instance(), nativeSurface);
+}
+
+wgpu::Surface WebGPURuntime::makeSurface(const wgpu::Instance &gpu,
+                                         void *nativeSurface) {
 #if defined(__ANDROID__)
   wgpu::SurfaceSourceAndroidNativeWindow source;
   source.window = nativeSurface;
@@ -85,7 +105,7 @@ wgpu::Surface WebGPURuntime::makeSurface(void *nativeSurface) {
 #endif
   wgpu::SurfaceDescriptor descriptor;
   descriptor.nextInChain = &source;
-  return instance().CreateSurface(&descriptor);
+  return gpu.CreateSurface(&descriptor);
 }
 
 } // namespace rnwgpu

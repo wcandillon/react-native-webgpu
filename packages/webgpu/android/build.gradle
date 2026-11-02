@@ -97,6 +97,13 @@ def supportsNamespace() {
 android {
   compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
 
+  if (rootProject.hasProperty("ndkPath")) {
+    ndkPath = rootProject.ext.ndkPath
+  }
+  if (rootProject.hasProperty("ndkVersion")) {
+    ndkVersion = rootProject.ext.ndkVersion
+  }
+
   defaultConfig {
     minSdkVersion resolveMinSdkVersion()
     targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")

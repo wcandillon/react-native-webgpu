@@ -243,6 +243,12 @@ public:
   // safely release their own reference immediately after.
   virtual VideoFrameHandle wrapNativeBuffer(void *pointer) = 0;
 
+  // Retain a native window obtained from another library, to present to it
+  // (an ANativeWindow* on Android, a CAMetalLayer* on Apple platforms), and
+  // return the releaser that balances that reference once the surface is done
+  // with it. The releaser can run on any thread.
+  virtual std::function<void(void *)> retainNativeWindow(void *window) = 0;
+
   // Write a small procedurally-generated test video to a temporary location
   // and return its absolute path. Lets the SharedTextureMemory example play
   // a real decoded video without bundling an asset.

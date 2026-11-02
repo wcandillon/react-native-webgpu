@@ -19,6 +19,8 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "CanvasColorSpace.h"
+#include "WebGPURuntime.h"
 #include "rnwgpu/GpuWorkGate.h"
 
 #if defined(__ANDROID__)
@@ -38,9 +40,13 @@ namespace rnwgpu {
 
 #ifdef __APPLE__
 // Tags the CAMetalLayer with the colorspace matching the configured texture
-// format. Implemented in apple/MetalLayerColorSpace.mm.
+// format and the canvas's colorSpace, and opts it into the display's extended
+// dynamic range for an "extended" toneMapping mode. Implemented in
+// apple/MetalLayerColorSpace.mm.
 void applyCAMetalLayerColorSpace(void *nativeSurface,
-                                 wgpu::TextureFormat format);
+                                 wgpu::TextureFormat format,
+                                 CanvasColorSpace colorSpace,
+                                 CanvasToneMappingMode toneMappingMode);
 #endif
 
 struct NativeInfo {
@@ -125,12 +131,13 @@ struct AHBPool {
 // Ownership & threading model:
 // - A registry entry is created on first use (by whichever of JS/native gets
 //   there first) and lives exactly as long as its JS Canvas: contextIds are
-//   never reused. It is removed by the native view's teardown (MetalView
-//   dealloc / WebGPUViewManager.onDropViewInstance) when a surface is
-//   attached, or by RNWebGPU.destroyContext (the Canvas unmount cleanup) when
-//   none ever was — see RNWebGPU::destroyContext for why the split. Surface
-//   destruction alone (backgrounding, TextureView teardown) never removes an
-//   entry; it only detaches the surface.
+//   never reused, not even across a reload (see allocateContextId). It is
+//   removed by the native view's teardown (MetalView dealloc /
+//   WebGPUViewManager.onDropViewInstance) when a surface is attached, or by
+//   RNWebGPU.destroyContext (the Canvas unmount cleanup) when none ever was —
+//   see RNWebGPU::destroyContext for why the split. Surface destruction alone
+//   (backgrounding, TextureView teardown) never removes an entry; it only
+//   detaches the surface.
 // - Attaching a surface is LATCHED: the UI thread stores it as pending
 //   (attachSurface) and it is adopted at the next frame boundary — start of
 //   getCurrentTexture or end of presentFrame — on whichever thread renders
@@ -149,8 +156,20 @@ struct AHBPool {
 //   native surface exists.
 class SurfaceInfo {
 public:
-  SurfaceInfo(wgpu::Instance gpu, int width, int height)
-      : _gpu(std::move(gpu)), _width(width), _height(height) {}
+  // releaseSurfaceOnUnconfigure is for a surface on a window the caller
+  // handed in (see SurfaceRegistry::makeUnregisteredSurfaceInfo), which no
+  // view attaches or detaches: unconfigure() then destroys the Dawn surface
+  // rather than only unconfiguring it, and configure() makes a new one for
+  // the same window. On Android, a window keeps the buffers it handed to the
+  // swapchain until the VkSurfaceKHR is destroyed, which Surface::Unconfigure
+  // does not do (it parks the swapchain for the next Configure): a MediaCodec
+  // input surface would otherwise keep them until the context is garbage
+  // collected. The window itself is retained until the SurfaceInfo is
+  // destroyed.
+  SurfaceInfo(wgpu::Instance gpu, int width, int height,
+              bool releaseSurfaceOnUnconfigure = false)
+      : _gpu(std::move(gpu)), _width(width), _height(height),
+        _releaseSurfaceOnUnconfigure(releaseSurfaceOnUnconfigure) {}
 
   ~SurfaceInfo() {
 #if defined(__ANDROID__)
@@ -281,7 +300,8 @@ public:
         }
         configureSurfaceLocked(config);
 #ifdef __APPLE__
-        applyCAMetalLayerColorSpace(_nativeSurface, _config.format);
+        applyCAMetalLayerColorSpace(_nativeSurface, _config.format, _colorSpace,
+                                    _toneMappingMode);
 #endif
         if (blit) {
           presentBlit = blitOffscreenToSurfaceLocked();
@@ -320,11 +340,16 @@ public:
   // --- Rendering thread
   // -------------------------------------------------------
 
-  void configure(wgpu::SurfaceConfiguration &newConfig,
-                 std::vector<wgpu::TextureFormat> viewFormats) {
+  void configure(
+      wgpu::SurfaceConfiguration &newConfig,
+      std::vector<wgpu::TextureFormat> viewFormats,
+      CanvasColorSpace colorSpace = CanvasColorSpace::SRGB,
+      CanvasToneMappingMode toneMappingMode = CanvasToneMappingMode::Standard) {
     applyPendingAttach(/* supersedeInFlightFrame = */ true);
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _viewFormats = std::move(viewFormats);
+    _colorSpace = colorSpace;
+    _toneMappingMode = toneMappingMode;
     _config = newConfig;
     // The caller's viewFormats storage dies with the call; point the stored
     // configuration at our own copy.
@@ -351,6 +376,10 @@ public:
       _poolUnsupported = false;
     }
 #endif
+    if (_releaseSurfaceOnUnconfigure && !_surface && _nativeSurface) {
+      // unconfigure() destroyed the surface; make a new one for the window.
+      recreateSurfaceLocked();
+    }
     _configureLocked();
   }
 
@@ -370,10 +399,23 @@ public:
   void unconfigure() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     if (_surface) {
-      _surface.Unconfigure();
+      if (_releaseSurfaceOnUnconfigure) {
+        // Destroy the surface, and so its swapchain, while their device is
+        // still alive. The window is kept: configure() makes a new surface
+        // for it (see the constructor).
+        _surface = nullptr;
+#if defined(__ANDROID__)
+        // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
+        _surfaceDevice = nullptr;
+#endif
+      } else {
+        _surface.Unconfigure();
+      }
     }
     _texture = nullptr;
     _config = {};
+    _colorSpace = CanvasColorSpace::SRGB;
+    _toneMappingMode = CanvasToneMappingMode::Standard;
     _viewFormats.clear();
     _acquiredFromSurface = false;
     _frameEpoch++;
@@ -890,7 +932,8 @@ private:
     if (_surface) {
       configureSurfaceLocked(_config);
 #ifdef __APPLE__
-      applyCAMetalLayerColorSpace(_nativeSurface, _config.format);
+      applyCAMetalLayerColorSpace(_nativeSurface, _config.format, _colorSpace,
+                                  _toneMappingMode);
 #endif
     } else {
       _texture = createOffscreenTextureLocked();
@@ -921,26 +964,24 @@ private:
 #endif
   }
 
-#if defined(__ANDROID__)
-  // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
   // Replace _surface with a new, unconfigured surface for the same native
-  // window. Dropping the old one runs ~Surface, which detaches both the
-  // active and the recycled swapchain against their still-alive device.
+  // window: after unconfigure() destroyed it (see the constructor), or on
+  // Android for DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE, where
+  // dropping the old one runs ~Surface, which detaches both the active and
+  // the recycled swapchain against their still-alive device.
   void recreateSurfaceLocked() {
     _surface = nullptr;
+#if defined(__ANDROID__)
+    // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
     _surfaceDevice = nullptr;
+#endif
     // A frame acquired from the old surface can no longer be presented.
     _acquiredFromSurface = false;
     _frameEpoch++;
     if (_nativeSurface) {
-      wgpu::SurfaceSourceAndroidNativeWindow source;
-      source.window = _nativeSurface;
-      wgpu::SurfaceDescriptor descriptor;
-      descriptor.nextInChain = &source;
-      _surface = _gpu.CreateSurface(&descriptor);
+      _surface = WebGPURuntime::makeSurface(_gpu, _nativeSurface);
     }
   }
-#endif
 
 #if defined(__ANDROID__)
   // Drop every pool generation and the ready / in-flight slot bookkeeping.
@@ -1256,12 +1297,16 @@ private:
   // that _config.viewFormats points at.
   wgpu::SurfaceConfiguration _config;
   std::vector<wgpu::TextureFormat> _viewFormats;
+  CanvasColorSpace _colorSpace = CanvasColorSpace::SRGB;
+  CanvasToneMappingMode _toneMappingMode = CanvasToneMappingMode::Standard;
   // Keeps the Dawn instance alive for as long as any canvas exists.
   wgpu::Instance _gpu;
   // Native view size in dp (surfaced as clientWidth/clientHeight on the JS
   // canvas).
   int _width;
   int _height;
+  // See the constructor.
+  bool _releaseSurfaceOnUnconfigure = false;
 
 #if defined(__ANDROID__)
   // Pool state. Guarded by _poolMutex (never nested under _mutex while
@@ -1310,6 +1355,15 @@ public:
 
   SurfaceRegistry(const SurfaceRegistry &) = delete;
   SurfaceRegistry &operator=(const SurfaceRegistry &) = delete;
+
+  // The id of a Canvas about to mount. Ids are handed out here, once for the
+  // life of the process, rather than counted by each JS runtime from the
+  // same start: this registry outlives a reload, and the views of the bundle
+  // being replaced are torn down (removeSurfaceInfo) on the UI thread with
+  // no ordering against the new bundle's first canvases. An id counted from
+  // the same start as its predecessor would let the predecessor's teardown
+  // detach and erase the entry of a live canvas.
+  int allocateContextId() { return _nextContextId.fetch_add(1); }
 
   std::shared_ptr<SurfaceInfo> getSurfaceInfo(int id) {
     std::shared_lock<std::shared_mutex> lock(_mutex);
@@ -1372,6 +1426,19 @@ public:
     _registry.erase(it);
   }
 
+  // A SurfaceInfo that is not in the registry, for a context presenting to a
+  // native window of the caller's (see
+  // RNWebGPU::MakeWebGPUCanvasContextFromNativeWindow): the context owns it,
+  // no view attaches to it, and it releases its surface on unconfigure (see
+  // the SurfaceInfo constructor). It is still tracked for
+  // releaseSurfacesForDevice.
+  std::shared_ptr<SurfaceInfo>
+  makeUnregisteredSurfaceInfo(wgpu::Instance gpu, int width, int height) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    return makeSurfaceInfoLocked(std::move(gpu), width, height,
+                                 /* releaseSurfaceOnUnconfigure = */ true);
+  }
+
   // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
   // See SurfaceInfo::releaseSurfaceForDevice. Lock order is registry ->
   // SurfaceInfo, matching every other path.
@@ -1397,8 +1464,9 @@ public:
   }
 
   // Drops all entries. Called when the RN instance tears down (dev reload):
-  // JS context ids restart from scratch, so surviving entries would alias new
-  // canvases onto dead surfaces.
+  // the canvases of the old bundle never run their JS cleanup, and nothing
+  // reaches their ids again (see allocateContextId), so the entries would
+  // otherwise stay for the life of the process.
   void clear() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _registry.clear();
@@ -1425,12 +1493,22 @@ private:
       _retired.erase(retired);
     }
     if (!info) {
-      info = std::make_shared<SurfaceInfo>(gpu, width, height);
-      // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
-      pruneAllSurfacesLocked();
-      _allSurfaces.push_back(info);
+      info = makeSurfaceInfoLocked(std::move(gpu), width, height);
     }
     _registry[id] = info;
+    return info;
+  }
+
+  // Every SurfaceInfo is made here, so releaseSurfacesForDevice reaches it
+  // whether or not it is in _registry.
+  std::shared_ptr<SurfaceInfo>
+  makeSurfaceInfoLocked(wgpu::Instance gpu, int width, int height,
+                        bool releaseSurfaceOnUnconfigure = false) {
+    auto info = std::make_shared<SurfaceInfo>(std::move(gpu), width, height,
+                                              releaseSurfaceOnUnconfigure);
+    // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
+    pruneAllSurfacesLocked();
+    _allSurfaces.push_back(info);
     return info;
   }
 
@@ -1451,6 +1529,7 @@ private:
   }
 
   mutable std::shared_mutex _mutex;
+  std::atomic<int> _nextContextId{1};
   std::unordered_map<int, std::shared_ptr<SurfaceInfo>> _registry;
   // The entries JS retired while a GPUCanvasContext still held their
   // SurfaceInfo (see removeSurfaceInfoIfDetached). Non-owning; pruned on

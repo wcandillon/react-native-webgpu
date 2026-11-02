@@ -7,10 +7,9 @@ import WebGPUNativeView from "./WebGPUViewNativeComponent";
 
 export type { CanvasRef, NativeCanvas, RNCanvasContext } from "./types";
 
-let CONTEXT_COUNTER = 1;
-function generateContextId() {
-  return CONTEXT_COUNTER++;
-}
+// Native hands out the id: it must be unique for the life of the process,
+// not of the JS runtime, as the native surface registry outlives a reload.
+const generateContextId = () => RNWebGPU.allocateContextId();
 
 /** The Android view a canvas draws into, see {@link AndroidCanvasProps}. */
 export type AndroidBackingView =
@@ -209,7 +208,9 @@ const useBackingViewWarning = (android?: AndroidCanvasProps) => {
 // asynchronously, so the DOM node is read directly: clientWidth/clientHeight
 // are layout values that ignore transforms too (unlike getBoundingClientRect)
 // and are what browser WebGPU code sizes a canvas from.
-const measureLayout = (view: View) => {
+type ViewRef = React.ComponentRef<typeof View>;
+
+const measureLayout = (view: ViewRef) => {
   if (Platform.OS === "web") {
     const { clientWidth, clientHeight } = view as unknown as HTMLElement;
     return { width: clientWidth, height: clientHeight };
@@ -222,7 +223,7 @@ const measureLayout = (view: View) => {
 };
 
 export const Canvas = ({ android, ref, ...props }: CanvasProps) => {
-  const viewRef = useRef<View>(null);
+  const viewRef = useRef<ViewRef>(null);
   const [contextId, _] = useState(() => generateContextId());
   useBackingViewWarning(android);
   // Retire the native registry entry for this contextId on unmount. When a

@@ -19,8 +19,8 @@ GPUShaderModule::getCompilationInfo(jsi::Runtime &runtime) {
       [module](const async::AsyncTaskHandle::ResolveFunction &resolve,
                const async::AsyncTaskHandle::RejectFunction &reject) {
         auto result = std::make_shared<GPUCompilationInfo>();
-        module.GetCompilationInfo(
-            wgpu::CallbackMode::AllowProcessEvents,
+        return module.GetCompilationInfo(
+            wgpu::CallbackMode::WaitAnyOnly,
             [result, resolve,
              reject](wgpu::CompilationInfoRequestStatus status,
                      const wgpu::CompilationInfo *compilationInfo) {

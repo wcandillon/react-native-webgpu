@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import {
   GPUOffscreenCanvas,
+  importDevice,
   // The flags as the package exports them, not the globals of the same name
   // (see the `exportedFlags` spec in Constants.spec.ts).
   GPUBufferUsage as exportedBufferUsage,
@@ -17,6 +18,12 @@ import {
   GPUShaderStage as exportedShaderStage,
   GPUTextureUsage as exportedTextureUsage,
 } from "react-native-webgpu";
+// Imported after react-native-webgpu on purpose: webgpu installs natively on
+// import and settles on a Dawn instance of its own while Skia's library is not
+// loaded yet. On Android, Skia's device then lives on a second instance, and
+// ImportDevice.spec.ts relies on that split to cover importDevice() across
+// instances.
+import { Skia } from "react-native-skia";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
 import { useClient } from "./useClient";
@@ -132,6 +139,10 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                 },
                 workletDeviceStress,
                 workletSerialization,
+                importSkiaDevice: () =>
+                  Skia.gpu.isAvailable
+                    ? importDevice(Skia.getNativeDevice())
+                    : null,
                 exportedFlags: {
                   GPUBufferUsage: exportedBufferUsage,
                   GPUColorWrite: exportedColorWrite,
