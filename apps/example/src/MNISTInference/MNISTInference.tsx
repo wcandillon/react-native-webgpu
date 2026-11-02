@@ -88,18 +88,26 @@ export function MNISTInference() {
           const canvas = surface.value.getCanvas();
           canvas.drawPath(path.value.build(), paint);
           image.value = surface.value!.makeImageSnapshot();
-          const pixels = image.value.readPixels(0, 0, {
-            width: SIZE,
-            height: SIZE,
-            alphaType: AlphaType.Opaque,
-            colorType: ColorType.Alpha_8,
-          });
-          scheduleOnRN(
-            runInference,
-            centerData(pixels as Uint8Array).map(
-              (x) => (x / 255) * 3.24 - 0.42,
-            ),
-          );
+          // The readback is asynchronous since react-native-skia 3.9 and
+          // settles on this runtime.
+          image.value
+            .readPixels(0, 0, {
+              width: SIZE,
+              height: SIZE,
+              alphaType: AlphaType.Opaque,
+              colorType: ColorType.Alpha_8,
+            })
+            .then((pixels) => {
+              if (pixels === null) {
+                return;
+              }
+              scheduleOnRN(
+                runInference,
+                centerData(pixels as Uint8Array).map(
+                  (x) => (x / 255) * 3.24 - 0.42,
+                ),
+              );
+            });
         }
       });
   }, [path, runInference, surface, image]);
