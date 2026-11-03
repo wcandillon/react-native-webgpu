@@ -141,6 +141,15 @@ public:
     // The metadata loads asynchronously, so that a remote asset never blocks
     // the calling thread; the getters report 0 until it has.
     AVAsset *asset = item.asset;
+    void (^readVideoTrack)(AVAssetTrack *) = ^(AVAssetTrack *track) {
+      if (track) {
+        CGSize size = track.naturalSize;
+        state->width = static_cast<uint32_t>(size.width);
+        state->height = static_cast<uint32_t>(size.height);
+        state->rotation = rotationFromTransform(track.preferredTransform);
+        state->frameRate = track.nominalFrameRate;
+      }
+    };
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     [asset
@@ -155,17 +164,18 @@ public:
                         }
                         if ([asset statusOfValueForKey:@"tracks" error:nil] ==
                             AVKeyValueStatusLoaded) {
-                          AVAssetTrack *track =
-                              [[asset tracksWithMediaType:AVMediaTypeVideo]
-                                  firstObject];
-                          if (track) {
-                            CGSize size = track.naturalSize;
-                            state->width = static_cast<uint32_t>(size.width);
-                            state->height = static_cast<uint32_t>(size.height);
-                            state->rotation =
-                                rotationFromTransform(track.preferredTransform);
-                            state->frameRate = track.nominalFrameRate;
-                          }
+#if TARGET_OS_VISION
+                          // tracksWithMediaType: is unavailable on visionOS.
+                          [asset loadTracksWithMediaType:AVMediaTypeVideo
+                                       completionHandler:^(
+                                           NSArray<AVAssetTrack *> *tracks,
+                                           NSError * /*error*/) {
+                                         readVideoTrack(tracks.firstObject);
+                                       }];
+#else
+            readVideoTrack(
+                [[asset tracksWithMediaType:AVMediaTypeVideo] firstObject]);
+#endif
                         }
                       }];
 #pragma clang diagnostic pop
