@@ -1,0 +1,28 @@
+name: apple-sdks
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - "packages/webgpu/apple/**"
+      - "packages/webgpu/cpp/**"
+      - "packages/webgpu/package.json"
+      - "packages/webgpu/scripts/check-apple-sdks.sh"
+      - ".github/workflows/apple-sdks.yml"
+jobs:
+  apple-sdks:
+    # Syntax-check only: no yarn install, no pods, no simulator. Only the Dawn
+    # headers are downloaded (about 1 MB out of the package's tarball).
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Dawn headers
+        run: |
+          VERSION=$(node -p 'require("./packages/webgpu/package.json").dependencies["react-native-webgpu-dawn"]')
+          mkdir -p "$RUNNER_TEMP/dawn"
+          curl -sfL "https://registry.npmjs.org/react-native-webgpu-dawn/-/react-native-webgpu-dawn-$VERSION.tgz" \
+            | tar xz -C "$RUNNER_TEMP/dawn" package/include
+      - name: Check Apple sources against every SDK
+        run: packages/webgpu/scripts/check-apple-sdks.sh "$RUNNER_TEMP/dawn/package/include"
