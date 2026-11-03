@@ -54,11 +54,18 @@ void applyCAMetalLayerColorSpace(void *nativeSurface,
   }
   const bool extendedRange =
       isFloat && toneMappingMode == CanvasToneMappingMode::Extended;
-  if (@available(iOS 16.0, tvOS 16.0, *)) {
+  // The property does not exist on tvOS (the SDK marks it unavailable, which
+  // @available cannot work around), so it is compiled only where it exists.
+  // On tvOS "extended" behaves like "standard".
+#if TARGET_OS_IOS || TARGET_OS_OSX || TARGET_OS_VISION
+  if (@available(iOS 16.0, macOS 10.11, visionOS 1.0, *)) {
     if (metalLayer.wantsExtendedDynamicRangeContent != extendedRange) {
       metalLayer.wantsExtendedDynamicRangeContent = extendedRange;
     }
   }
+#else
+  (void)extendedRange;
+#endif
   // The change must be set synchronously so the first present already sees
   // it, and it must reach the render server. On a non-main thread (RN JS or
   // worklet runtime) the property lands in that thread's implicit
