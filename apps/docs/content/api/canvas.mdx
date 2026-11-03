@@ -141,7 +141,7 @@ To show the views behind the canvas, configure the context with `alphaMode: "pre
 
 ## HDR (extended dynamic range)
 
-`context.configure({ toneMapping: { mode } })` says what happens to values above 1.0 on an `rgba16float` canvas: `"standard"` (the default) clamps them to the display's SDR range, `"extended"` lets them use the display's headroom, as in a browser. On iOS 16 and later the `CAMetalLayer` opts into extended dynamic range content for `"extended"`; the mode is accepted and has no effect on an 8-bit canvas, which cannot hold values above 1.0. Android currently ignores `toneMapping`.
+`context.configure({ toneMapping: { mode } })` says what happens to values above 1.0 on an `rgba16float` canvas: `"standard"` (the default) clamps them to the display's SDR range, `"extended"` lets them use the display's headroom, as in a browser. On iOS 16 and later the `CAMetalLayer` opts into extended dynamic range content for `"extended"`; the mode is accepted and has no effect on an 8-bit canvas, which cannot hold values above 1.0. tvOS has no extended dynamic range for this layer, so `"extended"` behaves like `"standard"` there. Android currently ignores `toneMapping`.
 
 ### Android rendering options
 
