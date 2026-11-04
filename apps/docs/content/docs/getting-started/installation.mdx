@@ -3,7 +3,7 @@ title: Installation
 description: Your first React Native WebGPU App
 ---
 
-React Native WebGPU brings the [WebGPU API](https://www.w3.org/TR/webgpu/) to iOS, tvOS, Android, macOS, and visionOS using [Dawn](https://dawn.googlesource.com/dawn).
+React Native WebGPU brings the [WebGPU API](https://www.w3.org/TR/webgpu/) to iOS, tvOS, Android, and macOS using [Dawn](https://dawn.googlesource.com/dawn). visionOS is not supported at the moment: the Dawn binaries do not ship a visionOS slice.
 
 ## Install the package
 
@@ -35,7 +35,7 @@ Dawn comes as a prebuilt binary that Xcode downloads the first time it resolves 
 With React Native Skia v3 installed alongside, package resolution checks that both packages link the same Dawn release, and fails if they are not at [compatible versions](/docs/integrations/react-native-skia#compatibility). After changing either version, reset the package caches in Xcode (File > Packages > Reset Package Caches) if the error persists.
 
 <Callout type="warn" title="Platform coverage">
-The Swift package targets iOS only - macOS, Android and visionOS still require the CocoaPods/Gradle autolinked path. See `spm-example` at the root of the [react-native-webgpu repo](https://github.com/wcandillon/react-native-webgpu) for a working reference project, and its README for the gotchas (stale `Package.resolved`, the stub `Podfile`).
+The Swift package targets iOS only - tvOS, macOS and Android still require the CocoaPods/Gradle autolinked path. See `spm-example` at the root of the [react-native-webgpu repo](https://github.com/wcandillon/react-native-webgpu) for a working reference project, and its README for the gotchas (stale `Package.resolved`, the stub `Podfile`).
 </Callout>
 
 ## Setup
