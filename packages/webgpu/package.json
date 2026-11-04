@@ -41,7 +41,7 @@
     "clang-format-ios": "find apple/ -iname \"*.h\" -o -iname \"*.mm\" -o -iname \"*.cpp\" | xargs clang-format -i",
     "clang-format-android": "find android/cpp/ -iname \"*.h\" -o -iname \"*.m\" -o -iname \"*.cpp\" | xargs clang-format -i",
     "clang-format-common": "find cpp/rnwgpu -iname \"*.h\" -o -iname \"*.m\" -o -iname \"*.cpp\" | xargs clang-format -i",
-    "cpplint": "cpplint --linelength=230 --filter=-legal/copyright,-whitespace/indent,-whitespace/comments,-whitespace/ending_newline,-build/include_order,-runtime/references,-readability/todo,-whitespace/blank_line,-whitespace/todo,-runtime/int,-build/c++11,-whitespace/parens --exclude=example --exclude=android/.cxx --exclude=cpp/webgpu --exclude=cpp/dawn --exclude=ios --exclude=android/build --exclude=node_modules --recursive .",
+    "cpplint": "cpplint --linelength=230 --filter=-legal/copyright,-whitespace/indent,-whitespace/comments,-whitespace/ending_newline,-build/include_order,-runtime/references,-readability/todo,-whitespace/blank_line,-whitespace/todo,-runtime/int,-build/c++11,-whitespace/parens --exclude=android/.cxx --exclude=cpp/dawn --exclude=libs --exclude=android/build --exclude=node_modules --recursive .",
     "check-dawn": "tsx scripts/check-dawn.ts"
   },
   "keywords": [
@@ -80,9 +80,7 @@
     "@types/seedrandom": "^3.0.8",
     "@types/ws": "^8.5.10",
     "@webgpu/types": "0.1.65",
-    "baseline-browser-mapping": "^2.9.14",
     "clang-format": "^1.8.0",
-    "del-cli": "^5.1.0",
     "eslint": "9.35.0",
     "eslint-config-react-native-wcandillon": "5.0.1",
     "eslint-plugin-import": "2.32.0",
@@ -99,7 +97,6 @@
     "react-native-reanimated": "4.6.0",
     "react-native-web": "^0.21.2",
     "react-native-worklets": "0.12.2",
-    "rimraf": "^5.0.7",
     "seedrandom": "^3.0.5",
     "semantic-release": "^25.0.9",
     "semantic-release-yarn": "^3.0.2",
@@ -108,8 +105,7 @@
     "typescript": "^5.2.2",
     "webgpu": "0.4.0",
     "wgpu-matrix": "^3.0.2",
-    "ws": "^8.18.0",
-    "yargs": "^17.7.2"
+    "ws": "^8.18.0"
   },
   "dependencies": {
     "react-native-webgpu-dawn": "157.1.0"

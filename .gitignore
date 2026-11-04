@@ -1,6 +1,4 @@
-!packages/webgpu/scripts/build
 # Yarn
-.package/.yarn/*
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
@@ -59,22 +57,8 @@ buck-out/
 
 # Build
 dist
-package/lib
 .vscode
 *.tgz
-
-
-# Externals
-packages/webgpu/libs
-# Dawn headers used to be copied here; the directory only holds the
-# vendored Dawn sources under common/ now (see scripts/check-dawn.ts).
-packages/webgpu/cpp/dawn/*
-!packages/webgpu/cpp/dawn/common/
-packages/webgpu/cpp/webgpu/
-packages/webgpu/lib
-!packages/webgpu/scripts/build
-artifacts/
-
 
 # Cocoapods
 #

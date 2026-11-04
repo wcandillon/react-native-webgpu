@@ -11,7 +11,7 @@
 //
 // Runs from `yarn check-dawn`, in CI right after `yarn install`.
 
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, readdirSync } from "fs";
 import { dirname, join } from "path";
 
 const dawnPackageJson =
@@ -49,6 +49,27 @@ const dawnWorkarounds = [
 ];
 
 const root = join(__dirname, "..");
+
+// Until #507 the build copied Dawn's headers into cpp/webgpu and cpp/dawn.
+// Both come before the package's include directory on every include path
+// (podspec HEADER_SEARCH_PATHS, android/CMakeLists.txt), so a copy left over
+// from that build silently shadows the headers the binaries were built from.
+// cpp/dawn/common is vendored on purpose (see the entry above).
+const staleHeaderDirs = [
+  "cpp/webgpu",
+  ...(existsSync(join(root, "cpp/dawn"))
+    ? readdirSync(join(root, "cpp/dawn"))
+        .filter((entry) => entry !== "common" && !entry.startsWith("."))
+        .map((entry) => `cpp/dawn/${entry}`)
+    : []),
+].filter((dir) => existsSync(join(root, dir)));
+if (staleHeaderDirs.length > 0) {
+  console.error(
+    `❌ Stale Dawn header copies shadow react-native-webgpu-dawn's include directory: ${staleHeaderDirs.join(", ")}. Delete them; Dawn's headers come from the package since #507.`,
+  );
+  process.exit(1);
+}
+
 let failed = false;
 for (const workaround of dawnWorkarounds) {
   const present = workaround.files.filter((file) => {
