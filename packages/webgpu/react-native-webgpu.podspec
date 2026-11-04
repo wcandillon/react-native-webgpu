@@ -47,7 +47,17 @@ Pod::Spec.new do |s|
   s.license      = package["license"]
   s.authors      = package["author"]
 
-  s.platforms    = { :ios => min_ios_version_supported, :osx => "10.15", :visionos => "1.0" }
+  # React Native's CocoaPods autolinking drops any pod whose podspec does not
+  # declare the Podfile target's platform (#608), so every platform the Dawn
+  # xcframework ships a slice for is listed. react-native-tvos keeps the tvOS
+  # floor equal to the iOS one (its min_supported_versions helper). visionOS
+  # is not listed: react-native-webgpu-dawn ships no xros slice, so a visionOS
+  # target would autolink the pod and then fail to link it.
+  s.platforms    = {
+    :ios => min_ios_version_supported,
+    :tvos => min_ios_version_supported,
+    :osx => "10.15",
+  }
   s.source       = { :git => "https://github.com/wcandillon/react-native-webgpu.git", :tag => "#{s.version}" }
 
   # CocoaPods is the supported default. Package.swift (React Native 0.87+
