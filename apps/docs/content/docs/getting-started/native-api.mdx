@@ -42,11 +42,27 @@ See [Worklets](/docs/integrations/worklets) for the full integration guide.
 iOS refuses GPU work from an app in the background, including work still queued when the app got there, and Dawn loses the device over a refused command buffer.
 React Native WebGPU holds that work instead, with Dawn's `metal_suspend_submissions_in_background` toggle, enabled on every device it creates on iOS and tvOS: when the app goes to the background, what was submitted is committed before the app is suspended, and from then on every submission is encoded but not committed, in order, until the app comes back to the foreground.
 Presenting a canvas does nothing meanwhile; the canvas catches up on return.
-Nothing changes for your code: a held `onSubmittedWorkDone()` or `mapAsync()` promise settles once the app is back.
-A render loop should still pause while the app is in the background (React Native's `AppState`), if only to spare the battery: what it submits meanwhile is kept in memory until the app returns.
+A held `onSubmittedWorkDone()` or `mapAsync()` promise settles only once the app is back, so background code that awaits one, a readback for instance, waits until then.
 Android and macOS do not refuse GPU work from a background app, so nothing is held there.
 The hold needs `react-native-webgpu-dawn` 157.1.0 or later; an older Dawn drops the toggle, and the device is lost over the first refused command buffer (its `lost` promise then resolves with the reason `unknown`).
-Pass the toggle in `disabledToggles` (see [dawnToggles](/docs/api/gpu-device-extensions#dawntoggles)) to opt out.
+Pass the toggle in `disabledToggles` (see [dawnToggles](/docs/api/gpu-device-extensions#dawntoggles)) to opt out: the device is then lost in the same way.
+
+Holding is not free: everything submitted in the background stays in memory until the app returns, and then runs all at once.
+A render loop should stop submitting while the app is not active:
+
+```tsx
+import { AppState } from "react-native";
+
+const frame = () => {
+  requestAnimationFrame(frame);
+  if (AppState.currentState !== "active") {
+    // Nothing to show: skip the frame rather than hold it.
+    return;
+  }
+  render();
+};
+requestAnimationFrame(frame);
+```
 
 ## Loading images
 
