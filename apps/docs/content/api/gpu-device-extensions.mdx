@@ -161,7 +161,7 @@ const device = await adapter.requestDevice({
 
 On Android, the `ignore_imported_ahardwarebuffer_vulkan_image_size` toggle is enabled by default, so native buffers import on every driver. Pass it in `disabledToggles` to turn it off.
 
-On iOS and tvOS, the `metal_suspend_submissions_in_background` toggle is enabled by default, so GPU work submitted while the app is in the background is held rather than refused (see [Background and foreground](/docs/getting-started/native-api#background-and-foreground)). Pass it in `disabledToggles` to turn it off.
+On iOS and tvOS, the `metal_suspend_submissions_in_background` toggle is enabled by default, so GPU work submitted while the app is in the background is held rather than refused (see [Background and foreground](/docs/getting-started/native-api#background-and-foreground)). Pass it in `disabledToggles` to turn it off: the device is then lost over the first refused command buffer.
 
 ## implicitDeviceSynchronization
 
