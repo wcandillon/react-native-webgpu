@@ -128,6 +128,7 @@ if let skiaPath = nodePackage("react-native-skia"),
 // cpp/rnwgpu), so every directory that's the target of one of those bare
 // includes has to be listed explicitly here. The "webgpu/..." and "dawn/..."
 // includes resolve through the Dawn xcframework's embedded headers.
+// Keep in sync with header_dirs in react-native-webgpu.podspec.
 let internalHeaderDirs = [
   "apple",
   "cpp",
