@@ -95,8 +95,14 @@ Pod::Spec.new do |s|
     s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo", "ImageIO"
   end
 
+  # Under use_frameworks!, bare includes across folders (e.g. "GPU.h")
+  # resolve only through these paths. Keep in sync with internalHeaderDirs
+  # in Package.swift.
+  header_dirs = %w[apple cpp cpp/jsi cpp/rnwgpu cpp/rnwgpu/api cpp/rnwgpu/api/descriptors cpp/rnwgpu/async]
+  header_search_paths = header_dirs.map { |dir| "\"$(PODS_TARGET_SRCROOT)/#{dir}\"" }
+
   s.pod_target_xcconfig = {
-    'HEADER_SEARCH_PATHS' => "$(PODS_TARGET_SRCROOT)/cpp \"#{dawn_include}\"",
+    'HEADER_SEARCH_PATHS' => (header_search_paths + ["\"#{dawn_include}\""]).join(' '),
     # Xcode's all-target headermaps let same-named headers leak across pods
     # (e.g. @shopify/react-native-skia keeps a jsi/ helper layer with
     # identical relative header paths). Resolve includes strictly through our
