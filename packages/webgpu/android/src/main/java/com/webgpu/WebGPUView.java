@@ -1,6 +1,7 @@
 package com.webgpu;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.util.Log;
 import android.view.Surface;
@@ -186,7 +187,7 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   @Override
-  public void surfaceCreated(Surface surface) {
+  public void surfaceCreated(Surface surface, long firstFrameToken) {
     float density = getResources().getDisplayMetrics().density;
     float width = getWidth() / density;
     float height = getHeight() / density;
@@ -194,7 +195,20 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     if (votesFrameRate) {
       mFrameRateVote.attach(surface);
     }
-    onSurfaceCreate(surface, mContextId, width, height, votesFrameRate);
+    onSurfaceCreate(surface, mContextId, width, height, votesFrameRate, firstFrameToken);
+  }
+
+  /**
+   * The first frame was presented into the surface firstFrameToken names.
+   * Called from native on the thread that presented it.
+   */
+  @DoNotStrip
+  public void onFirstFramePresented(long firstFrameToken) {
+    post(() -> {
+      if (mView instanceof WebGPUSurfaceView) {
+        ((WebGPUSurfaceView) mView).onFirstFramePresented(firstFrameToken);
+      }
+    });
   }
 
   @Override
@@ -203,6 +217,20 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     float width = getWidth() / density;
     float height = getHeight() / density;
     onSurfaceChanged(surface, mContextId, width, height);
+  }
+
+  @Override
+  public void keepFrame(Surface surface) {
+    long size = keepableFrameSize(mContextId);
+    Bitmap frame = SurfaceFrameCapture.capture(surface, (int) (size >>> 32), (int) size);
+    keepCapturedFrame(frame);
+  }
+
+  private void keepCapturedFrame(@Nullable Bitmap frame) {
+    if (frame != null) {
+      keepBitmapFrame(mContextId, frame);
+      frame.recycle();
+    }
   }
 
   @Override
@@ -243,7 +271,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     int contextId,
     float width,
     float height,
-    boolean reportAnimation
+    boolean reportAnimation,
+    long firstFrameToken
   );
 
   @DoNotStrip
@@ -256,6 +285,14 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   @DoNotStrip
   private native void switchToOffscreenSurface(int contextId);
+
+  // The drawing buffer's size a kept frame is read at, width << 32 | height;
+  // 0 when there is nothing to keep.
+  @DoNotStrip
+  private native long keepableFrameSize(int contextId);
+
+  @DoNotStrip
+  private native boolean keepBitmapFrame(int contextId, Bitmap frame);
 
   @DoNotStrip
   private native void onViewDestroyed(int contextId);
