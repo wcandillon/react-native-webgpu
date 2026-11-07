@@ -324,8 +324,17 @@ public:
    * Called automatically by create(), but can be called manually.
    */
   static void installPrototype(jsi::Runtime &runtime) {
-    if (getCachedPrototype(runtime) != nullptr) {
-      return; // Already installed on this runtime
+    ensurePrototype(runtime, JSICache::get(runtime));
+  }
+
+  /**
+   * This class's prototype on `runtime`, installed first if needed. Takes the
+   * runtime's cache so that create() looks it up once per new wrapper.
+   */
+  static jsi::Object &ensurePrototype(jsi::Runtime &runtime,
+                                      JSICache &cache) {
+    if (auto *prototype = cache.getPrototype(prototypeKey())) {
+      return *prototype; // Already installed on this runtime
     }
 
     // Every wrapper is made by create(), which installs the prototype first,
@@ -403,7 +412,7 @@ public:
     prototype.setProperty(runtime, "toJSON", toJSON);
 
     // Hand the prototype to the runtime-owned cache
-    JSICache::get(runtime).setPrototype(prototypeKey(), std::move(prototype));
+    return cache.setPrototype(prototypeKey(), std::move(prototype));
   }
 
   /**
@@ -522,24 +531,14 @@ public:
       return existing;
     }
 
-    installPrototype(runtime);
-
     // Store creation runtime for logging etc.
     instance->setCreationRuntime(&runtime);
 
-    // Create a new object
-    jsi::Object obj(runtime);
-
-    // Attach native state
+    // Create the object with its prototype in one step, and attach the
+    // native state.
+    auto obj = jsi::Object::create(
+        runtime, jsi::Value(runtime, ensurePrototype(runtime, cache)));
     obj.setNativeState(runtime, instance);
-
-    // Set prototype
-    if (auto *prototype = getCachedPrototype(runtime)) {
-      auto objectCtor = runtime.global().getPropertyAsObject(runtime, "Object");
-      auto setPrototypeOf =
-          objectCtor.getPropertyAsFunction(runtime, "setPrototypeOf");
-      setPrototypeOf.call(runtime, obj, *prototype);
-    }
 
     // Set memory pressure hint for GC
     auto pressure = instance->getMemoryPressure();
