@@ -258,9 +258,12 @@ std::shared_ptr<GPUAdapterInfo> GPUDevice::getAdapterInfo() {
 }
 
 std::shared_ptr<GPUQueue> GPUDevice::getQueue() {
-  auto result = _instance.GetQueue();
-  return std::make_shared<GPUQueue>(_instance, result, _async, _videoFrameBlit,
-                                    _label, weak_from_this());
+  std::call_once(_queueOnce, [this] {
+    _queue =
+        std::make_shared<GPUQueue>(_instance, _instance.GetQueue(), _async,
+                                   _videoFrameBlit, _label, weak_from_this());
+  });
+  return _queue;
 }
 
 std::shared_ptr<GPUCommandEncoder> GPUDevice::createCommandEncoder(
