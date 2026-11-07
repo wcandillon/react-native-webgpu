@@ -194,7 +194,11 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     if (votesFrameRate) {
       mFrameRateVote.attach(surface);
     }
-    onSurfaceCreate(surface, mContextId, width, height, votesFrameRate);
+    // A TextureView shows a frame when its window next draws, so its presents
+    // wait for the end of the main thread's Choreographer frame (see
+    // MainLooperPresents in SurfaceRegistry.h).
+    boolean deferPresent = mKind == BackingViewKind.TEXTURE_VIEW;
+    onSurfaceCreate(surface, mContextId, width, height, votesFrameRate, deferPresent);
   }
 
   @Override
@@ -236,14 +240,16 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   // reportAnimation asks native to call onAnimating() when frames start being
-  // presented to this surface back to back.
+  // presented to this surface back to back. deferPresent moves presents made
+  // on the main thread to just after its current Choreographer frame.
   @DoNotStrip
   private native void onSurfaceCreate(
     Surface surface,
     int contextId,
     float width,
     float height,
-    boolean reportAnimation
+    boolean reportAnimation,
+    boolean deferPresent
   );
 
   @DoNotStrip

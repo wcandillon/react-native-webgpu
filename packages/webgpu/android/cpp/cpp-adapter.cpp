@@ -306,7 +306,7 @@ void setAnimationReporter(int contextId,
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     JNIEnv *env, jobject thiz, jobject jSurface, jint contextId, jfloat width,
-    jfloat height, jboolean reportAnimation) {
+    jfloat height, jboolean reportAnimation, jboolean deferPresent) {
   if (manager == nullptr) {
     return;
   }
@@ -327,6 +327,9 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
       surface, [](void *nativeSurface) {
         ANativeWindow_release(static_cast<ANativeWindow *>(nativeSurface));
       });
+  // A TextureView's surface presents after the main thread's Choreographer
+  // frame (see MainLooperPresents in SurfaceRegistry.h).
+  info->setDeferPresent(deferPresent);
   // A SurfaceView asks to hear when it animates, for its refresh rate vote
   // (WebGPUView.onAnimating).
   if (reportAnimation) {
