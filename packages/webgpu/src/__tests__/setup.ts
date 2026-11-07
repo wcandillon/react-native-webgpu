@@ -15,7 +15,7 @@ import type { GPUOffscreenCanvas } from "../Offscreen";
 
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
-import { DEBUG, NODE_WEBGPU, REFERENCE, TEST_SERVER_PORT } from "./config";
+import { CI, DEBUG, NODE_WEBGPU, REFERENCE, TEST_SERVER_PORT } from "./config";
 
 jest.setTimeout(180 * 1000);
 
@@ -24,7 +24,8 @@ type TestOS = "ios" | "android" | "web" | "node";
 declare global {
   var testServer: Server;
   var testFixtureServer: HTTPServer;
-  var testClient: WebSocket;
+  // Each test file keeps a global's first value, so the client is a property.
+  var testConnection: { client: WebSocket | null };
   var testOS: TestOS;
   var testArch: "paper" | "fabric";
   var testHost: string;
@@ -148,7 +149,7 @@ afterAll(async () => {
   await client.dispose();
 });
 
-class RemoteTestingClient implements TestingClient {
+export class RemoteTestingClient implements TestingClient {
   readonly OS = global.testOS;
   readonly arch = global.testArch;
 
@@ -167,6 +168,7 @@ class RemoteTestingClient implements TestingClient {
     // single failing case would stall the whole serial suite.
     const EVAL_TIMEOUT_MS = 30 * 1000;
     return new Promise((resolve, reject) => {
+      const socket = this.client;
       const onMessage = (raw: Buffer) => {
         clearTimeout(timeout);
         const response = JSON.parse(raw.toString());
@@ -183,23 +185,24 @@ class RemoteTestingClient implements TestingClient {
         }
       };
       const timeout = setTimeout(() => {
-        this.client.off("message", onMessage);
+        socket.off("message", onMessage);
         reject(
           new Error(
             `eval timed out after ${EVAL_TIMEOUT_MS}ms without a response from the device`,
           ),
         );
       }, EVAL_TIMEOUT_MS);
-      this.client.once("message", onMessage);
-      this.client.send(body);
+      socket.once("message", onMessage);
+      socket.send(body);
     });
   }
 
   private get client() {
-    if (global.testClient === null) {
+    const socket = global.testConnection.client;
+    if (socket === null) {
       throw new Error("Client is not connected. Did you call init?");
     }
-    return global.testClient!;
+    return socket;
   }
 
   private prepareContext<C extends Ctx>(context?: C): C {
@@ -928,6 +931,13 @@ export const checkImage = (
       }
     }
     return diffPixelsCount;
+  } else if (CI && !overwrite) {
+    // On CI a missing reference would let the check pass without comparing
+    // anything, so the image goes where the workflows upload failed checks.
+    fs.writeFileSync(`${p}.test.png`, PNG.sync.write(toTest));
+    throw new Error(
+      `${relPath} has no reference image; this run's image is ${relPath}.test.png`,
+    );
   } else {
     const buffer = PNG.sync.write(toTest);
     fs.writeFileSync(p, buffer);
