@@ -160,9 +160,17 @@ public:
     return Convert(out_count, val.size());
   }
 
+  // A null handle becomes nullptr. A null struct or enum stays at its
+  // default, which is how a null entry in a slot list (vertex buffers, color
+  // targets, color attachments, color formats, bind group layouts) keeps its
+  // index: Dawn reads the default value as an unused slot.
   template <typename T>
-  [[nodiscard]] auto Convert(T &out, const std::nullptr_t &in) {
-    out = nullptr;
+  [[nodiscard]] bool Convert(T &out, const std::nullptr_t &in) {
+    if constexpr (std::is_assignable_v<T &, std::nullptr_t>) {
+      out = nullptr;
+    } else {
+      out = T{};
+    }
     return true;
   }
 
@@ -699,6 +707,9 @@ public:
      -      return Convert(out.stepMode, in.stepMode);
      -    }
      */
+    // stepMode defaults to "vertex" in the spec. Leaving it Undefined would
+    // make Dawn read a layout with no attributes as an unused slot.
+    out.stepMode = wgpu::VertexStepMode::Vertex;
     return Convert(out.attributes, out.attributeCount, in.attributes) &&
            Convert(out.arrayStride, in.arrayStride) &&
            Convert(out.stepMode, in.stepMode);
