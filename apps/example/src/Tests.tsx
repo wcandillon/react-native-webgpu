@@ -48,7 +48,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   const [setupError, setSetupError] = useState<string | null>(null);
   // A fixed native view the drawElementImageToTexture spec snapshots: four
   // 32x32pt solid quadrants (red, lime, blue, white), 64x64pt in total.
-  const probeRef = useRef<View>(null);
+  const probeRef = useRef<React.ComponentRef<typeof View>>(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -117,7 +117,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                 gpu: navigator.gpu,
                 device,
                 urls: {
-                  fTexture: Image.resolveAssetSource(require("./assets/f.png"))
+                  fTexture: Image.resolveAssetSource(require("./assets/f.png"))!
                     .uri,
                 },
                 assets: {
