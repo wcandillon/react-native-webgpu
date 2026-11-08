@@ -56,7 +56,10 @@ const CARD_HEIGHT = 200;
 
 // The "element": a plain React Native view hierarchy. collapsable={false}
 // keeps the host view around so it can be looked up and rasterized.
-const Card = React.forwardRef<View, { count: number }>(({ count }, ref) => (
+const Card = React.forwardRef<
+  React.ComponentRef<typeof View>,
+  { count: number }
+>(({ count }, ref) => (
   <View ref={ref} collapsable={false} style={styles.card}>
     <View style={styles.cardHeader}>
       <Image
@@ -88,7 +91,7 @@ const Card = React.forwardRef<View, { count: number }>(({ count }, ref) => (
 export const ViewSnapshot = () => {
   const { device } = useDevice();
   const canvasRef = useCanvasRef();
-  const cardRef = useRef<View>(null);
+  const cardRef = useRef<React.ComponentRef<typeof View>>(null);
   const [count, setCount] = useState(0);
   const [texture, setTexture] = useState<GPUTexture | null>(null);
   const [error, setError] = useState<string | null>(null);

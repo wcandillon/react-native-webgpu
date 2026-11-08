@@ -113,6 +113,31 @@ public:
     return Convert(out_count, in.size());
   }
 
+  template <typename OUT, typename IN>
+  [[nodiscard]] inline bool
+  Convert(OUT *&out_els, size_t &out_count,
+          const std::vector<std::variant<std::nullptr_t, IN>> &in) {
+    if (in.size() == 0) {
+      out_els = nullptr;
+      out_count = 0;
+      return true;
+    }
+    // A null entry keeps its index, as the spec says: it stays the default
+    // struct, which Dawn reads as an unused slot (a vertex buffer layout with
+    // no attributes, an Undefined color target or format, an attachment with
+    // no view).
+    auto *els = Allocate<std::remove_const_t<OUT>>(in.size());
+    for (size_t i = 0; i < in.size(); i++) {
+      if (auto ptr = std::get_if<IN>(&in[i])) {
+        if (!Convert(els[i], *ptr)) {
+          return false;
+        }
+      }
+    }
+    out_els = els;
+    return Convert(out_count, in.size());
+  }
+
   template <typename OUT, typename INKEY, typename INVALUE>
   [[nodiscard]] inline bool
   Convert(OUT *&out_els, size_t &out_count,

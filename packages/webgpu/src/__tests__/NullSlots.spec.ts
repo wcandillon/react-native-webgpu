@@ -145,7 +145,6 @@ describe("Null slots", () => {
     });
     expect(result.error).toBeNull();
   });
-
   it("treats undefined and holes like null", async () => {
     const result = await client.eval(({ device }) => {
       const module = device.createShaderModule({

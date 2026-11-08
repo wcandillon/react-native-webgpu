@@ -59,7 +59,7 @@ const f = 1 / cellSize;
 
 export function MNISTInference() {
   const root = useRoot();
-  const network = useRef<Network>();
+  const network = useRef<Network>(undefined);
   const text = useSharedValue("");
   const path = useSharedValue(Skia.PathBuilder.Make());
   const surface = useSharedValue<SkSurface | null>(null);
