@@ -70,6 +70,18 @@ describe("createBindGroup", () => {
 });
 
 describe("Device", () => {
+  it("returns the same queue on every read", async () => {
+    const result = await client.eval(({ device }) => {
+      const { queue } = device;
+      queue.label = "main queue";
+      return {
+        same: device.queue === queue,
+        label: device.queue.label,
+      };
+    });
+    expect(result).toEqual({ same: true, label: "main queue" });
+  });
+
   it("request device (1)", async () => {
     const result = await client.eval(({ gpu }) =>
       gpu

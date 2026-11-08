@@ -352,6 +352,13 @@ private:
   std::shared_ptr<async::RuntimeContext> _async;
   std::string _label;
   const Origin _origin;
+  // device.queue is [SameObject]: made on the first read, then returned on
+  // every read after it. Not made in the constructor, where weak_from_this()
+  // is still empty and the queue could never reach the device to flush its
+  // pipeline cache on submit. The once_flag makes the first read safe from
+  // any runtime's thread.
+  std::once_flag _queueOnce;
+  std::shared_ptr<GPUQueue> _queue;
   // Set once the blob cache refused the pipeline cache's data as too large
   // (see flushPipelineCache). Shared with the flushes on the cache's thread,
   // which hold the device by its Dawn handle and may outlive this wrapper.
