@@ -1745,58 +1745,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@callstack/react-native-visionos@npm:^0.79.6":
-  version: 0.79.6
-  resolution: "@callstack/react-native-visionos@npm:0.79.6"
-  dependencies:
-    "@jest/create-cache-key-function": ^29.7.0
-    "@react-native/assets-registry": 0.79.6
-    "@react-native/codegen": 0.79.6
-    "@react-native/community-cli-plugin": 0.79.6
-    "@react-native/gradle-plugin": 0.79.6
-    "@react-native/js-polyfills": 0.79.6
-    "@react-native/normalize-colors": 0.79.6
-    "@react-native/virtualized-lists": 0.79.6
-    abort-controller: ^3.0.0
-    anser: ^1.4.9
-    ansi-regex: ^5.0.0
-    babel-jest: ^29.7.0
-    babel-plugin-syntax-hermes-parser: 0.25.1
-    base64-js: ^1.5.1
-    chalk: ^4.0.0
-    commander: ^12.0.0
-    event-target-shim: ^5.0.1
-    flow-enums-runtime: ^0.0.6
-    glob: ^7.1.1
-    invariant: ^2.2.4
-    jest-environment-node: ^29.7.0
-    memoize-one: ^5.0.0
-    metro-runtime: ^0.82.0
-    metro-source-map: ^0.82.0
-    nullthrows: ^1.1.1
-    pretty-format: ^29.7.0
-    promise: ^8.3.0
-    react-devtools-core: ^6.1.1
-    react-refresh: ^0.14.0
-    regenerator-runtime: ^0.13.2
-    scheduler: 0.25.0
-    semver: ^7.1.3
-    stacktrace-parser: ^0.1.10
-    whatwg-fetch: ^3.0.0
-    ws: ^6.2.3
-    yargs: ^17.6.2
-  peerDependencies:
-    "@types/react": ^19.0.0
-    react: ^19.0.0
-  peerDependenciesMeta:
-    "@types/react":
-      optional: true
-  bin:
-    react-native: cli.js
-  checksum: aa9801b24769396bb36011a545346eea42866a931616b9b09bcf6e2c1c1b3c1b1fac9229655675954e28af47965f407504ec45e9d3f564ae9cae7c74aed89a2d
-  languageName: node
-  linkType: hard
-
 "@chevrotain/types@npm:~11.1.2":
   version: 11.1.2
   resolution: "@chevrotain/types@npm:11.1.2"
@@ -5511,7 +5459,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-navigation/stack@npm:^6.4.0":
+"@react-navigation/stack@npm:6.4.1":
   version: 6.4.1
   resolution: "@react-navigation/stack@npm:6.4.1"
   dependencies:
@@ -5526,6 +5474,24 @@ __metadata:
     react-native-safe-area-context: ">= 3.0.0"
     react-native-screens: ">= 3.0.0"
   checksum: 09bcfb001db0f411df881da9f2551b7015c4d5259a77fcb93196de308838035d016dc4dcb654d16d9cd4cc99f09f5e48add796aa903f9a253678947c35b18199
+  languageName: node
+  linkType: hard
+
+"@react-navigation/stack@patch:@react-navigation/stack@npm%3A6.4.1#./.yarn/patches/@react-navigation-stack-npm-6.4.1-52dad4e278.patch::locator=react-native-webgpu-monorepo%40workspace%3A.":
+  version: 6.4.1
+  resolution: "@react-navigation/stack@patch:@react-navigation/stack@npm%3A6.4.1#./.yarn/patches/@react-navigation-stack-npm-6.4.1-52dad4e278.patch::version=6.4.1&hash=86775f&locator=react-native-webgpu-monorepo%40workspace%3A."
+  dependencies:
+    "@react-navigation/elements": ^1.3.31
+    color: ^4.2.3
+    warn-once: ^0.1.0
+  peerDependencies:
+    "@react-navigation/native": ^6.0.0
+    react: "*"
+    react-native: "*"
+    react-native-gesture-handler: ">= 1.0.0"
+    react-native-safe-area-context: ">= 3.0.0"
+    react-native-screens: ">= 3.0.0"
+  checksum: 7fa9bd73e05e6a0ea4a43fe94f82cffa6b2d2347a7d1d71fc92042267c579c68e85601d93c3dcfcfeb5f72203afbb157709962f00bddbce61342f2c54f94aaea
   languageName: node
   linkType: hard
 
@@ -7915,7 +7881,6 @@ __metadata:
     "@babel/core": ^7.25.0
     "@babel/preset-env": ^7.25.0
     "@babel/runtime": ^7.25.0
-    "@callstack/react-native-visionos": ^0.79.6
     "@react-native-community/cli": ^20.2.0
     "@react-native-community/cli-platform-android": ^20.2.0
     "@react-native-community/cli-platform-ios": ^20.2.0
