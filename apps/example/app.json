@@ -20,10 +20,6 @@
     "macos": [
       "dist/assets",
       "dist/main.macos.jsbundle"
-    ],
-    "visionos": [
-      "dist/assets",
-      "dist/main.visionos.jsbundle"
     ]
   },
   "ios": {
@@ -42,9 +38,6 @@
     ]
   },
   "macos": {
-    "metalAPIValidation": false
-  },
-  "visionos": {
     "metalAPIValidation": false
   }
 }

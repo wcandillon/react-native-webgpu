@@ -1,0 +1,75 @@
+diff --git a/lib/commonjs/views/Stack/Card.js b/lib/commonjs/views/Stack/Card.js
+index 80c49c8dd45bfa6f09ab71e93aacc2d0892581e0..61bcce4876be16aaee1401b188a9f40537d63581 100644
+--- a/lib/commonjs/views/Stack/Card.js
++++ b/lib/commonjs/views/Stack/Card.js
+@@ -171,12 +171,12 @@ class Card extends React.Component {
+   };
+   handleStartInteraction = () => {
+     if (this.interactionHandle === undefined) {
+-      this.interactionHandle = _reactNative.InteractionManager.createInteractionHandle();
++      // InteractionManager was removed in React Native 0.88 and throws on access.
++      this.interactionHandle = 0;
+     }
+   };
+   handleEndInteraction = () => {
+     if (this.interactionHandle !== undefined) {
+-      _reactNative.InteractionManager.clearInteractionHandle(this.interactionHandle);
+       this.interactionHandle = undefined;
+     }
+   };
+diff --git a/lib/module/views/Stack/Card.js b/lib/module/views/Stack/Card.js
+index 2ea2ef104e5a8b8297ad8f2d3f4a84925f36cece..8c48c7ab179399bb1e84be596d4f6377b951c5a6 100644
+--- a/lib/module/views/Stack/Card.js
++++ b/lib/module/views/Stack/Card.js
+@@ -1,7 +1,7 @@
+ function _extends() { _extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
+ import Color from 'color';
+ import * as React from 'react';
+-import { Animated, InteractionManager, Platform, StyleSheet, View } from 'react-native';
++import { Animated, Platform, StyleSheet, View } from 'react-native';
+ import { forModalPresentationIOS } from '../../TransitionConfigs/CardStyleInterpolators';
+ import CardAnimationContext from '../../utils/CardAnimationContext';
+ import getDistanceForDirection from '../../utils/getDistanceForDirection';
+@@ -162,12 +162,12 @@ export default class Card extends React.Component {
+   };
+   handleStartInteraction = () => {
+     if (this.interactionHandle === undefined) {
+-      this.interactionHandle = InteractionManager.createInteractionHandle();
++      // InteractionManager was removed in React Native 0.88 and throws on access.
++      this.interactionHandle = 0;
+     }
+   };
+   handleEndInteraction = () => {
+     if (this.interactionHandle !== undefined) {
+-      InteractionManager.clearInteractionHandle(this.interactionHandle);
+       this.interactionHandle = undefined;
+     }
+   };
+diff --git a/src/views/Stack/Card.tsx b/src/views/Stack/Card.tsx
+index af9cbbddf0276c8934964b6354d4334fc82b99f2..a14d546e56289d2b62bdec8021b63eded90af341 100755
+--- a/src/views/Stack/Card.tsx
++++ b/src/views/Stack/Card.tsx
+@@ -2,7 +2,6 @@ import Color from 'color';
+ import * as React from 'react';
+ import {
+   Animated,
+-  InteractionManager,
+   Platform,
+   StyleProp,
+   StyleSheet,
+@@ -247,13 +246,13 @@ export default class Card extends React.Component<Props> {
+ 
+   private handleStartInteraction = () => {
+     if (this.interactionHandle === undefined) {
+-      this.interactionHandle = InteractionManager.createInteractionHandle();
++      // InteractionManager was removed in React Native 0.88 and throws on access.
++      this.interactionHandle = 0;
+     }
+   };
+ 
+   private handleEndInteraction = () => {
+     if (this.interactionHandle !== undefined) {
+-      InteractionManager.clearInteractionHandle(this.interactionHandle);
+       this.interactionHandle = undefined;
+     }
+   };
