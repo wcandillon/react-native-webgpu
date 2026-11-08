@@ -3,12 +3,12 @@ import { Image } from "react-native";
 import "react-native-webgpu";
 
 export const fetchAsset = async (mod: number) => {
-  const response = await fetch(Image.resolveAssetSource(mod).uri);
+  const response = await fetch(Image.resolveAssetSource(mod)!.uri);
   return response;
 };
 
 export const decodeImage = async (mod: number) => {
-  const { uri } = Image.resolveAssetSource(mod);
+  const { uri } = Image.resolveAssetSource(mod)!;
   const response = await fetch(uri);
   const blob = await response.blob();
   const image = await createImageBitmap(blob);

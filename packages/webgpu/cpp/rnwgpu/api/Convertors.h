@@ -117,16 +117,25 @@ public:
   [[nodiscard]] inline bool
   Convert(OUT *&out_els, size_t &out_count,
           const std::vector<std::variant<std::nullptr_t, IN>> &in) {
-    std::vector<IN> filtered;
-    filtered.reserve(in.size());
-
-    for (const auto &item : in) {
-      if (auto ptr = std::get_if<IN>(&item)) {
-        filtered.push_back(*ptr);
+    if (in.size() == 0) {
+      out_els = nullptr;
+      out_count = 0;
+      return true;
+    }
+    // A null entry keeps its index, as the spec says: it stays the default
+    // struct, which Dawn reads as an unused slot (a vertex buffer layout with
+    // no attributes, an Undefined color target or format, an attachment with
+    // no view).
+    auto *els = Allocate<std::remove_const_t<OUT>>(in.size());
+    for (size_t i = 0; i < in.size(); i++) {
+      if (auto ptr = std::get_if<IN>(&in[i])) {
+        if (!Convert(els[i], *ptr)) {
+          return false;
+        }
       }
     }
-
-    return Convert(out_els, out_count, filtered);
+    out_els = els;
+    return Convert(out_count, in.size());
   }
 
   template <typename OUT, typename INKEY, typename INVALUE>
@@ -151,9 +160,17 @@ public:
     return Convert(out_count, val.size());
   }
 
+  // A null handle becomes nullptr. A null struct or enum stays at its
+  // default, which is how a null entry in a slot list (vertex buffers, color
+  // targets, color attachments, color formats, bind group layouts) keeps its
+  // index: Dawn reads the default value as an unused slot.
   template <typename T>
-  [[nodiscard]] auto Convert(T &out, const std::nullptr_t &in) {
-    out = nullptr;
+  [[nodiscard]] bool Convert(T &out, const std::nullptr_t &in) {
+    if constexpr (std::is_assignable_v<T &, std::nullptr_t>) {
+      out = nullptr;
+    } else {
+      out = T{};
+    }
     return true;
   }
 
@@ -690,6 +707,9 @@ public:
      -      return Convert(out.stepMode, in.stepMode);
      -    }
      */
+    // stepMode defaults to "vertex" in the spec. Leaving it Undefined would
+    // make Dawn read a layout with no attributes as an unused slot.
+    out.stepMode = wgpu::VertexStepMode::Vertex;
     return Convert(out.attributes, out.attributeCount, in.attributes) &&
            Convert(out.arrayStride, in.arrayStride) &&
            Convert(out.stepMode, in.stepMode);

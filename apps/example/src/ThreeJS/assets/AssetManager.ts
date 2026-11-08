@@ -24,7 +24,7 @@ export interface GLTF {
 }
 
 export const resolveAsset = (mod: ReturnType<typeof require>) => {
-  return Image.resolveAssetSource(mod).uri;
+  return Image.resolveAssetSource(mod)!.uri;
 };
 
 export const debugManager = new THREE.LoadingManager();

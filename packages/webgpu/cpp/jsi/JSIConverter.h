@@ -379,7 +379,8 @@ struct JSIConverter<std::variant<std::nullptr_t, std::shared_ptr<O>>> {
 
   static Target fromJSI(jsi::Runtime &runtime, const jsi::Value &arg,
                         bool outOfBound) {
-    if (arg.isNull()) {
+    // WebIDL converts undefined to null for a nullable type.
+    if (arg.isNull() || arg.isUndefined()) {
       return Target(nullptr);
     }
     return Target(
@@ -402,7 +403,8 @@ struct JSIConverter<std::variant<std::nullptr_t, O>,
 
   static Target fromJSI(jsi::Runtime &runtime, const jsi::Value &arg,
                         bool outOfBound) {
-    if (arg.isNull()) {
+    // WebIDL converts undefined to null for a nullable type.
+    if (arg.isNull() || arg.isUndefined()) {
       return Target(nullptr);
     } else if (arg.isNumber()) {
       return Target(static_cast<O>(arg.asNumber()));
