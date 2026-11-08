@@ -114,9 +114,9 @@ describe("Null slots", () => {
       device.queue.submit([encoder.finish()]);
       return device
         .popErrorScope()
-        .then((error) => (error ? error.message : null));
+        .then((error) => ({ error: error ? error.message : null }));
     });
-    expect(result).toBeNull();
+    expect(result.error).toBeNull();
   });
 
   it("keeps the index of a render bundle's color format after a null one", async () => {
@@ -141,8 +141,8 @@ describe("Null slots", () => {
       bundleEncoder.finish();
       return device
         .popErrorScope()
-        .then((error) => (error ? error.message : null));
+        .then((error) => ({ error: error ? error.message : null }));
     });
-    expect(result).toBeNull();
+    expect(result.error).toBeNull();
   });
 });
