@@ -74,10 +74,13 @@ declare global {
     // the process (the native surface registry outlives a reload).
     allocateContextId: () => number;
     getNativeSurface: (contextId: number) => NativeCanvas;
+    // The context of a Canvas; `composited` is its presentation prop (see
+    // Canvas), left out by a caller that is not a Canvas.
     MakeWebGPUCanvasContext: (
       contextId: number,
       width: number,
       height: number,
+      composited?: boolean,
     ) => RNCanvasContext;
     // A canvas context presenting to a native window that is not a WebGPU
     // view, e.g. a MediaCodec encoder's input Surface: an ANativeWindow*

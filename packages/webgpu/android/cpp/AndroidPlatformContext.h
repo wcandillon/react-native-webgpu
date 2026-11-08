@@ -5,6 +5,8 @@
 #include <android/hardware_buffer.h>
 #include <android/native_window.h>
 #include <dlfcn.h>
+#include <fbjni/NativeRunnable.h>
+#include <fbjni/fbjni.h>
 #include <jni.h>
 
 #include <algorithm>
@@ -41,6 +43,11 @@ private:
   jobject _blobModule;
   // Global ref to the com.webgpu.WebGPUModule instance (view snapshots).
   jobject _module;
+  // Global ref to com.webgpu.PresentThread and its post(Runnable), resolved
+  // on a Java thread (see runOnPresentThread); null when the class was not
+  // found, in which case nothing is ever posted.
+  jclass _presentThreadClass;
+  jmethodID _presentThreadPost;
 
   std::vector<uint8_t> resolveBlob(JNIEnv *env, const std::string &blobId,
                                    double offset, double size) {
@@ -80,9 +87,12 @@ private:
   }
 
 public:
-  // Both arguments are global refs; the context releases them.
-  AndroidPlatformContext(jobject blobModule, jobject module)
-      : _blobModule(blobModule), _module(module) {}
+  // The object arguments are global refs; the context releases them.
+  AndroidPlatformContext(jobject blobModule, jobject module,
+                         jclass presentThreadClass, jmethodID presentThreadPost)
+      : _blobModule(blobModule), _module(module),
+        _presentThreadClass(presentThreadClass),
+        _presentThreadPost(presentThreadPost) {}
   ~AndroidPlatformContext() {
     JNIEnv *env = facebook::jni::Environment::current();
     if (_blobModule) {
@@ -93,6 +103,35 @@ public:
       env->DeleteGlobalRef(_module);
       _module = nullptr;
     }
+    if (_presentThreadClass) {
+      env->DeleteGlobalRef(_presentThreadClass);
+      _presentThreadClass = nullptr;
+    }
+  }
+
+  // PresentThread.post(Runnable): the task runs on the thread every canvas
+  // presents on, after those posted before it (see SurfaceInfo). Any thread,
+  // the render runtimes' included, hence the thread scope. False, and the
+  // task dropped, when the class was not found, the thread has no JNIEnv, or
+  // the post threw.
+  bool runOnPresentThread(std::function<void()> task) override {
+    if (_presentThreadClass == nullptr || _presentThreadPost == nullptr) {
+      return false;
+    }
+    facebook::jni::ThreadScope scope;
+    JNIEnv *env = facebook::jni::Environment::current();
+    if (env == nullptr) {
+      return false;
+    }
+    auto runnable =
+        facebook::jni::JNativeRunnable::newObjectCxxArgs(std::move(task));
+    env->CallStaticVoidMethod(_presentThreadClass, _presentThreadPost,
+                              runnable.get());
+    if (env->ExceptionCheck()) {
+      env->ExceptionClear();
+      return false;
+    }
+    return true;
   }
 
   void snapshotView(const ViewSnapshotRequest &request,

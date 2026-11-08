@@ -155,15 +155,6 @@ void RNWebGPUManager::installWebGPUWorkletHelpers(jsi::Runtime &runtime) {
                        &RNWebGPUManager::installConstructors)));
 }
 
-void RNWebGPUManager::flushPendingSurfaceTransition(
-    std::shared_ptr<SurfaceInfo> info) {
-  if (info == nullptr || _jsCallInvoker == nullptr) {
-    return;
-  }
-  _jsCallInvoker->invokeAsync(
-      [info = std::move(info)] { info->applyPendingAttach(); });
-}
-
 RNWebGPUManager::~RNWebGPUManager() {
   // Drop the canvas registry entries of this runtime's bundle: its canvases
   // never run their JS cleanup, and their ids are not handed out again (see

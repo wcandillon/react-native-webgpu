@@ -46,7 +46,7 @@ export function Scene() {
 
 ## Frame presentations
 
-On the Web, the browser swaps your rendered frame to the screen automatically when you submit GPU commands. In React Native there is no automatic swap: presentation is a manual step. After you submit your commands to the queue, call `present()` on the context to display the frame.
+On the Web, the browser swaps your rendered frame to the screen automatically when you submit GPU commands. In React Native there is no automatic swap: presentation is a manual step. After you submit your commands to the queue, call `present()` on the context to hand the frame over for display.
 
 ```tsx twoslash
 import type { RNCanvasContext } from "react-native-webgpu";
@@ -58,9 +58,19 @@ device.queue.submit([encoder.finish()]);
 context.present(); // React Native only
 ```
 
-`present()` is a React Native only method (it is not part of the Web WebGPU spec). It runs **synchronously** on the calling thread, so the frame is presented from whichever thread did the rendering. This works the same on every runtime: the main JS runtime, the UI thread, and dedicated worklet runtimes. Always call it after `submit()`, never before.
+`present()` is a React Native only method (it is not part of the Web WebGPU spec). It returns at once, on every runtime: the main JS runtime, the UI thread, and dedicated worklet runtimes. Always call it after `submit()`, never before. What happens to the frame next depends on the canvas's `presentation` prop.
 
-Your loop sets the frame rate.
+By default (`presentation="direct"`), `getCurrentTexture()` is the view's own texture and `present()` presents it, the way wgpu and Metal present: no copy, and the texture has exactly the usage you configured. The present call itself runs on a thread of its own, the present thread, so the thread you render on does not pay for it. The display paces your loop: the view hands out its next texture once the frame before it is on its way to the screen, so a `getCurrentTexture()` that comes earlier waits for that. A loop driven by `requestAnimationFrame` or a frame callback rarely waits, as the display takes a frame every refresh.
+
+With `presentation="composited"`, `getCurrentTexture()` is an offscreen texture of the canvas's own, and `present()` hands it to the present thread, which copies it onto the view at the next display refresh the view can take it, like the browser shows a canvas at the next vertical sync. Your loop never waits for the display, the compositor or the GPU. A frame still waiting when the next one is presented is replaced: the view shows the latest frame, as a browser does. The view shows its last frame again when it comes back, after the app was in the background on Android for instance, without you rendering it again. And every frame you present reaches an Android `TextureView`, the default backing view there: a loop on the UI thread presenting direct to a `TextureView` shows every other frame, as the view takes a frame only after the main thread drew. The cost is one copy on the GPU per frame and up to two more textures, and the device needs implicit device synchronization (the default). React Native Skia's canvases present this way.
+
+```tsx
+<Canvas ref={ref} presentation="composited" style={{ flex: 1 }} />
+```
+
+The prop is read when the canvas mounts: remount the canvas (with a `key`) to change it. Choose `"composited"` for a canvas driven from the Reanimated UI runtime on Android, for a canvas that draws once and has to come back from the background on its own, or when you want the browser's behaviour; keep the default for a scene that draws every frame and wants no copy and the lowest latency.
+
+Your loop sets the frame rate, up to the display's.
 A loop on the Reanimated UI runtime or on a worklet runtime (see [Worklets](/docs/integrations/worklets)) runs at the display's rate, 120 Hz on a ProMotion iPhone or iPad, while React Native's `requestAnimationFrame` on the JS thread runs at 60 Hz on iOS.
 An app created from an Expo or React Native template before React Native 0.82 may still carry iOS's 60 Hz cap for iPhone: [Reanimated's performance guide](https://docs.swmansion.com/react-native-reanimated/docs/guides/performance/#-enable-120-fps) covers the `Info.plist` opt-in.
 

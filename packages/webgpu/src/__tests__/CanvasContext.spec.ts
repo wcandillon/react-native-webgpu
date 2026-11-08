@@ -54,6 +54,132 @@ describe("Native canvas context", () => {
     expect(result).toBe(true);
   });
 
+  // A frame ends with present(), and the next getCurrentTexture() starts a new
+  // one, at the drawing buffer's size and format. A canvas presenting direct
+  // (the default) renders into the window's own texture, or into a texture
+  // standing in for it without a window, with exactly the usage it was
+  // configured with. A composited canvas renders into offscreen frames of its
+  // own, which present() hands to the present thread (see SurfaceInfo): they
+  // carry the usage the canvas was configured with and what presenting them
+  // needs.
+  it.each([
+    { presentation: "direct", contextId: -5, exactUsage: true },
+    { presentation: "composited", contextId: -6, exactUsage: false },
+  ])(
+    "starts a new frame after present(), at the drawing buffer's size ($presentation)",
+    async ({ presentation: mode, contextId: id, exactUsage }) => {
+      if (client.OS !== "ios" && client.OS !== "android") {
+        return;
+      }
+      const result = await client.eval(
+        ({ device, gpu, presentation, contextId }) => {
+          const format = gpu.getPreferredCanvasFormat();
+          const usage =
+            GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST;
+          const ctx = RNWebGPU.MakeWebGPUCanvasContext(
+            contextId,
+            16,
+            16,
+            presentation === "composited",
+          );
+          ctx.configure({ device, format, usage });
+          try {
+            let distinctFromPrevious = true;
+            let describesTheBuffer = true;
+            let usageIsExact = true;
+            let previous: GPUTexture | null = null;
+            for (let frame = 0; frame < 6; frame++) {
+              const texture = ctx.getCurrentTexture();
+              if (texture === previous) {
+                distinctFromPrevious = false;
+              }
+              if (
+                texture.width !== 16 ||
+                texture.height !== 16 ||
+                texture.format !== format ||
+                (texture.usage & usage) !== usage
+              ) {
+                describesTheBuffer = false;
+              }
+              if (texture.usage !== usage) {
+                usageIsExact = false;
+              }
+              const encoder = device.createCommandEncoder();
+              const pass = encoder.beginRenderPass({
+                colorAttachments: [
+                  {
+                    view: texture.createView(),
+                    clearValue: [frame / 6, 0, 0, 1],
+                    loadOp: "clear",
+                    storeOp: "store",
+                  },
+                ],
+              });
+              pass.end();
+              device.queue.submit([encoder.finish()]);
+              ctx.present();
+              previous = texture;
+            }
+            return { distinctFromPrevious, describesTheBuffer, usageIsExact };
+          } finally {
+            ctx.unconfigure();
+            RNWebGPU.destroyContext(contextId);
+          }
+        },
+        { presentation: mode, contextId: id },
+      );
+      expect(result).toEqual({
+        distinctFromPrevious: true,
+        describesTheBuffer: true,
+        usageIsExact: exactUsage,
+      });
+    },
+  );
+
+  // A composited canvas's frames are presented from the present thread, which
+  // only a device with implicit device synchronization may be used from; a
+  // direct canvas presents on the thread that renders, with any device.
+  it("configures a direct canvas, not a composited one, with a device that does not synchronize", async () => {
+    if (client.OS !== "ios" && client.OS !== "android") {
+      return;
+    }
+    const result = await client.eval(({ gpu }) => {
+      return gpu
+        .requestAdapter()
+        .then((adapter) =>
+          adapter!.requestDevice({ implicitDeviceSynchronization: false }),
+        )
+        .then((device) => {
+          const format = gpu.getPreferredCanvasFormat();
+          const direct = RNWebGPU.MakeWebGPUCanvasContext(-7, 16, 16, false);
+          const composited = RNWebGPU.MakeWebGPUCanvasContext(-8, 16, 16, true);
+          try {
+            direct.configure({ device, format });
+            const texture = direct.getCurrentTexture();
+            direct.present();
+            const directRenders =
+              texture.width === 16 && direct.getCurrentTexture() !== texture;
+            let compositedRefused = false;
+            try {
+              composited.configure({ device, format });
+            } catch (e) {
+              compositedRefused = `${(e as Error).message}`.includes(
+                "implicit device synchronization",
+              );
+            }
+            return { directRenders, compositedRefused };
+          } finally {
+            direct.unconfigure();
+            composited.unconfigure();
+            RNWebGPU.destroyContext(-7);
+            RNWebGPU.destroyContext(-8);
+            device.destroy();
+          }
+        });
+    });
+    expect(result).toEqual({ directRenders: true, compositedRefused: true });
+  });
+
   it.each(["srgb", "display-p3"] as const)(
     "configures a native canvas with colorSpace %s",
     async (colorSpace) => {

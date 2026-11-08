@@ -85,7 +85,40 @@ export type AndroidCanvasProps =
   | AndroidSurfaceViewProps
   | AndroidHardwareBufferViewProps;
 
+/**
+ * How a canvas presents its frames, see {@link CanvasProps.presentation}.
+ */
+export type CanvasPresentation = "direct" | "composited";
+
 export interface CanvasProps extends ViewProps {
+  /**
+   * How the canvas presents its frames. Chosen when the canvas mounts and
+   * kept: a change is ignored, with a warning in development; remount the
+   * canvas (with a `key`) to change it. Ignored on web, where the browser
+   * presents.
+   *
+   * `"direct"`, the default: `getCurrentTexture()` is the view's own texture
+   * and `present()` presents it, the way wgpu and Metal present. No copy, the
+   * usage the context was configured with, and the display paces the loop:
+   * the next `getCurrentTexture()` waits until the frame presented before it
+   * is on its way to the screen, so a loop that outruns the display waits on
+   * it. The present itself runs on a thread of its own, so the thread
+   * rendering does not pay for it.
+   *
+   * `"composited"`: `getCurrentTexture()` is an offscreen texture of the
+   * canvas's own, and `present()` hands it to a thread of its own, which
+   * copies it onto the view at the next display refresh the view can take
+   * it. The loop never waits, a frame presented before the previous one went
+   * to the screen replaces it (the view shows the latest frame, as a browser
+   * does), the view shows its last frame again when it comes back, and every
+   * frame presented reaches an Android `TextureView`, which otherwise shows
+   * every other frame of a loop on the UI thread. Costs one copy on the GPU
+   * per frame and up to two more textures, and needs a device with implicit
+   * device synchronization (the default). React Native Skia's canvases
+   * present this way. A `HardwareBufferView` always composites, its own way;
+   * the prop does not apply to it.
+   */
+  presentation?: CanvasPresentation;
   /**
    * Android-only rendering options: the native view behind the canvas and its
    * options, see {@link AndroidCanvasProps}. Ignored on iOS and web.
@@ -93,6 +126,13 @@ export interface CanvasProps extends ViewProps {
   android?: AndroidCanvasProps;
   ref?: React.Ref<CanvasRef>;
 }
+
+// Anything else reaching the native component would hit the generated
+// string-enum parser, which aborts on unknown values.
+const resolvePresentation = (
+  presentation?: CanvasPresentation,
+): CanvasPresentation =>
+  presentation === "composited" ? "composited" : "direct";
 
 // The union read as one bag of options; which of them apply to the view is
 // decided below, as it is on the native side.
@@ -146,12 +186,49 @@ const androidNativeProps = (android?: AndroidCanvasProps) => {
   };
 };
 
-const warnIgnoredChange = (prop: string) =>
+const warnIgnoredChange = (prop: string, what = "the backing view") =>
   console.warn(
-    `Ignoring a change of ${prop} on a mounted canvas: the backing view is ` +
+    `Ignoring a change of ${prop} on a mounted canvas: ${what} is ` +
       "chosen when the canvas mounts. Remount the canvas (give it a new key) " +
       "to change it.",
   );
+
+// Warns, in development, about a change of the presentation prop, which the
+// native view ignores (see WebGPUView.java and WebGPUView.mm, which read it as
+// the view claims its canvas), and on Android about asking a
+// HardwareBufferView, which always composites, to present direct.
+const usePresentationWarning = (
+  presentation?: CanvasPresentation,
+  android?: AndroidCanvasProps,
+) => {
+  const mount = useRef(presentation);
+  const prev = useRef(presentation);
+  useEffect(() => {
+    if (
+      __DEV__ &&
+      Platform.OS === "android" &&
+      mount.current === "direct" &&
+      resolveBackingView(android) === "HardwareBufferView"
+    ) {
+      console.warn(
+        'presentation: "direct" does not apply to a HardwareBufferView, ' +
+          "which always composites; the canvas composites.",
+      );
+    }
+    // The backing view is fixed at mount too.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (
+      __DEV__ &&
+      Platform.OS !== "web" &&
+      resolvePresentation(prev.current) !== resolvePresentation(presentation)
+    ) {
+      warnIgnoredChange("presentation", "the presentation");
+    }
+    prev.current = presentation;
+  });
+};
 
 // Warns, in development on Android, about an option a mounting canvas asks
 // for that the native view cannot honour, and about a change of these props
@@ -222,10 +299,20 @@ const measureLayout = (view: ViewRef) => {
   return size;
 };
 
-export const Canvas = ({ android, ref, ...props }: CanvasProps) => {
+export const Canvas = ({
+  presentation,
+  android,
+  ref,
+  ...props
+}: CanvasProps) => {
   const viewRef = useRef<ViewRef>(null);
   const [contextId, _] = useState(() => generateContextId());
+  // Fixed at mount, like the backing view: what the context is made with.
+  const [composited] = useState(
+    () => resolvePresentation(presentation) === "composited",
+  );
   useBackingViewWarning(android);
+  usePresentationWarning(presentation, android);
   // Retire the native registry entry for this contextId on unmount. When a
   // native surface is still attached, this is a no-op and the native view's
   // own teardown retires the entry instead — which keeps StrictMode's
@@ -258,10 +345,11 @@ export const Canvas = ({ android, ref, ...props }: CanvasProps) => {
           contextId,
           size.width,
           size.height,
+          composited,
         );
       },
     }),
-    [contextId],
+    [contextId, composited],
   );
 
   return (
@@ -269,6 +357,7 @@ export const Canvas = ({ android, ref, ...props }: CanvasProps) => {
       <WebGPUNativeView
         style={{ flex: 1 }}
         contextId={contextId}
+        presentation={composited ? "composited" : "direct"}
         {...androidNativeProps(android)}
       />
     </View>

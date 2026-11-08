@@ -43,3 +43,13 @@ target_link_libraries(cpp-tests PRIVATE GTest::gtest_main)
 enable_testing()
 include(GoogleTest)
 gtest_discover_tests(cpp-tests)
+
+# The tests of the code shared with react-native-skia (cpp/rnsurface, see its
+# README): copies of the Skia repository's, which are plain executables that
+# return non-zero on a failure, so they are run as such.
+foreach(shared_test FrameSchedulerTest ThreadCheckerTest)
+  add_executable(${shared_test} ${shared_test}.cpp)
+  target_include_directories(${shared_test} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../cpp)
+  target_compile_options(${shared_test} PRIVATE -Wall -Wextra)
+  add_test(NAME ${shared_test} COMMAND ${shared_test})
+endforeach()

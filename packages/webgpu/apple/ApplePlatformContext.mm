@@ -1,5 +1,7 @@
 #include "ApplePlatformContext.h"
 
+#import "RNWGPresentThread.h"
+
 #include <TargetConditionals.h>
 
 #import <AVFoundation/AVFoundation.h>
@@ -559,12 +561,22 @@ std::function<void(void *)>
 ApplePlatformContext::retainNativeWindow(void *window) {
   CFRetain(window);
   return [](void *layer) {
-    // As MetalView's: the releaser can run on the rendering thread, and
+    // As WebGPUView's: the releaser can run on the present thread, and
     // CALayer teardown belongs on the main thread.
     dispatch_async(dispatch_get_main_queue(), ^{
       CFRelease(layer);
     });
   };
+}
+
+// The present thread of the canvases (see RNWGPresentThread): the task is
+// shared with the block, which copies it onto the thread.
+bool ApplePlatformContext::runOnPresentThread(std::function<void()> task) {
+  auto shared = std::make_shared<std::function<void()>>(std::move(task));
+  [RNWGPresentThread post:^{
+    (*shared)();
+  }];
+  return true;
 }
 
 // The NV12 variant of createTestVideoFrame: a biplanar BT.709 limited-range

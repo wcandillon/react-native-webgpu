@@ -249,6 +249,13 @@ public:
   // with it. The releaser can run on any thread.
   virtual std::function<void(void *)> retainNativeWindow(void *window) = 0;
 
+  // Runs a task on the thread every canvas presents on (see SurfaceInfo),
+  // after those posted before it, never on the spot: the present thread of
+  // the platform, one for the process (PresentThread.java, RNWGPresentThread
+  // in WebGPUView.mm). Says whether the task was posted: when the thread is
+  // out of reach (false), the task never runs. Any thread.
+  virtual bool runOnPresentThread(std::function<void()> task) = 0;
+
   // Write a small procedurally-generated test video to a temporary location
   // and return its absolute path. Lets the SharedTextureMemory example play
   // a real decoded video without bundling an asset.
