@@ -54,6 +54,8 @@ public:
 
   std::function<void(void *)> retainNativeWindow(void *window) override;
 
+  bool runOnPresentThread(std::function<void()> task) override;
+
 private:
   ViewLookup _viewLookup;
   BlobManagerLookup _blobManagerLookup;

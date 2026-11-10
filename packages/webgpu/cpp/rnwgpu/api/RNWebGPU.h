@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -78,10 +79,14 @@ public:
 
   bool getFabric() { return true; }
 
+  // The context of a Canvas, by its id; `composited` is the Canvas's
+  // presentation prop (see SurfaceInfo::Presentation), left out by a caller
+  // that is not a Canvas.
   std::shared_ptr<GPUCanvasContext>
-  MakeWebGPUCanvasContext(int contextId, float width, float height) {
-    auto ctx =
-        std::make_shared<GPUCanvasContext>(_gpu, contextId, width, height);
+  MakeWebGPUCanvasContext(int contextId, float width, float height,
+                          std::optional<bool> composited) {
+    auto ctx = std::make_shared<GPUCanvasContext>(_gpu, contextId, width,
+                                                  height, composited);
     return ctx;
   }
 
@@ -108,22 +113,19 @@ public:
           "width and height");
     }
     auto &runtime = WebGPURuntime::shared();
-    // Unlike a view's, this surface has no offscreen fallback worth having:
-    // nothing would ever show up, so fail here.
-    auto surface = runtime.makeSurface(window);
-    if (surface == nullptr) {
+    auto info = SurfaceRegistry::getInstance().makeUnregisteredSurfaceInfo(
+        runtime.instance(), static_cast<int>(width), static_cast<int>(height));
+    // The SurfaceInfo owns the window's reference from here on, and gives it
+    // back itself when no surface can be made over the window. Unlike a
+    // view's canvas, this one has no frames worth rendering without a
+    // surface: nothing would ever show up, so fail here.
+    if (!info->attach(window, _platformContext->retainNativeWindow(window),
+                      SurfaceInfo::Window::kShowsEachFrame)) {
       throw std::runtime_error(
           "MakeWebGPUCanvasContextFromNativeWindow: could not create a surface "
           "for the window; is it a valid ANativeWindow (Android) or "
           "CAMetalLayer (Apple)?");
     }
-    auto info = SurfaceRegistry::getInstance().makeUnregisteredSurfaceInfo(
-        runtime.instance(), static_cast<int>(width), static_cast<int>(height));
-    // The window is retained last, once nothing left here can throw: the
-    // SurfaceInfo owns the reference from here on. Adopted by the context's
-    // configure() (see SurfaceInfo::configure).
-    info->attachSurface(window, std::move(surface),
-                        _platformContext->retainNativeWindow(window));
     return std::make_shared<GPUCanvasContext>(_gpu, std::move(info), width,
                                               height);
   }
@@ -352,7 +354,7 @@ public:
   // Registry entries have two owners, split by whether a native surface is
   // attached:
   // - A native view currently owns a surface (or one is pending): its own
-  //   teardown (MetalView dealloc / WebGPUViewManager.onDropViewInstance)
+  //   teardown (WebGPUView's invalidate / WebGPUViewManager.onDropViewInstance)
   //   removes the entry. Skipping here keeps React StrictMode safe: its
   //   simulated unmount re-runs JS effects without unmounting native views,
   //   and removing the entry then would orphan the still-attached surface.
@@ -362,7 +364,7 @@ public:
   //   lands in the context the first effect run made.
   // The check-and-erase runs atomically under the registry lock
   // (removeSurfaceInfoIfDetached), serialized against the UI thread's
-  // find-or-create + attach (SurfaceRegistry::attachSurface), so a concurrent
+  // find-or-create + claim (SurfaceRegistry::attachView), so a concurrent
   // attach can never be orphaned by this removal.
   void destroyContext(int contextId) {
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();

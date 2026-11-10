@@ -6,6 +6,8 @@ import { contextIdToId } from "./utils";
 
 export interface NativeProps extends ViewProps {
   contextId: CodegenTypes.Int32;
+  // How the canvas presents: the browser presents, so it never reaches the DOM
+  presentation?: "direct" | "composited";
   // The `android` prop, resolved: Android-only, never reaches the DOM
   androidBackingView?: "TextureView" | "SurfaceView" | "HardwareBufferView";
   androidOpaque?: boolean;
@@ -20,6 +22,7 @@ export default function WebGPUViewNativeComponent(
   const {
     contextId,
     style,
+    presentation: _presentation,
     androidBackingView: _androidBackingView,
     androidOpaque: _androidOpaque,
     androidZOrderOnTop: _androidZOrderOnTop,

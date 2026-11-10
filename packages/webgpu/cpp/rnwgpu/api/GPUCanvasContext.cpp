@@ -82,11 +82,9 @@ std::shared_ptr<GPUTexture> GPUCanvasContext::getCurrentTexture() {
 }
 
 void GPUCanvasContext::present() {
-  // presentFrame() is the end-of-frame boundary: it presents when this frame's
-  // texture was acquired from the on-screen surface (offscreen and dropped
-  // frames are skipped), clears the frame state, and adopts any surface that
-  // attached while the frame was in flight.
-  _surfaceInfo->presentFrame();
+  // The end-of-frame boundary: the frame goes to the window, from the present
+  // thread (see SurfaceInfo::present). Returns at once.
+  _surfaceInfo->present();
 }
 
 } // namespace rnwgpu

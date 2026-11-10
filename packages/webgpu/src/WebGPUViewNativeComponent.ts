@@ -3,6 +3,8 @@ import type { CodegenTypes, ViewProps } from "react-native";
 
 export interface NativeProps extends ViewProps {
   contextId: CodegenTypes.Int32;
+  // How the canvas presents (see Canvas.tsx)
+  presentation?: CodegenTypes.WithDefault<"direct" | "composited", "direct">;
   // The `android` prop, resolved (see Canvas.tsx)
   androidBackingView?: CodegenTypes.WithDefault<
     "TextureView" | "SurfaceView" | "HardwareBufferView",

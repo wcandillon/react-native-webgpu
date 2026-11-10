@@ -9,6 +9,7 @@ description: Rendering pixels on-screen
 
 | Prop | Type | Description |
 | ---- | ---- | ----------- |
+| `presentation` | `"direct" \| "composited"` | How the canvas presents its frames, see [Presenting frames](#presenting-frames). `"direct"` (the default) renders into the view's own texture and presents it; `"composited"` renders into an offscreen texture that a thread of its own copies onto the view at the next display refresh. Read when the canvas mounts. Ignored on web |
 | `android` | `AndroidCanvasProps` | Android-only rendering options: the native view behind the canvas (`backingView`) and its options (`opaque`, `zOrderOnTop`, `zOrderMediaOverlay`), see [Android rendering options](#android-rendering-options). Ignored on iOS and web |
 | `...ViewProps` | `ViewProps` | All standard React Native View props (`style`, `onLayout`, etc.) |
 
@@ -125,7 +126,7 @@ See [Canvas](/docs/getting-started/canvas) for a walkthrough of the frame loop, 
 
 ## Presenting frames
 
-Call `context.present()` after every `device.queue.submit()` to display the frame: unlike the Web, React Native does not swap the frame to the screen for you. `present()` is not part of the WebGPU spec. It runs synchronously on the calling thread, and works the same on the main JS runtime, the UI thread and dedicated worklet runtimes. See [Frame presentations](/docs/getting-started/canvas#frame-presentations).
+Call `context.present()` after every `device.queue.submit()` to display the frame: unlike the Web, React Native does not swap the frame to the screen for you. `present()` is not part of the WebGPU spec. It returns at once, and works the same on the main JS runtime, the UI thread and dedicated worklet runtimes. By default the canvas presents direct: `getCurrentTexture()` is the view's own texture, `present()` presents it from a thread of its own, and the next `getCurrentTexture()` waits until that frame is on its way to the screen, so the display paces the loop. With `presentation="composited"`, `getCurrentTexture()` is an offscreen texture that the same thread copies onto the view at the next display refresh the view can take it: the loop never waits, the view shows the latest frame presented, and every frame reaches an Android `TextureView`. See [Frame presentations](/docs/getting-started/canvas#frame-presentations).
 
 ## Pixel density
 
@@ -162,7 +163,7 @@ On Android, `Canvas` can be backed by one of three native views, with different 
 | Opaque by default | no | yes | never |
 | Status | default | opt-in | experimental, opt-in |
 
-**`TextureView`** is the default: a regular view, so transforms, clipping, alpha and z-order all apply, and the canvas can be composited over other React Native views. The cost is an extra copy, typically a frame of latency, and occasional stalls during some view animations.
+**`TextureView`** is the default: a regular view, so transforms, clipping, alpha and z-order all apply, and the canvas can be composited over other React Native views. The cost is an extra copy, typically a frame of latency, and occasional stalls during some view animations. A loop on the UI thread presenting direct to it shows every other frame, as the view takes a frame only after the main thread drew; with `presentation="composited"` every frame reaches it, as the present thread hands it the next frame once it drew the previous one.
 
 **`SurfaceView`** is the fastest option. It is not regular view content, though: parent transforms, clipping, rounded corners and z-ordering with sibling views do not apply to it. Use it for a canvas that is a plain rectangle: a full-screen scene or a game. It is opaque unless asked otherwise: a translucent `SurfaceView` blends against the window background (usually black) instead of the React Native views beneath it, which are punched out. Pair it with `zOrderOnTop` to composite over React Native content, and note that `zOrderOnTop` draws above all React Native views in the window, including navigation screens, regardless of `zIndex`.
 

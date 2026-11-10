@@ -50,6 +50,10 @@ const tests = [
     title: "⚠️ Android View Props",
   },
   {
+    screen: "PresentationModes",
+    title: "⚠️ Presentation Modes (#542, #613)",
+  },
+  {
     screen: "DeviceDestroyBeforeDetach",
     title: "⚠️ Device Destroy Before Detach",
   },

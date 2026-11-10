@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -26,13 +27,21 @@ class GPUCanvasContext : public NativeObject<GPUCanvasContext> {
 public:
   static constexpr const char *CLASS_NAME = "GPUCanvasContext";
 
+  // `composited` is the Canvas's presentation prop (see
+  // SurfaceInfo::setPresentation), when the context is made for one: the
+  // canvas presents direct otherwise, or as its view said.
   GPUCanvasContext(std::shared_ptr<GPU> gpu, int contextId, int width,
-                   int height)
+                   int height, std::optional<bool> composited = std::nullopt)
       : NativeObject(CLASS_NAME), _gpu(std::move(gpu)) {
     _canvas = std::make_shared<Canvas>(nullptr, width, height);
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     _surfaceInfo =
         registry.getSurfaceInfoOrCreate(contextId, _gpu->get(), width, height);
+    if (composited.has_value()) {
+      _surfaceInfo->setPresentation(*composited
+                                        ? SurfaceInfo::Presentation::kComposited
+                                        : SurfaceInfo::Presentation::kDirect);
+    }
   }
 
   // A context presenting to a surface of its own rather than a view's, outside
@@ -68,10 +77,9 @@ public:
   void unconfigure();
   std::shared_ptr<GPUTexture> getCurrentTexture();
   // Present is explicit on every runtime (main JS, Reanimated UI, and dedicated
-  // worklet runtimes). It runs synchronously on the calling thread, preserving
-  // Dawn surface thread-affinity; frames rendered offscreen (no surface
-  // attached) are skipped. It is also the end-of-frame boundary at which a
-  // newly attached native surface is adopted (see SurfaceInfo).
+  // worklet runtimes), and returns at once: the frame goes to the window from
+  // the present thread (see SurfaceInfo). It is the end-of-frame boundary: the
+  // next getCurrentTexture starts a new frame.
   void present();
 
 private:

@@ -43,6 +43,12 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
   }
 
   @Override
+  @ReactProp(name = "presentation")
+  public void setPresentation(WebGPUView view, @Nullable String value) {
+    view.setPresentation(value);
+  }
+
+  @Override
   @ReactProp(name = "androidZOrderOnTop")
   public void setAndroidZOrderOnTop(WebGPUView view, boolean value) {
     view.setZOrderOnTop(value);

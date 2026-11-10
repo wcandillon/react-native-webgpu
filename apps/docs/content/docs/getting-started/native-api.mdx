@@ -29,7 +29,7 @@ const renderFrame = (device: GPUDevice, context: GPUCanvasContext) => {
 };
 ```
 
-Dawn's implicit device synchronization, enabled by default, lets a device be used from several threads, with two rules: never share a command encoder across threads, and drive each canvas context from a single runtime. See [Thread safety](/docs/integrations/worklets#thread-safety).
+Dawn's implicit device synchronization, enabled by default, lets a device be used from several threads, with two rules: never share a command encoder across threads, and drive each canvas context from a single runtime. See [Thread safety](/docs/integrations/worklets#thread-safety). A composited canvas (`presentation="composited"`) relies on it too: its frames are presented from a thread of their own (see [Frame presentations](/docs/getting-started/canvas#frame-presentations)), so a device created with `implicitDeviceSynchronization: false` cannot configure one. A canvas presenting direct, the default, presents on the thread that renders with such a device.
 
 <Callout type="warn" title="device.lost and uncapturederror">
 `device.lost` and `uncapturederror` are only delivered on the **main JS runtime**. This is usually fine because the GPU device is typically created on the main JS thread and then sent to the UI or a dedicated worklet thread. If you create the device outside the main JS thread, those events won't fire.
@@ -41,7 +41,7 @@ See [Worklets](/docs/integrations/worklets) for the full integration guide.
 
 iOS refuses GPU work from an app in the background, including work still queued when the app got there, and Dawn loses the device over a refused command buffer.
 React Native WebGPU holds that work instead, with Dawn's `metal_suspend_submissions_in_background` toggle, enabled on every device it creates on iOS and tvOS: when the app goes to the background, what was submitted is committed before the app is suspended, and from then on every submission is encoded but not committed, in order, until the app comes back to the foreground.
-Presenting a canvas does nothing meanwhile; the canvas catches up on return.
+A composited canvas's frame presented meanwhile waits on the present thread, and shows on return; a canvas presenting direct renders into an offscreen texture meanwhile, and shows its first frame rendered after the return.
 A held `onSubmittedWorkDone()` or `mapAsync()` promise settles only once the app is back, so background code that awaits one, a readback for instance, waits until then.
 Android and macOS do not refuse GPU work from a background app, so nothing is held there.
 The hold needs `react-native-webgpu-dawn` 157.1.0 or later; an older Dawn drops the toggle, and the device is lost over the first refused command buffer (its `lost` promise then resolves with the reason `unknown`).
