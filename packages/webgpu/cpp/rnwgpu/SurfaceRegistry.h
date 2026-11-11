@@ -25,7 +25,9 @@
 #if defined(__ANDROID__)
 #include <android/hardware_buffer.h>
 #include <android/log.h>
+#include <android/looper.h>
 #include <poll.h>
+#include <sys/eventfd.h>
 #include <unistd.h>
 #endif
 
@@ -36,6 +38,85 @@ void WaitForCommandsToBeScheduled(WGPUDevice device);
 #endif
 
 namespace rnwgpu {
+
+#if defined(__ANDROID__)
+class SurfaceInfo;
+
+// Runs the presents that SurfaceInfo::presentFrame() defers for a TextureView
+// on the main looper, right after the Choreographer frame that rendered them.
+//
+// A TextureView shows a new frame when the window next draws, and the window
+// draws in the Choreographer frame's traversal. A render loop driven from the
+// main thread (Reanimated's frame callbacks) presents in the same frame, but
+// before that traversal. When a traversal is already scheduled, it picks the
+// new buffer up at once and the frame-available callback never invalidates
+// the view, so the next frame has no traversal and its buffer is dropped: a
+// loop presenting every vsync showed every other one (60 fps on a 120 Hz
+// screen). Presented after the frame instead, every buffer invalidates the
+// view and the next traversal shows it, one frame later, at the full rate.
+class MainLooperPresents {
+public:
+  static MainLooperPresents &get() {
+    static MainLooperPresents instance;
+    return instance;
+  }
+
+  // Called on the main thread (a view's surface callback) before anything is
+  // deferred; later calls are no-ops.
+  void attachToCurrentThread() {
+    std::lock_guard<std::mutex> lock(_mutex);
+    if (_looper.load() != nullptr) {
+      return;
+    }
+    ALooper *looper = ALooper_forThread();
+    if (looper == nullptr) {
+      return;
+    }
+    int fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    if (fd < 0) {
+      return;
+    }
+    ALooper_acquire(looper);
+    if (ALooper_addFd(looper, fd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
+                      &MainLooperPresents::onEvent, this) != 1) {
+      ALooper_release(looper);
+      close(fd);
+      return;
+    }
+    _fd = fd;
+    _looper.store(looper);
+  }
+
+  bool onMainThread() const {
+    ALooper *looper = _looper.load();
+    return looper != nullptr && ALooper_forThread() == looper;
+  }
+
+  void schedule(SurfaceInfo *info) {
+    std::lock_guard<std::mutex> lock(_mutex);
+    if (std::find(_pending.begin(), _pending.end(), info) == _pending.end()) {
+      _pending.push_back(info);
+    }
+    uint64_t one = 1;
+    (void)write(_fd, &one, sizeof(one));
+  }
+
+  // A SurfaceInfo being destroyed: blocks while its deferred present runs.
+  void cancel(SurfaceInfo *info) {
+    std::lock_guard<std::mutex> lock(_mutex);
+    _pending.erase(std::remove(_pending.begin(), _pending.end(), info),
+                   _pending.end());
+  }
+
+private:
+  static int onEvent(int fd, int events, void *data);
+
+  std::mutex _mutex;
+  std::atomic<ALooper *> _looper{nullptr};
+  int _fd = -1;
+  std::vector<SurfaceInfo *> _pending;
+};
+#endif
 
 #ifdef __APPLE__
 // Tags the CAMetalLayer with the colorspace matching the configured texture
@@ -172,6 +253,7 @@ public:
 
   ~SurfaceInfo() {
 #if defined(__ANDROID__)
+    MainLooperPresents::get().cancel(this);
     // Stop the fence waiter before any pool generation is freed.
     stopWaiter();
     {
@@ -270,6 +352,10 @@ public:
       if (!_hasPendingAttach || _frameInFlight) {
         return;
       }
+#if defined(__ANDROID__)
+      // The surface is about to be replaced.
+      presentDeferredLocked();
+#endif
       // Attach over attach without a detach in between: replace. Ownership
       // tracks the native window pointer, not the Dawn surface handle (which
       // can be null if surface creation failed).
@@ -394,6 +480,9 @@ public:
 
   void unconfigure() {
     std::unique_lock<std::shared_mutex> lock(_mutex);
+#if defined(__ANDROID__)
+    presentDeferredLocked();
+#endif
     if (_surface) {
       if (_releaseSurfaceOnUnconfigure) {
         // Destroy the surface, and so its swapchain, while their device is
@@ -528,6 +617,9 @@ public:
     }
 #endif
     std::unique_lock<std::shared_mutex> lock(_mutex);
+#if defined(__ANDROID__)
+    presentDeferredLocked();
+#endif
     if (_config.device == nullptr) {
       throw std::runtime_error(
           "[WebGPU] getCurrentTexture() called on a canvas context that is "
@@ -594,13 +686,21 @@ public:
 #endif
 #if defined(__ANDROID__)
     std::function<void()> framePresented;
+    bool deferred = false;
 #endif
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
       if (_surface && _acquiredFromSurface) {
-        _surface.Present();
 #if defined(__ANDROID__)
-        framePresented = _framePresented;
+        if (_deferPresent && MainLooperPresents::get().onMainThread()) {
+          _presentPending = true;
+          deferred = true;
+        } else {
+          _surface.Present();
+          framePresented = _framePresented;
+        }
+#else
+        _surface.Present();
 #endif
       }
       _acquiredFromSurface = false;
@@ -608,6 +708,9 @@ public:
       _frameEpoch++;
     }
 #if defined(__ANDROID__)
+    if (deferred) {
+      MainLooperPresents::get().schedule(this);
+    }
     if (framePresented) {
       framePresented();
     }
@@ -755,6 +858,26 @@ public:
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _framePresented = std::move(cb);
   }
+
+  // A TextureView's surface presents after the main thread's Choreographer
+  // frame rather than inside it; see MainLooperPresents. Call on the main
+  // thread.
+  void setDeferPresent(bool defer) {
+    if (defer) {
+      MainLooperPresents::get().attachToCurrentThread();
+    }
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    _deferPresent = defer;
+    if (!defer) {
+      presentDeferredLocked();
+    }
+  }
+
+  // The main looper's half of a deferred present.
+  void presentDeferred() {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    presentDeferredLocked();
+  }
 #endif
 
 private:
@@ -768,6 +891,7 @@ private:
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
 #if defined(__ANDROID__)
+      presentDeferredLocked();
       // Leaving pool mode (the WebGPUNativeBufferView detached): drop the
       // pool. A configured context keeps rendering into the offscreen
       // fallback, exactly like the surface path.
@@ -853,6 +977,21 @@ private:
     return _config.device.CreateTexture(&descriptor);
   }
 
+#if defined(__ANDROID__)
+  // Presents the frame presentFrame() deferred, if any, before anything else
+  // touches the surface: the next acquire, a configure, or an attach or
+  // detach that replaces it.
+  void presentDeferredLocked() {
+    if (!_presentPending) {
+      return;
+    }
+    _presentPending = false;
+    if (_surface) {
+      _surface.Present();
+    }
+  }
+#endif
+
   // Acquire the surface's current texture, reconfiguring once when the surface
   // reports it is stale (rotation, resize, coming back from background).
   wgpu::Texture acquireSurfaceTextureLocked() {
@@ -931,6 +1070,7 @@ private:
   // is a plain wrapper around _surface.Configure.
   void configureSurfaceLocked(const wgpu::SurfaceConfiguration &config) {
 #if defined(__ANDROID__)
+    presentDeferredLocked();
     // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
     // Vulkan refuses to switch a surface to another device and keeps the old
     // swapchain attached, so a device change (device swap, recovery after a
@@ -963,6 +1103,10 @@ private:
 #endif
     // A frame acquired from the old surface can no longer be presented.
     _acquiredFromSurface = false;
+#if defined(__ANDROID__)
+    // Nor can one presentFrame() deferred: the replacement is unconfigured.
+    _presentPending = false;
+#endif
     _frameEpoch++;
     if (_nativeSurface) {
       _surface = WebGPURuntime::makeSurface(_gpu, _nativeSurface);
@@ -1308,6 +1452,9 @@ private:
 
   // See setFramePresentedCallback(); read under _mutex, called outside it.
   std::function<void()> _framePresented;
+  // See setDeferPresent() and MainLooperPresents; under _mutex.
+  bool _deferPresent = false;
+  bool _presentPending = false;
 
   std::atomic<bool> _poolMode{false};
   std::mutex _poolMutex;
@@ -1526,5 +1673,20 @@ private:
   // Non-owning; pruned on insert and on every device destroy.
   std::vector<std::weak_ptr<SurfaceInfo>> _allSurfaces;
 };
+
+#if defined(__ANDROID__)
+inline int MainLooperPresents::onEvent(int fd, int /* events */, void *data) {
+  uint64_t count = 0;
+  (void)read(fd, &count, sizeof(count));
+  auto *self = static_cast<MainLooperPresents *>(data);
+  std::lock_guard<std::mutex> lock(self->_mutex);
+  std::vector<SurfaceInfo *> pending;
+  pending.swap(self->_pending);
+  for (auto *info : pending) {
+    info->presentDeferred();
+  }
+  return 1; // keep the callback registered
+}
+#endif
 
 } // namespace rnwgpu
