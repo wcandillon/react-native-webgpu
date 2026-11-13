@@ -13,13 +13,27 @@ import com.facebook.proguard.annotations.DoNotStrip;
  */
 public interface WebGPUAPI {
 
+  /**
+   * firstFrameToken is nonzero for a surface whose view waits for its first
+   * frame (a SurfaceView behind its window, see FirstFrameDrawGate): the
+   * native side reports that frame back with it, from the thread that
+   * presented it, through WebGPUView.onFirstFramePresented.
+   */
   void surfaceCreated(
-    Surface surface
+    Surface surface,
+    long firstFrameToken
   );
 
   void surfaceChanged(
     Surface surface
   );
+
+  /**
+   * The surface is about to be destroyed together with the frame it shows: the
+   * canvas reads that frame back and shows it on its next surface. Main
+   * thread, before surfaceOffscreen, while the surface is still valid.
+   */
+  void keepFrame(Surface surface);
 
   void surfaceOffscreen();
 
