@@ -26,6 +26,7 @@ import {
 import { Skia } from "react-native-skia";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
+import { serve } from "./serve";
 import { useClient } from "./useClient";
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./Triangle/triangle";
@@ -83,23 +84,23 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
     };
   }, []);
   const [client, hostname] = useClient();
-  // Without a device, answer every eval with the setup error right away. The
-  // host would otherwise wait out its 30 s eval timeout on every single test,
+  // Without a device, answer every call with the setup error right away. The
+  // host would otherwise wait out its 30 s call timeout on every single test,
   // turning one failure into an hour-long run.
   useEffect(() => {
     if (client !== null && setupError !== null) {
-      client.onmessage = () => {
-        client.send(
-          JSON.stringify({ $$error: `device setup failed: ${setupError}` }),
-        );
-      };
+      return serve(client, {
+        eval: () => {
+          throw new Error(`device setup failed: ${setupError}`);
+        },
+      });
     }
+    return;
   }, [client, setupError]);
   useEffect(() => {
     if (client !== null && adapter !== null && device !== null) {
-      client.onmessage = (e) => {
-        const tree = JSON.parse(e.data);
-        if (tree.code) {
+      return serve(client, {
+        eval: async (params: { code: string; ctx: object }) => {
           const canvas = new GPUOffscreenCanvas(1024, 1024);
           const ctx = canvas.getContext("webgpu")!;
           ctx.configure({
@@ -107,86 +108,64 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
             format: presentationFormat,
             alphaMode: "premultiplied",
           });
-          const runEval = () =>
-            eval(
-              `(function Main() {
-              return (${tree.code})(this.ctx);
+          const result = eval(
+            `(function Main() {
+              return (${params.code})(this.ctx);
             })`,
-            ).call({
-              ctx: {
-                gpu: navigator.gpu,
-                device,
-                urls: {
-                  fTexture: Image.resolveAssetSource(require("./assets/f.png"))!
-                    .uri,
-                },
-                assets: {
-                  cubeVertexArray,
-                  di3D,
-                  saturn,
-                  moon,
-                },
-                shaders: {
-                  triangleVertWGSL,
-                  redFragWGSL,
-                },
-                ctx,
-                canvas: ctx.canvas,
-                views: {
-                  probe: findNodeHandle(probeRef.current),
-                  probeSize: PROBE_SIZE,
-                  pixelRatio: PixelRatio.get(),
-                },
-                workletDeviceStress,
-                workletSerialization,
-                importSkiaDevice: () =>
-                  Skia.gpu.isAvailable
-                    ? importDevice(Skia.getNativeDevice())
-                    : null,
-                exportedFlags: {
-                  GPUBufferUsage: exportedBufferUsage,
-                  GPUColorWrite: exportedColorWrite,
-                  GPUMapMode: exportedMapMode,
-                  GPUShaderStage: exportedShaderStage,
-                  GPUTextureUsage: exportedTextureUsage,
-                },
-                mat4,
-                vec3,
-                mat3,
-                ...tree.ctx,
+          ).call({
+            ctx: {
+              gpu: navigator.gpu,
+              device,
+              urls: {
+                fTexture: Image.resolveAssetSource(require("./assets/f.png"))!
+                  .uri,
               },
-            });
-          const onError = (error: unknown) => {
-            // Report a thrown error back to the host so the matching test can
-            // `.rejects` instead of hanging, and so the throw is not surfaced
-            // as an unhandled rejection (which logs console.error and could
-            // break the socket for subsequent tests).
-            const message =
-              error instanceof Error ? error.message : String(error);
-            client.send(JSON.stringify({ $$error: message }));
-          };
-          try {
-            const result = runEval();
-            if (result instanceof Promise) {
-              result
-                .then((r) => {
-                  if (r.data && r.width && r.height) {
-                    setTexture(ctx.getCurrentTexture());
-                  }
-                  client.send(JSON.stringify(r));
-                })
-                .catch(onError);
-            } else {
-              client.send(JSON.stringify(result));
+              assets: {
+                cubeVertexArray,
+                di3D,
+                saturn,
+                moon,
+              },
+              shaders: {
+                triangleVertWGSL,
+                redFragWGSL,
+              },
+              ctx,
+              canvas: ctx.canvas,
+              views: {
+                probe: findNodeHandle(probeRef.current),
+                probeSize: PROBE_SIZE,
+                pixelRatio: PixelRatio.get(),
+              },
+              workletDeviceStress,
+              workletSerialization,
+              importSkiaDevice: () =>
+                Skia.gpu.isAvailable
+                  ? importDevice(Skia.getNativeDevice())
+                  : null,
+              exportedFlags: {
+                GPUBufferUsage: exportedBufferUsage,
+                GPUColorWrite: exportedColorWrite,
+                GPUMapMode: exportedMapMode,
+                GPUShaderStage: exportedShaderStage,
+                GPUTextureUsage: exportedTextureUsage,
+              },
+              mat4,
+              vec3,
+              mat3,
+              ...params.ctx,
+            },
+          });
+          if (result instanceof Promise) {
+            const r = await result;
+            if (r?.data && r.width && r.height) {
+              setTexture(ctx.getCurrentTexture());
             }
-          } catch (error) {
-            onError(error);
+            return r;
           }
-        }
-      };
-      return () => {
-        client.close();
-      };
+          return result;
+        },
+      });
     }
     return;
   }, [adapter, client, device, di3D, moon, saturn]);
