@@ -98,11 +98,14 @@ interface GPUTestingContext {
     GPUShaderStage: typeof GPUShaderStage;
     GPUTextureUsage: typeof GPUTextureUsage;
   };
-  // Native app harness only: a mounted probe view for the
-  // drawElementImageToTexture spec (its React tag, its size in points and the
-  // device pixel ratio). See apps/example/src/Tests.tsx.
+  // Native app harness only: mounted probe views for the
+  // drawElementImageToTexture spec (their React tags, their size in points and
+  // the device pixel ratio). `probe` is made of plain views and `skiaProbe`
+  // draws the same quadrants with a react-native-skia <Canvas>. See
+  // apps/example/src/Tests.tsx.
   views?: {
     probe: number | null;
+    skiaProbe: number | null;
     probeSize: number;
     pixelRatio: number;
   };

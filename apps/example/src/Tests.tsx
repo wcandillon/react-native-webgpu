@@ -23,7 +23,7 @@ import {
 // loaded yet. On Android, Skia's device then lives on a second instance, and
 // ImportDevice.spec.ts relies on that split to cover importDevice() across
 // instances.
-import { Skia } from "react-native-skia";
+import { Canvas as SkiaCanvas, Rect, Skia } from "react-native-skia";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
 import { useClient } from "./useClient";
@@ -49,6 +49,9 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   // A fixed native view the drawElementImageToTexture spec snapshots: four
   // 32x32pt solid quadrants (red, lime, blue, white), 64x64pt in total.
   const probeRef = useRef<React.ComponentRef<typeof View>>(null);
+  // The same four quadrants, drawn by a react-native-skia <Canvas> instead of
+  // plain views, so the spec covers a view hierarchy holding a CAMetalLayer.
+  const skiaProbeRef = useRef<React.ComponentRef<typeof View>>(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -134,6 +137,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                 canvas: ctx.canvas,
                 views: {
                   probe: findNodeHandle(probeRef.current),
+                  skiaProbe: findNodeHandle(skiaProbeRef.current),
                   probeSize: PROBE_SIZE,
                   pixelRatio: PixelRatio.get(),
                 },
@@ -239,6 +243,36 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
             backgroundColor: "white",
           }}
         />
+      </View>
+      <View
+        ref={skiaProbeRef}
+        collapsable={false}
+        style={{ width: PROBE_SIZE, height: PROBE_SIZE }}
+      >
+        <SkiaCanvas style={{ width: PROBE_SIZE, height: PROBE_SIZE }}>
+          <Rect x={0} y={0} width={QUADRANT} height={QUADRANT} color="red" />
+          <Rect
+            x={QUADRANT}
+            y={0}
+            width={QUADRANT}
+            height={QUADRANT}
+            color="lime"
+          />
+          <Rect
+            x={0}
+            y={QUADRANT}
+            width={QUADRANT}
+            height={QUADRANT}
+            color="blue"
+          />
+          <Rect
+            x={QUADRANT}
+            y={QUADRANT}
+            width={QUADRANT}
+            height={QUADRANT}
+            color="white"
+          />
+        </SkiaCanvas>
       </View>
       <Texture
         texture={texture}
