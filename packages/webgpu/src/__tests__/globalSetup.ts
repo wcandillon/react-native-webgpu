@@ -5,6 +5,7 @@ import { execFileSync } from "child_process";
 
 import { WebSocketServer } from "ws";
 
+import { Channel } from "./components/Channel";
 import { NODE_WEBGPU, REFERENCE, TEST_SERVER_PORT } from "./config";
 
 const isOS = (os: string): os is "android" | "ios" | "web" => {
@@ -102,6 +103,9 @@ const globalSetup = () => {
         if (!isArch(arch)) {
           throw new Error("Unknown testing architecture: " + arch);
         }
+        // The calls to the app go through a channel that lives as long as the
+        // socket (see Channel).
+        global.testChannel = new Channel(client);
         global.testOS = OS;
         global.testArch = arch;
         // The host the device reached us on (localhost for the simulator, a LAN
