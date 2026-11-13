@@ -65,6 +65,12 @@ struct Size {
 // CAMetalLayer on Apple platforms). May run on any thread.
 using NativeSurfaceReleaser = std::function<void(void *)>;
 
+// Invoked once, after the first present onto the native surface it was
+// attached with (a frame, or the blit of the latest offscreen frame), on the
+// thread that presented and outside SurfaceInfo's lock (Android's SurfaceView
+// first-frame report). SurfaceInfo drops it together with that surface.
+using NativeSurfaceFirstPresent = std::function<void()>;
+
 #if defined(__ANDROID__)
 // --- AHB-pool presentation mode (WebGPUNativeBufferView)
 // -----------------------------
@@ -145,14 +151,15 @@ struct AHBPool {
 //   middle of a frame. For contexts that are not actively rendering,
 //   RNWebGPUManager::flushPendingSurfaceTransition applies the attach from the
 //   JS thread instead.
-// - Detaching (switchToOffscreen) is IMMEDIATE, because the platform destroys
-//   the surface as soon as its callback returns. A configured context falls
-//   back to rendering into an offscreen texture, so a running render loop
-//   keeps working; the in-flight frame, if any, is dropped at present(). When
-//   a new surface attaches, the latest offscreen frame is blitted onto it so
-//   content appears without waiting for the next render — the same mechanism
-//   that gives a fast time-to-first-frame when rendering starts before the
-//   native surface exists.
+// - Detaching (detach) is IMMEDIATE, because the platform destroys the
+//   surface as soon as its callback returns. A configured context renders the
+//   frames that follow into an offscreen texture, created with the first of
+//   them, so a running render loop keeps working; the in-flight frame, if
+//   any, is dropped at present(). When a new surface attaches, the latest
+//   offscreen frame is blitted onto it so content appears without waiting for
+//   the next render — the same mechanism that gives a fast time-to-first-frame
+//   when rendering starts before the native surface exists. A surface that
+//   attaches before any frame was rendered offscreen is presented nothing.
 class SurfaceInfo {
 public:
   // releaseSurfaceOnUnconfigure is for a surface on a window the caller
@@ -204,35 +211,29 @@ public:
   // RNWebGPUManager::flushPendingSurfaceTransition so contexts that are not
   // currently rendering also pick it up.
   void attachSurface(void *nativeSurface, wgpu::Surface surface,
-                     NativeSurfaceReleaser releaser) {
+                     NativeSurfaceReleaser releaser,
+                     NativeSurfaceFirstPresent firstPresent = nullptr) {
     void *replacedSurface = nullptr;
     NativeSurfaceReleaser replacedReleaser;
+    NativeSurfaceFirstPresent replacedFirstPresent;
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
       if (_hasPendingAttach) {
         // Replaced before it was ever adopted.
         replacedSurface = _pendingNativeSurface;
         replacedReleaser = std::move(_pendingReleaser);
+        replacedFirstPresent = std::move(_pendingFirstPresent);
       }
       _hasPendingAttach = true;
       _pendingNativeSurface = nativeSurface;
       _pendingSurface = std::move(surface);
       _pendingReleaser = std::move(releaser);
+      _pendingFirstPresent = std::move(firstPresent);
     }
     if (replacedReleaser && replacedSurface) {
       replacedReleaser(replacedSurface);
     }
   }
-
-  // The platform surface is being destroyed: detach immediately. If the
-  // context is configured, rendering continues into an offscreen texture whose
-  // content is blitted to the next attached surface; present() no-ops until
-  // then. Safe to call when already offscreen.
-  void switchToOffscreen() { detach(/* createFallbackTexture = */ true); }
-
-  // Detach without creating the offscreen fallback: used when the context is
-  // being destroyed and nothing will consume further frames.
-  void detachSurface() { detach(/* createFallbackTexture = */ false); }
 
   // Reflects native view layout changes. Does not resize the drawing buffer:
   // that tracks canvas.width/height (like on the web), see
@@ -261,6 +262,8 @@ public:
     wgpu::Device device = nullptr;
     void *replacedSurface = nullptr;
     NativeSurfaceReleaser replacedReleaser;
+    NativeSurfaceFirstPresent replacedFirstPresent;
+    NativeSurfaceFirstPresent firstPresent;
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
       if (supersedeInFlightFrame) {
@@ -275,6 +278,7 @@ public:
       // can be null if surface creation failed).
       replacedSurface = _nativeSurface;
       replacedReleaser = std::move(_releaser);
+      replacedFirstPresent = std::move(_firstPresent);
       _surface = std::move(_pendingSurface);
 #if defined(__ANDROID__)
       // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
@@ -282,6 +286,7 @@ public:
 #endif
       _nativeSurface = _pendingNativeSurface;
       _releaser = std::move(_pendingReleaser);
+      _firstPresent = std::move(_pendingFirstPresent);
       _hasPendingAttach = false;
       _pendingNativeSurface = nullptr;
       _frameEpoch++;
@@ -329,7 +334,11 @@ public:
       // present-without-acquire error).
       if (_surface && !_frameInFlight && _frameEpoch == blitEpoch) {
         _surface.Present();
+        firstPresent = std::move(_firstPresent);
       }
+    }
+    if (firstPresent) {
+      firstPresent();
     }
   }
 
@@ -595,6 +604,7 @@ public:
 #if defined(__ANDROID__)
     std::function<void()> framePresented;
 #endif
+    NativeSurfaceFirstPresent firstPresent;
     {
       std::unique_lock<std::shared_mutex> lock(_mutex);
       if (_surface && _acquiredFromSurface) {
@@ -602,6 +612,7 @@ public:
 #if defined(__ANDROID__)
         framePresented = _framePresented;
 #endif
+        firstPresent = std::move(_firstPresent);
       }
       _acquiredFromSurface = false;
       _frameInFlight = false;
@@ -612,6 +623,9 @@ public:
       framePresented();
     }
 #endif
+    if (firstPresent) {
+      firstPresent();
+    }
     applyPendingAttach();
   }
 
@@ -757,10 +771,15 @@ public:
   }
 #endif
 
-private:
-  void detach(bool createFallbackTexture) {
+  // The platform surface is being destroyed, or the view with it: detach
+  // immediately. A configured context renders on into an offscreen texture,
+  // whose latest frame the next attached surface gets; present() no-ops until
+  // then. Safe to call when already offscreen.
+  void detach() {
     void *releasedSurfaces[2] = {nullptr, nullptr};
     NativeSurfaceReleaser releasers[2];
+    // Destroyed outside the lock, like the releasers.
+    NativeSurfaceFirstPresent droppedFirstPresents[2];
 #if defined(__ANDROID__)
     // Destroyed outside the lock: it releases a JNI reference.
     std::function<void()> releasedFrameReady;
@@ -769,8 +788,8 @@ private:
       std::unique_lock<std::shared_mutex> lock(_mutex);
 #if defined(__ANDROID__)
       // Leaving pool mode (the WebGPUNativeBufferView detached): drop the
-      // pool. A configured context keeps rendering into the offscreen
-      // fallback, exactly like the surface path.
+      // pool. A configured context keeps rendering offscreen, exactly like the
+      // surface path.
       if (_poolMode.load()) {
         _poolMode.store(false);
         {
@@ -791,9 +810,6 @@ private:
           releasedFrameReady = std::move(_poolFrameReady);
           _poolFrameReady = nullptr;
         }
-        if (createFallbackTexture && _config.device != nullptr && !_texture) {
-          _texture = createOffscreenTextureLocked();
-        }
         _frameEpoch++;
       }
 #endif
@@ -804,12 +820,11 @@ private:
         _pendingSurface = nullptr;
         releasedSurfaces[0] = _pendingNativeSurface;
         releasers[0] = std::move(_pendingReleaser);
+        droppedFirstPresents[0] = std::move(_pendingFirstPresent);
         _pendingNativeSurface = nullptr;
       }
+      droppedFirstPresents[1] = std::move(_firstPresent);
       if (_surface) {
-        if (createFallbackTexture && _config.device != nullptr) {
-          _texture = createOffscreenTextureLocked();
-        }
         _surface = nullptr;
 #if defined(__ANDROID__)
         // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
@@ -834,6 +849,7 @@ private:
     }
   }
 
+private:
   // All *Locked helpers below require _mutex to be held exclusively.
 
   wgpu::Texture createOffscreenTextureLocked() {
@@ -914,6 +930,10 @@ private:
     return true;
   }
 
+  // Without a surface nothing is created: the offscreen texture appears with
+  // the first frame rendered into it (getCurrentTexture), so a surface that
+  // attaches before that frame is presented nothing rather than an empty
+  // frame, and a SurfaceView keeps its hole closed until the frame lands.
   void _configureLocked() {
     if (_surface) {
       configureSurfaceLocked(_config);
@@ -921,8 +941,6 @@ private:
       applyCAMetalLayerColorSpace(_nativeSurface, _config.format, _colorSpace,
                                   _toneMappingMode);
 #endif
-    } else {
-      _texture = createOffscreenTextureLocked();
     }
   }
 
@@ -1218,7 +1236,7 @@ private:
       std::function<void()> frameReady;
       {
         std::lock_guard<std::mutex> lock(_poolMutex);
-        // Pool torn down (switchToOffscreen) while this frame was in flight:
+        // Pool torn down (detach) while this frame was in flight:
         // discard it now that its fences have been drained. Publishing it would
         // pin the retired generation forever (nothing polls anymore).
         if (_pool == nullptr) {
@@ -1271,6 +1289,10 @@ private:
   void *_pendingNativeSurface = nullptr;
   wgpu::Surface _pendingSurface = nullptr;
   NativeSurfaceReleaser _pendingReleaser;
+  // See NativeSurfaceFirstPresent: the pending surface's, then the attached
+  // surface's until its first present takes it.
+  NativeSurfaceFirstPresent _pendingFirstPresent;
+  NativeSurfaceFirstPresent _firstPresent;
   // Frame state: set by getCurrentTexture, cleared by presentFrame.
   bool _frameInFlight = false;
   bool _acquiredFromSurface = false;
@@ -1377,14 +1399,15 @@ public:
   // an entry that a concurrent destroyContext is erasing (it either marks the
   // entry attached before the check, or re-creates the entry after the
   // erase). Lock order is registry -> SurfaceInfo, matching every other path.
-  std::shared_ptr<SurfaceInfo> attachSurface(int id, wgpu::Instance gpu,
-                                             int width, int height,
-                                             void *nativeSurface,
-                                             wgpu::Surface surface,
-                                             NativeSurfaceReleaser releaser) {
+  std::shared_ptr<SurfaceInfo>
+  attachSurface(int id, wgpu::Instance gpu, int width, int height,
+                void *nativeSurface, wgpu::Surface surface,
+                NativeSurfaceReleaser releaser,
+                NativeSurfaceFirstPresent firstPresent = nullptr) {
     std::unique_lock<std::shared_mutex> lock(_mutex);
     auto info = getSurfaceInfoOrCreateLocked(id, gpu, width, height);
-    info->attachSurface(nativeSurface, std::move(surface), std::move(releaser));
+    info->attachSurface(nativeSurface, std::move(surface), std::move(releaser),
+                        std::move(firstPresent));
     return info;
   }
 

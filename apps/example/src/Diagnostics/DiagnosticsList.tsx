@@ -53,6 +53,10 @@ const tests = [
     screen: "DeviceDestroyBeforeDetach",
     title: "⚠️ Device Destroy Before Detach",
   },
+  {
+    screen: "FirstFrameHole",
+    title: "⚠️ SurfaceView First Frame",
+  },
 ] as const;
 
 export const DiagnosticsList = () => {
