@@ -225,8 +225,12 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
         // and iPads are all GPUFamily3+. These are device-stage toggles, so
         // they must be chained here rather than on the instance descriptor
         // (instance-stage toggle parsing silently drops them).
+        // GPUFamily2 also makes Dawn default metal_disable_sampler_compare
+        // on, so creating any sampler with a compare function loses the
+        // device, although the host GPU supports compare functions too.
         static const char *const kSimulatorDisabledToggles[] = {
-            "disable_base_instance", "disable_base_vertex"};
+            "disable_base_instance", "disable_base_vertex",
+            "metal_disable_sampler_compare"};
         for (const char *name : kSimulatorDisabledToggles) {
           const bool explicitlyEnabled = std::any_of(
               enabledToggles.begin(), enabledToggles.end(),
