@@ -54,6 +54,16 @@ public class WebGPUViewManager extends WebGPUViewManagerSpec<WebGPUView> {
     view.setZOrderMediaOverlay(value);
   }
 
+  // The colorspace props of the canvas, read on Apple platforms only: Android
+  // renders in sRGB.
+  @Override
+  @ReactProp(name = "appleDisplayP3")
+  public void setAppleDisplayP3(WebGPUView view, boolean value) {}
+
+  @Override
+  @ReactProp(name = "appleExtendedDynamicRange")
+  public void setAppleExtendedDynamicRange(WebGPUView view, boolean value) {}
+
   @Override
   protected void onAfterUpdateTransaction(@NonNull WebGPUView view) {
     super.onAfterUpdateTransaction(view);

@@ -148,7 +148,7 @@ This only works with a library that links the same Dawn build as react-native-we
 
 ## Rendering to a native window
 
-`RNWebGPU.MakeWebGPUCanvasContextFromNativeWindow()` makes a canvas context that presents to a native window other than a `Canvas`, for instance the input `Surface` of a `MediaCodec` encoder on Android. The window is an `ANativeWindow*` on Android or a `CAMetalLayer*` on Apple platforms, passed as a `BigInt`; `width` and `height` size the drawing buffer, like `canvas.width` and `canvas.height`. The context retains the window for as long as it lives, so the pointer stays valid; whatever the window belongs to (the encoder, the layer's view) is yours to keep alive while you present to it. Unlike a `Canvas`, nothing drives the context for you: call it from one thread at a time.
+`RNWebGPU.MakeWebGPUCanvasContextFromNativeWindow()` makes a canvas context that presents to a native window other than a `Canvas`, for instance the input `Surface` of a `MediaCodec` encoder on Android. The window is an `ANativeWindow*` on Android or a `CAMetalLayer*` on Apple platforms, passed as a `BigInt`; `width` and `height` size the drawing buffer, like `canvas.width` and `canvas.height`. The context retains the window for as long as it lives, so the pointer stays valid; whatever the window belongs to (the encoder, the layer's view) is yours to keep alive while you present to it. Unlike a `Canvas`, nothing drives the context for you: call it from one thread at a time. On Apple platforms, `configure()` leaves the layer's `colorspace` as it is: set it yourself, on the main thread, to match the `colorSpace` and format you configure.
 
 ```tsx
 const context = RNWebGPU.MakeWebGPUCanvasContextFromNativeWindow(

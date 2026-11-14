@@ -91,6 +91,22 @@ export interface CanvasProps extends ViewProps {
    * options, see {@link AndroidCanvasProps}. Ignored on iOS and web.
    */
   android?: AndroidCanvasProps;
+  /**
+   * The primaries the canvas's values are in, as `colorSpace` in
+   * `context.configure()`: `"srgb"` (the default) or `"display-p3"`. On iOS
+   * and macOS the layer is tagged with it when the canvas mounts, on the main
+   * thread: pass the same value to `configure()` (a mismatch is reported in
+   * development). A change on a mounted canvas is ignored, with a warning in
+   * development; remount the canvas (with a `key`) to change it. Android
+   * ignores it; on the web, `configure()` applies it.
+   */
+  colorSpace?: PredefinedColorSpace;
+  /**
+   * What happens to values above 1.0 on an `rgba16float` canvas, as
+   * `toneMapping` in `context.configure()`. Read when the canvas mounts, like
+   * {@link CanvasProps.colorSpace}.
+   */
+  toneMapping?: GPUCanvasToneMapping;
   ref?: React.Ref<CanvasRef>;
 }
 
@@ -202,6 +218,48 @@ const useBackingViewWarning = (android?: AndroidCanvasProps) => {
   });
 };
 
+// The native props the `colorSpace` and `toneMapping` props resolve to. Like
+// configure(), anything but "display-p3" and "extended" is the default.
+const appleNativeProps = (
+  colorSpace?: PredefinedColorSpace,
+  toneMapping?: GPUCanvasToneMapping,
+) => ({
+  appleDisplayP3: colorSpace === "display-p3",
+  appleExtendedDynamicRange: toneMapping?.mode === "extended",
+});
+
+// Warns, in development on Apple platforms, about a change of the colorspace
+// props that the native view ignores: the layer is tagged with them when the
+// canvas mounts (see WebGPUView.mm). A change of the toneMapping object
+// itself (a new object every render) is not one.
+const useAppleColorSpaceWarning = (
+  colorSpace?: PredefinedColorSpace,
+  toneMapping?: GPUCanvasToneMapping,
+) => {
+  const prev = useRef(appleNativeProps(colorSpace, toneMapping));
+  useEffect(() => {
+    if (!__DEV__ || (Platform.OS !== "ios" && Platform.OS !== "macos")) {
+      return;
+    }
+    const next = appleNativeProps(colorSpace, toneMapping);
+    const warn = (prop: string) =>
+      console.warn(
+        `Ignoring a change of ${prop} on a mounted canvas: the layer is ` +
+          "tagged with it when the canvas mounts. Remount the canvas (give " +
+          "it a new key) to change it.",
+      );
+    if (prev.current.appleDisplayP3 !== next.appleDisplayP3) {
+      warn("colorSpace");
+    }
+    if (
+      prev.current.appleExtendedDynamicRange !== next.appleExtendedDynamicRange
+    ) {
+      warn("toneMapping");
+    }
+    prev.current = next;
+  });
+};
+
 // A view measured relative to itself gets its layout size, without the
 // transforms getBoundingClientRect() includes; measureLayout() calls back
 // synchronously on the new architecture. On the web react-native-web measures
@@ -222,10 +280,17 @@ const measureLayout = (view: ViewRef) => {
   return size;
 };
 
-export const Canvas = ({ android, ref, ...props }: CanvasProps) => {
+export const Canvas = ({
+  android,
+  colorSpace,
+  toneMapping,
+  ref,
+  ...props
+}: CanvasProps) => {
   const viewRef = useRef<ViewRef>(null);
   const [contextId, _] = useState(() => generateContextId());
   useBackingViewWarning(android);
+  useAppleColorSpaceWarning(colorSpace, toneMapping);
   // Retire the native registry entry for this contextId on unmount. When a
   // native surface is still attached, this is a no-op and the native view's
   // own teardown retires the entry instead — which keeps StrictMode's
@@ -270,6 +335,7 @@ export const Canvas = ({ android, ref, ...props }: CanvasProps) => {
         style={{ flex: 1 }}
         contextId={contextId}
         {...androidNativeProps(android)}
+        {...appleNativeProps(colorSpace, toneMapping)}
       />
     </View>
   );
