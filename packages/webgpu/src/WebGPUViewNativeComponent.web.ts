@@ -11,6 +11,10 @@ export interface NativeProps extends ViewProps {
   androidOpaque?: boolean;
   androidZOrderOnTop?: boolean;
   androidZOrderMediaOverlay?: boolean;
+  // The `colorSpace` and `toneMapping` props, resolved: Apple-only, never
+  // reach the DOM (on the web, configure() applies them)
+  appleDisplayP3?: boolean;
+  appleExtendedDynamicRange?: boolean;
 }
 
 // eslint-disable-next-line import/no-default-export
@@ -24,6 +28,8 @@ export default function WebGPUViewNativeComponent(
     androidOpaque: _androidOpaque,
     androidZOrderOnTop: _androidZOrderOnTop,
     androidZOrderMediaOverlay: _androidZOrderMediaOverlay,
+    appleDisplayP3: _appleDisplayP3,
+    appleExtendedDynamicRange: _appleExtendedDynamicRange,
     ...rest
   } = props;
 

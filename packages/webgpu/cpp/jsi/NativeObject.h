@@ -839,11 +839,18 @@ private:
                         ReturnType (Derived::*method)(jsi::Runtime &, Args...),
                         jsi::Runtime &runtime, const jsi::Value *args,
                         std::index_sequence<Is...>, size_t count) {
-    ReturnType result = (obj->*method)(
-        runtime, rnwgpu::JSIConverter<std::decay_t<Args>>::fromJSI(
-                     runtime, args[Is], Is >= count)...);
-    return rnwgpu::JSIConverter<std::decay_t<ReturnType>>::toJSI(
-        runtime, std::move(result));
+    if constexpr (std::is_same_v<ReturnType, void>) {
+      (obj->*method)(runtime,
+                     rnwgpu::JSIConverter<std::decay_t<Args>>::fromJSI(
+                         runtime, args[Is], Is >= count)...);
+      return jsi::Value::undefined();
+    } else {
+      ReturnType result = (obj->*method)(
+          runtime, rnwgpu::JSIConverter<std::decay_t<Args>>::fromJSI(
+                       runtime, args[Is], Is >= count)...);
+      return rnwgpu::JSIConverter<std::decay_t<ReturnType>>::toJSI(
+          runtime, std::move(result));
+    }
   }
 
   // Helper to call a method with JSI argument conversion

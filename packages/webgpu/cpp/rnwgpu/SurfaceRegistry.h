@@ -10,6 +10,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <shared_mutex>
 #include <stdexcept>
 #include <thread>
@@ -36,17 +37,6 @@ void WaitForCommandsToBeScheduled(WGPUDevice device);
 #endif
 
 namespace rnwgpu {
-
-#ifdef __APPLE__
-// Tags the CAMetalLayer with the colorspace matching the configured texture
-// format and the canvas's colorSpace, and opts it into the display's extended
-// dynamic range for an "extended" toneMapping mode. Implemented in
-// apple/MetalLayerColorSpace.mm.
-void applyCAMetalLayerColorSpace(void *nativeSurface,
-                                 wgpu::TextureFormat format,
-                                 CanvasColorSpace colorSpace,
-                                 CanvasToneMappingMode toneMappingMode);
-#endif
 
 struct NativeInfo {
   void *nativeSurface;
@@ -224,6 +214,21 @@ public:
     }
   }
 
+#ifdef __APPLE__
+  // The colorSpace and toneMapping the platform view tagged its layer with
+  // when the canvas mounted, which configure() is checked against (see
+  // GPUCanvasContext::configure). Unset until a view attaches.
+  void setLayerColorSpace(CanvasLayerColorSpace colorSpace) {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    _layerColorSpace = colorSpace;
+  }
+
+  std::optional<CanvasLayerColorSpace> getLayerColorSpace() {
+    std::shared_lock<std::shared_mutex> lock(_mutex);
+    return _layerColorSpace;
+  }
+#endif
+
   // The platform surface is being destroyed: detach immediately. If the
   // context is configured, rendering continues into an offscreen texture whose
   // content is blitted to the next attached surface; present() no-ops until
@@ -298,10 +303,6 @@ public:
           config.usage |= wgpu::TextureUsage::CopyDst;
         }
         configureSurfaceLocked(config);
-#ifdef __APPLE__
-        applyCAMetalLayerColorSpace(_nativeSurface, _config.format, _colorSpace,
-                                    _toneMappingMode);
-#endif
         if (blit) {
           presentBlit = blitOffscreenToSurfaceLocked();
           device = _config.device;
@@ -336,16 +337,15 @@ public:
   // --- Rendering thread
   // -------------------------------------------------------
 
-  void configure(
-      wgpu::SurfaceConfiguration &newConfig,
-      std::vector<wgpu::TextureFormat> viewFormats,
-      CanvasColorSpace colorSpace = CanvasColorSpace::SRGB,
-      CanvasToneMappingMode toneMappingMode = CanvasToneMappingMode::Standard) {
+  // The colorspace of a CAMetalLayer is not set here: the platform view tags
+  // the layer on the main thread as the canvas mounts (see
+  // apple/MetalLayerColorSpace.h), so that nothing here changes the layer in
+  // a CATransaction of the calling thread.
+  void configure(wgpu::SurfaceConfiguration &newConfig,
+                 std::vector<wgpu::TextureFormat> viewFormats) {
     applyPendingAttach(/* supersedeInFlightFrame = */ true);
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _viewFormats = std::move(viewFormats);
-    _colorSpace = colorSpace;
-    _toneMappingMode = toneMappingMode;
     _config = newConfig;
     // The caller's viewFormats storage dies with the call; point the stored
     // configuration at our own copy.
@@ -410,8 +410,6 @@ public:
     }
     _texture = nullptr;
     _config = {};
-    _colorSpace = CanvasColorSpace::SRGB;
-    _toneMappingMode = CanvasToneMappingMode::Standard;
     _viewFormats.clear();
     _acquiredFromSurface = false;
     _frameEpoch++;
@@ -917,10 +915,6 @@ private:
   void _configureLocked() {
     if (_surface) {
       configureSurfaceLocked(_config);
-#ifdef __APPLE__
-      applyCAMetalLayerColorSpace(_nativeSurface, _config.format, _colorSpace,
-                                  _toneMappingMode);
-#endif
     } else {
       _texture = createOffscreenTextureLocked();
     }
@@ -1283,8 +1277,10 @@ private:
   // that _config.viewFormats points at.
   wgpu::SurfaceConfiguration _config;
   std::vector<wgpu::TextureFormat> _viewFormats;
-  CanvasColorSpace _colorSpace = CanvasColorSpace::SRGB;
-  CanvasToneMappingMode _toneMappingMode = CanvasToneMappingMode::Standard;
+#ifdef __APPLE__
+  // What the platform view tagged its layer with, see setLayerColorSpace.
+  std::optional<CanvasLayerColorSpace> _layerColorSpace;
+#endif
   // Keeps the Dawn instance alive for as long as any canvas exists.
   wgpu::Instance _gpu;
   // Native view size in dp (surfaced as clientWidth/clientHeight on the JS

@@ -10,6 +10,8 @@ description: Rendering pixels on-screen
 | Prop | Type | Description |
 | ---- | ---- | ----------- |
 | `android` | `AndroidCanvasProps` | Android-only rendering options: the native view behind the canvas (`backingView`) and its options (`opaque`, `zOrderOnTop`, `zOrderMediaOverlay`), see [Android rendering options](#android-rendering-options). Ignored on iOS and web |
+| `colorSpace` | `PredefinedColorSpace` | `"srgb"` (the default) or `"display-p3"`, as in `configure()`. Read when the canvas mounts on iOS and macOS, see [Color space](#color-space). Ignored on Android and web |
+| `toneMapping` | `GPUCanvasToneMapping` | `{ mode: "standard" }` (the default) or `{ mode: "extended" }`, as in `configure()`. Read when the canvas mounts on iOS and macOS, see [HDR](#hdr-extended-dynamic-range). Ignored on Android and web |
 | `...ViewProps` | `ViewProps` | All standard React Native View props (`style`, `onLayout`, etc.) |
 
 ## Usage
@@ -137,11 +139,13 @@ To show the views behind the canvas, configure the context with `alphaMode: "pre
 
 ## Color space
 
-`context.configure({ colorSpace })` says which primaries the canvas's values are in: `"srgb"` (the default) or `"display-p3"`. Both use the sRGB transfer function, as on the Web. On iOS the layer is tagged Display P3 (extended Display P3 for an `rgba16float` canvas), so a shader's output reaches a wide-gamut display unconverted and matches other Display P3 content, such as a Skia canvas. Android currently ignores `colorSpace`.
+`context.configure({ colorSpace })` says which primaries the canvas's values are in: `"srgb"` (the default) or `"display-p3"`. Both use the sRGB transfer function, as on the Web. On iOS and macOS the color space is set when the canvas mounts, from the `colorSpace` prop of the `Canvas`: pass the same value to both. With `"display-p3"`, a shader's output reaches a wide-gamut display unconverted and matches other Display P3 content, such as a Skia canvas. Android currently ignores `colorSpace`.
+
+The prop is read once: a change on a mounted canvas is ignored, with a warning in development, and so is a `configure()` that asks for another color space than the canvas was mounted with. To change it, remount the canvas with a new `key`.
 
 ## HDR (extended dynamic range)
 
-`context.configure({ toneMapping: { mode } })` says what happens to values above 1.0 on an `rgba16float` canvas: `"standard"` (the default) clamps them to the display's SDR range, `"extended"` lets them use the display's headroom, as in a browser. On iOS 16 and later the `CAMetalLayer` opts into extended dynamic range content for `"extended"`; the mode is accepted and has no effect on an 8-bit canvas, which cannot hold values above 1.0. tvOS has no extended dynamic range for this layer, so `"extended"` behaves like `"standard"` there. Android currently ignores `toneMapping`.
+`context.configure({ toneMapping: { mode } })` says what happens to values above 1.0 on an `rgba16float` canvas: `"standard"` (the default) clamps them to the display's SDR range, `"extended"` lets them use the display's headroom, as in a browser. On iOS 16 and later and on macOS, the `toneMapping` prop of the `Canvas` sets it when the canvas mounts, like `colorSpace`: pass the same value to both. The mode has no effect on an 8-bit canvas, which cannot hold values above 1.0. tvOS has no extended dynamic range for this layer, so `"extended"` behaves like `"standard"` there. Android currently ignores `toneMapping`.
 
 ### Android rendering options
 

@@ -11,6 +11,10 @@ export interface NativeProps extends ViewProps {
   androidOpaque?: CodegenTypes.WithDefault<boolean, false>;
   androidZOrderOnTop?: CodegenTypes.WithDefault<boolean, false>;
   androidZOrderMediaOverlay?: CodegenTypes.WithDefault<boolean, false>;
+  // The `colorSpace` and `toneMapping` props, resolved (see Canvas.tsx):
+  // read on iOS and macOS when the canvas mounts
+  appleDisplayP3?: CodegenTypes.WithDefault<boolean, false>;
+  appleExtendedDynamicRange?: CodegenTypes.WithDefault<boolean, false>;
 }
 
 // eslint-disable-next-line import/no-default-export
