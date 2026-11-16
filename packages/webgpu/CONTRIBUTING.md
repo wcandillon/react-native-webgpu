@@ -14,6 +14,8 @@ Dawn, the WebGPU implementation, comes with the `react-native-webgpu-dawn` depen
 
 Example app (from `apps/example/`): `yarn start` · `yarn ios` · `yarn android`
 
+The [macOS runner](../../apps/example-macos/README.md) shares the gallery with an isolated RN macOS 0.83 dependency stack. It uses the same prebuilt Dawn package; no Dawn source build is needed.
+
 From the repo root: `yarn lint` · `yarn tsc` · `yarn build:docs`
 
 Tests (from `packages/webgpu/`): `yarn test:ref` (Chrome reference) · `yarn test` (E2E) · `yarn test:plugin` (Expo config plugin unit tests) · `yarn test:cpp` (C++ unit tests of `cpp/rnwgpu/DawnBlobCache.cpp`, built for the host with CMake and a C++20 compiler against Dawn's headers; one test after a build: `ctest --test-dir node_modules/.cache/cpp-tests -R <name>`)

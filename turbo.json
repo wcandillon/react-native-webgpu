@@ -56,7 +56,8 @@
         "apps/*/macos",
         "!apps/*/macos/build",
         "!apps/*/macos/Pods"
-      ]
+      ],
+      "cache": false
     },
     "pod:install:ios": {
       "cache": false,
@@ -65,8 +66,8 @@
     },
     "pod:install:macos": {
       "cache": false,
-      "inputs": ["**/ios/Podfile", "**/ios/Podfile.lock"],
-      "outputs": ["**/ios/Pods/**"]
+      "inputs": ["**/macos/Podfile", "**/macos/Podfile.lock"],
+      "outputs": ["**/macos/Pods/**"]
     },
     "lint": {},
     "tsc": {},
