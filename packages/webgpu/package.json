@@ -20,6 +20,7 @@
     "apple/**",
     "*.podspec",
     "Package.swift",
+    "binaries.json",
     "react-native.config.js",
     "app.plugin.js",
     "plugin/build/**"
