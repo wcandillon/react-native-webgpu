@@ -46,13 +46,38 @@ static std::shared_ptr<rnwgpu::RNWebGPUManager> webgpuManager;
   return webgpuManager;
 }
 
-#pragma Setup and invalidation
+#pragma mark - Setup and invalidation
 
 + (BOOL)requiresMainQueueSetup {
   return YES;
 }
 
+#if TARGET_OS_OSX
+- (instancetype)init {
+  if (self = [super init]) {
+    [[NSNotificationCenter defaultCenter]
+        addObserver:self
+           selector:@selector(applicationWillTerminate:)
+               name:NSApplicationWillTerminateNotification
+             object:nil];
+  }
+  return self;
+}
+
+- (void)applicationWillTerminate:(NSNotification *)notification {
+  // AppKit exits without necessarily invalidating the React instance. Release
+  // the manager before static teardown destroys SurfaceRegistry and its mutex.
+  [self invalidate];
+}
+#endif
+
 - (void)invalidate {
+#if TARGET_OS_OSX
+  [[NSNotificationCenter defaultCenter]
+      removeObserver:self
+                name:NSApplicationWillTerminateNotification
+              object:nil];
+#endif
   webgpuManager = nil;
 }
 
