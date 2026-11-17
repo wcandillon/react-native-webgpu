@@ -22,9 +22,11 @@ Please note that this module does not work on the legacy architecture.
 
 On Android it needs Android 8 (API 26) or newer. An app with a lower `minSdkVersion` fails to build; on Expo, the [config plugin](/docs/getting-started/expo#config-plugin) raises it for you.
 
+On Android, Gradle downloads the prebuilt Dawn from the [GitHub releases of React Native Skia](https://github.com/wcandillon/react-native-skia/releases), which builds it, the first time it builds, only for the architectures being built, and caches it like any other Gradle dependency. To download it from a mirror or a local directory instead, set the `reactNativeSkiaBinariesUrl` Gradle property (or the `REACT_NATIVE_SKIA_BINARIES_URL` environment variable) to a URL or a `file:///` directory that holds the release assets under `binaries-<version>/`.
+
 ## iOS: Swift Package Manager
 
-By default, `react-native-webgpu` links on iOS/macOS through CocoaPods autolinking - no extra setup needed. As an alternative, the package also ships a `Package.swift` for React Native's SwiftPM autolinking, which needs no CocoaPods at all:
+By default, `react-native-webgpu` links on iOS/macOS through CocoaPods autolinking - no extra setup needed. The long-term plan is to move the Apple platforms to Swift Package Manager. It is available today as an alternative: the package also ships a `Package.swift` for React Native's SwiftPM autolinking, which needs no CocoaPods at all:
 
 1. Use **React Native 0.87 or newer**. Earlier releases have no SwiftPM autolinking, so keep CocoaPods there.
 2. From your app's `ios` directory, run `npx react-native spm add --deintegrate` once. It removes CocoaPods from the project and adds the Swift packages to the `.xcodeproj`. Then build the project (not a workspace) as usual.

@@ -10,7 +10,10 @@ We happily accept contributions made with coding agents. Our ask is simple: if y
 yarn
 ```
 
-Dawn, the WebGPU implementation, comes with the `react-native-webgpu-dawn` dependency of `packages/webgpu`: the Android shared libraries, the Apple xcframework and the headers. Nothing to download or build.
+Dawn, the WebGPU implementation, is prebuilt; there is nothing to build:
+
+- On Android, Gradle downloads it at build time from the GitHub release `binaries-<version>` of [wcandillon/react-native-skia](https://github.com/wcandillon/react-native-skia/releases): the shared library of each ABI being built, and the headers. `packages/webgpu/binaries.json` pins the version and the sha256 of every archive. They are resolved as Gradle dependencies, so they are cached in the Gradle user home and later builds work offline; the `prepareDawnBinaries` task verifies them and extracts them into `android/build/binaries`. To download from a mirror, or from a directory with `file:///...`, set the `reactNativeSkiaBinariesUrl` Gradle property or the `REACT_NATIVE_SKIA_BINARIES_URL` environment variable (the ones react-native-skia reads) to a location holding `binaries-<version>/<asset>`.
+- On Apple platforms it comes with the `react-native-webgpu-dawn` dependency of `packages/webgpu`: the xcframework and the headers.
 
 Example app (from `apps/example/`): `yarn start` · `yarn ios` · `yarn android`
 
@@ -36,9 +39,9 @@ Dawn ships in the `react-native-webgpu-dawn` npm package, which react-native-ski
 
 Steps to bump to a new Dawn (new Skia milestone `m<N>`):
 
-1. **Wait for the binaries.** react-native-skia publishes `react-native-webgpu-dawn` at the new version.
+1. **Wait for the binaries.** react-native-skia publishes `react-native-webgpu-dawn` at the new version, and the GitHub release `binaries-<version>` that Gradle downloads Dawn from on Android.
 
-2. **Bump the dependency** in `packages/webgpu/package.json` and run `yarn`.
+2. **Bump the dependency** in `packages/webgpu/package.json` and run `yarn`, and replace `packages/webgpu/binaries.json` with the `checksums.json` of the new release (`curl -fL https://github.com/wcandillon/react-native-skia/releases/download/binaries-<version>/checksums.json -o packages/webgpu/binaries.json`). Both must name the same version: react-native-skia compares it with its own to refuse an app that would link two different Dawns.
 
 3. **Review the workarounds.** `yarn check-dawn` fails when the Dawn commit changed while a workaround in `scripts/check-dawn.ts` is still pinned to the previous one: check whether the new Dawn carries the upstream fix, then drop the workaround or move its pin.
 
