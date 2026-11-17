@@ -16,7 +16,7 @@ yarn workspace example-macos pod:install:macos
 yarn workspace example-macos build:macos
 ```
 
-The app targets macOS 14. Dawn comes from `react-native-webgpu-dawn`; nothing
+The app targets macOS 14.0. Dawn comes from `react-native-webgpu-dawn`; nothing
 is built from Dawn sources. For development, run these in separate terminals:
 
 ```sh

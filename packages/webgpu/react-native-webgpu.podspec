@@ -56,7 +56,7 @@ Pod::Spec.new do |s|
   s.platforms    = {
     :ios => min_ios_version_supported,
     :tvos => min_ios_version_supported,
-    :osx => "10.15",
+    :osx => "14.0",
   }
   s.source       = { :git => "https://github.com/wcandillon/react-native-webgpu.git", :tag => "#{s.version}" }
 
