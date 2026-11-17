@@ -197,19 +197,21 @@ jobs:
             xcrun simctl shutdown "$IOS_SIMULATOR_UDID" || true
           fi
 
-  # Decides whether build-spm-ios runs. That job only proves that
+  # Decides whether the SwiftPM and native macOS builds run. SwiftPM proves that
   # packages/webgpu/Package.swift resolves and compiles, so a pull request
   # pays for it only when its diff touches what can change the outcome: the
   # manifest and the autolinking config, the Apple and C++ sources it
   # compiles, the scripts behind the Dawn check, the dependencies that pin
   # react-native-webgpu-dawn, the example that links it, or CI itself. Pushes
-  # to main, the merge queue and manual runs build unconditionally, so a
-  # change this list misses still shows up on main.
-  spm-changes:
+  # to main, the merge queue and manual runs always build SwiftPM. macOS builds
+  # on main, manual runs and relevant PRs; shared JavaScript is checked by
+  # bundle-macos on every PR.
+  changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      run: ${{ steps.diff.outputs.run }}
+      spm: ${{ steps.diff.outputs.spm }}
+      macos: ${{ steps.diff.outputs.macos }}
     steps:
       - name: Checkout
         if: github.event_name == 'pull_request'
@@ -225,12 +227,14 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           if [ "$EVENT" != "pull_request" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "spm=true" >> "$GITHUB_OUTPUT"
+            echo "macos=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git fetch --depth=1 origin "$BASE"
           changed=$(git diff --name-only "$BASE" HEAD)
-          run=false
+          spm=false
+          macos=false
           while IFS= read -r file; do
             case "$file" in
               packages/webgpu/Package.swift|packages/webgpu/package.json|packages/webgpu/react-native.config.js|\
@@ -238,11 +242,53 @@ jobs:
               spm-example/*|package.json|yarn.lock|\
               .github/workflows/ci.yml|.github/actions/setup/*)
                 echo "$file"
-                run=true
+                spm=true
+                ;;
+            esac
+            case "$file" in
+              apps/example-macos/*|packages/webgpu/*.podspec|packages/webgpu/package.json|\
+              packages/webgpu/react-native.config.js|packages/webgpu/apple/*|packages/webgpu/cpp/*|\
+              packages/webgpu/scripts/*|package.json|yarn.lock|.yarn/patches/*|turbo.json|\
+              .github/workflows/ci.yml|.github/actions/setup/*)
+                echo "macos: $file"
+                macos=true
                 ;;
             esac
           done <<< "$changed"
-          echo "run=$run" >> "$GITHUB_OUTPUT"
+          echo "spm=$spm" >> "$GITHUB_OUTPUT"
+          echo "macos=$macos" >> "$GITHUB_OUTPUT"
+
+  # Bundle shared sources on every PR without reserving a Mac. Native builds
+  # alone do not exercise Metro or the desktop Worklets/Babel configuration.
+  bundle-macos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Bundle macOS example
+        run: yarn workspace example-macos bundle:macos
+
+  # Match Skia's macOS check: shared JS is bundled above; relevant native,
+  # dependency or runner changes also build the CocoaPods app on a hosted Mac.
+  build-test-macos:
+    needs: changes
+    if: needs.changes.outputs.macos == 'true' && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build macOS example
+        run: yarn turbo run build:macos --concurrency 1
 
   # The SwiftPM example gets its own job on a GitHub-hosted Mac. It needs no
   # Metro, simulator or CocoaPods, so nothing ties it to the self-hosted
@@ -251,8 +297,8 @@ jobs:
   # It used to be a step of `build`: a hung xcodebuild there blocked the iOS
   # e2e result and held the self-hosted runner, which has no slack for that.
   build-spm-ios:
-    needs: spm-changes
-    if: needs.spm-changes.outputs.run == 'true'
+    needs: changes
+    if: needs.changes.outputs.spm == 'true'
     runs-on: macos-latest
     # Cold run: yarn install, Dawn download, RN artifacts, then one xcodebuild.
     timeout-minutes: 25

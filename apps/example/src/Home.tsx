@@ -1,7 +1,13 @@
 import * as React from "react";
-import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { RectButton } from "react-native-gesture-handler";
+import {
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { CommonActions, useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 
 import type { Routes } from "./Route";
@@ -101,7 +107,7 @@ export const examples = [
     : []),
   {
     screen: "DeferedRendering",
-    title: "🚦 Deferred Rendeering",
+    title: "🚦 Deferred Rendering",
   },
   {
     screen: "ABuffer",
@@ -135,10 +141,12 @@ export const examples = [
     screen: "ImportExternalTexture",
     title: "🎬 Import External Texture",
   },
-  {
-    screen: "VisionCamera",
-    title: "📷 VisionCamera integration",
-  },
+  // The native camera integration is not linked into the desktop runner.
+  ...(Platform.OS !== "macos"
+    ? ([
+        { screen: "VisionCamera", title: "📷 VisionCamera integration" },
+      ] as const)
+    : []),
   {
     screen: "SixteenBitTextures",
     title: "🎨 16bits Textures",
@@ -147,7 +155,7 @@ export const examples = [
     screen: "ViewSnapshot",
     title: "📸 View Snapshot (drawElementImageToTexture)",
   },
-];
+] as const;
 
 const styles = StyleSheet.create({
   container: {
@@ -161,23 +169,26 @@ const styles = StyleSheet.create({
     padding: 32,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  title: {},
+  // Rows stay white even when macOS uses dark appearance.
+  title: { color: "black" },
 });
 
+// Use React Native touchables so mouse clicks survive returning from a demo.
 export const Home = () => {
-  const { navigate } = useNavigation<StackNavigationProp<Routes, "Home">>();
+  const navigation = useNavigation<StackNavigationProp<Routes, "Home">>();
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {examples.map((thumbnail) => (
-        <RectButton
+        <TouchableOpacity
           key={thumbnail.screen}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          onPress={() => navigate(thumbnail.screen as any)}
+          onPress={() =>
+            navigation.dispatch(CommonActions.navigate(thumbnail.screen))
+          }
         >
           <View style={styles.thumbnail}>
             <Text style={styles.title}>{thumbnail.title}</Text>
           </View>
-        </RectButton>
+        </TouchableOpacity>
       ))}
     </ScrollView>
   );

@@ -52,15 +52,6 @@ const customConfig = {
     assetExts: [...defaultConfig.resolver.assetExts, 'glb', 'gltf', 'jpg', 'bin', 'hdr'],
   },
 
-  serializer: {
-    // React Native 0.88 runs `<npmPackageName>/setup-env` for every
-    // out-of-tree platform, but react-native-macos is still on 0.79 and
-    // doesn't ship it.
-    getModulesRunBeforeMainModule: () => [
-      require.resolve("react-native/setup-env", { paths: [__dirname] }),
-    ],
-  },
-
   transformer: {
     ...defaultConfig.transformer,
     getTransformOptions: async () => ({

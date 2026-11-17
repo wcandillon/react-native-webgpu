@@ -18,7 +18,9 @@ fi
 
 # The other files under apple/ need React and codegen headers, which only
 # exist after a pod install.
-FILES=(apple/MetalLayerColorSpace.mm apple/AppleVideoPlayer.mm)
+# Also compile the platform header on its own: TargetConditionals must be
+# available before it decides whether UIKit or AppKit is required.
+FILES=(apple/RNWGUIKit.h apple/MetalLayerColorSpace.mm apple/AppleVideoPlayer.mm)
 
 # sdk:target pairs, using the podspec's minimum versions.
 TARGETS=(
