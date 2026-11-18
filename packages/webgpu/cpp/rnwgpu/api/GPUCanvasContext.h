@@ -53,8 +53,8 @@ public:
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "__brand", &GPUCanvasContext::getBrand);
     installGetter(runtime, prototype, "canvas", &GPUCanvasContext::getCanvas);
-    installMethod(runtime, prototype, "configure",
-                  &GPUCanvasContext::configure);
+    installMethodWithRuntime(runtime, prototype, "configure",
+                             &GPUCanvasContext::configure);
     installMethod(runtime, prototype, "unconfigure",
                   &GPUCanvasContext::unconfigure);
     installMethod(runtime, prototype, "getCurrentTexture",
@@ -64,7 +64,8 @@ public:
 
   // TODO: is this ok?
   inline const wgpu::Surface get() { return nullptr; }
-  void configure(std::shared_ptr<GPUCanvasConfiguration> configuration);
+  void configure(jsi::Runtime &runtime,
+                 std::shared_ptr<GPUCanvasConfiguration> configuration);
   void unconfigure();
   std::shared_ptr<GPUTexture> getCurrentTexture();
   // Present is explicit on every runtime (main JS, Reanimated UI, and dedicated
@@ -84,6 +85,9 @@ private:
   std::mutex _currentTextureMutex;
   std::shared_ptr<GPUTexture> _currentTexture;
   uint64_t _currentTextureEpoch = 0;
+  // Whether configure() already warned that its colorSpace or toneMapping
+  // differs from the Canvas props the layer was tagged with (Apple only).
+  bool _warnedLayerColorSpace = false;
 };
 
 } // namespace rnwgpu

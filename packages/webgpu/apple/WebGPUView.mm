@@ -66,10 +66,16 @@ static const std::shared_ptr<const WebGPUViewProps> &defaultWebGPUViewProps() {
     /*
       The context is set only once during mounting the component
       and never changes because it isn't available for users to modify.
+      The colorspace props are read here too, and only here: the layer is
+      tagged with them as it is attached, on the main thread, and a change on
+      a mounted canvas is ignored (with a warning in development from JS, see
+      Canvas.tsx).
     */
     MetalView *metalView = [MetalView new];
     self.contentView = metalView;
     [metalView setContextId:@(newViewProps.contextId)];
+    metalView.displayP3 = newViewProps.appleDisplayP3;
+    metalView.extendedDynamicRange = newViewProps.appleExtendedDynamicRange;
     [metalView configure];
   }
 

@@ -17,15 +17,16 @@ else()
     add_definitions(-DRNF_ENABLE_LOGS=0)
 endif()
 
-# Dawn comes from the react-native-webgpu-dawn npm package (DAWN_DIR is passed
-# by build.gradle): the shared library per ABI and the headers.
+# Dawn is in DAWN_DIR, passed by build.gradle: the directory its
+# prepareDawnBinaries task extracts the released archives into, with the shared
+# library per ABI and the headers under include/. It is not required to be
+# there yet: Android Studio configures this project when it syncs, before any
+# task has run. Gradle is what guarantees the files, and verifies them, before
+# the library is built.
 if(NOT DAWN_DIR)
-    message(FATAL_ERROR "react-native-webgpu: DAWN_DIR is not set (the react-native-webgpu-dawn package directory)")
+    message(FATAL_ERROR "react-native-webgpu: DAWN_DIR is not set (the directory holding the Dawn binaries)")
 endif()
-set (WEBGPU_LIBS_PATH "${DAWN_DIR}/libs/android/${ANDROID_ABI}")
-if(NOT EXISTS "${WEBGPU_LIBS_PATH}/libwebgpu_dawn.so")
-    message(FATAL_ERROR "react-native-webgpu: libwebgpu_dawn.so not found at ${WEBGPU_LIBS_PATH}. Reinstall dependencies (yarn install / npm install).")
-endif()
+set (WEBGPU_LIBS_PATH "${DAWN_DIR}/${ANDROID_ABI}")
 
 find_package(ReactAndroid REQUIRED CONFIG)
 find_package(fbjni REQUIRED CONFIG)

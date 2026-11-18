@@ -1,15 +1,30 @@
 #include "GPUCanvasContext.h"
 #include "Convertors.h"
 #include "RNWebGPUManager.h"
+#include "WGPULogger.h"
 #include <algorithm>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <utility>
 #include <vector>
 
 namespace rnwgpu {
 
+namespace {
+
+const char *colorSpaceName(CanvasColorSpace colorSpace) {
+  return colorSpace == CanvasColorSpace::DisplayP3 ? "display-p3" : "srgb";
+}
+
+const char *toneMappingModeName(CanvasToneMappingMode mode) {
+  return mode == CanvasToneMappingMode::Extended ? "extended" : "standard";
+}
+
+} // namespace
+
 void GPUCanvasContext::configure(
+    jsi::Runtime &runtime,
     std::shared_ptr<GPUCanvasConfiguration> configuration) {
   Convertor conv;
   wgpu::SurfaceConfiguration surfaceConfiguration;
@@ -27,11 +42,34 @@ void GPUCanvasContext::configure(
 
 #ifdef __APPLE__
   surfaceConfiguration.alphaMode = configuration->alphaMode;
+  // The layer of a Canvas is tagged on the main thread when it mounts, from
+  // its colorSpace and toneMapping props, and keeps that tag: tagging it from
+  // here would commit a CATransaction off the main thread. Say so when the
+  // configuration asks for something else, once per context.
+  const CanvasLayerColorSpace requested{configuration->colorSpace,
+                                        configuration->toneMappingMode};
+  auto layerColorSpace = _surfaceInfo->getLayerColorSpace();
+  if (!_warnedLayerColorSpace && layerColorSpace.has_value() &&
+      *layerColorSpace != requested) {
+    _warnedLayerColorSpace = true;
+    std::string message =
+        std::string("[WebGPU] configure() asks for colorSpace \"") +
+        colorSpaceName(requested.colorSpace) + "\" and toneMapping \"" +
+        toneMappingModeName(requested.toneMappingMode) +
+        "\", but the canvas was mounted with colorSpace \"" +
+        colorSpaceName(layerColorSpace->colorSpace) + "\" and toneMapping \"" +
+        toneMappingModeName(layerColorSpace->toneMappingMode) +
+        "\". On iOS and macOS these come from the colorSpace and toneMapping "
+        "props of the Canvas, read when it mounts: pass the same values there.";
+    try {
+      Logger::warnToJavascriptConsole(runtime, message);
+    } catch (const jsi::JSIException &) {
+      // A runtime without a console (a bare worklet runtime).
+    }
+  }
 #endif
   surfaceConfiguration.presentMode = wgpu::PresentMode::Fifo;
-  _surfaceInfo->configure(surfaceConfiguration, std::move(viewFormats),
-                          configuration->colorSpace,
-                          configuration->toneMappingMode);
+  _surfaceInfo->configure(surfaceConfiguration, std::move(viewFormats));
 }
 
 void GPUCanvasContext::unconfigure() { _surfaceInfo->unconfigure(); }

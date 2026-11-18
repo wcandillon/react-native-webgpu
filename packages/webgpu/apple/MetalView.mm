@@ -1,4 +1,5 @@
 #import "MetalView.h"
+#include "MetalLayerColorSpace.h"
 #import "WebGPURuntime.h"
 #import "webgpu/webgpu_cpp.h"
 
@@ -27,6 +28,18 @@
   if (manager == nullptr) {
     return;
   }
+  // The layer is tagged with its colorspace here, on the main thread, before
+  // it is attached: the threads that configure and present the surface (JS,
+  // worklet runtimes) then never change the layer in a CATransaction of
+  // theirs. The tag comes from the Canvas props when it mounts and is kept
+  // (see -[WebGPUView updateProps:oldProps:]).
+  const rnwgpu::CanvasLayerColorSpace layerColorSpace{
+      _displayP3 ? rnwgpu::CanvasColorSpace::DisplayP3
+                 : rnwgpu::CanvasColorSpace::SRGB,
+      _extendedDynamicRange ? rnwgpu::CanvasToneMappingMode::Extended
+                            : rnwgpu::CanvasToneMappingMode::Standard};
+  rnwgpu::applyCAMetalLayerColorSpace((CAMetalLayer *)self.layer,
+                                      layerColorSpace);
   // Retain the layer for as long as SurfaceInfo holds the pointer: the
   // latched attach (and the flush lambda that adopts it) can outlive this
   // view, e.g. across a dev reload where the registry is cleared before
@@ -47,6 +60,7 @@
           CFBridgingRelease(layer);
         });
       });
+  info->setLayerColorSpace(layerColorSpace);
   // The attach is adopted at the next frame boundary by the rendering thread;
   // schedule a flush so contexts that are not currently rendering still pick
   // it up (and present their last offscreen frame).

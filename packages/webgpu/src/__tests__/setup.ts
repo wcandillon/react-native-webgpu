@@ -16,6 +16,7 @@ import type { GPUOffscreenCanvas } from "../Offscreen";
 import { cubeVertexArray } from "./components/cube";
 import { redFragWGSL, triangleVertWGSL } from "./components/triangle";
 import { DEBUG, NODE_WEBGPU, REFERENCE, TEST_SERVER_PORT } from "./config";
+import type { Channel } from "./components/Channel";
 
 jest.setTimeout(180 * 1000);
 
@@ -25,6 +26,8 @@ declare global {
   var testServer: Server;
   var testFixtureServer: HTTPServer;
   var testClient: WebSocket;
+  // The calls to the app that said hello last (see Channel).
+  var testChannel: Channel | undefined;
   var testOS: TestOS;
   var testArch: "paper" | "fabric";
   var testHost: string;
@@ -157,49 +160,14 @@ class RemoteTestingClient implements TestingClient {
     context?: C,
   ): Promise<R> {
     const ctx = this.prepareContext(context ?? {});
-    const body = { code: fn.toString(), ctx };
-    return this.handleResponse<R>(JSON.stringify(body));
+    return this.channel.call<R>("eval", { code: fn.toString(), ctx });
   }
 
-  private handleResponse<R>(body: string): Promise<R> {
-    // Guard against an eval that never replies (e.g. the device threw and could
-    // not post a result back). Without this the host would await forever and a
-    // single failing case would stall the whole serial suite.
-    const EVAL_TIMEOUT_MS = 30 * 1000;
-    return new Promise((resolve, reject) => {
-      const onMessage = (raw: Buffer) => {
-        clearTimeout(timeout);
-        const response = JSON.parse(raw.toString());
-        // The device reports a thrown error as { $$error: message } so the
-        // matching test can `.rejects` instead of hanging on a missing reply.
-        if (
-          response !== null &&
-          typeof response === "object" &&
-          "$$error" in response
-        ) {
-          reject(new Error(String((response as { $$error: unknown }).$$error)));
-        } else {
-          resolve(response);
-        }
-      };
-      const timeout = setTimeout(() => {
-        this.client.off("message", onMessage);
-        reject(
-          new Error(
-            `eval timed out after ${EVAL_TIMEOUT_MS}ms without a response from the device`,
-          ),
-        );
-      }, EVAL_TIMEOUT_MS);
-      this.client.once("message", onMessage);
-      this.client.send(body);
-    });
-  }
-
-  private get client() {
-    if (global.testClient === null) {
+  private get channel() {
+    if (global.testChannel === undefined) {
       throw new Error("Client is not connected. Did you call init?");
     }
-    return global.testClient!;
+    return global.testChannel;
   }
 
   private prepareContext<C extends Ctx>(context?: C): C {

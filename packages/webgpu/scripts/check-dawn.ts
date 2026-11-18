@@ -50,6 +50,21 @@ const dawnWorkarounds = [
 
 const root = join(__dirname, "..");
 
+// On Android, Gradle downloads Dawn from the binaries-<version> release that
+// binaries.json pins, while the Apple builds link the package, and
+// react-native-skia pairs the two libraries on the package's version: the two
+// pins must name the same Dawn.
+const binaries = JSON.parse(readFileSync(join(root, "binaries.json"), "utf-8"));
+if (
+  binaries.version !== dawnPackage.version ||
+  binaries.dawn?.commit !== installedCommit
+) {
+  console.error(
+    `❌ binaries.json pins binaries ${binaries.version} (Dawn ${String(binaries.dawn?.commit).slice(0, 10)}) but react-native-webgpu-dawn is ${dawnPackage.version} (Dawn ${installedCommit.slice(0, 10)}). Bump both together, see "Upgrading Dawn" in CONTRIBUTING.md.`,
+  );
+  process.exit(1);
+}
+
 // Until #507 the build copied Dawn's headers into cpp/webgpu and cpp/dawn.
 // Both come before the package's include directory on every include path
 // (podspec HEADER_SEARCH_PATHS, android/CMakeLists.txt), so a copy left over
