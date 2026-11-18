@@ -17,7 +17,7 @@ Dawn, the WebGPU implementation, is prebuilt; there is nothing to build:
 
 Example app (from `apps/example/`): `yarn start` · `yarn ios` · `yarn android`
 
-The [macOS runner](../../apps/example-macos/README.md) shares the gallery with an isolated RN macOS 0.83 dependency stack. It uses the same prebuilt Dawn package; no Dawn source build is needed.
+The [macOS runner](../../apps/example-macos/README.md) requires macOS 14.0 or newer and shares the gallery with an isolated RN macOS 0.83 dependency stack.
 
 From the repo root: `yarn lint` · `yarn tsc` · `yarn build:docs`
 

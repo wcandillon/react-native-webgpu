@@ -26,7 +26,7 @@ FILES=(apple/RNWGUIKit.h apple/MetalLayerColorSpace.mm apple/AppleVideoPlayer.mm
 TARGETS=(
   iphoneos:arm64-apple-ios15.1
   iphonesimulator:arm64-apple-ios15.1-simulator
-  macosx:arm64-apple-macos10.15
+  macosx:arm64-apple-macos14.0
   xros:arm64-apple-xros1.0
   appletvos:arm64-apple-tvos15.1
   appletvsimulator:arm64-apple-tvos15.1-simulator
