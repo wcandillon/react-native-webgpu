@@ -58,6 +58,10 @@
   },
   "author": "William Candillon <wcandillon@gmail.com> (https://github.com/wcandillon)",
   "license": "MIT",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/wcandillon"
+  },
   "bugs": {
     "url": "https://github.com/wcandillon/react-native-webgpu/issues"
   },
