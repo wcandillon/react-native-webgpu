@@ -164,20 +164,38 @@ CGContextRef createBgraContext(void *pixels, uint32_t width, uint32_t height,
 // be fully transparent, so that is reported as a failure instead.
 void drawViewHierarchy(const ResolvedSnapshot &snapshot, CGContextRef context,
                        bool afterScreenUpdates) {
-  CGContextSaveGState(context);
-  CGContextTranslateCTM(context, 0, snapshot.height);
-  CGContextScaleCTM(context, 1, -1);
-  UIGraphicsPushContext(context);
-  const BOOL drawn =
-      [snapshot.view drawViewHierarchyInRect:snapshot.drawRect
-                          afterScreenUpdates:afterScreenUpdates ? YES : NO];
-  UIGraphicsPopContext();
-  CGContextRestoreGState(context);
+  // On a device, UIKit declines (returns NO, draws nothing) to draw a hierarchy
+  // holding react-native-skia's CAMetalLayer canvases straight into a plain
+  // bitmap context, while it draws it into a UIGraphicsImageRenderer context.
+  // So the view is rendered there and the image copied into `context`.
+  RNWGPlatformView *view = snapshot.view;
+  UIGraphicsImageRendererFormat *format =
+      [UIGraphicsImageRendererFormat defaultFormat];
+  format.opaque = NO;
+  format.preferredRange = UIGraphicsImageRendererFormatRangeStandard;
+  format.scale = snapshot.scaleX;
+  UIGraphicsImageRenderer *renderer =
+      [[UIGraphicsImageRenderer alloc] initWithSize:view.bounds.size
+                                             format:format];
+  __block BOOL drawn = NO;
+  UIImage *image = [renderer
+      imageWithActions:^(UIGraphicsImageRendererContext *_Nonnull ctx) {
+        drawn = [view
+            drawViewHierarchyInRect:(CGRect){CGPointZero, view.bounds.size}
+                 afterScreenUpdates:afterScreenUpdates ? YES : NO];
+      }];
   if (!drawn) {
     throw ViewNotRenderable(
         "drawElementImageToTexture: the view could not be rendered (is it "
         "attached to a window?)");
   }
+  CGContextSaveGState(context);
+  CGContextTranslateCTM(context, 0, snapshot.height);
+  CGContextScaleCTM(context, 1, -1);
+  UIGraphicsPushContext(context);
+  [image drawInRect:snapshot.drawRect];
+  UIGraphicsPopContext();
+  CGContextRestoreGState(context);
 }
 
 // Releases a pixel buffer when it goes out of scope.
@@ -193,10 +211,10 @@ struct PixelBufferRelease {
 // The zero-copy path: renders the view into an IOSurface-backed BGRA pixel
 // buffer, which the caller imports as shared texture memory and draws into
 // the destination on the GPU (VideoFrameBlit, which also converts the
-// premultiplied pixels to straight alpha when asked). UIKit rasterizes
-// straight into the surface's memory through a Core Graphics context, so the
-// pixels are never copied or converted on the CPU. Throws on an allocation
-// failure, which the caller answers with the pixel path.
+// premultiplied pixels to straight alpha when asked). The view's image is
+// drawn into the surface's memory through a Core Graphics context, so the
+// pixels are copied once but never converted on the CPU. Throws on an
+// allocation failure, which the caller answers with the pixel path.
 VideoFrameHandle renderViewIntoSurface(const ResolvedSnapshot &snapshot,
                                        bool afterScreenUpdates) {
   NSDictionary *attributes = @{
