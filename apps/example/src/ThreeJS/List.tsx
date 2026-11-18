@@ -1,7 +1,12 @@
 import * as React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { RectButton } from "react-native-gesture-handler";
 import type { StackNavigationProp } from "@react-navigation/stack";
 
 import type { Routes } from "./Routes";
@@ -55,22 +60,23 @@ const styles = StyleSheet.create({
     padding: 32,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  title: {},
+  // Rows stay white even when macOS uses dark appearance.
+  title: { color: "black" },
 });
 
 export const List = () => {
-  const { navigate } = useNavigation<StackNavigationProp<Routes, "List">>();
+  const navigation = useNavigation<StackNavigationProp<Routes, "List">>();
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {examples.map((thumbnail) => (
-        <RectButton
+        <TouchableOpacity
           key={thumbnail.screen}
-          onPress={() => navigate(thumbnail.screen)}
+          onPress={() => navigation.navigate(thumbnail.screen)}
         >
           <View style={styles.thumbnail}>
             <Text style={styles.title}>{thumbnail.title}</Text>
           </View>
-        </RectButton>
+        </TouchableOpacity>
       ))}
     </ScrollView>
   );

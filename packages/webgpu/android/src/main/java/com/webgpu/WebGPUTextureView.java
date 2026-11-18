@@ -3,6 +3,7 @@ package com.webgpu;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.SurfaceTexture;
+import android.os.Build;
 import android.view.Surface;
 import android.view.TextureView;
 import androidx.annotation.NonNull;
@@ -18,6 +19,17 @@ public class WebGPUTextureView extends TextureView implements TextureView.Surfac
     mApi = api;
     setOpaque(opaque);
     setSurfaceTextureListener(this);
+  }
+
+  // Android 10 draws an opaque TextureView with SkBlendMode::kSrc, and under
+  // a rotated, rounded clip its Skia (m75) can clear the stencil the clip was
+  // written in before that draw, which leaves the canvas blank (fixed in
+  // Skia m77, https://skia-review.googlesource.com/c/skia/+/223970). The
+  // view blends on that release, whatever the GL: a canvas that covers its
+  // bounds draws the same pixels.
+  @Override
+  public void setOpaque(boolean opaque) {
+    super.setOpaque(opaque && Build.VERSION.SDK_INT != Build.VERSION_CODES.Q);
   }
 
   @Override

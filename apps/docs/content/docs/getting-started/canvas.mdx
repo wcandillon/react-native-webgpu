@@ -99,17 +99,23 @@ On iOS `alphaMode` alone controls it. On Android the `alphaMode` passed to `conf
 
 ## Color space
 
-By default the canvas's values are sRGB. Pass `colorSpace: "display-p3"` to `configure()` to write Display P3 values instead, as you would in a browser. iOS tags the layer accordingly, so colors outside sRGB show on a wide-gamut display. Android ignores it for now.
+By default the canvas's values are sRGB. Pass `colorSpace: "display-p3"` to `configure()` to write Display P3 values instead, as you would in a browser. On iOS and macOS, also pass it to the `Canvas`: the color space is set when the canvas mounts, so colors outside sRGB show on a wide-gamut display. Android ignores it for now.
 
 ```tsx
+<Canvas ref={ref} colorSpace="display-p3" style={{ flex: 1 }} />;
+
 context.configure({ device, format, colorSpace: "display-p3" });
 ```
 
+The `Canvas` props are read once, when it mounts: a change on a mounted canvas is ignored, with a warning in development. To change them, remount the canvas with a new `key`. If `configure()` asks for something else than the canvas was mounted with, a warning says so in development.
+
 ## HDR
 
-On an `rgba16float` canvas, values above 1.0 are clamped to the display's SDR range by default. Pass `toneMapping: { mode: "extended" }` to `configure()` to let them use the display's extended range (HDR) instead, as in a browser. iOS 16 and later opts the layer into extended dynamic range content. Android ignores it for now.
+On an `rgba16float` canvas, values above 1.0 are clamped to the display's SDR range by default. Pass `toneMapping: { mode: "extended" }` to `configure()` to let them use the display's extended range (HDR) instead, as in a browser. On iOS 16 and later and on macOS, also pass it to the `Canvas`, which reads it when it mounts, like `colorSpace`. Android ignores it for now.
 
 ```tsx
+<Canvas ref={ref} toneMapping={{ mode: "extended" }} style={{ flex: 1 }} />;
+
 context.configure({
   device,
   format: "rgba16float",

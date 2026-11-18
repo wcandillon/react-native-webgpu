@@ -217,16 +217,28 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
 // (https://issues.chromium.org/issues/42241591)
 #if defined(TARGET_OS_SIMULATOR) && TARGET_OS_SIMULATOR
         // The iOS Simulator only advertises MTLFeatureSet_iOS_GPUFamily2, so
-        // Dawn defaults disable_base_instance/disable_base_vertex on and then
-        // rejects every draw with a non-zero firstInstance or baseVertex,
-        // both core WebGPU. The simulator forwards Metal calls to the host
-        // GPU, which does support base vertex/instance drawing, so force the
-        // toggles off. Device builds are unaffected: WebGPU-capable iPhones
-        // and iPads are all GPUFamily3+. These are device-stage toggles, so
-        // they must be chained here rather than on the instance descriptor
-        // (instance-stage toggle parsing silently drops them).
+        // Dawn turns on toggles that reject core WebGPU features. The
+        // simulator forwards Metal calls to the host GPU, which supports
+        // them, so force these toggles off unless the caller enables them
+        // through dawnToggles. Device builds are unaffected: WebGPU-capable
+        // iPhones and iPads are all GPUFamily3+. These are device-stage
+        // toggles, so they must be chained here rather than on the instance
+        // descriptor (instance-stage toggle parsing silently drops them).
+        //
+        // - disable_base_instance, disable_base_vertex: Dawn rejects every
+        //   draw with a non-zero firstInstance or baseVertex.
+        //   TODO: newer Dawn no longer needs these two
+        //   (https://issues.chromium.org/issues/42241591).
+        // - metal_disable_sampler_compare: Dawn rejects any sampler with a
+        //   compare function, and the error loses the device. Upstream has
+        //   no fix for this one, so keep it when updating Dawn. Apple does
+        //   not document compare functions on the Simulator: this relies on
+        //   the host GPU and was checked on an iPhone 11 Simulator (iOS 17,
+        //   Xcode 26.6). If shadows look wrong on the Simulator only, look
+        //   here first.
         static const char *const kSimulatorDisabledToggles[] = {
-            "disable_base_instance", "disable_base_vertex"};
+            "disable_base_instance", "disable_base_vertex",
+            "metal_disable_sampler_compare"};
         for (const char *name : kSimulatorDisabledToggles) {
           const bool explicitlyEnabled = std::any_of(
               enabledToggles.begin(), enabledToggles.end(),

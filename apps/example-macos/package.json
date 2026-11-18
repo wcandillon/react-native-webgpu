@@ -1,0 +1,55 @@
+{
+  "name": "example-macos",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "pod:install:macos": "cd macos && pod install",
+    "build:macos": "react-native build-macos --scheme ReactTestApp --mode Debug",
+    "macos": "react-native run-macos --scheme ReactTestApp",
+    "start": "react-native start",
+    "bundle:macos": "react-native bundle --entry-file index.js --platform macos --dev true --bundle-output dist/main.macos.jsbundle --assets-dest dist"
+  },
+  "dependencies": {
+    "@react-navigation/native": "^7.5.2",
+    "@react-navigation/stack": "7.12.2",
+    "@react-three/fiber": "^9.4.0",
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-backend-webgpu": "^4.22.0",
+    "@typegpu/react": "^0.11.2",
+    "async-mutex": "^0.5.0",
+    "babel-plugin-transform-inline-environment-variables": "^0.4.4",
+    "fast-text-encoding": "^1.0.6",
+    "react": "19.2.0",
+    "react-native": "0.83.10",
+    "react-native-gesture-handler": "^2.33.0",
+    "react-native-macos": "0.83.0",
+    "react-native-reanimated": "4.6.0",
+    "react-native-safe-area-context": "^5.4.0",
+    "react-native-screens": "4.19.0",
+    "react-native-skia": "3.10.0",
+    "react-native-webgpu": "workspace:*",
+    "react-native-worklets": "0.12.2",
+    "teapot": "^1.0.0",
+    "three": "0.184.0",
+    "typegpu": "^0.11.9",
+    "wgpu-matrix": "^3.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.0",
+    "@babel/plugin-transform-class-static-block": "^7.25.9",
+    "@babel/runtime": "^7.25.0",
+    "@react-native-community/cli": "^20.2.0",
+    "@react-native-community/cli-platform-ios": "^20.2.0",
+    "@react-native/babel-preset": "0.83.10",
+    "@react-native/metro-config": "0.83.10",
+    "@rnx-kit/metro-config": "^2.0.0",
+    "react-native-test-app": "5.4.17",
+    "unplugin-typegpu": "^0.11.4"
+  },
+  "engines": {
+    "node": ">=20.19.4"
+  },
+  "installConfig": {
+    "hoistingLimits": "workspaces"
+  }
+}
