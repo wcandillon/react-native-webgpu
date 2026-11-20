@@ -194,7 +194,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     if (votesFrameRate) {
       mFrameRateVote.attach(surface);
     }
-    onSurfaceCreate(surface, mContextId, width, height, votesFrameRate);
+    boolean latchOnMainThread = mKind == BackingViewKind.TEXTURE_VIEW;
+    onSurfaceCreate(surface, mContextId, width, height, votesFrameRate, latchOnMainThread);
   }
 
   @Override
@@ -221,6 +222,18 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     mFrameRateVote.onAnimating();
   }
 
+  /**
+   * Called from native (cpp-adapter.cpp) right after a frame is presented to
+   * a TextureView from the main thread, so that the draw of this frame shows
+   * it (see WebGPUTextureView.latchPresentedFrame).
+   */
+  @DoNotStrip
+  void onFramePresentedOnMainThread() {
+    if (mView instanceof WebGPUTextureView) {
+      ((WebGPUTextureView) mView).latchPresentedFrame();
+    }
+  }
+
   @Override
   public int getContextId() {
     return mContextId;
@@ -236,14 +249,17 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   // reportAnimation asks native to call onAnimating() when frames start being
-  // presented to this surface back to back.
+  // presented to this surface back to back; latchOnMainThread, to call
+  // onFramePresentedOnMainThread() after each frame presented from the main
+  // thread.
   @DoNotStrip
   private native void onSurfaceCreate(
     Surface surface,
     int contextId,
     float width,
     float height,
-    boolean reportAnimation
+    boolean reportAnimation,
+    boolean latchOnMainThread
   );
 
   @DoNotStrip
