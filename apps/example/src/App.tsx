@@ -35,6 +35,7 @@ import { CanvasAPI } from "./CanvasAPI";
 import { Tensorflow } from "./Tensorflow";
 import { ComputeToys } from "./ComputeToys";
 import { Reanimated } from "./Reanimated";
+import { FramePacing } from "./FramePacing/FramePacing";
 import { AsyncStarvation } from "./Diagnostics/AsyncStarvation";
 import { DeviceLostHang } from "./Diagnostics/DeviceLostHang";
 import { DiagnosticsList } from "./Diagnostics/DiagnosticsList";
@@ -95,6 +96,7 @@ const linking: LinkingOptions<Routes> = {
       Tests: "tests",
       GradientTiles: "gradient-tiles",
       Reanimated: "reanimated",
+      FramePacing: "frame-pacing",
       Diagnostics: "diagnostics",
       AsyncStarvation: "diagnostics/async-starvation",
       DeviceLostHang: "diagnostics/device-lost-hang",
@@ -174,6 +176,11 @@ function App() {
           </Stack.Screen>
           <Stack.Screen name="GradientTiles" component={GradientTiles} />
           <Stack.Screen name="Reanimated" component={Reanimated} />
+          <Stack.Screen
+            name="FramePacing"
+            component={FramePacing}
+            options={{ title: "Frame Pacing" }}
+          />
           <Stack.Screen
             name="Diagnostics"
             component={DiagnosticsList}
