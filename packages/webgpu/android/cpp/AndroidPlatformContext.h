@@ -19,6 +19,7 @@
 
 #include "AndroidColorSpace.h"
 #include "AndroidVideoPlayer.h"
+#include "AndroidVsyncSource.h"
 #include "PlatformContext.h"
 #include "RNWebGPUManager.h"
 
@@ -462,6 +463,10 @@ public:
     auto result = std::make_unique<AndroidVideoPlayer>(env, player);
     env->DeleteLocalRef(player);
     return result;
+  }
+
+  std::shared_ptr<VsyncSource> makeVsyncSource() override {
+    return AndroidVsyncSource::shared();
   }
 
   std::string writeTestVideoFile() override {

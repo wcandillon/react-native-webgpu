@@ -99,6 +99,14 @@ public:
   registerMainRuntime(jsi::Runtime *runtime,
                       std::shared_ptr<facebook::react::CallInvoker> invoker);
 
+  // What reaches a runtime from native code, for code other than promises
+  // (see AnimationFrames): the main runtime, through mainInvoker(); the
+  // Reanimated UI runtime; any other runtime, through its own timers.
+  enum class RuntimeKind { Main, UI, Other };
+  static RuntimeKind runtimeKindOf(jsi::Runtime &runtime);
+  // The main runtime's CallInvoker, null before it is registered.
+  static std::shared_ptr<facebook::react::CallInvoker> mainInvoker();
+
   // The wgpu::Instance served by this context on its owning runtime.
   const wgpu::Instance &instance() const { return _instance; }
 

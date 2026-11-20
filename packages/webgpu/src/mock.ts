@@ -128,4 +128,10 @@ export const adoptTexture = (_pointer: bigint): GPUTexture => {
 
 export const installWebGPU = () => undefined;
 
+export const requestAnimationFrame = (callback: (timestamp: number) => void) =>
+  globalThis.requestAnimationFrame(callback);
+
+export const cancelAnimationFrame = (handle: number) =>
+  globalThis.cancelAnimationFrame(handle);
+
 export const WebGPUModule = { install: () => false };
