@@ -33,6 +33,10 @@ export const examples = [
     screen: "Reanimated",
     title: "🐎 Reanimated",
   },
+  {
+    screen: "FramePacing",
+    title: "⏱️ Frame Pacing",
+  },
   // {
   //   screen: "ComputeToys",
   //   title: "🧮 Compute Toys",

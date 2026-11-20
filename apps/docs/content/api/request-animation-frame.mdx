@@ -1,0 +1,73 @@
+---
+title: requestAnimationFrame
+description: A requestAnimationFrame paced by the display, on every runtime.
+---
+
+`requestAnimationFrame` and `cancelAnimationFrame` from `react-native-webgpu` are drop-in replacements for the global ones in a render loop. They run your callback at every frame of the display, on the JS thread, on the Reanimated UI runtime, and on worklet runtimes of your own.
+
+## Usage
+
+```tsx twoslash
+import type { RNCanvasContext } from "react-native-webgpu";
+import { requestAnimationFrame } from "react-native-webgpu";
+declare const device: GPUDevice;
+declare const context: RNCanvasContext;
+declare const draw: (timestamp: number) => GPUCommandBuffer;
+// ---cut---
+const render = (timestamp: number) => {
+  device.queue.submit([draw(timestamp)]);
+  context.present();
+  requestAnimationFrame(render);
+};
+requestAnimationFrame(render);
+```
+
+The functions are worklets: call them from a worklet the same way, and the loop follows the display on that worklet's runtime.
+
+```tsx twoslash
+import { cancelAnimationFrame, requestAnimationFrame } from "react-native-webgpu";
+declare const render: (timestamp: number) => void;
+// ---cut---
+const handle = requestAnimationFrame(render);
+cancelAnimationFrame(handle);
+```
+
+`cancelAnimationFrame` only cancels handles from this `requestAnimationFrame`, on the runtime that requested them. Handles from the global `requestAnimationFrame` are cancelled with the global `cancelAnimationFrame`.
+
+## Why not the global one
+
+React Native's global `requestAnimationFrame` drops frames on a high refresh rate display:
+
+- **Android, JS thread.** It is a timer that fires at a vsync only when it was requested before that vsync's time. A loop that requests its next frame at the end of its work has about 6 ms of a 120 Hz frame. With more work than that, it runs at 60 fps.
+- **iOS, JS thread.** It runs at 60 Hz, even on a ProMotion display.
+- **Worklet runtimes** (`createWorkletRuntime`). It polls every 16 ms, which gives about 45 to 50 fps.
+
+Measured with a cube and some busy work in each frame, in frames presented per second:
+
+| Runtime | Work per frame | Global | `react-native-webgpu` |
+| --- | --- | --- | --- |
+| JS thread, Android 120 Hz | 7 ms | 59 | 119 |
+| JS thread, iPhone ProMotion | 7 ms | 60 | 120 |
+| Worklet runtime, Android 120 Hz | 0 ms | 49 | 119 |
+| Worklet runtime, iPhone ProMotion | 0 ms | 45 | 120 |
+
+## How it works
+
+A native display link (`AChoreographer` on Android, `CADisplayLink` on iOS) runs on a thread of its own and asks for the display's highest rate.
+
+- **JS thread.** Each frame of the display runs the callbacks requested before it.
+- **Worklet runtime of your own.** The runtime waits on its thread for the next frame of the display, then runs the callbacks. The wait is at most the rest of the current frame, and nothing else runs on that runtime while it waits.
+- **Reanimated UI runtime.** It is Worklets' `requestAnimationFrame`, which is already paced by the display.
+
+Like in a browser, a callback requested while a frame's callbacks run gets the next frame, and all the callbacks of a frame receive the same timestamp, on the clock of `performance.now()`. A loop that overruns its frame runs again as soon as it asks, in the frame it overran into, instead of waiting for the frame after.
+
+## Platform notes
+
+- **iPhone.** Apps get more than 60 Hz only with `CADisableMinimumFrameDurationOnPhone` set to `true` in their `Info.plist`. See [Reanimated's performance guide](https://docs.swmansion.com/react-native-reanimated/docs/guides/performance/#-enable-120-fps).
+- **Small canvases on some Android devices.** Android can lower the refresh rate for content that only updates a small part of the screen ("small area detection" in SurfaceFlinger). On a Samsung Galaxy S25 Edge, a canvas covering less than about half of the screen ran the whole app at 60 Hz, whatever paced its frames. This is a system decision that no frame scheduler can override.
+- **macOS and web.** These functions are the runtime's own `requestAnimationFrame`.
+
+## See also
+
+- [Frame presentations](/docs/getting-started/canvas#frame-presentations) - `present()` and the frame rate
+- [Worklets](/docs/integrations/worklets) - render loops off the JS thread

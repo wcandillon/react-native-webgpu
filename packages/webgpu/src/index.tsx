@@ -32,6 +32,7 @@ import type {
 export * from "./main";
 export * from "./constants";
 export { installWebGPU } from "./install";
+export { requestAnimationFrame, cancelAnimationFrame } from "./animationFrame";
 export type {
   NativeVideoFrame,
   VideoPlayer,
@@ -66,6 +67,14 @@ declare global {
   }
 
   var navigator: Navigator;
+
+  // The native frame scheduler, see src/animationFrame.ts. Undefined on web.
+  var __webgpuAnimationFrames:
+    | {
+        request: (callback: (timestamp: number) => void) => number;
+        cancel: (handle: number) => void;
+      }
+    | undefined;
 
   var RNWebGPU: {
     gpu: GPU;

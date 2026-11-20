@@ -6,6 +6,7 @@ import android.graphics.SurfaceTexture;
 import android.os.Build;
 import android.view.Surface;
 import android.view.TextureView;
+import android.view.View;
 import androidx.annotation.NonNull;
 
 @SuppressLint("ViewConstructor")
@@ -53,6 +54,26 @@ public class WebGPUTextureView extends TextureView implements TextureView.Surfac
       mSurface = null;
     }
     return true;
+  }
+
+  /**
+   * A frame was just presented from the main thread: have this draw show it.
+   *
+   * TextureView hears of a new frame through its SurfaceTexture's
+   * frame-available listener, a plain message on the main looper. A frame
+   * presented on the main thread during the Choreographer's animation
+   * callbacks (the Reanimated UI runtime's requestAnimationFrame) is followed
+   * by that frame's draw before the message runs: the draw shows nothing new,
+   * the message schedules the next draw, and the canvas updates every other
+   * frame (60 fps on a 120 Hz display). What the listener does is private
+   * (updateLayerAndInvalidate()); onVisibilityChanged(VISIBLE) does the same
+   * for a visible view, so this calls it before the draw. Main thread.
+   */
+  void latchPresentedFrame() {
+    if (getSurfaceTexture() == null || !isShown()) {
+      return;
+    }
+    super.onVisibilityChanged(this, View.VISIBLE);
   }
 
   @Override

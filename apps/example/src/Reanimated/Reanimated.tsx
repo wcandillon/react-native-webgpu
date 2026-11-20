@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import type { CanvasRef, RNCanvasContext } from "react-native-webgpu";
-import { Canvas } from "react-native-webgpu";
+import { Canvas, requestAnimationFrame } from "react-native-webgpu";
 import type { SharedValue } from "react-native-reanimated";
 import { useSharedValue } from "react-native-reanimated";
 

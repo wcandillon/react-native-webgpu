@@ -8,6 +8,7 @@
     "install-webgpu",
     "gpu-device-extensions",
     "video-player",
-    "draw-element-image-to-texture"
+    "draw-element-image-to-texture",
+    "request-animation-frame"
   ]
 }
