@@ -1,18 +1,18 @@
 #include "NativeBufferViewRegistry.h"
 
+#include <cerrno>
+#include <condition_variable>
+#include <deque>
+#include <memory>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <utility>
 
 #if defined(__ANDROID__)
 #include <android/hardware_buffer.h>
 #include <android/log.h>
 #include <poll.h>
-
-#include <cerrno>
-#include <condition_variable>
-#include <deque>
-#include <thread>
 #elif defined(__APPLE__)
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreVideo/CoreVideo.h>
