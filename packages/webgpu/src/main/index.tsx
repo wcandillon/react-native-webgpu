@@ -56,6 +56,7 @@ const installDrawElementImageToTexture = () => {
 };
 
 export * from "../Canvas";
+export * from "../NativeBufferView";
 export * from "../Offscreen";
 export * from "../WebGPUViewNativeComponent";
 export * from "../hooks";

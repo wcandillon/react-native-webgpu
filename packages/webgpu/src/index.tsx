@@ -17,6 +17,8 @@ import type {
   GPUDrawElementImageSource,
   GPUSharedFence,
   GPUSharedFenceDescriptor,
+  GPUSharedFenceState,
+  CreateNativeBufferOptions,
   GPUDawnTogglesDescriptor,
   GPUNativeExternalTextureDescriptor,
   GPUSharedTextureMemory,
@@ -58,6 +60,7 @@ export type {
   GPUDrawElementImageDestination,
   GPUDrawElementImageSource,
   GPUDrawElementImageSourceView,
+  CreateNativeBufferOptions,
 } from "./types";
 
 declare global {
@@ -120,6 +123,22 @@ declare global {
       pixelFormat?: NativeVideoPixelFormat,
     ) => VideoPlayer;
     writeTestVideoFile: () => string;
+    // An empty native buffer (AHardwareBuffer / IOSurface) to render into
+    // with createNativeBufferTexture() and display in a NativeBufferView.
+    // Prefer the createNativeBuffer() export.
+    createNativeBuffer: (
+      width: number,
+      height: number,
+      options?: CreateNativeBufferOptions,
+    ) => NativeVideoFrame;
+    // The NativeBufferView registry (see NativeBufferView.tsx).
+    allocateNativeBufferViewId: () => number;
+    releaseNativeBufferView: (viewId: number) => void;
+    presentNativeBuffer: (
+      viewId: number,
+      frame: NativeVideoFrame,
+      fence?: GPUSharedFenceState | null,
+    ) => void;
   };
 
   interface GPUTexture {

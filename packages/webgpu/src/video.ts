@@ -1,4 +1,5 @@
 import type {
+  CreateNativeBufferOptions,
   CreateVideoPlayerOptions,
   NativeVideoFrame,
   VideoPlayer,
@@ -67,3 +68,17 @@ export const createTestVideoFrame = (
   height: number,
 ): NativeVideoFrame =>
   native("createTestVideoFrame").createTestVideoFrame(width, height);
+
+/**
+ * Allocates an empty native buffer (an `AHardwareBuffer` on Android, an
+ * `IOSurface` on Apple platforms) that the GPU renders into and a
+ * `NativeBufferView` displays: import it with
+ * `device.createNativeBufferTexture(frame, { usage:
+ * GPUTextureUsage.RENDER_ATTACHMENT })`, render, then present it.
+ */
+export const createNativeBuffer = (
+  width: number,
+  height: number,
+  options?: CreateNativeBufferOptions,
+): NativeVideoFrame =>
+  native("createNativeBuffer").createNativeBuffer(width, height, options);

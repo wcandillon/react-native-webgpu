@@ -1,5 +1,6 @@
 #pragma once
 
+#include <android/api-level.h>
 #include <android/bitmap.h>
 #include <android/data_space.h>
 #include <android/hardware_buffer.h>
@@ -420,6 +421,55 @@ public:
     handle.handle = static_cast<void *>(buffer);
     handle.width = width;
     handle.height = height;
+    handle.deleter = [buffer]() { AHardwareBuffer_release(buffer); };
+    return handle;
+  }
+
+  // A buffer Dawn imports as a render target (GPU_COLOR_OUTPUT) and HWUI
+  // samples (GPU_SAMPLED_IMAGE, Bitmap.wrapHardwareBuffer). Below API 29,
+  // where a NativeBufferView reads the pixels back instead, it is CPU
+  // readable too; only there, as CPU usage can force a linear layout on some
+  // drivers.
+  VideoFrameHandle createNativeBuffer(uint32_t width, uint32_t height,
+                                      wgpu::TextureFormat format,
+                                      bool displayP3) override {
+    uint32_t ahbFormat;
+    switch (format) {
+    case wgpu::TextureFormat::RGBA8Unorm:
+      ahbFormat = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
+      break;
+    case wgpu::TextureFormat::RGBA16Float:
+      ahbFormat = AHARDWAREBUFFER_FORMAT_R16G16B16A16_FLOAT;
+      break;
+    default:
+      throw std::runtime_error(
+          "createNativeBuffer: unsupported format on Android (expected "
+          "'rgba8unorm' or 'rgba16float')");
+    }
+    AHardwareBuffer_Desc desc = {};
+    desc.width = width;
+    desc.height = height;
+    desc.layers = 1;
+    desc.format = ahbFormat;
+    desc.usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE |
+                 AHARDWAREBUFFER_USAGE_GPU_COLOR_OUTPUT;
+    if (android_get_device_api_level() < 29) {
+      desc.usage |= AHARDWAREBUFFER_USAGE_CPU_READ_RARELY;
+    }
+    AHardwareBuffer *buffer = nullptr;
+    int err = AHardwareBuffer_allocate(&desc, &buffer);
+    if (err != 0 || !buffer) {
+      throw std::runtime_error(
+          "createNativeBuffer: AHardwareBuffer_allocate failed (" +
+          std::to_string(err) + ")");
+    }
+    VideoFrameHandle handle;
+    handle.handle = static_cast<void *>(buffer);
+    handle.width = width;
+    handle.height = height;
+    handle.colorSpace.primaries = displayP3
+                                      ? wgpu::ColorSpacePrimariesDawn::DisplayP3
+                                      : wgpu::ColorSpacePrimariesDawn::SRGB;
     handle.deleter = [buffer]() { AHardwareBuffer_release(buffer); };
     return handle;
   }

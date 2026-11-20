@@ -369,3 +369,18 @@ export interface GPUSharedTextureMemory {
   // returns an invalid texture, beginAccess() and endAccess() throw.
   destroy(): void;
 }
+
+/**
+ * The options of `createNativeBuffer()`. The buffer holds premultiplied
+ * pixels.
+ */
+export interface CreateNativeBufferOptions {
+  /**
+   * Defaults to the preferred canvas format of the platform:
+   * `"rgba8unorm"` on Android, `"bgra8unorm"` on Apple platforms.
+   * `"rgba16float"` works on both.
+   */
+  format?: "rgba8unorm" | "bgra8unorm" | "rgba16float";
+  /** The primaries of the values. Defaults to `"srgb"`. */
+  colorSpace?: PredefinedColorSpace;
+}

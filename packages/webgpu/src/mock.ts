@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { View } from "react-native";
 
 import type { CanvasProps, NativeCanvas, RNCanvasContext } from "./Canvas";
+import type { NativeBufferViewProps } from "./NativeBufferView";
 
 // Jest mock for `react-native-webgpu`.
 //
@@ -104,6 +105,34 @@ export const Canvas = ({ android: _android, ref, ...props }: CanvasProps) => {
   }));
   return React.createElement(View, props);
 };
+
+export type {
+  NativeBufferPixelSize,
+  NativeBufferResizeMode,
+  NativeBufferViewProps,
+  NativeBufferViewRef,
+} from "./NativeBufferView";
+
+// Renders as a plain View; present() fails like the other GPU entry points.
+export const NativeBufferView = ({
+  resizeMode: _resizeMode,
+  onPixelSizeChange: _onPixelSizeChange,
+  ref,
+  ...props
+}: NativeBufferViewProps) => {
+  React.useImperativeHandle(ref, () => ({
+    viewId: -1,
+    present: () => {
+      throw new Error(`NativeBufferView.present() ${NOT_AVAILABLE_UNDER_JEST}`);
+    },
+  }));
+  return React.createElement(View, props);
+};
+
+export const useNativeBufferSize = (_debounceMs?: number) => ({
+  size: null,
+  onPixelSizeChange: () => undefined,
+});
 
 export const useCanvasRef = () => React.useRef(null);
 export const useSurface = () => ({ ref: React.useRef(null), surface: null });

@@ -45,4 +45,5 @@ export type Routes = {
   VisionCamera: undefined;
   SixteenBitTextures: undefined;
   ViewSnapshot: undefined;
+  NativeBufferView: undefined;
 };

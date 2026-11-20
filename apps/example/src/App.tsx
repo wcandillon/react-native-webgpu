@@ -53,6 +53,7 @@ import { ImportExternalTexture } from "./ImportExternalTexture";
 import { VisionCamera } from "./VisionCamera";
 import { SixteenBitTextures } from "./SixteenBitTextures";
 import { ViewSnapshot } from "./ViewSnapshot";
+import { NativeBufferView } from "./NativeBufferView";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -113,6 +114,7 @@ const linking: LinkingOptions<Routes> = {
       VisionCamera: "vision-camera",
       SixteenBitTextures: "sixteen-bit-textures",
       ViewSnapshot: "view-snapshot",
+      NativeBufferView: "native-buffer-view",
     },
   },
   // react-native-test-app registers its bundle id as the iOS URL scheme, and
@@ -220,6 +222,7 @@ function App() {
             component={SixteenBitTextures}
           />
           <Stack.Screen name="ViewSnapshot" component={ViewSnapshot} />
+          <Stack.Screen name="NativeBufferView" component={NativeBufferView} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
