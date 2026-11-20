@@ -8,7 +8,7 @@ import React, {
 import type { NativeSyntheticEvent, ViewProps } from "react-native";
 
 import NativeBufferViewNative from "./NativeBufferViewNativeComponent";
-import type { GPUSharedFenceState, NativeVideoFrame } from "./types";
+import type { GPUSharedFenceState, NativeBuffer } from "./types";
 
 /**
  * How a {@link NativeBufferView} fits a buffer whose size differs from its
@@ -45,7 +45,7 @@ export interface NativeBufferViewRef {
    * The buffer must not be written again while it is displayed: render the
    * next content into another buffer and present that one.
    */
-  present(frame: NativeVideoFrame, fence?: GPUSharedFenceState | null): void;
+  present(frame: NativeBuffer, fence?: GPUSharedFenceState | null): void;
 }
 
 export interface NativeBufferViewProps extends ViewProps {

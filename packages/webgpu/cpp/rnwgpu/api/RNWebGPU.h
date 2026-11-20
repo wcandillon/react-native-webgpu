@@ -412,14 +412,14 @@ public:
                                  const jsi::Value *args, size_t count) {
     if (count < 2 || !args[0].isNumber() || !args[1].isObject()) {
       throw jsi::JSError(runtime, "presentNativeBuffer(viewId, frame, fence?): "
-                                  "expected a view id and a NativeVideoFrame");
+                                  "expected a view id and a NativeBuffer");
     }
     const int viewId = static_cast<int>(args[0].asNumber());
     auto frame = JSIConverter<std::shared_ptr<VideoFrame>>::fromJSI(
         runtime, args[1], false);
     if (!frame) {
       throw jsi::JSError(
-          runtime, "presentNativeBuffer(): frame is not a NativeVideoFrame");
+          runtime, "presentNativeBuffer(): frame is not a NativeBuffer");
     }
     wgpu::SharedFence fence;
     uint64_t signaledValue = 0;

@@ -30,7 +30,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
     jsi::Runtime &runtime,
     std::optional<std::shared_ptr<GPUDeviceDescriptor>> descriptor) {
   // Native frame import (importSharedTextureMemory, importExternalTexture,
-  // copyExternalImageToTexture with a NativeVideoFrame) needs no feature
+  // copyExternalImageToTexture with a NativeBuffer) needs no feature
   // request, like importExternalTexture on the web: the Dawn features behind
   // it are added to requiredFeatures here, each one when the adapter supports
   // it. Requesting a feature the adapter lacks would make RequestDevice fail,

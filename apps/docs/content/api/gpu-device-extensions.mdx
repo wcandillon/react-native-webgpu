@@ -11,9 +11,9 @@ Imports a native buffer (IOSurface / AHardwareBuffer) for zero-copy sampling.
 Nothing has to be requested: `requestDevice()` enables the Dawn features behind native frame import whenever the adapter supports them (see [Native textures](/docs/getting-started/native-api#native-textures)).
 
 ```tsx twoslash
-import type { NativeVideoFrame } from "react-native-webgpu";
+import type { NativeBuffer } from "react-native-webgpu";
 declare const adapter: GPUAdapter;
-declare const frame: NativeVideoFrame;
+declare const frame: NativeBuffer;
 // ---cut---
 const device = await adapter.requestDevice();
 
@@ -47,17 +47,17 @@ import type {
   GPUSharedFenceExportInfo,
   GPUSharedFenceType,
   GPUSharedTextureMemory,
-  NativeVideoFrame,
+  NativeBuffer,
 } from "react-native-webgpu";
 declare const device: GPUDevice;
 declare const memory: GPUSharedTextureMemory;
 declare const texture: GPUTexture;
-declare const frame: NativeVideoFrame;
+declare const frame: NativeBuffer;
 declare const ready: GPUSharedFenceExportInfo;
 // A native module of yours: waits for the fence, releases the frame and
 // closes the handle.
 declare function releaseFrameWhenSignaled(
-  frame: NativeVideoFrame,
+  frame: NativeBuffer,
   type: GPUSharedFenceType,
   handle: bigint,
   signaledValue: bigint,
@@ -93,10 +93,10 @@ These two methods import a buffer once; each frame is then bracketed with `begin
 ```tsx twoslash
 import type {
   GPUNativeBufferExternalTexture,
-  NativeVideoFrame,
+  NativeBuffer,
 } from "react-native-webgpu";
 declare const device: GPUDevice;
-declare const frame: NativeVideoFrame;
+declare const frame: NativeBuffer;
 declare const wrappers: Map<bigint, GPUNativeBufferExternalTexture>;
 declare function draw(externalTexture: GPUExternalTexture): void;
 // ---cut---
@@ -185,7 +185,7 @@ The flag only controls the default injection: listing `"implicit-device-synchron
 
 | Field / Method | Description |
 | -------------- | ----------- |
-| `source` | A [`NativeVideoFrame`](/api/video-player#nativevideoframe) (from a video player, a camera buffer or `createTestVideoFrame`) instead of the web's `HTMLVideoElement` / `VideoFrame` |
+| `source` | A [`NativeBuffer`](/api/video-player#nativebuffer) (from a video player, a camera buffer or `createTestVideoFrame`) instead of the web's `HTMLVideoElement` / `VideoFrame` |
 | `rotation` | 0, 90, 180, or 270 degrees (camera orientation) |
 | `mirrored` | Horizontal flip for front camera |
 | `sourceColorSpace` | Overrides the members of the frame's own color space (`matrix`, `range`, `primaries`, `transfer`), for a buffer that carries none |
@@ -213,14 +213,14 @@ On Android, a YUV frame (what the video decoder and the camera produce) needs th
 
 ## copyExternalImageToTexture with a native frame
 
-`queue.copyExternalImageToTexture()` also accepts a [`NativeVideoFrame`](/api/video-player#nativevideoframe) as its source, the way the web API accepts a `VideoFrame`.
+`queue.copyExternalImageToTexture()` also accepts a [`NativeBuffer`](/api/video-player#nativebuffer) as its source, the way the web API accepts a `VideoFrame`.
 The frame is rendered into the destination on the GPU through an external texture, so YUV frames come out as RGB, and the non-spec `rotation` and `mirrored` options of `importExternalTexture` apply.
 The destination needs `GPUTextureUsage.RENDER_ATTACHMENT` and an `rgba8unorm`, `bgra8unorm` (or `-srgb`), `rgba16float` or `rgb10a2unorm` format; the frame can be released as soon as the call returns.
 
 ```tsx twoslash
-import type { NativeVideoFrame } from "react-native-webgpu";
+import type { NativeBuffer } from "react-native-webgpu";
 declare const device: GPUDevice;
-declare const frame: NativeVideoFrame;
+declare const frame: NativeBuffer;
 declare const rotation: 0 | 90 | 180 | 270;
 // ---cut---
 const texture = device.createTexture({

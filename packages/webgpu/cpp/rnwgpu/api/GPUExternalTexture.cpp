@@ -19,7 +19,7 @@ std::shared_ptr<GPUExternalTexture> GPUExternalTexture::Create(
   if (!descriptor || !descriptor->source) {
     throw std::runtime_error(
         "GPUDevice::importExternalTexture(): descriptor.source "
-        "(NativeVideoFrame) is required");
+        "(NativeBuffer) is required");
   }
   const auto &frame = descriptor->source->handle();
   std::string label = descriptor->label.value_or("external-texture");

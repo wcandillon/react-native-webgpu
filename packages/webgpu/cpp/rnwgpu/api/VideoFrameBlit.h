@@ -23,7 +23,7 @@ namespace rnwgpu {
 // imported as an external texture, so Dawn does the YUV to RGB conversion and
 // applies the rotation and the mirroring; a full-screen triangle then samples
 // it into the destination. This is what backs
-// GPUQueue.copyExternalImageToTexture for NativeVideoFrame sources, and the
+// GPUQueue.copyExternalImageToTexture for NativeBuffer sources, and the
 // zero-copy path of GPUQueue.drawElementImageToTexture, which draws the
 // buffer the platform rendered a view into.
 //
@@ -64,7 +64,7 @@ public:
             const Request &request) {
     if (!request.frame || request.frame->handle().handle == nullptr) {
       throw std::runtime_error(
-          "copyExternalImageToTexture: the NativeVideoFrame was released");
+          "copyExternalImageToTexture: the NativeBuffer was released");
     }
     if (!request.texture) {
       throw std::runtime_error(

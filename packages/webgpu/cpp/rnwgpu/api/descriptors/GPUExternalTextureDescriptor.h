@@ -49,7 +49,7 @@ namespace external_texture_color_space {
 
 // The JS names of the members of a source color space, the Dawn enums
 // spelled the way the frame producers report them (see
-// NativeVideoFrameColorSpace in src/types.ts).
+// NativeBufferColorSpace in src/types.ts).
 inline wgpu::ColorSpaceYCbCrMatrixDawn parseMatrix(const std::string &name) {
   if (name == "identity") {
     return wgpu::ColorSpaceYCbCrMatrixDawn::Identity;

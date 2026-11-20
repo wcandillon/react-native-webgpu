@@ -55,7 +55,7 @@ public:
                     std::shared_ptr<GPUImageDataLayout> dataLayout,
                     std::shared_ptr<GPUExtent3D> size);
   // The source is an ImageBitmap (uploaded from the CPU) or, as a React
-  // Native extension, a NativeVideoFrame rendered into the destination through
+  // Native extension, a NativeBuffer rendered into the destination through
   // an external texture (see VideoFrameBlit).
   void copyExternalImageToTexture(
       std::shared_ptr<GPUImageCopyExternalImage> source,

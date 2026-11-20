@@ -26,7 +26,7 @@ import java.util.Set;
  * buffers the GPU can sample ({@link ImageFormat#PRIVATE} with
  * {@link HardwareBuffer#USAGE_GPU_SAMPLED_IMAGE}). Each frame is handed to C++
  * (AndroidVideoPlayer) as an {@link Image} that stays acquired until the
- * NativeVideoFrame is released, which hands the buffer back to the decoder.
+ * NativeBuffer is released, which hands the buffer back to the decoder.
  *
  * The frames keep the decoder's native YUV layout, so they are sampled through
  * GPUDevice.importExternalTexture. MediaPlayer owns the audio, the clock and

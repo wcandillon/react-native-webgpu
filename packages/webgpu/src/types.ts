@@ -34,17 +34,23 @@ export interface CanvasRef {
   getNativeSurface: () => NativeCanvas;
 }
 
-// Pixel layout of a NativeVideoFrame. NOT the WebCodecs `VideoPixelFormat`
+// Pixel layout of a NativeBuffer. NOT the WebCodecs `VideoPixelFormat`
 // enum — these are the two native surface layouts we support, lower-cased to
 // avoid being mistaken for the spec values ("NV12", "BGRA", …).
-export type NativeVideoPixelFormat = "bgra8" | "nv12";
+export type NativeBufferPixelFormat = "bgra8" | "nv12";
 
-// A native, GPU-shareable handle to a single video frame.
+/** @deprecated Renamed to {@link NativeBufferPixelFormat}. */
+export type NativeVideoPixelFormat = NativeBufferPixelFormat;
+
+// A native, GPU-shareable buffer: a video or camera frame, or a buffer made
+// with createNativeBuffer() to render into and show in a NativeBufferView. It
+// exists without any GPU device; a device imports it to draw into it or to
+// sample it (importSharedTextureMemory, importExternalTexture).
 //
 // NOT the WebCodecs `VideoFrame`: there is no `close()`/`format`/`timestamp`,
 // the surface is referenced by a raw native pointer, and disposal is
-// `release()`. Named with a `Native` prefix so it doesn't shadow the global
-// WebCodecs type or imply spec semantics it doesn't have.
+// `release()`. The same name as VisionCamera's `NativeBuffer` (a pointer and
+// release()), which createVideoFrameFromNativeBuffer() wraps into this one.
 //
 //   - handle is the raw pointer (IOSurfaceRef on Apple, AHardwareBuffer* on
 //     Android) encoded as a BigInt. Pass it to
@@ -62,20 +68,23 @@ export type NativeVideoPixelFormat = "bgra8" | "nv12";
 //   - release() drops the underlying backing object (a CVPixelBuffer on Apple).
 //     The frame is also released when the JS wrapper is garbage-collected; call
 //     release() eagerly when you know you're done.
-export interface NativeVideoFrame {
+export interface NativeBuffer {
   readonly handle: bigint;
   readonly width: number;
   readonly height: number;
-  readonly pixelFormat: NativeVideoPixelFormat;
+  readonly pixelFormat: NativeBufferPixelFormat;
   readonly acquireFenceFd: bigint | null;
   release(): void;
 }
+
+/** @deprecated Renamed to {@link NativeBuffer}. */
+export type NativeVideoFrame = NativeBuffer;
 
 // The color space of a YUV frame, the way its producer reports it: the YCbCr
 // matrix and range that encode the samples, and the primaries and transfer
 // function of the RGB they encode. Each member is optional; what is left out
 // comes from the frame, then from the platform's best guess for the buffer.
-export interface NativeVideoFrameColorSpace {
+export interface NativeBufferColorSpace {
   matrix?: "identity" | "rec601" | "rec709" | "rec2020";
   range?: "identity" | "narrow" | "full";
   primaries?: "srgb" | "rec709" | "rec601" | "rec2020" | "display-p3";
@@ -89,10 +98,13 @@ export interface NativeVideoFrameColorSpace {
     | "bt-1886";
 }
 
+/** @deprecated Renamed to {@link NativeBufferColorSpace}. */
+export type NativeVideoFrameColorSpace = NativeBufferColorSpace;
+
 // A 2D size, as { width, height } or [width, height].
 export type GPUExtent2D = { width: number; height: number } | [number, number];
 
-// GPUExternalTextureDescriptor with a NativeVideoFrame as the source: what
+// GPUExternalTextureDescriptor with a NativeBuffer as the source: what
 // GPUDevice.importExternalTexture() takes on React Native, where there is no
 // HTMLVideoElement or WebCodecs VideoFrame. The other members (label,
 // colorSpace, and the rotation / mirrored extensions) are the same.
@@ -100,10 +112,10 @@ export interface GPUNativeExternalTextureDescriptor extends Omit<
   GPUExternalTextureDescriptor,
   "source"
 > {
-  source: NativeVideoFrame;
+  source: NativeBuffer;
   // Overrides the members of the frame's own color space, for a buffer that
   // carries none (one wrapped from another library) or reports it wrong.
-  sourceColorSpace?: NativeVideoFrameColorSpace;
+  sourceColorSpace?: NativeBufferColorSpace;
   // The part of the frame the external texture shows, the whole frame by
   // default (Dawn's cropOrigin / cropSize).
   cropOrigin?: GPUOrigin2D;
@@ -129,7 +141,7 @@ export interface GPUNativeBufferTextureDescriptor {
 // A native buffer imported once, with the access window of each use explicit:
 // the counterpart of GPUHardwareBufferWrapper in Dawn's Android layer
 // (androidx.webgpu). A decoder or a camera renders into the same few buffers
-// in turn; keep one wrapper per buffer (keyed by NativeVideoFrame.handle), and
+// in turn; keep one wrapper per buffer (keyed by NativeBuffer.handle), and
 // bracket each frame with beginAccess() / endAccess() instead of importing it
 // again. The wrapper keeps the frame it was created from alive until
 // destroy().
@@ -175,10 +187,10 @@ export interface GPUNativeBufferExternalTexture extends GPUNativeBufferWrapper {
 // currentTime (in seconds, assign it to seek), duration, volume and loop work
 // as on the web. Frames are pulled instead of displayed: poll
 // copyLatestFrame() on every render tick to obtain the most recently decoded
-// frame as an IOSurface/AHardwareBuffer-backed NativeVideoFrame (null between
+// frame as an IOSurface/AHardwareBuffer-backed NativeBuffer (null between
 // frames, so callers can skip the import work).
 export interface VideoPlayer {
-  copyLatestFrame(): NativeVideoFrame | null;
+  copyLatestFrame(): NativeBuffer | null;
   play(): void;
   pause(): void;
   // Stops playback and releases the decoder. Frames already copied stay
@@ -214,7 +226,7 @@ export interface VideoPlayer {
 // GPUTextureUsage.RENDER_ATTACHMENT. `origin` and the copy size are in the
 // upright frame, after rotation.
 export interface GPUCopyExternalNativeFrameSourceInfo {
-  source: NativeVideoFrame;
+  source: NativeBuffer;
   origin?: GPUOrigin2D;
   flipY?: boolean;
   rotation?: 0 | 90 | 180 | 270;
@@ -228,7 +240,7 @@ export interface CreateVideoPlayerOptions {
   // 'nv12': biplanar Y + CbCr surfaces, for GPUDevice.importExternalTexture.
   // On Android the decoder always writes its native YUV layout (reported as
   // 'nv12'), which only importExternalTexture samples; the option is ignored.
-  pixelFormat?: NativeVideoPixelFormat;
+  pixelFormat?: NativeBufferPixelFormat;
 }
 
 // A React Native view to draw with GPUQueue.drawElementImageToTexture: a host
@@ -270,7 +282,7 @@ export interface GPUSharedTextureMemoryDescriptor {
   // Raw native handle (IOSurfaceRef on Apple, AHardwareBuffer* on Android),
   // encoded as a BigInt. The caller is responsible for keeping the underlying
   // object alive for as long as the shared memory (and any textures derived
-  // from it) are in use. Using NativeVideoFrame.handle handles this
+  // from it) are in use. Using NativeBuffer.handle handles this
   // automatically.
   handle: bigint;
   label?: string;

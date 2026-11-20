@@ -8,7 +8,7 @@ import {
   useDevice,
   type GPUSharedTextureMemory,
   type NativeCanvas,
-  type NativeVideoFrame,
+  type NativeBuffer,
 } from "react-native-webgpu";
 
 const SHADER = /* wgsl */ `
@@ -93,7 +93,7 @@ export const SharedTextureMemory = () => {
     // from copyLatestFrame() as "keep showing the previous frame", which means
     // a one-shot source renders correctly without any other change.
     interface FrameSource {
-      copyLatestFrame(): NativeVideoFrame | null;
+      copyLatestFrame(): NativeBuffer | null;
       release(): void;
     }
     let source: FrameSource;
@@ -110,7 +110,7 @@ export const SharedTextureMemory = () => {
       // Android decodes videos into YUV frames, which only
       // importExternalTexture samples (see the ImportExternalTexture demo);
       // this BGRA path shows a synthetic frame instead.
-      let pending: NativeVideoFrame | null = createTestVideoFrame(1024, 1024);
+      let pending: NativeBuffer | null = createTestVideoFrame(1024, 1024);
       source = {
         copyLatestFrame: () => {
           const f = pending;
@@ -158,7 +158,7 @@ export const SharedTextureMemory = () => {
     // demo we rely on AVPlayer recycling its IOSurface pool, which is safe as
     // long as we end-access before letting the player reclaim the buffer.
     type Bound = {
-      frame: NativeVideoFrame;
+      frame: NativeBuffer;
       memory: GPUSharedTextureMemory;
       texture: GPUTexture;
       bindGroup: GPUBindGroup;
@@ -180,7 +180,7 @@ export const SharedTextureMemory = () => {
       }
     };
 
-    const bindFrame = (frame: NativeVideoFrame): Bound | null => {
+    const bindFrame = (frame: NativeBuffer): Bound | null => {
       try {
         const memory = device.importSharedTextureMemory({
           handle: frame.handle,
