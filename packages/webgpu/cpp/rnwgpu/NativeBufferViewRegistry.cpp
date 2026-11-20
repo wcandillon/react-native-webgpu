@@ -8,11 +8,13 @@
 #include <string>
 #include <thread>
 #include <utility>
+#include <vector>
 
 #if defined(__ANDROID__)
 #include <android/hardware_buffer.h>
 #include <android/log.h>
 #include <poll.h>
+#include <unistd.h>
 #elif defined(__APPLE__)
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreVideo/CoreVideo.h>
@@ -113,10 +115,12 @@ public:
     return *waiter;
   }
 
-  void enqueue(wgpu::SharedFence fence, int fd,
+  // Waits for `fenceFd` (borrowed from `fence`, -1 for none) and `ownedFd`
+  // (closed after the wait, -1 for none).
+  void enqueue(wgpu::SharedFence fence, int fenceFd, int ownedFd,
                std::function<void(bool)> done) {
     std::lock_guard<std::mutex> lock(_mutex);
-    _jobs.push_back({std::move(fence), fd, std::move(done)});
+    _jobs.push_back({std::move(fence), fenceFd, ownedFd, std::move(done)});
     if (!_started) {
       _started = true;
       std::thread([this]() { run(); }).detach();
@@ -126,9 +130,10 @@ public:
 
 private:
   struct Job {
-    // Owns `fd`: Dawn's export is borrowed and closed with the fence.
+    // Owns `fenceFd`: Dawn's export is borrowed and closed with the fence.
     wgpu::SharedFence fence;
-    int fd;
+    int fenceFd;
+    int ownedFd;
     std::function<void(bool)> done;
   };
 
@@ -145,7 +150,11 @@ private:
         job = std::move(_jobs.front());
         _jobs.pop_front();
       }
-      const bool signaled = waitFd(job.fd);
+      bool signaled = job.fenceFd < 0 || waitFd(job.fenceFd);
+      if (job.ownedFd >= 0) {
+        signaled = signaled && waitFd(job.ownedFd);
+        ::close(job.ownedFd);
+      }
       if (!signaled) {
         __android_log_print(ANDROID_LOG_WARN, NBV_LOG_TAG,
                             "the fence of a presented buffer did not signal; "
@@ -180,27 +189,44 @@ private:
 
 } // namespace
 
-void waitForSharedFence(wgpu::SharedFence fence, uint64_t /* signaledValue */,
-                        std::function<void(bool)> done) {
-  // Exported on the calling thread, where the device is in use anyway.
-  wgpu::SharedFenceExportInfo info{};
-  wgpu::SharedFenceSyncFDExportInfo fdInfo{};
-  info.nextInChain = &fdInfo;
-  fence.ExportInfo(&info);
-  if (info.type != wgpu::SharedFenceType::SyncFD) {
-    __android_log_print(ANDROID_LOG_WARN, NBV_LOG_TAG,
-                        "presentNativeBuffer: the fence is not a sync fd; "
-                        "the buffer is dropped");
-    done(false);
-    return;
-  }
-  if (fdInfo.handle < 0) {
+namespace {
+
+// Waits for `fence` (if any) and `ownedFd` (if >= 0, closed afterwards).
+void waitForFences(wgpu::SharedFence fence, int ownedFd,
+                   std::function<void(bool)> done) {
+  int fenceFd = -1;
+  if (fence) {
+    // Exported on the calling thread, where the device is in use anyway.
+    wgpu::SharedFenceExportInfo info{};
+    wgpu::SharedFenceSyncFDExportInfo fdInfo{};
+    info.nextInChain = &fdInfo;
+    fence.ExportInfo(&info);
+    if (info.type != wgpu::SharedFenceType::SyncFD) {
+      __android_log_print(ANDROID_LOG_WARN, NBV_LOG_TAG,
+                          "presentNativeBuffer: the fence is not a sync fd; "
+                          "the buffer is dropped");
+      if (ownedFd >= 0) {
+        ::close(ownedFd);
+      }
+      done(false);
+      return;
+    }
     // -1 is a fence that has already signaled.
+    fenceFd = fdInfo.handle;
+  }
+  if (fenceFd < 0 && ownedFd < 0) {
     done(true);
     return;
   }
-  FenceWaiter::shared().enqueue(std::move(fence), fdInfo.handle,
+  FenceWaiter::shared().enqueue(std::move(fence), fenceFd, ownedFd,
                                 std::move(done));
+}
+
+} // namespace
+
+void waitForSharedFence(wgpu::SharedFence fence, uint64_t /* signaledValue */,
+                        std::function<void(bool)> done) {
+  waitForFences(std::move(fence), -1, std::move(done));
 }
 
 #endif // __ANDROID__
@@ -209,25 +235,47 @@ void waitForSharedFence(wgpu::SharedFence fence, uint64_t /* signaledValue */,
 
 void NativeBufferViewRegistry::present(
     int viewId, std::shared_ptr<NativeBufferContent> content,
-    wgpu::SharedFence fence, uint64_t signaledValue) {
-  uint64_t sequence;
+    wgpu::SharedFence fence, uint64_t signaledValue, int acquireFenceFd) {
+  uint64_t sequence = 0;
   {
     std::lock_guard<std::mutex> lock(_mutex);
-    auto &entry = _entries[viewId];
-    sequence = ++entry.presentedSequence;
+    auto it = _entries.find(viewId);
+    if (it != _entries.end() && it->second.ownedByJS) {
+      sequence = ++it->second.presentedSequence;
+    }
   }
-  if (!fence) {
-    deliver(viewId, sequence, std::move(content));
+  if (sequence == 0) {
+    // Released by JS (a present that lands after unmount), or an id that
+    // was never retained.
+#if defined(__ANDROID__)
+    if (acquireFenceFd >= 0) {
+      ::close(acquireFenceFd);
+    }
+#endif
     return;
   }
-  waitForSharedFence(
-      std::move(fence), signaledValue,
-      [viewId, sequence, content = std::move(content)](bool signaled) mutable {
-        if (signaled) {
-          NativeBufferViewRegistry::getInstance().deliver(viewId, sequence,
-                                                          std::move(content));
-        }
-      });
+  auto onSignaled = [viewId, sequence,
+                     content = std::move(content)](bool signaled) mutable {
+    if (signaled) {
+      NativeBufferViewRegistry::getInstance().deliver(viewId, sequence,
+                                                      std::move(content));
+    }
+  };
+#if defined(__ANDROID__)
+  // Sync fds have no value to wait for.
+  (void)signaledValue;
+  if (fence || acquireFenceFd >= 0) {
+    waitForFences(std::move(fence), acquireFenceFd, std::move(onSignaled));
+    return;
+  }
+#else
+  (void)acquireFenceFd;
+  if (fence) {
+    waitForSharedFence(std::move(fence), signaledValue, std::move(onSignaled));
+    return;
+  }
+#endif
+  onSignaled(true);
 }
 
 void NativeBufferViewRegistry::deliver(
@@ -265,9 +313,13 @@ NativeBufferViewRegistry::content(int viewId, uint64_t *sequence) {
 }
 
 void NativeBufferViewRegistry::setListener(int viewId, Listener listener) {
+  if (viewId <= 0) {
+    return;
+  }
   bool hasContent = false;
   {
     std::lock_guard<std::mutex> lock(_mutex);
+    // Created when the JS component already let go: detachView erases it.
     auto &entry = _entries[viewId];
     entry.listener = listener;
     hasContent = entry.content != nullptr;
@@ -288,12 +340,17 @@ void NativeBufferViewRegistry::detachView(int viewId) {
     }
     listener = std::move(it->second.listener);
     it->second.listener = nullptr;
-    if (it->second.releasedFromJS) {
-      released = std::move(it->second.content);
-      _entries.erase(it);
-    }
+    eraseIfUnowned(it, &released);
   }
   // The buffer and the listener's captures are released outside the lock.
+}
+
+void NativeBufferViewRegistry::retainFromJS(int viewId) {
+  if (viewId <= 0) {
+    return;
+  }
+  std::lock_guard<std::mutex> lock(_mutex);
+  _entries[viewId].ownedByJS = true;
 }
 
 void NativeBufferViewRegistry::releaseFromJS(int viewId) {
@@ -304,13 +361,35 @@ void NativeBufferViewRegistry::releaseFromJS(int viewId) {
     if (it == _entries.end()) {
       return;
     }
-    if (it->second.listener) {
-      it->second.releasedFromJS = true;
-    } else {
-      released = std::move(it->second.content);
-      _entries.erase(it);
+    it->second.ownedByJS = false;
+    eraseIfUnowned(it, &released);
+  }
+}
+
+void NativeBufferViewRegistry::releaseAllFromJS() {
+  std::vector<std::shared_ptr<NativeBufferContent>> released;
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    for (auto it = _entries.begin(); it != _entries.end();) {
+      it->second.ownedByJS = false;
+      if (it->second.listener) {
+        ++it;
+      } else {
+        released.push_back(std::move(it->second.content));
+        it = _entries.erase(it);
+      }
     }
   }
+}
+
+void NativeBufferViewRegistry::eraseIfUnowned(
+    std::unordered_map<int, Entry>::iterator it,
+    std::shared_ptr<NativeBufferContent> *released) {
+  if (it->second.ownedByJS || it->second.listener) {
+    return;
+  }
+  *released = std::move(it->second.content);
+  _entries.erase(it);
 }
 
 } // namespace rnwgpu

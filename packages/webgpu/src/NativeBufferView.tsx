@@ -2,6 +2,7 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -38,12 +39,21 @@ export interface NativeBufferViewRef {
   readonly viewId: number;
   /**
    * Displays `frame` once `fence` has signaled (right away without one).
+   * On Android, it also waits for the frame's own acquire fence, if any.
    * Returns immediately; the view shows the buffer on the next vsync after
-   * that. The view keeps its own reference on the buffer: the frame can be
-   * released right after this call.
+   * that.
    *
    * The buffer must not be written again while it is displayed: render the
-   * next content into another buffer and present that one.
+   * next content into another buffer and present that one. The view keeps
+   * its own reference on the buffer, so a buffer from `createNativeBuffer()`
+   * can be released right after this call.
+   *
+   * Frames from a pool (a `VideoPlayer`, a camera, a decoder) are different:
+   * the pool reuses the buffer for a later frame once the frame is released,
+   * even while the view still shows it, and the view then shows a later or
+   * half-written frame. Copy such a frame into a buffer from
+   * `createNativeBuffer()` (for instance by drawing it with WebGPU) and
+   * present the copy.
    */
   present(frame: NativeBuffer, fence?: GPUSharedFenceState | null): void;
 }
@@ -70,7 +80,8 @@ export interface NativeBufferViewProps extends ViewProps {
  * The view never allocates buffers. It reports its size in physical pixels
  * ({@link NativeBufferViewProps.onPixelSizeChange}), and any producer
  * (WebGPU, Skia, a camera, a decoder) renders into a buffer and presents it
- * through the ref. With WebGPU:
+ * through the ref (frames from a camera or a decoder are copied first, see
+ * {@link NativeBufferViewRef.present}). With WebGPU:
  *
  * ```ts
  * const frame = RNWebGPU.createNativeBuffer(size.width, size.height);
@@ -105,7 +116,12 @@ export const NativeBufferView = ({
     [viewId],
   );
 
-  useEffect(() => {
+  // The JS side's hold on the native entry; presents to an id nobody holds
+  // are dropped. A layout effect, so the entry exists before the ref reaches
+  // a parent's effects. Not taken in the useState initializer above: React
+  // StrictMode calls it twice and discards one id.
+  useLayoutEffect(() => {
+    RNWebGPU.retainNativeBufferView(viewId);
     return () => RNWebGPU.releaseNativeBufferView(viewId);
   }, [viewId]);
 

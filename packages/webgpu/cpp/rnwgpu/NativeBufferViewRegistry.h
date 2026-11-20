@@ -70,10 +70,12 @@ void waitForSharedFence(wgpu::SharedFence fence, uint64_t signaledValue,
 // already landed is dropped, so the view always ends on the last buffer
 // presented.
 //
-// An entry has two owners: the JS component (releaseFromJS on unmount) and
-// the native view (setListener / detachView). It is erased once both let go,
-// in either order, which keeps React StrictMode's simulated unmount (JS
-// effects re-run, native view kept) safe.
+// An entry has two owners: the JS component (retainFromJS on mount,
+// releaseFromJS on unmount, releaseAllFromJS on reload) and the native view
+// (setListener / detachView). It is erased once both let go, in either order.
+// A native view that attaches after the JS component let go still gets an
+// entry, which detachView erases. React StrictMode's simulated unmount (JS
+// effects re-run, native view kept) releases and retains again.
 class NativeBufferViewRegistry {
 public:
   using Listener = std::function<void()>;
@@ -88,15 +90,22 @@ public:
   operator=(const NativeBufferViewRegistry &) = delete;
 
   // Unique for the life of the process: the registry outlives a JS reload.
+  // Creates no entry (React StrictMode may discard the id): retainFromJS does.
   int allocateViewId() {
     std::lock_guard<std::mutex> lock(_mutex);
     return ++_nextViewId;
   }
 
   // Makes `content` the view's content once `fence` (if any) has reached
-  // `signaledValue`. Returns immediately.
+  // `signaledValue` and, on Android, once `acquireFenceFd` (a sync fd the
+  // producer signals when it is done writing the buffer, or -1) has
+  // signaled. Takes ownership of `acquireFenceFd`. Returns immediately.
+  //
+  // A present to a view the JS component does not hold (released, or never
+  // retained) is dropped: nothing would ever free its buffer.
   void present(int viewId, std::shared_ptr<NativeBufferContent> content,
-               wgpu::SharedFence fence, uint64_t signaledValue);
+               wgpu::SharedFence fence, uint64_t signaledValue,
+               int acquireFenceFd = -1);
 
   // The latest ready content and its sequence number (0 when there is none
   // yet). A view keeps the sequence number of what it shows and skips a
@@ -112,9 +121,18 @@ public:
   // the JS component has released it too.
   void detachView(int viewId);
 
+  // The JS component mounted (or mounted again with the same id, when React
+  // StrictMode re-runs its effects): creates the entry if needed and takes
+  // the JS ownership.
+  void retainFromJS(int viewId);
+
   // The JS component unmounted: drops the entry when no native view is
   // attached to it (else detachView does).
   void releaseFromJS(int viewId);
+
+  // The JS runtime is going away (a reload): its components never run their
+  // cleanup, so this releases every entry from JS.
+  void releaseAllFromJS();
 
 private:
   NativeBufferViewRegistry() = default;
@@ -125,8 +143,13 @@ private:
     uint64_t presentedSequence = 0;
     uint64_t readySequence = 0;
     Listener listener;
-    bool releasedFromJS = false;
+    bool ownedByJS = false;
   };
+
+  // Erases `it` when neither the JS component nor a native view holds it,
+  // moving its content to `released` so the buffer is freed outside the lock.
+  void eraseIfUnowned(std::unordered_map<int, Entry>::iterator it,
+                      std::shared_ptr<NativeBufferContent> *released);
 
   void deliver(int viewId, uint64_t sequence,
                std::shared_ptr<NativeBufferContent> content);

@@ -139,6 +139,7 @@ declare global {
     ) => NativeBuffer;
     // The NativeBufferView registry (see NativeBufferView.tsx).
     allocateNativeBufferViewId: () => number;
+    retainNativeBufferView: (viewId: number) => void;
     releaseNativeBufferView: (viewId: number) => void;
     presentNativeBuffer: (
       viewId: number,

@@ -6,6 +6,10 @@
 #include <utility>
 #include <vector>
 
+#if defined(__ANDROID__)
+#include <unistd.h>
+#endif
+
 #include "NativeObject.h"
 
 #include "ArrayBuffer.h"
@@ -389,9 +393,16 @@ public:
   }
 
   // The id of a NativeBufferView about to mount, unique for the life of the
-  // process (see NativeBufferViewRegistry).
+  // process (see NativeBufferViewRegistry). Presents are accepted once the
+  // component retains it.
   int allocateNativeBufferViewId() {
     return NativeBufferViewRegistry::getInstance().allocateViewId();
+  }
+
+  // The NativeBufferView component mounted (again, when React StrictMode
+  // re-runs its effects).
+  void retainNativeBufferView(int viewId) {
+    NativeBufferViewRegistry::getInstance().retainFromJS(viewId);
   }
 
   // The NativeBufferView component unmounted.
@@ -402,11 +413,13 @@ public:
   // presentNativeBuffer(viewId, frame, fence?): makes `frame` the content of
   // the NativeBufferView `viewId` once `fence` (a GPUSharedFenceState, e.g.
   // from GPUNativeBufferTexture.endAccess()) has signaled, or right away
-  // without one. Returns immediately; the view shows the buffer on the next
-  // vsync after that. The view takes its own reference on the buffer, so the
-  // frame can be released right after this call; the buffer must not be
-  // written again while it is displayed (render the next content into
-  // another buffer).
+  // without one. On Android it also waits for the frame's own acquire fence,
+  // if it has one (a buffer the producer may still be writing). Returns
+  // immediately; the view shows the buffer on the next vsync after that. The
+  // view takes its own reference on the buffer, but that does not keep a
+  // buffer pool from reusing it: release the frame right away only if
+  // nothing else will write the buffer while it is displayed (see
+  // NativeBufferView.tsx).
   jsi::Value presentNativeBuffer(jsi::Runtime &runtime,
                                  const jsi::Value & /*thisVal*/,
                                  const jsi::Value *args, size_t count) {
@@ -441,8 +454,21 @@ public:
     } catch (const std::exception &e) {
       throw jsi::JSError(runtime, e.what());
     }
+    int acquireFenceFd = -1;
+#if defined(__ANDROID__)
+    // Duplicated: the frame closes its own fd when it is released, which may
+    // be before the wait is over.
+    if (frame->handle().acquireFenceFd >= 0) {
+      acquireFenceFd = ::dup(frame->handle().acquireFenceFd);
+      if (acquireFenceFd < 0) {
+        throw jsi::JSError(runtime, "presentNativeBuffer(): could not "
+                                    "duplicate the frame's acquire fence");
+      }
+    }
+#endif
     NativeBufferViewRegistry::getInstance().present(
-        viewId, std::move(content), std::move(fence), signaledValue);
+        viewId, std::move(content), std::move(fence), signaledValue,
+        acquireFenceFd);
     return jsi::Value::undefined();
   }
 
@@ -527,6 +553,8 @@ public:
                   &RNWebGPU::createNativeBuffer);
     installMethod(runtime, prototype, "allocateNativeBufferViewId",
                   &RNWebGPU::allocateNativeBufferViewId);
+    installMethod(runtime, prototype, "retainNativeBufferView",
+                  &RNWebGPU::retainNativeBufferView);
     installMethod(runtime, prototype, "releaseNativeBufferView",
                   &RNWebGPU::releaseNativeBufferView);
     installMethod(runtime, prototype, "presentNativeBuffer",
