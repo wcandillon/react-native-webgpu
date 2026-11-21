@@ -25,65 +25,40 @@ import { PixelRatio } from "react-native";
 import {
   Canvas,
   GPUDeviceProvider,
-  createVideoPlayer,
   useCanvasRef,
   useMainDevice,
 } from "react-native-webgpu";
 
-function VideoEffectScene() {
+function Scene() {
   const ref = useCanvasRef();
+  // Never null here: the provider renders its children once the device is ready
   const { device } = useMainDevice();
 
   useEffect(() => {
-    if (!device) return;
-
     const context = ref.current!.getContext("webgpu")!;
     const canvas = context.canvas as HTMLCanvasElement;
     const format = navigator.gpu.getPreferredCanvasFormat();
-
     canvas.width = canvas.clientWidth * PixelRatio.get();
     canvas.height = canvas.clientHeight * PixelRatio.get();
-    context.configure({ device, format, alphaMode: "premultiplied" });
-
-    const VIDEO_URL = "https://example.com/video.mp4";
-    const player = createVideoPlayer(VIDEO_URL, { pixelFormat: "nv12" });
-    player.play();
-
-    // Render loop: copyLatestFrame → importExternalTexture → draw → present
-    // See [Video Player](/api/video-player)
-  }, [device]);
+    context.configure({ device: device!, format });
+    // ... render and present
+  }, [device, ref]);
 
   return <Canvas ref={ref} style={{ flex: 1 }} />;
 }
 
 export function App() {
   return (
-    <GPUDeviceProvider>
-      <VideoEffectScene />
+    <GPUDeviceProvider deviceDescriptor={{ requiredFeatures: ["shader-f16"] }}>
+      <Scene />
     </GPUDeviceProvider>
   );
 }
 ```
 
-Request features through `deviceDescriptor` (for instance `{ requiredFeatures: ["shader-f16"] }`): you cannot add features to an existing device later. Native frame import needs none, it is enabled by default.
+Request features through `deviceDescriptor`: you cannot add features to an existing device later. Native buffer import needs none; it is enabled by default.
 
-While the device is loading, the provider returns `null` (nothing rendered). If you need a loading UI, wrap the provider:
-
-```tsx twoslash
-import { GPUDeviceProvider } from "react-native-webgpu";
-declare const Scene: () => React.ReactNode;
-// ---cut---
-function AppShell() {
-  return (
-    <>
-      <GPUDeviceProvider>
-        <Scene />
-      </GPUDeviceProvider>
-      {/* Optional: show a spinner until Scene mounts */}
-    </>
-  );
-}
-```
+While the device is loading, the provider renders nothing. To show a loading state, render it next to the provider, and hide it once your scene has mounted.
 
 ## useMainDevice
 
@@ -105,6 +80,6 @@ function DebugOverlay() {
 
 ## See also
 
-- [React APIs](/docs/getting-started/react-api) - hooks for requesting and sharing a device
-- [Native APIs](/docs/getting-started/native-api#threading-model) - threading and `device.lost`
-- [Native Extensions](/api/gpu-device-extensions) - camera and video import
+- [React APIs](/docs/getting-started/react-api): hooks for requesting and sharing a device
+- [Platform Guide](/docs/getting-started/native-api#threading-model): threading and `device.lost`
+- [Native Extensions](/api/gpu-device-extensions): camera and video import

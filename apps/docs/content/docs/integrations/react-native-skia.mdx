@@ -3,20 +3,20 @@ title: React Native Skia
 description: Share one Dawn, its GPU device and textures with Skia's Graphite renderer.
 ---
 
-react-native-webgpu and [`react-native-skia`](https://wcandillon.github.io/react-native-skia/) work alongside each other nicely.
+React Native WebGPU and [React Native Skia](https://wcandillon.github.io/react-native-skia/) work alongside each other nicely.
 
-Starting with v3, react-native-skia renders with Graphite, on top of [Dawn](https://dawn.googlesource.com/dawn), the same WebGPU implementation react-native-webgpu is built on, and the two packages share it:
+Starting with v3, React Native Skia renders with Graphite, on top of [Dawn](https://dawn.googlesource.com/dawn), the same WebGPU implementation React Native WebGPU is built on, and the two packages share it:
 
 - **One Dawn, shared.** The app contains a single copy of Dawn. Skia's device and every device you create through `navigator.gpu` live side by side, so devices and textures can move between the two libraries without a copy.
-- **The WebGPU API lives here.** react-native-skia does not install `navigator.gpu` or any WebGPU JS API. If you want to write WebGPU code in an app that uses Skia, install react-native-webgpu alongside it.
+- **The WebGPU API lives here.** React Native Skia does not install `navigator.gpu` or any WebGPU JS API. If you want to write WebGPU code in an app that uses Skia, install React Native WebGPU alongside it.
 
-With react-native-skia v2 (published as `@shopify/react-native-skia` up to 2.14) there is no coupling at all: any version of either package can be installed together, and they simply don't interact.
+With React Native Skia v2 (published as `@shopify/react-native-skia` up to 2.14) there is no coupling at all: any version of either package can be installed together, and they simply don't interact.
 
 ## Compatibility
 
-Because the two packages share Dawn, react-native-skia v3 and react-native-webgpu must be built against the same Dawn release, which means installing them at matching versions. Pick one row and install versions from it:
+Because the two packages share Dawn, React Native Skia v3 and React Native WebGPU must be built against the same Dawn release, which means installing them at matching versions. Pick one row and install versions from it:
 
-| react-native-webgpu | react-native-skia |
+| React Native WebGPU | React Native Skia |
 | --- | --- |
 | 0.21.3 and later | 3.10.0 and later |
 | 0.20.0 to 0.21.2 | 3.9.0 to 3.9.2 |
@@ -28,7 +28,7 @@ Because the two packages share Dawn, react-native-skia v3 and react-native-webgp
 
 If the versions don't match, the native build fails with a `Dawn version mismatch` error rather than misbehaving at runtime. Both packages get Dawn from the `react-native-webgpu-dawn` npm package: make sure a single version of it is installed (`npm ls react-native-webgpu-dawn`, or `yarn why react-native-webgpu-dawn`).
 
-The Graphite previews of v2 (`@shopify/react-native-skia@next`) follow the same rule. Regular v2 releases don't use Dawn, so they work alongside any version of react-native-webgpu.
+The Graphite previews of v2 (`@shopify/react-native-skia@next`) follow the same rule. Regular v2 releases don't use Dawn, so they work alongside any version of React Native WebGPU.
 
 ## Rendering with Skia's device
 
@@ -92,34 +92,29 @@ Platform surfaces (`CVPixelBuffer` / `AHardwareBuffer`) stay on the WebGPU side:
 
 ## Video and camera frames
 
-Starting with v3, react-native-skia has no video player and no native buffer API of its own: react-native-webgpu produces and owns the frames.
+Starting with v3, React Native Skia has no native buffer API of its own: video and camera frames reach Skia through React Native WebGPU.
 [`copyExternalImageToTexture`](/api/gpu-device-extensions#copyexternalimagetotexture-with-a-native-frame) renders a frame into a texture of the shared device, with the YUV conversion and the rotation done on the GPU, and `Skia.Image.MakeImageFromGPUTexture` wraps that texture into an `SkImage`:
 
 ```tsx
-import { createVideoPlayer, importDevice } from "react-native-webgpu";
+import { importDevice } from "react-native-webgpu";
 
 const device = importDevice(Skia.getNativeDevice());
-const player = createVideoPlayer(url);
-player.play();
-// on every frame:
-const frame = player.copyLatestFrame();
-if (frame) {
-  device.queue.copyExternalImageToTexture(
-    { source: frame, rotation: player.rotation },
-    { texture },
-    [texture.width, texture.height],
-  );
-  frame.release();
-  const image = Skia.Image.MakeImageFromGPUTexture(texture);
-}
+// For each frame, a NativeBuffer from a camera or a video library:
+device.queue.copyExternalImageToTexture(
+  { source: frame, rotation },
+  { texture },
+  [texture.width, texture.height],
+);
+frame.release();
+const image = Skia.Image.MakeImageFromGPUTexture(texture);
 ```
 
-This is the one path for video and camera frames on both platforms: Skia has no native buffer import of its own.
-The complete example, with the lifetime rules, is in the [React Native Skia documentation](https://wcandillon.github.io/react-native-skia/docs/webgpu#native-buffers).
+For video, [React Native Skia Video](https://github.com/AzzappApp/react-native-skia-video) decodes, composes and exports videos with Skia; its [React Native Skia v3 version](https://github.com/AzzappApp/react-native-skia-video/pull/63) moves frames between the platform decoders and Skia through React Native WebGPU, without CPU copies.
+The [Native Buffers guide](/docs/getting-started/native-buffers) covers the other paths, from importing a buffer once to displaying one.
 
 ## See also
 
-- [WebGPU in the React Native Skia documentation](https://wcandillon.github.io/react-native-skia/docs/webgpu) - complete examples, including Three.js in both directions
-- [Native APIs](/docs/getting-started/native-api) - `importDevice` and the threading model
-- [Native Extensions](/api/gpu-device-extensions) - native texture interop on `GPUDevice`
-- [Native Buffers](/docs/getting-started/native-buffers) - video frames, camera frames and `NativeBufferView`
+- [WebGPU in the React Native Skia documentation](https://wcandillon.github.io/react-native-skia/docs/webgpu): complete examples, including Three.js in both directions
+- [Platform Guide](/docs/getting-started/native-api): `importDevice` and the threading model
+- [Native Extensions](/api/gpu-device-extensions): native texture interop on `GPUDevice`
+- [Native Buffers](/docs/getting-started/native-buffers): video frames, camera frames and `NativeBufferView`

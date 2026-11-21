@@ -40,7 +40,7 @@ This section documents only the additions that are specific to React Native, the
 - [`installWebGPU`](/api/install-webgpu): installs the WebGPU globals on a worklet runtime.
 - [Native Extensions](/api/gpu-device-extensions): native buffer and frame import, `createImageBitmap`, high bit depth formats, and other additions to the WebGPU globals.
 - [Native Buffer](/api/native-buffer): `NativeBuffer`, `createNativeBuffer` and `NativeBufferView`, the view that displays a native buffer.
-- [Video Player](/api/video-player): decodes a video into frames the GPU samples without a copy.
 - [`drawElementImageToTexture`](/api/draw-element-image-to-texture): copies the pixels of a React Native view into a `GPUTexture`.
+- [Video Player](/api/video-player): decodes a video into native buffers, for tests and examples.
 
 Also covered in the guides: [`GPUOffscreenCanvas`](/docs/getting-started/offscreen-canvas) for headless rendering, and [`importDevice`](/docs/getting-started/native-api#importing-an-external-device) / [`adoptTexture`](/docs/integrations/react-native-skia#zero-copy-texture-sharing) for sharing devices and textures with other libraries.

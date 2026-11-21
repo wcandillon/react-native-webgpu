@@ -21,8 +21,6 @@ The frame owns the fd: import it before `release()`, and never close it.
 
 A frame from a [video player](/api/video-player) or a camera comes from a pool: release it as soon as the GPU work that reads it has been submitted, or the producer runs out of buffers.
 
-`NativeBuffer` was called `NativeVideoFrame` in earlier versions; the old name remains as a deprecated alias.
-
 ## createNativeBuffer
 
 ```ts
@@ -35,14 +33,14 @@ The width and height are integers from 1 to 16384.
 
 <auto-type-table path="../../../../packages/webgpu/src/types.ts" name="CreateNativeBufferOptions" />
 
-## createVideoFrameFromNativeBuffer
+## createNativeBufferFromPointer
 
 ```ts
-createVideoFrameFromNativeBuffer(pointer: bigint): NativeBuffer
+createNativeBufferFromPointer(pointer: bigint): NativeBuffer
 ```
 
 Wraps a buffer produced by another library (a `CVPixelBufferRef` on Apple platforms, an `AHardwareBuffer*` on Android, for instance VisionCamera's `frame.getNativeBuffer().pointer`) into a `NativeBuffer` that holds a reference of its own until released.
-It runs on the JS thread; on a worklet runtime, such as a frame processor, call `RNWebGPU.createVideoFrameFromNativeBuffer(pointer)` instead (see [Vision Camera](/docs/integrations/vision-camera)).
+It runs on the JS thread; on a worklet runtime, such as a frame processor, call `RNWebGPU.createNativeBufferFromPointer(pointer)` instead (see [Vision Camera](/docs/integrations/vision-camera)).
 
 `createTestVideoFrame(width, height)` allocates a frame filled with a test pattern, for tests and examples that need a frame without a camera or a video.
 

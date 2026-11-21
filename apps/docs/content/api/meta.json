@@ -8,7 +8,7 @@
     "install-webgpu",
     "gpu-device-extensions",
     "native-buffer",
-    "video-player",
-    "draw-element-image-to-texture"
+    "draw-element-image-to-texture",
+    "video-player"
   ]
 }

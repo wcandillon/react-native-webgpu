@@ -15,34 +15,116 @@ On Android, the canvas is backed by a regular view by default. The [Android rend
 | `canvas.getContext("webgpu")` | `ref.current.getContext("webgpu")` |
 | Browser presents frames | You call `context.present()` after submit |
 
-## Basic usage
+## Your first triangle
 
-Mount a `Canvas`, keep a ref, and read the WebGPU context once the view is laid out:
+Mount a `Canvas`, keep a ref, and draw once the device is ready and the view is laid out:
 
 ```tsx twoslash
 import { useEffect, useRef } from "react";
-import { StyleSheet, View } from "react-native";
-import { Canvas, type CanvasRef } from "react-native-webgpu";
+import { PixelRatio, StyleSheet, View } from "react-native";
+import { Canvas, useDevice, type CanvasRef } from "react-native-webgpu";
 
-export function Scene() {
+const triangleVertWGSL = `
+@vertex fn main(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
+  var pos = array<vec2f, 3>(vec2(0, 0.5), vec2(-0.5, -0.5), vec2(0.5, -0.5));
+  return vec4f(pos[i], 0.0, 1.0);
+}`;
+
+const redFragWGSL = `@fragment fn main() -> @location(0) vec4f {
+  return vec4(1.0, 0.0, 0.0, 1.0);
+}`;
+
+export function TriangleScene() {
   const ref = useRef<CanvasRef>(null);
+  const { device } = useDevice();
 
   useEffect(() => {
-    const context = ref.current?.getContext("webgpu");
-    if (!context) return;
+    if (!device) return;
 
-    // request device, configure context, start render loop…
-  }, []);
+    let cancelled = false;
+    let animationFrameId = 0;
+
+    const start = () => {
+      const context = ref.current?.getContext("webgpu");
+      if (!context || cancelled) {
+        animationFrameId = requestAnimationFrame(start);
+        return;
+      }
+
+      const canvas = context.canvas as HTMLCanvasElement;
+      if (canvas.clientWidth === 0 || canvas.clientHeight === 0) {
+        animationFrameId = requestAnimationFrame(start);
+        return;
+      }
+
+      const format = navigator.gpu.getPreferredCanvasFormat();
+      canvas.width = canvas.clientWidth * PixelRatio.get();
+      canvas.height = canvas.clientHeight * PixelRatio.get();
+      context.configure({ device, format, alphaMode: "premultiplied" });
+
+      const pipeline = device.createRenderPipeline({
+        layout: "auto",
+        vertex: {
+          module: device.createShaderModule({ code: triangleVertWGSL }),
+          entryPoint: "main",
+        },
+        fragment: {
+          module: device.createShaderModule({ code: redFragWGSL }),
+          entryPoint: "main",
+          targets: [{ format }],
+        },
+        primitive: { topology: "triangle-list" },
+      });
+
+      const render = () => {
+        if (cancelled) return;
+
+        const encoder = device.createCommandEncoder();
+        const pass = encoder.beginRenderPass({
+          colorAttachments: [{
+            view: context.getCurrentTexture().createView(),
+            clearValue: [0, 0, 0, 0],
+            loadOp: "clear",
+            storeOp: "store",
+          }],
+        });
+        pass.setPipeline(pipeline);
+        pass.draw(3);
+        pass.end();
+
+        device.queue.submit([encoder.finish()]);
+        context.present();
+        animationFrameId = requestAnimationFrame(render);
+      };
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    animationFrameId = requestAnimationFrame(start);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [device]);
 
   return (
     <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: "#3498db" }} />
       <Canvas ref={ref} style={StyleSheet.absoluteFill} />
     </View>
   );
 }
 ```
 
-`getContext("webgpu")` is **synchronous**, like on the web. If the ref is not ready yet (zero layout size), retry on the next frame with `requestAnimationFrame`.
+The steps, in order:
+
+1. Mount `<Canvas ref={ref} />`, and wait for its layout (a non-zero `clientWidth` and `clientHeight`).
+2. Request a device, here with [`useDevice`](/docs/getting-started/react-api#usedevice).
+3. Get the context with `ref.current.getContext("webgpu")`, size its drawing buffer, and `configure()` it.
+4. For each frame: encode the passes, `device.queue.submit()`, then **`context.present()`**.
+
+`getContext("webgpu")` is **synchronous**, like on the web. If the canvas is not laid out yet (no context, or a zero `clientWidth`), retry on the next frame, as the example does.
 
 ## Frame presentations
 
@@ -89,8 +171,24 @@ Because `clientWidth` / `clientHeight` track layout, recompute the buffer size w
 
 To render the canvas over the React Native views beneath it, configure the context with `alphaMode: "premultiplied"` and clear with a color whose alpha is `0`, so that WebGPU produces a transparent frame:
 
-```tsx
-<Canvas ref={ref} style={StyleSheet.absoluteFill} />
+```tsx twoslash
+declare const device: GPUDevice;
+declare const context: GPUCanvasContext;
+declare const encoder: GPUCommandEncoder;
+const format = navigator.gpu.getPreferredCanvasFormat();
+// ---cut---
+context.configure({ device, format, alphaMode: "premultiplied" });
+
+const pass = encoder.beginRenderPass({
+  colorAttachments: [
+    {
+      view: context.getCurrentTexture().createView(),
+      clearValue: [0, 0, 0, 0], // transparent
+      loadOp: "clear",
+      storeOp: "store",
+    },
+  ],
+});
 ```
 
 <Callout type="info" title="Platform note">
@@ -99,7 +197,7 @@ On iOS `alphaMode` alone controls it. On Android the `alphaMode` passed to `conf
 
 ## Color space
 
-By default the canvas's values are sRGB. Pass `colorSpace: "display-p3"` to `configure()` to write Display P3 values instead, as you would in a browser. On iOS and macOS, also pass it to the `Canvas`: the color space is set when the canvas mounts, so colors outside sRGB show on a wide-gamut display. Android ignores it for now.
+By default the canvas's values are sRGB. Pass `colorSpace: "display-p3"` to `configure()` to write Display P3 values instead, as you would in a browser; both use the sRGB transfer function. On iOS and macOS, also pass it to the `Canvas`: the color space is set when the canvas mounts, so colors outside sRGB show on a wide-gamut display and match other Display P3 content, such as a Skia canvas. Android ignores it for now.
 
 ```tsx
 <Canvas ref={ref} colorSpace="display-p3" style={{ flex: 1 }} />;
@@ -111,7 +209,7 @@ The `Canvas` props are read once, when it mounts: a change on a mounted canvas i
 
 ## HDR
 
-On an `rgba16float` canvas, values above 1.0 are clamped to the display's SDR range by default. Pass `toneMapping: { mode: "extended" }` to `configure()` to let them use the display's extended range (HDR) instead, as in a browser. On iOS 16 and later and on macOS, also pass it to the `Canvas`, which reads it when it mounts, like `colorSpace`. Android ignores it for now.
+On an `rgba16float` canvas, values above 1.0 are clamped to the display's SDR range by default. Pass `toneMapping: { mode: "extended" }` to `configure()` to let them use the display's extended range (HDR) instead, as in a browser. On iOS 16 and later and on macOS, also pass it to the `Canvas`, which reads it when it mounts, like `colorSpace`. The mode has no effect on an 8-bit canvas, and tvOS and Android ignore it for now.
 
 ```tsx
 <Canvas ref={ref} toneMapping={{ mode: "extended" }} style={{ flex: 1 }} />;
@@ -125,6 +223,6 @@ context.configure({
 
 ## See also
 
-- [Canvas](/api/canvas) - the component and ref reference
-- [Native APIs](/docs/getting-started/native-api) - the React Native specific differences
-- [React APIs](/docs/getting-started/react-api) - hooks and the device provider
+- [Canvas](/api/canvas): the component and its props
+- [Platform Guide](/docs/getting-started/native-api): where React Native differs from the web
+- [React APIs](/docs/getting-started/react-api): hooks and the device provider

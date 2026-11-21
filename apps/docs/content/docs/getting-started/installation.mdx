@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Your first React Native WebGPU App
+description: Install the package and check the requirements.
 ---
 
 React Native WebGPU brings the [WebGPU API](https://www.w3.org/TR/webgpu/) to iOS, tvOS, Android, and macOS using [Dawn](https://dawn.googlesource.com/dawn). visionOS is not supported at the moment: the Dawn binaries do not ship a visionOS slice.
@@ -24,27 +24,9 @@ npm i react-native-webgpu
 
 An Android app with a lower `minSdkVersion` fails to build; on Expo, the [config plugin](/docs/getting-started/expo#config-plugin) raises it for you.
 
-On Android, Gradle downloads the prebuilt Dawn from the [GitHub releases of React Native Skia](https://github.com/wcandillon/react-native-skia/releases), which builds it, the first time it builds, only for the architectures being built, and caches it like any other Gradle dependency. To download it from a mirror or a local directory instead, set the `reactNativeSkiaBinariesUrl` Gradle property (or the `REACT_NATIVE_SKIA_BINARIES_URL` environment variable) to a URL or a `file:///` directory that holds the release assets under `binaries-<version>/`.
-
-## iOS: Swift Package Manager
-
-By default, `react-native-webgpu` links on iOS/macOS through CocoaPods autolinking - no extra setup needed. The long-term plan is to move the Apple platforms to Swift Package Manager. It is available today as an alternative: the package also ships a `Package.swift` for React Native's SwiftPM autolinking, which needs no CocoaPods at all:
-
-1. Use **React Native 0.87 or newer**. Earlier releases have no SwiftPM autolinking, so keep CocoaPods there.
-2. From your app's `ios` directory, run `npx react-native spm add --deintegrate` once. It removes CocoaPods from the project and adds the Swift packages to the `.xcodeproj`. Then build the project (not a workspace) as usual.
-3. Do not run `pod install` in that app: it would re-integrate CocoaPods and break the Swift packages.
-
-Dawn comes as a prebuilt binary that Xcode downloads the first time it resolves packages.
-
-With React Native Skia v3 installed alongside, package resolution checks that both packages link the same Dawn release, and fails if they are not at [compatible versions](/docs/integrations/react-native-skia#compatibility). After changing either version, reset the package caches in Xcode (File > Packages > Reset Package Caches) if the error persists.
-
-<Callout type="warn" title="Platform coverage">
-The Swift package targets iOS only - tvOS, macOS and Android still require the CocoaPods/Gradle autolinked path. See `spm-example` at the root of the [react-native-webgpu repo](https://github.com/wcandillon/react-native-webgpu) for a working reference project, and its README for the gotchas (stale `Package.resolved`, the stub `Podfile`).
-</Callout>
-
 ## Setup
 
-Once installed, the global `navigator.gpu` API is available - the same entry point as in Chrome or Safari:
+Once installed, the global `navigator.gpu` API is available, the same entry point as in Chrome or Safari:
 
 ```tsx twoslash
 const adapter = await navigator.gpu.requestAdapter();
@@ -57,7 +39,7 @@ Rendering happens inside a [`Canvas`](/api/canvas) view. The typical loop is:
 2. Configure the context with your device
 3. Encode render (or compute) passes
 4. `device.queue.submit(...)`
-5. **`context.present()`** - required on React Native ([Frame presentations](/docs/getting-started/canvas#frame-presentations))
+5. **`context.present()`**, required on React Native ([Frame presentations](/docs/getting-started/canvas#frame-presentations))
 
 Start with the [Canvas](/docs/getting-started/canvas) view once installation is done.
 
@@ -77,16 +59,32 @@ module.exports = {
 
 This replaces the package with a JS-only stand-in: `<Canvas>` renders as a plain `View` so screens built around it can still be rendered in tests, while APIs that need a GPU (`useDevice`, a real canvas context, and so on) throw a clear error if a test actually exercises them.
 
+## Optional: Swift Package Manager on iOS
+
+By default, `react-native-webgpu` links on iOS/macOS through CocoaPods autolinking, with no extra setup. The long-term plan is to move the Apple platforms to Swift Package Manager. It is available today as an alternative: the package also ships a `Package.swift` for React Native's SwiftPM autolinking, which needs no CocoaPods at all:
+
+1. Use **React Native 0.87 or newer**. Earlier releases have no SwiftPM autolinking, so keep CocoaPods there.
+2. From your app's `ios` directory, run `npx react-native spm add --deintegrate` once. It removes CocoaPods from the project and adds the Swift packages to the `.xcodeproj`. Then build the project (not a workspace) as usual.
+3. Do not run `pod install` in that app: it would re-integrate CocoaPods and break the Swift packages.
+
+Dawn comes as a prebuilt binary that Xcode downloads the first time it resolves packages.
+
+With React Native Skia v3 installed alongside, package resolution checks that both packages link the same Dawn release, and fails if they are not at [compatible versions](/docs/integrations/react-native-skia#compatibility). After changing either version, reset the package caches in Xcode (File > Packages > Reset Package Caches) if the error persists.
+
+<Callout type="warn" title="Platform coverage">
+The Swift package targets iOS only: tvOS, macOS and Android still require the CocoaPods/Gradle autolinked path. See `spm-example` at the root of the [React Native WebGPU repo](https://github.com/wcandillon/react-native-webgpu) for a working reference project, and its README for the gotchas (stale `Package.resolved`, the stub `Podfile`).
+</Callout>
+
 ## Troubleshooting
 
 <Callout type="warn" title="Android emulators">
 On Android emulators, WebGPU may fall back to a **software adapter**. Rendering is slow and some features (especially native textures) may be unavailable. Use [`warnIfNotHardwareAccelerated`](/api/warn-if-not-hardware-accelerated) to log a warning during development. Prefer physical devices for camera, video, and performance testing.
 </Callout>
 
-<Callout type="warn" title="iOS Simulator - Metal API Validation">
+<Callout type="warn" title="iOS Simulator: Metal API Validation">
 When running on the **iOS Simulator**, disable **Metal API Validation** in Xcode or you may hit false-positive errors and crashes that do not occur on device.
 
-**Expo:** add the [config plugin](/docs/getting-started/expo#config-plugin) that ships with `react-native-webgpu` to your app config - it disables the setting automatically on every prebuild:
+**Expo:** add the [config plugin](/docs/getting-started/expo#config-plugin) that ships with `react-native-webgpu` to your app config: it disables the setting automatically on every prebuild:
 
 ```json title="app.json"
 {
@@ -103,9 +101,13 @@ The simulator's Metal stack is not identical to real hardware, and validation ca
 Learn more in [Apple's documentation on validating Metal API usage](https://developer.apple.com/documentation/xcode/validating-your-apps-metal-api-usage/).
 </Callout>
 
+<Callout type="info" title="Android builds without network access">
+Gradle downloads the prebuilt Dawn from the [GitHub releases of React Native Skia](https://github.com/wcandillon/react-native-skia/releases), which builds it, the first time it builds, only for the architectures being built, and caches it like any other Gradle dependency. To download it from a mirror or a local directory instead, set the `reactNativeSkiaBinariesUrl` Gradle property (or the `REACT_NATIVE_SKIA_BINARIES_URL` environment variable) to a URL or a `file:///` directory that holds the release assets under `binaries-<version>/`.
+</Callout>
+
 ## Next steps
 
-- [Expo](/docs/getting-started/expo) - scaffold the hosted WebGPU examples template
-- [Canvas](/docs/getting-started/canvas) - your rendering surface
-- [Native APIs](/docs/getting-started/native-api) - the React Native specific differences
-- [Learn WebGPU](/docs/getting-started/learn-webgpu) - learn the low-level API
+- [Expo](/docs/getting-started/expo): scaffold the hosted WebGPU examples template
+- [Canvas](/docs/getting-started/canvas): your rendering surface
+- [Platform Guide](/docs/getting-started/native-api): the React Native specific differences
+- [Learn WebGPU](/docs/getting-started/learn-webgpu): learn the low-level API

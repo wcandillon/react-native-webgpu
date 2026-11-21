@@ -13,14 +13,14 @@ Before writing WGSL, understand what the `Frame` object gives you ([full API ref
 
 | Concept | Why it matters for WebGPU |
 | ------- | ------------------------- |
-| [`hasNativeBuffer`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#hasnativebuffer) | Zero-copy GPU path - skip CPU pixel downloads |
+| [`hasNativeBuffer`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#hasnativebuffer) | The zero-copy GPU path, with no CPU pixel download |
 | [`getNativeBuffer()`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#getnativebuffer) | Returns a [`NativeBuffer`](https://visioncamera.margelo.com/api/react-native-vision-camera/interfaces/NativeBuffer) with a native `pointer` (IOSurface / AHardwareBuffer) |
-| [`orientation`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#orientation) | Sensor rotation relative to your output - map to `importExternalTexture({ rotation })` |
-| [`isMirrored`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#ismirrored) | Front-camera horizontal flip - map to `importExternalTexture({ mirrored })` |
+| [`orientation`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#orientation) | Sensor rotation relative to your output: map it to `importExternalTexture({ rotation })` |
+| [`isMirrored`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#ismirrored) | Front-camera horizontal flip: map it to `importExternalTexture({ mirrored })` |
 | [`pixelFormat: "native"`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#pixelformat) | Request NV12-style surfaces via `useFrameOutput({ pixelFormat: "native" })` |
-| [`dispose()`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame) | Release the frame back to the camera pool - call after GPU work finishes |
+| [`dispose()`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame) | Releases the frame back to the camera pool: call it once the GPU work is submitted |
 
-Vision Camera documents the WebGPU import path directly on [`Frame.getNativeBuffer()` - Examples](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#examples):
+Vision Camera documents the WebGPU import path directly on [`Frame.getNativeBuffer()` examples](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#examples):
 
 ```tsx twoslash
 import type { NativeBuffer } from "react-native-vision-camera";
@@ -35,7 +35,7 @@ declare const frame: {
 // ---cut---
 if (frame.hasNativeBuffer) {
   const nativeBuffer = frame.getNativeBuffer();
-  const videoFrame = RNWebGPU.createVideoFrameFromNativeBuffer(nativeBuffer.pointer);
+  const videoFrame = RNWebGPU.createNativeBufferFromPointer(nativeBuffer.pointer);
   const externalTexture = device.importExternalTexture({
     source: videoFrame,
     label: "camera-frame",
@@ -47,9 +47,9 @@ if (frame.hasNativeBuffer) {
 }
 ```
 
-Frame processors run on a worklet runtime, so the wrapper is called through the `RNWebGPU` global, which the worklet captures like `device`; the `createVideoFrameFromNativeBuffer` export works on the JS thread only.
+Frame processors run on a worklet runtime, so the wrapper is called through the `RNWebGPU` global, which the worklet captures like `device`; the `createNativeBufferFromPointer` export works on the JS thread only.
 
-React Native WebGPU extends `importExternalTexture` with **`rotation`** and **`mirrored`** options so the external texture uprights the sensor image before your shader runs - see [Native Extensions](/api/gpu-device-extensions#gpuexternaltexture-extensions).
+React Native WebGPU extends `importExternalTexture` with **`rotation`** and **`mirrored`** options so the external texture uprights the sensor image before your shader runs; see [Native Extensions](/api/gpu-device-extensions#gpuexternaltexture-extensions).
 
 ## 1. Request a device
 
@@ -105,7 +105,7 @@ function renderCameraFrame(
 
   const nativeBuffer = frame.getNativeBuffer();
   try {
-    const videoFrame = RNWebGPU.createVideoFrameFromNativeBuffer(
+    const videoFrame = RNWebGPU.createNativeBufferFromPointer(
       nativeBuffer.pointer,
     );
 
@@ -134,7 +134,9 @@ function renderCameraFrame(
 
 Order matters: **submit → present → destroy → release**. Skipping [`release()`](https://visioncamera.margelo.com/api/react-native-vision-camera/interfaces/NativeBuffer#release) or [`frame.dispose()`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame) stalls the camera buffer pool.
 
-## 4. WGSL - sample the camera
+Importing each frame is the simplest path. The camera cycles through the same few buffers, though, so a render loop that runs for long can import each buffer once instead, keyed by its `handle`, and only open and close an access per frame; see [Importing a buffer once](/api/gpu-device-extensions#importing-a-buffer-once).
+
+## 4. WGSL: sample the camera
 
 Bind the external texture and use `textureSampleBaseClampToEdge`, as on the web:
 
@@ -156,8 +158,8 @@ The sample is RGB on both platforms: the external texture converts the camera's 
 
 ## Further reading
 
-- [Vision Camera - Frame](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame) - hybrid object lifecycle and properties
-- [Frame.getNativeBuffer() examples](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#examples) - Skia and **WebGPU** import snippets
-- [NativeBuffer](https://visioncamera.margelo.com/api/react-native-vision-camera/interfaces/NativeBuffer) - shared contract for zero-copy GPU buffers
-- [Native Extensions](/api/gpu-device-extensions) - `importExternalTexture` lifecycle on React Native
-- [Worklets](/docs/integrations/worklets) - worklet runtimes and `installWebGPU()`
+- [Vision Camera `Frame`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame): hybrid object lifecycle and properties
+- [Frame.getNativeBuffer() examples](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame#examples): Skia and **WebGPU** import snippets
+- [NativeBuffer](https://visioncamera.margelo.com/api/react-native-vision-camera/interfaces/NativeBuffer): shared contract for zero-copy GPU buffers
+- [Native Extensions](/api/gpu-device-extensions): `importExternalTexture` lifecycle on React Native
+- [Worklets](/docs/integrations/worklets): worklet runtimes and `installWebGPU()`

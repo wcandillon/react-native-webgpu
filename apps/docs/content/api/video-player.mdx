@@ -1,7 +1,11 @@
 ---
 title: Video Player
-description: Decode a video into native frames the GPU samples without any copy.
+description: Decode a video into native buffers, for tests and examples.
 ---
+
+<Callout type="info" title="For tests and examples">
+The video player exists to test and demonstrate native buffers. For video in an app, use a video library: [React Native Skia Video](https://github.com/AzzappApp/react-native-skia-video), for instance, decodes, composes and exports videos with React Native Skia and React Native WebGPU.
+</Callout>
 
 `createVideoPlayer()` decodes a video into native frames: `IOSurface`-backed `CVPixelBuffer`s on Apple platforms, `AHardwareBuffer`s on Android.
 The frames are sampled by WebGPU without any copy through the CPU, with [`importExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions) or [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory), copied into a regular texture with [`copyExternalImageToTexture`](/api/gpu-device-extensions#copyexternalimagetotexture-with-a-native-frame), and drawn by [React Native Skia](/docs/integrations/react-native-skia#video-and-camera-frames).
@@ -82,7 +86,7 @@ See [the native frame copy](/api/gpu-device-extensions#copyexternalimagetotextur
 
 ## Other sources
 
-Frames from another library, such as VisionCamera, are wrapped with [`createVideoFrameFromNativeBuffer()`](/api/native-buffer#createvideoframefromnativebuffer), and buffers to render into are allocated with [`createNativeBuffer()`](/api/native-buffer#createnativebuffer).
+Frames from another library, such as VisionCamera, are wrapped with [`createNativeBufferFromPointer()`](/api/native-buffer#createnativebufferfrompointer), and buffers to render into are allocated with [`createNativeBuffer()`](/api/native-buffer#createnativebuffer).
 The [Native Buffers guide](/docs/getting-started/native-buffers) covers every way to read, render into and display them.
 
 ## Examples
