@@ -37,7 +37,7 @@ public:
 
   // beginAccess(fences?): begins an access to the buffer's texture, after the
   // GPU waited for the optional GPUSharedFenceState[] (the producer's fence
-  // for the frame: NativeVideoFrame.acquireFenceFd imported with
+  // for the frame: NativeBuffer.acquireFenceFd imported with
   // importSharedFence, or the fences a native module hands over). The frame
   // is taken as initialized, as Dawn's layer does. Throws (after a validation
   // error) on a destroyed wrapper or fence, and if Dawn rejects the access.

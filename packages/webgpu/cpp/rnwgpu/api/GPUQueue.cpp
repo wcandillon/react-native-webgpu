@@ -190,7 +190,7 @@ void GPUQueue::copyExternalImageToTexture(
   }
   if (!source->source) {
     throw std::runtime_error("copyExternalImageToTexture: the source must be "
-                             "an ImageBitmap or a NativeVideoFrame");
+                             "an ImageBitmap or a NativeBuffer");
   }
   uint32_t bytesPerPixel =
       source->source->getSize() /

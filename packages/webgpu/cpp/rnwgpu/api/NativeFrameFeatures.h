@@ -8,7 +8,7 @@ namespace rnwgpu {
 
 // The Dawn features behind native frame import on the current platform:
 // importSharedTextureMemory, importExternalTexture and
-// copyExternalImageToTexture with a NativeVideoFrame. Like
+// copyExternalImageToTexture with a NativeBuffer. Like
 // importExternalTexture on the web, the capability needs no feature request:
 // requestDevice() enables each of these the adapter supports (see
 // GPUAdapter::requestDevice). A device created by another library and wrapped

@@ -17,6 +17,8 @@ import type {
   GPUDrawElementImageSource,
   GPUSharedFence,
   GPUSharedFenceDescriptor,
+  GPUSharedFenceState,
+  CreateNativeBufferOptions,
   GPUDawnTogglesDescriptor,
   GPUNativeExternalTextureDescriptor,
   GPUSharedTextureMemory,
@@ -25,15 +27,21 @@ import type {
   NativeCanvas,
   RNCanvasContext,
   VideoPlayer,
-  NativeVideoFrame,
-  NativeVideoPixelFormat,
+  NativeBuffer,
+  NativeBufferPixelFormat,
 } from "./types";
 
 export * from "./main";
 export * from "./constants";
 export { installWebGPU } from "./install";
 export type {
+  NativeBuffer,
+  // The names before the rename to NativeBuffer, kept for compatibility.
+  /* eslint-disable @typescript-eslint/no-deprecated */
   NativeVideoFrame,
+  NativeVideoFrameColorSpace,
+  NativeVideoPixelFormat,
+  /* eslint-enable @typescript-eslint/no-deprecated */
   VideoPlayer,
   GPUSharedFence,
   GPUSharedFenceDescriptor,
@@ -43,12 +51,12 @@ export type {
   GPUSharedTextureMemory,
   GPUSharedTextureMemoryDescriptor,
   GPUSharedTextureMemoryEndAccessState,
-  NativeVideoPixelFormat,
+  NativeBufferPixelFormat,
   CreateVideoPlayerOptions,
   GPUCopyExternalNativeFrameSourceInfo,
   GPUDawnTogglesDescriptor,
   GPUNativeExternalTextureDescriptor,
-  NativeVideoFrameColorSpace,
+  NativeBufferColorSpace,
   GPUExtent2D,
   GPUNativeBufferExternalTextureDescriptor,
   GPUNativeBufferTextureDescriptor,
@@ -58,6 +66,7 @@ export type {
   GPUDrawElementImageDestination,
   GPUDrawElementImageSource,
   GPUDrawElementImageSourceView,
+  CreateNativeBufferOptions,
 } from "./types";
 
 declare global {
@@ -92,7 +101,7 @@ declare global {
     destroyContext: (contextId: number) => void;
     DecodeToUTF8: (buffer: NodeJS.ArrayBufferView | ArrayBuffer) => string;
     createImageBitmap: typeof createImageBitmap;
-    loadVideoFrame: (path: string) => NativeVideoFrame;
+    loadVideoFrame: (path: string) => NativeBuffer;
     // A synthetic frame: an RGB gradient ('bgra8', the default) or a biplanar
     // YUV frame ('nv12', BT.709 limited range, red on the left half and green
     // on the right) that exercises the color conversion of
@@ -100,12 +109,12 @@ declare global {
     createTestVideoFrame: (
       width: number,
       height: number,
-      pixelFormat?: NativeVideoPixelFormat,
-    ) => NativeVideoFrame;
+      pixelFormat?: NativeBufferPixelFormat,
+    ) => NativeBuffer;
     // Wrap a NativeBuffer.pointer (CVPixelBufferRef on iOS / AHardwareBuffer*
-    // on Android) into a NativeVideoFrame. Matches the shape used by libraries
+    // on Android) into a NativeBuffer. Matches the shape used by libraries
     // that emit NativeBuffer (e.g. react-native-vision-camera).
-    createVideoFrameFromNativeBuffer: (pointer: bigint) => NativeVideoFrame;
+    createVideoFrameFromNativeBuffer: (pointer: bigint) => NativeBuffer;
     // Wrap an externally created WGPUDevice pointer (e.g. Skia's Graphite
     // device from Skia.getNativeDevice()) into a GPUDevice. Requires the
     // exporter to link this process's single Dawn copy.
@@ -117,9 +126,26 @@ declare global {
     // Prefer the createVideoPlayer() export, which takes an options object.
     createVideoPlayer: (
       source: string,
-      pixelFormat?: NativeVideoPixelFormat,
+      pixelFormat?: NativeBufferPixelFormat,
     ) => VideoPlayer;
     writeTestVideoFile: () => string;
+    // An empty native buffer (AHardwareBuffer / IOSurface) to render into
+    // with createNativeBufferTexture() and display in a NativeBufferView.
+    // Prefer the createNativeBuffer() export.
+    createNativeBuffer: (
+      width: number,
+      height: number,
+      options?: CreateNativeBufferOptions,
+    ) => NativeBuffer;
+    // The NativeBufferView registry (see NativeBufferView.tsx).
+    allocateNativeBufferViewId: () => number;
+    retainNativeBufferView: (viewId: number) => void;
+    releaseNativeBufferView: (viewId: number) => void;
+    presentNativeBuffer: (
+      viewId: number,
+      frame: NativeBuffer,
+      fence?: GPUSharedFenceState | null,
+    ) => void;
   };
 
   interface GPUTexture {
@@ -131,7 +157,7 @@ declare global {
 
   interface GPUDevice {
     // Non-spec RN extension: the source of an external texture is a
-    // NativeVideoFrame (from a VideoPlayer, createVideoFrameFromNativeBuffer
+    // NativeBuffer (from a VideoPlayer, createVideoFrameFromNativeBuffer
     // or createTestVideoFrame) instead of the web's HTMLVideoElement /
     // VideoFrame. Overloads the spec signature, which stays available for
     // the web implementation.
@@ -148,11 +174,11 @@ declare global {
     // external texture, and bracket each use with beginAccess() / endAccess()
     // on the wrapper instead of importing the buffer again per frame.
     createNativeBufferTexture(
-      source: NativeVideoFrame,
+      source: NativeBuffer,
       descriptor?: GPUNativeBufferTextureDescriptor,
     ): GPUNativeBufferTexture;
     createNativeBufferExternalTexture(
-      source: NativeVideoFrame,
+      source: NativeBuffer,
       descriptor?: GPUNativeBufferExternalTextureDescriptor,
     ): GPUNativeBufferExternalTexture;
   }
@@ -179,7 +205,7 @@ declare global {
       source: GPUDrawElementImageSource,
       destination: GPUDrawElementImageDestination,
     ): Promise<void>;
-    // Non-spec extension: a NativeVideoFrame (from createVideoPlayer,
+    // Non-spec extension: a NativeBuffer (from createVideoPlayer,
     // createVideoFrameFromNativeBuffer or createTestVideoFrame) as the copy
     // source. The frame is rendered into the destination on the GPU through
     // an external texture, which converts YUV to RGB and applies `rotation`

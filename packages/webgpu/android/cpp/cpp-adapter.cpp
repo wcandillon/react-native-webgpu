@@ -24,6 +24,7 @@
 #include "DawnBlobCache.h"
 #include "GPUCanvasContext.h"
 #include "GPUDevice.h"
+#include "NativeBufferViewRegistry.h"
 #include "RNWebGPUManager.h"
 #include "WebGPURuntime.h"
 
@@ -478,4 +479,121 @@ Java_com_webgpu_WebGPUHardwareBufferView_nSwitchToOffscreen(JNIEnv *env,
     info->setPoolFrameReadyCallback(nullptr);
     info->switchToOffscreen();
   }
+}
+
+// --- WebGPUNativeBufferView
+// ------------------------------------------------------
+
+// The view attaches to its registry entry: native wakes it
+// (onNativeContentReady) whenever new content is ready, and right away when
+// there is some already.
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUNativeBufferView_nAttach(JNIEnv *env, jobject thiz,
+                                               jint viewId) {
+  auto waker =
+      std::make_shared<WeakViewCall>(env, thiz, "onNativeContentReady");
+  rnwgpu::NativeBufferViewRegistry::getInstance().setListener(
+      static_cast<int>(viewId), [waker]() { (*waker)(); });
+}
+
+// RN dropped the view for good.
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUNativeBufferView_nDetach(JNIEnv * /* env */,
+                                               jclass /* clazz */,
+                                               jint viewId) {
+  rnwgpu::NativeBufferViewRegistry::getInstance().detachView(
+      static_cast<int>(viewId));
+}
+
+// The newest content presented after `afterSequence`, as a HardwareBuffer
+// (with a reference of its own, closed by the caller), or null when there is
+// nothing new. `info` receives { sequence, width, height, halfFloat,
+// displayP3, opaque }. UI thread.
+extern "C" JNIEXPORT jobject JNICALL
+Java_com_webgpu_WebGPUNativeBufferView_nTakeContent(JNIEnv *env,
+                                                    jclass /* clazz */,
+                                                    jint viewId,
+                                                    jlong afterSequence,
+                                                    jlongArray info) {
+  uint64_t sequence = 0;
+  auto content = rnwgpu::NativeBufferViewRegistry::getInstance().content(
+      static_cast<int>(viewId), &sequence);
+  if (!content || sequence <= static_cast<uint64_t>(afterSequence)) {
+    return nullptr;
+  }
+  auto *buffer = static_cast<AHardwareBuffer *>(content->buffer());
+  AHardwareBuffer_Desc desc{};
+  AHardwareBuffer_describe(buffer, &desc);
+  const jlong values[] = {
+      static_cast<jlong>(sequence),
+      static_cast<jlong>(desc.width),
+      static_cast<jlong>(desc.height),
+      desc.format == AHARDWAREBUFFER_FORMAT_R16G16B16A16_FLOAT ? 1 : 0,
+      content->colorSpace() == rnwgpu::NativeBufferColorSpace::DisplayP3 ? 1
+                                                                         : 0,
+      desc.format == AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM ? 1 : 0,
+  };
+  env->SetLongArrayRegion(info, 0, 6, values);
+  return AHardwareBuffer_toHardwareBuffer(env, buffer);
+}
+
+// Android 8 and 9: copies the buffer's pixels into `bitmap` (same size, and
+// ARGB_8888 for an 8-bit buffer, RGBA_F16 for a half-float one; both lay the
+// channels out in RGBA order). The buffer's fence has signaled already.
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_webgpu_WebGPUNativeBufferView_nReadPixels(JNIEnv *env,
+                                                   jclass /* clazz */,
+                                                   jobject hardwareBuffer,
+                                                   jobject bitmap) {
+  AHardwareBuffer *buffer =
+      AHardwareBuffer_fromHardwareBuffer(env, hardwareBuffer);
+  if (buffer == nullptr) {
+    return JNI_FALSE;
+  }
+  AHardwareBuffer_Desc desc{};
+  AHardwareBuffer_describe(buffer, &desc);
+  AndroidBitmapInfo info{};
+  if (AndroidBitmap_getInfo(env, bitmap, &info) !=
+          ANDROID_BITMAP_RESULT_SUCCESS ||
+      info.width != desc.width || info.height != desc.height) {
+    return JNI_FALSE;
+  }
+  const bool halfFloat =
+      desc.format == AHARDWAREBUFFER_FORMAT_R16G16B16A16_FLOAT;
+  if (info.format != (halfFloat ? ANDROID_BITMAP_FORMAT_RGBA_F16
+                                : ANDROID_BITMAP_FORMAT_RGBA_8888)) {
+    return JNI_FALSE;
+  }
+  const size_t bytesPerPixel = halfFloat ? 8 : 4;
+  void *src = nullptr;
+  if (AHardwareBuffer_lock(buffer, AHARDWAREBUFFER_USAGE_CPU_READ_RARELY, -1,
+                           nullptr, &src) != 0 ||
+      src == nullptr) {
+    return JNI_FALSE;
+  }
+  void *dst = nullptr;
+  if (AndroidBitmap_lockPixels(env, bitmap, &dst) !=
+          ANDROID_BITMAP_RESULT_SUCCESS ||
+      dst == nullptr) {
+    AHardwareBuffer_unlock(buffer, nullptr);
+    return JNI_FALSE;
+  }
+  const bool opaque = desc.format == AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM;
+  const size_t rowBytes = static_cast<size_t>(desc.width) * bytesPerPixel;
+  // The buffer's stride is in pixels, the bitmap's in bytes.
+  const size_t srcStride = static_cast<size_t>(desc.stride) * bytesPerPixel;
+  for (uint32_t y = 0; y < desc.height; ++y) {
+    auto *dstRow = static_cast<uint8_t *>(dst) + y * info.stride;
+    std::memcpy(dstRow, static_cast<const uint8_t *>(src) + y * srcStride,
+                rowBytes);
+    if (opaque) {
+      // The X channel is undefined.
+      for (uint32_t x = 0; x < desc.width; ++x) {
+        dstRow[x * 4 + 3] = 0xFF;
+      }
+    }
+  }
+  AndroidBitmap_unlockPixels(env, bitmap);
+  AHardwareBuffer_unlock(buffer, nullptr);
+  return JNI_TRUE;
 }

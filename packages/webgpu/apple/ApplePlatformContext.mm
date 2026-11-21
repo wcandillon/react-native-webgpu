@@ -685,4 +685,69 @@ ApplePlatformContext::createTestVideoFrame(uint32_t width, uint32_t height,
   return handle;
 }
 
+// An IOSurface-backed pixel buffer that Dawn imports as a render target and
+// Core Animation displays as layer contents (NativeBufferView). The surface is
+// tagged with its color space (kIOSurfaceColorSpace), which Core Animation
+// reads; untagged surfaces are taken as sRGB.
+VideoFrameHandle
+ApplePlatformContext::createNativeBuffer(uint32_t width, uint32_t height,
+                                         wgpu::TextureFormat format,
+                                         bool displayP3) {
+  OSType pixelFormat;
+  CFStringRef colorSpaceName;
+  switch (format) {
+  case wgpu::TextureFormat::BGRA8Unorm:
+    pixelFormat = kCVPixelFormatType_32BGRA;
+    colorSpaceName = displayP3 ? kCGColorSpaceDisplayP3 : kCGColorSpaceSRGB;
+    break;
+  case wgpu::TextureFormat::RGBA16Float:
+    pixelFormat = kCVPixelFormatType_64RGBAHalf;
+    colorSpaceName =
+        displayP3 ? kCGColorSpaceExtendedDisplayP3 : kCGColorSpaceExtendedSRGB;
+    break;
+  default:
+    throw std::runtime_error(
+        "createNativeBuffer: unsupported format on Apple platforms (expected "
+        "'bgra8unorm' or 'rgba16float')");
+  }
+  NSDictionary *attrs = @{
+    (NSString *)kCVPixelBufferIOSurfacePropertiesKey : @{},
+    (NSString *)kCVPixelBufferMetalCompatibilityKey : @YES,
+  };
+  CVPixelBufferRef pixelBuffer = NULL;
+  CVReturn err =
+      CVPixelBufferCreate(kCFAllocatorDefault, width, height, pixelFormat,
+                          (__bridge CFDictionaryRef)attrs, &pixelBuffer);
+  if (err != kCVReturnSuccess || !pixelBuffer) {
+    throw std::runtime_error(
+        "createNativeBuffer: CVPixelBufferCreate failed (" +
+        std::to_string(err) + ")");
+  }
+  IOSurfaceRef ioSurface = CVPixelBufferGetIOSurface(pixelBuffer);
+  if (!ioSurface) {
+    CFRelease(pixelBuffer);
+    throw std::runtime_error(
+        "createNativeBuffer: pixel buffer is not IOSurface-backed");
+  }
+  CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(colorSpaceName);
+  if (colorSpace != NULL) {
+    CFPropertyListRef plist = CGColorSpaceCopyPropertyList(colorSpace);
+    if (plist != NULL) {
+      IOSurfaceSetValue(ioSurface, kIOSurfaceColorSpace, plist);
+      CFRelease(plist);
+    }
+    CGColorSpaceRelease(colorSpace);
+  }
+
+  VideoFrameHandle handle;
+  handle.handle = (void *)ioSurface;
+  handle.width = width;
+  handle.height = height;
+  handle.colorSpace.primaries = displayP3
+                                    ? wgpu::ColorSpacePrimariesDawn::DisplayP3
+                                    : wgpu::ColorSpacePrimariesDawn::SRGB;
+  handle.deleter = [pixelBuffer]() { CFRelease(pixelBuffer); };
+  return handle;
+}
+
 } // namespace rnwgpu

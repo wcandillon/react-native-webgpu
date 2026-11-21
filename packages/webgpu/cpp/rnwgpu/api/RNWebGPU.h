@@ -6,6 +6,10 @@
 #include <utility>
 #include <vector>
 
+#if defined(__ANDROID__)
+#include <unistd.h>
+#endif
+
 #include "NativeObject.h"
 
 #include "ArrayBuffer.h"
@@ -13,8 +17,10 @@
 #include "GPU.h"
 #include "GPUCanvasContext.h"
 #include "GPUDevice.h"
+#include "GPUSharedFenceState.h"
 #include "GPUTexture.h"
 #include "ImageBitmap.h"
+#include "NativeBufferViewRegistry.h"
 #include "PlatformContext.h"
 #include "VideoFrame.h"
 #include "VideoPlayer.h"
@@ -318,6 +324,155 @@ public:
     return std::make_shared<VideoFrame>(std::move(handle));
   }
 
+  // createNativeBuffer(width, height, { format?, colorSpace? }): an empty
+  // native buffer (AHardwareBuffer / IOSurface) to render into with
+  // createNativeBufferTexture() and display with presentNativeBuffer().
+  // `format` defaults to the preferred canvas format of the platform
+  // (rgba8unorm on Android, bgra8unorm on Apple platforms); rgba16float works
+  // on both (more precision, not extended range: NativeBufferView clamps to
+  // [0, 1]). `colorSpace` is "srgb" (the default) or "display-p3".
+  jsi::Value createNativeBuffer(jsi::Runtime &runtime,
+                                const jsi::Value & /*thisVal*/,
+                                const jsi::Value *args, size_t count) {
+    auto dimension = [&](size_t index, const char *name) {
+      if (count <= index || !args[index].isNumber()) {
+        throw jsi::JSError(runtime, std::string("createNativeBuffer: ") + name +
+                                        " must be a number");
+      }
+      const double value = args[index].asNumber();
+      if (!(value >= 1 && value <= 16384) || value != std::floor(value)) {
+        throw jsi::JSError(runtime, std::string("createNativeBuffer: ") + name +
+                                        " must be an integer in [1, 16384]");
+      }
+      return static_cast<uint32_t>(value);
+    };
+    const uint32_t width = dimension(0, "width");
+    const uint32_t height = dimension(1, "height");
+#if defined(__APPLE__)
+    wgpu::TextureFormat format = wgpu::TextureFormat::BGRA8Unorm;
+#else
+    wgpu::TextureFormat format = wgpu::TextureFormat::RGBA8Unorm;
+#endif
+    bool displayP3 = false;
+    if (count > 2 && args[2].isObject()) {
+      auto options = args[2].getObject(runtime);
+      auto formatValue = options.getProperty(runtime, "format");
+      if (formatValue.isString()) {
+        auto name = formatValue.getString(runtime).utf8(runtime);
+        if (name == "rgba8unorm") {
+          format = wgpu::TextureFormat::RGBA8Unorm;
+        } else if (name == "bgra8unorm") {
+          format = wgpu::TextureFormat::BGRA8Unorm;
+        } else if (name == "rgba16float") {
+          format = wgpu::TextureFormat::RGBA16Float;
+        } else {
+          throw jsi::JSError(
+              runtime, "createNativeBuffer: unsupported format '" + name + "'");
+        }
+      }
+      auto colorSpaceValue = options.getProperty(runtime, "colorSpace");
+      if (colorSpaceValue.isString()) {
+        auto name = colorSpaceValue.getString(runtime).utf8(runtime);
+        if (name == "display-p3") {
+          displayP3 = true;
+        } else if (name != "srgb") {
+          throw jsi::JSError(runtime,
+                             "createNativeBuffer: unsupported colorSpace '" +
+                                 name + "'");
+        }
+      }
+    }
+    VideoFrameHandle handle;
+    try {
+      handle = _platformContext->createNativeBuffer(width, height, format,
+                                                    displayP3);
+    } catch (const std::exception &e) {
+      throw jsi::JSError(runtime, e.what());
+    }
+    return VideoFrame::create(runtime,
+                              std::make_shared<VideoFrame>(std::move(handle)));
+  }
+
+  // The id of a NativeBufferView about to mount, unique for the life of the
+  // process (see NativeBufferViewRegistry). Presents are accepted once the
+  // component retains it.
+  int allocateNativeBufferViewId() {
+    return NativeBufferViewRegistry::getInstance().allocateViewId();
+  }
+
+  // The NativeBufferView component mounted (again, when React StrictMode
+  // re-runs its effects).
+  void retainNativeBufferView(int viewId) {
+    NativeBufferViewRegistry::getInstance().retainFromJS(viewId);
+  }
+
+  // The NativeBufferView component unmounted.
+  void releaseNativeBufferView(int viewId) {
+    NativeBufferViewRegistry::getInstance().releaseFromJS(viewId);
+  }
+
+  // presentNativeBuffer(viewId, frame, fence?): makes `frame` the content of
+  // the NativeBufferView `viewId` once `fence` (a GPUSharedFenceState, e.g.
+  // from GPUNativeBufferTexture.endAccess()) has signaled, or right away
+  // without one. On Android it also waits for the frame's own acquire fence,
+  // if it has one (a buffer the producer may still be writing). Returns
+  // immediately; the view shows the buffer on the next vsync after that. The
+  // view takes its own reference on the buffer, but that does not keep a
+  // buffer pool from reusing it: release the frame right away only if
+  // nothing else will write the buffer while it is displayed (see
+  // NativeBufferView.tsx).
+  jsi::Value presentNativeBuffer(jsi::Runtime &runtime,
+                                 const jsi::Value & /*thisVal*/,
+                                 const jsi::Value *args, size_t count) {
+    if (count < 2 || !args[0].isNumber() || !args[1].isObject()) {
+      throw jsi::JSError(runtime, "presentNativeBuffer(viewId, frame, fence?): "
+                                  "expected a view id and a NativeBuffer");
+    }
+    const int viewId = static_cast<int>(args[0].asNumber());
+    auto frame = JSIConverter<std::shared_ptr<VideoFrame>>::fromJSI(
+        runtime, args[1], false);
+    if (!frame) {
+      throw jsi::JSError(
+          runtime, "presentNativeBuffer(): frame is not a NativeBuffer");
+    }
+    wgpu::SharedFence fence;
+    uint64_t signaledValue = 0;
+    if (count > 2 && args[2].isObject()) {
+      auto state = JSIConverter<std::shared_ptr<GPUSharedFenceState>>::fromJSI(
+          runtime, args[2], false);
+      if (state && state->fence) {
+        fence = state->fence->get();
+        if (!fence) {
+          throw jsi::JSError(runtime,
+                             "presentNativeBuffer(): the fence was destroyed");
+        }
+        signaledValue = state->signaledValue;
+      }
+    }
+    std::shared_ptr<NativeBufferContent> content;
+    try {
+      content = NativeBufferContent::fromFrame(frame->handle());
+    } catch (const std::exception &e) {
+      throw jsi::JSError(runtime, e.what());
+    }
+    int acquireFenceFd = -1;
+#if defined(__ANDROID__)
+    // Duplicated: the frame closes its own fd when it is released, which may
+    // be before the wait is over.
+    if (frame->handle().acquireFenceFd >= 0) {
+      acquireFenceFd = ::dup(frame->handle().acquireFenceFd);
+      if (acquireFenceFd < 0) {
+        throw jsi::JSError(runtime, "presentNativeBuffer(): could not "
+                                    "duplicate the frame's acquire fence");
+      }
+    }
+#endif
+    NativeBufferViewRegistry::getInstance().present(
+        viewId, std::move(content), std::move(fence), signaledValue,
+        acquireFenceFd);
+    return jsi::Value::undefined();
+  }
+
   std::shared_ptr<VideoPlayer>
   createVideoPlayer(std::string path, std::optional<std::string> pixelFormat) {
     auto format = (pixelFormat && pixelFormat.value() == "nv12")
@@ -395,6 +550,16 @@ public:
     installMethod(runtime, prototype, "adoptTexture", &RNWebGPU::adoptTexture);
     installMethod(runtime, prototype, "createVideoPlayer",
                   &RNWebGPU::createVideoPlayer);
+    installMethod(runtime, prototype, "createNativeBuffer",
+                  &RNWebGPU::createNativeBuffer);
+    installMethod(runtime, prototype, "allocateNativeBufferViewId",
+                  &RNWebGPU::allocateNativeBufferViewId);
+    installMethod(runtime, prototype, "retainNativeBufferView",
+                  &RNWebGPU::retainNativeBufferView);
+    installMethod(runtime, prototype, "releaseNativeBufferView",
+                  &RNWebGPU::releaseNativeBufferView);
+    installMethod(runtime, prototype, "presentNativeBuffer",
+                  &RNWebGPU::presentNativeBuffer);
     installMethod(runtime, prototype, "writeTestVideoFile",
                   &RNWebGPU::writeTestVideoFile);
   }

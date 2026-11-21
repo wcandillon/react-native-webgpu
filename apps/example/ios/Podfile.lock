@@ -2604,7 +2604,7 @@ SPEC CHECKSUMS:
   React-mutationobservernativemodule: b97a67c29f724d18a92379e7390f24350acb433a
   react-native-safe-area-context: 949375a80dca43886b96574e6c97a0c5b37a479c
   react-native-skia: 8bc263ce99daef1d357c65681e5085b1d3d95157
-  react-native-webgpu: 28c8d4a32844369cbda123cd844f7ad3a72a0a68
+  react-native-webgpu: 27abd5e7a0af033bc91767a338cea31f441f58af
   React-NativeModulesApple: 8cfb2f308f48c48068c96b932e7f0e4297c23342
   React-networking: 3325cf73ecbdaacab0da91260b094baf36061a56
   React-oscompat: a776760fdfa152e12114f8c30d833963daac27e1

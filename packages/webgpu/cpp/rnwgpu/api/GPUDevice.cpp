@@ -553,7 +553,7 @@ std::shared_ptr<GPUNativeBufferTexture> GPUDevice::createNativeBufferTexture(
   static constexpr const char *kCaller = "GPUDevice::createNativeBufferTexture";
   if (!source) {
     throw std::runtime_error("GPUDevice::createNativeBufferTexture(): "
-                             "source (NativeVideoFrame) is required");
+                             "source (NativeBuffer) is required");
   }
   std::string label;
   std::optional<double> usage;
@@ -603,7 +603,7 @@ GPUDevice::createNativeBufferExternalTexture(
   if (!source) {
     throw std::runtime_error(
         "GPUDevice::createNativeBufferExternalTexture(): source "
-        "(NativeVideoFrame) is required");
+        "(NativeBuffer) is required");
   }
   std::shared_ptr<GPUExternalTextureDescriptor> options =
       descriptor.has_value() && *descriptor

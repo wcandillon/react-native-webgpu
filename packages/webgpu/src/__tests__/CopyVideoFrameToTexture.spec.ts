@@ -1,6 +1,6 @@
 import { client } from "./setup";
 
-// copyExternalImageToTexture with a NativeVideoFrame source renders the frame
+// copyExternalImageToTexture with a NativeBuffer source renders the frame
 // into the destination through an external texture. The test frame is a
 // red/green gradient with diagonal stripes in the blue channel:
 // r = x * 255 / (w - 1), g = y * 255 / (h - 1), b = (x + y) & 0x20 ? 220 : 30.

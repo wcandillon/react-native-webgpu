@@ -153,7 +153,8 @@
     },
     "ios": {
       "componentProvider": {
-        "WebGPUView": "WebGPUView"
+        "WebGPUView": "WebGPUView",
+        "WebGPUNativeBufferView": "WebGPUNativeBufferView"
       }
     }
   }

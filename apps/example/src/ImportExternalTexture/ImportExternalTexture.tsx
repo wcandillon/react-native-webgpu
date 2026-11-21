@@ -6,7 +6,7 @@ import {
   useCanvasRef,
   useDevice,
   type NativeCanvas,
-  type NativeVideoFrame,
+  type NativeBuffer,
 } from "react-native-webgpu";
 
 // This is the SharedTextureMemory demo, rewritten to use
@@ -142,7 +142,7 @@ export const ImportExternalTexture = () => {
     // Hold the current frame across rAF ticks: pull the latest frame each
     // tick, and keep the previous one when the decoder hasn't produced a new
     // one yet, to avoid a black flash.
-    let currentFrame: NativeVideoFrame | null = null;
+    let currentFrame: NativeBuffer | null = null;
     let lastDims: [number, number] | null = null;
 
     const render = () => {

@@ -45,6 +45,10 @@ public:
   VideoFrameHandle createTestVideoFrame(uint32_t width, uint32_t height,
                                         VideoPixelFormat format) override;
 
+  VideoFrameHandle createNativeBuffer(uint32_t width, uint32_t height,
+                                      wgpu::TextureFormat format,
+                                      bool displayP3) override;
+
   std::unique_ptr<IVideoPlayer>
   createVideoPlayer(const std::string &path, VideoPixelFormat format) override;
 

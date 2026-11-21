@@ -155,6 +155,10 @@ export const examples = [
     screen: "ViewSnapshot",
     title: "📸 View Snapshot (drawElementImageToTexture)",
   },
+  {
+    screen: "NativeBufferView",
+    title: "🖼️ Native Buffer View",
+  },
 ] as const;
 
 const styles = StyleSheet.create({
