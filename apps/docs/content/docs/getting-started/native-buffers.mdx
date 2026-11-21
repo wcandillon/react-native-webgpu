@@ -17,16 +17,16 @@ A device uses a buffer in one of two ways: as a `GPUTexture` to read and write, 
 
 ```mermaid
 flowchart TD
-  buffer["<b>NativeBuffer</b><br/><small>the platform buffer, without a device</small>"]
-  memory["<b>GPUSharedTextureMemory</b><br/><small>the buffer, bound to one device</small>"]
-  texture["<b>GPUTexture</b><br/><small>read and write</small>"]
-  external["<b>GPUExternalTexture</b><br/><small>read only, YUV as RGB</small>"]
-  view["<b>NativeBufferView</b><br/><small>shows the buffer on screen</small>"]
+  buffer("<b>NativeBuffer</b><br/><small>the platform buffer, without a device</small>")
+  memory("<b>GPUSharedTextureMemory</b><br/><small>the buffer, bound to one device</small>")
+  texture("<b>GPUTexture</b><br/><small>read and write</small>")
+  external("<b>GPUExternalTexture</b><br/><small>read only, YUV as RGB</small>")
+  view("<b>NativeBufferView</b><br/><small>shows the buffer on screen</small>")
 
-  buffer -- "importSharedTextureMemory()" --> memory
-  memory -- "createTexture()" --> texture
-  buffer -- "importExternalTexture()" --> external
-  buffer -. "present()" .-> view
+  buffer -- "<code>importSharedTextureMemory()</code>" --> memory
+  memory -- "<code>createTexture()</code>" --> texture
+  buffer -- "<code>importExternalTexture()</code>" --> external
+  buffer -. "<code>present()</code>" .-> view
 ```
 
 1. **[`NativeBuffer`](/api/native-buffer#nativebuffer)** is the buffer itself, with its size, its pixel format and `release()`. A camera, a video decoder or `createNativeBuffer()` produces it, and it works without any device.
