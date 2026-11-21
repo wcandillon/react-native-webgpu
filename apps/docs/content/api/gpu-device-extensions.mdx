@@ -1,9 +1,43 @@
 ---
 title: Native Extensions
-description: Native interop extensions to GPUDevice and the WebGPU globals.
+description: React Native extensions to WebGPU objects and globals.
 ---
 
 React Native WebGPU adds a handful of native extensions on top of the WebGPU spec.
+
+## GPUBuffer.readbackSync
+
+`readbackSync()` synchronously copies a small `MAP_READ` buffer from the GPU into an owned CPU-accessible `ArrayBuffer`. It blocks the calling JavaScript or worklet thread until previously submitted GPU work completes, copies the mapped bytes, and unmaps the GPU buffer before returning.
+
+<Callout type="warn" title="A latency tradeoff">
+  Synchronous readback is not faster than `mapAsync()`. It stalls the calling
+  thread and removes CPU/GPU parallelism. Keep dependent work on the GPU when
+  possible, and use `mapAsync()` when the result can be consumed in a later
+  JavaScript turn. Use `readbackSync()` only when a small CPU result is genuinely
+  required in the current turn.
+</Callout>
+
+Create a `MAP_READ | COPY_DST` staging buffer, copy the compute result into it, submit the commands, and read it:
+
+```tsx
+const staging = device.createBuffer({
+  size: 16,
+  usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+});
+
+encoder.copyBufferToBuffer(storage, 0, staging, 0, 16);
+device.queue.submit([encoder.finish()]);
+
+const values = new Uint32Array(staging.readbackSync(0, 16, 500));
+```
+
+| Parameter   | Default               | Description                              |
+| ----------- | --------------------- | ---------------------------------------- |
+| `offset`    | `0`                   | Byte offset where the read begins        |
+| `size`      | Remaining buffer size | Number of bytes to copy, capped at 1 MiB |
+| `timeoutMs` | `2000`                | Maximum time to wait for the GPU         |
+
+`readbackSync()` throws if the range is invalid, the read exceeds 1 MiB, mapping fails, the timeout elapses, or the Dawn instance does not support timed waits. The last case can occur with an externally provided Dawn instance.
 
 ## importSharedTextureMemory
 

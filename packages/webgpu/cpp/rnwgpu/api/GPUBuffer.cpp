@@ -1,6 +1,10 @@
 #include "GPUBuffer.h"
 
+#include <cmath>
+#include <cstring>
+#include <limits>
 #include <memory>
+#include <stdexcept>
 #include <utility>
 
 #include "Convertors.h"
@@ -33,6 +37,105 @@ GPUBuffer::getMappedRange(std::optional<size_t> o, std::optional<size_t> size) {
   // mappings_.emplace_back(Mapping{start, end,
   // Napi::Persistent(array_buffer)});
   return array_buffer;
+}
+
+std::shared_ptr<ArrayBuffer>
+GPUBuffer::readbackSync(std::optional<double> offsetIn,
+                        std::optional<double> sizeIn,
+                        std::optional<double> timeoutMsIn) {
+  // Synchronous small-buffer readback: blocks the calling thread until all
+  // previously submitted GPU work using this buffer completes, then returns
+  // a copy of the mapped bytes. Built for tiny compute results (landmarks,
+  // ranges, counters) that must be consumed in the SAME frame - the async
+  // mapAsync path forces at least one frame of staleness in render loops
+  // that cannot await. Requires MAP_READ usage (pair with COPY_DST and copy
+  // into this buffer from your storage buffer). The wait uses
+  // Instance::WaitAny, which this library's instance enables via the
+  // TimedWaitAny feature at creation; external (Skia-provided) instances
+  // without it fail the wait and throw rather than hang.
+  auto toByteSize = [](const char *name, double value) -> size_t {
+    constexpr double kMaxSafeInteger = 9'007'199'254'740'991.0;
+    if (!std::isfinite(value) || value < 0 || std::floor(value) != value ||
+        value > kMaxSafeInteger ||
+        value > static_cast<double>(std::numeric_limits<size_t>::max())) {
+      throw std::runtime_error(std::string("GPUBuffer.readbackSync ") + name +
+                               " must be a non-negative safe integer");
+    }
+    return static_cast<size_t>(value);
+  };
+
+  const size_t offset =
+      offsetIn.has_value() ? toByteSize("offset", *offsetIn) : 0;
+  const uint64_t bufferSize = _instance.GetSize();
+  if (offset > bufferSize) {
+    throw std::runtime_error(
+        "GPUBuffer.readbackSync offset exceeds the buffer size");
+  }
+  const size_t size = sizeIn.has_value()
+                          ? toByteSize("size", *sizeIn)
+                          : static_cast<size_t>(bufferSize - offset);
+  if (size > bufferSize - offset) {
+    throw std::runtime_error(
+        "GPUBuffer.readbackSync range exceeds the buffer size");
+  }
+
+  constexpr size_t kMaxReadbackSyncBytes = 1 << 20;
+  if (size > kMaxReadbackSyncBytes) {
+    throw std::runtime_error(
+        "GPUBuffer.readbackSync is limited to 1 MiB; use mapAsync for larger "
+        "readbacks");
+  }
+
+  constexpr double kDefaultTimeoutMs = 2'000.0;
+  constexpr double kNanosecondsPerMillisecond = 1'000'000.0;
+  const double timeoutMs = timeoutMsIn.value_or(kDefaultTimeoutMs);
+  const double maxTimeoutMs =
+      static_cast<double>(std::numeric_limits<uint64_t>::max()) /
+      kNanosecondsPerMillisecond;
+  if (!std::isfinite(timeoutMs) || timeoutMs < 0 || timeoutMs > maxTimeoutMs) {
+    throw std::runtime_error(
+        "GPUBuffer.readbackSync timeoutMs must be a finite, non-negative "
+        "number");
+  }
+  const uint64_t timeoutNs =
+      static_cast<uint64_t>(timeoutMs * kNanosecondsPerMillisecond);
+
+  struct MapResult {
+    wgpu::MapAsyncStatus status = wgpu::MapAsyncStatus::Error;
+    std::string message = "callback never ran";
+  };
+  auto mapResult = std::make_shared<MapResult>();
+  auto future = _instance.MapAsync(
+      wgpu::MapMode::Read, offset, size, wgpu::CallbackMode::WaitAnyOnly,
+      [mapResult](wgpu::MapAsyncStatus status, wgpu::StringView message) {
+        mapResult->status = status;
+        mapResult->message = std::string(message);
+      });
+  auto waitStatus = _async->instance().WaitAny(future, timeoutNs);
+  if (waitStatus != wgpu::WaitStatus::Success) {
+    // Cancels the pending map request. The callback owns MapResult so a late
+    // completion cannot access stack memory after this method returns.
+    _instance.Unmap();
+    throw std::runtime_error(
+        "GPUBuffer.readbackSync did not complete before timeoutMs, or the Dawn "
+        "instance does not support timed waits");
+  }
+  if (mapResult->status != wgpu::MapAsyncStatus::Success) {
+    throw std::runtime_error("GPUBuffer.readbackSync mapping failed: " +
+                             mapResult->message);
+  }
+  const void *ptr = _instance.GetConstMappedRange(offset, size);
+  if (ptr == nullptr) {
+    _instance.Unmap();
+    throw std::runtime_error(
+        "GPUBuffer.readbackSync could not access the mapped range");
+  }
+  // Allocate owned native storage. The JSI converter wraps this memory without
+  // copying it again and reports its external memory pressure to the runtime.
+  auto result = std::make_shared<ArrayBuffer>(size, 1);
+  memcpy(result->data(), ptr, size);
+  _instance.Unmap();
+  return result;
 }
 
 void GPUBuffer::destroy() { _instance.Destroy(); }
