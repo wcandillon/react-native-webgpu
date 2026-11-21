@@ -54,9 +54,9 @@ private:
 
 // Waits for `fence` to reach `signaledValue` without blocking the caller, then
 // calls `done` from another thread: true once the fence signaled, false when
-// the wait failed or gave up (the reason is logged). Implemented per platform:
-// a sync-fd poll on a waiter thread on Android, an MTLSharedEvent listener on
-// Apple platforms.
+// the wait failed or gave up after 10 s (the reason is logged). Implemented
+// per platform: a sync-fd poll on a waiter thread on Android, an
+// MTLSharedEvent listener with a timer on Apple platforms.
 void waitForSharedFence(wgpu::SharedFence fence, uint64_t signaledValue,
                         std::function<void(bool)> done);
 

@@ -1,6 +1,7 @@
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
 
+#include <atomic>
 #include <memory>
 #include <utility>
 
@@ -8,8 +9,43 @@
 
 namespace rnwgpu {
 
+namespace {
+
+// A fence that has not signaled after this long belongs to work that will
+// never finish (a lost device): the buffer is dropped, as on Android.
+constexpr int64_t kTimeoutSeconds = 10;
+
+// One wait, finished by whichever comes first: the event's notification or
+// the timeout. Metal cannot cancel a notification, so after a timeout the
+// listener keeps its block (and this small object) until the event signals,
+// possibly never; the fence and the buffer captured by `done` are released
+// when the wait finishes. ANGLE's Metal sync (SyncMtl.mm) makes the same
+// trade-off.
+struct PendingFenceWait {
+  wgpu::SharedFence fence;
+  std::function<void(bool)> done;
+  std::atomic<bool> finished{false};
+
+  void finish(bool signaled) {
+    if (finished.exchange(true)) {
+      return;
+    }
+    auto callback = std::move(done);
+    fence = nullptr;
+    if (!signaled) {
+      NSLog(@"[WebGPU] presentNativeBuffer: the fence did not signal within "
+            @"%lld s; the buffer is dropped",
+            kTimeoutSeconds);
+    }
+    callback(signaled);
+  }
+};
+
+} // namespace
+
 // The MTLSharedEvent behind a Dawn fence, waited on with a listener: no
-// thread blocks. The notification block runs on a private serial queue.
+// thread blocks. The notification and the timeout run on a private serial
+// queue.
 void waitForSharedFence(wgpu::SharedFence fence, uint64_t signaledValue,
                         std::function<void(bool)> done) {
   wgpu::SharedFenceExportInfo info{};
@@ -27,23 +63,26 @@ void waitForSharedFence(wgpu::SharedFence fence, uint64_t signaledValue,
     done(true);
     return;
   }
-  static MTLSharedEventListener *listener = [[MTLSharedEventListener alloc]
-      initWithDispatchQueue:dispatch_queue_create(
-                                "com.webgpu.NativeBufferView.fence",
-                                DISPATCH_QUEUE_SERIAL)];
-  // Held by the block until the notification: the fence keeps the event (and
-  // Dawn's view of it) alive for the wait.
-  auto pending =
-      std::make_shared<std::pair<wgpu::SharedFence, std::function<void(bool)>>>(
-          std::move(fence), std::move(done));
+  static dispatch_queue_t queue = dispatch_queue_create(
+      "com.webgpu.NativeBufferView.fence", DISPATCH_QUEUE_SERIAL);
+  static MTLSharedEventListener *listener =
+      [[MTLSharedEventListener alloc] initWithDispatchQueue:queue];
+  // Holds the fence (which keeps the event, and Dawn's view of it, alive)
+  // until the wait finishes.
+  auto pending = std::make_shared<PendingFenceWait>();
+  pending->fence = std::move(fence);
+  pending->done = std::move(done);
   [event
       notifyListener:listener
              atValue:signaledValue
                block:^(id<MTLSharedEvent> /* event */, uint64_t /* value */) {
-                 auto callback = std::move(pending->second);
-                 pending->first = nullptr;
-                 callback(true);
+                 pending->finish(true);
                }];
+  dispatch_after(
+      dispatch_time(DISPATCH_TIME_NOW, kTimeoutSeconds * NSEC_PER_SEC), queue,
+      ^{
+        pending->finish(false);
+      });
 }
 
 } // namespace rnwgpu
