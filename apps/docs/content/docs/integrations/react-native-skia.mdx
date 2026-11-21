@@ -88,6 +88,8 @@ The surface holds its own reference to the texture. Dispose it before calling `t
 
 Platform surfaces (`CVPixelBuffer` / `AHardwareBuffer`) stay on the WebGPU side: sample them through [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory) or `importExternalTexture`, or copy them into a texture for Skia as described below.
 
+**Skia drawing into a native buffer.** The same `MakeFromGPUTexture` draws into a buffer from `createNativeBuffer()`, imported with `createNativeBufferTexture()`, and a [`NativeBufferView`](/api/native-buffer#nativebufferview) displays the result. A screen with many small Skia drawings, such as icons or thumbnails, then needs one buffer per drawing rather than one canvas each. See [Drawing with Skia](/docs/getting-started/native-buffers#drawing-with-skia).
+
 ## Video and camera frames
 
 Starting with v3, react-native-skia has no video player and no native buffer API of its own: react-native-webgpu produces and owns the frames.
@@ -120,3 +122,4 @@ The complete example, with the lifetime rules, is in the [React Native Skia docu
 - [WebGPU in the React Native Skia documentation](https://wcandillon.github.io/react-native-skia/docs/webgpu) - complete examples, including Three.js in both directions
 - [Native APIs](/docs/getting-started/native-api) - `importDevice` and the threading model
 - [Native Extensions](/api/gpu-device-extensions) - native texture interop on `GPUDevice`
+- [Native Buffers](/docs/getting-started/native-buffers) - video frames, camera frames and `NativeBufferView`

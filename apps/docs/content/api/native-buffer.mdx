@@ -1,0 +1,125 @@
+---
+title: Native Buffer
+description: NativeBuffer, createNativeBuffer and NativeBufferView, the view that displays a native buffer.
+---
+
+A native buffer is an `AHardwareBuffer` on Android and an `IOSurface` on Apple platforms.
+See the [Native Buffers guide](/docs/getting-started/native-buffers) for how buffers, devices, fences and views fit together.
+
+## NativeBuffer
+
+A `NativeBuffer` holds a native buffer and keeps it alive until `release()` is called, or until the object is garbage collected.
+It does not belong to any GPU device: a device imports it to sample it or to render into it.
+
+<auto-type-table path="../../../../packages/webgpu/src/types.ts" name="NativeBuffer" />
+
+`handle` is the raw pointer of the buffer (an `IOSurfaceRef` or an `AHardwareBuffer*`) as a `BigInt`, which `importSharedTextureMemory({ handle })` takes.
+
+`acquireFenceFd` is, on Android, the sync fd the decoder or the camera signals once it has written the buffer, and `null` elsewhere.
+`importExternalTexture()`, `copyExternalImageToTexture()` and `NativeBufferView` wait for it on their own; a [native buffer wrapper](/api/gpu-device-extensions#createnativebufferexternaltexture--createnativebuffertexture) takes it through `importSharedFence({ type: "sync-fd", handle })`.
+The frame owns the fd: import it before `release()`, and never close it.
+
+A frame from a [video player](/api/video-player) or a camera comes from a pool: release it as soon as the GPU work that reads it has been submitted, or the producer runs out of buffers.
+
+`NativeBuffer` was called `NativeVideoFrame` in earlier versions; the old name remains as a deprecated alias.
+
+## createNativeBuffer
+
+```ts
+createNativeBuffer(width: number, height: number, options?: CreateNativeBufferOptions): NativeBuffer
+```
+
+Allocates an empty color buffer to render into, for instance to display it in a [`NativeBufferView`](#nativebufferview).
+Import it with `device.createNativeBufferTexture(frame, { usage: GPUTextureUsage.RENDER_ATTACHMENT })`; see [Rendering into a buffer](/docs/getting-started/native-buffers#rendering-into-a-buffer).
+The width and height are integers from 1 to 16384.
+
+<auto-type-table path="../../../../packages/webgpu/src/types.ts" name="CreateNativeBufferOptions" />
+
+## createVideoFrameFromNativeBuffer
+
+```ts
+createVideoFrameFromNativeBuffer(pointer: bigint): NativeBuffer
+```
+
+Wraps a buffer produced by another library (a `CVPixelBufferRef` on Apple platforms, an `AHardwareBuffer*` on Android, for instance VisionCamera's `frame.getNativeBuffer().pointer`) into a `NativeBuffer` that holds a reference of its own until released.
+It runs on the JS thread; on a worklet runtime, such as a frame processor, call `RNWebGPU.createVideoFrameFromNativeBuffer(pointer)` instead (see [Vision Camera](/docs/integrations/vision-camera)).
+
+`createTestVideoFrame(width, height)` allocates a frame filled with a test pattern, for tests and examples that need a frame without a camera or a video.
+
+## NativeBufferView
+
+```tsx twoslash
+import React, { useRef } from "react";
+import {
+  NativeBufferView,
+  useNativeBufferSize,
+  type NativeBufferViewRef,
+} from "react-native-webgpu";
+// ---cut---
+const ref = useRef<NativeBufferViewRef>(null);
+const { size, onPixelSizeChange } = useNativeBufferSize();
+
+<NativeBufferView
+  ref={ref}
+  resizeMode="contain"
+  onPixelSizeChange={onPixelSizeChange}
+  style={{ flex: 1 }}
+/>;
+```
+
+Displays a native buffer with no swap chain, no canvas context and no GPU device on the display side.
+It is meant for content that is drawn once or updated now and then; animated content belongs in a [`Canvas`](/api/canvas).
+The view never allocates buffers: it reports its size, and you present the buffers you render through its ref.
+
+| Prop | Description |
+| --- | --- |
+| `ref` | A [`NativeBufferViewRef`](#nativebufferviewref) to present buffers with. |
+| `onPixelSizeChange` | Called with `{ width, height }`, the size of the view in physical pixels, on mount and on every size change. Render at that size for a sharp, 1:1 display. |
+| `resizeMode` | How a buffer whose size differs from the view's is fitted, `"stretch"` by default. See [Resize modes](#resize-modes). |
+| ...`ViewProps` | The props of a React Native `View`. |
+
+### NativeBufferViewRef
+
+<auto-type-table path="../../../../packages/webgpu/src/NativeBufferView.tsx" name="NativeBufferViewRef" />
+
+`present(frame, fence)` takes the fence `endAccess()` of a [`GPUNativeBufferTexture`](/api/gpu-device-extensions#createnativebufferexternaltexture--createnativebuffertexture) returns.
+The view takes its own reference on the buffer and on the fence, so both can be released right after the call.
+
+Do not write a buffer again once it is presented: render the next update into a new buffer.
+Frames from a pool (a video player, a camera) have to be copied into a buffer from `createNativeBuffer()` first, since their producer writes a later frame into the buffer once the frame is released; see [Never write a displayed buffer](/docs/getting-started/native-buffers#never-write-a-displayed-buffer).
+
+On a worklet runtime, present with the `RNWebGPU` global and the view's id:
+
+```tsx
+RNWebGPU.presentNativeBuffer(viewId, frame, fence);
+```
+
+### Resize modes
+
+A buffer of exactly the view's size is shown 1:1 in every mode. The mode applies while the size of the buffer differs, for instance until the producer catches up with a resize.
+
+| Mode | Description |
+| --- | --- |
+| `"stretch"` | Scaled to the bounds, ignoring the aspect ratio. The default. |
+| `"contain"` | Scaled to fit inside the bounds, keeping the aspect ratio. |
+| `"cover"` | Scaled to fill the bounds, keeping the aspect ratio; the excess is cropped. |
+| `"topLeft"` | Not scaled; anchored at the top left corner and cropped. |
+
+### useNativeBufferSize
+
+```ts
+useNativeBufferSize(debounceMs?: number): {
+  size: NativeBufferPixelSize | null;
+  onPixelSizeChange: (size: NativeBufferPixelSize) => void;
+}
+```
+
+Tracks the pixel size of a `NativeBufferView` and settles resizes.
+The first size is reported right away; later ones once the view has kept the same size for `debounceMs` (150 by default).
+During an animated resize, the view scales what it already shows meanwhile.
+Pass `onPixelSizeChange` to the view and render a buffer of `size` whenever it changes.
+
+### Platform notes
+
+- On Android 8 and 9, the view copies the pixels of each buffer through the CPU. From Android 10 on, it shows the buffer without a copy.
+- An `rgba16float` buffer is shown with more precision, not extended range: values outside [0, 1] are clamped.

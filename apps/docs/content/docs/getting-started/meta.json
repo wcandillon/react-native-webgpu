@@ -6,6 +6,7 @@
     "canvas",
     "offscreen-canvas",
     "native-api",
+    "native-buffers",
     "react-api",
     "learn-webgpu"
   ]

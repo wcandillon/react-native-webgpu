@@ -5,7 +5,7 @@ description: Real-time GPU effects on live camera frames.
 
 Run WGSL effects on live camera frames by importing each [Vision Camera `Frame`](https://visioncamera.margelo.com/api/react-native-vision-camera/hybrid-objects/Frame) as a `GPUExternalTexture`, sampling it in a shader, and presenting from the frame-output worklet.
 
-Vision Camera owns the camera pipeline and exposes each captured image as a **`Frame` hybrid object**: a short-lived handle to GPU-shareable pixel data. React Native WebGPU sits on the consumer side: you take the frame's [`NativeBuffer`](https://visioncamera.margelo.com/api/react-native-vision-camera/interfaces/NativeBuffer), wrap its pointer into React Native WebGPU's own [`NativeBuffer`](/api/video-player#nativebuffer) (which holds a reference of its own), and sample it with `importExternalTexture`.
+Vision Camera owns the camera pipeline and exposes each captured image as a **`Frame` hybrid object**: a short-lived handle to GPU-shareable pixel data. React Native WebGPU sits on the consumer side: you take the frame's [`NativeBuffer`](https://visioncamera.margelo.com/api/react-native-vision-camera/interfaces/NativeBuffer), wrap its pointer into React Native WebGPU's own [`NativeBuffer`](/api/native-buffer#nativebuffer) (which holds a reference of its own), and sample it with `importExternalTexture`.
 
 ## Vision Camera concepts
 

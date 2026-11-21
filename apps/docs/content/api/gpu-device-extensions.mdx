@@ -4,11 +4,12 @@ description: Native interop extensions to GPUDevice and the WebGPU globals.
 ---
 
 React Native WebGPU adds a handful of native extensions on top of the WebGPU spec.
+The first ones import [native buffers](/api/native-buffer) (video frames, camera frames and buffers you render into); the [Native Buffers guide](/docs/getting-started/native-buffers) explains which one to pick and how they fit together.
 
 ## importSharedTextureMemory
 
 Imports a native buffer (IOSurface / AHardwareBuffer) for zero-copy sampling.
-Nothing has to be requested: `requestDevice()` enables the Dawn features behind native frame import whenever the adapter supports them (see [Native textures](/docs/getting-started/native-api#native-textures)).
+Nothing has to be requested: `requestDevice()` enables the Dawn features behind native frame import whenever the adapter supports them (see [Devices](/docs/getting-started/native-buffers#devices)).
 
 ```tsx twoslash
 import type { NativeBuffer } from "react-native-webgpu";
@@ -135,6 +136,7 @@ wrapper.destroy();
 The descriptor is that of `importExternalTexture()` without the source (`colorSpace`, `rotation`, `mirrored`, plus `sourceColorSpace`, `cropOrigin` and `cropSize`, see below); the same descriptor members apply to `importExternalTexture()`.
 
 `createNativeBufferTexture(frame, { usage, label })` is the same wrapper over a color buffer (an RGBA `AHardwareBuffer`, a BGRA `IOSurface`) exposed as a regular `GPUTexture`; `usage` defaults to every usage the buffer allows.
+With `GPUTextureUsage.RENDER_ATTACHMENT`, it renders into a buffer from [`createNativeBuffer()`](/api/native-buffer#createnativebuffer), and the fence `endAccess()` returns is what [`NativeBufferView`](/api/native-buffer#nativebufferview) takes (see [Rendering into a buffer](/docs/getting-started/native-buffers#rendering-into-a-buffer)).
 The external texture is sample-only, as on the web, and the only way to read a YUV frame; the texture is for a color buffer you also write to or copy from.
 
 On Android, a buffer from another library (wrapped with `createVideoFrameFromNativeBuffer`) carries no color metadata: pass `sourceColorSpace` when you know it, or the conversion assumes what the platform reports for the buffer, BT.601 limited range by default.
@@ -185,7 +187,7 @@ The flag only controls the default injection: listing `"implicit-device-synchron
 
 | Field / Method | Description |
 | -------------- | ----------- |
-| `source` | A [`NativeBuffer`](/api/video-player#nativebuffer) (from a video player, a camera buffer or `createTestVideoFrame`) instead of the web's `HTMLVideoElement` / `VideoFrame` |
+| `source` | A [`NativeBuffer`](/api/native-buffer#nativebuffer) (from a video player, a camera buffer or `createTestVideoFrame`) instead of the web's `HTMLVideoElement` / `VideoFrame` |
 | `rotation` | 0, 90, 180, or 270 degrees (camera orientation) |
 | `mirrored` | Horizontal flip for front camera |
 | `sourceColorSpace` | Overrides the members of the frame's own color space (`matrix`, `range`, `primaries`, `transfer`), for a buffer that carries none |
@@ -213,7 +215,7 @@ On Android, a YUV frame (what the video decoder and the camera produce) needs th
 
 ## copyExternalImageToTexture with a native frame
 
-`queue.copyExternalImageToTexture()` also accepts a [`NativeBuffer`](/api/video-player#nativebuffer) as its source, the way the web API accepts a `VideoFrame`.
+`queue.copyExternalImageToTexture()` also accepts a [`NativeBuffer`](/api/native-buffer#nativebuffer) as its source, the way the web API accepts a `VideoFrame`.
 The frame is rendered into the destination on the GPU through an external texture, so YUV frames come out as RGB, and the non-spec `rotation` and `mirrored` options of `importExternalTexture` apply.
 The destination needs `GPUTextureUsage.RENDER_ATTACHMENT` and an `rgba8unorm`, `bgra8unorm` (or `-srgb`), `rgba16float` or `rgb10a2unorm` format; the frame can be released as soon as the call returns.
 
