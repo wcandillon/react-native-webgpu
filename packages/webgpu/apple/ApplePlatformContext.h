@@ -58,6 +58,8 @@ public:
 
   std::function<void(void *)> retainNativeWindow(void *window) override;
 
+  std::shared_ptr<VsyncSource> makeVsyncSource() override;
+
 private:
   ViewLookup _viewLookup;
   BlobManagerLookup _blobManagerLookup;

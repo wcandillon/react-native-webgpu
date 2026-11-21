@@ -1,5 +1,7 @@
 #include "RNWebGPUManager.h"
 
+#include "AnimationFrames.h"
+
 #include "GPU.h"
 #include "NativeBufferViewRegistry.h"
 #include "NativeObject.h"
@@ -93,6 +95,17 @@ RNWebGPUManager::RNWebGPUManager(
                                    GPUShaderStage::create(*_jsRuntime));
   _jsRuntime->global().setProperty(*_jsRuntime, "GPUTextureUsage",
                                    GPUTextureUsage::create(*_jsRuntime));
+
+  // requestAnimationFrame paced by the display, on every runtime (see
+  // src/animationFrame.ts). The source is the platform's, kept across reloads;
+  // the HostObject is handed to other runtimes by reference, like the
+  // helpers below.
+  AnimationFrameScheduler::shared().setVsyncSource(
+      _platformContext->makeVsyncSource());
+  _jsRuntime->global().setProperty(
+      *_jsRuntime, "__webgpuAnimationFrames",
+      jsi::Object::createFromHostObject(
+          *_jsRuntime, std::make_shared<AnimationFramesHostObject>()));
 
   // Install global helper functions for Worklets serialization
   // These are standalone functions that don't require RNWebGPU instance

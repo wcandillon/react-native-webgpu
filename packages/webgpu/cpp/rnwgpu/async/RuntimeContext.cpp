@@ -41,7 +41,7 @@ jsi::Runtime *mainRuntime() {
   return sMainRuntime;
 }
 
-std::shared_ptr<facebook::react::CallInvoker> mainInvoker() {
+std::shared_ptr<facebook::react::CallInvoker> mainInvokerSlot() {
   std::lock_guard<std::mutex> lock(sMainMutex);
   return sMainInvoker;
 }
@@ -126,6 +126,23 @@ void RuntimeContext::registerMainRuntime(
   sMainInvoker = std::move(invoker);
 }
 
+std::shared_ptr<facebook::react::CallInvoker> RuntimeContext::mainInvoker() {
+  return mainInvokerSlot();
+}
+
+RuntimeContext::RuntimeKind
+RuntimeContext::runtimeKindOf(jsi::Runtime &runtime) {
+  switch (kindOf(runtime)) {
+  case Kind::Main:
+    return RuntimeKind::Main;
+  case Kind::UI:
+    return RuntimeKind::UI;
+  case Kind::Mailbox:
+    return RuntimeKind::Other;
+  }
+  return RuntimeKind::Other;
+}
+
 RuntimeContext::Kind RuntimeContext::kindOf(jsi::Runtime &runtime) {
   auto main = mainRuntime();
   if (&runtime == main) {
@@ -176,7 +193,7 @@ RuntimeContext::getOrCreate(jsi::Runtime &runtime,
 bool RuntimeContext::canSettle() const {
   switch (_kind) {
   case Kind::Main:
-    return mainInvoker() != nullptr;
+    return mainInvokerSlot() != nullptr;
   case Kind::UI:
   case Kind::Mailbox:
     return true;
@@ -233,7 +250,7 @@ void RuntimeContext::onTaskSettled() {
 void RuntimeContext::post(Job job) {
   switch (_kind) {
   case Kind::Main: {
-    auto invoker = mainInvoker();
+    auto invoker = mainInvokerSlot();
     if (invoker == nullptr) {
       return;
     }
@@ -264,7 +281,7 @@ void RuntimeContext::post(Job job) {
 // the next post tries again. Whatever goes wrong on the way, the wake is
 // given up, never the jobs.
 void RuntimeContext::wakeUI() {
-  auto invoker = mainInvoker();
+  auto invoker = mainInvokerSlot();
   if (invoker == nullptr) {
     return;
   }

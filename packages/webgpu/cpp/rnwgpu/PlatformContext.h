@@ -13,6 +13,8 @@
 
 namespace rnwgpu {
 
+class VsyncSource;
+
 struct ImageData {
   std::vector<uint8_t> data;
   size_t width;
@@ -259,6 +261,11 @@ public:
   // return the releaser that balances that reference once the surface is done
   // with it. The releaser can run on any thread.
   virtual std::function<void(void *)> retainNativeWindow(void *window) = 0;
+
+  // The display's frames, for requestAnimationFrame (see AnimationFrames.h);
+  // null where the platform has none, and every runtime then uses its own
+  // global requestAnimationFrame.
+  virtual std::shared_ptr<VsyncSource> makeVsyncSource() { return nullptr; }
 
   // Write a small procedurally-generated test video to a temporary location
   // and return its absolute path. Lets the SharedTextureMemory example play
