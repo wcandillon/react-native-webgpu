@@ -89,10 +89,11 @@ export const examples = [
     screen: "ComputeBoids",
     title: "🐦‍⬛ Compute Boids",
   },
-  {
-    screen: "MNISTInference",
-    title: "1️⃣ MNIST Inference",
-  },
+  // TODO: Restore MNIST when Skia supports SDK-based Dawn preparation.
+  // {
+  //   screen: "MNISTInference",
+  //   title: "1️⃣ MNIST Inference",
+  // },
   ...(Platform.OS !== "ios"
     ? ([
         {

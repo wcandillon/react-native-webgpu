@@ -8,21 +8,25 @@ on:
       - "packages/webgpu/apple/**"
       - "packages/webgpu/cpp/**"
       - "packages/webgpu/package.json"
+      - "packages/webgpu/binaries.json"
+      - "packages/webgpu/scripts/*apple*binaries.sh"
+      - "packages/webgpu/scripts/apple-binary-utils.sh"
       - "packages/webgpu/scripts/check-apple-sdks.sh"
+      - "packages/webgpu/scripts/prepare-dawn-headers.mjs"
       - ".github/workflows/apple-sdks.yml"
 jobs:
   apple-sdks:
     # Syntax-check only: no yarn install, no pods, no simulator. Only the Dawn
-    # headers are downloaded (about 1 MB out of the package's tarball).
+    # headers archive is downloaded from the pinned Skia binaries release.
     runs-on: macos-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Download Dawn headers
-        run: |
-          VERSION=$(node -p 'require("./packages/webgpu/package.json").dependencies["react-native-webgpu-dawn"]')
-          mkdir -p "$RUNNER_TEMP/dawn"
-          curl -sfL "https://registry.npmjs.org/react-native-webgpu-dawn/-/react-native-webgpu-dawn-$VERSION.tgz" \
-            | tar xz -C "$RUNNER_TEMP/dawn" package/include
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: .nvmrc
+      - name: Prepare Dawn headers
+        run: node packages/webgpu/scripts/prepare-dawn-headers.mjs
       - name: Check Apple sources against every SDK
-        run: packages/webgpu/scripts/check-apple-sdks.sh "$RUNNER_TEMP/dawn/package/include"
+        run: packages/webgpu/scripts/check-apple-sdks.sh

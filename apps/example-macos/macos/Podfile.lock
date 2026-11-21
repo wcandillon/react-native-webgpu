@@ -2021,36 +2021,6 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-skia (3.10.0):
-    - boost
-    - DoubleConversion
-    - fast_float
-    - fmt
-    - glog
-    - hermes-engine
-    - RCT-Folly
-    - RCT-Folly/Fabric
-    - RCTRequired
-    - RCTTypeSafety
-    - React
-    - React-callinvoker
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - SocketRocket
-    - Yoga
   - react-native-webgpu (0.0.0):
     - boost
     - DoubleConversion
@@ -2965,7 +2935,6 @@ DEPENDENCIES:
   - React-microtasksnativemodule (from `../node_modules/react-native-macos/ReactCommon/react/nativemodule/microtasks`)
   - React-mutationobservernativemodule (from `../node_modules/react-native-macos/ReactCommon/react/nativemodule/mutationobserver`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
-  - react-native-skia (from `../node_modules/react-native-skia`)
   - react-native-webgpu (from `../node_modules/react-native-webgpu`)
   - React-NativeModulesApple (from `../node_modules/react-native-macos/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-networking (from `../node_modules/react-native-macos/ReactCommon/react/networking`)
@@ -3106,8 +3075,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-macos/ReactCommon/react/nativemodule/mutationobserver"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
-  react-native-skia:
-    :path: "../node_modules/react-native-skia"
   react-native-webgpu:
     :path: "../node_modules/react-native-webgpu"
   React-NativeModulesApple:
@@ -3239,8 +3206,7 @@ SPEC CHECKSUMS:
   React-microtasksnativemodule: 19a679c33c2a30339ded09015f3b150d17741dd9
   React-mutationobservernativemodule: fd162222cbf7aa9f00ceaddcfcf3af472dd84db0
   react-native-safe-area-context: 6cf08f4151132f9cf2adb948dc6c4ac387f8d30f
-  react-native-skia: 2a2e368f129a7c029b5dd22e06395eac4fe94c3f
-  react-native-webgpu: a038711df350957d325a322211216bb73dac7a10
+  react-native-webgpu: 7f9b1b83788339356f7567add013bef85f1cf117
   React-NativeModulesApple: 5ead5f7c62cdc951f5090c3f736f4da36c1807b5
   React-networking: d61cd2aed6bd3ef10baef7b327219f7c12a6969b
   React-oscompat: 7551cbe14bc1ff01314e9cf119a985abe3e70344
