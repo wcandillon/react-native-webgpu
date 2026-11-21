@@ -100,33 +100,6 @@ const done = memory.endAccess(texture);
 The work is only queued when `endAccess()` returns: whoever reads the buffer next (the screen, another device, a native library) has to wait for its fences first.
 [`NativeBufferView`](#displaying-a-buffer) takes them as they are, with `present(frame, done)`.
 
-### Drawing with Skia
-
-When React Native Skia shares its device with React Native WebGPU (see [Rendering with Skia's device](/docs/integrations/react-native-skia#rendering-with-skias-device)), Skia can draw straight into a native buffer:
-
-```tsx
-import { Skia } from "react-native-skia";
-import { createNativeBuffer, importDevice } from "react-native-webgpu";
-
-const device = importDevice(Skia.getNativeDevice());
-
-const frame = createNativeBuffer(width, height);
-const memory = device.importSharedTextureMemory({ source: frame });
-const texture = memory.createTexture();
-memory.beginAccess(texture, false);
-const surface = Skia.Surface.MakeFromGPUTexture(texture);
-const canvas = surface.getCanvas();
-canvas.drawPicture(picture);
-// Submit Skia's commands before the access ends
-surface.flush();
-
-viewRef.current.present(frame, memory.endAccess(texture));
-surface.dispose();
-texture.destroy();
-memory.destroy();
-frame.release();
-```
-
 ## Displaying a buffer
 
 [`NativeBufferView`](/api/native-buffer#nativebufferview) shows a buffer as a regular React Native view.
