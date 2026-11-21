@@ -13,29 +13,28 @@ The [Native Buffer](/api/native-buffer) and [Native Extensions](/api/gpu-device-
 
 ## The flow
 
-A buffer reaches the GPU in up to three steps, each with its own type. The dashed arrows are shortcuts:
+A device uses a buffer in one of two ways: as a `GPUTexture` to read and write, or as a `GPUExternalTexture` to read only.
 
 ```mermaid
 flowchart TD
   buffer["<b>NativeBuffer</b><br/><small>the platform buffer, without a device</small>"]
   memory["<b>GPUSharedTextureMemory</b><br/><small>the buffer, bound to one device</small>"]
-  texture["<b>GPUTexture</b><br/><small>a regular texture over its pixels</small>"]
-  external["<b>GPUExternalTexture</b><br/><small>samples the pixels as RGB</small>"]
+  texture["<b>GPUTexture</b><br/><small>read and write</small>"]
+  external["<b>GPUExternalTexture</b><br/><small>read only, YUV as RGB</small>"]
   view["<b>NativeBufferView</b><br/><small>shows the buffer on screen</small>"]
 
   buffer -- "importSharedTextureMemory()" --> memory
   memory -- "createTexture()" --> texture
-  texture -- "importExternalTexture()" --> external
-  buffer -. "importExternalTexture(), one frame" .-> external
+  buffer -- "importExternalTexture()" --> external
   buffer -. "present()" .-> view
 ```
 
 1. **[`NativeBuffer`](/api/native-buffer#nativebuffer)** is the buffer itself, with its size, its pixel format and `release()`. A camera, a video decoder or `createNativeBuffer()` produces it, and it works without any device.
 2. **[`GPUSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory)** is the buffer bound to a device: Dawn's import of it. A buffer is imported once per device, and stays imported for as long as you use it.
-3. **`GPUTexture`** is what `memory.createTexture()` returns: a regular WebGPU texture whose pixels are the buffer's, no copy involved. Use it to render into a color buffer, or to sample one, but only inside an **access window**: between `memory.beginAccess()` and `memory.endAccess()`, the device owns the buffer.
-4. **[`GPUExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions)** comes from the WebGPU specification, where it samples a video frame. It is read-only, and converts YUV to RGB while sampling, with the frame's rotation and mirroring applied. A camera or video frame in a YUV format can only be read this way.
+3. **`GPUTexture`** is what `memory.createTexture()` returns: a regular WebGPU texture whose pixels are the buffer's, no copy involved. It is **read and write**: render into it, sample it, copy from it. It is used only inside an **access window**: between `memory.beginAccess()` and `memory.endAccess()`, the device owns the buffer.
+4. **[`GPUExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions)** comes from the WebGPU specification, where it samples a video frame. It is **read only**: it converts YUV to RGB while sampling, with the frame's rotation and mirroring applied, and it is the only way to read a camera or video frame in a YUV format. `importExternalTexture({ source: buffer })` imports the buffer for this one frame and releases it when you destroy the external texture.
 
-`importExternalTexture({ source: buffer })` is the shortcut that does all of it for one frame: it imports the buffer, opens an access window, and closes it again when you destroy the external texture.
+To read every frame of a camera or a decoder without importing its buffers again each time, an external texture can also be built over a texture of a shared memory; see [Importing a buffer once](/api/gpu-device-extensions#importing-a-buffer-once).
 
 Two more types sit next to the flow:
 
