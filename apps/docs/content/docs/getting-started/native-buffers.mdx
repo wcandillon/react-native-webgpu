@@ -11,15 +11,34 @@ Since each of them works asynchronously on the GPU, every handoff comes with a [
 This page shows how these pieces fit together.
 The [Native Buffer](/api/native-buffer) and [Native Extensions](/api/gpu-device-extensions) API pages document each call in detail.
 
-## Vocabulary
+## The flow
 
-| Term | What it is |
-| --- | --- |
-| [`NativeBuffer`](/api/native-buffer#nativebuffer) | The platform buffer, with its size, its pixel format and `release()`. It works without a device. |
-| [`GPUSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory) | Dawn's import of a buffer into one device. Its `createTexture()` returns a regular `GPUTexture`, used inside **access windows** (`beginAccess()` / `endAccess()`). |
-| [`GPUSharedFence`](/api/gpu-device-extensions#importsharedfence) | Dawn's GPU synchronization primitive (a sync fd on Android, an `MTLSharedEvent` on Apple platforms) that signals once some GPU work on the buffer is done. |
-| [`GPUExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions) | The WebGPU type that samples a video or camera frame, YUV included, as RGB. |
-| [`NativeBufferView`](/api/native-buffer#nativebufferview) | A React Native view that displays a buffer. It has no swap chain and no device of its own. |
+A buffer reaches the GPU in up to three steps, each with its own type:
+
+```
+NativeBuffer             the platform buffer, without a device
+  │  device.importSharedTextureMemory({ source: buffer })
+  ▼
+GPUSharedTextureMemory   the buffer, bound to one device
+  │  memory.createTexture()
+  ▼
+GPUTexture               a regular texture over the buffer's pixels
+  │  device.importExternalTexture({ source: texture })
+  ▼
+GPUExternalTexture       a sampling view that reads the pixels as RGB
+```
+
+1. **[`NativeBuffer`](/api/native-buffer#nativebuffer)** is the buffer itself, with its size, its pixel format and `release()`. A camera, a video decoder or `createNativeBuffer()` produces it, and it works without any device.
+2. **[`GPUSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory)** is the buffer bound to a device: Dawn's import of it. A buffer is imported once per device, and stays imported for as long as you use it.
+3. **`GPUTexture`** is what `memory.createTexture()` returns: a regular WebGPU texture whose pixels are the buffer's, no copy involved. Use it to render into a color buffer, or to sample one, but only inside an **access window**: between `memory.beginAccess()` and `memory.endAccess()`, the device owns the buffer.
+4. **[`GPUExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions)** comes from the WebGPU specification, where it samples a video frame. It is read-only, and converts YUV to RGB while sampling, with the frame's rotation and mirroring applied. A camera or video frame in a YUV format can only be read this way.
+
+`importExternalTexture({ source: buffer })` is the shortcut that does all of it for one frame: it imports the buffer, opens an access window, and closes it again when you destroy the external texture.
+
+Two more types sit next to the flow:
+
+- **[`GPUSharedFence`](/api/gpu-device-extensions#importsharedfence)** says when some GPU work on the buffer is done (a sync fd on Android, an `MTLSharedEvent` on Apple platforms). `memory.endAccess()` returns the fences of the access, so the next user, another API or the screen, can wait for them.
+- **[`NativeBufferView`](/api/native-buffer#nativebufferview)** displays a buffer as a React Native view. It has no swap chain and no device of its own.
 
 ## Where buffers come from
 
@@ -36,15 +55,14 @@ A buffer you allocate yourself stays yours until you release it.
 
 ## Reading a buffer on the GPU
 
-| You want to | Use | Returns |
-| --- | --- | --- |
-| Sample a frame in your own shader, in any format, YUV included | [`device.importExternalTexture({ source: frame })`](/api/gpu-device-extensions#gpuexternaltexture-extensions) | A `GPUExternalTexture`, for this frame |
-| Do the same for every frame of a decoder or a camera, without importing each buffer again | [`device.importSharedTextureMemory({ source: frame })`](/api/gpu-device-extensions#importing-a-buffer-once) once per buffer, then `importExternalTexture({ source: memory.createTexture() })` | A `GPUSharedTextureMemory`, then a `GPUExternalTexture` kept for every frame of the buffer |
-| Bind a color buffer as a regular `GPUTexture`, without a copy | [`device.importSharedTextureMemory({ source: frame })`](/api/gpu-device-extensions#importsharedtexturememory), then `memory.createTexture()` | A `GPUSharedTextureMemory`, then a `GPUTexture` |
-| Get a texture of your own for another library (Skia, Three.js), for mipmaps, or to keep the frame after releasing it | [`queue.copyExternalImageToTexture({ source: frame }, { texture }, size)`](/api/gpu-device-extensions#copyexternalimagetotexture-with-a-native-frame). It is a GPU copy, so the frame can be released right after. | Nothing: it renders into the `GPUTexture` you pass |
+| You want to | Use |
+| --- | --- |
+| Sample a frame in your shader, YUV included | [`importExternalTexture({ source: buffer })`](/api/gpu-device-extensions#gpuexternaltexture-extensions) |
+| Do the same for every frame of a camera or a decoder, importing each buffer once | [`importSharedTextureMemory()`](/api/gpu-device-extensions#importing-a-buffer-once), then `importExternalTexture({ source: texture })` |
+| Use a color buffer as a regular texture, without a copy | [`importSharedTextureMemory()`](/api/gpu-device-extensions#importsharedtexturememory), then `memory.createTexture()` |
+| Keep a copy of the frame in a texture of your own | [`copyExternalImageToTexture()`](/api/gpu-device-extensions#copyexternalimagetotexture-with-a-native-frame) |
 
-Every path returns a standard type: a `GPUExternalTexture` or a `GPUTexture`, and `GPUSharedTextureMemory` when you manage the import yourself.
-The external texture converts YUV to RGB while sampling and applies the frame's rotation and mirroring; it is the only way to read a YUV buffer.
+The copy runs on the GPU, so the frame can be released right after; it is the path to hand a frame to a library that wants a texture it owns, such as Skia or Three.js.
 
 ```tsx twoslash
 import type { NativeBuffer } from "react-native-webgpu";
