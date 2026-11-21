@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import { PixelRatio } from "react-native";
 import {
+  cancelAnimationFrame,
+  requestAnimationFrame,
   useDevice,
   type CanvasRef,
   type NativeCanvas,
@@ -55,6 +57,10 @@ export const useWebGPU = (scene: Scene) => {
         renderScene = r as RenderScene;
       }
       if (typeof renderScene === "function") {
+        // react-native-webgpu's requestAnimationFrame is paced by the
+        // display (120 fps on a 120 Hz screen), where React Native's global
+        // one runs at 60 Hz on iOS and drops to 60 fps on Android once a
+        // frame takes more than about 6 ms.
         const render = () => {
           const timestamp = Date.now();
           renderScene(timestamp);
