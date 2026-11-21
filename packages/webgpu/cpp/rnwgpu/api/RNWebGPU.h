@@ -320,7 +320,7 @@ public:
   // Wrap a CVPixelBufferRef / AHardwareBuffer* pointer (typed as void* via
   // BigInt on the JS side) into one of our VideoFrames. The native side
   // CFRetains / acquires so the caller can release immediately.
-  std::shared_ptr<VideoFrame> createVideoFrameFromNativeBuffer(void *pointer) {
+  std::shared_ptr<VideoFrame> createNativeBufferFromPointer(void *pointer) {
     auto handle = _platformContext->wrapNativeBuffer(pointer);
     return std::make_shared<VideoFrame>(std::move(handle));
   }
@@ -576,8 +576,8 @@ public:
                   &RNWebGPU::loadVideoFrame);
     installMethod(runtime, prototype, "createTestVideoFrame",
                   &RNWebGPU::createTestVideoFrame);
-    installMethod(runtime, prototype, "createVideoFrameFromNativeBuffer",
-                  &RNWebGPU::createVideoFrameFromNativeBuffer);
+    installMethod(runtime, prototype, "createNativeBufferFromPointer",
+                  &RNWebGPU::createNativeBufferFromPointer);
     installMethodWithRuntime(runtime, prototype, "importDevice",
                              &RNWebGPU::importDevice);
     installMethod(runtime, prototype, "adoptTexture", &RNWebGPU::adoptTexture);

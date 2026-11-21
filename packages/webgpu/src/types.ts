@@ -39,9 +39,6 @@ export interface CanvasRef {
 // avoid being mistaken for the spec values ("NV12", "BGRA", …).
 export type NativeBufferPixelFormat = "bgra8" | "nv12";
 
-/** @deprecated Renamed to {@link NativeBufferPixelFormat}. */
-export type NativeVideoPixelFormat = NativeBufferPixelFormat;
-
 // A native, GPU-shareable buffer: a video or camera frame, or a buffer made
 // with createNativeBuffer() to render into and show in a NativeBufferView. It
 // exists without any GPU device; a device imports it to draw into it or to
@@ -50,7 +47,7 @@ export type NativeVideoPixelFormat = NativeBufferPixelFormat;
 // NOT the WebCodecs `VideoFrame`: there is no `close()`/`format`/`timestamp`,
 // the surface is referenced by a raw native pointer, and disposal is
 // `release()`. The same name as VisionCamera's `NativeBuffer` (a pointer and
-// release()), which createVideoFrameFromNativeBuffer() wraps into this one.
+// release()), which createNativeBufferFromPointer() wraps into this one.
 //
 //   - handle is the raw pointer (IOSurfaceRef on Apple, AHardwareBuffer* on
 //     Android) encoded as a BigInt. Pass it to
@@ -77,9 +74,6 @@ export interface NativeBuffer {
   release(): void;
 }
 
-/** @deprecated Renamed to {@link NativeBuffer}. */
-export type NativeVideoFrame = NativeBuffer;
-
 // The color space of a YUV frame, the way its producer reports it: the YCbCr
 // matrix and range that encode the samples, and the primaries and transfer
 // function of the RGB they encode. Each member is optional; what is left out
@@ -97,9 +91,6 @@ export interface NativeBufferColorSpace {
     | "pq"
     | "bt-1886";
 }
-
-/** @deprecated Renamed to {@link NativeBufferColorSpace}. */
-export type NativeVideoFrameColorSpace = NativeBufferColorSpace;
 
 // A 2D size, as { width, height } or [width, height].
 export type GPUExtent2D = { width: number; height: number } | [number, number];

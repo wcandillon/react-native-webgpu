@@ -25,7 +25,7 @@ public:
   // are keyed off it, so it must NOT be "VideoFrame": that would install our
   // constructor over the WebCodecs `VideoFrame` global and shadow it at
   // runtime. "NativeBuffer" matches the public TypeScript type (see
-  // src/types.ts; "NativeVideoFrame" before it was renamed) and keeps the two
+  // src/types.ts) and keeps the two
   // namespaces distinct. The C++ class stays `VideoFrame` for brevity; only
   // the brand is namespaced.
   static constexpr const char *CLASS_NAME = "NativeBuffer";

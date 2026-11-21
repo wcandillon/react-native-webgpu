@@ -32,12 +32,6 @@ export * from "./constants";
 export { installWebGPU } from "./install";
 export type {
   NativeBuffer,
-  // The names before the rename to NativeBuffer, kept for compatibility.
-  /* eslint-disable @typescript-eslint/no-deprecated */
-  NativeVideoFrame,
-  NativeVideoFrameColorSpace,
-  NativeVideoPixelFormat,
-  /* eslint-enable @typescript-eslint/no-deprecated */
   VideoPlayer,
   GPUSharedFence,
   GPUSharedFenceDescriptor,
@@ -105,7 +99,7 @@ declare global {
     // Wrap a NativeBuffer.pointer (CVPixelBufferRef on iOS / AHardwareBuffer*
     // on Android) into a NativeBuffer. Matches the shape used by libraries
     // that emit NativeBuffer (e.g. react-native-vision-camera).
-    createVideoFrameFromNativeBuffer: (pointer: bigint) => NativeBuffer;
+    createNativeBufferFromPointer: (pointer: bigint) => NativeBuffer;
     // Wrap an externally created WGPUDevice pointer (e.g. Skia's Graphite
     // device from Skia.getNativeDevice()) into a GPUDevice. Requires the
     // exporter to link this process's single Dawn copy.
@@ -183,7 +177,7 @@ declare global {
       destination: GPUDrawElementImageDestination,
     ): Promise<void>;
     // Non-spec extension: a NativeBuffer (from createVideoPlayer,
-    // createVideoFrameFromNativeBuffer or createTestVideoFrame) as the copy
+    // createNativeBufferFromPointer or createTestVideoFrame) as the copy
     // source. The frame is rendered into the destination on the GPU through
     // an external texture, which converts YUV to RGB and applies `rotation`
     // and `mirrored`; the destination needs GPUTextureUsage.RENDER_ATTACHMENT

@@ -51,10 +51,8 @@ export const createVideoPlayer = (
  * VisionCamera's `frame.getNativeBuffer().pointer`) into a `NativeBuffer`
  * that keeps it alive until released.
  */
-export const createVideoFrameFromNativeBuffer = (
-  pointer: bigint,
-): NativeBuffer =>
-  native("createVideoFrameFromNativeBuffer").createVideoFrameFromNativeBuffer(
+export const createNativeBufferFromPointer = (pointer: bigint): NativeBuffer =>
+  native("createNativeBufferFromPointer").createNativeBufferFromPointer(
     pointer,
   );
 
