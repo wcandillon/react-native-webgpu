@@ -73,15 +73,14 @@ const renderOnce = async (
   }
   const device = await adapter.requestDevice();
   const frame = createNativeBuffer(size.width, size.height);
-  const target = device.createNativeBufferTexture(frame, {
-    usage: GPUTextureUsage.RENDER_ATTACHMENT,
-  });
+  const memory = device.importSharedTextureMemory({ source: frame });
+  const texture = memory.createTexture();
   try {
     const module = device.createShaderModule({ code: SHADER });
     const pipeline = device.createRenderPipeline({
       layout: "auto",
       vertex: { module },
-      fragment: { module, targets: [{ format: target.texture.format }] },
+      fragment: { module, targets: [{ format: texture.format }] },
     });
     const uniforms = device.createBuffer({
       size: 8,
@@ -97,12 +96,13 @@ const renderOnce = async (
       entries: [{ binding: 0, resource: { buffer: uniforms } }],
     });
 
-    target.beginAccess();
+    // A new buffer: nothing in it to keep.
+    memory.beginAccess(texture, false);
     const encoder = device.createCommandEncoder();
     const pass = encoder.beginRenderPass({
       colorAttachments: [
         {
-          view: target.texture.createView(),
+          view: texture.createView(),
           clearValue: [0, 0, 0, 1],
           loadOp: "clear",
           storeOp: "store",
@@ -114,19 +114,20 @@ const renderOnce = async (
     pass.draw(3);
     pass.end();
     device.queue.submit([encoder.finish()]);
-    // The view waits for this fence off the main thread before showing the
+    // The view waits for these fences off the main thread before showing the
     // buffer, so nothing here waits for the GPU.
-    const fence = target.endAccess();
+    const done = memory.endAccess(texture);
     // An older render that finishes after a newer one would otherwise
     // present a buffer of an outdated size.
     if (isCancelled()) {
       return false;
     }
-    view.present(frame, fence);
+    view.present(frame, done);
     return true;
   } finally {
     // The view holds its own reference on the buffer.
-    target.destroy();
+    texture.destroy();
+    memory.destroy();
     frame.release();
     device.destroy();
   }

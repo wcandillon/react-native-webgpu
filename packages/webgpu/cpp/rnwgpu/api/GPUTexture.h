@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "Unions.h"
 
@@ -16,6 +17,10 @@
 namespace rnwgpu {
 
 namespace jsi = facebook::jsi;
+
+namespace native_frame {
+struct SharedTextureOrigin;
+} // namespace native_frame
 
 class GPUTexture : public NativeObject<GPUTexture> {
 public:
@@ -76,6 +81,18 @@ public:
   }
 
   inline const wgpu::Texture get() { return _instance; }
+
+  // Set on a texture created by GPUSharedTextureMemory.createTexture(): the
+  // import it aliases, which importExternalTexture({ source: texture }) needs
+  // to sample a YUV buffer. Null for every other texture.
+  void setSharedTextureOrigin(
+      std::shared_ptr<native_frame::SharedTextureOrigin> origin) {
+    _sharedTextureOrigin = std::move(origin);
+  }
+  const std::shared_ptr<native_frame::SharedTextureOrigin> &
+  sharedTextureOrigin() const {
+    return _sharedTextureOrigin;
+  }
 
   size_t getMemoryPressure() override {
     if (!_reportsMemoryPressure) {
@@ -171,6 +188,7 @@ private:
   wgpu::Texture _instance;
   std::string _label;
   bool _reportsMemoryPressure = true;
+  std::shared_ptr<native_frame::SharedTextureOrigin> _sharedTextureOrigin;
 };
 
 } // namespace rnwgpu

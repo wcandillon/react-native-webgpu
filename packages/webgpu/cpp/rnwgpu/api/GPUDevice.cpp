@@ -446,54 +446,25 @@ std::shared_ptr<GPUExternalTexture> GPUDevice::importExternalTexture(
 
 std::shared_ptr<GPUSharedTextureMemory> GPUDevice::importSharedTextureMemory(
     std::shared_ptr<GPUSharedTextureMemoryDescriptor> descriptor) {
-  if (!descriptor || descriptor->handle == nullptr) {
-    throw std::runtime_error("GPUDevice::importSharedTextureMemory(): handle "
-                             "must be a non-null native pointer");
-  }
-
-  wgpu::SharedTextureMemoryDescriptor desc{};
-  std::string label = descriptor->label.value_or("");
-  if (!label.empty()) {
-    desc.label = wgpu::StringView(label.c_str(), label.size());
-  }
-
-#if defined(__APPLE__)
-  wgpu::SharedTextureMemoryIOSurfaceDescriptor platformDesc{};
-  platformDesc.ioSurface = descriptor->handle;
-  // Default off: enabling it propagates StorageBinding into properties.usage,
-  // which then forces memory.createTexture() (no-descriptor form) to validate
-  // the format against storage capabilities. bgra8unorm (the standard
-  // CVPixelBuffer format) only supports storage when the device opts into the
-  // bgra8unorm-storage feature, so unconditionally setting this here breaks
-  // the common sample-only case.
-  platformDesc.allowStorageBinding = false;
-  desc.nextInChain = &platformDesc;
-#elif defined(__ANDROID__)
-  wgpu::SharedTextureMemoryAHardwareBufferDescriptor platformDesc{};
-  platformDesc.handle = descriptor->handle;
-  desc.nextInChain = &platformDesc;
-#else
-  throw std::runtime_error(
-      "GPUDevice::importSharedTextureMemory(): unsupported platform");
-#endif
-
-  auto memory = _instance.ImportSharedTextureMemory(&desc);
-  // Dawn reports a failed import (feature missing, unusable handle) as a
-  // validation error and returns an error object rather than null, with no
-  // format in its properties: the format getter of any texture created from
-  // it would throw. Fail the import instead.
-  wgpu::SharedTextureMemoryProperties properties{};
-  if (memory == nullptr ||
-      memory.GetProperties(&properties) != wgpu::Status::Success ||
-      properties.format == wgpu::TextureFormat::Undefined) {
+  static constexpr const char *kCaller = "GPUDevice::importSharedTextureMemory";
+  if (!descriptor || (!descriptor->source && descriptor->handle == nullptr)) {
     throw std::runtime_error(
-        "GPUDevice::importSharedTextureMemory(): the import failed - is the "
-        "'shared-texture-memory-iosurface' (Apple) or "
-        "'shared-texture-memory-ahardware-buffer' (Android) feature enabled "
-        "on the device, and the handle a usable IOSurface / AHardwareBuffer?");
+        "GPUDevice::importSharedTextureMemory(): source (a NativeBuffer) or "
+        "handle (a non-null native pointer) is required");
   }
-  return std::make_shared<GPUSharedTextureMemory>(_instance, std::move(memory),
-                                                  std::move(label));
+  std::string label = descriptor->label.value_or("");
+  wgpu::SharedTextureMemory memory;
+  if (descriptor->source) {
+    memory = native_frame::importMemory(_instance, descriptor->source->handle(),
+                                        label, kCaller);
+  } else {
+    VideoFrameHandle frame;
+    frame.handle = descriptor->handle;
+    memory = native_frame::importMemory(_instance, frame, label, kCaller);
+  }
+  return std::make_shared<GPUSharedTextureMemory>(
+      _instance, std::move(memory), std::move(label),
+      std::move(descriptor->source));
 }
 
 std::shared_ptr<GPUSharedFence> GPUDevice::importSharedFence(
@@ -544,92 +515,6 @@ std::shared_ptr<GPUSharedFence> GPUDevice::importSharedFence(
   }
   return std::make_shared<GPUSharedFence>(_instance, std::move(fence),
                                           std::move(label));
-}
-
-std::shared_ptr<GPUNativeBufferTexture> GPUDevice::createNativeBufferTexture(
-    std::shared_ptr<VideoFrame> source,
-    std::optional<std::shared_ptr<GPUNativeBufferTextureDescriptor>>
-        descriptor) {
-  static constexpr const char *kCaller = "GPUDevice::createNativeBufferTexture";
-  if (!source) {
-    throw std::runtime_error("GPUDevice::createNativeBufferTexture(): "
-                             "source (NativeBuffer) is required");
-  }
-  std::string label;
-  std::optional<double> usage;
-  if (descriptor.has_value() && *descriptor) {
-    label = (*descriptor)->label.value_or("");
-    usage = (*descriptor)->usage;
-  }
-  auto memory =
-      native_frame::importMemory(_instance, source->handle(), label, kCaller);
-  wgpu::Texture texture;
-  if (usage.has_value()) {
-    // Dawn's layer describes the texture from the memory's properties, with
-    // the caller's usage. An unsupported usage is a validation error and an
-    // error texture, as with createTexture().
-    wgpu::SharedTextureMemoryProperties properties{};
-    (void)memory.GetProperties(&properties);
-    wgpu::TextureDescriptor desc{};
-    if (!label.empty()) {
-      desc.label = wgpu::StringView(label.c_str(), label.size());
-    }
-    desc.usage = static_cast<wgpu::TextureUsage>(static_cast<uint64_t>(*usage));
-    desc.dimension = wgpu::TextureDimension::e2D;
-    desc.size = properties.size;
-    desc.format = properties.format;
-    desc.mipLevelCount = 1;
-    desc.sampleCount = 1;
-    texture = memory.CreateTexture(&desc);
-  } else {
-    texture = memory.CreateTexture();
-  }
-  if (texture == nullptr) {
-    throw std::runtime_error("GPUDevice::createNativeBufferTexture(): "
-                             "CreateTexture returned null");
-  }
-  auto wrapped = std::make_shared<GPUTexture>(std::move(texture), label);
-  return std::make_shared<GPUNativeBufferTexture>(
-      _instance, std::move(memory), std::move(wrapped), std::move(source),
-      std::move(label));
-}
-
-std::shared_ptr<GPUNativeBufferExternalTexture>
-GPUDevice::createNativeBufferExternalTexture(
-    std::shared_ptr<VideoFrame> source,
-    std::optional<std::shared_ptr<GPUExternalTextureDescriptor>> descriptor) {
-  static constexpr const char *kCaller =
-      "GPUDevice::createNativeBufferExternalTexture";
-  if (!source) {
-    throw std::runtime_error(
-        "GPUDevice::createNativeBufferExternalTexture(): source "
-        "(NativeBuffer) is required");
-  }
-  std::shared_ptr<GPUExternalTextureDescriptor> options =
-      descriptor.has_value() && *descriptor
-          ? *descriptor
-          : std::make_shared<GPUExternalTextureDescriptor>();
-  const auto &frame = source->handle();
-  std::string label = options->label.value_or("external-texture");
-  // The import, the texture and the external texture, once per buffer. No
-  // access begins here: the wrapper's beginAccess() / endAccess() bracket
-  // each use.
-  auto memory = native_frame::importMemory(_instance, frame, label, kCaller);
-  auto texture = memory.CreateTexture();
-  if (texture == nullptr) {
-    throw std::runtime_error(
-        "GPUDevice::createNativeBufferExternalTexture(): CreateTexture "
-        "returned null");
-  }
-  auto external = native_frame::createExternalTexture(
-      _instance, memory, texture, frame, *options, label, kCaller);
-  // Non-owning: the wrapper owns the import (see GPUExternalTexture's
-  // constructor).
-  auto externalTexture = std::make_shared<GPUExternalTexture>(
-      std::move(external), nullptr, nullptr, nullptr, label);
-  return std::make_shared<GPUNativeBufferExternalTexture>(
-      _instance, std::move(memory), std::move(texture),
-      std::move(externalTexture), std::move(source), std::move(label));
 }
 
 async::AsyncTaskHandle GPUDevice::createComputePipelineAsync(

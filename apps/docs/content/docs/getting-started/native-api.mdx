@@ -109,7 +109,7 @@ context.configure({ device, format, alphaMode: "opaque" });
 Beyond the standard API, React Native WebGPU exposes Dawn's native buffer import, so camera frames, video frames and buffers you render into move between the GPU, the display and native libraries without a copy through the CPU:
 
 - **[`importExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions)** samples a frame in any format, YUV included, with non-spec `rotation` and `mirrored` options for camera orientation.
-- **[`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory)** and the [native buffer wrappers](/api/gpu-device-extensions#createnativebufferexternaltexture--createnativebuffertexture) import a buffer as a regular `GPUTexture`, to sample it or to render into it.
+- **[`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory)** imports a buffer once as Dawn's shared texture memory: a regular `GPUTexture` to sample or to render into, or, through `importExternalTexture()`, an external texture kept for every frame of the buffer.
 - **[`createVideoPlayer`](/api/video-player)** decodes a video into such frames, with the playback controls of an `HTMLMediaElement`.
 - **[`NativeBufferView`](/api/native-buffer#nativebufferview)** displays a buffer you rendered into, with no swap chain.
 

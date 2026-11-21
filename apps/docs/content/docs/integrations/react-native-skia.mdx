@@ -88,7 +88,7 @@ The surface holds its own reference to the texture. Dispose it before calling `t
 
 Platform surfaces (`CVPixelBuffer` / `AHardwareBuffer`) stay on the WebGPU side: sample them through [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory) or `importExternalTexture`, or copy them into a texture for Skia as described below.
 
-**Skia drawing into a native buffer.** The same `MakeFromGPUTexture` draws into a buffer from `createNativeBuffer()`, imported with `createNativeBufferTexture()`, and a [`NativeBufferView`](/api/native-buffer#nativebufferview) displays the result. A screen with many small Skia drawings, such as icons or thumbnails, then needs one buffer per drawing rather than one canvas each. See [Drawing with Skia](/docs/getting-started/native-buffers#drawing-with-skia).
+**Skia drawing into a native buffer.** The same `MakeFromGPUTexture` draws into a buffer from `createNativeBuffer()`, imported with `importSharedTextureMemory()`, and a [`NativeBufferView`](/api/native-buffer#nativebufferview) displays the result. A screen with many small Skia drawings, such as icons or thumbnails, then needs one buffer per drawing rather than one canvas each. See [Drawing with Skia](/docs/getting-started/native-buffers#drawing-with-skia).
 
 ## Video and camera frames
 

@@ -61,9 +61,9 @@ export type NativeVideoPixelFormat = NativeBufferPixelFormat;
 //   - acquireFenceFd is the sync fd the producer of the frame (the decoder,
 //     the camera) signals once it has written the buffer, as a BigInt, on
 //     Android; null when the frame has none (Apple platforms, a released
-//     frame). importExternalTexture() waits for it on its own; a hardware
-//     buffer wrapper takes it through importSharedFence({ type: "sync-fd",
-//     handle }) in beginAccess(). The frame owns the descriptor: import it
+//     frame). importExternalTexture() waits for it on its own; with
+//     importSharedTextureMemory(), pass it to beginAccess() through
+//     importSharedFence({ type: "sync-fd", handle }). The frame owns the descriptor: import it
 //     before release(), and never close it.
 //   - release() drops the underlying backing object (a CVPixelBuffer on Apple).
 //     The frame is also released when the JS wrapper is garbage-collected; call
@@ -104,15 +104,23 @@ export type NativeVideoFrameColorSpace = NativeBufferColorSpace;
 // A 2D size, as { width, height } or [width, height].
 export type GPUExtent2D = { width: number; height: number } | [number, number];
 
-// GPUExternalTextureDescriptor with a NativeBuffer as the source: what
+// GPUExternalTextureDescriptor with a native buffer as the source: what
 // GPUDevice.importExternalTexture() takes on React Native, where there is no
 // HTMLVideoElement or WebCodecs VideoFrame. The other members (label,
 // colorSpace, and the rotation / mirrored extensions) are the same.
+//
+// The source is either
+//   - a NativeBuffer, imported for this external texture alone: the access
+//     begins here and ends at destroy(), like a web external texture, or
+//   - a texture from GPUSharedTextureMemory.createTexture(), for a buffer
+//     imported once: the external texture can be kept for every frame of the
+//     buffer, and is sampled only between the memory's beginAccess() and
+//     endAccess().
 export interface GPUNativeExternalTextureDescriptor extends Omit<
   GPUExternalTextureDescriptor,
   "source"
 > {
-  source: NativeBuffer;
+  source: NativeBuffer | GPUTexture;
   // Overrides the members of the frame's own color space, for a buffer that
   // carries none (one wrapped from another library) or reports it wrong.
   sourceColorSpace?: NativeBufferColorSpace;
@@ -120,67 +128,6 @@ export interface GPUNativeExternalTextureDescriptor extends Omit<
   // default (Dawn's cropOrigin / cropSize).
   cropOrigin?: GPUOrigin2D;
   cropSize?: GPUExtent2D;
-}
-
-// The descriptor of GPUDevice.createNativeBufferExternalTexture(): the same
-// options as importExternalTexture(), without the source (the frame is the
-// first argument).
-export type GPUNativeBufferExternalTextureDescriptor = Omit<
-  GPUNativeExternalTextureDescriptor,
-  "source"
->;
-
-// The options of GPUDevice.createNativeBufferTexture(). `usage` defaults to
-// every usage the buffer allows, as GPUSharedTextureMemory.createTexture()
-// without a descriptor.
-export interface GPUNativeBufferTextureDescriptor {
-  usage?: GPUTextureUsageFlags;
-  label?: string;
-}
-
-// A native buffer imported once, with the access window of each use explicit:
-// the counterpart of GPUHardwareBufferWrapper in Dawn's Android layer
-// (androidx.webgpu). A decoder or a camera renders into the same few buffers
-// in turn; keep one wrapper per buffer (keyed by NativeBuffer.handle), and
-// bracket each frame with beginAccess() / endAccess() instead of importing it
-// again. The wrapper keeps the frame it was created from alive until
-// destroy().
-export interface GPUNativeBufferWrapper {
-  label: string;
-  // Begins an access to the buffer: the GPU waits for each fence to reach its
-  // signaledValue first (the producer's fence for the frame, e.g. the frame's
-  // acquireFenceFd imported with importSharedFence, 1n for a sync fd). Throws,
-  // after a validation error, on a destroyed wrapper or fence, and if Dawn
-  // rejects the access (one is already open).
-  beginAccess(fences?: GPUSharedFenceState[]): void;
-  // Ends the access, after the queue.submit() that used the buffer, and
-  // returns the one fence that signals once that GPU work is done (on Android,
-  // the sync fds of the access merged into one), or null when there is none.
-  // Hand it to the producer before it reuses the buffer, or destroy it.
-  endAccess(): GPUSharedFenceState | null;
-  // Releases the import (and the frame) now rather than when the object is
-  // garbage collected. An access still open is a validation error; it is
-  // ended, and its fence is lost. A later use is a validation error and a
-  // throw.
-  destroy(): void;
-}
-
-// A color buffer (an RGBA / R8 / ... AHardwareBuffer, a BGRA IOSurface)
-// imported once as a regular texture. Bind `texture` only between
-// beginAccess() and endAccess().
-export interface GPUNativeBufferTexture extends GPUNativeBufferWrapper {
-  readonly __brand: "GPUNativeBufferTexture";
-  readonly texture: GPUTexture;
-}
-
-// A frame buffer (the YUV AHardwareBuffer of a decoder or a camera, an NV12 or
-// BGRA IOSurface) imported once as an external texture, color conversion
-// included. Bind `externalTexture` only between beginAccess() and endAccess();
-// destroying it on its own (externalTexture.destroy()) only releases the
-// external texture, the wrapper keeps the import.
-export interface GPUNativeBufferExternalTexture extends GPUNativeBufferWrapper {
-  readonly __brand: "GPUNativeBufferExternalTexture";
-  readonly externalTexture: GPUExternalTexture;
 }
 
 // A decoded video, modeled on HTMLMediaElement: play(), pause(), paused,
@@ -278,15 +225,23 @@ export interface GPUDrawElementImageDestination extends GPUCopyExternalImageDest
   size?: GPUExtent3DStrict;
 }
 
-export interface GPUSharedTextureMemoryDescriptor {
-  // Raw native handle (IOSurfaceRef on Apple, AHardwareBuffer* on Android),
-  // encoded as a BigInt. The caller is responsible for keeping the underlying
-  // object alive for as long as the shared memory (and any textures derived
-  // from it) are in use. Using NativeBuffer.handle handles this
-  // automatically.
-  handle: bigint;
+export type GPUSharedTextureMemoryDescriptor = {
   label?: string;
-}
+} & (
+  | {
+      // The buffer to import. The memory keeps it alive, and the textures
+      // created from it carry its color space for importExternalTexture().
+      source: NativeBuffer;
+      handle?: undefined;
+    }
+  | {
+      // A raw native handle (IOSurfaceRef on Apple, AHardwareBuffer* on
+      // Android) as a BigInt, which the caller keeps alive for as long as the
+      // memory (and the textures created from it) are in use.
+      handle: bigint;
+      source?: undefined;
+    }
+);
 
 // The kind of native synchronization primitive a GPUSharedFence wraps, matching
 // the shared-fence-* device feature names. Limited to the kinds react-native-webgpu

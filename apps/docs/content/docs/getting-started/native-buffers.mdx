@@ -16,9 +16,9 @@ The [Native Buffer](/api/native-buffer) and [Native Extensions](/api/gpu-device-
 | Term | What it is |
 | --- | --- |
 | [`NativeBuffer`](/api/native-buffer#nativebuffer) | The platform buffer, with its size, its pixel format and `release()`. It works without a device. |
-| [`GPUSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory) | Dawn's import of a buffer into one device. Textures created from it are used inside **access windows** (`beginAccess()` / `endAccess()`). |
-| [`GPUSharedFence`](/api/gpu-device-extensions#importsharedfence) | A GPU synchronization primitive (a sync fd on Android, an `MTLSharedEvent` on Apple platforms) that signals once some GPU work on the buffer is done. |
-| [Native buffer wrapper](/api/gpu-device-extensions#createnativebufferexternaltexture--createnativebuffertexture) | `createNativeBufferTexture()` and `createNativeBufferExternalTexture()`: a buffer imported once as shared texture memory, together with its texture and its fences. |
+| [`GPUSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory) | Dawn's import of a buffer into one device. Its `createTexture()` returns a regular `GPUTexture`, used inside **access windows** (`beginAccess()` / `endAccess()`). |
+| [`GPUSharedFence`](/api/gpu-device-extensions#importsharedfence) | Dawn's GPU synchronization primitive (a sync fd on Android, an `MTLSharedEvent` on Apple platforms) that signals once some GPU work on the buffer is done. |
+| [`GPUExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions) | The WebGPU type that samples a video or camera frame, YUV included, as RGB. |
 | [`NativeBufferView`](/api/native-buffer#nativebufferview) | A React Native view that displays a buffer. It has no swap chain and no device of its own. |
 
 ## Where buffers come from
@@ -38,14 +38,13 @@ A buffer you allocate yourself stays yours until you release it.
 
 | You want to | Use | Returns |
 | --- | --- | --- |
-| Sample a frame in your own shader, in any format, YUV included | [`device.importExternalTexture({ source: frame })`](/api/gpu-device-extensions#gpuexternaltexture-extensions) | A `GPUExternalTexture`, for one frame |
-| Do the same for every frame of a decoder or a camera, without importing each buffer again | [`device.createNativeBufferExternalTexture(frame)`](/api/gpu-device-extensions#createnativebufferexternaltexture--createnativebuffertexture), one per buffer | A `GPUNativeBufferExternalTexture`: a wrapper with `beginAccess()` / `endAccess()`, whose `externalTexture` is a `GPUExternalTexture` |
-| Get a regular `GPUTexture` for another library (Skia, Three.js), for mipmaps, or to keep the frame after releasing it | [`queue.copyExternalImageToTexture({ source: frame }, { texture }, size)`](/api/gpu-device-extensions#copyexternalimagetotexture-with-a-native-frame). It is a GPU copy, so the frame can be released right after. | Nothing: it renders into the `GPUTexture` you pass |
-| Bind a color buffer as a regular `GPUTexture`, without a copy | [`device.createNativeBufferTexture(frame)`](/api/gpu-device-extensions#createnativebufferexternaltexture--createnativebuffertexture) | A `GPUNativeBufferTexture`: a wrapper with `beginAccess()` / `endAccess()`, whose `texture` is a `GPUTexture` |
-| The same, with full control over the access windows | [`device.importSharedTextureMemory({ handle: frame.handle })`](/api/gpu-device-extensions#importsharedtexturememory) | A `GPUSharedTextureMemory`, whose `createTexture()` returns a `GPUTexture` |
+| Sample a frame in your own shader, in any format, YUV included | [`device.importExternalTexture({ source: frame })`](/api/gpu-device-extensions#gpuexternaltexture-extensions) | A `GPUExternalTexture`, for this frame |
+| Do the same for every frame of a decoder or a camera, without importing each buffer again | [`device.importSharedTextureMemory({ source: frame })`](/api/gpu-device-extensions#importing-a-buffer-once) once per buffer, then `importExternalTexture({ source: memory.createTexture() })` | A `GPUSharedTextureMemory`, then a `GPUExternalTexture` kept for every frame of the buffer |
+| Bind a color buffer as a regular `GPUTexture`, without a copy | [`device.importSharedTextureMemory({ source: frame })`](/api/gpu-device-extensions#importsharedtexturememory), then `memory.createTexture()` | A `GPUSharedTextureMemory`, then a `GPUTexture` |
+| Get a texture of your own for another library (Skia, Three.js), for mipmaps, or to keep the frame after releasing it | [`queue.copyExternalImageToTexture({ source: frame }, { texture }, size)`](/api/gpu-device-extensions#copyexternalimagetotexture-with-a-native-frame). It is a GPU copy, so the frame can be released right after. | Nothing: it renders into the `GPUTexture` you pass |
 
-The external texture converts YUV to RGB while sampling and applies the frame's rotation and mirroring.
-It is also the only way to read a YUV buffer: the other paths need a color buffer, or go through an external texture themselves, as `copyExternalImageToTexture()` does.
+Every path returns a standard type: a `GPUExternalTexture` or a `GPUTexture`, and `GPUSharedTextureMemory` when you manage the import yourself.
+The external texture converts YUV to RGB while sampling and applies the frame's rotation and mirroring; it is the only way to read a YUV buffer.
 
 ```tsx twoslash
 import type { NativeBuffer } from "react-native-webgpu";
@@ -63,7 +62,7 @@ frame.release(); // the producer can reuse the buffer
 
 ## Rendering into a buffer
 
-Allocate a buffer with `createNativeBuffer()`, import it with `createNativeBufferTexture()`, and render into `target.texture` inside an access window:
+Allocate a buffer with `createNativeBuffer()`, import it with `importSharedTextureMemory()`, and render into its texture inside an access window:
 
 ```tsx twoslash
 import { createNativeBuffer } from "react-native-webgpu";
@@ -71,29 +70,18 @@ declare const device: GPUDevice;
 declare function render(texture: GPUTexture): void;
 // ---cut---
 const frame = createNativeBuffer(512, 512);
-const target = device.createNativeBufferTexture(frame, {
-  usage: GPUTextureUsage.RENDER_ATTACHMENT,
-});
+const memory = device.importSharedTextureMemory({ source: frame });
+const texture = memory.createTexture();
 
-target.beginAccess();
-render(target.texture); // encode passes into target.texture and submit
-// Signals once the GPU has finished writing the buffer
-const fence = target.endAccess();
+// false: a new buffer, nothing in it to keep
+memory.beginAccess(texture, false);
+render(texture); // encode passes into the texture and submit
+// The fences signal once the GPU has finished writing the buffer
+const done = memory.endAccess(texture);
 ```
 
-`endAccess()` returns the fence of the work you submitted, or `null`. The work is only queued at that point: whoever reads the buffer next (the screen, another device, a native library) has to wait for the fence first.
-[`NativeBufferView`](#displaying-a-buffer) takes the fence directly.
-
-### Why a wrapper and not importSharedTextureMemory?
-
-Both paths are built on Dawn's shared texture memory.
-`createNativeBufferTexture()` adds what you would otherwise write by hand every time:
-
-- It creates the texture once and keeps the frame alive until `destroy()`.
-- On Android, `beginAccess()` waits on the producer's fence, which you pass in as a [`GPUSharedFence`](/api/gpu-device-extensions#importsharedfence).
-- `endAccess()` merges the fences of the access into a single one, the form `NativeBufferView` and most native consumers take.
-
-Use [`importSharedTextureMemory()`](/api/gpu-device-extensions#importsharedtexturememory) directly when you need what the wrapper hides: several textures over one memory, or the `initialized` state of an access.
+The work is only queued when `endAccess()` returns: whoever reads the buffer next (the screen, another device, a native library) has to wait for its fences first.
+[`NativeBufferView`](#displaying-a-buffer) takes them as they are, with `present(frame, done)`.
 
 ### Drawing with Skia
 
@@ -106,20 +94,19 @@ import { createNativeBuffer, importDevice } from "react-native-webgpu";
 const device = importDevice(Skia.getNativeDevice());
 
 const frame = createNativeBuffer(width, height);
-const target = device.createNativeBufferTexture(frame, {
-  usage: GPUTextureUsage.RENDER_ATTACHMENT,
-});
-target.beginAccess();
-const surface = Skia.Surface.MakeFromGPUTexture(target.texture);
+const memory = device.importSharedTextureMemory({ source: frame });
+const texture = memory.createTexture();
+memory.beginAccess(texture, false);
+const surface = Skia.Surface.MakeFromGPUTexture(texture);
 const canvas = surface.getCanvas();
 canvas.drawPicture(picture);
 // Submit Skia's commands before the access ends
 surface.flush();
-const fence = target.endAccess();
 
-viewRef.current.present(frame, fence);
+viewRef.current.present(frame, memory.endAccess(texture));
 surface.dispose();
-target.destroy();
+texture.destroy();
+memory.destroy();
 frame.release();
 ```
 
@@ -148,17 +135,15 @@ export const Thumbnail = () => {
       return;
     }
     const frame = createNativeBuffer(size.width, size.height);
-    const target = device.createNativeBufferTexture(frame, {
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-    target.beginAccess();
-    render(target.texture);
-    const fence = target.endAccess();
-    // Shown once the fence has signaled. The view keeps its own reference
-    // on the buffer and on the fence.
-    ref.current.present(frame, fence);
-    fence?.fence.destroy();
-    target.destroy();
+    const memory = device.importSharedTextureMemory({ source: frame });
+    const texture = memory.createTexture();
+    memory.beginAccess(texture, false);
+    render(texture);
+    // Shown once the GPU work is done. The view keeps its own reference on
+    // the buffer and on the fences.
+    ref.current.present(frame, memory.endAccess(texture));
+    texture.destroy();
+    memory.destroy();
     frame.release();
   }, [size]);
 
@@ -201,19 +186,19 @@ declare const frame: NativeBuffer;
 declare const view: NativeBufferViewRef;
 // ---cut---
 const copy = createNativeBuffer(frame.width, frame.height);
-const target = device.createNativeBufferTexture(copy, {
-  usage: GPUTextureUsage.RENDER_ATTACHMENT,
-});
-target.beginAccess();
+const memory = device.importSharedTextureMemory({ source: copy });
+const texture = memory.createTexture();
+memory.beginAccess(texture, false);
 device.queue.copyExternalImageToTexture(
   { source: frame },
-  { texture: target.texture },
+  { texture },
   [frame.width, frame.height],
 );
-const fence = target.endAccess();
+const done = memory.endAccess(texture);
 frame.release(); // back to the decoder or the camera
-view.present(copy, fence);
-target.destroy();
+view.present(copy, done);
+texture.destroy();
+memory.destroy();
 copy.release();
 ```
 
@@ -223,15 +208,15 @@ copy.release();
 On a worklet runtime, such as a frame processor or a Reanimated worklet, present with the `RNWebGPU` global, which the worklet captures:
 
 ```tsx
-RNWebGPU.presentNativeBuffer(viewId, frame, fence);
+RNWebGPU.presentNativeBuffer(viewId, frame, memory.endAccess(texture));
 ```
 
 ## Synchronization
 
 GPU work is asynchronous, so each handoff of a buffer comes with a fence that says when the previous user is done with it.
 
-- **From the producer to your device.** On Android, a frame carries `acquireFenceFd`: the decoder or the camera signals it once the buffer is written. `importExternalTexture()`, `copyExternalImageToTexture()` and `present()` wait for it on their own. A wrapper takes it in `beginAccess()` once you import it with `importSharedFence({ type: "sync-fd", handle: frame.acquireFenceFd })`; see the [wrapper example](/api/gpu-device-extensions#createnativebufferexternaltexture--createnativebuffertexture). On Apple platforms, frames are complete when you receive them.
-- **From your device to the next user.** `endAccess()` returns the fence that signals once the work submitted in the access is done. Pass it to `present()`, export it to a native consumer with `fence.export()`, or destroy it.
+- **From the producer to your device.** On Android, a frame carries `acquireFenceFd`: the decoder or the camera signals it once the buffer is written. `importExternalTexture()`, `copyExternalImageToTexture()` and `present()` wait for it on their own. With `importSharedTextureMemory()`, pass it to `beginAccess()` once you import it with `importSharedFence({ type: "sync-fd", handle: frame.acquireFenceFd })`; see [Importing a buffer once](/api/gpu-device-extensions#importing-a-buffer-once). On Apple platforms, frames are complete when you receive them.
+- **From your device to the next user.** `endAccess()` returns the fences that signal once the work submitted in the access is done. Pass the result to `present()`, export each fence to a native consumer with `fence.export()`, or destroy them.
 - **Inside the access window.** A texture created from a buffer can only be used between `beginAccess()` and `endAccess()`, and only one access can be open on a buffer at a time.
 
 `beginAccess()` and `present()` take their own reference on the fences they are given, so you can destroy a fence right after passing it.
@@ -241,10 +226,10 @@ GPU work is asynchronous, so each handoff of a buffer comes with a fence that sa
 | Object | Keeps alive | Release with |
 | --- | --- | --- |
 | `NativeBuffer` | The platform buffer | `release()`, or garbage collection. Release pooled frames as soon as the GPU work that reads them is submitted. |
-| Native buffer wrapper | The import and the frame it was created from | `destroy()`, after `endAccess()` |
-| `GPUSharedTextureMemory` | The import of the buffer | `destroy()`, after `endAccess()` and after destroying its textures |
+| `GPUSharedTextureMemory` | The import, and the `NativeBuffer` it was imported from | `destroy()`, after `endAccess()` and after destroying its textures |
+| `GPUTexture` of a memory | The texture over the buffer | `destroy()`, before the memory |
 | `GPUSharedFence` | The native fence | `destroy()`, once it has been handed to `beginAccess()` or `present()` |
-| `GPUExternalTexture` | Its access to the frame | `destroy()`, after the `queue.submit()` that sampled it |
+| `GPUExternalTexture` | Its access to the frame (with a frame as the source) | `destroy()`, after the `queue.submit()` that sampled it |
 | `NativeBufferView` | The last buffer presented | Replaced by the next `present()`, released on unmount and on reload |
 
 Garbage collection eventually releases all of these, but it can run long after the object is unreachable. A runtime that imports a buffer per frame should release eagerly.
@@ -263,8 +248,8 @@ On the rare drivers and emulators that cannot import native buffers, the import 
 
 ## Platform notes
 
-- **YUV on Android.** The video decoder and the camera produce YUV buffers in a layout only the driver knows. Read them with `importExternalTexture()`, `createNativeBufferExternalTexture()` or `copyExternalImageToTexture()`.
-- **BGRA on Apple platforms.** BGRA frames also import as regular textures through `createNativeBufferTexture()` and `importSharedTextureMemory()`.
+- **YUV on Android.** The video decoder and the camera produce YUV buffers in a layout only the driver knows. Read them through an external texture (over the frame, or over a texture of its shared memory) or with `copyExternalImageToTexture()`.
+- **BGRA on Apple platforms.** BGRA frames also import as regular textures through `importSharedTextureMemory()`.
 - **Android 8 and 9.** `NativeBufferView` copies the pixels of each buffer it is given through the CPU. From Android 10 on, it shows the buffer without a copy.
 - **High bit depth.** A `createNativeBuffer()` buffer in `rgba16float` gives more precision, not extended range: `NativeBufferView` shows values in [0, 1] and clamps the rest.
 

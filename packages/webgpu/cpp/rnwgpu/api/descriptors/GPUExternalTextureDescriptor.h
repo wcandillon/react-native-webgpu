@@ -9,6 +9,7 @@
 
 #include "GPUExtent2D.h"
 #include "GPUOrigin2D.h"
+#include "GPUTexture.h"
 #include "JSIConverter.h"
 #include "VideoFrame.h"
 
@@ -16,12 +17,14 @@ namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// Mirror of GPUExternalTextureDescriptor from the WebGPU spec, but with our
-// VideoFrame as the (only) supported source. `colorSpace` is the spec member:
-// the color space of the RGB the shader samples, "srgb" (the default) or
-// "display-p3"; the frame's own color space comes with the frame, and
-// `sourceColorSpace` overrides the members of it the caller knows better (a
-// buffer wrapped from another library carries none).
+// Mirror of GPUExternalTextureDescriptor from the WebGPU spec, with a native
+// buffer as the source: a NativeBuffer (`source`), imported for this external
+// texture alone, or a texture created from a GPUSharedTextureMemory
+// (`sourceTexture`), whose import and access windows the caller owns.
+// `colorSpace` is the spec member: the color space of the RGB the shader
+// samples, "srgb" (the default) or "display-p3"; the frame's own color space
+// comes with the frame, and `sourceColorSpace` overrides the members of it the
+// caller knows better (a buffer wrapped from another library carries none).
 //
 // `rotation` / `mirrored` are a non-spec extension: camera frames (e.g. from
 // VisionCamera) arrive in the sensor's native orientation, which differs
@@ -31,11 +34,9 @@ namespace rnwgpu {
 // passes. `rotation` is in degrees and must be one of 0 / 90 / 180 / 270.
 // `cropOrigin` / `cropSize` select the part of the frame the external texture
 // shows (Dawn's cropOrigin / cropSize), the whole frame by default.
-//
-// createNativeBufferExternalTexture() takes the same descriptor without a
-// source: the frame is its first argument.
 struct GPUExternalTextureDescriptor {
   std::shared_ptr<VideoFrame> source;
+  std::shared_ptr<GPUTexture> sourceTexture;
   std::optional<std::string> label;
   std::optional<std::string> colorSpace;
   std::optional<VideoFrameColorSpace> sourceColorSpace;
@@ -174,10 +175,16 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
       auto value = arg.getObject(runtime);
       if (value.hasProperty(runtime, "source")) {
         auto prop = value.getProperty(runtime, "source");
-        if (!prop.isUndefined() && !prop.isNull()) {
-          result->source =
-              JSIConverter<std::shared_ptr<rnwgpu::VideoFrame>>::fromJSI(
-                  runtime, prop, false);
+        if (prop.isObject()) {
+          auto brand = prop.getObject(runtime).getProperty(runtime, "__brand");
+          if (brand.isString() && brand.getString(runtime).utf8(runtime) ==
+                                      GPUTexture::CLASS_NAME) {
+            result->sourceTexture = GPUTexture::fromValue(runtime, prop);
+          } else {
+            result->source =
+                JSIConverter<std::shared_ptr<rnwgpu::VideoFrame>>::fromJSI(
+                    runtime, prop, false);
+          }
         }
       }
       if (value.hasProperty(runtime, "label")) {

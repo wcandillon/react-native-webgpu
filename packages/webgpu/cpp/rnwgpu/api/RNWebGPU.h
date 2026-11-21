@@ -21,6 +21,7 @@
 #include "GPUTexture.h"
 #include "ImageBitmap.h"
 #include "NativeBufferViewRegistry.h"
+#include "NativeFrameImport.h"
 #include "PlatformContext.h"
 #include "VideoFrame.h"
 #include "VideoPlayer.h"
@@ -325,8 +326,8 @@ public:
   }
 
   // createNativeBuffer(width, height, { format?, colorSpace? }): an empty
-  // native buffer (AHardwareBuffer / IOSurface) to render into with
-  // createNativeBufferTexture() and display with presentNativeBuffer().
+  // native buffer (AHardwareBuffer / IOSurface) to render into through
+  // importSharedTextureMemory() and display with presentNativeBuffer().
   // `format` defaults to the preferred canvas format of the platform
   // (rgba8unorm on Android, bgra8unorm on Apple platforms); rgba16float works
   // on both (more precision, not extended range: NativeBufferView clamps to
@@ -411,16 +412,17 @@ public:
     NativeBufferViewRegistry::getInstance().releaseFromJS(viewId);
   }
 
-  // presentNativeBuffer(viewId, frame, fence?): makes `frame` the content of
-  // the NativeBufferView `viewId` once `fence` (a GPUSharedFenceState, e.g.
-  // from GPUNativeBufferTexture.endAccess()) has signaled, or right away
-  // without one. On Android it also waits for the frame's own acquire fence,
-  // if it has one (a buffer the producer may still be writing). Returns
-  // immediately; the view shows the buffer on the next vsync after that. The
-  // view takes its own reference on the buffer, but that does not keep a
-  // buffer pool from reusing it: release the frame right away only if
-  // nothing else will write the buffer while it is displayed (see
-  // NativeBufferView.tsx).
+  // presentNativeBuffer(viewId, frame, fences?): makes `frame` the content of
+  // the NativeBufferView `viewId` once the GPU work that wrote it is done, or
+  // right away without fences. `fences` is what
+  // GPUSharedTextureMemory.endAccess() returns ({ fences }), a list of
+  // GPUSharedFenceState, or a single one; several are merged into one. On
+  // Android it also waits for the frame's own acquire fence, if it has one (a
+  // buffer the producer may still be writing). Returns immediately; the view
+  // shows the buffer on the next vsync after that. The view takes its own
+  // reference on the buffer, but that does not keep a buffer pool from reusing
+  // it: release the frame right away only if nothing else will write the buffer
+  // while it is displayed (see NativeBufferView.tsx).
   jsi::Value presentNativeBuffer(jsi::Runtime &runtime,
                                  const jsi::Value & /*thisVal*/,
                                  const jsi::Value *args, size_t count) {
@@ -438,15 +440,46 @@ public:
     wgpu::SharedFence fence;
     uint64_t signaledValue = 0;
     if (count > 2 && args[2].isObject()) {
-      auto state = JSIConverter<std::shared_ptr<GPUSharedFenceState>>::fromJSI(
-          runtime, args[2], false);
-      if (state && state->fence) {
-        fence = state->fence->get();
-        if (!fence) {
-          throw jsi::JSError(runtime,
-                             "presentNativeBuffer(): the fence was destroyed");
+      // { fences } (an end-access state), an array, or one fence state.
+      auto arg = args[2].getObject(runtime);
+      jsi::Value list = jsi::Value::undefined();
+      if (arg.isArray(runtime)) {
+        list = jsi::Value(runtime, arg);
+      } else if (arg.hasProperty(runtime, "fences")) {
+        list = arg.getProperty(runtime, "fences");
+      }
+      std::vector<std::shared_ptr<GPUSharedFenceState>> states;
+      if (list.isObject()) {
+        states = JSIConverter<
+            std::vector<std::shared_ptr<GPUSharedFenceState>>>::fromJSI(runtime,
+                                                                        list,
+                                                                        false);
+      } else {
+        states.push_back(
+            JSIConverter<std::shared_ptr<GPUSharedFenceState>>::fromJSI(
+                runtime, args[2], false));
+      }
+      std::vector<wgpu::SharedFence> fences;
+      std::vector<uint64_t> values;
+      wgpu::Device device;
+      for (const auto &state : states) {
+        if (!state || !state->fence) {
+          continue;
         }
-        signaledValue = state->signaledValue;
+        auto native = state->fence->get();
+        if (!native) {
+          throw jsi::JSError(runtime,
+                             "presentNativeBuffer(): a fence was destroyed");
+        }
+        device = state->fence->device();
+        fences.push_back(std::move(native));
+        values.push_back(state->signaledValue);
+      }
+      try {
+        native_frame::mergeFences(device, fences, values, &fence,
+                                  &signaledValue, "presentNativeBuffer");
+      } catch (const std::exception &e) {
+        throw jsi::JSError(runtime, e.what());
       }
     }
     std::shared_ptr<NativeBufferContent> content;

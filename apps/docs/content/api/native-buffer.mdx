@@ -16,7 +16,7 @@ It does not belong to any GPU device: a device imports it to sample it or to ren
 `handle` is the raw pointer of the buffer (an `IOSurfaceRef` or an `AHardwareBuffer*`) as a `BigInt`, which `importSharedTextureMemory({ handle })` takes.
 
 `acquireFenceFd` is, on Android, the sync fd the decoder or the camera signals once it has written the buffer, and `null` elsewhere.
-`importExternalTexture()`, `copyExternalImageToTexture()` and `NativeBufferView` wait for it on their own; a [native buffer wrapper](/api/gpu-device-extensions#createnativebufferexternaltexture--createnativebuffertexture) takes it through `importSharedFence({ type: "sync-fd", handle })`.
+`importExternalTexture()`, `copyExternalImageToTexture()` and `NativeBufferView` wait for it on their own; with [`importSharedTextureMemory()`](/api/gpu-device-extensions#importing-a-buffer-once), pass it to `beginAccess()` through `importSharedFence({ type: "sync-fd", handle })`.
 The frame owns the fd: import it before `release()`, and never close it.
 
 A frame from a [video player](/api/video-player) or a camera comes from a pool: release it as soon as the GPU work that reads it has been submitted, or the producer runs out of buffers.
@@ -30,7 +30,7 @@ createNativeBuffer(width: number, height: number, options?: CreateNativeBufferOp
 ```
 
 Allocates an empty color buffer to render into, for instance to display it in a [`NativeBufferView`](#nativebufferview).
-Import it with `device.createNativeBufferTexture(frame, { usage: GPUTextureUsage.RENDER_ATTACHMENT })`; see [Rendering into a buffer](/docs/getting-started/native-buffers#rendering-into-a-buffer).
+Import it with `device.importSharedTextureMemory({ source: frame })` and render into `memory.createTexture()`; see [Rendering into a buffer](/docs/getting-started/native-buffers#rendering-into-a-buffer).
 The width and height are integers from 1 to 16384.
 
 <auto-type-table path="../../../../packages/webgpu/src/types.ts" name="CreateNativeBufferOptions" />
@@ -82,8 +82,8 @@ The view never allocates buffers: it reports its size, and you present the buffe
 
 <auto-type-table path="../../../../packages/webgpu/src/NativeBufferView.tsx" name="NativeBufferViewRef" />
 
-`present(frame, fence)` takes the fence `endAccess()` of a [`GPUNativeBufferTexture`](/api/gpu-device-extensions#createnativebufferexternaltexture--createnativebuffertexture) returns.
-The view takes its own reference on the buffer and on the fence, so both can be released right after the call.
+`present(frame, done)` takes what `GPUSharedTextureMemory.endAccess()` returned for the work that wrote the buffer, and shows the buffer once all its fences have signaled.
+The view takes its own reference on the buffer and on the fences, so they can be released right after the call.
 
 Do not write a buffer again once it is presented: render the next update into a new buffer.
 Frames from a pool (a video player, a camera) have to be copied into a buffer from `createNativeBuffer()` first, since their producer writes a later frame into the buffer once the frame is released; see [Never write a displayed buffer](/docs/getting-started/native-buffers#never-write-a-displayed-buffer).
@@ -91,7 +91,7 @@ Frames from a pool (a video player, a camera) have to be copied into a buffer fr
 On a worklet runtime, present with the `RNWebGPU` global and the view's id:
 
 ```tsx
-RNWebGPU.presentNativeBuffer(viewId, frame, fence);
+RNWebGPU.presentNativeBuffer(viewId, frame, memory.endAccess(texture));
 ```
 
 ### Resize modes

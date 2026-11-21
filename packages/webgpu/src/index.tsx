@@ -9,10 +9,6 @@
 import "./main/installNative";
 
 import type {
-  GPUNativeBufferExternalTexture,
-  GPUNativeBufferExternalTextureDescriptor,
-  GPUNativeBufferTexture,
-  GPUNativeBufferTextureDescriptor,
   GPUDrawElementImageDestination,
   GPUDrawElementImageSource,
   GPUSharedFence,
@@ -58,11 +54,6 @@ export type {
   GPUNativeExternalTextureDescriptor,
   NativeBufferColorSpace,
   GPUExtent2D,
-  GPUNativeBufferExternalTextureDescriptor,
-  GPUNativeBufferTextureDescriptor,
-  GPUNativeBufferWrapper,
-  GPUNativeBufferTexture,
-  GPUNativeBufferExternalTexture,
   GPUDrawElementImageDestination,
   GPUDrawElementImageSource,
   GPUDrawElementImageSourceView,
@@ -130,7 +121,7 @@ declare global {
     ) => VideoPlayer;
     writeTestVideoFile: () => string;
     // An empty native buffer (AHardwareBuffer / IOSurface) to render into
-    // with createNativeBufferTexture() and display in a NativeBufferView.
+    // through importSharedTextureMemory() and display in a NativeBufferView.
     // Prefer the createNativeBuffer() export.
     createNativeBuffer: (
       width: number,
@@ -144,7 +135,7 @@ declare global {
     presentNativeBuffer: (
       viewId: number,
       frame: NativeBuffer,
-      fence?: GPUSharedFenceState | null,
+      done?: { fences: GPUSharedFenceState[] } | null,
     ) => void;
   };
 
@@ -157,10 +148,9 @@ declare global {
 
   interface GPUDevice {
     // Non-spec RN extension: the source of an external texture is a
-    // NativeBuffer (from a VideoPlayer, createVideoFrameFromNativeBuffer
-    // or createTestVideoFrame) instead of the web's HTMLVideoElement /
-    // VideoFrame. Overloads the spec signature, which stays available for
-    // the web implementation.
+    // NativeBuffer, or a texture of a GPUSharedTextureMemory, instead of the
+    // web's HTMLVideoElement / VideoFrame. Overloads the spec signature,
+    // which stays available for the web implementation.
     importExternalTexture(
       descriptor: GPUNativeExternalTextureDescriptor,
     ): GPUExternalTexture;
@@ -168,19 +158,6 @@ declare global {
       descriptor: GPUSharedTextureMemoryDescriptor,
     ): GPUSharedTextureMemory;
     importSharedFence(descriptor: GPUSharedFenceDescriptor): GPUSharedFence;
-    // Non-spec RN extensions, the counterparts of createTexture /
-    // createExternalTexture in GPUAndroidHardwareBufferUtil of Dawn's Android
-    // layer: import a native buffer once, as a regular texture or as an
-    // external texture, and bracket each use with beginAccess() / endAccess()
-    // on the wrapper instead of importing the buffer again per frame.
-    createNativeBufferTexture(
-      source: NativeBuffer,
-      descriptor?: GPUNativeBufferTextureDescriptor,
-    ): GPUNativeBufferTexture;
-    createNativeBufferExternalTexture(
-      source: NativeBuffer,
-      descriptor?: GPUNativeBufferExternalTextureDescriptor,
-    ): GPUNativeBufferExternalTexture;
   }
 
   // Non-spec RN extension modeled on the html-in-canvas proposal's

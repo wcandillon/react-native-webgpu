@@ -163,16 +163,15 @@ const drawIntoView = (
 ) => {
   const device = skiaDevice();
   const frame = createNativeBuffer(pixels.width, pixels.height);
-  const target = device.createNativeBufferTexture(frame, {
-    usage: GPUTextureUsage.RENDER_ATTACHMENT,
-  });
+  const memory = device.importSharedTextureMemory({ source: frame });
+  const texture = memory.createTexture();
   // Skia's device is shared by every icon: an access left open by a failed
   // draw must still be ended.
   let accessing = false;
   try {
-    target.beginAccess();
+    memory.beginAccess(texture, false);
     accessing = true;
-    const surface = Skia.Surface.MakeFromGPUTexture(target.texture);
+    const surface = Skia.Surface.MakeFromGPUTexture(texture);
     if (!surface) {
       throw new Error("Skia.Surface.MakeFromGPUTexture returned null");
     }
@@ -181,15 +180,16 @@ const drawIntoView = (
     canvas.scale(pixels.width / size, pixels.height / size);
     canvas.drawPicture(picture);
     surface.flush();
-    const fence = target.endAccess();
+    const done = memory.endAccess(texture);
     accessing = false;
-    view.present(frame, fence);
+    view.present(frame, done);
     surface.dispose();
   } finally {
     if (accessing) {
-      target.endAccess();
+      memory.endAccess(texture);
     }
-    target.destroy();
+    texture.destroy();
+    memory.destroy();
     frame.release();
   }
 };

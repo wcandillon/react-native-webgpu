@@ -73,8 +73,8 @@ export const createTestVideoFrame = (
  * Allocates an empty native buffer (an `AHardwareBuffer` on Android, an
  * `IOSurface` on Apple platforms) that the GPU renders into and a
  * `NativeBufferView` displays: import it with
- * `device.createNativeBufferTexture(frame, { usage:
- * GPUTextureUsage.RENDER_ATTACHMENT })`, render, then present it.
+ * `device.importSharedTextureMemory({ source: frame })`, render into
+ * `memory.createTexture()` inside an access, then present it.
  */
 export const createNativeBuffer = (
   width: number,

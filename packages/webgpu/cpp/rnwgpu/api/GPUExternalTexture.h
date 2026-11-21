@@ -30,10 +30,10 @@ public:
 
   // `memory` and `texture` are the import this external texture owns:
   // destroy() ends their access and releases them, so the producer (e.g. an
-  // AVPlayer) can reclaim the surface. A GPUNativeBufferExternalTexture
-  // passes null for both: it owns the import itself and brackets each use with
-  // its own beginAccess() / endAccess(), so destroy() here only releases the
-  // external texture.
+  // AVPlayer) can reclaim the surface. An external texture over a texture of
+  // a GPUSharedTextureMemory passes null for both: the caller owns the import
+  // and brackets each use with the memory's beginAccess() / endAccess(), so
+  // destroy() here only releases the external texture.
   GPUExternalTexture(wgpu::ExternalTexture instance,
                      wgpu::SharedTextureMemory memory, wgpu::Texture texture,
                      std::shared_ptr<VideoFrame> source, std::string label)

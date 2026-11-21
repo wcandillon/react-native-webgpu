@@ -28,6 +28,7 @@ void GPUSharedTextureMemory::destroy() {
     _accessed.clear();
   }
   _instance = nullptr;
+  _source = nullptr;
 }
 
 void GPUSharedTextureMemory::injectDestroyedError(const char *method) {
@@ -60,9 +61,12 @@ std::shared_ptr<GPUTexture> GPUSharedTextureMemory::createTexture(
     return std::make_shared<GPUTexture>(_device.CreateErrorTexture(&desc),
                                         std::move(label), false);
   }
+  auto origin = std::make_shared<native_frame::SharedTextureOrigin>(
+      native_frame::SharedTextureOrigin{_instance, _colorSpace});
   if (!descriptor.has_value() || descriptor.value() == nullptr) {
-    auto texture = _instance.CreateTexture();
-    return std::make_shared<GPUTexture>(texture, "");
+    auto texture = std::make_shared<GPUTexture>(_instance.CreateTexture(), "");
+    texture->setSharedTextureOrigin(std::move(origin));
+    return texture;
   }
 
   wgpu::TextureDescriptor desc{};
@@ -72,9 +76,10 @@ std::shared_ptr<GPUTexture> GPUSharedTextureMemory::createTexture(
         "GPUSharedTextureMemory::createTexture(): Error with "
         "GPUTextureDescriptor");
   }
-  auto texture = _instance.CreateTexture(&desc);
-  return std::make_shared<GPUTexture>(texture,
-                                      descriptor.value()->label.value_or(""));
+  auto texture = std::make_shared<GPUTexture>(
+      _instance.CreateTexture(&desc), descriptor.value()->label.value_or(""));
+  texture->setSharedTextureOrigin(std::move(origin));
+  return texture;
 }
 
 void GPUSharedTextureMemory::beginAccess(

@@ -23,8 +23,6 @@
 #include "GPUError.h"
 #include "GPUExternalTexture.h"
 #include "GPUInternalError.h"
-#include "GPUNativeBufferExternalTexture.h"
-#include "GPUNativeBufferTexture.h"
 #include "GPUOutOfMemoryError.h"
 #include "GPUPipelineLayout.h"
 #include "GPUQuerySet.h"
@@ -119,8 +117,6 @@ void RNWebGPUManager::installConstructors(jsi::Runtime &runtime) {
   GPUDeviceLostInfo::installConstructor(runtime);
   GPUError::installConstructor(runtime);
   GPUExternalTexture::installConstructor(runtime);
-  GPUNativeBufferExternalTexture::installConstructor(runtime);
-  GPUNativeBufferTexture::installConstructor(runtime);
   GPUInternalError::installConstructor(runtime);
   GPUOutOfMemoryError::installConstructor(runtime);
   GPUValidationError::installConstructor(runtime);

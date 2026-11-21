@@ -33,15 +33,17 @@ export interface NativeBufferPixelSize {
 
 export interface NativeBufferViewRef {
   /**
-   * The id to pass to `RNWebGPU.presentNativeBuffer(viewId, frame, fence)`,
+   * The id to pass to `RNWebGPU.presentNativeBuffer(viewId, frame, done)`,
    * for instance from a worklet.
    */
   readonly viewId: number;
   /**
-   * Displays `frame` once `fence` has signaled (right away without one).
-   * On Android, it also waits for the frame's own acquire fence, if any.
-   * Returns immediately; the view shows the buffer on the next vsync after
-   * that.
+   * Displays `frame` once the GPU work that wrote it is done: `done` is what
+   * `GPUSharedTextureMemory.endAccess()` returned for that work (its
+   * `fences`), and the view waits for every fence. Without it, the buffer is
+   * shown right away. On Android, the view also waits for the frame's own
+   * acquire fence, if any. Returns immediately; the view shows the buffer on
+   * the next vsync after that.
    *
    * The buffer must not be written again while it is displayed: render the
    * next content into another buffer and present that one. The view keeps
@@ -55,7 +57,10 @@ export interface NativeBufferViewRef {
    * `createNativeBuffer()` (for instance by drawing it with WebGPU) and
    * present the copy.
    */
-  present(frame: NativeBuffer, fence?: GPUSharedFenceState | null): void;
+  present(
+    frame: NativeBuffer,
+    done?: { fences: GPUSharedFenceState[] } | null,
+  ): void;
 }
 
 export interface NativeBufferViewProps extends ViewProps {
@@ -84,15 +89,14 @@ export interface NativeBufferViewProps extends ViewProps {
  * {@link NativeBufferViewRef.present}). With WebGPU:
  *
  * ```ts
- * const frame = RNWebGPU.createNativeBuffer(size.width, size.height);
- * const target = device.createNativeBufferTexture(frame, {
- *   usage: GPUTextureUsage.RENDER_ATTACHMENT,
- * });
- * target.beginAccess();
- * // ... render into target.texture and submit ...
- * const fence = target.endAccess();
- * ref.current.present(frame, fence);
- * target.destroy();
+ * const frame = createNativeBuffer(size.width, size.height);
+ * const memory = device.importSharedTextureMemory({ source: frame });
+ * const texture = memory.createTexture();
+ * memory.beginAccess(texture, false);
+ * // ... render into texture and submit ...
+ * ref.current.present(frame, memory.endAccess(texture));
+ * texture.destroy();
+ * memory.destroy();
  * frame.release();
  * ```
  */
@@ -110,8 +114,8 @@ export const NativeBufferView = ({
     ref,
     () => ({
       viewId,
-      present: (frame, fence) =>
-        RNWebGPU.presentNativeBuffer(viewId, frame, fence ?? null),
+      present: (frame, done) =>
+        RNWebGPU.presentNativeBuffer(viewId, frame, done ?? null),
     }),
     [viewId],
   );
