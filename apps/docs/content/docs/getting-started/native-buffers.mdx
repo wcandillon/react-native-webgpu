@@ -3,12 +3,10 @@ title: Native Buffers
 description: Share pixels between WebGPU, other GPU APIs and the screen without a copy.
 ---
 
-A **native buffer** is a block of pixels that the platform can share between the GPU, the display, the camera and the video decoder: an `AHardwareBuffer` on Android and an `IOSurface` on Apple platforms.
-React Native WebGPU represents one as a [`NativeBuffer`](/api/native-buffer#nativebuffer) object.
+A [`NativeBuffer`](/api/native-buffer#nativebuffer) is an `AHardwareBuffer` on Android and an `IOSurface` on Apple platforms.
 
-A buffer does not belong to any GPU device.
-A video decoder or a camera writes it, a device imports it to sample it or to render into it, and a [`NativeBufferView`](/api/native-buffer#nativebufferview) displays it.
-No pixel goes through the CPU at any of these steps.
+It does not belong to any GPU device or API: a camera, a video decoder, Skia or WebGPU can write it, and a device or a [`NativeBufferView`](/api/native-buffer#nativebufferview) can read it, without any pixel going through the CPU.
+Since each of them works asynchronously on the GPU, every handoff comes with a [fence](#synchronization) that signals when the previous user is done with the buffer.
 
 This page shows how these pieces fit together.
 The [Native Buffer](/api/native-buffer) and [Native Extensions](/api/gpu-device-extensions) API pages document each call in detail.
