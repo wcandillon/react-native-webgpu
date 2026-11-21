@@ -289,7 +289,29 @@ public class WebGPUNativeBufferView extends View {
         mDst.set(0, 0, vw, vh);
         break;
     }
+    if (bitmap.getConfig() == Bitmap.Config.HARDWARE && !canvas.isHardwareAccelerated()) {
+      // A software canvas (a view capture with view.draw(new Canvas(bitmap)), a
+      // software layer) throws on a hardware bitmap: draw a copy of the pixels.
+      Bitmap copy = softwareCopy(bitmap);
+      if (copy != null) {
+        canvas.drawBitmap(copy, mSrc, mDst, mPaint);
+        copy.recycle();
+      }
+      return;
+    }
     canvas.drawBitmap(bitmap, mSrc, mDst, mPaint);
+  }
+
+  // Reads the buffer back; null when the pixels can't be read (the capture
+  // then shows nothing for this view).
+  @Nullable
+  private static Bitmap softwareCopy(Bitmap hardware) {
+    try {
+      return hardware.copy(Bitmap.Config.ARGB_8888, false);
+    } catch (RuntimeException e) {
+      Log.w(TAG, "no software copy of the buffer for a software canvas", e);
+      return null;
+    }
   }
 
   // --- Lifecycle -----------------------------------------------------------------
