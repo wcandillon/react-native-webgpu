@@ -22,7 +22,8 @@ import { RenderBundles } from "./RenderBundles";
 import { ABuffer } from "./ABuffer";
 import { OcclusionQuery } from "./OcclusionQuery";
 import { ComputeBoids } from "./ComputeBoids";
-import { MNISTInference } from "./MNISTInference";
+// TODO: Restore MNIST when Skia supports SDK-based Dawn preparation.
+// import { MNISTInference } from "./MNISTInference";
 import { Wireframe } from "./Wireframe";
 import { Resize } from "./Resize";
 import { Particules } from "./Particles";
@@ -85,7 +86,7 @@ const linking: LinkingOptions<Routes> = {
       ReversedZ: "reversed-z",
       ABuffer: "a-buffer",
       OcclusionQuery: "occlusion-query",
-      MNISTInference: "mnist-inference",
+      // MNISTInference: "mnist-inference",
       ComputeBoids: "compute-boids",
       ShadowMapping: "shadow-mapping",
       DeferedRendering: "deferred-rendering",
@@ -162,7 +163,7 @@ function App() {
           <Stack.Screen name="ReversedZ" component={ReversedZ} />
           <Stack.Screen name="ABuffer" component={ABuffer} />
           <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />
-          <Stack.Screen name="MNISTInference" component={MNISTInference} />
+          {/* <Stack.Screen name="MNISTInference" component={MNISTInference} /> */}
           <Stack.Screen name="ComputeBoids" component={ComputeBoids} />
           <Stack.Screen name="ShadowMapping" component={ShadowMapping} />
           <Stack.Screen name="DeferedRendering" component={DeferedRendering} />

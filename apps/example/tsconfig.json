@@ -7,5 +7,15 @@
       "three/addons/*": ["../../node_modules/@types/three/examples/jsm/*"]
     },
     "types": ["@webgpu/types", "@types/node"]
-  }
+  },
+  // Exclude the dormant Skia demo until SDK-based Dawn integration is available.
+  // TypeScript replaces inherited exclude arrays, so keep the shared entries.
+  "exclude": [
+    "node_modules",
+    "**/Pods/**",
+    "babel.config.js",
+    "metro.config.js",
+    "jest.config.js",
+    "src/MNISTInference"
+  ]
 }

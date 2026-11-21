@@ -44,7 +44,7 @@ React Native WebGPU holds that work instead, with Dawn's `metal_suspend_submissi
 Presenting a canvas does nothing meanwhile; the canvas catches up on return.
 A held `onSubmittedWorkDone()` or `mapAsync()` promise settles only once the app is back, so background code that awaits one, a readback for instance, waits until then.
 Android and macOS do not refuse GPU work from a background app, so nothing is held there.
-The hold needs `react-native-webgpu-dawn` 157.1.0 or later; an older Dawn drops the toggle, and the device is lost over the first refused command buffer (its `lost` promise then resolves with the reason `unknown`).
+The hold needs Dawn binaries release 157.1.0 or later; an older Dawn drops the toggle, and the device is lost over the first refused command buffer (its `lost` promise then resolves with the reason `unknown`).
 Pass the toggle in `disabledToggles` (see [dawnToggles](/docs/api/gpu-device-extensions#dawntoggles)) to opt out: the device is then lost in the same way.
 
 Holding is not free: everything submitted in the background stays in memory until the app returns, and then runs all at once.

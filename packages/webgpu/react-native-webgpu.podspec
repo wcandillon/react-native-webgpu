@@ -1,43 +1,17 @@
 require "json"
-require "fileutils"
+require "open3"
 
 package = JSON.parse(File.read(File.join(__dir__, "package.json")))
-folly_compiler_flags = '-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1 -Wno-comma -Wno-shorten-64-to-32'
 
-# Resolve a node package directory using Node's own module resolution
-# (mirrors `require.resolve(pkg/package.json)`). A lambda rather than a `def`:
-# CocoaPods evaluates the podspec inside the `Pod` module, where top-level
-# methods are not reachable at the call site.
-resolve_node_package = lambda do |name, base_dir|
-  script = "process.stdout.write(require('path').dirname(require.resolve('#{name}/package.json')))"
-  dir = Dir.chdir(base_dir) { `node -e "#{script}" 2>/dev/null`.strip }
-  dir.empty? ? nil : dir
-end
-
-# Dawn, the WebGPU implementation, ships in the react-native-webgpu-dawn npm
-# package this package depends on (react-native-skia's Graphite backend links
-# the same one, so an app installing both contains exactly one Dawn). Its
-# headers are used in place, but CocoaPods only vendors frameworks from inside
-# the pod, so the xcframework is copied into libs/apple at `pod install` time.
-# The copy is stamped with the package version and skipped when it already
-# matches, which keeps CocoaPods' cache intact across installs.
-dawn_dir = resolve_node_package.call('react-native-webgpu-dawn', __dir__)
-if dawn_dir.nil?
-  raise "react-native-webgpu: the react-native-webgpu-dawn package was not found. " \
-        "It ships the Dawn binaries this package links against; make sure " \
-        "dependencies are installed (yarn install / npm install), then run `pod install` again."
-end
-dawn_version = JSON.parse(File.read(File.join(dawn_dir, 'package.json')))['version'].to_s
-dawn_include = File.join(dawn_dir, 'include')
-dawn_libs = File.join(__dir__, 'libs', 'apple')
-dawn_marker = File.join(dawn_libs, '.version')
-unless File.exist?(dawn_marker) && File.read(dawn_marker).strip == dawn_version
-  Pod::UI.puts "react-native-webgpu: installing Dawn (react-native-webgpu-dawn #{dawn_version})"
-  FileUtils.rm_rf(dawn_libs)
-  FileUtils.mkdir_p(dawn_libs)
-  FileUtils.cp_r(File.join(dawn_dir, 'libs', 'apple', 'libwebgpu_dawn.xcframework'), dawn_libs)
-  File.write(dawn_marker, dawn_version)
-end
+# Configuration reads the installed release pin only. SDK downloads wait for
+# Xcode's platform/architecture settings; headers already ship in this package.
+stdout, stderr, status = Open3.capture3(
+  '/bin/bash', File.join(__dir__, 'scripts', 'prepare-apple-binaries.sh'),
+  '--config'
+)
+raise "react-native-webgpu: #{stderr.strip}" unless status.success?
+binary_config = JSON.parse(stdout)
+binary_search_path = '$(inherited) "$(PODS_CONFIGURATION_BUILD_DIR)/ReactNativeWebGPUBinaries"'
 
 Pod::Spec.new do |s|
   s.name         = "react-native-webgpu"
@@ -47,12 +21,8 @@ Pod::Spec.new do |s|
   s.license      = package["license"]
   s.authors      = package["author"]
 
-  # React Native's CocoaPods autolinking drops any pod whose podspec does not
-  # declare the Podfile target's platform (#608), so every platform the Dawn
-  # xcframework ships a slice for is listed. react-native-tvos keeps the tvOS
-  # floor equal to the iOS one (its min_supported_versions helper). visionOS
-  # is not listed: react-native-webgpu-dawn ships no xros slice, so a visionOS
-  # target would autolink the pod and then fail to link it.
+  # CocoaPods autolinks only declared native platforms. Knowing a release SDK
+  # in the preparer alone does not establish WebGPU runtime support there.
   s.platforms    = {
     :ios => min_ios_version_supported,
     :tvos => min_ios_version_supported,
@@ -60,49 +30,46 @@ Pod::Spec.new do |s|
   }
   s.source       = { :git => "https://github.com/wcandillon/react-native-webgpu.git", :tag => "#{s.version}" }
 
-  # CocoaPods is the supported default. Package.swift (React Native 0.87+
-  # SwiftPM autolinking) is additive: SwiftPM ignores this podspec, and
-  # CocoaPods ignores Package.swift. An app links through one or the other,
-  # never both, so set RNWGPU_USE_SPM=1 before `pod install` when linking
-  # through the Swift package instead: RN's autolinking and codegen both key
-  # off this podspec being present, so it still needs to exist, but it must
-  # not compile or vendor anything itself or the app gets the native module
-  # twice.
-  if ENV['RNWGPU_USE_SPM']
-    # The Swift package resolves React Native's headers from the
-    # static-library Pods layout (Pods/Headers/Public). With `use_frameworks!`
-    # CocoaPods keeps headers inside each framework instead, so none of those
-    # paths exist and the package fails to compile with header-not-found
-    # errors that don't point back here. Refuse the combination up front.
-    # The React Native template drives `use_frameworks!` from USE_FRAMEWORKS.
-    if ENV['USE_FRAMEWORKS']
-      raise "react-native-webgpu: RNWGPU_USE_SPM needs the static-library Pods layout. " \
-            "Unset USE_FRAMEWORKS (or drop use_frameworks! from the Podfile) to link " \
-            "react-native-webgpu through its Swift package."
-    end
-    s.source_files = "apple/RNWGUIKit.h"
-  else
-    s.source_files = [
-      "apple/**/*.{h,c,cc,cpp,m,mm,swift}",
-      "cpp/**/*.{h,cpp}"
-    ]
+  # CocoaPods and SwiftPM compile these sources independently; an app chooses
+  # one native integration. Neither downloads binaries during package setup.
+  s.source_files = [
+    "apple/**/*.{h,c,cc,cpp,m,mm,swift}",
+    "cpp/**/*.{h,cpp}"
+  ]
 
-    s.vendored_frameworks = 'libs/apple/libwebgpu_dawn.xcframework'
+  # Retain nested paths: Dawn's forwarding and generated headers share basenames.
+  s.header_mappings_dir = "."
+  s.libraries = ['c++'] + binary_config['linkNames']
+  s.preserve_paths = ['scripts/*.{js,sh}', 'libs/apple/**/*']
+  s.user_target_xcconfig = { 'LIBRARY_SEARCH_PATHS' => binary_search_path }
+  s.script_phase = {
+    :name => 'Prepare React Native WebGPU binaries',
+    :shell_path => '/bin/bash',
+    :execution_position => :before_compile,
+    :always_out_of_date => '1',
+    :script => <<-SCRIPT
+      /bin/bash "${PODS_TARGET_SRCROOT}/scripts/prepare-apple-binaries.sh" \
+        --output "${PODS_CONFIGURATION_BUILD_DIR}/ReactNativeWebGPUBinaries" \
+        --assembly-root "${OBJROOT}/ReactNativeWebGPUBinaries"
+    SCRIPT
+  }
 
-    # The VideoPlayer API uses AVFoundation / CoreMedia, and shared-texture
-    # surfaces use CoreVideo (CVPixelBuffer). Link them so their symbols resolve.
-    # ImageIO provides CGImageSource, the image decoder behind createImageBitmap.
-    s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo", "ImageIO"
-  end
+  # The VideoPlayer API uses AVFoundation / CoreMedia, and shared-texture
+  # surfaces use CoreVideo (CVPixelBuffer). Link them so their symbols resolve.
+  # ImageIO provides CGImageSource, the image decoder behind createImageBitmap.
+  s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo", "ImageIO"
 
   # Under use_frameworks!, bare includes across folders (e.g. "GPU.h")
   # resolve only through these paths. Keep in sync with internalHeaderDirs
   # in Package.swift.
-  header_dirs = %w[apple cpp cpp/jsi cpp/rnwgpu cpp/rnwgpu/api cpp/rnwgpu/api/descriptors cpp/rnwgpu/async]
+  header_dirs = %w[apple cpp cpp/jsi cpp/rnwgpu cpp/rnwgpu/api cpp/rnwgpu/api/descriptors cpp/rnwgpu/async cpp/dawn/include]
   header_search_paths = header_dirs.map { |dir| "\"$(PODS_TARGET_SRCROOT)/#{dir}\"" }
 
   s.pod_target_xcconfig = {
-    'HEADER_SEARCH_PATHS' => (header_search_paths + ["\"#{dawn_include}\""]).join(' '),
+    'HEADER_SEARCH_PATHS' => header_search_paths.join(' '),
+    # Preparation needs access to the shared release cache and build products.
+    'ENABLE_USER_SCRIPT_SANDBOXING' => 'NO',
+    'LIBRARY_SEARCH_PATHS' => binary_search_path,
     # Xcode's all-target headermaps let same-named headers leak across pods
     # (e.g. @shopify/react-native-skia keeps a jsi/ helper layer with
     # identical relative header paths). Resolve includes strictly through our
@@ -110,23 +77,5 @@ Pod::Spec.new do |s|
     'USE_HEADERMAP' => 'NO',
   }
 
-  # Use install_modules_dependencies helper to install the dependencies if React Native version >=0.71.0.
-  # See https://github.com/facebook/react-native/blob/febf6b7f33fdb4904669f99d795eba4c0f95d7bf/scripts/cocoapods/new_architecture.rb#L79.
-  if respond_to?(:install_modules_dependencies, true)
-    install_modules_dependencies(s)
-  else
-    s.dependency "React-Core"
-    s.compiler_flags = folly_compiler_flags
-    s.pod_target_xcconfig    = {
-        "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\" \"$(PODS_TARGET_SRCROOT)/cpp\" \"#{dawn_include}\"",
-        "OTHER_CPLUSPLUSFLAGS" => "-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1",
-        "CLANG_CXX_LANGUAGE_STANDARD" => "c++20"
-    }
-    s.dependency "React-RCTFabric"
-    s.dependency "React-Codegen"
-    s.dependency "RCT-Folly"
-    s.dependency "RCTRequired"
-    s.dependency "RCTTypeSafety"
-    s.dependency "ReactCommon/turbomodule/core"
-  end
+  install_modules_dependencies(s)
 end
