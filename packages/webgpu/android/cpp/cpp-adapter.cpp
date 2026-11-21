@@ -307,7 +307,7 @@ void setAnimationReporter(int contextId,
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     JNIEnv *env, jobject thiz, jobject jSurface, jint contextId, jfloat width,
-    jfloat height, jboolean reportAnimation) {
+    jfloat height, jboolean reportAnimation, jboolean latchOnMainThread) {
   if (manager == nullptr) {
     return;
   }
@@ -335,6 +335,22 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     setAnimationReporter(contextId, reporter);
     info->setFramePresentedCallback(
         [reporter]() { reporter->onFramePresented(); });
+  } else if (latchOnMainThread) {
+    // A TextureView learns of a new frame through a message on the main
+    // looper, which runs after the frame being drawn: a frame presented on
+    // the main thread (the Reanimated UI runtime, during the Choreographer's
+    // animation callbacks) would only show at the draw after, which halves
+    // the frame rate. Tell the view right away, before this draw
+    // (WebGPUView.onFramePresentedOnMainThread). Other threads present
+    // between draws, where the message is in time.
+    setAnimationReporter(contextId, nullptr);
+    auto latch = std::make_shared<WeakViewCall>(env, thiz,
+                                                "onFramePresentedOnMainThread");
+    info->setFramePresentedCallback([latch]() {
+      if (gettid() == getpid()) {
+        (*latch)();
+      }
+    });
   } else {
     setAnimationReporter(contextId, nullptr);
     info->setFramePresentedCallback(nullptr);
