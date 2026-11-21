@@ -1,6 +1,6 @@
 ---
 title: Native Buffers
-description: Video frames, camera frames and buffers you render into, and how they reach the GPU and the screen without a copy.
+description: Share pixels between the camera, video, the GPU and the screen without a copy.
 ---
 
 A **native buffer** is a block of pixels that the platform can share between the GPU, the display, the camera and the video decoder: an `AHardwareBuffer` on Android and an `IOSurface` on Apple platforms.
