@@ -38,7 +38,7 @@ frame.release();
 A texture of the memory is used only between `beginAccess()` and `endAccess()`. Pass `initialized: true` when the buffer holds pixels to keep, as for a video or camera frame, and `false` for a buffer you are about to overwrite.
 `endAccess()` returns the fences that signal once the GPU work of the access is done: pass them to whoever uses the buffer next, such as [`NativeBufferView`](/api/native-buffer#nativebufferview)'s `present()`, or destroy them.
 
-The memory keeps the `NativeBuffer` alive, and the textures created from it remember the buffer's color space, which [`importExternalTexture({ source: texture })`](#importing-a-buffer-once) needs to sample a YUV buffer.
+Dawn holds its own reference on the imported buffer, and the textures created from the memory remember the buffer's color space, which [`importExternalTexture({ source: texture })`](#importing-a-buffer-once) needs to sample a YUV buffer.
 Instead of `source`, the descriptor can take `handle`, the raw pointer of a buffer (an `IOSurfaceRef` or an `AHardwareBuffer*`) as a `BigInt`; the caller then keeps the buffer alive, and a YUV buffer falls back to the platform's color space.
 
 `memory.destroy()` releases the import right away rather than when the object is garbage collected, which can take a while on a runtime importing a frame per vsync. End the access and destroy the textures created from it first: destroying during an access is a validation error, and so is using the memory afterwards.
