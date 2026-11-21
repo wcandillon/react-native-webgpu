@@ -2,8 +2,11 @@
 
 #include <chrono>
 #include <exception>
+#include <map>
+#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <ReactCommon/CallInvoker.h>
 
