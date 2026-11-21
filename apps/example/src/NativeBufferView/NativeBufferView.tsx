@@ -59,11 +59,13 @@ fn fs(@builtin(position) position: vec4f) -> @location(0) vec4f {
 }
 `;
 
-// Renders one buffer of `size` with a device of its own, presents it, and
-// releases everything: nothing GPU-related stays alive between renders.
+// Renders one buffer of `size` with a device of its own, presents it unless
+// the render was superseded (`isCancelled`), and releases everything: nothing
+// GPU-related stays alive between renders. Resolves to whether it presented.
 const renderOnce = async (
   view: NativeBufferViewRef,
   size: NativeBufferPixelSize,
+  isCancelled: () => boolean,
 ) => {
   const adapter = await navigator.gpu.requestAdapter();
   if (!adapter) {
@@ -115,7 +117,13 @@ const renderOnce = async (
     // The view waits for this fence off the main thread before showing the
     // buffer, so nothing here waits for the GPU.
     const fence = target.endAccess();
+    // An older render that finishes after a newer one would otherwise
+    // present a buffer of an outdated size.
+    if (isCancelled()) {
+      return false;
+    }
     view.present(frame, fence);
+    return true;
   } finally {
     // The view holds its own reference on the buffer.
     target.destroy();
@@ -145,9 +153,13 @@ export const NativeBufferView = () => {
     if (!size || !view) {
       return;
     }
+    let cancelled = false;
     const start = performance.now();
-    renderOnce(view, size)
-      .then(() => {
+    renderOnce(view, size, () => cancelled)
+      .then((presented) => {
+        if (!presented) {
+          return;
+        }
         setRenders((n) => n + 1);
         setStatus(
           `${size.width}x${size.height} px rendered in ${Math.round(
@@ -155,7 +167,14 @@ export const NativeBufferView = () => {
           )} ms`,
         );
       })
-      .catch((e: Error) => setStatus(`Error: ${e.message}`));
+      .catch((e: Error) => {
+        if (!cancelled) {
+          setStatus(`Error: ${e.message}`);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [size]);
 
   const style = useAnimatedStyle(() => ({

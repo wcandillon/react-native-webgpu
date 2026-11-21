@@ -390,7 +390,8 @@ export interface CreateNativeBufferOptions {
   /**
    * Defaults to the preferred canvas format of the platform:
    * `"rgba8unorm"` on Android, `"bgra8unorm"` on Apple platforms.
-   * `"rgba16float"` works on both.
+   * `"rgba16float"` works on both; it gives more precision, not extended
+   * range: a `NativeBufferView` shows values in [0, 1] and clamps the rest.
    */
   format?: "rgba8unorm" | "bgra8unorm" | "rgba16float";
   /** The primaries of the values. Defaults to `"srgb"`. */

@@ -329,7 +329,8 @@ public:
   // createNativeBufferTexture() and display with presentNativeBuffer().
   // `format` defaults to the preferred canvas format of the platform
   // (rgba8unorm on Android, bgra8unorm on Apple platforms); rgba16float works
-  // on both. `colorSpace` is "srgb" (the default) or "display-p3".
+  // on both (more precision, not extended range: NativeBufferView clamps to
+  // [0, 1]). `colorSpace` is "srgb" (the default) or "display-p3".
   jsi::Value createNativeBuffer(jsi::Runtime &runtime,
                                 const jsi::Value & /*thisVal*/,
                                 const jsi::Value *args, size_t count) {

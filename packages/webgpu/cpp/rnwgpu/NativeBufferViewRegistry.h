@@ -13,8 +13,9 @@
 namespace rnwgpu {
 
 // The color space a NativeBufferView displays a buffer in. The buffer holds
-// premultiplied, gamma-encoded values in these primaries; an rgba16float
-// buffer may go past [0, 1] (extended range).
+// premultiplied, gamma-encoded values in these primaries. rgba16float gives
+// more precision, not extended range: the view shows values in [0, 1] and
+// clamps the rest.
 enum class NativeBufferColorSpace { SRGB, DisplayP3 };
 
 // A native buffer handed to a NativeBufferView: an AHardwareBuffer* (Android)
