@@ -159,6 +159,10 @@ export const examples = [
     screen: "NativeBufferView",
     title: "🖼️ Native Buffer View",
   },
+  {
+    screen: "IconBenchmark",
+    title: "⏱️ 200 Icons: Skia Canvas vs NativeBufferView",
+  },
 ] as const;
 
 const styles = StyleSheet.create({

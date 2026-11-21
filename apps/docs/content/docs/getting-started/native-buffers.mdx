@@ -21,52 +21,44 @@ The [Native Buffer](/api/native-buffer) and [Native Extensions](/api/gpu-device-
 | [Native buffer wrapper](/api/gpu-device-extensions#createnativebufferexternaltexture--createnativebuffertexture) | `createNativeBufferTexture()` and `createNativeBufferExternalTexture()`: a buffer imported once as shared texture memory, together with its texture and its fences. |
 | [`NativeBufferView`](/api/native-buffer#nativebufferview) | A React Native view that displays a buffer. It has no swap chain and no device of its own. |
 
-`NativeBuffer` is the same name VisionCamera uses for its frames' buffers. [`createVideoFrameFromNativeBuffer()`](/api/native-buffer#createvideoframefromnativebuffer) wraps one of those into ours.
-
 ## Where buffers come from
 
-| Source | Buffers | Pixel formats |
-| --- | --- | --- |
-| [`createVideoPlayer()`](/api/video-player) | Pooled: `copyLatestFrame()` returns the most recently decoded frame. | BGRA or NV12 on Apple platforms, the decoder's YUV layout on Android. |
-| [VisionCamera](/docs/integrations/vision-camera) through `createVideoFrameFromNativeBuffer()` | Pooled: the camera writes the next images into the same few buffers. | Depends on the camera's configuration. YUV is common. |
-| [`createNativeBuffer()`](/api/native-buffer#createnativebuffer) | Yours: an empty color buffer to render into. | `rgba8unorm` on Android and `bgra8unorm` on Apple platforms by default, or `rgba16float`. |
-| `createTestVideoFrame()` | Yours: a test pattern, for tests and examples. | Color. |
+**Your own rendering.** [`createNativeBuffer()`](/api/native-buffer#createnativebuffer) allocates an empty color buffer that WebGPU or Skia renders into, for instance to display it in a `NativeBufferView` (see [Rendering into a buffer](#rendering-into-a-buffer)).
+The [200 icons example](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/IconBenchmark/IconBenchmark.tsx) draws each icon with Skia into a buffer of its own and compares it with one Skia `<Canvas>` per icon.
 
-A **pooled** buffer goes back to its producer once you release the frame, and the producer then writes a later frame into it.
-Release pooled frames as soon as the GPU work that reads them has been submitted. A producer that runs out of buffers stops delivering frames.
+**Cameras.** [VisionCamera](/docs/integrations/vision-camera) exposes each frame's buffer as its own `NativeBuffer` (the same name, and the same idea): [`createVideoFrameFromNativeBuffer()`](/api/native-buffer#createvideoframefromnativebuffer) wraps its pointer into ours.
+
+**Video.** [React Native Skia Video](https://github.com/AzzappApp/react-native-skia-video) decodes and encodes video with Skia, and its [React Native Skia v3 version](https://github.com/AzzappApp/react-native-skia-video/pull/63) moves frames between the platform decoders and encoders and Skia through React Native WebGPU, without CPU copies.
+
+Camera and video frames come from a **pool**: the producer writes the next frames into the same few buffers, and gets a buffer back once you release its frame.
+Release pooled frames as soon as the GPU work that reads them has been submitted; a producer that runs out of buffers stops delivering frames.
 A buffer you allocate yourself stays yours until you release it.
 
 ## Reading a buffer on the GPU
 
-| You want to | Use |
-| --- | --- |
-| Sample a frame in your own shader, in any format, YUV included | [`device.importExternalTexture({ source: frame })`](/api/gpu-device-extensions#gpuexternaltexture-extensions) |
-| Do the same for every frame of a decoder or a camera, without importing each buffer again | [`device.createNativeBufferExternalTexture(frame)`](/api/gpu-device-extensions#createnativebufferexternaltexture--createnativebuffertexture), one wrapper per buffer |
-| Get a regular `GPUTexture` for another library (Skia, Three.js), for mipmaps, or to keep the frame after releasing it | [`queue.copyExternalImageToTexture({ source: frame }, ...)`](/api/gpu-device-extensions#copyexternalimagetotexture-with-a-native-frame). It is a GPU copy, so the frame can be released right after. |
-| Bind a color buffer as a regular `GPUTexture`, without a copy | [`device.createNativeBufferTexture(frame)`](/api/gpu-device-extensions#createnativebufferexternaltexture--createnativebuffertexture), or the lower-level [`importSharedTextureMemory()`](/api/gpu-device-extensions#importsharedtexturememory) |
+| You want to | Use | Returns |
+| --- | --- | --- |
+| Sample a frame in your own shader, in any format, YUV included | [`device.importExternalTexture({ source: frame })`](/api/gpu-device-extensions#gpuexternaltexture-extensions) | A `GPUExternalTexture`, for one frame |
+| Do the same for every frame of a decoder or a camera, without importing each buffer again | [`device.createNativeBufferExternalTexture(frame)`](/api/gpu-device-extensions#createnativebufferexternaltexture--createnativebuffertexture), one per buffer | A `GPUNativeBufferExternalTexture`: a wrapper with `beginAccess()` / `endAccess()`, whose `externalTexture` is a `GPUExternalTexture` |
+| Get a regular `GPUTexture` for another library (Skia, Three.js), for mipmaps, or to keep the frame after releasing it | [`queue.copyExternalImageToTexture({ source: frame }, { texture }, size)`](/api/gpu-device-extensions#copyexternalimagetotexture-with-a-native-frame). It is a GPU copy, so the frame can be released right after. | Nothing: it renders into the `GPUTexture` you pass |
+| Bind a color buffer as a regular `GPUTexture`, without a copy | [`device.createNativeBufferTexture(frame)`](/api/gpu-device-extensions#createnativebufferexternaltexture--createnativebuffertexture) | A `GPUNativeBufferTexture`: a wrapper with `beginAccess()` / `endAccess()`, whose `texture` is a `GPUTexture` |
+| The same, with full control over the access windows | [`device.importSharedTextureMemory({ handle: frame.handle })`](/api/gpu-device-extensions#importsharedtexturememory) | A `GPUSharedTextureMemory`, whose `createTexture()` returns a `GPUTexture` |
 
 The external texture converts YUV to RGB while sampling and applies the frame's rotation and mirroring.
 It is also the only way to read a YUV buffer: the other paths need a color buffer, or go through an external texture themselves, as `copyExternalImageToTexture()` does.
 
 ```tsx twoslash
-import { createVideoPlayer } from "react-native-webgpu";
+import type { NativeBuffer } from "react-native-webgpu";
 declare const device: GPUDevice;
-declare const url: string;
+declare const frame: NativeBuffer;
+declare const rotation: 0 | 90 | 180 | 270;
 declare function draw(texture: GPUExternalTexture): void;
 // ---cut---
-const player = createVideoPlayer(url);
-player.play();
-
-const frame = player.copyLatestFrame();
-if (frame) {
-  const texture = device.importExternalTexture({
-    source: frame,
-    rotation: player.rotation,
-  });
-  draw(texture); // ...and queue.submit()
-  texture.destroy();
-  frame.release(); // the decoder can reuse the buffer
-}
+// A frame from a camera or a video decoder
+const texture = device.importExternalTexture({ source: frame, rotation });
+draw(texture); // ...and queue.submit()
+texture.destroy();
+frame.release(); // the producer can reuse the buffer
 ```
 
 ## Rendering into a buffer
@@ -195,7 +187,7 @@ Animated content belongs in a `Canvas`.
 The view reads the buffer whenever the system composites the screen, so a buffer must not be written again once it has been presented.
 Render each update into a new buffer and present that one. The view keeps its own reference on the buffer, so a buffer from `createNativeBuffer()` can be released right after `present()`.
 
-A **pooled** frame, from a video player or a camera, breaks this rule on its own: its producer writes a later frame into the buffer as soon as the frame is released, even while the view still shows it.
+A **pooled** frame, from a camera or a video decoder, breaks this rule on its own: its producer writes a later frame into the buffer as soon as the frame is released, even while the view still shows it.
 Copy such a frame into a buffer of your own and present the copy:
 
 ```tsx twoslash
@@ -272,13 +264,12 @@ On the rare drivers and emulators that cannot import native buffers, the import 
 ## Platform notes
 
 - **YUV on Android.** The video decoder and the camera produce YUV buffers in a layout only the driver knows. Read them with `importExternalTexture()`, `createNativeBufferExternalTexture()` or `copyExternalImageToTexture()`.
-- **BGRA on Apple platforms.** The video player's default BGRA frames also import as regular textures through `createNativeBufferTexture()` and `importSharedTextureMemory()`.
+- **BGRA on Apple platforms.** BGRA frames also import as regular textures through `createNativeBufferTexture()` and `importSharedTextureMemory()`.
 - **Android 8 and 9.** `NativeBufferView` copies the pixels of each buffer it is given through the CPU. From Android 10 on, it shows the buffer without a copy.
 - **High bit depth.** A `createNativeBuffer()` buffer in `rgba16float` gives more precision, not extended range: `NativeBufferView` shows values in [0, 1] and clamps the rest.
 
 ## Examples
 
 - [NativeBufferView](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/NativeBufferView/NativeBufferView.tsx): renders into a buffer of the view's size and re-renders when the view is resized
-- [ImportExternalTexture](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/ImportExternalTexture/ImportExternalTexture.tsx): a video drawn through `importExternalTexture` on both platforms
-- [SharedTextureMemory](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/SharedTextureMemory/SharedTextureMemory.tsx): BGRA frames bound as a regular sampled texture
+- [200 icons](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/IconBenchmark/IconBenchmark.tsx): Skia draws 200 icons into native buffers displayed by `NativeBufferView`s, compared with one Skia `<Canvas>` per icon
 - [Vision Camera](/docs/integrations/vision-camera): WGSL effects on live camera frames

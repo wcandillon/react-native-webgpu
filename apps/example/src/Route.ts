@@ -46,4 +46,5 @@ export type Routes = {
   SixteenBitTextures: undefined;
   ViewSnapshot: undefined;
   NativeBufferView: undefined;
+  IconBenchmark: undefined;
 };
