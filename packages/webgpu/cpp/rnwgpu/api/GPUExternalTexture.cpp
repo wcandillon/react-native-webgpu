@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "DestroyedError.h"
 #include "GPUExternalTextureDescriptor.h"
 #include "NativeFrameImport.h"
 
@@ -29,10 +30,21 @@ std::shared_ptr<GPUExternalTexture> GPUExternalTexture::Create(
           "GPUTexture that was not created by "
           "GPUSharedTextureMemory.createTexture()");
     }
+    // Copied: destroy() on the memory clears the origin's reference.
+    wgpu::SharedTextureMemory memory = origin->memory;
+    if (!memory) {
+      // Like an access to a destroyed memory: a validation error, then the
+      // throw.
+      reportDestroyedUse(device, "GPUSharedTextureMemory", origin->label,
+                         "importExternalTexture");
+      throw std::runtime_error(
+          "GPUDevice::importExternalTexture(): descriptor.source is a "
+          "texture of a GPUSharedTextureMemory that was destroyed");
+    }
     std::string label = descriptor->label.value_or("external-texture");
     auto external = native_frame::createExternalTexture(
-        device, origin->memory, source->get(), origin->colorSpace, *descriptor,
-        label, kCaller);
+        device, memory, source->get(), origin->colorSpace, *descriptor, label,
+        kCaller);
     return std::make_shared<GPUExternalTexture>(
         std::move(external), nullptr, nullptr, nullptr, std::move(label));
   }

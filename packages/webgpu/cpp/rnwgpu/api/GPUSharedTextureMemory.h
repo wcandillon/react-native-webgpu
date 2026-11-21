@@ -36,9 +36,12 @@ public:
       : NativeObject(CLASS_NAME), _device(std::move(device)),
         _instance(std::move(instance)), _source(std::move(source)),
         _label(std::move(label)) {
+    VideoFrameColorSpace colorSpace;
     if (_source) {
-      _colorSpace = _source->handle().colorSpace;
+      colorSpace = _source->handle().colorSpace;
     }
+    _origin = std::make_shared<native_frame::SharedTextureOrigin>(
+        native_frame::SharedTextureOrigin{_instance, colorSpace, _label});
   }
 
 public:
@@ -61,6 +64,7 @@ public:
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
     _label = label;
+    _origin->label = label;
     if (_instance) {
       _instance.SetLabel(_label.c_str());
     }
@@ -99,7 +103,9 @@ private:
   wgpu::Device _device;
   wgpu::SharedTextureMemory _instance;
   std::shared_ptr<VideoFrame> _source;
-  VideoFrameColorSpace _colorSpace;
+  // Shared with every texture created from the memory; destroy() clears its
+  // reference to the import.
+  std::shared_ptr<native_frame::SharedTextureOrigin> _origin;
   // Kept by destroy(): like Dawn, createTexture() describes the error texture
   // it then returns with them.
   wgpu::SharedTextureMemoryProperties _properties;

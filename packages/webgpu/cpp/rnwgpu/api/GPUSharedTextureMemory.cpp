@@ -27,6 +27,9 @@ void GPUSharedTextureMemory::destroy() {
     _device.InjectError(wgpu::ErrorType::Validation, message.c_str());
     _accessed.clear();
   }
+  // The textures created from the memory share the origin: without this, each
+  // one still referenced from JS would keep the import alive.
+  _origin->memory = nullptr;
   _instance = nullptr;
   _source = nullptr;
 }
@@ -61,11 +64,9 @@ std::shared_ptr<GPUTexture> GPUSharedTextureMemory::createTexture(
     return std::make_shared<GPUTexture>(_device.CreateErrorTexture(&desc),
                                         std::move(label), false);
   }
-  auto origin = std::make_shared<native_frame::SharedTextureOrigin>(
-      native_frame::SharedTextureOrigin{_instance, _colorSpace});
   if (!descriptor.has_value() || descriptor.value() == nullptr) {
     auto texture = std::make_shared<GPUTexture>(_instance.CreateTexture(), "");
-    texture->setSharedTextureOrigin(std::move(origin));
+    texture->setSharedTextureOrigin(_origin);
     return texture;
   }
 
@@ -78,7 +79,7 @@ std::shared_ptr<GPUTexture> GPUSharedTextureMemory::createTexture(
   }
   auto texture = std::make_shared<GPUTexture>(
       _instance.CreateTexture(&desc), descriptor.value()->label.value_or(""));
-  texture->setSharedTextureOrigin(std::move(origin));
+  texture->setSharedTextureOrigin(_origin);
   return texture;
 }
 

@@ -43,6 +43,13 @@ interface OpenAccessProbe {
   endAccessError: string | null;
 }
 
+interface TextureOfDestroyedMemoryProbe {
+  beforeDestroyThrew: string | null;
+  beforeDestroyError: string | null;
+  afterDestroyThrew: string | null;
+  afterDestroyError: string | null;
+}
+
 const logSkip = (reason: string) =>
   console.log(`SharedTextureMemoryDestroy: skipping (${reason})`);
 
@@ -483,6 +490,100 @@ describe("SharedTextureMemoryDestroy", () => {
     expect(result.endAccessThrew).toBe(true);
     expect(result.endAccessError).toContain(
       'Destroyed GPUSharedTextureMemory "open" used in endAccess().',
+    );
+  });
+
+  // destroy() releases the import even while a texture created from the
+  // memory is still referenced: the texture doesn't keep the memory alive,
+  // so importExternalTexture({ source: texture }) is then a use of a
+  // destroyed memory.
+  it("reports importExternalTexture() on a texture of a destroyed memory as a validation error", async () => {
+    const result = await client.eval<
+      Record<string, never>,
+      EvalResult<TextureOfDestroyedMemoryProbe>
+    >(({ device }) => {
+      const NATIVE_IMPORT = [
+        "shared-texture-memory-iosurface",
+        "shared-texture-memory-ahardware-buffer",
+      ];
+      if (
+        !NATIVE_IMPORT.some((f) => device.features.has(f as GPUFeatureName))
+      ) {
+        return {
+          kind: "skip",
+          reason: "native frame import is unavailable on this device",
+        };
+      }
+      if (typeof RNWebGPU?.createTestVideoFrame !== "function") {
+        return {
+          kind: "skip",
+          reason: "RNWebGPU.createTestVideoFrame is unavailable",
+        };
+      }
+
+      const frame = RNWebGPU.createTestVideoFrame(64, 32);
+      try {
+        const memory = device.importSharedTextureMemory({ source: frame });
+        // Set after the import: the error names the memory by its last label.
+        memory.label = "released";
+        const texture = memory.createTexture();
+
+        device.pushErrorScope("validation");
+        let beforeDestroyThrew: string | null = null;
+        try {
+          device.importExternalTexture({ source: texture }).destroy();
+        } catch (e) {
+          beforeDestroyThrew = `${(e as Error).message ?? e}`;
+        }
+        const beforeDestroyError = device.popErrorScope();
+
+        // The texture is neither destroyed nor collected at this point.
+        memory.destroy();
+
+        device.pushErrorScope("validation");
+        let afterDestroyThrew: string | null = null;
+        try {
+          device.importExternalTexture({ source: texture }).destroy();
+        } catch (e) {
+          afterDestroyThrew = `${(e as Error).message ?? e}`;
+        }
+        const afterDestroyError = device.popErrorScope();
+
+        return Promise.all([beforeDestroyError, afterDestroyError]).then(
+          (popped) => {
+            texture.destroy();
+            frame.release();
+            return {
+              kind: "ok" as const,
+              beforeDestroyThrew,
+              beforeDestroyError: popped[0]?.message ?? null,
+              afterDestroyThrew,
+              afterDestroyError: popped[1]?.message ?? null,
+            };
+          },
+        );
+      } catch (e) {
+        frame.release();
+        return { kind: "fail", reason: `${(e as Error).message ?? e}` };
+      }
+    });
+
+    if (result.kind === "skip") {
+      logSkip(result.reason);
+      return;
+    }
+    if (result.kind === "fail") {
+      throw new Error(`SharedTextureMemoryDestroy: ${result.reason}`);
+    }
+    expect(result.beforeDestroyThrew).toBeNull();
+    expect(result.beforeDestroyError).toBeNull();
+    // Like an access to a destroyed memory: the validation error, then the
+    // throw.
+    expect(result.afterDestroyError).toContain(
+      'Destroyed GPUSharedTextureMemory "released" used in importExternalTexture().',
+    );
+    expect(result.afterDestroyThrew).toContain(
+      "a texture of a GPUSharedTextureMemory that was destroyed",
     );
   });
 });

@@ -23,10 +23,15 @@ namespace native_frame {
 // What a texture created from a GPUSharedTextureMemory remembers of its
 // import, so importExternalTexture({ source: texture }) can build an external
 // texture over it: the memory (the YCbCr properties of an Android buffer) and
-// the color space the producer reported for the buffer, if any.
+// the color space the producer reported for the buffer, if any. One per
+// GPUSharedTextureMemory, shared with its textures: the memory's destroy()
+// clears `memory`, so a texture that is still referenced from JS never keeps
+// Dawn's import (and the native buffer behind it) alive after that.
 struct SharedTextureOrigin {
   wgpu::SharedTextureMemory memory;
   VideoFrameColorSpace colorSpace;
+  // The label of the GPUSharedTextureMemory, to name it once destroyed.
+  std::string label;
 };
 
 // Import the frame's buffer as shared texture memory.
