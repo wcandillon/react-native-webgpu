@@ -46,8 +46,6 @@ Two more types sit next to the flow:
 **Your own rendering.** [`createNativeBuffer()`](/api/native-buffer#createnativebuffer) allocates an empty color buffer that WebGPU or Skia renders into, for instance to display it in a `NativeBufferView` (see [Rendering into a buffer](#rendering-into-a-buffer)).
 The [200 icons example](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/IconBenchmark/IconBenchmark.tsx) draws each icon with Skia into a buffer of its own and compares it with one Skia `<Canvas>` per icon.
 
-**Cameras.** [VisionCamera](/docs/integrations/vision-camera) exposes each frame's buffer as its own `NativeBuffer` (the same name, and the same idea): [`createVideoFrameFromNativeBuffer()`](/api/native-buffer#createvideoframefromnativebuffer) wraps its pointer into ours.
-
 **Video.** [React Native Skia Video](https://github.com/AzzappApp/react-native-skia-video) decodes and encodes video with Skia, and its [React Native Skia v3 version](https://github.com/AzzappApp/react-native-skia-video/pull/63) moves frames between the platform decoders and encoders and Skia through React Native WebGPU, without CPU copies.
 
 Camera and video frames come from a **pool**: the producer writes the next frames into the same few buffers, and gets a buffer back once you release its frame.
