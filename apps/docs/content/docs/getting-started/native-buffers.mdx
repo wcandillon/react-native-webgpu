@@ -5,7 +5,7 @@ description: Share pixels between WebGPU, other GPU APIs and the screen without 
 
 A [`NativeBuffer`](/api/native-buffer#nativebuffer) is an `AHardwareBuffer` on Android and an `IOSurface` on Apple platforms.
 
-It does not belong to any GPU device or API: a camera, a video decoder, Skia or WebGPU can write it, and a device or a [`NativeBufferView`](/api/native-buffer#nativebufferview) can read it, without any pixel going through the CPU.
+It does not belong to any GPU device: any GPU API can write it or read it, and a [`NativeBufferView`](/api/native-buffer#nativebufferview) can display it, without copies or CPU readbacks.
 Since each of them works asynchronously on the GPU, every handoff comes with a [fence](#synchronization) that signals when the previous user is done with the buffer.
 
 This page shows how these pieces fit together.
