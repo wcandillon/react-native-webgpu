@@ -1,0 +1,199 @@
+import React, {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import type { NativeSyntheticEvent, ViewProps } from "react-native";
+
+import NativeBufferViewNative from "./NativeBufferViewNativeComponent";
+import type { GPUSharedFenceState, NativeBuffer } from "./types";
+
+/**
+ * How a {@link NativeBufferView} fits a buffer whose size differs from its
+ * own (in physical pixels), for instance while the producer catches up with
+ * a resize. A buffer of exactly the view's size is shown 1:1 in every mode.
+ *
+ * - `stretch` (the default): scaled to the bounds, ignoring the aspect ratio.
+ * - `contain`: scaled to fit inside the bounds, keeping the aspect ratio.
+ * - `cover`: scaled to fill the bounds, keeping the aspect ratio; the excess
+ *   is cropped.
+ * - `topLeft`: not scaled; anchored at the top left corner and cropped.
+ */
+export type NativeBufferResizeMode =
+  "stretch" | "contain" | "cover" | "topLeft";
+
+/** A size in physical pixels. */
+export interface NativeBufferPixelSize {
+  width: number;
+  height: number;
+}
+
+export interface NativeBufferViewRef {
+  /**
+   * The id to pass to `RNWebGPU.presentNativeBuffer(viewId, frame, done)`,
+   * for instance from a worklet.
+   */
+  readonly viewId: number;
+  /**
+   * Displays `frame` once the GPU work that wrote it is done: `done` is what
+   * `GPUSharedTextureMemory.endAccess()` returned for that work (its
+   * `fences`), and the view waits for every fence. Without it, the buffer is
+   * shown right away. On Android, the view also waits for the frame's own
+   * acquire fence, if any. Returns immediately; the view shows the buffer on
+   * the next vsync after that.
+   *
+   * The buffer must not be written again while it is displayed: render the
+   * next content into another buffer and present that one. The view keeps
+   * its own reference on the buffer, so a buffer from `createNativeBuffer()`
+   * can be released right after this call.
+   *
+   * Frames from a pool (a `VideoPlayer`, a camera, a decoder) are different:
+   * the pool reuses the buffer for a later frame once the frame is released,
+   * even while the view still shows it, and the view then shows a later or
+   * half-written frame. Copy such a frame into a buffer from
+   * `createNativeBuffer()` (for instance by drawing it with WebGPU) and
+   * present the copy.
+   */
+  present(
+    frame: NativeBuffer,
+    done?: { fences: GPUSharedFenceState[] } | null,
+  ): void;
+}
+
+export interface NativeBufferViewProps extends ViewProps {
+  /** See {@link NativeBufferResizeMode}. Defaults to `"stretch"`. */
+  resizeMode?: NativeBufferResizeMode;
+  /**
+   * The view's size in physical pixels: the size to render at for a sharp,
+   * 1:1 display. Called on mount and on every size change, with the
+   * rounding the platform's layout applied. See {@link useNativeBufferSize}
+   * to re-render only once a resize settles.
+   */
+  onPixelSizeChange?: (size: NativeBufferPixelSize) => void;
+  ref?: React.Ref<NativeBufferViewRef>;
+}
+
+/**
+ * Displays a native buffer (an `AHardwareBuffer` on Android, an `IOSurface`
+ * on Apple platforms) with no swap chain, no canvas context and no GPU device
+ * on the display side. Meant for content that is static or updated
+ * occasionally; animated content belongs in a `Canvas`.
+ *
+ * The view never allocates buffers. It reports its size in physical pixels
+ * ({@link NativeBufferViewProps.onPixelSizeChange}), and any producer
+ * (WebGPU, Skia, a camera, a decoder) renders into a buffer and presents it
+ * through the ref (frames from a camera or a decoder are copied first, see
+ * {@link NativeBufferViewRef.present}). With WebGPU:
+ *
+ * ```ts
+ * const frame = createNativeBuffer(size.width, size.height);
+ * const memory = device.importSharedTextureMemory({ source: frame });
+ * const texture = memory.createTexture();
+ * memory.beginAccess(texture, false);
+ * // ... render into texture and submit ...
+ * ref.current.present(frame, memory.endAccess(texture));
+ * texture.destroy();
+ * memory.destroy();
+ * frame.release();
+ * ```
+ */
+export const NativeBufferView = ({
+  resizeMode,
+  onPixelSizeChange,
+  ref,
+  ...props
+}: NativeBufferViewProps) => {
+  // Native hands out the id: unique for the life of the process, as the
+  // native registry outlives a reload.
+  const [viewId] = useState(() => RNWebGPU.allocateNativeBufferViewId());
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      viewId,
+      present: (frame, done) =>
+        RNWebGPU.presentNativeBuffer(viewId, frame, done ?? null),
+    }),
+    [viewId],
+  );
+
+  // The JS side's hold on the native entry; presents to an id nobody holds
+  // are dropped. A layout effect, so the entry exists before the ref reaches
+  // a parent's effects. Not taken in the useState initializer above: React
+  // StrictMode calls it twice and discards one id.
+  useLayoutEffect(() => {
+    RNWebGPU.retainNativeBufferView(viewId);
+    return () => RNWebGPU.releaseNativeBufferView(viewId);
+  }, [viewId]);
+
+  const onNativePixelSizeChange = useCallback(
+    (event: NativeSyntheticEvent<NativeBufferPixelSize>) => {
+      const { width, height } = event.nativeEvent;
+      onPixelSizeChange?.({ width, height });
+    },
+    [onPixelSizeChange],
+  );
+
+  return (
+    <NativeBufferViewNative
+      {...props}
+      viewId={viewId}
+      resizeMode={resizeMode}
+      onPixelSizeChange={onNativePixelSizeChange}
+    />
+  );
+};
+
+/**
+ * Tracks the pixel size of a {@link NativeBufferView}, settling resizes:
+ * the first size is reported right away, later ones once the view has kept
+ * the same size for `debounceMs` (during an animated resize the view
+ * stretches what it shows meanwhile). Pass `onPixelSizeChange` to the view
+ * and render a buffer of `size` whenever it changes.
+ */
+export const useNativeBufferSize = (debounceMs = 150) => {
+  const [size, setSize] = useState<NativeBufferPixelSize | null>(null);
+  const current = useRef<NativeBufferPixelSize | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const onPixelSizeChange = useCallback(
+    (next: NativeBufferPixelSize) => {
+      if (timer.current !== null) {
+        clearTimeout(timer.current);
+        timer.current = null;
+      }
+      const settle = () => {
+        timer.current = null;
+        const previous = current.current;
+        if (
+          previous === null ||
+          previous.width !== next.width ||
+          previous.height !== next.height
+        ) {
+          current.current = next;
+          setSize(next);
+        }
+      };
+      if (current.current === null || debounceMs <= 0) {
+        settle();
+      } else {
+        timer.current = setTimeout(settle, debounceMs);
+      }
+    },
+    [debounceMs],
+  );
+
+  useEffect(
+    () => () => {
+      if (timer.current !== null) {
+        clearTimeout(timer.current);
+      }
+    },
+    [],
+  );
+
+  return { size, onPixelSizeChange };
+};

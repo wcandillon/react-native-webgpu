@@ -5,7 +5,7 @@ description: Libraries and frameworks that run on top of React Native WebGPU.
 
 Because React Native WebGPU is symmetric to its Web counterpart, the libraries the web ecosystem built on top of WebGPU run here too, with only React Native specific glue (manual [`present()`](/docs/getting-started/canvas#frame-presentations), Metro resolution, worklet setup).
 
-In this section we list the most popular integrations and give you a few recommendations on which stack to use for your project.
+This section covers the most popular integrations.
 
 ## Integrations
 
@@ -13,7 +13,16 @@ In this section we list the most popular integrations and give you a few recomme
 | ----------- | ----------------- |
 | [Worklets](/docs/integrations/worklets) | Run render loops on the UI thread or a dedicated worklet runtime, off the JS thread |
 | [Vision Camera](/docs/integrations/vision-camera) | Apply real-time WGSL effects to live camera frames via zero-copy `importExternalTexture` |
+| [React Native Skia](/docs/integrations/react-native-skia) | Share one GPU device and its textures with Skia's Graphite renderer |
 | [TypeGPU](/docs/integrations/typegpu) | Type-safe buffers, bind groups, and shaders written as TypeScript functions |
 | [Three.js](/docs/integrations/three-js) | The `WebGPURenderer` from `three/webgpu` (scenes, cameras, materials) |
 | [React Three Fiber](/docs/integrations/react-three-fiber) | Three.js as declarative JSX components |
 | [TensorFlow.js](/docs/integrations/tensorflow) | On-device ML through the WebGPU backend |
+
+## Which one to pick
+
+- **Learning WebGPU, or writing your own renderer:** the WebGPU API directly, with [TypeGPU](/docs/integrations/typegpu) when you want typed buffers and shaders written in TypeScript.
+- **A 3D scene:** [Three.js](/docs/integrations/three-js), or [React Three Fiber](/docs/integrations/react-three-fiber) to write it as React components.
+- **2D graphics and UI:** [React Native Skia](/docs/integrations/react-native-skia), with WebGPU for the parts Skia doesn't cover.
+- **Machine learning:** [TensorFlow.js](/docs/integrations/tensorflow).
+- **Rendering off the JS thread:** [Worklets](/docs/integrations/worklets), with any of the above.

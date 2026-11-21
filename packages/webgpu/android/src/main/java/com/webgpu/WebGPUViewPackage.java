@@ -9,7 +9,7 @@ import com.facebook.react.module.model.ReactModuleInfo;
 import com.facebook.react.module.model.ReactModuleInfoProvider;
 import com.facebook.react.uimanager.ViewManager;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +45,6 @@ public class WebGPUViewPackage extends TurboReactPackage {
 
   @Override
   public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
-    return Collections.singletonList(new WebGPUViewManager());
+    return Arrays.<ViewManager>asList(new WebGPUViewManager(), new WebGPUNativeBufferViewManager());
   }
 }

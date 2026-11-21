@@ -1,6 +1,7 @@
 #include "RNWebGPUManager.h"
 
 #include "GPU.h"
+#include "NativeBufferViewRegistry.h"
 #include "NativeObject.h"
 #include "RNWebGPU.h"
 
@@ -22,8 +23,6 @@
 #include "GPUError.h"
 #include "GPUExternalTexture.h"
 #include "GPUInternalError.h"
-#include "GPUNativeBufferExternalTexture.h"
-#include "GPUNativeBufferTexture.h"
 #include "GPUOutOfMemoryError.h"
 #include "GPUPipelineLayout.h"
 #include "GPUQuerySet.h"
@@ -118,8 +117,6 @@ void RNWebGPUManager::installConstructors(jsi::Runtime &runtime) {
   GPUDeviceLostInfo::installConstructor(runtime);
   GPUError::installConstructor(runtime);
   GPUExternalTexture::installConstructor(runtime);
-  GPUNativeBufferExternalTexture::installConstructor(runtime);
-  GPUNativeBufferTexture::installConstructor(runtime);
   GPUInternalError::installConstructor(runtime);
   GPUOutOfMemoryError::installConstructor(runtime);
   GPUValidationError::installConstructor(runtime);
@@ -169,6 +166,9 @@ RNWebGPUManager::~RNWebGPUManager() {
   // never run their JS cleanup, and their ids are not handed out again (see
   // SurfaceRegistry::allocateContextId).
   SurfaceRegistry::getInstance().clear();
+  // Same for the NativeBufferView entries: their buffers are freed once
+  // their native views detach (or right away when there is none).
+  NativeBufferViewRegistry::getInstance().releaseAllFromJS();
   if (PlatformContext::current() == _platformContext) {
     PlatformContext::setCurrent(nullptr);
   }

@@ -1,51 +1,35 @@
 ---
-title: Native APIs
-description: Integrations with the native platforms
+title: Platform Guide
+description: Where React Native WebGPU differs from WebGPU in the browser.
 ---
 
-On Android and iOS, you will find platform differences from the Web.
-Where a platform forces a difference, we re-surface it rather than hide it.
+React Native WebGPU implements the WebGPU API as the browser does. Where a platform forces a difference, it is surfaced rather than hidden:
 
-The most substantial differences live on the [Canvas](/docs/getting-started/canvas) API: namely the manual [frame presentation](/docs/getting-started/canvas#frame-presentations), and [transparency](/docs/getting-started/canvas#transparency) handling.
+- **[Frame presentation](/docs/getting-started/canvas#frame-presentations):** call `context.present()` after each submit.
+- **[Threading](#threading-model):** WebGPU runs on the JS thread, the UI thread or a worklet runtime.
+- **[Background GPU work on iOS](#background-gpu-work-on-ios):** work submitted in the background is held until the app returns.
+- **[Loading images](#loading-images):** `createImageBitmap` also takes an `ArrayBuffer`.
+- **[High bit depth](#high-bit-depth):** a canvas format with more than 8 bits per channel on each platform.
+- **[Native textures](#native-textures):** camera frames, video frames and native buffers, without a copy.
+- **[Pipeline cache](#pipeline-cache):** compiled shaders and pipelines are kept across launches.
+- **[Importing an external device](#importing-an-external-device):** share a device with another library, such as React Native Skia.
+- **[Rendering to a native window](#rendering-to-a-native-window):** present to a window that is not a `Canvas`, such as a video encoder's.
 
 ## Threading model
 
-You can run WebGPU code on the main JS thread, on the UI thread, or on a dedicated worklet runtime (`createWorkletRuntime`, or a Vision Camera frame processor). Running off the JS thread is powered by [React Native Worklets](https://github.com/margelo/react-native-worklets); Reanimated is not required. It also works with Worklets' [Bundle Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/), which lets you run complex Three.js scenes off the JS thread.
+You can run WebGPU code on the main JS thread, on the UI thread, or on a dedicated worklet runtime (`createWorkletRuntime`, or a Vision Camera frame processor), with the same API everywhere. Running off the JS thread is powered by [React Native Worklets](https://github.com/margelo/react-native-worklets); Reanimated is not required.
 
-The API is the same on every thread. The typical pattern is to create the device on the main JS thread and hand it to a worklet, where you call [`installWebGPU()`](/api/install-webgpu) once to install the WebGPU globals on that runtime:
+The typical pattern is to create the device on the main JS thread and hand it to a worklet, which calls [`installWebGPU()`](/api/install-webgpu) once to install the WebGPU globals on its runtime. `device.lost` and `uncapturederror` are only delivered on the main JS runtime, one more reason to create the device there.
+See [Worklets](/docs/integrations/worklets) for the complete guide and the thread-safety rules.
 
-```tsx
-import { installWebGPU } from "react-native-webgpu";
+## Background GPU work on iOS
 
-const renderFrame = (device: GPUDevice, context: GPUCanvasContext) => {
-  "worklet";
-  installWebGPU();
-  // GPUBufferUsage, GPUTextureUsage, etc. are now available on this thread
-  const buffer = device.createBuffer({
-    size,
-    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-  });
-  // ... render and present on this thread ...
-};
-```
-
-Dawn's implicit device synchronization, enabled by default, lets a device be used from several threads, with two rules: never share a command encoder across threads, and drive each canvas context from a single runtime. See [Thread safety](/docs/integrations/worklets#thread-safety).
-
-<Callout type="warn" title="device.lost and uncapturederror">
-`device.lost` and `uncapturederror` are only delivered on the **main JS runtime**. This is usually fine because the GPU device is typically created on the main JS thread and then sent to the UI or a dedicated worklet thread. If you create the device outside the main JS thread, those events won't fire.
-</Callout>
-
-See [Worklets](/docs/integrations/worklets) for the full integration guide.
-
-## Background and foreground
-
-iOS refuses GPU work from an app in the background, including work still queued when the app got there, and Dawn loses the device over a refused command buffer.
-React Native WebGPU holds that work instead, with Dawn's `metal_suspend_submissions_in_background` toggle, enabled on every device it creates on iOS and tvOS: when the app goes to the background, what was submitted is committed before the app is suspended, and from then on every submission is encoded but not committed, in order, until the app comes back to the foreground.
+iOS refuses GPU work from an app in the background, and Dawn would lose the device over it. React Native WebGPU holds that work instead, on iOS and tvOS: what is submitted while the app is in the background is kept, in order, and runs when the app comes back to the foreground.
 Presenting a canvas does nothing meanwhile; the canvas catches up on return.
-A held `onSubmittedWorkDone()` or `mapAsync()` promise settles only once the app is back, so background code that awaits one, a readback for instance, waits until then.
+An `onSubmittedWorkDone()` or `mapAsync()` promise waiting on held work settles only once the app is back.
 Android and macOS do not refuse GPU work from a background app, so nothing is held there.
-The hold needs `react-native-webgpu-dawn` 157.1.0 or later; an older Dawn drops the toggle, and the device is lost over the first refused command buffer (its `lost` promise then resolves with the reason `unknown`).
-Pass the toggle in `disabledToggles` (see [dawnToggles](/docs/api/gpu-device-extensions#dawntoggles)) to opt out: the device is then lost in the same way.
+
+This is Dawn's `metal_suspend_submissions_in_background` toggle, enabled on every device React Native WebGPU creates. Pass it in `disabledToggles` (see [dawnToggles](/api/gpu-device-extensions#dawntoggles)) to opt out: the device is then lost over the first refused command buffer.
 
 Holding is not free: everything submitted in the background stays in memory until the app returns, and then runs all at once.
 A render loop should stop submitting while the app is not active:
@@ -106,23 +90,13 @@ context.configure({ device, format, alphaMode: "opaque" });
 
 ## Native textures
 
-Beyond the standard API, react-native-webgpu exposes Dawn's native buffer import, so you can sample camera and video frames without a copy through the CPU:
+Camera frames, video frames and buffers you render into move between WebGPU, other GPU APIs and the screen without a copy, through Dawn's shared texture memory and the spec's `GPUExternalTexture`. Nothing has to be requested: `requestDevice()` enables what it needs whenever the adapter supports it.
 
-- **[`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory)** imports a native pixel surface (an `IOSurface`-backed `CVPixelBuffer` on iOS, an `AHardwareBuffer` on Android) as a sampleable `GPUTexture` via `device.importSharedTextureMemory(...)`.
-- **[`importExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions)** is the higher-level path: `device.importExternalTexture(...)` hands you a `GPUExternalTexture` with hardware YUV→RGB color conversion and lifecycle management, plus non-spec `rotation` and `mirrored` options for camera orientation.
-- **[`createVideoPlayer`](/api/video-player)** decodes a video into such frames, with the playback controls of an `HTMLMediaElement`.
-
-Nothing has to be requested: `requestDevice()` enables the Dawn features behind native frame import whenever the adapter supports them. On the rare drivers and emulators that cannot import native surfaces, the import throws an error naming what is missing; catch it to degrade.
-
-A device created by another library and wrapped with [`importDevice()`](#importing-an-external-device) has to request these Dawn features itself: `shared-texture-memory-iosurface`, `shared-fence-mtl-shared-event` and `dawn-multi-planar-formats` on Apple platforms; `shared-texture-memory-ahardware-buffer`, `shared-fence-sync-fd` and `opaque-ycbcr-android-for-external-texture` on Android.
-
-See [Vision Camera](/docs/integrations/vision-camera) for an end-to-end example applying WGSL effects to live camera frames, and [Native Extensions](/api/gpu-device-extensions) for the full API.
+The [Native Buffers guide](/docs/getting-started/native-buffers) explains how it fits together, and [Vision Camera](/docs/integrations/vision-camera) applies WGSL effects to live camera frames.
 
 ## Pipeline cache
 
-Every device `requestDevice()` creates keeps what Dawn produces while it builds shaders and pipelines in a cache on disk, in the app's cache directory, so a relaunch can reuse it instead of redoing the work. On Vulkan (Android) that includes the driver's pipeline cache data, which saves the most, since building pipelines is where Vulkan drivers spend their time. That data is written when `device.destroy()` is called, when the app goes to the background and, while the app submits work to the queue, about every ten seconds: a `queue.submit()` ten seconds or more after the last write triggers the next. An app killed while in the foreground therefore loses at most the last ten seconds of pipeline building, or everything built since its last submit. On Metal (iOS) the cache holds the shaders Dawn translates to MSL; Metal still builds the pipelines, with the help of its own system cache.
-
-The cache is kept to about 64 MB. An app that finds its cache past that size when it starts clears it, and builds everything once more; a session that would take the cache past that size stops adding to it until then. An entry larger than half of that is not stored, so the Vulkan pipeline cache data stops being updated if it ever grows past 32 MB. The system may also clear the cache, as it does any app cache.
+Every device `requestDevice()` creates keeps the shaders and pipelines Dawn builds in a cache on disk, in the app's cache directory, so a relaunch reuses them instead of building them again. On Android, this includes the Vulkan driver's pipeline cache, where most of the time goes. The cache is written as the app runs and when it goes to the background, and its size is bounded; the system may clear it, as it does any app cache.
 
 To opt a device out, disable it with a Dawn toggle:
 
@@ -144,7 +118,7 @@ import { importDevice } from "react-native-webgpu";
 const device = importDevice(pointer);
 ```
 
-This only works with a library that links the same Dawn build as react-native-webgpu. The main one is [React Native Skia](/docs/integrations/react-native-skia) (v3 and above), which shares react-native-webgpu's Dawn.
+This only works with a library that links the same Dawn build as React Native WebGPU. The main one is [React Native Skia](/docs/integrations/react-native-skia) (v3 and above), which shares react-native-webgpu's Dawn.
 
 ## Rendering to a native window
 
@@ -177,7 +151,7 @@ Each `present()` queues the frame to the window once the GPU is done rendering i
 
 ## See also
 
-- [Canvas](/docs/getting-started/canvas) - the rendering surface and frame loop
-- [React APIs](/docs/getting-started/react-api) - hooks and the device provider
-- [Worklets](/docs/integrations/worklets) - UI-thread rendering
-- [Native Extensions](/api/gpu-device-extensions) - native interop on `GPUDevice`
+- [Canvas](/docs/getting-started/canvas): the rendering surface and the frame loop
+- [React APIs](/docs/getting-started/react-api): hooks and the device provider
+- [Worklets](/docs/integrations/worklets): rendering off the JS thread
+- [Native Extensions](/api/gpu-device-extensions): the additions to `GPUDevice` and the WebGPU globals

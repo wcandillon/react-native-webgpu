@@ -7,7 +7,8 @@
     "warn-if-not-hardware-accelerated",
     "install-webgpu",
     "gpu-device-extensions",
-    "video-player",
-    "draw-element-image-to-texture"
+    "native-buffer",
+    "draw-element-image-to-texture",
+    "video-player"
   ]
 }

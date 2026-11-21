@@ -7,21 +7,21 @@
 #include "webgpu/webgpu_cpp.h"
 
 #include "JSIConverter.h"
+#include "VideoFrame.h"
 
 namespace jsi = facebook::jsi;
 
 namespace rnwgpu {
 
-// Descriptor for GPUDevice.importSharedTextureMemory.
-//
-// `handle` is the raw native handle as a uintptr_t (passed as BigInt from JS):
-//   - Apple platforms: IOSurfaceRef
-//   - Android: AHardwareBuffer*
-//
-// Lifetime: the caller is responsible for keeping the underlying object alive
-// for as long as this shared memory is in use. The VideoFrame helper handles
-// this automatically when the handle came from PlatformContext.loadVideoFrame.
+// Descriptor for GPUDevice.importSharedTextureMemory: the buffer to import,
+// either
+//   - `source`, a NativeBuffer: the memory keeps it alive, and the textures
+//     created from it carry its color space for importExternalTexture(), or
+//   - `handle`, the raw native handle as a BigInt (an IOSurfaceRef on Apple
+//     platforms, an AHardwareBuffer* on Android), which the caller keeps
+//     alive for as long as the memory is in use.
 struct GPUSharedTextureMemoryDescriptor {
+  std::shared_ptr<VideoFrame> source;
   void *handle = nullptr;
   std::optional<std::string> label;
 };
@@ -38,6 +38,14 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUSharedTextureMemoryDescriptor>> {
         std::make_shared<rnwgpu::GPUSharedTextureMemoryDescriptor>();
     if (!outOfBounds && arg.isObject()) {
       auto value = arg.getObject(runtime);
+      if (value.hasProperty(runtime, "source")) {
+        auto prop = value.getProperty(runtime, "source");
+        if (!prop.isUndefined() && !prop.isNull()) {
+          result->source =
+              JSIConverter<std::shared_ptr<rnwgpu::VideoFrame>>::fromJSI(
+                  runtime, prop, false);
+        }
+      }
       if (value.hasProperty(runtime, "handle")) {
         auto prop = value.getProperty(runtime, "handle");
         result->handle =

@@ -226,6 +226,17 @@ public:
   virtual VideoFrameHandle createTestVideoFrame(uint32_t width, uint32_t height,
                                                 VideoPixelFormat format) = 0;
 
+  // Allocate an empty, GPU-renderable buffer that a NativeBufferView can
+  // display: an AHardwareBuffer (Android) or an IOSurface (Apple platforms),
+  // with premultiplied pixels in `format`, tagged with `displayP3` or sRGB
+  // primaries (VideoFrameHandle.colorSpace.primaries; on Apple platforms the
+  // IOSurface is tagged too). Throws a message containing "unsupported" for a
+  // format the platform can't display (bgra8unorm on Android, rgba8unorm on
+  // Apple platforms).
+  virtual VideoFrameHandle createNativeBuffer(uint32_t width, uint32_t height,
+                                              wgpu::TextureFormat format,
+                                              bool displayP3) = 0;
+
   // Open a video file at `path` for playback. The returned player yields
   // IOSurface / AHardwareBuffer-backed frames via copyLatestFrame().
   //

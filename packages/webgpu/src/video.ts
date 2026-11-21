@@ -1,6 +1,7 @@
 import type {
+  CreateNativeBufferOptions,
   CreateVideoPlayerOptions,
-  NativeVideoFrame,
+  NativeBuffer,
   VideoPlayer,
 } from "./types";
 
@@ -47,13 +48,11 @@ export const createVideoPlayer = (
 /**
  * Wraps a native buffer produced by another library (a `CVPixelBufferRef` on
  * Apple platforms, an `AHardwareBuffer*` on Android, for instance
- * VisionCamera's `frame.getNativeBuffer().pointer`) into a `NativeVideoFrame`
+ * VisionCamera's `frame.getNativeBuffer().pointer`) into a `NativeBuffer`
  * that keeps it alive until released.
  */
-export const createVideoFrameFromNativeBuffer = (
-  pointer: bigint,
-): NativeVideoFrame =>
-  native("createVideoFrameFromNativeBuffer").createVideoFrameFromNativeBuffer(
+export const createNativeBufferFromPointer = (pointer: bigint): NativeBuffer =>
+  native("createNativeBufferFromPointer").createNativeBufferFromPointer(
     pointer,
   );
 
@@ -65,5 +64,19 @@ export const createVideoFrameFromNativeBuffer = (
 export const createTestVideoFrame = (
   width: number,
   height: number,
-): NativeVideoFrame =>
+): NativeBuffer =>
   native("createTestVideoFrame").createTestVideoFrame(width, height);
+
+/**
+ * Allocates an empty native buffer (an `AHardwareBuffer` on Android, an
+ * `IOSurface` on Apple platforms) that the GPU renders into and a
+ * `NativeBufferView` displays: import it with
+ * `device.importSharedTextureMemory({ source: frame })`, render into
+ * `memory.createTexture()` inside an access, then present it.
+ */
+export const createNativeBuffer = (
+  width: number,
+  height: number,
+  options?: CreateNativeBufferOptions,
+): NativeBuffer =>
+  native("createNativeBuffer").createNativeBuffer(width, height, options);

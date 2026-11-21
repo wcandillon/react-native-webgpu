@@ -3,9 +3,9 @@ title: TypeGPU
 description: Write type-safe WebGPU shaders in TypeScript with TypeGPU
 ---
 
-[TypeGPU](https://docs.swmansion.com/TypeGPU/) is a type-safe WebGPU toolkit from Software Mansion. Data structures declared with `d.struct` handle WGSL alignment and padding for you, and shaders are plain TypeScript functions marked with the `"use gpu"` directive - compiled to WGSL at build time by `unplugin-typegpu`.
+[TypeGPU](https://docs.swmansion.com/TypeGPU/) is a type-safe WebGPU toolkit from Software Mansion. Data structures declared with `d.struct` handle WGSL alignment and padding for you, and shaders are plain TypeScript functions marked with the `"use gpu"` directive, compiled to WGSL at build time by `unplugin-typegpu`.
 
-Because React Native WebGPU is symmetric to the Web API, TypeGPU runs on it unmodified. Its React bindings, [`@typegpu/react`](https://www.npmjs.com/package/@typegpu/react), even ship a dedicated React Native entry point that imports `react-native-webgpu` directly - so hooks like `useRoot()` and `useConfigureContext()` work out of the box with the [`<Canvas>`](/docs/getting-started/canvas) component.
+Because React Native WebGPU is symmetric to the Web API, TypeGPU runs on it unmodified. Its React bindings, [`@typegpu/react`](https://www.npmjs.com/package/@typegpu/react), even ship a dedicated React Native entry point that imports `react-native-webgpu` directly, so hooks like `useRoot()` and `useConfigureContext()` work out of the box with the [`<Canvas>`](/docs/getting-started/canvas) component.
 
 ## 1. Installation
 
@@ -83,9 +83,9 @@ export function GradientTiles() {
 
 The React Native specific glue is minimal:
 
-- `useRoot()` creates a `TgpuRoot` from the global `navigator.gpu`, which `react-native-webgpu` installs at import time ([Installation](/docs/getting-started/installation#setup)) - no provider or device plumbing needed.
+- `useRoot()` creates a `TgpuRoot` from the global `navigator.gpu`, which `react-native-webgpu` installs at import time ([Installation](/docs/getting-started/installation#setup)): no provider or device plumbing needed.
 - `useConfigureContext()` returns a `ref` you pass to `<Canvas>` and a `ctxRef` holding the configured `GPUCanvasContext`.
-- `ctx.present?.()` flushes the frame to the screen - required on React Native ([frame presentation](/docs/getting-started/canvas#frame-presentations)), a no-op guard on the Web.
+- `ctx.present?.()` flushes the frame to the screen: required on React Native ([frame presentation](/docs/getting-started/canvas#frame-presentations)), a no-op guard on the Web.
 
 ## 3. Compute pipelines
 
@@ -139,6 +139,6 @@ Chain it with a render pipeline inside `useFrame` to simulate and draw in the sa
 
 The [example app](https://github.com/wcandillon/react-native-webgpu/tree/main/apps/example) contains three TypeGPU demos you can run on device:
 
-- [GradientTiles](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/GradientTiles/GradientTiles.tsx) - the render pipeline above, with buttons driving the uniform via React state.
-- [ComputeBoids](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/ComputeBoids/ComputeBoids.tsx) - a flocking simulation combining a compute pipeline with an instanced render pipeline, double-buffered storage buffers, and tweakable physics parameters.
-- [MNISTInference](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/MNISTInference/MNISTInference.tsx) - hand-written digit recognition running a neural network in compute shaders, with [React Native Skia](https://wcandillon.github.io/react-native-skia/) for the drawing surface.
+- [GradientTiles](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/GradientTiles/GradientTiles.tsx): the render pipeline above, with buttons driving the uniform via React state.
+- [ComputeBoids](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/ComputeBoids/ComputeBoids.tsx): a flocking simulation combining a compute pipeline with an instanced render pipeline, double-buffered storage buffers, and tweakable physics parameters.
+- [MNISTInference](https://github.com/wcandillon/react-native-webgpu/blob/main/apps/example/src/MNISTInference/MNISTInference.tsx): hand-written digit recognition running a neural network in compute shaders, with [React Native Skia](https://wcandillon.github.io/react-native-skia/) for the drawing surface.

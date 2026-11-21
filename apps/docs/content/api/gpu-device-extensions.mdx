@@ -4,37 +4,42 @@ description: Native interop extensions to GPUDevice and the WebGPU globals.
 ---
 
 React Native WebGPU adds a handful of native extensions on top of the WebGPU spec.
+The first ones import [native buffers](/api/native-buffer) (video frames, camera frames and buffers you render into); the [Native Buffers guide](/docs/getting-started/native-buffers) explains which one to pick and how they fit together.
 
 ## importSharedTextureMemory
 
-Imports a native buffer (IOSurface / AHardwareBuffer) for zero-copy sampling.
-Nothing has to be requested: `requestDevice()` enables the Dawn features behind native frame import whenever the adapter supports them (see [Native textures](/docs/getting-started/native-api#native-textures)).
+Imports a [native buffer](/api/native-buffer#nativebuffer) into the device as Dawn's shared texture memory, for zero-copy sampling and rendering.
+Nothing has to be requested: `requestDevice()` enables the Dawn features behind native buffers whenever the adapter supports them (see [Devices](/docs/getting-started/native-buffers#devices)).
 
 ```tsx twoslash
-import type { NativeVideoFrame } from "react-native-webgpu";
-declare const adapter: GPUAdapter;
-declare const frame: NativeVideoFrame;
+import type { NativeBuffer } from "react-native-webgpu";
+declare const device: GPUDevice;
+declare const frame: NativeBuffer;
+declare function draw(texture: GPUTexture): void;
 // ---cut---
-const device = await adapter.requestDevice();
-
-// frame from createVideoPlayer(..., "bgra8") or Vision Camera
 const memory = device.importSharedTextureMemory({
-  handle: frame.handle,
+  source: frame,
   label: "camera-frame",
 });
-
+// Every usage the buffer allows, unless a descriptor says otherwise
 const texture = memory.createTexture();
 
-memory.beginAccess(texture, /* initialized */ true);
-// sample texture in render pass…
-memory.endAccess(texture);
+// true: the buffer holds pixels to keep (a frame a producer wrote)
+memory.beginAccess(texture, true);
+draw(texture); // ... queue.submit() ...
+const { fences } = memory.endAccess(texture);
+fences.forEach(({ fence }) => fence.destroy()); // or hand them on
 
 texture.destroy();
 memory.destroy();
 frame.release();
 ```
 
-Use `beginAccess(texture, true)` when the producer has already written pixels (typical for video/camera).
+A texture of the memory is used only between `beginAccess()` and `endAccess()`. Pass `initialized: true` when the buffer holds pixels to keep, as for a video or camera frame, and `false` for a buffer you are about to overwrite.
+`endAccess()` returns the fences that signal once the GPU work of the access is done: pass them to whoever uses the buffer next, such as [`NativeBufferView`](/api/native-buffer#nativebufferview)'s `present()`, or destroy them.
+
+Dawn holds its own reference on the imported buffer, and the textures created from the memory remember the buffer's color space, which [`importExternalTexture({ source: texture })`](#importing-a-buffer-once) needs to sample a YUV buffer.
+Instead of `source`, the descriptor can take `handle`, the raw pointer of a buffer (an `IOSurfaceRef` or an `AHardwareBuffer*`) as a `BigInt`; the caller then keeps the buffer alive, and a YUV buffer falls back to the platform's color space.
 
 `memory.destroy()` releases the import right away rather than when the object is garbage collected, which can take a while on a runtime importing a frame per vsync. End the access and destroy the textures created from it first: destroying during an access is a validation error, and so is using the memory afterwards.
 
@@ -47,17 +52,17 @@ import type {
   GPUSharedFenceExportInfo,
   GPUSharedFenceType,
   GPUSharedTextureMemory,
-  NativeVideoFrame,
+  NativeBuffer,
 } from "react-native-webgpu";
 declare const device: GPUDevice;
 declare const memory: GPUSharedTextureMemory;
 declare const texture: GPUTexture;
-declare const frame: NativeVideoFrame;
+declare const frame: NativeBuffer;
 declare const ready: GPUSharedFenceExportInfo;
 // A native module of yours: waits for the fence, releases the frame and
 // closes the handle.
 declare function releaseFrameWhenSignaled(
-  frame: NativeVideoFrame,
+  frame: NativeBuffer,
   type: GPUSharedFenceType,
   handle: bigint,
   signaledValue: bigint,
@@ -85,61 +90,56 @@ for (const { fence: done, signaledValue } of fences) {
 
 `destroy()` releases a fence and its native handle right away rather than when the object is garbage collected. An exported handle is a duplicate, so it stays valid; using the fence afterwards is a validation error, and `export()` then throws.
 
-## createNativeBufferExternalTexture / createNativeBufferTexture
+## Importing a buffer once
 
-A decoder or a camera cycles through the same few buffers, but `importExternalTexture()` imports the buffer again on every frame.
-These two methods import a buffer once; each frame is then bracketed with `beginAccess()` / `endAccess()` on the wrapper.
+A decoder or a camera cycles through the same few buffers, but `importExternalTexture({ source: frame })` imports the buffer again on every frame.
+Import each buffer once with `importSharedTextureMemory()` instead, build its external texture once with `importExternalTexture({ source: texture })`, and bracket each frame with the memory's `beginAccess()` / `endAccess()`:
 
 ```tsx twoslash
-import type {
-  GPUNativeBufferExternalTexture,
-  NativeVideoFrame,
-} from "react-native-webgpu";
+import type { NativeBuffer } from "react-native-webgpu";
 declare const device: GPUDevice;
-declare const frame: NativeVideoFrame;
-declare const wrappers: Map<bigint, GPUNativeBufferExternalTexture>;
+declare const frame: NativeBuffer;
 declare function draw(externalTexture: GPUExternalTexture): void;
+interface Imported {
+  memory: GPUSharedTextureMemory;
+  texture: GPUTexture;
+  externalTexture: GPUExternalTexture;
+}
+declare const imports: Map<bigint, Imported>;
 // ---cut---
-// Once per buffer, keyed by the buffer: the import, the texture and the
-// external texture (color conversion included).
-let wrapper = wrappers.get(frame.handle);
-if (!wrapper) {
-  wrapper = device.createNativeBufferExternalTexture(frame, {
-    label: "clip-1",
-  });
-  wrappers.set(frame.handle, wrapper);
+// Once per buffer, keyed by the buffer
+let imported = imports.get(frame.handle);
+if (!imported) {
+  const memory = device.importSharedTextureMemory({ source: frame });
+  const texture = memory.createTexture();
+  // Color conversion included; valid for every frame of this buffer
+  const externalTexture = device.importExternalTexture({ source: texture });
+  imported = { memory, texture, externalTexture };
+  imports.set(frame.handle, imported);
 }
 
-// Per frame: wait for the producer's fence, draw, hand the fence of the
-// access back.
-const fences = [];
+// Per frame: wait for the producer's fence, draw, end the access
+const { memory, texture, externalTexture } = imported;
+const waits = [];
 if (frame.acquireFenceFd !== null) {
   const ready = device.importSharedFence({
     type: "sync-fd",
     handle: frame.acquireFenceFd,
   });
-  fences.push({ fence: ready, signaledValue: 1n });
+  waits.push({ fence: ready, signaledValue: 1n });
 }
-wrapper.beginAccess(fences);
-fences.forEach(({ fence }) => fence.destroy());
-draw(wrapper.externalTexture); // ... queue.submit() ...
-const done = wrapper.endAccess();
-done?.fence.destroy(); // or export() it for the producer
-
-// When the producer drops the buffer
-wrapper.destroy();
+memory.beginAccess(texture, true, waits);
+waits.forEach(({ fence }) => fence.destroy());
+draw(externalTexture); // ... queue.submit() ...
+const { fences } = memory.endAccess(texture);
+fences.forEach(({ fence }) => fence.destroy()); // or export() them for the producer
 ```
 
-`beginAccess(fences?)` makes the GPU wait for the fences before it reads the buffer; `endAccess()` returns one fence that signals once the GPU is done with it, or `null`.
-`destroy()` releases the import and the frame the wrapper was created from; an access left open is a validation error, and it is ended anyway so the producer gets its buffer back.
-The descriptor is that of `importExternalTexture()` without the source (`colorSpace`, `rotation`, `mirrored`, plus `sourceColorSpace`, `cropOrigin` and `cropSize`, see below); the same descriptor members apply to `importExternalTexture()`.
+An external texture built over a texture of a shared memory does not open an access of its own: sample it only between the memory's `beginAccess()` and `endAccess()`.
+Its descriptor is the same as with a frame as the source (`colorSpace`, `rotation`, `mirrored`, plus `sourceColorSpace`, `cropOrigin` and `cropSize`, see below).
+When the producer drops the buffer, destroy the external texture, the texture and the memory, in that order.
 
-`createNativeBufferTexture(frame, { usage, label })` is the same wrapper over a color buffer (an RGBA `AHardwareBuffer`, a BGRA `IOSurface`) exposed as a regular `GPUTexture`; `usage` defaults to every usage the buffer allows.
-The external texture is sample-only, as on the web, and the only way to read a YUV frame; the texture is for a color buffer you also write to or copy from.
-
-On Android, a buffer from another library (wrapped with `createVideoFrameFromNativeBuffer`) carries no color metadata: pass `sourceColorSpace` when you know it, or the conversion assumes what the platform reports for the buffer, BT.601 limited range by default.
-
-<auto-type-table path="../../../../packages/webgpu/src/types.ts" name="GPUNativeBufferWrapper" />
+On Android, a buffer from another library (wrapped with `createNativeBufferFromPointer`) carries no color metadata: pass `sourceColorSpace` when you know it, or the conversion assumes what the platform reports for the buffer, BT.601 limited range by default.
 
 ## dawnToggles
 
@@ -161,7 +161,7 @@ const device = await adapter.requestDevice({
 
 On Android, the `ignore_imported_ahardwarebuffer_vulkan_image_size` toggle is enabled by default, so native buffers import on every driver. Pass it in `disabledToggles` to turn it off.
 
-On iOS and tvOS, the `metal_suspend_submissions_in_background` toggle is enabled by default, so GPU work submitted while the app is in the background is held rather than refused (see [Background and foreground](/docs/getting-started/native-api#background-and-foreground)). Pass it in `disabledToggles` to turn it off: the device is then lost over the first refused command buffer.
+On iOS and tvOS, the `metal_suspend_submissions_in_background` toggle is enabled by default, so GPU work submitted while the app is in the background is held rather than refused (see [Background GPU work on iOS](/docs/getting-started/native-api#background-gpu-work-on-ios)). Pass it in `disabledToggles` to turn it off: the device is then lost over the first refused command buffer.
 
 ## implicitDeviceSynchronization
 
@@ -185,18 +185,18 @@ The flag only controls the default injection: listing `"implicit-device-synchron
 
 | Field / Method | Description |
 | -------------- | ----------- |
-| `source` | A [`NativeVideoFrame`](/api/video-player#nativevideoframe) (from a video player, a camera buffer or `createTestVideoFrame`) instead of the web's `HTMLVideoElement` / `VideoFrame` |
+| `source` | A [`NativeBuffer`](/api/native-buffer#nativebuffer), or a texture of a [`GPUSharedTextureMemory`](#importing-a-buffer-once), instead of the web's `HTMLVideoElement` / `VideoFrame` |
 | `rotation` | 0, 90, 180, or 270 degrees (camera orientation) |
 | `mirrored` | Horizontal flip for front camera |
 | `sourceColorSpace` | Overrides the members of the frame's own color space (`matrix`, `range`, `primaries`, `transfer`), for a buffer that carries none |
 | `cropOrigin`, `cropSize` | The part of the frame the external texture shows, the whole frame by default |
-| `destroy()` | Release native surface access after the `queue.submit()` that sampled it |
+| `destroy()` | Release the access to the frame after the `queue.submit()` that sampled it |
 
 Usage with `importExternalTexture` (NV12 camera/video):
 
 ```tsx
 const externalTexture = device.importExternalTexture({
-  source: nativeVideoFrame,
+  source: frame,
 });
 
 // Read orientation metadata in bind group / shader setup
@@ -204,7 +204,7 @@ console.log(externalTexture.rotation, externalTexture.mirrored);
 
 // After submit that sampled the texture:
 externalTexture.destroy();
-nativeVideoFrame.release();
+frame.release();
 ```
 
 On Android, a YUV frame (what the video decoder and the camera produce) needs the `opaque-ycbcr-android-for-external-texture` device feature. `requestDevice()` enables it whenever the adapter supports it; a device created by another library and wrapped with [`importDevice()`](/docs/getting-started/native-api#importing-an-external-device) has to request it itself, as react-native-skia's does. The same applies to `copyExternalImageToTexture()` with a native frame.
@@ -213,14 +213,14 @@ On Android, a YUV frame (what the video decoder and the camera produce) needs th
 
 ## copyExternalImageToTexture with a native frame
 
-`queue.copyExternalImageToTexture()` also accepts a [`NativeVideoFrame`](/api/video-player#nativevideoframe) as its source, the way the web API accepts a `VideoFrame`.
+`queue.copyExternalImageToTexture()` also accepts a [`NativeBuffer`](/api/native-buffer#nativebuffer) as its source, the way the web API accepts a `VideoFrame`.
 The frame is rendered into the destination on the GPU through an external texture, so YUV frames come out as RGB, and the non-spec `rotation` and `mirrored` options of `importExternalTexture` apply.
 The destination needs `GPUTextureUsage.RENDER_ATTACHMENT` and an `rgba8unorm`, `bgra8unorm` (or `-srgb`), `rgba16float` or `rgb10a2unorm` format; the frame can be released as soon as the call returns.
 
 ```tsx twoslash
-import type { NativeVideoFrame } from "react-native-webgpu";
+import type { NativeBuffer } from "react-native-webgpu";
 declare const device: GPUDevice;
-declare const frame: NativeVideoFrame;
+declare const frame: NativeBuffer;
 declare const rotation: 0 | 90 | 180 | 270;
 // ---cut---
 const texture = device.createTexture({

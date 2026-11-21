@@ -27,7 +27,11 @@ void GPUSharedTextureMemory::destroy() {
     _device.InjectError(wgpu::ErrorType::Validation, message.c_str());
     _accessed.clear();
   }
+  // The textures created from the memory share the origin: without this, each
+  // one still referenced from JS would keep the import alive.
+  _origin->memory = nullptr;
   _instance = nullptr;
+  _source = nullptr;
 }
 
 void GPUSharedTextureMemory::injectDestroyedError(const char *method) {
@@ -61,8 +65,9 @@ std::shared_ptr<GPUTexture> GPUSharedTextureMemory::createTexture(
                                         std::move(label), false);
   }
   if (!descriptor.has_value() || descriptor.value() == nullptr) {
-    auto texture = _instance.CreateTexture();
-    return std::make_shared<GPUTexture>(texture, "");
+    auto texture = std::make_shared<GPUTexture>(_instance.CreateTexture(), "");
+    texture->setSharedTextureOrigin(_origin);
+    return texture;
   }
 
   wgpu::TextureDescriptor desc{};
@@ -72,9 +77,10 @@ std::shared_ptr<GPUTexture> GPUSharedTextureMemory::createTexture(
         "GPUSharedTextureMemory::createTexture(): Error with "
         "GPUTextureDescriptor");
   }
-  auto texture = _instance.CreateTexture(&desc);
-  return std::make_shared<GPUTexture>(texture,
-                                      descriptor.value()->label.value_or(""));
+  auto texture = std::make_shared<GPUTexture>(
+      _instance.CreateTexture(&desc), descriptor.value()->label.value_or(""));
+  texture->setSharedTextureOrigin(_origin);
+  return texture;
 }
 
 void GPUSharedTextureMemory::beginAccess(

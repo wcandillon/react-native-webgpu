@@ -56,6 +56,7 @@ public:
   }
 
   inline wgpu::SharedFence get() { return _instance; }
+  inline const wgpu::Device &device() const { return _device; }
 
   // Reports a use of the destroyed fence the way Dawn reports an invalid
   // object: a validation error, caught by error scopes or else delivered to

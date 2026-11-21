@@ -1,153 +1,50 @@
 ---
 title: Canvas
-description: Rendering pixels on-screen
+description: The Canvas component, its props and its Android rendering options.
 ---
 
-`Canvas` follows the semantics of the Web [`<canvas>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/canvas) element as closely as we can: call `getContext("webgpu")` to get the `GPUCanvasContext`, read its size synchronously, manage pixel density the same way, and resize through the same `clientWidth` / `clientHeight` model, so browser WebGPU code largely carries over. Where a platform forces a difference we re-surface it rather than hide it. The primary example is frame presentation: on the Web the browser swaps the rendered frame automatically, but on React Native you call [`present()`](#presenting-frames) yourself after submitting your commands. Compositing a transparent canvas over native views on Android (see [Transparent compositing](#transparent-compositing)) is another.
+`Canvas` follows the semantics of the Web [`<canvas>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/canvas) element: `getContext("webgpu")` returns the `GPUCanvasContext`, and the size, pixel density and resize model are the same, so browser WebGPU code largely carries over.
+The main difference is that you call [`present()`](#presenting-frames) yourself after submitting your commands.
+The [Canvas guide](/docs/getting-started/canvas) walks through a complete example.
 
 ## Props
 
 | Prop | Type | Description |
 | ---- | ---- | ----------- |
 | `android` | `AndroidCanvasProps` | Android-only rendering options: the native view behind the canvas (`backingView`) and its options (`opaque`, `zOrderOnTop`, `zOrderMediaOverlay`), see [Android rendering options](#android-rendering-options). Ignored on iOS and web |
-| `colorSpace` | `PredefinedColorSpace` | `"srgb"` (the default) or `"display-p3"`, as in `configure()`. Read when the canvas mounts on iOS and macOS, see [Color space](#color-space). Ignored on Android and web |
-| `toneMapping` | `GPUCanvasToneMapping` | `{ mode: "standard" }` (the default) or `{ mode: "extended" }`, as in `configure()`. Read when the canvas mounts on iOS and macOS, see [HDR](#hdr-extended-dynamic-range). Ignored on Android and web |
+| `colorSpace` | `PredefinedColorSpace` | `"srgb"` (the default) or `"display-p3"`, as in `configure()`. Read when the canvas mounts on iOS and macOS, see [Color space and HDR](#color-space-and-hdr). Ignored on Android and web |
+| `toneMapping` | `GPUCanvasToneMapping` | `{ mode: "standard" }` (the default) or `{ mode: "extended" }`, as in `configure()`. Read when the canvas mounts on iOS and macOS, see [Color space and HDR](#color-space-and-hdr). Ignored on Android and web |
 | `...ViewProps` | `ViewProps` | All standard React Native View props (`style`, `onLayout`, etc.) |
 
 ## Usage
 
-Minimal on-screen rendering loop:
-
 ```tsx twoslash
-import { useEffect, useRef } from "react";
-import { PixelRatio, StyleSheet, View } from "react-native";
-import { Canvas, useDevice, type CanvasRef } from "react-native-webgpu";
+import { useRef } from "react";
+import { Canvas, type CanvasRef } from "react-native-webgpu";
+// ---cut---
+const ref = useRef<CanvasRef>(null);
 
-const triangleVertWGSL = `
-@vertex fn main(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
-  var pos = array<vec2f, 3>(vec2(0, 0.5), vec2(-0.5, -0.5), vec2(0.5, -0.5));
-  return vec4f(pos[i], 0.0, 1.0);
-}`;
-
-const redFragWGSL = `@fragment fn main() -> @location(0) vec4f {
-  return vec4(1.0, 0.0, 0.0, 1.0);
-}`;
-
-export function TriangleScene() {
-  const ref = useRef<CanvasRef>(null);
-  const { device } = useDevice();
-
-  useEffect(() => {
-    if (!device) return;
-
-    let cancelled = false;
-    let animationFrameId = 0;
-
-    const start = () => {
-      const context = ref.current?.getContext("webgpu");
-      if (!context || cancelled) {
-        animationFrameId = requestAnimationFrame(start);
-        return;
-      }
-
-      const canvas = context.canvas as HTMLCanvasElement;
-      if (canvas.clientWidth === 0 || canvas.clientHeight === 0) {
-        animationFrameId = requestAnimationFrame(start);
-        return;
-      }
-
-      const format = navigator.gpu.getPreferredCanvasFormat();
-      canvas.width = canvas.clientWidth * PixelRatio.get();
-      canvas.height = canvas.clientHeight * PixelRatio.get();
-      context.configure({ device, format, alphaMode: "premultiplied" });
-
-      const pipeline = device.createRenderPipeline({
-        layout: "auto",
-        vertex: {
-          module: device.createShaderModule({ code: triangleVertWGSL }),
-          entryPoint: "main",
-        },
-        fragment: {
-          module: device.createShaderModule({ code: redFragWGSL }),
-          entryPoint: "main",
-          targets: [{ format }],
-        },
-        primitive: { topology: "triangle-list" },
-      });
-
-      const render = () => {
-        if (cancelled) return;
-
-        const encoder = device.createCommandEncoder();
-        const pass = encoder.beginRenderPass({
-          colorAttachments: [{
-            view: context.getCurrentTexture().createView(),
-            clearValue: [0, 0, 0, 0],
-            loadOp: "clear",
-            storeOp: "store",
-          }],
-        });
-        pass.setPipeline(pipeline);
-        pass.draw(3);
-        pass.end();
-
-        device.queue.submit([encoder.finish()]);
-        context.present();
-        animationFrameId = requestAnimationFrame(render);
-      };
-
-      animationFrameId = requestAnimationFrame(render);
-    };
-
-    animationFrameId = requestAnimationFrame(start);
-
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [device]);
-
-  return (
-    <View style={{ flex: 1 }}>
-      <View style={{ flex: 1, backgroundColor: "#3498db" }} />
-      <Canvas ref={ref} style={StyleSheet.absoluteFill} />
-    </View>
-  );
-}
+// Once laid out: ref.current.getContext("webgpu")
+<Canvas ref={ref} style={{ flex: 1 }} />;
 ```
-
-Steps in order:
-
-1. Mount `<Canvas ref={ref} />` and wait for layout (non-zero `clientWidth` / `clientHeight`).
-2. Request a device with [`useDevice`](/docs/getting-started/react-api#usedevice) or [`GPUDeviceProvider`](/api/gpu-device-provider).
-3. Call `ref.current.getContext("webgpu")` and `context.configure({ device, format, alphaMode })`.
-4. Each frame: encode passes → `device.queue.submit()` → **`context.present()`**.
-
-See [Canvas](/docs/getting-started/canvas) for a walkthrough of the frame loop, pixel density and transparency.
 
 ## Presenting frames
 
-Call `context.present()` after every `device.queue.submit()` to display the frame: unlike the Web, React Native does not swap the frame to the screen for you. `present()` is not part of the WebGPU spec. It runs synchronously on the calling thread, and works the same on the main JS runtime, the UI thread and dedicated worklet runtimes. See [Frame presentations](/docs/getting-started/canvas#frame-presentations).
+Call `context.present()` after every `device.queue.submit()` to display the frame. It is not part of the WebGPU spec, runs synchronously on the calling thread, and works the same on the main JS runtime, the UI thread and worklet runtimes. See [Frame presentations](/docs/getting-started/canvas#frame-presentations).
 
 ## Pixel density
 
-As on the Web, `clientWidth` / `clientHeight` are the layout size in points and track the view's layout, while `width` / `height` are the drawing-buffer size in pixels. The buffer is not scaled to the pixel ratio by default: set it to the layout size times `PixelRatio.get()`, and again whenever the layout changes. See [Pixel density](/docs/getting-started/canvas#pixel-density).
+`clientWidth` / `clientHeight` are the layout size in points, `width` / `height` the drawing-buffer size in pixels, which is not scaled to the pixel ratio by default. See [Pixel density](/docs/getting-started/canvas#pixel-density).
 
-## Transparent compositing
+## Transparency
 
-To show the views behind the canvas, configure the context with `alphaMode: "premultiplied"` and clear with an alpha of `0`, as the [Usage](#usage) example does. On iOS and on the web that is all it takes. On Android, `alphaMode` is ignored: the backing view decides, and the default `TextureView` composites with alpha unless `android={{ opaque: true }}` asks it not to (see below). Setting both gives the same result on every platform.
+`alphaMode: "premultiplied"` and a clear alpha of `0` show the views behind the canvas on iOS and the web. On Android, `alphaMode` is ignored: the backing view decides (see [Android rendering options](#android-rendering-options)). See [Transparency](/docs/getting-started/canvas#transparency).
 
-## Color space
+## Color space and HDR
 
-`context.configure({ colorSpace })` says which primaries the canvas's values are in: `"srgb"` (the default) or `"display-p3"`. Both use the sRGB transfer function, as on the Web. On iOS and macOS the color space is set when the canvas mounts, from the `colorSpace` prop of the `Canvas`: pass the same value to both. With `"display-p3"`, a shader's output reaches a wide-gamut display unconverted and matches other Display P3 content, such as a Skia canvas. Android currently ignores `colorSpace`.
+The `colorSpace` and `toneMapping` props are read when the canvas mounts on iOS and macOS: pass the same values as to `configure()`. A change on a mounted canvas is ignored, with a warning in development; remount the canvas with a new `key` to change them. Android ignores both for now. See [Color space](/docs/getting-started/canvas#color-space) and [HDR](/docs/getting-started/canvas#hdr).
 
-The prop is read once: a change on a mounted canvas is ignored, with a warning in development, and so is a `configure()` that asks for another color space than the canvas was mounted with. To change it, remount the canvas with a new `key`.
-
-## HDR (extended dynamic range)
-
-`context.configure({ toneMapping: { mode } })` says what happens to values above 1.0 on an `rgba16float` canvas: `"standard"` (the default) clamps them to the display's SDR range, `"extended"` lets them use the display's headroom, as in a browser. On iOS 16 and later and on macOS, the `toneMapping` prop of the `Canvas` sets it when the canvas mounts, like `colorSpace`: pass the same value to both. The mode has no effect on an 8-bit canvas, which cannot hold values above 1.0. tvOS has no extended dynamic range for this layer, so `"extended"` behaves like `"standard"` there. Android currently ignores `toneMapping`.
-
-### Android rendering options
+## Android rendering options
 
 On Android, `Canvas` can be backed by one of three native views, with different trade-offs between speed and how well the canvas composites with the views around it. The `android` prop names it, along with its options; it is ignored on iOS and web.
 
@@ -166,13 +63,13 @@ On Android, `Canvas` can be backed by one of three native views, with different 
 | Opaque by default | no | yes | never |
 | Status | default | opt-in | experimental, opt-in |
 
-**`TextureView`** is the default: a regular view, so transforms, clipping, alpha and z-order all apply, and the canvas can be composited over other React Native views. The cost is an extra copy, typically a frame of latency, and occasional stalls during some view animations. It always blends on Android 10, whatever `opaque` says: that release's UI toolkit can leave an opaque `TextureView` blank, and a canvas that covers its bounds draws the same pixels.
+**`TextureView`** is the default: a regular view, so transforms, clipping, alpha and z-order all apply, and the canvas can be composited over other React Native views. The cost is an extra copy, typically a frame of latency, and occasional stalls during some view animations. On Android 10 it always blends, whatever `opaque` says.
 
 **`SurfaceView`** is the fastest option. It is not regular view content, though: parent transforms, clipping, rounded corners and z-ordering with sibling views do not apply to it. Use it for a canvas that is a plain rectangle: a full-screen scene or a game. It is opaque unless asked otherwise: a translucent `SurfaceView` blends against the window background (usually black) instead of the React Native views beneath it, which are punched out. Pair it with `zOrderOnTop` to composite over React Native content, and note that `zOrderOnTop` draws above all React Native views in the window, including navigation screens, regardless of `zIndex`.
 
 **`HardwareBufferView`** composites like a `TextureView`, with lower latency. It is experimental: if the device cannot allocate the buffers the canvas shows nothing instead of falling back, and some devices may show a stale or torn frame. Test it on your target devices, and drop the `backingView` to go back to `TextureView`. Below Android 10 it uses a `TextureView`, with a warning in development.
 
-The backing view is created when the canvas mounts and kept while it is mounted. `opaque` applies in place, and so do the z-order options on Android 11 and later; a change of `backingView` is ignored, with a warning in development. To switch backing views, remount the canvas with a `key`. The remount leaves the canvas off screen for a frame or two, showing what is behind it, or black, until the new view draws its first frame: the old view leaves and the new one arrives in different window frames. Keeping a canvas on screen through such a swap is possible, but takes hold-and-retire logic specific to each Android release ([#563](https://github.com/wcandillon/react-native-webgpu/pull/563)) that the library does not carry.
+The backing view is created when the canvas mounts and kept while it is mounted. `opaque` applies in place, and so do the z-order options on Android 11 and later; a change of `backingView` is ignored, with a warning in development. To switch backing views, remount the canvas with a `key`. The remount leaves the canvas off screen for a frame or two, showing what is behind it, or black, until the new view draws its first frame: the old view leaves and the new one arrives in different window frames.
 
 ```tsx
 // The backing view is chosen at mount: a canvas that switches it remounts
@@ -197,6 +94,6 @@ Some combinations for other trade-offs:
 
 ## See also
 
-- [GPUDeviceProvider](/api/gpu-device-provider) - share one device across components
-- [Canvas](/docs/getting-started/canvas) - the rendering surface and frame loop
-- [Learn WebGPU](/docs/getting-started/learn-webgpu) - tutorials for the low-level API
+- [Canvas guide](/docs/getting-started/canvas): a complete example, the frame loop, pixel density and transparency
+- [GPUDeviceProvider](/api/gpu-device-provider): share one device across components
+- [Learn WebGPU](/docs/getting-started/learn-webgpu): tutorials for the low-level API

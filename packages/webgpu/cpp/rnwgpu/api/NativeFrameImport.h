@@ -12,16 +12,27 @@ namespace rnwgpu {
 
 struct GPUExternalTextureDescriptor;
 
-// The steps of importing a native frame (an IOSurface on Apple platforms, an
+// The steps of importing a native buffer (an IOSurface on Apple platforms, an
 // AHardwareBuffer on Android) into Dawn, shared by importExternalTexture(),
-// importSharedTextureMemory() and the native buffer wrappers of
-// createNativeBufferTexture() / createNativeBufferExternalTexture(): the
-// import, the access window around each use, and the external texture that
-// samples a YUV frame as RGB. The same steps as Dawn's own Android layer
-// (tools/android/webgpu, GPUImportedAHB.cpp), so a JS caller can follow its
-// import-once, begin/end-per-frame recipe. Each step throws with the cause,
-// prefixed with `caller`, the entry point the message names.
+// importSharedTextureMemory() and copyExternalImageToTexture(): the import,
+// the access window around each use, and the external texture that samples a
+// YUV buffer as RGB. Each step throws with the cause, prefixed with `caller`,
+// the entry point the message names.
 namespace native_frame {
+
+// What a texture created from a GPUSharedTextureMemory remembers of its
+// import, so importExternalTexture({ source: texture }) can build an external
+// texture over it: the memory (the YCbCr properties of an Android buffer) and
+// the color space the producer reported for the buffer, if any. One per
+// GPUSharedTextureMemory, shared with its textures: the memory's destroy()
+// clears `memory`, so a texture that is still referenced from JS never keeps
+// Dawn's import (and the native buffer behind it) alive after that.
+struct SharedTextureOrigin {
+  wgpu::SharedTextureMemory memory;
+  VideoFrameColorSpace colorSpace;
+  // The label of the GPUSharedTextureMemory, to name it once destroyed.
+  std::string label;
+};
 
 // Import the frame's buffer as shared texture memory.
 wgpu::SharedTextureMemory importMemory(const wgpu::Device &device,
@@ -60,24 +71,24 @@ void endAccess(const wgpu::SharedTextureMemory &memory,
 wgpu::SharedFence importAcquireFence(const wgpu::Device &device,
                                      const VideoFrameHandle &frame);
 
-// The external texture that samples `texture`, created from the buffer of
-// `frame`, as RGB: a YUV frame is converted with the color space of the frame
-// (overridden by the descriptor's sourceColorSpace), and the descriptor's
-// crop, rotation and mirroring apply.
+// The external texture that samples `texture`, created from `memory`, as
+// RGB: a YUV buffer is converted with `colorSpace`, what its producer
+// reported (overridden by the descriptor's sourceColorSpace), and the
+// descriptor's crop, rotation and mirroring apply. No access begins here.
 wgpu::ExternalTexture createExternalTexture(
     const wgpu::Device &device, const wgpu::SharedTextureMemory &memory,
-    const wgpu::Texture &texture, const VideoFrameHandle &frame,
+    const wgpu::Texture &texture, const VideoFrameColorSpace &colorSpace,
     const GPUExternalTextureDescriptor &descriptor, const std::string &label,
     const char *caller);
 
-// The fences of an end-access state as one: on Android their sync fds are
-// merged into a single one (what Dawn's Android layer hands back from
-// endAccess), on Apple platforms the device's shared event at the largest
-// value. False when the state has no fence (or, on Android, only signaled
-// ones). Throws if the fences cannot be merged into one: Android fences that
-// are not sync fds, Apple fences on different shared events.
+// Fences as one: on Android their sync fds are merged into a single one, on
+// Apple platforms the shared event at the largest value. False when there is
+// no fence (or, on Android, only signaled ones). Throws if the fences cannot
+// be merged into one: Android fences that are not sync fds, Apple fences on
+// different shared events.
 bool mergeFences(const wgpu::Device &device,
-                 const wgpu::SharedTextureMemoryEndAccessState &state,
+                 const std::vector<wgpu::SharedFence> &fences,
+                 const std::vector<uint64_t> &signaledValues,
                  wgpu::SharedFence *fence, uint64_t *signaledValue,
                  const char *caller);
 

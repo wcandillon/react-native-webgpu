@@ -399,7 +399,7 @@ wgpu::SharedFence importAcquireFence(const wgpu::Device &device,
 
 wgpu::ExternalTexture createExternalTexture(
     const wgpu::Device &device, const wgpu::SharedTextureMemory &memory,
-    const wgpu::Texture &texture, const VideoFrameHandle &frame,
+    const wgpu::Texture &texture, const VideoFrameColorSpace &colorSpace,
     const GPUExternalTextureDescriptor &descriptor, const std::string &label,
     const char *caller) {
   wgpu::ExternalTextureDescriptor extDesc{};
@@ -419,7 +419,8 @@ wgpu::ExternalTexture createExternalTexture(
   // frame's color space (from the CVPixelBuffer attachments; BT.709 limited
   // range, the norm for HD video, where they are missing). A BGRA frame is
   // RGB already: no-op parameters.
-  bool isYuv = frame.pixelFormat == VideoPixelFormat::NV12;
+  bool isYuv =
+      texture.GetFormat() == wgpu::TextureFormat::R8BG8Biplanar420Unorm;
   {
     wgpu::TextureViewDescriptor v{};
     v.aspect =
@@ -431,7 +432,7 @@ wgpu::ExternalTexture createExternalTexture(
     v.aspect = wgpu::TextureAspect::Plane1Only;
     plane1 = texture.CreateView(&v);
     params = colorSpaceParams(
-        resolveColorSpace(frame.colorSpace, descriptor.sourceColorSpace,
+        resolveColorSpace(colorSpace, descriptor.sourceColorSpace,
                           wgpu::ColorSpaceYCbCrMatrixDawn::Rec709,
                           wgpu::ColorSpaceYCbCrRangeDawn::Narrow),
         descriptor.colorSpace, caller);
@@ -482,7 +483,7 @@ wgpu::ExternalTexture createExternalTexture(
                             : wgpu::ColorSpaceYCbCrRangeDawn::Narrow;
       }
     }
-    params = colorSpaceParams(resolveColorSpace(frame.colorSpace,
+    params = colorSpaceParams(resolveColorSpace(colorSpace,
                                                 descriptor.sourceColorSpace,
                                                 fallbackMatrix, fallbackRange),
                               descriptor.colorSpace, caller);
@@ -491,7 +492,7 @@ wgpu::ExternalTexture createExternalTexture(
   extDesc.plane0 = plane0;
 #else
   (void)memory;
-  (void)frame;
+  (void)colorSpace;
   throw std::runtime_error(prefix(caller) + "unsupported platform");
 #endif
   applyColorSpaceParams(extDesc, params);
@@ -541,15 +542,17 @@ wgpu::ExternalTexture createExternalTexture(
 }
 
 bool mergeFences(const wgpu::Device &device,
-                 const wgpu::SharedTextureMemoryEndAccessState &state,
+                 const std::vector<wgpu::SharedFence> &fences,
+                 const std::vector<uint64_t> &signaledValues,
                  wgpu::SharedFence *fence, uint64_t *signaledValue,
                  const char *caller) {
-  if (state.fenceCount == 0) {
+  const size_t fenceCount = fences.size();
+  if (fenceCount == 0) {
     return false;
   }
-  if (state.fenceCount == 1) {
-    *fence = state.fences[0];
-    *signaledValue = state.signaledValues[0];
+  if (fenceCount == 1) {
+    *fence = fences[0];
+    *signaledValue = signaledValues[0];
     return true;
   }
 #if defined(__ANDROID__)
@@ -557,8 +560,8 @@ bool mergeFences(const wgpu::Device &device,
   // duplicates into one sync fd, then import that as the fence to return.
   // Dawn duplicates the fd on import, so the merged one is closed here.
   UniqueFd merged;
-  for (size_t i = 0; i < state.fenceCount; i++) {
-    wgpu::SharedFence source = state.fences[i];
+  for (size_t i = 0; i < fenceCount; i++) {
+    wgpu::SharedFence source = fences[i];
     wgpu::SharedFenceExportInfo info{};
     wgpu::SharedFenceSyncFDExportInfo fdInfo{};
     info.nextInChain = &fdInfo;
@@ -611,8 +614,8 @@ bool mergeFences(const wgpu::Device &device,
   (void)device;
   void *event = nullptr;
   size_t last = 0;
-  for (size_t i = 0; i < state.fenceCount; i++) {
-    wgpu::SharedFence source = state.fences[i];
+  for (size_t i = 0; i < fenceCount; i++) {
+    wgpu::SharedFence source = fences[i];
     wgpu::SharedFenceExportInfo info{};
     wgpu::SharedFenceMTLSharedEventExportInfo eventInfo{};
     info.nextInChain = &eventInfo;
@@ -624,12 +627,12 @@ bool mergeFences(const wgpu::Device &device,
                                "shared events and cannot be merged into one");
     }
     event = eventInfo.sharedEvent;
-    if (state.signaledValues[i] > state.signaledValues[last]) {
+    if (signaledValues[i] > signaledValues[last]) {
       last = i;
     }
   }
-  *fence = state.fences[last];
-  *signaledValue = state.signaledValues[last];
+  *fence = fences[last];
+  *signaledValue = signaledValues[last];
   return true;
 #endif
 }

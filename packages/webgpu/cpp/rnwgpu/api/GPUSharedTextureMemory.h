@@ -15,6 +15,8 @@
 #include "GPUSharedFenceState.h"
 #include "GPUTexture.h"
 #include "GPUTextureDescriptor.h"
+#include "NativeFrameImport.h"
+#include "VideoFrame.h"
 
 namespace rnwgpu {
 
@@ -24,11 +26,23 @@ class GPUSharedTextureMemory : public NativeObject<GPUSharedTextureMemory> {
 public:
   static constexpr const char *CLASS_NAME = "GPUSharedTextureMemory";
 
+  // `source` is the NativeBuffer the memory was imported from, null for an
+  // import from a raw handle: the memory keeps it alive, and its color space
+  // goes to the textures created from the memory (see SharedTextureOrigin).
   explicit GPUSharedTextureMemory(wgpu::Device device,
                                   wgpu::SharedTextureMemory instance,
-                                  std::string label)
+                                  std::string label,
+                                  std::shared_ptr<VideoFrame> source = nullptr)
       : NativeObject(CLASS_NAME), _device(std::move(device)),
-        _instance(std::move(instance)), _label(std::move(label)) {}
+        _instance(std::move(instance)), _source(std::move(source)),
+        _label(std::move(label)) {
+    VideoFrameColorSpace colorSpace;
+    if (_source) {
+      colorSpace = _source->handle().colorSpace;
+    }
+    _origin = std::make_shared<native_frame::SharedTextureOrigin>(
+        native_frame::SharedTextureOrigin{_instance, colorSpace, _label});
+  }
 
 public:
   std::string getBrand() { return CLASS_NAME; }
@@ -50,6 +64,7 @@ public:
   std::string getLabel() { return _label; }
   void setLabel(const std::string &label) {
     _label = label;
+    _origin->label = label;
     if (_instance) {
       _instance.SetLabel(_label.c_str());
     }
@@ -87,6 +102,10 @@ private:
 
   wgpu::Device _device;
   wgpu::SharedTextureMemory _instance;
+  std::shared_ptr<VideoFrame> _source;
+  // Shared with every texture created from the memory; destroy() clears its
+  // reference to the import.
+  std::shared_ptr<native_frame::SharedTextureOrigin> _origin;
   // Kept by destroy(): like Dawn, createTexture() describes the error texture
   // it then returns with them.
   wgpu::SharedTextureMemoryProperties _properties;

@@ -19,7 +19,7 @@ namespace jsi = facebook::jsi;
 namespace rnwgpu {
 
 // GPUCopyExternalImageSourceInfo. The source is either an ImageBitmap (the
-// spec's CPU upload) or, as a React Native extension, a NativeVideoFrame that
+// spec's CPU upload) or, as a React Native extension, a NativeBuffer that
 // is rendered into the destination through an external texture (see
 // VideoFrameBlit). `rotation` and `mirrored` only apply to a native frame and
 // mirror the extension of GPUExternalTextureDescriptor.

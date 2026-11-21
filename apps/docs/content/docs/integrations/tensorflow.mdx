@@ -1,13 +1,13 @@
 ---
 title: TensorFlow.js
-description: Integrations demo - ML on the WebGPU backend without a Canvas.
+description: Machine learning on the WebGPU backend, without a Canvas.
 ---
 
-TensorFlow.js can use the same Dawn stack as rendering - but for **tensor math**, not swapchain output. There is no `<Canvas>`, render pass, or `present()`. The preview below trains a tiny sentiment model on the WebGPU backend and runs inference in the browser.
+TensorFlow.js can use the same Dawn stack as rendering, but for **tensor math**, not swapchain output. There is no `<Canvas>`, render pass, or `present()`. The preview below trains a tiny sentiment model on the WebGPU backend and runs inference in the browser.
 
 <WebGPUPlayground demo="tensorflow" height={320} />
 
-Try phrases like *"this is great"* vs *"terrible service"* - the score bar shows how positive the model thinks the text is. The badge shows the active backend (`webgpu` when Dawn is available).
+Try phrases like *"this is great"* vs *"terrible service"*: the score bar shows how positive the model thinks the text is. The badge shows the active backend (`webgpu` when Dawn is available).
 
 ## 1. Install the WebGPU backend
 
@@ -114,4 +114,4 @@ const prediction = await model.predict(inputTensor).data();
 inputTensor.dispose();
 ```
 
-The UI is plain React Native (`TextInput`, `Button`) - no WebGPU canvas involved.
+The UI is plain React Native (`TextInput`, `Button`), with no WebGPU canvas involved.

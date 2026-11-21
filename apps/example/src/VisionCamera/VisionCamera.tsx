@@ -419,18 +419,17 @@ const CameraView = () => {
       try {
         let videoFrame;
         try {
-          // Call createVideoFrameFromNativeBuffer on the captured RNWebGPU
+          // Call createNativeBufferFromPointer on the captured RNWebGPU
           // singleton (see `rnwgpu` above). It rides into this worklet via the
           // WebGPU custom serializer, same as `device`, so the factory can live
           // on RNWebGPU where the native platform context already is — no
           // GPUDevice-level workaround and no PlatformContext global singleton.
-          videoFrame = rnwgpu.createVideoFrameFromNativeBuffer(
+          videoFrame = rnwgpu.createNativeBufferFromPointer(
             nativeBuffer.pointer,
           );
         } catch (e) {
           console.warn(
-            "[VisionCamera] createVideoFrameFromNativeBuffer threw: " +
-              String(e),
+            "[VisionCamera] createNativeBufferFromPointer threw: " + String(e),
           );
           throw e;
         }
