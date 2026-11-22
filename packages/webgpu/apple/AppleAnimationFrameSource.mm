@@ -2,6 +2,7 @@
 
 #import "RNWGUIKit.h"
 #import <QuartzCore/QuartzCore.h>
+#import <React/RCTUtils.h>
 
 #include <atomic>
 #include <memory>
@@ -132,7 +133,43 @@ private:
   int _idleFrames = 0;
 };
 
+// Whether the app is in the foreground and active (see
+// AnimationFrameDispatcher::setForeground): false from the moment it starts to
+// resign active (a lock, a swipe home, an incoming call; the inactive and
+// background states of iOS) until it is active again. The display link does
+// not stop on its own when the app goes to the background: it runs on until
+// the system suspends the app, a second or so of frames whose GPU work iOS
+// refuses.
+static void observeApplicationState() {
+  static dispatch_once_t once;
+  dispatch_once(&once, ^{
+    NSNotificationCenter *center = NSNotificationCenter.defaultCenter;
+    [center addObserverForName:UIApplicationWillResignActiveNotification
+                        object:nil
+                         queue:nil
+                    usingBlock:^(NSNotification *) {
+                      AnimationFrameDispatcher::shared().setForeground(false);
+                    }];
+    [center addObserverForName:UIApplicationDidBecomeActiveNotification
+                        object:nil
+                         queue:nil
+                    usingBlock:^(NSNotification *) {
+                      AnimationFrameDispatcher::shared().setForeground(true);
+                    }];
+    // The state now, which is the main thread's to read. An app extension has
+    // no application: it stays in the foreground.
+    dispatch_async(dispatch_get_main_queue(), ^{
+      UIApplication *application = RCTSharedApplication();
+      if (application != nil &&
+          application.applicationState != UIApplicationStateActive) {
+        AnimationFrameDispatcher::shared().setForeground(false);
+      }
+    });
+  });
+}
+
 std::shared_ptr<AnimationFrameSource> makeAppleAnimationFrameSource() {
+  observeApplicationState();
   return AppleAnimationFrameSource::shared();
 }
 

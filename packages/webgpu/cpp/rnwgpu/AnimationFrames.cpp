@@ -16,9 +16,9 @@
  * How a frame reaches each kind of runtime.
  *
  * React Native's own requestAnimationFrame is a timer (setTimeout(0)): on
- * Android it fires on a vsync only if it was registered before that vsync's
- * timestamp, which leaves a loop that asks for its next frame at the end of
- * its work about 6 ms of the 8.3 ms of a 120 Hz frame, and drops it to
+ * Android it fires at a frame of the display only if it was registered before
+ * that frame started, which leaves a loop that asks for its next frame at the
+ * end of its work about 6 ms of the 8.3 ms of a 120 Hz frame, and drops it to
  * 60 fps past that; on iOS its display link runs at 60 Hz. Worklets'
  * requestAnimationFrame on a runtime of the app's polls every 16 ms. Here,
  * the display's frames come from an animation frame source of the platform's
@@ -38,11 +38,32 @@
  *   animation frame source.
  *
  * Like a browser, a frame runs the callbacks requested before it started, and
- * a callback requested while they run gets the next frame. A loop that
- * overruns its frame does not wait for the frame after: when the frame it
- * overran into is still going on, it runs in it right away (see
- * currentFrameAfter), so a loop that takes 10 ms runs at 100 fps at 120 Hz,
- * not 60.
+ * a callback requested while they run gets the next frame. The rules:
+ *
+ * - One run per frame of the display, counted from when the run starts. A
+ *   run that starts late (the runtime was busy) is the run of the frame it
+ *   starts in, not of the frame it was posted for: the next request then
+ *   waits for the next frame, where it would otherwise find a frame that has
+ *   not run here and run a second time in the same one.
+ * - A loop that overruns its frame does not wait for the frame after: when
+ *   the frame it overran into is still going on, it runs in it (see
+ *   currentFrameAfter). On a worklet runtime it always does, so a loop that
+ *   takes 10 ms runs at 100 fps at 120 Hz, not 60.
+ * - The main runtime is not the loop's alone. A run in the frame the loop
+ *   overran into goes behind whatever waits there (React's updates, the
+ *   app's other tasks: see post), and only follows a run on an animation
+ *   frame: the run after it waits for a frame of the display, which leaves
+ *   the runtime to itself until then. A loop that takes 10 ms runs twice
+ *   every three frames at 120 Hz, 80 fps. With every run posted as the one
+ *   before it ends, the scheduler would never run out of tasks: React would
+ *   not render, and the thread would not go back to its own loop, where iOS
+ *   finds React Native's timers due. React Native's timer leaves the runtime
+ *   the rest of each frame.
+ * - No frame while the app is not in the foreground (see setForeground): a
+ *   loop stops with the app and starts again with it. Neither source stops
+ *   on its own: an AChoreographer sends its frames to a paused app, and a
+ *   CADisplayLink runs on in the background until the system suspends the
+ *   app.
  */
 
 namespace rnwgpu {
@@ -116,25 +137,40 @@ bool AnimationFrameDispatcher::hasSource() {
   return _source != nullptr;
 }
 
+void AnimationFrameDispatcher::setForeground(bool foreground) {
+  std::lock_guard<std::mutex> lock(_mutex);
+  if (_foreground == foreground) {
+    return;
+  }
+  _foreground = foreground;
+  // What asked for a frame while the app was away gets the next one.
+  if (foreground && (!_pending.empty() || _waiters > 0)) {
+    _idleFrames = 0;
+    requestFrameLocked();
+  }
+}
+
+AnimationFrameDispatcher::AnimationFrame
+AnimationFrameDispatcher::latestFrame() {
+  std::lock_guard<std::mutex> lock(_mutex);
+  return _latest;
+}
+
 bool AnimationFrameDispatcher::currentFrameAfter(uint64_t after,
                                                  AnimationFrame &frame) {
   std::lock_guard<std::mutex> lock(_mutex);
-  if (_latest.id > after && nowNanos() - _latest.timeNanos < _intervalNanos) {
+  if (_foreground && _latest.id > after &&
+      nowNanos() - _latest.timeNanos < _intervalNanos) {
     frame = _latest;
-    // A loop that keeps catching up never asks for a delivery: it keeps the
-    // source ticking all the same, or the next frame it overruns into would
-    // go unseen.
-    _idleFrames = 0;
-    requestFrameLocked();
     return true;
   }
   return false;
 }
 
 void AnimationFrameDispatcher::requestDelivery(
-    const std::shared_ptr<RuntimeAnimationFrames> &frames) {
+    const std::shared_ptr<RuntimeAnimationFrames> &frames, uint64_t request) {
   std::lock_guard<std::mutex> lock(_mutex);
-  _pending.push_back(frames);
+  _pending.push_back({frames, request});
   _idleFrames = 0;
   requestFrameLocked();
 }
@@ -145,7 +181,8 @@ bool AnimationFrameDispatcher::waitForFrameAfter(uint64_t after,
   std::unique_lock<std::mutex> lock(_mutex);
   _idleFrames = 0;
   requestFrameLocked();
-  if (_latest.id > after && nowNanos() - _latest.timeNanos < _intervalNanos) {
+  if (_foreground && _latest.id > after &&
+      nowNanos() - _latest.timeNanos < _intervalNanos) {
     // Caught up with the frame the caller is in (see currentFrameAfter).
     frame = _latest;
     return true;
@@ -163,7 +200,7 @@ bool AnimationFrameDispatcher::waitForFrameAfter(uint64_t after,
 }
 
 void AnimationFrameDispatcher::requestFrameLocked() {
-  if (_source == nullptr || _frameRequested) {
+  if (_source == nullptr || _frameRequested || !_foreground) {
     return;
   }
   _frameRequested = true;
@@ -171,10 +208,16 @@ void AnimationFrameDispatcher::requestFrameLocked() {
 }
 
 void AnimationFrameDispatcher::onFrame(int64_t frameTimeNanos) {
-  std::vector<std::weak_ptr<RuntimeAnimationFrames>> pending;
+  std::vector<Delivery> pending;
   AnimationFrame frame;
   {
     std::lock_guard<std::mutex> lock(_mutex);
+    _frameRequested = false;
+    if (!_foreground) {
+      // Asked for before the app left the foreground: what waits for a frame
+      // gets the first one after it is back (see setForeground).
+      return;
+    }
     const int64_t elapsed = frameTimeNanos - _latest.timeNanos;
     if (_latest.id > 0 && elapsed >= kShortestInterval &&
         elapsed <= kLongestInterval) {
@@ -182,7 +225,6 @@ void AnimationFrameDispatcher::onFrame(int64_t frameTimeNanos) {
     }
     _latest = {_latest.id + 1, frameTimeNanos};
     frame = _latest;
-    _frameRequested = false;
     pending.swap(_pending);
     if (!pending.empty() || _waiters > 0) {
       _idleFrames = 0;
@@ -194,9 +236,9 @@ void AnimationFrameDispatcher::onFrame(int64_t frameTimeNanos) {
     }
   }
   _frameStarted.notify_all();
-  for (auto &weak : pending) {
-    if (auto frames = weak.lock()) {
-      frames->deliver(frame);
+  for (auto &delivery : pending) {
+    if (auto frames = delivery.frames.lock()) {
+      frames->deliver(frame, delivery.request);
     }
   }
 }
@@ -256,15 +298,21 @@ void RuntimeAnimationFrames::schedule(jsi::Runtime &runtime) {
   switch (_kind) {
   case Kind::Main: {
     _scheduled = true;
+    const uint64_t request = ++_requests;
+    _request.store(request, std::memory_order_release);
+    auto &dispatcher = AnimationFrameDispatcher::shared();
     AnimationFrameDispatcher::AnimationFrame frame;
     // The frame we are in has not run here: a loop that overran its frame
-    // runs in this one right away.
-    if (AnimationFrameDispatcher::shared().currentFrameAfter(
+    // runs in this one, unless its last run was in its frame too.
+    if (_lastRun.load(std::memory_order_acquire) != Run::kInFrame &&
+        dispatcher.currentFrameAfter(
             _lastFrameId.load(std::memory_order_acquire), frame)) {
-      deliver(frame);
-    } else {
-      AnimationFrameDispatcher::shared().requestDelivery(shared_from_this());
+      _inFrameRequest.store(request, std::memory_order_release);
+      post(frame, request, Run::kInFrame);
     }
+    // And on the next animation frame at the latest: whichever comes first
+    // runs the callbacks, and the other finds the request answered.
+    dispatcher.requestDelivery(shared_from_this(), request);
     return;
   }
   case Kind::Waiting:
@@ -279,21 +327,65 @@ void RuntimeAnimationFrames::schedule(jsi::Runtime &runtime) {
 }
 
 void RuntimeAnimationFrames::deliver(
-    const AnimationFrameDispatcher::AnimationFrame &frame) {
+    const AnimationFrameDispatcher::AnimationFrame &frame, uint64_t request) {
+  if (_request.load(std::memory_order_acquire) != request) {
+    // Answered since.
+    return;
+  }
+  if (!_running.load(std::memory_order_acquire)) {
+    post(frame, request, Run::kOnFrame);
+    return;
+  }
+  // The callbacks of an earlier frame are still running: a loop that asks for
+  // its next frame first, and overruns. Its next run is in this frame, when
+  // the one going on came on an animation frame, and on a frame that starts
+  // once it is over otherwise.
+  if (_lastRun.load(std::memory_order_acquire) == Run::kOnFrame &&
+      _inFrameRequest.exchange(request, std::memory_order_acq_rel) != request) {
+    post(frame, request, Run::kInFrame);
+  }
+  AnimationFrameDispatcher::shared().requestDelivery(shared_from_this(),
+                                                     request);
+}
+
+void RuntimeAnimationFrames::post(
+    const AnimationFrameDispatcher::AnimationFrame &frame, uint64_t request,
+    Run run) {
   auto invoker = async::RuntimeContext::mainInvoker();
   if (invoker == nullptr) {
     return;
   }
   std::weak_ptr<RuntimeAnimationFrames> weak = weak_from_this();
-  invoker->invokeAsync(
-      facebook::react::CallFunc([weak, frame](jsi::Runtime &runtime) {
-        auto self = weak.lock();
-        // A runtime created since (a reload) has frames of its own.
-        if (self == nullptr || &runtime != &self->_runtime) {
-          return;
-        }
-        self->flush(runtime, frame.id, timestampOf(runtime, frame.timeNanos));
-      }));
+  facebook::react::CallFunc task = [weak, frame, request,
+                                    run](jsi::Runtime &runtime) {
+    auto self = weak.lock();
+    // A runtime created since (a reload) has frames of its own.
+    if (self == nullptr || &runtime != &self->_runtime) {
+      return;
+    }
+    // Answered already, by the other run posted for it (see schedule).
+    if (self->_request.load(std::memory_order_acquire) != request) {
+      return;
+    }
+    self->_lastRun.store(run, std::memory_order_release);
+    // One run per frame of the display, counted from when the run starts:
+    // posted for a frame and started in a later one (the runtime was busy),
+    // this is the run of the frame it starts in.
+    const auto latest = AnimationFrameDispatcher::shared().latestFrame();
+    const auto &current = latest.id > frame.id ? latest : frame;
+    self->flush(runtime, current.id, timestampOf(runtime, current.timeNanos));
+  };
+  if (run == Run::kInFrame) {
+    // The scheduler runs its tasks by expiry, and an idle task expires after
+    // everything that waits: React's updates and the app's other tasks go
+    // first.
+    invoker->invokeAsync(facebook::react::SchedulerPriority::IdlePriority,
+                         std::move(task));
+  } else {
+    // Without a priority, which is the scheduler's highest: a frame of the
+    // display goes ahead of what waits, like React Native's own timers.
+    invoker->invokeAsync(std::move(task));
+  }
 }
 
 void RuntimeAnimationFrames::scheduleDelegated(jsi::Runtime &runtime) {
@@ -375,9 +467,11 @@ double RuntimeAnimationFrames::timestampOf(jsi::Runtime &runtime,
 void RuntimeAnimationFrames::flush(jsi::Runtime &runtime, uint64_t frameId,
                                    double timestampMs) {
   _scheduled = false;
+  _request.store(0, std::memory_order_release);
   if (frameId > 0) {
     _lastFrameId.store(frameId, std::memory_order_release);
   }
+  _running.store(true, std::memory_order_release);
   // The callbacks requested before this frame; one requested while they run
   // goes to the next frame, and one cancelled meanwhile does not run.
   std::map<double, std::shared_ptr<jsi::Function>> callbacks;
@@ -397,6 +491,7 @@ void RuntimeAnimationFrames::flush(jsi::Runtime &runtime, uint64_t frameId,
     }
   }
   _flushing = nullptr;
+  _running.store(false, std::memory_order_release);
   if (first != nullptr) {
     std::rethrow_exception(first);
   }

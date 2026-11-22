@@ -16,6 +16,7 @@ import com.facebook.proguard.annotations.DoNotStrip;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.JavaScriptContextHolder;
 import com.facebook.react.bridge.LifecycleEventListener;
+import com.facebook.react.common.LifecycleState;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.UIManager;
 import com.facebook.react.bridge.UiThreadUtil;
@@ -37,6 +38,8 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
     super(reactContext);
     // Initialize the C++ module
     initialize();
+    // Animation frames follow the host activity: resumed, or not.
+    setForegroundNative(reactContext.getLifecycleState() == LifecycleState.RESUMED);
     reactContext.addLifecycleEventListener(this);
   }
 
@@ -47,15 +50,19 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
   }
 
   @Override
-  public void onHostResume() {}
+  public void onHostResume() {
+    setForegroundNative(true);
+  }
 
   /**
-   * The app is going to the background: the last moment to write what Dawn's
-   * pipeline caches hold before the process may be killed (see
-   * GPUDevice::flushPipelineCaches).
+   * The app is going to the background: no animation frames until it is back
+   * (see AnimationFrameDispatcher::setForeground), and the last moment to
+   * write what Dawn's pipeline caches hold before the process may be killed
+   * (see GPUDevice::flushPipelineCaches).
    */
   @Override
   public void onHostPause() {
+    setForegroundNative(false);
     flushPipelineCaches();
   }
 
@@ -64,6 +71,16 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
 
   @DoNotStrip
   private native void flushPipelineCaches();
+
+  /**
+   * Whether the app is in the foreground: the host activity is resumed (see
+   * AnimationFrameDispatcher::setForeground). An AChoreographer sends its
+   * frames to a paused app as well: without this, a requestAnimationFrame
+   * loop would keep rendering in the background, which one on React Native's
+   * own does not (JavaTimerManager.onHostPause).
+   */
+  @DoNotStrip
+  private static native void setForegroundNative(boolean foreground);
 
   @OptIn(markerClass = FrameworkAPI.class)
   @ReactMethod(isBlockingSynchronousMethod = true)

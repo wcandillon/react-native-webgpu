@@ -21,6 +21,7 @@
 #include <webgpu/webgpu_cpp.h>
 
 #include "AndroidPlatformContext.h"
+#include "AnimationFrames.h"
 #include "DawnBlobCache.h"
 #include "GPUCanvasContext.h"
 #include "GPUDevice.h"
@@ -51,7 +52,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
   auto jsCallInvoker{
       facebook::jni::alias_ref<facebook::react::CallInvokerHolder::javaobject>{
           reinterpret_cast<facebook::react::CallInvokerHolder::javaobject>(
-              jsCallInvokerHolder)} -> cthis()->getCallInvoker()};
+              jsCallInvokerHolder)} -> cthis()
+          ->getCallInvoker()};
   auto platformContext = std::make_shared<rnwgpu::AndroidPlatformContext>(
       globalBlobModule, globalModule);
   manager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsCallInvoker,
@@ -66,6 +68,16 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_webgpu_WebGPUModule_flushPipelineCaches(JNIEnv * /* env */,
                                                  jobject /* this */) {
   rnwgpu::GPUDevice::flushPipelineCaches();
+}
+
+// WebGPUModule.onHostResume and onHostPause (UI thread): animation frames
+// follow the host activity, resumed or not.
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUModule_setForegroundNative(JNIEnv * /* env */,
+                                                 jclass /* clazz */,
+                                                 jboolean foreground) {
+  rnwgpu::AnimationFrameDispatcher::shared().setForeground(foreground ==
+                                                           JNI_TRUE);
 }
 
 // Completion of WebGPUModule.snapshotView (UI thread). Reclaims the callbacks

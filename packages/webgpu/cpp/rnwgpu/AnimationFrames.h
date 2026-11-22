@@ -75,13 +75,25 @@ public:
   void setSource(std::shared_ptr<AnimationFrameSource> source);
   bool hasSource();
 
+  // Whether the app is in the foreground: the host activity is resumed
+  // (Android), the app is active (iOS). While it is not, the source is asked
+  // for no frame, and what waits for one gets the first frame after the app
+  // is back: a render loop stops with the app. Set by the platform, as
+  // neither source stops on its own; true where the platform says nothing.
+  // Any thread.
+  void setForeground(bool foreground);
+
+  // The latest frame of the display that started.
+  AnimationFrame latestFrame();
+
   // The latest frame, when the caller is still within it (it started less
   // than a frame interval ago) and it is newer than `after`.
   bool currentFrameAfter(uint64_t after, AnimationFrame &frame);
 
-  // Has `frames` delivered the next frame (RuntimeAnimationFrames::deliver,
-  // on the source's thread). Any thread.
-  void requestDelivery(const std::shared_ptr<RuntimeAnimationFrames> &frames);
+  // Has `frames` delivered the next frame, with the request it answers
+  // (RuntimeAnimationFrames::deliver, on the source's thread). Any thread.
+  void requestDelivery(const std::shared_ptr<RuntimeAnimationFrames> &frames,
+                       uint64_t request);
 
   // Blocks until a frame newer than `after` starts, or `timeoutNanos` passes.
   // Returns false on timeout (the display sends no frames: the app is in the
@@ -94,6 +106,12 @@ public:
 private:
   AnimationFrameDispatcher() = default;
 
+  // A runtime that waits for the next frame, and the request it waits with.
+  struct Delivery {
+    std::weak_ptr<RuntimeAnimationFrames> frames;
+    uint64_t request;
+  };
+
   void onFrame(int64_t frameTimeNanos);
   // Called with _mutex held.
   void requestFrameLocked();
@@ -105,13 +123,14 @@ private:
   // The display's frame interval, from consecutive frames: 60 Hz until known.
   int64_t _intervalNanos = 16'666'667;
   bool _frameRequested = false;
+  bool _foreground = true;
   // Frames delivered with nothing waiting: the source keeps ticking a few
   // frames after the last request, so a loop that overruns a frame finds the
   // frame it overran into (see currentFrameAfter) rather than waiting for the
   // one after.
   int _idleFrames = 0;
   int _waiters = 0;
-  std::vector<std::weak_ptr<RuntimeAnimationFrames>> _pending;
+  std::vector<Delivery> _pending;
 };
 
 /**
@@ -142,11 +161,29 @@ public:
   double request(jsi::Runtime &runtime, jsi::Function callback);
   void cancel(double handle);
 
-  // The source's thread: the frame requested through requestDelivery started.
-  void deliver(const AnimationFrameDispatcher::AnimationFrame &frame);
+  // The source's thread: the frame asked for with requestDelivery started.
+  void deliver(const AnimationFrameDispatcher::AnimationFrame &frame,
+               uint64_t request);
 
 private:
+  // How a run of the callbacks comes about, on the main runtime.
+  enum class Run {
+    // None yet.
+    kNone,
+    // On an animation frame: posted as the frame started, while no run was
+    // going on. It goes ahead of what waits on the runtime, like React
+    // Native's timers.
+    kOnFrame,
+    // In a frame that had started already: the one a loop overran into. It
+    // goes behind what waits on the runtime, and only after a run on an
+    // animation frame, so that two in a row at most are back to back.
+    kInFrame,
+  };
+
   void schedule(jsi::Runtime &runtime);
+  // Posts the run of `request` in `frame` to the main runtime. Any thread.
+  void post(const AnimationFrameDispatcher::AnimationFrame &frame,
+            uint64_t request, Run run);
   void scheduleDelegated(jsi::Runtime &runtime);
   void scheduleWaiting(jsi::Runtime &runtime, double delayMs);
   void flush(jsi::Runtime &runtime, uint64_t frameId, double timestampMs);
@@ -159,6 +196,16 @@ private:
   std::map<double, std::shared_ptr<jsi::Function>> *_flushing = nullptr;
   double _nextHandle = 1;
   bool _scheduled = false;
+  uint64_t _requests = 0;
+  // The main runtime, read on the source's thread too (see deliver). What the
+  // callbacks wait on: a number per schedule(), 0 once they ran. A run posted
+  // for another request finds it answered, and does nothing.
+  std::atomic<uint64_t> _request{0};
+  // The request a run in its frame was posted for: one each.
+  std::atomic<uint64_t> _inFrameRequest{0};
+  // Whether the callbacks are running, and how the latest run came about.
+  std::atomic<bool> _running{false};
+  std::atomic<Run> _lastRun{Run::kNone};
   // The last frame run here.
   std::atomic<uint64_t> _lastFrameId{0};
 };

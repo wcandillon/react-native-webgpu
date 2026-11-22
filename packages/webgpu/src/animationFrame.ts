@@ -23,10 +23,10 @@ const frames = globalThis.__webgpuAnimationFrames;
  * ```
  *
  * React Native's global `requestAnimationFrame` is a timer: on Android it
- * makes the next vsync only when it is requested before that vsync's
- * timestamp, which leaves a loop that requests its next frame at the end of
- * its work about 6 ms of a 120 Hz frame (past that, it drops to 60 fps), and
- * on iOS it runs at 60 Hz. On a worklet runtime of your own
+ * makes the next frame of the display only when it is requested before that
+ * frame starts, which leaves a loop that requests its next frame at the end
+ * of its work about 6 ms of a 120 Hz frame (past that, it drops to 60 fps),
+ * and on iOS it runs at 60 Hz. On a worklet runtime of your own
  * (`createWorkletRuntime`), the global one polls every 16 ms (about 48 fps).
  * This one follows the display wherever it is called:
  *
@@ -40,9 +40,16 @@ const frames = globalThis.__webgpuAnimationFrames;
  *
  * Like a browser's, a callback requested while the frame's callbacks run gets
  * the next frame, and every callback of a frame gets the same timestamp: the
- * time the frame started, on the clock of `performance.now()`. A loop that
- * overruns its frame runs again as soon as it asks, in the frame it overran
- * into, rather than waiting for the frame after.
+ * time the frame started, on the clock of `performance.now()`. The callbacks
+ * run once per frame of the display. A loop that overruns its frame runs
+ * again in the frame it overran into rather than waiting for the frame after.
+ * On the React Native runtime that run goes behind whatever waits there
+ * (React's updates, the app's other tasks), and the run after it waits for a
+ * frame of the display: the runtime is never the loop's alone.
+ *
+ * No frame comes while the app is not in the foreground (the host activity
+ * is paused on Android, the app is not active on iOS): a loop stops with the
+ * app, and starts again when it is back.
  *
  * On iPhone, an app only gets more than 60 Hz with
  * `CADisableMinimumFrameDurationOnPhone` set to true in its Info.plist. On
