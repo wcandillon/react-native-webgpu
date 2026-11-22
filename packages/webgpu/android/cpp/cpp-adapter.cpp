@@ -21,6 +21,7 @@
 #include <webgpu/webgpu_cpp.h>
 
 #include "AndroidPlatformContext.h"
+#include "AnimationFrames.h"
 #include "DawnBlobCache.h"
 #include "GPUCanvasContext.h"
 #include "GPUDevice.h"
@@ -51,7 +52,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
   auto jsCallInvoker{
       facebook::jni::alias_ref<facebook::react::CallInvokerHolder::javaobject>{
           reinterpret_cast<facebook::react::CallInvokerHolder::javaobject>(
-              jsCallInvokerHolder)} -> cthis()->getCallInvoker()};
+              jsCallInvokerHolder)} -> cthis()
+          ->getCallInvoker()};
   auto platformContext = std::make_shared<rnwgpu::AndroidPlatformContext>(
       globalBlobModule, globalModule);
   manager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsCallInvoker,
@@ -66,6 +68,16 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_webgpu_WebGPUModule_flushPipelineCaches(JNIEnv * /* env */,
                                                  jobject /* this */) {
   rnwgpu::GPUDevice::flushPipelineCaches();
+}
+
+// WebGPUModule.onHostResume and onHostPause (UI thread): animation frames
+// follow the host activity, resumed or not.
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUModule_setForegroundNative(JNIEnv * /* env */,
+                                                 jclass /* clazz */,
+                                                 jboolean foreground) {
+  rnwgpu::AnimationFrameDispatcher::shared().setForeground(foreground ==
+                                                           JNI_TRUE);
 }
 
 // Completion of WebGPUModule.snapshotView (UI thread). Reclaims the callbacks
@@ -307,7 +319,7 @@ void setAnimationReporter(int contextId,
 
 extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     JNIEnv *env, jobject thiz, jobject jSurface, jint contextId, jfloat width,
-    jfloat height, jboolean reportAnimation) {
+    jfloat height, jboolean reportAnimation, jboolean latchOnMainThread) {
   if (manager == nullptr) {
     return;
   }
@@ -335,6 +347,22 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_onSurfaceCreate(
     setAnimationReporter(contextId, reporter);
     info->setFramePresentedCallback(
         [reporter]() { reporter->onFramePresented(); });
+  } else if (latchOnMainThread) {
+    // A TextureView learns of a new frame through a message on the main
+    // looper, which runs after the frame being drawn: a frame presented on
+    // the main thread (the Reanimated UI runtime, during the Choreographer's
+    // animation callbacks) would only show at the draw after, which halves
+    // the frame rate. Tell the view right away, before this draw
+    // (WebGPUView.onFramePresentedOnMainThread). Other threads present
+    // between draws, where the message is in time.
+    setAnimationReporter(contextId, nullptr);
+    auto latch = std::make_shared<WeakViewCall>(env, thiz,
+                                                "onFramePresentedOnMainThread");
+    info->setFramePresentedCallback([latch]() {
+      if (gettid() == getpid()) {
+        (*latch)();
+      }
+    });
   } else {
     setAnimationReporter(contextId, nullptr);
     info->setFramePresentedCallback(nullptr);

@@ -32,20 +32,22 @@ Android and macOS do not refuse GPU work from a background app, so nothing is he
 This is Dawn's `metal_suspend_submissions_in_background` toggle, enabled on every device React Native WebGPU creates. Pass it in `disabledToggles` (see [dawnToggles](/api/gpu-device-extensions#dawntoggles)) to opt out: the device is then lost over the first refused command buffer.
 
 Holding is not free: everything submitted in the background stays in memory until the app returns, and then runs all at once.
-A render loop should stop submitting while the app is not active:
+So nothing should keep submitting while the app is not active.
+
+A render loop on the [`requestAnimationFrame`](/api/request-animation-frame) of `react-native-webgpu` stops by itself, on the JS thread and on a worklet runtime of your own: no frame comes while the app is not active, and the loop goes on when the app is back.
+
+Work that something else drives has to check for itself: a timer, a video or a camera callback, a loop on another `requestAnimationFrame`.
 
 ```tsx
 import { AppState } from "react-native";
 
-const frame = () => {
-  requestAnimationFrame(frame);
+const onVideoFrame = () => {
   if (AppState.currentState !== "active") {
     // Nothing to show: skip the frame rather than hold it.
     return;
   }
   render();
 };
-requestAnimationFrame(frame);
 ```
 
 ## Loading images

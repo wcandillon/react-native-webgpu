@@ -547,6 +547,14 @@ ApplePlatformContext::createVideoPlayer(const std::string &path,
   return createAppleVideoPlayer(path, format);
 }
 
+// AppleAnimationFrameSource.mm
+std::shared_ptr<AnimationFrameSource> makeAppleAnimationFrameSource();
+
+std::shared_ptr<AnimationFrameSource>
+ApplePlatformContext::makeAnimationFrameSource() {
+  return makeAppleAnimationFrameSource();
+}
+
 std::string ApplePlatformContext::writeTestVideoFile() {
   return writeAppleTestVideoFile();
 }

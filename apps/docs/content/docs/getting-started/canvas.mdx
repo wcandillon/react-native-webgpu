@@ -22,7 +22,13 @@ Mount a `Canvas`, keep a ref, and draw once the device is ready and the view is 
 ```tsx twoslash
 import { useEffect, useRef } from "react";
 import { PixelRatio, StyleSheet, View } from "react-native";
-import { Canvas, useDevice, type CanvasRef } from "react-native-webgpu";
+import {
+  Canvas,
+  cancelAnimationFrame,
+  requestAnimationFrame,
+  useDevice,
+  type CanvasRef,
+} from "react-native-webgpu";
 
 const triangleVertWGSL = `
 @vertex fn main(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
@@ -143,7 +149,7 @@ context.present(); // React Native only
 `present()` is a React Native only method (it is not part of the Web WebGPU spec). It runs **synchronously** on the calling thread, so the frame is presented from whichever thread did the rendering. This works the same on every runtime: the main JS runtime, the UI thread, and dedicated worklet runtimes. Always call it after `submit()`, never before.
 
 Your loop sets the frame rate.
-A loop on the Reanimated UI runtime or on a worklet runtime (see [Worklets](/docs/integrations/worklets)) runs at the display's rate, 120 Hz on a ProMotion iPhone or iPad, while React Native's `requestAnimationFrame` on the JS thread runs at 60 Hz on iOS.
+React Native's global `requestAnimationFrame` drops frames on a high refresh rate display: it runs at 60 Hz on iOS, falls to 60 fps on Android once a frame takes more than about 6 ms of JavaScript, and polls every 16 ms on a worklet runtime of your own. Use the [`requestAnimationFrame`](/api/request-animation-frame) of `react-native-webgpu` instead: it follows the display on every runtime, up to 120 Hz.
 An app created from an Expo or React Native template before React Native 0.82 may still carry iOS's 60 Hz cap for iPhone: [Reanimated's performance guide](https://docs.swmansion.com/react-native-reanimated/docs/guides/performance/#-enable-120-fps) covers the `Info.plist` opt-in.
 
 ## Pixel density

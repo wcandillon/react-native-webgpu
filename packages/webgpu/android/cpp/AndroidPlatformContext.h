@@ -18,6 +18,7 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "AndroidAnimationFrameSource.h"
 #include "AndroidColorSpace.h"
 #include "AndroidVideoPlayer.h"
 #include "PlatformContext.h"
@@ -512,6 +513,10 @@ public:
     auto result = std::make_unique<AndroidVideoPlayer>(env, player);
     env->DeleteLocalRef(player);
     return result;
+  }
+
+  std::shared_ptr<AnimationFrameSource> makeAnimationFrameSource() override {
+    return AndroidAnimationFrameSource::shared();
   }
 
   std::string writeTestVideoFile() override {

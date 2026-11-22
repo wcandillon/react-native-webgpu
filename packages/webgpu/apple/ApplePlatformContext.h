@@ -58,6 +58,8 @@ public:
 
   std::function<void(void *)> retainNativeWindow(void *window) override;
 
+  std::shared_ptr<AnimationFrameSource> makeAnimationFrameSource() override;
+
 private:
   ViewLookup _viewLookup;
   BlobManagerLookup _blobManagerLookup;
