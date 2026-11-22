@@ -11,10 +11,11 @@ The video player exists to test and demonstrate native buffers. For video in an 
 The frames are sampled by WebGPU without any copy through the CPU, with [`importExternalTexture`](/api/gpu-device-extensions#gpuexternaltexture-extensions) or [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory), copied into a regular texture with [`copyExternalImageToTexture`](/api/gpu-device-extensions#copyexternalimagetotexture-with-a-native-frame), and drawn by [React Native Skia](/docs/integrations/react-native-skia#video-and-camera-frames).
 
 ```tsx twoslash
-import { createVideoPlayer } from "react-native-webgpu";
 declare const device: GPUDevice;
 declare const url: string;
 // ---cut---
+import { createVideoPlayer, requestAnimationFrame } from "react-native-webgpu";
+
 const player = createVideoPlayer(url);
 player.play();
 

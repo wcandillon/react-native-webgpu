@@ -47,9 +47,10 @@ const frames = globalThis.__webgpuAnimationFrames;
  * (React's updates, the app's other tasks), and the run after it waits for a
  * frame of the display: the runtime is never the loop's alone.
  *
- * No frame comes while the app is not in the foreground (the host activity
- * is paused on Android, the app is not active on iOS): a loop stops with the
- * app, and starts again when it is back.
+ * On the React Native runtime and on a worklet runtime of your own, no frame
+ * comes while the app is not in the foreground (the host activity is paused
+ * on Android, the app is not active on iOS): a loop stops with the app, and
+ * starts again when it is back.
  *
  * On iPhone, an app only gets more than 60 Hz with
  * `CADisableMinimumFrameDurationOnPhone` set to true in its Info.plist. On

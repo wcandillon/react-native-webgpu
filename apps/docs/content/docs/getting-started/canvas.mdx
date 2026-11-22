@@ -22,7 +22,13 @@ Mount a `Canvas`, keep a ref, and draw once the device is ready and the view is 
 ```tsx twoslash
 import { useEffect, useRef } from "react";
 import { PixelRatio, StyleSheet, View } from "react-native";
-import { Canvas, useDevice, type CanvasRef } from "react-native-webgpu";
+import {
+  Canvas,
+  cancelAnimationFrame,
+  requestAnimationFrame,
+  useDevice,
+  type CanvasRef,
+} from "react-native-webgpu";
 
 const triangleVertWGSL = `
 @vertex fn main(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {

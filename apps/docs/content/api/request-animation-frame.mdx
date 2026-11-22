@@ -63,7 +63,7 @@ Like in a browser, a callback requested while a frame's callbacks run gets the n
 
 A loop that overruns its frame runs again in the frame it overran into, instead of waiting for the frame after. On the JS thread, that run goes behind whatever is waiting there (React's updates, the app's other tasks), and the run after it waits for a frame of the display. A loop that takes 10 ms on a 120 Hz display runs twice every three frames (80 fps) instead of once every two (60 fps), and never keeps React from rendering or timers from firing. On a worklet runtime of your own, which has nothing else to run, it keeps running back to back, close to 100 fps.
 
-No frame comes while the app is not in the foreground: while the host activity is paused on Android, and from the moment the app stops being active on iOS (a lock, a swipe home, Control Center). A loop stops with the app and starts again when it is back.
+On the JS thread and on a worklet runtime of your own, no frame comes while the app is not in the foreground: while the host activity is paused on Android, and from the moment the app stops being active on iOS (a lock, a swipe home, Control Center). A loop stops with the app and starts again when it is back. On the Reanimated UI runtime, Worklets' `requestAnimationFrame` decides.
 
 ## Platform notes
 
