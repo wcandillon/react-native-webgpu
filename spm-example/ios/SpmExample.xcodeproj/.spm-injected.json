@@ -3,6 +3,7 @@
   "target": "SpmExample",
   "targetUuid": "13B07F861A680F5B00A75B9A",
   "injectedUuids": [
+    "0E7522C53FF144A3D39DBA2D",
     "17CA21E30A8FFCB9D0FC1E35",
     "27BDE9D743CB351F53154525",
     "3AFDEFB917B01458307FDE0A",
@@ -177,7 +178,9 @@
     }
   ],
   "generatedSources": {},
-  "scriptPhases": {},
+  "scriptPhases": {
+    "react-native-webgpu.prepare-binaries": "0E7522C53FF144A3D39DBA2D"
+  },
   "artifactsVersionOverride": null,
   "configCommand": null,
   "scheme": {

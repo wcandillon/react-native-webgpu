@@ -1,10 +1,10 @@
 #!/usr/bin/env tsx
 
-// Dawn ships in the react-native-webgpu-dawn package, built by react-native-skia
-// from the Dawn commit its Skia release pins. This checks the installed one
+// Dawn is pinned in binaries.json and published by react-native-skia.
+// Headers are prepared from that release before building/publishing. This checks it
 // against the C++ workarounds below, which exist for Dawn bugs that an upstream
 // fix makes obsolete. Each entry names the Dawn commit it was validated against.
-// Bumping the dependency to a package built from another commit fails here
+// Selecting a release built from another commit fails here
 // until whoever does the bump checks whether the upstream fix is included: if
 // it is, delete the marked code and the entry; if it is not, update `commit`
 // (and re-verify the diagnostic screen).
@@ -12,15 +12,18 @@
 // Runs from `yarn check-dawn`, in CI right after `yarn install`.
 
 import { existsSync, readFileSync, readdirSync } from "fs";
-import { dirname, join } from "path";
+import { join } from "path";
 
-const dawnPackageJson =
-  require.resolve("react-native-webgpu-dawn/package.json");
-const dawnPackage = JSON.parse(readFileSync(dawnPackageJson, "utf-8"));
-const installedCommit: string | undefined = dawnPackage.dawn?.commit;
+const root = join(__dirname, "..");
+const binaries = JSON.parse(readFileSync(join(root, "binaries.json"), "utf-8"));
+const installedCommit: string | undefined = binaries.dawn?.commit;
 if (!installedCommit) {
+  console.error("❌ binaries.json must record dawn.commit");
+  process.exit(1);
+}
+if (!existsSync(join(root, "cpp/dawn/include/webgpu/webgpu.h"))) {
   console.error(
-    `❌ ${dawnPackageJson} does not record the Dawn commit it was built from (dawn.commit)`,
+    "❌ Dawn headers are missing. Run yarn copy-dawn-headers before building or checking Dawn."
   );
   process.exit(1);
 }
@@ -37,7 +40,7 @@ const dawnWorkarounds = [
     upstream: "Dawn CL pending (see the workaround comment in the files)",
   },
   {
-    // Not a workaround: a copy of a Dawn header the package does not ship.
+    // Not a workaround: an internal Dawn header absent from the public headers.
     // The functions it declares are exported by the Dawn binaries; the header
     // has to match the Dawn the binaries were built from.
     marker: "DAWN_VENDORED_EXTERNAL_TEXTURE_PARAMS",
@@ -48,39 +51,25 @@ const dawnWorkarounds = [
   },
 ];
 
-const root = join(__dirname, "..");
-
-// On Android, Gradle downloads Dawn from the binaries-<version> release that
-// binaries.json pins, while the Apple builds link the package, and
-// react-native-skia pairs the two libraries on the package's version: the two
-// pins must name the same Dawn.
-const binaries = JSON.parse(readFileSync(join(root, "binaries.json"), "utf-8"));
-if (
-  binaries.version !== dawnPackage.version ||
-  binaries.dawn?.commit !== installedCommit
-) {
-  console.error(
-    `❌ binaries.json pins binaries ${binaries.version} (Dawn ${String(binaries.dawn?.commit).slice(0, 10)}) but react-native-webgpu-dawn is ${dawnPackage.version} (Dawn ${installedCommit.slice(0, 10)}). Bump both together, see "Upgrading Dawn" in CONTRIBUTING.md.`,
-  );
-  process.exit(1);
-}
-
 // Until #507 the build copied Dawn's headers into cpp/webgpu and cpp/dawn.
-// Both come before the package's include directory on every include path
-// (podspec HEADER_SEARCH_PATHS, android/CMakeLists.txt), so a copy left over
-// from that build silently shadows the headers the binaries were built from.
-// cpp/dawn/common is vendored on purpose (see the entry above).
+// Both can shadow the prepared include directory. cpp/dawn/common is vendored
+// on purpose; cpp/dawn/include holds the current release headers.
 const staleHeaderDirs = [
   "cpp/webgpu",
   ...(existsSync(join(root, "cpp/dawn"))
     ? readdirSync(join(root, "cpp/dawn"))
-        .filter((entry) => entry !== "common" && !entry.startsWith("."))
+        .filter(
+          (entry) =>
+            entry !== "common" && entry !== "include" && !entry.startsWith(".")
+        )
         .map((entry) => `cpp/dawn/${entry}`)
     : []),
 ].filter((dir) => existsSync(join(root, dir)));
 if (staleHeaderDirs.length > 0) {
   console.error(
-    `❌ Stale Dawn header copies shadow react-native-webgpu-dawn's include directory: ${staleHeaderDirs.join(", ")}. Delete them; Dawn's headers come from the package since #507.`,
+    `❌ Stale Dawn header copies shadow cpp/dawn/include: ${staleHeaderDirs.join(
+      ", "
+    )}. Delete them and run yarn copy-dawn-headers.`
   );
   process.exit(1);
 }
@@ -96,21 +85,28 @@ for (const workaround of dawnWorkarounds) {
   });
   if (present.length === 0) {
     console.error(
-      `❌ Workaround ${workaround.marker} is gone from the sources; remove its entry from scripts/check-dawn.ts`,
+      `❌ Workaround ${workaround.marker} is gone from the sources; remove its entry from scripts/check-dawn.ts`
     );
     failed = true;
   } else if (present.length !== workaround.files.length) {
     const missing = workaround.files.filter((file) => !present.includes(file));
     console.error(
-      `❌ Workaround ${workaround.marker} is only partially applied: missing from ${missing.join(", ")}`,
+      `❌ Workaround ${
+        workaround.marker
+      } is only partially applied: missing from ${missing.join(", ")}`
     );
     failed = true;
   } else if (installedCommit !== workaround.commit) {
     console.error(
-      `❌ Dawn changed (${workaround.commit.slice(0, 10)} -> ${installedCommit.slice(0, 10)}, react-native-webgpu-dawn ${dawnPackage.version}) but ${workaround.marker} is still in ${present.join(", ")}`,
+      `❌ Dawn changed (${workaround.commit.slice(
+        0,
+        10
+      )} -> ${installedCommit.slice(0, 10)}, binaries ${
+        binaries.version
+      }) but ${workaround.marker} is still in ${present.join(", ")}`
     );
     console.error(
-      `   Check whether this Dawn contains the upstream fix (${workaround.upstream}). If it does, remove the marked code and this entry; if not, update the commit in scripts/check-dawn.ts`,
+      `   Check whether this Dawn contains the upstream fix (${workaround.upstream}). If it does, remove the marked code and this entry; if not, update the commit in scripts/check-dawn.ts`
     );
     failed = true;
   }
@@ -120,5 +116,8 @@ if (failed) {
 }
 
 console.log(
-  `✅ react-native-webgpu-dawn ${dawnPackage.version} (Dawn ${installedCommit.slice(0, 10)}) at ${dirname(dawnPackageJson)}`,
+  `✅ binaries ${binaries.version} (Dawn ${installedCommit.slice(
+    0,
+    10
+  )}) at ${join(root, "cpp/dawn/include")}`
 );

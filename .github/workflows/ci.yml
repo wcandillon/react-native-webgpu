@@ -201,8 +201,8 @@ jobs:
   # packages/webgpu/Package.swift resolves and compiles, so a pull request
   # pays for it only when its diff touches what can change the outcome: the
   # manifest and the autolinking config, the Apple and C++ sources it
-  # compiles, the scripts behind the Dawn check, the dependencies that pin
-  # react-native-webgpu-dawn, the example that links it, or CI itself. Pushes
+  # compiles, preparation/check scripts, the Dawn release pin,
+  # the example that links it, or CI itself. Pushes
   # to main, the merge queue and manual runs always build SwiftPM. macOS builds
   # on main, manual runs and relevant PRs; shared JavaScript is checked by
   # bundle-macos on every PR.
@@ -237,7 +237,7 @@ jobs:
           macos=false
           while IFS= read -r file; do
             case "$file" in
-              packages/webgpu/Package.swift|packages/webgpu/package.json|packages/webgpu/react-native.config.js|\
+              packages/webgpu/Package.swift|packages/webgpu/*.podspec|packages/webgpu/package.json|packages/webgpu/binaries.json|packages/webgpu/react-native.config.js|\
               packages/webgpu/apple/*|packages/webgpu/cpp/*|packages/webgpu/scripts/*|\
               spm-example/*|package.json|yarn.lock|\
               .github/workflows/ci.yml|.github/actions/setup/*)
@@ -246,7 +246,7 @@ jobs:
                 ;;
             esac
             case "$file" in
-              apps/example-macos/*|packages/webgpu/*.podspec|packages/webgpu/package.json|\
+              apps/example-macos/*|packages/webgpu/*.podspec|packages/webgpu/package.json|packages/webgpu/binaries.json|\
               packages/webgpu/react-native.config.js|packages/webgpu/apple/*|packages/webgpu/cpp/*|\
               packages/webgpu/scripts/*|package.json|yarn.lock|.yarn/patches/*|turbo.json|\
               .github/workflows/ci.yml|.github/actions/setup/*)
@@ -292,15 +292,15 @@ jobs:
 
   # The SwiftPM example gets its own job on a GitHub-hosted Mac. It needs no
   # Metro, simulator or CocoaPods, so nothing ties it to the self-hosted
-  # machine, and a fresh runner is the strictest check that the WebGPUDawn
-  # binaryTarget resolves from the release zip + checksum with nothing cached.
+  # machine. The Xcode phase selects the simulator SDK archive and verifies
+  # its checksum, independently of SwiftPM package resolution.
   # It used to be a step of `build`: a hung xcodebuild there blocked the iOS
   # e2e result and held the self-hosted runner, which has no slack for that.
   build-spm-ios:
     needs: changes
     if: needs.changes.outputs.spm == 'true'
     runs-on: macos-latest
-    # Cold run: yarn install, Dawn download, RN artifacts, then one xcodebuild.
+    # Install JS/headers, resolve RN artifacts, then prepare Dawn during Xcode.
     timeout-minutes: 25
     steps:
       - name: Checkout
@@ -320,7 +320,7 @@ jobs:
 
       # spm-example sits outside the yarn workspace so its React Native can
       # differ from the one apps/example pins: SwiftPM autolinking needs
-      # React Native 0.87+. It ships no lockfile; react and react-native are
+      # React Native 0.87.1+. It ships no lockfile; react and react-native are
       # pinned exactly in its package.json.
       - name: Install spm-example dependencies
         working-directory: spm-example
@@ -333,11 +333,8 @@ jobs:
         working-directory: spm-example/ios
         run: npx react-native spm update
 
-      # No CocoaPods and no -disableAutomaticPackageResolution here (unlike
-      # the example app build above): react-native-webgpu is linked through
-      # its own Package.swift, and its WebGPUDawn binaryTarget resolves to a
-      # remote release zip + checksum with nothing cached ahead of time: this
-      # build's whole point is exercising that download-and-verify step.
+      # No CocoaPods: the package compiles from bundled headers, and its Xcode
+      # phase prepares only the selected SDK's Dawn before the app links.
       - name: Build spm-example for iOS
         working-directory: spm-example/ios
         run: |

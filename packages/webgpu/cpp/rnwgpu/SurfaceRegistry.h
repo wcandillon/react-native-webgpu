@@ -442,8 +442,8 @@ public:
   // not touch the device, and this must not change behaviour there.
   //
   // Remove once the pinned Dawn contains the upstream fix; the check in
-  // scripts/check-dawn.ts fails when the Dawn the react-native-webgpu-dawn
-  // package was built from changes, so that decision is not forgotten.
+  // scripts/check-dawn.ts fails when binaries.json selects another Dawn
+  // commit, so that decision is not forgotten.
   void releaseSurfaceForDevice(const wgpu::Device &device) {
 #if defined(__ANDROID__)
     std::unique_lock<std::shared_mutex> lock(_mutex);

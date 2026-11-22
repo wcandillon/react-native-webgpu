@@ -74,5 +74,5 @@ lib/
 # compiled Expo config plugin
 plugin/build/
 
-# Dawn xcframework copied in from react-native-webgpu-dawn at pod install
+# Local prebuilt binaries and generated package files.
 libs/
