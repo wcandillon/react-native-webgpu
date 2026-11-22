@@ -248,12 +248,36 @@ void AnimationFrameDispatcher::onFrame(int64_t frameTimeNanos) {
 RuntimeAnimationFrames::RuntimeAnimationFrames(jsi::Runtime &runtime, Kind kind)
     : _runtime(runtime), _kind(kind) {}
 
+namespace {
+
+/**
+ * What a runtime holds of its animation frames, as its runtimeData.
+ *
+ * The callbacks are values of the runtime: they have to go while it is still
+ * there, from the thread that takes it down. The runtime releasing its
+ * runtimeData is that moment, and the last one. It is not always the last
+ * reference to the RuntimeAnimationFrames though: the dispatcher holds one on
+ * its own thread for the time of a deliver(), once per frame, and a runtime
+ * that goes away meanwhile (a reload) would leave the callbacks to be
+ * destroyed there, after the runtime. So they are released here, and whoever
+ * holds the last reference destroys an object without any.
+ */
+struct RuntimeData {
+  explicit RuntimeData(std::shared_ptr<RuntimeAnimationFrames> frames)
+      : frames(std::move(frames)) {}
+  ~RuntimeData() { frames->releaseCallbacks(); }
+
+  std::shared_ptr<RuntimeAnimationFrames> frames;
+};
+
+} // namespace
+
 std::shared_ptr<RuntimeAnimationFrames>
 RuntimeAnimationFrames::forRuntime(jsi::Runtime &runtime) {
-  auto existing = std::static_pointer_cast<RuntimeAnimationFrames>(
+  auto existing = std::static_pointer_cast<RuntimeData>(
       runtime.getRuntimeData(runtimeDataUUID()));
   if (existing) {
-    return existing;
+    return existing->frames;
   }
   using RuntimeKind = async::RuntimeContext::RuntimeKind;
   Kind kind = Kind::Delegated;
@@ -272,8 +296,16 @@ RuntimeAnimationFrames::forRuntime(jsi::Runtime &runtime) {
     }
   }
   auto frames = std::make_shared<RuntimeAnimationFrames>(runtime, kind);
-  runtime.setRuntimeData(runtimeDataUUID(), frames);
+  runtime.setRuntimeData(runtimeDataUUID(),
+                         std::make_shared<RuntimeData>(frames));
   return frames;
+}
+
+void RuntimeAnimationFrames::releaseCallbacks() {
+  _callbacks.clear();
+  _scheduled = false;
+  // A frame being delivered finds nothing waiting for it.
+  _request.store(0, std::memory_order_release);
 }
 
 double RuntimeAnimationFrames::request(jsi::Runtime &runtime,

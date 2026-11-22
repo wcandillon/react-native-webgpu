@@ -135,7 +135,9 @@ private:
 
 /**
  * The animation frame callbacks of one runtime. Owned by the runtime (its
- * runtimeData); the callbacks are only touched on the runtime's thread.
+ * runtimeData); the callbacks are only touched on the runtime's thread, and
+ * go when the runtime lets go of this (see releaseCallbacks), whoever holds
+ * the last reference.
  */
 class RuntimeAnimationFrames
     : public std::enable_shared_from_this<RuntimeAnimationFrames> {
@@ -164,6 +166,12 @@ public:
   // The source's thread: the frame asked for with requestDelivery started.
   void deliver(const AnimationFrameDispatcher::AnimationFrame &frame,
                uint64_t request);
+
+  // The runtime is going away, and releases its runtimeData: the callbacks,
+  // which are values of the runtime, go now, while it is still there. The
+  // dispatcher's thread may hold the last reference to this, and outlive the
+  // runtime with it.
+  void releaseCallbacks();
 
 private:
   // How a run of the callbacks comes about, on the main runtime.
