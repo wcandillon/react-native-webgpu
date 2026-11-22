@@ -18,9 +18,9 @@
 
 #include "webgpu/webgpu_cpp.h"
 
+#include "AndroidAnimationFrameSource.h"
 #include "AndroidColorSpace.h"
 #include "AndroidVideoPlayer.h"
-#include "AndroidVsyncSource.h"
 #include "PlatformContext.h"
 #include "RNWebGPUManager.h"
 
@@ -515,8 +515,8 @@ public:
     return result;
   }
 
-  std::shared_ptr<VsyncSource> makeVsyncSource() override {
-    return AndroidVsyncSource::shared();
+  std::shared_ptr<AnimationFrameSource> makeAnimationFrameSource() override {
+    return AndroidAnimationFrameSource::shared();
   }
 
   std::string writeTestVideoFile() override {

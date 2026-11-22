@@ -547,11 +547,12 @@ ApplePlatformContext::createVideoPlayer(const std::string &path,
   return createAppleVideoPlayer(path, format);
 }
 
-// AppleVsyncSource.mm
-std::shared_ptr<VsyncSource> makeAppleVsyncSource();
+// AppleAnimationFrameSource.mm
+std::shared_ptr<AnimationFrameSource> makeAppleAnimationFrameSource();
 
-std::shared_ptr<VsyncSource> ApplePlatformContext::makeVsyncSource() {
-  return makeAppleVsyncSource();
+std::shared_ptr<AnimationFrameSource>
+ApplePlatformContext::makeAnimationFrameSource() {
+  return makeAppleAnimationFrameSource();
 }
 
 std::string ApplePlatformContext::writeTestVideoFile() {

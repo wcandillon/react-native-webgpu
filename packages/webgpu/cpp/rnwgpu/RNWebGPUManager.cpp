@@ -100,8 +100,8 @@ RNWebGPUManager::RNWebGPUManager(
   // src/animationFrame.ts). The source is the platform's, kept across reloads;
   // the HostObject is handed to other runtimes by reference, like the
   // helpers below.
-  AnimationFrameScheduler::shared().setVsyncSource(
-      _platformContext->makeVsyncSource());
+  AnimationFrameDispatcher::shared().setSource(
+      _platformContext->makeAnimationFrameSource());
   _jsRuntime->global().setProperty(
       *_jsRuntime, "__webgpuAnimationFrames",
       jsi::Object::createFromHostObject(

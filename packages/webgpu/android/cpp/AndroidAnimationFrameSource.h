@@ -20,16 +20,17 @@ namespace rnwgpu {
  * The display's frames on Android: an AChoreographer on a looper thread of its
  * own, so that a busy main thread or JS thread never delays them. A request
  * from any thread sets a flag and wakes the looper, which posts one frame
- * callback; the frame time is the vsync's, on CLOCK_MONOTONIC (the clock of
- * std::chrono::steady_clock). The thread lives as long as the process.
+ * callback; the frame time is the choreographer's, on CLOCK_MONOTONIC (the
+ * clock of std::chrono::steady_clock). The thread lives as long as the
+ * process.
  */
-class AndroidVsyncSource : public VsyncSource {
+class AndroidAnimationFrameSource : public AnimationFrameSource {
 public:
   // The process's source, made on first use (its thread then runs for the
   // life of the process); null when the thread gets no choreographer. A
   // reload asks again and gets the same one.
-  static std::shared_ptr<AndroidVsyncSource> shared() {
-    static std::shared_ptr<AndroidVsyncSource> source = create();
+  static std::shared_ptr<AndroidAnimationFrameSource> shared() {
+    static std::shared_ptr<AndroidAnimationFrameSource> source = create();
     return source;
   }
 
@@ -39,10 +40,11 @@ public:
   }
 
 private:
-  AndroidVsyncSource() = default;
+  AndroidAnimationFrameSource() = default;
 
-  static std::shared_ptr<AndroidVsyncSource> create() {
-    auto source = std::shared_ptr<AndroidVsyncSource>(new AndroidVsyncSource());
+  static std::shared_ptr<AndroidAnimationFrameSource> create() {
+    auto source = std::shared_ptr<AndroidAnimationFrameSource>(
+        new AndroidAnimationFrameSource());
     // Shared with the thread, which may still be inside set_value() when
     // get() returns here.
     auto ready = std::make_shared<std::promise<ALooper *>>();
@@ -63,12 +65,12 @@ private:
                                        void *);
 
   void run(std::promise<ALooper *> &ready) {
-    pthread_setname_np(pthread_self(), "RNWebGPU Vsync");
+    pthread_setname_np(pthread_self(), "RNWebGPU Frames");
     ALooper *looper = ALooper_prepare(0);
     _choreographer = AChoreographer_getInstance();
     if (looper == nullptr || _choreographer == nullptr) {
       __android_log_print(ANDROID_LOG_WARN, "RNWebGPU",
-                          "No choreographer on the vsync thread: "
+                          "No choreographer on the animation frame thread: "
                           "requestAnimationFrame falls back to the runtime's.");
       ready.set_value(nullptr);
       return;
@@ -93,7 +95,8 @@ private:
       _postFrameCallback64(
           _choreographer,
           [](int64_t frameTimeNanos, void *data) {
-            static_cast<AndroidVsyncSource *>(data)->onFrame(frameTimeNanos);
+            static_cast<AndroidAnimationFrameSource *>(data)->onFrame(
+                frameTimeNanos);
           },
           this);
       return;
@@ -105,10 +108,10 @@ private:
     AChoreographer_postFrameCallback(
         _choreographer,
         [](long frameTimeNanos, void *data) {
-          static_cast<AndroidVsyncSource *>(data)->onFrame(
+          static_cast<AndroidAnimationFrameSource *>(data)->onFrame(
               sizeof(long) >= sizeof(int64_t)
                   ? static_cast<int64_t>(frameTimeNanos)
-                  : AnimationFrameScheduler::nowNanos());
+                  : AnimationFrameDispatcher::nowNanos());
         },
         this);
 #pragma clang diagnostic pop

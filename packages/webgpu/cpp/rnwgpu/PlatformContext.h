@@ -13,7 +13,7 @@
 
 namespace rnwgpu {
 
-class VsyncSource;
+class AnimationFrameSource;
 
 struct ImageData {
   std::vector<uint8_t> data;
@@ -265,7 +265,9 @@ public:
   // The display's frames, for requestAnimationFrame (see AnimationFrames.h);
   // null where the platform has none, and every runtime then uses its own
   // global requestAnimationFrame.
-  virtual std::shared_ptr<VsyncSource> makeVsyncSource() { return nullptr; }
+  virtual std::shared_ptr<AnimationFrameSource> makeAnimationFrameSource() {
+    return nullptr;
+  }
 
   // Write a small procedurally-generated test video to a temporary location
   // and return its absolute path. Lets the SharedTextureMemory example play

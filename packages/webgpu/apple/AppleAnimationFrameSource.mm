@@ -7,14 +7,14 @@
 #include <memory>
 
 namespace rnwgpu {
-class AppleVsyncSource;
-std::shared_ptr<VsyncSource> makeAppleVsyncSource();
+class AppleAnimationFrameSource;
+std::shared_ptr<AnimationFrameSource> makeAppleAnimationFrameSource();
 } // namespace rnwgpu
 
 // The display link's target. A CADisplayLink retains its target, and the
 // source outlives it anyway: the target borrows the source.
-@interface RNWGVsyncTarget : NSObject
-- (instancetype)initWithSource:(rnwgpu::AppleVsyncSource *)source;
+@interface RNWGAnimationFrameTarget : NSObject
+- (instancetype)initWithSource:(rnwgpu::AppleAnimationFrameSource *)source;
 - (void)onFrame:(CADisplayLink *)link;
 @end
 
@@ -34,13 +34,13 @@ namespace rnwgpu {
  * between requests, and only pauses after kIdleFramesBeforePause frames
  * without one: pausing it at every frame and unpausing it at the next request
  * reads to the system as a link that keeps stopping, which it does not run at
- * 120 Hz. The frame time is the vsync's, moved from the display link's clock
- * to std::chrono::steady_clock. The thread lives as long as the process.
+ * 120 Hz. The frame time is the link's timestamp, moved from its clock to
+ * std::chrono::steady_clock. The thread lives as long as the process.
  */
-class AppleVsyncSource : public VsyncSource {
+class AppleAnimationFrameSource : public AnimationFrameSource {
 public:
-  static std::shared_ptr<AppleVsyncSource> shared() {
-    static std::shared_ptr<AppleVsyncSource> source = create();
+  static std::shared_ptr<AppleAnimationFrameSource> shared() {
+    static std::shared_ptr<AppleAnimationFrameSource> source = create();
     return source;
   }
 
@@ -68,18 +68,20 @@ public:
     _idleFrames = 0;
     const CFTimeInterval age = CACurrentMediaTime() - link.timestamp;
     const int64_t ageNanos = age > 0 ? static_cast<int64_t>(age * 1e9) : 0;
-    deliverFrame(AnimationFrameScheduler::nowNanos() - ageNanos);
+    deliverFrame(AnimationFrameDispatcher::nowNanos() - ageNanos);
   }
 
 private:
-  AppleVsyncSource() = default;
+  AppleAnimationFrameSource() = default;
 
-  static std::shared_ptr<AppleVsyncSource> create() {
-    auto source = std::shared_ptr<AppleVsyncSource>(new AppleVsyncSource());
+  static std::shared_ptr<AppleAnimationFrameSource> create() {
+    auto source = std::shared_ptr<AppleAnimationFrameSource>(
+        new AppleAnimationFrameSource());
     auto *raw = source.get();
     dispatch_semaphore_t ready = dispatch_semaphore_create(0);
     NSThread *thread = [[NSThread alloc] initWithBlock:^{
-      RNWGVsyncTarget *target = [[RNWGVsyncTarget alloc] initWithSource:raw];
+      RNWGAnimationFrameTarget *target =
+          [[RNWGAnimationFrameTarget alloc] initWithSource:raw];
       CADisplayLink *link =
           [CADisplayLink displayLinkWithTarget:target
                                       selector:@selector(onFrame:)];
@@ -103,7 +105,7 @@ private:
         }
       }
     }];
-    thread.name = @"RNWebGPU Vsync";
+    thread.name = @"RNWebGPU Frames";
     thread.qualityOfService = NSQualityOfServiceUserInteractive;
     [thread start];
     dispatch_semaphore_wait(ready, DISPATCH_TIME_FOREVER);
@@ -130,30 +132,32 @@ private:
   int _idleFrames = 0;
 };
 
-std::shared_ptr<VsyncSource> makeAppleVsyncSource() {
-  return AppleVsyncSource::shared();
+std::shared_ptr<AnimationFrameSource> makeAppleAnimationFrameSource() {
+  return AppleAnimationFrameSource::shared();
 }
 
 #else
 
 // macOS: none for now. Each runtime keeps its own requestAnimationFrame.
-class AppleVsyncSource : public VsyncSource {
+class AppleAnimationFrameSource : public AnimationFrameSource {
 public:
   void requestFrame() override {}
   void onFrame(CADisplayLink *) {}
 };
 
-std::shared_ptr<VsyncSource> makeAppleVsyncSource() { return nullptr; }
+std::shared_ptr<AnimationFrameSource> makeAppleAnimationFrameSource() {
+  return nullptr;
+}
 
 #endif
 
 } // namespace rnwgpu
 
-@implementation RNWGVsyncTarget {
-  rnwgpu::AppleVsyncSource *_source;
+@implementation RNWGAnimationFrameTarget {
+  rnwgpu::AppleAnimationFrameSource *_source;
 }
 
-- (instancetype)initWithSource:(rnwgpu::AppleVsyncSource *)source {
+- (instancetype)initWithSource:(rnwgpu::AppleAnimationFrameSource *)source {
   if ((self = [super init])) {
     _source = source;
   }

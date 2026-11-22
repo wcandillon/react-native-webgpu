@@ -21,8 +21,8 @@
  * its work about 6 ms of the 8.3 ms of a 120 Hz frame, and drops it to
  * 60 fps past that; on iOS its display link runs at 60 Hz. Worklets'
  * requestAnimationFrame on a runtime of the app's polls every 16 ms. Here,
- * the display's frames come from a vsync source of the platform's
- * (VsyncSource), and:
+ * the display's frames come from an animation frame source of the platform's
+ * (AnimationFrameSource), and:
  *
  * - The main runtime gets them through its CallInvoker: each frame runs every
  *   callback queued before it, with the frame's time.
@@ -33,9 +33,9 @@
  *   runs on the runtime; it gives up (and tries again later) when the display
  *   sends no frames, in the background say.
  * - The Reanimated UI runtime keeps worklets' requestAnimationFrame, which is
- *   paced by the display already (and runs on the main thread, which a vsync
- *   source of ours would have to hop to). So does any runtime when there is
- *   no vsync source.
+ *   paced by the display already (and runs on the main thread, which a source
+ *   of ours would have to hop to). So does any runtime when there is no
+ *   animation frame source.
  *
  * Like a browser, a frame runs the callbacks requested before it started, and
  * a callback requested while they run gets the next frame. A loop that
@@ -81,23 +81,23 @@ jsi::Function getGlobalFunction(jsi::Runtime &runtime, const char *name) {
 
 } // namespace
 
-// AnimationFrameScheduler
+// AnimationFrameDispatcher
 
-AnimationFrameScheduler &AnimationFrameScheduler::shared() {
-  // Never destroyed: the vsync source calls into it from its own thread for
-  // the life of the process.
-  static auto *scheduler = new AnimationFrameScheduler();
-  return *scheduler;
+AnimationFrameDispatcher &AnimationFrameDispatcher::shared() {
+  // Never destroyed: the animation frame source calls into it from its own
+  // thread for the life of the process.
+  static auto *dispatcher = new AnimationFrameDispatcher();
+  return *dispatcher;
 }
 
-int64_t AnimationFrameScheduler::nowNanos() {
+int64_t AnimationFrameDispatcher::nowNanos() {
   return std::chrono::duration_cast<std::chrono::nanoseconds>(
              std::chrono::steady_clock::now().time_since_epoch())
       .count();
 }
 
-void AnimationFrameScheduler::setVsyncSource(
-    std::shared_ptr<VsyncSource> source) {
+void AnimationFrameDispatcher::setSource(
+    std::shared_ptr<AnimationFrameSource> source) {
   if (source == nullptr) {
     return;
   }
@@ -111,12 +111,13 @@ void AnimationFrameScheduler::setVsyncSource(
   _source = std::move(source);
 }
 
-bool AnimationFrameScheduler::hasVsyncSource() {
+bool AnimationFrameDispatcher::hasSource() {
   std::lock_guard<std::mutex> lock(_mutex);
   return _source != nullptr;
 }
 
-bool AnimationFrameScheduler::currentFrameAfter(uint64_t after, Frame &frame) {
+bool AnimationFrameDispatcher::currentFrameAfter(uint64_t after,
+                                                 AnimationFrame &frame) {
   std::lock_guard<std::mutex> lock(_mutex);
   if (_latest.id > after && nowNanos() - _latest.timeNanos < _intervalNanos) {
     frame = _latest;
@@ -130,7 +131,7 @@ bool AnimationFrameScheduler::currentFrameAfter(uint64_t after, Frame &frame) {
   return false;
 }
 
-void AnimationFrameScheduler::requestDelivery(
+void AnimationFrameDispatcher::requestDelivery(
     const std::shared_ptr<RuntimeAnimationFrames> &frames) {
   std::lock_guard<std::mutex> lock(_mutex);
   _pending.push_back(frames);
@@ -138,9 +139,9 @@ void AnimationFrameScheduler::requestDelivery(
   requestFrameLocked();
 }
 
-bool AnimationFrameScheduler::waitForFrameAfter(uint64_t after,
-                                                int64_t timeoutNanos,
-                                                Frame &frame) {
+bool AnimationFrameDispatcher::waitForFrameAfter(uint64_t after,
+                                                 int64_t timeoutNanos,
+                                                 AnimationFrame &frame) {
   std::unique_lock<std::mutex> lock(_mutex);
   _idleFrames = 0;
   requestFrameLocked();
@@ -161,7 +162,7 @@ bool AnimationFrameScheduler::waitForFrameAfter(uint64_t after,
   return started;
 }
 
-void AnimationFrameScheduler::requestFrameLocked() {
+void AnimationFrameDispatcher::requestFrameLocked() {
   if (_source == nullptr || _frameRequested) {
     return;
   }
@@ -169,9 +170,9 @@ void AnimationFrameScheduler::requestFrameLocked() {
   _source->requestFrame();
 }
 
-void AnimationFrameScheduler::onFrame(int64_t frameTimeNanos) {
+void AnimationFrameDispatcher::onFrame(int64_t frameTimeNanos) {
   std::vector<std::weak_ptr<RuntimeAnimationFrames>> pending;
-  Frame frame;
+  AnimationFrame frame;
   {
     std::lock_guard<std::mutex> lock(_mutex);
     const int64_t elapsed = frameTimeNanos - _latest.timeNanos;
@@ -214,7 +215,7 @@ RuntimeAnimationFrames::forRuntime(jsi::Runtime &runtime) {
   }
   using RuntimeKind = async::RuntimeContext::RuntimeKind;
   Kind kind = Kind::Delegated;
-  if (AnimationFrameScheduler::shared().hasVsyncSource()) {
+  if (AnimationFrameDispatcher::shared().hasSource()) {
     switch (async::RuntimeContext::runtimeKindOf(runtime)) {
     case RuntimeKind::Main:
       if (async::RuntimeContext::mainInvoker() != nullptr) {
@@ -255,14 +256,14 @@ void RuntimeAnimationFrames::schedule(jsi::Runtime &runtime) {
   switch (_kind) {
   case Kind::Main: {
     _scheduled = true;
-    AnimationFrameScheduler::Frame frame;
+    AnimationFrameDispatcher::AnimationFrame frame;
     // The frame we are in has not run here: a loop that overran its frame
     // runs in this one right away.
-    if (AnimationFrameScheduler::shared().currentFrameAfter(
+    if (AnimationFrameDispatcher::shared().currentFrameAfter(
             _lastFrameId.load(std::memory_order_acquire), frame)) {
       deliver(frame);
     } else {
-      AnimationFrameScheduler::shared().requestDelivery(shared_from_this());
+      AnimationFrameDispatcher::shared().requestDelivery(shared_from_this());
     }
     return;
   }
@@ -278,7 +279,7 @@ void RuntimeAnimationFrames::schedule(jsi::Runtime &runtime) {
 }
 
 void RuntimeAnimationFrames::deliver(
-    const AnimationFrameScheduler::Frame &frame) {
+    const AnimationFrameDispatcher::AnimationFrame &frame) {
   auto invoker = async::RuntimeContext::mainInvoker();
   if (invoker == nullptr) {
     return;
@@ -311,7 +312,8 @@ void RuntimeAnimationFrames::scheduleDelegated(jsi::Runtime &runtime) {
         if (count > 0 && args[0].isNumber()) {
           timestamp = args[0].asNumber();
         } else {
-          timestamp = timestampOf(runtime, AnimationFrameScheduler::nowNanos());
+          timestamp =
+              timestampOf(runtime, AnimationFrameDispatcher::nowNanos());
         }
         self->flush(runtime, 0, timestamp);
         return jsi::Value::undefined();
@@ -332,8 +334,8 @@ void RuntimeAnimationFrames::scheduleWaiting(jsi::Runtime &runtime,
         if (self == nullptr || &runtime != &self->_runtime) {
           return jsi::Value::undefined();
         }
-        AnimationFrameScheduler::Frame frame;
-        if (!AnimationFrameScheduler::shared().waitForFrameAfter(
+        AnimationFrameDispatcher::AnimationFrame frame;
+        if (!AnimationFrameDispatcher::shared().waitForFrameAfter(
                 self->_lastFrameId.load(std::memory_order_acquire),
                 kWaitTimeoutNanos, frame)) {
           // No frames (the app is in the background): give the runtime
@@ -351,9 +353,10 @@ double RuntimeAnimationFrames::timestampOf(jsi::Runtime &runtime,
                                            int64_t frameTimeNanos) {
   // The frame's time on the runtime's performance.now() clock, whatever its
   // origin: now, minus how long ago the frame started.
-  const double ageMs = static_cast<double>(AnimationFrameScheduler::nowNanos() -
-                                           frameTimeNanos) /
-                       1e6;
+  const double ageMs =
+      static_cast<double>(AnimationFrameDispatcher::nowNanos() -
+                          frameTimeNanos) /
+      1e6;
   auto performance = runtime.global().getProperty(runtime, "performance");
   if (performance.isObject()) {
     auto object = performance.asObject(runtime);

@@ -62,7 +62,7 @@ declare global {
 
   var navigator: Navigator;
 
-  // The native frame scheduler, see src/animationFrame.ts. Undefined on web.
+  // The native animation frames, see src/animationFrame.ts. Undefined on web.
   var __webgpuAnimationFrames:
     | {
         request: (callback: (timestamp: number) => void) => number;

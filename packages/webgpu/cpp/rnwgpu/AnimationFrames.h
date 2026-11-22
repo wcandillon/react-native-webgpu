@@ -23,13 +23,13 @@ namespace jsi = facebook::jsi;
  * callback called once, at the next frame of the display, on the source's
  * thread. Requests made before that frame are coalesced.
  */
-class VsyncSource {
+class AnimationFrameSource {
 public:
-  // The time of the frame (when the display's vsync started it), in
+  // The time of the frame (when the frame of the display started), in
   // nanoseconds of std::chrono::steady_clock.
   using FrameCallback = std::function<void(int64_t frameTimeNanos)>;
 
-  virtual ~VsyncSource() = default;
+  virtual ~AnimationFrameSource() = default;
 
   // Set once, before the first requestFrame().
   void setFrameCallback(FrameCallback callback) {
@@ -57,41 +57,42 @@ class RuntimeAnimationFrames;
  * display rather than by React Native's timers. See AnimationFrames.cpp for
  * how each kind of runtime is reached, and src/animationFrame.ts for the API.
  *
- * Process-wide: the vsync source is the platform's and outlives a reload. The
- * per-runtime state (RuntimeAnimationFrames) lives in the runtime's
- * runtimeData, and the scheduler only holds weak references to it.
+ * Process-wide: the animation frame source is the platform's and outlives a
+ * reload. The per-runtime state (RuntimeAnimationFrames) lives in the
+ * runtime's runtimeData, and the dispatcher only holds weak references to it.
  */
-class AnimationFrameScheduler {
+class AnimationFrameDispatcher {
 public:
-  struct Frame {
+  struct AnimationFrame {
     uint64_t id = 0;
     int64_t timeNanos = 0;
   };
 
-  static AnimationFrameScheduler &shared();
+  static AnimationFrameDispatcher &shared();
 
   // Installed by the platform on install (RNWebGPUManager); without one,
   // every runtime falls back to its own global requestAnimationFrame.
-  void setVsyncSource(std::shared_ptr<VsyncSource> source);
-  bool hasVsyncSource();
+  void setSource(std::shared_ptr<AnimationFrameSource> source);
+  bool hasSource();
 
   // The latest frame, when the caller is still within it (it started less
   // than a frame interval ago) and it is newer than `after`.
-  bool currentFrameAfter(uint64_t after, Frame &frame);
+  bool currentFrameAfter(uint64_t after, AnimationFrame &frame);
 
   // Has `frames` delivered the next frame (RuntimeAnimationFrames::deliver,
-  // on the vsync thread). Any thread.
+  // on the source's thread). Any thread.
   void requestDelivery(const std::shared_ptr<RuntimeAnimationFrames> &frames);
 
   // Blocks until a frame newer than `after` starts, or `timeoutNanos` passes.
   // Returns false on timeout (the display sends no frames: the app is in the
   // background, say). The frame the caller is still within counts.
-  bool waitForFrameAfter(uint64_t after, int64_t timeoutNanos, Frame &frame);
+  bool waitForFrameAfter(uint64_t after, int64_t timeoutNanos,
+                         AnimationFrame &frame);
 
   static int64_t nowNanos();
 
 private:
-  AnimationFrameScheduler() = default;
+  AnimationFrameDispatcher() = default;
 
   void onFrame(int64_t frameTimeNanos);
   // Called with _mutex held.
@@ -99,8 +100,8 @@ private:
 
   std::mutex _mutex;
   std::condition_variable _frameStarted;
-  std::shared_ptr<VsyncSource> _source;
-  Frame _latest;
+  std::shared_ptr<AnimationFrameSource> _source;
+  AnimationFrame _latest;
   // The display's frame interval, from consecutive frames: 60 Hz until known.
   int64_t _intervalNanos = 16'666'667;
   bool _frameRequested = false;
@@ -127,8 +128,8 @@ public:
     // its setTimeout wakes it, and it waits for the frame on its thread.
     Waiting,
     // The runtime's own requestAnimationFrame paces it: the Reanimated UI
-    // runtime (worklets' is vsync-aligned already), and any runtime when no
-    // vsync source is installed.
+    // runtime (worklets' is paced by the display already), and any runtime
+    // when no animation frame source is installed.
     Delegated,
   };
 
@@ -141,8 +142,8 @@ public:
   double request(jsi::Runtime &runtime, jsi::Function callback);
   void cancel(double handle);
 
-  // Vsync thread: the frame requested through requestDelivery started.
-  void deliver(const AnimationFrameScheduler::Frame &frame);
+  // The source's thread: the frame requested through requestDelivery started.
+  void deliver(const AnimationFrameDispatcher::AnimationFrame &frame);
 
 private:
   void schedule(jsi::Runtime &runtime);

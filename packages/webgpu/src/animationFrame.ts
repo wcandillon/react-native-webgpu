@@ -1,4 +1,4 @@
-// The native frame scheduler (AnimationFramesHostObject in
+// The native animation frames (AnimationFramesHostObject in
 // cpp/rnwgpu/AnimationFrames.h), installed on the main runtime. Read at module
 // scope, like the helpers of `./install`, and captured into the worklets
 // below: worklets hands a HostObject to every runtime by reference, and its

@@ -53,7 +53,7 @@ Measured with a cube and some busy work in each frame, in frames presented per s
 
 ## How it works
 
-A native display link (`AChoreographer` on Android, `CADisplayLink` on iOS) runs on a thread of its own and asks for the display's highest rate.
+The display's frames come from a native source (`AChoreographer` on Android, `CADisplayLink` on iOS) that runs on a thread of its own and asks for the display's highest rate.
 
 - **JS thread.** Each frame of the display runs the callbacks requested before it.
 - **Worklet runtime of your own.** The runtime waits on its thread for the next frame of the display, then runs the callbacks. The wait is at most the rest of the current frame, and nothing else runs on that runtime while it waits.
