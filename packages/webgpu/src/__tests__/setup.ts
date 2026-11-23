@@ -108,6 +108,12 @@ interface GPUTestingContext {
     probe: number | null;
     probeSize: number;
     pixelRatio: number;
+    // The context ids of two mounted canvases, toneMapping "extended" and
+    // "standard", for the CanvasToneMapping spec.
+    toneMappingCanvases?: {
+      extended: number | null;
+      standard: number | null;
+    };
   };
   // Native app harness only: Skia's Graphite device wrapped with
   // importDevice(), or null when Skia has no GPU. See ImportDevice.spec.ts
