@@ -45,6 +45,9 @@ public:
   VideoFrameHandle createTestVideoFrame(uint32_t width, uint32_t height,
                                         VideoPixelFormat format) override;
 
+  VideoFrameHandle createTestPixelBuffer(uint32_t width,
+                                         uint32_t height) override;
+
   VideoFrameHandle createNativeBuffer(uint32_t width, uint32_t height,
                                       wgpu::TextureFormat format,
                                       bool displayP3) override;

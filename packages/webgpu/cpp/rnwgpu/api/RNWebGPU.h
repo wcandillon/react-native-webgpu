@@ -317,6 +317,17 @@ public:
     return std::make_shared<VideoFrame>(std::move(frame));
   }
 
+  // Test only, left out of the TypeScript declarations: the NV12 test frame as
+  // a buffer whose `handle` is the pointer createNativeBufferFromPointer takes
+  // (PlatformContext::createTestPixelBuffer). Pass the handle there; do not
+  // import the buffer itself.
+  std::shared_ptr<VideoFrame> createTestPixelBuffer(double width,
+                                                    double height) {
+    auto frame = _platformContext->createTestPixelBuffer(
+        static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+    return std::make_shared<VideoFrame>(std::move(frame));
+  }
+
   // Wrap a CVPixelBufferRef / AHardwareBuffer* pointer (typed as void* via
   // BigInt on the JS side) into one of our VideoFrames. The native side
   // CFRetains / acquires so the caller can release immediately.
@@ -645,6 +656,8 @@ public:
                   &RNWebGPU::loadVideoFrame);
     installMethod(runtime, prototype, "createTestVideoFrame",
                   &RNWebGPU::createTestVideoFrame);
+    installMethod(runtime, prototype, "createTestPixelBuffer",
+                  &RNWebGPU::createTestPixelBuffer);
     installMethod(runtime, prototype, "createNativeBufferFromPointer",
                   &RNWebGPU::createNativeBufferFromPointer);
     installMethodWithRuntime(runtime, prototype, "importDevice",

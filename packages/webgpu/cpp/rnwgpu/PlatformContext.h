@@ -228,6 +228,16 @@ public:
   virtual VideoFrameHandle createTestVideoFrame(uint32_t width, uint32_t height,
                                                 VideoPixelFormat format) = 0;
 
+  // Test only (the e2e specs of createNativeBufferFromPointer): the NV12 test
+  // frame as the pointer createNativeBufferFromPointer takes, in `handle`. A
+  // CVPixelBufferRef carrying the frame's color attachments on Apple
+  // platforms, which is not importable as is; the frame's own AHardwareBuffer*
+  // elsewhere.
+  virtual VideoFrameHandle createTestPixelBuffer(uint32_t width,
+                                                 uint32_t height) {
+    return createTestVideoFrame(width, height, VideoPixelFormat::NV12);
+  }
+
   // Allocate an empty, GPU-renderable buffer that a NativeBufferView can
   // display: an AHardwareBuffer (Android) or an IOSurface (Apple platforms),
   // with premultiplied pixels in `format`, tagged with `displayP3` or sRGB
