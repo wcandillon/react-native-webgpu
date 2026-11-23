@@ -844,7 +844,6 @@ public:
     if (!_done) {
       _done = true;
       cleanUp();
-      _state->settle();
     }
     if (!onDone) {
       return;
@@ -1193,9 +1192,11 @@ private:
     state.wroteFile = false;
   }
 
+  // Gives up the export on this thread: the file is settled after it.
   void cleanUp() {
     releaseSurface();
     stopAndDelete(*_state);
+    _state->settle();
   }
 
   // What a lent buffer's release reaches the writer through, while it lives.
