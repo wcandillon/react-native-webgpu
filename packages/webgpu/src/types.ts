@@ -329,6 +329,24 @@ export interface GPUSharedTextureMemory {
 }
 
 /**
+ * The options of `createNativeBufferFromPointer()`.
+ */
+export interface CreateNativeBufferFromPointerOptions {
+  /**
+   * How to read a YUV buffer that carries no color information of its own
+   * (an AHardwareBuffer from a MediaCodec ImageReader, for instance): a
+   * WebCodecs `VideoColorSpaceInit`, such as a `VideoFrame`'s `colorSpace`.
+   * The fields it sets replace what the buffer says.
+   */
+  colorSpace?: {
+    primaries?: string | null;
+    transfer?: string | null;
+    matrix?: string | null;
+    fullRange?: boolean | null;
+  };
+}
+
+/**
  * The options of `createNativeBuffer()`. The buffer holds premultiplied
  * pixels.
  */

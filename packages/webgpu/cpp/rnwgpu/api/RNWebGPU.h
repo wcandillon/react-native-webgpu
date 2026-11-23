@@ -320,9 +320,78 @@ public:
   // Wrap a CVPixelBufferRef / AHardwareBuffer* pointer (typed as void* via
   // BigInt on the JS side) into one of our VideoFrames. The native side
   // CFRetains / acquires so the caller can release immediately.
-  std::shared_ptr<VideoFrame> createNativeBufferFromPointer(void *pointer) {
+  //
+  // createNativeBufferFromPointer(pointer, { colorSpace? }): `colorSpace` (a
+  // WebCodecs VideoColorSpaceInit, e.g. a VideoFrame's colorSpace) says how to
+  // read a YUV buffer that carries no color information of its own, as an
+  // AHardwareBuffer from a MediaCodec ImageReader. The fields it sets replace
+  // what the buffer says.
+  jsi::Value createNativeBufferFromPointer(jsi::Runtime &runtime,
+                                           const jsi::Value & /*thisVal*/,
+                                           const jsi::Value *args,
+                                           size_t count) {
+    if (count < 1 || !args[0].isBigInt()) {
+      throw jsi::JSError(runtime, "createNativeBufferFromPointer: expected a "
+                                  "pointer (BigInt)");
+    }
+    void *pointer = JSIConverter<void *>::fromJSI(runtime, args[0], false);
     auto handle = _platformContext->wrapNativeBuffer(pointer);
-    return std::make_shared<VideoFrame>(std::move(handle));
+    if (count > 1 && args[1].isObject()) {
+      auto colorSpace =
+          args[1].getObject(runtime).getProperty(runtime, "colorSpace");
+      if (colorSpace.isObject()) {
+        applyVideoColorSpace(runtime, colorSpace.getObject(runtime),
+                             handle.colorSpace);
+      }
+    }
+    return JSIConverter<std::shared_ptr<VideoFrame>>::toJSI(
+        runtime, std::make_shared<VideoFrame>(std::move(handle)));
+  }
+
+  // A WebCodecs VideoColorSpaceInit onto the color space of a native frame.
+  static void applyVideoColorSpace(jsi::Runtime &runtime,
+                                   const jsi::Object &init,
+                                   VideoFrameColorSpace &colorSpace) {
+    auto field = [&](const char *name) -> std::string {
+      auto value = init.getProperty(runtime, name);
+      return value.isString() ? value.getString(runtime).utf8(runtime) : "";
+    };
+    const auto primaries = field("primaries");
+    if (primaries == "bt709") {
+      colorSpace.primaries = wgpu::ColorSpacePrimariesDawn::SRGB;
+    } else if (primaries == "bt470bg" || primaries == "smpte170m") {
+      colorSpace.primaries = wgpu::ColorSpacePrimariesDawn::Rec601;
+    } else if (primaries == "bt2020") {
+      colorSpace.primaries = wgpu::ColorSpacePrimariesDawn::Rec2020;
+    } else if (primaries == "smpte432") {
+      colorSpace.primaries = wgpu::ColorSpacePrimariesDawn::DisplayP3;
+    }
+    const auto transfer = field("transfer");
+    if (transfer == "bt709" || transfer == "smpte170m") {
+      colorSpace.transfer = wgpu::ColorSpaceTransferDawn::SMPTE_170M;
+    } else if (transfer == "iec61966-2-1") {
+      colorSpace.transfer = wgpu::ColorSpaceTransferDawn::SRGB;
+    } else if (transfer == "linear") {
+      colorSpace.transfer = wgpu::ColorSpaceTransferDawn::Identity;
+    } else if (transfer == "pq") {
+      colorSpace.transfer = wgpu::ColorSpaceTransferDawn::PQ;
+    } else if (transfer == "hlg") {
+      colorSpace.transfer = wgpu::ColorSpaceTransferDawn::HLG;
+    }
+    const auto matrix = field("matrix");
+    if (matrix == "bt709") {
+      colorSpace.matrix = wgpu::ColorSpaceYCbCrMatrixDawn::Rec709;
+    } else if (matrix == "bt470bg" || matrix == "smpte170m") {
+      colorSpace.matrix = wgpu::ColorSpaceYCbCrMatrixDawn::Rec601;
+    } else if (matrix == "bt2020-ncl") {
+      colorSpace.matrix = wgpu::ColorSpaceYCbCrMatrixDawn::Rec2020;
+    }
+    auto fullRange = init.getProperty(runtime, "fullRange");
+    if (fullRange.isBool()) {
+      colorSpace.range = fullRange.getBool()
+                             ? wgpu::ColorSpaceYCbCrRangeDawn::Full
+                             : wgpu::ColorSpaceYCbCrRangeDawn::Narrow;
+    }
   }
 
   // createNativeBuffer(width, height, { format?, colorSpace? }): an empty

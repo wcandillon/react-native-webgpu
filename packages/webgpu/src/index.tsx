@@ -15,6 +15,7 @@ import type {
   GPUSharedFenceDescriptor,
   GPUSharedFenceState,
   CreateNativeBufferOptions,
+  CreateNativeBufferFromPointerOptions,
   GPUDawnTogglesDescriptor,
   GPUNativeExternalTextureDescriptor,
   GPUSharedTextureMemory,
@@ -108,7 +109,10 @@ declare global {
     // Wrap a NativeBuffer.pointer (CVPixelBufferRef on iOS / AHardwareBuffer*
     // on Android) into a NativeBuffer. Matches the shape used by libraries
     // that emit NativeBuffer (e.g. react-native-vision-camera).
-    createNativeBufferFromPointer: (pointer: bigint) => NativeBuffer;
+    createNativeBufferFromPointer: (
+      pointer: bigint,
+      options?: CreateNativeBufferFromPointerOptions,
+    ) => NativeBuffer;
     // Wrap an externally created WGPUDevice pointer (e.g. Skia's Graphite
     // device from Skia.getNativeDevice()) into a GPUDevice. Requires the
     // exporter to link this process's single Dawn copy.
