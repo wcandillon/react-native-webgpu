@@ -50,6 +50,14 @@ void applyCAMetalLayerColorSpace(CAMetalLayer *layer,
   if (@available(iOS 16.0, macOS 10.11, visionOS 1.0, *)) {
     layer.wantsExtendedDynamicRangeContent = extendedRange;
   }
+  // Since iOS and macOS 26 the flag alone no longer lights EDR: the layer
+  // asks for it with preferredDynamicRange, and its content is shown above
+  // SDR white only up to the headroom it declares.
+  if (@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)) {
+    layer.preferredDynamicRange =
+        extendedRange ? CADynamicRangeHigh : CADynamicRangeStandard;
+    layer.contentsHeadroom = extendedRange ? 16.0 : 0.0;
+  }
 #else
   (void)extendedRange;
 #endif
