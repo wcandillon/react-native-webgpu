@@ -33,6 +33,7 @@ find_package(fbjni REQUIRED CONFIG)
 
 add_library(${PACKAGE_NAME} SHARED
     ./cpp/cpp-adapter.cpp
+    ./cpp/AndroidVideoWriter.cpp
     ../cpp/rnwgpu/api/GPU.cpp
     ../cpp/rnwgpu/api/GPUAdapter.cpp
     ../cpp/rnwgpu/api/GPUSupportedLimits.cpp
@@ -103,6 +104,8 @@ if(ReactAndroid_VERSION_MINOR GREATER_EQUAL 76)
             android
             # sync_merge, for the one fence endAccess() returns
             sync
+            # MediaCodec, MediaMuxer, MediaExtractor: createVideoWriter
+            mediandk
             fbjni::fbjni
             ReactAndroid::jsi
             ReactAndroid::reactnative
@@ -116,6 +119,7 @@ else()
         jnigraphics
         android
         sync
+        mediandk
         fbjni::fbjni
         ReactAndroid::jsi
         ReactAndroid::reactnativejni

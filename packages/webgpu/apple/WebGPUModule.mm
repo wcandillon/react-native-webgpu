@@ -135,9 +135,10 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   std::shared_ptr<rnwgpu::PlatformContext> platformContext =
       std::make_shared<rnwgpu::ApplePlatformContext>(
           std::move(viewLookup), std::move(blobManagerLookup));
-  // Dawn keeps the pipelines it compiles here, so a relaunch does not compile
-  // them again (see DawnBlobCache). The caches directory is per app on iOS but
-  // shared on macOS, hence the bundle identifier.
+  // The app's cache directory: Dawn keeps the pipelines it compiles there, so
+  // a relaunch does not compile them again (see DawnBlobCache), and
+  // createVideoWriter() resolves a relative path in it. The caches directory
+  // is per app on iOS but shared on macOS, hence the bundle identifier.
   NSString *caches = NSSearchPathForDirectoriesInDomains(NSCachesDirectory,
                                                          NSUserDomainMask, YES)
                          .firstObject;
@@ -146,6 +147,7 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
     if (bundle != nil) {
       caches = [caches stringByAppendingPathComponent:bundle];
     }
+    platformContext->setCacheDirectory(caches.UTF8String);
     rnwgpu::DawnBlobCache::setDirectory(
         [caches stringByAppendingPathComponent:@"webgpu-dawn"].UTF8String);
   }

@@ -14,6 +14,8 @@
 namespace rnwgpu {
 
 class AnimationFrameSource;
+class IVideoWriter;
+struct VideoWriterOptions;
 
 struct ImageData {
   std::vector<uint8_t> data;
@@ -248,6 +250,19 @@ public:
   virtual std::unique_ptr<IVideoPlayer>
   createVideoPlayer(const std::string &path, VideoPixelFormat format) = 0;
 
+  // The app's cache directory (per app, also on macOS), where
+  // createVideoWriter() resolves a relative path; empty where the platform has
+  // none. Set by the module, which also keeps Dawn's pipeline cache there.
+  const std::string &cacheDirectory() const { return _cacheDirectory; }
+  void setCacheDirectory(std::string directory) {
+    _cacheDirectory = std::move(directory);
+  }
+
+  // Open an H.264 .mp4 writer (see NativeVideoWriter.h). Throws
+  // VideoWriterError.
+  virtual std::unique_ptr<IVideoWriter>
+  createVideoWriter(const VideoWriterOptions &options) = 0;
+
   // Wrap a CVPixelBufferRef (Apple) or AHardwareBuffer* (Android) pointer
   // obtained from another library (typically VisionCamera's
   // Frame.getNativeBuffer().pointer) as one of our VideoFrame handles.
@@ -283,6 +298,8 @@ private:
     static std::shared_ptr<PlatformContext> slot;
     return slot;
   }
+
+  std::string _cacheDirectory;
 };
 
 } // namespace rnwgpu

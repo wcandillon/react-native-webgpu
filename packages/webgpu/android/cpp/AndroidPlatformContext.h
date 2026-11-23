@@ -21,6 +21,7 @@
 #include "AndroidAnimationFrameSource.h"
 #include "AndroidColorSpace.h"
 #include "AndroidVideoPlayer.h"
+#include "NativeVideoWriter.h"
 #include "PlatformContext.h"
 #include "RNWebGPUManager.h"
 
@@ -523,6 +524,11 @@ public:
     // TODO: implement using MediaCodec (H.264 encoder) or MediaMuxer.
     throw std::runtime_error(
         "writeTestVideoFile is not yet implemented on Android.");
+  }
+
+  std::unique_ptr<IVideoWriter>
+  createVideoWriter(const VideoWriterOptions &options) override {
+    return createAndroidVideoWriter(options);
   }
 
   std::function<void(void *)> retainNativeWindow(void *window) override {

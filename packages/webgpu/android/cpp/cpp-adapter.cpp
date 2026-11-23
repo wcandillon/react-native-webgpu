@@ -37,6 +37,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
     JNIEnv *env, jobject thiz, jlong jsRuntime, jobject jsCallInvokerHolder,
     jobject blobModule, jstring cacheDirectory) {
   auto runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsRuntime);
+  // The app's cache directory.
+  std::string cachePath;
   if (cacheDirectory != nullptr) {
     const char *path = env->GetStringUTFChars(cacheDirectory, nullptr);
     if (path == nullptr) {
@@ -44,8 +46,9 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
       // no further JNI call is allowed, so let it reach the caller.
       return;
     }
-    rnwgpu::DawnBlobCache::setDirectory(path);
+    cachePath = path;
     env->ReleaseStringUTFChars(cacheDirectory, path);
+    rnwgpu::DawnBlobCache::setDirectory(cachePath + "/webgpu-dawn");
   }
   jobject globalBlobModule = env->NewGlobalRef(blobModule);
   jobject globalModule = env->NewGlobalRef(thiz);
@@ -56,6 +59,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUModule_initializeNative(
           ->getCallInvoker()};
   auto platformContext = std::make_shared<rnwgpu::AndroidPlatformContext>(
       globalBlobModule, globalModule);
+  platformContext->setCacheDirectory(cachePath);
   manager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsCallInvoker,
                                                       platformContext);
 }

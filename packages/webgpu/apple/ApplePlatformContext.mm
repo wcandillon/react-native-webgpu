@@ -9,6 +9,7 @@
 #import <ReactCommon/RCTTurboModule.h>
 
 #include "AppleVideoPlayer.h"
+#include "NativeVideoWriter.h"
 #import "RNWGUIKit.h"
 
 #include "RNWebGPUManager.h"
@@ -545,6 +546,11 @@ std::unique_ptr<IVideoPlayer>
 ApplePlatformContext::createVideoPlayer(const std::string &path,
                                         VideoPixelFormat format) {
   return createAppleVideoPlayer(path, format);
+}
+
+std::unique_ptr<IVideoWriter>
+ApplePlatformContext::createVideoWriter(const VideoWriterOptions &options) {
+  return createAppleVideoWriter(options);
 }
 
 // AppleAnimationFrameSource.mm

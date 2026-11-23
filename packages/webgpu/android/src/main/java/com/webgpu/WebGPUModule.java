@@ -8,7 +8,6 @@ import android.view.View;
 
 import androidx.annotation.OptIn;
 
-import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -92,9 +91,10 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
     if (blobModule == null) {
       throw new RuntimeException("React Native's BlobModule was not found!");
     }
-    // Dawn keeps the pipelines it compiles here, so a relaunch does not
-    // compile them again (see DawnBlobCache).
-    String cacheDirectory = new File(context.getCacheDir(), "webgpu-dawn").getAbsolutePath();
+    // Dawn keeps the pipelines it compiles in its webgpu-dawn subdirectory, so
+    // a relaunch does not compile them again (see DawnBlobCache), and
+    // createVideoWriter() resolves a relative path in it.
+    String cacheDirectory = context.getCacheDir().getAbsolutePath();
     initializeNative(jsContext.get(), (CallInvokerHolderImpl) callInvokerHolder, blobModule, cacheDirectory);
     return true;
   }

@@ -45,6 +45,7 @@
 #include "ImageBitmap.h"
 #include "VideoFrame.h"
 #include "VideoPlayer.h"
+#include "VideoWriter.h"
 
 // Enums
 #include "GPUBufferUsage.h"
@@ -151,6 +152,7 @@ void RNWebGPUManager::installConstructors(jsi::Runtime &runtime) {
   ImageBitmap::installConstructor(runtime);
   VideoFrame::installConstructor(runtime);
   VideoPlayer::installConstructor(runtime);
+  VideoWriter::installConstructor(runtime);
 }
 
 void RNWebGPUManager::installWebGPUWorkletHelpers(jsi::Runtime &runtime) {

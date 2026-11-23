@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cctype>
 #include <cmath>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -14,6 +16,7 @@
 
 #include "ArrayBuffer.h"
 #include "Canvas.h"
+#include "FenceArgument.h"
 #include "GPU.h"
 #include "GPUCanvasContext.h"
 #include "GPUDevice.h"
@@ -25,6 +28,7 @@
 #include "PlatformContext.h"
 #include "VideoFrame.h"
 #include "VideoPlayer.h"
+#include "VideoWriter.h"
 #include "WebGPURuntime.h"
 #include "rnwgpu/async/RuntimeContext.h"
 
@@ -439,46 +443,11 @@ public:
     }
     wgpu::SharedFence fence;
     uint64_t signaledValue = 0;
-    if (count > 2 && args[2].isObject()) {
-      // { fences } (an end-access state), an array, or one fence state.
-      auto arg = args[2].getObject(runtime);
-      jsi::Value list = jsi::Value::undefined();
-      if (arg.isArray(runtime)) {
-        list = jsi::Value(runtime, arg);
-      } else if (arg.hasProperty(runtime, "fences")) {
-        list = arg.getProperty(runtime, "fences");
-      }
-      std::vector<std::shared_ptr<GPUSharedFenceState>> states;
-      if (list.isObject()) {
-        states = JSIConverter<
-            std::vector<std::shared_ptr<GPUSharedFenceState>>>::fromJSI(runtime,
-                                                                        list,
-                                                                        false);
-      } else {
-        states.push_back(
-            JSIConverter<std::shared_ptr<GPUSharedFenceState>>::fromJSI(
-                runtime, args[2], false));
-      }
-      std::vector<wgpu::SharedFence> fences;
-      std::vector<uint64_t> values;
-      wgpu::Device device;
-      for (const auto &state : states) {
-        if (!state || !state->fence) {
-          continue;
-        }
-        auto native = state->fence->get();
-        if (!native) {
-          throw jsi::JSError(runtime,
-                             "presentNativeBuffer(): a fence was destroyed");
-        }
-        device = state->fence->device();
-        fences.push_back(std::move(native));
-        values.push_back(state->signaledValue);
-      }
+    if (count > 2) {
       try {
-        native_frame::mergeFences(device, fences, values, &fence,
-                                  &signaledValue, "presentNativeBuffer");
-      } catch (const std::exception &e) {
+        fenceFromArgument(runtime, args[2], "presentNativeBuffer", &fence,
+                          &signaledValue);
+      } catch (const std::invalid_argument &e) {
         throw jsi::JSError(runtime, e.what());
       }
     }
@@ -513,6 +482,124 @@ public:
                       : VideoPixelFormat::BGRA8;
     auto impl = _platformContext->createVideoPlayer(path, format);
     return std::make_shared<VideoPlayer>(std::move(impl));
+  }
+
+  // createVideoWriter(path, { width, height, frameRate, device, bitrate?,
+  // audio? }): an H.264 .mp4 writer the frames are drawn into on the GPU
+  // (see src/video.ts). `path` is an absolute file path, a file:// URL, or a
+  // path relative to the app's cache directory; `audio` is a path or a URL.
+  // Throws a JS Error with a `code` (see NativeVideoWriter.h).
+  jsi::Value createVideoWriter(jsi::Runtime &runtime,
+                               const jsi::Value & /*thisVal*/,
+                               const jsi::Value *args, size_t count) {
+    auto fail = [&](const std::string &code, const std::string &message) {
+      return VideoWriter::makeError(runtime, code,
+                                    "createVideoWriter: " + message);
+    };
+    if (count < 2 || !args[0].isString() || !args[1].isObject()) {
+      throw fail("invalid-argument", "expected a path and an options object");
+    }
+    VideoWriterOptions options;
+    options.path = filePath(args[0].getString(runtime).utf8(runtime));
+    if (options.path.empty() || options.path.back() == '/') {
+      throw fail("invalid-argument", "the path must name a file");
+    }
+    if (options.path[0] != '/') {
+      // Relative: in the app's cache directory.
+      auto directory = _platformContext->cacheDirectory();
+      if (directory.empty()) {
+        throw fail("invalid-argument",
+                   "the path must be absolute, or a file:// URL");
+      }
+      options.path = directory + "/" + options.path;
+    }
+    auto object = args[1].getObject(runtime);
+    auto number = [&](const char *name, double min, double max,
+                      bool integer) -> std::optional<double> {
+      auto value = object.getProperty(runtime, name);
+      if (value.isUndefined()) {
+        return std::nullopt;
+      }
+      if (!value.isNumber() || !(value.asNumber() >= min) ||
+          !(value.asNumber() <= max) ||
+          (integer && value.asNumber() != std::floor(value.asNumber()))) {
+        throw fail("invalid-argument",
+                   std::string(name) + " must be " +
+                       (integer ? "an integer" : "a number") + " in [" +
+                       std::to_string(static_cast<int64_t>(min)) + ", " +
+                       std::to_string(static_cast<int64_t>(max)) + "]");
+      }
+      return value.asNumber();
+    };
+    auto width = number("width", 2, 8192, true);
+    auto height = number("height", 2, 8192, true);
+    auto frameRate = number("frameRate", 1, 240, false);
+    if (!width || !height || !frameRate) {
+      throw fail("invalid-argument",
+                 "width, height and frameRate are required");
+    }
+    // H.264 stores the frames as 4:2:0, a chroma sample per 2x2 pixels: the
+    // encoders round an odd size or refuse it, and some leave a green edge.
+    if (static_cast<int64_t>(*width) % 2 != 0 ||
+        static_cast<int64_t>(*height) % 2 != 0) {
+      throw fail("invalid-argument", "width and height must be even");
+    }
+    options.width = static_cast<uint32_t>(*width);
+    options.height = static_cast<uint32_t>(*height);
+    options.frameRate = *frameRate;
+    if (auto bitrate = number("bitrate", 1000, 1e9, false)) {
+      options.bitrate = static_cast<int64_t>(*bitrate);
+    }
+    auto audio = object.getProperty(runtime, "audio");
+    if (audio.isString()) {
+      options.audioPath = filePath(audio.getString(runtime).utf8(runtime));
+    } else if (!audio.isUndefined() && !audio.isNull()) {
+      throw fail("invalid-argument", "audio must be a file path or URL");
+    }
+    auto device = object.getProperty(runtime, "device");
+    if (!device.isObject()) {
+      throw fail("invalid-argument",
+                 "device (the GPUDevice the frames are drawn with) is "
+                 "required");
+    }
+    auto gpuDevice = JSIConverter<std::shared_ptr<GPUDevice>>::fromJSI(
+        runtime, device, false);
+    if (!gpuDevice) {
+      throw fail("invalid-argument", "device is not a GPUDevice");
+    }
+    options.device = gpuDevice->get();
+    std::unique_ptr<IVideoWriter> impl;
+    try {
+      impl = _platformContext->createVideoWriter(options);
+    } catch (const VideoWriterError &e) {
+      throw VideoWriter::makeError(runtime, e.code(), e.what());
+    } catch (const std::exception &e) {
+      throw VideoWriter::makeError(runtime, "unsupported", e.what());
+    }
+    return VideoWriter::create(
+        runtime, std::make_shared<VideoWriter>(std::move(impl), _callInvoker,
+                                               options.path));
+  }
+
+  // A file path from a path or a file:// URL, percent-decoded.
+  static std::string filePath(const std::string &value) {
+    const std::string scheme = "file://";
+    if (value.compare(0, scheme.size(), scheme) != 0) {
+      return value;
+    }
+    std::string path;
+    for (size_t i = scheme.size(); i < value.size(); i++) {
+      if (value[i] == '%' && i + 2 < value.size() &&
+          std::isxdigit(static_cast<unsigned char>(value[i + 1])) &&
+          std::isxdigit(static_cast<unsigned char>(value[i + 2]))) {
+        path +=
+            static_cast<char>(std::stoi(value.substr(i + 1, 2), nullptr, 16));
+        i += 2;
+      } else {
+        path += value[i];
+      }
+    }
+    return path;
   }
 
   std::string writeTestVideoFile() {
@@ -581,6 +668,8 @@ public:
     installMethodWithRuntime(runtime, prototype, "importDevice",
                              &RNWebGPU::importDevice);
     installMethod(runtime, prototype, "adoptTexture", &RNWebGPU::adoptTexture);
+    installMethod(runtime, prototype, "createVideoWriter",
+                  &RNWebGPU::createVideoWriter);
     installMethod(runtime, prototype, "createVideoPlayer",
                   &RNWebGPU::createVideoPlayer);
     installMethod(runtime, prototype, "createNativeBuffer",

@@ -1,0 +1,110 @@
+---
+title: Video Writer
+description: Encode frames drawn on the GPU into an .mp4 file.
+---
+
+`createVideoWriter()` encodes frames into an H.264 `.mp4` file with the platform's hardware encoder: `AVAssetWriter` on Apple platforms, `MediaCodec` and `MediaMuxer` on Android.
+It is the encoding counterpart of [`createVideoPlayer()`](/api/video-player).
+The frames stay on the GPU: the writer hands out [native buffers](/api/native-buffer#nativebuffer), you draw each frame into one through [`importSharedTextureMemory`](/api/gpu-device-extensions#importsharedtexturememory), and append it with the fences of its access.
+On Apple platforms the buffer is the encoder's own, so nothing is copied; on Android each frame is copied on the GPU into the encoder's input surface.
+
+```tsx twoslash
+declare const device: GPUDevice;
+declare const frames: number;
+declare function draw(texture: GPUTexture, frame: number): void;
+// ---cut---
+import { createVideoWriter } from "react-native-webgpu";
+
+const frameRate = 30;
+// Relative: written in the app's cache directory, writer.path says where
+const writer = createVideoWriter("export.mp4", {
+  width: 1080,
+  height: 1080,
+  frameRate,
+  device,
+});
+try {
+  for (let i = 0; i < frames; i++) {
+    // Waits while the encoder is busy with the previous frames
+    const buffer = await writer.dequeueBuffer();
+    const memory = device.importSharedTextureMemory({ source: buffer });
+    const texture = memory.createTexture();
+    memory.beginAccess(texture, false);
+    draw(texture, i); // render into the texture and submit
+    // The writer waits for the GPU on its own: no await per frame
+    writer.append(buffer, memory.endAccess(texture), i / frameRate);
+    texture.destroy();
+    memory.destroy();
+  }
+  await writer.finish();
+} catch (e) {
+  await writer.cancel();
+  throw e;
+}
+console.log(writer.path);
+```
+
+## createVideoWriter
+
+```ts
+createVideoWriter(path: string, options: VideoWriterOptions): VideoWriter
+```
+
+`path` is an absolute file path, a `file://` URL, or a path relative to the app's cache directory.
+An existing file is replaced.
+`width` and `height` are even: H.264 stores the colors at half the resolution.
+Throws an error with a [`code`](#errors) when the options cannot be encoded.
+
+<auto-type-table path="../../../../packages/webgpu/src/types.ts" name="VideoWriterOptions" />
+
+## VideoWriter
+
+| Member | Description |
+| --- | --- |
+| `dequeueBuffer()` | A promise of the [`NativeBuffer`](/api/native-buffer#nativebuffer) to draw the next frame into, which resolves once the encoder can take one. A few buffers are in flight at a time: the promise is how the encoder holds the loop back. A buffer released without being appended goes back unencoded. |
+| `append(buffer, done, timestamp)` | Encodes the buffer as the frame shown at `timestamp` seconds, once the GPU work that drew it is done: `done` is what `memory.endAccess(texture)` returned, after the drawing was submitted (`null` for a buffer already complete). Releases the buffer. Timestamps start at `0` or later and increase. On Apple platforms it returns at once; on Android it copies the buffer into the encoder's input surface on the calling thread, which waits there while the encoder holds all its input. |
+| `finish()` | Writes the frames appended so far, then the sound, and closes the file. The last frame lasts `1 / frameRate`. Rejects with the writer's first failure, the partial file then deleted. |
+| `cancel()` | Stops the encoder and deletes the partial file. Pending calls reject with `"cancelled"`. The promise resolves once the file is deleted: await it before writing to the same path again. |
+| `path` | The absolute path of the file written. |
+
+Each frame shows at the timestamp it is appended with, so the frame rate can be fractional (`30000 / 1001`) and frames can be dropped or repeated; `frameRate` is what the encoder budgets its bit rate and key frames with.
+
+## Sound
+
+`audio` is a sound file (a path or a `file://` URL) muxed from `t = 0` and cut where the video ends.
+AAC is copied as it is; anything else the platform decodes (MP3, WAV, the sound of a video, …) is encoded to AAC.
+
+## Errors
+
+The errors `createVideoWriter()` and `append()` throw, and the promises of the writer reject with, carry a `code`:
+
+| Code | When |
+| --- | --- |
+| `"unsupported"` | The platform cannot encode these options: a size the encoder does not take, no H.264 encoder. |
+| `"invalid-argument"` | An option or an argument is wrong: a buffer that did not come from this writer, a timestamp that goes back, `finish()` without a frame. |
+| `"write-failed"` | The file could not be written: a directory that does not exist, a full disk. |
+| `"audio-failed"` | The sound file could not be read or muxed. |
+| `"encoder-failed"` | The encoder failed while encoding, or a frame's GPU work never finished. |
+| `"interrupted"` | The system took the GPU or the encoder away: the iOS app went to the background, or Android reclaimed the encoder for another app. Start the export again. |
+| `"cancelled"` | The writer was cancelled. |
+
+## With React Native Skia
+
+React Native Skia draws into the buffer through the shared device: `importDevice(Skia.getNativeDevice())` is the `device` of the writer, and `Skia.Surface.MakeFromGPUTexture()` wraps the texture of the buffer.
+Anything Skia draws can be exported this way, a Skottie animation or a video with subtitles drawn over its frames, for instance.
+[Writing a video](https://wcandillon.github.io/react-native-skia/docs/webgpu#writing-a-video) in React Native Skia's documentation exports a Skottie animation.
+
+## Platforms
+
+iOS, macOS and Android 10 (API 29) and later.
+Older Android encoders ignore the settings that keep the frames in order, so `createVideoWriter()` throws `"unsupported"` there.
+The video is H.264, tagged BT.709, with the frames' sRGB values.
+
+## Edge cases
+
+- **Background (iOS).** An app in the background cannot use the GPU or the hardware encoder, so a writer still taking frames fails with `"interrupted"` as the app leaves, its file deleted. Once `finish()` is called, the file is written out in a background task. On Android an export goes on in the background, unless the system reclaims the encoder (`"interrupted"`).
+- **Sizes.** The largest size depends on the device's encoder: H.264 encoders can stop well below the 8192 pixels per side the options accept. A size the encoder does not take fails with `"unsupported"`, and the message carries the encoder's own error.
+- **Frame rates (Android).** `frameRate` only budgets the bit rate. Some encoders refuse a high one, or the setting that encodes as fast as possible: the writer then retries with those lowered, and fails with `"unsupported"` only if the encoder refuses them all.
+- **Sound (Android).** The sound file is read, and encoded to AAC if needed, whole and on its own thread, while the frames are drawn. The first frames wait for it to be done: a long file delays them, and only the sound up to the end of the video is kept. MediaMuxer writes no edit list, so the sound is cut at a whole AAC frame (within about 10 ms of the end of the video), and the delay of the codecs is dropped from the sound itself: a sound encoded to AAC (an MP3) can come out a few milliseconds early, and a few dozen milliseconds shorter than the file it came from.
+- **Every frame or none.** A frame appended that the encoder never writes fails the export with `"encoder-failed"` rather than shortening the video.
+

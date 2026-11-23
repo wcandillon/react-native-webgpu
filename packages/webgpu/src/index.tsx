@@ -23,6 +23,8 @@ import type {
   NativeCanvas,
   RNCanvasContext,
   VideoPlayer,
+  VideoWriter,
+  VideoWriterOptions,
   NativeBuffer,
   NativeBufferPixelFormat,
 } from "./types";
@@ -34,6 +36,9 @@ export { requestAnimationFrame, cancelAnimationFrame } from "./animationFrame";
 export type {
   NativeBuffer,
   VideoPlayer,
+  VideoWriter,
+  VideoWriterOptions,
+  VideoWriterErrorCode,
   GPUSharedFence,
   GPUSharedFenceDescriptor,
   GPUSharedFenceExportInfo,
@@ -122,6 +127,11 @@ declare global {
       source: string,
       pixelFormat?: NativeBufferPixelFormat,
     ) => VideoPlayer;
+    // Prefer the createVideoWriter() export.
+    createVideoWriter: (
+      path: string,
+      options: VideoWriterOptions,
+    ) => VideoWriter;
     writeTestVideoFile: () => string;
     // An empty native buffer (AHardwareBuffer / IOSurface) to render into
     // through importSharedTextureMemory() and display in a NativeBufferView.

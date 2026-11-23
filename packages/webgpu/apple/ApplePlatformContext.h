@@ -52,6 +52,9 @@ public:
   std::unique_ptr<IVideoPlayer>
   createVideoPlayer(const std::string &path, VideoPixelFormat format) override;
 
+  std::unique_ptr<IVideoWriter>
+  createVideoWriter(const VideoWriterOptions &options) override;
+
   std::string writeTestVideoFile() override;
 
   VideoFrameHandle wrapNativeBuffer(void *pointer) override;

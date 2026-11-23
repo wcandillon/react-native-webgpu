@@ -3,6 +3,8 @@ import type {
   CreateVideoPlayerOptions,
   NativeBuffer,
   VideoPlayer,
+  VideoWriter,
+  VideoWriterOptions,
 } from "./types";
 
 const native = (name: string) => {
@@ -80,3 +82,33 @@ export const createNativeBuffer = (
   options?: CreateNativeBufferOptions,
 ): NativeBuffer =>
   native("createNativeBuffer").createNativeBuffer(width, height, options);
+
+/**
+ * Encodes frames drawn on the GPU into an H.264 .mp4 file at `path` (an
+ * absolute file path, a file:// URL, or a path relative to the app's cache
+ * directory; `writer.path` is where it went), with the platform's hardware
+ * encoder:
+ * the encoding counterpart of `createVideoPlayer()`.
+ *
+ * ```ts
+ * const writer = createVideoWriter(path, { width, height, frameRate, device });
+ * for (let i = 0; i < frames; i++) {
+ *   const buffer = await writer.dequeueBuffer();
+ *   const memory = device.importSharedTextureMemory({ source: buffer });
+ *   const texture = memory.createTexture();
+ *   memory.beginAccess(texture, false);
+ *   draw(texture, i); // and submit
+ *   writer.append(buffer, memory.endAccess(texture), i / frameRate);
+ *   texture.destroy();
+ *   memory.destroy();
+ * }
+ * await writer.finish();
+ * ```
+ *
+ * Throws, and its promises reject, with an Error whose `code` is a
+ * `VideoWriterErrorCode`. iOS, macOS and Android only.
+ */
+export const createVideoWriter = (
+  path: string,
+  options: VideoWriterOptions,
+): VideoWriter => native("createVideoWriter").createVideoWriter(path, options);

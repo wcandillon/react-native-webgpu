@@ -343,3 +343,92 @@ export interface CreateNativeBufferOptions {
   /** The primaries of the values. Defaults to `"srgb"`. */
   colorSpace?: PredefinedColorSpace;
 }
+
+/**
+ * The options of `createVideoWriter()`.
+ */
+export interface VideoWriterOptions {
+  /** The size of the video in pixels, 2 to 8192. */
+  width: number;
+  height: number;
+  /**
+   * The nominal frame rate, for the encoder's rate control and key frame
+   * interval (fractional rates like 29.97 are fine). Each frame shows at the
+   * timestamp it is appended with.
+   */
+  frameRate: number;
+  /**
+   * The device the frames are drawn with. On Android the writer copies each
+   * frame into the encoder's input surface with it; on Skia, pass the shared
+   * device, `importDevice(Skia.getNativeDevice())`.
+   */
+  device: GPUDevice;
+  /**
+   * The average bit rate the encoder aims for, in bits per second. Defaults
+   * to 12 Mbps. Content that is simple to encode (flat colors, little motion)
+   * comes out below it.
+   */
+  bitrate?: number;
+  /**
+   * A sound file (a path or a file:// URL) muxed from t = 0 and cut where
+   * the video ends: AAC is copied as is, anything else the platform decodes
+   * (MP3, WAV, …) is encoded to AAC.
+   */
+  audio?: string;
+}
+
+/**
+ * Why a video writer failed: the `code` of the errors it throws and its
+ * promises reject with.
+ */
+export type VideoWriterErrorCode =
+  | "unsupported"
+  | "invalid-argument"
+  | "write-failed"
+  | "audio-failed"
+  | "encoder-failed"
+  | "interrupted"
+  | "cancelled";
+
+/**
+ * Encodes frames drawn by the GPU into an H.264 .mp4 file with the
+ * platform's hardware encoder, the frames staying on the GPU. The encoding
+ * counterpart of `VideoPlayer`.
+ */
+export interface VideoWriter {
+  /** The absolute path of the file written. */
+  readonly path: string;
+  /**
+   * A buffer to draw the next frame into, once the encoder can take one:
+   * import it with `device.importSharedTextureMemory({ source: buffer })`
+   * and draw into `memory.createTexture()` inside an access. On Apple
+   * platforms it is the encoder's own buffer: nothing is copied. A buffer
+   * released without being appended goes back unencoded.
+   */
+  dequeueBuffer(): Promise<NativeBuffer>;
+  /**
+   * Encodes `buffer` as the frame shown at `timestamp` seconds, once the GPU
+   * work drawing it is done: `done` is what `memory.endAccess(texture)`
+   * returned, after the drawing was submitted. Releases the buffer.
+   * Timestamps start at 0 or later and increase. On Android it copies the
+   * buffer into the encoder on the calling thread, which waits while the
+   * encoder holds all its input.
+   */
+  append(
+    buffer: NativeBuffer,
+    done: GPUSharedTextureMemoryEndAccessState | null,
+    timestamp: number,
+  ): void;
+  /**
+   * Writes the frames appended so far, then the sound, and closes the file.
+   * The last frame lasts 1 / frameRate. Rejects with the writer's first
+   * failure, the partial file then deleted.
+   */
+  finish(): Promise<void>;
+  /**
+   * Stops the encoder and deletes the partial file. Pending calls reject
+   * with "cancelled". Resolves once the file is deleted: await it before
+   * writing to the same path again.
+   */
+  cancel(): Promise<void>;
+}
