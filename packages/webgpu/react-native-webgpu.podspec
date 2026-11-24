@@ -30,34 +30,53 @@ Pod::Spec.new do |s|
   }
   s.source       = { :git => "https://github.com/wcandillon/react-native-webgpu.git", :tag => "#{s.version}" }
 
-  # CocoaPods and SwiftPM compile these sources independently; an app chooses
-  # one native integration. Neither downloads binaries during package setup.
-  s.source_files = [
-    "apple/**/*.{h,c,cc,cpp,m,mm,swift}",
-    "cpp/**/*.{h,cpp}"
-  ]
+  # CocoaPods is the default. Package.swift (React Native 0.87.1+ SwiftPM
+  # autolinking) is additive: an app links through one or the other, never
+  # both. Set RNWGPU_USE_SPM=1 before `pod install` when the app links this
+  # package through SwiftPM but still runs CocoaPods for other pods: RN's
+  # autolinking and codegen key off this podspec, so it must exist, but it
+  # must not compile or link anything or the app gets the native module twice.
+  if ENV['RNWGPU_USE_SPM']
+    # The Swift package resolves React Native's headers from the static-library
+    # Pods layout (Pods/Headers/Public); use_frameworks! keeps them inside each
+    # framework instead, which fails later with unrelated header errors.
+    if ENV['USE_FRAMEWORKS']
+      raise "react-native-webgpu: RNWGPU_USE_SPM needs the static-library Pods layout. " \
+            "Unset USE_FRAMEWORKS (or drop use_frameworks! from the Podfile) to link " \
+            "react-native-webgpu through its Swift package."
+    end
+    s.source_files = "apple/RNWGUIKit.h"
+  else
+    s.source_files = [
+      "apple/**/*.{h,c,cc,cpp,m,mm,swift}",
+      "cpp/**/*.{h,cpp}"
+    ]
+    # Dawn's headers are reached through HEADER_SEARCH_PATHS below, as before
+    # they shipped in this package. Keeping them out of the pod's public headers
+    # preserves the flat public header layout other pods include, and avoids
+    # basename collisions between Dawn's webgpu/ and dawn/ headers.
+    s.exclude_files = "cpp/dawn/include/**/*"
+    s.preserve_paths = ['scripts/*.{js,sh}', 'libs/apple/**/*', 'cpp/dawn/include/**/*']
 
-  # Retain nested paths: Dawn's forwarding and generated headers share basenames.
-  s.header_mappings_dir = "."
-  s.libraries = ['c++'] + binary_config['linkNames']
-  s.preserve_paths = ['scripts/*.{js,sh}', 'libs/apple/**/*']
-  s.user_target_xcconfig = { 'LIBRARY_SEARCH_PATHS' => binary_search_path }
-  s.script_phase = {
-    :name => 'Prepare React Native WebGPU binaries',
-    :shell_path => '/bin/bash',
-    :execution_position => :before_compile,
-    :always_out_of_date => '1',
-    :script => <<-SCRIPT
-      /bin/bash "${PODS_TARGET_SRCROOT}/scripts/prepare-apple-binaries.sh" \
-        --output "${PODS_CONFIGURATION_BUILD_DIR}/ReactNativeWebGPUBinaries" \
-        --assembly-root "${OBJROOT}/ReactNativeWebGPUBinaries"
-    SCRIPT
-  }
+    s.libraries = ['c++'] + binary_config['linkNames']
+    s.user_target_xcconfig = { 'LIBRARY_SEARCH_PATHS' => binary_search_path }
+    s.script_phase = {
+      :name => 'Prepare React Native WebGPU binaries',
+      :shell_path => '/bin/bash',
+      :execution_position => :before_compile,
+      :always_out_of_date => '1',
+      :script => <<-SCRIPT
+        /bin/bash "${PODS_TARGET_SRCROOT}/scripts/prepare-apple-binaries.sh" \
+          --output "${PODS_CONFIGURATION_BUILD_DIR}/ReactNativeWebGPUBinaries" \
+          --assembly-root "${OBJROOT}/ReactNativeWebGPUBinaries"
+      SCRIPT
+    }
 
-  # The VideoPlayer API uses AVFoundation / CoreMedia, and shared-texture
-  # surfaces use CoreVideo (CVPixelBuffer). Link them so their symbols resolve.
-  # ImageIO provides CGImageSource, the image decoder behind createImageBitmap.
-  s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo", "ImageIO"
+    # The VideoPlayer API uses AVFoundation / CoreMedia, and shared-texture
+    # surfaces use CoreVideo (CVPixelBuffer). Link them so their symbols resolve.
+    # ImageIO provides CGImageSource, the image decoder behind createImageBitmap.
+    s.frameworks = "AVFoundation", "CoreMedia", "CoreVideo", "ImageIO"
+  end
 
   # Under use_frameworks!, bare includes across folders (e.g. "GPU.h")
   # resolve only through these paths. Keep in sync with internalHeaderDirs

@@ -109,8 +109,7 @@ acquire_lock() {
   until mkdir "$directory" 2>/dev/null; do
     pid=$(cat "$directory/pid" 2>/dev/null) || pid=''
     if [[ "$pid" =~ ^[1-9][0-9]*$ ]] && ! kill -0 "$pid" 2>/dev/null; then
-      rm -rf "$directory"
-      continue
+      break_stale_lock "$directory" "$pid"
     fi
     (( SECONDS - started < RNWGPU_LOCK_TIMEOUT_SECONDS )) ||
       fail "Timed out waiting for $directory. Check for another running build before removing this lock."
@@ -118,6 +117,24 @@ acquire_lock() {
   done
   LOCKS+=("$directory")
   printf '%s\n' "$$" > "$directory/pid"
+}
+
+# break_stale_lock DIRECTORY PID: remove a lock left by the dead PID. Several
+# waiters can see the same dead owner; a guard serializes them, and the owner is
+# read again inside it, so a waiter never removes a lock another one has just
+# taken over. A guard left by a breaker killed mid-recovery is dropped after a
+# minute (recovery itself takes milliseconds).
+break_stale_lock() {
+  local directory="$1" stale="$2" guard="$1.break" owner
+  if ! mkdir "$guard" 2>/dev/null; then
+    if [[ -n "$(find "$guard" -maxdepth 0 -mmin +1 2>/dev/null || true)" ]]; then
+      rm -rf "$guard"
+    fi
+    return 0
+  fi
+  owner=$(cat "$directory/pid" 2>/dev/null) || owner=''
+  if [[ "$owner" == "$stale" ]]; then rm -rf "$directory"; fi
+  rmdir "$guard" 2>/dev/null || true
 }
 
 # Completed writes release early; the caller's cleanup ignores locks now absent.
@@ -223,7 +240,8 @@ validate_metadata() {
     [[ -f "$directory/$library" ]] || fail "Incomplete $sdk binaries: $directory/$library is missing. Rebuild locally or remove the incomplete cache."
     [[ $'\n'"$libraries"$'\n' == *$'\n'"$library"$'\n'* ]] || fail "$file does not declare $library."
   done
-  minimum=$(json_string "$file" minimumDeploymentTarget)
+  # Optional: local Dawn builds may omit it. Catch absence as for variant above.
+  minimum=$(json_string "$file" minimumDeploymentTarget 2>/dev/null || true)
   if [[ -n "$minimum" ]]; then
     [[ "$minimum" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]] || fail "Invalid deployment target in $file: $minimum"
     # Numeric comparison handles both major-only and dotted deployment versions.
