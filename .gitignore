@@ -71,3 +71,7 @@ apps/vendor/
 Package.resolved
 
 .turbo
+
+# Prepared release inputs and local Apple SDK overrides
+packages/webgpu/cpp/dawn/include/
+packages/webgpu/libs/
