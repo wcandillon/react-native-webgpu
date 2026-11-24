@@ -1,6 +1,9 @@
-// Pins the SwiftPM target name. Without it the name is derived: today from the
-// npm name (ReactNativeWebgpu), but an in-flight React Native change derives it
-// from the podspec instead. The name is also the header import prefix, so it
-// must not move. Package.swift declares the same name for its package, product
-// and target; scripts/package-swift-template.ts carries it as SWIFT_PACKAGE_NAME.
-module.exports = { spm: { name: "ReactNativeWebGPU" } };
+// RN 0.87.1 reads this block; RN 0.88+ also reads package.json swiftpmConfig.
+// Keep the native product and hook identical in both discovery paths.
+// The plugin registers the package/product and the Node-free Xcode phase.
+module.exports = {
+  spm: {
+    name: "ReactNativeWebGPU",
+    autolinkingPlugin: "./scripts/spm-plugin.js",
+  },
+};

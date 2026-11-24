@@ -24,6 +24,17 @@ npm i react-native-webgpu
 
 An Android app with a lower `minSdkVersion` fails to build; on Expo, the [config plugin](/docs/getting-started/expo#config-plugin) raises it for you.
 
+## Prebuilt binaries
+
+Both platforms use the [React Native Skia binaries release](https://github.com/wcandillon/react-native-skia/releases) pinned by this package's `binaries.json`:
+
+- **Android:** Gradle downloads only the ABIs being built and caches them as Gradle dependencies.
+- **Apple:**
+  - **CocoaPods:** `pod install` registers an Xcode phase; it downloads only the selected SDK's Dawn archive during compilation.
+  - **SwiftPM (optional):** The autolinking plugin registers the same phase. Package resolution uses bundled headers and a local link-settings package, without downloading Dawn.
+
+Apple archives share Skia's `~/Library/Caches/react-native-skia` cache; set `RNSKIA_CACHE_DIR` to override it.
+
 ## Setup
 
 Once installed, the global `navigator.gpu` API is available, the same entry point as in Chrome or Safari:
@@ -63,16 +74,16 @@ This replaces the package with a JS-only stand-in: `<Canvas>` renders as a plain
 
 By default, `react-native-webgpu` links on iOS/macOS through CocoaPods autolinking, with no extra setup. The long-term plan is to move the Apple platforms to Swift Package Manager. It is available today as an alternative: the package also ships a `Package.swift` for React Native's SwiftPM autolinking, which needs no CocoaPods at all:
 
-1. Use **React Native 0.87 or newer**. Earlier releases have no SwiftPM autolinking, so keep CocoaPods there.
+1. Use **React Native 0.87.1 or newer**, with the autolinking plugin's `scriptPhases` hook. Keep CocoaPods on earlier releases.
 2. From your app's `ios` directory, run `npx react-native spm add --deintegrate` once. It removes CocoaPods from the project and adds the Swift packages to the `.xcodeproj`. Then build the project (not a workspace) as usual.
 3. Do not run `pod install` in that app: it would re-integrate CocoaPods and break the Swift packages.
 
-Dawn comes as a prebuilt binary that Xcode downloads the first time it resolves packages.
+Set **User Script Sandboxing** to **NO** on the app target. The Xcode phase needs access to the shared cache and build products. After upgrading the package, run `npx react-native spm update` again.
 
-With React Native Skia v3 installed alongside, package resolution checks that both packages link the same Dawn release, and fails if they are not at [compatible versions](/docs/integrations/react-native-skia#compatibility). After changing either version, reset the package caches in Xcode (File > Packages > Reset Package Caches) if the error persists.
+With a compatible React Native Skia integration installed, WebGPU supplies the single Dawn copy. Both packages must pin the same release version and Dawn commit; mismatches fail before linking. See [compatible versions](/docs/integrations/react-native-skia#compatibility).
 
 <Callout type="warn" title="Platform coverage">
-The Swift package targets iOS only: tvOS, macOS and Android still require the CocoaPods/Gradle autolinked path. See `spm-example` at the root of the [React Native WebGPU repo](https://github.com/wcandillon/react-native-webgpu) for a working reference project, and its README for the gotchas (stale `Package.resolved`, the stub `Podfile`).
+The Swift package targets iOS only: tvOS, macOS and Android still require the CocoaPods/Gradle autolinked path. See `spm-example` at the root of the [React Native WebGPU repo](https://github.com/wcandillon/react-native-webgpu) for a working reference project, and its README for setup notes and the stub `Podfile`.
 </Callout>
 
 ## Troubleshooting
@@ -101,8 +112,8 @@ The simulator's Metal stack is not identical to real hardware, and validation ca
 Learn more in [Apple's documentation on validating Metal API usage](https://developer.apple.com/documentation/xcode/validating-your-apps-metal-api-usage/).
 </Callout>
 
-<Callout type="info" title="Android builds without network access">
-Gradle downloads the prebuilt Dawn from the [GitHub releases of React Native Skia](https://github.com/wcandillon/react-native-skia/releases), which builds it, the first time it builds, only for the architectures being built, and caches it like any other Gradle dependency. To download it from a mirror or a local directory instead, set the `reactNativeSkiaBinariesUrl` Gradle property (or the `REACT_NATIVE_SKIA_BINARIES_URL` environment variable) to a URL or a `file:///` directory that holds the release assets under `binaries-<version>/`.
+<Callout type="info" title="Builds without network access">
+To use a mirror or local release directory on either platform, set `REACT_NATIVE_SKIA_BINARIES_URL` to a URL or `file:///` path holding `binaries-<version>/<asset>`. Android also accepts the `reactNativeSkiaBinariesUrl` Gradle property.
 </Callout>
 
 ## Next steps

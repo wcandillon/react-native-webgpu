@@ -22,7 +22,8 @@ import { RenderBundles } from "./RenderBundles";
 import { ABuffer } from "./ABuffer";
 import { OcclusionQuery } from "./OcclusionQuery";
 import { ComputeBoids } from "./ComputeBoids";
-import { MNISTInference } from "./MNISTInference";
+// TODO: Restore MNIST when Skia supports SDK-based Dawn preparation.
+// import { MNISTInference } from "./MNISTInference";
 import { Wireframe } from "./Wireframe";
 import { Resize } from "./Resize";
 import { Particules } from "./Particles";
@@ -55,7 +56,8 @@ import { VisionCamera } from "./VisionCamera";
 import { SixteenBitTextures } from "./SixteenBitTextures";
 import { ViewSnapshot } from "./ViewSnapshot";
 import { NativeBufferView } from "./NativeBufferView";
-import { IconBenchmark } from "./IconBenchmark";
+// TODO: Restore this demo when Skia supports SDK-based Dawn preparation.
+// import { IconBenchmark } from "./IconBenchmark";
 
 // The two lines below are needed by three.js
 import "fast-text-encoding";
@@ -88,7 +90,7 @@ const linking: LinkingOptions<Routes> = {
       ReversedZ: "reversed-z",
       ABuffer: "a-buffer",
       OcclusionQuery: "occlusion-query",
-      MNISTInference: "mnist-inference",
+      // MNISTInference: "mnist-inference",
       ComputeBoids: "compute-boids",
       ShadowMapping: "shadow-mapping",
       DeferedRendering: "deferred-rendering",
@@ -118,7 +120,7 @@ const linking: LinkingOptions<Routes> = {
       SixteenBitTextures: "sixteen-bit-textures",
       ViewSnapshot: "view-snapshot",
       NativeBufferView: "native-buffer-view",
-      IconBenchmark: "icon-benchmark",
+      // IconBenchmark: "icon-benchmark",
     },
   },
   // react-native-test-app registers its bundle id as the iOS URL scheme, and
@@ -168,7 +170,7 @@ function App() {
           <Stack.Screen name="ReversedZ" component={ReversedZ} />
           <Stack.Screen name="ABuffer" component={ABuffer} />
           <Stack.Screen name="OcclusionQuery" component={OcclusionQuery} />
-          <Stack.Screen name="MNISTInference" component={MNISTInference} />
+          {/* <Stack.Screen name="MNISTInference" component={MNISTInference} /> */}
           <Stack.Screen name="ComputeBoids" component={ComputeBoids} />
           <Stack.Screen name="ShadowMapping" component={ShadowMapping} />
           <Stack.Screen name="DeferedRendering" component={DeferedRendering} />
@@ -232,7 +234,7 @@ function App() {
           />
           <Stack.Screen name="ViewSnapshot" component={ViewSnapshot} />
           <Stack.Screen name="NativeBufferView" component={NativeBufferView} />
-          <Stack.Screen name="IconBenchmark" component={IconBenchmark} />
+          {/* <Stack.Screen name="IconBenchmark" component={IconBenchmark} /> */}
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

@@ -26,8 +26,25 @@ runs:
         fi
       shell: bash
 
-    # Dawn comes with the react-native-webgpu-dawn dependency; this only checks
-    # it against the C++ workarounds pinned to a Dawn commit.
+    # Cache only the pinned header ZIP. Apple SDK archives stay in the runner's
+    # shared local cache; this avoids uploading them in every setup job.
+    # Header copying verifies the cached ZIP, including when Yarn install is skipped.
+    - name: Cache Dawn header archive
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/Library/Caches/react-native-skia/*/*/dawn-headers.zip
+          ~/.cache/react-native-skia/*/*/dawn-headers.zip
+          ~/AppData/Local/react-native-skia/*/*/dawn-headers.zip
+        key: ${{ runner.os }}-${{ runner.arch }}-dawn-headers-${{ hashFiles('packages/webgpu/binaries.json') }}
+
+    # Populate cpp/dawn/include before checks, compilation, and npm publishing.
+    # Checkout omits these source/generated headers; no native build runs here.
+    - name: Copy Dawn headers
+      working-directory: packages/webgpu
+      shell: bash
+      run: yarn copy-dawn-headers
+
     - name: Check Dawn
       working-directory: packages/webgpu
       shell: bash
