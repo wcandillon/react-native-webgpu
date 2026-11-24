@@ -14,18 +14,12 @@ resolve_node_package = lambda do |name, base_dir|
   dir.empty? ? nil : dir
 end
 
-# Dawn, the WebGPU implementation, ships in the react-native-webgpu-dawn npm
-# package this package depends on (react-native-skia's Graphite backend links
-# the same one, so an app installing both contains exactly one Dawn).
-# CocoaPods only vendors frameworks from inside the pod, so the xcframework is
-# copied into libs/apple at `pod install` time, and its headers with it: the
-# header search path then points inside the pod. An absolute path to the
-# package would end up in the evaluated spec, which CocoaPods checksums, so
-# Podfile.lock would differ on every checkout location; a path relative to the
-# package could leave the pod through a workspace symlink. The copy is stamped
-# with the package version and skipped when it already matches, which keeps
-# CocoaPods' cache intact across installs; bump dawn_layout when the copied
-# layout changes, so existing copies are refreshed.
+# Dawn ships in the react-native-webgpu-dawn npm package (shared with
+# react-native-skia, so an app has one Dawn). CocoaPods only vendors files
+# inside the pod, so the xcframework and headers are copied into libs/apple at
+# `pod install`. Paths stay pod-relative: an absolute path would change the
+# Podfile.lock checksum per checkout. The copy is skipped when its version
+# stamp matches; bump dawn_layout when the copied layout changes.
 dawn_dir = resolve_node_package.call('react-native-webgpu-dawn', __dir__)
 if dawn_dir.nil?
   raise "react-native-webgpu: the react-native-webgpu-dawn package was not found. " \
