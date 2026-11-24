@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-test-ios:
     runs-on: self-hosted
     # Green runs take 8 to 11 minutes; a hung xcodebuild used to hold this
     # runner for as long as nobody noticed.
@@ -363,7 +363,7 @@ jobs:
   # own, so that a failing test is reported in a minute or two rather than
   # after the Android job's setup, and so that a googletest download that
   # fails does not fail the Android e2e run.
-  cpp-tests:
+  test-cpp:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
