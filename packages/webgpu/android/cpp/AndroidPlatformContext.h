@@ -479,36 +479,37 @@ public:
   // the frames are sampled through importExternalTexture (see
   // WebGPUVideoPlayer.java).
   std::unique_ptr<IVideoPlayer>
-  createVideoPlayer(const std::string &path,
-                    VideoPixelFormat /*format*/) override {
+  createTestVideoPlayer(const std::string &path,
+                        VideoPixelFormat /*format*/) override {
     if (!_module) {
-      throw std::runtime_error("createVideoPlayer: the WebGPU module is gone");
+      throw std::runtime_error(
+          "createTestVideoPlayer: the WebGPU module is gone");
     }
     jni::Environment::ensureCurrentThreadIsAttached();
     JNIEnv *env = facebook::jni::Environment::current();
     if (!env) {
       throw std::runtime_error(
-          "createVideoPlayer: couldn't get the JNI environment");
+          "createTestVideoPlayer: couldn't get the JNI environment");
     }
     jclass moduleClass = env->GetObjectClass(_module);
     jmethodID method =
-        env->GetMethodID(moduleClass, "createVideoPlayer",
+        env->GetMethodID(moduleClass, "createTestVideoPlayer",
                          "(Ljava/lang/String;)Lcom/webgpu/WebGPUVideoPlayer;");
     env->DeleteLocalRef(moduleClass);
     if (!method) {
       env->ExceptionClear();
-      throw std::runtime_error(
-          "createVideoPlayer: WebGPUModule.createVideoPlayer not found");
+      throw std::runtime_error("createTestVideoPlayer: "
+                               "WebGPUModule.createTestVideoPlayer not found");
     }
     jstring jPath = env->NewStringUTF(path.c_str());
     jobject player = env->CallObjectMethod(_module, method, jPath);
     env->DeleteLocalRef(jPath);
     if (env->ExceptionCheck()) {
-      throw std::runtime_error("createVideoPlayer: " +
+      throw std::runtime_error("createTestVideoPlayer: " +
                                describeAndClearJavaException(env));
     }
     if (player == nullptr) {
-      throw std::runtime_error("createVideoPlayer: no player was created");
+      throw std::runtime_error("createTestVideoPlayer: no player was created");
     }
     auto result = std::make_unique<AndroidVideoPlayer>(env, player);
     env->DeleteLocalRef(player);
