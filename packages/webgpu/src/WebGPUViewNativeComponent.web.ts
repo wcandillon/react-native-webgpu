@@ -7,7 +7,7 @@ import { contextIdToId } from "./utils";
 export interface NativeProps extends ViewProps {
   contextId: CodegenTypes.Int32;
   // The `android` prop, resolved: Android-only, never reaches the DOM
-  androidBackingView?: "TextureView" | "SurfaceView" | "HardwareBufferView";
+  androidBackingView?: "TextureView" | "SurfaceView";
   androidOpaque?: boolean;
   androidZOrderOnTop?: boolean;
   androidZOrderMediaOverlay?: boolean;

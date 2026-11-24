@@ -46,28 +46,26 @@ The `colorSpace` and `toneMapping` props are read when the canvas mounts on iOS 
 
 ## Android rendering options
 
-On Android, `Canvas` can be backed by one of three native views, with different trade-offs between speed and how well the canvas composites with the views around it. The `android` prop names it, along with its options; it is ignored on iOS and web.
+On Android, `Canvas` can be backed by one of two native views, with different trade-offs between speed and how well the canvas composites with the views around it. The `android` prop names it, along with its options; it is ignored on iOS and web.
 
 | Option | Type | Effect |
 | --- | --- | --- |
-| `backingView` | `"TextureView" \| "SurfaceView" \| "HardwareBufferView"` | The native view behind the canvas. Defaults to `TextureView` |
-| `opaque` | `boolean` | Declares that the canvas covers every pixel of its bounds, so it is composited without blending. Defaults to `false` on a `TextureView` and to `true` on a `SurfaceView`; a `HardwareBufferView` always composites with alpha. Applied in place |
+| `backingView` | `"TextureView" \| "SurfaceView"` | The native view behind the canvas. Defaults to `TextureView` |
+| `opaque` | `boolean` | Declares that the canvas covers every pixel of its bounds, so it is composited without blending. Defaults to `false` on a `TextureView` and to `true` on a `SurfaceView`. Applied in place |
 | `zOrderOnTop` | `boolean` | `SurfaceView` only: draws the canvas above every React Native view in the window. Defaults to `false` |
 | `zOrderMediaOverlay` | `boolean` | `SurfaceView` only: draws the canvas above the other `SurfaceView`s below the window (video players, other canvases). Defaults to `false`; `zOrderOnTop` takes precedence |
 
-| | `TextureView` | `SurfaceView` | `HardwareBufferView` |
-| --- | --- | --- | --- |
-| Minimum Android | 8 (API 26) | 8 (API 26) | 10 (API 29) |
-| Behaves like a regular view | yes | no | yes |
-| Latency | highest | lowest | in between |
-| Opaque by default | no | yes | never |
-| Status | default | opt-in | experimental, opt-in |
+| | `TextureView` | `SurfaceView` |
+| --- | --- | --- |
+| Minimum Android | 8 (API 26) | 8 (API 26) |
+| Behaves like a regular view | yes | no |
+| Latency | higher | lower |
+| Opaque by default | no | yes |
+| Status | default | opt-in |
 
 **`TextureView`** is the default: a regular view, so transforms, clipping, alpha and z-order all apply, and the canvas can be composited over other React Native views. The cost is an extra copy, typically a frame of latency, and occasional stalls during some view animations. On Android 10 it always blends, whatever `opaque` says.
 
 **`SurfaceView`** is the fastest option. It is not regular view content, though: parent transforms, clipping, rounded corners and z-ordering with sibling views do not apply to it. Use it for a canvas that is a plain rectangle: a full-screen scene or a game. It is opaque unless asked otherwise: a translucent `SurfaceView` blends against the window background (usually black) instead of the React Native views beneath it, which are punched out. Pair it with `zOrderOnTop` to composite over React Native content, and note that `zOrderOnTop` draws above all React Native views in the window, including navigation screens, regardless of `zIndex`.
-
-**`HardwareBufferView`** composites like a `TextureView`, with lower latency. It is experimental: if the device cannot allocate the buffers the canvas shows nothing instead of falling back, and some devices may show a stale or torn frame. Test it on your target devices, and drop the `backingView` to go back to `TextureView`. Below Android 10 it uses a `TextureView`, with a warning in development.
 
 The backing view is created when the canvas mounts and kept while it is mounted. `opaque` applies in place, and so do the z-order options on Android 11 and later; a change of `backingView` is ignored, with a warning in development. To switch backing views, remount the canvas with a `key`. The remount leaves the canvas off screen for a frame or two, showing what is behind it, or black, until the new view draws its first frame: the old view leaves and the new one arrives in different window frames.
 
@@ -87,9 +85,6 @@ Some combinations for other trade-offs:
 
 // Translucent SurfaceView above every React Native view
 <Canvas android={{ backingView: "SurfaceView", opaque: false, zOrderOnTop: true }} />
-
-// Translucent HardwareBufferView, opt-in (uses a TextureView before Android 10)
-<Canvas android={{ backingView: "HardwareBufferView" }} />
 ```
 
 ## See also
