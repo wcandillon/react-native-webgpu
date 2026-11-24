@@ -197,7 +197,8 @@ jobs:
             xcrun simctl shutdown "$IOS_SIMULATOR_UDID" || true
           fi
 
-  # Decides whether the SwiftPM and native macOS builds run. SwiftPM proves that
+  # Decides whether the SwiftPM build, the native macOS build and the Apple SDK
+  # check run. SwiftPM proves that
   # packages/webgpu/Package.swift resolves and compiles, so a pull request
   # pays for it only when its diff touches what can change the outcome: the
   # manifest and the autolinking config, the Apple and C++ sources it
@@ -205,13 +206,17 @@ jobs:
   # the example that links it, or CI itself. Pushes
   # to main, the merge queue and manual runs always build SwiftPM. macOS builds
   # on main, manual runs and relevant PRs; shared JavaScript is checked by
-  # bundle-macos on every PR.
+  # bundle-macos on every PR. The Apple SDK check compiles the Apple sources
+  # against the Dawn headers, so it follows the Apple and C++ sources, the
+  # package manifest and the Dawn release pin, its two scripts, and CI itself;
+  # like SwiftPM it always runs on main, in the merge queue and on manual runs.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       spm: ${{ steps.diff.outputs.spm }}
       macos: ${{ steps.diff.outputs.macos }}
+      apple: ${{ steps.diff.outputs.apple }}
     steps:
       - name: Checkout
         if: github.event_name == 'pull_request'
@@ -229,12 +234,14 @@ jobs:
           if [ "$EVENT" != "pull_request" ]; then
             echo "spm=true" >> "$GITHUB_OUTPUT"
             echo "macos=true" >> "$GITHUB_OUTPUT"
+            echo "apple=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git fetch --depth=1 origin "$BASE"
           changed=$(git diff --name-only "$BASE" HEAD)
           spm=false
           macos=false
+          apple=false
           while IFS= read -r file; do
             case "$file" in
               packages/webgpu/Package.swift|packages/webgpu/*.podspec|packages/webgpu/package.json|packages/webgpu/binaries.json|packages/webgpu/react-native.config.js|\
@@ -254,9 +261,40 @@ jobs:
                 macos=true
                 ;;
             esac
+            case "$file" in
+              packages/webgpu/apple/*|packages/webgpu/cpp/*|packages/webgpu/package.json|packages/webgpu/binaries.json|\
+              packages/webgpu/scripts/check-apple-sdks.sh|packages/webgpu/scripts/prepare-dawn-headers.mjs|\
+              .github/workflows/ci.yml)
+                echo "apple: $file"
+                apple=true
+                ;;
+            esac
           done <<< "$changed"
           echo "spm=$spm" >> "$GITHUB_OUTPUT"
           echo "macos=$macos" >> "$GITHUB_OUTPUT"
+          echo "apple=$apple" >> "$GITHUB_OUTPUT"
+
+  # Syntax-checks the Apple sources against every Apple SDK. It runs from this
+  # workflow, behind changes, so that it can be a required check: a job that
+  # `if` skips reports as passing, while a workflow that a paths filter skips
+  # never reports at all and would leave the pull request waiting forever.
+  apple-sdks:
+    needs: changes
+    if: needs.changes.outputs.apple == 'true'
+    # Syntax-check only: no yarn install, no pods, no simulator. Only the Dawn
+    # headers archive is downloaded from the pinned Skia binaries release.
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: .nvmrc
+      - name: Prepare Dawn headers
+        run: node packages/webgpu/scripts/prepare-dawn-headers.mjs
+      - name: Check Apple sources against every SDK
+        run: packages/webgpu/scripts/check-apple-sdks.sh
 
   # Bundle shared sources on every PR without reserving a Mac. Native builds
   # alone do not exercise Metro or the desktop Worklets/Babel configuration.
