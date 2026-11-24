@@ -112,22 +112,34 @@ A device wrapped with [`importDevice()`](#importing-an-external-device) is creat
 
 ## Purging GPU memory
 
-Destroying a texture or a buffer frees it inside Dawn, which keeps its memory for reuse rather than returning it to the system.
-`purgeGpuResources()` hands that memory back, for instance once an export or a heavy screen is done:
+**Most apps should never call `purgeGpuResources()`.** Call `destroy()` on the textures and buffers you are done with, and Dawn reuses their memory for the next ones. When the system runs short of memory, React Native WebGPU purges on its own: on an iOS memory warning, and on Android on `onLowMemory()` and on `onTrimMemory()` from `TRIM_MEMORY_BACKGROUND`.
+
+The one case for calling it is a one-off peak followed by a long stretch that needs far less GPU memory, while the app stays in the foreground. For example, a video export that allocated hundreds of megabytes just finished, and the app is back to a light screen:
 
 ```tsx twoslash
 import { purgeGpuResources } from "react-native-webgpu";
-declare const texture: GPUTexture;
+declare const exportTextures: GPUTexture[];
 // ---cut---
-texture.destroy();
+// The export is over, and no other one follows
+exportTextures.forEach((texture) => texture.destroy());
 purgeGpuResources();
 ```
 
-It covers every device created through React Native WebGPU, does not affect what is alive, and returns right away: the work happens in the background, over about a second at most while the GPU finishes what was submitted.
-It is called for you on an iOS memory warning, and on Android on `onLowMemory()` and on `onTrimMemory()` from `TRIM_MEMORY_BACKGROUND`.
-There is no need to call it every frame: the next allocations have to ask the system for memory again.
+Do not call it:
 
-A device requested with `implicitDeviceSynchronization: false` is purged on the thread of its runtime, when that thread gets to it. An [imported device](#importing-an-external-device) is purged by its owner: use `Skia.purgeGpuResources()` for Skia's, in the React Native Skia versions that have it.
+- in a render loop, or after each `destroy()`;
+- when a component unmounts or on navigation: the next screen usually wants that memory back;
+- to fix a leak or an out-of-memory error: it only returns memory that nothing uses, so a texture you have not destroyed stays.
+
+Purging too often makes an app slower: memory that Dawn would have reused has to be requested from the system again.
+
+It returns right away and works in the background for up to about a second. It covers every device created through React Native WebGPU; an [imported device](#importing-an-external-device) is purged by its owner.
+
+### Why it is not in the WebGPU spec
+
+The spec lets you say when you are done with a resource, through `destroy()`. What happens to the memory afterwards (kept for reuse or returned to the system) is left to the implementation. On the web, that is the browser's job: it manages GPU memory for all its pages, and a page has no reason to know about it.
+
+In a native app there is no browser to do it: Dawn runs in your own process, its memory counts towards your app's, and the system can end the app for using too much of it. React Native WebGPU therefore takes on that role with the automatic purges above, and `purgeGpuResources()` covers what it cannot know: that your app has just finished a peak. It does nothing on the Web.
 
 ## Importing an external device
 
