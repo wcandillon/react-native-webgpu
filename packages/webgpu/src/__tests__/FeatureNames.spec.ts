@@ -7,11 +7,8 @@ const cppDir = path.resolve(__dirname, "..", "..", "cpp");
 const read = (...segments: string[]) =>
   fs.readFileSync(path.join(cppDir, ...segments), "utf-8");
 
-// The Dawn headers of the installed react-native-webgpu-dawn package.
-const dawnInclude = path.join(
-  path.dirname(require.resolve("react-native-webgpu-dawn/package.json")),
-  "include",
-);
+// Read the same prepared release headers bundled for native consumers.
+const dawnInclude = path.join(cppDir, "dawn", "include");
 
 // Every value of wgpu::FeatureName, straight from the Dawn headers (the
 // webgpu/ header is a shim onto the generated dawn/ one). A milestone upgrade

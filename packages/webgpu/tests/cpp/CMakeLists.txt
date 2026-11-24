@@ -4,16 +4,11 @@ project(react_native_webgpu_cpp_tests LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Dawn's headers come from the react-native-webgpu-dawn package, as in the
-# Android and iOS builds. The code under test needs only its headers.
-execute_process(
-  COMMAND node -e "process.stdout.write(require('path').dirname(require.resolve('react-native-webgpu-dawn/package.json')))"
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  OUTPUT_VARIABLE DAWN_DIR
-  RESULT_VARIABLE DAWN_DIR_RESULT
-)
-if(NOT DAWN_DIR_RESULT EQUAL 0)
-  message(FATAL_ERROR "react-native-webgpu: the react-native-webgpu-dawn package was not found. Install dependencies (yarn install) first.")
+# Use the same prepared headers shipped to CocoaPods and SwiftPM consumers.
+# Unit tests need no Dawn library and perform no binary download here.
+set(DAWN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../cpp/dawn")
+if(NOT EXISTS "${DAWN_DIR}/include/webgpu/webgpu.h")
+  message(FATAL_ERROR "react-native-webgpu: Dawn headers are missing. Run yarn copy-dawn-headers first.")
 endif()
 
 include(FetchContent)

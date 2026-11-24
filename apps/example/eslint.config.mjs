@@ -3,7 +3,10 @@ import wcandillon from "eslint-config-react-native-wcandillon";
 
 export default [
   {
-    ignores: ["**/*/components/meshes", "**/Pods/**", "node_modules/**", "dist/**", "android/**", "ios/**", "macos/**", "*.config.js"]
+    ignores: ["**/*/components/meshes", "**/Pods/**", "node_modules/**", "dist/**", "android/**", "ios/**", "macos/**", "*.config.js",
+      // Dormant Skia demos, excluded from tsconfig.json until React Native Skia
+      // supports SDK-based Dawn preparation. Remove both entries together.
+      "src/MNISTInference/**", "src/IconBenchmark/**"]
   },
   ...wcandillon,
   {
