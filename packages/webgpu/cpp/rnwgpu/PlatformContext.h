@@ -246,7 +246,7 @@ public:
   // for a regular sampled GPUTexture; NV12 is the right shape for the
   // importExternalTexture path (zero-copy biplanar YUV).
   virtual std::unique_ptr<IVideoPlayer>
-  createVideoPlayer(const std::string &path, VideoPixelFormat format) = 0;
+  createTestVideoPlayer(const std::string &path, VideoPixelFormat format) = 0;
 
   // Wrap a CVPixelBufferRef (Apple) or AHardwareBuffer* (Android) pointer
   // obtained from another library (typically VisionCamera's

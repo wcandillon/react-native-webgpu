@@ -3,7 +3,7 @@ import { PixelRatio, Platform, StyleSheet, Text, View } from "react-native";
 import {
   Canvas,
   createTestVideoFrame,
-  createVideoPlayer,
+  createTestVideoPlayer,
   useCanvasRef,
   useDevice,
   type GPUSharedTextureMemory,
@@ -100,7 +100,7 @@ export const SharedTextureMemory = () => {
     if (Platform.OS === "ios") {
       const VIDEO_URL =
         "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4";
-      const player = createVideoPlayer(VIDEO_URL);
+      const player = createTestVideoPlayer(VIDEO_URL);
       player.play();
       source = {
         copyLatestFrame: () => player.copyLatestFrame(),

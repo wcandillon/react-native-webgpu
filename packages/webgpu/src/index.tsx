@@ -43,7 +43,7 @@ export type {
   GPUSharedTextureMemoryDescriptor,
   GPUSharedTextureMemoryEndAccessState,
   NativeBufferPixelFormat,
-  CreateVideoPlayerOptions,
+  CreateTestVideoPlayerOptions,
   GPUCopyExternalNativeFrameSourceInfo,
   GPUDawnTogglesDescriptor,
   GPUNativeExternalTextureDescriptor,
@@ -117,8 +117,8 @@ declare global {
     // taking ownership of one reference (pair with producers that return a
     // +1 pointer, e.g. Skia.Image.MakeGPUTextureFromImage()).
     adoptTexture: (pointer: bigint) => GPUTexture;
-    // Prefer the createVideoPlayer() export, which takes an options object.
-    createVideoPlayer: (
+    // Prefer the createTestVideoPlayer() export, which takes an options object.
+    createTestVideoPlayer: (
       source: string,
       pixelFormat?: NativeBufferPixelFormat,
     ) => VideoPlayer;
@@ -185,7 +185,7 @@ declare global {
       source: GPUDrawElementImageSource,
       destination: GPUDrawElementImageDestination,
     ): Promise<void>;
-    // Non-spec extension: a NativeBuffer (from createVideoPlayer,
+    // Non-spec extension: a NativeBuffer (from createTestVideoPlayer,
     // createNativeBufferFromPointer or createTestVideoFrame) as the copy
     // source. The frame is rendered into the destination on the GPU through
     // an external texture, which converts YUV to RGB and applies `rotation`

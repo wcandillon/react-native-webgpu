@@ -19,7 +19,7 @@ It does not belong to any GPU device: a device imports it to sample it or to ren
 `importExternalTexture()`, `copyExternalImageToTexture()` and `NativeBufferView` wait for it on their own; with [`importSharedTextureMemory()`](/api/gpu-device-extensions#importing-a-buffer-once), pass it to `beginAccess()` through `importSharedFence({ type: "sync-fd", handle })`.
 The frame owns the fd: import it before `release()`, and never close it.
 
-A frame from a [video player](/api/video-player) or a camera comes from a pool: release it as soon as the GPU work that reads it has been submitted, or the producer runs out of buffers.
+A frame from a [test video player](/api/test-video-player) or a camera comes from a pool: release it as soon as the GPU work that reads it has been submitted, or the producer runs out of buffers.
 
 ## createNativeBuffer
 

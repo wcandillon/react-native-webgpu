@@ -9,7 +9,6 @@
     "gpu-device-extensions",
     "native-buffer",
     "draw-element-image-to-texture",
-    "request-animation-frame",
-    "video-player"
+    "request-animation-frame"
   ]
 }
