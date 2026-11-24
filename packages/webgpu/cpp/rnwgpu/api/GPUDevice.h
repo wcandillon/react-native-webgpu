@@ -109,14 +109,20 @@ public:
 
 private:
   static std::unordered_map<WGPUDevice, GPUDevice *> &getRegistry() {
-    static std::unordered_map<WGPUDevice, GPUDevice *> registry;
-    return registry;
+    // Never destroyed: the purge thread (see purgeGpuResources) may still read
+    // it while the process exits.
+    static auto *registry = new std::unordered_map<WGPUDevice, GPUDevice *>();
+    return *registry;
   }
 
   static std::mutex &getRegistryMutex() {
-    static std::mutex mutex;
-    return mutex;
+    static auto *mutex = new std::mutex();
+    return *mutex;
   }
+
+  // One round of purgeGpuResources() over the live devices. Returns whether
+  // Dawn still has deletions waiting for submitted work to complete.
+  static bool reduceMemoryUsage(int pass);
 
 public:
   std::string getBrand() { return CLASS_NAME; }
@@ -322,6 +328,16 @@ public:
   // thread: the platform modules call it when the app goes to the background,
   // the last moment to write before the process may be killed.
   static void flushPipelineCaches();
+
+  // Has Dawn give the GPU memory it keeps for reuse (the memory of destroyed
+  // textures and buffers, staging memory) back to the system, for every live
+  // device. Nothing alive is affected. Returns at once: a background thread
+  // does it, and again for up to about a second while deletions still wait for
+  // submitted work. Requests made meanwhile are served by the same thread. A
+  // device that does not synchronize itself is asked a few times, on the
+  // thread of its runtime. An imported device is its owner's to purge. Any
+  // thread: the platform modules call it when the system is short of memory.
+  static void purgeGpuResources() noexcept;
 
 private:
   friend class GPUAdapter;

@@ -110,6 +110,25 @@ const device = await adapter.requestDevice({
 
 A device wrapped with [`importDevice()`](#importing-an-external-device) is created by its own library and does not use this cache.
 
+## Purging GPU memory
+
+Destroying a texture or a buffer frees it inside Dawn, which keeps its memory for reuse rather than returning it to the system.
+`purgeGpuResources()` hands that memory back, for instance once an export or a heavy screen is done:
+
+```tsx twoslash
+import { purgeGpuResources } from "react-native-webgpu";
+declare const texture: GPUTexture;
+// ---cut---
+texture.destroy();
+purgeGpuResources();
+```
+
+It covers every device created through React Native WebGPU, does not affect what is alive, and returns right away: the work happens in the background, over about a second at most while the GPU finishes what was submitted.
+It is called for you on an iOS memory warning, and on Android on `onLowMemory()` and on `onTrimMemory()` from `TRIM_MEMORY_BACKGROUND`.
+There is no need to call it every frame: the next allocations have to ask the system for memory again.
+
+A device requested with `implicitDeviceSynchronization: false` is purged on the thread of its runtime, when that thread gets to it. An [imported device](#importing-an-external-device) is purged by its owner: use `Skia.purgeGpuResources()` for Skia's, in the React Native Skia versions that have it.
+
 ## Importing an external device
 
 `importDevice()` wraps a GPU device created by another native library into a regular `GPUDevice`. The device handle is passed as a `BigInt`, and the original owner keeps its own reference.

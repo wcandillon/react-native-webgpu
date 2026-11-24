@@ -70,6 +70,14 @@ Java_com_webgpu_WebGPUModule_flushPipelineCaches(JNIEnv * /* env */,
   rnwgpu::GPUDevice::flushPipelineCaches();
 }
 
+// The system is short of memory (UI thread), see
+// GPUDevice::purgeGpuResources.
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUModule_purgeGpuResourcesNative(JNIEnv * /* env */,
+                                                     jclass /* clazz */) {
+  rnwgpu::GPUDevice::purgeGpuResources();
+}
+
 // WebGPUModule.onHostResume and onHostPause (UI thread): animation frames
 // follow the host activity, resumed or not.
 extern "C" JNIEXPORT void JNICALL

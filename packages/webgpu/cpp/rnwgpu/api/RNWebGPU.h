@@ -558,6 +558,9 @@ public:
     registry.removeSurfaceInfoIfDetached(contextId);
   }
 
+  // See GPUDevice::purgeGpuResources.
+  void purgeGpuResources() { GPUDevice::purgeGpuResources(); }
+
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "fabric", &RNWebGPU::getFabric);
     installGetter(runtime, prototype, "gpu", &RNWebGPU::getGPU);
@@ -581,6 +584,8 @@ public:
                   &RNWebGPU::createNativeBufferFromPointer);
     installMethodWithRuntime(runtime, prototype, "importDevice",
                              &RNWebGPU::importDevice);
+    installMethod(runtime, prototype, "purgeGpuResources",
+                  &RNWebGPU::purgeGpuResources);
     installMethod(runtime, prototype, "adoptTexture", &RNWebGPU::adoptTexture);
     installMethod(runtime, prototype, "createTestVideoPlayer",
                   &RNWebGPU::createTestVideoPlayer);

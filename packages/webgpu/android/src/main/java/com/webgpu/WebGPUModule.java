@@ -1,5 +1,7 @@
 package com.webgpu;
 
+import android.content.ComponentCallbacks2;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.hardware.HardwareBuffer;
 import android.os.Build;
@@ -34,6 +36,28 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
       System.loadLibrary("react-native-webgpu"); // Load the C++ library
   }
 
+  // The GPU memory nothing uses goes back to the system when it is short of
+  // memory (see GPUDevice::purgeGpuResources).
+  private final ComponentCallbacks2 mComponentCallbacks =
+      new ComponentCallbacks2() {
+        @Override
+        public void onConfigurationChanged(Configuration newConfig) {}
+
+        @Override
+        public void onLowMemory() {
+          purgeGpuResourcesNative();
+        }
+
+        @Override
+        public void onTrimMemory(int level) {
+          // Android 14 and later never call onLowMemory(), and of the trim
+          // levels only send UI_HIDDEN (any app switch) and BACKGROUND.
+          if (level >= TRIM_MEMORY_BACKGROUND) {
+            purgeGpuResourcesNative();
+          }
+        }
+      };
+
   public WebGPUModule(ReactApplicationContext reactContext) {
     super(reactContext);
     // Initialize the C++ module
@@ -41,11 +65,15 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
     // Animation frames follow the host activity: resumed, or not.
     setForegroundNative(reactContext.getLifecycleState() == LifecycleState.RESUMED);
     reactContext.addLifecycleEventListener(this);
+    reactContext.getApplicationContext().registerComponentCallbacks(mComponentCallbacks);
   }
 
   @Override
   public void invalidate() {
     getReactApplicationContext().removeLifecycleEventListener(this);
+    getReactApplicationContext()
+        .getApplicationContext()
+        .unregisterComponentCallbacks(mComponentCallbacks);
     super.invalidate();
   }
 
@@ -71,6 +99,9 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
 
   @DoNotStrip
   private native void flushPipelineCaches();
+
+  @DoNotStrip
+  private static native void purgeGpuResourcesNative();
 
   /**
    * Whether the app is in the foreground: the host activity is resumed (see

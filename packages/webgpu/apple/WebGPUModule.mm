@@ -2,6 +2,7 @@
 #include "ApplePlatformContext.h"
 #include "DawnBlobCache.h"
 #import "GPUCanvasContext.h"
+#import "GPUDevice.h"
 #import "RNWGUIKit.h"
 
 #import <React/RCTBridge+Private.h>
@@ -21,6 +22,24 @@ namespace react = facebook::react;
 @interface RCTBridge (JSIRuntime)
 - (void *)runtime;
 @end
+
+#if !TARGET_OS_OSX
+// The GPU memory nothing uses goes back to the system when it is short of
+// memory (see GPUDevice::purgeGpuResources). Once for the process: devices
+// outlive a React reload.
+static void observeMemoryWarnings() {
+  static dispatch_once_t once;
+  dispatch_once(&once, ^{
+    [[NSNotificationCenter defaultCenter]
+        addObserverForName:UIApplicationDidReceiveMemoryWarningNotification
+                    object:nil
+                     queue:nil
+                usingBlock:^(NSNotification *) {
+                  rnwgpu::GPUDevice::purgeGpuResources();
+                }];
+  });
+}
+#endif
 
 @implementation WebGPUModule
 
@@ -149,6 +168,9 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
     rnwgpu::DawnBlobCache::setDirectory(
         [caches stringByAppendingPathComponent:@"webgpu-dawn"].UTF8String);
   }
+#if !TARGET_OS_OSX
+  observeMemoryWarnings();
+#endif
   webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker,
                                                             platformContext);
   return @true;

@@ -5,7 +5,10 @@
 #include <cstdint>
 #include <cstdio>
 #include <memory>
+#include <mutex>
 #include <string>
+#include <system_error>
+#include <thread>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -167,6 +170,103 @@ void GPUDevice::flushPipelineCaches() {
         device->flushPipelineCache();
       }
     });
+  }
+}
+
+bool GPUDevice::reduceMemoryUsage(int pass) {
+  // Copied out of the wrappers, as in flushPipelineCaches(). Collected anew
+  // for each pass, so that a device is not kept alive between passes.
+  struct Purge {
+    wgpu::Device device;
+    std::shared_ptr<async::RuntimeContext> async;
+    std::weak_ptr<GPUDevice> wrapper;
+  };
+  std::vector<Purge> purges;
+  {
+    std::lock_guard<std::mutex> lock(getRegistryMutex());
+    for (const auto &entry : getRegistry()) {
+      GPUDevice *device = entry.second;
+      if (device->_origin == Origin::Imported ||
+          device->weak_from_this().expired()) {
+        continue;
+      }
+      purges.push_back(
+          {device->_instance, device->_async, device->weak_from_this()});
+    }
+  }
+  bool pending = false;
+  for (const auto &purge : purges) {
+    // Dawn does nothing for a device that is lost or destroyed, which it
+    // checks with the device locked.
+    if (purge.device.HasFeature(
+            wgpu::FeatureName::ImplicitDeviceSynchronization)) {
+      // Not redundant with what ReduceMemoryUsage() does: it learns which work
+      // has completed but leaves what waits for that work to a tick, and an
+      // idle app does not tick.
+      purge.device.Tick();
+      pending |= dawn::native::ReduceMemoryUsage(purge.device.Get());
+      continue;
+    }
+    // A device used from its runtime's thread only: what Dawn answers there is
+    // not waited for, so it gets a fixed number of passes. The first lets the
+    // pending deletions go through, the next free what they leave.
+    constexpr int kUnsynchronizedPasses = 3;
+    if (pass >= kUnsynchronizedPasses || !purge.async) {
+      continue;
+    }
+    pending = true;
+    purge.async->post([weak = purge.wrapper](jsi::Runtime &) {
+      if (auto device = weak.lock()) {
+        device->_instance.Tick();
+        dawn::native::ReduceMemoryUsage(device->_instance.Get());
+      }
+    });
+  }
+  return pending;
+}
+
+void GPUDevice::purgeGpuResources() noexcept {
+  struct State {
+    std::mutex mutex;
+    bool running = false;
+    bool requested = false;
+  };
+  // Never destroyed: the purge thread may still use it while the process
+  // exits.
+  static auto *state = new State();
+  {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    state->requested = true;
+    if (state->running) {
+      return;
+    }
+    state->running = true;
+  }
+  try {
+    std::thread([] {
+      constexpr int kMaxPasses = 10;
+      constexpr auto kPassInterval = std::chrono::milliseconds(100);
+      for (;;) {
+        {
+          std::lock_guard<std::mutex> lock(state->mutex);
+          if (!state->requested) {
+            state->running = false;
+            return;
+          }
+          state->requested = false;
+        }
+        for (int pass = 0; pass < kMaxPasses; pass++) {
+          if (!reduceMemoryUsage(pass)) {
+            break;
+          }
+          std::this_thread::sleep_for(kPassInterval);
+        }
+      }
+    }).detach();
+  } catch (const std::system_error &) {
+    // No thread to be had: nothing is purged.
+    std::lock_guard<std::mutex> lock(state->mutex);
+    state->running = false;
   }
 }
 
