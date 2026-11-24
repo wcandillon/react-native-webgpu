@@ -45,7 +45,7 @@ static void reduceDawnMemoryUsage() {
     return;
   }
   reducingDawnMemoryUsage = true;
-  reduceDawnMemoryUsagePass(8);
+  reduceDawnMemoryUsagePass(4);
 }
 
 // A memory warning, and the move to the background, where iOS kills the apps

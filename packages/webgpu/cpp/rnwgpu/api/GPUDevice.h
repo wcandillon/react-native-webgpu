@@ -332,7 +332,9 @@ public:
   // low memory and when the app goes to the background. Returns true when a
   // device trimmed here still has memory that waits on GPU work in flight,
   // which a call after a short delay frees; a device trimmed on its runtime's
-  // thread is not counted.
+  // thread is not counted. On Vulkan the answer stays true: to free what
+  // waits, Dawn submits, and that submit leaves something of its own to wait
+  // on. Callers repeat a few times at most.
   static bool reduceMemoryUsage();
 
 private:

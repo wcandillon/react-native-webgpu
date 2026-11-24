@@ -80,7 +80,7 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
   @DoNotStrip
   private native void flushPipelineCaches();
 
-  private static final int MEMORY_PASSES = 8;
+  private static final int MEMORY_PASSES = 4;
   private static final long MEMORY_PASS_DELAY_MS = 250;
 
   private final Handler mainHandler = new Handler(Looper.getMainLooper());
