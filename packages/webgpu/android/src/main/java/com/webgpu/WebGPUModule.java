@@ -1,8 +1,12 @@
 package com.webgpu;
 
+import android.content.ComponentCallbacks2;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.hardware.HardwareBuffer;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 
@@ -41,11 +45,15 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
     // Animation frames follow the host activity: resumed, or not.
     setForegroundNative(reactContext.getLifecycleState() == LifecycleState.RESUMED);
     reactContext.addLifecycleEventListener(this);
+    reactContext.getApplicationContext().registerComponentCallbacks(memoryCallbacks);
   }
 
   @Override
   public void invalidate() {
     getReactApplicationContext().removeLifecycleEventListener(this);
+    getReactApplicationContext().getApplicationContext().unregisterComponentCallbacks(memoryCallbacks);
+    mainHandler.removeCallbacksAndMessages(null);
+    reducingMemoryUsage = false;
     super.invalidate();
   }
 
@@ -71,6 +79,63 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
 
   @DoNotStrip
   private native void flushPipelineCaches();
+
+  private static final int MEMORY_PASSES = 8;
+  private static final long MEMORY_PASS_DELAY_MS = 250;
+
+  private final Handler mainHandler = new Handler(Looper.getMainLooper());
+  // Main thread only.
+  private boolean reducingMemoryUsage = false;
+
+  /**
+   * The system asks the app to give back memory (see
+   * GPUDevice::reduceMemoryUsage): once its UI is hidden, which is the app
+   * going to the background (not a pause that a dialog or a focus change in
+   * multi-window also brings, after which the app is straight back), and
+   * when memory runs low. The levels below UI_HIDDEN come while the app is
+   * in the foreground, rendering: what a trim gave back would only be
+   * allocated again.
+   */
+  private final ComponentCallbacks2 memoryCallbacks = new ComponentCallbacks2() {
+    @Override
+    public void onTrimMemory(int level) {
+      if (level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
+        reduceMemoryUsage();
+      }
+    }
+
+    @Override
+    public void onLowMemory() {
+      reduceMemoryUsage();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration configuration) {}
+  };
+
+  /**
+   * Has Dawn free the memory it keeps but does not need, then again while
+   * some of it waits on GPU work in flight, as Chrome does, a few times at
+   * most (see GPUDevice::reduceMemoryUsage). Main thread.
+   */
+  private void reduceMemoryUsage() {
+    if (reducingMemoryUsage) {
+      return;
+    }
+    reducingMemoryUsage = true;
+    reduceMemoryUsagePass(MEMORY_PASSES);
+  }
+
+  private void reduceMemoryUsagePass(int passesLeft) {
+    if (reduceMemoryUsageNative() && passesLeft > 1) {
+      mainHandler.postDelayed(() -> reduceMemoryUsagePass(passesLeft - 1), MEMORY_PASS_DELAY_MS);
+      return;
+    }
+    reducingMemoryUsage = false;
+  }
+
+  @DoNotStrip
+  private static native boolean reduceMemoryUsageNative();
 
   /**
    * Whether the app is in the foreground: the host activity is resumed (see

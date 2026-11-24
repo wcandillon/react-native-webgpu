@@ -70,6 +70,16 @@ Java_com_webgpu_WebGPUModule_flushPipelineCaches(JNIEnv * /* env */,
   rnwgpu::GPUDevice::flushPipelineCaches();
 }
 
+// WebGPUModule.reduceMemoryUsage (UI thread): the system asked the app to
+// give back memory, its UI hidden or memory low (see
+// GPUDevice::reduceMemoryUsage). True when a call after a short delay would
+// free more.
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_webgpu_WebGPUModule_reduceMemoryUsageNative(JNIEnv * /* env */,
+                                                     jclass /* clazz */) {
+  return rnwgpu::GPUDevice::reduceMemoryUsage() ? JNI_TRUE : JNI_FALSE;
+}
+
 // WebGPUModule.onHostResume and onHostPause (UI thread): animation frames
 // follow the host activity, resumed or not.
 extern "C" JNIEXPORT void JNICALL

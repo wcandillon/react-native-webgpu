@@ -2,6 +2,7 @@
 #include "ApplePlatformContext.h"
 #include "DawnBlobCache.h"
 #import "GPUCanvasContext.h"
+#include "GPUDevice.h"
 #import "RNWGUIKit.h"
 
 #import <React/RCTBridge+Private.h>
@@ -21,6 +22,53 @@ namespace react = facebook::react;
 @interface RCTBridge (JSIRuntime)
 - (void *)runtime;
 @end
+
+#if !TARGET_OS_OSX
+// Has Dawn free the memory it keeps but does not need (see
+// GPUDevice::reduceMemoryUsage), then again while some of it waits on GPU work
+// in flight, as Chrome does, a few times at most. Main thread.
+static bool reducingDawnMemoryUsage = false;
+
+static void reduceDawnMemoryUsagePass(int passesLeft) {
+  if (rnwgpu::GPUDevice::reduceMemoryUsage() && passesLeft > 1) {
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 250 * NSEC_PER_MSEC),
+                   dispatch_get_main_queue(), ^{
+                     reduceDawnMemoryUsagePass(passesLeft - 1);
+                   });
+    return;
+  }
+  reducingDawnMemoryUsage = false;
+}
+
+static void reduceDawnMemoryUsage() {
+  if (reducingDawnMemoryUsage) {
+    return;
+  }
+  reducingDawnMemoryUsage = true;
+  reduceDawnMemoryUsagePass(8);
+}
+
+// A memory warning, and the move to the background, where iOS kills the apps
+// that hold the most memory first: the moments Flutter and Chrome give back
+// the GPU memory they can.
+static void observeMemoryPressure() {
+  static dispatch_once_t once;
+  dispatch_once(&once, ^{
+    NSNotificationCenter *center = NSNotificationCenter.defaultCenter;
+    for (NSNotificationName name in @[
+           UIApplicationDidReceiveMemoryWarningNotification,
+           UIApplicationDidEnterBackgroundNotification
+         ]) {
+      [center addObserverForName:name
+                          object:nil
+                           queue:NSOperationQueue.mainQueue
+                      usingBlock:^(NSNotification *) {
+                        reduceDawnMemoryUsage();
+                      }];
+    }
+  });
+}
+#endif
 
 @implementation WebGPUModule
 
@@ -151,6 +199,9 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
   }
   webgpuManager = std::make_shared<rnwgpu::RNWebGPUManager>(runtime, jsInvoker,
                                                             platformContext);
+#if !TARGET_OS_OSX
+  observeMemoryPressure();
+#endif
   return @true;
 }
 

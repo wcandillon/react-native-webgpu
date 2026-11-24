@@ -323,8 +323,34 @@ public:
   // the last moment to write before the process may be killed.
   static void flushPipelineCaches();
 
+  // Has Dawn free, on every live device, the memory it keeps but does not need
+  // (dawn::native::ReduceMemoryUsage): its staging ring buffers, scratch and
+  // temporary uniform buffers and trimmed caches, and on Vulkan the device
+  // memory it recycles and its framebuffer cache. Like flushPipelineCaches(),
+  // here when the device synchronizes itself, else on the thread of its
+  // runtime. Any thread: the platform modules call it when the system warns of
+  // low memory and when the app goes to the background. Returns true when a
+  // device trimmed here still has memory that waits on GPU work in flight,
+  // which a call after a short delay frees; a device trimmed on its runtime's
+  // thread is not counted.
+  static bool reduceMemoryUsage();
+
 private:
   friend class GPUAdapter;
+
+  // What a pass over the live devices takes from each wrapper, copied out
+  // under the registry's mutex rather than the wrapper itself: a strong
+  // reference to the wrapper released on the calling thread (the platform's
+  // UI thread) could be its last, and a wrapper, with its JSI members, must
+  // only go on its runtime's thread. Imported devices, whose owner looks
+  // after them, are left out, as are wrappers on their way out.
+  struct LiveDevice {
+    wgpu::Device device;
+    std::shared_ptr<std::atomic<bool>> pipelineCacheOutgrown;
+    std::shared_ptr<async::RuntimeContext> async;
+    std::weak_ptr<GPUDevice> wrapper;
+  };
+  static std::vector<LiveDevice> liveDevices();
 
   // Runs the uncapturederror listeners on the creation runtime's JS thread.
   // Invoked from notifyUncapturedError through the runtime's context.
