@@ -1,11 +1,15 @@
 #include "RuntimeContext.h"
 
+#include <algorithm>
+#include <chrono>
 #include <condition_variable>
+#include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <memory>
 #include <stdexcept>
 #include <thread>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -56,12 +60,30 @@ void logException(const char *what, const std::exception_ptr &error) {
   }
 }
 
+template <typename T, typename = void>
+struct HasUnsupportedCount : std::false_type {};
+
+template <typename T>
+struct HasUnsupportedCount<T, std::void_t<decltype(T::UnsupportedCount)>>
+    : std::true_type {};
+
+template <typename Status> bool isUnsupportedCount(Status status) {
+  if constexpr (HasUnsupportedCount<Status>::value) {
+    return status == Status::UnsupportedCount;
+  } else {
+    (void)status;
+    return false;
+  }
+}
+
 /**
- * The thread waiting on the futures of one instance: one future at a time,
- * in the order they were handed over, in Instance::WaitAny, which sleeps
- * until the GPU or Dawn's worker is done and then runs the callback. Never
- * destroyed: the instance it retains is shared by every runtime, and a
- * future may be outstanding during process teardown.
+ * The thread waiting on the futures of one instance: pending futures are
+ * waited together in batches of up to 64 (matching timedWaitAnyMaxCount in
+ * WebGPURuntime) with a 1 ms timeout in Instance::WaitAny, so a later future
+ * that completes early is not blocked behind an older one, and newly enqueued
+ * or overflow futures join on the next slice. Never destroyed: the instance it
+ * retains is shared by every runtime, and a future may be outstanding during
+ * process teardown.
  */
 class Waiter {
 public:
@@ -95,19 +117,72 @@ private:
 #elif defined(__ANDROID__)
     pthread_setname_np(pthread_self(), "RNWebGPU Waiter");
 #endif
+    constexpr std::size_t kMaxWaitBatchSize = 64;
+    constexpr std::chrono::milliseconds kWaitSliceTimeout{1};
+    constexpr uint64_t kWaitSliceTimeoutNs = static_cast<uint64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(kWaitSliceTimeout)
+            .count());
+
+    std::deque<wgpu::Future> pending;
+    std::vector<wgpu::FutureWaitInfo> batch;
+    std::size_t maxBatchSize = kMaxWaitBatchSize;
+    batch.reserve(kMaxWaitBatchSize);
+
     for (;;) {
-      wgpu::Future future;
       {
         std::unique_lock<std::mutex> lock(_mutex);
-        _condition.wait(lock, [this]() { return !_futures.empty(); });
-        future = _futures.front();
-        _futures.pop_front();
+        if (pending.empty()) {
+          _condition.wait(lock, [this]() { return !_futures.empty(); });
+        }
+        while (!_futures.empty()) {
+          pending.push_back(_futures.front());
+          _futures.pop_front();
+        }
       }
-      auto status = _instance.WaitAny(future, UINT64_MAX);
-      if (status != wgpu::WaitStatus::Success) {
-        Logger::logToConsole("[%s] WaitAny failed with status %d", TAG,
-                             static_cast<int>(status));
+
+      const std::size_t count = std::min(pending.size(), maxBatchSize);
+      batch.clear();
+      for (std::size_t i = 0; i < count; ++i) {
+        wgpu::FutureWaitInfo info{};
+        info.future = pending.front();
+        info.completed = false;
+        batch.push_back(info);
+        pending.pop_front();
       }
+
+      auto status =
+          _instance.WaitAny(batch.size(), batch.data(), kWaitSliceTimeoutNs);
+      if (status == wgpu::WaitStatus::Success ||
+          status == wgpu::WaitStatus::TimedOut) {
+        for (const auto &info : batch) {
+          if (!info.completed) {
+            pending.push_back(info.future);
+          }
+        }
+        continue;
+      }
+
+      if (isUnsupportedCount(status) && batch.size() > 1) {
+        maxBatchSize = batch.size() / 2;
+        for (auto it = batch.rbegin(); it != batch.rend(); ++it) {
+          if (!it->completed) {
+            pending.push_front(it->future);
+          }
+        }
+        continue;
+      }
+
+      Logger::logToConsole("[%s] WaitAny failed with status %d", TAG,
+                           static_cast<int>(status));
+      if (batch.size() > 1) {
+        maxBatchSize = batch.size() / 2;
+      }
+      for (const auto &info : batch) {
+        if (!info.completed) {
+          pending.push_back(info.future);
+        }
+      }
+      std::this_thread::sleep_for(kWaitSliceTimeout);
     }
   }
 
