@@ -52,7 +52,8 @@ public:
                                       bool displayP3) override;
 
   std::unique_ptr<IVideoPlayer>
-  createVideoPlayer(const std::string &path, VideoPixelFormat format) override;
+  createTestVideoPlayer(const std::string &path,
+                        VideoPixelFormat format) override;
 
   std::string writeTestVideoFile() override;
 

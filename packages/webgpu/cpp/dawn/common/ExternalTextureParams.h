@@ -29,9 +29,9 @@
 //
 // Vendored from Dawn's src/dawn/common/ExternalTextureParams.h, unchanged. The
 // functions it declares are compiled into the Dawn binaries that
-// react-native-webgpu-dawn ships (libwebgpu_dawn.so, libwebgpu_dawn.a), which
-// export them, but the package only ships Dawn's public headers. The copy is
-// pinned to the Dawn commit of the package in scripts/check-dawn.ts: on a Dawn
+// the pinned release ships (libwebgpu_dawn.so, libwebgpu_dawn.a), which
+// export them, but the released include/ tree has only public headers. The copy
+// is pinned to the release commit in scripts/check-dawn.ts: on a Dawn
 // bump, diff it against the new commit's file and re-sync it.
 
 #ifndef SRC_DAWN_COMMON_EXTERNALTEXTUREPARAMS_H_

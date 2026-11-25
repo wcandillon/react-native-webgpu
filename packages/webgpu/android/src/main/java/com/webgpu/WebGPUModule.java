@@ -229,12 +229,12 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
   private native void onViewSnapshotBuffer(long callback, HardwareBuffer buffer, int fenceFd);
 
   /**
-   * Called from C++ (AndroidPlatformContext::createVideoPlayer) for
-   * RNWebGPU.createVideoPlayer. Throws when the source cannot be opened; the
+   * Called from C++ (AndroidPlatformContext::createTestVideoPlayer) for
+   * RNWebGPU.createTestVideoPlayer. Throws when the source cannot be opened; the
    * caller turns the exception into a JS error.
    */
   @DoNotStrip
-  WebGPUVideoPlayer createVideoPlayer(String source) {
+  WebGPUVideoPlayer createTestVideoPlayer(String source) {
     return new WebGPUVideoPlayer(getReactApplicationContext(), source);
   }
 }

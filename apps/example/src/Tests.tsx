@@ -10,7 +10,7 @@ import {
 import {
   Canvas,
   GPUOffscreenCanvas,
-  importDevice,
+  // importDevice,
   // The flags as the package exports them, not the globals of the same name
   // (see the `exportedFlags` spec in Constants.spec.ts).
   GPUBufferUsage as exportedBufferUsage,
@@ -25,7 +25,7 @@ import type { CanvasRef } from "react-native-webgpu";
 // loaded yet. On Android, Skia's device then lives on a second instance, and
 // ImportDevice.spec.ts relies on that split to cover importDevice() across
 // instances.
-import { Skia } from "react-native-skia";
+// import { Skia } from "react-native-skia";
 import { mat4, vec3, mat3 } from "wgpu-matrix";
 
 import { serve } from "./serve";
@@ -149,10 +149,13 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
               },
               workletDeviceStress,
               workletSerialization,
-              importSkiaDevice: () =>
-                Skia.gpu.isAvailable
-                  ? importDevice(Skia.getNativeDevice())
-                  : null,
+              // TODO: Restore Skia interop after SDK-based Dawn preparation is
+              // supported there. Returning null skips ImportDevice.spec.ts.
+              // importSkiaDevice: () =>
+              //   Skia.gpu.isAvailable
+              //     ? importDevice(Skia.getNativeDevice())
+              //     : null,
+              importSkiaDevice: () => null,
               exportedFlags: {
                 GPUBufferUsage: exportedBufferUsage,
                 GPUColorWrite: exportedColorWrite,

@@ -22,17 +22,14 @@ import {
   useDiagnosticLog,
 } from "./surfaceLifecycle";
 
-// Exercises every Android backing-view combination: opaque toggles in place
-// (on a SurfaceView or a TextureView; a HardwareBufferView always composites
-// with alpha), while the backing view is created when the Canvas mounts, so
-// picking another kind of view remounts it (the kind is its key; the z-order
+// Exercises every Android backing-view combination: opaque toggles in place,
+// while the backing view is created when the Canvas mounts, so picking
+// another kind of view remounts it (the kind is its key; the z-order
 // options move a mounted SurfaceView in place on Android 11 and later, and
 // remount it before). Half-transparent red is cleared over a blue stage with
 // a yellow RN overlay on top:
 // - opaque: solid red, overlay visible.
 // - translucent TextureView (the default): pink, overlay visible.
-// - translucent HardwareBufferView (opt-in, Android 10+): pink, overlay
-//   visible. Requesting it on an older device falls back to TextureView.
 // - translucent SurfaceView: blends against the window background (black),
 //   overlay visible only with zOrderOnTop off (the surface sits below it).
 // - translucent SurfaceView + zOrderOnTop: pink, overlay hidden underneath.
@@ -52,7 +49,6 @@ interface Option {
 
 const OPTIONS: Option[] = [
   { label: "texture", backingView: "TextureView" },
-  { label: "hardware buffer", backingView: "HardwareBufferView" },
   { label: "surface", backingView: "SurfaceView" },
   { label: "surface on top", backingView: "SurfaceView", zOrderOnTop: true },
   {
@@ -62,8 +58,7 @@ const OPTIONS: Option[] = [
   },
 ];
 
-// The `android` prop of an option, with the opacity the switch asks for (a
-// HardwareBufferView takes none).
+// The `android` prop of an option, with the opacity the switch asks for.
 const androidProps = (option: Option, opaque: boolean): AndroidCanvasProps => {
   switch (option.backingView) {
     case "SurfaceView":
@@ -75,8 +70,6 @@ const androidProps = (option: Option, opaque: boolean): AndroidCanvasProps => {
       };
     case "TextureView":
       return { backingView: "TextureView", opaque };
-    case "HardwareBufferView":
-      return { backingView: "HardwareBufferView" };
   }
 };
 
@@ -149,11 +142,11 @@ export const TransparencyMode = () => {
     <View style={diagnosticStyles.container}>
       <View style={diagnosticStyles.controls}>
         <Text style={diagnosticStyles.description}>
-          Half-transparent red over blue. HardwareBufferView and TextureView
-          keep the yellow RN overlay visible. A SurfaceView on top blends over
-          it. Picking another kind of view remounts the Canvas; opaque (and, on
-          Android 11 and later, the z-order options) updates it in place. Use
-          hide/show to test a fresh mount.
+          Half-transparent red over blue. TextureView keeps the yellow RN
+          overlay visible. A SurfaceView on top blends over it. Picking another
+          kind of view remounts the Canvas; opaque (and, on Android 11 and
+          later, the z-order options) updates it in place. Use hide/show to test
+          a fresh mount.
         </Text>
         <View style={styles.buttons}>
           {OPTIONS.map((value) => (

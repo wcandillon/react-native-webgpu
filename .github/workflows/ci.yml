@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-test-ios:
     runs-on: self-hosted
     # Green runs take 8 to 11 minutes; a hung xcodebuild used to hold this
     # runner for as long as nobody noticed.
@@ -197,21 +197,26 @@ jobs:
             xcrun simctl shutdown "$IOS_SIMULATOR_UDID" || true
           fi
 
-  # Decides whether the SwiftPM and native macOS builds run. SwiftPM proves that
+  # Decides whether the SwiftPM build, the native macOS build and the Apple SDK
+  # check run. SwiftPM proves that
   # packages/webgpu/Package.swift resolves and compiles, so a pull request
   # pays for it only when its diff touches what can change the outcome: the
   # manifest and the autolinking config, the Apple and C++ sources it
-  # compiles, the scripts behind the Dawn check, the dependencies that pin
-  # react-native-webgpu-dawn, the example that links it, or CI itself. Pushes
+  # compiles, preparation/check scripts, the Dawn release pin,
+  # the example that links it, or CI itself. Pushes
   # to main, the merge queue and manual runs always build SwiftPM. macOS builds
   # on main, manual runs and relevant PRs; shared JavaScript is checked by
-  # bundle-macos on every PR.
+  # bundle-macos on every PR. The Apple SDK check compiles the Apple sources
+  # against the Dawn headers, so it follows the Apple and C++ sources, the
+  # package manifest and the Dawn release pin, its two scripts, and CI itself;
+  # like SwiftPM it always runs on main, in the merge queue and on manual runs.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       spm: ${{ steps.diff.outputs.spm }}
       macos: ${{ steps.diff.outputs.macos }}
+      apple: ${{ steps.diff.outputs.apple }}
     steps:
       - name: Checkout
         if: github.event_name == 'pull_request'
@@ -229,15 +234,17 @@ jobs:
           if [ "$EVENT" != "pull_request" ]; then
             echo "spm=true" >> "$GITHUB_OUTPUT"
             echo "macos=true" >> "$GITHUB_OUTPUT"
+            echo "apple=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git fetch --depth=1 origin "$BASE"
           changed=$(git diff --name-only "$BASE" HEAD)
           spm=false
           macos=false
+          apple=false
           while IFS= read -r file; do
             case "$file" in
-              packages/webgpu/Package.swift|packages/webgpu/package.json|packages/webgpu/react-native.config.js|\
+              packages/webgpu/Package.swift|packages/webgpu/*.podspec|packages/webgpu/package.json|packages/webgpu/binaries.json|packages/webgpu/react-native.config.js|\
               packages/webgpu/apple/*|packages/webgpu/cpp/*|packages/webgpu/scripts/*|\
               spm-example/*|package.json|yarn.lock|\
               .github/workflows/ci.yml|.github/actions/setup/*)
@@ -246,7 +253,7 @@ jobs:
                 ;;
             esac
             case "$file" in
-              apps/example-macos/*|packages/webgpu/*.podspec|packages/webgpu/package.json|\
+              apps/example-macos/*|packages/webgpu/*.podspec|packages/webgpu/package.json|packages/webgpu/binaries.json|\
               packages/webgpu/react-native.config.js|packages/webgpu/apple/*|packages/webgpu/cpp/*|\
               packages/webgpu/scripts/*|package.json|yarn.lock|.yarn/patches/*|turbo.json|\
               .github/workflows/ci.yml|.github/actions/setup/*)
@@ -254,9 +261,40 @@ jobs:
                 macos=true
                 ;;
             esac
+            case "$file" in
+              packages/webgpu/apple/*|packages/webgpu/cpp/*|packages/webgpu/package.json|packages/webgpu/binaries.json|\
+              packages/webgpu/scripts/check-apple-sdks.sh|packages/webgpu/scripts/prepare-dawn-headers.mjs|\
+              .github/workflows/ci.yml)
+                echo "apple: $file"
+                apple=true
+                ;;
+            esac
           done <<< "$changed"
           echo "spm=$spm" >> "$GITHUB_OUTPUT"
           echo "macos=$macos" >> "$GITHUB_OUTPUT"
+          echo "apple=$apple" >> "$GITHUB_OUTPUT"
+
+  # Syntax-checks the Apple sources against every Apple SDK. It runs from this
+  # workflow, behind changes, so that it can be a required check: a job that
+  # `if` skips reports as passing, while a workflow that a paths filter skips
+  # never reports at all and would leave the pull request waiting forever.
+  apple-sdks:
+    needs: changes
+    if: needs.changes.outputs.apple == 'true'
+    # Syntax-check only: no yarn install, no pods, no simulator. Only the Dawn
+    # headers archive is downloaded from the pinned Skia binaries release.
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: .nvmrc
+      - name: Prepare Dawn headers
+        run: node packages/webgpu/scripts/prepare-dawn-headers.mjs
+      - name: Check Apple sources against every SDK
+        run: packages/webgpu/scripts/check-apple-sdks.sh
 
   # Bundle shared sources on every PR without reserving a Mac. Native builds
   # alone do not exercise Metro or the desktop Worklets/Babel configuration.
@@ -292,15 +330,15 @@ jobs:
 
   # The SwiftPM example gets its own job on a GitHub-hosted Mac. It needs no
   # Metro, simulator or CocoaPods, so nothing ties it to the self-hosted
-  # machine, and a fresh runner is the strictest check that the WebGPUDawn
-  # binaryTarget resolves from the release zip + checksum with nothing cached.
+  # machine. The Xcode phase selects the simulator SDK archive and verifies
+  # its checksum, independently of SwiftPM package resolution.
   # It used to be a step of `build`: a hung xcodebuild there blocked the iOS
   # e2e result and held the self-hosted runner, which has no slack for that.
   build-spm-ios:
     needs: changes
     if: needs.changes.outputs.spm == 'true'
     runs-on: macos-latest
-    # Cold run: yarn install, Dawn download, RN artifacts, then one xcodebuild.
+    # Install JS/headers, resolve RN artifacts, then prepare Dawn during Xcode.
     timeout-minutes: 25
     steps:
       - name: Checkout
@@ -320,7 +358,7 @@ jobs:
 
       # spm-example sits outside the yarn workspace so its React Native can
       # differ from the one apps/example pins: SwiftPM autolinking needs
-      # React Native 0.87+. It ships no lockfile; react and react-native are
+      # React Native 0.87.1+. It ships no lockfile; react and react-native are
       # pinned exactly in its package.json.
       - name: Install spm-example dependencies
         working-directory: spm-example
@@ -333,11 +371,8 @@ jobs:
         working-directory: spm-example/ios
         run: npx react-native spm update
 
-      # No CocoaPods and no -disableAutomaticPackageResolution here (unlike
-      # the example app build above): react-native-webgpu is linked through
-      # its own Package.swift, and its WebGPUDawn binaryTarget resolves to a
-      # remote release zip + checksum with nothing cached ahead of time: this
-      # build's whole point is exercising that download-and-verify step.
+      # No CocoaPods: the package compiles from bundled headers, and its Xcode
+      # phase prepares only the selected SDK's Dawn before the app links.
       - name: Build spm-example for iOS
         working-directory: spm-example/ios
         run: |
@@ -363,7 +398,7 @@ jobs:
   # own, so that a failing test is reported in a minute or two rather than
   # after the Android job's setup, and so that a googletest download that
   # fails does not fail the Android e2e run.
-  cpp-tests:
+  test-cpp:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

@@ -8,12 +8,19 @@ We happily accept contributions made with coding agents. Our ask is simple: if y
 
 ```sh
 yarn
+yarn workspace react-native-webgpu copy-dawn-headers
 ```
 
-Dawn, the WebGPU implementation, is prebuilt; there is nothing to build:
+### Using pre-built binaries
 
-- On Android, Gradle downloads it at build time from the GitHub release `binaries-<version>` of [wcandillon/react-native-skia](https://github.com/wcandillon/react-native-skia/releases): the shared library of each ABI being built, and the headers. `packages/webgpu/binaries.json` pins the version and the sha256 of every archive. They are resolved as Gradle dependencies, so they are cached in the Gradle user home and later builds work offline; the `prepareDawnBinaries` task verifies them and extracts them into `android/build/binaries`. To download from a mirror, or from a directory with `file:///...`, set the `reactNativeSkiaBinariesUrl` Gradle property or the `REACT_NATIVE_SKIA_BINARIES_URL` environment variable (the ones react-native-skia reads) to a location holding `binaries-<version>/<asset>`.
-- On Apple platforms it comes with the `react-native-webgpu-dawn` dependency of `packages/webgpu`: the xcframework and the headers.
+Dawn, the WebGPU implementation, comes from the shared [React Native Skia binaries release](https://github.com/wcandillon/react-native-skia/releases) pinned by `packages/webgpu/binaries.json`. There is no `postinstall` step:
+
+- On Android, Gradle downloads one Dawn archive per ABI being built, plus the headers. They are resolved as Gradle dependencies, cached in the Gradle user home, and available offline on later builds. The `prepareDawnBinaries` task verifies the pinned sha256 checksums and extracts them into `android/build/binaries`.
+- On Apple platforms, an Xcode build phase prepares the selected SDK's Dawn archive from that same pinned release. CocoaPods adds the phase during `pod install`; optional SwiftPM integration adds it during `react-native spm update`. Headers ship in the main `react-native-webgpu` package, without binary npm dependencies. See [Apple binary preparation](#how-apple-binaries-are-prepared) for caching, local builds, and errors.
+
+See [installation](../../apps/docs/content/docs/getting-started/installation.mdx#prebuilt-binaries) for downloads and mirrors on both platforms.
+
+### Examples and tests
 
 Example app (from `apps/example/`): `yarn start` · `yarn ios` · `yarn android`
 
@@ -25,7 +32,7 @@ Tests (from `packages/webgpu/`): `yarn test:ref` (Chrome reference) · `yarn tes
 
 `yarn test` needs the example app open on its "Tests" screen and connected to Metro first: start Metro with `CI=true yarn start` (from `apps/example/`) — `initialRouteName` in `apps/example/src/App.tsx` is `"Tests"` when `process.env.CI === "true"`, inlined at bundle time via the `transform-inline-environment-variables` babel plugin — then launch the app (`yarn ios` / `yarn android`, or install+launch an existing build). The screen shows "Connecting to localhost..." once it's ready; `yarn test` then picks it up automatically. If a run fails mid-suite, reload the app (`curl -X POST http://localhost:8081/reload`) before the next run — a broken `GPUDevice` from the failed run makes unrelated later tests fail too. The app and the test server talk over port 4242 by default; set `E2E_PORT` for both Metro (it is inlined into the bundle, so start Metro with `--reset-cache` after changing it) and `yarn test` to use another one, as CI does to keep clear of the other projects sharing its runner.
 
-Other `packages/webgpu` scripts: `yarn check-dawn` (checks the installed Dawn against the C++ workarounds pinned to a Dawn commit; CI runs it after `yarn install`)
+Other `packages/webgpu` scripts: `yarn copy-dawn-headers` runs the cross-platform `scripts/prepare-dawn-headers.mjs` to prepare source/generated release headers in `cpp/dawn/include`; `yarn check-dawn` checks the pinned Dawn commit against the C++ workarounds. CI prepares headers before these checks and before publishing npm.
 
 ## Expo config plugin
 
@@ -33,34 +40,33 @@ The Expo config plugin lives in `plugin/src` and is compiled to `plugin/build` b
 
 ## Upgrading Dawn
 
-Dawn ships in the `react-native-webgpu-dawn` npm package, which react-native-skia builds and publishes together with its own Skia Graphite binaries (the **Build and publish binaries** workflow of [wcandillon/react-native-skia](https://github.com/wcandillon/react-native-skia), see its `packages/skia/CONTRIBUTING.md`). It is built from the Dawn commit the Skia release pins in its DEPS, with the patches that release needs, so the two libraries always link the same Dawn. The package records that commit in its `package.json` (`dawn.commit`) and its version follows the Skia one (`154.3.0` for Skia `m154_8037_58c`).
-
-`packages/webgpu/package.json` pins it exactly (`dependencies`), and keeps the `dawn` label (`chrome-m154a`) that react-native-skia 3.0.x compares against its own Dawn at `pod install` time; it goes away once react-native-skia depends on the package too.
+Dawn comes from the `binaries-<version>` release built by react-native-skia from its pinned Dawn commit. `packages/webgpu/binaries.json` records the version, commit, and asset checksums for both Android and Apple.
 
 Steps to bump to a new Dawn (new Skia milestone `m<N>`):
 
-1. **Wait for the binaries.** react-native-skia publishes `react-native-webgpu-dawn` at the new version, and the GitHub release `binaries-<version>` that Gradle downloads Dawn from on Android.
+1. **Wait for the binaries.** react-native-skia publishes the GitHub release `binaries-<version>`, including the SDK-grouped Apple ZIPs and `dawn-headers.zip`.
 
-2. **Bump the dependency** in `packages/webgpu/package.json` and run `yarn`, and replace `packages/webgpu/binaries.json` with the `checksums.json` of the new release (`curl -fL https://github.com/wcandillon/react-native-skia/releases/download/binaries-<version>/checksums.json -o packages/webgpu/binaries.json`). Both must name the same version: react-native-skia compares it with its own to refuse an app that would link two different Dawns.
+2. **Update the pin and headers.** Replace `packages/webgpu/binaries.json` with that release's `checksums.json`, then run `yarn copy-dawn-headers`. Both native integrations read this pin; there is no binary npm dependency to bump.
 
 3. **Review the workarounds.** `yarn check-dawn` fails when the Dawn commit changed while a workaround in `scripts/check-dawn.ts` is still pinned to the previous one: check whether the new Dawn carries the upstream fix, then drop the workaround or move its pin.
 
 4. **Map the new feature names.** A milestone usually adds `wgpu::FeatureName` values. Add them to `RNWGPU_FOR_EACH_FEATURE_NAME` in `cpp/rnwgpu/api/GPUFeatures.h`, which is the single list both conversion directions are generated from; `src/__tests__/FeatureNames.spec.ts` diffs it against the installed `webgpu_cpp.h` and fails when one is missing.
 
-5. **Update the compatibility table** in `apps/docs/content/docs/integrations/react-native-skia.mdx` with the new milestone row, so users can pair react-native-webgpu and `react-native-skia` versions.
+5. **Update the compatibility table** in the [React Native Skia documentation](https://wcandillon.github.io/react-native-skia/docs/webgpu) with the new milestone row, so users can pair react-native-webgpu and `react-native-skia` versions. The React Native WebGPU docs link to it rather than keeping a copy.
 
 6. **Build both platforms.** A milestone can also change Dawn's C++ API surface, not just add features — e.g. `chrome-m154` turned `SharedTextureMemory::BeginAccess`/`EndAccess`, `Adapter::GetLimits`, `Device::GetLimits`, and `SharedTextureMemory::GetProperties` from a bool-ish return into `wgpu::Status` (no implicit bool conversion), breaking every `if (!result)` / `if (result)` call site in `cpp/rnwgpu/api/*.cpp`. Building iOS and Android is the way these surface; fix by comparing explicitly (`result == wgpu::Status::Success`).
 
-7. **Verify and commit.** Build and run the example app (see "Development workflow" above for reaching the Tests screen), then commit the dependency bump.
+7. **Verify and commit.** Build and run the example app (see "Development workflow" above for reaching the Tests screen), then commit the release-pin update.
+
 ## Swift Package Manager (preview)
 
 CocoaPods stays the default. `Package.swift` is additive: SwiftPM ignores the
 podspec, and CocoaPods ignores `Package.swift`.
 
-SwiftPM support requires **React Native 0.87 or newer**; earlier releases ship
-no `scripts/spm`. `apps/example` is on an older version, so it cannot exercise
-this path. The harness is `spm-example/` at the repo root, deliberately outside
-the yarn workspace so its React Native does not collide with the workspace's.
+Automatic SwiftPM preparation requires **React Native 0.87.1 or newer**, whose
+plugin contract includes `scriptPhases`. Keep CocoaPods on earlier versions.
+The `spm-example/` harness keeps its React Native dependencies separate from
+the workspace. Prepare headers with the command above before setting it up.
 Its [README](../../spm-example/README.md) covers the details; the short form is:
 
 ```sh
@@ -76,13 +82,15 @@ on purpose: same relative paths to React Native's header products, same
 `.iOS(.v15)` floor, same `RCT_NEW_ARCH_ENABLED` / `RCT_REMOVE_LEGACY_ARCH` and
 `DEBUG` / `NDEBUG` defines. When one changes, change the other.
 
-Autolinking references the library through a symlink at
+`spm-plugin.js` explicitly registers the package and product with RN's
+`Autolinked` aggregate. It references the installed package through a symlink at
 `<app>/ios/build/generated/autolinking/libs/ReactNativeWebGPU`, and SwiftPM
 resolves the manifest's relative paths against that symlink rather than against
 `packages/webgpu`. The two React Native package paths are therefore identical
 for every standard app. The target name is pinned in `react-native.config.js`;
 without it a future React Native release would derive it from the podspec
-instead and change the header import prefix.
+instead and change the header import prefix. Autolinking recreates this
+generated symlink; after moving a checkout, rerun `spm update` from `ios/`.
 
 The platform floor must not exceed the one in React Native's generated
 `Autolinked` aggregate, which is hardcoded to iOS 15.0 on 0.87.1: SwiftPM
@@ -92,23 +100,39 @@ ships, `.iOS(.v15)` is the only value that links.
 
 #### Dawn
 
-The manifest depends on the `react-native-webgpu-dawn` package by path (a
-sibling in `node_modules`, or this monorepo's root) and links its
-`libwebgpu_dawn.xcframework`, whose slices embed the `webgpu/` and `dawn/`
-headers, so no header search path is needed for them. A Graphite build of
-react-native-skia installed alongside must link the same Dawn, which the
-manifest checks at evaluation time: a react-native-skia that depends on
-`react-native-webgpu-dawn` must resolve the same version (the copy nested under
-it, else the one next to it, as its podspec resolves it; a workspace that
-resolves the package to one version for both passes while react-native-skia's
-own pin lags behind a Dawn bump), and the 3.0.x line, which
-vendors its own Dawn, must record this package's `dawn` tag at
-`react-native-skia-graphite-apple-ios/libs/.dawn-version` (hoisted or nested
-under `react-native-skia/node_modules`, also checked for macOS and for the v2
-Graphite previews at `@shopify/react-native-skia/libs/.dawn-version`). SwiftPM
-caches manifest evaluations, so after changing either package's Dawn reset the
-package caches if the check does not re-run.
+The plugin generates `build/generated/autolinking/ReactNativeWebGPUBinaries`,
+a local C package carrying the static library link settings, and adds an app
+phase before compilation. The native manifest uses bundled headers, so package
+resolution downloads no Dawn binary or all-platform XCFramework.
 
-After changing which binaries a checkout uses, delete
-`ios/<App>.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`:
-a stale pin silently keeps the previous source.
+The Xcode phase follows the same steps as CocoaPods; see [Apple binary preparation](#how-apple-binaries-are-prepared).
+Set **User Script Sandboxing** to **NO** on the app target. CocoaPods configures
+this on its pod target automatically. Refresh `spm update` after changing the
+package or pin so generated settings match the installed package.
+
+### How Apple binaries are prepared
+
+This section explains what the scripts do automatically during setup and app builds (both CocoaPods and SwiftPM). No extra manual steps are required.
+
+0. `pod install` or `react-native spm update` registers the Xcode build phase.
+
+   CocoaPods or the RN 0.87.1+ SwiftPM plugin (`spm-plugin.js`) adds the phase automatically.
+   The phase runs `prepare-apple-binaries.sh`, which sources `apple-binaries-utils.sh`.
+   No binaries are downloaded during setup.
+
+During each Apple app build, the script:
+
+1. Selects the SDK, platform variant, and required architectures from Xcode.
+2. Uses local overrides or downloads the selected SDK's Dawn archive.
+3. Verifies pinned checksums and SDK metadata before use.
+4. Updates the selected XCFramework slice under `$OBJROOT/ReactNativeWebGPUBinaries`.
+5. Stages `librnwgpu_webgpu_dawn.a` in build products for static linking.
+6. Reuses unchanged downloads, slices, and libraries on later builds.
+
+- Downloads share `~/Library/Caches/react-native-skia`, similar to React Native and Hermes handling.
+- Set `RNSKIA_CACHE_DIR` to change the cache location.
+- Local overrides use `libs/apple/<sdk>` with `.a` libraries and `metadata.json`; symlink `libs/apple` to Skia's `libs/dawn/apple` to test local Dawn builds.
+- WebGPU always supplies Dawn; shared Skia integration requires matching release versions and Dawn commits in both packages' `binaries.json`.
+- Expand **Prepare React Native WebGPU binaries** in Xcode's report navigator for errors.
+
+See [SwiftPM Dawn](#dawn) for SwiftPM integration.
