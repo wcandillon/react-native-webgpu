@@ -578,10 +578,8 @@ ApplePlatformContext::retainNativeWindow(void *window) {
 // The NV12 variant of createTestVideoFrame: a biplanar BT.709 limited-range
 // frame, red on the left half and green on the right, whose attachments
 // declare its color space the way the decoder's frames do, so that the
-// conversion of importExternalTexture is fully determined. The caller owns
-// the returned reference.
-static CVPixelBufferRef createTestYuvPixelBuffer(uint32_t width,
-                                                 uint32_t height) {
+// conversion of importExternalTexture is fully determined.
+static VideoFrameHandle createTestYuvFrame(uint32_t width, uint32_t height) {
   NSDictionary *attrs = @{
     (NSString *)kCVPixelBufferIOSurfacePropertiesKey : @{},
     (NSString *)kCVPixelBufferMetalCompatibilityKey : @YES,
@@ -631,11 +629,7 @@ static CVPixelBufferRef createTestYuvPixelBuffer(uint32_t width,
     }
   }
   CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
-  return pixelBuffer;
-}
 
-static VideoFrameHandle createTestYuvFrame(uint32_t width, uint32_t height) {
-  CVPixelBufferRef pixelBuffer = createTestYuvPixelBuffer(width, height);
   try {
     auto handle = wrapCVPixelBuffer(pixelBuffer);
     CFRelease(pixelBuffer); // wrapCVPixelBuffer retained its own reference
@@ -695,18 +689,6 @@ ApplePlatformContext::createTestVideoFrame(uint32_t width, uint32_t height,
   handle.handle = (void *)ioSurface;
   handle.width = width;
   handle.height = height;
-  handle.deleter = [pixelBuffer]() { CFRelease(pixelBuffer); };
-  return handle;
-}
-
-VideoFrameHandle ApplePlatformContext::createTestPixelBuffer(uint32_t width,
-                                                             uint32_t height) {
-  CVPixelBufferRef pixelBuffer = createTestYuvPixelBuffer(width, height);
-  VideoFrameHandle handle;
-  handle.handle = pixelBuffer;
-  handle.width = width;
-  handle.height = height;
-  handle.pixelFormat = VideoPixelFormat::NV12;
   handle.deleter = [pixelBuffer]() { CFRelease(pixelBuffer); };
   return handle;
 }

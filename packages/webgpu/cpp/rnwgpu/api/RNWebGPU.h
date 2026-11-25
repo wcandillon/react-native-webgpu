@@ -17,6 +17,7 @@
 #include "GPU.h"
 #include "GPUCanvasContext.h"
 #include "GPUDevice.h"
+#include "GPUExternalTextureDescriptor.h"
 #include "GPUSharedFenceState.h"
 #include "GPUTexture.h"
 #include "ImageBitmap.h"
@@ -317,26 +318,15 @@ public:
     return std::make_shared<VideoFrame>(std::move(frame));
   }
 
-  // Test only, left out of the TypeScript declarations: the NV12 test frame as
-  // a buffer whose `handle` is the pointer createNativeBufferFromPointer takes
-  // (PlatformContext::createTestPixelBuffer). Pass the handle there; do not
-  // import the buffer itself.
-  std::shared_ptr<VideoFrame> createTestPixelBuffer(double width,
-                                                    double height) {
-    auto frame = _platformContext->createTestPixelBuffer(
-        static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-    return std::make_shared<VideoFrame>(std::move(frame));
-  }
-
   // Wrap a CVPixelBufferRef / AHardwareBuffer* pointer (typed as void* via
   // BigInt on the JS side) into one of our VideoFrames. The native side
   // CFRetains / acquires so the caller can release immediately.
   //
   // createNativeBufferFromPointer(pointer, { colorSpace? }): `colorSpace` (a
-  // WebCodecs VideoColorSpaceInit, e.g. a VideoFrame's colorSpace) says how to
-  // read a YUV buffer that carries no color information of its own, as an
-  // AHardwareBuffer from a MediaCodec ImageReader. The fields it sets replace
-  // what the buffer says.
+  // NativeBufferColorSpace, as importExternalTexture's sourceColorSpace) says
+  // how to read a YUV buffer that carries no color information of its own, as
+  // an AHardwareBuffer from a MediaCodec ImageReader. The members it sets
+  // replace what the buffer says.
   jsi::Value createNativeBufferFromPointer(jsi::Runtime &runtime,
                                            const jsi::Value & /*thisVal*/,
                                            const jsi::Value *args,
@@ -351,58 +341,25 @@ public:
       auto colorSpace =
           args[1].getObject(runtime).getProperty(runtime, "colorSpace");
       if (colorSpace.isObject()) {
-        applyVideoColorSpace(runtime, colorSpace.getObject(runtime),
-                             handle.colorSpace);
+        auto override = external_texture_color_space::parse(
+            runtime, colorSpace.getObject(runtime));
+        auto &reported = handle.colorSpace;
+        if (override.matrix) {
+          reported.matrix = override.matrix;
+        }
+        if (override.range) {
+          reported.range = override.range;
+        }
+        if (override.primaries) {
+          reported.primaries = override.primaries;
+        }
+        if (override.transfer) {
+          reported.transfer = override.transfer;
+        }
       }
     }
     return JSIConverter<std::shared_ptr<VideoFrame>>::toJSI(
         runtime, std::make_shared<VideoFrame>(std::move(handle)));
-  }
-
-  // A WebCodecs VideoColorSpaceInit onto the color space of a native frame.
-  static void applyVideoColorSpace(jsi::Runtime &runtime,
-                                   const jsi::Object &init,
-                                   VideoFrameColorSpace &colorSpace) {
-    auto field = [&](const char *name) -> std::string {
-      auto value = init.getProperty(runtime, name);
-      return value.isString() ? value.getString(runtime).utf8(runtime) : "";
-    };
-    const auto primaries = field("primaries");
-    if (primaries == "bt709") {
-      colorSpace.primaries = wgpu::ColorSpacePrimariesDawn::SRGB;
-    } else if (primaries == "bt470bg" || primaries == "smpte170m") {
-      colorSpace.primaries = wgpu::ColorSpacePrimariesDawn::Rec601;
-    } else if (primaries == "bt2020") {
-      colorSpace.primaries = wgpu::ColorSpacePrimariesDawn::Rec2020;
-    } else if (primaries == "smpte432") {
-      colorSpace.primaries = wgpu::ColorSpacePrimariesDawn::DisplayP3;
-    }
-    const auto transfer = field("transfer");
-    if (transfer == "bt709" || transfer == "smpte170m") {
-      colorSpace.transfer = wgpu::ColorSpaceTransferDawn::SMPTE_170M;
-    } else if (transfer == "iec61966-2-1") {
-      colorSpace.transfer = wgpu::ColorSpaceTransferDawn::SRGB;
-    } else if (transfer == "linear") {
-      colorSpace.transfer = wgpu::ColorSpaceTransferDawn::Identity;
-    } else if (transfer == "pq") {
-      colorSpace.transfer = wgpu::ColorSpaceTransferDawn::PQ;
-    } else if (transfer == "hlg") {
-      colorSpace.transfer = wgpu::ColorSpaceTransferDawn::HLG;
-    }
-    const auto matrix = field("matrix");
-    if (matrix == "bt709") {
-      colorSpace.matrix = wgpu::ColorSpaceYCbCrMatrixDawn::Rec709;
-    } else if (matrix == "bt470bg" || matrix == "smpte170m") {
-      colorSpace.matrix = wgpu::ColorSpaceYCbCrMatrixDawn::Rec601;
-    } else if (matrix == "bt2020-ncl") {
-      colorSpace.matrix = wgpu::ColorSpaceYCbCrMatrixDawn::Rec2020;
-    }
-    auto fullRange = init.getProperty(runtime, "fullRange");
-    if (fullRange.isBool()) {
-      colorSpace.range = fullRange.getBool()
-                             ? wgpu::ColorSpaceYCbCrRangeDawn::Full
-                             : wgpu::ColorSpaceYCbCrRangeDawn::Narrow;
-    }
   }
 
   // createNativeBuffer(width, height, { format?, colorSpace? }): an empty
@@ -656,8 +613,6 @@ public:
                   &RNWebGPU::loadVideoFrame);
     installMethod(runtime, prototype, "createTestVideoFrame",
                   &RNWebGPU::createTestVideoFrame);
-    installMethod(runtime, prototype, "createTestPixelBuffer",
-                  &RNWebGPU::createTestPixelBuffer);
     installMethod(runtime, prototype, "createNativeBufferFromPointer",
                   &RNWebGPU::createNativeBufferFromPointer);
     installMethodWithRuntime(runtime, prototype, "importDevice",
