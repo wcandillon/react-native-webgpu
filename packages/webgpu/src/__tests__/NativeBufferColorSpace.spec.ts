@@ -3,33 +3,50 @@ import { client } from "./setup";
 // A pixel as [r, g, b, a], 0..255.
 type Rgba = number[];
 
-type Samples = { left: Rgba; right: Rgba };
+// The middle of the left and right halves of the test frame.
+type Halves = { left: Rgba; right: Rgba };
 
 type EvalResult =
   | { kind: "skip"; reason: string }
   | { kind: "fail"; reason: string }
-  | { kind: "ok"; plain: Samples; wrapped: Samples; imported: Samples };
+  | {
+      kind: "ok";
+      withoutColorSpace: Halves;
+      withColorSpace: Halves;
+      withSourceColorSpace: Halves;
+    };
 
-// How the test frame is encoded: red on the left half, green on the right, in
-// BT.709 narrow range. Its AHardwareBuffer carries no color metadata, so
-// wrapped without options it is read with the platform's guess (BT.601
-// narrow when the driver has none), as a buffer from another library is.
-const OVERRIDE = { matrix: "rec709", range: "narrow" } as const;
+// The test frame is red on the left and green on the right, encoded in
+// BT.709 narrow range, but its AHardwareBuffer does not say so: wrapped
+// without a colorSpace it is read with the platform's guess, as a buffer
+// from another library is.
+const TEST_FRAME_COLOR_SPACE = { matrix: "rec709", range: "narrow" } as const;
+const TEST_FRAME_COLORS: Halves = {
+  left: [255, 0, 0, 255],
+  right: [0, 255, 0, 255],
+};
 
-const expectColor = (actual: Rgba, expected: Rgba) => {
-  expected.forEach((channel, i) => {
-    expect(Math.abs(actual[i] - channel)).toBeLessThanOrEqual(8);
-  });
+// Within 8 levels per channel; on a mismatch, Jest shows both pixels.
+const expectColors = (actual: Halves, expected: Halves) => {
+  const close = (a: Rgba, b: Rgba) =>
+    a.every((channel, i) => Math.abs(channel - b[i]) <= 8);
+  if (
+    !close(actual.left, expected.left) ||
+    !close(actual.right, expected.right)
+  ) {
+    expect(actual).toEqual(expected);
+  }
 };
 
 describe("createNativeBufferFromPointer colorSpace", () => {
-  // Wrapping with the option must read the buffer with the color space it is
-  // given, as importExternalTexture's sourceColorSpace does. Android only: the
-  // pointer is the test frame's AHardwareBuffer*, and on Apple platforms
-  // nothing in JS gives a CVPixelBufferRef to wrap.
-  it("reads a buffer without color metadata with the color space it is given", async () => {
-    const result = await client.eval<{ override: typeof OVERRIDE }, EvalResult>(
-      ({ device, override }) => {
+  // Android only: the pointer is the test frame's AHardwareBuffer*. On Apple
+  // platforms nothing in JS gives a CVPixelBufferRef to wrap.
+  it("reads a buffer without color metadata with the colorSpace it is given", async () => {
+    const result = await client.eval<
+      { testFrameColorSpace: typeof TEST_FRAME_COLOR_SPACE },
+      EvalResult
+    >(
+      ({ device, testFrameColorSpace }) => {
         if (
           !device.features.has(
             "shared-texture-memory-ahardware-buffer" as GPUFeatureName,
@@ -51,26 +68,28 @@ describe("createNativeBufferFromPointer colorSpace", () => {
           };
         }
 
-        let source: ReturnType<typeof RNWebGPU.createTestVideoFrame>;
+        let testFrame: ReturnType<typeof RNWebGPU.createTestVideoFrame>;
         try {
-          source = RNWebGPU.createTestVideoFrame(64, 64, "nv12");
+          testFrame = RNWebGPU.createTestVideoFrame(64, 64, "nv12");
         } catch (e) {
           const message = `${(e as Error).message ?? e}`;
-          // The platform cannot allocate or fill the YUV layout (Android
-          // before API 29).
+          // Android before API 29 cannot allocate or fill the YUV layout.
           if (message.indexOf("unsupported") !== -1) {
             return { kind: "skip", reason: message };
           }
           return { kind: "fail", reason: message };
         }
-        const plain = RNWebGPU.createNativeBufferFromPointer(source.handle);
-        const wrapped = RNWebGPU.createNativeBufferFromPointer(source.handle, {
-          colorSpace: override,
-        });
-        const release = () => {
-          source.release();
-          plain.release();
-          wrapped.release();
+        const pointer = testFrame.handle;
+        const wrappedWithoutColorSpace =
+          RNWebGPU.createNativeBufferFromPointer(pointer);
+        const wrappedWithColorSpace = RNWebGPU.createNativeBufferFromPointer(
+          pointer,
+          { colorSpace: testFrameColorSpace },
+        );
+        const releaseFrames = () => {
+          testFrame.release();
+          wrappedWithoutColorSpace.release();
+          wrappedWithColorSpace.release();
         };
 
         try {
@@ -121,22 +140,26 @@ describe("createNativeBufferFromPointer colorSpace", () => {
             minFilter: "linear",
           });
 
-          // Each draw fills a 2x1 target, whose pixel centers sample the
-          // middle of the left (red) and right (green) halves of the frame,
-          // and lands in its own 256-byte row of one readback buffer.
-          const draws = [
-            { source: plain },
-            { source: wrapped },
-            { source: plain, sourceColorSpace: override },
-          ];
+          const imports = {
+            withoutColorSpace: { source: wrappedWithoutColorSpace },
+            withColorSpace: { source: wrappedWithColorSpace },
+            withSourceColorSpace: {
+              source: wrappedWithoutColorSpace,
+              sourceColorSpace: testFrameColorSpace,
+            },
+          };
+          const names = Object.keys(imports) as (keyof typeof imports)[];
+          // One 256-byte row (the copy alignment) per import.
+          const ROW = 256;
           const readback = device.createBuffer({
-            size: 256 * draws.length,
+            size: ROW * names.length,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
           });
           const encoder = device.createCommandEncoder();
-          const externalTextures = draws.map((descriptor, i) => {
-            const externalTexture = device.importExternalTexture(descriptor);
-            const target = device.createTexture({
+          const externalTextures = names.map((name, row) => {
+            const externalTexture = device.importExternalTexture(imports[name]);
+            // Two pixels, whose centers sample the middle of each half.
+            const halves = device.createTexture({
               size: [2, 1],
               format: "rgba8unorm",
               usage:
@@ -145,7 +168,7 @@ describe("createNativeBufferFromPointer colorSpace", () => {
             const pass = encoder.beginRenderPass({
               colorAttachments: [
                 {
-                  view: target.createView(),
+                  view: halves.createView(),
                   clearValue: { r: 0, g: 0, b: 0, a: 1 },
                   loadOp: "clear",
                   storeOp: "store",
@@ -166,8 +189,8 @@ describe("createNativeBufferFromPointer colorSpace", () => {
             pass.draw(3);
             pass.end();
             encoder.copyTextureToBuffer(
-              { texture: target },
-              { buffer: readback, offset: 256 * i, bytesPerRow: 256 },
+              { texture: halves },
+              { buffer: readback, offset: ROW * row, bytesPerRow: ROW },
               [2, 1],
             );
             return externalTexture;
@@ -180,25 +203,28 @@ describe("createNativeBufferFromPointer colorSpace", () => {
           return readback
             .mapAsync(GPUMapMode.READ)
             .then(() => {
-              const data = new Uint8Array(readback.getMappedRange());
-              const samples = (i: number): Samples => ({
-                left: Array.from(data.subarray(256 * i, 256 * i + 4)),
-                right: Array.from(data.subarray(256 * i + 4, 256 * i + 8)),
-              });
+              const bytes = new Uint8Array(readback.getMappedRange());
+              const halvesOf = (name: keyof typeof imports): Halves => {
+                const start = ROW * names.indexOf(name);
+                return {
+                  left: Array.from(bytes.subarray(start, start + 4)),
+                  right: Array.from(bytes.subarray(start + 4, start + 8)),
+                };
+              };
               return {
                 kind: "ok" as const,
-                plain: samples(0),
-                wrapped: samples(1),
-                imported: samples(2),
+                withoutColorSpace: halvesOf("withoutColorSpace"),
+                withColorSpace: halvesOf("withColorSpace"),
+                withSourceColorSpace: halvesOf("withSourceColorSpace"),
               };
             })
-            .finally(release);
+            .finally(releaseFrames);
         } catch (e) {
-          release();
+          releaseFrames();
           return { kind: "fail", reason: `${(e as Error).message ?? e}` };
         }
       },
-      { override: OVERRIDE },
+      { testFrameColorSpace: TEST_FRAME_COLOR_SPACE },
     );
 
     if (result.kind === "skip") {
@@ -210,11 +236,10 @@ describe("createNativeBufferFromPointer colorSpace", () => {
     }
     console.log(`NativeBufferColorSpace: ${JSON.stringify(result)}`);
 
-    // `plain` is not checked: it is off only where the platform guesses
-    // another color space than the frame's (BT.601 by default), and the log
-    // shows it.
-    expectColor(result.wrapped.left, [255, 0, 0, 255]);
-    expectColor(result.wrapped.right, [0, 255, 0, 255]);
-    expect(result.wrapped).toEqual(result.imported);
+    // withoutColorSpace is logged, not checked: its colors are off only where
+    // the platform's guess is not BT.709 (it is BT.601 when the driver has
+    // none).
+    expectColors(result.withColorSpace, TEST_FRAME_COLORS);
+    expect(result.withColorSpace).toEqual(result.withSourceColorSpace);
   });
 });
