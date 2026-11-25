@@ -1,5 +1,7 @@
 package com.webgpu;
 
+import android.content.ComponentCallbacks2;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.hardware.HardwareBuffer;
 import android.os.Build;
@@ -34,6 +36,25 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
       System.loadLibrary("react-native-webgpu"); // Load the C++ library
   }
 
+  // What the system says about memory goes to the native side as it comes,
+  // which decides when the GPU memory nothing uses goes back to the system
+  // (see GpuPurge).
+  private final ComponentCallbacks2 mComponentCallbacks =
+      new ComponentCallbacks2() {
+        @Override
+        public void onConfigurationChanged(Configuration newConfig) {}
+
+        @Override
+        public void onLowMemory() {
+          onLowMemoryNative();
+        }
+
+        @Override
+        public void onTrimMemory(int level) {
+          onTrimMemoryNative(level);
+        }
+      };
+
   public WebGPUModule(ReactApplicationContext reactContext) {
     super(reactContext);
     // Initialize the C++ module
@@ -41,11 +62,15 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
     // Animation frames follow the host activity: resumed, or not.
     setForegroundNative(reactContext.getLifecycleState() == LifecycleState.RESUMED);
     reactContext.addLifecycleEventListener(this);
+    reactContext.getApplicationContext().registerComponentCallbacks(mComponentCallbacks);
   }
 
   @Override
   public void invalidate() {
     getReactApplicationContext().removeLifecycleEventListener(this);
+    getReactApplicationContext()
+        .getApplicationContext()
+        .unregisterComponentCallbacks(mComponentCallbacks);
     super.invalidate();
   }
 
@@ -71,6 +96,12 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
 
   @DoNotStrip
   private native void flushPipelineCaches();
+
+  @DoNotStrip
+  private static native void onLowMemoryNative();
+
+  @DoNotStrip
+  private static native void onTrimMemoryNative(int level);
 
   /**
    * Whether the app is in the foreground: the host activity is resumed (see

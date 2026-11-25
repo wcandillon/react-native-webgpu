@@ -113,6 +113,7 @@ declare global {
     // device from Skia.getNativeDevice()) into a GPUDevice. Requires the
     // exporter to link this process's single Dawn copy.
     importDevice: (pointer: bigint) => GPUDevice;
+    purgeGpuResources: () => void;
     // Wrap an externally created WGPUTexture pointer into a GPUTexture,
     // taking ownership of one reference (pair with producers that return a
     // +1 pointer, e.g. Skia.Image.MakeGPUTextureFromImage()).

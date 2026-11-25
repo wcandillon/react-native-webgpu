@@ -62,6 +62,7 @@ export * from "../WebGPUViewNativeComponent";
 export * from "../hooks";
 export * from "../GPUDeviceProvider";
 export * from "../importDevice";
+export * from "../purgeGpuResources";
 export * from "../video";
 export * from "../formats";
 

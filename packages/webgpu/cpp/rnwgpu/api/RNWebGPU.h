@@ -19,6 +19,7 @@
 #include "GPUDevice.h"
 #include "GPUSharedFenceState.h"
 #include "GPUTexture.h"
+#include "GpuPurge.h"
 #include "ImageBitmap.h"
 #include "NativeBufferViewRegistry.h"
 #include "NativeFrameImport.h"
@@ -558,6 +559,9 @@ public:
     registry.removeSurfaceInfoIfDetached(contextId);
   }
 
+  // See GpuPurge.
+  void purgeGpuResources() { GpuPurge::request(); }
+
   static void definePrototype(jsi::Runtime &runtime, jsi::Object &prototype) {
     installGetter(runtime, prototype, "fabric", &RNWebGPU::getFabric);
     installGetter(runtime, prototype, "gpu", &RNWebGPU::getGPU);
@@ -581,6 +585,8 @@ public:
                   &RNWebGPU::createNativeBufferFromPointer);
     installMethodWithRuntime(runtime, prototype, "importDevice",
                              &RNWebGPU::importDevice);
+    installMethod(runtime, prototype, "purgeGpuResources",
+                  &RNWebGPU::purgeGpuResources);
     installMethod(runtime, prototype, "adoptTexture", &RNWebGPU::adoptTexture);
     installMethod(runtime, prototype, "createTestVideoPlayer",
                   &RNWebGPU::createTestVideoPlayer);
