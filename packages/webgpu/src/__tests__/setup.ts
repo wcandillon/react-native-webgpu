@@ -108,9 +108,8 @@ interface GPUTestingContext {
     probe: number | null;
     probeSize: number;
     pixelRatio: number;
-    // The context ids of two mounted canvases, toneMapping "extended" and
-    // "standard", for the CanvasToneMapping spec.
-    toneMappingCanvases?: {
+    // See CanvasToneMapping.spec.ts.
+    toneMappingCanvases: {
       extended: number | null;
       standard: number | null;
     };

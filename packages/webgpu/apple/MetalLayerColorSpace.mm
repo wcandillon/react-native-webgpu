@@ -6,6 +6,13 @@
 
 namespace rnwgpu {
 
+#if RNWGPU_HAS_CA_DYNAMIC_RANGE
+// The headroom an "extended" layer declares. A WebGPU canvas puts no ceiling
+// on its values, so it asks for more than any display has (float16 holds far
+// more) and lets the display clamp to what it can show.
+static constexpr CGFloat kExtendedContentsHeadroom = 16.0;
+#endif
+
 // WebGPU canvas values are encoded with the sRGB transfer function regardless
 // of the texture format, and the canvas's colorSpace says which primaries they
 // are in: "srgb" (the default) or "display-p3". The same shader output must
@@ -50,17 +57,45 @@ void applyCAMetalLayerColorSpace(CAMetalLayer *layer,
   if (@available(iOS 16.0, macOS 10.11, visionOS 1.0, *)) {
     layer.wantsExtendedDynamicRangeContent = extendedRange;
   }
+#endif
   // Since iOS and macOS 26 the flag alone no longer lights EDR: the layer
   // asks for it with preferredDynamicRange, and its content is shown above
   // SDR white only up to the headroom it declares.
+#if RNWGPU_HAS_CA_DYNAMIC_RANGE
   if (@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)) {
     layer.preferredDynamicRange =
         extendedRange ? CADynamicRangeHigh : CADynamicRangeStandard;
-    layer.contentsHeadroom = extendedRange ? 16.0 : 0.0;
+    layer.contentsHeadroom = extendedRange ? kExtendedContentsHeadroom : 0.0;
   }
-#else
-  (void)extendedRange;
 #endif
+  (void)extendedRange;
+}
+
+std::string describeCAMetalLayerColorSpace(CAMetalLayer *layer) {
+  NSMutableDictionary *info = [NSMutableDictionary dictionary];
+  if (CGColorSpaceRef colorSpace = layer.colorspace) {
+    if (CFStringRef name = CGColorSpaceGetName(colorSpace)) {
+      info[@"colorspace"] = (__bridge NSString *)name;
+    }
+  }
+#if TARGET_OS_IOS || TARGET_OS_OSX || TARGET_OS_VISION
+  if (@available(iOS 16.0, macOS 10.11, visionOS 1.0, *)) {
+    info[@"wantsExtendedDynamicRangeContent"] =
+        @(layer.wantsExtendedDynamicRangeContent);
+  }
+#endif
+#if RNWGPU_HAS_CA_DYNAMIC_RANGE
+  // CADynamicRangeHigh and CADynamicRangeStandard are "high" and "standard".
+  if (@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)) {
+    info[@"preferredDynamicRange"] = layer.preferredDynamicRange;
+    info[@"contentsHeadroom"] = @(layer.contentsHeadroom);
+  }
+#endif
+  // Strings, numbers and booleans only: serializing cannot fail.
+  NSData *json = [NSJSONSerialization dataWithJSONObject:info
+                                                 options:0
+                                                   error:nil];
+  return std::string(static_cast<const char *>(json.bytes), json.length);
 }
 
 } // namespace rnwgpu

@@ -52,8 +52,7 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   // A fixed native view the drawElementImageToTexture spec snapshots: four
   // 32x32pt solid quadrants (red, lime, blue, white), 64x64pt in total.
   const probeRef = useRef<React.ComponentRef<typeof View>>(null);
-  // Two mounted canvases, one per toneMapping mode, whose native layers the
-  // CanvasToneMapping spec inspects.
+  // One canvas per toneMapping mode, for the CanvasToneMapping spec.
   const extendedCanvasRef = useRef<CanvasRef>(null);
   const standardCanvasRef = useRef<CanvasRef>(null);
   useEffect(() => {

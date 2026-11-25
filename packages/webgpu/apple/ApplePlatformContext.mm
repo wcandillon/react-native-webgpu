@@ -5,11 +5,11 @@
 #import <AVFoundation/AVFoundation.h>
 #import <CoreVideo/CoreVideo.h>
 #import <ImageIO/ImageIO.h>
-#import <QuartzCore/CAMetalLayer.h>
 #import <React/RCTBlobManager.h>
 #import <ReactCommon/RCTTurboModule.h>
 
 #include "AppleVideoPlayer.h"
+#include "MetalLayerColorSpace.h"
 #import "RNWGUIKit.h"
 
 #include "RNWebGPUManager.h"
@@ -560,39 +560,12 @@ std::string ApplePlatformContext::writeTestVideoFile() {
   return writeAppleTestVideoFile();
 }
 
-// The settings applyCAMetalLayerColorSpace makes, read back for the e2e spec.
-// The getters of a model layer are safe off the main thread.
 std::string
 ApplePlatformContext::describeNativeSurfaceLayer(void *nativeSurface) {
   if (nativeSurface == nullptr) {
     return "";
   }
-  CAMetalLayer *layer = (__bridge CAMetalLayer *)nativeSurface;
-  NSMutableDictionary *info = [NSMutableDictionary dictionary];
-  if (CGColorSpaceRef colorSpace = layer.colorspace) {
-    if (CFStringRef name = CGColorSpaceGetName(colorSpace)) {
-      info[@"colorspace"] = (__bridge NSString *)name;
-    }
-  }
-#if TARGET_OS_IOS || TARGET_OS_OSX || TARGET_OS_VISION
-  if (@available(iOS 16.0, macOS 10.11, visionOS 1.0, *)) {
-    info[@"wantsExtendedDynamicRangeContent"] =
-        @(layer.wantsExtendedDynamicRangeContent);
-  }
-  if (@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)) {
-    CADynamicRange range = layer.preferredDynamicRange;
-    info[@"preferredDynamicRange"] =
-        [range isEqualToString:CADynamicRangeHigh]       ? @"high"
-        : [range isEqualToString:CADynamicRangeStandard] ? @"standard"
-                                                         : range;
-    info[@"contentsHeadroom"] = @(layer.contentsHeadroom);
-  }
-#endif
-  NSData *json = [NSJSONSerialization dataWithJSONObject:info
-                                                 options:0
-                                                   error:nil];
-  return json ? std::string(static_cast<const char *>(json.bytes), json.length)
-              : "";
+  return describeCAMetalLayerColorSpace((__bridge CAMetalLayer *)nativeSurface);
 }
 
 VideoFrameHandle ApplePlatformContext::wrapNativeBuffer(void *pointer) {

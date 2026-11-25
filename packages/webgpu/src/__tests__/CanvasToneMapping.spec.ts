@@ -1,8 +1,7 @@
-import { client } from "./setup";
+import { client, itSkipsOnWeb } from "./setup";
 
 // What RNWebGPU.describeCanvasLayer reports for the CAMetalLayer of a mounted
-// canvas. preferredDynamicRange and contentsHeadroom exist on iOS, macOS and
-// visionOS 26 and later only.
+// canvas.
 type LayerInfo = {
   colorspace?: string;
   wantsExtendedDynamicRangeContent?: boolean;
@@ -12,76 +11,61 @@ type LayerInfo = {
 
 type EvalResult =
   | { kind: "skip"; reason: string }
-  | { kind: "fail"; reason: string }
   | { kind: "ok"; extended: LayerInfo; standard: LayerInfo };
 
+// The harness (apps/example/src/Tests.tsx) mounts two canvases, one with
+// toneMapping "extended" and one with "standard". Since the 26 SDKs the layer
+// only shows values above 1.0 brighter than SDR white when it asks for a high
+// dynamic range and declares a headroom: wantsExtendedDynamicRangeContent
+// alone no longer does it. preferredDynamicRange and contentsHeadroom are
+// reported only on iOS, macOS and visionOS 26+, in an app built with Xcode 26+.
 describe("Canvas toneMapping", () => {
-  // The harness (apps/example/src/Tests.tsx) mounts two canvases, one with
-  // toneMapping "extended" and one with "standard". Since the 26 SDKs the
-  // layer only shows values above 1.0 brighter than SDR white when it asks
-  // for a high dynamic range and declares a headroom:
-  // wantsExtendedDynamicRangeContent alone no longer does it.
-  it("asks the layer for EDR with the extended mode, and only then", async () => {
-    const result = await client.eval<Record<string, never>, EvalResult>(
-      ({ views }) => {
-        const rnwgpu = RNWebGPU as unknown as {
-          describeCanvasLayer?: (contextId: number) => string;
-        };
-        if (typeof rnwgpu.describeCanvasLayer !== "function") {
-          return {
-            kind: "skip",
-            reason: "RNWebGPU.describeCanvasLayer is unavailable",
+  itSkipsOnWeb(
+    "asks the layer for EDR with the extended mode, and only then",
+    async () => {
+      const result = await client.eval<Record<string, never>, EvalResult>(
+        ({ views }) => {
+          const ids = views?.toneMappingCanvases;
+          if (!ids || ids.extended === null || ids.standard === null) {
+            return { kind: "skip", reason: "no toneMapping canvases mounted" };
+          }
+          const describe = (contextId: number) => {
+            const json = RNWebGPU.describeCanvasLayer(contextId);
+            return json ? (JSON.parse(json) as LayerInfo) : null;
           };
-        }
-        const ids = views?.toneMappingCanvases;
-        if (!ids || ids.extended === null || ids.standard === null) {
-          return {
-            kind: "skip",
-            reason: "the harness mounts no toneMapping canvases",
-          };
-        }
-        const describe = (contextId: number): LayerInfo | null => {
-          const json = rnwgpu.describeCanvasLayer!(contextId);
-          return json ? (JSON.parse(json) as LayerInfo) : null;
-        };
-        const extended = describe(ids.extended);
-        const standard = describe(ids.standard);
-        if (extended === null || standard === null) {
-          return {
-            kind: "skip",
-            reason: "the canvases have no Core Animation layer here",
-          };
-        }
-        if (extended.preferredDynamicRange === undefined) {
-          return {
-            kind: "skip",
-            reason: "preferredDynamicRange needs iOS/macOS/visionOS 26",
-          };
-        }
-        return { kind: "ok", extended, standard };
-      },
-    );
+          const extended = describe(ids.extended);
+          const standard = describe(ids.standard);
+          if (!extended || !standard) {
+            return { kind: "skip", reason: "no Core Animation layer here" };
+          }
+          if (extended.preferredDynamicRange === undefined) {
+            return {
+              kind: "skip",
+              reason: "preferredDynamicRange needs the 26 SDKs and OSes",
+            };
+          }
+          return { kind: "ok", extended, standard };
+        },
+      );
 
-    if (result.kind === "skip") {
-      console.log(`CanvasToneMapping: skipping (${result.reason})`);
-      return;
-    }
-    if (result.kind === "fail") {
-      throw new Error(`CanvasToneMapping: ${result.reason}`);
-    }
-    const { extended, standard } = result;
+      if (result.kind === "skip") {
+        console.log(`CanvasToneMapping: skipping (${result.reason})`);
+        return;
+      }
+      const { extended, standard } = result;
 
-    expect(extended.preferredDynamicRange).toBe("high");
-    expect(extended.contentsHeadroom).toBeGreaterThan(1);
-    expect(extended.wantsExtendedDynamicRangeContent).toBe(true);
+      expect(extended.preferredDynamicRange).toBe("high");
+      expect(extended.contentsHeadroom).toBeGreaterThan(1);
+      expect(extended.wantsExtendedDynamicRangeContent).toBe(true);
 
-    expect(standard.preferredDynamicRange).toBe("standard");
-    expect(standard.contentsHeadroom).toBe(0);
-    expect(standard.wantsExtendedDynamicRangeContent).toBe(false);
+      expect(standard.preferredDynamicRange).toBe("standard");
+      expect(standard.contentsHeadroom).toBe(0);
+      expect(standard.wantsExtendedDynamicRangeContent).toBe(false);
 
-    // Both default to colorSpace "srgb", tagged with the gamma-encoded
-    // extended variant so that float formats keep values above 1.0.
-    expect(extended.colorspace).toBe("kCGColorSpaceExtendedSRGB");
-    expect(standard.colorspace).toBe("kCGColorSpaceExtendedSRGB");
-  });
+      // Both default to colorSpace "srgb", tagged with the gamma-encoded
+      // extended variant so that float formats keep values above 1.0.
+      expect(extended.colorspace).toBe("kCGColorSpaceExtendedSRGB");
+      expect(standard.colorspace).toBe("kCGColorSpaceExtendedSRGB");
+    },
+  );
 });

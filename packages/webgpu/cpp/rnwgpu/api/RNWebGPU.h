@@ -526,10 +526,7 @@ public:
     return rnwgpu::SurfaceRegistry::getInstance().allocateContextId();
   }
 
-  // Test only, left out of the TypeScript declarations: the dynamic range
-  // and colorspace settings of the layer of a mounted canvas, as a JSON
-  // string (PlatformContext::describeNativeSurfaceLayer); "" when the canvas
-  // has no native surface or the platform no such layer.
+  // Test only: see PlatformContext::describeNativeSurfaceLayer.
   std::string describeCanvasLayer(int contextId) {
     auto &registry = rnwgpu::SurfaceRegistry::getInstance();
     auto info = registry.getSurfaceInfo(contextId);
