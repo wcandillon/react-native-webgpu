@@ -36,11 +36,22 @@ The width and height are integers from 1 to 16384.
 ## createNativeBufferFromPointer
 
 ```ts
-createNativeBufferFromPointer(pointer: bigint): NativeBuffer
+createNativeBufferFromPointer(pointer: bigint, options?: CreateNativeBufferFromPointerOptions): NativeBuffer
 ```
 
 Wraps a buffer produced by another library (a `CVPixelBufferRef` on Apple platforms, an `AHardwareBuffer*` on Android, for instance VisionCamera's `frame.getNativeBuffer().pointer`) into a `NativeBuffer` that holds a reference of its own until released.
 It runs on the JS thread; on a worklet runtime, such as a frame processor, call `RNWebGPU.createNativeBufferFromPointer(pointer)` instead (see [Vision Camera](/docs/integrations/vision-camera)).
+
+A YUV buffer may carry no color information of its own, as an `AHardwareBuffer` from a MediaCodec `ImageReader`, and is then read with the platform's guess (BT.601 limited range on Android when the driver has none).
+When you know how it is encoded, pass `colorSpace`, a [`NativeBufferColorSpace`](/api/gpu-device-extensions#gpuexternaltexture-extensions) like `sourceColorSpace` in `importExternalTexture()`; the members it sets replace what the buffer says:
+
+```ts
+const frame = createNativeBufferFromPointer(pointer, {
+  colorSpace: { matrix: "rec709", range: "narrow" },
+});
+```
+
+<auto-type-table path="../../../../packages/webgpu/src/types.ts" name="CreateNativeBufferFromPointerOptions" />
 
 `createTestVideoFrame(width, height)` allocates a frame filled with a test pattern, for tests and examples that need a frame without a camera or a video.
 

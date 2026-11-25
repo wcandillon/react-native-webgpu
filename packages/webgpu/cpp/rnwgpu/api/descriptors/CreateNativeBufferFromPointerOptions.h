@@ -30,7 +30,7 @@ struct JSIConverter<std::shared_ptr<CreateNativeBufferFromPointerOptions>> {
       auto prop = arg.getObject(runtime).getProperty(runtime, "colorSpace");
       if (prop.isObject()) {
         result->colorSpace = external_texture_color_space::parse(
-            runtime, prop.getObject(runtime));
+            runtime, prop.getObject(runtime), "colorSpace");
       }
     }
     return result;
