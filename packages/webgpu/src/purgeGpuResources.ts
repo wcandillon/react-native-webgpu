@@ -1,7 +1,8 @@
 /**
  * Returns the GPU memory nothing uses to the system. Most apps should never
  * call it: `destroy()` lets Dawn reuse the memory, and react-native-webgpu
- * purges on its own when the system is short of memory.
+ * purges on its own when the system is short of memory and, on Android, each
+ * time the app goes to the background.
  *
  * It is meant for a one-off peak (a video export) followed by a long stretch
  * that needs far less GPU memory. Not for a render loop, not after each

@@ -4,10 +4,11 @@
 
 namespace rnwgpu {
 
-// purgeGpuResources(), which the system also brings about when it wants memory
-// back: Dawn gives the GPU memory it keeps for reuse (the memory of destroyed
-// textures and buffers, staging memory) back to the system, for every live
-// device (see GPUDevice::reduceMemoryUsage). Nothing alive is affected.
+// purgeGpuResources(), which the system also brings about when it is short of
+// memory and, on Android, when the app goes to the background: Dawn gives the
+// GPU memory it keeps for reuse (the memory of destroyed textures and buffers,
+// staging memory) back to the system, for every live device (see
+// GPUDevice::reduceMemoryUsage). Nothing alive is affected.
 //
 // The platform modules only report what the system said (onMemoryWarning,
 // onLowMemory, onTrimMemory): whether it calls for a purge is decided here.
@@ -29,7 +30,8 @@ public:
   static void onLowMemory() noexcept;
 
   // Android, ComponentCallbacks2.onTrimMemory(): purges from
-  // kTrimMemoryBackground. Any thread.
+  // kTrimMemoryUiHidden, which is each time the app goes to the background.
+  // Any thread.
   static void onTrimMemory(int level) noexcept;
 
 private:
@@ -45,12 +47,14 @@ private:
   // the pending deletions go through, the next free what they leave.
   static constexpr int kRuntimeThreadPasses = 3;
 
-  // ComponentCallbacks2.TRIM_MEMORY_BACKGROUND: the process is in the
-  // background, among those the system ends for their memory. The level below,
-  // TRIM_MEMORY_UI_HIDDEN, comes with every app switch, where the app is often
-  // back at once and wants that memory again. Since Android 14 these two are
-  // the only levels sent.
-  static constexpr int kTrimMemoryBackground = 40;
+  // ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN: the app is no longer visible. It
+  // renders nothing there, and the system ends the processes in the background
+  // that hold the most memory first. The system sends it each time the app
+  // leaves the foreground, and it may be all it sends: TRIM_MEMORY_BACKGROUND
+  // did not come to an app left in the background until it was cached and
+  // frozen (a Samsung on Android 17). The levels below this one are for an app
+  // in the foreground, and are no longer sent since Android 14.
+  static constexpr int kTrimMemoryUiHidden = 20;
 
   // The purge thread: runs until no request is left.
   static void runRequests() noexcept;

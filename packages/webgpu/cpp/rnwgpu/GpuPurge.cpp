@@ -50,7 +50,7 @@ void GpuPurge::onMemoryWarning() noexcept { request(); }
 void GpuPurge::onLowMemory() noexcept { request(); }
 
 void GpuPurge::onTrimMemory(int level) noexcept {
-  if (level >= kTrimMemoryBackground) {
+  if (level >= kTrimMemoryUiHidden) {
     request();
   }
 }

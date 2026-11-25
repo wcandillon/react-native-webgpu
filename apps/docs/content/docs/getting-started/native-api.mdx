@@ -112,7 +112,7 @@ A device wrapped with [`importDevice()`](#importing-an-external-device) is creat
 
 ## Purging GPU memory
 
-**Most apps should never call `purgeGpuResources()`.** Call `destroy()` on the textures and buffers you are done with, and Dawn reuses their memory for the next ones. When the system runs short of memory, React Native WebGPU purges on its own: on an iOS memory warning, and on Android on `onLowMemory()` and on `onTrimMemory()` from `TRIM_MEMORY_BACKGROUND`.
+**Most apps should never call `purgeGpuResources()`.** Call `destroy()` on the textures and buffers you are done with, and Dawn reuses their memory for the next ones. React Native WebGPU purges on its own: on iOS on a memory warning, and on Android each time the app goes to the background (`onTrimMemory()` from `TRIM_MEMORY_UI_HIDDEN`) and on `onLowMemory()`.
 
 The one case for calling it is a one-off peak followed by a long stretch that needs far less GPU memory, while the app stays in the foreground. For example, a video export that allocated hundreds of megabytes just finished, and the app is back to a light screen:
 
