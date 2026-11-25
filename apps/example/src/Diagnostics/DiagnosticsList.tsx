@@ -58,6 +58,10 @@ const tests = [
     screen: "DeviceDestroyBeforeDetach",
     title: "⚠️ Device Destroy Before Detach",
   },
+  {
+    screen: "ToneMapping",
+    title: "⚠️ Canvas toneMapping (EDR)",
+  },
 ] as const;
 
 export const DiagnosticsList = () => {
