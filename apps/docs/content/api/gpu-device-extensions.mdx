@@ -139,7 +139,7 @@ An external texture built over a texture of a shared memory does not open an acc
 Its descriptor is the same as with a frame as the source (`colorSpace`, `rotation`, `mirrored`, plus `sourceColorSpace`, `cropOrigin` and `cropSize`, see below).
 When the producer drops the buffer, destroy the external texture, the texture and the memory, in that order.
 
-On Android, a buffer from another library (wrapped with `createNativeBufferFromPointer`) carries no color metadata: pass `sourceColorSpace` when you know it (or `colorSpace` to `createNativeBufferFromPointer`), or the conversion assumes what the platform reports for the buffer, BT.601 limited range by default.
+On Android, a buffer from another library (wrapped with `createNativeBufferFromPointer`) carries no color metadata, so the conversion assumes what the platform reports for the buffer, BT.601 limited range by default. When you know how the buffer is encoded, pass its color space as `colorSpace` to `createNativeBufferFromPointer`, or as `sourceColorSpace` here.
 
 ## dawnToggles
 
