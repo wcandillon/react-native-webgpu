@@ -110,37 +110,6 @@ const device = await adapter.requestDevice({
 
 A device wrapped with [`importDevice()`](#importing-an-external-device) is created by its own library and does not use this cache.
 
-## Purging GPU memory
-
-**Most apps should never call `purgeGpuResources()`.** Call `destroy()` on the textures and buffers you are done with, and Dawn reuses their memory for the next ones. React Native WebGPU purges on its own: on iOS on a memory warning, and on Android each time the app goes to the background (`onTrimMemory()` from `TRIM_MEMORY_UI_HIDDEN`) and on `onLowMemory()`.
-
-The one case for calling it is a one-off peak followed by a long stretch that needs far less GPU memory, while the app stays in the foreground. For example, a video export that allocated hundreds of megabytes just finished, and the app is back to a light screen:
-
-```tsx twoslash
-import { purgeGpuResources } from "react-native-webgpu";
-declare const exportTextures: GPUTexture[];
-// ---cut---
-// The export is over, and no other one follows
-exportTextures.forEach((texture) => texture.destroy());
-purgeGpuResources();
-```
-
-Do not call it:
-
-- in a render loop, or after each `destroy()`;
-- when a component unmounts or on navigation: the next screen usually wants that memory back;
-- to fix a leak or an out-of-memory error: it only returns memory that nothing uses, so a texture you have not destroyed stays.
-
-Purging too often makes an app slower: memory that Dawn would have reused has to be requested from the system again.
-
-It returns right away and works in the background for up to about a second. It covers every device created through React Native WebGPU; an [imported device](#importing-an-external-device) is purged by its owner.
-
-### Why it is not in the WebGPU spec
-
-The spec lets you say when you are done with a resource, through `destroy()`. What happens to the memory afterwards (kept for reuse or returned to the system) is left to the implementation. On the web, that is the browser's job: it manages GPU memory for all its pages, and a page has no reason to know about it.
-
-In a native app there is no browser to do it: Dawn runs in your own process, its memory counts towards your app's, and the system can end the app for using too much of it. React Native WebGPU therefore takes on that role with the automatic purges above, and `purgeGpuResources()` covers what it cannot know: that your app has just finished a peak. It does nothing on the Web.
-
 ## Importing an external device
 
 `importDevice()` wraps a GPU device created by another native library into a regular `GPUDevice`. The device handle is passed as a `BigInt`, and the original owner keeps its own reference.
