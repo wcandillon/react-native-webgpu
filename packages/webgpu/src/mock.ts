@@ -85,7 +85,6 @@ const NOT_AVAILABLE_UNDER_JEST =
 export type {
   AndroidBackingView,
   AndroidCanvasProps,
-  AndroidHardwareBufferViewProps,
   AndroidSurfaceViewProps,
   AndroidTextureViewProps,
   CanvasProps,
@@ -146,6 +145,8 @@ export const GPUDeviceProvider = ({ children }: { children?: ReactNode }) =>
 export const useMainDevice = (): never => {
   throw new Error(`useMainDevice() ${NOT_AVAILABLE_UNDER_JEST}`);
 };
+
+export const purgeGpuResources = () => undefined;
 
 export const importDevice = (_pointer: bigint): GPUDevice => {
   throw new Error(`importDevice() ${NOT_AVAILABLE_UNDER_JEST}`);

@@ -14,19 +14,9 @@ With React Native Skia v2 (published as `@shopify/react-native-skia` up to 2.14)
 
 ## Compatibility
 
-Because the two packages share Dawn, React Native Skia v3 and React Native WebGPU must be built against the same Dawn release, which means installing them at matching versions. Pick one row and install versions from it:
+Because the two packages share Dawn, React Native Skia v3 and React Native WebGPU must be built against the same Dawn release, which means installing them at matching versions. The table of compatible versions is maintained in the [React Native Skia documentation](https://wcandillon.github.io/react-native-skia/docs/webgpu).
 
-| React Native WebGPU | React Native Skia |
-| --- | --- |
-| 0.21.3 and later | 3.10.0 and later |
-| 0.20.0 to 0.21.2 | 3.9.0 to 3.9.2 |
-| 0.17.0 to 0.19.2 | 3.7.0 to 3.8.1 |
-| 0.13.1 to 0.16.1 | 3.4.0 to 3.6.3, or 3.0.8 |
-| 0.13.0 | 3.1.0 to 3.3.0, or 3.0.8 |
-| 0.12.1 | 3.0.6 to 3.0.8, or 3.1.0 and later |
-| 0.10.0 to 0.11.2 | 3.0.0 to 3.0.5 |
-
-If the versions don't match, the native build fails with a `Dawn version mismatch` error rather than misbehaving at runtime. Both packages get Dawn from the `react-native-webgpu-dawn` npm package: make sure a single version of it is installed (`npm ls react-native-webgpu-dawn`, or `yarn why react-native-webgpu-dawn`).
+For SDK-archive integration, both packages must pin the same release version and `dawn.commit` in `binaries.json`. WebGPU supplies Dawn; Skia must use its compatible external-Dawn integration so the app links one copy. A mismatch fails with `Dawn version mismatch`. The older binary-npm integrations follow their release-specific installation instructions.
 
 The Graphite previews of v2 (`@shopify/react-native-skia@next`) follow the same rule. Regular v2 releases don't use Dawn, so they work alongside any version of React Native WebGPU.
 

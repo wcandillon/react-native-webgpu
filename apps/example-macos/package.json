@@ -26,7 +26,6 @@
     "react-native-reanimated": "4.6.0",
     "react-native-safe-area-context": "^5.4.0",
     "react-native-screens": "4.19.0",
-    "react-native-skia": "3.10.0",
     "react-native-webgpu": "workspace:*",
     "react-native-worklets": "0.12.2",
     "teapot": "^1.0.0",

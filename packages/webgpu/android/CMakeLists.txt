@@ -56,6 +56,7 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/rnwgpu/api/GPUComputePipeline.cpp
     ../cpp/rnwgpu/api/GPUCanvasContext.cpp
     ../cpp/rnwgpu/DawnBlobCache.cpp
+    ../cpp/rnwgpu/GpuPurge.cpp
     ../cpp/rnwgpu/NativeBufferViewRegistry.cpp
     ../cpp/rnwgpu/AnimationFrames.cpp
     ../cpp/rnwgpu/RNWebGPUManager.cpp

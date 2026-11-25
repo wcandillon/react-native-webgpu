@@ -295,7 +295,7 @@ async::AsyncTaskHandle GPUAdapter::requestDevice(
         // held work settles once the app is back (the same toggle Skia
         // requests on the device it shares, see react-native-skia's
         // DawnUtils::requestDevice). Dawn applies it on iOS and tvOS only, and
-        // a Dawn without it (react-native-webgpu-dawn before 157.1.0) drops
+        // a Dawn without it (Dawn binaries releases before 157.1.0) drops
         // the name. The caller opts out through disabledToggles.
         {
           static const char *const kName =

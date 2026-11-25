@@ -12,8 +12,7 @@ export type { CanvasRef, NativeCanvas, RNCanvasContext } from "./types";
 const generateContextId = () => RNWebGPU.allocateContextId();
 
 /** The Android view a canvas draws into, see {@link AndroidCanvasProps}. */
-export type AndroidBackingView =
-  "TextureView" | "SurfaceView" | "HardwareBufferView";
+export type AndroidBackingView = "TextureView" | "SurfaceView";
 
 /** The options of a canvas backed by a `TextureView`, the default. */
 export interface AndroidTextureViewProps {
@@ -62,17 +61,6 @@ export interface AndroidSurfaceViewProps {
   zOrderMediaOverlay?: boolean;
 }
 
-/** The options of a canvas backed by a `HardwareBufferView`. */
-export interface AndroidHardwareBufferViewProps {
-  /**
-   * A plain view drawing each frame's `AHardwareBuffer` inline: composited
-   * like a `TextureView`, without its extra copy. Opt-in and experimental,
-   * on Android 10 and later; below that the canvas uses a `TextureView`,
-   * with a warning in development. Always composites with alpha.
-   */
-  backingView: "HardwareBufferView";
-}
-
 /**
  * Android-only rendering options: the native view behind the canvas and its
  * options. The view is created when the canvas mounts and kept: a change of
@@ -81,9 +69,7 @@ export interface AndroidHardwareBufferViewProps {
  * z-order options on Android 11 and later. Ignored on iOS and web.
  */
 export type AndroidCanvasProps =
-  | AndroidTextureViewProps
-  | AndroidSurfaceViewProps
-  | AndroidHardwareBufferViewProps;
+  AndroidTextureViewProps | AndroidSurfaceViewProps;
 
 export interface CanvasProps extends ViewProps {
   /**
@@ -128,25 +114,16 @@ const resolveBackingView = (
   android?: AndroidCanvasProps,
 ): AndroidBackingView => {
   const { backingView } = options(android);
-  return backingView === "SurfaceView" || backingView === "HardwareBufferView"
-    ? backingView
-    : "TextureView";
+  return backingView === "SurfaceView" ? backingView : "TextureView";
 };
 
-// Whether the canvas composites as opaque, see BackingViewKind.resolveOpaque():
-// a SurfaceView is opaque unless asked otherwise, a TextureView is translucent
-// unless asked otherwise, and a HardwareBufferView always composites with
-// alpha.
+// Whether the canvas composites as opaque: a SurfaceView is opaque unless
+// asked otherwise, a TextureView is translucent unless asked otherwise.
 const resolveOpaque = (android?: AndroidCanvasProps): boolean => {
   const { opaque } = options(android);
-  switch (resolveBackingView(android)) {
-    case "SurfaceView":
-      return opaque !== false;
-    case "TextureView":
-      return opaque === true;
-    case "HardwareBufferView":
-      return false;
-  }
+  return resolveBackingView(android) === "SurfaceView"
+    ? opaque !== false
+    : opaque === true;
 };
 
 // The native props the `android` prop resolves to.
@@ -169,28 +146,13 @@ const warnIgnoredChange = (prop: string) =>
       "to change it.",
   );
 
-// Warns, in development on Android, about an option a mounting canvas asks
-// for that the native view cannot honour, and about a change of these props
-// that the native view ignores: the backing view is created from them when
-// the canvas mounts (see WebGPUView.java, whose setters these rules mirror).
-// The native side only says so in logcat, which is not where a JS developer
-// looks.
+// Warns, in development on Android, about a change of these props that the
+// native view ignores: the backing view is created from them when the canvas
+// mounts (see WebGPUView.java, whose setters these rules mirror). The native
+// side only says so in logcat, which is not where a JS developer looks.
 const useBackingViewWarning = (android?: AndroidCanvasProps) => {
   const mount = useRef(android);
   const prev = useRef(android);
-  useEffect(() => {
-    if (
-      __DEV__ &&
-      Platform.OS === "android" &&
-      resolveBackingView(mount.current) === "HardwareBufferView" &&
-      Number(Platform.Version) < 29
-    ) {
-      console.warn(
-        "android.backingView: HardwareBufferView needs Android 10, the " +
-          "canvas uses a TextureView.",
-      );
-    }
-  }, []);
   useEffect(() => {
     if (__DEV__ && Platform.OS === "android") {
       const { current: before } = prev;

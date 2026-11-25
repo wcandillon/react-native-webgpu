@@ -1,7 +1,7 @@
 import type {
   CreateNativeBufferFromPointerOptions,
   CreateNativeBufferOptions,
-  CreateVideoPlayerOptions,
+  CreateTestVideoPlayerOptions,
   NativeBuffer,
   VideoPlayer,
 } from "./types";
@@ -18,6 +18,10 @@ const native = (name: string) => {
 /**
  * Decodes a video into native frames the GPU samples without any copy.
  *
+ * For tests and examples only: video decoding is out of the scope of this
+ * library. For video in an app, use a video library and wrap its frames with
+ * `createNativeBufferFromPointer()`.
+ *
  * `source` is a URL (`http`, `https`, `file`) or a file path. Playback is
  * controlled like an HTMLMediaElement (`play()`, `pause()`, `currentTime`,
  * `loop`, `volume`); frames are pulled with `copyLatestFrame()` on every
@@ -25,7 +29,7 @@ const native = (name: string) => {
  * `importSharedTextureMemory()`:
  *
  * ```ts
- * const player = createVideoPlayer(url);
+ * const player = createTestVideoPlayer(url);
  * player.play();
  * const render = () => {
  *   const frame = player.copyLatestFrame();
@@ -40,11 +44,14 @@ const native = (name: string) => {
  * `{ pixelFormat: "nv12" }`. On Android they are always in the decoder's
  * native YUV layout, for `importExternalTexture()`.
  */
-export const createVideoPlayer = (
+export const createTestVideoPlayer = (
   source: string,
-  options?: CreateVideoPlayerOptions,
+  options?: CreateTestVideoPlayerOptions,
 ): VideoPlayer =>
-  native("createVideoPlayer").createVideoPlayer(source, options?.pixelFormat);
+  native("createTestVideoPlayer").createTestVideoPlayer(
+    source,
+    options?.pixelFormat,
+  );
 
 /**
  * Wraps a native buffer produced by another library (a `CVPixelBufferRef` on

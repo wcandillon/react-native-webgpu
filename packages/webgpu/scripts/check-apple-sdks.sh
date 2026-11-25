@@ -6,14 +6,15 @@
 # else in CI builds for tvOS or visionOS.
 #
 # Usage: check-apple-sdks.sh [dawn-include-dir]
-# Defaults to the Dawn headers installed in node_modules.
+# Defaults to the prepared Dawn headers bundled in this package.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-DAWN_INCLUDE="${1:-}"
-if [ -z "$DAWN_INCLUDE" ]; then
-  DAWN_INCLUDE="$(dirname "$(node -p 'require.resolve("react-native-webgpu-dawn/package.json")')")/include"
+DAWN_INCLUDE="${1:-$PWD/cpp/dawn/include}"
+if [ ! -f "$DAWN_INCLUDE/webgpu/webgpu.h" ]; then
+  echo "error: [react-native-webgpu] Dawn headers are missing. Run yarn copy-dawn-headers." >&2
+  exit 1
 fi
 
 # The other files under apple/ need React and codegen headers, which only

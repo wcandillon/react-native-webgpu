@@ -13,9 +13,8 @@ import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.views.view.ReactViewGroup;
 
 /**
- * The Android view behind <Canvas>. It is backed by a TextureView, a
- * SurfaceView or a HardwareBufferView, named by the androidBackingView prop
- * and created once, from the props of the first transaction, for the life of
+ * The Android view behind <Canvas>. It is backed by a TextureView or a
+ * SurfaceView, named by the androidBackingView prop and created once, from the props of the first transaction, for the life of
  * the view (see updateView()).
  */
 public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
@@ -36,8 +35,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   private View mView = null;
   @Nullable
   private BackingViewKind mKind = null;
-  // Only a SurfaceView votes: a TextureView or HardwareBufferView is
-  // composited into the window, which votes for it.
+  // Only a SurfaceView votes: a TextureView is composited into the window,
+  // which votes for it.
   private final SurfaceFrameRateVote mFrameRateVote = new SurfaceFrameRateVote(
     this, idleAfterNanos -> releaseFrameRateVoteIfIdle(mContextId, idleAfterNanos));
 
@@ -46,9 +45,9 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     // ReactViewGroup disables clipChildren (RN overflow is handled with canvas
     // clipping instead). Android copies the parent's clipChildren into each
     // child's RenderNode.clipToBounds, and HWUI treats a damaged node without
-    // it as unbounded damage (RenderNode::damageSelf). The TextureView and
-    // HardwareBufferView children invalidate on every frame, so without this
-    // every non-opaque canvas frame repaints the whole window. Our only child
+    // it as unbounded damage (RenderNode::damageSelf). A TextureView child
+    // invalidates on every frame, so without this every non-opaque canvas
+    // frame repaints the whole window. Our only child
     // exactly fills this view, so clipping it changes nothing visually.
     setClipChildren(true);
   }
@@ -76,8 +75,7 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
       warnIgnoredOnceMounted("android.backingView");
       return;
     }
-    boolean hardwareBufferSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
-    mBackingView = BackingViewKind.fromBackingView(value, hardwareBufferSupported);
+    mBackingView = BackingViewKind.fromBackingView(value);
   }
 
   public void setOpaque(boolean value) {
@@ -139,32 +137,22 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   // not carry. A canvas that needs another backing view is remounted instead,
   // and is off screen for a frame or two until the new view draws its first
   // frame. Later transactions apply the opacity in place (the setters decide
-  // what else is taken); WebGPUHardwareBufferView always composites with
-  // alpha, so there it is a no-op.
+  // what else is taken).
   public void updateView() {
     if (mKind != null) {
-      boolean opaque = BackingViewKind.resolveOpaque(mKind, mOpaque);
       if (mKind == BackingViewKind.TEXTURE_VIEW) {
-        ((WebGPUTextureView) mView).setOpaque(opaque);
-      } else if (mKind == BackingViewKind.SURFACE_VIEW) {
-        ((WebGPUSurfaceView) mView).setOpaque(opaque);
+        ((WebGPUTextureView) mView).setOpaque(mOpaque);
+      } else {
+        ((WebGPUSurfaceView) mView).setOpaque(mOpaque);
       }
       return;
     }
-    BackingViewKind kind = mBackingView;
-    mKind = kind;
-    boolean opaque = BackingViewKind.resolveOpaque(kind, mOpaque);
+    mKind = mBackingView;
     Context ctx = getContext();
-    switch (kind) {
-      case HARDWARE_BUFFER_VIEW:
-        mView = new WebGPUHardwareBufferView(ctx, this);
-        break;
-      case TEXTURE_VIEW:
-        mView = new WebGPUTextureView(ctx, this, opaque);
-        break;
-      default:
-        mView = new WebGPUSurfaceView(ctx, this, mZOrderOnTop, mZOrderMediaOverlay, opaque);
-        break;
+    if (mKind == BackingViewKind.TEXTURE_VIEW) {
+      mView = new WebGPUTextureView(ctx, this, mOpaque);
+    } else {
+      mView = new WebGPUSurfaceView(ctx, this, mZOrderOnTop, mZOrderMediaOverlay, mOpaque);
     }
     addView(mView);
     // ReactViewGroup.requestLayout() is a deliberate no-op, so addView outside
@@ -232,11 +220,6 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
     if (mView instanceof WebGPUTextureView) {
       ((WebGPUTextureView) mView).latchPresentedFrame();
     }
-  }
-
-  @Override
-  public int getContextId() {
-    return mContextId;
   }
 
   /**
