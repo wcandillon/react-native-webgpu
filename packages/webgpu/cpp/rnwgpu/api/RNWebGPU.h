@@ -14,10 +14,10 @@
 
 #include "ArrayBuffer.h"
 #include "Canvas.h"
+#include "CreateNativeBufferFromPointerOptions.h"
 #include "GPU.h"
 #include "GPUCanvasContext.h"
 #include "GPUDevice.h"
-#include "GPUExternalTextureDescriptor.h"
 #include "GPUSharedFenceState.h"
 #include "GPUTexture.h"
 #include "ImageBitmap.h"
@@ -320,46 +320,30 @@ public:
 
   // Wrap a CVPixelBufferRef / AHardwareBuffer* pointer (typed as void* via
   // BigInt on the JS side) into one of our VideoFrames. The native side
-  // CFRetains / acquires so the caller can release immediately.
-  //
-  // createNativeBufferFromPointer(pointer, { colorSpace? }): `colorSpace` (a
-  // NativeBufferColorSpace, as importExternalTexture's sourceColorSpace) says
-  // how to read a YUV buffer that carries no color information of its own, as
-  // an AHardwareBuffer from a MediaCodec ImageReader. The members it sets
-  // replace what the buffer says.
-  jsi::Value createNativeBufferFromPointer(jsi::Runtime &runtime,
-                                           const jsi::Value & /*thisVal*/,
-                                           const jsi::Value *args,
-                                           size_t count) {
-    if (count < 1 || !args[0].isBigInt()) {
-      throw jsi::JSError(runtime, "createNativeBufferFromPointer: expected a "
-                                  "pointer (BigInt)");
-    }
-    void *pointer = JSIConverter<void *>::fromJSI(runtime, args[0], false);
+  // CFRetains / acquires so the caller can release immediately. The members
+  // of `options.colorSpace` replace what the buffer says about its own.
+  std::shared_ptr<VideoFrame> createNativeBufferFromPointer(
+      void *pointer,
+      std::optional<std::shared_ptr<CreateNativeBufferFromPointerOptions>>
+          options) {
     auto handle = _platformContext->wrapNativeBuffer(pointer);
-    if (count > 1 && args[1].isObject()) {
-      auto colorSpace =
-          args[1].getObject(runtime).getProperty(runtime, "colorSpace");
-      if (colorSpace.isObject()) {
-        auto override = external_texture_color_space::parse(
-            runtime, colorSpace.getObject(runtime));
-        auto &reported = handle.colorSpace;
-        if (override.matrix) {
-          reported.matrix = override.matrix;
-        }
-        if (override.range) {
-          reported.range = override.range;
-        }
-        if (override.primaries) {
-          reported.primaries = override.primaries;
-        }
-        if (override.transfer) {
-          reported.transfer = override.transfer;
-        }
+    if (options && (*options)->colorSpace) {
+      const auto &given = *(*options)->colorSpace;
+      auto &reported = handle.colorSpace;
+      if (given.matrix) {
+        reported.matrix = given.matrix;
+      }
+      if (given.range) {
+        reported.range = given.range;
+      }
+      if (given.primaries) {
+        reported.primaries = given.primaries;
+      }
+      if (given.transfer) {
+        reported.transfer = given.transfer;
       }
     }
-    return JSIConverter<std::shared_ptr<VideoFrame>>::toJSI(
-        runtime, std::make_shared<VideoFrame>(std::move(handle)));
+    return std::make_shared<VideoFrame>(std::move(handle));
   }
 
   // createNativeBuffer(width, height, { format?, colorSpace? }): an empty
