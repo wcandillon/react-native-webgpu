@@ -49,6 +49,7 @@ import { BackgroundDetach } from "./Diagnostics/BackgroundDetach";
 import { SurfaceChurn } from "./Diagnostics/SurfaceChurn";
 import { TransparencyMode } from "./Diagnostics/TransparencyMode";
 import { DeviceDestroyBeforeDetach } from "./Diagnostics/DeviceDestroyBeforeDetach";
+import { ToneMapping } from "./Diagnostics/ToneMapping";
 import { StorageBufferVertices } from "./StorageBufferVertices";
 import { SharedTextureMemory } from "./SharedTextureMemory";
 import { ImportExternalTexture } from "./ImportExternalTexture";
@@ -113,6 +114,7 @@ const linking: LinkingOptions<Routes> = {
       SurfaceChurn: "diagnostics/surface-churn",
       TransparencyMode: "diagnostics/transparency-mode",
       DeviceDestroyBeforeDetach: "diagnostics/device-destroy-before-detach",
+      ToneMapping: "diagnostics/tone-mapping",
       StorageBufferVertices: "storage-buffer-vertices",
       SharedTextureMemory: "shared-texture-memory",
       ImportExternalTexture: "import-external-texture",
@@ -215,6 +217,7 @@ function App() {
             name="DeviceDestroyBeforeDetach"
             component={DeviceDestroyBeforeDetach}
           />
+          <Stack.Screen name="ToneMapping" component={ToneMapping} />
           <Stack.Screen
             name="StorageBufferVertices"
             component={StorageBufferVertices}
