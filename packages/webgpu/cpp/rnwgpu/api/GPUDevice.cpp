@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -73,6 +74,18 @@ void flushDawnPipelineCache(const wgpu::Device &device,
   }
 }
 
+// Has Dawn give the memory it keeps for reuse on a device back to the system.
+// Returns whether deletions still wait for submitted work to complete. Dawn
+// does nothing for a device that is lost or destroyed, which it checks with
+// the device locked. Any thread that may use the device.
+bool reduceDawnMemoryUsage(const wgpu::Device &device) {
+  // Not redundant with what ReduceMemoryUsage() does: it learns which work has
+  // completed but leaves what waits for that work to a tick, and an idle app
+  // does not tick.
+  device.Tick();
+  return dawn::native::ReduceMemoryUsage(device.Get());
+}
+
 } // namespace
 
 void GPUDevice::flushPipelineCache() {
@@ -118,56 +131,70 @@ void GPUDevice::flushPipelineCacheIfDue() {
   flushPipelineCache();
 }
 
-void GPUDevice::flushPipelineCaches() {
-  // What flushing a device takes, copied out of its wrapper under the
-  // registry's mutex, rather than the wrapper itself: a strong reference to
-  // the wrapper released on this thread (the platform's UI thread) could be
-  // its last, and a wrapper, with its JSI members, must only go on its
-  // runtime's thread.
-  struct Flush {
-    wgpu::Device device;
-    std::shared_ptr<std::atomic<bool>> outgrown;
-    std::shared_ptr<async::RuntimeContext> async;
-    std::weak_ptr<GPUDevice> wrapper;
-  };
-  std::vector<Flush> flushes;
-  {
-    std::lock_guard<std::mutex> lock(getRegistryMutex());
-    for (const auto &entry : getRegistry()) {
-      GPUDevice *device = entry.second;
-      // A wrapper on its way out (its last reference gone, its destructor
-      // about to unregister it) has nothing left to flush; nor has an
-      // imported device, whose owner keeps its cache.
-      if (device->_origin == Origin::Imported ||
-          device->weak_from_this().expired()) {
-        continue;
-      }
-      flushes.push_back({device->_instance, device->_pipelineCacheOutgrown,
-                         device->_async, device->weak_from_this()});
+std::vector<GPUDevice::LiveDevice> GPUDevice::liveDevices() {
+  std::vector<LiveDevice> devices;
+  std::lock_guard<std::mutex> lock(getRegistryMutex());
+  for (const auto &entry : getRegistry()) {
+    GPUDevice *device = entry.second;
+    if (device->_origin == Origin::Imported ||
+        device->weak_from_this().expired()) {
+      continue;
     }
+    devices.push_back({device->_instance, device->_pipelineCacheOutgrown,
+                       device->_async, device->weak_from_this()});
   }
-  for (const auto &flush : flushes) {
+  return devices;
+}
+
+void GPUDevice::flushPipelineCaches() {
+  for (const auto &live : liveDevices()) {
     // Dawn locks a device that synchronizes itself around the flush, so this
     // thread can do it, and does: the runtime's thread may be busy, and a
     // runtime that polls its mailbox would hold the job until its next
     // operation, which may never come before the process is killed.
-    if (flush.device.HasFeature(
-            wgpu::FeatureName::ImplicitDeviceSynchronization)) {
-      flushDawnPipelineCache(flush.device, *flush.outgrown);
+    if (live.synchronizesItself()) {
+      flushDawnPipelineCache(live.device, *live.pipelineCacheOutgrown);
       continue;
     }
-    if (!flush.async) {
+    if (!live.async) {
       continue;
     }
     // A device used from its runtime's thread only is flushed there. Held
     // weakly: a device collected before its runtime gets to the job has
     // nothing left to flush, and the job must not keep it alive.
-    flush.async->post([weak = flush.wrapper](jsi::Runtime &) {
+    live.async->post([weak = live.wrapper](jsi::Runtime &) {
       if (auto device = weak.lock()) {
         device->flushPipelineCache();
       }
     });
   }
+}
+
+bool GPUDevice::reduceMemoryUsage() {
+  bool pending = false;
+  for (const auto &live : liveDevices()) {
+    if (live.synchronizesItself()) {
+      pending |= reduceDawnMemoryUsage(live.device);
+    }
+  }
+  return pending;
+}
+
+bool GPUDevice::reduceMemoryUsageOnRuntimeThreads() {
+  bool asked = false;
+  for (const auto &live : liveDevices()) {
+    if (live.synchronizesItself() || !live.async) {
+      continue;
+    }
+    asked = true;
+    // Held weakly, as in flushPipelineCaches().
+    live.async->post([weak = live.wrapper](jsi::Runtime &) {
+      if (auto device = weak.lock()) {
+        reduceDawnMemoryUsage(device->_instance);
+      }
+    });
+  }
+  return asked;
 }
 
 void GPUDevice::notifyDeviceLost(wgpu::DeviceLostReason reason,

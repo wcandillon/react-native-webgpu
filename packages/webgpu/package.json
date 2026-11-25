@@ -20,6 +20,9 @@
     "apple/**",
     "*.podspec",
     "Package.swift",
+    "scripts/apple-binaries-utils.sh",
+    "scripts/prepare-apple-binaries.sh",
+    "scripts/spm-plugin.js",
     "binaries.json",
     "react-native.config.js",
     "app.plugin.js",
@@ -43,7 +46,8 @@
     "clang-format-android": "find android/cpp/ -iname \"*.h\" -o -iname \"*.m\" -o -iname \"*.cpp\" | xargs clang-format -i",
     "clang-format-common": "find cpp/rnwgpu -iname \"*.h\" -o -iname \"*.m\" -o -iname \"*.cpp\" | xargs clang-format -i",
     "cpplint": "cpplint --linelength=230 --filter=-legal/copyright,-whitespace/indent,-whitespace/comments,-whitespace/ending_newline,-build/include_order,-runtime/references,-readability/todo,-whitespace/blank_line,-whitespace/todo,-runtime/int,-build/c++11,-whitespace/parens --exclude=android/.cxx --exclude=cpp/dawn --exclude=libs --exclude=android/build --exclude=node_modules --recursive .",
-    "check-dawn": "tsx scripts/check-dawn.ts"
+    "check-dawn": "tsx scripts/check-dawn.ts",
+    "copy-dawn-headers": "node scripts/prepare-dawn-headers.mjs"
   },
   "keywords": [
     "react-native",
@@ -113,9 +117,6 @@
     "wgpu-matrix": "^3.0.2",
     "ws": "^8.18.0"
   },
-  "dependencies": {
-    "react-native-webgpu-dawn": "158.0.0"
-  },
   "peerDependencies": {
     "react": "*",
     "react-native": ">=0.81.0",
@@ -157,5 +158,9 @@
         "WebGPUNativeBufferView": "WebGPUNativeBufferView"
       }
     }
+  },
+  "swiftpmConfig": {
+    "name": "ReactNativeWebGPU",
+    "autolinkingPlugin": "./scripts/spm-plugin.js"
   }
 }

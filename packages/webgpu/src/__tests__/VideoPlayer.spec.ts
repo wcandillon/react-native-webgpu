@@ -23,10 +23,10 @@ type EvalResult =
 describe("VideoPlayer", () => {
   it("decodes a test video and reports its metadata", async () => {
     const result = await client.eval<Record<string, never>, EvalResult>(() => {
-      if (typeof RNWebGPU?.createVideoPlayer !== "function") {
+      if (typeof RNWebGPU?.createTestVideoPlayer !== "function") {
         return {
           kind: "skip",
-          reason: "RNWebGPU.createVideoPlayer is unavailable",
+          reason: "RNWebGPU.createTestVideoPlayer is unavailable",
         };
       }
       let path: string;
@@ -38,7 +38,7 @@ describe("VideoPlayer", () => {
           reason: `writeTestVideoFile is unavailable: ${e}`,
         };
       }
-      const player = RNWebGPU.createVideoPlayer(path);
+      const player = RNWebGPU.createTestVideoPlayer(path);
       player.loop = true;
       player.play();
       return new Promise<EvalResult>((resolve) => {
@@ -111,10 +111,10 @@ describe("VideoPlayer", () => {
           frames: number;
         }
     >(() => {
-      if (typeof RNWebGPU?.createVideoPlayer !== "function") {
+      if (typeof RNWebGPU?.createTestVideoPlayer !== "function") {
         return {
           kind: "skip",
-          reason: "RNWebGPU.createVideoPlayer is unavailable",
+          reason: "RNWebGPU.createTestVideoPlayer is unavailable",
         };
       }
       let path: string;
@@ -126,7 +126,7 @@ describe("VideoPlayer", () => {
           reason: `writeTestVideoFile is unavailable: ${e}`,
         };
       }
-      const player = RNWebGPU.createVideoPlayer(path);
+      const player = RNWebGPU.createTestVideoPlayer(path);
       player.pause();
       // Seeking while paused delivers the frame at the new position.
       player.currentTime = 1.5;

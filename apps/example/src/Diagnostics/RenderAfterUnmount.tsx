@@ -27,8 +27,6 @@ import {
 // backingView is pinned to TextureView: it is the path that crashes rather
 // than silently going black. It is the default, but pinning keeps this test
 // on the SurfaceTexture teardown path if that default ever changes.
-// HardwareBufferView teardown (freeing the AHardwareBuffer pool)
-// is covered by TransparencyMode's "hardware buffer" option with hide/show.
 export const RenderAfterUnmount = () => {
   const ref = useRef<CanvasRef>(null);
   const { log, append } = useDiagnosticLog();

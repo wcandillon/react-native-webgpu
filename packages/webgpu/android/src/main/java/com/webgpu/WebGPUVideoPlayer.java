@@ -112,7 +112,7 @@ public class WebGPUVideoPlayer {
       mp.setDataSource(context, uri);
     } catch (IOException | IllegalArgumentException | SecurityException e) {
       mp.release();
-      throw new RuntimeException("createVideoPlayer: cannot open " + source, e);
+      throw new RuntimeException("createTestVideoPlayer: cannot open " + source, e);
     }
     mp.setLooping(loop);
     mp.prepareAsync();

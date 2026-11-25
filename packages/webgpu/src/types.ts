@@ -171,7 +171,7 @@ export interface GPUCopyExternalNativeFrameSourceInfo {
   mirrored?: boolean;
 }
 
-export interface CreateVideoPlayerOptions {
+export interface CreateTestVideoPlayerOptions {
   // The layout of the frames on Apple platforms:
   // 'bgra8' (default): single-plane BGRA surfaces, for importSharedTextureMemory
   // and a regular sampled GPUTexture.

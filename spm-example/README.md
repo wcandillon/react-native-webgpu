@@ -14,20 +14,24 @@ same way.
 
 ## Why it sits outside the yarn workspace
 
-Swift Package Manager support requires **React Native 0.87 or newer**; earlier
-releases ship no `scripts/spm`. `apps/example` is pinned to an older version, so
-this app keeps its own `node_modules` and installs with npm. It ships no
+Automatic SwiftPM binary preparation requires **React Native 0.87.1 or newer**,
+with the autolinking plugin's `scriptPhases` hook. This harness keeps its pinned
+React Native separate from the workspace, with its own `node_modules` installed
+using npm. It ships no
 lockfile: `react` and `react-native` are pinned exactly in `package.json`.
 
 `react-native-webgpu` is linked from the workspace with
-`file:../packages/webgpu`, so it builds the working tree, not a published release.
+`file:../packages/webgpu`, so it builds the working tree, not a published release. Install the workspace
+and run `yarn workspace react-native-webgpu copy-dawn-headers` first; published
+packages already include those headers. Xcode prepares only the selected SDK
+from the pinned release, using the same cache as react-native-skia.
 
 ## Build and run
 
 ```sh
 npm install
 cd ios
-npx react-native spm add --deintegrate   # injects the Swift packages into the .xcodeproj
+npx react-native spm update   # refreshes the committed project and preparation phase
 
 xcodebuild -project SpmExample.xcodeproj -scheme SpmExample \
   -configuration Release -sdk iphonesimulator \
@@ -40,10 +44,11 @@ Release embeds its own JS bundle, so it needs no Metro. For Debug, run
 
 ## Gotchas
 
-- **Stale `Package.resolved`.** Xcode caches package pins in
-  `ios/SpmExample.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`.
-  After changing the `react-native-webgpu-dawn` version, delete it first or the
-  old pin is silently kept.
+- **Binary preparation.** The app phase downloads only the selected SDK's Dawn
+  archive and stages its static library. Failures print `error: [react-native-webgpu]`;
+  expand **Prepare React Native WebGPU binaries** in Xcode's report navigator.
+  Set **User Script Sandboxing** to **NO** on the app target. See
+  [cache/local-build details](../packages/webgpu/CONTRIBUTING.md#how-apple-binaries-are-prepared).
 - **`spm update` re-adds an absolute `HERMES_CLI_PATH`.** On React Native
   0.87.1 the injector writes this machine's own path to `hermesc` into
   `project.pbxproj` and `.spm-injected.json`. The build does not need it, so it

@@ -93,10 +93,11 @@ export const examples = [
     screen: "ComputeBoids",
     title: "🐦‍⬛ Compute Boids",
   },
-  {
-    screen: "MNISTInference",
-    title: "1️⃣ MNIST Inference",
-  },
+  // TODO: Restore MNIST when Skia supports SDK-based Dawn preparation.
+  // {
+  //   screen: "MNISTInference",
+  //   title: "1️⃣ MNIST Inference",
+  // },
   ...(Platform.OS !== "ios"
     ? ([
         {
@@ -163,10 +164,11 @@ export const examples = [
     screen: "NativeBufferView",
     title: "🖼️ Native Buffer View",
   },
-  {
-    screen: "IconBenchmark",
-    title: "⏱️ 200 Icons: Skia Canvas vs NativeBufferView",
-  },
+  // TODO: Restore this demo when Skia supports SDK-based Dawn preparation.
+  // {
+  //   screen: "IconBenchmark",
+  //   title: "⏱️ 200 Icons: Skia Canvas vs NativeBufferView",
+  // },
 ] as const;
 
 const styles = StyleSheet.create({
