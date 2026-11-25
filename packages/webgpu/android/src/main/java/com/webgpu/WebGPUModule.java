@@ -36,8 +36,9 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
       System.loadLibrary("react-native-webgpu"); // Load the C++ library
   }
 
-  // The GPU memory nothing uses goes back to the system when it is short of
-  // memory (see GPUDevice::purgeGpuResources).
+  // What the system says about memory goes to the native side as it comes,
+  // which decides when the GPU memory nothing uses goes back to the system
+  // (see GpuPurge).
   private final ComponentCallbacks2 mComponentCallbacks =
       new ComponentCallbacks2() {
         @Override
@@ -45,16 +46,12 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
 
         @Override
         public void onLowMemory() {
-          purgeGpuResourcesNative();
+          onLowMemoryNative();
         }
 
         @Override
         public void onTrimMemory(int level) {
-          // Android 14 and later never call onLowMemory(), and of the trim
-          // levels only send UI_HIDDEN (any app switch) and BACKGROUND.
-          if (level >= TRIM_MEMORY_BACKGROUND) {
-            purgeGpuResourcesNative();
-          }
+          onTrimMemoryNative(level);
         }
       };
 
@@ -101,7 +98,10 @@ public class WebGPUModule extends NativeWebGPUModuleSpec implements LifecycleEve
   private native void flushPipelineCaches();
 
   @DoNotStrip
-  private static native void purgeGpuResourcesNative();
+  private static native void onLowMemoryNative();
+
+  @DoNotStrip
+  private static native void onTrimMemoryNative(int level);
 
   /**
    * Whether the app is in the foreground: the host activity is resumed (see

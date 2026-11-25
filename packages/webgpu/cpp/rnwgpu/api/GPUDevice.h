@@ -109,8 +109,8 @@ public:
 
 private:
   static std::unordered_map<WGPUDevice, GPUDevice *> &getRegistry() {
-    // Never destroyed: the purge thread (see purgeGpuResources) may still read
-    // it while the process exits.
+    // Never destroyed: the purge thread (see GpuPurge) may still read it while
+    // the process exits.
     static auto *registry = new std::unordered_map<WGPUDevice, GPUDevice *>();
     return *registry;
   }
@@ -120,9 +120,32 @@ private:
     return *mutex;
   }
 
-  // One round of purgeGpuResources() over the live devices. Returns whether
-  // Dawn still has deletions waiting for submitted work to complete.
-  static bool reduceMemoryUsage(int pass);
+  // What a pass over the live devices (flushPipelineCaches,
+  // reduceMemoryUsage) takes from each wrapper, copied out under the
+  // registry's mutex rather than the wrapper itself: a strong reference to the
+  // wrapper released on the calling thread (the platform's UI thread, the
+  // purge thread) could be its last, and a wrapper, with its JSI members, must
+  // only go on its runtime's thread.
+  struct LiveDevice {
+    wgpu::Device device;
+    std::shared_ptr<std::atomic<bool>> pipelineCacheOutgrown;
+    std::shared_ptr<async::RuntimeContext> async;
+    std::weak_ptr<GPUDevice> wrapper;
+
+    // Whether Dawn locks the device around each call, so that any thread may
+    // use it (ImplicitDeviceSynchronization, the default). Only the thread of
+    // its runtime may otherwise.
+    bool synchronizesItself() const {
+      return device.HasFeature(
+          wgpu::FeatureName::ImplicitDeviceSynchronization);
+    }
+  };
+
+  // The devices made here that are still in use: not a wrapper on its way out
+  // (its last reference gone, its destructor about to unregister it), nor an
+  // imported device, which is its owner's to look after. Collected anew by
+  // each pass, so that no pass keeps a device alive for the next. Any thread.
+  static std::vector<LiveDevice> liveDevices();
 
 public:
   std::string getBrand() { return CLASS_NAME; }
@@ -329,15 +352,21 @@ public:
   // the last moment to write before the process may be killed.
   static void flushPipelineCaches();
 
-  // Has Dawn give the GPU memory it keeps for reuse (the memory of destroyed
-  // textures and buffers, staging memory) back to the system, for every live
-  // device. Nothing alive is affected. Returns at once: a background thread
-  // does it, and again for up to about a second while deletions still wait for
-  // submitted work. Requests made meanwhile are served by the same thread. A
-  // device that does not synchronize itself is asked a few times, on the
-  // thread of its runtime. An imported device is its owner's to purge. Any
-  // thread: the platform modules call it when the system is short of memory.
-  static void purgeGpuResources() noexcept;
+  // One pass of Dawn's ReduceMemoryUsage() over the live devices that
+  // synchronize themselves (the default), on the calling thread: Dawn gives
+  // the GPU memory it keeps for reuse (the memory of destroyed textures and
+  // buffers, staging memory) back to the system. Nothing alive is affected.
+  // Returns whether Dawn still has deletions waiting for submitted work to
+  // complete, in which case another pass shortly frees more. An imported
+  // device is its owner's to purge. Any thread; GpuPurge decides when, and
+  // how many times.
+  static bool reduceMemoryUsage();
+
+  // The same pass for the live devices only the thread of their runtime may
+  // use: a job on that thread for each, which a runtime that polls its
+  // mailbox reaches with its next operation. Returns whether any was asked;
+  // what Dawn answers there is not waited for. Any thread.
+  static bool reduceMemoryUsageOnRuntimeThreads();
 
 private:
   friend class GPUAdapter;

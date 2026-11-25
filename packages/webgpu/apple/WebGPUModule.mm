@@ -2,7 +2,7 @@
 #include "ApplePlatformContext.h"
 #include "DawnBlobCache.h"
 #import "GPUCanvasContext.h"
-#import "GPUDevice.h"
+#include "GpuPurge.h"
 #import "RNWGUIKit.h"
 
 #import <React/RCTBridge+Private.h>
@@ -24,9 +24,9 @@ namespace react = facebook::react;
 @end
 
 #if !TARGET_OS_OSX
-// The GPU memory nothing uses goes back to the system when it is short of
-// memory (see GPUDevice::purgeGpuResources). Once for the process: devices
-// outlive a React reload.
+// A memory warning goes to the native side as it comes, which decides when the
+// GPU memory nothing uses goes back to the system (see GpuPurge). Once for the
+// process: devices outlive a React reload.
 static void observeMemoryWarnings() {
   static dispatch_once_t once;
   dispatch_once(&once, ^{
@@ -35,7 +35,7 @@ static void observeMemoryWarnings() {
                     object:nil
                      queue:nil
                 usingBlock:^(NSNotification *) {
-                  rnwgpu::GPUDevice::purgeGpuResources();
+                  rnwgpu::GpuPurge::onMemoryWarning();
                 }];
   });
 }
