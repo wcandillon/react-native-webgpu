@@ -1,4 +1,5 @@
 import type {
+  CreateNativeBufferFromPointerOptions,
   CreateNativeBufferOptions,
   CreateTestVideoPlayerOptions,
   NativeBuffer,
@@ -58,9 +59,13 @@ export const createTestVideoPlayer = (
  * VisionCamera's `frame.getNativeBuffer().pointer`) into a `NativeBuffer`
  * that keeps it alive until released.
  */
-export const createNativeBufferFromPointer = (pointer: bigint): NativeBuffer =>
+export const createNativeBufferFromPointer = (
+  pointer: bigint,
+  options?: CreateNativeBufferFromPointerOptions,
+): NativeBuffer =>
   native("createNativeBufferFromPointer").createNativeBufferFromPointer(
     pointer,
+    options,
   );
 
 /**

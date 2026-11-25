@@ -14,6 +14,7 @@
 
 #include "ArrayBuffer.h"
 #include "Canvas.h"
+#include "CreateNativeBufferFromPointerOptions.h"
 #include "GPU.h"
 #include "GPUCanvasContext.h"
 #include "GPUDevice.h"
@@ -320,9 +321,29 @@ public:
 
   // Wrap a CVPixelBufferRef / AHardwareBuffer* pointer (typed as void* via
   // BigInt on the JS side) into one of our VideoFrames. The native side
-  // CFRetains / acquires so the caller can release immediately.
-  std::shared_ptr<VideoFrame> createNativeBufferFromPointer(void *pointer) {
+  // CFRetains / acquires so the caller can release immediately. The members
+  // of `options.colorSpace` replace what the buffer says about its own.
+  std::shared_ptr<VideoFrame> createNativeBufferFromPointer(
+      void *pointer,
+      std::optional<std::shared_ptr<CreateNativeBufferFromPointerOptions>>
+          options) {
     auto handle = _platformContext->wrapNativeBuffer(pointer);
+    if (options && (*options)->colorSpace) {
+      const auto &given = *(*options)->colorSpace;
+      auto &reported = handle.colorSpace;
+      if (given.matrix) {
+        reported.matrix = given.matrix;
+      }
+      if (given.range) {
+        reported.range = given.range;
+      }
+      if (given.primaries) {
+        reported.primaries = given.primaries;
+      }
+      if (given.transfer) {
+        reported.transfer = given.transfer;
+      }
+    }
     return std::make_shared<VideoFrame>(std::move(handle));
   }
 
