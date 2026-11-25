@@ -51,7 +51,8 @@ namespace external_texture_color_space {
 // The JS names of the members of a source color space, the Dawn enums
 // spelled the way the frame producers report them (see
 // NativeBufferColorSpace in src/types.ts).
-inline wgpu::ColorSpaceYCbCrMatrixDawn parseMatrix(const std::string &name) {
+inline wgpu::ColorSpaceYCbCrMatrixDawn parseMatrix(const std::string &owner,
+                                                   const std::string &name) {
   if (name == "identity") {
     return wgpu::ColorSpaceYCbCrMatrixDawn::Identity;
   }
@@ -64,12 +65,13 @@ inline wgpu::ColorSpaceYCbCrMatrixDawn parseMatrix(const std::string &name) {
   if (name == "rec2020") {
     return wgpu::ColorSpaceYCbCrMatrixDawn::Rec2020;
   }
-  throw std::runtime_error("sourceColorSpace.matrix: unknown value '" + name +
+  throw std::runtime_error(owner + ".matrix: unknown value '" + name +
                            "' (expected 'identity', 'rec601', 'rec709' or "
                            "'rec2020')");
 }
 
-inline wgpu::ColorSpaceYCbCrRangeDawn parseRange(const std::string &name) {
+inline wgpu::ColorSpaceYCbCrRangeDawn parseRange(const std::string &owner,
+                                                 const std::string &name) {
   if (name == "identity") {
     return wgpu::ColorSpaceYCbCrRangeDawn::Identity;
   }
@@ -79,11 +81,12 @@ inline wgpu::ColorSpaceYCbCrRangeDawn parseRange(const std::string &name) {
   if (name == "full") {
     return wgpu::ColorSpaceYCbCrRangeDawn::Full;
   }
-  throw std::runtime_error("sourceColorSpace.range: unknown value '" + name +
+  throw std::runtime_error(owner + ".range: unknown value '" + name +
                            "' (expected 'identity', 'narrow' or 'full')");
 }
 
-inline wgpu::ColorSpacePrimariesDawn parsePrimaries(const std::string &name) {
+inline wgpu::ColorSpacePrimariesDawn parsePrimaries(const std::string &owner,
+                                                    const std::string &name) {
   if (name == "srgb") {
     return wgpu::ColorSpacePrimariesDawn::SRGB;
   }
@@ -99,13 +102,13 @@ inline wgpu::ColorSpacePrimariesDawn parsePrimaries(const std::string &name) {
   if (name == "display-p3") {
     return wgpu::ColorSpacePrimariesDawn::DisplayP3;
   }
-  throw std::runtime_error("sourceColorSpace.primaries: unknown value '" +
-                           name +
+  throw std::runtime_error(owner + ".primaries: unknown value '" + name +
                            "' (expected 'srgb', 'rec709', 'rec601', "
                            "'rec2020' or 'display-p3')");
 }
 
-inline wgpu::ColorSpaceTransferDawn parseTransfer(const std::string &name) {
+inline wgpu::ColorSpaceTransferDawn parseTransfer(const std::string &owner,
+                                                  const std::string &name) {
   if (name == "identity") {
     return wgpu::ColorSpaceTransferDawn::Identity;
   }
@@ -127,13 +130,16 @@ inline wgpu::ColorSpaceTransferDawn parseTransfer(const std::string &name) {
   if (name == "bt-1886") {
     return wgpu::ColorSpaceTransferDawn::BT_1886;
   }
-  throw std::runtime_error("sourceColorSpace.transfer: unknown value '" + name +
+  throw std::runtime_error(owner + ".transfer: unknown value '" + name +
                            "' (expected 'identity', 'srgb', 'display-p3', "
                            "'smpte-170m', 'hlg', 'pq' or 'bt-1886')");
 }
 
+// `owner` names the member being parsed in the error messages
+// ("sourceColorSpace", "colorSpace").
 inline VideoFrameColorSpace parse(jsi::Runtime &runtime,
-                                  const jsi::Object &value) {
+                                  const jsi::Object &value,
+                                  const std::string &owner) {
   VideoFrameColorSpace colorSpace;
   auto member = [&](const char *name) -> std::optional<std::string> {
     if (!value.hasProperty(runtime, name)) {
@@ -146,16 +152,16 @@ inline VideoFrameColorSpace parse(jsi::Runtime &runtime,
     return prop.asString(runtime).utf8(runtime);
   };
   if (auto matrix = member("matrix")) {
-    colorSpace.matrix = parseMatrix(*matrix);
+    colorSpace.matrix = parseMatrix(owner, *matrix);
   }
   if (auto range = member("range")) {
-    colorSpace.range = parseRange(*range);
+    colorSpace.range = parseRange(owner, *range);
   }
   if (auto primaries = member("primaries")) {
-    colorSpace.primaries = parsePrimaries(*primaries);
+    colorSpace.primaries = parsePrimaries(owner, *primaries);
   }
   if (auto transfer = member("transfer")) {
-    colorSpace.transfer = parseTransfer(*transfer);
+    colorSpace.transfer = parseTransfer(owner, *transfer);
   }
   return colorSpace;
 }
@@ -204,7 +210,7 @@ struct JSIConverter<std::shared_ptr<rnwgpu::GPUExternalTextureDescriptor>> {
         auto prop = value.getProperty(runtime, "sourceColorSpace");
         if (prop.isObject()) {
           result->sourceColorSpace = external_texture_color_space::parse(
-              runtime, prop.getObject(runtime));
+              runtime, prop.getObject(runtime), "sourceColorSpace");
         }
       }
       if (value.hasProperty(runtime, "rotation")) {

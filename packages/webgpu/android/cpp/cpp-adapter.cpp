@@ -25,6 +25,7 @@
 #include "DawnBlobCache.h"
 #include "GPUCanvasContext.h"
 #include "GPUDevice.h"
+#include "GpuPurge.h"
 #include "NativeBufferViewRegistry.h"
 #include "RNWebGPUManager.h"
 #include "WebGPURuntime.h"
@@ -68,6 +69,21 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_webgpu_WebGPUModule_flushPipelineCaches(JNIEnv * /* env */,
                                                  jobject /* this */) {
   rnwgpu::GPUDevice::flushPipelineCaches();
+}
+
+// WebGPUModule's ComponentCallbacks2 (UI thread): what the system says about
+// memory, as it says it. GpuPurge decides what calls for a purge.
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUModule_onLowMemoryNative(JNIEnv * /* env */,
+                                               jclass /* clazz */) {
+  rnwgpu::GpuPurge::onLowMemory();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_webgpu_WebGPUModule_onTrimMemoryNative(JNIEnv * /* env */,
+                                                jclass /* clazz */,
+                                                jint level) {
+  rnwgpu::GpuPurge::onTrimMemory(level);
 }
 
 // WebGPUModule.onHostResume and onHostPause (UI thread): animation frames
