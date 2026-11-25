@@ -85,7 +85,6 @@ const NOT_AVAILABLE_UNDER_JEST =
 export type {
   AndroidBackingView,
   AndroidCanvasProps,
-  AndroidHardwareBufferViewProps,
   AndroidSurfaceViewProps,
   AndroidTextureViewProps,
   CanvasProps,

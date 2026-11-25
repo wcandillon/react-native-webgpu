@@ -5,7 +5,7 @@ export interface NativeProps extends ViewProps {
   contextId: CodegenTypes.Int32;
   // The `android` prop, resolved (see Canvas.tsx)
   androidBackingView?: CodegenTypes.WithDefault<
-    "TextureView" | "SurfaceView" | "HardwareBufferView",
+    "TextureView" | "SurfaceView",
     "TextureView"
   >;
   androidOpaque?: CodegenTypes.WithDefault<boolean, false>;
