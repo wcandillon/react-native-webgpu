@@ -8,7 +8,6 @@ import {
   findNodeHandle,
 } from "react-native";
 import {
-  Canvas,
   GPUOffscreenCanvas,
   // importDevice,
   // The flags as the package exports them, not the globals of the same name
@@ -19,7 +18,6 @@ import {
   GPUShaderStage as exportedShaderStage,
   GPUTextureUsage as exportedTextureUsage,
 } from "react-native-webgpu";
-import type { CanvasRef } from "react-native-webgpu";
 // Imported after react-native-webgpu on purpose: webgpu installs natively on
 // import and settles on a Dawn instance of its own while Skia's library is not
 // loaded yet. On Android, Skia's device then lives on a second instance, and
@@ -52,9 +50,6 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
   // A fixed native view the drawElementImageToTexture spec snapshots: four
   // 32x32pt solid quadrants (red, lime, blue, white), 64x64pt in total.
   const probeRef = useRef<React.ComponentRef<typeof View>>(null);
-  // One canvas per toneMapping mode, for the CanvasToneMapping spec.
-  const extendedCanvasRef = useRef<CanvasRef>(null);
-  const standardCanvasRef = useRef<CanvasRef>(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -141,10 +136,6 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
                 probe: findNodeHandle(probeRef.current),
                 probeSize: PROBE_SIZE,
                 pixelRatio: PixelRatio.get(),
-                toneMappingCanvases: {
-                  extended: extendedCanvasRef.current?.getContextId() ?? null,
-                  standard: standardCanvasRef.current?.getContextId() ?? null,
-                },
               },
               workletDeviceStress,
               workletSerialization,
@@ -229,18 +220,6 @@ export const Tests = ({ assets: { di3D, saturn, moon } }: AssetProps) => {
             height: QUADRANT,
             backgroundColor: "white",
           }}
-        />
-      </View>
-      <View style={{ flexDirection: "row" }}>
-        <Canvas
-          ref={extendedCanvasRef}
-          toneMapping={{ mode: "extended" }}
-          style={{ width: 8, height: 8 }}
-        />
-        <Canvas
-          ref={standardCanvasRef}
-          toneMapping={{ mode: "standard" }}
-          style={{ width: 8, height: 8 }}
         />
       </View>
       <Texture

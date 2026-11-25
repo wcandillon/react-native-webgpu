@@ -123,9 +123,6 @@ declare global {
       pixelFormat?: NativeBufferPixelFormat,
     ) => VideoPlayer;
     writeTestVideoFile: () => string;
-    // Test only: the colorspace and dynamic range settings of a mounted
-    // canvas's layer as JSON, or "" where there is no such layer.
-    describeCanvasLayer: (contextId: number) => string;
     // An empty native buffer (AHardwareBuffer / IOSurface) to render into
     // through importSharedTextureMemory() and display in a NativeBufferView.
     // Prefer the createNativeBuffer() export.

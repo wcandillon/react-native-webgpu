@@ -9,7 +9,6 @@
 #import <ReactCommon/RCTTurboModule.h>
 
 #include "AppleVideoPlayer.h"
-#include "MetalLayerColorSpace.h"
 #import "RNWGUIKit.h"
 
 #include "RNWebGPUManager.h"
@@ -558,14 +557,6 @@ ApplePlatformContext::makeAnimationFrameSource() {
 
 std::string ApplePlatformContext::writeTestVideoFile() {
   return writeAppleTestVideoFile();
-}
-
-std::string
-ApplePlatformContext::describeNativeSurfaceLayer(void *nativeSurface) {
-  if (nativeSurface == nullptr) {
-    return "";
-  }
-  return describeCAMetalLayerColorSpace((__bridge CAMetalLayer *)nativeSurface);
 }
 
 VideoFrameHandle ApplePlatformContext::wrapNativeBuffer(void *pointer) {

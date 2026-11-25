@@ -228,13 +228,6 @@ public:
   virtual VideoFrameHandle createTestVideoFrame(uint32_t width, uint32_t height,
                                                 VideoPixelFormat format) = 0;
 
-  // Test only (the e2e spec of the Canvas toneMapping prop): the dynamic range
-  // and colorspace settings of the layer behind a canvas's native surface, as
-  // a JSON object, or "" where the platform has no such layer.
-  virtual std::string describeNativeSurfaceLayer(void * /*nativeSurface*/) {
-    return "";
-  }
-
   // Allocate an empty, GPU-renderable buffer that a NativeBufferView can
   // display: an AHardwareBuffer (Android) or an IOSurface (Apple platforms),
   // with premultiplied pixels in `format`, tagged with `displayP3` or sRGB

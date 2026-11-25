@@ -45,8 +45,6 @@ public:
   VideoFrameHandle createTestVideoFrame(uint32_t width, uint32_t height,
                                         VideoPixelFormat format) override;
 
-  std::string describeNativeSurfaceLayer(void *nativeSurface) override;
-
   VideoFrameHandle createNativeBuffer(uint32_t width, uint32_t height,
                                       wgpu::TextureFormat format,
                                       bool displayP3) override;
