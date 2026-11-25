@@ -329,6 +329,19 @@ export interface GPUSharedTextureMemory {
 }
 
 /**
+ * The options of `createNativeBufferFromPointer()`.
+ */
+export interface CreateNativeBufferFromPointerOptions {
+  /**
+   * How to read a YUV buffer that carries no color information of its own
+   * (an AHardwareBuffer from a MediaCodec ImageReader, for instance), as
+   * `sourceColorSpace` in `importExternalTexture()`. The members it sets
+   * replace what the buffer says.
+   */
+  colorSpace?: NativeBufferColorSpace;
+}
+
+/**
  * The options of `createNativeBuffer()`. The buffer holds premultiplied
  * pixels.
  */
