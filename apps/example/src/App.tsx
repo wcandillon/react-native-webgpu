@@ -48,6 +48,7 @@ import { RenderAfterUnmount } from "./Diagnostics/RenderAfterUnmount";
 import { BackgroundDetach } from "./Diagnostics/BackgroundDetach";
 import { SurfaceChurn } from "./Diagnostics/SurfaceChurn";
 import { TransparencyMode } from "./Diagnostics/TransparencyMode";
+import { SurfaceViewOverlay } from "./Diagnostics/SurfaceViewOverlay";
 import { DeviceDestroyBeforeDetach } from "./Diagnostics/DeviceDestroyBeforeDetach";
 import { StorageBufferVertices } from "./StorageBufferVertices";
 import { SharedTextureMemory } from "./SharedTextureMemory";
@@ -112,6 +113,7 @@ const linking: LinkingOptions<Routes> = {
       BackgroundDetach: "diagnostics/background-detach",
       SurfaceChurn: "diagnostics/surface-churn",
       TransparencyMode: "diagnostics/transparency-mode",
+      SurfaceViewOverlay: "diagnostics/surface-view-overlay",
       DeviceDestroyBeforeDetach: "diagnostics/device-destroy-before-detach",
       StorageBufferVertices: "storage-buffer-vertices",
       SharedTextureMemory: "shared-texture-memory",
@@ -211,6 +213,10 @@ function App() {
           <Stack.Screen name="BackgroundDetach" component={BackgroundDetach} />
           <Stack.Screen name="SurfaceChurn" component={SurfaceChurn} />
           <Stack.Screen name="TransparencyMode" component={TransparencyMode} />
+          <Stack.Screen
+            name="SurfaceViewOverlay"
+            component={SurfaceViewOverlay}
+          />
           <Stack.Screen
             name="DeviceDestroyBeforeDetach"
             component={DeviceDestroyBeforeDetach}

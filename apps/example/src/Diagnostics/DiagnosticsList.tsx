@@ -55,6 +55,10 @@ const tests = [
     title: "⚠️ Android View Props",
   },
   {
+    screen: "SurfaceViewOverlay",
+    title: "⚠️ SurfaceView Overlay",
+  },
+  {
     screen: "DeviceDestroyBeforeDetach",
     title: "⚠️ Device Destroy Before Detach",
   },

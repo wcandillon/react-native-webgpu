@@ -3,15 +3,18 @@ package com.webgpu;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.PixelFormat;
+import android.graphics.Region;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 @SuppressLint("ViewConstructor")
 public class WebGPUSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
 
   WebGPUAPI mApi;
+  private final int[] mLocation = new int[2];
 
   public WebGPUSurfaceView(Context context, WebGPUAPI api, boolean zOrderOnTop,
       boolean zOrderMediaOverlay, boolean opaque) {
@@ -42,6 +45,19 @@ public class WebGPUSurfaceView extends SurfaceView implements SurfaceHolder.Call
       setZOrderMediaOverlay(mediaOverlay);
     }
     invalidate();
+  }
+
+  // Drawn content, not a hole: React Native never refreshes the window's transparent region.
+  @Override
+  public boolean gatherTransparentRegion(@Nullable Region region) {
+    if (region != null && getWidth() > 0 && getHeight() > 0) {
+      getLocationInWindow(mLocation);
+      int left = mLocation[0];
+      int top = mLocation[1];
+      region.op(left, top, left + getWidth(), top + getHeight(), Region.Op.DIFFERENCE);
+    }
+    // Without a region, SurfaceView only reports whether it is opaque.
+    return super.gatherTransparentRegion(null);
   }
 
   @Override
