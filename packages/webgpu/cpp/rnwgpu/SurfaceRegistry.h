@@ -73,6 +73,17 @@ using NativeSurfaceReleaser = std::function<void(void *)>;
 //   content appears without waiting for the next render — the same mechanism
 //   that gives a fast time-to-first-frame when rendering starts before the
 //   native surface exists.
+// - Parking (park/unpark) is for a view that leaves its window but keeps the
+//   window this surface draws to: an Android TextureView keeps its
+//   SurfaceTexture across a detach (see WebGPUTextureView.java), which is how
+//   Android moves a view, and how React Native applies a change of zIndex.
+//   The Dawn surface is kept as well and frames render offscreen until the
+//   view is back; unpark() then hands the kept surface back at the next frame
+//   boundary. Nothing is reconfigured or blitted unless something changed in
+//   the meantime, so the canvas still shows its last frame without being drawn
+//   again, as a canvas that is moved does on the web. A new surface for the
+//   same window could not even be made: the window stays connected to the old
+//   VkSurfaceKHR until Dawn destroys it, which it does lazily.
 class SurfaceInfo {
 public:
   // releaseSurfaceOnUnconfigure is for a surface on a window the caller
@@ -155,6 +166,60 @@ public:
   // then. Safe to call when already offscreen.
   void switchToOffscreen() { detach(/* createFallbackTexture = */ true); }
 
+  // The view left its window but kept the window this surface draws to: keep
+  // the surface and render offscreen until unpark(). A frame already acquired
+  // from the surface still presents. Repeating it is harmless.
+  void park() {
+    std::unique_lock<std::shared_mutex> lock(_mutex);
+    // Whatever surface the view has, adopted or still pending, waits for the
+    // view; a detach also cancels an unpark that has not been taken yet.
+    _parked = true;
+    _unparkPending = false;
+  }
+
+  // The view is back in a window with the window it kept: use the kept surface
+  // again at the next frame boundary (applyPendingAttach), like an attach.
+  // Callers should follow up with
+  // RNWebGPUManager::flushPendingSurfaceTransition.
+  // Returns false when there is nothing to hand back: the surface was given up
+  // while parked (its device changed or was destroyed, see giveUpParkedLocked)
+  // or there never was one. The view then starts over with a new window, as a
+  // new view would.
+  bool unpark() {
+    void *released = nullptr;
+    NativeSurfaceReleaser releaser;
+    bool kept = true;
+    {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      if (!_parked) {
+        return true;
+      }
+#if defined(__ANDROID__)
+      // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE: configuring
+      // the kept surface for another device would make a new surface for the
+      // same window, which cannot connect while Dawn still holds this one.
+      if (_surface && _surfaceDevice && _config.device != nullptr &&
+          _surfaceDevice.Get() != _config.device.Get()) {
+        giveUpParkedLocked(&released, &releaser);
+      }
+#endif
+      kept = !_parkedLost && (_surface || _hasPendingAttach);
+      if (kept) {
+        _unparkPending = true;
+      } else {
+        _parked = false;
+        _unparkPending = false;
+        _parkedReconfigure = false;
+        _parkedLost = false;
+        _frameEpoch++;
+      }
+    }
+    if (releaser && released) {
+      releaser(released);
+    }
+    return kept;
+  }
+
   // Detach without creating the offscreen fallback: used when the context is
   // being destroyed and nothing will consume further frames.
   void detachSurface() { detach(/* createFallbackTexture = */ false); }
@@ -192,44 +257,67 @@ public:
         _frameInFlight = false;
         _acquiredFromSurface = false;
       }
-      if (!_hasPendingAttach || _frameInFlight) {
+      // Nothing is adopted while the view is out of its window (parked): not
+      // the kept surface, and not a surface that attached before it left.
+      if (_frameInFlight ||
+          (!_unparkPending && (_parked || !_hasPendingAttach))) {
         return;
       }
-      // Attach over attach without a detach in between: replace. Ownership
-      // tracks the native window pointer, not the Dawn surface handle (which
-      // can be null if surface creation failed).
-      replacedSurface = _nativeSurface;
-      replacedReleaser = std::move(_releaser);
-      _surface = std::move(_pendingSurface);
+      // A new surface is configured; a kept one only when its configuration
+      // changed while it was parked, so that it still shows its last frame.
+      bool needsConfigure = true;
+      if (_hasPendingAttach) {
+        // Attach over attach without a detach in between, or over a parked
+        // surface: replace. Ownership tracks the native window pointer, not
+        // the Dawn surface handle (which can be null if surface creation
+        // failed).
+        replacedSurface = _nativeSurface;
+        replacedReleaser = std::move(_releaser);
+        _surface = std::move(_pendingSurface);
 #if defined(__ANDROID__)
-      // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
-      _surfaceDevice = nullptr;
+        // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
+        _surfaceDevice = nullptr;
 #endif
-      _nativeSurface = _pendingNativeSurface;
-      _releaser = std::move(_pendingReleaser);
-      _hasPendingAttach = false;
-      _pendingNativeSurface = nullptr;
+        _nativeSurface = _pendingNativeSurface;
+        _releaser = std::move(_pendingReleaser);
+        _hasPendingAttach = false;
+        _pendingNativeSurface = nullptr;
+      } else {
+        needsConfigure = _parkedReconfigure;
+      }
+      _parked = false;
+      _unparkPending = false;
+      _parkedReconfigure = false;
+      _parkedLost = false;
+      if (_surface) {
+        _hadSurface = true;
+      }
       _frameEpoch++;
 
       // _surface can be null here when Dawn surface creation failed for a
       // valid native window; the context then just keeps rendering offscreen.
-      if (_config.device != nullptr && _surface) {
-        bool blit = _texture != nullptr;
-        // The blit needs CopyDst on the surface. Configure with a widened
-        // copy while keeping _config at the usage the user asked for, so any
-        // later reconfigure drops the extra flag again.
-        wgpu::SurfaceConfiguration config = _config;
-        if (blit) {
-          config.usage |= wgpu::TextureUsage::CopyDst;
+      if (_config.device != nullptr && !_configDeviceReleased && _surface) {
+        // Only a frame rendered offscreen is blitted: an empty fallback must
+        // not replace what a kept surface still shows.
+        bool blit = _texture != nullptr && _offscreenFrame;
+        if (needsConfigure || blit) {
+          // The blit needs CopyDst on the surface. Configure with a widened
+          // copy while keeping _config at the usage the user asked for, so
+          // any later reconfigure drops the extra flag again.
+          wgpu::SurfaceConfiguration config = _config;
+          if (blit) {
+            config.usage |= wgpu::TextureUsage::CopyDst;
+          }
+          configureSurfaceLocked(config);
         }
-        configureSurfaceLocked(config);
         if (blit) {
           presentBlit = blitOffscreenToSurfaceLocked();
           device = _config.device;
-          // Consumed either way; on failure the next frame renders fresh.
-          _texture = nullptr;
           blitEpoch = _frameEpoch;
         }
+        // Consumed either way; on failure the next frame renders fresh.
+        _texture = nullptr;
+        _offscreenFrame = false;
       }
     }
     if (replacedReleaser && replacedSurface) {
@@ -267,6 +355,7 @@ public:
     std::unique_lock<std::shared_mutex> lock(_mutex);
     _viewFormats = std::move(viewFormats);
     _config = newConfig;
+    _configDeviceReleased = false;
     // The caller's viewFormats storage dies with the call; point the stored
     // configuration at our own copy.
     _config.viewFormats = _viewFormats.empty() ? nullptr : _viewFormats.data();
@@ -345,14 +434,41 @@ public:
   // commit, so that decision is not forgotten.
   void releaseSurfaceForDevice(const wgpu::Device &device) {
 #if defined(__ANDROID__)
-    std::unique_lock<std::shared_mutex> lock(_mutex);
-    if (!_surface || !_surfaceDevice || _surfaceDevice.Get() != device.Get()) {
-      return;
+    void *released = nullptr;
+    NativeSurfaceReleaser releaser;
+    {
+      std::unique_lock<std::shared_mutex> lock(_mutex);
+      if (_config.device != nullptr && _config.device.Get() == device.Get()) {
+        // Nothing may configure a surface with the device from here on, or
+        // blit a frame it rendered: an adoption or unpark that is still to
+        // come would otherwise put a swapchain back on it.
+        _configDeviceReleased = true;
+        _texture = nullptr;
+        _offscreenFrame = false;
+        _frameOffscreen = false;
+        _frameEpoch++;
+      }
+      if (!_surface || !_surfaceDevice ||
+          _surfaceDevice.Get() != device.Get()) {
+        return;
+      }
+      if (_parked && !_unparkPending) {
+        // A new surface for the window the view keeps could not connect
+        // while Dawn still holds this one: give the window up, and the view
+        // starts over with a new one when it comes back (unpark()). Once it
+        // has asked for its surface back it is no longer waiting to hear
+        // that, so the surface is recreated as for any attached canvas.
+        giveUpParkedLocked(&released, &releaser);
+      } else {
+        // Left unconfigured: _config still names the destroyed device, and
+        // configuring against it would only raise a validation error. The
+        // next configure() from JS (or a surface re-attach) configures it.
+        recreateSurfaceLocked();
+      }
     }
-    // Left unconfigured: _config still names the destroyed device, and
-    // configuring against it would only raise a validation error. The next
-    // configure() from JS (or a surface re-attach) configures it.
-    recreateSurfaceLocked();
+    if (releaser && released) {
+      releaser(released);
+    }
 #else
     (void)device;
 #endif
@@ -384,11 +500,12 @@ public:
     }
     _frameInFlight = true;
     _acquiredFromSurface = false;
+    _frameOffscreen = false;
     _frameEpoch++;
     if (frameEpoch) {
       *frameEpoch = _frameEpoch;
     }
-    if (_surface) {
+    if (_surface && !_parked && !_configDeviceReleased) {
       auto texture = acquireSurfaceTextureLocked();
       if (texture) {
         _acquiredFromSurface = true;
@@ -401,6 +518,12 @@ public:
     if (!_texture) {
       _texture = createOffscreenTextureLocked();
     }
+    _frameOffscreen = true;
+    // Before the first surface, an acquired frame is shown when one comes, as
+    // before (a fast first frame). After that, only a presented one: this
+    // frame draws into the same texture, so the previous frame is withdrawn
+    // until this one is presented, and one abandoned half-drawn never shows.
+    _offscreenFrame = !_hadSurface;
     return _texture;
   }
 
@@ -412,7 +535,8 @@ public:
   // would.
   bool isCurrentFrame(uint64_t frameEpoch) {
     std::shared_lock<std::shared_mutex> lock(_mutex);
-    return _frameInFlight && !_hasPendingAttach && _frameEpoch == frameEpoch;
+    return _frameInFlight && !_hasPendingAttach && !_unparkPending &&
+           _frameEpoch == frameEpoch;
   }
 
   // Present the current frame. Runs synchronously on the thread that did
@@ -445,6 +569,14 @@ public:
         framePresented = _framePresented;
 #endif
       }
+      // What the frame left: a picture on the surface, newer than any offscreen
+      // one, or a completed offscreen frame to show when a surface comes back.
+      if (_surface && _acquiredFromSurface) {
+        _offscreenFrame = false;
+      } else if (_frameInFlight && _frameOffscreen) {
+        _offscreenFrame = true;
+      }
+      _frameOffscreen = false;
       _acquiredFromSurface = false;
       _frameInFlight = false;
       _frameEpoch++;
@@ -501,9 +633,15 @@ private:
         releasers[0] = std::move(_pendingReleaser);
         _pendingNativeSurface = nullptr;
       }
+      _parked = false;
+      _unparkPending = false;
+      _parkedReconfigure = false;
+      _parkedLost = false;
       if (_surface) {
         if (createFallbackTexture && _config.device != nullptr) {
           _texture = createOffscreenTextureLocked();
+          _offscreenFrame = false;
+          _frameOffscreen = false;
         }
         _surface = nullptr;
 #if defined(__ANDROID__)
@@ -610,10 +748,16 @@ private:
   }
 
   void _configureLocked() {
-    if (_surface) {
+    if (_surface && !_parked && !_configDeviceReleased) {
       configureSurfaceLocked(_config);
     } else {
+      // A parked surface takes the new configuration when it is unparked.
+      if (_parked) {
+        _parkedReconfigure = true;
+      }
       _texture = createOffscreenTextureLocked();
+      _offscreenFrame = false;
+      _frameOffscreen = false;
     }
   }
 
@@ -640,6 +784,23 @@ private:
     _surfaceDevice = config.device;
 #endif
   }
+
+#if defined(__ANDROID__)
+  // Drop a parked surface together with its window: the view keeps the window
+  // for when it comes back, and unpark() then tells it to start over. The
+  // caller releases *released with *releaser outside the lock.
+  void giveUpParkedLocked(void **released, NativeSurfaceReleaser *releaser) {
+    _surface = nullptr;
+    // DAWN_WORKAROUND_DEVICE_DESTROY_BEFORE_SURFACE_RELEASE
+    _surfaceDevice = nullptr;
+    _acquiredFromSurface = false;
+    _frameEpoch++;
+    *released = _nativeSurface;
+    *releaser = std::move(_releaser);
+    _nativeSurface = nullptr;
+    _parkedLost = true;
+  }
+#endif
 
   // Replace _surface with a new, unconfigured surface for the same native
   // window: after unconfigure() destroyed it (see the constructor), or on
@@ -682,6 +843,26 @@ private:
   NativeSurfaceReleaser _releaser;
   // Offscreen fallback drawing buffer.
   wgpu::Texture _texture = nullptr;
+  // Whether _texture holds a frame to blit onto the next adopted surface: the
+  // last offscreen frame that was presented, or before the first surface the
+  // last one acquired (see getCurrentTexture).
+  bool _offscreenFrame = false;
+  // The frame in flight renders into _texture (set by getCurrentTexture).
+  bool _frameOffscreen = false;
+  // A surface has been adopted at least once.
+  bool _hadSurface = false;
+  // The surface is kept while its view is out of a window (park): frames
+  // render offscreen. _unparkPending hands it back at the next frame boundary;
+  // _parkedReconfigure says the configuration changed in the meantime.
+  bool _parked = false;
+  bool _unparkPending = false;
+  bool _parkedReconfigure = false;
+  // The parked surface and its window were given up (giveUpParkedLocked).
+  bool _parkedLost = false;
+  // _config names a device that was released (releaseSurfaceForDevice): no
+  // surface is configured with it, and its offscreen frame is gone, until
+  // configure() names another.
+  bool _configDeviceReleased = false;
   // Surface attached by the UI thread, awaiting adoption at a frame boundary.
   bool _hasPendingAttach = false;
   void *_pendingNativeSurface = nullptr;
