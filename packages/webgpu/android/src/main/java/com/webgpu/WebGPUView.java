@@ -35,6 +35,8 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   private View mView = null;
   @Nullable
   private BackingViewKind mKind = null;
+  // Set by destroy(): the canvas is gone.
+  private boolean mDestroyed = false;
   // Only a SurfaceView votes: a TextureView is composited into the window,
   // which votes for it.
   private final SurfaceFrameRateVote mFrameRateVote = new SurfaceFrameRateVote(
@@ -195,6 +197,36 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
   }
 
   @Override
+  public void surfaceParked() {
+    parkSurface(mContextId);
+  }
+
+  @Override
+  public boolean surfaceUnparked() {
+    return unparkSurface(mContextId);
+  }
+
+  @Override
+  public void backingViewLost(View view) {
+    // Posted by the view; it may have been replaced or this canvas dropped since.
+    // A view that left its window again in the meantime has parked the canvas
+    // once more: it retries when it is attached again (another unpark that
+    // fails), and replacing it now would leave the new view stuck behind that
+    // park, since removing a detached view reports no detach.
+    if (view != mView || mDestroyed || mKind != BackingViewKind.TEXTURE_VIEW
+        || !view.isAttachedToWindow()) {
+      return;
+    }
+    WebGPUTextureView lost = (WebGPUTextureView) mView;
+    // Released first, so its SurfaceTexture goes with it rather than being kept.
+    lost.release();
+    removeView(lost);
+    mView = new WebGPUTextureView(getContext(), this, mOpaque);
+    addView(mView);
+    layoutChild();
+  }
+
+  @Override
   public void surfaceOffscreen() {
     // The surface is still valid here, so the vote can be taken back.
     mFrameRateVote.detach();
@@ -227,8 +259,12 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
    * view: the view dies with its Canvas, so it retires the registry entry.
    */
   public void destroy() {
+    mDestroyed = true;
     mFrameRateVote.detach();
     onViewDestroyed(mContextId);
+    if (mView instanceof WebGPUTextureView) {
+      ((WebGPUTextureView) mView).release();
+    }
   }
 
   // reportAnimation asks native to call onAnimating() when frames start being
@@ -255,6 +291,12 @@ public class WebGPUView extends ReactViewGroup implements WebGPUAPI {
 
   @DoNotStrip
   private native void switchToOffscreenSurface(int contextId);
+
+  @DoNotStrip
+  private native void parkSurface(int contextId);
+
+  @DoNotStrip
+  private native boolean unparkSurface(int contextId);
 
   @DoNotStrip
   private native void onViewDestroyed(int contextId);

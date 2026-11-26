@@ -400,6 +400,39 @@ Java_com_webgpu_WebGPUView_switchToOffscreenSurface(JNIEnv *env, jobject thiz,
   }
 }
 
+// A TextureView left its window but kept its SurfaceTexture: keep the surface
+// too, rendering offscreen until the view is back (see SurfaceInfo::park).
+extern "C" JNIEXPORT void JNICALL Java_com_webgpu_WebGPUView_parkSurface(
+    JNIEnv *env, jobject thiz, jint contextId) {
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  if (auto info = registry.getSurfaceInfo(contextId)) {
+    info->park();
+  }
+}
+
+// The TextureView is back in a window with the SurfaceTexture it kept: use the
+// kept surface again at the next frame boundary (see SurfaceInfo::unpark).
+// Returns false when the surface was given up while parked: the view then
+// starts over with a new SurfaceTexture. True when there is no entry (nothing
+// to start over for).
+extern "C" JNIEXPORT jboolean JNICALL Java_com_webgpu_WebGPUView_unparkSurface(
+    JNIEnv *env, jobject thiz, jint contextId) {
+  if (manager == nullptr) {
+    return JNI_TRUE;
+  }
+  auto &registry = rnwgpu::SurfaceRegistry::getInstance();
+  auto info = registry.getSurfaceInfo(contextId);
+  if (!info) {
+    return JNI_TRUE;
+  }
+  if (!info->unpark()) {
+    return JNI_FALSE;
+  }
+  // Contexts that are not rendering pick it up here.
+  manager->flushPendingSurfaceTransition(info);
+  return JNI_TRUE;
+}
+
 // See AnimationReporter::releaseIfIdle; 0 when the surface reports nothing.
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_webgpu_WebGPUView_releaseFrameRateVoteIfIdle(JNIEnv *env, jobject thiz,
